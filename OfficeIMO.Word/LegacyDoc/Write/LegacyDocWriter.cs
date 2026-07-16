@@ -503,6 +503,12 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     case SimpleField simpleField:
                         AppendSupportedPageNumberFieldFromSimpleField(text, runs, bookmarks, simpleField, LegacyDocWritableFormatting.Plain);
                         break;
+                    case DocumentFormat.OpenXml.Math.OfficeMath officeMath:
+                        AppendMathEquationField(text, runs, officeMath, LegacyDocWritableFormatting.Plain);
+                        break;
+                    case DocumentFormat.OpenXml.Math.Paragraph mathParagraph:
+                        AppendMathEquationField(text, runs, mathParagraph, LegacyDocWritableFormatting.Plain);
+                        break;
                     case SdtRun sdtRun:
                         AppendSupportedInlineContentControlText(text, runs, bookmarks, sdtRun, mainPart, footnotes, endnotes, LegacyDocWritableFormatting.Plain, "body paragraph inline content control");
                         break;

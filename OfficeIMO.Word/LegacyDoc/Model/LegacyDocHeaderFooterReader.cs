@@ -143,7 +143,56 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     out int resultEndIndex,
                     out int fieldEndIndex)) {
                     for (int resultIndex = resultStartIndex; resultIndex < resultEndIndex; resultIndex++) {
+                        if (LegacyDocField.TryReadEquationField(
+                            storyCharacters,
+                            resultIndex,
+                            out string hyperlinkEquationInstruction,
+                            out int hyperlinkEquationResultStartIndex,
+                            out int hyperlinkEquationResultEndIndex,
+                            out int hyperlinkEquationFieldEndIndex) &&
+                            hyperlinkEquationFieldEndIndex < resultEndIndex) {
+                            AppendFieldResult(
+                                LegacyDocFieldKind.Equation,
+                                hyperlinkEquationInstruction,
+                                hyperlinkEquationResultStartIndex,
+                                hyperlinkEquationResultEndIndex,
+                                hyperlinkTarget);
+                            resultIndex = hyperlinkEquationFieldEndIndex;
+                            continue;
+                        }
+
+                        if (storyCharacters[resultIndex].Character == LegacyDocField.Begin &&
+                            LegacyDocField.TryReadNestedFieldResult(
+                                storyCharacters,
+                                resultIndex,
+                                resultEndIndex,
+                                out int nestedResultStartIndex,
+                                out int nestedResultEndIndex,
+                                out int nestedFieldEndIndex)) {
+                            foreach (int visibleResultIndex in LegacyDocField.EnumerateVisibleResultIndexes(
+                                storyCharacters,
+                                nestedResultStartIndex,
+                                nestedResultEndIndex)) {
+                                LegacyDocTextCharacter visibleCharacter = storyCharacters[visibleResultIndex];
+                                if (char.IsControl(visibleCharacter.Character)
+                                    && !LegacyDocSpecialCharacters.IsSupportedInlineControl(visibleCharacter.Character)) {
+                                    continue;
+                                }
+                                AppendRunCharacter(
+                                    visibleCharacter.Character,
+                                    GetFormatForFileOffset(formattingRanges, visibleCharacter.FileOffset),
+                                    visibleCharacter.CharacterPosition,
+                                    hyperlinkTarget);
+                            }
+                            resultIndex = nestedFieldEndIndex;
+                            continue;
+                        }
+
                         LegacyDocTextCharacter resultCharacter = storyCharacters[resultIndex];
+                        if (char.IsControl(resultCharacter.Character)
+                            && !LegacyDocSpecialCharacters.IsSupportedInlineControl(resultCharacter.Character)) {
+                            continue;
+                        }
                         AppendRunCharacter(
                             resultCharacter.Character,
                             GetFormatForFileOffset(formattingRanges, resultCharacter.FileOffset),
@@ -199,6 +248,18 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     out int documentPropertyFieldEndIndex)) {
                     AppendFieldResult(LegacyDocFieldKind.DocumentProperty, documentPropertyInstruction, documentPropertyResultStartIndex, documentPropertyResultEndIndex);
                     index = documentPropertyFieldEndIndex;
+                    continue;
+                }
+
+                if (LegacyDocField.TryReadEquationField(
+                    storyCharacters,
+                    index,
+                    out string equationInstruction,
+                    out int equationResultStartIndex,
+                    out int equationResultEndIndex,
+                    out int equationFieldEndIndex)) {
+                    AppendFieldResult(LegacyDocFieldKind.Equation, equationInstruction, equationResultStartIndex, equationResultEndIndex);
+                    index = equationFieldEndIndex;
                     continue;
                 }
 
@@ -278,7 +339,12 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 }
             }
 
-            void AppendFieldResult(LegacyDocFieldKind fieldKind, string? fieldInstruction, int resultStartIndex, int resultEndIndex) {
+            void AppendFieldResult(
+                LegacyDocFieldKind fieldKind,
+                string? fieldInstruction,
+                int resultStartIndex,
+                int resultEndIndex,
+                LegacyDocHyperlinkTarget hyperlinkTarget = default) {
                 FlushRun();
                 LegacyDocCharacterFormat format = LegacyDocCharacterFormat.Default;
                 var positions = new List<int>();
@@ -303,7 +369,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     fieldKind,
                     fieldInstruction,
                     format,
-                    positions));
+                    positions,
+                    hyperlinkTarget));
             }
 
             void AddCurrentParagraph(LegacyDocParagraphFormat format, int paragraphEndCharacter, bool isFinalParagraph) {

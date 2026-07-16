@@ -200,6 +200,7 @@ namespace OfficeIMO.Excel {
                             : dateText;
                         return;
                     case Utf8CellKind.String:
+                    case Utf8CellKind.InlineString:
                     case Utf8CellKind.Error:
                         objectValue = DecodeString(start, length);
                         return;
@@ -372,7 +373,7 @@ namespace OfficeIMO.Excel {
                         _styleIndexes![cellIndex] = styleIndex;
                     }
 
-                    if (!tag.IsEmpty && !TryIndexCell(ref position, cellIndex)) {
+                    if (!tag.IsEmpty && !TryIndexCell(ref position, cellIndex, kind)) {
                         return false;
                     }
                 }
@@ -380,10 +381,14 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            private bool TryIndexCell(ref int position, int cellIndex) {
+            private bool TryIndexCell(ref int position, int cellIndex, Utf8CellKind kind) {
                 while (TryReadNextTag(ref position, _length, out Utf8Tag tag)) {
                     if (tag.IsEnd && LocalNameEquals(tag, "c")) {
                         return true;
+                    }
+
+                    if (!tag.IsEnd && kind == Utf8CellKind.InlineString && LocalNameEquals(tag, "is")) {
+                        return TryIndexSimpleInlineStringCell(ref position, tag, cellIndex);
                     }
 
                     if (tag.IsEnd || (!LocalNameEquals(tag, "v") && !LocalNameEquals(tag, "f"))) {
@@ -424,6 +429,62 @@ namespace OfficeIMO.Excel {
                 }
 
                 return false;
+            }
+
+            private bool TryIndexSimpleInlineStringCell(ref int position, Utf8Tag inlineStringTag, int cellIndex) {
+                if (inlineStringTag.IsEmpty) {
+                    if (cellIndex >= 0) {
+                        _valueStarts![cellIndex] = inlineStringTag.End;
+                        _valueLengths![cellIndex] = 0;
+                    }
+
+                    return TryReadInlineStringCellEnd(ref position, inlineStringTag.End + 1);
+                }
+
+                int contentBoundary = inlineStringTag.End + 1;
+                if (!TryReadNextTag(ref position, _length, out Utf8Tag textTag)
+                    || ContainsNonWhitespace(contentBoundary, textTag.Start)
+                    || textTag.IsEnd
+                    || !LocalNameEquals(textTag, "t")) {
+                    return false;
+                }
+
+                int valueStart = textTag.End;
+                int valueLength = 0;
+                int nextBoundary = textTag.End + 1;
+                if (!textTag.IsEmpty) {
+                    if (!TryReadNextTag(ref position, _length, out Utf8Tag textEndTag)
+                        || !textEndTag.IsEnd
+                        || !LocalNamesEqual(textTag, textEndTag)
+                        || ContainsByte(textTag.End + 1, textEndTag.Start, (byte)'<')) {
+                        return false;
+                    }
+
+                    valueStart = textTag.End + 1;
+                    valueLength = Math.Max(0, textEndTag.Start - valueStart);
+                    nextBoundary = textEndTag.End + 1;
+                }
+
+                if (!TryReadNextTag(ref position, _length, out Utf8Tag inlineStringEndTag)
+                    || ContainsNonWhitespace(nextBoundary, inlineStringEndTag.Start)
+                    || !inlineStringEndTag.IsEnd
+                    || !LocalNamesEqual(inlineStringTag, inlineStringEndTag)) {
+                    return false;
+                }
+
+                if (cellIndex >= 0) {
+                    _valueStarts![cellIndex] = valueStart;
+                    _valueLengths![cellIndex] = valueLength;
+                }
+
+                return TryReadInlineStringCellEnd(ref position, inlineStringEndTag.End + 1);
+            }
+
+            private bool TryReadInlineStringCellEnd(ref int position, int contentBoundary) {
+                return TryReadNextTag(ref position, _length, out Utf8Tag cellEndTag)
+                    && !ContainsNonWhitespace(contentBoundary, cellEndTag.Start)
+                    && cellEndTag.IsEnd
+                    && LocalNameEquals(cellEndTag, "c");
             }
 
             private void ReadNumberValue(
@@ -776,18 +837,29 @@ namespace OfficeIMO.Excel {
             private bool ContainsByte(int start, int end, byte value) =>
                 end > start && _buffer!.AsSpan(start, end - start).IndexOf(value) >= 0;
 
-            private int IndexOfSequence(int start, int limit, params byte[] sequence) {
-                int end = limit - sequence.Length;
-                for (int i = start; i <= end; i++) {
-                    bool matches = true;
-                    for (int j = 0; j < sequence.Length; j++) {
-                        if (_buffer![i + j] != sequence[j]) {
-                            matches = false;
-                            break;
-                        }
+            private bool ContainsNonWhitespace(int start, int end) {
+                for (int i = start; i < end; i++) {
+                    if (!IsAsciiWhitespace(_buffer![i])) {
+                        return true;
                     }
+                }
 
-                    if (matches) return i;
+                return false;
+            }
+
+            private int IndexOfSequence(int start, int limit, byte first, byte second) {
+                int end = limit - 2;
+                for (int i = start; i <= end; i++) {
+                    if (_buffer![i] == first && _buffer[i + 1] == second) return i;
+                }
+
+                return -1;
+            }
+
+            private int IndexOfSequence(int start, int limit, byte first, byte second, byte third) {
+                int end = limit - 3;
+                for (int i = start; i <= end; i++) {
+                    if (_buffer![i] == first && _buffer[i + 1] == second && _buffer[i + 2] == third) return i;
                 }
 
                 return -1;
@@ -812,6 +884,7 @@ namespace OfficeIMO.Excel {
                 Missing,
                 Number,
                 SharedString,
+                InlineString,
                 String,
                 Boolean,
                 Date,

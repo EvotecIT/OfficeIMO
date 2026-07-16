@@ -1364,25 +1364,7 @@ public class PdfFontFamilyTests {
         Assert.Contains("CFF Łódź A", extracted, StringComparison.Ordinal);
         Assert.DoesNotContain(report.Warnings, warning => warning.Code == "opentype-cff-font-output-not-enabled");
         Assert.DoesNotContain(report.Warnings, warning => warning.Code == "unsupported-opentype-cff-font");
-        PdfConversionWarning cffWarning = Assert.Single(report.Warnings, warning => warning.Code == "opentype-cff-charstrings-not-subset");
-        Assert.Equal("OfficeIMO.Tests", cffWarning.Converter);
-        Assert.Equal(PdfConversionWarningSeverity.Warning, cffWarning.Severity);
-        Assert.Equal(PdfLayoutDiagnosticKind.SimplifiedContent, cffWarning.LayoutDiagnostic!.Kind);
-        Assert.Equal("embedded-font:Helvetica", cffWarning.Source);
-        Assert.Equal("OpenType/CFF", cffWarning.Details["format"]);
-        Assert.Equal("OfficeIMOSourceSerifCFF", cffWarning.Details["fontName"]);
-        Assert.Equal("compact-opentype-cff", cffWarning.Details["embeddingMode"]);
-        Assert.Equal("true", cffWarning.Details["cffCharstringsRetained"]);
-        Assert.Equal("false", cffWarning.Details["cffCharstringsSubset"]);
-        Assert.Contains("CFF", cffWarning.Details["openTypeTablesEmbedded"], StringComparison.Ordinal);
-        Assert.Contains("GSUB", cffWarning.Details["openTypeTablesRemoved"], StringComparison.Ordinal);
-        Assert.Contains("GPOS", cffWarning.Details["openTypeLayoutTablesRemoved"], StringComparison.Ordinal);
-        Assert.Equal(cffWarning.Details["glyphCount"], cffWarning.Details["retainedCffGlyphCount"]);
-        Assert.True(int.Parse(cffWarning.Details["glyphCount"], CultureInfo.InvariantCulture) > int.Parse(cffWarning.Details["usedGlyphCount"], CultureInfo.InvariantCulture));
-        Assert.True(int.Parse(cffWarning.Details["unusedCffGlyphCount"], CultureInfo.InvariantCulture) > 0);
-        Assert.False(string.IsNullOrWhiteSpace(cffWarning.Details["usedGlyphIdsPreview"]));
-        Assert.True(int.Parse(cffWarning.Details["fontFileLength"], CultureInfo.InvariantCulture) > 0);
-        Assert.True(int.Parse(cffWarning.Details["cffTableLength"], CultureInfo.InvariantCulture) > 0);
+        Assert.DoesNotContain(report.Warnings, warning => warning.Code == "opentype-cff-charstrings-not-subset");
     }
 
     [Fact]

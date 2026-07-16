@@ -7,6 +7,42 @@ namespace OfficeIMO.Tests.Pdf;
 
 public class RichParagraphWrappingHyphenationTests {
     [Fact]
+    public void HyphenationDictionary_NormalizesEntriesAndHonorsPrefixSuffixLimits() {
+        var dictionary = new PdfHyphenationLexicon(new[] {
+            "ty-pog-ra-phy",
+            "TYPOG-RAPHY"
+        }, minimumPrefixLength: 2, minimumSuffixLength: 2);
+
+        Assert.Equal(1, dictionary.Count);
+        Assert.True(dictionary.Contains("Typography"));
+        Assert.Equal(new[] { 2, 5, 7 }, dictionary.GetBreakpoints("typography"));
+        Assert.Throws<ArgumentException>(() => new PdfHyphenationLexicon(new[] { "-invalid" }));
+        Assert.Throws<ArgumentException>(() => new PdfHyphenationLexicon(new[] { "a-b" }, minimumPrefixLength: 2));
+    }
+
+    [Fact]
+    public void GeneratedText_UsesFirstPartyHyphenationDictionary() {
+        var dictionary = new PdfHyphenationLexicon(new[] { "typog-ra-phy-mile-stone" });
+
+        byte[] bytes = PdfDocument.Create(new PdfOptions {
+                PageWidth = 118,
+                PageHeight = 180,
+                MarginLeft = 18,
+                MarginRight = 18,
+                MarginTop = 24,
+                MarginBottom = 24,
+                CompressContentStreams = false
+            })
+            .TextHyphenationDictionary(dictionary)
+            .Paragraph(paragraph => paragraph.Text("typographymilestone"))
+            .ToBytes();
+
+        string extracted = PdfReadDocument.Load(bytes).ExtractText();
+        Assert.Contains("typographymile-", extracted, StringComparison.Ordinal);
+        Assert.Contains("stone", extracted, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void PdfOptions_ClonePreservesTextHyphenationCallback() {
         PdfTextHyphenationCallback callback = token => token == "typographymilestone"
             ? new[] { 10 }

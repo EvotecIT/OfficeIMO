@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text;
 using System.Threading;
+using DocumentFormat.OpenXml;
 using OfficeIMO.Drawing.Internal;
 using A = DocumentFormat.OpenXml.Drawing;
 using C = DocumentFormat.OpenXml.Drawing.Charts;
@@ -168,11 +169,11 @@ namespace OfficeIMO.Word.Markdown {
             var paragraphBlocks = BuildParagraphBlocks(paragraph, options, hasCheckbox, checkboxChecked, allowQuoteHeuristic: false, trimBoundaryWhitespace: trimBoundaryWhitespace);
             paragraphBlocks = LiftLeadingPageBreakBlocks(addRootBlock, listStack, paragraphBlocks);
 
-            var unsupportedContentBlock = CreateUnsupportedParagraphContentBlock(paragraph, options);
-            if (unsupportedContentBlock != null) {
-                var extendedBlocks = new List<IMarkdownBlock>(paragraphBlocks.Count + 1);
+            IReadOnlyList<IMarkdownBlock> unsupportedContentBlocks = CreateUnsupportedParagraphContentBlocks(paragraph, options);
+            if (unsupportedContentBlocks.Count > 0) {
+                var extendedBlocks = new List<IMarkdownBlock>(paragraphBlocks.Count + unsupportedContentBlocks.Count);
                 extendedBlocks.AddRange(paragraphBlocks);
-                extendedBlocks.Add(unsupportedContentBlock);
+                extendedBlocks.AddRange(unsupportedContentBlocks);
                 paragraphBlocks = extendedBlocks;
             }
 
@@ -282,8 +283,11 @@ namespace OfficeIMO.Word.Markdown {
                     ? OmdListItem.TaskInlines(paragraphBlock.Inlines, checkboxChecked)
                     : new OmdListItem(paragraphBlock.Inlines);
 
+                bool requiresOrderedChildBlocks = paragraphBlocks
+                    .Skip(1)
+                    .Any(block => block is not ParagraphBlock);
                 for (int i = 1; i < paragraphBlocks.Count; i++) {
-                    if (paragraphBlocks[i] is ParagraphBlock additionalParagraph) {
+                    if (!requiresOrderedChildBlocks && paragraphBlocks[i] is ParagraphBlock additionalParagraph) {
                         item.AdditionalParagraphs.Add(additionalParagraph.Inlines);
                     } else {
                         item.NestedBlocks.Add(paragraphBlocks[i]);
@@ -376,8 +380,7 @@ namespace OfficeIMO.Word.Markdown {
                         addRootBlock(block);
                     }
 
-                    var unsupportedContentBlock = CreateUnsupportedParagraphContentBlock(paragraph, options);
-                    if (unsupportedContentBlock != null) {
+                    foreach (IMarkdownBlock unsupportedContentBlock in CreateUnsupportedParagraphContentBlocks(paragraph, options)) {
                         addRootBlock(unsupportedContentBlock);
                     }
                     continue;
@@ -419,6 +422,19 @@ namespace OfficeIMO.Word.Markdown {
             const string codeLangPrefix = "CodeLang_";
             var blocks = new List<IMarkdownBlock>();
 
+            IReadOnlyList<WordEquationOccurrence> equations = WordEquation.GetOccurrences(
+                paragraph._document,
+                paragraph._paragraph);
+            if (equations.Count > 0) {
+                return BuildParagraphBlocksWithOrderedEquations(
+                    paragraph,
+                    equations,
+                    options,
+                    hasCheckbox,
+                    allowQuoteHeuristic,
+                    trimBoundaryWhitespace);
+            }
+
             string? styleId = paragraph.StyleId;
             if (styleId is { Length: > 0 } sid && sid.StartsWith(codeLangPrefix, StringComparison.Ordinal)) {
                 var runs = paragraph.GetRuns()
@@ -454,6 +470,103 @@ namespace OfficeIMO.Word.Markdown {
                 hasCheckbox,
                 allowQuoteHeuristic,
                 trimBoundaryWhitespace);
+        }
+
+        private IReadOnlyList<IMarkdownBlock> BuildParagraphBlocksWithOrderedEquations(
+            WordParagraph paragraph,
+            IReadOnlyList<WordEquationOccurrence> equations,
+            WordToMarkdownOptions options,
+            bool hasCheckbox,
+            bool allowQuoteHeuristic,
+            bool trimBoundaryWhitespace) {
+            var blocks = new List<IMarkdownBlock>();
+            InlineSequence inlines = CreateInlineSequence();
+            string? preferredCodeFont = ResolveConfiguredCodeFont(options.FontFamily);
+            string? implicitCodeFont = ResolveImplicitCodeFont();
+            bool checkboxPending = hasCheckbox;
+
+            void FlushInlines() {
+                IReadOnlyList<IMarkdownBlock> inlineBlocks = BuildParagraphBlocksFromInlines(
+                    paragraph,
+                    inlines,
+                    checkboxPending,
+                    allowQuoteHeuristic,
+                    trimBoundaryWhitespace);
+                foreach (IMarkdownBlock block in inlineBlocks) {
+                    blocks.Add(block);
+                }
+                if (inlineBlocks.Count > 0) {
+                    checkboxPending = false;
+                }
+                inlines = CreateInlineSequence();
+            }
+
+            void AppendStandaloneBlock(IMarkdownBlock block) {
+                if (allowQuoteHeuristic &&
+                    paragraph.IndentationBefore.HasValue &&
+                    paragraph.IndentationBefore.Value > 0) {
+                    int depth = (int)Math.Round(paragraph.IndentationBefore.Value / 720d);
+                    if (depth > 0) {
+                        block = WrapQuotedBlock(block, depth);
+                    }
+                }
+                blocks.Add(block);
+            }
+
+            if (paragraph.PageBreakBefore) {
+                IMarkdownBlock? pageBreakBefore = CreatePageBreakBlock(options);
+                if (pageBreakBefore != null) {
+                    AppendStandaloneBlock(pageBreakBefore);
+                }
+            }
+
+            foreach (WordEquationContentSegment segment in WordEquation.GetVisibleContentSegments(paragraph._paragraph, equations)) {
+                if (segment.Equation != null) {
+                    FlushInlines();
+                    string latex = segment.Equation.ToLatex();
+                    if (!string.IsNullOrWhiteSpace(latex)) {
+                        AppendStandaloneBlock(new CodeBlock("math", latex));
+                    }
+                    continue;
+                }
+
+                WordParagraph sourceRun = segment.CreateSourceParagraph(
+                    paragraph._document,
+                    paragraph._paragraph,
+                    paragraph);
+                if (segment.IsRunArtifact) {
+                    if ((segment.ArtifactElement is Break || segment.ArtifactElement is CarriageReturn) &&
+                        sourceRun.PageBreak != null) {
+                        FlushInlines();
+                        IMarkdownBlock? pageBreak = CreatePageBreakBlock(options);
+                        if (pageBreak != null) {
+                            AppendStandaloneBlock(pageBreak);
+                        }
+                    } else {
+                        AppendEquationArtifact(
+                            inlines,
+                            sourceRun,
+                            segment,
+                            options,
+                            preferredCodeFont,
+                            implicitCodeFont);
+                    }
+                    continue;
+                }
+
+                if (!string.IsNullOrEmpty(segment.Text)) {
+                    AppendRunInlines(
+                        inlines,
+                        sourceRun,
+                        options,
+                        preferredCodeFont,
+                        implicitCodeFont,
+                        segment.Text);
+                }
+            }
+
+            FlushInlines();
+            return blocks;
         }
 
         private static IReadOnlyList<IMarkdownBlock> BuildCodeParagraphBlocksWithPageBreaks(
@@ -547,6 +660,9 @@ namespace OfficeIMO.Word.Markdown {
             string? preferredCodeFont = ResolveConfiguredCodeFont(options.FontFamily);
             string? implicitCodeFont = ResolveImplicitCodeFont();
             bool checkboxPending = hasCheckbox;
+            List<OpenXmlElement> paragraphChildren = paragraph._paragraph.ChildElements.ToList();
+            IReadOnlyList<WordEquationOccurrence> equations = WordEquation.GetOccurrences(paragraph._document, paragraph._paragraph);
+            var expandedEquationContainers = new HashSet<OpenXmlElement>();
 
             if (paragraph.PageBreakBefore) {
                 var pageBreakBlock = CreatePageBreakBlock(options);
@@ -557,6 +673,36 @@ namespace OfficeIMO.Word.Markdown {
 
             foreach (var run in paragraph.GetRuns()) {
                 if (run.IsCheckBox) {
+                    continue;
+                }
+
+                OpenXmlElement? runContentContainer = run._hyperlink
+                    ?? (OpenXmlElement?)run._stdRun
+                    ?? run._run;
+                OpenXmlElement? runContainer = WordEquation.GetDirectParagraphChild(run._paragraph, runContentContainer);
+                int runIndex = runContainer == null ? -1 : paragraphChildren.IndexOf(runContainer);
+                if (runIndex >= 0) {
+                    AppendUnexpandedEquationContainersBefore(
+                        segment, paragraph, paragraphChildren, equations, expandedEquationContainers,
+                        runIndex, run, options, preferredCodeFont, implicitCodeFont);
+                }
+                List<WordEquationOccurrence> coveringEquations = equations
+                    .Where(equation => equation.ContainsChildIndex(runIndex))
+                    .ToList();
+                if (coveringEquations.Count > 0) {
+                    if (runContainer != null &&
+                        coveringEquations.Any(equation => equation.StartChildIndex == runIndex) &&
+                        expandedEquationContainers.Add(runContainer)) {
+                        AppendEquationContainerText(
+                            segment,
+                            paragraph,
+                            runContainer,
+                            coveringEquations,
+                            run,
+                            options,
+                            preferredCodeFont,
+                            implicitCodeFont);
+                    }
                     continue;
                 }
 
@@ -593,6 +739,10 @@ namespace OfficeIMO.Word.Markdown {
 
                 AppendRunInlines(segment, run, options, preferredCodeFont, implicitCodeFont);
             }
+
+            AppendUnexpandedEquationContainersBefore(
+                segment, paragraph, paragraphChildren, equations, expandedEquationContainers,
+                int.MaxValue, paragraph, options, preferredCodeFont, implicitCodeFont);
 
             AppendParagraphBlocksFromSegment(
                 blocks,
@@ -741,10 +891,47 @@ namespace OfficeIMO.Word.Markdown {
             var sequence = CreateInlineSequence();
             string? preferredCodeFont = ResolveConfiguredCodeFont(options.FontFamily);
             string? implicitCodeFont = ResolveImplicitCodeFont();
+            List<OpenXmlElement> paragraphChildren = paragraph._paragraph.ChildElements.ToList();
+            IReadOnlyList<WordEquationOccurrence> equations = WordEquation.GetOccurrences(paragraph._document, paragraph._paragraph);
+            var expandedEquationContainers = new HashSet<OpenXmlElement>();
 
             foreach (var run in paragraph.GetRuns()) {
+                OpenXmlElement? runContentContainer = run._hyperlink
+                    ?? (OpenXmlElement?)run._stdRun
+                    ?? run._run;
+                OpenXmlElement? runContainer = WordEquation.GetDirectParagraphChild(run._paragraph, runContentContainer);
+                int runIndex = runContainer == null ? -1 : paragraphChildren.IndexOf(runContainer);
+                if (runIndex >= 0) {
+                    AppendUnexpandedEquationContainersBefore(
+                        sequence, paragraph, paragraphChildren, equations, expandedEquationContainers,
+                        runIndex, run, options, preferredCodeFont, implicitCodeFont);
+                }
+                List<WordEquationOccurrence> coveringEquations = equations
+                    .Where(equation => equation.ContainsChildIndex(runIndex))
+                    .ToList();
+                if (coveringEquations.Count > 0) {
+                    if (runContainer != null &&
+                        coveringEquations.Any(equation => equation.StartChildIndex == runIndex) &&
+                        expandedEquationContainers.Add(runContainer)) {
+                        AppendEquationContainerText(
+                            sequence,
+                            paragraph,
+                            runContainer,
+                            coveringEquations,
+                            run,
+                            options,
+                            preferredCodeFont,
+                            implicitCodeFont);
+                    }
+                    continue;
+                }
+
                 AppendRunInlines(sequence, run, options, preferredCodeFont, implicitCodeFont);
             }
+
+            AppendUnexpandedEquationContainersBefore(
+                sequence, paragraph, paragraphChildren, equations, expandedEquationContainers,
+                int.MaxValue, paragraph, options, preferredCodeFont, implicitCodeFont);
 
             if (trimBoundaryWhitespace) {
                 TrimBoundaryWhitespace(sequence);
@@ -753,12 +940,84 @@ namespace OfficeIMO.Word.Markdown {
             return sequence;
         }
 
+        private void AppendUnexpandedEquationContainersBefore(
+            InlineSequence sequence,
+            WordParagraph paragraph,
+            IReadOnlyList<OpenXmlElement> paragraphChildren,
+            IReadOnlyList<WordEquationOccurrence> equations,
+            ISet<OpenXmlElement> expandedEquationContainers,
+            int childIndex,
+            WordParagraph fallbackRun,
+            WordToMarkdownOptions options,
+            string? preferredCodeFont,
+            string? implicitCodeFont) {
+            foreach (WordEquationOccurrence occurrence in equations.Where(equation => equation.StartChildIndex < childIndex)) {
+                int equationChildIndex = occurrence.StartChildIndex;
+                if (equationChildIndex < 0 || equationChildIndex >= paragraphChildren.Count) continue;
+                OpenXmlElement container = paragraphChildren[equationChildIndex];
+                if (!WordEquation.IsVisibleEquationContentContainer(container) ||
+                    !expandedEquationContainers.Add(container)) {
+                    continue;
+                }
+
+                IReadOnlyList<WordEquationOccurrence> coveringEquations = equations
+                    .Where(equation => equation.ContainsChildIndex(equationChildIndex))
+                    .ToList();
+                AppendEquationContainerText(
+                    sequence,
+                    paragraph,
+                    container,
+                    coveringEquations,
+                    fallbackRun,
+                    options,
+                    preferredCodeFont,
+                    implicitCodeFont);
+            }
+        }
+
+        private void AppendEquationContainerText(
+            InlineSequence sequence,
+            WordParagraph paragraph,
+            OpenXmlElement container,
+            IReadOnlyList<WordEquationOccurrence> coveringEquations,
+            WordParagraph fallbackRun,
+            WordToMarkdownOptions options,
+            string? preferredCodeFont,
+            string? implicitCodeFont) {
+            foreach (WordEquationContentSegment segment in WordEquation.GetVisibleContentSegments(container, coveringEquations)) {
+                if (segment.Equation != null) continue;
+                WordParagraph sourceRun = segment.CreateSourceParagraph(
+                    paragraph._document,
+                    paragraph._paragraph,
+                    fallbackRun);
+                if (segment.IsRunArtifact) {
+                    AppendEquationArtifact(
+                        sequence,
+                        sourceRun,
+                        segment,
+                        options,
+                        preferredCodeFont,
+                        implicitCodeFont);
+                    continue;
+                }
+                if (string.IsNullOrEmpty(segment.Text)) continue;
+                AppendRunInlines(
+                    sequence,
+                    sourceRun,
+                    options,
+                    preferredCodeFont,
+                    implicitCodeFont,
+                    segment.Text);
+            }
+        }
+
         private void AppendRunInlines(
             InlineSequence sequence,
             WordParagraph run,
             WordToMarkdownOptions options,
             string? preferredCodeFont,
-            string? implicitCodeFont) {
+            string? implicitCodeFont,
+            string? textOverride = null) {
             if (run.IsCheckBox) {
                 return;
             }
@@ -777,7 +1036,7 @@ namespace OfficeIMO.Word.Markdown {
                 return;
             }
 
-            string? text = run.Text;
+            string? text = textOverride ?? run.Text;
             if (run.PageBreak != null && !string.IsNullOrEmpty(text)) {
                 text = text!.Replace("\u2028", string.Empty);
             }
@@ -787,6 +1046,43 @@ namespace OfficeIMO.Word.Markdown {
             }
 
             AppendFormattedTextRun(sequence, run, text, options, preferredCodeFont, implicitCodeFont);
+        }
+
+        private void AppendEquationArtifact(
+            InlineSequence sequence,
+            WordParagraph sourceRun,
+            WordEquationContentSegment segment,
+            WordToMarkdownOptions options,
+            string? preferredCodeFont,
+            string? implicitCodeFont) {
+            if (segment.ArtifactElement is Break || segment.ArtifactElement is CarriageReturn) {
+                if (sourceRun.PageBreak == null) sequence.HardBreak();
+                return;
+            }
+
+            if (segment.ArtifactElement is FootnoteReference &&
+                sourceRun.FootNote?.ReferenceId is long footnoteId) {
+                sequence.FootnoteRef(footnoteId.ToString(System.Globalization.CultureInfo.InvariantCulture));
+                return;
+            }
+
+            if (segment.ArtifactElement is SdtRun &&
+                !string.IsNullOrEmpty(segment.ArtifactVisibleText)) {
+                AppendRunInlines(
+                    sequence,
+                    sourceRun,
+                    options,
+                    preferredCodeFont,
+                    implicitCodeFont,
+                    segment.ArtifactVisibleText);
+                return;
+            }
+
+            if ((segment.ArtifactElement is DocumentFormat.OpenXml.Wordprocessing.Drawing ||
+                 segment.ArtifactElement is V.ImageData) &&
+                sourceRun.Image != null) {
+                sequence.AddRaw(CreateImageInline(sourceRun.Image, options));
+            }
         }
 
         private static IMarkdownBlock? CreatePageBreakBlock(WordToMarkdownOptions options) {
@@ -880,16 +1176,28 @@ namespace OfficeIMO.Word.Markdown {
             }
         }
 
-        private IMarkdownBlock? CreateUnsupportedParagraphContentBlock(WordParagraph paragraph, WordToMarkdownOptions options) {
+        private IReadOnlyList<IMarkdownBlock> CreateUnsupportedParagraphContentBlocks(WordParagraph paragraph, WordToMarkdownOptions options) {
+            var blocks = new List<IMarkdownBlock>();
             if (!TryGetUnsupportedParagraphContentKind(paragraph, out var unsupportedParagraphKind)) {
-                return null;
+                return blocks;
+            }
+
+            if (string.Equals(unsupportedParagraphKind, "equation", StringComparison.OrdinalIgnoreCase) &&
+                WordEquation.GetOccurrences(paragraph._document, paragraph._paragraph).Count > 0) {
+                return blocks;
             }
 
             if (TryCreateVisualFallbackBlock(paragraph, options, out var visualBlock)) {
-                return visualBlock;
+                blocks.Add(visualBlock);
+                return blocks;
             }
 
-            return CreateUnsupportedContentBlock(options, unsupportedParagraphKind);
+            IMarkdownBlock? unsupportedBlock = CreateUnsupportedContentBlock(options, unsupportedParagraphKind);
+            if (unsupportedBlock != null) {
+                blocks.Add(unsupportedBlock);
+            }
+
+            return blocks;
         }
 
         private static IMarkdownBlock? CreateUnsupportedContentBlock(WordToMarkdownOptions options, string contentKind) {

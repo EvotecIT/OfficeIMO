@@ -30,6 +30,7 @@ public class PdfTextShapingProviderTests {
             }
             .ReportDiagnosticsTo(report, "OfficeIMO.Tests")
             .EmbedStandardFont(PdfStandardFont.Helvetica, fontData, "OfficeIMO Provider Font")
+            .SetLanguage("ar-SA")
             .SetTextShapingProvider(provider);
 
         byte[] bytes = PdfDocument.Create(options)
@@ -39,6 +40,10 @@ public class PdfTextShapingProviderTests {
         string extracted = PdfReadDocument.Load(bytes).ExtractText();
 
         Assert.True(provider.CallCount >= 1);
+        Assert.NotNull(provider.LastRequest);
+        Assert.Equal(PdfTextDirection.RightToLeft, provider.LastRequest!.Direction);
+        Assert.Equal("ar-SA", provider.LastRequest.Language);
+        Assert.Equal(fontProgram.UnitsPerEm, provider.LastRequest.UnitsPerEm);
         Assert.Contains(text, extracted, StringComparison.Ordinal);
         Assert.DoesNotContain(report.Warnings, warning => warning.Code == "unsupported-complex-script-shaping");
         Assert.DoesNotContain(report.Warnings, warning => warning.Code == "unsupported-bidirectional-text-layout");
@@ -195,6 +200,97 @@ public class PdfTextShapingProviderTests {
         Assert.Contains("<" + ffiGlyphId.ToString("X4", CultureInfo.InvariantCulture) + "> <006600660069>", raw, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void TextShapingProvider_WritesDesignUnitAdvancesOffsetsAndLogicalActualText() {
+        string? fontPath = PdfComplianceTestFonts.FindLocalTrueTypeFont();
+        if (fontPath == null) {
+            return;
+        }
+
+        byte[] fontData = File.ReadAllBytes(fontPath);
+        PdfTrueTypeFontProgram fontProgram = PdfTrueTypeFontProgram.Parse(fontData, "OfficeIMO Positioned Provider Font");
+        Assert.True(fontProgram.TryGetGlyphId('A', out int aGlyphId));
+        Assert.True(fontProgram.TryGetGlyphId('B', out int bGlyphId));
+        int halfEm = fontProgram.UnitsPerEm / 2;
+        int offsetX = -(fontProgram.UnitsPerEm / 10);
+        int offsetY = fontProgram.UnitsPerEm / 5;
+        var provider = new MappingTextShapingProvider(
+            "AB",
+            isOpenTypeCff: false,
+            new[] {
+                new PdfShapedGlyph(aGlyphId, "A", 0, halfEm),
+                new PdfShapedGlyph(bGlyphId, "B", 1, halfEm, offsetX, offsetY)
+            });
+        var options = new PdfOptions {
+                CompressContentStreams = false
+            }
+            .EmbedStandardFont(PdfStandardFont.Helvetica, fontData, "OfficeIMO Positioned Provider Font")
+            .SetLanguage("en-US")
+            .SetTextShapingProvider(provider);
+
+        byte[] bytes = PdfDocument.Create(options)
+            .Paragraph(paragraph => paragraph.Text("AB"))
+            .ToBytes();
+
+        string raw = Encoding.ASCII.GetString(bytes);
+        string extracted = PdfReadDocument.Load(bytes).ExtractText();
+        double measured = fontProgram.MeasureTextWidth("AB", 12D, shapingProvider: provider, language: "en-US");
+
+        Assert.Equal(12D * (halfEm + halfEm) / fontProgram.UnitsPerEm, measured, precision: 6);
+        Assert.Contains("AB", extracted, StringComparison.Ordinal);
+        Assert.Contains(" TJ", raw, StringComparison.Ordinal);
+        Assert.Contains(" Ts", raw, StringComparison.Ordinal);
+        Assert.Contains("/ActualText", raw, StringComparison.Ordinal);
+        Assert.NotNull(provider.LastRequest);
+        Assert.Equal(PdfTextDirection.LeftToRight, provider.LastRequest!.Direction);
+        Assert.Equal("en-US", provider.LastRequest.Language);
+        Assert.Equal(fontProgram.UnitsPerEm, provider.LastRequest.UnitsPerEm);
+    }
+
+    [Fact]
+    public void TextShapingProvider_PreservesSuperscriptRiseAroundPositionedGlyphs() {
+        string? fontPath = PdfComplianceTestFonts.FindBundledOpenTypeCffFont();
+        Assert.NotNull(fontPath);
+
+        byte[] fontData = File.ReadAllBytes(fontPath!);
+        PdfOpenTypeCffFontProgram fontProgram = PdfOpenTypeCffFontProgram.Parse(fontData, "OfficeIMO Positioned Superscript Font");
+        Assert.True(fontProgram.TryGetGlyphId('A', out int aGlyphId));
+        Assert.True(fontProgram.TryGetGlyphId('B', out int bGlyphId));
+        int offsetY = fontProgram.UnitsPerEm / 5;
+        var provider = new MappingTextShapingProvider(
+            "AB",
+            isOpenTypeCff: true,
+            new[] {
+                new PdfShapedGlyph(aGlyphId, "A", 0, fontProgram.UnitsPerEm),
+                new PdfShapedGlyph(bGlyphId, "B", 1, fontProgram.UnitsPerEm, 0, offsetY)
+            });
+        var options = new PdfOptions {
+                CompressContentStreams = false,
+                DefaultFontSize = 12D
+            }
+            .EmbedStandardFont(PdfStandardFont.Helvetica, fontData, "OfficeIMO Positioned Superscript Font")
+            .SetTextShapingProvider(provider);
+
+        byte[] bytes = PdfDocument.Create(options)
+            .Paragraph(paragraph => paragraph.Superscript("AB").Text("C"))
+            .ToBytes();
+
+        string raw = Encoding.ASCII.GetString(bytes);
+        const double baseRise = 12D * 0.35D;
+        const double runFontSize = 12D * 0.65D;
+        int offsetY1000 = checked((int)Math.Round(offsetY * 1000D / fontProgram.UnitsPerEm, MidpointRounding.AwayFromZero));
+        double positionedRise = baseRise + offsetY1000 * runFontSize / 1000D;
+        string baseRiseOperator = baseRise.ToString("0.###", CultureInfo.InvariantCulture) + " Ts";
+        string positionedRiseOperator = positionedRise.ToString("0.###", CultureInfo.InvariantCulture) + " Ts";
+        int positionedRiseIndex = raw.IndexOf(positionedRiseOperator, StringComparison.Ordinal);
+        int restoredBaseRiseIndex = raw.IndexOf(baseRiseOperator, positionedRiseIndex + positionedRiseOperator.Length, StringComparison.Ordinal);
+        int normalRiseIndex = raw.IndexOf("0 Ts", restoredBaseRiseIndex + baseRiseOperator.Length, StringComparison.Ordinal);
+
+        Assert.True(positionedRiseIndex >= 0, "Expected the shaped glyph offset to be added to the superscript rise.");
+        Assert.True(restoredBaseRiseIndex > positionedRiseIndex, "Expected the superscript rise to be restored after positioned glyphs.");
+        Assert.True(normalRiseIndex > restoredBaseRiseIndex, "Expected normal text to reset the restored superscript rise.");
+    }
+
     private static IReadOnlyList<PdfShapedGlyph> CreateGlyphMap(string text, PdfTrueTypeFontProgram fontProgram) {
         var glyphs = new List<PdfShapedGlyph>();
         for (int index = 0; index < text.Length;) {
@@ -229,6 +325,8 @@ public class PdfTextShapingProviderTests {
 
         public int CallCount { get; private set; }
 
+        public PdfTextShapingRequest? LastRequest { get; private set; }
+
         public PdfTextShapingResult? ShapeText(PdfTextShapingRequest request) {
             if (!string.Equals(request.Text, _text, StringComparison.Ordinal)) {
                 return null;
@@ -238,6 +336,7 @@ public class PdfTextShapingProviderTests {
             Assert.NotEmpty(request.FontData);
             Assert.False(string.IsNullOrWhiteSpace(request.FontName));
             CallCount++;
+            LastRequest = request;
             return new PdfTextShapingResult(_glyphs);
         }
     }

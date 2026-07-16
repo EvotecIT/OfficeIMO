@@ -25,7 +25,9 @@ public partial class WordRtfConverterTests {
         RtfParagraph rtfParagraph = Assert.Single(rtfDocument.Paragraphs);
         Assert.Equal("Hello RTF at OfficeIMO", rtfParagraph.ToPlainText());
         Assert.Contains(rtfParagraph.Runs, run => run.Text == "RTF" && run.Bold);
-        Assert.Contains(rtfParagraph.Runs, run => run.Text == "OfficeIMO" && run.Hyperlink != null);
+        RtfField hyperlinkField = Assert.Single(rtfParagraph.Inlines.OfType<RtfField>());
+        Assert.Equal("https://github.com/EvotecIT/OfficeIMO", hyperlinkField.Hyperlink?.ToString());
+        Assert.Contains(hyperlinkField.Result.Runs, run => run.Text == "OfficeIMO");
         Assert.Contains(@"HYPERLINK ""https://github.com/EvotecIT/OfficeIMO""", rtf, StringComparison.Ordinal);
         Assert.Equal("Hello RTF at OfficeIMO", string.Concat(roundTrip.Paragraphs.Select(paragraphFromRtf => paragraphFromRtf.Text)));
         WordHyperLink roundTripLink = Assert.Single(roundTrip.HyperLinks);

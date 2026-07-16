@@ -36,6 +36,7 @@
     <ProjectReference Include="..\OfficeIMO.Pdf\OfficeIMO.Pdf.csproj" />
     <ProjectReference Include="..\OfficeIMO.PowerPoint\OfficeIMO.PowerPoint.csproj" />
     <ProjectReference Include="..\OfficeIMO.Reader\OfficeIMO.Reader.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Reader.All\OfficeIMO.Reader.All.csproj" />
     <ProjectReference Include="..\OfficeIMO.Reader.AsciiDoc\OfficeIMO.Reader.AsciiDoc.csproj" />
     <ProjectReference Include="..\OfficeIMO.Reader.Latex\OfficeIMO.Reader.Latex.csproj" />
     <ProjectReference Include="..\OfficeIMO.Reader.Ocr.Process\OfficeIMO.Reader.Ocr.Process.csproj" />
@@ -55,6 +56,15 @@
     <ProjectReference Include="..\OfficeIMO.Visio\OfficeIMO.Visio.csproj" />
     <ProjectReference Include="..\OfficeIMO.Word\OfficeIMO.Word.csproj" />
     <ProjectReference Include="..\OfficeIMO.Zip\OfficeIMO.Zip.csproj" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' != 'net472'">
+    <Compile Include="..\OfficeIMO.Reader.Benchmarks\Comparison\*.cs"
+             Link="ReaderComparison\%(Filename)%(Extension)" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
+    <Compile Remove="Reader.ComparisonEvidence.cs" />
   </ItemGroup>
 
   <ItemGroup>

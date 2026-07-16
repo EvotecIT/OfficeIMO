@@ -3,7 +3,6 @@
 using System.Globalization;
 using System.Text;
 using BenchmarkDotNet.Attributes;
-using BenchmarkDotNet.Jobs;
 using nietras.SeparatedValues;
 using CsvHelperConfiguration = CsvHelper.Configuration.CsvConfiguration;
 using CsvHelperReader = CsvHelper.CsvReader;
@@ -22,7 +21,6 @@ using SylvanCsvDataWriterOptions = Sylvan.Data.Csv.CsvDataWriterOptions;
 namespace OfficeIMO.CSV.Benchmarks;
 
 [MemoryDiagnoser]
-[SimpleJob(RuntimeMoniker.Net80)]
 public class CsvWideBenchmarks
 {
     private static readonly string[] Headers = CreateHeaders();
@@ -70,6 +68,7 @@ public class CsvWideBenchmarks
 
         _wideSchema = schema.Build();
         ValidateWriteBenchmarkOutputs();
+        ValidateReadBenchmarkOutputs();
     }
 
     private void ValidateWriteBenchmarkOutputs()
@@ -87,7 +86,7 @@ public class CsvWideBenchmarks
         ValidateWriteOutput(nameof(CsvHelper_WriteTextRows), CsvHelper_WriteTextRows, _textRows);
         ValidateWriteOutput(nameof(Sylvan_WriteTextRows), Sylvan_WriteTextRows, _textRows);
         ValidateWriteOutput(nameof(Dataplat_WriteTextRows), Dataplat_WriteTextRows, _textRows);
-        ValidateWriteOutput(nameof(Sep_WriteProjectedRows), Sep_WriteProjectedRows, _textRows);
+        ValidateWriteOutput(nameof(Sep_WriteTextRows), Sep_WriteTextRows, _textRows);
     }
 
     private void ValidateWriteOutput(
@@ -114,6 +113,55 @@ public class CsvWideBenchmarks
         {
             _captureWriteOutput = false;
             _capturedWriteOutput = null;
+        }
+    }
+
+    private void ValidateReadBenchmarkOutputs()
+    {
+        var dataChecksum = 0;
+        foreach (var row in _textRows)
+        {
+            for (var i = 0; i < row.Length; i++)
+            {
+                dataChecksum += 1 + (row[i]?.Length ?? 0);
+            }
+        }
+
+        ValidateReadOutput(nameof(OfficeIMO_ReadRowsReusableCallback), OfficeIMO_ReadRowsReusableCallback, dataChecksum);
+        ValidateReadOutput(nameof(OfficeIMO_ReadRowFieldSpansMaterialized), OfficeIMO_ReadRowFieldSpansMaterialized, dataChecksum);
+        ValidateReadOutput(nameof(OfficeIMO_ReadTextRowFieldSpansMaterialized), OfficeIMO_ReadTextRowFieldSpansMaterialized, dataChecksum);
+
+        ValidateReadOutput(nameof(OfficeIMO_ReadRecordsReusableSkipHeader), OfficeIMO_ReadRecordsReusableSkipHeader, dataChecksum);
+        ValidateReadOutput(nameof(OfficeIMO_ReadFieldSpansSkipHeader), OfficeIMO_ReadFieldSpansSkipHeader, dataChecksum);
+        ValidateReadOutput(nameof(OfficeIMO_ReadFieldSpanVisitorSkipHeader), OfficeIMO_ReadFieldSpanVisitorSkipHeader, dataChecksum);
+        ValidateReadOutput(nameof(OfficeIMO_ReadTextFieldSpanVisitorSkipHeader), OfficeIMO_ReadTextFieldSpanVisitorSkipHeader, dataChecksum);
+        ValidateReadOutput(nameof(OfficeIMO_ReadDataTableStrings), OfficeIMO_ReadDataTableStrings, dataChecksum);
+        ValidateReadOutput(nameof(OfficeIMO_ReadDataTableInferredSchema), OfficeIMO_ReadDataTableInferredSchema, dataChecksum);
+        ValidateReadOutput(nameof(OfficeIMO_ReadDataTableLoadDataReaderStrings), OfficeIMO_ReadDataTableLoadDataReaderStrings, dataChecksum);
+        ValidateReadOutput(nameof(OfficeIMO_ReadDataTableLoadDataReaderInferredSchema), OfficeIMO_ReadDataTableLoadDataReaderInferredSchema, dataChecksum);
+        ValidateReadOutput(nameof(OfficeIMO_ReadDataReaderStrings), OfficeIMO_ReadDataReaderStrings, dataChecksum);
+        ValidateReadOutput(nameof(OfficeIMO_ReadDataReaderGetStrings), OfficeIMO_ReadDataReaderGetStrings, dataChecksum);
+        ValidateReadOutput(nameof(OfficeIMO_ReadDataReaderInferredSchema), OfficeIMO_ReadDataReaderInferredSchema, dataChecksum);
+        ValidateReadOutput(nameof(OfficeIMO_ReadDataReaderExplicitSchema), OfficeIMO_ReadDataReaderExplicitSchema, dataChecksum);
+        ValidateReadOutput(nameof(OfficeIMO_ReadFileDataReaderExplicitSchema), OfficeIMO_ReadFileDataReaderExplicitSchema, dataChecksum);
+        ValidateReadOutput(nameof(OfficeIMO_ReadFieldSpansMaterializedSkipHeader), OfficeIMO_ReadFieldSpansMaterializedSkipHeader, dataChecksum);
+        ValidateReadOutput(nameof(CsvHelper_ReadFields), CsvHelper_ReadFields, dataChecksum);
+        ValidateReadOutput(nameof(Sylvan_ReadFields), Sylvan_ReadFields, dataChecksum);
+        ValidateReadOutput(nameof(Sylvan_ReadDataTableLoad), Sylvan_ReadDataTableLoad, dataChecksum);
+        ValidateReadOutput(nameof(Sylvan_ReadFieldSpans), Sylvan_ReadFieldSpans, dataChecksum);
+        ValidateReadOutput(nameof(Dataplat_ReadFields), Dataplat_ReadFields, dataChecksum);
+        ValidateReadOutput(nameof(Dataplat_ReadDataTableLoad), Dataplat_ReadDataTableLoad, dataChecksum);
+        ValidateReadOutput(nameof(Sep_ReadFields), Sep_ReadFields, dataChecksum);
+        ValidateReadOutput(nameof(Sep_ReadFieldSpans), Sep_ReadFieldSpans, dataChecksum);
+    }
+
+    private static void ValidateReadOutput(string method, Func<int> read, int expectedChecksum)
+    {
+        var actualChecksum = read();
+        if (actualChecksum != expectedChecksum)
+        {
+            throw new InvalidOperationException(
+                $"{method} returned checksum {actualChecksum}; expected {expectedChecksum}. The benchmark lane did not read the equivalent CSV payload.");
         }
     }
 
@@ -321,7 +369,7 @@ public class CsvWideBenchmarks
     }
 
     [Benchmark]
-    public int Sep_WriteProjectedRows()
+    public int Sep_WriteTextRows()
     {
         var options = SepWriteOptions;
         using var csv = options.ToText();

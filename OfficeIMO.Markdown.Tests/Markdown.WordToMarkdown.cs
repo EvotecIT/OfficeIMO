@@ -3,7 +3,9 @@ using System.IO;
 using System.Linq;
 using A = DocumentFormat.OpenXml.Drawing;
 using C = DocumentFormat.OpenXml.Drawing.Charts;
+using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
+using M = DocumentFormat.OpenXml.Math;
 using OfficeIMO.Markdown;
 using OfficeIMO.Drawing;
 using OfficeIMO.Word;
@@ -312,19 +314,276 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void WordToMarkdown_Preserves_Unsupported_Content_In_List_Item() {
+        public void WordToMarkdown_Projects_Equation_To_Math_Fence_In_List_Item() {
             const string omml = "<m:oMathPara xmlns:m=\"http://schemas.openxmlformats.org/officeDocument/2006/math\"><m:oMath><m:r><m:t>x=1</m:t></m:r></m:oMath></m:oMathPara>";
             using var doc = WordDocument.Create();
             WordList list = doc.AddList(WordListStyle.Bulleted);
             WordParagraph item = list.AddItem("Formula:");
             item.AddEquation(omml);
+            item.AddText(" after");
 
             string markdown = doc.ToMarkdown(new WordToMarkdownOptions {
                 UnsupportedContentMode = MarkdownUnsupportedContentMode.Placeholder
             });
 
             Assert.Contains("- Formula:", markdown, StringComparison.Ordinal);
-            Assert.Contains("Unsupported Word content: equation", markdown, StringComparison.Ordinal);
+            Assert.Contains("```math", markdown, StringComparison.Ordinal);
+            Assert.Contains("x=1", markdown, StringComparison.Ordinal);
+            int prefix = markdown.IndexOf("Formula:", StringComparison.Ordinal);
+            int equation = markdown.IndexOf("x=1", StringComparison.Ordinal);
+            int suffix = markdown.IndexOf("after", StringComparison.Ordinal);
+            Assert.True(prefix >= 0 && prefix < equation && equation < suffix, markdown);
+            Assert.DoesNotContain("Unsupported Word content: equation", markdown, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void WordToMarkdown_Projects_Structured_Equation_To_Latex() {
+            const string omml = "<m:oMathPara xmlns:m=\"http://schemas.openxmlformats.org/officeDocument/2006/math\"><m:oMath><m:f><m:num><m:r><m:t>a</m:t></m:r></m:num><m:den><m:r><m:t>b</m:t></m:r></m:den></m:f></m:oMath></m:oMathPara>";
+            using var doc = WordDocument.Create();
+            doc.AddEquation(omml);
+
+            string markdown = doc.ToMarkdown();
+
+            Assert.Contains("```math", markdown, StringComparison.Ordinal);
+            Assert.Contains("\\frac{a}{b}", markdown, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void WordToMarkdown_ProjectsEveryEquationFromAMixedParagraph() {
+            const string first = "<m:oMath xmlns:m=\"http://schemas.openxmlformats.org/officeDocument/2006/math\"><m:r><m:t>x=1</m:t></m:r></m:oMath>";
+            const string second = "<m:oMath xmlns:m=\"http://schemas.openxmlformats.org/officeDocument/2006/math\"><m:r><m:t>y=2</m:t></m:r></m:oMath>";
+            using var doc = WordDocument.Create();
+            WordParagraph paragraph = doc.AddParagraph("before ");
+            paragraph.AddEquation(first);
+            paragraph.AddText(" between ");
+            paragraph.AddEquation(second);
+            paragraph.AddText(" after");
+
+            string markdown = doc.ToMarkdown();
+
+            Assert.Equal(2, markdown.Split(new[] { "```math" }, StringSplitOptions.None).Length - 1);
+            Assert.Contains("x=1", markdown, StringComparison.Ordinal);
+            Assert.Contains("y=2", markdown, StringComparison.Ordinal);
+            int before = markdown.IndexOf("before", StringComparison.Ordinal);
+            int firstEquation = markdown.IndexOf("x=1", StringComparison.Ordinal);
+            int between = markdown.IndexOf("between", StringComparison.Ordinal);
+            int secondEquation = markdown.IndexOf("y=2", StringComparison.Ordinal);
+            int after = markdown.IndexOf("after", StringComparison.Ordinal);
+            Assert.True(
+                before >= 0 && before < firstEquation && firstEquation < between && between < secondEquation && secondEquation < after,
+                markdown);
+        }
+
+        [Fact]
+        public void WordToMarkdown_ProjectsEquationInsideVisibleRevisionWrapper() {
+            using var doc = WordDocument.Create();
+            WordParagraph paragraph = doc.AddParagraph("Formula:");
+            paragraph._paragraph.Append(new MoveToRun(new M.OfficeMath(new M.Run(new M.Text("tracked")))) {
+                Id = "1",
+                Author = "Reviewer"
+            });
+
+            string markdown = doc.ToMarkdown();
+
+            Assert.Contains("```math", markdown, StringComparison.Ordinal);
+            Assert.Contains("tracked", markdown, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void WordToMarkdown_ProjectsEquationInsideInlineContentControl() {
+            using var doc = WordDocument.Create();
+            WordParagraph paragraph = doc.AddParagraph("Formula:");
+            paragraph._paragraph.Append(new SdtRun(
+                new SdtProperties(new SdtId { Val = 2076 }),
+                new SdtContentRun(
+                    new Run(new Text(" control-prefix ")),
+                    new M.OfficeMath(new M.Run(new M.Text("controlled"))),
+                    new Run(new Text(" control-suffix")))));
+
+            string markdown = doc.ToMarkdown();
+
+            Assert.Contains("Formula:", markdown, StringComparison.Ordinal);
+            Assert.Contains("control-prefix", markdown, StringComparison.Ordinal);
+            Assert.Contains("control-suffix", markdown, StringComparison.Ordinal);
+            Assert.Contains("```math", markdown, StringComparison.Ordinal);
+            Assert.Equal(1, markdown.Split(new[] { "controlled" }, StringSplitOptions.None).Length - 1);
+        }
+
+        [Fact]
+        public void WordToMarkdown_ProjectsEquationAndSurroundingTextInsideHyperlink() {
+            using var doc = WordDocument.Create();
+            WordParagraph paragraph = doc.AddParagraph("outer ");
+            paragraph._paragraph.Append(new Hyperlink(
+                new Run(new RunProperties(new Bold()), new Text("link-prefix ")),
+                new M.OfficeMath(new M.Run(new M.Text("linked"))),
+                new Run(new RunProperties(new Italic()), new Text(" link-suffix"))) {
+                Anchor = "target"
+            });
+
+            string markdown = doc.ToMarkdown();
+
+            Assert.Contains("link-prefix", markdown, StringComparison.Ordinal);
+            Assert.Contains("link-suffix", markdown, StringComparison.Ordinal);
+            Assert.Contains("```math", markdown, StringComparison.Ordinal);
+            Assert.Contains("**link-prefix**", markdown, StringComparison.Ordinal);
+            Assert.Contains("*link-suffix*", markdown, StringComparison.Ordinal);
+            Assert.Equal(1, markdown.Split(new[] { "linked" }, StringSplitOptions.None).Length - 1);
+            Assert.Equal(1, markdown.Split(new[] { "link-prefix" }, StringSplitOptions.None).Length - 1);
+            Assert.Equal(1, markdown.Split(new[] { "link-suffix" }, StringSplitOptions.None).Length - 1);
+        }
+
+        [Fact]
+        public void WordToMarkdown_ExpandsHyperlinkWhoseEquationContentIsWrappedByInlineControl() {
+            using var doc = WordDocument.Create();
+            WordParagraph paragraph = doc.AddParagraph("before ");
+            HyperlinkRelationship relationship = doc._wordprocessingDocument.MainDocumentPart!
+                .AddHyperlinkRelationship(new Uri("https://officeimo.net/wrapped-equation"), true);
+            paragraph._paragraph.Append(new Hyperlink(
+                new SdtRun(
+                    new SdtProperties(new SdtId { Val = 2078 }),
+                    new SdtContentRun(
+                        new Run(new Text("wrapped-prefix ")),
+                        new M.OfficeMath(new M.Run(new M.Text("nested-math-value"))),
+                        new Run(new Text(" wrapped-suffix"))))) {
+                Id = relationship.Id
+            });
+            paragraph.AddText(" after");
+
+            string markdown = doc.ToMarkdown();
+
+            Assert.Contains("[wrapped-prefix](https://officeimo.net/wrapped-equation)", markdown, StringComparison.Ordinal);
+            Assert.Contains("[wrapped-suffix](https://officeimo.net/wrapped-equation)", markdown, StringComparison.Ordinal);
+            Assert.Contains("```math", markdown, StringComparison.Ordinal);
+            Assert.Equal(1, markdown.Split(new[] { "wrapped-prefix" }, StringSplitOptions.None).Length - 1);
+            Assert.Equal(1, markdown.Split(new[] { "wrapped-suffix" }, StringSplitOptions.None).Length - 1);
+            Assert.Equal(1, markdown.Split(new[] { "nested-math-value" }, StringSplitOptions.None).Length - 1);
+        }
+
+        [Fact]
+        public void WordToMarkdown_PreservesBreakSharingAHyperlinkWithEquation() {
+            using var doc = WordDocument.Create();
+            WordParagraph paragraph = doc.AddParagraph("outer ");
+            paragraph._paragraph.Append(new Hyperlink(
+                new Run(new Text("prefix")),
+                new M.OfficeMath(new M.Run(new M.Text("linked"))),
+                new Run(new Break()),
+                new Run(new Text("suffix"))) {
+                Anchor = "target"
+            });
+
+            string markdown = doc.ToMarkdown();
+
+            Assert.Contains("prefix", markdown, StringComparison.Ordinal);
+            Assert.Contains("suffix", markdown, StringComparison.Ordinal);
+            Assert.Contains("  \n", markdown.Replace("\r\n", "\n"), StringComparison.Ordinal);
+            Assert.Contains("```math", markdown, StringComparison.Ordinal);
+            Assert.Equal(1, markdown.Split(new[] { "linked" }, StringSplitOptions.None).Length - 1);
+        }
+
+        [Fact]
+        public void WordToMarkdown_PreservesFormControlValueSharingContainerWithEquation() {
+            using var doc = WordDocument.Create();
+            WordParagraph paragraph = doc.AddParagraph("Choice: ");
+            WordDropDownList dropDown = paragraph.AddDropDownList(new[] { "First", "Selected" }, "Equation choice", "EquationChoice");
+            dropDown.SelectedValue = "Selected";
+            SdtContentRun content = dropDown._sdtRun.SdtContentRun!;
+            Run displayRun = Assert.Single(content.Elements<Run>());
+            displayRun.Remove();
+            content.Append(
+                new M.OfficeMath(new M.Run(new M.Text("selected-equation"))),
+                displayRun);
+
+            string markdown = doc.ToMarkdown();
+
+            Assert.Contains("```math", markdown, StringComparison.Ordinal);
+            Assert.Equal(1, markdown.Split(new[] { "Selected" }, StringSplitOptions.None).Length - 1);
+            Assert.Equal(1, markdown.Split(new[] { "selected-equation" }, StringSplitOptions.None).Length - 1);
+            int prefix = markdown.IndexOf("Choice:", StringComparison.Ordinal);
+            int equation = markdown.IndexOf("selected-equation", StringComparison.Ordinal);
+            int selected = markdown.IndexOf("Selected", StringComparison.Ordinal);
+            Assert.True(prefix >= 0 && prefix < equation && equation < selected, markdown);
+        }
+
+        [Fact]
+        public void WordToMarkdown_PreservesPictureControlSharingContainerWithEquation() {
+            string imagePath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Assets", "OfficeIMO.png"));
+            using var doc = WordDocument.Create();
+            WordParagraph paragraph = doc.AddParagraph("Picture: ");
+            WordPictureControl picture = paragraph.AddPictureControl(imagePath, alias: "Equation picture", tag: "EquationPicture");
+            picture._sdtRun.SdtContentRun!.Append(
+                new M.OfficeMath(new M.Run(new M.Text("picture-equation"))));
+
+            string markdown = doc.ToMarkdown();
+
+            Assert.Contains("data:image/png;base64", markdown, StringComparison.Ordinal);
+            Assert.Contains("```math", markdown, StringComparison.Ordinal);
+            Assert.Equal(1, markdown.Split(new[] { "picture-equation" }, StringSplitOptions.None).Length - 1);
+        }
+
+        [Fact]
+        public void WordToMarkdown_ExportsComplexEqFieldOnceAsMathFence() {
+            using var doc = WordDocument.Create();
+            WordParagraph paragraph = doc.AddParagraph("before ");
+            paragraph._paragraph.Append(
+                new Run(new FieldChar { FieldCharType = FieldCharValues.Begin }),
+                new Run(new FieldCode(" EQ \\f(a,b) ")),
+                new Run(new FieldChar { FieldCharType = FieldCharValues.Separate }),
+                new Run(new Text("(a)/(b)")),
+                new Run(new FieldChar { FieldCharType = FieldCharValues.End }));
+            paragraph.AddText(" after");
+
+            string markdown = doc.ToMarkdown();
+
+            Assert.Contains("before", markdown, StringComparison.Ordinal);
+            Assert.Contains(" after", markdown, StringComparison.Ordinal);
+            Assert.Contains("```math", markdown, StringComparison.Ordinal);
+            Assert.Equal(1, markdown.Split(new[] { "(a)/(b)" }, StringSplitOptions.None).Length - 1);
+        }
+
+        [Fact]
+        public void WordToMarkdown_PageBreakPathDoesNotDuplicateComplexEqCachedResult() {
+            using var doc = WordDocument.Create();
+            WordParagraph paragraph = doc.AddParagraph("before ");
+            paragraph._paragraph.Append(
+                new Run(new FieldChar { FieldCharType = FieldCharValues.Begin }),
+                new Run(new FieldCode(" EQ \\f(a,b) ")),
+                new Run(new FieldChar { FieldCharType = FieldCharValues.Separate }),
+                new Run(new Text("(a)/(b)")),
+                new Run(new FieldChar { FieldCharType = FieldCharValues.End }));
+            paragraph.AddBreak(BreakValues.Page);
+            paragraph.AddText(" after");
+
+            string markdown = doc.ToMarkdown(new WordToMarkdownOptions {
+                PageBreakMode = MarkdownPageBreakMode.SemanticBlock
+            });
+
+            Assert.Contains("before", markdown, StringComparison.Ordinal);
+            Assert.Contains(" after", markdown, StringComparison.Ordinal);
+            Assert.Contains("```math", markdown, StringComparison.Ordinal);
+            Assert.Contains("```officeimo-word-page-break", markdown, StringComparison.Ordinal);
+            Assert.Equal(1, markdown.Split(new[] { "(a)/(b)" }, StringSplitOptions.None).Length - 1);
+            int before = markdown.IndexOf("before", StringComparison.Ordinal);
+            int equation = markdown.IndexOf("(a)/(b)", StringComparison.Ordinal);
+            int pageBreak = markdown.IndexOf("```officeimo-word-page-break", StringComparison.Ordinal);
+            int after = markdown.IndexOf("after", StringComparison.Ordinal);
+            Assert.True(before >= 0 && before < equation && equation < pageBreak && pageBreak < after, markdown);
+        }
+
+        [Fact]
+        public void WordToMarkdown_PreservesEquationAndShapeFallbackFromMixedParagraph() {
+            const string omml = "<m:oMath xmlns:m=\"http://schemas.openxmlformats.org/officeDocument/2006/math\"><m:r><m:t>x=1</m:t></m:r></m:oMath>";
+            using var doc = WordDocument.Create();
+            WordParagraph paragraph = doc.AddParagraph("Mixed:");
+            paragraph.AddEquation(omml);
+            paragraph.AddShape(ShapeType.Rectangle, 60, 30);
+
+            string markdown = doc.ToMarkdown(new WordToMarkdownOptions {
+                UnsupportedContentMode = MarkdownUnsupportedContentMode.Placeholder
+            });
+
+            Assert.Contains("```math", markdown, StringComparison.Ordinal);
+            Assert.Contains("x=1", markdown, StringComparison.Ordinal);
+            Assert.Contains("Unsupported Word content: shape", markdown, StringComparison.Ordinal);
         }
 
         [Fact]

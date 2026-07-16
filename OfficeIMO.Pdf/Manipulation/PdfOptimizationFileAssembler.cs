@@ -7,17 +7,17 @@ namespace OfficeIMO.Pdf;
 internal static class PdfOptimizationFileAssembler {
     private const int ObjectStreamChunkSize = 100;
 
-    internal static byte[] Assemble(IReadOnlyList<byte[]> bodies, IReadOnlyList<bool> objectStreamEligibility, int catalogId, int infoId, PdfFileVersion fileVersion, PdfOptimizationOptions options) {
+    internal static byte[] Assemble(IReadOnlyList<byte[]> bodies, IReadOnlyList<bool> objectStreamEligibility, int catalogId, int infoId, PdfFileVersion fileVersion, PdfOptimizationOptions options, string trailerIdEntry) {
         if (bodies.Count != objectStreamEligibility.Count) throw new ArgumentException("Object body and eligibility counts must match.", nameof(objectStreamEligibility));
         if (!options.UseObjectStreams && options.XrefFormat == PdfOptimizationXrefFormat.ClassicTable) {
             var objects = new List<byte[]>(bodies.Count);
             for (int i = 0; i < bodies.Count; i++) objects.Add(PdfObjectBytes.WrapIndirectObject(i + 1, bodies[i]));
-            return PdfFileAssembler.Assemble(objects, catalogId, infoId, fileVersion);
+            return PdfFileAssembler.Assemble(objects, catalogId, infoId, fileVersion, trailerIdEntry: trailerIdEntry);
         }
-        return AssembleXrefStream(bodies, objectStreamEligibility, catalogId, infoId, fileVersion, options.UseObjectStreams);
+        return AssembleXrefStream(bodies, objectStreamEligibility, catalogId, infoId, fileVersion, options.UseObjectStreams, trailerIdEntry);
     }
 
-    private static byte[] AssembleXrefStream(IReadOnlyList<byte[]> bodies, IReadOnlyList<bool> eligibility, int catalogId, int infoId, PdfFileVersion fileVersion, bool useObjectStreams) {
+    private static byte[] AssembleXrefStream(IReadOnlyList<byte[]> bodies, IReadOnlyList<bool> eligibility, int catalogId, int infoId, PdfFileVersion fileVersion, bool useObjectStreams, string trailerIdEntry) {
         fileVersion = PdfFileAssembler.RequireAtLeast(fileVersion, PdfFileVersion.Pdf15);
         var packs = BuildObjectStreamPacks(bodies, eligibility, useObjectStreams);
         int baseCount = bodies.Count;
@@ -43,7 +43,7 @@ internal static class PdfOptimizationFileAssembler {
         }
         long xrefOffset = output.Position; types[xrefObjectNumber] = 1; field2[xrefObjectNumber] = xrefOffset;
         byte[] xrefData = BuildXrefData(types, field2, field3);
-        string xrefDictionary = "<< /Type /XRef /Size " + size.ToString(CultureInfo.InvariantCulture) + " /W [1 8 4] /Root " + PdfSyntaxEscaper.IndirectReference(catalogId) + (infoId > 0 ? " /Info " + PdfSyntaxEscaper.IndirectReference(infoId) : string.Empty) + " /Length " + xrefData.Length.ToString(CultureInfo.InvariantCulture) + " >>";
+        string xrefDictionary = "<< /Type /XRef /Size " + size.ToString(CultureInfo.InvariantCulture) + " /W [1 8 4] /Root " + PdfSyntaxEscaper.IndirectReference(catalogId) + (infoId > 0 ? " /Info " + PdfSyntaxEscaper.IndirectReference(infoId) : string.Empty) + trailerIdEntry + " /Length " + xrefData.Length.ToString(CultureInfo.InvariantCulture) + " >>";
         Write(output, PdfObjectBytes.WrapStreamObject(xrefObjectNumber, xrefDictionary, xrefData));
         Write(output, PdfEncoding.Latin1GetBytes("startxref\n" + xrefOffset.ToString(CultureInfo.InvariantCulture) + "\n%%EOF\n"));
         return output.ToArray();

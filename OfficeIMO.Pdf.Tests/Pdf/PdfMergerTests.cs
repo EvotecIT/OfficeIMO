@@ -87,7 +87,7 @@ public class PdfMergerTests {
         Assert.DoesNotContain("/Subtype /Highlight", pdf, StringComparison.Ordinal);
         Assert.Contains("/OfficeIMOAnnot1 Do", pdf, StringComparison.Ordinal);
         Assert.Contains("/OfficeIMOAnnot2 Do", pdf, StringComparison.Ordinal);
-        Assert.Contains("BT /Helv", pdf, StringComparison.Ordinal);
+        Assert.Contains("BT\n/Helv", pdf, StringComparison.Ordinal);
         Assert.Contains("1 0.9 0.1 rg 0 0 120 14 re f", pdf, StringComparison.Ordinal);
 
         string text = NormalizeExtractedText(PdfReadDocument.Load(merged).ExtractText());

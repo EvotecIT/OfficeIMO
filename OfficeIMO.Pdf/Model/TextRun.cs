@@ -34,6 +34,8 @@ public sealed class TextRun {
     public PdfTabLeaderStyle TabLeader { get; }
     /// <summary>Alignment used when this run represents a paragraph tab.</summary>
     public PdfTabAlignment TabAlignment { get; }
+    /// <summary>Optional fixed-size visual carried by this run instead of text.</summary>
+    public PdfInlineElement? InlineElement { get; }
 
     /// <summary>Create a new run with the specified styles.</summary>
     /// <param name="text">Run text.</param>
@@ -104,6 +106,12 @@ public sealed class TextRun {
         Baseline = baseline;
         TabLeader = tabLeader;
         TabAlignment = tabAlignment;
+        InlineElement = null;
+    }
+
+    private TextRun(PdfInlineElement inlineElement)
+        : this(string.Empty) {
+        InlineElement = inlineElement ?? throw new ArgumentNullException(nameof(inlineElement));
     }
 
     /// <summary>Create a normal (unstyled) run.</summary>
@@ -112,6 +120,8 @@ public sealed class TextRun {
     public static TextRun LineBreak() => new TextRun("\n", bold: false, underline: false, color: null, italic: false, strike: false);
     /// <summary>Create an explicit paragraph tab run.</summary>
     public static TextRun Tab(PdfTabLeaderStyle leader = PdfTabLeaderStyle.None, PdfTabAlignment alignment = PdfTabAlignment.Left) => new TextRun("\t", tabLeader: leader, tabAlignment: alignment);
+    /// <summary>Create a fixed-size inline visual run.</summary>
+    public static TextRun Inline(PdfInlineElement element) => new TextRun(element);
     /// <summary>Create a bold run.</summary>
     public static TextRun Bolded(string text, PdfColor? color = null, double? fontSize = null, PdfColor? backgroundColor = null, PdfStandardFont? font = null) => new TextRun(text, bold: true, underline: false, color: color, italic: false, strike: false, fontSize: fontSize, font: font, backgroundColor: backgroundColor);
     /// <summary>Create an underlined run.</summary>

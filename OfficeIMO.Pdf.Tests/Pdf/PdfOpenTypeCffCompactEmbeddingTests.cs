@@ -17,11 +17,20 @@ public class PdfOpenTypeCffCompactEmbeddingTests {
 
         byte[] full = File.ReadAllBytes(fontPath!);
         PdfOpenTypeCffFontProgram program = PdfOpenTypeCffFontProgram.Parse(full, "OfficeIMO Source Serif CFF");
-        byte[] compact = program.BuildCompactOpenTypeFontFile();
+        program.EncodeTextAsGlyphHex("Subset CFF Łódź");
+        PdfOpenTypeCffCompactFontFile plan = program.BuildCompactOpenTypeFontFilePlan();
+        byte[] compact = plan.Data;
         PdfOpenTypeFontInfo compactInfo = PdfOpenTypeFontInspector.Inspect(compact, "OfficeIMO Source Serif CFF");
         IReadOnlyList<string> compactTables = ReadTableTags(compact);
+        PdfCffCharStringSubset subset = Assert.IsType<PdfCffCharStringSubset>(plan.CharStringSubset);
 
         Assert.True(compact.Length < full.Length);
+        Assert.True(subset.IsSubset);
+        Assert.True(subset.PrunedGlyphCount > 1000);
+        Assert.True(subset.RetainedGlyphCount > 1);
+        Assert.Equal(compactInfo.GlyphCount, subset.GlyphCount);
+        Assert.True(subset.SubsetProgramBytes < subset.OriginalProgramBytes);
+        Assert.True(subset.SubsetIndexBytes < subset.OriginalIndexBytes);
         Assert.True(compactInfo.IsOpenTypeCff);
         Assert.True(compactInfo.GlyphCount > 1000);
         Assert.True(compactInfo.CffTableLength > 1000);
@@ -56,25 +65,12 @@ public class PdfOpenTypeCffCompactEmbeddingTests {
         string raw = Encoding.ASCII.GetString(bytes);
         string extracted = PdfReadDocument.Load(bytes).ExtractText();
         int embeddedLength = Assert.Single(ExtractLength1Values(raw));
-        PdfConversionWarning warning = Assert.Single(report.Warnings, item => item.Code == "opentype-cff-charstrings-not-subset");
 
         Assert.Contains("Compact CFF Łódź", extracted, StringComparison.Ordinal);
         Assert.Contains("/FontFile3", raw, StringComparison.Ordinal);
         Assert.Contains("/Subtype /OpenType", raw, StringComparison.Ordinal);
         Assert.InRange(embeddedLength, 1, fontData.Length - 1);
-        Assert.Contains("charstrings are still kept intact", warning.Message, StringComparison.Ordinal);
-        Assert.Equal(fontData.Length.ToString(CultureInfo.InvariantCulture), warning.Details["fontFileLength"]);
-        Assert.Equal(embeddedLength.ToString(CultureInfo.InvariantCulture), warning.Details["embeddedFontFileLength"]);
-        Assert.Equal("compact-opentype-cff", warning.Details["embeddingMode"]);
-        Assert.Equal("true", warning.Details["cffCharstringsRetained"]);
-        Assert.Equal("false", warning.Details["openTypeLayoutTablesEmbedded"]);
-        Assert.Contains("CFF", warning.Details["openTypeTablesEmbedded"], StringComparison.Ordinal);
-        Assert.Contains("GSUB", warning.Details["openTypeTablesRemoved"], StringComparison.Ordinal);
-        Assert.Contains("GPOS", warning.Details["openTypeLayoutTablesRemoved"], StringComparison.Ordinal);
-        Assert.Equal("false", warning.Details["cffCharstringsSubset"]);
-        Assert.Equal(warning.Details["glyphCount"], warning.Details["retainedCffGlyphCount"]);
-        Assert.True(int.Parse(warning.Details["unusedCffGlyphCount"], CultureInfo.InvariantCulture) > 0);
-        Assert.False(string.IsNullOrWhiteSpace(warning.Details["usedGlyphIdsPreview"]));
+        Assert.DoesNotContain(report.Warnings, item => item.Code == "opentype-cff-charstrings-not-subset");
     }
 
     private static IReadOnlyList<string> ReadTableTags(byte[] fontData) {

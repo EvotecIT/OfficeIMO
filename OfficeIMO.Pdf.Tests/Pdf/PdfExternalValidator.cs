@@ -11,12 +11,14 @@ namespace OfficeIMO.Tests.Pdf;
 internal sealed class PdfExternalValidator {
     private const string RequireEnv = "OFFICEIMO_REQUIRE_PDF_COMPLIANCE_VALIDATORS";
     private readonly string[] _arguments;
+    private readonly string? _profile;
 
-    private PdfExternalValidator(string name, string? executablePath, string[] arguments, bool autoDetected) {
+    private PdfExternalValidator(string name, string? executablePath, string[] arguments, bool autoDetected, string? profile = null) {
         Name = name;
         ExecutablePath = executablePath;
         _arguments = arguments;
         AutoDetected = autoDetected;
+        _profile = profile;
     }
 
     internal string Name { get; }
@@ -31,13 +33,17 @@ internal sealed class PdfExternalValidator {
         Name + " was not configured, so external validation was not run." + Environment.NewLine +
         "Set OFFICEIMO_VERAPDF, OFFICEIMO_VERAPDF_PATH, OFFICEIMO_PDFUA_VALIDATOR, OFFICEIMO_PDFUA_VALIDATOR_PATH, OFFICEIMO_MUSTANG, or OFFICEIMO_MUSTANG_PATH as appropriate, or add the tool to PATH." + Environment.NewLine;
 
-    internal static PdfExternalValidator VeraPdf() {
+    internal static PdfExternalValidator VeraPdf(string flavor = "3b") {
+        if (string.IsNullOrWhiteSpace(flavor)) {
+            throw new ArgumentException("veraPDF validation flavor cannot be empty.", nameof(flavor));
+        }
+
         string? explicitPath = FirstNonEmpty(
             Environment.GetEnvironmentVariable("OFFICEIMO_VERAPDF"),
             Environment.GetEnvironmentVariable("OFFICEIMO_VERAPDF_PATH"));
         string? path = explicitPath ?? FindOnPath("verapdf", "verapdf.bat", "verapdf.exe");
-        string[] args = GetConfiguredArgs("OFFICEIMO_VERAPDF_ARGS", "-f", "3b", "{pdf}");
-        return new PdfExternalValidator("veraPDF", path, args, explicitPath == null && path != null);
+        string[] args = GetConfiguredArgs("OFFICEIMO_VERAPDF_ARGS", "-f", flavor, "{pdf}");
+        return new PdfExternalValidator("veraPDF", path, args, explicitPath == null && path != null, flavor);
     }
 
     internal static PdfExternalValidator PdfUa() {
@@ -86,7 +92,10 @@ internal sealed class PdfExternalValidator {
         string pdfPath = Path.Combine(workDir, fileName);
         try {
             File.WriteAllBytes(pdfPath, pdfBytes);
-            string arguments = string.Join(" ", _arguments.Select(argument => QuoteArgument(argument.Replace("{pdf}", pdfPath))));
+            string arguments = string.Join(" ", _arguments.Select(argument => QuoteArgument(
+                argument
+                    .Replace("{pdf}", pdfPath)
+                    .Replace("{profile}", _profile ?? string.Empty))));
             var startInfo = new ProcessStartInfo {
                 FileName = ExecutablePath!,
                 Arguments = arguments,
@@ -214,7 +223,7 @@ internal sealed class PdfExternalValidator {
             return "\"\"";
         }
 
-        if (argument.IndexOfAny(new[] { ' ', '\t', '"' }) < 0) {
+        if (argument.IndexOfAny(new[] { ' ', '\t', '"', '\\' }) < 0) {
             return argument;
         }
 

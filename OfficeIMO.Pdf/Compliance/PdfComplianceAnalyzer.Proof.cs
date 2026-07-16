@@ -25,6 +25,14 @@ public static partial class PdfComplianceAnalyzer {
     }
 
     /// <summary>
+    /// Combines readiness diagnostics, exact PDF artifact identity, generated-font evidence, and external validator evidence.
+    /// </summary>
+    public static PdfComplianceProofReport AssessProof(PdfComplianceProfile profile, PdfOptions options, byte[] artifact, IEnumerable<PdfExternalValidationResult>? externalValidations, IEnumerable<PdfStandardFont>? generatedStandardFonts) {
+        PdfComplianceReadinessReport readiness = Assess(profile, options, generatedStandardFonts);
+        return AssessProof(readiness, artifact, externalValidations);
+    }
+
+    /// <summary>
     /// Combines an existing readiness report with external validator evidence.
     /// </summary>
     public static PdfComplianceProofReport AssessProof(PdfComplianceReadinessReport readiness, IEnumerable<PdfExternalValidationResult>? externalValidations = null) {
@@ -35,6 +43,35 @@ public static partial class PdfComplianceAnalyzer {
             readiness,
             GetRequiredExternalValidators(readiness.Profile),
             validationSnapshot);
+    }
+
+    /// <summary>
+    /// Combines an existing readiness report with exact PDF artifact identity and external validator evidence.
+    /// </summary>
+    public static PdfComplianceProofReport AssessProof(PdfComplianceReadinessReport readiness, byte[] artifact, IEnumerable<PdfExternalValidationResult>? externalValidations = null) {
+        Guard.NotNull(readiness, nameof(readiness));
+        Guard.NotNull(artifact, nameof(artifact));
+
+        PdfComplianceReadinessReport artifactReadiness = AssessReadback(readiness.Profile, artifact);
+        PdfComplianceReadinessReport combinedReadiness = CombineReadiness(readiness, artifactReadiness);
+        PdfExternalValidationResult[] validationSnapshot = SnapshotExternalValidations(externalValidations);
+        return new PdfComplianceProofReport(
+            combinedReadiness,
+            GetRequiredExternalValidators(combinedReadiness.Profile),
+            validationSnapshot,
+            PdfArtifactFingerprint.ComputeSha256(artifact),
+            artifact.LongLength);
+    }
+
+    private static PdfComplianceReadinessReport CombineReadiness(PdfComplianceReadinessReport generated, PdfComplianceReadinessReport artifact) {
+        if (generated.Profile != artifact.Profile) {
+            throw new System.ArgumentException("Generated and artifact readiness reports must target the same compliance profile.", nameof(artifact));
+        }
+
+        var requirements = new List<PdfComplianceRequirement>(generated.Requirements.Count + artifact.Requirements.Count);
+        requirements.AddRange(generated.Requirements);
+        requirements.AddRange(artifact.Requirements);
+        return new PdfComplianceReadinessReport(generated.Profile, generated.DisplayName, requirements.AsReadOnly());
     }
 
     private static PdfExternalValidationResult[] SnapshotExternalValidations(IEnumerable<PdfExternalValidationResult>? externalValidations) {

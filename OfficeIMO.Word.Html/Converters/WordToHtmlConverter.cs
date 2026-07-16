@@ -5,6 +5,7 @@ using DocumentFormat.OpenXml.Wordprocessing;
 using System.Globalization;
 using System.Threading;
 using System.Threading.Tasks;
+using M = DocumentFormat.OpenXml.Math;
 
 namespace OfficeIMO.Word.Html {
     /// <summary>
@@ -63,50 +64,62 @@ namespace OfficeIMO.Word.Html {
 
             void AppendRuns(IElement parent, WordParagraph para, bool processNotes = true) {
                 var runs = para.GetRuns().ToList();
+                var paragraphChildren = para._paragraph.ChildElements.ToList();
+                IReadOnlyList<WordEquationOccurrence> equations = WordEquation.GetOccurrences(para._document, para._paragraph);
                 List<INode> nodes = new();
+                int nextEquation = 0;
+                var expandedEquationContainers = new HashSet<DocumentFormat.OpenXml.OpenXmlElement>();
                 bool inQuote = false;
                 IElement? quote = null;
-                for (int i = 0; i < runs.Count; i++) {
-                    var run = runs[i];
-                    if (HtmlSemanticMetadata.IsTimeDateTimeMetadataRun(run)) {
-                        continue;
+
+                void AppendNode(INode node) {
+                    if (inQuote && quote != null) {
+                        quote.AppendChild(node);
+                    } else {
+                        nodes.Add(node);
+                    }
+                }
+
+                bool AppendRunArtifacts(WordParagraph run, List<INode> target, DocumentFormat.OpenXml.OpenXmlElement? artifactElement = null) {
+                    bool includeAll = artifactElement == null;
+                    if ((includeAll || artifactElement is FootnoteReference || artifactElement is EndnoteReference) &&
+                        TryAppendNoteReference(htmlDoc, run, options, processNotes, target, footnotes, footnoteMap, endnotes, endnoteMap)) {
+                        return true;
                     }
 
-                    if (TryAppendNoteReference(htmlDoc, run, options, processNotes, nodes, footnotes, footnoteMap, endnotes, endnoteMap)) {
-                        continue;
+                    if ((includeAll || artifactElement is CommentReference) &&
+                        TryAppendCommentReference(htmlDoc, run, options, commentsById, comments, commentMap, target)) {
+                        return true;
                     }
 
-                    if (TryAppendCommentReference(htmlDoc, run, options, commentsById, comments, commentMap, nodes)) {
-                        continue;
+                    if ((includeAll || artifactElement is SdtRun) && run.IsCheckBox && run.CheckBox != null) {
+                        target.Add(CreateCheckBoxInput(htmlDoc, run.CheckBox));
+                        return true;
                     }
 
-                    if (run.IsCheckBox && run.CheckBox != null) {
-                        nodes.Add(CreateCheckBoxInput(htmlDoc, run.CheckBox));
-                        continue;
+                    if ((includeAll || artifactElement is SdtRun) && run.IsDropDownList && run.DropDownList != null) {
+                        target.Add(CreateDropDownListSelect(htmlDoc, run.DropDownList));
+                        return true;
                     }
 
-                    if (run.IsDropDownList && run.DropDownList != null) {
-                        nodes.Add(CreateDropDownListSelect(htmlDoc, run.DropDownList));
-                        continue;
-                    }
-
-                    if (run.IsComboBox && run.ComboBox != null) {
+                    if ((includeAll || artifactElement is SdtRun) && run.IsComboBox && run.ComboBox != null) {
                         formListIndex++;
-                        nodes.AddRange(CreateComboBoxNodes(htmlDoc, run.ComboBox, formListIndex));
-                        continue;
+                        target.AddRange(CreateComboBoxNodes(htmlDoc, run.ComboBox, formListIndex));
+                        return true;
                     }
 
-                    if (run.IsDatePicker && run.DatePicker != null) {
-                        nodes.Add(CreateDatePickerInput(htmlDoc, run.DatePicker));
-                        continue;
+                    if ((includeAll || artifactElement is SdtRun) && run.IsDatePicker && run.DatePicker != null) {
+                        target.Add(CreateDatePickerInput(htmlDoc, run.DatePicker));
+                        return true;
                     }
 
-                    if (run.IsStructuredDocumentTag && run.StructuredDocumentTag != null && !run.IsPictureControl && !run.IsRepeatingSection) {
-                        nodes.Add(CreateStructuredDocumentTagInput(htmlDoc, run.StructuredDocumentTag));
-                        continue;
+                    if ((includeAll || artifactElement is SdtRun) && run.IsStructuredDocumentTag && run.StructuredDocumentTag != null && !run.IsPictureControl && !run.IsRepeatingSection) {
+                        target.Add(CreateStructuredDocumentTagInput(htmlDoc, run.StructuredDocumentTag));
+                        return true;
                     }
 
-                    if (run.IsImage && run.Image != null) {
+                    if ((includeAll || artifactElement is DocumentFormat.OpenXml.Wordprocessing.Drawing || artifactElement is DocumentFormat.OpenXml.Vml.ImageData) &&
+                        run.IsImage && run.Image != null) {
                         var imgObj = run.Image;
                         var ext = Path.GetExtension(imgObj.FileName)?.ToLowerInvariant();
                         if (ext == ".svg") {
@@ -116,7 +129,7 @@ namespace OfficeIMO.Word.Html {
                                 var fragment = parser.ParseFragment(svgXml, body);
                                 var svgElement = fragment.OfType<IElement>().FirstOrDefault();
                                 if (svgElement != null) {
-                                    nodes.Add(svgElement);
+                                    target.Add(svgElement);
                                 }
                             } else {
                                 var imgSvg = htmlDoc.CreateElement("img") as IHtmlImageElement;
@@ -135,43 +148,190 @@ namespace OfficeIMO.Word.Html {
                                 if (!string.IsNullOrEmpty(imgObj.Title)) {
                                     imgSvg.SetAttribute("title", imgObj.Title!);
                                 }
-                                nodes.Add(imgSvg);
+                                target.Add(imgSvg);
+                            }
+                        } else {
+                            var img = htmlDoc.CreateElement("img") as IHtmlImageElement;
+                            string src;
+                            if (imgObj.IsExternal && imgObj.ExternalUri != null) {
+                                src = imgObj.ExternalUri.ToString();
+                            } else if (!options.EmbedImagesAsBase64) {
+                                src = string.IsNullOrEmpty(imgObj.FilePath) ? (imgObj.FileName ?? string.Empty) : imgObj.FilePath!;
+                            } else {
+                                var bytes = imgObj.ToBytes();
+                                var mime = MimeFromFileName(imgObj.FileName ?? string.Empty);
+                                src = $"data:{mime};base64,{System.Convert.ToBase64String(bytes)}";
+                            }
+                            img!.Source = src;
+                            if (imgObj.Width.HasValue) img.DisplayWidth = (int)Math.Round(imgObj.Width.Value);
+                            if (imgObj.Height.HasValue) img.DisplayHeight = (int)Math.Round(imgObj.Height.Value);
+                            if (!string.IsNullOrEmpty(imgObj.Description)) {
+                                img.AlternativeText = imgObj.Description;
+                            }
+                            if (!string.IsNullOrEmpty(imgObj.Title)) {
+                                img.SetAttribute("title", imgObj.Title!);
+                            }
+                            target.Add(img);
+                        }
+                        return true;
+                    }
+
+                    bool appendedBreak = false;
+                    if ((includeAll || artifactElement is Break || artifactElement is CarriageReturn) && run.Break != null && run.PageBreak == null) {
+                        target.Add(htmlDoc.CreateElement("br"));
+                        appendedBreak = true;
+                    }
+                    if (TryCreateRubyNode(htmlDoc, run, out var rubyNode)) {
+                        target.Add(rubyNode);
+                        return true;
+                    }
+
+                    return appendedBreak && string.IsNullOrEmpty(run.Text);
+                }
+
+                IElement? CreateEquationNode(WordEquation equation) {
+                    IElement? mathNode = new HtmlParser()
+                        .ParseFragment(equation.ToMathMl(), parent)
+                        .OfType<IElement>()
+                        .FirstOrDefault();
+                    mathNode?.SetAttribute("aria-label", equation.Text);
+                    return mathNode;
+                }
+
+                List<INode> CreateExpandedEquationContainerNodes(
+                    DocumentFormat.OpenXml.OpenXmlElement container,
+                    IReadOnlyList<WordEquationOccurrence> coveringEquations,
+                    WordParagraph fallbackRun) {
+                    var expandedNodes = new List<INode>();
+                    IElement? hyperlinkNode = container is Hyperlink hyperlink
+                        ? CreateEquationHyperlinkNode(
+                            htmlDoc,
+                            new WordHyperLink(para._document, para._paragraph, hyperlink))
+                        : null;
+
+                    foreach (WordEquationContentSegment segment in WordEquation.GetVisibleContentSegments(container, coveringEquations)) {
+                        WordParagraph sourceRun = segment.CreateSourceParagraph(
+                            para._document,
+                            para._paragraph,
+                            fallbackRun);
+                        if (segment.Equation != null) {
+                            IElement? mathNode = CreateEquationNode(segment.Equation);
+                            if (mathNode != null &&
+                                hyperlinkNode == null &&
+                                sourceRun.IsHyperLink &&
+                                sourceRun.Hyperlink != null) {
+                                IElement? sourceAnchor = CreateEquationHyperlinkNode(htmlDoc, sourceRun.Hyperlink);
+                                if (sourceAnchor != null) {
+                                    sourceAnchor.AppendChild(mathNode);
+                                    expandedNodes.Add(sourceAnchor);
+                                    continue;
+                                }
+                            }
+                            if (mathNode != null) expandedNodes.Add(mathNode);
+                            continue;
+                        }
+
+                        if (HtmlSemanticMetadata.IsTimeDateTimeMetadataRun(sourceRun)) {
+                            continue;
+                        }
+                        if (segment.IsRunArtifact) {
+                            AppendRunArtifacts(sourceRun, expandedNodes, segment.ArtifactElement);
+                            continue;
+                        }
+                        if (string.IsNullOrEmpty(segment.Text)) continue;
+                        expandedNodes.Add(CreateEquationAdjacentTextNode(
+                            htmlDoc,
+                            sourceRun,
+                            segment.Text!,
+                            options,
+                            document.Settings.Language,
+                            runStyles,
+                            includeHyperlink: hyperlinkNode == null));
+                    }
+
+                    if (hyperlinkNode == null) return expandedNodes;
+                    foreach (INode expandedNode in expandedNodes) {
+                        hyperlinkNode.AppendChild(expandedNode);
+                    }
+                    return new List<INode> { hyperlinkNode };
+                }
+
+                INode? CreatePositionedEquationNode(WordEquationOccurrence occurrence) {
+                    IElement? mathNode = CreateEquationNode(occurrence.Equation);
+                    if (mathNode == null) return null;
+
+                    if (occurrence.StartChildIndex >= 0 &&
+                        occurrence.StartChildIndex < paragraphChildren.Count &&
+                        paragraphChildren[occurrence.StartChildIndex] is Hyperlink hyperlink) {
+                        IElement? anchor = CreateEquationHyperlinkNode(
+                            htmlDoc,
+                            new WordHyperLink(para._document, para._paragraph, hyperlink));
+                        if (anchor != null) {
+                            anchor.AppendChild(mathNode);
+                            return anchor;
+                        }
+                    }
+
+                    return mathNode;
+                }
+
+                void AppendEquationNodesBefore(int childIndex) {
+                    while (nextEquation < equations.Count && equations[nextEquation].StartChildIndex < childIndex) {
+                        int equationChildIndex = equations[nextEquation].StartChildIndex;
+                        if (equationChildIndex >= 0 &&
+                            equationChildIndex < paragraphChildren.Count &&
+                            paragraphChildren[equationChildIndex] is DocumentFormat.OpenXml.OpenXmlElement container &&
+                            WordEquation.IsVisibleEquationContentContainer(container)) {
+                            List<WordEquationOccurrence> coveringEquations = equations
+                                .Where(equation => equation.ContainsChildIndex(equationChildIndex))
+                                .ToList();
+                            if (expandedEquationContainers.Add(container)) {
+                                foreach (INode expandedNode in CreateExpandedEquationContainerNodes(container, coveringEquations, para)) {
+                                    AppendNode(expandedNode);
+                                }
+                            }
+                            while (nextEquation < equations.Count && equations[nextEquation].StartChildIndex == equationChildIndex) {
+                                nextEquation++;
                             }
                             continue;
                         }
 
-                        var img = htmlDoc.CreateElement("img") as IHtmlImageElement;
-                        string src;
-                        if (imgObj.IsExternal && imgObj.ExternalUri != null) {
-                            src = imgObj.ExternalUri.ToString();
-                        } else if (!options.EmbedImagesAsBase64) {
-                            src = string.IsNullOrEmpty(imgObj.FilePath) ? (imgObj.FileName ?? string.Empty) : imgObj.FilePath!;
-                        } else {
-                            var bytes = imgObj.ToBytes();
-                            var mime = MimeFromFileName(imgObj.FileName ?? string.Empty);
-                            src = $"data:{mime};base64,{System.Convert.ToBase64String(bytes)}";
+                        INode? mathNode = CreatePositionedEquationNode(equations[nextEquation++]);
+                        if (mathNode != null) AppendNode(mathNode);
+                    }
+                }
+
+                for (int i = 0; i < runs.Count; i++) {
+                    var run = runs[i];
+                    DocumentFormat.OpenXml.OpenXmlElement? runContentContainer = run._hyperlink
+                        ?? (DocumentFormat.OpenXml.OpenXmlElement?)run._stdRun
+                        ?? run._run;
+                    DocumentFormat.OpenXml.OpenXmlElement? runContainer =
+                        WordEquation.GetDirectParagraphChild(run._paragraph, runContentContainer);
+                    int runIndex = runContainer == null ? int.MaxValue : paragraphChildren.IndexOf(runContainer);
+                    AppendEquationNodesBefore(runIndex < 0 ? int.MaxValue : runIndex);
+                    List<WordEquationOccurrence> coveringEquations = equations
+                        .Where(equation => equation.ContainsChildIndex(runIndex))
+                        .ToList();
+                    if (runContainer != null &&
+                        coveringEquations.Any(equation => equation.StartChildIndex == runIndex) &&
+                        expandedEquationContainers.Add(runContainer)) {
+                        foreach (INode expandedNode in CreateExpandedEquationContainerNodes(runContainer, coveringEquations, run)) {
+                            AppendNode(expandedNode);
                         }
-                        img!.Source = src;
-                        if (imgObj.Width.HasValue) img.DisplayWidth = (int)Math.Round(imgObj.Width.Value);
-                        if (imgObj.Height.HasValue) img.DisplayHeight = (int)Math.Round(imgObj.Height.Value);
-                        if (!string.IsNullOrEmpty(imgObj.Description)) {
-                            img.AlternativeText = imgObj.Description;
+                        while (nextEquation < equations.Count && equations[nextEquation].StartChildIndex == runIndex) {
+                            nextEquation++;
                         }
-                        if (!string.IsNullOrEmpty(imgObj.Title)) {
-                            img.SetAttribute("title", imgObj.Title!);
-                        }
-                        nodes.Add(img);
+                        continue;
+                    }
+                    if (coveringEquations.Count > 0) {
+                        continue;
+                    }
+                    if (HtmlSemanticMetadata.IsTimeDateTimeMetadataRun(run)) {
                         continue;
                     }
 
-                    // Still honor explicit line breaks even when the run carries no text
-                    if (run.Break != null && run.PageBreak == null) {
-                        nodes.Add(htmlDoc.CreateElement("br"));
-                    }
-                    if (TryCreateRubyNode(htmlDoc, run, out var rubyNode)) {
-                        nodes.Add(rubyNode);
-                        continue;
-                    }
+                    if (AppendRunArtifacts(run, nodes)) continue;
                     if (string.IsNullOrEmpty(run.Text)) {
                         continue;
                     }
@@ -247,51 +407,12 @@ namespace OfficeIMO.Word.Html {
                         // if href is null/empty, fall back to plain text       
                     }
 
-                    bool handledHtmlStyle = false;
-                    if (isHtmlDeletedText) {
-                        var del = htmlDoc.CreateElement("del");
-                        del.AppendChild(node);
-                        node = del;
-                        handledHtmlStyle = true;
-                    } else if (isHtmlInsertedText) {
-                        var ins = htmlDoc.CreateElement("ins");
-                        ins.AppendChild(node);
-                        node = ins;
-                        handledHtmlStyle = true;
-                    } else if (isHtmlMarkedText) {
-                        var mark = htmlDoc.CreateElement("mark");
-                        mark.AppendChild(node);
-                        node = mark;
-                        handledHtmlStyle = true;
-                    } else if (string.Equals(run.CharacterStyleId, "HtmlCite", StringComparison.OrdinalIgnoreCase)) {
-                        var cite = htmlDoc.CreateElement("cite");
-                        cite.AppendChild(node);
-                        node = cite;
-                        handledHtmlStyle = true;
-                    } else if (string.Equals(run.CharacterStyleId, "HtmlDfn", StringComparison.OrdinalIgnoreCase)) {
-                        var dfn = htmlDoc.CreateElement("dfn");
-                        dfn.AppendChild(node);
-                        node = dfn;
-                        handledHtmlStyle = true;
-                    } else if (string.Equals(run.CharacterStyleId, "HtmlTime", StringComparison.OrdinalIgnoreCase)) {
-                        var time = htmlDoc.CreateElement("time");
-                        bool hasImportedDateTime = HtmlSemanticMetadata.TryGetTimeDateTime(run, out var dt);
-                        if (!hasImportedDateTime) {
-                            dt = run.Text ?? string.Empty;
-                        }
-                        if (!hasImportedDateTime && DateTime.TryParse(run.Text, out var parsed)) {
-                            dt = parsed.ToString("o");
-                        }
-                        time.SetAttribute("datetime", dt);
-                        time.AppendChild(node);
-                        node = time;
-                        handledHtmlStyle = true;
-                    } else if (string.Equals(run.CharacterStyleId, "HtmlCode", StringComparison.OrdinalIgnoreCase)) {
-                        var code = htmlDoc.CreateElement("code");
-                        code.AppendChild(node);
-                        node = code;
-                        handledHtmlStyle = true;
-                    }
+                    node = ApplyHtmlSemanticCharacterStyle(
+                        htmlDoc,
+                        run,
+                        run.Text ?? string.Empty,
+                        node,
+                        out bool handledHtmlStyle);
 
                     if (options.IncludeFontStyles) {
                         var font = run.FontFamily ?? options.FontFamily;
@@ -370,6 +491,8 @@ namespace OfficeIMO.Word.Html {
                         nodes.Add(node);
                     }
                 }
+
+                AppendEquationNodesBefore(int.MaxValue);
                 foreach (var node in nodes) {
                     cancellationToken.ThrowIfCancellationRequested();
                     parent.AppendChild(node);

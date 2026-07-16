@@ -1,10 +1,8 @@
 using BenchmarkDotNet.Attributes;
-using BenchmarkDotNet.Jobs;
 
 namespace OfficeIMO.Excel.Benchmarks;
 
 [MemoryDiagnoser]
-[SimpleJob(RuntimeMoniker.Net80)]
 public class ExcelWorksheetCopyBenchmarks {
     private byte[] _sourceWorkbookBytes = [];
 

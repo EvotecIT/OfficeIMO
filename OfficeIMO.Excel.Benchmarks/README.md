@@ -45,12 +45,12 @@ reads distinguish forward-only scans from rectangular materialization, and
 DataTable reads distinguish automatic type inference from a caller-prepared
 typed schema. These lanes should not be collapsed into one ranking.
 
-One remaining gap is intentionally visible: in a stable 25,000-row Apple M4
-forward shared-string scan with twenty warmups and nine measurements,
-OfficeIMO measured 19.04 ms and Sylvan.Data.Excel measured 16.56 ms. The
-OfficeIMO path retains general shared-string and worksheet compatibility; do
-not present its much faster rectangular-materialization result as a win in this
-forward-only contract.
+String-storage readers are compared on separately validated shared-string and
+inline-string fixtures. In a 25,000-row Windows run with twenty warmups and nine
+measurements, OfficeIMO's forward reader measured 15.98 ms for shared strings
+and 20.71 ms for inline strings; Sylvan.Data.Excel measured 20.46 ms and 25.50
+ms respectively. These are workstation measurements rather than universal
+constants, so rerun the focused scenarios before making a release claim.
 
 For release-style evidence:
 

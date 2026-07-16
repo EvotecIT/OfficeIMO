@@ -18,6 +18,19 @@ namespace OfficeIMO.Tests {
             string roundTrip = doc.ToHtml();
             Assert.Contains("<q>quoted</q>", roundTrip, StringComparison.OrdinalIgnoreCase);
         }
+
+        [Fact]
+        public void EquationInsideQuoteRoundTripsInsideQuote() {
+            const string html = "<p>Before <q>quoted <math aria-label=\"x=1\"><mi>x</mi><mo>=</mo><mn>1</mn></math> after</q> tail</p>";
+            using var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument();
+
+            string roundTrip = doc.ToHtml();
+
+            int quoteStart = roundTrip.IndexOf("<q>", StringComparison.OrdinalIgnoreCase);
+            int math = roundTrip.IndexOf("<math", StringComparison.OrdinalIgnoreCase);
+            int quoteEnd = roundTrip.IndexOf("</q>", StringComparison.OrdinalIgnoreCase);
+            Assert.True(quoteStart >= 0 && quoteStart < math && math < quoteEnd, roundTrip);
+        }
     }
 }
 

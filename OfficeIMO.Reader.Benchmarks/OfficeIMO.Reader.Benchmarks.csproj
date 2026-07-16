@@ -15,6 +15,11 @@
 
   <ItemGroup>
     <ProjectReference Include="..\OfficeIMO.Reader\OfficeIMO.Reader.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Reader.Ocr.Process\OfficeIMO.Reader.Ocr.Process.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Email\OfficeIMO.Email.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Excel\OfficeIMO.Excel.csproj" />
+    <ProjectReference Include="..\OfficeIMO.PowerPoint\OfficeIMO.PowerPoint.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Word\OfficeIMO.Word.csproj" />
     <ProjectReference Include="..\OfficeIMO.Reader.Csv\OfficeIMO.Reader.Csv.csproj" />
     <ProjectReference Include="..\OfficeIMO.Reader.Epub\OfficeIMO.Reader.Epub.csproj" />
     <ProjectReference Include="..\OfficeIMO.Reader.Html\OfficeIMO.Reader.Html.csproj" />

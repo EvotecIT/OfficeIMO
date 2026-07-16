@@ -557,7 +557,7 @@ static string[] FilterPackageProfileScenarios(IReadOnlyCollection<string> scenar
         "realworld-report-shuffled-columns",
         "realworld-report-extra-column",
         "realworld-report-post-mutation",
-        "large-shared-strings"
+        "write-text-heavy-default"
     };
 
     return scenarioFilters

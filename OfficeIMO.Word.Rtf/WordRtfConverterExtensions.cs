@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Text;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
+using M = DocumentFormat.OpenXml.Math;
 
 namespace OfficeIMO.Word.Rtf;
 
@@ -166,31 +167,67 @@ public static partial class WordRtfConverterExtensions {
                     hasRuns |= AppendWordRun(new WordParagraph(wordParagraph._document, wordParagraph._paragraph, runElement), paragraph, ref previousRun, rtfDocument, revisionAuthorIndexes);
                     break;
                 case InsertedRun insertedRun:
-                    int? insertedAuthorIndex = GetOrAddRevisionAuthorIndex(rtfDocument, insertedRun.Author?.Value, revisionAuthorIndexes);
-                    foreach (Run childRun in insertedRun.Elements<Run>()) {
-                        hasRuns |= AppendWordRun(new WordParagraph(wordParagraph._document, wordParagraph._paragraph, childRun), paragraph, ref previousRun, rtfDocument, revisionAuthorIndexes, RtfRevisionKind.Inserted, insertedAuthorIndex);
-                    }
-
+                    hasRuns |= AppendRevisionContent(wordParagraph, insertedRun, paragraph, ref previousRun, rtfDocument, revisionAuthorIndexes, complexFields, RtfRevisionKind.Inserted, insertedRun.Author?.Value);
+                    break;
+                case MoveToRun moveToRun:
+                    hasRuns |= AppendRevisionContent(wordParagraph, moveToRun, paragraph, ref previousRun, rtfDocument, revisionAuthorIndexes, complexFields, RtfRevisionKind.Inserted, moveToRun.Author?.Value);
                     break;
                 case DeletedRun deletedRun:
-                    int? deletedAuthorIndex = GetOrAddRevisionAuthorIndex(rtfDocument, deletedRun.Author?.Value, revisionAuthorIndexes);
-                    foreach (Run childRun in deletedRun.Elements<Run>()) {
-                        hasRuns |= AppendWordRun(new WordParagraph(wordParagraph._document, wordParagraph._paragraph, childRun), paragraph, ref previousRun, rtfDocument, revisionAuthorIndexes, RtfRevisionKind.Deleted, deletedAuthorIndex);
-                    }
-
+                    hasRuns |= AppendRevisionContent(wordParagraph, deletedRun, paragraph, ref previousRun, rtfDocument, revisionAuthorIndexes, complexFields, RtfRevisionKind.Deleted, deletedRun.Author?.Value);
+                    break;
+                case MoveFromRun moveFromRun:
+                    hasRuns |= AppendRevisionContent(wordParagraph, moveFromRun, paragraph, ref previousRun, rtfDocument, revisionAuthorIndexes, complexFields, RtfRevisionKind.Deleted, moveFromRun.Author?.Value);
                     break;
                 case Hyperlink hyperlink:
-                    foreach (Run childRun in hyperlink.Elements<Run>()) {
-                        var wordRun = new WordParagraph(wordParagraph._document, wordParagraph._paragraph, childRun) {
-                            _hyperlink = hyperlink
-                        };
-                        hasRuns |= AppendWordRun(wordRun, paragraph, ref previousRun, rtfDocument, revisionAuthorIndexes);
-                    }
-
+                    hasRuns |= AppendHyperlinkContent(
+                        wordParagraph,
+                        hyperlink,
+                        hyperlink,
+                        paragraph,
+                        ref previousRun,
+                        rtfDocument,
+                        revisionAuthorIndexes,
+                        complexFields);
+                    break;
+                case SdtRun sdtRun:
+                    hasRuns |= AppendInlineContainerContent(
+                        wordParagraph,
+                        sdtRun,
+                        paragraph,
+                        ref previousRun,
+                        rtfDocument,
+                        revisionAuthorIndexes,
+                        complexFields);
+                    break;
+                case SdtContentRun sdtContentRun:
+                    hasRuns |= AppendInlineContainerContent(
+                        wordParagraph,
+                        sdtContentRun,
+                        paragraph,
+                        ref previousRun,
+                        rtfDocument,
+                        revisionAuthorIndexes,
+                        complexFields);
                     break;
                 case SimpleField simpleField:
-                    AppendSimpleField(wordParagraph, simpleField, paragraph, rtfDocument, revisionAuthorIndexes);
+                    AppendSimpleField(
+                        wordParagraph,
+                        simpleField,
+                        paragraph,
+                        rtfDocument,
+                        revisionAuthorIndexes,
+                        complexFields);
                     hasRuns = true;
+                    break;
+                case M.OfficeMath officeMath:
+                    AppendEquationField(paragraph, officeMath, complexFields);
+                    hasRuns = true;
+                    previousRun = null;
+                    break;
+                case M.Paragraph mathParagraph:
+                    AppendEquationField(paragraph, mathParagraph, complexFields);
+                    hasRuns = true;
+                    previousRun = null;
                     break;
             }
         }
@@ -202,10 +239,288 @@ public static partial class WordRtfConverterExtensions {
         AppendWordComments(wordParagraph, paragraph, rtfDocument, revisionAuthorIndexes);
     }
 
+    private static bool AppendHyperlinkContent(
+        WordParagraph wordParagraph,
+        OpenXmlElement container,
+        Hyperlink hyperlink,
+        RtfParagraph paragraph,
+        ref RtfRun? previousRun,
+        RtfDocument rtfDocument,
+        Dictionary<string, int> revisionAuthorIndexes,
+        Stack<ComplexFieldCapture> complexFields,
+        RtfRevisionKind revisionKind = RtfRevisionKind.None,
+        int? revisionAuthorIndex = null) {
+        ComplexFieldCapture? activeCapture = complexFields.Count > 0 ? complexFields.Peek() : null;
+        if (activeCapture != null && !activeCapture.CapturingResult) {
+            return false;
+        }
+
+        RtfParagraph destination = activeCapture?.Result ?? paragraph;
+        RtfField hyperlinkField = destination.AddField(CreateHyperlinkFieldInstruction(wordParagraph, hyperlink));
+        RtfRun? hyperlinkPreviousRun = null;
+        bool hasContent = AppendInlineContainerContent(
+            wordParagraph,
+            container,
+            hyperlinkField.Result,
+            ref hyperlinkPreviousRun,
+            rtfDocument,
+            revisionAuthorIndexes,
+            new Stack<ComplexFieldCapture>(),
+            revisionKind,
+            revisionAuthorIndex);
+        if (activeCapture != null) {
+            activeCapture.PreviousRun = null;
+        }
+        previousRun = null;
+        return hasContent;
+    }
+
+    private static bool AppendInlineContainerContent(
+        WordParagraph wordParagraph,
+        OpenXmlElement container,
+        RtfParagraph paragraph,
+        ref RtfRun? previousRun,
+        RtfDocument rtfDocument,
+        Dictionary<string, int> revisionAuthorIndexes,
+        Stack<ComplexFieldCapture> complexFields,
+        RtfRevisionKind revisionKind = RtfRevisionKind.None,
+        int? revisionAuthorIndex = null) {
+        bool hasContent = false;
+        foreach (OpenXmlElement child in container.ChildElements) {
+            switch (child) {
+                case Run childRun:
+                    if (TryAppendComplexFieldRun(
+                        wordParagraph,
+                        childRun,
+                        paragraph,
+                        rtfDocument,
+                        revisionAuthorIndexes,
+                        complexFields,
+                        revisionKind,
+                        revisionAuthorIndex)) {
+                        previousRun = null;
+                        hasContent = true;
+                        break;
+                    }
+
+                    hasContent |= AppendWordRun(
+                        new WordParagraph(wordParagraph._document, wordParagraph._paragraph, childRun),
+                        paragraph,
+                        ref previousRun,
+                        rtfDocument,
+                        revisionAuthorIndexes,
+                        revisionKind,
+                        revisionAuthorIndex);
+                    break;
+                case M.OfficeMath officeMath:
+                    AppendEquationField(paragraph, officeMath, complexFields, revisionKind, revisionAuthorIndex);
+                    previousRun = null;
+                    hasContent = true;
+                    break;
+                case M.Paragraph mathParagraph:
+                    AppendEquationField(paragraph, mathParagraph, complexFields, revisionKind, revisionAuthorIndex);
+                    previousRun = null;
+                    hasContent = true;
+                    break;
+                case SimpleField simpleField:
+                    AppendSimpleField(
+                        wordParagraph,
+                        simpleField,
+                        paragraph,
+                        rtfDocument,
+                        revisionAuthorIndexes,
+                        complexFields,
+                        revisionKind,
+                        revisionAuthorIndex);
+                    previousRun = null;
+                    hasContent = true;
+                    break;
+                case DeletedRun:
+                case MoveFromRun:
+                    break;
+                case InsertedRun insertedRun:
+                    hasContent |= AppendRevisionContent(
+                        wordParagraph,
+                        insertedRun,
+                        paragraph,
+                        ref previousRun,
+                        rtfDocument,
+                        revisionAuthorIndexes,
+                        complexFields,
+                        RtfRevisionKind.Inserted,
+                        insertedRun.Author?.Value);
+                    break;
+                case MoveToRun moveToRun:
+                    hasContent |= AppendRevisionContent(
+                        wordParagraph,
+                        moveToRun,
+                        paragraph,
+                        ref previousRun,
+                        rtfDocument,
+                        revisionAuthorIndexes,
+                        complexFields,
+                        RtfRevisionKind.Inserted,
+                        moveToRun.Author?.Value);
+                    break;
+                case SdtRun:
+                case SdtContentRun:
+                    hasContent |= AppendInlineContainerContent(
+                        wordParagraph,
+                        child,
+                        paragraph,
+                        ref previousRun,
+                        rtfDocument,
+                        revisionAuthorIndexes,
+                        complexFields,
+                        revisionKind,
+                        revisionAuthorIndex);
+                    break;
+                case Hyperlink nestedHyperlink:
+                    hasContent |= AppendHyperlinkContent(
+                        wordParagraph,
+                        nestedHyperlink,
+                        nestedHyperlink,
+                        paragraph,
+                        ref previousRun,
+                        rtfDocument,
+                        revisionAuthorIndexes,
+                        complexFields,
+                        revisionKind,
+                        revisionAuthorIndex);
+                    break;
+            }
+        }
+
+        return hasContent;
+    }
+
+    private static string CreateHyperlinkFieldInstruction(WordParagraph wordParagraph, Hyperlink hyperlink) {
+        var wordHyperlink = new WordHyperLink(wordParagraph._document, wordParagraph._paragraph, hyperlink);
+        var instruction = new StringBuilder("HYPERLINK");
+        AppendHyperlinkFieldArgument(instruction, null, wordHyperlink.Uri?.ToString());
+        AppendHyperlinkFieldArgument(instruction, "l", hyperlink.Anchor?.Value);
+        AppendHyperlinkFieldArgument(instruction, "o", hyperlink.Tooltip?.Value);
+        AppendHyperlinkFieldArgument(instruction, "t", hyperlink.TargetFrame?.Value);
+        return instruction.ToString();
+    }
+
+    private static void AppendHyperlinkFieldArgument(StringBuilder instruction, string? fieldSwitch, string? value) {
+        if (string.IsNullOrEmpty(value)) {
+            return;
+        }
+
+        instruction.Append(' ');
+        if (!string.IsNullOrEmpty(fieldSwitch)) {
+            instruction.Append('\\').Append(fieldSwitch).Append(' ');
+        }
+        instruction.Append('"').Append(value!.Replace("\"", "'")).Append('"');
+    }
+
+    private static bool AppendRevisionContent(
+        WordParagraph wordParagraph,
+        OpenXmlElement revision,
+        RtfParagraph paragraph,
+        ref RtfRun? previousRun,
+        RtfDocument rtfDocument,
+        Dictionary<string, int> revisionAuthorIndexes,
+        Stack<ComplexFieldCapture> complexFields,
+        RtfRevisionKind revisionKind,
+        string? author) {
+        bool hasContent = false;
+        int? authorIndex = GetOrAddRevisionAuthorIndex(rtfDocument, author, revisionAuthorIndexes);
+        foreach (OpenXmlElement child in revision.ChildElements) {
+            switch (child) {
+                case Run childRun:
+                    if (TryAppendComplexFieldRun(
+                        wordParagraph,
+                        childRun,
+                        paragraph,
+                        rtfDocument,
+                        revisionAuthorIndexes,
+                        complexFields,
+                        revisionKind,
+                        authorIndex)) {
+                        previousRun = null;
+                        hasContent = true;
+                        break;
+                    }
+
+                    hasContent |= AppendWordRun(
+                        new WordParagraph(wordParagraph._document, wordParagraph._paragraph, childRun),
+                        paragraph,
+                        ref previousRun,
+                        rtfDocument,
+                        revisionAuthorIndexes,
+                        revisionKind,
+                        authorIndex);
+                    break;
+                case M.OfficeMath officeMath:
+                    AppendEquationField(paragraph, officeMath, complexFields, revisionKind, authorIndex);
+                    previousRun = null;
+                    hasContent = true;
+                    break;
+                case M.Paragraph mathParagraph:
+                    AppendEquationField(paragraph, mathParagraph, complexFields, revisionKind, authorIndex);
+                    previousRun = null;
+                    hasContent = true;
+                    break;
+                case SimpleField simpleField:
+                    AppendSimpleField(
+                        wordParagraph,
+                        simpleField,
+                        paragraph,
+                        rtfDocument,
+                        revisionAuthorIndexes,
+                        complexFields,
+                        revisionKind,
+                        authorIndex);
+                    previousRun = null;
+                    hasContent = true;
+                    break;
+                case Hyperlink hyperlink:
+                    hasContent |= AppendHyperlinkContent(
+                        wordParagraph,
+                        hyperlink,
+                        hyperlink,
+                        paragraph,
+                        ref previousRun,
+                        rtfDocument,
+                        revisionAuthorIndexes,
+                        complexFields,
+                        revisionKind,
+                        authorIndex);
+                    break;
+                case SdtRun:
+                case SdtContentRun:
+                    hasContent |= AppendInlineContainerContent(
+                        wordParagraph,
+                        child,
+                        paragraph,
+                        ref previousRun,
+                        rtfDocument,
+                        revisionAuthorIndexes,
+                        complexFields,
+                        revisionKind,
+                        authorIndex);
+                    break;
+            }
+        }
+
+        return hasContent;
+    }
+
     private static bool IsCommentReferenceOnlyRun(Run run) =>
         run.ChildElements.All(element => element is RunProperties || element is CommentReference);
 
-    private static bool TryAppendComplexFieldRun(WordParagraph wordParagraph, Run runElement, RtfParagraph paragraph, RtfDocument rtfDocument, Dictionary<string, int> revisionAuthorIndexes, Stack<ComplexFieldCapture> captures) {
+    private static bool TryAppendComplexFieldRun(
+        WordParagraph wordParagraph,
+        Run runElement,
+        RtfParagraph paragraph,
+        RtfDocument rtfDocument,
+        Dictionary<string, int> revisionAuthorIndexes,
+        Stack<ComplexFieldCapture> captures,
+        RtfRevisionKind revisionKind = RtfRevisionKind.None,
+        int? revisionAuthorIndex = null) {
         FieldChar? fieldChar = runElement.Elements<FieldChar>().FirstOrDefault();
         if (fieldChar?.FieldCharType?.Value == FieldCharValues.Begin) {
             captures.Push(new ComplexFieldCapture());
@@ -241,7 +556,14 @@ public static partial class WordRtfConverterExtensions {
 
         if (capture.CapturingResult) {
             RtfRun? previousRun = capture.PreviousRun;
-            AppendWordRun(new WordParagraph(wordParagraph._document, wordParagraph._paragraph, runElement), capture.Result, ref previousRun, rtfDocument, revisionAuthorIndexes);
+            AppendWordRun(
+                new WordParagraph(wordParagraph._document, wordParagraph._paragraph, runElement),
+                capture.Result,
+                ref previousRun,
+                rtfDocument,
+                revisionAuthorIndexes,
+                revisionKind,
+                revisionAuthorIndex);
             capture.PreviousRun = previousRun;
             return true;
         }
@@ -328,12 +650,70 @@ public static partial class WordRtfConverterExtensions {
         destination.RevisionTimestampValue = source.RevisionTimestampValue;
     }
 
-    private static void AppendSimpleField(WordParagraph wordParagraph, SimpleField simpleField, RtfParagraph paragraph, RtfDocument rtfDocument, Dictionary<string, int> revisionAuthorIndexes) {
+    private static void AppendSimpleField(
+        WordParagraph wordParagraph,
+        SimpleField simpleField,
+        RtfParagraph paragraph,
+        RtfDocument rtfDocument,
+        Dictionary<string, int> revisionAuthorIndexes,
+        Stack<ComplexFieldCapture> complexFields,
+        RtfRevisionKind revisionKind = RtfRevisionKind.None,
+        int? revisionAuthorIndex = null) {
+        ComplexFieldCapture? activeCapture = complexFields.Count > 0 ? complexFields.Peek() : null;
+        if (activeCapture != null && !activeCapture.CapturingResult) {
+            return;
+        }
+
         string instruction = simpleField.Instruction?.Value ?? string.Empty;
-        RtfField field = paragraph.AddField(instruction.Trim());
+        RtfParagraph destination = activeCapture?.Result ?? paragraph;
+        RtfField field = destination.AddField(instruction.Trim());
         RtfRun? previousRun = null;
         foreach (Run childRun in simpleField.Elements<Run>()) {
-            AppendWordRun(new WordParagraph(wordParagraph._document, wordParagraph._paragraph, childRun), field.Result, ref previousRun, rtfDocument, revisionAuthorIndexes);
+            AppendWordRun(
+                new WordParagraph(wordParagraph._document, wordParagraph._paragraph, childRun),
+                field.Result,
+                ref previousRun,
+                rtfDocument,
+                revisionAuthorIndexes,
+                revisionKind,
+                revisionAuthorIndex);
+        }
+        if (activeCapture != null) {
+            activeCapture.PreviousRun = null;
+        }
+    }
+
+    private static void AppendEquationField(
+        RtfParagraph paragraph,
+        OpenXmlElement mathElement,
+        Stack<ComplexFieldCapture> captures,
+        RtfRevisionKind revisionKind = RtfRevisionKind.None,
+        int? revisionAuthorIndex = null) {
+        if (captures.Count == 0) {
+            AppendEquationField(paragraph, mathElement, revisionKind, revisionAuthorIndex);
+            return;
+        }
+
+        ComplexFieldCapture capture = captures.Peek();
+        if (!capture.CapturingResult) {
+            return;
+        }
+
+        AppendEquationField(capture.Result, mathElement, revisionKind, revisionAuthorIndex);
+        capture.PreviousRun = null;
+    }
+
+    private static void AppendEquationField(
+        RtfParagraph paragraph,
+        OpenXmlElement mathElement,
+        RtfRevisionKind revisionKind = RtfRevisionKind.None,
+        int? revisionAuthorIndex = null) {
+        RtfField field = paragraph.AddEquationField(
+            WordMath.ToEquationFieldInstruction(mathElement),
+            WordMath.GetText(mathElement));
+        foreach (RtfRun resultRun in field.Result.Inlines.OfType<RtfRun>()) {
+            resultRun.RevisionKind = revisionKind;
+            resultRun.RevisionAuthorIndex = revisionAuthorIndex;
         }
     }
 
@@ -615,7 +995,7 @@ public static partial class WordRtfConverterExtensions {
     }
 
     private static void AppendField(WordParagraph wordParagraph, RtfField field, RtfDocument? rtfDocument) {
-        if (field.Hyperlink != null) {
+        if (field.HyperlinkField != null) {
             AppendHyperlinkField(wordParagraph, field, rtfDocument);
             return;
         }
@@ -624,6 +1004,9 @@ public static partial class WordRtfConverterExtensions {
         var resultParagraph = new WordParagraph(wordParagraph._document, newParagraph: true, newRun: false);
         AppendRuns(resultParagraph, field.Result, rtfDocument);
         foreach (OpenXmlElement child in resultParagraph._paragraph.ChildElements) {
+            if (child is ParagraphProperties) {
+                continue;
+            }
             simpleField.Append(child.CloneNode(true));
         }
 
@@ -633,11 +1016,52 @@ public static partial class WordRtfConverterExtensions {
     private static void AppendHyperlinkField(WordParagraph wordParagraph, RtfField field, RtfDocument? rtfDocument) {
         var resultParagraph = new WordParagraph(wordParagraph._document, newParagraph: true, newRun: false);
         AppendRuns(resultParagraph, field.Result, rtfDocument);
-        IEnumerable<WordParagraph> runs = resultParagraph._paragraph.Elements<Run>()
-            .Select(run => new WordParagraph(wordParagraph._document, resultParagraph._paragraph, run));
-
+        List<OpenXmlElement> inlineContent = CreateHyperlinkInlineContent(resultParagraph._paragraph);
         string tooltip = field.HyperlinkField?.ScreenTip ?? string.Empty;
-        WordHyperLink.AddHyperLink(wordParagraph, runs, field.Hyperlink!, addStyle: true, tooltip: tooltip);
+        WordParagraph? linkedParagraph = null;
+        Uri? hyperlinkTarget = field.Hyperlink;
+        if (hyperlinkTarget != null) {
+            linkedParagraph = WordHyperLink.AddHyperLinkContent(
+                wordParagraph,
+                inlineContent,
+                hyperlinkTarget,
+                addStyle: true,
+                tooltip: tooltip);
+        } else if (!string.IsNullOrEmpty(field.HyperlinkField?.SubAddress)) {
+            linkedParagraph = WordHyperLink.AddHyperLinkContent(
+                wordParagraph,
+                inlineContent,
+                field.HyperlinkField!.SubAddress!,
+                addStyle: true,
+                tooltip: tooltip);
+        } else {
+            foreach (OpenXmlElement child in inlineContent) {
+                wordParagraph._paragraph.Append(child.CloneNode(true));
+            }
+            return;
+        }
+
+        WordHyperLink? linkedHyperlink = linkedParagraph?.Hyperlink;
+        if (linkedHyperlink != null && !string.IsNullOrEmpty(field.HyperlinkField?.SubAddress)) {
+            linkedHyperlink.Anchor = field.HyperlinkField!.SubAddress;
+        }
+        string? targetFrameValue = field.HyperlinkField?.TargetFrame;
+        if (linkedHyperlink != null &&
+            !string.IsNullOrEmpty(targetFrameValue) &&
+            Enum.TryParse<TargetFrame>(targetFrameValue, true, out TargetFrame targetFrame)) {
+            linkedHyperlink.TargetFrame = targetFrame;
+        }
+    }
+
+    private static List<OpenXmlElement> CreateHyperlinkInlineContent(Paragraph paragraph) {
+        var inlineContent = new List<OpenXmlElement>();
+        foreach (OpenXmlElement child in paragraph.ChildElements) {
+            if (child is ParagraphProperties) {
+                continue;
+            }
+            inlineContent.Add(child);
+        }
+        return inlineContent;
     }
 
     private static void AppendBookmarkMarker(WordParagraph wordParagraph, RtfBookmarkMarker marker, Dictionary<string, string> openBookmarks) {

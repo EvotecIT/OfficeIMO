@@ -34,6 +34,15 @@ public sealed class EpubChapter {
     /// </summary>
     public bool? IsLinear { get; internal set; }
 
+    /// <summary>Effective declared layout for this spine item, when specified.</summary>
+    public EpubRenditionLayout? RenditionLayout { get; internal set; }
+
+    /// <summary>Whether this chapter is declared as pre-paginated fixed-layout content.</summary>
+    public bool IsFixedLayout => RenditionLayout == EpubRenditionLayout.PrePaginated;
+
+    /// <summary>Encryption declaration for this chapter resource, when present.</summary>
+    public EpubEncryptionInfo? Encryption { get; internal set; }
+
     /// <summary>
     /// Best-effort chapter title.
     /// </summary>
@@ -43,6 +52,11 @@ public sealed class EpubChapter {
     /// Plain-text content extracted from chapter HTML.
     /// </summary>
     public string Text { get; internal set; } = string.Empty;
+
+    /// <summary>
+    /// Whether the chapter contains structured elements such as images, tables, forms, or media.
+    /// </summary>
+    public bool HasStructuredContent { get; internal set; }
 
     /// <summary>
     /// Optional raw HTML content.

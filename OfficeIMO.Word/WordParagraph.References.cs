@@ -1,3 +1,4 @@
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Drawing;
 using DocumentFormat.OpenXml.Wordprocessing;
 using WordDrawing = DocumentFormat.OpenXml.Wordprocessing.Drawing;
@@ -30,11 +31,24 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets the mathematical equation contained in this paragraph, if any.
         /// </summary>
-        public WordEquation? Equation =>
-            _officeMath is not null && _mathParagraph is not null ? new WordEquation(_document, _paragraph, _officeMath, _mathParagraph) :
-            _officeMath is not null ? new WordEquation(_document, _paragraph, _officeMath) :
-            _mathParagraph is not null ? new WordEquation(_document, _paragraph, _mathParagraph) :
-            null;
+        public WordEquation? Equation {
+            get {
+                if (_officeMath is not null && _mathParagraph is not null) return new WordEquation(_document, _paragraph, _officeMath, _mathParagraph);
+                if (_officeMath is not null) return new WordEquation(_document, _paragraph, _officeMath);
+                if (_mathParagraph is not null) return new WordEquation(_document, _paragraph, _mathParagraph);
+                if (_simpleField is not null && new WordField(_document, _paragraph, _simpleField, null).FieldType == WordFieldType.EQ) {
+                    return new WordEquation(_document, _paragraph, _simpleField);
+                }
+                if (_runs is not null && new WordField(_document, _paragraph, null, _runs).FieldType == WordFieldType.EQ) {
+                    return new WordEquation(_document, _paragraph, _runs);
+                }
+                OpenXmlElement? wrapper = (OpenXmlElement?)_hyperlink ?? _stdRun;
+                if (wrapper != null) {
+                    return WordEquation.GetFirstOccurrenceForContainer(_document, _paragraph, wrapper);
+                }
+                return null;
+            }
+        }
 
         /// <summary>
         /// Gets the field contained in this paragraph, if any.

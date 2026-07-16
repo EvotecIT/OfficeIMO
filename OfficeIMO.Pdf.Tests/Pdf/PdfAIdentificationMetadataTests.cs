@@ -532,8 +532,8 @@ public class PdfAIdentificationMetadataTests {
     }
 
     [Fact]
-    public void FormalComplianceProfilesStillFailClosedWhenPdfAIdentificationIsPresent() {
-        var exception = Assert.Throws<NotSupportedException>(() =>
+    public void FormalPdfA3BRequiresMoreThanIdentificationMetadata() {
+        var exception = Assert.Throws<InvalidOperationException>(() =>
             PdfDocument.Create(new PdfOptions()
                     .SetPdfAIdentification(3, "B")
                     .RequireCompliance(PdfComplianceProfile.PdfA3B))
@@ -541,8 +541,9 @@ public class PdfAIdentificationMetadataTests {
                 .ToBytes());
 
         Assert.Contains("PDF/A-3b", exception.Message, StringComparison.Ordinal);
-        Assert.Contains("cannot yet generate certified", exception.Message, StringComparison.Ordinal);
-        Assert.Contains("veraPDF validation fixtures in the build lane", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("generation requirements are not satisfied", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("output-intent", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("embedded-font-coverage", exception.Message, StringComparison.Ordinal);
     }
 
     private static byte[] CreateCiiXml() {

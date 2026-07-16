@@ -124,6 +124,13 @@ public sealed partial class PdfOptions {
         return this;
     }
 
+    /// <summary>Uses or clears an immutable first-party word hyphenation dictionary.</summary>
+    /// <param name="dictionary">Dictionary whose breakpoints should be used, or null to clear hyphenation.</param>
+    public PdfOptions UseTextHyphenationDictionary(PdfHyphenationLexicon? dictionary) {
+        _textHyphenationCallback = dictionary?.AsCallback();
+        return this;
+    }
+
     /// <summary>
     /// Sets or clears the callback used to provide preferred non-hyphenating break positions for long unspaced tokens.
     /// </summary>

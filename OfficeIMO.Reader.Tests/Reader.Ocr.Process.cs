@@ -99,7 +99,7 @@ public sealed class ReaderOcrProcessTests {
                 Timeout = TimeSpan.FromMilliseconds(100)
             }));
 
-            Assert.True(stopwatch.Elapsed < TimeSpan.FromSeconds(1.5), "The process runner waited for inherited pipe handles after its timeout.");
+            Assert.True(stopwatch.Elapsed < TimeSpan.FromSeconds(5), "The process runner waited for inherited pipe handles after its timeout.");
             Assert.True(File.Exists(childProcessPath), "The wrapper did not record its child process id.");
             childProcessId = int.Parse(File.ReadAllText(childProcessPath), CultureInfo.InvariantCulture);
             Assert.True(

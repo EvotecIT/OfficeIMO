@@ -12,10 +12,36 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         private const string CreateDateFieldInstruction = " CREATEDATE ";
         private const string SaveDateFieldInstruction = " SAVEDATE ";
         private const string PrintDateFieldInstruction = " PRINTDATE ";
-        private const string SupportedFieldNames = "PAGE, NUMPAGES, DATE, TIME, CREATEDATE, SAVEDATE, PRINTDATE, and document-property display fields";
+        private const string SupportedFieldNames = "PAGE, NUMPAGES, DATE, TIME, CREATEDATE, SAVEDATE, PRINTDATE, EQ, and document-property display fields";
 
         private static void AppendSupportedPageNumberField(StringBuilder text, List<LegacyDocWritableRun> runs, LegacyDocWritableFormatting formatting) {
             AppendSupportedField(text, runs, GetSupportedFieldInstruction(LegacyDocFieldKind.Page), "1", formatting);
+        }
+
+        private static void AppendMathEquationField(StringBuilder text, List<LegacyDocWritableRun> runs, OpenXmlElement mathElement, LegacyDocWritableFormatting formatting) {
+            AppendSupportedField(
+                text,
+                runs,
+                WordMath.ToEquationFieldInstruction(mathElement),
+                WordMath.GetText(mathElement),
+                formatting);
+        }
+
+        private static void AppendMathEquationNoteField(
+            StringBuilder text,
+            List<LegacyDocWritableRun> runs,
+            LegacyDocWritableBookmarksBuilder bookmarks,
+            OpenXmlElement mathElement,
+            int storyStart) {
+            AppendSupportedNoteField(
+                text,
+                runs,
+                bookmarks,
+                WordMath.ToEquationFieldInstruction(mathElement),
+                WordMath.GetText(mathElement),
+                LegacyDocWritableFormatting.Plain,
+                Array.Empty<LegacyDocSimpleFieldBookmarkMarker>(),
+                storyStart);
         }
 
         private static void AppendSupportedField(StringBuilder text, List<LegacyDocWritableRun> runs, string instruction, string resultText, LegacyDocWritableFormatting formatting) {
@@ -74,12 +100,18 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
         }
 
-        private static void AppendSupportedPageNumberFieldFromSimpleField(StringBuilder text, List<LegacyDocWritableRun> runs, LegacyDocWritableBookmarksBuilder bookmarks, SimpleField field, LegacyDocWritableFormatting inheritedFormatting) {
+        private static void AppendSupportedPageNumberFieldFromSimpleField(
+            StringBuilder text,
+            List<LegacyDocWritableRun> runs,
+            LegacyDocWritableBookmarksBuilder bookmarks,
+            SimpleField field,
+            LegacyDocWritableFormatting inheritedFormatting,
+            bool allowHyperlinkRunStyle = false) {
             if (!TryReadSupportedFieldKind(field.Instruction?.Value, out LegacyDocFieldKind fieldKind)) {
                 throw new NotSupportedException($"Native DOC saving currently supports only {SupportedFieldNames} simple fields. Other field types are not supported yet.");
             }
 
-            LegacyDocSimpleFieldResult result = ReadSimpleFieldResult(field);
+            LegacyDocSimpleFieldResult result = ReadSimpleFieldResult(field, allowHyperlinkRunStyle);
             LegacyDocWritableFormatting formatting = result.Formatting
                 .WithInheritedFormatting(inheritedFormatting);
             AppendSupportedField(
@@ -255,6 +287,11 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 return true;
             }
 
+            if (IsFieldInstruction(trimmed, "EQ")) {
+                fieldKind = LegacyDocFieldKind.Equation;
+                return true;
+            }
+
             return false;
         }
 
@@ -273,6 +310,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 LegacyDocFieldKind.SaveDate => SaveDateFieldInstruction,
                 LegacyDocFieldKind.PrintDate => PrintDateFieldInstruction,
                 LegacyDocFieldKind.DocumentProperty => throw new NotSupportedException("Native DOC saving requires document-property fields to preserve their source instruction."),
+                LegacyDocFieldKind.Equation => " EQ ",
                 _ => throw new NotSupportedException($"Native DOC saving supports only {SupportedFieldNames} field instructions.")
             };
         }
@@ -283,7 +321,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 : resultText;
         }
 
-        private static LegacyDocSimpleFieldResult ReadSimpleFieldResult(SimpleField field) {
+        private static LegacyDocSimpleFieldResult ReadSimpleFieldResult(
+            SimpleField field,
+            bool allowHyperlinkRunStyle = false) {
             LegacyDocWritableFormatting? formatting = null;
             var bookmarkMarkers = new List<LegacyDocSimpleFieldBookmarkMarker>();
             var resultText = new StringBuilder();
@@ -292,7 +332,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 switch (child) {
                     case Run run:
                         string runText = ReadSimpleFieldResultRunText(run);
-                        LegacyDocWritableFormatting runFormatting = ReadSupportedRunFormatting(run.RunProperties);
+                        LegacyDocWritableFormatting runFormatting = ReadSupportedRunFormatting(
+                            run.RunProperties,
+                            allowHyperlinkRunStyle);
                         formatting ??= runFormatting;
                         if (!formatting.Value.Equals(runFormatting)) {
                             throw new NotSupportedException($"Native DOC saving supports {SupportedFieldNames} simple fields only when their display runs use one formatting set.");

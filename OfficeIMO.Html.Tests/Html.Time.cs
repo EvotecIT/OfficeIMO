@@ -1,5 +1,7 @@
+using AngleSharp.Dom;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Validation;
+using OfficeIMO.Html;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Html;
 using System;
@@ -58,6 +60,21 @@ namespace OfficeIMO.Tests {
             Assert.Contains("<time", roundTrip, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("datetime=\"2023-01-01\"", roundTrip, StringComparison.OrdinalIgnoreCase);
             Assert.Contains(">New Year's Day</time>", roundTrip, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
+        public void TimeInsideHyperlinkWithEquationPreservesSemanticMetadata() {
+            const string html = "<p><a href=\"https://officeimo.net/time-equation\"><time datetime=\"2026-07-15\">Release day</time><math aria-label=\"x=1\"><mi>x</mi><mo>=</mo><mn>1</mn></math></a></p>";
+            using var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument();
+
+            string roundTrip = doc.ToHtml();
+
+            IElement anchor = Assert.IsAssignableFrom<IElement>(
+                HtmlDocumentParser.ParseDocument(roundTrip).QuerySelector("a[href='https://officeimo.net/time-equation']"));
+            IElement time = Assert.IsAssignableFrom<IElement>(anchor.QuerySelector("time[datetime='2026-07-15']"));
+            Assert.Equal("Release day", time.TextContent);
+            Assert.NotNull(anchor.QuerySelector("math[aria-label='x=1']"));
+            Assert.DoesNotContain("officeimo-html-time:", roundTrip, StringComparison.OrdinalIgnoreCase);
         }
     }
 }

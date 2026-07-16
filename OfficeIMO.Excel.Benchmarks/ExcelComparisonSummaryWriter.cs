@@ -176,7 +176,7 @@ internal static class ExcelComparisonSummaryWriter {
 
         if (scenario.StartsWith("write-", StringComparison.OrdinalIgnoreCase)
             || string.Equals(scenario, "append-plain-rows", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(scenario, "large-shared-strings", StringComparison.OrdinalIgnoreCase)) {
+            || string.Equals(scenario, "write-text-heavy-default", StringComparison.OrdinalIgnoreCase)) {
             return "write";
         }
 

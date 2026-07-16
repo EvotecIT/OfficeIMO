@@ -661,6 +661,18 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     continue;
                 }
 
+                if (LegacyDocField.TryReadEquationField(
+                    characters,
+                    characterIndex,
+                    out string equationInstruction,
+                    out int equationResultStartIndex,
+                    out int equationResultEndIndex,
+                    out int equationFieldEndIndex)) {
+                    AppendFieldResult(LegacyDocFieldKind.Equation, equationInstruction, equationResultStartIndex, equationResultEndIndex);
+                    characterIndex = equationFieldEndIndex;
+                    continue;
+                }
+
                 if (LegacyDocField.TryReadDisplayField(
                     characters,
                     characterIndex,
@@ -781,6 +793,63 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
             void AppendHyperlinkResult(LegacyDocHyperlinkTarget hyperlinkTarget, int resultStartIndex, int resultEndIndex) {
                 for (int resultIndex = resultStartIndex; resultIndex < resultEndIndex; resultIndex++) {
+                    if (LegacyDocField.TryReadEquationField(
+                        characters,
+                        resultIndex,
+                        out string equationInstruction,
+                        out int equationResultStartIndex,
+                        out int equationResultEndIndex,
+                        out int equationFieldEndIndex) &&
+                        equationFieldEndIndex < resultEndIndex) {
+                        FlushRun();
+                        LegacyDocCharacterFormat equationFormat = LegacyDocCharacterFormat.Default;
+                        var equationPositions = new List<int>();
+                        var equationText = new System.Text.StringBuilder();
+                        foreach (int equationResultIndex in LegacyDocField.EnumerateVisibleResultIndexes(characters, equationResultStartIndex, equationResultEndIndex)) {
+                            LegacyDocTextCharacter equationCharacter = characters[equationResultIndex];
+                            char? normalizedEquationCharacter = NormalizeBodyCharacter(equationCharacter.Character);
+                            if (normalizedEquationCharacter == null) continue;
+                            if (equationPositions.Count == 0) {
+                                equationFormat = GetFormatForFileOffset(formattingRanges, equationCharacter.FileOffset);
+                            }
+                            equationText.Append(normalizedEquationCharacter.Value);
+                            equationPositions.Add(equationCharacter.CharacterPosition);
+                            bodyText.Append(normalizedEquationCharacter.Value);
+                        }
+                        currentRuns.Add(LegacyDocTextRunFactory.CreateFieldRun(
+                            equationText.ToString(),
+                            LegacyDocFieldKind.Equation,
+                            equationInstruction,
+                            equationFormat,
+                            equationPositions,
+                            hyperlinkTarget));
+                        resultIndex = equationFieldEndIndex;
+                        continue;
+                    }
+
+                    if (characters[resultIndex].Character == LegacyDocField.Begin &&
+                        LegacyDocField.TryReadNestedFieldResult(
+                            characters,
+                            resultIndex,
+                            resultEndIndex,
+                            out int nestedResultStartIndex,
+                            out int nestedResultEndIndex,
+                            out int nestedFieldEndIndex)) {
+                        foreach (int visibleResultIndex in LegacyDocField.EnumerateVisibleResultIndexes(
+                            characters,
+                            nestedResultStartIndex,
+                            nestedResultEndIndex)) {
+                            LegacyDocTextCharacter visibleCharacter = characters[visibleResultIndex];
+                            char? normalizedVisibleCharacter = NormalizeBodyCharacter(visibleCharacter.Character);
+                            if (normalizedVisibleCharacter == null) continue;
+                            LegacyDocCharacterFormat visibleFormat = GetFormatForFileOffset(formattingRanges, visibleCharacter.FileOffset);
+                            AppendRunCharacter(normalizedVisibleCharacter.Value, visibleFormat, visibleCharacter.CharacterPosition, hyperlinkTarget);
+                            bodyText.Append(normalizedVisibleCharacter.Value);
+                        }
+                        resultIndex = nestedFieldEndIndex;
+                        continue;
+                    }
+
                     LegacyDocTextCharacter resultCharacter = characters[resultIndex];
                     char? normalized = NormalizeBodyCharacter(resultCharacter.Character);
                     if (normalized == null) {

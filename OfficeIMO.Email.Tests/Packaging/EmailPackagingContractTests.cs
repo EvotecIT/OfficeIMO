@@ -46,6 +46,16 @@ public sealed class EmailPackagingContractTests {
         Assert.Contains(references, name => string.Equals(name, "System.Text.Encoding.CodePages", StringComparison.OrdinalIgnoreCase));
     }
 
+    [Fact]
+    public void ExistingOptionsConstructorSignaturesRemainAvailable() {
+        Assert.NotNull(typeof(EmailWriterOptions).GetConstructor(new[] {
+            typeof(bool), typeof(bool), typeof(int), typeof(int), typeof(long)
+        }));
+        Assert.NotNull(typeof(EmailMailboxReaderOptions).GetConstructor(new[] {
+            typeof(EmailReaderOptions), typeof(MboxVariant), typeof(int)
+        }));
+    }
+
     private static string GetRepositoryRoot() {
         DirectoryInfo? directory = new DirectoryInfo(AppContext.BaseDirectory);
         while (directory != null) {

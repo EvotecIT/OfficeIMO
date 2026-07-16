@@ -25,9 +25,9 @@ public sealed class EmailMailboxReader {
     public EmailMailboxReadResult Read(byte[] data, CancellationToken cancellationToken = default) {
         if (data == null) throw new ArgumentNullException(nameof(data));
         cancellationToken.ThrowIfCancellationRequested();
-        if (data.LongLength > _options.MessageOptions.MaxInputBytes) {
-            throw new EmailLimitExceededException(nameof(EmailReaderOptions.MaxInputBytes), data.LongLength,
-                _options.MessageOptions.MaxInputBytes);
+        if (data.LongLength > _options.MaxMailboxBytes) {
+            throw new EmailLimitExceededException(nameof(EmailMailboxReaderOptions.MaxMailboxBytes), data.LongLength,
+                _options.MaxMailboxBytes);
         }
         return Parse(data, cancellationToken);
     }
@@ -37,7 +37,14 @@ public sealed class EmailMailboxReader {
     /// original position; non-seekable streams are read forward from their current position.
     /// </summary>
     public EmailMailboxReadResult Read(Stream stream, CancellationToken cancellationToken = default) {
-        return Parse(EmailByteReader.ReadAll(stream, _options.MessageOptions.MaxInputBytes, cancellationToken), cancellationToken);
+        byte[] data;
+        try {
+            data = EmailByteReader.ReadAll(stream, _options.MaxMailboxBytes, cancellationToken);
+        } catch (EmailLimitExceededException exception) when
+            (exception.LimitName == nameof(EmailReaderOptions.MaxInputBytes)) {
+            throw CreateMailboxLimitException(exception);
+        }
+        return Parse(data, cancellationToken);
     }
 
     /// <summary>Asynchronously reads a mailbox file.</summary>
@@ -54,9 +61,41 @@ public sealed class EmailMailboxReader {
     /// to their original position; non-seekable streams are read forward.
     /// </summary>
     public async Task<EmailMailboxReadResult> ReadAsync(Stream stream, CancellationToken cancellationToken = default) {
-        byte[] data = await EmailByteReader.ReadAllAsync(stream, _options.MessageOptions.MaxInputBytes, cancellationToken).ConfigureAwait(false);
+        byte[] data;
+        try {
+            data = await EmailByteReader.ReadAllAsync(stream, _options.MaxMailboxBytes, cancellationToken)
+                .ConfigureAwait(false);
+        } catch (EmailLimitExceededException exception) when
+            (exception.LimitName == nameof(EmailReaderOptions.MaxInputBytes)) {
+            throw CreateMailboxLimitException(exception);
+        }
         return Parse(data, cancellationToken);
     }
+
+    /// <summary>Enumerates a mailbox file while retaining at most one decoded message in memory.</summary>
+    public IEnumerable<EmailMailboxEntryReadResult> ReadEntries(string filePath,
+        CancellationToken cancellationToken = default) {
+        if (filePath == null) throw new ArgumentNullException(nameof(filePath));
+        return EnumerateFile(filePath, cancellationToken);
+    }
+
+    /// <summary>
+    /// Enumerates a caller-owned mailbox stream while retaining at most one decoded message in memory.
+    /// Seekable streams are restored to their original position when enumeration ends or is disposed.
+    /// </summary>
+    public IEnumerable<EmailMailboxEntryReadResult> ReadEntries(Stream stream,
+        CancellationToken cancellationToken = default) => MboxStreamReader.Read(stream, _options, cancellationToken);
+
+    private IEnumerable<EmailMailboxEntryReadResult> EnumerateFile(string filePath,
+        CancellationToken cancellationToken) {
+        using (FileStream stream = File.OpenRead(filePath)) {
+            foreach (EmailMailboxEntryReadResult entry in ReadEntries(stream, cancellationToken)) yield return entry;
+        }
+    }
+
+    private static EmailLimitExceededException CreateMailboxLimitException(EmailLimitExceededException exception) =>
+        new EmailLimitExceededException(nameof(EmailMailboxReaderOptions.MaxMailboxBytes),
+            exception.ActualValue, exception.MaximumValue);
 
     private EmailMailboxReadResult Parse(byte[] data, CancellationToken cancellationToken) {
         var diagnostics = new List<EmailDiagnostic>();
@@ -75,7 +114,7 @@ public sealed class EmailMailboxReader {
             byte[] messageBytes = MsgBinary.Slice(data, envelope.MessageStart, end - envelope.MessageStart);
             MboxVariant variant = _options.Variant == MboxVariant.Auto ? DetectVariant(messageBytes, cancellationToken) : _options.Variant;
             messageBytes = Unescape(messageBytes, variant, cancellationToken);
-            EmailReadResult message = reader.Read(messageBytes, cancellationToken);
+            EmailReadResult message = ReadEntryMessage(reader, messageBytes, _options.MessageOptions, cancellationToken);
             var entry = new EmailMailboxEntry(message.Document) {
                 EnvelopeSender = envelope.Sender,
                 EnvelopeDate = envelope.Date,
@@ -94,7 +133,8 @@ public sealed class EmailMailboxReader {
     private static List<Envelope> FindEnvelopes(byte[] data, int maximumMessages,
         CancellationToken cancellationToken) {
         var result = new List<Envelope>();
-        int lineStart = 0;
+        int lineStart = HasUtf8Bom(data) ? 3 : 0;
+        bool firstLine = true;
         while (lineStart < data.Length) {
             cancellationToken.ThrowIfCancellationRequested();
             int lineEnd = lineStart;
@@ -102,18 +142,20 @@ public sealed class EmailMailboxReader {
             if (lineEnd - lineStart >= 5 && StartsWith(data, lineStart, "From ")) {
                 string raw = Encoding.ASCII.GetString(data, lineStart, lineEnd - lineStart);
                 ParseEnvelope(raw, out string? sender, out DateTimeOffset? date);
-                result.Add(new Envelope(lineStart, SkipLineEnding(data, lineEnd), raw, sender, date));
+                result.Add(new Envelope(firstLine && lineStart == 3 ? 0 : lineStart,
+                    SkipLineEnding(data, lineEnd), raw, sender, date));
                 if (result.Count > maximumMessages) {
                     throw new EmailLimitExceededException(nameof(EmailMailboxReaderOptions.MaxMessageCount),
                         result.Count, maximumMessages);
                 }
             }
             lineStart = SkipLineEnding(data, lineEnd);
+            firstLine = false;
         }
         return result;
     }
 
-    private static void ParseEnvelope(string raw, out string? sender, out DateTimeOffset? date) {
+    internal static void ParseEnvelope(string raw, out string? sender, out DateTimeOffset? date) {
         string remainder = raw.Substring(5).Trim();
         int separator = remainder.IndexOf(' ');
         sender = separator < 0 ? remainder : remainder.Substring(0, separator);
@@ -122,7 +164,7 @@ public sealed class EmailMailboxReader {
             DateTimeStyles.AllowWhiteSpaces | DateTimeStyles.AssumeUniversal, out DateTimeOffset parsed) ? parsed : (DateTimeOffset?)null;
     }
 
-    private static MboxVariant DetectVariant(byte[] message, CancellationToken cancellationToken) {
+    internal static MboxVariant DetectVariant(byte[] message, CancellationToken cancellationToken) {
         int lineStart = 0;
         while (lineStart < message.Length) {
             cancellationToken.ThrowIfCancellationRequested();
@@ -137,7 +179,7 @@ public sealed class EmailMailboxReader {
         return MboxVariant.Mboxo;
     }
 
-    private static byte[] Unescape(byte[] message, MboxVariant variant, CancellationToken cancellationToken) {
+    internal static byte[] Unescape(byte[] message, MboxVariant variant, CancellationToken cancellationToken) {
         using (MemoryStream output = new MemoryStream(message.Length)) {
             int lineStart = 0;
             while (lineStart < message.Length) {
@@ -164,6 +206,29 @@ public sealed class EmailMailboxReader {
         for (int index = 0; index < value.Length; index++) if (data[offset + index] != value[index]) return false;
         return true;
     }
+
+    internal static EmailReadResult ReadEntryMessage(EmailDocumentReader reader, byte[] messageBytes,
+        EmailReaderOptions options, CancellationToken cancellationToken) {
+        EmailReadResult result = reader.Read(messageBytes, cancellationToken);
+        if (result.Document.Format != EmailFileFormat.Unknown ||
+            !result.Diagnostics.Any(diagnostic => diagnostic.Code == "EMAIL_FORMAT_UNKNOWN")) return result;
+
+        var diagnostics = result.Diagnostics
+            .Where(diagnostic => diagnostic.Code != "EMAIL_FORMAT_UNKNOWN")
+            .ToList();
+        diagnostics.Add(new EmailDiagnostic("EMAIL_MBOX_MESSAGE_HEADERS_MISSING",
+            "An mbox entry without recognizable message headers was retained as a plain MIME body.",
+            EmailDiagnosticSeverity.Warning));
+        byte[] mimeBody = new byte[messageBytes.Length + 2];
+        mimeBody[0] = (byte)'\r';
+        mimeBody[1] = (byte)'\n';
+        Buffer.BlockCopy(messageBytes, 0, mimeBody, 2, messageBytes.Length);
+        EmailDocument document = MimeParser.Parse(mimeBody, options, diagnostics, cancellationToken);
+        return new EmailReadResult(document, diagnostics.AsReadOnly(), messageBytes.LongLength);
+    }
+
+    private static bool HasUtf8Bom(byte[] data) => data.Length >= 3 &&
+        data[0] == 0xEF && data[1] == 0xBB && data[2] == 0xBF;
 
     private static int SkipLineEnding(byte[] data, int position) {
         if (position < data.Length && data[position] == '\r') position++;

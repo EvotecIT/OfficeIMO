@@ -657,6 +657,14 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static string? AppendNativeHeaderFooterEquationText(string? text, WordParagraph paragraph) {
+            IReadOnlyList<WordEquationOccurrence> occurrences = WordEquation.GetOccurrences(paragraph._document, paragraph._paragraph);
+            if (occurrences.Count > 0) {
+                string orderedText = AppendNativeTextWithEquation(text ?? string.Empty, paragraph);
+                if (!string.IsNullOrWhiteSpace(orderedText)) {
+                    return orderedText;
+                }
+            }
+
             string? equationText = GetNativeEquationText(paragraph);
             if (string.IsNullOrWhiteSpace(equationText)) {
                 return text;
@@ -765,110 +773,40 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static string AppendNativeTextWithEquation(string text, WordParagraph paragraph) {
-            string? equationText = GetNativeEquationText(paragraph);
-            if (string.IsNullOrWhiteSpace(equationText) ||
-                text.IndexOf(equationText!, StringComparison.Ordinal) >= 0) {
+            IReadOnlyList<WordEquationContentSegment> segments = GetNativeVisibleEquationContentSegments(paragraph);
+            if (segments.Count == 0) {
                 return text;
             }
 
-            if (string.IsNullOrEmpty(text)) {
-                return equationText!;
+            string orderedText = string.Concat(segments.Select(GetNativeEquationSegmentText));
+            return string.IsNullOrEmpty(orderedText) ? text : orderedText;
+        }
+
+        private static IReadOnlyList<WordEquationContentSegment> GetNativeVisibleEquationContentSegments(WordParagraph paragraph) {
+            IReadOnlyList<WordEquationOccurrence> occurrences = WordEquation.GetOccurrences(paragraph._document, paragraph._paragraph);
+            if (occurrences.Count == 0 || GetNativeParagraphStyleDefaults(paragraph).Hidden == true) {
+                return Array.Empty<WordEquationContentSegment>();
             }
 
-            return char.IsWhiteSpace(text[text.Length - 1])
-                ? text + equationText
-                : text + " " + equationText;
+            return WordEquation.GetVisibleContentSegments(
+                paragraph._paragraph,
+                occurrences,
+                element => element is not W.Run run ||
+                    !IsNativeHiddenTextRun(new WordParagraph(paragraph._document, paragraph._paragraph, run), paragraph));
         }
 
         private static string? GetNativeEquationText(WordParagraph paragraph) {
-            var parts = new List<string>();
-            AddNativeEquationText(parts, paragraph._officeMath);
-            AddNativeEquationText(parts, paragraph._mathParagraph);
-            if (parts.Count == 0) {
-                AddNativeParagraphEquationText(parts, paragraph._paragraph);
+            string[] equationTexts = WordEquation
+                .GetOccurrences(paragraph._document, paragraph._paragraph)
+                .Select(occurrence => occurrence.Equation.Text)
+                .Where(text => !string.IsNullOrWhiteSpace(text))
+                .ToArray();
+            if (equationTexts.Length > 0) {
+                return string.Join(" ", equationTexts);
             }
 
-            string text = string.Concat(parts);
-            return string.IsNullOrWhiteSpace(text) ? null : text;
-        }
-
-        private static void AddNativeParagraphEquationText(List<string> parts, W.Paragraph? paragraph) {
-            if (paragraph == null ||
-                (!paragraph.Descendants<DocumentFormat.OpenXml.Math.OfficeMath>().Any() &&
-                 !paragraph.Descendants<DocumentFormat.OpenXml.Math.Paragraph>().Any())) {
-                return;
-            }
-
-            int startCount = parts.Count;
-            foreach (DocumentFormat.OpenXml.Math.Text text in paragraph.Descendants<DocumentFormat.OpenXml.Math.Text>()) {
-                if (!string.IsNullOrEmpty(text.Text)) {
-                    parts.Add(text.Text);
-                }
-            }
-
-            if (parts.Count > startCount) {
-                return;
-            }
-
-            foreach (DocumentFormat.OpenXml.Math.OfficeMath officeMath in paragraph.Descendants<DocumentFormat.OpenXml.Math.OfficeMath>()) {
-                AddNativeEquationText(parts, officeMath);
-                if (parts.Count > startCount) {
-                    return;
-                }
-            }
-
-            foreach (DocumentFormat.OpenXml.Math.Paragraph mathParagraph in paragraph.Descendants<DocumentFormat.OpenXml.Math.Paragraph>()) {
-                AddNativeEquationText(parts, mathParagraph);
-                if (parts.Count > startCount) {
-                    return;
-                }
-            }
-        }
-
-        private static void AddNativeEquationText(List<string> parts, DocumentFormat.OpenXml.OpenXmlElement? equationElement) {
-            if (equationElement == null) {
-                return;
-            }
-
-            int startCount = parts.Count;
-            foreach (DocumentFormat.OpenXml.Math.Text text in equationElement.Descendants<DocumentFormat.OpenXml.Math.Text>()) {
-                if (!string.IsNullOrEmpty(text.Text)) {
-                    parts.Add(text.Text);
-                }
-            }
-
-            if (parts.Count > startCount) {
-                return;
-            }
-
-            AddNativeEquationXmlText(parts, equationElement.OuterXml);
-            if (parts.Count > startCount) {
-                return;
-            }
-
-            AddNativeEquationXmlText(parts, equationElement.InnerXml);
-            if (parts.Count == startCount && !string.IsNullOrWhiteSpace(equationElement.InnerText) && equationElement.InnerText.IndexOf('<') < 0) {
-                parts.Add(equationElement.InnerText);
-            }
-        }
-
-        private static void AddNativeEquationXmlText(List<string> parts, string? xml) {
-            if (string.IsNullOrWhiteSpace(xml)) {
-                return;
-            }
-
-            try {
-                System.Xml.Linq.XElement root = System.Xml.Linq.XElement.Parse(xml!);
-                foreach (System.Xml.Linq.XElement textElement in root.Descendants().Where(element =>
-                    string.Equals(element.Name.LocalName, "t", StringComparison.Ordinal) &&
-                    element.Name.NamespaceName.IndexOf("officeDocument/2006/math", StringComparison.OrdinalIgnoreCase) >= 0)) {
-                    if (!string.IsNullOrEmpty(textElement.Value)) {
-                        parts.Add(textElement.Value);
-                    }
-                }
-            } catch (System.Xml.XmlException) {
-                // Some legacy equation wrappers may expose typed math nodes without valid standalone XML.
-            }
+            string ommlText = WordMath.GetText(paragraph._paragraph);
+            return string.IsNullOrWhiteSpace(ommlText) ? null : ommlText;
         }
 
         private static NativeHeaderFooterZone MapNativeTextBoxHeaderFooterZone(WordHorizontalAlignmentValues alignment) {

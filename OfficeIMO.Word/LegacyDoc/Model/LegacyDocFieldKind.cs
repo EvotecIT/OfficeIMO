@@ -8,6 +8,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         CreateDate,
         SaveDate,
         PrintDate,
-        DocumentProperty
+        DocumentProperty,
+        Equation
     }
 }

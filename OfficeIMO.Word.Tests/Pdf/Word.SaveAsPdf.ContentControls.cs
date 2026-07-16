@@ -6,6 +6,7 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Text;
+using M = DocumentFormat.OpenXml.Math;
 using PdfPigDocument = UglyToad.PdfPig.PdfDocument;
 using Xunit;
 using PdfCore = OfficeIMO.Pdf;
@@ -18,7 +19,7 @@ public partial class Word {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeSimpleEquations.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeSimpleEquations.pdf");
         const string headerOmml = "<m:oMathPara xmlns:m=\"http://schemas.openxmlformats.org/officeDocument/2006/math\"><m:oMath><m:r><m:t>h=2</m:t></m:r></m:oMath></m:oMathPara>";
-        const string bodyOmml = "<m:oMathPara xmlns:m=\"http://schemas.openxmlformats.org/officeDocument/2006/math\"><m:oMath><m:r><m:t>b=3</m:t></m:r></m:oMath></m:oMathPara>";
+        const string bodyOmml = "<m:oMathPara xmlns:m=\"http://schemas.openxmlformats.org/officeDocument/2006/math\"><m:oMath><m:f><m:num><m:r><m:t>a</m:t></m:r></m:num><m:den><m:r><m:t>b</m:t></m:r></m:den></m:f></m:oMath></m:oMathPara>";
         const string tableOmml = "<m:oMathPara xmlns:m=\"http://schemas.openxmlformats.org/officeDocument/2006/math\"><m:oMath><m:r><m:t>c=4</m:t></m:r></m:oMath></m:oMathPara>";
         var options = new PdfSaveOptions {
             IncludePageNumbers = false
@@ -26,15 +27,77 @@ public partial class Word {
 
         using (WordDocument document = WordDocument.Create(docPath)) {
             document.AddHeadersAndFooters();
-            RequireSectionHeader(document, 0, HeaderFooterValues.Default)
-                .AddParagraph("Native header equation:")
-                .AddEquation(headerOmml);
+            WordParagraph headerEquation = RequireSectionHeader(document, 0, HeaderFooterValues.Default)
+                .AddParagraph("Native header equation: ");
+            headerEquation.AddEquation(headerOmml);
+            headerEquation.AddText(" header-suffix");
 
             document.AddParagraph("Native body equation:").AddEquation(bodyOmml);
 
-            WordTable table = document.AddTable(1, 1, WordTableStyle.TableNormal);
+            WordParagraph controlledEquation = document.AddParagraph("Native controlled equation:");
+            controlledEquation._paragraph.Append(new SdtRun(
+                new SdtProperties(new SdtId { Val = 2076 }),
+                new SdtContentRun(
+                    new Run(new Text(" control-prefix ")),
+                    new M.OfficeMath(new M.Run(new M.Text("controlled=5"))),
+                    new Run(new Text(" control-suffix")))));
+
+            WordParagraph interleavedEquation = document.AddParagraph("pdf-prefix ");
+            interleavedEquation._paragraph.Append(new M.OfficeMath(new M.Run(new M.Text("pdf-equation"))));
+            interleavedEquation.AddText(" pdf-suffix");
+
+            WordParagraph linkedEquation = document.AddParagraph();
+            HyperlinkRelationship linkedEquationRelationship = document._wordprocessingDocument.MainDocumentPart!
+                .AddHyperlinkRelationship(new Uri("https://officeimo.net/equations"), true);
+            linkedEquation._paragraph.Append(new Hyperlink(
+                new Run(new RunProperties(new Bold()), new Text("Qlinked-prefix ")),
+                new M.OfficeMath(new M.Run(new M.Text("linked-equation"))),
+                new Run(new RunProperties(new Italic()), new Text(" Xlinked-suffix"))) {
+                Id = linkedEquationRelationship.Id
+            });
+
+            WordParagraph nestedLinkedEquation = document.AddParagraph();
+            HyperlinkRelationship nestedLinkedEquationRelationship = document._wordprocessingDocument.MainDocumentPart!
+                .AddHyperlinkRelationship(new Uri("https://officeimo.net/nested-equations"), true);
+            nestedLinkedEquation._paragraph.Append(new Hyperlink(
+                new SdtRun(
+                    new SdtProperties(new SdtId { Val = 2078 }),
+                    new SdtContentRun(
+                        new Run(new Text("nested-link-prefix ")),
+                        new M.OfficeMath(new M.Run(new M.Text("nested-link-equation"))),
+                        new Run(new Text(" nested-link-suffix"))))) {
+                Id = nestedLinkedEquationRelationship.Id
+            });
+
+            WordParagraph equationWithBreak = document.AddParagraph("break-prefix ");
+            equationWithBreak._paragraph.Append(
+                new M.OfficeMath(new M.Run(new M.Text("break-equation"))),
+                new Run(new Break()),
+                new Run(new Text("break-suffix")));
+
+            WordParagraph hiddenAdjacentText = document.AddParagraph("visible-prefix ");
+            hiddenAdjacentText._paragraph.Append(
+                new Run(new RunProperties(new Vanish()), new Text("hidden-equation-adjacent ")),
+                new M.OfficeMath(new M.Run(new M.Text("visible-equation"))),
+                new Run(new Text(" visible-suffix")));
+
+            WordTable table = document.AddTable(2, 1, WordTableStyle.TableNormal);
             table.Rows[0].Cells[0].Paragraphs[0].Text = "Native table equation:";
             table.Rows[0].Cells[0].Paragraphs[0].AddEquation(tableOmml);
+            WordParagraph linkedTableEquation = table.Rows[1].Cells[0].Paragraphs[0];
+            HyperlinkRelationship linkedTableEquationRelationship = document._wordprocessingDocument.MainDocumentPart!
+                .AddHyperlinkRelationship(new Uri("https://officeimo.net/table-equations"), true);
+            linkedTableEquation._paragraph.Append(new Hyperlink(
+                new Run(new RunProperties(new Bold()), new Text("Ttable-link-prefix ")),
+                new M.OfficeMath(new M.Run(new M.Text("table-link-equation"))),
+                new Run(new RunProperties(new Italic()), new Text(" Ytable-link-suffix"))) {
+                Id = linkedTableEquationRelationship.Id
+            });
+            HyperlinkRelationship secondaryTableRelationship = document._wordprocessingDocument.MainDocumentPart!
+                .AddHyperlinkRelationship(new Uri("https://officeimo.net/table-secondary"), true);
+            linkedTableEquation._paragraph.Append(new Hyperlink(new Run(new Text(" secondary-table-link"))) {
+                Id = secondaryTableRelationship.Id
+            });
 
             document.Save();
             document.SaveAsPdf(pdfPath, options);
@@ -44,13 +107,65 @@ public partial class Word {
         Assert.DoesNotContain(options.Warnings, warning => warning.Code == "NativeBodyEquationUnsupported");
 
         string text = PdfCore.PdfTextExtractor.ExtractAllText(pdfPath);
-        Assert.Contains("Native header equation:", text);
-        Assert.Contains("h=2", text);
+        Assert.Contains("Native header equation: h=2 header-suffix", NormalizePdfText(text));
         Assert.Contains("Native body equation:", text);
-        Assert.Contains("b=3", text);
+        Assert.Contains("(a)/(b)", NormalizePdfText(text));
         string normalizedText = NormalizePdfText(text);
+        Assert.Contains("Native controlled equation:", normalizedText);
+        Assert.Contains("Native controlled equation: control-prefix controlled=5 control-suffix", normalizedText);
+        Assert.Contains("pdf-prefix pdf-equation pdf-suffix", normalizedText);
+        Assert.Contains("Qlinked-prefix linked-equation Xlinked-suffix", normalizedText);
+        Assert.Contains("nested-link-prefix nested-link-equation nested-link-suffix", normalizedText);
+        Assert.Contains("break-prefix break-equation break-suffix", normalizedText);
+        Assert.Contains("visible-prefix visible-equation visible-suffix", normalizedText);
+        Assert.DoesNotContain("hidden-equation-adjacent", normalizedText, StringComparison.Ordinal);
         Assert.Contains("Native table equation:", normalizedText);
         Assert.Contains("c=4", normalizedText);
+        Assert.Contains("Ttable-link-prefix table-link-equation Ytable-link-suffix secondary-table-link", normalizedText);
+        using (PdfPigDocument pdf = PdfPigDocument.Open(pdfPath)) {
+            var page = pdf.GetPage(1);
+            Assert.Contains("Bold", Assert.Single(page.Letters, letter => letter.Value == "Q").FontName, StringComparison.OrdinalIgnoreCase);
+            string suffixFont = Assert.Single(page.Letters, letter => letter.Value == "X").FontName;
+            Assert.True(
+                suffixFont.Contains("Italic", StringComparison.OrdinalIgnoreCase) ||
+                suffixFont.Contains("Oblique", StringComparison.OrdinalIgnoreCase),
+                suffixFont);
+        }
+        Assert.Contains("/URI (https://officeimo.net/equations", Encoding.ASCII.GetString(File.ReadAllBytes(pdfPath)), StringComparison.Ordinal);
+        PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(File.ReadAllBytes(pdfPath));
+        Assert.Equal(3, info.LinkAnnotations.Count(link => link.Uri == "https://officeimo.net/equations"));
+        Assert.Equal(3, info.LinkAnnotations.Count(link => link.Uri == "https://officeimo.net/nested-equations"));
+        Assert.Equal(3, info.LinkAnnotations.Count(link => link.Uri == "https://officeimo.net/table-equations"));
+        Assert.Single(info.LinkAnnotations, link => link.Uri == "https://officeimo.net/table-secondary");
+        string normalizedLineBreaks = text.Replace("\r\n", "\n").Replace('\r', '\n');
+        Assert.Contains("break-equation\nbreak-suffix", normalizedLineBreaks, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_MapsSimpleAndComplexEqFieldsToStaticText() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeEqFields.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeEqFields.pdf");
+        var options = new PdfSaveOptions {
+            IncludePageNumbers = false
+        };
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            WordParagraph simple = document.AddParagraph("Simple field: ");
+            AppendSimpleField(simple._paragraph, " EQ \\f(a,b) ", "(a)/(b)");
+            simple.AddText(" simple-suffix");
+
+            WordParagraph complex = document.AddParagraph("Complex field: ");
+            AppendComplexField(complex._paragraph, " EQ \\r(,x) ", "sqrt(x)");
+            complex.AddText(" complex-suffix");
+
+            document.Save();
+            document.SaveAsPdf(pdfPath, options);
+        }
+
+        Assert.DoesNotContain(options.Warnings, warning => warning.Code == "NativeBodyEquationUnsupported");
+        string text = NormalizePdfText(PdfCore.PdfTextExtractor.ExtractAllText(pdfPath));
+        Assert.Contains("Simple field: (a)/(b) simple-suffix", text, StringComparison.Ordinal);
+        Assert.Contains("Complex field: sqrt(x) complex-suffix", text, StringComparison.Ordinal);
     }
 
     [Fact]

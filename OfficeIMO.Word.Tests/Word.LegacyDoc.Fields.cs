@@ -2,6 +2,8 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
+using OfficeIMO.Word.LegacyDoc.Model;
+using M = DocumentFormat.OpenXml.Math;
 using Xunit;
 
 namespace OfficeIMO.Tests {
@@ -415,6 +417,196 @@ namespace OfficeIMO.Tests {
             } finally {
                 DeleteIfExists(docPath);
             }
+        }
+
+        [Fact]
+        public void LegacyDoc_SaveDocPath_ConvertsOmmlToNativeEqFieldsAndReloadsAsEquations() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+            const string fractionOmml = "<m:oMathPara xmlns:m=\"http://schemas.openxmlformats.org/officeDocument/2006/math\"><m:oMath><m:f><m:num><m:r><m:t>a</m:t></m:r></m:num><m:den><m:r><m:t>b</m:t></m:r></m:den></m:f></m:oMath></m:oMathPara>";
+            const string noBarFractionOmml = "<m:oMathPara xmlns:m=\"http://schemas.openxmlformats.org/officeDocument/2006/math\"><m:oMath><m:f><m:fPr><m:type m:val=\"noBar\"/></m:fPr><m:num><m:r><m:t>e</m:t></m:r></m:num><m:den><m:r><m:t>f</m:t></m:r></m:den></m:f></m:oMath></m:oMathPara>";
+            const string oneSidedOmml = "<m:oMathPara xmlns:m=\"http://schemas.openxmlformats.org/officeDocument/2006/math\"><m:oMath><m:d><m:dPr><m:begChr m:val=\"{\"/><m:endChr m:val=\"\"/></m:dPr><m:e><m:r><m:t>x</m:t></m:r></m:e></m:d></m:oMath></m:oMathPara>";
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    document.AddEquation(fractionOmml);
+                    document.AddEquation(noBarFractionOmml);
+                    WordTable table = document.AddTable(1, 1);
+                    table.Rows[0].Cells[0].AddParagraph(string.Empty, removeExistingParagraphs: true).AddEquation(oneSidedOmml.Replace("<m:t>x</m:t>", "<m:t>t</m:t>"));
+                    document.AddHeadersAndFooters();
+                    document.Sections[0].Header.Default!.AddParagraph("Header ").AddEquation(fractionOmml);
+                    document.Sections[0].Footer.Default!.AddParagraph("Footer ").AddEquation(oneSidedOmml.Replace("<m:t>x</m:t>", "<m:t>f</m:t>"));
+                    WordParagraph noteReferences = document.AddParagraph("Notes ");
+                    WordParagraph footnoteReference = noteReferences.AddFootNote("footnote placeholder");
+                    footnoteReference.FootNote!.Paragraphs![1].AddEquation(oneSidedOmml.Replace("<m:t>x</m:t>", "<m:t>n</m:t>"));
+                    WordParagraph endnoteReference = noteReferences.AddEndNote("endnote placeholder");
+                    endnoteReference.EndNote!.Paragraphs![1].AddEquation(oneSidedOmml.Replace("<m:t>x</m:t>", "<m:t>e</m:t>"));
+                    document.Save(docPath);
+                }
+
+                string wordDocumentAscii = Encoding.ASCII.GetString(ReadCompoundStream(File.ReadAllBytes(docPath), "WordDocument"));
+                Assert.Contains(" EQ ", wordDocumentAscii, StringComparison.Ordinal);
+                Assert.Contains("\\f(a,b)", wordDocumentAscii, StringComparison.Ordinal);
+                Assert.Contains("\\a\\co1(e,f)", wordDocumentAscii, StringComparison.Ordinal);
+                Assert.Contains("EQ {t", wordDocumentAscii, StringComparison.Ordinal);
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+                Assert.Equal(WordFileFormat.Doc, reloaded.SourceFormat);
+                Assert.Empty(reloaded.LegacyDocUnsupportedFeatures);
+                Assert.Contains(reloaded.Equations, equation =>
+                    equation.Representation == WordEquationRepresentation.EquationField &&
+                    equation.Text == "(a)/(b)" &&
+                    equation.FieldInstruction!.Contains("\\f(a,b)", StringComparison.Ordinal));
+                Assert.Contains(reloaded.Equations, equation =>
+                    equation.Representation == WordEquationRepresentation.EquationField &&
+                    equation.Text == "stack(e,f)" &&
+                    equation.FieldInstruction!.Contains("\\a\\co1(e,f)", StringComparison.Ordinal));
+
+                MainDocumentPart mainPart = reloaded._wordprocessingDocument!.MainDocumentPart!;
+                SimpleField[] equationFields = mainPart.Document.Descendants<SimpleField>()
+                    .Concat(mainPart.HeaderParts.SelectMany(part => part.Header.Descendants<SimpleField>()))
+                    .Concat(mainPart.FooterParts.SelectMany(part => part.Footer.Descendants<SimpleField>()))
+                    .Concat(mainPart.FootnotesPart!.Footnotes!.Descendants<SimpleField>())
+                    .Concat(mainPart.EndnotesPart!.Endnotes!.Descendants<SimpleField>())
+                    .Where(field => field.Instruction?.Value.TrimStart().StartsWith("EQ", StringComparison.OrdinalIgnoreCase) == true)
+                    .ToArray();
+                Assert.Equal(7, equationFields.Length);
+                Assert.Contains(equationFields, field => field.InnerText == "{t");
+                Assert.Contains(equationFields, field => field.InnerText == "{f");
+                Assert.Contains(equationFields, field => field.InnerText == "{n");
+                Assert.Contains(equationFields, field => field.InnerText == "{e");
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
+        public void LegacyDoc_SaveDocPath_WritesHyperlinkedOmmlAsNestedEqFieldsAndResaves() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+            string resavedDocPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    WordParagraph paragraph = document.AddParagraph();
+                    paragraph._paragraph.Append(new Hyperlink(
+                        new Run(new Text("link-prefix ")),
+                        new M.OfficeMath(new M.Run(new M.Text("linked"))),
+                        new SdtRun(
+                            new SdtProperties(new SdtId { Val = 2076 }),
+                            new SdtContentRun(
+                                new Run(new Text(" nested-prefix ")),
+                                new M.OfficeMath(new M.Run(new M.Text("nested"))),
+                                new Run(new Text(" nested-suffix ")))),
+                        new Run(new Text("link-suffix"))) {
+                        Anchor = "equation-target"
+                    });
+
+                    document.AddHeadersAndFooters();
+                    WordParagraph header = document.Sections[0].Header.Default!.AddParagraph();
+                    header._paragraph.Append(new Hyperlink(
+                        new M.OfficeMath(new M.Run(new M.Text("header-linked")))) {
+                        Anchor = "header-equation-target"
+                    });
+
+                    WordParagraph noteReference = document.AddParagraph("note ").AddFootNote("placeholder");
+                    WordParagraph noteBody = noteReference.FootNote!.Paragraphs![1];
+                    noteBody.Text = string.Empty;
+                    noteBody._paragraph.Append(new Hyperlink(
+                        new M.OfficeMath(new M.Run(new M.Text("note-linked")))) {
+                        Anchor = "note-equation-target"
+                    });
+
+                    document.Save(docPath);
+                }
+
+                string wordDocumentAscii = Encoding.ASCII.GetString(ReadCompoundStream(File.ReadAllBytes(docPath), "WordDocument"));
+                Assert.Contains("HYPERLINK", wordDocumentAscii, StringComparison.Ordinal);
+                Assert.Contains(" EQ linked", wordDocumentAscii, StringComparison.Ordinal);
+                Assert.Contains(" EQ nested", wordDocumentAscii, StringComparison.Ordinal);
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+                Assert.Equal(WordFileFormat.Doc, reloaded.SourceFormat);
+                Assert.Empty(reloaded.LegacyDocUnsupportedFeatures);
+                MainDocumentPart mainPart = reloaded._wordprocessingDocument!.MainDocumentPart!;
+                Hyperlink hyperlink = Assert.Single(mainPart.Document.Descendants<Hyperlink>());
+                Assert.Equal("equation-target", hyperlink.Anchor?.Value);
+                SimpleField[] linkedEquations = hyperlink.Elements<SimpleField>()
+                    .Where(field => field.Instruction?.Value.TrimStart().StartsWith("EQ", StringComparison.OrdinalIgnoreCase) == true)
+                    .ToArray();
+                Assert.Equal(new[] { "linked", "nested" }, linkedEquations.Select(field => field.InnerText));
+                Hyperlink headerHyperlink = Assert.Single(mainPart.HeaderParts.SelectMany(part => part.Header.Descendants<Hyperlink>()));
+                Assert.Equal("header-equation-target", headerHyperlink.Anchor?.Value);
+                Assert.Equal("header-linked", Assert.Single(headerHyperlink.Elements<SimpleField>()).InnerText);
+                Hyperlink noteHyperlink = Assert.Single(mainPart.FootnotesPart!.Footnotes!.Descendants<Hyperlink>());
+                Assert.Equal("note-equation-target", noteHyperlink.Anchor?.Value);
+                Assert.Equal("note-linked", Assert.Single(noteHyperlink.Elements<SimpleField>()).InnerText);
+                Assert.Equal(new[] { "linked", "nested" }, reloaded.Equations.Select(equation => equation.Text));
+                Assert.Empty(reloaded.ValidateDocument());
+
+                reloaded.Save(resavedDocPath);
+                string resavedAscii = Encoding.ASCII.GetString(ReadCompoundStream(File.ReadAllBytes(resavedDocPath), "WordDocument"));
+                Assert.Contains("HYPERLINK", resavedAscii, StringComparison.Ordinal);
+                Assert.Contains(" EQ linked", resavedAscii, StringComparison.Ordinal);
+                Assert.Contains(" EQ nested", resavedAscii, StringComparison.Ordinal);
+
+                using WordDocument resaved = WordDocument.Load(resavedDocPath);
+                Assert.Equal(WordFileFormat.Doc, resaved.SourceFormat);
+                Assert.Empty(resaved.LegacyDocUnsupportedFeatures);
+                MainDocumentPart resavedMainPart = resaved._wordprocessingDocument!.MainDocumentPart!;
+                Hyperlink resavedBodyHyperlink = Assert.Single(resavedMainPart.Document.Descendants<Hyperlink>());
+                Assert.Equal(
+                    new[] { "linked", "nested" },
+                    resavedBodyHyperlink.Elements<SimpleField>()
+                        .Where(field => field.Instruction?.Value.TrimStart().StartsWith("EQ", StringComparison.OrdinalIgnoreCase) == true)
+                        .Select(field => field.InnerText));
+                Assert.Equal(
+                    "header-linked",
+                    Assert.Single(resavedMainPart.HeaderParts.SelectMany(part => part.Header.Descendants<Hyperlink>()))
+                        .Elements<SimpleField>().Single().InnerText);
+                Assert.Equal(
+                    "note-linked",
+                    Assert.Single(resavedMainPart.FootnotesPart!.Footnotes!.Descendants<Hyperlink>())
+                        .Elements<SimpleField>().Single().InnerText);
+                Assert.Empty(resaved.ValidateDocument());
+            } finally {
+                DeleteIfExists(docPath);
+                DeleteIfExists(resavedDocPath);
+            }
+        }
+
+        [Fact]
+        public void LegacyDoc_HyperlinkFieldProjection_UsesNestedFieldResultsOnly() {
+            string fieldText = string.Concat(
+                LegacyDocField.Begin,
+                " HYPERLINK \\l \"target\" ",
+                LegacyDocField.Separator,
+                "prefix ",
+                LegacyDocField.Begin,
+                " PAGE ",
+                LegacyDocField.Separator,
+                "42",
+                LegacyDocField.End,
+                " suffix",
+                LegacyDocField.End);
+            LegacyDocTextCharacter[] characters = fieldText
+                .Select((character, index) => new LegacyDocTextCharacter(character, index, index))
+                .ToArray();
+
+            Assert.True(LegacyDocField.TryReadHyperlink(
+                characters,
+                0,
+                out LegacyDocHyperlinkTarget target,
+                out int resultStartIndex,
+                out int resultEndIndex,
+                out int fieldEndIndex));
+            string visibleResult = new string(LegacyDocField
+                .EnumerateVisibleResultIndexes(characters, resultStartIndex, resultEndIndex)
+                .Select(index => characters[index].Character)
+                .ToArray());
+
+            Assert.Equal("target", target.Anchor);
+            Assert.Equal("prefix 42 suffix", visibleResult);
+            Assert.DoesNotContain("PAGE", visibleResult, StringComparison.Ordinal);
+            Assert.Equal(characters.Length - 1, fieldEndIndex);
         }
 
         private static void AppendBookmarkedSimpleField(Paragraph paragraph, string id, string name, string instruction) {

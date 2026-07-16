@@ -18,7 +18,7 @@ internal static partial class PdfWriter {
         return sb.ToString();
     }
 
-    private static string EncodeTextHex(string text, PdfStandardFont font, PdfOptions? options) {
+    private static PdfTextShowCommand EncodeTextShowCommand(string text, PdfStandardFont font, PdfOptions? options) {
         PdfTextEncodingDiagnostic? diagnostic = GetFirstTextEncodingDiagnostic(text, font, options);
         if (diagnostic != null) {
             throw CreateTextEncodingException(diagnostic, nameof(text));
@@ -31,9 +31,14 @@ internal static partial class PdfWriter {
                 ? PdfTextDiagnostics.AnalyzeAdvancedTextLayout(text, fontProgram)
                 : Array.Empty<PdfTextShapingDiagnostic>();
             options.AddTextDiagnostics(PdfTextDiagnostics.AnalyzeEmbeddedFontText(text, fontProgram));
-            string glyphHex = fontProgram.EncodeTextAsGlyphHex(text, options.TextShapingModeSnapshot, options.TextShapingProviderSnapshot, options.RecordProviderShapedTextRun);
+            PdfGlyphRun glyphRun = fontProgram.ShapeText(text, PdfTextShapingOptions.ForRendering(
+                fontProgram.FontName,
+                options.TextShapingModeSnapshot,
+                options.TextShapingProviderSnapshot,
+                options.RecordProviderShapedTextRun,
+                options.Language));
             options.AddTextShapingDiagnostics(shapingDiagnostics, text, fontProgram.FontName, isOpenTypeCff: false);
-            return glyphHex;
+            return glyphRun.ToTextShowCommand();
         }
 
         if (options != null &&
@@ -43,9 +48,14 @@ internal static partial class PdfWriter {
                 ? PdfTextDiagnostics.AnalyzeAdvancedTextLayout(text, cffFontProgram)
                 : Array.Empty<PdfTextShapingDiagnostic>();
             options.AddTextDiagnostics(PdfTextDiagnostics.AnalyzeEmbeddedFontText(text, cffFontProgram));
-            string glyphHex = cffFontProgram.EncodeTextAsGlyphHex(text, options.TextShapingModeSnapshot, options.TextShapingProviderSnapshot, options.RecordProviderShapedTextRun);
+            PdfGlyphRun glyphRun = cffFontProgram.ShapeText(text, PdfTextShapingOptions.ForRendering(
+                cffFontProgram.FontName,
+                options.TextShapingModeSnapshot,
+                options.TextShapingProviderSnapshot,
+                options.RecordProviderShapedTextRun,
+                options.Language));
             options.AddTextShapingDiagnostics(shapingDiagnostics, text, cffFontProgram.FontName, isOpenTypeCff: true);
-            return glyphHex;
+            return glyphRun.ToTextShowCommand();
         }
 
         if (options?.HasDiagnosticsReport == true) {
@@ -53,7 +63,7 @@ internal static partial class PdfWriter {
         }
 
         options?.AddTextDiagnostics(PdfTextDiagnostics.AnalyzeWinAnsiText(text));
-        return EncodeWinAnsiHex(text);
+        return new PdfTextShowCommand(EncodeWinAnsiHex(text));
     }
 
     private static PdfTextEncodingDiagnostic? GetFirstTextEncodingDiagnostic(string text, PdfStandardFont font, PdfOptions? options) {
@@ -306,7 +316,8 @@ internal static partial class PdfWriter {
             bool leadingSpaceIsExpandable = true,
             PdfTabLeaderStyle leadingTabLeader = PdfTabLeaderStyle.None,
             bool endsWithHardBreak = false,
-            bool endsWithTextSeparator = false) {
+            bool endsWithTextSeparator = false,
+            PdfInlineElement? inlineElement = null) {
             Text = text;
             Bold = bold;
             Italic = italic;
@@ -326,6 +337,7 @@ internal static partial class PdfWriter {
             LeadingTabLeader = leadingTabLeader;
             EndsWithHardBreak = endsWithHardBreak;
             EndsWithTextSeparator = endsWithTextSeparator;
+            InlineElement = inlineElement;
         }
 
         public string Text { get; }
@@ -366,14 +378,16 @@ internal static partial class PdfWriter {
 
         public bool EndsWithTextSeparator { get; }
 
+        public PdfInlineElement? InlineElement { get; }
+
         public RichSeg WithEndsWithHardBreak() =>
-            new RichSeg(Text, Bold, Italic, Underline, Strike, Color, BackgroundColor, Uri, DestinationName, Contents, Font, FontSize, Baseline, LeadingSpace, LeadingAdvance, LeadingSpaceIsExpandable, LeadingTabLeader, true, true);
+            new RichSeg(Text, Bold, Italic, Underline, Strike, Color, BackgroundColor, Uri, DestinationName, Contents, Font, FontSize, Baseline, LeadingSpace, LeadingAdvance, LeadingSpaceIsExpandable, LeadingTabLeader, true, true, InlineElement);
 
         public RichSeg WithEndsWithTextSeparator() =>
-            new RichSeg(Text, Bold, Italic, Underline, Strike, Color, BackgroundColor, Uri, DestinationName, Contents, Font, FontSize, Baseline, LeadingSpace, LeadingAdvance, LeadingSpaceIsExpandable, LeadingTabLeader, EndsWithHardBreak, true);
+            new RichSeg(Text, Bold, Italic, Underline, Strike, Color, BackgroundColor, Uri, DestinationName, Contents, Font, FontSize, Baseline, LeadingSpace, LeadingAdvance, LeadingSpaceIsExpandable, LeadingTabLeader, EndsWithHardBreak, true, InlineElement);
 
         public RichSeg WithoutLink() =>
-            new RichSeg(Text, Bold, Italic, Underline, Strike, Color, BackgroundColor, null, null, null, Font, FontSize, Baseline, LeadingSpace, LeadingAdvance, LeadingSpaceIsExpandable, LeadingTabLeader, EndsWithHardBreak, EndsWithTextSeparator);
+            new RichSeg(Text, Bold, Italic, Underline, Strike, Color, BackgroundColor, null, null, null, Font, FontSize, Baseline, LeadingSpace, LeadingAdvance, LeadingSpaceIsExpandable, LeadingTabLeader, EndsWithHardBreak, EndsWithTextSeparator, InlineElement);
     }
 
     private static void MarkRichLineTextSeparator(System.Collections.Generic.IList<RichSeg> line) {
@@ -410,7 +424,7 @@ internal static partial class PdfWriter {
                     : MeasureRichText(" ", segment.Font, segment.FontSize, segment.Baseline, options);
             }
 
-            width += MeasureRichText(segment.Text, segment.Font, segment.FontSize, segment.Baseline, options);
+            width += MeasureRichSegment(segment, options);
         }
 
         return width;
@@ -528,6 +542,16 @@ internal static partial class PdfWriter {
             currentLineHeight = Math.Max(currentLineHeight, runFontSize * lineHeightRatio);
         }
 
+        void RegisterInlineLineHeight(PdfInlineElement inlineElement) {
+            double baseAscent = GetAscenderForOptions(baseFont, fontSize, options);
+            double baseDescent = GetDescenderForOptions(baseFont, fontSize, options);
+            double inlineAscent = Math.Max(0D, inlineElement.BaselineOffset + inlineElement.Height);
+            double inlineDescent = Math.Max(0D, -inlineElement.BaselineOffset);
+            currentLineHeight = Math.Max(
+                currentLineHeight,
+                Math.Max(baseAscent, inlineAscent) + Math.Max(baseDescent, inlineDescent));
+        }
+
         void StartNewLine() {
             heights.Add(currentLineHeight);
             lines.Add(new());
@@ -620,6 +644,58 @@ internal static partial class PdfWriter {
             var fontForRun = (bold && italic) ? ChooseBoldItalic(runBaseFont) : bold ? ChooseBold(runBaseFont) : italic ? ChooseItalic(runBaseFont) : runBaseFont;
             double runFontSize = run.FontSize ?? fontSize;
             double spaceW = MeasureRichText(" ", fontForRun, runFontSize, baseline, options);
+            if (run.InlineElement != null) {
+                PdfInlineElement inlineElement = run.InlineElement;
+                double currentMaxWidth = CurrentMaxWidth();
+                if (inlineElement.Width > currentMaxWidth + 0.001D) {
+                    throw new ArgumentException("Inline element width exceeds the available paragraph width.");
+                }
+
+                if (pendingLeadingIsTab) {
+                    ResolvePendingLeadingTabForCurrentLine(inlineElement.Width, spaceW, string.Empty, fontForRun, runFontSize, baseline);
+                }
+
+                List<RichSeg> currentLine = lines[lines.Count - 1];
+                double leadingAdvance = currentLine.Count > 0 || pendingLeadingIsTab ? pendingLeadingAdvance : 0D;
+                if (currentLine.Count > 0 && lineWidth + leadingAdvance + inlineElement.Width > currentMaxWidth + 0.001D) {
+                    if (pendingLeadingAdvance > 0D) {
+                        MarkRichLineTextSeparator(currentLine);
+                    }
+
+                    StartNewLine();
+                    currentLine = lines[lines.Count - 1];
+                    if (pendingLeadingIsTab) {
+                        ResolvePendingLeadingTabForCurrentLine(inlineElement.Width, spaceW, string.Empty, fontForRun, runFontSize, baseline);
+                    }
+
+                    leadingAdvance = pendingLeadingIsTab ? pendingLeadingAdvance : 0D;
+                }
+
+                currentLine.Add(new RichSeg(
+                    string.Empty,
+                    bold,
+                    italic,
+                    underline,
+                    strike,
+                    color,
+                    backgroundColor,
+                    uri,
+                    destinationName,
+                    contents,
+                    fontForRun,
+                    runFontSize,
+                    baseline,
+                    leadingSpace: leadingAdvance > 0D,
+                    leadingAdvance: leadingAdvance,
+                    leadingSpaceIsExpandable: pendingLeadingIsExpandable,
+                    leadingTabLeader: pendingLeadingTabLeader,
+                    inlineElement: inlineElement));
+                lineWidth += leadingAdvance + inlineElement.Width;
+                RegisterInlineLineHeight(inlineElement);
+                ResetPendingLeading();
+                continue;
+            }
+
             int idx = 0;
             while (idx < text.Length) {
                 int nextWs = text.IndexOfAny(TokenSplitChars, idx);
@@ -1387,6 +1463,121 @@ internal static partial class PdfWriter {
             ? fallback + lineXOffsets[lineIndex]
             : lineIndex == 0 ? firstLineXOverride ?? fallback : fallback;
 
+    private static double MeasureRichSegment(RichSeg segment, PdfOptions? options) =>
+        segment.InlineElement?.Width ?? MeasureRichText(segment.Text, segment.Font, segment.FontSize, segment.Baseline, options);
+
+    private static double AdjustRichLineBaseline(
+        double baseline,
+        System.Collections.Generic.IReadOnlyList<RichSeg> segments,
+        PdfOptions options,
+        double fontSize) {
+        double baseAscent = GetAscenderForOptions(ChooseNormal(options.DefaultFont), fontSize, options);
+        double requiredAscent = baseAscent;
+        foreach (RichSeg segment in segments) {
+            if (segment.InlineElement != null) {
+                requiredAscent = Math.Max(requiredAscent, segment.InlineElement.BaselineOffset + segment.InlineElement.Height);
+            }
+        }
+
+        return baseline - Math.Max(0D, requiredAscent - baseAscent);
+    }
+
+    private static int? RegisterInlineFigureStructureElement(
+        LayoutResult.Page? page,
+        PdfOptions options,
+        string? alternativeText,
+        int? parentElementIndex) {
+        if (page == null ||
+            options.TaggedStructureMode != PdfTaggedStructureMode.CatalogMarkers ||
+            string.IsNullOrWhiteSpace(alternativeText)) {
+            return null;
+        }
+
+        int markedContentId = page.NextMarkedContentId++;
+        page.StructElements.Add(new PageStructElement {
+            MarkedContentId = markedContentId,
+            StructureType = "Figure",
+            AlternativeText = alternativeText!,
+            ParentElementIndex = parentElementIndex
+        });
+        return markedContentId;
+    }
+
+    private static void AppendInlineElement(
+        StringBuilder sb,
+        PdfInlineElement inlineElement,
+        double x,
+        double baseline,
+        PdfOptions options,
+        LayoutResult.Page? page,
+        int? parentElementIndex) {
+        double bottom = baseline + inlineElement.BaselineOffset;
+        if (inlineElement is PdfInlineImage inlineImage) {
+            if (page == null) {
+                throw new InvalidOperationException("Inline images require an active output page.");
+            }
+
+            ImageBlock block = inlineImage.Block;
+            PageImage pageImage = CreatePageImage(
+                block,
+                block.Style ?? new PdfImageStyle(),
+                x,
+                bottom,
+                inlineElement.Width,
+                inlineElement.Height);
+            pageImage.IsInlineDecoration = string.IsNullOrWhiteSpace(inlineElement.AlternativeText);
+            page.Images.Add(pageImage);
+            pageImage.InlineDrawToken = "\n%OIMO_INLINE_IMAGE_" + page.Images.Count.ToString("D6", CultureInfo.InvariantCulture) + "\n";
+            if (!string.IsNullOrWhiteSpace(inlineElement.AlternativeText)) {
+                pageImage.MarkedContentId = RegisterInlineFigureStructureElement(page, options, inlineElement.AlternativeText, parentElementIndex);
+                pageImage.StructElementIndex = FindStructElementIndex(page, pageImage.MarkedContentId, "Figure");
+            }
+
+            sb.Append(pageImage.InlineDrawToken);
+            return;
+        }
+
+        PdfInlineBox inlineBox = (PdfInlineBox)inlineElement;
+        bool tagged = options.TaggedStructureMode == PdfTaggedStructureMode.CatalogMarkers;
+        int? figureMarkedContentId = RegisterInlineFigureStructureElement(page, options, inlineElement.AlternativeText, parentElementIndex);
+        bool hasAlternativeText = !string.IsNullOrWhiteSpace(inlineElement.AlternativeText);
+        if (hasAlternativeText) {
+            sb.Append("/Figure << /Alt ")
+                .Append(PdfSyntaxEscaper.TextString(inlineElement.AlternativeText!));
+            if (figureMarkedContentId.HasValue) {
+                sb.Append(" /MCID ")
+                    .Append(figureMarkedContentId.Value.ToString(CultureInfo.InvariantCulture));
+            }
+
+            sb.Append(" >> BDC\n");
+        } else {
+            AppendArtifactBegin(sb, tagged);
+        }
+
+        ContentStreamBuilder boxContent = new ContentStreamBuilder(sb).SaveState();
+        if (inlineBox.Background.HasValue) {
+            boxContent
+                .FillColor(inlineBox.Background.Value)
+                .Rectangle(x, bottom, inlineBox.Width, inlineBox.Height)
+                .FillPath();
+        }
+
+        if (inlineBox.BorderColor.HasValue && inlineBox.BorderWidth > 0D) {
+            boxContent
+                .StrokeColor(inlineBox.BorderColor.Value)
+                .LineWidth(inlineBox.BorderWidth)
+                .Rectangle(x, bottom, inlineBox.Width, inlineBox.Height)
+                .StrokePath();
+        }
+
+        boxContent.RestoreState();
+        if (hasAlternativeText) {
+            sb.Append("EMC\n");
+        } else {
+            AppendArtifactEnd(sb, tagged);
+        }
+    }
+
     private static void WriteRichParagraph(StringBuilder sb, RichParagraphBlock block, System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> lines, System.Collections.Generic.List<double> lineHeights, PdfOptions opts, double startY, double fontSize, double defaultLeading, System.Collections.Generic.List<LinkAnnotation> annots, double? xOverride = null, double? widthOverride = null, double? firstLineXOverride = null, double? firstLineWidthOverride = null, string? structureType = null, int? markedContentId = null, LayoutResult.Page? structurePage = null, System.Collections.Generic.IReadOnlyList<PdfAlign?>? lineAlignments = null, System.Collections.Generic.IReadOnlyList<double>? lineXOffsets = null, System.Collections.Generic.IReadOnlyList<double>? lineWidths = null) {
         double widthContent = opts.PageWidth - opts.MarginLeft - opts.MarginRight;
         double widthUsed = widthOverride ?? widthContent;
@@ -1418,14 +1609,14 @@ internal static partial class PdfWriter {
         double backgroundYOffset = 0D;
         double xOrigin = xOverride ?? opts.MarginLeft;
         for (int li = 0; li < lines.Count; li++) {
-            double lineY = startY - backgroundYOffset;
+            double lineY = AdjustRichLineBaseline(startY - backgroundYOffset, lines[li], opts, fontSize);
             double lineWidthUsed = ResolveRichLineWidth(widthUsed, firstLineWidthOverride, lineWidths, li);
             double lineXOrigin = ResolveRichLineXOrigin(xOrigin, firstLineXOverride, lineXOffsets, li);
             var segs = lines[li];
             double baseLineW = 0;
             int gapsCount = 0;
             foreach (var seg in segs) {
-                double w = MeasureRichText(seg.Text, seg.Font, seg.FontSize, seg.Baseline, opts);
+                double w = MeasureRichSegment(seg, opts);
                 if (seg.LeadingSpace) {
                     w += seg.LeadingAdvance > 0 ? seg.LeadingAdvance : MeasureRichText(" ", seg.Font, seg.FontSize, seg.Baseline, opts);
                     if (seg.LeadingSpaceIsExpandable) {
@@ -1454,7 +1645,7 @@ internal static partial class PdfWriter {
                     xCursor += leadingAdvance;
                 }
 
-                double wSeg = MeasureRichText(s.Text, s.Font, s.FontSize, s.Baseline, opts);
+                double wSeg = MeasureRichSegment(s, opts);
                 if (s.BackgroundColor.HasValue && wSeg > 0) {
                     double runFontSize = EffectiveRichFontSize(s.FontSize, s.Baseline);
                     double textRise = TextRiseForBaseline(s.FontSize, s.Baseline);
@@ -1500,7 +1691,7 @@ internal static partial class PdfWriter {
 
         double yOffset = 0D;
         for (int li = 0; li < lines.Count; li++) {
-            double lineY = startY - yOffset;
+            double lineY = AdjustRichLineBaseline(startY - yOffset, lines[li], opts, fontSize);
             double lineWidthUsed = ResolveRichLineWidth(widthUsed, firstLineWidthOverride, lineWidths, li);
             double lineXOrigin = ResolveRichLineXOrigin(xOrigin, firstLineXOverride, lineXOffsets, li);
             var segs = lines[li];
@@ -1510,7 +1701,7 @@ internal static partial class PdfWriter {
             int gapsCount = 0;
             for (int si = 0; si < segCount; si++) {
                 var seg = segs[si];
-                double w = MeasureRichText(seg.Text, seg.Font, seg.FontSize, seg.Baseline, opts);
+                double w = MeasureRichSegment(seg, opts);
                 if (seg.LeadingSpace) {
                     w += seg.LeadingAdvance > 0 ? seg.LeadingAdvance : MeasureRichText(" ", seg.Font, seg.FontSize, seg.Baseline, opts);
                     if (seg.LeadingSpaceIsExpandable) {
@@ -1576,22 +1767,47 @@ internal static partial class PdfWriter {
                         if (leader.Length > 0) {
                             content
                                 .TextMatrix(lineXOrigin + xCursor, lineY)
-                                .ShowHexText(EncodeTextHex(leader, s.Font, opts));
+                                .ShowText(EncodeTextShowCommand(leader, s.Font, opts), runFontSize, textRise);
                         }
                         xCursor += gap;
                         content.TextMatrix(lineXOrigin + xCursor, lineY);
                     } else if (!s.LeadingSpaceIsExpandable) {
                         content
                             .TextMatrix(lineXOrigin + xCursor, lineY)
-                            .ShowHexText(EncodeTextHex(" ", s.Font, opts));
+                            .ShowText(EncodeTextShowCommand(" ", s.Font, opts), runFontSize, textRise);
                         xCursor += gap;
                         content.TextMatrix(lineXOrigin + xCursor, lineY);
                     } else {
-                        content.ShowHexText(EncodeTextHex(" ", s.Font, opts));
+                        content.ShowText(EncodeTextShowCommand(" ", s.Font, opts), runFontSize, textRise);
                         xCursor += gap;
                     }
                 }
-                double wSeg = MeasureRichText(s.Text, s.Font, s.FontSize, s.Baseline, opts);
+                if (s.InlineElement != null) {
+                    content.EndText();
+                    if (textMarkedContentOpen) {
+                        AppendMarkedContentEnd(sb, markedContentId);
+                        textMarkedContentOpen = false;
+                    }
+
+                    AppendInlineElement(
+                        sb,
+                        s.InlineElement,
+                        lineXOrigin + xCursor,
+                        lineY,
+                        opts,
+                        structurePage,
+                        textStructElementIndex);
+                    xCursor += s.InlineElement.Width;
+                    content = new ContentStreamBuilder(sb)
+                        .BeginText()
+                        .TextLeading(defaultLeading)
+                        .TextMatrix(lineXOrigin + xCursor, lineY)
+                        .WordSpacing(wordSpacing);
+                    currentTextRise = 0D;
+                    continue;
+                }
+
+                double wSeg = MeasureRichSegment(s, opts);
                 int? linkMarkedContentId = null;
                 int? linkStructElementIndex = null;
                 if (hasLinkTarget && opts.TaggedStructureMode == PdfTaggedStructureMode.CatalogMarkers && structurePage != null) {
@@ -1624,7 +1840,7 @@ internal static partial class PdfWriter {
 
                     content
                         .FillColor(color ?? PdfColor.Black)
-                        .ShowHexText(EncodeTextHex(s.Text, s.Font, opts))
+                        .ShowText(EncodeTextShowCommand(s.Text, s.Font, opts), runFontSize, textRise)
                         .EndText();
                     AppendMarkedContentEnd(sb, linkMarkedContentId);
                     content
@@ -1638,7 +1854,7 @@ internal static partial class PdfWriter {
 
                     currentTextRise = 0;
                 } else {
-                    content.ShowHexText(EncodeTextHex(s.Text, s.Font, opts));
+                    content.ShowText(EncodeTextShowCommand(s.Text, s.Font, opts), runFontSize, textRise);
                 }
 
                 double baselineY = lineY + textRise;
@@ -1677,7 +1893,7 @@ internal static partial class PdfWriter {
                     currentTextRise = separatorTextRise;
                 }
 
-                content.ShowHexText(EncodeTextHex(" ", last.Font, opts));
+                content.ShowText(EncodeTextShowCommand(" ", last.Font, opts), separatorFontSize, separatorTextRise);
             }
 
             if (Math.Abs(currentTextRise) > 0.0001) {

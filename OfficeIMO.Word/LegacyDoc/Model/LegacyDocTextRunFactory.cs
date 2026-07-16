@@ -4,7 +4,13 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             return CreateFieldRun(resultText, fieldKind, fieldInstruction: null, format, characterPositions);
         }
 
-        internal static LegacyDocTextRun CreateFieldRun(string resultText, LegacyDocFieldKind fieldKind, string? fieldInstruction, LegacyDocCharacterFormat format, IReadOnlyList<int> characterPositions) {
+        internal static LegacyDocTextRun CreateFieldRun(
+            string resultText,
+            LegacyDocFieldKind fieldKind,
+            string? fieldInstruction,
+            LegacyDocCharacterFormat format,
+            IReadOnlyList<int> characterPositions,
+            LegacyDocHyperlinkTarget hyperlinkTarget = default) {
             return new LegacyDocTextRun(
                 resultText,
                 format.Bold,
@@ -25,6 +31,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 format.ColorHex,
                 format.FontFamily,
                 characterPositions,
+                hyperlinkUri: hyperlinkTarget.Uri,
+                hyperlinkAnchor: hyperlinkTarget.Anchor,
                 fieldKind: fieldKind,
                 fieldInstruction: fieldInstruction,
                 specified: format.Specified,

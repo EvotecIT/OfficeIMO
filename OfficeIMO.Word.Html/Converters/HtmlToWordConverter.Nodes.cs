@@ -15,6 +15,7 @@ using System.Security.Cryptography;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using M = DocumentFormat.OpenXml.Math;
 
 namespace OfficeIMO.Word.Html {
     internal partial class HtmlToWordConverter {
@@ -86,6 +87,19 @@ namespace OfficeIMO.Word.Html {
                 ApplyCssToElement(element);
                 ReportAccessibilityDiagnostics(element);
                 switch (element.TagName.ToLowerInvariant()) {
+                    case "math": {
+                            WordParagraph paragraph = currentParagraph ?? AddParagraphInScope(section, cell, headerFooter);
+                            string? equationLabel = element.GetAttribute("aria-label");
+                            if (string.IsNullOrWhiteSpace(equationLabel) &&
+                                HtmlMathMlToOmmlConverter.TryConvert(element, out string structuredOmml)) {
+                                paragraph.AddEquation(structuredOmml);
+                            } else {
+                                string equationText = equationLabel ?? element.TextContent ?? string.Empty;
+                                var officeMath = new M.OfficeMath(new M.Run(new M.Text(equationText)));
+                                paragraph.AddEquation(officeMath.OuterXml);
+                            }
+                            break;
+                        }
                     case "body": {
                             var fmt = formatting;
                             var bodyStyle = element.GetAttribute("style");
@@ -685,9 +699,11 @@ namespace OfficeIMO.Word.Html {
                                         _suppressAutoLinksDepth--;
                                     }
 
-                                    var runs = tempParagraph.GetRuns().ToList();
-                                    linkParaAnchor = runs.Count > 0
-                                        ? WordHyperLink.AddHyperLink(currentParagraph!, runs, anchor, tooltip: title ?? string.Empty)
+                                    var inlineContent = tempParagraph._paragraph.ChildElements
+                                        .Where(child => child is not ParagraphProperties)
+                                        .ToList();
+                                    linkParaAnchor = inlineContent.Count > 0
+                                        ? WordHyperLink.AddHyperLinkContent(currentParagraph!, inlineContent, anchor, tooltip: title ?? string.Empty)
                                         : currentParagraph!.AddHyperLink(element.TextContent, anchor);
                                 } else {
                                     linkParaAnchor = currentParagraph!.AddHyperLink(element.TextContent, anchor);
@@ -743,9 +759,11 @@ namespace OfficeIMO.Word.Html {
                                         _suppressAutoLinksDepth--;
                                     }
 
-                                    var runs = tempParagraph.GetRuns().ToList();
-                                    linkPara = runs.Count > 0
-                                        ? WordHyperLink.AddHyperLink(currentParagraph!, runs, resolvedUri, tooltip: title ?? string.Empty)
+                                    var inlineContent = tempParagraph._paragraph.ChildElements
+                                        .Where(child => child is not ParagraphProperties)
+                                        .ToList();
+                                    linkPara = inlineContent.Count > 0
+                                        ? WordHyperLink.AddHyperLinkContent(currentParagraph!, inlineContent, resolvedUri, tooltip: title ?? string.Empty)
                                         : currentParagraph!.AddHyperLink(element.TextContent, resolvedUri);
                                 } else {
                                     linkPara = currentParagraph!.AddHyperLink(element.TextContent, resolvedUri);

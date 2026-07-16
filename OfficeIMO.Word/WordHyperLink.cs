@@ -1,3 +1,4 @@
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using System;
@@ -367,6 +368,24 @@ namespace OfficeIMO.Word {
             return paragraph;
         }
 
+        internal static WordParagraph AddHyperLinkContent(WordParagraph paragraph, IEnumerable<OpenXmlElement> inlineContent, string anchor, bool addStyle = false, string tooltip = "", bool history = true) {
+            if (paragraph == null) throw new ArgumentNullException(nameof(paragraph));
+            if (inlineContent == null) throw new ArgumentNullException(nameof(inlineContent));
+
+            var hyperlink = new Hyperlink {
+                Anchor = anchor,
+                History = history
+            };
+            if (!string.IsNullOrEmpty(tooltip)) {
+                hyperlink.Tooltip = tooltip;
+            }
+
+            AppendInlineContent(hyperlink, inlineContent, addStyle);
+            paragraph._paragraph.Append(hyperlink);
+            paragraph._hyperlink = hyperlink;
+            return paragraph;
+        }
+
         /// <summary>
         /// Adds a hyperlink pointing to an external URI.
         /// </summary>
@@ -442,6 +461,46 @@ namespace OfficeIMO.Word {
             paragraph._paragraph.Append(hyperlink);
             paragraph._hyperlink = hyperlink;
             return paragraph;
+        }
+
+        internal static WordParagraph AddHyperLinkContent(WordParagraph paragraph, IEnumerable<OpenXmlElement> inlineContent, Uri uri, bool addStyle = false, string tooltip = "", bool history = true) {
+            if (paragraph == null) throw new ArgumentNullException(nameof(paragraph));
+            if (inlineContent == null) throw new ArgumentNullException(nameof(inlineContent));
+
+            OpenXmlPart relationshipOwner = ResolveRelationshipPart(paragraph._document, paragraph._paragraph)
+                ?? throw new InvalidOperationException("Unable to resolve hyperlink relationship owner.");
+            HyperlinkRelationship relationship = relationshipOwner.AddHyperlinkRelationship(uri, true);
+            var hyperlink = new Hyperlink {
+                Id = relationship.Id,
+                History = history
+            };
+            if (!string.IsNullOrEmpty(tooltip)) {
+                hyperlink.Tooltip = tooltip;
+            }
+
+            AppendInlineContent(hyperlink, inlineContent, addStyle);
+            paragraph._paragraph.Append(hyperlink);
+            paragraph._hyperlink = hyperlink;
+            return paragraph;
+        }
+
+        private static void AppendInlineContent(Hyperlink hyperlink, IEnumerable<OpenXmlElement> inlineContent, bool addStyle) {
+            foreach (OpenXmlElement element in inlineContent) {
+                if (element is ParagraphProperties) {
+                    continue;
+                }
+
+                OpenXmlElement cloned = element.CloneNode(true);
+                if (addStyle) {
+                    if (cloned is Run run) {
+                        ApplyHyperlinkStyle(run);
+                    }
+                    foreach (Run descendantRun in cloned.Descendants<Run>()) {
+                        ApplyHyperlinkStyle(descendantRun);
+                    }
+                }
+                hyperlink.Append(cloned);
+            }
         }
 
         private static void ApplyHyperlinkStyle(Run run) {

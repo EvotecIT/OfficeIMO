@@ -40,14 +40,26 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             }
 
             int endIndex = -1;
+            int nestedDepth = 0;
             for (int index = separatorIndex + 1; index < characters.Count; index++) {
                 char character = characters[index].Character;
+                if (character == Begin) {
+                    nestedDepth++;
+                    continue;
+                }
                 if (character == End) {
+                    if (nestedDepth > 0) {
+                        nestedDepth--;
+                        continue;
+                    }
                     endIndex = index;
                     break;
                 }
+                if (character == Separator && nestedDepth > 0) {
+                    continue;
+                }
 
-                if (character == Begin || character == Separator || IsBodyBoundary(character) || !IsSupportedResultCharacter(character)) {
+                if ((character == Separator && nestedDepth == 0) || IsBodyBoundary(character) || !IsSupportedResultCharacter(character)) {
                     return false;
                 }
             }
@@ -70,6 +82,73 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             resultEndIndex = endIndex;
             fieldEndIndex = endIndex;
             return true;
+        }
+
+        internal static IEnumerable<int> EnumerateVisibleResultIndexes(
+            IReadOnlyList<LegacyDocTextCharacter> characters,
+            int resultStartIndex,
+            int resultEndIndex) {
+            int index = resultStartIndex;
+            while (index < resultEndIndex) {
+                if (characters[index].Character == Begin &&
+                    TryReadNestedFieldResult(characters, index, resultEndIndex, out int nestedResultStart, out int nestedResultEnd, out int nestedFieldEnd)) {
+                    foreach (int nestedIndex in EnumerateVisibleResultIndexes(characters, nestedResultStart, nestedResultEnd)) {
+                        yield return nestedIndex;
+                    }
+                    index = nestedFieldEnd + 1;
+                    continue;
+                }
+
+                char character = characters[index].Character;
+                if (character != Begin && character != Separator && character != End) {
+                    yield return index;
+                }
+                index++;
+            }
+        }
+
+        internal static bool TryReadNestedFieldResult(
+            IReadOnlyList<LegacyDocTextCharacter> characters,
+            int fieldStartIndex,
+            int rangeEndIndex,
+            out int resultStartIndex,
+            out int resultEndIndex,
+            out int fieldEndIndex) {
+            resultStartIndex = -1;
+            resultEndIndex = -1;
+            fieldEndIndex = -1;
+            if (fieldStartIndex < 0 ||
+                fieldStartIndex >= rangeEndIndex ||
+                fieldStartIndex >= characters.Count ||
+                characters[fieldStartIndex].Character != Begin) {
+                return false;
+            }
+            int separatorIndex = -1;
+            int nestedDepth = 0;
+
+            for (int index = fieldStartIndex + 1; index < rangeEndIndex; index++) {
+                char character = characters[index].Character;
+                if (character == Begin) {
+                    nestedDepth++;
+                    continue;
+                }
+                if (character == End) {
+                    if (nestedDepth > 0) {
+                        nestedDepth--;
+                        continue;
+                    }
+                    if (separatorIndex < 0) return false;
+                    resultStartIndex = separatorIndex + 1;
+                    resultEndIndex = index;
+                    fieldEndIndex = index;
+                    return true;
+                }
+                if (character == Separator && nestedDepth == 0 && separatorIndex < 0) {
+                    separatorIndex = index;
+                }
+            }
+
+            return false;
         }
 
         internal static bool TryReadPageNumber(
@@ -168,6 +247,31 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             }
 
             return IsDocumentPropertyInstruction(instruction);
+        }
+
+        internal static bool TryReadEquationField(
+            IReadOnlyList<LegacyDocTextCharacter> characters,
+            int startIndex,
+            out string instruction,
+            out int resultStartIndex,
+            out int resultEndIndex,
+            out int fieldEndIndex) {
+            instruction = string.Empty;
+            resultStartIndex = -1;
+            resultEndIndex = -1;
+            fieldEndIndex = -1;
+
+            if (!TryReadField(
+                characters,
+                startIndex,
+                out instruction,
+                out resultStartIndex,
+                out resultEndIndex,
+                out fieldEndIndex)) {
+                return false;
+            }
+
+            return IsInstruction(instruction.Trim(), "EQ");
         }
 
         internal static bool TryReadDisplayField(

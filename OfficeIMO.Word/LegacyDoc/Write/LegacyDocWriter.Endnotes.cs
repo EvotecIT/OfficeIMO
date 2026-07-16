@@ -175,6 +175,12 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     case SimpleField simpleField:
                         AppendSupportedNoteFieldFromSimpleField(builder, runs, bookmarks, simpleField, storyStart);
                         break;
+                    case DocumentFormat.OpenXml.Math.OfficeMath officeMath:
+                        AppendMathEquationNoteField(builder, runs, bookmarks, officeMath, storyStart);
+                        break;
+                    case DocumentFormat.OpenXml.Math.Paragraph mathParagraph:
+                        AppendMathEquationNoteField(builder, runs, bookmarks, mathParagraph, storyStart);
+                        break;
                     case SdtRun sdtRun:
                         AppendSupportedEndnoteInlineContentControl(builder, runs, bookmarks, sdtRun, relationshipOwner, id, storyStart);
                         break;

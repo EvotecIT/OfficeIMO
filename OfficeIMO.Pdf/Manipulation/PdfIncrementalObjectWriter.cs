@@ -252,7 +252,7 @@ internal static class PdfIncrementalObjectWriter {
         return PdfSyntaxEscaper.IndirectReference(objectNumber, generation);
     }
 
-    private static string ReadTrailerIdEntry(string trailerRaw) {
+    internal static string ReadTrailerIdEntry(string trailerRaw) {
         int nameIndex = IndexOfName(trailerRaw, "ID");
         if (nameIndex < 0) {
             return string.Empty;
