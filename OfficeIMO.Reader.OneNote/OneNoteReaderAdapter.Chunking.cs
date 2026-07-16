@@ -98,17 +98,24 @@ internal static partial class OneNoteReaderAdapter {
                 offset++;
             } else {
                 if (offset + length < run.Text.Length) {
-                    int space = run.Text.LastIndexOf(' ', offset + length - 1, length);
-                    if (space >= offset) length = space - offset + 1;
+                    int boundary = FindWhitespaceBoundary(run.Text, offset, length);
+                    if (boundary > offset) length = boundary - offset;
                 }
                 units.Add(ProjectRun(run, run.Text.Substring(offset, length), firstSegment ? list : null, resolver));
                 offset += length;
-                while (offset < run.Text.Length && char.IsWhiteSpace(run.Text[offset])) offset++;
             }
             firstSegment = false;
         }
 
         if (run.Text.Length == 0) units.Add(ProjectRun(run, string.Empty, list, resolver));
+    }
+
+    private static int FindWhitespaceBoundary(string value, int offset, int length) {
+        int whitespace = offset + length - 1;
+        while (whitespace >= offset && !char.IsWhiteSpace(value[whitespace])) whitespace--;
+        if (whitespace <= offset) return offset;
+        while (whitespace > offset && char.IsWhiteSpace(value[whitespace - 1])) whitespace--;
+        return whitespace;
     }
 
     private static int FindRunSegmentLength(
@@ -162,7 +169,10 @@ internal static partial class OneNoteReaderAdapter {
         run.Style.LanguageId = source.Style.LanguageId;
         run.Style.IsMath = source.Style.IsMath;
         paragraph.Runs.Add(run);
-        return ProjectElement(paragraph, resolver);
+        ProjectionPart projected = ProjectElement(paragraph, resolver);
+        string plainText = (list == null ? string.Empty : list.Ordered ? "1. " : "- ") + text;
+        string markdown = string.IsNullOrWhiteSpace(text) ? plainText : projected.Markdown;
+        return new ProjectionPart(plainText, markdown);
     }
 
     private static ProjectionPart ProjectElement(
@@ -221,7 +231,7 @@ internal static partial class OneNoteReaderAdapter {
     private static string BalancedSlice(string value, int index, int partCount) {
         int start = checked((int)((long)value.Length * index / partCount));
         int end = checked((int)((long)value.Length * (index + 1) / partCount));
-        return value.Substring(start, end - start).Trim();
+        return value.Substring(start, end - start);
     }
 
     private readonly struct ProjectionPart {

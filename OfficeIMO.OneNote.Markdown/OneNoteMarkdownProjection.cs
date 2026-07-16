@@ -67,15 +67,28 @@ public static class OneNoteMarkdownProjection {
         OneNoteMarkdownOptions operation = (options ?? new OneNoteMarkdownOptions()).CloneValidated();
         var builder = new StringBuilder();
         AppendHeading(builder, operation.HeadingLevel, string.IsNullOrWhiteSpace(notebook.Name) ? "OneNote notebook" : notebook.Name);
-        foreach (OneNoteSection section in notebook.Sections) AppendSection(builder, section, Math.Min(6, operation.HeadingLevel + 1), operation);
-        foreach (OneNoteSectionGroup group in notebook.SectionGroups) AppendGroup(builder, group, Math.Min(6, operation.HeadingLevel + 1), operation);
+        AppendHierarchy(builder, notebook.Sections, notebook.SectionGroups, Math.Min(6, operation.HeadingLevel + 1), operation);
         return builder.ToString().TrimEnd();
     }
 
     private static void AppendGroup(StringBuilder builder, OneNoteSectionGroup group, int headingLevel, OneNoteMarkdownOptions options) {
         AppendHeading(builder, headingLevel, string.IsNullOrWhiteSpace(group.Name) ? "Section group" : group.Name);
-        foreach (OneNoteSection section in group.Sections) AppendSection(builder, section, Math.Min(6, headingLevel + 1), options);
-        foreach (OneNoteSectionGroup child in group.SectionGroups) AppendGroup(builder, child, Math.Min(6, headingLevel + 1), options);
+        AppendHierarchy(builder, group.Sections, group.SectionGroups, Math.Min(6, headingLevel + 1), options);
+    }
+
+    private static void AppendHierarchy(
+        StringBuilder builder,
+        IList<OneNoteSection> sections,
+        IList<OneNoteSectionGroup> groups,
+        int headingLevel,
+        OneNoteMarkdownOptions options) {
+        foreach (OneNoteNotebookHierarchyItem item in OneNoteNotebookHierarchy.Order(sections, groups)) {
+            if (item.Section != null) {
+                AppendSection(builder, item.Section, headingLevel, options);
+            } else {
+                AppendGroup(builder, item.Group!, headingLevel, options);
+            }
+        }
     }
 
     private static void AppendSection(StringBuilder builder, OneNoteSection section, int headingLevel, OneNoteMarkdownOptions options) {

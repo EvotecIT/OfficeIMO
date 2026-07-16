@@ -56,6 +56,33 @@ public sealed class ConverterTests {
     }
 
     [Fact]
+    public void NotebookProjectionHonorsInterleavedTableOfContentsOrderAtEveryLevel() {
+        var notebook = new OneNoteNotebook { Name = "Ordered" };
+        OneNoteSection middle = SectionWithPage("Middle", "Middle page");
+        middle.TableOfContentsOrder = 1;
+        notebook.Sections.Add(middle);
+
+        var last = new OneNoteSectionGroup { Name = "Last", TableOfContentsOrder = 2 };
+        last.Sections.Add(SectionWithPage("Last section", "Last page"));
+        notebook.SectionGroups.Add(last);
+
+        var first = new OneNoteSectionGroup { Name = "First", TableOfContentsOrder = 0 };
+        OneNoteSection nestedMiddle = SectionWithPage("Nested middle", "Nested middle page");
+        nestedMiddle.TableOfContentsOrder = 1;
+        first.Sections.Add(nestedMiddle);
+        var nestedFirst = new OneNoteSectionGroup { Name = "Nested first", TableOfContentsOrder = 0 };
+        nestedFirst.Sections.Add(SectionWithPage("Nested first section", "Nested first page"));
+        first.SectionGroups.Add(nestedFirst);
+        notebook.SectionGroups.Add(first);
+
+        string markdown = notebook.ToMarkdown();
+
+        Assert.True(markdown.IndexOf("## First", StringComparison.Ordinal) < markdown.IndexOf("## Middle", StringComparison.Ordinal));
+        Assert.True(markdown.IndexOf("## Middle", StringComparison.Ordinal) < markdown.IndexOf("## Last", StringComparison.Ordinal));
+        Assert.True(markdown.IndexOf("### Nested first", StringComparison.Ordinal) < markdown.IndexOf("### Nested middle", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public async Task HtmlConversionSupportsDocumentFragmentBytesAndCallerOwnedStreams() {
         OneNoteSection section = CreateNotebook().SectionGroups[0].Sections[0];
 
@@ -176,6 +203,12 @@ public sealed class ConverterTests {
         Assert.Contains("````math", markdown, StringComparison.Ordinal);
         Assert.DoesNotContain("<script", html, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("&lt;script&gt;", html, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static OneNoteSection SectionWithPage(string sectionName, string pageTitle) {
+        var section = new OneNoteSection { Name = sectionName };
+        section.Pages.Add(new OneNotePage { Title = pageTitle });
+        return section;
     }
 
     private static OneNoteNotebook CreateNotebook() {

@@ -46,7 +46,7 @@ internal sealed class OneNoteNotebookSerializationPlan {
             notebook.UnknownObjects,
             notebook.TableOfContentsRootObjectId);
         notebook.TableOfContentsRootObjectId = graph.ObjectSpaces[0].Roots[1];
-        return SerializeGraph(graph, options, true, notebook.TableOfContentsStorageFormat);
+        return SerializeGraph(graph, options, true, notebook.TableOfContentsStorageFormat, options.MaxOutputBytes);
     }
 
     private OneNoteExtendedGuid BuildScope(
@@ -70,8 +70,9 @@ internal sealed class OneNoteNotebookSerializationPlan {
                 Guid sectionId = EnsureIdentity(section.Id);
                 section.Id = sectionId;
                 section.TableOfContentsOrder = order;
-                OneNoteWriteGraph graph = new OneNoteWriteGraphBuilder(_options.MaxOutputBytes, _options.PreserveUnknownData).BuildSection(section, tocId, fileName, sectionId);
-                AddEntry(Combine(prefix, fileName), SerializeGraph(graph, _options, false, section.StorageFormat));
+                long entryLimit = RemainingOutputBytes();
+                OneNoteWriteGraph graph = new OneNoteWriteGraphBuilder(entryLimit, _options.PreserveUnknownData).BuildSection(section, tocId, fileName, sectionId);
+                AddEntry(Combine(prefix, fileName), SerializeGraph(graph, _options, false, section.StorageFormat, entryLimit));
                 tocEntries.Add(new OneNoteTocWriteEntry(sectionId, fileName, order++, section.ColorArgb));
             } else {
                 OneNoteSectionGroup group = item.Group!;
@@ -93,7 +94,8 @@ internal sealed class OneNoteNotebookSerializationPlan {
                     group.UnknownObjects);
             }
         }
-        OneNoteWriteGraph tocGraph = new OneNoteWriteGraphBuilder(_options.MaxOutputBytes, _options.PreserveUnknownData).BuildTableOfContents(
+        long tocLimit = RemainingOutputBytes();
+        OneNoteWriteGraph tocGraph = new OneNoteWriteGraphBuilder(tocLimit, _options.PreserveUnknownData).BuildTableOfContents(
             tocId,
             ancestorId,
             TocFileName,
@@ -102,7 +104,7 @@ internal sealed class OneNoteNotebookSerializationPlan {
             historyEnabled,
             preservedObjects,
             rootObjectId);
-        AddEntry(Combine(prefix, TocFileName), SerializeGraph(tocGraph, _options, true, sourceStorageFormat));
+        AddEntry(Combine(prefix, TocFileName), SerializeGraph(tocGraph, _options, true, sourceStorageFormat, tocLimit));
         return tocGraph.ObjectSpaces[0].Roots[1];
     }
 
@@ -113,21 +115,28 @@ internal sealed class OneNoteNotebookSerializationPlan {
         _entries.Add(new OneNoteCabinetEntry(name, data));
     }
 
+    private long RemainingOutputBytes() {
+        long remaining = _options.MaxOutputBytes - _expandedBytes;
+        if (remaining < 1) throw new IOException("OneNote notebook output exceeds MaxOutputBytes.");
+        return remaining;
+    }
+
     private static byte[] SerializeGraph(
         OneNoteWriteGraph graph,
         OneNoteWriterOptions options,
         bool toc,
-        OneNoteStorageFormat sourceStorageFormat) {
-        byte[] data = OneNoteGraphSerializer.Write(graph, options, sourceStorageFormat);
+        OneNoteStorageFormat sourceStorageFormat,
+        long maxOutputBytes) {
+        byte[] data = OneNoteGraphSerializer.Write(graph, options, sourceStorageFormat, maxOutputBytes);
         if (options.ValidateRoundTrip) {
             using (var stream = new MemoryStream(data, false)) {
                 if (toc) {
                     OneNoteNotebookReader.Read(stream, TocFileName, new OneNoteNotebookReaderOptions {
                         LoadSectionContent = false,
-                        OneNoteOptions = OneNoteWriterValidation.CreateReaderOptions(options.MaxOutputBytes)
+                        OneNoteOptions = OneNoteWriterValidation.CreateReaderOptions(maxOutputBytes)
                     });
                 } else {
-                    OneNoteSectionReader.Read(stream, OneNoteWriterValidation.CreateReaderOptions(options.MaxOutputBytes));
+                    OneNoteSectionReader.Read(stream, OneNoteWriterValidation.CreateReaderOptions(maxOutputBytes));
                 }
             }
         }

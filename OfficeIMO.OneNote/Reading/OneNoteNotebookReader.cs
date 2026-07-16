@@ -2,6 +2,10 @@ namespace OfficeIMO.OneNote;
 
 /// <summary>Reads a local OneNote notebook hierarchy from <c>.onetoc2</c> files and sibling sections.</summary>
 public static class OneNoteNotebookReader {
+    private static readonly StringComparer FileSystemPathComparer = Path.DirectorySeparatorChar == '\\'
+        ? StringComparer.OrdinalIgnoreCase
+        : StringComparer.Ordinal;
+
     /// <summary>Reads a notebook from a local <c>.onetoc2</c> file.</summary>
     public static OneNoteNotebook Read(string tableOfContentsPath, OneNoteNotebookReaderOptions? options = null) {
         if (tableOfContentsPath == null) throw new ArgumentNullException(nameof(tableOfContentsPath));
@@ -296,7 +300,7 @@ public static class OneNoteNotebookReader {
 
         internal OneNoteNotebookReaderOptions Options { get; }
         internal string RootDirectory { get; }
-        internal HashSet<string> VisitedTocs { get; } = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        internal HashSet<string> VisitedTocs { get; } = new HashSet<string>(FileSystemPathComparer);
         internal int EntryCount { get; set; }
     }
 }

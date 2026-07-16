@@ -111,6 +111,75 @@ public sealed class NotebookWriterTests {
     }
 
     [Fact]
+    public void PackageWriterRejectsKnownLazyPayloadAgainstRemainingAggregateBudgetWithoutOpeningIt() {
+        OneNoteSection first = CreateSection("First", "First page");
+        long firstSectionBytes = OneNoteSectionWriter.Write(first, new OneNoteWriterOptions {
+            ValidateRoundTrip = false
+        }).LongLength;
+        bool opened = false;
+        OneNoteSection second = CreateSection("Second", "Second page");
+        second.Pages[0].DirectContent.Add(new OneNoteEmbeddedFile {
+            FileName = "bounded.bin",
+            Payload = OneNoteBinaryPayload.FromStreamFactory(() => {
+                opened = true;
+                return new MemoryStream(new byte[64]);
+            }, 64)
+        });
+        var notebook = new OneNoteNotebook { Name = "Bounded" };
+        notebook.Sections.Add(first);
+        notebook.Sections.Add(second);
+
+        IOException exception = Assert.Throws<IOException>(() => OneNotePackageWriter.Write(notebook, new OneNoteWriterOptions {
+            MaxOutputBytes = firstSectionBytes + 32,
+            ValidateRoundTrip = false
+        }));
+
+        Assert.Contains("limit", exception.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.False(opened);
+    }
+
+    [Fact]
+    public void NotebookReaderTreatsCaseDistinctTableOfContentsPathsSeparatelyOnCaseSensitivePlatforms() {
+        if (Path.DirectorySeparatorChar == '\\') return;
+
+        string root = Path.Combine(Path.GetTempPath(), "OfficeIMO-OneNote-CaseSensitive-" + Guid.NewGuid().ToString("N"));
+        try {
+            Directory.CreateDirectory(root);
+            Guid firstGroupId = Guid.NewGuid();
+            Guid secondGroupId = Guid.NewGuid();
+            var first = new OneNoteNotebook { Id = firstGroupId, Name = "Projects" };
+            first.Sections.Add(CreateSection("Upper", "Upper page"));
+            var second = new OneNoteNotebook { Id = secondGroupId, Name = "projects" };
+            second.Sections.Add(CreateSection("Lower", "Lower page"));
+            OneNoteNotebookWriter.Write(first, Path.Combine(root, "Projects"));
+            OneNoteNotebookWriter.Write(second, Path.Combine(root, "projects"));
+
+            OneNoteWriteGraph rootToc = new OneNoteWriteGraphBuilder().BuildTableOfContents(
+                Guid.NewGuid(),
+                Guid.Empty,
+                "Open Notebook.onetoc2",
+                new[] {
+                    new OneNoteTocWriteEntry(firstGroupId, "Projects", 0, null),
+                    new OneNoteTocWriteEntry(secondGroupId, "projects", 1, null)
+                },
+                null,
+                null);
+            File.WriteAllBytes(
+                Path.Combine(root, "Open Notebook.onetoc2"),
+                OneNoteRevisionStoreWriter.Write(rootToc));
+
+            OneNoteNotebook result = OneNoteNotebookReader.Read(Path.Combine(root, "Open Notebook.onetoc2"));
+
+            Assert.Equal(new[] { "Projects", "projects" }, result.SectionGroups.Select(group => group.Name).ToArray());
+            Assert.Equal("Upper", Assert.Single(result.SectionGroups[0].Sections).Name);
+            Assert.Equal("Lower", Assert.Single(result.SectionGroups[1].Sections).Name);
+            Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Code == "ONENOTE_TOC_CYCLE");
+        } finally {
+            if (Directory.Exists(root)) Directory.Delete(root, true);
+        }
+    }
+
+    [Fact]
     public void NotebookPathResolutionRejectsTraversalThroughCaseVariantSibling() {
         string parent = Path.Combine(Path.GetTempPath(), "OfficeIMO-Notebook-MixedCase");
         string escaped = ".." + Path.DirectorySeparatorChar +

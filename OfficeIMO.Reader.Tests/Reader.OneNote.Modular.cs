@@ -71,6 +71,32 @@ public sealed class ReaderOneNoteModularTests {
         });
     }
 
+    [Theory]
+    [InlineData("one two")]
+    [InlineData("one  two")]
+    [InlineData("one\ttwo")]
+    public void OneNoteAdapter_PreservesWhitespaceAcrossRunChunkBoundaries(string sourceText) {
+        var section = new OneNoteSection { Name = "Chunked" };
+        var page = new OneNotePage { Title = "P" };
+        var paragraph = new OneNoteParagraph();
+        paragraph.Runs.Add(new OneNoteTextRun { Text = sourceText });
+        page.DirectContent.Add(paragraph);
+        section.Pages.Add(page);
+
+        OfficeDocumentReadResult result = OneNoteReaderAdapter.ReadDocument(
+            section,
+            readerOptions: new ReaderOptions { MaxChars = 5 });
+        ReaderChunk[] contentChunks = result.Chunks.Skip(1).ToArray();
+
+        Assert.NotEmpty(contentChunks);
+        Assert.Equal(sourceText, string.Concat(contentChunks.Select(chunk => chunk.Text)));
+        Assert.Equal(sourceText, string.Concat(contentChunks.Select(chunk => chunk.Markdown)));
+        Assert.All(result.Chunks, chunk => {
+            Assert.True(chunk.Text.Length <= 5);
+            Assert.True(chunk.Markdown!.Length <= 5);
+        });
+    }
+
     [Fact]
     public void OneNoteAdapter_MarkdownEscapesLiteralCodeAndStrikethroughDelimiters() {
         var section = new OneNoteSection { Name = "Literal delimiters" };

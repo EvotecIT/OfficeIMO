@@ -52,6 +52,7 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="OfficeIMO.OneNote.Tests" />
+    <InternalsVisibleTo Include="OfficeIMO.OneNote.Markdown" />
     <InternalsVisibleTo Include="OfficeIMO.Reader.OneNote" />
   </ItemGroup>
 </Project>
