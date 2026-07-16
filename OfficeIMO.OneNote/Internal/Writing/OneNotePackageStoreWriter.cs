@@ -101,7 +101,10 @@ internal static class OneNotePackageStoreWriter {
             byte[] jcid = Data(stream => FssHttpStreamObjectWriter.WriteUInt32(stream, item.Jcid));
             declarations.Add(Declaration(item.Id, 4, jcid.Length, 0, 0));
             data.Add(ObjectData(Array.Empty<OneNoteExtendedGuid>(), Array.Empty<FssHttpCellId>(), jcid));
-            OneNoteEncodedPropertySet propertySet = OneNotePropertySetWriter.Write(item.Properties, space.Id);
+            OneNoteEncodedPropertySet propertySet = OneNotePropertySetWriter.Write(
+                item.Properties,
+                space.Id,
+                space.ContextId ?? DefaultContext);
             declarations.Add(Declaration(item.Id, 1, propertySet.Data.Length, propertySet.ObjectReferences.Count, propertySet.CellReferences.Count));
             data.Add(ObjectData(propertySet.ObjectReferences, propertySet.CellReferences, propertySet.Data));
             if (item.Blob != null) {

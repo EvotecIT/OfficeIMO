@@ -10,14 +10,15 @@ internal sealed class OneNoteEncodedPropertySet {
 }
 
 internal static class OneNotePropertySetWriter {
-    private static readonly OneNoteExtendedGuid DefaultContext = new OneNoteExtendedGuid(new Guid("84DEFAB9-AAA3-4A0D-A3A8-520C77AC7073"), 1, 17);
-
-    internal static OneNoteEncodedPropertySet Write(IReadOnlyList<OneNoteWriteProperty> properties, OneNoteExtendedGuid currentObjectSpaceId) {
+    internal static OneNoteEncodedPropertySet Write(
+        IReadOnlyList<OneNoteWriteProperty> properties,
+        OneNoteExtendedGuid currentObjectSpaceId,
+        OneNoteExtendedGuid currentContextId) {
         OneNoteWriteProperty[] flattened = EnumerateProperties(properties).ToArray();
         var objectReferences = flattened.Where(item => item.ReferenceKind == OneNoteWriteReferenceKind.Object).SelectMany(item => item.References).ToArray();
         var objectSpaceReferences = flattened.Where(item => item.ReferenceKind == OneNoteWriteReferenceKind.ObjectSpace).SelectMany(item => item.References).ToArray();
         var contextReferences = flattened.Where(item => item.ReferenceKind == OneNoteWriteReferenceKind.Context).SelectMany(item => item.References).ToArray();
-        var cellReferences = objectSpaceReferences.Select(id => new FssHttpCellId(DefaultContext, id))
+        var cellReferences = objectSpaceReferences.Select(id => new FssHttpCellId(currentContextId, id))
             .Concat(contextReferences.Select(id => new FssHttpCellId(id, currentObjectSpaceId)))
             .ToArray();
         using (var stream = new MemoryStream()) {

@@ -305,7 +305,7 @@ internal static partial class OneNoteSemanticMapper {
         int start = 0;
         int runCount = Math.Max(1, boundaries.Count + 1);
         for (int index = 0; index < runCount; index++) {
-            int end = index < boundaries.Count ? Math.Min(text.Length, checked((int)boundaries[index])) : text.Length;
+            int end = index < boundaries.Count ? ClampTextRunBoundary(boundaries[index], text.Length) : text.Length;
             if (end < start) end = start;
             var run = new OneNoteTextRun { Text = text.Substring(start, end - start) };
             if (index < styles.Count) ApplyTextStyle(run, space.GetObject(styles[index]));

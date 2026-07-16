@@ -72,6 +72,44 @@ public sealed class CorruptionSafetyTests {
         Assert.Contains("MaxOutputBytes", packageException.Message);
     }
 
+    [Fact]
+    public void WriterRoundTripValidationAllowsAssetsWithinTheOutputBound() {
+        long outputLimit = OneNoteReaderOptions.DefaultMaxAssetBytes + 1;
+
+        OneNoteReaderOptions options = OneNoteWriterValidation.CreateReaderOptions(outputLimit);
+
+        Assert.Equal(outputLimit, options.MaxInputBytes);
+        Assert.Equal(outputLimit, options.MaxAssetBytes);
+        Assert.Equal(outputLimit, options.MaxTotalAssetBytes);
+    }
+
+    [Fact]
+    public void OversizedTextRunBoundariesAreBoundedFormatErrors() {
+        var section = new OneNoteSection { Name = "Malformed runs" };
+        var page = new OneNotePage { Title = "Page" };
+        var paragraph = new OneNoteParagraph();
+        paragraph.Runs.Add(new OneNoteTextRun { Text = "first" });
+        paragraph.Runs.Add(new OneNoteTextRun { Text = "second" });
+        page.DirectContent.Add(paragraph);
+        section.Pages.Add(page);
+        OneNoteWriteGraph graph = new OneNoteWriteGraphBuilder().BuildSection(section);
+        OneNoteWriteObjectSpace pageSpace = graph.ObjectSpaces[1];
+        int richTextIndex = pageSpace.Objects.ToList().FindIndex(item => item.Jcid == OneNoteSchema.JcidRichTextNode);
+        OneNoteWriteObject richText = pageSpace.Objects[richTextIndex];
+        OneNoteWriteProperty[] properties = richText.Properties
+            .Select(property => (property.RawId & 0x7FFFFFFFU) == OneNoteSchema.TextRunIndex
+                ? new OneNoteWriteProperty(property.RawId, data: BitConverter.GetBytes(uint.MaxValue), preserveRawId: true)
+                : property)
+            .ToArray();
+        pageSpace.Objects[richTextIndex] = new OneNoteWriteObject(richText.Id, richText.Jcid, properties);
+        byte[] data = OneNoteRevisionStoreWriter.Write(graph);
+
+        OneNoteFormatException exception = Assert.Throws<OneNoteFormatException>(() =>
+            OneNoteSectionReader.Read(new MemoryStream(data)));
+
+        Assert.Equal("ONENOTE_TEXT_RUN_BOUNDARY", exception.Code);
+    }
+
     private static OneNoteReaderOptions TightOptions(int inputLength) => new OneNoteReaderOptions {
         MaxInputBytes = Math.Max(1, inputLength),
         MaxFileNodeListFragments = 1024,

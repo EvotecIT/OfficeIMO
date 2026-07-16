@@ -116,8 +116,14 @@ internal sealed class OneNoteNotebookSerializationPlan {
         byte[] data = OneNoteGraphSerializer.Write(graph, options, sourceStorageFormat);
         if (options.ValidateRoundTrip) {
             using (var stream = new MemoryStream(data, false)) {
-                if (toc) OneNoteNotebookReader.Read(stream, TocFileName, new OneNoteNotebookReaderOptions { LoadSectionContent = false });
-                else OneNoteSectionReader.Read(stream, new OneNoteReaderOptions { MaxInputBytes = options.MaxOutputBytes });
+                if (toc) {
+                    OneNoteNotebookReader.Read(stream, TocFileName, new OneNoteNotebookReaderOptions {
+                        LoadSectionContent = false,
+                        OneNoteOptions = OneNoteWriterValidation.CreateReaderOptions(options.MaxOutputBytes)
+                    });
+                } else {
+                    OneNoteSectionReader.Read(stream, OneNoteWriterValidation.CreateReaderOptions(options.MaxOutputBytes));
+                }
             }
         }
         return data;

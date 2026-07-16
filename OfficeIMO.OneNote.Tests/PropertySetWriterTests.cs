@@ -2,6 +2,41 @@ namespace OfficeIMO.OneNote.Tests;
 
 public sealed class PropertySetWriterTests {
     [Fact]
+    public void FssHttpWriterUsesTheCurrentContextForObjectSpaceReferences() {
+        OneNoteExtendedGuid targetObjectSpaceId = Id(2, "22222222-2222-2222-2222-222222222222");
+        OneNoteExtendedGuid currentObjectSpaceId = Id(3, "33333333-3333-3333-3333-333333333333");
+        OneNoteExtendedGuid currentContextId = Id(4, "44444444-4444-4444-4444-444444444444");
+        OneNoteExtendedGuid targetContextId = Id(5, "55555555-5555-5555-5555-555555555555");
+        var properties = new[] {
+            new OneNoteWriteProperty(
+                Raw(OneNotePropertyType.ObjectSpaceId, 1),
+                references: new[] { targetObjectSpaceId },
+                referenceKind: OneNoteWriteReferenceKind.ObjectSpace,
+                preserveRawId: true),
+            new OneNoteWriteProperty(
+                Raw(OneNotePropertyType.ContextId, 2),
+                references: new[] { targetContextId },
+                referenceKind: OneNoteWriteReferenceKind.Context,
+                preserveRawId: true)
+        };
+
+        OneNoteEncodedPropertySet encoded = OneNotePropertySetWriter.Write(
+            properties,
+            currentObjectSpaceId,
+            currentContextId);
+
+        Assert.Collection(encoded.CellReferences,
+            reference => {
+                Assert.Equal(currentContextId, reference.First);
+                Assert.Equal(targetObjectSpaceId, reference.Second);
+            },
+            reference => {
+                Assert.Equal(targetContextId, reference.First);
+                Assert.Equal(currentObjectSpaceId, reference.Second);
+            });
+    }
+
+    [Fact]
     public void DesktopWriterRoundTripsContextReferencesAndNestedPropertySets() {
         OneNoteExtendedGuid objectId = Id(1, "11111111-1111-1111-1111-111111111111");
         OneNoteExtendedGuid objectSpaceId = Id(2, "22222222-2222-2222-2222-222222222222");

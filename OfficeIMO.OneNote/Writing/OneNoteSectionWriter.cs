@@ -11,7 +11,7 @@ public static class OneNoteSectionWriter {
         byte[] data = OneNoteGraphSerializer.Write(graph, effective, section.StorageFormat);
         if (effective.ValidateRoundTrip) {
             using (var stream = new MemoryStream(data, false)) {
-                OneNoteSectionReader.Read(stream, new OneNoteReaderOptions { MaxInputBytes = effective.MaxOutputBytes });
+                OneNoteSectionReader.Read(stream, OneNoteWriterValidation.CreateReaderOptions(effective.MaxOutputBytes));
             }
         }
         return data;
