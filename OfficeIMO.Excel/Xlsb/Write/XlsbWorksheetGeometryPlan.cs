@@ -70,7 +70,8 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                     && child is not SheetFormatProperties
                     && child is not Columns
                     && child is not SheetData
-                    && child is not MergeCells) {
+                    && child is not MergeCells
+                    && child is not Hyperlinks) {
                     throw new NotSupportedException($"Native XLSB generation does not yet support worksheet metadata '{child.LocalName}' on worksheet '{sheetName}'.");
                 }
 
@@ -491,14 +492,4 @@ namespace OfficeIMO.Excel.Xlsb.Write {
         }
     }
 
-    internal sealed class XlsbGeneratedRecord {
-        internal XlsbGeneratedRecord(int type, byte[] payload) {
-            Type = type;
-            Payload = payload ?? throw new ArgumentNullException(nameof(payload));
-        }
-
-        internal int Type { get; }
-
-        internal byte[] Payload { get; }
-    }
 }

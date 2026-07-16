@@ -29,9 +29,11 @@ namespace OfficeIMO.Excel.Xlsb.Write {
         internal static byte[] Create(
             ExcelSheet sheet,
             IReadOnlyList<XlsbWriteCell> cells,
-            int cellFormatCount) {
+            int cellFormatCount,
+            IReadOnlyList<XlsbGeneratedRecord> hyperlinkRecords) {
             if (sheet == null) throw new ArgumentNullException(nameof(sheet));
             if (cells == null) throw new ArgumentNullException(nameof(cells));
+            if (hyperlinkRecords == null) throw new ArgumentNullException(nameof(hyperlinkRecords));
 
             XlsbWorksheetGeometryPlan geometry = XlsbWorksheetGeometryPlan.Create(sheet, cells, cellFormatCount);
 
@@ -62,6 +64,9 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             }
             XlsbRecordWriter.Write(output, BrtEndSheetData);
             foreach (XlsbGeneratedRecord record in geometry.SuffixRecords) {
+                XlsbRecordWriter.Write(output, record.Type, record.Payload);
+            }
+            foreach (XlsbGeneratedRecord record in hyperlinkRecords) {
                 XlsbRecordWriter.Write(output, record.Type, record.Payload);
             }
             XlsbRecordWriter.Write(output, 130); // BrtEndSheet

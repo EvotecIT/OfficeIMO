@@ -983,6 +983,60 @@ namespace OfficeIMO.Tests {
             Assert.Equal(PaneStateValues.Frozen, pane.State?.Value);
         }
 
+        [Fact]
+        public void Xlsb_NewWorkbook_WritesExternalAndInternalHyperlinks() {
+            using ExcelDocument document = ExcelDocument.Create();
+            ExcelSheet links = document.AddWorksheet("Links");
+            ExcelSheet target = document.AddWorksheet("Target Sheet");
+            links.SetHyperlink(
+                1,
+                1,
+                "https://example.org/officeimo?source=xlsb&mode=native",
+                display: "External link",
+                style: false,
+                tooltip: "External screen tip");
+            links.SetInternalLink(
+                2,
+                1,
+                target,
+                "B2",
+                display: "Internal link",
+                style: false,
+                tooltip: "Internal screen tip");
+            links.SetHyperlink(
+                3,
+                1,
+                "../docs/zażółć-spec.pdf",
+                display: "Relative link",
+                style: false,
+                tooltip: "Relative screen tip");
+
+            byte[] package = document.ToBytes(ExcelFileFormat.Xlsb);
+            using (var archive = new ZipArchive(new MemoryStream(package, writable: false), ZipArchiveMode.Read)) {
+                ZipArchiveEntry relationshipsEntry = Assert.IsType<ZipArchiveEntry>(
+                    archive.GetEntry("xl/worksheets/_rels/sheet1.bin.rels"));
+                using var reader = new StreamReader(relationshipsEntry.Open());
+                string relationshipsXml = reader.ReadToEnd();
+                Assert.Contains("TargetMode=\"External\"", relationshipsXml, StringComparison.Ordinal);
+                Assert.Contains("source=xlsb&amp;mode=native", relationshipsXml, StringComparison.Ordinal);
+                Assert.Contains("../docs/zażółć-spec.pdf", relationshipsXml, StringComparison.Ordinal);
+                Assert.Null(archive.GetEntry("xl/worksheets/_rels/sheet2.bin.rels"));
+            }
+
+            using ExcelDocument reloaded = ExcelDocument.Load(new MemoryStream(package, writable: false));
+            IReadOnlyDictionary<string, ExcelHyperlinkSnapshot> hyperlinks = reloaded.Sheets[0].GetHyperlinks();
+            Assert.Equal(3, hyperlinks.Count);
+            Assert.True(hyperlinks["A1"].IsExternal);
+            Assert.Equal("https://example.org/officeimo?source=xlsb&mode=native", hyperlinks["A1"].Target);
+            Assert.Equal("External screen tip", hyperlinks["A1"].Tooltip);
+            Assert.False(hyperlinks["A2"].IsExternal);
+            Assert.Equal("'Target Sheet'!B2", hyperlinks["A2"].Target);
+            Assert.Equal("Internal screen tip", hyperlinks["A2"].Tooltip);
+            Assert.True(hyperlinks["A3"].IsExternal);
+            Assert.Equal("../docs/zażółć-spec.pdf", hyperlinks["A3"].Target);
+            Assert.Equal("Relative screen tip", hyperlinks["A3"].Tooltip);
+        }
+
         private static byte[] CreateMinimalXlsbPackage() {
             byte[] workbookRecords = {
                 0x83, 0x01, 0x00,

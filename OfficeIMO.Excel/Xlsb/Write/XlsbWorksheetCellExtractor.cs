@@ -89,8 +89,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
 
         private static void ThrowIfUnsupportedNewWorksheetContent(ExcelSheet sheet) {
             if (sheet.WorksheetPart.Parts.Any()
-                || sheet.WorksheetPart.ExternalRelationships.Any()
-                || sheet.WorksheetPart.HyperlinkRelationships.Any()) {
+                || sheet.WorksheetPart.ExternalRelationships.Any()) {
                 throw new NotSupportedException($"Native XLSB generation does not yet support relationship-backed content on worksheet '{sheet.Name}'.");
             }
 
@@ -100,7 +99,8 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                     && element is not SheetFormatProperties
                     && element is not Columns
                     && element is not SheetData
-                    && element is not MergeCells);
+                    && element is not MergeCells
+                    && element is not Hyperlinks);
             if (unsupported != null) {
                 throw new NotSupportedException($"Native XLSB generation does not yet support worksheet metadata '{unsupported.LocalName}' on worksheet '{sheet.Name}'.");
             }
