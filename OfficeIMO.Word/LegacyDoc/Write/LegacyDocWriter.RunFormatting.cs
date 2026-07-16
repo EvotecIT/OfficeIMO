@@ -60,8 +60,15 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     case EndnoteReference endnoteReference:
                         AppendEndnoteReference(text, runs, endnotes, endnoteReference);
                         break;
+                    case CommentReference:
+                        AppendFormattedText(
+                            text,
+                            runs,
+                            LegacyDocCommentReader.CommentReferenceCharacter.ToString(),
+                            LegacyDocWritableFormatting.SpecialCharacter);
+                        break;
                     default:
-                        throw new NotSupportedException($"Native DOC saving currently supports text, tabs, page-number fields, carriage returns, soft/no-break hyphens, text-wrapping/page/column breaks, and simple footnote/endnote references only. Unsupported run element: {child.LocalName}.");
+                        throw new NotSupportedException($"Native DOC saving currently supports text, tabs, page-number fields, carriage returns, soft/no-break hyphens, text-wrapping/page/column breaks, and simple footnote/endnote/comment references only. Unsupported run element: {child.LocalName}.");
                 }
             }
         }

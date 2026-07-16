@@ -10656,7 +10656,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void LegacyDoc_SaveDocPath_BlocksRevisionTrackingSettingsBeforeCreatingFile() {
+        public void LegacyDoc_SaveDocPath_WritesRevisionTrackingSettings() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 
             try {
@@ -10664,10 +10664,17 @@ namespace OfficeIMO.Tests {
                 document.AddParagraph("Tracked settings");
                 document.Settings.TrackRevisions = true;
 
-                NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
+                document.Save(docPath);
 
-                Assert.Contains("revision tracking", exception.Message.ToLowerInvariant());
-                Assert.False(File.Exists(docPath));
+                byte[] docBytes = File.ReadAllBytes(docPath);
+                byte[] wordDocumentStream = ReadCompoundStream(docBytes, "WordDocument");
+                byte[] tableStream = ReadCompoundStream(docBytes, "1Table");
+                int dopOffset = BitConverter.ToInt32(wordDocumentStream, 0x192);
+                uint dopFlags = BitConverter.ToUInt32(tableStream, dopOffset + 4);
+                Assert.Equal(0x00008000U, dopFlags & 0x40008000U);
+                using WordDocument reloaded = WordDocument.Load(docPath);
+                Assert.True(reloaded.Settings.TrackRevisions);
+                Assert.Equal("Tracked settings", Assert.Single(reloaded.Paragraphs).Text);
             } finally {
                 DeleteIfExists(docPath);
             }
@@ -10717,17 +10724,126 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void LegacyDoc_SaveDocPath_BlocksCommentsBeforeCreatingFile() {
+        public void LegacyDoc_SaveDocPath_WritesBodyComments() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 
             try {
                 using WordDocument document = WordDocument.Create();
                 WordParagraph paragraph = document.AddParagraph("Commented");
-                paragraph.AddComment("OfficeIMO", "OI", "Native DOC comments are not supported yet.");
+                paragraph.AddComment("OfficeIMO", "OI", "Native DOC comment");
+
+                document.Save(docPath);
+
+                byte[] docBytes = File.ReadAllBytes(docPath);
+                byte[] wordDocumentStream = ReadCompoundStream(docBytes, "WordDocument");
+                Assert.True(BitConverter.ToInt32(wordDocumentStream, 0x5C) > 0);
+                Assert.True(BitConverter.ToInt32(wordDocumentStream, 0xBE) > 0);
+                Assert.True(BitConverter.ToInt32(wordDocumentStream, 0xC6) > 0);
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+                Assert.Contains(reloaded.Paragraphs, item => item.Text == "Commented");
+                WordComment comment = Assert.Single(reloaded.Comments);
+                Assert.Equal("Native DOC comment", comment.Text);
+                Assert.Equal("OI", comment.Initials);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
+        public void LegacyDoc_NativeSave_RoundTripsImportedFormattedCommentStory() {
+            byte[] source = LegacyDocTestBuilder.CreateSimpleDocWithFormattedCommentStory(
+                "Body with formatted comment");
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+            string docxPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".docx");
+
+            try {
+                using (WordDocument document = WordDocument.Load(new MemoryStream(source))) {
+                    Assert.Equal("plain bold italic", Assert.Single(document.Comments).Text);
+                    document.Save(docPath);
+                }
+
+                using (WordDocument reloaded = WordDocument.Load(docPath)) {
+                    WordComment comment = Assert.Single(reloaded.Comments);
+                    Assert.Equal("plain bold italic", comment.Text);
+                    Assert.Equal("LD", comment.Initials);
+                    reloaded.Save(docxPath);
+                }
+
+                AssertFormattedCommentRuns(docxPath);
+            } finally {
+                DeleteIfExists(docPath);
+                DeleteIfExists(docxPath);
+            }
+        }
+
+        [Fact]
+        public void LegacyDoc_NativeSave_WritesMultipleCommentsAlongsideOtherStories() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    document.Sections[0]
+                        .GetOrCreateHeader(HeaderFooterValues.Default)
+                        .AddParagraph("Review header");
+                    WordParagraph first = document.AddParagraph("First review paragraph");
+                    first.AddComment("OfficeIMO", "A1", "First comment");
+                    first.AddFootNote("Review footnote");
+                    first.AddEndNote("Review endnote");
+                    WordParagraph second = document.AddParagraph("Second review paragraph");
+                    second.AddComment("OfficeIMO", "B2", "Second comment");
+
+                    document.Save(docPath);
+                }
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+                Assert.Equal(
+                    new[] { "First comment", "Second comment" },
+                    reloaded.Comments.Select(comment => comment.Text).ToArray());
+                Assert.Equal(new[] { "A1", "B2" }, reloaded.Comments.Select(comment => comment.Initials).ToArray());
+                Assert.Equal("Review footnote", Assert.Single(reloaded.FootNotes).Paragraphs![1].Text);
+                Assert.Equal("Review endnote", Assert.Single(reloaded.EndNotes).Paragraphs![1].Text);
+                Assert.Contains(
+                    reloaded.Sections[0].Header.Default!.Paragraphs,
+                    paragraph => paragraph.Text == "Review header");
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
+        public void LegacyDoc_SaveDocPath_BlocksThreadedCommentRepliesBeforeCreatingFile() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using WordDocument document = WordDocument.Create();
+                WordParagraph paragraph = document.AddParagraph("Commented");
+                paragraph.AddComment("OfficeIMO", "OI", "Parent comment");
+                WordComment comment = Assert.Single(document.Comments);
+                comment.AddReply("Reviewer", "RV", "Reply comment");
 
                 NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
 
-                Assert.Contains("comments", exception.Message.ToLowerInvariant());
+                Assert.Contains("threaded replies", exception.Message, StringComparison.OrdinalIgnoreCase);
+                Assert.False(File.Exists(docPath));
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
+        public void LegacyDoc_SaveDocPath_BlocksResolvedCommentMetadataBeforeCreatingFile() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using WordDocument document = WordDocument.Create();
+                WordParagraph paragraph = document.AddParagraph("Commented");
+                paragraph.AddComment("OfficeIMO", "OI", "Resolved comment");
+                Assert.Single(document.Comments).MarkResolved();
+
+                NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
+
+                Assert.Contains("resolved-state", exception.Message, StringComparison.OrdinalIgnoreCase);
                 Assert.False(File.Exists(docPath));
             } finally {
                 DeleteIfExists(docPath);
@@ -11579,17 +11695,25 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void LegacyDoc_SaveDocPath_BlocksNativeDocSaveWhenImportedLegacyDocHasRevisionTrackingSettingsBeforeCreatingFile() {
+        public void LegacyDoc_SaveDocPath_RoundTripsImportedLockedRevisionTrackingSettings() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 
             try {
                 using WordDocument document = WordDocument.Load(new MemoryStream(
-                    LegacyDocTestBuilder.CreateSimpleDocWithRevisionTrackingDop(0x40008000, "Tracked save block")));
+                    LegacyDocTestBuilder.CreateSimpleDocWithRevisionTrackingDop(0x40008000, "Tracked save roundtrip")));
 
-                NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
+                document.Save(docPath);
 
-                Assert.Contains("revision tracking settings", exception.Message);
-                Assert.False(File.Exists(docPath));
+                byte[] docBytes = File.ReadAllBytes(docPath);
+                byte[] wordDocumentStream = ReadCompoundStream(docBytes, "WordDocument");
+                byte[] tableStream = ReadCompoundStream(docBytes, "1Table");
+                int dopOffset = BitConverter.ToInt32(wordDocumentStream, 0x192);
+                uint dopFlags = BitConverter.ToUInt32(tableStream, dopOffset + 4);
+                Assert.Equal(0x40008000U, dopFlags & 0x40008000U);
+                using WordDocument reloaded = WordDocument.Load(docPath);
+                Assert.True(reloaded.Settings.TrackRevisions);
+                Assert.Equal(DocumentProtectionValues.TrackedChanges, reloaded.Settings.ProtectionType);
+                Assert.Equal("Tracked save roundtrip", Assert.Single(reloaded.Paragraphs).Text);
             } finally {
                 DeleteIfExists(docPath);
             }

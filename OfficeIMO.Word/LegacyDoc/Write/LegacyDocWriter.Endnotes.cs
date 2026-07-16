@@ -311,7 +311,12 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 }
             }
 
-            internal LegacyDocWritableEndnoteStories CreateStories(int bodyCharacterCount, int footnoteCharacterCount, int headerFooterCharacterCount, int terminalCharacterPadding) {
+            internal LegacyDocWritableEndnoteStories CreateStories(
+                int bodyCharacterCount,
+                int footnoteCharacterCount,
+                int headerFooterCharacterCount,
+                int commentCharacterCount,
+                int terminalCharacterPadding) {
                 if (_references.Count == 0) {
                     return LegacyDocWritableEndnoteStories.Empty;
                 }
@@ -343,7 +348,14 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 textPositions.Add(text.Length + 2);
                 return new LegacyDocWritableEndnoteStories(
                     text.ToString(),
-                    CreateEndnoteReferencePlc(_references, bodyCharacterCount + footnoteCharacterCount + headerFooterCharacterCount + text.Length + terminalCharacterPadding),
+                    CreateEndnoteReferencePlc(
+                        _references,
+                        bodyCharacterCount
+                            + footnoteCharacterCount
+                            + headerFooterCharacterCount
+                            + commentCharacterCount
+                            + text.Length
+                            + terminalCharacterPadding),
                     CreateEndnoteTextPlc(textPositions),
                     markerPositions,
                     runs,
