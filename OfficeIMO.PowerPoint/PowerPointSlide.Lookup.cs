@@ -156,6 +156,16 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
+        ///     Retrieves an embedded OLE object by its shape name.
+        /// </summary>
+        public PowerPointOleObject? GetOleObject(string name) {
+            if (name == null) {
+                throw new ArgumentNullException(nameof(name));
+            }
+            return OleObjects.FirstOrDefault(ole => ole.Name == name);
+        }
+
+        /// <summary>
         ///     Removes the specified shape from the slide.
         /// </summary>
         public void RemoveShape(PowerPointShape shape) {
@@ -164,8 +174,22 @@ namespace OfficeIMO.PowerPoint {
             }
 
             EnsureShapeOnSlide(shape);
+            EmbeddedObjectPart? embeddedPart = shape is PowerPointOleObject ole
+                ? ole.EmbeddedPart
+                : null;
+            string? relationshipId = shape is PowerPointOleObject oleShape
+                && oleShape.Element is GraphicFrame frame
+                ? frame.Graphic?.GraphicData?.GetFirstChild<OleObject>()?
+                    .Id?.Value
+                : null;
             shape.Element.Remove();
             _shapes.Remove(shape);
+            if (embeddedPart != null && relationshipId != null
+                && !SlideRoot.Descendants<OleObject>().Any(item =>
+                    string.Equals(item.Id?.Value, relationshipId,
+                        StringComparison.Ordinal))) {
+                _slidePart.DeletePart(embeddedPart);
+            }
         }
 
         private static int CountOccurrences(string value, string oldValue) {

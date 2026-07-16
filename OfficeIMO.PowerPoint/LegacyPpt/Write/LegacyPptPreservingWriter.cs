@@ -117,6 +117,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             if (customShowsChanged && !projectionMap.CanEditCustomShows) return false;
 
             try {
+                var oleObjectEdits = new List<LegacyPptOleObjectEdit>();
                 if (!TryBuildModifiedMasterPersistObjects(presentation, package,
                         projectionMap, rewritten)) {
                     return false;
@@ -244,6 +245,25 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                             || shapeProjection == null
                             || !MatchesProjectedKind(shape, shapeProjection.Kind)) {
                             return false;
+                        }
+                        if (shape is PowerPointOleObject oleShape) {
+                            if (shapeProjection.OleObject == null
+                                || !shapeProjection.OleObject.TryGetChange(
+                                    oleShape,
+                                    out LegacyPptOleObjectEdit? oleEdit)) {
+                                return false;
+                            }
+                            if (oleEdit != null) {
+                                if (oleEdit.StorageChanged) {
+                                    rewritten[oleEdit.Projection.Source
+                                        .PersistId] = LegacyPptWriter
+                                        .BuildOleObjectStorageRecord(
+                                            oleEdit.StorageBytes);
+                                }
+                                if (oleEdit.MetadataChanged) {
+                                    oleObjectEdits.Add(oleEdit);
+                                }
+                            }
                         }
                         LegacyPptBounds bounds = GetBounds(shape);
                         LegacyPptBounds? changedBounds = BoundsEqual(bounds, shapeProjection.Bounds)
@@ -410,6 +430,17 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     }
                     rewritten[package.DocumentPersistId] =
                         documentWithCustomShows;
+                }
+                if (oleObjectEdits.Count > 0) {
+                    rewritten.TryGetValue(package.DocumentPersistId,
+                        out byte[]? currentDocumentBytes);
+                    if (!TryRewriteOleObjectMetadata(package,
+                            currentDocumentBytes, oleObjectEdits,
+                            out byte[] documentWithOleObjects)) {
+                        return false;
+                    }
+                    rewritten[package.DocumentPersistId] =
+                        documentWithOleObjects;
                 }
                 if (interactionContext.NewHyperlinks.Count > 0) {
                     rewritten.TryGetValue(package.DocumentPersistId,
@@ -876,6 +907,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 return shape is PowerPointTextBox;
             }
             if (kind == LegacyPptShapeKind.Picture) return shape is PowerPointPicture;
+            if (kind == LegacyPptShapeKind.OleObject) {
+                return shape is PowerPointOleObject;
+            }
             if (kind == LegacyPptShapeKind.Connector) return shape is PowerPointConnectionShape;
             if (kind == LegacyPptShapeKind.Group) return shape is PowerPointGroupShape;
             if (shape is not PowerPointAutoShape autoShape) return false;

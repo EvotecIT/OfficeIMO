@@ -184,6 +184,26 @@ namespace OfficeIMO.PowerPoint {
                             GetLegacyPicturePartType(shape.Picture.ContentType), left, top, width, height);
                     }
                     break;
+                case LegacyPptShapeKind.OleObject:
+                    if (shape.OleObject != null) {
+                        using var storage = new MemoryStream(
+                            shape.OleObject.GetBytes(), writable: false);
+                        PowerPointOleObject ole = slide.AddOleObject(storage,
+                            shape.OleObject.ProgId ?? "Package", left, top,
+                            width, height);
+                        ole.ShowAsIcon = shape.OleObject.DrawAspect
+                            == LegacyPptOleDrawAspect.Icon;
+                        ole.FollowColorScheme = shape.OleObject.ColorFollow switch {
+                            LegacyPptOleColorFollow.Scheme =>
+                                OleObjectFollowColorSchemeValues.Full,
+                            LegacyPptOleColorFollow.TextAndBackground =>
+                                OleObjectFollowColorSchemeValues.TextAndBackground,
+                            _ => OleObjectFollowColorSchemeValues.None
+                        };
+                        ApplyLegacyOlePreview(slide.SlidePart, ole, shape);
+                        projectedShape = ole;
+                    }
+                    break;
                 case LegacyPptShapeKind.Group:
                     ShapeTree tree = slide.SlidePart.Slide?.CommonSlideData?.ShapeTree
                         ?? throw new InvalidDataException("The projected slide has no shape tree.");
@@ -237,6 +257,8 @@ namespace OfficeIMO.PowerPoint {
                 DocumentFormat.OpenXml.Presentation.Picture item => item.NonVisualPictureProperties?
                     .NonVisualDrawingProperties?.Id?.Value,
                 DocumentFormat.OpenXml.Presentation.GroupShape item => item.NonVisualGroupShapeProperties?
+                    .NonVisualDrawingProperties?.Id?.Value,
+                DocumentFormat.OpenXml.Presentation.GraphicFrame item => item.NonVisualGraphicFrameProperties?
                     .NonVisualDrawingProperties?.Id?.Value,
                 _ => null
             };
@@ -302,7 +324,27 @@ namespace OfficeIMO.PowerPoint {
             element is DocumentFormat.OpenXml.Presentation.Shape
                 or DocumentFormat.OpenXml.Presentation.ConnectionShape
                 or DocumentFormat.OpenXml.Presentation.Picture
-                or DocumentFormat.OpenXml.Presentation.GroupShape;
+                or DocumentFormat.OpenXml.Presentation.GroupShape
+                or DocumentFormat.OpenXml.Presentation.GraphicFrame;
+
+        private static void ApplyLegacyOlePreview(SlidePart slidePart,
+            PowerPointOleObject target, LegacyPptShape source) {
+            if (source.Picture?.HasImportableImage != true
+                || source.Picture.ContentType == null
+                || target.Element is not GraphicFrame frame) return;
+            OleObject? ole = frame.Graphic?.GraphicData?
+                .GetFirstChild<OleObject>();
+            Picture? picture = ole?.GetFirstChild<Picture>();
+            if (picture == null) return;
+            ImagePart imagePart = AddLegacyImagePart(slidePart,
+                source.Picture);
+            string relationshipId = slidePart.GetIdOfPart(imagePart);
+            picture.BlipFill = new BlipFill(
+                new A.Blip { Embed = relationshipId },
+                new A.Stretch(new A.FillRectangle()));
+            ApplyLegacyPictureCrop(picture.BlipFill, source);
+            ApplyLegacyPictureEffects(picture.BlipFill.Blip, source);
+        }
 
         private static ImagePartType GetLegacyPicturePartType(string contentType) => contentType switch {
             "image/png" => ImagePartType.Png,

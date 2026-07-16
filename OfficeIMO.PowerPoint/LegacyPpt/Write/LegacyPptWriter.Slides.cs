@@ -11,6 +11,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             uint? notesIdRef, IReadOnlyList<LegacyPptWriterComment> comments,
             LegacyPptWriterInteractionCatalog interactionCatalog,
             LegacyPptWriterAnimationCatalog animationCatalog,
+            LegacyPptWriterOleObjectCatalog oleCatalog,
             bool layoutIsIndependentMaster = false) {
             var children = new List<byte[]>();
             ThemeOverridePart? themePart = slide.SlidePart.ThemeOverridePart
@@ -74,7 +75,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     }
                 } else if (child.Type == RecordDrawing) {
                     children.Add(BuildDrawingRecord(prototype, shapes, drawingId,
-                        interactionCatalog, animationCatalog, background));
+                        interactionCatalog, animationCatalog, oleCatalog,
+                        background));
                 } else if (child.Type == RecordSlideShowSlideInfoAtom) {
                     if (needsSlideShowInfo) {
                         children.Add(PatchSlideShowInfo(child.CopyRecordBytes(), slide,

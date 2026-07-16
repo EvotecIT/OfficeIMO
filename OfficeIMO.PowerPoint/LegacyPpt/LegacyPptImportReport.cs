@@ -18,6 +18,11 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             SoundCount = presentation.Sounds.Count;
             ImportableSoundCount = presentation.Sounds.Count(sound =>
                 sound.HasData && sound.ContentType != null);
+            EmbeddedOleObjectCount = presentation.OleObjects.Count;
+            EmbeddedOleObjectByteCount = presentation.OleObjects.Sum(
+                ole => ole.Length);
+            CompressedEmbeddedOleObjectCount = presentation.OleObjects.Count(
+                ole => ole.WasCompressed);
             VbaProjectCount = presentation.VbaProject == null ? 0 : 1;
             VbaProjectByteCount = presentation.VbaProject?.Length ?? 0;
             VbaProjectWasCompressed = presentation.VbaProject?.WasCompressed
@@ -140,6 +145,15 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
 
         /// <summary>Gets the number of sounds that can be projected as Open XML audio.</summary>
         public int ImportableSoundCount { get; }
+
+        /// <summary>Gets the number of decoded embedded OLE objects.</summary>
+        public int EmbeddedOleObjectCount { get; }
+
+        /// <summary>Gets the decoded compound-storage byte total.</summary>
+        public int EmbeddedOleObjectByteCount { get; }
+
+        /// <summary>Gets the number of compressed embedded OLE persist records.</summary>
+        public int CompressedEmbeddedOleObjectCount { get; }
 
         /// <summary>Gets the number of decoded presentation VBA projects.</summary>
         public int VbaProjectCount { get; }

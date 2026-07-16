@@ -1,4 +1,3 @@
-using OfficeIMO.Drawing.Internal;
 using OfficeIMO.PowerPoint.LegacyPpt.Diagnostics;
 using OfficeIMO.PowerPoint.LegacyPpt.Internal;
 using OfficeIMO.PowerPoint.LegacyPpt.Model;
@@ -45,35 +44,11 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             }
 
             try {
-                LegacyPptRecord storage = LegacyPptRecordReader.ReadSingle(
-                    persistObject.RecordBytes, 0, options);
-                if (storage.Version != 0 || storage.Type != RecordExternalOleObjectStorage
-                    || (storage.Instance != 0 && storage.Instance != 1)) {
-                    throw new InvalidDataException(
-                        "The VBA persist object has an unsupported record header.");
-                }
-
-                bool compressed = storage.Instance == 1;
-                byte[] projectBytes;
-                if (compressed) {
-                    if (storage.PayloadLength < 4) {
-                        throw new InvalidDataException(
-                            "The compressed VBA persist object is truncated.");
-                    }
-                    uint decompressedSize = storage.ReadUInt32(0);
-                    if (decompressedSize > options.MaxInputBytes) {
-                        throw new InvalidDataException(
-                            $"The VBA project exceeds {options.MaxInputBytes} bytes.");
-                    }
-                    var compressedBytes = new byte[storage.PayloadLength - 4];
-                    Buffer.BlockCopy(persistObject.RecordBytes, 12,
-                        compressedBytes, 0, compressedBytes.Length);
-                    projectBytes = OfficeZlibCodec.Decompress(compressedBytes,
-                        options.MaxInputBytes, checked((int)decompressedSize));
-                } else {
-                    projectBytes = new byte[storage.PayloadLength];
-                    Buffer.BlockCopy(persistObject.RecordBytes, 8,
-                        projectBytes, 0, projectBytes.Length);
+                if (!LegacyPptOleStorageCodec.TryDecode(persistObject,
+                        options, out byte[] projectBytes, out bool compressed,
+                        out string? storageReason)) {
+                    throw new InvalidDataException(storageReason
+                        ?? "The VBA project storage cannot be decoded.");
                 }
 
                 if (!LegacyPptVbaProjectCodec.IsValidProject(projectBytes,

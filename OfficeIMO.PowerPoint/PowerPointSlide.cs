@@ -65,6 +65,12 @@ namespace OfficeIMO.PowerPoint {
         public IEnumerable<PowerPointSmartArt> SmartArts => _shapes.OfType<PowerPointSmartArt>();
 
         /// <summary>
+        ///     Enumerates all embedded OLE compound objects on the slide.
+        /// </summary>
+        public IEnumerable<PowerPointOleObject> OleObjects =>
+            _shapes.OfType<PowerPointOleObject>();
+
+        /// <summary>
         ///     Retrieves shapes that are within or intersect the provided bounds.
         /// </summary>
         public IReadOnlyList<PowerPointShape> GetShapesInBounds(PowerPointLayoutBox bounds, bool includePartial = true) {
@@ -170,6 +176,13 @@ namespace OfficeIMO.PowerPoint {
                     TrackShape(shape);
                 }
             }
+
+            uint descendantMaxId = tree
+                .Descendants<NonVisualDrawingProperties>()
+                .Select(properties => properties.Id?.Value ?? 0U)
+                .DefaultIfEmpty(maxId)
+                .Max();
+            if (descendantMaxId > maxId) maxId = descendantMaxId;
 
             _nextShapeId = maxId + 1;
 

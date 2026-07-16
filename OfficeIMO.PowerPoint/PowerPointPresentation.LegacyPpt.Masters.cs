@@ -298,6 +298,8 @@ namespace OfficeIMO.PowerPoint {
                     .NonVisualDrawingProperties,
                 Picture picture => picture.NonVisualPictureProperties?.NonVisualDrawingProperties,
                 GroupShape group => group.NonVisualGroupShapeProperties?.NonVisualDrawingProperties,
+                GraphicFrame frame => frame.NonVisualGraphicFrameProperties?
+                    .NonVisualDrawingProperties,
                 _ => null
             };
             if (properties == null) return;

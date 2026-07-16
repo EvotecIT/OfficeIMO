@@ -383,7 +383,13 @@ namespace OfficeIMO.PowerPoint {
 
             var commentDetails = DescribeCommentParts(allParts);
             var customXmlDetails = DescribePartsByUri(allParts, "/customXml/");
-            var embeddedPackageDetails = DescribeNonChartEmbeddedPackageParts(allParts);
+            PowerPointOleObject[] editableOleObjects = Slides
+                .SelectMany(slide => slide.OleObjects).ToArray();
+            var editableOleParts = new HashSet<OpenXmlPart>(
+                editableOleObjects.Select(ole =>
+                    (OpenXmlPart)ole.EmbeddedPart));
+            var embeddedPackageDetails = DescribeNonChartEmbeddedPackageParts(
+                allParts, editableOleParts);
             var activeXControlDetails = DescribeActiveXControlParts(allParts);
             var vbaDetails = DescribeVbaProjectParts(allParts);
             var webExtensionDetails = DescribeWebExtensionParts(allParts);
@@ -398,8 +404,14 @@ namespace OfficeIMO.PowerPoint {
             Add(features, "Compatibility", "Custom XML parts", PowerPointFeatureSupportLevel.Preserved, customXmlDetails.Count, null,
                 "Custom XML parts are preserve-only package metadata.",
                 customXmlDetails);
+            Add(features, "Compatibility", "Embedded OLE objects",
+                PowerPointFeatureSupportLevel.Editable,
+                editableOleObjects.Length, null,
+                "Embedded OLE compound objects expose their ProgID, display mode, color-follow setting, exact storage bytes, geometry, duplication, and removal through the normal slide model.",
+                editableOleObjects.Select(ole =>
+                    $"{ole.Name ?? "OLE object"}: {ole.ProgId ?? "Package"}, {ole.ContentType}").ToList());
             Add(features, "Compatibility", "Embedded packages", PowerPointFeatureSupportLevel.Preserved, embeddedPackageDetails.Count, null,
-                "Embedded package parts and OLE payloads are advanced package content and should be treated as preserve-only.",
+                "Unreferenced or unrecognized embedded package parts remain preserve-only package content.",
                 embeddedPackageDetails);
             Add(features, "Compatibility", "ActiveX controls", PowerPointFeatureSupportLevel.Preserved, activeXControlDetails.Count, null,
                 "ActiveX control package metadata is detected as preserve-only advanced presentation content.",
@@ -1070,13 +1082,16 @@ namespace OfficeIMO.PowerPoint {
                 .ToList();
         }
 
-        private static List<string> DescribeNonChartEmbeddedPackageParts(IEnumerable<OpenXmlPart> parts) {
+        private static List<string> DescribeNonChartEmbeddedPackageParts(
+            IEnumerable<OpenXmlPart> parts,
+            ISet<OpenXmlPart> editableOleParts) {
             var chartWorkbooks = new HashSet<OpenXmlPart>(
                 parts.OfType<ChartPart>().SelectMany(chartPart => chartPart.GetPartsOfType<EmbeddedPackagePart>()));
 
             return parts
                 .Where(part => part is EmbeddedPackagePart || part is EmbeddedObjectPart)
                 .Where(part => !chartWorkbooks.Contains(part))
+                .Where(part => !editableOleParts.Contains(part))
                 .Select(DescribePart)
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .OrderBy(detail => detail, StringComparer.OrdinalIgnoreCase)

@@ -151,11 +151,24 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     customShowReason
                     ?? "A custom show cannot be encoded by the native binary writer."));
             }
-            if (!LegacyPptWriter.TryReadInteractions(presentation, out _,
+            uint firstOleObjectId = 1;
+            if (!LegacyPptWriter.TryReadInteractions(presentation,
+                    out LegacyPptWriter.LegacyPptWriterInteractionCatalog
+                        interactionCatalog,
                     out string? interactionReason)) {
                 findings.Add(new LegacyPptWriteFinding(LegacyPptFeature.Hyperlinks,
                     "PPT-WRITE-INTERACTION",
                     interactionReason ?? "A hyperlink or action cannot be encoded by the native binary writer."));
+            } else {
+                firstOleObjectId = checked((uint)
+                    interactionCatalog.Hyperlinks.Count + 1U);
+            }
+            if (!LegacyPptWriter.TryReadOleObjects(presentation.Slides,
+                    firstOleObjectId, out _, out string? oleReason)) {
+                findings.Add(new LegacyPptWriteFinding(
+                    LegacyPptFeature.EmbeddedOle, "PPT-WRITE-OLE",
+                    oleReason
+                    ?? "An embedded OLE object cannot be encoded by the native binary writer."));
             }
             for (int slideIndex = 0; slideIndex < presentation.Slides.Count; slideIndex++) {
                 PowerPointSlide slide = presentation.Slides[slideIndex];
@@ -207,9 +220,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                             ?? "A placeholder cannot be encoded by the native binary writer.",
                             slideIndex, shapeIndex));
                     }
-                    if (!IsSupportedShape(shape)) {
+                    if (!IsSupportedShape(shape,
+                            includeOleObjects: true)) {
                         findings.Add(new LegacyPptWriteFinding(MapShapeFeature(shape), "PPT-WRITE-SHAPE",
-                            $"{shape.ShapeContentType} content is outside the native writer's text/rectangle/ellipse/line subset.",
+                            $"{shape.ShapeContentType} content is outside the native writer's supported shape subset.",
                             slideIndex, shapeIndex));
                         continue;
                     }
@@ -264,7 +278,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             return true;
         }
 
-        private static bool IsSupportedShape(PowerPointShape shape) => shape is PowerPointTextBox
+        private static bool IsSupportedShape(PowerPointShape shape,
+            bool includeOleObjects = false) => shape is PowerPointTextBox
+            || includeOleObjects && shape is PowerPointOleObject
             || shape is PowerPointAutoShape autoShape
             && (autoShape.ShapeType == A.ShapeTypeValues.Rectangle
                 || autoShape.ShapeType == A.ShapeTypeValues.Ellipse

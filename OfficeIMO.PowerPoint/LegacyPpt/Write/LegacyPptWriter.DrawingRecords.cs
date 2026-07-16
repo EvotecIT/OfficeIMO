@@ -10,11 +10,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             IReadOnlyList<PowerPointShape> shapes, uint drawingId,
             LegacyPptWriterInteractionCatalog interactionCatalog,
             LegacyPptWriterAnimationCatalog animationCatalog,
+            LegacyPptWriterOleObjectCatalog oleCatalog,
             LegacyPptWriterBackground? background = null) {
             LegacyPptRecord baseDrawing = slidePrototype.Children.First(record => record.Type == RecordDrawing);
             return BuildDrawingRecord(baseDrawing, shapes, drawingId,
                 interactionCatalog, animationCatalog, background,
-                LegacyPptWriterShapeContext.Slide);
+                LegacyPptWriterShapeContext.Slide, oleCatalog);
         }
 
         private static byte[] BuildDrawingRecord(LegacyPptRecord baseDrawing,
@@ -22,7 +23,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             LegacyPptWriterInteractionCatalog interactionCatalog,
             LegacyPptWriterAnimationCatalog animationCatalog,
             LegacyPptWriterBackground? background,
-            LegacyPptWriterShapeContext shapeContext) {
+            LegacyPptWriterShapeContext shapeContext,
+            LegacyPptWriterOleObjectCatalog? oleCatalog = null) {
             LegacyPptRecord baseDgContainer = baseDrawing.Children.First(record => record.Type == OfficeArtDgContainer);
             LegacyPptRecord baseSpgr = baseDgContainer.Children.First(record => record.Type == OfficeArtSpgrContainer);
             LegacyPptRecord baseRootShape = baseSpgr.Children.First(record => record.Type == OfficeArtSpContainer);
@@ -34,7 +36,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             for (int index = 0; index < shapes.Count; index++) {
                 spgrChildren.Add(BuildShapeRecord(shapes[index],
                     checked(baseShapeId + unchecked((uint)index) + 2U),
-                    interactionCatalog, animationCatalog, shapeContext));
+                    interactionCatalog, animationCatalog, shapeContext,
+                    oleCatalog));
             }
 
             byte[] backgroundShape = PatchShapeId(background == null
@@ -86,7 +89,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         private static byte[] BuildShapeRecord(PowerPointShape shape, uint shapeId,
             LegacyPptWriterInteractionCatalog interactionCatalog,
             LegacyPptWriterAnimationCatalog animationCatalog,
-            LegacyPptWriterShapeContext shapeContext) {
+            LegacyPptWriterShapeContext shapeContext,
+            LegacyPptWriterOleObjectCatalog? oleCatalog) {
             ushort shapeType;
             var children = new List<byte[]>();
             LegacyPptWriterShapeInteractions interactions = interactionCatalog.Get(shape);
@@ -109,6 +113,21 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 byte[]? clientData = BuildClientData(shape,
                     interactions.ShapeInteractions, animation, shapeContext);
                 if (clientData != null) children.Add(clientData);
+            } else if (shape is PowerPointOleObject) {
+                LegacyPptWriterOleObject ole = oleCatalog?.Get(shape)
+                    ?? throw new InvalidOperationException(
+                        "The OLE shape has no external-object catalog entry.");
+                shapeType = 75;
+                children.Add(BuildFsp(shapeType, shapeId));
+                children.Add(BuildAnchor(shape));
+                byte[]? clientData = BuildClientData(shape,
+                    interactions.ShapeInteractions, animation, shapeContext,
+                    ole.Id);
+                if (clientData == null) {
+                    throw new InvalidOperationException(
+                        "The OLE shape has no external-object reference.");
+                }
+                children.Add(clientData);
             } else {
                 throw new InvalidOperationException("Preflight admitted an unsupported PowerPoint shape.");
             }
@@ -146,8 +165,13 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         private static byte[]? BuildClientData(PowerPointShape shape,
             IReadOnlyList<LegacyPptWriterInteraction> interactions,
             LegacyPptWriterAnimation? animation,
-            LegacyPptWriterShapeContext shapeContext) {
+            LegacyPptWriterShapeContext shapeContext,
+            uint? externalObjectId = null) {
             var children = new List<byte[]>();
+            if (externalObjectId.HasValue) {
+                children.Add(BuildExternalObjectReferenceAtom(
+                    externalObjectId.Value));
+            }
             if (!TryReadPlaceholderForWrite(shape, shapeContext,
                     out LegacyPptWriterPlaceholder? placeholder,
                     out string? placeholderReason)) {

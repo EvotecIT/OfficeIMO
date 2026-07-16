@@ -17,6 +17,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
         private readonly IReadOnlyDictionary<string, LegacyPptMasterProjection>
             _specialMastersByPartUri;
         private readonly ISet<string> _masterThemePartUris;
+        private readonly ISet<string> _olePartUris;
 
         private LegacyPptProjectionMap(IReadOnlyList<LegacyPptSlideProjection> slides,
             IReadOnlyDictionary<string, uint> masterIdsByLayoutPartUri,
@@ -56,6 +57,11 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 .Concat(slides.Select(slide => slide.ThemePartUri))
                 .Concat(slides.Select(slide => slide.Notes?.ThemePartUri))
                 .Where(uri => uri != null).Cast<string>(), StringComparer.Ordinal);
+            _olePartUris = new HashSet<string>(slides
+                .SelectMany(slide => slide.Shapes)
+                .Select(shape => shape.OleObject?.EmbeddedPartUri)
+                .Where(uri => uri != null).Cast<string>(),
+                StringComparer.Ordinal);
             Hyperlinks = new ReadOnlyCollection<LegacyPptHyperlink>(hyperlinks.ToArray());
             CustomShows = new ReadOnlyCollection<LegacyPptCustomShow>(
                 customShows.ToArray());
@@ -92,6 +98,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
         internal LegacyPptPropertySetProjection PropertySets { get; }
 
         internal LegacyPptVbaProjectProjection VbaProject { get; }
+
+        internal bool IsProjectedOlePart(string partUri) =>
+            partUri != null && _olePartUris.Contains(partUri);
 
         internal bool TryGetSlide(PowerPointSlide slide, out LegacyPptSlideProjection? projection) {
             if (slide == null) throw new ArgumentNullException(nameof(slide));
@@ -193,7 +202,13 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                         sourceShape.Placeholder,
                         textFormattingFingerprint, sourceShape.Interactions,
                         sourceShape.TextBody.Interactions, sourceShape.Animation,
-                        projectableSoundIds));
+                        projectableSoundIds,
+                        sourceShape.OleObject != null
+                            && projectedShapes[shapeIndex] is
+                                PowerPointOleObject projectedOle
+                            ? LegacyPptOleObjectProjection.Create(
+                                sourceShape.OleObject, projectedOle)
+                            : null));
                 }
                 slides.Add(new LegacyPptSlideProjection(projectedSlide.SlidePart.Uri.ToString(),
                     projectedSlide.SlidePart.SlideLayoutPart?.Uri.ToString(),
@@ -903,7 +918,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             IReadOnlyList<LegacyPptInteraction> shapeInteractions,
             IReadOnlyList<LegacyPptTextInteraction> textInteractions,
             LegacyPptAnimation? animation,
-            ISet<uint> projectableSoundIds) {
+            ISet<uint> projectableSoundIds,
+            LegacyPptOleObjectProjection? oleObject = null) {
             OpenXmlShapeId = openXmlShapeId;
             OfficeArtShapeId = officeArtShapeId;
             RecordOffset = recordOffset;
@@ -926,6 +942,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 && !HasOverlappingTextTriggers(TextInteractions);
             CanEditAnimation = animation == null || IsEditableAnimation(
                 animation, projectableSoundIds);
+            OleObject = oleObject;
         }
 
         internal uint OpenXmlShapeId { get; }
@@ -953,6 +970,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
         internal bool CanEditInteractions { get; }
 
         internal bool CanEditAnimation { get; }
+
+        internal LegacyPptOleObjectProjection? OleObject { get; }
 
         internal bool PlaceholderMatches(
             LegacyPptWriter.LegacyPptWriterPlaceholder? current) =>

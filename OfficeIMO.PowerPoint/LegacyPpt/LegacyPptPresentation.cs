@@ -142,6 +142,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             ParseSoundCollection(document, options);
             ParseNamedShows(document, options);
             ParseHyperlinks(document, options);
+            ParseOleObjects(document, package, options);
             ParseVbaProject(document, package, options);
 
             ParseSpecialMasters(documentAtom, documentStream, persistOffsets, options);
@@ -392,8 +393,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 style.Properties);
             int? pictureStoreIndex = ReadPictureStoreIndex(style);
             OfficeArtBlipStoreEntry? picture = ResolvePicture(pictureStoreIndex);
+            LegacyPptEmbeddedOleObject? oleObject = ReadShapeOleObject(
+                shapeContainer, options);
             bool isPictureFrame = shapeType == 75;
-            if (isPictureFrame) {
+            if (oleObject != null) {
+                kind = LegacyPptShapeKind.OleObject;
+            } else if (isPictureFrame) {
                 kind = picture?.HasImportableImage == true
                     ? LegacyPptShapeKind.Picture
                     : LegacyPptShapeKind.Unsupported;
@@ -404,7 +409,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 ResolveShapeColor(style.LineColor, colorScheme), pictureStoreIndex, picture,
                 transform, shadowColor: ResolveShapeColor(style.ShadowColor, colorScheme),
                 textBody: textBody, interactions: ReadShapeInteractions(shapeContainer, options),
-                animation: ReadShapeAnimation(shapeContainer, options));
+                animation: ReadShapeAnimation(shapeContainer, options),
+                oleObject: oleObject);
 
             if (textBody.IsStyleTruncated) {
                 AddDiagnostic("PPT-TEXT-STYLE-TRUNCATED", LegacyPptDiagnosticSeverity.Warning,
@@ -436,7 +442,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                     shapeContainer.Offset);
             }
 
-            if (isPictureFrame && kind == LegacyPptShapeKind.Unsupported
+            if (isPictureFrame && oleObject == null
+                && kind == LegacyPptShapeKind.Unsupported
                 && options.ReportUnsupportedContent) {
                 AddPictureDiagnostic(pictureStoreIndex, picture, shapeContainer.Offset);
             } else if (kind == LegacyPptShapeKind.Unsupported && options.ReportUnsupportedContent) {

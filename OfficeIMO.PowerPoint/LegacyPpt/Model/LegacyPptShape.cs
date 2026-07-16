@@ -28,6 +28,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
         /// <summary>An OfficeArt picture frame with importable image data.</summary>
         Picture,
 
+        /// <summary>An embedded OLE compound object.</summary>
+        OleObject,
+
         /// <summary>A recognized OfficeArt shape that is preserved only as metadata.</summary>
         Unsupported
     }
@@ -102,7 +105,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
             string? shadowColor = null,
             LegacyPptTextBody? textBody = null,
             IReadOnlyList<LegacyPptInteraction>? interactions = null,
-            LegacyPptAnimation? animation = null) {
+            LegacyPptAnimation? animation = null,
+            LegacyPptEmbeddedOleObject? oleObject = null) {
             Kind = kind;
             OfficeArtShapeType = officeArtShapeType;
             ShapeId = shapeId;
@@ -127,6 +131,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
             Interactions = new ReadOnlyCollection<LegacyPptInteraction>(
                 interactions?.ToArray() ?? Array.Empty<LegacyPptInteraction>());
             Animation = animation;
+            OleObject = oleObject;
         }
 
         /// <summary>Gets the projected shape kind.</summary>
@@ -198,6 +203,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
 
         /// <summary>Gets the classic shape or text animation, when present and valid.</summary>
         public LegacyPptAnimation? Animation { get; }
+
+        /// <summary>Gets the embedded OLE object referenced by this shape.</summary>
+        public LegacyPptEmbeddedOleObject? OleObject { get; }
 
         /// <summary>Gets the shape-level click interaction, when present.</summary>
         public LegacyPptInteraction? ClickInteraction => Interactions.FirstOrDefault(

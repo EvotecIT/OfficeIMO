@@ -421,21 +421,31 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     .NonVisualDrawingProperties,
                 P.GroupShape group => group.NonVisualGroupShapeProperties?
                     .NonVisualDrawingProperties,
+                P.GraphicFrame frame => frame.NonVisualGraphicFrameProperties?
+                    .NonVisualDrawingProperties,
                 _ => null
             };
 
         internal static byte[] BuildExternalObjectListRecord(
-            LegacyPptWriterInteractionCatalog catalog) {
+            LegacyPptWriterInteractionCatalog catalog,
+            LegacyPptWriterOleObjectCatalog oleCatalog) {
             if (catalog == null) throw new ArgumentNullException(nameof(catalog));
-            if (catalog.Hyperlinks.Count == 0) return Array.Empty<byte>();
+            if (oleCatalog == null) throw new ArgumentNullException(nameof(oleCatalog));
+            if (catalog.Hyperlinks.Count == 0
+                && oleCatalog.Objects.Count == 0) return Array.Empty<byte>();
             var listAtomPayload = new byte[4];
-            WriteUInt32(listAtomPayload, 0, catalog.Hyperlinks.Max(link => link.Id));
+            uint seed = catalog.Hyperlinks.Select(link => link.Id)
+                .Concat(oleCatalog.Objects.Select(ole => ole.Id)).Max();
+            WriteUInt32(listAtomPayload, 0, seed);
             var children = new List<byte[]> {
                 BuildRecord(version: 0, instance: 0, RecordExternalObjectListAtom,
                     listAtomPayload)
             };
             foreach (LegacyPptWriterHyperlink hyperlink in catalog.Hyperlinks) {
                 children.Add(BuildExternalHyperlinkRecord(hyperlink));
+            }
+            foreach (LegacyPptWriterOleObject ole in oleCatalog.Objects) {
+                children.Add(BuildExternalOleObjectRecord(ole));
             }
             return BuildContainer(RecordExternalObjectList, instance: 0, children);
         }

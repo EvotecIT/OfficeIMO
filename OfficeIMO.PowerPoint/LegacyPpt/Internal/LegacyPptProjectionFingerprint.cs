@@ -118,6 +118,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 part => !(part is SlidePart or NotesSlidePart or SlideCommentsPart
                     or CommentAuthorsPart or CoreFilePropertiesPart
                     or CustomFilePropertiesPart or VbaProjectPart)
+                    && !projectionMap.IsProjectedOlePart(
+                        part.Uri.ToString())
                     && !materializedLayoutThemePartUris.Contains(
                         part.Uri.ToString()),
                 (owner, relationship) => !(relationship.OpenXmlPart is SlidePart
@@ -394,6 +396,30 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                     transform.Extents.Cx = 0L;
                     transform.Extents.Cy = 0L;
                 }
+            }
+            foreach (P.GraphicFrame frame in root.Descendants<P.GraphicFrame>()) {
+                uint? shapeId = frame.NonVisualGraphicFrameProperties?
+                    .NonVisualDrawingProperties?.Id?.Value;
+                if (!shapeId.HasValue || !tryGetShape(shapeId.Value,
+                        out LegacyPptShapeProjection? shapeProjection)
+                    || shapeProjection?.OleObject == null) continue;
+                P.Transform? transform = frame.Transform;
+                if (transform?.Offset != null) {
+                    transform.Offset.X = 0L;
+                    transform.Offset.Y = 0L;
+                }
+                if (transform?.Extents != null) {
+                    transform.Extents.Cx = 0L;
+                    transform.Extents.Cy = 0L;
+                }
+                P.OleObject? ole = frame.Graphic?.GraphicData?
+                    .GetFirstChild<P.OleObject>();
+                if (ole == null) continue;
+                ole.ProgId = null;
+                ole.ShowAsIcon = null;
+                P.OleObjectEmbed? embed = ole
+                    .GetFirstChild<P.OleObjectEmbed>();
+                if (embed != null) embed.FollowColorScheme = null;
             }
         }
 
