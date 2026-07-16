@@ -148,9 +148,29 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             string ownerName, out LegacyPptWriterBackground? background,
             out string? reason) {
             A.LinearGradientFill? linear = gradient.GetFirstChild<A.LinearGradientFill>();
-            if (linear == null) {
+            A.PathGradientFill? path = gradient.GetFirstChild<A.PathGradientFill>();
+            if ((linear == null) == (path == null)) {
                 background = null;
-                reason = $"The {ownerName} path or radial gradient background is not yet encoded by the native binary writer.";
+                reason = $"The {ownerName} gradient background must contain exactly one linear or supported path geometry.";
+                return false;
+            }
+            A.TileFlipValues? flip = gradient.Flip?.Value;
+            if (flip.HasValue && flip.Value != A.TileFlipValues.None) {
+                background = null;
+                reason = $"The {ownerName} gradient background uses tile flipping that the binary PowerPoint writer cannot reproduce losslessly.";
+                return false;
+            }
+            if (gradient.ChildElements.Any(child =>
+                    child is not A.GradientStopList
+                    && !ReferenceEquals(child, linear)
+                    && !ReferenceEquals(child, path))) {
+                background = null;
+                reason = $"The {ownerName} gradient background uses a custom tile rectangle that the binary PowerPoint format cannot reproduce through this writer.";
+                return false;
+            }
+            if (path?.HasChildren == true) {
+                background = null;
+                reason = $"The {ownerName} path gradient uses a custom fill rectangle that has no lossless binary PowerPoint mapping.";
                 return false;
             }
             A.GradientStop[] sourceStops = gradient.GetFirstChild<A.GradientStopList>()?
@@ -177,18 +197,72 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     position / 100000D));
             }
 
-            if (stops.Any(stop => stop.Color.A != byte.MaxValue)) {
+            if (!TryGetGradientOpacityRamp(stops, out byte foregroundAlpha,
+                    out byte backgroundAlpha)) {
                 background = null;
-                reason = $"The {ownerName} gradient uses stop opacity that is not yet encoded by the native binary writer.";
+                reason = $"The {ownerName} gradient uses non-linear stop opacity; binary PowerPoint can store only one linear opacity ramp across the gradient.";
                 return false;
             }
 
-            double openXmlAngle = (linear.Angle?.Value ?? 0) / 60000D;
-            double legacyAngle = NormalizeBackgroundAngle(270D - openXmlAngle);
-            uint fillType = linear.Scaled?.Value == true ? 7U : 4U;
+            double legacyAngle = 0D;
+            uint fillType;
+            if (linear != null) {
+                double openXmlAngle = (linear.Angle?.Value ?? 0) / 60000D;
+                legacyAngle = NormalizeBackgroundAngle(270D - openXmlAngle);
+                fillType = linear.Scaled?.Value == true ? 7U : 4U;
+            } else if (path!.Path?.Value == A.PathShadeValues.Circle) {
+                fillType = 5U;
+            } else if (path.Path?.Value == A.PathShadeValues.Shape) {
+                fillType = 6U;
+            } else {
+                background = null;
+                reason = $"The {ownerName} path gradient geometry '{path.Path?.Value}' has no lossless binary PowerPoint mapping.";
+                return false;
+            }
             background = LegacyPptWriterBackground.Gradient(fillType,
-                legacyAngle, stops);
+                legacyAngle, foregroundAlpha, backgroundAlpha, stops);
             reason = null;
+            return true;
+        }
+
+        private static bool TryGetGradientOpacityRamp(
+            IReadOnlyList<LegacyPptWriterGradientStop> stops,
+            out byte foregroundAlpha, out byte backgroundAlpha) {
+            foregroundAlpha = byte.MaxValue;
+            backgroundAlpha = byte.MaxValue;
+            if (stops.Count == 0) return false;
+
+            LegacyPptWriterGradientStop first = stops[0];
+            LegacyPptWriterGradientStop last = stops[stops.Count - 1];
+            if (stops.All(stop => stop.Color.A == first.Color.A)) {
+                foregroundAlpha = first.Color.A;
+                backgroundAlpha = first.Color.A;
+                return true;
+            }
+
+            double positionRange = last.Position - first.Position;
+            if (positionRange <= 0D) return false;
+            double slope = (last.Color.A - first.Color.A) / positionRange;
+            double foreground = first.Color.A - slope * first.Position;
+            double background = foreground + slope;
+            if (foreground < -0.5D || foreground > 255.5D
+                || background < -0.5D || background > 255.5D) {
+                return false;
+            }
+
+            byte rampForegroundAlpha = checked((byte)Math.Max(0D, Math.Min(255D,
+                Math.Round(foreground, MidpointRounding.ToEven))));
+            byte rampBackgroundAlpha = checked((byte)Math.Max(0D, Math.Min(255D,
+                Math.Round(background, MidpointRounding.ToEven))));
+            bool representable = stops.All(stop => {
+                double expected = rampForegroundAlpha
+                    + (rampBackgroundAlpha - rampForegroundAlpha) * stop.Position;
+                return Math.Abs(stop.Color.A
+                    - Math.Round(expected, MidpointRounding.ToEven)) <= 1D;
+            });
+            if (!representable) return false;
+            foregroundAlpha = rampForegroundAlpha;
+            backgroundAlpha = rampBackgroundAlpha;
             return true;
         }
 
@@ -295,16 +369,18 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 properties.Add(new LegacyPptWriterFoptProperty(0x0181,
                     PackOfficeArtColor(first.Color)));
                 properties.Add(new LegacyPptWriterFoptProperty(0x0182,
-                    PackOfficeArtOpacity(first.Color.A)));
+                    PackOfficeArtOpacity(background.ForegroundAlpha)));
                 properties.Add(new LegacyPptWriterFoptProperty(0x0183,
                     PackOfficeArtColor(last.Color)));
                 properties.Add(new LegacyPptWriterFoptProperty(0x0184,
-                    PackOfficeArtOpacity(last.Color.A)));
-                if (background.FillType is 4U or 7U) {
-                    properties.Add(new LegacyPptWriterFoptProperty(0x018B,
-                        unchecked((uint)checked((int)Math.Round(
-                            background.AngleDegrees * 65536D,
-                            MidpointRounding.AwayFromZero)))));
+                    PackOfficeArtOpacity(background.BackgroundAlpha)));
+                if (background.FillType is >= 4U and <= 8U) {
+                    if (background.FillType is 4U or 7U) {
+                        properties.Add(new LegacyPptWriterFoptProperty(0x018B,
+                            unchecked((uint)checked((int)Math.Round(
+                                background.AngleDegrees * 65536D,
+                                MidpointRounding.AwayFromZero)))));
+                    }
                     properties.Add(new LegacyPptWriterFoptProperty(0x018C, 0));
                     byte[] shadeColors = BuildGradientStopArray(background.Stops);
                     properties.Add(new LegacyPptWriterFoptProperty(0x8197,
@@ -402,11 +478,13 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
 
         internal sealed class LegacyPptWriterBackground {
             private LegacyPptWriterBackground(bool filled, uint fillType,
-                double angleDegrees,
+                double angleDegrees, byte foregroundAlpha, byte backgroundAlpha,
                 IReadOnlyList<LegacyPptWriterGradientStop> stops) {
                 Filled = filled;
                 FillType = fillType;
                 AngleDegrees = angleDegrees;
+                ForegroundAlpha = foregroundAlpha;
+                BackgroundAlpha = backgroundAlpha;
                 Stops = new ReadOnlyCollection<LegacyPptWriterGradientStop>(
                     stops.ToArray());
             }
@@ -414,19 +492,23 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             internal bool Filled { get; }
             internal uint FillType { get; }
             internal double AngleDegrees { get; }
+            internal byte ForegroundAlpha { get; }
+            internal byte BackgroundAlpha { get; }
             internal IReadOnlyList<LegacyPptWriterGradientStop> Stops { get; }
 
             internal static LegacyPptWriterBackground NoFill() =>
-                new(false, 0U, 0D, Array.Empty<LegacyPptWriterGradientStop>());
+                new(false, 0U, 0D, byte.MaxValue, byte.MaxValue,
+                    Array.Empty<LegacyPptWriterGradientStop>());
 
             internal static LegacyPptWriterBackground Solid(OfficeColor color) =>
-                new(true, 0U, 0D,
+                new(true, 0U, 0D, color.A, color.A,
                     new[] { new LegacyPptWriterGradientStop(color, 0D) });
 
             internal static LegacyPptWriterBackground Gradient(uint fillType,
-                double angleDegrees,
+                double angleDegrees, byte foregroundAlpha, byte backgroundAlpha,
                 IReadOnlyList<LegacyPptWriterGradientStop> stops) =>
-                new(true, fillType, angleDegrees, stops);
+                new(true, fillType, angleDegrees, foregroundAlpha,
+                    backgroundAlpha, stops);
         }
 
         internal readonly struct LegacyPptWriterGradientStop {

@@ -129,6 +129,10 @@ namespace OfficeIMO.Tests {
                 backgrounds.Note);
             Assert.Contains("ordinary PPTX-layout background edits materialize into every affected imported slide",
                 backgrounds.Note);
+            Assert.Contains("centered-path, and shape-path gradients",
+                backgrounds.Note);
+            Assert.Contains("linearly interpolated gradient-stop opacity",
+                backgrounds.Note);
         }
 
         [Fact]
