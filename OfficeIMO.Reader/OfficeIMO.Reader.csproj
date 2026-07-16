@@ -67,10 +67,13 @@
     <InternalsVisibleTo Include="OfficeIMO.Reader.EmailStore" />
     <InternalsVisibleTo Include="OfficeIMO.Reader.EmailAddressBook" />
     <InternalsVisibleTo Include="OfficeIMO.Reader.Html" />
+    <InternalsVisibleTo Include="OfficeIMO.Reader.Image" />
     <InternalsVisibleTo Include="OfficeIMO.Reader.Json" />
+    <InternalsVisibleTo Include="OfficeIMO.Reader.Notebook" />
     <InternalsVisibleTo Include="OfficeIMO.Reader.OpenDocument" />
     <InternalsVisibleTo Include="OfficeIMO.Reader.Pdf" />
     <InternalsVisibleTo Include="OfficeIMO.Reader.Rtf" />
+    <InternalsVisibleTo Include="OfficeIMO.Reader.Subtitles" />
     <InternalsVisibleTo Include="OfficeIMO.Reader.Visio" />
     <InternalsVisibleTo Include="OfficeIMO.Reader.Xml" />
     <InternalsVisibleTo Include="OfficeIMO.Reader.Yaml" />

@@ -22,7 +22,7 @@ OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
 OfficeDocumentReadResult document = reader.ReadDocument("input.epub");
 ```
 
-The preset adds AsciiDoc, CSV/TSV, Outlook OAB address books, PST/OST/OLM/EMLX email stores, EPUB, HTML/MHTML, JSON, LaTeX, OpenDocument, PDF, RTF, Visio, XML, YAML, and ZIP handlers. Word, Excel, PowerPoint, Markdown, individual email artifacts, and plain text remain built into `OfficeIMO.Reader`.
+The preset adds AsciiDoc, CSV/TSV, Outlook OAB address books, PST/OST/OLM/EMLX email stores, EPUB, HTML/MHTML, standalone image, JSON, LaTeX, Jupyter Notebook, OpenDocument, PDF, RTF, SRT/WebVTT subtitle, Visio, XML, YAML, and ZIP handlers. Word, Excel, PowerPoint, Markdown, individual email artifacts, and plain text remain built into `OfficeIMO.Reader`.
 
 Configure a format through one options object:
 
@@ -47,7 +47,7 @@ OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
     .Build();
 ```
 
-Registrations are copied into the builder's immutable snapshot. The preset does not mutate `DocumentReader` global state.
+Registrations are copied into the builder's immutable snapshot. The preset does not mutate process-wide reader state.
 
 ## Dependency boundary
 

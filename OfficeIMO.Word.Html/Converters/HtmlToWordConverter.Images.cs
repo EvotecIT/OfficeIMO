@@ -1164,7 +1164,7 @@ namespace OfficeIMO.Word.Html {
 
         private static bool TryIdentifyEmbeddableImageData(byte[] bytes, out OfficeImageInfo imageInfo, out string detail) {
             detail = string.Empty;
-            if (!OfficeImageReader.TryIdentify(bytes, null, out imageInfo)) {
+            if (!OfficeImageReader.TryIdentifyByContent(bytes, null, out imageInfo)) {
                 detail = "Image data URI payload is not a supported image.";
                 return false;
             }
@@ -1194,7 +1194,7 @@ namespace OfficeIMO.Word.Html {
 
         private static bool IsEmbeddableSvgBytes(byte[] bytes, out string detail) {
             detail = string.Empty;
-            if (!OfficeImageReader.TryIdentify(bytes, null, out var info) || info.Format != OfficeImageFormat.Svg) {
+            if (!OfficeImageReader.TryIdentifyByContent(bytes, null, out var info) || info.Format != OfficeImageFormat.Svg) {
                 detail = "SVG data URI payload is not a valid SVG image.";
                 return false;
             }

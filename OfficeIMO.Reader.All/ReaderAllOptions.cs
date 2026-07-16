@@ -26,17 +26,26 @@ public sealed class ReaderAllOptions {
     /// <summary>Gets or sets HTML adapter options.</summary>
     public Html.ReaderHtmlOptions? Html { get; set; }
 
+    /// <summary>Gets or sets standalone image adapter options.</summary>
+    public Image.ReaderImageOptions? Image { get; set; }
+
     /// <summary>Gets or sets JSON adapter options.</summary>
     public Json.JsonReadOptions? Json { get; set; }
 
     /// <summary>Gets or sets LaTeX adapter options.</summary>
     public Latex.ReaderLatexOptions? Latex { get; set; }
 
+    /// <summary>Gets or sets Jupyter Notebook adapter options.</summary>
+    public Notebook.ReaderNotebookOptions? Notebook { get; set; }
+
     /// <summary>Gets or sets PDF adapter options.</summary>
     public Pdf.ReaderPdfOptions? Pdf { get; set; }
 
     /// <summary>Gets or sets RTF adapter options.</summary>
     public Rtf.ReaderRtfOptions? Rtf { get; set; }
+
+    /// <summary>Gets or sets SRT and WebVTT adapter options.</summary>
+    public Subtitles.ReaderSubtitleOptions? Subtitles { get; set; }
 
     /// <summary>Gets or sets Visio adapter options.</summary>
     public Visio.ReaderVisioOptions? Visio { get; set; }

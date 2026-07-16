@@ -3502,12 +3502,101 @@ public partial class DrawingTests {
     }
 
     [Fact]
+    public void OfficeImageReaderRejectsPngSignatureWithoutAnIhdrChunk() {
+        var malformed = new byte[33];
+        Array.Copy(OnePixelPng, malformed, 8);
+        Encoding.ASCII.GetBytes("FAKE").CopyTo(malformed, 12);
+        malformed[19] = 3;
+        malformed[23] = 2;
+
+        bool identified = OfficeImageReader.TryIdentify(malformed, fileName: null, out OfficeImageInfo image);
+
+        Assert.False(identified);
+        Assert.Equal(OfficeImageFormat.Unknown, image.Format);
+    }
+
+    [Theory]
+    [InlineData(0x00, 0x00)]
+    [InlineData(0xFF, 0xD9)]
+    public void OfficeImageReaderRejectsJpegWithoutAFrameHeader(byte third, byte fourth) {
+        byte[] truncated = { 0xFF, 0xD8, third, fourth };
+
+        bool identified = OfficeImageReader.TryIdentify(truncated, fileName: null, out OfficeImageInfo image);
+
+        Assert.False(identified);
+        Assert.Equal(OfficeImageFormat.Unknown, image.Format);
+    }
+
+    [Fact]
+    public void OfficeImageReaderRejectsGifWithoutACompleteLogicalScreenDescriptor() {
+        var truncated = new byte[10];
+        Encoding.ASCII.GetBytes("GIF89a").CopyTo(truncated, 0);
+        truncated[6] = 1;
+        truncated[8] = 1;
+
+        bool identified = OfficeImageReader.TryIdentify(truncated, fileName: null, out OfficeImageInfo image);
+
+        Assert.False(identified);
+        Assert.Equal(OfficeImageFormat.Unknown, image.Format);
+    }
+
+    [Theory]
+    [InlineData(0, 10)]
+    [InlineData(22, 0)]
+    [InlineData(22, 11)]
+    public void OfficeImageReaderRejectsWebpWithInvalidDeclaredLengths(int riffSize, int chunkSize) {
+        var webp = new byte[30];
+        Encoding.ASCII.GetBytes("RIFF").CopyTo(webp, 0);
+        WriteInt32LittleEndian(webp, 4, riffSize);
+        Encoding.ASCII.GetBytes("WEBPVP8X").CopyTo(webp, 8);
+        WriteInt32LittleEndian(webp, 16, chunkSize);
+        webp[24] = 2;
+        webp[27] = 1;
+
+        bool identified = OfficeImageReader.TryIdentify(webp, fileName: null, out OfficeImageInfo image);
+
+        Assert.False(identified);
+        Assert.Equal(OfficeImageFormat.Unknown, image.Format);
+    }
+
+    [Fact]
+    public void OfficeImageReaderIdentifiesGifWithoutAGlobalColorTable() {
+        var gif = new byte[13];
+        Encoding.ASCII.GetBytes("GIF89a").CopyTo(gif, 0);
+        gif[6] = 1;
+        gif[8] = 1;
+
+        bool identified = OfficeImageReader.TryIdentifyByContent(gif, fileName: null, out OfficeImageInfo image);
+
+        Assert.True(identified);
+        Assert.Equal(OfficeImageFormat.Gif, image.Format);
+        Assert.Equal(1, image.Width);
+        Assert.Equal(1, image.Height);
+    }
+
+    [Fact]
+    public void OfficeImageReaderRejectsGifWithATruncatedDeclaredGlobalColorTable() {
+        var gif = new byte[18];
+        Encoding.ASCII.GetBytes("GIF89a").CopyTo(gif, 0);
+        gif[6] = 1;
+        gif[8] = 1;
+        gif[10] = 0x80;
+
+        bool identified = OfficeImageReader.TryIdentifyByContent(gif, fileName: null, out OfficeImageInfo image);
+
+        Assert.False(identified);
+        Assert.Equal(OfficeImageFormat.Unknown, image.Format);
+    }
+
+    [Fact]
     public void OfficeImageReaderIdentifiesIconDimensionsFromHeader() {
-        var icon = new byte[22];
+        var icon = new byte[23];
         icon[2] = 0x01;
         icon[4] = 0x01;
         icon[6] = 16;
         icon[7] = 32;
+        WriteInt32LittleEndian(icon, 14, 1);
+        WriteInt32LittleEndian(icon, 18, 22);
 
         var image = OfficeImageReader.Identify(icon);
 
@@ -3517,17 +3606,101 @@ public partial class DrawingTests {
         Assert.Equal("image/x-icon", image.MimeType);
     }
 
+    [Theory]
+    [InlineData(0, 22, 22, 0)]
+    [InlineData(1, 21, 22, 0)]
+    [InlineData(1, 22, 22, 0)]
+    [InlineData(1, 22, 23, 1)]
+    public void OfficeImageReaderRejectsIconWithInvalidDirectoryOrPayload(
+        int imageLength,
+        int imageOffset,
+        int totalLength,
+        byte reserved) {
+        var icon = new byte[totalLength];
+        icon[2] = 0x01;
+        icon[4] = 0x01;
+        icon[6] = 16;
+        icon[7] = 32;
+        icon[9] = reserved;
+        WriteInt32LittleEndian(icon, 14, imageLength);
+        WriteInt32LittleEndian(icon, 18, imageOffset);
+
+        bool identified = OfficeImageReader.TryIdentify(icon, fileName: null, out OfficeImageInfo image);
+
+        Assert.False(identified);
+        Assert.Equal(OfficeImageFormat.Unknown, image.Format);
+    }
+
     [Fact]
-    public void OfficeImageReaderIdentifiesPcxDimensionsFromHeader() {
-        var pcx = new byte[128];
-        pcx[0] = 0x0A;
-        pcx[1] = 0x05;
-        pcx[2] = 0x01;
-        pcx[3] = 0x08;
-        pcx[8] = 99;
-        pcx[10] = 49;
-        pcx[12] = 96;
-        pcx[14] = 96;
+    public void OfficeImageReaderRejectsIconWhenALaterEntryHasNoPayload() {
+        var icon = new byte[39];
+        icon[2] = 0x01;
+        icon[4] = 0x02;
+        icon[6] = 16;
+        icon[7] = 16;
+        WriteInt32LittleEndian(icon, 14, 1);
+        WriteInt32LittleEndian(icon, 18, 38);
+        icon[22] = 32;
+        icon[23] = 32;
+        WriteInt32LittleEndian(icon, 30, 1);
+        WriteInt32LittleEndian(icon, 34, 39);
+
+        bool identified = OfficeImageReader.TryIdentify(icon, fileName: null, out OfficeImageInfo image);
+
+        Assert.False(identified);
+        Assert.Equal(OfficeImageFormat.Unknown, image.Format);
+    }
+
+    [Fact]
+    public void OfficeImageReaderRejectsBmpWithOverflowingHeight() {
+        var bmp = new byte[54];
+        bmp[0] = (byte)'B';
+        bmp[1] = (byte)'M';
+        WriteInt32LittleEndian(bmp, 14, 40);
+        WriteInt32LittleEndian(bmp, 18, 1);
+        WriteInt32LittleEndian(bmp, 22, int.MinValue);
+        WriteUInt16LittleEndian(bmp, 26, 1);
+        WriteUInt16LittleEndian(bmp, 28, 24);
+
+        bool identified = OfficeImageReader.TryIdentify(bmp, fileName: null, out OfficeImageInfo image);
+
+        Assert.False(identified);
+        Assert.Equal(OfficeImageFormat.Unknown, image.Format);
+    }
+
+    [Fact]
+    public void OfficeImageReaderRejectsBmpWithTruncatedDeclaredDibHeader() {
+        var bmp = new byte[42];
+        bmp[0] = (byte)'B';
+        bmp[1] = (byte)'M';
+        WriteInt32LittleEndian(bmp, 14, 40);
+        WriteInt32LittleEndian(bmp, 18, 2);
+        WriteInt32LittleEndian(bmp, 22, 3);
+
+        bool identified = OfficeImageReader.TryIdentifyByContent(bmp, fileName: null, out OfficeImageInfo image);
+
+        Assert.False(identified);
+        Assert.Equal(OfficeImageFormat.Unknown, image.Format);
+    }
+
+    [Fact]
+    public void OfficeImageReaderRejectsBmpWithInvalidPlaneAndBitDepthFields() {
+        var bmp = new byte[54];
+        bmp[0] = (byte)'B';
+        bmp[1] = (byte)'M';
+        WriteInt32LittleEndian(bmp, 14, 40);
+        WriteInt32LittleEndian(bmp, 18, 2);
+        WriteInt32LittleEndian(bmp, 22, 3);
+
+        bool identified = OfficeImageReader.TryIdentifyByContent(bmp, fileName: null, out OfficeImageInfo image);
+
+        Assert.False(identified);
+        Assert.Equal(OfficeImageFormat.Unknown, image.Format);
+    }
+
+    [Fact]
+    public void OfficeImageReaderIdentifiesCompletePcxDimensions() {
+        byte[] pcx = CreateCompletePcx(100, 50);
 
         var image = OfficeImageReader.Identify(pcx);
 
@@ -3539,20 +3712,36 @@ public partial class DrawingTests {
         Assert.Equal("image/x-pcx", image.MimeType);
     }
 
+    [Theory]
+    [InlineData(1, 8, 1, 100)]
+    [InlineData(5, 0, 1, 100)]
+    [InlineData(5, 8, 0, 100)]
+    [InlineData(5, 8, 1, 0)]
+    [InlineData(5, 8, 1, 101)]
+    public void OfficeImageReaderRejectsPcxWithInvalidLayout(
+        byte version,
+        byte bitsPerPixel,
+        byte planes,
+        ushort bytesPerLine) {
+        var pcx = new byte[128];
+        pcx[0] = 0x0A;
+        pcx[1] = version;
+        pcx[2] = 0x01;
+        pcx[3] = bitsPerPixel;
+        pcx[8] = 99;
+        pcx[10] = 49;
+        pcx[65] = planes;
+        WriteUInt16LittleEndian(pcx, 66, bytesPerLine);
+
+        bool identified = OfficeImageReader.TryIdentifyByContent(pcx, fileName: null, out OfficeImageInfo image);
+
+        Assert.False(identified);
+        Assert.Equal(OfficeImageFormat.Unknown, image.Format);
+    }
+
     [Fact]
-    public void OfficeImageReaderIdentifiesEmfDimensionsFromHeader() {
-        var emf = new byte[88];
-        WriteInt32LittleEndian(emf, 0, 1);
-        WriteInt32LittleEndian(emf, 4, 88);
-        WriteInt32LittleEndian(emf, 16, 192);
-        WriteInt32LittleEndian(emf, 20, 96);
-        WriteInt32LittleEndian(emf, 32, 5080);
-        WriteInt32LittleEndian(emf, 36, 2540);
-        WriteInt32LittleEndian(emf, 40, 0x464D4520);
-        WriteInt32LittleEndian(emf, 72, 1920);
-        WriteInt32LittleEndian(emf, 76, 1080);
-        WriteInt32LittleEndian(emf, 80, 508);
-        WriteInt32LittleEndian(emf, 84, 286);
+    public void OfficeImageReaderIdentifiesCompleteEmfDimensions() {
+        byte[] emf = CreateCompleteEmf(192, 96);
 
         var image = OfficeImageReader.Identify(emf);
 
@@ -3565,13 +3754,28 @@ public partial class DrawingTests {
     }
 
     [Fact]
+    public void OfficeImageReaderRejectsEmfDimensionsThatExceedIntegerBounds() {
+        byte[] emf = CreateCompleteEmf(1, 1);
+        WriteInt32LittleEndian(emf, 8, int.MinValue);
+        WriteInt32LittleEndian(emf, 12, int.MinValue);
+        WriteInt32LittleEndian(emf, 16, int.MaxValue);
+        WriteInt32LittleEndian(emf, 20, int.MaxValue);
+        WriteInt32LittleEndian(emf, 24, int.MinValue);
+        WriteInt32LittleEndian(emf, 28, int.MinValue);
+        WriteInt32LittleEndian(emf, 72, int.MaxValue);
+        WriteInt32LittleEndian(emf, 76, int.MaxValue);
+        WriteInt32LittleEndian(emf, 80, 1);
+        WriteInt32LittleEndian(emf, 84, 1);
+
+        bool identified = OfficeImageReader.TryIdentify(emf, fileName: null, out OfficeImageInfo image);
+
+        Assert.False(identified);
+        Assert.Equal(OfficeImageFormat.Unknown, image.Format);
+    }
+
+    [Fact]
     public void OfficeImageReaderIdentifiesPlaceableWmfDimensionsFromHeader() {
-        var wmf = new byte[22];
-        WriteInt32LittleEndian(wmf, 0, unchecked((int)0x9AC6CDD7));
-        WriteInt16LittleEndian(wmf, 10, 2880);
-        WriteInt16LittleEndian(wmf, 12, 1440);
-        WriteUInt16LittleEndian(wmf, 14, 1440);
-        WritePlaceableWmfChecksum(wmf);
+        byte[] wmf = CreatePlaceableWmf();
 
         var image = OfficeImageReader.Identify(wmf);
 
@@ -3608,6 +3812,44 @@ public partial class DrawingTests {
         Assert.Equal(320, image.Width);
         Assert.Equal(180, image.Height);
         Assert.Equal("image/svg+xml", image.MimeType);
+    }
+
+    [Fact]
+    public void OfficeImageReaderContentVerificationUsesSvgExtensionOnlyAsAParserHint() {
+        byte[] valid = Encoding.UTF8.GetBytes(
+            "<!--" + new string('x', 5000) + "--><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"3\" height=\"2\"/>");
+        byte[] invalid = Encoding.UTF8.GetBytes(
+            "<!DOCTYPE svg [<!ENTITY xxe SYSTEM \"file:///invalid\">]><svg xmlns=\"http://www.w3.org/2000/svg\">&xxe;</svg>");
+
+        Assert.True(OfficeImageReader.TryIdentifyByContent(valid, "long-preamble.svg", out OfficeImageInfo image));
+        Assert.Equal(OfficeImageFormat.Svg, image.Format);
+        Assert.Equal(3, image.Width);
+        Assert.Equal(2, image.Height);
+        Assert.False(OfficeImageReader.TryIdentifyByContent(invalid, "invalid.svg", out _));
+    }
+
+    [Fact]
+    public void OfficeImageReaderRejectsMalformedSvgAfterAValidRootStartTag() {
+        byte[] malformed = Encoding.UTF8.GetBytes(
+            "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"3\" height=\"2\"><path></svg>");
+
+        bool identified = OfficeImageReader.TryIdentifyByContent(malformed, "malformed.svg", out OfficeImageInfo image);
+
+        Assert.False(identified);
+        Assert.Equal(OfficeImageFormat.Unknown, image.Format);
+    }
+
+    [Fact]
+    public void OfficeImageReaderHeaderProbeDoesNotTraverseTheTrailingSvgTree() {
+        byte[] malformed = Encoding.UTF8.GetBytes(
+            "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"5\" height=\"4\"><unclosed");
+
+        bool identified = OfficeImageReader.TryIdentify(malformed, "header.svg", out OfficeImageInfo image);
+
+        Assert.True(identified);
+        Assert.Equal(OfficeImageFormat.Svg, image.Format);
+        Assert.Equal(5, image.Width);
+        Assert.Equal(4, image.Height);
     }
 
     [Fact]

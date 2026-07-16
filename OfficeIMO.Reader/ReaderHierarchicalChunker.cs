@@ -244,6 +244,7 @@ public static partial class ReaderHierarchicalChunker {
             TokenEstimate = chunk.TokenEstimate,
             Text = chunk.Text,
             Markdown = chunk.Markdown,
+            ContinuesPreviousChunk = chunk.ContinuesPreviousChunk,
             Tables = chunk.Tables,
             Visuals = chunk.Visuals,
             FormFields = chunk.FormFields,

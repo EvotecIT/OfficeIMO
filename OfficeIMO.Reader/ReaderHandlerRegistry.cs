@@ -128,7 +128,7 @@ internal sealed class ReaderHandlerRegistrySnapshot {
         handler = null!;
         ReaderHandlerDescriptor? match = null;
         foreach (ReaderHandlerDescriptor candidate in _handlersById.Values.OrderBy(static item => item.Id, StringComparer.Ordinal)) {
-            if (candidate.Kind != kind) continue;
+            if (!candidate.UseDetectedKindFallback || candidate.Kind != kind) continue;
             bool supportsInput = pathInput ? candidate.SupportsPathInput : candidate.SupportsStreamInput;
             if (!supportsInput) continue;
             if (match != null) {
@@ -149,6 +149,7 @@ internal sealed class ReaderHandlerDescriptor {
         string displayName,
         string? description,
         ReaderInputKind kind,
+        bool useDetectedKindFallback,
         IReadOnlyList<string> extensions,
         long? defaultMaxInputBytes,
         ReaderWarningBehavior warningBehavior,
@@ -163,6 +164,7 @@ internal sealed class ReaderHandlerDescriptor {
         DisplayName = displayName;
         Description = description;
         Kind = kind;
+        UseDetectedKindFallback = useDetectedKindFallback;
         Extensions = extensions;
         DefaultMaxInputBytes = defaultMaxInputBytes;
         WarningBehavior = warningBehavior;
@@ -179,6 +181,7 @@ internal sealed class ReaderHandlerDescriptor {
     public string DisplayName { get; }
     public string? Description { get; }
     public ReaderInputKind Kind { get; }
+    public bool UseDetectedKindFallback { get; }
     public IReadOnlyList<string> Extensions { get; }
     public long? DefaultMaxInputBytes { get; }
     public ReaderWarningBehavior WarningBehavior { get; }
@@ -222,6 +225,7 @@ internal sealed class ReaderHandlerDescriptor {
             string.IsNullOrWhiteSpace(registration.DisplayName) ? id : registration.DisplayName!.Trim(),
             registration.Description,
             registration.Kind,
+            registration.UseDetectedKindFallback,
             extensions,
             registration.DefaultMaxInputBytes,
             registration.WarningBehavior,

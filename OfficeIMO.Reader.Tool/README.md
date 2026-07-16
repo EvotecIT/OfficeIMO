@@ -54,4 +54,4 @@ officeimo-reader capabilities --format json
 
 ## Dependency boundary
 
-The tool uses `OfficeIMO.Reader.All` and the existing local adapter graph. It has no third-party command parser, process launcher, native binary, model, network client, or hosted provider. OCR is not configured because an OCR engine is an explicit host dependency.
+The tool uses `OfficeIMO.Reader.All` and the existing local adapter graph. It has no third-party command parser, process launcher, native binary, model, network client, or hosted provider. Standalone images are projected as metadata/assets without OCR, notebooks are never executed, and SRT/WebVTT files are parsed locally. Audio decoding, Whisper, YouTube downloads, and OCR engines remain explicit host dependencies and are not configured.

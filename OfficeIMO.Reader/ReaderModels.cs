@@ -96,6 +96,11 @@ public enum ReaderInputKind {
 /// A normalized extraction chunk produced by <see cref="OfficeDocumentReader"/>.
 /// </summary>
 public sealed class ReaderChunk {
+    // Adapter projections can span multiple bounded chunks while remaining one
+    // logical Markdown block. This is intentionally an internal aggregation
+    // contract rather than part of the versioned transport schema.
+    internal bool ContinuesPreviousChunk { get; set; }
+
     /// <summary>
     /// Stable, ASCII-only identifier.
     /// </summary>
