@@ -14,7 +14,11 @@ public sealed class EmailStoreReaderOptions {
         int maxAttachmentsPerMessage = 10_000,
         long maxAttachmentBytes = 512L * 1024 * 1024,
         long maxTotalAttachmentBytes = 4L * 1024 * 1024 * 1024,
-        bool retainAttachmentContent = true) {
+        bool retainAttachmentContent = true,
+        string? pstPassword = null,
+        Encoding? pstPasswordEncoding = null,
+        bool includeAssociatedMessages = false,
+        bool includeOrphanedMessages = false) {
         MaxInputBytes = Positive(maxInputBytes, nameof(maxInputBytes));
         MaxNodeCount = Positive(maxNodeCount, nameof(maxNodeCount));
         MaxBTreeDepth = Positive(maxBTreeDepth, nameof(maxBTreeDepth));
@@ -26,6 +30,10 @@ public sealed class EmailStoreReaderOptions {
         MaxAttachmentBytes = Positive(maxAttachmentBytes, nameof(maxAttachmentBytes));
         MaxTotalAttachmentBytes = Positive(maxTotalAttachmentBytes, nameof(maxTotalAttachmentBytes));
         RetainAttachmentContent = retainAttachmentContent;
+        PstPassword = pstPassword;
+        PstPasswordEncoding = pstPasswordEncoding ?? Encoding.ASCII;
+        IncludeAssociatedMessages = includeAssociatedMessages;
+        IncludeOrphanedMessages = includeOrphanedMessages;
     }
 
     /// <summary>Default bounded options.</summary>
@@ -53,6 +61,14 @@ public sealed class EmailStoreReaderOptions {
     public long MaxTotalAttachmentBytes { get; }
     /// <summary>Whether attachment payloads are retained in memory.</summary>
     public bool RetainAttachmentContent { get; }
+    /// <summary>Password to validate when PidTagPstPassword is nonzero. The value is never logged or retained by results.</summary>
+    public string? PstPassword { get; }
+    /// <summary>Byte encoding used for the legacy PST password checksum. Defaults to ASCII.</summary>
+    public Encoding PstPasswordEncoding { get; }
+    /// <summary>Whether folder-associated information items are materialized separately from visible messages.</summary>
+    public bool IncludeAssociatedMessages { get; }
+    /// <summary>Whether NBT message nodes absent from folder contents tables are recovered using their parent links.</summary>
+    public bool IncludeOrphanedMessages { get; }
 
     private static int Positive(int value, string name) {
         if (value <= 0) throw new ArgumentOutOfRangeException(name);

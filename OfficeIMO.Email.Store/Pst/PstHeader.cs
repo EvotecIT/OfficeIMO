@@ -14,6 +14,8 @@ internal sealed class PstHeader {
     internal int PageSize { get; private set; }
     internal int PageTrailerSize { get; private set; }
     internal int BlockTrailerSize { get; private set; }
+    internal int BlockAlignment { get; private set; }
+    internal int BTreeMetadataSize { get; private set; }
     internal ulong NbtRootBid { get; private set; }
     internal long NbtRootOffset { get; private set; }
     internal ulong BbtRootBid { get; private set; }
@@ -41,6 +43,8 @@ internal sealed class PstHeader {
             header.PageSize = 512;
             header.PageTrailerSize = 12;
             header.BlockTrailerSize = 12;
+            header.BlockAlignment = 64;
+            header.BTreeMetadataSize = 4;
             header.NbtRootBid = PstBinary.UInt32(bytes, 184);
             header.NbtRootOffset = PstBinary.UInt32(bytes, 188);
             header.BbtRootBid = PstBinary.UInt32(bytes, 192);
@@ -51,6 +55,8 @@ internal sealed class PstHeader {
             header.PageSize = 512;
             header.PageTrailerSize = 16;
             header.BlockTrailerSize = 16;
+            header.BlockAlignment = 64;
+            header.BTreeMetadataSize = 8;
             header.NbtRootBid = PstBinary.UInt64(bytes, 216);
             header.NbtRootOffset = checked((long)PstBinary.UInt64(bytes, 224));
             header.BbtRootBid = PstBinary.UInt64(bytes, 232);
@@ -60,7 +66,9 @@ internal sealed class PstHeader {
             header.Variant = PstVariant.Unicode4K;
             header.PageSize = 4096;
             header.PageTrailerSize = 24;
-            header.BlockTrailerSize = 16;
+            header.BlockTrailerSize = 24;
+            header.BlockAlignment = 512;
+            header.BTreeMetadataSize = 16;
             header.NbtRootBid = PstBinary.UInt64(bytes, 216);
             header.NbtRootOffset = checked((long)PstBinary.UInt64(bytes, 224));
             header.BbtRootBid = PstBinary.UInt64(bytes, 232);
@@ -76,7 +84,7 @@ internal sealed class PstHeader {
             header.BbtRootOffset > stream.Length - header.PageSize) {
             throw new InvalidDataException("The PST/OST root B-tree references are invalid.");
         }
-        if (header.CryptMethod > 1) {
+        if (header.CryptMethod > 2) {
             throw new NotSupportedException(string.Concat("Unsupported PST/OST encryption method ",
                 header.CryptMethod.ToString(CultureInfo.InvariantCulture), "."));
         }

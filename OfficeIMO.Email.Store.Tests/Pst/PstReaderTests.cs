@@ -36,6 +36,49 @@ public sealed class PstReaderTests {
     }
 
     [Fact]
+    public void ReadsAnsiPstHierarchyAndProjectsMessagesThroughOfficeImoEmail() {
+        using var stream = new MemoryStream(PstTestFileBuilder.Create(ansi: true));
+
+        EmailStoreReadResult result = new EmailStoreReader().Read(stream, "mailbox.pst");
+
+        Assert.False(result.HasErrors);
+        Assert.Equal("Test Store", result.Store.DisplayName);
+        EmailStoreFolder inbox = Assert.Single(result.Store.Folders, folder => folder.Name == "Inbox");
+        EmailStoreMessage message = Assert.Single(inbox.Messages);
+        Assert.Equal("Synthetic PST message", message.Document.Subject);
+        Assert.Equal("Body from the PST property context", message.Document.Body.Text);
+    }
+
+    [Fact]
+    public void ReadsCyclicEncodedPstDataBlocks() {
+        using var stream = new MemoryStream(PstTestFileBuilder.Create(cryptMethod: 2));
+
+        EmailStoreReadResult result = new EmailStoreReader().Read(stream, "mailbox.pst");
+
+        Assert.False(result.HasErrors);
+        EmailStoreMessage message = Assert.Single(
+            Assert.Single(result.Store.Folders, folder => folder.Name == "Inbox").Messages);
+        Assert.Equal("Synthetic PST message", message.Document.Subject);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ReadsModernFourKilobyteOstBlocks(bool compressed) {
+        using var stream = new MemoryStream(PstTestFileBuilder.Create(
+            ost: true, fourK: true, compressBlocks: compressed));
+
+        EmailStoreReadResult result = new EmailStoreReader().Read(stream, "mailbox.ost");
+
+        Assert.False(result.HasErrors);
+        Assert.Equal(EmailStoreFormat.Ost, result.Store.Format);
+        EmailStoreMessage message = Assert.Single(
+            Assert.Single(result.Store.Folders, folder => folder.Name == "Inbox").Messages);
+        Assert.Equal("Synthetic PST message", message.Document.Subject);
+        Assert.Equal("Body from the PST property context", message.Document.Body.Text);
+    }
+
+    [Fact]
     public void EnforcesInputAndSeekabilityContracts() {
         byte[] bytes = PstTestFileBuilder.Create();
         var options = new EmailStoreReaderOptions(maxInputBytes: bytes.Length - 1L);

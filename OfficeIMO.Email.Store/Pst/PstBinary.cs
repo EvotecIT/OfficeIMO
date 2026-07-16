@@ -47,5 +47,12 @@ internal static class PstBinary {
 
     internal static int Align64(int value) => checked((value + 63) & ~63);
 
+    internal static int Align(int value, int alignment) {
+        if (alignment <= 0 || (alignment & (alignment - 1)) != 0) {
+            throw new ArgumentOutOfRangeException(nameof(alignment));
+        }
+        return checked((value + alignment - 1) & ~(alignment - 1));
+    }
+
     internal static ulong NormalizeBid(ulong bid) => bid & ~1UL;
 }

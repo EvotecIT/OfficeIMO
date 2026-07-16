@@ -48,16 +48,25 @@ internal sealed class PstNdbReader {
         if (!visited.Add(offset)) throw new InvalidDataException("The PST B-tree contains a page cycle.");
 
         byte[] page = PstBinary.ReadAt(_stream, offset, _header.PageSize);
-        int metadataSize = _header.IsUnicode ? 8 : 4;
+        int metadataSize = _header.BTreeMetadataSize;
         int metadataOffset = _header.PageSize - _header.PageTrailerSize - metadataSize;
         int trailerOffset = _header.PageSize - _header.PageTrailerSize;
         if (page[trailerOffset] != expectedType || page[trailerOffset + 1] != expectedType) {
             throw new InvalidDataException("A PST B-tree page has an unexpected page type.");
         }
 
-        int count = page[metadataOffset];
-        int entrySize = page[metadataOffset + 2];
-        int level = page[metadataOffset + 3];
+        int count;
+        int entrySize;
+        int level;
+        if (_header.Variant == PstVariant.Unicode4K) {
+            count = PstBinary.UInt16(page, metadataOffset);
+            entrySize = page[metadataOffset + 4];
+            level = page[metadataOffset + 5];
+        } else {
+            count = page[metadataOffset];
+            entrySize = page[metadataOffset + 2];
+            level = page[metadataOffset + 3];
+        }
         if (entrySize <= 0 || checked(count * entrySize) > metadataOffset) {
             throw new InvalidDataException("A PST B-tree page has an invalid entry layout.");
         }
@@ -119,7 +128,7 @@ internal sealed class PstNdbReader {
         byte[] bytes = ReadBlockPayload(block);
 
         if ((bid & 0x02) == 0) {
-            PstCrypt.Decode(bytes, _header.CryptMethod);
+            PstCrypt.Decode(bytes, _header.CryptMethod, block.Bid);
             total = checked(total + bytes.Length);
             if (total > maximumBytes) {
                 throw new EmailStoreLimitExceededException(nameof(EmailStoreReaderOptions.MaxDecodedPropertyBytesPerItem),
@@ -191,11 +200,20 @@ internal sealed class PstNdbReader {
 
     private byte[] ReadBlockPayload(PstBlockReference block) {
         if (block.DataLength < 0) throw new InvalidDataException("A PST block has an invalid length.");
-        int allocated = PstBinary.Align64(checked(block.DataLength + _header.BlockTrailerSize));
+        int allocated = PstBinary.Align(
+            checked(block.DataLength + _header.BlockTrailerSize), _header.BlockAlignment);
         if (block.Offset < 0 || block.Offset > _stream.Length - allocated) {
             throw new InvalidDataException("A PST block points outside the source stream.");
         }
-        return PstBinary.ReadAt(_stream, block.Offset, block.DataLength);
+        byte[] payload = PstBinary.ReadAt(_stream, block.Offset, block.DataLength);
+        if (_header.Variant != PstVariant.Unicode4K) return payload;
+
+        int trailerOffset = allocated - _header.BlockTrailerSize;
+        byte[] trailer = PstBinary.ReadAt(_stream, block.Offset + trailerOffset, _header.BlockTrailerSize);
+        int decodedLength = PstBinary.UInt16(trailer, 18);
+        return decodedLength > 0 && decodedLength != payload.Length
+            ? PstDeflate.Decode(payload, decodedLength)
+            : payload;
     }
 
     private PstBlockReference GetBlock(ulong normalizedBid) {
