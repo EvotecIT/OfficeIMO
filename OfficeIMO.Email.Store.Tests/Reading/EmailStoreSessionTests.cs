@@ -50,6 +50,64 @@ public sealed class EmailStoreSessionTests {
     }
 
     [Fact]
+    public void Selective_workflows_stay_bounded_on_a_virtual_sixty_four_gibibyte_store() {
+        const long virtualLength = 64L * 1024 * 1024 * 1024;
+        byte[] attachmentContent = Enumerable.Repeat((byte)0x5A, 4096).ToArray();
+        using var source = new VirtualLengthStream(
+            PstTestFileBuilder.Create(attachmentContent: attachmentContent), virtualLength);
+        var readerOptions = new EmailStoreReaderOptions(
+            maxCachedBTreePages: 4,
+            retainAttachmentContent: false);
+        using EmailStoreSession session = EmailStoreSession.Open(source, "large.pst", readerOptions);
+
+        EmailStoreItemReference reference = Assert.Single(session.EnumerateItems(
+            new EmailStoreEnumerationOptions(maxItems: 1)));
+        EmailStoreItemSummary summary = session.ReadSummary(reference);
+        EmailStoreItem item = session.ReadItem(reference, new EmailStoreItemReadOptions(
+            EmailStoreItemReadParts.Metadata |
+            EmailStoreItemReadParts.Bodies |
+            EmailStoreItemReadParts.AttachmentMetadata |
+            EmailStoreItemReadParts.AttachmentContent,
+            maxDecodedPropertyBytes: 1024 * 1024,
+            preferStreamingAttachmentContent: true));
+        EmailAttachment attachment = Assert.Single(item.Document.Attachments);
+
+        Assert.Equal("Synthetic PST message", summary.Subject);
+        Assert.Null(attachment.Content);
+        Assert.NotNull(attachment.ContentSource);
+        long beforeOpen = source.TotalBytesRead;
+        using Stream content = attachment.OpenContentStream();
+        Assert.Equal(beforeOpen, source.TotalBytesRead);
+        Assert.Equal(0x5A, content.ReadByte());
+        Assert.True(source.TotalBytesRead > beforeOpen);
+
+        EmailStoreContentSearchReport search = session.SearchContent(
+            new EmailStoreContentQuery(
+                new[] { "PST property context" },
+                fields: EmailStoreContentSearchFields.TextBody,
+                maxItemsScanned: 1,
+                maxResults: 1,
+                maxDecodedPropertyBytesPerItem: 1024 * 1024,
+                maxSearchableCharactersPerItem: 4096));
+        EmailStoreValidationReport validation = session.Validate(
+            new EmailStoreValidationOptions(
+                mode: EmailStoreValidationMode.Shallow,
+                maxItems: 1,
+                verifyStructuralIntegrity: true,
+                maxStructuralPages: 4,
+                maxStructuralBlocks: 4,
+                maxStructuralBytes: 64 * 1024));
+
+        Assert.Single(search.Results);
+        Assert.True(validation.StructuralIntegritySupported);
+        Assert.Equal(0, validation.StructuralFailures);
+        Assert.True(source.TotalBytesRead < 4 * 1024 * 1024,
+            $"Selective workflows over a virtual 64 GiB store read {source.TotalBytesRead} bytes.");
+        Assert.True(source.MaxSingleRead <= 128 * 1024,
+            $"A single source read requested {source.MaxSingleRead} bytes.");
+    }
+
+    [Fact]
     public void Explicit_source_limit_still_rejects_oversized_store() {
         const long virtualLength = 64L * 1024 * 1024 * 1024;
         using var source = new VirtualLengthStream(PstTestFileBuilder.Create(), virtualLength);
@@ -274,8 +332,11 @@ public sealed class EmailStoreSessionTests {
             Buffer.BlockCopy(_data, checked((int)_position), buffer, offset, available);
             _position += available;
             TotalBytesRead += available;
+            MaxSingleRead = Math.Max(MaxSingleRead, available);
             return available;
         }
+
+        internal int MaxSingleRead { get; private set; }
 
         public override long Seek(long offset, SeekOrigin origin) {
             long target = origin == SeekOrigin.Begin ? offset
