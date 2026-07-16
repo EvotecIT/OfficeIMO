@@ -3,6 +3,7 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.PowerPoint.LegacyPpt.Model;
 using OfficeIMO.PowerPoint.LegacyPpt.Write;
+using A = DocumentFormat.OpenXml.Drawing;
 
 namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
     /// <summary>Links projected Open XML slides and shapes back to their original binary persist records.</summary>
@@ -50,6 +51,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             _masterThemePartUris = new HashSet<string>(masters
                 .Concat(titleMasters).Concat(specialMasters)
                 .Select(master => master.ThemePartUri)
+                .Concat(slides.Select(slide => slide.ThemePartUri))
                 .Where(uri => uri != null).Cast<string>(), StringComparer.Ordinal);
             Hyperlinks = new ReadOnlyCollection<LegacyPptHyperlink>(hyperlinks.ToArray());
             CustomShows = new ReadOnlyCollection<LegacyPptCustomShow>(
@@ -173,6 +175,11 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                     sourceSlide.PersistId, sourceSlide.SlideId, sourceSlide.MasterId,
                     sourceSlide.Hidden, sourceSlide.HeaderFooter,
                     LegacyPptSlideProjection.CreateBackgroundFingerprint(
+                        projectedSlide),
+                    projectedSlide.SlidePart.ThemeOverridePart?.Uri.ToString(),
+                    LegacyPptSlideProjection.CreateThemeFingerprint(
+                        projectedSlide),
+                    LegacyPptSlideProjection.CreateClassicColorFingerprints(
                         projectedSlide),
                     sourceSlide.Transition, sourceSlide.Comments, shapes,
                     sourceSlide.NotesPage == null
@@ -581,7 +588,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
 
         internal LegacyPptSlideProjection(string slidePartUri, uint persistId, uint slideId, uint masterId,
             bool hidden, LegacyPptHeaderFooterSettings? headerFooter,
-            string backgroundFingerprint,
+            string backgroundFingerprint, string? themePartUri,
+            string themeFingerprint,
+            IReadOnlyList<string> classicColorFingerprints,
             LegacyPptTransition? transition,
             IReadOnlyList<LegacyPptComment> comments,
             IReadOnlyList<LegacyPptShapeProjection> shapes, LegacyPptNotesProjection? notes) {
@@ -593,6 +602,18 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             HeaderFooter = headerFooter;
             BackgroundFingerprint = backgroundFingerprint
                 ?? throw new ArgumentNullException(nameof(backgroundFingerprint));
+            ThemePartUri = themePartUri;
+            ThemeFingerprint = themeFingerprint
+                ?? throw new ArgumentNullException(nameof(themeFingerprint));
+            ClassicColorFingerprints = new ReadOnlyCollection<string>(
+                (classicColorFingerprints
+                    ?? throw new ArgumentNullException(
+                        nameof(classicColorFingerprints))).ToArray());
+            if (ClassicColorFingerprints.Count != 8) {
+                throw new ArgumentException(
+                    "A projected classic color scheme requires eight fingerprints.",
+                    nameof(classicColorFingerprints));
+            }
             Transition = transition;
             Comments = new ReadOnlyCollection<LegacyPptComment>(comments.ToArray());
             Notes = notes;
@@ -615,6 +636,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
 
         internal string BackgroundFingerprint { get; }
 
+        internal string? ThemePartUri { get; }
+
+        internal string ThemeFingerprint { get; }
+
+        internal IReadOnlyList<string> ClassicColorFingerprints { get; }
+
         internal bool BackgroundMatches(PowerPointSlide slide) => string.Equals(
             BackgroundFingerprint, CreateBackgroundFingerprint(slide),
             StringComparison.Ordinal);
@@ -624,6 +651,52 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             if (slide == null) throw new ArgumentNullException(nameof(slide));
             return slide.SlidePart.Slide?.CommonSlideData?.Background?.OuterXml
                 ?? string.Empty;
+        }
+
+        internal bool ThemeMatches(PowerPointSlide slide) => string.Equals(
+            ThemeFingerprint, CreateThemeFingerprint(slide),
+            StringComparison.Ordinal);
+
+        internal IReadOnlyList<int> GetChangedClassicColorSlots(
+            PowerPointSlide slide) {
+            IReadOnlyList<string> current =
+                CreateClassicColorFingerprints(slide);
+            return Enumerable.Range(0, ClassicColorFingerprints.Count)
+                .Where(index => !string.Equals(
+                    ClassicColorFingerprints[index], current[index],
+                    StringComparison.Ordinal))
+                .ToArray();
+        }
+
+        internal static string CreateThemeFingerprint(
+            PowerPointSlide slide) {
+            if (slide == null) throw new ArgumentNullException(nameof(slide));
+            string theme = slide.SlidePart.ThemeOverridePart?.ThemeOverride?
+                .OuterXml ?? string.Empty;
+            string colorMap = slide.SlidePart.Slide?.ColorMapOverride?.OuterXml
+                ?? string.Empty;
+            return theme + "\n" + colorMap;
+        }
+
+        internal static IReadOnlyList<string>
+            CreateClassicColorFingerprints(PowerPointSlide slide) {
+            if (slide == null) throw new ArgumentNullException(nameof(slide));
+            A.ColorScheme? colors = slide.SlidePart.ThemeOverridePart?
+                .ThemeOverride?.ColorScheme
+                ?? slide.SlidePart.SlideLayoutPart?.SlideMasterPart?.ThemePart?
+                    .Theme?.ThemeElements?.ColorScheme;
+            OpenXmlElement?[] slots = {
+                colors?.Light1Color,
+                colors?.Dark1Color,
+                colors?.Accent4Color,
+                colors?.Dark2Color,
+                colors?.Light2Color,
+                colors?.Accent1Color,
+                colors?.Accent2Color,
+                colors?.Accent3Color
+            };
+            return slots.Select(slot => slot?.OuterXml ?? string.Empty)
+                .ToArray();
         }
 
         internal LegacyPptTransition? Transition { get; }

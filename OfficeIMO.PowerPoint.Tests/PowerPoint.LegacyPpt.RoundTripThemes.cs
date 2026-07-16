@@ -1,3 +1,4 @@
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.LegacyPpt;
@@ -129,9 +130,9 @@ namespace OfficeIMO.Tests {
             Assert.Empty(reopened.ValidateDocument());
 
             IReadOnlyList<byte[]> originalUnrelated =
-                ReadUnrelatedMasterChildren(original, originalMaster.PersistId);
+                ReadUnrelatedThemeChildren(original, originalMaster.PersistId);
             IReadOnlyList<byte[]> savedUnrelated =
-                ReadUnrelatedMasterChildren(saved, savedMaster.PersistId);
+                ReadUnrelatedThemeChildren(saved, savedMaster.PersistId);
             Assert.Equal(originalUnrelated.Count, savedUnrelated.Count);
             for (int index = 0; index < originalUnrelated.Count; index++) {
                 Assert.True(originalUnrelated[index]
@@ -200,33 +201,18 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void NativeWriter_RoundTripsSlideThemeOverrideAndColorMapping() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
-            PowerPointSlide slide = presentation.AddSlide(
-                P.SlideLayoutValues.Blank);
-            A.ThemeElements sourceElements = presentation.OpenXmlDocument
-                .PresentationPart!.SlideMasterParts.First().ThemePart!.Theme!
-                .ThemeElements!;
-            A.ColorScheme colors = (A.ColorScheme)sourceElements.ColorScheme!
-                .CloneNode(true);
-            A.Accent5Color accent5 = colors.GetFirstChild<A.Accent5Color>()!;
-            accent5.RemoveAllChildren();
-            accent5.Append(new A.RgbColorModelHex { Val = "ABCDEF" });
-            ThemeOverridePart overridePart = slide.SlidePart
-                .AddNewPart<ThemeOverridePart>();
-            overridePart.ThemeOverride = new A.ThemeOverride(
-                colors,
-                sourceElements.FontScheme!.CloneNode(true),
-                sourceElements.FormatScheme!.CloneNode(true));
-
-            byte[] bytes = presentation.ToBytes(PowerPointFileFormat.Ppt);
+            byte[] bytes = CreateSlideThemeOverrideBytes(
+                accent5: "ABCDEF", accent1: "123456");
+            LegacyPptSlide writtenSlide = Assert.Single(
+                LegacyPptPresentation.Load(bytes).Slides);
             LegacyPptRoundTripTheme written = Assert.IsType<
-                LegacyPptRoundTripTheme>(Assert.Single(
-                    LegacyPptPresentation.Load(bytes).Slides).RoundTripTheme);
+                LegacyPptRoundTripTheme>(writtenSlide.RoundTripTheme);
 
             Assert.True(written.IsOverride);
             Assert.Equal("ABCDEF",
                 written.Colors[PowerPointThemeColor.Accent5]);
+            Assert.Equal("123456", writtenSlide.ColorScheme?.Accent1);
+            Assert.False(writtenSlide.FollowsMasterColorScheme);
             Assert.Contains("clrMapOvr", written.ColorMappingXml);
 
             using var stream = new MemoryStream(bytes);
@@ -239,6 +225,65 @@ namespace OfficeIMO.Tests {
                 .GetFirstChild<A.RgbColorModelHex>()!.Val!.Value);
             Assert.NotNull(reopened.Slides[0].SlidePart.Slide!
                 .ColorMapOverride?.GetFirstChild<A.MasterColorMapping>());
+            Assert.Empty(reopened.ValidateDocument());
+        }
+
+        [Fact]
+        public void ImportedSlideThemeEdit_AppendsPreservingIncrementalRecord() {
+            byte[] sourceBytes = CreateSlideThemeOverrideBytes(
+                accent5: "ABCDEF", accent1: "123456");
+            LegacyPptPresentation original = LegacyPptPresentation.Load(
+                sourceBytes);
+            LegacyPptSlide originalSlide = Assert.Single(original.Slides);
+
+            using var input = new MemoryStream(sourceBytes);
+            using PowerPointPresentation imported =
+                PowerPointPresentation.Load(input);
+            A.ThemeOverride theme = Assert.IsType<A.ThemeOverride>(imported
+                .Slides[0].SlidePart.ThemeOverridePart?.ThemeOverride);
+            SetThemeOverrideColor<A.Accent5Color>(theme, "5A6B7C");
+            SetThemeOverrideColor<A.Accent1Color>(theme, "102938");
+
+            LegacyPptWritePreflightReport preflight = imported
+                .AnalyzeLegacyPptWrite();
+            Assert.True(preflight.CanWrite,
+                string.Join(Environment.NewLine, preflight.Findings));
+            byte[] savedBytes = imported.ToBytes(PowerPointFileFormat.Ppt);
+            LegacyPptPresentation saved = LegacyPptPresentation.Load(savedBytes);
+            LegacyPptSlide savedSlide = Assert.Single(saved.Slides);
+
+            Assert.Equal("5A6B7C", savedSlide.RoundTripTheme?
+                .Colors[PowerPointThemeColor.Accent5]);
+            Assert.Equal("102938", savedSlide.RoundTripTheme?
+                .Colors[PowerPointThemeColor.Accent1]);
+            Assert.Equal("102938", savedSlide.ColorScheme?.Accent1);
+            Assert.False(savedSlide.FollowsMasterColorScheme);
+            Assert.Equal(original.Package.UserEdits.Count + 1,
+                saved.Package.UserEdits.Count);
+            Assert.True(saved.Package.DocumentStream.AsSpan(0,
+                    original.Package.DocumentStream.Length)
+                .SequenceEqual(original.Package.DocumentStream));
+            IReadOnlyList<byte[]> originalUnrelated =
+                ReadUnrelatedThemeChildren(original, originalSlide.PersistId);
+            IReadOnlyList<byte[]> savedUnrelated =
+                ReadUnrelatedThemeChildren(saved, savedSlide.PersistId);
+            Assert.Equal(originalUnrelated.Count, savedUnrelated.Count);
+            for (int index = 0; index < originalUnrelated.Count; index++) {
+                Assert.True(originalUnrelated[index]
+                    .SequenceEqual(savedUnrelated[index]));
+            }
+
+            using var reopenedInput = new MemoryStream(savedBytes);
+            using PowerPointPresentation reopened =
+                PowerPointPresentation.Load(reopenedInput);
+            A.ThemeOverride reopenedTheme = Assert.IsType<A.ThemeOverride>(
+                reopened.Slides[0].SlidePart.ThemeOverridePart?.ThemeOverride);
+            Assert.Equal("5A6B7C", reopenedTheme.ColorScheme!
+                .GetFirstChild<A.Accent5Color>()!
+                .GetFirstChild<A.RgbColorModelHex>()!.Val!.Value);
+            Assert.Equal("102938", reopenedTheme.ColorScheme!
+                .GetFirstChild<A.Accent1Color>()!
+                .GetFirstChild<A.RgbColorModelHex>()!.Val!.Value);
             Assert.Empty(reopened.ValidateDocument());
         }
 
@@ -309,7 +354,44 @@ namespace OfficeIMO.Tests {
             Assert.Empty(reopened.ValidateDocument());
         }
 
-        private static IReadOnlyList<byte[]> ReadUnrelatedMasterChildren(
+        private static byte[] CreateSlideThemeOverrideBytes(string accent5,
+            string accent1) {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            PowerPointSlide slide = presentation.AddSlide(
+                P.SlideLayoutValues.Blank);
+            A.ThemeElements sourceElements = presentation.OpenXmlDocument
+                .PresentationPart!.SlideMasterParts.First().ThemePart!.Theme!
+                .ThemeElements!;
+            A.ColorScheme colors = (A.ColorScheme)sourceElements.ColorScheme!
+                .CloneNode(true);
+            SetThemeColor<A.Accent5Color>(colors, accent5);
+            SetThemeColor<A.Accent1Color>(colors, accent1);
+            ThemeOverridePart overridePart = slide.SlidePart
+                .AddNewPart<ThemeOverridePart>();
+            overridePart.ThemeOverride = new A.ThemeOverride(
+                colors,
+                sourceElements.FontScheme!.CloneNode(true),
+                sourceElements.FormatScheme!.CloneNode(true));
+            return presentation.ToBytes(PowerPointFileFormat.Ppt);
+        }
+
+        private static void SetThemeOverrideColor<T>(A.ThemeOverride theme,
+            string value) where T : OpenXmlCompositeElement {
+            T color = Assert.IsType<T>(theme.ColorScheme?
+                .GetFirstChild<T>());
+            color.RemoveAllChildren();
+            color.Append(new A.RgbColorModelHex { Val = value });
+        }
+
+        private static void SetThemeColor<T>(A.ColorScheme theme,
+            string value) where T : OpenXmlCompositeElement {
+            T color = Assert.IsType<T>(theme.GetFirstChild<T>());
+            color.RemoveAllChildren();
+            color.Append(new A.RgbColorModelHex { Val = value });
+        }
+
+        private static IReadOnlyList<byte[]> ReadUnrelatedThemeChildren(
             LegacyPptPresentation presentation, uint persistId) {
             LegacyPptPersistObject persistObject =
                 presentation.Package.PersistObjects[persistId];

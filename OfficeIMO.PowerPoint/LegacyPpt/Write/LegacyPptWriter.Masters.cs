@@ -254,6 +254,37 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 colorSchemeSlotsToRewrite: changedClassicColorSlots);
         }
 
+        internal static byte[] BuildPreservedThemeRecord(
+            LegacyPptRecord prototype, SlidePart source,
+            IReadOnlyList<int> changedClassicColorSlots) {
+            if (prototype == null) throw new ArgumentNullException(nameof(prototype));
+            if (source == null) throw new ArgumentNullException(nameof(source));
+            A.ThemeOverride theme = source.ThemeOverridePart?.ThemeOverride
+                ?? throw new InvalidDataException(
+                    "A projected binary slide has no DrawingML theme override to preserve.");
+            if (changedClassicColorSlots == null) {
+                throw new ArgumentNullException(nameof(changedClassicColorSlots));
+            }
+            A.ColorScheme? effectiveColors = theme.ColorScheme
+                ?? source.SlideLayoutPart?.SlideMasterPart?.ThemePart?.Theme?
+                    .ThemeElements?.ColorScheme;
+            byte[] bytes = BuildMasterRecord(prototype,
+                ReadColorScheme(effectiveColors), background: null,
+                roundTripThemeRecords: BuildRoundTripThemeRecords(theme,
+                    source.Slide?.ColorMapOverride),
+                rewriteColorScheme: changedClassicColorSlots.Count > 0,
+                colorSchemeSlotsToRewrite: changedClassicColorSlots);
+            if (changedClassicColorSlots.Count == 0) return bytes;
+            LegacyPptRecord record = LegacyPptRecordReader.ReadSingle(bytes, 0,
+                new LegacyPptImportOptions());
+            LegacyPptRecord atom = record.Children.First(child =>
+                child.Type == RecordSlideAtom && child.PayloadLength >= 22);
+            ushort flags = ReadUInt16(bytes, atom.PayloadOffset + 20);
+            WriteUInt16(bytes, atom.PayloadOffset + 20,
+                unchecked((ushort)(flags & ~0x0002)));
+            return bytes;
+        }
+
         private static byte[] BuildPreservedMasterThemeRecord(
             LegacyPptRecord prototype, ThemePart? themePart,
             DocumentFormat.OpenXml.Presentation.ColorMap? colorMap,

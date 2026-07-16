@@ -1,6 +1,7 @@
 using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.PowerPoint.LegacyPpt.Internal;
 using OfficeIMO.PowerPoint.LegacyPpt.Model;
+using A = DocumentFormat.OpenXml.Drawing;
 using P = DocumentFormat.OpenXml.Presentation;
 
 namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
@@ -19,6 +20,11 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     .ColorMapOverride;
             IReadOnlyList<byte[]> roundTripThemeRecords =
                 BuildRoundTripThemeRecords(themePart?.ThemeOverride, colorMap);
+            A.ColorScheme? overrideColors = themePart?.ThemeOverride?
+                .ColorScheme;
+            LegacyPptWriterColorScheme? classicOverride = overrideColors == null
+                ? null
+                : ReadColorScheme(overrideColors);
             if (!TryReadBackground(slide, out LegacyPptWriterBackground? background,
                     out string? backgroundReason)) {
                 throw new NotSupportedException(backgroundReason);
@@ -34,6 +40,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 child.Type == RecordHeadersFooters && child.Instance == 0);
             LegacyPptWriterHeaderFooter? headerFooter = ReadSlideHeaderFooter(slide);
             bool wroteComments = false;
+            bool wroteClassicOverride = false;
             foreach (LegacyPptRecord child in prototype.Children) {
                 if (child.Type == RecordSlideAtom) {
                     byte[] atom = child.CopyRecordBytes();
@@ -46,9 +53,13 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     if (masterIdRef.HasValue) WriteUInt32(atom, 20, masterIdRef.Value);
                     WriteUInt32(atom, 24, notesIdRef.GetValueOrDefault());
                     ushort slideFlags = ReadUInt16(atom, 28);
-                    WriteUInt16(atom, 28, background == null
+                    slideFlags = background == null
                         ? unchecked((ushort)(slideFlags | 0x0004))
-                        : unchecked((ushort)(slideFlags & ~0x0004)));
+                        : unchecked((ushort)(slideFlags & ~0x0004));
+                    slideFlags = classicOverride == null
+                        ? unchecked((ushort)(slideFlags | 0x0002))
+                        : unchecked((ushort)(slideFlags & ~0x0002));
+                    WriteUInt16(atom, 28, slideFlags);
                     children.Add(atom);
                     if (headerFooter != null && !hasHeaderFooter
                         && !prototype.Children.Any(candidate =>
@@ -74,6 +85,11 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     children.Add(BuildHeaderFooterRecord(
                         headerFooter ?? LegacyPptWriterHeaderFooter.Empty,
                         instance: 0, allowHeader: false));
+                } else if (classicOverride != null
+                           && child.Type == RecordColorSchemeAtom
+                           && child.Instance == 1) {
+                    children.Add(BuildColorSchemeAtom(classicOverride));
+                    wroteClassicOverride = true;
                 } else if (child.Type == RecordProgTags) {
                     if (comments.Count > 0) {
                         children.Add(BuildCommentProgrammableTagsRecord(comments));
@@ -91,6 +107,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     child.Type != RecordSlideAtom).Count();
                 children.Insert(Math.Min(children.Count, slideAtomIndex + 1),
                     BuildSlideShowInfoRecord(slide, interactionCatalog.Sounds));
+            }
+            if (classicOverride != null && !wroteClassicOverride) {
+                children.Add(BuildColorSchemeAtom(classicOverride));
             }
             children.AddRange(roundTripThemeRecords);
             return BuildContainer(RecordSlide, instance: 0, children);

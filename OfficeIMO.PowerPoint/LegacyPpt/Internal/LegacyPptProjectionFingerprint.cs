@@ -213,6 +213,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             if (root is P.Slide slideRoot) {
                 slideRoot.Show = null;
                 slideRoot.Transition = null;
+                if (slideRoot.ColorMapOverride != null) {
+                    slideRoot.ColorMapOverride.ClearAllAttributes();
+                    slideRoot.ColorMapOverride.RemoveAllChildren();
+                }
                 NormalizeProjectedBackground(slideRoot.CommonSlideData);
                 P.SlideExtensionList? extensions = slideRoot
                     .GetFirstChild<P.SlideExtensionList>();

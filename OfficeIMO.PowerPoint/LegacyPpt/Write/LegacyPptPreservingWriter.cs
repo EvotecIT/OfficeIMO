@@ -235,6 +235,11 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         commentsBySlide[slide.SlidePart.Uri.ToString()];
                     bool commentsChanged = !CommentsEqual(slideProjection.Comments,
                         currentComments);
+                    bool themeChanged = !slideProjection.ThemeMatches(slide);
+                    if (themeChanged && slide.SlidePart.ThemeOverridePart?
+                            .ThemeOverride == null) {
+                        return false;
+                    }
                     bool backgroundChanged = !slideProjection.BackgroundMatches(slide);
                     LegacyPptWriter.LegacyPptWriterBackground? currentBackground = null;
                     if (backgroundChanged
@@ -246,7 +251,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     bool hasSlideRecordChanges = editsByOfficeArtId.Count > 0
                         || hidden.HasValue || headerFooterChanged
                         || transitionChanged || commentsChanged;
-                    if (!hasSlideRecordChanges && !backgroundChanged) continue;
+                    if (!hasSlideRecordChanges && !backgroundChanged
+                        && !themeChanged) continue;
 
                     LegacyPptRecord slideRecord = LegacyPptRecordReader.ReadSingle(persistObject.RecordBytes, 0,
                         new LegacyPptImportOptions());
@@ -271,6 +277,14 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         slideBytes = LegacyPptWriter
                             .BuildPreservedBackgroundRecord(
                                 backgroundRecord, currentBackground!);
+                    }
+                    if (themeChanged) {
+                        LegacyPptRecord themedRecord = LegacyPptRecordReader
+                            .ReadSingle(slideBytes, 0,
+                                new LegacyPptImportOptions());
+                        slideBytes = LegacyPptWriter.BuildPreservedThemeRecord(
+                            themedRecord, slide.SlidePart,
+                            slideProjection.GetChangedClassicColorSlots(slide));
                     }
                     rewritten.Add(slideProjection.PersistId, slideBytes);
                 }
