@@ -370,6 +370,109 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Xlsb_HyperlinkFixture_ProjectsExternalAndInternalLinks() {
+            using ExcelDocument document = ExcelDocument.Load(GetHyperlinkExcelGeneratedXlsbFixturePath());
+
+            Assert.Equal(2, document.Sheets.Count);
+            ExcelSheet links = document.Sheets[0];
+            IReadOnlyDictionary<string, ExcelHyperlinkSnapshot> hyperlinks = links.GetHyperlinks();
+            Assert.Equal(2, hyperlinks.Count);
+            Assert.True(hyperlinks["A1"].IsExternal);
+            Assert.Equal("https://example.org/officeimo?source=xlsb", hyperlinks["A1"].Target);
+            Assert.Equal("External screen tip", hyperlinks["A1"].Tooltip);
+            Assert.False(hyperlinks["A2"].IsExternal);
+            Assert.Equal("'Target Sheet'!B2", hyperlinks["A2"].Target);
+            Assert.Equal("Internal screen tip", hyperlinks["A2"].Tooltip);
+            Assert.True(links.TryGetCellText(1, 1, out string? externalDisplay));
+            Assert.True(links.TryGetCellText(2, 1, out string? internalDisplay));
+            Assert.Equal("External link", externalDisplay);
+            Assert.Equal("Internal link", internalDisplay);
+        }
+
+        [Fact]
+        public void Xlsb_HyperlinkFixture_NativeRewritePreservesLinkRecordsAndRelationships() {
+            byte[] original = File.ReadAllBytes(GetHyperlinkExcelGeneratedXlsbFixturePath());
+            using ExcelDocument document = ExcelDocument.Load(new MemoryStream(original, writable: false));
+            document.Sheets[0].CellValue(3, 1, "Edited plain value");
+
+            byte[] rewritten = document.ToBytes(ExcelFileFormat.Xlsb);
+
+            using ExcelDocument reloaded = ExcelDocument.Load(new MemoryStream(rewritten, writable: false));
+            IReadOnlyDictionary<string, ExcelHyperlinkSnapshot> hyperlinks = reloaded.Sheets[0].GetHyperlinks();
+            Assert.Equal("https://example.org/officeimo?source=xlsb", hyperlinks["A1"].Target);
+            Assert.Equal("'Target Sheet'!B2", hyperlinks["A2"].Target);
+            Assert.True(reloaded.Sheets[0].TryGetCellText(3, 1, out string? value));
+            Assert.Equal("Edited plain value", value);
+            AssertPackageEntriesEqualExcept(original, rewritten, "xl/worksheets/sheet1.bin");
+            AssertWorksheetRecordsEqualExceptCells(original, rewritten, "xl/worksheets/sheet1.bin", (3, 1));
+        }
+
+        [Fact]
+        public void Xlsb_HyperlinkFixture_ConvertsToXlsxWithLinksIntact() {
+            using ExcelDocument source = ExcelDocument.Load(GetHyperlinkExcelGeneratedXlsbFixturePath());
+            using var destination = new MemoryStream();
+
+            source.Save(destination, ExcelFileFormat.Xlsx);
+
+            using ExcelDocument converted = ExcelDocument.Load(new MemoryStream(destination.ToArray(), writable: false));
+            IReadOnlyDictionary<string, ExcelHyperlinkSnapshot> hyperlinks = converted.Sheets[0].GetHyperlinks();
+            Assert.Equal(2, hyperlinks.Count);
+            Assert.Equal("https://example.org/officeimo?source=xlsb", hyperlinks["A1"].Target);
+            Assert.Equal("External screen tip", hyperlinks["A1"].Tooltip);
+            Assert.Equal("'Target Sheet'!B2", hyperlinks["A2"].Target);
+            Assert.Equal("Internal screen tip", hyperlinks["A2"].Tooltip);
+        }
+
+        [Fact]
+        public void Xlsb_HyperlinkMutation_RejectsBeforeNativeWrite() {
+            using ExcelDocument document = ExcelDocument.Load(GetHyperlinkExcelGeneratedXlsbFixturePath());
+            document.Sheets[0].SetInternalLink(
+                2,
+                1,
+                "'Target Sheet'!C3",
+                display: "Internal link",
+                style: false,
+                tooltip: "Internal screen tip");
+            using var destination = new MemoryStream();
+
+            NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
+                document.Save(destination, ExcelFileFormat.Xlsb));
+
+            Assert.Contains("cannot modify hyperlinks", exception.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Equal(0, destination.Length);
+        }
+
+        [Fact]
+        public void Xlsb_HyperlinkReference_RejectsMissingRelationship() {
+            byte[] package = File.ReadAllBytes(GetHyperlinkExcelGeneratedXlsbFixturePath());
+            byte[] worksheet = ReadZipEntry(package, "xl/worksheets/sheet1.bin");
+            using var input = new MemoryStream(worksheet, writable: false);
+            IReadOnlyList<XlsbRecord> records = XlsbRecordReader.ReadAll(input);
+            XlsbRecord hyperlink = records.First(record => record.Type == 494 && ReadXlsbTestUInt32(record.Data, 16) > 0U);
+            byte[] tampered = (byte[])hyperlink.Data.Clone();
+            tampered[20] = (byte)'x';
+            tampered[21] = 0;
+            byte[] malformed = ReplaceWorksheetRecords(package, records, hyperlink, tampered);
+
+            InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+                ExcelDocument.Load(new MemoryStream(malformed, writable: false)));
+
+            Assert.Contains("missing or invalid hyperlink relationship", exception.Message, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
+        public void Xlsb_HyperlinkImport_EnforcesConfiguredLimit() {
+            var options = new ExcelLoadOptions {
+                XlsbImportOptions = new XlsbImportOptions { MaxHyperlinks = 1 }
+            };
+
+            InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+                ExcelDocument.Load(GetHyperlinkExcelGeneratedXlsbFixturePath(), options));
+
+            Assert.Contains("limit of 1 worksheet hyperlinks", exception.Message, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
         public void Xlsb_RowSpan_RejectsCellOutsideDeclaredSegmentBounds() {
             byte[] package = File.ReadAllBytes(GetGeometryExcelGeneratedXlsbFixturePath());
             byte[] worksheet = ReadZipEntry(package, "xl/worksheets/sheet1.bin");
@@ -654,6 +757,15 @@ namespace OfficeIMO.Tests {
                 "XlsbCorpus",
                 "excel-generated",
                 "worksheet-geometry.xlsb");
+        }
+
+        private static string GetHyperlinkExcelGeneratedXlsbFixturePath() {
+            return Path.Combine(
+                AppContext.BaseDirectory,
+                "Documents",
+                "XlsbCorpus",
+                "excel-generated",
+                "hyperlinks.xlsb");
         }
 
         private static void AssertColumn(

@@ -4,6 +4,7 @@ namespace OfficeIMO.Excel.Xlsb.Model {
         private readonly List<XlsbRowInfo> _rows = new List<XlsbRowInfo>();
         private readonly List<XlsbColumnInfo> _columns = new List<XlsbColumnInfo>();
         private readonly List<XlsbCellRange> _mergedRanges = new List<XlsbCellRange>();
+        private readonly List<XlsbHyperlink> _hyperlinks = new List<XlsbHyperlink>();
 
         internal XlsbWorksheet(string name, string relationshipId, uint tabId, uint state) {
             Name = name;
@@ -30,6 +31,8 @@ namespace OfficeIMO.Excel.Xlsb.Model {
 
         internal IReadOnlyList<XlsbCellRange> MergedRanges => _mergedRanges;
 
+        internal IReadOnlyList<XlsbHyperlink> Hyperlinks => _hyperlinks;
+
         internal XlsbCellRange? UsedRange { get; set; }
 
         internal XlsbWorksheetFormatInfo? FormatInfo { get; set; }
@@ -43,5 +46,7 @@ namespace OfficeIMO.Excel.Xlsb.Model {
         internal void AddColumn(XlsbColumnInfo column) => _columns.Add(column);
 
         internal void AddMergedRange(XlsbCellRange range) => _mergedRanges.Add(range);
+
+        internal void AddHyperlink(XlsbHyperlink hyperlink) => _hyperlinks.Add(hyperlink);
     }
 }

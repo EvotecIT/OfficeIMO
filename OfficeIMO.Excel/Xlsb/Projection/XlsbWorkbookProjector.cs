@@ -38,6 +38,7 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
                 });
 
                 XlsbWorksheetGeometryProjector.Apply(targetSheet, sourceSheet);
+                XlsbWorksheetHyperlinkProjector.Apply(targetSheet, sourceSheet);
 
                 if (sourceSheet.State == 1) {
                     targetSheet.SetHidden(true);

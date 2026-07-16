@@ -52,7 +52,8 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
                 && element is not SheetFormatProperties
                 && element is not Columns
                 && element is not SheetData
-                && element is not MergeCells);
+                && element is not MergeCells
+                && element is not Hyperlinks);
             if (unsupportedChild != null) {
                 ThrowGeometryMutation(sheet, unsupportedChild.LocalName);
             }

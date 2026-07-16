@@ -63,12 +63,12 @@ namespace OfficeIMO.Excel.Xlsb.Write {
 
         private static void ThrowIfUnsupportedWorksheetMutation(ExcelSheet sheet, XlsbWorksheet sourceSheet) {
             if (sheet.WorksheetPart.Parts.Any()
-                || sheet.WorksheetPart.ExternalRelationships.Any()
-                || sheet.WorksheetPart.HyperlinkRelationships.Any()) {
+                || sheet.WorksheetPart.ExternalRelationships.Any()) {
                 throw new NotSupportedException($"Native XLSB rewriting currently cannot modify relationship-backed worksheet content on worksheet '{sheet.Name}'; save as .xlsx to retain that change.");
             }
 
             XlsbWorksheetGeometryProjector.ValidateUnchanged(sheet, sourceSheet);
+            XlsbWorksheetHyperlinkProjector.ValidateUnchanged(sheet, sourceSheet);
         }
 
         private static XlsbWriteCell? ConvertCell(

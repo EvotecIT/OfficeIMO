@@ -43,10 +43,12 @@ namespace OfficeIMO.Excel.Xlsb {
         private const int BrtBeginColInfos = 390;
         private const int BrtEndColInfos = 391;
         private const int BrtWsFmtInfo = 485;
+        private const int BrtHLink = 494;
 
         private const string WorksheetRelationshipSuffix = "/worksheet";
         private const string SharedStringsRelationshipSuffix = "/sharedStrings";
         private const string StylesRelationshipSuffix = "/styles";
+        private const string HyperlinkRelationshipSuffix = "/hyperlink";
 
         internal static XlsbWorkbook Load(byte[] packageBytes, XlsbImportOptions? options = null) {
             if (packageBytes == null) throw new ArgumentNullException(nameof(packageBytes));
@@ -77,6 +79,7 @@ namespace OfficeIMO.Excel.Xlsb {
 
             int totalCells = 0;
             int totalMergedRanges = 0;
+            int totalHyperlinks = 0;
             foreach (XlsbWorksheet worksheet in workbook.Worksheets) {
                 if (!relationships.TryGetValue(worksheet.RelationshipId, out XlsbPackageRelationship? relationship)
                     || relationship.IsExternal
@@ -86,15 +89,18 @@ namespace OfficeIMO.Excel.Xlsb {
 
                 string sheetPartName = XlsbPackagePartReader.ResolveTarget(workbookPartName!, relationship.Target);
                 worksheet.PartName = sheetPartName;
+                IReadOnlyDictionary<string, XlsbPackageRelationship> worksheetRelationships = parts.ReadRelationships(sheetPartName);
                 ParseWorksheetPart(
                     parts.ReadPart(sheetPartName),
                     sheetPartName,
                     worksheet,
+                    worksheetRelationships,
                     sharedStrings,
                     resolved,
                     workbook,
                     ref totalCells,
-                    ref totalMergedRanges);
+                    ref totalMergedRanges,
+                    ref totalHyperlinks);
             }
 
             workbook.SharedStringCount = sharedStrings.Count;
@@ -222,11 +228,13 @@ namespace OfficeIMO.Excel.Xlsb {
             byte[] bytes,
             string partName,
             XlsbWorksheet worksheet,
+            IReadOnlyDictionary<string, XlsbPackageRelationship> worksheetRelationships,
             IReadOnlyList<string> sharedStrings,
             XlsbImportOptions options,
             XlsbWorkbook workbook,
             ref int totalCells,
-            ref int totalMergedRanges) {
+            ref int totalMergedRanges,
+            ref int totalHyperlinks) {
             IReadOnlyList<XlsbRecord> records = ReadRecords(bytes, options);
             if (records.Count < 2 || records[0].Type != BrtBeginSheet || records[records.Count - 1].Type != BrtEndSheet) {
                 throw new InvalidDataException($"The XLSB worksheet part '{partName}' is missing its BrtBeginSheet/BrtEndSheet boundaries.");
@@ -353,6 +361,13 @@ namespace OfficeIMO.Excel.Xlsb {
                         totalMergedRanges = checked(totalMergedRanges + actualMergeCount);
                         inMergeCells = false;
                         break;
+                    case BrtHLink:
+                        totalHyperlinks = checked(totalHyperlinks + 1);
+                        if (totalHyperlinks > options.MaxHyperlinks) {
+                            throw new InvalidDataException($"The XLSB workbook exceeds the configured limit of {options.MaxHyperlinks} worksheet hyperlinks.");
+                        }
+                        worksheet.AddHyperlink(ParseHyperlink(record, worksheetRelationships, options));
+                        break;
                     case BrtCellBlank:
                     case BrtCellRk:
                     case BrtCellError:
@@ -417,6 +432,41 @@ namespace OfficeIMO.Excel.Xlsb {
                 checked((int)lastRow + 1),
                 checked((int)firstColumn + 1),
                 checked((int)lastColumn + 1));
+        }
+
+        private static XlsbHyperlink ParseHyperlink(
+            XlsbRecord record,
+            IReadOnlyDictionary<string, XlsbPackageRelationship> relationships,
+            XlsbImportOptions options) {
+            if (record.Data.Length < 32) {
+                throw new InvalidDataException($"The BrtHLink record at offset {record.Offset} is truncated.");
+            }
+
+            var cursor = new XlsbBinaryCursor(record.Data);
+            byte[] rangePayload = cursor.ReadBytes(16);
+            var rangeRecord = new XlsbRecord(record.Offset, record.HeaderSize, BrtHLink, rangePayload);
+            XlsbCellRange range = ParseCellRange(rangeRecord, "BrtHLink");
+            string relationshipId = cursor.ReadWideString(options.MaxStringCharacters);
+            string location = cursor.ReadWideString(options.MaxStringCharacters);
+            string tooltip = cursor.ReadWideString(options.MaxStringCharacters);
+            string display = cursor.ReadWideString(options.MaxStringCharacters);
+            if (cursor.Remaining != 0) {
+                throw new InvalidDataException($"The BrtHLink record at offset {record.Offset} contains trailing payload bytes.");
+            }
+
+            string? externalTarget = null;
+            if (!string.IsNullOrEmpty(relationshipId)) {
+                if (!relationships.TryGetValue(relationshipId, out XlsbPackageRelationship? relationship)
+                    || !relationship.IsExternal
+                    || !relationship.Type.EndsWith(HyperlinkRelationshipSuffix, StringComparison.Ordinal)) {
+                    throw new InvalidDataException($"The BrtHLink record at offset {record.Offset} refers to missing or invalid hyperlink relationship '{relationshipId}'.");
+                }
+                externalTarget = relationship.Target;
+            } else if (string.IsNullOrWhiteSpace(location)) {
+                throw new InvalidDataException($"The BrtHLink record at offset {record.Offset} has neither an external relationship nor an internal location.");
+            }
+
+            return new XlsbHyperlink(range, relationshipId, externalTarget, location, tooltip, display);
         }
 
         private static XlsbWorksheetFormatInfo ParseWorksheetFormatInfo(XlsbRecord record) {
