@@ -3,7 +3,7 @@ using System.Threading.Tasks;
 
 namespace OfficeIMO.Reader.OneNote;
 
-public static partial class OneNoteReaderAdapter {
+internal static partial class OneNoteReaderAdapter {
     /// <summary>Schedules offline OneNote path ingestion without blocking the caller thread.</summary>
     public static Task<IReadOnlyList<ReaderChunk>> ReadAsync(
         string oneNotePath,

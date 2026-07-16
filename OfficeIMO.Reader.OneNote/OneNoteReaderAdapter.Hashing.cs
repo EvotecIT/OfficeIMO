@@ -2,7 +2,7 @@ using OfficeIMO.OneNote;
 
 namespace OfficeIMO.Reader.OneNote;
 
-public static partial class OneNoteReaderAdapter {
+internal static partial class OneNoteReaderAdapter {
     private static string BuildChunkHashInput(ReaderChunk chunk) {
         return string.Join("|", chunk.Kind.ToString(), chunk.SourceId ?? string.Empty,
             chunk.Location.Page?.ToString(CultureInfo.InvariantCulture) ?? string.Empty,

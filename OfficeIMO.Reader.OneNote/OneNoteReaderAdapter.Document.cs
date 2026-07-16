@@ -2,7 +2,7 @@ using OfficeIMO.OneNote;
 
 namespace OfficeIMO.Reader.OneNote;
 
-public static partial class OneNoteReaderAdapter {
+internal static partial class OneNoteReaderAdapter {
     /// <summary>Reads a OneNote section into the shared rich document result.</summary>
     public static OfficeDocumentReadResult ReadDocument(
         string oneNotePath,

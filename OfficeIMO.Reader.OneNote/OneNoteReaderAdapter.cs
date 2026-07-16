@@ -3,7 +3,7 @@ using OfficeIMO.OneNote;
 namespace OfficeIMO.Reader.OneNote;
 
 /// <summary>Projects native offline OneNote content into OfficeIMO.Reader contracts.</summary>
-public static partial class OneNoteReaderAdapter {
+internal static partial class OneNoteReaderAdapter {
     /// <summary>Reads an offline OneNote section, notebook index, or notebook package from a file path.</summary>
     public static IEnumerable<ReaderChunk> Read(
         string oneNotePath,

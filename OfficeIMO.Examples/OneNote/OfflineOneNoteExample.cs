@@ -42,7 +42,10 @@ internal static class OfflineOneNoteExample {
         string packagePath = Path.Combine(folderPath, "OfficeIMO-OneNote.onepkg");
         global::OfficeIMO.OneNote.OneNotePackageWriter.Write(notebook, packagePath);
 
-        global::OfficeIMO.Reader.OfficeDocumentReadResult reader = OneNoteReaderAdapter.ReadDocument(reopened);
+        global::OfficeIMO.Reader.OfficeDocumentReader readerFacade = new global::OfficeIMO.Reader.OfficeDocumentReaderBuilder()
+            .AddOneNoteHandler()
+            .Build();
+        global::OfficeIMO.Reader.OfficeDocumentReadResult reader = readerFacade.ReadDocument(sectionPath);
         File.WriteAllLines(Path.Combine(folderPath, "OfficeIMO-OneNote-reader.txt"), reader.Chunks.Select(chunk => chunk.Markdown ?? chunk.Text));
 
         Console.WriteLine("    OneNote: wrote .one, .onepkg, Markdown, HTML, PDF, and Reader projection artifacts.");

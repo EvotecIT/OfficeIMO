@@ -2,6 +2,8 @@
 
 The `.one` files in this folder are copied unchanged from the Apache Tika test corpus at commit
 `63e22d08ef249cc73a6d02da7bc199fc3623a607`. Apache Tika is licensed under the Apache License 2.0.
+The accompanying `LICENSE-APACHE-2.0.txt` and `NOTICE.txt` retain the applicable redistribution terms
+and Apache Tika attribution for these fixtures.
 
 Upstream path:
 

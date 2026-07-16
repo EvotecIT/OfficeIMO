@@ -18,6 +18,7 @@ public sealed class ReaderPackagingGuardrailTests {
     [InlineData("OfficeIMO.Reader.Json/OfficeIMO.Reader.Json.csproj")]
     [InlineData("OfficeIMO.Reader.Xml/OfficeIMO.Reader.Xml.csproj")]
     [InlineData("OfficeIMO.Reader.Yaml/OfficeIMO.Reader.Yaml.csproj")]
+    [InlineData("OfficeIMO.Reader.OneNote/OfficeIMO.Reader.OneNote.csproj")]
     public void ModularReaderProjects_RemainPackableAndPublishable(string relativeProjectPath) {
         var projectPath = Path.Combine(GetRepositoryRoot(), relativeProjectPath.Replace('/', Path.DirectorySeparatorChar));
         Assert.True(File.Exists(projectPath), "Project file is missing: " + projectPath);

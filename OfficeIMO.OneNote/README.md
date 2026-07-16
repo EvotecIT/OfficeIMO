@@ -111,6 +111,6 @@ Conflict copies and version-history snapshots are opt-in in direct conversions t
 
 ## Compatibility evidence
 
-The test corpus contains legally reusable Apache-2.0 OneNote fixtures for desktop and Microsoft 365/FSSHTTP encodings. Tests cover native read/write round trips, unknown-data preservation, deterministic corruption mutations, truncation, limits, package paths, all supported target frameworks, and packed-NuGet consumer use. Generated desktop sections have also been opened, edited, saved, closed, and reopened with Microsoft OneNote during interoperability validation; OneNote is not required at runtime or in CI.
+The test corpus contains legally reusable Apache-2.0 OneNote fixtures for desktop and Microsoft 365/FSSHTTP encodings. Tests cover native read/write round trips, unknown-data preservation, deterministic corruption mutations, truncation, limits, package paths, and all supported target frameworks. Release validation also covers packed-NuGet consumer use. Generated desktop sections have also been opened, edited, saved, closed, and reopened with Microsoft OneNote during interoperability validation; OneNote is not required at runtime or in CI.
 
 See the [current-state and capability matrix](../Docs/officeimo.onenote.current-state.md) for detailed boundaries and links to the Microsoft format specifications.

@@ -3,7 +3,7 @@ using OfficeIMO.OneNote.Markdown;
 
 namespace OfficeIMO.Reader.OneNote;
 
-public static partial class OneNoteReaderAdapter {
+internal static partial class OneNoteReaderAdapter {
     private static IEnumerable<ReaderChunk> BuildChunks(
         OneNoteSection section,
         SourceInfo source,
