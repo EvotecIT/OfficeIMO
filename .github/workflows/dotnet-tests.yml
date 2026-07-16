@@ -153,6 +153,113 @@ jobs:
           dotnet run --project Build/PackageSmoke/OfficeIMO.Email/OfficeIMO.Email.PackageSmoke.csproj --configuration $env:BUILD_CONFIGURATION --framework net8.0 --no-restore @smokeProperties
           dotnet run --project Build/PackageSmoke/OfficeIMO.Email/OfficeIMO.Email.PackageSmoke.csproj --configuration $env:BUILD_CONFIGURATION --framework net10.0 --no-restore @smokeProperties
 
+  onenote-package-consumers:
+    name: 'OfficeIMO.OneNote packed consumers'
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Pack and test clean package consumers
+        shell: pwsh
+        env:
+          NUGET_PACKAGES: ${{ runner.temp }}/officeimo-onenote-package-cache
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
+          $feed = Join-Path $env:RUNNER_TEMP 'officeimo-onenote-feed'
+          $configDirectory = Join-Path $env:RUNNER_TEMP 'officeimo-onenote-nuget'
+          $configPath = Join-Path $configDirectory 'nuget.config'
+          New-Item -ItemType Directory -Force -Path $feed | Out-Null
+          $projects = @(
+            'OfficeIMO.Reader/OfficeIMO.Reader.csproj',
+            'OfficeIMO.OneNote/OfficeIMO.OneNote.csproj',
+            'OfficeIMO.OneNote.Markdown/OfficeIMO.OneNote.Markdown.csproj',
+            'OfficeIMO.OneNote.Html/OfficeIMO.OneNote.Html.csproj',
+            'OfficeIMO.OneNote.Pdf/OfficeIMO.OneNote.Pdf.csproj',
+            'OfficeIMO.Reader.OneNote/OfficeIMO.Reader.OneNote.csproj'
+          )
+          foreach ($project in $projects) {
+            dotnet restore $project --no-http-cache
+            dotnet pack $project --configuration $env:BUILD_CONFIGURATION --no-restore --output $feed
+          }
+          function Get-PackedPackageVersion([string] $id) {
+            $escapedId = [Regex]::Escape($id)
+            $packages = @(Get-ChildItem -LiteralPath $feed -Filter "$id.*.nupkg" |
+              Where-Object { $_.BaseName -match "^$escapedId\.[0-9]" })
+            if ($packages.Count -ne 1) {
+              throw "Expected exactly one packed $id package, found $($packages.Count)."
+            }
+            return $packages[0].BaseName.Substring($id.Length + 1)
+          }
+          $packageIds = @(
+            'OfficeIMO.Reader',
+            'OfficeIMO.OneNote',
+            'OfficeIMO.OneNote.Markdown',
+            'OfficeIMO.OneNote.Html',
+            'OfficeIMO.OneNote.Pdf',
+            'OfficeIMO.Reader.OneNote'
+          )
+          $packageVersions = @{}
+          foreach ($packageId in $packageIds) {
+            $packageVersions[$packageId] = Get-PackedPackageVersion $packageId
+          }
+          $oneNoteVersion = $packageVersions['OfficeIMO.OneNote']
+          foreach ($packageId in $packageIds) {
+            if ($packageVersions[$packageId] -ne $oneNoteVersion) {
+              throw "$packageId packed as $($packageVersions[$packageId]); expected $oneNoteVersion."
+            }
+          }
+          $smokeProperties = @(
+            '--property:EnableOfficeIMOOneNotePackageSmoke=true',
+            "--property:OfficeIMOOneNotePackageVersion=$oneNoteVersion"
+          )
+          dotnet new nugetconfig --output $configDirectory --force
+          dotnet nuget add source "$feed" --name OfficeIMOLocal --configfile "$configPath"
+          [xml] $nugetConfig = Get-Content -LiteralPath $configPath
+          $sourceMapping = $nugetConfig.CreateElement('packageSourceMapping')
+          $nugetOrgSource = @($nugetConfig.configuration.packageSources.add |
+            Where-Object { $_.value -eq 'https://api.nuget.org/v3/index.json' })
+          if ($nugetOrgSource.Count -ne 1) {
+            throw "Expected exactly one nuget.org source in $configPath."
+          }
+          $nugetOrgMapping = $nugetConfig.CreateElement('packageSource')
+          $nugetOrgMapping.SetAttribute('key', $nugetOrgSource[0].key)
+          $publicPattern = $nugetConfig.CreateElement('package')
+          $publicPattern.SetAttribute('pattern', '*')
+          [void] $nugetOrgMapping.AppendChild($publicPattern)
+          [void] $sourceMapping.AppendChild($nugetOrgMapping)
+          $localMapping = $nugetConfig.CreateElement('packageSource')
+          $localMapping.SetAttribute('key', 'OfficeIMOLocal')
+          foreach ($packageId in $packageIds) {
+            $localPattern = $nugetConfig.CreateElement('package')
+            $localPattern.SetAttribute('pattern', $packageId)
+            [void] $localMapping.AppendChild($localPattern)
+          }
+          [void] $sourceMapping.AppendChild($localMapping)
+          [void] $nugetConfig.configuration.AppendChild($sourceMapping)
+          $nugetConfig.Save($configPath)
+          dotnet restore Build/PackageSmoke/OfficeIMO.OneNote/OfficeIMO.OneNote.PackageSmoke.csproj @smokeProperties --configfile "$configPath" --no-http-cache
+          $expectedFeed = (Resolve-Path $feed).Path.TrimEnd('\', '/')
+          foreach ($packageId in $packageIds) {
+            $packageVersion = $packageVersions[$packageId]
+            $metadataPath = Join-Path $env:NUGET_PACKAGES "$($packageId.ToLowerInvariant())/$packageVersion/.nupkg.metadata"
+            $metadata = Get-Content $metadataPath -Raw | ConvertFrom-Json
+            $resolvedSource = (Resolve-Path $metadata.source).Path.TrimEnd('\', '/')
+            if (-not $resolvedSource.Equals($expectedFeed, [StringComparison]::OrdinalIgnoreCase)) {
+              throw "$packageId restored from '$resolvedSource' instead of the local package feed '$expectedFeed'."
+            }
+          }
+          dotnet run --project Build/PackageSmoke/OfficeIMO.OneNote/OfficeIMO.OneNote.PackageSmoke.csproj --configuration $env:BUILD_CONFIGURATION --framework net472 --no-restore @smokeProperties
+          dotnet run --project Build/PackageSmoke/OfficeIMO.OneNote/OfficeIMO.OneNote.PackageSmoke.csproj --configuration $env:BUILD_CONFIGURATION --framework net8.0 --no-restore @smokeProperties
+          dotnet run --project Build/PackageSmoke/OfficeIMO.OneNote/OfficeIMO.OneNote.PackageSmoke.csproj --configuration $env:BUILD_CONFIGURATION --framework net10.0 --no-restore @smokeProperties
+
   opendocument-schema:
     name: 'OpenDocument schema and LibreOffice'
     runs-on: ubuntu-latest
