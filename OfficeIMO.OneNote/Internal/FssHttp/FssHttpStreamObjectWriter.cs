@@ -15,9 +15,22 @@ internal sealed class FssHttpWriteObject {
 
 internal static class FssHttpStreamObjectWriter {
     internal static byte[] Write(FssHttpWriteObject value) {
-        using (var stream = new MemoryStream()) {
+        long length = GetEncodedLength(value);
+        if (length > int.MaxValue) throw new IOException("The FSSHTTP payload exceeds the supported in-memory size.");
+        using (var stream = new MemoryStream((int)length)) {
             WriteObject(stream, value);
             return stream.ToArray();
+        }
+    }
+
+    internal static long GetEncodedLength(FssHttpWriteObject value) {
+        if (value == null) throw new ArgumentNullException(nameof(value));
+        if (value.Type < 0 || value.Type > 0x3FFF) throw new ArgumentOutOfRangeException(nameof(value));
+        checked {
+            long length = 4L + GetCompactUInt64Length((ulong)value.Data.LongLength) + value.Data.LongLength;
+            foreach (FssHttpWriteObject child in value.Children) length += GetEncodedLength(child);
+            if (value.Compound) length += value.Type <= 0x3F ? 1L : 2L;
+            return length;
         }
     }
 
@@ -82,6 +95,16 @@ internal static class FssHttpStreamObjectWriter {
     internal static void WriteUInt64(Stream stream, ulong value) {
         WriteUInt32(stream, (uint)value);
         WriteUInt32(stream, (uint)(value >> 32));
+    }
+
+    private static int GetCompactUInt64Length(ulong value) {
+        if (value < 0x7FFFUL) return 0;
+        if (value <= 0x7FUL) return 1;
+        for (int length = 2; length <= 7; length++) {
+            int valueBits = length * 8 - length;
+            if (value < (1UL << valueBits)) return length;
+        }
+        return 9;
     }
 
     private static void WriteStartHeader(Stream stream, int type, bool compound, ulong length) {

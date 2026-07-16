@@ -61,9 +61,15 @@ public sealed class CorruptionSafetyTests {
 
         IOException exception = Assert.Throws<IOException>(() =>
             OneNoteSectionWriter.Write(section, new OneNoteWriterOptions { MaxOutputBytes = 1024 }));
+        IOException packageException = Assert.Throws<IOException>(() =>
+            OneNoteSectionWriter.Write(section, new OneNoteWriterOptions {
+                StorageFormat = OneNoteStorageFormat.FileSynchronizationPackage,
+                MaxOutputBytes = 1024
+            }));
 
         Assert.Contains("MaxOutputBytes", layoutException.Message);
         Assert.Contains("MaxOutputBytes", exception.Message);
+        Assert.Contains("MaxOutputBytes", packageException.Message);
     }
 
     private static OneNoteReaderOptions TightOptions(int inputLength) => new OneNoteReaderOptions {

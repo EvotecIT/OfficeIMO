@@ -95,11 +95,17 @@ internal static partial class OneNoteReaderAdapter {
                 byte[]? bytes = null;
                 long? length = binary.Payload.Length;
                 bool canMaterialize = !length.HasValue || length.Value <= context.OneNoteOptions.OneNoteOptions.MaxAssetBytes;
-                if (context.OneNoteOptions.IncludeAssetPayloads && canMaterialize &&
-                    (!length.HasValue || totalMaterialized + length.Value <= context.OneNoteOptions.OneNoteOptions.MaxTotalAssetBytes)) {
-                    bytes = binary.Payload.ToArray(context.OneNoteOptions.OneNoteOptions.MaxAssetBytes);
-                    totalMaterialized += bytes.LongLength;
-                    length = bytes.LongLength;
+                long remainingBudget = context.OneNoteOptions.OneNoteOptions.MaxTotalAssetBytes - totalMaterialized;
+                long materializationLimit = Math.Min(context.OneNoteOptions.OneNoteOptions.MaxAssetBytes, remainingBudget);
+                if (context.OneNoteOptions.IncludeAssetPayloads && canMaterialize && materializationLimit > 0 &&
+                    (!length.HasValue || length.Value <= materializationLimit)) {
+                    bytes = length.HasValue
+                        ? binary.Payload.ToArray(materializationLimit)
+                        : TryMaterializeUnknownLengthPayload(binary.Payload, materializationLimit, cancellationToken);
+                    if (bytes != null) {
+                        totalMaterialized += bytes.LongLength;
+                        length = bytes.LongLength;
+                    }
                 }
                 string? payloadHash = null;
                 if (context.ReaderOptions.ComputeHashes) {
@@ -123,6 +129,28 @@ internal static partial class OneNoteReaderAdapter {
                     Location = BuildLocation(context.Source, pageIndex, kind, assetId)
                 };
                 assetIndex++;
+            }
+        }
+    }
+
+    private static byte[]? TryMaterializeUnknownLengthPayload(
+        OneNoteBinaryPayload payload,
+        long maxBytes,
+        CancellationToken cancellationToken) {
+        using (Stream stream = payload.OpenRead())
+        using (var output = new MemoryStream()) {
+            int bufferSize = (int)Math.Min(64L * 1024L, maxBytes);
+            var buffer = new byte[bufferSize];
+            long total = 0;
+            while (true) {
+                cancellationToken.ThrowIfCancellationRequested();
+                long remaining = maxBytes - total;
+                int requested = remaining >= buffer.Length ? buffer.Length : (int)remaining + 1;
+                int read = stream.Read(buffer, 0, requested);
+                if (read <= 0) return output.ToArray();
+                if (read > remaining) return null;
+                output.Write(buffer, 0, read);
+                total += read;
             }
         }
     }

@@ -20,7 +20,7 @@ internal static class OneNoteGraphSerializer {
                 data = OneNoteRevisionStoreWriter.Write(graph, options.MaxOutputBytes);
                 break;
             case OneNoteStorageFormat.FileSynchronizationPackage:
-                data = OneNotePackageStoreWriter.Write(graph);
+                data = OneNotePackageStoreWriter.Write(graph, options.MaxOutputBytes);
                 break;
             default:
                 throw new ArgumentOutOfRangeException(

@@ -11,7 +11,8 @@ internal static class OneNotePackageStoreWriter {
     private static readonly OneNoteExtendedGuid HeaderObjectId = Extended("B4760B1A-FBDF-4AE3-9D08-53219D8A8D21", 1);
     private const uint FileFormatVersion = 42;
 
-    internal static byte[] Write(OneNoteWriteGraph graph) {
+    internal static byte[] Write(OneNoteWriteGraph graph, long maxOutputBytes = long.MaxValue) {
+        if (maxOutputBytes < 1) throw new ArgumentOutOfRangeException(nameof(maxOutputBytes), "MaxOutputBytes must be greater than zero.");
         var ids = new OneNoteWriteIdFactory();
         OneNoteExtendedGuid storageIndexId = ids.New();
         OneNoteExtendedGuid storageManifestId = ids.New();
@@ -36,15 +37,21 @@ internal static class OneNotePackageStoreWriter {
             FssHttpStreamObjectWriter.WriteGuid(stream, graph.FileKind == OneNoteFileKind.TableOfContents ? OneNoteFormatConstants.TableOfContentsCellSchema : OneNoteFormatConstants.SectionCellSchema);
         });
         var root = new FssHttpWriteObject(0x7A, rootData, new[] { new FssHttpWriteObject(0x15, children: packageElements) });
-        byte[] packaging = FssHttpStreamObjectWriter.Write(root);
-        var output = new byte[68 + packaging.Length];
+        long packagingLength = FssHttpStreamObjectWriter.GetEncodedLength(root);
+        long outputLength = checked(68L + packagingLength);
+        if (outputLength > maxOutputBytes) throw new IOException("FSSHTTP OneNote output exceeds MaxOutputBytes.");
+        if (outputLength > int.MaxValue) throw new IOException("FSSHTTP OneNote output exceeds the supported in-memory size.");
+        var output = new byte[(int)outputLength];
         // MS-ONESTORE package-store envelopes use the .one file-type GUID for both
         // section and table-of-contents payloads; guidCellSchemaId distinguishes them.
         Buffer.BlockCopy(OneNoteFormatConstants.SectionFileType.ToByteArray(), 0, output, 0, 16);
         Buffer.BlockCopy(graph.FileId.ToByteArray(), 0, output, 16, 16);
         Buffer.BlockCopy(Guid.NewGuid().ToByteArray(), 0, output, 32, 16);
         Buffer.BlockCopy(OneNoteFormatConstants.PackageStoreFormat.ToByteArray(), 0, output, 48, 16);
-        Buffer.BlockCopy(packaging, 0, output, 68, packaging.Length);
+        using (var stream = new MemoryStream(output, true)) {
+            stream.Position = 68;
+            FssHttpStreamObjectWriter.WriteObject(stream, root);
+        }
         return output;
     }
 

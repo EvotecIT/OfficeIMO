@@ -278,6 +278,8 @@ public static class OneNoteMarkdownProjection {
     private static string PageTitle(OneNotePage page) => string.IsNullOrWhiteSpace(page.Title) ? "Untitled page" : page.Title;
     private static string Escape(string? value) => (value ?? string.Empty)
         .Replace("\\", "\\\\")
+        .Replace("`", "\\`")
+        .Replace("~", "\\~")
         .Replace("*", "\\*")
         .Replace("_", "\\_")
         .Replace("[", "\\[")

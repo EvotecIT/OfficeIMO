@@ -72,6 +72,21 @@ public sealed class ReaderOneNoteModularTests {
     }
 
     [Fact]
+    public void OneNoteAdapter_MarkdownEscapesLiteralCodeAndStrikethroughDelimiters() {
+        var section = new OneNoteSection { Name = "Literal delimiters" };
+        var page = new OneNotePage { Title = "Literal `title` and ~~strike~~" };
+        var paragraph = new OneNoteParagraph();
+        paragraph.Runs.Add(new OneNoteTextRun { Text = "Literal `code` and ~~deleted~~" });
+        page.DirectContent.Add(paragraph);
+        section.Pages.Add(page);
+
+        string markdown = Assert.Single(OneNoteReaderAdapter.ReadDocument(section).Chunks).Markdown!;
+
+        Assert.Contains("# Literal \\`title\\` and \\~\\~strike\\~\\~", markdown, StringComparison.Ordinal);
+        Assert.Contains("Literal \\`code\\` and \\~\\~deleted\\~\\~", markdown, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void OneNoteAdapter_ReadDocument_ProjectsEmbeddedAssetWithOptionalPayload() {
         OfficeDocumentReadResult metadataOnly = OneNoteReaderAdapter.ReadDocument(FixturePath("testOneNoteEmbeddedWordDoc.one"));
         OfficeDocumentAsset metadataAsset = Assert.Single(metadataOnly.Assets, asset => asset.Kind == "embedded-file");
@@ -92,6 +107,36 @@ public sealed class ReaderOneNoteModularTests {
         Assert.Equal((byte)'P', payloadAsset.PayloadBytes![0]);
         Assert.Equal((byte)'K', payloadAsset.PayloadBytes[1]);
         Assert.Same(payloadAsset, Assert.Single(withPayload.Pages.SelectMany(page => page.Assets), asset => asset.Id == payloadAsset.Id));
+    }
+
+    [Fact]
+    public void OneNoteAdapter_UnknownLengthPayloadsRespectAggregateMaterializationLimit() {
+        var section = new OneNoteSection { Name = "Bounded assets" };
+        var page = new OneNotePage { Title = "Assets" };
+        page.DirectContent.Add(new OneNoteEmbeddedFile {
+            FileName = "first.bin",
+            Payload = OneNoteBinaryPayload.FromStreamFactory(() => new MemoryStream(new byte[] { 1, 2, 3, 4 }))
+        });
+        page.DirectContent.Add(new OneNoteEmbeddedFile {
+            FileName = "second.bin",
+            Payload = OneNoteBinaryPayload.FromStreamFactory(() => new MemoryStream(new byte[] { 5, 6, 7, 8 }))
+        });
+        section.Pages.Add(page);
+
+        OfficeDocumentReadResult result = OneNoteReaderAdapter.ReadDocument(
+            section,
+            oneNoteOptions: new ReaderOneNoteOptions {
+                IncludeAssetPayloads = true,
+                OneNoteOptions = new OneNoteReaderOptions {
+                    MaxAssetBytes = 4,
+                    MaxTotalAssetBytes = 6
+                }
+            });
+
+        Assert.Collection(result.Assets,
+            first => Assert.Equal(new byte[] { 1, 2, 3, 4 }, first.PayloadBytes),
+            second => Assert.Null(second.PayloadBytes));
+        Assert.Equal(4, result.Assets.Sum(asset => asset.PayloadBytes?.LongLength ?? 0));
     }
 
     [Fact]
