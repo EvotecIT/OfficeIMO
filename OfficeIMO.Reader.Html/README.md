@@ -3,7 +3,7 @@
 [![nuget version](https://img.shields.io/nuget/v/OfficeIMO.Reader.Html)](https://www.nuget.org/packages/OfficeIMO.Reader.Html)
 [![nuget downloads](https://img.shields.io/nuget/dt/OfficeIMO.Reader.Html?label=nuget%20downloads)](https://www.nuget.org/packages/OfficeIMO.Reader.Html)
 
-`OfficeIMO.Reader.Html` provides a modular HTML ingestion adapter for `OfficeIMO.Reader`.
+`OfficeIMO.Reader.Html` provides a modular HTML and MHTML ingestion adapter for `OfficeIMO.Reader`.
 
 ## Install
 
@@ -20,6 +20,16 @@ using OfficeIMO.Reader.Html;
 OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
     .AddHtmlHandler()
     .Build();
+```
+
+The same registration handles `.mht` and `.mhtml`. Embedded MHTML resources become normal Reader assets and the archive uses the same rich HTML projection:
+
+```csharp
+OfficeDocumentReadResult result = reader.ReadDocument("snapshot.mhtml");
+
+foreach (OfficeDocumentAsset asset in result.Assets) {
+    Console.WriteLine($"{asset.FileName}: {asset.LengthBytes}");
+}
 ```
 
 For untrusted or size-sensitive HTML:
@@ -98,6 +108,7 @@ foreach (OfficeDocumentLink link in document.Links) {
 - Heading-aware chunk metadata when `ReaderOptions.MarkdownChunkByHeadings` is enabled.
 - HTML-to-Markdown profile, transform, converter, and visual round-trip option pass-through.
 - A schema-v5 rich result containing semantic blocks, figures, tables, links, form controls, media visuals, metadata, and bounded data-URI image assets.
+- MHTML root HTML, decoded related resources, archive diagnostics, and stable `officeimo.html.mhtml` capability evidence.
 
 ## Boundaries
 
@@ -113,6 +124,6 @@ foreach (OfficeDocumentLink link in document.Links) {
 ## Dependency footprint
 
 - **External:** AngleSharp/AngleSharp.Css only through `OfficeIMO.Html`.
-- **OfficeIMO:** `OfficeIMO.Reader`, `OfficeIMO.Html`, `OfficeIMO.Markdown`, and `OfficeIMO.Markdown.Html` own parsing, projection, chunks, and rich results.
+- **OfficeIMO:** `OfficeIMO.Reader`, `OfficeIMO.Html`, `OfficeIMO.Email`, `OfficeIMO.Markdown`, and `OfficeIMO.Markdown.Html` own MIME mechanics, parsing, projection, chunks, and rich results.
 
 See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

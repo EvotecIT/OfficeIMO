@@ -3,7 +3,7 @@
 [![nuget version](https://img.shields.io/nuget/v/OfficeIMO.Drawing)](https://www.nuget.org/packages/OfficeIMO.Drawing)
 [![nuget downloads](https://img.shields.io/nuget/dt/OfficeIMO.Drawing?label=nuget%20downloads)](https://www.nuget.org/packages/OfficeIMO.Drawing)
 
-`OfficeIMO.Drawing` is the zero-dependency shared foundation for OfficeIMO packages. It owns the common document lifecycle contracts as well as color and calibrated-color conversion, image metadata, font, text measurement, vector shape, chart snapshot, SVG, raster canvas, PNG read/write, and drawing-quality primitives. Format packages keep their document-specific behavior while reusing one lifecycle and persistence vocabulary.
+`OfficeIMO.Drawing` is the zero-dependency shared foundation for OfficeIMO packages. It owns the common document lifecycle contracts as well as color and calibrated-color conversion, image metadata, font, text measurement, vector shape, chart snapshot, SVG, raster canvas, PNG/JPEG/TIFF/WebP encoding, and drawing-quality primitives. Format packages keep their document-specific behavior while reusing one lifecycle and persistence vocabulary.
 
 ## Install
 
@@ -51,6 +51,24 @@ Console.WriteLine($"{info.Width}x{info.Height} {info.MimeType}");
 
 OfficeImageFit fit = OfficeImageFit.Contain;
 ```
+
+### Encode common raster formats
+
+```csharp
+using OfficeIMO.Drawing;
+
+var image = new OfficeRasterImage(320, 180, OfficeColor.White);
+var options = new OfficeRasterEncodingOptions {
+    Jpeg = new OfficeJpegEncodeOptions { Quality = 90 },
+    Tiff = new OfficeTiffEncodeOptions { Compression = OfficeTiffCompression.PackBits }
+};
+
+byte[] jpeg = OfficeRasterImageEncoder.Encode(image, OfficeImageExportFormat.Jpeg, options);
+byte[] tiff = OfficeRasterImageEncoder.Encode(image, OfficeImageExportFormat.Tiff, options);
+byte[] webp = OfficeRasterImageEncoder.Encode(image, OfficeImageExportFormat.Webp, options);
+```
+
+WebP output is deterministic, lossless VP8L. TIFF output is a single-page baseline RGBA image with uncompressed or PackBits strips. JPEG uses the existing managed quality, subsampling, progressive, metadata, and transparency-flattening settings.
 
 ### Deterministic text measurement
 
@@ -148,15 +166,16 @@ if (font != null) {
 - `OfficeShape`, `OfficeDrawing`, gradients, shadows, transforms, clipping, and vector descriptors that format-specific packages can map into their own coordinate systems.
 - `OfficeChartSnapshot` and chart rendering primitives shared by PDF and Office exporters.
 - `OfficeRasterImage`, `OfficeRasterCanvas`, `OfficeRasterRenderTarget`, and `OfficeDrawingRasterRenderer` for shared dependency-free raster rendering.
-- `OfficePngReader` and `OfficePngWriter` for PNG paths that should not be reimplemented by document packages.
+- `OfficePngReader`, `OfficePngWriter`, and `OfficeJpegCodec` for PNG/JPEG paths that should not be reimplemented by document packages.
+- `OfficeTiffCodec`, `OfficeWebpCodec`, and `OfficeRasterImageEncoder` for shared baseline TIFF, lossless WebP, and format-neutral raster output.
 - Shared SVG formatting, primitive writing, image projection, text-block rendering, hatch-pattern, data-bar, and sparkline helpers.
 - Drawing quality diagnostics for canvas bounds and text overlap checks.
 
 ## Boundaries
 
-- This package owns shared lifecycle contracts, persistence mechanics, drawing intent, raster buffers, SVG/PNG primitives, image projection, text layout helpers, chart drawing, and document-agnostic visual diagnostics.
+- This package owns shared lifecycle contracts, persistence mechanics, drawing intent, raster buffers, SVG and raster encoding primitives, image projection, text layout helpers, chart drawing, and document-agnostic visual diagnostics.
 - Word, Excel, PowerPoint, Visio, and PDF packages own source-document semantics: package parsing, layout policy, coordinate systems, style/theme resolution, and user-facing export APIs.
-- Document packages should not add private pixel engines, PNG encoders/decoders, SVG primitive writers, text wrapping engines, or duplicate image-transform loops when the behavior can reasonably live here.
+- Document packages should not add private pixel engines, image encoders/decoders, SVG primitive writers, text wrapping engines, or duplicate image-transform loops when the behavior can reasonably live here.
 - PDF keeps PDF-stream and page-writer behavior in `OfficeIMO.Pdf`; when it needs generic image-like drawing, vector descriptors, colors, chart snapshots, PNG helpers, or raster visual QA, it should use `OfficeIMO.Drawing`.
 - Unsupported or approximate source features belong in stable diagnostics from the adapter, not as silent omissions in a renderer.
 

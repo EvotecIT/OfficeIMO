@@ -1,19 +1,76 @@
 # OfficeIMO.Email.Store
 
-`OfficeIMO.Email.Store` reads mailbox and email-store formats into the common `OfficeIMO.Email.EmailDocument` model.
-It is fully managed and does not require Outlook, native libraries, or third-party parser packages at runtime.
+`OfficeIMO.Email.Store` is the fully managed, read-only mailbox-store package for PST, OST, OLM, and EMLX artifacts. It projects every supported item into the common `OfficeIMO.Email.EmailDocument` model without Outlook, native libraries, or third-party parser packages.
 
-The public API is bounded by default:
+## Install
+
+```powershell
+dotnet add package OfficeIMO.Email.Store
+```
+
+## Read a store
 
 ```csharp
+using OfficeIMO.Email.Store;
+
 EmailStoreReadResult result = new EmailStoreReader().Read("archive.pst");
 
 foreach (EmailStoreFolder folder in result.Store.Folders) {
     foreach (EmailStoreMessage message in folder.Messages) {
-        Console.WriteLine(message.Document.Subject);
+        Console.WriteLine($"{folder.Name}: {message.Document.Subject}");
     }
+}
+
+foreach (EmailStoreDiagnostic diagnostic in result.Diagnostics) {
+    Console.WriteLine($"{diagnostic.Severity}: {diagnostic.Code}: {diagnostic.Message}");
 }
 ```
 
-PST and OST files are read-only. The reader projects their MAPI properties through `OfficeIMO.Email`, so MSG,
-OFT, PST, and OST items share the same message, appointment, contact, task, journal, and note semantics.
+The same reader detects the format from a bounded header plus the source name:
+
+```csharp
+EmailStoreFormat format = EmailStoreReader.DetectFormat("export.olm");
+EmailStoreReadResult result = new EmailStoreReader().Read("export.olm");
+```
+
+## Supported inputs
+
+| Format | Current contract |
+| --- | --- |
+| PST | ANSI and Unicode NDB stores, folders, contents tables, ordinary and associated items, named properties, attachments, and embedded messages. |
+| OST | The supported PST-compatible NDB paths plus compressed blocks used by supported OST variants. Server-only or unmaterialized content cannot be recovered from an offline file. |
+| OLM | Bounded Outlook for Mac ZIP/XML archives, folders, messages and typed items, and safe in-archive attachments. |
+| EMLX | One Apple Mail EMLX item, including its RFC 5322/MIME message and supported XML property-list metadata. Partial files report that external Apple Mail content may be absent. |
+
+PST and OST MAPI properties use the same projections as MSG and OFT, so messages, appointments, contacts, tasks, journals, notes, recipients, attachments, and named properties do not acquire a second public model.
+
+## Limits and attachment retention
+
+Reads are bounded before large structures are retained. Applications can narrow source bytes, nodes, folders, messages, properties, attachments, archive entries, XML characters, and embedded-message depth:
+
+```csharp
+var options = new EmailStoreReaderOptions(
+    maxInputBytes: 2L * 1024 * 1024 * 1024,
+    maxMessageCount: 100_000,
+    retainAttachmentContent: false,
+    includeAssociatedMessages: false);
+
+EmailStoreReadResult result = new EmailStoreReader(options).Read("archive.ost");
+```
+
+Set `PstPassword` only when a protected PST requires checksum validation. Passwords are not logged or copied into results. Caller-owned streams must be readable and seekable; reads restore the original stream position and leave the stream open.
+
+## Boundaries
+
+- This package owns store/container traversal and store-to-`EmailDocument` projection.
+- `OfficeIMO.Email` owns EML/MIME, MSG/OFT, TNEF, mbox, MAPI models, and item serialization.
+- `OfficeIMO.Reader.EmailStore` owns optional Reader registration and rich-result projection.
+- Store mutation, Outlook profiles, Exchange synchronization, cloud download, and server-side recovery are outside this offline reader.
+
+## Targets and dependencies
+
+- Targets: `netstandard2.0`, `net8.0`, `net10.0`; `net472` is included when building on Windows.
+- External parser dependencies: none.
+- OfficeIMO dependency: `OfficeIMO.Email`.
+
+See the [complete OfficeIMO package map](../README.md) for related formats and Reader adapters.
