@@ -39,7 +39,7 @@ OfficeIMO keeps document engines first-party and optional integrations isolated.
 | Surface | Current repository coverage |
 | --- | ---: |
 | Coordinated `2.0.x` release packages | 66 |
-| Documented package, tool, and example projects below | 75 |
+| Documented package, tool, and example projects below | 74 |
 | Native format, foundation, and shared-service packages | 21 |
 | Conversion and cloud bridge packages | 23 |
 | Unified Reader packages | 19 |
