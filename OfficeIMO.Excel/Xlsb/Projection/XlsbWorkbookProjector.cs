@@ -40,8 +40,19 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
                     }
                 });
 
+                XlsbWorksheetPropertiesProjector.Apply(targetSheet, sourceSheet.Properties);
                 XlsbWorksheetGeometryProjector.Apply(targetSheet, sourceSheet);
+                XlsbWorksheetProtectionProjector.Apply(targetSheet, sourceSheet.Protection);
+                XlsbWorksheetAutoFilterProjector.Apply(targetSheet, sourceSheet.AutoFilter);
+                XlsbWorksheetPrintSettingsProjector.Apply(
+                    targetSheet,
+                    sourceSheet.PrintOptions,
+                    sourceSheet.PageMargins,
+                    sourceSheet.PageSetup,
+                    sourceSheet.HeaderFooter);
                 XlsbWorksheetHyperlinkProjector.Apply(targetSheet, sourceSheet);
+                targetSheet.EnsureWorksheetElementOrder();
+                targetSheet.WorksheetPart.Worksheet?.Save();
 
                 if (sourceSheet.State == 1) {
                     targetSheet.SetHidden(true);

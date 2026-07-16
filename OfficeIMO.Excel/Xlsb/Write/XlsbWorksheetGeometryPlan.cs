@@ -65,13 +65,20 @@ namespace OfficeIMO.Excel.Xlsb.Write {
         private static void ValidateWorksheetChildren(Worksheet worksheet, string sheetName) {
             var counts = new Dictionary<Type, int>();
             foreach (OpenXmlElement child in worksheet.ChildElements) {
-                if (child is not SheetDimension
+                if (child is not SheetProperties
+                    && child is not SheetDimension
                     && child is not SheetViews
                     && child is not SheetFormatProperties
                     && child is not Columns
                     && child is not SheetData
+                    && child is not SheetProtection
+                    && child is not AutoFilter
                     && child is not MergeCells
-                    && child is not Hyperlinks) {
+                    && child is not Hyperlinks
+                    && child is not PrintOptions
+                    && child is not PageMargins
+                    && child is not PageSetup
+                    && child is not HeaderFooter) {
                     throw new NotSupportedException($"Native XLSB generation does not yet support worksheet metadata '{child.LocalName}' on worksheet '{sheetName}'.");
                 }
 

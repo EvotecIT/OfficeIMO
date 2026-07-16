@@ -35,9 +35,23 @@ namespace OfficeIMO.Excel.Xlsb.Model {
 
         internal XlsbCellRange? UsedRange { get; set; }
 
+        internal XlsbWorksheetProperties? Properties { get; set; }
+
         internal XlsbWorksheetFormatInfo? FormatInfo { get; set; }
 
         internal XlsbPaneInfo? Pane { get; set; }
+
+        internal XlsbWorksheetProtection? Protection { get; set; }
+
+        internal XlsbAutoFilter? AutoFilter { get; set; }
+
+        internal XlsbPrintOptions? PrintOptions { get; set; }
+
+        internal XlsbPageMargins? PageMargins { get; set; }
+
+        internal XlsbPageSetup? PageSetup { get; set; }
+
+        internal XlsbHeaderFooter? HeaderFooter { get; set; }
 
         internal void AddCell(XlsbCell cell) => _cells.Add(cell);
 

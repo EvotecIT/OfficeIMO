@@ -1,4 +1,5 @@
 using OfficeIMO.Excel.Xlsb.Biff12;
+using DocumentFormat.OpenXml.Spreadsheet;
 
 namespace OfficeIMO.Excel.Xlsb.Write {
     /// <summary>Rewrites a worksheet cell table while preserving all records outside it and unknown in-table metadata.</summary>
@@ -44,6 +45,9 @@ namespace OfficeIMO.Excel.Xlsb.Write {
 
             using var output = new MemoryStream(Math.Max(256, cells.Count * 24));
             XlsbRecordWriter.Write(output, 129); // BrtBeginSheet
+            Worksheet worksheet = sheet.WorksheetPart.Worksheet
+                ?? throw new InvalidDataException($"Worksheet '{sheet.Name}' has no worksheet root.");
+            XlsbWorksheetPropertiesWriter.Write(output, worksheet.GetFirstChild<SheetProperties>(), sheet.Name);
             XlsbRecordWriter.Write(output, BrtWsDim, geometry.DimensionPayload);
             foreach (XlsbGeneratedRecord record in geometry.PrefixRecords) {
                 XlsbRecordWriter.Write(output, record.Type, record.Payload);
@@ -63,12 +67,21 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 }
             }
             XlsbRecordWriter.Write(output, BrtEndSheetData);
+            XlsbWorksheetProtectionWriter.Write(output, worksheet.GetFirstChild<SheetProtection>());
+            XlsbWorksheetAutoFilterWriter.Write(output, worksheet.GetFirstChild<AutoFilter>(), sheet.Name);
             foreach (XlsbGeneratedRecord record in geometry.SuffixRecords) {
                 XlsbRecordWriter.Write(output, record.Type, record.Payload);
             }
             foreach (XlsbGeneratedRecord record in hyperlinkRecords) {
                 XlsbRecordWriter.Write(output, record.Type, record.Payload);
             }
+            XlsbWorksheetPrintSettingsWriter.Write(
+                output,
+                worksheet.GetFirstChild<PrintOptions>(),
+                worksheet.GetFirstChild<PageMargins>(),
+                worksheet.GetFirstChild<PageSetup>(),
+                worksheet.GetFirstChild<HeaderFooter>(),
+                sheet.Name);
             XlsbRecordWriter.Write(output, 130); // BrtEndSheet
             return output.ToArray();
         }

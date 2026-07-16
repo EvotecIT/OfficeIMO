@@ -94,13 +94,20 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             }
 
             OpenXmlElement? unsupported = sheet.WorksheetPart.Worksheet?.ChildElements
-                .FirstOrDefault(element => element is not SheetDimension
+                .FirstOrDefault(element => element is not SheetProperties
+                    && element is not SheetDimension
                     && element is not SheetViews
                     && element is not SheetFormatProperties
                     && element is not Columns
                     && element is not SheetData
+                    && element is not SheetProtection
+                    && element is not AutoFilter
                     && element is not MergeCells
-                    && element is not Hyperlinks);
+                    && element is not Hyperlinks
+                    && element is not PrintOptions
+                    && element is not PageMargins
+                    && element is not PageSetup
+                    && element is not HeaderFooter);
             if (unsupported != null) {
                 throw new NotSupportedException($"Native XLSB generation does not yet support worksheet metadata '{unsupported.LocalName}' on worksheet '{sheet.Name}'.");
             }
@@ -113,6 +120,15 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             }
 
             XlsbWorksheetGeometryProjector.ValidateUnchanged(sheet, sourceSheet);
+            XlsbWorksheetPropertiesProjector.ValidateUnchanged(sheet, sourceSheet.Properties);
+            XlsbWorksheetProtectionProjector.ValidateUnchanged(sheet, sourceSheet.Protection);
+            XlsbWorksheetAutoFilterProjector.ValidateUnchanged(sheet, sourceSheet.AutoFilter);
+            XlsbWorksheetPrintSettingsProjector.ValidateUnchanged(
+                sheet,
+                sourceSheet.PrintOptions,
+                sourceSheet.PageMargins,
+                sourceSheet.PageSetup,
+                sourceSheet.HeaderFooter);
             XlsbWorksheetHyperlinkProjector.ValidateUnchanged(sheet, sourceSheet);
         }
 

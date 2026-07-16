@@ -1,8 +1,8 @@
-using OfficeIMO.Excel.LegacyXls.Biff;
 using OfficeIMO.Excel.Xlsb.Biff12;
 using OfficeIMO.Excel.Xlsb.NameRecords;
 using OfficeIMO.Excel.Xlsb.Model;
 using OfficeIMO.Excel.Xlsb.Package;
+using OfficeIMO.Excel.Xlsb.Read;
 using OfficeIMO.Excel.Xlsb.Styles;
 using System.IO.Compression;
 
@@ -30,6 +30,7 @@ namespace OfficeIMO.Excel.Xlsb {
         private const int BrtEndBook = 132;
         private const int BrtBeginSheetData = 145;
         private const int BrtEndSheetData = 146;
+        private const int BrtWsProp = 147;
         private const int BrtWsDim = 148;
         private const int BrtPane = 151;
         private const int BrtWbProp = 153;
@@ -39,15 +40,28 @@ namespace OfficeIMO.Excel.Xlsb {
         private const int BrtCalcProp = 157;
         private const int BrtBeginSst = 159;
         private const int BrtEndSst = 160;
+        private const int BrtBeginAFilter = 161;
+        private const int BrtEndAFilter = 162;
+        private const int BrtBeginFilterColumn = 163;
+        private const int BrtEndFilterColumn = 164;
+        private const int BrtBeginFilters = 165;
+        private const int BrtEndFilters = 166;
+        private const int BrtFilter = 167;
         private const int BrtSstItem = 19;
         private const int BrtMergeCell = 176;
         private const int BrtBeginMergeCells = 177;
         private const int BrtEndMergeCells = 178;
         private const int BrtBeginColInfos = 390;
         private const int BrtEndColInfos = 391;
+        private const int BrtMargins = 476;
+        private const int BrtPrintOptions = 477;
+        private const int BrtPageSetup = 478;
+        private const int BrtBeginHeaderFooter = 479;
+        private const int BrtEndHeaderFooter = 480;
         private const int BrtWsFmtInfo = 485;
         private const int BrtHLink = 494;
         private const int BrtBookProtection = 534;
+        private const int BrtSheetProtection = 535;
         private const int BrtBeginExternals = 353;
         private const int BrtEndExternals = 354;
         private const int BrtSupBookSrc = 355;
@@ -228,12 +242,12 @@ namespace OfficeIMO.Excel.Xlsb {
                 throw new InvalidDataException($"The BrtName record at offset {record.Offset} has invalid formula-extra length {extraCount}.");
             }
             byte[] formulaExtraBytes = cursor.ReadBytes(checked((int)extraCount));
-            string? comment = ReadNullableWideString(cursor, Math.Min(options.MaxStringCharacters, 255));
+            string? comment = XlsbBinaryValueReader.ReadNullableWideString(cursor, Math.Min(options.MaxStringCharacters, 255));
             if ((flags & 0x00000008U) != 0) {
-                ReadNullableWideString(cursor, options.MaxStringCharacters);
-                ReadNullableWideString(cursor, options.MaxStringCharacters);
-                ReadNullableWideString(cursor, options.MaxStringCharacters);
-                ReadNullableWideString(cursor, options.MaxStringCharacters);
+                XlsbBinaryValueReader.ReadNullableWideString(cursor, options.MaxStringCharacters);
+                XlsbBinaryValueReader.ReadNullableWideString(cursor, options.MaxStringCharacters);
+                XlsbBinaryValueReader.ReadNullableWideString(cursor, options.MaxStringCharacters);
+                XlsbBinaryValueReader.ReadNullableWideString(cursor, options.MaxStringCharacters);
             }
             if (cursor.Remaining != 0) {
                 throw new InvalidDataException($"The BrtName record at offset {record.Offset} has {cursor.Remaining} unexpected trailing payload bytes.");
@@ -266,21 +280,6 @@ namespace OfficeIMO.Excel.Xlsb {
             if (cursor.Remaining != 0) {
                 throw new InvalidDataException($"The BrtExternSheet record at offset {record.Offset} has {cursor.Remaining} unexpected trailing payload bytes.");
             }
-        }
-
-        private static string? ReadNullableWideString(XlsbBinaryCursor cursor, int maxCharacters) {
-            uint count = cursor.ReadUInt32();
-            if (count == uint.MaxValue) return null;
-            if (count > maxCharacters) {
-                throw new InvalidDataException($"The BIFF12 nullable string declares {count} characters, exceeding the configured limit of {maxCharacters} characters.");
-            }
-            int byteCount;
-            try {
-                byteCount = checked((int)count * 2);
-            } catch (OverflowException exception) {
-                throw new InvalidDataException("The BIFF12 nullable string length is too large.", exception);
-            }
-            return Encoding.Unicode.GetString(cursor.ReadBytes(byteCount));
         }
 
         private static void ResolveDefinedNames(XlsbImportOptions options, XlsbWorkbook workbook, string partName) {
@@ -452,6 +451,10 @@ namespace OfficeIMO.Excel.Xlsb {
             bool sawSheetData = false;
             bool sawColumnInfos = false;
             bool sawMergeCells = false;
+            XlsbAutoFilter? currentAutoFilter = null;
+            XlsbAutoFilterColumn? currentFilterColumn = null;
+            bool inFilterValues = false;
+            bool inHeaderFooter = false;
             uint declaredMergeCount = 0;
             int actualMergeCount = 0;
             foreach (XlsbRecord record in records) {
@@ -479,6 +482,12 @@ namespace OfficeIMO.Excel.Xlsb {
                             throw new InvalidDataException($"The XLSB worksheet part '{partName}' contains more than one BrtWsDim record.");
                         }
                         worksheet.UsedRange = ParseCellRange(record, "BrtWsDim");
+                        break;
+                    case BrtWsProp:
+                        if (worksheet.Properties != null) {
+                            throw new InvalidDataException($"The XLSB worksheet part '{partName}' contains more than one BrtWsProp record.");
+                        }
+                        worksheet.Properties = XlsbWorksheetPropertiesReader.Read(record, options);
                         break;
                     case BrtWsFmtInfo:
                         if (worksheet.FormatInfo != null) {
@@ -571,6 +580,98 @@ namespace OfficeIMO.Excel.Xlsb {
                         }
                         worksheet.AddHyperlink(ParseHyperlink(record, worksheetRelationships, options));
                         break;
+                    case BrtSheetProtection:
+                        if (worksheet.Protection != null) {
+                            throw new InvalidDataException($"The XLSB worksheet part '{partName}' contains more than one BrtSheetProtection record.");
+                        }
+                        worksheet.Protection = XlsbWorksheetProtectionReader.Read(record);
+                        break;
+                    case BrtBeginAFilter:
+                        if (currentAutoFilter != null || worksheet.AutoFilter != null) {
+                            throw new InvalidDataException($"The XLSB worksheet part '{partName}' contains duplicate or nested AutoFilter collections.");
+                        }
+                        currentAutoFilter = new XlsbAutoFilter(ParseCellRange(record, "BrtBeginAFilter"));
+                        break;
+                    case BrtBeginFilterColumn:
+                        if (currentAutoFilter == null || currentFilterColumn != null || inFilterValues) {
+                            throw new InvalidDataException($"The BrtBeginFilterColumn record at offset {record.Offset} appears outside its AutoFilter collection.");
+                        }
+                        currentFilterColumn = XlsbWorksheetAutoFilterReader.ReadColumn(record, currentAutoFilter);
+                        currentAutoFilter.AddColumn(currentFilterColumn);
+                        break;
+                    case BrtBeginFilters:
+                        if (currentFilterColumn == null || inFilterValues) {
+                            throw new InvalidDataException($"The BrtBeginFilters record at offset {record.Offset} appears outside an AutoFilter column.");
+                        }
+                        XlsbWorksheetAutoFilterReader.ReadBeginFilters(record, currentFilterColumn);
+                        inFilterValues = true;
+                        break;
+                    case BrtFilter:
+                        if (currentFilterColumn == null || !inFilterValues) {
+                            throw new InvalidDataException($"The BrtFilter record at offset {record.Offset} appears outside a filter-value collection.");
+                        }
+                        currentFilterColumn.AddValue(XlsbWorksheetAutoFilterReader.ReadValue(record));
+                        break;
+                    case BrtEndFilters:
+                        if (record.Data.Length != 0 || currentFilterColumn == null || !inFilterValues) {
+                            throw new InvalidDataException($"The BrtEndFilters record at offset {record.Offset} is invalid or has no matching begin record.");
+                        }
+                        inFilterValues = false;
+                        break;
+                    case BrtEndFilterColumn:
+                        if (record.Data.Length != 0 || currentFilterColumn == null || inFilterValues) {
+                            throw new InvalidDataException($"The BrtEndFilterColumn record at offset {record.Offset} is invalid or has no matching begin record.");
+                        }
+                        currentFilterColumn = null;
+                        break;
+                    case BrtEndAFilter:
+                        if (record.Data.Length != 0 || currentAutoFilter == null || currentFilterColumn != null || inFilterValues) {
+                            throw new InvalidDataException($"The BrtEndAFilter record at offset {record.Offset} is invalid or has no matching begin record.");
+                        }
+                        worksheet.AutoFilter = currentAutoFilter;
+                        currentAutoFilter = null;
+                        break;
+                    case BrtPrintOptions:
+                        if (worksheet.PrintOptions != null) {
+                            throw new InvalidDataException($"The XLSB worksheet part '{partName}' contains more than one BrtPrintOptions record.");
+                        }
+                        worksheet.PrintOptions = XlsbWorksheetPrintSettingsReader.ReadPrintOptions(record);
+                        break;
+                    case BrtMargins:
+                        if (worksheet.PageMargins != null) {
+                            throw new InvalidDataException($"The XLSB worksheet part '{partName}' contains more than one BrtMargins record.");
+                        }
+                        worksheet.PageMargins = XlsbWorksheetPrintSettingsReader.ReadMargins(record);
+                        break;
+                    case BrtPageSetup:
+                        if (worksheet.PageSetup != null) {
+                            throw new InvalidDataException($"The XLSB worksheet part '{partName}' contains more than one BrtPageSetup record.");
+                        }
+                        worksheet.PageSetup = XlsbWorksheetPrintSettingsReader.ReadPageSetup(record);
+                        XlsbWorksheetPrintSettingsReader.ValidatePrinterSettingsRelationship(record, worksheet.PageSetup, worksheetRelationships);
+                        if (worksheet.PageSetup.UseFirstPageNumber && worksheet.PageSetup.FirstPageNumber < 0) {
+                            workbook.AddDiagnostic(new XlsbImportDiagnostic(
+                                "XLSB-PAGESETUP-FIRST-PAGE-PRESERVED",
+                                XlsbImportDiagnosticSeverity.Warning,
+                                $"Preserved the negative first-page number {worksheet.PageSetup.FirstPageNumber} on worksheet '{worksheet.Name}', which has no equivalent in SpreadsheetML.",
+                                partName,
+                                record.Type,
+                                record.Offset));
+                        }
+                        break;
+                    case BrtBeginHeaderFooter:
+                        if (inHeaderFooter || worksheet.HeaderFooter != null) {
+                            throw new InvalidDataException($"The XLSB worksheet part '{partName}' contains duplicate or nested header/footer collections.");
+                        }
+                        worksheet.HeaderFooter = XlsbWorksheetPrintSettingsReader.ReadHeaderFooter(record);
+                        inHeaderFooter = true;
+                        break;
+                    case BrtEndHeaderFooter:
+                        if (!inHeaderFooter || record.Data.Length != 0) {
+                            throw new InvalidDataException($"The BrtEndHeaderFooter record at offset {record.Offset} is invalid or has no matching begin record.");
+                        }
+                        inHeaderFooter = false;
+                        break;
                     case BrtCellBlank:
                     case BrtCellRk:
                     case BrtCellError:
@@ -592,20 +693,32 @@ namespace OfficeIMO.Excel.Xlsb {
                             throw new InvalidDataException($"The XLSB workbook exceeds the configured limit of {options.MaxCells} populated cells.");
                         }
 
-                        XlsbCell cell = ParseCell(record, currentRow.Row - 1, sharedStrings, options, workbook, partName);
+                        XlsbCell cell = XlsbWorksheetCellReader.Read(record, currentRow.Row - 1, sharedStrings, options, workbook, partName);
                         if (!currentRow.ContainsZeroBasedColumn(cell.Column - 1)) {
                             throw new InvalidDataException($"The XLSB cell at row {cell.Row}, column {cell.Column} is not covered by its BrtRowHdr column spans.");
                         }
                         worksheet.AddCell(cell);
                         break;
                     default:
+                        if (currentAutoFilter != null) {
+                            currentAutoFilter.HasUnsupportedContent = true;
+                            if (currentFilterColumn != null) currentFilterColumn.HasUnsupportedContent = true;
+                        }
                         PreserveRecord(options, workbook, partName, record);
                         break;
                 }
             }
 
-            if (inSheetData || inColumnInfos || inMergeCells) {
+            if (inSheetData || inColumnInfos || inMergeCells || currentAutoFilter != null || currentFilterColumn != null || inFilterValues || inHeaderFooter) {
                 throw new InvalidDataException($"The XLSB worksheet part '{partName}' contains an unterminated record collection.");
+            }
+
+            if (worksheet.AutoFilter?.HasUnsupportedContent == true) {
+                workbook.AddDiagnostic(new XlsbImportDiagnostic(
+                    "XLSB-AUTOFILTER-PARTIAL",
+                    XlsbImportDiagnosticSeverity.Warning,
+                    $"Projected the AutoFilter range on worksheet '{worksheet.Name}' while preserving criteria outside the supported equality-list subset.",
+                    partName));
             }
 
             if (worksheet.UsedRange == null) {
@@ -817,130 +930,6 @@ namespace OfficeIMO.Excel.Xlsb {
             if (styleIndex >= availableFormats) {
                 throw new InvalidDataException($"{context} refers to missing cell format {styleIndex}; the styles part exposes {availableFormats} format(s).");
             }
-        }
-
-        private static XlsbCell ParseCell(
-            XlsbRecord record,
-            int zeroBasedRow,
-            IReadOnlyList<string> sharedStrings,
-            XlsbImportOptions options,
-            XlsbWorkbook workbook,
-            string partName) {
-            var cursor = new XlsbBinaryCursor(record.Data);
-            int zeroBasedColumn = cursor.ReadInt32();
-            uint styleIndex = cursor.ReadUInt32() & 0x00FFFFFFU;
-            if (zeroBasedColumn < 0 || zeroBasedColumn >= 16_384) {
-                throw new InvalidDataException($"The XLSB cell record at offset {record.Offset} contains invalid column index {zeroBasedColumn}.");
-            }
-
-            int row = zeroBasedRow + 1;
-            int column = zeroBasedColumn + 1;
-            XlsbCell cell;
-            switch (record.Type) {
-                case BrtCellBlank:
-                    cell = new XlsbCell(row, column, XlsbCellValueKind.Blank, null, styleIndex);
-                    break;
-                case BrtCellRk:
-                    cell = new XlsbCell(row, column, XlsbCellValueKind.Number, BiffRkNumberReader.ReadRkNumber(cursor.ReadUInt32()), styleIndex);
-                    break;
-                case BrtCellError:
-                    cell = new XlsbCell(row, column, XlsbCellValueKind.Error, BiffErrorValue.ToText(cursor.ReadByte()), styleIndex);
-                    break;
-                case BrtCellBool:
-                    cell = new XlsbCell(row, column, XlsbCellValueKind.Boolean, cursor.ReadByte() != 0, styleIndex);
-                    break;
-                case BrtCellReal:
-                    cell = new XlsbCell(row, column, XlsbCellValueKind.Number, cursor.ReadDouble(), styleIndex);
-                    break;
-                case BrtCellSt:
-                    cell = new XlsbCell(row, column, XlsbCellValueKind.Text, cursor.ReadWideString(options.MaxStringCharacters), styleIndex);
-                    break;
-                case BrtCellIsst:
-                    uint sharedStringIndex = cursor.ReadUInt32();
-                    if (sharedStringIndex >= sharedStrings.Count) {
-                        throw new InvalidDataException($"The XLSB cell at row {row}, column {column} refers to missing shared string {sharedStringIndex}.");
-                    }
-
-                    cell = new XlsbCell(row, column, XlsbCellValueKind.Text, sharedStrings[checked((int)sharedStringIndex)], styleIndex);
-                    break;
-                case BrtCellRString:
-                    byte flags = cursor.ReadByte();
-                    string richText = cursor.ReadWideString(options.MaxStringCharacters);
-                    if ((flags & 0x03) != 0 || cursor.Remaining > 0) {
-                        PreserveRecord(options, workbook, partName, record);
-                    }
-                    cell = new XlsbCell(row, column, XlsbCellValueKind.Text, richText, styleIndex);
-                    break;
-                case BrtFmlaNum:
-                    cell = ParseFormulaCell(record, cursor, row, column, styleIndex, XlsbCellValueKind.Number, cursor.ReadDouble(), options, workbook, partName);
-                    break;
-                case BrtFmlaBool:
-                    cell = ParseFormulaCell(record, cursor, row, column, styleIndex, XlsbCellValueKind.Boolean, cursor.ReadByte() != 0, options, workbook, partName);
-                    break;
-                case BrtFmlaError:
-                    cell = ParseFormulaCell(record, cursor, row, column, styleIndex, XlsbCellValueKind.Error, BiffErrorValue.ToText(cursor.ReadByte()), options, workbook, partName);
-                    break;
-                case BrtFmlaString:
-                    cell = ParseFormulaCell(record, cursor, row, column, styleIndex, XlsbCellValueKind.Text, cursor.ReadWideString(options.MaxStringCharacters), options, workbook, partName);
-                    break;
-                default:
-                    throw new InvalidOperationException($"Unsupported XLSB cell record type {record.Type}.");
-            }
-
-            cell.SourceRecordType = record.Type;
-            cell.SourceRecordData = (byte[])record.Data.Clone();
-            int availableFormats = workbook.Stylesheet?.CellFormats.Count ?? 1;
-            if (styleIndex >= availableFormats) {
-                throw new InvalidDataException(
-                    $"The XLSB cell at row {row}, column {column} refers to missing cell format {styleIndex}; the styles part exposes {availableFormats} format(s).");
-            }
-            return cell;
-        }
-
-        private static XlsbCell ParseFormulaCell(
-            XlsbRecord record,
-            XlsbBinaryCursor cursor,
-            int row,
-            int column,
-            uint styleIndex,
-            XlsbCellValueKind valueKind,
-            object? cachedValue,
-            XlsbImportOptions options,
-            XlsbWorkbook workbook,
-            string partName) {
-            int formulaPayloadOffset = cursor.Position;
-            cursor.ReadUInt16(); // grbit flags
-            uint tokenCount = cursor.ReadUInt32();
-            if (tokenCount > cursor.Remaining) {
-                throw new InvalidDataException($"The XLSB formula record at offset {record.Offset} declares {tokenCount} token bytes but only {cursor.Remaining} remain.");
-            }
-
-            byte[] tokens = cursor.ReadBytes(checked((int)tokenCount));
-            var cell = new XlsbCell(row, column, valueKind, cachedValue, styleIndex) {
-                FormulaBytes = tokens,
-                FormulaPayloadBytes = CopyTail(record.Data, formulaPayloadOffset)
-            };
-            if (XlsbFormulaTextReader.TryRead(tokens, out string? formulaText)) {
-                cell.FormulaText = formulaText;
-            } else {
-                workbook.AddDiagnostic(new XlsbImportDiagnostic(
-                    "XLSB-FORMULA-PRESERVED",
-                    XlsbImportDiagnosticSeverity.Warning,
-                    $"Preserved an unsupported BIFF12 formula token stream at row {row}, column {column}; its cached value was projected.",
-                    partName,
-                    record.Type,
-                    record.Offset));
-                PreserveRecord(options, workbook, partName, record);
-            }
-
-            return cell;
-        }
-
-        private static byte[] CopyTail(byte[] data, int offset) {
-            if (offset < 0 || offset > data.Length) throw new ArgumentOutOfRangeException(nameof(offset));
-            byte[] result = new byte[data.Length - offset];
-            Buffer.BlockCopy(data, offset, result, 0, result.Length);
-            return result;
         }
 
         private static IReadOnlyList<XlsbRecord> ReadRecords(byte[] bytes, XlsbImportOptions options) {

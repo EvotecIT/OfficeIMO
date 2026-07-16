@@ -1209,6 +1209,190 @@ namespace OfficeIMO.Tests {
             Assert.Equal("$A$1:$C$10", rewrittenDocument.Sheets[0].GetPrintArea());
         }
 
+        [Fact]
+        public void Xlsb_NewWorkbook_WritesAndProjectsCommonWorksheetMetadata() {
+            using ExcelDocument document = ExcelDocument.Create();
+            ExcelSheet sheet = document.AddWorksheet("Report");
+            sheet.CellValue(1, 1, "Status");
+            sheet.CellValue(1, 2, "Amount");
+            sheet.CellValue(2, 1, "Open");
+            sheet.CellValue(2, 2, 12.5D);
+            sheet.CellValue(3, 1, "Closed");
+            sheet.CellValue(3, 2, 8D);
+            sheet.AddAutoFilter("A1:B3", new Dictionary<uint, IEnumerable<string>> {
+                [0U] = new[] { "Open", "Closed" }
+            });
+            sheet.Protect(new ExcelSheetProtectionOptions {
+                LegacyPasswordHash = "CAFE",
+                AllowSelectLockedCells = true,
+                AllowSelectUnlockedCells = true,
+                AllowSort = true,
+                AllowAutoFilter = true,
+                ProtectObjects = true,
+                ProtectScenarios = false
+            });
+            sheet.SetPrintOptions(
+                printGridLines: true,
+                printHeadings: true,
+                horizontalCentered: true,
+                verticalCentered: false,
+                save: false);
+            sheet.SetMargins(0.25D, 0.35D, 0.45D, 0.55D, 0.2D, 0.3D);
+            sheet.SetPageSetup(
+                fitToWidth: 1U,
+                fitToHeight: 0U,
+                scale: 80U,
+                pageOrder: ExcelPageOrder.OverThenDown,
+                paperSize: ExcelPaperSize.Letter);
+            sheet.SetOrientation(ExcelPageOrientation.Landscape);
+            sheet.SetTabColor("336699");
+            sheet.SetOutlineSummary(summaryBelow: false, summaryRight: true);
+            SheetProperties properties = Assert.IsType<SheetProperties>(
+                sheet.WorksheetPart.Worksheet.GetFirstChild<SheetProperties>());
+            properties.CodeName = "ReportSheet";
+            properties.Published = true;
+            PageSetup setup = Assert.IsType<PageSetup>(sheet.WorksheetPart.Worksheet.GetFirstChild<PageSetup>());
+            setup.HorizontalDpi = 300U;
+            setup.VerticalDpi = 600U;
+            setup.Copies = 2U;
+            setup.FirstPageNumber = 3U;
+            setup.UseFirstPageNumber = true;
+            setup.BlackAndWhite = true;
+            setup.Draft = true;
+            setup.CellComments = CellCommentsValues.AtEnd;
+            setup.Errors = PrintErrorValues.Dash;
+            sheet.SetHeaderFooter(
+                headerLeft: "Quarterly",
+                headerCenter: "Report",
+                footerRight: "Page &P of &N",
+                differentFirstPage: true,
+                differentOddEven: true,
+                alignWithMargins: true,
+                scaleWithDoc: true);
+            sheet.SetFirstPageHeaderFooter(headerCenter: "First page", footerCenter: "Confidential");
+            sheet.SetEvenPageHeaderFooter(headerCenter: "Even page", footerRight: "Page &P");
+
+            byte[] package = document.ToBytes(ExcelFileFormat.Xlsb);
+            using (var archive = new ZipArchive(new MemoryStream(package, writable: false), ZipArchiveMode.Read)) {
+                using Stream workbookStream = Assert.IsType<ZipArchiveEntry>(archive.GetEntry("xl/workbook.bin")).Open();
+                IReadOnlyList<XlsbRecord> workbookRecords = XlsbRecordReader.ReadAll(workbookStream);
+                XlsbRecord filterDatabaseName = Assert.Single(workbookRecords, record =>
+                    record.Type == 39 && BitConverter.ToUInt32(record.Data, 0) == 0x00000021U);
+                Assert.NotEmpty(filterDatabaseName.Data);
+
+                using Stream worksheetStream = Assert.IsType<ZipArchiveEntry>(archive.GetEntry("xl/worksheets/sheet1.bin")).Open();
+                IReadOnlyList<XlsbRecord> records = XlsbRecordReader.ReadAll(worksheetStream);
+                XlsbRecord protection = Assert.Single(records, record => record.Type == 535);
+                Assert.Equal(66, protection.Data.Length);
+                Assert.Equal((ushort)0xCAFE, BitConverter.ToUInt16(protection.Data, 0));
+                Assert.Equal(1U, BitConverter.ToUInt32(protection.Data, 2));
+                Assert.Equal(0U, BitConverter.ToUInt32(protection.Data, 6));
+                Assert.Equal(1U, BitConverter.ToUInt32(protection.Data, 10));
+                Assert.Single(records, record => record.Type == 161);
+                Assert.Single(records, record => record.Type == 162);
+                Assert.Single(records, record => record.Type == 163);
+                Assert.Single(records, record => record.Type == 165);
+                Assert.Equal(2, records.Count(record => record.Type == 167));
+                Assert.Single(records, record => record.Type == 166);
+                Assert.Single(records, record => record.Type == 164);
+                XlsbRecord printOptions = Assert.Single(records, record => record.Type == 477);
+                Assert.Equal((ushort)0x000D, BitConverter.ToUInt16(printOptions.Data, 0));
+                XlsbRecord margins = Assert.Single(records, record => record.Type == 476);
+                Assert.Equal(0.25D, BitConverter.ToDouble(margins.Data, 0));
+                Assert.Equal(0.3D, BitConverter.ToDouble(margins.Data, 40));
+                XlsbRecord worksheetProperties = Assert.Single(records, record => record.Type == 147);
+                uint worksheetFlags = (uint)(worksheetProperties.Data[0]
+                    | (worksheetProperties.Data[1] << 8)
+                    | (worksheetProperties.Data[2] << 16));
+                Assert.Equal(0x000008U, worksheetFlags & 0x000008U);
+                Assert.Equal(0U, worksheetFlags & 0x000040U);
+                Assert.Equal(0x000080U, worksheetFlags & 0x000080U);
+                Assert.Equal(0x000100U, worksheetFlags & 0x000100U);
+                Assert.Equal(0x000400U, worksheetFlags & 0x000400U);
+                Assert.Equal(0x020000U, worksheetFlags & 0x020000U);
+                Assert.Equal((byte)0x05, worksheetProperties.Data[3]);
+                Assert.Equal(new byte[] { 0x33, 0x66, 0x99, 0xFF }, worksheetProperties.Data.Skip(7).Take(4));
+                XlsbRecord pageSetup = Assert.Single(records, record => record.Type == 478);
+                Assert.Equal(38, pageSetup.Data.Length);
+                Assert.Equal(1U, BitConverter.ToUInt32(pageSetup.Data, 0));
+                Assert.Equal(80U, BitConverter.ToUInt32(pageSetup.Data, 4));
+                Assert.Equal(300U, BitConverter.ToUInt32(pageSetup.Data, 8));
+                Assert.Equal(600U, BitConverter.ToUInt32(pageSetup.Data, 12));
+                Assert.Equal(2U, BitConverter.ToUInt32(pageSetup.Data, 16));
+                Assert.Equal(3, BitConverter.ToInt32(pageSetup.Data, 20));
+                Assert.Equal((ushort)0x05BB, BitConverter.ToUInt16(pageSetup.Data, 32));
+                Assert.Equal(uint.MaxValue, BitConverter.ToUInt32(pageSetup.Data, 34));
+                XlsbRecord headerFooter = Assert.Single(records, record => record.Type == 479);
+                Assert.Equal((ushort)0x000F, BitConverter.ToUInt16(headerFooter.Data, 0));
+                Assert.Single(records, record => record.Type == 480);
+            }
+
+            using ExcelDocument reloaded = ExcelDocument.Load(new MemoryStream(package, writable: false));
+            ExcelSheet reloadedSheet = Assert.Single(reloaded.Sheets);
+            Assert.True(reloadedSheet.IsProtected);
+            SheetProtection reloadedProtection = Assert.IsType<SheetProtection>(
+                reloadedSheet.WorksheetPart.Worksheet.GetFirstChild<SheetProtection>());
+            Assert.Equal("CAFE", reloadedProtection.Password?.Value);
+            Assert.True(reloadedProtection.Objects?.Value);
+            Assert.False(reloadedProtection.Scenarios?.Value);
+            Assert.False(reloadedProtection.Sort?.Value);
+            Assert.False(reloadedProtection.AutoFilter?.Value);
+
+            AutoFilter reloadedFilter = Assert.IsType<AutoFilter>(
+                reloadedSheet.WorksheetPart.Worksheet.GetFirstChild<AutoFilter>());
+            Assert.Equal("A1:B3", reloadedFilter.Reference?.Value);
+            Filters reloadedFilters = Assert.IsType<Filters>(Assert.Single(reloadedFilter.Elements<FilterColumn>()).GetFirstChild<Filters>());
+            Assert.Equal(new[] { "Open", "Closed" }, reloadedFilters.Elements<Filter>().Select(filter => filter.Val?.Value));
+            Assert.Contains(
+                reloaded.WorkbookRoot.DefinedNames!.Elements<DefinedName>(),
+                name => name.Name?.Value == "_FilterDatabase"
+                    && name.LocalSheetId?.Value == 0U
+                    && name.Text == "'Report'!$A$1:$B$3");
+
+            ExcelSheetPrintOptions projectedPrintOptions = reloadedSheet.GetPrintOptions();
+            Assert.True(projectedPrintOptions.PrintGridLines);
+            Assert.True(projectedPrintOptions.PrintHeadings);
+            Assert.True(projectedPrintOptions.HorizontalCentered);
+            Assert.False(projectedPrintOptions.VerticalCentered);
+            PageMargins projectedMargins = Assert.IsType<PageMargins>(
+                reloadedSheet.WorksheetPart.Worksheet.GetFirstChild<PageMargins>());
+            Assert.Equal(0.25D, projectedMargins.Left?.Value);
+            Assert.Equal(0.3D, projectedMargins.Footer?.Value);
+            SheetProperties projectedProperties = Assert.IsType<SheetProperties>(
+                reloadedSheet.WorksheetPart.Worksheet.GetFirstChild<SheetProperties>());
+            Assert.Equal("ReportSheet", projectedProperties.CodeName?.Value);
+            Assert.True(projectedProperties.Published?.Value);
+            Assert.Equal("FF336699", projectedProperties.TabColor?.Rgb?.Value);
+            Assert.False(projectedProperties.GetFirstChild<OutlineProperties>()?.SummaryBelow?.Value);
+            Assert.True(projectedProperties.GetFirstChild<OutlineProperties>()?.SummaryRight?.Value);
+            Assert.True(projectedProperties.GetFirstChild<PageSetupProperties>()?.FitToPage?.Value);
+            PageSetup projectedSetup = Assert.IsType<PageSetup>(
+                reloadedSheet.WorksheetPart.Worksheet.GetFirstChild<PageSetup>());
+            Assert.Equal(ExcelPaperSize.Letter, (ExcelPaperSize)projectedSetup.PaperSize!.Value);
+            Assert.Equal(80U, projectedSetup.Scale?.Value);
+            Assert.Equal(OrientationValues.Landscape, projectedSetup.Orientation?.Value);
+            Assert.Equal(PageOrderValues.OverThenDown, projectedSetup.PageOrder?.Value);
+            Assert.Equal(CellCommentsValues.AtEnd, projectedSetup.CellComments?.Value);
+            Assert.Equal(PrintErrorValues.Dash, projectedSetup.Errors?.Value);
+            Assert.Equal(3U, projectedSetup.FirstPageNumber?.Value);
+            HeaderFooter projectedHeaderFooter = Assert.IsType<HeaderFooter>(
+                reloadedSheet.WorksheetPart.Worksheet.GetFirstChild<HeaderFooter>());
+            Assert.Equal("&LQuarterly&CReport", projectedHeaderFooter.OddHeader?.Text);
+            Assert.Equal("&CFirst page", projectedHeaderFooter.FirstHeader?.Text);
+            Assert.Equal("&CEven page", projectedHeaderFooter.EvenHeader?.Text);
+            Assert.Equal("&RPage &P of &N", projectedHeaderFooter.OddFooter?.Text);
+
+            reloadedSheet.CellValue(2, 2, 13.5D);
+            byte[] rewritten = reloaded.ToBytes(ExcelFileFormat.Xlsb);
+            using ExcelDocument rewrittenDocument = ExcelDocument.Load(new MemoryStream(rewritten, writable: false));
+            Assert.True(rewrittenDocument.Sheets[0].IsProtected);
+            Assert.Equal("A1:B3", rewrittenDocument.Sheets[0].WorksheetPart.Worksheet.GetFirstChild<AutoFilter>()?.Reference?.Value);
+            Assert.Equal(0.25D, rewrittenDocument.Sheets[0].WorksheetPart.Worksheet.GetFirstChild<PageMargins>()?.Left?.Value);
+            Assert.Equal("ReportSheet", rewrittenDocument.Sheets[0].WorksheetPart.Worksheet.GetFirstChild<SheetProperties>()?.CodeName?.Value);
+            Assert.Equal(80U, rewrittenDocument.Sheets[0].WorksheetPart.Worksheet.GetFirstChild<PageSetup>()?.Scale?.Value);
+            Assert.Equal("&CFirst page", rewrittenDocument.Sheets[0].WorksheetPart.Worksheet.GetFirstChild<HeaderFooter>()?.FirstHeader?.Text);
+        }
+
         private static byte[] CreateMinimalXlsbPackage() {
             byte[] workbookRecords = {
                 0x83, 0x01, 0x00,

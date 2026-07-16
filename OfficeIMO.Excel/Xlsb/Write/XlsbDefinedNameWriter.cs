@@ -1,6 +1,7 @@
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel.Xlsb.Biff12;
+using OfficeIMO.Excel.Xlsb.Model;
 
 namespace OfficeIMO.Excel.Xlsb.Write {
     /// <summary>Validates and writes common workbook defined names and their self references.</summary>
@@ -31,14 +32,16 @@ namespace OfficeIMO.Excel.Xlsb.Write {
 
         private static XlsbDefinedNamePlan CreatePlan(DefinedNames? definedNames, IReadOnlyList<ExcelSheet> sheets) {
             if (sheets == null) throw new ArgumentNullException(nameof(sheets));
-            if (definedNames == null) return XlsbDefinedNamePlan.Empty;
-            if (definedNames.HasChildren && definedNames.ChildElements.Any(element => element is not DefinedName)) {
+            if (definedNames != null
+                && definedNames.HasChildren
+                && definedNames.ChildElements.Any(element => element is not DefinedName)) {
                 throw new NotSupportedException("Native XLSB generation supports only definedName children in the definedNames collection.");
             }
-            EnsureOnlyAttributes(definedNames);
+            if (definedNames != null) EnsureOnlyAttributes(definedNames);
 
             var records = new List<XlsbDefinedNameRecord>();
-            foreach (DefinedName definedName in definedNames.Elements<DefinedName>()) {
+            var filterDatabaseSheets = new HashSet<uint>();
+            foreach (DefinedName definedName in definedNames?.Elements<DefinedName>() ?? Enumerable.Empty<DefinedName>()) {
                 EnsureOnlyAttributes(definedName, "name", "localSheetId", "hidden", "comment");
                 if (definedName.HasChildren) {
                     throw new NotSupportedException("Native XLSB generation does not support child content in defined names.");
@@ -74,9 +77,48 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 uint flags = (definedName.Hidden?.Value == true ? 0x00000001U : 0U)
                     | (builtIn ? 0x00000020U : 0U);
                 records.Add(new XlsbDefinedNameRecord(flags, localSheetIndex, recordName, formulaTokens!, comment));
+                if (builtIn
+                    && string.Equals(recordName, "_FilterDatabase", StringComparison.OrdinalIgnoreCase)
+                    && localSheetIndex != uint.MaxValue) {
+                    filterDatabaseSheets.Add(localSheetIndex);
+                }
             }
 
+            AppendAutoFilterDefinedNames(records, filterDatabaseSheets, sheets);
+
             return new XlsbDefinedNamePlan(records);
+        }
+
+        private static void AppendAutoFilterDefinedNames(
+            List<XlsbDefinedNameRecord> records,
+            HashSet<uint> existingSheets,
+            IReadOnlyList<ExcelSheet> sheets) {
+            for (int sheetIndex = 0; sheetIndex < sheets.Count; sheetIndex++) {
+                uint localSheetIndex = checked((uint)sheetIndex);
+                if (existingSheets.Contains(localSheetIndex)) continue;
+                AutoFilter? autoFilter = sheets[sheetIndex].WorksheetPart.Worksheet?.GetFirstChild<AutoFilter>();
+                if (autoFilter == null) continue;
+                if (!XlsbWorksheetAutoFilterWriter.TryGetRange(autoFilter, out XlsbCellRange? range) || range == null) {
+                    throw new NotSupportedException($"Native XLSB generation cannot encode the AutoFilter range on worksheet '{sheets[sheetIndex].Name}'.");
+                }
+
+                string escapedSheetName = sheets[sheetIndex].Name.Replace("'", "''");
+                string formula = "'" + escapedSheetName + "'!" + range.ToA1Reference();
+                if (!TryEncodeReferenceFormula(
+                    formula,
+                    localSheetIndex,
+                    sheets,
+                    out byte[]? formulaTokens,
+                    out string? reason)) {
+                    throw new NotSupportedException($"Native XLSB generation cannot create the AutoFilter defined name on worksheet '{sheets[sheetIndex].Name}': {reason}.");
+                }
+                records.Add(new XlsbDefinedNameRecord(
+                    0x00000021U,
+                    localSheetIndex,
+                    "_FilterDatabase",
+                    formulaTokens!,
+                    comment: null));
+            }
         }
 
         private static bool TryEncodeReferenceFormula(

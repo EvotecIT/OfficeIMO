@@ -47,13 +47,20 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
             Worksheet worksheet = sheet.WorksheetPart.Worksheet
                 ?? throw new InvalidDataException($"Worksheet '{sheet.Name}' has no worksheet root.");
             OpenXmlElement? unsupportedChild = worksheet.ChildElements.FirstOrDefault(element =>
-                element is not SheetDimension
+                element is not SheetProperties
+                && element is not SheetDimension
                 && element is not SheetViews
                 && element is not SheetFormatProperties
                 && element is not Columns
                 && element is not SheetData
+                && element is not SheetProtection
+                && element is not AutoFilter
                 && element is not MergeCells
-                && element is not Hyperlinks);
+                && element is not Hyperlinks
+                && element is not PrintOptions
+                && element is not PageMargins
+                && element is not PageSetup
+                && element is not HeaderFooter);
             if (unsupportedChild != null) {
                 ThrowGeometryMutation(sheet, unsupportedChild.LocalName);
             }
