@@ -41,10 +41,9 @@ namespace OfficeIMO.Excel {
         }
 
         private bool CanWriteNativeXlsb(ExcelSaveOptions? options) {
-            return SourceFormat == ExcelFileFormat.Xlsb
-                && _xlsbOriginalPackageBytes != null
-                && _xlsbAdvancedWorkbook != null
-                && !HasXlsbTransformSaveWork(options);
+            if (HasXlsbTransformSaveWork(options)) return false;
+            return SourceFormat != ExcelFileFormat.Xlsb
+                || (_xlsbOriginalPackageBytes != null && _xlsbAdvancedWorkbook != null);
         }
 
         private static bool HasXlsbTransformSaveWork(ExcelSaveOptions? options) {
@@ -58,7 +57,7 @@ namespace OfficeIMO.Excel {
         }
 
         private string GetXlsbWriteUnsupportedMessage() {
-            return "Native XLSB generation currently requires an existing XLSB source and supports preservation-aware cell-value rewrites. New XLSB generation and requested save-time transforms are rejected before writing so XLSX bytes are never mislabeled as .xlsb.";
+            return "Native XLSB writing does not support the requested save-time transforms. XLSB output is rejected before writing so XLSX bytes are never mislabeled as .xlsb.";
         }
 
         private bool TrySaveUnchangedXlsbToFile(string path, ExcelSaveOptions? options) {
@@ -66,13 +65,18 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            bool unchanged = CanCopyUnchangedXlsb(options);
-            byte[] bytes = unchanged ? _xlsbOriginalPackageBytes! : RewriteNativeXlsb();
+            bool existingSource = SourceFormat == ExcelFileFormat.Xlsb;
+            bool unchanged = existingSource && CanCopyUnchangedXlsb(options);
+            byte[] bytes = existingSource
+                ? unchanged ? _xlsbOriginalPackageBytes! : RewriteNativeXlsb()
+                : GenerateNativeXlsb(options);
             CommitPreparedPackageToFile(path, bytes);
             FilePath = path;
             _xlsbSourcePath = path;
-            RefreshXlsbStateAfterNativeWrite(bytes);
-            LastSaveDiagnostics = ExcelSaveDiagnostics.Standard(unchanged
+            AdoptNativeXlsbAfterWrite(bytes, path);
+            LastSaveDiagnostics = ExcelSaveDiagnostics.Standard(!existingSource
+                ? "New workbook encoded with the first-party BIFF12 XLSB writer."
+                : unchanged
                 ? "Unmodified XLSB source copied byte-for-byte with all package parts preserved."
                 : "XLSB worksheet cell records rewritten while all other package parts were preserved.");
             return true;
@@ -86,13 +90,18 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            bool unchanged = CanCopyUnchangedXlsb(options);
-            byte[] bytes = unchanged ? _xlsbOriginalPackageBytes! : RewriteNativeXlsb();
+            bool existingSource = SourceFormat == ExcelFileFormat.Xlsb;
+            bool unchanged = existingSource && CanCopyUnchangedXlsb(options);
+            byte[] bytes = existingSource
+                ? unchanged ? _xlsbOriginalPackageBytes! : RewriteNativeXlsb()
+                : GenerateNativeXlsb(options);
             await CommitPreparedPackageToFileAsync(path, bytes, cancellationToken).ConfigureAwait(false);
             FilePath = path;
             _xlsbSourcePath = path;
-            RefreshXlsbStateAfterNativeWrite(bytes);
-            LastSaveDiagnostics = ExcelSaveDiagnostics.Standard(unchanged
+            AdoptNativeXlsbAfterWrite(bytes, path);
+            LastSaveDiagnostics = ExcelSaveDiagnostics.Standard(!existingSource
+                ? "New workbook encoded with the first-party BIFF12 XLSB writer."
+                : unchanged
                 ? "Unmodified XLSB source copied byte-for-byte with all package parts preserved."
                 : "XLSB worksheet cell records rewritten while all other package parts were preserved.");
             return true;
@@ -106,9 +115,20 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            bool unchanged = CanCopyUnchangedXlsb(options);
-            PrepareDestinationStreamForWrite(destination);
+            bool existingSource = SourceFormat == ExcelFileFormat.Xlsb;
+            bool unchanged = existingSource && CanCopyUnchangedXlsb(options);
+            if (!existingSource) {
+                PrepareWorkbookForSave(options);
+                if (destination.CanSeek) destination.Seek(0, SeekOrigin.Begin);
+                XlsbNewPackageWriter.Write(this, destination);
+                if (destination.CanSeek) destination.SetLength(destination.Position);
+                try { destination.Flush(); } catch (NotSupportedException) { }
+                LastSaveDiagnostics = ExcelSaveDiagnostics.Standard("New workbook streamed with the first-party BIFF12 XLSB writer.");
+                return true;
+            }
+
             byte[] bytes = unchanged ? _xlsbOriginalPackageBytes! : RewriteNativeXlsb();
+            PrepareDestinationStreamForWrite(destination);
             destination.Write(bytes, 0, bytes.Length);
             try { destination.Flush(); } catch (NotSupportedException) { }
             RefreshXlsbStateAfterNativeWrite(bytes);
@@ -127,9 +147,22 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            bool unchanged = CanCopyUnchangedXlsb(options);
-            PrepareDestinationStreamForWrite(destination);
+            bool existingSource = SourceFormat == ExcelFileFormat.Xlsb;
+            bool unchanged = existingSource && CanCopyUnchangedXlsb(options);
+            if (!existingSource) {
+                cancellationToken.ThrowIfCancellationRequested();
+                PrepareWorkbookForSave(options);
+                cancellationToken.ThrowIfCancellationRequested();
+                if (destination.CanSeek) destination.Seek(0, SeekOrigin.Begin);
+                XlsbNewPackageWriter.Write(this, destination);
+                if (destination.CanSeek) destination.SetLength(destination.Position);
+                try { await destination.FlushAsync(cancellationToken).ConfigureAwait(false); } catch (NotSupportedException) { }
+                LastSaveDiagnostics = ExcelSaveDiagnostics.Standard("New workbook streamed with the first-party BIFF12 XLSB writer.");
+                return true;
+            }
+
             byte[] bytes = unchanged ? _xlsbOriginalPackageBytes! : RewriteNativeXlsb();
+            PrepareDestinationStreamForWrite(destination);
             await destination.WriteAsync(bytes, 0, bytes.Length, cancellationToken).ConfigureAwait(false);
             try { await destination.FlushAsync(cancellationToken).ConfigureAwait(false); } catch (NotSupportedException) { }
             RefreshXlsbStateAfterNativeWrite(bytes);
@@ -144,6 +177,20 @@ namespace OfficeIMO.Excel {
                 this,
                 _xlsbOriginalPackageBytes ?? throw new InvalidOperationException("The XLSB source package is unavailable."),
                 _xlsbAdvancedWorkbook ?? throw new InvalidOperationException("The XLSB source model is unavailable."));
+        }
+
+        private byte[] GenerateNativeXlsb(ExcelSaveOptions? options) {
+            PrepareWorkbookForSave(options);
+            using var output = new MemoryStream();
+            XlsbNewPackageWriter.Write(this, output);
+            byte[] bytes = output.ToArray();
+            XlsbWorkbookReader.Load(bytes, new XlsbImportOptions { ReportPreservedRecords = false });
+            return bytes;
+        }
+
+        private void AdoptNativeXlsbAfterWrite(byte[] bytes, string? sourcePath) {
+            XlsbWorkbook workbook = XlsbWorkbookReader.Load(bytes);
+            MarkLoadedFromXlsb(sourcePath, workbook);
         }
 
         private void RefreshXlsbStateAfterNativeWrite(byte[] bytes) {

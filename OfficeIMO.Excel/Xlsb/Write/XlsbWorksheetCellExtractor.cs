@@ -17,7 +17,25 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             if (sourceSheet == null) throw new ArgumentNullException(nameof(sourceSheet));
 
             ThrowIfUnsupportedWorksheetMutation(sheet, sourceSheet);
-            var sourceCells = sourceSheet.Cells.ToDictionary(cell => (cell.Row, cell.Column));
+            return ExtractCore(document, sheet, sourceSheet);
+        }
+
+        internal static IReadOnlyList<XlsbWriteCell> ExtractNew(
+            ExcelDocument document,
+            ExcelSheet sheet) {
+            if (document == null) throw new ArgumentNullException(nameof(document));
+            if (sheet == null) throw new ArgumentNullException(nameof(sheet));
+
+            ThrowIfUnsupportedNewWorksheetContent(sheet);
+            return ExtractCore(document, sheet, sourceSheet: null);
+        }
+
+        private static IReadOnlyList<XlsbWriteCell> ExtractCore(
+            ExcelDocument document,
+            ExcelSheet sheet,
+            XlsbWorksheet? sourceSheet) {
+            var sourceCells = sourceSheet?.Cells.ToDictionary(cell => (cell.Row, cell.Column))
+                ?? new Dictionary<(int Row, int Column), XlsbCell>();
             var visitedSourceCells = new HashSet<(int Row, int Column)>();
             var result = new List<XlsbWriteCell>();
             SheetData? sheetData = sheet.WorksheetPart.Worksheet?.GetFirstChild<SheetData>();
@@ -47,10 +65,12 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 }
             }
 
-            foreach (XlsbCell sourceCell in sourceSheet.Cells) {
-                if (sourceCell.Kind == XlsbCellValueKind.Blank
-                    && !visitedSourceCells.Contains((sourceCell.Row, sourceCell.Column))) {
-                    result.Add(XlsbWriteCell.PreserveSource(sourceCell));
+            if (sourceSheet != null) {
+                foreach (XlsbCell sourceCell in sourceSheet.Cells) {
+                    if (sourceCell.Kind == XlsbCellValueKind.Blank
+                        && !visitedSourceCells.Contains((sourceCell.Row, sourceCell.Column))) {
+                        result.Add(XlsbWriteCell.PreserveSource(sourceCell));
+                    }
                 }
             }
 
@@ -59,6 +79,20 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 return row != 0 ? row : left.Column.CompareTo(right.Column);
             });
             return result.AsReadOnly();
+        }
+
+        private static void ThrowIfUnsupportedNewWorksheetContent(ExcelSheet sheet) {
+            if (sheet.WorksheetPart.Parts.Any()
+                || sheet.WorksheetPart.ExternalRelationships.Any()
+                || sheet.WorksheetPart.HyperlinkRelationships.Any()) {
+                throw new NotSupportedException($"Native XLSB generation does not yet support relationship-backed content on worksheet '{sheet.Name}'.");
+            }
+
+            OpenXmlElement? unsupported = sheet.WorksheetPart.Worksheet?.ChildElements
+                .FirstOrDefault(element => element is not SheetDimension && element is not SheetData);
+            if (unsupported != null) {
+                throw new NotSupportedException($"Native XLSB generation does not yet support worksheet metadata '{unsupported.LocalName}' on worksheet '{sheet.Name}'.");
+            }
         }
 
         private static void ThrowIfUnsupportedWorksheetMutation(ExcelSheet sheet, XlsbWorksheet sourceSheet) {

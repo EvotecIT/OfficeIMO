@@ -26,6 +26,28 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             0x00, 0x00, 0x00
         };
 
+        internal static byte[] Create(IReadOnlyList<XlsbWriteCell> cells) {
+            if (cells == null) throw new ArgumentNullException(nameof(cells));
+
+            IReadOnlyDictionary<int, IReadOnlyList<XlsbWriteCell>> cellsByRow = cells
+                .GroupBy(cell => cell.Row - 1)
+                .ToDictionary(group => group.Key, group => (IReadOnlyList<XlsbWriteCell>)group.OrderBy(cell => cell.Column).ToArray());
+
+            using var output = new MemoryStream(Math.Max(256, cells.Count * 24));
+            XlsbRecordWriter.Write(output, 129); // BrtBeginSheet
+            XlsbRecordWriter.Write(output, BrtWsDim, CreateNewDimensionPayload(cells));
+            XlsbRecordWriter.Write(output, BrtBeginSheetData);
+            foreach (KeyValuePair<int, IReadOnlyList<XlsbWriteCell>> row in cellsByRow.OrderBy(pair => pair.Key)) {
+                XlsbRecordWriter.Write(output, BrtRowHdr, CreateRowHeaderPayload(row.Key, sourcePayload: null, row.Value));
+                foreach (XlsbWriteCell cell in row.Value) {
+                    WriteCell(output, cell);
+                }
+            }
+            XlsbRecordWriter.Write(output, BrtEndSheetData);
+            XlsbRecordWriter.Write(output, 130); // BrtEndSheet
+            return output.ToArray();
+        }
+
         internal static byte[] Rewrite(byte[] originalPart, IReadOnlyList<XlsbWriteCell> cells) {
             if (originalPart == null) throw new ArgumentNullException(nameof(originalPart));
             if (cells == null) throw new ArgumentNullException(nameof(cells));
@@ -180,6 +202,22 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             WriteUInt32(payload, hasSourceCells ? Math.Max(lastRow, cellLastRow) : cellLastRow);
             WriteUInt32(payload, hasSourceCells ? Math.Min(firstColumn, cellFirstColumn) : cellFirstColumn);
             WriteUInt32(payload, hasSourceCells ? Math.Max(lastColumn, cellLastColumn) : cellLastColumn);
+            return payload.ToArray();
+        }
+
+        private static byte[] CreateNewDimensionPayload(IReadOnlyList<XlsbWriteCell> cells) {
+            using var payload = new MemoryStream(16);
+            if (cells.Count == 0) {
+                WriteUInt32(payload, 0);
+                WriteUInt32(payload, 0);
+                WriteUInt32(payload, 0);
+                WriteUInt32(payload, 0);
+            } else {
+                WriteUInt32(payload, checked((uint)(cells.Min(cell => cell.Row) - 1)));
+                WriteUInt32(payload, checked((uint)(cells.Max(cell => cell.Row) - 1)));
+                WriteUInt32(payload, checked((uint)(cells.Min(cell => cell.Column) - 1)));
+                WriteUInt32(payload, checked((uint)(cells.Max(cell => cell.Column) - 1)));
+            }
             return payload.ToArray();
         }
 

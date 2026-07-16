@@ -779,19 +779,107 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public async Task Xlsb_SaveTargets_NeverWriteMislabeledXlsxContent() {
+        public async Task Xlsb_NewWorkbook_SyncAndAsyncSaveProduceReadableNativePackages() {
             using ExcelDocument document = ExcelDocument.Create();
             document.AddWorksheet("Data").CellValue(1, 1, "XLSB");
             using var synchronousDestination = new MemoryStream();
             using var asynchronousDestination = new MemoryStream();
 
-            Exception? synchronousFailure = Record.Exception(() =>
-                document.Save(synchronousDestination, ExcelFileFormat.Xlsb));
-            Exception? asynchronousFailure = await Record.ExceptionAsync(() =>
-                document.SaveAsync(asynchronousDestination, ExcelFileFormat.Xlsb));
+            document.Save(synchronousDestination, ExcelFileFormat.Xlsb);
+            await document.SaveAsync(asynchronousDestination, ExcelFileFormat.Xlsb);
 
-            AssertXlsbSaveResult(synchronousDestination, synchronousFailure);
-            AssertXlsbSaveResult(asynchronousDestination, asynchronousFailure);
+            byte[] synchronous = synchronousDestination.ToArray();
+            byte[] asynchronous = asynchronousDestination.ToArray();
+            Assert.Equal(ExcelFileFormat.Xlsb, ExcelDocumentLoadRouting.DetectFormat(synchronous, "sync.xlsb"));
+            Assert.Equal(ExcelFileFormat.Xlsb, ExcelDocumentLoadRouting.DetectFormat(asynchronous, "async.xlsb"));
+            using ExcelDocument syncReloaded = ExcelDocument.Load(new MemoryStream(synchronous, writable: false));
+            using ExcelDocument asyncReloaded = ExcelDocument.Load(new MemoryStream(asynchronous, writable: false));
+            Assert.True(syncReloaded.Sheets[0].TryGetCellText(1, 1, out string? syncValue));
+            Assert.True(asyncReloaded.Sheets[0].TryGetCellText(1, 1, out string? asyncValue));
+            Assert.Equal("XLSB", syncValue);
+            Assert.Equal("XLSB", asyncValue);
+        }
+
+        [Fact]
+        public void Xlsb_NewWorkbook_WritesMultipleSheetsValuesVisibilityAndDimensions() {
+            using ExcelDocument document = ExcelDocument.Create();
+            ExcelSheet values = document.AddWorksheet("Values");
+            values.CellValue(2, 2, "Text");
+            values.CellValue(3, 3, 42.5D);
+            values.CellValue(4, 4, true);
+            ExcelSheet hidden = document.AddWorksheet("Hidden Data");
+            hidden.CellValue(1, 1, "Hidden");
+            hidden.SetHidden(true);
+
+            byte[] package = document.ToBytes(ExcelFileFormat.Xlsb);
+
+            Assert.Equal((1, 3, 1, 3), ReadWorksheetDimension(package, "xl/worksheets/sheet1.bin"));
+            using ExcelDocument reloaded = ExcelDocument.Load(new MemoryStream(package, writable: false));
+            Assert.Equal(2, reloaded.Sheets.Count);
+            Assert.Equal("Values", reloaded.Sheets[0].Name);
+            Assert.Equal("Hidden Data", reloaded.Sheets[1].Name);
+            Assert.True(reloaded.Sheets[1].Hidden);
+            Assert.True(reloaded.Sheets[0].TryGetCellText(2, 2, out string? text));
+            Assert.True(reloaded.Sheets[0].TryGetCellText(3, 3, out string? number));
+            Assert.True(reloaded.Sheets[0].TryGetCellText(4, 4, out string? boolean));
+            Assert.Equal("Text", text);
+            Assert.Equal("42.5", number);
+            Assert.Equal("1", boolean);
+        }
+
+        [Fact]
+        public async Task Xlsb_NewWorkbook_StreamsToNonSeekableDestinations() {
+            using ExcelDocument document = ExcelDocument.Create();
+            document.AddWorksheet("Streamed").CellValue(1, 1, "BIFF12");
+            using var synchronousDestination = new NonSeekableReadWriteBuffer(Array.Empty<byte>());
+            using var asynchronousDestination = new NonSeekableReadWriteBuffer(Array.Empty<byte>());
+
+            document.Save(synchronousDestination, ExcelFileFormat.Xlsb);
+            await document.SaveAsync(asynchronousDestination, ExcelFileFormat.Xlsb);
+
+            using ExcelDocument syncReloaded = ExcelDocument.Load(new MemoryStream(synchronousDestination.ToArray(), writable: false));
+            using ExcelDocument asyncReloaded = ExcelDocument.Load(new MemoryStream(asynchronousDestination.ToArray(), writable: false));
+            Assert.True(syncReloaded.Sheets[0].TryGetCellText(1, 1, out string? syncValue));
+            Assert.True(asyncReloaded.Sheets[0].TryGetCellText(1, 1, out string? asyncValue));
+            Assert.Equal("BIFF12", syncValue);
+            Assert.Equal("BIFF12", asyncValue);
+        }
+
+        [Fact]
+        public void Xlsb_NewWorkbook_RejectsUnsupportedFormulaBeforeTouchingDestinationContent() {
+            using ExcelDocument document = ExcelDocument.Create();
+            document.AddWorksheet("Formula").CellFormula(1, 1, "1+1");
+            byte[] sentinel = Enumerable.Range(0, 64).Select(index => (byte)index).ToArray();
+            using var destination = new MemoryStream();
+            destination.Write(sentinel, 0, sentinel.Length);
+
+            NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
+                document.Save(destination, ExcelFileFormat.Xlsb));
+
+            Assert.Contains("does not encode changed formula", exception.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Equal(sentinel, destination.ToArray());
+        }
+
+        [Fact]
+        public void Xlsb_NewWorkbook_FileSaveAdoptsNativeStateForSubsequentRewrites() {
+            string path = Path.Combine(Path.GetTempPath(), "officeimo-new-native-" + Guid.NewGuid().ToString("N") + ".xlsb");
+            try {
+                using (ExcelDocument document = ExcelDocument.Create()) {
+                    ExcelSheet sheet = document.AddWorksheet("Sequential");
+                    sheet.CellValue(1, 1, "First");
+                    document.Save(path);
+                    Assert.Equal(ExcelFileFormat.Xlsb, document.SourceFormat);
+
+                    sheet.CellValue(1, 1, "Second");
+                    document.Save();
+                }
+
+                using ExcelDocument reloaded = ExcelDocument.Load(path);
+                Assert.True(reloaded.Sheets[0].TryGetCellText(1, 1, out string? value));
+                Assert.Equal("Second", value);
+            } finally {
+                if (File.Exists(path)) File.Delete(path);
+            }
         }
 
         private static byte[] CreateMinimalXlsbPackage() {
@@ -1133,16 +1221,5 @@ namespace OfficeIMO.Tests {
             return stream.ToArray();
         }
 
-        private static void AssertXlsbSaveResult(MemoryStream destination, Exception? failure) {
-            if (failure != null) {
-                Assert.IsType<NotSupportedException>(failure);
-                Assert.Equal(0, destination.Length);
-                return;
-            }
-
-            Assert.Equal(
-                ExcelFileFormat.Xlsb,
-                ExcelDocumentLoadRouting.DetectFormat(destination.ToArray(), "workbook.xlsb"));
-        }
     }
 }
