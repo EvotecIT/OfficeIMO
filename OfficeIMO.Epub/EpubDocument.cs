@@ -74,6 +74,21 @@ public sealed class EpubDocument {
     /// <summary>Whether the package globally declares a pre-paginated fixed layout.</summary>
     public bool IsFixedLayout => RenditionLayout == EpubRenditionLayout.PrePaginated;
 
+    /// <summary>Ordered rootfile declarations from META-INF/container.xml.</summary>
+    public IReadOnlyList<EpubRootfile> Rootfiles { get; internal set; } = Array.Empty<EpubRootfile>();
+
+    /// <summary>Ordered OPF metadata declarations, including EPUB 3 refinements and EPUB 2 metadata.</summary>
+    public IReadOnlyList<EpubMetadataEntry> Metadata { get; internal set; } = Array.Empty<EpubMetadataEntry>();
+
+    /// <summary>Hierarchical EPUB table of contents.</summary>
+    public IReadOnlyList<EpubNavigationItem> TableOfContents { get; internal set; } = Array.Empty<EpubNavigationItem>();
+
+    /// <summary>EPUB page-list navigation items.</summary>
+    public IReadOnlyList<EpubNavigationItem> PageList { get; internal set; } = Array.Empty<EpubNavigationItem>();
+
+    /// <summary>EPUB landmarks or EPUB 2 guide references.</summary>
+    public IReadOnlyList<EpubNavigationItem> Landmarks { get; internal set; } = Array.Empty<EpubNavigationItem>();
+
     /// <summary>
     /// Extracted chapters.
     /// </summary>

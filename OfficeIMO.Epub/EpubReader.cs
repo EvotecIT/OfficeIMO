@@ -95,12 +95,12 @@ internal static partial class EpubReader {
 
         using var archive = new ZipArchive(epubStream, ZipArchiveMode.Read, leaveOpen: true);
         Dictionary<string, ZipArchiveEntry> entryIndex = BuildEntryIndex(archive, effective, diagnostics);
-        EpubPackage? package = TryReadPackage(entryIndex, effective, diagnostics);
+        EpubPackage? package = TryReadPackage(entryIndex, effective, diagnostics, out IReadOnlyList<EpubRootfile> rootfiles);
         IReadOnlyList<EpubEncryptionInfo> encryption = ReadEncryption(entryIndex, effective, diagnostics);
         Dictionary<string, EpubEncryptionInfo> encryptionByPath = encryption
             .GroupBy(static item => item.Path, StringComparer.Ordinal)
             .ToDictionary(static group => group.Key, static group => group.First(), StringComparer.Ordinal);
-        Dictionary<string, string> navTitleMap = BuildNavigationTitleMap(entryIndex, package, effective, diagnostics);
+        EpubNavigationResult navigation = ReadNavigation(entryIndex, package, effective, diagnostics);
         List<ChapterCandidate> candidates = BuildChapterCandidates(entryIndex, package, effective, diagnostics);
 
         var chapters = new List<EpubChapter>();
@@ -156,7 +156,7 @@ internal static partial class EpubReader {
             }
 
             emitted++;
-            var title = ResolveChapterTitle(chapterDocument, navTitleMap, normalizedPath);
+            var title = ResolveChapterTitle(chapterDocument, navigation.TitleMap, normalizedPath);
 
             chapters.Add(new EpubChapter {
                 Order = emitted,
@@ -197,6 +197,11 @@ internal static partial class EpubReader {
             PackageVersion = package?.PackageVersion,
             UniqueIdentifierId = package?.UniqueIdentifierId,
             RenditionLayout = package?.RenditionLayout,
+            Rootfiles = rootfiles,
+            Metadata = package?.Metadata.ToArray() ?? Array.Empty<EpubMetadataEntry>(),
+            TableOfContents = navigation.TableOfContents.ToArray(),
+            PageList = navigation.PageList.ToArray(),
+            Landmarks = navigation.Landmarks.ToArray(),
             Chapters = chapters.ToArray(),
             Resources = resources.ToArray(),
             Encryption = encryption.ToArray(),
@@ -242,6 +247,23 @@ internal static partial class EpubReader {
                     package.OpfPath);
                 break;
             }
+            if (item.IsRemote) {
+                diagnostics.Info(
+                    "epub.resource.remote",
+                    $"Remote EPUB resource '{item.RemoteUri}' is retained as metadata and is not fetched.",
+                    item.RemoteUri);
+                resources.Add(new EpubResource {
+                    Id = item.Id,
+                    Path = item.RemoteUri ?? item.Href,
+                    Href = item.Href,
+                    MediaType = item.MediaType,
+                    Properties = item.Properties,
+                    IsRemote = true,
+                    RemoteUri = item.RemoteUri,
+                    LengthBytes = 0
+                });
+                continue;
+            }
             if (!entryIndex.TryGetValue(item.FullPath, out ZipArchiveEntry? entry)) {
                 diagnostics.Warning(
                     "epub.resource.missing",
@@ -276,6 +298,7 @@ internal static partial class EpubReader {
             resources.Add(new EpubResource {
                 Id = item.Id,
                 Path = item.FullPath,
+                Href = item.Href,
                 MediaType = item.MediaType,
                 Properties = item.Properties,
                 LengthBytes = entry.Length,

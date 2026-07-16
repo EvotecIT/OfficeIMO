@@ -153,6 +153,9 @@ internal static partial class EpubReader {
             MaxArchiveEntries = source.MaxArchiveEntries,
             MaxTotalUncompressedBytes = source.MaxTotalUncompressedBytes,
             MaxPackageMetadataBytes = source.MaxPackageMetadataBytes,
+            MaxMetadataItems = source.MaxMetadataItems,
+            MaxNavigationItems = source.MaxNavigationItems,
+            MaxNavigationDepth = source.MaxNavigationDepth,
             MaxChapters = source.MaxChapters,
             MaxChapterBytes = source.MaxChapterBytes,
             MaxTotalRawHtmlBytes = source.MaxTotalRawHtmlBytes,
@@ -171,6 +174,9 @@ internal static partial class EpubReader {
         if (normalized.MaxArchiveEntries < 1) normalized.MaxArchiveEntries = 1;
         if (normalized.MaxTotalUncompressedBytes < 1) normalized.MaxTotalUncompressedBytes = 1;
         if (normalized.MaxPackageMetadataBytes < 1) normalized.MaxPackageMetadataBytes = 1;
+        if (normalized.MaxMetadataItems < 1) normalized.MaxMetadataItems = 1;
+        if (normalized.MaxNavigationItems < 1) normalized.MaxNavigationItems = 1;
+        if (normalized.MaxNavigationDepth < 1) normalized.MaxNavigationDepth = 1;
         if (normalized.MaxChapters < 1) normalized.MaxChapters = 1;
         if (normalized.MaxChapterBytes.HasValue && normalized.MaxChapterBytes.Value < 1) {
             normalized.MaxChapterBytes = 1;

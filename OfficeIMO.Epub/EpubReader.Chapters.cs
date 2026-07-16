@@ -29,6 +29,14 @@ internal static partial class EpubReader {
                     continue;
                 }
 
+                if (manifestItem.IsRemote) {
+                    diagnostics.Warning(
+                        "epub.spine.remote-resource",
+                        $"Skipped remote spine resource '{manifestItem.RemoteUri}' because remote content is not fetched.",
+                        manifestItem.RemoteUri);
+                    continue;
+                }
+
                 if (!entryIndex.TryGetValue(manifestItem.FullPath, out var chapterEntry)) {
                     diagnostics.Warning(
                         "epub.spine.resource-missing",
