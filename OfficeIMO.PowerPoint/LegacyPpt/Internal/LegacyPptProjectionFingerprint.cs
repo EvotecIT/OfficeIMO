@@ -84,6 +84,13 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                         && projectionMap.IsProjectedLayoutPart(part.Uri.ToString())) {
                         NormalizeProjectedHeaderFooter(root);
                     }
+                    if (part is SlideLayoutPart backgroundLayout
+                        && projectionMap.IsEditableProjectedLayoutBackgroundPart(
+                            backgroundLayout.Uri.ToString())
+                        && root is P.SlideLayout normalizedLayout) {
+                        NormalizeProjectedBackground(
+                            normalizedLayout.CommonSlideData);
+                    }
                     if (part is SlideLayoutPart titlePart
                         && projectionMap.TryGetTitleMaster(titlePart,
                             out LegacyPptMasterProjection? titleProjection)
@@ -158,8 +165,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             P.CommonSlideData? commonSlideData) {
             P.Background? background = commonSlideData?.Background;
             if (background == null) return;
-            background.ClearAllAttributes();
-            background.RemoveAllChildren();
+            background.Remove();
         }
 
         private static string CreateSlide(PresentationDocument document, SlidePart slidePart,

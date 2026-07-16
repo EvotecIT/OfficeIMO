@@ -103,6 +103,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
         internal bool IsProjectedLayoutPart(string partUri) =>
             partUri != null && _masterIdsByLayoutPartUri.ContainsKey(partUri);
 
+        internal bool IsEditableProjectedLayoutBackgroundPart(string partUri) =>
+            partUri != null && !_titleMastersByPartUri.ContainsKey(partUri)
+            && Slides.Any(slide => !slide.HasExplicitBackground
+                && string.Equals(slide.LayoutPartUri, partUri,
+                    StringComparison.Ordinal));
+
         internal bool TryGetMaster(SlideMasterPart masterPart,
             out LegacyPptMasterProjection? projection) {
             if (masterPart == null) throw new ArgumentNullException(nameof(masterPart));
@@ -173,8 +179,11 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                         projectableSoundIds));
                 }
                 slides.Add(new LegacyPptSlideProjection(projectedSlide.SlidePart.Uri.ToString(),
+                    projectedSlide.SlidePart.SlideLayoutPart?.Uri.ToString(),
                     sourceSlide.PersistId, sourceSlide.SlideId, sourceSlide.MasterId,
                     sourceSlide.Hidden, sourceSlide.HeaderFooter,
+                    projectedSlide.SlidePart.Slide?.CommonSlideData?
+                        .Background != null,
                     LegacyPptSlideProjection.CreateBackgroundFingerprint(
                         projectedSlide),
                     projectedSlide.SlidePart.ThemeOverridePart?.Uri.ToString(),
@@ -600,8 +609,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
     internal sealed class LegacyPptSlideProjection {
         private readonly IReadOnlyDictionary<uint, LegacyPptShapeProjection> _shapesByOpenXmlId;
 
-        internal LegacyPptSlideProjection(string slidePartUri, uint persistId, uint slideId, uint masterId,
+        internal LegacyPptSlideProjection(string slidePartUri,
+            string? layoutPartUri, uint persistId, uint slideId, uint masterId,
             bool hidden, LegacyPptHeaderFooterSettings? headerFooter,
+            bool hasExplicitBackground,
             string backgroundFingerprint, string? themePartUri,
             string themeFingerprint,
             IReadOnlyList<string> classicColorFingerprints,
@@ -609,11 +620,13 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             IReadOnlyList<LegacyPptComment> comments,
             IReadOnlyList<LegacyPptShapeProjection> shapes, LegacyPptNotesProjection? notes) {
             SlidePartUri = slidePartUri ?? throw new ArgumentNullException(nameof(slidePartUri));
+            LayoutPartUri = layoutPartUri;
             PersistId = persistId;
             SlideId = slideId;
             MasterId = masterId;
             Hidden = hidden;
             HeaderFooter = headerFooter;
+            HasExplicitBackground = hasExplicitBackground;
             BackgroundFingerprint = backgroundFingerprint
                 ?? throw new ArgumentNullException(nameof(backgroundFingerprint));
             ThemePartUri = themePartUri;
@@ -638,6 +651,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
 
         internal string SlidePartUri { get; }
 
+        internal string? LayoutPartUri { get; }
+
         internal uint PersistId { get; }
 
         internal uint SlideId { get; }
@@ -647,6 +662,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
         internal bool Hidden { get; }
 
         internal LegacyPptHeaderFooterSettings? HeaderFooter { get; }
+
+        internal bool HasExplicitBackground { get; }
 
         internal string BackgroundFingerprint { get; }
 
@@ -664,6 +681,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             PowerPointSlide slide) {
             if (slide == null) throw new ArgumentNullException(nameof(slide));
             return slide.SlidePart.Slide?.CommonSlideData?.Background?.OuterXml
+                ?? slide.SlidePart.SlideLayoutPart?.SlideLayout?
+                    .CommonSlideData?.Background?.OuterXml
                 ?? string.Empty;
         }
 

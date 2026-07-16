@@ -361,9 +361,28 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             LegacyPptWriterBackground background) {
             if (prototype == null) throw new ArgumentNullException(nameof(prototype));
             if (background == null) throw new ArgumentNullException(nameof(background));
-            return BuildMasterRecord(prototype,
+            byte[] bytes = BuildMasterRecord(prototype,
                 ReadColorScheme(themePart: null), background,
                 rewriteColorScheme: false);
+            LegacyPptRecord record = LegacyPptRecordReader.ReadSingle(bytes, 0,
+                new LegacyPptImportOptions());
+            LegacyPptRecord? slideAtom = record.Children.FirstOrDefault(child =>
+                child.Type == RecordSlideAtom && child.PayloadLength >= 22);
+            if (slideAtom != null) {
+                ushort flags = ReadUInt16(bytes,
+                    slideAtom.PayloadOffset + 20);
+                WriteUInt16(bytes, slideAtom.PayloadOffset + 20,
+                    unchecked((ushort)(flags & ~0x0004)));
+            }
+            LegacyPptRecord? notesAtom = record.Children.FirstOrDefault(child =>
+                child.Type == RecordNotesAtom && child.PayloadLength >= 6);
+            if (notesAtom != null) {
+                ushort flags = ReadUInt16(bytes,
+                    notesAtom.PayloadOffset + 4);
+                WriteUInt16(bytes, notesAtom.PayloadOffset + 4,
+                    unchecked((ushort)(flags & ~0x0004)));
+            }
+            return bytes;
         }
 
         private static byte[] BuildColorSchemeAtom(LegacyPptWriterColorScheme scheme) {

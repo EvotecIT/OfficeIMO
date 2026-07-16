@@ -125,7 +125,7 @@ namespace OfficeIMO.Tests {
 
             Assert.Contains("Supported imported slide, notes-page, main-, title-, notes-, and handout-master background edits",
                 backgrounds.Note);
-            Assert.Contains("imported ordinary PPTX-layout background edits remain planned",
+            Assert.Contains("ordinary PPTX-layout background edits materialize into every affected imported slide",
                 backgrounds.Note);
         }
 
