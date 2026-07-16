@@ -71,7 +71,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void ImportedMainMasterPlainTextEdit_AppendsPreservingIncrementalRecord() {
+        public void ImportedMainMasterTextAndPlaceholderEdits_AppendPreservingRecords() {
             byte[] sourceBytes = CreateBinaryWithEditableMasterText();
             LegacyPptPresentation original = LegacyPptPresentation.Load(sourceBytes);
             LegacyPptMaster originalMaster = Assert.Single(original.Masters);
@@ -85,6 +85,9 @@ namespace OfficeIMO.Tests {
                 Assert.Single(LegacyPptWriter.ReadMasterShapesForWrite(
                     masterPart, out _)));
             textBox.Text = "Edited label";
+            textBox.PlaceholderType = P.PlaceholderValues.Title;
+            textBox.PlaceholderIndex = 3;
+            textBox.PlaceholderSize = P.PlaceholderSizeValues.Half;
 
             Assert.True(imported.AnalyzeLegacyPptWrite().CanWrite);
             byte[] savedBytes = imported.ToBytes(PowerPointFileFormat.Ppt);
@@ -92,11 +95,20 @@ namespace OfficeIMO.Tests {
             LegacyPptMaster savedMaster = Assert.Single(saved.Masters);
 
             Assert.Equal("Edited label", Assert.Single(savedMaster.Shapes).Text);
+            LegacyPptPlaceholder placeholder = Assert.IsType<
+                LegacyPptPlaceholder>(Assert.Single(savedMaster.Shapes)
+                    .Placeholder);
+            Assert.Equal(3, placeholder.Position);
+            Assert.Equal(LegacyPptPlaceholderKind.MasterTitle,
+                placeholder.Kind);
+            Assert.Equal(LegacyPptPlaceholderSize.Half, placeholder.Size);
+            Assert.Equal(LegacyPptPlaceholderKind.MasterTitle,
+                savedMaster.LayoutPlaceholderTypes[3]);
             Assert.True(saved.Package.DocumentStream.AsSpan(0,
                     original.Package.DocumentStream.Length)
                 .SequenceEqual(original.Package.DocumentStream));
             AssertUnrelatedMasterChildrenEqual(original, saved,
-                originalMaster.PersistId);
+                originalMaster.PersistId, 0x03EF);
 
             using var reopenedInput = new MemoryStream(savedBytes);
             using PowerPointPresentation reopened =
@@ -107,7 +119,41 @@ namespace OfficeIMO.Tests {
                 Assert.Single(LegacyPptWriter.ReadMasterShapesForWrite(
                     reopenedMaster, out _)));
             Assert.Equal("Edited label", reopenedText.Text);
+            Assert.Equal(P.PlaceholderValues.Title,
+                reopenedText.PlaceholderType);
+            Assert.Equal(3U, reopenedText.PlaceholderIndex);
+            Assert.Equal(P.PlaceholderSizeValues.Half,
+                reopenedText.PlaceholderSize);
             Assert.Empty(reopened.ValidateDocument());
+
+            reopenedText.PlaceholderIndex = null;
+            reopenedText.PlaceholderSize = null;
+            reopenedText.PlaceholderType = null;
+            Assert.False(reopenedText.IsPlaceholder);
+            Assert.True(reopened.AnalyzeLegacyPptWrite().CanWrite);
+            byte[] removedBytes = reopened.ToBytes(PowerPointFileFormat.Ppt);
+            LegacyPptPresentation removed = LegacyPptPresentation.Load(
+                removedBytes);
+            LegacyPptMaster removedMaster = Assert.Single(removed.Masters);
+
+            Assert.Null(Assert.Single(removedMaster.Shapes).Placeholder);
+            Assert.DoesNotContain(removedMaster.LayoutPlaceholderTypes,
+                value => value != LegacyPptPlaceholderKind.None);
+            Assert.Equal(saved.Package.UserEdits.Count + 1,
+                removed.Package.UserEdits.Count);
+            Assert.True(removed.Package.DocumentStream.AsSpan(0,
+                    saved.Package.DocumentStream.Length)
+                .SequenceEqual(saved.Package.DocumentStream));
+
+            using var removedInput = new MemoryStream(removedBytes);
+            using PowerPointPresentation removedProjection =
+                PowerPointPresentation.Load(removedInput);
+            PowerPointTextBox removedText = Assert.IsType<PowerPointTextBox>(
+                Assert.Single(LegacyPptWriter.ReadMasterShapesForWrite(
+                    removedProjection.OpenXmlDocument.PresentationPart!
+                        .SlideMasterParts.Single(), out _)));
+            Assert.False(removedText.IsPlaceholder);
+            Assert.Empty(removedProjection.ValidateDocument());
         }
 
         [Fact]

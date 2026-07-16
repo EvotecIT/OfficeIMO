@@ -87,6 +87,8 @@ namespace OfficeIMO.Tests {
             Assert.Equal(LegacyPptCapabilityState.Native, placeholders.NewBinaryWrite);
             Assert.Equal(LegacyPptCapabilityState.Preserved, placeholders.BinaryRoundTrip);
             Assert.Equal(LegacyPptCapabilityState.Native, placeholders.PptxToBinary);
+            Assert.Contains("addition, and removal edits on imported slide and main-, title-, notes-, or handout-master placeholders",
+                placeholders.Note);
         }
 
         [Fact]

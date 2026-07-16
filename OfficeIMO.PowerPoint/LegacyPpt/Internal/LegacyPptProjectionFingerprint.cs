@@ -285,6 +285,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 if (!shapeId.HasValue || !tryGetShape(shapeId.Value,
                         out LegacyPptShapeProjection? shapeProjection)
                     || shapeProjection == null) continue;
+                shape.NonVisualShapeProperties?
+                    .ApplicationNonVisualDrawingProperties?.PlaceholderShape?
+                    .Remove();
                 if (normalizeInteractions && shapeProjection.CanEditInteractions) {
                     shape.NonVisualShapeProperties?.NonVisualDrawingProperties?
                         .RemoveAllChildren<A.HyperlinkOnClick>();
@@ -307,6 +310,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 if (!shapeId.HasValue || !tryGetShape(shapeId.Value,
                         out LegacyPptShapeProjection? shapeProjection)
                     || shapeProjection == null) continue;
+                picture.NonVisualPictureProperties?
+                    .ApplicationNonVisualDrawingProperties?.PlaceholderShape?
+                    .Remove();
                 if (normalizeInteractions && shapeProjection.CanEditInteractions) {
                     picture.NonVisualPictureProperties?.NonVisualDrawingProperties?
                         .RemoveAllChildren<A.HyperlinkOnClick>();
@@ -329,6 +335,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 if (!shapeId.HasValue || !tryGetShape(shapeId.Value,
                         out LegacyPptShapeProjection? shapeProjection)
                     || shapeProjection == null) continue;
+                connection.NonVisualConnectionShapeProperties?
+                    .ApplicationNonVisualDrawingProperties?.PlaceholderShape?
+                    .Remove();
                 if (normalizeInteractions && shapeProjection.CanEditInteractions) {
                     connection.NonVisualConnectionShapeProperties?.NonVisualDrawingProperties?
                         .RemoveAllChildren<A.HyperlinkOnClick>();

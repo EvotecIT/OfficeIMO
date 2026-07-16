@@ -233,6 +233,14 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         LegacyPptBounds? changedBounds = BoundsEqual(bounds, shapeProjection.Bounds)
                             ? null
                             : bounds;
+                        if (!LegacyPptWriter.TryReadPlaceholderForWrite(shape,
+                                LegacyPptWriter.LegacyPptWriterShapeContext.Slide,
+                                out LegacyPptWriter.LegacyPptWriterPlaceholder?
+                                    currentPlaceholder, out _)) {
+                            return false;
+                        }
+                        bool placeholderChanged = !shapeProjection
+                            .PlaceholderMatches(currentPlaceholder);
                         string? changedText = null;
                         if (shape is PowerPointTextBox textBox) {
                             if (!MatchesProjectedTextFormatting(textBox, shapeProjection)) return false;
@@ -266,11 +274,13 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                             return false;
                         }
                         if (changedBounds.HasValue || changedText != null
+                            || placeholderChanged
                             || interactionEdit != null || animationChanged) {
                             editsByOfficeArtId.Add(shapeProjection.OfficeArtShapeId,
                                 new ProjectedShapeEdit(changedBounds, shapeProjection.Text,
                                     changedText, interactionEdit,
-                                    animationChanged, currentAnimation));
+                                    animationChanged, currentAnimation,
+                                    placeholderChanged, currentPlaceholder));
                         }
                     }
                     bool? hidden = slide.Hidden == slideProjection.Hidden ? null : slide.Hidden;
@@ -452,6 +462,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 && edit.Interactions?.RewriteTextInteractions != true;
             bool patchedShapeInteractions = edit.Interactions?.RewriteShapeInteractions != true;
             bool patchedAnimation = !edit.RewriteAnimation;
+            bool patchedPlaceholder = !edit.RewritePlaceholder;
             bool appendedShapeInteractions = false;
             bool appendedAnimation = false;
             bool sawClientData = false;
@@ -475,7 +486,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     patchedText = true;
                 } else if (child.Type == OfficeArtClientData
                            && (edit.Interactions?.RewriteShapeInteractions == true
-                               || edit.RewriteAnimation)) {
+                               || edit.RewriteAnimation
+                               || edit.RewritePlaceholder)) {
                     sawClientData = true;
                     byte[] clientData = child.CopyRecordBytes();
                     if (edit.Interactions?.RewriteShapeInteractions == true
@@ -496,6 +508,15 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         bytes = shapeContainer.CopyRecordBytes();
                         return false;
                     }
+                    rewrittenClientData = LegacyPptRecordReader.ReadSingle(
+                        clientData, 0, new LegacyPptImportOptions());
+                    if (edit.RewritePlaceholder
+                        && !TryRewriteClientDataPlaceholder(
+                            rewrittenClientData, edit.Placeholder,
+                            out clientData)) {
+                        bytes = shapeContainer.CopyRecordBytes();
+                        return false;
+                    }
                     children.Add(clientData);
                     if (edit.Interactions?.RewriteShapeInteractions == true) {
                         appendedShapeInteractions = true;
@@ -505,14 +526,20 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         appendedAnimation |= edit.Animation != null;
                         patchedAnimation = true;
                     }
+                    if (edit.RewritePlaceholder) patchedPlaceholder = true;
                 } else {
                     children.Add(child.CopyRecordBytes());
                 }
             }
             if (!sawClientData
                 && (edit.Interactions?.RewriteShapeInteractions == true
-                    || edit.RewriteAnimation)) {
+                    || edit.RewriteAnimation || edit.RewritePlaceholder)) {
                 var clientChildren = new List<byte[]>();
+                if (edit.Placeholder != null) {
+                    clientChildren.Add(LegacyPptWriter.BuildPlaceholderAtom(
+                        edit.Placeholder.Position, edit.Placeholder.Type,
+                        edit.Placeholder.Size));
+                }
                 if (edit.Animation != null) {
                     clientChildren.Add(LegacyPptWriter.BuildAnimationInfoRecord(
                         edit.Animation));
@@ -524,18 +551,54 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     patchedShapeInteractions = true;
                 }
                 patchedAnimation = true;
+                patchedPlaceholder = true;
                 if (clientChildren.Count > 0) {
                     children.Add(BuildRecord(version: 0x0F, instance: 0,
                         OfficeArtClientData, Concat(clientChildren)));
                 }
             }
             if (!patchedAnchor || !patchedText || !patchedShapeInteractions
-                || !patchedAnimation) {
+                || !patchedAnimation || !patchedPlaceholder) {
                 bytes = shapeContainer.CopyRecordBytes();
                 return false;
             }
             bytes = BuildRecord(shapeContainer.Version, shapeContainer.Instance,
                 shapeContainer.Type, Concat(children));
+            return true;
+        }
+
+        private static bool TryRewriteClientDataPlaceholder(
+            LegacyPptRecord clientData,
+            LegacyPptWriter.LegacyPptWriterPlaceholder? placeholder,
+            out byte[] bytes) {
+            if (clientData.Type != OfficeArtClientData
+                || clientData.Version != 0x0F
+                || clientData.Children.Count(child =>
+                    child.Type == RecordPlaceholder) > 1) {
+                bytes = clientData.CopyRecordBytes();
+                return false;
+            }
+            var children = new List<byte[]>(clientData.Children.Count + 1);
+            bool wrotePlaceholder = false;
+            foreach (LegacyPptRecord child in clientData.Children) {
+                if (child.Type == RecordPlaceholder) {
+                    if (placeholder != null) {
+                        children.Add(LegacyPptWriter.BuildPlaceholderAtom(
+                            placeholder.Position, placeholder.Type,
+                            placeholder.Size));
+                        wrotePlaceholder = true;
+                    }
+                } else {
+                    children.Add(child.CopyRecordBytes());
+                }
+            }
+            if (placeholder != null && !wrotePlaceholder) {
+                children.Insert(0, LegacyPptWriter.BuildPlaceholderAtom(
+                    placeholder.Position, placeholder.Type,
+                    placeholder.Size));
+            }
+            bytes = BuildRecord(clientData.Version, clientData.Instance,
+                clientData.Type, Concat(children));
             return true;
         }
 
@@ -904,13 +967,17 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             internal ProjectedShapeEdit(LegacyPptBounds? bounds, string originalText,
                 string? text, ProjectedInteractionEdit? interactions,
                 bool rewriteAnimation,
-                LegacyPptWriter.LegacyPptWriterAnimation? animation) {
+                LegacyPptWriter.LegacyPptWriterAnimation? animation,
+                bool rewritePlaceholder,
+                LegacyPptWriter.LegacyPptWriterPlaceholder? placeholder) {
                 Bounds = bounds;
                 OriginalText = originalText ?? string.Empty;
                 Text = text;
                 Interactions = interactions;
                 RewriteAnimation = rewriteAnimation;
                 Animation = animation;
+                RewritePlaceholder = rewritePlaceholder;
+                Placeholder = placeholder;
             }
 
             internal LegacyPptBounds? Bounds { get; }
@@ -924,6 +991,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             internal bool RewriteAnimation { get; }
 
             internal LegacyPptWriter.LegacyPptWriterAnimation? Animation { get; }
+
+            internal bool RewritePlaceholder { get; }
+
+            internal LegacyPptWriter.LegacyPptWriterPlaceholder? Placeholder {
+                get;
+            }
         }
     }
 }

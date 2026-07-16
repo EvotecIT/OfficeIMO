@@ -33,7 +33,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             var spgrChildren = new List<byte[]> { PatchShapeId(baseRootShape.CopyRecordBytes(), baseShapeId) };
             for (int index = 0; index < shapes.Count; index++) {
                 spgrChildren.Add(BuildShapeRecord(shapes[index],
-                    checked(baseShapeId + unchecked((uint)index) + 2U), index,
+                    checked(baseShapeId + unchecked((uint)index) + 2U),
                     interactionCatalog, animationCatalog, shapeContext));
             }
 
@@ -84,7 +84,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         }
 
         private static byte[] BuildShapeRecord(PowerPointShape shape, uint shapeId,
-            int shapeIndex, LegacyPptWriterInteractionCatalog interactionCatalog,
+            LegacyPptWriterInteractionCatalog interactionCatalog,
             LegacyPptWriterAnimationCatalog animationCatalog,
             LegacyPptWriterShapeContext shapeContext) {
             ushort shapeType;
@@ -95,7 +95,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 shapeType = 202;
                 children.Add(BuildFsp(shapeType, shapeId));
                 children.Add(BuildAnchor(shape));
-                byte[]? clientData = BuildClientData(shape, shapeIndex,
+                byte[]? clientData = BuildClientData(shape,
                     interactions.ShapeInteractions, animation, shapeContext);
                 if (clientData != null) children.Add(clientData);
                 children.Add(BuildTextBox(textBox.Text,
@@ -106,7 +106,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     : (ushort)1;
                 children.Add(BuildFsp(shapeType, shapeId));
                 children.Add(BuildAnchor(shape));
-                byte[]? clientData = BuildClientData(shape, shapeIndex,
+                byte[]? clientData = BuildClientData(shape,
                     interactions.ShapeInteractions, animation, shapeContext);
                 if (clientData != null) children.Add(clientData);
             } else {
@@ -143,18 +143,19 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             return BuildRecord(version: 0, instance: 0, OfficeArtClientAnchor, largePayload);
         }
 
-        private static byte[]? BuildClientData(PowerPointShape shape, int shapeIndex,
+        private static byte[]? BuildClientData(PowerPointShape shape,
             IReadOnlyList<LegacyPptWriterInteraction> interactions,
             LegacyPptWriterAnimation? animation,
             LegacyPptWriterShapeContext shapeContext) {
             var children = new List<byte[]>();
-            byte placeholderType = MapPlaceholder(shape.ShapePlaceholderType,
-                shape.ShapePlaceholderOrientation, shapeContext);
-            if (placeholderType != 0) {
-                int position = checked((int)(shape.ShapePlaceholderIndex
-                    ?? unchecked((uint)shapeIndex)));
-                children.Add(BuildPlaceholderAtom(position, placeholderType,
-                    MapPlaceholderSize(shape.ShapePlaceholderSize)));
+            if (!TryReadPlaceholderForWrite(shape, shapeContext,
+                    out LegacyPptWriterPlaceholder? placeholder,
+                    out string? placeholderReason)) {
+                throw new NotSupportedException(placeholderReason);
+            }
+            if (placeholder != null) {
+                children.Add(BuildPlaceholderAtom(placeholder.Position,
+                    placeholder.Type, placeholder.Size));
             }
             if (animation != null) children.Add(BuildAnimationInfoRecord(animation));
             foreach (LegacyPptWriterInteraction interaction in interactions) {
@@ -165,13 +166,67 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 : BuildContainer(OfficeArtClientData, instance: 0, children);
         }
 
-        private static byte[] BuildPlaceholderAtom(int position, byte placeholderType,
+        internal static byte[] BuildPlaceholderAtom(int position, byte placeholderType,
             byte placeholderSize) {
             var payload = new byte[8];
             WriteInt32(payload, 0, position);
             payload[4] = placeholderType;
             payload[5] = placeholderSize;
             return BuildRecord(version: 0, instance: 0, RecordPlaceholder, payload);
+        }
+
+        internal static bool TryReadPlaceholderForWrite(PowerPointShape shape,
+            LegacyPptWriterShapeContext shapeContext,
+            out LegacyPptWriterPlaceholder? placeholder, out string? reason) {
+            if (shape == null) throw new ArgumentNullException(nameof(shape));
+            P.PlaceholderShape? source = shape.Element switch {
+                P.Shape value => value.NonVisualShapeProperties?
+                    .ApplicationNonVisualDrawingProperties?.PlaceholderShape,
+                P.ConnectionShape value => value.NonVisualConnectionShapeProperties?
+                    .ApplicationNonVisualDrawingProperties?.PlaceholderShape,
+                P.Picture value => value.NonVisualPictureProperties?
+                    .ApplicationNonVisualDrawingProperties?.PlaceholderShape,
+                P.GraphicFrame value => value.NonVisualGraphicFrameProperties?
+                    .ApplicationNonVisualDrawingProperties?.PlaceholderShape,
+                _ => null
+            };
+            if (source == null) {
+                placeholder = null;
+                reason = null;
+                return true;
+            }
+            if (source.HasCustomPrompt?.Value == true || source.HasChildren) {
+                placeholder = null;
+                reason = "The placeholder uses a custom prompt or extension that has no binary PowerPoint mapping.";
+                return false;
+            }
+            P.PlaceholderValues type = source.Type?.Value
+                ?? P.PlaceholderValues.Object;
+            bool vertical = source.Orientation?.Value
+                == P.DirectionValues.Vertical;
+            bool supportsVertical = shapeContext is not (
+                    LegacyPptWriterShapeContext.MainMaster
+                    or LegacyPptWriterShapeContext.NotesMaster)
+                && (type == P.PlaceholderValues.Title
+                    || type == P.PlaceholderValues.Body
+                    || type == P.PlaceholderValues.Object);
+            if (vertical && !supportsVertical) {
+                placeholder = null;
+                reason = "The placeholder uses a vertical orientation that has no equivalent binary placeholder kind in this shape context.";
+                return false;
+            }
+            byte mappedType = MapPlaceholder(type,
+                source.Orientation?.Value, shapeContext);
+            uint index = source.Index?.Value ?? 0U;
+            if (mappedType == 0 || index > int.MaxValue) {
+                placeholder = null;
+                reason = "The placeholder type or index cannot be represented by a binary PlaceholderAtom.";
+                return false;
+            }
+            placeholder = new LegacyPptWriterPlaceholder(checked((int)index),
+                mappedType, MapPlaceholderSize(source.Size?.Value));
+            reason = null;
+            return true;
         }
 
         private static byte[] BuildTextBox(string text, uint textType = 0U,
@@ -252,11 +307,28 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             return 0x00;
         }
 
-        private enum LegacyPptWriterShapeContext {
+        internal enum LegacyPptWriterShapeContext {
             Slide,
             MainMaster,
             NotesMaster,
             HandoutMaster
+        }
+
+        internal sealed class LegacyPptWriterPlaceholder {
+            internal LegacyPptWriterPlaceholder(int position, byte type,
+                byte size) {
+                Position = position;
+                Type = type;
+                Size = size;
+            }
+
+            internal int Position { get; }
+            internal byte Type { get; }
+            internal byte Size { get; }
+
+            internal bool IsEquivalentTo(LegacyPptPlaceholder? source) =>
+                source != null && Position == source.Position
+                && Type == (byte)source.Kind && Size == (byte)source.Size;
         }
     }
 }

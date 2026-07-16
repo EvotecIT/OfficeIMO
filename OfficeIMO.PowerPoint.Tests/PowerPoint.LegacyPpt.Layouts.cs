@@ -382,19 +382,72 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void ImportedLayoutAndPlaceholderEdits_RemainLossBlocked() {
+        public void ImportedLayoutRelationshipEdit_RemainsLossBlocked() {
             using PowerPointPresentation presentation = PowerPointPresentation.Load(FixturePath);
             PowerPointSlide slide = Assert.Single(presentation.Slides);
             slide.SlidePart.SlideLayoutPart!.SlideLayout!.Type = P.SlideLayoutValues.Blank;
-            PowerPointTextBox title = Assert.Single(slide.TextBoxes,
-                textBox => textBox.Text == "OfficeIMO PowerPoint Basics");
-            title.PlaceholderIndex = 7;
 
             LegacyPptWritePreflightReport preflight = presentation.AnalyzeLegacyPptWrite();
 
             Assert.False(preflight.CanWrite);
             Assert.Contains(preflight.Findings,
                 finding => finding.Code == "PPT-WRITE-IMPORT-LOSS");
+        }
+
+        [Fact]
+        public void ImportedSlidePlaceholderContractEdit_AppendsPreservingRecord() {
+            LegacyPptPresentation original =
+                LegacyPptPresentation.Load(FixturePath);
+            using PowerPointPresentation imported =
+                PowerPointPresentation.Load(FixturePath);
+            PowerPointTextBox title = Assert.Single(imported.Slides[0]
+                .TextBoxes, textBox =>
+                    textBox.Text == "OfficeIMO PowerPoint Basics");
+            title.PlaceholderType = P.PlaceholderValues.Body;
+            title.PlaceholderIndex = 7;
+            title.PlaceholderSize = P.PlaceholderSizeValues.Quarter;
+            title.PlaceholderOrientation = P.DirectionValues.Vertical;
+
+            LegacyPptWritePreflightReport preflight = imported
+                .AnalyzeLegacyPptWrite();
+            Assert.True(preflight.CanWrite,
+                string.Join(Environment.NewLine, preflight.Findings));
+            byte[] savedBytes = imported.ToBytes(PowerPointFileFormat.Ppt);
+            LegacyPptPresentation saved =
+                LegacyPptPresentation.Load(savedBytes);
+            LegacyPptSlide savedSlide = Assert.Single(saved.Slides);
+            LegacyPptPlaceholder placeholder = Assert.IsType<
+                LegacyPptPlaceholder>(Assert.Single(savedSlide.Shapes,
+                    shape => shape.Text == "OfficeIMO PowerPoint Basics")
+                    .Placeholder);
+
+            Assert.Equal(7, placeholder.Position);
+            Assert.Equal(LegacyPptPlaceholderKind.VerticalBody,
+                placeholder.Kind);
+            Assert.Equal(LegacyPptPlaceholderSize.Quarter,
+                placeholder.Size);
+            Assert.Equal(LegacyPptPlaceholderKind.VerticalBody,
+                savedSlide.LayoutPlaceholderTypes[7]);
+            Assert.Equal(original.Package.UserEdits.Count + 1,
+                saved.Package.UserEdits.Count);
+            Assert.True(saved.Package.DocumentStream.AsSpan(0,
+                    original.Package.DocumentStream.Length)
+                .SequenceEqual(original.Package.DocumentStream));
+
+            using var reopenedInput = new MemoryStream(savedBytes);
+            using PowerPointPresentation reopened =
+                PowerPointPresentation.Load(reopenedInput);
+            PowerPointTextBox reopenedTitle = Assert.Single(
+                reopened.Slides[0].TextBoxes, textBox =>
+                    textBox.Text == "OfficeIMO PowerPoint Basics");
+            Assert.Equal(P.PlaceholderValues.Body,
+                reopenedTitle.PlaceholderType);
+            Assert.Equal(7U, reopenedTitle.PlaceholderIndex);
+            Assert.Equal(P.PlaceholderSizeValues.Quarter,
+                reopenedTitle.PlaceholderSize);
+            Assert.Equal(P.DirectionValues.Vertical,
+                reopenedTitle.PlaceholderOrientation);
+            Assert.Empty(reopened.ValidateDocument());
         }
 
         private static int LayoutToMasterUnits(long emus) => checked((int)Math.Round(

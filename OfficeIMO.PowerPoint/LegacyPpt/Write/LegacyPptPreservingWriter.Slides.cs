@@ -24,6 +24,20 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             bool patchedSlideShowInfo = !rewriteSlideShowInfo;
             bool patchedHeaderFooter = !rewriteHeaderFooter;
             bool patchedComments = !rewriteComments;
+            bool rewritePlaceholderSignature = editsByOfficeArtId.Values
+                .Any(edit => edit.RewritePlaceholder);
+            byte[]? placeholderTypes = null;
+            if (rewritePlaceholderSignature) {
+                IReadOnlyList<PowerPointShape> shapes = LegacyPptWriter
+                    .ReadSlideShapesForWrite(slide, out string? layoutReason);
+                if (layoutReason != null) {
+                    result = new RecordRewrite(slideRecord.CopyRecordBytes(),
+                        changed: false, patchedShapeCount: 0);
+                    return false;
+                }
+                placeholderTypes = LegacyPptWriter
+                    .BuildLayoutPlaceholderTypes(slide, shapes);
+            }
             bool changed = false;
             int patchedShapeCount = 0;
             var children = new List<byte[]>(slideRecord.Children.Count + 1);
@@ -57,14 +71,21 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     }
                     patchedSlideShowInfo = true;
                     changed = true;
-                } else if (followsMasterObjects.HasValue
+                } else if ((followsMasterObjects.HasValue
+                               || rewritePlaceholderSignature)
                            && child.Type == RecordSlideAtom
                            && child.PayloadLength >= 22) {
                     byte[] atom = child.CopyRecordBytes();
+                    if (placeholderTypes != null) {
+                        Buffer.BlockCopy(placeholderTypes, 0, atom, 12,
+                            placeholderTypes.Length);
+                    }
                     ushort flags = child.ReadUInt16(20);
-                    flags = followsMasterObjects.Value
-                        ? unchecked((ushort)(flags | 0x0001))
-                        : unchecked((ushort)(flags & ~0x0001));
+                    if (followsMasterObjects.HasValue) {
+                        flags = followsMasterObjects.Value
+                            ? unchecked((ushort)(flags | 0x0001))
+                            : unchecked((ushort)(flags & ~0x0001));
+                    }
                     WriteUInt16(atom, 28, flags);
                     children.Add(atom);
                     changed = true;

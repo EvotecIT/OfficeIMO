@@ -64,7 +64,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         $"Slide master {masterIndex}: {masterShapeReason}"));
                 }
                 AddMasterShapeFindings(findings, masterShapes,
-                    $"Slide master {masterIndex}");
+                    $"Slide master {masterIndex}",
+                    LegacyPptWriter.LegacyPptWriterShapeContext.MainMaster);
                 if (masterPart.SlideMaster?.Descendants<P.Timing>().Any()
                         == true
                     || masterPart.SlideMaster?.Descendants<P.Transition>().Any()
@@ -96,7 +97,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         notesMasterShapeReason));
                 }
                 AddMasterShapeFindings(findings, notesMasterShapes,
-                    "Notes master");
+                    "Notes master",
+                    LegacyPptWriter.LegacyPptWriterShapeContext.NotesMaster);
             }
             HandoutMasterPart? handoutMasterPart = presentation.OpenXmlDocument
                 .PresentationPart?.HandoutMasterPart;
@@ -119,7 +121,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         handoutMasterShapeReason));
                 }
                 AddMasterShapeFindings(findings, handoutMasterShapes,
-                    "Handout master");
+                    "Handout master",
+                    LegacyPptWriter.LegacyPptWriterShapeContext.HandoutMaster);
             }
             if (LegacyPptWriter.HasModernComments(presentation)) {
                 findings.Add(new LegacyPptWriteFinding(LegacyPptFeature.ModernComments,
@@ -185,6 +188,16 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 }
                 for (int shapeIndex = 0; shapeIndex < shapes.Count; shapeIndex++) {
                     PowerPointShape shape = shapes[shapeIndex];
+                    if (!LegacyPptWriter.TryReadPlaceholderForWrite(shape,
+                            LegacyPptWriter.LegacyPptWriterShapeContext.Slide,
+                            out _, out string? placeholderReason)) {
+                        findings.Add(new LegacyPptWriteFinding(
+                            LegacyPptFeature.Placeholders,
+                            "PPT-WRITE-PLACEHOLDER",
+                            placeholderReason
+                            ?? "A placeholder cannot be encoded by the native binary writer.",
+                            slideIndex, shapeIndex));
+                    }
                     if (!IsSupportedShape(shape)) {
                         findings.Add(new LegacyPptWriteFinding(MapShapeFeature(shape), "PPT-WRITE-SHAPE",
                             $"{shape.ShapeContentType} content is outside the native writer's text/rectangle/ellipse/line subset.",
@@ -233,7 +246,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 .ReadSlideShapesForWrite(slide, out string? layoutShapeReason);
             if (layoutShapeReason != null) return false;
             foreach (PowerPointShape shape in shapes) {
-                if (!IsSupportedShape(shape) || HasUnsupportedVisualStyle(shape)) return false;
+                if (!IsSupportedShape(shape) || HasUnsupportedVisualStyle(shape)
+                    || !LegacyPptWriter.TryReadPlaceholderForWrite(shape,
+                        LegacyPptWriter.LegacyPptWriterShapeContext.Slide,
+                        out _, out _)) return false;
                 if (shape is PowerPointTextBox textBox && HasRichTextFormatting(textBox)) return false;
             }
             return true;
@@ -263,10 +279,18 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
 
         private static void AddMasterShapeFindings(
             ICollection<LegacyPptWriteFinding> findings,
-            IReadOnlyList<PowerPointShape> shapes, string ownerName) {
+            IReadOnlyList<PowerPointShape> shapes, string ownerName,
+            LegacyPptWriter.LegacyPptWriterShapeContext shapeContext) {
             for (int shapeIndex = 0; shapeIndex < shapes.Count; shapeIndex++) {
                 PowerPointShape shape = shapes[shapeIndex];
                 string location = $"{ownerName}, shape {shapeIndex}";
+                if (!LegacyPptWriter.TryReadPlaceholderForWrite(shape,
+                        shapeContext, out _, out string? placeholderReason)) {
+                    findings.Add(new LegacyPptWriteFinding(
+                        LegacyPptFeature.Placeholders,
+                        "PPT-WRITE-MASTER-PLACEHOLDER",
+                        $"{location}: {placeholderReason}"));
+                }
                 if (!IsSupportedShape(shape)) {
                     findings.Add(new LegacyPptWriteFinding(
                         MapShapeFeature(shape), "PPT-WRITE-MASTER-SHAPE",

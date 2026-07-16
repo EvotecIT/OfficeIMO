@@ -431,7 +431,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             return BuildContainer(RecordSlideListWithText, instance: 0, children);
         }
 
-        private static byte[] BuildLayoutPlaceholderTypes(PowerPointSlide slide,
+        internal static byte[] BuildLayoutPlaceholderTypes(PowerPointSlide slide,
             IReadOnlyList<PowerPointShape> shapes) {
             var result = new byte[8];
             P.ShapeTree? layoutTree = slide.SlidePart.SlideLayoutPart?.SlideLayout?
@@ -457,6 +457,27 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 AddLayoutPlaceholderType(result, shape.ShapePlaceholderType,
                     shape.ShapePlaceholderOrientation, shape.ShapePlaceholderIndex,
                     replaceExisting: true);
+            }
+            return result;
+        }
+
+        internal static byte[] BuildShapePlaceholderTypes(
+            IReadOnlyList<PowerPointShape> shapes,
+            LegacyPptWriterShapeContext shapeContext) {
+            if (shapes == null) throw new ArgumentNullException(nameof(shapes));
+            var result = new byte[8];
+            foreach (PowerPointShape shape in shapes) {
+                if (!TryReadPlaceholderForWrite(shape, shapeContext,
+                        out LegacyPptWriterPlaceholder? placeholder,
+                        out string? reason)) {
+                    throw new NotSupportedException(reason);
+                }
+                if (placeholder == null) continue;
+                int index = placeholder.Position >= 0
+                    && placeholder.Position < result.Length
+                    ? placeholder.Position
+                    : Array.FindIndex(result, value => value == 0);
+                if (index >= 0) result[index] = placeholder.Type;
             }
             return result;
         }

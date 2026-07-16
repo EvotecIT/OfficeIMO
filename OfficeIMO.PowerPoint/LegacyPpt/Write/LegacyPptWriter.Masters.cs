@@ -420,6 +420,23 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 "The binary PowerPoint persist object has no slide or notes inheritance atom.");
         }
 
+        internal static byte[] BuildPreservedPlaceholderSignatureRecord(
+            LegacyPptRecord prototype, IReadOnlyList<PowerPointShape> shapes,
+            LegacyPptWriterShapeContext shapeContext) {
+            if (prototype == null) throw new ArgumentNullException(nameof(prototype));
+            byte[] bytes = prototype.CopyRecordBytes();
+            LegacyPptRecord? slideAtom = prototype.Children.FirstOrDefault(child =>
+                child.Type == RecordSlideAtom && child.PayloadLength >= 12);
+            if (slideAtom == null) return bytes;
+            byte[] placeholders = BuildShapePlaceholderTypes(shapes,
+                shapeContext);
+            int placeholderOffset = checked(slideAtom.PayloadOffset
+                - prototype.Offset + 4);
+            Buffer.BlockCopy(placeholders, 0, bytes, placeholderOffset,
+                placeholders.Length);
+            return bytes;
+        }
+
         private static byte[] BuildColorSchemeAtom(LegacyPptWriterColorScheme scheme) {
             var payload = new byte[32];
             for (int index = 0; index < scheme.Colors.Count; index++) {

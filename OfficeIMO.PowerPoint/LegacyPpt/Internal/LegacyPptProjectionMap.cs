@@ -180,6 +180,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                         : null;
                     shapes.Add(new LegacyPptShapeProjection(openXmlShapeId.Value, sourceShape.ShapeId,
                         sourceShape.RecordOffset, sourceShape.Kind, sourceShape.Bounds, sourceShape.Text,
+                        sourceShape.Placeholder,
                         textFormattingFingerprint, sourceShape.Interactions,
                         sourceShape.TextBody.Interactions, sourceShape.Animation,
                         projectableSoundIds));
@@ -363,6 +364,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 result.Add(new LegacyPptShapeProjection(openXmlShapeId.Value,
                     sourceShape.ShapeId, sourceShape.RecordOffset,
                     sourceShape.Kind, sourceShape.Bounds, sourceShape.Text,
+                    sourceShape.Placeholder,
                     textFormattingFingerprint, sourceShape.Interactions,
                     sourceShape.TextBody.Interactions, sourceShape.Animation,
                     new HashSet<uint>()));
@@ -883,6 +885,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
     internal sealed class LegacyPptShapeProjection {
         internal LegacyPptShapeProjection(uint openXmlShapeId, uint officeArtShapeId, long recordOffset,
             LegacyPptShapeKind kind, LegacyPptBounds bounds, string text,
+            LegacyPptPlaceholder? placeholder,
             string? textFormattingFingerprint,
             IReadOnlyList<LegacyPptInteraction> shapeInteractions,
             IReadOnlyList<LegacyPptTextInteraction> textInteractions,
@@ -894,6 +897,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             Kind = kind;
             Bounds = bounds;
             Text = text ?? string.Empty;
+            Placeholder = placeholder;
             TextFormattingFingerprint = textFormattingFingerprint;
             ShapeInteractions = new ReadOnlyCollection<LegacyPptInteraction>(
                 shapeInteractions.ToArray());
@@ -923,6 +927,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
 
         internal string Text { get; }
 
+        internal LegacyPptPlaceholder? Placeholder { get; }
+
         internal string? TextFormattingFingerprint { get; }
 
         internal IReadOnlyList<LegacyPptInteraction> ShapeInteractions { get; }
@@ -934,6 +940,11 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
         internal bool CanEditInteractions { get; }
 
         internal bool CanEditAnimation { get; }
+
+        internal bool PlaceholderMatches(
+            LegacyPptWriter.LegacyPptWriterPlaceholder? current) =>
+            current == null ? Placeholder == null
+                : current.IsEquivalentTo(Placeholder);
 
         private static bool IsEditableAnimation(LegacyPptAnimation animation,
             ISet<uint> projectableSoundIds) {

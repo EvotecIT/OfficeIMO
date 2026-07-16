@@ -48,7 +48,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Capabilities {
                     LegacyPptRepresentability.Native, LegacyPptCapabilityState.Native,
                     LegacyPptCapabilityState.Native, LegacyPptCapabilityState.Preserved,
                     LegacyPptCapabilityState.Native,
-                    "PlaceholderAtom position, all legacy kinds, full/half/quarter size, and vertical orientation project to native placeholder index/type/size/orientation on masters, generated layouts, and slides. Fresh main-, notes-, and handout-master drawings plus fresh or incrementally appended binary slides encode the corresponding context-specific placeholder kinds and fields; edits to imported placeholder contracts are loss-blocked. Object payloads are tracked by their separate capability rows."),
+                    "PlaceholderAtom position, all legacy kinds, full/half/quarter size, and vertical orientation project to native placeholder index/type/size/orientation on masters, generated layouts, and slides. Fresh main-, notes-, and handout-master drawings plus fresh or incrementally appended binary slides encode the corresponding context-specific placeholder kinds and fields. Supported identity, type, size, orientation, addition, and removal edits on imported slide and main-, title-, notes-, or handout-master placeholders append preservation-aware client-data and layout-signature updates; custom prompts and context-incompatible vertical kinds are loss-blocked. Object payloads are tracked by their separate capability rows."),
                 new LegacyPptCapability(LegacyPptFeature.Backgrounds, "Design",
                     "Master and slide backgrounds.", LegacyPptRepresentability.Native,
                     LegacyPptCapabilityState.Native,
