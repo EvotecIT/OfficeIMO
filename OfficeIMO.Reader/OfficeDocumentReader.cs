@@ -433,7 +433,7 @@ public sealed partial class OfficeDocumentReader {
             cancellationToken);
     }
 
-    private IEnumerable<T> Scope<T>(IEnumerable<T> source) {
+    internal IEnumerable<T> Scope<T>(IEnumerable<T> source) {
         return new ReaderHandlerScopedEnumerable<T>(_handlers, source);
     }
 

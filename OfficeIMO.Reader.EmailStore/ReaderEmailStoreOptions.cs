@@ -22,6 +22,17 @@ public sealed class ReaderEmailStoreOptions {
     /// </summary>
     public EmailStoreQuery? Query { get; set; }
 
+    /// <summary>
+    /// Selective item parts projected before Reader chunking. Null uses the full semantic item profile.
+    /// </summary>
+    public EmailStoreItemReadOptions? ItemReadOptions { get; set; }
+
+    /// <summary>
+    /// Whether PST/OST attachment payloads use session-bound streams instead of resident byte arrays.
+    /// Enabled by default for bounded large-store ingestion.
+    /// </summary>
+    public bool StreamAttachmentContent { get; set; } = true;
+
     /// <summary>Maximum matching items fully projected into one Reader result. Default: 1,000.</summary>
     public int MaxItems {
         get => _maxItems;

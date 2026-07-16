@@ -87,7 +87,8 @@ internal static class EmailStoreReaderProjection {
             }
             attempted++;
             try {
-                EmailStoreItem item = session.ReadItem(reference, cancellationToken);
+                EmailStoreItem item = session.ReadItem(reference,
+                    GetItemReadOptions(adapterOptions), cancellationToken);
                 string folderPath = folderPaths.TryGetValue(reference.FolderId, out string? value)
                     ? value
                     : "_unknown-folder";
@@ -177,7 +178,7 @@ internal static class EmailStoreReaderProjection {
         BuildFolderPaths(folders.Select(folder => new FolderPathNode(
             folder.Id, folder.ParentId, folder.Name)).ToArray(), diagnostics, cancellationToken);
 
-    private static IReadOnlyDictionary<string, string> BuildFolderPaths(
+    internal static IReadOnlyDictionary<string, string> BuildFolderPaths(
         IReadOnlyList<FolderPathNode> folders,
         List<EmailDiagnostic> diagnostics,
         CancellationToken cancellationToken) {
@@ -248,7 +249,7 @@ internal static class EmailStoreReaderProjection {
         }
     }
 
-    private static string BuildItemPath(string sourceName, string folderPath, string itemKind, int itemIndex) {
+    internal static string BuildItemPath(string sourceName, string folderPath, string itemKind, int itemIndex) {
         string prefix = sourceName + "!/";
         if (!string.IsNullOrEmpty(folderPath)) prefix += folderPath + "/";
         return prefix + itemKind + "-" + itemIndex.ToString("D6", CultureInfo.InvariantCulture);
@@ -277,7 +278,7 @@ internal static class EmailStoreReaderProjection {
         return resolved;
     }
 
-    private static EmailDiagnostic MapDiagnostic(EmailStoreDiagnostic diagnostic) {
+    internal static EmailDiagnostic MapDiagnostic(EmailStoreDiagnostic diagnostic) {
         EmailDiagnosticSeverity severity = diagnostic.Severity == EmailStoreDiagnosticSeverity.Error
             ? EmailDiagnosticSeverity.Error
             : diagnostic.Severity == EmailStoreDiagnosticSeverity.Information
@@ -286,7 +287,7 @@ internal static class EmailStoreReaderProjection {
         return new EmailDiagnostic(diagnostic.Code, diagnostic.Message, severity, diagnostic.Location);
     }
 
-    private static EmailStoreQuery CopyQuery(EmailStoreQuery query, int maxResults) =>
+    internal static EmailStoreQuery CopyQuery(EmailStoreQuery query, int maxResults) =>
         new EmailStoreQuery(
             query.FolderId,
             query.IncludeDescendants,
@@ -302,8 +303,17 @@ internal static class EmailStoreReaderProjection {
             query.MaxItemsScanned,
             maxResults);
 
-    private static EmailStoreReaderOptions GetStoreOptions(ReaderEmailStoreOptions options) =>
+    internal static EmailStoreReaderOptions GetStoreOptions(ReaderEmailStoreOptions options) =>
         options.StoreOptions ?? EmailStoreReaderOptions.Default;
+
+    internal static EmailStoreItemReadOptions GetItemReadOptions(ReaderEmailStoreOptions options) {
+        EmailStoreItemReadOptions selected = options.ItemReadOptions ?? EmailStoreItemReadOptions.Default;
+        return options.StreamAttachmentContent && !selected.PreferStreamingAttachmentContent
+            ? new EmailStoreItemReadOptions(
+                selected.Parts, selected.MaxDecodedPropertyBytes,
+                preferStreamingAttachmentContent: true)
+            : selected;
+    }
 
     private static OfficeDocumentMetadataEntry CreateMetadata(
         string id,

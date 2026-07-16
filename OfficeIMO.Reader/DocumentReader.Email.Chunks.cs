@@ -110,9 +110,11 @@ internal static partial class DocumentReaderEngine {
         string bodyKind = "plain text";
         string? bodyWarning = null;
         if (string.IsNullOrEmpty(body) && !string.IsNullOrEmpty(document.Body.Html)) {
+            if (TryAddEmailHtmlBodyChunks(document.Body.Html!, context, messageIndex, depth, heading, logicalPath,
+                out bodyWarning)) return;
             body = document.Body.Html;
             bodyKind = "HTML";
-            bodyWarning = "EMAIL_HTML_BODY_PRESERVED: No plain-text alternative was available; the HTML body is preserved without lossy tag stripping.";
+            bodyWarning = bodyWarning ?? "EMAIL_HTML_BODY_PRESERVED: Register OfficeIMO.Reader.Html to extract the preserved HTML body semantically.";
         } else if (string.IsNullOrEmpty(body) && !string.IsNullOrEmpty(document.Body.Rtf)) {
             if (TryAddEmailRtfBodyChunks(document.Body.Rtf!, context, messageIndex, depth, heading, logicalPath,
                 out bodyWarning)) return;
@@ -149,6 +151,53 @@ internal static partial class DocumentReaderEngine {
             }
             context.Extraction.Chunks.Add(sourceChunk);
             bodyPartIndex++;
+        }
+    }
+
+    private static bool TryAddEmailHtmlBodyChunks(
+        string html,
+        EmailChunkContext context,
+        int messageIndex,
+        int depth,
+        string heading,
+        string logicalPath,
+        out string? warning) {
+        warning = null;
+        const string sourceName = "email-body.html";
+        if (!TryResolveCustomHandlerBySourceName(sourceName, out ReaderHandlerDescriptor handler) ||
+            (handler.ReadStream == null && handler.ReadDocumentStream == null)) return false;
+
+        try {
+            ReaderOptions htmlOptions = CloneOptions(context.Options, computeHashes: false);
+            ReaderChunk[] htmlChunks = Read(Encoding.UTF8.GetBytes(html), sourceName, htmlOptions,
+                context.CancellationToken).ToArray();
+            if (htmlChunks.Length == 0) return false;
+            for (int index = 0; index < htmlChunks.Length; index++) {
+                ReaderChunk chunk = htmlChunks[index];
+                int blockIndex = context.NextBlockIndex++;
+                chunk.Id = BuildStableId("email-body-html", Path.GetFileName(context.Extraction.SourceName),
+                    blockIndex, index);
+                chunk.Location.Path = logicalPath;
+                chunk.Location.BlockIndex = blockIndex;
+                chunk.Location.SourceBlockIndex = index;
+                chunk.Location.HeadingPath = string.Concat(heading, " > Body");
+                chunk.Location.SourceBlockKind = "email-body-html";
+                chunk.Location.BlockAnchor = BuildEmailAnchor("body", messageIndex, depth) + "-html-" +
+                    index.ToString(CultureInfo.InvariantCulture);
+                chunk.SourceId = null;
+                chunk.SourceHash = null;
+                chunk.ChunkHash = null;
+                chunk.SourceLastWriteUtc = null;
+                chunk.SourceLengthBytes = null;
+                context.Extraction.Chunks.Add(chunk);
+            }
+            return true;
+        } catch (OperationCanceledException) {
+            throw;
+        } catch (Exception exception) {
+            warning = string.Concat("EMAIL_HTML_BODY_READER_FAILED: ", exception.GetType().Name,
+                " while extracting the preserved HTML body.");
+            return false;
         }
     }
 
@@ -253,15 +302,20 @@ internal static partial class DocumentReaderEngine {
             return;
         }
 
-        if (attachment.Content == null || attachment.Content.Length == 0 ||
+        bool hasContent = (attachment.Content != null && attachment.Content.Length > 0) ||
+            attachment.ContentSource != null;
+        if (!hasContent ||
             !TryResolveEmailAttachmentSourceName(attachment, fileName, out string attachmentSourceName)) {
             return;
         }
 
         try {
             ReaderOptions attachmentOptions = CloneOptions(context.Options, computeHashes: false);
-            ReaderChunk[] childChunks = Read(attachment.Content, attachmentSourceName, attachmentOptions,
-                context.CancellationToken).ToArray();
+            ReaderChunk[] childChunks;
+            using (Stream content = attachment.OpenContentStream()) {
+                childChunks = Read(content, attachmentSourceName, attachmentOptions,
+                    context.CancellationToken).ToArray();
+            }
             for (int childIndex = 0; childIndex < childChunks.Length; childIndex++) {
                 ReaderChunk child = childChunks[childIndex];
                 int childBlockIndex = context.NextBlockIndex++;
@@ -518,10 +572,14 @@ internal static partial class DocumentReaderEngine {
     }
 
     private sealed class EmailChunkContext {
-        internal EmailChunkContext(EmailExtraction extraction, ReaderOptions options, CancellationToken cancellationToken) {
+        internal EmailChunkContext(EmailExtraction extraction, ReaderOptions options,
+            CancellationToken cancellationToken, int nextBlockIndex = 0,
+            bool diagnosticsAttached = false) {
             Extraction = extraction;
             Options = options;
             CancellationToken = cancellationToken;
+            NextBlockIndex = nextBlockIndex;
+            DiagnosticsAttached = diagnosticsAttached;
         }
 
         internal EmailExtraction Extraction { get; }

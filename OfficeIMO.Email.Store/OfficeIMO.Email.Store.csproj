@@ -44,6 +44,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\OfficeIMO.Email\OfficeIMO.Email.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Rtf\OfficeIMO.Rtf.csproj" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net472'">

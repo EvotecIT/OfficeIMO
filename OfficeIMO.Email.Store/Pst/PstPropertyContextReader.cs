@@ -20,7 +20,8 @@ internal sealed class PstPropertyContextReader {
 
     internal List<MapiProperty> ReadProperties(IDictionary<ushort, uint>? sourceHnids = null,
         ISet<ushort>? includedPropertyIds = null,
-        ISet<ushort>? deferredPropertyIds = null) {
+        ISet<ushort>? deferredPropertyIds = null,
+        long? maximumDecodedBytes = null) {
         if (_heap.ClientSignature != 0xBC) {
             throw new InvalidDataException("The PST node is not a Property Context.");
         }
@@ -33,6 +34,8 @@ internal sealed class PstPropertyContextReader {
         uint rootHid = PstBinary.UInt32(header, 4);
         var properties = new List<MapiProperty>();
         long decodedBytes = 0;
+        long maximum = Math.Min(_options.MaxDecodedPropertyBytesPerItem,
+            maximumDecodedBytes ?? _options.MaxDecodedPropertyBytesPerItem);
         if (rootHid != 0) {
             foreach (byte[] record in _heap.EnumerateBthLeafRecords(rootHid, 2, 6, indexLevels)) {
                 _cancellationToken.ThrowIfCancellationRequested();
@@ -49,7 +52,8 @@ internal sealed class PstPropertyContextReader {
                     properties.Add(new MapiProperty(id, type, null));
                     continue;
                 }
-                MapiProperty property = DecodeProperty(id, type, rawValue, ref decodedBytes, sourceHnids);
+                MapiProperty property = DecodeProperty(
+                    id, type, rawValue, ref decodedBytes, maximum, sourceHnids);
                 properties.Add(property);
             }
         }
@@ -63,7 +67,8 @@ internal sealed class PstPropertyContextReader {
         return properties;
     }
 
-    private MapiProperty DecodeProperty(ushort id, MapiPropertyType type, uint rawValue, ref long decodedBytes,
+    private MapiProperty DecodeProperty(ushort id, MapiPropertyType type, uint rawValue,
+        ref long decodedBytes, long maximumDecodedBytes,
         IDictionary<ushort, uint>? sourceHnids) {
         object? value;
         byte[]? rawData = null;
@@ -86,12 +91,12 @@ internal sealed class PstPropertyContextReader {
                 break;
             default:
                 if (sourceHnids != null) sourceHnids[id] = rawValue;
-                rawData = _heap.ResolveHnid(rawValue, _options.MaxDecodedPropertyBytesPerItem);
+                rawData = _heap.ResolveHnid(rawValue, maximumDecodedBytes);
                 decodedBytes = checked(decodedBytes + rawData.Length);
-                if (decodedBytes > _options.MaxDecodedPropertyBytesPerItem) {
+                if (decodedBytes > maximumDecodedBytes) {
                     throw new EmailStoreLimitExceededException(
-                        nameof(EmailStoreReaderOptions.MaxDecodedPropertyBytesPerItem), decodedBytes,
-                        _options.MaxDecodedPropertyBytesPerItem);
+                        nameof(EmailStoreItemReadOptions.MaxDecodedPropertyBytes), decodedBytes,
+                        maximumDecodedBytes);
                 }
                 value = DecodeVariable(type, rawData);
                 break;

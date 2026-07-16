@@ -8,6 +8,8 @@ internal static class ReaderEmailStoreOptionsCloner {
         return new ReaderEmailStoreOptions {
             StoreOptions = CloneStoreOptions(options?.StoreOptions ?? EmailStoreReaderOptions.Default),
             Query = CloneQuery(options?.Query),
+            ItemReadOptions = CloneItemReadOptions(options?.ItemReadOptions),
+            StreamAttachmentContent = options?.StreamAttachmentContent ?? true,
             MaxItems = options?.MaxItems ?? 1_000,
             ContinueOnItemError = options?.ContinueOnItemError ?? true,
             ComputeSourceHash = options?.ComputeSourceHash ?? false
@@ -57,6 +59,12 @@ internal static class ReaderEmailStoreOptionsCloner {
             maxDirectoryDepth: source.MaxDirectoryDepth,
             maxDirectoryFileCount: source.MaxDirectoryFileCount);
     }
+
+    private static EmailStoreItemReadOptions? CloneItemReadOptions(
+        EmailStoreItemReadOptions? options) => options == null
+        ? null
+        : new EmailStoreItemReadOptions(options.Parts, options.MaxDecodedPropertyBytes,
+            options.PreferStreamingAttachmentContent);
 
     private static EmailStoreQuery? CloneQuery(EmailStoreQuery? query) => query == null
         ? null

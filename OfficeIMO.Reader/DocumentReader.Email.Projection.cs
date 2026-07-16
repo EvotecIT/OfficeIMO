@@ -7,6 +7,38 @@ using System.Threading;
 namespace OfficeIMO.Reader;
 
 internal static partial class DocumentReaderEngine {
+    /// <summary>Projects one parsed email item while preserving indexes across an item-at-a-time store enumeration.</summary>
+    internal static IReadOnlyList<ReaderChunk> ProjectEmailDocumentToChunks(
+        EmailDocument document,
+        string logicalPath,
+        IReadOnlyList<EmailDiagnostic> diagnostics,
+        string sourceName,
+        ReaderOptions options,
+        EmailDocumentProjectionCursor cursor,
+        CancellationToken cancellationToken) {
+        if (document == null) throw new ArgumentNullException(nameof(document));
+        if (logicalPath == null) throw new ArgumentNullException(nameof(logicalPath));
+        if (diagnostics == null) throw new ArgumentNullException(nameof(diagnostics));
+        if (sourceName == null) throw new ArgumentNullException(nameof(sourceName));
+        if (options == null) throw new ArgumentNullException(nameof(options));
+        if (cursor == null) throw new ArgumentNullException(nameof(cursor));
+
+        var extraction = new EmailExtraction(document.Format, sourceName);
+        extraction.Documents.Add(document);
+        extraction.MailboxEntries.Add(null);
+        extraction.LogicalPaths.Add(logicalPath);
+        extraction.Diagnostics.AddRange(diagnostics);
+        var context = new EmailChunkContext(
+            extraction, options, cancellationToken,
+            cursor.NextBlockIndex, cursor.DiagnosticsAttached);
+        BuildEmailDocumentChunks(document, context, cursor.NextMessageIndex, depth: 0,
+            parentHeading: null, logicalPath, mailboxEntry: null);
+        cursor.NextMessageIndex++;
+        cursor.NextBlockIndex = context.NextBlockIndex;
+        cursor.DiagnosticsAttached = context.DiagnosticsAttached;
+        return extraction.Chunks;
+    }
+
     /// <summary>
     /// Projects already parsed email documents through Reader's shared email chunking pipeline.
     /// Parser adapters remain responsible for source-format parsing and logical item paths.
@@ -91,4 +123,10 @@ internal static partial class DocumentReaderEngine {
         BuildEmailChunks(extraction, options, cancellationToken);
         return extraction;
     }
+}
+
+internal sealed class EmailDocumentProjectionCursor {
+    internal int NextMessageIndex { get; set; }
+    internal int NextBlockIndex { get; set; }
+    internal bool DiagnosticsAttached { get; set; }
 }

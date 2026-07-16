@@ -1,5 +1,9 @@
+using OfficeIMO.Email;
 using OfficeIMO.Email.Store;
 using OfficeIMO.Reader.EmailStore;
+using OfficeIMO.Reader.Html;
+using OfficeIMO.Reader.Rtf;
+using OfficeIMO.Rtf;
 using System.Globalization;
 using System.IO.Compression;
 using Xunit;
@@ -192,6 +196,54 @@ public sealed class ReaderEmailStoreModularTests {
             Assert.All(result.Chunks, chunk => Assert.False(string.IsNullOrWhiteSpace(chunk.ChunkHash)));
         } finally {
             if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void Item_at_a_time_reader_uses_configured_semantic_body_handlers() {
+        string folder = Path.Combine(Path.GetTempPath(),
+            "officeimo-reader-store-items-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(folder);
+        try {
+            var html = new EmailDocument { Subject = "HTML item" };
+            html.Body.Html = "<html><body><p>Visible semantic HTML</p>" +
+                "<script>hidden-script-marker</script></body></html>";
+            File.WriteAllBytes(Path.Combine(folder, "01-html.eml"),
+                new EmailDocumentWriter().ToBytes(html, EmailFileFormat.Eml));
+
+            RtfDocument rtf = RtfDocument.Create();
+            rtf.AddParagraph("Visible semantic RTF");
+            var rtfMessage = new EmailDocument { Subject = "RTF item" };
+            rtfMessage.Body.Rtf = rtf.ToRtf();
+            File.WriteAllBytes(Path.Combine(folder, "02-rtf.eml"),
+                new EmailDocumentWriter().ToBytes(rtfMessage, EmailFileFormat.Eml));
+
+            OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+                .AddHtmlHandler()
+                .AddRtfHandler()
+                .AddEmailStoreHandler()
+                .Build();
+
+            ReaderEmailStoreItemResult[] results = reader.ReadEmailStoreItems(
+                folder, emailStoreOptions: new ReaderEmailStoreOptions { MaxItems = 10 }).ToArray();
+
+            Assert.Equal(2, results.Length);
+            Assert.All(results, result => Assert.True(result.Succeeded));
+            Assert.Contains(results.SelectMany(result => result.Chunks), chunk =>
+                chunk.Kind == ReaderInputKind.Html &&
+                chunk.Location.SourceBlockKind == "email-body-html" &&
+                chunk.Text.Contains("Visible semantic HTML", StringComparison.Ordinal));
+            Assert.DoesNotContain(results.SelectMany(result => result.Chunks), chunk =>
+                chunk.Text.Contains("hidden-script-marker", StringComparison.Ordinal));
+            Assert.Contains(results.SelectMany(result => result.Chunks), chunk =>
+                chunk.Kind == ReaderInputKind.Rtf &&
+                chunk.Location.SourceBlockKind == "email-body-rtf" &&
+                chunk.Text.Contains("Visible semantic RTF", StringComparison.Ordinal));
+            string[] chunkIds = results.SelectMany(result => result.Chunks)
+                .Select(chunk => chunk.Id).ToArray();
+            Assert.Equal(chunkIds.Length, chunkIds.Distinct(StringComparer.Ordinal).Count());
+        } finally {
+            Directory.Delete(folder, recursive: true);
         }
     }
 

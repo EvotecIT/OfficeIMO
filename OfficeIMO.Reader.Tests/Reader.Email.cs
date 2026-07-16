@@ -7,6 +7,7 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
 
@@ -306,6 +307,35 @@ public sealed class ReaderEmailTests {
         }
     }
 
+    [Fact]
+    public void DeferredAttachmentContentProducesSearchableChildChunksWithoutResidentPayload() {
+        var source = new CountingContentSource(Encoding.UTF8.GetBytes("deferred attachment text"));
+        var document = new EmailDocument { Subject = "Deferred attachment" };
+        document.Attachments.Add(new EmailAttachment {
+            FileName = "deferred.txt",
+            ContentType = "text/plain",
+            ContentSource = source,
+            Length = source.Length!.Value
+        });
+        using var input = new MemoryStream(Array.Empty<byte>());
+
+        OfficeDocumentReadResult result = DocumentReaderEngine.ProjectEmailDocumentsToStreamResult(
+            new[] { document },
+            new string?[] { "mailbox.pst!/Inbox/item-000001" },
+            Array.Empty<EmailDiagnostic>(),
+            EmailFileFormat.OutlookMsg,
+            "mailbox.pst",
+            input,
+            new ReaderOptions(),
+            CancellationToken.None);
+
+        Assert.Equal(1, source.OpenCount);
+        Assert.Contains(result.Chunks, chunk =>
+            chunk.Location.Path == "mailbox.pst!/Inbox/item-000001!/deferred.txt" &&
+            chunk.Text.Contains("deferred attachment text", StringComparison.Ordinal));
+        Assert.Null(Assert.Single(result.Assets).PayloadBytes);
+    }
+
     private static byte[] BuildEmlWithAttachment() {
         var document = new EmailDocument {
             Format = EmailFileFormat.Eml,
@@ -351,5 +381,26 @@ public sealed class ReaderEmailTests {
         }
         public override void SetLength(long value) => throw new NotSupportedException();
         public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+    }
+
+    private sealed class CountingContentSource : IEmailContentSource {
+        private readonly byte[] _content;
+
+        internal CountingContentSource(byte[] content) {
+            _content = content;
+        }
+
+        internal int OpenCount { get; private set; }
+        public long? Length => _content.Length;
+
+        public Stream OpenRead() {
+            OpenCount++;
+            return new MemoryStream(_content, writable: false);
+        }
+
+        public Task<Stream> OpenReadAsync(CancellationToken cancellationToken = default) {
+            cancellationToken.ThrowIfCancellationRequested();
+            return Task.FromResult(OpenRead());
+        }
     }
 }
