@@ -28,6 +28,18 @@ public sealed class OfficeArtShapeMetadata {
     /// <summary>Gets whether either user-facing metadata field is present.</summary>
     public bool HasMetadata => Name != null || Description != null;
 
+    /// <summary>
+    /// Gets whether every name or description property has complete, well-formed
+    /// complex data and can therefore be replaced without masking truncation.
+    /// </summary>
+    public bool CanRewrite => Properties.Where(property =>
+            property.PropertyId is 0x0380 or 0x0381)
+        .All(property => property.IsComplex
+            && property.DeclaredComplexDataLength.HasValue
+            && property.AvailableComplexDataLength.HasValue
+            && property.DeclaredComplexDataLength.Value
+                == unchecked((uint)property.AvailableComplexDataLength.Value));
+
     private string? GetText(ushort propertyId) => Properties.LastOrDefault(property =>
         property.PropertyId == propertyId && property.IsComplex
         && !string.IsNullOrWhiteSpace(property.ComplexText))?.ComplexText;

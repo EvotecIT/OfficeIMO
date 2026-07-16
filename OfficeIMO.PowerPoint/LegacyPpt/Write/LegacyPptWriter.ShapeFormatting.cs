@@ -2,6 +2,7 @@ using DocumentFormat.OpenXml;
 using OfficeIMO.Drawing;
 using OfficeIMO.PowerPoint.LegacyPpt.Internal;
 using System.Globalization;
+using System.Text;
 using A = DocumentFormat.OpenXml.Drawing;
 using P = DocumentFormat.OpenXml.Presentation;
 
@@ -16,12 +17,16 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     out reason)
                 || !TryReadShapeVisualStyle(shape,
                     out IReadOnlyList<LegacyPptWriterFoptProperty> visual,
+                    out reason)
+                || !TryReadShapeMetadataForWrite(shape,
+                    out IReadOnlyList<LegacyPptWriterFoptProperty> metadata,
                     out reason)) {
                 formatting = LegacyPptWriterShapeFormatting.Empty;
                 return false;
             }
             var properties = transform.Properties.ToList();
             properties.AddRange(visual);
+            properties.AddRange(metadata);
             if (shape is PowerPointTextBox textBox) {
                 if (!TryReadTextFrameForWrite(textBox,
                         out IReadOnlyList<LegacyPptWriterFoptProperty> frame,
@@ -35,6 +40,39 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 transform.FspFlags);
             reason = null;
             return true;
+        }
+
+        internal static bool TryReadShapeMetadataForWrite(
+            PowerPointShape shape,
+            out IReadOnlyList<LegacyPptWriterFoptProperty> properties,
+            out string? reason) {
+            if (shape == null) throw new ArgumentNullException(nameof(shape));
+            if (!string.IsNullOrWhiteSpace(shape.Title)) {
+                properties = Array.Empty<LegacyPptWriterFoptProperty>();
+                reason = "Accessibility titles have no native PowerPoint 97-2003 shape-property representation.";
+                return false;
+            }
+            if (shape.Decorative) {
+                properties = Array.Empty<LegacyPptWriterFoptProperty>();
+                reason = "The modern decorative-shape flag has no native PowerPoint 97-2003 representation.";
+                return false;
+            }
+            var result = new List<LegacyPptWriterFoptProperty>(2);
+            AddShapeMetadataText(result, 0x0380, shape.Name);
+            AddShapeMetadataText(result, 0x0381, shape.Description);
+            properties = result;
+            reason = null;
+            return true;
+        }
+
+        private static void AddShapeMetadataText(
+            ICollection<LegacyPptWriterFoptProperty> properties,
+            ushort propertyId, string? value) {
+            if (string.IsNullOrEmpty(value)) return;
+            byte[] text = Encoding.Unicode.GetBytes(value + "\0");
+            properties.Add(new LegacyPptWriterFoptProperty(
+                unchecked((ushort)(0x8000 | propertyId)),
+                unchecked((uint)text.Length), text));
         }
 
         internal static bool TryReadShapeTransform(PowerPointShape shape,
@@ -622,11 +660,13 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             bool rewriteShapeGeometry,
             bool rewriteShapeVisualStyle,
             bool rewritePictureFormatting,
-            bool rewriteTextFrame = false) {
+            bool rewriteTextFrame = false,
+            bool rewriteShapeMetadata = false) {
             if (shape == null) throw new ArgumentNullException(nameof(shape));
             if (!rewriteShapeTransform && !rewriteShapeGeometry
                 && !rewriteShapeVisualStyle
-                && !rewritePictureFormatting && !rewriteTextFrame) {
+                && !rewritePictureFormatting && !rewriteTextFrame
+                && !rewriteShapeMetadata) {
                 throw new ArgumentException(
                     "At least one shape-property family must be rewritten.");
             }
@@ -727,6 +767,17 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     properties.Add(new LegacyPptWriterFoptProperty(0x00BF,
                         flags));
                 }
+            }
+            if (rewriteShapeMetadata) {
+                if (!TryReadShapeMetadataForWrite(shape,
+                        out IReadOnlyList<LegacyPptWriterFoptProperty>
+                            metadata, out string? metadataReason)) {
+                    throw new NotSupportedException(metadataReason);
+                }
+                properties = properties.Where(property =>
+                        property.PropertyId is not 0x0380 and not 0x0381)
+                    .ToList();
+                properties.AddRange(metadata);
             }
             return properties.Count == 0
                 ? null

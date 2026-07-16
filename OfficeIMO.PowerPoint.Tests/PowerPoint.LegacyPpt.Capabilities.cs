@@ -200,9 +200,10 @@ namespace OfficeIMO.Tests {
                 LegacyPptFeature.AccessibilityMetadata);
 
             Assert.Equal(LegacyPptCapabilityState.Native, accessibility.ImportToEditableModel);
-            Assert.Equal(LegacyPptCapabilityState.Preserved, accessibility.BinaryRoundTrip);
-            Assert.Equal(LegacyPptCapabilityState.Planned, accessibility.NewBinaryWrite);
-            Assert.Equal(LegacyPptCapabilityState.Planned, accessibility.PptxToBinary);
+            Assert.Equal(LegacyPptCapabilityState.Native, accessibility.BinaryRoundTrip);
+            Assert.Equal(LegacyPptCapabilityState.Native, accessibility.NewBinaryWrite);
+            Assert.Equal(LegacyPptCapabilityState.Native, accessibility.PptxToBinary);
+            Assert.Contains("explicitly loss-blocked", accessibility.Note);
         }
 
         [Fact]

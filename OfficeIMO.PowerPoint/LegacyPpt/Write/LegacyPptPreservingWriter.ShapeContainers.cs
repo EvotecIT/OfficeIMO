@@ -31,6 +31,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             bool rewritePrimaryFopt = edit.ShapeTransform != null
                 || edit.ShapeGeometry != null
                 || edit.ShapeVisualStyle != null
+                || edit.ShapeMetadata != null
                 || edit.PictureFormatting != null
                 || edit.TextFrame != null;
             bool patchedPrimaryFopt = !rewritePrimaryFopt;
@@ -73,13 +74,15 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                                 edit.ShapeTransform
                                     ?? edit.ShapeGeometry
                                     ?? edit.ShapeVisualStyle
+                                    ?? edit.ShapeMetadata
                                     ?? (PowerPointShape?)edit.PictureFormatting
                                     ?? edit.TextFrame!,
                                 edit.ShapeTransform != null,
                                 edit.ShapeGeometry != null,
                                 edit.ShapeVisualStyle != null,
                                 edit.PictureFormatting != null,
-                                edit.TextFrame != null);
+                                edit.TextFrame != null,
+                                edit.ShapeMetadata != null);
                         if (primary != null) children.Add(primary);
                         patchedPrimaryFopt = true;
                     }
@@ -94,6 +97,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     byte[]? primary = LegacyPptWriter
                         .BuildPreservedShapeFoptRecord(child,
                             edit.ShapeTransform ?? edit.ShapeVisualStyle
+                                ?? edit.ShapeMetadata
                                 ?? edit.ShapeGeometry
                                 ?? (PowerPointShape?)edit.PictureFormatting
                                 ?? edit.TextFrame!,
@@ -101,7 +105,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                             edit.ShapeGeometry != null,
                             edit.ShapeVisualStyle != null,
                             edit.PictureFormatting != null,
-                            edit.TextFrame != null);
+                            edit.TextFrame != null,
+                            edit.ShapeMetadata != null);
                     if (primary != null) children.Add(primary);
                     patchedPrimaryFopt = true;
                     if (edit.PictureFormatting != null

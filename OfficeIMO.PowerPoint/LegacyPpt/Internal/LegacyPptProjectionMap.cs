@@ -339,6 +339,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                         : null,
                     LegacyPptShapeProjection
                         .CreatePictureFormattingFingerprint(projectedShape),
+                    LegacyPptShapeProjection
+                        .CreateShapeMetadataFingerprint(projectedShape),
+                    sourceShape.Metadata.CanRewrite,
                     sourceShape.OleObject != null
                         && projectedShape is PowerPointOleObject projectedOle
                         ? LegacyPptOleObjectProjection.Create(
@@ -1091,6 +1094,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             string? groupCoordinateFingerprint,
             string? shapeVisualStyleFingerprint,
             string? pictureFormattingFingerprint,
+            string shapeMetadataFingerprint,
+            bool canEditShapeMetadata,
             LegacyPptOleObjectProjection? oleObject = null) {
             OpenXmlShapeId = openXmlShapeId;
             OfficeArtShapeId = officeArtShapeId;
@@ -1122,6 +1127,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             GroupCoordinateFingerprint = groupCoordinateFingerprint;
             ShapeVisualStyleFingerprint = shapeVisualStyleFingerprint;
             PictureFormattingFingerprint = pictureFormattingFingerprint;
+            ShapeMetadataFingerprint = shapeMetadataFingerprint;
+            CanEditShapeMetadata = canEditShapeMetadata;
             OleObject = oleObject;
         }
 
@@ -1181,6 +1188,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
 
         internal bool CanEditPictureFormatting =>
             PictureFormattingFingerprint != null;
+
+        internal string ShapeMetadataFingerprint { get; }
+
+        internal bool CanEditShapeMetadata { get; }
 
         internal LegacyPptOleObjectProjection? OleObject { get; }
 
@@ -1310,6 +1321,22 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 .ChildElements.Select(child => child.OuterXml)
                 ?? Enumerable.Empty<string>());
             return crop + "\n" + effects;
+        }
+
+        internal bool ShapeMetadataMatches(PowerPointShape shape) =>
+            string.Equals(ShapeMetadataFingerprint,
+                CreateShapeMetadataFingerprint(shape),
+                StringComparison.Ordinal);
+
+        internal static string CreateShapeMetadataFingerprint(
+            PowerPointShape shape) {
+            string name = shape.Name ?? string.Empty;
+            string description = shape.Description ?? string.Empty;
+            return string.Concat(name.Length.ToString(
+                    System.Globalization.CultureInfo.InvariantCulture),
+                ":", name, "\n", description.Length.ToString(
+                    System.Globalization.CultureInfo.InvariantCulture),
+                ":", description);
         }
 
         internal bool PlaceholderMatches(

@@ -314,7 +314,16 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     }
                     if (HasUnsupportedVisualStyle(shape)) {
                         findings.Add(new LegacyPptWriteFinding(LegacyPptFeature.ShapeStyles, "PPT-WRITE-SHAPE-STYLE",
-                            "Fill, outline, transform, effects, hyperlink, visibility, or alternative-text styling is not encoded.",
+                            "Fill, outline, transform, effects, hyperlink, or visibility styling is not encoded.",
+                            slideIndex, shapeIndex));
+                    }
+                    if (!LegacyPptWriter.TryReadShapeMetadataForWrite(shape,
+                            out _, out string? metadataReason)) {
+                        findings.Add(new LegacyPptWriteFinding(
+                            LegacyPptFeature.AccessibilityMetadata,
+                            "PPT-WRITE-ACCESSIBILITY-METADATA",
+                            metadataReason
+                            ?? "The shape accessibility metadata has no classic binary representation.",
                             slideIndex, shapeIndex));
                     }
                     if (LegacyPptWriter.IsLayoutShape(shape)
@@ -380,6 +389,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     out _)) return false;
             foreach (PowerPointShape shape in shapes) {
                 if (!IsSupportedShape(shape) || HasUnsupportedVisualStyle(shape)
+                    || !LegacyPptWriter.TryReadShapeMetadataForWrite(shape,
+                        out _, out _)
                     || LegacyPptWriter.IsLayoutShape(shape)
                     && HasUnsupportedMasterInteraction(shape)
                     || !LegacyPptWriter.TryReadPlaceholderForWrite(shape,
@@ -468,6 +479,13 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         "PPT-WRITE-MASTER-SHAPE-STYLE",
                         $"{location}: visual styling or interactive content is not encoded on binary masters."));
                 }
+                if (!LegacyPptWriter.TryReadShapeMetadataForWrite(shape,
+                        out _, out string? metadataReason)) {
+                    findings.Add(new LegacyPptWriteFinding(
+                        LegacyPptFeature.AccessibilityMetadata,
+                        "PPT-WRITE-MASTER-ACCESSIBILITY-METADATA",
+                        $"{location}: {metadataReason}"));
+                }
                 if (shape is PowerPointTextBox textBox
                     && !LegacyPptWriter.TryReadTextBoxForWrite(textBox,
                         fonts, pictureBullets,
@@ -502,9 +520,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         }
 
         private static bool HasUnsupportedVisualStyle(PowerPointShape shape) =>
-            !LegacyPptWriter.TryReadShapeFormatting(shape, out _, out _)
+            !LegacyPptWriter.TryReadShapeTransform(shape, out _, out _)
+            || !LegacyPptWriter.TryReadShapeVisualStyle(shape, out _, out _)
+            || shape is PowerPointTextBox textBox
+                && !LegacyPptWriter.TryReadTextFrameForWrite(textBox,
+                    out _, out _)
             || shape.Hidden
-            || !string.IsNullOrWhiteSpace(shape.AltText)
             || shape.Element.Descendants<A.EffectDag>().Any();
 
         private static bool HasUnsupportedMasterInteraction(
