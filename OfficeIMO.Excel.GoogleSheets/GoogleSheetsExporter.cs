@@ -65,6 +65,11 @@ namespace OfficeIMO.Excel.GoogleSheets {
             using (var transport = new GoogleWorkspaceHttpTransport(session.Options)) {
             using (var driveClient = new GoogleDriveClient(session, GoogleDriveClientOptions.ForFileAuthoring())) {
             try {
+                await ValidateDrivePlacementAsync(
+                    driveClient,
+                    effectiveLocation,
+                    batch.Report,
+                    cancellationToken).ConfigureAwait(false);
 
                 if (!string.IsNullOrWhiteSpace(effectiveLocation.ExistingFileId)) {
                     await ValidateReplaceTargetAsync(
@@ -254,11 +259,19 @@ namespace OfficeIMO.Excel.GoogleSheets {
             }
 
             if (!string.IsNullOrWhiteSpace(location.FolderId)) {
-                await driveClient.ResolveFolderAsync(location.FolderId!, location.DriveId, report, cancellationToken).ConfigureAwait(false);
                 return await driveClient.MoveFileAsync(fileId!, location.FolderId!, report, cancellationToken).ConfigureAwait(false);
             }
 
             return await driveClient.GetFileAsync(fileId!, report: report, cancellationToken: cancellationToken).ConfigureAwait(false);
+        }
+
+        private static async Task ValidateDrivePlacementAsync(
+            GoogleDriveClient driveClient,
+            GoogleDriveFileLocation location,
+            TranslationReport report,
+            CancellationToken cancellationToken) {
+            if (string.IsNullOrWhiteSpace(location.FolderId)) return;
+            await driveClient.ResolveFolderAsync(location.FolderId!, location.DriveId, report, cancellationToken).ConfigureAwait(false);
         }
 
         private static async Task ValidateReplaceTargetAsync(

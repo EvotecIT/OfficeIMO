@@ -192,6 +192,41 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public async Task Test_GoogleSheetsDiffPlanner_IgnoresGeneratedChartDataSheetButKeepsCollidingSourceSheet() {
+            string filePath = Path.Combine(_directoryWithFiles, "GoogleSheetsChartHelperDiff.xlsx");
+            try {
+                using var source = ExcelDocument.Create(filePath);
+                ExcelSheet data = source.AddWorksheet("Data");
+                data.CellValue(1, 1, "value");
+                data.AddChart(
+                    new ExcelChartData(new[] { "A" }, new[] { new ExcelChartSeries("Sales", new[] { 1d }) }),
+                    row: 2,
+                    column: 2,
+                    type: ExcelChartType.ColumnClustered);
+                source.AddWorksheet("_OfficeIMO_ChartData").CellValue(1, 1, "User content");
+                GoogleSheetsSyncCheckpoint checkpoint = GoogleSheetsDiffPlanner.CreateCheckpoint(source, driveVersion: 6);
+                const string nativeJson = "{\"spreadsheetId\":\"diff-chart\",\"properties\":{\"title\":\"Diff\"},\"sheets\":[{\"properties\":{\"sheetId\":0,\"title\":\"Data\",\"index\":0},\"data\":[{\"startRow\":0,\"startColumn\":0,\"rowData\":[{\"values\":[{\"userEnteredValue\":{\"stringValue\":\"value\"}}]}]}]},{\"properties\":{\"sheetId\":1,\"title\":\"_OfficeIMO_ChartData\",\"index\":1},\"data\":[{\"startRow\":0,\"startColumn\":0,\"rowData\":[{\"values\":[{\"userEnteredValue\":{\"stringValue\":\"User content\"}}]}]}]},{\"properties\":{\"sheetId\":2,\"title\":\"_OfficeIMO_ChartData_2\",\"index\":2,\"hidden\":true,\"gridProperties\":{\"hideGridlines\":true}},\"data\":[{\"startRow\":0,\"startColumn\":0,\"rowData\":[{\"values\":[{\"userEnteredValue\":{\"stringValue\":\"Category\"}},{\"userEnteredValue\":{\"stringValue\":\"Sales\"}}]},{\"values\":[{\"userEnteredValue\":{\"stringValue\":\"A\"}},{\"userEnteredValue\":{\"numberValue\":1}}]}]}]}]}";
+                using var httpClient = new HttpClient(new FakeHttpMessageHandler(request => {
+                    if (request.RequestUri!.Host == "www.googleapis.com") {
+                        return Task.FromResult(CreateJsonResponse("{\"id\":\"diff-chart\",\"name\":\"Diff\",\"mimeType\":\"application/vnd.google-apps.spreadsheet\",\"version\":6,\"capabilities\":{\"canDownload\":false}}"));
+                    }
+                    if (request.RequestUri.Host == "sheets.googleapis.com") {
+                        return Task.FromResult(CreateJsonResponse(nativeJson));
+                    }
+                    return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound));
+                }));
+                var session = new GoogleWorkspaceSession(new FakeGoogleWorkspaceCredentialSource(), new GoogleWorkspaceSessionOptions { HttpClient = httpClient });
+
+                GoogleSheetsDiffPlan plan = await GoogleSheetsDiffPlanner.BuildAsync(source, "diff-chart", session, checkpoint);
+
+                Assert.DoesNotContain(plan.Items, item => item.Path.StartsWith("sheet/_OfficeIMO_ChartData_2", StringComparison.Ordinal));
+                Assert.DoesNotContain(plan.Items, item => item.Path.StartsWith("sheet/_OfficeIMO_ChartData/", StringComparison.Ordinal));
+            } finally {
+                if (File.Exists(filePath)) File.Delete(filePath);
+            }
+        }
+
+        [Fact]
         public async Task Test_GoogleSheetsExporter_ReplaceRequiresObservedDriveVersion() {
             string filePath = Path.Combine(_directoryWithFiles, "GoogleSheetsReplacePreflight.xlsx");
             try {

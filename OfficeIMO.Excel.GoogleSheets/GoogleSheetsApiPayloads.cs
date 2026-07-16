@@ -151,6 +151,10 @@ namespace OfficeIMO.Excel.GoogleSheets {
         [JsonPropertyName("createDeveloperMetadata")]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public GoogleSheetsApiCreateDeveloperMetadataRequestPayload? CreateDeveloperMetadata { get; set; }
+
+        [JsonPropertyName("deleteDeveloperMetadata")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public GoogleSheetsApiDeleteDeveloperMetadataRequestPayload? DeleteDeveloperMetadata { get; set; }
     }
 
     internal sealed class GoogleSheetsApiAddSheetRequestPayload {

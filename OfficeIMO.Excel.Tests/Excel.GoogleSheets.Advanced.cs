@@ -393,10 +393,21 @@ namespace OfficeIMO.Tests {
                 GoogleSheetsAddProtectedRangeRequest protection = Assert.Single(batch.Requests.OfType<GoogleSheetsAddProtectedRangeRequest>());
                 Assert.True(protection.WarningOnly);
                 Assert.Equal("editor@example.com", Assert.Single(protection.EditorEmailAddresses));
+                Assert.Equal(2, batch.Requests.OfType<GoogleSheetsDeleteDeveloperMetadataRequest>().Count());
                 Assert.Equal(2, batch.Requests.OfType<GoogleSheetsCreateDeveloperMetadataRequest>().Count());
                 GoogleSheetsApiBatchUpdatePayload payload = GoogleSheetsApiPayloadBuilder.BuildBatchUpdatePayload(
                     batch,
                     GoogleSheetsApiPayloadBuilder.BuildSheetIdMap(batch));
+                GoogleSheetsApiRequestPayload[] metadataPayloads = payload.Requests
+                    .Where(request => request.DeleteDeveloperMetadata != null || request.CreateDeveloperMetadata != null)
+                    .ToArray();
+                Assert.Equal(4, metadataPayloads.Length);
+                Assert.Equal("officeimo.source", metadataPayloads[0].DeleteDeveloperMetadata!.DataFilter.DeveloperMetadataLookup.MetadataKey);
+                Assert.Equal("SPREADSHEET", metadataPayloads[0].DeleteDeveloperMetadata.DataFilter.DeveloperMetadataLookup.LocationType);
+                Assert.Equal("DOCUMENT", metadataPayloads[0].DeleteDeveloperMetadata.DataFilter.DeveloperMetadataLookup.Visibility);
+                Assert.Equal("officeimo.source", metadataPayloads[1].CreateDeveloperMetadata!.DeveloperMetadata.MetadataKey);
+                Assert.Equal("officeimo.schema", metadataPayloads[2].DeleteDeveloperMetadata!.DataFilter.DeveloperMetadataLookup.MetadataKey);
+                Assert.Equal("officeimo.schema", metadataPayloads[3].CreateDeveloperMetadata!.DeveloperMetadata.MetadataKey);
                 Assert.Equal(2, payload.Requests.Count(request => request.CreateDeveloperMetadata != null));
             } finally {
                 if (File.Exists(path)) File.Delete(path);

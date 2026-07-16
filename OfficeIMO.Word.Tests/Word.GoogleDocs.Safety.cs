@@ -195,5 +195,42 @@ namespace OfficeIMO.Tests {
                 if (File.Exists(filePath)) File.Delete(filePath);
             }
         }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task Test_GoogleDocsExporter_ValidatesTargetFolderBeforeCreateOrReplace(bool replaceExisting) {
+            string filePath = Path.Combine(_directoryWithFiles, $"GoogleDocsFolderPreflight-{replaceExisting}.docx");
+            try {
+                using var document = WordDocument.Create(filePath);
+                document.AddParagraph("Content");
+                int docsMutationCount = 0;
+                using var httpClient = new HttpClient(new FakeHttpMessageHandler(request => {
+                    if (request.Method == HttpMethod.Get && request.RequestUri!.Host == "www.googleapis.com") {
+                        return Task.FromResult(CreateJsonResponse("{\"id\":\"not-a-folder\",\"name\":\"File\",\"mimeType\":\"text/plain\"}"));
+                    }
+                    if (request.Method == HttpMethod.Post && request.RequestUri!.Host == "docs.googleapis.com") {
+                        docsMutationCount++;
+                    }
+                    return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound));
+                }));
+                var session = new GoogleWorkspaceSession(
+                    new FakeGoogleWorkspaceCredentialSource(),
+                    new GoogleWorkspaceSessionOptions { HttpClient = httpClient });
+
+                var options = new GoogleDocsSaveOptions {
+                    Location = new GoogleDriveFileLocation {
+                        FolderId = "not-a-folder",
+                        ExistingFileId = replaceExisting ? "existing-doc" : null,
+                    },
+                    Replace = new GoogleDocsReplaceOptions { ConflictMode = GoogleDocsRevisionConflictMode.OverwriteLatest },
+                };
+                await Assert.ThrowsAsync<GoogleWorkspaceExportException>(() => document.ExportToGoogleDocsAsync(session, options));
+
+                Assert.Equal(0, docsMutationCount);
+            } finally {
+                if (File.Exists(filePath)) File.Delete(filePath);
+            }
+        }
     }
 }

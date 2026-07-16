@@ -222,6 +222,17 @@ namespace OfficeIMO.Excel.GoogleSheets {
                             }
                         });
                         break;
+                    case GoogleSheetsDeleteDeveloperMetadataRequest metadata:
+                        payload.Requests.Add(new GoogleSheetsApiRequestPayload {
+                            DeleteDeveloperMetadata = new GoogleSheetsApiDeleteDeveloperMetadataRequestPayload {
+                                DataFilter = new GoogleSheetsApiDataFilterPayload {
+                                    DeveloperMetadataLookup = new GoogleSheetsApiDeveloperMetadataLookupPayload {
+                                        MetadataKey = metadata.Key,
+                                    }
+                                }
+                            }
+                        });
+                        break;
                     case GoogleSheetsSetBasicFilterRequest basicFilter:
                         if (!TryBuildGridRange(sheetIds, basicFilter.SheetName, basicFilter.A1Range, out var basicFilterRange)) {
                             batch.Report.Add(

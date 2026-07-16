@@ -71,6 +71,12 @@ namespace OfficeIMO.Word.GoogleDocs {
             using (var transport = new GoogleWorkspaceHttpTransport(session.Options)) {
             using (var driveClient = new GoogleDriveClient(session, GoogleDriveClientOptions.ForFileAuthoring())) {
             try {
+                await ValidateDrivePlacementAsync(
+                    driveClient,
+                    effectiveLocation,
+                    batch.Report,
+                    cancellationToken).ConfigureAwait(false);
+
                 if (!string.IsNullOrWhiteSpace(effectiveLocation.ExistingFileId)) {
                     await ValidateExistingDocumentDriveAccessAsync(
                         driveClient,

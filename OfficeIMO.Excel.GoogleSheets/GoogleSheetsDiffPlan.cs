@@ -65,7 +65,10 @@ namespace OfficeIMO.Excel.GoogleSheets {
                 cancellationToken).ConfigureAwait(false);
             using (imported.Document) {
                 var sourceHashes = BuildHashes(source);
-                var remoteHashes = BuildHashes(imported.Document);
+                var sourceSheetNames = new HashSet<string>(
+                    source.Sheets.Select(sheet => sheet.Name),
+                    StringComparer.OrdinalIgnoreCase);
+                var remoteHashes = BuildHashes(imported.Document, sourceSheetNames);
                 var items = Compare(sourceHashes, remoteHashes, checkpoint);
                 foreach (TranslationNotice notice in imported.Report.Notices.Where(notice => notice.Severity >= TranslationSeverity.Warning)) {
                     items.Add(new GoogleSheetsDiffItem(GoogleSheetsDiffKind.LossyAction, notice.TargetId ?? notice.Feature, notice.Message));
@@ -105,10 +108,13 @@ namespace OfficeIMO.Excel.GoogleSheets {
             return result;
         }
 
-        private static IReadOnlyDictionary<string, string> BuildHashes(ExcelDocument document) {
+        private static IReadOnlyDictionary<string, string> BuildHashes(
+            ExcelDocument document,
+            ISet<string>? sourceSheetNames = null) {
             ExcelWorkbookSnapshot snapshot = document.CreateInspectionSnapshot(new ExcelReadOptions { UseCachedFormulaResult = true, TreatDatesUsingNumberFormat = true });
             var result = new Dictionary<string, string>(StringComparer.Ordinal);
             foreach (ExcelWorksheetSnapshot sheet in snapshot.Worksheets) {
+                if (IsGeneratedChartDataSheet(sheet, sourceSheetNames)) continue;
                 ExcelSheet? sourceSheet = document.Sheets.FirstOrDefault(candidate =>
                     string.Equals(candidate.Name, sheet.Name, StringComparison.OrdinalIgnoreCase));
                 result[$"sheet/{sheet.Name}"] = Hash($"{sheet.Index}|{sheet.Hidden}|{sheet.RightToLeft}|{sheet.ShowGridlines}|{sheet.FrozenRowCount}|{sheet.FrozenColumnCount}|{sheet.TabColorArgb}");
@@ -138,6 +144,28 @@ namespace OfficeIMO.Excel.GoogleSheets {
                 result[path] = Hash(name.ReferenceA1);
             }
             return result;
+        }
+
+        private static bool IsGeneratedChartDataSheet(
+            ExcelWorksheetSnapshot sheet,
+            ISet<string>? sourceSheetNames) {
+            if (sourceSheetNames == null || sourceSheetNames.Contains(sheet.Name) || !sheet.Hidden || sheet.ShowGridlines) {
+                return false;
+            }
+
+            const string chartDataPrefix = "_OfficeIMO_ChartData";
+            if (!string.Equals(sheet.Name, chartDataPrefix, StringComparison.OrdinalIgnoreCase)) {
+                if (!sheet.Name.StartsWith(chartDataPrefix + "_", StringComparison.OrdinalIgnoreCase)
+                    || !int.TryParse(sheet.Name.Substring(chartDataPrefix.Length + 1), out int suffix)
+                    || suffix < 2) {
+                    return false;
+                }
+            }
+
+            ExcelCellSnapshot? firstCell = sheet.Cells.FirstOrDefault(cell => cell.Row == 1 && cell.Column == 1);
+            string? header = firstCell?.Value?.ToString();
+            return string.Equals(header, "Category", StringComparison.Ordinal)
+                || string.Equals(header, "X", StringComparison.Ordinal);
         }
 
         private static void AddConditionalFormatHashes(

@@ -247,6 +247,12 @@ namespace OfficeIMO.Excel.GoogleSheets {
         public string? Name { get; set; }
     }
 
+    /// <summary>Deletes spreadsheet-scoped developer metadata matching a key.</summary>
+    public sealed class GoogleSheetsDeleteDeveloperMetadataRequest : GoogleSheetsRequest {
+        public GoogleSheetsDeleteDeveloperMetadataRequest() : base("deleteDeveloperMetadata") { }
+        public string Key { get; set; } = string.Empty;
+    }
+
     /// <summary>Creates spreadsheet-scoped developer metadata.</summary>
     public sealed class GoogleSheetsCreateDeveloperMetadataRequest : GoogleSheetsRequest {
         public GoogleSheetsCreateDeveloperMetadataRequest() : base("createDeveloperMetadata") { }

@@ -149,6 +149,25 @@ namespace OfficeIMO.Excel.GoogleSheets {
         public GoogleSheetsApiDeveloperMetadataPayload DeveloperMetadata { get; set; } = new GoogleSheetsApiDeveloperMetadataPayload();
     }
 
+    internal sealed class GoogleSheetsApiDeleteDeveloperMetadataRequestPayload {
+        [JsonPropertyName("dataFilter")]
+        public GoogleSheetsApiDataFilterPayload DataFilter { get; set; } = new GoogleSheetsApiDataFilterPayload();
+    }
+
+    internal sealed class GoogleSheetsApiDataFilterPayload {
+        [JsonPropertyName("developerMetadataLookup")]
+        public GoogleSheetsApiDeveloperMetadataLookupPayload DeveloperMetadataLookup { get; set; } = new GoogleSheetsApiDeveloperMetadataLookupPayload();
+    }
+
+    internal sealed class GoogleSheetsApiDeveloperMetadataLookupPayload {
+        [JsonPropertyName("locationType")]
+        public string LocationType { get; set; } = "SPREADSHEET";
+        [JsonPropertyName("metadataKey")]
+        public string MetadataKey { get; set; } = string.Empty;
+        [JsonPropertyName("visibility")]
+        public string Visibility { get; set; } = "DOCUMENT";
+    }
+
     internal sealed class GoogleSheetsApiDeveloperMetadataPayload {
         [JsonPropertyName("metadataKey")]
         public string MetadataKey { get; set; } = string.Empty;

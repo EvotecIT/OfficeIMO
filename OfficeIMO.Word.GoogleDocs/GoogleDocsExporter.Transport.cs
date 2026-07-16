@@ -14,11 +14,19 @@ namespace OfficeIMO.Word.GoogleDocs {
             }
 
             if (!string.IsNullOrWhiteSpace(location.FolderId)) {
-                await driveClient.ResolveFolderAsync(location.FolderId!, location.DriveId, report, cancellationToken).ConfigureAwait(false);
                 return await driveClient.MoveFileAsync(fileId!, location.FolderId!, report, cancellationToken).ConfigureAwait(false);
             }
 
             return await driveClient.GetFileAsync(fileId!, report: report, cancellationToken: cancellationToken).ConfigureAwait(false);
+        }
+
+        private static async Task ValidateDrivePlacementAsync(
+            GoogleDriveClient driveClient,
+            GoogleDriveFileLocation location,
+            TranslationReport report,
+            CancellationToken cancellationToken) {
+            if (string.IsNullOrWhiteSpace(location.FolderId)) return;
+            await driveClient.ResolveFolderAsync(location.FolderId!, location.DriveId, report, cancellationToken).ConfigureAwait(false);
         }
 
         private static string? BuildDocumentWebViewLink(string? documentId) {
