@@ -13,7 +13,7 @@ namespace OfficeIMO.Tests {
             byte[] wave = CreateWavePayload();
             byte[] bytes;
             using (PowerPointPresentation source = PowerPointPresentation.Create()) {
-                PowerPointSlide slide = source.AddSlide();
+                PowerPointSlide slide = source.AddSlide(P.SlideLayoutValues.Blank);
                 slide.Transition = SlideTransition.Fade;
                 MediaDataPart media = source.OpenXmlDocument.CreateMediaDataPart(
                     "audio/wav", ".wav");
@@ -99,7 +99,7 @@ namespace OfficeIMO.Tests {
         public void NativeWriter_AuthorsAndProjectsStopSoundTransition() {
             byte[] bytes;
             using (PowerPointPresentation source = PowerPointPresentation.Create()) {
-                PowerPointSlide slide = source.AddSlide();
+                PowerPointSlide slide = source.AddSlide(P.SlideLayoutValues.Blank);
                 slide.Transition = SlideTransition.Cut;
                 slide.SlidePart.Slide!.Transition!.Append(
                     new P.SoundAction(new P.EndSoundAction()));
@@ -245,7 +245,7 @@ namespace OfficeIMO.Tests {
             byte[] wave = CreateWavePayload();
             byte[] bytes;
             using (PowerPointPresentation source = PowerPointPresentation.Create()) {
-                PowerPointSlide slide = source.AddSlide();
+                PowerPointSlide slide = source.AddSlide(P.SlideLayoutValues.Blank);
                 using (var audio = new MemoryStream(wave, writable: false)) {
                     slide.SetTransitionSound(audio, "Shared Sound", loop: true);
                 }
@@ -316,7 +316,7 @@ namespace OfficeIMO.Tests {
             string contentType, string extension, bool builtIn,
             string expectedReason) {
             using PowerPointPresentation source = PowerPointPresentation.Create();
-            PowerPointSlide slide = source.AddSlide();
+            PowerPointSlide slide = source.AddSlide(P.SlideLayoutValues.Blank);
             slide.Transition = SlideTransition.Fade;
             MediaDataPart media = source.OpenXmlDocument.CreateMediaDataPart(
                 contentType, extension);
@@ -342,7 +342,7 @@ namespace OfficeIMO.Tests {
 
         private static byte[] CreateBinarySoundPresentation() {
             using PowerPointPresentation source = PowerPointPresentation.Create();
-            PowerPointSlide slide = source.AddSlide();
+            PowerPointSlide slide = source.AddSlide(P.SlideLayoutValues.Blank);
             slide.Transition = SlideTransition.Fade;
             MediaDataPart media = source.OpenXmlDocument.CreateMediaDataPart(
                 "audio/wav", ".wav");

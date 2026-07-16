@@ -13,9 +13,9 @@ namespace OfficeIMO.Tests {
         public void NativeWriter_AuthorsAndProjectsCustomShowAndAction() {
             byte[] bytes;
             using (PowerPointPresentation source = PowerPointPresentation.Create()) {
-                PowerPointSlide first = source.AddSlide();
-                PowerPointSlide actionSlide = source.AddSlide();
-                PowerPointSlide third = source.AddSlide();
+                PowerPointSlide first = source.AddSlide(P.SlideLayoutValues.Blank);
+                PowerPointSlide actionSlide = source.AddSlide(P.SlideLayoutValues.Blank);
+                PowerPointSlide third = source.AddSlide(P.SlideLayoutValues.Blank);
                 first.AddTextBox("First");
                 third.AddTextBox("Third");
                 AddCustomShow(source, 42, "Executive path", third, first);
@@ -74,9 +74,9 @@ namespace OfficeIMO.Tests {
         public void ImportedCustomShow_AddEditAndRemoveAppendsPreservingRecords() {
             byte[] sourceBytes;
             using (PowerPointPresentation source = PowerPointPresentation.Create()) {
-                source.AddSlide().AddRectangle(
+                source.AddSlide(P.SlideLayoutValues.Blank).AddRectangle(
                     100000, 100000, 1000000, 500000);
-                source.AddSlide().AddTextBox("Destination");
+                source.AddSlide(P.SlideLayoutValues.Blank).AddTextBox("Destination");
                 sourceBytes = source.ToBytes(PowerPointFileFormat.Ppt);
             }
             LegacyPptPresentation original = LegacyPptPresentation.Load(sourceBytes);
@@ -173,7 +173,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void NativeWriter_BlocksAmbiguousCustomShowNames() {
             using PowerPointPresentation source = PowerPointPresentation.Create();
-            PowerPointSlide slide = source.AddSlide();
+            PowerPointSlide slide = source.AddSlide(P.SlideLayoutValues.Blank);
             AddCustomShow(source, 1, "Duplicate", slide);
             P.CustomShow duplicate = new(new P.SlideList(
                 new P.SlideListEntry {
@@ -197,7 +197,7 @@ namespace OfficeIMO.Tests {
         public void ImportedCustomShow_TracksAppendedAndRemovedSlides() {
             byte[] sourceBytes;
             using (PowerPointPresentation source = PowerPointPresentation.Create()) {
-                PowerPointSlide first = source.AddSlide();
+                PowerPointSlide first = source.AddSlide(P.SlideLayoutValues.Blank);
                 first.AddTextBox("First");
                 AddCustomShow(source, 7, "Mutable path", first);
                 sourceBytes = source.ToBytes(PowerPointFileFormat.Ppt);
@@ -207,7 +207,7 @@ namespace OfficeIMO.Tests {
             byte[] appendedBytes;
             using (var input = new MemoryStream(sourceBytes, writable: false))
             using (PowerPointPresentation imported = PowerPointPresentation.Load(input)) {
-                PowerPointSlide appended = imported.AddSlide();
+                PowerPointSlide appended = imported.AddSlide(P.SlideLayoutValues.Blank);
                 appended.AddTextBox("Appended");
                 P.CustomShow show = imported.OpenXmlDocument.PresentationPart!
                     .Presentation!.CustomShowList!.Elements<P.CustomShow>().Single();

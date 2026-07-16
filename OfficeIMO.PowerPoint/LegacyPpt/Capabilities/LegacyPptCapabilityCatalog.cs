@@ -26,7 +26,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Capabilities {
                     "Slide layout and master inheritance.", LegacyPptRepresentability.Native,
                     LegacyPptCapabilityState.Native, LegacyPptCapabilityState.Planned,
                     LegacyPptCapabilityState.Preserved, LegacyPptCapabilityState.Planned,
-                    "All 14 SlideLayoutType values and their eight-slot placeholder signatures decode to typed metadata and distinct native Open XML layouts under the referenced master. Supported PPTX layouts write native binary hints for fresh and incrementally appended slides, and imported relationship or layout edits are loss-blocked. Regenerating arbitrary custom binary layout definitions, inherited geometry, and layout styling remains planned."),
+                    "All 14 SlideLayoutType values and their eight-slot placeholder signatures decode to typed metadata and distinct native Open XML layouts under the referenced master. Supported PPTX layouts write native binary hints for fresh and incrementally appended slides. Layout placeholder geometry and supported decorative shapes are materialized into each owning binary slide when not overridden, preserving the visible layout despite the classic format having no independent PPTX-style layout persist object; unsupported layout objects are loss-blocked. Imported relationship or layout edits remain loss-blocked, and richer layout styling and master-style regeneration remain planned."),
                 Planned(LegacyPptFeature.Themes, "Design", "Theme fonts, fills, lines, and effects.",
                     LegacyPptRepresentability.Approximation),
                 new LegacyPptCapability(LegacyPptFeature.ColorSchemes, "Design",

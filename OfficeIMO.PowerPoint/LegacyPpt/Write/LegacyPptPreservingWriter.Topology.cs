@@ -39,7 +39,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 persistId++;
                 slideId++;
                 drawingId++;
-                uint nextShapeIndex = checked(unchecked((uint)slide.Shapes.Count) + 2U);
+                IReadOnlyList<PowerPointShape> writableShapes =
+                    LegacyPptWriter.ReadSlideShapesForWrite(slide, out _);
+                uint nextShapeIndex = checked(unchecked((uint)writableShapes.Count) + 2U);
                 clusters.Add(new KeyValuePair<uint, uint>(drawingId, nextShapeIndex));
                 rewritten.Add(persistId,
                     LegacyPptWriter.BuildIncrementalSlideRecord(slide, drawingId,

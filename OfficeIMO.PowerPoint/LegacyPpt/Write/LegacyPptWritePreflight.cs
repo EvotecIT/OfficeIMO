@@ -82,6 +82,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             }
             for (int slideIndex = 0; slideIndex < presentation.Slides.Count; slideIndex++) {
                 PowerPointSlide slide = presentation.Slides[slideIndex];
+                IReadOnlyList<PowerPointShape> shapes = LegacyPptWriter
+                    .ReadSlideShapesForWrite(slide, out string? layoutShapeReason);
+                if (layoutShapeReason != null) {
+                    findings.Add(new LegacyPptWriteFinding(LegacyPptFeature.Layouts,
+                        "PPT-WRITE-LAYOUT-SHAPE", layoutShapeReason, slideIndex));
+                }
                 if (HasUnsupportedRichNotes(slide)) {
                     findings.Add(new LegacyPptWriteFinding(LegacyPptFeature.RichNotes,
                         "PPT-WRITE-RICH-NOTES",
@@ -112,8 +118,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         ?? "The slide background cannot be encoded by the native binary writer.",
                         slideIndex));
                 }
-                for (int shapeIndex = 0; shapeIndex < slide.Shapes.Count; shapeIndex++) {
-                    PowerPointShape shape = slide.Shapes[shapeIndex];
+                for (int shapeIndex = 0; shapeIndex < shapes.Count; shapeIndex++) {
+                    PowerPointShape shape = shapes[shapeIndex];
                     if (!IsSupportedShape(shape)) {
                         findings.Add(new LegacyPptWriteFinding(MapShapeFeature(shape), "PPT-WRITE-SHAPE",
                             $"{shape.ShapeContentType} content is outside the native writer's text/rectangle/ellipse/line subset.",
@@ -158,7 +164,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             }
             if (!LegacyPptWriter.TryReadInteractions(new[] { slide },
                     out _, out _)) return false;
-            foreach (PowerPointShape shape in slide.Shapes) {
+            IReadOnlyList<PowerPointShape> shapes = LegacyPptWriter
+                .ReadSlideShapesForWrite(slide, out string? layoutShapeReason);
+            if (layoutShapeReason != null) return false;
+            foreach (PowerPointShape shape in shapes) {
                 if (!IsSupportedShape(shape) || HasUnsupportedVisualStyle(shape)) return false;
                 if (shape is PowerPointTextBox textBox && HasRichTextFormatting(textBox)) return false;
             }

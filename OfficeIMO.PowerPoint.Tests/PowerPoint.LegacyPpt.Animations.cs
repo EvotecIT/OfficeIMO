@@ -11,7 +11,7 @@ namespace OfficeIMO.Tests {
         public void NativeWriter_AuthorsProjectsAndInspectsClassicAnimations() {
             byte[] bytes;
             using (PowerPointPresentation source = PowerPointPresentation.Create()) {
-                PowerPointSlide slide = source.AddSlide();
+                PowerPointSlide slide = source.AddSlide(P.SlideLayoutValues.Blank);
                 PowerPointAutoShape rectangle = slide.AddRectangle(
                     100000, 100000, 1200000, 500000);
                 PowerPointTextBox text = slide.AddTextBox("Animated text",
@@ -96,7 +96,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void PublicApi_RejectsEffectDirectionOutsideLegacyContract() {
             using PowerPointPresentation presentation = PowerPointPresentation.Create();
-            PowerPointSlide slide = presentation.AddSlide();
+            PowerPointSlide slide = presentation.AddSlide(P.SlideLayoutValues.Blank);
             PowerPointAutoShape shape = slide.AddRectangle(
                 100000, 100000, 1200000, 500000);
 
@@ -186,7 +186,7 @@ namespace OfficeIMO.Tests {
         public void ImportedSlide_CanAddFirstClassicAnimationIncrementally() {
             byte[] sourceBytes;
             using (PowerPointPresentation source = PowerPointPresentation.Create()) {
-                source.AddSlide().AddRectangle(
+                source.AddSlide(P.SlideLayoutValues.Blank).AddRectangle(
                     100000, 100000, 1200000, 500000);
                 sourceBytes = source.ToBytes(PowerPointFileFormat.Ppt);
             }
@@ -216,7 +216,7 @@ namespace OfficeIMO.Tests {
             byte[] wave = CreateWavePayload();
             byte[] sourceBytes;
             using (PowerPointPresentation source = PowerPointPresentation.Create()) {
-                PowerPointSlide slide = source.AddSlide();
+                PowerPointSlide slide = source.AddSlide(P.SlideLayoutValues.Blank);
                 PowerPointAutoShape shape = slide.AddRectangle(
                     100000, 100000, 1200000, 500000);
                 slide.AddClassicAnimation(shape,
@@ -276,7 +276,7 @@ namespace OfficeIMO.Tests {
         public void NativeWriter_ConvertsPowerPointAuthoredClassicTiming() {
             byte[] bytes;
             using (PowerPointPresentation source = PowerPointPresentation.Create()) {
-                PowerPointSlide slide = source.AddSlide();
+                PowerPointSlide slide = source.AddSlide(P.SlideLayoutValues.Blank);
                 PowerPointTextBox shape = slide.AddTextBox("One\nTwo\nThree",
                     100000, 100000, 1800000, 900000);
                 uint shapeId = Assert.IsType<uint>(shape.Id);
@@ -324,7 +324,7 @@ namespace OfficeIMO.Tests {
         public void NativeWriter_BlocksAdvancedTimingMixedWithClassicAnimation() {
             using PowerPointPresentation presentation =
                 PowerPointPresentation.Create();
-            PowerPointSlide slide = presentation.AddSlide();
+            PowerPointSlide slide = presentation.AddSlide(P.SlideLayoutValues.Blank);
             PowerPointAutoShape shape = slide.AddRectangle(
                 100000, 100000, 1200000, 500000);
             slide.AddClassicAnimation(shape,
@@ -346,7 +346,7 @@ namespace OfficeIMO.Tests {
             byte[] automaticBytes;
             using (PowerPointPresentation automatic =
                    PowerPointPresentation.Create()) {
-                PowerPointSlide slide = automatic.AddSlide();
+                PowerPointSlide slide = automatic.AddSlide(P.SlideLayoutValues.Blank);
                 PowerPointAutoShape shape = slide.AddRectangle(
                     100000, 100000, 1200000, 500000);
                 P.Timing timing = CreatePowerPointAuthoredClassicTiming(
@@ -374,7 +374,7 @@ namespace OfficeIMO.Tests {
 
             using PowerPointPresentation concurrent =
                 PowerPointPresentation.Create();
-            PowerPointSlide concurrentSlide = concurrent.AddSlide();
+            PowerPointSlide concurrentSlide = concurrent.AddSlide(P.SlideLayoutValues.Blank);
             PowerPointAutoShape concurrentShape = concurrentSlide.AddRectangle(
                 100000, 100000, 1200000, 500000);
             P.Timing concurrentTiming = CreatePowerPointAuthoredClassicTiming(
@@ -391,7 +391,7 @@ namespace OfficeIMO.Tests {
 
         private static byte[] CreateBinaryAnimationPresentation() {
             using PowerPointPresentation source = PowerPointPresentation.Create();
-            PowerPointSlide slide = source.AddSlide();
+            PowerPointSlide slide = source.AddSlide(P.SlideLayoutValues.Blank);
             PowerPointAutoShape shape = slide.AddRectangle(
                 100000, 100000, 1200000, 500000);
             slide.AddClassicAnimation(shape,

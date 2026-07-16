@@ -93,7 +93,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             var slideShapeCounts = new List<int>(presentation.Slides.Count);
             for (int index = 0; index < presentation.Slides.Count; index++) {
                 PowerPointSlide slide = presentation.Slides[index];
-                IReadOnlyList<PowerPointShape> supportedShapes = slide.Shapes.Where(IsSupportedShape).ToArray();
+                IReadOnlyList<PowerPointShape> supportedShapes = ReadSlideShapesForWrite(
+                    slide, out _).Where(IsSupportedShape).ToArray();
                 slideShapeCounts.Add(supportedShapes.Count);
                 uint? notesId = notesBySlide.TryGetValue(index, out LegacyPptWriterNote? note)
                     ? note.NotesId
@@ -138,8 +139,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         internal static byte[] BuildIncrementalSlideRecord(PowerPointSlide slide, uint drawingId,
             uint masterIdRef) {
             if (slide == null) throw new ArgumentNullException(nameof(slide));
-            IReadOnlyList<PowerPointShape> shapes = slide.Shapes.Where(IsSupportedShape).ToArray();
-            if (shapes.Count != slide.Shapes.Count) {
+            IReadOnlyList<PowerPointShape> sourceShapes = ReadSlideShapesForWrite(slide,
+                out string? layoutReason);
+            IReadOnlyList<PowerPointShape> shapes = sourceShapes.Where(IsSupportedShape).ToArray();
+            if (layoutReason != null || shapes.Count != sourceShapes.Count) {
                 throw new InvalidOperationException("The incremental slide contains an unsupported shape.");
             }
             if (!TryReadInteractions(new[] { slide },
@@ -159,8 +162,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             uint drawingId, uint masterIdRef,
             LegacyPptWriterInteractionCatalog interactionCatalog) {
             if (slide == null) throw new ArgumentNullException(nameof(slide));
-            IReadOnlyList<PowerPointShape> shapes = slide.Shapes.Where(IsSupportedShape).ToArray();
-            if (shapes.Count != slide.Shapes.Count) {
+            IReadOnlyList<PowerPointShape> sourceShapes = ReadSlideShapesForWrite(slide,
+                out string? layoutReason);
+            IReadOnlyList<PowerPointShape> shapes = sourceShapes.Where(IsSupportedShape).ToArray();
+            if (layoutReason != null || shapes.Count != sourceShapes.Count) {
                 throw new InvalidOperationException("The incremental slide contains an unsupported shape.");
             }
             if (!TryReadClassicAnimations(new[] { slide }, interactionCatalog.Sounds,

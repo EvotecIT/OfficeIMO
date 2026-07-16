@@ -412,7 +412,8 @@ namespace OfficeIMO.Tests {
         public void ImportedPlainBinaryText_ArbitraryLengthEditUsesIncrementalSave() {
             byte[] source;
             using (PowerPointPresentation created = PowerPointPresentation.Create()) {
-                created.AddSlide().AddTextBox("Short text", 100000, 100000, 3000000, 600000);
+                created.AddSlide(P.SlideLayoutValues.Blank)
+                    .AddTextBox("Short text", 100000, 100000, 3000000, 600000);
                 source = created.ToBytes(PowerPointFileFormat.Ppt);
             }
 
@@ -644,9 +645,9 @@ namespace OfficeIMO.Tests {
         public void ImportedBinarySlideOrder_ReordersPersistGroupsIncrementally() {
             byte[] sourceBytes;
             using (PowerPointPresentation created = PowerPointPresentation.Create()) {
-                created.AddSlide().AddTextBox("First");
-                created.AddSlide().AddTextBox("Second");
-                created.AddSlide().AddTextBox("Third");
+                created.AddSlide(P.SlideLayoutValues.Blank).AddTextBox("First");
+                created.AddSlide(P.SlideLayoutValues.Blank).AddTextBox("Second");
+                created.AddSlide(P.SlideLayoutValues.Blank).AddTextBox("Third");
                 sourceBytes = created.ToBytes(PowerPointFileFormat.Ppt);
             }
             LegacyPptPresentation source = LegacyPptPresentation.Load(sourceBytes);
@@ -669,9 +670,9 @@ namespace OfficeIMO.Tests {
         public void ImportedBinarySlideDeletion_RemovesPersistGroupIncrementally() {
             byte[] sourceBytes;
             using (PowerPointPresentation created = PowerPointPresentation.Create()) {
-                created.AddSlide().AddTextBox("Keep first");
-                created.AddSlide().AddTextBox("Delete middle");
-                created.AddSlide().AddTextBox("Keep last");
+                created.AddSlide(P.SlideLayoutValues.Blank).AddTextBox("Keep first");
+                created.AddSlide(P.SlideLayoutValues.Blank).AddTextBox("Delete middle");
+                created.AddSlide(P.SlideLayoutValues.Blank).AddTextBox("Keep last");
                 sourceBytes = created.ToBytes(PowerPointFileFormat.Ppt);
             }
             LegacyPptPresentation source = LegacyPptPresentation.Load(sourceBytes);

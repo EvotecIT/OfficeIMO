@@ -15,7 +15,7 @@ namespace OfficeIMO.Tests {
             var programUri = new Uri("file:///Applications/Calculator.app");
             byte[] bytes;
             using (PowerPointPresentation source = PowerPointPresentation.Create()) {
-                PowerPointSlide slide = source.AddSlide();
+                PowerPointSlide slide = source.AddSlide(P.SlideLayoutValues.Blank);
                 PowerPointAutoShape macroShape = slide.AddRectangle(
                     100000, 100000, 1000000, 500000);
                 GetDrawingProperties(macroShape).Append(new A.HyperlinkOnClick {
@@ -85,7 +85,7 @@ namespace OfficeIMO.Tests {
         public void ImportedNamedAction_AddEditAndRemoveAppendsPreservingRecords() {
             byte[] sourceBytes;
             using (PowerPointPresentation source = PowerPointPresentation.Create()) {
-                source.AddSlide().AddRectangle(
+                source.AddSlide(P.SlideLayoutValues.Blank).AddRectangle(
                     100000, 100000, 1000000, 500000);
                 sourceBytes = source.ToBytes(PowerPointFileFormat.Ppt);
             }
@@ -163,7 +163,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void NativeWriter_BlocksNamedActionDataWithoutBinarySemantics() {
             using PowerPointPresentation source = PowerPointPresentation.Create();
-            PowerPointAutoShape shape = source.AddSlide().AddRectangle(
+            PowerPointAutoShape shape = source.AddSlide(P.SlideLayoutValues.Blank).AddRectangle(
                 100000, 100000, 1000000, 500000);
             GetDrawingProperties(shape).Append(new A.HyperlinkOnClick {
                 Id = string.Empty,
