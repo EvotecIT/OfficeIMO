@@ -114,8 +114,8 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                 for (int stringIndex = 0; stringIndex < stringPositions.Count; stringIndex += stringsPerBucket) {
                     LegacyXlsStringPosition position = stringPositions[stringIndex];
                     ushort recordRelativeOffset = checked((ushort)(position.Offset + 4));
-                    uint absoluteStringOffset = checked((uint)(recordOffsets[position.SegmentIndex] + recordRelativeOffset));
-                    WriteUInt32(payload, absoluteStringOffset);
+                    uint containingRecordOffset = checked((uint)recordOffsets[position.SegmentIndex]);
+                    WriteUInt32(payload, containingRecordOffset);
                     WriteUInt16(payload, recordRelativeOffset);
                     WriteUInt16(payload, 0);
                 }

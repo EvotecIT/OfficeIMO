@@ -49,6 +49,35 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyXls_NativeSave_WritesExtSstBucketsThatResolveToStringHeaders() {
+            string openXmlPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xlsx");
+            string xlsOutputPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xls");
+
+            try {
+                using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
+                    ExcelSheet sheet = document.AddWorksheet("ExtSST");
+                    for (int index = 0; index < 9; index++) {
+                        int characterCount = index < 7 ? 1024 : index == 7 ? 1023 : 1008;
+                        sheet.CellValue(index + 1, 1, new string((char)('A' + index), characterCount));
+                    }
+
+                    document.Save(xlsOutputPath);
+                }
+
+                byte[] workbookStream = ReadCompoundStream(File.ReadAllBytes(xlsOutputPath), "Workbook");
+                byte[] extendedSharedStringPayload = Assert.Single(GetBiffRecordPayloads(xlsOutputPath, 0x00ff));
+                Assert.Equal((ushort)8, ReadUInt16(extendedSharedStringPayload, 0));
+                Assert.Equal(18, extendedSharedStringPayload.Length);
+
+                AssertExtSstBucket(workbookStream, extendedSharedStringPayload, bucketIndex: 0, expectedRecordType: 0x00fc, expectedCharacterCount: 1024);
+                AssertExtSstBucket(workbookStream, extendedSharedStringPayload, bucketIndex: 1, expectedRecordType: 0x003c, expectedCharacterCount: 1008);
+            } finally {
+                TryDelete(openXmlPath);
+                TryDelete(xlsOutputPath);
+            }
+        }
+
+        [Fact]
         public void LegacyXls_NativeSave_WritesContinuedCachedFormulaStrings() {
             string openXmlPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xlsx");
             string xlsOutputPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xls");
@@ -86,6 +115,23 @@ namespace OfficeIMO.Tests {
                 TryDelete(openXmlPath);
                 TryDelete(xlsOutputPath);
             }
+        }
+
+        private static void AssertExtSstBucket(
+            byte[] workbookStream,
+            byte[] extendedSharedStringPayload,
+            int bucketIndex,
+            ushort expectedRecordType,
+            ushort expectedCharacterCount) {
+            int bucketOffset = checked(2 + (bucketIndex * 8));
+            uint containingRecordOffset = ReadUInt32(extendedSharedStringPayload, bucketOffset);
+            ushort stringRelativeOffset = ReadUInt16(extendedSharedStringPayload, bucketOffset + 4);
+            int recordOffset = checked((int)containingRecordOffset);
+            ushort recordLength = ReadUInt16(workbookStream, recordOffset + 2);
+
+            Assert.Equal(expectedRecordType, ReadUInt16(workbookStream, recordOffset));
+            Assert.InRange(stringRelativeOffset, (ushort)4, checked((ushort)(recordLength + 2)));
+            Assert.Equal(expectedCharacterCount, ReadUInt16(workbookStream, checked(recordOffset + stringRelativeOffset)));
         }
 
         [Fact]
