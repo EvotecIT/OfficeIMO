@@ -206,6 +206,18 @@ public sealed class ReaderMediaAdapterTests {
     }
 
     [Fact]
+    public void ImageAdapter_RejectsGifWithoutACompleteLogicalScreenDescriptor() {
+        var truncatedGif = new byte[10];
+        Encoding.ASCII.GetBytes("GIF89a").CopyTo(truncatedGif, 0);
+        truncatedGif[6] = 1;
+        truncatedGif[8] = 1;
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddImageHandler().Build();
+
+        Assert.Throws<NotSupportedException>(() =>
+            reader.ReadDocument(truncatedGif, "truncated.gif"));
+    }
+
+    [Fact]
     public void ImageAdapter_IdentifiesWebpFromItsHeader() {
         OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddImageHandler().Build();
 
@@ -319,16 +331,12 @@ public sealed class ReaderMediaAdapterTests {
     }
 
     [Fact]
-    public void ImageAdapter_IdentifiesSvgFromTheRootHeaderWithoutReadingTheTrailingTree() {
+    public void ImageAdapter_RejectsMalformedSvgAfterAValidRootStartTag() {
         const string svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"5\" height=\"4\"><unclosed";
         OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddImageHandler().Build();
 
-        OfficeDocumentReadResult result = reader.ReadDocument(Encoding.UTF8.GetBytes(svg), "header.svg");
-
-        OfficeDocumentAsset asset = Assert.Single(result.Assets);
-        Assert.Equal("image/svg+xml", asset.MediaType);
-        Assert.Equal(5, asset.Width);
-        Assert.Equal(4, asset.Height);
+        Assert.Throws<NotSupportedException>(() =>
+            reader.ReadDocument(Encoding.UTF8.GetBytes(svg), "header.svg"));
     }
 
     [Fact]

@@ -109,7 +109,7 @@ public static partial class OfficeImageReader {
             TryReadEmf(data, out info) ||
             TryReadWmf(data, out info) ||
             TryReadWebp(data, out info) ||
-            TryReadSvg(data, fileName, out info)) {
+            TryReadSvg(data, fileName, validateCompleteDocument: !allowExtensionFallback, out info)) {
             return true;
         }
 
@@ -222,7 +222,7 @@ public static partial class OfficeImageReader {
 
     private static bool TryReadGif(byte[] data, out OfficeImageInfo info) {
         info = new OfficeImageInfo(OfficeImageFormat.Unknown, 0, 0);
-        if (data.Length < 10) {
+        if (data.Length < 13) {
             return false;
         }
 
@@ -438,7 +438,11 @@ public static partial class OfficeImageReader {
         return width > 0 && height > 0;
     }
 
-    private static bool TryReadSvg(byte[] data, string? fileName, out OfficeImageInfo info) {
+    private static bool TryReadSvg(
+        byte[] data,
+        string? fileName,
+        bool validateCompleteDocument,
+        out OfficeImageInfo info) {
         info = new OfficeImageInfo(OfficeImageFormat.Unknown, 0, 0);
         bool likelySvg = FromExtension(fileName) == OfficeImageFormat.Svg;
         if (!likelySvg) {
@@ -486,6 +490,13 @@ public static partial class OfficeImageReader {
             int pixelHeight = hasHeight && TryConvertPixelDimension(height, out int convertedHeight)
                 ? convertedHeight
                 : 0;
+
+            if (validateCompleteDocument) {
+                while (reader.Read()) {
+                    // Reading through the document validates the complete XML without building a DOM.
+                }
+            }
+
             info = new OfficeImageInfo(OfficeImageFormat.Svg, pixelWidth, pixelHeight, 96D, 96D, aspectRatio);
             return true;
         } catch (XmlException) {

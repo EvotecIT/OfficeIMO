@@ -3527,6 +3527,19 @@ public partial class DrawingTests {
         Assert.Equal(OfficeImageFormat.Unknown, image.Format);
     }
 
+    [Fact]
+    public void OfficeImageReaderRejectsGifWithoutACompleteLogicalScreenDescriptor() {
+        var truncated = new byte[10];
+        Encoding.ASCII.GetBytes("GIF89a").CopyTo(truncated, 0);
+        truncated[6] = 1;
+        truncated[8] = 1;
+
+        bool identified = OfficeImageReader.TryIdentify(truncated, fileName: null, out OfficeImageInfo image);
+
+        Assert.False(identified);
+        Assert.Equal(OfficeImageFormat.Unknown, image.Format);
+    }
+
     [Theory]
     [InlineData(0, 10)]
     [InlineData(22, 0)]
@@ -3752,6 +3765,30 @@ public partial class DrawingTests {
         Assert.Equal(3, image.Width);
         Assert.Equal(2, image.Height);
         Assert.False(OfficeImageReader.TryIdentifyByContent(invalid, "invalid.svg", out _));
+    }
+
+    [Fact]
+    public void OfficeImageReaderRejectsMalformedSvgAfterAValidRootStartTag() {
+        byte[] malformed = Encoding.UTF8.GetBytes(
+            "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"3\" height=\"2\"><path></svg>");
+
+        bool identified = OfficeImageReader.TryIdentifyByContent(malformed, "malformed.svg", out OfficeImageInfo image);
+
+        Assert.False(identified);
+        Assert.Equal(OfficeImageFormat.Unknown, image.Format);
+    }
+
+    [Fact]
+    public void OfficeImageReaderHeaderProbeDoesNotTraverseTheTrailingSvgTree() {
+        byte[] malformed = Encoding.UTF8.GetBytes(
+            "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"5\" height=\"4\"><unclosed");
+
+        bool identified = OfficeImageReader.TryIdentify(malformed, "header.svg", out OfficeImageInfo image);
+
+        Assert.True(identified);
+        Assert.Equal(OfficeImageFormat.Svg, image.Format);
+        Assert.Equal(5, image.Width);
+        Assert.Equal(4, image.Height);
     }
 
     [Fact]

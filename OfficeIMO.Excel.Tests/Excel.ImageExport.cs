@@ -3907,7 +3907,7 @@ namespace OfficeIMO.Tests {
             Convert.FromBase64String("R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==");
 
         private static byte[] CreateTruncatedPngHeader(int width, int height) {
-            byte[] bytes = new byte[24];
+            byte[] bytes = new byte[33];
             bytes[0] = 137;
             bytes[1] = 80;
             bytes[2] = 78;
@@ -3926,6 +3926,8 @@ namespace OfficeIMO.Tests {
             bytes[15] = (byte)'R';
             WriteInt32BigEndian(bytes, 16, width);
             WriteInt32BigEndian(bytes, 20, height);
+            bytes[24] = 8;
+            bytes[25] = 6;
             return bytes;
         }
 
