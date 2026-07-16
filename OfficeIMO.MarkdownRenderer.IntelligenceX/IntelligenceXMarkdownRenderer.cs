@@ -7,13 +7,25 @@ namespace OfficeIMO.MarkdownRenderer.IntelligenceX;
 /// First-party IntelligenceX plugin entrypoint layered on top of <see cref="OfficeIMO.MarkdownRenderer"/>.
 /// </summary>
 public static class IntelligenceXMarkdownRenderer {
+    private const string ChartForgeXSemanticKind = "chartforgex";
+    private static readonly MarkdownFencedBlockExtension ChartForgeXVisualFenceExtension = new(
+        "ChartForgeX visual AST",
+        new[] { ChartForgeXSemanticKind },
+        context => new SemanticFencedBlock(
+            ChartForgeXSemanticKind,
+            context.InfoString,
+            context.Content,
+            context.Caption));
+
     /// <summary>
-    /// IntelligenceX visual alias plugin that adds <c>ix-chart</c>, <c>ix-network</c>, and <c>ix-dataview</c>.
+    /// IntelligenceX visual plugin that adds IX aliases and projects canonical <c>chartforgex ...</c>
+    /// fences into the shared native visual AST.
     /// </summary>
     public static MarkdownRendererPlugin VisualsPlugin { get; } = new MarkdownRendererPlugin(
-        "IntelligenceX Visuals",
+        "IntelligenceX ChartForgeX Visuals",
         new[] { MarkdownRendererPlugins.IntelligenceXVisuals },
-        new[] { IntelligenceXVisualFenceSchemas.Visuals });
+        fenceOptionSchemas: new[] { IntelligenceXVisualFenceSchemas.Visuals },
+        applyReader: options => options.FencedBlockExtensions.Add(ChartForgeXVisualFenceExtension));
 
     /// <summary>
     /// IntelligenceX transcript plugin that carries the IX visual aliases, fence-option schema,
