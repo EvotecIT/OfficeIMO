@@ -36,6 +36,25 @@ public sealed class OfflineAddressBookValidationTests {
     }
 
     [Fact]
+    public void FullDecodeRejectsEntriesMissingPrimaryKeyProperties() {
+        byte[] oab = new OabV4Fixture()
+            .RemoveEntryProperty(0, OabPropertyTags.SmtpAddress, MapiPropertyType.Unicode)
+            .Build();
+        using (var stream = new MemoryStream(oab, writable: false))
+        using (OfflineAddressBookSession session = OfflineAddressBookSession.Open(stream, "synthetic.oab")) {
+            OfflineAddressBookValidationResult result = Assert.Single(session.Validate(
+                new OfflineAddressBookValidationOptions(
+                    mode: OfflineAddressBookValidationMode.FullDecode)).Results);
+
+            Assert.False(result.IsValid);
+            Assert.Equal(1, result.RecordsSkipped);
+            Assert.Contains(result.Diagnostics, diagnostic =>
+                diagnostic.Code == "OAB_VALIDATION_ENTRY_SKIPPED" &&
+                diagnostic.Message.Contains("Required OAB primary-key property", StringComparison.Ordinal));
+        }
+    }
+
+    [Fact]
     public void DetectsTrailingPayloadAndConfiguredValidationBounds() {
         byte[] original = new OabV4Fixture().Build();
         byte[] withTrailingData = new byte[original.Length + 4];

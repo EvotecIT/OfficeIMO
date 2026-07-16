@@ -30,6 +30,19 @@ public sealed class OabV4RecordReaderTests {
     }
 
     [Fact]
+    public void RejectsAbsentPrimaryKeyProperties() {
+        var definition = new OfflineAddressBookPropertyDefinition(
+            ((uint)OabPropertyTags.EmailAddress << 16) | (ushort)MapiPropertyType.Unicode, 2);
+        var envelope = new OabRecordEnvelope(5, new byte[] { 0x00 });
+
+        InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+            OabV4RecordReader.Parse(envelope, new[] { definition },
+                OfflineAddressBookReaderOptions.Default, "entry"));
+
+        Assert.Contains("Required OAB primary-key property", exception.Message);
+    }
+
+    [Fact]
     public void PreservesNonFatalPresenceAndTrailingDataDiagnostics() {
         var definition = new OfflineAddressBookPropertyDefinition(
             ((uint)OabPropertyTags.ObjectType << 16) | (ushort)MapiPropertyType.Integer32, 0);

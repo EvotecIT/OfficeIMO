@@ -168,7 +168,8 @@ public sealed partial class OfflineAddressBookSession : IDisposable {
                     stream.Position = checked(selected.Source.BaseOffset + offset + size);
                     returned++;
                     yield return new OfflineAddressBookEntryReference(
-                        selected.Info.Id, selected.Info.Index, entryIndex, offset, size);
+                        selected.Info.Id, selected.Info.Index, entryIndex, offset, size,
+                        selected.SnapshotId);
                 }
             }
         }
@@ -195,7 +196,8 @@ public sealed partial class OfflineAddressBookSession : IDisposable {
                         break;
                     }
                     var reference = new OfflineAddressBookEntryReference(
-                        selected.Info.Id, selected.Info.Index, entryIndex, offset, envelope.Size);
+                        selected.Info.Id, selected.Info.Index, entryIndex, offset, envelope.Size,
+                        selected.SnapshotId);
                     OabParsedRecord record;
                     try {
                         record = OabV4RecordReader.Parse(
@@ -231,7 +233,8 @@ public sealed partial class OfflineAddressBookSession : IDisposable {
             throw new ArgumentException("OAB entry reference belongs to another session snapshot.", nameof(reference));
         }
         OabAddressListSource selected = _sources[reference.AddressListIndex];
-        if (!string.Equals(selected.Info.Id, reference.AddressListId, StringComparison.Ordinal) ||
+        if (selected.SnapshotId != reference.SnapshotId ||
+            !string.Equals(selected.Info.Id, reference.AddressListId, StringComparison.Ordinal) ||
             reference.EntryIndex < 0 || reference.EntryIndex >= selected.Info.DeclaredEntryCount ||
             reference.RecordOffset < selected.Info.EntriesOffset || reference.RecordLength < 5 ||
             reference.RecordOffset > selected.Source.Length - reference.RecordLength) {

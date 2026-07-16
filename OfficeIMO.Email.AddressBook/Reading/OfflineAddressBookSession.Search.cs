@@ -59,7 +59,8 @@ public sealed partial class OfflineAddressBookSession {
                     }
 
                     var reference = new OfflineAddressBookEntryReference(
-                        selected.Info.Id, selected.Info.Index, entryIndex, currentOffset, envelope.Size);
+                        selected.Info.Id, selected.Info.Index, entryIndex, currentOffset, envelope.Size,
+                        selected.SnapshotId);
                     entryIndex++;
                     scanned++;
                     try {
@@ -117,7 +118,8 @@ public sealed partial class OfflineAddressBookSession {
         }
         for (int index = 0; index < selectedSources.Count; index++) {
             OabAddressListSource source = selectedSources[index];
-            if (source.Info.Index != checkpoint.AddressListIndex ||
+            if (source.SnapshotId != checkpoint.SnapshotId ||
+                source.Info.Index != checkpoint.AddressListIndex ||
                 !string.Equals(source.Info.Id, checkpoint.AddressListId, StringComparison.Ordinal)) continue;
             if (checkpoint.EntryIndex < 0 || checkpoint.EntryIndex >= source.Info.DeclaredEntryCount ||
                 checkpoint.RecordOffset < source.Info.EntriesOffset ||
@@ -154,7 +156,7 @@ public sealed partial class OfflineAddressBookSession {
     private static OfflineAddressBookSearchCheckpoint CreateCheckpoint(
         OabAddressListSource source, long entryIndex, long recordOffset) =>
         new OfflineAddressBookSearchCheckpoint(
-            source.Info.Id, source.Info.Index, entryIndex, recordOffset);
+            source.Info.Id, source.Info.Index, entryIndex, recordOffset, source.SnapshotId);
 
     private static EmailDiagnostic SearchDiagnostic(string code, Exception exception, string location) =>
         new EmailDiagnostic(code, exception.Message,

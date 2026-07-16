@@ -3,12 +3,13 @@ namespace OfficeIMO.Email.AddressBook;
 /// <summary>Stable record reference within one open OAB snapshot.</summary>
 public sealed class OfflineAddressBookEntryReference {
     internal OfflineAddressBookEntryReference(string addressListId, int addressListIndex,
-        long entryIndex, long recordOffset, int recordLength) {
+        long entryIndex, long recordOffset, int recordLength, Guid snapshotId) {
         AddressListId = addressListId;
         AddressListIndex = addressListIndex;
         EntryIndex = entryIndex;
         RecordOffset = recordOffset;
         RecordLength = recordLength;
+        SnapshotId = snapshotId;
         Id = string.Concat(addressListId, ":", entryIndex.ToString("D10", CultureInfo.InvariantCulture));
     }
 
@@ -24,4 +25,5 @@ public sealed class OfflineAddressBookEntryReference {
     public long RecordOffset { get; }
     /// <summary>Encoded record length.</summary>
     public int RecordLength { get; }
+    internal Guid SnapshotId { get; }
 }

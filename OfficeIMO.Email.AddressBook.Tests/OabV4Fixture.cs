@@ -72,6 +72,11 @@ internal sealed class OabV4Fixture {
         return this;
     }
 
+    internal OabV4Fixture RemoveEntryProperty(int entryIndex, ushort propertyId, MapiPropertyType type) {
+        _entries[entryIndex].Remove(Tag(propertyId, type));
+        return this;
+    }
+
     internal byte[] Build() {
         using (var stream = new MemoryStream()) {
             WriteUInt32(stream, 0x00000020U);

@@ -58,6 +58,19 @@ public sealed class OfflineAddressBookSessionTests {
     }
 
     [Fact]
+    public void RejectsReferencesCreatedByAnotherSessionSnapshot() {
+        byte[] oab = new OabV4Fixture().Build();
+        using (var firstStream = new MemoryStream(oab, writable: false))
+        using (var secondStream = new MemoryStream(oab, writable: false))
+        using (OfflineAddressBookSession first = OfflineAddressBookSession.Open(firstStream, "synthetic.oab"))
+        using (OfflineAddressBookSession second = OfflineAddressBookSession.Open(secondStream, "synthetic.oab")) {
+            OfflineAddressBookEntryReference reference = first.EnumerateEntryReferences().First();
+
+            Assert.Throws<ArgumentException>(() => second.ReadEntry(reference));
+        }
+    }
+
+    [Fact]
     public void EnforcesDeclaredEntryAndRecordLimits() {
         byte[] oab = new OabV4Fixture().Build();
         using (var stream = new MemoryStream(oab, writable: false)) {

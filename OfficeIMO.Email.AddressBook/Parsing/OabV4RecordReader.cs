@@ -74,9 +74,17 @@ internal static class OabV4RecordReader {
         int cursor = presenceBytes;
         var properties = new List<MapiProperty>(definitions.Count);
         for (int index = 0; index < definitions.Count; index++) {
-            int bit = 0x80 >> (index % 8);
-            if ((envelope.Body[index / 8] & bit) == 0) continue;
             OfflineAddressBookPropertyDefinition definition = definitions[index];
+            int bit = 0x80 >> (index % 8);
+            if ((envelope.Body[index / 8] & bit) == 0) {
+                if (definition.IsPrimaryKey) {
+                    throw new InvalidDataException(string.Concat(
+                        "Required OAB primary-key property 0x",
+                        definition.PropertyTag.ToString("X8", CultureInfo.InvariantCulture),
+                        " is absent at ", location, "."));
+                }
+                continue;
+            }
             if (definition.PropertyType == MapiPropertyType.Object) {
                 throw new InvalidDataException(string.Concat(
                     "OAB PtypObject property is marked present at ", location, "."));
