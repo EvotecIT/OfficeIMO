@@ -114,6 +114,49 @@ public sealed class PstReaderTests {
     }
 
     [Fact]
+    public void SelectiveReadsSkipBodiesRecipientsAndAttachments() {
+        using var stream = new MemoryStream(PstTestFileBuilder.Create(
+            attachmentContent: Encoding.UTF8.GetBytes("private payload")));
+        using EmailStoreSession session = EmailStoreSession.Open(stream, "mailbox.pst");
+        EmailStoreItemReference reference = Assert.Single(session.EnumerateItems());
+
+        EmailStoreItem item = session.ReadItem(reference,
+            new EmailStoreItemReadOptions(EmailStoreItemReadParts.Metadata));
+
+        Assert.Equal(EmailStoreItemReadParts.Metadata, item.LoadedParts);
+        Assert.Equal("Synthetic PST message", item.Document.Subject);
+        Assert.Null(item.Document.Body.Text);
+        Assert.Empty(item.Document.Recipients);
+        Assert.Empty(item.Document.Attachments);
+    }
+
+    [Fact]
+    public void StreamsPstAttachmentContentWhileSessionIsOpen() {
+        byte[] expected = Enumerable.Range(0, 60_000).Select(index => (byte)(index % 251)).ToArray();
+        var options = new EmailStoreReaderOptions(retainAttachmentContent: false);
+        using var stream = new MemoryStream(PstTestFileBuilder.Create(attachmentContent: expected));
+        EmailAttachment attachment;
+        using (EmailStoreSession session = EmailStoreSession.Open(stream, "mailbox.pst", options)) {
+            EmailStoreItemReference reference = Assert.Single(session.EnumerateItems());
+            EmailStoreItem item = session.ReadItem(reference, new EmailStoreItemReadOptions(
+                EmailStoreItemReadParts.Metadata |
+                EmailStoreItemReadParts.AttachmentMetadata |
+                EmailStoreItemReadParts.AttachmentContent));
+
+            attachment = Assert.Single(item.Document.Attachments);
+            Assert.Null(attachment.Content);
+            Assert.NotNull(attachment.ContentSource);
+            Assert.Equal(expected.LongLength, attachment.Length);
+            using Stream payload = attachment.OpenContentStream();
+            using var copy = new MemoryStream();
+            payload.CopyTo(copy);
+            Assert.Equal(expected, copy.ToArray());
+        }
+
+        Assert.Throws<ObjectDisposedException>(() => attachment.OpenContentStream());
+    }
+
+    [Fact]
     public void EnforcesInputAndSeekabilityContracts() {
         byte[] bytes = PstTestFileBuilder.Create();
         var options = new EmailStoreReaderOptions(maxInputBytes: bytes.Length - 1L);

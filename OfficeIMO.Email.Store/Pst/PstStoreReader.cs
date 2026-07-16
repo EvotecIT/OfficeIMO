@@ -11,7 +11,18 @@ internal sealed partial class PstStoreReader {
         0x0017, 0x0026, 0x0E07, 0x0E08, 0x0E1B,
         0x3FDE, 0x3FFC, 0x3FFD
     };
+    private static readonly ISet<ushort> BodyPropertyIds = new HashSet<ushort>(SummaryPropertyIds) {
+        0x1000, 0x1009, 0x1013
+    };
+    private static readonly ISet<ushort> AttachmentMetadataPropertyIds = new HashSet<ushort> {
+        0x0E20, 0x3001, 0x3007, 0x3008,
+        0x3701, 0x3704, 0x3705, 0x3707, 0x370B, 0x370D, 0x370E,
+        0x3712, 0x3713, 0x7FFE,
+        0x3FDE, 0x3FFC, 0x3FFD
+    };
+    private static readonly ISet<ushort> DeferredAttachmentPropertyIds = new HashSet<ushort> { 0x3701 };
     private readonly EmailStoreReaderOptions _options;
+    private readonly EmailStoreSessionLifetime _lifetime;
     private readonly List<EmailStoreDiagnostic> _diagnostics = new List<EmailStoreDiagnostic>();
     private readonly Dictionary<uint, PstNodeReference> _folderNodes = new Dictionary<uint, PstNodeReference>();
     private readonly List<EmailStoreFolderInfo> _folderInfos = new List<EmailStoreFolderInfo>();
@@ -24,8 +35,10 @@ internal sealed partial class PstStoreReader {
     private long _totalAttachmentBytes;
     private bool _completeIndexesLoaded;
 
-    internal PstStoreReader(EmailStoreReaderOptions options) {
+    internal PstStoreReader(EmailStoreReaderOptions options,
+        EmailStoreSessionLifetime? lifetime = null) {
         _options = options;
+        _lifetime = lifetime ?? new EmailStoreSessionLifetime();
     }
 
     internal EmailStoreFormat Format => _format;
@@ -59,8 +72,8 @@ internal sealed partial class PstStoreReader {
         foreach (ItemSelection selection in selections) {
             _cancellationToken.ThrowIfCancellationRequested();
             EmailStoreFolder folder = folders[selection.FolderNid];
-            EmailStoreItem item = ReadItem(
-                selection.Node, folder.Id, format, selection.IsAssociated, selection.IsOrphaned);
+            EmailStoreItem item = ReadItem(selection.Node, folder.Id, format,
+                selection.IsAssociated, selection.IsOrphaned, EmailStoreItemReadOptions.Default);
             if (selection.IsAssociated) folder.MutableAssociatedItems.Add(item);
             else folder.MutableItems.Add(item);
         }
@@ -94,7 +107,10 @@ internal sealed partial class PstStoreReader {
         if (TryGetNode(0x21, out PstNodeReference? storeNode) && storeNode != null) {
             IReadOnlyList<MapiProperty> storeProperties = ReadProperties(
                 storeNode.DataBid, storeNode.SubnodeBid, "store");
-            PstPassword.Validate(storeProperties, _options);
+            // PidTagPstPassword is a personal-store protection contract. Cached OSTs can reuse
+            // the tag for unrelated provider state and are opened through the Outlook profile,
+            // not with the legacy PST password checksum.
+            if (format == EmailStoreFormat.Pst) PstPassword.Validate(storeProperties, _options);
             _displayName = GetString(storeProperties, 0x3001);
         }
 
@@ -153,12 +169,13 @@ internal sealed partial class PstStoreReader {
     }
 
     internal EmailStoreItem ReadReferencedItem(EmailStoreItemReference reference,
-        CancellationToken cancellationToken) {
+        EmailStoreItemReadOptions options, CancellationToken cancellationToken) {
+        if (options == null) throw new ArgumentNullException(nameof(options));
         _cancellationToken = cancellationToken;
         PstNodeReference node = ResolveReferencedNode(reference);
         _totalAttachmentBytes = 0;
         return ReadItem(node, reference.FolderId, _format,
-            reference.IsAssociated, reference.IsOrphaned);
+            reference.IsAssociated, reference.IsOrphaned, options);
     }
 
     private PstNodeReference ResolveReferencedNode(EmailStoreItemReference reference) {
@@ -298,7 +315,7 @@ internal sealed partial class PstStoreReader {
         ulong dataBid, ulong subnodeBid, string location) {
         IEnumerator<IReadOnlyList<MapiProperty>>? rows = null;
         try {
-            PstDataTree data = Ndb.ReadDataTree(
+            PstDataTree data = Ndb.OpenDataTree(
                 dataBid, _options.MaxDecodedPropertyBytesPerItem, _cancellationToken);
             IReadOnlyDictionary<uint, PstSubnodeReference> subnodes =
                 Ndb.ReadSubnodes(subnodeBid, _cancellationToken);

@@ -35,4 +35,14 @@ public sealed class PstPasswordTests {
             new[] { new MapiProperty(0x67FF, MapiPropertyType.Integer32, 0) },
             new EmailStoreReaderOptions());
     }
+
+    [Fact]
+    public void OstOpenDoesNotApplyTheLegacyPstPasswordGate() {
+        using var stream = new MemoryStream(PstTestFileBuilder.Create(
+            ost: true, storePasswordChecksum: 0x12345678));
+
+        using EmailStoreSession session = EmailStoreSession.Open(stream, "mailbox.ost");
+
+        Assert.Equal(EmailStoreFormat.Ost, session.Format);
+    }
 }

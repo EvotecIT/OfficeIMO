@@ -4,19 +4,7 @@ namespace OfficeIMO.Email.Store;
 
 internal static class PstAttachmentProjection {
     internal static EmailAttachment Create(IReadOnlyList<MapiProperty> properties,
-        EmailStoreReaderOptions options, ref long totalAttachmentBytes) {
-        byte[]? content = GetBinary(properties, 0x3701);
-        long length = content?.LongLength ?? 0;
-        if (length > options.MaxAttachmentBytes) {
-            throw new EmailStoreLimitExceededException(nameof(EmailStoreReaderOptions.MaxAttachmentBytes),
-                length, options.MaxAttachmentBytes);
-        }
-        totalAttachmentBytes = checked(totalAttachmentBytes + length);
-        if (totalAttachmentBytes > options.MaxTotalAttachmentBytes) {
-            throw new EmailStoreLimitExceededException(nameof(EmailStoreReaderOptions.MaxTotalAttachmentBytes),
-                totalAttachmentBytes, options.MaxTotalAttachmentBytes);
-        }
-
+        long length, byte[]? content = null, IEmailContentSource? contentSource = null) {
         var attachment = new EmailAttachment {
             FileName = GetString(properties, 0x3707) ?? GetString(properties, 0x3704) ?? GetString(properties, 0x3001),
             ContentType = GetString(properties, 0x370E),
@@ -29,7 +17,8 @@ internal static class PstAttachmentProjection {
             ModifiedDate = GetDate(properties, 0x3008),
             LinkedPath = GetString(properties, 0x370D),
             Length = length,
-            Content = options.RetainAttachmentContent ? content : null,
+            Content = content,
+            ContentSource = contentSource,
             MapiAttachMethod = GetInt(properties, 0x3705)
         };
         foreach (MapiProperty property in properties) attachment.MapiProperties.Add(property);
@@ -38,11 +27,6 @@ internal static class PstAttachmentProjection {
 
     private static string? GetString(IEnumerable<MapiProperty> properties, ushort id) =>
         properties.FirstOrDefault(property => property.PropertyId == id)?.Value as string;
-
-    private static byte[]? GetBinary(IEnumerable<MapiProperty> properties, ushort id) {
-        MapiProperty? property = properties.FirstOrDefault(item => item.PropertyId == id);
-        return property?.PropertyType == MapiPropertyType.Binary ? property.Value as byte[] : null;
-    }
 
     private static int? GetInt(IEnumerable<MapiProperty> properties, ushort id) {
         object? value = properties.FirstOrDefault(property => property.PropertyId == id)?.Value;

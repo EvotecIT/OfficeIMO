@@ -1,26 +1,31 @@
 namespace OfficeIMO.Email.Store;
 
 internal sealed class PstHeap {
-    private readonly IReadOnlyList<byte[]> _blocks;
+    private readonly PstDataTree _dataTree;
     private readonly IReadOnlyDictionary<uint, PstSubnodeReference> _subnodes;
     private readonly PstNdbReader _ndb;
     private readonly EmailStoreReaderOptions _options;
     private readonly CancellationToken _cancellationToken;
+    private readonly byte _clientSignature;
+    private readonly uint _userRoot;
 
     internal PstHeap(PstDataTree dataTree, IReadOnlyDictionary<uint, PstSubnodeReference> subnodes,
         PstNdbReader ndb, EmailStoreReaderOptions options, CancellationToken cancellationToken) {
-        _blocks = dataTree.Blocks;
+        _dataTree = dataTree;
         _subnodes = subnodes;
         _ndb = ndb;
         _options = options;
         _cancellationToken = cancellationToken;
-        if (_blocks.Count == 0 || _blocks[0].Length < 12 || _blocks[0][2] != 0xEC) {
+        byte[] first = _dataTree.GetBlock(0);
+        if (first.Length < 12 || first[2] != 0xEC) {
             throw new InvalidDataException("The PST node does not contain a valid Heap-on-Node header.");
         }
+        _clientSignature = first[3];
+        _userRoot = PstBinary.UInt32(first, 4);
     }
 
-    internal byte ClientSignature => _blocks[0][3];
-    internal uint UserRoot => PstBinary.UInt32(_blocks[0], 4);
+    internal byte ClientSignature => _clientSignature;
+    internal uint UserRoot => _userRoot;
 
     internal byte[] GetAllocation(uint hid) {
         _cancellationToken.ThrowIfCancellationRequested();
@@ -29,11 +34,11 @@ internal sealed class PstHeap {
 
         int blockIndex = checked((int)(hid >> 16));
         int allocationIndex = checked((int)((hid >> 5) & 0x7FF)) - 1;
-        if (blockIndex < 0 || blockIndex >= _blocks.Count || allocationIndex < 0) {
+        if (blockIndex < 0 || allocationIndex < 0) {
             throw new InvalidDataException("A heap allocation identifier is out of range.");
         }
 
-        byte[] block = _blocks[blockIndex];
+        byte[] block = _dataTree.GetBlock(blockIndex);
         int mapOffset = PstBinary.UInt16(block, 0);
         PstBinary.Ensure(block, mapOffset, 4);
         int allocationCount = PstBinary.UInt16(block, mapOffset);

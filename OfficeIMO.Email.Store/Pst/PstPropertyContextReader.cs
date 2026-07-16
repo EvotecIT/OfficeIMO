@@ -19,7 +19,8 @@ internal sealed class PstPropertyContextReader {
     }
 
     internal List<MapiProperty> ReadProperties(IDictionary<ushort, uint>? sourceHnids = null,
-        ISet<ushort>? includedPropertyIds = null) {
+        ISet<ushort>? includedPropertyIds = null,
+        ISet<ushort>? deferredPropertyIds = null) {
         if (_heap.ClientSignature != 0xBC) {
             throw new InvalidDataException("The PST node is not a Property Context.");
         }
@@ -43,6 +44,11 @@ internal sealed class PstPropertyContextReader {
                 }
                 var type = (MapiPropertyType)PstBinary.UInt16(record, 2);
                 uint rawValue = PstBinary.UInt32(record, 4);
+                if (deferredPropertyIds != null && deferredPropertyIds.Contains(id)) {
+                    if (sourceHnids != null) sourceHnids[id] = rawValue;
+                    properties.Add(new MapiProperty(id, type, null));
+                    continue;
+                }
                 MapiProperty property = DecodeProperty(id, type, rawValue, ref decodedBytes, sourceHnids);
                 properties.Add(property);
             }

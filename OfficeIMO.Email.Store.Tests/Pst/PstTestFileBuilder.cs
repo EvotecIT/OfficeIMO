@@ -5,12 +5,18 @@ internal static class PstTestFileBuilder {
     private const int NbtOffset = 1536;
 
     internal static byte[] Create(bool ost = false, bool ansi = false, byte cryptMethod = 0,
-        bool fourK = false, bool compressBlocks = false, bool includeEmbeddedMessage = false) {
+        bool fourK = false, bool compressBlocks = false, bool includeEmbeddedMessage = false,
+        byte[]? attachmentContent = null, uint? storePasswordChecksum = null) {
         if (fourK && (!ost || ansi)) throw new ArgumentException("4K test stores must use the Unicode OST variant.");
         if (compressBlocks && !fourK) throw new ArgumentException("Only 4K test blocks can be compressed.");
         if (compressBlocks && cryptMethod != 0) throw new ArgumentException("The fixture does not combine compression and encoding.");
+        if (includeEmbeddedMessage && attachmentContent != null) {
+            throw new ArgumentException("The compact fixture supports one attachment shape at a time.");
+        }
         var nodes = new[] {
-            new TestNode(0x21, 0, CreatePropertyContext((0x3001, "Test Store"))),
+            new TestNode(0x21, 0, storePasswordChecksum.HasValue
+                ? CreateStorePropertyContext(storePasswordChecksum.Value)
+                : CreatePropertyContext((0x3001, "Test Store"))),
             new TestNode(0x122, 0x122, CreatePropertyContext((0x3001, "Root"))),
             new TestNode(0x8022, 0x122, CreatePropertyContext((0x3001, "Inbox"))),
             new TestNode(0x8004, 0x8022, CreatePropertyContext(
@@ -21,6 +27,7 @@ internal static class PstTestFileBuilder {
 
         var blocks = nodes.Select(node => node.DataBlock).ToList();
         if (includeEmbeddedMessage) AddEmbeddedMessageBlocks(nodes[3], blocks, ansi);
+        if (attachmentContent != null) AddByValueAttachmentBlocks(nodes[3], blocks, attachmentContent, ansi);
 
         int bbtOffset = fourK ? 4096 : BbtOffset;
         int nbtOffset = fourK ? 8192 : NbtOffset;
@@ -43,12 +50,6 @@ internal static class PstTestFileBuilder {
             byte[] data = block.StoredData.ToArray();
             if (cryptMethod != 0 && (block.Bid & 0x02) == 0) PstCrypt.Decode(data, cryptMethod, block.Bid);
             Buffer.BlockCopy(data, 0, file, block.Offset, data.Length);
-            if (compressBlocks) {
-                int allocated = Align(data.Length + blockTrailerSize, blockAlignment);
-                int trailerOffset = block.Offset + allocated - blockTrailerSize;
-                WriteUInt16(file, trailerOffset, data.Length);
-                WriteUInt16(file, trailerOffset + 18, block.Data.Length);
-            }
         }
         return file;
     }
@@ -93,7 +94,12 @@ internal static class PstTestFileBuilder {
                 WriteUInt64(file, offset, block.Bid);
                 WriteUInt64(file, offset + 8, block.Offset);
                 WriteUInt16(file, offset + 16, block.StoredData.Length);
-                WriteUInt16(file, offset + 18, 1);
+                if (fourK) {
+                    WriteUInt16(file, offset + 18, block.Data.Length);
+                    WriteUInt16(file, offset + 20, 1);
+                } else {
+                    WriteUInt16(file, offset + 18, 1);
+                }
             }
         }
         WriteBTreePageMetadata(file, bbtOffset, blocks.Count, entrySize, 0x80, ansi, fourK);
@@ -178,6 +184,23 @@ internal static class PstTestFileBuilder {
         return block;
     }
 
+    private static byte[] CreateStorePropertyContext(uint passwordChecksum) {
+        byte[] displayName = Encoding.Unicode.GetBytes("Test Store\0");
+        var allocations = new List<byte[]> {
+            new byte[] { 0xB5, 0x02, 0x06, 0x00, 0x40, 0x00, 0x00, 0x00 },
+            new byte[16],
+            displayName
+        };
+        byte[] records = allocations[1];
+        WriteUInt16(records, 0, 0x3001);
+        WriteUInt16(records, 2, 0x001F);
+        WriteUInt32(records, 4, 0x60);
+        WriteUInt16(records, 8, 0x67FF);
+        WriteUInt16(records, 10, 0x0003);
+        WriteUInt32(records, 12, passwordChecksum);
+        return CreateHeapBlock(allocations);
+    }
+
     private static void AddEmbeddedMessageBlocks(TestNode messageNode, ICollection<TestBlock> blocks, bool ansi) {
         const uint attachmentNid = 0x205;
         const uint embeddedMessageNid = 0x224;
@@ -193,6 +216,24 @@ internal static class PstTestFileBuilder {
         messageNode.SubnodeBid = messageSubnodes.Bid;
         blocks.Add(attachment);
         blocks.Add(embedded);
+        blocks.Add(attachmentSubnodes);
+        blocks.Add(messageSubnodes);
+    }
+
+    private static void AddByValueAttachmentBlocks(TestNode messageNode,
+        ICollection<TestBlock> blocks, byte[] content, bool ansi) {
+        const uint attachmentNid = 0x205;
+        const uint contentNid = 0x321;
+        var attachment = new TestBlock(0x110,
+            CreateByValueAttachmentPropertyContext(contentNid, content.LongLength));
+        var contentBlock = new TestBlock(0x114, content.ToArray());
+        var attachmentSubnodes = new TestBlock(0x11A,
+            CreateSubnodeBlock(contentNid, contentBlock.Bid, 0, ansi));
+        var messageSubnodes = new TestBlock(0x11E,
+            CreateSubnodeBlock(attachmentNid, attachment.Bid, attachmentSubnodes.Bid, ansi));
+        messageNode.SubnodeBid = messageSubnodes.Bid;
+        blocks.Add(attachment);
+        blocks.Add(contentBlock);
         blocks.Add(attachmentSubnodes);
         blocks.Add(messageSubnodes);
     }
@@ -214,6 +255,30 @@ internal static class PstTestFileBuilder {
         WriteUInt16(records, 16, 0x3707);
         WriteUInt16(records, 18, 0x001F);
         WriteUInt32(records, 20, 0x60);
+        return CreateHeapBlock(allocations);
+    }
+
+    private static byte[] CreateByValueAttachmentPropertyContext(uint contentNid, long contentLength) {
+        if (contentLength > int.MaxValue) throw new ArgumentOutOfRangeException(nameof(contentLength));
+        byte[] fileName = Encoding.Unicode.GetBytes("payload.bin\0");
+        var allocations = new List<byte[]> {
+            new byte[] { 0xB5, 0x02, 0x06, 0x00, 0x40, 0x00, 0x00, 0x00 },
+            new byte[32],
+            fileName
+        };
+        byte[] records = allocations[1];
+        WriteUInt16(records, 0, 0x0E20);
+        WriteUInt16(records, 2, 0x0003);
+        WriteUInt32(records, 4, checked((uint)contentLength));
+        WriteUInt16(records, 8, 0x3701);
+        WriteUInt16(records, 10, 0x0102);
+        WriteUInt32(records, 12, contentNid);
+        WriteUInt16(records, 16, 0x3705);
+        WriteUInt16(records, 18, 0x0003);
+        WriteUInt32(records, 20, 1);
+        WriteUInt16(records, 24, 0x3707);
+        WriteUInt16(records, 26, 0x001F);
+        WriteUInt32(records, 28, 0x60);
         return CreateHeapBlock(allocations);
     }
 

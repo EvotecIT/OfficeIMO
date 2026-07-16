@@ -1,11 +1,12 @@
 namespace OfficeIMO.Email.Store;
 
 internal sealed class PstStoreSessionBackend : IEmailStoreSessionBackend {
+    private readonly EmailStoreSessionLifetime _lifetime = new EmailStoreSessionLifetime();
     private readonly PstStoreReader _reader;
 
     internal PstStoreSessionBackend(Stream stream, EmailStoreFormat format,
         EmailStoreReaderOptions options, CancellationToken cancellationToken) {
-        _reader = new PstStoreReader(options);
+        _reader = new PstStoreReader(options, _lifetime);
         _reader.Open(stream, format, loadCompleteIndexes: false, cancellationToken);
     }
 
@@ -23,9 +24,9 @@ internal sealed class PstStoreSessionBackend : IEmailStoreSessionBackend {
         CancellationToken cancellationToken) =>
         _reader.ReadReferencedSummary(reference, cancellationToken);
 
-    public EmailStoreItem ReadItem(EmailStoreItemReference reference,
+    public EmailStoreItem ReadItem(EmailStoreItemReference reference, EmailStoreItemReadOptions options,
         CancellationToken cancellationToken) =>
-        _reader.ReadReferencedItem(reference, cancellationToken);
+        _reader.ReadReferencedItem(reference, options, cancellationToken);
 
-    public void Dispose() { }
+    public void Dispose() => _lifetime.Dispose();
 }

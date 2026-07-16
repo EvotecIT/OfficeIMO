@@ -9,5 +9,6 @@ internal interface IEmailStoreSessionBackend : IDisposable {
     IEnumerable<EmailStoreItemReference> EnumerateItems(
         EmailStoreEnumerationOptions options, CancellationToken cancellationToken);
     EmailStoreItemSummary ReadSummary(EmailStoreItemReference reference, CancellationToken cancellationToken);
-    EmailStoreItem ReadItem(EmailStoreItemReference reference, CancellationToken cancellationToken);
+    EmailStoreItem ReadItem(EmailStoreItemReference reference, EmailStoreItemReadOptions options,
+        CancellationToken cancellationToken);
 }

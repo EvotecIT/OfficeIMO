@@ -57,6 +57,14 @@ internal sealed class PstNdbReader {
         return new PstDataTree(blocks, blocks.Sum(block => (long)block.Length));
     }
 
+    /// <summary>Opens a bounded, block-on-demand view of a data tree for Heap-on-Node parsing.</summary>
+    internal PstDataTree OpenDataTree(ulong bid, long maximumBytes,
+        CancellationToken cancellationToken = default) {
+        int cacheCapacity = Math.Max(4, Math.Min(64, _options.MaxCachedBTreePages));
+        return new PstDataTree(
+            () => EnumerateDataBlocks(bid, maximumBytes, cancellationToken), cacheCapacity);
+    }
+
     /// <summary>Streams decoded leaf blocks from a data tree without retaining the complete payload.</summary>
     internal IEnumerable<byte[]> EnumerateDataBlocks(ulong bid, long maximumBytes,
         CancellationToken cancellationToken = default) {
@@ -264,7 +272,11 @@ internal sealed class PstNdbReader {
             ? checked((long)PstBinary.UInt64(page, offset + 8))
             : PstBinary.UInt32(page, offset + 4);
         int length = PstBinary.UInt16(page, offset + (_header.IsUnicode ? 16 : 8));
-        return new PstBlockReference(bid, blockOffset, length);
+        int decodedLength = _header.Variant == PstVariant.Unicode4K
+            ? PstBinary.UInt16(page, offset + 18)
+            : length;
+        if (decodedLength <= 0) decodedLength = length;
+        return new PstBlockReference(bid, blockOffset, length, decodedLength);
     }
 
     private PstNodeReference ReadNodeEntry(byte[] page, int offset, int entrySize) {
@@ -361,19 +373,12 @@ internal sealed class PstNdbReader {
 
     private byte[] ReadBlockPayload(PstBlockReference block) {
         if (block.DataLength < 0) throw new InvalidDataException("A PST block has an invalid length.");
-        int allocated = PstBinary.Align(
-            checked(block.DataLength + _header.BlockTrailerSize), _header.BlockAlignment);
-        if (block.Offset < 0 || block.Offset > _stream.Length - allocated) {
+        if (block.Offset < 0 || block.Offset > _stream.Length - block.DataLength) {
             throw new InvalidDataException("A PST block points outside the source stream.");
         }
         byte[] payload = PstBinary.ReadAt(_stream, block.Offset, block.DataLength);
-        if (_header.Variant != PstVariant.Unicode4K) return payload;
-
-        int trailerOffset = allocated - _header.BlockTrailerSize;
-        byte[] trailer = PstBinary.ReadAt(_stream, block.Offset + trailerOffset, _header.BlockTrailerSize);
-        int decodedLength = PstBinary.UInt16(trailer, 18);
-        return decodedLength > 0 && decodedLength != payload.Length
-            ? PstDeflate.Decode(payload, decodedLength)
+        return _header.Variant == PstVariant.Unicode4K && block.DecodedLength != payload.Length
+            ? PstDeflate.Decode(payload, block.DecodedLength)
             : payload;
     }
 

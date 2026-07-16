@@ -42,10 +42,11 @@ internal sealed class MailboxDirectoryStoreSessionBackend : IEmailStoreSessionBa
 
     public EmailStoreItemSummary ReadSummary(EmailStoreItemReference reference,
         CancellationToken cancellationToken) =>
-        EmailStoreItemSummary.FromItem(ReadItem(reference, cancellationToken));
+        EmailStoreItemSummary.FromItem(ReadItem(reference, EmailStoreItemReadOptions.Default, cancellationToken));
 
-    public EmailStoreItem ReadItem(EmailStoreItemReference reference,
+    public EmailStoreItem ReadItem(EmailStoreItemReference reference, EmailStoreItemReadOptions options,
         CancellationToken cancellationToken) {
+        if (options == null) throw new ArgumentNullException(nameof(options));
         cancellationToken.ThrowIfCancellationRequested();
         if (!_filesById.TryGetValue(reference.Id, out MailboxFile? file) ||
             file.FolderId != reference.FolderId || reference.IsAssociated || reference.IsOrphaned) {

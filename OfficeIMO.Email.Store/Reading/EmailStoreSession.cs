@@ -91,9 +91,17 @@ public sealed partial class EmailStoreSession : IDisposable {
     /// <summary>Reads and projects one explicitly selected item.</summary>
     public EmailStoreItem ReadItem(EmailStoreItemReference reference,
         CancellationToken cancellationToken = default) {
+        return ReadItem(reference, EmailStoreItemReadOptions.Default, cancellationToken);
+    }
+
+    /// <summary>Reads only the requested parts of one explicitly selected item when the backend supports it.</summary>
+    public EmailStoreItem ReadItem(EmailStoreItemReference reference,
+        EmailStoreItemReadOptions options,
+        CancellationToken cancellationToken = default) {
         if (reference == null) throw new ArgumentNullException(nameof(reference));
+        if (options == null) throw new ArgumentNullException(nameof(options));
         ThrowIfDisposed();
-        return _backend.ReadItem(reference, cancellationToken);
+        return _backend.ReadItem(reference, options, cancellationToken);
     }
 
     /// <summary>
@@ -153,7 +161,7 @@ public sealed partial class EmailStoreSession : IDisposable {
                 throw new EmailStoreLimitExceededException(nameof(EmailStoreReaderOptions.MaxItemCount),
                     itemCount, _options.MaxItemCount);
             }
-            EmailStoreItem item = ReadItem(reference, cancellationToken);
+            EmailStoreItem item = ReadItem(reference, EmailStoreItemReadOptions.Default, cancellationToken);
             EmailStoreFolder folder = folders[reference.FolderId];
             if (reference.IsAssociated) folder.MutableAssociatedItems.Add(item);
             else folder.MutableItems.Add(item);

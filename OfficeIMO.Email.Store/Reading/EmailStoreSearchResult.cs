@@ -7,7 +7,7 @@ public sealed class EmailStoreSearchResult {
         Summary = summary;
     }
 
-    /// <summary>Stable reference that can be passed to <see cref="EmailStoreSession.ReadItem"/>.</summary>
+    /// <summary>Stable reference that can be passed to <see cref="EmailStoreSession.ReadItem(EmailStoreItemReference, CancellationToken)"/>.</summary>
     public EmailStoreItemReference Reference { get; }
 
     /// <summary>Lightweight summary that satisfied the query.</summary>
