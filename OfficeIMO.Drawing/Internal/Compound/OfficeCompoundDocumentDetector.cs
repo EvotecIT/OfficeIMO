@@ -11,6 +11,7 @@ namespace OfficeIMO.Drawing.Internal {
             NotCompound,
             WordDocument,
             ExcelWorkbook,
+            PowerPointPresentation,
             EncryptedOpenXmlPackage,
             Ambiguous,
             UnknownCompound
@@ -36,13 +37,19 @@ namespace OfficeIMO.Drawing.Internal {
 
             bool hasWordDocument = compoundFile.Streams.ContainsKey("WordDocument");
             bool hasWorkbook = compoundFile.Streams.ContainsKey("Workbook") || compoundFile.Streams.ContainsKey("Book");
+            bool hasPowerPointPresentation = compoundFile.Streams.ContainsKey("PowerPoint Document")
+                && compoundFile.Streams.ContainsKey("Current User");
             bool hasEncryptedPackage = compoundFile.Streams.ContainsKey("EncryptedPackage")
                 && compoundFile.Streams.ContainsKey("EncryptionInfo");
 
-            int recognizedRootCount = (hasWordDocument ? 1 : 0) + (hasWorkbook ? 1 : 0) + (hasEncryptedPackage ? 1 : 0);
+            int recognizedRootCount = (hasWordDocument ? 1 : 0)
+                + (hasWorkbook ? 1 : 0)
+                + (hasPowerPointPresentation ? 1 : 0)
+                + (hasEncryptedPackage ? 1 : 0);
             if (recognizedRootCount > 1) return DocumentKind.Ambiguous;
             if (hasWordDocument) return DocumentKind.WordDocument;
             if (hasWorkbook) return DocumentKind.ExcelWorkbook;
+            if (hasPowerPointPresentation) return DocumentKind.PowerPointPresentation;
             if (hasEncryptedPackage) return DocumentKind.EncryptedOpenXmlPackage;
             return DocumentKind.UnknownCompound;
         }
