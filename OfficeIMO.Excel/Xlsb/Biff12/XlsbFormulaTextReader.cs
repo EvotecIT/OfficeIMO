@@ -52,6 +52,15 @@ namespace OfficeIMO.Excel.Xlsb.Biff12 {
                     case 0x0E:
                         if (!ApplyBinary(stack, "<>", 0)) return false;
                         break;
+                    case 0x0F:
+                        if (!ApplyBinary(stack, " ", 0)) return false;
+                        break;
+                    case 0x10:
+                        if (!ApplyBinary(stack, ",", 0)) return false;
+                        break;
+                    case 0x11:
+                        if (!ApplyBinary(stack, ":", 0)) return false;
+                        break;
                     case 0x12:
                     case 0x13:
                         if (!ApplyUnary(stack, token == 0x12 ? "+" : "-")) return false;
@@ -67,6 +76,17 @@ namespace OfficeIMO.Excel.Xlsb.Biff12 {
                         break;
                     case 0x16:
                         stack.Push(new FormulaExpression(string.Empty, 4));
+                        break;
+                    case 0x17:
+                        if (!TryReadFormulaString(tokens, ref offset, out string? text)) return false;
+                        stack.Push(new FormulaExpression(QuoteFormulaString(text!), 4));
+                        break;
+                    case 0x19:
+                        if (!TryApplyAttribute(tokens, ref offset, stack)) return false;
+                        break;
+                    case 0x1C:
+                        if (offset >= tokens.Length) return false;
+                        stack.Push(new FormulaExpression(BiffErrorValue.ToText(tokens[offset++]), 4));
                         break;
                     case 0x1D:
                         if (offset >= tokens.Length) return false;
@@ -128,6 +148,41 @@ namespace OfficeIMO.Excel.Xlsb.Biff12 {
             bool rowRelative = (columnBits & 0x8000) != 0;
             reference = FormatReference(checked((int)row), column, rowRelative, columnRelative);
             return true;
+        }
+
+        private static bool TryReadFormulaString(byte[] tokens, ref int offset, out string? value) {
+            value = null;
+            if (!TryReadUInt16(tokens, ref offset, out ushort characterCount) || characterCount > 255) return false;
+            int byteCount = checked(characterCount * 2);
+            if (offset > tokens.Length - byteCount) return false;
+            value = Encoding.Unicode.GetString(tokens, offset, byteCount);
+            offset += byteCount;
+            return true;
+        }
+
+        private static string QuoteFormulaString(string value) {
+            return "\"" + value.Replace("\"", "\"\"") + "\"";
+        }
+
+        private static bool TryApplyAttribute(byte[] tokens, ref int offset, Stack<FormulaExpression> stack) {
+            if (offset >= tokens.Length) return false;
+            byte attribute = tokens[offset++];
+            switch (attribute) {
+                case 0x01: // PtgAttrSemi
+                case 0x02: // PtgAttrIf
+                case 0x08: // PtgAttrGoTo
+                case 0x40: // PtgAttrSpace
+                case 0x41: // PtgAttrSpaceSemi
+                case 0x80: // PtgAttrIfError
+                    return TrySkip(tokens, ref offset, 2);
+                case 0x04: // PtgAttrChoose
+                    if (!TryReadUInt16(tokens, ref offset, out ushort offsetCount)) return false;
+                    return TrySkip(tokens, ref offset, checked((offsetCount + 1) * 2));
+                case 0x10: // PtgAttrSum
+                    return TrySkip(tokens, ref offset, 2) && ApplyFunction(stack, "SUM", 1);
+                default:
+                    return false;
+            }
         }
 
         private static bool TryReadArea(byte[] tokens, ref int offset, out string? area) {
@@ -253,6 +308,12 @@ namespace OfficeIMO.Excel.Xlsb.Biff12 {
             Buffer.BlockCopy(data, offset, bytes, 0, bytes.Length);
             value = BitConverter.ToDouble(bytes, 0);
             offset += bytes.Length;
+            return true;
+        }
+
+        private static bool TrySkip(byte[] data, ref int offset, int count) {
+            if (count < 0 || offset > data.Length - count) return false;
+            offset += count;
             return true;
         }
 

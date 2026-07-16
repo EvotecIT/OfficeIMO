@@ -717,6 +717,10 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     functionName = "THAIYEAR";
                     parameterCount = 1;
                     return true;
+                case 0x01e0:
+                    functionName = "IFERROR";
+                    parameterCount = 2;
+                    return true;
                 default:
                     functionName = null;
                     parameterCount = 0;

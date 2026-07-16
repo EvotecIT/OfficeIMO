@@ -69,6 +69,33 @@ namespace OfficeIMO.Tests {
             Assert.Equal(payload, record.Data);
         }
 
+        [Fact]
+        public void Xlsb_FormulaReader_DecodesUnicodeStringsErrorsAndAttributeControlledIf() {
+            byte[] ifTokens = {
+                0x1D, 0x01,
+                0x19, 0x02, 0x00, 0x00,
+                0x17, 0x03, 0x00, (byte)'Y', 0x00, (byte)'e', 0x00, (byte)'s', 0x00,
+                0x19, 0x08, 0x00, 0x00,
+                0x17, 0x02, 0x00, (byte)'N', 0x00, (byte)'o', 0x00,
+                0x19, 0x08, 0x00, 0x00,
+                0x22, 0x03, 0x01, 0x00
+            };
+            byte[] concatenationTokens = {
+                0x17, 0x03, 0x00, (byte)'A', 0x00, (byte)'"', 0x00, (byte)'B', 0x00,
+                0x17, 0x01, 0x00, (byte)'!', 0x00,
+                0x08
+            };
+
+            Assert.True(XlsbFormulaTextReader.TryRead(ifTokens, out string? conditional));
+            Assert.True(XlsbFormulaTextReader.TryRead(concatenationTokens, out string? concatenation));
+            Assert.True(XlsbFormulaTextReader.TryRead(new byte[] { 0x1C, 0x2A }, out string? error));
+            Assert.True(XlsbFormulaTextReader.TryRead(new byte[] { 0x1E, 0x01, 0x00, 0x19, 0x10, 0x00, 0x00 }, out string? sum));
+            Assert.Equal("IF(TRUE,\"Yes\",\"No\")", conditional);
+            Assert.Equal("\"A\"\"B\"&\"!\"", concatenation);
+            Assert.Equal("#N/A", error);
+            Assert.Equal("SUM(1)", sum);
+        }
+
         [Theory]
         [InlineData(new byte[] { 0x83 })]
         [InlineData(new byte[] { 0x83, 0x01, 0x80 })]
@@ -473,6 +500,70 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Xlsb_RichFormulaFixture_ProjectsCommonBusinessFormulaTokens() {
+            using ExcelDocument document = ExcelDocument.Load(GetRichFormulaExcelGeneratedXlsbFixturePath());
+
+            ExcelSheet sheet = Assert.Single(document.Sheets);
+            string[] expected = {
+                "IF(A1>5,\"High\",\"Low\")",
+                "IFERROR(A1/A2,\"Divide error\")",
+                "\"Hello\"&\" \"&\"XLSB\"",
+                "ROUND(PI(),2)",
+                "SUM(A1:A2)",
+                "CHOOSE(2,\"First\",\"Second\",\"Third\")",
+                "NA()",
+                "(A1+2)*10%"
+            };
+            for (int row = 1; row <= expected.Length; row++) {
+                Assert.Equal(expected[row - 1], sheet.CellAt(row, 2).GetValue().Formula);
+            }
+            Assert.True(sheet.TryGetCellText(1, 2, out string? ifValue));
+            Assert.True(sheet.TryGetCellText(2, 2, out string? ifErrorValue));
+            Assert.True(sheet.TryGetCellText(3, 2, out string? concatenatedValue));
+            Assert.True(sheet.TryGetCellText(6, 2, out string? chooseValue));
+            Assert.Equal("High", ifValue);
+            Assert.Equal("Divide error", ifErrorValue);
+            Assert.Equal("Hello XLSB", concatenatedValue);
+            Assert.Equal("Second", chooseValue);
+            Assert.DoesNotContain(document.XlsbImportDiagnostics, diagnostic => diagnostic.Code == "XLSB-FORMULA-PRESERVED");
+        }
+
+        [Fact]
+        public void Xlsb_RichFormulaFixture_NativeRewritePreservesEveryFormulaPayload() {
+            byte[] original = File.ReadAllBytes(GetRichFormulaExcelGeneratedXlsbFixturePath());
+            using ExcelDocument document = ExcelDocument.Load(new MemoryStream(original, writable: false));
+            document.Sheets[0].CellValue(1, 1, 12D);
+
+            byte[] rewritten = document.ToBytes(ExcelFileFormat.Xlsb);
+
+            using ExcelDocument reloaded = ExcelDocument.Load(new MemoryStream(rewritten, writable: false));
+            Assert.Equal("IF(A1>5,\"High\",\"Low\")", reloaded.Sheets[0].CellAt(1, 2).GetValue().Formula);
+            Assert.Equal("IFERROR(A1/A2,\"Divide error\")", reloaded.Sheets[0].CellAt(2, 2).GetValue().Formula);
+            Assert.Equal("CHOOSE(2,\"First\",\"Second\",\"Third\")", reloaded.Sheets[0].CellAt(6, 2).GetValue().Formula);
+            for (int row = 1; row <= 8; row++) {
+                AssertFormulaPayloadEqual(original, rewritten, "xl/worksheets/sheet1.bin", (row, 2));
+            }
+            AssertPackageEntriesEqualExcept(original, rewritten, "xl/worksheets/sheet1.bin");
+        }
+
+        [Fact]
+        public void Xlsb_RichFormulaFixture_ConvertsToXlsxWithFormulaTextAndCachedValues() {
+            using ExcelDocument source = ExcelDocument.Load(GetRichFormulaExcelGeneratedXlsbFixturePath());
+            using var destination = new MemoryStream();
+
+            source.Save(destination, ExcelFileFormat.Xlsx);
+
+            using ExcelDocument converted = ExcelDocument.Load(new MemoryStream(destination.ToArray(), writable: false));
+            ExcelSheet sheet = Assert.Single(converted.Sheets);
+            Assert.Equal("IF(A1>5,\"High\",\"Low\")", sheet.CellAt(1, 2).GetValue().Formula);
+            Assert.Equal("IFERROR(A1/A2,\"Divide error\")", sheet.CellAt(2, 2).GetValue().Formula);
+            Assert.Equal("\"Hello\"&\" \"&\"XLSB\"", sheet.CellAt(3, 2).GetValue().Formula);
+            Assert.Equal("CHOOSE(2,\"First\",\"Second\",\"Third\")", sheet.CellAt(6, 2).GetValue().Formula);
+            Assert.True(sheet.TryGetCellText(2, 2, out string? cachedValue));
+            Assert.Equal("Divide error", cachedValue);
+        }
+
+        [Fact]
         public void Xlsb_RowSpan_RejectsCellOutsideDeclaredSegmentBounds() {
             byte[] package = File.ReadAllBytes(GetGeometryExcelGeneratedXlsbFixturePath());
             byte[] worksheet = ReadZipEntry(package, "xl/worksheets/sheet1.bin");
@@ -766,6 +857,15 @@ namespace OfficeIMO.Tests {
                 "XlsbCorpus",
                 "excel-generated",
                 "hyperlinks.xlsb");
+        }
+
+        private static string GetRichFormulaExcelGeneratedXlsbFixturePath() {
+            return Path.Combine(
+                AppContext.BaseDirectory,
+                "Documents",
+                "XlsbCorpus",
+                "excel-generated",
+                "formulas-rich.xlsb");
         }
 
         private static void AssertColumn(
