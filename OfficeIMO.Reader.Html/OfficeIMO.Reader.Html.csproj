@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <Description>HTML adapter for OfficeIMO.Reader using OfficeIMO.Markdown.Html.</Description>
+    <Description>HTML and MHTML adapter for OfficeIMO.Reader using OfficeIMO.Html.</Description>
     <AssemblyName>OfficeIMO.Reader.Html</AssemblyName>
     <AssemblyTitle>OfficeIMO.Reader.Html</AssemblyTitle>
     <VersionPrefix>2.0.1</VersionPrefix>
@@ -13,7 +13,7 @@
     <Company>Evotec</Company>
     <Authors>Przemyslaw Klys</Authors>
     <PackageId>OfficeIMO.Reader.Html</PackageId>
-    <PackageTags>reader;html;ingestion;officeimo</PackageTags>
+    <PackageTags>reader;html;mhtml;mht;ingestion;officeimo</PackageTags>
     <PackageProjectUrl>https://github.com/EvotecIT/OfficeIMO</PackageProjectUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <RepositoryUrl>https://github.com/EvotecIT/OfficeIMO</RepositoryUrl>
@@ -25,6 +25,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\OfficeIMO.Email\OfficeIMO.Email.csproj" />
     <ProjectReference Include="..\OfficeIMO.Reader\OfficeIMO.Reader.csproj" />
     <ProjectReference Include="..\OfficeIMO.Markdown.Html\OfficeIMO.Markdown.Html.csproj" />
     <ProjectReference Include="..\OfficeIMO.Html\OfficeIMO.Html.csproj" />

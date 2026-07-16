@@ -54,8 +54,14 @@ internal static partial class HtmlReaderAdapter {
         var parseStream = ReaderInputLimits.EnsureSeekableReadStream(htmlStream, effectiveReaderOptions.MaxInputBytes, cancellationToken, out var ownsParseStream);
         try {
             UpdateSourceMetadataFromSeekableStream(source, parseStream, effectiveReaderOptions.ComputeHashes);
-            var html = ReadAllText(parseStream, cancellationToken);
-            foreach (var chunk in ReadContent(html, source, effectiveReaderOptions, htmlOptions, cancellationToken)) {
+            MhtmlDocument? archive = IsMhtmlSource(source.Path)
+                ? LoadMhtml(parseStream, effectiveReaderOptions, cancellationToken)
+                : null;
+            string html = archive?.Html ?? ReadAllText(parseStream, cancellationToken);
+            ReaderHtmlOptions? effectiveHtmlOptions = archive == null
+                ? htmlOptions
+                : PrepareMhtmlHtmlOptions(htmlOptions, archive);
+            foreach (var chunk in ReadContent(html, source, effectiveReaderOptions, effectiveHtmlOptions, cancellationToken)) {
                 yield return chunk;
             }
         } finally {

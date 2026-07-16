@@ -18,6 +18,7 @@ public sealed class EmailMimeRelatedContractTests {
         Assert.Equal("<img src=\"cid:logo\">", document.Body.Html);
         Assert.Equal("root", document.Body.HtmlContentId);
         Assert.Equal("https://example.test/page.html", document.Body.HtmlContentLocation);
+        Assert.True(document.Body.IsHtmlRelatedRoot);
         Assert.True(Assert.Single(document.Attachments).IsMimeRelated);
     }
 
@@ -50,5 +51,21 @@ public sealed class EmailMimeRelatedContractTests {
         Assert.True(Assert.Single(roundTrip.Attachments).IsMimeRelated);
         Assert.Equal("root", roundTrip.Body.HtmlContentId);
         Assert.Equal("https://example.test/page.html", roundTrip.Body.HtmlContentLocation);
+        Assert.True(roundTrip.Body.IsHtmlRelatedRoot);
+    }
+
+    [Fact]
+    public void WriterCanPreserveRelatedHtmlRootWithoutResources() {
+        var document = new EmailDocument();
+        document.Body.Html = "<html><body>saved</body></html>";
+        document.Body.HtmlContentId = "root";
+        document.Body.IsHtmlRelatedRoot = true;
+
+        byte[] bytes = new EmailDocumentWriter().ToBytes(document);
+        EmailDocument roundTrip = new EmailDocumentReader().Read(bytes).Document;
+
+        Assert.True(roundTrip.Body.IsHtmlRelatedRoot);
+        Assert.Equal("root", roundTrip.Body.HtmlContentId);
+        Assert.Empty(roundTrip.Attachments);
     }
 }

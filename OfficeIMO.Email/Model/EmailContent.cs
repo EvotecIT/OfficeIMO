@@ -22,6 +22,12 @@ public sealed class EmailBody {
 
     /// <summary>Content location attached to the selected HTML MIME body part.</summary>
     public string? HtmlContentLocation { get; set; }
+
+    /// <summary>
+    /// True when the selected HTML part is the root of a MIME <c>multipart/related</c> entity. Writers preserve the
+    /// related container even when it currently has no resource parts.
+    /// </summary>
+    public bool IsHtmlRelatedRoot { get; set; }
 }
 
 /// <summary>Represents a file, inline resource, or embedded item attachment.</summary>

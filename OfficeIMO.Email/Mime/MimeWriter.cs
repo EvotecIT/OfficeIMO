@@ -214,7 +214,8 @@ internal static class MimeWriter {
              document.OutlookItemKind != OutlookItemKind.Contact);
         bool hasAlternative = CountBodyAlternatives(document.Body, includeTextBody) +
             (calendarContent == null ? 0 : 1) > 1;
-        bool hasRelatedResources = regularAttachments.Any(attachment => IsRelatedResource(document, attachment));
+        bool hasRelatedResources = document.Body.IsHtmlRelatedRoot ||
+            regularAttachments.Any(attachment => IsRelatedResource(document, attachment));
         bool hasUnrelatedAttachments = regularAttachments.Any(attachment => !IsRelatedResource(document, attachment));
         if (hasUnrelatedAttachments) {
             string boundary = CreateBoundary(document, depth, "mixed");

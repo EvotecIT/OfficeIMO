@@ -159,6 +159,7 @@ internal static class MimeParser {
                     document.Body.HtmlCharset = charset;
                     document.Body.HtmlContentId = TrimAngleBrackets(contentId);
                     document.Body.HtmlContentLocation = contentLocation;
+                    document.Body.IsHtmlRelatedRoot = isRelatedSibling && isPreferredRelatedBody;
                 }
             } else if (document.Body.Text == null) {
                 document.Body.Text = text;
