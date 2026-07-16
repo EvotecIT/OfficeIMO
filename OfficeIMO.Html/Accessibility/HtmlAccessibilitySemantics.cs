@@ -66,49 +66,58 @@ public static class HtmlAccessibilitySemantics {
     /// <param name="element">Element to name.</param>
     /// <param name="includeTextFallback">Whether normalized descendant text may supply the name.</param>
     public static string GetAccessibleName(IElement element, bool includeTextFallback = false) =>
-        GetAccessibleName(element, includeTextFallback, treatAsImage: false);
+        GetAccessibleName(element, includeTextFallback, treatAsImage: false, new HashSet<IElement>());
 
     /// <summary>
     /// Resolves an accessible image name, including image <c>alt</c> semantics for custom
     /// elements that a converter explicitly aliases to an image.
     /// </summary>
     public static string GetImageAccessibleName(IElement element) =>
-        GetAccessibleName(element, includeTextFallback: false, treatAsImage: true);
+        GetAccessibleName(element, includeTextFallback: false, treatAsImage: true, new HashSet<IElement>());
 
-    private static string GetAccessibleName(IElement element, bool includeTextFallback, bool treatAsImage) {
+    private static string GetAccessibleName(
+        IElement element,
+        bool includeTextFallback,
+        bool treatAsImage,
+        ISet<IElement> resolutionPath) {
         if (element == null) return string.Empty;
+        if (!resolutionPath.Add(element)) return string.Empty;
 
-        string labelledBy = ResolveLabelledBy(element);
-        if (labelledBy.Length > 0) return labelledBy;
+        try {
+            string labelledBy = ResolveLabelledBy(element, resolutionPath);
+            if (labelledBy.Length > 0) return labelledBy;
 
-        string ariaLabel = NormalizeText(element.GetAttribute("aria-label"));
-        if (ariaLabel.Length > 0) return ariaLabel;
+            string ariaLabel = NormalizeText(element.GetAttribute("aria-label"));
+            if (ariaLabel.Length > 0) return ariaLabel;
 
-        string tagName = element.TagName;
-        if ((treatAsImage
-             || tagName.Equals("IMG", StringComparison.OrdinalIgnoreCase)
-             || tagName.Equals("AREA", StringComparison.OrdinalIgnoreCase))
-            && element.HasAttribute("alt")) {
-            return NormalizeText(element.GetAttribute("alt"));
+            string tagName = element.TagName;
+            if ((treatAsImage
+                 || tagName.Equals("IMG", StringComparison.OrdinalIgnoreCase)
+                 || tagName.Equals("AREA", StringComparison.OrdinalIgnoreCase))
+                && element.HasAttribute("alt")) {
+                return NormalizeText(element.GetAttribute("alt"));
+            }
+            if (tagName.Equals("INPUT", StringComparison.OrdinalIgnoreCase)
+                && string.Equals(element.GetAttribute("type"), "image", StringComparison.OrdinalIgnoreCase)
+                && element.HasAttribute("alt")) {
+                return NormalizeText(element.GetAttribute("alt"));
+            }
+            if (tagName.Equals("SVG", StringComparison.OrdinalIgnoreCase)) {
+                IElement? titleElement = element.Children.FirstOrDefault(static child =>
+                    child.TagName.Equals("TITLE", StringComparison.OrdinalIgnoreCase));
+                string svgTitle = NormalizeText(titleElement?.TextContent);
+                if (svgTitle.Length > 0) return svgTitle;
+            }
+
+            if (includeTextFallback) {
+                string text = NormalizeText(element.TextContent);
+                if (text.Length > 0) return text;
+            }
+
+            return NormalizeText(element.GetAttribute("title"));
+        } finally {
+            resolutionPath.Remove(element);
         }
-        if (tagName.Equals("INPUT", StringComparison.OrdinalIgnoreCase)
-            && string.Equals(element.GetAttribute("type"), "image", StringComparison.OrdinalIgnoreCase)
-            && element.HasAttribute("alt")) {
-            return NormalizeText(element.GetAttribute("alt"));
-        }
-        if (tagName.Equals("SVG", StringComparison.OrdinalIgnoreCase)) {
-            IElement? titleElement = element.Children.FirstOrDefault(static child =>
-                child.TagName.Equals("TITLE", StringComparison.OrdinalIgnoreCase));
-            string svgTitle = NormalizeText(titleElement?.TextContent);
-            if (svgTitle.Length > 0) return svgTitle;
-        }
-
-        if (includeTextFallback) {
-            string text = NormalizeText(element.TextContent);
-            if (text.Length > 0) return text;
-        }
-
-        return NormalizeText(element.GetAttribute("title"));
     }
 
     /// <summary>Returns whether an element is explicitly hidden from the accessibility tree.</summary>
@@ -124,7 +133,7 @@ public static class HtmlAccessibilitySemantics {
         return false;
     }
 
-    private static string ResolveLabelledBy(IElement element) {
+    private static string ResolveLabelledBy(IElement element, ISet<IElement> resolutionPath) {
         string? value = element.GetAttribute("aria-labelledby");
         if (string.IsNullOrWhiteSpace(value) || element.Owner == null) return string.Empty;
 
@@ -134,7 +143,7 @@ public static class HtmlAccessibilitySemantics {
             if (!seen.Add(id)) continue;
             IElement? label = element.Owner.GetElementById(id);
             if (label == null || ReferenceEquals(label, element)) continue;
-            string text = NormalizeText(label.TextContent);
+            string text = GetAccessibleName(label, includeTextFallback: true, treatAsImage: false, resolutionPath);
             if (text.Length > 0) labels.Add(text);
         }
         return string.Join(" ", labels);

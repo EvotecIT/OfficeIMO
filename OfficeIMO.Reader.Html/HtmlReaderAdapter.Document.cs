@@ -192,6 +192,10 @@ internal static partial class HtmlReaderAdapter {
                 assetIndex++;
                 projection.Assets.Add(asset);
                 projection.Visuals.Add(MapHtmlVisual(node, asset.Location, asset.PayloadHash, asset.MediaType, asset.SourceObjectId));
+            } else if (!HasHtmlImageSourceCandidate(node)
+                && !string.IsNullOrWhiteSpace(node.AccessibleName)) {
+                string anchor = "html-image-visual-" + projection.Visuals.Count.ToString("D4", CultureInfo.InvariantCulture);
+                projection.Visuals.Add(MapHtmlVisual(node, BuildHtmlLocation(path, null, "image", anchor), null, null));
             }
         } else if (node.Kind == HtmlLogicalNodeKind.Media &&
             !string.Equals(node.Name, "source", StringComparison.OrdinalIgnoreCase)) {
@@ -347,6 +351,19 @@ internal static partial class HtmlReaderAdapter {
         return node.Attributes.TryGetValue("src", out string? source)
             ? HtmlUrlPolicyEvaluator.ResolveUrl(source, options.BaseUri, options.UrlPolicy)
             : string.Empty;
+    }
+
+    private static bool HasHtmlImageSourceCandidate(HtmlLogicalNode node) {
+        foreach (string attribute in new[] {
+            "src", "data-src", "data-original", "data-original-src", "data-lazy-src",
+            "srcset", "data-srcset", "data-original-srcset", "data-lazy-srcset"
+        }) {
+            if (node.Attributes.TryGetValue(attribute, out string? value)
+                && !string.IsNullOrWhiteSpace(value)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static ReaderVisual MapHtmlVisual(

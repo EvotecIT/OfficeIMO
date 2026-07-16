@@ -11,11 +11,28 @@ public sealed class ReaderHtmlAccessibilityAndFootnotesTests {
         const string html = """
 <p><a href="report" aria-label="Download annual report">Download</a></p>
 <p><a href="guide" title="Open guide">Read more</a></p>
+<span id="label" aria-label="Download labelled report">ignored</span>
+<p><a href="labelled" aria-labelledby="label"></a></p>
 """;
 
         OfficeDocumentReadResult result = HtmlReaderAdapter.ReadContentDocument(html, "links.html");
 
-        Assert.Equal(new[] { "Download annual report", "Read more" }, result.Links.Select(link => link.Text));
+        Assert.Equal(new[] { "Download annual report", "Read more", "Download labelled report" }, result.Links.Select(link => link.Text));
+    }
+
+    [Fact]
+    public void DocumentReaderHtml_ProjectsSourceLessAriaImageAsVisualWithoutAsset() {
+        const string html = "<div role=\"img\" aria-label=\"Sales chart\"></div>";
+
+        OfficeDocumentReadResult result = HtmlReaderAdapter.ReadContentDocument(html, "aria-image.html");
+        ReaderVisual visual = Assert.Single(result.Visuals);
+
+        Assert.Empty(result.Assets);
+        Assert.Equal("image", visual.Kind);
+        Assert.Equal("div", visual.Language);
+        Assert.Equal("Sales chart", visual.Content);
+        Assert.Null(visual.SourceName);
+        Assert.Equal("image", visual.Location!.SourceBlockKind);
     }
 
     [Fact]

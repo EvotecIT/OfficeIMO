@@ -15,10 +15,12 @@ public sealed class HtmlAccessibleNameTests {
     [Fact]
     public void AccessibilitySemantics_ResolvesAriaAndHostLanguageNamesInPriorityOrder() {
         var document = HtmlDocumentParser.ParseDocument("""
-<span id="chapter">Chapter</span><span id="number">four</span>
+<span id="chapter" aria-label="Chapter">ignored</span><span id="number">four</span>
 <a id="link" href="#target" aria-labelledby="chapter number"></a>
 <img id="aria-image" src="cover.png" alt="Cover" aria-label="Accessible cover">
 <img id="decorative" src="rule.png" alt="" title="Decorative rule">
+<span id="cycle-a" aria-labelledby="cycle-b"></span>
+<span id="cycle-b" aria-labelledby="cycle-a" aria-label="Cycle safe"></span>
 """);
 
         Assert.Equal(
@@ -30,6 +32,9 @@ public sealed class HtmlAccessibleNameTests {
         Assert.Equal(
             string.Empty,
             HtmlAccessibilitySemantics.GetAccessibleName(document.GetElementById("decorative")!));
+        Assert.Equal(
+            "Cycle safe",
+            HtmlAccessibilitySemantics.GetAccessibleName(document.GetElementById("cycle-a")!, includeTextFallback: true));
 
         var customImage = HtmlDocumentParser.ParseDocument("<media-image alt=\"Aliased image\"></media-image>");
         Assert.Equal(

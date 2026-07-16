@@ -5,7 +5,7 @@ using Xunit;
 
 namespace OfficeIMO.Tests;
 
-public sealed class MarkdownHtmlToMarkdownEpubSemanticsTests {
+public sealed class MarkdownHtmlToMarkdownTestsEpubSemantics {
     [Fact]
     public void HtmlToMarkdown_ConvertsEpubFootnotesToTypedMarkdown() {
         const string html = """
@@ -76,7 +76,7 @@ public sealed class MarkdownHtmlToMarkdownEpubSemanticsTests {
         const string html = """
 <div role="heading" aria-level="4">Accessible heading</div>
 <p><a href="note.xhtml" aria-label="Open note"></a></p>
-<figure><span id="cover-label">Cover chart</span><img src="images/cover.png" aria-labelledby="cover-label"></figure>
+<figure><span id="cover-label" aria-label="Accessible cover chart">ignored</span><img src="images/cover.png" aria-labelledby="cover-label"></figure>
 <ol type="A" start="3"><li>Third</li></ol>
 <pre data-language="csharp">Console.WriteLine(3);</pre>
 """;
@@ -95,7 +95,7 @@ public sealed class MarkdownHtmlToMarkdownEpubSemanticsTests {
         Assert.Equal("Accessible heading", heading.Text);
         Assert.Equal("Open note", link.Text);
         Assert.Equal("https://example.test/book/note.xhtml", link.Url);
-        Assert.Equal("Cover chart", image.Alt);
+        Assert.Equal("Accessible cover chart", image.Alt);
         Assert.Equal("https://example.test/book/images/cover.png", image.Path);
         Assert.Equal(3, list.Start);
         Assert.Equal(MarkdownOrderedListMarkerStyle.UpperAlpha, list.MarkerStyle);
