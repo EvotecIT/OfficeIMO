@@ -23,6 +23,14 @@ namespace OfficeIMO.PowerPoint {
             return HasLegacyBinaryExtension(filePath) && !HasZipSignature(bytes);
         }
 
+        internal static bool IsEncryptedLegacyBinary(byte[] bytes) {
+            if (!OfficeCompoundDocumentDetector.HasCompoundSignature(bytes)) {
+                return false;
+            }
+            return OfficeCompoundDocumentDetector.Detect(bytes, out _)
+                == OfficeCompoundDocumentDetector.DocumentKind.PowerPointPresentation;
+        }
+
         internal static bool HasLegacyBinaryExtension(string? filePath) {
             if (string.IsNullOrWhiteSpace(filePath)) return false;
             string extension = Path.GetExtension(filePath);

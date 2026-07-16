@@ -11,6 +11,7 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
 using DocumentFormat.OpenXml.Validation;
 using OfficeIMO.Drawing;
+using OfficeIMO.PowerPoint.LegacyPpt.Internal;
 using OfficeIMO.PowerPoint.LegacyPpt.Write;
 using A = DocumentFormat.OpenXml.Drawing;
 using P14 = DocumentFormat.OpenXml.Office2010.PowerPoint;
@@ -249,12 +250,39 @@ namespace OfficeIMO.PowerPoint {
                 : CreatePackageBytesForSave();
         }
 
-        private byte[] CreateLegacyPptBytesForSave(PowerPointSaveOptions? options) {
+        private byte[] CreateLegacyPptBytesForSave(
+            PowerPointSaveOptions? options) {
+            if (_legacyPptPackage?.WasEncryptedSource != true) {
+                return CreatePlainLegacyPptBytesForSave(options);
+            }
+            if (options == null
+                && TryCopyOriginalEncryptedLegacyPackage(
+                    out byte[] originalEncryptedBytes)) {
+                return originalEncryptedBytes;
+            }
+            ApplySignatureMutationPolicy();
+            byte[] plainBytes = CreatePlainLegacyPptBytesForSave(options);
+            string password = _legacyPptPackage.EncryptionPassword
+                ?? throw new InvalidOperationException(
+                    "The encrypted binary source password is unavailable. Use SaveEncrypted to persist the presentation.");
+            int keySizeBits = options?.LegacyPptEncryptionKeySizeBits
+                ?? _legacyPptPackage.EncryptionKeySizeBits ?? 128;
+            bool encryptDocumentProperties = options == null
+                ? _legacyPptPackage.EncryptedDocumentProperties ?? true
+                : options.LegacyPptEncryptDocumentProperties;
+            return LegacyPptRc4CryptoApi.EncryptPackage(plainBytes,
+                password, keySizeBits, encryptDocumentProperties);
+        }
+
+        private byte[] CreatePlainLegacyPptBytesForSave(
+            PowerPointSaveOptions? options) {
             ThrowIfDisposed();
             if (AccessMode == DocumentAccessMode.ReadOnly) {
                 throw new InvalidOperationException("The presentation is read-only and cannot be saved.");
             }
-            if (TryCopyOriginalLegacyPackage(out byte[] originalBytes)) {
+            if (LastSignatureReport?.Action
+                    != PowerPointSignatureMutationAction.Removed
+                && TryCopyOriginalLegacyPackage(out byte[] originalBytes)) {
                 return originalBytes;
             }
             ApplySignatureMutationPolicy();
@@ -306,36 +334,96 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
-        ///     Saves the presentation as a password-encrypted Office Open XML package.
+        /// Saves the presentation with password-to-open encryption. PPT/POT/PPS paths use
+        /// legacy RC4 CryptoAPI for compatibility; Open XML paths use modern package encryption.
         /// </summary>
         /// <param name="filePath">Destination path for the encrypted presentation.</param>
         /// <param name="password">Password used to encrypt the presentation package.</param>
-        public void SaveEncrypted(string filePath, string password) {
+        public void SaveEncrypted(string filePath, string password) =>
+            SaveEncrypted(filePath, password, options: null);
+
+        /// <summary>
+        /// Saves the presentation with password-to-open encryption and explicit
+        /// binary conversion or RC4 settings.
+        /// </summary>
+        /// <param name="filePath">Destination path for the encrypted presentation.</param>
+        /// <param name="password">Password used to encrypt the presentation package.</param>
+        /// <param name="options">Binary conversion and RC4 key-size options.</param>
+        public void SaveEncrypted(string filePath, string password,
+            PowerPointSaveOptions? options) {
             ThrowIfDisposed();
             if (filePath == null) throw new ArgumentNullException(nameof(filePath));
             if (password == null) throw new ArgumentNullException(nameof(password));
             if (filePath.Length == 0) throw new ArgumentException("File path cannot be empty.", nameof(filePath));
             EnsureDestinationFileWritable(filePath);
 
-            using var packageStream = new MemoryStream();
-            Save(packageStream);
-            byte[] encryptedBytes = OfficeEncryption.EncryptPackage(packageStream.ToArray(), password);
+            PowerPointFileFormat format = PowerPointPresentationLoadRouting
+                .GetFormat(filePath);
+            byte[] encryptedBytes = IsLegacyBinaryFormat(format)
+                ? CreateEncryptedLegacyPptBytes(password, options)
+                : OfficeEncryption.EncryptPackage(CreatePackageBytesForSave(),
+                    password);
             OfficeFileCommit.WriteAllBytes(filePath, encryptedBytes);
         }
 
         /// <summary>
-        ///     Saves the presentation as a password-encrypted Office Open XML package to a stream.
+        /// Saves the presentation with password-to-open encryption to a stream. A presentation
+        /// loaded from PPT/POT/PPS retains its binary physical format; other presentations use Open XML.
         /// </summary>
         /// <param name="destination">Writable stream receiving the encrypted presentation.</param>
         /// <param name="password">Password used to encrypt the presentation package.</param>
         public void SaveEncrypted(Stream destination, string password) {
             ThrowIfDisposed();
+            if (destination == null) throw new ArgumentNullException(nameof(destination));
             if (password == null) throw new ArgumentNullException(nameof(password));
 
-            using var packageStream = new MemoryStream();
-            Save(packageStream);
-            byte[] encryptedBytes = OfficeEncryption.EncryptPackage(packageStream.ToArray(), password);
+            byte[] encryptedBytes = IsLegacyBinaryFormat(SourceFormat)
+                ? CreateEncryptedLegacyPptBytes(password, options: null)
+                : OfficeEncryption.EncryptPackage(CreatePackageBytesForSave(),
+                    password);
             OfficeStreamWriter.WriteAllBytes(destination, encryptedBytes);
+        }
+
+        /// <summary>Saves a password-encrypted presentation using an explicit physical format.</summary>
+        /// <param name="destination">Writable destination stream.</param>
+        /// <param name="password">Password used to encrypt the presentation.</param>
+        /// <param name="format">Physical PowerPoint format to write.</param>
+        /// <param name="options">Binary conversion and RC4 key-size options.</param>
+        public void SaveEncrypted(Stream destination, string password,
+            PowerPointFileFormat format, PowerPointSaveOptions? options = null) {
+            ThrowIfDisposed();
+            if (destination == null) throw new ArgumentNullException(nameof(destination));
+            if (password == null) throw new ArgumentNullException(nameof(password));
+            byte[] encryptedBytes = IsLegacyBinaryFormat(format)
+                ? CreateEncryptedLegacyPptBytes(password, options)
+                : OfficeEncryption.EncryptPackage(CreatePackageBytesForSave(),
+                    password);
+            OfficeStreamWriter.WriteAllBytes(destination, encryptedBytes);
+        }
+
+        /// <summary>Encodes a password-encrypted presentation in the requested physical format.</summary>
+        /// <param name="password">Password used to encrypt the presentation.</param>
+        /// <param name="format">Physical PowerPoint format to encode.</param>
+        /// <param name="options">Binary conversion and RC4 key-size options.</param>
+        /// <returns>The complete encrypted package bytes.</returns>
+        public byte[] ToEncryptedBytes(string password,
+            PowerPointFileFormat format = PowerPointFileFormat.Pptx,
+            PowerPointSaveOptions? options = null) {
+            ThrowIfDisposed();
+            if (password == null) throw new ArgumentNullException(nameof(password));
+            return IsLegacyBinaryFormat(format)
+                ? CreateEncryptedLegacyPptBytes(password, options)
+                : OfficeEncryption.EncryptPackage(CreatePackageBytesForSave(),
+                    password);
+        }
+
+        private byte[] CreateEncryptedLegacyPptBytes(string password,
+            PowerPointSaveOptions? options) {
+            ApplySignatureMutationPolicy();
+            byte[] plainBytes = CreatePlainLegacyPptBytesForSave(options);
+            return LegacyPptRc4CryptoApi.EncryptPackage(plainBytes, password,
+                options?.LegacyPptEncryptionKeySizeBits ?? 128,
+                options?.LegacyPptEncryptDocumentProperties ?? true);
         }
 
         private static void EnsureDestinationFileWritable(string filePath) {

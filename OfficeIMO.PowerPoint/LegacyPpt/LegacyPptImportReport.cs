@@ -134,10 +134,26 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             UserEditCount = presentation.Package.UserEdits.Count;
             PersistObjectCount = presentation.Package.PersistObjects.Count;
             CompoundStreamCount = presentation.Package.CompoundStreamCount;
+            WasEncryptedSource = presentation.WasEncryptedSource;
+            EncryptionKeySizeBits = presentation.EncryptionKeySizeBits;
+            EncryptedDocumentProperties =
+                presentation.EncryptedDocumentProperties;
         }
 
         /// <summary>Gets the presentation slide count.</summary>
         public int SlideCount { get; }
+
+        /// <summary>Gets whether the imported package was protected with RC4 CryptoAPI password encryption.</summary>
+        public bool WasEncryptedSource { get; }
+
+        /// <summary>Gets the imported RC4 key size in bits, when encrypted.</summary>
+        public int? EncryptionKeySizeBits { get; }
+
+        /// <summary>
+        /// Gets whether an encrypted source protected its document-property streams,
+        /// or <see langword="null"/> for an unencrypted source.
+        /// </summary>
+        public bool? EncryptedDocumentProperties { get; }
 
         /// <summary>Gets the decoded shape count.</summary>
         public int ShapeCount { get; }

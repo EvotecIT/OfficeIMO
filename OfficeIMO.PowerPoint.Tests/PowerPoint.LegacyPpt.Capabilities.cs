@@ -277,6 +277,24 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void CapabilityContract_ReportsBinaryEncryptionParity() {
+            LegacyPptCapability encryption = LegacyPptCapabilityCatalog.Get(
+                LegacyPptFeature.Encryption);
+
+            Assert.Equal(LegacyPptCapabilityState.Native,
+                encryption.ImportToEditableModel);
+            Assert.Equal(LegacyPptCapabilityState.Native,
+                encryption.NewBinaryWrite);
+            Assert.Equal(LegacyPptCapabilityState.Native,
+                encryption.BinaryRoundTrip);
+            Assert.Equal(LegacyPptCapabilityState.Native,
+                encryption.PptxToBinary);
+            Assert.Contains("EncryptedSummary", encryption.Note);
+            Assert.Contains("40 through 128 bits", encryption.Note);
+            Assert.Contains("legacy interoperability", encryption.Note);
+        }
+
+        [Fact]
         public void CapabilityContract_ReportsPreservingMainMasterShapeEdits() {
             LegacyPptCapability masters = LegacyPptCapabilityCatalog.Get(
                 LegacyPptFeature.Masters);

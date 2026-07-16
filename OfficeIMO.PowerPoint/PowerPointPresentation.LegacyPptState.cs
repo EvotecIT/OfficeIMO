@@ -94,6 +94,17 @@ namespace OfficeIMO.PowerPoint {
             return false;
         }
 
+        internal bool TryCopyOriginalEncryptedLegacyPackage(
+            out byte[] bytes) {
+            if (CanPreserveOriginalLegacyPackage
+                && _legacyPptPackage!.TryCopyOriginalEncryptedBytes(
+                    out bytes)) {
+                return true;
+            }
+            bytes = Array.Empty<byte>();
+            return false;
+        }
+
         private void ClearLegacyPptPackageState() {
             _legacyPptPackage = null;
             _legacyPptProjectionMap = null;

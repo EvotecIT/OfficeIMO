@@ -12,5 +12,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
 
         /// <summary>Gets or sets the maximum nested record depth.</summary>
         public int MaxRecordDepth { get; set; } = 64;
+
+        /// <summary>Gets or sets the password used to open an RC4 CryptoAPI encrypted binary presentation.</summary>
+        public string? Password { get; set; }
     }
 }

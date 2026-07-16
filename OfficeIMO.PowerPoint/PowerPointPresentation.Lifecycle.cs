@@ -239,7 +239,14 @@ namespace OfficeIMO.PowerPoint {
 
             PowerPointLoadOptions resolved = options ?? new PowerPointLoadOptions();
             EnsureEncryptedLoadUsesExplicitPersistence(resolved);
-            byte[] packageBytes = OfficeEncryption.DecryptPackage(File.ReadAllBytes(filePath), password);
+            byte[] encryptedBytes = File.ReadAllBytes(filePath);
+            if (PowerPointPresentationLoadRouting.IsEncryptedLegacyBinary(
+                    encryptedBytes)) {
+                return LoadEncryptedLegacyPptFromNormalFlow(encryptedBytes,
+                    password, PowerPointPresentationLoadRouting.GetFormat(
+                        filePath, legacyDefault: true), resolved);
+            }
+            byte[] packageBytes = OfficeEncryption.DecryptPackage(encryptedBytes, password);
             return LoadPackage(packageBytes, filePath: null, sourceStream: null, resolved);
         }
 
@@ -265,6 +272,12 @@ namespace OfficeIMO.PowerPoint {
                 81920,
                 useAsync: true);
             byte[] encryptedBytes = await OfficeStreamReader.ReadAllBytesAsync(source, cancellationToken).ConfigureAwait(false);
+            if (PowerPointPresentationLoadRouting.IsEncryptedLegacyBinary(
+                    encryptedBytes)) {
+                return LoadEncryptedLegacyPptFromNormalFlow(encryptedBytes,
+                    password, PowerPointPresentationLoadRouting.GetFormat(
+                        fullPath, legacyDefault: true), resolved);
+            }
             byte[] packageBytes = OfficeEncryption.DecryptPackage(encryptedBytes, password);
             return LoadPackage(packageBytes, filePath: null, sourceStream: null, resolved);
         }
@@ -281,6 +294,11 @@ namespace OfficeIMO.PowerPoint {
             PowerPointLoadOptions resolved = options ?? new PowerPointLoadOptions();
             EnsureEncryptedLoadUsesExplicitPersistence(resolved);
             byte[] encryptedBytes = await OfficeStreamReader.ReadAllBytesAsync(stream, cancellationToken).ConfigureAwait(false);
+            if (PowerPointPresentationLoadRouting.IsEncryptedLegacyBinary(
+                    encryptedBytes)) {
+                return LoadEncryptedLegacyPptFromNormalFlow(encryptedBytes,
+                    password, PowerPointFileFormat.Ppt, resolved);
+            }
             byte[] packageBytes = OfficeEncryption.DecryptPackage(encryptedBytes, password);
             return LoadPackage(packageBytes, filePath: null, sourceStream: null, resolved);
         }
@@ -296,7 +314,13 @@ namespace OfficeIMO.PowerPoint {
 
             PowerPointLoadOptions resolved = options ?? new PowerPointLoadOptions();
             EnsureEncryptedLoadUsesExplicitPersistence(resolved);
-            byte[] packageBytes = OfficeEncryption.DecryptPackage(ReadAllBytes(stream), password);
+            byte[] encryptedBytes = ReadAllBytes(stream);
+            if (PowerPointPresentationLoadRouting.IsEncryptedLegacyBinary(
+                    encryptedBytes)) {
+                return LoadEncryptedLegacyPptFromNormalFlow(encryptedBytes,
+                    password, PowerPointFileFormat.Ppt, resolved);
+            }
+            byte[] packageBytes = OfficeEncryption.DecryptPackage(encryptedBytes, password);
             return LoadPackage(packageBytes, filePath: null, sourceStream: null, resolved);
         }
 

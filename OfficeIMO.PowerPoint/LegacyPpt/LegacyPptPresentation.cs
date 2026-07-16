@@ -100,6 +100,19 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
         /// <summary>Gets import diagnostics, including preserve-only content.</summary>
         public IReadOnlyList<LegacyPptImportDiagnostic> Diagnostics => _diagnostics;
 
+        /// <summary>Gets whether the source package was password-encrypted with binary RC4 CryptoAPI encryption.</summary>
+        public bool WasEncryptedSource => Package.WasEncryptedSource;
+
+        /// <summary>Gets the source RC4 key size in bits, or <see langword="null"/> for an unencrypted source.</summary>
+        public int? EncryptionKeySizeBits => Package.EncryptionKeySizeBits;
+
+        /// <summary>
+        /// Gets whether the encrypted source protected its document-property streams,
+        /// or <see langword="null"/> for an unencrypted source.
+        /// </summary>
+        public bool? EncryptedDocumentProperties =>
+            Package.EncryptedDocumentProperties;
+
         /// <summary>Loads a PowerPoint 97-2003 binary presentation from a path.</summary>
         public static LegacyPptPresentation Load(string path, LegacyPptImportOptions? options = null) {
             if (path == null) throw new ArgumentNullException(nameof(path));
@@ -119,6 +132,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             options ??= new LegacyPptImportOptions();
             LegacyPptPackage package = LegacyPptPackage.Read(bytes, options);
             var presentation = new LegacyPptPresentation { Package = package };
+            if (package.WasEncryptedSource) {
+                presentation.AddDiagnostic("PPT-ENCRYPTION-DECRYPTED",
+                    LegacyPptDiagnosticSeverity.Information,
+                    $"The RC4 CryptoAPI encrypted presentation was decrypted with its {package.EncryptionKeySizeBits}-bit key descriptor.",
+                    null);
+            }
             presentation.AddCompoundFeatureDiagnostics(package.CompoundFile, options);
             presentation.Parse(package, options);
             return presentation;

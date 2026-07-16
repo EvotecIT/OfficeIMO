@@ -60,6 +60,24 @@ namespace OfficeIMO.PowerPoint {
             return ProjectLoadedLegacyPpt(legacy, sourcePath, sourceFormat, options, sourceStream);
         }
 
+        private static PowerPointPresentation LoadEncryptedLegacyPptFromNormalFlow(
+            byte[] bytes, string password, PowerPointFileFormat sourceFormat,
+            PowerPointLoadOptions options) {
+            LegacyPptImportOptions sourceOptions = options.LegacyPptImportOptions
+                ?? new LegacyPptImportOptions();
+            var importOptions = new LegacyPptImportOptions {
+                MaxInputBytes = sourceOptions.MaxInputBytes,
+                ReportUnsupportedContent = sourceOptions.ReportUnsupportedContent,
+                MaxRecordCount = sourceOptions.MaxRecordCount,
+                MaxRecordDepth = sourceOptions.MaxRecordDepth,
+                Password = password
+            };
+            LegacyPptPresentation legacy = LegacyPptPresentation.Load(bytes,
+                importOptions);
+            return ProjectLoadedLegacyPpt(legacy, sourcePath: null,
+                sourceFormat, options);
+        }
+
         private static PowerPointPresentation ProjectLoadedLegacyPpt(LegacyPptPresentation legacy,
             string? sourcePath, PowerPointFileFormat sourceFormat, PowerPointLoadOptions loadOptions,
             Stream? sourceStream = null) {

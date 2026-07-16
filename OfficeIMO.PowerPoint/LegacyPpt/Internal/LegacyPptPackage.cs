@@ -12,13 +12,20 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
         private const uint UnencryptedCurrentUserToken = 0xE391C05F;
 
         private readonly byte[] _originalBytes;
+        private readonly byte[]? _originalEncryptedBytes;
 
         private LegacyPptPackage(byte[] originalBytes, OfficeCompoundFile compoundFile,
             byte[] documentStream, byte[] currentUserStream, uint currentEditOffset,
             uint documentPersistId, IReadOnlyList<LegacyPptUserEdit> userEdits,
             IReadOnlyDictionary<uint, uint> persistObjectOffsets,
-            IReadOnlyDictionary<uint, LegacyPptPersistObject> persistObjects) {
+            IReadOnlyDictionary<uint, LegacyPptPersistObject> persistObjects,
+            bool wasEncryptedSource, int? encryptionKeySizeBits,
+            bool? encryptedDocumentProperties, string? encryptionPassword,
+            byte[]? originalEncryptedBytes) {
             _originalBytes = (byte[])originalBytes.Clone();
+            _originalEncryptedBytes = originalEncryptedBytes == null
+                ? null
+                : (byte[])originalEncryptedBytes.Clone();
             CompoundFile = compoundFile;
             DocumentStream = documentStream;
             CurrentUserStream = currentUserStream;
@@ -29,6 +36,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 persistObjectOffsets.ToDictionary(pair => pair.Key, pair => pair.Value));
             PersistObjects = new ReadOnlyDictionary<uint, LegacyPptPersistObject>(
                 persistObjects.ToDictionary(pair => pair.Key, pair => pair.Value));
+            WasEncryptedSource = wasEncryptedSource;
+            EncryptionKeySizeBits = encryptionKeySizeBits;
+            EncryptedDocumentProperties = encryptedDocumentProperties;
+            EncryptionPassword = encryptionPassword;
         }
 
         internal OfficeCompoundFile CompoundFile { get; }
@@ -51,6 +62,14 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
 
         internal IReadOnlyDictionary<uint, LegacyPptPersistObject> PersistObjects { get; }
 
+        internal bool WasEncryptedSource { get; }
+
+        internal int? EncryptionKeySizeBits { get; }
+
+        internal bool? EncryptedDocumentProperties { get; }
+
+        internal string? EncryptionPassword { get; }
+
         internal int CompoundStreamCount => CompoundFile.Entries.Count(entry => entry.IsStream && !entry.IsFallback);
 
         internal bool HasBinarySignatureStream => CompoundFile.Entries.Any(entry =>
@@ -63,6 +82,15 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 || entry.Path.StartsWith("_xmlsignatures/", StringComparison.OrdinalIgnoreCase)));
 
         internal byte[] CopyOriginalBytes() => (byte[])_originalBytes.Clone();
+
+        internal bool TryCopyOriginalEncryptedBytes(out byte[] bytes) {
+            if (_originalEncryptedBytes == null) {
+                bytes = Array.Empty<byte>();
+                return false;
+            }
+            bytes = (byte[])_originalEncryptedBytes.Clone();
+            return true;
+        }
 
         internal IReadOnlyDictionary<string, byte[]> CopyCompoundStreams() => CompoundFile.Streams.ToDictionary(
             pair => pair.Key, pair => (byte[])pair.Value.Clone(), StringComparer.OrdinalIgnoreCase);
@@ -88,6 +116,33 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             }
             if (documentStream.Length > options.MaxInputBytes) {
                 throw new InvalidDataException($"The PowerPoint Document stream exceeds {options.MaxInputBytes} bytes.");
+            }
+
+            bool wasEncryptedSource = false;
+            int? encryptionKeySizeBits = null;
+            bool? encryptedDocumentProperties = null;
+            string? encryptionPassword = null;
+            byte[]? originalEncryptedBytes = null;
+            LegacyPptCurrentUserAtom currentUser = LegacyPptCurrentUserAtom.Read(
+                currentUserStream);
+            if (currentUser.HeaderToken != UnencryptedCurrentUserToken) {
+                originalEncryptedBytes = (byte[])bytes.Clone();
+                bytes = LegacyPptRc4CryptoApi.DecryptPackage(bytes, compound,
+                    options, out int keySizeBits,
+                    out bool documentPropertiesEncrypted);
+                if (!OfficeCompoundFileReader.TryRead(bytes,
+                        out compound, out error) || compound == null
+                    || !compound.Streams.TryGetValue("PowerPoint Document",
+                        out documentStream)
+                    || !compound.Streams.TryGetValue("Current User",
+                        out currentUserStream)) {
+                    throw new InvalidDataException(error
+                        ?? "The decrypted binary PowerPoint package is invalid.");
+                }
+                wasEncryptedSource = true;
+                encryptionKeySizeBits = keySizeBits;
+                encryptedDocumentProperties = documentPropertiesEncrypted;
+                encryptionPassword = options.Password;
             }
 
             uint currentEditOffset = ReadCurrentEditOffset(currentUserStream);
@@ -129,7 +184,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 persistObjects.Add(pair.Key, ReadPersistObject(documentStream, pair.Key, pair.Value));
             }
             return new LegacyPptPackage(bytes, compound, documentStream, currentUserStream,
-                currentEditOffset, documentPersistId, edits, liveOffsets, persistObjects);
+                currentEditOffset, documentPersistId, edits, liveOffsets,
+                persistObjects, wasEncryptedSource, encryptionKeySizeBits,
+                encryptedDocumentProperties, encryptionPassword,
+                originalEncryptedBytes);
         }
 
         private static uint ReadCurrentEditOffset(byte[] currentUserStream) {
