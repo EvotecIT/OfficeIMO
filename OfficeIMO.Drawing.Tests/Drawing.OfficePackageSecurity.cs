@@ -58,6 +58,36 @@ public sealed class DrawingOfficePackageSecurityTests {
     }
 
     [Fact]
+    public void UntrustedPolicyClassifiesActiveContentByContentTypeAndRelationshipType() {
+        byte[] package = CreateZip(archive => {
+            AddEntry(archive, "[Content_Types].xml",
+                "<Types xmlns=\"http://schemas.openxmlformats.org/package/2006/content-types\">" +
+                "<Override PartName=\"/custom/macro.bin\" ContentType=\"application/vnd.ms-office.vbaProject\" />" +
+                "</Types>");
+            AddEntry(archive, "custom/macro.bin", "vba");
+            AddEntry(archive, "payload/ole.bin", "ole");
+            AddEntry(archive, "payload/control.bin", "control");
+            AddEntry(archive, "_rels/.rels",
+                "<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">" +
+                "<Relationship Id=\"rOle\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/oleObject\" Target=\"payload/ole.bin\" />" +
+                "<Relationship Id=\"rControl\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/control\" Target=\"payload/control.bin\" />" +
+                "</Relationships>");
+        });
+
+        OfficePackageSecurityReport report = OfficePackageSecurityInspector.Inspect(
+            package,
+            OfficePackageSecurityOptions.UntrustedDefaults);
+
+        Assert.False(report.IsValid);
+        Assert.Equal(1, report.MacroPartCount);
+        Assert.Equal(1, report.EmbeddedPayloadPartCount);
+        Assert.Equal(1, report.ActiveXPartCount);
+        Assert.Contains(report.Findings, finding => finding.Rule == OfficePackageSecurityRule.Macros);
+        Assert.Contains(report.Findings, finding => finding.Rule == OfficePackageSecurityRule.EmbeddedPayloads);
+        Assert.Contains(report.Findings, finding => finding.Rule == OfficePackageSecurityRule.ActiveX);
+    }
+
+    [Fact]
     public void ValidatorRejectsHighlyCompressedPartsBeforeOpeningThem() {
         byte[] package = CreateZip(archive => {
             ZipArchiveEntry entry = archive.CreateEntry("xl/worksheets/sheet1.xml", CompressionLevel.Optimal);
@@ -73,6 +103,20 @@ public sealed class DrawingOfficePackageSecurityTests {
         Assert.Equal(OfficePackageSecurityRule.CompressionRatio, exception.Rule);
         Assert.Equal("/xl/worksheets/sheet1.xml", exception.PartName);
         Assert.True(exception.ObservedValue > exception.Limit);
+    }
+
+    [Fact]
+    public void InspectorDoesNotParseRelationshipPartsThatExceedCompressionLimits() {
+        byte[] package = CreateZip(archive =>
+            AddEntry(archive, "_rels/.rels", new string('A', 256 * 1024)));
+        var options = OfficePackageSecurityOptions.SecureDefaults;
+        options.MaxCompressionRatio = 10;
+
+        OfficePackageSecurityReport report = OfficePackageSecurityInspector.Inspect(package, options);
+
+        Assert.Contains(report.Findings, finding => finding.Rule == OfficePackageSecurityRule.CompressionRatio);
+        Assert.DoesNotContain(report.Findings, finding => finding.Rule == OfficePackageSecurityRule.MalformedRelationship);
+        Assert.Equal(0, report.ExternalRelationshipCount);
     }
 
     [Fact]

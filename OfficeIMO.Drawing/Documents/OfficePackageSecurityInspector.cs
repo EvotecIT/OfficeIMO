@@ -9,7 +9,7 @@ using System.Xml;
 
 namespace OfficeIMO.Drawing {
     /// <summary>Inspects and validates Office package structure without executing active content.</summary>
-    public static class OfficePackageSecurityInspector {
+    public static partial class OfficePackageSecurityInspector {
         private const string RelationshipSuffix = ".rels";
 
         /// <summary>Inspects package bytes using secure structural defaults.</summary>
@@ -134,12 +134,14 @@ namespace OfficeIMO.Drawing {
             long totalBytes = 0;
             long largestPart = 0;
             double highestRatio = 0;
-            int macroCount = 0;
-            int embeddedCount = 0;
-            int activeXCount = 0;
             int externalCount = 0;
             int signatureCount = 0;
             var partNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var macroParts = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var embeddedParts = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var activeXParts = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var relationshipParts = new List<ZipXmlPart>();
+            ZipXmlPart? contentTypesPart = null;
 
             try {
                 using var source = new MemoryStream(bytes, writable: false);
@@ -158,11 +160,12 @@ namespace OfficeIMO.Drawing {
                         : compressedBytes == 0 ? double.PositiveInfinity : (double)partBytes / compressedBytes;
                     if (ratio > highestRatio) highestRatio = ratio;
 
-                    if (!partNames.Add(entry.FullName)) {
+                    if (!partNames.Add(partName)) {
                         findings.Add(Error(OfficePackageSecurityRule.DuplicatePartName,
                             $"Package contains a duplicate or case-ambiguous part name '{partName}'.", partName));
                     }
-                    if (IsUnsafePartName(entry.FullName)) {
+                    bool unsafePartName = IsUnsafePartName(entry.FullName);
+                    if (unsafePartName) {
                         findings.Add(Error(OfficePackageSecurityRule.UnsafePartName,
                             $"Package part name '{partName}' is unsafe.", partName));
                     }
@@ -178,14 +181,35 @@ namespace OfficeIMO.Drawing {
                     }
 
                     string lowerName = partName.ToLowerInvariant();
-                    if (IsMacroPart(lowerName)) macroCount++;
-                    if (IsEmbeddedPart(lowerName)) embeddedCount++;
-                    if (IsActiveXPart(lowerName)) activeXCount++;
+                    if (IsMacroPart(lowerName)) macroParts.Add(partName);
+                    if (IsEmbeddedPart(lowerName)) embeddedParts.Add(partName);
+                    if (IsActiveXPart(lowerName)) activeXParts.Add(partName);
                     if (IsDigitalSignaturePart(lowerName)) signatureCount++;
 
-                    if (entry.FullName.EndsWith(RelationshipSuffix, StringComparison.OrdinalIgnoreCase)
-                        && partBytes <= options.MaxPartUncompressedBytes) {
-                        externalCount += InspectRelationships(entry, partName, findings);
+                    bool safeToInspect = !unsafePartName
+                        && partBytes <= options.MaxPartUncompressedBytes
+                        && ratio <= options.MaxCompressionRatio;
+                    if (safeToInspect) {
+                        if (string.Equals(partName, "/[Content_Types].xml", StringComparison.OrdinalIgnoreCase)) {
+                            contentTypesPart = new ZipXmlPart(entry, partName);
+                        } else if (entry.FullName.EndsWith(RelationshipSuffix, StringComparison.OrdinalIgnoreCase)) {
+                            relationshipParts.Add(new ZipXmlPart(entry, partName));
+                        }
+                    }
+                }
+
+                if (partCount <= options.MaxPartCount && totalBytes <= options.MaxTotalUncompressedBytes) {
+                    if (contentTypesPart != null) {
+                        InspectContentTypes(contentTypesPart, partNames, macroParts, embeddedParts, activeXParts, findings);
+                    }
+                    foreach (ZipXmlPart relationshipPart in relationshipParts) {
+                        externalCount += InspectRelationships(
+                            relationshipPart.Entry,
+                            relationshipPart.PartName,
+                            macroParts,
+                            embeddedParts,
+                            activeXParts,
+                            findings);
                     }
                 }
             } catch (Exception exception) when (exception is InvalidDataException || exception is IOException
@@ -198,6 +222,9 @@ namespace OfficeIMO.Drawing {
                 options.MaxPartCount, "Package part count");
             AddLimitFinding(findings, OfficePackageSecurityRule.TotalUncompressedSize, totalBytes,
                 options.MaxTotalUncompressedBytes, "Total uncompressed package size");
+            int macroCount = macroParts.Count;
+            int embeddedCount = embeddedParts.Count;
+            int activeXCount = activeXParts.Count;
             AddPolicyFinding(findings, options.Macros, OfficePackageSecurityRule.Macros, macroCount,
                 "VBA project part");
             AddPolicyFinding(findings, options.EmbeddedPayloads, OfficePackageSecurityRule.EmbeddedPayloads,
@@ -285,24 +312,31 @@ namespace OfficeIMO.Drawing {
                 0, 0, findings.ToArray());
         }
 
-        private static int InspectRelationships(ZipArchiveEntry entry, string partName,
+        private static int InspectRelationships(
+            ZipArchiveEntry entry,
+            string partName,
+            ISet<string> macroParts,
+            ISet<string> embeddedParts,
+            ISet<string> activeXParts,
             ICollection<OfficePackageSecurityFinding> findings) {
             int externalCount = 0;
             try {
-                var settings = new XmlReaderSettings {
-                    DtdProcessing = DtdProcessing.Prohibit,
-                    XmlResolver = null,
-                    IgnoreComments = true,
-                    IgnoreWhitespace = true,
-                    MaxCharactersInDocument = Math.Max(1024L, entry.Length + 1L)
-                };
                 using Stream stream = entry.Open();
-                using XmlReader reader = XmlReader.Create(stream, settings);
+                using XmlReader reader = XmlReader.Create(stream, CreateSecureXmlSettings(entry.Length));
                 while (reader.Read()) {
                     if (reader.NodeType != XmlNodeType.Element
                         || !string.Equals(reader.LocalName, "Relationship", StringComparison.Ordinal)) continue;
                     string? targetMode = reader.GetAttribute("TargetMode");
-                    if (string.Equals(targetMode, "External", StringComparison.OrdinalIgnoreCase)) externalCount++;
+                    if (string.Equals(targetMode, "External", StringComparison.OrdinalIgnoreCase)) {
+                        externalCount++;
+                        continue;
+                    }
+
+                    string? relationshipType = reader.GetAttribute("Type");
+                    string? target = reader.GetAttribute("Target");
+                    string? targetPart = ResolveRelationshipTarget(partName, target);
+                    string classificationKey = targetPart ?? partName + "#" + (target ?? string.Empty);
+                    AddRelationshipClassification(relationshipType, classificationKey, macroParts, embeddedParts, activeXParts);
                 }
             } catch (Exception exception) when (exception is XmlException || exception is InvalidDataException
                 || exception is IOException) {
