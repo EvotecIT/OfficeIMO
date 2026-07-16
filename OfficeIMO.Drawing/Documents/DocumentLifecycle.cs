@@ -26,4 +26,10 @@ public class DocumentCreateOptions {
 public class DocumentLoadOptions : DocumentCreateOptions {
     /// <summary>Controls whether the loaded document may be modified.</summary>
     public DocumentAccessMode AccessMode { get; set; } = DocumentAccessMode.ReadWrite;
+
+    /// <summary>
+    /// Provides optional package resource limits and active-content policies. When omitted, loading retains
+    /// the historical compatibility behavior.
+    /// </summary>
+    public OfficePackageSecurityOptions? PackageSecurity { get; set; }
 }

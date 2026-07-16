@@ -234,6 +234,9 @@ namespace OfficeIMO.Excel {
             if (bytes == null) throw new ArgumentNullException(nameof(bytes));
             if (options == null) throw new ArgumentNullException(nameof(options));
             OfficeDocumentLifecycle.Validate(options.AccessMode, options.PersistenceMode, "workbook");
+            if (options.PackageSecurity != null) {
+                OfficePackageSecurityInspector.Validate(bytes, options.PackageSecurity);
+            }
 
             bool readOnly = options.AccessMode == DocumentAccessMode.ReadOnly;
             bool saveOnDispose = options.PersistenceMode == DocumentPersistenceMode.SaveOnDispose;
@@ -292,12 +295,18 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private static byte[] ReadAllBytes(Stream stream) {
-            return OfficeStreamReader.ReadAllBytes(stream);
+        private static byte[] ReadAllBytes(Stream stream, OfficePackageSecurityOptions? securityOptions = null) {
+            return securityOptions == null
+                ? OfficeStreamReader.ReadAllBytes(stream)
+                : OfficePackageSecurityInspector.ReadBounded(stream, securityOptions);
         }
 
-        private static async Task<byte[]> ReadAllBytesAsync(Stream stream, CancellationToken cancellationToken) {
-            return await OfficeStreamReader.ReadAllBytesAsync(stream, cancellationToken).ConfigureAwait(false);
+        private static async Task<byte[]> ReadAllBytesAsync(Stream stream, CancellationToken cancellationToken,
+            OfficePackageSecurityOptions? securityOptions = null) {
+            return securityOptions == null
+                ? await OfficeStreamReader.ReadAllBytesAsync(stream, cancellationToken).ConfigureAwait(false)
+                : await OfficePackageSecurityInspector.ReadBoundedAsync(stream, securityOptions, cancellationToken)
+                    .ConfigureAwait(false);
         }
 
         private static void DisposeStream(Stream? stream) {
@@ -376,7 +385,11 @@ namespace OfficeIMO.Excel {
             }
 
             ExcelLoadOptions resolved = options ?? new ExcelLoadOptions();
-            var bytes = File.ReadAllBytes(filePath);
+            byte[] bytes;
+            using (var source = new FileStream(filePath, FileMode.Open, FileAccess.Read,
+                FileShare.ReadWrite | FileShare.Delete)) {
+                bytes = ReadAllBytes(source, resolved.PackageSecurity);
+            }
             return LoadFromByteArray(bytes, resolved, filePath);
         }
 
@@ -396,7 +409,14 @@ namespace OfficeIMO.Excel {
                 throw new FileNotFoundException($"File '{filePath}' doesn't exist.", filePath);
             }
 
-            var encryptedBytes = File.ReadAllBytes(filePath);
+            byte[] encryptedBytes;
+            using (var source = new FileStream(filePath, FileMode.Open, FileAccess.Read,
+                FileShare.ReadWrite | FileShare.Delete)) {
+                encryptedBytes = ReadAllBytes(source, resolved.PackageSecurity);
+            }
+            if (resolved.PackageSecurity != null) {
+                OfficePackageSecurityInspector.Validate(encryptedBytes, resolved.PackageSecurity);
+            }
             if (ExcelDocumentLoadRouting.IsEncryptedLegacyXls(encryptedBytes, filePath)) {
                 return LoadEncryptedLegacyXls(encryptedBytes, password);
             }
@@ -419,7 +439,7 @@ namespace OfficeIMO.Excel {
             OfficeDocumentLifecycle.Validate(resolved.AccessMode, resolved.PersistenceMode, "workbook");
             OfficeDocumentLifecycle.EnsureSaveOnDisposeDestination(stream, resolved.PersistenceMode, nameof(stream));
 
-            var bytes = ReadAllBytes(stream);
+            var bytes = ReadAllBytes(stream, resolved.PackageSecurity);
             return LoadFromByteArray(
                 bytes,
                 resolved,
@@ -442,7 +462,10 @@ namespace OfficeIMO.Excel {
             ExcelLoadOptions resolved = options ?? new ExcelLoadOptions();
             EnsureEncryptedLoadUsesExplicitPersistence(resolved);
 
-            var encryptedBytes = ReadAllBytes(stream);
+            var encryptedBytes = ReadAllBytes(stream, resolved.PackageSecurity);
+            if (resolved.PackageSecurity != null) {
+                OfficePackageSecurityInspector.Validate(encryptedBytes, resolved.PackageSecurity);
+            }
             if (ExcelDocumentLoadRouting.IsEncryptedLegacyXls(encryptedBytes, filePath: null)) {
                 return LoadEncryptedLegacyXls(encryptedBytes, password);
             }
@@ -501,7 +524,8 @@ namespace OfficeIMO.Excel {
             }
 
             ExcelLoadOptions resolved = options ?? new ExcelLoadOptions();
-            var bytes = await ReadAllBytesCompatAsync(filePath, cancellationToken).ConfigureAwait(false);
+            var bytes = await ReadAllBytesCompatAsync(filePath, cancellationToken, resolved.PackageSecurity)
+                .ConfigureAwait(false);
             return LoadFromByteArray(bytes, resolved, filePath);
         }
 
@@ -522,7 +546,11 @@ namespace OfficeIMO.Excel {
                 throw new FileNotFoundException($"File '{filePath}' doesn't exist.", filePath);
             }
 
-            var encryptedBytes = await ReadAllBytesCompatAsync(filePath, cancellationToken).ConfigureAwait(false);
+            var encryptedBytes = await ReadAllBytesCompatAsync(filePath, cancellationToken, resolved.PackageSecurity)
+                .ConfigureAwait(false);
+            if (resolved.PackageSecurity != null) {
+                OfficePackageSecurityInspector.Validate(encryptedBytes, resolved.PackageSecurity);
+            }
             if (ExcelDocumentLoadRouting.IsEncryptedLegacyXls(encryptedBytes, filePath)) {
                 return LoadEncryptedLegacyXls(encryptedBytes, password);
             }
@@ -546,7 +574,8 @@ namespace OfficeIMO.Excel {
             OfficeDocumentLifecycle.Validate(resolved.AccessMode, resolved.PersistenceMode, "workbook");
             OfficeDocumentLifecycle.EnsureSaveOnDisposeDestination(stream, resolved.PersistenceMode, nameof(stream));
 
-            var bytes = await ReadAllBytesAsync(stream, cancellationToken).ConfigureAwait(false);
+            var bytes = await ReadAllBytesAsync(stream, cancellationToken, resolved.PackageSecurity)
+                .ConfigureAwait(false);
             return LoadFromByteArray(
                 bytes,
                 resolved,
@@ -570,7 +599,11 @@ namespace OfficeIMO.Excel {
             ExcelLoadOptions resolved = options ?? new ExcelLoadOptions();
             EnsureEncryptedLoadUsesExplicitPersistence(resolved);
 
-            var encryptedBytes = await ReadAllBytesAsync(stream, cancellationToken).ConfigureAwait(false);
+            var encryptedBytes = await ReadAllBytesAsync(stream, cancellationToken, resolved.PackageSecurity)
+                .ConfigureAwait(false);
+            if (resolved.PackageSecurity != null) {
+                OfficePackageSecurityInspector.Validate(encryptedBytes, resolved.PackageSecurity);
+            }
             if (ExcelDocumentLoadRouting.IsEncryptedLegacyXls(encryptedBytes, filePath: null)) {
                 return LoadEncryptedLegacyXls(encryptedBytes, password);
             }
