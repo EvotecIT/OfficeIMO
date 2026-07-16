@@ -52,6 +52,12 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             LegacyXlsWritePreflight.ThrowIfUnsupported(document, sheets, fontTable, formulaNameIndex);
             LegacyXlsStyleTable styleTable = LegacyXlsStyleTable.Create(document, sheets, fontTable);
             ReserveWorksheetTabColors(sheets, fontTable);
+            var worksheetCells = new List<LegacyXlsCell>[sheets.Length];
+            for (int i = 0; i < sheets.Length; i++) {
+                worksheetCells[i] = ExtractCells(sheets[i], document.WorkbookPartRoot, i, styleTable, document.DateSystem, formulaNameIndex, fontTable);
+            }
+
+            LegacyXlsSharedStringTable sharedStrings = LegacyXlsSharedStringTable.Create(worksheetCells);
 
             using var stream = new MemoryStream();
             WriteRecord(stream, 0x0809, WorkbookGlobalsBof);
@@ -138,11 +144,12 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                 }
             }
 
+            sharedStrings.WriteRecords(stream);
             WriteRecord(stream, 0x000a, Array.Empty<byte>());
 
             for (int i = 0; i < sheets.Length; i++) {
                 int sheetOffset = checked((int)stream.Position);
-                WriteWorksheet(stream, document.WorkbookPartRoot, sheets[i], i, styleTable, document.DateSystem, formulaNameIndex, fontTable);
+                WriteWorksheet(stream, sheets[i], i, worksheetCells[i], sharedStrings, styleTable, document.DateSystem, formulaNameIndex, fontTable);
 
                 long patchOffset = boundSheetPositions[i] + 4;
                 long currentPosition = stream.Position;
@@ -156,14 +163,14 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
 
         private static void WriteWorksheet(
             Stream stream,
-            WorkbookPart workbookPart,
             ExcelSheet sheet,
             int sheetIndex,
+            List<LegacyXlsCell> cells,
+            LegacyXlsSharedStringTable sharedStrings,
             LegacyXlsStyleTable styleTable,
             ExcelDateSystem dateSystem,
             LegacyXlsFormulaNameIndex formulaNameIndex,
             LegacyXlsFontTable fontTable) {
-            List<LegacyXlsCell> cells = ExtractCells(sheet, workbookPart, sheetIndex, styleTable, dateSystem, formulaNameIndex, fontTable);
             LegacyXlsWorksheetLayout layout = ExtractWorksheetLayout(sheet, styleTable);
             WriteRecord(stream, 0x0809, WorksheetBof);
             string? worksheetCodeName = sheet.WorksheetPart.Worksheet!.GetFirstChild<SheetProperties>()?.CodeName?.Value;
@@ -274,7 +281,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                         break;
                     case LegacyXlsCellKind.FormulaText:
                         WriteRecord(stream, 0x0006, BuildFormulaStringPayload(cell.Row, cell.Column, cell.StyleIndex, cell.FormulaTokens, cell.FormulaExtraData));
-                        WriteRecord(stream, 0x0207, BuildStringPayload(cell.TextValue ?? string.Empty));
+                        WriteFormulaCachedStringRecords(stream, cell.TextValue ?? string.Empty);
                         WriteFormulaFollowUpRecords(stream, cell);
                         break;
                     case LegacyXlsCellKind.FormulaError:
@@ -288,7 +295,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                         WriteRecord(stream, 0x0205, BuildErrorPayload(cell.Row, cell.Column, cell.ErrorValue, cell.StyleIndex));
                         break;
                     case LegacyXlsCellKind.Text:
-                        WriteRecord(stream, 0x0204, BuildLabelPayload(cell.Row, cell.Column, cell.TextValue ?? string.Empty, cell.StyleIndex, cell.TextFormattingRuns));
+                        WriteRecord(stream, 0x00fd, BuildLabelSstPayload(cell.Row, cell.Column, cell.StyleIndex, sharedStrings.GetIndex(sheetIndex, cell.Row, cell.Column)));
                         break;
                 }
             }
@@ -810,13 +817,13 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
         }
 
         private static void EnsureSupportedLabelTextLength(string text, string address) {
-            if (text.Length > ushort.MaxValue || 9L + GetEncodedStringByteCount(text) > BiffMaxRecordDataLength) {
+            if (text.Length > 32767) {
                 throw new NotSupportedException($"Native XLS saving does not yet support cell text lengths outside BIFF8 limits at {address}. Save as .xlsx or shorten this cell before saving as .xls.");
             }
         }
 
         private static void EnsureSupportedFormulaTextLength(string text, string address) {
-            if (text.Length > ushort.MaxValue || 3L + GetEncodedStringByteCount(text) > BiffMaxRecordDataLength) {
+            if (text.Length > 32767) {
                 throw new NotSupportedException($"Native XLS saving does not yet support cached formula text lengths outside BIFF8 limits at {address}. Save as .xlsx or shorten this cached result before saving as .xls.");
             }
         }
@@ -1009,32 +1016,6 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             return stream.ToArray();
         }
 
-        private static byte[] BuildLabelPayload(ushort row, ushort column, string text, ushort styleIndex, IReadOnlyList<LegacyXlsTextFormattingRun>? formattingRuns = null) {
-            IReadOnlyList<LegacyXlsTextFormattingRun> runs = formattingRuns ?? Array.Empty<LegacyXlsTextFormattingRun>();
-            byte[] textBytes = EncodeUnicodeString(text, out byte flags);
-            if (runs.Count > 0) {
-                flags |= 0x08;
-            }
-
-            using var stream = new MemoryStream();
-            WriteUInt16(stream, row);
-            WriteUInt16(stream, column);
-            WriteUInt16(stream, styleIndex);
-            WriteUInt16(stream, checked((ushort)text.Length));
-            stream.WriteByte(flags);
-            if (runs.Count > 0) {
-                WriteUInt16(stream, checked((ushort)runs.Count));
-            }
-
-            stream.Write(textBytes, 0, textBytes.Length);
-            foreach (LegacyXlsTextFormattingRun run in runs) {
-                WriteUInt16(stream, run.StartCharacter);
-                WriteUInt16(stream, run.FontIndex);
-            }
-
-            return stream.ToArray();
-        }
-
         private static byte[] BuildBlankPayload(ushort row, ushort column, ushort styleIndex) {
             using var stream = new MemoryStream();
             WriteUInt16(stream, row);
@@ -1136,15 +1117,6 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
 
         private static bool TryBuildSharedFormulaTokens(byte[] formulaTokens, ushort anchorRow, ushort anchorColumn, out byte[] sharedFormulaTokens) {
             return LegacyXlsFormulaEncoder.TryConvertReferencesToRelative(formulaTokens, anchorRow, anchorColumn, out sharedFormulaTokens);
-        }
-
-        private static byte[] BuildStringPayload(string text) {
-            byte[] textBytes = EncodeUnicodeString(text, out byte flags);
-            using var stream = new MemoryStream();
-            WriteUInt16(stream, checked((ushort)text.Length));
-            stream.WriteByte(flags);
-            stream.Write(textBytes, 0, textBytes.Length);
-            return stream.ToArray();
         }
 
         private static byte[] BuildBoolErrPayload(ushort row, ushort column, bool value, ushort styleIndex) {
@@ -1826,12 +1798,6 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             }
 
             return true;
-        }
-
-        private static long GetEncodedStringByteCount(string text) {
-            return CanUseCompressedString(text)
-                ? text.Length
-                : (long)text.Length * 2L;
         }
 
         private static void WriteRecord(Stream stream, ushort type, byte[] payload) {

@@ -1773,7 +1773,7 @@ namespace OfficeIMO.Tests {
                 cell.DataType = CellValues.InlineString;
                 cell.RemoveAllChildren<CellValue>();
                 cell.RemoveAllChildren<InlineString>();
-                cell.Append(new InlineString(new Text(new string('T', 9000))));
+                cell.Append(new InlineString(new Text(new string('T', 32768))));
                 sheet.WorksheetPart.Worksheet.Save();
             });
         }
@@ -1788,7 +1788,7 @@ namespace OfficeIMO.Tests {
                 cell.CellFormula = new CellFormula("1");
                 cell.RemoveAllChildren<CellValue>();
                 cell.RemoveAllChildren<InlineString>();
-                cell.Append(new CellValue(new string('F', 9000)));
+                cell.Append(new CellValue(new string('F', 32768)));
                 sheet.WorksheetPart.Worksheet.Save();
             });
         }

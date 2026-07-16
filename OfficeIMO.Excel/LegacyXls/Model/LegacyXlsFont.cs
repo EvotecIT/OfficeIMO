@@ -6,7 +6,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         /// <summary>
         /// Creates a parsed legacy XLS font.
         /// </summary>
-        /// <param name="fontIndex">Zero-based position in the Font record collection.</param>
+        /// <param name="fontIndex">BIFF FontIndex value, which skips the reserved value 4.</param>
         /// <param name="name">Font family name.</param>
         /// <param name="size">Font size in points, when present.</param>
         /// <param name="colorIndex">Legacy IcvFont color index.</param>
@@ -57,7 +57,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         }
 
         /// <summary>
-        /// Gets the zero-based position in the Font record collection.
+        /// Gets the BIFF FontIndex value, which skips the reserved value 4.
         /// </summary>
         public ushort FontIndex { get; }
 
