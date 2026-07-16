@@ -58,6 +58,32 @@ Reader normally computes source and chunk hashes. This adapter leaves complete-s
 because hashing a huge PST/OST would force a full sequential read even for a selective query. Chunk hashes still
 follow `ReaderOptions.ComputeHashes`. Set `ComputeSourceHash = true` only when the host explicitly wants that cost.
 
+For ingestion pipelines, stream one selected store item at a time instead of returning one aggregate result:
+
+```csharp
+var options = new ReaderEmailStoreOptions {
+    MaxItems = 10_000,
+    StreamAttachmentContent = true,
+    StoreOptions = new OfficeIMO.Email.Store.EmailStoreReaderOptions(
+        retainAttachmentContent: false)
+};
+
+foreach (ReaderEmailStoreItemResult item in reader.ReadEmailStoreItems(
+    "archive.pst",
+    new ReaderOptions { ComputeHashes = false },
+    options)) {
+    foreach (ReaderChunk chunk in item.Chunks) {
+        Console.WriteLine($"{chunk.Id}: {chunk.Text.Length} characters");
+    }
+}
+```
+
+The enumeration owns the store session and disposes it when enumeration ends, so consume any deferred attachment
+content before moving that work outside the loop. HTML and RTF bodies use Reader's registered semantic handlers;
+recognized attachments use the same modular extraction path as standalone files. `ItemDiagnostics` determines
+`Succeeded`. Store-open and hierarchy diagnostics appear once on the first result as `StoreDiagnostics`, while
+`Diagnostics` remains the combined view.
+
 The implementation is fully managed and does not add a native or third-party email parser.
 
 ## Boundaries
@@ -67,3 +93,6 @@ The implementation is fully managed and does not add a native or third-party ema
 - `OfficeIMO.Reader` continues to handle individual EML, MSG, OFT, TNEF, and mbox artifacts without this package.
 
 Targets: `netstandard2.0`, `net8.0`, `net10.0`; `net472` is included when building on Windows.
+
+Direct NuGet dependencies are `OfficeIMO.Reader` and `OfficeIMO.Email.Store`. The adapter adds no parser, native
+runtime, Outlook automation, or third-party email-store dependency of its own.

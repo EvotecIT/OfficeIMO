@@ -56,6 +56,62 @@ attachments. The default source limit is 1 TiB and can be changed explicitly. Th
 512 B-tree pages. One selected item is still subject to per-item, property, and attachment limits; use
 `retainAttachmentContent: false` for metadata/text ingestion so projected items do not retain attachment payloads.
 
+Body, recipient, and attachment-name search is also bounded and resumable. It returns the matched fields, a
+plain-text snippet, progress counts, diagnostics for skipped items, and a checkpoint for the next batch:
+
+```csharp
+EmailStoreContentSearchCheckpoint? checkpoint = null;
+do {
+    EmailStoreContentSearchReport batch = session.SearchContent(
+        new EmailStoreContentQuery(
+            new[] { "invoice", "contoso" },
+            fields: EmailStoreContentSearchFields.Bodies |
+                    EmailStoreContentSearchFields.AttachmentNames,
+            matchMode: EmailStoreContentMatchMode.AllTerms,
+            maxItemsScanned: 5_000,
+            maxResults: 100,
+            maxDecodedPropertyBytesPerItem: 16L * 1024 * 1024,
+            maxSearchableCharactersPerItem: 500_000,
+            resumeFrom: checkpoint));
+
+    foreach (EmailStoreContentSearchResult match in batch.Results) {
+        Console.WriteLine($"{match.Summary.Subject}: {match.Snippet}");
+    }
+    checkpoint = batch.NextCheckpoint;
+} while (checkpoint != null);
+```
+
+Checkpoints are offsets in the chosen enumeration, so keep the same metadata filter and inclusion options between
+batches. Reusing the same open session also reuses its bounded PST/OST page cache.
+
+## Select item parts and stream attachments
+
+`ReadItem` can load metadata, bodies, recipients, attachment metadata, attachment content, embedded items, or
+extended MAPI properties independently. Attachment content can remain behind a reopenable, forward-only stream:
+
+```csharp
+var storeOptions = new EmailStoreReaderOptions(retainAttachmentContent: false);
+using EmailStoreSession session = EmailStoreSession.Open("mailbox.ost", storeOptions);
+
+EmailStoreItemReference reference = session.EnumerateItems(
+    new EmailStoreEnumerationOptions(maxItems: 1)).Single();
+EmailStoreItem item = session.ReadItem(reference, new EmailStoreItemReadOptions(
+    EmailStoreItemReadParts.Metadata |
+    EmailStoreItemReadParts.Bodies |
+    EmailStoreItemReadParts.AttachmentMetadata |
+    EmailStoreItemReadParts.AttachmentContent,
+    maxDecodedPropertyBytes: 16L * 1024 * 1024,
+    preferStreamingAttachmentContent: true));
+
+foreach (OfficeIMO.Email.EmailAttachment attachment in item.Document.Attachments) {
+    using Stream content = attachment.OpenContentStream();
+    // Copy or inspect the payload while the EmailStoreSession remains open.
+}
+```
+
+Opening a deferred attachment stream does not decode its payload. Bytes are pulled as the caller reads. The stream
+becomes invalid when its owning session is disposed.
+
 Use `EmailStoreReader` when the application explicitly wants the complete configured store scope in memory:
 
 ```csharp
@@ -93,6 +149,12 @@ EmailStoreReadResult result = new EmailStoreReader().Read("export.olm");
 
 PST and OST MAPI properties use the same projections as MSG and OFT, so messages, appointments, contacts, tasks, journals, notes, recipients, attachments, and named properties do not acquire a second public model.
 
+Folder metadata includes `SpecialFolderKind`, the `ClassificationSource` used to establish it, the MAPI
+`ContainerClass`, and `IsSearchFolder`. Provider identifiers take precedence; localized display-name matching is an
+explicit fallback. Selected items expose `ContentAvailability`, separating requested parts that are available,
+unavailable, or indeterminate. This matters for OST headers and other content that was never cached locally, and
+for partial EMLX artifacts whose sibling content is absent.
+
 PST/OST and mailbox-directory sessions are lazy. Single EMLX input contains one item. OLM currently validates and
 materializes its bounded ZIP/XML archive when the session opens; query, validation, and export then use the same
 session contracts.
@@ -108,7 +170,11 @@ EmailStoreInspectionReport inspection = session.Inspect();
 EmailStoreValidationReport validation = session.Validate(
     new EmailStoreValidationOptions(
         mode: EmailStoreValidationMode.Summaries,
-        maxItems: 100_000));
+        maxItems: 100_000,
+        verifyStructuralIntegrity: true,
+        maxStructuralPages: 100_000,
+        maxStructuralBlocks: 100_000,
+        maxStructuralBytes: 1024L * 1024 * 1024));
 
 EmailStoreRecoveryReport recovery = session.DiscoverRecoverableItems(
     new EmailStoreRecoveryOptions(
@@ -118,7 +184,10 @@ EmailStoreRecoveryReport recovery = session.DiscoverRecoverableItems(
 
 `Shallow` validation covers the header, indexes, and folder catalog. `Summaries` selectively decodes browsing
 properties. `FullItems` projects bodies, recipients, and attachment metadata/content according to reader options.
-A configured limit produces an incomplete report, not a false corruption claim.
+A configured limit produces an incomplete report, not a false corruption claim. Opt-in PST/OST structural
+validation checks BBT/NBT page layout and ordering, page and block bounds, BIDs, signatures, CRCs, and 4K OST stored
+and decoded lengths. Page, block, and byte ceilings are reported separately, including whether validation stopped
+at a bound.
 
 ## Export and migration
 
@@ -172,6 +241,8 @@ Set `PstPassword` only when a protected PST requires checksum validation. Passwo
 
 - Targets: `netstandard2.0`, `net8.0`, `net10.0`; `net472` is included when building on Windows.
 - External parser dependencies: none.
-- OfficeIMO dependency: `OfficeIMO.Email`.
+- Direct first-party dependencies: `OfficeIMO.Email` and `OfficeIMO.Rtf`.
+- `OfficeIMO.Email` carries Microsoft's `System.Text.Encoding.CodePages` compatibility package for legacy message
+  encodings; no Outlook installation, native component, or third-party PST/OST/OLM parser is used.
 
 See the [complete OfficeIMO package map](../README.md) for related formats and Reader adapters.

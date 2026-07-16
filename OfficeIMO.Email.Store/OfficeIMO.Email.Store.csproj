@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <Description>Dependency-free, large-store PST, OST, OLM, and EMLX access for OfficeIMO.Email items.</Description>
+    <Description>Fully managed, large-store PST, OST, OLM, and EMLX access for OfficeIMO.Email items with no third-party store parser.</Description>
     <AssemblyName>OfficeIMO.Email.Store</AssemblyName>
     <AssemblyTitle>OfficeIMO.Email.Store</AssemblyTitle>
     <VersionPrefix>2.0.1</VersionPrefix>

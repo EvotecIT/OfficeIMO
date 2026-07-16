@@ -14,6 +14,28 @@ OFT is an individual Outlook template, not a mailbox store. It stays in `OfficeI
 export a selected store item as OFT, but it does not own the OFT format. MIME primitives also remain inside
 `OfficeIMO.Email`; a separate public MIME package is not needed by this design.
 
+## Outlook data beyond message stores
+
+OAB data is an offline directory snapshot, not a mailbox container. It should not be parsed by
+`OfficeIMO.Email.Store`, and an address-book entry should not be disguised as an `EmailDocument`. A future sibling
+package, provisionally `OfficeIMO.Outlook.AddressBook`, can own OAB file-set discovery, bounded entry and
+distribution-list enumeration, indexed search, raw property retention, and projection into shared OfficeIMO
+address/contact models where the semantics match. A Reader adapter would likewise be an address-book adapter, not
+an `OfficeIMO.Reader.EmailStore` format registration.
+
+The same ownership test applies to other Outlook-local data:
+
+- OFT is already an individual Outlook item and stays in `OfficeIMO.Email`.
+- Signatures and stationery are HTML/RTF/text resource sets and belong with an Outlook-profile resource owner if a
+  reusable workflow requires them.
+- Autocomplete caches, account/profile settings, synchronization state, and search indexes are profile or cache
+  artifacts. They need their own evidence, safety limits, and public models before a package claims support.
+- Exchange or Microsoft 365 directory synchronization remains a network/provider concern; an offline OAB reader
+  must not grow authentication or tenant administration behavior.
+
+This leaves a clean extension seam without making completion of PST/OST/OLM/EMLX support depend on unrelated
+profile formats.
+
 ## Large-store contract
 
 `EmailStoreSession` is the primary PST/OST API. Opening builds a lightweight folder catalog while NBT entries are
