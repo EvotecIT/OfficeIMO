@@ -164,7 +164,18 @@ public sealed class EpubReference {
         }
 
         if (relativePath.Length == 0) {
-            if (isRootRelative) return Invalid(original, EpubReferenceError.InvalidPath);
+            if (isRootRelative) {
+                return Valid(
+                    original,
+                    EpubReferenceKind.Container,
+                    string.Empty,
+                    null,
+                    query,
+                    fragment,
+                    encodedFragment,
+                    true,
+                    false);
+            }
             if (!TryNormalizeBasePath(normalizedBase, out string currentPath)) {
                 return Invalid(original, EpubReferenceError.InvalidBasePath);
             }
@@ -194,7 +205,18 @@ public sealed class EpubReference {
             segments.Add(decodedSegment);
         }
 
-        if (segments.Count == 0) return Invalid(original, EpubReferenceError.InvalidPath);
+        if (segments.Count == 0) {
+            return Valid(
+                original,
+                EpubReferenceKind.Container,
+                string.Empty,
+                null,
+                query,
+                fragment,
+                encodedFragment,
+                isRootRelative,
+                !isRootRelative);
+        }
         return Valid(
             original,
             EpubReferenceKind.Container,
@@ -255,7 +277,9 @@ public sealed class EpubReference {
                 resolvedBase.IsConforming);
         }
         if (basePathPart.EndsWith("/", StringComparison.Ordinal)) {
-            effectiveBase = effectiveBase.TrimEnd('/') + "/__officeimo_epub_base__";
+            effectiveBase = effectiveBase.Length == 0
+                ? "__officeimo_epub_base__"
+                : effectiveBase.TrimEnd('/') + "/__officeimo_epub_base__";
         }
         EpubReference result = Resolve(effectiveBase, original);
         return resolvedBase.IsConforming || !result.IsValid

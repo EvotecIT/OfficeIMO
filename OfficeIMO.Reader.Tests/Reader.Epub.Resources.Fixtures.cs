@@ -41,7 +41,7 @@ public sealed partial class ReaderEpubModularTests {
             "<img src=\"/EPUB/shared/images/root.png\" alt=\"Root image\"/>" +
             "<img src=\"https://cdn.example/remote.png\" alt=\"Remote image\"/>" +
             "<img src=\"data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==\" alt=\"Inline\"/>" +
-            "<audio src=\"audio/chapter.mp3\">Audio fallback</audio>" +
+            "<audio><source src=\"audio/chapter.mp3\" type=\"audio/mpeg\"/>Audio fallback</audio>" +
             "<video src=\"video/clip.mp4#clip\">Video fallback</video>" +
             "</body></html>");
         WriteResolvedResourceEntry(

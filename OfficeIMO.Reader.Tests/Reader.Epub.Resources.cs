@@ -57,9 +57,10 @@ public sealed partial class ReaderEpubModularTests {
             Assert.Equal("audio", audio.Kind);
             Assert.Equal("audio/mpeg", audio.MediaType);
             Assert.Contains(result.Pages[0].Assets, asset => ReferenceEquals(asset, audio));
-            Assert.Contains(result.Visuals, visual =>
+            ReaderVisual audioVisual = Assert.Single(result.Visuals, visual =>
                 visual.Language == "audio" &&
                 visual.SourceName == prefix + "EPUB/shared/audio/chapter.mp3");
+            Assert.Equal("audio/mpeg", audioVisual.MimeType);
 
             OfficeDocumentAsset video = Assert.Single(result.Assets, asset => asset.SourceObjectId == "video");
             Assert.Equal("video", video.Kind);

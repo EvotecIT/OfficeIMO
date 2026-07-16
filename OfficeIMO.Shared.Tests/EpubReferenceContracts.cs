@@ -114,6 +114,22 @@ public sealed class EpubReferenceContractTests {
         Assert.Equal("https://cdn.example/book/audio/chapter.mp3", external.ResolvedValue);
     }
 
+    [Theory]
+    [InlineData("/", false)]
+    [InlineData("./", true)]
+    public void Resolve_AppliesContainerRootHtmlBaseHref(string baseHref, bool isConforming) {
+        EpubReference reference = EpubReference.Resolve(
+            "chapter.xhtml",
+            baseHref,
+            "images/cover.png");
+
+        Assert.Equal(EpubReferenceKind.Container, reference.Kind);
+        Assert.Equal(EpubReferenceError.None, reference.Error);
+        Assert.Equal("images/cover.png", reference.ContainerPath);
+        Assert.Equal("images/cover.png", reference.ResolvedValue);
+        Assert.Equal(isConforming, reference.IsConforming);
+    }
+
     [Fact]
     public void Resolve_BindsFragmentOnlyReferenceToDirectoryBaseAndPreservesBaseQuery() {
         EpubReference directory = EpubReference.Resolve(
