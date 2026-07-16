@@ -3,7 +3,7 @@
 [![nuget version](https://img.shields.io/nuget/v/OfficeIMO.Excel)](https://www.nuget.org/packages/OfficeIMO.Excel)
 [![nuget downloads](https://img.shields.io/nuget/dt/OfficeIMO.Excel?label=nuget%20downloads)](https://www.nuget.org/packages/OfficeIMO.Excel)
 
-`OfficeIMO.Excel` is the main Excel package in the OfficeIMO family. It creates, edits, reads, converts, and saves `.xlsx` workbooks without COM automation and without Microsoft Excel installed. It can also open BIFF8 legacy binary `.xls` workbooks, project supported content into the normal OfficeIMO Excel model, and save a native `.xls` subset through the first-party BIFF writer.
+`OfficeIMO.Excel` is the main Excel package in the OfficeIMO family. It creates, edits, reads, converts, and saves `.xlsx` workbooks without COM automation and without Microsoft Excel installed. It also opens BIFF8 `.xls` and BIFF12 `.xlsb` workbooks, projects supported content into the normal OfficeIMO model, and provides first-party native writer subsets with explicit preservation and loss diagnostics.
 
 If OfficeIMO saves you time, please consider supporting the work through [GitHub Sponsors](https://github.com/sponsors/PrzemyslawKlys) or [PayPal](https://paypal.me/PrzemyslawKlys). PowerShell users should use [PSWriteOffice](https://github.com/EvotecIT/PSWriteOffice) for the PowerShell-facing experience.
 
@@ -37,6 +37,7 @@ document.Save();
 - Reads values through worksheet, range, row, dictionary, stream, and typed object helpers.
 - Supports editable row workflows where rows can be read, changed, and saved back.
 - Handles practical workbook hygiene such as table/filter conflicts, safe table names, deterministic save order, and feature inspection.
+- Applies optional shared package-security policy before parsing Open XML, XLSB, or compound XLS files.
 - Includes parallel execution controls for heavy export and autofit workloads while serializing the Open XML mutation phase safely.
 
 ## Competitive performance with workbook features
@@ -118,6 +119,35 @@ legacy sources with unsupported or preserve-only content by default. Set
 only after reviewing that loss. See
 [XLS and XLSX compatibility](../Docs/officeimo.excel.legacy-xls-roadmap.md) for
 the current capability matrix, safety contract, and breaking API migration.
+
+### Work with XLSB workbooks
+
+```csharp
+using OfficeIMO.Excel;
+using OfficeIMO.Excel.Xlsb;
+
+using var document = ExcelDocument.Load(
+    "source.xlsb",
+    new ExcelLoadOptions {
+        XlsbImportOptions = new XlsbImportOptions { MaxCells = 2_000_000 }
+    });
+
+document["Data"].CellValue(2, 2, 1250m);
+document.Save("edited.xlsb");
+
+ExcelDocument.Convert("source.xlsb", "editable.xlsx");
+```
+
+XLSB detection uses package content rather than trusting the extension. The
+importer projects supported values, formulas, styles, dates, geometry, views,
+merges, names, and hyperlinks while retaining unknown BIFF12 records and
+unmodified package parts. Supported cell edits use a native preservation-aware
+rewrite. Unsupported mutations and save-time transforms fail before output is
+written, so `.xlsx` bytes are never disguised as `.xlsb`.
+
+For untrusted files, capability preflight, macro and embedded-payload handling,
+and DOC/XLS/XLSB loss policies, see the
+[Word and Excel interoperability guide](../Docs/officeimo.word-excel-interoperability.md).
 
 ### Map rows to objects
 

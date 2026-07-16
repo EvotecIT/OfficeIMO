@@ -762,12 +762,50 @@ jobs:
         shell: pwsh
         run: ./Build/Test-ExcelImageVisualGate.ps1 -Configuration ${{ env.BUILD_CONFIGURATION }} -Framework net8.0 -Suite Smoke -NoRestore -NoBuild
 
+  office-interoperability-gate:
+    name: 'Word and Excel interoperability gate'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v5
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+
+      - name: Restore interoperability test dependencies
+        run: |
+          dotnet restore OfficeIMO.Drawing.Tests/OfficeIMO.Drawing.Tests.csproj
+          dotnet restore OfficeIMO.Excel.Tests/OfficeIMO.Excel.Tests.csproj
+          dotnet restore OfficeIMO.Word.Tests/OfficeIMO.Word.Tests.csproj
+
+      - name: Build interoperability test projects
+        run: |
+          dotnet build OfficeIMO.Drawing.Tests/OfficeIMO.Drawing.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework net8.0 --no-restore
+          dotnet build OfficeIMO.Excel.Tests/OfficeIMO.Excel.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework net8.0 --no-restore
+          dotnet build OfficeIMO.Word.Tests/OfficeIMO.Word.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework net8.0 --no-restore
+
+      - name: Run Word and Excel interoperability gate
+        shell: pwsh
+        run: ./Build/Test-OfficeInteroperabilityGate.ps1 -Configuration ${{ env.BUILD_CONFIGURATION }} -Framework net8.0 -Suite Full -NoRestore -NoBuild
+
   test-ubuntu:
     name: 'Ubuntu'
     runs-on: ubuntu-latest
     needs:
       - test-ubuntu-matrix
       - excel-image-visual-gate
+      - office-interoperability-gate
     if: always()
     steps:
       - name: Check Ubuntu test matrix
@@ -778,6 +816,10 @@ jobs:
           fi
           if [ "${{ needs.excel-image-visual-gate.result }}" != "success" ]; then
             echo "Excel image visual gate result: ${{ needs.excel-image-visual-gate.result }}"
+            exit 1
+          fi
+          if [ "${{ needs.office-interoperability-gate.result }}" != "success" ]; then
+            echo "Word and Excel interoperability gate result: ${{ needs.office-interoperability-gate.result }}"
             exit 1
           fi
           echo "Ubuntu test matrix passed."
