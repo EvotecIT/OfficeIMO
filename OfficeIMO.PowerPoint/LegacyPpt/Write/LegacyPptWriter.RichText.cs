@@ -32,9 +32,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 return false;
             }
             P.TextBody body = shape.TextBody;
+            if (!TryReadTextFrameForWrite(textBox, out _, out reason)) {
+                return false;
+            }
             if (body.BodyProperties == null || body.ListStyle == null
-                || body.BodyProperties.HasAttributes
-                || body.BodyProperties.HasChildren
                 || body.ListStyle.HasAttributes || body.ListStyle.HasChildren
                 || body.ChildElements.Any(child => child is not A.BodyProperties
                     and not A.ListStyle and not A.Paragraph)) {

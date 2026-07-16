@@ -143,7 +143,8 @@ namespace OfficeIMO.PowerPoint {
                     PlaceholderValues? placeholder = MapPlaceholder(shape.PlaceholderKind);
                     if (placeholder.HasValue) textBox.PlaceholderType = placeholder.Value;
                     LegacyPptTextProjection.Apply(
-                        (DocumentFormat.OpenXml.Presentation.Shape)textBox.Element, shape.TextBody,
+                        (DocumentFormat.OpenXml.Presentation.Shape)textBox.Element,
+                        shape.TextBody, shape.TextFrame,
                         interaction => ProjectLegacyInteraction(slide.SlidePart, interaction,
                             slidePartsByLegacyId: slidePartsByLegacyId,
                             soundContext: soundContext));

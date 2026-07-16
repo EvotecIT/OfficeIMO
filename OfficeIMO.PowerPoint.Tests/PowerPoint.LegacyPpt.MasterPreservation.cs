@@ -97,6 +97,13 @@ namespace OfficeIMO.Tests {
                 .ParagraphProperties = new A.ParagraphProperties {
                 Alignment = A.TextAlignmentTypeValues.Center
             };
+            textBox.SetTextMarginsPoints(5, 6, 7, 8);
+            textBox.TextVerticalAlignment =
+                A.TextAnchoringTypeValues.Bottom;
+            textBox.TextDirection = A.TextVerticalValues.Vertical;
+            textBox.TextAutoFit = PowerPointTextAutoFit.None;
+            textShape.TextBody.BodyProperties!.Wrap =
+                A.TextWrappingValues.None;
             textBox.PlaceholderType = P.PlaceholderValues.Title;
             textBox.PlaceholderIndex = 3;
             textBox.PlaceholderSize = P.PlaceholderSizeValues.Half;
@@ -115,6 +122,14 @@ namespace OfficeIMO.Tests {
             Assert.Equal("OfficeIMO Master", savedRun.Typeface);
             Assert.Equal(LegacyPptTextAlignment.Center,
                 Assert.Single(savedShape.TextBody.ParagraphRuns).Alignment);
+            Assert.Equal(63500, savedShape.TextFrame.LeftInsetEmus);
+            Assert.Equal(76200, savedShape.TextFrame.TopInsetEmus);
+            Assert.Equal(88900, savedShape.TextFrame.RightInsetEmus);
+            Assert.Equal(101600, savedShape.TextFrame.BottomInsetEmus);
+            Assert.Equal(2U, savedShape.TextFrame.WrapMode);
+            Assert.Equal(2U, savedShape.TextFrame.AnchorMode);
+            Assert.Equal(1U, savedShape.TextFrame.TextFlow);
+            Assert.Equal(false, savedShape.TextFrame.FitShapeToText);
             Assert.Contains(saved.Fonts,
                 font => font.Typeface == "OfficeIMO Master");
             LegacyPptPlaceholder placeholder = Assert.IsType<
@@ -146,8 +161,20 @@ namespace OfficeIMO.Tests {
             Assert.Equal(3U, reopenedText.PlaceholderIndex);
             Assert.Equal(P.PlaceholderSizeValues.Half,
                 reopenedText.PlaceholderSize);
+            Assert.Equal(5D, reopenedText.TextMarginLeftPoints);
+            Assert.Equal(6D, reopenedText.TextMarginTopPoints);
+            Assert.Equal(7D, reopenedText.TextMarginRightPoints);
+            Assert.Equal(8D, reopenedText.TextMarginBottomPoints);
+            Assert.Equal(A.TextAnchoringTypeValues.Bottom,
+                reopenedText.TextVerticalAlignment);
+            Assert.Equal(A.TextVerticalValues.Vertical,
+                reopenedText.TextDirection);
+            Assert.Equal(PowerPointTextAutoFit.None,
+                reopenedText.TextAutoFit);
             P.Shape reopenedShape = Assert.IsType<P.Shape>(
                 reopenedText.Element);
+            Assert.Equal(A.TextWrappingValues.None,
+                reopenedShape.TextBody!.BodyProperties!.Wrap!.Value);
             A.Run reopenedRun = Assert.Single(reopenedShape.TextBody!
                 .Descendants<A.Run>());
             Assert.True(reopenedRun.RunProperties!.Bold!.Value);

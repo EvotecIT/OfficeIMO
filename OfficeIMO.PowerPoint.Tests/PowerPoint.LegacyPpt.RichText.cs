@@ -2,6 +2,7 @@ using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.LegacyPpt;
 using OfficeIMO.PowerPoint.LegacyPpt.Internal;
 using OfficeIMO.PowerPoint.LegacyPpt.Model;
+using OfficeIMO.PowerPoint.LegacyPpt.Write;
 using Xunit;
 using A = DocumentFormat.OpenXml.Drawing;
 using P = DocumentFormat.OpenXml.Presentation;
@@ -287,6 +288,171 @@ namespace OfficeIMO.Tests {
             Assert.Equal(A.TextUnderlineValues.Single,
                 paragraphs[1].Elements<A.Run>().Single()
                     .RunProperties!.Underline!.Value);
+            Assert.Empty(reopened.ValidateDocument());
+        }
+
+        [Fact]
+        public void NativeWriter_AuthorsTextFrameMarginsWrappingAnchorDirectionAndAutoFit() {
+            byte[] bytes;
+            using (PowerPointPresentation presentation = PowerPointPresentation
+                       .Create()) {
+                PowerPointTextBox textBox = presentation.AddSlide(
+                        P.SlideLayoutValues.Blank)
+                    .AddTextBoxPoints("Text frame", 30, 30, 240, 120)
+                    .SetTextMarginsPoints(8, 4, 6, 2);
+                textBox.TextVerticalAlignment =
+                    A.TextAnchoringTypeValues.Center;
+                textBox.TextDirection = A.TextVerticalValues.Vertical270;
+                textBox.TextAutoFit = PowerPointTextAutoFit.Shape;
+                A.BodyProperties body = Assert.IsType<P.Shape>(
+                    textBox.Element).TextBody!.BodyProperties!;
+                body.Wrap = A.TextWrappingValues.None;
+                body.AnchorCenter = true;
+
+                LegacyPptWritePreflightReport preflight = presentation
+                    .AnalyzeLegacyPptWrite();
+                Assert.True(preflight.CanWrite,
+                    string.Join(Environment.NewLine, preflight.Findings));
+                bytes = presentation.ToBytes(PowerPointFileFormat.Ppt);
+            }
+
+            LegacyPptPresentation binary = LegacyPptPresentation.Load(bytes);
+            LegacyPptShape binaryShape = Assert.Single(
+                Assert.Single(binary.Slides).Shapes,
+                shape => shape.Text == "Text frame");
+            LegacyPptTextFrameProperties frame = binaryShape.TextFrame;
+            Assert.Equal(101600, frame.LeftInsetEmus);
+            Assert.Equal(50800, frame.TopInsetEmus);
+            Assert.Equal(76200, frame.RightInsetEmus);
+            Assert.Equal(25400, frame.BottomInsetEmus);
+            Assert.Equal(2U, frame.WrapMode);
+            Assert.Equal(4U, frame.AnchorMode);
+            Assert.Equal(2U, frame.TextFlow);
+            Assert.Equal(false, frame.AutoTextMargin);
+            Assert.Equal(true, frame.FitShapeToText);
+
+            using var stream = new MemoryStream(bytes, writable: false);
+            using PowerPointPresentation reopened = PowerPointPresentation
+                .Load(stream);
+            PowerPointTextBox projected = Assert.Single(
+                reopened.Slides[0].TextBoxes,
+                textBox => textBox.Text == "Text frame");
+            Assert.Equal(8D, projected.TextMarginLeftPoints);
+            Assert.Equal(4D, projected.TextMarginTopPoints);
+            Assert.Equal(6D, projected.TextMarginRightPoints);
+            Assert.Equal(2D, projected.TextMarginBottomPoints);
+            Assert.Equal(A.TextAnchoringTypeValues.Center,
+                projected.TextVerticalAlignment);
+            Assert.Equal(A.TextVerticalValues.Vertical270,
+                projected.TextDirection);
+            Assert.Equal(PowerPointTextAutoFit.Shape,
+                projected.TextAutoFit);
+            A.BodyProperties projectedBody = Assert.IsType<P.Shape>(
+                projected.Element).TextBody!.BodyProperties!;
+            Assert.Equal(A.TextWrappingValues.None,
+                projectedBody.Wrap!.Value);
+            Assert.True(projectedBody.AnchorCenter!.Value);
+            Assert.Empty(reopened.ValidateDocument());
+        }
+
+        [Fact]
+        public void ImportedTextFrameEdit_UsesIncrementalOfficeArtRewrite() {
+            byte[] sourceBytes;
+            using (PowerPointPresentation source = PowerPointPresentation
+                       .Create()) {
+                PowerPointTextBox textBox = source.AddSlide(
+                        P.SlideLayoutValues.Blank)
+                    .AddTextBoxPoints("Editable frame", 30, 30, 240, 120)
+                    .SetTextMarginsPoints(8, 4, 6, 2);
+                textBox.TextVerticalAlignment =
+                    A.TextAnchoringTypeValues.Center;
+                textBox.TextDirection = A.TextVerticalValues.Vertical270;
+                textBox.TextAutoFit = PowerPointTextAutoFit.Shape;
+                A.BodyProperties body = Assert.IsType<P.Shape>(
+                    textBox.Element).TextBody!.BodyProperties!;
+                body.Wrap = A.TextWrappingValues.None;
+                body.AnchorCenter = true;
+                sourceBytes = source.ToBytes(PowerPointFileFormat.Ppt);
+            }
+            LegacyPptPresentation original = LegacyPptPresentation.Load(
+                sourceBytes);
+
+            byte[] savedBytes;
+            using (var input = new MemoryStream(sourceBytes,
+                       writable: false))
+            using (PowerPointPresentation imported = PowerPointPresentation
+                       .Load(input)) {
+                PowerPointTextBox textBox = Assert.Single(
+                    imported.Slides[0].TextBoxes,
+                    candidate => candidate.Text == "Editable frame");
+                LegacyPptShapeProjection projection = Assert.Single(
+                    imported.LegacyPptProjectionMap!.Slides[0].Shapes,
+                    candidate => candidate.OpenXmlShapeId == textBox.Id);
+                Assert.True(projection.CanEditTextFrame);
+                Assert.True(projection.TextFrameMatches(textBox));
+                textBox.SetTextMarginsPoints(5, 7, 9, 11);
+                textBox.TextVerticalAlignment =
+                    A.TextAnchoringTypeValues.Bottom;
+                textBox.TextDirection = A.TextVerticalValues.Vertical;
+                textBox.TextAutoFit = PowerPointTextAutoFit.None;
+                A.BodyProperties body = Assert.IsType<P.Shape>(
+                    textBox.Element).TextBody!.BodyProperties!;
+                body.Wrap = A.TextWrappingValues.Square;
+                body.AnchorCenter = false;
+                Assert.True(LegacyPptWriter.TryReadTextFrameForWrite(
+                    textBox, out _, out string? frameReason), frameReason);
+                Assert.False(projection.TextFrameMatches(textBox));
+
+                LegacyPptWritePreflightReport preflight = imported
+                    .AnalyzeLegacyPptWrite();
+                Assert.True(preflight.CanWrite,
+                    string.Join(Environment.NewLine, preflight.Findings));
+                savedBytes = imported.ToBytes(PowerPointFileFormat.Ppt);
+            }
+
+            LegacyPptPresentation saved = LegacyPptPresentation.Load(
+                savedBytes);
+            LegacyPptShape savedShape = Assert.Single(
+                Assert.Single(saved.Slides).Shapes,
+                shape => shape.Text == "Editable frame");
+            LegacyPptTextFrameProperties frame = savedShape.TextFrame;
+            Assert.Equal(63500, frame.LeftInsetEmus);
+            Assert.Equal(88900, frame.TopInsetEmus);
+            Assert.Equal(114300, frame.RightInsetEmus);
+            Assert.Equal(139700, frame.BottomInsetEmus);
+            Assert.Equal(0U, frame.WrapMode);
+            Assert.Equal(2U, frame.AnchorMode);
+            Assert.Equal(1U, frame.TextFlow);
+            Assert.Equal(false, frame.AutoTextMargin);
+            Assert.Equal(false, frame.FitShapeToText);
+            Assert.Equal(original.Package.UserEdits.Count + 1,
+                saved.Package.UserEdits.Count);
+            Assert.True(saved.Package.DocumentStream.AsSpan(0,
+                    original.Package.DocumentStream.Length)
+                .SequenceEqual(original.Package.DocumentStream));
+
+            using var reopenedInput = new MemoryStream(savedBytes,
+                writable: false);
+            using PowerPointPresentation reopened = PowerPointPresentation
+                .Load(reopenedInput);
+            PowerPointTextBox projected = Assert.Single(
+                reopened.Slides[0].TextBoxes,
+                textBox => textBox.Text == "Editable frame");
+            Assert.Equal(5D, projected.TextMarginLeftPoints);
+            Assert.Equal(7D, projected.TextMarginTopPoints);
+            Assert.Equal(9D, projected.TextMarginRightPoints);
+            Assert.Equal(11D, projected.TextMarginBottomPoints);
+            Assert.Equal(A.TextAnchoringTypeValues.Bottom,
+                projected.TextVerticalAlignment);
+            Assert.Equal(A.TextVerticalValues.Vertical,
+                projected.TextDirection);
+            Assert.Equal(PowerPointTextAutoFit.None,
+                projected.TextAutoFit);
+            A.BodyProperties projectedBody = Assert.IsType<P.Shape>(
+                projected.Element).TextBody!.BodyProperties!;
+            Assert.Equal(A.TextWrappingValues.Square,
+                projectedBody.Wrap!.Value);
+            Assert.False(projectedBody.AnchorCenter?.Value ?? false);
             Assert.Empty(reopened.ValidateDocument());
         }
 

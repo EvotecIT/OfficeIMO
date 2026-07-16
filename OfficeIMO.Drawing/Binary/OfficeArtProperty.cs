@@ -72,6 +72,13 @@ public sealed class OfficeArtProperty {
     private static string GetPropertyName(ushort propertyId) => propertyId switch {
         0x0004 => "rotation",
         0x007F => "ProtectionBooleanProperties",
+        0x0081 => "dxTextLeft",
+        0x0082 => "dyTextTop",
+        0x0083 => "dxTextRight",
+        0x0084 => "dyTextBottom",
+        0x0085 => "WrapText",
+        0x0087 => "anchorText",
+        0x0088 => "txflTextFlow",
         0x00BF => "TextBooleanProperties",
         0x0100 => "cropFromTop",
         0x0101 => "cropFromBottom",

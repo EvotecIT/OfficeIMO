@@ -22,6 +22,15 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             }
             var properties = transform.Properties.ToList();
             properties.AddRange(visual);
+            if (shape is PowerPointTextBox textBox) {
+                if (!TryReadTextFrameForWrite(textBox,
+                        out IReadOnlyList<LegacyPptWriterFoptProperty> frame,
+                        out reason)) {
+                    formatting = LegacyPptWriterShapeFormatting.Empty;
+                    return false;
+                }
+                properties.AddRange(frame);
+            }
             formatting = new LegacyPptWriterShapeFormatting(properties,
                 transform.FspFlags);
             reason = null;
@@ -612,11 +621,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             bool rewriteShapeTransform,
             bool rewriteShapeGeometry,
             bool rewriteShapeVisualStyle,
-            bool rewritePictureFormatting) {
+            bool rewritePictureFormatting,
+            bool rewriteTextFrame = false) {
             if (shape == null) throw new ArgumentNullException(nameof(shape));
             if (!rewriteShapeTransform && !rewriteShapeGeometry
                 && !rewriteShapeVisualStyle
-                && !rewritePictureFormatting) {
+                && !rewritePictureFormatting && !rewriteTextFrame) {
                 throw new ArgumentException(
                     "At least one shape-property family must be rewritten.");
             }
@@ -682,6 +692,41 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 AddPictureFormatProperties(properties, picture);
                 PreserveBooleanPropertyBits(sourceProperties, properties,
                     0x013F, pictureBooleanMask);
+            }
+            if (rewriteTextFrame) {
+                if (shape is not PowerPointTextBox textBox) {
+                    throw new NotSupportedException(
+                        "Text-frame rewriting requires a text shape.");
+                }
+                if (!TryReadTextFrameForWrite(textBox,
+                        out IReadOnlyList<LegacyPptWriterFoptProperty> frame,
+                        out string? frameReason)) {
+                    throw new NotSupportedException(frameReason);
+                }
+                properties = properties.Where(property =>
+                        property.PropertyId is not (>= 0x0081 and <= 0x0085)
+                        && property.PropertyId != 0x0087
+                        && property.PropertyId != 0x0088
+                        && property.PropertyId != 0x00BF)
+                    .ToList();
+                LegacyPptWriterFoptProperty? currentFlags = frame
+                    .LastOrDefault(property => property.PropertyId == 0x00BF);
+                properties.AddRange(frame.Where(property =>
+                    property.PropertyId != 0x00BF));
+                uint rewriteMask = TextFitShapeMasks;
+                A.BodyProperties body = ((P.Shape)textBox.Element)
+                    .TextBody!.BodyProperties!;
+                if (HasExplicitTextInsets(body)) {
+                    rewriteMask |= TextAutoMarginMasks;
+                }
+                uint preservedFlags = (sourceProperties.LastOrDefault(
+                        property => property.PropertyId == 0x00BF)?.Value
+                    ?? 0U) & ~rewriteMask;
+                uint flags = (currentFlags?.Value ?? 0U) | preservedFlags;
+                if (flags != 0U) {
+                    properties.Add(new LegacyPptWriterFoptProperty(0x00BF,
+                        flags));
+                }
             }
             return properties.Count == 0
                 ? null

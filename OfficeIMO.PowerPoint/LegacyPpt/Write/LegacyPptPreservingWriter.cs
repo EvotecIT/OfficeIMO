@@ -341,7 +341,15 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         }
                         string? changedText = null;
                         PowerPointTextBox? changedTextFormatting = null;
+                        PowerPointTextBox? changedTextFrame = null;
                         if (shape is PowerPointTextBox textBox) {
+                            if (!shapeProjection.TextFrameMatches(textBox)) {
+                                if (!shapeProjection.CanEditTextFrame
+                                    || !LegacyPptWriter
+                                        .TryReadTextFrameForWrite(textBox,
+                                            out _, out _)) return false;
+                                changedTextFrame = textBox;
+                            }
                             bool formattingMatches =
                                 MatchesProjectedTextFormatting(textBox,
                                     shapeProjection);
@@ -391,6 +399,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         }
                         if (changedBounds.HasValue || changedText != null
                             || changedTextFormatting != null
+                            || changedTextFrame != null
                             || placeholderChanged
                             || changedShapeTransform != null
                             || changedShapeGeometry != null
@@ -413,6 +422,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                                 .ShapeVisualStyle = changedShapeVisualStyle;
                             editsByOfficeArtId[shapeProjection.OfficeArtShapeId]
                                 .TextFormatting = changedTextFormatting;
+                            editsByOfficeArtId[shapeProjection.OfficeArtShapeId]
+                                .TextFrame = changedTextFrame;
                             editsByOfficeArtId[shapeProjection.OfficeArtShapeId]
                                 .TextFonts = changedTextFormatting == null
                                     ? null
@@ -1065,6 +1076,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             internal PowerPointShape? ShapeVisualStyle { get; set; }
 
             internal PowerPointTextBox? TextFormatting { get; set; }
+
+            internal PowerPointTextBox? TextFrame { get; set; }
 
             internal LegacyPptWriter.LegacyPptWriterFontCatalog? TextFonts {
                 get;

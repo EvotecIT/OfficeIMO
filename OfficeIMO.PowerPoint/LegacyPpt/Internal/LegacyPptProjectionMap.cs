@@ -260,6 +260,13 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                         && !sourceShape.TextBody
                             .HasUnprojectedParagraphFormatting
                         && !sourceShape.TextBody.IsRulerTruncated,
+                    sourceShape.Kind == LegacyPptShapeKind.TextBox
+                        ? LegacyPptShapeProjection
+                            .CreateTextFrameFingerprint(projectedShape)
+                        : null,
+                    sourceShape.Kind == LegacyPptShapeKind.TextBox
+                        && sourceShape.TextFrame
+                            .CanRewriteProjectedProperties,
                     LegacyPptShapeProjection
                         .CreateShapeTransformFingerprint(projectedShape),
                     sourceShape.OfficeArtShapeType is 2 or 23
@@ -955,6 +962,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             LegacyPptAnimation? animation,
             ISet<uint> projectableSoundIds,
             bool canEditTextFormatting,
+            string? textFrameFingerprint,
+            bool canEditTextFrame,
             string? shapeTransformFingerprint,
             string? shapeGeometryFingerprint,
             string? groupCoordinateFingerprint,
@@ -984,6 +993,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             CanEditAnimation = animation == null || IsEditableAnimation(
                 animation, projectableSoundIds);
             CanEditTextFormatting = canEditTextFormatting;
+            TextFrameFingerprint = textFrameFingerprint;
+            CanEditTextFrame = canEditTextFrame;
             ShapeTransformFingerprint = shapeTransformFingerprint;
             ShapeGeometryFingerprint = shapeGeometryFingerprint;
             GroupCoordinateFingerprint = groupCoordinateFingerprint;
@@ -1019,6 +1030,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
         internal bool CanEditAnimation { get; }
 
         internal bool CanEditTextFormatting { get; }
+
+        internal string? TextFrameFingerprint { get; }
+
+        internal bool CanEditTextFrame { get; }
 
         internal string? ShapeTransformFingerprint { get; }
 
@@ -1064,6 +1079,23 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                     ?? string.Empty,
                 shape.HorizontalFlip == true ? "1" : "0",
                 shape.VerticalFlip == true ? "1" : "0");
+        }
+
+        internal bool TextFrameMatches(PowerPointShape shape) =>
+            string.Equals(TextFrameFingerprint,
+                CreateTextFrameFingerprint(shape),
+                StringComparison.Ordinal);
+
+        internal static string? CreateTextFrameFingerprint(
+            PowerPointShape shape) {
+            if (shape is not PowerPointTextBox textBox
+                || !LegacyPptWriter.TryReadTextFrameForWrite(textBox,
+                    out _, out _)
+                || textBox.Element is not P.Shape source) {
+                return null;
+            }
+            return LegacyPptTextProjection.CreateTextFrameFingerprint(
+                source.TextBody);
         }
 
         internal bool ShapeGeometryMatches(PowerPointShape shape) =>

@@ -7,20 +7,39 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
     internal static class LegacyPptTextProjection {
         internal static void Apply(P.Shape shape, LegacyPptTextBody source,
             Func<LegacyPptInteraction, IReadOnlyList<OpenXmlElement>>? projectInteraction = null) {
+            Apply(shape, source, frame: null, projectInteraction);
+        }
+
+        internal static void Apply(P.Shape shape, LegacyPptTextBody source,
+            LegacyPptTextFrameProperties? frame,
+            Func<LegacyPptInteraction, IReadOnlyList<OpenXmlElement>>?
+                projectInteraction = null) {
             if (shape == null) throw new ArgumentNullException(nameof(shape));
             if (source == null) throw new ArgumentNullException(nameof(source));
-            if (!source.HasExplicitCharacterFormatting && !source.HasParagraphFormatting
-                && !source.HasInteractions) return;
-            shape.TextBody = CreateTextBody(source, projectInteraction);
+            if (source.HasExplicitCharacterFormatting
+                || source.HasParagraphFormatting || source.HasInteractions) {
+                shape.TextBody = CreateTextBody(source, frame,
+                    projectInteraction);
+                return;
+            }
+            ApplyTextFrame(shape.TextBody?.BodyProperties, frame);
         }
 
         internal static P.TextBody CreateTextBody(LegacyPptTextBody source) =>
-            CreateTextBody(source, projectInteraction: null);
+            CreateTextBody(source, frame: null, projectInteraction: null);
 
         internal static P.TextBody CreateTextBody(LegacyPptTextBody source,
             Func<LegacyPptInteraction, IReadOnlyList<OpenXmlElement>>? projectInteraction) {
+            return CreateTextBody(source, frame: null, projectInteraction);
+        }
+
+        internal static P.TextBody CreateTextBody(LegacyPptTextBody source,
+            LegacyPptTextFrameProperties? frame,
+            Func<LegacyPptInteraction, IReadOnlyList<OpenXmlElement>>?
+                projectInteraction) {
             if (source == null) throw new ArgumentNullException(nameof(source));
             var textBody = new P.TextBody(new A.BodyProperties(), new A.ListStyle());
+            ApplyTextFrame(textBody.BodyProperties, frame);
             string[] paragraphs = source.Text.Split(new[] { '\n' }, StringSplitOptions.None);
             int paragraphStart = 0;
             foreach (string paragraphText in paragraphs) {
@@ -36,6 +55,54 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 paragraphStart = checked(paragraphEnd + 1);
             }
             return textBody;
+        }
+
+        internal static void ApplyTextFrame(A.BodyProperties? target,
+            LegacyPptTextFrameProperties? source) {
+            if (target == null || source == null) return;
+            if (source.AutoTextMargin != true) {
+                if (source.LeftInsetEmus.HasValue) {
+                    target.LeftInset = source.LeftInsetEmus.Value;
+                }
+                if (source.TopInsetEmus.HasValue) {
+                    target.TopInset = source.TopInsetEmus.Value;
+                }
+                if (source.RightInsetEmus.HasValue) {
+                    target.RightInset = source.RightInsetEmus.Value;
+                }
+                if (source.BottomInsetEmus.HasValue) {
+                    target.BottomInset = source.BottomInsetEmus.Value;
+                }
+            }
+            if (source.WrapMode.HasValue) {
+                target.Wrap = source.WrapMode.Value == 2
+                    ? A.TextWrappingValues.None
+                    : A.TextWrappingValues.Square;
+            }
+            if (source.AnchorMode.HasValue) {
+                uint anchor = source.AnchorMode.Value;
+                target.Anchor = anchor switch {
+                    1U or 4U => A.TextAnchoringTypeValues.Center,
+                    2U or 5U or 7U or 9U =>
+                        A.TextAnchoringTypeValues.Bottom,
+                    _ => A.TextAnchoringTypeValues.Top
+                };
+                if (anchor is 3U or 4U or 5U or 8U or 9U) {
+                    target.AnchorCenter = true;
+                }
+            }
+            if (source.TextFlow.HasValue) {
+                target.Vertical = source.TextFlow.Value switch {
+                    0U or 4U => A.TextVerticalValues.Horizontal,
+                    2U => A.TextVerticalValues.Vertical270,
+                    _ => A.TextVerticalValues.Vertical
+                };
+            }
+            if (source.FitShapeToText.HasValue) {
+                target.Append(source.FitShapeToText.Value
+                    ? new A.ShapeAutoFit()
+                    : new A.NoAutoFit());
+            }
         }
 
         private static void ApplyParagraphProperties(A.Paragraph paragraph, LegacyPptTextBody source,
@@ -189,6 +256,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
         internal static string CreateFormattingFingerprint(P.TextBody? textBody) {
             if (textBody == null) return string.Empty;
             var clone = (P.TextBody)textBody.CloneNode(true);
+            if (clone.BodyProperties != null) {
+                clone.ReplaceChild(new A.BodyProperties(),
+                    clone.BodyProperties);
+            }
             foreach (A.Text text in clone.Descendants<A.Text>()) text.Text = string.Empty;
             foreach (A.RunProperties properties in clone.Descendants<A.RunProperties>()
                          .ToArray()) {
@@ -198,6 +269,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             }
             return clone.OuterXml;
         }
+
+        internal static string CreateTextFrameFingerprint(
+            P.TextBody? textBody) => textBody?.BodyProperties?.OuterXml
+                ?? string.Empty;
 
         private static void AppendParagraphRuns(A.Paragraph paragraph, LegacyPptTextBody source,
             int paragraphStart, int paragraphEnd,

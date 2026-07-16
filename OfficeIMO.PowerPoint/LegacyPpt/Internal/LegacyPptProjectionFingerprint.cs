@@ -327,7 +327,14 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 }
                 NormalizeShapeFormatting(shape.ShapeProperties,
                     shapeProjection);
-                if (shape.TextBody != null) shape.TextBody.RemoveAllChildren<A.Paragraph>();
+                if (shape.TextBody != null) {
+                    shape.TextBody.RemoveAllChildren<A.Paragraph>();
+                    if (shapeProjection.CanEditTextFrame
+                        && shape.TextBody.BodyProperties != null) {
+                        shape.TextBody.BodyProperties.ClearAllAttributes();
+                        shape.TextBody.BodyProperties.RemoveAllChildren();
+                    }
+                }
             }
             foreach (P.Picture picture in root.Descendants<P.Picture>()) {
                 uint? shapeId = picture.NonVisualPictureProperties?.NonVisualDrawingProperties?.Id?.Value;

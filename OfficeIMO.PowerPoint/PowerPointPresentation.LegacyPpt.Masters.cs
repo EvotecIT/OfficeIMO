@@ -367,17 +367,24 @@ namespace OfficeIMO.PowerPoint {
                     applicationProperties),
                 shapeProperties);
             if (source.Kind == LegacyPptShapeKind.TextBox) {
-                shape.Append(source.TextBody.HasExplicitCharacterFormatting
+                bool hasRichText = source.TextBody.HasExplicitCharacterFormatting
                     || source.TextBody.HasParagraphFormatting
-                    || source.TextBody.HasInteractions
+                    || source.TextBody.HasInteractions;
+                TextBody textBody = hasRichText
                     ? LegacyPptTextProjection.CreateTextBody(source.TextBody,
+                        source.TextFrame,
                         interaction => ProjectLegacyInteraction(ownerPart, interaction,
                             slidePartsByLegacyId: slidePartsByLegacyId,
                             soundContext: soundContext))
                     : new TextBody(
                         new A.BodyProperties(),
                         new A.ListStyle(),
-                        new A.Paragraph(new A.Run(new A.Text(source.Text)))));
+                        new A.Paragraph(new A.Run(new A.Text(source.Text))));
+                if (!hasRichText) {
+                    LegacyPptTextProjection.ApplyTextFrame(
+                        textBody.BodyProperties, source.TextFrame);
+                }
+                shape.Append(textBody);
             }
             return shape;
         }

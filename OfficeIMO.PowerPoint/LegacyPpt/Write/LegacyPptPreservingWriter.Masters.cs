@@ -188,7 +188,14 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 }
                 string? changedText = null;
                 PowerPointTextBox? changedTextFormatting = null;
+                PowerPointTextBox? changedTextFrame = null;
                 if (shape is PowerPointTextBox textBox) {
+                    if (!shapeProjection.TextFrameMatches(textBox)) {
+                        if (!shapeProjection.CanEditTextFrame
+                            || !LegacyPptWriter.TryReadTextFrameForWrite(
+                                textBox, out _, out _)) return false;
+                        changedTextFrame = textBox;
+                    }
                     bool formattingMatches = MatchesProjectedTextFormatting(
                         textBox, shapeProjection);
                     if (!formattingMatches) {
@@ -213,6 +220,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 }
                 if (changedBounds.HasValue || changedText != null
                     || changedTextFormatting != null
+                    || changedTextFrame != null
                     || placeholderChanged
                     || changedShapeTransform != null
                     || changedShapeGeometry != null
@@ -236,6 +244,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         .ShapeVisualStyle = changedShapeVisualStyle;
                     result[shapeProjection.OfficeArtShapeId]
                         .TextFormatting = changedTextFormatting;
+                    result[shapeProjection.OfficeArtShapeId]
+                        .TextFrame = changedTextFrame;
                     result[shapeProjection.OfficeArtShapeId]
                         .TextFonts = changedTextFormatting == null
                             ? null
