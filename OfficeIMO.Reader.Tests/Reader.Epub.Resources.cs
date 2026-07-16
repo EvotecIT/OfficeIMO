@@ -31,6 +31,7 @@ public sealed partial class ReaderEpubModularTests {
             Assert.Contains("::EPUB/text/chapter.xhtml?mode=print#local", markdown, StringComparison.Ordinal);
             Assert.Contains("::EPUB/text/second.xhtml#second", markdown, StringComparison.Ordinal);
             Assert.Contains("::EPUB/shared/images/cover%20art.png?display=1#front", markdown, StringComparison.Ordinal);
+            Assert.Contains("::EPUB/shared/images/cover%23v2.png", markdown, StringComparison.Ordinal);
             Assert.Contains("::EPUB/shared/audio/chapter.mp3", markdown, StringComparison.Ordinal);
             Assert.Contains("::EPUB/shared/video/clip.mp4#clip", markdown, StringComparison.Ordinal);
             Assert.DoesNotContain("../../../outside.png", markdown, StringComparison.Ordinal);
@@ -40,6 +41,13 @@ public sealed partial class ReaderEpubModularTests {
             Assert.Equal(prefix + "EPUB/shared/images/cover art.png", cover.Location.Path);
             Assert.NotNull(cover.PayloadBytes);
             Assert.Contains(result.Pages[0].Assets, asset => ReferenceEquals(asset, cover));
+
+            OfficeDocumentAsset reservedImage = Assert.Single(result.Assets, asset => asset.SourceObjectId == "reserved-image");
+            Assert.Equal(prefix + "EPUB/shared/images/cover#v2.png", reservedImage.Location.Path);
+            Assert.Contains(result.Pages[0].Assets, asset => ReferenceEquals(asset, reservedImage));
+            Assert.Contains(result.Visuals, visual =>
+                visual.Language == "img" &&
+                visual.SourceName == prefix + "EPUB/shared/images/cover%23v2.png");
 
             OfficeDocumentAsset rootImage = Assert.Single(result.Assets, asset => asset.SourceObjectId == "root-image");
             Assert.Contains(result.Pages[0].Assets, asset => ReferenceEquals(asset, rootImage));

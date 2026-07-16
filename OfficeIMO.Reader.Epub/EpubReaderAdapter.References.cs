@@ -110,12 +110,13 @@ internal static partial class EpubReaderAdapter {
         if (reference.Kind == EpubReferenceKind.External) {
             return includeFragment ? reference.ResolvedValue : reference.Target;
         }
-        if (string.IsNullOrWhiteSpace(reference.ContainerPath)) return null;
+        if (string.IsNullOrWhiteSpace(reference.ContainerPath)
+            || string.IsNullOrWhiteSpace(reference.ContainerUrlPath)) return null;
 
-        string location = BuildVirtualPath(sourcePath, reference.ContainerPath!);
+        string location = BuildVirtualPath(sourcePath, reference.ContainerUrlPath!);
         string? resolved = includeFragment ? reference.ResolvedValue : reference.Target;
-        if (!string.IsNullOrWhiteSpace(resolved) && resolved!.Length > reference.ContainerPath!.Length) {
-            location += resolved.Substring(reference.ContainerPath.Length);
+        if (!string.IsNullOrWhiteSpace(resolved) && resolved!.Length > reference.ContainerUrlPath!.Length) {
+            location += resolved.Substring(reference.ContainerUrlPath.Length);
         }
         return location;
     }

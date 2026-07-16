@@ -14,11 +14,27 @@ public sealed class EpubReferenceContractTests {
         Assert.Equal(EpubReferenceKind.Container, reference.Kind);
         Assert.Equal(EpubReferenceError.None, reference.Error);
         Assert.Equal("EPUB/images/cover art.png", reference.ContainerPath);
+        Assert.Equal("EPUB/images/cover%20art.png", reference.ContainerUrlPath);
         Assert.Equal("size=large", reference.Query);
         Assert.Equal("hero image", reference.Fragment);
-        Assert.Equal("EPUB/images/cover art.png?size=large", reference.Target);
-        Assert.Equal("EPUB/images/cover art.png?size=large#hero%20image", reference.ResolvedValue);
+        Assert.Equal("EPUB/images/cover%20art.png?size=large", reference.Target);
+        Assert.Equal("EPUB/images/cover%20art.png?size=large#hero%20image", reference.ResolvedValue);
         Assert.True(reference.IsConforming);
+    }
+
+    [Theory]
+    [InlineData("../images/cover%23v2.png", "EPUB/images/cover#v2.png", "EPUB/images/cover%23v2.png")]
+    [InlineData("../images/cover%3Fv2.png", "EPUB/images/cover?v2.png", "EPUB/images/cover%3Fv2.png")]
+    public void Resolve_SeparatesArchiveLookupPathFromUrlSerialization(
+        string value,
+        string expectedContainerPath,
+        string expectedResolvedValue) {
+        EpubReference reference = EpubReference.Resolve("EPUB/text/chapter.xhtml", value);
+
+        Assert.Equal(EpubReferenceKind.Container, reference.Kind);
+        Assert.Equal(expectedContainerPath, reference.ContainerPath);
+        Assert.Equal(expectedResolvedValue, reference.ContainerUrlPath);
+        Assert.Equal(expectedResolvedValue, reference.ResolvedValue);
     }
 
     [Theory]

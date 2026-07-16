@@ -59,12 +59,13 @@ EpubReference reference = EpubReference.Resolve(
     "../images/cover%20art.png?size=large#front");
 
 if (reference.Kind == EpubReferenceKind.Container) {
-    Console.WriteLine(reference.ContainerPath);  // EPUB/images/cover art.png
-    Console.WriteLine(reference.ResolvedValue);  // path plus query and fragment
+    Console.WriteLine(reference.ContainerPath);     // decoded ZIP lookup path
+    Console.WriteLine(reference.ContainerUrlPath);  // URL-encoded link path
+    Console.WriteLine(reference.ResolvedValue);     // encoded path plus query and fragment
 }
 ```
 
-Use the three-argument overload with `chapter.BaseHref` when resolving URLs found in chapter markup. Results distinguish container, external, embedded data, and invalid references without performing network or file-system access. Container paths remain case-sensitive. Root-relative references are resolved safely but marked non-conforming; `file:` URLs, ambiguous encoded separators, and paths that escape the container are rejected.
+Use the three-argument overload with `chapter.BaseHref` when resolving URLs found in chapter markup. Results distinguish container, external, embedded data, and invalid references without performing network or file-system access. `ContainerPath` remains case-sensitive and decoded for ZIP lookup, while `ContainerUrlPath`, `Target`, and `ResolvedValue` preserve a safe URL serialization. Root-relative references are resolved safely but marked non-conforming; `file:` URLs, ambiguous encoded separators, and paths that escape the container are rejected.
 
 ## What it does
 

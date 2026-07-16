@@ -21,6 +21,9 @@ public sealed class EpubReference {
         Kind = kind;
         Error = error;
         ContainerPath = containerPath;
+        ContainerUrlPath = kind == EpubReferenceKind.Container && containerPath != null
+            ? EncodeContainerPath(containerPath)
+            : null;
         ExternalUri = externalUri;
         Query = query;
         Fragment = fragment;
@@ -40,6 +43,11 @@ public sealed class EpubReference {
 
     /// <summary>Case-sensitive normalized archive path for a container reference.</summary>
     public string? ContainerPath { get; }
+
+    /// <summary>
+    /// URL-encoded form of <see cref="ContainerPath"/> for serialization in links and media references.
+    /// </summary>
+    public string? ContainerUrlPath { get; }
 
     /// <summary>External or data URL, including its query and fragment when present.</summary>
     public string? ExternalUri { get; }
@@ -68,7 +76,7 @@ public sealed class EpubReference {
     public string? Target {
         get {
             if (Kind == EpubReferenceKind.Container) {
-                return AppendQuery(ContainerPath, Query);
+                return AppendQuery(ContainerUrlPath, Query);
             }
             if (Kind == EpubReferenceKind.External || Kind == EpubReferenceKind.Data) {
                 return RemoveFragment(ExternalUri);
@@ -81,7 +89,7 @@ public sealed class EpubReference {
     public string? ResolvedValue {
         get {
             if (Kind == EpubReferenceKind.Container) {
-                return AppendFragment(AppendQuery(ContainerPath, Query), _encodedFragment);
+                return AppendFragment(AppendQuery(ContainerUrlPath, Query), _encodedFragment);
             }
             return ExternalUri;
         }
@@ -334,6 +342,10 @@ public sealed class EpubReference {
             return value;
         }
     }
+
+    private static string EncodeContainerPath(string value) => string.Join(
+        "/",
+        value.Split(new[] { '/' }, StringSplitOptions.None).Select(Uri.EscapeDataString));
 
     private static bool TryNormalizeBasePath(string? value, out string normalized) {
         normalized = value?.Replace('\\', '/').Trim() ?? string.Empty;

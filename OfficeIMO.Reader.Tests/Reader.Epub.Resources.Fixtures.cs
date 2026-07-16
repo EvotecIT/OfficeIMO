@@ -22,6 +22,7 @@ public sealed partial class ReaderEpubModularTests {
             "<item id=\"chapter\" href=\"text/chapter.xhtml\" media-type=\"application/xhtml+xml\"/>" +
             "<item id=\"second\" href=\"text/second.xhtml\" media-type=\"application/xhtml+xml\"/>" +
             "<item id=\"cover\" href=\"shared/images/cover%20art.png\" media-type=\"image/png\"/>" +
+            "<item id=\"reserved-image\" href=\"shared/images/cover%23v2.png\" media-type=\"image/png\"/>" +
             "<item id=\"root-image\" href=\"shared/images/root.png\" media-type=\"image/png\"/>" +
             "<item id=\"audio\" href=\"shared/audio/chapter.mp3\" media-type=\"audio/mpeg\"/>" +
             "<item id=\"video\" href=\"shared/video/clip.mp4\" media-type=\"video/mp4\"/>" +
@@ -36,6 +37,7 @@ public sealed partial class ReaderEpubModularTests {
             "<h1 id=\"local\">Chapter</h1>" +
             "<a href=\"../text/chapter.xhtml?mode=print#local\">base link</a>" +
             "<img src=\"images/cover%20art.png?display=1#front\" alt=\"Cover\"/>" +
+            "<img src=\"images/cover%23v2.png\" alt=\"Reserved name\"/>" +
             "<img src=\"/EPUB/shared/images/root.png\" alt=\"Root image\"/>" +
             "<img src=\"https://cdn.example/remote.png\" alt=\"Remote image\"/>" +
             "<img src=\"data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==\" alt=\"Inline\"/>" +
@@ -55,6 +57,7 @@ public sealed partial class ReaderEpubModularTests {
             "</body></html>");
 
         WriteResolvedResourceBytes(archive, "EPUB/shared/images/cover art.png", new byte[] { 137, 80, 78, 71 });
+        WriteResolvedResourceBytes(archive, "EPUB/shared/images/cover#v2.png", new byte[] { 137, 80, 78, 71, 2 });
         WriteResolvedResourceBytes(archive, "EPUB/shared/images/root.png", new byte[] { 137, 80, 78, 71, 1 });
         WriteResolvedResourceBytes(archive, "EPUB/shared/audio/chapter.mp3", new byte[] { 73, 68, 51, 4 });
         WriteResolvedResourceBytes(archive, "EPUB/shared/video/clip.mp4", new byte[] { 0, 0, 0, 20, 102, 116, 121, 112 });
