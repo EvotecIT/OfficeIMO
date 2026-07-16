@@ -5,12 +5,14 @@ using OfficeIMO.PowerPoint.LegacyPpt;
 using OfficeIMO.PowerPoint.LegacyPpt.Capabilities;
 
 namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
-    internal static class LegacyPptWritePreflight {
+    internal static partial class LegacyPptWritePreflight {
         internal static LegacyPptWritePreflightReport Analyze(PowerPointPresentation presentation) {
             if (presentation == null) throw new ArgumentNullException(nameof(presentation));
             var findings = new List<LegacyPptWriteFinding>();
-            if (presentation.CanPreserveOriginalLegacyPackage
-                || LegacyPptPreservingWriter.CanWritePresentation(presentation)) {
+            AddPackagePartFindings(presentation, findings);
+            if (findings.Count == 0
+                && (presentation.CanPreserveOriginalLegacyPackage
+                    || LegacyPptPreservingWriter.CanWritePresentation(presentation))) {
                 return new LegacyPptWritePreflightReport(findings);
             }
             if (presentation.LegacyPptPackage != null) {
