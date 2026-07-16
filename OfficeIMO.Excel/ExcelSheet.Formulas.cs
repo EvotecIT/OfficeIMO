@@ -10,6 +10,7 @@ namespace OfficeIMO.Excel {
         private static readonly TimeSpan FormulaRegexTimeout = TimeSpan.FromSeconds(1);
         private Dictionary<string, FormulaArgumentValue>? _formulaEvaluationCache;
         private HashSet<string>? _formulaEvaluationStack;
+        private string? _formulaEvaluationCellReference;
 
         private static readonly Regex SimpleFunctionFormulaRegex = new Regex(
             @"^\s*=?\s*(SUM|AVERAGE|AVERAGEA|MIN|MINA|MAX|MAXA|COUNT|COUNTA|COUNTBLANK|SUBTOTAL|COUNTIF|SUMIF|AVERAGEIF|COUNTIFS|SUMIFS|AVERAGEIFS|MINIFS|MAXIFS|PRODUCT|MEDIAN|LARGE|SMALL|MODE\.SNGL|MODE|GEOMEAN|HARMEAN|AVEDEV|DEVSQ|SUMXMY2|SUMX2MY2|SUMX2PY2|SUMSQ|SUMPRODUCT|STDEV\.S|STDEV\.P|VAR\.S|VAR\.P|PERCENTILE\.INC|PERCENTILE\.EXC|QUARTILE\.INC|QUARTILE\.EXC|PERCENTRANK\.INC|PERCENTRANK\.EXC|RANK\.EQ|RANK\.AVG|COVAR|COVARIANCE\.P|COVARIANCE\.S|CORREL|SLOPE|INTERCEPT|RSQ|FORECAST\.LINEAR|PMT|PV|FV|NPER|NPV|VLOOKUP|HLOOKUP|XLOOKUP|INDEX|MATCH|XMATCH|ABS|SIGN|ROUND|ROUNDUP|ROUNDDOWN|MROUND|TRUNC|INT|CEILING\.MATH|FLOOR\.MATH|CEILING|FLOOR|POWER|SQRT|LN|LOG10|EXP|PI|RADIANS|DEGREES|MOD|ROW|COLUMN|ROWS|COLUMNS|DATE|TIME|DATEVALUE|TIMEVALUE|TODAY|NOW|YEAR|MONTH|DAY|HOUR|MINUTE|SECOND|DATEDIF|YEARFRAC|EDATE|EOMONTH|DAYS|DAYS360|WEEKDAY|WEEKNUM|ISOWEEKNUM|NETWORKDAYS|WORKDAY\.INTL|WORKDAY|IF|IFS|SWITCH|CHOOSE|ISBLANK|ISNUMBER|ISTEXT|ISERROR|ISERR|ISNA|ISFORMULA|AND|OR|NOT|IFERROR|IFNA|CONCAT|CONCATENATE|TEXT|TEXTJOIN|TEXTBEFORE|TEXTAFTER|FORMULATEXT|LEFT|RIGHT|MID|LEN|TRIM|UPPER|LOWER|PROPER|SUBSTITUTE|FIND|SEARCH|VALUE|EXACT|REPT)\s*\((.*)\)\s*$",
@@ -17,7 +18,12 @@ namespace OfficeIMO.Excel {
             FormulaRegexTimeout);
 
         private static readonly Regex FunctionNameFormulaRegex = new Regex(
-            @"^\s*=?\s*([A-Za-z][A-Za-z0-9_.]*)\s*\(",
+            @"^\s*=?\s*([A-Za-z_][A-Za-z0-9_.]*)\s*\(",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled,
+            FormulaRegexTimeout);
+
+        private static readonly Regex AnyFunctionFormulaRegex = new Regex(
+            @"^\s*=?\s*([A-Za-z_][A-Za-z0-9_.]*)\s*\((.*)\)\s*$",
             RegexOptions.IgnoreCase | RegexOptions.Compiled,
             FormulaRegexTimeout);
 
@@ -130,28 +136,34 @@ namespace OfficeIMO.Excel {
             }
 
             string? reference = NormalizeFormulaCellReference(cell.CellReference?.Value);
-            if (reference == null || _formulaEvaluationCache == null || _formulaEvaluationStack == null) {
-                return TryEvaluateFormulaValue(cell.CellFormula.Text ?? string.Empty, out result);
-            }
-
-            string cacheKey = GetFormulaEvaluationCacheKey(reference);
-            if (_formulaEvaluationCache.TryGetValue(cacheKey, out result)) {
-                return true;
-            }
-
-            if (!_formulaEvaluationStack.Add(cacheKey)) {
-                return false;
-            }
-
+            string? previousCellReference = _formulaEvaluationCellReference;
+            _formulaEvaluationCellReference = reference;
             try {
-                if (!TryEvaluateFormulaValue(cell.CellFormula.Text ?? string.Empty, out result)) {
+                if (reference == null || _formulaEvaluationCache == null || _formulaEvaluationStack == null) {
+                    return TryEvaluateFormulaValue(cell.CellFormula.Text ?? string.Empty, out result);
+                }
+
+                string cacheKey = GetFormulaEvaluationCacheKey(reference);
+                if (_formulaEvaluationCache.TryGetValue(cacheKey, out result)) {
+                    return true;
+                }
+
+                if (!_formulaEvaluationStack.Add(cacheKey)) {
                     return false;
                 }
 
-                _formulaEvaluationCache[cacheKey] = result;
-                return true;
+                try {
+                    if (!TryEvaluateFormulaValue(cell.CellFormula.Text ?? string.Empty, out result)) {
+                        return false;
+                    }
+
+                    _formulaEvaluationCache[cacheKey] = result;
+                    return true;
+                } finally {
+                    _formulaEvaluationStack.Remove(cacheKey);
+                }
             } finally {
-                _formulaEvaluationStack.Remove(cacheKey);
+                _formulaEvaluationCellReference = previousCellReference;
             }
         }
 
@@ -189,7 +201,7 @@ namespace OfficeIMO.Excel {
                 var formulas = new List<ExcelFormulaCellInfo>();
                 foreach (var cell in WorksheetRoot.Descendants<Cell>().Where(c => c.CellFormula != null)) {
                     string formula = cell.CellFormula!.Text ?? string.Empty;
-                    bool supported = TryEvaluateFormulaValue(formula, out _);
+                    bool supported = TryEvaluateFormulaCellValue(cell, out _);
                     IReadOnlyList<string> dependencies = GetFormulaDependencies(formula);
                     IReadOnlyList<string> dependencyIssues = GetFormulaDependencyIssues(formula, cell.CellReference?.Value, dependencies);
                     formulas.Add(new ExcelFormulaCellInfo(
@@ -315,6 +327,7 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
+            formula = NormalizeSupportedFunctionPrefix(formula);
             try {
                 var functionMatch = SimpleFunctionFormulaRegex.Match(formula);
                 if (functionMatch.Success) {
@@ -362,6 +375,10 @@ namespace OfficeIMO.Excel {
                         return true;
                     }
                 }
+
+                if (!functionMatch.Success && TryEvaluateCustomFormulaFunction(formula, out result)) {
+                    return true;
+                }
             } catch (RegexMatchTimeoutException) {
                 return false;
             }
@@ -380,6 +397,7 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
+            formula = NormalizeSupportedFunctionPrefix(formula);
             try {
                 var functionMatch = SimpleFunctionFormulaRegex.Match(formula);
                 if (functionMatch.Success) {
@@ -747,6 +765,12 @@ namespace OfficeIMO.Excel {
                     else if (function == "SUMSQ") result = numbers.Sum(value => value * value);
                     else if (function == "MEDIAN") result = CalculateMedian(numbers);
                     else return false;
+                    return true;
+                }
+
+                if (TryEvaluateCustomFormulaFunction(formula, out FormulaArgumentValue customResult)
+                    && customResult.Number.HasValue) {
+                    result = customResult.Number.Value;
                     return true;
                 }
 
