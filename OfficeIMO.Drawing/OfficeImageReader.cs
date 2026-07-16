@@ -131,7 +131,11 @@ public static partial class OfficeImageReader {
     private static bool TryReadPng(byte[] data, out OfficeImageInfo info) {
         info = new OfficeImageInfo(OfficeImageFormat.Unknown, 0, 0);
         byte[] signature = { 137, 80, 78, 71, 13, 10, 26, 10 };
-        if (data.Length < 24 || !StartsWith(data, signature)) {
+        if (data.Length < 33 ||
+            !StartsWith(data, signature) ||
+            ReadInt32BigEndian(data, 8) != 13 ||
+            GetAscii(data, 12, 4) != "IHDR" ||
+            !HasValidPngIhdrFields(data)) {
             return false;
         }
 
@@ -166,6 +170,18 @@ public static partial class OfficeImageReader {
 
         info = new OfficeImageInfo(OfficeImageFormat.Png, width, height, dpiX, dpiY);
         return width > 0 && height > 0;
+    }
+
+    private static bool HasValidPngIhdrFields(byte[] data) {
+        byte bitDepth = data[24];
+        byte colorType = data[25];
+        bool validBitDepth = colorType switch {
+            0 => bitDepth is 1 or 2 or 4 or 8 or 16,
+            2 or 4 or 6 => bitDepth is 8 or 16,
+            3 => bitDepth is 1 or 2 or 4 or 8,
+            _ => false
+        };
+        return validBitDepth && data[26] == 0 && data[27] == 0 && data[28] <= 1;
     }
 
     private static bool TryReadGif(byte[] data, out OfficeImageInfo info) {
@@ -322,16 +338,22 @@ public static partial class OfficeImageReader {
 
         double dpiX = millimetersWidth > 0 && deviceWidth > 0 ? deviceWidth * 25.4 / millimetersWidth : 96.0;
         double dpiY = millimetersHeight > 0 && deviceHeight > 0 ? deviceHeight * 25.4 / millimetersHeight : 96.0;
-        int width = (int)Math.Round(Math.Abs(frameRight - frameLeft) / 2540.0 * dpiX);
-        int height = (int)Math.Round(Math.Abs(frameBottom - frameTop) / 2540.0 * dpiY);
+        bool hasFrameWidth = TryConvertPixelDimension(
+            Math.Abs((long)frameRight - frameLeft) / 2540.0 * dpiX,
+            out int width);
+        bool hasFrameHeight = TryConvertPixelDimension(
+            Math.Abs((long)frameBottom - frameTop) / 2540.0 * dpiY,
+            out int height);
 
-        if (width <= 0 || height <= 0) {
+        if (!hasFrameWidth || !hasFrameHeight) {
             int boundsLeft = ReadInt32LittleEndian(data, 8);
             int boundsTop = ReadInt32LittleEndian(data, 12);
             int boundsRight = ReadInt32LittleEndian(data, 16);
             int boundsBottom = ReadInt32LittleEndian(data, 20);
-            width = Math.Abs(boundsRight - boundsLeft);
-            height = Math.Abs(boundsBottom - boundsTop);
+            if (!TryConvertPixelDimension(Math.Abs((long)boundsRight - boundsLeft), out width) ||
+                !TryConvertPixelDimension(Math.Abs((long)boundsBottom - boundsTop), out height)) {
+                return false;
+            }
         }
 
         info = new OfficeImageInfo(OfficeImageFormat.Emf, width, height, dpiX, dpiY);
@@ -405,10 +427,10 @@ public static partial class OfficeImageReader {
                 hasHeight = true;
             }
 
-            int pixelWidth = hasWidth && TryConvertSvgPixelDimension(width, out int convertedWidth)
+            int pixelWidth = hasWidth && TryConvertPixelDimension(width, out int convertedWidth)
                 ? convertedWidth
                 : 0;
-            int pixelHeight = hasHeight && TryConvertSvgPixelDimension(height, out int convertedHeight)
+            int pixelHeight = hasHeight && TryConvertPixelDimension(height, out int convertedHeight)
                 ? convertedHeight
                 : 0;
             info = new OfficeImageInfo(OfficeImageFormat.Svg, pixelWidth, pixelHeight, 96D, 96D, aspectRatio);
@@ -428,7 +450,7 @@ public static partial class OfficeImageReader {
         }
     }
 
-    private static bool TryConvertSvgPixelDimension(double value, out int dimension) {
+    private static bool TryConvertPixelDimension(double value, out int dimension) {
         dimension = 0;
         if (double.IsNaN(value) || double.IsInfinity(value) || value <= 0D) return false;
 

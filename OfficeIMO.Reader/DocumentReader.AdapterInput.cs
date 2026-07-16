@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using System.IO;
 using System.Threading;
 
@@ -63,8 +64,7 @@ internal static partial class DocumentReaderEngine {
             cancellationToken,
             out bool ownsSnapshot);
         try {
-            using MemoryStream bytes = CopyToMemory(snapshot, cancellationToken, maxInputBytes);
-            byte[] payload = bytes.ToArray();
+            byte[] payload = ReadSnapshotPayload(snapshot, cancellationToken, maxInputBytes);
             return new ReaderAdapterInputSnapshot(
                 payload,
                 new OfficeDocumentSource {
@@ -80,6 +80,38 @@ internal static partial class DocumentReaderEngine {
                 TrySetPosition(stream, originalPosition.Value);
             }
         }
+    }
+
+    private static byte[] ReadSnapshotPayload(
+        Stream snapshot,
+        CancellationToken cancellationToken,
+        long? maxInputBytes) {
+        cancellationToken.ThrowIfCancellationRequested();
+        long remaining = snapshot.Length - snapshot.Position;
+        if (remaining < 0) {
+            throw new IOException("Adapter input stream position exceeds its length.");
+        }
+        if (maxInputBytes.HasValue && remaining > maxInputBytes.Value) {
+            throw new IOException(
+                "Input exceeds MaxInputBytes (" +
+                remaining.ToString(CultureInfo.InvariantCulture) + " > " +
+                maxInputBytes.Value.ToString(CultureInfo.InvariantCulture) + ").");
+        }
+        if (remaining > int.MaxValue) {
+            throw new IOException("Adapter input exceeds the maximum supported byte-array length.");
+        }
+
+        var payload = new byte[(int)remaining];
+        int offset = 0;
+        while (offset < payload.Length) {
+            cancellationToken.ThrowIfCancellationRequested();
+            int read = snapshot.Read(payload, offset, payload.Length - offset);
+            if (read <= 0) {
+                throw new EndOfStreamException("Adapter input ended before its declared length was read.");
+            }
+            offset += read;
+        }
+        return payload;
     }
 
     internal static ReaderChunk ApplyAdapterSource(

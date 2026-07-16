@@ -3501,6 +3501,20 @@ public partial class DrawingTests {
         Assert.Equal("image/png", image.MimeType);
     }
 
+    [Fact]
+    public void OfficeImageReaderRejectsPngSignatureWithoutAnIhdrChunk() {
+        var malformed = new byte[33];
+        Array.Copy(OnePixelPng, malformed, 8);
+        Encoding.ASCII.GetBytes("FAKE").CopyTo(malformed, 12);
+        malformed[19] = 3;
+        malformed[23] = 2;
+
+        bool identified = OfficeImageReader.TryIdentify(malformed, fileName: null, out OfficeImageInfo image);
+
+        Assert.False(identified);
+        Assert.Equal(OfficeImageFormat.Unknown, image.Format);
+    }
+
     [Theory]
     [InlineData(0x00, 0x00)]
     [InlineData(0xFF, 0xD9)]
@@ -3593,6 +3607,29 @@ public partial class DrawingTests {
         Assert.Equal(96, Math.Round(image.DpiX));
         Assert.Equal(96, Math.Round(image.DpiY));
         Assert.Equal("image/x-emf", image.MimeType);
+    }
+
+    [Fact]
+    public void OfficeImageReaderRejectsEmfDimensionsThatExceedIntegerBounds() {
+        var emf = new byte[88];
+        WriteInt32LittleEndian(emf, 0, 1);
+        WriteInt32LittleEndian(emf, 4, 88);
+        WriteInt32LittleEndian(emf, 8, int.MinValue);
+        WriteInt32LittleEndian(emf, 12, int.MinValue);
+        WriteInt32LittleEndian(emf, 16, int.MaxValue);
+        WriteInt32LittleEndian(emf, 20, int.MaxValue);
+        WriteInt32LittleEndian(emf, 24, int.MinValue);
+        WriteInt32LittleEndian(emf, 28, int.MinValue);
+        WriteInt32LittleEndian(emf, 40, 0x464D4520);
+        WriteInt32LittleEndian(emf, 72, int.MaxValue);
+        WriteInt32LittleEndian(emf, 76, int.MaxValue);
+        WriteInt32LittleEndian(emf, 80, 1);
+        WriteInt32LittleEndian(emf, 84, 1);
+
+        bool identified = OfficeImageReader.TryIdentify(emf, fileName: null, out OfficeImageInfo image);
+
+        Assert.False(identified);
+        Assert.Equal(OfficeImageFormat.Unknown, image.Format);
     }
 
     [Fact]
