@@ -6,6 +6,23 @@ namespace OfficeIMO.Tests;
 
 public sealed partial class ReaderMediaAdapterTests {
     [Fact]
+    public void ImageAdapter_RejectsBmpCompressionThatDoesNotMatchBitDepth() {
+        var bmp = new byte[54];
+        bmp[0] = (byte)'B';
+        bmp[1] = (byte)'M';
+        WriteUInt32LittleEndian(bmp, 14, 40);
+        WriteUInt32LittleEndian(bmp, 18, 2);
+        WriteUInt32LittleEndian(bmp, 22, 2);
+        WriteUInt16LittleEndian(bmp, 26, 1);
+        WriteUInt16LittleEndian(bmp, 28, 24);
+        WriteUInt32LittleEndian(bmp, 30, 1);
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddImageHandler().Build();
+
+        Assert.Throws<NotSupportedException>(() =>
+            reader.ReadDocument(bmp, "invalid-compression.bmp"));
+    }
+
+    [Fact]
     public void ImageAdapter_RejectsPcxWithoutEncodedImageData() {
         var pcx = new byte[128];
         pcx[0] = 0x0A;
