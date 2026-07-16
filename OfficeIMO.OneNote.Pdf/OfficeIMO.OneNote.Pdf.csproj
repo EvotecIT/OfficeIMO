@@ -3,7 +3,7 @@
     <Description>First-party offline OneNote to PDF conversion for OfficeIMO.</Description>
     <AssemblyName>OfficeIMO.OneNote.Pdf</AssemblyName>
     <AssemblyTitle>OfficeIMO.OneNote.Pdf</AssemblyTitle>
-    <VersionPrefix>0.1.0</VersionPrefix>
+    <VersionPrefix>2.0.1</VersionPrefix>
     <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
     <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">$(TargetFrameworks);net472</TargetFrameworks>
     <GeneratePackageOnBuild>false</GeneratePackageOnBuild>

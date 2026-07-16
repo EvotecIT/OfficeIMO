@@ -234,6 +234,8 @@ jobs:
             project: OfficeIMO.OpenDocument.Tests/OfficeIMO.OpenDocument.Tests.csproj
           - name: OpenDocument-Converters
             project: OfficeIMO.OpenDocument.Converters.Tests/OfficeIMO.OpenDocument.Converters.Tests.csproj
+          - name: OneNote
+            project: OfficeIMO.OneNote.Tests/OfficeIMO.OneNote.Tests.csproj
           - name: Pdf
             project: OfficeIMO.Pdf.Tests/OfficeIMO.Pdf.Tests.csproj
           - name: PowerPoint
@@ -426,6 +428,7 @@ jobs:
             dotnet restore OfficeIMO.PowerPoint.Tests/OfficeIMO.PowerPoint.Tests.csproj
             dotnet restore OfficeIMO.Visio.Tests/OfficeIMO.Visio.Tests.csproj
             dotnet restore OfficeIMO.Reader.Tests/OfficeIMO.Reader.Tests.csproj
+            dotnet restore OfficeIMO.OneNote.Tests/OfficeIMO.OneNote.Tests.csproj
             dotnet restore OfficeIMO.CSV.Tests/OfficeIMO.CSV.Tests.csproj
             dotnet restore OfficeIMO.VerifyTests/OfficeIMO.VerifyTests.csproj
             dotnet restore OfficeIMO.MarkdownRenderer.Wpf.Tests/OfficeIMO.MarkdownRenderer.Wpf.Tests.csproj
@@ -466,6 +469,7 @@ jobs:
             dotnet build OfficeIMO.PowerPoint.Tests/OfficeIMO.PowerPoint.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore
             dotnet build OfficeIMO.Visio.Tests/OfficeIMO.Visio.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore
             dotnet build OfficeIMO.Reader.Tests/OfficeIMO.Reader.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore
+            dotnet build OfficeIMO.OneNote.Tests/OfficeIMO.OneNote.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore
             dotnet build OfficeIMO.CSV.Tests/OfficeIMO.CSV.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore
             dotnet build OfficeIMO.VerifyTests/OfficeIMO.VerifyTests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore
             dotnet build OfficeIMO.MarkdownRenderer.Wpf.Tests/OfficeIMO.MarkdownRenderer.Wpf.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore
@@ -688,6 +692,7 @@ jobs:
               run_powerpoint_tests
               run_visio_tests
               run_reader_tests
+              dotnet test OfficeIMO.OneNote.Tests/OfficeIMO.OneNote.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} -m:1 --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
               run_shared_tests "shared-contracts" 'FullyQualifiedName~OfficeIMO.Shared.Tests.'
               dotnet test OfficeIMO.CSV.Tests/OfficeIMO.CSV.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
               dotnet test OfficeIMO.VerifyTests/OfficeIMO.VerifyTests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx

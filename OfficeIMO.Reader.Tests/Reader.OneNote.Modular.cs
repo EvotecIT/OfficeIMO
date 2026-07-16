@@ -14,6 +14,18 @@ public sealed class ReaderOneNoteModularTests {
     }
 
     [Fact]
+    public void OneNoteOptionsClone_PreservesTransactionChecksumCompatibilitySetting() {
+        var options = new ReaderOneNoteOptions {
+            OneNoteOptions = new OneNoteReaderOptions { ValidateTransactionChecksums = false }
+        };
+
+        ReaderOneNoteOptions clone = ReaderOneNoteOptionsCloner.CloneOrDefault(options);
+
+        Assert.NotSame(options.OneNoteOptions, clone.OneNoteOptions);
+        Assert.False(clone.OneNoteOptions!.ValidateTransactionChecksums);
+    }
+
+    [Fact]
     public void OneNoteAdapter_ReadDocument_ProjectsPageTextAndMetadata() {
         OfficeDocumentReadResult result = OneNoteReaderAdapter.ReadDocument(FixturePath("testOneNote2016.one"));
 

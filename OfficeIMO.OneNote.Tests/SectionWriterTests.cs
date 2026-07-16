@@ -150,6 +150,33 @@ public sealed class SectionWriterTests {
     }
 
     [Fact]
+    public void PreservesDirectPageContentPlacementAcrossRoundTrip() {
+        var section = new OneNoteSection { Name = "Direct content" };
+        var page = new OneNotePage { Title = "Direct page" };
+        var paragraph = new OneNoteParagraph();
+        paragraph.Runs.Add(new OneNoteTextRun { Text = "Outside an outline" });
+        page.DirectContent.Add(paragraph);
+        page.DirectContent.Add(new OneNoteEmbeddedFile {
+            FileName = "direct.bin",
+            Payload = OneNoteBinaryPayload.FromBytes(new byte[] { 1, 2, 3 })
+        });
+        section.Pages.Add(page);
+
+        byte[] data = OneNoteSectionWriter.Write(section);
+        OneNoteSection roundTrip = OneNoteSectionReader.Read(new MemoryStream(data));
+
+        OneNotePage result = Assert.Single(roundTrip.Pages);
+        Assert.Empty(result.Outlines);
+        Assert.Collection(result.DirectContent,
+            element => Assert.Equal("Outside an outline", Assert.Single(Assert.IsType<OneNoteParagraph>(element).Runs).Text),
+            element => {
+                OneNoteEmbeddedFile file = Assert.IsType<OneNoteEmbeddedFile>(element);
+                Assert.Equal("direct.bin", file.FileName);
+                Assert.Equal(new byte[] { 1, 2, 3 }, file.Payload!.ToArray(16));
+            });
+    }
+
+    [Fact]
     public void PlacesRootManifestAfterFirstObjectSpaceManifest() {
         OneNoteRevisionStore store = OneNoteRevisionStoreReader.Read(new MemoryStream(OneNoteSectionWriter.Write(CreateSection())));
         OneNoteFileNodeId[] declarations = store.RootFileNodeList.Nodes
@@ -392,7 +419,8 @@ public sealed class SectionWriterTests {
         OneNotePage conflictResult = Assert.Single(current.ConflictPages);
         Assert.True(conflictResult.IsConflictPage);
         Assert.Equal("Conflict copy", conflictResult.Title);
-        OneNoteParagraph conflictResultParagraph = Assert.IsType<OneNoteParagraph>(Assert.Single(Assert.Single(conflictResult.Outlines).Children));
+        Assert.Empty(conflictResult.Outlines);
+        OneNoteParagraph conflictResultParagraph = Assert.IsType<OneNoteParagraph>(Assert.Single(conflictResult.DirectContent));
         Assert.Equal("Conflicting content", string.Concat(conflictResultParagraph.Runs.Select(run => run.Text)));
     }
 

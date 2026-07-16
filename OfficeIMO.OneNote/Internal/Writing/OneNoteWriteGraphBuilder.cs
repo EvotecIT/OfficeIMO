@@ -148,11 +148,7 @@ internal sealed partial class OneNoteWriteGraphBuilder {
         uint lastModifiedTime = Time32(page.LastModifiedUtc?.ToUniversalTime() ?? creationUtc);
         var pageContentIds = new List<OneNoteExtendedGuid>();
         foreach (OneNoteOutline outline in page.Outlines) pageContentIds.Add(BuildOutline(space, outline, lastModifiedTime));
-        if (page.DirectContent.Count > 0) {
-            var direct = new OneNoteOutline();
-            foreach (OneNoteElement element in page.DirectContent) direct.Children.Add(element);
-            pageContentIds.Add(BuildOutline(space, direct, lastModifiedTime));
-        }
+        foreach (OneNoteElement element in page.DirectContent) pageContentIds.Add(BuildOutlineChild(space, element, lastModifiedTime));
         OneNoteExtendedGuid titleId = BuildTitle(space, page, lastModifiedTime, Time32(creationUtc));
 
         OneNoteExtendedGuid pageNodeId = IdOrNew(page.PreservationIds.PageNodeId);

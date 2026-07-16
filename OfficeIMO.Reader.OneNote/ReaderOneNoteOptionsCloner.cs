@@ -34,6 +34,7 @@ internal static class ReaderOneNoteOptionsCloner {
             MaxStreamObjects = options.MaxStreamObjects,
             MaxStreamObjectDepth = options.MaxStreamObjectDepth,
             StrictHeaderValidation = options.StrictHeaderValidation,
+            ValidateTransactionChecksums = options.ValidateTransactionChecksums,
             PreserveUnknownData = options.PreserveUnknownData
         };
     }
