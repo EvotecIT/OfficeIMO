@@ -174,6 +174,59 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_GoogleSheetsCheckpoint_HashesSupportedConditionalFormats() {
+            string RuleHash(string threshold, string fillColor) {
+                string path = Path.Combine(_directoryWithFiles, $"GoogleSheetsConditionalHash-{Guid.NewGuid():N}.xlsx");
+                try {
+                    using var document = ExcelDocument.Create(path);
+                    ExcelSheet sheet = document.AddWorksheet("Data");
+                    sheet.AddConditionalRule("A1:A10", ConditionalFormattingOperatorValues.GreaterThan, threshold, fillColor: fillColor);
+                    return GoogleSheetsDiffPlanner.CreateCheckpoint(document).ContentHashes["sheet/Data/conditionalFormat/0"];
+                } finally {
+                    if (File.Exists(path)) File.Delete(path);
+                }
+            }
+
+            string baseline = RuleHash("10", "C6EFCE");
+            Assert.NotEqual(baseline, RuleHash("20", "C6EFCE"));
+            Assert.NotEqual(baseline, RuleHash("10", "FFC7CE"));
+        }
+
+        [Fact]
+        public void Test_GoogleSheetsCheckpoint_HashesSupportedWorksheetAndTableFilters() {
+            GoogleSheetsSyncCheckpoint FilterCheckpoint(string range, string visibleValue) {
+                string path = Path.Combine(_directoryWithFiles, $"GoogleSheetsFilterHash-{Guid.NewGuid():N}.xlsx");
+                try {
+                    using var document = ExcelDocument.Create(path);
+                    ExcelSheet sheet = document.AddWorksheet("Data");
+                    sheet.CellValue(1, 1, "Region");
+                    sheet.CellValue(2, 1, "North");
+                    sheet.CellValue(3, 1, "South");
+                    sheet.CellValue(1, 3, "Name");
+                    sheet.CellValue(1, 4, "Value");
+                    sheet.CellValue(2, 3, "A");
+                    sheet.CellValue(2, 4, 1d);
+                    sheet.CellValue(3, 3, "B");
+                    sheet.CellValue(3, 4, 2d);
+                    sheet.AddAutoFilter(range, new Dictionary<uint, IEnumerable<string>> { [0] = new[] { visibleValue } });
+                    sheet.Range("C1:D3").CreateTable("DataTable", includeAutoFilter: true);
+                    return GoogleSheetsDiffPlanner.CreateCheckpoint(document);
+                } finally {
+                    if (File.Exists(path)) File.Delete(path);
+                }
+            }
+
+            GoogleSheetsSyncCheckpoint baseline = FilterCheckpoint("A1:A3", "North");
+            GoogleSheetsSyncCheckpoint changedRange = FilterCheckpoint("A1:B3", "North");
+            GoogleSheetsSyncCheckpoint changedCriteria = FilterCheckpoint("A1:A3", "South");
+
+            Assert.Contains("sheet/Data/filter/basic", baseline.ContentHashes.Keys);
+            Assert.Contains("sheet/Data/filter/view/0", baseline.ContentHashes.Keys);
+            Assert.NotEqual(baseline.ContentHashes["sheet/Data/filter/basic"], changedRange.ContentHashes["sheet/Data/filter/basic"]);
+            Assert.NotEqual(baseline.ContentHashes["sheet/Data/filter/basic"], changedCriteria.ContentHashes["sheet/Data/filter/basic"]);
+        }
+
+        [Fact]
         public void Test_GoogleSheetsCheckpoint_HashesSupportedDimensionsAndValidationRules() {
             string path = Path.Combine(_directoryWithFiles, "GoogleSheetsMetadataHashes.xlsx");
             try {

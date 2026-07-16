@@ -4,7 +4,7 @@ using System.IO;
 
 namespace OfficeIMO.Excel.GoogleSheets {
     internal static partial class GoogleSheetsBatchCompiler {
-        private static IReadOnlyList<GoogleSheetsRequest> BuildFilterRequests(
+        internal static IReadOnlyList<GoogleSheetsRequest> BuildFilterRequests(
             ExcelWorksheetSnapshot worksheet,
             TranslationReport report,
             ref bool multipleFilterNoticeAdded,

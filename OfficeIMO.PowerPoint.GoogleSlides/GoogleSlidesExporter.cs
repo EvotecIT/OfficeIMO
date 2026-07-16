@@ -40,6 +40,11 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                     batch.Plan.Report.Add(TranslationSeverity.Info, "Templates", "Copied the requested Google Slides template before applying the OfficeIMO batch.", code: "SLIDES.TEMPLATE.COPIED", action: TranslationAction.Preserve);
                 } else if (!string.IsNullOrWhiteSpace(location.ExistingFileId)) {
                     presentationId = location.ExistingFileId!;
+                    await ValidateExistingPresentationDriveAccessAsync(
+                        drive,
+                        presentationId,
+                        batch.Plan.Report,
+                        cancellationToken).ConfigureAwait(false);
                 } else {
                     GoogleSlidesApiPresentationResponse created = await transport.SendJsonAsync<GoogleSlidesApiPresentationResponse>(token.AccessToken, HttpMethod.Post,
                         "https://slides.googleapis.com/v1/presentations", new { title = batch.Title }, GoogleWorkspaceRequestSafety.NonIdempotent, "Google Slides API", batch.Plan.Report, cancellationToken).ConfigureAwait(false);
@@ -98,6 +103,48 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                 throw new GoogleWorkspaceConflictException("Google presentation changed after it was read.", current.PresentationId ?? "presentation", options.Replace.ExpectedRevisionId, current.RevisionId, report);
             }
             return current.RevisionId;
+        }
+
+        private static async Task ValidateExistingPresentationDriveAccessAsync(
+            GoogleDriveClient drive,
+            string presentationId,
+            TranslationReport report,
+            CancellationToken cancellationToken) {
+            GoogleDriveFile metadata;
+            try {
+                metadata = await drive.GetFileAsync(
+                    presentationId,
+                    report: report,
+                    cancellationToken: cancellationToken).ConfigureAwait(false);
+            } catch (GoogleWorkspaceApiException exception) when (
+                exception.ResponseStatusCode == System.Net.HttpStatusCode.Forbidden
+                || exception.ResponseStatusCode == System.Net.HttpStatusCode.NotFound) {
+                report.Add(
+                    TranslationSeverity.Error,
+                    "ExistingPresentation",
+                    "The existing Google presentation is not available through the configured Drive authoring grant. Open or create it through this app, or provide credentials with a Drive scope that covers the target before replacing it.",
+                    code: "SLIDES.REPLACE.DRIVE_ACCESS_REQUIRED",
+                    action: TranslationAction.Fail,
+                    targetId: presentationId);
+                throw new GoogleWorkspacePreflightException(
+                    $"Google Slides replacement was blocked before mutation because Drive metadata for '{presentationId}' is not accessible.",
+                    report,
+                    report.Notices.Where(notice => notice.Code == "SLIDES.REPLACE.DRIVE_ACCESS_REQUIRED").ToArray());
+            }
+
+            if (metadata.Capabilities != null && !metadata.Capabilities.CanEdit) {
+                report.Add(
+                    TranslationSeverity.Error,
+                    "ExistingPresentation",
+                    "The configured Google identity cannot edit the existing Drive file.",
+                    code: "SLIDES.REPLACE.DRIVE_EDIT_REQUIRED",
+                    action: TranslationAction.Fail,
+                    targetId: presentationId);
+                throw new GoogleWorkspacePreflightException(
+                    $"Google Slides replacement was blocked before mutation because '{presentationId}' is not editable.",
+                    report,
+                    report.Notices.Where(notice => notice.Code == "SLIDES.REPLACE.DRIVE_EDIT_REQUIRED").ToArray());
+            }
         }
 
         private static async Task<GoogleSlidesApiPresentationResponse> GetPresentationAsync(GoogleWorkspaceHttpTransport transport, string token, string id, TranslationReport report, CancellationToken cancellationToken) =>

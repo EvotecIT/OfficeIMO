@@ -97,6 +97,16 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                                 picture.GetImageBytes(), picture.ContentType ?? "image/png", $"picture-{slideIndex + 1}-{elementIndex}{ImageExtension(picture.ContentType)}"), shape));
                             plan.NativeImageCount++;
                             break;
+                        case PowerPointPicture picture when HasImageCrop(picture):
+                            plan.UnsupportedElementCount++;
+                            report.Add(
+                                TranslationSeverity.Warning,
+                                "Images",
+                                $"Skipped cropped image '{picture.Name ?? id}' because Google Slides exposes image crop properties as read-only. Use RasterizeComplexSlides to preserve its rendered appearance.",
+                                path: $"slide/{slideIndex + 1}/{picture.Name ?? id}",
+                                code: "SLIDES.IMAGE.CROP_SKIPPED",
+                                action: TranslationAction.Skip);
+                            break;
                         case PowerPointPicture picture:
                             plan.UnsupportedElementCount++;
                             report.Add(
@@ -126,7 +136,7 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
             return batch;
         }
 
-        private static bool IsUnsupported(PowerPointShape shape) => (shape is PowerPointPicture picture && !IsSupportedSlidesImage(picture))
+        private static bool IsUnsupported(PowerPointShape shape) => (shape is PowerPointPicture picture && (!IsSupportedSlidesImage(picture) || HasImageCrop(picture)))
             || (shape is PowerPointAutoShape autoShape && !TryMapShape(autoShape, out _))
             || (shape is PowerPointTable table && HasMergedCells(table))
             || shape.ShapeContentType == PowerPointShapeContentType.Chart
@@ -138,8 +148,14 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
             || shape.ShapeContentType == PowerPointShapeContentType.Unknown;
 
         private static bool IsSupportedSlidesImage(PowerPointPicture picture) {
-            return IsSupportedSlidesImageContentType(picture.ContentType);
+            return IsSupportedSlidesImageContentType(picture.ContentType) && !HasImageCrop(picture);
         }
+
+        private static bool HasImageCrop(PowerPointPicture picture) =>
+            Math.Abs(picture.CropLeftRatio) > double.Epsilon
+            || Math.Abs(picture.CropTopRatio) > double.Epsilon
+            || Math.Abs(picture.CropRightRatio) > double.Epsilon
+            || Math.Abs(picture.CropBottomRatio) > double.Epsilon;
 
         private static bool IsSupportedSlidesImageContentType(string? imageContentType) {
             string contentType = imageContentType ?? string.Empty;

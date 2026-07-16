@@ -78,7 +78,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
             }
         }
 
-        private static bool TryMapConditionalRule(ExcelConditionalFormattingInfo rule, out string conditionType, out IReadOnlyList<string> values) {
+        internal static bool TryMapConditionalRule(ExcelConditionalFormattingInfo rule, out string conditionType, out IReadOnlyList<string> values) {
             conditionType = string.Empty;
             values = rule.Formulas ?? Array.Empty<string>();
             string type = rule.Type ?? string.Empty;

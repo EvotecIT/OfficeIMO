@@ -11,7 +11,7 @@ using Xunit;
 using A = DocumentFormat.OpenXml.Drawing;
 
 namespace OfficeIMO.Tests {
-    public sealed class GoogleSlidesTests {
+    public sealed partial class GoogleSlidesTests {
         [Fact]
         public void BatchCompiler_MapsEditableCoreAndDeterministicIds() {
             using PowerPointPresentation presentation = PowerPointPresentation.Create();
@@ -429,6 +429,7 @@ namespace OfficeIMO.Tests {
             presentation.AddSlide().AddTextBox("Local");
             int mutations = 0;
             using var httpClient = new HttpClient(new DelegateHandler(request => {
+                if (request.Method == HttpMethod.Get && request.RequestUri!.Host == "www.googleapis.com") return Task.FromResult(Json("{\"id\":\"existing\",\"capabilities\":{\"canEdit\":true}}"));
                 if (request.Method == HttpMethod.Get && request.RequestUri!.Host == "slides.googleapis.com") return Task.FromResult(Json("{\"presentationId\":\"existing\",\"revisionId\":\"remote\",\"slides\":[]}"));
                 if (request.Method == HttpMethod.Post) mutations++;
                 return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound));
@@ -475,6 +476,7 @@ namespace OfficeIMO.Tests {
             presentation.AddSlide().AddTextBox("Local");
             int presentationReads = 0;
             using var httpClient = new HttpClient(new DelegateHandler(request => {
+                if (request.Method == HttpMethod.Get && request.RequestUri!.Host == "www.googleapis.com") return Task.FromResult(Json("{\"id\":\"existing\",\"capabilities\":{\"canEdit\":true}}"));
                 if (request.Method == HttpMethod.Get && request.RequestUri!.Host == "slides.googleapis.com") {
                     presentationReads++;
                     return Task.FromResult(Json("{\"presentationId\":\"existing\",\"revisionId\":\"observed\",\"slides\":[]}"));
@@ -502,6 +504,7 @@ namespace OfficeIMO.Tests {
             presentation.AddSlide().AddTextBox("Local");
             int presentationReads = 0;
             using var httpClient = new HttpClient(new DelegateHandler(request => {
+                if (request.Method == HttpMethod.Get && request.RequestUri!.Host == "www.googleapis.com") return Task.FromResult(Json("{\"id\":\"existing\",\"capabilities\":{\"canEdit\":true}}"));
                 if (request.Method == HttpMethod.Get && request.RequestUri!.Host == "slides.googleapis.com") {
                     presentationReads++;
                     string revision = presentationReads == 1 ? "observed" : "remote";
@@ -535,6 +538,7 @@ namespace OfficeIMO.Tests {
             int batchWrites = 0;
             var batchBodies = new List<string>();
             using var httpClient = new HttpClient(new DelegateHandler(async request => {
+                if (request.Method == HttpMethod.Get && request.RequestUri!.Host == "www.googleapis.com") return Json("{\"id\":\"existing\",\"capabilities\":{\"canEdit\":true}}");
                 if (request.Method == HttpMethod.Get && request.RequestUri!.Host == "slides.googleapis.com") {
                     presentationReads++;
                     return presentationReads == 1

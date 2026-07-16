@@ -109,6 +109,8 @@ namespace OfficeIMO.Excel.GoogleSheets {
             ExcelWorkbookSnapshot snapshot = document.CreateInspectionSnapshot(new ExcelReadOptions { UseCachedFormulaResult = true, TreatDatesUsingNumberFormat = true });
             var result = new Dictionary<string, string>(StringComparer.Ordinal);
             foreach (ExcelWorksheetSnapshot sheet in snapshot.Worksheets) {
+                ExcelSheet? sourceSheet = document.Sheets.FirstOrDefault(candidate =>
+                    string.Equals(candidate.Name, sheet.Name, StringComparison.OrdinalIgnoreCase));
                 result[$"sheet/{sheet.Name}"] = Hash($"{sheet.Index}|{sheet.Hidden}|{sheet.RightToLeft}|{sheet.ShowGridlines}|{sheet.FrozenRowCount}|{sheet.FrozenColumnCount}|{sheet.TabColorArgb}");
                 foreach (ExcelCellSnapshot cell in sheet.Cells) {
                     result[$"sheet/{sheet.Name}/cell/{cell.Row}:{cell.Column}"] = Hash($"{cell.Value}|{cell.Formula}|{StyleFingerprint(cell.Style)}|{HyperlinkFingerprint(cell.Hyperlink)}|{RichTextFingerprint(cell.RichTextRuns)}|{cell.Comment?.Author}|{cell.Comment?.Text}");
@@ -126,6 +128,8 @@ namespace OfficeIMO.Excel.GoogleSheets {
                 }
                 foreach (ExcelMergedRangeSnapshot merge in sheet.MergedRanges) result[$"sheet/{sheet.Name}/merge/{merge.A1Range}"] = Hash(merge.A1Range);
                 foreach (ExcelTableSnapshot table in sheet.Tables) result[$"sheet/{sheet.Name}/table/{table.Name}"] = Hash($"{table.A1Range}|{table.StyleName}|{table.TotalsRowShown}");
+                AddConditionalFormatHashes(result, sheet.Name, sourceSheet);
+                AddFilterHashes(result, sheet);
             }
             foreach (ExcelNamedRangeSnapshot name in snapshot.NamedRanges) {
                 string path = string.IsNullOrWhiteSpace(name.SheetName)
@@ -134,6 +138,60 @@ namespace OfficeIMO.Excel.GoogleSheets {
                 result[path] = Hash(name.ReferenceA1);
             }
             return result;
+        }
+
+        private static void AddConditionalFormatHashes(
+            IDictionary<string, string> result,
+            string sheetName,
+            ExcelSheet? sourceSheet) {
+            if (sourceSheet == null) return;
+            int index = 0;
+            foreach (ExcelConditionalFormattingInfo rule in sourceSheet.GetConditionalFormattingRules().OrderBy(rule => rule.Priority)) {
+                if (!GoogleSheetsBatchCompiler.TryMapConditionalRule(rule, out string conditionType, out IReadOnlyList<string> values)) continue;
+                string format = $"{rule.DifferentialFontBold == true}|{rule.DifferentialFontItalic == true}|{rule.DifferentialFontColorArgb}|{rule.DifferentialFillColorArgb}";
+                result[$"sheet/{sheetName}/conditionalFormat/{index++}"] = Hash(
+                    $"{rule.Range}|{conditionType}|{string.Join("~", values)}|{format}");
+            }
+        }
+
+        private static void AddFilterHashes(IDictionary<string, string> result, ExcelWorksheetSnapshot sheet) {
+            bool multipleFilterNoticeAdded = false;
+            bool customFilterNoticeAdded = false;
+            IReadOnlyList<GoogleSheetsRequest> requests = GoogleSheetsBatchCompiler.BuildFilterRequests(
+                sheet,
+                new TranslationReport(),
+                ref multipleFilterNoticeAdded,
+                ref customFilterNoticeAdded);
+            int viewIndex = 0;
+            foreach (GoogleSheetsRequest request in requests) {
+                switch (request) {
+                    case GoogleSheetsSetBasicFilterRequest basic:
+                        result[$"sheet/{sheet.Name}/filter/basic"] = Hash(FilterFingerprint(
+                            basic.A1Range,
+                            basic.StartRowIndex,
+                            basic.EndRowIndexExclusive,
+                            basic.StartColumnIndex,
+                            basic.EndColumnIndexExclusive,
+                            basic.Criteria));
+                        break;
+                    case GoogleSheetsAddFilterViewRequest view:
+                        result[$"sheet/{sheet.Name}/filter/view/{viewIndex++}"] = Hash(
+                            $"{view.Title}|{FilterFingerprint(view.A1Range, view.StartRowIndex, view.EndRowIndexExclusive, view.StartColumnIndex, view.EndColumnIndexExclusive, view.Criteria)}");
+                        break;
+                }
+            }
+        }
+
+        private static string FilterFingerprint(
+            string a1Range,
+            int startRowIndex,
+            int endRowIndexExclusive,
+            int startColumnIndex,
+            int endColumnIndexExclusive,
+            IReadOnlyList<GoogleSheetsFilterColumnCriteria> criteria) {
+            string criteriaFingerprint = string.Join("~", criteria.OrderBy(item => item.ColumnId).Select(item =>
+                $"{item.ColumnId}:{string.Join(",", item.HiddenValues)}:{item.Condition?.Type}:{string.Join(",", item.Condition?.Values ?? Array.Empty<string>())}"));
+            return $"{a1Range}|{startRowIndex}|{endRowIndexExclusive}|{startColumnIndex}|{endColumnIndexExclusive}|{criteriaFingerprint}";
         }
 
         private static string StyleFingerprint(ExcelCellStyleSnapshot? style) {
