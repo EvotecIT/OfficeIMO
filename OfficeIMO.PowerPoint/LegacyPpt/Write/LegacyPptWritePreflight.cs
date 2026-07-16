@@ -22,9 +22,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 findings.Add(new LegacyPptWriteFinding(LegacyPptFeature.Sections, "PPT-WRITE-SECTIONS",
                     "Presentation sections are not encoded by the native binary writer."));
             }
-            if (presentation.OpenXmlDocument.PresentationPart?.VbaProjectPart != null) {
+            if (!LegacyPptWriter.TryReadVbaProject(presentation,
+                    out _, out string? vbaReason)) {
                 findings.Add(new LegacyPptWriteFinding(LegacyPptFeature.VbaProjects, "PPT-WRITE-VBA",
-                    "VBA projects are not encoded by the native binary writer."));
+                    vbaReason ?? "The VBA project cannot be encoded by the native binary writer."));
             }
             if (!LegacyPptPropertySetCodec.TryCreateFreshStreams(presentation,
                     out _, out string? propertyReason)) {

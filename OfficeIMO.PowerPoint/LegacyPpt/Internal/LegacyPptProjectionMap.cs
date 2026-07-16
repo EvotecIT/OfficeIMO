@@ -27,7 +27,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             IReadOnlyList<LegacyPptCustomShow> customShows,
             bool customShowsAreEditable,
             IReadOnlyList<LegacyPptSound> sounds, uint? soundIdSeed,
-            LegacyPptPropertySetProjection propertySets) {
+            LegacyPptPropertySetProjection propertySets,
+            LegacyPptVbaProjectProjection vbaProject) {
             Slides = new ReadOnlyCollection<LegacyPptSlideProjection>(slides.ToArray());
             _slidesByPartUri = new ReadOnlyDictionary<string, LegacyPptSlideProjection>(slides.ToDictionary(
                 slide => slide.SlidePartUri, StringComparer.Ordinal));
@@ -66,6 +67,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             SoundIdSeed = soundIdSeed;
             PropertySets = propertySets
                 ?? throw new ArgumentNullException(nameof(propertySets));
+            VbaProject = vbaProject
+                ?? throw new ArgumentNullException(nameof(vbaProject));
         }
 
         internal IReadOnlyList<LegacyPptSlideProjection> Slides { get; }
@@ -87,6 +90,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
         internal uint? SoundIdSeed { get; }
 
         internal LegacyPptPropertySetProjection PropertySets { get; }
+
+        internal LegacyPptVbaProjectProjection VbaProject { get; }
 
         internal bool TryGetSlide(PowerPointSlide slide, out LegacyPptSlideProjection? projection) {
             if (slide == null) throw new ArgumentNullException(nameof(slide));
@@ -218,7 +223,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 legacy.CustomShowsAreEditable, legacy.Sounds,
                 legacy.SoundIdSeed,
                 LegacyPptPropertySetCodec.CreateProjection(presentation,
-                    legacy.Package));
+                    legacy.Package),
+                LegacyPptVbaProjectProjection.Create(legacy.VbaProject));
         }
 
         private static LegacyPptNotesProjection CreateNotesProjection(

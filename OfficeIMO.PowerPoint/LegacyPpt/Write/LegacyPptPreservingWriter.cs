@@ -430,6 +430,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     }
                     rewritten[package.DocumentPersistId] = documentWithSounds;
                 }
+                if (!TryRewriteVbaProject(presentation, package,
+                        projectionMap, rewritten)) {
+                    return false;
+                }
                 return true;
             } catch (Exception exception) when (exception is InvalidDataException
                                                 || exception is OverflowException

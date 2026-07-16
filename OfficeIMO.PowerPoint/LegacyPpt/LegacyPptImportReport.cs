@@ -18,6 +18,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             SoundCount = presentation.Sounds.Count;
             ImportableSoundCount = presentation.Sounds.Count(sound =>
                 sound.HasData && sound.ContentType != null);
+            VbaProjectCount = presentation.VbaProject == null ? 0 : 1;
+            VbaProjectByteCount = presentation.VbaProject?.Length ?? 0;
+            VbaProjectWasCompressed = presentation.VbaProject?.WasCompressed
+                == true;
             TextRulerCount = presentation.Slides.Sum(slide =>
                 slide.Shapes.Count(shape => shape.TextBody.HasRulerRecord));
             PlaceholderShapeCount = presentation.Slides.Sum(slide =>
@@ -136,6 +140,15 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
 
         /// <summary>Gets the number of sounds that can be projected as Open XML audio.</summary>
         public int ImportableSoundCount { get; }
+
+        /// <summary>Gets the number of decoded presentation VBA projects.</summary>
+        public int VbaProjectCount { get; }
+
+        /// <summary>Gets the decompressed byte length of the decoded VBA project.</summary>
+        public int VbaProjectByteCount { get; }
+
+        /// <summary>Gets whether the decoded VBA persist object used the compressed storage form.</summary>
+        public bool VbaProjectWasCompressed { get; }
 
         /// <summary>Gets the number of slide text shapes that contain a TextRulerAtom.</summary>
         public int TextRulerCount { get; }

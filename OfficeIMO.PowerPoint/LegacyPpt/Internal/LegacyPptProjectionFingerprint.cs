@@ -117,11 +117,11 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 },
                 part => !(part is SlidePart or NotesSlidePart or SlideCommentsPart
                     or CommentAuthorsPart or CoreFilePropertiesPart
-                    or CustomFilePropertiesPart)
+                    or CustomFilePropertiesPart or VbaProjectPart)
                     && !materializedLayoutThemePartUris.Contains(
                         part.Uri.ToString()),
                 (owner, relationship) => !(relationship.OpenXmlPart is SlidePart
-                    or SlideCommentsPart or CommentAuthorsPart)
+                    or SlideCommentsPart or CommentAuthorsPart or VbaProjectPart)
                     && !(owner is SlideLayoutPart layout
                         && relationship.OpenXmlPart is ThemeOverridePart
                         && projectionMap.IsEditableProjectedLayoutThemePart(

@@ -86,6 +86,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
         /// <summary>Gets the sound identifier seed stored by the document, when valid.</summary>
         public uint? SoundIdSeed { get; private set; }
 
+        /// <summary>Gets the complete VBA project storage referenced by the presentation, when present.</summary>
+        public LegacyPptVbaProject? VbaProject { get; private set; }
+
         /// <summary>Gets import diagnostics, including preserve-only content.</summary>
         public IReadOnlyList<LegacyPptImportDiagnostic> Diagnostics => _diagnostics;
 
@@ -139,6 +142,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             ParseSoundCollection(document, options);
             ParseNamedShows(document, options);
             ParseHyperlinks(document, options);
+            ParseVbaProject(document, package, options);
 
             ParseSpecialMasters(documentAtom, documentStream, persistOffsets, options);
             ParseMasters(document, documentStream, persistOffsets, options);
@@ -655,10 +659,6 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
 
         private void AddCompoundFeatureDiagnostics(OfficeCompoundFile compound, LegacyPptImportOptions options) {
             if (!options.ReportUnsupportedContent) return;
-            if (compound.Streams.Keys.Any(name => name.IndexOf("VBA", StringComparison.OrdinalIgnoreCase) >= 0)) {
-                AddDiagnostic("PPT-VBA-PRESERVE-ONLY", LegacyPptDiagnosticSeverity.Warning,
-                    "The compound file contains a VBA project that is not projected into the editable model.", null);
-            }
             if (compound.Streams.Keys.Any(name => name.IndexOf("ObjectPool", StringComparison.OrdinalIgnoreCase) >= 0)) {
                 AddDiagnostic("PPT-OLE-PRESERVE-ONLY", LegacyPptDiagnosticSeverity.Warning,
                     "The compound file contains embedded OLE objects that are not projected into the editable model.", null);

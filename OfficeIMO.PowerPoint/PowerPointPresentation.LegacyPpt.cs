@@ -111,8 +111,13 @@ namespace OfficeIMO.PowerPoint {
             }
 
             ProjectLegacyComments(projected, legacy);
+            ProjectLegacyVbaProject(projected, legacy);
 
             byte[] packageBytes = projected.ToBytes();
+            if (legacy.VbaProject != null) {
+                packageBytes = ConvertProjectedVbaPackageToMacroEnabled(
+                    packageBytes);
+            }
             PowerPointPresentation presentation = LoadPackage(packageBytes, sourcePath, sourceStream, loadOptions);
             LegacyPptPropertySetCodec.Apply(presentation, legacy.Package);
             LegacyPptProjectionMap projectionMap = LegacyPptProjectionMap.Create(presentation, legacy);

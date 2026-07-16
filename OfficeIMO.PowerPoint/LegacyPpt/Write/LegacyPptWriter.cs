@@ -68,6 +68,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     out string? animationReason)) {
                 throw new NotSupportedException(animationReason);
             }
+            if (!TryReadVbaProject(presentation, out byte[]? vbaProjectBytes,
+                    out string? vbaReason)) {
+                throw new NotSupportedException(vbaReason);
+            }
 
             LegacyPptWriterTemplate template = Template.Value;
             var notes = new List<LegacyPptWriterNote>();
@@ -122,12 +126,18 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             uint handoutMasterPersistId = masters.HandoutMasterPersistObject == null
                 ? 0U
                 : checked((uint)(14 + presentation.Slides.Count + notes.Count));
+            uint? vbaProjectPersistId = vbaProjectBytes == null
+                ? null
+                : checked((uint)(masters.PersistObjects.Count
+                    + slideRecords.Count + notesRecords.Length
+                    + (masters.HandoutMasterPersistObject == null ? 0 : 1)
+                    + 3));
 
             var persistObjects = new List<byte[]>(14 + slideRecords.Count + notesRecords.Length) {
                 BuildDocumentRecord(template.Document, presentation, slideShapeCounts, notes,
                     interactionCatalog, customShows, soundCatalog, masters.Count,
                     masters.DrawingShapeCounts, masters.Fonts,
-                    handoutMasterPersistId)
+                    handoutMasterPersistId, vbaProjectPersistId)
             };
             persistObjects.AddRange(masters.PersistObjects);
             persistObjects.Add(masters.NotesMasterPersistObject);
@@ -135,6 +145,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             persistObjects.AddRange(notesRecords);
             if (masters.HandoutMasterPersistObject != null) {
                 persistObjects.Add(masters.HandoutMasterPersistObject);
+            }
+            if (vbaProjectBytes != null) {
+                persistObjects.Add(BuildVbaProjectStorageRecord(
+                    vbaProjectBytes));
             }
 
             byte[] documentStream = BuildDocumentStream(persistObjects, presentation.Slides.Count);
@@ -212,7 +226,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             int masterCount,
             IReadOnlyDictionary<uint, int> masterDrawingShapeCounts,
             LegacyPptWriterFontCatalog fonts,
-            uint handoutMasterPersistId) {
+            uint handoutMasterPersistId,
+            uint? vbaProjectPersistId) {
             var children = new List<byte[]>();
             bool wroteSounds = false;
             bool wroteFonts = false;
@@ -300,7 +315,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 throw new InvalidDataException(
                     "The embedded document template has malformed hyperlink extension records.");
             }
-            return withExtensions;
+            rebuiltRecord = LegacyPptRecordReader.ReadSingle(withExtensions, 0,
+                new LegacyPptImportOptions());
+            return RewriteDocumentVbaInfo(rebuiltRecord,
+                vbaProjectPersistId);
         }
 
         private static void PatchDocumentSettings(byte[] atom,
