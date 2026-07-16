@@ -54,6 +54,25 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyXls_NormalLoad_ReadOnlyModeUsesReadOnlyPackageAndRejectsSave() {
+            byte[] compound = CreateMinimalLegacyXlsCompound();
+            using ExcelDocument document = ExcelDocument.Load(
+                new MemoryStream(compound, writable: false),
+                new ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
+
+            Assert.Equal(OfficeIMO.Drawing.DocumentAccessMode.ReadOnly, document.AccessMode);
+            Assert.Equal(FileAccess.Read, document.FileOpenAccess);
+            Assert.Equal(ExcelFileFormat.Xls, document.SourceFormat);
+            Assert.True(document.Sheets[0].TryGetCellText(2, 2, out string? value));
+            Assert.Equal("42", value);
+
+            using var destination = new MemoryStream();
+            InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() => document.Save(destination));
+            Assert.Contains("read-only", exception.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Equal(0, destination.Length);
+        }
+
+        [Fact]
         public void LegacyXls_NormalLoad_LoadEncryptedPathDoesNotBindPlainSaveToEncryptedSource() {
             byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateRc4EncryptedWorkbookStream("openpass");
             byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);

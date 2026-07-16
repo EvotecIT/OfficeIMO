@@ -108,7 +108,7 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        internal static ExcelDocument ProjectLoadedLegacyXlsWorkbook(LegacyXlsWorkbook workbook, string? sourcePath) {
+        internal static ExcelDocument ProjectLoadedLegacyXlsWorkbook(LegacyXlsWorkbook workbook, string? sourcePath, bool readOnly = false) {
             if (workbook == null) throw new ArgumentNullException(nameof(workbook));
 
             if (workbook.Worksheets.Count == 0 && workbook.ChartSheets.Count == 0) {
@@ -116,6 +116,9 @@ namespace OfficeIMO.Excel {
             }
 
             ExcelDocument document = workbook.ToExcelDocument();
+            if (readOnly) {
+                document = ReopenProjectedWorkbookReadOnly(document);
+            }
             document.MarkLoadedFromLegacyXls(sourcePath, workbook);
             return document;
         }

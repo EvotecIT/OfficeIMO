@@ -354,6 +354,15 @@ namespace OfficeIMO.Word {
             } else if (location is Footer footer) {
                 var part = footer.FooterPart ?? throw new InvalidOperationException("Footer part is missing.");
                 rel = part.AddExternalRelationship("http://schemas.openxmlformats.org/officeDocument/2006/relationships/image", uri);
+            } else if (location is Footnotes) {
+                var part = document._wordprocessingDocument.MainDocumentPart?.FootnotesPart ?? throw new InvalidOperationException("FootnotesPart is missing.");
+                rel = part.AddExternalRelationship("http://schemas.openxmlformats.org/officeDocument/2006/relationships/image", uri);
+            } else if (location is Endnotes) {
+                var part = document._wordprocessingDocument.MainDocumentPart?.EndnotesPart ?? throw new InvalidOperationException("EndnotesPart is missing.");
+                rel = part.AddExternalRelationship("http://schemas.openxmlformats.org/officeDocument/2006/relationships/image", uri);
+            } else if (location is Comments) {
+                var part = document._wordprocessingDocument.MainDocumentPart?.WordprocessingCommentsPart ?? throw new InvalidOperationException("WordprocessingCommentsPart is missing.");
+                rel = part.AddExternalRelationship("http://schemas.openxmlformats.org/officeDocument/2006/relationships/image", uri);
             } else {
                 var part = document._wordprocessingDocument.MainDocumentPart ?? throw new InvalidOperationException("MainDocumentPart is missing.");
                 rel = part.AddExternalRelationship("http://schemas.openxmlformats.org/officeDocument/2006/relationships/image", uri);
