@@ -383,6 +383,25 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Xlsb_NativeRewrite_ExpandsDimensionsAndRebuildsSegmentedRowSpans() {
+            using ExcelDocument document = ExcelDocument.Load(GetExcelGeneratedXlsbFixturePath());
+            ExcelSheet sheet = document.Sheets[0];
+            sheet.CellValue(2, 1025, "second segment");
+            sheet.CellValue(4, 1025, "new row");
+
+            byte[] rewritten = document.ToBytes(ExcelFileFormat.Xlsb);
+
+            Assert.Equal((0, 3, 0, 1024), ReadWorksheetDimension(rewritten, "xl/worksheets/sheet1.bin"));
+            Assert.Equal(new[] { (0, 1), (1024, 1024) }, ReadRowSpans(rewritten, "xl/worksheets/sheet1.bin", 2));
+            Assert.Equal(new[] { (1024, 1024) }, ReadRowSpans(rewritten, "xl/worksheets/sheet1.bin", 4));
+            using ExcelDocument reloaded = ExcelDocument.Load(new MemoryStream(rewritten, writable: false));
+            Assert.True(reloaded.Sheets[0].TryGetCellText(2, 1025, out string? existingRowValue));
+            Assert.True(reloaded.Sheets[0].TryGetCellText(4, 1025, out string? newRowValue));
+            Assert.Equal("second segment", existingRowValue);
+            Assert.Equal("new row", newRowValue);
+        }
+
+        [Fact]
         public void Xlsb_UnsupportedStructuralMutation_RejectsBeforeWriting() {
             using ExcelDocument document = ExcelDocument.Load(GetExcelGeneratedXlsbFixturePath());
             document.Sheets[0].MergeRange("A1:B1");
@@ -582,6 +601,36 @@ namespace OfficeIMO.Tests {
             }
 
             return cells;
+        }
+
+        private static (int FirstRow, int LastRow, int FirstColumn, int LastColumn) ReadWorksheetDimension(
+            byte[] package,
+            string partName) {
+            using var part = new MemoryStream(ReadZipEntry(package, partName), writable: false);
+            XlsbRecord dimension = Assert.Single(XlsbRecordReader.ReadAll(part), record => record.Type == 148);
+            var cursor = new XlsbBinaryCursor(dimension.Data);
+            return (cursor.ReadInt32(), cursor.ReadInt32(), cursor.ReadInt32(), cursor.ReadInt32());
+        }
+
+        private static IReadOnlyList<(int FirstColumn, int LastColumn)> ReadRowSpans(
+            byte[] package,
+            string partName,
+            int row) {
+            using var part = new MemoryStream(ReadZipEntry(package, partName), writable: false);
+            foreach (XlsbRecord record in XlsbRecordReader.ReadAll(part).Where(record => record.Type == 0)) {
+                var cursor = new XlsbBinaryCursor(record.Data);
+                if (cursor.ReadInt32() != row - 1) continue;
+                cursor.Skip(9);
+                uint count = cursor.ReadUInt32();
+                var spans = new List<(int FirstColumn, int LastColumn)>();
+                for (uint index = 0; index < count; index++) {
+                    spans.Add((cursor.ReadInt32(), cursor.ReadInt32()));
+                }
+                Assert.Equal(0, cursor.Remaining);
+                return spans.AsReadOnly();
+            }
+
+            throw new Xunit.Sdk.XunitException($"Row {row} was not found in '{partName}'.");
         }
 
         private static void WriteZipEntry(ZipArchive archive, string name, string content) {

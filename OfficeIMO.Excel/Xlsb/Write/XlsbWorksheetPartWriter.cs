@@ -18,13 +18,12 @@ namespace OfficeIMO.Excel.Xlsb.Write {
         private const int BrtCellRString = 62;
         private const int BrtBeginSheetData = 145;
         private const int BrtEndSheetData = 146;
+        private const int BrtWsDim = 148;
 
-        private static readonly byte[] DefaultRowPayload = {
+        private static readonly byte[] DefaultRowProperties = {
             0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x00,
-            0x40, 0x01, 0x00, 0x00, 0x00,
-            0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-            0x01, 0x00, 0x00, 0x00
+            0x2C, 0x01,
+            0x00, 0x00, 0x00
         };
 
         internal static byte[] Rewrite(byte[] originalPart, IReadOnlyList<XlsbWriteCell> cells) {
@@ -47,10 +46,15 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 .GroupBy(cell => cell.Row - 1)
                 .ToDictionary(group => group.Key, group => (IReadOnlyList<XlsbWriteCell>)group.OrderBy(cell => cell.Column).ToArray());
             int[] rowIndexes = layout.Rows.Keys.Concat(cellsByRow.Keys).Distinct().OrderBy(row => row).ToArray();
+            byte[]? dimensionPayload = CreateExpandedDimensionPayload(records, cells);
 
             using var output = new MemoryStream(originalPart.Length + Math.Max(256, cells.Count * 24));
             for (int index = 0; index <= beginIndex; index++) {
-                WriteRecord(output, records[index]);
+                if (records[index].Type == BrtWsDim && dimensionPayload != null) {
+                    XlsbRecordWriter.Write(output, BrtWsDim, dimensionPayload);
+                } else {
+                    WriteRecord(output, records[index]);
+                }
             }
 
             foreach (XlsbRecord metadata in layout.PrefixRecords) {
@@ -58,17 +62,12 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             }
 
             foreach (int rowIndex in rowIndexes) {
-                if (layout.Rows.TryGetValue(rowIndex, out XlsbSourceRowBlock? sourceRow)) {
-                    byte[] rowPayload = (byte[])sourceRow.RowHeader.Data.Clone();
-                    WriteUInt32(rowPayload, 0, checked((uint)rowIndex));
-                    XlsbRecordWriter.Write(output, BrtRowHdr, rowPayload);
-                } else {
-                    byte[] rowPayload = (byte[])DefaultRowPayload.Clone();
-                    WriteUInt32(rowPayload, 0, checked((uint)rowIndex));
-                    XlsbRecordWriter.Write(output, BrtRowHdr, rowPayload);
-                }
+                layout.Rows.TryGetValue(rowIndex, out XlsbSourceRowBlock? sourceRow);
+                cellsByRow.TryGetValue(rowIndex, out IReadOnlyList<XlsbWriteCell>? rowCells);
+                byte[] rowPayload = CreateRowHeaderPayload(rowIndex, sourceRow?.RowHeader.Data, rowCells ?? Array.Empty<XlsbWriteCell>());
+                XlsbRecordWriter.Write(output, BrtRowHdr, rowPayload);
 
-                if (cellsByRow.TryGetValue(rowIndex, out IReadOnlyList<XlsbWriteCell>? rowCells)) {
+                if (rowCells != null) {
                     foreach (XlsbWriteCell cell in rowCells) {
                         WriteCell(output, cell);
                     }
@@ -86,6 +85,77 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             }
 
             return output.ToArray();
+        }
+
+        private static byte[] CreateRowHeaderPayload(
+            int zeroBasedRow,
+            byte[]? sourcePayload,
+            IReadOnlyList<XlsbWriteCell> cells) {
+            if (sourcePayload != null && sourcePayload.Length < 17) {
+                throw new InvalidDataException($"The XLSB row header for row {zeroBasedRow + 1} is truncated.");
+            }
+
+            var spans = cells
+                .GroupBy(cell => (cell.Column - 1) / 1024)
+                .OrderBy(group => group.Key)
+                .Select(group => new {
+                    First = checked((uint)(group.Min(cell => cell.Column) - 1)),
+                    Last = checked((uint)(group.Max(cell => cell.Column) - 1))
+                })
+                .ToArray();
+            if (spans.Length > 16) {
+                throw new InvalidDataException($"The XLSB row {zeroBasedRow + 1} requires {spans.Length} column spans, exceeding the BIFF12 limit of 16.");
+            }
+
+            using var payload = new MemoryStream(17 + spans.Length * 8);
+            WriteUInt32(payload, checked((uint)zeroBasedRow));
+            if (sourcePayload != null) {
+                payload.Write(sourcePayload, 4, 9);
+            } else {
+                payload.Write(DefaultRowProperties, 0, DefaultRowProperties.Length);
+            }
+            WriteUInt32(payload, checked((uint)spans.Length));
+            foreach (var span in spans) {
+                WriteUInt32(payload, span.First);
+                WriteUInt32(payload, span.Last);
+            }
+            return payload.ToArray();
+        }
+
+        private static byte[]? CreateExpandedDimensionPayload(
+            IReadOnlyList<XlsbRecord> records,
+            IReadOnlyList<XlsbWriteCell> cells) {
+            XlsbRecord? dimension = null;
+            foreach (XlsbRecord record in records) {
+                if (record.Type != BrtWsDim) continue;
+                if (dimension != null) {
+                    throw new InvalidDataException("The XLSB worksheet contains more than one BrtWsDim record.");
+                }
+                dimension = record;
+            }
+
+            if (dimension == null) return null;
+            if (dimension.Data.Length != 16) {
+                throw new InvalidDataException($"The XLSB BrtWsDim record has invalid payload length {dimension.Data.Length}.");
+            }
+            if (cells.Count == 0) return (byte[])dimension.Data.Clone();
+
+            var cursor = new XlsbBinaryCursor(dimension.Data);
+            uint firstRow = cursor.ReadUInt32();
+            uint lastRow = cursor.ReadUInt32();
+            uint firstColumn = cursor.ReadUInt32();
+            uint lastColumn = cursor.ReadUInt32();
+            uint cellFirstRow = checked((uint)(cells.Min(cell => cell.Row) - 1));
+            uint cellLastRow = checked((uint)(cells.Max(cell => cell.Row) - 1));
+            uint cellFirstColumn = checked((uint)(cells.Min(cell => cell.Column) - 1));
+            uint cellLastColumn = checked((uint)(cells.Max(cell => cell.Column) - 1));
+
+            using var payload = new MemoryStream(16);
+            WriteUInt32(payload, Math.Min(firstRow, cellFirstRow));
+            WriteUInt32(payload, Math.Max(lastRow, cellLastRow));
+            WriteUInt32(payload, Math.Min(firstColumn, cellFirstColumn));
+            WriteUInt32(payload, Math.Max(lastColumn, cellLastColumn));
+            return payload.ToArray();
         }
 
         private static XlsbSheetDataLayout ParseSheetDataLayout(IReadOnlyList<XlsbRecord> records, int start, int end) {
@@ -193,14 +263,6 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             stream.WriteByte((byte)(value >> 8));
             stream.WriteByte((byte)(value >> 16));
             stream.WriteByte((byte)(value >> 24));
-        }
-
-        private static void WriteUInt32(byte[] data, int offset, uint value) {
-            if (offset < 0 || offset > data.Length - 4) throw new ArgumentOutOfRangeException(nameof(offset));
-            data[offset] = (byte)value;
-            data[offset + 1] = (byte)(value >> 8);
-            data[offset + 2] = (byte)(value >> 16);
-            data[offset + 3] = (byte)(value >> 24);
         }
 
         private static void WriteRecord(Stream stream, XlsbRecord record) =>
