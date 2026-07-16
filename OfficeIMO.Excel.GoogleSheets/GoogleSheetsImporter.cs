@@ -14,7 +14,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
             "spreadsheetId,spreadsheetUrl,properties(title,locale,timeZone)," +
             "namedRanges(name,range)," +
             "sheets(properties(sheetId,title,index,hidden,rightToLeft,tabColor,gridProperties)," +
-            "data(startRow,startColumn,rowData(values(userEnteredValue,effectiveValue,formattedValue,userEnteredFormat,note,dataValidation,pivotTable)),rowMetadata(hiddenByUser,pixelSize),columnMetadata(hiddenByUser,pixelSize))," +
+            "data(startRow,startColumn,rowData(values(userEnteredValue,effectiveValue,formattedValue,userEnteredFormat,textFormatRuns,note,dataValidation,pivotTable)),rowMetadata(hiddenByUser,pixelSize),columnMetadata(hiddenByUser,pixelSize))," +
             "merges,conditionalFormats,charts,tables,filterViews,basicFilter,rowGroups,columnGroups)";
 
         public async Task<GoogleSheetsImportResult> ImportAsync(
@@ -313,6 +313,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
             }
 
             ApplyCellFormat(sheet, row, column, cell.UserEnteredFormat);
+            ApplyRichText(sheet, row, column, cell, report);
             if (!string.IsNullOrWhiteSpace(cell.Note)) {
                 sheet.SetComment(row, column, cell.Note!, "Google Sheets");
             }
@@ -347,10 +348,10 @@ namespace OfficeIMO.Excel.GoogleSheets {
             if (format.BackgroundColor != null) sheet.CellBackground(row, column, ToHex(format.BackgroundColor));
             if (format.TextFormat != null) {
                 GoogleSheetsNativeTextFormat text = format.TextFormat;
-                if (text.Bold) sheet.CellBold(row, column);
-                if (text.Italic) sheet.CellItalic(row, column);
-                if (text.Underline) sheet.CellUnderline(row, column);
-                if (text.Strikethrough) sheet.CellStrikethrough(row, column);
+                if (text.Bold == true) sheet.CellBold(row, column);
+                if (text.Italic == true) sheet.CellItalic(row, column);
+                if (text.Underline == true) sheet.CellUnderline(row, column);
+                if (text.Strikethrough == true) sheet.CellStrikethrough(row, column);
                 if (!string.IsNullOrWhiteSpace(text.FontFamily)) sheet.CellFontName(row, column, text.FontFamily!);
                 if (text.FontSize is int fontSize && fontSize > 0) sheet.CellFontSize(row, column, fontSize);
                 if (text.ForegroundColor != null) sheet.CellFontColor(row, column, ToHex(text.ForegroundColor));
@@ -370,6 +371,71 @@ namespace OfficeIMO.Excel.GoogleSheets {
             if (string.Equals(format.WrapStrategy, "WRAP", StringComparison.Ordinal)) sheet.CellWrapText(row, column);
             if (format.TextRotation?.Vertical == true) sheet.CellTextRotation(row, column, 255);
             else if (format.TextRotation?.Angle is int angle) sheet.CellTextRotation(row, column, angle >= 0 ? angle : 90 - angle);
+        }
+
+        private static void ApplyRichText(
+            ExcelSheet sheet,
+            int row,
+            int column,
+            GoogleSheetsNativeCellData cell,
+            TranslationReport report) {
+            if (cell.TextFormatRuns.Count == 0) return;
+            string? text = cell.UserEnteredValue?.StringValue;
+            if (text == null || !HasValidTextFormatRunIndexes(cell.TextFormatRuns, text.Length)) {
+                report.AddUnique(
+                    TranslationSeverity.Warning,
+                    "RichText",
+                    "Native rich-text runs could not be projected because their source value or character indexes were invalid.",
+                    path: sheet.Name,
+                    code: "SHEETS.IMPORT.RICH_TEXT_FALLBACK",
+                    action: TranslationAction.Flatten);
+                return;
+            }
+
+            GoogleSheetsNativeTextFormat? baseFormat = cell.UserEnteredFormat?.TextFormat;
+            var projected = new List<ExcelRichTextRun>();
+            int cursor = 0;
+            for (int index = 0; index < cell.TextFormatRuns.Count; index++) {
+                GoogleSheetsNativeTextFormatRun sourceRun = cell.TextFormatRuns[index];
+                if (sourceRun.StartIndex > cursor) {
+                    projected.Add(CreateRichTextRun(text.Substring(cursor, sourceRun.StartIndex - cursor), baseFormat, null));
+                }
+
+                int endIndex = index + 1 < cell.TextFormatRuns.Count
+                    ? cell.TextFormatRuns[index + 1].StartIndex
+                    : text.Length;
+                if (endIndex > sourceRun.StartIndex) {
+                    projected.Add(CreateRichTextRun(text.Substring(sourceRun.StartIndex, endIndex - sourceRun.StartIndex), baseFormat, sourceRun.Format));
+                }
+                cursor = endIndex;
+            }
+
+            if (projected.Count > 0) sheet.SetRichText(row, column, projected);
+        }
+
+        private static bool HasValidTextFormatRunIndexes(IReadOnlyList<GoogleSheetsNativeTextFormatRun> runs, int textLength) {
+            int previous = -1;
+            foreach (GoogleSheetsNativeTextFormatRun run in runs) {
+                if (run.StartIndex < 0 || run.StartIndex > textLength || run.StartIndex <= previous) return false;
+                previous = run.StartIndex;
+            }
+            return true;
+        }
+
+        private static ExcelRichTextRun CreateRichTextRun(
+            string text,
+            GoogleSheetsNativeTextFormat? baseFormat,
+            GoogleSheetsNativeTextFormat? runFormat) {
+            GoogleSheetsNativeColor? color = runFormat?.ForegroundColor ?? baseFormat?.ForegroundColor;
+            return new ExcelRichTextRun(text) {
+                Bold = runFormat?.Bold ?? baseFormat?.Bold ?? false,
+                Italic = runFormat?.Italic ?? baseFormat?.Italic ?? false,
+                Underline = runFormat?.Underline ?? baseFormat?.Underline ?? false,
+                Strikethrough = runFormat?.Strikethrough ?? baseFormat?.Strikethrough ?? false,
+                FontName = runFormat?.FontFamily ?? baseFormat?.FontFamily,
+                FontSize = runFormat?.FontSize ?? baseFormat?.FontSize,
+                FontColor = color == null ? null : ToHex(color),
+            };
         }
 
         private static void ApplyMerges(ExcelSheet sheet, IReadOnlyList<GoogleSheetsNativeGridRange> ranges) {

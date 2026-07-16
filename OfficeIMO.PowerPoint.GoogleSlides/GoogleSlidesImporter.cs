@@ -100,14 +100,7 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                             }
                             ApplyTransform(box, geometry);
                             ApplyShapeStyle(box, element.Shape, report, element.ObjectId);
-                            GoogleSlidesApiTextRun? style = element.Shape.Text.TextElements.Select(item => item.TextRun).FirstOrDefault(run => run?.Style != null);
-                            PowerPointTextRun? run = box.Paragraphs.SelectMany(paragraph => paragraph.Runs).FirstOrDefault();
-                            if (style?.Style != null && run != null) {
-                                run.Bold = style.Style.Bold == true; run.Italic = style.Style.Italic == true; run.Underline = style.Style.Underline == true;
-                                run.FontSize = style.Style.FontSize == null ? null : (int?)Math.Round(ToPoints(style.Style.FontSize)); run.FontName = style.Style.FontFamily;
-                                if (style.Style.ForegroundColor?.OpaqueColor?.RgbColor is GoogleSlidesApiRgbColor textColor) run.Color = ToHex(textColor);
-                                if (Uri.TryCreate(style.Style.Link?.Url, UriKind.Absolute, out Uri? link)) run.Hyperlink = link;
-                            }
+                            ApplyTextRuns(box, element.Shape.Text);
                         } else if (element.Shape != null) {
                             if (TryMapShapeType(element.Shape.ShapeType, out A.ShapeTypeValues shapeType)) {
                                 PowerPointAutoShape shape = slide.AddShapePoints(shapeType, left, top, Math.Max(1, width), Math.Max(1, height), element.ObjectId);
@@ -162,6 +155,44 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
             if (text == null) return string.Empty;
             string value = string.Concat(text.TextElements.Select(element => element.TextRun?.Content));
             return value.EndsWith("\n", StringComparison.Ordinal) ? value.Substring(0, value.Length - 1) : value;
+        }
+
+        private static void ApplyTextRuns(PowerPointTextBox box, GoogleSlidesApiTextContent text) {
+            List<GoogleSlidesApiTextRun> sourceRuns = text.TextElements
+                .Select(element => element.TextRun)
+                .Where(run => run != null)
+                .Cast<GoogleSlidesApiTextRun>()
+                .ToList();
+            if (sourceRuns.Count == 0) return;
+
+            int lastContentRun = sourceRuns.FindLastIndex(run => !string.IsNullOrEmpty(run.Content));
+            PowerPointParagraph paragraph = box.Paragraphs.FirstOrDefault() ?? box.AddParagraph();
+            PowerPointTextRun targetRun = paragraph.Runs.FirstOrDefault() ?? paragraph.AddRun(string.Empty);
+            for (int index = 0; index < sourceRuns.Count; index++) {
+                GoogleSlidesApiTextRun sourceRun = sourceRuns[index];
+                string content = sourceRun.Content ?? string.Empty;
+                if (index == lastContentRun && content.EndsWith("\n", StringComparison.Ordinal)) {
+                    content = content.Substring(0, content.Length - 1);
+                }
+
+                if (index == 0) {
+                    targetRun.Text = content;
+                } else {
+                    targetRun = paragraph.AddRun(content);
+                }
+                ApplyTextRunStyle(targetRun, sourceRun.Style);
+            }
+        }
+
+        private static void ApplyTextRunStyle(PowerPointTextRun run, GoogleSlidesApiTextStyle? style) {
+            if (style == null) return;
+            run.Bold = style.Bold == true;
+            run.Italic = style.Italic == true;
+            run.Underline = style.Underline == true;
+            if (style.FontSize != null) run.FontSize = (int)Math.Round(ToPoints(style.FontSize));
+            if (!string.IsNullOrWhiteSpace(style.FontFamily)) run.FontName = style.FontFamily;
+            if (style.ForegroundColor?.OpaqueColor?.RgbColor is GoogleSlidesApiRgbColor textColor) run.Color = ToHex(textColor);
+            if (Uri.TryCreate(style.Link?.Url, UriKind.Absolute, out Uri? link)) run.Hyperlink = link;
         }
         private static double ToPoints(GoogleSlidesApiDimension? dimension) => dimension == null ? 0 : ToPoints(dimension.Magnitude, dimension.Unit);
         private static double ToPoints(double value, string? unit) => string.Equals(unit, "EMU", StringComparison.OrdinalIgnoreCase) ? value / 12700d : value;

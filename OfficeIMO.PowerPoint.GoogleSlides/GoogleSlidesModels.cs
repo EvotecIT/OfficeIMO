@@ -54,8 +54,21 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
         public string? FontFamily { get; internal set; }
         public string? ForegroundColorHex { get; internal set; }
         public string? Hyperlink { get; internal set; }
+        internal List<GoogleSlidesTextStyleRun> TextRuns { get; } = new List<GoogleSlidesTextStyleRun>();
         /// <summary>Editable fill and outline appearance for text-bearing shapes.</summary>
         public GoogleSlidesShapeStyle Style { get; } = new GoogleSlidesShapeStyle();
+    }
+
+    internal sealed class GoogleSlidesTextStyleRun {
+        internal int StartIndex { get; set; }
+        internal int EndIndex { get; set; }
+        internal bool Bold { get; set; }
+        internal bool Italic { get; set; }
+        internal bool Underline { get; set; }
+        internal int? FontSize { get; set; }
+        internal string? FontFamily { get; set; }
+        internal string? ForegroundColorHex { get; set; }
+        internal string? Hyperlink { get; set; }
     }
 
     public sealed class GoogleSlidesTable : GoogleSlidesElement {

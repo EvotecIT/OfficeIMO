@@ -240,13 +240,24 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                     requests.Add(new { createShape = new { objectId = text.ObjectId, shapeType = text.ShapeType, elementProperties = properties } });
                     AddShapeStyleRequest(requests, text.ObjectId, text.Style, scale);
                     if (!string.IsNullOrEmpty(text.Text)) requests.Add(new { insertText = new { objectId = text.ObjectId, text = text.Text } });
-                    var style = new Dictionary<string, object?>();
-                    if (text.Bold) style["bold"] = true; if (text.Italic) style["italic"] = true; if (text.Underline) style["underline"] = true;
-                    if (text.FontSize.HasValue) style["fontSize"] = new { magnitude = Math.Max(1, text.FontSize.Value * scale), unit = "PT" };
-                    if (!string.IsNullOrWhiteSpace(text.FontFamily)) style["fontFamily"] = text.FontFamily;
-                    if (!string.IsNullOrWhiteSpace(text.ForegroundColorHex)) style["foregroundColor"] = new { opaqueColor = new { rgbColor = Rgb(text.ForegroundColorHex!) } };
-                    if (!string.IsNullOrWhiteSpace(text.Hyperlink)) style["link"] = new { url = text.Hyperlink };
-                    if (style.Count > 0 && text.Text.Length > 0) requests.Add(new { updateTextStyle = new { objectId = text.ObjectId, textRange = new { type = "ALL" }, style, fields = string.Join(",", style.Keys) } });
+                    if (text.TextRuns.Count > 0) {
+                        foreach (GoogleSlidesTextStyleRun run in text.TextRuns) {
+                            Dictionary<string, object?> style = BuildTextStyle(run.Bold, run.Italic, run.Underline, run.FontSize, run.FontFamily, run.ForegroundColorHex, run.Hyperlink, scale);
+                            if (style.Count > 0 && run.EndIndex > run.StartIndex) {
+                                requests.Add(new {
+                                    updateTextStyle = new {
+                                        objectId = text.ObjectId,
+                                        textRange = new { type = "FIXED_RANGE", startIndex = run.StartIndex, endIndex = run.EndIndex },
+                                        style,
+                                        fields = string.Join(",", style.Keys),
+                                    },
+                                });
+                            }
+                        }
+                    } else {
+                        Dictionary<string, object?> style = BuildTextStyle(text.Bold, text.Italic, text.Underline, text.FontSize, text.FontFamily, text.ForegroundColorHex, text.Hyperlink, scale);
+                        if (style.Count > 0 && text.Text.Length > 0) requests.Add(new { updateTextStyle = new { objectId = text.ObjectId, textRange = new { type = "ALL" }, style, fields = string.Join(",", style.Keys) } });
+                    }
                     break;
                 case GoogleSlidesTable table:
                     int rows = table.Cells.Count; int columns = table.Cells.Select(row => row.Count).DefaultIfEmpty(0).Max();
@@ -263,6 +274,26 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                     AddShapeStyleRequest(requests, shape.ObjectId, shape.Style, scale);
                     break;
             }
+        }
+
+        private static Dictionary<string, object?> BuildTextStyle(
+            bool bold,
+            bool italic,
+            bool underline,
+            int? fontSize,
+            string? fontFamily,
+            string? foregroundColorHex,
+            string? hyperlink,
+            double scale) {
+            var style = new Dictionary<string, object?>();
+            if (bold) style["bold"] = true;
+            if (italic) style["italic"] = true;
+            if (underline) style["underline"] = true;
+            if (fontSize.HasValue) style["fontSize"] = new { magnitude = Math.Max(1, fontSize.Value * scale), unit = "PT" };
+            if (!string.IsNullOrWhiteSpace(fontFamily)) style["fontFamily"] = fontFamily;
+            if (!string.IsNullOrWhiteSpace(foregroundColorHex)) style["foregroundColor"] = new { opaqueColor = new { rgbColor = Rgb(foregroundColorHex!) } };
+            if (!string.IsNullOrWhiteSpace(hyperlink)) style["link"] = new { url = hyperlink };
+            return style;
         }
 
         private static void AddShapeStyleRequest(ICollection<object> requests, string objectId, GoogleSlidesShapeStyle style, double scale) {

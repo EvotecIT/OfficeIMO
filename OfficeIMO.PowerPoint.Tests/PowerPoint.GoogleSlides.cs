@@ -171,7 +171,8 @@ namespace OfficeIMO.Tests {
             PowerPointSlide authoredSlide = presentation.AddSlide();
             authoredSlide.Hidden = true;
             authoredSlide.BackgroundColor = "112233";
-            authoredSlide.AddTextBoxPoints("Hello Slides", 20, 30, 300, 80);
+            PowerPointTextBox mixedText = authoredSlide.AddTextBoxPoints("Hello ", 20, 30, 300, 80);
+            mixedText.Paragraphs[0].AddRun("Slides", run => run.Bold = true);
             authoredSlide.AddTextShapePoints(A.ShapeTypeValues.RightArrow, "Next step", 340, 30, 160, 80);
             var batchBodies = new List<string>();
             using var httpClient = new HttpClient(new DelegateHandler(async request => {
@@ -221,6 +222,13 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(0x11 / 255d, rgb.GetProperty("red").GetDouble(), 6);
                 Assert.DoesNotContain(requests, request => request.TryGetProperty("updateSlideProperties", out JsonElement slideProperties)
                     && slideProperties.GetProperty("fields").GetString() == "background");
+                JsonElement textStyle = Assert.Single(requests, request =>
+                    request.TryGetProperty("updateTextStyle", out JsonElement updateTextStyle)
+                    && updateTextStyle.GetProperty("style").TryGetProperty("bold", out _))
+                    .GetProperty("updateTextStyle");
+                Assert.Equal("FIXED_RANGE", textStyle.GetProperty("textRange").GetProperty("type").GetString());
+                Assert.Equal(6, textStyle.GetProperty("textRange").GetProperty("startIndex").GetInt32());
+                Assert.Equal(12, textStyle.GetProperty("textRange").GetProperty("endIndex").GetInt32());
             }
             Assert.Contains("\"createShape\"", body);
             Assert.Contains("Hello Slides", body);
@@ -571,7 +579,7 @@ namespace OfficeIMO.Tests {
         public async Task NativeImporter_ProjectsTextTableAndNotesWhenDriveExportIsDisabled() {
             using var httpClient = new HttpClient(new DelegateHandler(request => {
                 if (request.RequestUri!.Host == "www.googleapis.com") return Task.FromResult(Json("{\"id\":\"deck-import\",\"name\":\"Import\",\"mimeType\":\"application/vnd.google-apps.presentation\",\"version\":4,\"capabilities\":{\"canDownload\":false}}"));
-                const string slides = "{\"presentationId\":\"deck-import\",\"title\":\"Import\",\"revisionId\":\"r4\",\"pageSize\":{\"width\":{\"magnitude\":720,\"unit\":\"PT\"},\"height\":{\"magnitude\":405,\"unit\":\"PT\"}},\"slides\":[{\"objectId\":\"slide-1\",\"pageProperties\":{\"pageBackgroundFill\":{\"solidFill\":{\"color\":{\"rgbColor\":{\"red\":0.2,\"green\":0.4,\"blue\":0.6}}}}},\"pageElements\":[{\"objectId\":\"text-1\",\"size\":{\"width\":{\"magnitude\":300,\"unit\":\"PT\"},\"height\":{\"magnitude\":80,\"unit\":\"PT\"}},\"transform\":{\"translateX\":20,\"translateY\":30,\"unit\":\"PT\"},\"shape\":{\"shapeType\":\"TEXT_BOX\",\"text\":{\"textElements\":[{\"textRun\":{\"content\":\"Imported text\\n\",\"style\":{\"bold\":true,\"foregroundColor\":{\"opaqueColor\":{\"rgbColor\":{\"red\":0.2,\"green\":0.4,\"blue\":0.6}}}}}}]}}},{\"objectId\":\"shape-1\",\"size\":{\"width\":{\"magnitude\":120,\"unit\":\"PT\"},\"height\":{\"magnitude\":60,\"unit\":\"PT\"}},\"transform\":{\"translateX\":400,\"translateY\":30,\"unit\":\"PT\"},\"shape\":{\"shapeType\":\"RECTANGLE\",\"shapeProperties\":{\"shapeBackgroundFill\":{\"propertyState\":\"RENDERED\",\"solidFill\":{\"color\":{\"rgbColor\":{\"red\":0.8,\"green\":0.4,\"blue\":0.2}},\"alpha\":0.75}},\"outline\":{\"propertyState\":\"RENDERED\",\"outlineFill\":{\"solidFill\":{\"color\":{\"rgbColor\":{\"red\":0.2,\"green\":0.4,\"blue\":0.6}}}},\"weight\":{\"magnitude\":2.5,\"unit\":\"PT\"}}}}},{\"objectId\":\"table-1\",\"size\":{\"width\":{\"magnitude\":300,\"unit\":\"PT\"},\"height\":{\"magnitude\":100,\"unit\":\"PT\"}},\"transform\":{\"translateX\":30,\"translateY\":130,\"unit\":\"PT\"},\"table\":{\"rows\":1,\"columns\":1,\"tableRows\":[{\"tableCells\":[{\"text\":{\"textElements\":[{\"textRun\":{\"content\":\"Cell\\n\"}}]}}]}]}}],\"slideProperties\":{\"isSkipped\":true,\"notesPage\":{\"notesProperties\":{\"speakerNotesObjectId\":\"notes-body\"},\"pageElements\":[{\"objectId\":\"notes-body\",\"shape\":{\"text\":{\"textElements\":[{\"textRun\":{\"content\":\"Imported notes\\n\"}}]}}}]}}}]}";
+                const string slides = "{\"presentationId\":\"deck-import\",\"title\":\"Import\",\"revisionId\":\"r4\",\"pageSize\":{\"width\":{\"magnitude\":720,\"unit\":\"PT\"},\"height\":{\"magnitude\":405,\"unit\":\"PT\"}},\"slides\":[{\"objectId\":\"slide-1\",\"pageProperties\":{\"pageBackgroundFill\":{\"solidFill\":{\"color\":{\"rgbColor\":{\"red\":0.2,\"green\":0.4,\"blue\":0.6}}}}},\"pageElements\":[{\"objectId\":\"text-1\",\"size\":{\"width\":{\"magnitude\":300,\"unit\":\"PT\"},\"height\":{\"magnitude\":80,\"unit\":\"PT\"}},\"transform\":{\"translateX\":20,\"translateY\":30,\"unit\":\"PT\"},\"shape\":{\"shapeType\":\"TEXT_BOX\",\"text\":{\"textElements\":[{\"textRun\":{\"content\":\"Imported \",\"style\":{\"bold\":true,\"foregroundColor\":{\"opaqueColor\":{\"rgbColor\":{\"red\":0.2,\"green\":0.4,\"blue\":0.6}}}}}},{\"textRun\":{\"content\":\"text\\n\",\"style\":{\"italic\":true,\"underline\":true,\"foregroundColor\":{\"opaqueColor\":{\"rgbColor\":{\"red\":0.8,\"green\":0.2,\"blue\":0.1}}}}}}]}}},{\"objectId\":\"shape-1\",\"size\":{\"width\":{\"magnitude\":120,\"unit\":\"PT\"},\"height\":{\"magnitude\":60,\"unit\":\"PT\"}},\"transform\":{\"translateX\":400,\"translateY\":30,\"unit\":\"PT\"},\"shape\":{\"shapeType\":\"RECTANGLE\",\"shapeProperties\":{\"shapeBackgroundFill\":{\"propertyState\":\"RENDERED\",\"solidFill\":{\"color\":{\"rgbColor\":{\"red\":0.8,\"green\":0.4,\"blue\":0.2}},\"alpha\":0.75}},\"outline\":{\"propertyState\":\"RENDERED\",\"outlineFill\":{\"solidFill\":{\"color\":{\"rgbColor\":{\"red\":0.2,\"green\":0.4,\"blue\":0.6}}}},\"weight\":{\"magnitude\":2.5,\"unit\":\"PT\"}}}}},{\"objectId\":\"table-1\",\"size\":{\"width\":{\"magnitude\":300,\"unit\":\"PT\"},\"height\":{\"magnitude\":100,\"unit\":\"PT\"}},\"transform\":{\"translateX\":30,\"translateY\":130,\"unit\":\"PT\"},\"table\":{\"rows\":1,\"columns\":1,\"tableRows\":[{\"tableCells\":[{\"text\":{\"textElements\":[{\"textRun\":{\"content\":\"Cell\\n\"}}]}}]}]}}],\"slideProperties\":{\"isSkipped\":true,\"notesPage\":{\"notesProperties\":{\"speakerNotesObjectId\":\"notes-body\"},\"pageElements\":[{\"objectId\":\"notes-body\",\"shape\":{\"text\":{\"textElements\":[{\"textRun\":{\"content\":\"Imported notes\\n\"}}]}}}]}}}]}";
                 return Task.FromResult(Json(slides));
             }));
 
@@ -581,7 +589,36 @@ namespace OfficeIMO.Tests {
                 Assert.True(slide.Hidden);
                 Assert.Equal("336699", slide.BackgroundColor);
                 PowerPointTextBox importedText = Assert.Single(slide.TextBoxes, text => text.Text == "Imported text");
-                Assert.Equal("336699", Assert.Single(Assert.Single(importedText.Paragraphs).Runs).Color);
+                IReadOnlyList<PowerPointTextRun> importedRuns = Assert.Single(importedText.Paragraphs).Runs;
+                Assert.Collection(importedRuns,
+                    run => {
+                        Assert.Equal("Imported ", run.Text);
+                        Assert.True(run.Bold);
+                        Assert.Equal("336699", run.Color);
+                    },
+                    run => {
+                        Assert.Equal("text", run.Text);
+                        Assert.True(run.Italic);
+                        Assert.True(run.Underline);
+                        Assert.Equal("CC331A", run.Color);
+                    });
+                GoogleSlidesTextBox roundTripText = Assert.Single(
+                    Assert.Single(GoogleSlidesBatchCompiler.Build(imported.Presentation, new GoogleSlidesSaveOptions()).Slides)
+                        .Elements.OfType<GoogleSlidesTextBox>());
+                Assert.Collection(roundTripText.TextRuns,
+                    run => {
+                        Assert.Equal(0, run.StartIndex);
+                        Assert.Equal(9, run.EndIndex);
+                        Assert.True(run.Bold);
+                        Assert.Equal("336699", run.ForegroundColorHex);
+                    },
+                    run => {
+                        Assert.Equal(9, run.StartIndex);
+                        Assert.Equal(13, run.EndIndex);
+                        Assert.True(run.Italic);
+                        Assert.True(run.Underline);
+                        Assert.Equal("CC331A", run.ForegroundColorHex);
+                    });
                 PowerPointAutoShape importedShape = Assert.Single(slide.Shapes.OfType<PowerPointAutoShape>());
                 Assert.Equal(A.ShapeTypeValues.Rectangle, importedShape.ShapeType);
                 Assert.Equal("CC6633", importedShape.FillColor);

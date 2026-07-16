@@ -63,7 +63,7 @@ namespace OfficeIMO.Tests {
                     "properties":{"sheetId":42,"title":"Summary","index":0,"rightToLeft":true,"tabColor":{"red":0.2,"green":0.4,"blue":0.6},"gridProperties":{"frozenRowCount":1,"hideGridlines":true}},
                     "data":[{"startRow":0,"startColumn":0,"rowData":[
                       {"values":[{"userEnteredValue":{"stringValue":"Name"},"userEnteredFormat":{"textFormat":{"bold":true,"fontFamily":"Arial","fontSize":12},"backgroundColor":{"red":1,"green":1,"blue":0}}}]},
-                      {"values":[{"userEnteredValue":{"stringValue":"Alpha"},"note":"Imported note"},{"userEnteredValue":{"formulaValue":"=SUM(1,2)"},"effectiveValue":{"numberValue":3},"userEnteredFormat":{"numberFormat":{"type":"NUMBER","pattern":"0.00"},"textRotation":{"angle":-45}}}]}
+                      {"values":[{"userEnteredValue":{"stringValue":"Alpha"},"userEnteredFormat":{"textFormat":{"fontFamily":"Calibri","fontSize":11}},"textFormatRuns":[{"startIndex":0,"format":{"bold":true,"foregroundColor":{"red":1}}},{"startIndex":2,"format":{"italic":true,"underline":true,"foregroundColor":{"blue":1}}}],"note":"Imported note"},{"userEnteredValue":{"formulaValue":"=SUM(1,2)"},"effectiveValue":{"numberValue":3},"userEnteredFormat":{"numberFormat":{"type":"NUMBER","pattern":"0.00"},"textRotation":{"angle":-45}}}]}
                     ],"rowMetadata":[{"pixelSize":24},{"pixelSize":40,"hiddenByUser":true}],"columnMetadata":[{"pixelSize":70},{"pixelSize":140,"hiddenByUser":true}]}],
                     "merges":[{"sheetId":42,"startRowIndex":0,"endRowIndex":1,"startColumnIndex":0,"endColumnIndex":2}],
                     "rowGroups":[{"range":{"sheetId":42,"dimension":"ROWS","startIndex":1,"endIndex":3},"depth":1,"collapsed":false}],
@@ -149,6 +149,23 @@ namespace OfficeIMO.Tests {
                 ExcelCellSnapshot formula = Assert.Single(sheet.Cells, cell => cell.Row == 2 && cell.Column == 2);
                 Assert.Equal("0.00", formula.Style!.NumberFormatCode);
                 Assert.Equal(135, formula.Style.TextRotation);
+                IReadOnlyList<ExcelRichTextRun> richText = result.Document.Sheets[0].CellAt(2, 1).GetRichText();
+                Assert.Collection(richText,
+                    run => {
+                        Assert.Equal("Al", run.Text);
+                        Assert.True(run.Bold);
+                        Assert.Equal("FFFF0000", run.FontColor);
+                        Assert.Equal("Calibri", run.FontName);
+                        Assert.Equal(11d, run.FontSize);
+                    },
+                    run => {
+                        Assert.Equal("pha", run.Text);
+                        Assert.True(run.Italic);
+                        Assert.True(run.Underline);
+                        Assert.Equal("FF0000FF", run.FontColor);
+                        Assert.Equal("Calibri", run.FontName);
+                        Assert.Equal(11d, run.FontSize);
+                    });
             }
 
             Assert.NotNull(sheetsRequest);
@@ -156,6 +173,7 @@ namespace OfficeIMO.Tests {
             string decodedQuery = Uri.UnescapeDataString(sheetsRequest.Query);
             Assert.Contains("rowMetadata(hiddenByUser,pixelSize)", decodedQuery);
             Assert.Contains("columnMetadata(hiddenByUser,pixelSize)", decodedQuery);
+            Assert.Contains("textFormatRuns", decodedQuery);
             Assert.Contains("rowGroups", decodedQuery);
             Assert.Contains("columnGroups", decodedQuery);
             Assert.Equal(21, result.Source.DriveVersion);

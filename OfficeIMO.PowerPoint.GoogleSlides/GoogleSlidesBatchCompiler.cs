@@ -76,9 +76,10 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                     string id = ObjectId("element", slideIndex, elementIndex++);
                     switch (shape) {
                         case PowerPointTextBox textBox:
-                            var text = PreserveTransform(new GoogleSlidesTextBox(id, shape.LeftPoints, shape.TopPoints, shape.WidthPoints, shape.HeightPoints, textBox.Text), shape);
+                            var text = PreserveTransform(new GoogleSlidesTextBox(id, shape.LeftPoints, shape.TopPoints, shape.WidthPoints, shape.HeightPoints, BuildTextContent(textBox)), shape);
                             if (!textBox.UsesTextBoxGeometry && TryMapShape(textBox.ShapeType, out string textShapeType)) text.ShapeType = textShapeType;
                             PreserveShapeStyle(text.Style, shape);
+                            PopulateTextRuns(text, textBox);
                             PowerPointTextRun? firstRun = textBox.Paragraphs.SelectMany(paragraph => paragraph.Runs).FirstOrDefault();
                             if (firstRun != null) {
                                 text.Bold = firstRun.Bold; text.Italic = firstRun.Italic; text.Underline = firstRun.Underline;
@@ -134,6 +135,35 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
             }
             if (presentation.Slides.Count == 0) report.Add(TranslationSeverity.Warning, "Slides", "The source presentation contains no slides.", code: "SLIDES.EMPTY_SOURCE", action: TranslationAction.Skip);
             return batch;
+        }
+
+        private static string BuildTextContent(PowerPointTextBox textBox) => string.Join(
+            "\n",
+            textBox.Paragraphs.Select(paragraph => string.Concat(paragraph.Runs.Select(run => run.Text))));
+
+        private static void PopulateTextRuns(GoogleSlidesTextBox target, PowerPointTextBox source) {
+            IReadOnlyList<PowerPointParagraph> paragraphs = source.Paragraphs;
+            int offset = 0;
+            for (int paragraphIndex = 0; paragraphIndex < paragraphs.Count; paragraphIndex++) {
+                foreach (PowerPointTextRun run in paragraphs[paragraphIndex].Runs) {
+                    int endIndex = offset + run.Text.Length;
+                    if (endIndex > offset) {
+                        target.TextRuns.Add(new GoogleSlidesTextStyleRun {
+                            StartIndex = offset,
+                            EndIndex = endIndex,
+                            Bold = run.Bold,
+                            Italic = run.Italic,
+                            Underline = run.Underline,
+                            FontSize = run.FontSize,
+                            FontFamily = run.FontName,
+                            ForegroundColorHex = run.Color,
+                            Hyperlink = run.Hyperlink?.AbsoluteUri,
+                        });
+                    }
+                    offset = endIndex;
+                }
+                if (paragraphIndex + 1 < paragraphs.Count) offset++;
+            }
         }
 
         private static bool IsUnsupported(PowerPointShape shape) => (shape is PowerPointPicture picture && (!IsSupportedSlidesImage(picture) || HasImageCrop(picture)))

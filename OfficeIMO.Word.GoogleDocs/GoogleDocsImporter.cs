@@ -71,6 +71,7 @@ namespace OfficeIMO.Word.GoogleDocs {
             var stream = new MemoryStream();
             WordDocument document = WordDocument.Create(stream);
             try {
+                document.BuiltinDocumentProperties.Title = response.Title;
                 IReadOnlyList<GoogleDocsApiTabResponse> tabs = SelectImportTabs(response, options);
                 bool addHeadings = options.TabMode == GoogleDocsImportTabMode.FlattenWithHeadings && tabs.Count > 1;
                 foreach (GoogleDocsApiTabResponse tab in tabs) {

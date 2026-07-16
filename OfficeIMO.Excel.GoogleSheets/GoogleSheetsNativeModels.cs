@@ -163,6 +163,9 @@ namespace OfficeIMO.Excel.GoogleSheets {
         [JsonPropertyName("userEnteredFormat")]
         public GoogleSheetsNativeCellFormat? UserEnteredFormat { get; set; }
 
+        [JsonPropertyName("textFormatRuns")]
+        public List<GoogleSheetsNativeTextFormatRun> TextFormatRuns { get; set; } = new List<GoogleSheetsNativeTextFormatRun>();
+
         [JsonPropertyName("note")]
         public string? Note { get; set; }
 
@@ -171,6 +174,14 @@ namespace OfficeIMO.Excel.GoogleSheets {
 
         [JsonPropertyName("pivotTable")]
         public object? PivotTable { get; set; }
+    }
+
+    internal sealed class GoogleSheetsNativeTextFormatRun {
+        [JsonPropertyName("startIndex")]
+        public int StartIndex { get; set; }
+
+        [JsonPropertyName("format")]
+        public GoogleSheetsNativeTextFormat Format { get; set; } = new GoogleSheetsNativeTextFormat();
     }
 
     internal sealed class GoogleSheetsNativeExtendedValue {
@@ -240,16 +251,16 @@ namespace OfficeIMO.Excel.GoogleSheets {
         public int? FontSize { get; set; }
 
         [JsonPropertyName("bold")]
-        public bool Bold { get; set; }
+        public bool? Bold { get; set; }
 
         [JsonPropertyName("italic")]
-        public bool Italic { get; set; }
+        public bool? Italic { get; set; }
 
         [JsonPropertyName("strikethrough")]
-        public bool Strikethrough { get; set; }
+        public bool? Strikethrough { get; set; }
 
         [JsonPropertyName("underline")]
-        public bool Underline { get; set; }
+        public bool? Underline { get; set; }
     }
 
     internal sealed class GoogleSheetsNativeTextRotation {

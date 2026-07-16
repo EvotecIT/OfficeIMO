@@ -372,6 +372,7 @@ namespace OfficeIMO.Tests {
 
             GoogleDocsImportResult imported = await new GoogleDocsImporter().ImportAsync("doc-import", session, new GoogleDocsImportOptions { Mode = GoogleDocsImportMode.Native });
             using (imported.Document) {
+                Assert.Equal("Import", imported.Document.BuiltinDocumentProperties.Title);
                 WordDocumentSnapshot snapshot = imported.Document.CreateInspectionSnapshot();
                 string[] text = snapshot.Sections.SelectMany(section => section.Elements).OfType<WordParagraphSnapshot>().Select(paragraph => paragraph.Text).ToArray();
                 Assert.Contains("Tab One", text);
