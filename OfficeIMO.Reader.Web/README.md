@@ -22,7 +22,7 @@ OfficeDocumentReadResult result = await webReader.ReadDocumentAsync(
     new Uri("https://docs.example.com/guide.html"));
 ```
 
-The transport accepts absolute HTTP(S) GET targets only, rejects URI-embedded credentials, checks an optional exact host allowlist, blocks loopback/private/non-routable IP literals by default, caps response bytes, applies a request timeout, and bounds concurrent operations per web-reader instance. Query strings are omitted from result metadata unless explicitly enabled.
+The transport accepts absolute HTTP(S) GET targets only, rejects URI-embedded credentials, checks an optional exact host allowlist, blocks loopback/private/non-routable IP literals by default, caps response bytes at the strictest Web, Reader, or selected-handler limit, applies a request timeout, and bounds concurrent operations per web-reader instance. Query strings are omitted from result metadata unless explicitly enabled.
 
 Format selection stays with Reader. The logical source name comes from an explicit `sourceName`, the response `Content-Disposition` filename, or the final URI path, in that order. Supply `sourceName` when a download URL has no usable extension and content detection cannot identify the intended modular handler.
 

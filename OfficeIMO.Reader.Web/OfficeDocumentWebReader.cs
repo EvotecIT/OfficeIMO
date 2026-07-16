@@ -43,15 +43,11 @@ public sealed class OfficeDocumentWebReader {
         string? normalizedSourceName = ReaderWebTransport.NormalizeExplicitSourceName(sourceName);
         await _requestGate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try {
-            long maxResponseBytes = _options.MaxResponseBytes;
-            if (readerOptions?.MaxInputBytes is long readerLimit && readerLimit >= 0) {
-                maxResponseBytes = Math.Min(maxResponseBytes, readerLimit);
-            }
             using ReaderWebDownload download = await ReaderWebTransport.DownloadAsync(
                 _httpClient,
                 uri,
                 normalizedSourceName,
-                maxResponseBytes,
+                logicalSourceName => GetEffectiveMaxInputBytes(logicalSourceName, readerOptions),
                 _options,
                 cancellationToken).ConfigureAwait(false);
             OfficeDocumentReadResult result = await _reader.ReadDocumentAsync(
@@ -67,6 +63,17 @@ public sealed class OfficeDocumentWebReader {
         } finally {
             _requestGate.Release();
         }
+    }
+
+    private long GetEffectiveMaxInputBytes(string sourceName, ReaderOptions? readerOptions) {
+        long maxInputBytes = _options.MaxResponseBytes;
+        if (readerOptions?.MaxInputBytes is long readerLimit && readerLimit >= 0) {
+            maxInputBytes = Math.Min(maxInputBytes, readerLimit);
+        }
+        if (_reader.GetHandlerDefaultMaxInputBytes(sourceName) is long handlerLimit) {
+            maxInputBytes = Math.Min(maxInputBytes, handlerLimit);
+        }
+        return maxInputBytes;
     }
 
     /// <summary>

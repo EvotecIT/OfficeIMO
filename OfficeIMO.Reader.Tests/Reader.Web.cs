@@ -178,6 +178,33 @@ public sealed class ReaderWebTests {
     }
 
     [Fact]
+    public async Task WebReader_RejectsPrivateIpv4EmbeddedInTheIpv4TranslatedPrefix() {
+        var handler = new DelegateHttpHandler((request, cancellationToken) =>
+            Task.FromResult(TextResponse("not reached", "text/plain")));
+        using var httpClient = new HttpClient(handler);
+        OfficeDocumentWebReader webReader = OfficeDocumentReader.Default.CreateWebReader(httpClient);
+
+        await Assert.ThrowsAsync<ReaderWebPolicyException>(() =>
+            webReader.ReadDocumentAsync(new Uri("http://[::ffff:0:10.0.0.1]/private.txt")));
+
+        Assert.Equal(0, handler.CallCount);
+    }
+
+    [Fact]
+    public async Task WebReader_AllowsPublicIpv4EmbeddedInTheIpv4TranslatedPrefix() {
+        var handler = new DelegateHttpHandler((request, cancellationToken) =>
+            Task.FromResult(TextResponse("public fixture", "text/plain")));
+        using var httpClient = new HttpClient(handler);
+        OfficeDocumentWebReader webReader = OfficeDocumentReader.Default.CreateWebReader(httpClient);
+
+        OfficeDocumentReadResult result = await webReader.ReadDocumentAsync(
+            new Uri("http://[::ffff:0:8.8.8.8]/public.txt"));
+
+        Assert.Contains("public fixture", result.Markdown, StringComparison.Ordinal);
+        Assert.Equal(1, handler.CallCount);
+    }
+
+    [Fact]
     public async Task WebReader_RejectsPrivateIpv4EmbeddedInA6To4Target() {
         var handler = new DelegateHttpHandler((request, cancellationToken) =>
             Task.FromResult(TextResponse("not reached", "text/plain")));
@@ -284,6 +311,41 @@ public sealed class ReaderWebTests {
             webReader.ReadDocumentAsync(new Uri("https://example.test/file.bin")));
 
         Assert.Contains("effective web input byte limit", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task WebReader_AppliesTheSelectedHandlersDefaultBeforeReadingTheBody() {
+        bool readerInvoked = false;
+        var handler = new DelegateHttpHandler((request, cancellationToken) => {
+            var content = new ByteArrayContent(new byte[32]);
+            content.Headers.ContentLength = 32;
+            content.Headers.ContentDisposition = new ContentDispositionHeaderValue("attachment") {
+                FileName = "\"fixture.bounded\""
+            };
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = content });
+        });
+        using var httpClient = new HttpClient(handler);
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+            .AddHandler(new ReaderHandlerRegistration {
+                Id = "test.bounded",
+                Extensions = new[] { ".bounded" },
+                DefaultMaxInputBytes = 16,
+                ReadDocumentStream = (stream, sourceName, options, cancellationToken) => {
+                    readerInvoked = true;
+                    return new OfficeDocumentReadResult();
+                }
+            })
+            .Build();
+        OfficeDocumentWebReader webReader = reader.CreateWebReader(
+            httpClient,
+            new ReaderWebOptions { MaxResponseBytes = 64 });
+
+        IOException exception = await Assert.ThrowsAsync<IOException>(() =>
+            webReader.ReadDocumentAsync(new Uri("https://example.test/download")));
+
+        Assert.Contains("effective web input byte limit", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("32 > 16", exception.Message, StringComparison.Ordinal);
+        Assert.False(readerInvoked);
     }
 
     [Fact]
@@ -434,7 +496,7 @@ public sealed class ReaderWebTests {
             httpClient,
             new Uri("https://example.test/prepared.txt"),
             sourceName: null,
-            maxResponseBytes: 1024,
+            resolveMaxResponseBytes: _ => 1024,
             new ReaderWebOptions(),
             CancellationToken.None);
 

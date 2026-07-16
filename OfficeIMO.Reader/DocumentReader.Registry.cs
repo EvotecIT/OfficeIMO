@@ -160,6 +160,10 @@ internal static partial class DocumentReaderEngine {
             return options.MaxInputBytes;
         }
 
+        return ResolveHandlerDefaultMaxInputBytes(sourceName);
+    }
+
+    internal static long? ResolveHandlerDefaultMaxInputBytes(string? sourceName) {
         if (TryResolveCustomHandlerBySourceName(sourceName, out ReaderHandlerDescriptor customHandler)
             && customHandler.DefaultMaxInputBytes.HasValue) {
             return customHandler.DefaultMaxInputBytes;

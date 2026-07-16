@@ -8,9 +8,10 @@ internal static class ReaderWebTransport {
         HttpClient httpClient,
         Uri uri,
         string? sourceName,
-        long maxResponseBytes,
+        Func<string, long> resolveMaxResponseBytes,
         ReaderWebOptions options,
         CancellationToken cancellationToken) {
+        if (resolveMaxResponseBytes == null) throw new ArgumentNullException(nameof(resolveMaxResponseBytes));
         ReaderWebUriPolicy.Validate(uri, options);
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         timeout.CancelAfter(options.RequestTimeout);
@@ -38,6 +39,11 @@ internal static class ReaderWebTransport {
                     ReaderWebUriPolicy.Validate(finalUri, options);
                     response.EnsureSuccessStatusCode();
 
+                    string logicalSourceName = ResolveSourceName(
+                        sourceName,
+                        finalUri,
+                        response.Content.Headers.ContentDisposition);
+                    long maxResponseBytes = resolveMaxResponseBytes(logicalSourceName);
                     long? declaredLength = response.Content.Headers.ContentLength;
                     if (declaredLength.HasValue && declaredLength.Value > maxResponseBytes) {
                         throw new IOException(
@@ -52,10 +58,6 @@ internal static class ReaderWebTransport {
                         maxResponseBytes,
                         timeout.Token).ConfigureAwait(false);
                     try {
-                        string logicalSourceName = ResolveSourceName(
-                            sourceName,
-                            finalUri,
-                            response.Content.Headers.ContentDisposition);
                         return new ReaderWebDownload(
                             content,
                             logicalSourceName,
