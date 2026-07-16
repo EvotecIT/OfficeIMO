@@ -4,6 +4,18 @@ namespace OfficeIMO.Epub;
 /// Controls EPUB extraction behavior.
 /// </summary>
 public sealed class EpubReadOptions {
+    /// <summary>Maximum compressed EPUB package size read from a file or stream.</summary>
+    public long MaxPackageBytes { get; set; } = 512L * 1024 * 1024;
+
+    /// <summary>Maximum number of ZIP entries indexed from the container.</summary>
+    public int MaxArchiveEntries { get; set; } = 10_000;
+
+    /// <summary>Maximum combined uncompressed size declared by ZIP entries.</summary>
+    public long MaxTotalUncompressedBytes { get; set; } = 4L * 1024 * 1024 * 1024;
+
+    /// <summary>Maximum size of container, OPF, navigation, NCX, or encryption XML read into memory.</summary>
+    public long MaxPackageMetadataBytes { get; set; } = 4L * 1024 * 1024;
+
     /// <summary>
     /// Maximum number of chapter entries to emit.
     /// </summary>

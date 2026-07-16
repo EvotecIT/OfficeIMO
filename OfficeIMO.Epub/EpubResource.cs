@@ -19,6 +19,9 @@ public sealed class EpubResource {
     /// <summary>Uncompressed resource length.</summary>
     public long LengthBytes { get; internal set; }
 
+    /// <summary>Encryption declaration for this resource, when present.</summary>
+    public EpubEncryptionInfo? Encryption { get; internal set; }
+
     /// <summary>Optional bounded resource payload requested by the caller.</summary>
     public byte[]? Data {
         get => _data == null ? null : (byte[])_data.Clone();

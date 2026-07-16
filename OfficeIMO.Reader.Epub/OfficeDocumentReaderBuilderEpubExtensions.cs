@@ -59,6 +59,10 @@ public static class OfficeDocumentReaderBuilderEpubExtensions {
     private static EpubReadOptions? Clone(EpubReadOptions? options) {
         if (options == null) return null;
         return new EpubReadOptions {
+            MaxPackageBytes = options.MaxPackageBytes,
+            MaxArchiveEntries = options.MaxArchiveEntries,
+            MaxTotalUncompressedBytes = options.MaxTotalUncompressedBytes,
+            MaxPackageMetadataBytes = options.MaxPackageMetadataBytes,
             MaxChapters = options.MaxChapters,
             MaxChapterBytes = options.MaxChapterBytes,
             MaxTotalRawHtmlBytes = options.MaxTotalRawHtmlBytes,
