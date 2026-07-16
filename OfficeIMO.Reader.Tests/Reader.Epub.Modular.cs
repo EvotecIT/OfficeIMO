@@ -390,7 +390,7 @@ public sealed class ReaderEpubModularTests {
                 epubPath,
                 readerOptions: new ReaderOptions { ComputeHashes = true, MaxChars = 4_000 },
                 epubOptions: new EpubReadOptions { PreferSpineOrder = true }).ToList();
-            string archiveHash = Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(epubPath))).ToLowerInvariant();
+            string archiveHash = ComputeSha256Hex(File.ReadAllBytes(epubPath));
 
             Assert.NotEmpty(chunks);
             Assert.All(chunks, chunk => {
@@ -461,7 +461,7 @@ public sealed class ReaderEpubModularTests {
                 sourceName: " metadata.epub ",
                 readerOptions: new ReaderOptions { ComputeHashes = true, MaxChars = 4_000 },
                 epubOptions: new EpubReadOptions { PreferSpineOrder = true }).ToList();
-            string archiveHash = Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();
+            string archiveHash = ComputeSha256Hex(bytes);
 
             Assert.NotEmpty(chunks);
             Assert.All(chunks, chunk => {
@@ -646,5 +646,18 @@ public sealed class ReaderEpubModularTests {
         ZipArchiveEntry entry = archive.CreateEntry(path, CompressionLevel.Optimal);
         using Stream stream = entry.Open();
         stream.Write(content, 0, content.Length);
+    }
+
+    private static string ComputeSha256Hex(byte[] content) {
+        byte[] hash;
+        using (SHA256 sha = SHA256.Create()) {
+            hash = sha.ComputeHash(content);
+        }
+
+        var result = new StringBuilder(hash.Length * 2);
+        foreach (byte value in hash) {
+            result.Append(value.ToString("x2"));
+        }
+        return result.ToString();
     }
 }
