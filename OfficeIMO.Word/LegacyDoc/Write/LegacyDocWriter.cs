@@ -14,7 +14,6 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         private const int OleMiniStreamCutoffSize = 4096;
         private const int ClxLength = 21;
         private const int ChpxPlcLength = 12;
-        private const int PapxPlcLength = 12;
         private const int SedLength = 12;
         private const uint CompressedTextFlag = 0x40000000;
         private const ushort SprmCFBold = 0x0835;
@@ -643,13 +642,14 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             int chpxFkpOffset = body.HasCharacterFormatting
                 ? AlignToSector(TextOffset + textBytes.Length)
                 : 0;
+            IReadOnlyList<IReadOnlyList<LegacyDocWritableParagraphSegment>> papxPages = body.PapxPages;
             int papxFkpOffset = body.HasParagraphFormatting
                 ? AlignToSector(body.HasCharacterFormatting ? chpxFkpOffset + OleSectorSize : TextOffset + textBytes.Length)
                 : 0;
-            int sectionDataOffset = GetSectionDataOffset(body, textBytes.Length, chpxFkpOffset, papxFkpOffset);
+            int sectionDataOffset = GetSectionDataOffset(body, textBytes.Length, chpxFkpOffset, papxFkpOffset, papxPages.Count);
             IReadOnlyList<LegacyDocWritableSectionRecord> sectionRecords = CreateSectionRecords(body, sectionDataOffset);
             int streamLength = body.HasParagraphFormatting
-                ? papxFkpOffset + OleSectorSize
+                ? papxFkpOffset + (papxPages.Count * OleSectorSize)
                 : body.HasCharacterFormatting
                     ? chpxFkpOffset + OleSectorSize
                     : TextOffset + textBytes.Length;
@@ -680,7 +680,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             WriteInt32(stream, 0xFA, body.HasCharacterFormatting ? ClxLength : 0);
             WriteInt32(stream, 0xFE, body.HasCharacterFormatting ? ChpxPlcLength : 0);
             WriteInt32(stream, FcPlcfBtePapxOffset, body.HasParagraphFormatting ? body.PapxPlcOffsetInTableStream : 0);
-            WriteInt32(stream, LcbPlcfBtePapxOffset, body.HasParagraphFormatting ? PapxPlcLength : 0);
+            WriteInt32(stream, LcbPlcfBtePapxOffset, body.HasParagraphFormatting ? body.PapxPlcLength : 0);
             WriteInt32(stream, FcPlcfSedOffset, body.HasSectionDescriptors ? body.SedPlcOffsetInTableStream : 0);
             WriteInt32(stream, LcbPlcfSedOffset, body.HasSectionDescriptors ? body.SedPlcLength : 0);
             WriteInt32(stream, FcPlcffndRefOffset, body.HasFootnotes ? body.PlcffndRefOffsetInTableStream : 0);
@@ -723,7 +723,15 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
 
             if (body.HasParagraphFormatting) {
-                LegacyDocParagraphFormattingWriter.WritePapxFkp(stream, papxFkpOffset, TextOffset, OleSectorSize, body.CreateParagraphSegments(), bytesPerCharacter);
+                for (int pageIndex = 0; pageIndex < papxPages.Count; pageIndex++) {
+                    LegacyDocParagraphFormattingWriter.WritePapxFkp(
+                        stream,
+                        papxFkpOffset + (pageIndex * OleSectorSize),
+                        TextOffset,
+                        OleSectorSize,
+                        papxPages[pageIndex],
+                        bytesPerCharacter);
+                }
             }
 
             if (body.HasSectionDescriptors) {
@@ -766,9 +774,25 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     ? AlignToSector(TextOffset + textByteLength)
                     : 0;
                 int papxFkpOffset = AlignToSector(body.HasCharacterFormatting ? chpxFkpOffset + OleSectorSize : TextOffset + textByteLength);
-                WriteInt32(table, body.PapxPlcOffsetInTableStream, TextOffset);
-                WriteInt32(table, body.PapxPlcOffsetInTableStream + 4, TextOffset + pieceTableByteLength);
-                WriteInt32(table, body.PapxPlcOffsetInTableStream + 8, papxFkpOffset / OleSectorSize);
+                IReadOnlyList<IReadOnlyList<LegacyDocWritableParagraphSegment>> papxPages = body.PapxPages;
+                int pageNumbersOffset = body.PapxPlcOffsetInTableStream + ((papxPages.Count + 1) * sizeof(int));
+                for (int pageIndex = 0; pageIndex < papxPages.Count; pageIndex++) {
+                    LegacyDocWritableParagraphSegment firstSegment = papxPages[pageIndex][0];
+                    WriteInt32(
+                        table,
+                        body.PapxPlcOffsetInTableStream + (pageIndex * sizeof(int)),
+                        TextOffset + (firstSegment.StartCharacter * bytesPerCharacter));
+                    WriteInt32(
+                        table,
+                        pageNumbersOffset + (pageIndex * sizeof(int)),
+                        (papxFkpOffset / OleSectorSize) + pageIndex);
+                }
+
+                LegacyDocWritableParagraphSegment lastSegment = papxPages[papxPages.Count - 1][papxPages[papxPages.Count - 1].Count - 1];
+                WriteInt32(
+                    table,
+                    body.PapxPlcOffsetInTableStream + (papxPages.Count * sizeof(int)),
+                    TextOffset + (lastSegment.EndCharacter * bytesPerCharacter));
             }
 
             if (body.HasSectionDescriptors) {
@@ -779,7 +803,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     ? AlignToSector(body.HasCharacterFormatting ? chpxFkpOffset + OleSectorSize : TextOffset + textByteLength)
                     : 0;
                 int sepxOffset = AlignToEven(body.HasParagraphFormatting
-                    ? papxFkpOffset + OleSectorSize
+                    ? papxFkpOffset + (body.PapxPageCount * OleSectorSize)
                     : body.HasCharacterFormatting
                         ? chpxFkpOffset + OleSectorSize
                         : TextOffset + textByteLength);
@@ -883,9 +907,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             return value % 2 == 0 ? value : value + 1;
         }
 
-        private static int GetSectionDataOffset(LegacyDocWritableBody body, int textByteLength, int chpxFkpOffset, int papxFkpOffset) {
+        private static int GetSectionDataOffset(LegacyDocWritableBody body, int textByteLength, int chpxFkpOffset, int papxFkpOffset, int papxPageCount) {
             return AlignToEven(body.HasParagraphFormatting
-                ? papxFkpOffset + OleSectorSize
+                ? papxFkpOffset + (papxPageCount * OleSectorSize)
                 : body.HasCharacterFormatting
                     ? chpxFkpOffset + OleSectorSize
                     : TextOffset + textByteLength);

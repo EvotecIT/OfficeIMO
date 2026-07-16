@@ -8072,6 +8072,9 @@ namespace OfficeIMO.Tests {
                 Assert.True(
                     ContainsBytePattern(wordDocumentStream, 0x17, 0x24, 0x01),
                     "Expected the native DOC paragraph property stream to contain sprmPFTtp.");
+                Assert.True(
+                    ContainsBytePattern(wordDocumentStream, 0x49, 0x66, 0x01, 0x00, 0x00, 0x00),
+                    "Expected the native DOC paragraph property stream to contain sprmPItap with outer-table depth 1.");
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 

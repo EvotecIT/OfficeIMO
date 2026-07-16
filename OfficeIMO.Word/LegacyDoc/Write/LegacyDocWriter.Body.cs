@@ -21,6 +21,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 EndnotePositionValues? endnotePosition,
                 bool trackRevisions,
                 bool lockRevisionTracking) {
+                PapxPages = Array.Empty<IReadOnlyList<LegacyDocWritableParagraphSegment>>();
                 Text = text;
                 FormattedRuns = formattedRuns;
                 FormattedParagraphs = formattedParagraphs;
@@ -87,6 +88,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     .Select((author, index) => new { author, index })
                     .ToDictionary(item => item.author, item => item.index, StringComparer.Ordinal);
                 SttbfRMark = CreateRevisionAuthorTable(RevisionAuthors);
+                PapxPages = LegacyDocParagraphFormattingWriter.CreatePapxFkpPages(CreateParagraphSegments(), OleSectorSize);
             }
 
             internal string Text { get; }
@@ -209,6 +211,12 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 || LockRevisionTracking;
 
             internal int DopLength => EndnotePosition != null ? DopBaseEndnotePlacementLength : DopBaseLength;
+
+            internal IReadOnlyList<IReadOnlyList<LegacyDocWritableParagraphSegment>> PapxPages { get; }
+
+            internal int PapxPageCount => PapxPages.Count;
+
+            internal int PapxPlcLength => sizeof(int) + (PapxPageCount * sizeof(int) * 2);
 
             internal int PapxPlcOffsetInTableStream => ClxLength + (HasCharacterFormatting ? ChpxPlcLength : 0);
 
@@ -508,7 +516,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 Func<LegacyDocWritableParagraphRange, object> selectParagraphFormat) {
                 int paragraphStart = 0;
                 for (int index = 0; index < story.Length; index++) {
-                    if (story[index] != '\r') {
+                    if (story[index] != '\r' && story[index] != '\a') {
                         continue;
                     }
 
@@ -555,7 +563,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
                 if (segments.Count > 0) {
                     LegacyDocWritableParagraphSegment previous = segments[segments.Count - 1];
-                    if (previous.EndCharacter == startCharacter && previous.CanMergeWith(formatting)) {
+                    if (previous.EndCharacter == startCharacter
+                        && formatting.IsInTable != true
+                        && previous.CanMergeWith(formatting)) {
                         segments[segments.Count - 1] = previous.Extend(length);
                         return;
                     }
