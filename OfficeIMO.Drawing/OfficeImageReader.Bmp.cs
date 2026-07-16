@@ -68,6 +68,6 @@ public static partial class OfficeImageReader {
             return false;
         }
 
-        return rawHeight >= 0 || compression is 0 or 3 or 6;
+        return rawHeight >= 0 || compression is 0 or 3;
     }
 }

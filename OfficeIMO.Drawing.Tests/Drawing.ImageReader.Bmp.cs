@@ -39,6 +39,8 @@ public partial class DrawingTests {
     [InlineData(0, 0, 2)]
     [InlineData(4, 2, -2)]
     [InlineData(8, 1, -2)]
+    [InlineData(16, 6, -2)]
+    [InlineData(32, 6, -2)]
     public void OfficeImageReaderRejectsBmpCompressionThatDoesNotMatchBitDepth(
         int bitsPerPixel,
         int compression,
