@@ -97,7 +97,18 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static A.ColorScheme? GetSlideColorScheme(PowerPointSlide slide) =>
-            slide.SlidePart.SlideLayoutPart?.SlideMasterPart?.ThemePart?.Theme?.ThemeElements?.ColorScheme;
+            slide.SlidePart.ThemeOverridePart?.ThemeOverride?.ColorScheme
+            ?? slide.SlidePart.SlideLayoutPart?.ThemeOverridePart?.ThemeOverride?
+                .ColorScheme
+            ?? slide.SlidePart.SlideLayoutPart?.SlideMasterPart?.ThemePart?.Theme?
+                .ThemeElements?.ColorScheme;
+
+        private static A.FormatScheme? GetSlideFormatScheme(PowerPointSlide slide) =>
+            slide.SlidePart.ThemeOverridePart?.ThemeOverride?.FormatScheme
+            ?? slide.SlidePart.SlideLayoutPart?.ThemeOverridePart?.ThemeOverride?
+                .FormatScheme
+            ?? slide.SlidePart.SlideLayoutPart?.SlideMasterPart?.ThemePart?.Theme?
+                .ThemeElements?.FormatScheme;
 
         private static void AddGroupShape(OfficeDrawing drawing, PowerPointGroupShape groupShape,
             List<OfficeImageExportDiagnostic> diagnostics, PowerPointShapeBoundsMapping mapping,
@@ -239,7 +250,7 @@ namespace OfficeIMO.PowerPoint {
                 return;
             }
 
-            ApplyShapeStyle(drawingShape, shape, colorScheme, mapping);
+            ApplyShapeStyle(drawingShape, shape, colorScheme, mapping, diagnostics);
             ApplyShapeTransform(drawingShape, shape, width, height);
             drawing.AddShape(drawingShape, left, top);
         }
@@ -259,8 +270,8 @@ namespace OfficeIMO.PowerPoint {
                 return;
             }
 
-            OfficeShape frame = CreateTextBoxFrame(textBox, width, height);
-            ApplyShapeStyle(frame, textBox, colorScheme, mapping);
+            OfficeShape frame = CreateTextBoxFrame(textBox, width, height, diagnostics);
+            ApplyShapeStyle(frame, textBox, colorScheme, mapping, diagnostics);
             ApplyShapeTransform(frame, textBox, width, height);
             if (hasVisibleFrame) {
                 drawing.AddShape(frame, left, top);
@@ -356,26 +367,41 @@ namespace OfficeIMO.PowerPoint {
         private static OfficeShape CreateTextBoxFrame(
             PowerPointTextBox textBox,
             double width,
-            double height) {
+            double height,
+            List<OfficeImageExportDiagnostic> diagnostics) {
             string? presetName = GetAutoShapePresetName(textBox);
-            return !string.IsNullOrEmpty(presetName)
-                   && OfficeShapePresets.TryCreate(presetName, width, height,
-                       out OfficeShape? preset)
-                   && preset != null
-                ? preset
-                : OfficeShape.Rectangle(width, height);
+            if (string.IsNullOrEmpty(presetName)
+                || string.Equals(presetName, "rect", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(presetName, "rectangle", StringComparison.OrdinalIgnoreCase)) {
+                return OfficeShape.Rectangle(width, height);
+            }
+            if (OfficeShapePresets.TryCreate(presetName, width, height,
+                    out OfficeShape? preset) && preset != null) {
+                return preset;
+            }
+
+            AddUnsupportedShapeDiagnostic(diagnostics, textBox,
+                "Rendered the PowerPoint text content inside a rectangular frame because its preset frame geometry is not yet projected through OfficeIMO.Drawing.");
+            return OfficeShape.Rectangle(width, height);
         }
 
         private static bool HasVisibleFrame(PowerPointShape source, A.ColorScheme? colorScheme) {
             return (source.FillTransparency != 100
-                    && (HasResolvableShapeFillGradient(source, colorScheme)
+                    && (HasShapeFillGradient(source)
                         || TryResolveShapeFillColor(source, colorScheme, out _))) ||
                 TryResolveShapeOutlineColor(source, colorScheme, out _);
         }
 
-        private static void ApplyShapeStyle(OfficeShape target, PowerPointShape source, A.ColorScheme? colorScheme, PowerPointShapeBoundsMapping mapping) {
+        private static void ApplyShapeStyle(OfficeShape target, PowerPointShape source,
+            A.ColorScheme? colorScheme, PowerPointShapeBoundsMapping mapping,
+            List<OfficeImageExportDiagnostic> diagnostics) {
             if (source.FillTransparency != 100) {
-                if (!TryApplyShapeFillGradient(target, source, colorScheme)
+                ShapeFillGradientProjection gradientProjection = ApplyShapeFillGradient(
+                    target, source, colorScheme, mapping.HasTransformedAncestor);
+                if (gradientProjection == ShapeFillGradientProjection.Unsupported) {
+                    AddUnsupportedShapeDiagnostic(diagnostics, source,
+                        "Skipped a PowerPoint shape gradient that cannot be represented faithfully by the shared Drawing renderer.");
+                } else if (gradientProjection == ShapeFillGradientProjection.None
                     && TryResolveShapeFillColor(source, colorScheme, out OfficeColor fill)) {
                     target.FillColor = fill;
                 }
@@ -947,6 +973,8 @@ namespace OfficeIMO.PowerPoint {
 
         private static PowerPointShapeBoundsMapping CreateGroupLocalChildMapping(PowerPointGroupShape groupShape, PowerPointShapeBoundsMapping parentMapping) {
             A.TransformGroup? transform = groupShape.GroupShape.GroupShapeProperties?.TransformGroup;
+            bool hasTransformedAncestor = parentMapping.HasTransformedAncestor
+                || CreateGroupFrameTransform(groupShape, 0D, 0D, 0D, 0D).HasTransform;
             long? groupWidthEmu = transform?.Extents?.Cx?.Value;
             long? groupHeightEmu = transform?.Extents?.Cy?.Value;
             long? childXEmu = transform?.ChildOffset?.X?.Value;
@@ -956,7 +984,7 @@ namespace OfficeIMO.PowerPoint {
             if (!groupWidthEmu.HasValue || !groupHeightEmu.HasValue ||
                 !childXEmu.HasValue || !childYEmu.HasValue || !childWidthEmu.HasValue || !childHeightEmu.HasValue ||
                 childWidthEmu.Value == 0L || childHeightEmu.Value == 0L) {
-                return parentMapping;
+                return parentMapping.WithTransformedAncestor(hasTransformedAncestor);
             }
 
             double childX = PowerPointUnits.ToPoints(childXEmu.Value);
@@ -967,7 +995,8 @@ namespace OfficeIMO.PowerPoint {
                 -parentMapping.MapWidth(childX * scaleX),
                 -parentMapping.MapHeight(childY * scaleY),
                 parentMapping.MapWidth(scaleX),
-                parentMapping.MapHeight(scaleY));
+                parentMapping.MapHeight(scaleY),
+                hasTransformedAncestor);
         }
 
         private static OfficeImageFrameTransform CreateGroupFrameTransform(PowerPointGroupShape groupShape, double left, double top, double width, double height) {
@@ -1205,13 +1234,19 @@ namespace OfficeIMO.PowerPoint {
             private readonly double _offsetY;
             private readonly double _scaleX;
             private readonly double _scaleY;
+            private readonly bool _hasTransformedAncestor;
 
-            internal PowerPointShapeBoundsMapping(double offsetX, double offsetY, double scaleX, double scaleY) {
+            internal PowerPointShapeBoundsMapping(double offsetX, double offsetY,
+                double scaleX, double scaleY,
+                bool hasTransformedAncestor = false) {
                 _offsetX = offsetX;
                 _offsetY = offsetY;
                 _scaleX = scaleX;
                 _scaleY = scaleY;
+                _hasTransformedAncestor = hasTransformedAncestor;
             }
+
+            internal bool HasTransformedAncestor => _hasTransformedAncestor;
 
             internal double MapX(double value) => _offsetX + (value * _scaleX);
 
@@ -1229,12 +1264,17 @@ namespace OfficeIMO.PowerPoint {
 
             internal double MapStrokeWidth(double value) => value * Math.Sqrt(Math.Abs(_scaleX * _scaleY));
 
+            internal PowerPointShapeBoundsMapping WithTransformedAncestor(bool value) =>
+                new PowerPointShapeBoundsMapping(_offsetX, _offsetY, _scaleX,
+                    _scaleY, _hasTransformedAncestor || value);
+
             internal PowerPointShapeBoundsMapping Compose(PowerPointShapeBoundsMapping child) =>
                 new PowerPointShapeBoundsMapping(
                     _offsetX + (child._offsetX * _scaleX),
                     _offsetY + (child._offsetY * _scaleY),
                     _scaleX * child._scaleX,
-                    _scaleY * child._scaleY);
+                    _scaleY * child._scaleY,
+                    _hasTransformedAncestor || child._hasTransformedAncestor);
         }
     }
 }

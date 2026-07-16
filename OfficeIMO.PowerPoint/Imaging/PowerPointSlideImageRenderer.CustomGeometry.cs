@@ -28,7 +28,7 @@ namespace OfficeIMO.PowerPoint {
                 return true;
             }
 
-            ApplyShapeStyle(drawingShape, shape, colorScheme, mapping);
+            ApplyShapeStyle(drawingShape, shape, colorScheme, mapping, diagnostics);
             ApplyShapeTransform(drawingShape, shape, width, height);
             drawing.AddShape(drawingShape, left, top);
             return true;

@@ -36,7 +36,7 @@ namespace OfficeIMO.PowerPoint {
             }
 
             drawingShape = OfficeShape.Line(0D, 0D, Math.Max(0D, width), Math.Max(0D, height));
-            ApplyShapeStyle(drawingShape, shape, colorScheme, mapping);
+            ApplyShapeStyle(drawingShape, shape, colorScheme, mapping, diagnostics);
             ApplyShapeTransform(drawingShape, shape, Math.Max(1D, width), Math.Max(1D, height));
             drawing.AddShape(drawingShape, left, top);
             return true;
@@ -74,7 +74,7 @@ namespace OfficeIMO.PowerPoint {
             }
 
             OfficeShape drawingShape = OfficeShape.Path(commands);
-            ApplyShapeStyle(drawingShape, shape, colorScheme, mapping);
+            ApplyShapeStyle(drawingShape, shape, colorScheme, mapping, diagnostics);
             drawingShape.FillColor = null;
             drawingShape.FillGradient = null;
             ApplyShapeTransform(drawingShape, shape, width, height);
@@ -98,7 +98,7 @@ namespace OfficeIMO.PowerPoint {
             }
 
             OfficeShape drawingShape = OfficeShape.Path(commands);
-            ApplyShapeStyle(drawingShape, shape, colorScheme, mapping);
+            ApplyShapeStyle(drawingShape, shape, colorScheme, mapping, diagnostics);
             drawingShape.FillColor = null;
             drawingShape.FillGradient = null;
             ApplyShapeTransform(drawingShape, shape, width, height);

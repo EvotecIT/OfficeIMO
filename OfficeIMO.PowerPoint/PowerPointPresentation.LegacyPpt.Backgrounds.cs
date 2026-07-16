@@ -101,9 +101,7 @@ namespace OfficeIMO.PowerPoint {
 
         private static A.GradientFill? CreateLegacyShapeGradientFill(LegacyPptShape source) {
             uint fillType = source.Style.FillType.GetValueOrDefault();
-            if (fillType is < 4 or > 8
-                || source.FillColor == null
-                || source.FillBackColor == null) {
+            if (fillType is < 4 or > 8) {
                 return null;
             }
 
@@ -122,10 +120,17 @@ namespace OfficeIMO.PowerPoint {
                     });
                 }
             } else {
+                string? foreground = source.FillColor
+                    ?? (source.Style.FillColor.HasValue ? null : "FFFFFF");
+                string? background = source.FillBackColor
+                    ?? (source.Style.FillBackColor.HasValue ? null : "FFFFFF");
+                if (foreground == null || background == null) {
+                    return null;
+                }
                 stops.Append(
-                    new A.GradientStop(CreateLegacyBackgroundColor(source.FillColor,
+                    new A.GradientStop(CreateLegacyBackgroundColor(foreground,
                         source.Style.FillOpacity)) { Position = 0 },
-                    new A.GradientStop(CreateLegacyBackgroundColor(source.FillBackColor,
+                    new A.GradientStop(CreateLegacyBackgroundColor(background,
                         source.Style.FillBackOpacity)) { Position = 100000 });
             }
             gradient.Append(stops);

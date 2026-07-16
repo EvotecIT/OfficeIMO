@@ -161,6 +161,60 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ShapeGradientProjection_UsesCompleteCustomStopsWithoutEndpointProperties() {
+            OfficeArtShapeStyle style = OfficeArtShapeStyle.Decode(new[] {
+                new OfficeArtProperty(0, 0x0180, 4U)
+            });
+            var source = new LegacyPptShape(LegacyPptShapeKind.Rectangle, 1, 1, 0,
+                new LegacyPptBounds(0, 0, 100, 100), string.Empty,
+                placeholder: null, style, fillColor: null, lineColor: null,
+                fillGradientStops: new[] {
+                    new LegacyPptGradientStop("112233", 0D),
+                    new LegacyPptGradientStop("445566", 1D)
+                });
+            var properties = new P.ShapeProperties(
+                new A.Transform2D(),
+                new A.PresetGeometry(new A.AdjustValueList()) {
+                    Preset = A.ShapeTypeValues.Rectangle
+                });
+
+            PowerPointPresentation.ApplyLegacyShapeStyle(properties, source);
+
+            A.GradientStop[] stops = properties.GetFirstChild<A.GradientFill>()!
+                .GetFirstChild<A.GradientStopList>()!
+                .Elements<A.GradientStop>()
+                .ToArray();
+            Assert.Collection(stops,
+                stop => Assert.Equal("112233", stop.RgbColorModelHex!.Val!.Value),
+                stop => Assert.Equal("445566", stop.RgbColorModelHex!.Val!.Value));
+        }
+
+        [Fact]
+        public void ShapeGradientProjection_UsesOfficeArtWhiteDefaultsForOmittedEndpoints() {
+            OfficeArtShapeStyle style = OfficeArtShapeStyle.Decode(new[] {
+                new OfficeArtProperty(0, 0x0180, 4U)
+            });
+            var source = new LegacyPptShape(LegacyPptShapeKind.Rectangle, 1, 1, 0,
+                new LegacyPptBounds(0, 0, 100, 100), string.Empty,
+                placeholder: null, style, fillColor: null, lineColor: null);
+            var properties = new P.ShapeProperties(
+                new A.Transform2D(),
+                new A.PresetGeometry(new A.AdjustValueList()) {
+                    Preset = A.ShapeTypeValues.Rectangle
+                });
+
+            PowerPointPresentation.ApplyLegacyShapeStyle(properties, source);
+
+            A.GradientStop[] stops = properties.GetFirstChild<A.GradientFill>()!
+                .GetFirstChild<A.GradientStopList>()!
+                .Elements<A.GradientStop>()
+                .ToArray();
+            Assert.Collection(stops,
+                stop => Assert.Equal("FFFFFF", stop.RgbColorModelHex!.Val!.Value),
+                stop => Assert.Equal("FFFFFF", stop.RgbColorModelHex!.Val!.Value));
+        }
+
+        [Fact]
         public void UnmodifiedShapeBinarySave_PreservesOriginalPackageExactly() {
             byte[] source = File.ReadAllBytes(ShapeFixturePath);
             using PowerPointPresentation presentation = PowerPointPresentation.Load(ShapeFixturePath);
