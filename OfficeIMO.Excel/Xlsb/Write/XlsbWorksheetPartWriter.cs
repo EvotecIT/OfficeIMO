@@ -127,16 +127,10 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 byte[] rowPayload = CreateRowHeaderPayload(rowIndex, sourceRow?.RowHeader.Data, rowCells ?? Array.Empty<XlsbWriteCell>(), newProperties: null);
                 XlsbRecordWriter.Write(output, BrtRowHdr, rowPayload);
 
-                if (rowCells != null) {
-                    foreach (XlsbWriteCell cell in rowCells) {
-                        WriteCell(output, cell);
-                    }
-                }
-
                 if (sourceRow != null) {
-                    foreach (XlsbRecord metadata in sourceRow.PreservedRecords) {
-                        WriteRecord(output, metadata);
-                    }
+                    WriteSourceRowContents(output, sourceRow, rowCells ?? Array.Empty<XlsbWriteCell>());
+                } else if (rowCells != null) {
+                    foreach (XlsbWriteCell cell in rowCells) WriteCell(output, cell);
                 }
             }
 
@@ -262,16 +256,65 @@ namespace OfficeIMO.Excel.Xlsb.Write {
 
                     current = new XlsbSourceRowBlock(record);
                     rows.Add(rowIndex, current);
-                } else if (!IsCellRecord(record.Type)) {
-                    if (current == null) {
-                        prefix.Add(record);
+                } else if (current == null) {
+                    if (IsCellRecord(record.Type)) {
+                        throw new InvalidDataException("The XLSB worksheet contains a cell record before its row header.");
+                    }
+
+                    prefix.Add(record);
+                } else {
+                    if (IsCellRecord(record.Type)) {
+                        current.AddCell(record, ReadCellColumn(record));
                     } else {
-                        current.PreservedRecords.Add(record);
+                        current.AddPreserved(record);
                     }
                 }
             }
 
             return new XlsbSheetDataLayout(prefix, rows);
+        }
+
+        private static void WriteSourceRowContents(
+            Stream output,
+            XlsbSourceRowBlock sourceRow,
+            IReadOnlyList<XlsbWriteCell> rowCells) {
+            int nextCell = 0;
+            for (int itemIndex = 0; itemIndex < sourceRow.Items.Count; itemIndex++) {
+                XlsbSourceRowItem item = sourceRow.Items[itemIndex];
+                if (sourceRow.LastCellItemIndex >= 0
+                    && itemIndex > sourceRow.LastCellItemIndex
+                    && nextCell < rowCells.Count) {
+                    while (nextCell < rowCells.Count) WriteCell(output, rowCells[nextCell++]);
+                }
+
+                if (!item.Column.HasValue) {
+                    WriteRecord(output, item.Record);
+                    continue;
+                }
+
+                int sourceColumn = item.Column.Value;
+                while (nextCell < rowCells.Count && rowCells[nextCell].Column < sourceColumn) {
+                    WriteCell(output, rowCells[nextCell++]);
+                }
+                if (nextCell < rowCells.Count && rowCells[nextCell].Column == sourceColumn) {
+                    WriteCell(output, rowCells[nextCell++]);
+                }
+            }
+
+            while (nextCell < rowCells.Count) WriteCell(output, rowCells[nextCell++]);
+        }
+
+        private static int ReadCellColumn(XlsbRecord record) {
+            if (record.Data.Length < 4) {
+                throw new InvalidDataException($"The XLSB cell record {record.Type} is truncated.");
+            }
+
+            var cursor = new XlsbBinaryCursor(record.Data);
+            uint zeroBasedColumn = cursor.ReadUInt32();
+            if (zeroBasedColumn >= 16_384U) {
+                throw new InvalidDataException($"The XLSB cell record {record.Type} has invalid column index {zeroBasedColumn}.");
+            }
+            return checked((int)zeroBasedColumn + 1);
         }
 
         private static void WriteCell(Stream output, XlsbWriteCell cell) {
@@ -392,7 +435,35 @@ namespace OfficeIMO.Excel.Xlsb.Write {
 
             internal XlsbRecord RowHeader { get; }
 
-            internal List<XlsbRecord> PreservedRecords { get; } = new List<XlsbRecord>();
+            internal List<XlsbSourceRowItem> Items { get; } = new List<XlsbSourceRowItem>();
+
+            internal int LastCellItemIndex { get; private set; } = -1;
+
+            internal void AddCell(XlsbRecord record, int column) {
+                if (LastCellItemIndex >= 0) {
+                    int previousColumn = Items[LastCellItemIndex].Column!.Value;
+                    if (column <= previousColumn) {
+                        throw new InvalidDataException("The XLSB worksheet row contains duplicate or out-of-order cell records.");
+                    }
+                }
+
+                Items.Add(new XlsbSourceRowItem(record, column));
+                LastCellItemIndex = Items.Count - 1;
+            }
+
+            internal void AddPreserved(XlsbRecord record) =>
+                Items.Add(new XlsbSourceRowItem(record, column: null));
+        }
+
+        private sealed class XlsbSourceRowItem {
+            internal XlsbSourceRowItem(XlsbRecord record, int? column) {
+                Record = record;
+                Column = column;
+            }
+
+            internal XlsbRecord Record { get; }
+
+            internal int? Column { get; }
         }
     }
 }

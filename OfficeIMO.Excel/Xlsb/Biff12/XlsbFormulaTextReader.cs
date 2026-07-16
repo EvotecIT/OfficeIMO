@@ -7,6 +7,18 @@ namespace OfficeIMO.Excel.Xlsb.Biff12 {
     /// Unsupported tokens return false so callers can retain the token bytes and cached value.
     /// </summary>
     internal static class XlsbFormulaTextReader {
+        private const int ComparisonPrecedence = 0;
+        private const int ConcatenationPrecedence = 1;
+        private const int AdditivePrecedence = 2;
+        private const int MultiplicativePrecedence = 3;
+        private const int PowerPrecedence = 4;
+        private const int UnaryPrecedence = 5;
+        private const int PercentPrecedence = 6;
+        private const int UnionPrecedence = 7;
+        private const int IntersectionPrecedence = 8;
+        private const int RangePrecedence = 9;
+        private const int AtomPrecedence = 10;
+
         internal static bool TryRead(byte[] tokens, out string? formulaText) {
             if (tokens == null) throw new ArgumentNullException(nameof(tokens));
 
@@ -17,49 +29,49 @@ namespace OfficeIMO.Excel.Xlsb.Biff12 {
                 byte token = tokens[offset++];
                 switch (token) {
                     case 0x03:
-                        if (!ApplyBinary(stack, "+", 1)) return false;
+                        if (!ApplyBinary(stack, "+", AdditivePrecedence)) return false;
                         break;
                     case 0x04:
-                        if (!ApplyBinary(stack, "-", 1)) return false;
+                        if (!ApplyBinary(stack, "-", AdditivePrecedence)) return false;
                         break;
                     case 0x05:
-                        if (!ApplyBinary(stack, "*", 2)) return false;
+                        if (!ApplyBinary(stack, "*", MultiplicativePrecedence)) return false;
                         break;
                     case 0x06:
-                        if (!ApplyBinary(stack, "/", 2)) return false;
+                        if (!ApplyBinary(stack, "/", MultiplicativePrecedence)) return false;
                         break;
                     case 0x07:
-                        if (!ApplyBinary(stack, "^", 3)) return false;
+                        if (!ApplyBinary(stack, "^", PowerPrecedence)) return false;
                         break;
                     case 0x08:
-                        if (!ApplyBinary(stack, "&", 0)) return false;
+                        if (!ApplyBinary(stack, "&", ConcatenationPrecedence)) return false;
                         break;
                     case 0x09:
-                        if (!ApplyBinary(stack, "<", 0)) return false;
+                        if (!ApplyBinary(stack, "<", ComparisonPrecedence)) return false;
                         break;
                     case 0x0A:
-                        if (!ApplyBinary(stack, "<=", 0)) return false;
+                        if (!ApplyBinary(stack, "<=", ComparisonPrecedence)) return false;
                         break;
                     case 0x0B:
-                        if (!ApplyBinary(stack, "=", 0)) return false;
+                        if (!ApplyBinary(stack, "=", ComparisonPrecedence)) return false;
                         break;
                     case 0x0C:
-                        if (!ApplyBinary(stack, ">=", 0)) return false;
+                        if (!ApplyBinary(stack, ">=", ComparisonPrecedence)) return false;
                         break;
                     case 0x0D:
-                        if (!ApplyBinary(stack, ">", 0)) return false;
+                        if (!ApplyBinary(stack, ">", ComparisonPrecedence)) return false;
                         break;
                     case 0x0E:
-                        if (!ApplyBinary(stack, "<>", 0)) return false;
+                        if (!ApplyBinary(stack, "<>", ComparisonPrecedence)) return false;
                         break;
                     case 0x0F:
-                        if (!ApplyBinary(stack, " ", 0)) return false;
+                        if (!ApplyBinary(stack, " ", IntersectionPrecedence)) return false;
                         break;
                     case 0x10:
-                        if (!ApplyBinary(stack, ",", 0)) return false;
+                        if (!ApplyBinary(stack, ",", UnionPrecedence)) return false;
                         break;
                     case 0x11:
-                        if (!ApplyBinary(stack, ":", 0)) return false;
+                        if (!ApplyBinary(stack, ":", RangePrecedence)) return false;
                         break;
                     case 0x12:
                     case 0x13:
@@ -68,37 +80,37 @@ namespace OfficeIMO.Excel.Xlsb.Biff12 {
                     case 0x14:
                         if (stack.Count < 1) return false;
                         FormulaExpression percent = stack.Pop();
-                        stack.Push(new FormulaExpression(Parenthesize(percent, 4) + "%", 4));
+                        stack.Push(new FormulaExpression(Parenthesize(percent, PercentPrecedence) + "%", PercentPrecedence));
                         break;
                     case 0x15:
                         if (stack.Count < 1) return false;
-                        stack.Push(new FormulaExpression("(" + stack.Pop().Text + ")", 4));
+                        stack.Push(new FormulaExpression("(" + stack.Pop().Text + ")", AtomPrecedence));
                         break;
                     case 0x16:
-                        stack.Push(new FormulaExpression(string.Empty, 4));
+                        stack.Push(new FormulaExpression(string.Empty, AtomPrecedence));
                         break;
                     case 0x17:
                         if (!TryReadFormulaString(tokens, ref offset, out string? text)) return false;
-                        stack.Push(new FormulaExpression(QuoteFormulaString(text!), 4));
+                        stack.Push(new FormulaExpression(QuoteFormulaString(text!), AtomPrecedence));
                         break;
                     case 0x19:
                         if (!TryApplyAttribute(tokens, ref offset, stack)) return false;
                         break;
                     case 0x1C:
                         if (offset >= tokens.Length) return false;
-                        stack.Push(new FormulaExpression(BiffErrorValue.ToText(tokens[offset++]), 4));
+                        stack.Push(new FormulaExpression(BiffErrorValue.ToText(tokens[offset++]), AtomPrecedence));
                         break;
                     case 0x1D:
                         if (offset >= tokens.Length) return false;
-                        stack.Push(new FormulaExpression(tokens[offset++] == 0 ? "FALSE" : "TRUE", 4));
+                        stack.Push(new FormulaExpression(tokens[offset++] == 0 ? "FALSE" : "TRUE", AtomPrecedence));
                         break;
                     case 0x1E:
                         if (!TryReadUInt16(tokens, ref offset, out ushort integer)) return false;
-                        stack.Push(new FormulaExpression(integer.ToString(CultureInfo.InvariantCulture), 4));
+                        stack.Push(new FormulaExpression(integer.ToString(CultureInfo.InvariantCulture), AtomPrecedence));
                         break;
                     case 0x1F:
                         if (!TryReadDouble(tokens, ref offset, out double number)) return false;
-                        stack.Push(new FormulaExpression(number.ToString("G15", CultureInfo.InvariantCulture), 4));
+                        stack.Push(new FormulaExpression(number.ToString("G15", CultureInfo.InvariantCulture), AtomPrecedence));
                         break;
                     case 0x21:
                     case 0x41:
@@ -118,13 +130,13 @@ namespace OfficeIMO.Excel.Xlsb.Biff12 {
                     case 0x44:
                     case 0x64:
                         if (!TryReadReference(tokens, ref offset, out string? reference)) return false;
-                        stack.Push(new FormulaExpression(reference!, 4));
+                        stack.Push(new FormulaExpression(reference!, AtomPrecedence));
                         break;
                     case 0x25:
                     case 0x45:
                     case 0x65:
                         if (!TryReadArea(tokens, ref offset, out string? area)) return false;
-                        stack.Push(new FormulaExpression(area!, 4));
+                        stack.Push(new FormulaExpression(area!, AtomPrecedence));
                         break;
                     default:
                         return false;
@@ -246,7 +258,7 @@ namespace OfficeIMO.Excel.Xlsb.Biff12 {
                 arguments[index] = stack.Pop().Text;
             }
 
-            stack.Push(new FormulaExpression(name + "(" + string.Join(",", arguments) + ")", 4));
+            stack.Push(new FormulaExpression(name + "(" + string.Join(",", arguments) + ")", AtomPrecedence));
             return true;
         }
 
@@ -263,7 +275,7 @@ namespace OfficeIMO.Excel.Xlsb.Biff12 {
         private static bool ApplyUnary(Stack<FormulaExpression> stack, string operation) {
             if (stack.Count < 1) return false;
             FormulaExpression value = stack.Pop();
-            stack.Push(new FormulaExpression(operation + Parenthesize(value, 4), 4));
+            stack.Push(new FormulaExpression(operation + Parenthesize(value, UnaryPrecedence), UnaryPrecedence));
             return true;
         }
 

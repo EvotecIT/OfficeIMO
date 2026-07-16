@@ -401,7 +401,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 if (merge.HasChildren || !TryParseRange(merge.Reference?.Value, out int firstRow, out int firstColumn, out int lastRow, out int lastColumn)) {
                     throw new NotSupportedException($"Native XLSB generation cannot encode merged range '{merge.Reference?.Value}' on worksheet '{sheetName}'.");
                 }
-                result.Add(new XlsbCellRange(firstRow, firstColumn, lastRow, lastColumn));
+                result.Add(new XlsbCellRange(firstRow, lastRow, firstColumn, lastColumn));
             }
             return result;
         }
