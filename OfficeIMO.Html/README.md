@@ -1,6 +1,6 @@
 # OfficeIMO.Html
 
-`OfficeIMO.Html` contains the shared HTML parser, resource policy, layout scene, and direct PNG/SVG rendering APIs used by OfficeIMO converters.
+`OfficeIMO.Html` contains the shared HTML and MHTML parser, resource policy, layout scene, and direct PNG/SVG rendering APIs used by OfficeIMO converters.
 
 It owns the reusable parts that should behave consistently across HTML-to-Markdown, HTML-to-Word, HTML-to/from-RTF, and HTML-backed PDF workflows:
 
@@ -9,6 +9,7 @@ It owns the reusable parts that should behave consistently across HTML-to-Markdo
 - DOM traversal facts and node/depth limit tracking
 - image source discovery for `img`, lazy-loading attributes, `srcset`, and `picture/source`
 - image data URI parsing and media-type extension mapping
+- MHTML/MHT web-archive loading, deterministic saving, root-part selection, and CID/Content-Location resource resolution
 - deterministic accessible-name, ARIA heading, EPUB structural-semantic, and logical quote/code/footnote projection
 - dependency-free HTML layout for continuous and paged output
 - direct PNG and SVG export over `OfficeIMO.Drawing`
@@ -37,10 +38,29 @@ OfficeImageExportResult pngSave = source.SaveAsPng("status.png", options);
 OfficeImageExportResult svgSave = source.SaveAsSvg("status.svg", options);
 ```
 
+## MHTML web archives
+
+MHTML uses the same bounded MIME mechanics as `OfficeIMO.Email`, but its root document, base URI, and embedded resources remain an HTML concern:
+
+```csharp
+using OfficeIMO.Html;
+
+MhtmlDocument archive = MhtmlDocument.Load("snapshot.mhtml");
+Console.WriteLine(archive.HtmlDocument.NormalizedHtml);
+
+var renderOptions = new HtmlRenderOptions();
+archive.ConfigureRenderOptions(renderOptions);
+byte[] png = archive.HtmlDocument.ToPng(renderOptions);
+
+archive.Save("copy.mht");
+```
+
+`ConfigureRenderOptions` resolves `cid:` and `Content-Location` references from the archive before falling back to a caller-supplied resolver. It does not grant network access or weaken the configured URL policy.
+
 ## Dependency footprint
 
 - **External:** AngleSharp and AngleSharp.Css for DOM and CSS parsing.
-- **OfficeIMO:** `OfficeIMO.Drawing` and `OfficeIMO.Rtf`. Resource policy, layout scene, rendering, and format mappings are first-party.
+- **OfficeIMO:** `OfficeIMO.Drawing`, `OfficeIMO.Email`, and `OfficeIMO.Rtf`. Resource policy, MHTML projection, layout scene, rendering, and format mappings are first-party.
 
 See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.
 

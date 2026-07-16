@@ -22,7 +22,7 @@ public sealed class EmailDocumentReader {
     /// <summary>Reads an artifact from a file.</summary>
     public EmailReadResult Read(string filePath, CancellationToken cancellationToken = default) {
         if (filePath == null) throw new ArgumentNullException(nameof(filePath));
-        using (FileStream stream = File.OpenRead(filePath)) return Read(stream, cancellationToken);
+        using (FileStream stream = File.OpenRead(filePath)) return Read(stream, filePath, cancellationToken);
     }
 
     /// <summary>Reads an artifact from memory.</summary>
@@ -36,6 +36,21 @@ public sealed class EmailDocumentReader {
     }
 
     /// <summary>
+    /// Reads an artifact from memory and uses the logical source name to distinguish extension-defined formats such
+    /// as an Outlook template (<c>.oft</c>) from an Outlook message (<c>.msg</c>).
+    /// </summary>
+    public EmailReadResult Read(byte[] data, string? sourceName,
+        CancellationToken cancellationToken = default) {
+        if (data == null) throw new ArgumentNullException(nameof(data));
+        cancellationToken.ThrowIfCancellationRequested();
+        if (data.LongLength > _options.MaxInputBytes) {
+            throw new EmailLimitExceededException(nameof(EmailReaderOptions.MaxInputBytes), data.LongLength,
+                _options.MaxInputBytes);
+        }
+        return Parse(data, cancellationToken, sourceName);
+    }
+
+    /// <summary>
     /// Reads a complete artifact without closing the stream. Seekable streams are read from the beginning and
     /// restored to their original position; non-seekable streams are read forward from their current position.
     /// </summary>
@@ -43,12 +58,22 @@ public sealed class EmailDocumentReader {
         return Parse(EmailByteReader.ReadAll(stream, _options.MaxInputBytes, cancellationToken), cancellationToken);
     }
 
+    /// <summary>
+    /// Reads an artifact without closing the stream and uses the logical source name to distinguish
+    /// extension-defined formats such as <c>.oft</c>.
+    /// </summary>
+    public EmailReadResult Read(Stream stream, string? sourceName,
+        CancellationToken cancellationToken = default) {
+        return Parse(EmailByteReader.ReadAll(stream, _options.MaxInputBytes, cancellationToken), cancellationToken,
+            sourceName);
+    }
+
     /// <summary>Asynchronously reads an artifact from a file.</summary>
     public async Task<EmailReadResult> ReadAsync(string filePath, CancellationToken cancellationToken = default) {
         if (filePath == null) throw new ArgumentNullException(nameof(filePath));
         using (FileStream stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read,
             81920, FileOptions.Asynchronous | FileOptions.SequentialScan)) {
-            return await ReadAsync(stream, cancellationToken).ConfigureAwait(false);
+            return await ReadAsync(stream, filePath, cancellationToken).ConfigureAwait(false);
         }
     }
 
@@ -59,6 +84,16 @@ public sealed class EmailDocumentReader {
     public async Task<EmailReadResult> ReadAsync(Stream stream, CancellationToken cancellationToken = default) {
         byte[] data = await EmailByteReader.ReadAllAsync(stream, _options.MaxInputBytes, cancellationToken).ConfigureAwait(false);
         return Parse(data, cancellationToken);
+    }
+
+    /// <summary>
+    /// Asynchronously reads an artifact without closing the stream and applies extension-defined source semantics.
+    /// </summary>
+    public async Task<EmailReadResult> ReadAsync(Stream stream, string? sourceName,
+        CancellationToken cancellationToken = default) {
+        byte[] data = await EmailByteReader.ReadAllAsync(stream, _options.MaxInputBytes, cancellationToken)
+            .ConfigureAwait(false);
+        return Parse(data, cancellationToken, sourceName);
     }
 
     /// <summary>Detects the artifact format from content rather than the filename.</summary>
@@ -112,7 +147,7 @@ public sealed class EmailDocumentReader {
         }
     }
 
-    private EmailReadResult Parse(byte[] data, CancellationToken cancellationToken) {
+    private EmailReadResult Parse(byte[] data, CancellationToken cancellationToken, string? sourceName = null) {
         cancellationToken.ThrowIfCancellationRequested();
         List<EmailDiagnostic> diagnostics = new List<EmailDiagnostic>();
         EmailDocument document;
@@ -122,6 +157,7 @@ public sealed class EmailDocumentReader {
                     "The compound artifact is not an Outlook MSG item.", EmailDiagnosticSeverity.Error));
             }
             cancellationToken.ThrowIfCancellationRequested();
+            ApplySourceFormat(document, sourceName);
             if (_options.PreserveRawSource || document.Protection.IsProtected) PreserveRawSource(document, data);
             return new EmailReadResult(document, diagnostics.AsReadOnly(), data.LongLength);
         }
@@ -155,6 +191,19 @@ public sealed class EmailDocumentReader {
         cancellationToken.ThrowIfCancellationRequested();
         if (_options.PreserveRawSource || document.Protection.IsProtected) PreserveRawSource(document, data);
         return new EmailReadResult(document, diagnostics.AsReadOnly(), data.LongLength);
+    }
+
+    private static void ApplySourceFormat(EmailDocument document, string? sourceName) {
+        if (document.Format != EmailFileFormat.OutlookMsg || string.IsNullOrWhiteSpace(sourceName)) return;
+        string extension;
+        try {
+            extension = Path.GetExtension(sourceName);
+        } catch (Exception exception) when (exception is ArgumentException || exception is NotSupportedException) {
+            return;
+        }
+        if (string.Equals(extension, ".oft", StringComparison.OrdinalIgnoreCase)) {
+            document.Format = EmailFileFormat.OutlookTemplate;
+        }
     }
 
     private static void PreserveRawSource(EmailDocument document, byte[] data) {

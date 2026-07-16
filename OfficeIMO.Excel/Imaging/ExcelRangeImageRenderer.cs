@@ -12,7 +12,8 @@ namespace OfficeIMO.Excel {
             }
 
             OfficeRasterImage image = RenderRaster(snapshot, options, diagnostics);
-            return new OfficeImageExportResult(format, image.Width, image.Height, OfficePngWriter.Encode(image), snapshot.SheetName, snapshot.SheetName + "!" + snapshot.Range, diagnostics.AsReadOnly());
+            byte[] bytes = OfficeRasterImageEncoder.Encode(image, format, options.RasterEncoding);
+            return new OfficeImageExportResult(format, image.Width, image.Height, bytes, snapshot.SheetName, snapshot.SheetName + "!" + snapshot.Range, diagnostics.AsReadOnly());
         }
 
         internal static OfficeRasterImage RenderRaster(ExcelRangeVisualSnapshot snapshot, ExcelImageExportOptions options, List<OfficeImageExportDiagnostic>? diagnostics = null) {

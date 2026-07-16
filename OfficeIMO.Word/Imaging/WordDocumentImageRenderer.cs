@@ -34,11 +34,12 @@ namespace OfficeIMO.Word {
                 return new OfficeImageExportResult(format, ScaledWidth(drawing, options), ScaledHeight(drawing, options), svg, "Page " + (options.PageIndex + 1), "Word document", diagnostics);
             }
 
-            if (format == OfficeImageExportFormat.Png) {
+            if (format.IsRaster()) {
                 List<OfficeImageExportDiagnostic> diagnostics = new List<OfficeImageExportDiagnostic>(snapshot.Diagnostics);
                 AddRasterImageDiagnostics(drawing, diagnostics);
                 OfficeRasterImage image = OfficeDrawingRasterRenderer.Render(drawing, options.Scale);
-                return new OfficeImageExportResult(format, image.Width, image.Height, OfficePngWriter.Encode(image), "Page " + (options.PageIndex + 1), "Word document", diagnostics);
+                byte[] bytes = OfficeRasterImageEncoder.Encode(image, format, options.RasterEncoding);
+                return new OfficeImageExportResult(format, image.Width, image.Height, bytes, "Page " + (options.PageIndex + 1), "Word document", diagnostics);
             }
 
             throw new ArgumentOutOfRangeException(nameof(format), format, "Unsupported image export format.");

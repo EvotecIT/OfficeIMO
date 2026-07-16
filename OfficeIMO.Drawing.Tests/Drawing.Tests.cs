@@ -3765,10 +3765,15 @@ public partial class DrawingTests {
         }
     }
 
-    private static byte[] CreateTestImageBytes(OfficeImageExportFormat format) =>
-        format == OfficeImageExportFormat.Svg
-            ? Encoding.UTF8.GetBytes("<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"1\" height=\"1\"></svg>")
-            : OnePixelPng;
+    private static byte[] CreateTestImageBytes(OfficeImageExportFormat format) {
+        if (format == OfficeImageExportFormat.Svg) {
+            return Encoding.UTF8.GetBytes("<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"1\" height=\"1\"></svg>");
+        }
+
+        return OfficeRasterImageEncoder.Encode(
+            new OfficeRasterImage(1, 1, OfficeColor.CornflowerBlue),
+            format);
+    }
 
     [Fact]
     public void OfficeDrawingImage_RendersThroughSharedSvgAndRasterExporters() {

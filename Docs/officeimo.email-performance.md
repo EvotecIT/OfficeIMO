@@ -27,3 +27,48 @@ Measured on 2026-07-11 with an Apple M4, 24 GB memory, macOS 26.5, .NET 8.0.23 r
 These numbers are a local regression baseline, not a cross-machine throughput promise. The committed contracts enforce allocation ceilings proportional to source size plus fixed headroom and a ten-second hang ceiling. Returned strings, message models, and requested attachment payloads are intentionally included in the allocation measurement.
 
 For realistic deployments, measure representative `.msg`, `.eml`, TNEF, and mbox corpora with the same reader options used by the application. In particular, `includeAttachmentContent: false` changes retained memory materially when callers only need metadata.
+
+## PST and OST large-store evidence
+
+`OfficeIMO.Email.Store` uses deterministic I/O ceilings instead of a wall-clock assertion for its committed large
+store contract. The synthetic source reports a 64 GiB length while containing a small valid PST at the offsets the
+reader visits. One test opens the session, enumerates and summarizes an item, selectively reads its body and
+attachment metadata, proves the attachment payload is untouched until the first stream read, searches body text,
+and runs structural validation. The contract allows less than 4 MiB of total source reads and no individual read
+larger than 128 KiB.
+
+Run it with:
+
+```powershell
+dotnet test OfficeIMO.Email.Store.Tests/OfficeIMO.Email.Store.Tests.csproj `
+    -c Release `
+    --filter FullyQualifiedName~EmailStoreSessionTests
+```
+
+An aggregate-only validation on 2026-07-16 used a private 22,416,596,992-byte Outlook OST without exporting or
+retaining messages, names, identifiers, snippets, or hashes. The observed run found 137 folders and 197,159
+declared items, selectively read 50 items without read failures, streamed 29 attachment payloads into a bounded
+sample, scanned two resumable 50-item content-search batches, read seven typed appointment items, and projected 20
+items through Reader. The tracked store session read 27,501,637 source bytes. A separate bounded integrity pass
+checked 500 B-tree pages and 1,000 blocks (2,910,483 structural bytes) in 127 ms with no structural failures; it
+reported truncation because it stopped at the configured limits.
+
+Those numbers prove behavior against one large real file, not general throughput. The repeatable guarantees are
+the configured page, block, decoded-property, searchable-character, attachment, item, and source-read bounds.
+
+## Outlook OAB evidence
+
+`OfficeIMO.Email.AddressBook` keeps only metadata and the active record while enumerating. Synthetic v4 fixtures
+exercise dynamic property tables, every supported scalar and multi-valued encoding, raw-byte retention, exact-offset
+search resume, CRC/framing/full-decode validation, cancellation, and configured limits on every target framework.
+
+An aggregate-only run on 2026-07-16 inspected a private Outlook cache containing 18 OAB components and three v4
+Full Details address lists. All 8,049 declared entries decoded, the object-type totals reconciled to the declared
+count, all three seeded CRC values matched, and full framing/schema validation completed with zero skipped records
+or session diagnostics. The combined open, decode, and second full validation pass completed in 386 ms on the
+current Windows test machine. No names, addresses, identifiers, properties, record bytes, or hashes were printed,
+stored, or copied into the repository.
+
+This is compatibility evidence for one Outlook cache, not a throughput promise. The durable large-file contract is
+the bounded discovery/schema/record model, sequential one-record memory behavior, exact-offset checkpoints, optional
+raw-byte retention, and explicit checksum, record, string, binary, value-count, search, and Reader limits.

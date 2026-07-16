@@ -30,7 +30,7 @@ public sealed class EmailWriterOptions {
         ConversionLossPolicy = conversionLossPolicy;
     }
 
-    /// <summary>Whether an unchanged preserved source should be emitted instead of regenerating EML.</summary>
+    /// <summary>Whether an unchanged preserved source should be emitted instead of regenerating the artifact.</summary>
     public bool UsePreservedRawSource { get; }
 
     /// <summary>Whether Bcc recipients are written into the message header.</summary>

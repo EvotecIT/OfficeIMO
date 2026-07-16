@@ -531,6 +531,27 @@ no separate PowerPoint builder vocabulary to learn or keep synchronized.
 
 See [the breaking API migration guide](../Docs/officeimo.powerpoint-api-migration.md) for old-to-new mappings.
 
+## Managed image export
+
+Slides and presentation batches can be exported as PNG, JPEG, TIFF, lossless WebP, or SVG:
+
+```csharp
+using OfficeIMO.Drawing;
+
+byte[] jpeg = slide.ToJpeg(new PowerPointImageExportOptions {
+    RasterEncoding = new OfficeRasterEncodingOptions {
+        Jpeg = new OfficeJpegEncodeOptions { Quality = 92 }
+    }
+});
+
+presentation.ToImages()
+    .ForSlideRange(1, 3)
+    .AsWebp()
+    .Save("slide-previews");
+```
+
+PowerPoint owns slide semantics and scene construction; `OfficeIMO.Drawing` owns the common raster encoders. `SaveAsJpeg`, `SaveAsTiff`, and `SaveAsWebp` remain thin wrappers over the shared export builder.
+
 ## Adjacent packages
 
 | Package | Use it for |
@@ -553,6 +574,6 @@ See [the breaking API migration guide](../Docs/officeimo.powerpoint-api-migratio
 ## Dependency footprint
 
 - **External:** Open XML SDK for `.pptx` package mechanics. Microsoft BCL compatibility packages are used on older targets.
-- **OfficeIMO:** `OfficeIMO.Drawing`. The presentation model, composition system, inspection, encryption workflow, and PNG/SVG export are first-party.
+- **OfficeIMO:** `OfficeIMO.Drawing`. The presentation model, composition system, inspection, encryption workflow, and PNG/JPEG/TIFF/WebP/SVG export are first-party.
 
 See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

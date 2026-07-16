@@ -16,7 +16,7 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Exports the requested document page as PNG or SVG.
+        /// Exports the requested document page as a supported raster format or SVG.
         /// </summary>
         public OfficeImageExportResult ExportImage(OfficeImageExportFormat format, WordImageExportOptions? options = null) {
             WordImageExportOptions resolved = NormalizeImageExportOptions(options);

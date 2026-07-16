@@ -11,7 +11,9 @@ public enum EmailFileFormat {
     /// <summary>Transport Neutral Encapsulation Format payload.</summary>
     Tnef = 3,
     /// <summary>Unix mailbox archive.</summary>
-    Mbox = 4
+    Mbox = 4,
+    /// <summary>Outlook item template stored in the MSG compound-file representation.</summary>
+    OutlookTemplate = 5
 }
 
 /// <summary>Identifies the logical Outlook item represented by a document.</summary>

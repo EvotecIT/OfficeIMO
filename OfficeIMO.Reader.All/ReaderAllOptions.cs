@@ -17,6 +17,12 @@ public sealed class ReaderAllOptions {
     /// <summary>Gets or sets EPUB adapter options.</summary>
     public OfficeIMO.Epub.EpubReadOptions? Epub { get; set; }
 
+    /// <summary>Gets or sets PST, OST, OLM, and EMLX adapter options.</summary>
+    public EmailStore.ReaderEmailStoreOptions? EmailStore { get; set; }
+
+    /// <summary>Gets or sets Outlook Offline Address Book adapter options.</summary>
+    public EmailAddressBook.ReaderEmailAddressBookOptions? EmailAddressBook { get; set; }
+
     /// <summary>Gets or sets HTML adapter options.</summary>
     public Html.ReaderHtmlOptions? Html { get; set; }
 

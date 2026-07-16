@@ -13,7 +13,7 @@ namespace OfficeIMO.Excel {
             ExcelRangeVisualSnapshotBuilder.Build(Sheet, Address, NormalizeOptions(options));
 
         /// <summary>
-        /// Exports this range as PNG or SVG.
+        /// Exports this range as a supported raster format or SVG.
         /// </summary>
         public OfficeImageExportResult ExportImage(OfficeImageExportFormat format, ExcelImageExportOptions? options = null) {
             ExcelImageExportOptions resolved = NormalizeOptions(options);

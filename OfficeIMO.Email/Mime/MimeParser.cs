@@ -132,7 +132,8 @@ internal static class MimeParser {
             if (skipAttachmentDecoding) {
                 state.CountAttachment(decodedLength);
                 document.Attachments.Add(CreateAttachment(headers, contentType, disposition, fileName,
-                    inlineDisposition || additionalInlineBody, attachmentDisposition, null, decodedLength));
+                    inlineDisposition || additionalInlineBody, attachmentDisposition, null, decodedLength,
+                    isRelatedSibling));
                 return;
             }
         }
@@ -156,6 +157,9 @@ internal static class MimeParser {
                 if (document.Body.Html == null) {
                     document.Body.Html = text;
                     document.Body.HtmlCharset = charset;
+                    document.Body.HtmlContentId = TrimAngleBrackets(contentId);
+                    document.Body.HtmlContentLocation = contentLocation;
+                    document.Body.IsHtmlRelatedRoot = isRelatedSibling && isPreferredRelatedBody;
                 }
             } else if (document.Body.Text == null) {
                 document.Body.Text = text;
@@ -168,7 +172,7 @@ internal static class MimeParser {
             state.CountAttachment(decoded.LongLength);
             EmailAttachment embedded = CreateAttachment(headers, contentType, disposition, fileName,
                 inlineDisposition, attachmentDisposition, state.Options.IncludeAttachmentContent ? decoded : null,
-                decoded.LongLength);
+                decoded.LongLength, isRelatedSibling);
             if (nestedMessageDepth >= state.Options.MaxNestedMessageDepth) {
                 state.Diagnostics.Add(new EmailDiagnostic("EMAIL_MIME_NESTED_MESSAGE_LIMIT",
                     "The embedded message was retained but not parsed because the nested-message limit was reached.",
@@ -184,7 +188,8 @@ internal static class MimeParser {
         state.CountAttachment(decoded.LongLength);
         EmailAttachment attachment = CreateAttachment(headers, contentType, disposition, fileName,
             inlineDisposition || additionalInlineBody, attachmentDisposition,
-            state.Options.IncludeAttachmentContent || semanticBodyPart ? decoded : null, decoded.LongLength);
+            state.Options.IncludeAttachmentContent || semanticBodyPart ? decoded : null, decoded.LongLength,
+            isRelatedSibling);
         if (semanticBodyPart) attachment.IsMimeBodyPart = true;
         string? semanticCharset = contentType.GetParameter("charset");
         int semanticDiagnosticStart = state.Diagnostics.Count;
@@ -229,7 +234,7 @@ internal static class MimeParser {
 
     private static EmailAttachment CreateAttachment(IReadOnlyList<EmailHeader> headers, MimeValue contentType,
         MimeValue disposition, string? fileName, bool inlineDisposition, bool attachmentDisposition,
-        byte[]? content, long length) {
+        byte[]? content, long length, bool isMimeRelated = false) {
         var attachment = new EmailAttachment {
             FileName = fileName,
             ContentType = contentType.Value,
@@ -238,6 +243,7 @@ internal static class MimeParser {
             IsInline = inlineDisposition ||
                 !string.IsNullOrWhiteSpace(MimeHeaderParser.GetValue(headers, "Content-ID")) ||
                 !string.IsNullOrWhiteSpace(MimeHeaderParser.GetValue(headers, "Content-Location")),
+            IsMimeRelated = isMimeRelated,
             Length = length,
             Content = content,
             IsMimeAttachment = attachmentDisposition,

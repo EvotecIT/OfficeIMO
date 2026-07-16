@@ -663,6 +663,7 @@ internal static partial class DocumentReaderEngine {
             ".ppt" or ".pot" or ".pps" => "application/vnd.ms-powerpoint",
             ".eml" => "message/rfc822",
             ".msg" => "application/vnd.ms-outlook",
+            ".oft" => "application/vnd.ms-outlook",
             ".mbox" or ".mbx" => "application/mbox",
             ".tnef" => "application/ms-tnef",
             ".csv" => "text/csv",

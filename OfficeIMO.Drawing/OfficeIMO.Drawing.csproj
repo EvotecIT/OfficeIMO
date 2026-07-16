@@ -11,7 +11,7 @@
     <Company>Evotec</Company>
     <Authors>Przemyslaw Klys</Authors>
     <PackageId>OfficeIMO.Drawing</PackageId>
-    <PackageTags>documents;drawing;color;image;font;metadata;lifecycle;officeimo;net472;netstandard2.0;net8.0;net10.0</PackageTags>
+    <PackageTags>documents;drawing;color;image;raster;png;jpeg;tiff;webp;font;metadata;lifecycle;officeimo;net472;netstandard2.0;net8.0;net10.0</PackageTags>
     <PackageProjectUrl>https://github.com/EvotecIT/OfficeIMO</PackageProjectUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <IsPublishable>True</IsPublishable>

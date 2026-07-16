@@ -8,10 +8,12 @@ internal static class MsgWriter {
     private static readonly DateTimeOffset FallbackCreationTime =
         new DateTimeOffset(1970, 1, 1, 0, 0, 0, TimeSpan.Zero);
 
-    internal static byte[] Write(EmailDocument document, EmailWriterOptions options, IList<EmailDiagnostic> diagnostics) {
+    internal static byte[] Write(EmailDocument document, EmailWriterOptions options,
+        IList<EmailDiagnostic> diagnostics, bool asTemplate = false) {
         var streams = new List<OfficeCompoundStream>();
         var names = new MsgNamedPropertyWriter();
-        BuildMessage(document, string.Empty, MsgPropertyStreamKind.TopLevel, names, streams, diagnostics, options, 0);
+        BuildMessage(document, string.Empty, MsgPropertyStreamKind.TopLevel, names, streams, diagnostics, options, 0,
+            asTemplate);
         names.WriteStreams(streams);
         long outputLength = OfficeCompoundFileWriter.GetSerializedLength(streams);
         if (outputLength > options.MaxOutputBytes) {
@@ -23,7 +25,7 @@ internal static class MsgWriter {
 
     private static void BuildMessage(EmailDocument document, string prefix, MsgPropertyStreamKind kind,
         MsgNamedPropertyWriter names, IList<OfficeCompoundStream> streams, IList<EmailDiagnostic> diagnostics,
-        EmailWriterOptions options, int depth) {
+        EmailWriterOptions options, int depth, bool asTemplate = false) {
         if (depth > options.MaxNestedMessageDepth) throw new InvalidOperationException("The embedded-message write depth exceeds the configured maximum.");
         EmailRecipient[] storageRecipients = document.Recipients
             .Where(recipient => recipient.Kind != EmailRecipientKind.ReplyTo)
@@ -31,7 +33,8 @@ internal static class MsgWriter {
         EmailAttachment[] writableAttachments = document.Attachments.Where(attachment =>
             !attachment.IsProjectedSemanticContent).ToArray();
         int codePage = MapiStringEncodingContext.FromCodePage(document.OutlookCodePage ?? 65001).PrimaryCodePage;
-        MsgPropertyBuilder messageProperties = CreateMessageProperties(document, diagnostics, prefix, options);
+        MsgPropertyBuilder messageProperties = CreateMessageProperties(document, diagnostics, prefix, options,
+            asTemplate);
         MsgPropertyWriter.Write(prefix, kind, messageProperties.Properties, storageRecipients.Length,
             writableAttachments.Length, names, streams, diagnostics, codePage);
 
@@ -112,7 +115,8 @@ internal static class MsgWriter {
     }
 
     internal static MsgPropertyBuilder CreateMessageProperties(EmailDocument document,
-        IList<EmailDiagnostic> diagnostics, string location, EmailWriterOptions? options = null) {
+        IList<EmailDiagnostic> diagnostics, string location, EmailWriterOptions? options = null,
+        bool asTemplate = false) {
         var properties = new MsgPropertyBuilder(document.MapiProperties);
         int codePage = MapiStringEncodingContext.FromCodePage(document.OutlookCodePage ?? 65001).PrimaryCodePage;
         EmailMessageMetadata metadata = document.MessageMetadata;
@@ -128,7 +132,7 @@ internal static class MsgWriter {
         bool hasAttachments = document.Attachments.Any(attachment => !attachment.IsProjectedSemanticContent);
         messageFlags |= 0x0002;
         if (hasAttachments) messageFlags |= 0x0010;
-        if (metadata.IsDraft) messageFlags |= 0x0008;
+        if (metadata.IsDraft || asTemplate) messageFlags |= 0x0008;
         if (metadata.IsRead == true) messageFlags |= 0x0001 | 0x0400;
         properties.Set(0x0E07, MapiPropertyType.Integer32, messageFlags);
         properties.Set(0x0E1B, MapiPropertyType.Boolean, hasAttachments);
@@ -171,7 +175,9 @@ internal static class MsgWriter {
         properties.Set(0x0017, MapiPropertyType.Integer32, (int)(metadata.Importance ?? EmailMessageImportance.Normal));
         properties.Set(0x0026, MapiPropertyType.Integer32, (int)(metadata.Priority ?? EmailMessagePriority.Normal));
         properties.Set(0x1080, MapiPropertyType.Integer32,
-            metadata.IconIndex ?? (metadata.IsDraft ? 0x00000103 : metadata.IsRead == true ? 0x00000100 : 0x00000101));
+            metadata.IconIndex ?? (metadata.IsDraft || asTemplate
+                ? 0x00000103
+                : metadata.IsRead == true ? 0x00000100 : 0x00000101));
         properties.Set(0x0029, MapiPropertyType.Boolean, metadata.ReadReceiptRequested);
         properties.Set(0x0023, MapiPropertyType.Boolean, metadata.DeliveryReceiptRequested);
         properties.Set(0x0036, MapiPropertyType.Integer32, metadata.Sensitivity);

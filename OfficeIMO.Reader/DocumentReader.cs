@@ -33,7 +33,7 @@ internal static partial class DocumentReaderEngine {
         ".pptx", ".pptm", ".ppt", ".pot", ".pps",
         ".md", ".markdown",
         ".pdf",
-        ".eml", ".msg", ".mbox", ".mbx", ".tnef",
+        ".eml", ".msg", ".oft", ".mbox", ".mbx", ".tnef",
         ".txt", ".log", ".csv", ".tsv", ".json", ".xml", ".yml", ".yaml"
     };
 
@@ -91,9 +91,9 @@ internal static partial class DocumentReaderEngine {
         new ReaderHandlerCapability {
             Id = "officeimo.reader.email",
             DisplayName = "Email Reader",
-            Description = "Built-in EML/MIME, Outlook MSG/MAPI, TNEF, and mbox extractor.",
+            Description = "Built-in EML/MIME, Outlook MSG/OFT/MAPI, TNEF, and mbox extractor.",
             Kind = ReaderInputKind.Email,
-            Extensions = new[] { ".eml", ".msg", ".mbox", ".mbx", ".tnef" },
+            Extensions = new[] { ".eml", ".msg", ".oft", ".mbox", ".mbx", ".tnef" },
             IsBuiltIn = true,
             SupportsPath = true,
             SupportsStream = true,
@@ -271,7 +271,7 @@ internal static partial class DocumentReaderEngine {
             ".pptx" or ".pptm" or ".ppt" or ".pot" or ".pps" => ReaderInputKind.PowerPoint,
             ".md" or ".markdown" => ReaderInputKind.Markdown,
             ".pdf" => ReaderInputKind.Pdf,
-            ".eml" or ".msg" or ".mbox" or ".mbx" or ".tnef" => ReaderInputKind.Email,
+            ".eml" or ".msg" or ".oft" or ".mbox" or ".mbx" or ".tnef" => ReaderInputKind.Email,
             ".txt" or ".log" or ".csv" or ".tsv" or ".json" or ".xml" or ".yml" or ".yaml" => ReaderInputKind.Text,
             _ => ReaderInputKind.Unknown
         };

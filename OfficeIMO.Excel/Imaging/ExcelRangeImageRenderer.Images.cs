@@ -23,7 +23,7 @@ namespace OfficeIMO.Excel {
                     diagnostics?.Add(new OfficeImageExportDiagnostic(
                         OfficeImageExportDiagnosticSeverity.Warning,
                         ExcelImageExportDiagnosticCodes.ImagePngDecodeUnavailable,
-                        "Worksheet PNG image bytes could not be decoded for PNG output.",
+                        "Worksheet image bytes could not be decoded for raster output.",
                         image.Source));
                     return;
                 }
