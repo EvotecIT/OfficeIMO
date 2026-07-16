@@ -231,6 +231,14 @@ public static partial class OfficeImageReader {
             return false;
         }
 
+        byte packedFields = data[10];
+        if ((packedFields & 0x80) != 0) {
+            int colorTableBytes = 3 << ((packedFields & 0x07) + 1);
+            if (data.Length < 13 + colorTableBytes) {
+                return false;
+            }
+        }
+
         int width = ReadUInt16LittleEndian(data, 6);
         int height = ReadUInt16LittleEndian(data, 8);
         info = new OfficeImageInfo(OfficeImageFormat.Gif, width, height);

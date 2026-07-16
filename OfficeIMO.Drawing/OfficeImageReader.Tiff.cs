@@ -43,6 +43,8 @@ public static partial class OfficeImageReader {
         int height = 0;
         double dpiX = 96.0;
         double dpiY = 96.0;
+        bool hasDpiX = false;
+        bool hasDpiY = false;
         int unit = 2;
 
         for (int i = 0; i < entryCount; i++) {
@@ -54,12 +56,16 @@ public static partial class OfficeImageReader {
 
             if (tag == 256) width = ReadClassicTiffScalar(type, count, valueOrOffset, littleEndian);
             else if (tag == 257) height = ReadClassicTiffScalar(type, count, valueOrOffset, littleEndian);
-            else if (tag == 282) dpiX = ReadClassicTiffRational(data, valueOrOffset, littleEndian, dpiX);
-            else if (tag == 283) dpiY = ReadClassicTiffRational(data, valueOrOffset, littleEndian, dpiY);
-            else if (tag == 296) unit = ReadClassicTiffScalar(type, count, valueOrOffset, littleEndian);
+            else if (tag == 282 && TryReadClassicTiffRational(data, valueOrOffset, type, count, littleEndian, out double parsedDpiX)) {
+                dpiX = parsedDpiX;
+                hasDpiX = true;
+            } else if (tag == 283 && TryReadClassicTiffRational(data, valueOrOffset, type, count, littleEndian, out double parsedDpiY)) {
+                dpiY = parsedDpiY;
+                hasDpiY = true;
+            } else if (tag == 296) unit = ReadClassicTiffScalar(type, count, valueOrOffset, littleEndian);
         }
 
-        return CompleteTiffInfo(width, height, dpiX, dpiY, unit, out info);
+        return CompleteTiffInfo(width, height, dpiX, dpiY, hasDpiX, hasDpiY, unit, out info);
     }
 
     private static bool TryReadBigTiff(byte[] data, bool littleEndian, out OfficeImageInfo info) {
@@ -95,6 +101,8 @@ public static partial class OfficeImageReader {
         int height = 0;
         double dpiX = 96.0;
         double dpiY = 96.0;
+        bool hasDpiX = false;
+        bool hasDpiY = false;
         int unit = 2;
 
         for (int i = 0; i < entryCount; i++) {
@@ -105,12 +113,16 @@ public static partial class OfficeImageReader {
 
             if (tag == 256) width = ReadBigTiffScalar(data, entry + 12, type, count, littleEndian);
             else if (tag == 257) height = ReadBigTiffScalar(data, entry + 12, type, count, littleEndian);
-            else if (tag == 282) dpiX = ReadBigTiffRational(data, entry + 12, type, count, littleEndian, dpiX);
-            else if (tag == 283) dpiY = ReadBigTiffRational(data, entry + 12, type, count, littleEndian, dpiY);
-            else if (tag == 296) unit = ReadBigTiffScalar(data, entry + 12, type, count, littleEndian);
+            else if (tag == 282 && TryReadBigTiffRational(data, entry + 12, type, count, littleEndian, out double parsedDpiX)) {
+                dpiX = parsedDpiX;
+                hasDpiX = true;
+            } else if (tag == 283 && TryReadBigTiffRational(data, entry + 12, type, count, littleEndian, out double parsedDpiY)) {
+                dpiY = parsedDpiY;
+                hasDpiY = true;
+            } else if (tag == 296) unit = ReadBigTiffScalar(data, entry + 12, type, count, littleEndian);
         }
 
-        return CompleteTiffInfo(width, height, dpiX, dpiY, unit, out info);
+        return CompleteTiffInfo(width, height, dpiX, dpiY, hasDpiX, hasDpiY, unit, out info);
     }
 
     private static bool CompleteTiffInfo(
@@ -118,14 +130,16 @@ public static partial class OfficeImageReader {
         int height,
         double dpiX,
         double dpiY,
+        bool hasDpiX,
+        bool hasDpiY,
         int unit,
         out OfficeImageInfo info) {
         switch (unit) {
             case 2:
                 break;
             case 3:
-                dpiX *= 2.54;
-                dpiY *= 2.54;
+                dpiX = hasDpiX ? dpiX * 2.54 : 96.0;
+                dpiY = hasDpiY ? dpiY * 2.54 : 96.0;
                 break;
             default:
                 // ResolutionUnit=None (1) describes unitless ratios, not DPI.
@@ -148,11 +162,20 @@ public static partial class OfficeImageReader {
         return type == 4 ? valueOrOffset : 0;
     }
 
-    private static double ReadClassicTiffRational(byte[] data, int offset, bool littleEndian, double fallback) {
-        if (offset < 0 || offset > data.Length - 8) return fallback;
+    private static bool TryReadClassicTiffRational(
+        byte[] data,
+        int offset,
+        int type,
+        int count,
+        bool littleEndian,
+        out double value) {
+        value = 0;
+        if (type != 5 || count != 1 || offset < 0 || offset > data.Length - 8) return false;
         uint numerator = ReadUInt32(data, offset, littleEndian);
         uint denominator = ReadUInt32(data, offset + 4, littleEndian);
-        return denominator != 0 ? (double)numerator / denominator : fallback;
+        if (denominator == 0) return false;
+        value = (double)numerator / denominator;
+        return true;
     }
 
     private static int ReadBigTiffScalar(byte[] data, int offset, int type, ulong count, bool littleEndian) {
@@ -166,17 +189,20 @@ public static partial class OfficeImageReader {
         return value <= int.MaxValue ? (int)value : 0;
     }
 
-    private static double ReadBigTiffRational(
+    private static bool TryReadBigTiffRational(
         byte[] data,
         int offset,
         int type,
         ulong count,
         bool littleEndian,
-        double fallback) {
-        if (type != 5 || count != 1) return fallback;
+        out double value) {
+        value = 0;
+        if (type != 5 || count != 1) return false;
         uint numerator = ReadUInt32(data, offset, littleEndian);
         uint denominator = ReadUInt32(data, offset + 4, littleEndian);
-        return denominator != 0 ? (double)numerator / denominator : fallback;
+        if (denominator == 0) return false;
+        value = (double)numerator / denominator;
+        return true;
     }
 
     private static uint ReadUInt32(byte[] data, int offset, bool littleEndian) {

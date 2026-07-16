@@ -34,7 +34,11 @@ internal static class SubtitleParser {
             if (!timingLine.Contains("-->", StringComparison.Ordinal)) {
                 identifier = timingLine;
                 index++;
-                if (index >= lines.Length) break;
+                if (index >= lines.Length) {
+                    AddWarning(warnings, "Ignored a subtitle block with an invalid timing line at line " +
+                        (blockStart + 1).ToString(CultureInfo.InvariantCulture) + ".");
+                    break;
+                }
                 timingLine = lines[index].Trim();
             }
             if (!TryParseTiming(timingLine, out TimeSpan start, out TimeSpan end)) {

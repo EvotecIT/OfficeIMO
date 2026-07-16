@@ -248,6 +248,19 @@ public sealed class ReaderMediaAdapterTests {
     }
 
     [Fact]
+    public void ImageAdapter_RejectsGifWithATruncatedDeclaredGlobalColorTable() {
+        var truncatedGif = new byte[18];
+        Encoding.ASCII.GetBytes("GIF89a").CopyTo(truncatedGif, 0);
+        truncatedGif[6] = 1;
+        truncatedGif[8] = 1;
+        truncatedGif[10] = 0x80;
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddImageHandler().Build();
+
+        Assert.Throws<NotSupportedException>(() =>
+            reader.ReadDocument(truncatedGif, "truncated-table.gif"));
+    }
+
+    [Fact]
     public void ImageAdapter_IdentifiesWebpFromItsHeader() {
         OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddImageHandler().Build();
 
@@ -877,6 +890,19 @@ public sealed class ReaderMediaAdapterTests {
         OfficeDocumentReadResult result = reader.ReadDocument(Encoding.UTF8.GetBytes(vtt), "identifiers.vtt");
 
         Assert.Equal(new[] { "First cue", "Second cue", "Third cue" }, result.Chunks.Select(chunk => chunk.Text));
+    }
+
+    [Fact]
+    public void SubtitleAdapter_DiagnosesADanglingCueIdentifier() {
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddSubtitleHandler().Build();
+
+        OfficeDocumentReadResult result = reader.ReadDocument(Encoding.UTF8.GetBytes("42"), "truncated.srt");
+
+        Assert.Empty(result.Chunks);
+        OfficeDocumentDiagnostic diagnostic = Assert.Single(result.Diagnostics);
+        Assert.Equal("subtitle-invalid-block", diagnostic.Code);
+        Assert.Contains("invalid timing line at line 1", diagnostic.Message, StringComparison.Ordinal);
+        Assert.True(diagnostic.IsRecoverable);
     }
 
     [Fact]

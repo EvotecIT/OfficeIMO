@@ -56,6 +56,44 @@ public partial class DrawingTests {
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
+    public void OfficeImageReader_DefaultsInvalidClassicTiffRationalTags(bool littleEndian) {
+        byte[] data = CreateClassicTiff(
+            littleEndian,
+            width: 11,
+            height: 9,
+            xNumerator: 300,
+            xDenominator: 1,
+            yNumerator: 300,
+            yDenominator: 1);
+        WriteUInt16(data, 36, 4, littleEndian);
+        WriteUInt32(data, 50, 2, littleEndian);
+        WriteUInt16(data, 66, 3, littleEndian);
+
+        bool identified = OfficeImageReader.TryIdentifyByContent(data, fileName: null, out OfficeImageInfo info);
+
+        Assert.True(identified);
+        Assert.Equal(96D, info.DpiX);
+        Assert.Equal(96D, info.DpiY);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void OfficeImageReader_DefaultsInvalidBigTiffRationalTagsForCentimeters(bool littleEndian) {
+        byte[] data = CreateBigTiff(littleEndian, 11, 9, 300, resolutionUnit: 3);
+        WriteUInt16(data, 66, 4, littleEndian);
+        WriteUInt64(data, 88, 2, littleEndian);
+
+        bool identified = OfficeImageReader.TryIdentifyByContent(data, fileName: null, out OfficeImageInfo info);
+
+        Assert.True(identified);
+        Assert.Equal(96D, info.DpiX);
+        Assert.Equal(96D, info.DpiY);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
     public void OfficeImageReader_RejectsTruncatedClassicTiffDirectory(bool littleEndian) {
         byte[] data = CreateClassicTiff(
             littleEndian,

@@ -3560,6 +3560,35 @@ public partial class DrawingTests {
     }
 
     [Fact]
+    public void OfficeImageReaderIdentifiesGifWithoutAGlobalColorTable() {
+        var gif = new byte[13];
+        Encoding.ASCII.GetBytes("GIF89a").CopyTo(gif, 0);
+        gif[6] = 1;
+        gif[8] = 1;
+
+        bool identified = OfficeImageReader.TryIdentifyByContent(gif, fileName: null, out OfficeImageInfo image);
+
+        Assert.True(identified);
+        Assert.Equal(OfficeImageFormat.Gif, image.Format);
+        Assert.Equal(1, image.Width);
+        Assert.Equal(1, image.Height);
+    }
+
+    [Fact]
+    public void OfficeImageReaderRejectsGifWithATruncatedDeclaredGlobalColorTable() {
+        var gif = new byte[18];
+        Encoding.ASCII.GetBytes("GIF89a").CopyTo(gif, 0);
+        gif[6] = 1;
+        gif[8] = 1;
+        gif[10] = 0x80;
+
+        bool identified = OfficeImageReader.TryIdentifyByContent(gif, fileName: null, out OfficeImageInfo image);
+
+        Assert.False(identified);
+        Assert.Equal(OfficeImageFormat.Unknown, image.Format);
+    }
+
+    [Fact]
     public void OfficeImageReaderIdentifiesIconDimensionsFromHeader() {
         var icon = new byte[23];
         icon[2] = 0x01;
