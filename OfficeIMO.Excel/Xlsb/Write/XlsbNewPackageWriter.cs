@@ -38,30 +38,35 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                     hyperlinkPlans[index].Records);
             }
 
-            using var archive = new ZipArchive(destination, ZipArchiveMode.Create, leaveOpen: true);
-            WriteEntry(archive, "[Content_Types].xml", CreateContentTypes(sheets.Length, stylesPart != null));
-            WriteEntry(archive, "_rels/.rels", RootRelationships);
-            WriteEntry(archive, "xl/workbook.bin", XlsbWorkbookPartWriter.Create(
-                sheets,
-                document.DateSystem == ExcelDateSystem.NineteenFour,
-                document.WorkbookRoot.GetFirstChild<BookViews>(),
-                document.WorkbookRoot.GetFirstChild<WorkbookProtection>(),
-                document.WorkbookRoot.GetFirstChild<DefinedNames>(),
-                document.WorkbookRoot.GetFirstChild<CalculationProperties>()));
-            WriteEntry(archive, "xl/_rels/workbook.bin.rels", CreateWorkbookRelationships(sheets.Length, stylesPart != null));
-            for (int index = 0; index < worksheetParts.Length; index++) {
-                WriteEntry(
-                    archive,
-                    "xl/worksheets/sheet" + (index + 1).ToString(System.Globalization.CultureInfo.InvariantCulture) + ".bin",
-                    worksheetParts[index]);
-                if (hyperlinkPlans[index].Relationships.Count != 0) {
+            using var positionReportingDestination = destination.CanSeek
+                ? null
+                : new PositionReportingWriteStream(destination);
+            Stream packageDestination = positionReportingDestination ?? destination;
+            using (var archive = new ZipArchive(packageDestination, ZipArchiveMode.Create, leaveOpen: true)) {
+                WriteEntry(archive, "[Content_Types].xml", CreateContentTypes(sheets.Length, stylesPart != null));
+                WriteEntry(archive, "_rels/.rels", RootRelationships);
+                WriteEntry(archive, "xl/workbook.bin", XlsbWorkbookPartWriter.Create(
+                    sheets,
+                    document.DateSystem == ExcelDateSystem.NineteenFour,
+                    document.WorkbookRoot.GetFirstChild<BookViews>(),
+                    document.WorkbookRoot.GetFirstChild<WorkbookProtection>(),
+                    document.WorkbookRoot.GetFirstChild<DefinedNames>(),
+                    document.WorkbookRoot.GetFirstChild<CalculationProperties>()));
+                WriteEntry(archive, "xl/_rels/workbook.bin.rels", CreateWorkbookRelationships(sheets.Length, stylesPart != null));
+                for (int index = 0; index < worksheetParts.Length; index++) {
                     WriteEntry(
                         archive,
-                        "xl/worksheets/_rels/sheet" + (index + 1).ToString(System.Globalization.CultureInfo.InvariantCulture) + ".bin.rels",
-                        CreateWorksheetRelationships(hyperlinkPlans[index].Relationships));
+                        "xl/worksheets/sheet" + (index + 1).ToString(System.Globalization.CultureInfo.InvariantCulture) + ".bin",
+                        worksheetParts[index]);
+                    if (hyperlinkPlans[index].Relationships.Count != 0) {
+                        WriteEntry(
+                            archive,
+                            "xl/worksheets/_rels/sheet" + (index + 1).ToString(System.Globalization.CultureInfo.InvariantCulture) + ".bin.rels",
+                            CreateWorksheetRelationships(hyperlinkPlans[index].Relationships));
+                    }
                 }
+                if (stylesPart != null) WriteEntry(archive, "xl/styles.bin", stylesPart);
             }
-            if (stylesPart != null) WriteEntry(archive, "xl/styles.bin", stylesPart);
         }
 
         private static void ValidateWorkbook(ExcelDocument document, IReadOnlyList<ExcelSheet> sheets) {
@@ -204,6 +209,43 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             entry.LastWriteTime = ReproducibleEntryTime;
             using Stream output = entry.Open();
             output.Write(content, 0, content.Length);
+        }
+
+        /// <summary>
+        /// Keeps XLSB package creation forward-only while satisfying the .NET Framework
+        /// <see cref="ZipArchive"/> implementation, which reads <see cref="Stream.Position"/>
+        /// even when the destination reports that it cannot seek.
+        /// </summary>
+        private sealed class PositionReportingWriteStream : Stream {
+            private readonly Stream _destination;
+            private long _position;
+
+            internal PositionReportingWriteStream(Stream destination) {
+                _destination = destination;
+            }
+
+            public override bool CanRead => false;
+            public override bool CanSeek => false;
+            public override bool CanWrite => _destination.CanWrite;
+            public override long Length => _position;
+
+            public override long Position {
+                get => _position;
+                set => throw new NotSupportedException();
+            }
+
+            public override void Flush() => _destination.Flush();
+
+            public override int Read(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+
+            public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+
+            public override void SetLength(long value) => throw new NotSupportedException();
+
+            public override void Write(byte[] buffer, int offset, int count) {
+                _destination.Write(buffer, offset, count);
+                _position = checked(_position + count);
+            }
         }
 
         private const string RootRelationships =
