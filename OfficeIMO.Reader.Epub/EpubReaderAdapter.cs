@@ -18,7 +18,7 @@ internal static partial class EpubReaderAdapter {
         var options = readerOptions ?? new ReaderOptions();
         ReaderInputLimits.EnforceFileSize(epubPath, options.MaxInputBytes);
         var source = BuildSourceMetadataFromPath(epubPath, options.ComputeHashes);
-        var document = EpubDocument.Load(epubPath, epubOptions);
+        var document = EpubDocument.Load(epubPath, CreateStructuredOptions(epubOptions));
         return ReadDocument(document, source, options, cancellationToken);
     }
 
@@ -41,7 +41,7 @@ internal static partial class EpubReaderAdapter {
         var source = BuildSourceMetadataFromStream(parseStream, logicalSourceName, options.ComputeHashes);
         EpubDocument document;
         try {
-            document = EpubDocument.Load(parseStream, epubOptions);
+            document = EpubDocument.Load(parseStream, CreateStructuredOptions(epubOptions));
         } finally {
             if (ownsParseStream) {
                 parseStream.Dispose();
@@ -227,9 +227,11 @@ internal static partial class EpubReaderAdapter {
         if (source == null) throw new ArgumentNullException(nameof(source));
 
         chunk.SourceId ??= source.SourceId;
-        chunk.SourceHash ??= source.SourceHash;
-        chunk.SourceLastWriteUtc ??= source.LastWriteUtc;
-        chunk.SourceLengthBytes ??= source.LengthBytes;
+        // EPUB chunks retain archive-level provenance even when their text/Markdown is
+        // projected from an individual XHTML chapter.
+        chunk.SourceHash = source.SourceHash;
+        chunk.SourceLastWriteUtc = source.LastWriteUtc;
+        chunk.SourceLengthBytes = source.LengthBytes;
         if (!chunk.TokenEstimate.HasValue) {
             chunk.TokenEstimate = EstimateTokenCount(chunk.Markdown ?? chunk.Text);
         }

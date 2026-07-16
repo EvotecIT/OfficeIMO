@@ -2,6 +2,7 @@ using OfficeIMO.Epub;
 using OfficeIMO.Reader;
 using OfficeIMO.Reader.Epub;
 using System.IO.Compression;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using Xunit;
@@ -75,6 +76,43 @@ public sealed class ReaderEpubModularTests {
                 Assert.Equal(ReaderInputKind.Epub, jsonResult.Kind);
             }
             Assert.Contains("officeimo.reader.epub.rich-v5", result.CapabilitiesUsed);
+        } finally {
+            if (File.Exists(epubPath)) File.Delete(epubPath);
+        }
+    }
+
+    [Fact]
+    public void DocumentReaderEpub_DirectRead_PreservesStructuredMarkdownAndChapterProvenanceByDefault() {
+        var epubPath = Path.Combine(Path.GetTempPath(), "officeimo-epub-" + Guid.NewGuid().ToString("N") + ".epub");
+        try {
+            BuildEpubWithSpine(epubPath);
+            var epubOptions = new EpubReadOptions {
+                IncludeRawHtml = false,
+                PreferSpineOrder = true
+            };
+
+            ReaderChunk[] chunks = EpubReaderAdapter.Read(
+                epubPath,
+                readerOptions: new ReaderOptions { MaxChars = 4_000 },
+                epubOptions: epubOptions).ToArray();
+
+            ReaderChunk secondChapter = Assert.Single(
+                chunks,
+                chunk => chunk.Location.Path?.Contains("::OEBPS/chapter2.xhtml", StringComparison.OrdinalIgnoreCase) == true);
+            ReaderChunk firstChapter = Assert.Single(
+                chunks,
+                chunk => chunk.Location.Path?.Contains("::OEBPS/chapter1.xhtml", StringComparison.OrdinalIgnoreCase) == true);
+            Assert.Contains("## Second", secondChapter.Markdown, StringComparison.Ordinal);
+            Assert.Contains("# Two", secondChapter.Markdown, StringComparison.Ordinal);
+            Assert.Contains("- EPUB list item", secondChapter.Markdown, StringComparison.Ordinal);
+            Assert.Contains("[details](https://example.test/chapter-two)", secondChapter.Markdown, StringComparison.Ordinal);
+            Assert.Equal(0, secondChapter.Location.SourceBlockIndex);
+            Assert.Equal(1, firstChapter.Location.SourceBlockIndex);
+            Assert.Equal("Second", secondChapter.Location.HeadingPath);
+            Assert.Equal(
+                new[] { "Second", "Two" },
+                ReaderHeadingPath.Split(secondChapter.Location.HierarchyHeadingPath));
+            Assert.False(epubOptions.IncludeRawHtml);
         } finally {
             if (File.Exists(epubPath)) File.Delete(epubPath);
         }
@@ -352,6 +390,7 @@ public sealed class ReaderEpubModularTests {
                 epubPath,
                 readerOptions: new ReaderOptions { ComputeHashes = true, MaxChars = 4_000 },
                 epubOptions: new EpubReadOptions { PreferSpineOrder = true }).ToList();
+            string archiveHash = Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(epubPath))).ToLowerInvariant();
 
             Assert.NotEmpty(chunks);
             Assert.All(chunks, chunk => {
@@ -361,6 +400,7 @@ public sealed class ReaderEpubModularTests {
                 Assert.True(chunk.TokenEstimate.HasValue && chunk.TokenEstimate.Value >= 1);
                 Assert.True(chunk.SourceLengthBytes.HasValue && chunk.SourceLengthBytes.Value > 0);
                 Assert.True(chunk.SourceLastWriteUtc.HasValue);
+                Assert.Equal(archiveHash, chunk.SourceHash);
             });
 
             var first = Assert.Single(chunks, c => c.Location.Path?.Contains("::OEBPS/chapter2.xhtml", StringComparison.OrdinalIgnoreCase) ?? false);
@@ -421,6 +461,7 @@ public sealed class ReaderEpubModularTests {
                 sourceName: " metadata.epub ",
                 readerOptions: new ReaderOptions { ComputeHashes = true, MaxChars = 4_000 },
                 epubOptions: new EpubReadOptions { PreferSpineOrder = true }).ToList();
+            string archiveHash = Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();
 
             Assert.NotEmpty(chunks);
             Assert.All(chunks, chunk => {
@@ -430,6 +471,7 @@ public sealed class ReaderEpubModularTests {
                 Assert.True(chunk.TokenEstimate.HasValue && chunk.TokenEstimate.Value >= 1);
                 Assert.Equal(bytes.Length, chunk.SourceLengthBytes);
                 Assert.Null(chunk.SourceLastWriteUtc);
+                Assert.Equal(archiveHash, chunk.SourceHash);
             });
 
             Assert.All(chunks, chunk => Assert.StartsWith("metadata.epub::", chunk.Location.Path, StringComparison.OrdinalIgnoreCase));

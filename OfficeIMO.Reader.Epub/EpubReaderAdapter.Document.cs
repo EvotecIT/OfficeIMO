@@ -149,23 +149,6 @@ internal static partial class EpubReaderAdapter {
         return pages;
     }
 
-    private static EpubReadOptions CreateRichOptions(EpubReadOptions? options) {
-        EpubReadOptions source = options ?? new EpubReadOptions();
-        return new EpubReadOptions {
-            MaxChapters = source.MaxChapters,
-            MaxChapterBytes = source.MaxChapterBytes,
-            IncludeRawHtml = true,
-            IncludeResourceData = options == null || source.IncludeResourceData,
-            MaxResources = source.MaxResources,
-            MaxResourceBytes = source.MaxResourceBytes,
-            MaxTotalResourceBytes = source.MaxTotalResourceBytes,
-            DeterministicOrder = source.DeterministicOrder,
-            PreferSpineOrder = source.PreferSpineOrder,
-            IncludeNonLinearSpineItems = source.IncludeNonLinearSpineItems,
-            FallbackToHtmlScan = source.FallbackToHtmlScan
-        };
-    }
-
     private static IEnumerable<OfficeDocumentAsset> BuildEpubAssets(EpubDocument document, string sourcePath) {
         int assetIndex = 0;
         foreach (EpubResource resource in document.Resources) {

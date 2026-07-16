@@ -35,7 +35,9 @@ internal static partial class EpubReaderAdapter {
                 Location = MapStructuredChapterLocation(
                     htmlChunk.Location,
                     virtualPath,
-                    firstBlockIndex + chunkPart),
+                    firstBlockIndex + chunkPart,
+                    chapter.Order > 0 ? chapter.Order - 1 : null,
+                    chapter.Title),
                 Text = htmlChunk.Text,
                 Markdown = markdown,
                 Tables = htmlChunk.Tables,
@@ -55,22 +57,33 @@ internal static partial class EpubReaderAdapter {
     private static ReaderLocation MapStructuredChapterLocation(
         ReaderLocation source,
         string virtualPath,
-        int blockIndex) {
+        int blockIndex,
+        int? sourceBlockIndex,
+        string? chapterTitle) {
+        string? displayHeading = string.IsNullOrWhiteSpace(chapterTitle)
+            ? source.HeadingPath
+            : chapterTitle!.Trim();
         var location = new ReaderLocation {
             Path = virtualPath,
             BlockIndex = blockIndex,
-            SourceBlockIndex = source.SourceBlockIndex ?? source.BlockIndex,
+            SourceBlockIndex = sourceBlockIndex,
             StartLine = source.StartLine,
             EndLine = source.EndLine,
             NormalizedStartLine = source.NormalizedStartLine,
             NormalizedEndLine = source.NormalizedEndLine,
-            HeadingPath = source.HeadingPath,
+            HeadingPath = displayHeading,
             HeadingSlug = source.HeadingSlug,
             SourceBlockKind = source.SourceBlockKind,
             BlockAnchor = source.BlockAnchor,
             TableIndex = source.TableIndex
         };
-        ReaderHeadingPath.SetHierarchyPath(location, source.HierarchyHeadingPath);
+        var hierarchy = new List<string?> { displayHeading };
+        if (!string.IsNullOrWhiteSpace(source.HierarchyHeadingPath)) {
+            hierarchy.AddRange(ReaderHeadingPath.Split(source.HierarchyHeadingPath));
+        } else if (!string.Equals(source.HeadingPath, displayHeading, StringComparison.Ordinal)) {
+            hierarchy.Add(source.HeadingPath);
+        }
+        ReaderHeadingPath.SetHierarchyPath(location, ReaderHeadingPath.Combine(hierarchy));
         return location;
     }
 }
