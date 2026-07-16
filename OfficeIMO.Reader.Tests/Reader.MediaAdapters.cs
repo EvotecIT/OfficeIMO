@@ -162,16 +162,13 @@ public sealed partial class ReaderMediaAdapterTests {
 
     [Fact]
     public void ImageAdapter_RejectsOverflowingEmfDimensionsAsUnsupported() {
-        var emf = new byte[88];
-        WriteUInt32LittleEndian(emf, 0, 1);
-        WriteUInt32LittleEndian(emf, 4, 88);
+        byte[] emf = CreateCompleteEmf(1, 1);
         WriteUInt32LittleEndian(emf, 8, int.MinValue);
         WriteUInt32LittleEndian(emf, 12, int.MinValue);
         WriteUInt32LittleEndian(emf, 16, int.MaxValue);
         WriteUInt32LittleEndian(emf, 20, int.MaxValue);
         WriteUInt32LittleEndian(emf, 24, int.MinValue);
         WriteUInt32LittleEndian(emf, 28, int.MinValue);
-        WriteUInt32LittleEndian(emf, 40, 0x464D4520);
         WriteUInt32LittleEndian(emf, 72, int.MaxValue);
         WriteUInt32LittleEndian(emf, 76, int.MaxValue);
         WriteUInt32LittleEndian(emf, 80, 1);

@@ -3699,18 +3699,8 @@ public partial class DrawingTests {
     }
 
     [Fact]
-    public void OfficeImageReaderIdentifiesPcxDimensionsFromHeader() {
-        var pcx = new byte[128];
-        pcx[0] = 0x0A;
-        pcx[1] = 0x05;
-        pcx[2] = 0x01;
-        pcx[3] = 0x08;
-        pcx[8] = 99;
-        pcx[10] = 49;
-        pcx[12] = 96;
-        pcx[14] = 96;
-        pcx[65] = 1;
-        WriteUInt16LittleEndian(pcx, 66, 100);
+    public void OfficeImageReaderIdentifiesCompletePcxDimensions() {
+        byte[] pcx = CreateCompletePcx(100, 50);
 
         var image = OfficeImageReader.Identify(pcx);
 
@@ -3750,19 +3740,8 @@ public partial class DrawingTests {
     }
 
     [Fact]
-    public void OfficeImageReaderIdentifiesEmfDimensionsFromHeader() {
-        var emf = new byte[88];
-        WriteInt32LittleEndian(emf, 0, 1);
-        WriteInt32LittleEndian(emf, 4, 88);
-        WriteInt32LittleEndian(emf, 16, 192);
-        WriteInt32LittleEndian(emf, 20, 96);
-        WriteInt32LittleEndian(emf, 32, 5080);
-        WriteInt32LittleEndian(emf, 36, 2540);
-        WriteInt32LittleEndian(emf, 40, 0x464D4520);
-        WriteInt32LittleEndian(emf, 72, 1920);
-        WriteInt32LittleEndian(emf, 76, 1080);
-        WriteInt32LittleEndian(emf, 80, 508);
-        WriteInt32LittleEndian(emf, 84, 286);
+    public void OfficeImageReaderIdentifiesCompleteEmfDimensions() {
+        byte[] emf = CreateCompleteEmf(192, 96);
 
         var image = OfficeImageReader.Identify(emf);
 
@@ -3776,16 +3755,13 @@ public partial class DrawingTests {
 
     [Fact]
     public void OfficeImageReaderRejectsEmfDimensionsThatExceedIntegerBounds() {
-        var emf = new byte[88];
-        WriteInt32LittleEndian(emf, 0, 1);
-        WriteInt32LittleEndian(emf, 4, 88);
+        byte[] emf = CreateCompleteEmf(1, 1);
         WriteInt32LittleEndian(emf, 8, int.MinValue);
         WriteInt32LittleEndian(emf, 12, int.MinValue);
         WriteInt32LittleEndian(emf, 16, int.MaxValue);
         WriteInt32LittleEndian(emf, 20, int.MaxValue);
         WriteInt32LittleEndian(emf, 24, int.MinValue);
         WriteInt32LittleEndian(emf, 28, int.MinValue);
-        WriteInt32LittleEndian(emf, 40, 0x464D4520);
         WriteInt32LittleEndian(emf, 72, int.MaxValue);
         WriteInt32LittleEndian(emf, 76, int.MaxValue);
         WriteInt32LittleEndian(emf, 80, 1);

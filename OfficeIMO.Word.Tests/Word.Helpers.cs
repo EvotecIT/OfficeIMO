@@ -25,8 +25,8 @@ public partial class Word {
     }
 
     [Fact]
-    public void Test_GetImageCharacteristics_ForPlaceableWmfHeader() {
-        using var imageStream = new MemoryStream(CreatePlaceableWmfHeader());
+    public void Test_GetImageCharacteristics_ForCompletePlaceableWmf() {
+        using var imageStream = new MemoryStream(CreatePlaceableWmf());
 
         var imageCharacteristics = Helpers.GetImageCharacteristics(imageStream, "sample.wmf");
 
@@ -69,13 +69,21 @@ public partial class Word {
         Assert.True(imageCharacteristics.Height > 0);
     }
 
-    private static byte[] CreatePlaceableWmfHeader() {
-        var wmf = new byte[22];
+    private static byte[] CreatePlaceableWmf() {
+        var wmf = new byte[56];
         WriteInt32LittleEndian(wmf, 0, unchecked((int)0x9AC6CDD7));
         WriteInt16LittleEndian(wmf, 10, 2880);
         WriteInt16LittleEndian(wmf, 12, 1440);
         WriteUInt16LittleEndian(wmf, 14, 1440);
         WritePlaceableWmfChecksum(wmf);
+        WriteUInt16LittleEndian(wmf, 22, 1);
+        WriteUInt16LittleEndian(wmf, 24, 9);
+        WriteUInt16LittleEndian(wmf, 26, 0x0300);
+        WriteInt32LittleEndian(wmf, 28, 17);
+        WriteInt32LittleEndian(wmf, 34, 5);
+        WriteInt32LittleEndian(wmf, 40, 5);
+        WriteUInt16LittleEndian(wmf, 44, 0x0201);
+        WriteInt32LittleEndian(wmf, 50, 3);
         return wmf;
     }
 
