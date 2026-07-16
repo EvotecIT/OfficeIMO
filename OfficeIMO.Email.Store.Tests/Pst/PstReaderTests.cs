@@ -28,8 +28,13 @@ public sealed class PstReaderTests {
         Assert.Equal(2, result.Store.Folders.Count);
         EmailStoreFolder root = Assert.Single(result.Store.RootFolders);
         Assert.Equal("Root", root.Name);
+        Assert.Equal(EmailStoreSpecialFolderKind.Root, root.SpecialFolderKind);
+        Assert.Equal(EmailStoreFolderClassificationSource.SourceIdentifier, root.ClassificationSource);
         EmailStoreFolder inbox = Assert.Single(result.Store.Folders, folder => folder.Name == "Inbox");
         Assert.Equal(root.Id, inbox.ParentId);
+        Assert.Equal(EmailStoreSpecialFolderKind.Inbox, inbox.SpecialFolderKind);
+        Assert.Equal(EmailStoreFolderClassificationSource.DisplayName, inbox.ClassificationSource);
+        Assert.False(inbox.IsSearchFolder);
         EmailStoreItem message = Assert.Single(inbox.Items);
         Assert.Equal("Synthetic PST message", message.Document.Subject);
         Assert.Equal("Body from the PST property context", message.Document.Body.Text);
@@ -131,6 +136,23 @@ public sealed class PstReaderTests {
     }
 
     [Fact]
+    public void PreservesFolderClassificationWhenASessionMaterializesTheStore() {
+        using var stream = new MemoryStream(PstTestFileBuilder.Create());
+        using EmailStoreSession session = EmailStoreSession.Open(stream, "mailbox.pst");
+
+        EmailStoreReadResult result = session.ReadAll();
+
+        EmailStoreFolder root = Assert.Single(result.Store.Folders,
+            folder => folder.SpecialFolderKind == EmailStoreSpecialFolderKind.Root);
+        Assert.Equal(EmailStoreFolderClassificationSource.SourceIdentifier,
+            root.ClassificationSource);
+        EmailStoreFolder inbox = Assert.Single(result.Store.Folders,
+            folder => folder.SpecialFolderKind == EmailStoreSpecialFolderKind.Inbox);
+        Assert.Equal(EmailStoreFolderClassificationSource.DisplayName,
+            inbox.ClassificationSource);
+    }
+
+    [Fact]
     public void StreamsPstAttachmentContentWhileSessionIsOpen() {
         byte[] expected = Enumerable.Range(0, 60_000).Select(index => (byte)(index % 251)).ToArray();
         var options = new EmailStoreReaderOptions(retainAttachmentContent: false);
@@ -147,6 +169,10 @@ public sealed class PstReaderTests {
             Assert.Null(attachment.Content);
             Assert.NotNull(attachment.ContentSource);
             Assert.Equal(expected.LongLength, attachment.Length);
+            Assert.True(item.ContentAvailability.AvailableParts.HasFlag(
+                EmailStoreItemReadParts.AttachmentContent));
+            Assert.Equal(EmailStoreItemReadParts.None,
+                item.ContentAvailability.UnavailableParts & EmailStoreItemReadParts.AttachmentContent);
             using Stream payload = attachment.OpenContentStream();
             using var copy = new MemoryStream();
             payload.CopyTo(copy);

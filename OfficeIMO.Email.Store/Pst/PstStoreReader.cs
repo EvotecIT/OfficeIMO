@@ -8,7 +8,7 @@ internal sealed partial class PstStoreReader {
         0x0039, 0x3007, 0x0E06,
         0x0042, 0x5D02, 0x0065, 0x0064,
         0x0C1A, 0x5D01, 0x0C1F, 0x0C1E,
-        0x0017, 0x0026, 0x0E07, 0x0E08, 0x0E1B,
+        0x0017, 0x0026, 0x0E07, 0x0E08, 0x0E17, 0x0E1B,
         0x3FDE, 0x3FFC, 0x3FFD
     };
     private static readonly ISet<ushort> BodyPropertyIds = new HashSet<ushort>(SummaryPropertyIds) {
@@ -29,6 +29,7 @@ internal sealed partial class PstStoreReader {
     private CancellationToken _cancellationToken;
     private PstNdbReader? _ndb;
     private PstNamedPropertyMap _namedProperties = PstNamedPropertyMap.Empty;
+    private ushort? _headerItemPropertyId;
     private EmailStoreFormat _format;
     private string? _displayName;
     private long _sourceLength;
@@ -54,7 +55,9 @@ internal sealed partial class PstStoreReader {
         var folders = new Dictionary<uint, EmailStoreFolder>();
         foreach (EmailStoreFolderInfo info in _folderInfos) {
             uint nid = ParseId(info.Id);
-            var folder = new EmailStoreFolder(info.Id, info.ParentId, info.Name);
+            var folder = new EmailStoreFolder(info.Id, info.ParentId, info.Name,
+                info.SpecialFolderKind, info.ClassificationSource,
+                info.ContainerClass, info.IsSearchFolder);
             folders.Add(nid, folder);
             store.MutableFolders.Add(folder);
         }
@@ -73,7 +76,8 @@ internal sealed partial class PstStoreReader {
             _cancellationToken.ThrowIfCancellationRequested();
             EmailStoreFolder folder = folders[selection.FolderNid];
             EmailStoreItem item = ReadItem(selection.Node, folder.Id, format,
-                selection.IsAssociated, selection.IsOrphaned, EmailStoreItemReadOptions.Default);
+                selection.IsAssociated, selection.IsOrphaned, EmailStoreItemReadOptions.Default,
+                selection.Summary);
             if (selection.IsAssociated) folder.MutableAssociatedItems.Add(item);
             else folder.MutableItems.Add(item);
         }
@@ -92,6 +96,7 @@ internal sealed partial class PstStoreReader {
         _folderNodes.Clear();
         _folderInfos.Clear();
         _namedProperties = PstNamedPropertyMap.Empty;
+        _headerItemPropertyId = null;
 
         PstHeader header = PstHeader.Read(stream, format);
         _ndb = new PstNdbReader(stream, header, _options, cancellationToken);
@@ -102,10 +107,15 @@ internal sealed partial class PstStoreReader {
             IReadOnlyList<MapiProperty> mappingProperties = ReadProperties(
                 nameToIdNode.DataBid, nameToIdNode.SubnodeBid, location, applyNamedProperties: false);
             _namedProperties = PstNamedPropertyMap.Read(mappingProperties, _diagnostics, location);
+            if (_namedProperties.TryGetPropertyId(
+                EmailStoreItemContentAvailability.PsetidCommon, 0x8578, out ushort propertyId)) {
+                _headerItemPropertyId = propertyId;
+            }
         }
 
+        IReadOnlyList<MapiProperty> storeProperties = Array.Empty<MapiProperty>();
         if (TryGetNode(0x21, out PstNodeReference? storeNode) && storeNode != null) {
-            IReadOnlyList<MapiProperty> storeProperties = ReadProperties(
+            storeProperties = ReadProperties(
                 storeNode.DataBid, storeNode.SubnodeBid, "store");
             // PidTagPstPassword is a personal-store protection contract. Cached OSTs can reuse
             // the tag for unrelated provider state and are opened through the Outlook profile,
@@ -125,6 +135,7 @@ internal sealed partial class PstStoreReader {
         }
 
         var folderIds = new HashSet<uint>(folderNodes.Select(node => node.Nid));
+        var descriptors = new List<PstFolderDescriptor>(folderNodes.Count);
         foreach (PstNodeReference node in folderNodes) {
             _cancellationToken.ThrowIfCancellationRequested();
             string location = string.Concat("folder/0x", node.Nid.ToString("X", CultureInfo.InvariantCulture));
@@ -138,8 +149,25 @@ internal sealed partial class PstStoreReader {
             int? itemCount = GetInt(properties, 0x3602);
             int? associatedItemCount = GetInt(properties, 0x3617);
             _folderNodes.Add(node.Nid, node);
+            descriptors.Add(new PstFolderDescriptor(
+                node, name, parentId, itemCount, associatedItemCount,
+                GetString(properties, 0x3613), properties));
+        }
+
+        PstFolderDescriptor? root = descriptors.FirstOrDefault(item => item.Node.Nid == 0x122);
+        PstFolderDescriptor? inbox = descriptors.FirstOrDefault(item =>
+            EmailStoreSpecialFolderClassifier.FromDisplayName(item.Name) == EmailStoreSpecialFolderKind.Inbox);
+        var specialFolders = new PstSpecialFolderResolver(
+            storeProperties, root?.Properties, inbox?.Properties, folderIds);
+        foreach (PstFolderDescriptor descriptor in descriptors) {
+            EmailStoreSpecialFolderKind specialFolderKind = specialFolders.Resolve(descriptor.Node.Nid);
             _folderInfos.Add(new EmailStoreFolderInfo(
-                FormatId(node.Nid), parentId, name, itemCount, associatedItemCount));
+                FormatId(descriptor.Node.Nid), descriptor.ParentId, descriptor.Name,
+                descriptor.ItemCount, descriptor.AssociatedItemCount, specialFolderKind,
+                specialFolderKind == EmailStoreSpecialFolderKind.Unknown
+                    ? EmailStoreFolderClassificationSource.None
+                    : EmailStoreFolderClassificationSource.SourceIdentifier,
+                descriptor.ContainerClass, descriptor.Node.Type == 0x03));
         }
     }
 
@@ -164,7 +192,7 @@ internal sealed partial class PstStoreReader {
         PstNodeReference node = ResolveReferencedNode(reference);
         string location = string.Concat("item/", reference.Id, "/summary");
         IReadOnlyList<MapiProperty> properties = ReadProperties(
-            node.DataBid, node.SubnodeBid, location, includedPropertyIds: SummaryPropertyIds);
+            node.DataBid, node.SubnodeBid, location, includedPropertyIds: GetSummaryPropertyIds());
         return CreateSummary(properties, location);
     }
 
@@ -175,7 +203,7 @@ internal sealed partial class PstStoreReader {
         PstNodeReference node = ResolveReferencedNode(reference);
         _totalAttachmentBytes = 0;
         return ReadItem(node, reference.FolderId, _format,
-            reference.IsAssociated, reference.IsOrphaned, options);
+            reference.IsAssociated, reference.IsOrphaned, options, reference.Summary);
     }
 
     private PstNodeReference ResolveReferencedNode(EmailStoreItemReference reference) {
@@ -421,6 +449,12 @@ internal sealed partial class PstStoreReader {
         return null;
     }
 
+    private ISet<ushort> GetSummaryPropertyIds() {
+        var result = new HashSet<ushort>(SummaryPropertyIds);
+        if (_headerItemPropertyId.HasValue) result.Add(_headerItemPropertyId.Value);
+        return result;
+    }
+
     private sealed class ItemSelection {
         internal ItemSelection(PstNodeReference node, uint folderNid, bool isAssociated, bool isOrphaned,
             EmailStoreItemSummary? summary = null) {
@@ -436,5 +470,27 @@ internal sealed partial class PstStoreReader {
         internal bool IsAssociated { get; }
         internal bool IsOrphaned { get; }
         internal EmailStoreItemSummary? Summary { get; }
+    }
+
+    private sealed class PstFolderDescriptor {
+        internal PstFolderDescriptor(PstNodeReference node, string name, string? parentId,
+            int? itemCount, int? associatedItemCount, string? containerClass,
+            IReadOnlyList<MapiProperty> properties) {
+            Node = node;
+            Name = name;
+            ParentId = parentId;
+            ItemCount = itemCount;
+            AssociatedItemCount = associatedItemCount;
+            ContainerClass = containerClass;
+            Properties = properties;
+        }
+
+        internal PstNodeReference Node { get; }
+        internal string Name { get; }
+        internal string? ParentId { get; }
+        internal int? ItemCount { get; }
+        internal int? AssociatedItemCount { get; }
+        internal string? ContainerClass { get; }
+        internal IReadOnlyList<MapiProperty> Properties { get; }
     }
 }

@@ -70,7 +70,8 @@ internal sealed class MailboxDirectoryStoreSessionBackend : IEmailStoreSessionBa
             document.Properties["EmailStore:ItemId"] = file.Id;
             document.Properties["EmailStore:FolderId"] = file.FolderId;
             document.Properties["EmailStore:RelativePath"] = file.RelativePath;
-            return new EmailStoreItem(file.Id, file.FolderId, document);
+            return new EmailStoreItem(
+                file.Id, file.FolderId, document, format: EmailStoreFormat.MailboxDirectory);
         }
     }
 

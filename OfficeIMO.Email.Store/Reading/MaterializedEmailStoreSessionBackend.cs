@@ -8,7 +8,9 @@ internal sealed class MaterializedEmailStoreSessionBackend : IEmailStoreSessionB
     internal MaterializedEmailStoreSessionBackend(EmailStoreReadResult result) {
         _result = result ?? throw new ArgumentNullException(nameof(result));
         _folders = result.Store.Folders.Select(folder => new EmailStoreFolderInfo(
-            folder.Id, folder.ParentId, folder.Name, folder.Items.Count, folder.AssociatedItems.Count)).ToArray();
+            folder.Id, folder.ParentId, folder.Name, folder.Items.Count, folder.AssociatedItems.Count,
+            folder.SpecialFolderKind, folder.ClassificationSource,
+            folder.ContainerClass, folder.IsSearchFolder)).ToArray();
         _items = result.Store.Folders
             .SelectMany(folder => folder.Items.Concat(folder.AssociatedItems))
             .ToDictionary(item => item.Id, StringComparer.Ordinal);

@@ -60,7 +60,8 @@ internal sealed class EmlxStoreReader {
                 itemName));
         }
 
-        folder.MutableItems.Add(new EmailStoreItem(itemId, FolderId, document));
+        folder.MutableItems.Add(new EmailStoreItem(
+            itemId, FolderId, document, format: EmailStoreFormat.Emlx));
         return new EmailStoreReadResult(store, _diagnostics.AsReadOnly(), stream.Length);
     }
 

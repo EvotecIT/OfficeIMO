@@ -7,32 +7,32 @@ internal sealed partial class PstStoreReader {
         var document = new EmailDocument { Format = EmailFileFormat.Unknown };
         foreach (MapiProperty property in properties) document.MapiProperties.Add(property);
         ProjectItem(document, properties, location);
+        int messageStatus = EmailStoreItemContentAvailability.GetMessageStatus(properties) ?? 0;
         return new EmailStoreItemSummary(
             document,
             GetBool(properties, 0x0E1B),
-            GetInt(properties, 0x0E07).HasValue ? document.MessageMetadata.IsRead : null);
+            GetInt(properties, 0x0E07).HasValue ? document.MessageMetadata.IsRead : null,
+            EmailStoreItemContentAvailability.TryGetHeaderOnly(properties),
+            (messageStatus & 0x00001000) != 0,
+            (messageStatus & 0x00002000) != 0);
     }
 
     private EmailStoreItem ReadItem(PstNodeReference node, string folderId, EmailStoreFormat format,
-        bool isAssociated, bool isOrphaned, EmailStoreItemReadOptions options) {
+        bool isAssociated, bool isOrphaned, EmailStoreItemReadOptions options,
+        EmailStoreItemSummary? summary = null) {
         string id = FormatId(node.Nid);
         string location = string.Concat("item/", id);
         EmailDocument document = ReadItemDocument(
             node.DataBid, node.SubnodeBid, id, folderId, format, location, nestedDepth: 0, options);
-        return new EmailStoreItem(id, folderId, document, isAssociated, isOrphaned, options.Parts);
+        return new EmailStoreItem(id, folderId, document, isAssociated, isOrphaned,
+            options.Parts, format, summary);
     }
 
     private EmailDocument ReadItemDocument(ulong dataBid, ulong subnodeBid, string id, string? folderId,
         EmailStoreFormat format, string location, int nestedDepth, EmailStoreItemReadOptions options) {
         IReadOnlyDictionary<uint, PstSubnodeReference> subnodes =
             Ndb.ReadSubnodes(subnodeBid, _cancellationToken);
-        ISet<ushort>? includedPropertyIds = options.Includes(EmailStoreItemReadParts.ExtendedMapiProperties)
-            ? null
-            : options.Includes(EmailStoreItemReadParts.Bodies)
-                ? BodyPropertyIds
-                : options.Includes(EmailStoreItemReadParts.Metadata)
-                    ? SummaryPropertyIds
-                    : new HashSet<ushort>();
+        ISet<ushort>? includedPropertyIds = GetIncludedItemPropertyIds(options);
         IReadOnlyList<MapiProperty> properties = ReadProperties(
             dataBid, subnodeBid, location, subnodes, includedPropertyIds: includedPropertyIds,
             maximumDecodedBytes: options.MaxDecodedPropertyBytes);
@@ -50,6 +50,17 @@ internal sealed partial class PstStoreReader {
         }
         if (options.Parts != EmailStoreItemReadParts.None) ProjectItem(document, properties, location);
         return document;
+    }
+
+    private ISet<ushort>? GetIncludedItemPropertyIds(EmailStoreItemReadOptions options) {
+        if (options.Includes(EmailStoreItemReadParts.ExtendedMapiProperties)) return null;
+        ISet<ushort> result = options.Includes(EmailStoreItemReadParts.Bodies)
+            ? new HashSet<ushort>(BodyPropertyIds)
+            : options.Includes(EmailStoreItemReadParts.Metadata)
+                ? new HashSet<ushort>(SummaryPropertyIds)
+                : new HashSet<ushort>();
+        if (_headerItemPropertyId.HasValue) result.Add(_headerItemPropertyId.Value);
+        return result;
     }
 
     private void ReadItemRecipients(EmailDocument document,

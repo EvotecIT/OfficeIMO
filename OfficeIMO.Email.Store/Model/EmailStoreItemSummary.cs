@@ -4,7 +4,9 @@ namespace OfficeIMO.Email.Store;
 
 /// <summary>Small projected item view intended for browsing and bounded store queries.</summary>
 public sealed class EmailStoreItemSummary {
-    internal EmailStoreItemSummary(EmailDocument document, bool? hasAttachments, bool? isRead) {
+    internal EmailStoreItemSummary(EmailDocument document, bool? hasAttachments, bool? isRead,
+        bool? isHeaderOnly = null, bool isMarkedForDownload = false,
+        bool isMarkedForRemoteDeletion = false) {
         OutlookItemKind = document.OutlookItemKind;
         MessageClass = document.MessageClass;
         Subject = document.Subject;
@@ -16,13 +18,19 @@ public sealed class EmailStoreItemSummary {
         HasAttachments = hasAttachments;
         IsRead = isRead;
         DeclaredSize = document.MessageMetadata.DeclaredSize;
+        IsHeaderOnly = isHeaderOnly;
+        IsMarkedForDownload = isMarkedForDownload;
+        IsMarkedForRemoteDeletion = isMarkedForRemoteDeletion;
     }
 
     internal static EmailStoreItemSummary FromItem(EmailStoreItem item) =>
         new EmailStoreItemSummary(
             item.Document,
             item.Document.Attachments.Count > 0,
-            item.Document.MessageMetadata.IsRead);
+            item.Document.MessageMetadata.IsRead,
+            item.ContentAvailability.IsHeaderOnly,
+            item.ContentAvailability.IsMarkedForDownload,
+            item.ContentAvailability.IsMarkedForRemoteDeletion);
 
     /// <summary>Projected Outlook item kind.</summary>
     public OutlookItemKind OutlookItemKind { get; }
@@ -56,4 +64,13 @@ public sealed class EmailStoreItemSummary {
 
     /// <summary>Declared source size when available.</summary>
     public int? DeclaredSize { get; }
+
+    /// <summary>Whether Outlook explicitly marked an OST item as header-only; null means unspecified.</summary>
+    public bool? IsHeaderOnly { get; }
+
+    /// <summary>Whether the MAPI message status requests downloading remote content.</summary>
+    public bool IsMarkedForDownload { get; }
+
+    /// <summary>Whether the MAPI message status requests remote deletion.</summary>
+    public bool IsMarkedForRemoteDeletion { get; }
 }

@@ -19,6 +19,17 @@ internal sealed class PstNamedPropertyMap {
         }
     }
 
+    internal bool TryGetPropertyId(Guid propertySet, uint localId, out ushort propertyId) {
+        foreach (KeyValuePair<ushort, MapiNamedProperty> pair in _properties) {
+            if (pair.Value.PropertySet == propertySet && pair.Value.LocalId == localId) {
+                propertyId = pair.Key;
+                return true;
+            }
+        }
+        propertyId = 0;
+        return false;
+    }
+
     internal static PstNamedPropertyMap Read(IEnumerable<MapiProperty> properties,
         IList<EmailStoreDiagnostic> diagnostics, string location) {
         var result = new PstNamedPropertyMap();

@@ -6,13 +6,17 @@ namespace OfficeIMO.Email.Store;
 public sealed class EmailStoreItem {
     internal EmailStoreItem(string id, string folderId, EmailDocument document,
         bool isAssociated = false, bool isOrphaned = false,
-        EmailStoreItemReadParts loadedParts = EmailStoreItemReadParts.All) {
+        EmailStoreItemReadParts loadedParts = EmailStoreItemReadParts.All,
+        EmailStoreFormat format = EmailStoreFormat.Unknown,
+        EmailStoreItemSummary? summary = null) {
         Id = id;
         FolderId = folderId;
         Document = document ?? throw new ArgumentNullException(nameof(document));
         IsAssociated = isAssociated;
         IsOrphaned = isOrphaned;
         LoadedParts = loadedParts;
+        ContentAvailability = EmailStoreItemContentAvailability.Create(
+            format, document, loadedParts, summary);
     }
 
     /// <summary>Stable source identifier.</summary>
@@ -34,4 +38,7 @@ public sealed class EmailStoreItem {
     /// Parts projected by the backend. A materializing backend can return more than the caller requested.
     /// </summary>
     public EmailStoreItemReadParts LoadedParts { get; }
+
+    /// <summary>Local availability and partial-cache signals for the requested parts.</summary>
+    public EmailStoreItemContentAvailability ContentAvailability { get; }
 }

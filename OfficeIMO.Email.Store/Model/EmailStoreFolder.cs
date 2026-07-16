@@ -5,10 +5,23 @@ public sealed class EmailStoreFolder {
     private readonly List<EmailStoreItem> _items = new List<EmailStoreItem>();
     private readonly List<EmailStoreItem> _associatedItems = new List<EmailStoreItem>();
 
-    internal EmailStoreFolder(string id, string? parentId, string name) {
+    internal EmailStoreFolder(string id, string? parentId, string name,
+        EmailStoreSpecialFolderKind specialFolderKind = EmailStoreSpecialFolderKind.Unknown,
+        EmailStoreFolderClassificationSource classificationSource = EmailStoreFolderClassificationSource.None,
+        string? containerClass = null, bool isSearchFolder = false) {
         Id = id;
         ParentId = parentId;
         Name = name;
+        if (specialFolderKind == EmailStoreSpecialFolderKind.Unknown) {
+            specialFolderKind = EmailStoreSpecialFolderClassifier.FromDisplayName(name);
+            if (specialFolderKind != EmailStoreSpecialFolderKind.Unknown) {
+                classificationSource = EmailStoreFolderClassificationSource.DisplayName;
+            }
+        }
+        SpecialFolderKind = specialFolderKind;
+        ClassificationSource = classificationSource;
+        ContainerClass = containerClass;
+        IsSearchFolder = isSearchFolder;
     }
 
     /// <summary>Stable source identifier.</summary>
@@ -19,6 +32,18 @@ public sealed class EmailStoreFolder {
 
     /// <summary>Display name.</summary>
     public string Name { get; internal set; }
+
+    /// <summary>Well-known folder role, or <see cref="EmailStoreSpecialFolderKind.Unknown"/>.</summary>
+    public EmailStoreSpecialFolderKind SpecialFolderKind { get; }
+
+    /// <summary>Evidence used for the well-known classification.</summary>
+    public EmailStoreFolderClassificationSource ClassificationSource { get; }
+
+    /// <summary>MAPI container class when supplied by the source.</summary>
+    public string? ContainerClass { get; }
+
+    /// <summary>Whether the source identifies this as a search folder.</summary>
+    public bool IsSearchFolder { get; }
 
     /// <summary>Items directly contained in this folder.</summary>
     public IReadOnlyList<EmailStoreItem> Items => _items;

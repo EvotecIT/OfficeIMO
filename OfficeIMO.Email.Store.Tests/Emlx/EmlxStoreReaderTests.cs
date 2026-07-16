@@ -97,9 +97,14 @@ public sealed class EmlxStoreReaderTests {
         byte[] emlx = CreateEmlx(message, "\n", null);
 
         EmailStoreReadResult result = Read(emlx, "314.partial.emlx");
-        EmailDocument document = Assert.Single(Assert.Single(result.Store.Folders).Items).Document;
+        EmailStoreItem item = Assert.Single(Assert.Single(result.Store.Folders).Items);
+        EmailDocument document = item.Document;
 
         Assert.Equal(true, document.Properties["Emlx:IsPartial"]);
+        Assert.Null(item.ContentAvailability.IsHeaderOnly);
+        Assert.True(item.ContentAvailability.IsPotentiallyPartial);
+        Assert.True(item.ContentAvailability.IndeterminateParts.HasFlag(
+            EmailStoreItemReadParts.Bodies));
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "EMAIL_STORE_EMLX_PARTIAL_MESSAGE");
     }
 

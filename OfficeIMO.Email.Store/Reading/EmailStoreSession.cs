@@ -144,7 +144,9 @@ public sealed partial class EmailStoreSession : IDisposable {
         var store = new EmailStore { Format = Format, DisplayName = DisplayName };
         var folders = new Dictionary<string, EmailStoreFolder>(StringComparer.Ordinal);
         foreach (EmailStoreFolderInfo info in Folders) {
-            var folder = new EmailStoreFolder(info.Id, info.ParentId, info.Name);
+            var folder = new EmailStoreFolder(info.Id, info.ParentId, info.Name,
+                info.SpecialFolderKind, info.ClassificationSource,
+                info.ContainerClass, info.IsSearchFolder);
             folders.Add(info.Id, folder);
             store.MutableFolders.Add(folder);
         }
