@@ -25,6 +25,22 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
         public double HeightPoints { get; }
         /// <summary>Clockwise rotation of the source PowerPoint element, in degrees.</summary>
         public double RotationDegrees { get; internal set; }
+        /// <summary>Whether the source PowerPoint element is reflected across its vertical axis.</summary>
+        public bool HorizontalFlip { get; internal set; }
+        /// <summary>Whether the source PowerPoint element is reflected across its horizontal axis.</summary>
+        public bool VerticalFlip { get; internal set; }
+    }
+
+    /// <summary>Basic editable shape appearance supported by Google Slides.</summary>
+    public sealed class GoogleSlidesShapeStyle {
+        /// <summary>Solid fill color as RGB or RGBA hex.</summary>
+        public string? FillColorHex { get; internal set; }
+        /// <summary>Fill transparency percentage from 0 (opaque) to 100 (transparent).</summary>
+        public int? FillTransparencyPercent { get; internal set; }
+        /// <summary>Solid outline color as RGB or RGBA hex.</summary>
+        public string? OutlineColorHex { get; internal set; }
+        /// <summary>Outline width in points.</summary>
+        public double? OutlineWidthPoints { get; internal set; }
     }
 
     public sealed class GoogleSlidesTextBox : GoogleSlidesElement {
@@ -38,6 +54,8 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
         public string? FontFamily { get; internal set; }
         public string? ForegroundColorHex { get; internal set; }
         public string? Hyperlink { get; internal set; }
+        /// <summary>Editable fill and outline appearance for text-bearing shapes.</summary>
+        public GoogleSlidesShapeStyle Style { get; } = new GoogleSlidesShapeStyle();
     }
 
     public sealed class GoogleSlidesTable : GoogleSlidesElement {
@@ -57,6 +75,8 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
     public sealed class GoogleSlidesShape : GoogleSlidesElement {
         internal GoogleSlidesShape(string id, double left, double top, double width, double height, string shapeType) : base(id, left, top, width, height) { ShapeType = shapeType; }
         public string ShapeType { get; }
+        /// <summary>Editable fill and outline appearance for the shape.</summary>
+        public GoogleSlidesShapeStyle Style { get; } = new GoogleSlidesShapeStyle();
     }
 
     public sealed class GoogleSlidesSlide {
@@ -65,6 +85,7 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
         public string ObjectId { get; }
         public int Index { get; }
         public string? BackgroundColorHex { get; internal set; }
+        internal GoogleSlidesImage? BackgroundImage { get; set; }
         public string? SpeakerNotes { get; internal set; }
         /// <summary>Whether the source slide is hidden and should be skipped during presentation playback.</summary>
         public bool IsSkipped { get; internal set; }

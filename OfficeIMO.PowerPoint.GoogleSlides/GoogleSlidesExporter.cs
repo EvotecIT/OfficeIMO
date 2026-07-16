@@ -126,7 +126,11 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
 
         private static async Task<IReadOnlyDictionary<string, string>> CreateImageLeasesAsync(GoogleDriveClient drive, GoogleSlidesBatch batch, IList<GoogleDriveTemporaryContentLease> leases, CancellationToken cancellationToken) {
             var result = new Dictionary<string, string>(StringComparer.Ordinal);
-            foreach (GoogleSlidesImage image in batch.Slides.SelectMany(slide => slide.Elements).OfType<GoogleSlidesImage>()) {
+            IEnumerable<GoogleSlidesImage> images = batch.Slides
+                .SelectMany(slide => slide.Elements)
+                .OfType<GoogleSlidesImage>()
+                .Concat(batch.Slides.Select(slide => slide.BackgroundImage).OfType<GoogleSlidesImage>());
+            foreach (GoogleSlidesImage image in images) {
                 GoogleDriveTemporaryContentLease lease = await GoogleDriveTemporaryContentLease.CreatePublicReadLeaseAsync(drive, image.Bytes,
                     new GoogleDriveUploadOptions { Name = image.FileName, ContentType = image.ContentType }, batch.Plan.Report, cancellationToken).ConfigureAwait(false);
                 leases.Add(lease); result[image.ObjectId] = lease.PublicUri;
@@ -166,6 +170,7 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                 requests.Add(new { createSlide = new { objectId = slide.ObjectId, insertionIndex = slide.Index, slideLayoutReference = new { predefinedLayout = "BLANK" } } });
                 if (slide.IsSkipped) requests.Add(new { updateSlideProperties = new { objectId = slide.ObjectId, slideProperties = new { isSkipped = true }, fields = "isSkipped" } });
                 if (!string.IsNullOrWhiteSpace(slide.BackgroundColorHex)) requests.Add(new { updatePageProperties = new { objectId = slide.ObjectId, pageProperties = new { pageBackgroundFill = new { solidFill = new { color = new { rgbColor = Rgb(slide.BackgroundColorHex!) } } } }, fields = "pageBackgroundFill.solidFill.color" } });
+                else if (slide.BackgroundImage != null) requests.Add(new { updatePageProperties = new { objectId = slide.ObjectId, pageProperties = new { pageBackgroundFill = new { stretchedPictureFill = new { contentUrl = imageUrls[slide.BackgroundImage.ObjectId] } } }, fields = "pageBackgroundFill.stretchedPictureFill.contentUrl" } });
                 foreach (GoogleSlidesElement element in slide.Elements) AddElementRequests(requests, slide.ObjectId, element, imageUrls, scale, offsetX, offsetY);
             }
             if (keeperSlideId != null && batch.Slides.Count > 0) {
@@ -186,6 +191,7 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
             switch (element) {
                 case GoogleSlidesTextBox text:
                     requests.Add(new { createShape = new { objectId = text.ObjectId, shapeType = text.ShapeType, elementProperties = properties } });
+                    AddShapeStyleRequest(requests, text.ObjectId, text.Style, scale);
                     if (!string.IsNullOrEmpty(text.Text)) requests.Add(new { insertText = new { objectId = text.ObjectId, text = text.Text } });
                     var style = new Dictionary<string, object?>();
                     if (text.Bold) style["bold"] = true; if (text.Italic) style["italic"] = true; if (text.Underline) style["underline"] = true;
@@ -207,7 +213,51 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                     break;
                 case GoogleSlidesShape shape:
                     requests.Add(new { createShape = new { objectId = shape.ObjectId, shapeType = shape.ShapeType, elementProperties = properties } });
+                    AddShapeStyleRequest(requests, shape.ObjectId, shape.Style, scale);
                     break;
+            }
+        }
+
+        private static void AddShapeStyleRequest(ICollection<object> requests, string objectId, GoogleSlidesShapeStyle style, double scale) {
+            var shapeProperties = new Dictionary<string, object?>();
+            var fields = new List<string>();
+
+            if (!string.IsNullOrWhiteSpace(style.FillColorHex)) {
+                var solidFill = new Dictionary<string, object?> {
+                    ["color"] = new { rgbColor = Rgb(style.FillColorHex!) },
+                };
+                fields.Add("shapeBackgroundFill.solidFill.color");
+                if (style.FillTransparencyPercent.HasValue) {
+                    int transparency = Math.Min(100, Math.Max(0, style.FillTransparencyPercent.Value));
+                    solidFill["alpha"] = (100d - transparency) / 100d;
+                    fields.Add("shapeBackgroundFill.solidFill.alpha");
+                }
+                shapeProperties["shapeBackgroundFill"] = new Dictionary<string, object?> { ["solidFill"] = solidFill };
+            }
+
+            var outline = new Dictionary<string, object?>();
+            if (!string.IsNullOrWhiteSpace(style.OutlineColorHex)) {
+                outline["outlineFill"] = new {
+                    solidFill = new {
+                        color = new { rgbColor = Rgb(style.OutlineColorHex!) },
+                    },
+                };
+                fields.Add("outline.outlineFill.solidFill.color");
+            }
+            if (style.OutlineWidthPoints.HasValue) {
+                outline["weight"] = new { magnitude = Math.Max(0, style.OutlineWidthPoints.Value * scale), unit = "PT" };
+                fields.Add("outline.weight");
+            }
+            if (outline.Count > 0) shapeProperties["outline"] = outline;
+
+            if (fields.Count > 0) {
+                requests.Add(new {
+                    updateShapeProperties = new {
+                        objectId,
+                        shapeProperties,
+                        fields = string.Join(",", fields),
+                    },
+                });
             }
         }
 
@@ -219,17 +269,23 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
             double radians = element.RotationDegrees * (Math.PI / 180d);
             double cosine = NormalizeTransformComponent(Math.Cos(radians));
             double sine = NormalizeTransformComponent(Math.Sin(radians));
-            double translateX = left + (width / 2d) - (cosine * width / 2d) + (sine * height / 2d);
-            double translateY = top + (height / 2d) - (sine * width / 2d) - (cosine * height / 2d);
+            double horizontalReflection = element.HorizontalFlip ? -1d : 1d;
+            double verticalReflection = element.VerticalFlip ? -1d : 1d;
+            double scaleX = NormalizeTransformComponent(cosine * horizontalReflection);
+            double shearX = NormalizeTransformComponent(-sine * verticalReflection);
+            double shearY = NormalizeTransformComponent(sine * horizontalReflection);
+            double scaleY = NormalizeTransformComponent(cosine * verticalReflection);
+            double translateX = left + (width / 2d) - (scaleX * width / 2d) - (shearX * height / 2d);
+            double translateY = top + (height / 2d) - (shearY * width / 2d) - (scaleY * height / 2d);
 
             return new {
                 pageObjectId = slideId,
                 size = new { width = new { magnitude = width, unit = "PT" }, height = new { magnitude = height, unit = "PT" } },
                 transform = new {
-                    scaleX = cosine,
-                    scaleY = cosine,
-                    shearX = -sine,
-                    shearY = sine,
+                    scaleX,
+                    scaleY,
+                    shearX,
+                    shearY,
                     translateX,
                     translateY,
                     unit = "PT"

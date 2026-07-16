@@ -109,7 +109,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
             ExcelWorkbookSnapshot snapshot = document.CreateInspectionSnapshot(new ExcelReadOptions { UseCachedFormulaResult = true, TreatDatesUsingNumberFormat = true });
             var result = new Dictionary<string, string>(StringComparer.Ordinal);
             foreach (ExcelWorksheetSnapshot sheet in snapshot.Worksheets) {
-                result[$"sheet/{sheet.Name}"] = Hash($"{sheet.Index}|{sheet.Hidden}|{sheet.RightToLeft}|{sheet.ShowGridlines}|{sheet.FrozenRowCount}|{sheet.FrozenColumnCount}");
+                result[$"sheet/{sheet.Name}"] = Hash($"{sheet.Index}|{sheet.Hidden}|{sheet.RightToLeft}|{sheet.ShowGridlines}|{sheet.FrozenRowCount}|{sheet.FrozenColumnCount}|{sheet.TabColorArgb}");
                 foreach (ExcelCellSnapshot cell in sheet.Cells) {
                     result[$"sheet/{sheet.Name}/cell/{cell.Row}:{cell.Column}"] = Hash($"{cell.Value}|{cell.Formula}|{StyleFingerprint(cell.Style)}|{HyperlinkFingerprint(cell.Hyperlink)}|{RichTextFingerprint(cell.RichTextRuns)}|{cell.Comment?.Author}|{cell.Comment?.Text}");
                 }

@@ -24,25 +24,51 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                 };
                 PowerPointSlideBackground background = source.GetBackground();
                 if (background.Kind == PowerPointSlideBackgroundKind.SolidColor) target.BackgroundColorHex = background.Color;
+                else if (IsSupportedSlidesBackgroundImage(background)) {
+                    target.BackgroundImage = new GoogleSlidesImage(
+                        ObjectId("background", slideIndex, 0),
+                        0,
+                        0,
+                        batch.WidthPoints,
+                        batch.HeightPoints,
+                        background.ImageBytes!,
+                        background.ImageContentType!,
+                        $"background-{slideIndex + 1}{ImageExtension(background.ImageContentType)}");
+                }
                 if (source.Notes.TryGetExistingText(out string notes)) { target.SpeakerNotes = notes; plan.SpeakerNotesCount++; }
 
                 PowerPointShape[] visibleShapes = source.Shapes.Where(shape => !shape.Hidden).ToArray();
                 PowerPointShape[] unsupported = visibleShapes.Where(IsUnsupported).ToArray();
-                if (unsupported.Length > 0 && options.ComplexSlides == GoogleSlidesComplexSlideMode.RasterizeComplexSlides) {
+                bool unsupportedBackground = IsUnsupportedBackground(background);
+                int unsupportedFeatureCount = unsupported.Length + (unsupportedBackground ? 1 : 0);
+                if (unsupportedFeatureCount > 0 && options.ComplexSlides == GoogleSlidesComplexSlideMode.RasterizeComplexSlides) {
                     target.IsRasterized = true;
+                    target.BackgroundColorHex = null;
+                    target.BackgroundImage = null;
                     if (materializeRasterImages) {
                         byte[] bytes = source.ToPng(new PowerPointImageExportOptions { IncludeSlideBackground = true, IncludeHiddenShapes = false });
                         target.Add(new GoogleSlidesImage(ObjectId("render", slideIndex, 0), 0, 0, batch.WidthPoints, batch.HeightPoints, bytes, "image/png", $"slide-{slideIndex + 1}.png"));
                     }
                     plan.RasterizedSlideCount++;
-                    plan.UnsupportedElementCount += unsupported.Length;
+                    plan.UnsupportedElementCount += unsupportedFeatureCount;
                     string rasterMessage = materializeRasterImages
-                        ? $"Slide {slideIndex + 1} contains {unsupported.Length} element(s) without a dependable native Slides equivalent and was rendered to PNG."
-                        : $"Slide {slideIndex + 1} contains {unsupported.Length} element(s) without a dependable native Slides equivalent and will be rendered to PNG during export.";
+                        ? $"Slide {slideIndex + 1} contains {unsupportedFeatureCount} feature(s) without a dependable native Slides equivalent and was rendered to PNG."
+                        : $"Slide {slideIndex + 1} contains {unsupportedFeatureCount} feature(s) without a dependable native Slides equivalent and will be rendered to PNG during export.";
                     report.Add(TranslationSeverity.Warning, "ComplexSlides", rasterMessage,
-                        path: $"slide/{slideIndex + 1}", code: "SLIDES.COMPLEX_SLIDE.RASTERIZED", action: TranslationAction.Rasterize, count: unsupported.Length);
+                        path: $"slide/{slideIndex + 1}", code: "SLIDES.COMPLEX_SLIDE.RASTERIZED", action: TranslationAction.Rasterize, count: unsupportedFeatureCount);
                     batch.Add(target);
                     continue;
+                }
+
+                if (unsupportedBackground) {
+                    plan.UnsupportedElementCount++;
+                    report.Add(
+                        TranslationSeverity.Warning,
+                        "Backgrounds",
+                        UnsupportedBackgroundMessage(background),
+                        path: $"slide/{slideIndex + 1}/background",
+                        code: "SLIDES.BACKGROUND.SKIPPED",
+                        action: TranslationAction.Skip);
                 }
 
                 int elementIndex = 0;
@@ -50,8 +76,9 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                     string id = ObjectId("element", slideIndex, elementIndex++);
                     switch (shape) {
                         case PowerPointTextBox textBox:
-                            var text = PreserveRotation(new GoogleSlidesTextBox(id, shape.LeftPoints, shape.TopPoints, shape.WidthPoints, shape.HeightPoints, textBox.Text), shape);
+                            var text = PreserveTransform(new GoogleSlidesTextBox(id, shape.LeftPoints, shape.TopPoints, shape.WidthPoints, shape.HeightPoints, textBox.Text), shape);
                             if (!textBox.UsesTextBoxGeometry && TryMapShape(textBox.ShapeType, out string textShapeType)) text.ShapeType = textShapeType;
+                            PreserveShapeStyle(text.Style, shape);
                             PowerPointTextRun? firstRun = textBox.Paragraphs.SelectMany(paragraph => paragraph.Runs).FirstOrDefault();
                             if (firstRun != null) {
                                 text.Bold = firstRun.Bold; text.Italic = firstRun.Italic; text.Underline = firstRun.Underline;
@@ -62,11 +89,11 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                             break;
                         case PowerPointTable table when !HasMergedCells(table):
                             IReadOnlyList<IReadOnlyList<string>> cells = table.RowItems.Select(row => (IReadOnlyList<string>)row.Cells.Select(cell => cell.Text).ToArray()).ToArray();
-                            target.Add(PreserveRotation(new GoogleSlidesTable(id, shape.LeftPoints, shape.TopPoints, shape.WidthPoints, shape.HeightPoints, cells), shape));
+                            target.Add(PreserveTransform(new GoogleSlidesTable(id, shape.LeftPoints, shape.TopPoints, shape.WidthPoints, shape.HeightPoints, cells), shape));
                             plan.NativeTableCount++;
                             break;
                         case PowerPointPicture picture when IsSupportedSlidesImage(picture):
-                            target.Add(PreserveRotation(new GoogleSlidesImage(id, shape.LeftPoints, shape.TopPoints, shape.WidthPoints, shape.HeightPoints,
+                            target.Add(PreserveTransform(new GoogleSlidesImage(id, shape.LeftPoints, shape.TopPoints, shape.WidthPoints, shape.HeightPoints,
                                 picture.GetImageBytes(), picture.ContentType ?? "image/png", $"picture-{slideIndex + 1}-{elementIndex}{ImageExtension(picture.ContentType)}"), shape));
                             plan.NativeImageCount++;
                             break;
@@ -81,7 +108,9 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                                 action: TranslationAction.Skip);
                             break;
                         case PowerPointAutoShape autoShape when TryMapShape(autoShape, out string slidesShapeType):
-                            target.Add(PreserveRotation(new GoogleSlidesShape(id, shape.LeftPoints, shape.TopPoints, shape.WidthPoints, shape.HeightPoints, slidesShapeType), shape));
+                            GoogleSlidesShape slidesShape = PreserveTransform(new GoogleSlidesShape(id, shape.LeftPoints, shape.TopPoints, shape.WidthPoints, shape.HeightPoints, slidesShapeType), shape);
+                            PreserveShapeStyle(slidesShape.Style, shape);
+                            target.Add(slidesShape);
                             plan.NativeShapeCount++;
                             break;
                         default:
@@ -109,17 +138,48 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
             || shape.ShapeContentType == PowerPointShapeContentType.Unknown;
 
         private static bool IsSupportedSlidesImage(PowerPointPicture picture) {
-            string contentType = picture.ContentType ?? string.Empty;
+            return IsSupportedSlidesImageContentType(picture.ContentType);
+        }
+
+        private static bool IsSupportedSlidesImageContentType(string? imageContentType) {
+            string contentType = imageContentType ?? string.Empty;
             return contentType.Equals("image/png", StringComparison.OrdinalIgnoreCase)
                 || contentType.Equals("image/jpeg", StringComparison.OrdinalIgnoreCase)
                 || contentType.Equals("image/jpg", StringComparison.OrdinalIgnoreCase)
                 || contentType.Equals("image/gif", StringComparison.OrdinalIgnoreCase);
         }
 
-        private static T PreserveRotation<T>(T element, PowerPointShape source) where T : GoogleSlidesElement {
+        private static T PreserveTransform<T>(T element, PowerPointShape source) where T : GoogleSlidesElement {
             element.RotationDegrees = source.Rotation ?? 0d;
+            element.HorizontalFlip = source.HorizontalFlip == true;
+            element.VerticalFlip = source.VerticalFlip == true;
             return element;
         }
+
+        private static void PreserveShapeStyle(GoogleSlidesShapeStyle target, PowerPointShape source) {
+            target.FillColorHex = source.FillColor;
+            target.FillTransparencyPercent = source.FillTransparency;
+            target.OutlineColorHex = source.OutlineColor;
+            target.OutlineWidthPoints = source.OutlineWidthPoints;
+        }
+
+        private static bool IsSupportedSlidesBackgroundImage(PowerPointSlideBackground background) =>
+            background.Kind == PowerPointSlideBackgroundKind.Image
+            && background.ImageBytes is { Length: > 0 }
+            && !background.HasImageCrop
+            && IsSupportedSlidesImageContentType(background.ImageContentType);
+
+        private static bool IsUnsupportedBackground(PowerPointSlideBackground background) =>
+            (background.Kind == PowerPointSlideBackgroundKind.Image && !IsSupportedSlidesBackgroundImage(background))
+            || background.Kind == PowerPointSlideBackgroundKind.LinearGradient
+            || background.Kind == PowerPointSlideBackgroundKind.Unsupported;
+
+        private static string UnsupportedBackgroundMessage(PowerPointSlideBackground background) => background.Kind switch {
+            PowerPointSlideBackgroundKind.Image when background.HasImageCrop => "Skipped the cropped slide image background because Google Slides stretched-picture backgrounds cannot preserve PowerPoint source cropping.",
+            PowerPointSlideBackgroundKind.Image => $"Skipped the slide image background with content type '{background.ImageContentType ?? "unknown"}' because Google Slides stretched-picture backgrounds accept PNG, JPEG, or GIF content.",
+            PowerPointSlideBackgroundKind.LinearGradient => "Skipped the slide gradient background because Google Slides page backgrounds support solid fills but not PowerPoint gradient fills.",
+            _ => $"Skipped the slide background because it has no dependable native Google Slides equivalent{(string.IsNullOrWhiteSpace(background.UnsupportedReason) ? "." : $": {background.UnsupportedReason}")}",
+        };
 
         private static string ImageExtension(string? contentType) => (contentType ?? string.Empty).ToLowerInvariant() switch {
             "image/jpeg" or "image/jpg" => ".jpg",

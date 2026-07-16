@@ -59,7 +59,7 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
             var result = new Dictionary<string, string>(StringComparer.Ordinal) { ["presentation/size"] = Hash($"{presentation.SlideSize.WidthPoints}|{presentation.SlideSize.HeightPoints}") };
             for (int index = 0; index < presentation.Slides.Count; index++) {
                 PowerPointSlide slide = presentation.Slides[index]; string root = $"slide/{index + 1}";
-                PowerPointSlideBackground background = slide.GetBackground(); result[root] = Hash($"{slide.Hidden}|{background.Kind}|{background.Color}");
+                PowerPointSlideBackground background = slide.GetBackground(); result[root] = Hash($"{slide.Hidden}|{BackgroundFingerprint(background)}");
                 foreach (PowerPointShape shape in slide.Shapes.OrderBy(shape => shape.DrawingOrder)) {
                     string text = shape is PowerPointTextBox box ? box.Text : shape is PowerPointTable table ? string.Join("|", table.RowItems.SelectMany(row => row.Cells).Select(cell => cell.Text)) : string.Empty;
                     string geometry = shape switch {
@@ -74,12 +74,19 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                     string picture = shape is PowerPointPicture image
                         ? $"{image.ContentType}|{Hash(image.GetImageBytes())}|{image.CropLeftRatio}|{image.CropTopRatio}|{image.CropRightRatio}|{image.CropBottomRatio}"
                         : string.Empty;
-                    result[$"{root}/element/{shape.DrawingOrder}"] = Hash($"{shape.ShapeContentType}|{shape.Name}|{shape.LeftPoints}|{shape.TopPoints}|{shape.WidthPoints}|{shape.HeightPoints}|{shape.Rotation}|{shape.HorizontalFlip}|{shape.VerticalFlip}|{geometry}|{text}|{textStyle}|{picture}");
+                    string shapeStyle = $"{shape.FillColor}|{shape.FillTransparency}|{shape.OutlineColor}|{shape.OutlineWidthPoints}";
+                    result[$"{root}/element/{shape.DrawingOrder}"] = Hash($"{shape.ShapeContentType}|{shape.Name}|{shape.LeftPoints}|{shape.TopPoints}|{shape.WidthPoints}|{shape.HeightPoints}|{shape.Rotation}|{shape.HorizontalFlip}|{shape.VerticalFlip}|{geometry}|{text}|{textStyle}|{picture}|{shapeStyle}");
                 }
                 if (slide.Notes.TryGetExistingText(out string notes)) result[root + "/notes"] = Hash(notes);
             }
             return result;
         }
+        private static string BackgroundFingerprint(PowerPointSlideBackground background) => background.Kind switch {
+            PowerPointSlideBackgroundKind.Image => $"{background.Kind}|{Hash(background.ImageBytes ?? Array.Empty<byte>())}|{background.ImageContentType}|{background.ImageCropLeft}|{background.ImageCropTop}|{background.ImageCropRight}|{background.ImageCropBottom}",
+            PowerPointSlideBackgroundKind.LinearGradient => $"{background.Kind}|{background.GradientStartColor}|{background.GradientEndColor}|{background.GradientAngleDegrees}",
+            PowerPointSlideBackgroundKind.Unsupported => $"{background.Kind}|{background.UnsupportedReason}",
+            _ => $"{background.Kind}|{background.Color}",
+        };
         private static string Hash(string value) { using SHA256 sha = SHA256.Create(); return BitConverter.ToString(sha.ComputeHash(Encoding.UTF8.GetBytes(value ?? string.Empty))).Replace("-", string.Empty); }
         private static string Hash(byte[] value) { using SHA256 sha = SHA256.Create(); return BitConverter.ToString(sha.ComputeHash(value ?? Array.Empty<byte>())).Replace("-", string.Empty); }
     }

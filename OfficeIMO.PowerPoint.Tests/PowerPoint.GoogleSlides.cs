@@ -117,6 +117,55 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PlanBuilder_RasterizesOrReportsUnsupportedSlideBackgrounds() {
+            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            slide.SetBackgroundGradient("112233", "445566", 45);
+
+            GoogleSlidesBatch rasterPlan = GoogleSlidesBatchCompiler.Build(
+                presentation,
+                new GoogleSlidesSaveOptions { ComplexSlides = GoogleSlidesComplexSlideMode.RasterizeComplexSlides },
+                materializeRasterImages: false);
+            GoogleSlidesBatch nativePlan = GoogleSlidesBatchCompiler.Build(
+                presentation,
+                new GoogleSlidesSaveOptions { ComplexSlides = GoogleSlidesComplexSlideMode.PreferNativeAndReport },
+                materializeRasterImages: false);
+
+            Assert.True(Assert.Single(rasterPlan.Slides).IsRasterized);
+            Assert.Empty(rasterPlan.Slides[0].Elements.OfType<GoogleSlidesImage>());
+            Assert.Equal(1, rasterPlan.Plan.UnsupportedElementCount);
+            Assert.False(Assert.Single(nativePlan.Slides).IsRasterized);
+            Assert.Contains(nativePlan.Plan.Report.Notices, notice => notice.Code == "SLIDES.BACKGROUND.SKIPPED");
+        }
+
+        [Fact]
+        public void BatchCompiler_PreservesSupportedImageBackgroundNatively() {
+            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            slide.SetBackgroundImage(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Images", "BackgroundImage.png"));
+
+            GoogleSlidesBatch batch = GoogleSlidesBatchCompiler.Build(
+                presentation,
+                new GoogleSlidesSaveOptions(),
+                materializeRasterImages: false);
+
+            GoogleSlidesSlide compiled = Assert.Single(batch.Slides);
+            Assert.False(compiled.IsRasterized);
+            Assert.NotNull(compiled.BackgroundImage);
+            Assert.Equal("image/png", compiled.BackgroundImage!.ContentType);
+            Assert.DoesNotContain(batch.Plan.Report.Notices, notice => notice.Code == "SLIDES.BACKGROUND.SKIPPED");
+
+            slide.AddShapePoints(A.ShapeTypeValues.Cloud, 20, 20, 160, 90);
+            GoogleSlidesBatch rasterized = GoogleSlidesBatchCompiler.Build(
+                presentation,
+                new GoogleSlidesSaveOptions(),
+                materializeRasterImages: false);
+            GoogleSlidesSlide rasterizedSlide = Assert.Single(rasterized.Slides);
+            Assert.True(rasterizedSlide.IsRasterized);
+            Assert.Null(rasterizedSlide.BackgroundImage);
+        }
+
+        [Fact]
         public async Task Exporter_CreatesAndReplacesInitialSlideWithRevisionGuard() {
             using PowerPointPresentation presentation = PowerPointPresentation.Create();
             PowerPointSlide authoredSlide = presentation.AddSlide();
@@ -247,6 +296,56 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, transform.GetProperty("shearY").GetDouble(), 12);
             Assert.Equal(80, transform.GetProperty("translateX").GetDouble(), 12);
             Assert.Equal(-10, transform.GetProperty("translateY").GetDouble(), 12);
+        }
+
+        [Fact]
+        public async Task Exporter_PreservesShapeReflectionAndBasicAppearance() {
+            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            PowerPointAutoShape shape = presentation.AddSlide().AddRectanglePoints(10, 20, 100, 40);
+            shape.HorizontalFlip = true;
+            shape.FillColor = "336699";
+            shape.FillTransparency = 25;
+            shape.OutlineColor = "CC3300";
+            shape.OutlineWidthPoints = 3;
+            string? batchBody = null;
+            using var httpClient = new HttpClient(new DelegateHandler(async request => {
+                string uri = request.RequestUri!.AbsoluteUri;
+                if (request.Method == HttpMethod.Post && uri == "https://slides.googleapis.com/v1/presentations") return Json("{\"presentationId\":\"deck-styled-shape\"}");
+                if (request.Method == HttpMethod.Get && uri == "https://slides.googleapis.com/v1/presentations/deck-styled-shape") {
+                    return Json("{\"presentationId\":\"deck-styled-shape\",\"revisionId\":\"revision-1\",\"slides\":[{\"objectId\":\"initial-slide\"}]}");
+                }
+                if (request.Method == HttpMethod.Post && uri.EndsWith(":batchUpdate", StringComparison.Ordinal)) {
+                    batchBody = await request.Content!.ReadAsStringAsync().ConfigureAwait(false);
+                    return Json("{\"writeControl\":{\"requiredRevisionId\":\"revision-2\"}}");
+                }
+                if (request.Method == HttpMethod.Get && request.RequestUri.Host == "www.googleapis.com") return Json("{\"id\":\"deck-styled-shape\",\"mimeType\":\"application/vnd.google-apps.presentation\"}");
+                return new HttpResponseMessage(HttpStatusCode.NotFound);
+            }));
+
+            await presentation.ExportToGoogleSlidesAsync(Session(httpClient));
+
+            using JsonDocument payload = JsonDocument.Parse(Assert.IsType<string>(batchBody));
+            JsonElement[] requests = payload.RootElement.GetProperty("requests").EnumerateArray().ToArray();
+            JsonElement transform = Assert.Single(requests, request => request.TryGetProperty("createShape", out JsonElement create)
+                && create.GetProperty("shapeType").GetString() == "RECTANGLE")
+                .GetProperty("createShape").GetProperty("elementProperties").GetProperty("transform");
+            Assert.Equal(-1, transform.GetProperty("scaleX").GetDouble(), 12);
+            Assert.Equal(1, transform.GetProperty("scaleY").GetDouble(), 12);
+            Assert.Equal(110, transform.GetProperty("translateX").GetDouble(), 12);
+            Assert.Equal(20, transform.GetProperty("translateY").GetDouble(), 12);
+
+            JsonElement styleUpdate = Assert.Single(requests, request => request.TryGetProperty("updateShapeProperties", out _))
+                .GetProperty("updateShapeProperties");
+            Assert.Contains("shapeBackgroundFill.solidFill.color", styleUpdate.GetProperty("fields").GetString(), StringComparison.Ordinal);
+            Assert.Contains("outline.outlineFill.solidFill.color", styleUpdate.GetProperty("fields").GetString(), StringComparison.Ordinal);
+            JsonElement shapeProperties = styleUpdate.GetProperty("shapeProperties");
+            JsonElement fill = shapeProperties.GetProperty("shapeBackgroundFill").GetProperty("solidFill");
+            Assert.Equal(0.75, fill.GetProperty("alpha").GetDouble(), 12);
+            Assert.Equal(0x33 / 255d, fill.GetProperty("color").GetProperty("rgbColor").GetProperty("red").GetDouble(), 12);
+            JsonElement outline = shapeProperties.GetProperty("outline");
+            Assert.Equal(3, outline.GetProperty("weight").GetProperty("magnitude").GetDouble(), 12);
+            Assert.Equal(0xCC / 255d, outline.GetProperty("outlineFill").GetProperty("solidFill").GetProperty("color")
+                .GetProperty("rgbColor").GetProperty("red").GetDouble(), 12);
         }
 
         [Theory]

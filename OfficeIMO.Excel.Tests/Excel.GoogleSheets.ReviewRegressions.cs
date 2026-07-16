@@ -156,6 +156,24 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_GoogleSheetsCheckpoint_HashesWorksheetTabColor() {
+            string path = Path.Combine(_directoryWithFiles, "GoogleSheetsTabColorHash.xlsx");
+            try {
+                using var document = ExcelDocument.Create(path);
+                ExcelSheet sheet = document.AddWorksheet("Data");
+                sheet.CellValue(1, 1, "Value");
+                GoogleSheetsSyncCheckpoint baseline = GoogleSheetsDiffPlanner.CreateCheckpoint(document);
+
+                sheet.SetTabColor("#336699");
+                GoogleSheetsSyncCheckpoint colored = GoogleSheetsDiffPlanner.CreateCheckpoint(document);
+
+                Assert.NotEqual(baseline.ContentHashes["sheet/Data"], colored.ContentHashes["sheet/Data"]);
+            } finally {
+                if (File.Exists(path)) File.Delete(path);
+            }
+        }
+
+        [Fact]
         public void Test_GoogleSheetsCheckpoint_HashesSupportedDimensionsAndValidationRules() {
             string path = Path.Combine(_directoryWithFiles, "GoogleSheetsMetadataHashes.xlsx");
             try {
