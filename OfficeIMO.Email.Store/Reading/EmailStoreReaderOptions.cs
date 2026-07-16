@@ -23,7 +23,8 @@ public sealed class EmailStoreReaderOptions {
         int maxArchiveEntries = 500_000,
         long maxArchiveEntryBytes = 512L * 1024 * 1024,
         long maxArchiveDecodedBytes = 8L * 1024 * 1024 * 1024,
-        long maxXmlCharactersPerItem = 64L * 1024 * 1024) {
+        long maxXmlCharactersPerItem = 64L * 1024 * 1024,
+        long maxMessageBytes = 256L * 1024 * 1024) {
         MaxInputBytes = Positive(maxInputBytes, nameof(maxInputBytes));
         MaxNodeCount = Positive(maxNodeCount, nameof(maxNodeCount));
         MaxBTreeDepth = Positive(maxBTreeDepth, nameof(maxBTreeDepth));
@@ -45,6 +46,7 @@ public sealed class EmailStoreReaderOptions {
         MaxArchiveEntryBytes = Positive(maxArchiveEntryBytes, nameof(maxArchiveEntryBytes));
         MaxArchiveDecodedBytes = Positive(maxArchiveDecodedBytes, nameof(maxArchiveDecodedBytes));
         MaxXmlCharactersPerItem = Positive(maxXmlCharactersPerItem, nameof(maxXmlCharactersPerItem));
+        MaxMessageBytes = Positive(maxMessageBytes, nameof(maxMessageBytes));
     }
 
     /// <summary>Default bounded options.</summary>
@@ -90,6 +92,8 @@ public sealed class EmailStoreReaderOptions {
     public long MaxArchiveDecodedBytes { get; }
     /// <summary>Maximum XML characters parsed from one archive item.</summary>
     public long MaxXmlCharactersPerItem { get; }
+    /// <summary>Maximum RFC 5322/MIME message bytes accepted from one store item.</summary>
+    public long MaxMessageBytes { get; }
 
     private static int Positive(int value, string name) {
         if (value <= 0) throw new ArgumentOutOfRangeException(name);

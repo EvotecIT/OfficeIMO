@@ -84,7 +84,7 @@ public sealed class EmailStoreReader {
             case EmailStoreFormat.Olm:
                 return new OlmStoreReader(_options).Read(stream, sourceName, cancellationToken);
             case EmailStoreFormat.Emlx:
-                throw new NotSupportedException(string.Concat(format.ToString(), " support has not been enabled yet."));
+                return new EmlxStoreReader(_options).Read(stream, sourceName, cancellationToken);
             default:
                 throw new InvalidDataException("The source is not a supported email-store artifact.");
         }
