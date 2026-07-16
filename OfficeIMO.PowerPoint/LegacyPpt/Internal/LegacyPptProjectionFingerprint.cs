@@ -11,6 +11,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
     /// retained slide or shared package part are rejected.
     /// </summary>
     internal sealed class LegacyPptProjectionFingerprint {
+        private delegate bool TryGetShapeProjection(uint openXmlShapeId,
+            out LegacyPptShapeProjection? projection);
+
         private const string ClassicAnimationExtensionUri =
             "{5BA743F1-2B69-4BB9-B2E0-4A418B7E7435}";
         private readonly IReadOnlyDictionary<string, string> _slides;
@@ -61,9 +64,11 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             PowerPointPackageFingerprint.Create(document,
                 (part, root) => {
                     if (part is PresentationPart) NormalizePresentationTopology(root);
-                    if (part is SlideMasterPart
-                        && projectionMap.IsProjectedMasterPart(part.Uri.ToString())) {
-                        NormalizeProjectedMasterThemeReference(root);
+                    if (part is SlideMasterPart masterPart
+                        && projectionMap.TryGetMaster(masterPart,
+                            out LegacyPptMasterProjection? masterProjection)
+                        && masterProjection != null) {
+                        NormalizeProjectedMaster(root, masterProjection);
                     }
                     if (part is ThemePart
                         && projectionMap.IsProjectedMasterThemePart(part.Uri.ToString())) {
@@ -79,10 +84,15 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 (owner, relationship) => !(relationship.OpenXmlPart is SlidePart
                     or SlideCommentsPart or CommentAuthorsPart));
 
-        private static void NormalizeProjectedMasterThemeReference(OpenXmlElement root) {
-            if (root is not P.SlideMaster master || master.ColorMap == null) return;
-            master.ColorMap.ClearAllAttributes();
-            master.ColorMap.RemoveAllChildren();
+        private static void NormalizeProjectedMaster(OpenXmlElement root,
+            LegacyPptMasterProjection projection) {
+            if (root is not P.SlideMaster master) return;
+            if (master.ColorMap != null) {
+                master.ColorMap.ClearAllAttributes();
+                master.ColorMap.RemoveAllChildren();
+            }
+            NormalizeProjectedShapes(root, projection.TryGetShape,
+                normalizeInteractions: false);
         }
 
         private static void NormalizeProjectedMasterTheme(OpenXmlElement root) {
@@ -158,12 +168,18 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 }
             }
 
+            NormalizeProjectedShapes(root, slideProjection.TryGetShape,
+                normalizeInteractions: true);
+        }
+
+        private static void NormalizeProjectedShapes(OpenXmlElement root,
+            TryGetShapeProjection tryGetShape, bool normalizeInteractions) {
             foreach (P.Shape shape in root.Descendants<P.Shape>()) {
                 uint? shapeId = shape.NonVisualShapeProperties?.NonVisualDrawingProperties?.Id?.Value;
-                if (!shapeId.HasValue || !slideProjection.TryGetShape(shapeId.Value,
+                if (!shapeId.HasValue || !tryGetShape(shapeId.Value,
                         out LegacyPptShapeProjection? shapeProjection)
                     || shapeProjection == null) continue;
-                if (shapeProjection.CanEditInteractions) {
+                if (normalizeInteractions && shapeProjection.CanEditInteractions) {
                     shape.NonVisualShapeProperties?.NonVisualDrawingProperties?
                         .RemoveAllChildren<A.HyperlinkOnClick>();
                     shape.NonVisualShapeProperties?.NonVisualDrawingProperties?
@@ -182,10 +198,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             }
             foreach (P.Picture picture in root.Descendants<P.Picture>()) {
                 uint? shapeId = picture.NonVisualPictureProperties?.NonVisualDrawingProperties?.Id?.Value;
-                if (!shapeId.HasValue || !slideProjection.TryGetShape(shapeId.Value,
+                if (!shapeId.HasValue || !tryGetShape(shapeId.Value,
                         out LegacyPptShapeProjection? shapeProjection)
                     || shapeProjection == null) continue;
-                if (shapeProjection.CanEditInteractions) {
+                if (normalizeInteractions && shapeProjection.CanEditInteractions) {
                     picture.NonVisualPictureProperties?.NonVisualDrawingProperties?
                         .RemoveAllChildren<A.HyperlinkOnClick>();
                     picture.NonVisualPictureProperties?.NonVisualDrawingProperties?
@@ -204,10 +220,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             foreach (P.ConnectionShape connection in root.Descendants<P.ConnectionShape>()) {
                 uint? shapeId = connection.NonVisualConnectionShapeProperties?
                     .NonVisualDrawingProperties?.Id?.Value;
-                if (!shapeId.HasValue || !slideProjection.TryGetShape(shapeId.Value,
+                if (!shapeId.HasValue || !tryGetShape(shapeId.Value,
                         out LegacyPptShapeProjection? shapeProjection)
                     || shapeProjection == null) continue;
-                if (shapeProjection.CanEditInteractions) {
+                if (normalizeInteractions && shapeProjection.CanEditInteractions) {
                     connection.NonVisualConnectionShapeProperties?.NonVisualDrawingProperties?
                         .RemoveAllChildren<A.HyperlinkOnClick>();
                     connection.NonVisualConnectionShapeProperties?.NonVisualDrawingProperties?
@@ -225,10 +241,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             }
             foreach (P.GroupShape group in root.Descendants<P.GroupShape>()) {
                 uint? shapeId = group.NonVisualGroupShapeProperties?.NonVisualDrawingProperties?.Id?.Value;
-                if (!shapeId.HasValue || !slideProjection.TryGetShape(shapeId.Value,
+                if (!shapeId.HasValue || !tryGetShape(shapeId.Value,
                         out LegacyPptShapeProjection? shapeProjection)
                     || shapeProjection == null) continue;
-                if (shapeProjection.CanEditInteractions) {
+                if (normalizeInteractions && shapeProjection.CanEditInteractions) {
                     group.NonVisualGroupShapeProperties?.NonVisualDrawingProperties?
                         .RemoveAllChildren<A.HyperlinkOnClick>();
                     group.NonVisualGroupShapeProperties?.NonVisualDrawingProperties?

@@ -105,6 +105,19 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void CapabilityContract_ReportsPreservingMainMasterShapeEdits() {
+            LegacyPptCapability masters = LegacyPptCapabilityCatalog.Get(
+                LegacyPptFeature.Masters);
+
+            Assert.Equal(LegacyPptCapabilityState.Planned,
+                masters.BinaryRoundTrip);
+            Assert.Contains("Imported main-master position, size, and structurally plain text edits",
+                masters.Note);
+            Assert.Contains("Title-, notes-, and handout-master editing remains planned",
+                masters.Note);
+        }
+
+        [Fact]
         public void CapabilityContract_ReportsHeaderFooterConversionAndPreservingEdits() {
             LegacyPptCapability capability = LegacyPptCapabilityCatalog.Get(
                 LegacyPptFeature.HeadersAndFooters);

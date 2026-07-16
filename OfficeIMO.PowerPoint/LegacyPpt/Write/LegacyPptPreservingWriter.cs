@@ -1,5 +1,4 @@
 using OfficeIMO.Drawing.Internal;
-using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.PowerPoint.LegacyPpt.Internal;
 using OfficeIMO.PowerPoint.LegacyPpt.Model;
 using System.Text;
@@ -101,32 +100,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             if (customShowsChanged && !projectionMap.CanEditCustomShows) return false;
 
             try {
-                SlideMasterPart[] currentMasterParts = presentation.OpenXmlDocument
-                    .PresentationPart?.SlideMasterParts.ToArray()
-                    ?? Array.Empty<SlideMasterPart>();
-                foreach (SlideMasterPart masterPart in currentMasterParts) {
-                    if (!projectionMap.TryGetMaster(masterPart,
-                            out LegacyPptMasterProjection? masterProjection)
-                        || masterProjection == null) {
-                        return false;
-                    }
-                    if (masterProjection.ThemeMatches(masterPart)) continue;
-                    if (!package.PersistObjects.TryGetValue(
-                            masterProjection.PersistId,
-                            out LegacyPptPersistObject? masterPersistObject)
-                        || masterPersistObject == null) {
-                        return false;
-                    }
-                    LegacyPptRecord masterRecord = LegacyPptRecordReader.ReadSingle(
-                        masterPersistObject.RecordBytes, 0,
-                        new LegacyPptImportOptions());
-                    rewritten.Add(masterProjection.PersistId,
-                        LegacyPptWriter.BuildPreservedMasterThemeRecord(
-                            masterRecord, masterPart,
-                            masterProjection.GetChangedClassicColorSlots(
-                                masterPart)));
-                }
-                if (currentMasterParts.Length != projectionMap.Masters.Count) {
+                if (!TryBuildModifiedMasterPersistObjects(presentation, package,
+                        projectionMap, rewritten)) {
                     return false;
                 }
 
