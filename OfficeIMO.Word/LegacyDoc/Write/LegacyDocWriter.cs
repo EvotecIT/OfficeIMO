@@ -383,8 +383,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         private static bool IsUnsupportedModernCommentMetadataPart(OpenXmlPart part) {
             string uri = part.Uri.OriginalString;
             string contentType = part.ContentType;
-            return uri.Contains("commentsExtensible", StringComparison.OrdinalIgnoreCase)
-                || contentType.Contains("commentsExtensible", StringComparison.OrdinalIgnoreCase);
+            return uri.IndexOf("commentsExtensible", StringComparison.OrdinalIgnoreCase) >= 0
+                || contentType.IndexOf("commentsExtensible", StringComparison.OrdinalIgnoreCase) >= 0;
         }
 
         private static IReadOnlyList<OpenXmlElement> GetReviewMarkupStoryRoots(DocumentFormat.OpenXml.Packaging.MainDocumentPart mainPart) {
