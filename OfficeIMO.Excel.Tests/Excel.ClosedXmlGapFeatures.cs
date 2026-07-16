@@ -1322,13 +1322,11 @@ namespace OfficeIMO.Tests {
             using (ExcelDocument document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 ExcelFeatureReport report = document.InspectFeatures();
                 ExcelFeatureFinding threadedComments = Assert.Single(report.FindFeatures("Threaded comments"));
-                Assert.Equal(ExcelFeatureSupportLevel.Preserved, threadedComments.SupportLevel);
+                Assert.Equal(ExcelFeatureSupportLevel.PartiallyEditable, threadedComments.SupportLevel);
                 Assert.Equal(1, threadedComments.Count);
                 Assert.Contains(threadedComments.Details, detail => detail.Contains("Review: A1 by Modern Reviewer", StringComparison.OrdinalIgnoreCase));
 
-                InvalidOperationException advancedException = Assert.Throws<InvalidOperationException>(() => report.EnsureNoAdvancedFeatures());
-                Assert.Contains("Threaded comments", advancedException.Message);
-                Assert.Contains("Modern Reviewer", advancedException.Message);
+                Assert.Same(report, report.EnsureNoAdvancedFeatures());
             }
         }
 

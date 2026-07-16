@@ -136,6 +136,10 @@ namespace OfficeIMO.Excel {
                     return false;
                 }
 
+                if (!CanWriteSimplePackage(document, workbookPart, out skipReason)) {
+                    return false;
+                }
+
                 var sheets = workbookPart.Workbook.Sheets.OfType<Sheet>().ToList();
                 if (sheets.Count == 0 || sheets.Any(sheet => sheet.Id == null)) {
                     skipReason = "Workbook has no sheets or has sheets without relationships.";
@@ -176,6 +180,13 @@ namespace OfficeIMO.Excel {
 
                 var worksheets = new List<FastWorksheetPackageModel>(sheets.Count);
                 var tables = new List<Table>();
+                var expectedWorkbookParts = new HashSet<OpenXmlPart>();
+                if (workbookPart.WorkbookStylesPart != null) {
+                    expectedWorkbookParts.Add(workbookPart.WorkbookStylesPart);
+                }
+                if (workbookPart.SharedStringTablePart != null) {
+                    expectedWorkbookParts.Add(workbookPart.SharedStringTablePart);
+                }
                 int tableIndex = 1;
                 for (int sheetIndex = 0; sheetIndex < sheets.Count; sheetIndex++) {
                     var sheet = sheets[sheetIndex];
@@ -193,6 +204,8 @@ namespace OfficeIMO.Excel {
                     if (!CanWriteWorksheet(worksheetPart, worksheet, out skipReason)) {
                         return false;
                     }
+
+                    expectedWorkbookParts.Add(worksheetPart);
 
                     var tablePartPaths = new Dictionary<string, string>(StringComparer.Ordinal);
                     foreach (var tableDefinition in worksheetPart.TableDefinitionParts) {
@@ -225,6 +238,18 @@ namespace OfficeIMO.Excel {
                         worksheet,
                         tablePartPaths,
                         hyperlinkRelationships));
+                }
+
+                if (!HasOnlyExpectedChildParts(workbookPart, expectedWorkbookParts, "Workbook", out skipReason)
+                    || HasUnsupportedReferenceRelationships(workbookPart, allowHyperlinks: false, "Workbook", out skipReason)) {
+                    return false;
+                }
+
+                foreach (OpenXmlPart leafPart in expectedWorkbookParts.Where(static part => part is WorkbookStylesPart || part is SharedStringTablePart)) {
+                    if (!HasOnlyExpectedChildParts(leafPart, Array.Empty<OpenXmlPart>(), "Workbook part '" + leafPart.Uri + "'", out skipReason)
+                        || HasUnsupportedReferenceRelationships(leafPart, allowHyperlinks: false, "Workbook part '" + leafPart.Uri + "'", out skipReason)) {
+                        return false;
+                    }
                 }
 
                 var sharedStrings = workbookPart.SharedStringTablePart?.SharedStringTable;

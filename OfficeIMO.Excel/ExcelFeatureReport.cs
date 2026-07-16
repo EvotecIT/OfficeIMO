@@ -516,9 +516,9 @@ namespace OfficeIMO.Excel {
                 "Sparkline metadata is authored and preserved in worksheets, but the first-party Excel-to-PDF path does not render sparkline visuals.",
                 pdfUnrenderedSparklineDetails);
             Add(features, "Collaboration", "Legacy comments", ExcelFeatureSupportLevel.PartiallyEditable, legacyCommentCount, null,
-                "Legacy comments can be authored and inspected, including rich-text runs for authored comments; threaded comment workflows remain preserve-only.");
-            Add(features, "Collaboration", "Threaded comments", ExcelFeatureSupportLevel.Preserved, threadedCommentPartCount, null,
-                "Threaded comments can be inspected and round-trip preserved, but authoring/editing modern conversations remains preserve-only.",
+                "Legacy comments can be authored and inspected, including rich-text runs for authored comments.");
+            Add(features, "Collaboration", "Threaded comments", ExcelFeatureSupportLevel.PartiallyEditable, threadedCommentPartCount, null,
+                "Plain-text threaded comments and replies can be authored, inspected, updated, resolved, reopened, and removed while maintaining workbook person metadata; mentions and richer Microsoft 365 identity metadata remain preserve-only.",
                 threadedCommentDetails);
             Add(features, "Media", "Images", ExcelFeatureSupportLevel.PartiallyEditable, imagePartCount, null,
                 "Images can be inserted in common worksheet/header/footer scenarios; advanced drawing behaviors remain partial.");

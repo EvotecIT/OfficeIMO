@@ -56,6 +56,11 @@ namespace OfficeIMO.Excel {
                     return false;
                 }
 
+                if (document.HyperlinkRelationships.Any() || document.DataPartReferenceRelationships.Any()) {
+                    skipReason = "Package contains reference relationships outside the extended package writer surface.";
+                    return false;
+                }
+
                 string workbookRelationshipId = document.GetIdOfPart(workbookPart);
                 var parts = new List<ExtendedPartModel>();
                 var partMap = new Dictionary<OpenXmlPart, ExtendedPartModel>();
@@ -189,6 +194,11 @@ namespace OfficeIMO.Excel {
                     return true;
                 }
 
+                if (part.DataPartReferenceRelationships.Any()) {
+                    skipReason = "Part '" + part.Uri + "' contains data-part relationships outside the extended package writer surface.";
+                    return false;
+                }
+
                 string path = NormalizePackagePartPath(part.Uri);
                 ExtendedPartModel model;
                 if (TryCopyRawSupportedPart(part, path, out var rawModel)) {
@@ -266,6 +276,8 @@ namespace OfficeIMO.Excel {
                 PivotTablePart pivotTablePart when pivotTablePart.PivotTableDefinition != null => pivotTablePart.PivotTableDefinition,
                 PivotTableCacheDefinitionPart cacheDefinitionPart when cacheDefinitionPart.PivotCacheDefinition != null => cacheDefinitionPart.PivotCacheDefinition,
                 PivotTableCacheRecordsPart cacheRecordsPart when cacheRecordsPart.PivotCacheRecords != null => cacheRecordsPart.PivotCacheRecords,
+                WorksheetThreadedCommentsPart threadedCommentsPart when threadedCommentsPart.ThreadedComments != null => threadedCommentsPart.ThreadedComments,
+                WorkbookPersonPart personPart when personPart.PersonList != null => personPart.PersonList,
                 _ => null!
             };
 
