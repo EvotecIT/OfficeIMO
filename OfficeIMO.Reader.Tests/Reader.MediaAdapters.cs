@@ -82,6 +82,15 @@ public sealed class ReaderMediaAdapterTests {
     }
 
     [Fact]
+    public void ImageAdapter_RejectsJpegWithoutAFrameHeader() {
+        byte[] truncatedJpeg = { 0xFF, 0xD8, 0x00, 0x00 };
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddImageHandler().Build();
+
+        Assert.Throws<NotSupportedException>(() =>
+            reader.ReadDocument(truncatedJpeg, "truncated.jpg"));
+    }
+
+    [Fact]
     public void ImageAdapter_IdentifiesWebpFromItsHeader() {
         OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddImageHandler().Build();
 

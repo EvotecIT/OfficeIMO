@@ -3501,6 +3501,18 @@ public partial class DrawingTests {
         Assert.Equal("image/png", image.MimeType);
     }
 
+    [Theory]
+    [InlineData(0x00, 0x00)]
+    [InlineData(0xFF, 0xD9)]
+    public void OfficeImageReaderRejectsJpegWithoutAFrameHeader(byte third, byte fourth) {
+        byte[] truncated = { 0xFF, 0xD8, third, fourth };
+
+        bool identified = OfficeImageReader.TryIdentify(truncated, fileName: null, out OfficeImageInfo image);
+
+        Assert.False(identified);
+        Assert.Equal(OfficeImageFormat.Unknown, image.Format);
+    }
+
     [Fact]
     public void OfficeImageReaderIdentifiesIconDimensionsFromHeader() {
         var icon = new byte[22];

@@ -168,76 +168,6 @@ public static partial class OfficeImageReader {
         return width > 0 && height > 0;
     }
 
-    private static bool TryReadJpeg(byte[] data, out OfficeImageInfo info) {
-        info = new OfficeImageInfo(OfficeImageFormat.Unknown, 0, 0);
-        if (data.Length < 4 || data[0] != 0xFF || data[1] != 0xD8) {
-            return false;
-        }
-
-        double dpiX = 96.0;
-        double dpiY = 96.0;
-        int offset = 2;
-
-        while (offset + 4 <= data.Length) {
-            if (data[offset] != 0xFF) {
-                offset++;
-                continue;
-            }
-
-            while (offset < data.Length && data[offset] == 0xFF) {
-                offset++;
-            }
-
-            if (offset >= data.Length) {
-                break;
-            }
-
-            byte marker = data[offset++];
-            if (marker == 0xD9 || marker == 0xDA) {
-                break;
-            }
-
-            if (offset + 2 > data.Length) {
-                break;
-            }
-
-            int segmentLength = ReadUInt16BigEndian(data, offset);
-            if (segmentLength < 2 || offset + segmentLength > data.Length) {
-                break;
-            }
-
-            int segmentStart = offset + 2;
-            int segmentDataLength = segmentLength - 2;
-
-            if (marker == 0xE0 && segmentDataLength >= 12 && GetAscii(data, segmentStart, 5) == "JFIF\0") {
-                byte units = data[segmentStart + 7];
-                int xDensity = ReadUInt16BigEndian(data, segmentStart + 8);
-                int yDensity = ReadUInt16BigEndian(data, segmentStart + 10);
-                if (xDensity > 0 && yDensity > 0) {
-                    if (units == 1) {
-                        dpiX = xDensity;
-                        dpiY = yDensity;
-                    } else if (units == 2) {
-                        dpiX = xDensity * 2.54;
-                        dpiY = yDensity * 2.54;
-                    }
-                }
-            }
-
-            if (IsStartOfFrame(marker) && segmentDataLength >= 7) {
-                int height = ReadUInt16BigEndian(data, segmentStart + 1);
-                int width = ReadUInt16BigEndian(data, segmentStart + 3);
-                info = new OfficeImageInfo(OfficeImageFormat.Jpeg, width, height, dpiX, dpiY);
-                return width > 0 && height > 0;
-            }
-
-            offset += segmentLength;
-        }
-
-        info = new OfficeImageInfo(OfficeImageFormat.Jpeg, 0, 0, dpiX, dpiY);
-        return true;
-    }
-
     private static bool TryReadGif(byte[] data, out OfficeImageInfo info) {
         info = new OfficeImageInfo(OfficeImageFormat.Unknown, 0, 0);
         if (data.Length < 10) {
@@ -690,9 +620,6 @@ public static partial class OfficeImageReader {
 
         return true;
     }
-
-    private static bool IsStartOfFrame(byte marker) =>
-        marker is 0xC0 or 0xC1 or 0xC2 or 0xC3 or 0xC5 or 0xC6 or 0xC7 or 0xC9 or 0xCA or 0xCB or 0xCD or 0xCE or 0xCF;
 
     private static string GetAscii(byte[] data, int offset, int count) {
         if (offset < 0 || count <= 0 || offset >= data.Length) return string.Empty;
