@@ -28,6 +28,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
 
             var masterIds = new Dictionary<string, uint>(StringComparer.Ordinal);
             var persistObjects = new List<byte[]>(prototypes.Count);
+            var drawingShapeCounts = new Dictionary<uint, int>();
             for (int index = 0; index < prototypes.Count; index++) {
                 if (index < masterParts.Length) {
                     SlideMasterPart source = masterParts[index];
@@ -36,8 +37,16 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                             out string? backgroundReason)) {
                         throw new NotSupportedException(backgroundReason);
                     }
+                    IReadOnlyList<PowerPointShape> sourceShapes =
+                        ReadMasterShapesForWrite(source, out _);
+                    IReadOnlyList<PowerPointShape> supportedShapes = sourceShapes
+                        .Where(IsSupportedShape).ToArray();
+                    uint drawingId = ReadDrawingId(prototypes[index]);
                     persistObjects.Add(BuildMasterRecord(prototypes[index],
-                        ReadColorScheme(source.ThemePart), background));
+                        ReadColorScheme(source.ThemePart), background,
+                        supportedShapes, drawingId,
+                        LegacyPptWriterShapeContext.MainMaster));
+                    drawingShapeCounts.Add(drawingId, supportedShapes.Count);
                     masterIds.Add(masterParts[index].Uri.ToString(),
                         checked(FirstMasterId + unchecked((uint)index)));
                 } else {
@@ -56,20 +65,34 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 ReadColorScheme(notesMasterPart?.ThemePart
                     ?? masterParts[0].ThemePart), notesBackground);
             return new LegacyPptWriterMasterCatalog(masterIds, persistObjects,
-                notesMaster, masterParts.Length);
+                notesMaster, masterParts.Length, drawingShapeCounts);
         }
 
         private static byte[] BuildMasterRecord(LegacyPptRecord prototype,
             LegacyPptWriterColorScheme scheme,
-            LegacyPptWriterBackground? background) {
+            LegacyPptWriterBackground? background,
+            IReadOnlyList<PowerPointShape>? shapes = null,
+            uint? drawingId = null,
+            LegacyPptWriterShapeContext shapeContext =
+                LegacyPptWriterShapeContext.MainMaster) {
             var children = new List<byte[]>(prototype.Children.Count);
             bool wroteScheme = false;
+            var interactions = new LegacyPptWriterInteractionCatalog();
+            var animations = new LegacyPptWriterAnimationCatalog(
+                new Dictionary<string, LegacyPptWriterAnimation>(
+                    StringComparer.Ordinal));
             foreach (LegacyPptRecord child in prototype.Children) {
                 if (child.Type == RecordColorSchemeAtom && child.Instance == 1) {
                     children.Add(BuildColorSchemeAtom(scheme));
                     wroteScheme = true;
+                } else if (child.Type == RecordDrawing && shapes != null
+                           && drawingId.HasValue) {
+                    children.Add(BuildDrawingRecord(child, shapes,
+                        drawingId.Value, interactions, animations, background,
+                        shapeContext));
                 } else if (background != null && child.Type == RecordDrawing) {
-                    children.Add(BuildBackgroundDrawingRecord(child, background));
+                    children.Add(BuildBackgroundDrawingRecord(child,
+                        background));
                 } else {
                     children.Add(child.CopyRecordBytes());
                 }
@@ -154,18 +177,23 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             internal LegacyPptWriterMasterCatalog(
                 IReadOnlyDictionary<string, uint> masterIds,
                 IReadOnlyList<byte[]> persistObjects,
-                byte[] notesMasterPersistObject, int count) {
+                byte[] notesMasterPersistObject, int count,
+                IReadOnlyDictionary<uint, int> drawingShapeCounts) {
                 _masterIds = new ReadOnlyDictionary<string, uint>(
                     masterIds.ToDictionary(pair => pair.Key, pair => pair.Value,
                         StringComparer.Ordinal));
                 PersistObjects = new ReadOnlyCollection<byte[]>(persistObjects.ToArray());
                 NotesMasterPersistObject = notesMasterPersistObject;
                 Count = count;
+                DrawingShapeCounts = new ReadOnlyDictionary<uint, int>(
+                    drawingShapeCounts.ToDictionary(pair => pair.Key,
+                        pair => pair.Value));
             }
 
             internal int Count { get; }
             internal IReadOnlyList<byte[]> PersistObjects { get; }
             internal byte[] NotesMasterPersistObject { get; }
+            internal IReadOnlyDictionary<uint, int> DrawingShapeCounts { get; }
 
             internal uint GetMasterId(PowerPointSlide slide) {
                 SlideMasterPart? masterPart = slide.SlidePart.SlideLayoutPart?.SlideMasterPart;

@@ -214,6 +214,100 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void NativeWriter_WritesMainMasterShapesAndPlaceholderKinds() {
+            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            SlideMasterPart masterPart = presentation.OpenXmlDocument
+                .PresentationPart!.SlideMasterParts.First();
+            P.ShapeTree tree = masterPart.SlideMaster!.CommonSlideData!.ShapeTree!;
+            var titleBounds = new PowerPointLayoutBox(650000, 400000,
+                7600000, 900000);
+            tree.Append(
+                new P.Shape(
+                    new P.NonVisualShapeProperties(
+                        new P.NonVisualDrawingProperties {
+                            Id = 2U,
+                            Name = "Master title"
+                        },
+                        new P.NonVisualShapeDrawingProperties(),
+                        new P.ApplicationNonVisualDrawingProperties(
+                            new P.PlaceholderShape {
+                                Type = P.PlaceholderValues.Title,
+                                Index = 0U
+                            })),
+                    new P.ShapeProperties(
+                        new A.Transform2D(
+                            new A.Offset {
+                                X = titleBounds.Left,
+                                Y = titleBounds.Top
+                            },
+                            new A.Extents {
+                                Cx = titleBounds.Width,
+                                Cy = titleBounds.Height
+                            }),
+                        new A.PresetGeometry(new A.AdjustValueList()) {
+                            Preset = A.ShapeTypeValues.Rectangle
+                        }),
+                    new P.TextBody(
+                        new A.BodyProperties(),
+                        new A.ListStyle(),
+                        new A.Paragraph(
+                            new A.Run(new A.Text("Master title")),
+                            new A.EndParagraphRunProperties()))),
+                new P.Shape(
+                    new P.NonVisualShapeProperties(
+                        new P.NonVisualDrawingProperties {
+                            Id = 3U,
+                            Name = "Master decoration"
+                        },
+                        new P.NonVisualShapeDrawingProperties(),
+                        new P.ApplicationNonVisualDrawingProperties()),
+                    new P.ShapeProperties(
+                        new A.Transform2D(
+                            new A.Offset { X = 300000, Y = 6000000 },
+                            new A.Extents { Cx = 8500000, Cy = 180000 }),
+                        new A.PresetGeometry(new A.AdjustValueList()) {
+                            Preset = A.ShapeTypeValues.Rectangle
+                        })));
+            presentation.AddSlide(P.SlideLayoutValues.Blank);
+
+            LegacyPptWritePreflightReport preflight = presentation
+                .AnalyzeLegacyPptWrite();
+            Assert.True(preflight.CanWrite,
+                string.Join(Environment.NewLine, preflight.Findings));
+            byte[] bytes = presentation.ToBytes(PowerPointFileFormat.Ppt);
+            LegacyPptMaster master = Assert.Single(
+                LegacyPptPresentation.Load(bytes).Masters);
+
+            Assert.Equal(2, master.Shapes.Count);
+            LegacyPptShape title = Assert.Single(master.Shapes, shape =>
+                shape.Placeholder?.Kind == LegacyPptPlaceholderKind.MasterTitle);
+            Assert.Equal("Master title", title.Text);
+            Assert.Equal(LegacyPptTextType.Title, title.TextBody.TextType);
+            Assert.Equal(ToEmus(ToMasterUnits(titleBounds.Left)),
+                ToEmus(title.Bounds.Left));
+            Assert.Equal(ToEmus(ToMasterUnits(titleBounds.Top)),
+                ToEmus(title.Bounds.Top));
+            LegacyPptShape decoration = Assert.Single(master.Shapes,
+                shape => shape.Placeholder == null);
+            Assert.Equal(LegacyPptShapeKind.Rectangle, decoration.Kind);
+            Assert.Equal(title.ShapeId >> 10, decoration.ShapeId >> 10);
+
+            using var stream = new MemoryStream(bytes);
+            using PowerPointPresentation reopened = PowerPointPresentation.Load(
+                stream);
+            P.Shape[] masterShapes = reopened.OpenXmlDocument.PresentationPart!
+                .SlideMasterParts.Single().SlideMaster!.CommonSlideData!.ShapeTree!
+                .Elements<P.Shape>().ToArray();
+            Assert.Equal(2, masterShapes.Length);
+            Assert.Contains(masterShapes, shape => shape.NonVisualShapeProperties?
+                .ApplicationNonVisualDrawingProperties?.PlaceholderShape?
+                .Type?.Value == P.PlaceholderValues.Title);
+            Assert.Equal(2, reopened.Slides[0]
+                .GetInheritedShapesForExport().Count);
+            Assert.Empty(reopened.ValidateDocument());
+        }
+
+        [Fact]
         public void NativeWriter_RoundTripsSolidGradientAndNoFillSlideBackgrounds() {
             using PowerPointPresentation presentation = PowerPointPresentation.Create();
             PowerPointSlide solid = presentation.AddSlide(P.SlideLayoutValues.Blank);
@@ -432,6 +526,10 @@ namespace OfficeIMO.Tests {
 
         private static int ToEmus(int masterUnits) =>
             checked((int)Math.Round(masterUnits * 1587.5d, MidpointRounding.AwayFromZero));
+
+        private static int ToMasterUnits(long emus) =>
+            checked((int)Math.Round(emus / 1587.5d,
+                MidpointRounding.AwayFromZero));
 
         private static byte[] CreateGradientStopArray(
             params (uint Color, uint Position)[] stops) {

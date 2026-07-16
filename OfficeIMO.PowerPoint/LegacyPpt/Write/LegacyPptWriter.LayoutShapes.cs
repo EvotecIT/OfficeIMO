@@ -22,7 +22,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             foreach (OpenXmlElement element in tree.ChildElements) {
                 if (element is P.NonVisualGroupShapeProperties
                     or P.GroupShapeProperties) continue;
-                PowerPointShape? shape = WrapLayoutShape(element, layoutPart);
+                PowerPointShape? shape = WrapInheritedShape(element, layoutPart);
                 if (shape == null) {
                     unsupportedReason ??=
                         $"The slide layout contains '{element.LocalName}' content that is not yet materialized by the native binary writer.";
@@ -34,7 +34,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             return result;
         }
 
-        private static PowerPointShape? WrapLayoutShape(OpenXmlElement element,
+        private static PowerPointShape? WrapInheritedShape(OpenXmlElement element,
             OpenXmlPartContainer ownerPart) => element switch {
                 P.Shape shape when shape.TextBody != null =>
                     new PowerPointTextBox(shape, ownerPart),

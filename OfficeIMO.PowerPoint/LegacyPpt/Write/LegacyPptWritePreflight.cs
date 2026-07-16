@@ -26,8 +26,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 findings.Add(new LegacyPptWriteFinding(LegacyPptFeature.VbaProjects, "PPT-WRITE-VBA",
                     "VBA projects are not encoded by the native binary writer."));
             }
-            int masterCount = presentation.OpenXmlDocument.PresentationPart?
-                .SlideMasterParts.Count() ?? 0;
+            SlideMasterPart[] masterParts = presentation.OpenXmlDocument
+                .PresentationPart?.SlideMasterParts.ToArray()
+                ?? Array.Empty<SlideMasterPart>();
+            int masterCount = masterParts.Length;
             if (masterCount == 0 || masterCount > LegacyPptWriter.MaxNativeMasterCount) {
                 findings.Add(new LegacyPptWriteFinding(LegacyPptFeature.Masters,
                     "PPT-WRITE-MASTER-COUNT",
@@ -35,15 +37,57 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         ? "The presentation has no slide master to encode."
                         : $"The native binary writer currently supports at most {LegacyPptWriter.MaxNativeMasterCount} slide masters; the presentation contains {masterCount}."));
             }
-            foreach (SlideMasterPart masterPart in presentation.OpenXmlDocument
-                         .PresentationPart?.SlideMasterParts
-                     ?? Enumerable.Empty<SlideMasterPart>()) {
+            for (int masterIndex = 0; masterIndex < masterParts.Length;
+                 masterIndex++) {
+                SlideMasterPart masterPart = masterParts[masterIndex];
                 if (!LegacyPptWriter.TryReadBackground(masterPart, out _,
                         out string? masterBackgroundReason)) {
                     findings.Add(new LegacyPptWriteFinding(
                         LegacyPptFeature.Backgrounds, "PPT-WRITE-BACKGROUND",
                         masterBackgroundReason
                         ?? "A slide-master background cannot be encoded by the native binary writer."));
+                }
+                IReadOnlyList<PowerPointShape> masterShapes = LegacyPptWriter
+                    .ReadMasterShapesForWrite(masterPart,
+                        out string? masterShapeReason);
+                if (masterShapeReason != null) {
+                    findings.Add(new LegacyPptWriteFinding(LegacyPptFeature.Masters,
+                        "PPT-WRITE-MASTER-SHAPE",
+                        $"Slide master {masterIndex}: {masterShapeReason}"));
+                }
+                for (int shapeIndex = 0; shapeIndex < masterShapes.Count;
+                     shapeIndex++) {
+                    PowerPointShape shape = masterShapes[shapeIndex];
+                    string location = $"Slide master {masterIndex}, shape {shapeIndex}";
+                    if (!IsSupportedShape(shape)) {
+                        findings.Add(new LegacyPptWriteFinding(MapShapeFeature(shape),
+                            "PPT-WRITE-MASTER-SHAPE",
+                            $"{location}: {shape.ShapeContentType} content is outside the native writer's text/rectangle/ellipse/line subset."));
+                        continue;
+                    }
+                    if (HasUnsupportedVisualStyle(shape)
+                        || HasUnsupportedMasterInteraction(shape)) {
+                        findings.Add(new LegacyPptWriteFinding(
+                            LegacyPptFeature.ShapeStyles,
+                            "PPT-WRITE-MASTER-SHAPE-STYLE",
+                            $"{location}: visual styling or interactive content is not encoded on binary slide masters."));
+                    }
+                    if (shape is PowerPointTextBox textBox
+                        && HasRichTextFormatting(textBox)) {
+                        findings.Add(new LegacyPptWriteFinding(
+                            LegacyPptFeature.RichText,
+                            "PPT-WRITE-MASTER-RICH-TEXT",
+                            $"{location}: rich run or paragraph formatting is not encoded on binary slide-master shapes."));
+                    }
+                }
+                if (masterPart.SlideMaster?.Descendants<P.Timing>().Any()
+                        == true
+                    || masterPart.SlideMaster?.Descendants<P.Transition>().Any()
+                        == true) {
+                    findings.Add(new LegacyPptWriteFinding(
+                        LegacyPptFeature.Animations,
+                        "PPT-WRITE-MASTER-TIMING",
+                        $"Slide master {masterIndex} contains transition or timing data that is not encoded by the native binary writer."));
                 }
             }
             NotesMasterPart? notesMasterPart = presentation.OpenXmlDocument
@@ -224,6 +268,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             || shape.Hidden
             || !string.IsNullOrWhiteSpace(shape.AltText)
             || shape.Element.Descendants<A.EffectList>().Any();
+
+        private static bool HasUnsupportedMasterInteraction(
+            PowerPointShape shape) => shape.Element
+                .Descendants<A.HyperlinkOnClick>().Any()
+            || shape.Element.Descendants<A.HyperlinkOnHover>().Any()
+            || shape.Element.Descendants<A.HyperlinkOnMouseOver>().Any();
 
         private static bool HasRichTextFormatting(PowerPointTextBox textBox) {
             P.Shape? shape = textBox.Element as P.Shape;
