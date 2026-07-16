@@ -31,8 +31,8 @@ if (!string.Equals(edited.Pages[0].Title, "Edited packed page", StringComparison
 string markdown = edited.ToMarkdown();
 string html = edited.ToHtmlDocument();
 byte[] pdf = edited.ToPdf();
-if (!markdown.Contains("Packed OneNote content", StringComparison.Ordinal) ||
-    !html.Contains("Packed OneNote content", StringComparison.Ordinal) ||
+if (markdown.IndexOf("Packed OneNote content", StringComparison.Ordinal) < 0 ||
+    html.IndexOf("Packed OneNote content", StringComparison.Ordinal) < 0 ||
     pdf.Length < 5 ||
     pdf[0] != (byte)'%' ||
     pdf[1] != (byte)'P' ||
@@ -48,7 +48,7 @@ OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddOneNoteHandle
 using var packageStream = new MemoryStream(packageBytes);
 OfficeDocumentReadResult readerResult = await reader.ReadDocumentAsync(packageStream, "packed.onepkg");
 if (readerResult.Kind != ReaderInputKind.OneNote ||
-    !readerResult.Chunks.Any(chunk => chunk.Text.Contains("Packed OneNote content", StringComparison.Ordinal)) ||
+    !readerResult.Chunks.Any(chunk => chunk.Text.IndexOf("Packed OneNote content", StringComparison.Ordinal) >= 0) ||
     !readerResult.Assets.Any(asset => string.Equals(asset.FileName, "proof.txt", StringComparison.Ordinal))) {
     throw new InvalidOperationException("The packed Reader adapter failed structured .onepkg ingestion.");
 }

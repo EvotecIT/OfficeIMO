@@ -97,15 +97,25 @@ public static class OneNoteMarkdownProjection {
     }
 
     private static void AppendPageWithRelated(StringBuilder builder, OneNotePage page, int headingLevel, OneNoteMarkdownOptions options) {
-        AppendPage(builder, page, headingLevel, null, options.AssetUriResolver);
+        AppendPageWithRelated(builder, page, headingLevel, null, options);
+    }
+
+    private static void AppendPageWithRelated(
+        StringBuilder builder,
+        OneNotePage page,
+        int headingLevel,
+        string? prefix,
+        OneNoteMarkdownOptions options) {
+        AppendPage(builder, page, headingLevel, prefix, options.AssetUriResolver);
+        int relatedHeadingLevel = Math.Min(6, headingLevel + 1);
         if (options.IncludeConflictPages) {
             foreach (OneNotePage conflict in page.ConflictPages) {
-                AppendPage(builder, conflict, Math.Min(6, headingLevel + 1), "Conflict", options.AssetUriResolver);
+                AppendPageWithRelated(builder, conflict, relatedHeadingLevel, "Conflict", options);
             }
         }
         if (options.IncludeVersionHistory) {
             foreach (OneNotePage version in page.VersionHistory) {
-                AppendPage(builder, version, Math.Min(6, headingLevel + 1), "Version", options.AssetUriResolver);
+                AppendPageWithRelated(builder, version, relatedHeadingLevel, "Version", options);
             }
         }
     }

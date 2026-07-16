@@ -94,10 +94,10 @@ public sealed class NotebookWriterTests {
     }
 
     [Fact]
-    public void PackageWriterCreatesAnEmptyRecycleBinTocAndReaderKeepsItOptIn() {
+    public void PackageWriterUsesRecycleBinSemanticFlagAndReaderKeepsItOptIn() {
         OneNoteNotebook original = CreateNotebook();
         original.SectionGroups.Add(new OneNoteSectionGroup {
-            Name = "OneNote_RecycleBin",
+            Name = "Deleted items",
             IsRecycleBin = true
         });
 
@@ -110,6 +110,7 @@ public sealed class NotebookWriterTests {
 
         Assert.DoesNotContain(currentOnly.SectionGroups, group => group.IsRecycleBin);
         OneNoteSectionGroup recycleBin = Assert.Single(withRecycleBin.SectionGroups, group => group.IsRecycleBin);
+        Assert.Equal("OneNote_RecycleBin", recycleBin.Name);
         Assert.Empty(recycleBin.Sections);
         Assert.Empty(recycleBin.SectionGroups);
         Assert.DoesNotContain(withRecycleBin.Diagnostics, diagnostic => diagnostic.Code == "ONENOTE_TOC_GROUP_MISSING");

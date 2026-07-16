@@ -115,7 +115,7 @@ Caller-owned streams stay open. Seekable read streams are restored to their orig
 
 Conflict copies and version-history snapshots are opt-in in direct conversions through `OneNoteMarkdownOptions`. Reader reports their counts in structured metadata while keeping current pages as the default chunk surface.
 
-Notebook readers exclude the `OneNote_RecycleBin` section group by default. Set `OneNoteNotebookReaderOptions.IncludeRecycleBin = true` when an application needs to inspect it. An empty recycle-bin group is valid and is written with a valid empty table of contents.
+Notebook readers exclude the `OneNote_RecycleBin` section group by default. Set `OneNoteNotebookReaderOptions.IncludeRecycleBin = true` when an application needs to inspect it. When writing, mark the group with `IsRecycleBin = true`; the writer emits the canonical directory name even when the model uses a different display name. An empty recycle-bin group is valid and is written with a valid empty table of contents.
 
 ## Compatibility evidence
 

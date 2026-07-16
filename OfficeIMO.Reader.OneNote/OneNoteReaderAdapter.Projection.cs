@@ -28,6 +28,11 @@ internal static partial class OneNoteReaderAdapter {
             int partCount = parts.Count;
             for (int partIndex = 0; partIndex < partCount; partIndex++) {
                 ProjectionPart part = parts[partIndex];
+                var chunkWarnings = new List<string>();
+                if (partIndex == 0) chunkWarnings.AddRange(warnings);
+                if (!part.Fits(options.MaxChars)) {
+                    chunkWarnings.Add("A single OneNote Markdown unit exceeded MaxChars and was preserved as one chunk.");
+                }
                 string anchor = "page-" + (pageIndex + 1).ToString(CultureInfo.InvariantCulture) +
                     (partCount == 1 ? string.Empty : "-part-" + (partIndex + 1).ToString(CultureInfo.InvariantCulture));
                 var chunk = new ReaderChunk {
@@ -42,7 +47,7 @@ internal static partial class OneNoteReaderAdapter {
                     Text = part.Text,
                     Markdown = part.Markdown,
                     Tables = partIndex == 0 && tables.Length > 0 ? tables : null,
-                    Warnings = partIndex == 0 && warnings.Length > 0 ? warnings : null
+                    Warnings = chunkWarnings.Count > 0 ? chunkWarnings.ToArray() : null
                 };
                 chunk.TokenEstimate = EstimateTokenCount(chunk.Markdown ?? chunk.Text);
                 if (options.ComputeHashes) chunk.ChunkHash = ComputeHash(BuildChunkHashInput(chunk));

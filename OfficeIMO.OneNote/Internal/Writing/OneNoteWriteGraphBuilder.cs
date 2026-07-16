@@ -223,6 +223,13 @@ internal sealed partial class OneNoteWriteGraphBuilder {
         }
         Guid managementId = ReadGuidProperty(sourceSpace?.GetRoot(2), OneNoteSchema.NotebookManagementEntityGuid) ?? Guid.NewGuid();
         DateTime creationUtc = page.CreatedUtc?.ToUniversalTime() ?? sectionCreationUtc;
+        IReadOnlyList<OneNoteExtendedGuid> versionHistoryContextIds = BuildVersionHistorySpaces(
+            graph,
+            page,
+            spaceId,
+            managementId,
+            creationUtc,
+            preservation);
         graph.ObjectSpaces.Add(BuildPageSpace(
             page,
             spaceId,
@@ -231,6 +238,7 @@ internal sealed partial class OneNoteWriteGraphBuilder {
             sourceSpace,
             preservation,
             childIds,
+            versionHistoryContextIds,
             forceConflict: true));
         return spaceId;
     }
@@ -250,6 +258,10 @@ internal sealed partial class OneNoteWriteGraphBuilder {
             if (versionContextId.Equals(VersionHistoryContext)) versionContextId = _ids.New();
             version.RevisionContextId = versionContextId;
             OneNoteMaterializedObjectSpace? sourceVersionSpace = preservation?.GetPageSpace(version);
+            var conflictSpaceIds = new List<OneNoteExtendedGuid>();
+            foreach (OneNotePage conflict in version.ConflictPages) {
+                conflictSpaceIds.Add(BuildConflictPageSpaces(graph, conflict, pageCreationUtc, preservation));
+            }
             graph.ObjectSpaces.Add(BuildPageSpace(
                 version,
                 pageSpaceId,
@@ -257,6 +269,7 @@ internal sealed partial class OneNoteWriteGraphBuilder {
                 version.CreatedUtc?.ToUniversalTime() ?? pageCreationUtc,
                 sourceVersionSpace,
                 preservation,
+                conflictSpaceIds,
                 contextId: versionContextId));
             versionContextIds.Add(versionContextId);
         }

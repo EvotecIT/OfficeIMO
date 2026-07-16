@@ -58,6 +58,18 @@ public sealed class CabinetReaderTests {
         Assert.NotEmpty(OneNoteSectionReader.Read(new MemoryStream(entry.Data, writable: false)).Pages);
     }
 
+    [Fact]
+    public void RejectsMicrosoftMakeCabBlockWithInvalidChecksum() {
+        byte[] cabinet = File.ReadAllBytes(FixturePath("makecab-lzx-testOneNote2016.cab"));
+        int dataOffset = checked((int)BitConverter.ToUInt32(cabinet, 36));
+        cabinet[dataOffset + 8] ^= 0x01;
+
+        OneNoteFormatException exception = Assert.Throws<OneNoteFormatException>(() =>
+            OneNoteCabinetArchiveReader.Read(cabinet, 1024 * 1024, 1024 * 1024, 10));
+
+        Assert.Equal("ONENOTE_CAB_CHECKSUM", exception.Code);
+    }
+
     [Theory]
     [InlineData("makecab-lzx15-e8.cab")]
     [InlineData("makecab-lzx16-e8.cab")]
@@ -107,7 +119,7 @@ public sealed class CabinetReaderTests {
         OneNoteFormatException exception = Assert.Throws<OneNoteFormatException>(() =>
             OneNoteCabinetArchiveReader.Read(cabinet, 1024 * 1024, 1024 * 1024, 10));
 
-        Assert.Contains(exception.Code, new[] { "ONENOTE_CAB_LZX_TRUNCATED", "ONENOTE_CAB_LZX_CORRUPT" });
+        Assert.Contains(exception.Code, new[] { "ONENOTE_CAB_CHECKSUM", "ONENOTE_CAB_LZX_TRUNCATED", "ONENOTE_CAB_LZX_CORRUPT" });
     }
 
     [Fact]

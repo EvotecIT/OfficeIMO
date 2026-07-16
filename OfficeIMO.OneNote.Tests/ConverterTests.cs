@@ -39,6 +39,8 @@ public sealed class ConverterTests {
 
         Assert.Contains("Conflict: Conflict copy", withRelated);
         Assert.Contains("Version: Historical copy", withRelated);
+        Assert.Contains("Version: Conflict history", withRelated);
+        Assert.Contains("Conflict: Historical conflict", withRelated);
     }
 
     [Fact]
@@ -275,9 +277,11 @@ public sealed class ConverterTests {
 
         var conflict = new OneNotePage { Title = "Conflict copy", IsConflictPage = true };
         conflict.DirectContent.Add(Paragraph("Conflict body"));
+        conflict.VersionHistory.Add(new OneNotePage { Title = "Conflict history", IsVersionHistoryPage = true });
         page.ConflictPages.Add(conflict);
         var version = new OneNotePage { Title = "Historical copy", IsVersionHistoryPage = true };
         version.DirectContent.Add(Paragraph("Historical body"));
+        version.ConflictPages.Add(new OneNotePage { Title = "Historical conflict", IsConflictPage = true });
         page.VersionHistory.Add(version);
 
         section.Pages.Add(page);

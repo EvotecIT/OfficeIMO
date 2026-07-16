@@ -124,10 +124,17 @@ internal static class OneNoteCabinetArchiveReader {
         long total = 0;
         for (int index = 0; index < folder.BlockCount; index++) {
             Ensure(cabinet, offset, 8, "CFDATA");
+            uint declaredChecksum = ReadUInt32(cabinet, offset);
             int compressedLength = ReadUInt16(cabinet, offset + 4);
             int expandedLength = ReadUInt16(cabinet, offset + 6);
             int dataOffset = checked(offset + 8 + dataReserve);
             Ensure(cabinet, dataOffset, compressedLength, "CFDATA payload");
+            if (declaredChecksum != 0) {
+                uint actualChecksum = OneNoteCabinetChecksum.Compute(cabinet, offset + 4, checked(4 + dataReserve + compressedLength));
+                if (actualChecksum != declaredChecksum) {
+                    throw new OneNoteFormatException("ONENOTE_CAB_CHECKSUM", "A CAB data block has an invalid checksum.", offset);
+                }
+            }
             var block = new byte[compressedLength];
             Buffer.BlockCopy(cabinet, dataOffset, block, 0, block.Length);
             blocks.Add(block);

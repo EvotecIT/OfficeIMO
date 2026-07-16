@@ -2,6 +2,7 @@ namespace OfficeIMO.OneNote;
 
 internal sealed class OneNoteNotebookSerializationPlan {
     private const string TocFileName = "Open Notebook.onetoc2";
+    private const string RecycleBinDirectoryName = "OneNote_RecycleBin";
     private readonly OneNoteWriterOptions _options;
     private readonly List<OneNoteCabinetEntry> _entries = new List<OneNoteCabinetEntry>();
     private long _expandedBytes;
@@ -60,6 +61,7 @@ internal sealed class OneNoteNotebookSerializationPlan {
         OneNoteStorageFormat sourceStorageFormat,
         OneNoteExtendedGuid? rootObjectId,
         IList<OneNoteOpaqueObject> preservedObjects) {
+        int tocEntryIndex = _entries.Count;
         var usedNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var tocEntries = new List<OneNoteTocWriteEntry>();
         uint order = 0;
@@ -76,7 +78,7 @@ internal sealed class OneNoteNotebookSerializationPlan {
                 tocEntries.Add(new OneNoteTocWriteEntry(sectionId, fileName, order++, section.ColorArgb));
             } else {
                 OneNoteSectionGroup group = item.Group!;
-                string directoryName = UniqueName(SanitizeName(group.Name, "Section Group"), usedNames);
+                string directoryName = UniqueName(GetGroupDirectoryName(group), usedNames);
                 Guid groupId = EnsureIdentity(group.Id);
                 group.Id = groupId;
                 group.TableOfContentsOrder = order;
@@ -104,15 +106,24 @@ internal sealed class OneNoteNotebookSerializationPlan {
             historyEnabled,
             preservedObjects,
             rootObjectId);
-        AddEntry(Combine(prefix, TocFileName), SerializeGraph(tocGraph, _options, true, sourceStorageFormat, tocLimit));
+        InsertEntry(tocEntryIndex, Combine(prefix, TocFileName), SerializeGraph(tocGraph, _options, true, sourceStorageFormat, tocLimit));
         return tocGraph.ObjectSpaces[0].Roots[1];
     }
 
     private void AddEntry(string name, byte[] data) {
+        RegisterEntry(data);
+        _entries.Add(new OneNoteCabinetEntry(name, data));
+    }
+
+    private void InsertEntry(int index, string name, byte[] data) {
+        RegisterEntry(data);
+        _entries.Insert(index, new OneNoteCabinetEntry(name, data));
+    }
+
+    private void RegisterEntry(byte[] data) {
         if (_entries.Count >= _options.MaxPackageEntries) throw new OneNoteFormatException("ONENOTE_WRITE_ENTRY_LIMIT", "The notebook exceeds MaxPackageEntries.");
         _expandedBytes = checked(_expandedBytes + data.LongLength);
         if (_expandedBytes > _options.MaxOutputBytes) throw new IOException("OneNote notebook output exceeds MaxOutputBytes.");
-        _entries.Add(new OneNoteCabinetEntry(name, data));
     }
 
     private long RemainingOutputBytes() {
@@ -157,7 +168,7 @@ internal sealed class OneNoteNotebookSerializationPlan {
                 result.Add(new OneNoteTocWriteEntry(sectionId, name, order++, section.ColorArgb));
             } else {
                 OneNoteSectionGroup group = item.Group!;
-                string name = UniqueName(SanitizeName(group.Name, "Section Group"), usedNames);
+                string name = UniqueName(GetGroupDirectoryName(group), usedNames);
                 Guid groupId = EnsureIdentity(group.Id);
                 group.Id = groupId;
                 group.TableOfContentsOrder = order;
@@ -178,6 +189,9 @@ internal sealed class OneNoteNotebookSerializationPlan {
         }
         return SanitizeName(section.Name, "Section") + ".one";
     }
+
+    private static string GetGroupDirectoryName(OneNoteSectionGroup group) =>
+        group.IsRecycleBin ? RecycleBinDirectoryName : SanitizeName(group.Name, "Section Group");
 
     private static string SanitizeName(string? value, string fallback) {
         string source = string.IsNullOrWhiteSpace(value) ? fallback : value!.Trim();

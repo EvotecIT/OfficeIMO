@@ -94,14 +94,16 @@ internal static partial class OneNoteReaderAdapter {
         bool firstSegment = true;
         while (offset < run.Text.Length) {
             int length = FindRunSegmentLength(run, list, resolver, maxChars, offset, firstSegment);
+            if (length > 0 && offset + length < run.Text.Length) {
+                int boundary = FindWhitespaceBoundary(run.Text, offset, length);
+                if (boundary > offset) length = boundary - offset;
+            }
+            length = KeepSurrogatePairTogether(run.Text, offset, length);
             if (length <= 0) {
-                units.Add(ProjectRun(run, run.Text.Substring(offset, 1), firstSegment ? list : null, resolver));
-                offset++;
+                length = ScalarLengthAt(run.Text, offset);
+                units.Add(ProjectRun(run, run.Text.Substring(offset, length), firstSegment ? list : null, resolver));
+                offset += length;
             } else {
-                if (offset + length < run.Text.Length) {
-                    int boundary = FindWhitespaceBoundary(run.Text, offset, length);
-                    if (boundary > offset) length = boundary - offset;
-                }
                 units.Add(ProjectRun(run, run.Text.Substring(offset, length), firstSegment ? list : null, resolver));
                 offset += length;
             }
@@ -110,6 +112,17 @@ internal static partial class OneNoteReaderAdapter {
 
         if (run.Text.Length == 0) units.Add(ProjectRun(run, string.Empty, list, resolver));
     }
+
+    private static int KeepSurrogatePairTogether(string value, int offset, int length) {
+        int end = offset + length;
+        return length > 0 && end < value.Length &&
+               char.IsHighSurrogate(value[end - 1]) && char.IsLowSurrogate(value[end])
+            ? length - 1
+            : length;
+    }
+
+    private static int ScalarLengthAt(string value, int offset) =>
+        char.IsHighSurrogate(value[offset]) && offset + 1 < value.Length && char.IsLowSurrogate(value[offset + 1]) ? 2 : 1;
 
     private static int FindWhitespaceBoundary(string value, int offset, int length) {
         int whitespace = offset + length - 1;
@@ -190,7 +203,7 @@ internal static partial class OneNoteReaderAdapter {
         var text = new StringBuilder();
         var markdown = new StringBuilder();
 
-        foreach (ProjectionPart source in units.SelectMany(unit => SplitOversizedUnit(unit, maxChars))) {
+        foreach (ProjectionPart source in units) {
             string textSeparator = text.Length == 0 || source.Text.Length == 0 ? string.Empty : Environment.NewLine;
             string markdownSeparator = markdown.Length == 0 || source.Markdown.Length == 0
                 ? string.Empty
@@ -212,28 +225,6 @@ internal static partial class OneNoteReaderAdapter {
             result.Add(new ProjectionPart(text.ToString(), markdown.ToString()));
         }
         return result;
-    }
-
-    private static IEnumerable<ProjectionPart> SplitOversizedUnit(ProjectionPart unit, int maxChars) {
-        int textParts = (unit.Text.Length + maxChars - 1) / maxChars;
-        int markdownParts = (unit.Markdown.Length + maxChars - 1) / maxChars;
-        int partCount = Math.Max(1, Math.Max(textParts, markdownParts));
-        if (partCount == 1) {
-            yield return unit;
-            yield break;
-        }
-
-        for (int index = 0; index < partCount; index++) {
-            yield return new ProjectionPart(
-                BalancedSlice(unit.Text, index, partCount),
-                BalancedSlice(unit.Markdown, index, partCount));
-        }
-    }
-
-    private static string BalancedSlice(string value, int index, int partCount) {
-        int start = checked((int)((long)value.Length * index / partCount));
-        int end = checked((int)((long)value.Length * (index + 1) / partCount));
-        return value.Substring(start, end - start);
     }
 
     private readonly struct ProjectionPart {

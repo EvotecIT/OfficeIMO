@@ -59,7 +59,8 @@ internal static class OneNoteCabinetArchiveWriter {
                 byte[] data = folderData.ToArray();
                 for (int offset = 0; offset < data.Length; offset += BlockSize) {
                     int count = Math.Min(BlockSize, data.Length - offset);
-                    WriteUInt32(output, 0);
+                    uint checksum = (uint)(count | (count << 16)) ^ OneNoteCabinetChecksum.Compute(data, offset, count);
+                    WriteUInt32(output, checksum);
                     WriteUInt16(output, (ushort)count);
                     WriteUInt16(output, (ushort)count);
                     output.Write(data, offset, count);

@@ -532,6 +532,46 @@ public sealed class SectionWriterTests {
         AssertVersionHistoryRoundTrip(data);
     }
 
+    [Theory]
+    [InlineData(OneNoteStorageFormat.RevisionStore)]
+    [InlineData(OneNoteStorageFormat.FileSynchronizationPackage)]
+    public void RoundTripsNestedConflictAndVersionPagesWithAssets(OneNoteStorageFormat storageFormat) {
+        var section = new OneNoteSection { Name = "Nested related pages" };
+        var current = new OneNotePage { Title = "Current" };
+        var conflict = new OneNotePage { Title = "Conflict", IsConflictPage = true };
+        var conflictVersion = new OneNotePage { Title = "Conflict version", IsVersionHistoryPage = true };
+        conflictVersion.DirectContent.Add(new OneNoteImage {
+            FileName = "historical.png",
+            MediaType = "image/png",
+            Payload = OneNoteBinaryPayload.FromBytes(new byte[] { 1, 2, 3 })
+        });
+        conflict.VersionHistory.Add(conflictVersion);
+        current.ConflictPages.Add(conflict);
+
+        var version = new OneNotePage { Title = "Version", IsVersionHistoryPage = true };
+        var versionConflict = new OneNotePage { Title = "Version conflict", IsConflictPage = true };
+        versionConflict.DirectContent.Add(new OneNoteEmbeddedFile {
+            FileName = "evidence.bin",
+            Payload = OneNoteBinaryPayload.FromBytes(new byte[] { 4, 5, 6 })
+        });
+        version.ConflictPages.Add(versionConflict);
+        current.VersionHistory.Add(version);
+        section.Pages.Add(current);
+
+        byte[] data = OneNoteSectionWriter.Write(section, new OneNoteWriterOptions { StorageFormat = storageFormat });
+        OneNotePage roundTrip = Assert.Single(OneNoteSectionReader.Read(new MemoryStream(data)).Pages);
+
+        OneNotePage nestedVersion = Assert.Single(Assert.Single(roundTrip.ConflictPages).VersionHistory);
+        Assert.Equal("Conflict version", nestedVersion.Title);
+        OneNoteImage image = Assert.IsType<OneNoteImage>(Assert.Single(Assert.Single(nestedVersion.Outlines).Children));
+        Assert.Equal(new byte[] { 1, 2, 3 }, image.Payload!.ToArray(16));
+
+        OneNotePage nestedConflict = Assert.Single(Assert.Single(roundTrip.VersionHistory).ConflictPages);
+        Assert.Equal("Version conflict", nestedConflict.Title);
+        OneNoteEmbeddedFile file = Assert.IsType<OneNoteEmbeddedFile>(Assert.Single(Assert.Single(nestedConflict.Outlines).Children));
+        Assert.Equal(new byte[] { 4, 5, 6 }, file.Payload!.ToArray(16));
+    }
+
     [Fact]
     public void LoadedFssHttpSectionPreservesItsStorageFormatByDefault() {
         OneNoteSection source = OneNoteSectionReader.Read(Path.Combine(AppContext.BaseDirectory, "Fixtures", "testOneNoteFromOffice365.one"));

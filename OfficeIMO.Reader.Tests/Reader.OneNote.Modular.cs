@@ -1,6 +1,7 @@
 using OfficeIMO.Reader;
 using OfficeIMO.Reader.OneNote;
 using OfficeIMO.OneNote;
+using System.Globalization;
 using System.Text;
 using System.Threading.Tasks;
 using Xunit;
@@ -180,6 +181,37 @@ public sealed class ReaderOneNoteModularTests {
         });
     }
 
+    [Fact]
+    public void OneNoteAdapter_PreservesOversizedMarkdownConstructsAsWholeChunks() {
+        string title = "Heading " + new string('h', 40);
+        string altText = "Preview " + new string('i', 40);
+        var section = new OneNoteSection { Name = "Oversized" };
+        var page = new OneNotePage { Title = title };
+        page.DirectContent.Add(new OneNoteImage {
+            AltText = altText,
+            FileName = "preview.png",
+            MediaType = "image/png",
+            Payload = OneNoteBinaryPayload.FromBytes(new byte[] { 1, 2, 3 })
+        });
+        section.Pages.Add(page);
+
+        OfficeDocumentReadResult result = OneNoteReaderAdapter.ReadDocument(
+            section,
+            readerOptions: new ReaderOptions { MaxChars = 16 });
+
+        Assert.Collection(result.Chunks,
+            heading => {
+                Assert.Equal(title, heading.Text);
+                Assert.Equal("# " + title, heading.Markdown);
+                Assert.Contains(heading.Warnings!, warning => warning.Contains("preserved as one chunk", StringComparison.OrdinalIgnoreCase));
+            },
+            image => {
+                Assert.Equal("[Image: " + altText + "]", image.Text);
+                Assert.Equal("![" + altText + "](onenote-page-0001-asset-0001)", image.Markdown);
+                Assert.Contains(image.Warnings!, warning => warning.Contains("preserved as one chunk", StringComparison.OrdinalIgnoreCase));
+            });
+    }
+
     [Theory]
     [InlineData("one two")]
     [InlineData("one  two")]
@@ -204,6 +236,26 @@ public sealed class ReaderOneNoteModularTests {
             Assert.True(chunk.Text.Length <= 5);
             Assert.True(chunk.Markdown!.Length <= 5);
         });
+    }
+
+    [Fact]
+    public void OneNoteAdapter_PreservesSupplementaryUnicodeAcrossChunkBoundaries() {
+        const string sourceText = "\U0001F642X";
+        var section = new OneNoteSection { Name = "Unicode" };
+        var page = new OneNotePage { Title = "P" };
+        page.DirectContent.Add(Paragraph(sourceText));
+        section.Pages.Add(page);
+
+        OfficeDocumentReadResult result = OneNoteReaderAdapter.ReadDocument(
+            section,
+            readerOptions: new ReaderOptions { MaxChars = 1 });
+        ReaderChunk[] contentChunks = result.Chunks.Skip(1).ToArray();
+
+        Assert.Equal(sourceText, string.Concat(contentChunks.Select(chunk => chunk.Text)));
+        Assert.Equal(sourceText, string.Concat(contentChunks.Select(chunk => chunk.Markdown)));
+        Assert.DoesNotContain('?', string.Concat(contentChunks.Select(chunk => chunk.Text)));
+        Assert.Equal("\U0001F642", contentChunks[0].Text);
+        Assert.Contains(contentChunks[0].Warnings!, warning => warning.Contains("preserved as one chunk", StringComparison.OrdinalIgnoreCase));
     }
 
     [Fact]
@@ -505,6 +557,25 @@ public sealed class ReaderOneNoteModularTests {
         Assert.Equal(ReaderInputKind.OneNote, result.Kind);
         Assert.Equal("Packaged page", Assert.Single(result.Pages).Name);
         Assert.Contains("Offline package content", Assert.Single(result.Chunks).Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void OneNoteAdapter_ContentDetectionFindsRootTocBeforeLargePackageEntryLimit() {
+        var notebook = new OneNoteNotebook { Name = "Large package" };
+        for (int index = 0; index < ReaderOptions.DefaultDetectionMaxContainerEntries; index++) {
+            notebook.Sections.Add(new OneNoteSection { Name = "Section " + index.ToString("D4", CultureInfo.InvariantCulture) });
+        }
+        byte[] package = OneNotePackageWriter.Write(
+            notebook,
+            new OneNoteWriterOptions { ValidateRoundTrip = false });
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddOneNoteHandler().Build();
+        using var stream = new MemoryStream(package);
+
+        ReaderDetectionResult detection = reader.Detect(stream, "upload.bin");
+
+        Assert.Equal(ReaderInputKind.OneNote, detection.Kind);
+        Assert.True(detection.ContainerInspected);
+        Assert.Contains("container:onenote-package", detection.Evidence);
     }
 
     [Fact]
