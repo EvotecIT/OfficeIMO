@@ -161,6 +161,23 @@ public sealed class ConverterTests {
         Assert.Contains("%0A%3Cscript%3E", html, StringComparison.OrdinalIgnoreCase);
     }
 
+    [Fact]
+    public void MathProjectionUsesAFenceThatCannotBeClosedBySourceContent() {
+        var section = new OneNoteSection { Name = "Projection" };
+        var page = new OneNotePage { Title = "Unsafe math" };
+        page.DirectContent.Add(new OneNoteMath {
+            Latex = "```\n~~~\n<script>alert('math')</script>"
+        });
+        section.Pages.Add(page);
+
+        string markdown = section.ToMarkdown();
+        string html = section.ToHtmlDocument(htmlOptions: new HtmlOptions { AssetMode = AssetMode.Offline });
+
+        Assert.Contains("````math", markdown, StringComparison.Ordinal);
+        Assert.DoesNotContain("<script", html, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("&lt;script&gt;", html, StringComparison.OrdinalIgnoreCase);
+    }
+
     private static OneNoteNotebook CreateNotebook() {
         var notebook = new OneNoteNotebook { Name = "Offline notebook" };
         var group = new OneNoteSectionGroup { Name = "Group A" };

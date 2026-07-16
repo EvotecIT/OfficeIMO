@@ -301,6 +301,19 @@ public sealed class ReaderOneNoteModularTests {
     }
 
     [Fact]
+    public void OneNoteAdapter_BoundsUntrustedPageHierarchyDepth() {
+        var section = new OneNoteSection { Name = "Bounded hierarchy" };
+        section.Pages.Add(new OneNotePage { Title = "Deep page", Level = 10_000 });
+
+        ReaderChunk chunk = Assert.Single(OneNoteReaderAdapter.ReadDocument(section).Chunks);
+        string[] hierarchy = chunk.Location.HeadingPath!.Split(new[] { " > " }, StringSplitOptions.None);
+
+        Assert.Equal("Bounded hierarchy", hierarchy[0]);
+        Assert.Equal("Deep page", hierarchy[hierarchy.Length - 1]);
+        Assert.True(hierarchy.Length <= 34);
+    }
+
+    [Fact]
     public void OneNoteAdapter_ContentDetectionDispatchesExtensionlessSection() {
         OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddOneNoteHandler().Build();
         using FileStream stream = File.OpenRead(FixturePath("testOneNote2016.one"));

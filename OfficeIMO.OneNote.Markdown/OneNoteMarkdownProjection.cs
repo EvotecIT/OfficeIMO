@@ -169,9 +169,11 @@ public static class OneNoteMarkdownProjection {
         } else if (element is OneNoteEmbeddedFile file) {
             AppendBinaryLink(builder, file, file.FileName ?? "attachment", assetUriResolver);
         } else if (element is OneNoteMath math) {
-            builder.AppendLine("```math");
-            builder.AppendLine(math.Latex ?? math.Text ?? math.MathMl ?? string.Empty);
-            builder.AppendLine("```");
+            string value = math.Latex ?? math.Text ?? math.MathMl ?? string.Empty;
+            string fence = CreateCodeFence(value);
+            builder.Append(fence).AppendLine("math");
+            builder.AppendLine(value);
+            builder.AppendLine(fence);
             builder.AppendLine();
         } else if (element is OneNoteMedia media) {
             AppendBinaryLink(builder, media, media.FileName ?? "recording", assetUriResolver);
@@ -314,4 +316,26 @@ public static class OneNoteMarkdownProjection {
         character == '"' ||
         character == '\'' ||
         character == '\\';
+
+    private static string CreateCodeFence(string value) {
+        int backtickRun = LongestRun(value, '`');
+        int tildeRun = LongestRun(value, '~');
+        char delimiter = backtickRun <= tildeRun ? '`' : '~';
+        int longestRun = delimiter == '`' ? backtickRun : tildeRun;
+        return new string(delimiter, Math.Max(3, longestRun + 1));
+    }
+
+    private static int LongestRun(string value, char delimiter) {
+        int longest = 0;
+        int current = 0;
+        foreach (char character in value) {
+            if (character == delimiter) {
+                current++;
+                if (current > longest) longest = current;
+            } else {
+                current = 0;
+            }
+        }
+        return longest;
+    }
 }

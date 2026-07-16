@@ -4,6 +4,8 @@ using OfficeIMO.OneNote.Markdown;
 namespace OfficeIMO.Reader.OneNote;
 
 internal static partial class OneNoteReaderAdapter {
+    private const int MaxPageHierarchyDepth = 32;
+
     private static IEnumerable<ReaderChunk> BuildChunks(
         OneNoteSection section,
         SourceInfo source,
@@ -54,7 +56,7 @@ internal static partial class OneNoteReaderAdapter {
         var stack = new List<string>();
         for (int index = 0; index < section.Pages.Count; index++) {
             OneNotePage page = section.Pages[index];
-            int level = Math.Max(0, page.Level);
+            int level = Math.Min(MaxPageHierarchyDepth, Math.Max(0, page.Level));
             while (stack.Count > level) stack.RemoveAt(stack.Count - 1);
             while (stack.Count < level) stack.Add("Untitled");
             string title = string.IsNullOrWhiteSpace(page.Title) ? "Untitled page" : page.Title;
