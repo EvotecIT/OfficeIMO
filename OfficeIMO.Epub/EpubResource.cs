@@ -7,8 +7,17 @@ public sealed class EpubResource {
     /// <summary>OPF manifest item identifier.</summary>
     public string Id { get; internal set; } = string.Empty;
 
-    /// <summary>Normalized archive path.</summary>
+    /// <summary>Normalized archive path or absolute remote URI.</summary>
     public string Path { get; internal set; } = string.Empty;
+
+    /// <summary>Original manifest href.</summary>
+    public string? Href { get; internal set; }
+
+    /// <summary>Whether this manifest item references an absolute remote resource.</summary>
+    public bool IsRemote { get; internal set; }
+
+    /// <summary>Absolute remote URI when <see cref="IsRemote"/> is true.</summary>
+    public string? RemoteUri { get; internal set; }
 
     /// <summary>Declared media type.</summary>
     public string? MediaType { get; internal set; }
@@ -18,6 +27,9 @@ public sealed class EpubResource {
 
     /// <summary>Uncompressed resource length.</summary>
     public long LengthBytes { get; internal set; }
+
+    /// <summary>Encryption declaration for this resource, when present.</summary>
+    public EpubEncryptionInfo? Encryption { get; internal set; }
 
     /// <summary>Optional bounded resource payload requested by the caller.</summary>
     public byte[]? Data {

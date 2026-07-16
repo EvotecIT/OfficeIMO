@@ -1,6 +1,5 @@
 namespace OfficeIMO.Epub;
 
-using OfficeIMO.Drawing.Internal;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -35,9 +34,7 @@ public sealed class EpubDocument {
         Stream stream,
         EpubReadOptions? options = null,
         CancellationToken cancellationToken = default) {
-        byte[] bytes = await OfficeStreamReader.ReadAllBytesAsync(stream, cancellationToken).ConfigureAwait(false);
-        cancellationToken.ThrowIfCancellationRequested();
-        return EpubReader.ReadBytes(bytes, options);
+        return await EpubReader.ReadAsync(stream, options, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -65,6 +62,33 @@ public sealed class EpubDocument {
     /// </summary>
     public string? OpfPath { get; internal set; }
 
+    /// <summary>Version declared by the OPF package element.</summary>
+    public string? PackageVersion { get; internal set; }
+
+    /// <summary>ID of the dc:identifier selected by the package unique-identifier attribute.</summary>
+    public string? UniqueIdentifierId { get; internal set; }
+
+    /// <summary>Globally declared rendition layout, or null when the package uses the default.</summary>
+    public EpubRenditionLayout? RenditionLayout { get; internal set; }
+
+    /// <summary>Whether the package globally declares a pre-paginated fixed layout.</summary>
+    public bool IsFixedLayout => RenditionLayout == EpubRenditionLayout.PrePaginated;
+
+    /// <summary>Ordered rootfile declarations from META-INF/container.xml.</summary>
+    public IReadOnlyList<EpubRootfile> Rootfiles { get; internal set; } = Array.Empty<EpubRootfile>();
+
+    /// <summary>Ordered OPF metadata declarations, including EPUB 3 refinements and EPUB 2 metadata.</summary>
+    public IReadOnlyList<EpubMetadataEntry> Metadata { get; internal set; } = Array.Empty<EpubMetadataEntry>();
+
+    /// <summary>Hierarchical EPUB table of contents.</summary>
+    public IReadOnlyList<EpubNavigationItem> TableOfContents { get; internal set; } = Array.Empty<EpubNavigationItem>();
+
+    /// <summary>EPUB page-list navigation items.</summary>
+    public IReadOnlyList<EpubNavigationItem> PageList { get; internal set; } = Array.Empty<EpubNavigationItem>();
+
+    /// <summary>EPUB landmarks or EPUB 2 guide references.</summary>
+    public IReadOnlyList<EpubNavigationItem> Landmarks { get; internal set; } = Array.Empty<EpubNavigationItem>();
+
     /// <summary>
     /// Extracted chapters.
     /// </summary>
@@ -74,6 +98,18 @@ public sealed class EpubDocument {
     /// OPF manifest resources in deterministic package order.
     /// </summary>
     public IReadOnlyList<EpubResource> Resources { get; internal set; } = Array.Empty<EpubResource>();
+
+    /// <summary>Encrypted or obfuscated resources declared by META-INF/encryption.xml.</summary>
+    public IReadOnlyList<EpubEncryptionInfo> Encryption { get; internal set; } = Array.Empty<EpubEncryptionInfo>();
+
+    /// <summary>Whether the container declares any encrypted or obfuscated resources.</summary>
+    public bool HasEncryptedResources => Encryption.Count > 0;
+
+    /// <summary>Whether one or more resources require unsupported decryption.</summary>
+    public bool RequiresDecryption => Encryption.Any(static item => item.RequiresDecryption);
+
+    /// <summary>Structured non-fatal diagnostics encountered during extraction.</summary>
+    public IReadOnlyList<EpubDiagnostic> Diagnostics { get; internal set; } = Array.Empty<EpubDiagnostic>();
 
     /// <summary>
     /// Non-fatal warnings encountered during extraction.

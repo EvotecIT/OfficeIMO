@@ -31,6 +31,13 @@ internal static partial class EpubReaderAdapter {
         bool includeRawHtml,
         bool includeResourceData) {
         return new EpubReadOptions {
+            MaxPackageBytes = source.MaxPackageBytes,
+            MaxArchiveEntries = source.MaxArchiveEntries,
+            MaxTotalUncompressedBytes = source.MaxTotalUncompressedBytes,
+            MaxPackageMetadataBytes = source.MaxPackageMetadataBytes,
+            MaxMetadataItems = source.MaxMetadataItems,
+            MaxNavigationItems = source.MaxNavigationItems,
+            MaxNavigationDepth = source.MaxNavigationDepth,
             MaxChapters = source.MaxChapters,
             MaxChapterBytes = source.MaxChapterBytes,
             MaxTotalRawHtmlBytes = source.MaxTotalRawHtmlBytes,
