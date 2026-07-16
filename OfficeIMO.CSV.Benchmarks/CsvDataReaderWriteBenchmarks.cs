@@ -2,7 +2,6 @@
 
 using System.Globalization;
 using BenchmarkDotNet.Attributes;
-using BenchmarkDotNet.Jobs;
 using Sylvan.Data.Csv;
 
 namespace OfficeIMO.CSV.Benchmarks;
@@ -12,7 +11,6 @@ namespace OfficeIMO.CSV.Benchmarks;
 /// and nullable values. This complements the numeric-heavy 40-column lane.
 /// </summary>
 [MemoryDiagnoser]
-[SimpleJob(RuntimeMoniker.Net80)]
 public class CsvDataReaderWriteBenchmarks
 {
     private static readonly string[] Headers =

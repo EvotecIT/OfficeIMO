@@ -1,3 +1,4 @@
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel;
@@ -345,7 +346,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Reader_ReadRangeAsDataReader_WithoutSchemaSamples_FallsBackForInlineStrings() {
+        public void Reader_ReadRangeAsDataReader_WithoutSchemaSamples_SupportsSimpleInlineStrings() {
             using var memory = new MemoryStream();
 
             using (var document = ExcelDocument.Create(memory, new ExcelCreateOptions { PersistenceMode = OfficeIMO.Drawing.DocumentPersistenceMode.SaveOnDispose })) {
@@ -365,7 +366,7 @@ namespace OfficeIMO.Tests {
                 var inline = worksheetPart.Worksheet.Descendants<Cell>().Single(cell => cell.CellReference == "B2");
                 inline.DataType = CellValues.InlineString;
                 inline.CellValue = null;
-                inline.InlineString = new InlineString(new Text("Inline & value"));
+                inline.InlineString = new InlineString(new Text(" Inline & <value> ") { Space = SpaceProcessingModeValues.Preserve });
                 worksheetPart.Worksheet.Save();
             }
 
@@ -374,7 +375,42 @@ namespace OfficeIMO.Tests {
 
             Assert.True(dataReader.Read());
             Assert.Equal(1, dataReader.GetInt32(0));
-            Assert.Equal("Inline & value", dataReader.GetString(1));
+            Assert.Equal(" Inline & <value> ", dataReader.GetString(1));
+        }
+
+        [Fact]
+        public void Reader_ReadRangeAsDataReader_WithoutSchemaSamples_FallsBackForRichInlineStrings() {
+            using var memory = new MemoryStream();
+
+            using (var document = ExcelDocument.Create(memory, new ExcelCreateOptions { PersistenceMode = OfficeIMO.Drawing.DocumentPersistenceMode.SaveOnDispose })) {
+                var sheet = document.AddWorksheet("Data");
+                sheet.CellValue(1, 1, "Id");
+                sheet.CellValue(1, 2, "Name");
+                sheet.CellValue(2, 1, 1);
+                sheet.CellValue(2, 2, "Placeholder");
+                sheet.CellValue(4098, 1, 4097);
+            }
+
+            memory.Position = 0;
+            using (var spreadsheet = SpreadsheetDocument.Open(memory, true)) {
+                var workbookPart = spreadsheet.WorkbookPart!;
+                var sheet = workbookPart.Workbook.Sheets!.Elements<Sheet>().Single(item => item.Name == "Data");
+                var worksheetPart = (WorksheetPart)workbookPart.GetPartById(sheet.Id!);
+                var inline = worksheetPart.Worksheet.Descendants<Cell>().Single(cell => cell.CellReference == "B2");
+                inline.DataType = CellValues.InlineString;
+                inline.CellValue = null;
+                inline.InlineString = new InlineString(
+                    new Run(new Text("Rich ")),
+                    new Run(new RunProperties(new Bold()), new Text("inline")));
+                worksheetPart.Worksheet.Save();
+            }
+
+            using var reader = ExcelDocumentReader.Open(memory.ToArray());
+            using var dataReader = reader.GetSheet("Data").ReadRangeAsDataReader("A1:B4098", schemaSampleRows: 0);
+
+            Assert.True(dataReader.Read());
+            Assert.Equal(1, dataReader.GetInt32(0));
+            Assert.Equal("Rich inline", dataReader.GetString(1));
         }
 
         [Fact]

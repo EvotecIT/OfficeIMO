@@ -140,6 +140,19 @@ public class CsvDocumentFromObjectsTests
     }
 
     [Fact]
+    public void CsvObjectWriter_WritesNarrowPlainTextRowsToGeneralTextWriter()
+    {
+        using var writer = new FlushTrackingWriter();
+        using (var csvWriter = new CsvObjectWriter(writer, new CsvSaveOptions { NewLine = "\n" }, leaveOpen: true))
+        {
+            csvWriter.WriteTextRow(new[] { "Name", "Value" }, new string?[] { "Alpha", "1" });
+            csvWriter.WriteTrustedTextRow(new string?[] { "Beta", "2" });
+        }
+
+        Assert.Equal("Name,Value\nAlpha,1\nBeta,2\n", writer.ToString());
+    }
+
+    [Fact]
     public void CsvObjectWriter_AlwaysQuotedProjectedRowsPreserveEscaping()
     {
         var created = new DateTime(2026, 1, 2, 3, 4, 5, DateTimeKind.Utc);

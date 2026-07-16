@@ -217,6 +217,7 @@ namespace OfficeIMO.Excel {
                 kind = Utf8CellKind.Number;
                 if (AsciiEquals(start, length, "n")) return true;
                 if (AsciiEquals(start, length, "s")) { kind = Utf8CellKind.SharedString; return true; }
+                if (AsciiEquals(start, length, "inlineStr")) { kind = Utf8CellKind.InlineString; return true; }
                 if (AsciiEquals(start, length, "str")) { kind = Utf8CellKind.String; return true; }
                 if (AsciiEquals(start, length, "b")) { kind = Utf8CellKind.Boolean; return true; }
                 if (AsciiEquals(start, length, "d")) { kind = Utf8CellKind.Date; return true; }

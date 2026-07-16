@@ -208,7 +208,7 @@ internal static partial class CsvWriter
         Span<char> destination = stackalloc char[128];
         if (!value.TryFormat(destination, out var charsWritten, default, culture))
         {
-            AppendEscapedValueDefault(buffer, value, delimiter, culture);
+            WriteEscapedDefault(buffer, FormatValue(value, culture), delimiter);
             return;
         }
 

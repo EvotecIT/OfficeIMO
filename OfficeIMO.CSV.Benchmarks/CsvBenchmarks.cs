@@ -2,7 +2,6 @@
 
 using System.Globalization;
 using BenchmarkDotNet.Attributes;
-using BenchmarkDotNet.Jobs;
 using nietras.SeparatedValues;
 using CsvHelperConfiguration = CsvHelper.Configuration.CsvConfiguration;
 using CsvHelperReader = CsvHelper.CsvReader;
@@ -21,7 +20,6 @@ using SylvanCsvDataWriterOptions = Sylvan.Data.Csv.CsvDataWriterOptions;
 namespace OfficeIMO.CSV.Benchmarks;
 
 [MemoryDiagnoser]
-[SimpleJob(RuntimeMoniker.Net80)]
 public class CsvBenchmarks
 {
     private static readonly string[] Headers =
@@ -88,7 +86,7 @@ public class CsvBenchmarks
         ValidateWriteOutput(nameof(CsvHelper_WriteTextRows), CsvHelper_WriteTextRows, _projectedTextRows);
         ValidateWriteOutput(nameof(Sylvan_WriteTextRows), Sylvan_WriteTextRows, _projectedTextRows);
         ValidateWriteOutput(nameof(Dataplat_WriteTextRows), Dataplat_WriteTextRows, _projectedTextRows);
-        ValidateWriteOutput(nameof(Sep_WriteProjectedRows), Sep_WriteProjectedRows, _projectedTextRows);
+        ValidateWriteOutput(nameof(Sep_WriteTextRows), Sep_WriteTextRows, _projectedTextRows);
     }
 
     private void ValidateWriteOutput(
@@ -345,7 +343,7 @@ public class CsvBenchmarks
     }
 
     [Benchmark]
-    public int Sep_WriteProjectedRows()
+    public int Sep_WriteTextRows()
     {
         var options = SepWriteOptions;
         using var csv = options.ToText();

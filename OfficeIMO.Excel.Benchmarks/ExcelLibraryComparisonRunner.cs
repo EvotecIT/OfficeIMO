@@ -6,6 +6,7 @@ using System.Text.Json;
 using System.Xml;
 using ClosedXML.Excel;
 using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Spreadsheet;
 using DocumentFormat.OpenXml.Validation;
 using LargeXlsx;
 using MiniExcelApi = MiniExcelLibs.MiniExcel;
@@ -13,6 +14,7 @@ using MiniExcelConfiguration = MiniExcelLibs.OpenXml.OpenXmlConfiguration;
 using MiniExcelTableStyles = MiniExcelLibs.OpenXml.TableStyles;
 using OfficeOpenXml;
 using OfficeOpenXml.Table;
+using TableStyles = OfficeOpenXml.Table.TableStyles;
 using Sylvan.Data.Excel;
 using SylvanExcelDataReader = Sylvan.Data.Excel.ExcelDataReader;
 using SylvanExcelDataWriter = Sylvan.Data.Excel.ExcelDataWriter;
@@ -119,6 +121,7 @@ internal static partial class ExcelLibraryComparisonRunner {
         var epPlusWorkbookBytes = new Lazy<byte[]>(() => CreateEpPlusWorkbookBytes(rows));
         var formulaWorkbookBytes = new Lazy<byte[]>(() => CreateFormulaWorkbookBytes(rowCount));
         var sharedStringWorkbookBytes = new Lazy<byte[]>(() => CreateSharedStringWorkbookBytes(rowCount));
+        var inlineStringWorkbookBytes = new Lazy<byte[]>(() => CreateInlineStringWorkbookBytes(rowCount));
         var sparseWorkbookBytes = new Lazy<byte[]>(() => CreateSparseWorkbookBytes(SparseLastRow));
         string dataRange = ExcelBenchmarkScenarioFactory.BuildDataRange(rowCount);
         string firstColumnRange = $"A1:A{(rowCount + 1).ToString(CultureInfo.InvariantCulture)}";
@@ -154,7 +157,6 @@ internal static partial class ExcelLibraryComparisonRunner {
 
         AddScenarioGroup(scenarios, scenarioFilter, "write-dataset-headerless-tables", warmupIterations, measuredIterations, [
             new LibraryComparisonCase("OfficeIMO.Excel", "Insert a prepared DataSet as headerless tables through the normal workbook API and save.", () => OfficeImoWriteDataSetTables(salesDataSet, includeHeaders: false)),
-            new LibraryComparisonCase("ClosedXML", "Import prepared DataTables as headerless styled worksheet tables and save.", () => ClosedXmlWriteDataSetTables(salesDataSet, includeHeaders: false)),
             new LibraryComparisonCase("EPPlus", "Import prepared DataTables as headerless styled worksheet tables and save.", () => EpPlusWriteDataSetTables(salesDataSet, includeHeaders: false)),
             new LibraryComparisonCase("MiniExcel", "Streaming DataSet export without header rows.", () => MiniExcelWriteDataSetTables(salesDataSet, includeHeaders: false))
         ]);
@@ -276,8 +278,8 @@ internal static partial class ExcelLibraryComparisonRunner {
 
         AddScenarioGroup(scenarios, scenarioFilter, "write-cellvalue-strings", warmupIterations, measuredIterations, [
             new LibraryComparisonCase("OfficeIMO.Excel", "Assign repeated and distinct text-heavy cells one by one and save.", () => OfficeImoWriteCellValueStrings(rowCount)),
-            new LibraryComparisonCase("ClosedXML", "Assign repeated and distinct text-heavy cells one by one and save.", () => ClosedXmlWriteSharedStrings(rowCount)),
-            new LibraryComparisonCase("EPPlus", "Assign repeated and distinct text-heavy cells one by one and save.", () => EpPlusWriteSharedStrings(rowCount))
+            new LibraryComparisonCase("ClosedXML", "Assign repeated and distinct text-heavy cells one by one and save.", () => ClosedXmlWriteTextHeavyDefault(rowCount)),
+            new LibraryComparisonCase("EPPlus", "Assign repeated and distinct text-heavy cells one by one and save.", () => EpPlusWriteTextHeavyDefault(rowCount))
         ]);
 
         AddScenarioGroup(scenarios, scenarioFilter, "write-cellvalue-strings-repeated", warmupIterations, measuredIterations, [
@@ -642,11 +644,11 @@ internal static partial class ExcelLibraryComparisonRunner {
         AddReportWorkbookScenarioGroups(scenarios, scenarioFilter, powerShellMixedRows, powerShellMixedDataTable, warmupIterations, measuredIterations);
         AddRealWorldScenarioGroups(scenarios, scenarioFilter, rows, warmupIterations, measuredIterations);
 
-        AddScenarioGroup(scenarios, scenarioFilter, "large-shared-strings", warmupIterations, measuredIterations, [
-            new LibraryComparisonCase("OfficeIMO.Excel", "Write repeated and distinct text-heavy cells.", () => OfficeImoWriteSharedStrings(rowCount)),
-            new LibraryComparisonCase("ClosedXML", "Write repeated and distinct text-heavy cells.", () => ClosedXmlWriteSharedStrings(rowCount)),
-            new LibraryComparisonCase("EPPlus", "Write repeated and distinct text-heavy cells.", () => EpPlusWriteSharedStrings(rowCount)),
-            new LibraryComparisonCase("MiniExcel", "Streaming export of repeated and distinct text-heavy cells.", () => MiniExcelWriteSharedStrings(rowCount))
+        AddScenarioGroup(scenarios, scenarioFilter, "write-text-heavy-default", warmupIterations, measuredIterations, [
+            new LibraryComparisonCase("OfficeIMO.Excel", "Write repeated and distinct text-heavy cells using the library's valid default storage strategy.", () => OfficeImoWriteTextHeavyDefault(rowCount)),
+            new LibraryComparisonCase("ClosedXML", "Write the same text-heavy cells using the library's valid default storage strategy.", () => ClosedXmlWriteTextHeavyDefault(rowCount)),
+            new LibraryComparisonCase("EPPlus", "Write the same text-heavy cells using the library's valid default storage strategy.", () => EpPlusWriteTextHeavyDefault(rowCount)),
+            new LibraryComparisonCase("MiniExcel", "Stream the same text-heavy cells using the library's valid default storage strategy.", () => MiniExcelWriteTextHeavyDefault(rowCount))
         ]);
 
         AddScenarioGroup(scenarios, scenarioFilter, "formula-heavy-read", warmupIterations, measuredIterations, [
@@ -655,17 +657,30 @@ internal static partial class ExcelLibraryComparisonRunner {
             new LibraryComparisonCase("EPPlus", "Read formula text from formula cells.", () => EpPlusReadFormulaText(formulaWorkbookBytes.Value, rowCount))
         ]);
 
-        AddScenarioGroup(scenarios, scenarioFilter, "shared-string-read", warmupIterations, measuredIterations, [
-            new LibraryComparisonCase("OfficeIMO.Excel", "Scan repeated shared strings through the forward-only range reader.", () => OfficeImoReadSharedStringsStream(sharedStringWorkbookBytes.Value, rowCount)),
-            new LibraryComparisonCase("MiniExcel", "Stream repeated shared string payload.", () => MiniExcelReadSharedStrings(sharedStringWorkbookBytes.Value, rowCount)),
-            new LibraryComparisonCase("ExcelDataReader", "Forward-only IExcelDataReader read of repeated shared string payload.", () => ExcelDataReaderReadSharedStrings(sharedStringWorkbookBytes.Value, rowCount)),
-            new LibraryComparisonCase("Sylvan.Data.Excel", "Forward-only DbDataReader read of repeated shared string payload.", () => SylvanReadSharedStrings(sharedStringWorkbookBytes.Value, rowCount))
+        AddScenarioGroup(scenarios, scenarioFilter, "read-shared-strings-stream", warmupIterations, measuredIterations, [
+            new LibraryComparisonCase("OfficeIMO.Excel", "Scan an indexed shared-string-table payload through the forward-only range reader.", () => OfficeImoReadStringPayloadStream(sharedStringWorkbookBytes.Value, rowCount)),
+            new LibraryComparisonCase("MiniExcel", "Stream the same indexed shared-string-table payload.", () => MiniExcelReadStringPayload(sharedStringWorkbookBytes.Value, rowCount)),
+            new LibraryComparisonCase("ExcelDataReader", "Forward-only IExcelDataReader scan of the same indexed shared-string-table payload.", () => ExcelDataReaderReadStringPayload(sharedStringWorkbookBytes.Value, rowCount)),
+            new LibraryComparisonCase("Sylvan.Data.Excel", "Forward-only DbDataReader scan of the same indexed shared-string-table payload.", () => SylvanReadStringPayload(sharedStringWorkbookBytes.Value, rowCount))
         ]);
 
-        AddScenarioGroup(scenarios, scenarioFilter, "shared-string-materialized-read", warmupIterations, measuredIterations, [
-            new LibraryComparisonCase("OfficeIMO.Excel", "Materialize repeated shared strings into a rectangular object array.", () => OfficeImoReadSharedStrings(sharedStringWorkbookBytes.Value, rowCount)),
-            new LibraryComparisonCase("ClosedXML", "Read repeated shared string payload.", () => ClosedXmlReadSharedStrings(sharedStringWorkbookBytes.Value, rowCount)),
-            new LibraryComparisonCase("EPPlus", "Read repeated shared string payload.", () => EpPlusReadSharedStrings(sharedStringWorkbookBytes.Value, rowCount))
+        AddScenarioGroup(scenarios, scenarioFilter, "read-shared-strings-materialized", warmupIterations, measuredIterations, [
+            new LibraryComparisonCase("OfficeIMO.Excel", "Materialize the indexed shared-string-table payload into a rectangular object array.", () => OfficeImoReadStringPayloadMaterialized(sharedStringWorkbookBytes.Value, rowCount)),
+            new LibraryComparisonCase("ClosedXML", "Materialize the same indexed shared-string-table payload.", () => ClosedXmlReadStringPayload(sharedStringWorkbookBytes.Value, rowCount)),
+            new LibraryComparisonCase("EPPlus", "Materialize the same indexed shared-string-table payload.", () => EpPlusReadStringPayload(sharedStringWorkbookBytes.Value, rowCount))
+        ]);
+
+        AddScenarioGroup(scenarios, scenarioFilter, "read-inline-strings-stream", warmupIterations, measuredIterations, [
+            new LibraryComparisonCase("OfficeIMO.Excel", "Scan a standards-compliant inline-string payload through the forward-only range reader.", () => OfficeImoReadStringPayloadStream(inlineStringWorkbookBytes.Value, rowCount)),
+            new LibraryComparisonCase("MiniExcel", "Stream the same inline-string payload.", () => MiniExcelReadStringPayload(inlineStringWorkbookBytes.Value, rowCount)),
+            new LibraryComparisonCase("ExcelDataReader", "Forward-only IExcelDataReader scan of the same inline-string payload.", () => ExcelDataReaderReadStringPayload(inlineStringWorkbookBytes.Value, rowCount)),
+            new LibraryComparisonCase("Sylvan.Data.Excel", "Forward-only DbDataReader scan of the same inline-string payload.", () => SylvanReadStringPayload(inlineStringWorkbookBytes.Value, rowCount))
+        ]);
+
+        AddScenarioGroup(scenarios, scenarioFilter, "read-inline-strings-materialized", warmupIterations, measuredIterations, [
+            new LibraryComparisonCase("OfficeIMO.Excel", "Materialize the inline-string payload into a rectangular object array.", () => OfficeImoReadStringPayloadMaterialized(inlineStringWorkbookBytes.Value, rowCount)),
+            new LibraryComparisonCase("ClosedXML", "Materialize the same inline-string payload.", () => ClosedXmlReadStringPayload(inlineStringWorkbookBytes.Value, rowCount)),
+            new LibraryComparisonCase("EPPlus", "Materialize the same inline-string payload.", () => EpPlusReadStringPayload(inlineStringWorkbookBytes.Value, rowCount))
         ]);
 
         AddHelloWorldScenarioGroups(scenarios, scenarioFilter, rowCount, warmupIterations, measuredIterations);
@@ -846,8 +861,8 @@ internal static partial class ExcelLibraryComparisonRunner {
 
         AddPackageProfileGroup(scenarios, scenarioFilter, "write-cellvalue-strings", warmupIterations, measuredIterations, [
             new PackageProfileCase("OfficeIMO.Excel", "Assign repeated and distinct text-heavy cells one by one and save.", () => OfficeImoWriteCellValueStringsBytes(rowCount)),
-            new PackageProfileCase("ClosedXML", "Assign repeated and distinct text-heavy cells one by one and save.", () => ClosedXmlWriteSharedStringsBytes(rowCount)),
-            new PackageProfileCase("EPPlus", "Assign repeated and distinct text-heavy cells one by one and save.", () => EpPlusWriteSharedStringsBytes(rowCount))
+            new PackageProfileCase("ClosedXML", "Assign repeated and distinct text-heavy cells one by one and save.", () => ClosedXmlWriteTextHeavyDefaultBytes(rowCount)),
+            new PackageProfileCase("EPPlus", "Assign repeated and distinct text-heavy cells one by one and save.", () => EpPlusWriteTextHeavyDefaultBytes(rowCount))
         ]);
 
         AddPackageProfileGroup(scenarios, scenarioFilter, "write-cellvalue-strings-repeated", warmupIterations, measuredIterations, [
@@ -1011,11 +1026,11 @@ internal static partial class ExcelLibraryComparisonRunner {
         AddReportWorkbookPackageProfileGroups(scenarios, scenarioFilter, powerShellMixedRows, powerShellMixedDataTable, warmupIterations, measuredIterations);
         AddRealWorldPackageProfileGroups(scenarios, scenarioFilter, rows, warmupIterations, measuredIterations);
 
-        AddPackageProfileGroup(scenarios, scenarioFilter, "large-shared-strings", warmupIterations, measuredIterations, [
-            new PackageProfileCase("OfficeIMO.Excel", "Write repeated and distinct text-heavy cells.", () => OfficeImoWriteSharedStringsBytes(rowCount)),
-            new PackageProfileCase("ClosedXML", "Write repeated and distinct text-heavy cells.", () => ClosedXmlWriteSharedStringsBytes(rowCount)),
-            new PackageProfileCase("EPPlus", "Write repeated and distinct text-heavy cells.", () => EpPlusWriteSharedStringsBytes(rowCount)),
-            new PackageProfileCase("MiniExcel", "Streaming export of repeated and distinct text-heavy cells.", () => MiniExcelWriteSharedStringsBytes(rowCount))
+        AddPackageProfileGroup(scenarios, scenarioFilter, "write-text-heavy-default", warmupIterations, measuredIterations, [
+            new PackageProfileCase("OfficeIMO.Excel", "Write repeated and distinct text-heavy cells using the library's valid default storage strategy.", () => OfficeImoWriteTextHeavyDefaultBytes(rowCount)),
+            new PackageProfileCase("ClosedXML", "Write the same text-heavy cells using the library's valid default storage strategy.", () => ClosedXmlWriteTextHeavyDefaultBytes(rowCount)),
+            new PackageProfileCase("EPPlus", "Write the same text-heavy cells using the library's valid default storage strategy.", () => EpPlusWriteTextHeavyDefaultBytes(rowCount)),
+            new PackageProfileCase("MiniExcel", "Stream the same text-heavy cells using the library's valid default storage strategy.", () => MiniExcelWriteTextHeavyDefaultBytes(rowCount))
         ]);
 
         if (scenarios.Count == 0) {
@@ -1171,6 +1186,7 @@ internal static partial class ExcelLibraryComparisonRunner {
         }
 
         Console.WriteLine($"Running {scenario} comparison group...");
+        ValidateWriteScenarioOutputs(scenario, selectedCases);
         var measurements = BenchmarkMeasurement.MeasureGroup(
             warmupIterations,
             measuredIterations,
@@ -1556,7 +1572,13 @@ internal static partial class ExcelLibraryComparisonRunner {
         ExcelPackage.License.SetNonCommercialOrganization("OfficeIMO local benchmarks");
     }
 
-    private static int ByteCount(byte[] bytes) => checked((int)bytes.LongLength);
+    private static int ByteCount(byte[] bytes) {
+        if (_captureValidationWorkbook) {
+            _capturedValidationWorkbookBytes = bytes;
+        }
+
+        return checked((int)bytes.LongLength);
+    }
 
     private static string RepeatedText(int row, int variant)
         => variant switch {
@@ -3958,14 +3980,14 @@ internal static partial class ExcelLibraryComparisonRunner {
         return output.ToArray();
     }
 
-    private static int OfficeImoWriteSharedStrings(int rowCount)
-        => ByteCount(OfficeImoWriteSharedStringsBytes(rowCount));
+    private static int OfficeImoWriteTextHeavyDefault(int rowCount)
+        => ByteCount(OfficeImoWriteTextHeavyDefaultBytes(rowCount));
 
-    private static byte[] OfficeImoWriteSharedStringsBytes(int rowCount) {
+    private static byte[] OfficeImoWriteTextHeavyDefaultBytes(int rowCount) {
         using var stream = new MemoryStream();
         using (var document = ExcelDocument.Create(stream)) {
             var sheet = document.AddWorksheet("Strings");
-            sheet.CellValues(BuildSharedStringCells(rowCount), ExecutionMode.Parallel);
+            sheet.CellValues(BuildTextHeavyCells(rowCount), ExecutionMode.Parallel);
             document.Save(stream);
             AssertOfficeImoDirectPackageWriter(document, "shared string comparison");
         }
@@ -4204,10 +4226,10 @@ internal static partial class ExcelLibraryComparisonRunner {
         return stream.ToArray();
     }
 
-    private static int ClosedXmlWriteSharedStrings(int rowCount)
-        => ByteCount(ClosedXmlWriteSharedStringsBytes(rowCount));
+    private static int ClosedXmlWriteTextHeavyDefault(int rowCount)
+        => ByteCount(ClosedXmlWriteTextHeavyDefaultBytes(rowCount));
 
-    private static byte[] ClosedXmlWriteSharedStringsBytes(int rowCount) {
+    private static byte[] ClosedXmlWriteTextHeavyDefaultBytes(int rowCount) {
         using var stream = new MemoryStream();
         using (var workbook = new XLWorkbook()) {
             var worksheet = workbook.Worksheets.Add("Strings");
@@ -4445,10 +4467,10 @@ internal static partial class ExcelLibraryComparisonRunner {
         return stream.ToArray();
     }
 
-    private static int EpPlusWriteSharedStrings(int rowCount)
-        => ByteCount(EpPlusWriteSharedStringsBytes(rowCount));
+    private static int EpPlusWriteTextHeavyDefault(int rowCount)
+        => ByteCount(EpPlusWriteTextHeavyDefaultBytes(rowCount));
 
-    private static byte[] EpPlusWriteSharedStringsBytes(int rowCount) {
+    private static byte[] EpPlusWriteTextHeavyDefaultBytes(int rowCount) {
         using var stream = new MemoryStream();
         using (var package = new ExcelPackage(stream)) {
             var worksheet = package.Workbook.Worksheets.Add("Strings");
@@ -4668,17 +4690,17 @@ internal static partial class ExcelLibraryComparisonRunner {
         return stream.ToArray();
     }
 
-    private static int MiniExcelWriteSharedStrings(int rowCount)
-        => ByteCount(MiniExcelWriteSharedStringsBytes(rowCount));
+    private static int MiniExcelWriteTextHeavyDefault(int rowCount)
+        => ByteCount(MiniExcelWriteTextHeavyDefaultBytes(rowCount));
 
-    private static byte[] MiniExcelWriteSharedStringsBytes(int rowCount) {
+    private static byte[] MiniExcelWriteTextHeavyDefaultBytes(int rowCount) {
         using var stream = new MemoryStream();
         var rows = Enumerable.Range(1, rowCount).Select(row => new MiniExcelStringRecord {
             Repeated = "Repeated value " + (row % 12),
             Distinct = "Distinct value " + row.ToString(CultureInfo.InvariantCulture),
             LongSegment = "Long segment " + new string((char)('A' + (row % 26)), 48)
         });
-        MiniExcelApi.SaveAs(stream, rows, sheetName: "Strings", excelType: MiniExcelLibs.ExcelType.XLSX);
+        MiniExcelApi.SaveAs(stream, rows, printHeader: false, sheetName: "Strings", excelType: MiniExcelLibs.ExcelType.XLSX);
         return stream.ToArray();
     }
 
@@ -4717,7 +4739,7 @@ internal static partial class ExcelLibraryComparisonRunner {
         return metric;
     }
 
-    private static int OfficeImoReadSharedStrings(byte[] workbookBytes, int rowCount) {
+    private static int OfficeImoReadStringPayloadMaterialized(byte[] workbookBytes, int rowCount) {
         using var reader = ExcelDocumentReader.Open(workbookBytes);
         object?[,] values = reader.GetSheet("Strings").ReadRange($"A1:C{rowCount}");
         int metric = 0;
@@ -4730,7 +4752,7 @@ internal static partial class ExcelLibraryComparisonRunner {
         return metric;
     }
 
-    private static int OfficeImoReadSharedStringsStream(byte[] workbookBytes, int rowCount) {
+    private static int OfficeImoReadStringPayloadStream(byte[] workbookBytes, int rowCount) {
         using var documentReader = ExcelDocumentReader.Open(workbookBytes);
         using var reader = documentReader.GetSheet("Strings").ReadRangeAsDataReader(
             $"A1:C{rowCount}",
@@ -4747,13 +4769,13 @@ internal static partial class ExcelLibraryComparisonRunner {
         }
 
         if (rowsRead != rowCount) {
-            throw new InvalidOperationException($"Expected {rowCount} shared string rows, got {rowsRead}.");
+            throw new InvalidOperationException($"Expected {rowCount} string rows, got {rowsRead}.");
         }
 
         return metric;
     }
 
-    private static int ClosedXmlReadSharedStrings(byte[] workbookBytes, int rowCount) {
+    private static int ClosedXmlReadStringPayload(byte[] workbookBytes, int rowCount) {
         using var stream = new MemoryStream(workbookBytes, writable: false);
         using var workbook = new XLWorkbook(stream);
         var worksheet = workbook.Worksheet("Strings");
@@ -4767,7 +4789,7 @@ internal static partial class ExcelLibraryComparisonRunner {
         return metric;
     }
 
-    private static int EpPlusReadSharedStrings(byte[] workbookBytes, int rowCount) {
+    private static int EpPlusReadStringPayload(byte[] workbookBytes, int rowCount) {
         using var stream = new MemoryStream(workbookBytes, writable: false);
         using var package = new ExcelPackage(stream);
         var worksheet = package.Workbook.Worksheets["Strings"];
@@ -4781,7 +4803,7 @@ internal static partial class ExcelLibraryComparisonRunner {
         return metric;
     }
 
-    private static int MiniExcelReadSharedStrings(byte[] workbookBytes, int rowCount) {
+    private static int MiniExcelReadStringPayload(byte[] workbookBytes, int rowCount) {
         using var stream = new MemoryStream(workbookBytes, writable: false);
         int metric = 0;
         int rowsRead = 0;
@@ -4800,13 +4822,13 @@ internal static partial class ExcelLibraryComparisonRunner {
         }
 
         if (rowsRead != rowCount) {
-            throw new InvalidOperationException($"Expected {rowCount} shared string rows, got {rowsRead}.");
+            throw new InvalidOperationException($"Expected {rowCount} string rows, got {rowsRead}.");
         }
 
         return metric;
     }
 
-    private static int SylvanReadSharedStrings(byte[] workbookBytes, int rowCount) {
+    private static int SylvanReadStringPayload(byte[] workbookBytes, int rowCount) {
         using var stream = new MemoryStream(workbookBytes, writable: false);
         using var reader = CreateSylvanReader(stream, ExcelSchema.NoHeaders);
         OpenSylvanWorksheet(reader, "Strings");
@@ -4821,13 +4843,13 @@ internal static partial class ExcelLibraryComparisonRunner {
         }
 
         if (rowsRead != rowCount) {
-            throw new InvalidOperationException($"Expected {rowCount} shared string rows, got {rowsRead}.");
+            throw new InvalidOperationException($"Expected {rowCount} string rows, got {rowsRead}.");
         }
 
         return metric;
     }
 
-    private static int ExcelDataReaderReadSharedStrings(byte[] workbookBytes, int rowCount) {
+    private static int ExcelDataReaderReadStringPayload(byte[] workbookBytes, int rowCount) {
         using var stream = new MemoryStream(workbookBytes, writable: false);
         using var reader = CreateExcelDataReader(stream);
         OpenExcelDataReaderWorksheet(reader, "Strings");
@@ -4842,7 +4864,7 @@ internal static partial class ExcelLibraryComparisonRunner {
         }
 
         if (rowsRead != rowCount) {
-            throw new InvalidOperationException($"Expected {rowCount} shared string rows, got {rowsRead}.");
+            throw new InvalidOperationException($"Expected {rowCount} string rows, got {rowsRead}.");
         }
 
         return metric;
@@ -5054,17 +5076,6 @@ internal static partial class ExcelLibraryComparisonRunner {
         return GetValidatedWorkbookFixtureBytes(stream, "formula-heavy read");
     }
 
-    private static byte[] CreateSharedStringWorkbookBytes(int rowCount) {
-        using var stream = new MemoryStream();
-        using (var document = ExcelDocument.Create(stream)) {
-            var sheet = document.AddWorksheet("Strings");
-            sheet.CellValues(BuildSharedStringCells(rowCount), ExecutionMode.Parallel);
-            document.Save(stream);
-        }
-
-        return GetValidatedWorkbookFixtureBytes(stream, "shared-string read");
-    }
-
     private static byte[] CreateSparseWorkbookBytes(int lastRow) {
         using var stream = new MemoryStream();
         using (var document = ExcelDocument.Create(stream)) {
@@ -5083,14 +5094,19 @@ internal static partial class ExcelLibraryComparisonRunner {
             throw new InvalidOperationException($"The {fixtureName} benchmark fixture produced an empty workbook.");
         }
 
-        using (ExcelDocumentReader.Open(workbookBytes)) {
-            // Validate the lazy fixture before any timed reader implementation consumes it.
+        using var packageStream = new MemoryStream(workbookBytes, writable: false);
+        using (var document = SpreadsheetDocument.Open(packageStream, isEditable: false)) {
+            var validationErrors = new OpenXmlValidator().Validate(document).Take(5).ToArray();
+            if (validationErrors.Length > 0) {
+                string details = string.Join(" | ", validationErrors.Select(error => $"{error.Path?.XPath}: {error.Description}"));
+                throw new InvalidOperationException($"The {fixtureName} benchmark fixture is invalid Open XML: {details}");
+            }
         }
 
         return workbookBytes;
     }
 
-    private static (int Row, int Column, object Value)[] BuildSharedStringCells(int rowCount) {
+    private static (int Row, int Column, object Value)[] BuildTextHeavyCells(int rowCount) {
         var cells = new (int Row, int Column, object Value)[rowCount * 3];
         int offset = 0;
         for (int row = 1; row <= rowCount; row++) {
@@ -5147,24 +5163,18 @@ internal static partial class ExcelLibraryComparisonRunner {
     }
 
     private static (int Row, int Column, object Value)[] BuildSparseObjectCells(int rowCount) {
-        var cells = new (int Row, int Column, object Value)[(rowCount + 1) * 4];
+        var cells = new (int Row, int Column, object Value)[rowCount * 4];
         int offset = 0;
-        cells[offset++] = (1, 1, "Name");
-        cells[offset++] = (1, 2, "Amount");
-        cells[offset++] = (1, 3, "Active");
-        cells[offset++] = (1, 4, "Created");
-
         var start = new DateTime(2026, 1, 1, 8, 30, 0, DateTimeKind.Unspecified);
         for (int row = 1; row <= rowCount; row++) {
-            int rowNumber = row + 1;
             object? name = row % 3 == 0 ? null : "Item " + (row % 12).ToString(CultureInfo.InvariantCulture);
             object? amount = row % 4 == 0 ? null : (double)row * 1.25d;
             object? active = row % 5 == 0 ? null : row % 2 == 0;
             object? created = row % 7 == 0 ? null : start.AddDays(row);
-            cells[offset++] = (rowNumber, 1, name!);
-            cells[offset++] = (rowNumber, 2, amount!);
-            cells[offset++] = (rowNumber, 3, active!);
-            cells[offset++] = (rowNumber, 4, created!);
+            cells[offset++] = (row, 1, name!);
+            cells[offset++] = (row, 2, amount!);
+            cells[offset++] = (row, 3, active!);
+            cells[offset++] = (row, 4, created!);
         }
 
         return cells;
@@ -5518,7 +5528,10 @@ internal static partial class ExcelLibraryComparisonRunner {
            || string.Equals(scenario, "read-objects", StringComparison.Ordinal)
            || string.Equals(scenario, "read-objects-stream", StringComparison.Ordinal)
            || string.Equals(scenario, "formula-heavy-read", StringComparison.Ordinal)
-           || string.Equals(scenario, "shared-string-read", StringComparison.Ordinal)
+           || string.Equals(scenario, "read-shared-strings-stream", StringComparison.Ordinal)
+           || string.Equals(scenario, "read-shared-strings-materialized", StringComparison.Ordinal)
+           || string.Equals(scenario, "read-inline-strings-stream", StringComparison.Ordinal)
+           || string.Equals(scenario, "read-inline-strings-materialized", StringComparison.Ordinal)
            || string.Equals(scenario, DenseHelloWorldReadRangeScenario, StringComparison.Ordinal)
            || string.Equals(scenario, DenseHelloWorldReadStreamScenario, StringComparison.Ordinal);
 

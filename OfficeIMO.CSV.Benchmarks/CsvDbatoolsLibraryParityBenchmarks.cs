@@ -3,7 +3,6 @@
 using System.Globalization;
 using System.Text;
 using BenchmarkDotNet.Attributes;
-using BenchmarkDotNet.Jobs;
 using CsvHelper.Configuration;
 using nietras.SeparatedValues;
 using CsvHelperReader = CsvHelper.CsvReader;
@@ -17,7 +16,6 @@ namespace OfficeIMO.CSV.Benchmarks;
 
 [MemoryDiagnoser]
 [RankColumn]
-[SimpleJob(RuntimeMoniker.Net80)]
 public class CsvDbatoolsLibraryParityBenchmarks
 {
     private const int FirstColumnIndex = 0;

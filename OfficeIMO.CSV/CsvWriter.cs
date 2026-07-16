@@ -315,6 +315,26 @@ internal static partial class CsvWriter
         WriteBufferedRecordLine(writer, buffer, newLine);
     }
 
+    internal static void AppendRecordDefault(
+        StringBuilder buffer,
+        object?[] values,
+        char delimiter,
+        string newLine,
+        CultureInfo culture)
+    {
+        for (var i = 0; i < values.Length; i++)
+        {
+            if (i > 0)
+            {
+                buffer.Append(delimiter);
+            }
+
+            AppendEscapedValueDefault(buffer, values[i], delimiter, culture);
+        }
+
+        buffer.Append(newLine);
+    }
+
     internal static void WriteRecordBufferedDefault(
         TextWriter writer,
         StringBuilder buffer,
@@ -339,6 +359,25 @@ internal static partial class CsvWriter
         }
 
         WriteBufferedRecordLine(writer, buffer, newLine);
+    }
+
+    internal static void AppendRecordDefault(
+        StringBuilder buffer,
+        string?[] values,
+        char delimiter,
+        string newLine)
+    {
+        for (var i = 0; i < values.Length; i++)
+        {
+            if (i > 0)
+            {
+                buffer.Append(delimiter);
+            }
+
+            AppendEscapedTextDefault(buffer, values[i], delimiter);
+        }
+
+        buffer.Append(newLine);
     }
 
     internal static void WriteRecordBufferedDefault<TState>(
@@ -972,6 +1011,61 @@ internal static partial class CsvWriter
             return;
         }
 
+        switch (value)
+        {
+            case decimal number:
+                AppendKnownValueDefault(buffer, number, delimiter, culture);
+                return;
+            case int number:
+                AppendKnownValueDefault(buffer, number, delimiter, culture);
+                return;
+            case DateTime dateTime:
+                AppendKnownValueDefault(buffer, dateTime, delimiter, culture);
+                return;
+            case double number:
+                AppendKnownValueDefault(buffer, number, delimiter, culture);
+                return;
+            case long number:
+                AppendKnownValueDefault(buffer, number, delimiter, culture);
+                return;
+            case DateTimeOffset dateTimeOffset:
+                AppendKnownValueDefault(buffer, dateTimeOffset, delimiter, culture);
+                return;
+            case Guid guid:
+                AppendKnownValueDefault(buffer, guid, delimiter, culture);
+                return;
+            case TimeSpan timeSpan:
+                AppendKnownValueDefault(buffer, timeSpan, delimiter, culture);
+                return;
+            case float number:
+                AppendKnownValueDefault(buffer, number, delimiter, culture);
+                return;
+            case byte number:
+                AppendKnownValueDefault(buffer, number, delimiter, culture);
+                return;
+            case sbyte number:
+                AppendKnownValueDefault(buffer, number, delimiter, culture);
+                return;
+            case short number:
+                AppendKnownValueDefault(buffer, number, delimiter, culture);
+                return;
+            case ushort number:
+                AppendKnownValueDefault(buffer, number, delimiter, culture);
+                return;
+            case uint number:
+                AppendKnownValueDefault(buffer, number, delimiter, culture);
+                return;
+            case ulong number:
+                AppendKnownValueDefault(buffer, number, delimiter, culture);
+                return;
+            case DateOnly dateOnly:
+                AppendKnownValueDefault(buffer, dateOnly, delimiter, culture);
+                return;
+            case TimeOnly timeOnly:
+                AppendKnownValueDefault(buffer, timeOnly, delimiter, culture);
+                return;
+        }
+
         if (value is ISpanFormattable spanFormattable)
         {
             Span<char> destination = stackalloc char[128];
@@ -1453,7 +1547,7 @@ internal static partial class CsvWriter
         return false;
     }
 
-    private static void WritePlainTextRecordBuffered(TextWriter writer, StringBuilder buffer, string?[] values, char delimiter, string newLine)
+    internal static void WritePlainTextRecordBuffered(TextWriter writer, StringBuilder buffer, string?[] values, char delimiter, string newLine)
     {
         if (buffer == null)
         {

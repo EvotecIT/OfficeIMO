@@ -91,7 +91,7 @@ try {
             "*CsvWideBenchmarks.OfficeIMO_WriteValidatedTextRows*",
             "*CsvWideBenchmarks.CsvHelper_WriteProjectedRows*",
             "*CsvWideBenchmarks.CsvHelper_WriteTextRows*",
-            "*CsvWideBenchmarks.Sep_WriteProjectedRows*",
+            "*CsvWideBenchmarks.Sep_WriteTextRows*",
             "*CsvWideBenchmarks.Sylvan_WriteProjectedRows*",
             "*CsvWideBenchmarks.Sylvan_WriteTextRows*",
             "*CsvWideBenchmarks.Dataplat_WriteProjectedRows*",
@@ -228,7 +228,7 @@ try {
             "OfficeIMO_WriteValidatedTextRows" = "OfficeIMO.CSV"
             "CsvHelper_WriteProjectedRows" = "CsvHelper"
             "CsvHelper_WriteTextRows" = "CsvHelper"
-            "Sep_WriteProjectedRows" = "Sep"
+            "Sep_WriteTextRows" = "Sep"
             "Sylvan_WriteProjectedRows" = "Sylvan.Data.Csv"
             "Sylvan_WriteTextRows" = "Sylvan.Data.Csv"
             "Dataplat_WriteProjectedRows" = "Dataplat.Dbatools.Csv"
@@ -239,7 +239,7 @@ try {
             "Wide field-span CSV read" = @{ Operation = "Read every field"; Baseline = "OfficeIMO_ReadTextFieldSpanVisitorSkipHeader"; Methods = @("OfficeIMO_ReadTextFieldSpanVisitorSkipHeader", "Sep_ReadFieldSpans", "Sylvan_ReadFieldSpans"); Contract = "field spans" }
             "Wide projected-array CSV write" = @{ Operation = "Format and write rows"; Baseline = "OfficeIMO_WriteProjectedRows"; Methods = @("OfficeIMO_WriteProjectedRows", "CsvHelper_WriteProjectedRows", "Dataplat_WriteProjectedRows"); Contract = "projected object arrays" }
             "Wide DataReader CSV write" = @{ Operation = "Format and write rows"; Baseline = "OfficeIMO_WriteDataReader"; Methods = @("OfficeIMO_WriteDataReader", "Sylvan_WriteProjectedRows", "Dataplat_WriteFromReader"); Contract = "IDataReader" }
-            "Wide validated text-row CSV write" = @{ Operation = "Validate and write rows"; Baseline = "OfficeIMO_WriteValidatedTextRows"; Methods = @("OfficeIMO_WriteValidatedTextRows", "CsvHelper_WriteTextRows", "Sep_WriteProjectedRows", "Sylvan_WriteTextRows", "Dataplat_WriteTextRows"); Contract = "preformatted text with escaping" }
+            "Wide validated text-row CSV write" = @{ Operation = "Validate and write rows"; Baseline = "OfficeIMO_WriteValidatedTextRows"; Methods = @("OfficeIMO_WriteValidatedTextRows", "CsvHelper_WriteTextRows", "Sep_WriteTextRows", "Sylvan_WriteTextRows", "Dataplat_WriteTextRows"); Contract = "preformatted text with escaping" }
         }
         $selected = @($csvRun.Summary | Where-Object {
             $_.Scenario -in $csvEngines.Keys -and

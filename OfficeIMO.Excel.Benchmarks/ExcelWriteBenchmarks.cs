@@ -1,11 +1,9 @@
 using BenchmarkDotNet.Attributes;
-using BenchmarkDotNet.Jobs;
 using ClosedXML.Excel;
 
 namespace OfficeIMO.Excel.Benchmarks;
 
 [MemoryDiagnoser]
-[SimpleJob(RuntimeMoniker.Net80)]
 public class ExcelWriteBenchmarks {
     private IReadOnlyList<ExcelBenchmarkScenarioFactory.SalesRecord> _rows = null!;
 
