@@ -4,7 +4,7 @@ namespace OfficeIMO.Email.Store;
 /// Keeps an email-store source open for bounded folder discovery, lightweight item enumeration,
 /// and explicit item reads. Sessions are not thread-safe.
 /// </summary>
-public sealed class EmailStoreSession : IDisposable {
+public sealed partial class EmailStoreSession : IDisposable {
     private readonly Stream _stream;
     private readonly bool _leaveOpen;
     private readonly long _originalPosition;
