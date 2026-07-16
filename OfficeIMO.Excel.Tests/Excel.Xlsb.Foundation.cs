@@ -676,6 +676,17 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Xlsb_NativeRewrite_EncodesChangedCommonFormula() {
+            using ExcelDocument document = ExcelDocument.Load(GetExcelGeneratedXlsbFixturePath());
+            document.Sheets[0].CellFormula(3, 2, "SUM(B2,9)");
+
+            byte[] rewritten = document.ToBytes(ExcelFileFormat.Xlsb);
+
+            using ExcelDocument reloaded = ExcelDocument.Load(new MemoryStream(rewritten, writable: false));
+            Assert.Equal("SUM(B2,9)", reloaded.Sheets[0].CellAt(3, 2).GetValue().Formula);
+        }
+
+        [Fact]
         public void Xlsb_NativeRewrite_HandlesTextBooleanAndNewRowsAcrossSequentialSaves() {
             using ExcelDocument document = ExcelDocument.Load(GetExcelGeneratedXlsbFixturePath());
             ExcelSheet sheet = document.Sheets[0];
@@ -846,9 +857,30 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Xlsb_NewWorkbook_WritesCommonFormulaTokensAndCachedResults() {
+            using ExcelDocument document = ExcelDocument.Create();
+            ExcelSheet sheet = document.AddWorksheet("Formula");
+            sheet.CellValue(1, 1, 2D);
+            sheet.CellValue(2, 1, 3D);
+            sheet.CellFormula(3, 1, "SUM(A1:A2)");
+            sheet.CellFormula(4, 1, "\"Hello\"&\" \"&\"XLSB\"");
+            sheet.CellFormula(5, 1, "IF(A1>A2,\"High\",\"Low\")");
+            sheet.CellFormula(6, 1, "IFERROR(A1/0,\"Divide error\")");
+            sheet.CellFormula(7, 1, "CHOOSE(2,\"First\",\"Second\",\"Third\")");
+
+            byte[] package = document.ToBytes(ExcelFileFormat.Xlsb);
+            using ExcelDocument reloaded = ExcelDocument.Load(new MemoryStream(package, writable: false));
+            Assert.Equal("SUM(A1:A2)", reloaded.Sheets[0].CellAt(3, 1).GetValue().Formula);
+            Assert.Equal("\"Hello\"&\" \"&\"XLSB\"", reloaded.Sheets[0].CellAt(4, 1).GetValue().Formula);
+            Assert.Equal("IF(A1>A2,\"High\",\"Low\")", reloaded.Sheets[0].CellAt(5, 1).GetValue().Formula);
+            Assert.Equal("IFERROR(A1/0,\"Divide error\")", reloaded.Sheets[0].CellAt(6, 1).GetValue().Formula);
+            Assert.Equal("CHOOSE(2,\"First\",\"Second\",\"Third\")", reloaded.Sheets[0].CellAt(7, 1).GetValue().Formula);
+        }
+
+        [Fact]
         public void Xlsb_NewWorkbook_RejectsUnsupportedFormulaBeforeTouchingDestinationContent() {
             using ExcelDocument document = ExcelDocument.Create();
-            document.AddWorksheet("Formula").CellFormula(1, 1, "1+1");
+            document.AddWorksheet("Formula").CellFormula(1, 1, "Sheet1!A1");
             byte[] sentinel = Enumerable.Range(0, 64).Select(index => (byte)index).ToArray();
             using var destination = new MemoryStream();
             destination.Write(sentinel, 0, sentinel.Length);
@@ -856,7 +888,7 @@ namespace OfficeIMO.Tests {
             NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
                 document.Save(destination, ExcelFileFormat.Xlsb));
 
-            Assert.Contains("does not encode changed formula", exception.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("cannot encode", exception.Message, StringComparison.OrdinalIgnoreCase);
             Assert.Equal(sentinel, destination.ToArray());
         }
 

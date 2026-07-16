@@ -173,38 +173,42 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             int column,
             uint styleIndex) {
             string formulaText = cell.CellFormula?.Text ?? string.Empty;
-            if (sourceCell?.FormulaBytes == null
-                || string.IsNullOrWhiteSpace(sourceCell.FormulaText)
-                || !string.Equals(sourceCell.FormulaText, formulaText, StringComparison.Ordinal)) {
-                throw new NotSupportedException($"Native XLSB rewriting currently preserves existing formula token streams but does not encode changed formula '{formulaText}' at {ToAddress(row, column)}. Save as .xlsx or keep the source formula unchanged.");
+            byte[] formulaPayload;
+            if (sourceCell?.FormulaBytes != null
+                && !string.IsNullOrWhiteSpace(sourceCell.FormulaText)
+                && string.Equals(sourceCell.FormulaText, formulaText, StringComparison.Ordinal)) {
+                formulaPayload = sourceCell.FormulaPayloadBytes
+                    ?? throw new InvalidDataException($"The preserved XLSB formula at {ToAddress(row, column)} has no complete formula payload.");
+            } else if (!XlsbFormulaEncoder.TryEncode(formulaText, out formulaPayload, out string? reason)) {
+                throw new NotSupportedException($"Native XLSB generation cannot encode formula '{formulaText}' at {ToAddress(row, column)}. {reason}");
             }
 
             CellValues? dataType = cell.DataType?.Value;
             string rawValue = cell.CellValue?.InnerText ?? string.Empty;
             if (dataType == CellValues.Boolean) {
-                return new XlsbWriteCell(row, column, styleIndex, XlsbWriteCellKind.FormulaBoolean, rawValue == "1" || rawValue.Equals("true", StringComparison.OrdinalIgnoreCase), sourceCell.FormulaPayloadBytes);
+                return new XlsbWriteCell(row, column, styleIndex, XlsbWriteCellKind.FormulaBoolean, rawValue == "1" || rawValue.Equals("true", StringComparison.OrdinalIgnoreCase), formulaPayload);
             }
 
             if (dataType == CellValues.Error) {
-                return new XlsbWriteCell(row, column, styleIndex, XlsbWriteCellKind.FormulaError, GetErrorCode(rawValue, row, column), sourceCell.FormulaPayloadBytes);
+                return new XlsbWriteCell(row, column, styleIndex, XlsbWriteCellKind.FormulaError, GetErrorCode(rawValue, row, column), formulaPayload);
             }
 
             if (dataType == CellValues.SharedString || dataType == CellValues.InlineString || dataType == CellValues.String) {
                 string text = sheet.GetCellText(cell);
                 EnsureCellTextLength(text, row, column);
-                return new XlsbWriteCell(row, column, styleIndex, XlsbWriteCellKind.FormulaText, text, sourceCell.FormulaPayloadBytes);
+                return new XlsbWriteCell(row, column, styleIndex, XlsbWriteCellKind.FormulaText, text, formulaPayload);
             }
 
             if (dataType == CellValues.Date
                 && DateTime.TryParse(rawValue, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out DateTime date)) {
-                return new XlsbWriteCell(row, column, styleIndex, XlsbWriteCellKind.FormulaNumber, ExcelDateSystemConverter.ToSerial(date, document.DateSystem), sourceCell.FormulaPayloadBytes);
+                return new XlsbWriteCell(row, column, styleIndex, XlsbWriteCellKind.FormulaNumber, ExcelDateSystemConverter.ToSerial(date, document.DateSystem), formulaPayload);
             }
 
             if (double.TryParse(rawValue, NumberStyles.Float, CultureInfo.InvariantCulture, out double number)) {
-                return new XlsbWriteCell(row, column, styleIndex, XlsbWriteCellKind.FormulaNumber, number, sourceCell.FormulaPayloadBytes);
+                return new XlsbWriteCell(row, column, styleIndex, XlsbWriteCellKind.FormulaNumber, number, formulaPayload);
             }
 
-            throw new NotSupportedException($"Native XLSB rewriting requires a cached result for formula cell {ToAddress(row, column)}.");
+            return new XlsbWriteCell(row, column, styleIndex, XlsbWriteCellKind.FormulaNumber, 0D, formulaPayload);
         }
 
         private static bool CellMatchesSource(ExcelSheet sheet, Cell cell, XlsbCell sourceCell) {

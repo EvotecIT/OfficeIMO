@@ -124,7 +124,8 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             [0x016d] = "VARPA",
             [0x016e] = "STDEVA",
             [0x016f] = "VARA",
-            [0x017b] = "RTD"
+            [0x017b] = "RTD",
+            [0x01e0] = "IFERROR"
         };
 
         private static bool TryGetVariableFunctionName(ushort functionId, out string? functionName) {
@@ -135,6 +136,8 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             switch (functionId) {
                 case 0x0001:
                     return parameterCount == 2 || parameterCount == 3;
+                case 0x01e0:
+                    return parameterCount == 2;
                 case 0x000b:
                     return parameterCount >= 2;
                 case 0x001c:
