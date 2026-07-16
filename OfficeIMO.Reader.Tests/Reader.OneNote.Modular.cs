@@ -1,6 +1,7 @@
 using OfficeIMO.Reader;
 using OfficeIMO.Reader.OneNote;
 using OfficeIMO.OneNote;
+using System.Text;
 using System.Threading.Tasks;
 using Xunit;
 
@@ -238,6 +239,73 @@ public sealed class ReaderOneNoteModularTests {
 
         Assert.Equal(ReaderInputKind.OneNote, result.Kind);
         Assert.Contains("This is one note 2016", Assert.Single(result.Chunks).Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void OneNoteAdapter_ContentDetectionDispatchesExtensionlessPackage() {
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddOneNoteHandler().Build();
+        using var stream = new MemoryStream(CreateOneNotePackage());
+
+        ReaderDetectionResult detection = reader.Detect(stream, "upload.bin");
+        OfficeDocumentReadResult result = reader.ReadDocument(stream, "upload.bin");
+
+        Assert.Equal(ReaderInputKind.OneNote, detection.Kind);
+        Assert.True(detection.ContainerInspected);
+        Assert.Contains("container:onenote-package", detection.Evidence);
+        Assert.Equal(ReaderInputKind.OneNote, result.Kind);
+        Assert.Equal("Packaged page", Assert.Single(result.Pages).Name);
+        Assert.Contains("Offline package content", Assert.Single(result.Chunks).Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task OneNoteAdapter_ContentDetectionDispatchesExtensionlessPackageAsync() {
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddOneNoteHandler().Build();
+        using var stream = new MemoryStream(CreateOneNotePackage());
+
+        OfficeDocumentReadResult result = await reader.ReadDocumentAsync(stream, "upload.bin");
+
+        Assert.Equal(ReaderInputKind.OneNote, result.Kind);
+        Assert.Equal("Packaged page", Assert.Single(result.Pages).Name);
+        Assert.Contains("Offline package content", Assert.Single(result.Chunks).Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void OneNoteAdapter_ContentDetectionDoesNotTreatGenericCabinetAsOneNote() {
+        byte[] cabinet = CreateOneNotePackage();
+        byte[] tocExtension = Encoding.ASCII.GetBytes(".onetoc2");
+        bool replaced = false;
+        for (int index = 0; index <= cabinet.Length - tocExtension.Length; index++) {
+            bool match = true;
+            for (int markerIndex = 0; markerIndex < tocExtension.Length; markerIndex++) {
+                if (cabinet[index + markerIndex] != tocExtension[markerIndex]) {
+                    match = false;
+                    break;
+                }
+            }
+            if (!match) continue;
+            cabinet[index + tocExtension.Length - 1] = (byte)'x';
+            replaced = true;
+        }
+        Assert.True(replaced);
+
+        ReaderDetectionResult detection = OfficeDocumentReader.Default.Detect(cabinet, "archive.bin");
+
+        Assert.Equal(ReaderInputKind.Unknown, detection.Kind);
+        Assert.Equal(ReaderInputKind.Unknown, detection.ContentKind);
+        Assert.True(detection.ContainerInspected);
+        Assert.Contains("container:cabinet-generic", detection.Evidence);
+    }
+
+    private static byte[] CreateOneNotePackage() {
+        var notebook = new OneNoteNotebook { Name = "Packaged notebook" };
+        var section = new OneNoteSection { Name = "Packaged section" };
+        var page = new OneNotePage { Title = "Packaged page" };
+        var paragraph = new OneNoteParagraph();
+        paragraph.Runs.Add(new OneNoteTextRun { Text = "Offline package content" });
+        page.DirectContent.Add(paragraph);
+        section.Pages.Add(page);
+        notebook.Sections.Add(section);
+        return OneNotePackageWriter.Write(notebook);
     }
 
     private static string FixturePath(string fileName) => Path.Combine(AppContext.BaseDirectory, "OneNoteFixtures", fileName);

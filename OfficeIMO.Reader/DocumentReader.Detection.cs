@@ -266,6 +266,11 @@ internal static partial class DocumentReaderEngine {
                     ? InspectEmailCompound(stream, originalPosition, options.MaxContainerEntries)
                     : InspectEmailCompound(prefix);
                 containerInspected = true;
+            } else if (IsCabinet(prefix) && options.InspectContainers) {
+                candidate = restorePosition
+                    ? InspectCabinetContainer(stream, originalPosition, options.MaxContainerEntries)
+                    : InspectCabinetContainer(prefix, options.MaxContainerEntries);
+                containerInspected = true;
             }
 
             return BuildCombinedDetection(
@@ -307,6 +312,15 @@ internal static partial class DocumentReaderEngine {
                 candidate = restorePosition
                     ? InspectEmailCompound(stream, originalPosition, options.MaxContainerEntries)
                     : InspectEmailCompound(prefix);
+                containerInspected = true;
+            } else if (IsCabinet(prefix) && options.InspectContainers) {
+                candidate = restorePosition
+                    ? await InspectCabinetContainerAsync(
+                        stream,
+                        originalPosition,
+                        options.MaxContainerEntries,
+                        cancellationToken).ConfigureAwait(false)
+                    : InspectCabinetContainer(prefix, options.MaxContainerEntries);
                 containerInspected = true;
             }
 
@@ -464,6 +478,9 @@ internal static partial class DocumentReaderEngine {
         }
         if (StartsWith(prefix, new byte[] { 0xD0, 0xCF, 0x11, 0xE0, 0xA1, 0xB1, 0x1A, 0xE1 })) {
             return DetectionCandidate.Unknown("signature:ole-compound");
+        }
+        if (IsCabinet(prefix)) {
+            return DetectionCandidate.Unknown("signature:cabinet");
         }
 
         string? text = DecodeTextPrefix(prefix);
