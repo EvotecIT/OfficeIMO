@@ -28,6 +28,12 @@ public sealed class OneNoteReaderOptions {
     /// <summary>Maximum nesting depth for child property sets.</summary>
     public const int DefaultMaxPropertySetDepth = 128;
 
+    /// <summary>Maximum number of distinct page object-space references traversed from one section.</summary>
+    public const int DefaultMaxPageGraphNodes = 100_000;
+
+    /// <summary>Maximum nesting depth across conflict and version-history page relationships.</summary>
+    public const int DefaultMaxPageRelationshipDepth = 128;
+
     /// <summary>Maximum bytes retained for one embedded asset.</summary>
     public const long DefaultMaxAssetBytes = 64L * 1024L * 1024L;
 
@@ -66,6 +72,12 @@ public sealed class OneNoteReaderOptions {
 
     /// <summary>Maximum recursive nesting depth for child property sets.</summary>
     public int MaxPropertySetDepth { get; set; } = DefaultMaxPropertySetDepth;
+
+    /// <summary>Maximum distinct current, conflict, and version-history object-space references traversed from one section.</summary>
+    public int MaxPageGraphNodes { get; set; } = DefaultMaxPageGraphNodes;
+
+    /// <summary>Maximum nesting depth across conflict and version-history page relationships.</summary>
+    public int MaxPageRelationshipDepth { get; set; } = DefaultMaxPageRelationshipDepth;
 
     /// <summary>Maximum bytes materialized for one image or embedded file.</summary>
     public long MaxAssetBytes { get; set; } = DefaultMaxAssetBytes;
@@ -107,6 +119,8 @@ public sealed class OneNoteReaderOptions {
         if (MaxObjects < 1) throw new ArgumentOutOfRangeException(nameof(MaxObjects));
         if (MaxPropertiesPerObject < 1) throw new ArgumentOutOfRangeException(nameof(MaxPropertiesPerObject));
         if (MaxPropertySetDepth < 1) throw new ArgumentOutOfRangeException(nameof(MaxPropertySetDepth));
+        if (MaxPageGraphNodes < 1) throw new ArgumentOutOfRangeException(nameof(MaxPageGraphNodes));
+        if (MaxPageRelationshipDepth < 1) throw new ArgumentOutOfRangeException(nameof(MaxPageRelationshipDepth));
         if (MaxAssetBytes < 1) throw new ArgumentOutOfRangeException(nameof(MaxAssetBytes));
         if (MaxTotalAssetBytes < MaxAssetBytes) {
             throw new ArgumentOutOfRangeException(nameof(MaxTotalAssetBytes), "MaxTotalAssetBytes must be at least MaxAssetBytes.");

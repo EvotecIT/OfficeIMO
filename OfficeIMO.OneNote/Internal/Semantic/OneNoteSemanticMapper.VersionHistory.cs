@@ -12,8 +12,10 @@ internal static partial class OneNoteSemanticMapper {
         OneNoteExtendedGuid objectSpaceId,
         OneNoteRevisionStoreObject manifest,
         OneNoteReaderOptions options,
-        HashSet<string> ancestry) {
+        PageMappingState pageMapping) {
         foreach (OneNoteExtendedGuid historyContextId in GetReferences(manifest, VersionHistoryGraphSpaceContextNodes)) {
+            string historyKey = OneNoteObjectSpaceMaterializer.GetSpaceKey(objectSpaceId, historyContextId);
+            if (!pageMapping.TryVisit(historyKey)) continue;
             OneNoteMaterializedObjectSpace? historySpace = materializer.TryGetSpace(objectSpaceId, historyContextId);
             OneNoteRevisionStoreObject? historyRoot = historySpace?.GetRoot(1);
             if (historySpace == null || historyRoot?.Jcid.Value != JcidVersionHistoryContent) continue;
@@ -23,7 +25,7 @@ internal static partial class OneNoteSemanticMapper {
                 if (proxy?.Jcid.Value != JcidVersionProxy) continue;
 
                 foreach (OneNoteExtendedGuid versionContextId in GetReferences(proxy, VersionHistoryGraphSpaceContextNodes)) {
-                    OneNotePage? version = MapPage(materializer, objectSpaceId, versionContextId, true, options, ancestry);
+                    OneNotePage? version = MapPage(materializer, objectSpaceId, versionContextId, true, options, pageMapping);
                     if (version == null) continue;
 
                     version.PreservationIds.VersionProxyId = proxy.Id;

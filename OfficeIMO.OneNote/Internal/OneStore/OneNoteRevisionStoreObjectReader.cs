@@ -40,43 +40,48 @@ internal static class OneNoteRevisionStoreObjectReader {
 
         public void ProcessList(OneNoteFileNodeList list, OneNoteRevisionManifest? inheritedRevision) {
             if (!_visited.Add(list)) return;
-            var globalIds = new Dictionary<uint, Guid>();
-            OneNoteRevisionManifest? currentRevision = inheritedRevision;
-            OneNoteExtendedGuid? currentObjectSpace = inheritedRevision?.ObjectSpaceId;
+            var frames = new Stack<ListFrame>();
+            frames.Push(new ListFrame(list, inheritedRevision));
 
-            foreach (OneNoteFileNode node in list.Nodes) {
+            while (frames.Count > 0) {
+                ListFrame frame = frames.Peek();
+                if (frame.NextNodeIndex >= frame.List.Nodes.Count) {
+                    frames.Pop();
+                    continue;
+                }
+                OneNoteFileNode node = frame.List.Nodes[frame.NextNodeIndex++];
                 switch (node.RawId) {
                     case (ushort)OneNoteFileNodeId.RevisionManifestListStart:
-                        currentObjectSpace = ReadExtendedGuid(node.EncodedData.ToArray(24), 0);
+                        frame.CurrentObjectSpace = ReadExtendedGuid(node.EncodedData.ToArray(24), 0);
                         break;
                     case (ushort)OneNoteFileNodeId.RevisionManifestStart4:
                     case (ushort)OneNoteFileNodeId.RevisionManifestStart6:
                     case (ushort)OneNoteFileNodeId.RevisionManifestStart7:
-                        currentRevision = ReadRevisionManifest(node);
-                        currentRevision.ObjectSpaceId = currentObjectSpace;
-                        currentRevision.AddRoleAssociation(currentRevision.ContextId, currentRevision.Role, _nextRoleAssociationOrder++);
-                        if (_knownRevisions.ContainsKey(currentRevision.Id)) {
+                        frame.CurrentRevision = ReadRevisionManifest(node);
+                        frame.CurrentRevision.ObjectSpaceId = frame.CurrentObjectSpace;
+                        frame.CurrentRevision.AddRoleAssociation(frame.CurrentRevision.ContextId, frame.CurrentRevision.Role, _nextRoleAssociationOrder++);
+                        if (_knownRevisions.ContainsKey(frame.CurrentRevision.Id)) {
                             throw new OneNoteFormatException("ONENOTE_REVISION_ID", "A revision manifest identifier is duplicated.", node.FileOffset);
                         }
-                        _knownRevisions.Add(currentRevision.Id, currentRevision);
-                        Result.Revisions.Add(currentRevision);
+                        _knownRevisions.Add(frame.CurrentRevision.Id, frame.CurrentRevision);
+                        Result.Revisions.Add(frame.CurrentRevision);
                         break;
                     case (ushort)OneNoteFileNodeId.RevisionRoleDeclaration:
-                        ReadRevisionRoleDeclaration(node, currentObjectSpace, false);
+                        ReadRevisionRoleDeclaration(node, frame.CurrentObjectSpace, false);
                         break;
                     case (ushort)OneNoteFileNodeId.RevisionRoleAndContextDeclaration:
-                        ReadRevisionRoleDeclaration(node, currentObjectSpace, true);
+                        ReadRevisionRoleDeclaration(node, frame.CurrentObjectSpace, true);
                         break;
                     case (ushort)OneNoteFileNodeId.GlobalIdTableStart:
                     case (ushort)OneNoteFileNodeId.GlobalIdTableStart2:
-                        globalIds.Clear();
+                        frame.GlobalIds.Clear();
                         break;
                     case (ushort)OneNoteFileNodeId.GlobalIdTableEntry:
-                        ReadGlobalIdEntry(node, globalIds);
+                        ReadGlobalIdEntry(node, frame.GlobalIds);
                         break;
                     case (ushort)OneNoteFileNodeId.RootObjectReference2:
                     case (ushort)OneNoteFileNodeId.RootObjectReference3:
-                        if (currentRevision != null) ReadRootReference(node, globalIds, currentRevision);
+                        if (frame.CurrentRevision != null) ReadRootReference(node, frame.GlobalIds, frame.CurrentRevision);
                         break;
                     case (ushort)OneNoteFileNodeId.ObjectDeclarationWithRefCount:
                     case (ushort)OneNoteFileNodeId.ObjectDeclarationWithRefCount2:
@@ -86,24 +91,38 @@ internal static class OneNoteRevisionStoreObjectReader {
                     case (ushort)OneNoteFileNodeId.ReadOnlyObjectDeclaration2LargeRefCount:
                     case (ushort)OneNoteFileNodeId.ObjectRevisionWithRefCount:
                     case (ushort)OneNoteFileNodeId.ObjectRevisionWithRefCount2:
-                        ReadObject(node, globalIds, currentRevision);
+                        ReadObject(node, frame.GlobalIds, frame.CurrentRevision);
                         break;
                     case (ushort)OneNoteFileNodeId.ObjectDeclarationFileData3RefCount:
                     case (ushort)OneNoteFileNodeId.ObjectDeclarationFileData3LargeRefCount:
-                        ReadFileDataDeclaration(node, globalIds, currentRevision);
+                        ReadFileDataDeclaration(node, frame.GlobalIds, frame.CurrentRevision);
                         break;
                     case (ushort)OneNoteFileNodeId.FileDataStoreObjectReference:
                         ReadFileDataStoreObject(node);
                         break;
                 }
 
-                if (node.ReferencedFileNodeList != null) {
+                if (node.ReferencedFileNodeList != null && _visited.Add(node.ReferencedFileNodeList)) {
                     OneNoteRevisionManifest? childRevision = node.RawId == (ushort)OneNoteFileNodeId.ObjectGroupListReference
-                        ? currentRevision
+                        ? frame.CurrentRevision
                         : null;
-                    ProcessList(node.ReferencedFileNodeList, childRevision);
+                    frames.Push(new ListFrame(node.ReferencedFileNodeList, childRevision));
                 }
             }
+        }
+
+        private sealed class ListFrame {
+            internal ListFrame(OneNoteFileNodeList list, OneNoteRevisionManifest? inheritedRevision) {
+                List = list;
+                CurrentRevision = inheritedRevision;
+                CurrentObjectSpace = inheritedRevision?.ObjectSpaceId;
+            }
+
+            internal OneNoteFileNodeList List { get; }
+            internal Dictionary<uint, Guid> GlobalIds { get; } = new Dictionary<uint, Guid>();
+            internal OneNoteRevisionManifest? CurrentRevision { get; set; }
+            internal OneNoteExtendedGuid? CurrentObjectSpace { get; set; }
+            internal int NextNodeIndex { get; set; }
         }
 
         private OneNoteRevisionManifest ReadRevisionManifest(OneNoteFileNode node) {

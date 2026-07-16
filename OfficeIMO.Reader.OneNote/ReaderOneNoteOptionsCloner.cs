@@ -31,6 +31,8 @@ internal static class ReaderOneNoteOptionsCloner {
             MaxObjects = options.MaxObjects,
             MaxPropertiesPerObject = options.MaxPropertiesPerObject,
             MaxPropertySetDepth = options.MaxPropertySetDepth,
+            MaxPageGraphNodes = options.MaxPageGraphNodes,
+            MaxPageRelationshipDepth = options.MaxPageRelationshipDepth,
             MaxAssetBytes = options.MaxAssetBytes,
             MaxTotalAssetBytes = options.MaxTotalAssetBytes,
             MaxStreamObjects = options.MaxStreamObjects,

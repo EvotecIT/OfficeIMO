@@ -20,13 +20,19 @@ public sealed class ReaderOneNoteModularTests {
         var options = new ReaderOneNoteOptions {
             IncludeConflictPages = true,
             IncludeVersionHistory = true,
-            OneNoteOptions = new OneNoteReaderOptions { ValidateTransactionChecksums = false }
+            OneNoteOptions = new OneNoteReaderOptions {
+                ValidateTransactionChecksums = false,
+                MaxPageGraphNodes = 321,
+                MaxPageRelationshipDepth = 17
+            }
         };
 
         ReaderOneNoteOptions clone = ReaderOneNoteOptionsCloner.CloneOrDefault(options);
 
         Assert.NotSame(options.OneNoteOptions, clone.OneNoteOptions);
         Assert.False(clone.OneNoteOptions!.ValidateTransactionChecksums);
+        Assert.Equal(321, clone.OneNoteOptions.MaxPageGraphNodes);
+        Assert.Equal(17, clone.OneNoteOptions.MaxPageRelationshipDepth);
         Assert.True(clone.IncludeConflictPages);
         Assert.True(clone.IncludeVersionHistory);
     }

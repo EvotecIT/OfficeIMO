@@ -47,6 +47,42 @@ public sealed class RevisionMaterializationTests {
         Assert.Same(history, materializer.TryGetSpace(objectSpaceId, contextId)!.Revision);
     }
 
+    [Fact]
+    public void ObjectReaderTraversesLongFileNodeListChainsWithoutCallStackRecursion() {
+        const int depth = 20_000;
+        var list = new OneNoteFileNodeList(
+            depth,
+            Array.Empty<OneNoteFileNodeListFragment>(),
+            Array.Empty<OneNoteFileNode>());
+        for (int index = depth - 1; index >= 0; index--) {
+            var reference = new OneNoteFileNode(
+                (ushort)OneNoteFileNodeId.ObjectSpaceManifestListReference,
+                4,
+                0,
+                0,
+                OneNoteFileNodeBaseType.FileNodeListReference,
+                index,
+                null,
+                Array.Empty<byte>()) {
+                ReferencedFileNodeList = list
+            };
+            list = new OneNoteFileNodeList(
+                (uint)index,
+                Array.Empty<OneNoteFileNodeListFragment>(),
+                new[] { reference });
+        }
+
+        OneNoteRevisionStoreObjectReadResult result = OneNoteRevisionStoreObjectReader.Read(
+            new MemoryStream(),
+            list,
+            0,
+            new OneNoteReaderOptions());
+
+        Assert.Empty(result.Revisions);
+        Assert.Empty(result.Objects);
+        Assert.Empty(result.FileDataObjects);
+    }
+
     private static OneNoteRevisionManifest Revision(
         uint value,
         OneNoteExtendedGuid objectSpaceId,

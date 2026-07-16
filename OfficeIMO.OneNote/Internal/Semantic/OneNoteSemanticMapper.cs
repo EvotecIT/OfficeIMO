@@ -87,6 +87,7 @@ internal static partial class OneNoteSemanticMapper {
 
     public static OneNoteSection MapSection(OneNoteRevisionStore store, OneNoteReaderOptions options) {
         var materializer = new OneNoteObjectSpaceMaterializer(store);
+        var pageMapping = new PageMappingState(options);
         OneNoteMaterializedObjectSpace sectionSpace = materializer.FindCurrentSpaceByRootJcid(
             JcidSectionNode,
             "ONENOTE_SECTION_OBJECT_SPACE",
@@ -114,7 +115,7 @@ internal static partial class OneNoteSemanticMapper {
             OneNoteRevisionStoreObject? pageSeries = sectionSpace.GetObject(pageSeriesId);
             if (pageSeries?.Jcid.Value != JcidPageSeriesNode) continue;
             foreach (OneNoteExtendedGuid objectSpaceId in GetReferences(pageSeries, ChildGraphSpaceElementNodes)) {
-                OneNotePage? page = MapPage(materializer, objectSpaceId, options, new HashSet<string>(StringComparer.Ordinal));
+                OneNotePage? page = MapPage(materializer, objectSpaceId, options, pageMapping);
                 if (page != null) section.Pages.Add(page);
             }
         }
@@ -129,8 +130,8 @@ internal static partial class OneNoteSemanticMapper {
         OneNoteObjectSpaceMaterializer materializer,
         OneNoteExtendedGuid objectSpaceId,
         OneNoteReaderOptions options,
-        HashSet<string> ancestry) {
-        return MapPage(materializer, objectSpaceId, null, false, options, ancestry);
+        PageMappingState pageMapping) {
+        return MapPage(materializer, objectSpaceId, null, false, options, pageMapping);
     }
 
     private static OneNotePage? MapPage(
@@ -139,9 +140,9 @@ internal static partial class OneNoteSemanticMapper {
         OneNoteExtendedGuid? contextId,
         bool isVersionHistoryPage,
         OneNoteReaderOptions options,
-        HashSet<string> ancestry) {
-        string ancestryKey = OneNoteObjectSpaceMaterializer.GetSpaceKey(objectSpaceId, contextId);
-        if (!ancestry.Add(ancestryKey)) return null;
+        PageMappingState pageMapping) {
+        string pageKey = OneNoteObjectSpaceMaterializer.GetSpaceKey(objectSpaceId, contextId);
+        if (!pageMapping.TryEnter(pageKey)) return null;
         try {
             OneNoteMaterializedObjectSpace? space = materializer.TryGetSpace(objectSpaceId, contextId);
             if (space == null) return null;
@@ -197,17 +198,17 @@ internal static partial class OneNoteSemanticMapper {
             }
 
             foreach (OneNoteExtendedGuid conflictSpaceId in GetReferences(manifest, ChildGraphSpaceElementNodes)) {
-                OneNotePage? conflict = MapPage(materializer, conflictSpaceId, options, ancestry);
+                OneNotePage? conflict = MapPage(materializer, conflictSpaceId, options, pageMapping);
                 if (conflict != null) {
                     conflict.IsConflictPage = true;
                     page.ConflictPages.Add(conflict);
                 }
             }
             PreserveUnknownObjects(page.UnknownObjects, space);
-            if (!isVersionHistoryPage) MapVersionHistory(page, materializer, objectSpaceId, manifest, options, ancestry);
+            if (!isVersionHistoryPage) MapVersionHistory(page, materializer, objectSpaceId, manifest, options, pageMapping);
             return page;
         } finally {
-            ancestry.Remove(ancestryKey);
+            pageMapping.Exit(pageKey);
         }
     }
 

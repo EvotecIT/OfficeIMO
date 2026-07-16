@@ -102,7 +102,9 @@ These fail-closed boundaries distinguish preservation from authoring support.
 
 ## Safety and streaming
 
-`OneNoteReaderOptions` bounds input bytes, file-node and transaction counts, objects, properties, nesting depth, assets, and FSSHTTP stream objects. Notebook/package options additionally bound section-group depth, entry count, per-entry bytes, and total expanded bytes. Lazy binary payloads are materialized only when requested and still require a caller-provided byte limit.
+`OneNoteReaderOptions` bounds input bytes, file-node and transaction counts, objects, properties, property nesting, distinct page-graph nodes, related-page depth, assets, and FSSHTTP stream objects. Notebook/package options additionally bound section-group depth, entry count, per-entry bytes, and total expanded bytes. Lazy binary payloads are materialized only when requested and still require a caller-provided byte limit.
+
+Conflict and version-history object spaces are traversed once per section. Repeated or cyclic references in malformed page graphs are pruned to a bounded spanning tree so the loaded model remains safe to convert and rewrite.
 
 Caller-owned streams stay open. Seekable read streams are restored to their original position. Async probe and Reader entry points support cancellation.
 
