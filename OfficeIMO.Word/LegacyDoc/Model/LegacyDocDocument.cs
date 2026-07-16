@@ -57,6 +57,9 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
         internal bool LockedRevisionTrackingEnabled { get; private set; }
 
+        /// <summary>Gets the private source container retained for same-format compound rewriting.</summary>
+        internal OfficeCompoundFile? SourceCompoundFile { get; private set; }
+
         /// <summary>Gets diagnostics produced while reading the legacy document.</summary>
         public IReadOnlyList<LegacyDocImportDiagnostic> Diagnostics => _diagnostics;
 
@@ -103,6 +106,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 return document;
             }
 
+            document.SourceCompoundFile = compoundFile;
             document.LoadFromCompound(compoundFile!, options);
             return document;
         }
@@ -281,6 +285,22 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
             AddDataStreamCompoundFeatureIfPresent(compoundFile);
 
+            AddCompoundFeatureIfPresent(
+                compoundFile,
+                IsDigitalSignatureEntry,
+                LegacyDocCompoundFeatureKind.DigitalSignature,
+                "DOC-DIGITAL-SIGNATURE-PRESENT",
+                "The legacy DOC contains digital-signature storage. Rewriting the document invalidates the existing signature.",
+                "Compound:DigitalSignature");
+            AddUnsupportedCompoundEntryIfPresent(
+                compoundFile,
+                IsDigitalSignatureEntry,
+                LegacyDocUnsupportedFeatureKind.DigitalSignature,
+                "DOC-DIGITAL-SIGNATURE-PRESENT",
+                "The legacy DOC contains digital-signature storage. Saving is blocked by default because rewriting the document invalidates the existing signature.",
+                "Compound:DigitalSignature",
+                reportDiagnostic);
+
             if (fib.CcpHdd > 0 && fib.LcbPlcfHdd == 0) {
                 AddUnsupportedStoryFeatureIfPresent(
                     fib.CcpHdd,
@@ -429,6 +449,13 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 "Compound:BinaryDataStream",
                 entryCount: 1,
                 totalBytes: dataStream.Length));
+        }
+
+        private static bool IsDigitalSignatureEntry(OfficeCompoundFileEntry entry) {
+            return entry.Name.Equals("_signatures", StringComparison.OrdinalIgnoreCase)
+                || entry.Name.Equals("_xmlsignatures", StringComparison.OrdinalIgnoreCase)
+                || entry.Path.IndexOf("/_xmlsignatures/", StringComparison.OrdinalIgnoreCase) >= 0
+                || entry.Path.EndsWith("/_xmlsignatures", StringComparison.OrdinalIgnoreCase);
         }
 
         private void ReadRevisionTrackingState(byte[] tableStream, LegacyDocFib fib) {

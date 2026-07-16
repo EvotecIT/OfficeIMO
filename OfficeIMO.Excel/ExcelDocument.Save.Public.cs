@@ -107,7 +107,9 @@ namespace OfficeIMO.Excel {
             string path = (string.IsNullOrEmpty(filePath) ? FilePath : filePath)
                 ?? throw new InvalidOperationException("This workbook is not associated with a file path. Provide a file path or call Save(Stream).");
             var originalFilePath = FilePath;
-            EnsureLegacyXlsSaveDoesNotDropImportedContent(options);
+            EnsureLegacyXlsSaveDoesNotDropImportedContent(
+                options,
+                preserveLinkedVbaProject: ExcelDocumentLoadRouting.HasLegacyXlsExtension(path));
             EnsureLegacyBinaryExcelSaveTargetSupported(path, allowNativeXls: true, options);
             EnsureXlsbFileTargetSupported(path, options);
 
@@ -251,7 +253,9 @@ namespace OfficeIMO.Excel {
             string target = (string.IsNullOrEmpty(filePath) ? FilePath : filePath)
                 ?? throw new InvalidOperationException("This workbook is not associated with a file path. Provide a file path or call Save(Stream).");
             var originalFilePath = FilePath;
-            EnsureLegacyXlsSaveDoesNotDropImportedContent(options);
+            EnsureLegacyXlsSaveDoesNotDropImportedContent(
+                options,
+                preserveLinkedVbaProject: ExcelDocumentLoadRouting.HasLegacyXlsExtension(target));
             EnsureLegacyBinaryExcelSaveTargetSupported(target, allowNativeXls: true, options);
             EnsureXlsbFileTargetSupported(target, options);
             EnsureDestinationFileWritable(target);
@@ -353,7 +357,9 @@ namespace OfficeIMO.Excel {
             if (!destination.CanWrite) throw new ArgumentException("Destination stream must be writable.", nameof(destination));
             EnsureXlsbStreamTargetSupported(format, options);
             EnsureWritableForSave();
-            EnsureLegacyXlsSaveDoesNotDropImportedContent(options);
+            EnsureLegacyXlsSaveDoesNotDropImportedContent(
+                options,
+                preserveLinkedVbaProject: format == ExcelFileFormat.Xls);
 
             if (TrySaveUnchangedXlsbToStream(destination, format, options)) {
                 return;
@@ -489,7 +495,9 @@ namespace OfficeIMO.Excel {
             if (!destination.CanWrite) throw new ArgumentException("Destination stream must be writable.", nameof(destination));
             EnsureXlsbStreamTargetSupported(format, options);
             EnsureWritableForSave();
-            EnsureLegacyXlsSaveDoesNotDropImportedContent(options);
+            EnsureLegacyXlsSaveDoesNotDropImportedContent(
+                options,
+                preserveLinkedVbaProject: format == ExcelFileFormat.Xls);
 
             if (await TrySaveUnchangedXlsbToStreamAsync(destination, format, options, cancellationToken).ConfigureAwait(false)) {
                 return;

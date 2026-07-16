@@ -11625,6 +11625,74 @@ namespace OfficeIMO.Tests {
             Assert.Equal(new byte[] { 1, 2, 3, 4 }, output.ToArray());
         }
 
+        [Fact]
+        public void LegacyDoc_NativeSave_WithExplicitLossConsent_RetainsCompoundPayloadStreams() {
+            byte[] vbaPayload = { 0x01, 0x00, 0x56, 0x42, 0x41 };
+            byte[] packagePayload = { 0x10, 0x20, 0x30, 0x40 };
+            byte[] activeXPayload = { 0x41, 0x58, 0x01 };
+            byte[] dataPayload = { 0x44, 0x41, 0x54, 0x41 };
+            byte[] source = LegacyDocTestBuilder.CreateSimpleDocWithCompoundPayloadStreams(
+                vbaPayload,
+                packagePayload,
+                activeXPayload,
+                dataPayload,
+                "Original compound body");
+
+            using WordDocument document = WordDocument.Load(new MemoryStream(source));
+            Assert.Contains(document.LegacyDocCompoundFeatures,
+                feature => feature.Kind == LegacyDocCompoundFeatureKind.VbaProject);
+            Assert.Contains(document.LegacyDocCompoundFeatures,
+                feature => feature.Kind == LegacyDocCompoundFeatureKind.OleObject);
+            Assert.Contains(document.LegacyDocCompoundFeatures,
+                feature => feature.Kind == LegacyDocCompoundFeatureKind.ActiveXControl);
+            Assert.Contains(document.LegacyDocCompoundFeatures,
+                feature => feature.Kind == LegacyDocCompoundFeatureKind.BinaryData);
+            Assert.Single(document.Paragraphs).Text = "Edited compound body";
+
+            using var output = new MemoryStream();
+            document.Save(output, WordFileFormat.Doc, new WordSaveOptions {
+                LossPolicy = WordConversionLossPolicy.Allow
+            });
+            byte[] savedBytes = output.ToArray();
+
+            Assert.Equal(vbaPayload, ReadCompoundStream(savedBytes, "_VBA_PROJECT_CUR/VBA/dir"));
+            Assert.Equal(packagePayload, ReadCompoundStream(savedBytes, "ObjectPool/OLEPackage/\u0001Ole10Native"));
+            Assert.Equal(activeXPayload, ReadCompoundStream(savedBytes, "ActiveX/ControlData"));
+            Assert.Equal(dataPayload, ReadCompoundStream(savedBytes, "Data"));
+            using WordDocument reloaded = WordDocument.Load(new MemoryStream(savedBytes));
+            Assert.Equal("Edited compound body", Assert.Single(reloaded.Paragraphs).Text);
+        }
+
+        [Fact]
+        public void LegacyDoc_NativeSave_RequiresExplicitSignatureInvalidationForLegacySignatureStorage() {
+            byte[] signaturePayload = { 0x53, 0x49, 0x47, 0x4e };
+            byte[] source = LegacyDocTestBuilder.CreateSimpleDocWithDigitalSignatureStream(
+                signaturePayload,
+                "Signed legacy body");
+
+            using WordDocument document = WordDocument.Load(new MemoryStream(source));
+            Assert.Contains(document.LegacyDocUnsupportedFeatures,
+                feature => feature.Kind == LegacyDocUnsupportedFeatureKind.DigitalSignature);
+            Assert.Contains(document.LegacyDocCompoundFeatures,
+                feature => feature.Kind == LegacyDocCompoundFeatureKind.DigitalSignature);
+            using var blockedOutput = new MemoryStream(new byte[] { 9, 8, 7 }, writable: true);
+
+            NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
+                document.Save(blockedOutput, WordFileFormat.Doc, new WordSaveOptions {
+                    LossPolicy = WordConversionLossPolicy.Allow
+                }));
+
+            Assert.Contains(nameof(WordSaveOptions.SignedDocumentPolicy), exception.Message);
+            Assert.Equal(new byte[] { 9, 8, 7 }, blockedOutput.ToArray());
+
+            using var allowedOutput = new MemoryStream();
+            document.Save(allowedOutput, WordFileFormat.Doc, new WordSaveOptions {
+                LossPolicy = WordConversionLossPolicy.Allow,
+                SignedDocumentPolicy = WordSignedDocumentSavePolicy.AllowSignatureInvalidation
+            });
+            Assert.Equal(signaturePayload, ReadCompoundStream(allowedOutput.ToArray(), "_signatures"));
+        }
+
         private static class LegacyDocTestBuilder {
             internal static byte[] CreateSimpleDoc(params string[] paragraphs) {
                 string text = string.Join("\r", paragraphs) + "\r";
@@ -12264,6 +12332,59 @@ namespace OfficeIMO.Tests {
                     WriteStream(root, "WordDocument", wordDocumentStream);
                     WriteStream(root, "1Table", tableStream);
                     WriteStream(root, "Data", new byte[] { 1, 2, 3, 4 });
+                }
+
+                return package.ToArray();
+            }
+
+            internal static byte[] CreateSimpleDocWithCompoundPayloadStreams(
+                byte[] vbaPayload,
+                byte[] packagePayload,
+                byte[] activeXPayload,
+                byte[] dataPayload,
+                params string[] paragraphs) {
+                string text = string.Join("\r", paragraphs) + "\r";
+                byte[] wordDocumentStream = CreateWordDocumentStream(text);
+                byte[] tableStream = CreateTableStream(text.Length);
+
+                using var package = new MemoryStream();
+                using (RootStorage root = RootStorage.Create(package, Version.V3, StorageModeFlags.LeaveOpen)) {
+                    WriteStream(root, "WordDocument", wordDocumentStream);
+                    WriteStream(root, "1Table", tableStream);
+                    WriteStream(root, "Data", dataPayload);
+
+                    var vbaProject = root.CreateStorage("_VBA_PROJECT_CUR");
+                    var vba = vbaProject.CreateStorage("VBA");
+                    using (CfbStream dir = vba.CreateStream("dir")) {
+                        dir.Write(vbaPayload, 0, vbaPayload.Length);
+                    }
+
+                    var objectPool = root.CreateStorage("ObjectPool");
+                    var packageStorage = objectPool.CreateStorage("OLEPackage");
+                    using (CfbStream nativePackage = packageStorage.CreateStream("\u0001Ole10Native")) {
+                        nativePackage.Write(packagePayload, 0, packagePayload.Length);
+                    }
+
+                    var activeX = root.CreateStorage("ActiveX");
+                    using CfbStream controlData = activeX.CreateStream("ControlData");
+                    controlData.Write(activeXPayload, 0, activeXPayload.Length);
+                }
+
+                return package.ToArray();
+            }
+
+            internal static byte[] CreateSimpleDocWithDigitalSignatureStream(
+                byte[] signaturePayload,
+                params string[] paragraphs) {
+                string text = string.Join("\r", paragraphs) + "\r";
+                byte[] wordDocumentStream = CreateWordDocumentStream(text);
+                byte[] tableStream = CreateTableStream(text.Length);
+
+                using var package = new MemoryStream();
+                using (RootStorage root = RootStorage.Create(package, Version.V3, StorageModeFlags.LeaveOpen)) {
+                    WriteStream(root, "WordDocument", wordDocumentStream);
+                    WriteStream(root, "1Table", tableStream);
+                    WriteStream(root, "_signatures", signaturePayload);
                 }
 
                 return package.ToArray();

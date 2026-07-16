@@ -103,10 +103,27 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 streams.Add(new OfficeCompoundStream(propertyStream.Name, PadToRegularOleStream(propertyStream.Bytes)));
             }
 
-            return OfficeCompoundFileWriter.Write(streams);
+            OfficeCompoundFile? sourceCompoundFile = document.LegacyDocSourceCompoundFile;
+            if (sourceCompoundFile == null) {
+                return OfficeCompoundFileWriter.Write(streams);
+            }
+
+            return OfficeCompoundFileWriter.Rewrite(
+                sourceCompoundFile,
+                streams.ToDictionary(stream => stream.Name, stream => stream.Bytes, StringComparer.OrdinalIgnoreCase));
         }
 
         private static void ThrowIfUnsupportedLegacyDocImportState(WordDocument document, WordSaveOptions? options) {
+            bool hasLegacyDigitalSignature = document.LegacyDocCompoundFeatures.Any(feature =>
+                feature.Kind == LegacyDocCompoundFeatureKind.DigitalSignature);
+            if (hasLegacyDigitalSignature
+                && options?.SignedDocumentPolicy != WordSignedDocumentSavePolicy.AllowSignatureInvalidation) {
+                throw new NotSupportedException(
+                    "Native DOC saving is blocked because the imported legacy DOC contains digital-signature metadata. "
+                    + "Rewriting the document invalidates that signature. Set WordSaveOptions.SignedDocumentPolicy to "
+                    + "WordSignedDocumentSavePolicy.AllowSignatureInvalidation and explicitly allow conversion loss to continue.");
+            }
+
             if (document.SourceFormat != WordFileFormat.Doc
                 || (document.LegacyDocUnsupportedFeatures.Count == 0
                     && document.LegacyDocPreservedFeatures.Count == 0

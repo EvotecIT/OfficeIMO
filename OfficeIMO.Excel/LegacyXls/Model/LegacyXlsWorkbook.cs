@@ -41,6 +41,9 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         private readonly List<LegacyXlsImportDiagnostic> _diagnostics = new();
         private readonly LegacyXlsCalculationSettings _calculationSettings = new();
 
+        /// <summary>Gets the private source container retained for same-format compound rewriting.</summary>
+        internal OfficeCompoundFile? SourceCompoundFile { get; private set; }
+
         internal LegacyXlsWorkbook() {
         }
 
@@ -672,6 +675,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             }
 
             LegacyXlsWorkbook parsedWorkbook = LegacyBiffWorkbookParser.Parse(workbookStream, options);
+            parsedWorkbook.SourceCompoundFile = compoundFile;
             LegacyOleDocumentPropertyReader.AddDocumentProperties(compoundFile, parsedWorkbook, options);
             LegacyCompoundFeatureScanner.AddPreserveOnlyFeatures(compoundFile, parsedWorkbook, options);
             return parsedWorkbook;

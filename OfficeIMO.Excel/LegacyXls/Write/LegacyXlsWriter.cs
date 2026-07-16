@@ -18,10 +18,26 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             byte[] workbookStream = BuildWorkbookStream(document);
             IReadOnlyList<OfficeCompoundStream> propertyStreams = LegacyOlePropertySetWriter.CreateDocumentPropertyStreams(document);
             var streams = new List<OfficeCompoundStream>(propertyStreams.Count + 1) {
-                new OfficeCompoundStream("Workbook", workbookStream)
+                new OfficeCompoundStream(GetWorkbookStreamName(document.LegacyXlsSourceCompoundFile), workbookStream)
             };
             streams.AddRange(propertyStreams);
-            return OfficeCompoundFileWriter.Write(streams);
+            OfficeCompoundFile? sourceCompoundFile = document.LegacyXlsSourceCompoundFile;
+            if (sourceCompoundFile == null) {
+                return OfficeCompoundFileWriter.Write(streams);
+            }
+
+            return OfficeCompoundFileWriter.Rewrite(
+                sourceCompoundFile,
+                streams.ToDictionary(stream => stream.Name, stream => stream.Bytes, StringComparer.OrdinalIgnoreCase));
+        }
+
+        private static string GetWorkbookStreamName(OfficeCompoundFile? sourceCompoundFile) {
+            OfficeCompoundFileEntry? sourceWorkbookEntry = sourceCompoundFile?.Entries.FirstOrDefault(entry =>
+                entry.IsStream
+                && entry.Path.IndexOf('/') < 0
+                && (string.Equals(entry.Name, "Workbook", StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(entry.Name, "Book", StringComparison.OrdinalIgnoreCase)));
+            return sourceWorkbookEntry?.Path ?? "Workbook";
         }
 
         private static byte[] BuildWorkbookStream(ExcelDocument document) {
@@ -43,6 +59,12 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             string? workbookCodeName = document.WorkbookRoot.GetFirstChild<WorkbookProperties>()?.CodeName?.Value;
             if (!string.IsNullOrWhiteSpace(workbookCodeName)) {
                 WriteRecord(stream, 0x01ba, BuildCodeNamePayload(workbookCodeName!));
+            }
+
+            if (document.LegacyXlsSourceCompoundFile != null
+                && document.LegacyXlsCompoundFeatures.Any(feature =>
+                    feature.Kind == LegacyXlsCompoundFeatureRecordKind.VbaProject)) {
+                WriteRecord(stream, 0x00d3, Array.Empty<byte>());
             }
 
             WriteWorkbookFileSharingRecord(stream, document);

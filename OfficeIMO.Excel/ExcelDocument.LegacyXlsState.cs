@@ -17,6 +17,7 @@ namespace OfficeIMO.Excel {
         private LegacyXlsUnsupportedSheet[] _legacyXlsUnsupportedSheets = Array.Empty<LegacyXlsUnsupportedSheet>();
         private LegacyXlsChartSheet[] _legacyXlsChartSheets = Array.Empty<LegacyXlsChartSheet>();
         private LegacyXlsCompoundFeatureRecord[] _legacyXlsCompoundFeatures = Array.Empty<LegacyXlsCompoundFeatureRecord>();
+        private OfficeCompoundFile? _legacyXlsSourceCompoundFile;
         private string? _legacyXlsSourcePath;
         private string? _xlsbSourcePath;
         private byte[]? _xlsbOriginalPackageBytes;
@@ -68,6 +69,8 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public IReadOnlyList<LegacyXlsCompoundFeatureRecord> LegacyXlsCompoundFeatures => _legacyXlsCompoundFeatures;
 
+        internal OfficeCompoundFile? LegacyXlsSourceCompoundFile => _legacyXlsSourceCompoundFile;
+
         internal void MarkLoadedFromLegacyXls(string? sourcePath, LegacyXlsWorkbook workbook) {
             if (workbook == null) throw new ArgumentNullException(nameof(workbook));
 
@@ -79,6 +82,7 @@ namespace OfficeIMO.Excel {
             _legacyXlsUnsupportedSheets = workbook.UnsupportedSheets.ToArray();
             _legacyXlsChartSheets = workbook.ChartSheets.ToArray();
             _legacyXlsCompoundFeatures = workbook.CompoundFeatureRecords.ToArray();
+            _legacyXlsSourceCompoundFile = workbook.SourceCompoundFile;
 
             if (!string.IsNullOrEmpty(sourcePath)) {
                 FilePath = sourcePath!;
@@ -118,7 +122,10 @@ namespace OfficeIMO.Excel {
 
         private void EnsureLegacyBinaryExcelSaveTargetSupported(string path, bool allowNativeXls, ExcelSaveOptions? options = null) {
             if (ExcelDocumentLoadRouting.HasLegacyXlsExtension(path)) {
-                EnsureLegacyXlsSaveDoesNotDropImportedContent(options, includeProjectedChartSheets: true);
+                EnsureLegacyXlsSaveDoesNotDropImportedContent(
+                    options,
+                    includeProjectedChartSheets: true,
+                    preserveLinkedVbaProject: true);
 
                 if (allowNativeXls) {
                     return;
@@ -141,19 +148,32 @@ namespace OfficeIMO.Excel {
             throw new NotSupportedException($"Native XLS saving currently supports .xls workbook files only. This workbook was loaded from {source}; legacy .xlt, .xla, .xlm, and .xlw save targets are not supported.");
         }
 
-        private bool HasLossyLegacyXlsImportState(bool includeProjectedChartSheets) {
+        private bool HasLossyLegacyXlsImportState(bool includeProjectedChartSheets, bool preserveLinkedVbaProject) {
             return _legacyXlsUnsupportedFeatures.Length > 0
                 || _legacyXlsPreservedFeatures.Length > 0
                 || _legacyXlsUnsupportedSheets.Length > 0
                 || (includeProjectedChartSheets && _legacyXlsChartSheets.Length > 0)
                 || _legacyXlsCompoundFeatures.Any(feature =>
-                    feature.Kind == LegacyXlsCompoundFeatureRecordKind.VbaProject
-                    || feature.Kind == LegacyXlsCompoundFeatureRecordKind.OleObject);
+                    IsLossyLegacyXlsCompoundFeature(feature, preserveLinkedVbaProject));
         }
 
-        private void EnsureLegacyXlsSaveDoesNotDropImportedContent(ExcelSaveOptions? options, bool includeProjectedChartSheets = false) {
+        private bool IsLossyLegacyXlsCompoundFeature(
+            LegacyXlsCompoundFeatureRecord feature,
+            bool preserveLinkedVbaProject) {
+            if (feature.Kind == LegacyXlsCompoundFeatureRecordKind.VbaProject) {
+                return !preserveLinkedVbaProject || _legacyXlsSourceCompoundFile == null;
+            }
+
+            return feature.Kind == LegacyXlsCompoundFeatureRecordKind.OleObject
+                || feature.Kind == LegacyXlsCompoundFeatureRecordKind.DigitalSignature;
+        }
+
+        private void EnsureLegacyXlsSaveDoesNotDropImportedContent(
+            ExcelSaveOptions? options,
+            bool includeProjectedChartSheets = false,
+            bool preserveLinkedVbaProject = false) {
             if (SourceFormat != ExcelFileFormat.Xls
-                || !HasLossyLegacyXlsImportState(includeProjectedChartSheets)
+                || !HasLossyLegacyXlsImportState(includeProjectedChartSheets, preserveLinkedVbaProject)
                 || options?.LossPolicy == ExcelConversionLossPolicy.Allow) {
                 return;
             }
@@ -166,7 +186,7 @@ namespace OfficeIMO.Excel {
                 .Concat(_legacyXlsPreservedFeatures.Select(feature => feature.Code))
                 .Concat(_legacyXlsUnsupportedSheets.Select(sheet => "UnsupportedSheet:" + sheet.Kind))
                 .Concat(_legacyXlsCompoundFeatures
-                    .Where(feature => feature.Kind == LegacyXlsCompoundFeatureRecordKind.VbaProject || feature.Kind == LegacyXlsCompoundFeatureRecordKind.OleObject)
+                    .Where(feature => IsLossyLegacyXlsCompoundFeature(feature, preserveLinkedVbaProject))
                     .Select(feature => "Compound:" + feature.Kind))
                 .Where(code => !string.IsNullOrWhiteSpace(code))
                 .Distinct(StringComparer.Ordinal)
@@ -256,7 +276,10 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            EnsureLegacyXlsSaveDoesNotDropImportedContent(options, includeProjectedChartSheets: true);
+            EnsureLegacyXlsSaveDoesNotDropImportedContent(
+                options,
+                includeProjectedChartSheets: true,
+                preserveLinkedVbaProject: true);
             cancellationToken.ThrowIfCancellationRequested();
             PrepareWorkbookForSave(options);
             cancellationToken.ThrowIfCancellationRequested();
@@ -276,7 +299,10 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            EnsureLegacyXlsSaveDoesNotDropImportedContent(options, includeProjectedChartSheets: true);
+            EnsureLegacyXlsSaveDoesNotDropImportedContent(
+                options,
+                includeProjectedChartSheets: true,
+                preserveLinkedVbaProject: true);
             cancellationToken.ThrowIfCancellationRequested();
             PrepareWorkbookForSave(options);
             cancellationToken.ThrowIfCancellationRequested();

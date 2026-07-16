@@ -1,5 +1,6 @@
 using System.Linq;
 using System.Text;
+using OfficeIMO.Drawing.Internal;
 
 namespace OfficeIMO.Tests {
     public partial class Excel {
@@ -31,8 +32,44 @@ namespace OfficeIMO.Tests {
                 return CreateWorkbookCompoundFile(workbookStream, includeVbaProjectStorage: true, includeOleObjectStorage: false);
             }
 
+            internal static byte[] CreateWorkbookCompoundFileWithVbaProjectPayload(
+                byte[] workbookStream,
+                byte[] vbaPayload) {
+                byte[] compoundBytes = CreateWorkbookCompoundFileWithVbaProjectStorage(workbookStream);
+                if (!OfficeCompoundFileReader.TryRead(
+                    compoundBytes,
+                    out OfficeCompoundFile? compoundFile,
+                    out string? error)) {
+                    throw new InvalidOperationException(error);
+                }
+
+                return OfficeCompoundFileWriter.Rewrite(
+                    compoundFile!,
+                    new Dictionary<string, byte[]>(StringComparer.OrdinalIgnoreCase) {
+                        ["_VBA_PROJECT_CUR/VBA/dir"] = vbaPayload
+                    });
+            }
+
             internal static byte[] CreateWorkbookCompoundFileWithOleObjectStorage(byte[] workbookStream) {
                 return CreateWorkbookCompoundFile(workbookStream, includeVbaProjectStorage: false, includeOleObjectStorage: true);
+            }
+
+            internal static byte[] CreateWorkbookCompoundFileWithOleObjectPayload(
+                byte[] workbookStream,
+                byte[] olePayload) {
+                byte[] compoundBytes = CreateWorkbookCompoundFileWithOleObjectStorage(workbookStream);
+                if (!OfficeCompoundFileReader.TryRead(
+                    compoundBytes,
+                    out OfficeCompoundFile? compoundFile,
+                    out string? error)) {
+                    throw new InvalidOperationException(error);
+                }
+
+                return OfficeCompoundFileWriter.Rewrite(
+                    compoundFile!,
+                    new Dictionary<string, byte[]>(StringComparer.OrdinalIgnoreCase) {
+                        ["ObjectPool/OLEPackage/\u0001Ole10Native"] = olePayload
+                    });
             }
 
             internal static byte[] CreateWorkbookCompoundFileWithDigitalSignatureStream(byte[] workbookStream) {
