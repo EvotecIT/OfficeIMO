@@ -1,3 +1,4 @@
+using System;
 using OfficeIMO.Drawing;
 using Xunit;
 
@@ -31,6 +32,32 @@ public partial class DrawingTests {
         WriteInt32LittleEndian(wmf, 12, 6);
 
         Assert.False(OfficeImageReader.TryIdentifyByContent(wmf, "invalid-maximum.wmf", out _));
+    }
+
+    [Fact]
+    public void OfficeImageReaderRejectsPlaceableWmfWithoutStandardPayload() {
+        byte[] wmf = CreatePlaceableWmfHeader();
+
+        Assert.False(OfficeImageReader.TryIdentifyByContent(wmf, "truncated-placeable.wmf", out _));
+    }
+
+    private static byte[] CreatePlaceableWmf() {
+        byte[] header = CreatePlaceableWmfHeader();
+        byte[] payload = CreateStandardWmf();
+        var wmf = new byte[header.Length + payload.Length];
+        Array.Copy(header, wmf, header.Length);
+        Array.Copy(payload, 0, wmf, header.Length, payload.Length);
+        return wmf;
+    }
+
+    private static byte[] CreatePlaceableWmfHeader() {
+        var wmf = new byte[22];
+        WriteInt32LittleEndian(wmf, 0, unchecked((int)0x9AC6CDD7));
+        WriteInt16LittleEndian(wmf, 10, 2880);
+        WriteInt16LittleEndian(wmf, 12, 1440);
+        WriteUInt16LittleEndian(wmf, 14, 1440);
+        WritePlaceableWmfChecksum(wmf);
+        return wmf;
     }
 
     private static byte[] CreateStandardWmf() {

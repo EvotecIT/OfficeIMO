@@ -3799,12 +3799,7 @@ public partial class DrawingTests {
 
     [Fact]
     public void OfficeImageReaderIdentifiesPlaceableWmfDimensionsFromHeader() {
-        var wmf = new byte[22];
-        WriteInt32LittleEndian(wmf, 0, unchecked((int)0x9AC6CDD7));
-        WriteInt16LittleEndian(wmf, 10, 2880);
-        WriteInt16LittleEndian(wmf, 12, 1440);
-        WriteUInt16LittleEndian(wmf, 14, 1440);
-        WritePlaceableWmfChecksum(wmf);
+        byte[] wmf = CreatePlaceableWmf();
 
         var image = OfficeImageReader.Identify(wmf);
 

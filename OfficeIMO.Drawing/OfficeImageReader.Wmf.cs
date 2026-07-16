@@ -3,21 +3,27 @@ using System;
 namespace OfficeIMO.Drawing;
 
 public static partial class OfficeImageReader {
+    private const int PlaceableWmfHeaderSizeBytes = 22;
     private const int StandardWmfHeaderSizeBytes = 18;
     private const int StandardWmfRecordHeaderSizeBytes = 6;
 
     private static bool TryReadWmf(byte[] data, out OfficeImageInfo info) {
         info = new OfficeImageInfo(OfficeImageFormat.Unknown, 0, 0);
-        if (data.Length >= 22 && ReadInt32LittleEndian(data, 0) == unchecked((int)0x9AC6CDD7)) {
+        if (data.Length >= PlaceableWmfHeaderSizeBytes &&
+            ReadInt32LittleEndian(data, 0) == unchecked((int)0x9AC6CDD7)) {
             return TryReadPlaceableWmf(data, out info);
         }
 
-        return TryReadStandardWmf(data, out info);
+        return TryReadStandardWmf(data, headerOffset: 0, out info);
     }
 
     private static bool TryReadPlaceableWmf(byte[] data, out OfficeImageInfo info) {
         info = new OfficeImageInfo(OfficeImageFormat.Unknown, 0, 0);
         if (!HasValidPlaceableWmfChecksum(data)) {
+            return false;
+        }
+
+        if (!TryReadStandardWmf(data, PlaceableWmfHeaderSizeBytes, out _)) {
             return false;
         }
 
@@ -36,32 +42,34 @@ public static partial class OfficeImageReader {
         return width > 0 && height > 0;
     }
 
-    private static bool TryReadStandardWmf(byte[] data, out OfficeImageInfo info) {
+    private static bool TryReadStandardWmf(byte[] data, int headerOffset, out OfficeImageInfo info) {
         info = new OfficeImageInfo(OfficeImageFormat.Unknown, 0, 0);
-        if (data.Length < StandardWmfHeaderSizeBytes + StandardWmfRecordHeaderSizeBytes) {
+        if (headerOffset < 0 ||
+            data.Length - headerOffset < StandardWmfHeaderSizeBytes + StandardWmfRecordHeaderSizeBytes) {
             return false;
         }
 
-        int type = ReadUInt16LittleEndian(data, 0);
-        int headerSizeWords = ReadUInt16LittleEndian(data, 2);
-        int version = ReadUInt16LittleEndian(data, 4);
-        uint declaredSizeWords = ReadUInt32LittleEndian(data, 6);
-        uint maximumRecordSizeWords = ReadUInt32LittleEndian(data, 12);
-        int parameterCount = ReadUInt16LittleEndian(data, 16);
+        int type = ReadUInt16LittleEndian(data, headerOffset);
+        int headerSizeWords = ReadUInt16LittleEndian(data, headerOffset + 2);
+        int version = ReadUInt16LittleEndian(data, headerOffset + 4);
+        uint declaredSizeWords = ReadUInt32LittleEndian(data, headerOffset + 6);
+        uint maximumRecordSizeWords = ReadUInt32LittleEndian(data, headerOffset + 12);
+        int parameterCount = ReadUInt16LittleEndian(data, headerOffset + 16);
         long declaredSizeBytes = declaredSizeWords * 2L;
+        long declaredEnd = headerOffset + declaredSizeBytes;
         if ((type != 1 && type != 2) ||
             headerSizeWords != StandardWmfHeaderSizeBytes / 2 ||
             (version != 0x0100 && version != 0x0300) ||
-            declaredSizeBytes != data.LongLength ||
+            declaredEnd != data.LongLength ||
             maximumRecordSizeWords < 3U ||
             parameterCount != 0) {
             return false;
         }
 
-        int offset = StandardWmfHeaderSizeBytes;
+        int offset = headerOffset + StandardWmfHeaderSizeBytes;
         uint largestRecordSizeWords = 0U;
         while (offset < data.Length) {
-            if ((long)offset + StandardWmfRecordHeaderSizeBytes > declaredSizeBytes) {
+            if ((long)offset + StandardWmfRecordHeaderSizeBytes > declaredEnd) {
                 return false;
             }
 
@@ -70,7 +78,7 @@ public static partial class OfficeImageReader {
             long nextOffset = (long)offset + (recordSizeWords * 2L);
             if (recordSizeWords < 3U ||
                 recordSizeWords > maximumRecordSizeWords ||
-                nextOffset > declaredSizeBytes) {
+                nextOffset > declaredEnd) {
                 return false;
             }
 
@@ -78,7 +86,7 @@ public static partial class OfficeImageReader {
 
             if (function == 0) {
                 if (recordSizeWords != 3U ||
-                    nextOffset != declaredSizeBytes ||
+                    nextOffset != declaredEnd ||
                     largestRecordSizeWords != maximumRecordSizeWords) {
                     return false;
                 }

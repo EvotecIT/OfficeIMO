@@ -175,7 +175,9 @@ internal static class SubtitleParser {
     private static string StripMarkup(string value) {
         var text = new StringBuilder(value.Length);
         for (int index = 0; index < value.Length; index++) {
-            if (value[index] == '<' && TryFindCueTagEnd(value, index, out int tagEnd)) {
+            if (value[index] == '<' &&
+                TryFindCueTagEnd(value, index, out int tagEnd, out bool insertsLineBreak)) {
+                if (insertsLineBreak) text.Append('\n');
                 index = tagEnd;
                 continue;
             }
@@ -184,12 +186,18 @@ internal static class SubtitleParser {
         return WebUtility.HtmlDecode(text.ToString()).Trim();
     }
 
-    private static bool TryFindCueTagEnd(string value, int tagStart, out int tagEnd) {
+    private static bool TryFindCueTagEnd(
+        string value,
+        int tagStart,
+        out int tagEnd,
+        out bool insertsLineBreak) {
+        insertsLineBreak = false;
         tagEnd = value.IndexOf('>', tagStart + 1);
         if (tagEnd < 0) return false;
 
         int nameStart = tagStart + 1;
-        if (nameStart < tagEnd && value[nameStart] == '/') nameStart++;
+        bool closingTag = nameStart < tagEnd && value[nameStart] == '/';
+        if (closingTag) nameStart++;
         if (nameStart >= tagEnd) return false;
 
         if (!char.IsLetter(value[nameStart])) {
@@ -200,6 +208,7 @@ internal static class SubtitleParser {
         int nameEnd = nameStart + 1;
         while (nameEnd < tagEnd && (char.IsLetterOrDigit(value[nameEnd]) || value[nameEnd] == '-')) nameEnd++;
         string name = value.Substring(nameStart, nameEnd - nameStart);
+        insertsLineBreak = !closingTag && name.Equals("br", StringComparison.OrdinalIgnoreCase);
         return name.Equals("b", StringComparison.OrdinalIgnoreCase) ||
             name.Equals("br", StringComparison.OrdinalIgnoreCase) ||
             name.Equals("c", StringComparison.OrdinalIgnoreCase) ||
