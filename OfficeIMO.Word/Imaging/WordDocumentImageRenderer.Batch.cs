@@ -31,11 +31,6 @@ namespace OfficeIMO.Word {
             return snapshots.AsReadOnly();
         }
 
-        internal static int EstimatePageCount(WordDocument document) {
-            if (document == null) throw new ArgumentNullException(nameof(document));
-            return Math.Max(1, EstimateSectionPageCounts(document).Sum());
-        }
-
         private static (int FirstPage, int Count) ResolveBatchPageRange(WordImageExportOptions options,
             IReadOnlyList<int> sectionPageCounts) {
             int totalPages = Math.Max(1, sectionPageCounts.Sum());
