@@ -4,7 +4,8 @@ internal static class OneNoteRevisionStoreWriter {
     private const int HeaderLength = OneNoteFormatConstants.RevisionStoreHeaderLength;
     private const uint OneNote2010Build = 0x0FA129B4U;
 
-    internal static byte[] Write(OneNoteWriteGraph graph) {
+    internal static byte[] Write(OneNoteWriteGraph graph, long maxOutputBytes = long.MaxValue) {
+        if (maxOutputBytes < 1) throw new ArgumentOutOfRangeException(nameof(maxOutputBytes), "MaxOutputBytes must be greater than zero.");
         OneNoteDesktopWritePlan plan = OneNoteDesktopWritePlan.Create(graph);
         ulong position = HeaderLength;
         foreach (OneNoteDesktopFileNodeList list in plan.Lists) {
@@ -24,6 +25,7 @@ internal static class OneNoteRevisionStoreWriter {
         uint transactionLength = checked((uint)OneNoteDesktopBinary.Align8(transactionEntriesLength + 12L));
         ulong expectedLength = checked(transactionOffset + transactionLength);
         if (expectedLength > int.MaxValue) throw new IOException("Desktop OneNote output exceeds the supported in-memory size.");
+        if (expectedLength > (ulong)maxOutputBytes) throw new IOException("Desktop OneNote output exceeds MaxOutputBytes.");
 
         var output = new byte[(int)expectedLength];
         WriteHeader(output, plan, transactionOffset, transactionLength, expectedLength);

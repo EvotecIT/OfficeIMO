@@ -51,13 +51,18 @@ public sealed class CorruptionSafetyTests {
         var section = new OneNoteSection { Name = "Bounded" };
         var page = new OneNotePage { Title = "Page" };
         var paragraph = new OneNoteParagraph();
-        paragraph.Runs.Add(new OneNoteTextRun { Text = new string('x', 4096) });
+        paragraph.Runs.Add(new OneNoteTextRun { Text = "Bounded content" });
         page.DirectContent.Add(paragraph);
         section.Pages.Add(page);
+
+        OneNoteWriteGraph graph = new OneNoteWriteGraphBuilder(1024).BuildSection(section);
+        IOException layoutException = Assert.Throws<IOException>(() =>
+            OneNoteRevisionStoreWriter.Write(graph, 1024));
 
         IOException exception = Assert.Throws<IOException>(() =>
             OneNoteSectionWriter.Write(section, new OneNoteWriterOptions { MaxOutputBytes = 1024 }));
 
+        Assert.Contains("MaxOutputBytes", layoutException.Message);
         Assert.Contains("MaxOutputBytes", exception.Message);
     }
 

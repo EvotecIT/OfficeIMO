@@ -88,6 +88,19 @@ public sealed class NotebookWriterTests {
     }
 
     [Fact]
+    public void NotebookPathResolutionRejectsTraversalThroughCaseVariantSibling() {
+        string parent = Path.Combine(Path.GetTempPath(), "OfficeIMO-Notebook-MixedCase");
+        string escaped = ".." + Path.DirectorySeparatorChar +
+                         "OFFICEIMO-NOTEBOOK-MIXEDCASE" + Path.DirectorySeparatorChar +
+                         "private.one";
+
+        Assert.Null(OneNoteNotebookReader.ResolveChildPath(parent, escaped));
+        Assert.Equal(
+            Path.GetFullPath(Path.Combine(parent, "Section.one")),
+            OneNoteNotebookReader.ResolveChildPath(parent, "Section.one"));
+    }
+
+    [Fact]
     public void PackageReadWritePreservesOpaqueRootEntryAndNestedTocObjects() {
         OneNoteNotebook loaded = OneNotePackageReader.Read(
             new MemoryStream(OneNotePackageWriter.Write(CreateNotebook())),

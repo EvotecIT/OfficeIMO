@@ -134,6 +134,33 @@ public sealed class ConverterTests {
         Assert.Contains("&lt;img", html, StringComparison.OrdinalIgnoreCase);
     }
 
+    [Fact]
+    public void MarkdownDestinationsEncodeControlsAndHtmlSignificantCharacters() {
+        const string unsafeDestination = "https://example.invalid/path\n<script>alert(1)</script>";
+        var section = new OneNoteSection { Name = "Projection" };
+        var page = new OneNotePage { Title = "Unsafe links" };
+        var paragraph = new OneNoteParagraph();
+        paragraph.Runs.Add(new OneNoteTextRun { Text = "link", Hyperlink = unsafeDestination });
+        page.DirectContent.Add(paragraph);
+        page.DirectContent.Add(new OneNoteImage {
+            AltText = "image",
+            Hyperlink = unsafeDestination,
+            Payload = OneNoteBinaryPayload.FromBytes(new byte[] { 1 })
+        });
+        section.Pages.Add(page);
+        var projectionOptions = new OneNoteMarkdownOptions { AssetUriResolver = _ => unsafeDestination };
+
+        string markdown = section.ToMarkdown(projectionOptions);
+        string html = section.ToHtmlDocument(
+            projectionOptions,
+            new HtmlOptions { AssetMode = AssetMode.Offline });
+
+        Assert.Contains("https://example.invalid/path%0A%3Cscript%3Ealert%281%29%3C/script%3E", markdown);
+        Assert.DoesNotContain("\n<script", markdown, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("<script", html, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("%0A%3Cscript%3E", html, StringComparison.OrdinalIgnoreCase);
+    }
+
     private static OneNoteNotebook CreateNotebook() {
         var notebook = new OneNoteNotebook { Name = "Offline notebook" };
         var group = new OneNoteSectionGroup { Name = "Group A" };

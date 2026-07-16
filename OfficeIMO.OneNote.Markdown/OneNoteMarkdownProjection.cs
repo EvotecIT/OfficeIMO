@@ -288,5 +288,28 @@ public static class OneNoteMarkdownProjection {
         .Replace("\r\n", "<br>")
         .Replace("\r", "<br>")
         .Replace("\n", "<br>");
-    private static string EscapeDestination(string value) => value.Replace(" ", "%20").Replace("(", "%28").Replace(")", "%29");
+    private static string EscapeDestination(string value) {
+        var builder = new StringBuilder(value.Length);
+        foreach (char character in value) {
+            if (MustEncodeDestinationCharacter(character)) {
+                foreach (byte item in Encoding.UTF8.GetBytes(character.ToString())) {
+                    builder.Append('%').Append(item.ToString("X2"));
+                }
+            } else {
+                builder.Append(character);
+            }
+        }
+        return builder.ToString();
+    }
+
+    private static bool MustEncodeDestinationCharacter(char character) =>
+        char.IsControl(character) ||
+        char.IsWhiteSpace(character) ||
+        character == '(' ||
+        character == ')' ||
+        character == '<' ||
+        character == '>' ||
+        character == '"' ||
+        character == '\'' ||
+        character == '\\';
 }

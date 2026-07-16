@@ -215,11 +215,14 @@ public static class OneNoteNotebookReader {
         return exception is OneNoteFormatException || exception is EndOfStreamException || exception is InvalidDataException;
     }
 
-    private static string? ResolveChildPath(string parentDirectory, string childName) {
-        if (string.IsNullOrWhiteSpace(childName) || Path.IsPathRooted(childName)) return null;
+    internal static string? ResolveChildPath(string parentDirectory, string childName) {
+        if (!IsSafeStandaloneEntryName(childName)) return null;
         string parent = EnsureTrailingSeparator(Path.GetFullPath(parentDirectory));
         string candidate = Path.GetFullPath(Path.Combine(parent, childName));
-        return candidate.StartsWith(parent, StringComparison.OrdinalIgnoreCase) ? candidate : null;
+        StringComparison comparison = Path.DirectorySeparatorChar == '\\'
+            ? StringComparison.OrdinalIgnoreCase
+            : StringComparison.Ordinal;
+        return candidate.StartsWith(parent, comparison) ? candidate : null;
     }
 
     private static bool IsSafeStandaloneEntryName(string name) {

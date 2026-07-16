@@ -17,7 +17,7 @@ internal static class OneNoteGraphSerializer {
         byte[] data;
         switch (target) {
             case OneNoteStorageFormat.RevisionStore:
-                data = OneNoteRevisionStoreWriter.Write(graph);
+                data = OneNoteRevisionStoreWriter.Write(graph, options.MaxOutputBytes);
                 break;
             case OneNoteStorageFormat.FileSynchronizationPackage:
                 data = OneNotePackageStoreWriter.Write(graph);
