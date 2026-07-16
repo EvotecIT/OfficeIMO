@@ -143,6 +143,21 @@ namespace OfficeIMO.Drawing {
             var relationshipParts = new List<ZipXmlPart>();
             ZipXmlPart? contentTypesPart = null;
 
+            ZipCentralDirectoryScanResult centralDirectory = ScanZipCentralDirectory(bytes, options.MaxPartCount);
+            if (!centralDirectory.IsValid) {
+                findings.Add(Error(OfficePackageSecurityRule.MalformedPackage,
+                    centralDirectory.Error ?? "The ZIP central directory is malformed."));
+                return new OfficePackageSecurityReport(bytes.Length, OfficePackageContainerKind.OpenXml,
+                    0, 0, 0, 0, 0, 0, 0, 0, 0, findings.ToArray());
+            }
+            if (centralDirectory.LimitExceeded) {
+                findings.Add(Error(OfficePackageSecurityRule.PartCount,
+                    $"ZIP entry count exceeds the configured maximum of {options.MaxPartCount} before package parts are opened.",
+                    observedValue: centralDirectory.EntryCount, limit: options.MaxPartCount));
+                return new OfficePackageSecurityReport(bytes.Length, OfficePackageContainerKind.OpenXml,
+                    0, 0, 0, 0, 0, 0, 0, 0, 0, findings.ToArray());
+            }
+
             try {
                 using var source = new MemoryStream(bytes, writable: false);
                 using var archive = new ZipArchive(source, ZipArchiveMode.Read, leaveOpen: false);

@@ -66,7 +66,7 @@ namespace OfficeIMO.Drawing {
         /// <summary>Maximum complete source size. Defaults to 512 MiB.</summary>
         public long MaxPackageBytes { get; set; } = 512L * 1024L * 1024L;
 
-        /// <summary>Maximum number of Open XML parts or compound directory entries. Defaults to 10,000.</summary>
+        /// <summary>Maximum number of raw ZIP entries (including directories) or compound directory entries. Defaults to 10,000.</summary>
         public int MaxPartCount { get; set; } = 10_000;
 
         /// <summary>Maximum uncompressed size of one part. Defaults to 256 MiB.</summary>

@@ -120,6 +120,26 @@ public sealed class DrawingOfficePackageSecurityTests {
     }
 
     [Fact]
+    public void InspectorCountsDirectoryEntriesBeforeMaterializingZipParts() {
+        byte[] package = CreateZip(archive => {
+            archive.CreateEntry("one/");
+            archive.CreateEntry("two/");
+            archive.CreateEntry("three/");
+        });
+        var options = OfficePackageSecurityOptions.SecureDefaults;
+        options.MaxPartCount = 2;
+
+        OfficePackageSecurityReport report = OfficePackageSecurityInspector.Inspect(package, options);
+
+        OfficePackageSecurityFinding finding = Assert.Single(
+            report.Findings,
+            item => item.Rule == OfficePackageSecurityRule.PartCount);
+        Assert.Equal(3D, finding.ObservedValue);
+        Assert.Equal(2D, finding.Limit);
+        Assert.Equal(0, report.PartCount);
+    }
+
+    [Fact]
     public void InspectorReportsAmbiguousUnsafeAndMalformedRelationshipParts() {
         byte[] package = CreateZip(archive => {
             AddEntry(archive, "word/document.xml", "<document />");
