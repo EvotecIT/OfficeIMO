@@ -40,5 +40,54 @@ public sealed class FssHttpPackageTests {
         Assert.Equal("ONENOTE_PACKAGE_OBJECT_LIMIT", exception.Code);
     }
 
+    [Fact]
+    public void DuplicateRevisionManifestIdentifiersAreBoundedFormatErrors() {
+        OneNoteExtendedGuid rootSpaceId = Id();
+        var graph = new OneNoteWriteGraph(Guid.NewGuid(), OneNoteFileKind.Section, rootSpaceId, Guid.Empty, 0);
+        graph.ObjectSpaces.Add(new OneNoteWriteObjectSpace(rootSpaceId, Id()));
+        graph.ObjectSpaces.Add(new OneNoteWriteObjectSpace(Id(), Id()));
+
+        byte[] data = OneNotePackageStoreWriter.Write(graph);
+        DuplicateSecondUserRevisionIdentifier(data);
+
+        OneNoteFormatException exception = Assert.Throws<OneNoteFormatException>(() =>
+            OneNoteRevisionStoreReader.Read(new MemoryStream(data)));
+
+        Assert.Equal("ONENOTE_PACKAGE_REVISION_ID", exception.Code);
+    }
+
     private static string FixturePath(string fileName) => Path.Combine(AppContext.BaseDirectory, "Fixtures", fileName);
+
+    private static OneNoteExtendedGuid Id() => new OneNoteExtendedGuid(Guid.NewGuid(), 1, 17);
+
+    private static void DuplicateSecondUserRevisionIdentifier(byte[] data) {
+        using var stream = new MemoryStream(data);
+        FssHttpStreamObject packaging = FssHttpStreamObjectReader.ReadPackaging(stream, new OneNoteReaderOptions());
+        FssHttpStreamObject package = Assert.Single(packaging.Children, item => item.Type == 0x15);
+        FssHttpStreamObject[] revisionDeclarations = package.Children
+            .Where(item => DataElementType(stream, item) == 4)
+            .Select(item => Assert.Single(item.Children, child => child.Type == 0x1A))
+            .Skip(1)
+            .Take(2)
+            .ToArray();
+        Assert.Equal(2, revisionDeclarations.Length);
+
+        const int encodedGuidBytes = 17;
+        Buffer.BlockCopy(
+            data,
+            checked((int)revisionDeclarations[0].DataOffset),
+            data,
+            checked((int)revisionDeclarations[1].DataOffset),
+            encodedGuidBytes);
+    }
+
+    private static ulong DataElementType(Stream stream, FssHttpStreamObject element) {
+        byte[] prefix = FssHttpStreamObjectReader.ReadData(stream, element, 128, "data-element prefix");
+        var cursor = new FssHttpDataCursor(prefix, element.DataOffset);
+        cursor.ReadExtendedGuid();
+        cursor.SkipSerialNumber();
+        ulong type = cursor.ReadCompactUInt64();
+        cursor.EnsureEnd("data-element prefix");
+        return type;
+    }
 }

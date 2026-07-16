@@ -34,6 +34,16 @@ public sealed class CabinetReaderTests {
         Assert.Equal("ONENOTE_CAB_ENTRY_LIMIT", exception.Code);
     }
 
+    [Fact]
+    public void RejectsAliasedCabinetEntriesPastAggregateExpansionLimit() {
+        byte[] cabinet = BuildUncompressedCabinet(new[] { "first.one", "alias.one" }, new byte[80]);
+
+        OneNoteFormatException exception = Assert.Throws<OneNoteFormatException>(() =>
+            OneNoteCabinetArchiveReader.Read(cabinet, 100, 100, 10));
+
+        Assert.Equal("ONENOTE_CAB_EXPANDED_LIMIT", exception.Code);
+    }
+
     [Theory]
     [InlineData("/absolute.one")]
     [InlineData("../escape.one")]
@@ -45,11 +55,14 @@ public sealed class CabinetReaderTests {
         Assert.Equal("ONENOTE_PACKAGE_ENTRY_PATH", exception.Code);
     }
 
-    private static byte[] BuildUncompressedCabinet(string name, byte[] payload) {
-        byte[] nameBytes = Encoding.UTF8.GetBytes(name + "\0");
+    private static byte[] BuildUncompressedCabinet(string name, byte[] payload) =>
+        BuildUncompressedCabinet(new[] { name }, payload);
+
+    private static byte[] BuildUncompressedCabinet(IReadOnlyList<string> names, byte[] payload) {
+        byte[][] nameBytes = names.Select(name => Encoding.UTF8.GetBytes(name + "\0")).ToArray();
         const int folderOffset = 36;
         const int filesOffset = folderOffset + 8;
-        int dataOffset = filesOffset + 16 + nameBytes.Length;
+        int dataOffset = filesOffset + nameBytes.Sum(bytes => 16 + bytes.Length);
         int cabinetSize = dataOffset + 8 + payload.Length;
         var data = new byte[cabinetSize];
         data[0] = (byte)'M'; data[1] = (byte)'S'; data[2] = (byte)'C'; data[3] = (byte)'F';
@@ -57,15 +70,19 @@ public sealed class CabinetReaderTests {
         WriteUInt32(data, 16, filesOffset);
         data[24] = 3; data[25] = 1;
         WriteUInt16(data, 26, 1);
-        WriteUInt16(data, 28, 1);
+        WriteUInt16(data, 28, checked((ushort)names.Count));
         WriteUInt32(data, folderOffset, (uint)dataOffset);
         WriteUInt16(data, folderOffset + 4, 1);
         WriteUInt16(data, folderOffset + 6, 0);
-        WriteUInt32(data, filesOffset, (uint)payload.Length);
-        WriteUInt32(data, filesOffset + 4, 0);
-        WriteUInt16(data, filesOffset + 8, 0);
-        WriteUInt16(data, filesOffset + 14, 0x80);
-        Buffer.BlockCopy(nameBytes, 0, data, filesOffset + 16, nameBytes.Length);
+        int fileOffset = filesOffset;
+        foreach (byte[] encodedName in nameBytes) {
+            WriteUInt32(data, fileOffset, (uint)payload.Length);
+            WriteUInt32(data, fileOffset + 4, 0);
+            WriteUInt16(data, fileOffset + 8, 0);
+            WriteUInt16(data, fileOffset + 14, 0x80);
+            Buffer.BlockCopy(encodedName, 0, data, fileOffset + 16, encodedName.Length);
+            fileOffset += 16 + encodedName.Length;
+        }
         WriteUInt16(data, dataOffset + 4, (ushort)payload.Length);
         WriteUInt16(data, dataOffset + 6, (ushort)payload.Length);
         Buffer.BlockCopy(payload, 0, data, dataOffset + 8, payload.Length);

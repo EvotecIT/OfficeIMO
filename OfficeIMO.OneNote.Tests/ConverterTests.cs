@@ -99,6 +99,23 @@ public sealed class ConverterTests {
         Assert.Equal("Bold link", OneNoteMarkdownProjection.ToText(page.DirectContent[0]));
     }
 
+    [Fact]
+    public void MarkdownProjectionKeepsLiteralLineStartsInsideTheirSourceBlocks() {
+        var section = new OneNoteSection { Name = "Projection" };
+        var page = new OneNotePage { Title = "Title\n# literal heading" };
+        page.DirectContent.Add(Paragraph("Text\n> literal quote\n- literal item\n1. literal ordered item"));
+        section.Pages.Add(page);
+
+        string markdown = section.ToMarkdown();
+        string html = section.ToHtmlDocument(htmlOptions: new HtmlOptions { AssetMode = AssetMode.Offline });
+
+        Assert.Contains("## Title<br># literal heading", markdown);
+        Assert.Contains("Text<br>> literal quote<br>- literal item<br>1. literal ordered item", markdown);
+        Assert.DoesNotContain("\n# literal heading", markdown);
+        Assert.DoesNotContain("<blockquote", html, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("<li", html, StringComparison.OrdinalIgnoreCase);
+    }
+
     private static OneNoteNotebook CreateNotebook() {
         var notebook = new OneNoteNotebook { Name = "Offline notebook" };
         var group = new OneNoteSectionGroup { Name = "Group A" };

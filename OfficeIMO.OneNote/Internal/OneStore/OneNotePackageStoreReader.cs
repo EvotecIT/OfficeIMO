@@ -59,7 +59,17 @@ internal static partial class OneNotePackageStoreReader {
             .Select(item => ReadRevisionManifest(stream, item, options))
             .ToList();
         var revisionByElementId = revisionElements.ToDictionary(item => new PackageGuidKey(item.Element.Id));
-        var revisionById = revisionElements.ToDictionary(item => new PackageGuidKey(item.Manifest.Id));
+        var revisionById = new Dictionary<PackageGuidKey, PackageRevisionElement>();
+        foreach (PackageRevisionElement revision in revisionElements) {
+            var key = new PackageGuidKey(revision.Manifest.Id);
+            if (revisionById.ContainsKey(key)) {
+                throw new OneNoteFormatException(
+                    "ONENOTE_PACKAGE_REVISION_ID",
+                    "A package revision-manifest identifier is duplicated.",
+                    revision.Element.Node.HeaderOffset);
+            }
+            revisionById.Add(key, revision);
+        }
 
         int roleAssociationOrder = 0;
         foreach (PackageCellMapping cellMapping in index.CellMappings) {

@@ -266,6 +266,15 @@ public static class OneNoteMarkdownProjection {
 
     private static IEnumerable<OneNoteElement> PageRoots(OneNotePage page) => page.Outlines.Cast<OneNoteElement>().Concat(page.DirectContent);
     private static string PageTitle(OneNotePage page) => string.IsNullOrWhiteSpace(page.Title) ? "Untitled page" : page.Title;
-    private static string Escape(string? value) => (value ?? string.Empty).Replace("\\", "\\\\").Replace("*", "\\*").Replace("_", "\\_").Replace("[", "\\[").Replace("]", "\\]").Replace("|", "\\|");
+    private static string Escape(string? value) => (value ?? string.Empty)
+        .Replace("\\", "\\\\")
+        .Replace("*", "\\*")
+        .Replace("_", "\\_")
+        .Replace("[", "\\[")
+        .Replace("]", "\\]")
+        .Replace("|", "\\|")
+        .Replace("\r\n", "<br>")
+        .Replace("\r", "<br>")
+        .Replace("\n", "<br>");
     private static string EscapeDestination(string value) => value.Replace(" ", "%20").Replace("(", "%28").Replace(")", "%29");
 }

@@ -99,13 +99,18 @@ internal static class OneNoteCabinetArchiveReader {
         }
 
         var entries = new List<OneNoteCabinetEntry>(files.Length);
+        long totalExtractedBytes = 0;
         foreach (FileHeader file in files) {
             if (file.FolderIndex >= folderData.Length) throw new OneNoteFormatException("ONENOTE_CAB_FOLDER", "A .onepkg entry references a missing or continued CAB folder.");
             byte[] source = folderData[file.FolderIndex];
             long end = (long)file.FolderOffset + file.Length;
             if (file.FolderOffset > source.Length || end > source.Length) throw new OneNoteFormatException("ONENOTE_CAB_ENTRY_RANGE", "A .onepkg entry extends past its CAB folder.");
+            if (file.Length > maxExpandedBytes - totalExtractedBytes) {
+                throw new OneNoteFormatException("ONENOTE_CAB_EXPANDED_LIMIT", "The extracted .onepkg entries exceed the configured size limit.");
+            }
             var bytes = new byte[file.Length];
             if (bytes.Length > 0) Buffer.BlockCopy(source, (int)file.FolderOffset, bytes, 0, bytes.Length);
+            totalExtractedBytes += file.Length;
             entries.Add(new OneNoteCabinetEntry(file.Name, bytes));
         }
         return entries.AsReadOnly();
