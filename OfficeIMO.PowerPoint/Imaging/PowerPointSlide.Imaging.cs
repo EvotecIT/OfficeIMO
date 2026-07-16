@@ -16,7 +16,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
-        /// Exports this slide as PNG or SVG.
+        /// Exports this slide as a supported raster format or SVG.
         /// </summary>
         public OfficeImageExportResult ExportImage(OfficeImageExportFormat format, PowerPointImageExportOptions? options = null) {
             PowerPointImageExportOptions resolved = NormalizeImageExportOptions(options);

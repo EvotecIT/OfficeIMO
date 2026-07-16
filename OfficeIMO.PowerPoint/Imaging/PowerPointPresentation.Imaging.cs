@@ -8,7 +8,7 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.PowerPoint {
     public sealed partial class PowerPointPresentation {
         /// <summary>
-        /// Exports presentation slides as PNG or SVG images.
+        /// Exports presentation slides as supported raster formats or SVG images.
         /// </summary>
         public IReadOnlyList<OfficeImageExportResult> ExportImages(OfficeImageExportFormat format, PowerPointPresentationImageExportOptions? options = null) {
             ThrowIfDisposed();
@@ -53,12 +53,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public IReadOnlyList<OfficeImageExportResult> SaveAsImages(string folderPath, OfficeImageExportFormat format, PowerPointPresentationImageExportOptions? options = null) {
             PowerPointPresentationImageExportBuilder builder = new PowerPointPresentationImageExportBuilder(this, options);
-            if (format == OfficeImageExportFormat.Svg) {
-                builder.AsSvg();
-            } else {
-                builder.AsPng();
-            }
-
+            builder.As(format);
             return builder.Save(folderPath);
         }
 
@@ -110,6 +105,7 @@ namespace OfficeIMO.PowerPoint {
         private static PowerPointImageExportOptions CreateSlideImageExportOptions(PowerPointPresentationImageExportOptions options) => new PowerPointImageExportOptions {
             Scale = options.Scale,
             BackgroundColor = options.BackgroundColor,
+            RasterEncoding = options.RasterEncoding?.Clone() ?? new OfficeRasterEncodingOptions(),
             IncludeSlideBackground = options.IncludeSlideBackground,
             IncludeSlideContent = options.IncludeSlideContent,
             IncludePictures = options.IncludePictures,

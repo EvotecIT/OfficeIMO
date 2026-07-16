@@ -26,11 +26,12 @@ namespace OfficeIMO.PowerPoint {
                 return new OfficeImageExportResult(format, ScaledWidth(drawing, options), ScaledHeight(drawing, options), svg, "Slide", "PowerPoint slide", diagnostics);
             }
 
-            if (format == OfficeImageExportFormat.Png) {
+            if (format.IsRaster()) {
                 List<OfficeImageExportDiagnostic> diagnostics = new List<OfficeImageExportDiagnostic>(snapshot.Diagnostics);
                 AddRasterImageDiagnostics(drawing, diagnostics);
                 OfficeRasterImage image = OfficeDrawingRasterRenderer.Render(drawing, options.Scale);
-                return new OfficeImageExportResult(format, image.Width, image.Height, OfficePngWriter.Encode(image), "Slide", "PowerPoint slide", diagnostics);
+                byte[] bytes = OfficeRasterImageEncoder.Encode(image, format, options.RasterEncoding);
+                return new OfficeImageExportResult(format, image.Width, image.Height, bytes, "Slide", "PowerPoint slide", diagnostics);
             }
 
             throw new ArgumentOutOfRangeException(nameof(format), format, "Unsupported image export format.");
@@ -1135,7 +1136,7 @@ namespace OfficeIMO.PowerPoint {
                     AddImageDiagnostic(
                         diagnostics,
                         "unsupported-powerpoint-image-raster",
-                        "Skipped a PowerPoint image in PNG output because dependency-free raster export currently decodes PNG and uncompressed BMP image bytes only.",
+                        "Skipped a PowerPoint image in raster output because dependency-free rendering currently decodes " + OfficeRasterImageDecoder.SupportedFormatDescription + " only.",
                         image);
                 }
             }

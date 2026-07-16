@@ -18,6 +18,7 @@ namespace OfficeIMO.Word {
         internal WordImageExportOptions Clone() => new WordImageExportOptions {
             Scale = Scale,
             BackgroundColor = BackgroundColor,
+            RasterEncoding = RasterEncoding?.Clone() ?? new OfficeRasterEncodingOptions(),
             IncludeDocumentContent = IncludeDocumentContent,
             PageIndex = PageIndex
         };

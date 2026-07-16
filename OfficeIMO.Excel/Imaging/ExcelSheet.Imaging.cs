@@ -18,7 +18,7 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
-        /// Exports a worksheet range or used range as PNG or SVG.
+        /// Exports a worksheet range or used range as a supported raster format or SVG.
         /// </summary>
         public OfficeImageExportResult ExportImage(OfficeImageExportFormat format, ExcelWorksheetImageExportOptions? options = null) {
             ExcelWorksheetImageExportOptions resolved = NormalizeWorksheetOptions(options);
@@ -110,6 +110,7 @@ namespace OfficeIMO.Excel {
             ExcelWorksheetImageExportOptions resolved = new ExcelWorksheetImageExportOptions {
                 Scale = source.Scale,
                 BackgroundColor = source.BackgroundColor,
+                RasterEncoding = source.RasterEncoding?.Clone() ?? new OfficeRasterEncodingOptions(),
                 GridlineColor = source.GridlineColor,
                 ShowGridlines = source.ShowGridlines,
                 IncludeHidden = source.IncludeHidden,
@@ -436,7 +437,8 @@ namespace OfficeIMO.Excel {
         }
 
         private static bool CanExpandWorksheetImageRange(OfficeImageExportFormat? format, ExcelImage image) {
-            if (format != OfficeImageExportFormat.Png) {
+            if (format != OfficeImageExportFormat.Png && format != OfficeImageExportFormat.Jpeg &&
+                format != OfficeImageExportFormat.Tiff && format != OfficeImageExportFormat.Webp) {
                 return true;
             }
 

@@ -40,6 +40,7 @@ namespace OfficeIMO.PowerPoint {
         internal PowerPointImageExportOptions Clone() => new PowerPointImageExportOptions {
             Scale = Scale,
             BackgroundColor = BackgroundColor,
+            RasterEncoding = RasterEncoding?.Clone() ?? new OfficeRasterEncodingOptions(),
             IncludeSlideBackground = IncludeSlideBackground,
             IncludeSlideContent = IncludeSlideContent,
             IncludePictures = IncludePictures,
@@ -68,6 +69,7 @@ namespace OfficeIMO.PowerPoint {
         internal PowerPointPresentationImageExportOptions ClonePresentation() => new PowerPointPresentationImageExportOptions {
             Scale = Scale,
             BackgroundColor = BackgroundColor,
+            RasterEncoding = RasterEncoding?.Clone() ?? new OfficeRasterEncodingOptions(),
             IncludeSlideBackground = IncludeSlideBackground,
             IncludeSlideContent = IncludeSlideContent,
             IncludePictures = IncludePictures,

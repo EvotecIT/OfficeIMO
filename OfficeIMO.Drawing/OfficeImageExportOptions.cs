@@ -11,7 +11,7 @@ namespace OfficeIMO.Drawing;
 /// </remarks>
 public class OfficeImageExportOptions {
     /// <summary>
-    /// Output scale multiplier. A value of 2 creates a 2x PNG/SVG surface.
+    /// Output scale multiplier. A value of 2 creates a 2x raster or SVG surface.
     /// </summary>
     public double Scale { get; set; } = 1D;
 
