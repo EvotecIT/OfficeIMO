@@ -249,6 +249,26 @@ flowchart LR
             Assert.Equal("mermaid", visual.Language);
         }
 
+        [Theory]
+        [InlineData("topology")]
+        [InlineData("flow")]
+        [InlineData("table")]
+        [InlineData("chart")]
+        [InlineData("timeline")]
+        [InlineData("sequence")]
+        public void IntelligenceXMarkdownRenderer_ParseTranscriptNativeDesktopShell_Projects_ChartForgeX_Fences(string kind) {
+            var infoString = "chartforgex " + kind + " v1";
+            var markdown = "```" + infoString + "\nvisual payload\n```";
+
+            var native = IntelligenceXMarkdownRenderer.ParseTranscriptNativeDesktopShell(markdown);
+
+            var visual = Assert.IsType<MarkdownNativeVisualBlock>(Assert.Single(native.Blocks));
+            Assert.Equal("chartforgex", visual.SemanticKind);
+            Assert.Equal("chartforgex", visual.Language);
+            Assert.Equal(infoString, visual.InfoString);
+            Assert.Equal("visual payload", visual.Content);
+        }
+
         [Fact]
         public void MarkdownRendererPresets_CreateIntelligenceXTranscript_Reuses_Shared_Transcript_Reader_Contract() {
             var expected = MarkdownTranscriptPreparation.CreateIntelligenceXTranscriptReaderOptions(
