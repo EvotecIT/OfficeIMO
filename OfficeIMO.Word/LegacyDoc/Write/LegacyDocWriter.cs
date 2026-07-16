@@ -188,10 +188,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             var paragraphFormats = new List<LegacyDocWritableParagraph>();
             var bookmarks = new LegacyDocWritableBookmarksBuilder();
             var pictures = new LegacyDocWritablePictures(document);
-            LegacyDocWritableFootnotes footnotes = ReadSupportedFootnotes(mainPart!);
-            LegacyDocWritableEndnotes endnotes = ReadSupportedEndnotes(mainPart!);
+            LegacyDocWritableFootnotes footnotes = ReadSupportedFootnotes(mainPart!, pictures);
+            LegacyDocWritableEndnotes endnotes = ReadSupportedEndnotes(mainPart!, pictures);
             LegacyDocWritableStyleSheet styleSheet = CreateWritableStyleSheet(mainPart!, body);
-            LegacyDocWritableComments comments = ReadSupportedComments(mainPart!, styleSheet.StyleIndexes);
+            LegacyDocWritableComments comments = ReadSupportedComments(mainPart!, pictures, styleSheet.StyleIndexes);
             IReadOnlyDictionary<string, Style> tableStyleDefinitions = ReadTableStyleDefinitions(mainPart!);
             LegacyDocSectionFormat finalSectionFormat = LegacyDocSectionFormat.Default;
             var sections = new List<LegacyDocWritableSection>();
@@ -226,7 +226,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             endnotes.ThrowIfUnreferencedEndnotesRemain();
             comments.BindBodyReferences(body, text.ToString());
             bool hasNoteReferences = footnotes.HasReferences || endnotes.HasReferences;
-            LegacyDocWritableHeaderFooterStories headerFooterStories = BuildHeaderFooterStories(document, mainPart!, hasNoteReferences, styleSheet.StyleIndexes);
+            LegacyDocWritableHeaderFooterStories headerFooterStories = BuildHeaderFooterStories(document, mainPart!, pictures, hasNoteReferences, styleSheet.StyleIndexes);
             int terminalCharacterPadding = hasNoteReferences ? 1 : 0;
             LegacyDocWritableFootnoteStories footnoteStories = footnotes.CreateStories(text.Length, headerFooterStories.Text.Length, terminalCharacterPadding);
             bookmarks.AddRange(footnoteStories.Bookmarks, text.Length);
@@ -299,16 +299,6 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
 
             ThrowIfUnsupportedReviewMarkup(mainPart);
-
-            if (mainPart.HeaderParts.Any(HasRelatedPart<ImagePart>)
-                || mainPart.FooterParts.Any(HasRelatedPart<ImagePart>)
-                || (mainPart.FootnotesPart != null && HasRelatedPart<ImagePart>(mainPart.FootnotesPart))
-                || (mainPart.EndnotesPart != null && HasRelatedPart<ImagePart>(mainPart.EndnotesPart))
-                || (mainPart.WordprocessingCommentsPart != null && HasRelatedPart<ImagePart>(mainPart.WordprocessingCommentsPart))) {
-                throw new NotSupportedException(
-                    "Native DOC saving currently supports inline pictures in main-document body paragraphs only. "
-                    + "Pictures in headers, footers, notes, and comments are not supported yet.");
-            }
 
             if (HasRelatedPart<ChartPart>(mainPart)) {
                 throw new NotSupportedException("Native DOC saving currently supports text only. Charts are not supported yet.");
@@ -493,7 +483,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
                     break;
                 case Table table:
-                    AppendTable(text, runs, paragraphFormats, bookmarks, table, mainPart, styleIndexes, tableStyleDefinitions, footnotes, endnotes);
+                    AppendTable(text, runs, paragraphFormats, bookmarks, table, mainPart, pictures, styleIndexes, tableStyleDefinitions, footnotes, endnotes);
                     bodyContentCount++;
                     break;
                 case SdtBlock sdtBlock:
@@ -603,7 +593,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         AppendMathEquationField(text, runs, mathParagraph, LegacyDocWritableFormatting.Plain);
                         break;
                     case SdtRun sdtRun:
-                        AppendSupportedInlineContentControlText(text, runs, bookmarks, sdtRun, mainPart, footnotes, endnotes, LegacyDocWritableFormatting.Plain, "body paragraph inline content control");
+                        AppendSupportedInlineContentControlText(text, runs, bookmarks, sdtRun, mainPart, pictures, footnotes, endnotes, LegacyDocWritableFormatting.Plain, "body paragraph inline content control");
                         break;
                     case BookmarkStart bookmarkStart:
                         bookmarks.AddStart(bookmarkStart, text.Length);

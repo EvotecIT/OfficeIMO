@@ -205,9 +205,9 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 : Array.Empty<byte>();
             LegacyDocPictureReader.LegacyDocPictureReadResult pictures = LegacyDocPictureReader.Read(
                 dataStream,
-                textContent.Characters,
+                textContent.AllCharacters,
                 formattingRanges,
-                fib.CcpText);
+                fib.CcpText + fib.CcpFtn + fib.CcpHdd + fib.CcpAtn + fib.CcpEdn);
             if (pictures.Warning != null) {
                 AddWarning("DOC-PICTURE-DATA-INVALID", pictures.Warning);
             }
@@ -220,17 +220,17 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 bookmarkProjection,
                 pictures.PicturesByCharacterPosition,
                 options.ReportUnsupportedContent);
-            Footnotes = LegacyDocFootnoteReader.Read(tableStream, textContent, fib, formattingRanges, paragraphFormattingRanges, bookmarkProjection, out string? footnoteWarning);
+            Footnotes = LegacyDocFootnoteReader.Read(tableStream, textContent, fib, formattingRanges, paragraphFormattingRanges, bookmarkProjection, pictures.PicturesByCharacterPosition, out string? footnoteWarning);
             if (footnoteWarning != null) {
                 AddWarning("DOC-FOOTNOTE-PLC-INVALID", footnoteWarning);
             }
 
-            Endnotes = LegacyDocFootnoteReader.ReadEndnotes(tableStream, textContent, fib, formattingRanges, paragraphFormattingRanges, bookmarkProjection, out string? endnoteWarning);
+            Endnotes = LegacyDocFootnoteReader.ReadEndnotes(tableStream, textContent, fib, formattingRanges, paragraphFormattingRanges, bookmarkProjection, pictures.PicturesByCharacterPosition, out string? endnoteWarning);
             if (endnoteWarning != null) {
                 AddWarning("DOC-ENDNOTE-PLC-INVALID", endnoteWarning);
             }
 
-            Comments = LegacyDocCommentReader.Read(tableStream, textContent, fib, formattingRanges, paragraphFormattingRanges, bookmarkProjection, out string? commentWarning);
+            Comments = LegacyDocCommentReader.Read(tableStream, textContent, fib, formattingRanges, paragraphFormattingRanges, bookmarkProjection, pictures.PicturesByCharacterPosition, out string? commentWarning);
             if (commentWarning != null) {
                 AddWarning("DOC-COMMENT-PLC-INVALID", commentWarning);
             }
@@ -243,7 +243,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 pictures.FullyProjectsDataStream,
                 options.ReportUnsupportedContent);
 
-            HeaderFooterStories = LegacyDocHeaderFooterReader.Read(tableStream, textContent, fib, formattingRanges, paragraphFormattingRanges, bookmarkProjection, out string? headerFooterWarning);
+            HeaderFooterStories = LegacyDocHeaderFooterReader.Read(tableStream, textContent, fib, formattingRanges, paragraphFormattingRanges, bookmarkProjection, pictures.PicturesByCharacterPosition, out string? headerFooterWarning);
             if (headerFooterWarning != null) {
                 AddWarning("DOC-PLCFHDD-INVALID", headerFooterWarning);
                 AddUnsupportedFeature(new LegacyDocUnsupportedFeature(
@@ -662,30 +662,12 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
             for (int characterIndex = 0; characterIndex < characters.Count; characterIndex++) {
                 LegacyDocTextCharacter textCharacter = characters[characterIndex];
-                if (textCharacter.Character == '\u0001'
-                    && picturesByCharacterPosition.TryGetValue(textCharacter.CharacterPosition, out LegacyDocPicture? picture)) {
+                if (LegacyDocPictureReader.TryCreatePictureRun(
+                    textCharacter,
+                    picturesByCharacterPosition,
+                    out LegacyDocTextRun? pictureRun)) {
                     FlushRun();
-                    currentRuns.Add(new LegacyDocTextRun(
-                        string.Empty,
-                        bold: false,
-                        italic: false,
-                        strike: false,
-                        doubleStrike: false,
-                        outline: false,
-                        shadow: false,
-                        emboss: false,
-                        imprint: false,
-                        hidden: false,
-                        noProof: false,
-                        caps: null,
-                        verticalPosition: null,
-                        underline: null,
-                        highlight: null,
-                        fontSizeHalfPoints: null,
-                        colorHex: null,
-                        fontFamily: null,
-                        characterPositions: new[] { textCharacter.CharacterPosition },
-                        picture: picture));
+                    currentRuns.Add(pictureRun!);
                     if (inTable) {
                         justClosedCell = false;
                     }

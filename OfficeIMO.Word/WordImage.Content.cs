@@ -314,8 +314,20 @@ namespace OfficeIMO.Word {
                     var part = document._wordprocessingDocument.MainDocumentPart ?? throw new InvalidOperationException("MainDocumentPart is missing.");
                     imagePart = part.AddImagePart(imagePartType.ToOpenXmlImagePartType());
                     relationshipId = part.GetIdOfPart(imagePart);
+                } else if (location.GetType() == typeof(Footnotes)) {
+                    var part = document._wordprocessingDocument.MainDocumentPart?.FootnotesPart ?? throw new InvalidOperationException("FootnotesPart is missing.");
+                    imagePart = part.AddImagePart(imagePartType.ToOpenXmlImagePartType());
+                    relationshipId = part.GetIdOfPart(imagePart);
+                } else if (location.GetType() == typeof(Endnotes)) {
+                    var part = document._wordprocessingDocument.MainDocumentPart?.EndnotesPart ?? throw new InvalidOperationException("EndnotesPart is missing.");
+                    imagePart = part.AddImagePart(imagePartType.ToOpenXmlImagePartType());
+                    relationshipId = part.GetIdOfPart(imagePart);
+                } else if (location.GetType() == typeof(Comments)) {
+                    var part = document._wordprocessingDocument.MainDocumentPart?.WordprocessingCommentsPart ?? throw new InvalidOperationException("WordprocessingCommentsPart is missing.");
+                    imagePart = part.AddImagePart(imagePartType.ToOpenXmlImagePartType());
+                    relationshipId = part.GetIdOfPart(imagePart);
                 } else {
-                    throw new InvalidOperationException("Paragraph is not in document or header or footer. This is weird. Probably a bug.");
+                    throw new InvalidOperationException("Paragraph is not in a supported document story.");
                 }
 
                 preparedImageStream.Position = 0;
@@ -402,7 +414,13 @@ namespace OfficeIMO.Word {
 
         private OpenXmlPart GetContainingPart() {
             OpenXmlElement? parent = _Image.Parent;
-            while (parent != null && parent is not Body && parent is not Header && parent is not Footer) {
+            while (parent != null
+                && parent is not Body
+                && parent is not Header
+                && parent is not Footer
+                && parent is not Footnotes
+                && parent is not Endnotes
+                && parent is not Comments) {
                 parent = parent.Parent;
             }
 
@@ -414,7 +432,21 @@ namespace OfficeIMO.Word {
                 return footer.FooterPart ?? throw new InvalidOperationException("Footer part is missing.");
             }
 
-            return _document._wordprocessingDocument.MainDocumentPart ?? throw new InvalidOperationException("MainDocumentPart is missing.");
+            MainDocumentPart mainPart = _document._wordprocessingDocument.MainDocumentPart
+                ?? throw new InvalidOperationException("MainDocumentPart is missing.");
+            if (parent is Footnotes) {
+                return mainPart.FootnotesPart ?? throw new InvalidOperationException("FootnotesPart is missing.");
+            }
+
+            if (parent is Endnotes) {
+                return mainPart.EndnotesPart ?? throw new InvalidOperationException("EndnotesPart is missing.");
+            }
+
+            if (parent is Comments) {
+                return mainPart.WordprocessingCommentsPart ?? throw new InvalidOperationException("WordprocessingCommentsPart is missing.");
+            }
+
+            return mainPart;
         }
     }
 }

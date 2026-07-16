@@ -4763,12 +4763,22 @@ namespace OfficeIMO.Tests {
                 byte[] tableStream = ReadCompoundStream(compoundBytes, "1Table");
                 int ccpText = BitConverter.ToInt32(wordDocumentStream, 0x4C);
                 int ccpHdd = BitConverter.ToInt32(wordDocumentStream, 0x54);
+                int fcPlcfSed = BitConverter.ToInt32(wordDocumentStream, 0xCA);
+                int lcbPlcfSed = BitConverter.ToInt32(wordDocumentStream, 0xCE);
+                int fcPlcfHdd = BitConverter.ToInt32(wordDocumentStream, 0xF2);
+                int lcbPlcfHdd = BitConverter.ToInt32(wordDocumentStream, 0xF6);
                 string formattedStory = "plain bold italic\r\r";
                 int headerStart = ccpText;
                 int footerStart = headerStart + formattedStory.Length;
 
                 Assert.Equal(bodyText.Length + 1, ccpText);
-                Assert.Equal(formattedStory.Length * 2, ccpHdd);
+                Assert.Equal((formattedStory.Length * 2) + 1, ccpHdd);
+                Assert.Equal(20, lcbPlcfSed);
+                Assert.Equal(0, BitConverter.ToInt32(tableStream, fcPlcfSed));
+                Assert.Equal(ccpText, BitConverter.ToInt32(tableStream, fcPlcfSed + 4));
+                Assert.Equal(0, BitConverter.ToInt32(tableStream, fcPlcfSed + 10));
+                Assert.Equal(ccpHdd - 1, BitConverter.ToInt32(tableStream, fcPlcfHdd + lcbPlcfHdd - 8));
+                Assert.Equal(ccpHdd + 1, BitConverter.ToInt32(tableStream, fcPlcfHdd + lcbPlcfHdd - 4));
                 AssertChpxContainsSprmForCharacterRange(wordDocumentStream, tableStream, headerStart + "plain ".Length, "bold ".Length, 0x0835, 1);
                 AssertChpxContainsSprmForCharacterRange(wordDocumentStream, tableStream, headerStart + "plain bold ".Length, "italic".Length, 0x0836, 1);
                 AssertChpxContainsSprmForCharacterRange(wordDocumentStream, tableStream, footerStart + "plain ".Length, "bold ".Length, 0x0835, 1);
@@ -10875,7 +10885,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void LegacyDoc_SaveDocPath_WritesAndReloadsBodyInlinePictures() {
+        public void LegacyDoc_SaveDocPath_WritesAndReloadsBodyAndTableInlinePictures() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
             string roundTripPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
             string jpegPath = Path.Combine(_directoryWithImages, "Kulek.jpg");
@@ -10887,6 +10897,14 @@ namespace OfficeIMO.Tests {
                     jpegParagraph.AddImage(jpegPath, 50, 40);
                     jpegParagraph.AddText(" after JPEG");
                     document.AddParagraph("PNG").AddImage(pngPath, 32, 24);
+                    WordParagraph tableParagraph = document.AddTable(1, 1)
+                        .Rows[0]
+                        .Cells[0]
+                        .AddParagraph("Cell ", removeExistingParagraphs: true);
+                    tableParagraph.AddImage(jpegPath, 20, 18);
+                    tableParagraph.AddText(" after picture");
+                    document.AddParagraph("Picture control ")
+                        .AddPictureControl(jpegPath, 22, 17, alias: "Legacy picture", tag: "legacy-picture");
 
                     document.Save(docPath);
                 }
@@ -10898,7 +10916,7 @@ namespace OfficeIMO.Tests {
                 Assert.NotEqual(0, BitConverter.ToUInt16(wordDocumentStream, 0x0A) & 0x0008);
 
                 using (WordDocument reloaded = WordDocument.Load(docPath)) {
-                    Assert.Equal(2, reloaded.Images.Count);
+                    Assert.Equal(4, reloaded.Images.Count);
                     Assert.Equal("image/jpeg", reloaded.Images[0].ContentType);
                     Assert.Equal(File.ReadAllBytes(jpegPath), reloaded.Images[0].ToBytes());
                     Assert.InRange(reloaded.Images[0].Width!.Value, 49.99, 50.01);
@@ -10907,10 +10925,22 @@ namespace OfficeIMO.Tests {
                     Assert.Equal(File.ReadAllBytes(pngPath), reloaded.Images[1].ToBytes());
                     Assert.InRange(reloaded.Images[1].Width!.Value, 31.99, 32.01);
                     Assert.InRange(reloaded.Images[1].Height!.Value, 23.99, 24.01);
+                    Assert.Equal("image/jpeg", reloaded.Images[2].ContentType);
+                    Assert.Equal(File.ReadAllBytes(jpegPath), reloaded.Images[2].ToBytes());
+                    Assert.InRange(reloaded.Images[2].Width!.Value, 21.99, 22.01);
+                    Assert.InRange(reloaded.Images[2].Height!.Value, 16.99, 17.01);
+                    Assert.Equal("image/jpeg", reloaded.Images[3].ContentType);
+                    Assert.Equal(File.ReadAllBytes(jpegPath), reloaded.Images[3].ToBytes());
+                    Assert.InRange(reloaded.Images[3].Width!.Value, 19.99, 20.01);
+                    Assert.InRange(reloaded.Images[3].Height!.Value, 17.99, 18.01);
                     Assert.Contains(
                         "Before JPEG  after JPEG",
                         string.Concat(reloaded.Paragraphs.Select(paragraph => paragraph.Text)),
                         StringComparison.Ordinal);
+                    WordTable table = Assert.Single(reloaded.Tables);
+                    Assert.Equal(
+                        "Cell  after picture",
+                        string.Concat(table.Rows[0].Cells[0].Paragraphs.Select(paragraph => paragraph.Text)));
                     Assert.Empty(reloaded.LegacyDocPreservedFeatures);
                     Assert.Empty(reloaded.LegacyDocCompoundFeatures);
 
@@ -10921,7 +10951,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(dataStream, roundTripData);
 
                 using WordDocument roundTripped = WordDocument.Load(roundTripPath);
-                Assert.Equal(2, roundTripped.Images.Count);
+                Assert.Equal(4, roundTripped.Images.Count);
             } finally {
                 DeleteIfExists(docPath);
                 DeleteIfExists(roundTripPath);
@@ -10951,23 +10981,109 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void LegacyDoc_SaveDocPath_BlocksHeaderImagePartsBeforeCreatingFile() {
+        public void LegacyDoc_SaveDocPath_WritesAndReloadsHeaderFooterInlinePictures() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+            string roundTripPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+            string jpegPath = Path.Combine(_directoryWithImages, "Kulek.jpg");
+            string pngPath = Path.Combine(_directoryWithImages, "BackgroundImage.png");
 
             try {
-                using WordDocument document = WordDocument.Create();
-                document.AddParagraph("Body");
-                document.AddHeadersAndFooters();
-                WordParagraph headerParagraph = document.Sections[0].Header.Default!.AddParagraph();
-                headerParagraph.AddImage(Path.Combine(_directoryWithImages, "Kulek.jpg"), 50, 50);
+                using (WordDocument document = WordDocument.Create()) {
+                    document.AddParagraph("Body");
+                    document.AddHeadersAndFooters();
+                    document.Sections[0].Header.Default!.AddParagraph("Header ").AddImage(jpegPath, 50, 40);
+                    document.Sections[0].Footer.Default!.AddParagraph("Footer ").AddImage(pngPath, 32, 24);
 
-                NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
+                    document.Save(docPath);
+                }
 
-                Assert.Contains("inline pictures", exception.Message, StringComparison.OrdinalIgnoreCase);
-                Assert.Contains("headers", exception.Message, StringComparison.OrdinalIgnoreCase);
-                Assert.False(File.Exists(docPath));
+                using (LegacyDocLoadResult loadResult = WordDocument.LoadLegacyDocWithReport(docPath)) {
+                    loadResult.EnsureNoImportErrors();
+                    WordDocument reloaded = loadResult.Document;
+                    Assert.Contains("DOC-PICTURES-PROJECTED", loadResult.ImportReport.DiagnosticsByCode.Keys);
+                    WordHeaderFooter header = reloaded.Sections[0].Header.Default!;
+                    WordHeaderFooter footer = reloaded.Sections[0].Footer.Default!;
+                    WordImage headerImage = Assert.Single(header.Images);
+                    WordImage footerImage = Assert.Single(footer.Images);
+                    Assert.Equal("image/jpeg", headerImage.ContentType);
+                    Assert.Equal(File.ReadAllBytes(jpegPath), headerImage.ToBytes());
+                    Assert.InRange(headerImage.Width!.Value, 49.99, 50.01);
+                    Assert.InRange(headerImage.Height!.Value, 39.99, 40.01);
+                    Assert.Equal("image/png", footerImage.ContentType);
+                    Assert.Equal(File.ReadAllBytes(pngPath), footerImage.ToBytes());
+                    Assert.InRange(footerImage.Width!.Value, 31.99, 32.01);
+                    Assert.InRange(footerImage.Height!.Value, 23.99, 24.01);
+                    Assert.Empty(reloaded.LegacyDocPreservedFeatures);
+                    Assert.Empty(reloaded.LegacyDocCompoundFeatures);
+
+                    reloaded.Save(roundTripPath);
+                }
+
+                using WordDocument roundTripped = WordDocument.Load(roundTripPath);
+                Assert.Single(roundTripped.Sections[0].Header.Default!.Images);
+                Assert.Single(roundTripped.Sections[0].Footer.Default!.Images);
             } finally {
                 DeleteIfExists(docPath);
+                DeleteIfExists(roundTripPath);
+            }
+        }
+
+        [Fact]
+        public void LegacyDoc_SaveDocPath_WritesAndReloadsNoteAndCommentInlinePictures() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+            string roundTripPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+            string jpegPath = Path.Combine(_directoryWithImages, "Kulek.jpg");
+            string pngPath = Path.Combine(_directoryWithImages, "BackgroundImage.png");
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    WordParagraph paragraph = document.AddParagraph("Pictures in stories");
+                    WordParagraph footnoteReference = paragraph.AddFootNote("Footnote ");
+                    footnoteReference.FootNote!.Paragraphs![1].AddImage(jpegPath, 20, 18);
+                    WordParagraph endnoteReference = paragraph.AddEndNote("Endnote ");
+                    endnoteReference.EndNote!.Paragraphs![1].AddImage(pngPath, 24, 16);
+                    paragraph.AddComment("OfficeIMO", "OI", "Comment ");
+                    Assert.Single(document.Comments).Paragraphs[0].AddImage(jpegPath, 18, 14);
+
+                    document.Save(docPath);
+                }
+
+                using (LegacyDocLoadResult loadResult = WordDocument.LoadLegacyDocWithReport(docPath)) {
+                    loadResult.EnsureNoImportErrors();
+                    WordDocument reloaded = loadResult.Document;
+                    Assert.Contains("DOC-PICTURES-PROJECTED", loadResult.ImportReport.DiagnosticsByCode.Keys);
+
+                    WordImage footnoteImage = Assert.Single(
+                        Assert.Single(reloaded.FootNotes).Paragraphs!,
+                        paragraph => paragraph.IsImage).Image!;
+                    WordImage endnoteImage = Assert.Single(
+                        Assert.Single(reloaded.EndNotes).Paragraphs!,
+                        paragraph => paragraph.IsImage).Image!;
+                    WordImage commentImage = Assert.Single(
+                        Assert.Single(reloaded.Comments).Paragraphs,
+                        paragraph => paragraph.IsImage).Image!;
+                    Assert.Equal(File.ReadAllBytes(jpegPath), footnoteImage.ToBytes());
+                    Assert.InRange(footnoteImage.Width!.Value, 19.99, 20.01);
+                    Assert.InRange(footnoteImage.Height!.Value, 17.99, 18.01);
+                    Assert.Equal(File.ReadAllBytes(pngPath), endnoteImage.ToBytes());
+                    Assert.InRange(endnoteImage.Width!.Value, 23.99, 24.01);
+                    Assert.InRange(endnoteImage.Height!.Value, 15.99, 16.01);
+                    Assert.Equal(File.ReadAllBytes(jpegPath), commentImage.ToBytes());
+                    Assert.InRange(commentImage.Width!.Value, 17.99, 18.01);
+                    Assert.InRange(commentImage.Height!.Value, 13.99, 14.01);
+                    Assert.Empty(reloaded.LegacyDocPreservedFeatures);
+                    Assert.Empty(reloaded.LegacyDocCompoundFeatures);
+
+                    reloaded.Save(roundTripPath);
+                }
+
+                using WordDocument roundTripped = WordDocument.Load(roundTripPath);
+                Assert.Single(Assert.Single(roundTripped.FootNotes).Paragraphs!, paragraph => paragraph.IsImage);
+                Assert.Single(Assert.Single(roundTripped.EndNotes).Paragraphs!, paragraph => paragraph.IsImage);
+                Assert.Single(Assert.Single(roundTripped.Comments).Paragraphs, paragraph => paragraph.IsImage);
+            } finally {
+                DeleteIfExists(docPath);
+                DeleteIfExists(roundTripPath);
             }
         }
 

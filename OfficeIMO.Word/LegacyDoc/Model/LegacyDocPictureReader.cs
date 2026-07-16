@@ -12,8 +12,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             byte[] dataStream,
             IReadOnlyList<LegacyDocTextCharacter> characters,
             IReadOnlyList<LegacyDocCharacterFormatRange> formattingRanges,
-            int bodyCharacterCount) {
-            if (dataStream.Length == 0 || bodyCharacterCount <= 0) {
+            int supportedStoryCharacterCount) {
+            if (dataStream.Length == 0 || supportedStoryCharacterCount <= 0) {
                 return LegacyDocPictureReadResult.Empty;
             }
 
@@ -21,7 +21,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             var ranges = new Dictionary<int, int>();
             string? warning = null;
             foreach (LegacyDocTextCharacter character in characters) {
-                if (character.CharacterPosition < 0 || character.CharacterPosition >= bodyCharacterCount
+                if (character.CharacterPosition < 0 || character.CharacterPosition >= supportedStoryCharacterCount
                     || character.Character != '\u0001') {
                     continue;
                 }
@@ -43,6 +43,40 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
             bool fullyProjected = pictures.Count > 0 && CoversDataStream(ranges, dataStream.Length);
             return new LegacyDocPictureReadResult(pictures, fullyProjected, warning);
+        }
+
+        internal static bool TryCreatePictureRun(
+            LegacyDocTextCharacter character,
+            IReadOnlyDictionary<int, LegacyDocPicture> picturesByCharacterPosition,
+            out LegacyDocTextRun? pictureRun) {
+            pictureRun = null;
+            if (character.Character != '\u0001'
+                || !picturesByCharacterPosition.TryGetValue(character.CharacterPosition, out LegacyDocPicture? picture)) {
+                return false;
+            }
+
+            pictureRun = new LegacyDocTextRun(
+                string.Empty,
+                bold: false,
+                italic: false,
+                strike: false,
+                doubleStrike: false,
+                outline: false,
+                shadow: false,
+                emboss: false,
+                imprint: false,
+                hidden: false,
+                noProof: false,
+                caps: null,
+                verticalPosition: null,
+                underline: null,
+                highlight: null,
+                fontSizeHalfPoints: null,
+                colorHex: null,
+                fontFamily: null,
+                characterPositions: new[] { character.CharacterPosition },
+                picture: picture);
+            return true;
         }
 
         private static bool TryReadPicture(

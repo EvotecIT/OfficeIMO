@@ -165,7 +165,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             internal bool HasStyleSheet => StyleSheet.Bytes.Length > 0;
 
-            internal bool HasSectionDescriptors => Sections.Count > 1 || Sections.Any(section => section.Format.HasFormatting);
+            internal bool HasSectionDescriptors => Sections.Count > 0;
 
             internal bool HasHeaderFooterStories => HeaderFooterText.Length > 0 && PlcfHdd.Length > 0;
 
@@ -277,7 +277,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 runs.AddRange(FormattedRuns);
                 int footnoteStartCharacter = Text.Length;
                 foreach (LegacyDocWritableRun run in FootnoteFormattedRuns) {
-                    runs.Add(new LegacyDocWritableRun(footnoteStartCharacter + run.StartCharacter, run.Length, run.Formatting));
+                    runs.Add(new LegacyDocWritableRun(footnoteStartCharacter + run.StartCharacter, run.Length, run.Formatting, run.PictureDataOffset));
                 }
 
                 foreach (int markerPosition in FootnoteMarkerPositions) {
@@ -286,7 +286,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
                 int headerFooterStartCharacter = Text.Length + FootnoteText.Length;
                 foreach (LegacyDocWritableRun run in HeaderFooterFormattedRuns) {
-                    runs.Add(new LegacyDocWritableRun(headerFooterStartCharacter + run.StartCharacter, run.Length, run.Formatting));
+                    runs.Add(new LegacyDocWritableRun(headerFooterStartCharacter + run.StartCharacter, run.Length, run.Formatting, run.PictureDataOffset));
                 }
 
                 foreach (int markerPosition in HeaderFooterMarkerPositions) {
@@ -298,12 +298,13 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     runs.Add(new LegacyDocWritableRun(
                         commentStartCharacter + run.StartCharacter,
                         run.Length,
-                        run.Formatting));
+                        run.Formatting,
+                        run.PictureDataOffset));
                 }
 
                 int endnoteStartCharacter = commentStartCharacter + CommentText.Length;
                 foreach (LegacyDocWritableRun run in EndnoteFormattedRuns) {
-                    runs.Add(new LegacyDocWritableRun(endnoteStartCharacter + run.StartCharacter, run.Length, run.Formatting));
+                    runs.Add(new LegacyDocWritableRun(endnoteStartCharacter + run.StartCharacter, run.Length, run.Formatting, run.PictureDataOffset));
                 }
 
                 foreach (int markerPosition in EndnoteMarkerPositions) {

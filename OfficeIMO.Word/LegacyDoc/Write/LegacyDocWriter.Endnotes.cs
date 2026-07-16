@@ -6,7 +6,7 @@ using System.Text;
 
 namespace OfficeIMO.Word.LegacyDoc.Write {
     internal static partial class LegacyDocWriter {
-        private static LegacyDocWritableEndnotes ReadSupportedEndnotes(MainDocumentPart mainPart) {
+        private static LegacyDocWritableEndnotes ReadSupportedEndnotes(MainDocumentPart mainPart, LegacyDocWritablePictures pictures) {
             Endnotes? endnotes = mainPart.EndnotesPart?.Endnotes;
             if (endnotes == null) {
                 return LegacyDocWritableEndnotes.Empty;
@@ -27,7 +27,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     throw new NotSupportedException($"Native DOC saving cannot write duplicate endnote id '{id.Value}'.");
                 }
 
-                stories.Add(id.Value, ReadSimpleEndnoteStory(endnote, id.Value, mainPart.EndnotesPart!));
+                stories.Add(id.Value, ReadSimpleEndnoteStory(endnote, id.Value, mainPart.EndnotesPart!, pictures));
             }
 
             return stories.Count == 0
@@ -35,7 +35,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 : new LegacyDocWritableEndnotes(stories);
         }
 
-        private static LegacyDocWritableNoteStory ReadSimpleEndnoteStory(Endnote endnote, long id, EndnotesPart relationshipOwner) {
+        private static LegacyDocWritableNoteStory ReadSimpleEndnoteStory(Endnote endnote, long id, EndnotesPart relationshipOwner, LegacyDocWritablePictures pictures) {
             var builder = new StringBuilder();
             var runs = new List<LegacyDocWritableRun>();
             var formattedParagraphs = new List<LegacyDocWritableParagraph>();
@@ -49,6 +49,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     child,
                     id,
                     relationshipOwner,
+                    pictures,
                     builder,
                     runs,
                     formattedParagraphs,
@@ -70,6 +71,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             OpenXmlElement child,
             long id,
             EndnotesPart relationshipOwner,
+            LegacyDocWritablePictures pictures,
             StringBuilder builder,
             List<LegacyDocWritableRun> runs,
             List<LegacyDocWritableParagraph> formattedParagraphs,
@@ -81,7 +83,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 case Paragraph paragraph:
                     int paragraphStart = isFirstParagraph ? 0 : builder.Length;
                     LegacyDocWritableFormatting paragraphMarkFormatting = ReadSupportedParagraphMarkRunFormatting(paragraph.ParagraphProperties);
-                    LegacyDocWritableParagraphFormatting paragraphFormatting = ReadSimpleEndnoteParagraph(paragraph, id, runs, bookmarks, builder.Length, isFirstParagraph, relationshipOwner, out string paragraphText);
+                    LegacyDocWritableParagraphFormatting paragraphFormatting = ReadSimpleEndnoteParagraph(paragraph, id, runs, bookmarks, builder.Length, isFirstParagraph, relationshipOwner, pictures, out string paragraphText);
                     if (!string.IsNullOrEmpty(paragraphText)) {
                         hasBodyText = true;
                     }
@@ -100,6 +102,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         sdtBlock,
                         id,
                         relationshipOwner,
+                        pictures,
                         builder,
                         runs,
                         formattedParagraphs,
@@ -122,6 +125,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             SdtBlock sdtBlock,
             long id,
             EndnotesPart relationshipOwner,
+            LegacyDocWritablePictures pictures,
             StringBuilder builder,
             List<LegacyDocWritableRun> runs,
             List<LegacyDocWritableParagraph> formattedParagraphs,
@@ -138,6 +142,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     child,
                     id,
                     relationshipOwner,
+                    pictures,
                     builder,
                     runs,
                     formattedParagraphs,
@@ -148,7 +153,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
         }
 
-        private static LegacyDocWritableParagraphFormatting ReadSimpleEndnoteParagraph(Paragraph paragraph, long id, List<LegacyDocWritableRun> runs, LegacyDocWritableBookmarksBuilder bookmarks, int storyStart, bool isFirstParagraph, EndnotesPart relationshipOwner, out string paragraphText) {
+        private static LegacyDocWritableParagraphFormatting ReadSimpleEndnoteParagraph(Paragraph paragraph, long id, List<LegacyDocWritableRun> runs, LegacyDocWritableBookmarksBuilder bookmarks, int storyStart, bool isFirstParagraph, EndnotesPart relationshipOwner, LegacyDocWritablePictures pictures, out string paragraphText) {
             var builder = new StringBuilder();
             LegacyDocWritableParagraphFormatting paragraphFormatting = ReadSupportedNoteParagraphFormatting(paragraph.ParagraphProperties, id, "endnote", EndnoteParagraphStyleIndexes);
             if (isFirstParagraph && paragraphFormatting.HasFormatting && paragraphFormatting.StyleIndex == null) {
@@ -165,7 +170,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         if (IsComplexFieldBeginRun(run)) {
                             AppendSupportedNoteComplexPageNumberField(children, ref index, builder, runs, bookmarks, storyStart);
                         } else {
-                            AppendSimpleEndnoteRun(builder, runs, run, id, storyStart);
+                            AppendSimpleEndnoteRun(builder, runs, run, id, storyStart, relationshipOwner, pictures);
                         }
 
                         break;
@@ -182,7 +187,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         AppendMathEquationNoteField(builder, runs, bookmarks, mathParagraph, storyStart);
                         break;
                     case SdtRun sdtRun:
-                        AppendSupportedEndnoteInlineContentControl(builder, runs, bookmarks, sdtRun, relationshipOwner, id, storyStart);
+                        AppendSupportedEndnoteInlineContentControl(builder, runs, bookmarks, sdtRun, relationshipOwner, pictures, id, storyStart);
                         break;
                     case BookmarkStart bookmarkStart:
                         bookmarks.AddStart(bookmarkStart, storyStart + builder.Length);
@@ -203,7 +208,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             return paragraphFormatting;
         }
 
-        private static void AppendSimpleEndnoteRun(StringBuilder builder, List<LegacyDocWritableRun> runs, Run run, long id, int storyStart) {
+        private static void AppendSimpleEndnoteRun(StringBuilder builder, List<LegacyDocWritableRun> runs, Run run, long id, int storyStart, EndnotesPart relationshipOwner, LegacyDocWritablePictures pictures) {
             if (IsEndnoteReferenceMarkRun(run)) {
                 return;
             }
@@ -234,8 +239,18 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     case Break breakNode:
                         AppendSimpleEndnoteBreak(builder, runs, breakNode, id, formatting, storyStart);
                         break;
+                    case DocumentFormat.OpenXml.Wordprocessing.Drawing drawing:
+                        int picturePosition = storyStart + builder.Length;
+                        int pictureDataOffset = pictures.AddInlinePicture(drawing, relationshipOwner);
+                        builder.Append('\u0001');
+                        runs.Add(new LegacyDocWritableRun(
+                            picturePosition,
+                            1,
+                            LegacyDocWritableFormatting.SpecialCharacter,
+                            pictureDataOffset));
+                        break;
                     default:
-                        throw new NotSupportedException($"Native DOC saving supports simple endnote id '{id}' only with text, tabs, carriage returns, soft/no-break hyphens, and text-wrapping/page/column breaks. Unsupported endnote run element: {child.LocalName}.");
+                        throw new NotSupportedException($"Native DOC saving supports simple endnote id '{id}' only with text, embedded inline pictures, tabs, carriage returns, soft/no-break hyphens, and text-wrapping/page/column breaks. Unsupported endnote run element: {child.LocalName}.");
                 }
             }
         }
@@ -333,7 +348,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     textPositions.Add(text.Length);
                     markerPositions.Add(text.Length);
                     foreach (LegacyDocWritableRun run in story.FormattedRuns) {
-                        runs.Add(new LegacyDocWritableRun(text.Length + run.StartCharacter, run.Length, run.Formatting));
+                        runs.Add(new LegacyDocWritableRun(text.Length + run.StartCharacter, run.Length, run.Formatting, run.PictureDataOffset));
                     }
 
                     foreach (LegacyDocWritableParagraph paragraph in story.FormattedParagraphs) {

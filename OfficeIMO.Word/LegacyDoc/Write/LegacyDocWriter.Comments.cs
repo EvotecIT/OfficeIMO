@@ -11,8 +11,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
         private static LegacyDocWritableComments ReadSupportedComments(
             MainDocumentPart mainPart,
+            LegacyDocWritablePictures pictures,
             IReadOnlyDictionary<string, ushort> styleIndexes) {
-            Comments? comments = mainPart.WordprocessingCommentsPart?.Comments;
+            WordprocessingCommentsPart? commentsPart = mainPart.WordprocessingCommentsPart;
+            Comments? comments = commentsPart?.Comments;
             if (comments == null) {
                 return LegacyDocWritableComments.Empty;
             }
@@ -40,7 +42,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 stories.Add(id!, new LegacyDocWritableCommentStory(
                     id!,
                     initials,
-                    ReadSimpleCommentStory(comment, id!, styleIndexes)));
+                    ReadSimpleCommentStory(comment, id!, commentsPart!, pictures, styleIndexes)));
             }
 
             return stories.Count == 0
@@ -51,6 +53,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         private static LegacyDocWritableNoteStory ReadSimpleCommentStory(
             Comment comment,
             string id,
+            WordprocessingCommentsPart relationshipOwner,
+            LegacyDocWritablePictures pictures,
             IReadOnlyDictionary<string, ushort> styleIndexes) {
             var builder = new StringBuilder();
             var runs = new List<LegacyDocWritableRun>();
@@ -84,7 +88,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     id,
                     builder,
                     runs,
-                    bookmarks);
+                    bookmarks,
+                    relationshipOwner,
+                    pictures);
                 if (builder.Length > paragraphStart) {
                     hasText = true;
                 }
@@ -115,13 +121,15 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             string id,
             StringBuilder builder,
             List<LegacyDocWritableRun> runs,
-            LegacyDocWritableBookmarksBuilder bookmarks) {
+            LegacyDocWritableBookmarksBuilder bookmarks,
+            WordprocessingCommentsPart relationshipOwner,
+            LegacyDocWritablePictures pictures) {
             foreach (OpenXmlElement child in paragraph.ChildElements) {
                 switch (child) {
                     case ParagraphProperties:
                         break;
                     case Run run:
-                        AppendSimpleCommentRun(builder, runs, run, id);
+                        AppendSimpleCommentRun(builder, runs, run, id, relationshipOwner, pictures);
                         break;
                     case BookmarkStart bookmarkStart:
                         bookmarks.AddStart(bookmarkStart, builder.Length);
@@ -145,7 +153,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             StringBuilder builder,
             List<LegacyDocWritableRun> runs,
             Run run,
-            string id) {
+            string id,
+            WordprocessingCommentsPart relationshipOwner,
+            LegacyDocWritablePictures pictures) {
             LegacyDocWritableFormatting formatting = ReadSupportedRunFormatting(run.RunProperties);
             foreach (OpenXmlElement child in run.ChildElements) {
                 switch (child) {
@@ -182,9 +192,19 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     case Break breakNode:
                         AppendSupportedBreak(builder, runs, breakNode, formatting);
                         break;
+                    case DocumentFormat.OpenXml.Wordprocessing.Drawing drawing:
+                        int picturePosition = builder.Length;
+                        int pictureDataOffset = pictures.AddInlinePicture(drawing, relationshipOwner);
+                        builder.Append('\u0001');
+                        runs.Add(new LegacyDocWritableRun(
+                            picturePosition,
+                            1,
+                            LegacyDocWritableFormatting.SpecialCharacter,
+                            pictureDataOffset));
+                        break;
                     default:
                         throw new NotSupportedException(
-                            $"Native DOC saving supports comment id '{id}' only with text, tabs, hyphens, and simple breaks. "
+                            $"Native DOC saving supports comment id '{id}' only with text, embedded inline pictures, tabs, hyphens, and simple breaks. "
                             + $"Unsupported comment run element: {child.LocalName}.");
                 }
             }
@@ -263,7 +283,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         runs.Add(new LegacyDocWritableRun(
                             text.Length + run.StartCharacter,
                             run.Length,
-                            run.Formatting));
+                            run.Formatting,
+                            run.PictureDataOffset));
                     }
 
                     foreach (LegacyDocWritableParagraph paragraph in reference.Story.Content.FormattedParagraphs) {

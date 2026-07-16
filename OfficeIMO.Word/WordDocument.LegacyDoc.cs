@@ -1129,10 +1129,13 @@ namespace OfficeIMO.Word {
         }
 
         private static WordComment CreateLegacyDocComment(WordDocument document, LegacyDocComment comment, LegacyDocStyleSheet styleSheet) {
-            var paragraphs = new List<Paragraph>(comment.ParagraphRuns.Count);
-            foreach (LegacyDocNoteParagraph sourceParagraph in comment.ParagraphRuns) {
-                var targetParagraph = new Paragraph();
-                var wrapper = new WordParagraph(document, targetParagraph, newRun: false);
+            Paragraph[] paragraphShells = comment.ParagraphRuns
+                .Select(_ => new Paragraph())
+                .ToArray();
+            WordComment wordComment = WordComment.Create(document, comment.Author, comment.Initials, paragraphShells);
+            for (int index = 0; index < comment.ParagraphRuns.Count; index++) {
+                LegacyDocNoteParagraph sourceParagraph = comment.ParagraphRuns[index];
+                WordParagraph wrapper = wordComment.Paragraphs[index];
                 ReplaceLegacyDocNoteParagraphRuns(
                     wrapper,
                     sourceParagraph,
@@ -1140,10 +1143,9 @@ namespace OfficeIMO.Word {
                     LegacyDocNoteProjection.Empty,
                     LegacyDocBookmarkProjection.Create(sourceParagraph.Bookmarks, sourceParagraph.StartCharacter, sourceParagraph.EndCharacter));
                 ApplyLegacyDocParagraphFormatting(wrapper, sourceParagraph.Format, styleSheet);
-                paragraphs.Add(targetParagraph);
             }
 
-            return WordComment.Create(document, comment.Author, comment.Initials, paragraphs);
+            return wordComment;
         }
 
         private static void AddLegacyDocFootnoteReference(WordParagraph paragraph, LegacyDocFootnote footnote, LegacyDocStyleSheet styleSheet) {

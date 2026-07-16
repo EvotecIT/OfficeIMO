@@ -7,7 +7,7 @@ using System.Text;
 
 namespace OfficeIMO.Word.LegacyDoc.Write {
     internal static partial class LegacyDocWriter {
-        private static void AppendTable(StringBuilder text, List<LegacyDocWritableRun> runs, List<LegacyDocWritableParagraph> paragraphFormats, LegacyDocWritableBookmarksBuilder bookmarks, Table table, MainDocumentPart mainPart, IReadOnlyDictionary<string, ushort> styleIndexes, IReadOnlyDictionary<string, Style> tableStyleDefinitions, LegacyDocWritableFootnotes footnotes, LegacyDocWritableEndnotes endnotes, int tableDepth = 1) {
+        private static void AppendTable(StringBuilder text, List<LegacyDocWritableRun> runs, List<LegacyDocWritableParagraph> paragraphFormats, LegacyDocWritableBookmarksBuilder bookmarks, Table table, MainDocumentPart mainPart, LegacyDocWritablePictures pictures, IReadOnlyDictionary<string, ushort> styleIndexes, IReadOnlyDictionary<string, Style> tableStyleDefinitions, LegacyDocWritableFootnotes footnotes, LegacyDocWritableEndnotes endnotes, int tableDepth = 1) {
             if (tableDepth <= 0 || tableDepth > 2) {
                 throw new NotSupportedException("Native DOC saving supports nested tables only to depth 2.");
             }
@@ -63,7 +63,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 foreach (LegacyDocWritableTableCell writableCell in writableCells) {
                     LegacyDocWritableParagraphFormatting cellParagraphFormatting = writableCell.ParagraphFormatting.WithInheritedParagraphFormatting(tableStyleParagraphFormatting);
                     LegacyDocWritableFormatting cellRunFormatting = writableCell.RunFormatting.WithInheritedFormatting(tableStyleRunFormatting);
-                    LegacyDocWritableParagraphFormatting paragraphFormatting = AppendTableCell(text, runs, paragraphFormats, bookmarks, writableCell.SourceCell, mainPart, styleIndexes, tableStyleDefinitions, cellParagraphFormatting, cellRunFormatting, footnotes, endnotes, tableDepth, out int finalParagraphStart, out LegacyDocWritableFormatting finalParagraphMarkFormatting);
+                    LegacyDocWritableParagraphFormatting paragraphFormatting = AppendTableCell(text, runs, paragraphFormats, bookmarks, writableCell.SourceCell, mainPart, pictures, styleIndexes, tableStyleDefinitions, cellParagraphFormatting, cellRunFormatting, footnotes, endnotes, tableDepth, out int finalParagraphStart, out LegacyDocWritableFormatting finalParagraphMarkFormatting);
                     paragraphFormatting = tableDepth == 1
                         ? paragraphFormatting.WithTableMarkers(isTableTerminatingParagraph: false)
                         : paragraphFormatting.WithNestedTableMarkers(tableDepth);
@@ -1160,6 +1160,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             LegacyDocWritableBookmarksBuilder bookmarks,
             TableCell? cell,
             MainDocumentPart mainPart,
+            LegacyDocWritablePictures pictures,
             IReadOnlyDictionary<string, ushort> styleIndexes,
             IReadOnlyDictionary<string, Style> tableStyleDefinitions,
             LegacyDocWritableParagraphFormatting tableStyleParagraphFormatting,
@@ -1214,7 +1215,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 switch (child) {
                     case Paragraph paragraph:
                         int paragraphStart = text.Length;
-                        LegacyDocWritableParagraphFormatting paragraphFormatting = AppendTableCellParagraph(text, runs, bookmarks, paragraph, mainPart, styleIndexes, tableStyleParagraphFormatting, tableStyleRunFormatting, footnotes, endnotes, out LegacyDocWritableFormatting paragraphMarkFormatting);
+                        LegacyDocWritableParagraphFormatting paragraphFormatting = AppendTableCellParagraph(text, runs, bookmarks, paragraph, mainPart, pictures, styleIndexes, tableStyleParagraphFormatting, tableStyleRunFormatting, footnotes, endnotes, out LegacyDocWritableFormatting paragraphMarkFormatting);
                         bool isFinalParagraph = !HasLaterParagraphOrTable(content, contentIndex);
                         if (isFinalParagraph) {
                             finalParagraphStart = paragraphStart;
@@ -1232,7 +1233,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
                         break;
                     case Table nestedTable:
-                        AppendTable(text, runs, paragraphFormats, bookmarks, nestedTable, mainPart, styleIndexes, tableStyleDefinitions, footnotes, endnotes, tableDepth + 1);
+                        AppendTable(text, runs, paragraphFormats, bookmarks, nestedTable, mainPart, pictures, styleIndexes, tableStyleDefinitions, footnotes, endnotes, tableDepth + 1);
                         finalParagraphStart = text.Length;
                         finalParagraphMarkFormatting = LegacyDocWritableFormatting.Plain;
                         finalParagraphFormatting = LegacyDocWritableParagraphFormatting.Plain;
@@ -1336,7 +1337,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
         }
 
-        private static LegacyDocWritableParagraphFormatting AppendTableCellParagraph(StringBuilder text, List<LegacyDocWritableRun> runs, LegacyDocWritableBookmarksBuilder bookmarks, Paragraph paragraph, MainDocumentPart mainPart, IReadOnlyDictionary<string, ushort> styleIndexes, LegacyDocWritableParagraphFormatting tableStyleParagraphFormatting, LegacyDocWritableFormatting tableStyleRunFormatting, LegacyDocWritableFootnotes footnotes, LegacyDocWritableEndnotes endnotes, out LegacyDocWritableFormatting paragraphMarkFormatting) {
+        private static LegacyDocWritableParagraphFormatting AppendTableCellParagraph(StringBuilder text, List<LegacyDocWritableRun> runs, LegacyDocWritableBookmarksBuilder bookmarks, Paragraph paragraph, MainDocumentPart mainPart, LegacyDocWritablePictures pictures, IReadOnlyDictionary<string, ushort> styleIndexes, LegacyDocWritableParagraphFormatting tableStyleParagraphFormatting, LegacyDocWritableFormatting tableStyleRunFormatting, LegacyDocWritableFootnotes footnotes, LegacyDocWritableEndnotes endnotes, out LegacyDocWritableFormatting paragraphMarkFormatting) {
             paragraphMarkFormatting = ReadSupportedParagraphMarkRunFormatting(paragraph.ParagraphProperties);
             LegacyDocWritableParagraphFormatting paragraphFormatting = ReadSupportedParagraphFormatting(paragraph.ParagraphProperties, styleIndexes)
                 .WithInheritedParagraphFormatting(tableStyleParagraphFormatting);
@@ -1351,7 +1352,16 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         if (IsComplexFieldBeginRun(run)) {
                             AppendSupportedComplexPageNumberField(children, ref index, text, runs, bookmarks, tableStyleRunFormatting);
                         } else {
-                            AppendSupportedRunText(text, runs, run, footnotes, endnotes, tableStyleRunFormatting);
+                            AppendSupportedRunText(
+                                text,
+                                runs,
+                                run,
+                                footnotes,
+                                endnotes,
+                                tableStyleRunFormatting,
+                                allowHyperlinkRunStyle: false,
+                                pictures,
+                                mainPart);
                         }
 
                         break;
@@ -1368,7 +1378,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         AppendMathEquationField(text, runs, mathParagraph, tableStyleRunFormatting);
                         break;
                     case SdtRun sdtRun:
-                        AppendSupportedInlineContentControlText(text, runs, bookmarks, sdtRun, mainPart, footnotes, endnotes, tableStyleRunFormatting, "table cell inline content control");
+                        AppendSupportedInlineContentControlText(text, runs, bookmarks, sdtRun, mainPart, pictures, footnotes, endnotes, tableStyleRunFormatting, "table cell inline content control");
                         break;
                     case BookmarkStart bookmarkStart:
                         bookmarks.AddStart(bookmarkStart, text.Length);

@@ -75,7 +75,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     case DocumentFormat.OpenXml.Wordprocessing.Drawing drawing:
                         if (pictures == null || ownerPart == null) {
                             throw new NotSupportedException(
-                                "Native DOC saving currently supports inline pictures in main-document body paragraphs only.");
+                                "Native DOC saving does not support inline pictures inside this run context.");
                         }
 
                         int picturePosition = text.Length;
@@ -88,7 +88,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                             pictureDataOffset));
                         break;
                     default:
-                        throw new NotSupportedException($"Native DOC saving currently supports text, tabs, page-number fields, carriage returns, soft/no-break hyphens, text-wrapping/page/column breaks, and simple footnote/endnote/comment references only. Unsupported run element: {child.LocalName}.");
+                        throw new NotSupportedException($"Native DOC saving currently supports text, embedded inline pictures, tabs, page-number fields, carriage returns, soft/no-break hyphens, text-wrapping/page/column breaks, and simple footnote/endnote/comment references only. Unsupported run element: {child.LocalName}.");
                 }
             }
         }
