@@ -72,6 +72,22 @@ internal static partial class EpubReaderAdapter {
         foreach (var chapter in document.Chapters) {
             cancellationToken.ThrowIfCancellationRequested();
 
+            if (!string.IsNullOrWhiteSpace(chapter.Html)) {
+                IReadOnlyList<ReaderChunk> structuredChunks = ReadStructuredChapter(
+                    chapter,
+                    source,
+                    options,
+                    blockIndex,
+                    cancellationToken);
+                if (structuredChunks.Count > 0) {
+                    foreach (ReaderChunk structuredChunk in structuredChunks) {
+                        yield return structuredChunk;
+                    }
+                    blockIndex += structuredChunks.Count;
+                    continue;
+                }
+            }
+
             int chunkPart = 0;
             foreach (var piece in SplitText(chapter.Text, maxChars)) {
                 cancellationToken.ThrowIfCancellationRequested();

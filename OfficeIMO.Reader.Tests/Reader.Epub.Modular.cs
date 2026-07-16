@@ -49,6 +49,12 @@ public sealed class ReaderEpubModularTests {
             Assert.Contains(result.Blocks, block => block.Kind == "heading" && block.Text == "Two");
             Assert.Contains(result.Tables, table => table.Kind == "html-table" && table.Rows.Any(row => row.Contains("2")));
             Assert.Contains(result.Links, link => link.Uri == "https://example.test/chapter-two" && link.Text == "details");
+            string markdown = Assert.IsType<string>(result.Markdown);
+            Assert.Contains("## Second", markdown, StringComparison.Ordinal);
+            Assert.Contains("# Two", markdown, StringComparison.Ordinal);
+            Assert.Contains("- EPUB list item", markdown, StringComparison.Ordinal);
+            Assert.Contains("[details](https://example.test/chapter-two)", markdown, StringComparison.Ordinal);
+            Assert.All(result.Chunks, chunk => Assert.Equal(ReaderInputKind.Epub, chunk.Kind));
             Assert.Equal(
                 result.Source.Path + "::OEBPS/chapter2.xhtml#details",
                 Assert.Single(result.Links, link => link.Text == "next chapter").Uri);
@@ -530,6 +536,7 @@ public sealed class ReaderEpubModularTests {
         WriteTextEntry(archive, "OEBPS/chapter2.xhtml",
             "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
             "<html xmlns=\"http://www.w3.org/1999/xhtml\"><head><title>Local Two</title></head><body><h1>Two</h1><p>Second chapter text. <a href=\"https://example.test/chapter-two\">details</a></p>" +
+            "<ul><li>EPUB list item</li></ul>" +
             "<table><tr><th>Name</th><th>Qty</th></tr><tr><td>Chapter</td><td>2</td></tr></table>" +
             "<img src=\"data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==\" alt=\"Inline\"/>" +
             "<img src=\"images/cover.png\" alt=\"Cover\"/></body></html>");
