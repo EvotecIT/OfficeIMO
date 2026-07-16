@@ -17,16 +17,16 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void CapabilityContract_SerializesDeterministicallyAndReportsRealGaps() {
+        public void CapabilityContract_SerializesDeterministicallyWithoutProvisionalStates() {
             string first = LegacyPptCapabilityCatalog.ToJson();
             string second = LegacyPptCapabilityCatalog.ToJson();
 
             Assert.Equal(first, second);
             Assert.Contains("\"schemaVersion\":1", first);
             Assert.Contains("\"feature\":\"UnknownRecordsAndStreams\"", first);
-            Assert.True(LegacyPptCapabilityCatalog.HasRemainingParityWork);
-            Assert.Contains(LegacyPptCapabilityCatalog.RemainingParityWork,
-                row => row.Feature == LegacyPptFeature.Masters);
+            Assert.False(LegacyPptCapabilityCatalog.HasRemainingParityWork);
+            Assert.Empty(LegacyPptCapabilityCatalog.RemainingParityWork);
+            Assert.DoesNotContain("Planned", first);
             Assert.Contains("| Preservation | UnknownRecordsAndStreams |",
                 LegacyPptCapabilityCatalog.ToMarkdown());
         }
@@ -107,12 +107,14 @@ namespace OfficeIMO.Tests {
 
             Assert.Equal(LegacyPptCapabilityState.Native,
                 autoShapes.NewBinaryWrite);
-            Assert.Equal(LegacyPptCapabilityState.Planned,
+            Assert.Equal(LegacyPptCapabilityState.Blocked,
                 autoShapes.PptxToBinary);
             Assert.Contains("canonical classic preset families",
                 autoShapes.Note);
             Assert.Equal(LegacyPptCapabilityState.Native,
                 connectors.NewBinaryWrite);
+            Assert.Equal(LegacyPptCapabilityState.Blocked,
+                connectors.PptxToBinary);
             Assert.Contains("Fresh or edited attachment rules",
                 connectors.Note);
             Assert.Equal(LegacyPptRepresentability.Native,
@@ -129,14 +131,18 @@ namespace OfficeIMO.Tests {
             Assert.Contains("Imported reparenting", groups.Note);
             Assert.Equal(LegacyPptCapabilityState.Native,
                 transforms.NewBinaryWrite);
+            Assert.Equal(LegacyPptCapabilityState.Native,
+                transforms.PptxToBinary);
             Assert.Contains("child transform edits",
                 transforms.Note);
             Assert.Equal(LegacyPptCapabilityState.Native,
                 styles.NewBinaryWrite);
-            Assert.Equal(LegacyPptCapabilityState.Planned,
+            Assert.Equal(LegacyPptCapabilityState.Blocked,
                 styles.PptxToBinary);
             Assert.Equal(LegacyPptCapabilityState.Native,
                 effects.NewBinaryWrite);
+            Assert.Equal(LegacyPptCapabilityState.Blocked,
+                effects.PptxToBinary);
             Assert.Contains("one RGB outer shadow", effects.Note);
         }
 
@@ -147,7 +153,7 @@ namespace OfficeIMO.Tests {
 
             Assert.Equal(LegacyPptRepresentability.Approximation,
                 charts.Representability);
-            Assert.Equal(LegacyPptCapabilityState.Planned,
+            Assert.Equal(LegacyPptCapabilityState.Preserved,
                 charts.ImportToEditableModel);
             Assert.Equal(LegacyPptCapabilityState.Converted,
                 charts.NewBinaryWrite);
@@ -165,7 +171,7 @@ namespace OfficeIMO.Tests {
 
             Assert.Equal(LegacyPptRepresentability.Native,
                 tables.Representability);
-            Assert.Equal(LegacyPptCapabilityState.Planned,
+            Assert.Equal(LegacyPptCapabilityState.Preserved,
                 tables.ImportToEditableModel);
             Assert.Equal(LegacyPptCapabilityState.Converted,
                 tables.NewBinaryWrite);
@@ -183,7 +189,7 @@ namespace OfficeIMO.Tests {
 
             Assert.Equal(LegacyPptRepresentability.Approximation,
                 smartArt.Representability);
-            Assert.Equal(LegacyPptCapabilityState.Planned,
+            Assert.Equal(LegacyPptCapabilityState.Preserved,
                 smartArt.ImportToEditableModel);
             Assert.Equal(LegacyPptCapabilityState.Converted,
                 smartArt.NewBinaryWrite);
@@ -367,8 +373,14 @@ namespace OfficeIMO.Tests {
             LegacyPptCapability masters = LegacyPptCapabilityCatalog.Get(
                 LegacyPptFeature.Masters);
 
-            Assert.Equal(LegacyPptCapabilityState.Planned,
+            Assert.Equal(LegacyPptCapabilityState.Preserved,
                 masters.BinaryRoundTrip);
+            Assert.Equal(LegacyPptCapabilityState.Native,
+                masters.ImportToEditableModel);
+            Assert.Equal(LegacyPptCapabilityState.Native,
+                masters.NewBinaryWrite);
+            Assert.Equal(LegacyPptCapabilityState.Blocked,
+                masters.PptxToBinary);
             Assert.Contains("Imported main-, title-, notes-, and handout-master position, size, and structurally plain text edits",
                 masters.Note);
             Assert.Contains("Binary title masters map to exact named layout parts",
@@ -382,6 +394,14 @@ namespace OfficeIMO.Tests {
             LegacyPptCapability backgrounds = LegacyPptCapabilityCatalog.Get(
                 LegacyPptFeature.Backgrounds);
 
+            Assert.Equal(LegacyPptCapabilityState.Native,
+                backgrounds.ImportToEditableModel);
+            Assert.Equal(LegacyPptCapabilityState.Native,
+                backgrounds.NewBinaryWrite);
+            Assert.Equal(LegacyPptCapabilityState.Preserved,
+                backgrounds.BinaryRoundTrip);
+            Assert.Equal(LegacyPptCapabilityState.Blocked,
+                backgrounds.PptxToBinary);
             Assert.Contains("Supported imported slide, notes-page, main-, title-, notes-, and handout-master background edits",
                 backgrounds.Note);
             Assert.Contains("ordinary PPTX-layout background edits materialize into every affected imported slide",
@@ -390,6 +410,32 @@ namespace OfficeIMO.Tests {
                 backgrounds.Note);
             Assert.Contains("linearly interpolated gradient-stop opacity",
                 backgrounds.Note);
+        }
+
+        [Fact]
+        public void CapabilityContract_FinalizesRichNotesAndUnknownPreservation() {
+            LegacyPptCapability richNotes = LegacyPptCapabilityCatalog.Get(
+                LegacyPptFeature.RichNotes);
+            Assert.Equal(LegacyPptCapabilityState.Native,
+                richNotes.ImportToEditableModel);
+            Assert.Equal(LegacyPptCapabilityState.Blocked,
+                richNotes.NewBinaryWrite);
+            Assert.Equal(LegacyPptCapabilityState.Preserved,
+                richNotes.BinaryRoundTrip);
+            Assert.Equal(LegacyPptCapabilityState.Blocked,
+                richNotes.PptxToBinary);
+
+            LegacyPptCapability unknown = LegacyPptCapabilityCatalog.Get(
+                LegacyPptFeature.UnknownRecordsAndStreams);
+            Assert.Equal(LegacyPptCapabilityState.Preserved,
+                unknown.ImportToEditableModel);
+            Assert.Equal(LegacyPptCapabilityState.Blocked,
+                unknown.NewBinaryWrite);
+            Assert.Equal(LegacyPptCapabilityState.Preserved,
+                unknown.BinaryRoundTrip);
+            Assert.Equal(LegacyPptCapabilityState.Blocked,
+                unknown.PptxToBinary);
+            Assert.Contains("explicitly loss-blocked", unknown.Note);
         }
 
         [Fact]
