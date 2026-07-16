@@ -89,7 +89,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                     FollowsMasterObjects = (flags & 0x0001) != 0,
                     FollowsMasterColorScheme = (flags & 0x0002) != 0,
                     FollowsMasterBackground = (flags & 0x0004) != 0,
-                    ColorScheme = ReadColorScheme(notes)
+                    ColorScheme = ReadColorScheme(notes),
+                    RoundTripTheme = ReadRoundTripTheme(notes,
+                        $"notes page {slide.NotesId}", options)
                 };
                 if (referencedSlideId != slide.SlideId) {
                     AddDiagnostic("PPT-NOTES-SLIDE-MISMATCH",

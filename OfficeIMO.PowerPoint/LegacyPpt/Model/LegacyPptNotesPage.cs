@@ -31,6 +31,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
         /// <summary>Gets the color scheme stored on this notes page.</summary>
         public LegacyPptColorScheme? ColorScheme { get; internal set; }
 
+        /// <summary>Gets the DrawingML theme override stored in PowerPoint 2007+ round-trip records.</summary>
+        public LegacyPptRoundTripTheme? RoundTripTheme { get; internal set; }
+
         /// <summary>Gets the explicit OfficeArt background shape stored on this notes page.</summary>
         public LegacyPptBackground? Background { get; internal set; }
 

@@ -17,8 +17,10 @@ namespace OfficeIMO.PowerPoint {
                 target.CommonSlideData = new CommonSlideData(CreateLegacyShapeTree(part,
                     source.Shapes, source.ConnectorRules)) { Name = "Binary Notes Page" };
             }
+            ApplyLegacyRoundTripTheme(part, source.RoundTripTheme);
             target.ShowMasterShapes = source.FollowsMasterObjects;
-            if (!source.FollowsMasterColorScheme && source.ColorScheme != null) {
+            if (!source.FollowsMasterColorScheme && source.ColorScheme != null
+                && source.RoundTripTheme?.ThemeXml == null) {
                 ApplyLegacyColorScheme(part, source.ColorScheme);
             }
             if (!source.FollowsMasterBackground && target.CommonSlideData != null) {

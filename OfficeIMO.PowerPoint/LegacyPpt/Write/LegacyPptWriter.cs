@@ -79,7 +79,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 notes.Add(new LegacyPptWriterNote(slideIndex, noteText,
                     unchecked((uint)(256 + slideIndex)),
                     checked((uint)(14 + presentation.Slides.Count + noteIndex)),
-                    checked((uint)(13 + presentation.Slides.Count + noteIndex))));
+                    checked((uint)(13 + presentation.Slides.Count + noteIndex)),
+                    slide.SlidePart.NotesSlidePart));
             }
             bool hasHandoutMaster = presentation.OpenXmlDocument.PresentationPart?
                 .HandoutMasterPart != null;
@@ -116,7 +117,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     interactionCatalog, animationCatalog));
             }
             var notesRecords = notes.Select(note => BuildNotesRecord(template.NotesPrototype,
-                note.Text, unchecked((uint)(256 + note.SlideIndex)), note.DrawingId)).ToArray();
+                note.Text, unchecked((uint)(256 + note.SlideIndex)), note.DrawingId,
+                note.SourcePart)).ToArray();
             uint handoutMasterPersistId = masters.HandoutMasterPersistObject == null
                 ? 0U
                 : checked((uint)(14 + presentation.Slides.Count + notes.Count));

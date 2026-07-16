@@ -51,7 +51,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             byte[] documentStream = AppendIncrementalEdit(package, modifiedPersistObjects, currentSlideIds,
                 out uint editOffset);
             byte[] currentUserStream = PatchCurrentEditOffset(package.CurrentUserStream, editOffset);
-            bytes = OfficeCompoundFileWriter.Rewrite(package.CompoundFile,
+            bytes = package.RewriteCompoundStreams(
                 new Dictionary<string, byte[]>(StringComparer.OrdinalIgnoreCase) {
                     ["PowerPoint Document"] = documentStream,
                     ["Current User"] = currentUserStream

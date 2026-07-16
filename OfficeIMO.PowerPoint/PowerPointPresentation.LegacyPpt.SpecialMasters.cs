@@ -29,7 +29,11 @@ namespace OfficeIMO.PowerPoint {
                 ?? throw new InvalidDataException("The native PowerPoint scaffold has no notes master.");
             target.CommonSlideData = CreateLegacySpecialMasterCommonSlideData(part, source,
                 "Binary Notes Master", soundContext);
-            ApplyLegacySpecialMasterTheme(part.ThemePart, source.ColorScheme);
+            ApplyLegacyRoundTripTheme(part, source.RoundTripTheme);
+            if (source.RoundTripTheme?.ThemeXml == null) {
+                ApplyLegacySpecialMasterTheme(part.ThemePart,
+                    source.ColorScheme);
+            }
             ApplyLegacyHeaderFooter(target, target.CommonSlideData,
                 headerFooter, allowHeader: true);
             target.Save();
@@ -48,7 +52,11 @@ namespace OfficeIMO.PowerPoint {
                 source, "Binary Handout Master", soundContext);
             ColorMap colorMap = CloneLegacyColorMap(presentationPart);
             part.HandoutMaster = new HandoutMaster(commonSlideData, colorMap);
-            ApplyLegacySpecialMasterTheme(part.ThemePart, source.ColorScheme);
+            ApplyLegacyRoundTripTheme(part, source.RoundTripTheme);
+            if (source.RoundTripTheme?.ThemeXml == null) {
+                ApplyLegacySpecialMasterTheme(part.ThemePart,
+                    source.ColorScheme);
+            }
             ApplyLegacyHeaderFooter(part.HandoutMaster, commonSlideData,
                 headerFooter, allowHeader: true);
             part.HandoutMaster.Save();

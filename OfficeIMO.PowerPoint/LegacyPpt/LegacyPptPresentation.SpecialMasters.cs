@@ -59,7 +59,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
 
             if (kind == LegacyPptSpecialMasterKind.Notes) ValidateNotesMasterAtom(record, options);
             var master = new LegacyPptSpecialMaster(kind, persistId) {
-                ColorScheme = ReadColorScheme(record)
+                ColorScheme = ReadColorScheme(record),
+                RoundTripTheme = ReadRoundTripTheme(record,
+                    $"{GetSpecialMasterName(kind)} master", options)
             };
             master.Background = ReadBackground(record, master.ColorScheme, options);
             ParseShapes(record, master.AddShape, $"{GetSpecialMasterName(kind)} master", options,

@@ -86,7 +86,9 @@ namespace OfficeIMO.PowerPoint {
                 master.ConnectorRules, soundContext: soundContext)) {
                 Name = GetLegacyMasterName(master)
             };
-            if (master.ColorScheme != null) {
+            ApplyLegacyRoundTripTheme(masterPart, master.RoundTripTheme);
+            if (master.ColorScheme != null
+                && master.RoundTripTheme?.ThemeXml == null) {
                 ApplyLegacyColorScheme(masterPart, master.ColorScheme);
             }
             if (master.Background != null) {
@@ -118,7 +120,10 @@ namespace OfficeIMO.PowerPoint {
             if (!titleMaster.FollowsMasterObjects && layoutPart.SlideLayout.CommonSlideData != null) {
                 SetShowsMasterShapes(layoutPart.SlideLayout.CommonSlideData, false);
             }
-            if (!titleMaster.FollowsMasterColorScheme && titleMaster.ColorScheme != null) {
+            ApplyLegacyRoundTripTheme(layoutPart, titleMaster.RoundTripTheme);
+            if (!titleMaster.FollowsMasterColorScheme
+                && titleMaster.ColorScheme != null
+                && titleMaster.RoundTripTheme?.ThemeXml == null) {
                 ApplyLegacyColorScheme(layoutPart, titleMaster.ColorScheme);
             }
             if (!titleMaster.FollowsMasterBackground
@@ -154,8 +159,11 @@ namespace OfficeIMO.PowerPoint {
         private static void ProjectLegacySlideDesign(PowerPointSlide slide, LegacyPptSlide source) {
             Slide slideRoot = slide.SlidePart.Slide ??= new Slide();
             CommonSlideData commonSlideData = slideRoot.CommonSlideData ??= new CommonSlideData();
+            ApplyLegacyRoundTripTheme(slide.SlidePart,
+                source.RoundTripTheme);
             if (!source.FollowsMasterObjects) SetShowsMasterShapes(commonSlideData, false);
-            if (!source.FollowsMasterColorScheme && source.ColorScheme != null) {
+            if (!source.FollowsMasterColorScheme && source.ColorScheme != null
+                && source.RoundTripTheme?.ThemeXml == null) {
                 ApplyLegacyColorScheme(slide.SlidePart, source.ColorScheme);
             }
             if (!source.FollowsMasterBackground) {

@@ -191,6 +191,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             ParseSlideAtom(slideRecord, slide, options);
             slide.HeaderFooter = ReadHeaderFooterSettings(slideRecord, instance: 0,
                 $"slide {slide.SlideId}", allowHeader: false, options);
+            slide.RoundTripTheme = ReadRoundTripTheme(slideRecord,
+                $"slide {slide.SlideId}", options);
             slide.ColorScheme = ReadColorScheme(slideRecord);
             ParseSlideShowInfo(slideRecord, slide, options);
             ParseComments(slideRecord, slide, options);
@@ -243,6 +245,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 ParseMasterSlideAtom(masterRecord, master, slideAtom, options);
                 master.HeaderFooter = ReadHeaderFooterSettings(masterRecord, instance: 0,
                     $"master 0x{masterId:X8}", allowHeader: false, options);
+                master.RoundTripTheme = ReadRoundTripTheme(masterRecord,
+                    $"master 0x{masterId:X8}", options);
                 master.ColorScheme = ReadColorScheme(masterRecord);
                 LegacyPptColorScheme? effectiveScheme = !isMainMaster && master.FollowsMasterColorScheme
                     ? _masters.FirstOrDefault(candidate => candidate.MasterId == master.ParentMasterId)?.ColorScheme

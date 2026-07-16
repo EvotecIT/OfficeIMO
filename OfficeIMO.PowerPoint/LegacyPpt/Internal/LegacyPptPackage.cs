@@ -58,6 +58,11 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
         internal IReadOnlyDictionary<string, byte[]> CopyCompoundStreams() => CompoundFile.Streams.ToDictionary(
             pair => pair.Key, pair => (byte[])pair.Value.Clone(), StringComparer.OrdinalIgnoreCase);
 
+        internal byte[] RewriteCompoundStreams(
+            IReadOnlyDictionary<string, byte[]> replacementStreams) =>
+            OfficeCompoundFileWriter.Rewrite(CompoundFile,
+                replacementStreams);
+
         internal static LegacyPptPackage Read(byte[] bytes, LegacyPptImportOptions options) {
             if (bytes == null) throw new ArgumentNullException(nameof(bytes));
             if (options == null) throw new ArgumentNullException(nameof(options));

@@ -44,6 +44,7 @@ namespace OfficeIMO.Tests {
                 LegacyPptSpecialMaster>(LegacyPptPresentation.Load(bytes)
                 .NotesMaster);
 
+            Assert.NotNull(notesMaster.RoundTripTheme?.ThemeXml);
             Assert.Equal(3, notesMaster.Shapes.Count);
             LegacyPptShape slideImage = Assert.Single(notesMaster.Shapes,
                 shape => shape.Placeholder?.Kind
@@ -140,6 +141,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(LegacyPptSpecialMasterKind.Handout,
                 handoutMaster.Kind);
             Assert.Equal(16U, handoutMaster.PersistId);
+            Assert.NotNull(handoutMaster.RoundTripTheme?.ThemeXml);
             Assert.Equal(5, handoutMaster.Shapes.Count);
             Assert.Equal("334455", Assert.IsType<LegacyPptBackground>(
                 handoutMaster.Background).ForegroundColor);

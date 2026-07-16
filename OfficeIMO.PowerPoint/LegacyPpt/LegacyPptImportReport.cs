@@ -37,6 +37,14 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             MasterTextStyleCount = presentation.Masters.Sum(master => master.TextMasterStyles.Count);
             MasterTextStyleLevelCount = presentation.Masters.Sum(master =>
                 master.TextMasterStyles.Sum(style => style.Levels.Count));
+            RoundTripThemeCount = presentation.Masters.Count(master =>
+                    master.RoundTripTheme != null)
+                + presentation.Slides.Count(slide =>
+                    slide.RoundTripTheme != null)
+                + presentation.Slides.Count(slide =>
+                    slide.NotesPage?.RoundTripTheme != null)
+                + CountSpecialMasterTheme(presentation.NotesMaster)
+                + CountSpecialMasterTheme(presentation.HandoutMaster);
             SpecialMasterCount = (presentation.NotesMaster == null ? 0 : 1)
                 + (presentation.HandoutMaster == null ? 0 : 1);
             SpecialMasterShapeCount = CountSpecialMasterShapes(presentation.NotesMaster)
@@ -144,6 +152,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
         /// <summary>Gets the number of decoded base master text-style levels.</summary>
         public int MasterTextStyleLevelCount { get; }
 
+        /// <summary>Gets the number of decoded DrawingML round-trip theme scopes.</summary>
+        public int RoundTripThemeCount { get; }
+
         /// <summary>Gets the number of decoded notes and handout masters.</summary>
         public int SpecialMasterCount { get; }
 
@@ -233,6 +244,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
 
         private static int CountSpecialMasterBackground(LegacyPptSpecialMaster? master) =>
             master?.Background == null ? 0 : 1;
+
+        private static int CountSpecialMasterTheme(LegacyPptSpecialMaster? master) =>
+            master?.RoundTripTheme == null ? 0 : 1;
 
         private static int CountProjectableSpecialMasterBackground(
             LegacyPptSpecialMaster? master) =>

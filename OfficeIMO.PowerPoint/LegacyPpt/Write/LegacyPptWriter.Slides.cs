@@ -1,5 +1,7 @@
+using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.PowerPoint.LegacyPpt.Internal;
 using OfficeIMO.PowerPoint.LegacyPpt.Model;
+using P = DocumentFormat.OpenXml.Presentation;
 
 namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
     internal static partial class LegacyPptWriter {
@@ -9,6 +11,14 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             LegacyPptWriterInteractionCatalog interactionCatalog,
             LegacyPptWriterAnimationCatalog animationCatalog) {
             var children = new List<byte[]>();
+            ThemeOverridePart? themePart = slide.SlidePart.ThemeOverridePart
+                ?? slide.SlidePart.SlideLayoutPart?.ThemeOverridePart;
+            P.ColorMapOverride? colorMap = slide.SlidePart.Slide?
+                .ColorMapOverride
+                ?? slide.SlidePart.SlideLayoutPart?.SlideLayout?
+                    .ColorMapOverride;
+            IReadOnlyList<byte[]> roundTripThemeRecords =
+                BuildRoundTripThemeRecords(themePart?.ThemeOverride, colorMap);
             if (!TryReadBackground(slide, out LegacyPptWriterBackground? background,
                     out string? backgroundReason)) {
                 throw new NotSupportedException(backgroundReason);
@@ -69,7 +79,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         children.Add(BuildCommentProgrammableTagsRecord(comments));
                         wroteComments = true;
                     }
-                } else {
+                } else if (!IsRoundTripThemeRecord(child.Type)) {
                     children.Add(child.CopyRecordBytes());
                 }
             }
@@ -82,6 +92,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 children.Insert(Math.Min(children.Count, slideAtomIndex + 1),
                     BuildSlideShowInfoRecord(slide, interactionCatalog.Sounds));
             }
+            children.AddRange(roundTripThemeRecords);
             return BuildContainer(RecordSlide, instance: 0, children);
         }
     }

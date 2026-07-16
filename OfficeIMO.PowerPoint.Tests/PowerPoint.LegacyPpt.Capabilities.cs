@@ -88,6 +88,22 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void CapabilityContract_ReportsCompleteDrawingMlThemeConversion() {
+            LegacyPptCapability themes = LegacyPptCapabilityCatalog.Get(
+                LegacyPptFeature.Themes);
+
+            Assert.Equal(LegacyPptCapabilityState.Native,
+                themes.ImportToEditableModel);
+            Assert.Equal(LegacyPptCapabilityState.Native,
+                themes.NewBinaryWrite);
+            Assert.Equal(LegacyPptCapabilityState.Preserved,
+                themes.BinaryRoundTrip);
+            Assert.Equal(LegacyPptCapabilityState.Native,
+                themes.PptxToBinary);
+            Assert.Contains("all twelve colors", themes.Note);
+        }
+
+        [Fact]
         public void CapabilityContract_ReportsHeaderFooterConversionAndPreservingEdits() {
             LegacyPptCapability capability = LegacyPptCapabilityCatalog.Get(
                 LegacyPptFeature.HeadersAndFooters);

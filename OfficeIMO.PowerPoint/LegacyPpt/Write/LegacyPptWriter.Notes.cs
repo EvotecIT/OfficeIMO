@@ -1,3 +1,4 @@
+using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.PowerPoint.LegacyPpt.Internal;
 
 namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
@@ -16,8 +17,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         }
 
         private static byte[] BuildNotesRecord(LegacyPptRecord prototype, string text,
-            uint slideId, uint drawingId) {
+            uint slideId, uint drawingId, NotesSlidePart? sourcePart) {
             var children = new List<byte[]>(prototype.Children.Count);
+            IReadOnlyList<byte[]> roundTripThemeRecords =
+                BuildRoundTripThemeRecords(sourcePart?.ThemeOverridePart?
+                        .ThemeOverride,
+                    sourcePart?.NotesSlide?.ColorMapOverride);
             bool replacedNotesBody = false;
             foreach (LegacyPptRecord child in prototype.Children) {
                 if (child.Type == RecordNotesAtom) {
@@ -27,7 +32,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 } else if (child.Type == RecordDrawing) {
                     children.Add(RewriteNotesDrawingRecord(child, text, drawingId,
                         replaceNotesBody: false, ref replacedNotesBody));
-                } else {
+                } else if (!IsRoundTripThemeRecord(child.Type)) {
                     children.Add(child.CopyRecordBytes());
                 }
             }
@@ -35,6 +40,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 throw new InvalidDataException(
                     "The embedded PowerPoint notes template has no notes-body text box.");
             }
+            children.AddRange(roundTripThemeRecords);
             return BuildContainer(RecordNotes, instance: 0, children);
         }
 
@@ -75,12 +81,13 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
 
         private sealed class LegacyPptWriterNote {
             internal LegacyPptWriterNote(int slideIndex, string text, uint notesId,
-                uint persistId, uint drawingId) {
+                uint persistId, uint drawingId, NotesSlidePart? sourcePart) {
                 SlideIndex = slideIndex;
                 Text = text ?? string.Empty;
                 NotesId = notesId;
                 PersistId = persistId;
                 DrawingId = drawingId;
+                SourcePart = sourcePart;
             }
 
             internal int SlideIndex { get; }
@@ -88,6 +95,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             internal uint NotesId { get; }
             internal uint PersistId { get; }
             internal uint DrawingId { get; }
+            internal NotesSlidePart? SourcePart { get; }
         }
     }
 }
