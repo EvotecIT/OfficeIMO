@@ -229,7 +229,7 @@ internal sealed partial class HtmlToMarkdownConverter {
     private static ImageBlock CreateImageBlock(string src, IElement metadataElement, IElement? pictureElement = null, ConversionContext? context = null) {
         var image = new ImageBlock(
             src,
-            metadataElement.GetAttribute("alt"),
+            GetAccessibleImageName(metadataElement),
             metadataElement.GetAttribute("title"));
         ApplyImageDimensions(metadataElement, image);
         if (pictureElement != null && context != null) {
@@ -265,7 +265,9 @@ internal sealed partial class HtmlToMarkdownConverter {
     private static ImageBlock MergeImageMetadata(IElement preferredElement, ImageBlock fallbackImage, IElement? fallbackMetadataElement) {
         var merged = new ImageBlock(
             fallbackImage.Path,
-            !string.IsNullOrWhiteSpace(preferredElement.GetAttribute("alt")) ? preferredElement.GetAttribute("alt") : fallbackImage.Alt,
+            HasAccessibleNameDeclaration(preferredElement)
+                ? GetAccessibleImageName(preferredElement)
+                : fallbackImage.Alt,
             !string.IsNullOrWhiteSpace(preferredElement.GetAttribute("title")) ? preferredElement.GetAttribute("title") : fallbackImage.Title,
             fallbackImage.Width,
             fallbackImage.Height,
@@ -289,12 +291,27 @@ internal sealed partial class HtmlToMarkdownConverter {
     private static ImageBlock CreateMergedImageBlock(string src, IElement preferredMetadataElement, IElement fallbackMetadataElement) {
         var image = new ImageBlock(
             src,
-            !string.IsNullOrWhiteSpace(preferredMetadataElement.GetAttribute("alt")) ? preferredMetadataElement.GetAttribute("alt") : fallbackMetadataElement.GetAttribute("alt"),
+            HasAccessibleNameDeclaration(preferredMetadataElement)
+                ? GetAccessibleImageName(preferredMetadataElement)
+                : GetAccessibleImageName(fallbackMetadataElement),
             !string.IsNullOrWhiteSpace(preferredMetadataElement.GetAttribute("title")) ? preferredMetadataElement.GetAttribute("title") : fallbackMetadataElement.GetAttribute("title"));
         ApplyImageDimensions(preferredMetadataElement, image);
         ApplyMissingImageDimensions(fallbackMetadataElement, image);
         return image;
     }
+
+    private static bool HasAccessibleNameDeclaration(IElement element) =>
+        element.HasAttribute("aria-labelledby")
+        || element.HasAttribute("aria-label")
+        || element.HasAttribute("alt")
+        || element.HasAttribute("title")
+        || element.TagName.Equals("SVG", StringComparison.OrdinalIgnoreCase)
+           && element.Children.Any(static child => child.TagName.Equals("TITLE", StringComparison.OrdinalIgnoreCase));
+
+    private static string? GetAccessibleImageName(IElement element) =>
+        HasAccessibleNameDeclaration(element)
+            ? HtmlAccessibilitySemantics.GetImageAccessibleName(element)
+            : null;
 
     private static void ApplyPictureMetadata(IElement pictureElement, ImageBlock image, IElement? fallbackImageElement, ConversionContext context) {
         if (pictureElement == null || image == null || context == null) {

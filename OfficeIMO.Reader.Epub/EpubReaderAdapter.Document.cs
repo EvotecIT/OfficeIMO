@@ -55,6 +55,12 @@ internal static partial class EpubReaderAdapter {
         var visuals = new List<ReaderVisual>();
         var diagnostics = new List<OfficeDocumentDiagnostic>(BuildEpubDiagnostics(document, source.Path));
         var pages = new List<OfficeDocumentPage>();
+        var capabilities = new List<string> {
+            "officeimo.reader.epub.rich-v5",
+            "officeimo.epub.package-model",
+            "officeimo.html.logical-document"
+        };
+        var seenCapabilities = new HashSet<string>(capabilities, StringComparer.Ordinal);
         int tableIndex = 0;
         for (int chapterIndex = 0; chapterIndex < document.Chapters.Count; chapterIndex++) {
             cancellationToken.ThrowIfCancellationRequested();
@@ -71,6 +77,12 @@ internal static partial class EpubReaderAdapter {
                     virtualPath,
                     readerOptions,
                     cancellationToken: cancellationToken);
+                foreach (string capability in htmlResult.CapabilitiesUsed) {
+                    if (capability.StartsWith("officeimo.html.", StringComparison.Ordinal)
+                        && seenCapabilities.Add(capability)) {
+                        capabilities.Add(capability);
+                    }
+                }
                 IReadOnlyList<OfficeDocumentLink> resolvedLinks = ResolveEpubChapterLinks(
                     source.Path,
                     chapter,
@@ -133,7 +145,7 @@ internal static partial class EpubReaderAdapter {
             chunks,
             ReaderInputKind.Epub,
             documentSource,
-            new[] { "officeimo.reader.epub.rich-v5", "officeimo.epub.package-model", "officeimo.html.logical-document" },
+            capabilities,
             assets);
         result.Blocks = blocks;
         result.Tables = tables;

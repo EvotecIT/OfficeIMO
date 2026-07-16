@@ -43,5 +43,11 @@ public enum HtmlLogicalNodeKind {
     /// <summary>Node that does not map to a known logical kind.</summary>
     Unknown,
     /// <summary>Table caption.</summary>
-    TableCaption
+    TableCaption,
+    /// <summary>Preformatted or source-code block.</summary>
+    Code,
+    /// <summary>Quoted block content.</summary>
+    Quote,
+    /// <summary>EPUB, DPUB-ARIA, or compatible footnote definition.</summary>
+    Footnote
 }

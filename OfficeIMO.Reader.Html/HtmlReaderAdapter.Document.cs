@@ -3,6 +3,7 @@ using OfficeIMO.Markdown.Html;
 using OfficeIMO.Reader;
 using System.Linq;
 using System.Security.Cryptography;
+using System.Text;
 
 namespace OfficeIMO.Reader.Html;
 
@@ -127,14 +128,15 @@ internal static partial class HtmlReaderAdapter {
         int linkIndex = 0;
         int assetIndex = 0;
         int formIndex = 0;
-        TraverseHtml(document.Root, null, 0, path, maxTableRows, htmlOptions, projection, ref blockIndex, ref tableIndex, ref linkIndex, ref assetIndex, ref formIndex, cancellationToken);
+        TraverseHtml(document.Root, null, 0, false, path, maxTableRows, htmlOptions, projection, ref blockIndex, ref tableIndex, ref linkIndex, ref assetIndex, ref formIndex, cancellationToken);
         return projection;
     }
 
     private static void TraverseHtml(
         HtmlLogicalNode node,
-        string? listName,
+        HtmlListProjectionContext? listContext,
         int listLevel,
+        bool suppressBlockEmission,
         string? path,
         int maxTableRows,
         HtmlToMarkdownOptions htmlOptions,
@@ -146,26 +148,31 @@ internal static partial class HtmlReaderAdapter {
         ref int formIndex,
         CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
-        string? nextListName = node.Kind == HtmlLogicalNodeKind.List ? node.Name : listName;
+        HtmlListProjectionContext? nextListContext = node.Kind == HtmlLogicalNodeKind.List
+            ? HtmlListProjectionContext.Create(node)
+            : listContext;
         int nextListLevel = node.Kind == HtmlLogicalNodeKind.List ? listLevel + 1 : listLevel;
-        ReaderTable? mappedTable = node.Kind == HtmlLogicalNodeKind.Table
+        ReaderTable? mappedTable = !suppressBlockEmission && node.Kind == HtmlLogicalNodeKind.Table
             ? MapHtmlTable(node, path, tableIndex++, maxTableRows)
             : null;
-        if (IsHtmlBlock(node.Kind)) {
+        if (IsHtmlBlock(node.Kind)
+            && !suppressBlockEmission) {
             string kind = NormalizeHtmlBlockKind(node.Kind);
             string anchor = "html-" + kind + "-" + blockIndex.ToString("D4", CultureInfo.InvariantCulture);
             projection.Blocks.Add(new OfficeDocumentBlock {
                 Id = anchor,
                 Kind = kind,
-                Text = mappedTable == null ? GetHtmlNodeText(node) : BuildHtmlTableBlockText(mappedTable),
-                Level = node.Kind == HtmlLogicalNodeKind.Heading ? ParseHtmlHeadingLevel(node.Name) : node.Kind == HtmlLogicalNodeKind.ListItem ? nextListLevel : null,
-                Marker = node.Kind == HtmlLogicalNodeKind.ListItem ? (string.Equals(nextListName, "ol", StringComparison.OrdinalIgnoreCase) ? "1." : "-") : null,
+                Text = mappedTable == null ? GetHtmlNodeAccessibleText(node) : BuildHtmlTableBlockText(mappedTable),
+                Level = node.Kind == HtmlLogicalNodeKind.Heading ? ParseHtmlHeadingLevel(node) : node.Kind == HtmlLogicalNodeKind.ListItem ? nextListLevel : null,
+                Marker = node.Kind == HtmlLogicalNodeKind.ListItem ? nextListContext?.GetMarker(node) ?? "-" : null,
                 Location = BuildHtmlLocation(path, blockIndex, kind, anchor)
             });
             blockIndex++;
         }
         if (mappedTable != null) projection.Tables.Add(mappedTable);
-        if (node.Kind == HtmlLogicalNodeKind.Link && node.Attributes.TryGetValue("href", out string? href)) {
+        if (node.Kind == HtmlLogicalNodeKind.Link
+            && !IsHtmlFootnoteBacklink(node)
+            && node.Attributes.TryGetValue("href", out string? href)) {
             string resolvedHref = HtmlUrlPolicyEvaluator.ResolveUrl(href, htmlOptions.BaseUri, htmlOptions.UrlPolicy);
             if (!string.IsNullOrWhiteSpace(resolvedHref)) {
                 projection.Links.Add(new OfficeDocumentLink {
@@ -173,7 +180,7 @@ internal static partial class HtmlReaderAdapter {
                     Kind = resolvedHref.StartsWith("#", StringComparison.Ordinal) ? "internal" : "uri",
                     Uri = resolvedHref.StartsWith("#", StringComparison.Ordinal) ? null : resolvedHref,
                     DestinationName = resolvedHref.StartsWith("#", StringComparison.Ordinal) ? resolvedHref.Substring(1) : null,
-                    Text = GetHtmlNodeText(node),
+                    Text = GetHtmlLinkText(node),
                     Location = BuildHtmlLocation(path, null, "hyperlink", "html-link-" + linkIndex.ToString("D4", CultureInfo.InvariantCulture))
                 });
                 linkIndex++;
@@ -185,6 +192,10 @@ internal static partial class HtmlReaderAdapter {
                 assetIndex++;
                 projection.Assets.Add(asset);
                 projection.Visuals.Add(MapHtmlVisual(node, asset.Location, asset.PayloadHash, asset.MediaType, asset.SourceObjectId));
+            } else if (!HasHtmlImageSourceCandidate(node)
+                && !string.IsNullOrWhiteSpace(node.AccessibleName)) {
+                string anchor = "html-image-visual-" + projection.Visuals.Count.ToString("D4", CultureInfo.InvariantCulture);
+                projection.Visuals.Add(MapHtmlVisual(node, BuildHtmlLocation(path, null, "image", anchor), null, null));
             }
         } else if (node.Kind == HtmlLogicalNodeKind.Media &&
             !string.Equals(node.Name, "source", StringComparison.OrdinalIgnoreCase)) {
@@ -195,8 +206,11 @@ internal static partial class HtmlReaderAdapter {
             !string.Equals(node.Name, "option", StringComparison.OrdinalIgnoreCase)) {
             projection.Forms.Add(MapHtmlFormControl(node, path, formIndex++));
         }
+        bool suppressChildBlocks = suppressBlockEmission
+            || node.Kind == HtmlLogicalNodeKind.Quote
+            || node.Kind == HtmlLogicalNodeKind.Footnote;
         foreach (HtmlLogicalNode child in node.Children) {
-            TraverseHtml(child, nextListName, nextListLevel, path, maxTableRows, htmlOptions, projection, ref blockIndex, ref tableIndex, ref linkIndex, ref assetIndex, ref formIndex, cancellationToken);
+            TraverseHtml(child, nextListContext, nextListLevel, suppressChildBlocks, path, maxTableRows, htmlOptions, projection, ref blockIndex, ref tableIndex, ref linkIndex, ref assetIndex, ref formIndex, cancellationToken);
         }
     }
 
@@ -204,7 +218,7 @@ internal static partial class HtmlReaderAdapter {
         List<HtmlLogicalNode> rows = GetHtmlTableRows(table).ToList();
         int columnCount = rows.Count == 0 ? 0 : rows.Max(row => row.Children.Count(child => child.Kind == HtmlLogicalNodeKind.TableCell));
         bool hasHeaderRow = rows.Count > 0 && rows[0].Children.Any(child =>
-            child.Kind == HtmlLogicalNodeKind.TableCell && string.Equals(child.Name, "th", StringComparison.OrdinalIgnoreCase));
+            child.Kind == HtmlLogicalNodeKind.TableCell && IsHtmlColumnHeaderCell(child));
         IReadOnlyList<string> columns = hasHeaderRow
             ? BuildHtmlTableRow(rows[0], columnCount, true)
             : Enumerable.Range(1, columnCount)
@@ -234,8 +248,13 @@ internal static partial class HtmlReaderAdapter {
         }).ToArray();
     }
 
+    private static bool IsHtmlColumnHeaderCell(HtmlLogicalNode cell) =>
+        string.Equals(cell.Name, "th", StringComparison.OrdinalIgnoreCase)
+        || (cell.Attributes.TryGetValue("role", out string? role) && ContainsHtmlToken(role, "columnheader"));
+
     private static OfficeDocumentAsset? MapHtmlImage(HtmlLogicalNode node, string? path, int index, HtmlToMarkdownOptions htmlOptions) {
         node.Attributes.TryGetValue("alt", out string? altText);
+        if (!string.IsNullOrWhiteSpace(node.AccessibleName)) altText = node.AccessibleName;
         node.Attributes.TryGetValue("title", out string? title);
         string resolvedSource = ResolveHtmlImageSource(node, htmlOptions);
         if (string.IsNullOrWhiteSpace(resolvedSource)) return null;
@@ -334,6 +353,19 @@ internal static partial class HtmlReaderAdapter {
             : string.Empty;
     }
 
+    private static bool HasHtmlImageSourceCandidate(HtmlLogicalNode node) {
+        foreach (string attribute in new[] {
+            "src", "data-src", "data-original", "data-original-src", "data-lazy-src",
+            "srcset", "data-srcset", "data-original-srcset", "data-lazy-srcset"
+        }) {
+            if (node.Attributes.TryGetValue(attribute, out string? value)
+                && !string.IsNullOrWhiteSpace(value)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private static ReaderVisual MapHtmlVisual(
         HtmlLogicalNode node,
         ReaderLocation location,
@@ -348,6 +380,7 @@ internal static partial class HtmlReaderAdapter {
         }
         if (!string.IsNullOrWhiteSpace(sourceOverride)) source = sourceOverride;
         node.Attributes.TryGetValue("alt", out string? altText);
+        if (!string.IsNullOrWhiteSpace(node.AccessibleName)) altText = node.AccessibleName;
         node.Attributes.TryGetValue("title", out string? title);
         if (mediaType == null && node.Attributes.TryGetValue("type", out string? declaredType)) mediaType = declaredType;
         if (mediaType == null && mediaSource != null && mediaSource.Attributes.TryGetValue("type", out string? sourceType)) {
@@ -435,7 +468,31 @@ internal static partial class HtmlReaderAdapter {
         return string.Join(" ", Descendants(node, HtmlLogicalNodeKind.Text).Select(static child => child.Text).Where(static text => !string.IsNullOrWhiteSpace(text)));
     }
 
+    private static string GetHtmlNodeAccessibleText(HtmlLogicalNode node) {
+        string text = GetHtmlNodeText(node);
+        return text.Length > 0 ? text : node.AccessibleName ?? string.Empty;
+    }
+
+    private static string GetHtmlLinkText(HtmlLogicalNode node) =>
+        !string.IsNullOrWhiteSpace(node.AccessibleName)
+            ? node.AccessibleName!
+            : GetHtmlNodeText(node);
+
+    private static bool IsHtmlFootnoteBacklink(HtmlLogicalNode node) {
+        if (node.Attributes.ContainsKey("data-footnote-backref")) return true;
+        return (node.Attributes.TryGetValue("role", out string? role) && ContainsHtmlToken(role, "doc-backlink"))
+            || (node.Attributes.TryGetValue("epub:type", out string? epubType) && ContainsHtmlToken(epubType, "backlink"))
+            || (node.Attributes.TryGetValue("class", out string? className) && ContainsHtmlToken(className, "footnote-backref"));
+    }
+
+    private static bool ContainsHtmlToken(string? value, string token) {
+        if (string.IsNullOrWhiteSpace(value)) return false;
+        return value!.Split(new[] { ' ', '\t', '\r', '\n', '\f' }, StringSplitOptions.RemoveEmptyEntries)
+            .Any(candidate => candidate.Equals(token, StringComparison.OrdinalIgnoreCase));
+    }
+
     private static bool IsHtmlBlock(HtmlLogicalNodeKind kind) => kind == HtmlLogicalNodeKind.Heading || kind == HtmlLogicalNodeKind.Paragraph
+        || kind == HtmlLogicalNodeKind.Code || kind == HtmlLogicalNodeKind.Quote || kind == HtmlLogicalNodeKind.Footnote
         || kind == HtmlLogicalNodeKind.ListItem || kind == HtmlLogicalNodeKind.Table || kind == HtmlLogicalNodeKind.Figure
         || kind == HtmlLogicalNodeKind.Image || kind == HtmlLogicalNodeKind.Media || kind == HtmlLogicalNodeKind.Form;
 
@@ -444,7 +501,13 @@ internal static partial class HtmlReaderAdapter {
         _ => kind.ToString().ToLowerInvariant()
     };
 
-    private static int? ParseHtmlHeadingLevel(string name) => name.Length == 2 && name[0] == 'h' && name[1] >= '1' && name[1] <= '6' ? name[1] - '0' : null;
+    private static int? ParseHtmlHeadingLevel(HtmlLogicalNode node) {
+        string name = node.Name;
+        if (name.Length == 2 && name[0] == 'h' && name[1] >= '1' && name[1] <= '6') return name[1] - '0';
+        if (!node.Attributes.TryGetValue("aria-level", out string? value) || !int.TryParse(value, out int level)) return 2;
+        if (level < 1) return 1;
+        return level > 6 ? 6 : level;
+    }
 
     private static ReaderLocation BuildHtmlLocation(string? path, int? blockIndex, string kind, string anchor, int? tableIndex = null) => new ReaderLocation {
         Path = path, SourceBlockIndex = blockIndex, SourceBlockKind = kind, BlockAnchor = anchor, TableIndex = tableIndex
@@ -462,5 +525,82 @@ internal static partial class HtmlReaderAdapter {
         internal List<OfficeDocumentAsset> Assets { get; } = new List<OfficeDocumentAsset>();
         internal List<OfficeDocumentFormField> Forms { get; } = new List<OfficeDocumentFormField>();
         internal List<ReaderVisual> Visuals { get; } = new List<ReaderVisual>();
+    }
+
+    private sealed class HtmlListProjectionContext {
+        private readonly Dictionary<HtmlLogicalNode, string> _markers;
+
+        private HtmlListProjectionContext(Dictionary<HtmlLogicalNode, string> markers) {
+            _markers = markers;
+        }
+
+        internal static HtmlListProjectionContext Create(HtmlLogicalNode list) {
+            HtmlLogicalNode[] items = list.Children.Where(static child => child.Kind == HtmlLogicalNodeKind.ListItem).ToArray();
+            var markers = new Dictionary<HtmlLogicalNode, string>();
+            if (!string.Equals(list.Name, "ol", StringComparison.OrdinalIgnoreCase)) {
+                foreach (HtmlLogicalNode item in items) markers[item] = "-";
+                return new HtmlListProjectionContext(markers);
+            }
+
+            bool reversed = list.Attributes.ContainsKey("reversed");
+            int value = reversed ? items.Length : 1;
+            if (list.Attributes.TryGetValue("start", out string? startValue)
+                && int.TryParse(startValue, NumberStyles.Integer, CultureInfo.InvariantCulture, out int parsedStart)) {
+                value = parsedStart;
+            }
+            list.Attributes.TryGetValue("type", out string? markerType);
+            int step = reversed ? -1 : 1;
+            foreach (HtmlLogicalNode item in items) {
+                if (item.Attributes.TryGetValue("value", out string? itemValue)
+                    && int.TryParse(itemValue, NumberStyles.Integer, CultureInfo.InvariantCulture, out int parsedValue)) {
+                    value = parsedValue;
+                }
+                markers[item] = FormatOrderedMarker(value, markerType) + ".";
+                value += step;
+            }
+            return new HtmlListProjectionContext(markers);
+        }
+
+        internal string? GetMarker(HtmlLogicalNode item) =>
+            _markers.TryGetValue(item, out string? marker) ? marker : null;
+
+        private static string FormatOrderedMarker(int value, string? markerType) {
+            switch (markerType?.Trim()) {
+                case "a": return FormatAlpha(value, uppercase: false);
+                case "A": return FormatAlpha(value, uppercase: true);
+                case "i": return FormatRoman(value, uppercase: false);
+                case "I": return FormatRoman(value, uppercase: true);
+                default: return value.ToString(CultureInfo.InvariantCulture);
+            }
+        }
+
+        private static string FormatAlpha(int value, bool uppercase) {
+            if (value <= 0) return value.ToString(CultureInfo.InvariantCulture);
+            var builder = new StringBuilder();
+            int remaining = value;
+            while (remaining > 0) {
+                remaining--;
+                char character = (char)((uppercase ? 'A' : 'a') + remaining % 26);
+                builder.Insert(0, character);
+                remaining /= 26;
+            }
+            return builder.ToString();
+        }
+
+        private static string FormatRoman(int value, bool uppercase) {
+            if (value <= 0 || value > 3999) return value.ToString(CultureInfo.InvariantCulture);
+            int[] values = { 1000, 900, 500, 400, 100, 90, 50, 40, 10, 9, 5, 4, 1 };
+            string[] symbols = { "m", "cm", "d", "cd", "c", "xc", "l", "xl", "x", "ix", "v", "iv", "i" };
+            var builder = new StringBuilder();
+            int remaining = value;
+            for (int index = 0; index < values.Length; index++) {
+                while (remaining >= values[index]) {
+                    builder.Append(symbols[index]);
+                    remaining -= values[index];
+                }
+            }
+            string marker = builder.ToString();
+            return uppercase ? marker.ToUpperInvariant() : marker;
+        }
     }
 }
