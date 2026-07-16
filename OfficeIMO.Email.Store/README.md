@@ -16,8 +16,8 @@ using OfficeIMO.Email.Store;
 EmailStoreReadResult result = new EmailStoreReader().Read("archive.pst");
 
 foreach (EmailStoreFolder folder in result.Store.Folders) {
-    foreach (EmailStoreMessage message in folder.Messages) {
-        Console.WriteLine($"{folder.Name}: {message.Document.Subject}");
+    foreach (EmailStoreItem item in folder.Items) {
+        Console.WriteLine($"{folder.Name}: {item.Document.Subject}");
     }
 }
 
@@ -46,14 +46,14 @@ PST and OST MAPI properties use the same projections as MSG and OFT, so messages
 
 ## Limits and attachment retention
 
-Reads are bounded before large structures are retained. Applications can narrow source bytes, nodes, folders, messages, properties, attachments, archive entries, XML characters, and embedded-message depth:
+Reads are bounded before large structures are retained. Applications can narrow source bytes, nodes, folders, items, properties, attachments, archive entries, XML characters, and embedded-message depth:
 
 ```csharp
 var options = new EmailStoreReaderOptions(
     maxInputBytes: 2L * 1024 * 1024 * 1024,
-    maxMessageCount: 100_000,
+    maxItemCount: 100_000,
     retainAttachmentContent: false,
-    includeAssociatedMessages: false);
+    includeAssociatedItems: false);
 
 EmailStoreReadResult result = new EmailStoreReader(options).Read("archive.ost");
 ```

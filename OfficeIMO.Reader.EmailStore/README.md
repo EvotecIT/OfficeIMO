@@ -11,7 +11,7 @@ email chunks, metadata, diagnostics, attachments, hashes, and rich result envelo
 dotnet add package OfficeIMO.Reader.EmailStore
 ```
 
-Install `OfficeIMO.Email.Store` directly instead when the application wants folder and message models without the Reader projection. Applications that want every local Reader adapter can install `OfficeIMO.Reader.All` and call `AddAllOfficeIMOHandlers()`.
+Install `OfficeIMO.Email.Store` directly instead when the application wants folder and item models without the Reader projection. Applications that want every local Reader adapter can install `OfficeIMO.Reader.All` and call `AddAllOfficeIMOHandlers()`.
 
 ```csharp
 using OfficeIMO.Reader;

@@ -23,7 +23,7 @@ public sealed class EmlxStoreReaderTests {
         Assert.Equal("42", result.Store.DisplayName);
         EmailStoreFolder folder = Assert.Single(result.Store.Folders);
         Assert.Equal("Apple Mail", folder.Name);
-        EmailDocument document = Assert.Single(folder.Messages).Document;
+        EmailDocument document = Assert.Single(folder.Items).Document;
         Assert.Equal(EmailFileFormat.Eml, document.Format);
         Assert.Equal("EMLX contract", document.Subject);
         Assert.Equal("sender@example.test", document.From?.Address);
@@ -50,7 +50,7 @@ public sealed class EmlxStoreReaderTests {
             EmailStoreReadResult result = new EmailStoreReader().Read(stream, "message.emlx");
 
             Assert.Equal(4, stream.Position);
-            Assert.Equal("CRLF prefix", Assert.Single(Assert.Single(result.Store.Folders).Messages).Document.Subject);
+            Assert.Equal("CRLF prefix", Assert.Single(Assert.Single(result.Store.Folders).Items).Document.Subject);
         }
     }
 
@@ -60,7 +60,7 @@ public sealed class EmlxStoreReaderTests {
         var options = new EmailStoreReaderOptions(retainAttachmentContent: false);
 
         EmailStoreReadResult result = Read(emlx, "message.emlx", options);
-        EmailAttachment attachment = Assert.Single(Assert.Single(Assert.Single(result.Store.Folders).Messages)
+        EmailAttachment attachment = Assert.Single(Assert.Single(Assert.Single(result.Store.Folders).Items)
             .Document.Attachments);
 
         Assert.Equal(4, attachment.Length);
@@ -74,7 +74,7 @@ public sealed class EmlxStoreReaderTests {
 
         EmailStoreReadResult result = Read(emlx, "message.emlx");
 
-        Assert.Equal("Keep me", Assert.Single(Assert.Single(result.Store.Folders).Messages).Document.Subject);
+        Assert.Equal("Keep me", Assert.Single(Assert.Single(result.Store.Folders).Items).Document.Subject);
         Assert.Contains(result.Diagnostics, diagnostic =>
             diagnostic.Code == "EMAIL_STORE_EMLX_METADATA_INVALID" &&
             diagnostic.Severity == EmailStoreDiagnosticSeverity.Warning);
@@ -87,7 +87,7 @@ public sealed class EmlxStoreReaderTests {
 
         EmailStoreReadResult result = Read(emlx, "binary.emlx");
 
-        Assert.Equal("Binary metadata", Assert.Single(Assert.Single(result.Store.Folders).Messages).Document.Subject);
+        Assert.Equal("Binary metadata", Assert.Single(Assert.Single(result.Store.Folders).Items).Document.Subject);
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "EMAIL_STORE_EMLX_METADATA_UNSUPPORTED");
     }
 
@@ -97,7 +97,7 @@ public sealed class EmlxStoreReaderTests {
         byte[] emlx = CreateEmlx(message, "\n", null);
 
         EmailStoreReadResult result = Read(emlx, "314.partial.emlx");
-        EmailDocument document = Assert.Single(Assert.Single(result.Store.Folders).Messages).Document;
+        EmailDocument document = Assert.Single(Assert.Single(result.Store.Folders).Items).Document;
 
         Assert.Equal(true, document.Properties["Emlx:IsPartial"]);
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "EMAIL_STORE_EMLX_PARTIAL_MESSAGE");

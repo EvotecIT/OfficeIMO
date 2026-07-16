@@ -60,26 +60,26 @@ internal sealed partial class PstStoreReader {
             store.MutableFolders.Add(folder);
         }
 
-        List<MessageSelection> messageSelections = SelectMessages(folders);
-        if (messageSelections.Count > _options.MaxMessageCount) {
-            throw new EmailStoreLimitExceededException(nameof(EmailStoreReaderOptions.MaxMessageCount),
-                messageSelections.Count, _options.MaxMessageCount);
+        List<ItemSelection> itemSelections = SelectItems(folders);
+        if (itemSelections.Count > _options.MaxItemCount) {
+            throw new EmailStoreLimitExceededException(nameof(EmailStoreReaderOptions.MaxItemCount),
+                itemSelections.Count, _options.MaxItemCount);
         }
 
-        foreach (MessageSelection selection in messageSelections) {
+        foreach (ItemSelection selection in itemSelections) {
             _cancellationToken.ThrowIfCancellationRequested();
             EmailStoreFolder folder = folders[selection.FolderNid];
-            EmailStoreMessage message = ReadMessage(
+            EmailStoreItem item = ReadItem(
                 selection.Node, folder.Id, format, selection.IsAssociated, selection.IsOrphaned);
-            if (selection.IsAssociated) folder.MutableAssociatedMessages.Add(message);
-            else folder.MutableMessages.Add(message);
+            if (selection.IsAssociated) folder.MutableAssociatedItems.Add(item);
+            else folder.MutableItems.Add(item);
         }
 
         return new EmailStoreReadResult(store, _diagnostics.ToArray(), stream.Length);
     }
 
-    private List<MessageSelection> SelectMessages(IReadOnlyDictionary<uint, EmailStoreFolder> folders) {
-        var selected = new List<MessageSelection>();
+    private List<ItemSelection> SelectItems(IReadOnlyDictionary<uint, EmailStoreFolder> folders) {
+        var selected = new List<ItemSelection>();
         var referenced = new HashSet<uint>();
         bool hasContentsTables = false;
         foreach (uint folderNid in folders.Keys.OrderBy(value => value)) {
@@ -94,7 +94,7 @@ internal sealed partial class PstStoreReader {
                     isAssociated: false, selected, referenced);
             }
 
-            if (_options.IncludeAssociatedMessages) {
+            if (_options.IncludeAssociatedItems) {
                 uint associatedNid = nidIndex | 0x0FU;
                 if (TryGetTable(associatedNid, folderSubnodes,
                     out ulong associatedDataBid, out ulong associatedSubnodeBid)) {
@@ -110,7 +110,7 @@ internal sealed partial class PstStoreReader {
         if (!hasContentsTables) {
             foreach (PstNodeReference node in ordinaryNodes) {
                 if (folders.ContainsKey(node.ParentNid)) {
-                    selected.Add(new MessageSelection(node, node.ParentNid, isAssociated: false, isOrphaned: false));
+                    selected.Add(new ItemSelection(node, node.ParentNid, isAssociated: false, isOrphaned: false));
                     referenced.Add(node.Nid);
                 } else {
                     AddMissingParentDiagnostic(node);
@@ -119,10 +119,10 @@ internal sealed partial class PstStoreReader {
             return selected;
         }
 
-        if (_options.IncludeOrphanedMessages) {
+        if (_options.IncludeOrphanedItems) {
             foreach (PstNodeReference node in ordinaryNodes.Where(node => !referenced.Contains(node.Nid))) {
                 if (folders.ContainsKey(node.ParentNid)) {
-                    selected.Add(new MessageSelection(node, node.ParentNid, isAssociated: false, isOrphaned: true));
+                    selected.Add(new ItemSelection(node, node.ParentNid, isAssociated: false, isOrphaned: true));
                 } else {
                     AddMissingParentDiagnostic(node);
                 }
@@ -149,7 +149,7 @@ internal sealed partial class PstStoreReader {
     }
 
     private void AddTableSelections(ulong dataBid, ulong subnodeBid, uint folderNid, bool isAssociated,
-        ICollection<MessageSelection> selected, ISet<uint> referenced) {
+        ICollection<ItemSelection> selected, ISet<uint> referenced) {
         string kind = isAssociated ? "associated-contents" : "contents";
         string location = string.Concat("folder/", FormatId(folderNid), "/", kind);
         IReadOnlyList<IReadOnlyList<MapiProperty>>? rows = ReadTableRows(dataBid, subnodeBid, location);
@@ -158,17 +158,17 @@ internal sealed partial class PstStoreReader {
             int? rawNid = GetInt(row, 0x67F2);
             if (!rawNid.HasValue) continue;
             uint nid = unchecked((uint)rawNid.Value);
-            if (!Ndb.Nodes.TryGetValue(nid, out PstNodeReference? messageNode) ||
-                messageNode.Type != (isAssociated ? 0x08 : 0x04)) {
+            if (!Ndb.Nodes.TryGetValue(nid, out PstNodeReference? itemNode) ||
+                itemNode.Type != (isAssociated ? 0x08 : 0x04)) {
                 _diagnostics.Add(new EmailStoreDiagnostic(
                     "EMAIL_STORE_PST_CONTENTS_ITEM_MISSING",
-                    string.Concat("The ", kind, " table references unavailable message NID 0x",
+                    string.Concat("The ", kind, " table references unavailable item NID 0x",
                         nid.ToString("X", CultureInfo.InvariantCulture), "."),
                     EmailStoreDiagnosticSeverity.Warning,
                     location));
                 continue;
             }
-            selected.Add(new MessageSelection(messageNode, folderNid, isAssociated, isOrphaned: false));
+            selected.Add(new ItemSelection(itemNode, folderNid, isAssociated, isOrphaned: false));
             referenced.Add(nid);
         }
     }
@@ -197,11 +197,11 @@ internal sealed partial class PstStoreReader {
 
     private void AddMissingParentDiagnostic(PstNodeReference node) {
         _diagnostics.Add(new EmailStoreDiagnostic(
-            "EMAIL_STORE_PST_ORPHAN_MESSAGE",
-            string.Concat("Message 0x", node.Nid.ToString("X", CultureInfo.InvariantCulture),
+            "EMAIL_STORE_PST_ORPHAN_ITEM",
+            string.Concat("Item 0x", node.Nid.ToString("X", CultureInfo.InvariantCulture),
                 " references a folder that is not present in the NBT."),
             EmailStoreDiagnosticSeverity.Warning,
-            string.Concat("message/0x", node.Nid.ToString("X", CultureInfo.InvariantCulture))));
+            string.Concat("item/0x", node.Nid.ToString("X", CultureInfo.InvariantCulture))));
     }
 
     private PstNdbReader Ndb => _ndb ?? throw new InvalidOperationException("The NDB has not been initialized.");
@@ -218,8 +218,8 @@ internal sealed partial class PstStoreReader {
         return null;
     }
 
-    private sealed class MessageSelection {
-        internal MessageSelection(PstNodeReference node, uint folderNid, bool isAssociated, bool isOrphaned) {
+    private sealed class ItemSelection {
+        internal ItemSelection(PstNodeReference node, uint folderNid, bool isAssociated, bool isOrphaned) {
             Node = node;
             FolderNid = folderNid;
             IsAssociated = isAssociated;

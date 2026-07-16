@@ -17,23 +17,23 @@ internal static class EmailStoreReaderProjection {
         IReadOnlyDictionary<string, string> folderPaths = BuildFolderPaths(
             readResult.Store.Folders, diagnostics, cancellationToken);
         int itemIndex = 0;
-        int associatedMessageCount = 0;
+        int associatedItemCount = 0;
 
         foreach (global::OfficeIMO.Email.Store.EmailStoreFolder folder in readResult.Store.Folders) {
             cancellationToken.ThrowIfCancellationRequested();
             string folderPath = folderPaths.TryGetValue(folder.Id, out string? value)
                 ? value
                 : EscapePathSegment(folder.Name);
-            foreach (EmailStoreMessage message in folder.Messages) {
+            foreach (EmailStoreItem item in folder.Items) {
                 cancellationToken.ThrowIfCancellationRequested();
-                documents.Add(message.Document);
+                documents.Add(item.Document);
                 logicalPaths.Add(BuildItemPath(sourceName, folderPath, "item", itemIndex++));
             }
-            foreach (EmailStoreMessage message in folder.AssociatedMessages) {
+            foreach (EmailStoreItem item in folder.AssociatedItems) {
                 cancellationToken.ThrowIfCancellationRequested();
-                documents.Add(message.Document);
+                documents.Add(item.Document);
                 logicalPaths.Add(BuildItemPath(sourceName, folderPath, "associated", itemIndex++));
-                associatedMessageCount++;
+                associatedItemCount++;
             }
         }
 
@@ -43,7 +43,7 @@ internal static class EmailStoreReaderProjection {
             logicalPaths,
             diagnostics,
             ResolveEmailFormat(documents),
-            associatedMessageCount);
+            associatedItemCount);
     }
 
     internal static OfficeDocumentReadResult EnrichResult(
@@ -63,8 +63,8 @@ internal static class EmailStoreReaderProjection {
         result.Metadata = result.Metadata.Concat(new[] {
             CreateMetadata("email-store-format", "StoreFormat", storeFormat, "string"),
             CreateMetadata("email-store-folder-count", "FolderCount", projection.ReadResult.Store.Folders.Count, "count"),
-            CreateMetadata("email-store-message-count", "MessageCount", projection.ReadResult.Store.MessageCount, "count"),
-            CreateMetadata("email-store-associated-message-count", "AssociatedMessageCount", projection.AssociatedMessageCount, "count"),
+            CreateMetadata("email-store-item-count", "ItemCount", projection.ReadResult.Store.ItemCount, "count"),
+            CreateMetadata("email-store-associated-item-count", "AssociatedItemCount", projection.AssociatedItemCount, "count"),
             CreateMetadata("email-store-diagnostic-count", "DiagnosticCount", projection.Diagnostics.Count, "count"),
             CreateMetadata("email-store-bytes-read", "BytesRead", projection.ReadResult.BytesRead, "number")
         }).ToArray();
@@ -205,13 +205,13 @@ internal sealed class EmailStoreProjection {
         IReadOnlyList<string?> logicalPaths,
         IReadOnlyList<EmailDiagnostic> diagnostics,
         EmailFileFormat emailFormat,
-        int associatedMessageCount) {
+        int associatedItemCount) {
         ReadResult = readResult;
         Documents = documents;
         LogicalPaths = logicalPaths;
         Diagnostics = diagnostics;
         EmailFormat = emailFormat;
-        AssociatedMessageCount = associatedMessageCount;
+        AssociatedItemCount = associatedItemCount;
     }
 
     internal EmailStoreReadResult ReadResult { get; }
@@ -219,5 +219,5 @@ internal sealed class EmailStoreProjection {
     internal IReadOnlyList<string?> LogicalPaths { get; }
     internal IReadOnlyList<EmailDiagnostic> Diagnostics { get; }
     internal EmailFileFormat EmailFormat { get; }
-    internal int AssociatedMessageCount { get; }
+    internal int AssociatedItemCount { get; }
 }

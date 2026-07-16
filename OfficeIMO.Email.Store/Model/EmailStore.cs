@@ -1,6 +1,6 @@
 namespace OfficeIMO.Email.Store;
 
-/// <summary>Materialized mailbox hierarchy and its projected messages.</summary>
+/// <summary>Materialized mailbox hierarchy and its projected email and Outlook items.</summary>
 public sealed class EmailStore {
     private readonly List<EmailStoreFolder> _folders = new List<EmailStoreFolder>();
 
@@ -16,8 +16,8 @@ public sealed class EmailStore {
     /// <summary>Root-level folders.</summary>
     public IEnumerable<EmailStoreFolder> RootFolders => _folders.Where(folder => folder.ParentId == null);
 
-    /// <summary>Total projected message count.</summary>
-    public int MessageCount => _folders.Sum(folder => folder.Messages.Count);
+    /// <summary>Total projected item count.</summary>
+    public int ItemCount => _folders.Sum(folder => folder.Items.Count);
 
     internal IList<EmailStoreFolder> MutableFolders => _folders;
 }

@@ -2,9 +2,9 @@ using OfficeIMO.Email;
 
 namespace OfficeIMO.Email.Store;
 
-/// <summary>An email or Outlook item located within a store folder.</summary>
-public sealed class EmailStoreMessage {
-    internal EmailStoreMessage(string id, string folderId, EmailDocument document,
+/// <summary>An email or typed Outlook item located within a store folder.</summary>
+public sealed class EmailStoreItem {
+    internal EmailStoreItem(string id, string folderId, EmailDocument document,
         bool isAssociated = false, bool isOrphaned = false) {
         Id = id;
         FolderId = folderId;

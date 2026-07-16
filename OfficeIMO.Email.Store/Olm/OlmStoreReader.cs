@@ -136,15 +136,15 @@ internal sealed partial class OlmStoreReader {
                      string.Equals(element.Name.LocalName, itemName, StringComparison.OrdinalIgnoreCase))) {
             _cancellationToken.ThrowIfCancellationRequested();
             _itemCount++;
-            if (_itemCount > _options.MaxMessageCount) {
-                throw new EmailStoreLimitExceededException(nameof(EmailStoreReaderOptions.MaxMessageCount),
-                    _itemCount, _options.MaxMessageCount);
+            if (_itemCount > _options.MaxItemCount) {
+                throw new EmailStoreLimitExceededException(nameof(EmailStoreReaderOptions.MaxItemCount),
+                    _itemCount, _options.MaxItemCount);
             }
 
             string id = string.Concat("olm:item:", NormalizeSlashes(entry.FullName), "#", index.ToString(CultureInfo.InvariantCulture));
             string location = string.Concat(entry.FullName, "#", index.ToString(CultureInfo.InvariantCulture));
             EmailDocument document = ProjectItem(item, kind, id, folder.Id, location);
-            folder.MutableMessages.Add(new EmailStoreMessage(id, folder.Id, document));
+            folder.MutableItems.Add(new EmailStoreItem(id, folder.Id, document));
             index++;
         }
     }

@@ -30,7 +30,7 @@ public sealed class PstReaderTests {
         Assert.Equal("Root", root.Name);
         EmailStoreFolder inbox = Assert.Single(result.Store.Folders, folder => folder.Name == "Inbox");
         Assert.Equal(root.Id, inbox.ParentId);
-        EmailStoreMessage message = Assert.Single(inbox.Messages);
+        EmailStoreItem message = Assert.Single(inbox.Items);
         Assert.Equal("Synthetic PST message", message.Document.Subject);
         Assert.Equal("Body from the PST property context", message.Document.Body.Text);
         Assert.Equal("IPM.Note", message.Document.MessageClass);
@@ -46,7 +46,7 @@ public sealed class PstReaderTests {
         Assert.False(result.HasErrors);
         Assert.Equal("Test Store", result.Store.DisplayName);
         EmailStoreFolder inbox = Assert.Single(result.Store.Folders, folder => folder.Name == "Inbox");
-        EmailStoreMessage message = Assert.Single(inbox.Messages);
+        EmailStoreItem message = Assert.Single(inbox.Items);
         Assert.Equal("Synthetic PST message", message.Document.Subject);
         Assert.Equal("Body from the PST property context", message.Document.Body.Text);
     }
@@ -58,8 +58,8 @@ public sealed class PstReaderTests {
         EmailStoreReadResult result = new EmailStoreReader().Read(stream, "mailbox.pst");
 
         Assert.False(result.HasErrors);
-        EmailStoreMessage message = Assert.Single(
-            Assert.Single(result.Store.Folders, folder => folder.Name == "Inbox").Messages);
+        EmailStoreItem message = Assert.Single(
+            Assert.Single(result.Store.Folders, folder => folder.Name == "Inbox").Items);
         Assert.Equal("Synthetic PST message", message.Document.Subject);
     }
 
@@ -74,8 +74,8 @@ public sealed class PstReaderTests {
 
         Assert.False(result.HasErrors);
         Assert.Equal(EmailStoreFormat.Ost, result.Store.Format);
-        EmailStoreMessage message = Assert.Single(
-            Assert.Single(result.Store.Folders, folder => folder.Name == "Inbox").Messages);
+        EmailStoreItem message = Assert.Single(
+            Assert.Single(result.Store.Folders, folder => folder.Name == "Inbox").Items);
         Assert.Equal("Synthetic PST message", message.Document.Subject);
         Assert.Equal("Body from the PST property context", message.Document.Body.Text);
     }
@@ -87,8 +87,8 @@ public sealed class PstReaderTests {
         EmailStoreReadResult result = new EmailStoreReader().Read(stream, "mailbox.pst");
 
         Assert.False(result.HasErrors);
-        EmailStoreMessage message = Assert.Single(
-            Assert.Single(result.Store.Folders, folder => folder.Name == "Inbox").Messages);
+        EmailStoreItem message = Assert.Single(
+            Assert.Single(result.Store.Folders, folder => folder.Name == "Inbox").Items);
         EmailAttachment attachment = Assert.Single(message.Document.Attachments);
         Assert.Equal(5, attachment.MapiAttachMethod);
         Assert.Equal("forwarded.msg", attachment.FileName);
@@ -107,7 +107,7 @@ public sealed class PstReaderTests {
         EmailStoreReadResult result = reader.Read(stream, "mailbox.pst");
 
         EmailAttachment attachment = Assert.Single(
-            Assert.Single(result.Store.Folders, folder => folder.Name == "Inbox").Messages.Single().Document.Attachments);
+            Assert.Single(result.Store.Folders, folder => folder.Name == "Inbox").Items.Single().Document.Attachments);
         Assert.Null(attachment.EmbeddedDocument);
         Assert.Contains(result.Diagnostics,
             diagnostic => diagnostic.Code == "EMAIL_STORE_PST_EMBEDDED_DEPTH_LIMIT");

@@ -38,7 +38,7 @@ public sealed class OlmStoreReaderTests {
         Assert.Equal(3, result.Store.Folders.Count);
         Assert.DoesNotContain(result.Store.Folders, folder => folder.Name == "com.microsoft.__Messages");
         EmailStoreFolder inbox = Assert.Single(result.Store.Folders, folder => folder.Name == "Inbox");
-        EmailDocument document = Assert.Single(inbox.Messages).Document;
+        EmailDocument document = Assert.Single(inbox.Items).Document;
         Assert.Equal("Quarterly update", document.Subject);
         Assert.Equal("sender@example.test", document.From?.Address);
         Assert.Equal("Plain body", document.Body.Text);
@@ -74,7 +74,7 @@ public sealed class OlmStoreReaderTests {
         }
 
         EmailStoreReadResult result = Read(archive);
-        EmailDocument[] items = result.Store.Folders.SelectMany(folder => folder.Messages)
+        EmailDocument[] items = result.Store.Folders.SelectMany(folder => folder.Items)
             .Select(message => message.Document).ToArray();
 
         Assert.Equal(4, items.Length);
@@ -108,7 +108,7 @@ public sealed class OlmStoreReaderTests {
         var options = new EmailStoreReaderOptions(retainAttachmentContent: false);
 
         EmailStoreReadResult result = Read(archive, options);
-        EmailAttachment attachment = Assert.Single(result.Store.Folders.SelectMany(folder => folder.Messages)
+        EmailAttachment attachment = Assert.Single(result.Store.Folders.SelectMany(folder => folder.Items)
             .SelectMany(message => message.Document.Attachments));
 
         Assert.Equal(3, attachment.Length);
@@ -126,7 +126,7 @@ public sealed class OlmStoreReaderTests {
         EmailStoreReadResult result = Read(archive);
 
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "EMAIL_STORE_OLM_ATTACHMENT_PATH_UNSAFE");
-        Assert.Null(Assert.Single(result.Store.Folders.SelectMany(folder => folder.Messages)
+        Assert.Null(Assert.Single(result.Store.Folders.SelectMany(folder => folder.Items)
             .SelectMany(message => message.Document.Attachments)).Content);
     }
 
@@ -142,7 +142,7 @@ public sealed class OlmStoreReaderTests {
 
         EmailStoreReadResult result = Read(archive);
 
-        Assert.Equal(1, result.Store.MessageCount);
+        Assert.Equal(1, result.Store.ItemCount);
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "EMAIL_STORE_OLM_XML_INVALID" && diagnostic.Severity == EmailStoreDiagnosticSeverity.Error);
     }
 
@@ -172,7 +172,7 @@ public sealed class OlmStoreReaderTests {
         EmailStoreReadResult result = Read(archive);
 
         EmailStoreFolder empty = Assert.Single(result.Store.Folders, folder => folder.Name == "Empty: Folder");
-        Assert.Empty(empty.Messages);
+        Assert.Empty(empty.Items);
         Assert.DoesNotContain(result.Store.Folders, folder => folder.Name == "com.microsoft.__Attachments");
         Assert.Empty(result.Diagnostics);
     }
@@ -192,7 +192,7 @@ public sealed class OlmStoreReaderTests {
 
         var xmlOptions = new EmailStoreReaderOptions(maxXmlCharactersPerItem: 24);
         EmailStoreReadResult result = Read(archive, xmlOptions);
-        Assert.Equal(0, result.Store.MessageCount);
+        Assert.Equal(0, result.Store.ItemCount);
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "EMAIL_STORE_OLM_XML_INVALID");
     }
 

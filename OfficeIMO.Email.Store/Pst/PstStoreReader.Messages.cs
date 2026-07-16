@@ -3,16 +3,16 @@ using OfficeIMO.Email;
 namespace OfficeIMO.Email.Store;
 
 internal sealed partial class PstStoreReader {
-    private EmailStoreMessage ReadMessage(PstNodeReference node, string folderId, EmailStoreFormat format,
+    private EmailStoreItem ReadItem(PstNodeReference node, string folderId, EmailStoreFormat format,
         bool isAssociated, bool isOrphaned) {
         string id = FormatId(node.Nid);
-        string location = string.Concat("message/", id);
-        EmailDocument document = ReadMessageDocument(
+        string location = string.Concat("item/", id);
+        EmailDocument document = ReadItemDocument(
             node.DataBid, node.SubnodeBid, id, folderId, format, location, nestedDepth: 0);
-        return new EmailStoreMessage(id, folderId, document, isAssociated, isOrphaned);
+        return new EmailStoreItem(id, folderId, document, isAssociated, isOrphaned);
     }
 
-    private EmailDocument ReadMessageDocument(ulong dataBid, ulong subnodeBid, string id, string? folderId,
+    private EmailDocument ReadItemDocument(ulong dataBid, ulong subnodeBid, string id, string? folderId,
         EmailStoreFormat format, string location, int nestedDepth) {
         IReadOnlyDictionary<uint, PstSubnodeReference> subnodes = Ndb.ReadSubnodes(subnodeBid);
         IReadOnlyList<MapiProperty> properties = ReadProperties(dataBid, subnodeBid, location, subnodes);
@@ -22,13 +22,13 @@ internal sealed partial class PstStoreReader {
         if (folderId != null) document.Properties["EmailStore:FolderId"] = folderId;
         foreach (MapiProperty property in properties) document.MapiProperties.Add(property);
 
-        ReadMessageRecipients(document, subnodes, location);
-        ReadMessageAttachments(document, subnodes, format, location, nestedDepth);
-        ProjectMessage(document, properties, location);
+        ReadItemRecipients(document, subnodes, location);
+        ReadItemAttachments(document, subnodes, format, location, nestedDepth);
+        ProjectItem(document, properties, location);
         return document;
     }
 
-    private void ReadMessageRecipients(EmailDocument document,
+    private void ReadItemRecipients(EmailDocument document,
         IReadOnlyDictionary<uint, PstSubnodeReference> subnodes, string location) {
         foreach (PstSubnodeReference recipientTable in subnodes.Values
             .Where(item => item.Type == 0x12).OrderBy(item => item.Nid)) {
@@ -47,16 +47,16 @@ internal sealed partial class PstStoreReader {
         }
     }
 
-    private void ReadMessageAttachments(EmailDocument document,
+    private void ReadItemAttachments(EmailDocument document,
         IReadOnlyDictionary<uint, PstSubnodeReference> subnodes, EmailStoreFormat format,
         string location, int nestedDepth) {
         int attachmentCount = 0;
         foreach (PstSubnodeReference attachmentNode in subnodes.Values
             .Where(item => item.Type == 0x05).OrderBy(item => item.Nid)) {
             attachmentCount++;
-            if (attachmentCount > _options.MaxAttachmentsPerMessage) {
-                throw new EmailStoreLimitExceededException(nameof(EmailStoreReaderOptions.MaxAttachmentsPerMessage),
-                    attachmentCount, _options.MaxAttachmentsPerMessage);
+            if (attachmentCount > _options.MaxAttachmentsPerItem) {
+                throw new EmailStoreLimitExceededException(nameof(EmailStoreReaderOptions.MaxAttachmentsPerItem),
+                    attachmentCount, _options.MaxAttachmentsPerItem);
             }
 
             string attachmentLocation = string.Concat(location, "/attachment/", FormatId(attachmentNode.Nid));
@@ -93,12 +93,12 @@ internal sealed partial class PstStoreReader {
         }
 
         string embeddedId = FormatId(embeddedNode.Nid);
-        attachment.EmbeddedDocument = ReadMessageDocument(
+        attachment.EmbeddedDocument = ReadItemDocument(
             embeddedNode.DataBid, embeddedNode.SubnodeBid, embeddedId, folderId: null,
             format, string.Concat(location, "/embedded/", embeddedId), nestedDepth + 1);
     }
 
-    private void ProjectMessage(EmailDocument document, IReadOnlyList<MapiProperty> properties, string location) {
+    private void ProjectItem(EmailDocument document, IReadOnlyList<MapiProperty> properties, string location) {
         int? codePage = GetInt(properties, 0x3FFD) ?? GetInt(properties, 0x3FDE) ?? GetInt(properties, 0x3FFC);
         EmailReadResult projection = EmailMapiProjection.Project(document, codePage, location: location,
             cancellationToken: _cancellationToken);

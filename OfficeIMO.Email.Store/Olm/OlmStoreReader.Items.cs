@@ -223,9 +223,9 @@ internal sealed partial class OlmStoreReader {
 
     private void AddAttachment(EmailDocument document, string? sourcePath, string? fileName,
         string? contentType, string? contentId, string location) {
-        if (document.Attachments.Count >= _options.MaxAttachmentsPerMessage) {
-            throw new EmailStoreLimitExceededException(nameof(EmailStoreReaderOptions.MaxAttachmentsPerMessage),
-                document.Attachments.Count + 1L, _options.MaxAttachmentsPerMessage);
+        if (document.Attachments.Count >= _options.MaxAttachmentsPerItem) {
+            throw new EmailStoreLimitExceededException(nameof(EmailStoreReaderOptions.MaxAttachmentsPerItem),
+                document.Attachments.Count + 1L, _options.MaxAttachmentsPerItem);
         }
 
         var attachment = new EmailAttachment {
