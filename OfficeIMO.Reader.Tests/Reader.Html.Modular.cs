@@ -658,7 +658,7 @@ public sealed class ReaderHtmlModularTests {
   <head><base href="https://example.test/book/"></head>
   <body>
     <div role="heading" aria-level="4">Accessible section</div>
-    <p><a href="note.xhtml" aria-label="Open note"></a></p>
+    <p><a href="note.xhtml" aria-label="Open note">Visible note</a></p>
     <blockquote><p>Quoted text</p></blockquote>
     <pre data-language="csharp">Console.WriteLine(1);</pre>
     <ol type="A" start="3"><li>Third choice</li></ol>

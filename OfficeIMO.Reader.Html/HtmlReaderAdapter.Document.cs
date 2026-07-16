@@ -180,7 +180,7 @@ internal static partial class HtmlReaderAdapter {
                     Kind = resolvedHref.StartsWith("#", StringComparison.Ordinal) ? "internal" : "uri",
                     Uri = resolvedHref.StartsWith("#", StringComparison.Ordinal) ? null : resolvedHref,
                     DestinationName = resolvedHref.StartsWith("#", StringComparison.Ordinal) ? resolvedHref.Substring(1) : null,
-                    Text = GetHtmlNodeAccessibleText(node),
+                    Text = GetHtmlLinkText(node),
                     Location = BuildHtmlLocation(path, null, "hyperlink", "html-link-" + linkIndex.ToString("D4", CultureInfo.InvariantCulture))
                 });
                 linkIndex++;
@@ -455,6 +455,11 @@ internal static partial class HtmlReaderAdapter {
         string text = GetHtmlNodeText(node);
         return text.Length > 0 ? text : node.AccessibleName ?? string.Empty;
     }
+
+    private static string GetHtmlLinkText(HtmlLogicalNode node) =>
+        !string.IsNullOrWhiteSpace(node.AccessibleName)
+            ? node.AccessibleName!
+            : GetHtmlNodeText(node);
 
     private static bool IsHtmlFootnoteBacklink(HtmlLogicalNode node) {
         if (node.Attributes.ContainsKey("data-footnote-backref")) return true;
