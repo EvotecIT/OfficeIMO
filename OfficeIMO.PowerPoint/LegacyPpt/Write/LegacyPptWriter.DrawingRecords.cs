@@ -104,7 +104,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             LegacyPptWriterAnimation? animation = animationCatalog.Get(shape);
             if (shape is PowerPointTextBox textBox) {
                 shapeType = 202;
-                children.Add(BuildFsp(shapeType, shapeId));
+                children.Add(BuildFsp(shapeType, shapeId, shape));
+                byte[]? formatting = BuildShapeFoptRecord(shape);
+                if (formatting != null) children.Add(formatting);
                 children.Add(BuildAnchor(shape));
                 byte[]? clientData = BuildClientData(shape,
                     interactions.ShapeInteractions, animation, shapeContext);
@@ -112,10 +114,27 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 children.Add(BuildTextBox(textBox.Text,
                     MapTextType(shape, shapeContext), interactions.TextInteractions));
             } else if (shape is PowerPointAutoShape autoShape) {
-                shapeType = autoShape.ShapeType == A.ShapeTypeValues.Ellipse ? (ushort)3
-                    : autoShape.ShapeType == A.ShapeTypeValues.Line ? (ushort)20
-                    : (ushort)1;
-                children.Add(BuildFsp(shapeType, shapeId));
+                if (!TryReadOfficeArtShapeType(autoShape,
+                        requireConnector: false, out shapeType,
+                        out string? reason)) {
+                    throw new NotSupportedException(reason);
+                }
+                children.Add(BuildFsp(shapeType, shapeId, shape));
+                byte[]? formatting = BuildShapeFoptRecord(shape);
+                if (formatting != null) children.Add(formatting);
+                children.Add(BuildAnchor(shape));
+                byte[]? clientData = BuildClientData(shape,
+                    interactions.ShapeInteractions, animation, shapeContext);
+                if (clientData != null) children.Add(clientData);
+            } else if (shape is PowerPointConnectionShape connector) {
+                if (!TryReadOfficeArtShapeType(connector,
+                        requireConnector: true, out shapeType,
+                        out string? reason)) {
+                    throw new NotSupportedException(reason);
+                }
+                children.Add(BuildFsp(shapeType, shapeId, shape));
+                byte[]? formatting = BuildShapeFoptRecord(shape);
+                if (formatting != null) children.Add(formatting);
                 children.Add(BuildAnchor(shape));
                 byte[]? clientData = BuildClientData(shape,
                     interactions.ShapeInteractions, animation, shapeContext);
@@ -125,7 +144,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     ?? throw new InvalidOperationException(
                         "The media shape has no external-object catalog entry.");
                 shapeType = 75;
-                children.Add(BuildFsp(shapeType, shapeId));
+                children.Add(BuildFsp(shapeType, shapeId, shape));
+                byte[]? formatting = BuildShapeFoptRecord(shape);
+                if (formatting != null) children.Add(formatting);
                 children.Add(BuildAnchor(shape));
                 byte[]? clientData = BuildClientData(shape,
                     interactions.ShapeInteractions, animation, shapeContext,
@@ -141,7 +162,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     ?? throw new InvalidOperationException(
                         "The picture shape has no BLIP store catalog entry.");
                 shapeType = 75;
-                children.Add(BuildFsp(shapeType, shapeId));
+                children.Add(BuildFsp(shapeType, shapeId, shape));
                 children.Add(BuildPictureFoptRecord(picture,
                     catalogPicture.OneBasedStoreIndex));
                 byte[]? tertiaryPictureProperties =
@@ -159,9 +180,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     ?? throw new InvalidOperationException(
                         "The converted table has no BLIP store catalog entry.");
                 shapeType = 75;
-                children.Add(BuildFsp(shapeType, shapeId));
+                children.Add(BuildFsp(shapeType, shapeId, shape));
                 children.Add(BuildStaticVisualFoptRecord(
-                    catalogPicture.OneBasedStoreIndex));
+                    shape, catalogPicture.OneBasedStoreIndex));
                 children.Add(BuildAnchor(shape));
                 byte[]? clientData = BuildClientData(shape,
                     interactions.ShapeInteractions, animation, shapeContext);
@@ -172,9 +193,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     ?? throw new InvalidOperationException(
                         "The converted chart has no BLIP store catalog entry.");
                 shapeType = 75;
-                children.Add(BuildFsp(shapeType, shapeId));
+                children.Add(BuildFsp(shapeType, shapeId, shape));
                 children.Add(BuildStaticVisualFoptRecord(
-                    catalogPicture.OneBasedStoreIndex));
+                    shape, catalogPicture.OneBasedStoreIndex));
                 children.Add(BuildAnchor(shape));
                 byte[]? clientData = BuildClientData(shape,
                     interactions.ShapeInteractions, animation, shapeContext);
@@ -185,9 +206,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     ?? throw new InvalidOperationException(
                         "The converted SmartArt diagram has no BLIP store catalog entry.");
                 shapeType = 75;
-                children.Add(BuildFsp(shapeType, shapeId));
+                children.Add(BuildFsp(shapeType, shapeId, shape));
                 children.Add(BuildStaticVisualFoptRecord(
-                    catalogPicture.OneBasedStoreIndex));
+                    shape, catalogPicture.OneBasedStoreIndex));
                 children.Add(BuildAnchor(shape));
                 byte[]? clientData = BuildClientData(shape,
                     interactions.ShapeInteractions, animation, shapeContext);
@@ -197,7 +218,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     ?? throw new InvalidOperationException(
                         "The OLE shape has no external-object catalog entry.");
                 shapeType = 75;
-                children.Add(BuildFsp(shapeType, shapeId));
+                children.Add(BuildFsp(shapeType, shapeId, shape));
+                byte[]? formatting = BuildShapeFoptRecord(shape);
+                if (formatting != null) children.Add(formatting);
                 children.Add(BuildAnchor(shape));
                 byte[]? clientData = BuildClientData(shape,
                     interactions.ShapeInteractions, animation, shapeContext,
@@ -213,10 +236,11 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             return BuildContainer(OfficeArtSpContainer, instance: 0, children);
         }
 
-        private static byte[] BuildFsp(ushort shapeType, uint shapeId) {
+        private static byte[] BuildFsp(ushort shapeType, uint shapeId,
+            PowerPointShape shape) {
             var payload = new byte[8];
             WriteUInt32(payload, 0, shapeId);
-            WriteUInt32(payload, 4, 0x00000A00);
+            WriteUInt32(payload, 4, GetShapeFspFlags(shape));
             return BuildRecord(version: 2, shapeType, OfficeArtFsp, payload);
         }
 

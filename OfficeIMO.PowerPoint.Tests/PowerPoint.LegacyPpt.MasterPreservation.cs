@@ -157,7 +157,9 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void ImportedMainMasterUnsupportedStyleEdit_RemainsLossBlocked() {
+        public void ImportedMainMasterTransformEdit_PreservesRichStyle() {
+            LegacyPptPresentation original = LegacyPptPresentation.Load(
+                FixturePath);
             using PowerPointPresentation imported = PowerPointPresentation.Load(
                 FixturePath);
             P.Shape shape = imported.OpenXmlDocument.PresentationPart!
@@ -169,9 +171,22 @@ namespace OfficeIMO.Tests {
             LegacyPptWritePreflightReport preflight = imported
                 .AnalyzeLegacyPptWrite();
 
-            Assert.False(preflight.CanWrite);
-            Assert.Contains(preflight.Findings, finding =>
-                finding.Code == "PPT-WRITE-IMPORT-LOSS");
+            Assert.True(preflight.CanWrite,
+                string.Join(Environment.NewLine, preflight.Findings));
+            LegacyPptPresentation saved = LegacyPptPresentation.Load(
+                imported.ToBytes(PowerPointFileFormat.Ppt));
+            LegacyPptShape savedShape = saved.Masters
+                .SelectMany(master => master.Shapes)
+                .First();
+            LegacyPptShape originalShape = original.Masters
+                .SelectMany(master => master.Shapes)
+                .First();
+            Assert.Equal(1D, savedShape.Transform.RotationDegrees);
+            Assert.Equal(originalShape.Style.FillType,
+                savedShape.Style.FillType);
+            Assert.Equal(originalShape.FillColor, savedShape.FillColor);
+            Assert.Equal(original.Package.UserEdits.Count + 1,
+                saved.Package.UserEdits.Count);
         }
 
         [Fact]

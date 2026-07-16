@@ -82,6 +82,20 @@ public partial class DrawingTests {
     }
 
     [Fact]
+    public void OfficeArtShapeStyle_DistinguishesProjectableFromSafelyRewritableProperties() {
+        var properties = new[] {
+            new OfficeArtProperty(0, 0x0181, 0x00332211U),
+            new OfficeArtProperty(1, 0x0183, 0x00665544U)
+        };
+
+        OfficeArtShapeStyle style = OfficeArtShapeStyle.Decode(properties);
+
+        Assert.True(style.HasProjectableStyle);
+        Assert.False(style.HasUnprojectedVisualStyle);
+        Assert.False(style.CanRewriteProjectedVisualStyle);
+    }
+
+    [Fact]
     public void OfficeArtShapeTransform_DecodesSignedRotationAndFspFlips() {
         var properties = new[] {
             new OfficeArtProperty(0, 0x0004, unchecked((uint)(-45 * 65536)))

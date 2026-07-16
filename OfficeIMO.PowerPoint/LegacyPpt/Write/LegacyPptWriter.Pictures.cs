@@ -232,7 +232,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
 
         private static byte[] BuildPictureFoptRecord(PowerPointPicture picture,
             uint oneBasedStoreIndex) {
-            var properties = new List<LegacyPptWriterFoptProperty>(8);
+            var properties = new List<LegacyPptWriterFoptProperty>(16);
+            AddShapeFormattingProperties(properties, picture);
             AddPictureFormatProperties(properties, picture);
             properties.Add(new LegacyPptWriterFoptProperty(0x4104,
                 oneBasedStoreIndex));
@@ -245,23 +246,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 nameof(prototype));
             if (picture == null) throw new ArgumentNullException(
                 nameof(picture));
-            IReadOnlyList<LegacyPptWriterFoptProperty> sourceProperties =
-                ReadFoptProperties(prototype);
-            const uint rewrittenBooleanMask = (1U << 18) | (1U << 17)
-                | (1U << 2) | (1U << 1);
-            LegacyPptWriterFoptProperty? booleanProperty = sourceProperties
-                .LastOrDefault(property => property.PropertyId == 0x013F);
-            uint preservedBooleanProperties = (booleanProperty?.Value ?? 0U)
-                & ~rewrittenBooleanMask;
-            List<LegacyPptWriterFoptProperty> properties = sourceProperties
-                .Where(property =>
-                    property.PropertyId is not (>= 0x0100 and <= 0x0103)
-                    and not 0x0107 and not 0x0108 and not 0x0109
-                    and not 0x013F)
-                .ToList();
-            AddPictureFormatProperties(properties, picture,
-                preservedBooleanProperties);
-            return BuildFoptRecord(properties);
+            return BuildPreservedShapeFoptRecord(prototype, picture,
+                rewriteShapeTransform: false,
+                rewriteShapeVisualStyle: false,
+                rewritePictureFormatting: true)
+                ?? throw new InvalidOperationException(
+                    "A picture FOPT cannot be empty because it owns the BLIP reference.");
         }
 
         private static byte[]? BuildPictureTertiaryFoptRecord(
@@ -315,10 +305,13 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         }
 
         private static byte[] BuildStaticVisualFoptRecord(
-            uint oneBasedStoreIndex) => BuildFoptRecord(new[] {
-                new LegacyPptWriterFoptProperty(0x4104,
-                    oneBasedStoreIndex)
-            });
+            PowerPointShape shape, uint oneBasedStoreIndex) {
+            var properties = new List<LegacyPptWriterFoptProperty>(8);
+            AddShapeFormattingProperties(properties, shape);
+            properties.Add(new LegacyPptWriterFoptProperty(0x4104,
+                oneBasedStoreIndex));
+            return BuildFoptRecord(properties);
+        }
 
         private static void AddPictureCropProperty(
             ICollection<LegacyPptWriterFoptProperty> properties,

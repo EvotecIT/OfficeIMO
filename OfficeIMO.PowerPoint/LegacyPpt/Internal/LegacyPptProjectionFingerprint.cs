@@ -325,6 +325,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                     transform.Extents.Cx = 0L;
                     transform.Extents.Cy = 0L;
                 }
+                NormalizeShapeFormatting(shape.ShapeProperties,
+                    shapeProjection);
                 if (shape.TextBody != null) shape.TextBody.RemoveAllChildren<A.Paragraph>();
             }
             foreach (P.Picture picture in root.Descendants<P.Picture>()) {
@@ -350,6 +352,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                     transform.Extents.Cx = 0L;
                     transform.Extents.Cy = 0L;
                 }
+                NormalizeShapeFormatting(picture.ShapeProperties,
+                    shapeProjection);
                 if (shapeProjection.CanEditPictureFormatting) {
                     picture.BlipFill?.SourceRectangle?.Remove();
                     A.Blip? blip = picture.BlipFill?.Blip;
@@ -384,6 +388,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                     transform.Extents.Cx = 0L;
                     transform.Extents.Cy = 0L;
                 }
+                NormalizeShapeFormatting(connection.ShapeProperties,
+                    shapeProjection);
             }
             foreach (P.GroupShape group in root.Descendants<P.GroupShape>()) {
                 uint? shapeId = group.NonVisualGroupShapeProperties?.NonVisualDrawingProperties?.Id?.Value;
@@ -405,6 +411,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                     transform.Extents.Cx = 0L;
                     transform.Extents.Cy = 0L;
                 }
+                if (shapeProjection.CanEditShapeTransform
+                    && transform != null) {
+                    transform.Rotation = null;
+                    transform.HorizontalFlip = null;
+                    transform.VerticalFlip = null;
+                }
             }
             foreach (P.GraphicFrame frame in root.Descendants<P.GraphicFrame>()) {
                 uint? shapeId = frame.NonVisualGraphicFrameProperties?
@@ -421,6 +433,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                     transform.Extents.Cx = 0L;
                     transform.Extents.Cy = 0L;
                 }
+                if (shapeProjection.CanEditShapeTransform
+                    && transform != null) {
+                    transform.Rotation = null;
+                    transform.HorizontalFlip = null;
+                    transform.VerticalFlip = null;
+                }
                 P.OleObject? ole = frame.Graphic?.GraphicData?
                     .GetFirstChild<P.OleObject>();
                 if (ole == null) continue;
@@ -430,6 +448,25 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                     .GetFirstChild<P.OleObjectEmbed>();
                 if (embed != null) embed.FollowColorScheme = null;
             }
+        }
+
+        private static void NormalizeShapeFormatting(
+            P.ShapeProperties? properties,
+            LegacyPptShapeProjection projection) {
+            if (properties == null) {
+                return;
+            }
+            if (projection.CanEditShapeTransform
+                && properties.Transform2D != null) {
+                properties.Transform2D.Rotation = null;
+                properties.Transform2D.HorizontalFlip = null;
+                properties.Transform2D.VerticalFlip = null;
+            }
+            if (!projection.CanEditShapeVisualStyle) return;
+            properties.RemoveAllChildren<A.NoFill>();
+            properties.RemoveAllChildren<A.SolidFill>();
+            properties.RemoveAllChildren<A.Outline>();
+            properties.RemoveAllChildren<A.EffectList>();
         }
 
         private static bool HasOnlyTopLevelAnimationTargets(

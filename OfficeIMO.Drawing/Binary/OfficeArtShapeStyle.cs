@@ -170,6 +170,30 @@ public sealed class OfficeArtShapeStyle {
         || LineEnabled != false && Properties.Any(property => property.PropertyId == 0x01CF)
         || ShadowEnabled == true && ShadowType.GetValueOrDefault() != 0;
 
+    /// <summary>
+    /// Gets whether every source fill, line, and shadow property is owned by
+    /// the editable solid-style projection and can therefore be rewritten
+    /// without discarding an opaque visual property.
+    /// </summary>
+    public bool CanRewriteProjectedVisualStyle =>
+        !HasUnprojectedVisualStyle
+        && Properties.All(IsRewritableVisualProperty);
+
+    private static bool IsRewritableVisualProperty(
+        OfficeArtProperty property) {
+        if (property.PropertyId is not (>= 0x0180 and <= 0x023F)) {
+            return true;
+        }
+        if (property.IsComplex || property.IsBlipId) return false;
+        return property.PropertyId is 0x0180 or 0x0181 or 0x0182
+            or 0x01BF
+            or 0x01C0 or 0x01C1 or 0x01CB or 0x01CE
+            or >= 0x01D0 and <= 0x01D7
+            or 0x01FF
+            or 0x0200 or 0x0201 or 0x0204 or 0x0205 or 0x0206
+            or 0x021C or 0x023F;
+    }
+
     private OfficeArtProperty? GetProperty(ushort propertyId) =>
         Properties.LastOrDefault(property => property.PropertyId == propertyId && !property.IsComplex);
 

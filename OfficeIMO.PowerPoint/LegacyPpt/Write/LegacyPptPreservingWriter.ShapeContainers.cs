@@ -8,8 +8,14 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             out byte[] bytes) {
             var children = new List<byte[]>(shapeContainer.Children.Count + 1);
             bool patchedAnchor = !edit.Bounds.HasValue;
-            bool patchedPictureFormatting = edit.PictureFormatting == null;
+            bool rewritePrimaryFopt = edit.ShapeTransform != null
+                || edit.ShapeVisualStyle != null
+                || edit.PictureFormatting != null;
+            bool patchedPrimaryFopt = !rewritePrimaryFopt;
+            bool patchedFsp = edit.ShapeTransform == null;
             bool patchedPictureRecolor = edit.PictureFormatting == null;
+            bool hasPrimaryFopt = shapeContainer.Children.Any(
+                child => child.Type == OfficeArtFopt);
             bool hasPictureTertiaryFopt = shapeContainer.Children.Any(
                 child => child.Type == OfficeArtTertiaryFopt);
             bool patchedText = edit.Text == null
@@ -22,19 +28,45 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             bool appendedAnimation = false;
             bool sawClientData = false;
             foreach (LegacyPptRecord child in shapeContainer.Children) {
-                if (!patchedAnchor && edit.Bounds.HasValue
+                if (child.Type == OfficeArtFsp
+                    && (!patchedFsp
+                        || !hasPrimaryFopt && !patchedPrimaryFopt)) {
+                    children.Add(!patchedFsp
+                        ? LegacyPptWriter.BuildPreservedFspRecord(
+                            child, edit.ShapeTransform!)
+                        : child.CopyRecordBytes());
+                    patchedFsp = true;
+                    if (!hasPrimaryFopt && !patchedPrimaryFopt) {
+                        byte[]? primary = LegacyPptWriter
+                            .BuildPreservedShapeFoptRecord(null,
+                                edit.ShapeTransform
+                                    ?? edit.ShapeVisualStyle
+                                    ?? edit.PictureFormatting!,
+                                edit.ShapeTransform != null,
+                                edit.ShapeVisualStyle != null,
+                                edit.PictureFormatting != null);
+                        if (primary != null) children.Add(primary);
+                        patchedPrimaryFopt = true;
+                    }
+                } else if (!patchedAnchor && edit.Bounds.HasValue
                     && (child.Type == OfficeArtClientAnchor
                         || child.Type == OfficeArtChildAnchor)) {
                     children.Add(BuildAnchor(child.Type, child.Instance,
                         edit.Bounds.Value));
                     patchedAnchor = true;
-                } else if (!patchedPictureFormatting
+                } else if (!patchedPrimaryFopt
                            && child.Type == OfficeArtFopt) {
-                    children.Add(LegacyPptWriter
-                        .BuildPreservedPictureFoptRecord(child,
-                            edit.PictureFormatting!));
-                    patchedPictureFormatting = true;
-                    if (!hasPictureTertiaryFopt) {
+                    byte[]? primary = LegacyPptWriter
+                        .BuildPreservedShapeFoptRecord(child,
+                            edit.ShapeTransform ?? edit.ShapeVisualStyle
+                                ?? edit.PictureFormatting!,
+                            edit.ShapeTransform != null,
+                            edit.ShapeVisualStyle != null,
+                            edit.PictureFormatting != null);
+                    if (primary != null) children.Add(primary);
+                    patchedPrimaryFopt = true;
+                    if (edit.PictureFormatting != null
+                        && !hasPictureTertiaryFopt) {
                         byte[]? tertiary = LegacyPptWriter
                             .BuildPreservedPictureTertiaryFoptRecord(null,
                                 edit.PictureFormatting!);
@@ -146,7 +178,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         OfficeArtClientData, Concat(clientChildren)));
                 }
             }
-            if (!patchedAnchor || !patchedPictureFormatting
+            if (!patchedAnchor || !patchedPrimaryFopt || !patchedFsp
                 || !patchedPictureRecolor || !patchedText
                 || !patchedShapeInteractions || !patchedAnimation
                 || !patchedPlaceholder) {

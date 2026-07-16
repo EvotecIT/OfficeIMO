@@ -524,7 +524,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             internal double Position { get; }
         }
 
-        private sealed class LegacyPptWriterFoptProperty {
+        internal sealed class LegacyPptWriterFoptProperty {
             internal LegacyPptWriterFoptProperty(ushort operationId, uint value,
                 byte[]? complexData = null) {
                 OperationId = operationId;

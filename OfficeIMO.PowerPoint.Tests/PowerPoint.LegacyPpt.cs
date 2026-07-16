@@ -816,7 +816,10 @@ namespace OfficeIMO.Tests {
             using PowerPointPresentation presentation = PowerPointPresentation.Create();
             PowerPointSlide slide = presentation.AddSlide();
             slide.Transition = SlideTransition.Morph;
-            slide.AddRectangle(100000, 100000, 1000000, 500000).Fill("FF0000");
+            PowerPointAutoShape shape = slide.AddRectangle(
+                100000, 100000, 1000000, 500000);
+            shape.Fill("FF0000");
+            shape.SetGlow("4472C4", radiusPoints: 4D);
 
             LegacyPptWritePreflightReport report = presentation.AnalyzeLegacyPptWrite();
 

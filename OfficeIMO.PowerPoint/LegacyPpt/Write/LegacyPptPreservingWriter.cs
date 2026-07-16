@@ -279,6 +279,25 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         }
                         bool placeholderChanged = !shapeProjection
                             .PlaceholderMatches(currentPlaceholder);
+                        PowerPointShape? changedShapeTransform = null;
+                        if (shapeProjection.CanEditShapeTransform
+                            && !shapeProjection.ShapeTransformMatches(shape)) {
+                            if (!LegacyPptWriter.TryReadShapeTransform(shape,
+                                    out _, out _)) {
+                                return false;
+                            }
+                            changedShapeTransform = shape;
+                        }
+                        PowerPointShape? changedShapeVisualStyle = null;
+                        if (shapeProjection.CanEditShapeVisualStyle
+                            && !shapeProjection.ShapeVisualStyleMatches(
+                                shape)) {
+                            if (!LegacyPptWriter.TryReadShapeVisualStyle(shape,
+                                    out _, out _)) {
+                                return false;
+                            }
+                            changedShapeVisualStyle = shape;
+                        }
                         PowerPointPicture? changedPictureFormatting = null;
                         if (shape is PowerPointPicture picture
                             && picture is not PowerPointMedia
@@ -325,6 +344,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         }
                         if (changedBounds.HasValue || changedText != null
                             || placeholderChanged
+                            || changedShapeTransform != null
+                            || changedShapeVisualStyle != null
                             || changedPictureFormatting != null
                             || interactionEdit != null || animationChanged) {
                             editsByOfficeArtId.Add(shapeProjection.OfficeArtShapeId,
@@ -332,6 +353,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                                     changedText, interactionEdit,
                                     animationChanged, currentAnimation,
                                     placeholderChanged, currentPlaceholder));
+                            editsByOfficeArtId[shapeProjection.OfficeArtShapeId]
+                                .ShapeTransform = changedShapeTransform;
+                            editsByOfficeArtId[shapeProjection.OfficeArtShapeId]
+                                .ShapeVisualStyle = changedShapeVisualStyle;
                             editsByOfficeArtId[shapeProjection.OfficeArtShapeId]
                                 .PictureFormatting = changedPictureFormatting;
                         }
@@ -962,6 +987,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             }
 
             internal PowerPointPicture? PictureFormatting { get; set; }
+
+            internal PowerPointShape? ShapeTransform { get; set; }
+
+            internal PowerPointShape? ShapeVisualStyle { get; set; }
         }
     }
 }

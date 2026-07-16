@@ -350,10 +350,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             || includeCharts && shape is PowerPointChart
             || includeSmartArt && shape is PowerPointSmartArt
             || includeOleObjects && shape is PowerPointOleObject
+            || shape is PowerPointConnectionShape connector
+            && LegacyPptWriter.TryReadOfficeArtShapeType(connector,
+                requireConnector: true, out _, out _)
             || shape is PowerPointAutoShape autoShape
-            && (autoShape.ShapeType == A.ShapeTypeValues.Rectangle
-                || autoShape.ShapeType == A.ShapeTypeValues.Ellipse
-                || autoShape.ShapeType == A.ShapeTypeValues.Line);
+            && LegacyPptWriter.TryReadOfficeArtShapeType(autoShape,
+                requireConnector: false, out _, out _);
 
         private static bool HasUnsupportedRichNotes(PowerPointSlide slide) {
             P.ShapeTree? tree = slide.SlidePart.NotesSlidePart?.NotesSlide?
@@ -430,17 +432,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         }
 
         private static bool HasUnsupportedVisualStyle(PowerPointShape shape) =>
-            shape.FillColor != null
-            || shape.FillTransparency != null
-            || shape.OutlineColor != null
-            || shape.OutlineWidthPoints != null
-            || shape.OutlineDash != null
-            || shape.Rotation != null
-            || shape.HorizontalFlip != null
-            || shape.VerticalFlip != null
+            !LegacyPptWriter.TryReadShapeFormatting(shape, out _, out _)
             || shape.Hidden
             || !string.IsNullOrWhiteSpace(shape.AltText)
-            || shape.Element.Descendants<A.EffectList>().Any();
+            || shape.Element.Descendants<A.EffectDag>().Any();
 
         private static bool HasUnsupportedMasterInteraction(
             PowerPointShape shape) => shape.Element

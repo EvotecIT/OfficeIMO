@@ -141,6 +141,13 @@ namespace OfficeIMO.Tests {
                 fourth.BlackWhiteThreshold = 50;
                 PowerPointPicture fifth = AddPicture(slide, image, 2800000);
                 fifth.TransparentColor = OfficeColor.CornflowerBlue;
+                fifth.Rotation = 15D;
+                fifth.HorizontalFlip = true;
+                fifth.OutlineColor = "203864";
+                fifth.OutlineWidthPoints = 2D;
+                fifth.SetShadow("222222", blurPoints: 2D,
+                    distancePoints: 2D, angleDegrees: 90D,
+                    transparencyPercent: 40);
                 PowerPointPicture sixth = AddPicture(slide, image, 3500000);
                 sixth.RecolorColor = OfficeColor.Orange;
 
@@ -167,6 +174,10 @@ namespace OfficeIMO.Tests {
             Assert.True(pictures[3].PictureProperties.BiLevel);
             Assert.Equal(OfficeColor.CornflowerBlue.R,
                 pictures[4].PictureProperties.TransparentColor!.Value.Red);
+            Assert.Equal(15D, pictures[4].Transform.RotationDegrees);
+            Assert.True(pictures[4].Transform.FlipHorizontal);
+            Assert.Equal("203864", pictures[4].LineColor);
+            Assert.True(pictures[4].Style.ShadowEnabled);
             Assert.Equal(OfficeColor.Orange.R,
                 pictures[5].PictureProperties.RecolorColor!.Value.Red);
             Assert.Equal(OfficeColor.Orange.ToRgbHex(),
@@ -201,12 +212,19 @@ namespace OfficeIMO.Tests {
                 projectedPictureModels[3].BlackWhiteThreshold);
             Assert.Equal(OfficeColor.CornflowerBlue,
                 projectedPictureModels[4].TransparentColor);
+            Assert.Equal(15D, projectedPictureModels[4].Rotation);
+            Assert.True(projectedPictureModels[4].HorizontalFlip);
             Assert.Equal(OfficeColor.Orange,
                 projectedPictureModels[5].RecolorColor);
             Assert.Empty(projected.ValidateDocument());
             Assert.Equal(bytes, projected.ToBytes(PowerPointFileFormat.Ppt));
 
             projectedPictureModels[4].TransparentColor = OfficeColor.White;
+            projectedPictureModels[4].Rotation = 33D;
+            projectedPictureModels[4].HorizontalFlip = false;
+            projectedPictureModels[4].VerticalFlip = true;
+            projectedPictureModels[4].OutlineColor = "A5A5A5";
+            projectedPictureModels[4].ClearShadow();
             projectedPictureModels[5].RecolorColor = OfficeColor.Red;
             LegacyPptWritePreflightReport editPreflight = projected
                 .AnalyzeLegacyPptWrite();
@@ -221,6 +239,12 @@ namespace OfficeIMO.Tests {
                 .ToArray();
             Assert.Equal(OfficeColor.White.ToRgbHex(),
                 editedPictures[4].PictureTransparentColor);
+            Assert.Equal(33D,
+                editedPictures[4].Transform.RotationDegrees);
+            Assert.False(editedPictures[4].Transform.FlipHorizontal);
+            Assert.True(editedPictures[4].Transform.FlipVertical);
+            Assert.Equal("A5A5A5", editedPictures[4].LineColor);
+            Assert.Null(editedPictures[4].Style.ShadowEnabled);
             Assert.Equal(OfficeColor.Red.ToRgbHex(),
                 editedPictures[5].PictureRecolorColor);
             Assert.Equal(legacy.Package.CopyCompoundStreams()["Pictures"],

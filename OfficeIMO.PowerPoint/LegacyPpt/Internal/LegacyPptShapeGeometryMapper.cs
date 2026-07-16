@@ -168,6 +168,29 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
 
         internal static bool IsConnector(ushort shapeType) => shapeType is >= 32 and <= 40;
 
+        internal static bool TryGetShapeType(A.ShapeTypeValues preset,
+            out ushort shapeType) {
+            // Prefer the exact canonical MSOSPT value when several legacy
+            // values project to the same DrawingML preset.
+            for (ushort candidate = 1; candidate <= 202; candidate++) {
+                if (!IsApproximation(candidate)
+                    && TryGetPreset(candidate, out A.ShapeTypeValues mapped)
+                    && mapped == preset) {
+                    shapeType = candidate;
+                    return true;
+                }
+            }
+            for (ushort candidate = 1; candidate <= 202; candidate++) {
+                if (TryGetPreset(candidate, out A.ShapeTypeValues mapped)
+                    && mapped == preset) {
+                    shapeType = candidate;
+                    return true;
+                }
+            }
+            shapeType = 0;
+            return false;
+        }
+
         internal static bool IsApproximation(ushort shapeType) => shapeType is 14 or 17 or 18 or 100
             or >= 178 and <= 181;
 

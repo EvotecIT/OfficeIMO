@@ -205,6 +205,14 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                         sourceShape.TextBody.Interactions, sourceShape.Animation,
                         projectableSoundIds,
                         LegacyPptShapeProjection
+                            .CreateShapeTransformFingerprint(
+                                projectedShapes[shapeIndex]),
+                        sourceShape.Style.CanRewriteProjectedVisualStyle
+                            ? LegacyPptShapeProjection
+                                .CreateShapeVisualStyleFingerprint(
+                                    projectedShapes[shapeIndex])
+                            : null,
+                        LegacyPptShapeProjection
                             .CreatePictureFormattingFingerprint(
                                 projectedShapes[shapeIndex]),
                         sourceShape.OleObject != null
@@ -400,6 +408,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                     textFormattingFingerprint, sourceShape.Interactions,
                     sourceShape.TextBody.Interactions, sourceShape.Animation,
                     new HashSet<uint>(),
+                    LegacyPptShapeProjection
+                        .CreateShapeTransformFingerprint(projectedShape),
+                    sourceShape.Style.CanRewriteProjectedVisualStyle
+                        ? LegacyPptShapeProjection
+                            .CreateShapeVisualStyleFingerprint(projectedShape)
+                        : null,
                     LegacyPptShapeProjection
                         .CreatePictureFormattingFingerprint(projectedShape)));
             }
@@ -925,6 +939,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             IReadOnlyList<LegacyPptTextInteraction> textInteractions,
             LegacyPptAnimation? animation,
             ISet<uint> projectableSoundIds,
+            string? shapeTransformFingerprint,
+            string? shapeVisualStyleFingerprint,
             string? pictureFormattingFingerprint,
             LegacyPptOleObjectProjection? oleObject = null) {
             OpenXmlShapeId = openXmlShapeId;
@@ -949,6 +965,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 && !HasOverlappingTextTriggers(TextInteractions);
             CanEditAnimation = animation == null || IsEditableAnimation(
                 animation, projectableSoundIds);
+            ShapeTransformFingerprint = shapeTransformFingerprint;
+            ShapeVisualStyleFingerprint = shapeVisualStyleFingerprint;
             PictureFormattingFingerprint = pictureFormattingFingerprint;
             OleObject = oleObject;
         }
@@ -979,12 +997,66 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
 
         internal bool CanEditAnimation { get; }
 
+        internal string? ShapeTransformFingerprint { get; }
+
+        internal bool CanEditShapeTransform =>
+            ShapeTransformFingerprint != null;
+
+        internal string? ShapeVisualStyleFingerprint { get; }
+
+        internal bool CanEditShapeVisualStyle =>
+            ShapeVisualStyleFingerprint != null;
+
         internal string? PictureFormattingFingerprint { get; }
 
         internal bool CanEditPictureFormatting =>
             PictureFormattingFingerprint != null;
 
         internal LegacyPptOleObjectProjection? OleObject { get; }
+
+        internal bool ShapeTransformMatches(PowerPointShape shape) =>
+            string.Equals(ShapeTransformFingerprint,
+                CreateShapeTransformFingerprint(shape),
+                StringComparison.Ordinal);
+
+        internal static string? CreateShapeTransformFingerprint(
+            PowerPointShape shape) {
+            if (!LegacyPptWriter.TryReadShapeTransform(shape,
+                    out _, out _)) {
+                return null;
+            }
+            return string.Join("\n",
+                shape.Rotation?.ToString("R",
+                    System.Globalization.CultureInfo.InvariantCulture)
+                    ?? string.Empty,
+                shape.HorizontalFlip == true ? "1" : "0",
+                shape.VerticalFlip == true ? "1" : "0");
+        }
+
+        internal bool ShapeVisualStyleMatches(PowerPointShape shape) =>
+            string.Equals(ShapeVisualStyleFingerprint,
+                CreateShapeVisualStyleFingerprint(shape),
+                StringComparison.Ordinal);
+
+        internal static string? CreateShapeVisualStyleFingerprint(
+            PowerPointShape shape) {
+            if (!LegacyPptWriter.TryReadShapeVisualStyle(shape,
+                    out _, out _)) {
+                return null;
+            }
+            P.ShapeProperties? properties = shape.Element switch {
+                P.Shape value => value.ShapeProperties,
+                P.ConnectionShape value => value.ShapeProperties,
+                P.Picture value => value.ShapeProperties,
+                _ => null
+            };
+            string visual = string.Concat(properties?.ChildElements
+                .Where(child => child is A.NoFill or A.SolidFill
+                    or A.Outline or A.EffectList)
+                .Select(child => child.OuterXml)
+                ?? Enumerable.Empty<string>());
+            return visual;
+        }
 
         internal bool PictureFormattingMatches(PowerPointPicture picture) =>
             string.Equals(PictureFormattingFingerprint,

@@ -217,10 +217,13 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             if (includeCharts && shape is PowerPointChart) return true;
             if (includeSmartArt && shape is PowerPointSmartArt) return true;
             if (includeOleObjects && shape is PowerPointOleObject) return true;
+            if (shape is PowerPointConnectionShape connector) {
+                return TryReadOfficeArtShapeType(connector,
+                    requireConnector: true, out _, out _);
+            }
             return shape is PowerPointAutoShape autoShape
-                && (autoShape.ShapeType == A.ShapeTypeValues.Rectangle
-                    || autoShape.ShapeType == A.ShapeTypeValues.Ellipse
-                    || autoShape.ShapeType == A.ShapeTypeValues.Line);
+                && TryReadOfficeArtShapeType(autoShape,
+                    requireConnector: false, out _, out _);
         }
 
         internal static byte[] BuildIncrementalSlideRecord(PowerPointSlide slide, uint drawingId,

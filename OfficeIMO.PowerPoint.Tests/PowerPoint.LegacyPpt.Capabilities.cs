@@ -38,7 +38,10 @@ namespace OfficeIMO.Tests {
             using PowerPointPresentation presentation = PowerPointPresentation.Create();
             PowerPointSlide slide = presentation.AddSlide();
             slide.Hidden = true;
-            slide.AddRectangle(100000, 100000, 1000000, 500000).Fill("FF0000");
+            PowerPointAutoShape shape = slide.AddRectangle(
+                100000, 100000, 1000000, 500000);
+            shape.Fill("FF0000");
+            shape.SetGlow("4472C4", radiusPoints: 4D);
 
             LegacyPptWritePreflightReport report = presentation.AnalyzeLegacyPptWrite();
 
@@ -87,6 +90,42 @@ namespace OfficeIMO.Tests {
             Assert.Equal(LegacyPptCapabilityState.Native,
                 metafiles.PptxToBinary);
             Assert.Contains("placeable-WMF", metafiles.Note);
+        }
+
+        [Fact]
+        public void CapabilityContract_ReportsNativeClassicShapeAuthoringWithExplicitGaps() {
+            LegacyPptCapability autoShapes = LegacyPptCapabilityCatalog.Get(
+                LegacyPptFeature.AutoShapes);
+            LegacyPptCapability connectors = LegacyPptCapabilityCatalog.Get(
+                LegacyPptFeature.Connectors);
+            LegacyPptCapability transforms = LegacyPptCapabilityCatalog.Get(
+                LegacyPptFeature.ShapeTransforms);
+            LegacyPptCapability styles = LegacyPptCapabilityCatalog.Get(
+                LegacyPptFeature.ShapeStyles);
+            LegacyPptCapability effects = LegacyPptCapabilityCatalog.Get(
+                LegacyPptFeature.ShapeEffects);
+
+            Assert.Equal(LegacyPptCapabilityState.Native,
+                autoShapes.NewBinaryWrite);
+            Assert.Equal(LegacyPptCapabilityState.Planned,
+                autoShapes.PptxToBinary);
+            Assert.Contains("canonical classic preset families",
+                autoShapes.Note);
+            Assert.Equal(LegacyPptCapabilityState.Native,
+                connectors.NewBinaryWrite);
+            Assert.Contains("Fresh or edited attachment rules",
+                connectors.Note);
+            Assert.Equal(LegacyPptCapabilityState.Native,
+                transforms.NewBinaryWrite);
+            Assert.Contains("Nested child transforms",
+                transforms.Note);
+            Assert.Equal(LegacyPptCapabilityState.Native,
+                styles.NewBinaryWrite);
+            Assert.Equal(LegacyPptCapabilityState.Planned,
+                styles.PptxToBinary);
+            Assert.Equal(LegacyPptCapabilityState.Native,
+                effects.NewBinaryWrite);
+            Assert.Contains("one RGB outer shadow", effects.Note);
         }
 
         [Fact]

@@ -132,6 +132,24 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 }
                 bool placeholderChanged = !shapeProjection
                     .PlaceholderMatches(currentPlaceholder);
+                PowerPointShape? changedShapeTransform = null;
+                if (shapeProjection.CanEditShapeTransform
+                    && !shapeProjection.ShapeTransformMatches(shape)) {
+                    if (!LegacyPptWriter.TryReadShapeTransform(shape,
+                            out _, out _)) {
+                        return false;
+                    }
+                    changedShapeTransform = shape;
+                }
+                PowerPointShape? changedShapeVisualStyle = null;
+                if (shapeProjection.CanEditShapeVisualStyle
+                    && !shapeProjection.ShapeVisualStyleMatches(shape)) {
+                    if (!LegacyPptWriter.TryReadShapeVisualStyle(shape,
+                            out _, out _)) {
+                        return false;
+                    }
+                    changedShapeVisualStyle = shape;
+                }
                 PowerPointPicture? changedPictureFormatting = null;
                 if (shape is PowerPointPicture picture
                     && picture is not PowerPointMedia
@@ -158,6 +176,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 }
                 if (changedBounds.HasValue || changedText != null
                     || placeholderChanged
+                    || changedShapeTransform != null
+                    || changedShapeVisualStyle != null
                     || changedPictureFormatting != null) {
                     result.Add(shapeProjection.OfficeArtShapeId,
                         new ProjectedShapeEdit(changedBounds,
@@ -166,6 +186,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                             animation: null,
                             rewritePlaceholder: placeholderChanged,
                             placeholder: currentPlaceholder));
+                    result[shapeProjection.OfficeArtShapeId]
+                        .ShapeTransform = changedShapeTransform;
+                    result[shapeProjection.OfficeArtShapeId]
+                        .ShapeVisualStyle = changedShapeVisualStyle;
                     result[shapeProjection.OfficeArtShapeId]
                         .PictureFormatting = changedPictureFormatting;
                 }

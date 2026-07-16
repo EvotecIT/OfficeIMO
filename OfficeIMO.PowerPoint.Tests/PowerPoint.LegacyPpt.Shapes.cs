@@ -42,6 +42,9 @@ namespace OfficeIMO.Tests {
             Assert.True(LegacyPptShapeGeometryMapper.TryGetPreset(officeArtType,
                 out A.ShapeTypeValues actual));
             Assert.Equal(expected, actual);
+            Assert.True(LegacyPptShapeGeometryMapper.TryGetShapeType(expected,
+                out ushort roundTripType));
+            Assert.Equal(officeArtType, roundTripType);
         }
 
         [Theory]
@@ -249,7 +252,11 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void ImportedTransformEdit_RemainsLossBlocked() {
+        public void ImportedTransformEdit_PreservesUnrelatedRichStyle() {
+            LegacyPptPresentation original = LegacyPptPresentation.Load(
+                TransformFixturePath);
+            LegacyPptShape originalShape = Assert.Single(original.Slides)
+                .Shapes.Single(item => item.Text == "Rotate 30");
             using PowerPointPresentation presentation = PowerPointPresentation.Load(TransformFixturePath);
             PowerPointTextBox shape = presentation.Slides[0].TextBoxes.Single(item =>
                 item.Text == "Rotate 30");
@@ -257,8 +264,24 @@ namespace OfficeIMO.Tests {
             shape.Rotation = 42D;
 
             LegacyPptWritePreflightReport preflight = presentation.AnalyzeLegacyPptWrite();
-            Assert.False(preflight.CanWrite);
-            Assert.Contains(preflight.Findings, finding => finding.Code == "PPT-WRITE-IMPORT-LOSS");
+            Assert.True(preflight.CanWrite,
+                string.Join(Environment.NewLine, preflight.Findings));
+            LegacyPptPresentation saved = LegacyPptPresentation.Load(
+                presentation.ToBytes(PowerPointFileFormat.Ppt));
+            LegacyPptShape savedShape = Assert.Single(saved.Slides).Shapes
+                .Single(item => item.Text == "Rotate 30");
+            Assert.Equal(42D, savedShape.Transform.RotationDegrees);
+            Assert.Equal(originalShape.Style.FillType,
+                savedShape.Style.FillType);
+            Assert.Equal(originalShape.Style.FillGradientStops,
+                savedShape.Style.FillGradientStops);
+            Assert.Equal(originalShape.FillColor, savedShape.FillColor);
+            Assert.Equal(originalShape.LineColor, savedShape.LineColor);
+            Assert.Equal(original.Package.UserEdits.Count + 1,
+                saved.Package.UserEdits.Count);
+            Assert.True(saved.Package.DocumentStream.AsSpan(0,
+                    original.Package.DocumentStream.Length)
+                .SequenceEqual(original.Package.DocumentStream));
         }
 
         [Fact]
@@ -385,11 +408,11 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void ImportedShadowEdit_RemainsLossBlocked() {
+        public void ImportedRotatingShadowEdit_RemainsLossBlocked() {
             using PowerPointPresentation presentation = PowerPointPresentation.Load(ShadowFixturePath);
             A.OuterShadow shadow = GetOuterShadow(presentation.Slides[0], "Shadow 45");
 
-            shadow.Distance = shadow.Distance!.Value + 1000L;
+            shadow.RotateWithShape = true;
 
             LegacyPptWritePreflightReport preflight = presentation.AnalyzeLegacyPptWrite();
             Assert.False(preflight.CanWrite);
