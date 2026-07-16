@@ -1,0 +1,12 @@
+{
+  "runners": [
+    {
+      "name": "External Markdown CLI",
+      "fileName": "REPLACE_WITH_EXECUTABLE_PATH",
+      "arguments": [ "{input}" ],
+      "outputMode": "stdout",
+      "timeoutSeconds": 120,
+      "maxOutputBytes": 16777216
+    }
+  ]
+}
