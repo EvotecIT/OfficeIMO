@@ -5,6 +5,38 @@ using Xunit;
 namespace OfficeIMO.Email.Tests;
 
 public sealed class EmailMimeMetadataTests {
+    [Theory]
+    [InlineData(EmailFileFormat.OutlookMsg)]
+    [InlineData(EmailFileFormat.Tnef)]
+    public void PreservesReceiptDestinationsThroughStoreFormats(EmailFileFormat storeFormat) {
+        byte[] eml = Encoding.ASCII.GetBytes(
+            "From: Sender <sender@example.com>\r\n" +
+            "Disposition-Notification-To: Read Desk <read-receipts@example.com>\r\n" +
+            "Return-Receipt-To: Delivery Desk <delivery-receipts@example.com>\r\n" +
+            "Content-Type: text/plain; charset=utf-8\r\n\r\nBody\r\n");
+        var reader = new EmailDocumentReader();
+        var writer = new EmailDocumentWriter();
+        EmailDocument source = reader.Read(eml).Document;
+
+        EmailDocument stored = reader.Read(writer.ToBytes(source, storeFormat)).Document;
+        byte[] roundTrip = writer.ToBytes(stored, EmailFileFormat.Eml);
+        using var stream = new MemoryStream(roundTrip);
+        MimeMessage message = MimeMessage.Load(stream);
+
+        Assert.Equal("Read Desk <read-receipts@example.com>",
+            stored.MessageMetadata.ReadReceiptDestination);
+        Assert.Equal("Delivery Desk <delivery-receipts@example.com>",
+            stored.MessageMetadata.DeliveryReceiptDestination);
+        Assert.Contains("read-receipts@example.com",
+            message.Headers["Disposition-Notification-To"], StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("delivery-receipts@example.com",
+            message.Headers["Return-Receipt-To"], StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("sender@example.com",
+            message.Headers["Disposition-Notification-To"], StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("sender@example.com",
+            message.Headers["Return-Receipt-To"], StringComparison.OrdinalIgnoreCase);
+    }
+
     [Fact]
     public void RoundTripsPortableMessageMetadataThroughStandardMimeHeaders() {
         var source = new EmailDocument {

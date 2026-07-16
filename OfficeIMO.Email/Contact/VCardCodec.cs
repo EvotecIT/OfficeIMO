@@ -16,6 +16,7 @@ internal static partial class VCardCodec {
         VCardProperty[] versions = properties.Where(property => property.Name == "VERSION").ToArray();
         document.MimeSemanticProjectionIsIncomplete |= cardCount > 1 ||
             versions.Length != 1 || !versions[0].Value.Trim().Equals("3.0", StringComparison.OrdinalIgnoreCase) ||
+            properties.Any(property => property.Group != null) ||
             HasDuplicateVCardSingletons(properties) ||
             HasUnprojectedExtension(properties) ||
             HasUnpreservedPropertyParameters(properties) ||
@@ -424,8 +425,9 @@ internal static partial class VCardCodec {
             IReadOnlyList<string> tokens = SplitUnquoted(line.Substring(0, colon), ';');
             string name = tokens[0];
             int dot = name.LastIndexOf('.');
-            if (dot >= 0) name = name.Substring(dot + 1);
-            var property = new VCardProperty(name.Trim().ToUpperInvariant(), line.Substring(colon + 1));
+            string? group = dot >= 0 ? name.Substring(0, dot) : null;
+            if (group != null) name = name.Substring(dot + 1);
+            var property = new VCardProperty(name.Trim().ToUpperInvariant(), line.Substring(colon + 1), group);
             for (int index = 1; index < tokens.Count; index++) {
                 int equals = FindUnquotedSeparator(tokens[index], '=');
                 if (equals > 0) {
@@ -597,9 +599,14 @@ internal static partial class VCardCodec {
     private static string EscapeUri(string value) => value.Replace("\r", string.Empty).Replace("\n", string.Empty);
 
     private sealed class VCardProperty {
-        internal VCardProperty(string name, string value) { Name = name; Value = value; }
+        internal VCardProperty(string name, string value, string? group) {
+            Name = name;
+            Value = value;
+            Group = group;
+        }
         internal string Name { get; }
         internal string Value { get; set; }
+        internal string? Group { get; }
         internal IDictionary<string, string> Parameters { get; } =
             new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
     }

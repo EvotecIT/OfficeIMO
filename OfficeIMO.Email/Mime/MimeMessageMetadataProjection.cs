@@ -7,12 +7,7 @@ internal static class MimeMessageMetadataProjection {
             ParseXPriority(MimeHeaderParser.GetValue(headers, "X-Priority"));
         document.MessageMetadata.Priority = ParsePriority(MimeHeaderParser.GetValue(headers, "Priority"));
         document.MessageMetadata.Sensitivity = ParseSensitivity(MimeHeaderParser.GetValue(headers, "Sensitivity"));
-        string? readReceiptDestination = MimeHeaderParser.GetValue(headers, "Disposition-Notification-To");
-        document.MessageMetadata.ReadReceiptDestination = readReceiptDestination;
-        document.MessageMetadata.ReadReceiptRequested = !string.IsNullOrWhiteSpace(readReceiptDestination);
-        string? deliveryReceiptDestination = MimeHeaderParser.GetValue(headers, "Return-Receipt-To");
-        document.MessageMetadata.DeliveryReceiptDestination = deliveryReceiptDestination;
-        document.MessageMetadata.DeliveryReceiptRequested = !string.IsNullOrWhiteSpace(deliveryReceiptDestination);
+        ApplyReceiptDestinations(document, headers);
         document.MessageMetadata.IsDraft = IsTrue(MimeHeaderParser.GetValue(headers, "X-Unsent"));
         string? status = MimeHeaderParser.GetValue(headers, "Status");
         if (!string.IsNullOrWhiteSpace(status)) {
@@ -25,6 +20,19 @@ internal static class MimeMessageMetadataProjection {
                     document.MessageMetadata.Categories.Add(trimmed);
                 }
             }
+        }
+    }
+
+    internal static void ApplyReceiptDestinations(EmailDocument document, IReadOnlyList<EmailHeader> headers) {
+        string? readReceiptDestination = MimeHeaderParser.GetValue(headers, "Disposition-Notification-To");
+        if (!string.IsNullOrWhiteSpace(readReceiptDestination)) {
+            document.MessageMetadata.ReadReceiptDestination = readReceiptDestination;
+            document.MessageMetadata.ReadReceiptRequested = true;
+        }
+        string? deliveryReceiptDestination = MimeHeaderParser.GetValue(headers, "Return-Receipt-To");
+        if (!string.IsNullOrWhiteSpace(deliveryReceiptDestination)) {
+            document.MessageMetadata.DeliveryReceiptDestination = deliveryReceiptDestination;
+            document.MessageMetadata.DeliveryReceiptRequested = true;
         }
     }
 

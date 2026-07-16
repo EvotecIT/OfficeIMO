@@ -5,6 +5,15 @@ namespace OfficeIMO.Email.Tests;
 
 public sealed class EmailSemanticProjectionLossTests {
     [Fact]
+    public void BlocksGroupedVCardPropertiesBeforeStoreConversion() {
+        byte[] eml = Encoding.ASCII.GetBytes(
+            "Content-Type: text/vcard; charset=utf-8\r\n\r\nBEGIN:VCARD\r\nVERSION:3.0\r\n" +
+            "item1.FN:Ada Lovelace\r\nEND:VCARD\r\n");
+
+        AssertStoreProjectionBlocked(eml);
+    }
+
+    [Fact]
     public void BlocksCalendarRequestStatusBeforeStoreConversion() {
         byte[] eml = Encoding.ASCII.GetBytes(
             "Content-Type: text/calendar; charset=utf-8\r\n\r\nBEGIN:VCALENDAR\r\nVERSION:2.0\r\n" +
