@@ -344,6 +344,11 @@ namespace OfficeIMO.PowerPoint {
             Add(features, "Media", "Audio and video", PowerPointFeatureSupportLevel.PartiallyEditable, Slides.Sum(CountSlideMedia), null,
                 "Embedded audio and video can be authored with poster frames and playback timing; rich media editing remains partial.",
                 DescribePartsByUriOrContentType(allParts, "media"));
+            Add(features, "Media", "Legacy media metadata",
+                PowerPointFeatureSupportLevel.Preserved,
+                LegacyPptMediaDetails.Count, null,
+                "Linked, device-based, or legacy-only playback metadata from binary PowerPoint remains available for exact binary preservation but is not editable in the Open XML media surface.",
+                LegacyPptMediaDetails);
             Add(features, "Visualization", "SmartArt", PowerPointFeatureSupportLevel.PartiallyEditable, Math.Max(Slides.Sum(CountSlideSmartArt), diagramDetails.Count), null,
                 "SmartArt diagrams can be generated and discovered; rich diagram editing remains partial.",
                 diagramDetails);

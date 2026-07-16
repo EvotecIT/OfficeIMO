@@ -31,6 +31,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
         /// <summary>An embedded OLE compound object.</summary>
         OleObject,
 
+        /// <summary>Embedded WAV audio projected as an editable media shape.</summary>
+        Media,
+
         /// <summary>A recognized OfficeArt shape that is preserved only as metadata.</summary>
         Unsupported
     }
@@ -108,7 +111,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
             LegacyPptAnimation? animation = null,
             LegacyPptEmbeddedOleObject? oleObject = null,
             LegacyPptLinkedOleObject? linkedOleObject = null,
-            LegacyPptActiveXControl? activeXControl = null) {
+            LegacyPptActiveXControl? activeXControl = null,
+            LegacyPptMedia? media = null) {
             Kind = kind;
             OfficeArtShapeType = officeArtShapeType;
             ShapeId = shapeId;
@@ -136,6 +140,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
             OleObject = oleObject;
             LinkedOleObject = linkedOleObject;
             ActiveXControl = activeXControl;
+            Media = media;
         }
 
         /// <summary>Gets the projected shape kind.</summary>
@@ -216,6 +221,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
 
         /// <summary>Gets the preserve-only ActiveX control referenced by this shape.</summary>
         public LegacyPptActiveXControl? ActiveXControl { get; }
+
+        /// <summary>Gets the binary audio or movie object referenced by this shape.</summary>
+        public LegacyPptMedia? Media { get; }
 
         /// <summary>Gets the shape-level click interaction, when present.</summary>
         public LegacyPptInteraction? ClickInteraction => Interactions.FirstOrDefault(

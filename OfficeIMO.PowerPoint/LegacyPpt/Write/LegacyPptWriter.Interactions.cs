@@ -58,8 +58,15 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 if (!TryGetSingleHyperlink<A.HyperlinkOnClick>(drawing,
                         out A.HyperlinkOnClick? clickElement, out reason)
                     || !TryGetSingleHyperlink<A.HyperlinkOnHover>(drawing,
-                        out A.HyperlinkOnHover? hoverElement, out reason)
-                    || !TryReadHyperlink(slidePart, clickElement,
+                        out A.HyperlinkOnHover? hoverElement, out reason)) {
+                    interactions = LegacyPptWriterShapeInteractions.Empty;
+                    return false;
+                }
+                if (shape is PowerPointMedia
+                    && IsDefaultMediaActivation(clickElement)) {
+                    clickElement = null;
+                }
+                if (!TryReadHyperlink(slidePart, clickElement,
                         LegacyPptInteractionTrigger.MouseClick, catalog,
                         out LegacyPptWriterInteraction? click, out reason)
                     || !TryReadHyperlink(slidePart, hoverElement,
@@ -81,6 +88,16 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             interactions = new LegacyPptWriterShapeInteractions(shapeActions, textActions);
             return true;
         }
+
+        private static bool IsDefaultMediaActivation(
+            A.HyperlinkOnClick? hyperlink) => hyperlink != null
+            && string.Equals(hyperlink.Action?.Value, "ppaction://media",
+                StringComparison.OrdinalIgnoreCase)
+            && string.IsNullOrEmpty(hyperlink.Id?.Value)
+            && string.IsNullOrEmpty(hyperlink.Tooltip?.Value)
+            && hyperlink.HighlightClick?.Value != true
+            && hyperlink.EndSound?.Value != true
+            && !hyperlink.HasChildren;
 
         private static bool TryReadTextInteractions(SlidePart slidePart,
             P.TextBody textBody, LegacyPptWriterInteractionCatalog catalog,
@@ -428,13 +445,17 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
 
         internal static byte[] BuildExternalObjectListRecord(
             LegacyPptWriterInteractionCatalog catalog,
+            LegacyPptWriterMediaCatalog mediaCatalog,
             LegacyPptWriterOleObjectCatalog oleCatalog) {
             if (catalog == null) throw new ArgumentNullException(nameof(catalog));
+            if (mediaCatalog == null) throw new ArgumentNullException(nameof(mediaCatalog));
             if (oleCatalog == null) throw new ArgumentNullException(nameof(oleCatalog));
             if (catalog.Hyperlinks.Count == 0
+                && mediaCatalog.Media.Count == 0
                 && oleCatalog.Objects.Count == 0) return Array.Empty<byte>();
             var listAtomPayload = new byte[4];
             uint seed = catalog.Hyperlinks.Select(link => link.Id)
+                .Concat(mediaCatalog.Media.Select(media => media.Id))
                 .Concat(oleCatalog.Objects.Select(ole => ole.Id)).Max();
             WriteUInt32(listAtomPayload, 0, seed);
             var children = new List<byte[]> {
@@ -443,6 +464,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             };
             foreach (LegacyPptWriterHyperlink hyperlink in catalog.Hyperlinks) {
                 children.Add(BuildExternalHyperlinkRecord(hyperlink));
+            }
+            foreach (LegacyPptWriterMedia media in mediaCatalog.Media) {
+                children.Add(BuildExternalMediaRecord(media));
             }
             foreach (LegacyPptWriterOleObject ole in oleCatalog.Objects) {
                 children.Add(BuildExternalOleObjectRecord(ole));

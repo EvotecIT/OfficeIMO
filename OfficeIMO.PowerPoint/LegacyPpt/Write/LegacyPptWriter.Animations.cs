@@ -19,9 +19,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 IReadOnlyList<PowerPointClassicAnimation> animations =
                     slide.ClassicAnimations;
                 if (slide.SlidePart.Slide?.Timing != null
-                    && !slide.HasOnlyClassicAnimationTiming()) {
+                    && !slide.HasOnlyClassicAnimationTiming()
+                    && !HasOnlyDefaultMediaPlaybackTiming(slide)) {
                     catalog = new LegacyPptWriterAnimationCatalog(items);
-                    reason = "The slide contains an advanced or media timing tree that is not a constrained classic animation sequence.";
+                    reason = "The slide contains an advanced timing tree that is neither a constrained classic animation sequence nor default embedded-media playback timing.";
                     return false;
                 }
                 var shapeIds = new HashSet<uint>(slide.EnumerateShapesDeep(

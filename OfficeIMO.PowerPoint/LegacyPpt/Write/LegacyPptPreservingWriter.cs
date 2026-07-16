@@ -906,6 +906,11 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             if (kind == LegacyPptShapeKind.TextBox) {
                 return shape is PowerPointTextBox;
             }
+            if (kind == LegacyPptShapeKind.Media) {
+                return shape is PowerPointMedia {
+                    Kind: PowerPointMediaKind.Audio
+                };
+            }
             if (kind == LegacyPptShapeKind.Picture) return shape is PowerPointPicture;
             if (kind == LegacyPptShapeKind.OleObject) {
                 return shape is PowerPointOleObject;

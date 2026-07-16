@@ -151,8 +151,11 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     customShowReason
                     ?? "A custom show cannot be encoded by the native binary writer."));
             }
-            uint firstOleObjectId = 1;
-            if (!LegacyPptWriter.TryReadInteractions(presentation,
+            var externalObjectSounds = new LegacyPptWriter
+                .LegacyPptWriterSoundCatalog();
+            uint firstMediaObjectId = 1;
+            if (!LegacyPptWriter.TryReadInteractions(presentation.Slides,
+                    externalObjectSounds,
                     out LegacyPptWriter.LegacyPptWriterInteractionCatalog
                         interactionCatalog,
                     out string? interactionReason)) {
@@ -160,8 +163,25 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     "PPT-WRITE-INTERACTION",
                     interactionReason ?? "A hyperlink or action cannot be encoded by the native binary writer."));
             } else {
-                firstOleObjectId = checked((uint)
+                firstMediaObjectId = checked((uint)
                     interactionCatalog.Hyperlinks.Count + 1U);
+            }
+            uint firstOleObjectId = firstMediaObjectId;
+            if (!LegacyPptWriter.TryReadMedia(presentation.Slides,
+                    firstMediaObjectId, externalObjectSounds,
+                    out LegacyPptWriter.LegacyPptWriterMediaCatalog
+                        mediaCatalog,
+                    out string? mediaReason)) {
+                findings.Add(new LegacyPptWriteFinding(
+                    presentation.Slides.SelectMany(slide => slide.Media)
+                        .Any(media => media.Kind == PowerPointMediaKind.Video)
+                        ? LegacyPptFeature.EmbeddedVideo
+                        : LegacyPptFeature.Media,
+                    "PPT-WRITE-MEDIA",
+                    mediaReason
+                    ?? "Embedded media cannot be encoded by the native binary writer."));
+            } else {
+                firstOleObjectId = mediaCatalog.NextObjectId;
             }
             if (!LegacyPptWriter.TryReadOleObjects(presentation.Slides,
                     firstOleObjectId, out _, out string? oleReason)) {
@@ -221,7 +241,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                             slideIndex, shapeIndex));
                     }
                     if (!IsSupportedShape(shape,
-                            includeOleObjects: true)) {
+                            includeOleObjects: true,
+                            includeMedia: true)) {
                         findings.Add(new LegacyPptWriteFinding(MapShapeFeature(shape), "PPT-WRITE-SHAPE",
                             $"{shape.ShapeContentType} content is outside the native writer's supported shape subset.",
                             slideIndex, shapeIndex));
@@ -279,7 +300,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         }
 
         private static bool IsSupportedShape(PowerPointShape shape,
-            bool includeOleObjects = false) => shape is PowerPointTextBox
+            bool includeOleObjects = false,
+            bool includeMedia = false) => shape is PowerPointTextBox
+            || includeMedia && shape is PowerPointMedia
             || includeOleObjects && shape is PowerPointOleObject
             || shape is PowerPointAutoShape autoShape
             && (autoShape.ShapeType == A.ShapeTypeValues.Rectangle
@@ -345,7 +368,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 case PowerPointShapeContentType.Table: return LegacyPptFeature.Tables;
                 case PowerPointShapeContentType.Chart: return LegacyPptFeature.Charts;
                 case PowerPointShapeContentType.Group: return LegacyPptFeature.Groups;
-                case PowerPointShapeContentType.Media: return LegacyPptFeature.Media;
+                case PowerPointShapeContentType.Media:
+                    return shape is PowerPointMedia {
+                        Kind: PowerPointMediaKind.Video
+                    }
+                        ? LegacyPptFeature.EmbeddedVideo
+                        : LegacyPptFeature.Media;
                 case PowerPointShapeContentType.SmartArt: return LegacyPptFeature.SmartArt;
                 case PowerPointShapeContentType.OleObject: return LegacyPptFeature.EmbeddedOle;
                 case PowerPointShapeContentType.Connector: return LegacyPptFeature.Connectors;

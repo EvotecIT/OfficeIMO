@@ -173,6 +173,61 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 return true;
             }
 
+            internal bool TryGetOrAddMedia(SlidePart ownerPart,
+                PowerPointMedia media, out LegacyPptWriterSound? sound,
+                out string? reason) {
+                if (ownerPart == null) {
+                    throw new ArgumentNullException(nameof(ownerPart));
+                }
+                if (media == null) throw new ArgumentNullException(nameof(media));
+                sound = null;
+                reason = null;
+                string relationshipId = media.MediaReferenceId
+                    ?? string.Empty;
+                DataPartReferenceRelationship[] relationships = ownerPart
+                    .DataPartReferenceRelationships.Where(candidate =>
+                        string.Equals(candidate.Id, relationshipId,
+                            StringComparison.Ordinal)).ToArray();
+                if (relationships.Length != 1
+                    || relationships[0] is not AudioReferenceRelationship
+                    || relationships[0].DataPart is not MediaDataPart mediaPart) {
+                    reason = $"Audio relationship '{relationshipId}' is missing or is not an embedded audio data part.";
+                    return false;
+                }
+                if (!string.Equals(mediaPart.ContentType, "audio/wav",
+                        StringComparison.OrdinalIgnoreCase)
+                    && !string.Equals(mediaPart.ContentType, "audio/x-wav",
+                        StringComparison.OrdinalIgnoreCase)) {
+                    reason = $"Binary embedded media requires WAV audio; '{mediaPart.ContentType}' is not representable.";
+                    return false;
+                }
+                byte[] bytes;
+                using (Stream input = mediaPart.GetStream(FileMode.Open,
+                           FileAccess.Read)) {
+                    bytes = OfficeStreamReader.ReadAllBytes(input);
+                }
+                if (bytes.Length == 0) {
+                    reason = "An embedded media shape has an empty audio payload.";
+                    return false;
+                }
+                string name = string.IsNullOrWhiteSpace(media.Name)
+                    ? "Audio"
+                    : media.Name!;
+                string key = CreateSoundKey(name, ".wav",
+                    builtInId: null, bytes);
+                if (_soundsByKey.TryGetValue(key, out sound)) return true;
+                if (_nextId >= int.MaxValue) {
+                    reason = "The binary sound identifier range is exhausted.";
+                    return false;
+                }
+                sound = new LegacyPptWriterSound(++_nextId, name, ".wav",
+                    builtInId: null, bytes, isExisting: false);
+                _sounds.Add(sound);
+                _newSounds.Add(sound);
+                _soundsByKey.Add(key, sound);
+                return true;
+            }
+
             private static string CreateSoundKey(string name, string extension,
                 int? builtInId, byte[] bytes) {
                 byte[] hash;

@@ -27,7 +27,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                     LegacyPptActiveXControl? control = TryReadActiveXControl(
                         container, package, options);
                     if (control == null) continue;
-                    if (_oleObjectsById.ContainsKey(control.Id)
+                    if (_hyperlinksById.ContainsKey(control.Id)
+                        || _oleObjectsById.ContainsKey(control.Id)
                         || _linkedOleObjectsById.ContainsKey(control.Id)
                         || _activeXControlsById.ContainsKey(control.Id)) {
                         AddDiagnostic("PPT-ACTIVEX-ID-DUPLICATE",

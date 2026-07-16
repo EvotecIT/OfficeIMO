@@ -33,6 +33,13 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 control => control.Length);
             CompressedActiveXControlCount = presentation.ActiveXControls
                 .Count(control => control.WasCompressed);
+            MediaObjectCount = presentation.Media.Count;
+            EmbeddedWaveMediaCount = presentation.Media.Count(media =>
+                media.Kind == LegacyPptMediaKind.EmbeddedWaveAudio);
+            ProjectableMediaCount = presentation.Media.Count(media =>
+                media.HasProjectableAudio);
+            LinkedOrDeviceMediaCount = presentation.Media.Count(media =>
+                media.Kind != LegacyPptMediaKind.EmbeddedWaveAudio);
             VbaProjectCount = presentation.VbaProject == null ? 0 : 1;
             VbaProjectByteCount = presentation.VbaProject?.Length ?? 0;
             VbaProjectWasCompressed = presentation.VbaProject?.WasCompressed
@@ -182,6 +189,18 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
 
         /// <summary>Gets the number of compressed ActiveX control persist records.</summary>
         public int CompressedActiveXControlCount { get; }
+
+        /// <summary>Gets the number of decoded audio and movie objects.</summary>
+        public int MediaObjectCount { get; }
+
+        /// <summary>Gets the number of embedded WAV media definitions.</summary>
+        public int EmbeddedWaveMediaCount { get; }
+
+        /// <summary>Gets the number of embedded media objects that project editably.</summary>
+        public int ProjectableMediaCount { get; }
+
+        /// <summary>Gets the number of linked, path-based, or device-based media objects.</summary>
+        public int LinkedOrDeviceMediaCount { get; }
 
         /// <summary>Gets the number of decoded presentation VBA projects.</summary>
         public int VbaProjectCount { get; }

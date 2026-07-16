@@ -143,6 +143,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             ParseNamedShows(document, options);
             ParseHyperlinks(document, options);
             ParseOleObjects(document, package, options);
+            ValidateExternalObjectIdSeed(document, options);
             ParseVbaProject(document, package, options);
 
             ParseSpecialMasters(documentAtom, documentStream, persistOffsets, options);
@@ -398,10 +399,13 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             ReadShapeExternalObject(shapeContainer, options,
                 out LegacyPptEmbeddedOleObject? oleObject,
                 out LegacyPptLinkedOleObject? linkedOleObject,
-                out LegacyPptActiveXControl? activeXControl);
+                out LegacyPptActiveXControl? activeXControl,
+                out LegacyPptMedia? media);
             bool isPictureFrame = shapeType == 75;
             if (oleObject != null) {
                 kind = LegacyPptShapeKind.OleObject;
+            } else if (media?.HasProjectableAudio == true) {
+                kind = LegacyPptShapeKind.Media;
             } else if (isPictureFrame) {
                 kind = picture?.HasImportableImage == true
                     ? LegacyPptShapeKind.Picture
@@ -415,7 +419,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 textBody: textBody, interactions: ReadShapeInteractions(shapeContainer, options),
                 animation: ReadShapeAnimation(shapeContainer, options),
                 oleObject: oleObject, linkedOleObject: linkedOleObject,
-                activeXControl: activeXControl);
+                activeXControl: activeXControl, media: media);
 
             if (textBody.IsStyleTruncated) {
                 AddDiagnostic("PPT-TEXT-STYLE-TRUNCATED", LegacyPptDiagnosticSeverity.Warning,
@@ -449,6 +453,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
 
             if (isPictureFrame && oleObject == null
                 && linkedOleObject == null && activeXControl == null
+                && media == null
                 && kind == LegacyPptShapeKind.Unsupported
                 && options.ReportUnsupportedContent) {
                 AddPictureDiagnostic(pictureStoreIndex, picture, shapeContainer.Offset);
@@ -463,6 +468,15 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 AddDiagnostic("PPT-ACTIVEX-PRESERVED",
                     LegacyPptDiagnosticSeverity.Warning,
                     $"ActiveX identifier {activeXControl.Id} and its Office Forms storage are preserved exactly but are not projected to an editable Open XML control.",
+                    shapeContainer.Offset);
+            } else if (media != null && options.ReportUnsupportedContent
+                       && (!media.HasProjectableAudio || media.Loop
+                           || media.Rewind || media.Narration)) {
+                AddDiagnostic("PPT-MEDIA-PRESERVED",
+                    LegacyPptDiagnosticSeverity.Warning,
+                    media.HasProjectableAudio
+                        ? $"Embedded WAV media {media.Id} is editable, while its loop, rewind, or narration playback flag remains preserve-only."
+                        : $"{media.Kind} media {media.Id} is retained with its native metadata but is not projected as editable embedded media.",
                     shapeContainer.Offset);
             } else if (kind == LegacyPptShapeKind.Unsupported && options.ReportUnsupportedContent) {
                 AddDiagnostic("PPT-SHAPE-UNSUPPORTED", LegacyPptDiagnosticSeverity.Warning,

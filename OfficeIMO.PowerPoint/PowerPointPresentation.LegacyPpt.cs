@@ -204,6 +204,14 @@ namespace OfficeIMO.PowerPoint {
                         projectedShape = ole;
                     }
                     break;
+                case LegacyPptShapeKind.Media:
+                    if (shape.Media?.HasProjectableAudio == true) {
+                        using var media = new MemoryStream(
+                            shape.Media.GetData(), writable: false);
+                        projectedShape = slide.AddAudio(media, "audio/wav",
+                            ".wav", left, top, width, height);
+                    }
+                    break;
                 case LegacyPptShapeKind.Group:
                     ShapeTree tree = slide.SlidePart.Slide?.CommonSlideData?.ShapeTree
                         ?? throw new InvalidDataException("The projected slide has no shape tree.");

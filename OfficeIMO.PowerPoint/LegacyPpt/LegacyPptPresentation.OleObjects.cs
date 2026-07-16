@@ -30,7 +30,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                     LegacyPptEmbeddedOleObject? ole = TryReadEmbeddedOleObject(
                         container, package, options);
                     if (ole == null) continue;
-                    if (_oleObjectsById.ContainsKey(ole.Id)) {
+                    if (_hyperlinksById.ContainsKey(ole.Id)
+                        || _oleObjectsById.ContainsKey(ole.Id)) {
                         AddDiagnostic("PPT-OLE-ID-DUPLICATE",
                             LegacyPptDiagnosticSeverity.Warning,
                             $"Embedded OLE identifier {ole.Id} occurs more than once; later objects remain preserve-only.",
@@ -43,6 +44,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             }
             ParseLinkedOleObjects(document, package, options);
             ParseActiveXControls(document, package, options);
+            ParseMediaObjects(document, options);
         }
 
         private LegacyPptEmbeddedOleObject? TryReadEmbeddedOleObject(
@@ -126,10 +128,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             LegacyPptRecord shapeContainer, LegacyPptImportOptions options,
             out LegacyPptEmbeddedOleObject? embedded,
             out LegacyPptLinkedOleObject? linked,
-            out LegacyPptActiveXControl? activeX) {
+            out LegacyPptActiveXControl? activeX,
+            out LegacyPptMedia? media) {
             embedded = null;
             linked = null;
             activeX = null;
+            media = null;
             LegacyPptRecord[] references = shapeContainer.Children
                 .Where(record => record.Type == OfficeArtClientData)
                 .SelectMany(record => record.Children)
@@ -148,7 +152,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             uint id = references[0].ReadUInt32(0);
             bool found = _oleObjectsById.TryGetValue(id, out embedded)
                 || _linkedOleObjectsById.TryGetValue(id, out linked)
-                || _activeXControlsById.TryGetValue(id, out activeX);
+                || _activeXControlsById.TryGetValue(id, out activeX)
+                || _mediaById.TryGetValue(id, out media);
             if (!found) {
                 if (options.ReportUnsupportedContent) {
                     AddDiagnostic("PPT-OLE-SHAPE-TARGET",
@@ -166,6 +171,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 embedded = null;
                 linked = null;
                 activeX = null;
+                media = null;
                 return;
             }
         }
@@ -215,6 +221,31 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                         LegacyPptDiagnosticSeverity.Warning,
                         $"ActiveX identifier {control.Id} references missing slide {control.SlideId}; the control remains preserve-only.",
                         null);
+                }
+            }
+        }
+
+        private void ValidateExternalObjectIdSeed(LegacyPptRecord document,
+            LegacyPptImportOptions options) {
+            if (!options.ReportUnsupportedContent) return;
+            uint greatestId = _hyperlinks.Select(item => item.Id)
+                .Concat(_oleObjects.Select(item => item.Id))
+                .Concat(_linkedOleObjects.Select(item => item.Id))
+                .Concat(_activeXControls.Select(item => item.Id))
+                .Concat(_media.Select(item => item.Id))
+                .DefaultIfEmpty(0U).Max();
+            foreach (LegacyPptRecord list in document.Children.Where(record =>
+                         record.Type == RecordExternalObjectList)) {
+                LegacyPptRecord[] atoms = list.Children.Where(record =>
+                    record.Type == RecordExternalObjectListAtom).ToArray();
+                if (atoms.Length == 1 && atoms[0].Version == 0
+                    && atoms[0].Instance == 0
+                    && atoms[0].PayloadLength == 4
+                    && atoms[0].ReadUInt32(0) < greatestId) {
+                    AddDiagnostic("PPT-EXTERNAL-OBJECT-ID-SEED",
+                        LegacyPptDiagnosticSeverity.Warning,
+                        $"The external-object id seed {atoms[0].ReadUInt32(0)} is below live identifier {greatestId}; new objects require a repaired seed.",
+                        atoms[0].Offset);
                 }
             }
         }

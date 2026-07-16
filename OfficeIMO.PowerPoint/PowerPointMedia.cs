@@ -1,6 +1,7 @@
 using System.Linq;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
+using OfficeIMO.Drawing.Internal;
 using A = DocumentFormat.OpenXml.Drawing;
 using P14 = DocumentFormat.OpenXml.Office2010.PowerPoint;
 
@@ -55,6 +56,30 @@ namespace OfficeIMO.PowerPoint {
                     .Embed?
                     .Value;
             }
+        }
+
+        /// <summary>Returns the exact embedded audio or video payload.</summary>
+        public byte[] GetData() {
+            MediaDataPart mediaPart = GetMediaDataPart()
+                ?? throw new InvalidOperationException(
+                    "The media shape has no embedded data relationship.");
+            using Stream stream = mediaPart.GetStream(FileMode.Open,
+                FileAccess.Read);
+            return OfficeStreamReader.ReadAllBytes(stream);
+        }
+
+        /// <summary>Replaces the embedded audio or video payload.</summary>
+        public void UpdateData(Stream media) {
+            if (media == null) throw new ArgumentNullException(nameof(media));
+            if (!media.CanRead) {
+                throw new ArgumentException("Media stream must be readable.",
+                    nameof(media));
+            }
+            MediaDataPart mediaPart = GetMediaDataPart()
+                ?? throw new InvalidOperationException(
+                    "The media shape has no embedded data relationship.");
+            if (media.CanSeek) media.Position = 0;
+            mediaPart.FeedData(media);
         }
 
         internal static bool TryGetMediaKind(Picture picture, out PowerPointMediaKind kind) {

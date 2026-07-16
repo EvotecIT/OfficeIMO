@@ -63,8 +63,15 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     out string? interactionReason)) {
                 throw new NotSupportedException(interactionReason);
             }
+            uint firstExternalObjectId = checked((uint)
+                interactionCatalog.Hyperlinks.Count + 1U);
+            if (!TryReadMedia(presentation.Slides, firstExternalObjectId,
+                    soundCatalog, out LegacyPptWriterMediaCatalog mediaCatalog,
+                    out string? mediaReason)) {
+                throw new NotSupportedException(mediaReason);
+            }
             if (!TryReadOleObjects(presentation.Slides,
-                    checked((uint)interactionCatalog.Hyperlinks.Count + 1U),
+                    mediaCatalog.NextObjectId,
                     out LegacyPptWriterOleObjectCatalog oleCatalog,
                     out string? oleReason)) {
                 throw new NotSupportedException(oleReason);
@@ -124,7 +131,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 PowerPointSlide slide = presentation.Slides[index];
                 IReadOnlyList<PowerPointShape> supportedShapes = ReadSlideShapesForWrite(
                     slide, out _).Where(shape => IsSupportedShape(shape,
-                        includeOleObjects: true)).ToArray();
+                        includeOleObjects: true,
+                        includeMedia: true)).ToArray();
                 slideShapeCounts.Add(supportedShapes.Count);
                 uint? notesId = notesBySlide.TryGetValue(index, out LegacyPptWriterNote? note)
                     ? note.NotesId
@@ -135,7 +143,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     template.SlidePrototype, slide, supportedShapes,
                     unchecked((uint)(13 + index)), masters.GetMasterId(slide), notesId,
                     comments ?? Array.Empty<LegacyPptWriterComment>(),
-                    interactionCatalog, animationCatalog, oleCatalog));
+                    interactionCatalog, animationCatalog, mediaCatalog,
+                    oleCatalog));
             }
             var notesRecords = notes.Select(note => BuildNotesRecord(template.NotesPrototype,
                 note.Text, unchecked((uint)(256 + note.SlideIndex)), note.DrawingId,
@@ -148,7 +157,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     interactionCatalog, customShows, soundCatalog, masters.Count,
                     masters.DrawingShapeCounts, masters.Fonts,
                     handoutMasterPersistId, vbaProjectPersistId,
-                    oleCatalog)
+                    mediaCatalog, oleCatalog)
             };
             persistObjects.AddRange(masters.PersistObjects);
             persistObjects.Add(masters.NotesMasterPersistObject);
@@ -183,8 +192,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             IsSupportedShape(shape, includeOleObjects: false);
 
         private static bool IsSupportedShape(PowerPointShape shape,
-            bool includeOleObjects) {
+            bool includeOleObjects, bool includeMedia = false) {
             if (shape is PowerPointTextBox) return true;
+            if (includeMedia && shape is PowerPointMedia) return true;
             if (includeOleObjects && shape is PowerPointOleObject) return true;
             return shape is PowerPointAutoShape autoShape
                 && (autoShape.ShapeType == A.ShapeTypeValues.Rectangle
@@ -212,6 +222,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             return BuildSlideRecord(Template.Value.SlidePrototype, slide, shapes, drawingId,
                 masterIdRef, notesIdRef: null, ReadClassicCommentsForSlide(slide),
                 interactionCatalog, animationCatalog,
+                new LegacyPptWriterMediaCatalog(),
                 new LegacyPptWriterOleObjectCatalog());
         }
 
@@ -234,6 +245,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             return BuildSlideRecord(Template.Value.SlidePrototype, slide, shapes, drawingId,
                 masterIdRef, notesIdRef: null, ReadClassicCommentsForSlide(slide),
                 interactionCatalog, animationCatalog,
+                new LegacyPptWriterMediaCatalog(),
                 new LegacyPptWriterOleObjectCatalog(),
                 layoutIsIndependentMaster);
         }
@@ -248,6 +260,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             LegacyPptWriterFontCatalog fonts,
             uint handoutMasterPersistId,
             uint? vbaProjectPersistId,
+            LegacyPptWriterMediaCatalog mediaCatalog,
             LegacyPptWriterOleObjectCatalog oleCatalog) {
             var children = new List<byte[]>();
             bool wroteSounds = false;
@@ -266,7 +279,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         handoutMasterPersistId);
                     children.Add(atom);
                     byte[] externalObjects = BuildExternalObjectListRecord(
-                        interactionCatalog, oleCatalog);
+                        interactionCatalog, mediaCatalog, oleCatalog);
                     if (externalObjects.Length > 0) children.Add(externalObjects);
                 } else if (child.Type == RecordExternalObjectList) {
                     continue;

@@ -12,6 +12,7 @@ namespace OfficeIMO.PowerPoint {
         private LegacyPptProjectionFingerprint? _legacyPptPreservationFingerprint;
         private string[] _legacyPptLinkedOleDetails = Array.Empty<string>();
         private string[] _legacyPptActiveXDetails = Array.Empty<string>();
+        private string[] _legacyPptMediaDetails = Array.Empty<string>();
 
         /// <summary>Gets the detected physical format of the presentation source.</summary>
         public PowerPointFileFormat SourceFormat { get; private set; } = PowerPointFileFormat.Pptx;
@@ -40,6 +41,14 @@ namespace OfficeIMO.PowerPoint {
                 $"ActiveX {control.Id}: {control.ProgId ?? "unknown class"}, {control.Length} bytes"
                 + (control.WasCompressed ? ", compressed source" : string.Empty))
                 .ToArray();
+            _legacyPptMediaDetails = legacy.Media.Where(media =>
+                    !media.HasProjectableAudio || media.Loop
+                    || media.Rewind || media.Narration)
+                .Select(media => $"{media.Kind} {media.Id}: "
+                    + (media.Path ?? (media.SoundId.HasValue
+                        ? $"sound {media.SoundId.Value}"
+                        : "native device reference")))
+                .ToArray();
             SourceFormat = sourceFormat;
         }
 
@@ -50,6 +59,7 @@ namespace OfficeIMO.PowerPoint {
             _legacyPptPreservationFingerprint = null;
             _legacyPptLinkedOleDetails = Array.Empty<string>();
             _legacyPptActiveXDetails = Array.Empty<string>();
+            _legacyPptMediaDetails = Array.Empty<string>();
             SourceFormat = PowerPointFileFormat.Pptx;
         }
 
@@ -67,6 +77,9 @@ namespace OfficeIMO.PowerPoint {
 
         internal IReadOnlyList<string> LegacyPptActiveXDetails =>
             _legacyPptActiveXDetails;
+
+        internal IReadOnlyList<string> LegacyPptMediaDetails =>
+            _legacyPptMediaDetails;
 
         internal bool HasOnlyLegacyPptPreservableChanges => _legacyPptProjectionMap != null
             && _legacyPptPreservationFingerprint != null
@@ -88,6 +101,7 @@ namespace OfficeIMO.PowerPoint {
             _legacyPptPreservationFingerprint = null;
             _legacyPptLinkedOleDetails = Array.Empty<string>();
             _legacyPptActiveXDetails = Array.Empty<string>();
+            _legacyPptMediaDetails = Array.Empty<string>();
         }
 
         internal static bool IsLegacyBinaryFormat(PowerPointFileFormat format) =>

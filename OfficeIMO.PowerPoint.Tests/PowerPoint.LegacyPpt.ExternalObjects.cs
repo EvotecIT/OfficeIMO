@@ -7,9 +7,15 @@ using Xunit;
 
 namespace OfficeIMO.Tests {
     public partial class PowerPointLegacyPptTests {
-        private enum ExternalObjectFixtureKind {
+        public enum ExternalObjectFixtureKind {
             LinkedOle,
-            ActiveX
+            ActiveX,
+            EmbeddedWaveMedia,
+            LinkedWaveMedia,
+            MidiAudio,
+            AviMovie,
+            MciMovie,
+            CdAudio
         }
 
         [Theory]
@@ -247,7 +253,8 @@ namespace OfficeIMO.Tests {
 
         private static byte[] ConvertEmbeddedOleContainer(
             byte[] sourceBytes, ExternalObjectFixtureKind kind,
-            uint linkedUpdateMode) {
+            uint linkedUpdateMode, uint embeddedSoundId = 0,
+            ushort mediaFlags = 0) {
             LegacyPptPresentation source = LegacyPptPresentation.Load(
                 sourceBytes);
             LegacyPptPersistObject documentPersist = source.Package
@@ -258,7 +265,7 @@ namespace OfficeIMO.Tests {
             int convertedCount = 0;
             byte[] rewrittenDocument = RewriteExternalObjectRecord(document,
                 kind, source.Slides[0].SlideId, linkedUpdateMode,
-                ref convertedCount);
+                embeddedSoundId, mediaFlags, ref convertedCount);
             Assert.Equal(1, convertedCount);
 
             var offsets = source.Package.PersistObjectOffsets.ToDictionary(
@@ -297,9 +304,74 @@ namespace OfficeIMO.Tests {
         private static byte[] RewriteExternalObjectRecord(
             LegacyPptRecord record, ExternalObjectFixtureKind kind,
             uint slideId, uint linkedUpdateMode,
+            uint embeddedSoundId, ushort mediaFlags,
             ref int convertedCount) {
             if (record.Type == 0x0FCC) {
                 convertedCount++;
+                if (kind >= ExternalObjectFixtureKind.EmbeddedWaveMedia) {
+                    LegacyPptRecord objectAtom = Assert.Single(
+                        record.Children, child => child.Type == 0x0FC3);
+                    uint id = objectAtom.ReadUInt32(8);
+                    var mediaPayload = new byte[8];
+                    WriteVbaUInt32(mediaPayload, 0, id);
+                    WriteVbaUInt16(mediaPayload, 4, mediaFlags);
+                    var mediaChildren = new List<byte[]> {
+                        BuildVbaRecord(version: 0, instance: 0,
+                            type: 0x1004, mediaPayload)
+                    };
+                    ushort containerType;
+                    switch (kind) {
+                        case ExternalObjectFixtureKind.EmbeddedWaveMedia:
+                            var wavePayload = new byte[8];
+                            WriteVbaUInt32(wavePayload, 0,
+                                embeddedSoundId);
+                            WriteVbaUInt32(wavePayload, 4, 2500);
+                            mediaChildren.Add(BuildVbaRecord(version: 1,
+                                instance: 1, type: 0x1013,
+                                wavePayload));
+                            containerType = 0x100F;
+                            break;
+                        case ExternalObjectFixtureKind.LinkedWaveMedia:
+                            mediaChildren.Add(BuildMediaPathRecord(
+                                @"C:\Media\sample.wav"));
+                            containerType = 0x1010;
+                            break;
+                        case ExternalObjectFixtureKind.MidiAudio:
+                            mediaChildren.Add(BuildMediaPathRecord(
+                                @"C:\Media\sample.mid"));
+                            containerType = 0x100D;
+                            break;
+                        case ExternalObjectFixtureKind.CdAudio:
+                            var cdPayload = new byte[8];
+                            WriteVbaUInt32(cdPayload, 0, 0x01020304);
+                            WriteVbaUInt32(cdPayload, 4, 0x05060708);
+                            mediaChildren.Add(BuildVbaRecord(version: 0,
+                                instance: 0, type: 0x1012,
+                                cdPayload));
+                            containerType = 0x100E;
+                            break;
+                        case ExternalObjectFixtureKind.AviMovie:
+                        case ExternalObjectFixtureKind.MciMovie:
+                            mediaChildren.Add(BuildMediaPathRecord(
+                                @"C:\Media\sample.avi"));
+                            byte[] video = BuildVbaRecord(version: 0x0F,
+                                instance: 0, type: 0x1005,
+                                JoinExternalObjectRecords(mediaChildren));
+                            containerType = kind ==
+                                ExternalObjectFixtureKind.AviMovie
+                                ? (ushort)0x1006
+                                : (ushort)0x1007;
+                            return BuildVbaRecord(version: 0x0F,
+                                instance: 0, type: containerType,
+                                video);
+                        default:
+                            throw new InvalidOperationException(
+                                "Unsupported media fixture kind.");
+                    }
+                    return BuildVbaRecord(version: 0x0F, instance: 0,
+                        type: containerType,
+                        JoinExternalObjectRecords(mediaChildren));
+                }
                 var children = new List<byte[]>(record.Children.Count);
                 foreach (LegacyPptRecord child in record.Children) {
                     if (child.Type == 0x0FCD) {
@@ -337,6 +409,7 @@ namespace OfficeIMO.Tests {
             foreach (LegacyPptRecord child in record.Children) {
                 rewrittenChildren.Add(RewriteExternalObjectRecord(child,
                     kind, slideId, linkedUpdateMode,
+                    embeddedSoundId, mediaFlags,
                     ref convertedCount));
             }
             return BuildVbaRecord(record.Version, record.Instance,
@@ -351,5 +424,9 @@ namespace OfficeIMO.Tests {
             }
             return output.ToArray();
         }
+
+        private static byte[] BuildMediaPathRecord(string path) =>
+            BuildVbaRecord(version: 0, instance: 0, type: 0x0FBA,
+                System.Text.Encoding.Unicode.GetBytes(path));
     }
 }

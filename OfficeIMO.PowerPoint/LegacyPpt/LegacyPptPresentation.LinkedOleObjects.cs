@@ -27,7 +27,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                     LegacyPptLinkedOleObject? linked =
                         TryReadLinkedOleObject(container, package, options);
                     if (linked == null) continue;
-                    if (_oleObjectsById.ContainsKey(linked.Id)
+                    if (_hyperlinksById.ContainsKey(linked.Id)
+                        || _oleObjectsById.ContainsKey(linked.Id)
                         || _linkedOleObjectsById.ContainsKey(linked.Id)) {
                         AddDiagnostic("PPT-OLE-LINK-ID-DUPLICATE",
                             LegacyPptDiagnosticSeverity.Warning,

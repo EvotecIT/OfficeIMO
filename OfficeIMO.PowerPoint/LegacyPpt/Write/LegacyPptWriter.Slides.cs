@@ -11,6 +11,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             uint? notesIdRef, IReadOnlyList<LegacyPptWriterComment> comments,
             LegacyPptWriterInteractionCatalog interactionCatalog,
             LegacyPptWriterAnimationCatalog animationCatalog,
+            LegacyPptWriterMediaCatalog mediaCatalog,
             LegacyPptWriterOleObjectCatalog oleCatalog,
             bool layoutIsIndependentMaster = false) {
             var children = new List<byte[]>();
@@ -75,7 +76,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     }
                 } else if (child.Type == RecordDrawing) {
                     children.Add(BuildDrawingRecord(prototype, shapes, drawingId,
-                        interactionCatalog, animationCatalog, oleCatalog,
+                        interactionCatalog, animationCatalog, mediaCatalog,
+                        oleCatalog,
                         background));
                 } else if (child.Type == RecordSlideShowSlideInfoAtom) {
                     if (needsSlideShowInfo) {

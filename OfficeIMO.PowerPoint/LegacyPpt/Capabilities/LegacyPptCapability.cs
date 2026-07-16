@@ -83,7 +83,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Capabilities {
         TransitionAndActionSounds,
         /// <summary>Animation and timing trees.</summary>
         Animations,
-        /// <summary>Audio and video content.</summary>
+        /// <summary>Embedded WAV audio content.</summary>
         Media,
         /// <summary>Embedded OLE objects.</summary>
         EmbeddedOle,
@@ -106,7 +106,11 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Capabilities {
         /// <summary>Opaque or unknown records, streams, and storages.</summary>
         UnknownRecordsAndStreams,
         /// <summary>Linked OLE objects and their cached storages.</summary>
-        LinkedOle
+        LinkedOle,
+        /// <summary>Linked and device-based legacy audio and video.</summary>
+        LinkedMedia,
+        /// <summary>Modern embedded video content with no binary equivalent.</summary>
+        EmbeddedVideo
     }
 
     /// <summary>Describes how a feature can be represented in PowerPoint 97-2003 binary files.</summary>
