@@ -2,6 +2,7 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel.Xlsb.Model;
 using OfficeIMO.Excel.Xlsb.Package;
+using OfficeIMO.Excel.Xlsb.Projection;
 using System.IO.Compression;
 
 namespace OfficeIMO.Excel.Xlsb.Write {
@@ -59,10 +60,13 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             }
 
             OpenXmlElement? unsupportedWorkbookChild = document.WorkbookRoot.ChildElements
-                .FirstOrDefault(element => element is not Sheets);
+                .FirstOrDefault(element => element is not Sheets && element is not WorkbookProperties);
             if (unsupportedWorkbookChild != null) {
                 throw new NotSupportedException($"Native XLSB rewriting currently accepts cell-value edits only. Workbook metadata '{unsupportedWorkbookChild.LocalName}' was modified; save as .xlsx.");
             }
+
+            ValidateWorkbookProperties(document, sourceWorkbook);
+            ValidateStylesheet(document, sourceWorkbook);
 
             ExcelSheet[] sheets = document.Sheets.ToArray();
             if (sheets.Length != sourceWorkbook.Worksheets.Count) {
@@ -83,6 +87,35 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             using var archive = new ZipArchive(packageStream, ZipArchiveMode.Read, leaveOpen: false);
             if (archive.Entries.Any(entry => entry.FullName.StartsWith("_xmlsignatures/", StringComparison.OrdinalIgnoreCase))) {
                 throw new NotSupportedException("Native XLSB rewriting is blocked because the source package is digitally signed. Rewriting worksheet parts would invalidate the signature.");
+            }
+        }
+
+        private static void ValidateWorkbookProperties(ExcelDocument document, XlsbWorkbook sourceWorkbook) {
+            WorkbookProperties? properties = document.WorkbookRoot.GetFirstChild<WorkbookProperties>();
+            if (properties == null) {
+                if (sourceWorkbook.Uses1904DateSystem) {
+                    throw new NotSupportedException("Native XLSB rewriting cannot change the workbook date system. Save the workbook as .xlsx.");
+                }
+                return;
+            }
+
+            bool hasOnlyProjectedDateSystem = !properties.HasChildren
+                && properties.GetAttributes().All(attribute =>
+                    string.Equals(attribute.LocalName, "date1904", StringComparison.Ordinal)
+                    && string.Equals(attribute.NamespaceUri, string.Empty, StringComparison.Ordinal));
+            bool uses1904 = properties.Date1904?.Value == true;
+            if (!hasOnlyProjectedDateSystem || uses1904 != sourceWorkbook.Uses1904DateSystem) {
+                throw new NotSupportedException("Native XLSB rewriting currently cannot change workbook properties or the workbook date system. Save the workbook as .xlsx.");
+            }
+        }
+
+        private static void ValidateStylesheet(ExcelDocument document, XlsbWorkbook sourceWorkbook) {
+            if (sourceWorkbook.Stylesheet == null) return;
+
+            Stylesheet? current = document.WorkbookPartRoot.WorkbookStylesPart?.Stylesheet;
+            Stylesheet expected = XlsbStylesheetProjector.Create(sourceWorkbook.Stylesheet);
+            if (current == null || !string.Equals(current.OuterXml, expected.OuterXml, StringComparison.Ordinal)) {
+                throw new NotSupportedException("Native XLSB rewriting currently preserves but cannot modify the workbook style table. Save style changes as .xlsx.");
             }
         }
 

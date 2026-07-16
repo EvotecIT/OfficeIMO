@@ -207,11 +207,19 @@ namespace OfficeIMO.Excel.Xlsb.Write {
 
         private static uint ResolveStyleIndex(Cell cell, XlsbCell? sourceCell, string sheetName, int row, int column) {
             uint current = cell.StyleIndex?.Value ?? 0U;
-            if (current != 0) {
-                throw new NotSupportedException($"Native XLSB rewriting currently accepts cell-value edits only. Cell {sheetName}!{ToAddress(row, column)} has modified style index {current}.");
+            if (sourceCell != null) {
+                if (current != sourceCell.StyleIndex) {
+                    throw new NotSupportedException($"Native XLSB rewriting currently accepts cell-value edits only. Cell {sheetName}!{ToAddress(row, column)} changed style index from {sourceCell.StyleIndex} to {current}.");
+                }
+
+                return current;
             }
 
-            return sourceCell?.StyleIndex ?? 0U;
+            if (current != 0) {
+                throw new NotSupportedException($"Native XLSB rewriting currently cannot add a styled cell. Cell {sheetName}!{ToAddress(row, column)} uses style index {current}.");
+            }
+
+            return 0U;
         }
 
         private static byte GetErrorCode(string value, int row, int column) {

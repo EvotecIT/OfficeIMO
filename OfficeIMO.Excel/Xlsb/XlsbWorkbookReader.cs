@@ -2,6 +2,7 @@ using OfficeIMO.Excel.LegacyXls.Biff;
 using OfficeIMO.Excel.Xlsb.Biff12;
 using OfficeIMO.Excel.Xlsb.Model;
 using OfficeIMO.Excel.Xlsb.Package;
+using OfficeIMO.Excel.Xlsb.Styles;
 using System.IO.Compression;
 
 namespace OfficeIMO.Excel.Xlsb {
@@ -26,6 +27,7 @@ namespace OfficeIMO.Excel.Xlsb {
         private const int BrtEndBook = 132;
         private const int BrtBeginSheetData = 145;
         private const int BrtEndSheetData = 146;
+        private const int BrtWbProp = 153;
         private const int BrtBeginBundleShs = 143;
         private const int BrtEndBundleShs = 144;
         private const int BrtBundleSh = 156;
@@ -35,6 +37,7 @@ namespace OfficeIMO.Excel.Xlsb {
 
         private const string WorksheetRelationshipSuffix = "/worksheet";
         private const string SharedStringsRelationshipSuffix = "/sharedStrings";
+        private const string StylesRelationshipSuffix = "/styles";
 
         internal static XlsbWorkbook Load(byte[] packageBytes, XlsbImportOptions? options = null) {
             if (packageBytes == null) throw new ArgumentNullException(nameof(packageBytes));
@@ -52,6 +55,7 @@ namespace OfficeIMO.Excel.Xlsb {
             var parts = new XlsbPackagePartReader(archive, resolved);
             IReadOnlyDictionary<string, XlsbPackageRelationship> relationships = parts.ReadRelationships(workbookPartName!);
             IReadOnlyList<string> sharedStrings = ReadSharedStrings(parts, workbookPartName!, relationships, resolved, workbook);
+            workbook.Stylesheet = ReadStyles(parts, workbookPartName!, relationships, resolved, workbook);
             ParseWorkbookPart(parts.ReadPart(workbookPartName!), workbookPartName!, resolved, workbook);
 
             if (workbook.Worksheets.Count == 0) {
@@ -122,11 +126,34 @@ namespace OfficeIMO.Excel.Xlsb {
 
                         workbook.AddWorksheet(new XlsbWorksheet(name, relationshipId, tabId, state));
                         break;
+                    case BrtWbProp:
+                        if (record.Data.Length < 4) {
+                            throw new InvalidDataException($"The BrtWbProp record at offset {record.Offset} is truncated.");
+                        }
+
+                        var propertiesCursor = new XlsbBinaryCursor(record.Data);
+                        workbook.Uses1904DateSystem = (propertiesCursor.ReadUInt32() & 0x01U) != 0;
+                        PreserveRecord(options, workbook, partName, record);
+                        break;
                     default:
                         PreserveRecord(options, workbook, partName, record);
                         break;
                 }
             }
+        }
+
+        private static XlsbStylesheet? ReadStyles(
+            XlsbPackagePartReader parts,
+            string workbookPartName,
+            IReadOnlyDictionary<string, XlsbPackageRelationship> relationships,
+            XlsbImportOptions options,
+            XlsbWorkbook workbook) {
+            XlsbPackageRelationship? relationship = relationships.Values.FirstOrDefault(item =>
+                !item.IsExternal && item.Type.EndsWith(StylesRelationshipSuffix, StringComparison.Ordinal));
+            if (relationship == null) return null;
+
+            string partName = XlsbPackagePartReader.ResolveTarget(workbookPartName, relationship.Target);
+            return XlsbStylesheetReader.Read(parts.ReadPart(partName), partName, options, workbook);
         }
 
         private static IReadOnlyList<string> ReadSharedStrings(
@@ -308,6 +335,11 @@ namespace OfficeIMO.Excel.Xlsb {
 
             cell.SourceRecordType = record.Type;
             cell.SourceRecordData = (byte[])record.Data.Clone();
+            int availableFormats = workbook.Stylesheet?.CellFormats.Count ?? 1;
+            if (styleIndex >= availableFormats) {
+                throw new InvalidDataException(
+                    $"The XLSB cell at row {row}, column {column} refers to missing cell format {styleIndex}; the styles part exposes {availableFormats} format(s).");
+            }
             return cell;
         }
 

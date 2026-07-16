@@ -7,6 +7,13 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
             if (workbook == null) throw new ArgumentNullException(nameof(workbook));
 
             ExcelDocument document = ExcelDocument.Create();
+            if (workbook.Uses1904DateSystem) {
+                document.DateSystem = ExcelDateSystem.NineteenFour;
+            }
+            if (workbook.Stylesheet != null) {
+                XlsbStylesheetProjector.Install(document, workbook.Stylesheet);
+            }
+
             foreach (XlsbWorksheet sourceSheet in workbook.Worksheets) {
                 ExcelSheet targetSheet = document.AddWorksheet(sourceSheet.Name);
                 targetSheet.Batch(sheet => {
@@ -25,6 +32,8 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
                         if (!string.IsNullOrWhiteSpace(cell.FormulaText)) {
                             sheet.CellFormula(cell.Row, cell.Column, cell.FormulaText!);
                         }
+
+                        sheet.SetCellStyleIndex(cell.Row, cell.Column, cell.StyleIndex, save: false);
                     }
                 });
 

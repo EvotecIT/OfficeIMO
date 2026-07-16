@@ -185,6 +185,131 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Xlsb_StyledExcelFixture_ProjectsDateSystemFormatsAndCellStyles() {
+            using ExcelDocument document = ExcelDocument.Load(GetStyledExcelGeneratedXlsbFixturePath());
+
+            Assert.Equal(ExcelFileFormat.Xlsb, document.SourceFormat);
+            Assert.Equal(ExcelDateSystem.NineteenFour, document.DateSystem);
+            ExcelSheet sheet = Assert.Single(document.Sheets);
+            Assert.Equal("StylesDates", sheet.Name);
+
+            Stylesheet stylesheet = document.WorkbookPartRoot!.WorkbookStylesPart!.Stylesheet!;
+            Assert.Equal(3U, stylesheet.Fonts!.Count!.Value);
+            Assert.Equal(4U, stylesheet.Fills!.Count!.Value);
+            Assert.Equal(3U, stylesheet.Borders!.Count!.Value);
+            Assert.Equal(1U, stylesheet.CellStyleFormats!.Count!.Value);
+            Assert.Equal(6U, stylesheet.CellFormats!.Count!.Value);
+            Assert.Contains(stylesheet.NumberingFormats!.Elements<NumberingFormat>(), format =>
+                format.NumberFormatId?.Value == 164U && format.FormatCode?.Value == "yyyy\\-mm\\-dd");
+            Assert.Contains(stylesheet.NumberingFormats!.Elements<NumberingFormat>(), format =>
+                format.NumberFormatId?.Value == 165U && format.FormatCode?.Value == "0.0000");
+
+            ExcelCellValueSnapshot date = AssertCellValue(sheet, 2, 1);
+            Assert.Equal(ExcelCellValueKind.DateTime, date.Kind);
+            Assert.Equal(new DateTime(2024, 2, 29), date.DateTimeValue);
+            Assert.Equal(2U, sheet.GetCellStyle(2, 1).StyleIndex);
+            Assert.Equal("yyyy\\-mm\\-dd", sheet.GetCellStyle(2, 1).NumberFormatCode);
+
+            ExcelCellStyleSnapshot heading = sheet.GetCellStyle(1, 1);
+            Assert.Equal(1U, heading.StyleIndex);
+            Assert.True(heading.Bold);
+            Assert.Equal("solid", heading.FillPatternType);
+            Assert.NotNull(heading.Border);
+
+            ExcelCellStyleSnapshot percent = sheet.GetCellStyle(3, 1);
+            Assert.Equal(3U, percent.StyleIndex);
+            Assert.Equal(10U, percent.NumberFormatId);
+
+            ExcelCellStyleSnapshot precise = sheet.GetCellStyle(4, 1);
+            Assert.Equal(4U, precise.StyleIndex);
+            Assert.Equal("0.0000", precise.NumberFormatCode);
+
+            ExcelCellStyleSnapshot decorated = sheet.GetCellStyle(5, 1);
+            Assert.Equal(5U, decorated.StyleIndex);
+            Assert.Equal("solid", decorated.FillPatternType);
+            Assert.Equal("center", decorated.HorizontalAlignment);
+            Assert.Equal(15, decorated.TextRotation);
+            Assert.True(decorated.WrapText);
+            Assert.NotNull(decorated.Border);
+
+            Cell formulaCell = Assert.Single(sheet.WorksheetPart.Worksheet.Descendants<Cell>(),
+                cell => string.Equals(cell.CellReference?.Value, "B2", StringComparison.Ordinal));
+            Assert.Equal("SUM(A3,A4)", formulaCell.CellFormula?.Text);
+            Assert.True(sheet.TryGetCellText(2, 2, out string? cachedFormulaValue));
+            Assert.Equal("1234.6928", cachedFormulaValue);
+            Assert.Equal(4U, formulaCell.StyleIndex?.Value);
+
+            ExcelCellValueSnapshot boolean = AssertCellValue(sheet, 3, 2);
+            Assert.Equal(ExcelCellValueKind.Boolean, boolean.Kind);
+            Assert.Equal("1", boolean.RawValue);
+        }
+
+        [Fact]
+        public void Xlsb_StyledExcelFixture_NativeRewritePreservesStylesDatesAndFormulaPayload() {
+            byte[] original = File.ReadAllBytes(GetStyledExcelGeneratedXlsbFixturePath());
+            using ExcelDocument document = ExcelDocument.Load(new MemoryStream(original, writable: false));
+            document.Sheets[0].CellValue(3, 1, 0.2D);
+
+            byte[] rewritten = document.ToBytes(ExcelFileFormat.Xlsb);
+
+            using ExcelDocument reloaded = ExcelDocument.Load(new MemoryStream(rewritten, writable: false));
+            ExcelSheet sheet = Assert.Single(reloaded.Sheets);
+            Assert.Equal(ExcelDateSystem.NineteenFour, reloaded.DateSystem);
+            Assert.Equal(3U, sheet.GetCellStyle(3, 1).StyleIndex);
+            Assert.Equal(10U, sheet.GetCellStyle(3, 1).NumberFormatId);
+            Assert.Equal(new DateTime(2024, 2, 29), AssertCellValue(sheet, 2, 1).DateTimeValue);
+            Assert.True(sheet.TryGetCellText(3, 1, out string? percentValue));
+            Assert.Equal("0.2", percentValue);
+            Cell formulaCell = Assert.Single(sheet.WorksheetPart.Worksheet.Descendants<Cell>(),
+                cell => string.Equals(cell.CellReference?.Value, "B2", StringComparison.Ordinal));
+            Assert.Equal("SUM(A3,A4)", formulaCell.CellFormula?.Text);
+            AssertFormulaPayloadEqual(original, rewritten, "xl/worksheets/sheet1.bin", (2, 2));
+            AssertPackageEntriesEqualExcept(original, rewritten, "xl/worksheets/sheet1.bin");
+        }
+
+        [Fact]
+        public void Xlsb_StyledExcelFixture_ConvertsToEditableXlsxWithFormattingIntact() {
+            using ExcelDocument source = ExcelDocument.Load(GetStyledExcelGeneratedXlsbFixturePath());
+            using var destination = new MemoryStream();
+
+            source.Save(destination, ExcelFileFormat.Xlsx);
+
+            using ExcelDocument converted = ExcelDocument.Load(new MemoryStream(destination.ToArray(), writable: false));
+            ExcelSheet sheet = Assert.Single(converted.Sheets);
+            Assert.Equal(ExcelDateSystem.NineteenFour, converted.DateSystem);
+            Assert.Equal(new DateTime(2024, 2, 29), AssertCellValue(sheet, 2, 1).DateTimeValue);
+            Assert.True(sheet.GetCellStyle(1, 1).Bold);
+            Assert.Equal("solid", sheet.GetCellStyle(5, 1).FillPatternType);
+            Assert.Equal(15, sheet.GetCellStyle(5, 1).TextRotation);
+            Assert.Equal("SUM(A3,A4)", sheet.CellAt(2, 2).GetValue().Formula);
+        }
+
+        [Fact]
+        public void Xlsb_CellStyleReference_RejectsMissingCellFormatBeforeProjection() {
+            byte[] package = File.ReadAllBytes(GetStyledExcelGeneratedXlsbFixturePath());
+            byte[] worksheet = ReadZipEntry(package, "xl/worksheets/sheet1.bin");
+            using var input = new MemoryStream(worksheet, writable: false);
+            IReadOnlyList<XlsbRecord> records = XlsbRecordReader.ReadAll(input);
+            XlsbRecord firstCell = records.First(record => record.Type >= 1 && record.Type <= 11);
+            byte[] tampered = (byte[])firstCell.Data.Clone();
+            tampered[4] = 0xFF;
+            tampered[5] = 0x00;
+            tampered[6] = 0x00;
+            tampered[7] = 0x00;
+
+            using var output = new MemoryStream();
+            foreach (XlsbRecord record in records) {
+                XlsbRecordWriter.Write(output, record.Type, ReferenceEquals(record, firstCell) ? tampered : record.Data);
+            }
+            byte[] malformed = ReplaceZipEntry(package, "xl/worksheets/sheet1.bin", output.ToArray());
+
+            InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+                ExcelDocument.Load(new MemoryStream(malformed, writable: false)));
+
+            Assert.Contains("missing cell format 255", exception.Message, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
         public void Xlsb_UnmodifiedSource_CopiesByteForByteToNativeTarget() {
             byte[] source = File.ReadAllBytes(GetExcelGeneratedXlsbFixturePath());
             using var input = new MemoryStream(source, writable: false);
@@ -355,6 +480,20 @@ namespace OfficeIMO.Tests {
                 "basic-values-formula.xlsb");
         }
 
+        private static string GetStyledExcelGeneratedXlsbFixturePath() {
+            return Path.Combine(
+                AppContext.BaseDirectory,
+                "Documents",
+                "XlsbCorpus",
+                "excel-generated",
+                "styles-dates-formulas.xlsb");
+        }
+
+        private static ExcelCellValueSnapshot AssertCellValue(ExcelSheet sheet, int row, int column) {
+            Assert.True(sheet.TryGetCellValueSnapshot(row, column, out ExcelCellValueSnapshot? value));
+            return Assert.IsType<ExcelCellValueSnapshot>(value);
+        }
+
         private static void AssertPackageEntriesEqualExcept(
             byte[] expectedPackage,
             byte[] actualPackage,
@@ -460,6 +599,31 @@ namespace OfficeIMO.Tests {
             stream.Write(package, 0, package.Length);
             stream.Position = 0;
             using (var archive = new ZipArchive(stream, ZipArchiveMode.Update, leaveOpen: true)) {
+                WriteZipEntry(archive, name, content);
+            }
+
+            return stream.ToArray();
+        }
+
+        private static byte[] ReadZipEntry(byte[] package, string name) {
+            using var stream = new MemoryStream(package, writable: false);
+            using var archive = new ZipArchive(stream, ZipArchiveMode.Read, leaveOpen: false);
+            ZipArchiveEntry entry = Assert.Single(archive.Entries,
+                candidate => string.Equals(candidate.FullName, name, StringComparison.OrdinalIgnoreCase));
+            using Stream input = entry.Open();
+            using var output = new MemoryStream();
+            input.CopyTo(output);
+            return output.ToArray();
+        }
+
+        private static byte[] ReplaceZipEntry(byte[] package, string name, byte[] content) {
+            using var stream = new MemoryStream();
+            stream.Write(package, 0, package.Length);
+            stream.Position = 0;
+            using (var archive = new ZipArchive(stream, ZipArchiveMode.Update, leaveOpen: true)) {
+                ZipArchiveEntry entry = Assert.Single(archive.Entries,
+                    candidate => string.Equals(candidate.FullName, name, StringComparison.OrdinalIgnoreCase));
+                entry.Delete();
                 WriteZipEntry(archive, name, content);
             }
 

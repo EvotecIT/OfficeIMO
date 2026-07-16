@@ -18,6 +18,10 @@ namespace OfficeIMO.Excel.Xlsb.Model {
 
         internal int SharedStringCount { get; set; }
 
+        internal bool Uses1904DateSystem { get; set; }
+
+        internal XlsbStylesheet? Stylesheet { get; set; }
+
         internal void AddWorksheet(XlsbWorksheet worksheet) => _worksheets.Add(worksheet);
 
         internal void AddDiagnostic(XlsbImportDiagnostic diagnostic) => _diagnostics.Add(diagnostic);

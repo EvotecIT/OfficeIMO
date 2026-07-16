@@ -25,6 +25,8 @@ namespace OfficeIMO.Excel.Xlsb.Biff12 {
             return (ushort)(_data[offset] | (_data[offset + 1] << 8));
         }
 
+        internal short ReadInt16() => unchecked((short)ReadUInt16());
+
         internal uint ReadUInt32() {
             EnsureAvailable(4);
             int offset = Position;
