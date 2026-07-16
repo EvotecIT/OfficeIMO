@@ -31,6 +31,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             bool rewritePrimaryFopt = edit.ShapeTransform != null
                 || edit.ShapeGeometry != null
                 || edit.ShapeVisualStyle != null
+                || edit.ShapeVisibility != null
                 || edit.ShapeMetadata != null
                 || edit.PictureFormatting != null
                 || edit.TextFrame != null;
@@ -40,7 +41,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             bool patchedPictureRecolor = edit.PictureFormatting == null;
             bool hasPrimaryFopt = shapeContainer.Children.Any(
                 child => child.Type == OfficeArtFopt);
-            bool hasPictureTertiaryFopt = shapeContainer.Children.Any(
+            bool hasTertiaryFopt = shapeContainer.Children.Any(
                 child => child.Type == OfficeArtTertiaryFopt);
             bool patchedText = edit.Text == null
                 && edit.TextFormatting == null
@@ -74,6 +75,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                                 edit.ShapeTransform
                                     ?? edit.ShapeGeometry
                                     ?? edit.ShapeVisualStyle
+                                    ?? edit.ShapeVisibility
                                     ?? edit.ShapeMetadata
                                     ?? (PowerPointShape?)edit.PictureFormatting
                                     ?? edit.TextFrame!,
@@ -82,7 +84,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                                 edit.ShapeVisualStyle != null,
                                 edit.PictureFormatting != null,
                                 edit.TextFrame != null,
-                                edit.ShapeMetadata != null);
+                                edit.ShapeMetadata != null,
+                                edit.ShapeVisibility != null);
                         if (primary != null) children.Add(primary);
                         patchedPrimaryFopt = true;
                     }
@@ -97,6 +100,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     byte[]? primary = LegacyPptWriter
                         .BuildPreservedShapeFoptRecord(child,
                             edit.ShapeTransform ?? edit.ShapeVisualStyle
+                                ?? edit.ShapeVisibility
                                 ?? edit.ShapeMetadata
                                 ?? edit.ShapeGeometry
                                 ?? (PowerPointShape?)edit.PictureFormatting
@@ -106,24 +110,31 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                             edit.ShapeVisualStyle != null,
                             edit.PictureFormatting != null,
                             edit.TextFrame != null,
-                            edit.ShapeMetadata != null);
+                            edit.ShapeMetadata != null,
+                            edit.ShapeVisibility != null);
                     if (primary != null) children.Add(primary);
                     patchedPrimaryFopt = true;
                     if (edit.PictureFormatting != null
-                        && !hasPictureTertiaryFopt) {
+                        && !hasTertiaryFopt) {
                         byte[]? tertiary = LegacyPptWriter
                             .BuildPreservedPictureTertiaryFoptRecord(null,
                                 edit.PictureFormatting!);
                         if (tertiary != null) children.Add(tertiary);
                         patchedPictureRecolor = true;
                     }
-                } else if (!patchedPictureRecolor
-                           && child.Type == OfficeArtTertiaryFopt) {
+                } else if (child.Type == OfficeArtTertiaryFopt
+                           && (!patchedPictureRecolor
+                               || edit.ShapeVisibility != null)) {
                     byte[]? tertiary = LegacyPptWriter
-                        .BuildPreservedPictureTertiaryFoptRecord(child,
-                            edit.PictureFormatting!);
+                        .BuildPreservedTertiaryFoptRecord(child,
+                            patchedPictureRecolor
+                                ? null
+                                : edit.PictureFormatting,
+                            edit.ShapeVisibility);
                     if (tertiary != null) children.Add(tertiary);
-                    patchedPictureRecolor = true;
+                    if (edit.PictureFormatting != null) {
+                        patchedPictureRecolor = true;
+                    }
                 } else if (!patchedText
                            && child.Type == OfficeArtClientTextbox) {
                     bool rewritten = edit.TextFormatting != null

@@ -23,9 +23,11 @@ namespace OfficeIMO.Tests {
                 .Single();
             NotesMasterPart notesPart = presentationPart.NotesMasterPart!;
             HandoutMasterPart handoutPart = CreateHandoutMaster(presentation);
-            AddPictureShape(mainPart,
+            P.Picture hiddenMainPicture = AddPictureShape(mainPart,
                 mainPart.SlideMaster!.CommonSlideData!.ShapeTree!, imageBytes,
                 100U, 200000L);
+            hiddenMainPicture.NonVisualPictureProperties!
+                .NonVisualDrawingProperties!.Hidden = true;
             AddPictureShape(notesPart,
                 notesPart.NotesMaster!.CommonSlideData!.ShapeTree!, imageBytes,
                 101U, 400000L);
@@ -42,7 +44,7 @@ namespace OfficeIMO.Tests {
             LegacyPptPresentation binary = LegacyPptPresentation.Load(bytes);
 
             AssertMasterPicture(Assert.Single(binary.Masters).Shapes,
-                imageBytes);
+                imageBytes, expectedHidden: true);
             AssertMasterPicture(Assert.IsType<LegacyPptSpecialMaster>(
                 binary.NotesMaster).Shapes, imageBytes);
             AssertMasterPicture(Assert.IsType<LegacyPptSpecialMaster>(
@@ -56,7 +58,7 @@ namespace OfficeIMO.Tests {
             AssertProjectedMasterPicture(LegacyPptWriter
                 .ReadMasterShapesForWrite(reopened.OpenXmlDocument
                     .PresentationPart!.SlideMasterParts.Single(), out _),
-                imageBytes);
+                imageBytes, expectedHidden: true);
             AssertProjectedMasterPicture(LegacyPptWriter
                 .ReadMasterShapesForWrite(reopened.OpenXmlDocument
                     .PresentationPart!.NotesMasterPart!, out _), imageBytes);
@@ -103,6 +105,70 @@ namespace OfficeIMO.Tests {
             Assert.All(reopened.Slides, slide => Assert.Equal(imageBytes,
                 Assert.Single(slide.Pictures).GetImageBytes()));
             Assert.Empty(reopened.ValidateDocument());
+        }
+
+        [Fact]
+        public void ImportedMasterPictureVisibilityEdit_IsIncremental() {
+            byte[] imageBytes = PdfPngTestImages.CreateRgbPng(82, 42, 122);
+            byte[] sourceBytes;
+            using (PowerPointPresentation source =
+                   PowerPointPresentation.Create()) {
+                SlideMasterPart masterPart = source.OpenXmlDocument
+                    .PresentationPart!.SlideMasterParts.Single();
+                P.Picture picture = AddPictureShape(masterPart,
+                    masterPart.SlideMaster!.CommonSlideData!.ShapeTree!,
+                    imageBytes, 100U, 250000L);
+                picture.NonVisualPictureProperties!
+                    .NonVisualDrawingProperties!.Hidden = true;
+                source.AddSlide(P.SlideLayoutValues.Blank);
+                sourceBytes = source.ToBytes(PowerPointFileFormat.Ppt);
+            }
+            LegacyPptPresentation original = LegacyPptPresentation.Load(
+                sourceBytes);
+
+            byte[] editedBytes;
+            using (var input = new MemoryStream(sourceBytes,
+                       writable: false))
+            using (PowerPointPresentation imported = PowerPointPresentation
+                       .Load(input)) {
+                PowerPointPicture picture = Assert.IsType<PowerPointPicture>(
+                    Assert.Single(LegacyPptWriter.ReadMasterShapesForWrite(
+                        imported.OpenXmlDocument.PresentationPart!
+                            .SlideMasterParts.Single(), out _), shape =>
+                        shape is PowerPointPicture));
+                Assert.True(picture.Hidden);
+                picture.Hidden = false;
+
+                LegacyPptWritePreflightReport preflight = imported
+                    .AnalyzeLegacyPptWrite();
+                Assert.True(preflight.CanWrite,
+                    string.Join(Environment.NewLine, preflight.Findings));
+                editedBytes = imported.ToBytes(PowerPointFileFormat.Ppt);
+            }
+
+            LegacyPptPresentation edited = LegacyPptPresentation.Load(
+                editedBytes);
+            Assert.False(Assert.Single(Assert.Single(edited.Masters).Shapes,
+                shape => shape.Kind == LegacyPptShapeKind.Picture)
+                .Style.Hidden ?? false);
+            Assert.Equal(original.Package.UserEdits.Count + 1,
+                edited.Package.UserEdits.Count);
+            Assert.True(edited.Package.DocumentStream.AsSpan(0,
+                    original.Package.DocumentStream.Length)
+                .SequenceEqual(original.Package.DocumentStream));
+
+            using var editedInput = new MemoryStream(editedBytes,
+                writable: false);
+            using PowerPointPresentation reopened = PowerPointPresentation
+                .Load(editedInput);
+            PowerPointPicture reopenedPicture = Assert.IsType<
+                PowerPointPicture>(Assert.Single(LegacyPptWriter
+                .ReadMasterShapesForWrite(reopened.OpenXmlDocument
+                    .PresentationPart!.SlideMasterParts.Single(), out _),
+                shape => shape is PowerPointPicture));
+            Assert.False(reopenedPicture.Hidden);
+            Assert.Equal(editedBytes,
+                reopened.ToBytes(PowerPointFileFormat.Ppt));
         }
 
         [Fact]
@@ -291,10 +357,12 @@ namespace OfficeIMO.Tests {
         }
 
         private static void AssertMasterPicture(
-            IReadOnlyList<LegacyPptShape> shapes, byte[] imageBytes) {
+            IReadOnlyList<LegacyPptShape> shapes, byte[] imageBytes,
+            bool expectedHidden = false) {
             LegacyPptShape picture = Assert.Single(shapes,
                 shape => shape.Kind == LegacyPptShapeKind.Picture);
             Assert.Equal(imageBytes, picture.Picture!.ImageBytes);
+            Assert.Equal(expectedHidden, picture.Style.Hidden ?? false);
             OfficeArtShapeProtection protection =
                 OfficeArtShapeProtection.Decode(picture.Style.Properties);
             Assert.True(protection.LockAgainstGrouping);
@@ -314,10 +382,12 @@ namespace OfficeIMO.Tests {
         }
 
         private static void AssertProjectedMasterPicture(
-            IReadOnlyList<PowerPointShape> shapes, byte[] imageBytes) {
+            IReadOnlyList<PowerPointShape> shapes, byte[] imageBytes,
+            bool expectedHidden = false) {
             PowerPointPicture picture = Assert.IsType<PowerPointPicture>(
                 Assert.Single(shapes, shape => shape is PowerPointPicture));
             Assert.Equal(imageBytes, picture.GetImageBytes());
+            Assert.Equal(expectedHidden, picture.Hidden);
             A.PictureLocks locks = Assert.IsType<A.PictureLocks>(
                 ((P.Picture)picture.Element).NonVisualPictureProperties?
                     .NonVisualPictureDrawingProperties?.FirstChild);

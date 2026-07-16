@@ -48,6 +48,8 @@ public sealed class OfficeArtShapeStyle {
             1U << 11, 1U << 27);
         LockShapeType = GetBoolean(0x033F,
             1U << 12, 1U << 28);
+        Hidden = GetBoolean(0x03BF,
+            1U << 14, 1U << 30);
     }
 
     /// <summary>Decodes a shape style from OfficeArt properties.</summary>
@@ -164,6 +166,17 @@ public sealed class OfficeArtShapeStyle {
 
     /// <summary>Gets whether changing the shape type is explicitly locked.</summary>
     public bool? LockShapeType { get; }
+
+    /// <summary>Gets whether the shape is explicitly hidden from display.</summary>
+    public bool? Hidden { get; }
+
+    /// <summary>
+    /// Gets whether the hidden-state bits can be rewritten while preserving
+    /// every unrelated Group Shape Boolean property.
+    /// </summary>
+    public bool CanRewriteHiddenState => Properties
+        .Where(property => property.PropertyId == 0x03BF)
+        .All(property => !property.IsComplex && !property.IsBlipId);
 
     /// <summary>Gets whether this style includes fill or line values that can be projected directly.</summary>
     public bool HasProjectableStyle => FillEnabled.HasValue || FillColor.HasValue || FillOpacity.HasValue

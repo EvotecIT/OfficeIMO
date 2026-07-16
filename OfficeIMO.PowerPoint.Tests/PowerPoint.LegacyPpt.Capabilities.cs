@@ -143,6 +143,7 @@ namespace OfficeIMO.Tests {
                 styles.NewBinaryWrite);
             Assert.Equal(LegacyPptCapabilityState.Blocked,
                 styles.PptxToBinary);
+            Assert.Contains("per-shape hidden state", styles.Note);
             Assert.Equal(LegacyPptCapabilityState.Native,
                 effects.NewBinaryWrite);
             Assert.Equal(LegacyPptCapabilityState.Blocked,

@@ -20,6 +20,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     out reason)
                 || !TryReadShapeMetadataForWrite(shape,
                     out IReadOnlyList<LegacyPptWriterFoptProperty> metadata,
+                    out reason)
+                || !TryReadShapeVisibilityForWrite(shape,
+                    out IReadOnlyList<LegacyPptWriterFoptProperty> visibility,
                     out reason)) {
                 formatting = LegacyPptWriterShapeFormatting.Empty;
                 return false;
@@ -27,6 +30,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             var properties = transform.Properties.ToList();
             properties.AddRange(visual);
             properties.AddRange(metadata);
+            properties.AddRange(visibility);
             if (shape is PowerPointTextBox textBox) {
                 if (!TryReadTextFrameForWrite(textBox,
                         out IReadOnlyList<LegacyPptWriterFoptProperty> frame,
@@ -38,6 +42,21 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             }
             formatting = new LegacyPptWriterShapeFormatting(properties,
                 transform.FspFlags);
+            reason = null;
+            return true;
+        }
+
+        internal static bool TryReadShapeVisibilityForWrite(
+            PowerPointShape shape,
+            out IReadOnlyList<LegacyPptWriterFoptProperty> properties,
+            out string? reason) {
+            if (shape == null) throw new ArgumentNullException(nameof(shape));
+            properties = shape.Hidden
+                ? new[] {
+                    new LegacyPptWriterFoptProperty(0x03BF,
+                        (1U << 14) | (1U << 30))
+                }
+                : Array.Empty<LegacyPptWriterFoptProperty>();
             reason = null;
             return true;
         }
@@ -661,12 +680,13 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             bool rewriteShapeVisualStyle,
             bool rewritePictureFormatting,
             bool rewriteTextFrame = false,
-            bool rewriteShapeMetadata = false) {
+            bool rewriteShapeMetadata = false,
+            bool rewriteShapeVisibility = false) {
             if (shape == null) throw new ArgumentNullException(nameof(shape));
             if (!rewriteShapeTransform && !rewriteShapeGeometry
                 && !rewriteShapeVisualStyle
                 && !rewritePictureFormatting && !rewriteTextFrame
-                && !rewriteShapeMetadata) {
+                && !rewriteShapeMetadata && !rewriteShapeVisibility) {
                 throw new ArgumentException(
                     "At least one shape-property family must be rewritten.");
             }
@@ -787,6 +807,22 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         property.PropertyId is not 0x0380 and not 0x0381)
                     .ToList();
                 properties.AddRange(metadata);
+            }
+            if (rewriteShapeVisibility) {
+                if (!TryReadShapeVisibilityForWrite(shape,
+                        out IReadOnlyList<LegacyPptWriterFoptProperty>
+                            visibility, out string? visibilityReason)) {
+                    throw new NotSupportedException(visibilityReason);
+                }
+                IReadOnlyList<LegacyPptWriterFoptProperty>
+                    currentProperties = properties.ToArray();
+                properties = properties.Where(property =>
+                        property.PropertyId != 0x03BF)
+                    .ToList();
+                properties.AddRange(visibility);
+                const uint hiddenMask = (1U << 14) | (1U << 30);
+                PreserveBooleanPropertyBits(currentProperties, properties,
+                    0x03BF, hiddenMask);
             }
             return properties.Count == 0
                 ? null

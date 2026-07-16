@@ -82,6 +82,26 @@ public partial class DrawingTests {
     }
 
     [Fact]
+    public void OfficeArtShapeStyle_DecodesExplicitHiddenState() {
+        var hidden = new[] {
+            new OfficeArtProperty(0, 0x03BF,
+                (1U << 14) | (1U << 30))
+        };
+        var visible = new[] {
+            new OfficeArtProperty(0, 0x03BF, 1U << 14)
+        };
+
+        OfficeArtShapeStyle hiddenStyle = OfficeArtShapeStyle.Decode(hidden);
+        OfficeArtShapeStyle visibleStyle = OfficeArtShapeStyle.Decode(visible);
+
+        Assert.True(hiddenStyle.Hidden);
+        Assert.False(visibleStyle.Hidden);
+        Assert.True(hiddenStyle.CanRewriteHiddenState);
+        Assert.Equal("GroupShapeBooleanProperties",
+            hidden[0].PropertyName);
+    }
+
+    [Fact]
     public void OfficeArtShapeStyle_DistinguishesProjectableFromSafelyRewritableProperties() {
         var properties = new[] {
             new OfficeArtProperty(0, 0x0181, 0x00332211U),

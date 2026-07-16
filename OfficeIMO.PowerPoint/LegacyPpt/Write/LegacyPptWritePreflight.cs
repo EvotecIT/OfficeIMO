@@ -560,7 +560,6 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             || shape is PowerPointTextBox textBox
                 && !LegacyPptWriter.TryReadTextFrameForWrite(textBox,
                     out _, out _)
-            || shape.Hidden
             || shape.Element.Descendants<A.EffectDag>().Any();
 
         private static bool HasUnsupportedMasterInteraction(

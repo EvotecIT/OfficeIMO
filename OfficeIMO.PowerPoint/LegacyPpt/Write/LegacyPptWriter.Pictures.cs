@@ -400,22 +400,51 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             BuildPreservedPictureTertiaryFoptRecord(null, picture);
 
         internal static byte[]? BuildPreservedPictureTertiaryFoptRecord(
-            LegacyPptRecord? prototype, PowerPointPicture picture) {
-            if (picture == null) throw new ArgumentNullException(
-                nameof(picture));
+            LegacyPptRecord? prototype, PowerPointPicture picture) =>
+            BuildPreservedTertiaryFoptRecord(prototype, picture,
+                shapeVisibility: null);
+
+        internal static byte[]? BuildPreservedTertiaryFoptRecord(
+            LegacyPptRecord? prototype,
+            PowerPointPicture? pictureFormatting,
+            PowerPointShape? shapeVisibility) {
+            if (pictureFormatting == null && shapeVisibility == null) {
+                throw new ArgumentException(
+                    "At least one tertiary shape-property family must be rewritten.");
+            }
             var properties = prototype == null
                 ? new List<LegacyPptWriterFoptProperty>()
-                : ReadFoptProperties(prototype).Where(property =>
-                    property.PropertyId != 0x011A).ToList();
-            P.Picture source = (P.Picture)picture.Element;
-            if (!TryReadPictureEffects(source.BlipFill!.Blip!,
-                    out LegacyPptWriterPictureEffects effects,
-                    out string? reason)) {
-                throw new NotSupportedException(reason);
+                : ReadFoptProperties(prototype).ToList();
+            if (pictureFormatting != null) {
+                properties = properties.Where(property =>
+                        property.PropertyId != 0x011A)
+                    .ToList();
+                P.Picture source = (P.Picture)pictureFormatting.Element;
+                if (!TryReadPictureEffects(source.BlipFill!.Blip!,
+                        out LegacyPptWriterPictureEffects effects,
+                        out string? reason)) {
+                    throw new NotSupportedException(reason);
+                }
+                if (effects.RecolorColor.HasValue) {
+                    properties.Add(new LegacyPptWriterFoptProperty(0x011A,
+                        PackOfficeArtColor(effects.RecolorColor.Value)));
+                }
             }
-            if (effects.RecolorColor.HasValue) {
-                properties.Add(new LegacyPptWriterFoptProperty(0x011A,
-                    PackOfficeArtColor(effects.RecolorColor.Value)));
+            if (shapeVisibility != null) {
+                IReadOnlyList<LegacyPptWriterFoptProperty> sourceProperties =
+                    properties.ToArray();
+                properties = properties.Where(property =>
+                        property.PropertyId != 0x03BF)
+                    .ToList();
+                if (!TryReadShapeVisibilityForWrite(shapeVisibility,
+                        out IReadOnlyList<LegacyPptWriterFoptProperty>
+                            visibility, out string? reason)) {
+                    throw new NotSupportedException(reason);
+                }
+                properties.AddRange(visibility);
+                const uint hiddenMask = (1U << 14) | (1U << 30);
+                PreserveBooleanPropertyBits(sourceProperties, properties,
+                    0x03BF, hiddenMask);
             }
             return properties.Count == 0
                 ? null
@@ -467,6 +496,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 throw new NotSupportedException(reason);
             }
             properties.AddRange(metadata);
+            if (!TryReadShapeVisibilityForWrite(shape,
+                    out IReadOnlyList<LegacyPptWriterFoptProperty> visibility,
+                    out reason)) {
+                throw new NotSupportedException(reason);
+            }
+            properties.AddRange(visibility);
             AddPictureFormatProperties(properties, preview);
             properties.Add(new LegacyPptWriterFoptProperty(0x4104,
                 oneBasedStoreIndex));

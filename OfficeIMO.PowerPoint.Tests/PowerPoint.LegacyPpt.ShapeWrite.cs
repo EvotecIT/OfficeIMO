@@ -1,5 +1,8 @@
+using System.Buffers.Binary;
+using OfficeIMO.Drawing.Binary;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.LegacyPpt;
+using OfficeIMO.PowerPoint.LegacyPpt.Internal;
 using OfficeIMO.PowerPoint.LegacyPpt.Model;
 using Xunit;
 using A = DocumentFormat.OpenXml.Drawing;
@@ -393,6 +396,206 @@ namespace OfficeIMO.Tests {
             Assert.True(saved.Package.DocumentStream.AsSpan(0,
                     original.Package.DocumentStream.Length)
                 .SequenceEqual(original.Package.DocumentStream));
+        }
+
+        [Fact]
+        public void NativeWriter_AuthorsAndProjectsHiddenShapesAndGroups() {
+            byte[] bytes;
+            using (PowerPointPresentation source = PowerPointPresentation
+                       .Create()) {
+                PowerPointSlide slide = source.AddSlide(
+                    P.SlideLayoutValues.Blank);
+                PowerPointAutoShape hiddenChild = slide.AddShapePoints(
+                    A.ShapeTypeValues.Rectangle, 20, 20, 90, 50);
+                hiddenChild.Name = "Hidden child";
+                hiddenChild.Hidden = true;
+                PowerPointAutoShape visibleChild = slide.AddShapePoints(
+                    A.ShapeTypeValues.Ellipse, 130, 20, 70, 50);
+                visibleChild.Name = "Visible child";
+                PowerPointGroupShape group = slide.GroupShapes(
+                    new PowerPointShape[] { hiddenChild, visibleChild },
+                    "Hidden group");
+                group.Hidden = true;
+
+                LegacyPptWritePreflightReport preflight = source
+                    .AnalyzeLegacyPptWrite();
+                Assert.True(preflight.CanWrite,
+                    string.Join(Environment.NewLine, preflight.Findings));
+                bytes = source.ToBytes(PowerPointFileFormat.Ppt);
+            }
+
+            LegacyPptShape binaryGroup = Assert.Single(Assert.Single(
+                LegacyPptPresentation.Load(bytes).Slides).Shapes);
+            Assert.True(binaryGroup.Style.Hidden);
+            Assert.True(Assert.Single(binaryGroup.Children,
+                child => child.Metadata.Name == "Hidden child").Style.Hidden);
+            Assert.False(Assert.Single(binaryGroup.Children,
+                child => child.Metadata.Name == "Visible child").Style.Hidden
+                ?? false);
+
+            using var input = new MemoryStream(bytes, writable: false);
+            using PowerPointPresentation projected = PowerPointPresentation
+                .Load(input);
+            PowerPointGroupShape projectedGroup = Assert.Single(projected
+                .Slides[0].Shapes.OfType<PowerPointGroupShape>());
+            Assert.True(projectedGroup.Hidden);
+            Assert.True(Assert.Single(projected.Slides[0]
+                .GetGroupChildren(projectedGroup), child =>
+                    child.Name == "Hidden child").Hidden);
+            Assert.False(Assert.Single(projected.Slides[0]
+                .GetGroupChildren(projectedGroup), child =>
+                    child.Name == "Visible child").Hidden);
+            Assert.Empty(projected.ValidateDocument());
+            Assert.Equal(bytes,
+                projected.ToBytes(PowerPointFileFormat.Ppt));
+        }
+
+        [Fact]
+        public void ImportedShapeVisibilityEdit_UsesIncrementalFoptRewrite() {
+            byte[] sourceBytes;
+            using (PowerPointPresentation source = PowerPointPresentation
+                       .Create()) {
+                PowerPointSlide slide = source.AddSlide(
+                    P.SlideLayoutValues.Blank);
+                PowerPointTextBox visible = slide.AddTextBoxPoints(
+                    "Visible", 20, 20, 100, 35);
+                visible.Name = "Initially visible";
+                PowerPointTextBox hidden = slide.AddTextBoxPoints(
+                    "Hidden", 20, 70, 100, 35);
+                hidden.Name = "Initially hidden";
+                hidden.Hidden = true;
+                sourceBytes = source.ToBytes(PowerPointFileFormat.Ppt);
+            }
+            LegacyPptPresentation original = LegacyPptPresentation.Load(
+                sourceBytes);
+            byte[] editedBytes;
+            using (var input = new MemoryStream(sourceBytes,
+                       writable: false))
+            using (PowerPointPresentation imported = PowerPointPresentation
+                       .Load(input)) {
+                PowerPointTextBox visible = Assert.Single(imported.Slides[0]
+                    .TextBoxes, shape => shape.Name == "Initially visible");
+                PowerPointTextBox hidden = Assert.Single(imported.Slides[0]
+                    .TextBoxes, shape => shape.Name == "Initially hidden");
+                visible.Hidden = true;
+                hidden.Hidden = false;
+
+                LegacyPptWritePreflightReport preflight = imported
+                    .AnalyzeLegacyPptWrite();
+                Assert.True(preflight.CanWrite,
+                    string.Join(Environment.NewLine, preflight.Findings));
+                editedBytes = imported.ToBytes(PowerPointFileFormat.Ppt);
+            }
+
+            LegacyPptPresentation saved = LegacyPptPresentation.Load(
+                editedBytes);
+            Assert.True(Assert.Single(saved.Slides[0].Shapes,
+                shape => shape.Metadata.Name == "Initially visible")
+                .Style.Hidden);
+            Assert.False(Assert.Single(saved.Slides[0].Shapes,
+                shape => shape.Metadata.Name == "Initially hidden")
+                .Style.Hidden ?? false);
+            Assert.Equal(original.Package.UserEdits.Count + 1,
+                saved.Package.UserEdits.Count);
+            Assert.True(saved.Package.DocumentStream.AsSpan(0,
+                    original.Package.DocumentStream.Length)
+                .SequenceEqual(original.Package.DocumentStream));
+
+            using var editedInput = new MemoryStream(editedBytes,
+                writable: false);
+            using PowerPointPresentation reopened = PowerPointPresentation
+                .Load(editedInput);
+            Assert.True(Assert.Single(reopened.Slides[0].TextBoxes,
+                shape => shape.Name == "Initially visible").Hidden);
+            Assert.False(Assert.Single(reopened.Slides[0].TextBoxes,
+                shape => shape.Name == "Initially hidden").Hidden);
+            Assert.Equal(editedBytes,
+                reopened.ToBytes(PowerPointFileFormat.Ppt));
+        }
+
+        [Fact]
+        public void ImportedShapeVisibilityEdit_RewritesAuthoritativeTertiaryFopt() {
+            byte[] image = OfficePngWriter.Encode(new OfficeRasterImage(
+                4, 3, OfficeColor.FromRgb(37, 99, 235)));
+            byte[] generatedBytes;
+            using (PowerPointPresentation source = PowerPointPresentation
+                       .Create()) {
+                PowerPointSlide slide = source.AddSlide(
+                    P.SlideLayoutValues.Blank);
+                using var stream = new MemoryStream(image, writable: false);
+                PowerPointPicture picture = slide.AddPicture(stream,
+                    ImagePartType.Png, 158750, 317500, 635000, 476250);
+                picture.Name = "Tertiary visibility picture";
+                picture.Hidden = true;
+                picture.RecolorColor = OfficeColor.Orange;
+                generatedBytes = source.ToBytes(PowerPointFileFormat.Ppt);
+            }
+
+            LegacyPptPresentation generated = LegacyPptPresentation.Load(
+                generatedBytes);
+            LegacyPptSlide generatedSlide = Assert.Single(generated.Slides);
+            LegacyPptShape generatedPicture = Assert.Single(
+                generatedSlide.Shapes);
+            Assert.True(generatedPicture.Style.Hidden);
+            LegacyPptRecord shapeContainer = LegacyPptRecordReader.ReadSingle(
+                generated.Package.DocumentStream,
+                checked((int)generatedPicture.RecordOffset),
+                new LegacyPptImportOptions());
+            LegacyPptRecord tertiaryFopt = Assert.Single(
+                shapeContainer.Children,
+                child => child.Type == 0xF122);
+            Assert.Equal(1, tertiaryFopt.Instance);
+
+            byte[] documentStream = (byte[])generated.Package.DocumentStream
+                .Clone();
+            int propertyOffset = tertiaryFopt.PayloadOffset;
+            BinaryPrimitives.WriteUInt16LittleEndian(
+                documentStream.AsSpan(propertyOffset, 2), 0x03BF);
+            BinaryPrimitives.WriteUInt32LittleEndian(
+                documentStream.AsSpan(propertyOffset + 2, 4), 1U << 14);
+            byte[] sourceBytes = generated.Package.RewriteCompoundStreams(
+                new Dictionary<string, byte[]> {
+                    ["PowerPoint Document"] = documentStream
+                });
+
+            LegacyPptPresentation original = LegacyPptPresentation.Load(
+                sourceBytes);
+            Assert.False(Assert.Single(Assert.Single(original.Slides).Shapes)
+                .Style.Hidden ?? true);
+            byte[] editedBytes;
+            using (var input = new MemoryStream(sourceBytes,
+                       writable: false))
+            using (PowerPointPresentation imported = PowerPointPresentation
+                       .Load(input)) {
+                PowerPointPicture picture = Assert.Single(imported.Slides[0]
+                    .Pictures);
+                Assert.False(picture.Hidden);
+                picture.Hidden = true;
+
+                LegacyPptWritePreflightReport preflight = imported
+                    .AnalyzeLegacyPptWrite();
+                Assert.True(preflight.CanWrite,
+                    string.Join(Environment.NewLine, preflight.Findings));
+                editedBytes = imported.ToBytes(PowerPointFileFormat.Ppt);
+            }
+
+            LegacyPptPresentation saved = LegacyPptPresentation.Load(
+                editedBytes);
+            Assert.True(Assert.Single(Assert.Single(saved.Slides).Shapes)
+                .Style.Hidden);
+            Assert.Equal(original.Package.UserEdits.Count + 1,
+                saved.Package.UserEdits.Count);
+            Assert.True(saved.Package.DocumentStream.AsSpan(0,
+                    original.Package.DocumentStream.Length)
+                .SequenceEqual(original.Package.DocumentStream));
+
+            using var editedInput = new MemoryStream(editedBytes,
+                writable: false);
+            using PowerPointPresentation reopened = PowerPointPresentation
+                .Load(editedInput);
+            Assert.True(Assert.Single(reopened.Slides[0].Pictures).Hidden);
+            Assert.Equal(editedBytes,
+                reopened.ToBytes(PowerPointFileFormat.Ppt));
         }
 
         private static void SetAdjustment(PowerPointAutoShape shape,

@@ -339,6 +339,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                         : null,
                     LegacyPptShapeProjection
                         .CreatePictureFormattingFingerprint(projectedShape),
+                    sourceShape.Style.CanRewriteHiddenState
+                        ? LegacyPptShapeProjection
+                            .CreateShapeVisibilityFingerprint(projectedShape)
+                        : null,
                     LegacyPptShapeProjection
                         .CreateShapeMetadataFingerprint(projectedShape),
                     sourceShape.Metadata.CanRewrite,
@@ -1101,6 +1105,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             string? groupCoordinateFingerprint,
             string? shapeVisualStyleFingerprint,
             string? pictureFormattingFingerprint,
+            string? shapeVisibilityFingerprint,
             string shapeMetadataFingerprint,
             bool canEditShapeMetadata,
             LegacyPptOleObjectProjection? oleObject = null) {
@@ -1134,6 +1139,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             GroupCoordinateFingerprint = groupCoordinateFingerprint;
             ShapeVisualStyleFingerprint = shapeVisualStyleFingerprint;
             PictureFormattingFingerprint = pictureFormattingFingerprint;
+            ShapeVisibilityFingerprint = shapeVisibilityFingerprint;
             ShapeMetadataFingerprint = shapeMetadataFingerprint;
             CanEditShapeMetadata = canEditShapeMetadata;
             OleObject = oleObject;
@@ -1195,6 +1201,11 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
 
         internal bool CanEditPictureFormatting =>
             PictureFormattingFingerprint != null;
+
+        internal string? ShapeVisibilityFingerprint { get; }
+
+        internal bool CanEditShapeVisibility =>
+            ShapeVisibilityFingerprint != null;
 
         internal string ShapeMetadataFingerprint { get; }
 
@@ -1332,6 +1343,14 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 ?? Enumerable.Empty<string>());
             return protection + "\n" + crop + "\n" + effects;
         }
+
+        internal bool ShapeVisibilityMatches(PowerPointShape shape) =>
+            string.Equals(ShapeVisibilityFingerprint,
+                CreateShapeVisibilityFingerprint(shape),
+                StringComparison.Ordinal);
+
+        internal static string CreateShapeVisibilityFingerprint(
+            PowerPointShape shape) => shape.Hidden ? "1" : "0";
 
         internal bool ShapeMetadataMatches(PowerPointShape shape) =>
             string.Equals(ShapeMetadataFingerprint,

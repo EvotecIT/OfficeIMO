@@ -311,6 +311,7 @@ namespace OfficeIMO.PowerPoint {
             if (properties == null) return;
             if (source.Metadata.Name != null) properties.Name = source.Metadata.Name;
             if (source.Metadata.Description != null) properties.Description = source.Metadata.Description;
+            properties.Hidden = source.Style.Hidden == true ? true : null;
         }
 
         private static OpenXmlElement? CreateLegacyShape(OpenXmlPart ownerPart,

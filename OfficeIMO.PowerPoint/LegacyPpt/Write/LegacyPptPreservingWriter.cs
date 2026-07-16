@@ -402,6 +402,16 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                             }
                             changedShapeVisualStyle = shape;
                         }
+                        PowerPointShape? changedShapeVisibility = null;
+                        if (shapeProjection.CanEditShapeVisibility
+                            && !shapeProjection.ShapeVisibilityMatches(shape)) {
+                            if (!LegacyPptWriter
+                                    .TryReadShapeVisibilityForWrite(shape,
+                                        out _, out _)) {
+                                return false;
+                            }
+                            changedShapeVisibility = shape;
+                        }
                         PowerPointShape? changedShapeMetadata = null;
                         if (!shapeProjection.ShapeMetadataMatches(shape)) {
                             if (!shapeProjection.CanEditShapeMetadata
@@ -497,6 +507,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                             || changedShapeGeometry != null
                             || changedGroupCoordinate != null
                             || changedShapeVisualStyle != null
+                            || changedShapeVisibility != null
                             || changedShapeMetadata != null
                             || changedPictureFormatting != null
                             || interactionEdit != null || animationChanged) {
@@ -513,6 +524,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                                 .GroupCoordinate = changedGroupCoordinate;
                             editsByOfficeArtId[shapeProjection.OfficeArtShapeId]
                                 .ShapeVisualStyle = changedShapeVisualStyle;
+                            editsByOfficeArtId[shapeProjection.OfficeArtShapeId]
+                                .ShapeVisibility = changedShapeVisibility;
                             editsByOfficeArtId[shapeProjection.OfficeArtShapeId]
                                 .ShapeMetadata = changedShapeMetadata;
                             editsByOfficeArtId[shapeProjection.OfficeArtShapeId]
@@ -1249,6 +1262,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             internal PowerPointGroupShape? GroupCoordinate { get; set; }
 
             internal PowerPointShape? ShapeVisualStyle { get; set; }
+
+            internal PowerPointShape? ShapeVisibility { get; set; }
 
             internal PowerPointShape? ShapeMetadata { get; set; }
 

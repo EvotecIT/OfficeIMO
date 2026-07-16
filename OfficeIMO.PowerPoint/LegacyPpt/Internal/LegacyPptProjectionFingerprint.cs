@@ -684,11 +684,14 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
         private static void NormalizeShapeMetadata(
             P.NonVisualDrawingProperties? properties,
             LegacyPptShapeProjection projection) {
-            if (properties == null || !projection.CanEditShapeMetadata) {
-                return;
+            if (properties == null) return;
+            if (projection.CanEditShapeMetadata) {
+                properties.Name = string.Empty;
+                properties.Description = null;
             }
-            properties.Name = string.Empty;
-            properties.Description = null;
+            if (projection.CanEditShapeVisibility) {
+                properties.Hidden = null;
+            }
         }
 
         private static void NormalizeShapeFormatting(
