@@ -58,7 +58,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         ReadColorScheme(source.ThemePart), background,
                         supportedShapes, drawingId,
                         LegacyPptWriterShapeContext.MainMaster,
-                        textStyles.Get(source), roundTripThemeRecords));
+                        textStyles.Get(source), roundTripThemeRecords,
+                        fonts: textStyles.Fonts));
                     drawingShapeCounts.Add(drawingId,
                         CountDrawingShapes(supportedShapes));
                     masterIds.Add(masterParts[index].Uri.ToString(),
@@ -90,7 +91,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 roundTripThemeRecords: BuildRoundTripThemeRecords(
                     notesMasterPart?.ThemePart?.Theme
                         ?? masterParts[0].ThemePart?.Theme,
-                    notesMasterPart?.NotesMaster?.ColorMap));
+                    notesMasterPart?.NotesMaster?.ColorMap),
+                fonts: textStyles.Fonts);
             if (notesDrawingId.HasValue && notesShapes != null) {
                 drawingShapeCounts.Add(notesDrawingId.Value,
                     CountDrawingShapes(notesShapes));
@@ -115,7 +117,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     BuildRoundTripThemeRecords(
                         handoutMasterPart.ThemePart?.Theme
                             ?? masterParts[0].ThemePart?.Theme,
-                        handoutMasterPart.HandoutMaster?.ColorMap));
+                        handoutMasterPart.HandoutMaster?.ColorMap),
+                    textStyles.Fonts);
                 drawingShapeCounts.Add(handoutDrawingId,
                     CountDrawingShapes(handoutShapes));
             }
@@ -129,7 +132,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             LegacyPptWriterColorScheme scheme,
             LegacyPptWriterBackground? background,
             IReadOnlyList<PowerPointShape> shapes, uint drawingId,
-            IReadOnlyList<byte[]> roundTripThemeRecords) {
+            IReadOnlyList<byte[]> roundTripThemeRecords,
+            LegacyPptWriterFontCatalog fonts) {
             LegacyPptRecord drawingPrototype = drawingPrototypeOwner.Children
                 .First(record => record.Type == RecordDrawing);
             var interactions = new LegacyPptWriterInteractionCatalog();
@@ -139,7 +143,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             return BuildContainer(RecordHandoutForWrite, instance: 0,
                 new[] {
                     BuildDrawingRecord(drawingPrototype, shapes, drawingId,
-                        interactions, animations, background,
+                        interactions, animations, fonts, background,
                         LegacyPptWriterShapeContext.HandoutMaster),
                     BuildColorSchemeAtom(scheme)
                 }.Concat(roundTripThemeRecords));
@@ -155,7 +159,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             IReadOnlyList<byte[]>? textStyleRecords = null,
             IReadOnlyList<byte[]>? roundTripThemeRecords = null,
             bool rewriteColorScheme = true,
-            IReadOnlyList<int>? colorSchemeSlotsToRewrite = null) {
+            IReadOnlyList<int>? colorSchemeSlotsToRewrite = null,
+            LegacyPptWriterFontCatalog? fonts = null) {
             var children = new List<byte[]>(prototype.Children.Count);
             bool wroteScheme = false;
             bool wroteTextStyles = false;
@@ -174,7 +179,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 } else if (child.Type == RecordDrawing && shapes != null
                            && drawingId.HasValue) {
                     children.Add(BuildDrawingRecord(child, shapes,
-                        drawingId.Value, interactions, animations, background,
+                        drawingId.Value, interactions, animations,
+                        fonts ?? throw new InvalidOperationException(
+                            "Master shape text requires the document font catalog."),
+                        background,
                         shapeContext));
                 } else if (background != null && child.Type == RecordDrawing) {
                     children.Add(BuildBackgroundDrawingRecord(child,

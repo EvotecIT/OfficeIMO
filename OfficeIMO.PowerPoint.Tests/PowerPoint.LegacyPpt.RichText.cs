@@ -133,6 +133,248 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void NativeWriter_AuthorsShapeRichTextParagraphsBulletsAndFonts() {
+            byte[] bytes;
+            using (PowerPointPresentation presentation = PowerPointPresentation
+                       .Create()) {
+                PowerPointTextBox textBox = presentation.AddSlide(
+                        P.SlideLayoutValues.Blank)
+                    .AddTextBoxPoints(string.Empty, 30, 30, 360, 180);
+                P.Shape shape = Assert.IsType<P.Shape>(textBox.Element);
+                var firstProperties = new A.ParagraphProperties(
+                    new A.LineSpacing(
+                        new A.SpacingPercent { Val = 125000 }),
+                    new A.SpaceBefore(
+                        new A.SpacingPoints { Val = 1250 }),
+                    new A.BulletColor(
+                        new A.RgbColorModelHex { Val = "123456" }),
+                    new A.BulletSizePercentage { Val = 120000 },
+                    new A.BulletFont { Typeface = "OfficeIMO Bullet" },
+                    new A.CharacterBullet { Char = "•" },
+                    new A.TabStopList(new A.TabStop {
+                        Position = 476250,
+                        Alignment = A.TextTabAlignmentValues.Decimal
+                    })) {
+                    Level = 1,
+                    Alignment = A.TextAlignmentTypeValues.Center,
+                    LeftMargin = 317500,
+                    Indent = -158750,
+                    DefaultTabSize = 635000,
+                    FontAlignment = A.TextFontAlignmentValues.Center,
+                    RightToLeft = true,
+                    EastAsianLineBreak = true,
+                    LatinLineBreak = false,
+                    Height = true
+                };
+                var bold = new A.Run(
+                    new A.RunProperties(
+                        new A.SolidFill(
+                            new A.RgbColorModelHex { Val = "C00000" }),
+                        new A.LatinFont { Typeface = "OfficeIMO Latin" }) {
+                        Bold = true,
+                        FontSize = 3200,
+                        Baseline = 10000
+                    },
+                    new A.Text("Bold red"));
+                var italic = new A.Run(
+                    new A.RunProperties(
+                        new A.SolidFill(
+                            new A.SchemeColor {
+                                Val = A.SchemeColorValues.Accent1
+                            }),
+                        new A.LatinFont { Typeface = "OfficeIMO Latin" }) {
+                        Italic = true,
+                        FontSize = 2400
+                    },
+                    new A.Text(" italic"));
+                var first = new A.Paragraph(firstProperties, bold, italic,
+                    new A.EndParagraphRunProperties { FontSize = 2000 });
+                var second = new A.Paragraph(
+                    new A.ParagraphProperties {
+                        Alignment = A.TextAlignmentTypeValues.Right
+                    },
+                    new A.Run(
+                        new A.RunProperties(
+                            new A.SolidFill(
+                                new A.RgbColorModelHex { Val = "333333" }),
+                            new A.LatinFont {
+                                Typeface = "OfficeIMO Latin"
+                            }) {
+                            Underline = A.TextUnderlineValues.Single,
+                            FontSize = 2000
+                        },
+                        new A.Text("Second paragraph")));
+                shape.TextBody = new P.TextBody(new A.BodyProperties(),
+                    new A.ListStyle(), first, second);
+
+                LegacyPptWritePreflightReport preflight = presentation
+                    .AnalyzeLegacyPptWrite();
+                Assert.True(preflight.CanWrite,
+                    string.Join(Environment.NewLine, preflight.Findings));
+                bytes = presentation.ToBytes(PowerPointFileFormat.Ppt);
+            }
+
+            LegacyPptPresentation binary = LegacyPptPresentation.Load(bytes);
+            LegacyPptShape binaryShape = Assert.Single(
+                Assert.Single(binary.Slides).Shapes,
+                candidate => candidate.Text.StartsWith("Bold red",
+                    StringComparison.Ordinal));
+            Assert.Equal("Bold red italic\nSecond paragraph",
+                binaryShape.TextBody.Text);
+            Assert.False(binaryShape.TextBody.IsStyleTruncated,
+                string.Join(Environment.NewLine, binary.Diagnostics));
+            Assert.False(binaryShape.TextBody
+                .HasUnprojectedCharacterFormatting);
+            Assert.False(binaryShape.TextBody
+                .HasUnprojectedParagraphFormatting);
+            Assert.Equal(2, binaryShape.TextBody.ParagraphRuns.Count);
+            LegacyPptParagraphRun firstParagraph = binaryShape.TextBody
+                .ParagraphRuns[0];
+            Assert.Equal((ushort)1, firstParagraph.IndentLevel);
+            Assert.True(firstParagraph.HasBullet);
+            Assert.Equal('•', firstParagraph.BulletCharacter);
+            Assert.Equal("OfficeIMO Bullet",
+                firstParagraph.BulletTypeface);
+            Assert.Equal((short)120, firstParagraph.BulletSize);
+            Assert.Equal("123456", firstParagraph.BulletColor);
+            Assert.Equal(LegacyPptTextAlignment.Center,
+                firstParagraph.Alignment);
+            LegacyPptTextRuler ruler = Assert.IsType<LegacyPptTextRuler>(
+                binaryShape.TextBody.Ruler);
+            LegacyPptTextRulerLevel rulerLevel = Assert.Single(
+                ruler.Levels, level => level.Level == 1);
+            Assert.Equal((short)200, rulerLevel.LeftMargin);
+            Assert.Equal((short)-100, rulerLevel.Indent);
+            Assert.Equal((short)400, ruler.DefaultTabSize);
+            LegacyPptTabStop tab = Assert.Single(ruler.TabStops);
+            Assert.Equal((short)300, tab.Position);
+            Assert.Equal(LegacyPptTabAlignment.Decimal, tab.Alignment);
+            Assert.Equal((short)125, firstParagraph.LineSpacing);
+            Assert.Equal((short)-100, firstParagraph.SpaceBefore);
+            Assert.Equal(LegacyPptTextDirection.RightToLeft,
+                firstParagraph.TextDirection);
+            Assert.Collection(binaryShape.TextBody.CharacterRuns,
+                run => AssertRun(run, "Bold red", 0, bold: true,
+                    size: 32, color: "C00000"),
+                run => AssertRun(run, " italic", 8, italic: true,
+                    size: 24,
+                    color: binary.Masters[0].ColorScheme.Accent1),
+                run => AssertRun(run, "\n", 15, size: 20),
+                run => AssertRun(run, "Second paragraph", 16,
+                    underline: true, size: 20, color: "333333"));
+            Assert.All(binaryShape.TextBody.CharacterRuns.Where(run =>
+                    run.Text != "\n"),
+                run => Assert.Equal("OfficeIMO Latin", run.Typeface));
+            Assert.All(new[] { "OfficeIMO Bullet", "OfficeIMO Latin" },
+                typeface => Assert.Contains(binary.Fonts,
+                    font => font.Typeface == typeface));
+
+            using var stream = new MemoryStream(bytes, writable: false);
+            using PowerPointPresentation reopened = PowerPointPresentation
+                .Load(stream);
+            P.Shape projected = Assert.IsType<P.Shape>(Assert.Single(
+                reopened.Slides[0].TextBoxes).Element);
+            A.Paragraph[] paragraphs = projected.TextBody!
+                .Elements<A.Paragraph>().ToArray();
+            Assert.Equal(2, paragraphs.Length);
+            Assert.Equal(1,
+                paragraphs[0].ParagraphProperties!.Level!.Value);
+            Assert.Equal("OfficeIMO Bullet", paragraphs[0]
+                .ParagraphProperties!.GetFirstChild<A.BulletFont>()!
+                .Typeface!.Value);
+            Assert.True(paragraphs[0].Elements<A.Run>().First()
+                .RunProperties!.Bold!.Value);
+            Assert.Equal(A.TextUnderlineValues.Single,
+                paragraphs[1].Elements<A.Run>().Single()
+                    .RunProperties!.Underline!.Value);
+            Assert.Empty(reopened.ValidateDocument());
+        }
+
+        [Fact]
+        public void ImportedPresentation_AppendedSlideAuthorsRichTextAndFonts() {
+            byte[] sourceBytes;
+            using (PowerPointPresentation source = PowerPointPresentation
+                       .Create()) {
+                source.AddSlide(P.SlideLayoutValues.Blank)
+                    .AddTextBox("Existing slide");
+                sourceBytes = source.ToBytes(PowerPointFileFormat.Ppt);
+            }
+            LegacyPptPresentation original = LegacyPptPresentation.Load(
+                sourceBytes);
+
+            byte[] savedBytes;
+            using (var input = new MemoryStream(sourceBytes, writable: false))
+            using (PowerPointPresentation imported = PowerPointPresentation
+                       .Load(input)) {
+                PowerPointTextBox textBox = imported.AddSlide(
+                        P.SlideLayoutValues.Blank)
+                    .AddTextBoxPoints(string.Empty, 40, 40, 320, 120);
+                P.Shape shape = Assert.IsType<P.Shape>(textBox.Element);
+                shape.TextBody = new P.TextBody(
+                    new A.BodyProperties(),
+                    new A.ListStyle(),
+                    new A.Paragraph(
+                        new A.ParagraphProperties(
+                            new A.CharacterBullet { Char = "•" }) {
+                            Alignment = A.TextAlignmentTypeValues.Center
+                        },
+                        new A.Run(
+                            new A.RunProperties(
+                                new A.LatinFont {
+                                    Typeface = "OfficeIMO Appended"
+                                }) {
+                                Bold = true,
+                                FontSize = 2600
+                            },
+                            new A.Text("Appended rich text"))));
+
+                LegacyPptWritePreflightReport preflight = imported
+                    .AnalyzeLegacyPptWrite();
+                Assert.True(preflight.CanWrite,
+                    string.Join(Environment.NewLine, preflight.Findings));
+                savedBytes = imported.ToBytes(PowerPointFileFormat.Ppt);
+            }
+
+            LegacyPptPresentation saved = LegacyPptPresentation.Load(
+                savedBytes);
+            LegacyPptShape savedShape = Assert.Single(saved.Slides[1].Shapes,
+                shape => shape.Text == "Appended rich text");
+            LegacyPptCharacterRun savedRun = Assert.Single(
+                savedShape.TextBody.CharacterRuns,
+                run => run.Text == "Appended rich text");
+            Assert.True(savedRun.Bold);
+            Assert.Equal((short)26, savedRun.FontSizePoints);
+            Assert.Equal("OfficeIMO Appended", savedRun.Typeface);
+            LegacyPptParagraphRun paragraph = Assert.Single(
+                savedShape.TextBody.ParagraphRuns);
+            Assert.True(paragraph.HasBullet);
+            Assert.Equal('•', paragraph.BulletCharacter);
+            Assert.Equal(LegacyPptTextAlignment.Center,
+                paragraph.Alignment);
+            Assert.Contains(saved.Fonts,
+                font => font.Typeface == "OfficeIMO Appended");
+            Assert.Equal(original.Package.UserEdits.Count + 1,
+                saved.Package.UserEdits.Count);
+            Assert.True(saved.Package.DocumentStream.AsSpan(0,
+                    original.Package.DocumentStream.Length)
+                .SequenceEqual(original.Package.DocumentStream));
+
+            using var reopenedInput = new MemoryStream(savedBytes,
+                writable: false);
+            using PowerPointPresentation reopened = PowerPointPresentation
+                .Load(reopenedInput);
+            P.Shape reopenedShape = Assert.IsType<P.Shape>(Assert.Single(
+                reopened.Slides[1].TextBoxes,
+                candidate => candidate.Text == "Appended rich text").Element);
+            A.Run reopenedRun = Assert.Single(reopenedShape.TextBody!
+                .Descendants<A.Run>());
+            Assert.True(reopenedRun.RunProperties!.Bold!.Value);
+            Assert.Equal("OfficeIMO Appended", reopenedRun.RunProperties
+                .GetFirstChild<A.LatinFont>()!.Typeface!.Value);
+            Assert.Empty(reopened.ValidateDocument());
+        }
+
+        [Fact]
         public void ImportedRichTextGeometryEdit_PreservesCharacterRuns() {
             LegacyPptPresentation original = LegacyPptPresentation.Load(RichTextFixturePath);
             LegacyPptShape originalShape = Assert.Single(Assert.Single(original.Slides).Shapes,
@@ -154,17 +396,48 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void ImportedRichTextFormattingEdit_RemainsLossBlocked() {
+        public void ImportedRichTextFormattingAndLengthEdit_UsesIncrementalStyleRewrite() {
+            LegacyPptPresentation original = LegacyPptPresentation.Load(
+                RichTextFixturePath);
             using PowerPointPresentation presentation = PowerPointPresentation.Load(RichTextFixturePath);
             P.Shape shape = Assert.IsType<P.Shape>(Assert.Single(
                 presentation.Slides[0].TextBoxes).Element);
-            shape.TextBody!.Descendants<A.Run>().First().RunProperties!.Bold = false;
+            A.Run first = shape.TextBody!.Descendants<A.Run>().First();
+            first.RunProperties!.Bold = false;
+            first.RunProperties.FontSize = 3000;
+            first.RunProperties.RemoveAllChildren<A.LatinFont>();
+            first.RunProperties.Append(new A.LatinFont {
+                Typeface = "OfficeIMO Edited"
+            });
+            first.Text!.Text += "!";
+            shape.TextBody.Elements<A.Paragraph>().First()
+                .ParagraphProperties!.Alignment =
+                A.TextAlignmentTypeValues.Right;
 
             LegacyPptWritePreflightReport preflight = presentation.AnalyzeLegacyPptWrite();
 
-            Assert.False(preflight.CanWrite);
-            Assert.Contains(preflight.Findings,
-                finding => finding.Code == "PPT-WRITE-IMPORT-LOSS");
+            Assert.True(preflight.CanWrite,
+                string.Join(Environment.NewLine, preflight.Findings));
+            LegacyPptPresentation saved = LegacyPptPresentation.Load(
+                presentation.ToBytes(PowerPointFileFormat.Ppt));
+            LegacyPptShape savedShape = Assert.Single(
+                Assert.Single(saved.Slides).Shapes,
+                candidate => candidate.Text.StartsWith("Bold red!",
+                    StringComparison.Ordinal));
+            LegacyPptCharacterRun savedFirst = savedShape.TextBody
+                .CharacterRuns[0];
+            Assert.False(savedFirst.Bold);
+            Assert.Equal((short)30, savedFirst.FontSizePoints);
+            Assert.Equal("OfficeIMO Edited", savedFirst.Typeface);
+            Assert.Equal(LegacyPptTextAlignment.Right,
+                savedShape.TextBody.ParagraphRuns[0].Alignment);
+            Assert.Contains(saved.Fonts,
+                font => font.Typeface == "OfficeIMO Edited");
+            Assert.Equal(original.Package.UserEdits.Count + 1,
+                saved.Package.UserEdits.Count);
+            Assert.True(saved.Package.DocumentStream.AsSpan(0,
+                    original.Package.DocumentStream.Length)
+                .SequenceEqual(original.Package.DocumentStream));
         }
 
         [Fact]
@@ -184,18 +457,34 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void ImportedTextRulerEdit_RemainsLossBlocked() {
+        public void ImportedTextRulerEdit_UsesIncrementalRulerRewrite() {
+            LegacyPptPresentation original = LegacyPptPresentation.Load(
+                FixturePath);
+            LegacyPptShape originalTitle = Assert.Single(
+                Assert.Single(original.Slides).Shapes,
+                candidate => candidate.Text
+                    == "OfficeIMO PowerPoint Basics");
             using PowerPointPresentation presentation = PowerPointPresentation.Load(FixturePath);
             P.Shape title = Assert.IsType<P.Shape>(presentation.Slides[0].TextBoxes.Single(textBox =>
                 textBox.Text == "OfficeIMO PowerPoint Basics").Element);
             A.TabStop tab = title.TextBody!.Descendants<A.TabStop>().First();
-            tab.Position = tab.Position!.Value + 1588;
+            tab.Position = tab.Position!.Value + 15875;
 
             LegacyPptWritePreflightReport preflight = presentation.AnalyzeLegacyPptWrite();
 
-            Assert.False(preflight.CanWrite);
-            Assert.Contains(preflight.Findings,
-                finding => finding.Code == "PPT-WRITE-IMPORT-LOSS");
+            Assert.True(preflight.CanWrite,
+                string.Join(Environment.NewLine, preflight.Findings));
+            LegacyPptPresentation saved = LegacyPptPresentation.Load(
+                presentation.ToBytes(PowerPointFileFormat.Ppt));
+            LegacyPptShape savedTitle = Assert.Single(
+                Assert.Single(saved.Slides).Shapes,
+                candidate => candidate.Text
+                    == "OfficeIMO PowerPoint Basics");
+            Assert.Equal(originalTitle.TextBody.Ruler!.TabStops[0].Position
+                    + 10,
+                savedTitle.TextBody.Ruler!.TabStops[0].Position);
+            Assert.Equal(original.Package.UserEdits.Count + 1,
+                saved.Package.UserEdits.Count);
         }
 
         [Fact]

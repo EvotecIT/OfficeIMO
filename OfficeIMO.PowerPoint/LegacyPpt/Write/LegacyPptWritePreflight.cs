@@ -54,6 +54,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     masterTextStyleReason
                     ?? "A slide-master text style cannot be encoded by the native binary writer."));
             }
+            LegacyPptWriter.LegacyPptWriterFontCatalog shapeTextFonts =
+                LegacyPptWriter.CreateFontCatalogForWrite();
             for (int masterIndex = 0; masterIndex < masterParts.Length;
                  masterIndex++) {
                 SlideMasterPart masterPart = masterParts[masterIndex];
@@ -74,7 +76,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 }
                 AddMasterShapeFindings(findings, masterShapes,
                     $"Slide master {masterIndex}",
-                    LegacyPptWriter.LegacyPptWriterShapeContext.MainMaster);
+                    LegacyPptWriter.LegacyPptWriterShapeContext.MainMaster,
+                    shapeTextFonts);
                 if (masterPart.SlideMaster?.Descendants<P.Timing>().Any()
                         == true
                     || masterPart.SlideMaster?.Descendants<P.Transition>().Any()
@@ -107,7 +110,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 }
                 AddMasterShapeFindings(findings, notesMasterShapes,
                     "Notes master",
-                    LegacyPptWriter.LegacyPptWriterShapeContext.NotesMaster);
+                    LegacyPptWriter.LegacyPptWriterShapeContext.NotesMaster,
+                    shapeTextFonts);
             }
             HandoutMasterPart? handoutMasterPart = presentation.OpenXmlDocument
                 .PresentationPart?.HandoutMasterPart;
@@ -131,7 +135,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 }
                 AddMasterShapeFindings(findings, handoutMasterShapes,
                     "Handout master",
-                    LegacyPptWriter.LegacyPptWriterShapeContext.HandoutMaster);
+                    LegacyPptWriter.LegacyPptWriterShapeContext.HandoutMaster,
+                    shapeTextFonts);
             }
             if (LegacyPptWriter.HasModernComments(presentation)) {
                 findings.Add(new LegacyPptWriteFinding(LegacyPptFeature.ModernComments,
@@ -299,9 +304,13 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                             "Fill, outline, transform, effects, hyperlink, visibility, or alternative-text styling is not encoded.",
                             slideIndex, shapeIndex));
                     }
-                    if (shape is PowerPointTextBox textBox && HasRichTextFormatting(textBox)) {
+                    if (shape is PowerPointTextBox textBox
+                        && !LegacyPptWriter.TryReadTextBoxForWrite(textBox,
+                            shapeTextFonts, out string? textReason)) {
                         findings.Add(new LegacyPptWriteFinding(LegacyPptFeature.RichText, "PPT-WRITE-RICH-TEXT",
-                            "Rich run or paragraph formatting is flattened to plain text.", slideIndex, shapeIndex));
+                            textReason
+                            ?? "The text formatting cannot be encoded by the native binary writer.",
+                            slideIndex, shapeIndex));
                     }
                 }
             }
@@ -338,12 +347,16 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             shapes = LegacyPptWriter.FlattenShapeTreeForWrite(shapes,
                 out string? groupShapeReason);
             if (groupShapeReason != null) return false;
+            LegacyPptWriter.LegacyPptWriterFontCatalog fonts =
+                LegacyPptWriter.CreateFontCatalogForWrite();
             foreach (PowerPointShape shape in shapes) {
                 if (!IsSupportedShape(shape) || HasUnsupportedVisualStyle(shape)
                     || !LegacyPptWriter.TryReadPlaceholderForWrite(shape,
                         LegacyPptWriter.LegacyPptWriterShapeContext.Slide,
                         out _, out _)) return false;
-                if (shape is PowerPointTextBox textBox && HasRichTextFormatting(textBox)) return false;
+                if (shape is PowerPointTextBox textBox
+                    && !LegacyPptWriter.TryReadTextBoxForWrite(textBox,
+                        fonts, out _)) return false;
             }
             return true;
         }
@@ -390,7 +403,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         private static void AddMasterShapeFindings(
             ICollection<LegacyPptWriteFinding> findings,
             IReadOnlyList<PowerPointShape> shapes, string ownerName,
-            LegacyPptWriter.LegacyPptWriterShapeContext shapeContext) {
+            LegacyPptWriter.LegacyPptWriterShapeContext shapeContext,
+            LegacyPptWriter.LegacyPptWriterFontCatalog fonts) {
             shapes = LegacyPptWriter.FlattenShapeTreeForWrite(shapes,
                 out string? groupReason);
             if (groupReason != null) {
@@ -422,11 +436,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         $"{location}: visual styling or interactive content is not encoded on binary masters."));
                 }
                 if (shape is PowerPointTextBox textBox
-                    && HasRichTextFormatting(textBox)) {
+                    && !LegacyPptWriter.TryReadTextBoxForWrite(textBox,
+                        fonts, out string? textReason)) {
                     findings.Add(new LegacyPptWriteFinding(
                         LegacyPptFeature.RichText,
                         "PPT-WRITE-MASTER-RICH-TEXT",
-                        $"{location}: rich run or paragraph formatting is not encoded on binary master shapes."));
+                        $"{location}: {textReason}"));
                 }
             }
         }
@@ -463,17 +478,6 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 .Descendants<A.HyperlinkOnClick>().Any()
             || shape.Element.Descendants<A.HyperlinkOnHover>().Any()
             || shape.Element.Descendants<A.HyperlinkOnMouseOver>().Any();
-
-        private static bool HasRichTextFormatting(PowerPointTextBox textBox) {
-            P.Shape? shape = textBox.Element as P.Shape;
-            if (shape?.TextBody == null) return false;
-            return shape.TextBody.Descendants<A.RunProperties>().Any(properties =>
-                       properties.HasAttributes || properties.ChildElements.Any(child =>
-                           child is not A.HyperlinkOnClick
-                               and not A.HyperlinkOnMouseOver))
-                || shape.TextBody.Descendants<A.ParagraphProperties>().Any(properties =>
-                    properties.HasAttributes || properties.HasChildren);
-        }
 
         internal static void ThrowIfBlocked(LegacyPptWritePreflightReport report, PowerPointSaveOptions? options) {
             if (!report.HasConversionLoss || options?.LossPolicy == PowerPointConversionLossPolicy.Allow) return;

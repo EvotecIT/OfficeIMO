@@ -13,10 +13,11 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             LegacyPptWriterMediaCatalog mediaCatalog,
             LegacyPptWriterOleObjectCatalog oleCatalog,
             LegacyPptWriterPictureCatalog pictureCatalog,
+            LegacyPptWriterFontCatalog fonts,
             LegacyPptWriterBackground? background = null) {
             LegacyPptRecord baseDrawing = slidePrototype.Children.First(record => record.Type == RecordDrawing);
             return BuildDrawingRecord(baseDrawing, shapes, drawingId,
-                interactionCatalog, animationCatalog, background,
+                interactionCatalog, animationCatalog, fonts, background,
                 LegacyPptWriterShapeContext.Slide, mediaCatalog,
                 oleCatalog, pictureCatalog);
         }
@@ -25,6 +26,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             IReadOnlyList<PowerPointShape> shapes, uint drawingId,
             LegacyPptWriterInteractionCatalog interactionCatalog,
             LegacyPptWriterAnimationCatalog animationCatalog,
+            LegacyPptWriterFontCatalog fonts,
             LegacyPptWriterBackground? background,
             LegacyPptWriterShapeContext shapeContext,
             LegacyPptWriterMediaCatalog? mediaCatalog = null,
@@ -44,10 +46,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 spgrChildren.Add(shape is PowerPointGroupShape group
                     ? BuildGroupRecord(group, ref nextShapeId,
                         interactionCatalog, animationCatalog, shapeContext,
-                        mediaCatalog, oleCatalog, pictureCatalog)
+                        mediaCatalog, oleCatalog, pictureCatalog, fonts)
                     : BuildShapeRecord(shape, nextShapeId++,
                         interactionCatalog, animationCatalog, shapeContext,
-                        mediaCatalog, oleCatalog, pictureCatalog));
+                        mediaCatalog, oleCatalog, pictureCatalog, fonts));
             }
 
             byte[] backgroundShape = PatchShapeId(background == null
@@ -104,7 +106,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             LegacyPptWriterShapeContext shapeContext,
             LegacyPptWriterMediaCatalog? mediaCatalog,
             LegacyPptWriterOleObjectCatalog? oleCatalog,
-            LegacyPptWriterPictureCatalog? pictureCatalog) {
+            LegacyPptWriterPictureCatalog? pictureCatalog,
+            LegacyPptWriterFontCatalog fonts) {
             ushort shapeType;
             var children = new List<byte[]>();
             LegacyPptWriterShapeInteractions interactions = interactionCatalog.Get(shape);
@@ -118,8 +121,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 byte[]? clientData = BuildClientData(shape,
                     interactions.ShapeInteractions, animation, shapeContext);
                 if (clientData != null) children.Add(clientData);
-                children.Add(BuildTextBox(textBox.Text,
-                    MapTextType(shape, shapeContext), interactions.TextInteractions));
+                children.Add(BuildTextBox(textBox,
+                    MapTextType(shape, shapeContext),
+                    interactions.TextInteractions, fonts));
             } else if (shape is PowerPointAutoShape autoShape) {
                 if (!TryReadOfficeArtShapeType(autoShape,
                         requireConnector: false, out shapeType,
@@ -392,6 +396,34 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 children.Add(BuildTextInteractiveInfoRecord(interaction));
             }
             return BuildContainer(OfficeArtClientTextbox, instance: 0, children);
+        }
+
+        private static byte[] BuildTextBox(PowerPointTextBox textBox,
+            uint textType,
+            IReadOnlyList<LegacyPptWriterTextInteraction> textInteractions,
+            LegacyPptWriterFontCatalog fonts) {
+            if (!TryBuildTextBoxContent(textBox, fonts, out string text,
+                    out byte[]? styleRecord, out byte[]? rulerRecord,
+                    out string? reason)) {
+                throw new NotSupportedException(reason);
+            }
+            var headerPayload = new byte[4];
+            WriteUInt32(headerPayload, 0, textType);
+            byte[] header = BuildRecord(version: 0, instance: 0,
+                RecordTextHeader, headerPayload);
+            byte[] chars = BuildRecord(version: 0, instance: 0,
+                RecordTextChars, Encoding.Unicode.GetBytes(text));
+            var children = new List<byte[]> { header, chars };
+            if (styleRecord != null) children.Add(styleRecord);
+            if (rulerRecord != null) children.Add(rulerRecord);
+            foreach (LegacyPptWriterTextInteraction interaction
+                     in textInteractions) {
+                children.Add(BuildInteractiveInfoRecord(
+                    interaction.Interaction));
+                children.Add(BuildTextInteractiveInfoRecord(interaction));
+            }
+            return BuildContainer(OfficeArtClientTextbox, instance: 0,
+                children);
         }
 
         private static byte MapPlaceholder(P.PlaceholderValues? value,

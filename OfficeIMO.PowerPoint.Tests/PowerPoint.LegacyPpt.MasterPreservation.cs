@@ -85,6 +85,18 @@ namespace OfficeIMO.Tests {
                 Assert.Single(LegacyPptWriter.ReadMasterShapesForWrite(
                     masterPart, out _)));
             textBox.Text = "Edited label";
+            P.Shape textShape = Assert.IsType<P.Shape>(textBox.Element);
+            A.Run editedRun = Assert.Single(textShape.TextBody!
+                .Descendants<A.Run>());
+            editedRun.RunProperties = new A.RunProperties(
+                new A.LatinFont { Typeface = "OfficeIMO Master" }) {
+                Bold = true,
+                FontSize = 2800
+            };
+            textShape.TextBody.Elements<A.Paragraph>().Single()
+                .ParagraphProperties = new A.ParagraphProperties {
+                Alignment = A.TextAlignmentTypeValues.Center
+            };
             textBox.PlaceholderType = P.PlaceholderValues.Title;
             textBox.PlaceholderIndex = 3;
             textBox.PlaceholderSize = P.PlaceholderSizeValues.Half;
@@ -95,6 +107,16 @@ namespace OfficeIMO.Tests {
             LegacyPptMaster savedMaster = Assert.Single(saved.Masters);
 
             Assert.Equal("Edited label", Assert.Single(savedMaster.Shapes).Text);
+            LegacyPptShape savedShape = Assert.Single(savedMaster.Shapes);
+            LegacyPptCharacterRun savedRun = Assert.Single(savedShape.TextBody
+                .CharacterRuns, run => run.Text == "Edited label");
+            Assert.True(savedRun.Bold);
+            Assert.Equal((short)28, savedRun.FontSizePoints);
+            Assert.Equal("OfficeIMO Master", savedRun.Typeface);
+            Assert.Equal(LegacyPptTextAlignment.Center,
+                Assert.Single(savedShape.TextBody.ParagraphRuns).Alignment);
+            Assert.Contains(saved.Fonts,
+                font => font.Typeface == "OfficeIMO Master");
             LegacyPptPlaceholder placeholder = Assert.IsType<
                 LegacyPptPlaceholder>(Assert.Single(savedMaster.Shapes)
                     .Placeholder);
@@ -124,6 +146,17 @@ namespace OfficeIMO.Tests {
             Assert.Equal(3U, reopenedText.PlaceholderIndex);
             Assert.Equal(P.PlaceholderSizeValues.Half,
                 reopenedText.PlaceholderSize);
+            P.Shape reopenedShape = Assert.IsType<P.Shape>(
+                reopenedText.Element);
+            A.Run reopenedRun = Assert.Single(reopenedShape.TextBody!
+                .Descendants<A.Run>());
+            Assert.True(reopenedRun.RunProperties!.Bold!.Value);
+            Assert.Equal(2800, reopenedRun.RunProperties.FontSize!.Value);
+            Assert.Equal("OfficeIMO Master", reopenedRun.RunProperties
+                .GetFirstChild<A.LatinFont>()!.Typeface!.Value);
+            Assert.Equal(A.TextAlignmentTypeValues.Center,
+                reopenedShape.TextBody.Elements<A.Paragraph>().Single()
+                    .ParagraphProperties!.Alignment!.Value);
             Assert.Empty(reopened.ValidateDocument());
 
             reopenedText.PlaceholderIndex = null;

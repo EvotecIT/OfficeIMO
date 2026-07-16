@@ -451,15 +451,26 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void ImportedRichBinaryText_LengthChangingEditRemainsLossBlocked() {
+        public void ImportedRichBinaryText_LengthChangingEditUsesIncrementalSave() {
+            LegacyPptPresentation original = LegacyPptPresentation.Load(
+                FixturePath);
             using PowerPointPresentation presentation = PowerPointPresentation.Load(FixturePath);
             PowerPointTextBox title = presentation.Slides[0].TextBoxes.Single(textBox =>
                 textBox.Text == "OfficeIMO PowerPoint Basics");
             title.Text += "!";
 
             LegacyPptWritePreflightReport preflight = presentation.AnalyzeLegacyPptWrite();
-            Assert.False(preflight.CanWrite);
-            Assert.Throws<NotSupportedException>(() => presentation.ToBytes(PowerPointFileFormat.Ppt));
+            Assert.True(preflight.CanWrite,
+                string.Join(Environment.NewLine, preflight.Findings));
+            LegacyPptPresentation saved = LegacyPptPresentation.Load(
+                presentation.ToBytes(PowerPointFileFormat.Ppt));
+            Assert.Contains(saved.Slides[0].Shapes,
+                shape => shape.Text == "OfficeIMO PowerPoint Basics!");
+            Assert.Equal(original.Package.UserEdits.Count + 1,
+                saved.Package.UserEdits.Count);
+            Assert.True(saved.Package.DocumentStream.AsSpan(0,
+                    original.Package.DocumentStream.Length)
+                .SequenceEqual(original.Package.DocumentStream));
         }
 
         [Fact]

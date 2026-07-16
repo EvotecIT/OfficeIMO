@@ -253,6 +253,13 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                     textFormattingFingerprint, sourceShape.Interactions,
                     sourceShape.TextBody.Interactions,
                     sourceShape.Animation, projectableSoundIds,
+                    sourceShape.Kind == LegacyPptShapeKind.TextBox
+                        && !sourceShape.TextBody.IsStyleTruncated
+                        && !sourceShape.TextBody
+                            .HasUnprojectedCharacterFormatting
+                        && !sourceShape.TextBody
+                            .HasUnprojectedParagraphFormatting
+                        && !sourceShape.TextBody.IsRulerTruncated,
                     LegacyPptShapeProjection
                         .CreateShapeTransformFingerprint(projectedShape),
                     sourceShape.OfficeArtShapeType is 2 or 23
@@ -947,6 +954,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             IReadOnlyList<LegacyPptTextInteraction> textInteractions,
             LegacyPptAnimation? animation,
             ISet<uint> projectableSoundIds,
+            bool canEditTextFormatting,
             string? shapeTransformFingerprint,
             string? shapeGeometryFingerprint,
             string? groupCoordinateFingerprint,
@@ -975,6 +983,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 && !HasOverlappingTextTriggers(TextInteractions);
             CanEditAnimation = animation == null || IsEditableAnimation(
                 animation, projectableSoundIds);
+            CanEditTextFormatting = canEditTextFormatting;
             ShapeTransformFingerprint = shapeTransformFingerprint;
             ShapeGeometryFingerprint = shapeGeometryFingerprint;
             GroupCoordinateFingerprint = groupCoordinateFingerprint;
@@ -1008,6 +1017,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
         internal bool CanEditInteractions { get; }
 
         internal bool CanEditAnimation { get; }
+
+        internal bool CanEditTextFormatting { get; }
 
         internal string? ShapeTransformFingerprint { get; }
 

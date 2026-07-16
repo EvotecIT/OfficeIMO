@@ -21,6 +21,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             bool hasPictureTertiaryFopt = shapeContainer.Children.Any(
                 child => child.Type == OfficeArtTertiaryFopt);
             bool patchedText = edit.Text == null
+                && edit.TextFormatting == null
                 && edit.Interactions?.RewriteTextInteractions != true;
             bool patchedShapeInteractions = edit.Interactions?
                 .RewriteShapeInteractions != true;
@@ -94,12 +95,24 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     patchedPictureRecolor = true;
                 } else if (!patchedText
                            && child.Type == OfficeArtClientTextbox) {
-                    bool rewritten = edit.Interactions?
+                    bool rewritten = edit.TextFormatting != null
+                        ? TryRewriteTextBoxFormatting(child,
+                            edit.TextFormatting,
+                            edit.TextFonts
+                                ?? throw new InvalidOperationException(
+                                    "A text-formatting edit has no font catalog."),
+                            edit.Interactions?.RewriteTextInteractions
+                                == true,
+                            edit.Interactions?.Interactions.TextInteractions
+                                ?? Array.Empty<LegacyPptWriter
+                                    .LegacyPptWriterTextInteraction>(),
+                            out byte[] textbox)
+                        : edit.Interactions?
                         .RewriteTextInteractions == true
                         ? TryRewriteTextInteractions(child,
                             edit.OriginalText, edit.Text,
                             edit.Interactions.Interactions.TextInteractions,
-                            out byte[] textbox)
+                            out textbox)
                         : TryRewriteTextBox(child, edit.OriginalText,
                             edit.Text!, out textbox);
                     if (!rewritten) {

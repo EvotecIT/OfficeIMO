@@ -167,7 +167,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     : Array.Empty<byte[]>();
         }
 
-        private sealed class LegacyPptWriterFontCatalog {
+        internal sealed class LegacyPptWriterFontCatalog {
             private readonly Dictionary<string, ushort> _indices =
                 new(StringComparer.OrdinalIgnoreCase);
             private readonly List<KeyValuePair<ushort, string>> _added = new();
@@ -201,7 +201,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 reason = null;
                 string value = typeface ?? string.Empty;
                 if (value.Length == 0 || string.IsNullOrWhiteSpace(value)) {
-                    reason = "A master text style contains an empty typeface name.";
+                    reason = "A text style contains an empty typeface name.";
                     return false;
                 }
                 if (!string.Equals(value, value.Trim(),

@@ -116,21 +116,24 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     interactionCatalog, out PreservingInteractionContext interactionContext)) {
                 return false;
             }
+            if (!TryCreateTextFontCatalog(package,
+                    out LegacyPptWriter.LegacyPptWriterFontCatalog
+                        textFonts)) return false;
             bool customShowsChanged = !CustomShowsEqual(projectionMap, customShows);
             if (customShowsChanged && !projectionMap.CanEditCustomShows) return false;
 
             try {
                 var oleObjectEdits = new List<LegacyPptOleObjectEdit>();
                 if (!TryBuildModifiedMasterPersistObjects(presentation, package,
-                        projectionMap, rewritten)) {
+                        projectionMap, rewritten, textFonts)) {
                     return false;
                 }
                 if (!TryBuildModifiedTitleMasterPersistObjects(presentation,
-                        package, projectionMap, rewritten)) {
+                        package, projectionMap, rewritten, textFonts)) {
                     return false;
                 }
                 if (!TryBuildModifiedSpecialMasterPersistObjects(presentation,
-                        package, projectionMap, rewritten)) {
+                        package, projectionMap, rewritten, textFonts)) {
                     return false;
                 }
 
@@ -337,12 +340,30 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                             changedPictureFormatting = picture;
                         }
                         string? changedText = null;
+                        PowerPointTextBox? changedTextFormatting = null;
                         if (shape is PowerPointTextBox textBox) {
-                            if (!MatchesProjectedTextFormatting(textBox, shapeProjection)) return false;
+                            bool formattingMatches =
+                                MatchesProjectedTextFormatting(textBox,
+                                    shapeProjection);
+                            if (!formattingMatches) {
+                                if (!shapeProjection.CanEditTextFormatting
+                                    || !LegacyPptWriter
+                                        .TryReadTextBoxForWrite(textBox,
+                                            textFonts, out _)) return false;
+                                changedTextFormatting = textBox;
+                            }
                             string currentText = NormalizeLogicalText(textBox.Text);
                             if (!string.Equals(currentText, NormalizeLogicalText(shapeProjection.Text),
                                     StringComparison.Ordinal)) {
                                 changedText = currentText;
+                                if (shapeProjection.CanEditTextFormatting
+                                    && shapeProjection
+                                        .TextFormattingFingerprint != null) {
+                                    if (!LegacyPptWriter
+                                            .TryReadTextBoxForWrite(textBox,
+                                                textFonts, out _)) return false;
+                                    changedTextFormatting = textBox;
+                                }
                             }
                         }
                         LegacyPptWriter.LegacyPptWriterShapeInteractions currentInteractions =
@@ -369,6 +390,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                             return false;
                         }
                         if (changedBounds.HasValue || changedText != null
+                            || changedTextFormatting != null
                             || placeholderChanged
                             || changedShapeTransform != null
                             || changedShapeGeometry != null
@@ -389,6 +411,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                                 .GroupCoordinate = changedGroupCoordinate;
                             editsByOfficeArtId[shapeProjection.OfficeArtShapeId]
                                 .ShapeVisualStyle = changedShapeVisualStyle;
+                            editsByOfficeArtId[shapeProjection.OfficeArtShapeId]
+                                .TextFormatting = changedTextFormatting;
+                            editsByOfficeArtId[shapeProjection.OfficeArtShapeId]
+                                .TextFonts = changedTextFormatting == null
+                                    ? null
+                                    : textFonts;
                             editsByOfficeArtId[shapeProjection.OfficeArtShapeId]
                                 .PictureFormatting = changedPictureFormatting;
                         }
@@ -482,7 +510,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 if (addedSlides.Count > 0) {
                     if (originalTopologyChanged || currentSlideOrder.Count != projectionMap.Slides.Count
                         || !TryAppendNewSlides(package, projectionMap, addedSlides, rewritten,
-                            interactionCatalog, interactionContext,
+                            interactionCatalog, interactionContext, textFonts,
                             out IReadOnlyList<uint> addedSlideIds)) {
                         return false;
                     }
@@ -534,6 +562,14 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         return false;
                     }
                     rewritten[package.DocumentPersistId] = documentWithSounds;
+                }
+                if (textFonts.HasAddedFonts) {
+                    rewritten.TryGetValue(package.DocumentPersistId,
+                        out byte[]? currentDocumentBytes);
+                    if (!TryRewriteTextFontCollection(package,
+                            currentDocumentBytes, textFonts,
+                            out byte[] documentWithFonts)) return false;
+                    rewritten[package.DocumentPersistId] = documentWithFonts;
                 }
                 if (!TryRewriteVbaProject(presentation, package,
                         projectionMap, rewritten)) {
@@ -1027,6 +1063,13 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             internal PowerPointGroupShape? GroupCoordinate { get; set; }
 
             internal PowerPointShape? ShapeVisualStyle { get; set; }
+
+            internal PowerPointTextBox? TextFormatting { get; set; }
+
+            internal LegacyPptWriter.LegacyPptWriterFontCatalog? TextFonts {
+                get;
+                set;
+            }
         }
     }
 }

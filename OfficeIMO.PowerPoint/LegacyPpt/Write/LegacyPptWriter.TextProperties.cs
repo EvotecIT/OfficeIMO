@@ -291,7 +291,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         }
 
         private static bool TryWriteCharacterException(Stream output,
-            A.DefaultRunProperties? properties,
+            A.TextCharacterPropertiesType? properties,
             LegacyPptWriterFontCatalog fonts, out string? reason) {
             reason = null;
             if (properties == null) {
@@ -300,13 +300,13 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             }
             if (!HasOnlyAttributes(properties, "b", "i", "u", "kumimoji",
                     "sz", "baseline")) {
-                reason = "A master default run uses attributes outside the base binary character-style contract.";
+                reason = "A text run uses attributes outside the base binary character-style contract.";
                 return false;
             }
             foreach (OpenXmlElement child in properties.ChildElements) {
                 if (child is not A.SolidFill and not A.LatinFont
                     and not A.EastAsianFont and not A.SymbolFont) {
-                    reason = $"A master default run contains unsupported '{child.LocalName}' content.";
+                    reason = $"A text run contains unsupported '{child.LocalName}' content.";
                     return false;
                 }
             }
@@ -314,7 +314,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 || properties.Elements<A.LatinFont>().Count() > 1
                 || properties.Elements<A.EastAsianFont>().Count() > 1
                 || properties.Elements<A.SymbolFont>().Count() > 1) {
-                reason = "A master default run contains duplicate color or typeface elements.";
+                reason = "A text run contains duplicate color or typeface elements.";
                 return false;
             }
             uint masks = 0;

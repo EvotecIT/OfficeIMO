@@ -155,7 +155,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     unchecked((uint)(13 + index)), masters.GetMasterId(slide), notesId,
                     comments ?? Array.Empty<LegacyPptWriterComment>(),
                     interactionCatalog, animationCatalog, mediaCatalog,
-                    oleCatalog, pictureCatalog));
+                    oleCatalog, pictureCatalog, masters.Fonts));
             }
             var notesRecords = notes.Select(note => BuildNotesRecord(template.NotesPrototype,
                 note.Text, unchecked((uint)(256 + note.SlideIndex)), note.DrawingId,
@@ -252,12 +252,14 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 interactionCatalog, animationCatalog,
                 new LegacyPptWriterMediaCatalog(),
                 new LegacyPptWriterOleObjectCatalog(),
-                new LegacyPptWriterPictureCatalog());
+                new LegacyPptWriterPictureCatalog(),
+                CreateFontCatalogForWrite());
         }
 
         internal static byte[] BuildIncrementalSlideRecord(PowerPointSlide slide,
             uint drawingId, uint masterIdRef,
             LegacyPptWriterInteractionCatalog interactionCatalog,
+            LegacyPptWriterFontCatalog fonts,
             bool layoutIsIndependentMaster = false) {
             if (slide == null) throw new ArgumentNullException(nameof(slide));
             IReadOnlyList<PowerPointShape> sourceShapes = ReadSlideShapesForWrite(slide,
@@ -277,6 +279,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 new LegacyPptWriterMediaCatalog(),
                 new LegacyPptWriterOleObjectCatalog(),
                 new LegacyPptWriterPictureCatalog(),
+                fonts,
                 layoutIsIndependentMaster);
         }
 

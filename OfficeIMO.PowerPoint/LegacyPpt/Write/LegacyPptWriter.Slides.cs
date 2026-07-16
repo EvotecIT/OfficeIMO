@@ -14,6 +14,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             LegacyPptWriterMediaCatalog mediaCatalog,
             LegacyPptWriterOleObjectCatalog oleCatalog,
             LegacyPptWriterPictureCatalog pictureCatalog,
+            LegacyPptWriterFontCatalog fonts,
             bool layoutIsIndependentMaster = false) {
             var children = new List<byte[]>();
             ThemeOverridePart? themePart = slide.SlidePart.ThemeOverridePart
@@ -78,7 +79,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 } else if (child.Type == RecordDrawing) {
                     children.Add(BuildDrawingRecord(prototype, shapes, drawingId,
                         interactionCatalog, animationCatalog, mediaCatalog,
-                        oleCatalog, pictureCatalog,
+                        oleCatalog, pictureCatalog, fonts,
                         background));
                 } else if (child.Type == RecordSlideShowSlideInfoAtom) {
                     if (needsSlideShowInfo) {

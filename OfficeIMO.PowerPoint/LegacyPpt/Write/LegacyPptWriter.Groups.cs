@@ -81,7 +81,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             LegacyPptWriterShapeContext shapeContext,
             LegacyPptWriterMediaCatalog? mediaCatalog,
             LegacyPptWriterOleObjectCatalog? oleCatalog,
-            LegacyPptWriterPictureCatalog? pictureCatalog) {
+            LegacyPptWriterPictureCatalog? pictureCatalog,
+            LegacyPptWriterFontCatalog fonts) {
             if (!TryReadGroupForWrite(group,
                     out IReadOnlyList<PowerPointShape> groupChildren,
                     out string? reason)) {
@@ -108,10 +109,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 children.Add(child is PowerPointGroupShape nested
                     ? BuildGroupRecord(nested, ref nextShapeId,
                         interactionCatalog, animationCatalog, shapeContext,
-                        mediaCatalog, oleCatalog, pictureCatalog)
+                        mediaCatalog, oleCatalog, pictureCatalog, fonts)
                     : BuildShapeRecord(child, nextShapeId++,
                         interactionCatalog, animationCatalog, shapeContext,
-                        mediaCatalog, oleCatalog, pictureCatalog));
+                        mediaCatalog, oleCatalog, pictureCatalog, fonts));
             }
             return BuildContainer(OfficeArtSpgrContainer, instance: 0,
                 children);
