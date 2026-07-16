@@ -481,13 +481,68 @@ public sealed class ReaderComparisonEvidenceTests {
     }
 
     [Fact]
-    public void OfficeIMOComparison_ProducesScoredDeterministicResultsForEveryCase() {
-        string output = Path.Combine(Path.GetTempPath(), "officeimo-reader-comparison-tests-" + Guid.NewGuid().ToString("N"));
+    public void MarkdownReport_SeparatesInProcessAndExternalExecutionEvidence() {
+        var report = new ReaderComparisonReport {
+            CreatedUtc = new DateTimeOffset(2026, 7, 16, 12, 0, 0, TimeSpan.Zero),
+            Runtime = ".NET test",
+            OperatingSystem = "test OS",
+            Tools = new[] {
+                new ReaderComparisonToolResult {
+                    Tool = "OfficeIMO.Reader",
+                    ExecutionMode = "in-process",
+                    Status = "success",
+                    Cases = new[] {
+                        new ReaderComparisonCaseResult {
+                            CaseId = "docx",
+                            Status = "success",
+                            Deterministic = true,
+                            DurationMilliseconds = 1.25,
+                            AllocatedBytes = 1024,
+                            PassedProbes = 2,
+                            AppliedProbes = 2
+                        }
+                    }
+                },
+                new ReaderComparisonToolResult {
+                    Tool = "External Markdown CLI",
+                    ExecutionMode = "external-process",
+                    Status = "completed",
+                    Cases = new[] {
+                        new ReaderComparisonCaseResult {
+                            CaseId = "docx",
+                            Status = "success",
+                            Deterministic = true,
+                            DurationMilliseconds = 10.5,
+                            PeakWorkingSetBytes = 4096,
+                            PassedProbes = 1,
+                            AppliedProbes = 1
+                        }
+                    }
+                }
+            }
+        };
+
+        string markdown = ReaderComparisonCommand.BuildMarkdownReport(report);
+
+        Assert.Contains("# Reader extraction evidence", markdown, StringComparison.Ordinal);
+        Assert.Contains("## OfficeIMO.Reader", markdown, StringComparison.Ordinal);
+        Assert.Contains("Execution mode: in-process", markdown, StringComparison.Ordinal);
+        Assert.Contains("Allocated bytes", markdown, StringComparison.Ordinal);
+        Assert.Contains("## External Markdown CLI", markdown, StringComparison.Ordinal);
+        Assert.Contains("Execution mode: external-process", markdown, StringComparison.Ordinal);
+        Assert.Contains("Peak working set bytes", markdown, StringComparison.Ordinal);
+        Assert.Contains("must not be compared", markdown, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void OfficeIMOEvidence_ProducesScoredDeterministicResultsForEveryCase() {
+        string output = Path.Combine(Path.GetTempPath(), "officeimo-reader-evidence-tests-" + Guid.NewGuid().ToString("N"));
         try {
             IReadOnlyList<ReaderComparisonCase> cases = ReaderComparisonCorpus.Create();
 
             ReaderComparisonToolResult result = ReaderComparisonCommand.RunOfficeIMO(cases, output);
 
+            Assert.Equal("in-process", result.ExecutionMode);
             Assert.Equal(cases.Count, result.Cases.Count);
             Assert.All(result.Cases, item => Assert.Equal("success", item.Status));
             Assert.All(result.Cases, item => Assert.True(item.Deterministic));

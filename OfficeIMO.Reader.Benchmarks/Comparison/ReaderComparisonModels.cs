@@ -97,6 +97,7 @@ internal sealed class ReaderComparisonCaseResult {
 
 internal sealed class ReaderComparisonToolResult {
     public string Tool { get; set; } = string.Empty;
+    public string ExecutionMode { get; set; } = string.Empty;
     public string Status { get; set; } = string.Empty;
     public string? Error { get; set; }
     public IReadOnlyList<ReaderComparisonCaseResult> Cases { get; set; } = Array.Empty<ReaderComparisonCaseResult>();

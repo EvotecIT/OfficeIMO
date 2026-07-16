@@ -70,13 +70,13 @@ internal static class ReaderComparisonCommand {
             OperatingSystem = RuntimeInformation.OSDescription,
             Tools = tools
         };
-        string jsonPath = Path.Combine(outputDirectory, "reader-comparison.json");
-        string markdownPath = Path.Combine(outputDirectory, "reader-comparison.md");
+        string jsonPath = Path.Combine(outputDirectory, "reader-evidence.json");
+        string markdownPath = Path.Combine(outputDirectory, "reader-evidence.md");
         await File.WriteAllTextAsync(jsonPath, JsonSerializer.Serialize(report, JsonOptions), cancellationToken)
             .ConfigureAwait(false);
         await File.WriteAllTextAsync(markdownPath, BuildMarkdownReport(report), cancellationToken)
             .ConfigureAwait(false);
-        Console.WriteLine("Reader comparison report: " + markdownPath);
+        Console.WriteLine("Reader extraction evidence: " + markdownPath);
         return tools[0].Cases.All(item => item.Status == "success") ? 0 : 1;
     }
 
@@ -89,7 +89,12 @@ internal static class ReaderComparisonCommand {
         foreach (ReaderComparisonCase item in cases) {
             results.Add(RunOfficeCase(reader, item, Path.Combine(outputDirectory, "officeimo", item.Id + ".md")));
         }
-        return new ReaderComparisonToolResult { Tool = "OfficeIMO.Reader", Status = "success", Cases = results };
+        return new ReaderComparisonToolResult {
+            Tool = "OfficeIMO.Reader",
+            ExecutionMode = "in-process",
+            Status = "success",
+            Cases = results
+        };
     }
 
     private static ReaderComparisonCaseResult RunOfficeCase(
@@ -208,7 +213,12 @@ internal static class ReaderComparisonCommand {
                 probes));
         }
         string status = results.All(item => item.Status == "unavailable") ? "unavailable" : "completed";
-        return new ReaderComparisonToolResult { Tool = runner.Name, Status = status, Cases = results };
+        return new ReaderComparisonToolResult {
+            Tool = runner.Name,
+            ExecutionMode = "external-process",
+            Status = status,
+            Cases = results
+        };
     }
 
     internal static (string Status, string? Error) ResolveRepeatOutcome(
@@ -312,19 +322,25 @@ internal static class ReaderComparisonCommand {
         return configuration ?? throw new InvalidDataException("Runner configuration is empty.");
     }
 
-    private static string BuildMarkdownReport(ReaderComparisonReport report) {
+    internal static string BuildMarkdownReport(ReaderComparisonReport report) {
         var builder = new StringBuilder();
-        builder.AppendLine("# Reader comparison evidence").AppendLine();
+        builder.AppendLine("# Reader extraction evidence").AppendLine();
         builder.Append("Generated: ").Append(report.CreatedUtc.ToString("O")).AppendLine("  ");
         builder.Append("Runtime: ").Append(report.Runtime).AppendLine("  ");
         builder.Append("Operating system: ").Append(report.OperatingSystem).AppendLine().AppendLine();
-        builder.AppendLine("Scores count only probes applicable to that tool. OfficeIMO additionally reports rich tables, links, assets, and source locations; Markdown-only tools are not penalized for those native-result probes.").AppendLine();
-        builder.AppendLine("| Tool | Case | Status | Semantic score | Deterministic | Mean ms | Allocated / peak bytes |");
-        builder.AppendLine("| --- | --- | --- | ---: | :---: | ---: | ---: |");
+        builder.AppendLine("Each runner is reported independently. Probe denominators are runner-specific: OfficeIMO-native tables, links, assets, and source locations do not apply to external Markdown runners. These sections are extraction evidence, not a performance leaderboard.").AppendLine();
         foreach (ReaderComparisonToolResult tool in report.Tools) {
+            bool inProcess = string.Equals(tool.ExecutionMode, "in-process", StringComparison.Ordinal);
+            builder.Append("## ").AppendLine(tool.Tool).AppendLine();
+            builder.Append("Execution mode: ").Append(tool.ExecutionMode).AppendLine("  ");
+            builder.Append("Runner status: ").Append(tool.Status).AppendLine().AppendLine();
+            builder.Append("| Case | Status | Passed / applicable probes | Deterministic | Diagnostic mean ms | ")
+                .Append(inProcess ? "Allocated bytes" : "Peak working set bytes")
+                .AppendLine(" |");
+            builder.AppendLine("| --- | --- | ---: | :---: | ---: | ---: |");
             foreach (ReaderComparisonCaseResult item in tool.Cases) {
-                long? memory = item.AllocatedBytes ?? item.PeakWorkingSetBytes;
-                builder.Append("| ").Append(Escape(tool.Tool)).Append(" | ").Append(Escape(item.CaseId))
+                long? memory = inProcess ? item.AllocatedBytes : item.PeakWorkingSetBytes;
+                builder.Append("| ").Append(Escape(item.CaseId))
                     .Append(" | ").Append(Escape(item.Status)).Append(" | ")
                     .Append(item.PassedProbes).Append('/').Append(item.AppliedProbes)
                     .Append(" | ").Append(item.Deterministic ? "yes" : "no")
@@ -332,8 +348,9 @@ internal static class ReaderComparisonCommand {
                     .Append(" | ").Append(memory?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "n/a")
                     .AppendLine(" |");
             }
+            builder.AppendLine();
         }
-        builder.AppendLine().AppendLine("Runtime and memory values are diagnostic evidence from this machine, not cross-machine benchmark claims. Use BenchmarkDotNet lanes for release performance decisions.");
+        builder.AppendLine("Duration and memory values describe each execution mode on this machine. In-process allocation and external-process peak working set are different measurements and must not be compared. Use BenchmarkDotNet lanes for release performance decisions.");
         return builder.ToString();
     }
 
@@ -358,7 +375,7 @@ internal static class ReaderComparisonCommand {
 
     private static void WriteUsage() {
         Console.WriteLine("Usage:");
-        Console.WriteLine("  dotnet run --project OfficeIMO.Reader.Benchmarks -c Release -f net8.0 -- compare [options]");
+        Console.WriteLine("  dotnet run --project OfficeIMO.Reader.Benchmarks -c Release -f net8.0 -- evidence [options]");
         Console.WriteLine();
         Console.WriteLine("Options:");
         Console.WriteLine("  --output <path>         Report and corpus output directory.");
@@ -391,7 +408,7 @@ internal static class ReaderComparisonCommand {
     }
 
     private sealed class ComparisonCommandOptions {
-        public string OutputDirectory { get; private set; } = Path.Combine("artifacts", "reader-comparison");
+        public string OutputDirectory { get; private set; } = Path.Combine("artifacts", "reader-evidence");
         public string? RunnerConfigPath { get; private set; }
         public bool ShowHelp { get; private set; }
 

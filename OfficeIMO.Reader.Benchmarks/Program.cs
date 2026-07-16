@@ -1,7 +1,7 @@
 using BenchmarkDotNet.Running;
 using OfficeIMO.Reader.Benchmarks.Comparison;
 
-if (args.Length > 0 && string.Equals(args[0], "compare", StringComparison.OrdinalIgnoreCase)) {
+if (args.Length > 0 && string.Equals(args[0], "evidence", StringComparison.OrdinalIgnoreCase)) {
     return await ReaderComparisonCommand.RunAsync(args.Skip(1).ToArray()).ConfigureAwait(false);
 }
 
