@@ -10,11 +10,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
         private const ushort RecordExternalOleEmbed = 0x0FCC;
         private const ushort RecordExternalOleEmbedAtom = 0x0FCD;
         private const ushort RecordExternalObjectRefAtom = 0x0BC1;
+        private const ushort RecordMetafile = 0x0FC1;
 
         private readonly List<LegacyPptEmbeddedOleObject> _oleObjects = new();
         private readonly Dictionary<uint, LegacyPptEmbeddedOleObject>
             _oleObjectsById = new();
-        private readonly HashSet<uint> _referencedOleObjectIds = new();
+        private readonly HashSet<uint> _referencedExternalObjectIds = new();
 
         /// <summary>Gets decoded embedded OLE objects by document identifier.</summary>
         public IReadOnlyList<LegacyPptEmbeddedOleObject> OleObjects =>
@@ -40,6 +41,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                     _oleObjects.Add(ole);
                 }
             }
+            ParseLinkedOleObjects(document, package, options);
+            ParseActiveXControls(document, package, options);
         }
 
         private LegacyPptEmbeddedOleObject? TryReadEmbeddedOleObject(
@@ -92,23 +95,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                     container.Offset);
                 return null;
             }
-            string? storageReason = null;
-            string? compoundReason = null;
-            byte[] storageBytes = Array.Empty<byte>();
-            bool compressed = false;
-            bool hasStorage = package.PersistObjects.TryGetValue(persistId,
-                    out LegacyPptPersistObject? persistObject)
-                && LegacyPptOleStorageCodec.TryDecode(persistObject!, options,
-                    out storageBytes, out compressed, out storageReason)
-                && OfficeCompoundFileReader.TryRead(storageBytes,
-                    out OfficeCompoundFile? compound, out compoundReason)
-                && compound != null;
-            if (!hasStorage) {
-                AddDiagnostic("PPT-OLE-STORAGE",
-                    LegacyPptDiagnosticSeverity.Warning,
-                    $"Embedded OLE identifier {id} has no valid compound storage and remains preserve-only: "
-                    + (storageReason ?? compoundReason ?? "missing persist object"),
-                    obj.Offset);
+            if (!TryReadExternalObjectStorage(package, options, id,
+                    persistId, "PPT-OLE-STORAGE", "Embedded OLE",
+                    obj.Offset, out byte[] storageBytes,
+                    out bool compressed)) {
                 return null;
             }
             return new LegacyPptEmbeddedOleObject(id, persistId,
@@ -132,14 +122,20 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             return true;
         }
 
-        private LegacyPptEmbeddedOleObject? ReadShapeOleObject(
-            LegacyPptRecord shapeContainer, LegacyPptImportOptions options) {
+        private void ReadShapeExternalObject(
+            LegacyPptRecord shapeContainer, LegacyPptImportOptions options,
+            out LegacyPptEmbeddedOleObject? embedded,
+            out LegacyPptLinkedOleObject? linked,
+            out LegacyPptActiveXControl? activeX) {
+            embedded = null;
+            linked = null;
+            activeX = null;
             LegacyPptRecord[] references = shapeContainer.Children
                 .Where(record => record.Type == OfficeArtClientData)
                 .SelectMany(record => record.Children)
                 .Where(record => record.Type == RecordExternalObjectRefAtom)
                 .ToArray();
-            if (references.Length == 0) return null;
+            if (references.Length == 0) return;
             if (references.Length != 1 || references[0].Version != 0
                 || references[0].Instance != 0
                 || references[0].PayloadLength != 4) {
@@ -147,27 +143,80 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                     LegacyPptDiagnosticSeverity.Warning,
                     "A shape has duplicate or malformed ExObjRefAtom records and remains preserve-only.",
                     shapeContainer.Offset);
-                return null;
+                return;
             }
             uint id = references[0].ReadUInt32(0);
-            if (!_oleObjectsById.TryGetValue(id,
-                    out LegacyPptEmbeddedOleObject? ole)) {
+            bool found = _oleObjectsById.TryGetValue(id, out embedded)
+                || _linkedOleObjectsById.TryGetValue(id, out linked)
+                || _activeXControlsById.TryGetValue(id, out activeX);
+            if (!found) {
                 if (options.ReportUnsupportedContent) {
                     AddDiagnostic("PPT-OLE-SHAPE-TARGET",
                         LegacyPptDiagnosticSeverity.Warning,
                         $"A shape references unavailable external object {id} and remains preserve-only.",
                         references[0].Offset);
                 }
-                return null;
+                return;
             }
-            if (!_referencedOleObjectIds.Add(id)) {
+            if (!_referencedExternalObjectIds.Add(id)) {
                 AddDiagnostic("PPT-OLE-SHAPE-DUPLICATE",
                     LegacyPptDiagnosticSeverity.Warning,
-                    $"Embedded OLE identifier {id} is referenced by more than one shape; later references remain preserve-only.",
+                    $"External object identifier {id} is referenced by more than one shape; later references remain preserve-only.",
                     references[0].Offset);
-                return null;
+                embedded = null;
+                linked = null;
+                activeX = null;
+                return;
             }
-            return ole;
+        }
+
+        private bool TryReadExternalObjectStorage(LegacyPptPackage package,
+            LegacyPptImportOptions options, uint id, uint persistId,
+            string diagnosticCode, string objectName, long? offset,
+            out byte[] storageBytes, out bool compressed) {
+            storageBytes = Array.Empty<byte>();
+            compressed = false;
+            string? storageReason = null;
+            string? compoundReason = null;
+            bool valid = package.PersistObjects.TryGetValue(persistId,
+                    out LegacyPptPersistObject? persistObject)
+                && LegacyPptOleStorageCodec.TryDecode(persistObject!, options,
+                    out storageBytes, out compressed, out storageReason)
+                && OfficeCompoundFileReader.TryRead(storageBytes,
+                    out OfficeCompoundFile? compound, out compoundReason)
+                && compound != null;
+            if (valid) return true;
+            AddDiagnostic(diagnosticCode,
+                LegacyPptDiagnosticSeverity.Warning,
+                $"{objectName} identifier {id} has no valid compound storage and remains preserve-only: "
+                + (storageReason ?? compoundReason ?? "missing persist object"),
+                offset);
+            storageBytes = Array.Empty<byte>();
+            compressed = false;
+            return false;
+        }
+
+        private void ValidateExternalObjectSlideReferences() {
+            var slideIds = new HashSet<uint>(_slides.Select(slide =>
+                slide.SlideId));
+            foreach (LegacyPptLinkedOleObject linked in _linkedOleObjects) {
+                if (linked.SlideId != 0
+                    && !slideIds.Contains(linked.SlideId)) {
+                    AddDiagnostic("PPT-OLE-LINK-SLIDE",
+                        LegacyPptDiagnosticSeverity.Warning,
+                        $"Linked OLE identifier {linked.Id} references missing slide {linked.SlideId}; the object remains preserve-only.",
+                        null);
+                }
+            }
+            foreach (LegacyPptActiveXControl control in _activeXControls) {
+                if (control.SlideId != 0
+                    && !slideIds.Contains(control.SlideId)) {
+                    AddDiagnostic("PPT-ACTIVEX-SLIDE",
+                        LegacyPptDiagnosticSeverity.Warning,
+                        $"ActiveX identifier {control.Id} references missing slide {control.SlideId}; the control remains preserve-only.",
+                        null);
+                }
+            }
         }
 
         private static bool IsOleDrawAspect(uint value) => value == 1

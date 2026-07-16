@@ -1,7 +1,7 @@
 using OfficeIMO.Drawing.Internal;
 
 namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
-    /// <summary>Decodes the shared ExOleObjStg/VbaProjectStg storage record.</summary>
+    /// <summary>Decodes the shared ExOleObjStg, ExControlStg, and VbaProjectStg record.</summary>
     internal static class LegacyPptOleStorageCodec {
         private const ushort RecordExternalOleObjectStorage = 0x1011;
 

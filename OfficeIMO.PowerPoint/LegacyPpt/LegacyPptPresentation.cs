@@ -155,6 +155,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                     "The document has no slide list.", document.Offset);
                 ValidateCustomShowSlideReferences();
                 ValidateSoundReferences();
+                ValidateExternalObjectSlideReferences();
                 return;
             }
             IReadOnlyDictionary<uint, LegacyPptNotesDirectoryEntry> notesDirectory =
@@ -190,6 +191,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             }
             ValidateCustomShowSlideReferences();
             ValidateSoundReferences();
+            ValidateExternalObjectSlideReferences();
         }
 
         private void ParseSlide(LegacyPptRecord slideRecord, LegacyPptSlide slide, LegacyPptImportOptions options) {
@@ -393,8 +395,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 style.Properties);
             int? pictureStoreIndex = ReadPictureStoreIndex(style);
             OfficeArtBlipStoreEntry? picture = ResolvePicture(pictureStoreIndex);
-            LegacyPptEmbeddedOleObject? oleObject = ReadShapeOleObject(
-                shapeContainer, options);
+            ReadShapeExternalObject(shapeContainer, options,
+                out LegacyPptEmbeddedOleObject? oleObject,
+                out LegacyPptLinkedOleObject? linkedOleObject,
+                out LegacyPptActiveXControl? activeXControl);
             bool isPictureFrame = shapeType == 75;
             if (oleObject != null) {
                 kind = LegacyPptShapeKind.OleObject;
@@ -410,7 +414,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 transform, shadowColor: ResolveShapeColor(style.ShadowColor, colorScheme),
                 textBody: textBody, interactions: ReadShapeInteractions(shapeContainer, options),
                 animation: ReadShapeAnimation(shapeContainer, options),
-                oleObject: oleObject);
+                oleObject: oleObject, linkedOleObject: linkedOleObject,
+                activeXControl: activeXControl);
 
             if (textBody.IsStyleTruncated) {
                 AddDiagnostic("PPT-TEXT-STYLE-TRUNCATED", LegacyPptDiagnosticSeverity.Warning,
@@ -443,9 +448,22 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             }
 
             if (isPictureFrame && oleObject == null
+                && linkedOleObject == null && activeXControl == null
                 && kind == LegacyPptShapeKind.Unsupported
                 && options.ReportUnsupportedContent) {
                 AddPictureDiagnostic(pictureStoreIndex, picture, shapeContainer.Offset);
+            } else if (linkedOleObject != null
+                       && options.ReportUnsupportedContent) {
+                AddDiagnostic("PPT-OLE-LINK-PRESERVED",
+                    LegacyPptDiagnosticSeverity.Warning,
+                    $"Linked OLE identifier {linkedOleObject.Id} and its cache are preserved exactly but are not projected to an editable Open XML object.",
+                    shapeContainer.Offset);
+            } else if (activeXControl != null
+                       && options.ReportUnsupportedContent) {
+                AddDiagnostic("PPT-ACTIVEX-PRESERVED",
+                    LegacyPptDiagnosticSeverity.Warning,
+                    $"ActiveX identifier {activeXControl.Id} and its Office Forms storage are preserved exactly but are not projected to an editable Open XML control.",
+                    shapeContainer.Offset);
             } else if (kind == LegacyPptShapeKind.Unsupported && options.ReportUnsupportedContent) {
                 AddDiagnostic("PPT-SHAPE-UNSUPPORTED", LegacyPptDiagnosticSeverity.Warning,
                     $"OfficeArt shape type {shapeType} on a {ownerDescription} is not projected to the editable PowerPoint model.", shapeContainer.Offset);

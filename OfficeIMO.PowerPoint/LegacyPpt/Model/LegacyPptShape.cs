@@ -106,7 +106,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
             LegacyPptTextBody? textBody = null,
             IReadOnlyList<LegacyPptInteraction>? interactions = null,
             LegacyPptAnimation? animation = null,
-            LegacyPptEmbeddedOleObject? oleObject = null) {
+            LegacyPptEmbeddedOleObject? oleObject = null,
+            LegacyPptLinkedOleObject? linkedOleObject = null,
+            LegacyPptActiveXControl? activeXControl = null) {
             Kind = kind;
             OfficeArtShapeType = officeArtShapeType;
             ShapeId = shapeId;
@@ -132,6 +134,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
                 interactions?.ToArray() ?? Array.Empty<LegacyPptInteraction>());
             Animation = animation;
             OleObject = oleObject;
+            LinkedOleObject = linkedOleObject;
+            ActiveXControl = activeXControl;
         }
 
         /// <summary>Gets the projected shape kind.</summary>
@@ -206,6 +210,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
 
         /// <summary>Gets the embedded OLE object referenced by this shape.</summary>
         public LegacyPptEmbeddedOleObject? OleObject { get; }
+
+        /// <summary>Gets the preserve-only linked OLE object referenced by this shape.</summary>
+        public LegacyPptLinkedOleObject? LinkedOleObject { get; }
+
+        /// <summary>Gets the preserve-only ActiveX control referenced by this shape.</summary>
+        public LegacyPptActiveXControl? ActiveXControl { get; }
 
         /// <summary>Gets the shape-level click interaction, when present.</summary>
         public LegacyPptInteraction? ClickInteraction => Interactions.FirstOrDefault(

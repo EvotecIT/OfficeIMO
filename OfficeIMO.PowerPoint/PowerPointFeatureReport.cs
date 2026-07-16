@@ -390,7 +390,12 @@ namespace OfficeIMO.PowerPoint {
                     (OpenXmlPart)ole.EmbeddedPart));
             var embeddedPackageDetails = DescribeNonChartEmbeddedPackageParts(
                 allParts, editableOleParts);
-            var activeXControlDetails = DescribeActiveXControlParts(allParts);
+            var linkedOleDetails = LegacyPptLinkedOleDetails.ToList();
+            var activeXControlDetails = DescribeActiveXControlParts(allParts)
+                .Concat(LegacyPptActiveXDetails)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(detail => detail, StringComparer.OrdinalIgnoreCase)
+                .ToList();
             var vbaDetails = DescribeVbaProjectParts(allParts);
             var webExtensionDetails = DescribeWebExtensionParts(allParts);
             var signatureDetails = DescribeDigitalSignatureParts(allParts);
@@ -413,8 +418,13 @@ namespace OfficeIMO.PowerPoint {
             Add(features, "Compatibility", "Embedded packages", PowerPointFeatureSupportLevel.Preserved, embeddedPackageDetails.Count, null,
                 "Unreferenced or unrecognized embedded package parts remain preserve-only package content.",
                 embeddedPackageDetails);
+            Add(features, "Compatibility", "Linked OLE objects",
+                PowerPointFeatureSupportLevel.Preserved,
+                linkedOleDetails.Count, null,
+                "Binary linked OLE metadata and cached compound storage are typed and retained exactly, but are not projected to an editable Open XML object.",
+                linkedOleDetails);
             Add(features, "Compatibility", "ActiveX controls", PowerPointFeatureSupportLevel.Preserved, activeXControlDetails.Count, null,
-                "ActiveX control package metadata is detected as preserve-only advanced presentation content.",
+                "ActiveX metadata and native control storage are detected and retained as preserve-only advanced presentation content.",
                 activeXControlDetails);
             Add(features, "Compatibility", "VBA macros", PowerPointFeatureSupportLevel.Preserved, vbaDetails.Count, null,
                 "VBA project parts are detected as preserve-only macro content; OfficeIMO does not edit or sign VBA modules.",

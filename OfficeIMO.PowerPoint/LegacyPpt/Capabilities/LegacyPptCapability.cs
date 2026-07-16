@@ -85,7 +85,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Capabilities {
         Animations,
         /// <summary>Audio and video content.</summary>
         Media,
-        /// <summary>Embedded and linked OLE objects.</summary>
+        /// <summary>Embedded OLE objects.</summary>
         EmbeddedOle,
         /// <summary>ActiveX controls.</summary>
         ActiveX,
@@ -104,7 +104,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Capabilities {
         /// <summary>Alternative text and object naming.</summary>
         AccessibilityMetadata,
         /// <summary>Opaque or unknown records, streams, and storages.</summary>
-        UnknownRecordsAndStreams
+        UnknownRecordsAndStreams,
+        /// <summary>Linked OLE objects and their cached storages.</summary>
+        LinkedOle
     }
 
     /// <summary>Describes how a feature can be represented in PowerPoint 97-2003 binary files.</summary>

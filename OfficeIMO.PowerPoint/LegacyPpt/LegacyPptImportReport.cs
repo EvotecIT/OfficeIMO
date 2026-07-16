@@ -23,6 +23,16 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 ole => ole.Length);
             CompressedEmbeddedOleObjectCount = presentation.OleObjects.Count(
                 ole => ole.WasCompressed);
+            LinkedOleObjectCount = presentation.LinkedOleObjects.Count;
+            LinkedOleObjectByteCount = presentation.LinkedOleObjects.Sum(
+                ole => ole.Length);
+            CompressedLinkedOleObjectCount = presentation.LinkedOleObjects
+                .Count(ole => ole.WasCompressed);
+            ActiveXControlCount = presentation.ActiveXControls.Count;
+            ActiveXControlByteCount = presentation.ActiveXControls.Sum(
+                control => control.Length);
+            CompressedActiveXControlCount = presentation.ActiveXControls
+                .Count(control => control.WasCompressed);
             VbaProjectCount = presentation.VbaProject == null ? 0 : 1;
             VbaProjectByteCount = presentation.VbaProject?.Length ?? 0;
             VbaProjectWasCompressed = presentation.VbaProject?.WasCompressed
@@ -154,6 +164,24 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
 
         /// <summary>Gets the number of compressed embedded OLE persist records.</summary>
         public int CompressedEmbeddedOleObjectCount { get; }
+
+        /// <summary>Gets the number of decoded linked OLE objects.</summary>
+        public int LinkedOleObjectCount { get; }
+
+        /// <summary>Gets the decoded linked-cache compound-storage byte total.</summary>
+        public int LinkedOleObjectByteCount { get; }
+
+        /// <summary>Gets the number of compressed linked OLE cache persist records.</summary>
+        public int CompressedLinkedOleObjectCount { get; }
+
+        /// <summary>Gets the number of decoded ActiveX controls.</summary>
+        public int ActiveXControlCount { get; }
+
+        /// <summary>Gets the decoded ActiveX compound-storage byte total.</summary>
+        public int ActiveXControlByteCount { get; }
+
+        /// <summary>Gets the number of compressed ActiveX control persist records.</summary>
+        public int CompressedActiveXControlCount { get; }
 
         /// <summary>Gets the number of decoded presentation VBA projects.</summary>
         public int VbaProjectCount { get; }
