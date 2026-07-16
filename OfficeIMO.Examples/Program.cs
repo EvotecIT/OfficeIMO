@@ -158,6 +158,11 @@ namespace OfficeIMO.Examples {
                 Google.GoogleSlidesExamples.Example_ExportAsync(folderPath).GetAwaiter().GetResult();
                 return;
             }
+            if (HasArgument(args, "--onenote")) {
+                OneNote.OfflineOneNoteExample.Example(folderPath);
+                return;
+            }
+
             if (HasArgument(args, "--opendocument")) {
                 OpenDocument.OpenDocumentMilestones.Example(folderPath);
                 return;

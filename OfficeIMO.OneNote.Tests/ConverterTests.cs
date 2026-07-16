@@ -1,0 +1,162 @@
+using OfficeIMO.Markdown;
+using OfficeIMO.OneNote.Html;
+using OfficeIMO.OneNote.Markdown;
+using OfficeIMO.OneNote.Pdf;
+using System.Text;
+
+namespace OfficeIMO.OneNote.Tests;
+
+public sealed class ConverterTests {
+    [Fact]
+    public void SharedProjectionCoversHierarchyContentAndOptionalRelatedPages() {
+        OneNoteNotebook notebook = CreateNotebook();
+        int assetIndex = 0;
+
+        string currentOnly = notebook.ToMarkdown(new OneNoteMarkdownOptions {
+            AssetUriResolver = _ => "assets/item-" + (++assetIndex) + ".bin"
+        });
+
+        Assert.Contains("# Offline notebook", currentOnly);
+        Assert.Contains("## Group A", currentOnly);
+        Assert.Contains("### Section A", currentOnly);
+        Assert.Contains("#### Current page", currentOnly);
+        Assert.Contains("**Bold**", currentOnly);
+        Assert.Contains("[link](https://example.com/a%20b)", currentOnly);
+        Assert.Contains("- Item", currentOnly);
+        Assert.Contains("| Column 1 | Column 2 |", currentOnly);
+        Assert.Contains("![Diagram](assets/item-1.bin)", currentOnly);
+        Assert.Contains("[sample.zip](assets/item-2.bin)", currentOnly);
+        Assert.Contains("```math", currentOnly);
+        Assert.Contains("x^2", currentOnly);
+        Assert.DoesNotContain("Conflict: Conflict copy", currentOnly);
+        Assert.DoesNotContain("Version: Historical copy", currentOnly);
+        Assert.Equal(2, assetIndex);
+
+        string withRelated = notebook.ToMarkdown(new OneNoteMarkdownOptions {
+            IncludeConflictPages = true,
+            IncludeVersionHistory = true
+        });
+
+        Assert.Contains("Conflict: Conflict copy", withRelated);
+        Assert.Contains("Version: Historical copy", withRelated);
+    }
+
+    [Fact]
+    public void ProjectionProducesReusableMarkdownDocumentAndUtf8Bytes() {
+        OneNoteSection section = CreateNotebook().SectionGroups[0].Sections[0];
+
+        MarkdownDoc document = section.ToMarkdownDocument();
+        string markdown = section.ToMarkdown();
+        byte[] bytes = section.ToMarkdownBytes();
+
+        Assert.Contains("Section A", markdown);
+        Assert.Contains("Current page", document.ToMarkdown());
+        Assert.Equal(markdown, new UTF8Encoding(false).GetString(bytes));
+        Assert.Throws<ArgumentOutOfRangeException>(() => section.ToMarkdown(new OneNoteMarkdownOptions { HeadingLevel = 0 }));
+    }
+
+    [Fact]
+    public async Task HtmlConversionSupportsDocumentFragmentBytesAndCallerOwnedStreams() {
+        OneNoteSection section = CreateNotebook().SectionGroups[0].Sections[0];
+
+        string document = section.ToHtmlDocument(htmlOptions: new HtmlOptions { AssetMode = AssetMode.Offline });
+        string fragment = section.ToHtmlFragment(htmlOptions: new HtmlOptions { AssetMode = AssetMode.Offline });
+        byte[] bytes = section.ToHtmlBytes(htmlOptions: new HtmlOptions { AssetMode = AssetMode.Offline });
+        using var stream = new MemoryStream();
+        await section.SaveAsHtmlAsync(stream, htmlOptions: new HtmlOptions { AssetMode = AssetMode.Offline });
+
+        Assert.Contains("<!DOCTYPE html>", document, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Current page", document);
+        Assert.Contains("<strong>Bold</strong>", fragment);
+        Assert.DoesNotContain("<!DOCTYPE html>", fragment, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Current page", new UTF8Encoding(false).GetString(bytes));
+        Assert.True(stream.CanWrite);
+        Assert.Contains("Current page", new UTF8Encoding(false).GetString(stream.ToArray()));
+    }
+
+    [Fact]
+    public async Task PdfConversionProducesValidBytesAndLeavesCallerOwnedStreamOpen() {
+        OneNoteSection section = CreateNotebook().SectionGroups[0].Sections[0];
+
+        byte[] bytes = section.ToPdf();
+        using var stream = new MemoryStream();
+        await section.SaveAsPdfAsync(stream);
+
+        Assert.True(bytes.Length > 100);
+        Assert.Equal("%PDF", Encoding.ASCII.GetString(bytes, 0, 4));
+        Assert.True(stream.CanWrite);
+        Assert.Equal("%PDF", Encoding.ASCII.GetString(stream.ToArray(), 0, 4));
+    }
+
+    [Fact]
+    public void PlainTextProjectionIsSharedForPagesElementsAndCells() {
+        OneNoteSection section = CreateNotebook().SectionGroups[0].Sections[0];
+        OneNotePage page = section.Pages[0];
+        OneNoteTable table = Assert.IsType<OneNoteTable>(page.DirectContent[1]);
+
+        Assert.Contains("Current page", OneNoteMarkdownProjection.ToText(page));
+        Assert.Equal("Left", OneNoteMarkdownProjection.ToText(table.Rows[0].Cells[0]));
+        Assert.Equal("Bold link", OneNoteMarkdownProjection.ToText(page.DirectContent[0]));
+    }
+
+    private static OneNoteNotebook CreateNotebook() {
+        var notebook = new OneNoteNotebook { Name = "Offline notebook" };
+        var group = new OneNoteSectionGroup { Name = "Group A" };
+        var section = new OneNoteSection { Name = "Section A" };
+        var page = new OneNotePage { Title = "Current page" };
+
+        var paragraph = new OneNoteParagraph();
+        var bold = new OneNoteTextRun { Text = "Bold" };
+        bold.Style.Bold = true;
+        paragraph.Runs.Add(bold);
+        paragraph.Runs.Add(new OneNoteTextRun { Text = " " });
+        paragraph.Runs.Add(new OneNoteTextRun { Text = "link", Hyperlink = "https://example.com/a b" });
+        page.DirectContent.Add(paragraph);
+
+        var table = new OneNoteTable();
+        var row = new OneNoteTableRow();
+        row.Cells.Add(Cell("Left"));
+        row.Cells.Add(Cell("Right"));
+        table.Rows.Add(row);
+        page.DirectContent.Add(table);
+
+        var listItem = new OneNoteParagraph { List = new OneNoteListInfo { Level = 0 } };
+        listItem.Runs.Add(new OneNoteTextRun { Text = "Item" });
+        page.DirectContent.Add(listItem);
+        page.DirectContent.Add(new OneNoteImage {
+            FileName = "diagram.png",
+            AltText = "Diagram",
+            MediaType = "image/png",
+            Payload = OneNoteBinaryPayload.FromBytes(new byte[] { 1, 2, 3 })
+        });
+        page.DirectContent.Add(new OneNoteEmbeddedFile {
+            FileName = "sample.zip",
+            Payload = OneNoteBinaryPayload.FromBytes(new byte[] { 4, 5, 6 })
+        });
+        page.DirectContent.Add(new OneNoteMath { Text = "x^2", Latex = "x^2" });
+
+        var conflict = new OneNotePage { Title = "Conflict copy", IsConflictPage = true };
+        conflict.DirectContent.Add(Paragraph("Conflict body"));
+        page.ConflictPages.Add(conflict);
+        var version = new OneNotePage { Title = "Historical copy", IsVersionHistoryPage = true };
+        version.DirectContent.Add(Paragraph("Historical body"));
+        page.VersionHistory.Add(version);
+
+        section.Pages.Add(page);
+        group.Sections.Add(section);
+        notebook.SectionGroups.Add(group);
+        return notebook;
+    }
+
+    private static OneNoteTableCell Cell(string text) {
+        var cell = new OneNoteTableCell();
+        cell.Content.Add(Paragraph(text));
+        return cell;
+    }
+
+    private static OneNoteParagraph Paragraph(string text) {
+        var paragraph = new OneNoteParagraph();
+        paragraph.Runs.Add(new OneNoteTextRun { Text = text });
+        return paragraph;
+    }
+}
