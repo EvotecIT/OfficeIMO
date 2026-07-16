@@ -33,14 +33,21 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
 
     internal sealed class GoogleSlidesApiPageBackgroundFill {
         [JsonPropertyName("solidFill")] public GoogleSlidesApiSolidFill? SolidFill { get; set; }
+        [JsonPropertyName("stretchedPictureFill")] public GoogleSlidesApiStretchedPictureFill? StretchedPictureFill { get; set; }
     }
 
     internal sealed class GoogleSlidesApiSolidFill {
         [JsonPropertyName("color")] public GoogleSlidesApiOpaqueColor? Color { get; set; }
+        [JsonPropertyName("alpha")] public double? Alpha { get; set; }
     }
 
     internal sealed class GoogleSlidesApiOpaqueColor {
         [JsonPropertyName("rgbColor")] public GoogleSlidesApiRgbColor? RgbColor { get; set; }
+        [JsonPropertyName("themeColor")] public string? ThemeColor { get; set; }
+    }
+
+    internal sealed class GoogleSlidesApiStretchedPictureFill {
+        [JsonPropertyName("contentUrl")] public string? ContentUrl { get; set; }
     }
 
     internal sealed class GoogleSlidesApiOptionalColor {
@@ -90,6 +97,28 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
     internal sealed class GoogleSlidesApiShape {
         [JsonPropertyName("shapeType")] public string? ShapeType { get; set; }
         [JsonPropertyName("text")] public GoogleSlidesApiTextContent? Text { get; set; }
+        [JsonPropertyName("shapeProperties")] public GoogleSlidesApiShapeProperties? ShapeProperties { get; set; }
+    }
+
+    internal sealed class GoogleSlidesApiShapeProperties {
+        [JsonPropertyName("shapeBackgroundFill")] public GoogleSlidesApiShapeBackgroundFill? ShapeBackgroundFill { get; set; }
+        [JsonPropertyName("outline")] public GoogleSlidesApiOutline? Outline { get; set; }
+    }
+
+    internal sealed class GoogleSlidesApiShapeBackgroundFill {
+        [JsonPropertyName("propertyState")] public string? PropertyState { get; set; }
+        [JsonPropertyName("solidFill")] public GoogleSlidesApiSolidFill? SolidFill { get; set; }
+    }
+
+    internal sealed class GoogleSlidesApiOutline {
+        [JsonPropertyName("propertyState")] public string? PropertyState { get; set; }
+        [JsonPropertyName("outlineFill")] public GoogleSlidesApiOutlineFill? OutlineFill { get; set; }
+        [JsonPropertyName("weight")] public GoogleSlidesApiDimension? Weight { get; set; }
+        [JsonPropertyName("dashStyle")] public string? DashStyle { get; set; }
+    }
+
+    internal sealed class GoogleSlidesApiOutlineFill {
+        [JsonPropertyName("solidFill")] public GoogleSlidesApiSolidFill? SolidFill { get; set; }
     }
 
     internal sealed class GoogleSlidesApiTextContent {

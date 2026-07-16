@@ -53,6 +53,28 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                     GoogleSlidesApiRgbColor? backgroundColor = sourceSlide.PageProperties?.PageBackgroundFill?.SolidFill?.Color?.RgbColor;
                     if (backgroundColor != null) {
                         slide.BackgroundColor = ToHex(backgroundColor);
+                    } else if (sourceSlide.PageProperties?.PageBackgroundFill?.StretchedPictureFill?.ContentUrl is string backgroundUrl
+                        && !string.IsNullOrWhiteSpace(backgroundUrl)) {
+                        try {
+                            byte[] bytes = await transport.SendBytesAsync(
+                                token,
+                                HttpMethod.Get,
+                                backgroundUrl,
+                                GoogleWorkspaceRequestSafety.Safe,
+                                "Google Slides background image",
+                                report,
+                                cancellationToken,
+                                preserveRequestUri: true).ConfigureAwait(false);
+                            using var image = new MemoryStream(bytes, writable: false);
+                            slide.SetBackgroundImage(image, DetectImageType(bytes));
+                        } catch (Exception ex) when (!(ex is OperationCanceledException)) {
+                            report.Add(
+                                TranslationSeverity.Warning,
+                                "Backgrounds",
+                                $"The image background on slide '{sourceSlide.ObjectId ?? "unspecified"}' could not be downloaded; Drive-export import preserves the original presentation package.",
+                                code: "SLIDES.IMPORT.BACKGROUND_IMAGE_FALLBACK",
+                                action: TranslationAction.Skip);
+                        }
                     }
                     foreach (GoogleSlidesApiPageElement element in sourceSlide.PageElements) {
                         ElementGeometry geometry = ProjectGeometry(element, report);
@@ -77,6 +99,7 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                                 }
                             }
                             ApplyTransform(box, geometry);
+                            ApplyShapeStyle(box, element.Shape, report, element.ObjectId);
                             GoogleSlidesApiTextRun? style = element.Shape.Text.TextElements.Select(item => item.TextRun).FirstOrDefault(run => run?.Style != null);
                             PowerPointTextRun? run = box.Paragraphs.SelectMany(paragraph => paragraph.Runs).FirstOrDefault();
                             if (style?.Style != null && run != null) {
@@ -89,6 +112,7 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                             if (TryMapShapeType(element.Shape.ShapeType, out A.ShapeTypeValues shapeType)) {
                                 PowerPointAutoShape shape = slide.AddShapePoints(shapeType, left, top, Math.Max(1, width), Math.Max(1, height), element.ObjectId);
                                 ApplyTransform(shape, geometry);
+                                ApplyShapeStyle(shape, element.Shape, report, element.ObjectId);
                             } else {
                                 report.Add(
                                     TranslationSeverity.Warning,
@@ -192,6 +216,58 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
             if (geometry.VerticalFlip) shape.VerticalFlip = true;
         }
 
+        private static void ApplyShapeStyle(PowerPointShape target, GoogleSlidesApiShape source, TranslationReport report, string? objectId) {
+            GoogleSlidesApiShapeBackgroundFill? background = source.ShapeProperties?.ShapeBackgroundFill;
+            if (background != null) {
+                if (string.Equals(background.PropertyState, "NOT_RENDERED", StringComparison.OrdinalIgnoreCase)) {
+                    target.FillColor = "FFFFFF";
+                    target.FillTransparency = 100;
+                } else if (background.SolidFill?.Color?.RgbColor is GoogleSlidesApiRgbColor fillColor) {
+                    target.FillColor = ToHex(fillColor);
+                    if (background.SolidFill.Alpha.HasValue) {
+                        target.FillTransparency = ToTransparency(background.SolidFill.Alpha.Value);
+                    }
+                } else if (background.SolidFill != null) {
+                    AddShapeStyleDiagnostic(report, objectId, "fill uses a theme color that cannot be resolved without its inherited color scheme");
+                }
+            }
+
+            GoogleSlidesApiOutline? outline = source.ShapeProperties?.Outline;
+            if (outline == null) return;
+            if (string.Equals(outline.PropertyState, "NOT_RENDERED", StringComparison.OrdinalIgnoreCase)) {
+                target.OutlineColor = null;
+                target.OutlineWidthPoints = 0;
+                return;
+            }
+
+            GoogleSlidesApiSolidFill? outlineFill = outline.OutlineFill?.SolidFill;
+            if (outlineFill?.Color?.RgbColor is GoogleSlidesApiRgbColor outlineColor) {
+                target.OutlineColor = ToHex(outlineColor);
+            } else if (outlineFill != null) {
+                AddShapeStyleDiagnostic(report, objectId, "outline uses a theme color that cannot be resolved without its inherited color scheme");
+            }
+            if (outline.Weight != null) {
+                target.OutlineWidthPoints = Math.Max(0, ToPoints(outline.Weight));
+            }
+            if (outlineFill?.Alpha is double alpha && Math.Abs(alpha - 1d) > 0.0000001) {
+                AddShapeStyleDiagnostic(report, objectId, "outline transparency is not representable by the current PowerPoint shape API");
+            }
+            if (!string.IsNullOrWhiteSpace(outline.DashStyle)
+                && !string.Equals(outline.DashStyle, "SOLID", StringComparison.OrdinalIgnoreCase)
+                && !string.Equals(outline.DashStyle, "DASH_STYLE_UNSPECIFIED", StringComparison.OrdinalIgnoreCase)) {
+                AddShapeStyleDiagnostic(report, objectId, $"outline dash style '{outline.DashStyle}' is not preserved by the Google Slides round-trip model");
+            }
+        }
+
+        private static void AddShapeStyleDiagnostic(TranslationReport report, string? objectId, string detail) {
+            report.Add(
+                TranslationSeverity.Warning,
+                "Shapes",
+                $"Native Google Slides shape '{objectId ?? "unspecified"}' {detail}; Drive-export import remains the fidelity fallback.",
+                code: "SLIDES.IMPORT.SHAPE_STYLE_PARTIAL",
+                action: TranslationAction.Flatten);
+        }
+
         private readonly struct ElementGeometry {
             internal ElementGeometry(double left, double top, double width, double height, double rotation, bool verticalFlip) {
                 Left = left;
@@ -212,6 +288,7 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
 
         private static string ToHex(GoogleSlidesApiRgbColor color) => $"{ToByte(color.Red):X2}{ToByte(color.Green):X2}{ToByte(color.Blue):X2}";
         private static int ToByte(double component) => Math.Max(0, Math.Min(255, (int)Math.Round(component * 255d)));
+        private static int ToTransparency(double alpha) => (int)Math.Round((1d - Math.Max(0d, Math.Min(1d, alpha))) * 100d);
         private static bool TryMapShapeType(string? shapeType, out A.ShapeTypeValues mapped) {
             switch (shapeType) {
                 case "RECTANGLE": mapped = A.ShapeTypeValues.Rectangle; return true;

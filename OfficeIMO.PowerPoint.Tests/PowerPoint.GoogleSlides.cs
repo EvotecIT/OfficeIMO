@@ -571,7 +571,7 @@ namespace OfficeIMO.Tests {
         public async Task NativeImporter_ProjectsTextTableAndNotesWhenDriveExportIsDisabled() {
             using var httpClient = new HttpClient(new DelegateHandler(request => {
                 if (request.RequestUri!.Host == "www.googleapis.com") return Task.FromResult(Json("{\"id\":\"deck-import\",\"name\":\"Import\",\"mimeType\":\"application/vnd.google-apps.presentation\",\"version\":4,\"capabilities\":{\"canDownload\":false}}"));
-                const string slides = "{\"presentationId\":\"deck-import\",\"title\":\"Import\",\"revisionId\":\"r4\",\"pageSize\":{\"width\":{\"magnitude\":720,\"unit\":\"PT\"},\"height\":{\"magnitude\":405,\"unit\":\"PT\"}},\"slides\":[{\"objectId\":\"slide-1\",\"pageProperties\":{\"pageBackgroundFill\":{\"solidFill\":{\"color\":{\"rgbColor\":{\"red\":0.2,\"green\":0.4,\"blue\":0.6}}}}},\"pageElements\":[{\"objectId\":\"text-1\",\"size\":{\"width\":{\"magnitude\":300,\"unit\":\"PT\"},\"height\":{\"magnitude\":80,\"unit\":\"PT\"}},\"transform\":{\"translateX\":20,\"translateY\":30,\"unit\":\"PT\"},\"shape\":{\"shapeType\":\"TEXT_BOX\",\"text\":{\"textElements\":[{\"textRun\":{\"content\":\"Imported text\\n\",\"style\":{\"bold\":true,\"foregroundColor\":{\"opaqueColor\":{\"rgbColor\":{\"red\":0.2,\"green\":0.4,\"blue\":0.6}}}}}}]}}},{\"objectId\":\"shape-1\",\"size\":{\"width\":{\"magnitude\":120,\"unit\":\"PT\"},\"height\":{\"magnitude\":60,\"unit\":\"PT\"}},\"transform\":{\"translateX\":400,\"translateY\":30,\"unit\":\"PT\"},\"shape\":{\"shapeType\":\"RECTANGLE\"}},{\"objectId\":\"table-1\",\"size\":{\"width\":{\"magnitude\":300,\"unit\":\"PT\"},\"height\":{\"magnitude\":100,\"unit\":\"PT\"}},\"transform\":{\"translateX\":30,\"translateY\":130,\"unit\":\"PT\"},\"table\":{\"rows\":1,\"columns\":1,\"tableRows\":[{\"tableCells\":[{\"text\":{\"textElements\":[{\"textRun\":{\"content\":\"Cell\\n\"}}]}}]}]}}],\"slideProperties\":{\"isSkipped\":true,\"notesPage\":{\"notesProperties\":{\"speakerNotesObjectId\":\"notes-body\"},\"pageElements\":[{\"objectId\":\"notes-body\",\"shape\":{\"text\":{\"textElements\":[{\"textRun\":{\"content\":\"Imported notes\\n\"}}]}}}]}}}]}";
+                const string slides = "{\"presentationId\":\"deck-import\",\"title\":\"Import\",\"revisionId\":\"r4\",\"pageSize\":{\"width\":{\"magnitude\":720,\"unit\":\"PT\"},\"height\":{\"magnitude\":405,\"unit\":\"PT\"}},\"slides\":[{\"objectId\":\"slide-1\",\"pageProperties\":{\"pageBackgroundFill\":{\"solidFill\":{\"color\":{\"rgbColor\":{\"red\":0.2,\"green\":0.4,\"blue\":0.6}}}}},\"pageElements\":[{\"objectId\":\"text-1\",\"size\":{\"width\":{\"magnitude\":300,\"unit\":\"PT\"},\"height\":{\"magnitude\":80,\"unit\":\"PT\"}},\"transform\":{\"translateX\":20,\"translateY\":30,\"unit\":\"PT\"},\"shape\":{\"shapeType\":\"TEXT_BOX\",\"text\":{\"textElements\":[{\"textRun\":{\"content\":\"Imported text\\n\",\"style\":{\"bold\":true,\"foregroundColor\":{\"opaqueColor\":{\"rgbColor\":{\"red\":0.2,\"green\":0.4,\"blue\":0.6}}}}}}]}}},{\"objectId\":\"shape-1\",\"size\":{\"width\":{\"magnitude\":120,\"unit\":\"PT\"},\"height\":{\"magnitude\":60,\"unit\":\"PT\"}},\"transform\":{\"translateX\":400,\"translateY\":30,\"unit\":\"PT\"},\"shape\":{\"shapeType\":\"RECTANGLE\",\"shapeProperties\":{\"shapeBackgroundFill\":{\"propertyState\":\"RENDERED\",\"solidFill\":{\"color\":{\"rgbColor\":{\"red\":0.8,\"green\":0.4,\"blue\":0.2}},\"alpha\":0.75}},\"outline\":{\"propertyState\":\"RENDERED\",\"outlineFill\":{\"solidFill\":{\"color\":{\"rgbColor\":{\"red\":0.2,\"green\":0.4,\"blue\":0.6}}}},\"weight\":{\"magnitude\":2.5,\"unit\":\"PT\"}}}}},{\"objectId\":\"table-1\",\"size\":{\"width\":{\"magnitude\":300,\"unit\":\"PT\"},\"height\":{\"magnitude\":100,\"unit\":\"PT\"}},\"transform\":{\"translateX\":30,\"translateY\":130,\"unit\":\"PT\"},\"table\":{\"rows\":1,\"columns\":1,\"tableRows\":[{\"tableCells\":[{\"text\":{\"textElements\":[{\"textRun\":{\"content\":\"Cell\\n\"}}]}}]}]}}],\"slideProperties\":{\"isSkipped\":true,\"notesPage\":{\"notesProperties\":{\"speakerNotesObjectId\":\"notes-body\"},\"pageElements\":[{\"objectId\":\"notes-body\",\"shape\":{\"text\":{\"textElements\":[{\"textRun\":{\"content\":\"Imported notes\\n\"}}]}}}]}}}]}";
                 return Task.FromResult(Json(slides));
             }));
 
@@ -582,10 +582,22 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("336699", slide.BackgroundColor);
                 PowerPointTextBox importedText = Assert.Single(slide.TextBoxes, text => text.Text == "Imported text");
                 Assert.Equal("336699", Assert.Single(Assert.Single(importedText.Paragraphs).Runs).Color);
-                Assert.Equal(A.ShapeTypeValues.Rectangle, Assert.Single(slide.Shapes.OfType<PowerPointAutoShape>()).ShapeType);
+                PowerPointAutoShape importedShape = Assert.Single(slide.Shapes.OfType<PowerPointAutoShape>());
+                Assert.Equal(A.ShapeTypeValues.Rectangle, importedShape.ShapeType);
+                Assert.Equal("CC6633", importedShape.FillColor);
+                Assert.Equal(25, importedShape.FillTransparency);
+                Assert.Equal("336699", importedShape.OutlineColor);
+                Assert.Equal(2.5d, importedShape.OutlineWidthPoints);
                 Assert.Equal("Cell", Assert.Single(slide.Tables).RowItems[0].Cells[0].Text);
                 Assert.Equal("Imported notes", slide.Notes.Text);
                 Assert.Equal("r4", imported.Source.RevisionId);
+                GoogleSlidesShape roundTripShape = Assert.Single(
+                    Assert.Single(GoogleSlidesBatchCompiler.Build(imported.Presentation, new GoogleSlidesSaveOptions()).Slides)
+                        .Elements.OfType<GoogleSlidesShape>());
+                Assert.Equal("CC6633", roundTripShape.Style.FillColorHex);
+                Assert.Equal(25, roundTripShape.Style.FillTransparencyPercent);
+                Assert.Equal("336699", roundTripShape.Style.OutlineColorHex);
+                Assert.Equal(2.5d, roundTripShape.Style.OutlineWidthPoints);
             }
         }
 
@@ -654,15 +666,19 @@ namespace OfficeIMO.Tests {
                     Assert.Equal("https://images.example.test/image.gif", request.RequestUri.AbsoluteUri);
                     return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent(gif) });
                 }
-                const string slides = "{\"presentationId\":\"deck-gif\",\"pageSize\":{\"width\":{\"magnitude\":720,\"unit\":\"PT\"},\"height\":{\"magnitude\":405,\"unit\":\"PT\"}},\"slides\":[{\"objectId\":\"slide-1\",\"pageElements\":[{\"objectId\":\"image-1\",\"size\":{\"width\":{\"magnitude\":100,\"unit\":\"PT\"},\"height\":{\"magnitude\":100,\"unit\":\"PT\"}},\"transform\":{\"translateX\":20,\"translateY\":30,\"unit\":\"PT\"},\"image\":{\"contentUrl\":\"https://images.example.test/image.gif\"}}]}]}";
+                const string slides = "{\"presentationId\":\"deck-gif\",\"pageSize\":{\"width\":{\"magnitude\":720,\"unit\":\"PT\"},\"height\":{\"magnitude\":405,\"unit\":\"PT\"}},\"slides\":[{\"objectId\":\"slide-1\",\"pageProperties\":{\"pageBackgroundFill\":{\"stretchedPictureFill\":{\"contentUrl\":\"https://images.example.test/image.gif\"}}},\"pageElements\":[{\"objectId\":\"image-1\",\"size\":{\"width\":{\"magnitude\":100,\"unit\":\"PT\"},\"height\":{\"magnitude\":100,\"unit\":\"PT\"}},\"transform\":{\"translateX\":20,\"translateY\":30,\"unit\":\"PT\"},\"image\":{\"contentUrl\":\"https://images.example.test/image.gif\"}}]}]}";
                 return Task.FromResult(Json(slides));
             }));
 
             GoogleSlidesImportResult imported = await new GoogleSlidesImporter().ImportAsync("deck-gif", Session(httpClient, quotaUser: "tenant-user"), new GoogleSlidesImportOptions { Mode = GoogleSlidesImportMode.Native });
             using (imported.Presentation) {
-                PowerPointPicture picture = Assert.Single(Assert.Single(imported.Presentation.Slides).Pictures);
+                PowerPointSlide slide = Assert.Single(imported.Presentation.Slides);
+                PowerPointPicture picture = Assert.Single(slide.Pictures);
                 Assert.Equal("image/gif", picture.ContentType);
+                Assert.Equal(PowerPointSlideBackgroundKind.Image, slide.GetBackground().Kind);
+                Assert.Equal("image/gif", slide.GetBackground().ImageContentType);
                 Assert.DoesNotContain(imported.Report.Notices, notice => notice.Code == "SLIDES.IMPORT.IMAGE_FALLBACK");
+                Assert.DoesNotContain(imported.Report.Notices, notice => notice.Code == "SLIDES.IMPORT.BACKGROUND_IMAGE_FALLBACK");
             }
         }
 

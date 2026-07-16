@@ -14,8 +14,8 @@ namespace OfficeIMO.Excel.GoogleSheets {
             "spreadsheetId,spreadsheetUrl,properties(title,locale,timeZone)," +
             "namedRanges(name,range)," +
             "sheets(properties(sheetId,title,index,hidden,rightToLeft,tabColor,gridProperties)," +
-            "data(startRow,startColumn,rowData(values(userEnteredValue,effectiveValue,formattedValue,userEnteredFormat,note,dataValidation,pivotTable)))," +
-            "merges,conditionalFormats,charts,tables,filterViews,basicFilter)";
+            "data(startRow,startColumn,rowData(values(userEnteredValue,effectiveValue,formattedValue,userEnteredFormat,note,dataValidation,pivotTable)),rowMetadata(hiddenByUser,pixelSize),columnMetadata(hiddenByUser,pixelSize))," +
+            "merges,conditionalFormats,charts,tables,filterViews,basicFilter,rowGroups,columnGroups)";
 
         public async Task<GoogleSheetsImportResult> ImportAsync(
             string spreadsheetId,
@@ -131,6 +131,8 @@ namespace OfficeIMO.Excel.GoogleSheets {
                     sheetNames[nativeSheet.Properties.SheetId] = sheet.Name;
                     ApplySheetProperties(sheet, nativeSheet.Properties);
                     ApplyGridData(sheet, nativeSheet.Data, report);
+                    ApplyDimensionGroups(sheet, nativeSheet.Properties, nativeSheet.RowGroups, "ROWS", report);
+                    ApplyDimensionGroups(sheet, nativeSheet.Properties, nativeSheet.ColumnGroups, "COLUMNS", report);
                     ApplyMerges(sheet, nativeSheet.Merges);
                     AddNativeObjectDiagnostics(nativeSheet, report);
                 }
@@ -177,6 +179,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
             IReadOnlyList<GoogleSheetsNativeGridData> data,
             TranslationReport report) {
             foreach (GoogleSheetsNativeGridData block in data) {
+                ApplyDimensionMetadata(sheet, block);
                 for (int rowOffset = 0; rowOffset < block.RowData.Count; rowOffset++) {
                     GoogleSheetsNativeRowData row = block.RowData[rowOffset];
                     for (int columnOffset = 0; columnOffset < row.Values.Count; columnOffset++) {
@@ -186,6 +189,91 @@ namespace OfficeIMO.Excel.GoogleSheets {
                     }
                 }
             }
+        }
+
+        private static void ApplyDimensionMetadata(ExcelSheet sheet, GoogleSheetsNativeGridData block) {
+            for (int offset = 0; offset < block.RowMetadata.Count; offset++) {
+                int rowIndex = block.StartRow + offset + 1;
+                if (rowIndex > 1048576) break;
+                GoogleSheetsNativeDimensionProperties metadata = block.RowMetadata[offset];
+                if (metadata.PixelSize is int pixels && pixels > 0) {
+                    sheet.SetRowHeight(rowIndex, pixels * 72d / 96d);
+                }
+                if (metadata.HiddenByUser == true) {
+                    sheet.SetRowHidden(rowIndex, true);
+                }
+            }
+
+            for (int offset = 0; offset < block.ColumnMetadata.Count; offset++) {
+                int columnIndex = block.StartColumn + offset + 1;
+                if (columnIndex > 16384) break;
+                GoogleSheetsNativeDimensionProperties metadata = block.ColumnMetadata[offset];
+                if (metadata.PixelSize is int pixels && pixels > 0) {
+                    sheet.SetColumnWidth(columnIndex, ConvertPixelsToExcelColumnWidth(pixels));
+                }
+                if (metadata.HiddenByUser == true) {
+                    sheet.SetColumnHidden(columnIndex, true);
+                }
+            }
+        }
+
+        private static void ApplyDimensionGroups(
+            ExcelSheet sheet,
+            GoogleSheetsNativeSheetProperties properties,
+            IReadOnlyList<GoogleSheetsNativeDimensionGroup> groups,
+            string dimension,
+            TranslationReport report) {
+            int maximum = string.Equals(dimension, "ROWS", StringComparison.Ordinal) ? 1048576 : 16384;
+            var levels = new Dictionary<int, byte>();
+            foreach (GoogleSheetsNativeDimensionGroup group in groups) {
+                GoogleSheetsNativeDimensionRange range = group.Range;
+                if (range.SheetId != properties.SheetId
+                    || !string.Equals(range.Dimension, dimension, StringComparison.OrdinalIgnoreCase)
+                    || range.StartIndex < 0
+                    || range.EndIndex <= range.StartIndex
+                    || group.Depth <= 0) {
+                    report.Add(
+                        TranslationSeverity.Warning,
+                        "DimensionGroups",
+                        $"A native {dimension.ToLowerInvariant()} group on '{properties.Title}' had an invalid range or depth and was skipped.",
+                        path: properties.Title,
+                        code: "SHEETS.IMPORT.DIMENSION_GROUP_SKIPPED",
+                        action: TranslationAction.Skip);
+                    continue;
+                }
+
+                byte level = (byte)Math.Min(7, group.Depth);
+                if (group.Depth > 7) {
+                    report.AddUnique(
+                        TranslationSeverity.Warning,
+                        "DimensionGroups",
+                        $"Google Sheets outline depth exceeds Excel's maximum of 7 on '{properties.Title}'; deeper groups were flattened to level 7.",
+                        path: properties.Title,
+                        code: "SHEETS.IMPORT.DIMENSION_GROUP_DEPTH_FLATTENED",
+                        action: TranslationAction.Flatten);
+                }
+                int end = Math.Min(maximum, range.EndIndex);
+                for (int index = range.StartIndex; index < end; index++) {
+                    int oneBasedIndex = index + 1;
+                    if (!levels.TryGetValue(oneBasedIndex, out byte existing) || level > existing) {
+                        levels[oneBasedIndex] = level;
+                    }
+                }
+            }
+
+            foreach (KeyValuePair<int, byte> item in levels.OrderBy(item => item.Key)) {
+                if (string.Equals(dimension, "ROWS", StringComparison.Ordinal)) {
+                    sheet.SetRowOutline(item.Key, item.Value, save: false);
+                } else {
+                    sheet.SetColumnOutline(item.Key, item.Value, save: false);
+                }
+            }
+        }
+
+        private static double ConvertPixelsToExcelColumnWidth(int pixels) {
+            const double maximumDigitWidth = 7d;
+            double roundingOffset = Math.Truncate(128d / maximumDigitWidth) / 256d;
+            return Math.Max(0d, (pixels / maximumDigitWidth) - roundingOffset);
         }
 
         private static void ApplyCell(

@@ -64,8 +64,10 @@ namespace OfficeIMO.Tests {
                     "data":[{"startRow":0,"startColumn":0,"rowData":[
                       {"values":[{"userEnteredValue":{"stringValue":"Name"},"userEnteredFormat":{"textFormat":{"bold":true,"fontFamily":"Arial","fontSize":12},"backgroundColor":{"red":1,"green":1,"blue":0}}}]},
                       {"values":[{"userEnteredValue":{"stringValue":"Alpha"},"note":"Imported note"},{"userEnteredValue":{"formulaValue":"=SUM(1,2)"},"effectiveValue":{"numberValue":3},"userEnteredFormat":{"numberFormat":{"type":"NUMBER","pattern":"0.00"},"textRotation":{"angle":-45}}}]}
-                    ]}],
+                    ],"rowMetadata":[{"pixelSize":24},{"pixelSize":40,"hiddenByUser":true}],"columnMetadata":[{"pixelSize":70},{"pixelSize":140,"hiddenByUser":true}]}],
                     "merges":[{"sheetId":42,"startRowIndex":0,"endRowIndex":1,"startColumnIndex":0,"endColumnIndex":2}],
+                    "rowGroups":[{"range":{"sheetId":42,"dimension":"ROWS","startIndex":1,"endIndex":3},"depth":1,"collapsed":false}],
+                    "columnGroups":[{"range":{"sheetId":42,"dimension":"COLUMNS","startIndex":1,"endIndex":3},"depth":1,"collapsed":false}],
                     "charts":[{}]
                   }]
                 }
@@ -119,6 +121,27 @@ namespace OfficeIMO.Tests {
                 Assert.Null(rowsRange.StartColumnIndex);
                 Assert.Null(rowsRange.EndColumnIndex);
                 Assert.Contains(sheet.Cells, cell => cell.Row == 2 && cell.Column == 2 && cell.Formula == "SUM(1,2)");
+                ExcelRowSnapshot importedRow = Assert.Single(sheet.Rows, row => row.Index == 2);
+                Assert.Equal(30d, importedRow.Height);
+                Assert.True(importedRow.Hidden);
+                Assert.Equal((byte)1, importedRow.OutlineLevel);
+                ExcelColumnSnapshot importedColumn = Assert.Single(sheet.Columns, column => column.StartIndex == 2 && column.EndIndex == 2);
+                Assert.True(importedColumn.Hidden);
+                Assert.Equal((byte)1, importedColumn.OutlineLevel);
+                GoogleSheetsUpdateDimensionPropertiesRequest rowUpdate = Assert.Single(
+                    roundTripBatch.Requests.OfType<GoogleSheetsUpdateDimensionPropertiesRequest>(),
+                    request => request.DimensionKind == GoogleSheetsDimensionKind.Rows && request.StartIndex == 1);
+                Assert.Equal(40, rowUpdate.PixelSize);
+                Assert.True(rowUpdate.Hidden);
+                GoogleSheetsUpdateDimensionPropertiesRequest columnUpdate = Assert.Single(
+                    roundTripBatch.Requests.OfType<GoogleSheetsUpdateDimensionPropertiesRequest>(),
+                    request => request.DimensionKind == GoogleSheetsDimensionKind.Columns && request.StartIndex == 1);
+                Assert.Equal(140, columnUpdate.PixelSize);
+                Assert.True(columnUpdate.Hidden);
+                Assert.Contains(roundTripBatch.Requests.OfType<GoogleSheetsAddDimensionGroupRequest>(),
+                    request => request.DimensionKind == GoogleSheetsDimensionKind.Rows && request.StartIndex == 1 && request.EndIndexExclusive == 3);
+                Assert.Contains(roundTripBatch.Requests.OfType<GoogleSheetsAddDimensionGroupRequest>(),
+                    request => request.DimensionKind == GoogleSheetsDimensionKind.Columns && request.StartIndex == 1 && request.EndIndexExclusive == 3);
                 ExcelCellSnapshot header = Assert.Single(sheet.Cells, cell => cell.Row == 1 && cell.Column == 1);
                 Assert.True(header.Style!.Bold);
                 Assert.Equal("Arial", header.Style.FontName);
@@ -130,6 +153,11 @@ namespace OfficeIMO.Tests {
 
             Assert.NotNull(sheetsRequest);
             Assert.Contains("ranges=Summary%21A1%3AB2", sheetsRequest!.Query);
+            string decodedQuery = Uri.UnescapeDataString(sheetsRequest.Query);
+            Assert.Contains("rowMetadata(hiddenByUser,pixelSize)", decodedQuery);
+            Assert.Contains("columnMetadata(hiddenByUser,pixelSize)", decodedQuery);
+            Assert.Contains("rowGroups", decodedQuery);
+            Assert.Contains("columnGroups", decodedQuery);
             Assert.Equal(21, result.Source.DriveVersion);
             Assert.Contains(result.Report.Notices, notice => notice.Code == "SHEETS.IMPORT.CHARTS_FALLBACK");
         }

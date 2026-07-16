@@ -53,6 +53,12 @@ namespace OfficeIMO.Excel.GoogleSheets {
 
         [JsonPropertyName("basicFilter")]
         public object? BasicFilter { get; set; }
+
+        [JsonPropertyName("rowGroups")]
+        public List<GoogleSheetsNativeDimensionGroup> RowGroups { get; set; } = new List<GoogleSheetsNativeDimensionGroup>();
+
+        [JsonPropertyName("columnGroups")]
+        public List<GoogleSheetsNativeDimensionGroup> ColumnGroups { get; set; } = new List<GoogleSheetsNativeDimensionGroup>();
     }
 
     internal sealed class GoogleSheetsNativeSheetProperties {
@@ -98,6 +104,45 @@ namespace OfficeIMO.Excel.GoogleSheets {
 
         [JsonPropertyName("rowData")]
         public List<GoogleSheetsNativeRowData> RowData { get; set; } = new List<GoogleSheetsNativeRowData>();
+
+        [JsonPropertyName("rowMetadata")]
+        public List<GoogleSheetsNativeDimensionProperties> RowMetadata { get; set; } = new List<GoogleSheetsNativeDimensionProperties>();
+
+        [JsonPropertyName("columnMetadata")]
+        public List<GoogleSheetsNativeDimensionProperties> ColumnMetadata { get; set; } = new List<GoogleSheetsNativeDimensionProperties>();
+    }
+
+    internal sealed class GoogleSheetsNativeDimensionProperties {
+        [JsonPropertyName("hiddenByUser")]
+        public bool? HiddenByUser { get; set; }
+
+        [JsonPropertyName("pixelSize")]
+        public int? PixelSize { get; set; }
+    }
+
+    internal sealed class GoogleSheetsNativeDimensionGroup {
+        [JsonPropertyName("range")]
+        public GoogleSheetsNativeDimensionRange Range { get; set; } = new GoogleSheetsNativeDimensionRange();
+
+        [JsonPropertyName("depth")]
+        public int Depth { get; set; }
+
+        [JsonPropertyName("collapsed")]
+        public bool Collapsed { get; set; }
+    }
+
+    internal sealed class GoogleSheetsNativeDimensionRange {
+        [JsonPropertyName("sheetId")]
+        public int SheetId { get; set; }
+
+        [JsonPropertyName("dimension")]
+        public string? Dimension { get; set; }
+
+        [JsonPropertyName("startIndex")]
+        public int StartIndex { get; set; }
+
+        [JsonPropertyName("endIndex")]
+        public int EndIndex { get; set; }
     }
 
     internal sealed class GoogleSheetsNativeRowData {

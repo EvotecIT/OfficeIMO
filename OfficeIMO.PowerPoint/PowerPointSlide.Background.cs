@@ -56,11 +56,32 @@ namespace OfficeIMO.PowerPoint {
                 throw new FileNotFoundException("Image file not found.", imagePath);
             }
 
+            ImagePartType imageType = GetImagePartType(imagePath);
+            string imageExtension = PowerPointPartFactory.GetImageExtension(imageType, imagePath);
+            using FileStream stream = new(imagePath, FileMode.Open, FileAccess.Read);
+            SetBackgroundImageCore(stream, imageType, imageExtension);
+        }
+
+        /// <summary>
+        /// Sets a background image for the slide from a readable image stream.
+        /// </summary>
+        /// <param name="image">Stream containing the image data.</param>
+        /// <param name="imageType">Image format of the stream.</param>
+        public void SetBackgroundImage(Stream image, ImagePartType imageType) {
+            if (image == null) {
+                throw new ArgumentNullException(nameof(image));
+            }
+            if (!image.CanRead) {
+                throw new ArgumentException("Image stream must be readable.", nameof(image));
+            }
+
+            SetBackgroundImageCore(image, imageType, PowerPointPartFactory.GetImageExtension(imageType));
+        }
+
+        private void SetBackgroundImageCore(Stream image, ImagePartType imageType, string imageExtension) {
             A.Blip? previousBlip = GetBackgroundBlip();
             string? previousRelationshipId = previousBlip?.Embed?.Value;
-            ImagePartType imageType = GetImagePartType(imagePath);
             PartTypeInfo partTypeInfo = imageType.ToPartTypeInfo();
-            string imageExtension = PowerPointPartFactory.GetImageExtension(imageType, imagePath);
             string imagePartUri = PowerPointPartFactory.GetIndexedPartUri(
                 _slidePart.OpenXmlPackage,
                 "ppt/media",
@@ -73,8 +94,10 @@ namespace OfficeIMO.PowerPoint {
                 partTypeInfo.ContentType,
                 imagePartUri);
 
-            using FileStream stream = new(imagePath, FileMode.Open, FileAccess.Read);
-            imagePart.FeedData(stream);
+            if (image.CanSeek) {
+                image.Position = 0;
+            }
+            imagePart.FeedData(image);
             string relationshipId = _slidePart.GetIdOfPart(imagePart);
 
             CommonSlideData common = SlideRoot.CommonSlideData ??= new CommonSlideData(new ShapeTree());
