@@ -195,11 +195,10 @@ PST, OST, Outlook for Mac OLM, and Apple Mail EMLX containers belong to the opti
 ```csharp
 using OfficeIMO.Email.Store;
 
-EmailStoreReadResult store = new EmailStoreReader().Read("archive.pst");
-EmailDocument firstMessage = store.Store.Folders
-    .SelectMany(folder => folder.Messages)
-    .First()
-    .Document;
+using EmailStoreSession session = EmailStoreSession.Open("archive.pst");
+EmailStoreItemReference firstReference = session.EnumerateItems(
+    new EmailStoreEnumerationOptions(maxItems: 1)).Single();
+EmailDocument firstMessage = session.ReadItem(firstReference).Document;
 ```
 
 `OfficeIMO.Email` remains sufficient for individual EML, MSG, OFT, TNEF, and mbox artifacts.
@@ -217,8 +216,8 @@ await content.CopyToAsync(destination, 81920, cancellationToken);
 ```
 
 EML, MSG, and TNEF writers consume either representation through the same bounded path. The interface deliberately
-contains no PST, OST, MAPI, or Outlook types, so a future mailbox-store package can yield ordinary `EmailDocument`
-instances while keeping store lifetime and property-stream access in the store owner.
+contains no PST, OST, MAPI, or Outlook types, so mailbox and store owners can yield ordinary `EmailDocument`
+instances while keeping source lifetime and property-stream access in the owning package.
 
 ## Resource limits
 
@@ -248,8 +247,9 @@ foreach (OfficeDocumentAsset attachment in result.Assets) {
 `OfficeIMO.Email` owns offline artifact parsing, serialization, and format-neutral Outlook data. It does not connect to mail servers, authenticate users, resolve certificates or keys, verify DKIM/ARC/PGP/S/MIME signatures, or decrypt protected messages. MailKit, MimeKit, and applications such as Mailozaurr remain the owners for those operations.
 
 The package does not expose general-purpose CFB transactions or mailbox-store traversal. Its compound implementation
-serves MSG/OFT and structured attachments only. `OfficeIMO.Email.Store` is the separate read-only owner for PST, OST,
-OLM, and EMLX traversal. Store mutation and transactional commits remain outside both packages.
+serves MSG/OFT and structured attachments only. `OfficeIMO.Email.Store` is the separate read-only source owner for
+PST, OST, OLM, EMLX, Apple Mail, and Maildir traversal, selection, validation, and item export. PST/OST mutation and
+transactional store commits remain outside both packages.
 
 For exact pass-through of an ordinary unprotected artifact, read with `preserveRawSource: true` and write with
 `usePreservedRawSource: true`. Protected artifacts use safe unchanged pass-through automatically.

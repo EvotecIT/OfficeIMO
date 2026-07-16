@@ -45,6 +45,8 @@ public sealed class EmailStoreSessionTests {
 
         Assert.Equal(virtualLength, session.SourceLength);
         Assert.Single(session.EnumerateItems(new EmailStoreEnumerationOptions(maxItems: 1)));
+        Assert.True(source.TotalBytesRead < 1024 * 1024,
+            $"Opening and enumerating a virtual 64 GiB store read {source.TotalBytesRead} bytes.");
     }
 
     [Fact]
@@ -257,6 +259,7 @@ public sealed class EmailStoreSessionTests {
         public override bool CanSeek => true;
         public override bool CanWrite => false;
         public override long Length => _length;
+        internal long TotalBytesRead { get; private set; }
         public override long Position {
             get => _position;
             set {
@@ -270,6 +273,7 @@ public sealed class EmailStoreSessionTests {
             int available = checked((int)Math.Min(count, _data.LongLength - _position));
             Buffer.BlockCopy(_data, checked((int)_position), buffer, offset, available);
             _position += available;
+            TotalBytesRead += available;
             return available;
         }
 

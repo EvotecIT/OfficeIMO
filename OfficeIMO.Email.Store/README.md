@@ -1,6 +1,6 @@
 # OfficeIMO.Email.Store
 
-`OfficeIMO.Email.Store` is the fully managed, read-only mailbox-store package for PST, OST, OLM, and EMLX artifacts. It projects every supported item into the common `OfficeIMO.Email.EmailDocument` model without Outlook, native libraries, or third-party parser packages.
+`OfficeIMO.Email.Store` is the fully managed mailbox-store package for PST, OST, OLM, EMLX, Apple Mail, and Maildir sources. Sources remain read-only. Selected items project into the common `OfficeIMO.Email.EmailDocument` model and can be exported through `OfficeIMO.Email` without Outlook, native libraries, or third-party parser packages.
 
 ## Install
 
@@ -29,6 +29,32 @@ foreach (EmailStoreItemReference reference in session.EnumerateItems(
 The session keeps a bounded B-tree page cache, streams NBT entries and large table row-matrix blocks,
 and resolves individual NIDs and BIDs on demand. Sessions are not thread-safe. A caller-owned stream
 is left open by default and its original position is restored when the session is disposed.
+
+## Search a huge PST or OST
+
+PST/OST search reads only a small summary-property allowlist until the application explicitly selects an item.
+Both scanning and returned results are bounded:
+
+```csharp
+using EmailStoreSession session = EmailStoreSession.Open("mailbox.ost");
+
+foreach (EmailStoreSearchResult match in session.Search(new EmailStoreQuery(
+    folderId: session.Folders.Single(folder => folder.Name == "Inbox").Id,
+    subjectContains: "quarterly report",
+    since: DateTimeOffset.UtcNow.AddYears(-1),
+    maxItemsScanned: 250_000,
+    maxResults: 100))) {
+    Console.WriteLine($"{match.Summary.ReceivedAt:u} {match.Summary.Subject}");
+
+    EmailStoreItem item = session.ReadItem(match.Reference);
+    // Body, recipients, and attachments are projected only here.
+}
+```
+
+Opening and enumerating a PST/OST does not load the complete NBT, BBT, folder contents, message bodies, or
+attachments. The default source limit is 1 TiB and can be changed explicitly. The default cache retains at most
+512 B-tree pages. One selected item is still subject to per-item, property, and attachment limits; use
+`retainAttachmentContent: false` for metadata/text ingestion so projected items do not retain attachment payloads.
 
 Use `EmailStoreReader` when the application explicitly wants the complete configured store scope in memory:
 
@@ -63,8 +89,60 @@ EmailStoreReadResult result = new EmailStoreReader().Read("export.olm");
 | OST | The supported PST-compatible NDB paths plus compressed blocks used by supported OST variants. Server-only or unmaterialized content cannot be recovered from an offline file. |
 | OLM | Bounded Outlook for Mac ZIP/XML archives, folders, messages and typed items, and safe in-archive attachments. |
 | EMLX | One Apple Mail EMLX item, including its RFC 5322/MIME message and supported XML property-list metadata. Partial files report that external Apple Mail content may be absent. |
+| Mailbox directory | Lazy Apple Mail `.mbox/.../Messages/*.emlx`, Maildir `cur/new`, and EML/MIME directory trees. Reparse points are not followed. |
 
 PST and OST MAPI properties use the same projections as MSG and OFT, so messages, appointments, contacts, tasks, journals, notes, recipients, attachments, and named properties do not acquire a second public model.
+
+PST/OST and mailbox-directory sessions are lazy. Single EMLX input contains one item. OLM currently validates and
+materializes its bounded ZIP/XML archive when the session opens; query, validation, and export then use the same
+session contracts.
+
+## Inspect, validate, and recover
+
+Inspection reads the already-built catalog. Validation depth is explicit, and orphan discovery never mutates or
+"repairs" the source:
+
+```csharp
+EmailStoreInspectionReport inspection = session.Inspect();
+
+EmailStoreValidationReport validation = session.Validate(
+    new EmailStoreValidationOptions(
+        mode: EmailStoreValidationMode.Summaries,
+        maxItems: 100_000));
+
+EmailStoreRecoveryReport recovery = session.DiscoverRecoverableItems(
+    new EmailStoreRecoveryOptions(
+        maxItemsScanned: 1_000_000,
+        maxRecoveredItems: 10_000));
+```
+
+`Shallow` validation covers the header, indexes, and folder catalog. `Summaries` selectively decodes browsing
+properties. `FullItems` projects bodies, recipients, and attachment metadata/content according to reader options.
+A configured limit produces an incomplete report, not a false corruption claim.
+
+## Export and migration
+
+Directory export writes one selected item at a time as EML, MSG, OFT, or TNEF and records a tab-separated
+preservation manifest. Streaming mbox export writes a same-directory temporary file and commits it only after the
+selected sequence completes:
+
+```csharp
+EmailStoreExportReport files = session.ExportToDirectory(
+    "exported-mail",
+    new EmailStoreExportOptions(
+        format: OfficeIMO.Email.EmailFileFormat.OutlookMsg,
+        maxItems: 50_000));
+
+EmailStoreMboxExportReport mailbox = session.ExportToMbox(
+    "exported-mail/archive.mbox",
+    new EmailStoreMboxExportOptions(maxItems: 50_000));
+```
+
+Output conversion uses `OfficeIMO.Email` and its explicit semantic-loss policy. Existing destinations are not
+replaced by default. Per-item failures and fidelity warnings remain visible in the export report.
+
+True OST-to-PST conversion is not advertised. It requires a complete new PST writer rather than changing an OST
+signature. The separate writer scope and validation gates are documented in [ARCHITECTURE.md](ARCHITECTURE.md).
 
 ## Limits and attachment retention
 
@@ -74,6 +152,7 @@ Reads are bounded before large structures are retained. Applications can narrow 
 var options = new EmailStoreReaderOptions(
     maxInputBytes: 2L * 1024 * 1024 * 1024,
     maxItemCount: 100_000,
+    maxCachedBTreePages: 256,
     retainAttachmentContent: false,
     includeAssociatedItems: false);
 
@@ -84,10 +163,10 @@ Set `PstPassword` only when a protected PST requires checksum validation. Passwo
 
 ## Boundaries
 
-- This package owns store/container traversal and store-to-`EmailDocument` projection.
+- This package owns store/container traversal, bounded selection, validation/recovery discovery, and export orchestration.
 - `OfficeIMO.Email` owns EML/MIME, MSG/OFT, TNEF, mbox, MAPI models, and item serialization.
 - `OfficeIMO.Reader.EmailStore` owns optional Reader registration and rich-result projection.
-- Store mutation, Outlook profiles, Exchange synchronization, cloud download, and server-side recovery are outside this offline reader.
+- PST/OST writing or mutation, Outlook profiles, Exchange synchronization, cloud download, and server-side recovery are outside this offline reader.
 
 ## Targets and dependencies
 

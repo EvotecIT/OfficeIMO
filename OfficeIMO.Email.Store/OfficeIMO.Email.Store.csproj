@@ -11,7 +11,7 @@
     <Company>Evotec</Company>
     <Authors>Przemyslaw Klys</Authors>
     <PackageId>OfficeIMO.Email.Store</PackageId>
-    <PackageTags>email;store;pst;ost;olm;emlx;outlook;apple-mail;reader;managed</PackageTags>
+    <PackageTags>email;store;pst;ost;olm;emlx;outlook;apple-mail;maildir;reader;managed</PackageTags>
     <PackageProjectUrl>https://github.com/EvotecIT/OfficeIMO</PackageProjectUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <RepositoryUrl>https://github.com/EvotecIT/OfficeIMO</RepositoryUrl>
@@ -35,6 +35,10 @@
     <None Include="README.md">
       <Pack>True</Pack>
       <PackagePath>README.md</PackagePath>
+    </None>
+    <None Include="ARCHITECTURE.md">
+      <Pack>True</Pack>
+      <PackagePath>ARCHITECTURE.md</PackagePath>
     </None>
   </ItemGroup>
 

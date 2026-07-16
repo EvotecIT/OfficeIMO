@@ -24,7 +24,7 @@ Buffer.BlockCopy(storeMessage, 0, emlx, storePrefix.Length, storeMessage.Length)
 
 using (var stream = new MemoryStream(emlx, writable: false)) {
     EmailStoreReadResult storeResult = new EmailStoreReader().Read(stream, "package-smoke.emlx");
-    EmailDocument storeDocument = storeResult.Store.Folders.Single().Messages.Single().Document;
+    EmailDocument storeDocument = storeResult.Store.Folders.Single().Items.Single().Document;
     if (!string.Equals(storeDocument.Subject, "Packed EMLX", StringComparison.Ordinal) ||
         !string.Equals(storeDocument.Body.Text?.Trim(), "Store body", StringComparison.Ordinal)) {
         throw new InvalidOperationException("The packed OfficeIMO.Email.Store dependency graph could not project EMLX through OfficeIMO.Email.");

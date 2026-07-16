@@ -271,10 +271,11 @@ _Dependency footprint:_ `System.Text.Encoding.CodePages` plus first-party Office
 
 #### [OfficeIMO.Email.Store](OfficeIMO.Email.Store/README.md)
 
-- [x] Fully managed, read-only PST and OST traversal with folders, tables, MAPI properties, attachments, and embedded items
-- [x] Bounded Outlook for Mac OLM archive and Apple Mail EMLX item ingestion
+- [x] Fully managed, lazy PST and OST sessions with bounded page caches, selective summaries, queries, and explicit item reads
+- [x] Bounded Outlook for Mac OLM, individual EMLX, lazy Apple Mail trees, Maildir, and EML/MIME directory ingestion
 - [x] Common `OfficeIMO.Email.EmailDocument` projection instead of a second message or Outlook-item model
-- [x] Configurable source, tree, item, attachment, archive, XML, and recursion limits with structured diagnostics
+- [x] Inspection, deep validation, orphan discovery, EML/MSG/OFT/TNEF directory export, and streaming mbox export
+- [x] Configurable source, cache, tree, item, attachment, archive, XML, directory, and recursion limits with structured diagnostics
 
 _Dependency footprint:_ only `OfficeIMO.Email`; no Outlook installation, native library, or third-party store parser.
 
@@ -506,6 +507,7 @@ _Dependency footprint:_ only OfficeIMO Reader and CSV.
 
 - [x] PST, OST, OLM, and EMLX registration backed by `OfficeIMO.Email.Store`
 - [x] Stable store/folder/item logical paths, email chunks, metadata, attachments, hashes, and rich results
+- [x] Selective summary queries, a bounded 1,000-item default, visible truncation, and opt-in complete-store hashing
 - [x] Reader input limits that can narrow but never widen the store parser limits
 
 _Dependency footprint:_ only OfficeIMO Reader and Email.Store; no parser is duplicated in the adapter.
