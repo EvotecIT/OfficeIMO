@@ -207,6 +207,73 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void CapabilityContract_ReportsCompletedTextLanes() {
+            foreach (LegacyPptFeature feature in new[] {
+                         LegacyPptFeature.PlainText,
+                         LegacyPptFeature.BulletsAndNumbering
+                     }) {
+                LegacyPptCapability capability =
+                    LegacyPptCapabilityCatalog.Get(feature);
+                Assert.Equal(LegacyPptCapabilityState.Native,
+                    capability.ImportToEditableModel);
+                Assert.Equal(LegacyPptCapabilityState.Native,
+                    capability.NewBinaryWrite);
+                Assert.Equal(LegacyPptCapabilityState.Native,
+                    capability.BinaryRoundTrip);
+                Assert.Equal(LegacyPptCapabilityState.Native,
+                    capability.PptxToBinary);
+            }
+
+            foreach (LegacyPptFeature feature in new[] {
+                         LegacyPptFeature.RichText,
+                         LegacyPptFeature.ParagraphFormatting
+                     }) {
+                LegacyPptCapability capability =
+                    LegacyPptCapabilityCatalog.Get(feature);
+                Assert.Equal(LegacyPptCapabilityState.Native,
+                    capability.ImportToEditableModel);
+                Assert.Equal(LegacyPptCapabilityState.Native,
+                    capability.NewBinaryWrite);
+                Assert.Equal(LegacyPptCapabilityState.Preserved,
+                    capability.BinaryRoundTrip);
+                Assert.Equal(LegacyPptCapabilityState.Native,
+                    capability.PptxToBinary);
+            }
+
+            LegacyPptCapability autoFit = LegacyPptCapabilityCatalog.Get(
+                LegacyPptFeature.TextAutoFit);
+            Assert.Equal(LegacyPptCapabilityState.Native,
+                autoFit.ImportToEditableModel);
+            Assert.Equal(LegacyPptCapabilityState.Native,
+                autoFit.NewBinaryWrite);
+            Assert.Equal(LegacyPptCapabilityState.Native,
+                autoFit.BinaryRoundTrip);
+            Assert.Equal(LegacyPptCapabilityState.Blocked,
+                autoFit.PptxToBinary);
+            Assert.Contains("normal autofit", autoFit.Note);
+        }
+
+        [Fact]
+        public void CapabilityContract_ReportsNativeClassicInteractions() {
+            foreach (LegacyPptFeature feature in new[] {
+                         LegacyPptFeature.Hyperlinks,
+                         LegacyPptFeature.Actions
+                     }) {
+                LegacyPptCapability capability =
+                    LegacyPptCapabilityCatalog.Get(feature);
+                Assert.Equal(LegacyPptCapabilityState.Native,
+                    capability.ImportToEditableModel);
+                Assert.Equal(LegacyPptCapabilityState.Native,
+                    capability.NewBinaryWrite);
+                Assert.Equal(LegacyPptCapabilityState.Preserved,
+                    capability.BinaryRoundTrip);
+                Assert.Equal(LegacyPptCapabilityState.Blocked,
+                    capability.PptxToBinary);
+                Assert.Contains("loss-blocked", capability.Note);
+            }
+        }
+
+        [Fact]
         public void CapabilityContract_ReportsNativeLayoutHintsAndMaterializedConversion() {
             LegacyPptCapability layouts = LegacyPptCapabilityCatalog.Get(LegacyPptFeature.Layouts);
 
