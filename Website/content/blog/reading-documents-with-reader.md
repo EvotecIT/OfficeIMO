@@ -7,7 +7,7 @@ categories: [Tutorial]
 author: "Przemyslaw Klys"
 ---
 
-Large language models and search engines are hungry for text, but the text they need is locked inside DOCX, XLSX, PPTX, Markdown, PDF, and text-like files scattered across file shares and SharePoint libraries. **OfficeIMO.Reader** provides a unified API to crack open the built-in formats currently wired into the repo and emit normalized chunks, ready for embedding, indexing, or summarisation.
+Large language models and search engines are hungry for text, but the text they need is locked inside modern and legacy Office files, Markdown, PDF, and text-like files scattered across file shares and SharePoint libraries. **OfficeIMO.Reader** provides a unified API to crack open the built-in formats currently wired into the repo and emit normalized chunks, ready for embedding, indexing, or summarisation.
 
 ## Installation
 
@@ -165,14 +165,14 @@ Every document in your file share becomes searchable in chunk-sized slices, whic
 
 | Format | Extension | Status |
 |---|---|---|
-| Word (Open XML) | `.docx`, `.docm` | Built-in |
-| Excel (Open XML) | `.xlsx`, `.xlsm` | Built-in |
-| PowerPoint (Open XML) | `.pptx`, `.pptm` | Built-in |
+| Word | `.docx`, `.docm`, `.doc` | Built-in |
+| Excel | `.xlsx`, `.xlsm`, `.xls` | Built-in |
+| PowerPoint | `.pptx`, `.pptm`, `.ppt`, `.pot`, `.pps` | Built-in |
 | Markdown | `.md`, `.markdown` | Built-in |
 | PDF | `.pdf` | Built-in |
 | Text-like inputs | `.txt`, `.log`, `.csv`, `.tsv`, `.json`, `.xml`, `.yml`, `.yaml` | Built-in text reader |
 
-Legacy binary formats (`.doc`, `.xls`, `.ppt`) are not supported. Structured adapters for formats like EPUB, HTML, ZIP, JSON, CSV, and XML can also be registered from optional `OfficeIMO.Reader.*` packages.
+Legacy binary Office files route through the owning Word, Excel, and PowerPoint engines. Import diagnostics are exposed as Reader warnings, PowerPoint images use the normal asset contract, and `ReaderOptions.OpenPassword` supplies a password for protected input. Structured adapters for formats like EPUB, HTML, ZIP, JSON, CSV, and XML can also be registered from optional `OfficeIMO.Reader.*` packages.
 
 ## Conclusion
 

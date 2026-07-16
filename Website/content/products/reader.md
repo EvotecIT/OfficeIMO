@@ -17,6 +17,7 @@ OfficeIMO.Reader provides a single API to extract structured content from common
 ## Features
 
 - **Extract from Word, Excel, PowerPoint, Markdown & PDF** -- one API for all major document formats
+- **Modern and legacy Office input** -- route `.doc`, `.xls`, `.ppt`, `.pot`, and `.pps` through the owning OfficeIMO engines with diagnostics and password support
 - **Deterministic extraction chunks** -- emit stable chunk boundaries with configurable character and row limits
 - **Heading-aware extraction with citations** -- preserve document structure and source locations on each chunk
 - **Token estimates per chunk** -- budget prompts and indexing payloads without an extra preprocessing pass

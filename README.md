@@ -117,7 +117,7 @@ _Dependency footprint:_ Open XML SDK plus `OfficeIMO.Drawing`; legacy `.xls` sup
 #### [OfficeIMO.PowerPoint](OfficeIMO.PowerPoint/README.md)
 
 - [x] Create, load, edit, inspect, and save editable `.pptx` presentations
-- [x] Read `.ppt`, `.pot`, and `.pps`, project supported content into the editable model, and write the supported native binary subset with loss preflight
+- [x] Read, author, edit, preserve, encrypt, and convert `.ppt`, `.pot`, and `.pps` through a versioned capability contract and loss preflight
 - [x] Slide creation, duplication, deletion, reordering, sections, presentation sizes, layouts, placeholders, and templates
 - [x] Text boxes, rich runs, paragraphs, bullets, alignment, spacing, auto-fit, hyperlinks, and theme-aware typography
 - [x] PNG/JPEG/SVG pictures from files and streams with crop, replacement, validation, positioning, and effects
@@ -716,7 +716,7 @@ flowchart LR
     Excel["Excel: XLS/XLSX"] <--> HTML
     Excel <--> ODS["OpenDocument: ODS"]
     Excel <--> PDF
-    PowerPoint["PowerPoint: PPTX"] <--> HTML
+    PowerPoint["PowerPoint: PPT/POT/PPS/PPTX"] <--> HTML
     PowerPoint <--> ODP["OpenDocument: ODP"]
     PowerPoint --> PDF
     Markdown <--> HTML

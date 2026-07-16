@@ -28,9 +28,9 @@ PSWriteOffice gives OfficeIMO a native PowerShell surface with generated help, c
 ### Focused package model
 OfficeIMO is not one monolithic bundle. The repo includes focused packages such as:
 
-- `OfficeIMO.Word` for `.docx` generation and editing.
-- `OfficeIMO.Excel` for `.xlsx` generation and extraction.
-- `OfficeIMO.PowerPoint` for `.pptx` generation.
+- `OfficeIMO.Word` for `.docx` and `.doc` generation and editing.
+- `OfficeIMO.Excel` for `.xlsx` and `.xls` generation and extraction.
+- `OfficeIMO.PowerPoint` for `.pptx`, `.ppt`, `.pot`, and `.pps` generation and editing.
 - `OfficeIMO.Markdown` and `OfficeIMO.CSV` for repository-friendly document and data workflows.
 - `OfficeIMO.Reader` for normalized extraction across multiple document types.
 
@@ -41,8 +41,8 @@ The core packages are COM-free and designed for server, CI, container, and autom
 
 Commercial libraries are often a better choice when you need:
 
-- Broader file-format coverage beyond the Open XML-focused package set in this repo.
-- Legacy binary Office formats such as `.doc`, `.xls`, or `.ppt`.
+- Broader file-format coverage beyond the explicitly supported modern and legacy formats in this repo.
+- Specialized conversions or fidelity guarantees outside OfficeIMO's published capability contracts.
 - Large vendor-maintained documentation catalogs and formal support channels.
 - Procurement-friendly SLAs, legal review paths, or enterprise purchasing controls.
 

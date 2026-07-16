@@ -3,9 +3,8 @@
 [![nuget version](https://img.shields.io/nuget/v/OfficeIMO.PowerPoint)](https://www.nuget.org/packages/OfficeIMO.PowerPoint)
 [![nuget downloads](https://img.shields.io/nuget/dt/OfficeIMO.PowerPoint?label=nuget%20downloads)](https://www.nuget.org/packages/OfficeIMO.PowerPoint)
 
-`OfficeIMO.PowerPoint` creates and edits `.pptx` presentations and reads or writes a supported PowerPoint
-97-2003 `.ppt`, `.pot`, and `.pps` subset. It works without COM automation and without Microsoft PowerPoint
-installed.
+`OfficeIMO.PowerPoint` creates, reads, edits, and writes `.pptx` presentations and PowerPoint 97-2003
+`.ppt`, `.pot`, and `.pps` files. It works without COM automation and without Microsoft PowerPoint installed.
 
 If OfficeIMO saves you time, please consider supporting the work through [GitHub Sponsors](https://github.com/sponsors/PrzemyslawKlys) or [PayPal](https://paypal.me/PrzemyslawKlys). PowerShell users should use [PSWriteOffice](https://github.com/EvotecIT/PSWriteOffice) for the PowerShell-facing experience.
 
@@ -87,8 +86,10 @@ PowerPointPresentation presentation = result.Document;
 ```
 
 Native binary saving is selected by a `.ppt`, `.pot`, or `.pps` destination, or explicitly through
-`ToBytes(PowerPointFileFormat.Ppt)`. The current writer covers slides, slide size, positioned plain text,
-title/body/subtitle placeholders, rectangles, ellipses, and lines:
+`ToBytes(PowerPointFileFormat.Ppt)`. Fresh binary authoring and supported PPTX conversion use the same
+slides, masters, layouts, placeholders, themes, text, shapes, pictures, notes, comments, interactions,
+transitions, animations, properties, macros, embedded objects, and media contracts exposed by the normal
+PowerPoint model:
 
 ```csharp
 using OfficeIMO.PowerPoint.LegacyPpt;
@@ -105,23 +106,55 @@ if (report.CanWrite) {
 }
 ```
 
-Pictures, tables, charts, SmartArt, media, grouped shapes, speaker notes, hidden-slide state, animations,
-transitions, macros, embedded objects, and rich formatting are outside this first native writer subset. Saving
-blocks on known loss by default. After reviewing `AnalyzeLegacyPptWrite()`, callers can opt in with
-`new PowerPointSaveOptions { LossPolicy = PowerPointConversionLossPolicy.Allow }`; unsupported content is
-then omitted rather than silently approximated. Encrypted binary PowerPoint files are not supported.
+Imported binary files use a preservation-aware writer: no-op saves can retain the original compound file,
+representable edits append compatible records, and unrelated or unknown records and streams remain intact.
+Saving blocks on known loss by default. Tables, charts, and SmartArt can be converted to deterministic static
+PNG visuals only after the caller accepts the reported loss with
+`new PowerPointSaveOptions { LossPolicy = PowerPointConversionLossPolicy.Allow }`. Features with no safe
+binary representation are blocked rather than silently omitted.
+
+The versioned capability catalog is the source of truth for import, fresh binary authoring, binary round-trip,
+and PPTX-to-binary behavior:
+
+```csharp
+using OfficeIMO.PowerPoint.LegacyPpt.Capabilities;
+
+string json = LegacyPptCapabilityCatalog.ToJson();
+string markdown = LegacyPptCapabilityCatalog.ToMarkdown();
+LegacyPptCapability pictures = LegacyPptCapabilityCatalog.Get(
+    LegacyPptFeature.RasterPictures);
+```
+
+Password-to-open encryption works for both Open XML and binary presentations. Binary destinations use RC4
+CryptoAPI for PowerPoint 97-2003 compatibility; it is a legacy interoperability mechanism, not modern
+cryptography:
+
+```csharp
+using var encrypted = PowerPointPresentation.LoadEncrypted(
+    "protected.ppt", "open-password");
+
+encrypted.SaveEncrypted("protected-copy.ppt", "new-password",
+    new PowerPointSaveOptions {
+        LegacyPptEncryptionKeySizeBits = 128,
+        LegacyPptEncryptDocumentProperties = true
+    });
+```
+
+`InspectSignatures()` detects Open XML and legacy binary signature metadata. The safe default blocks a
+mutating save of signed content; callers must explicitly choose whether invalidated signature markup should
+be removed or preserved.
 
 ## What it does
 
 - Creates and edits PowerPoint presentations, slides, slide size, text boxes, pictures, tables, charts, backgrounds, transitions, notes, and metadata.
-- Reads `.ppt`, `.pot`, and `.pps` through a dependency-free binary parser and writes the documented simple native subset with loss preflight.
+- Reads and writes `.ppt`, `.pot`, and `.pps` through a dependency-free binary parser, native writer, and preservation-aware incremental writer.
 - Keeps generated output as editable PowerPoint content instead of screenshots.
 - Reports editable, partially editable, preserved, and unsupported deck features through `InspectFeatures()` before edit-heavy round trips.
 - Composes reusable semantic plans through one `presentation.Compose(plan, options)` workflow.
 - Provides semantic executive-summary, chart-story, comparison, screenshot-story, appendix-table, architecture, and closing families with two editable variants each.
 - Inspects deck rhythm before rendering so repetitive layouts, dense streaks, long sections, and missing closings are visible to automation.
 - Authors every `OfficeIMO.Drawing.OfficeChartKind` family from one shared chart contract, including categorical combo charts and secondary value axes.
-- Supports encrypted presentation save/load workflows.
+- Supports encrypted Open XML and RC4 CryptoAPI binary presentation save/load workflows.
 - Uses Open XML directly, making it suitable for services, build agents, desktop apps, and automation hosts.
 
 ## Runnable samples
