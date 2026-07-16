@@ -24,6 +24,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         private const ushort RecordHeadersFooters = 0x0FD9;
         private const ushort OfficeArtSpContainer = 0xF004;
         private const ushort OfficeArtDgg = 0xF006;
+        private const ushort OfficeArtFspgr = 0xF009;
         private const ushort OfficeArtFsp = 0xF00A;
         private const ushort OfficeArtFopt = 0xF00B;
         private const ushort OfficeArtTertiaryFopt = 0xF122;
@@ -236,7 +237,11 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         }
                     }
 
-                    PowerPointShape[] shapes = slide.Shapes.ToArray();
+                    PowerPointShape[] shapes = LegacyPptWriter
+                        .FlattenShapeTreeForWrite(slide.Shapes,
+                            out string? groupShapeReason)
+                        .ToArray();
+                    if (groupShapeReason != null) return false;
                     if (shapes.Length != slideProjection.Shapes.Count) return false;
                     var editsByOfficeArtId = new Dictionary<uint, ProjectedShapeEdit>();
                     foreach (PowerPointShape shape in shapes) {
@@ -287,6 +292,27 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                                 return false;
                             }
                             changedShapeTransform = shape;
+                        }
+                        PowerPointShape? changedShapeGeometry = null;
+                        if (shapeProjection.CanEditShapeGeometry
+                            && !shapeProjection.ShapeGeometryMatches(shape)) {
+                            if (LegacyPptShapeProjection
+                                    .CreateShapeGeometryFingerprint(shape)
+                                == null) {
+                                return false;
+                            }
+                            changedShapeGeometry = shape;
+                        }
+                        PowerPointGroupShape? changedGroupCoordinate = null;
+                        if (shapeProjection.CanEditGroupCoordinate
+                            && !shapeProjection.GroupCoordinateMatches(shape)) {
+                            if (shape is not PowerPointGroupShape group
+                                || LegacyPptShapeProjection
+                                    .CreateGroupCoordinateFingerprint(group)
+                                == null) {
+                                return false;
+                            }
+                            changedGroupCoordinate = group;
                         }
                         PowerPointShape? changedShapeVisualStyle = null;
                         if (shapeProjection.CanEditShapeVisualStyle
@@ -345,6 +371,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         if (changedBounds.HasValue || changedText != null
                             || placeholderChanged
                             || changedShapeTransform != null
+                            || changedShapeGeometry != null
+                            || changedGroupCoordinate != null
                             || changedShapeVisualStyle != null
                             || changedPictureFormatting != null
                             || interactionEdit != null || animationChanged) {
@@ -355,6 +383,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                                     placeholderChanged, currentPlaceholder));
                             editsByOfficeArtId[shapeProjection.OfficeArtShapeId]
                                 .ShapeTransform = changedShapeTransform;
+                            editsByOfficeArtId[shapeProjection.OfficeArtShapeId]
+                                .ShapeGeometry = changedShapeGeometry;
+                            editsByOfficeArtId[shapeProjection.OfficeArtShapeId]
+                                .GroupCoordinate = changedGroupCoordinate;
                             editsByOfficeArtId[shapeProjection.OfficeArtShapeId]
                                 .ShapeVisualStyle = changedShapeVisualStyle;
                             editsByOfficeArtId[shapeProjection.OfficeArtShapeId]
@@ -989,6 +1021,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             internal PowerPointPicture? PictureFormatting { get; set; }
 
             internal PowerPointShape? ShapeTransform { get; set; }
+
+            internal PowerPointShape? ShapeGeometry { get; set; }
+
+            internal PowerPointGroupShape? GroupCoordinate { get; set; }
 
             internal PowerPointShape? ShapeVisualStyle { get; set; }
         }

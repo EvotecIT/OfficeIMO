@@ -46,7 +46,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             foreach (OpenXmlElement element in tree.ChildElements) {
                 if (element is P.NonVisualGroupShapeProperties
                     or P.GroupShapeProperties) continue;
-                PowerPointShape? shape = WrapInheritedShape(element, ownerPart);
+                PowerPointShape? shape = WrapShapeForWrite(element,
+                    ownerPart);
                 if (shape == null) {
                     unsupportedReason ??=
                         $"The {ownerName} contains '{element.LocalName}' content that is not yet encoded by the native binary writer.";

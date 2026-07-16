@@ -155,6 +155,12 @@ namespace OfficeIMO.Tests {
             PowerPointGroupShape group = Assert.Single(slide.Shapes.OfType<PowerPointGroupShape>());
             connector.Left += 15875;
             group.Top += 15875;
+            P.GroupShape groupElement = Assert.IsType<P.GroupShape>(
+                group.Element);
+            A.TransformGroup groupTransform = groupElement
+                .GroupShapeProperties!.TransformGroup!;
+            groupTransform.ChildOffset!.X = checked(
+                groupTransform.ChildOffset.X!.Value + 15875L);
 
             Assert.True(presentation.AnalyzeLegacyPptWrite().CanWrite);
             LegacyPptPresentation saved = LegacyPptPresentation.Load(
@@ -165,23 +171,48 @@ namespace OfficeIMO.Tests {
                 shape.Kind == LegacyPptShapeKind.Group);
             Assert.Equal(originalConnector.Bounds.Left + 10, savedConnector.Bounds.Left);
             Assert.Equal(originalGroup.Bounds.Top + 10, savedGroup.Bounds.Top);
+            Assert.Equal(originalGroup.GroupCoordinateBounds!.Value.Left + 10,
+                savedGroup.GroupCoordinateBounds!.Value.Left);
             Assert.Equal(originalGroup.Children.Select(child => child.Bounds),
                 savedGroup.Children.Select(child => child.Bounds));
             Assert.Equal(original.Package.UserEdits.Count + 1, saved.Package.UserEdits.Count);
         }
 
         [Fact]
-        public void ImportedGroupChildEdit_RemainsLossBlocked() {
+        public void ImportedGroupChildEdit_UsesIncrementalChildAnchorRewrite() {
+            LegacyPptPresentation original = LegacyPptPresentation.Load(
+                ShapeFixturePath);
+            LegacyPptShape originalGroup = Assert.Single(original.Slides)
+                .Shapes.Single(shape => shape.Kind
+                    == LegacyPptShapeKind.Group);
+            LegacyPptShape originalChild = originalGroup.Children[0];
             using PowerPointPresentation presentation = PowerPointPresentation.Load(ShapeFixturePath);
             PowerPointSlide slide = presentation.Slides[0];
             PowerPointGroupShape group = Assert.Single(slide.Shapes.OfType<PowerPointGroupShape>());
             PowerPointShape child = slide.GetGroupChildren(group)[0];
 
             child.Left += 15875;
+            child.Rotation = 18D;
+            child.VerticalFlip = true;
 
             LegacyPptWritePreflightReport preflight = presentation.AnalyzeLegacyPptWrite();
-            Assert.False(preflight.CanWrite);
-            Assert.Contains(preflight.Findings, finding => finding.Code == "PPT-WRITE-IMPORT-LOSS");
+            Assert.True(preflight.CanWrite,
+                string.Join(Environment.NewLine, preflight.Findings));
+            LegacyPptPresentation saved = LegacyPptPresentation.Load(
+                presentation.ToBytes(PowerPointFileFormat.Ppt));
+
+            LegacyPptShape savedGroup = Assert.Single(saved.Slides).Shapes
+                .Single(shape => shape.Kind == LegacyPptShapeKind.Group);
+            Assert.Equal(originalChild.Bounds.Left + 10,
+                savedGroup.Children[0].Bounds.Left);
+            Assert.Equal(18D,
+                savedGroup.Children[0].Transform.RotationDegrees);
+            Assert.True(savedGroup.Children[0].Transform.FlipVertical);
+            Assert.Equal(original.Package.UserEdits.Count + 1,
+                saved.Package.UserEdits.Count);
+            Assert.True(saved.Package.DocumentStream.AsSpan(0,
+                    original.Package.DocumentStream.Length)
+                .SequenceEqual(original.Package.DocumentStream));
         }
 
         [Fact]
@@ -438,7 +469,9 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void ImportedPresetAdjustmentEdit_RemainsLossBlocked() {
+        public void ImportedExactPresetAdjustmentEdit_UsesIncrementalFoptRewrite() {
+            byte[] originalBytes = File.ReadAllBytes(
+                AdjustedShapesFixturePath);
             using PowerPointPresentation presentation = PowerPointPresentation.Load(
                 AdjustedShapesFixturePath);
             PowerPointTextBox shape = presentation.Slides[0].TextBoxes.Single(item =>
@@ -451,8 +484,32 @@ namespace OfficeIMO.Tests {
             adjustment.Formula = "val 25000";
 
             LegacyPptWritePreflightReport preflight = presentation.AnalyzeLegacyPptWrite();
-            Assert.False(preflight.CanWrite);
-            Assert.Contains(preflight.Findings, finding => finding.Code == "PPT-WRITE-IMPORT-LOSS");
+            Assert.True(preflight.CanWrite,
+                string.Join(Environment.NewLine, preflight.Findings));
+            LegacyPptPresentation original = LegacyPptPresentation.Load(
+                originalBytes);
+            LegacyPptPresentation saved = LegacyPptPresentation.Load(
+                presentation.ToBytes(PowerPointFileFormat.Ppt));
+
+            LegacyPptShape originalRound = Assert.Single(original.Slides)
+                .Shapes.Single(item => item.Text == "Round");
+            LegacyPptShape savedRound = Assert.Single(saved.Slides).Shapes
+                .Single(item => item.Text == "Round");
+            Assert.Equal(5400,
+                savedRound.Geometry.AdjustmentValues[0]);
+            Assert.Equal(originalRound.Style.Properties
+                    .Where(property => property.PropertyId != 0x0147)
+                    .Select(property => (property.RawOperationId,
+                        property.Value)),
+                savedRound.Style.Properties
+                    .Where(property => property.PropertyId != 0x0147)
+                    .Select(property => (property.RawOperationId,
+                        property.Value)));
+            Assert.Equal(original.Package.UserEdits.Count + 1,
+                saved.Package.UserEdits.Count);
+            Assert.True(saved.Package.DocumentStream.AsSpan(0,
+                    original.Package.DocumentStream.Length)
+                .SequenceEqual(original.Package.DocumentStream));
         }
 
         private static string? GetAdjustmentFormula(PowerPointSlide slide, string text,

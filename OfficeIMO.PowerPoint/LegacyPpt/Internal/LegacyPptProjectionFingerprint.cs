@@ -417,6 +417,17 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                     transform.HorizontalFlip = null;
                     transform.VerticalFlip = null;
                 }
+                if (shapeProjection.CanEditGroupCoordinate
+                    && transform != null) {
+                    if (transform.ChildOffset != null) {
+                        transform.ChildOffset.X = 0L;
+                        transform.ChildOffset.Y = 0L;
+                    }
+                    if (transform.ChildExtents != null) {
+                        transform.ChildExtents.Cx = 0L;
+                        transform.ChildExtents.Cy = 0L;
+                    }
+                }
             }
             foreach (P.GraphicFrame frame in root.Descendants<P.GraphicFrame>()) {
                 uint? shapeId = frame.NonVisualGraphicFrameProperties?
@@ -461,6 +472,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 properties.Transform2D.Rotation = null;
                 properties.Transform2D.HorizontalFlip = null;
                 properties.Transform2D.VerticalFlip = null;
+            }
+            if (projection.CanEditShapeGeometry) {
+                properties.GetFirstChild<A.PresetGeometry>()?
+                    .AdjustValueList?.RemoveAllChildren<A.ShapeGuide>();
             }
             if (!projection.CanEditShapeVisualStyle) return;
             properties.RemoveAllChildren<A.NoFill>();

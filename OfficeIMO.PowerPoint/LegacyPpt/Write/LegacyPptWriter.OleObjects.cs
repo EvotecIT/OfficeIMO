@@ -20,7 +20,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             reason = null;
             uint nextId = firstObjectId;
             foreach (PowerPointSlide slide in slides) {
-                foreach (PowerPointOleObject shape in slide.Shapes
+                foreach (PowerPointOleObject shape in slide
+                             .EnumerateShapesDeep(slide.Shapes,
+                                 includeHidden: true)
                              .OfType<PowerPointOleObject>()) {
                     if (!TryReadOleObject(slide.SlidePart, shape, nextId,
                             out LegacyPptWriterOleObject? ole, out reason)

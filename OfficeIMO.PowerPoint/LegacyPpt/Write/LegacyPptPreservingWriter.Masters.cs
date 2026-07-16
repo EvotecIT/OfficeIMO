@@ -110,6 +110,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             out IReadOnlyDictionary<uint, ProjectedShapeEdit> edits) {
             var result = new Dictionary<uint, ProjectedShapeEdit>();
             edits = result;
+            shapes = LegacyPptWriter.FlattenShapeTreeForWrite(shapes,
+                out string? groupReason);
+            if (groupReason != null) return false;
             if (shapes.Count != projection.Shapes.Count) return false;
 
             foreach (PowerPointShape shape in shapes) {
@@ -140,6 +143,25 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         return false;
                     }
                     changedShapeTransform = shape;
+                }
+                PowerPointShape? changedShapeGeometry = null;
+                if (shapeProjection.CanEditShapeGeometry
+                    && !shapeProjection.ShapeGeometryMatches(shape)) {
+                    if (LegacyPptShapeProjection
+                            .CreateShapeGeometryFingerprint(shape) == null) {
+                        return false;
+                    }
+                    changedShapeGeometry = shape;
+                }
+                PowerPointGroupShape? changedGroupCoordinate = null;
+                if (shapeProjection.CanEditGroupCoordinate
+                    && !shapeProjection.GroupCoordinateMatches(shape)) {
+                    if (shape is not PowerPointGroupShape group
+                        || LegacyPptShapeProjection
+                            .CreateGroupCoordinateFingerprint(group) == null) {
+                        return false;
+                    }
+                    changedGroupCoordinate = group;
                 }
                 PowerPointShape? changedShapeVisualStyle = null;
                 if (shapeProjection.CanEditShapeVisualStyle
@@ -177,6 +199,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 if (changedBounds.HasValue || changedText != null
                     || placeholderChanged
                     || changedShapeTransform != null
+                    || changedShapeGeometry != null
+                    || changedGroupCoordinate != null
                     || changedShapeVisualStyle != null
                     || changedPictureFormatting != null) {
                     result.Add(shapeProjection.OfficeArtShapeId,
@@ -188,6 +212,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                             placeholder: currentPlaceholder));
                     result[shapeProjection.OfficeArtShapeId]
                         .ShapeTransform = changedShapeTransform;
+                    result[shapeProjection.OfficeArtShapeId]
+                        .ShapeGeometry = changedShapeGeometry;
+                    result[shapeProjection.OfficeArtShapeId]
+                        .GroupCoordinate = changedGroupCoordinate;
                     result[shapeProjection.OfficeArtShapeId]
                         .ShapeVisualStyle = changedShapeVisualStyle;
                     result[shapeProjection.OfficeArtShapeId]

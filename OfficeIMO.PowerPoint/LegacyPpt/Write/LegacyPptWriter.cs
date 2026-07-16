@@ -38,6 +38,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         private const ushort OfficeArtDg = 0xF008;
         private const ushort OfficeArtFsp = 0xF00A;
         private const ushort OfficeArtClientTextbox = 0xF00D;
+        private const ushort OfficeArtChildAnchor = 0xF00F;
         private const ushort OfficeArtClientAnchor = 0xF010;
         private const ushort OfficeArtClientData = 0xF011;
 
@@ -143,7 +144,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         includeTables: true,
                         includeCharts: true,
                         includeSmartArt: true)).ToArray();
-                slideShapeCounts.Add(supportedShapes.Count);
+                slideShapeCounts.Add(CountDrawingShapes(supportedShapes));
                 uint? notesId = notesBySlide.TryGetValue(index, out LegacyPptWriterNote? note)
                     ? note.NotesId
                     : null;
@@ -217,6 +218,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             if (includeCharts && shape is PowerPointChart) return true;
             if (includeSmartArt && shape is PowerPointSmartArt) return true;
             if (includeOleObjects && shape is PowerPointOleObject) return true;
+            if (shape is PowerPointGroupShape group) {
+                return TryReadGroupForWrite(group, out _, out _);
+            }
             if (shape is PowerPointConnectionShape connector) {
                 return TryReadOfficeArtShapeType(connector,
                     requireConnector: true, out _, out _);

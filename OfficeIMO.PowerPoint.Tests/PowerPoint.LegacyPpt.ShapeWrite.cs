@@ -196,6 +196,130 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void NativeWriter_AuthorsExactRoundRectangleAndDonutAdjustments() {
+            byte[] bytes;
+            using (PowerPointPresentation source = PowerPointPresentation
+                       .Create()) {
+                PowerPointSlide slide = source.AddSlide(
+                    P.SlideLayoutValues.Blank);
+                PowerPointAutoShape round = slide.AddShapePoints(
+                    A.ShapeTypeValues.RoundRectangle, 20, 20, 120, 70);
+                SetAdjustment(round, "val 30000");
+                PowerPointAutoShape donut = slide.AddShapePoints(
+                    A.ShapeTypeValues.Donut, 170, 20, 90, 90);
+                SetAdjustment(donut, "val 40000");
+
+                LegacyPptWritePreflightReport preflight = source
+                    .AnalyzeLegacyPptWrite();
+                Assert.True(preflight.CanWrite,
+                    string.Join(Environment.NewLine, preflight.Findings));
+                bytes = source.ToBytes(PowerPointFileFormat.Ppt);
+            }
+
+            LegacyPptShape[] shapes = Assert.Single(
+                LegacyPptPresentation.Load(bytes).Slides).Shapes.ToArray();
+            Assert.Equal(6480, shapes.Single(shape =>
+                shape.OfficeArtShapeType == 2).Geometry.AdjustmentValues[0]);
+            Assert.Equal(8640, shapes.Single(shape =>
+                shape.OfficeArtShapeType == 23).Geometry.AdjustmentValues[0]);
+
+            using var input = new MemoryStream(bytes, writable: false);
+            using PowerPointPresentation projected = PowerPointPresentation
+                .Load(input);
+            Assert.Contains(projected.Slides[0].Shapes
+                .OfType<PowerPointAutoShape>(), shape =>
+                    GetAdjustment(shape) == "val 30000");
+            Assert.Contains(projected.Slides[0].Shapes
+                .OfType<PowerPointAutoShape>(), shape =>
+                    GetAdjustment(shape) == "val 40000");
+            Assert.Equal(bytes,
+                projected.ToBytes(PowerPointFileFormat.Ppt));
+        }
+
+        [Fact]
+        public void NativeWriter_BlocksInexactOfficeArtAdjustmentConversion() {
+            using PowerPointPresentation source = PowerPointPresentation
+                .Create();
+            PowerPointAutoShape round = source.AddSlide(
+                    P.SlideLayoutValues.Blank)
+                .AddShapePoints(A.ShapeTypeValues.RoundRectangle,
+                    20, 20, 120, 70);
+            SetAdjustment(round, "val 33334");
+
+            LegacyPptWritePreflightReport preflight = source
+                .AnalyzeLegacyPptWrite();
+
+            Assert.False(preflight.CanWrite);
+            Assert.Contains(preflight.Findings, finding =>
+                finding.Code == "PPT-WRITE-SHAPE");
+        }
+
+        [Fact]
+        public void NativeWriter_AuthorsNestedGroupsAndChildAnchors() {
+            byte[] bytes;
+            using (PowerPointPresentation source = PowerPointPresentation
+                       .Create()) {
+                PowerPointSlide slide = source.AddSlide(
+                    P.SlideLayoutValues.Blank);
+                PowerPointAutoShape rectangle = slide.AddShapePoints(
+                    A.ShapeTypeValues.Rectangle, 30, 40, 80, 50);
+                rectangle.Fill("4472C4");
+                PowerPointAutoShape ellipse = slide.AddShapePoints(
+                    A.ShapeTypeValues.Ellipse, 125, 50, 65, 45);
+                ellipse.Fill("ED7D31");
+                PowerPointGroupShape inner = slide.GroupShapes(
+                    new PowerPointShape[] { rectangle, ellipse },
+                    "Inner group");
+                PowerPointTextBox label = slide.AddTextBoxPoints(
+                    "Grouped label", 55, 115, 120, 35);
+                PowerPointGroupShape outer = slide.GroupShapes(
+                    new PowerPointShape[] { inner, label },
+                    "Outer group");
+                outer.Rotation = 12D;
+                outer.HorizontalFlip = true;
+
+                LegacyPptWritePreflightReport preflight = source
+                    .AnalyzeLegacyPptWrite();
+                Assert.True(preflight.CanWrite,
+                    string.Join(Environment.NewLine, preflight.Findings));
+                bytes = source.ToBytes(PowerPointFileFormat.Ppt);
+            }
+
+            LegacyPptSlide binarySlide = Assert.Single(
+                LegacyPptPresentation.Load(bytes).Slides);
+            LegacyPptShape outerGroup = Assert.Single(binarySlide.Shapes);
+            Assert.Equal(LegacyPptShapeKind.Group, outerGroup.Kind);
+            Assert.Equal(12D, outerGroup.Transform.RotationDegrees);
+            Assert.True(outerGroup.Transform.FlipHorizontal);
+            Assert.NotNull(outerGroup.GroupCoordinateBounds);
+            Assert.Equal(2, outerGroup.Children.Count);
+            LegacyPptShape innerGroup = Assert.Single(outerGroup.Children,
+                child => child.Kind == LegacyPptShapeKind.Group);
+            Assert.Equal(2, innerGroup.Children.Count);
+            Assert.All(innerGroup.Children, child =>
+                Assert.True(child.Bounds.Width > 0));
+            Assert.Contains(outerGroup.Children,
+                child => child.Text == "Grouped label");
+
+            using var input = new MemoryStream(bytes, writable: false);
+            using PowerPointPresentation projected = PowerPointPresentation
+                .Load(input);
+            PowerPointGroupShape projectedOuter = Assert.Single(
+                projected.Slides[0].Shapes
+                    .OfType<PowerPointGroupShape>());
+            IReadOnlyList<PowerPointShape> projectedChildren = projected
+                .Slides[0].GetGroupChildren(projectedOuter);
+            Assert.Contains(projectedChildren,
+                child => child is PowerPointGroupShape);
+            Assert.Contains(projectedChildren,
+                child => child is PowerPointTextBox text
+                    && text.Text == "Grouped label");
+            Assert.Empty(projected.ValidateDocument());
+            Assert.Equal(bytes,
+                projected.ToBytes(PowerPointFileFormat.Ppt));
+        }
+
+        [Fact]
         public void NativeWriter_BlocksShapeEffectWithoutOfficeArtEquivalent() {
             using PowerPointPresentation source = PowerPointPresentation
                 .Create();
@@ -270,5 +394,24 @@ namespace OfficeIMO.Tests {
                     original.Package.DocumentStream.Length)
                 .SequenceEqual(original.Package.DocumentStream));
         }
+
+        private static void SetAdjustment(PowerPointAutoShape shape,
+            string formula) {
+            P.Shape element = Assert.IsType<P.Shape>(shape.Element);
+            A.PresetGeometry geometry = element.ShapeProperties!
+                .GetFirstChild<A.PresetGeometry>()!;
+            A.AdjustValueList values = geometry.AdjustValueList ??=
+                new A.AdjustValueList();
+            values.RemoveAllChildren<A.ShapeGuide>();
+            values.Append(new A.ShapeGuide {
+                Name = "adj",
+                Formula = formula
+            });
+        }
+
+        private static string? GetAdjustment(PowerPointAutoShape shape) =>
+            Assert.IsType<P.Shape>(shape.Element).ShapeProperties?
+                .GetFirstChild<A.PresetGeometry>()?.AdjustValueList?
+                .GetFirstChild<A.ShapeGuide>()?.Formula?.Value;
     }
 }

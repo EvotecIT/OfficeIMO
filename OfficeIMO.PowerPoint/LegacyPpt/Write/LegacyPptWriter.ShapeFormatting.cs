@@ -1,6 +1,7 @@
 using DocumentFormat.OpenXml;
 using OfficeIMO.Drawing;
 using OfficeIMO.PowerPoint.LegacyPpt.Internal;
+using System.Globalization;
 using A = DocumentFormat.OpenXml.Drawing;
 using P = DocumentFormat.OpenXml.Presentation;
 
@@ -53,6 +54,77 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 fspFlags);
             reason = null;
             return true;
+        }
+
+        internal static bool TryReadShapeGeometry(PowerPointShape shape,
+            ushort shapeType,
+            out IReadOnlyList<LegacyPptWriterFoptProperty> properties,
+            out string? reason) {
+            if (shape == null) throw new ArgumentNullException(nameof(shape));
+            A.PresetGeometry? geometry = shape.Element
+                .Descendants<A.PresetGeometry>().FirstOrDefault();
+            A.AdjustValueList? values = geometry?.AdjustValueList;
+            if (values == null || !values.HasChildren) {
+                properties = Array.Empty<LegacyPptWriterFoptProperty>();
+                reason = null;
+                return true;
+            }
+            if (values.HasAttributes
+                || values.ChildElements.Any(child => child is not A.ShapeGuide)
+                || values.Elements<A.ShapeGuide>().Skip(1).Any()
+                || shapeType is not 2 and not 23) {
+                properties = Array.Empty<LegacyPptWriterFoptProperty>();
+                reason = "Only one exact round-rectangle or donut adjustment can currently be written to binary PowerPoint.";
+                return false;
+            }
+            A.ShapeGuide guide = values.Elements<A.ShapeGuide>().Single();
+            if (guide.HasChildren
+                || guide.GetAttributes().Any(attribute =>
+                    attribute.LocalName is not "name" and not "fmla")
+                || !string.Equals(guide.Name?.Value, "adj",
+                    StringComparison.Ordinal)
+                || !TryReadConstantGuide(guide.Formula?.Value,
+                    out long drawingValue)) {
+                properties = Array.Empty<LegacyPptWriterFoptProperty>();
+                reason = "The shape adjustment must be a single 'adj' guide with a constant 'val' formula.";
+                return false;
+            }
+            double rawValue = drawingValue * (21600D / 100000D);
+            if (drawingValue < 0L || drawingValue > 100000L
+                || rawValue < int.MinValue || rawValue > int.MaxValue) {
+                properties = Array.Empty<LegacyPptWriterFoptProperty>();
+                reason = "The shape adjustment lies outside the exact classic OfficeArt range.";
+                return false;
+            }
+            int officeArtValue = checked((int)Math.Round(rawValue,
+                MidpointRounding.AwayFromZero));
+            long projectedValue = checked((long)Math.Round(
+                officeArtValue * (100000D / 21600D),
+                MidpointRounding.AwayFromZero));
+            if (projectedValue != drawingValue) {
+                properties = Array.Empty<LegacyPptWriterFoptProperty>();
+                reason = "The DrawingML adjustment cannot be represented exactly by the integer classic OfficeArt adjustment slot.";
+                return false;
+            }
+            properties = new[] {
+                new LegacyPptWriterFoptProperty(0x0147,
+                    unchecked((uint)officeArtValue))
+            };
+            reason = null;
+            return true;
+        }
+
+        private static bool TryReadConstantGuide(string? formula,
+            out long value) {
+            value = 0L;
+            if (formula == null || string.IsNullOrWhiteSpace(formula)) return false;
+            string[] parts = formula.Trim().Split(new[] { ' ' },
+                StringSplitOptions.RemoveEmptyEntries);
+            return parts.Length == 2
+                && string.Equals(parts[0], "val",
+                    StringComparison.Ordinal)
+                && long.TryParse(parts[1], NumberStyles.Integer,
+                    CultureInfo.InvariantCulture, out value);
         }
 
         internal static bool TryReadShapeVisualStyle(PowerPointShape shape,
@@ -492,9 +564,18 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             }
         }
 
-        private static byte[]? BuildShapeFoptRecord(PowerPointShape shape) {
+        private static byte[]? BuildShapeFoptRecord(PowerPointShape shape,
+            ushort? officeArtShapeType = null) {
             var properties = new List<LegacyPptWriterFoptProperty>();
             AddShapeFormattingProperties(properties, shape);
+            if (officeArtShapeType.HasValue) {
+                if (!TryReadShapeGeometry(shape, officeArtShapeType.Value,
+                        out IReadOnlyList<LegacyPptWriterFoptProperty> geometry,
+                        out string? reason)) {
+                    throw new NotSupportedException(reason);
+                }
+                properties.AddRange(geometry);
+            }
             return properties.Count == 0 ? null : BuildFoptRecord(properties);
         }
 
@@ -529,10 +610,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         internal static byte[]? BuildPreservedShapeFoptRecord(
             LegacyPptRecord? prototype, PowerPointShape shape,
             bool rewriteShapeTransform,
+            bool rewriteShapeGeometry,
             bool rewriteShapeVisualStyle,
             bool rewritePictureFormatting) {
             if (shape == null) throw new ArgumentNullException(nameof(shape));
-            if (!rewriteShapeTransform && !rewriteShapeVisualStyle
+            if (!rewriteShapeTransform && !rewriteShapeGeometry
+                && !rewriteShapeVisualStyle
                 && !rewritePictureFormatting) {
                 throw new ArgumentException(
                     "At least one shape-property family must be rewritten.");
@@ -551,6 +634,22 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 PreserveBooleanPropertyBits(sourceProperties, properties,
                     0x033F, (1U << 8) | (1U << 9)
                         | (1U << 24) | (1U << 25));
+            }
+            if (rewriteShapeGeometry) {
+                if (!TryReadOfficeArtShapeType(shape,
+                        requireConnector: false, out ushort shapeType,
+                        out string? shapeTypeReason)) {
+                    throw new NotSupportedException(shapeTypeReason);
+                }
+                if (!TryReadShapeGeometry(shape, shapeType,
+                        out IReadOnlyList<LegacyPptWriterFoptProperty> geometry,
+                        out string? geometryReason)) {
+                    throw new NotSupportedException(geometryReason);
+                }
+                properties = properties.Where(property =>
+                        property.PropertyId != 0x0147)
+                    .ToList();
+                properties.AddRange(geometry);
             }
             if (rewriteShapeVisualStyle) {
                 properties = properties.Where(property =>
@@ -620,6 +719,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             A.ShapeTypeValues? preset = shape switch {
                 PowerPointConnectionShape connector => connector.ShapeType,
                 PowerPointAutoShape autoShape => autoShape.ShapeType,
+                _ when shape.Element is P.Shape source => source
+                    .ShapeProperties?.GetFirstChild<A.PresetGeometry>()?
+                    .Preset?.Value,
                 _ => null
             };
             if (!preset.HasValue
@@ -632,10 +734,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     : "The DrawingML preset geometry has no classic OfficeArt shape type.";
                 return false;
             }
-            A.PresetGeometry? geometry = shape.Element
-                .Descendants<A.PresetGeometry>().FirstOrDefault();
-            if (geometry?.AdjustValueList?.HasChildren == true) {
-                reason = "Edited DrawingML geometry adjustments are not yet encoded by the binary PowerPoint writer.";
+            if (!TryReadShapeGeometry(shape, shapeType, out _,
+                    out reason)) {
                 return false;
             }
             if (requireConnector

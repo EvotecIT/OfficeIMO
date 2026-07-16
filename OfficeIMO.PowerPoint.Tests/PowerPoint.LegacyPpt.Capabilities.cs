@@ -98,6 +98,8 @@ namespace OfficeIMO.Tests {
                 LegacyPptFeature.AutoShapes);
             LegacyPptCapability connectors = LegacyPptCapabilityCatalog.Get(
                 LegacyPptFeature.Connectors);
+            LegacyPptCapability groups = LegacyPptCapabilityCatalog.Get(
+                LegacyPptFeature.Groups);
             LegacyPptCapability transforms = LegacyPptCapabilityCatalog.Get(
                 LegacyPptFeature.ShapeTransforms);
             LegacyPptCapability styles = LegacyPptCapabilityCatalog.Get(
@@ -115,9 +117,21 @@ namespace OfficeIMO.Tests {
                 connectors.NewBinaryWrite);
             Assert.Contains("Fresh or edited attachment rules",
                 connectors.Note);
+            Assert.Equal(LegacyPptRepresentability.Native,
+                groups.Representability);
+            Assert.Equal(LegacyPptCapabilityState.Native,
+                groups.ImportToEditableModel);
+            Assert.Equal(LegacyPptCapabilityState.Native,
+                groups.NewBinaryWrite);
+            Assert.Equal(LegacyPptCapabilityState.Preserved,
+                groups.BinaryRoundTrip);
+            Assert.Equal(LegacyPptCapabilityState.Native,
+                groups.PptxToBinary);
+            Assert.Contains("child anchors", groups.Note);
+            Assert.Contains("Imported reparenting", groups.Note);
             Assert.Equal(LegacyPptCapabilityState.Native,
                 transforms.NewBinaryWrite);
-            Assert.Contains("Nested child transforms",
+            Assert.Contains("child transform edits",
                 transforms.Note);
             Assert.Equal(LegacyPptCapabilityState.Native,
                 styles.NewBinaryWrite);

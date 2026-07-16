@@ -9,10 +9,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             var children = new List<byte[]>(shapeContainer.Children.Count + 1);
             bool patchedAnchor = !edit.Bounds.HasValue;
             bool rewritePrimaryFopt = edit.ShapeTransform != null
+                || edit.ShapeGeometry != null
                 || edit.ShapeVisualStyle != null
                 || edit.PictureFormatting != null;
             bool patchedPrimaryFopt = !rewritePrimaryFopt;
             bool patchedFsp = edit.ShapeTransform == null;
+            bool patchedGroupCoordinate = edit.GroupCoordinate == null;
             bool patchedPictureRecolor = edit.PictureFormatting == null;
             bool hasPrimaryFopt = shapeContainer.Children.Any(
                 child => child.Type == OfficeArtFopt);
@@ -28,7 +30,13 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             bool appendedAnimation = false;
             bool sawClientData = false;
             foreach (LegacyPptRecord child in shapeContainer.Children) {
-                if (child.Type == OfficeArtFsp
+                if (!patchedGroupCoordinate
+                    && child.Type == OfficeArtFspgr) {
+                    children.Add(LegacyPptWriter
+                        .BuildPreservedGroupCoordinateRecord(child,
+                            edit.GroupCoordinate!));
+                    patchedGroupCoordinate = true;
+                } else if (child.Type == OfficeArtFsp
                     && (!patchedFsp
                         || !hasPrimaryFopt && !patchedPrimaryFopt)) {
                     children.Add(!patchedFsp
@@ -40,9 +48,11 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         byte[]? primary = LegacyPptWriter
                             .BuildPreservedShapeFoptRecord(null,
                                 edit.ShapeTransform
+                                    ?? edit.ShapeGeometry
                                     ?? edit.ShapeVisualStyle
                                     ?? edit.PictureFormatting!,
                                 edit.ShapeTransform != null,
+                                edit.ShapeGeometry != null,
                                 edit.ShapeVisualStyle != null,
                                 edit.PictureFormatting != null);
                         if (primary != null) children.Add(primary);
@@ -59,8 +69,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     byte[]? primary = LegacyPptWriter
                         .BuildPreservedShapeFoptRecord(child,
                             edit.ShapeTransform ?? edit.ShapeVisualStyle
+                                ?? edit.ShapeGeometry
                                 ?? edit.PictureFormatting!,
                             edit.ShapeTransform != null,
+                            edit.ShapeGeometry != null,
                             edit.ShapeVisualStyle != null,
                             edit.PictureFormatting != null);
                     if (primary != null) children.Add(primary);
@@ -179,6 +191,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 }
             }
             if (!patchedAnchor || !patchedPrimaryFopt || !patchedFsp
+                || !patchedGroupCoordinate
                 || !patchedPictureRecolor || !patchedText
                 || !patchedShapeInteractions || !patchedAnimation
                 || !patchedPlaceholder) {

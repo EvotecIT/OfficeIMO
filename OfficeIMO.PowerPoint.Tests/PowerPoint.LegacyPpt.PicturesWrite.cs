@@ -83,6 +83,56 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void NativeWriter_AuthorsPicturesInsideGroups() {
+            byte[] image = OfficePngWriter.Encode(new OfficeRasterImage(
+                4, 3, OfficeColor.FromRgb(37, 99, 235)));
+            byte[] bytes;
+            using (PowerPointPresentation source = PowerPointPresentation
+                       .Create()) {
+                PowerPointSlide slide = source.AddSlide(
+                    P.SlideLayoutValues.Blank);
+                PowerPointPicture picture;
+                using (var stream = new MemoryStream(image,
+                           writable: false)) {
+                    picture = slide.AddPicture(stream, ImagePartType.Png,
+                        158750, 317500, 635000, 476250);
+                }
+                PowerPointAutoShape frame = slide.AddShape(
+                    A.ShapeTypeValues.Rectangle,
+                    952500, 317500, 635000, 476250);
+                frame.Fill("ED7D31");
+                slide.GroupShapes(new PowerPointShape[] { picture, frame },
+                    "Picture group");
+
+                LegacyPptWritePreflightReport preflight = source
+                    .AnalyzeLegacyPptWrite();
+                Assert.True(preflight.CanWrite,
+                    string.Join(Environment.NewLine, preflight.Findings));
+                bytes = source.ToBytes(PowerPointFileFormat.Ppt);
+            }
+
+            LegacyPptShape group = Assert.Single(Assert.Single(
+                LegacyPptPresentation.Load(bytes).Slides).Shapes);
+            Assert.Equal(LegacyPptShapeKind.Group, group.Kind);
+            LegacyPptShape binaryPicture = Assert.Single(group.Children,
+                child => child.Kind == LegacyPptShapeKind.Picture);
+            Assert.Equal(1, binaryPicture.PictureStoreIndex);
+
+            using var input = new MemoryStream(bytes, writable: false);
+            using PowerPointPresentation projected = PowerPointPresentation
+                .Load(input);
+            PowerPointSlide projectedSlide = projected.Slides[0];
+            PowerPointGroupShape projectedGroup = Assert.Single(
+                projectedSlide.Shapes.OfType<PowerPointGroupShape>());
+            PowerPointPicture projectedPicture = Assert.Single(
+                projectedSlide.GetGroupPictures(projectedGroup));
+            Assert.Equal(image, projectedPicture.GetImageBytes());
+            Assert.Empty(projected.ValidateDocument());
+            Assert.Equal(bytes,
+                projected.ToBytes(PowerPointFileFormat.Ppt));
+        }
+
+        [Fact]
         public void NativeWriter_BlocksUnsupportedRasterFormatAndPictureEffect() {
             using PowerPointPresentation gifPresentation = PowerPointPresentation
                 .Create();

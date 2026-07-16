@@ -213,6 +213,14 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     findings.Add(new LegacyPptWriteFinding(LegacyPptFeature.Layouts,
                         "PPT-WRITE-LAYOUT-SHAPE", layoutShapeReason, slideIndex));
                 }
+                shapes = LegacyPptWriter.FlattenShapeTreeForWrite(shapes,
+                    out string? groupShapeReason);
+                if (groupShapeReason != null) {
+                    findings.Add(new LegacyPptWriteFinding(
+                        LegacyPptFeature.Groups,
+                        "PPT-WRITE-GROUP-SHAPE", groupShapeReason,
+                        slideIndex));
+                }
                 if (HasUnsupportedRichNotes(slide)) {
                     findings.Add(new LegacyPptWriteFinding(LegacyPptFeature.RichNotes,
                         "PPT-WRITE-RICH-NOTES",
@@ -327,6 +335,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             IReadOnlyList<PowerPointShape> shapes = LegacyPptWriter
                 .ReadSlideShapesForWrite(slide, out string? layoutShapeReason);
             if (layoutShapeReason != null) return false;
+            shapes = LegacyPptWriter.FlattenShapeTreeForWrite(shapes,
+                out string? groupShapeReason);
+            if (groupShapeReason != null) return false;
             foreach (PowerPointShape shape in shapes) {
                 if (!IsSupportedShape(shape) || HasUnsupportedVisualStyle(shape)
                     || !LegacyPptWriter.TryReadPlaceholderForWrite(shape,
@@ -350,6 +361,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             || includeCharts && shape is PowerPointChart
             || includeSmartArt && shape is PowerPointSmartArt
             || includeOleObjects && shape is PowerPointOleObject
+            || shape is PowerPointGroupShape group
+            && LegacyPptWriter.TryReadGroupForWrite(group,
+                out _, out _)
             || shape is PowerPointConnectionShape connector
             && LegacyPptWriter.TryReadOfficeArtShapeType(connector,
                 requireConnector: true, out _, out _)
@@ -377,6 +391,13 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             ICollection<LegacyPptWriteFinding> findings,
             IReadOnlyList<PowerPointShape> shapes, string ownerName,
             LegacyPptWriter.LegacyPptWriterShapeContext shapeContext) {
+            shapes = LegacyPptWriter.FlattenShapeTreeForWrite(shapes,
+                out string? groupReason);
+            if (groupReason != null) {
+                findings.Add(new LegacyPptWriteFinding(
+                    LegacyPptFeature.Groups,
+                    "PPT-WRITE-MASTER-GROUP", $"{ownerName}: {groupReason}"));
+            }
             for (int shapeIndex = 0; shapeIndex < shapes.Count; shapeIndex++) {
                 PowerPointShape shape = shapes[shapeIndex];
                 string location = $"{ownerName}, shape {shapeIndex}";

@@ -35,7 +35,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             catalog = new LegacyPptWriterInteractionCatalog(soundCatalog);
             reason = null;
             foreach (PowerPointSlide slide in slides) {
-                foreach (PowerPointShape shape in slide.Shapes) {
+                foreach (PowerPointShape shape in slide.EnumerateShapesDeep(
+                             slide.Shapes, includeHidden: true)) {
                     if (!TryReadShapeInteractions(slide.SlidePart, shape, catalog,
                             out LegacyPptWriterShapeInteractions interactions, out reason)) {
                         catalog = new LegacyPptWriterInteractionCatalog(soundCatalog);

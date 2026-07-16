@@ -38,11 +38,16 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
 
             uint baseShapeId = drawingId << 10;
             var spgrChildren = new List<byte[]> { PatchShapeId(baseRootShape.CopyRecordBytes(), baseShapeId) };
-            for (int index = 0; index < shapes.Count; index++) {
-                spgrChildren.Add(BuildShapeRecord(shapes[index],
-                    checked(baseShapeId + unchecked((uint)index) + 2U),
-                    interactionCatalog, animationCatalog, shapeContext,
-                    mediaCatalog, oleCatalog, pictureCatalog));
+            int contentShapeCount = CountDrawingShapes(shapes);
+            uint nextShapeId = checked(baseShapeId + 2U);
+            foreach (PowerPointShape shape in shapes) {
+                spgrChildren.Add(shape is PowerPointGroupShape group
+                    ? BuildGroupRecord(group, ref nextShapeId,
+                        interactionCatalog, animationCatalog, shapeContext,
+                        mediaCatalog, oleCatalog, pictureCatalog)
+                    : BuildShapeRecord(shape, nextShapeId++,
+                        interactionCatalog, animationCatalog, shapeContext,
+                        mediaCatalog, oleCatalog, pictureCatalog));
             }
 
             byte[] backgroundShape = PatchShapeId(background == null
@@ -50,8 +55,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     : BuildBackgroundShapeRecord(baseBackground, background),
                 checked(baseShapeId + 1));
             var dgPayload = new byte[8];
-            WriteUInt32(dgPayload, 0, unchecked((uint)(shapes.Count + 1)));
-            WriteUInt32(dgPayload, 4, checked(baseShapeId + unchecked((uint)shapes.Count) + 1U));
+            WriteUInt32(dgPayload, 0,
+                unchecked((uint)(contentShapeCount + 1)));
+            WriteUInt32(dgPayload, 4, checked(baseShapeId
+                + unchecked((uint)contentShapeCount) + 1U));
             byte[] dgAtom = BuildRecord(version: 0, unchecked((ushort)drawingId), OfficeArtDg, dgPayload);
             byte[] spgr = BuildContainer(OfficeArtSpgrContainer, instance: 0, spgrChildren);
             var drawingChildren = new List<byte[]>(baseDgContainer.Children.Count);
@@ -120,7 +127,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     throw new NotSupportedException(reason);
                 }
                 children.Add(BuildFsp(shapeType, shapeId, shape));
-                byte[]? formatting = BuildShapeFoptRecord(shape);
+                byte[]? formatting = BuildShapeFoptRecord(shape, shapeType);
                 if (formatting != null) children.Add(formatting);
                 children.Add(BuildAnchor(shape));
                 byte[]? clientData = BuildClientData(shape,
@@ -133,7 +140,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     throw new NotSupportedException(reason);
                 }
                 children.Add(BuildFsp(shapeType, shapeId, shape));
-                byte[]? formatting = BuildShapeFoptRecord(shape);
+                byte[]? formatting = BuildShapeFoptRecord(shape, shapeType);
                 if (formatting != null) children.Add(formatting);
                 children.Add(BuildAnchor(shape));
                 byte[]? clientData = BuildClientData(shape,
@@ -237,10 +244,13 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         }
 
         private static byte[] BuildFsp(ushort shapeType, uint shapeId,
-            PowerPointShape shape) {
+            PowerPointShape shape, bool isGroup = false) {
             var payload = new byte[8];
             WriteUInt32(payload, 0, shapeId);
-            WriteUInt32(payload, 4, GetShapeFspFlags(shape));
+            uint flags = GetShapeFspFlags(shape);
+            if (shape.Element.Parent is P.GroupShape) flags |= 1U << 1;
+            if (isGroup) flags |= 1U;
+            WriteUInt32(payload, 4, flags);
             return BuildRecord(version: 2, shapeType, OfficeArtFsp, payload);
         }
 
@@ -249,6 +259,15 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             int top = ToMasterUnits(shape.Top);
             int right = checked(left + ToMasterUnits(shape.Width));
             int bottom = checked(top + ToMasterUnits(shape.Height));
+            if (shape.Element.Parent is P.GroupShape) {
+                var childPayload = new byte[16];
+                WriteInt32(childPayload, 0, left);
+                WriteInt32(childPayload, 4, top);
+                WriteInt32(childPayload, 8, right);
+                WriteInt32(childPayload, 12, bottom);
+                return BuildRecord(version: 0, instance: 0,
+                    OfficeArtChildAnchor, childPayload);
+            }
             if (FitsInt16(left) && FitsInt16(top) && FitsInt16(right) && FitsInt16(bottom)) {
                 var payload = new byte[8];
                 WriteInt16(payload, 0, unchecked((short)top));

@@ -20,7 +20,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             catalog = new LegacyPptWriterMediaCatalog(firstObjectId);
             reason = null;
             foreach (PowerPointSlide slide in slides) {
-                PowerPointMedia[] mediaShapes = slide.Shapes
+                PowerPointMedia[] mediaShapes = slide.EnumerateShapesDeep(
+                        slide.Shapes, includeHidden: true)
                     .OfType<PowerPointMedia>().ToArray();
                 if (mediaShapes.Length > 0
                     && !HasOnlyDefaultMediaPlaybackTiming(slide)) {
@@ -68,7 +69,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             PowerPointSlide slide) {
             Timing? timing = slide.SlidePart.Slide?.Timing;
             if (timing == null) return false;
-            var mediaShapeIds = new HashSet<string>(slide.Media
+            var mediaShapeIds = new HashSet<string>(slide
+                .EnumerateShapesDeep(slide.Shapes, includeHidden: true)
+                .OfType<PowerPointMedia>()
                 .Select(item => item.Id?.ToString(
                     System.Globalization.CultureInfo.InvariantCulture))
                 .Where(id => !string.IsNullOrWhiteSpace(id))

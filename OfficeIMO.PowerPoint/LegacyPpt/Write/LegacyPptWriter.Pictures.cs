@@ -26,6 +26,13 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     reason = shapeReason;
                     return false;
                 }
+                shapes = FlattenShapeTreeForWrite(shapes,
+                    out shapeReason);
+                if (shapeReason != null) {
+                    failureFeature = LegacyPptFeature.Groups;
+                    reason = shapeReason;
+                    return false;
+                }
                 foreach (PowerPointShape shape in shapes) {
                     byte[] imageBytes;
                     string contentType;
@@ -248,6 +255,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 nameof(picture));
             return BuildPreservedShapeFoptRecord(prototype, picture,
                 rewriteShapeTransform: false,
+                rewriteShapeGeometry: false,
                 rewriteShapeVisualStyle: false,
                 rewritePictureFormatting: true)
                 ?? throw new InvalidOperationException(

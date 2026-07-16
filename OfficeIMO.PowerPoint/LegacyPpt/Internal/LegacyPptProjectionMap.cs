@@ -185,43 +185,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                         + $"but the binary source exposed {sourceShapes.Length}.");
                 }
 
-                var shapes = new List<LegacyPptShapeProjection>(projectedShapes.Length);
-                for (int shapeIndex = 0; shapeIndex < projectedShapes.Length; shapeIndex++) {
-                    uint? openXmlShapeId = projectedShapes[shapeIndex].Id;
-                    if (!openXmlShapeId.HasValue) {
-                        throw new InvalidDataException(
-                            $"Projected slide {slideIndex + 1}, shape {shapeIndex + 1} has no Open XML shape id.");
-                    }
-                    LegacyPptShape sourceShape = sourceShapes[shapeIndex];
-                    string? textFormattingFingerprint = (sourceShape.TextBody.HasStyleRecord
-                        || sourceShape.TextBody.HasInteractions)
-                        && projectedShapes[shapeIndex].Element is DocumentFormat.OpenXml.Presentation.Shape projectedTextShape
-                        ? LegacyPptTextProjection.CreateFormattingFingerprint(projectedTextShape.TextBody)
-                        : null;
-                    shapes.Add(new LegacyPptShapeProjection(openXmlShapeId.Value, sourceShape.ShapeId,
-                        sourceShape.RecordOffset, sourceShape.Kind, sourceShape.Bounds, sourceShape.Text,
-                        sourceShape.Placeholder,
-                        textFormattingFingerprint, sourceShape.Interactions,
-                        sourceShape.TextBody.Interactions, sourceShape.Animation,
-                        projectableSoundIds,
-                        LegacyPptShapeProjection
-                            .CreateShapeTransformFingerprint(
-                                projectedShapes[shapeIndex]),
-                        sourceShape.Style.CanRewriteProjectedVisualStyle
-                            ? LegacyPptShapeProjection
-                                .CreateShapeVisualStyleFingerprint(
-                                    projectedShapes[shapeIndex])
-                            : null,
-                        LegacyPptShapeProjection
-                            .CreatePictureFormattingFingerprint(
-                                projectedShapes[shapeIndex]),
-                        sourceShape.OleObject != null
-                            && projectedShapes[shapeIndex] is
-                                PowerPointOleObject projectedOle
-                            ? LegacyPptOleObjectProjection.Create(
-                                sourceShape.OleObject, projectedOle)
-                            : null));
-                }
+                var shapes = new List<LegacyPptShapeProjection>();
+                AddShapeProjectionTree(shapes, sourceShapes,
+                    projectedShapes, projectableSoundIds,
+                    $"slide {slideIndex + 1}");
                 slides.Add(new LegacyPptSlideProjection(projectedSlide.SlidePart.Uri.ToString(),
                     projectedSlide.SlidePart.SlideLayoutPart?.Uri.ToString(),
                     sourceSlide.PersistId, sourceSlide.SlideId, sourceSlide.MasterId,
@@ -252,6 +219,80 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 LegacyPptPropertySetCodec.CreateProjection(presentation,
                     legacy.Package),
                 LegacyPptVbaProjectProjection.Create(legacy.VbaProject));
+        }
+
+        private static void AddShapeProjectionTree(
+            ICollection<LegacyPptShapeProjection> result,
+            IReadOnlyList<LegacyPptShape> sourceShapes,
+            IReadOnlyList<PowerPointShape> projectedShapes,
+            ISet<uint> projectableSoundIds, string ownerName) {
+            if (sourceShapes.Count != projectedShapes.Count) {
+                throw new InvalidDataException(
+                    $"Projected {ownerName} has {projectedShapes.Count} editable shapes, but the binary source exposed {sourceShapes.Count}.");
+            }
+            for (int index = 0; index < sourceShapes.Count; index++) {
+                LegacyPptShape sourceShape = sourceShapes[index];
+                PowerPointShape projectedShape = projectedShapes[index];
+                uint? openXmlShapeId = projectedShape.Id;
+                if (!openXmlShapeId.HasValue) {
+                    throw new InvalidDataException(
+                        $"Projected {ownerName}, shape {index + 1} has no Open XML shape id.");
+                }
+                string? textFormattingFingerprint =
+                    (sourceShape.TextBody.HasStyleRecord
+                        || sourceShape.TextBody.HasInteractions)
+                    && projectedShape.Element is P.Shape projectedTextShape
+                        ? LegacyPptTextProjection.CreateFormattingFingerprint(
+                            projectedTextShape.TextBody)
+                        : null;
+                result.Add(new LegacyPptShapeProjection(
+                    openXmlShapeId.Value, sourceShape.ShapeId,
+                    sourceShape.RecordOffset, sourceShape.Kind,
+                    sourceShape.Bounds, sourceShape.Text,
+                    sourceShape.Placeholder,
+                    textFormattingFingerprint, sourceShape.Interactions,
+                    sourceShape.TextBody.Interactions,
+                    sourceShape.Animation, projectableSoundIds,
+                    LegacyPptShapeProjection
+                        .CreateShapeTransformFingerprint(projectedShape),
+                    sourceShape.OfficeArtShapeType is 2 or 23
+                        ? LegacyPptShapeProjection
+                            .CreateShapeGeometryFingerprint(projectedShape)
+                        : null,
+                    sourceShape.Kind == LegacyPptShapeKind.Group
+                        ? LegacyPptShapeProjection
+                            .CreateGroupCoordinateFingerprint(projectedShape)
+                        : null,
+                    sourceShape.Style.CanRewriteProjectedVisualStyle
+                        ? LegacyPptShapeProjection
+                            .CreateShapeVisualStyleFingerprint(projectedShape)
+                        : null,
+                    LegacyPptShapeProjection
+                        .CreatePictureFormattingFingerprint(projectedShape),
+                    sourceShape.OleObject != null
+                        && projectedShape is PowerPointOleObject projectedOle
+                        ? LegacyPptOleObjectProjection.Create(
+                            sourceShape.OleObject, projectedOle)
+                        : null));
+                if (sourceShape.Kind != LegacyPptShapeKind.Group) continue;
+                if (projectedShape is not PowerPointGroupShape group) {
+                    throw new InvalidDataException(
+                        $"Projected {ownerName}, shape {index + 1} is not the expected group shape.");
+                }
+                IReadOnlyList<PowerPointShape> projectedChildren =
+                    LegacyPptWriter.ReadGroupChildrenForWrite(group,
+                        out string? childReason);
+                if (childReason != null) {
+                    throw new InvalidDataException(childReason);
+                }
+                LegacyPptShape[] sourceChildren = sourceShape.Children
+                    .Where(child => child.Kind
+                        != LegacyPptShapeKind.Unsupported)
+                    .ToArray();
+                AddShapeProjectionTree(result, sourceChildren,
+                    projectedChildren, projectableSoundIds,
+                    $"{ownerName}, group shape {index + 1}");
+            }
         }
 
         private static LegacyPptNotesProjection CreateNotesProjection(
@@ -381,42 +422,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 IReadOnlyList<PowerPointShape> projected, string ownerName) {
             LegacyPptShape[] sourceShapes = source.Where(shape =>
                 shape.Kind != LegacyPptShapeKind.Unsupported).ToArray();
-            if (projected.Count != sourceShapes.Length) {
-                throw new InvalidDataException(
-                    $"Projected {ownerName} has {projected.Count} editable shapes, "
-                    + $"but the binary source exposed {sourceShapes.Length}.");
-            }
-            var result = new List<LegacyPptShapeProjection>(projected.Count);
-            for (int index = 0; index < projected.Count; index++) {
-                PowerPointShape projectedShape = projected[index];
-                uint? openXmlShapeId = projectedShape.Id;
-                if (!openXmlShapeId.HasValue) {
-                    throw new InvalidDataException(
-                        $"Projected {ownerName}, shape {index + 1} has no Open XML shape id.");
-                }
-                LegacyPptShape sourceShape = sourceShapes[index];
-                string? textFormattingFingerprint = (sourceShape.TextBody.HasStyleRecord
-                        || sourceShape.TextBody.HasInteractions)
-                    && projectedShape.Element is DocumentFormat.OpenXml.Presentation.Shape projectedTextShape
-                    ? LegacyPptTextProjection.CreateFormattingFingerprint(
-                        projectedTextShape.TextBody)
-                    : null;
-                result.Add(new LegacyPptShapeProjection(openXmlShapeId.Value,
-                    sourceShape.ShapeId, sourceShape.RecordOffset,
-                    sourceShape.Kind, sourceShape.Bounds, sourceShape.Text,
-                    sourceShape.Placeholder,
-                    textFormattingFingerprint, sourceShape.Interactions,
-                    sourceShape.TextBody.Interactions, sourceShape.Animation,
-                    new HashSet<uint>(),
-                    LegacyPptShapeProjection
-                        .CreateShapeTransformFingerprint(projectedShape),
-                    sourceShape.Style.CanRewriteProjectedVisualStyle
-                        ? LegacyPptShapeProjection
-                            .CreateShapeVisualStyleFingerprint(projectedShape)
-                        : null,
-                    LegacyPptShapeProjection
-                        .CreatePictureFormattingFingerprint(projectedShape)));
-            }
+            var result = new List<LegacyPptShapeProjection>();
+            AddShapeProjectionTree(result, sourceShapes, projected,
+                new HashSet<uint>(), ownerName);
             return result;
         }
 
@@ -940,6 +948,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             LegacyPptAnimation? animation,
             ISet<uint> projectableSoundIds,
             string? shapeTransformFingerprint,
+            string? shapeGeometryFingerprint,
+            string? groupCoordinateFingerprint,
             string? shapeVisualStyleFingerprint,
             string? pictureFormattingFingerprint,
             LegacyPptOleObjectProjection? oleObject = null) {
@@ -966,6 +976,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             CanEditAnimation = animation == null || IsEditableAnimation(
                 animation, projectableSoundIds);
             ShapeTransformFingerprint = shapeTransformFingerprint;
+            ShapeGeometryFingerprint = shapeGeometryFingerprint;
+            GroupCoordinateFingerprint = groupCoordinateFingerprint;
             ShapeVisualStyleFingerprint = shapeVisualStyleFingerprint;
             PictureFormattingFingerprint = pictureFormattingFingerprint;
             OleObject = oleObject;
@@ -1002,6 +1014,16 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
         internal bool CanEditShapeTransform =>
             ShapeTransformFingerprint != null;
 
+        internal string? ShapeGeometryFingerprint { get; }
+
+        internal bool CanEditShapeGeometry =>
+            ShapeGeometryFingerprint != null;
+
+        internal string? GroupCoordinateFingerprint { get; }
+
+        internal bool CanEditGroupCoordinate =>
+            GroupCoordinateFingerprint != null;
+
         internal string? ShapeVisualStyleFingerprint { get; }
 
         internal bool CanEditShapeVisualStyle =>
@@ -1031,6 +1053,53 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                     ?? string.Empty,
                 shape.HorizontalFlip == true ? "1" : "0",
                 shape.VerticalFlip == true ? "1" : "0");
+        }
+
+        internal bool ShapeGeometryMatches(PowerPointShape shape) =>
+            string.Equals(ShapeGeometryFingerprint,
+                CreateShapeGeometryFingerprint(shape),
+                StringComparison.Ordinal);
+
+        internal static string? CreateShapeGeometryFingerprint(
+            PowerPointShape shape) {
+            if (!LegacyPptWriter.TryReadOfficeArtShapeType(shape,
+                    requireConnector: false, out ushort shapeType, out _)
+                || shapeType is not 2 and not 23
+                || !LegacyPptWriter.TryReadShapeGeometry(shape, shapeType,
+                    out _, out _)) {
+                return null;
+            }
+            A.AdjustValueList? values = shape.Element
+                .Descendants<A.PresetGeometry>().FirstOrDefault()?
+                .AdjustValueList;
+            return string.Concat(values?.Elements<A.ShapeGuide>()
+                .Select(guide => guide.OuterXml)
+                ?? Enumerable.Empty<string>());
+        }
+
+        internal bool GroupCoordinateMatches(PowerPointShape shape) =>
+            string.Equals(GroupCoordinateFingerprint,
+                CreateGroupCoordinateFingerprint(shape),
+                StringComparison.Ordinal);
+
+        internal static string? CreateGroupCoordinateFingerprint(
+            PowerPointShape shape) {
+            if (shape is not PowerPointGroupShape group
+                || !LegacyPptWriter.TryReadGroupForWrite(group,
+                    out _, out _)) {
+                return null;
+            }
+            A.TransformGroup transform = group.GroupShape
+                .GroupShapeProperties!.TransformGroup!;
+            return string.Join("\n",
+                transform.ChildOffset!.X!.Value.ToString(
+                    System.Globalization.CultureInfo.InvariantCulture),
+                transform.ChildOffset.Y!.Value.ToString(
+                    System.Globalization.CultureInfo.InvariantCulture),
+                transform.ChildExtents!.Cx!.Value.ToString(
+                    System.Globalization.CultureInfo.InvariantCulture),
+                transform.ChildExtents.Cy!.Value.ToString(
+                    System.Globalization.CultureInfo.InvariantCulture));
         }
 
         internal bool ShapeVisualStyleMatches(PowerPointShape shape) =>
