@@ -20,6 +20,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         private const ushort RecordNotesAtom = 0x03F1;
         private const ushort RecordSlidePersistAtom = 0x03F3;
         private const ushort RecordSlideShowSlideInfoAtom = 0x03F9;
+        private const ushort RecordColorSchemeAtom = 0x07F0;
         private const ushort RecordDrawingGroup = 0x040B;
         private const ushort RecordDrawing = 0x040C;
         private const ushort RecordPlaceholder = 0x0BC3;
@@ -69,6 +70,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             }
 
             LegacyPptWriterTemplate template = Template.Value;
+            LegacyPptWriterMasterCatalog masters = ReadMasterCatalog(presentation,
+                template.MainMasterPrototypes);
             var notes = new List<LegacyPptWriterNote>();
             for (int slideIndex = 0; slideIndex < presentation.Slides.Count; slideIndex++) {
                 PowerPointSlide slide = presentation.Slides[slideIndex];
@@ -99,7 +102,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     out IReadOnlyList<LegacyPptWriterComment>? comments);
                 slideRecords.Add(BuildSlideRecord(
                     template.SlidePrototype, slide, supportedShapes,
-                    unchecked((uint)(13 + index)), masterIdRef: null, notesId,
+                    unchecked((uint)(13 + index)), masters.GetMasterId(slide), notesId,
                     comments ?? Array.Empty<LegacyPptWriterComment>(),
                     interactionCatalog, animationCatalog));
             }
@@ -108,9 +111,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
 
             var persistObjects = new List<byte[]>(13 + slideRecords.Count + notesRecords.Length) {
                 BuildDocumentRecord(template.Document, presentation, slideShapeCounts, notes,
-                    interactionCatalog, customShows, soundCatalog)
+                    interactionCatalog, customShows, soundCatalog, masters.Count)
             };
-            persistObjects.AddRange(template.SharedPersistObjects);
+            persistObjects.AddRange(masters.PersistObjects);
+            persistObjects.Add(template.NotesMasterPrototype.CopyRecordBytes());
             persistObjects.AddRange(slideRecords);
             persistObjects.AddRange(notesRecords);
 
@@ -173,7 +177,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             IReadOnlyList<int> slideShapeCounts, IReadOnlyList<LegacyPptWriterNote> notes,
             LegacyPptWriterInteractionCatalog interactionCatalog,
             LegacyPptWriterCustomShowCatalog customShows,
-            LegacyPptWriterSoundCatalog soundCatalog) {
+            LegacyPptWriterSoundCatalog soundCatalog,
+            int masterCount) {
             var children = new List<byte[]>();
             bool wroteSounds = false;
             foreach (LegacyPptRecord child in document.Children) {
@@ -202,6 +207,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                            && (child.Instance == 3 || child.Instance == 4)) {
                     children.Add(BuildDocumentHeaderFooterRecord(presentation,
                         child.Instance));
+                } else if (child.Type == RecordSlideListWithText && child.Instance == 1) {
+                    children.Add(BuildMasterList(masterCount));
                 } else if (child.Type == RecordSlideListWithText && child.Instance == 0) {
                     children.Add(BuildSlideList(presentation.Slides.Count));
                 } else if (child.Type == RecordSlideListWithText && child.Instance == 2) {
@@ -712,10 +719,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             LegacyPptRecord ReadPersist(uint id) => LegacyPptRecordReader.ReadSingle(bytes,
                 checked((int)offsets[id]), options);
             LegacyPptRecord document = ReadPersist(1);
-            var shared = new List<byte[]>(12);
-            for (uint id = 2; id <= 13; id++) shared.Add(ReadPersist(id).CopyRecordBytes());
-            return new LegacyPptWriterTemplate(document, shared, ReadPersist(14),
-                ReadPersist(15));
+            var mainMasters = new List<LegacyPptRecord>(11);
+            for (uint id = 2; id <= 12; id++) mainMasters.Add(ReadPersist(id));
+            return new LegacyPptWriterTemplate(document, mainMasters, ReadPersist(13),
+                ReadPersist(14), ReadPersist(15));
         }
 
         private static byte[] BuildContainer(ushort type, ushort instance, IEnumerable<byte[]> children) =>
@@ -769,16 +776,20 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         }
 
         private sealed class LegacyPptWriterTemplate {
-            internal LegacyPptWriterTemplate(LegacyPptRecord document, IReadOnlyList<byte[]> sharedPersistObjects,
-                LegacyPptRecord slidePrototype, LegacyPptRecord notesPrototype) {
+            internal LegacyPptWriterTemplate(LegacyPptRecord document,
+                IReadOnlyList<LegacyPptRecord> mainMasterPrototypes,
+                LegacyPptRecord notesMasterPrototype, LegacyPptRecord slidePrototype,
+                LegacyPptRecord notesPrototype) {
                 Document = document;
-                SharedPersistObjects = sharedPersistObjects;
+                MainMasterPrototypes = mainMasterPrototypes;
+                NotesMasterPrototype = notesMasterPrototype;
                 SlidePrototype = slidePrototype;
                 NotesPrototype = notesPrototype;
             }
 
             internal LegacyPptRecord Document { get; }
-            internal IReadOnlyList<byte[]> SharedPersistObjects { get; }
+            internal IReadOnlyList<LegacyPptRecord> MainMasterPrototypes { get; }
+            internal LegacyPptRecord NotesMasterPrototype { get; }
             internal LegacyPptRecord SlidePrototype { get; }
             internal LegacyPptRecord NotesPrototype { get; }
         }

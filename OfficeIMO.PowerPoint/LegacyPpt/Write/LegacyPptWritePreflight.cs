@@ -25,6 +25,15 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 findings.Add(new LegacyPptWriteFinding(LegacyPptFeature.VbaProjects, "PPT-WRITE-VBA",
                     "VBA projects are not encoded by the native binary writer."));
             }
+            int masterCount = presentation.OpenXmlDocument.PresentationPart?
+                .SlideMasterParts.Count() ?? 0;
+            if (masterCount == 0 || masterCount > LegacyPptWriter.MaxNativeMasterCount) {
+                findings.Add(new LegacyPptWriteFinding(LegacyPptFeature.Masters,
+                    "PPT-WRITE-MASTER-COUNT",
+                    masterCount == 0
+                        ? "The presentation has no slide master to encode."
+                        : $"The native binary writer currently supports at most {LegacyPptWriter.MaxNativeMasterCount} slide masters; the presentation contains {masterCount}."));
+            }
             if (LegacyPptWriter.HasModernComments(presentation)) {
                 findings.Add(new LegacyPptWriteFinding(LegacyPptFeature.ModernComments,
                     "PPT-WRITE-MODERN-COMMENTS",

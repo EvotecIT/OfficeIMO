@@ -132,6 +132,87 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void NativeWriter_WritesReferencedMasterTopologyAndClassicColorSchemes() {
+            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            presentation.SetThemeColors(new Dictionary<PowerPointThemeColor, string> {
+                [PowerPointThemeColor.Light1] = "F1F2F3",
+                [PowerPointThemeColor.Dark1] = "111213",
+                [PowerPointThemeColor.Accent4] = "414243",
+                [PowerPointThemeColor.Dark2] = "212223",
+                [PowerPointThemeColor.Light2] = "E1E2E3",
+                [PowerPointThemeColor.Accent1] = "A1A2A3",
+                [PowerPointThemeColor.Accent2] = "B1B2B3",
+                [PowerPointThemeColor.Accent3] = "C1C2C3"
+            });
+            presentation.AddSlide();
+
+            byte[] bytes = presentation.ToBytes(PowerPointFileFormat.Ppt);
+            LegacyPptPresentation binary = LegacyPptPresentation.Load(bytes);
+            LegacyPptMaster master = Assert.Single(binary.Masters);
+            LegacyPptColorScheme scheme = Assert.IsType<LegacyPptColorScheme>(
+                master.ColorScheme);
+
+            Assert.Equal(master.MasterId, Assert.Single(binary.Slides).MasterId);
+            Assert.Equal("F1F2F3", scheme.Background);
+            Assert.Equal("111213", scheme.Text);
+            Assert.Equal("414243", scheme.Shadow);
+            Assert.Equal("212223", scheme.TitleText);
+            Assert.Equal("E1E2E3", scheme.Fill);
+            Assert.Equal("A1A2A3", scheme.Accent1);
+            Assert.Equal("B1B2B3", scheme.Accent2);
+            Assert.Equal("C1C2C3", scheme.Accent3);
+
+            using var stream = new MemoryStream(bytes);
+            using PowerPointPresentation reopened = PowerPointPresentation.Load(stream);
+            Assert.Equal("F1F2F3",
+                reopened.GetThemeColor(PowerPointThemeColor.Light1));
+            Assert.Equal("111213",
+                reopened.GetThemeColor(PowerPointThemeColor.Dark1));
+            Assert.Equal("414243",
+                reopened.GetThemeColor(PowerPointThemeColor.Accent4));
+            Assert.Empty(reopened.ValidateDocument());
+        }
+
+        [Fact]
+        public void NativeWriter_PreservesDistinctOpenXmlSlideMasters() {
+            using PowerPointPresentation target = PowerPointPresentation.Create();
+            target.SetThemeColor(PowerPointThemeColor.Accent1, "102030");
+            target.AddSlide();
+
+            using PowerPointPresentation source = PowerPointPresentation.Create();
+            source.SetThemeColor(PowerPointThemeColor.Accent1, "A0B0C0");
+            source.OpenXmlDocument.PresentationPart!.SlideMasterParts.First()
+                .ThemePart!.Theme!.Save();
+            SlideLayoutPart sourceLayout = source.OpenXmlDocument.PresentationPart!
+                .SlideMasterParts.First().SlideLayoutParts.First();
+            sourceLayout.SlideLayout!.CommonSlideData!.Name = "Imported unique layout";
+            sourceLayout.SlideLayout.Save();
+            source.AddSlide();
+            target.ImportSlide(source, 0);
+
+            Assert.Equal(2, target.OpenXmlDocument.PresentationPart!
+                .SlideMasterParts.Count());
+            byte[] bytes = target.ToBytes(PowerPointFileFormat.Ppt);
+            LegacyPptPresentation binary = LegacyPptPresentation.Load(bytes);
+
+            Assert.Equal(2, binary.Masters.Count);
+            Assert.Equal(2, binary.Slides.Select(slide => slide.MasterId)
+                .Distinct().Count());
+            Assert.Equal("102030", binary.Masters[0].ColorScheme!.Accent1);
+            Assert.Equal("A0B0C0", binary.Masters[1].ColorScheme!.Accent1);
+
+            using var stream = new MemoryStream(bytes);
+            using PowerPointPresentation reopened = PowerPointPresentation.Load(stream);
+            Assert.Equal(2, reopened.OpenXmlDocument.PresentationPart!
+                .SlideMasterParts.Count());
+            Assert.Equal("102030",
+                reopened.GetThemeColor(PowerPointThemeColor.Accent1, 0));
+            Assert.Equal("A0B0C0",
+                reopened.GetThemeColor(PowerPointThemeColor.Accent1, 1));
+            Assert.Empty(reopened.ValidateDocument());
+        }
+
+        [Fact]
         public void OfficeArtStyleDecoder_ExposesBackgroundFillInputs() {
             OfficeArtShapeStyle style = OfficeArtShapeStyle.Decode(new[] {
                 new OfficeArtProperty(0, 0x0180, 4),

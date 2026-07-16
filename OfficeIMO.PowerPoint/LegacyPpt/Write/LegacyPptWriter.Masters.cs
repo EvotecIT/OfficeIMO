@@ -1,0 +1,170 @@
+using System.Collections.ObjectModel;
+using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml.Packaging;
+using OfficeIMO.PowerPoint.LegacyPpt.Internal;
+
+namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
+    internal static partial class LegacyPptWriter {
+        internal const int MaxNativeMasterCount = 11;
+        private const uint FirstMasterId = 0x80000000U;
+        private const uint FirstMasterPersistId = 2U;
+
+        private static LegacyPptWriterMasterCatalog ReadMasterCatalog(
+            PowerPointPresentation presentation,
+            IReadOnlyList<LegacyPptRecord> prototypes) {
+            SlideMasterPart[] masterParts = presentation.OpenXmlDocument.PresentationPart?
+                .SlideMasterParts.ToArray() ?? Array.Empty<SlideMasterPart>();
+            if (masterParts.Length == 0) {
+                throw new InvalidDataException(
+                    "The Open XML presentation has no slide master to encode.");
+            }
+            if (masterParts.Length > MaxNativeMasterCount
+                || masterParts.Length > prototypes.Count) {
+                throw new NotSupportedException(
+                    $"Native binary PowerPoint saving currently supports at most {MaxNativeMasterCount} slide masters; "
+                    + $"the presentation contains {masterParts.Length}.");
+            }
+
+            var masterIds = new Dictionary<string, uint>(StringComparer.Ordinal);
+            var persistObjects = new List<byte[]>(prototypes.Count);
+            for (int index = 0; index < prototypes.Count; index++) {
+                if (index < masterParts.Length) {
+                    SlideMasterPart source = masterParts[index];
+                    persistObjects.Add(BuildMainMasterRecord(prototypes[index],
+                        ReadColorScheme(source)));
+                    masterIds.Add(masterParts[index].Uri.ToString(),
+                        checked(FirstMasterId + unchecked((uint)index)));
+                } else {
+                    persistObjects.Add(prototypes[index].CopyRecordBytes());
+                }
+            }
+            return new LegacyPptWriterMasterCatalog(masterIds, persistObjects,
+                masterParts.Length);
+        }
+
+        private static byte[] BuildMainMasterRecord(LegacyPptRecord prototype,
+            LegacyPptWriterColorScheme scheme) {
+            var children = new List<byte[]>(prototype.Children.Count);
+            bool wroteScheme = false;
+            foreach (LegacyPptRecord child in prototype.Children) {
+                if (child.Type == RecordColorSchemeAtom && child.Instance == 1) {
+                    children.Add(BuildColorSchemeAtom(scheme));
+                    wroteScheme = true;
+                } else {
+                    children.Add(child.CopyRecordBytes());
+                }
+            }
+            if (!wroteScheme) children.Add(BuildColorSchemeAtom(scheme));
+            return BuildContainer(prototype.Type, prototype.Instance, children);
+        }
+
+        private static byte[] BuildColorSchemeAtom(LegacyPptWriterColorScheme scheme) {
+            var payload = new byte[32];
+            for (int index = 0; index < scheme.Colors.Count; index++) {
+                string color = scheme.Colors[index];
+                payload[index * 4] = Convert.ToByte(color.Substring(0, 2), 16);
+                payload[index * 4 + 1] = Convert.ToByte(color.Substring(2, 2), 16);
+                payload[index * 4 + 2] = Convert.ToByte(color.Substring(4, 2), 16);
+            }
+            return BuildRecord(version: 0, instance: 1, RecordColorSchemeAtom, payload);
+        }
+
+        private static LegacyPptWriterColorScheme ReadColorScheme(SlideMasterPart masterPart) {
+            DocumentFormat.OpenXml.Drawing.ColorScheme? source = masterPart.ThemePart?
+                .Theme?.ThemeElements?.ColorScheme;
+            string Read(PowerPointThemeColor slot, string fallback) {
+                OpenXmlCompositeElement? element = slot switch {
+                    PowerPointThemeColor.Dark1 => source?.Dark1Color,
+                    PowerPointThemeColor.Light1 => source?.Light1Color,
+                    PowerPointThemeColor.Dark2 => source?.Dark2Color,
+                    PowerPointThemeColor.Light2 => source?.Light2Color,
+                    PowerPointThemeColor.Accent1 => source?.Accent1Color,
+                    PowerPointThemeColor.Accent2 => source?.Accent2Color,
+                    PowerPointThemeColor.Accent3 => source?.Accent3Color,
+                    PowerPointThemeColor.Accent4 => source?.Accent4Color,
+                    _ => null
+                };
+                string? value = element?
+                    .GetFirstChild<DocumentFormat.OpenXml.Drawing.RgbColorModelHex>()?
+                    .Val?.Value;
+                if (string.IsNullOrWhiteSpace(value)) {
+                    value = element?
+                        .GetFirstChild<DocumentFormat.OpenXml.Drawing.SystemColor>()?
+                        .LastColor?.Value;
+                }
+                return NormalizeColor(value, fallback);
+            }
+
+            return new LegacyPptWriterColorScheme(new[] {
+                Read(PowerPointThemeColor.Light1, "FFFFFF"),
+                Read(PowerPointThemeColor.Dark1, "000000"),
+                Read(PowerPointThemeColor.Accent4, "808080"),
+                Read(PowerPointThemeColor.Dark2, "000000"),
+                Read(PowerPointThemeColor.Light2, "FFFFFF"),
+                Read(PowerPointThemeColor.Accent1, "4472C4"),
+                Read(PowerPointThemeColor.Accent2, "ED7D31"),
+                Read(PowerPointThemeColor.Accent3, "A5A5A5")
+            });
+        }
+
+        private static string NormalizeColor(string? value, string fallback) {
+            string candidate = (value ?? string.Empty).Trim().TrimStart('#');
+            return candidate.Length == 6 && candidate.All(Uri.IsHexDigit)
+                ? candidate.ToUpperInvariant()
+                : fallback;
+        }
+
+        private static byte[] BuildMasterList(int masterCount) {
+            var children = new List<byte[]>(masterCount);
+            for (int index = 0; index < masterCount; index++) {
+                var payload = new byte[20];
+                WriteUInt32(payload, 0,
+                    checked(FirstMasterPersistId + unchecked((uint)index)));
+                WriteUInt32(payload, 12,
+                    checked(FirstMasterId + unchecked((uint)index)));
+                children.Add(BuildRecord(version: 0, instance: 0,
+                    RecordSlidePersistAtom, payload));
+            }
+            return BuildContainer(RecordSlideListWithText, instance: 1, children);
+        }
+
+        private sealed class LegacyPptWriterMasterCatalog {
+            private readonly IReadOnlyDictionary<string, uint> _masterIds;
+
+            internal LegacyPptWriterMasterCatalog(
+                IReadOnlyDictionary<string, uint> masterIds,
+                IReadOnlyList<byte[]> persistObjects, int count) {
+                _masterIds = new ReadOnlyDictionary<string, uint>(
+                    new Dictionary<string, uint>(masterIds, StringComparer.Ordinal));
+                PersistObjects = new ReadOnlyCollection<byte[]>(persistObjects.ToArray());
+                Count = count;
+            }
+
+            internal int Count { get; }
+            internal IReadOnlyList<byte[]> PersistObjects { get; }
+
+            internal uint GetMasterId(PowerPointSlide slide) {
+                SlideMasterPart? masterPart = slide.SlidePart.SlideLayoutPart?.SlideMasterPart;
+                if (masterPart == null
+                    || !_masterIds.TryGetValue(masterPart.Uri.ToString(), out uint masterId)) {
+                    throw new InvalidDataException(
+                        "A slide references a layout whose slide master is not part of the presentation.");
+                }
+                return masterId;
+            }
+        }
+
+        private sealed class LegacyPptWriterColorScheme {
+            internal LegacyPptWriterColorScheme(IReadOnlyList<string> colors) {
+                if (colors.Count != 8) {
+                    throw new ArgumentException(
+                        "A classic binary PowerPoint color scheme contains eight colors.",
+                        nameof(colors));
+                }
+                Colors = new ReadOnlyCollection<string>(colors.ToArray());
+            }
+
+            internal IReadOnlyList<string> Colors { get; }
+        }
+    }
+}
