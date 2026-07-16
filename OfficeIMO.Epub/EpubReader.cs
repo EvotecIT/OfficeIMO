@@ -110,7 +110,7 @@ internal static partial class EpubReader {
         foreach (var candidate in candidates) {
             if (emitted >= effective.MaxChapters) break;
             if (effective.MaxChapterBytes.HasValue && candidate.Entry.Length > effective.MaxChapterBytes.Value) {
-                string path = NormalizePath(candidate.Entry.FullName);
+                string path = candidate.Path;
                 diagnostics.Warning(
                     "epub.chapter.size-limit",
                     $"Skipped chapter '{path}' because size {candidate.Entry.Length} exceeds MaxChapterBytes ({effective.MaxChapterBytes.Value}).",
@@ -118,7 +118,7 @@ internal static partial class EpubReader {
                 continue;
             }
 
-            string normalizedPath = NormalizePath(candidate.Entry.FullName);
+            string normalizedPath = candidate.Path;
             encryptionByPath.TryGetValue(normalizedPath, out EpubEncryptionInfo? chapterEncryption);
             if (chapterEncryption?.RequiresDecryption == true) {
                 diagnostics.Warning(

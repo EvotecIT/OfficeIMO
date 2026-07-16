@@ -37,7 +37,7 @@ internal static partial class EpubReaderAdapter {
     }
 
     private static OfficeDocumentDiagnosticCategory MapEpubDiagnosticCategory(string code) {
-        if (code.IndexOf("encryption", StringComparison.Ordinal) >= 0) {
+        if (code.IndexOf("encrypt", StringComparison.Ordinal) >= 0) {
             return OfficeDocumentDiagnosticCategory.Security;
         }
         if (code.IndexOf("limit", StringComparison.Ordinal) >= 0) {

@@ -149,6 +149,38 @@ public sealed class EpubPackageContractTests {
     }
 
     [Fact]
+    public void Load_UsesFallbackIdentifierButReportsInvalidDeclaredUniqueIdentifier() {
+        byte[] package = BuildInvalidUniqueIdentifierPackage();
+
+        EpubDocument document = EpubDocument.Load(new MemoryStream(package, writable: false));
+
+        Assert.Equal("missing-primary", document.UniqueIdentifierId);
+        Assert.Equal("urn:book:fallback", document.Identifier);
+        EpubDiagnostic diagnostic = Assert.Single(
+            document.Diagnostics,
+            item => item.Code == "epub.package.unique-identifier-missing");
+        Assert.Equal("EPUB/package.opf", diagnostic.Path);
+        Assert.Contains("missing-primary", diagnostic.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Load_UsesCanonicalArchiveIdentityForNavigationAndEncryptedChapters() {
+        byte[] package = BuildCanonicalPathPackage();
+
+        EpubDocument document = EpubDocument.Load(new MemoryStream(package, writable: false));
+
+        EpubChapter chapter = Assert.Single(document.Chapters);
+        Assert.Equal("EPUB/visible.xhtml", chapter.Path);
+        Assert.Equal("Canonical Navigation Title", chapter.Title);
+        Assert.Contains("Visible body", chapter.Text, StringComparison.Ordinal);
+        EpubDiagnostic diagnostic = Assert.Single(
+            document.Diagnostics,
+            item => item.Code == "epub.chapter.encrypted");
+        Assert.Equal("EPUB/locked.xhtml", diagnostic.Path);
+        Assert.DoesNotContain(document.Chapters, item => item.Path.Contains("locked", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void Load_InvalidZipThrowsStructuredFatalDiagnostic() {
         EpubReadException exception = Assert.Throws<EpubReadException>(() =>
             EpubDocument.Load(new MemoryStream(new byte[] { 1, 2, 3, 4 }, writable: false)));
@@ -156,6 +188,73 @@ public sealed class EpubPackageContractTests {
         EpubDiagnostic diagnostic = Assert.Single(exception.Diagnostics);
         Assert.Equal("epub.archive.invalid", diagnostic.Code);
         Assert.Equal(EpubDiagnosticSeverity.Error, diagnostic.Severity);
+    }
+
+    private static byte[] BuildInvalidUniqueIdentifierPackage() {
+        using var output = new MemoryStream();
+        using (var archive = new ZipArchive(output, ZipArchiveMode.Create, leaveOpen: true)) {
+            WriteTextEntry(
+                archive,
+                "META-INF/container.xml",
+                "<container version=\"1.0\" xmlns=\"urn:oasis:names:tc:opendocument:xmlns:container\">" +
+                "<rootfiles><rootfile full-path=\"EPUB/package.opf\" media-type=\"application/oebps-package+xml\"/></rootfiles>" +
+                "</container>");
+            WriteTextEntry(
+                archive,
+                "EPUB/package.opf",
+                "<package version=\"3.0\" unique-identifier=\"missing-primary\" xmlns=\"http://www.idpf.org/2007/opf\">" +
+                "<metadata xmlns:dc=\"http://purl.org/dc/elements/1.1/\">" +
+                "<dc:identifier id=\"fallback\">urn:book:fallback</dc:identifier>" +
+                "</metadata><manifest><item id=\"chapter\" href=\"chapter.xhtml\" media-type=\"application/xhtml+xml\"/>" +
+                "</manifest><spine><itemref idref=\"chapter\"/></spine></package>");
+            WriteTextEntry(
+                archive,
+                "EPUB/chapter.xhtml",
+                "<html xmlns=\"http://www.w3.org/1999/xhtml\"><body><p>Fallback identity.</p></body></html>");
+        }
+        return output.ToArray();
+    }
+
+    private static byte[] BuildCanonicalPathPackage() {
+        using var output = new MemoryStream();
+        using (var archive = new ZipArchive(output, ZipArchiveMode.Create, leaveOpen: true)) {
+            WriteTextEntry(
+                archive,
+                "META-INF/container.xml",
+                "<container version=\"1.0\" xmlns=\"urn:oasis:names:tc:opendocument:xmlns:container\">" +
+                "<rootfiles><rootfile full-path=\"EPUB/package.opf\" media-type=\"application/oebps-package+xml\"/></rootfiles>" +
+                "</container>");
+            WriteTextEntry(
+                archive,
+                "META-INF/encryption.xml",
+                "<encryption xmlns=\"urn:oasis:names:tc:opendocument:xmlns:container\" xmlns:enc=\"http://www.w3.org/2001/04/xmlenc#\">" +
+                "<enc:EncryptedData><enc:EncryptionMethod Algorithm=\"urn:unsupported\"/><enc:CipherData>" +
+                "<enc:CipherReference URI=\"EPUB/locked.xhtml\"/></enc:CipherData></enc:EncryptedData></encryption>");
+            WriteTextEntry(
+                archive,
+                "EPUB/package.opf",
+                "<package version=\"3.0\" xmlns=\"http://www.idpf.org/2007/opf\"><manifest>" +
+                "<item id=\"nav\" href=\"nav.xhtml\" media-type=\"application/xhtml+xml\" properties=\"nav\"/>" +
+                "<item id=\"locked\" href=\"locked.xhtml\" media-type=\"application/xhtml+xml\"/>" +
+                "<item id=\"visible\" href=\"visible.xhtml\" media-type=\"application/xhtml+xml\"/>" +
+                "</manifest><spine><itemref idref=\"locked\"/><itemref idref=\"visible\"/></spine></package>");
+            WriteTextEntry(
+                archive,
+                "EPUB/nav.xhtml",
+                "<html xmlns=\"http://www.w3.org/1999/xhtml\" xmlns:epub=\"http://www.idpf.org/2007/ops\"><body>" +
+                "<nav epub:type=\"toc\"><ol><li><a href=\"visible.xhtml\">Canonical Navigation Title</a></li></ol></nav>" +
+                "</body></html>");
+            WriteTextEntry(
+                archive,
+                "EPUB/./locked.xhtml",
+                "<html xmlns=\"http://www.w3.org/1999/xhtml\"><body><p>Locked body.</p></body></html>");
+            WriteTextEntry(
+                archive,
+                "EPUB//visible.xhtml",
+                "<html xmlns=\"http://www.w3.org/1999/xhtml\"><head><title>Local title</title></head>" +
+                "<body><p>Visible body.</p></body></html>");
+        }
+        return output.ToArray();
     }
 
     private static byte[] BuildPackage(bool includeUnsafeEntry) {

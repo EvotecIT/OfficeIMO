@@ -158,21 +158,26 @@ internal static partial class EpubReader {
             UniqueIdentifierId = packageElement == null ? null : NullIfWhiteSpace(GetAttribute(packageElement, "unique-identifier"))
         };
 
+        bool declaredUniqueIdentifierResolved = false;
         var metadata = opfDocument.Descendants().FirstOrDefault(e => IsName(e, "metadata"));
         if (metadata != null) {
             package.Title = TryGetFirstElementValue(metadata, "title");
             package.Creator = TryGetFirstElementValue(metadata, "creator");
             package.Language = TryGetFirstElementValue(metadata, "language");
-            XElement? primaryIdentifier = null;
+            string? declaredIdentifier = null;
             if (!string.IsNullOrWhiteSpace(package.UniqueIdentifierId)) {
-                primaryIdentifier = metadata.Elements().FirstOrDefault(element =>
+                XElement? declaredIdentifierElement = metadata.Elements().FirstOrDefault(element =>
                     IsName(element, "identifier") &&
                     string.Equals(GetAttribute(element, "id"), package.UniqueIdentifierId, StringComparison.Ordinal));
+                if (declaredIdentifierElement != null) {
+                    declaredIdentifier = NullIfWhiteSpace(NormalizeWhitespace(declaredIdentifierElement.Value));
+                    declaredUniqueIdentifierResolved = declaredIdentifier != null;
+                }
             }
-            primaryIdentifier ??= metadata.Elements().FirstOrDefault(element => IsName(element, "identifier"));
-            package.Identifier = primaryIdentifier == null
-                ? null
-                : NullIfWhiteSpace(NormalizeWhitespace(primaryIdentifier.Value));
+            package.Identifier = declaredIdentifier ?? metadata.Elements()
+                .Where(element => IsName(element, "identifier"))
+                .Select(element => NullIfWhiteSpace(NormalizeWhitespace(element.Value)))
+                .FirstOrDefault(identifier => identifier != null);
 
             package.RenditionLayout = ReadPackageRenditionLayout(metadata, diagnostics, opfPath);
         }
@@ -183,7 +188,7 @@ internal static partial class EpubReader {
                 "EPUB package does not declare a version.",
                 opfPath);
         }
-        if (!string.IsNullOrWhiteSpace(package.UniqueIdentifierId) && string.IsNullOrWhiteSpace(package.Identifier)) {
+        if (!string.IsNullOrWhiteSpace(package.UniqueIdentifierId) && !declaredUniqueIdentifierResolved) {
             diagnostics.Warning(
                 "epub.package.unique-identifier-missing",
                 $"EPUB package unique-identifier '{package.UniqueIdentifierId}' does not reference a dc:identifier.",

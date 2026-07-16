@@ -102,6 +102,39 @@ public sealed partial class ReaderEpubModularTests {
         WriteBinaryEntry(archive, "OEBPS/images/cover.png", new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 });
     }
 
+    private static void BuildEpubWithEncryptedChapter(string epubPath) {
+        using var fs = new FileStream(epubPath, FileMode.Create, FileAccess.ReadWrite, FileShare.None);
+        using var archive = new ZipArchive(fs, ZipArchiveMode.Create, leaveOpen: false);
+
+        WriteTextEntry(
+            archive,
+            "META-INF/container.xml",
+            "<container version=\"1.0\" xmlns=\"urn:oasis:names:tc:opendocument:xmlns:container\">" +
+            "<rootfiles><rootfile full-path=\"OEBPS/content.opf\" media-type=\"application/oebps-package+xml\"/></rootfiles>" +
+            "</container>");
+        WriteTextEntry(
+            archive,
+            "META-INF/encryption.xml",
+            "<encryption xmlns=\"urn:oasis:names:tc:opendocument:xmlns:container\" xmlns:enc=\"http://www.w3.org/2001/04/xmlenc#\">" +
+            "<enc:EncryptedData><enc:EncryptionMethod Algorithm=\"urn:unsupported\"/><enc:CipherData>" +
+            "<enc:CipherReference URI=\"OEBPS/locked.xhtml\"/></enc:CipherData></enc:EncryptedData></encryption>");
+        WriteTextEntry(
+            archive,
+            "OEBPS/content.opf",
+            "<package version=\"3.0\" xmlns=\"http://www.idpf.org/2007/opf\"><manifest>" +
+            "<item id=\"locked\" href=\"locked.xhtml\" media-type=\"application/xhtml+xml\"/>" +
+            "<item id=\"open\" href=\"open.xhtml\" media-type=\"application/xhtml+xml\"/>" +
+            "</manifest><spine><itemref idref=\"locked\"/><itemref idref=\"open\"/></spine></package>");
+        WriteTextEntry(
+            archive,
+            "OEBPS/./locked.xhtml",
+            "<html xmlns=\"http://www.w3.org/1999/xhtml\"><body><p>Locked body.</p></body></html>");
+        WriteTextEntry(
+            archive,
+            "OEBPS/open.xhtml",
+            "<html xmlns=\"http://www.w3.org/1999/xhtml\"><body><p>Open body.</p></body></html>");
+    }
+
     private static void BuildEpubWithMalformedChapter(string epubPath) {
         using var fs = new FileStream(epubPath, FileMode.Create, FileAccess.ReadWrite, FileShare.None);
         using var archive = new ZipArchive(fs, ZipArchiveMode.Create, leaveOpen: false);

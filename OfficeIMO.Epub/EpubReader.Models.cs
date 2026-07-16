@@ -34,6 +34,7 @@ internal static partial class EpubReader {
 
     private sealed class ChapterCandidate {
         public ZipArchiveEntry Entry { get; set; } = null!;
+        public string Path { get; set; } = string.Empty;
         public string? ManifestId { get; set; }
         public string? MediaType { get; set; }
         public int? SpineIndex { get; set; }

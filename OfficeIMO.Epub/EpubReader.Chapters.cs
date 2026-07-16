@@ -37,7 +37,7 @@ internal static partial class EpubReader {
                     continue;
                 }
 
-                var chapterPath = NormalizePath(chapterEntry.FullName);
+                string chapterPath = manifestItem.FullPath;
                 if (seenPaths.Contains(chapterPath)) {
                     continue;
                 }
@@ -45,6 +45,7 @@ internal static partial class EpubReader {
                 seenPaths.Add(chapterPath);
                 candidates.Add(new ChapterCandidate {
                     Entry = chapterEntry,
+                    Path = chapterPath,
                     ManifestId = manifestItem.Id,
                     MediaType = manifestItem.MediaType,
                     SpineIndex = spineItem.SpineIndex,
@@ -60,20 +61,22 @@ internal static partial class EpubReader {
         }
 
         if (shouldFallbackScan) {
-            IEnumerable<ZipArchiveEntry> scanEntries = entryIndex.Values.Where(e => IsChapterEntry(e.FullName));
+            IEnumerable<KeyValuePair<string, ZipArchiveEntry>> scanEntries = entryIndex
+                .Where(entry => IsChapterEntry(entry.Key));
             if (options.DeterministicOrder) {
-                scanEntries = scanEntries.OrderBy(e => e.FullName, StringComparer.Ordinal);
+                scanEntries = scanEntries.OrderBy(entry => entry.Key, StringComparer.Ordinal);
             }
 
             var manifestByPath = BuildManifestByPath(package);
-            foreach (var entry in scanEntries) {
-                var chapterPath = NormalizePath(entry.FullName);
+            foreach (KeyValuePair<string, ZipArchiveEntry> indexedEntry in scanEntries) {
+                string chapterPath = indexedEntry.Key;
                 if (seenPaths.Contains(chapterPath)) continue;
 
                 manifestByPath.TryGetValue(chapterPath, out var manifestItem);
                 seenPaths.Add(chapterPath);
                 candidates.Add(new ChapterCandidate {
-                    Entry = entry,
+                    Entry = indexedEntry.Value,
+                    Path = chapterPath,
                     ManifestId = manifestItem?.Id,
                     MediaType = manifestItem?.MediaType,
                     SpineIndex = null,

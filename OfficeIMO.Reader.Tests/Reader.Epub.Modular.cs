@@ -162,6 +162,26 @@ public sealed partial class ReaderEpubModularTests {
     }
 
     [Fact]
+    public void DocumentReaderEpub_RichDispatch_MapsEncryptedChapterDiagnosticsToSecurity() {
+        var epubPath = Path.Combine(Path.GetTempPath(), "officeimo-epub-encrypted-chapter-" + Guid.NewGuid().ToString("N") + ".epub");
+        try {
+            BuildEpubWithEncryptedChapter(epubPath);
+
+            OfficeDocumentReadResult result = EpubReaderAdapter.ReadDocument(epubPath);
+
+            OfficeDocumentDiagnostic diagnostic = Assert.Single(
+                result.Diagnostics,
+                item => item.Code == "epub.chapter.encrypted");
+            Assert.Equal(OfficeDocumentDiagnosticCategory.Security, diagnostic.Category);
+            Assert.EndsWith("::OEBPS/locked.xhtml", diagnostic.Location!.Path, StringComparison.Ordinal);
+            OfficeDocumentPage page = Assert.Single(result.Pages);
+            Assert.EndsWith("::OEBPS/open.xhtml", page.Location.Path, StringComparison.Ordinal);
+        } finally {
+            if (File.Exists(epubPath)) File.Delete(epubPath);
+        }
+    }
+
+    [Fact]
     public void DocumentReaderEpub_RichDispatch_HonorsDisabledResourcePayloadsAndKeepsPageAssets() {
         var epubPath = Path.Combine(Path.GetTempPath(), "officeimo-epub-" + Guid.NewGuid().ToString("N") + ".epub");
         try {
