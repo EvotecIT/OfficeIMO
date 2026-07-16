@@ -59,6 +59,7 @@ internal static class SubtitleReaderAdapter {
                 var chunk = new ReaderChunk {
                     Id = anchor,
                     Kind = ReaderInputKind.Text,
+                    ContinuesPreviousChunk = partIndex > 0,
                     Location = location,
                     Text = text,
                     Markdown = partIndex == 0 ? markdownPrefix + text : text,

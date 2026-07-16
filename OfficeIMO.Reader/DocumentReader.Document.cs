@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Threading;
 
 namespace OfficeIMO.Reader;
@@ -273,15 +274,29 @@ internal static partial class DocumentReaderEngine {
     }
 
     private static string? BuildChunkDocumentMarkdown(IReadOnlyList<ReaderChunk> chunks) {
-        if (chunks.Count == 0) {
-            return null;
-        }
+        return JoinChunkMarkdown(
+            chunks,
+            static (chunk, _) => string.IsNullOrWhiteSpace(chunk.Markdown) ? chunk.Text : chunk.Markdown);
+    }
 
-        var parts = chunks
-            .Select(static chunk => string.IsNullOrWhiteSpace(chunk.Markdown) ? chunk.Text : chunk.Markdown)
-            .Where(static text => !string.IsNullOrWhiteSpace(text))
-            .ToArray();
-        return parts.Length == 0 ? null : string.Join(Environment.NewLine + Environment.NewLine, parts);
+    private static string? JoinChunkMarkdown(
+        IReadOnlyList<ReaderChunk> chunks,
+        Func<ReaderChunk, int, string?> valueSelector) {
+        StringBuilder? markdown = null;
+        for (int index = 0; index < chunks.Count; index++) {
+            ReaderChunk chunk = chunks[index];
+            string? value = valueSelector(chunk, index);
+            if (string.IsNullOrEmpty(value) ||
+                (string.IsNullOrWhiteSpace(value) && !chunk.ContinuesPreviousChunk)) continue;
+
+            if (markdown == null) {
+                markdown = new StringBuilder(value!.Length);
+            } else if (!chunk.ContinuesPreviousChunk) {
+                markdown.AppendLine().AppendLine();
+            }
+            markdown.Append(value);
+        }
+        return markdown?.ToString();
     }
 
     private static IEnumerable<OfficeDocumentBlock> BuildChunkDocumentBlocks(IReadOnlyList<ReaderChunk> chunks) {

@@ -105,6 +105,7 @@ internal static class NotebookReaderAdapter {
                 var chunk = new ReaderChunk {
                     Id = anchor,
                     Kind = ReaderInputKind.Json,
+                    ContinuesPreviousChunk = partIndex > 0,
                     Location = location,
                     Text = partIndex < textParts.Count ? textParts[partIndex] : string.Empty,
                     Markdown = partIndex < markdownParts.Count ? markdownParts[partIndex] : string.Empty,

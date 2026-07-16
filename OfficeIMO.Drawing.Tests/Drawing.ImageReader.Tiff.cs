@@ -20,7 +20,25 @@ public partial class DrawingTests {
         Assert.Equal(300D, info.DpiY);
     }
 
-    private static byte[] CreateBigTiff(bool littleEndian, int width, int height, uint dpi) {
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void OfficeImageReader_DefaultsUnitlessBigTiffResolution(bool littleEndian) {
+        byte[] data = CreateBigTiff(littleEndian, 11, 9, 300, resolutionUnit: 1);
+
+        bool identified = OfficeImageReader.TryIdentify(data, fileName: null, out OfficeImageInfo info);
+
+        Assert.True(identified);
+        Assert.Equal(96D, info.DpiX);
+        Assert.Equal(96D, info.DpiY);
+    }
+
+    private static byte[] CreateBigTiff(
+        bool littleEndian,
+        int width,
+        int height,
+        uint dpi,
+        ushort resolutionUnit = 2) {
         var bytes = new byte[132];
         bytes[0] = littleEndian ? (byte)'I' : (byte)'M';
         bytes[1] = bytes[0];
@@ -32,7 +50,7 @@ public partial class DrawingTests {
         WriteLongEntry(bytes, 44, 257, (uint)height, littleEndian);
         WriteRationalEntry(bytes, 64, 282, dpi, 1, littleEndian);
         WriteRationalEntry(bytes, 84, 283, dpi, 1, littleEndian);
-        WriteShortEntry(bytes, 104, 296, 2, littleEndian);
+        WriteShortEntry(bytes, 104, 296, resolutionUnit, littleEndian);
         return bytes;
     }
 

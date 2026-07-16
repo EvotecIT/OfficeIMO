@@ -113,9 +113,19 @@ public static partial class OfficeImageReader {
         double dpiY,
         int unit,
         out OfficeImageInfo info) {
-        if (unit == 3) {
-            dpiX *= 2.54;
-            dpiY *= 2.54;
+        switch (unit) {
+            case 2:
+                break;
+            case 3:
+                dpiX *= 2.54;
+                dpiY *= 2.54;
+                break;
+            default:
+                // ResolutionUnit=None (1) describes unitless ratios, not DPI.
+                // Unknown values likewise cannot be exported as physical resolution.
+                dpiX = 96.0;
+                dpiY = 96.0;
+                break;
         }
 
         info = new OfficeImageInfo(OfficeImageFormat.Tiff, width, height, dpiX, dpiY);

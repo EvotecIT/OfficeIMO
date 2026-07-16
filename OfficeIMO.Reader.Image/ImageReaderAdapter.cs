@@ -107,6 +107,7 @@ internal static class ImageReaderAdapter {
             var chunk = new ReaderChunk {
                 Id = "image-metadata-0000" + suffix,
                 Kind = ReaderInputKind.Unknown,
+                ContinuesPreviousChunk = partIndex > 0,
                 Location = location,
                 Text = partIndex < textParts.Count ? textParts[partIndex] : string.Empty,
                 Markdown = partIndex < markdownParts.Count ? markdownParts[partIndex] : string.Empty,

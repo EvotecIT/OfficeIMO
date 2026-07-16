@@ -161,6 +161,18 @@ public sealed class ReaderMediaAdapterTests {
     }
 
     [Fact]
+    public void ImageAdapter_ExportsDefaultDpiForUnitlessBigTiffResolution() {
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddImageHandler().Build();
+
+        OfficeDocumentReadResult result = reader.ReadDocument(
+            CreateBigTiff(7, 5, dpi: 300, resolutionUnit: 1),
+            "unitless.tiff");
+
+        Assert.Contains(result.Metadata, item => item.Name == "DpiX" && item.Value == "96");
+        Assert.Contains(result.Metadata, item => item.Name == "DpiY" && item.Value == "96");
+    }
+
+    [Fact]
     public void ImageAdapter_IdentifiesContentVerifiedSvgAfterBomAndComment() {
         const string svg = "\uFEFF<!-- generated --><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"3\" height=\"2\"/>";
         OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddImageHandler().Build();
@@ -386,12 +398,16 @@ public sealed class ReaderMediaAdapterTests {
     [Fact]
     public void NotebookAdapter_SplitsCellProjectionAtReaderMaxChars() {
         string source = new string('a', 600);
-        string notebook = "{\"cells\":[{\"cell_type\":\"markdown\",\"source\":\"" + source +
-            "\"}],\"metadata\":{},\"nbformat\":4,\"nbformat_minor\":5}";
+        string notebook = "{\"cells\":[{\"cell_type\":\"code\",\"source\":\"" + source +
+            "\",\"outputs\":[]}],\"metadata\":{\"kernelspec\":{\"language\":\"python\"}}," +
+            "\"nbformat\":4,\"nbformat_minor\":5}";
         OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddNotebookHandler().Build();
+        byte[] bytes = Encoding.UTF8.GetBytes(notebook);
+
+        OfficeDocumentReadResult unsplit = reader.ReadDocument(bytes, "split.ipynb");
 
         OfficeDocumentReadResult result = reader.ReadDocument(
-            Encoding.UTF8.GetBytes(notebook),
+            bytes,
             "split.ipynb",
             new ReaderOptions { MaxChars = 256 });
 
@@ -403,7 +419,35 @@ public sealed class ReaderMediaAdapterTests {
             Assert.Contains(chunk.Warnings!, warning => warning.Contains("MaxChars", StringComparison.Ordinal));
         });
         Assert.Equal(source, string.Concat(result.Chunks.Select(chunk => chunk.Text)));
-        Assert.Equal(source, string.Concat(result.Chunks.Select(chunk => chunk.Markdown)));
+        Assert.Equal(unsplit.Markdown, string.Concat(result.Chunks.Select(chunk => chunk.Markdown)));
+        Assert.Equal(unsplit.Markdown, result.Markdown);
+    }
+
+    [Fact]
+    public void NotebookAdapter_PreservesContinuationWhenProcessorReplacesSplitChunks() {
+        string source = new string('a', 600);
+        string notebook = "{\"cells\":[{\"cell_type\":\"markdown\",\"source\":\"" + source +
+            "\"}],\"metadata\":{},\"nbformat\":4,\"nbformat_minor\":5}";
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+            .AddNotebookHandler()
+            .AddProcessor(new DelegateOfficeDocumentProcessor("replace-split-chunks", (document, _) => {
+                document.Chunks = document.Chunks.Select(chunk => new ReaderChunk {
+                    Id = chunk.Id,
+                    Kind = chunk.Kind,
+                    Location = chunk.Location,
+                    Text = chunk.Text.Replace('a', 'b'),
+                    Markdown = chunk.Markdown
+                }).ToArray();
+                return document;
+            }))
+            .Build();
+
+        OfficeDocumentReadResult result = reader.ReadDocument(
+            Encoding.UTF8.GetBytes(notebook),
+            "processed-split.ipynb",
+            new ReaderOptions { MaxChars = 256 });
+
+        Assert.Equal(new string('b', 600), result.Markdown);
     }
 
     [Fact]
@@ -488,6 +532,7 @@ public sealed class ReaderMediaAdapterTests {
             Assert.Contains(chunk.Warnings!, warning => warning.Contains("MaxChars", StringComparison.Ordinal));
         });
         Assert.StartsWith("**00:00:00.000 → 00:00:01.000**", result.Chunks[0].Markdown, StringComparison.Ordinal);
+        Assert.Equal(string.Concat(result.Chunks.Select(chunk => chunk.Markdown)), result.Markdown);
         Assert.Equal(result.Chunks.Count, result.Chunks.Select(chunk => chunk.Id).Distinct(StringComparer.Ordinal).Count());
     }
 
@@ -644,16 +689,26 @@ public sealed class ReaderMediaAdapterTests {
         return bytes;
     }
 
-    private static byte[] CreateBigTiff(int width, int height) {
-        var bytes = new byte[72];
+    private static byte[] CreateBigTiff(
+        int width,
+        int height,
+        int? dpi = null,
+        int resolutionUnit = 2) {
+        int entryCount = dpi.HasValue ? 5 : 2;
+        var bytes = new byte[24 + (entryCount * 20)];
         bytes[0] = (byte)'I';
         bytes[1] = (byte)'I';
         WriteUInt16LittleEndian(bytes, 2, 43);
         WriteUInt16LittleEndian(bytes, 4, 8);
         WriteUInt64LittleEndian(bytes, 8, 16);
-        WriteUInt64LittleEndian(bytes, 16, 2);
+        WriteUInt64LittleEndian(bytes, 16, (ulong)entryCount);
         WriteBigTiffLongEntry(bytes, 24, 256, width);
         WriteBigTiffLongEntry(bytes, 44, 257, height);
+        if (dpi.HasValue) {
+            WriteBigTiffRationalEntry(bytes, 64, 282, dpi.Value, 1);
+            WriteBigTiffRationalEntry(bytes, 84, 283, dpi.Value, 1);
+            WriteBigTiffShortEntry(bytes, 104, 296, resolutionUnit);
+        }
         return bytes;
     }
 
@@ -662,6 +717,26 @@ public sealed class ReaderMediaAdapterTests {
         WriteUInt16LittleEndian(bytes, offset + 2, 4);
         WriteUInt64LittleEndian(bytes, offset + 4, 1);
         WriteUInt32LittleEndian(bytes, offset + 12, value);
+    }
+
+    private static void WriteBigTiffRationalEntry(
+        byte[] bytes,
+        int offset,
+        int tag,
+        int numerator,
+        int denominator) {
+        WriteUInt16LittleEndian(bytes, offset, tag);
+        WriteUInt16LittleEndian(bytes, offset + 2, 5);
+        WriteUInt64LittleEndian(bytes, offset + 4, 1);
+        WriteUInt32LittleEndian(bytes, offset + 12, numerator);
+        WriteUInt32LittleEndian(bytes, offset + 16, denominator);
+    }
+
+    private static void WriteBigTiffShortEntry(byte[] bytes, int offset, int tag, int value) {
+        WriteUInt16LittleEndian(bytes, offset, tag);
+        WriteUInt16LittleEndian(bytes, offset + 2, 3);
+        WriteUInt64LittleEndian(bytes, offset + 4, 1);
+        WriteUInt16LittleEndian(bytes, offset + 12, value);
     }
 
     private static void WriteUInt16LittleEndian(byte[] bytes, int offset, int value) {
