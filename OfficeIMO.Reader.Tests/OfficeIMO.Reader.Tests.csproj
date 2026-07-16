@@ -61,12 +61,14 @@
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' != 'net472'">
+    <ProjectReference Include="..\OfficeIMO.Reader.Tool\OfficeIMO.Reader.Tool.csproj" />
     <Compile Include="..\OfficeIMO.Reader.Benchmarks\Comparison\*.cs"
              Link="ReaderComparison\%(Filename)%(Extension)" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
     <Compile Remove="Reader.ComparisonEvidence.cs" />
+    <Compile Remove="Reader.Tool.cs" />
   </ItemGroup>
 
   <ItemGroup>

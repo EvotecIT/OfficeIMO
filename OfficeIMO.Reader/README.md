@@ -108,6 +108,16 @@ OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
 
 The preset contains no parser or provider logic. It excludes OCR engines, process adapters, network clients, and hosted providers; those remain explicit host choices.
 
+For scripts and shell pipelines, install the dependency-bounded global tool:
+
+```powershell
+dotnet tool install --global OfficeIMO.Reader.Tool
+officeimo-reader read policy.docx --format markdown --output policy.md
+officeimo-reader capabilities --format json
+```
+
+`officeimo-reader folder` provides deterministic, bounded folder conversion with configurable concurrency and optional asset directories. The tool emits Markdown or the stable Reader v5 JSON envelope and does not configure OCR or hosted providers.
+
 ## Async and bounded batches
 
 Configure the instance-wide async limit once, then use the same reader for individual or batched work:
