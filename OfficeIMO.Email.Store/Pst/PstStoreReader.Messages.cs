@@ -14,7 +14,8 @@ internal sealed partial class PstStoreReader {
 
     private EmailDocument ReadItemDocument(ulong dataBid, ulong subnodeBid, string id, string? folderId,
         EmailStoreFormat format, string location, int nestedDepth) {
-        IReadOnlyDictionary<uint, PstSubnodeReference> subnodes = Ndb.ReadSubnodes(subnodeBid);
+        IReadOnlyDictionary<uint, PstSubnodeReference> subnodes =
+            Ndb.ReadSubnodes(subnodeBid, _cancellationToken);
         IReadOnlyList<MapiProperty> properties = ReadProperties(dataBid, subnodeBid, location, subnodes);
         var document = new EmailDocument { Format = EmailFileFormat.Unknown };
         document.Properties["EmailStore:Format"] = format.ToString();
@@ -61,7 +62,7 @@ internal sealed partial class PstStoreReader {
 
             string attachmentLocation = string.Concat(location, "/attachment/", FormatId(attachmentNode.Nid));
             IReadOnlyDictionary<uint, PstSubnodeReference> attachmentSubnodes =
-                Ndb.ReadSubnodes(attachmentNode.SubnodeBid);
+                Ndb.ReadSubnodes(attachmentNode.SubnodeBid, _cancellationToken);
             var sourceHnids = new Dictionary<ushort, uint>();
             IReadOnlyList<MapiProperty> attachmentProperties = ReadProperties(
                 attachmentNode.DataBid, attachmentNode.SubnodeBid, attachmentLocation,
@@ -116,8 +117,10 @@ internal sealed partial class PstStoreReader {
     }
 
     private IReadOnlyList<EmailRecipient> ReadRecipients(PstSubnodeReference table) {
-        PstDataTree data = Ndb.ReadDataTree(table.DataBid, _options.MaxDecodedPropertyBytesPerItem);
-        IReadOnlyDictionary<uint, PstSubnodeReference> subnodes = Ndb.ReadSubnodes(table.SubnodeBid);
+        PstDataTree data = Ndb.ReadDataTree(
+            table.DataBid, _options.MaxDecodedPropertyBytesPerItem, _cancellationToken);
+        IReadOnlyDictionary<uint, PstSubnodeReference> subnodes =
+            Ndb.ReadSubnodes(table.SubnodeBid, _cancellationToken);
         var heap = new PstHeap(data, subnodes, Ndb, _options, _cancellationToken);
         IReadOnlyList<IReadOnlyList<MapiProperty>> rows = new PstTableContextReader(
             heap, Ndb.IsUnicode, _options, _cancellationToken).ReadRows();
@@ -150,8 +153,10 @@ internal sealed partial class PstStoreReader {
         IReadOnlyDictionary<uint, PstSubnodeReference>? knownSubnodes = null,
         bool applyNamedProperties = true, IDictionary<ushort, uint>? sourceHnids = null) {
         try {
-            PstDataTree data = Ndb.ReadDataTree(dataBid, _options.MaxDecodedPropertyBytesPerItem);
-            IReadOnlyDictionary<uint, PstSubnodeReference> subnodes = knownSubnodes ?? Ndb.ReadSubnodes(subnodeBid);
+            PstDataTree data = Ndb.ReadDataTree(
+                dataBid, _options.MaxDecodedPropertyBytesPerItem, _cancellationToken);
+            IReadOnlyDictionary<uint, PstSubnodeReference> subnodes = knownSubnodes ??
+                Ndb.ReadSubnodes(subnodeBid, _cancellationToken);
             var heap = new PstHeap(data, subnodes, Ndb, _options, _cancellationToken);
             IReadOnlyList<MapiProperty> properties =
                 new PstPropertyContextReader(heap, _options, _cancellationToken).ReadProperties(sourceHnids);

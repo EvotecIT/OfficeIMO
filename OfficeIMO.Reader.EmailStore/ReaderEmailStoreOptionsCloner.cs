@@ -31,6 +31,7 @@ internal static class ReaderEmailStoreOptionsCloner {
             maxInputBytes: maxInputBytes ?? source.MaxInputBytes,
             maxNodeCount: source.MaxNodeCount,
             maxBTreeDepth: source.MaxBTreeDepth,
+            maxCachedBTreePages: source.MaxCachedBTreePages,
             maxFolderCount: source.MaxFolderCount,
             maxItemCount: source.MaxItemCount,
             maxPropertiesPerItem: source.MaxPropertiesPerItem,

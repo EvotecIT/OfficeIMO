@@ -10,6 +10,28 @@ dotnet add package OfficeIMO.Email.Store
 
 ## Read a store
 
+Open a session when the store may be large. Folder discovery and item enumeration do not materialize
+every PST/OST item or attachment:
+
+```csharp
+using OfficeIMO.Email.Store;
+
+using EmailStoreSession session = EmailStoreSession.Open("archive.pst");
+
+EmailStoreFolderInfo inbox = session.Folders.Single(folder => folder.Name == "Inbox");
+foreach (EmailStoreItemReference reference in session.EnumerateItems(
+    new EmailStoreEnumerationOptions(folderId: inbox.Id, maxItems: 100))) {
+    EmailStoreItem item = session.ReadItem(reference);
+    Console.WriteLine(item.Document.Subject);
+}
+```
+
+The session keeps a bounded B-tree page cache, streams NBT entries and large table row-matrix blocks,
+and resolves individual NIDs and BIDs on demand. Sessions are not thread-safe. A caller-owned stream
+is left open by default and its original position is restored when the session is disposed.
+
+Use `EmailStoreReader` when the application explicitly wants the complete configured store scope in memory:
+
 ```csharp
 using OfficeIMO.Email.Store;
 

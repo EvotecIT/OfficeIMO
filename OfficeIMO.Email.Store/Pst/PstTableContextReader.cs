@@ -16,7 +16,10 @@ internal sealed class PstTableContextReader {
         _cancellationToken = cancellationToken;
     }
 
-    internal IReadOnlyList<IReadOnlyList<MapiProperty>> ReadRows() {
+    internal IReadOnlyList<IReadOnlyList<MapiProperty>> ReadRows() => EnumerateRows().ToArray();
+
+    /// <summary>Streams table rows while retaining only the active row-matrix data block.</summary>
+    internal IEnumerable<IReadOnlyList<MapiProperty>> EnumerateRows() {
         if (_heap.ClientSignature != 0x7C) throw new InvalidDataException("The PST node is not a Table Context.");
         byte[] info = _heap.GetAllocation(_heap.UserRoot);
         if (info.Length < 22 || info[0] != 0x7C) throw new InvalidDataException("The PST TCINFO header is invalid.");
@@ -45,23 +48,24 @@ internal sealed class PstTableContextReader {
         }
 
         IReadOnlyList<int> rowIndexes = ReadRowIndexes(rowIndexHid);
-        PstDataTree rowData = _heap.ResolveHnidTree(rowsHnid, _options.MaxDecodedPropertyBytesPerItem);
-        var rows = new List<IReadOnlyList<MapiProperty>>(rowIndexes.Count);
-        foreach (int rowIndex in rowIndexes) {
-            _cancellationToken.ThrowIfCancellationRequested();
-            byte[] row = GetRow(rowData.Blocks, rowSize, rowIndex);
-            var properties = new List<MapiProperty>(columns.Count);
-            long decodedBytes = 0;
-            foreach (PstTableColumn column in columns) {
-                int existenceByte = existenceOffset + column.BitIndex / 8;
-                if (existenceByte >= row.Length ||
-                    (row[existenceByte] & (1 << (7 - column.BitIndex % 8))) == 0) continue;
-                MapiProperty property = DecodeColumn(row, column, ref decodedBytes);
-                properties.Add(property);
+        IEnumerable<byte[]> rowBlocks = _heap.EnumerateHnidBlocks(
+            rowsHnid, _options.MaxDecodedPropertyBytesPerItem);
+        using (var cursor = new PstTableRowCursor(rowBlocks, rowSize)) {
+            foreach (int rowIndex in rowIndexes.OrderBy(index => index)) {
+                _cancellationToken.ThrowIfCancellationRequested();
+                PstTableRow row = cursor.GetRow(rowIndex);
+                var properties = new List<MapiProperty>(columns.Count);
+                long decodedBytes = 0;
+                foreach (PstTableColumn column in columns) {
+                    int existenceByte = row.Offset + existenceOffset + column.BitIndex / 8;
+                    if (existenceByte >= row.Offset + row.Length ||
+                        (row.Bytes[existenceByte] & (1 << (7 - column.BitIndex % 8))) == 0) continue;
+                    MapiProperty property = DecodeColumn(row, column, ref decodedBytes);
+                    properties.Add(property);
+                }
+                yield return properties;
             }
-            rows.Add(properties);
         }
-        return rows;
     }
 
     private IReadOnlyList<int> ReadRowIndexes(uint headerHid) {
@@ -82,43 +86,43 @@ internal sealed class PstTableContextReader {
         return indexes;
     }
 
-    private MapiProperty DecodeColumn(byte[] row, PstTableColumn column, ref long decodedBytes) {
+    private MapiProperty DecodeColumn(PstTableRow row, PstTableColumn column, ref long decodedBytes) {
         ushort id = (ushort)(column.Tag >> 16);
         var type = (MapiPropertyType)(ushort)column.Tag;
         object? value;
         byte[]? rawData = null;
-        int offset = column.DataOffset;
+        int offset = row.Offset + column.DataOffset;
         switch (type) {
             case MapiPropertyType.Integer16:
-                value = PstBinary.Int16(row, offset);
+                value = PstBinary.Int16(row.Bytes, offset);
                 break;
             case MapiPropertyType.Integer32:
             case MapiPropertyType.ErrorCode:
-                value = PstBinary.Int32(row, offset);
+                value = PstBinary.Int32(row.Bytes, offset);
                 break;
             case MapiPropertyType.Floating32:
-                value = BitConverter.ToSingle(row, offset);
+                value = BitConverter.ToSingle(row.Bytes, offset);
                 break;
             case MapiPropertyType.Boolean:
-                value = row[offset] != 0;
+                value = row.Bytes[offset] != 0;
                 break;
             case MapiPropertyType.Integer64:
             case MapiPropertyType.Currency:
-                value = PstBinary.Int64(row, offset);
+                value = PstBinary.Int64(row.Bytes, offset);
                 break;
             case MapiPropertyType.Floating64:
             case MapiPropertyType.FloatingTime:
-                value = BitConverter.ToDouble(row, offset);
+                value = BitConverter.ToDouble(row.Bytes, offset);
                 break;
             case MapiPropertyType.Time:
                 try {
-                    value = new DateTimeOffset(DateTime.FromFileTimeUtc(PstBinary.Int64(row, offset)));
+                    value = new DateTimeOffset(DateTime.FromFileTimeUtc(PstBinary.Int64(row.Bytes, offset)));
                 } catch (ArgumentOutOfRangeException) {
                     value = null;
                 }
                 break;
             default:
-                uint hnid = PstBinary.UInt32(row, offset);
+                uint hnid = PstBinary.UInt32(row.Bytes, offset);
                 rawData = _heap.ResolveHnid(hnid, _options.MaxDecodedPropertyBytesPerItem);
                 decodedBytes = checked(decodedBytes + rawData.Length);
                 if (decodedBytes > _options.MaxDecodedPropertyBytesPerItem) {
@@ -130,21 +134,6 @@ internal sealed class PstTableContextReader {
                 break;
         }
         return new MapiProperty(id, type, value) { RawData = rawData };
-    }
-
-    private static byte[] GetRow(IReadOnlyList<byte[]> blocks, int rowSize, int requestedIndex) {
-        int index = requestedIndex;
-        foreach (byte[] block in blocks) {
-            int rowsInBlock = block.Length / rowSize;
-            if (index < rowsInBlock) {
-                int offset = checked(index * rowSize);
-                var row = new byte[rowSize];
-                Buffer.BlockCopy(block, offset, row, 0, rowSize);
-                return row;
-            }
-            index -= rowsInBlock;
-        }
-        throw new InvalidDataException("A PST table row index points outside the Row Matrix.");
     }
 
     private sealed class PstTableColumn {
@@ -159,5 +148,56 @@ internal sealed class PstTableContextReader {
         internal int DataOffset { get; }
         internal int DataSize { get; }
         internal int BitIndex { get; }
+    }
+
+    private sealed class PstTableRowCursor : IDisposable {
+        private readonly IEnumerator<byte[]> _blocks;
+        private readonly int _rowSize;
+        private byte[]? _currentBlock;
+        private int _currentBlockStart;
+        private int _currentBlockRows;
+        private int _lastRequestedIndex = -1;
+
+        internal PstTableRowCursor(IEnumerable<byte[]> blocks, int rowSize) {
+            _blocks = blocks.GetEnumerator();
+            _rowSize = rowSize;
+        }
+
+        internal PstTableRow GetRow(int requestedIndex) {
+            if (requestedIndex < _lastRequestedIndex) {
+                throw new InvalidDataException("PST table row indexes must be read in ascending matrix order.");
+            }
+            _lastRequestedIndex = requestedIndex;
+            while (_currentBlock == null ||
+                   requestedIndex >= _currentBlockStart + _currentBlockRows) {
+                _currentBlockStart += _currentBlockRows;
+                if (!_blocks.MoveNext()) {
+                    throw new InvalidDataException("A PST table row index points outside the Row Matrix.");
+                }
+                _currentBlock = _blocks.Current;
+                _currentBlockRows = _currentBlock.Length / _rowSize;
+                if (_currentBlockRows == 0) {
+                    throw new InvalidDataException("A PST Row Matrix block is smaller than one table row.");
+                }
+            }
+
+            int localIndex = requestedIndex - _currentBlockStart;
+            int offset = checked(localIndex * _rowSize);
+            return new PstTableRow(_currentBlock, offset, _rowSize);
+        }
+
+        public void Dispose() => _blocks.Dispose();
+    }
+
+    private readonly struct PstTableRow {
+        internal PstTableRow(byte[] bytes, int offset, int length) {
+            Bytes = bytes;
+            Offset = offset;
+            Length = length;
+        }
+
+        internal byte[] Bytes { get; }
+        internal int Offset { get; }
+        internal int Length { get; }
     }
 }

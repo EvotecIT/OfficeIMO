@@ -59,7 +59,7 @@ internal sealed class PstHeap {
             throw new InvalidDataException(string.Concat("The PST node does not contain subnode 0x",
                 hnid.ToString("X", CultureInfo.InvariantCulture), "."));
         }
-        return _ndb.ReadDataTree(subnode.DataBid, maximumBytes).ToArray(maximumBytes);
+        return _ndb.ReadDataTree(subnode.DataBid, maximumBytes, _cancellationToken).ToArray(maximumBytes);
     }
 
     internal PstDataTree ResolveHnidTree(uint hnid, long maximumBytes) {
@@ -72,7 +72,24 @@ internal sealed class PstHeap {
             throw new InvalidDataException(string.Concat("The PST node does not contain subnode 0x",
                 hnid.ToString("X", CultureInfo.InvariantCulture), "."));
         }
-        return _ndb.ReadDataTree(subnode.DataBid, maximumBytes);
+        return _ndb.ReadDataTree(subnode.DataBid, maximumBytes, _cancellationToken);
+    }
+
+    /// <summary>Streams HNID payload blocks so large table row matrices are not retained as one tree.</summary>
+    internal IEnumerable<byte[]> EnumerateHnidBlocks(uint hnid, long maximumBytes) {
+        if (hnid == 0) yield break;
+        if ((hnid & 0x1F) == 0) {
+            yield return GetAllocation(hnid);
+            yield break;
+        }
+        if (!_subnodes.TryGetValue(hnid, out PstSubnodeReference? subnode)) {
+            throw new InvalidDataException(string.Concat("The PST node does not contain subnode 0x",
+                hnid.ToString("X", CultureInfo.InvariantCulture), "."));
+        }
+        foreach (byte[] block in _ndb.EnumerateDataBlocks(
+            subnode.DataBid, maximumBytes, _cancellationToken)) {
+            yield return block;
+        }
     }
 
     internal IEnumerable<byte[]> EnumerateBthLeafRecords(uint rootHid, int keySize, int valueSize,

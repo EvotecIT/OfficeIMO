@@ -4,9 +4,10 @@ namespace OfficeIMO.Email.Store;
 public sealed class EmailStoreReaderOptions {
     /// <summary>Creates bounded reader options.</summary>
     public EmailStoreReaderOptions(
-        long maxInputBytes = 8L * 1024 * 1024 * 1024,
-        int maxNodeCount = 2_000_000,
+        long maxInputBytes = 1L * 1024 * 1024 * 1024 * 1024,
+        int maxNodeCount = 25_000_000,
         int maxBTreeDepth = 32,
+        int maxCachedBTreePages = 512,
         int maxFolderCount = 100_000,
         int maxItemCount = 1_000_000,
         int maxPropertiesPerItem = 16_384,
@@ -28,6 +29,7 @@ public sealed class EmailStoreReaderOptions {
         MaxInputBytes = Positive(maxInputBytes, nameof(maxInputBytes));
         MaxNodeCount = Positive(maxNodeCount, nameof(maxNodeCount));
         MaxBTreeDepth = Positive(maxBTreeDepth, nameof(maxBTreeDepth));
+        MaxCachedBTreePages = Positive(maxCachedBTreePages, nameof(maxCachedBTreePages));
         MaxFolderCount = Positive(maxFolderCount, nameof(maxFolderCount));
         MaxItemCount = Positive(maxItemCount, nameof(maxItemCount));
         MaxPropertiesPerItem = Positive(maxPropertiesPerItem, nameof(maxPropertiesPerItem));
@@ -58,6 +60,8 @@ public sealed class EmailStoreReaderOptions {
     public int MaxNodeCount { get; }
     /// <summary>Maximum tree traversal depth.</summary>
     public int MaxBTreeDepth { get; }
+    /// <summary>Maximum PST/OST B-tree pages retained by the bounded random-access cache.</summary>
+    public int MaxCachedBTreePages { get; }
     /// <summary>Maximum folders materialized.</summary>
     public int MaxFolderCount { get; }
     /// <summary>Maximum items materialized.</summary>

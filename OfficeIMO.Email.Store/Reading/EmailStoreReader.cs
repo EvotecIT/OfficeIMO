@@ -51,11 +51,8 @@ public sealed class EmailStoreReader {
     /// <summary>Reads a file while keeping random-access parsing off the large-object heap.</summary>
     public EmailStoreReadResult Read(string path, CancellationToken cancellationToken = default) {
         if (path == null) throw new ArgumentNullException(nameof(path));
-        var info = new FileInfo(path);
-        EnforceInputLength(info.Length);
-        using (var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read,
-            bufferSize: 64 * 1024, useAsync: false)) {
-            return ReadCore(stream, Path.GetFileName(path), cancellationToken);
+        using (EmailStoreSession session = EmailStoreSession.Open(path, _options, cancellationToken)) {
+            return session.ReadAll(cancellationToken);
         }
     }
 
@@ -66,34 +63,9 @@ public sealed class EmailStoreReader {
         if (!stream.CanRead || !stream.CanSeek) {
             throw new ArgumentException("Email-store streams must be readable and seekable.", nameof(stream));
         }
-        EnforceInputLength(stream.Length);
-        long position = stream.Position;
-        try {
-            return ReadCore(stream, sourceName, cancellationToken);
-        } finally {
-            stream.Position = position;
-        }
-    }
-
-    private EmailStoreReadResult ReadCore(Stream stream, string? sourceName, CancellationToken cancellationToken) {
-        EmailStoreFormat format = DetectFormat(stream, sourceName);
-        switch (format) {
-            case EmailStoreFormat.Pst:
-            case EmailStoreFormat.Ost:
-                return new PstStoreReader(_options).Read(stream, format, cancellationToken);
-            case EmailStoreFormat.Olm:
-                return new OlmStoreReader(_options).Read(stream, sourceName, cancellationToken);
-            case EmailStoreFormat.Emlx:
-                return new EmlxStoreReader(_options).Read(stream, sourceName, cancellationToken);
-            default:
-                throw new InvalidDataException("The source is not a supported email-store artifact.");
-        }
-    }
-
-    private void EnforceInputLength(long length) {
-        if (length > _options.MaxInputBytes) {
-            throw new EmailStoreLimitExceededException(nameof(EmailStoreReaderOptions.MaxInputBytes),
-                length, _options.MaxInputBytes);
+        using (EmailStoreSession session = EmailStoreSession.Open(
+            stream, sourceName, _options, leaveOpen: true, cancellationToken)) {
+            return session.ReadAll(cancellationToken);
         }
     }
 }

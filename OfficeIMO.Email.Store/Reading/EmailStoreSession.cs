@@ -1,0 +1,177 @@
+namespace OfficeIMO.Email.Store;
+
+/// <summary>
+/// Keeps an email-store source open for bounded folder discovery, lightweight item enumeration,
+/// and explicit item reads. Sessions are not thread-safe.
+/// </summary>
+public sealed class EmailStoreSession : IDisposable {
+    private readonly Stream _stream;
+    private readonly bool _leaveOpen;
+    private readonly long _originalPosition;
+    private readonly EmailStoreReaderOptions _options;
+    private readonly IEmailStoreSessionBackend _backend;
+    private bool _disposed;
+
+    private EmailStoreSession(Stream stream, bool leaveOpen, long originalPosition,
+        EmailStoreReaderOptions options, IEmailStoreSessionBackend backend) {
+        _stream = stream;
+        _leaveOpen = leaveOpen;
+        _originalPosition = originalPosition;
+        _options = options;
+        _backend = backend;
+    }
+
+    /// <summary>Detected store format.</summary>
+    public EmailStoreFormat Format { get { ThrowIfDisposed(); return _backend.Format; } }
+
+    /// <summary>Display name declared by the source when available.</summary>
+    public string? DisplayName { get { ThrowIfDisposed(); return _backend.DisplayName; } }
+
+    /// <summary>Validated source length.</summary>
+    public long SourceLength { get { ThrowIfDisposed(); return _backend.SourceLength; } }
+
+    /// <summary>Lightweight folder catalog. PST/OST item payloads are not read to build it.</summary>
+    public IReadOnlyList<EmailStoreFolderInfo> Folders {
+        get { ThrowIfDisposed(); return _backend.Folders; }
+    }
+
+    /// <summary>Structured diagnostics emitted while opening or reading the session.</summary>
+    public IReadOnlyList<EmailStoreDiagnostic> Diagnostics {
+        get { ThrowIfDisposed(); return _backend.Diagnostics; }
+    }
+
+    /// <summary>Opens a file with random-access sharing suitable for large PST/OST sources.</summary>
+    public static EmailStoreSession Open(string path, EmailStoreReaderOptions? options = null,
+        CancellationToken cancellationToken = default) {
+        if (path == null) throw new ArgumentNullException(nameof(path));
+        var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read,
+            64 * 1024, FileOptions.RandomAccess);
+        try {
+            return OpenCore(stream, Path.GetFileName(path), options ?? EmailStoreReaderOptions.Default,
+                leaveOpen: false, originalPosition: 0, cancellationToken);
+        } catch {
+            stream.Dispose();
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Opens a readable, seekable caller stream. Its original position is restored when the session is disposed.
+    /// </summary>
+    public static EmailStoreSession Open(Stream stream, string? sourceName = null,
+        EmailStoreReaderOptions? options = null, bool leaveOpen = true,
+        CancellationToken cancellationToken = default) {
+        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        if (!stream.CanRead || !stream.CanSeek) {
+            throw new ArgumentException("Email-store streams must be readable and seekable.", nameof(stream));
+        }
+        long originalPosition = stream.Position;
+        return OpenCore(stream, sourceName, options ?? EmailStoreReaderOptions.Default,
+            leaveOpen, originalPosition, cancellationToken);
+    }
+
+    /// <summary>Streams lightweight item references according to the requested folder and recovery scope.</summary>
+    public IEnumerable<EmailStoreItemReference> EnumerateItems(
+        EmailStoreEnumerationOptions? options = null,
+        CancellationToken cancellationToken = default) {
+        ThrowIfDisposed();
+        foreach (EmailStoreItemReference reference in _backend.EnumerateItems(
+            options ?? new EmailStoreEnumerationOptions(), cancellationToken)) {
+            ThrowIfDisposed();
+            yield return reference;
+        }
+    }
+
+    /// <summary>Reads and projects one explicitly selected item.</summary>
+    public EmailStoreItem ReadItem(EmailStoreItemReference reference,
+        CancellationToken cancellationToken = default) {
+        if (reference == null) throw new ArgumentNullException(nameof(reference));
+        ThrowIfDisposed();
+        return _backend.ReadItem(reference, cancellationToken);
+    }
+
+    /// <summary>Materializes the configured store scope as a compatibility convenience.</summary>
+    public EmailStoreReadResult ReadAll(CancellationToken cancellationToken = default) {
+        ThrowIfDisposed();
+        var store = new EmailStore { Format = Format, DisplayName = DisplayName };
+        var folders = new Dictionary<string, EmailStoreFolder>(StringComparer.Ordinal);
+        foreach (EmailStoreFolderInfo info in Folders) {
+            var folder = new EmailStoreFolder(info.Id, info.ParentId, info.Name);
+            folders.Add(info.Id, folder);
+            store.MutableFolders.Add(folder);
+        }
+
+        var enumerationOptions = new EmailStoreEnumerationOptions(
+            includeAssociatedItems: _options.IncludeAssociatedItems,
+            includeOrphanedItems: _options.IncludeOrphanedItems,
+            maxItems: _options.MaxItemCount == int.MaxValue ? int.MaxValue : _options.MaxItemCount + 1);
+        int itemCount = 0;
+        foreach (EmailStoreItemReference reference in EnumerateItems(
+            enumerationOptions, cancellationToken)) {
+            itemCount++;
+            if (itemCount > _options.MaxItemCount) {
+                throw new EmailStoreLimitExceededException(nameof(EmailStoreReaderOptions.MaxItemCount),
+                    itemCount, _options.MaxItemCount);
+            }
+            EmailStoreItem item = ReadItem(reference, cancellationToken);
+            EmailStoreFolder folder = folders[reference.FolderId];
+            if (reference.IsAssociated) folder.MutableAssociatedItems.Add(item);
+            else folder.MutableItems.Add(item);
+        }
+        return new EmailStoreReadResult(store, Diagnostics.ToArray(), SourceLength);
+    }
+
+    /// <summary>Closes owned sources or restores the position of a caller-owned stream.</summary>
+    public void Dispose() {
+        if (_disposed) return;
+        _disposed = true;
+        _backend.Dispose();
+        if (_leaveOpen) {
+            if (_stream.CanSeek) _stream.Position = _originalPosition;
+        } else {
+            _stream.Dispose();
+        }
+    }
+
+    private static EmailStoreSession OpenCore(Stream stream, string? sourceName,
+        EmailStoreReaderOptions options, bool leaveOpen, long originalPosition,
+        CancellationToken cancellationToken) {
+        if (stream.Length > options.MaxInputBytes) {
+            throw new EmailStoreLimitExceededException(nameof(EmailStoreReaderOptions.MaxInputBytes),
+                stream.Length, options.MaxInputBytes);
+        }
+        EmailStoreFormat format = EmailStoreReader.DetectFormat(stream, sourceName);
+        stream.Position = 0;
+        try {
+            IEmailStoreSessionBackend backend;
+            switch (format) {
+                case EmailStoreFormat.Pst:
+                case EmailStoreFormat.Ost:
+                    backend = new PstStoreSessionBackend(stream, format, options, cancellationToken);
+                    break;
+                case EmailStoreFormat.Olm:
+                    backend = new MaterializedEmailStoreSessionBackend(
+                        new OlmStoreReader(options).Read(stream, sourceName, cancellationToken));
+                    break;
+                case EmailStoreFormat.Emlx:
+                    backend = new MaterializedEmailStoreSessionBackend(
+                        new EmlxStoreReader(options).Read(stream, sourceName, cancellationToken));
+                    break;
+                default:
+                    throw new InvalidDataException("The source is not a supported email-store artifact.");
+            }
+            return new EmailStoreSession(stream, leaveOpen, originalPosition, options, backend);
+        } catch {
+            if (leaveOpen) {
+                if (stream.CanSeek) stream.Position = originalPosition;
+            } else {
+                stream.Dispose();
+            }
+            throw;
+        }
+    }
+
+    private void ThrowIfDisposed() {
+        if (_disposed) throw new ObjectDisposedException(nameof(EmailStoreSession));
+    }
+}
