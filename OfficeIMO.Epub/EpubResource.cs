@@ -7,16 +7,16 @@ public sealed class EpubResource {
     /// <summary>OPF manifest item identifier.</summary>
     public string Id { get; internal set; } = string.Empty;
 
-    /// <summary>Normalized archive path or absolute remote URI.</summary>
+    /// <summary>Normalized archive path or external URL.</summary>
     public string Path { get; internal set; } = string.Empty;
 
     /// <summary>Original manifest href.</summary>
     public string? Href { get; internal set; }
 
-    /// <summary>Whether this manifest item references an absolute remote resource.</summary>
+    /// <summary>Whether this manifest item references an external resource.</summary>
     public bool IsRemote { get; internal set; }
 
-    /// <summary>Absolute remote URI when <see cref="IsRemote"/> is true.</summary>
+    /// <summary>External URL, including a scheme-relative URL, when <see cref="IsRemote"/> is true.</summary>
     public string? RemoteUri { get; internal set; }
 
     /// <summary>Declared media type.</summary>

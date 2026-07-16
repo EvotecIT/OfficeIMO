@@ -70,7 +70,7 @@ foreach (string warning in chunks.SelectMany(chunk => chunk.Warnings ?? Array.Em
 }
 ```
 
-### Read chapters and packaged images as one rich result
+### Read chapters and packaged resources as one rich result
 
 ```csharp
 OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
@@ -86,12 +86,12 @@ foreach (OfficeDocumentPage chapter in document.Pages) {
     Console.WriteLine($"{chapter.Number}. {chapter.Name}");
 }
 
-foreach (OfficeDocumentAsset image in document.Assets) {
-    Console.WriteLine($"{image.FileName}: {image.LengthBytes} bytes");
+foreach (OfficeDocumentAsset asset in document.Assets) {
+    Console.WriteLine($"{asset.Kind}: {asset.FileName} ({asset.LengthBytes} bytes)");
 }
 ```
 
-The rich reader requests bounded chapter HTML and manifest payloads from `OfficeIMO.Epub` so it can reuse the HTML semantic mapping. `reader.ReadDocument("book.epub")` uses this native result path.
+The rich reader requests bounded chapter HTML and manifest payloads from `OfficeIMO.Epub` so it can reuse the HTML semantic mapping. Images, audio, video, fonts, stylesheets, scripts, media overlays, and other manifest resources are projected as assets; content documents and navigation files are not duplicated as assets. Remote resources retain metadata but are never fetched. Audio and video are exposed for downstream processing, not played or transcribed.
 
 ## What it emits
 
@@ -101,7 +101,9 @@ The rich reader requests bounded chapter HTML and manifest payloads from `Office
 - Warning chunks propagated from EPUB parser warnings.
 - Virtual source paths such as `.epub::chapter.xhtml` for traceability.
 - Path and stream dispatch, including non-seekable stream support.
-- A schema-v5 rich result with chapter pages, HTML blocks, tables, links, forms, manifest image assets, metadata, and structured parser diagnostics.
+- A schema-v5 rich result with chapter pages, HTML blocks, tables, links, forms, bounded manifest assets, metadata, and structured parser diagnostics.
+- Chapter-relative, query-only, fragment-only, encoded, root-relative, external, and HTML-base URL projection through the shared EPUB reference contract.
+- Recoverable diagnostics for unsafe or non-conforming chapter references.
 
 ## Boundaries
 

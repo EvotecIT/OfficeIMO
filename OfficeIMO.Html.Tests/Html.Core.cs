@@ -371,6 +371,27 @@ public sealed class HtmlCoreTests {
     }
 
     [Fact]
+    public void HtmlUrlPolicyEvaluator_TransformsResolvedUrlsAndRevalidatesTransformOutput() {
+        var policy = HtmlUrlPolicy.CreateWebOnlyProfile();
+        policy.ResolvedUrlTransform = value => value.Replace(
+            "https://example.test/book/",
+            "/library/book::");
+
+        string resolved = HtmlUrlPolicyEvaluator.ResolveUrl(
+            "images/cover.png",
+            new Uri("https://example.test/book/"),
+            policy);
+
+        Assert.Equal("/library/book::images/cover.png", resolved);
+        Assert.NotNull(policy.Clone().ResolvedUrlTransform);
+
+        policy.ResolvedUrlTransform = static _ => "javascript:alert(1)";
+        Assert.Equal(
+            string.Empty,
+            HtmlUrlPolicyEvaluator.ResolveUrl("images/cover.png", new Uri("https://example.test/book/"), policy));
+    }
+
+    [Fact]
     public void HtmlUrlPolicyEvaluator_ResolvesProtocolRelativeUrlsAgainstWebSchemeWhenBaseIsFile() {
         var policy = HtmlUrlPolicy.CreateWebOnlyProfile();
 

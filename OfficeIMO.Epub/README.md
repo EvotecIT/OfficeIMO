@@ -51,15 +51,32 @@ foreach (EpubResource resource in book.Resources) {
 
 Manifest metadata is returned even when payload loading is disabled. Payload inclusion is opt-in and bounded per resource, in total, and by resource count; skipped payloads produce warnings.
 
+### Resolve chapter-relative references
+
+```csharp
+EpubReference reference = EpubReference.Resolve(
+    "EPUB/text/chapter.xhtml",
+    "../images/cover%20art.png?size=large#front");
+
+if (reference.Kind == EpubReferenceKind.Container) {
+    Console.WriteLine(reference.ContainerPath);     // decoded ZIP lookup path
+    Console.WriteLine(reference.ContainerUrlPath);  // URL-encoded link path
+    Console.WriteLine(reference.ResolvedValue);     // encoded path plus query and fragment
+}
+```
+
+Use the three-argument overload with `chapter.BaseHref` when resolving URLs found in chapter markup. Results distinguish container, external, embedded data, and invalid references without performing network or file-system access. `ContainerPath` remains case-sensitive and decoded for ZIP lookup, while `ContainerUrlPath`, `Target`, and `ResolvedValue` preserve a safe URL serialization. Root-relative references are resolved safely but marked non-conforming; `file:` URLs, ambiguous encoded separators, and paths that escape the container are rejected.
+
 ## What it does
 
 - Opens EPUB files as ZIP containers.
 - Parses `META-INF/container.xml` and OPF package metadata.
 - Follows OPF manifest and spine ordering.
-- Reads nav/NCX labels for chapter titles when available.
+- Reads hierarchical EPUB 3 navigation and EPUB 2 NCX labels when available.
 - Extracts chapter text from XHTML/XML ASTs.
 - Returns deterministic OPF manifest resources with optional bounded payloads.
-- Emits extraction warnings for malformed or unreadable content.
+- Resolves package, navigation, and content references through a shared typed URL contract.
+- Emits structured diagnostics and warning messages for malformed, unsafe, encrypted, fixed-layout, or unreadable content.
 
 ## Examples
 

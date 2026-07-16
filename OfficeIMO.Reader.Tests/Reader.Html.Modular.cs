@@ -64,6 +64,24 @@ public sealed class ReaderHtmlModularTests {
     }
 
     [Fact]
+    public void DocumentReaderHtml_RichProjection_ProjectsNestedMediaSourcesOnce() {
+        const string html = "<audio><source src=\"chapter.mp3\" type=\"audio/mpeg\"/>Audio fallback</audio>"
+            + "<video><source src=\"clip.webm\" type=\"video/webm\"/>"
+            + "<source src=\"clip.mp4\" type=\"video/mp4\"/>Video fallback</video>";
+
+        OfficeDocumentReadResult result = HtmlReaderAdapter.ReadContentDocument(html, "media.html");
+
+        Assert.Equal(2, result.Visuals.Count);
+        ReaderVisual audio = Assert.Single(result.Visuals, visual => visual.Language == "audio");
+        Assert.Equal("chapter.mp3", audio.SourceName);
+        Assert.Equal("audio/mpeg", audio.MimeType);
+        ReaderVisual video = Assert.Single(result.Visuals, visual => visual.Language == "video");
+        Assert.Equal("clip.webm", video.SourceName);
+        Assert.Equal("video/webm", video.MimeType);
+        Assert.DoesNotContain(result.Visuals, visual => visual.Language == "source");
+    }
+
+    [Fact]
     public void DocumentReaderHtml_RichProjection_RejectsOversizedInputBeforeLogicalProjection() {
         const string html = "<p>This input exceeds its configured bound.</p>";
 

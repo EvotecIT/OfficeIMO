@@ -11,7 +11,7 @@ public sealed class EpubNavigationItem {
     /// <summary>Original href or NCX src value.</summary>
     public string? Href { get; internal set; }
 
-    /// <summary>Normalized archive path or absolute remote URI targeted by this item.</summary>
+    /// <summary>Normalized archive path or external URL targeted by this item.</summary>
     public string? Target { get; internal set; }
 
     /// <summary>Decoded fragment identifier without the leading hash.</summary>
@@ -23,7 +23,7 @@ public sealed class EpubNavigationItem {
     /// <summary>NCX playOrder value when declared.</summary>
     public int? PlayOrder { get; internal set; }
 
-    /// <summary>Whether the target is an absolute remote URI.</summary>
+    /// <summary>Whether the target is external to the EPUB container.</summary>
     public bool IsRemote { get; internal set; }
 
     /// <summary>Ordered child navigation items.</summary>

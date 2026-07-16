@@ -173,6 +173,7 @@ internal static partial class EpubReaderAdapter {
     };
 
     private static string BuildEpubLocationPath(string sourcePath, string path) {
+        if (path.StartsWith("//", StringComparison.Ordinal)) return path;
         if (Uri.TryCreate(path, UriKind.Absolute, out Uri? uri) && !uri.IsFile) return path;
         return BuildVirtualPath(sourcePath, path);
     }
