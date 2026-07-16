@@ -53,7 +53,7 @@ internal static partial class EpubReaderAdapter {
         var links = new List<OfficeDocumentLink>();
         var forms = new List<OfficeDocumentFormField>();
         var visuals = new List<ReaderVisual>();
-        var diagnostics = new List<OfficeDocumentDiagnostic>();
+        var diagnostics = new List<OfficeDocumentDiagnostic>(BuildEpubDiagnostics(document, source.Path));
         var pages = new List<OfficeDocumentPage>();
         int tableIndex = 0;
         for (int chapterIndex = 0; chapterIndex < document.Chapters.Count; chapterIndex++) {
@@ -130,7 +130,17 @@ internal static partial class EpubReaderAdapter {
         result.Forms = forms;
         result.Visuals = visuals;
         result.Pages = AttachEpubOcrCandidates(pages, result.OcrCandidates);
-        result.Diagnostics = result.Diagnostics.Concat(diagnostics).ToArray();
+        var packageWarningMessages = new HashSet<string>(
+            document.Diagnostics
+                .Where(static diagnostic => diagnostic.Severity != EpubDiagnosticSeverity.Info)
+                .Select(static diagnostic => diagnostic.Message),
+            StringComparer.Ordinal);
+        result.Diagnostics = result.Diagnostics
+            .Where(diagnostic =>
+                !string.Equals(diagnostic.Code, "reader-warning", StringComparison.Ordinal) ||
+                !packageWarningMessages.Contains(diagnostic.Message))
+            .Concat(diagnostics)
+            .ToArray();
         result.Metadata = BuildEpubMetadata(document, blocks.Count, tables.Count, links.Count, assets.Count);
         return result;
     }
@@ -296,8 +306,15 @@ internal static partial class EpubReaderAdapter {
             EpubMetadata("epub-asset-count", "AssetCount", assetCount, "count")
         };
         if (!string.IsNullOrWhiteSpace(document.Identifier)) metadata.Add(EpubMetadata("epub-identifier", "Identifier", document.Identifier!, "string"));
+        if (!string.IsNullOrWhiteSpace(document.UniqueIdentifierId)) metadata.Add(EpubMetadata("epub-unique-identifier-id", "UniqueIdentifierId", document.UniqueIdentifierId!, "string"));
         if (!string.IsNullOrWhiteSpace(document.Language)) metadata.Add(EpubMetadata("epub-language", "Language", document.Language!, "string"));
         if (!string.IsNullOrWhiteSpace(document.OpfPath)) metadata.Add(EpubMetadata("epub-package-path", "PackagePath", document.OpfPath!, "string"));
+        if (!string.IsNullOrWhiteSpace(document.PackageVersion)) metadata.Add(EpubMetadata("epub-package-version", "PackageVersion", document.PackageVersion!, "string"));
+        if (document.RenditionLayout.HasValue) metadata.Add(EpubMetadata("epub-rendition-layout", "RenditionLayout", document.RenditionLayout.Value.ToString(), "string"));
+        metadata.Add(EpubMetadata("epub-fixed-layout", "IsFixedLayout", document.IsFixedLayout, "boolean"));
+        metadata.Add(EpubMetadata("epub-encryption-count", "EncryptionCount", document.Encryption.Count, "count"));
+        metadata.Add(EpubMetadata("epub-requires-decryption", "RequiresDecryption", document.RequiresDecryption, "boolean"));
+        metadata.Add(EpubMetadata("epub-diagnostic-count", "DiagnosticCount", document.Diagnostics.Count, "count"));
         return metadata;
     }
 
