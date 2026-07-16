@@ -15,4 +15,25 @@ OfficeDocumentReadResult result = reader.ReadDocument("Notes.one");
 
 The adapter emits page-aware text and Markdown chunks, structured tables, links, and image/embedded-file asset metadata. Native file parsing remains owned by `OfficeIMO.OneNote`.
 
+Current pages are the default ingestion surface. Conflict copies and version-history snapshots remain counted in metadata but enter chunks, page hierarchy, links, and assets only when requested:
+
+```csharp
+using OfficeIMO.OneNote;
+
+var oneNoteOptions = new ReaderOneNoteOptions {
+    IncludeConflictPages = true,
+    IncludeVersionHistory = true,
+    IncludeAssetPayloads = true,
+    NotebookOptions = new OneNoteNotebookReaderOptions {
+        IncludeRecycleBin = true
+    }
+};
+
+OfficeDocumentReader readerWithHistory = new OfficeDocumentReaderBuilder()
+    .AddOneNoteHandler(oneNoteOptions)
+    .Build();
+```
+
+Image metadata is emitted even when a native image payload cannot be resolved. Resolved payload identifiers remain stable because unresolved images still occupy their native position. Picture dimensions are reported in pixels after converting MS-ONE half-inch units at 96 DPI. Native RichEdit separators and invalid control/noncharacter code points are normalized in projected text without mutating the source model.
+
 Current target frameworks are `netstandard2.0`, `net8.0`, `net10.0`, and `net472` on Windows. The package is MIT licensed.

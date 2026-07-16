@@ -297,8 +297,8 @@ public sealed class SectionWriterTests {
         outline.Children.Add(new OneNoteImage {
             FileName = "pixel.png",
             AltText = "pixel",
-            PixelWidth = 1,
-            PixelHeight = 1,
+            WidthHalfInches = 2.5,
+            HeightHalfInches = 1.25,
             Payload = OneNoteBinaryPayload.FromBytes(new byte[] { 1, 2, 3, 4 })
         });
         outline.Children.Add(new OneNoteEmbeddedFile {
@@ -345,6 +345,8 @@ public sealed class SectionWriterTests {
         Assert.Equal(0xFF112233U, Assert.Single(Assert.Single(resultTable.Rows).Cells).ShadingColorArgb);
         OneNoteImage resultImage = Assert.IsType<OneNoteImage>(result.Children[2]);
         Assert.Equal(new byte[] { 1, 2, 3, 4 }, resultImage.Payload!.ToArray(16));
+        Assert.Equal(2.5, resultImage.WidthHalfInches);
+        Assert.Equal(1.25, resultImage.HeightHalfInches);
         OneNoteEmbeddedFile resultFile = Assert.IsType<OneNoteEmbeddedFile>(result.Children[3]);
         Assert.Equal(new byte[] { 5, 6, 7 }, resultFile.Payload!.ToArray(16));
         OneNoteMath resultMath = Assert.IsType<OneNoteMath>(result.Children[4]);

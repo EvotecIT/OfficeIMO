@@ -127,6 +127,32 @@ public sealed class ConverterTests {
     }
 
     [Fact]
+    public void ProjectionNormalizesRichEditControlsAndUnicodeNoncharactersWithoutMutatingSource() {
+        const string nativeText = "Alpha\vBeta\u0001\uFDDF";
+        var section = new OneNoteSection { Name = "Controls" };
+        var page = new OneNotePage { Title = "Native\vtitle" };
+        OneNoteParagraph paragraph = Paragraph(nativeText);
+        page.DirectContent.Add(paragraph);
+        section.Pages.Add(page);
+
+        string text = OneNoteMarkdownProjection.ToText(page);
+        string markdown = section.ToMarkdown();
+        string html = section.ToHtmlDocument(htmlOptions: new HtmlOptions { AssetMode = AssetMode.Offline });
+        byte[] pdf = section.ToPdf();
+
+        Assert.Contains("Native\ntitle", text, StringComparison.Ordinal);
+        Assert.Contains("Alpha\nBeta??", text, StringComparison.Ordinal);
+        Assert.Contains("Native<br>title", markdown, StringComparison.Ordinal);
+        Assert.Contains("Alpha<br>Beta??", markdown, StringComparison.Ordinal);
+        Assert.DoesNotContain('\v', html);
+        Assert.DoesNotContain('\u0001', html);
+        Assert.DoesNotContain('\uFDDF', html);
+        Assert.Equal("%PDF", Encoding.ASCII.GetString(pdf, 0, 4));
+        Assert.Equal(nativeText, Assert.Single(paragraph.Runs).Text);
+        Assert.Equal("Native\vtitle", page.Title);
+    }
+
+    [Fact]
     public void MarkdownProjectionKeepsLiteralLineStartsInsideTheirSourceBlocks() {
         var section = new OneNoteSection { Name = "Projection" };
         var page = new OneNotePage { Title = "Title\n# literal heading" };

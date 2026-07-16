@@ -1,4 +1,5 @@
 using OfficeIMO.OneNote;
+using OfficeIMO.OneNote.Markdown;
 
 namespace OfficeIMO.Reader.OneNote;
 
@@ -36,8 +37,7 @@ internal static partial class OneNoteReaderAdapter {
         ReaderOptions reader = readerOptions ?? new ReaderOptions();
         ReaderOneNoteOptions native = ReaderOneNoteOptionsCloner.CloneOrDefault(oneNoteOptions);
         SourceInfo source = SourceInfo.ForLogicalName(NormalizeSourceName(sourceName));
-        ReaderChunk[] chunks = BuildChunks(section, source, reader, cancellationToken).ToArray();
-        return BuildDocumentResult(new ReadContext(section, null, null, source, reader, native, chunks), cancellationToken);
+        return BuildDocumentResult(CreateSectionContext(section, source, reader, native, cancellationToken), cancellationToken);
     }
 
     /// <summary>Projects an already loaded notebook into the shared rich document result.</summary>
@@ -64,19 +64,21 @@ internal static partial class OneNoteReaderAdapter {
             SourceHash = context.Source.SourceHash,
             LastWriteUtc = context.Source.LastWriteUtc,
             LengthBytes = context.Source.LengthBytes,
-            Title = context.Section.Name,
-            Author = context.Section.Pages.Select(static page => page.MostRecentAuthor ?? page.OriginalAuthor).FirstOrDefault(static author => !string.IsNullOrWhiteSpace(author))
+            Title = OneNoteTextProjection.Normalize(context.Section.Name),
+            Author = NormalizeOptional(context.Section.Pages.Select(static page => page.MostRecentAuthor ?? page.OriginalAuthor).FirstOrDefault(static author => !string.IsNullOrWhiteSpace(author)))
         };
+        var capabilities = new List<string> { "officeimo.onenote.native", "officeimo.reader.onenote.offline" };
+        if (context.Notebook != null) capabilities.Add("officeimo.onenote.notebook");
+        if (context.OneNoteOptions.IncludeConflictPages) capabilities.Add("officeimo.onenote.conflict-pages");
+        if (context.OneNoteOptions.IncludeVersionHistory) capabilities.Add("officeimo.onenote.version-history");
         OfficeDocumentReadResult result = DocumentReaderEngine.CreateDocumentResult(
             context.Chunks,
             ReaderInputKind.OneNote,
             source,
-            context.Notebook == null
-                ? new[] { "officeimo.onenote.native", "officeimo.reader.onenote.offline" }
-                : new[] { "officeimo.onenote.native", "officeimo.onenote.notebook", "officeimo.reader.onenote.offline" },
+            capabilities,
             assets);
         result.Links = links;
-        result.Metadata = result.Metadata.Concat(BuildMetadata(context.Section, assets, links)).ToArray();
+        result.Metadata = result.Metadata.Concat(BuildMetadata(context.MetadataSection, assets, links)).ToArray();
         if (context.Notebook != null) result.Metadata = result.Metadata.Concat(BuildNotebookMetadata(context.Notebook)).ToArray();
         EnrichPages(result, context.Section, links);
         return result;
@@ -87,40 +89,42 @@ internal static partial class OneNoteReaderAdapter {
         for (int pageIndex = 0; pageIndex < context.Section.Pages.Count; pageIndex++) {
             int assetIndex = 0;
             foreach (OneNoteElement element in EnumerateAllElements(context.Section.Pages[pageIndex])) {
-                if (!(element is OneNoteBinaryElement binary) || binary.Payload == null) continue;
+                if (!(element is OneNoteBinaryElement binary)) continue;
                 cancellationToken.ThrowIfCancellationRequested();
                 string kind = ResolveAssetKind(binary);
                 string extension = ResolveExtension(binary.FileName, binary.MediaType, kind);
                 string assetId = BuildAssetId(pageIndex, assetIndex);
                 byte[]? bytes = null;
-                long? length = binary.Payload.Length;
-                bool canMaterialize = !length.HasValue || length.Value <= context.OneNoteOptions.OneNoteOptions.MaxAssetBytes;
+                OneNoteBinaryPayload? payload = binary.Payload;
+                long? length = payload?.Length;
+                bool canMaterialize = payload != null && (!length.HasValue || length.Value <= context.OneNoteOptions.OneNoteOptions.MaxAssetBytes);
                 long remainingBudget = context.OneNoteOptions.OneNoteOptions.MaxTotalAssetBytes - totalMaterialized;
                 long materializationLimit = Math.Min(context.OneNoteOptions.OneNoteOptions.MaxAssetBytes, remainingBudget);
-                if (context.OneNoteOptions.IncludeAssetPayloads && canMaterialize && materializationLimit > 0 &&
+                if (payload != null && context.OneNoteOptions.IncludeAssetPayloads && canMaterialize && materializationLimit > 0 &&
                     (!length.HasValue || length.Value <= materializationLimit)) {
                     bytes = length.HasValue
-                        ? binary.Payload.ToArray(materializationLimit)
-                        : TryMaterializeUnknownLengthPayload(binary.Payload, materializationLimit, cancellationToken);
+                        ? payload.ToArray(materializationLimit)
+                        : TryMaterializeUnknownLengthPayload(payload, materializationLimit, cancellationToken);
                     if (bytes != null) {
                         totalMaterialized += bytes.LongLength;
                         length = bytes.LongLength;
                     }
                 }
                 string? payloadHash = null;
-                if (context.ReaderOptions.ComputeHashes) {
+                if (payload != null && context.ReaderOptions.ComputeHashes) {
                     if (bytes != null) payloadHash = ComputeHash(bytes);
-                    else if (canMaterialize) payloadHash = ComputePayloadHash(binary.Payload, context.OneNoteOptions.OneNoteOptions.MaxAssetBytes);
+                    else if (canMaterialize) payloadHash = ComputePayloadHash(payload, context.OneNoteOptions.OneNoteOptions.MaxAssetBytes);
                 }
+                OneNoteImage? image = binary as OneNoteImage;
                 yield return new OfficeDocumentAsset {
                     Id = assetId,
                     Kind = kind,
                     MediaType = binary.MediaType,
                     Extension = extension,
-                    FileName = string.IsNullOrWhiteSpace(binary.FileName) ? OfficeDocumentAssetNaming.BuildFileName(assetId, extension) : binary.FileName,
-                    AltText = (binary as OneNoteImage)?.AltText,
-                    Width = ToNullableInt((binary as OneNoteImage)?.PixelWidth),
-                    Height = ToNullableInt((binary as OneNoteImage)?.PixelHeight),
+                    FileName = string.IsNullOrWhiteSpace(binary.FileName) ? OfficeDocumentAssetNaming.BuildFileName(assetId, extension) : OneNoteTextProjection.Normalize(binary.FileName),
+                    AltText = NormalizeOptional(image?.AltText),
+                    Width = ToPixels(image?.WidthHalfInches),
+                    Height = ToPixels(image?.HeightHalfInches),
                     LengthBytes = length,
                     PayloadHash = payloadHash,
                     PayloadBytes = bytes,
@@ -164,8 +168,8 @@ internal static partial class OneNoteReaderAdapter {
                     yield return new OfficeDocumentLink {
                         Id = imageId,
                         Kind = "uri",
-                        Uri = image.Hyperlink,
-                        Text = image.AltText ?? image.FileName,
+                        Uri = OneNoteTextProjection.Normalize(image.Hyperlink),
+                        Text = NormalizeOptional(image.AltText ?? image.FileName),
                         Location = BuildLocation(source, pageIndex, "image-hyperlink", imageId)
                     };
                     linkIndex++;
@@ -177,8 +181,8 @@ internal static partial class OneNoteReaderAdapter {
                     yield return new OfficeDocumentLink {
                         Id = id,
                         Kind = "uri",
-                        Uri = run.Hyperlink,
-                        Text = run.Text,
+                        Uri = OneNoteTextProjection.Normalize(run.Hyperlink),
+                        Text = OneNoteTextProjection.Normalize(run.Text),
                         Location = BuildLocation(source, pageIndex, "hyperlink", id)
                     };
                     linkIndex++;
@@ -234,7 +238,7 @@ internal static partial class OneNoteReaderAdapter {
         for (int index = 0; index < result.Pages.Count && index < section.Pages.Count; index++) {
             OneNotePage nativePage = section.Pages[index];
             OfficeDocumentPage page = result.Pages[index];
-            page.Name = nativePage.Title;
+            page.Name = NormalizeOptional(nativePage.Title);
             page.Width = nativePage.Width;
             page.Height = nativePage.Height;
             int pageNumber = index + 1;
@@ -271,7 +275,15 @@ internal static partial class OneNoteReaderAdapter {
     }
 
     private static int? ToNullableInt(double? value) {
-        if (!value.HasValue || value.Value < 0 || value.Value > int.MaxValue) return null;
+        if (!value.HasValue || double.IsNaN(value.Value) || double.IsInfinity(value.Value) || value.Value < 0 || value.Value > int.MaxValue) return null;
         return (int)Math.Round(value.Value, MidpointRounding.AwayFromZero);
+    }
+
+    private static int? ToPixels(double? halfInches) {
+        return ToNullableInt(halfInches * 48D);
+    }
+
+    private static string? NormalizeOptional(string? value) {
+        return value == null ? null : OneNoteTextProjection.Normalize(value);
     }
 }

@@ -25,7 +25,7 @@ Loaded `.one` and `.onetoc2` artifacts preserve their desktop or FSSHTTP physica
 | Outlines and layout | Yes | Yes | Typed plus unknown properties |
 | Rich text and styles | Yes | Yes | Typed plus unknown run properties |
 | Lists, tables, and hyperlinks | Yes | Yes | Typed |
-| Images and embedded files | Yes | Yes | Lazy bounded payloads |
+| Images and embedded files | Yes | Yes | Lazy bounded payloads; primary and `WebPictureContainer14` relationships; unresolved loaded relationships retained during preservation writes |
 | Note tags and task tags | Yes | Yes | Typed definitions and state |
 | Authors, timestamps, metadata, and revisions | Yes | Yes | Typed plus opaque revision data |
 | Conflict pages | Yes | Yes | Native child object spaces |
@@ -34,6 +34,14 @@ Loaded `.one` and `.onetoc2` artifacts preserve their desktop or FSSHTTP physica
 | Plain math | Yes | Yes | Typed |
 | Raw MathML/LaTeX math payloads | Where present | Not yet | Preserved during unrelated edits; replacement fails closed |
 | Unknown objects/properties/relationships | Opaque | Not directly authored | Retained in sections and root/nested TOCs unless a typed edit replaces the owning relationship |
+
+Picture width and height are IEEE-754 floating-point properties expressed in half-inch units, as defined by MS-ONE. The native model exposes those units directly; Reader reports 96-DPI pixel metadata. When an image has both native payload relationships, the normal picture container wins and `WebPictureContainer14` is used as a fallback. Unresolved payloads remain visible as metadata and retain their native relationships in preservation-mode writes.
+
+OneNote/RichEdit vertical tabs and form feeds project as line breaks. Other unsupported control characters, Unicode noncharacters, and unpaired surrogate code units project as `?`. This normalization is limited to conversion and Reader output; it does not rewrite source strings in the typed OneNote model.
+
+Current pages are the default Reader and conversion surface. `OneNoteMarkdownOptions` and `ReaderOneNoteOptions` provide separate opt-ins for conflict pages and version-history snapshots so applications do not accidentally ingest superseded content. Reader metadata still reports current, conflict, and version counts. Notebook readers similarly exclude `OneNote_RecycleBin` by default and expose it through `OneNoteNotebookReaderOptions.IncludeRecycleBin`.
+
+Direct page content is accepted on read. Writers canonicalize it into an outline, preserving element content while producing the interoperable native hierarchy. Empty recycle-bin groups are written with a valid empty TOC.
 
 ## Interoperability proof
 
@@ -56,6 +64,8 @@ OfficeIMO.OneNote
 ```
 
 This keeps one native parser and one semantic projection. HTML and PDF reuse the first-party Markdown, HTML, and PDF engines.
+
+OneNote PDF conversion opts into the shared multilingual system-font fallback unless `PdfTextFallbackFeatures.None` is selected explicitly. This improves coverage for valid CJK, Arabic, and other scripts when suitable fonts are installed; glyph availability remains host-dependent and unresolved valid glyphs are reported through PDF conversion diagnostics.
 
 ## Specifications
 

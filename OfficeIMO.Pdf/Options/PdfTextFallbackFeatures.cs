@@ -17,6 +17,9 @@ public enum PdfTextFallbackFeatures {
     /// <summary>Try installed symbol and emoji font families as embedded fallback runs.</summary>
     SymbolAndEmojiFonts = 4,
 
+    /// <summary>Try installed multilingual font families for CJK, Arabic, and other non-Latin text.</summary>
+    MultilingualFonts = 8,
+
     /// <summary>Enable the recommended OfficeIMO document, monospace, symbol, and emoji text fallback groups.</summary>
     Default = DocumentFont | MonospaceFont | SymbolAndEmojiFonts
 }

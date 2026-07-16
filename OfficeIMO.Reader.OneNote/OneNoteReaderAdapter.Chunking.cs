@@ -29,8 +29,9 @@ internal static partial class OneNoteReaderAdapter {
         var targets = new Dictionary<OneNoteBinaryElement, string>();
         int assetIndex = 0;
         foreach (OneNoteElement element in EnumerateAllElements(page)) {
-            if (!(element is OneNoteBinaryElement binary) || binary.Payload == null) continue;
-            targets[binary] = BuildAssetId(pageIndex, assetIndex++);
+            if (!(element is OneNoteBinaryElement binary)) continue;
+            string assetId = BuildAssetId(pageIndex, assetIndex++);
+            if (binary.Payload != null) targets[binary] = assetId;
         }
         return targets;
     }
@@ -150,6 +151,7 @@ internal static partial class OneNoteReaderAdapter {
         string text,
         OneNoteListInfo? list,
         Func<OneNoteBinaryElement, string?> resolver) {
+        text = OneNoteTextProjection.Normalize(text);
         var paragraph = new OneNoteParagraph { List = list };
         var run = new OneNoteTextRun {
             Text = text,

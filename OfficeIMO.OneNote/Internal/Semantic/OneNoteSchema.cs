@@ -108,6 +108,7 @@ internal static class OneNoteSchema {
     internal const uint TableColumnWidths = 0x1C001D66;
     internal const uint CellShadingColor = 0x14001E26;
     internal const uint PictureContainer = 0x20001C3F;
+    internal const uint WebPictureContainer14 = 0x200034C8;
     internal const uint EmbeddedFileContainer = 0x20001D9B;
     internal const uint EmbeddedFileName = 0x1C001D9C;
     internal const uint SourceFilePath = 0x1C001D9D;

@@ -296,6 +296,7 @@ _Dependency footprint:_ only first-party `OfficeIMO.Email`; no Outlook installat
 - [x] Managed read, create, edit, save, and round-trip writing for desktop and FSSHTTP-encoded `.one` sections
 - [x] Native `.onetoc2` notebook hierarchy and managed Cabinet `.onepkg` read/write
 - [x] Pages/subpages, outlines, rich text, lists, tables, links, images, attachments, tags/tasks, metadata, conflicts, versions, ink/math preservation, revisions, and opaque data
+- [x] Correct half-inch image geometry, web-picture fallback, and loss-aware unresolved image relationship preservation
 - [x] Lazy assets, bounded corruption-resistant parsing, structured diagnostics, legal fixtures, benchmarks, and Microsoft OneNote open/edit/save/reopen interoperability proof
 
 _Dependency footprint:_ zero third-party runtime dependencies; no Microsoft Graph, GraphEssentialsX, COM, installed OneNote, or commercial SDK.
@@ -485,6 +486,7 @@ _Dependency footprint:_ only OfficeIMO Markdown, PDF, and Drawing packages.
 
 - [x] Shared semantic projection for OneNote hierarchy, rich text, lists, tables, links, assets, math, conflicts, and version history
 - [x] Markdown text, UTF-8 bytes, and typed `MarkdownDoc` output
+- [x] Safe RichEdit/control/noncharacter normalization without mutating the native model
 
 _Dependency footprint:_ only OfficeIMO OneNote and Markdown; it is the single projection owner used by Reader, HTML, and PDF.
 
@@ -499,6 +501,7 @@ _Dependency footprint:_ only OfficeIMO OneNote.Markdown and Markdown.
 
 - [x] PDF document, bytes, streams, and sync/async save paths with first-party conversion diagnostics
 - [x] OneNote hierarchy and semantic content rendered through the shared Markdown projection
+- [x] Multilingual system-font fallback by default with explicit strict-font opt-out
 
 _Dependency footprint:_ only OfficeIMO OneNote.Markdown, Markdown.Pdf, PDF, and Drawing.
 
@@ -649,6 +652,7 @@ _Dependency footprint:_ only OfficeIMO Reader; JSON comes from Reader's establis
 
 - [x] Offline `.one`, `.onetoc2`, and `.onepkg` path/stream ingestion with async, non-seekable, cancellation, and input-limit behavior
 - [x] Page/subpage hierarchy, chunks, tables, links, assets, metadata, conflicts/version counts, diagnostics, hashes, and Markdown/text projections
+- [x] Current-only default with explicit conflict/version/recycle-bin opt-ins and unresolved-image metadata
 - [x] Thin registration over the native OneNote engine and shared OneNote.Markdown projection
 
 _Dependency footprint:_ only OfficeIMO Reader, OneNote, and OneNote.Markdown.

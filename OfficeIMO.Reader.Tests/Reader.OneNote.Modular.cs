@@ -17,6 +17,8 @@ public sealed class ReaderOneNoteModularTests {
     [Fact]
     public void OneNoteOptionsClone_PreservesTransactionChecksumCompatibilitySetting() {
         var options = new ReaderOneNoteOptions {
+            IncludeConflictPages = true,
+            IncludeVersionHistory = true,
             OneNoteOptions = new OneNoteReaderOptions { ValidateTransactionChecksums = false }
         };
 
@@ -24,6 +26,113 @@ public sealed class ReaderOneNoteModularTests {
 
         Assert.NotSame(options.OneNoteOptions, clone.OneNoteOptions);
         Assert.False(clone.OneNoteOptions!.ValidateTransactionChecksums);
+        Assert.True(clone.IncludeConflictPages);
+        Assert.True(clone.IncludeVersionHistory);
+    }
+
+    [Fact]
+    public void OneNoteAdapter_RelatedPagesRemainOptInAndRetainExplicitHierarchyAndAssets() {
+        var section = new OneNoteSection { Name = "History" };
+        var current = new OneNotePage { Title = "Current" };
+        current.DirectContent.Add(Paragraph("Current text"));
+        var conflict = new OneNotePage { Title = "Conflict copy", IsConflictPage = true };
+        conflict.DirectContent.Add(Paragraph("Conflict text"));
+        var version = new OneNotePage { Title = "Earlier copy", IsVersionHistoryPage = true };
+        version.DirectContent.Add(Paragraph("Earlier text"));
+        version.DirectContent.Add(new OneNoteImage {
+            FileName = "historical.png",
+            MediaType = "image/png",
+            Payload = OneNoteBinaryPayload.FromBytes(new byte[] { 1, 2, 3 })
+        });
+        current.ConflictPages.Add(conflict);
+        current.VersionHistory.Add(version);
+        section.Pages.Add(current);
+
+        OfficeDocumentReadResult currentOnly = OneNoteReaderAdapter.ReadDocument(section);
+        Assert.Single(currentOnly.Pages);
+        Assert.Empty(currentOnly.Assets);
+        Assert.DoesNotContain("officeimo.onenote.conflict-pages", currentOnly.CapabilitiesUsed);
+        Assert.DoesNotContain("officeimo.onenote.version-history", currentOnly.CapabilitiesUsed);
+        Assert.Contains(currentOnly.Metadata, item => item.Name == "ConflictPageCount" && item.Value == "1");
+        Assert.Contains(currentOnly.Metadata, item => item.Name == "VersionPageCount" && item.Value == "1");
+
+        var options = new ReaderOneNoteOptions {
+            IncludeConflictPages = true,
+            IncludeVersionHistory = true
+        };
+        OfficeDocumentReadResult withHistory = OneNoteReaderAdapter.ReadDocument(section, oneNoteOptions: options);
+
+        Assert.Equal(new[] { "Current", "Conflict copy", "Earlier copy" }, withHistory.Pages.Select(page => page.Name).ToArray());
+        Assert.Equal(
+            new[] {
+                "History > Current",
+                "History > Current > Conflict: Conflict copy",
+                "History > Current > Version: Earlier copy"
+            },
+            withHistory.Chunks.Select(chunk => chunk.Location.HeadingPath).ToArray());
+        Assert.Single(withHistory.Assets, asset => asset.FileName == "historical.png");
+        Assert.Contains("officeimo.onenote.conflict-pages", withHistory.CapabilitiesUsed);
+        Assert.Contains("officeimo.onenote.version-history", withHistory.CapabilitiesUsed);
+    }
+
+    [Fact]
+    public void OneNoteAdapter_EmitsUnresolvedImageMetadataAndConvertsHalfInchesToPixels() {
+        var section = new OneNoteSection { Name = "Images" };
+        var page = new OneNotePage { Title = "Page" };
+        page.DirectContent.Add(new OneNoteImage {
+            AltText = "Unavailable",
+            FileName = "unresolved.png",
+            MediaType = "image/png",
+            WidthHalfInches = 2.5,
+            HeightHalfInches = 1.5
+        });
+        page.DirectContent.Add(new OneNoteImage {
+            AltText = "Available",
+            FileName = "available.png",
+            MediaType = "image/png",
+            Payload = OneNoteBinaryPayload.FromBytes(new byte[] { 4, 5, 6 })
+        });
+        section.Pages.Add(page);
+
+        OfficeDocumentReadResult result = OneNoteReaderAdapter.ReadDocument(section);
+
+        Assert.Collection(result.Assets,
+            unresolved => {
+                Assert.Equal("unresolved.png", unresolved.FileName);
+                Assert.Equal(120, unresolved.Width);
+                Assert.Equal(72, unresolved.Height);
+                Assert.Null(unresolved.LengthBytes);
+                Assert.Null(unresolved.PayloadBytes);
+            },
+            available => Assert.Equal("available.png", available.FileName));
+        string markdown = Assert.Single(result.Chunks).Markdown!;
+        Assert.Contains("[Image: Unavailable]", markdown, StringComparison.Ordinal);
+        Assert.Contains("onenote-page-0001-asset-0002", markdown, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void OneNoteAdapter_NormalizesUnsupportedProjectionCharactersWithoutMutatingSource() {
+        const string raw = "Alpha\vBeta\u0001\uFDDF";
+        const string rawTitle = "Page\vName\uFDDF";
+        const string rawLink = "https://example.test/\uFDDF";
+        var section = new OneNoteSection { Name = "Controls" };
+        var page = new OneNotePage { Title = rawTitle };
+        page.DirectContent.Add(Paragraph(raw));
+        ((OneNoteParagraph)page.DirectContent[0]).Runs[0].Hyperlink = rawLink;
+        section.Pages.Add(page);
+
+        OfficeDocumentReadResult result = OneNoteReaderAdapter.ReadDocument(section);
+        ReaderChunk chunk = Assert.Single(result.Chunks);
+
+        Assert.Contains("Alpha\nBeta??", chunk.Text, StringComparison.Ordinal);
+        Assert.Contains("Alpha<br>Beta??", chunk.Markdown, StringComparison.Ordinal);
+        Assert.DoesNotContain('\v', chunk.Text);
+        Assert.DoesNotContain('\uFDDF', chunk.Text);
+        Assert.Equal("Page\nName?", Assert.Single(result.Pages).Name);
+        Assert.Equal("https://example.test/?", Assert.Single(result.Links).Uri);
+        Assert.Equal(raw, ((OneNoteParagraph)page.DirectContent[0]).Runs[0].Text);
+        Assert.Equal(rawLink, ((OneNoteParagraph)page.DirectContent[0]).Runs[0].Hyperlink);
+        Assert.Equal(rawTitle, page.Title);
     }
 
     [Fact]
@@ -460,6 +569,12 @@ public sealed class ReaderOneNoteModularTests {
         var run = new OneNoteTextRun { Text = text };
         run.Style.Bold = true;
         paragraph.Runs.Add(run);
+        return paragraph;
+    }
+
+    private static OneNoteParagraph Paragraph(string text) {
+        var paragraph = new OneNoteParagraph();
+        paragraph.Runs.Add(new OneNoteTextRun { Text = text });
         return paragraph;
     }
 

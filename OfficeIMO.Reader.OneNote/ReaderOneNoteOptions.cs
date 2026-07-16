@@ -15,4 +15,10 @@ public sealed class ReaderOneNoteOptions {
     /// Asset metadata is emitted regardless of this setting.
     /// </summary>
     public bool IncludeAssetPayloads { get; set; }
+
+    /// <summary>Includes conflict-page snapshots in chunks, pages, assets, and links.</summary>
+    public bool IncludeConflictPages { get; set; }
+
+    /// <summary>Includes version-history snapshots in chunks, pages, assets, and links.</summary>
+    public bool IncludeVersionHistory { get; set; }
 }

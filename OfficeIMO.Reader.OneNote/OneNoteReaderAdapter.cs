@@ -1,4 +1,5 @@
 using OfficeIMO.OneNote;
+using OfficeIMO.OneNote.Markdown;
 
 namespace OfficeIMO.Reader.OneNote;
 
@@ -31,8 +32,26 @@ internal static partial class OneNoteReaderAdapter {
         CancellationToken cancellationToken = default) {
         if (section == null) throw new ArgumentNullException(nameof(section));
         if (sourceName == null) throw new ArgumentNullException(nameof(sourceName));
+        ReaderOptions reader = readerOptions ?? new ReaderOptions();
+        ReaderOneNoteOptions native = ReaderOneNoteOptionsCloner.CloneOrDefault(null);
         var source = SourceInfo.ForLogicalName(NormalizeSourceName(sourceName));
-        return BuildChunks(section, source, readerOptions ?? new ReaderOptions(), cancellationToken);
+        return CreateSectionContext(section, source, reader, native, cancellationToken).Chunks;
+    }
+
+    /// <summary>Projects an already loaded section with OneNote-specific page-selection options.</summary>
+    public static IEnumerable<ReaderChunk> Read(
+        OneNoteSection section,
+        ReaderOneNoteOptions oneNoteOptions,
+        string sourceName = "section.one",
+        ReaderOptions? readerOptions = null,
+        CancellationToken cancellationToken = default) {
+        if (section == null) throw new ArgumentNullException(nameof(section));
+        if (oneNoteOptions == null) throw new ArgumentNullException(nameof(oneNoteOptions));
+        if (sourceName == null) throw new ArgumentNullException(nameof(sourceName));
+        ReaderOptions reader = readerOptions ?? new ReaderOptions();
+        ReaderOneNoteOptions native = ReaderOneNoteOptionsCloner.CloneOrDefault(oneNoteOptions);
+        var source = SourceInfo.ForLogicalName(NormalizeSourceName(sourceName));
+        return CreateSectionContext(section, source, reader, native, cancellationToken).Chunks;
     }
 
     /// <summary>Projects an already loaded notebook into normalized chunks.</summary>
@@ -45,6 +64,22 @@ internal static partial class OneNoteReaderAdapter {
         if (sourceName == null) throw new ArgumentNullException(nameof(sourceName));
         ReaderOptions reader = readerOptions ?? new ReaderOptions();
         ReaderOneNoteOptions native = ReaderOneNoteOptionsCloner.CloneOrDefault(null);
+        SourceInfo source = SourceInfo.ForLogicalName(NormalizeSourceName(sourceName));
+        return CreateNotebookContext(notebook, source, reader, native, cancellationToken).Chunks;
+    }
+
+    /// <summary>Projects an already loaded notebook with OneNote-specific page-selection options.</summary>
+    public static IEnumerable<ReaderChunk> Read(
+        OneNoteNotebook notebook,
+        ReaderOneNoteOptions oneNoteOptions,
+        string sourceName = "notebook.onepkg",
+        ReaderOptions? readerOptions = null,
+        CancellationToken cancellationToken = default) {
+        if (notebook == null) throw new ArgumentNullException(nameof(notebook));
+        if (oneNoteOptions == null) throw new ArgumentNullException(nameof(oneNoteOptions));
+        if (sourceName == null) throw new ArgumentNullException(nameof(sourceName));
+        ReaderOptions reader = readerOptions ?? new ReaderOptions();
+        ReaderOneNoteOptions native = ReaderOneNoteOptionsCloner.CloneOrDefault(oneNoteOptions);
         SourceInfo source = SourceInfo.ForLogicalName(NormalizeSourceName(sourceName));
         return CreateNotebookContext(notebook, source, reader, native, cancellationToken).Chunks;
     }
@@ -132,8 +167,9 @@ internal static partial class OneNoteReaderAdapter {
         ReaderOptions reader,
         ReaderOneNoteOptions native,
         CancellationToken cancellationToken) {
-        ReaderChunk[] chunks = BuildChunks(section, source, reader, cancellationToken).ToArray();
-        return new ReadContext(section, null, null, source, reader, native, chunks);
+        PageSelection selection = SelectPages(section, native);
+        ReaderChunk[] chunks = BuildChunks(selection.Section, source, reader, cancellationToken, selection.Hierarchy).ToArray();
+        return new ReadContext(selection.Section, section, null, selection.Hierarchy, source, reader, native, chunks);
     }
 
     private static ReadContext CreateNotebookContext(
@@ -142,20 +178,25 @@ internal static partial class OneNoteReaderAdapter {
         ReaderOptions reader,
         ReaderOneNoteOptions native,
         CancellationToken cancellationToken) {
-        string notebookName = string.IsNullOrWhiteSpace(notebook.Name) ? "OneNote notebook" : notebook.Name;
+        string notebookName = string.IsNullOrWhiteSpace(notebook.Name) ? "OneNote notebook" : OneNoteTextProjection.Normalize(notebook.Name);
         var aggregate = new OneNoteSection { Name = notebookName, SourcePath = notebook.SourcePath };
+        var metadataAggregate = new OneNoteSection { Name = notebookName, SourcePath = notebook.SourcePath };
         foreach (OneNoteDiagnostic diagnostic in notebook.Diagnostics) aggregate.Diagnostics.Add(diagnostic);
         var hierarchy = new List<string>();
         NotebookSectionScope[] scopes = EnumerateNotebookSections(notebook, notebookName).ToArray();
         foreach (NotebookSectionScope scope in scopes) {
             cancellationToken.ThrowIfCancellationRequested();
             OneNoteSection section = scope.Section;
-            string[] localHierarchy = BuildPageHierarchy(section);
-            for (int index = 0; index < section.Pages.Count; index++) {
-                aggregate.Pages.Add(section.Pages[index]);
-                hierarchy.Add(scope.ParentHierarchy + " > " + localHierarchy[index]);
+            PageSelection selection = SelectPages(section, native);
+            for (int index = 0; index < selection.Section.Pages.Count; index++) {
+                aggregate.Pages.Add(selection.Section.Pages[index]);
+                hierarchy.Add(scope.ParentHierarchy + " > " + selection.Hierarchy[index]);
             }
-            foreach (OneNoteRevision revision in section.Revisions) aggregate.Revisions.Add(revision);
+            foreach (OneNotePage page in section.Pages) metadataAggregate.Pages.Add(page);
+            foreach (OneNoteRevision revision in section.Revisions) {
+                aggregate.Revisions.Add(revision);
+                metadataAggregate.Revisions.Add(revision);
+            }
             foreach (OneNoteOpaqueObject item in section.UnknownObjects) aggregate.UnknownObjects.Add(item);
             foreach (OneNoteDiagnostic diagnostic in section.Diagnostics) aggregate.Diagnostics.Add(diagnostic);
         }
@@ -164,11 +205,12 @@ internal static partial class OneNoteReaderAdapter {
         int emptySectionIndex = 0;
         foreach (NotebookSectionScope scope in scopes.Where(scope => scope.Section.Pages.Count == 0)) {
             cancellationToken.ThrowIfCancellationRequested();
-            string heading = scope.ParentHierarchy + " > " + scope.Section.Name;
+            string sectionName = OneNoteTextProjection.Normalize(scope.Section.Name);
+            string heading = scope.ParentHierarchy + " > " + sectionName;
             string id = "onenote-section-" + (++emptySectionIndex).ToString("D4", CultureInfo.InvariantCulture);
             string[] warnings = notebook.Diagnostics.Concat(scope.Section.Diagnostics)
                 .Where(static diagnostic => diagnostic.Severity != OneNoteDiagnosticSeverity.Information)
-                .Select(static diagnostic => diagnostic.Code + ": " + diagnostic.Message)
+                .Select(static diagnostic => OneNoteTextProjection.Normalize(diagnostic.Code + ": " + diagnostic.Message))
                 .Distinct(StringComparer.Ordinal)
                 .ToArray();
             var chunk = new ReaderChunk {
@@ -186,15 +228,15 @@ internal static partial class OneNoteReaderAdapter {
                 SourceHash = source.SourceHash,
                 SourceLastWriteUtc = source.LastWriteUtc,
                 SourceLengthBytes = source.LengthBytes,
-                Text = scope.Section.Name,
-                Markdown = "## " + EscapeMarkdown(scope.Section.Name),
+                Text = sectionName,
+                Markdown = "## " + EscapeMarkdown(sectionName),
                 Warnings = warnings.Length == 0 ? null : warnings
             };
             chunk.TokenEstimate = EstimateTokenCount(chunk.Markdown);
             if (reader.ComputeHashes) chunk.ChunkHash = ComputeHash(BuildChunkHashInput(chunk));
             chunks.Add(chunk);
         }
-        return new ReadContext(aggregate, notebook, pageHierarchy, source, reader, native, chunks.ToArray());
+        return new ReadContext(aggregate, metadataAggregate, notebook, pageHierarchy, source, reader, native, chunks.ToArray());
     }
 
     private static IEnumerable<NotebookSectionScope> EnumerateNotebookSections(OneNoteNotebook notebook, string notebookName) {
@@ -203,7 +245,7 @@ internal static partial class OneNoteReaderAdapter {
                 yield return new NotebookSectionScope(item.Section, notebookName);
             } else {
                 OneNoteSectionGroup group = item.Group!;
-                foreach (NotebookSectionScope scope in EnumerateNotebookGroup(group, notebookName + " > " + group.Name)) yield return scope;
+                foreach (NotebookSectionScope scope in EnumerateNotebookGroup(group, notebookName + " > " + OneNoteTextProjection.Normalize(group.Name))) yield return scope;
             }
         }
     }
@@ -214,7 +256,7 @@ internal static partial class OneNoteReaderAdapter {
                 yield return new NotebookSectionScope(item.Section, parentHierarchy);
             } else {
                 OneNoteSectionGroup child = item.Group!;
-                foreach (NotebookSectionScope scope in EnumerateNotebookGroup(child, parentHierarchy + " > " + child.Name)) yield return scope;
+                foreach (NotebookSectionScope scope in EnumerateNotebookGroup(child, parentHierarchy + " > " + OneNoteTextProjection.Normalize(child.Name))) yield return scope;
             }
         }
     }
@@ -259,8 +301,9 @@ internal static partial class OneNoteReaderAdapter {
     }
 
     private sealed class ReadContext {
-        internal ReadContext(OneNoteSection section, OneNoteNotebook? notebook, IReadOnlyList<string>? pageHierarchy, SourceInfo source, ReaderOptions readerOptions, ReaderOneNoteOptions oneNoteOptions, ReaderChunk[] chunks) {
+        internal ReadContext(OneNoteSection section, OneNoteSection metadataSection, OneNoteNotebook? notebook, IReadOnlyList<string>? pageHierarchy, SourceInfo source, ReaderOptions readerOptions, ReaderOneNoteOptions oneNoteOptions, ReaderChunk[] chunks) {
             Section = section;
+            MetadataSection = metadataSection;
             Notebook = notebook;
             PageHierarchy = pageHierarchy;
             Source = source;
@@ -270,6 +313,7 @@ internal static partial class OneNoteReaderAdapter {
         }
 
         internal OneNoteSection Section { get; }
+        internal OneNoteSection MetadataSection { get; }
         internal OneNoteNotebook? Notebook { get; }
         internal IReadOnlyList<string>? PageHierarchy { get; }
         internal SourceInfo Source { get; }

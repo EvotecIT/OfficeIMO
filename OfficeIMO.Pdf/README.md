@@ -354,7 +354,7 @@ result.Report.RequireNoErrorWarnings();
 result.Save("proposal.pdf");
 ```
 
-The Markdown, Word, Excel, and PowerPoint PDF adapters expose the same `TextFallbacks` enum. Use `PdfTextFallbackFeatures.None` when strict standard-font output is preferred, or `AllowSystemFontEmbedding = true` when the converter may embed installed host fonts for Unicode, symbols, and emoji.
+The Markdown, Word, Excel, PowerPoint, and OneNote PDF adapters expose the same `TextFallbacks` enum. `PdfTextFallbackFeatures.Default` enables document, monospace, symbol, and emoji groups. Add `PdfTextFallbackFeatures.MultilingualFonts` for installed CJK, Arabic, and other non-Latin families; OneNote adds that flag automatically unless fallbacks are set to `None`. Use `PdfTextFallbackFeatures.None` when strict standard-font output is preferred, or `AllowSystemFontEmbedding = true` when the converter may embed installed host fonts.
 
 ### Generate a formal e-invoice carrier
 

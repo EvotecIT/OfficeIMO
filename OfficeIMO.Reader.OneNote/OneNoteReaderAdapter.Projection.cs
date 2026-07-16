@@ -20,7 +20,7 @@ internal static partial class OneNoteReaderAdapter {
             ReaderTable[] tables = BuildTables(page, source, pageIndex, options.MaxTableRows).ToArray();
             string[] warnings = section.Diagnostics.Concat(page.Diagnostics)
                 .Where(static diagnostic => diagnostic.Severity != OneNoteDiagnosticSeverity.Information)
-                .Select(static diagnostic => diagnostic.Code + ": " + diagnostic.Message)
+                .Select(static diagnostic => OneNoteTextProjection.Normalize(diagnostic.Code + ": " + diagnostic.Message))
                 .Distinct(StringComparer.Ordinal)
                 .ToArray();
 
@@ -59,9 +59,9 @@ internal static partial class OneNoteReaderAdapter {
             int level = Math.Min(MaxPageHierarchyDepth, Math.Max(0, page.Level));
             while (stack.Count > level) stack.RemoveAt(stack.Count - 1);
             while (stack.Count < level) stack.Add("Untitled");
-            string title = string.IsNullOrWhiteSpace(page.Title) ? "Untitled page" : page.Title;
+            string title = string.IsNullOrWhiteSpace(page.Title) ? "Untitled page" : OneNoteTextProjection.Normalize(page.Title);
             if (stack.Count == level) stack.Add(title); else stack[level] = title;
-            result[index] = string.Join(" > ", new[] { section.Name }.Concat(stack));
+            result[index] = string.Join(" > ", new[] { OneNoteTextProjection.Normalize(section.Name) }.Concat(stack));
             if (stack.Count > level + 1) stack.RemoveRange(level + 1, stack.Count - level - 1);
         }
         return result;
@@ -79,7 +79,7 @@ internal static partial class OneNoteReaderAdapter {
                     .ToArray()).ToArray();
             IReadOnlyList<IReadOnlyList<string>> visible = rows.Take(Math.Max(0, maxRows)).ToArray();
             yield return new ReaderTable {
-                Title = (string.IsNullOrWhiteSpace(page.Title) ? "OneNote page" : page.Title) + " table " + (tableIndex + 1).ToString(CultureInfo.InvariantCulture),
+                Title = (string.IsNullOrWhiteSpace(page.Title) ? "OneNote page" : OneNoteTextProjection.Normalize(page.Title)) + " table " + (tableIndex + 1).ToString(CultureInfo.InvariantCulture),
                 Kind = "onenote-table",
                 Location = BuildLocation(source, pageIndex, "table", "page-" + (pageIndex + 1).ToString(CultureInfo.InvariantCulture) + "-table-" + (tableIndex + 1).ToString(CultureInfo.InvariantCulture), null, tableIndex),
                 Columns = headers,

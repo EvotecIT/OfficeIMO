@@ -202,4 +202,7 @@ public sealed class MarkdownPdfSaveOptions {
         clone.Report = new PdfCore.PdfConversionReport();
         return clone;
     }
+
+    /// <summary>Creates an independent copy of these conversion options.</summary>
+    public MarkdownPdfSaveOptions Clone() => CloneForConversion();
 }

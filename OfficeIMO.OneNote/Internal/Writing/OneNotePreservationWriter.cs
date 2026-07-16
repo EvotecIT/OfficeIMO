@@ -194,6 +194,7 @@ internal static class OneNotePreservationWriter {
             case OneNoteSchema.ListNodes & 0x03FFFFFFU:
             case OneNoteSchema.ParagraphStyle & 0x03FFFFFFU:
             case OneNoteSchema.PictureContainer & 0x03FFFFFFU:
+            case OneNoteSchema.WebPictureContainer14 & 0x03FFFFFFU:
             case OneNoteSchema.EmbeddedFileContainer & 0x03FFFFFFU:
                 return true;
             default:

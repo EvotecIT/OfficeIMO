@@ -130,7 +130,7 @@ public static class OneNoteMarkdownProjection {
 
     private static void AppendText(StringBuilder builder, OneNoteElement element) {
         if (element is OneNoteParagraph paragraph) {
-            string text = string.Concat(paragraph.Runs.Select(run => run.Text));
+            string text = OneNoteTextProjection.Normalize(string.Concat(paragraph.Runs.Select(run => run.Text)));
             if (!string.IsNullOrWhiteSpace(text)) {
                 if (paragraph.List != null) builder.Append(paragraph.List.Ordered ? "1. " : "- ");
                 builder.AppendLine(text);
@@ -141,13 +141,13 @@ public static class OneNoteMarkdownProjection {
         } else if (element is OneNoteTable table) {
             foreach (OneNoteTableRow row in table.Rows) builder.AppendLine(string.Join(" | ", row.Cells.Select(CellText)));
         } else if (element is OneNoteImage image) {
-            builder.AppendLine("[Image: " + (image.AltText ?? image.FileName ?? "image") + "]");
+            builder.AppendLine("[Image: " + OneNoteTextProjection.Normalize(image.AltText ?? image.FileName ?? "image") + "]");
         } else if (element is OneNoteEmbeddedFile file) {
-            builder.AppendLine("[Embedded file: " + (file.FileName ?? "attachment") + "]");
+            builder.AppendLine("[Embedded file: " + OneNoteTextProjection.Normalize(file.FileName ?? "attachment") + "]");
         } else if (element is OneNoteMath math && !string.IsNullOrWhiteSpace(math.Text)) {
-            builder.AppendLine(math.Text);
+            builder.AppendLine(OneNoteTextProjection.Normalize(math.Text));
         } else if (element is OneNoteMedia media) {
-            builder.AppendLine("[Media: " + (media.FileName ?? "recording") + "]");
+            builder.AppendLine("[Media: " + OneNoteTextProjection.Normalize(media.FileName ?? "recording") + "]");
         } else if (element is OneNoteInk) {
             builder.AppendLine("[Ink]");
         }
@@ -182,7 +182,7 @@ public static class OneNoteMarkdownProjection {
         } else if (element is OneNoteEmbeddedFile file) {
             AppendBinaryLink(builder, file, file.FileName ?? "attachment", assetUriResolver);
         } else if (element is OneNoteMath math) {
-            string value = math.Latex ?? math.Text ?? math.MathMl ?? string.Empty;
+            string value = OneNoteTextProjection.Normalize(math.Latex ?? math.Text ?? math.MathMl);
             string fence = CreateCodeFence(value);
             builder.Append(fence).AppendLine("math");
             builder.AppendLine(value);
@@ -290,8 +290,8 @@ public static class OneNoteMarkdownProjection {
         element.Payload == null || resolver == null ? null : resolver(element);
 
     private static IEnumerable<OneNoteElement> PageRoots(OneNotePage page) => page.Outlines.Cast<OneNoteElement>().Concat(page.DirectContent);
-    private static string PageTitle(OneNotePage page) => string.IsNullOrWhiteSpace(page.Title) ? "Untitled page" : page.Title;
-    private static string Escape(string? value) => (value ?? string.Empty)
+    private static string PageTitle(OneNotePage page) => string.IsNullOrWhiteSpace(page.Title) ? "Untitled page" : OneNoteTextProjection.Normalize(page.Title);
+    private static string Escape(string? value) => OneNoteTextProjection.Normalize(value)
         .Replace("\\", "\\\\")
         .Replace("`", "\\`")
         .Replace("~", "\\~")
@@ -306,6 +306,7 @@ public static class OneNoteMarkdownProjection {
         .Replace("\r", "<br>")
         .Replace("\n", "<br>");
     private static string EscapeDestination(string value) {
+        value = OneNoteTextProjection.Normalize(value);
         var builder = new StringBuilder(value.Length);
         foreach (char character in value) {
             if (MustEncodeDestinationCharacter(character)) {

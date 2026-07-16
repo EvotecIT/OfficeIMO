@@ -180,21 +180,47 @@ internal sealed partial class OneNoteWriteGraphBuilder {
     }
 
     private OneNoteExtendedGuid BuildImage(OneNoteWriteObjectSpace space, OneNoteImage image, uint lastModifiedTime) {
-        OneNoteExtendedGuid binaryId = BuildFileData(space, image, true);
         var properties = LayoutProperties(image.Layout);
         properties.Insert(0, Scalar(OneNoteSchema.LastModifiedTime, lastModifiedTime));
-        properties.Add(ObjectReferences(OneNoteSchema.PictureContainer, binaryId));
+        AddImagePayloadReferences(space, image, properties);
         AddString(properties, OneNoteSchema.ImageFilename, image.FileName);
         AddString(properties, OneNoteSchema.ImageAltText, image.AltText);
         AddString(properties, OneNoteSchema.SourceFilePath, image.SourcePath);
         AddString(properties, OneNoteSchema.HyperlinkUrl, image.Hyperlink);
-        if (image.PixelWidth.HasValue) properties.Add(Scalar(OneNoteSchema.PictureWidth, ToUInt32(image.PixelWidth.Value)));
-        if (image.PixelHeight.HasValue) properties.Add(Scalar(OneNoteSchema.PictureHeight, ToUInt32(image.PixelHeight.Value)));
+        if (image.WidthHalfInches.HasValue) properties.Add(Float(OneNoteSchema.PictureWidth, image.WidthHalfInches.Value));
+        if (image.HeightHalfInches.HasValue) properties.Add(Float(OneNoteSchema.PictureHeight, image.HeightHalfInches.Value));
         AddTags(space, properties, image.Tags);
         OneNoteExtendedGuid id = IdOrNew(image.Id);
         image.Id = id;
         space.Objects.Add(new OneNoteWriteObject(id, OneNoteSchema.JcidImageNode, properties));
         return id;
+    }
+
+    private void AddImagePayloadReferences(
+        OneNoteWriteObjectSpace space,
+        OneNoteImage image,
+        IList<OneNoteWriteProperty> properties) {
+        bool hasPreservedReferences = image.PictureContainerObjectId != null || image.WebPictureContainerObjectId != null;
+        if (!_preserveUnknownData || !hasPreservedReferences) {
+            OneNoteExtendedGuid canonicalId = BuildFileData(space, image, true);
+            properties.Add(ObjectReferences(OneNoteSchema.PictureContainer, canonicalId));
+            return;
+        }
+
+        OneNoteExtendedGuid? selectedId = null;
+        if (image.Payload != null) selectedId = BuildFileData(space, image, true);
+        if (image.Payload == null && image.PictureContainerObjectId == null && image.WebPictureContainerObjectId == null) {
+            throw new OneNoteFormatException("ONENOTE_WRITE_MISSING_PAYLOAD", image.Kind + " content has no binary payload.");
+        }
+
+        OneNoteExtendedGuid? pictureId = image.PayloadUsesWebPictureContainer
+            ? image.PictureContainerObjectId
+            : selectedId ?? image.PictureContainerObjectId;
+        OneNoteExtendedGuid? webPictureId = image.PayloadUsesWebPictureContainer
+            ? selectedId ?? image.WebPictureContainerObjectId
+            : image.WebPictureContainerObjectId;
+        if (pictureId != null) properties.Add(ObjectReferences(OneNoteSchema.PictureContainer, pictureId));
+        if (webPictureId != null) properties.Add(ObjectReferences(OneNoteSchema.WebPictureContainer14, webPictureId));
     }
 
     private OneNoteExtendedGuid BuildEmbeddedFile(OneNoteWriteObjectSpace space, OneNoteBinaryElement element, uint lastModifiedTime) {

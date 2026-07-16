@@ -10,6 +10,8 @@ internal static class ReaderOneNoteOptionsCloner {
         notebook.OneNoteOptions = native;
         return new ReaderOneNoteOptions {
             IncludeAssetPayloads = options.IncludeAssetPayloads,
+            IncludeConflictPages = options.IncludeConflictPages,
+            IncludeVersionHistory = options.IncludeVersionHistory,
             OneNoteOptions = native,
             NotebookOptions = notebook
         };

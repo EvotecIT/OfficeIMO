@@ -83,7 +83,11 @@ The typed model covers:
 - plain and structured math projections where present;
 - diagnostics plus unknown objects, properties, roots, and relationships for loss-aware preservation.
 
+Native picture dimensions are exposed as `WidthHalfInches` and `HeightHalfInches`. MS-ONE stores these properties as IEEE-754 floating-point counts of half-inch units; Reader converts them to pixels at 96 DPI when it emits asset metadata. Images can carry both the normal `PictureContainer` relationship and the newer `WebPictureContainer14` relationship. Reading prefers the normal payload and falls back to the web payload when necessary. A loaded image whose payload cannot be resolved still retains its native relationships and can survive an unrelated preservation write; explicitly canonicalizing such an image without a payload fails instead of inventing or silently dropping data.
+
 When a loaded section is edited, unsupported source structures are preserved unless the typed edit replaces or deletes their owning relationship. Known typed properties win over stale opaque values.
+
+OneNote permits content directly below a page object. OfficeIMO reads that content through `OneNotePage.DirectContent`; on write it moves those elements into a canonical outline because that is the interoperable native shape. This is a structural normalization, not a content deletion.
 
 New notebooks, groups, sections, pages, and content receive their native logical identities on first serialization. The assigned identities remain on the typed model and are reused by later saves; physical transaction and file-version identifiers still change for each artifact.
 
@@ -110,6 +114,8 @@ Caller-owned streams stay open. Seekable read streams are restored to their orig
 - `OfficeIMO.Reader.OneNote` emits page-aware chunks, hierarchy, tables, links, assets, metadata, hashes, diagnostics, and Markdown/text projections.
 
 Conflict copies and version-history snapshots are opt-in in direct conversions through `OneNoteMarkdownOptions`. Reader reports their counts in structured metadata while keeping current pages as the default chunk surface.
+
+Notebook readers exclude the `OneNote_RecycleBin` section group by default. Set `OneNoteNotebookReaderOptions.IncludeRecycleBin = true` when an application needs to inspect it. An empty recycle-bin group is valid and is written with a valid empty table of contents.
 
 ## Compatibility evidence
 

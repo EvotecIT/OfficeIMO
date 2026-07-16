@@ -335,13 +335,24 @@ internal static partial class OneNoteSemanticMapper {
             AltText = ReadString(item, ImageAltText),
             SourcePath = ReadString(item, SourceFilePath),
             Hyperlink = ReadString(item, HyperlinkUrl),
-            PixelWidth = ReadUInt32(item, PictureWidth),
-            PixelHeight = ReadUInt32(item, PictureHeight),
+            WidthHalfInches = ReadFloat(item, PictureWidth),
+            HeightHalfInches = ReadFloat(item, PictureHeight),
             Layout = ReadLayout(item)
         };
         image.MediaType = ResolveMediaType(image.FileName);
-        OneNoteRevisionStoreObject? binary = GetReferences(item, PictureContainer).Select(space.GetObject).FirstOrDefault(value => value != null);
-        PopulateBinaryPayload(image, binary, materializer);
+        image.PictureContainerObjectId = GetReferences(item, PictureContainer).FirstOrDefault();
+        image.WebPictureContainerObjectId = GetReferences(item, OneNoteSchema.WebPictureContainer14).FirstOrDefault();
+        OneNoteRevisionStoreObject? picture = image.PictureContainerObjectId == null
+            ? null
+            : space.GetObject(image.PictureContainerObjectId);
+        OneNoteRevisionStoreObject? webPicture = image.WebPictureContainerObjectId == null
+            ? null
+            : space.GetObject(image.WebPictureContainerObjectId);
+        PopulateBinaryPayload(image, picture, materializer);
+        if (image.Payload == null && webPicture != null) {
+            PopulateBinaryPayload(image, webPicture, materializer);
+            image.PayloadUsesWebPictureContainer = image.Payload != null;
+        }
         ApplyTags(image, item, space);
         return image;
     }

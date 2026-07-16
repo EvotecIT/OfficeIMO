@@ -105,11 +105,21 @@ public sealed class OneNoteImage : OneNoteBinaryElement {
     /// <summary>Optional hyperlink associated with the image.</summary>
     public string? Hyperlink { get; set; }
 
-    /// <summary>Original image width when known.</summary>
-    public double? PixelWidth { get; set; }
+    /// <summary>
+    /// Original image width in the half-inch increments used by the MS-ONE
+    /// <c>PictureWidth</c> property.
+    /// </summary>
+    public double? WidthHalfInches { get; set; }
 
-    /// <summary>Original image height when known.</summary>
-    public double? PixelHeight { get; set; }
+    /// <summary>
+    /// Original image height in the half-inch increments used by the MS-ONE
+    /// <c>PictureHeight</c> property.
+    /// </summary>
+    public double? HeightHalfInches { get; set; }
+
+    internal OneNoteExtendedGuid? PictureContainerObjectId { get; set; }
+    internal OneNoteExtendedGuid? WebPictureContainerObjectId { get; set; }
+    internal bool PayloadUsesWebPictureContainer { get; set; }
 }
 
 /// <summary>

@@ -94,6 +94,28 @@ public sealed class NotebookWriterTests {
     }
 
     [Fact]
+    public void PackageWriterCreatesAnEmptyRecycleBinTocAndReaderKeepsItOptIn() {
+        OneNoteNotebook original = CreateNotebook();
+        original.SectionGroups.Add(new OneNoteSectionGroup {
+            Name = "OneNote_RecycleBin",
+            IsRecycleBin = true
+        });
+
+        byte[] data = OneNotePackageWriter.Write(original);
+        OneNoteNotebook currentOnly = OneNotePackageReader.Read(new MemoryStream(data), "Recycle.onepkg");
+        OneNoteNotebook withRecycleBin = OneNotePackageReader.Read(
+            new MemoryStream(data),
+            "Recycle.onepkg",
+            new OneNoteNotebookReaderOptions { IncludeRecycleBin = true });
+
+        Assert.DoesNotContain(currentOnly.SectionGroups, group => group.IsRecycleBin);
+        OneNoteSectionGroup recycleBin = Assert.Single(withRecycleBin.SectionGroups, group => group.IsRecycleBin);
+        Assert.Empty(recycleBin.Sections);
+        Assert.Empty(recycleBin.SectionGroups);
+        Assert.DoesNotContain(withRecycleBin.Diagnostics, diagnostic => diagnostic.Code == "ONENOTE_TOC_GROUP_MISSING");
+    }
+
+    [Fact]
     public void DirectoryWriterCreatesNativeHierarchyAndRefusesExistingContent() {
         string root = Path.Combine(Path.GetTempPath(), "OfficeIMO-OneNote-" + Guid.NewGuid().ToString("N"));
         try {
