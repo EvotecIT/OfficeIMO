@@ -34,6 +34,7 @@ namespace OfficeIMO.Excel.Xlsb {
         private const int BrtBeginBundleShs = 143;
         private const int BrtEndBundleShs = 144;
         private const int BrtBundleSh = 156;
+        private const int BrtCalcProp = 157;
         private const int BrtBeginSst = 159;
         private const int BrtEndSst = 160;
         private const int BrtSstItem = 19;
@@ -152,11 +153,47 @@ namespace OfficeIMO.Excel.Xlsb {
                         workbook.Uses1904DateSystem = (propertiesCursor.ReadUInt32() & 0x01U) != 0;
                         PreserveRecord(options, workbook, partName, record);
                         break;
+                    case BrtCalcProp:
+                        if (workbook.CalculationProperties != null) {
+                            throw new InvalidDataException($"The XLSB workbook contains more than one BrtCalcProp record; duplicate found at offset {record.Offset}.");
+                        }
+                        workbook.CalculationProperties = ParseCalculationProperties(record);
+                        break;
                     default:
                         PreserveRecord(options, workbook, partName, record);
                         break;
                 }
             }
+        }
+
+        private static XlsbCalculationProperties ParseCalculationProperties(XlsbRecord record) {
+            if (record.Data.Length != 26) {
+                throw new InvalidDataException($"The BrtCalcProp record at offset {record.Offset} has invalid payload length {record.Data.Length}.");
+            }
+
+            var cursor = new XlsbBinaryCursor(record.Data);
+            uint calculationId = cursor.ReadUInt32();
+            uint mode = cursor.ReadUInt32();
+            uint iterationCount = cursor.ReadUInt32();
+            double iterationDelta = cursor.ReadDouble();
+            int concurrentThreadCount = cursor.ReadInt32();
+            ushort flags = cursor.ReadUInt16();
+            if (mode > 2U
+                || double.IsNaN(iterationDelta)
+                || double.IsInfinity(iterationDelta)
+                || iterationDelta < 0D
+                || (flags & 0xFE00) != 0
+                || ((flags & 0x0080) != 0 && (concurrentThreadCount < 1 || concurrentThreadCount > 1024))) {
+                throw new InvalidDataException($"The BrtCalcProp record at offset {record.Offset} contains invalid calculation settings.");
+            }
+
+            return new XlsbCalculationProperties(
+                calculationId,
+                mode,
+                iterationCount,
+                iterationDelta,
+                concurrentThreadCount,
+                flags);
         }
 
         private static XlsbStylesheet? ReadStyles(

@@ -44,7 +44,8 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             WriteEntry(archive, "xl/workbook.bin", XlsbWorkbookPartWriter.Create(
                 sheets,
                 document.DateSystem == ExcelDateSystem.NineteenFour,
-                document.WorkbookRoot.GetFirstChild<BookViews>()));
+                document.WorkbookRoot.GetFirstChild<BookViews>(),
+                document.WorkbookRoot.GetFirstChild<CalculationProperties>()));
             WriteEntry(archive, "xl/_rels/workbook.bin.rels", CreateWorkbookRelationships(sheets.Length, stylesPart != null));
             for (int index = 0; index < worksheetParts.Length; index++) {
                 WriteEntry(
@@ -70,15 +71,22 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 throw new NotSupportedException("Native XLSB generation does not yet support modified document properties.");
             }
 
+            ThrowIfDuplicateWorkbookElement<WorkbookProperties>(document.WorkbookRoot, "workbook properties");
+            ThrowIfDuplicateWorkbookElement<BookViews>(document.WorkbookRoot, "workbook views");
+            ThrowIfDuplicateWorkbookElement<Sheets>(document.WorkbookRoot, "worksheet collections");
+            ThrowIfDuplicateWorkbookElement<CalculationProperties>(document.WorkbookRoot, "calculation properties");
+
             OpenXmlElement? unsupportedWorkbookChild = document.WorkbookRoot.ChildElements
                 .FirstOrDefault(element => element is not Sheets
                     && element is not WorkbookProperties
-                    && element is not BookViews);
+                    && element is not BookViews
+                    && element is not CalculationProperties);
             if (unsupportedWorkbookChild != null) {
                 throw new NotSupportedException($"Native XLSB generation does not yet support workbook metadata '{unsupportedWorkbookChild.LocalName}'.");
             }
 
             XlsbWorkbookViewWriter.Validate(document.WorkbookRoot.GetFirstChild<BookViews>(), sheets.Count);
+            XlsbCalculationPropertiesWriter.Validate(document.WorkbookRoot.GetFirstChild<CalculationProperties>());
 
             WorkbookProperties? properties = document.WorkbookRoot.GetFirstChild<WorkbookProperties>();
             if (properties != null) {
@@ -102,6 +110,13 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                     && part is not WorkbookStylesPart);
             if (unsupportedPart != null) {
                 throw new NotSupportedException($"Native XLSB generation does not yet support workbook part '{unsupportedPart.ContentType}'.");
+            }
+        }
+
+        private static void ThrowIfDuplicateWorkbookElement<T>(Workbook workbook, string detail)
+            where T : OpenXmlElement {
+            if (workbook.Elements<T>().Skip(1).Any()) {
+                throw new NotSupportedException($"Native XLSB generation does not support multiple {detail} elements.");
             }
         }
 

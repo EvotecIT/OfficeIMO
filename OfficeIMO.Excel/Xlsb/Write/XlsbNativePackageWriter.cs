@@ -60,12 +60,15 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             }
 
             OpenXmlElement? unsupportedWorkbookChild = document.WorkbookRoot.ChildElements
-                .FirstOrDefault(element => element is not Sheets && element is not WorkbookProperties);
+                .FirstOrDefault(element => element is not Sheets
+                    && element is not WorkbookProperties
+                    && element is not CalculationProperties);
             if (unsupportedWorkbookChild != null) {
                 throw new NotSupportedException($"Native XLSB rewriting currently accepts cell-value edits only. Workbook metadata '{unsupportedWorkbookChild.LocalName}' was modified; save as .xlsx.");
             }
 
             ValidateWorkbookProperties(document, sourceWorkbook);
+            ValidateCalculationProperties(document, sourceWorkbook);
             ValidateStylesheet(document, sourceWorkbook);
 
             ExcelSheet[] sheets = document.Sheets.ToArray();
@@ -106,6 +109,13 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             bool uses1904 = properties.Date1904?.Value == true;
             if (!hasOnlyProjectedDateSystem || uses1904 != sourceWorkbook.Uses1904DateSystem) {
                 throw new NotSupportedException("Native XLSB rewriting currently cannot change workbook properties or the workbook date system. Save the workbook as .xlsx.");
+            }
+        }
+
+        private static void ValidateCalculationProperties(ExcelDocument document, XlsbWorkbook sourceWorkbook) {
+            CalculationProperties? properties = document.WorkbookRoot.GetFirstChild<CalculationProperties>();
+            if (!XlsbCalculationPropertiesProjector.Matches(properties, sourceWorkbook.CalculationProperties)) {
+                throw new NotSupportedException("Native XLSB rewriting preserves but cannot modify workbook calculation properties. Save that change as .xlsx.");
             }
         }
 

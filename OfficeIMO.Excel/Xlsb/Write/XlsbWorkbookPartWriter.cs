@@ -13,7 +13,8 @@ namespace OfficeIMO.Excel.Xlsb.Write {
         internal static byte[] Create(
             IReadOnlyList<ExcelSheet> sheets,
             bool uses1904DateSystem,
-            DocumentFormat.OpenXml.Spreadsheet.BookViews? workbookViews) {
+            DocumentFormat.OpenXml.Spreadsheet.BookViews? workbookViews,
+            DocumentFormat.OpenXml.Spreadsheet.CalculationProperties? calculationProperties) {
             if (sheets == null) throw new ArgumentNullException(nameof(sheets));
             if (sheets.Count == 0) throw new NotSupportedException("Native XLSB generation requires at least one worksheet.");
 
@@ -26,6 +27,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 XlsbRecordWriter.Write(output, BrtBundleSh, CreateBundleSheetPayload(sheets[index], index));
             }
             XlsbRecordWriter.Write(output, BrtEndBundleShs);
+            XlsbCalculationPropertiesWriter.Write(output, calculationProperties);
             XlsbRecordWriter.Write(output, BrtEndBook);
             return output.ToArray();
         }

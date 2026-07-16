@@ -20,6 +20,8 @@ namespace OfficeIMO.Excel.Xlsb.Model {
 
         internal bool Uses1904DateSystem { get; set; }
 
+        internal XlsbCalculationProperties? CalculationProperties { get; set; }
+
         internal XlsbStylesheet? Stylesheet { get; set; }
 
         internal void AddWorksheet(XlsbWorksheet worksheet) => _worksheets.Add(worksheet);

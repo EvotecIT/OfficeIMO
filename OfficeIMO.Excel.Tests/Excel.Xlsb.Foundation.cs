@@ -207,6 +207,18 @@ namespace OfficeIMO.Tests {
                 sheet.DeferredMetadataWorksheetPart.Worksheet.Descendants<Cell>(),
                 cell => cell.CellReference?.Value == "B3");
             Assert.Equal("SUM(B2,8)", formulaCell.CellFormula?.Text);
+            CalculationProperties calculation = Assert.IsType<CalculationProperties>(
+                document.WorkbookRoot.GetFirstChild<CalculationProperties>());
+            Assert.Equal(181029U, calculation.CalculationId?.Value);
+            Assert.Equal(CalculateModeValues.Auto, calculation.CalculationMode?.Value);
+            Assert.Equal(100U, calculation.IterateCount?.Value);
+            Assert.Equal(0.001D, calculation.IterateDelta?.Value);
+            Assert.Equal(ReferenceModeValues.A1, calculation.ReferenceMode?.Value);
+            Assert.True(calculation.FullPrecision?.Value);
+            Assert.True(calculation.CalculationCompleted?.Value);
+            Assert.True(calculation.CalculationOnSave?.Value);
+            Assert.True(calculation.ConcurrentCalculation?.Value);
+            Assert.Null(calculation.ConcurrentManualCount);
             Assert.NotEmpty(document.XlsbPreservedRecords);
             Assert.Contains(document.XlsbImportDiagnostics, diagnostic => diagnostic.Code == "XLSB-RECORDS-PRESERVED");
         }
@@ -1035,6 +1047,57 @@ namespace OfficeIMO.Tests {
             Assert.True(hyperlinks["A3"].IsExternal);
             Assert.Equal("../docs/zażółć-spec.pdf", hyperlinks["A3"].Target);
             Assert.Equal("Relative screen tip", hyperlinks["A3"].Tooltip);
+        }
+
+        [Fact]
+        public void Xlsb_NewWorkbook_WritesCalculationProperties() {
+            using ExcelDocument document = ExcelDocument.Create();
+            document.AddWorksheet("Calculation").CellValue(1, 1, 1D);
+            document.WorkbookRoot.Append(new CalculationProperties {
+                CalculationId = 42U,
+                CalculationMode = CalculateModeValues.AutoNoTable,
+                FullCalculationOnLoad = true,
+                ReferenceMode = ReferenceModeValues.R1C1,
+                Iterate = true,
+                IterateCount = 42U,
+                IterateDelta = 0.0005D,
+                FullPrecision = false,
+                CalculationCompleted = false,
+                CalculationOnSave = false,
+                ConcurrentCalculation = true,
+                ConcurrentManualCount = 4U,
+                ForceFullCalculation = true
+            });
+
+            byte[] package = document.ToBytes(ExcelFileFormat.Xlsb);
+            using (var archive = new ZipArchive(new MemoryStream(package, writable: false), ZipArchiveMode.Read)) {
+                using Stream workbookStream = Assert.IsType<ZipArchiveEntry>(archive.GetEntry("xl/workbook.bin")).Open();
+                XlsbRecord record = Assert.Single(XlsbRecordReader.ReadAll(workbookStream), item => item.Type == 157);
+                Assert.Equal(26, record.Data.Length);
+                Assert.Equal(42U, BitConverter.ToUInt32(record.Data, 0));
+                Assert.Equal(2U, BitConverter.ToUInt32(record.Data, 4));
+                Assert.Equal(42U, BitConverter.ToUInt32(record.Data, 8));
+                Assert.Equal(0.0005D, BitConverter.ToDouble(record.Data, 12));
+                Assert.Equal(4, BitConverter.ToInt32(record.Data, 20));
+                Assert.Equal((ushort)0x01D5, BitConverter.ToUInt16(record.Data, 24));
+            }
+
+            using ExcelDocument reloaded = ExcelDocument.Load(new MemoryStream(package, writable: false));
+            CalculationProperties properties = Assert.IsType<CalculationProperties>(
+                reloaded.WorkbookRoot.GetFirstChild<CalculationProperties>());
+            Assert.Equal(42U, properties.CalculationId?.Value);
+            Assert.Equal(CalculateModeValues.AutoNoTable, properties.CalculationMode?.Value);
+            Assert.True(properties.FullCalculationOnLoad?.Value);
+            Assert.Equal(ReferenceModeValues.R1C1, properties.ReferenceMode?.Value);
+            Assert.True(properties.Iterate?.Value);
+            Assert.Equal(42U, properties.IterateCount?.Value);
+            Assert.Equal(0.0005D, properties.IterateDelta?.Value);
+            Assert.False(properties.FullPrecision?.Value);
+            Assert.False(properties.CalculationCompleted?.Value);
+            Assert.False(properties.CalculationOnSave?.Value);
+            Assert.True(properties.ConcurrentCalculation?.Value);
+            Assert.Equal(4U, properties.ConcurrentManualCount?.Value);
+            Assert.True(properties.ForceFullCalculation?.Value);
         }
 
         private static byte[] CreateMinimalXlsbPackage() {
