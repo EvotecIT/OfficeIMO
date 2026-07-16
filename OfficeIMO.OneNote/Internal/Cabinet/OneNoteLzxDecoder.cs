@@ -1,360 +1,353 @@
 namespace OfficeIMO.OneNote;
 
-// CAB LZX decoder ported and adapted from the MIT-licensed implementation in
-// deploymenttheory/go-sdk-winmediafoundry/pkg/cab (Copyright 2026 Deployment Theory),
-// which in turn is adapted from Microsoft/go-winio. See THIRD-PARTY-NOTICES.md.
+/// <summary>
+/// Decodes the Cabinet LZX stream carried by a sequence of CFDATA records.
+/// The implementation follows the LZX block, tree, match, and E8-translation
+/// structures published in Microsoft Open Specifications MS-PATCH and MS-CAB.
+/// </summary>
 internal sealed class OneNoteLzxDecoder {
-    private const int MainCodeSplit = 256;
-    private const int LengthCodeCount = 249;
-    private const int AlignedSymbols = 8;
+    private const int LiteralSymbols = 256;
+    private const int PrimaryLengthSymbols = 8;
+    private const int LengthTreeSymbols = 249;
+    private const int AlignedTreeSymbols = 8;
     private const int PretreeSymbols = 20;
-    private const int DecodeBits = 16;
-    private const int DecodeSize = 1 << DecodeBits;
-    private const int FrameSize = 32768;
-    private const int MaxE8Offset = 0x3FFFFFFF;
-    private const int MaxPositionSlots = 50;
-    private const int MaxMainCode = MainCodeSplit + 8 * MaxPositionSlots;
-    private const byte VerbatimBlock = 1;
-    private const byte AlignedOffsetBlock = 2;
-    private const byte UncompressedBlock = 3;
+    private const int MaximumPathLength = 16;
+    private const int VerbatimBlock = 1;
+    private const int AlignedOffsetBlock = 2;
+    private const int UncompressedBlock = 3;
+    private const int MaximumTranslatedFrames = 32768;
 
-    private static readonly int[] PositionSlotCounts = { 30, 32, 34, 36, 38, 42, 50 };
-    private static readonly byte[] FooterBits = new byte[MaxPositionSlots + 1];
-    private static readonly uint[] BasePositions = new uint[MaxPositionSlots + 1];
-
-    private byte[] _input = Array.Empty<byte>();
-    private int _inputPosition;
-    private byte _bitCount;
-    private uint _bits;
-    private OneNoteFormatException? _error;
-    private bool _skipPaddingByte;
-    private readonly uint[] _recentOffsets = { 1, 1, 1 };
-    private readonly int _mainElements;
-    private bool _headerRead;
-    private int _intelFileSize;
-    private byte _blockType;
-    private uint _blockRemaining;
-    private readonly byte[] _mainLengths = new byte[MaxMainCode];
-    private readonly byte[] _lengthLengths = new byte[LengthCodeCount];
-    private readonly byte[] _alignedLengths = new byte[AlignedSymbols];
-    private readonly ushort[] _mainTable = new ushort[DecodeSize];
-    private readonly ushort[] _lengthTable = new ushort[DecodeSize];
-    private readonly ushort[] _alignedTable = new ushort[DecodeSize];
-    private readonly byte[] _output;
-
-    static OneNoteLzxDecoder() {
-        uint position = 0;
-        for (int index = 0; index <= MaxPositionSlots; index++) {
-            byte extraBits;
-            if (index < 4) extraBits = 0;
-            else if (index < 36) extraBits = (byte)(index / 2 - 1);
-            else extraBits = 17;
-            FooterBits[index] = extraBits;
-            BasePositions[index] = position;
-            position += 1U << extraBits;
-        }
-    }
+    private readonly int _windowSize;
+    private readonly int[] _positionBase;
+    private readonly int[] _positionFooterBits;
+    private readonly byte[] _mainPathLengths;
+    private readonly byte[] _lengthPathLengths = new byte[LengthTreeSymbols];
+    private readonly byte[] _decoded;
+    private OneNoteLzxHuffmanTree _mainTree = OneNoteLzxHuffmanTree.Empty;
+    private OneNoteLzxHuffmanTree _lengthTree = OneNoteLzxHuffmanTree.Empty;
+    private OneNoteLzxHuffmanTree _alignedTree = OneNoteLzxHuffmanTree.Empty;
+    private uint _recentOffset0 = 1;
+    private uint _recentOffset1 = 1;
+    private uint _recentOffset2 = 1;
+    private int _outputOffset;
+    private int _blockType;
+    private int _blockBytesRemaining;
+    private bool _streamHeaderRead;
+    private int _translationFileSize;
+    private bool _uncompressedBlockNeedsPadding;
+    private bool _uncompressedPaddingPending;
 
     private OneNoteLzxDecoder(int outputLength, int windowBits) {
         if (windowBits < 15 || windowBits > 21) {
             throw Error("ONENOTE_CAB_LZX_WINDOW", "The CAB uses an unsupported LZX window size.");
         }
-        _mainElements = MainCodeSplit + 8 * PositionSlotCounts[windowBits - 15];
-        _output = new byte[outputLength];
+
+        _windowSize = 1 << windowBits;
+        BuildPositionModel(_windowSize, out _positionBase, out _positionFooterBits);
+        _mainPathLengths = new byte[LiteralSymbols + PrimaryLengthSymbols * _positionBase.Length];
+        _decoded = new byte[outputLength];
     }
 
-    internal static byte[] Decompress(IReadOnlyList<byte[]> chunks, IReadOnlyList<int> sizes, int windowBits, long maxOutputBytes) {
-        if (chunks.Count != sizes.Count) throw Error("ONENOTE_CAB_LZX_BLOCKS", "CAB LZX block metadata is inconsistent.");
-        long totalLong = 0;
+    internal static byte[] Decompress(
+        IReadOnlyList<byte[]> chunks,
+        IReadOnlyList<int> sizes,
+        int windowBits,
+        long maxOutputBytes) {
+        if (chunks == null) throw new ArgumentNullException(nameof(chunks));
+        if (sizes == null) throw new ArgumentNullException(nameof(sizes));
+        if (chunks.Count != sizes.Count) {
+            throw Error("ONENOTE_CAB_LZX_BLOCKS", "CAB LZX block metadata is inconsistent.");
+        }
+        if (maxOutputBytes < 1) throw new ArgumentOutOfRangeException(nameof(maxOutputBytes));
+
+        long outputLength = 0;
         for (int index = 0; index < sizes.Count; index++) {
-            if (sizes[index] < 0 || totalLong > maxOutputBytes - sizes[index]) {
+            if (chunks[index] == null || sizes[index] < 0 || outputLength > maxOutputBytes - sizes[index]) {
                 throw Error("ONENOTE_CAB_EXPANDED_LIMIT", "The expanded CAB folder exceeds the configured size limit.");
             }
-            totalLong += sizes[index];
+            outputLength += sizes[index];
         }
-        if (totalLong > int.MaxValue) throw Error("ONENOTE_CAB_EXPANDED_LIMIT", "The expanded CAB folder is too large to materialize.");
-        var decoder = new OneNoteLzxDecoder((int)totalLong, windowBits);
+        if (outputLength > int.MaxValue) {
+            throw Error("ONENOTE_CAB_EXPANDED_LIMIT", "The expanded CAB folder is too large to materialize.");
+        }
+
+        var decoder = new OneNoteLzxDecoder((int)outputLength, windowBits);
         return decoder.Decode(chunks, sizes);
     }
 
     private byte[] Decode(IReadOnlyList<byte[]> chunks, IReadOnlyList<int> sizes) {
-        uint outputPosition = 0;
-        for (int chunkIndex = 0; chunkIndex < chunks.Count; chunkIndex++) {
-            ResetReader(chunks[chunkIndex]);
-            if (!_headerRead) {
-                if (GetBits(1) != 0) {
-                    uint high = GetBits(16);
-                    uint low = GetBits(16);
-                    _intelFileSize = unchecked((int)((high << 16) | low));
-                }
-                _headerRead = true;
-                ThrowIfFailed();
-            }
+        var frameStarts = new int[sizes.Count];
+        for (int frame = 0; frame < chunks.Count; frame++) {
+            frameStarts[frame] = _outputOffset;
+            DecodeFrame(chunks[frame], sizes[frame]);
+        }
 
-            uint chunkEnd = checked(outputPosition + (uint)sizes[chunkIndex]);
-            while (outputPosition < chunkEnd) {
-                if (_blockRemaining == 0) {
-                    ReadBlockHeader(out _blockType, out _blockRemaining);
-                    if (_blockType != UncompressedBlock) ReadTrees(_blockType == AlignedOffsetBlock);
-                }
-                uint limit = Math.Min(chunkEnd, checked(outputPosition + _blockRemaining));
-                uint produced = _blockType == UncompressedBlock
-                    ? CopyUncompressed(outputPosition, limit)
-                    : DecodeMatches(outputPosition, limit);
-                if (produced == 0) throw Error("ONENOTE_CAB_LZX_CORRUPT", "The CAB LZX stream made no forward progress.");
-                outputPosition += produced;
-                _blockRemaining -= produced;
+        if (_outputOffset != _decoded.Length || _blockBytesRemaining != 0) {
+            throw Error("ONENOTE_CAB_LZX_CORRUPT", "The LZX stream does not describe the expected expanded size.");
+        }
+
+        byte[] result = (byte[])_decoded.Clone();
+        if (_translationFileSize > 0) {
+            for (int frame = 0; frame < sizes.Count && frame < MaximumTranslatedFrames; frame++) {
+                ReverseE8Translation(result, frameStarts[frame], sizes[frame], _translationFileSize);
             }
         }
+        return result;
+    }
 
-        if (_intelFileSize != 0) {
-            for (int offset = 0; offset < _output.Length; offset += FrameSize) {
-                DecodeE8(_output, offset, Math.Min(FrameSize, _output.Length - offset), offset, _intelFileSize);
+    private void DecodeFrame(byte[] chunk, int expandedSize) {
+        int frameEnd = checked(_outputOffset + expandedSize);
+        var reader = new OneNoteLzxBitReader(chunk);
+
+        if (_uncompressedPaddingPending) {
+            if (reader.RemainingByteCount < 1) {
+                throw Error("ONENOTE_CAB_LZX_TRUNCATED", "The LZX uncompressed-block padding byte is missing.");
             }
+            reader.ReadRawByte();
+            _uncompressedPaddingPending = false;
         }
-        return _output;
-    }
 
-    private void ResetReader(byte[] compressed) {
-        _input = new byte[compressed.Length + 8];
-        Buffer.BlockCopy(compressed, 0, _input, 0, compressed.Length);
-        _inputPosition = 0;
-        _bitCount = 0;
-        _bits = 0;
-        _error = null;
-    }
+        while (_outputOffset < frameEnd) {
+            if (_blockBytesRemaining == 0) ReadBlockHeader(reader);
 
-    private bool Feed() {
-        if (_inputPosition > _input.Length - 2) {
-            Fail(Error("ONENOTE_CAB_LZX_TRUNCATED", "The CAB LZX bitstream ended unexpectedly."));
-            return false;
-        }
-        uint word = (uint)(_input[_inputPosition] | (_input[_inputPosition + 1] << 8));
-        _bits |= word << (16 - _bitCount);
-        _bitCount += 16;
-        _inputPosition += 2;
-        return true;
-    }
-
-    private ushort GetBits(byte count) {
-        if (count == 0) return 0;
-        if (_bitCount < count && !Feed()) return 0;
-        ushort value = (ushort)(_bits >> (32 - count));
-        _bits <<= count;
-        _bitCount -= count;
-        return value;
-    }
-
-    private uint GetBitsLong(byte count) {
-        if (count <= 16) return GetBits(count);
-        return ((uint)GetBits((byte)(count - 16)) << 16) | GetBits(16);
-    }
-
-    private static bool BuildTable(byte[] lengths, int lengthOffset, int lengthCount, ushort[] table) {
-        Array.Clear(table, 0, table.Length);
-        var counts = new int[17];
-        for (int index = 0; index < lengthCount; index++) {
-            byte length = lengths[lengthOffset + index];
-            if (length > 16) return false;
-            counts[length]++;
-        }
-        var positions = new int[18];
-        for (int index = 1; index <= 16; index++) positions[index + 1] = positions[index] + (counts[index] << (16 - index));
-        for (int symbol = 0; symbol < lengthCount; symbol++) {
-            byte length = lengths[lengthOffset + symbol];
-            if (length == 0) continue;
-            int next = positions[length] + (1 << (16 - length));
-            if (next > DecodeSize) return false;
-            for (int index = positions[length]; index < next; index++) table[index] = (ushort)symbol;
-            positions[length] = next;
-        }
-        return true;
-    }
-
-    private ushort GetCode(ushort[] table, byte[] lengths, int lengthOffset, int lengthCount) {
-        if (_bitCount < 16) Feed();
-        int symbol = table[_bits >> 16];
-        if (symbol >= lengthCount) {
-            Fail(Error("ONENOTE_CAB_LZX_CORRUPT", "The CAB LZX Huffman symbol is out of range."));
-            return 0;
-        }
-        byte count = lengths[lengthOffset + symbol];
-        if (count == 0 || _bitCount < count) {
-            Fail(Error("ONENOTE_CAB_LZX_CORRUPT", "The CAB LZX Huffman code is invalid."));
-            return 0;
-        }
-        _bits <<= count;
-        _bitCount -= count;
-        return (ushort)symbol;
-    }
-
-    private void ReadTree(byte[] lengths, int offset, int count) {
-        var pretreeLengths = new byte[PretreeSymbols];
-        for (int index = 0; index < pretreeLengths.Length; index++) pretreeLengths[index] = (byte)GetBits(4);
-        ThrowIfFailed();
-        var pretree = new ushort[DecodeSize];
-        if (!BuildTable(pretreeLengths, 0, pretreeLengths.Length, pretree)) throw Error("ONENOTE_CAB_LZX_CORRUPT", "The CAB LZX pretree is over-subscribed.");
-
-        int position = 0;
-        while (position < count) {
-            byte code = (byte)GetCode(pretree, pretreeLengths, 0, pretreeLengths.Length);
-            ThrowIfFailed();
-            if (code <= 16) {
-                lengths[offset + position] = (byte)((lengths[offset + position] + 17 - code) % 17);
-                position++;
-            } else if (code == 17 || code == 18) {
-                int zeroes = code == 17 ? GetBits(4) + 4 : GetBits(5) + 20;
-                if (position > count - zeroes) throw Error("ONENOTE_CAB_LZX_CORRUPT", "The CAB LZX tree zero run exceeds its destination.");
-                Array.Clear(lengths, offset + position, zeroes);
-                position += zeroes;
-            } else if (code == 19) {
-                int same = GetBits(1) + 4;
-                if (position > count - same) throw Error("ONENOTE_CAB_LZX_CORRUPT", "The CAB LZX tree repeat exceeds its destination.");
-                code = (byte)GetCode(pretree, pretreeLengths, 0, pretreeLengths.Length);
-                if (code > 16) throw Error("ONENOTE_CAB_LZX_CORRUPT", "The CAB LZX tree repeat code is invalid.");
-                byte length = (byte)((lengths[offset + position] + 17 - code) % 17);
-                for (int index = 0; index < same; index++) lengths[offset + position + index] = length;
-                position += same;
+            if (_blockType == UncompressedBlock) {
+                DecodeUncompressedSlice(reader, frameEnd);
             } else {
-                throw Error("ONENOTE_CAB_LZX_CORRUPT", "The CAB LZX tree code is invalid.");
+                DecodeCompressedSlice(reader, frameEnd);
+            }
+
+            if (_blockBytesRemaining == 0 && _blockType == UncompressedBlock) {
+                ConsumeUncompressedPadding(reader);
             }
         }
-        ThrowIfFailed();
-    }
 
-    private void ReadBlockHeader(out byte blockType, out uint blockSize) {
-        if (_skipPaddingByte) {
-            EnsureInput(1);
-            _inputPosition++;
-            _skipPaddingByte = false;
-        }
-        blockType = (byte)GetBits(3);
-        uint high = GetBits(16);
-        uint low = GetBits(8);
-        blockSize = (high << 8) | low;
-        ThrowIfFailed();
-        if (blockSize == 0) throw Error("ONENOTE_CAB_LZX_CORRUPT", "The CAB LZX block has zero length.");
-
-        if (blockType == UncompressedBlock) {
-            byte discard = _bitCount == 0 ? (byte)16 : _bitCount;
-            GetBits(discard);
-            _bits = 0;
-            EnsureInput(12);
-            _recentOffsets[0] = ReadUInt32(_input, _inputPosition);
-            _recentOffsets[1] = ReadUInt32(_input, _inputPosition + 4);
-            _recentOffsets[2] = ReadUInt32(_input, _inputPosition + 8);
-            _inputPosition += 12;
-            _skipPaddingByte = (blockSize & 1U) != 0;
-        } else if (blockType != VerbatimBlock && blockType != AlignedOffsetBlock) {
-            throw Error("ONENOTE_CAB_LZX_CORRUPT", "The CAB LZX block type is unsupported.");
+        if (_outputOffset != frameEnd) {
+            throw Error("ONENOTE_CAB_LZX_CORRUPT", "An LZX token crosses a 32-KB CFDATA output boundary.");
         }
     }
 
-    private void ReadTrees(bool aligned) {
-        if (aligned) {
-            for (int index = 0; index < _alignedLengths.Length; index++) _alignedLengths[index] = (byte)GetBits(3);
-            if (!BuildTable(_alignedLengths, 0, _alignedLengths.Length, _alignedTable)) throw Error("ONENOTE_CAB_LZX_CORRUPT", "The CAB LZX aligned tree is invalid.");
+    private void ReadBlockHeader(OneNoteLzxBitReader reader) {
+        if (!_streamHeaderRead) {
+            _streamHeaderRead = true;
+            if (reader.ReadBits(1) != 0) {
+                uint high = reader.ReadBits(16);
+                uint low = reader.ReadBits(16);
+                uint fileSize = (high << 16) | low;
+                if (fileSize > int.MaxValue) {
+                    throw Error("ONENOTE_CAB_LZX_CORRUPT", "The LZX E8 translation size is outside the supported range.");
+                }
+                _translationFileSize = (int)fileSize;
+            }
         }
-        ReadTree(_mainLengths, 0, MainCodeSplit);
-        ReadTree(_mainLengths, MainCodeSplit, _mainElements - MainCodeSplit);
-        if (!BuildTable(_mainLengths, 0, _mainElements, _mainTable)) throw Error("ONENOTE_CAB_LZX_CORRUPT", "The CAB LZX main tree is invalid.");
-        ReadTree(_lengthLengths, 0, _lengthLengths.Length);
-        if (!BuildTable(_lengthLengths, 0, _lengthLengths.Length, _lengthTable)) throw Error("ONENOTE_CAB_LZX_CORRUPT", "The CAB LZX length tree is invalid.");
-        ThrowIfFailed();
+
+        _blockType = (int)reader.ReadBits(3);
+        _blockBytesRemaining = checked((int)((reader.ReadBits(16) << 8) | reader.ReadBits(8)));
+        if (_blockBytesRemaining == 0 || (_blockType != VerbatimBlock && _blockType != AlignedOffsetBlock && _blockType != UncompressedBlock)) {
+            throw Error("ONENOTE_CAB_LZX_CORRUPT", "The LZX block header contains an invalid type or size.");
+        }
+
+        if (_blockType == UncompressedBlock) {
+            _uncompressedBlockNeedsPadding = (_blockBytesRemaining & 1) != 0;
+            reader.AlignToWord();
+            _recentOffset0 = reader.ReadRawUInt32();
+            _recentOffset1 = reader.ReadRawUInt32();
+            _recentOffset2 = reader.ReadRawUInt32();
+            ValidateRepeatedOffset(_recentOffset0);
+            ValidateRepeatedOffset(_recentOffset1);
+            ValidateRepeatedOffset(_recentOffset2);
+            return;
+        }
+
+        if (_blockType == AlignedOffsetBlock) {
+            var alignedLengths = new byte[AlignedTreeSymbols];
+            for (int index = 0; index < alignedLengths.Length; index++) {
+                alignedLengths[index] = checked((byte)reader.ReadBits(3));
+            }
+            _alignedTree = OneNoteLzxHuffmanTree.Create(alignedLengths, false, "aligned-offset");
+        }
+
+        ReadPathLengths(reader, _mainPathLengths, 0, LiteralSymbols);
+        ReadPathLengths(reader, _mainPathLengths, LiteralSymbols, _mainPathLengths.Length);
+        _mainTree = OneNoteLzxHuffmanTree.Create(_mainPathLengths, false, "main");
+
+        ReadPathLengths(reader, _lengthPathLengths, 0, _lengthPathLengths.Length);
+        _lengthTree = OneNoteLzxHuffmanTree.Create(_lengthPathLengths, true, "length");
     }
 
-    private uint DecodeMatches(uint start, uint end) {
-        bool aligned = _blockType == AlignedOffsetBlock;
-        uint outputPosition = start;
-        while (outputPosition < end) {
-            uint main = GetCode(_mainTable, _mainLengths, 0, _mainElements);
-            ThrowIfFailed();
-            if (main < 256) {
-                _output[outputPosition++] = (byte)main;
+    private void DecodeUncompressedSlice(OneNoteLzxBitReader reader, int frameEnd) {
+        int availableOutput = frameEnd - _outputOffset;
+        int copyLength = Math.Min(_blockBytesRemaining, availableOutput);
+        reader.CopyRawBytes(_decoded, _outputOffset, copyLength);
+        _outputOffset += copyLength;
+        _blockBytesRemaining -= copyLength;
+    }
+
+    private void DecodeCompressedSlice(OneNoteLzxBitReader reader, int frameEnd) {
+        while (_blockBytesRemaining > 0 && _outputOffset < frameEnd) {
+            int symbol = _mainTree.Decode(reader);
+            if (symbol < LiteralSymbols) {
+                _decoded[_outputOffset++] = checked((byte)symbol);
+                _blockBytesRemaining--;
                 continue;
             }
 
-            uint matchLength = (main - 256) % 8;
-            uint slot = (main - 256) / 8;
-            if (matchLength == 7) matchLength += GetCode(_lengthTable, _lengthLengths, 0, _lengthLengths.Length);
-            matchLength += 2;
-            if (slot >= FooterBits.Length) throw Error("ONENOTE_CAB_LZX_CORRUPT", "The CAB LZX match slot is out of range.");
+            int matchHeader = symbol - LiteralSymbols;
+            int positionSlot = matchHeader >> 3;
+            int lengthHeader = matchHeader & 7;
+            if (positionSlot < 0 || positionSlot >= _positionBase.Length) {
+                throw Error("ONENOTE_CAB_LZX_CORRUPT", "The LZX match references an invalid position slot.");
+            }
 
-            uint matchOffset;
-            if (slot < 3) {
-                matchOffset = _recentOffsets[slot];
-                _recentOffsets[slot] = _recentOffsets[0];
-                _recentOffsets[0] = matchOffset;
-            } else {
-                byte offsetBits = FooterBits[slot];
-                uint verbatimBits = 0;
-                uint alignedBits = 0;
-                if (aligned && offsetBits >= 3) {
-                    verbatimBits = GetBitsLong((byte)(offsetBits - 3)) * 8;
-                    alignedBits = GetCode(_alignedTable, _alignedLengths, 0, _alignedLengths.Length);
-                } else if (offsetBits > 0) {
-                    verbatimBits = GetBitsLong(offsetBits);
+            int matchLength = lengthHeader + 2;
+            if (lengthHeader == 7) matchLength += _lengthTree.Decode(reader);
+            uint matchOffset = DecodeMatchOffset(reader, positionSlot);
+
+            if (matchLength > _blockBytesRemaining || matchLength > frameEnd - _outputOffset) {
+                throw Error("ONENOTE_CAB_LZX_CORRUPT", "An LZX match crosses a block or CFDATA output boundary.");
+            }
+            if (matchOffset == 0 || matchOffset > _windowSize || matchOffset > _outputOffset) {
+                throw Error("ONENOTE_CAB_LZX_CORRUPT", "An LZX match references bytes outside the available window.");
+            }
+
+            int source = _outputOffset - checked((int)matchOffset);
+            for (int index = 0; index < matchLength; index++) {
+                _decoded[_outputOffset++] = _decoded[source + index];
+            }
+            _blockBytesRemaining -= matchLength;
+        }
+    }
+
+    private uint DecodeMatchOffset(OneNoteLzxBitReader reader, int positionSlot) {
+        if (positionSlot == 0) return _recentOffset0;
+        if (positionSlot == 1) {
+            uint offset = _recentOffset1;
+            _recentOffset1 = _recentOffset0;
+            _recentOffset0 = offset;
+            return offset;
+        }
+        if (positionSlot == 2) {
+            uint offset = _recentOffset2;
+            _recentOffset2 = _recentOffset0;
+            _recentOffset0 = offset;
+            return offset;
+        }
+
+        int footerBits = _positionFooterBits[positionSlot];
+        uint footer;
+        if (_blockType == AlignedOffsetBlock && footerBits >= 3) {
+            uint high = footerBits == 3 ? 0 : reader.ReadBits(footerBits - 3) << 3;
+            footer = high | checked((uint)_alignedTree.Decode(reader));
+        } else {
+            footer = reader.ReadBits(footerBits);
+        }
+
+        uint formattedOffset = checked((uint)_positionBase[positionSlot] + footer);
+        if (formattedOffset < 3) {
+            throw Error("ONENOTE_CAB_LZX_CORRUPT", "The LZX match contains an invalid formatted offset.");
+        }
+        uint matchOffset = formattedOffset - 2;
+        ValidateRepeatedOffset(matchOffset);
+        _recentOffset2 = _recentOffset1;
+        _recentOffset1 = _recentOffset0;
+        _recentOffset0 = matchOffset;
+        return matchOffset;
+    }
+
+    private static void ReadPathLengths(OneNoteLzxBitReader reader, byte[] lengths, int start, int end) {
+        var pretreeLengths = new byte[PretreeSymbols];
+        for (int index = 0; index < pretreeLengths.Length; index++) {
+            pretreeLengths[index] = checked((byte)reader.ReadBits(4));
+        }
+        OneNoteLzxHuffmanTree pretree = OneNoteLzxHuffmanTree.Create(pretreeLengths, false, "pretree");
+
+        int cursor = start;
+        while (cursor < end) {
+            int code = pretree.Decode(reader);
+            if (code <= MaximumPathLength) {
+                lengths[cursor] = checked((byte)((lengths[cursor] - code + 17) % 17));
+                cursor++;
+                continue;
+            }
+
+            int repeat;
+            byte value;
+            if (code == 17) {
+                repeat = checked((int)reader.ReadBits(4) + 4);
+                value = 0;
+            } else if (code == 18) {
+                repeat = checked((int)reader.ReadBits(5) + 20);
+                value = 0;
+            } else if (code == 19) {
+                repeat = checked((int)reader.ReadBits(1) + 4);
+                int delta = pretree.Decode(reader);
+                if (delta > MaximumPathLength) {
+                    throw Error("ONENOTE_CAB_LZX_CORRUPT", "The LZX path-length repeat contains an invalid delta.");
                 }
-                matchOffset = BasePositions[slot] + verbatimBits + alignedBits - 2;
-                _recentOffsets[2] = _recentOffsets[1];
-                _recentOffsets[1] = _recentOffsets[0];
-                _recentOffsets[0] = matchOffset;
+                value = checked((byte)((lengths[cursor] - delta + 17) % 17));
+            } else {
+                throw Error("ONENOTE_CAB_LZX_CORRUPT", "The LZX pretree contains an invalid symbol.");
             }
 
-            if (matchOffset == 0 || matchOffset > outputPosition || matchLength > end - outputPosition) {
-                throw Error("ONENOTE_CAB_LZX_CORRUPT", "The CAB LZX match exceeds the decoded window.");
+            if (repeat > end - cursor) {
+                throw Error("ONENOTE_CAB_LZX_CORRUPT", "The LZX path-length repeat exceeds its target tree.");
             }
-            uint copyEnd = outputPosition + matchLength;
-            while (outputPosition < copyEnd) {
-                _output[outputPosition] = _output[outputPosition - matchOffset];
-                outputPosition++;
-            }
-        }
-        return outputPosition - start;
-    }
-
-    private uint CopyUncompressed(uint start, uint end) {
-        int count = checked((int)(end - start));
-        EnsureInput(count);
-        Buffer.BlockCopy(_input, _inputPosition, _output, checked((int)start), count);
-        _inputPosition += count;
-        return (uint)count;
-    }
-
-    private static void DecodeE8(byte[] data, int dataOffset, int length, int absoluteOffset, int fileSize) {
-        if (fileSize == 0 || absoluteOffset > MaxE8Offset || length < 10) return;
-        for (int index = 0; index < length - 10; index++) {
-            int position = dataOffset + index;
-            if (data[position] != 0xE8) continue;
-            int currentPointer = absoluteOffset + index;
-            int absolute = unchecked((int)ReadUInt32(data, position + 1));
-            if (absolute >= -currentPointer && absolute < fileSize) {
-                int relative = absolute >= 0 ? absolute - currentPointer : absolute + fileSize;
-                WriteUInt32(data, position + 1, unchecked((uint)relative));
-            }
-            index += 4;
+            for (int index = 0; index < repeat; index++) lengths[cursor++] = value;
         }
     }
 
-    private void EnsureInput(int count) {
-        if (count < 0 || _inputPosition > _input.Length - count) {
-            throw Error("ONENOTE_CAB_LZX_TRUNCATED", "The CAB LZX stream ended unexpectedly.");
+    private void ConsumeUncompressedPadding(OneNoteLzxBitReader reader) {
+        if (!_uncompressedBlockNeedsPadding) return;
+        _uncompressedBlockNeedsPadding = false;
+        if (reader.RemainingByteCount > 0) {
+            reader.ReadRawByte();
+        } else {
+            _uncompressedPaddingPending = true;
         }
     }
 
-    private void Fail(OneNoteFormatException error) {
-        if (_error == null) _error = error;
+    private void ValidateRepeatedOffset(uint offset) {
+        if (offset == 0 || offset > _windowSize) {
+            throw Error("ONENOTE_CAB_LZX_CORRUPT", "The LZX repeated-offset state is outside the configured window.");
+        }
     }
 
-    private void ThrowIfFailed() {
-        if (_error != null) throw _error;
+    private static void BuildPositionModel(int windowSize, out int[] bases, out int[] footerBits) {
+        var baseValues = new List<int>();
+        var bitValues = new List<int>();
+        int nextBase = 0;
+        for (int slot = 0; nextBase < windowSize; slot++) {
+            int bits = slot < 4 ? 0 : slot < 36 ? slot / 2 - 1 : 17;
+            baseValues.Add(nextBase);
+            bitValues.Add(bits);
+            nextBase = checked(nextBase + (1 << bits));
+        }
+        bases = baseValues.ToArray();
+        footerBits = bitValues.ToArray();
     }
 
-    private static uint ReadUInt32(byte[] data, int offset) {
-        return (uint)(data[offset] | (data[offset + 1] << 8) | (data[offset + 2] << 16) | (data[offset + 3] << 24));
+    private static void ReverseE8Translation(byte[] data, int frameOffset, int frameLength, int fileSize) {
+        if (frameOffset >= 0x40000000 || frameLength <= 10) return;
+        int scanEnd = checked(frameOffset + frameLength - 10);
+        for (int cursor = frameOffset; cursor < scanEnd; cursor++) {
+            if (data[cursor] != 0xE8) continue;
+
+            int value = ReadInt32(data, cursor + 1);
+            int currentPointer = cursor;
+            if (value >= -currentPointer && value < fileSize) {
+                int displacement = value >= 0 ? value - currentPointer : value + fileSize;
+                WriteInt32(data, cursor + 1, displacement);
+            }
+            cursor += 4;
+        }
     }
 
-    private static void WriteUInt32(byte[] data, int offset, uint value) {
+    private static int ReadInt32(byte[] data, int offset) => unchecked(
+        data[offset] |
+        (data[offset + 1] << 8) |
+        (data[offset + 2] << 16) |
+        (data[offset + 3] << 24));
+
+    private static void WriteInt32(byte[] data, int offset, int value) {
         data[offset] = (byte)value;
         data[offset + 1] = (byte)(value >> 8);
         data[offset + 2] = (byte)(value >> 16);

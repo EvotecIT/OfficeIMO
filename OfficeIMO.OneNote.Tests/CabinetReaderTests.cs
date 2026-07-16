@@ -1,4 +1,5 @@
 using System.Text;
+using OfficeIMO.OneNote.Markdown;
 
 namespace OfficeIMO.OneNote.Tests;
 
@@ -22,6 +23,91 @@ public sealed class CabinetReaderTests {
         byte[] decoded = OneNoteLzxDecoder.Decompress(new[] { chunk }, new[] { payload.Length }, 15, 1024 * 1024);
 
         Assert.Equal(payload, decoded);
+    }
+
+    [Fact]
+    public void LzxUncompressedBlocksUsePerBlockPadding() {
+        byte[][] blocks = {
+            new byte[] { 1, 2, 3 },
+            new byte[] { 4, 5 },
+            new byte[] { 6 }
+        };
+        byte[] chunk = BuildUncompressedLzxChunk(blocks);
+
+        byte[] decoded = OneNoteLzxDecoder.Decompress(
+            new[] { chunk },
+            new[] { blocks.Sum(block => block.Length) },
+            15,
+            1024 * 1024);
+
+        Assert.Equal(blocks.SelectMany(block => block).ToArray(), decoded);
+    }
+
+    [Theory]
+    [InlineData("makecab-lzx-testOneNote2016.cab", "testOneNote2016.one")]
+    [InlineData("makecab-lzx-testOneNoteFromOffice365-2.cab", "testOneNoteFromOffice365-2.one")]
+    public void MicrosoftMakeCabLzxArchivesRoundTripPublicFixtures(string cabinetName, string sourceName) {
+        byte[] cabinet = File.ReadAllBytes(FixturePath(cabinetName));
+        byte[] expected = File.ReadAllBytes(FixturePath(sourceName));
+
+        OneNoteCabinetEntry entry = Assert.Single(
+            OneNoteCabinetArchiveReader.Read(cabinet, 1024 * 1024, 1024 * 1024, 10));
+
+        Assert.Equal(sourceName, entry.Name);
+        Assert.Equal(expected, entry.Data);
+        Assert.NotEmpty(OneNoteSectionReader.Read(new MemoryStream(entry.Data, writable: false)).Pages);
+    }
+
+    [Theory]
+    [InlineData("makecab-lzx15-e8.cab")]
+    [InlineData("makecab-lzx16-e8.cab")]
+    [InlineData("makecab-lzx17-e8.cab")]
+    [InlineData("makecab-lzx18-e8.cab")]
+    [InlineData("makecab-lzx19-e8.cab")]
+    [InlineData("makecab-lzx20-e8.cab")]
+    [InlineData("makecab-lzx-e8.cab")]
+    public void MicrosoftMakeCabLzxReversesE8TranslationAcrossWindowSizes(string cabinetName) {
+        byte[] cabinet = File.ReadAllBytes(FixturePath(cabinetName));
+
+        OneNoteCabinetEntry entry = Assert.Single(
+            OneNoteCabinetArchiveReader.Read(cabinet, 1024 * 1024, 1024 * 1024, 10));
+
+        Assert.Equal("officeimo-lzx-e8.bin", entry.Name);
+        Assert.Equal(CreateE8OraclePayload(), entry.Data);
+    }
+
+    [Fact]
+    public void OneNotePackageReaderOpensCompleteMicrosoftMakeCabLzxNotebook() {
+        OneNoteNotebook notebook = OneNotePackageReader.Read(FixturePath("makecab-lzx-notebook.onepkg"));
+
+        OneNoteSection section = Assert.Single(notebook.Sections);
+        Assert.Equal("Compressed section", section.Name);
+        OneNotePage page = Assert.Single(section.Pages);
+        Assert.Equal("Compressed page", page.Title);
+        Assert.Contains("LZX package content", OneNoteMarkdownProjection.ToText(page), StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(14)]
+    [InlineData(22)]
+    public void LzxRejectsWindowOutsideCabinetRange(int windowBits) {
+        OneNoteFormatException exception = Assert.Throws<OneNoteFormatException>(() =>
+            OneNoteLzxDecoder.Decompress(new[] { Array.Empty<byte>() }, new[] { 0 }, windowBits, 1024));
+
+        Assert.Equal("ONENOTE_CAB_LZX_WINDOW", exception.Code);
+    }
+
+    [Fact]
+    public void LzxCompressedStreamRejectsTruncatedTreeOrTokenData() {
+        byte[] cabinet = File.ReadAllBytes(FixturePath("makecab-lzx-testOneNote2016.cab"));
+        int dataOffset = checked((int)BitConverter.ToUInt32(cabinet, 36));
+        ushort compressedLength = BitConverter.ToUInt16(cabinet, dataOffset + 4);
+        WriteUInt16(cabinet, dataOffset + 4, checked((ushort)(compressedLength / 2)));
+
+        OneNoteFormatException exception = Assert.Throws<OneNoteFormatException>(() =>
+            OneNoteCabinetArchiveReader.Read(cabinet, 1024 * 1024, 1024 * 1024, 10));
+
+        Assert.Contains(exception.Code, new[] { "ONENOTE_CAB_LZX_TRUNCATED", "ONENOTE_CAB_LZX_CORRUPT" });
     }
 
     [Fact]
@@ -89,20 +175,46 @@ public sealed class CabinetReaderTests {
         return data;
     }
 
-    private static byte[] BuildUncompressedLzxChunk(byte[] payload) {
-        var bits = new List<int>();
-        AppendBits(bits, 0, 1);
-        AppendBits(bits, 3, 3);
-        AppendBits(bits, payload.Length >> 8, 16);
-        AppendBits(bits, payload.Length & 0xFF, 8);
-        byte[] header = PackWords(bits);
-        var result = new byte[header.Length + 12 + payload.Length];
-        Buffer.BlockCopy(header, 0, result, 0, header.Length);
-        WriteUInt32(result, header.Length, 1);
-        WriteUInt32(result, header.Length + 4, 1);
-        WriteUInt32(result, header.Length + 8, 1);
-        Buffer.BlockCopy(payload, 0, result, header.Length + 12, payload.Length);
-        return result;
+    private static byte[] BuildUncompressedLzxChunk(byte[] payload) =>
+        BuildUncompressedLzxChunk(new[] { payload });
+
+    private static byte[] BuildUncompressedLzxChunk(IReadOnlyList<byte[]> blocks) {
+        using var output = new MemoryStream();
+        for (int blockIndex = 0; blockIndex < blocks.Count; blockIndex++) {
+            byte[] payload = blocks[blockIndex];
+            var bits = new List<int>();
+            if (blockIndex == 0) AppendBits(bits, 0, 1);
+            AppendBits(bits, 3, 3);
+            AppendBits(bits, payload.Length >> 8, 16);
+            AppendBits(bits, payload.Length & 0xFF, 8);
+            byte[] header = PackWords(bits);
+            output.Write(header, 0, header.Length);
+            WriteUInt32(output, 1);
+            WriteUInt32(output, 1);
+            WriteUInt32(output, 1);
+            output.Write(payload, 0, payload.Length);
+            if ((payload.Length & 1) != 0) output.WriteByte(0);
+        }
+        return output.ToArray();
+    }
+
+    private static string FixturePath(string fileName) =>
+        Path.Combine(AppContext.BaseDirectory, "Fixtures", fileName);
+
+    private static byte[] CreateE8OraclePayload() {
+        byte[] pattern = Encoding.ASCII.GetBytes("OfficeIMO-LZX-E8-independent-oracle-");
+        var payload = new byte[4096];
+        for (int index = 0; index < payload.Length; index++) payload[index] = pattern[index % pattern.Length];
+        WriteE8Call(payload, 64, 500);
+        WriteE8Call(payload, 1024, -50);
+        WriteE8Call(payload, 2048, 1_000_000);
+        return payload;
+    }
+
+    private static void WriteE8Call(byte[] payload, int offset, int displacement) {
+        payload[offset] = 0xE8;
+        byte[] value = BitConverter.GetBytes(displacement);
+        Buffer.BlockCopy(value, 0, payload, offset + 1, value.Length);
     }
 
     private static void AppendBits(ICollection<int> bits, int value, int count) {
@@ -132,5 +244,12 @@ public sealed class CabinetReaderTests {
         data[offset + 1] = (byte)(value >> 8);
         data[offset + 2] = (byte)(value >> 16);
         data[offset + 3] = (byte)(value >> 24);
+    }
+
+    private static void WriteUInt32(Stream stream, uint value) {
+        stream.WriteByte((byte)value);
+        stream.WriteByte((byte)(value >> 8));
+        stream.WriteByte((byte)(value >> 16));
+        stream.WriteByte((byte)(value >> 24));
     }
 }

@@ -35,10 +35,6 @@
       <Pack>True</Pack>
       <PackagePath>README.md</PackagePath>
     </None>
-    <None Include="THIRD-PARTY-NOTICES.md">
-      <Pack>True</Pack>
-      <PackagePath>THIRD-PARTY-NOTICES.md</PackagePath>
-    </None>
   </ItemGroup>
 
   <ItemGroup>
