@@ -4,7 +4,7 @@
     <Description>IntelligenceX renderer plugin pack for OfficeIMO.MarkdownRenderer with transcript-oriented preset helpers and IX visual aliases.</Description>
     <AssemblyName>OfficeIMO.MarkdownRenderer.IntelligenceX</AssemblyName>
     <AssemblyTitle>OfficeIMO.MarkdownRenderer.IntelligenceX</AssemblyTitle>
-    <VersionPrefix>2.0.1</VersionPrefix>
+    <VersionPrefix>2.0.2</VersionPrefix>
     <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
     <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">
       $(TargetFrameworks);net472
@@ -19,7 +19,7 @@
     <RepositoryUrl>https://github.com/EvotecIT/OfficeIMO</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <PackageReleaseNotes>0.1.0: first-party IntelligenceX plugin pack for OfficeIMO.MarkdownRenderer with IX visual aliases and transcript preset helpers.</PackageReleaseNotes>
+    <PackageReleaseNotes>2.0.2: project canonical ChartForgeX fences into the native visual AST for desktop consumers.</PackageReleaseNotes>
     <DebugType>portable</DebugType>
     <ProduceReferenceAssembly>False</ProduceReferenceAssembly>
     <IsPublishable>True</IsPublishable>
