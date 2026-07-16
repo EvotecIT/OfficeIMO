@@ -49,6 +49,31 @@ public sealed class ReaderMediaAdapterTests {
     }
 
     [Fact]
+    public void ImageAdapter_BoundsMetadataProjectionAtReaderMaxChars() {
+        string sourceName = new string('n', 600) + ".png";
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddImageHandler().Build();
+
+        OfficeDocumentReadResult result = reader.ReadDocument(
+            CreatePng(1, 1),
+            sourceName,
+            new ReaderOptions { MaxChars = 256 });
+
+        Assert.True(result.Chunks.Count > 1);
+        Assert.All(result.Chunks, chunk => {
+            Assert.InRange(chunk.Text.Length, 0, 256);
+            Assert.InRange(chunk.Markdown?.Length ?? 0, 0, 256);
+            Assert.Contains(chunk.Warnings!, warning => warning.Contains("MaxChars", StringComparison.Ordinal));
+        });
+        Assert.Contains(sourceName, string.Concat(result.Chunks.Select(chunk => chunk.Text)), StringComparison.Ordinal);
+        Assert.Contains(
+            sourceName,
+            string.Concat(result.Chunks.Select(chunk => chunk.Markdown ?? string.Empty)),
+            StringComparison.Ordinal);
+        Assert.Single(result.Visuals);
+        Assert.Single(result.Assets);
+    }
+
+    [Fact]
     public void ImageAdapter_RejectsAnImageExtensionWithoutAnImageSignature() {
         OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddImageHandler().Build();
 
@@ -324,6 +349,28 @@ public sealed class ReaderMediaAdapterTests {
         });
         Assert.Equal(source, string.Concat(result.Chunks.Select(chunk => chunk.Text)));
         Assert.Equal(source, string.Concat(result.Chunks.Select(chunk => chunk.Markdown)));
+    }
+
+    [Fact]
+    public void NotebookAdapter_PreservesTruncationDiagnosticWhenRetainedCellPrefixIsWhitespace() {
+        string source = new string(' ', 300) + "omitted content";
+        string notebook = "{\"cells\":[{\"cell_type\":\"markdown\",\"source\":\"" + source +
+            "\"}],\"metadata\":{},\"nbformat\":4,\"nbformat_minor\":5}";
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+            .AddNotebookHandler(new ReaderNotebookOptions { MaxCellCharacters = 256 })
+            .Build();
+
+        OfficeDocumentReadResult result = reader.ReadDocument(
+            Encoding.UTF8.GetBytes(notebook),
+            "truncated.ipynb");
+
+        Assert.Empty(result.Chunks);
+        OfficeDocumentDiagnostic diagnostic = Assert.Single(
+            result.Diagnostics,
+            item => item.Code == "notebook-content-truncated");
+        Assert.Contains("MaxCellCharacters", diagnostic.Message, StringComparison.Ordinal);
+        Assert.Equal(0, diagnostic.Location?.SourceBlockIndex);
+        Assert.Equal("256", diagnostic.Attributes["maxCellCharacters"]);
     }
 
     [Fact]

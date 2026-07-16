@@ -47,7 +47,7 @@ internal static class ImageReaderAdapter {
         string assetId = "image-0000";
         string extension = OfficeImageInfo.GetDefaultExtension(info.Format);
         string payloadHash = OfficeDocumentAssetHash.ComputeSha256Hex(input.Bytes);
-        var location = new ReaderLocation {
+        var assetLocation = new ReaderLocation {
             Path = sourceName,
             BlockIndex = 0,
             SourceBlockIndex = 0,
@@ -67,7 +67,7 @@ internal static class ImageReaderAdapter {
             PayloadHash = payloadHash,
             PayloadBytes = imageOptions.IncludePayload ? input.Bytes : null,
             SourceObjectId = "source-image",
-            Location = location
+            Location = assetLocation
         };
         string markdown = BuildMarkdown(
             sourceName,
@@ -76,23 +76,46 @@ internal static class ImageReaderAdapter {
             assetId,
             imageOptions.IncludePayload,
             imageOptions.CreateOcrCandidate);
-        var chunk = new ReaderChunk {
-            Id = "image-metadata-0000",
-            Kind = ReaderInputKind.Unknown,
-            Location = location,
-            Text = BuildPlainText(sourceName, info, input.Bytes.LongLength),
-            Markdown = markdown,
-            Visuals = new[] {
-                new ReaderVisual {
-                    Kind = "image",
-                    Language = info.MimeType,
-                    Content = Path.GetFileName(sourceName),
-                    PayloadHash = payloadHash,
-                    Location = location
-                }
-            }
+        string text = BuildPlainText(sourceName, info, input.Bytes.LongLength);
+        IReadOnlyList<string> textParts = DocumentReaderEngine.SplitAdapterProjection(text, readerOptions.MaxChars);
+        IReadOnlyList<string> markdownParts = DocumentReaderEngine.SplitAdapterProjection(markdown, readerOptions.MaxChars);
+        int partCount = Math.Max(textParts.Count, markdownParts.Count);
+        string[]? warnings = partCount > 1
+            ? new[] { "Image metadata was split due to MaxChars." }
+            : null;
+        var visual = new ReaderVisual {
+            Kind = "image",
+            Language = info.MimeType,
+            Content = Path.GetFileName(sourceName),
+            PayloadHash = payloadHash,
+            Location = assetLocation
         };
-        DocumentReaderEngine.ApplyAdapterSource(chunk, input, readerOptions.ComputeHashes);
+        var chunks = new List<ReaderChunk>(partCount);
+        for (int partIndex = 0; partIndex < partCount; partIndex++) {
+            string suffix = partIndex == 0
+                ? string.Empty
+                : "-part-" + partIndex.ToString("D4", CultureInfo.InvariantCulture);
+            ReaderLocation location = partIndex == 0
+                ? assetLocation
+                : new ReaderLocation {
+                    Path = sourceName,
+                    BlockIndex = partIndex,
+                    SourceBlockIndex = 0,
+                    SourceBlockKind = "image",
+                    BlockAnchor = assetId + suffix
+                };
+            var chunk = new ReaderChunk {
+                Id = "image-metadata-0000" + suffix,
+                Kind = ReaderInputKind.Unknown,
+                Location = location,
+                Text = partIndex < textParts.Count ? textParts[partIndex] : string.Empty,
+                Markdown = partIndex < markdownParts.Count ? markdownParts[partIndex] : string.Empty,
+                Visuals = partIndex == 0 ? new[] { visual } : null,
+                Warnings = warnings
+            };
+            DocumentReaderEngine.ApplyAdapterSource(chunk, input, readerOptions.ComputeHashes);
+            chunks.Add(chunk);
+        }
         IReadOnlyList<OfficeDocumentOcrCandidate> ocrCandidates = imageOptions.CreateOcrCandidate
             ? new[] {
                 new OfficeDocumentOcrCandidate {
@@ -103,12 +126,12 @@ internal static class ImageReaderAdapter {
                     AssetId = assetId,
                     ImageCount = 1,
                     TextBlockCount = 0,
-                    Location = location
+                    Location = assetLocation
                 }
             }
             : Array.Empty<OfficeDocumentOcrCandidate>();
         OfficeDocumentReadResult result = DocumentReaderEngine.CreateDocumentResult(
-            new[] { chunk },
+            chunks,
             ReaderInputKind.Unknown,
             input.Source,
             new[] { OfficeDocumentReaderBuilderImageExtensions.HandlerId, "officeimo.drawing.image-identification" },
@@ -116,7 +139,7 @@ internal static class ImageReaderAdapter {
             ocrCandidates);
         result.Source.Title = Path.GetFileName(sourceName);
         result.Metadata = result.Metadata.Concat(BuildMetadata(info, input.Bytes.LongLength)).ToArray();
-        result.Visuals = chunk.Visuals ?? Array.Empty<ReaderVisual>();
+        result.Visuals = new[] { visual };
         return result;
     }
 

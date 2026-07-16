@@ -45,6 +45,7 @@ internal static class NotebookReaderAdapter {
 
         string language = FindLanguage(root);
         var chunks = new List<ReaderChunk>(Math.Min(cells.GetArrayLength(), notebookOptions.MaxCells));
+        var adapterDiagnostics = new List<OfficeDocumentDiagnostic>();
         int inspectedCells = 0;
         int includedCells = 0;
         bool cellLimitReached = false;
@@ -63,16 +64,29 @@ internal static class NotebookReaderAdapter {
 
             var warnings = new List<string>();
             string source = GetMultilineText(cell, "source");
-            source = Truncate(source, notebookOptions.MaxCellCharacters, "Notebook cell source was truncated.", warnings);
+            source = Truncate(
+                source,
+                notebookOptions.MaxCellCharacters,
+                "Notebook cell source was truncated at MaxCellCharacters.",
+                warnings);
             IReadOnlyList<NotebookOutput> outputs = cellType == "code" && notebookOptions.IncludeOutputs
                 ? ReadOutputs(cell, notebookOptions, warnings)
                 : Array.Empty<NotebookOutput>();
             string markdown = BuildMarkdown(cellType, cellIndex, language, source, outputs);
             string text = BuildPlainText(source, outputs);
-            if (string.IsNullOrWhiteSpace(markdown) && string.IsNullOrWhiteSpace(text)) continue;
+            if (string.IsNullOrWhiteSpace(markdown) && string.IsNullOrWhiteSpace(text)) {
+                AddDroppedCellDiagnostics(
+                    adapterDiagnostics,
+                    warnings,
+                    input.Source.Path,
+                    cellIndex,
+                    cellType,
+                    notebookOptions.MaxCellCharacters);
+                continue;
+            }
 
-            IReadOnlyList<string> textParts = SplitProjection(text, readerOptions.MaxChars);
-            IReadOnlyList<string> markdownParts = SplitProjection(markdown, readerOptions.MaxChars);
+            IReadOnlyList<string> textParts = DocumentReaderEngine.SplitAdapterProjection(text, readerOptions.MaxChars);
+            IReadOnlyList<string> markdownParts = DocumentReaderEngine.SplitAdapterProjection(markdown, readerOptions.MaxChars);
             int partCount = Math.Max(textParts.Count, markdownParts.Count);
             bool wasSplit = partCount > 1;
             string[]? chunkWarnings = BuildChunkWarnings(warnings, wasSplit);
@@ -110,22 +124,54 @@ internal static class NotebookReaderAdapter {
         result.Source.Title = Path.GetFileName(input.Source.Path ?? "notebook.ipynb");
         result.Metadata = result.Metadata.Concat(BuildMetadata(root, language, cells.GetArrayLength(), includedCells)).ToArray();
         if (cellLimitReached) {
-            result.Diagnostics = result.Diagnostics.Concat(new[] {
-                new OfficeDocumentDiagnostic {
-                    Severity = OfficeDocumentDiagnosticSeverity.Warning,
-                    Category = OfficeDocumentDiagnosticCategory.Limit,
-                    Code = "notebook-cell-limit",
-                    Message = "Notebook cell inspection stopped at MaxCells.",
-                    Source = OfficeDocumentReaderBuilderNotebookExtensions.HandlerId,
-                    IsRecoverable = true,
-                    Attributes = new Dictionary<string, string> {
-                        ["maxCells"] = notebookOptions.MaxCells.ToString(CultureInfo.InvariantCulture),
-                        ["totalCells"] = cells.GetArrayLength().ToString(CultureInfo.InvariantCulture)
-                    }
+            adapterDiagnostics.Add(new OfficeDocumentDiagnostic {
+                Severity = OfficeDocumentDiagnosticSeverity.Warning,
+                Category = OfficeDocumentDiagnosticCategory.Limit,
+                Code = "notebook-cell-limit",
+                Message = "Notebook cell inspection stopped at MaxCells.",
+                Source = OfficeDocumentReaderBuilderNotebookExtensions.HandlerId,
+                IsRecoverable = true,
+                Attributes = new Dictionary<string, string> {
+                    ["maxCells"] = notebookOptions.MaxCells.ToString(CultureInfo.InvariantCulture),
+                    ["totalCells"] = cells.GetArrayLength().ToString(CultureInfo.InvariantCulture)
                 }
-            }).ToArray();
+            });
+        }
+        if (adapterDiagnostics.Count > 0) {
+            result.Diagnostics = result.Diagnostics.Concat(adapterDiagnostics).ToArray();
         }
         return result;
+    }
+
+    private static void AddDroppedCellDiagnostics(
+        List<OfficeDocumentDiagnostic> diagnostics,
+        IReadOnlyList<string> warnings,
+        string? path,
+        int cellIndex,
+        string cellType,
+        int maxCellCharacters) {
+        string anchor = "notebook-cell-" + cellIndex.ToString("D4", CultureInfo.InvariantCulture);
+        for (int warningIndex = 0; warningIndex < warnings.Count; warningIndex++) {
+            diagnostics.Add(new OfficeDocumentDiagnostic {
+                Severity = OfficeDocumentDiagnosticSeverity.Warning,
+                Category = OfficeDocumentDiagnosticCategory.Content,
+                Code = "notebook-content-truncated",
+                Message = warnings[warningIndex],
+                Source = OfficeDocumentReaderBuilderNotebookExtensions.HandlerId,
+                IsRecoverable = true,
+                Location = new ReaderLocation {
+                    Path = path,
+                    SourceBlockIndex = cellIndex,
+                    SourceBlockKind = "notebook-" + cellType + "-cell",
+                    BlockAnchor = anchor
+                },
+                Attributes = new Dictionary<string, string> {
+                    ["cellIndex"] = cellIndex.ToString(CultureInfo.InvariantCulture),
+                    ["cellType"] = cellType,
+                    ["maxCellCharacters"] = maxCellCharacters.ToString(CultureInfo.InvariantCulture)
+                }
+            });
+        }
     }
 
     private static IReadOnlyList<NotebookOutput> ReadOutputs(
@@ -227,18 +273,6 @@ internal static class NotebookReaderAdapter {
             new[] { source }.Concat(outputs.Select(static output => output.Text))
                 .Where(static value => !string.IsNullOrWhiteSpace(value)))
             .TrimEnd();
-    }
-
-    private static IReadOnlyList<string> SplitProjection(string value, int maxChars) {
-        if (value.Length == 0) return Array.Empty<string>();
-        int limit = Math.Max(1, maxChars);
-        if (value.Length <= limit) return new[] { value };
-
-        var parts = new List<string>((value.Length + limit - 1) / limit);
-        for (int offset = 0; offset < value.Length; offset += limit) {
-            parts.Add(value.Substring(offset, Math.Min(limit, value.Length - offset)));
-        }
-        return parts;
     }
 
     private static string[]? BuildChunkWarnings(IReadOnlyList<string> warnings, bool wasSplit) {
