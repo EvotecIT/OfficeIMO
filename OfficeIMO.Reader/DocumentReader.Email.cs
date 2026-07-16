@@ -188,6 +188,7 @@ internal static partial class DocumentReaderEngine {
         internal string SourceName { get; }
         internal List<EmailDocument> Documents { get; } = new List<EmailDocument>();
         internal List<EmailMailboxEntry?> MailboxEntries { get; } = new List<EmailMailboxEntry?>();
+        internal List<string?> LogicalPaths { get; } = new List<string?>();
         internal List<EmailDiagnostic> Diagnostics { get; } = new List<EmailDiagnostic>();
         internal List<ReaderChunk> Chunks { get; } = new List<ReaderChunk>();
         internal List<OfficeDocumentAsset> Assets { get; } = new List<OfficeDocumentAsset>();

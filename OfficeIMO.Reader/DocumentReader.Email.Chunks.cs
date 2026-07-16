@@ -17,13 +17,18 @@ internal static partial class DocumentReaderEngine {
             EmailMailboxEntry? mailboxEntry = messageIndex < extraction.MailboxEntries.Count
                 ? extraction.MailboxEntries[messageIndex]
                 : null;
+            string? projectedPath = messageIndex < extraction.LogicalPaths.Count
+                ? extraction.LogicalPaths[messageIndex]
+                : null;
             BuildEmailDocumentChunks(
                 extraction.Documents[messageIndex],
                 context,
                 messageIndex,
                 depth: 0,
                 parentHeading: null,
-                logicalPath: BuildEmailMessagePath(extraction.SourceName, extraction.Format, messageIndex),
+                logicalPath: string.IsNullOrWhiteSpace(projectedPath)
+                    ? BuildEmailMessagePath(extraction.SourceName, extraction.Format, messageIndex)
+                    : projectedPath!,
                 mailboxEntry);
         }
 

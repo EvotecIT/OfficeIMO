@@ -39,6 +39,7 @@
     "OfficeIMO.Reader.All": "2.0.X",
     "OfficeIMO.Reader.AsciiDoc": "2.0.X",
     "OfficeIMO.Reader.Csv": "2.0.X",
+    "OfficeIMO.Reader.EmailStore": "2.0.X",
     "OfficeIMO.Reader.Epub": "2.0.X",
     "OfficeIMO.Reader.Html": "2.0.X",
     "OfficeIMO.Reader.Json": "2.0.X",

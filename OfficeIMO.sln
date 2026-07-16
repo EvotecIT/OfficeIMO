@@ -148,6 +148,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "OfficeIMO.Reader", "OfficeI
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OfficeIMO.Reader.All", "OfficeIMO.Reader.All\OfficeIMO.Reader.All.csproj", "{D97FD999-4C8F-4EC0-A975-6364D9404462}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OfficeIMO.Reader.EmailStore", "OfficeIMO.Reader.EmailStore\OfficeIMO.Reader.EmailStore.csproj", "{80890B2E-1184-4459-8A31-A68978C7893C}"
+EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OfficeIMO.Reader.Ocr.Process", "OfficeIMO.Reader.Ocr.Process\OfficeIMO.Reader.Ocr.Process.csproj", "{A8F9B0C1-D2E3-4F50-9123-456789ABCDEF}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OfficeIMO.Reader.Ocr.Tesseract", "OfficeIMO.Reader.Ocr.Tesseract\OfficeIMO.Reader.Ocr.Tesseract.csproj", "{B9C0D1E2-F3A4-5061-A234-56789ABCDEF0}"
@@ -326,6 +328,18 @@ Global
 		Release|x86 = Release|x86
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{80890B2E-1184-4459-8A31-A68978C7893C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{80890B2E-1184-4459-8A31-A68978C7893C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{80890B2E-1184-4459-8A31-A68978C7893C}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{80890B2E-1184-4459-8A31-A68978C7893C}.Debug|x64.Build.0 = Debug|Any CPU
+		{80890B2E-1184-4459-8A31-A68978C7893C}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{80890B2E-1184-4459-8A31-A68978C7893C}.Debug|x86.Build.0 = Debug|Any CPU
+		{80890B2E-1184-4459-8A31-A68978C7893C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{80890B2E-1184-4459-8A31-A68978C7893C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{80890B2E-1184-4459-8A31-A68978C7893C}.Release|x64.ActiveCfg = Release|Any CPU
+		{80890B2E-1184-4459-8A31-A68978C7893C}.Release|x64.Build.0 = Release|Any CPU
+		{80890B2E-1184-4459-8A31-A68978C7893C}.Release|x86.ActiveCfg = Release|Any CPU
+		{80890B2E-1184-4459-8A31-A68978C7893C}.Release|x86.Build.0 = Release|Any CPU
 		{49C7D2D0-8D1E-4F36-9E52-B9D68D7C4F21}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{49C7D2D0-8D1E-4F36-9E52-B9D68D7C4F21}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{49C7D2D0-8D1E-4F36-9E52-B9D68D7C4F21}.Debug|x64.ActiveCfg = Debug|Any CPU

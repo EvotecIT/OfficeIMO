@@ -64,6 +64,7 @@
     <InternalsVisibleTo Include="OfficeIMO.Reader.AsciiDoc" />
     <InternalsVisibleTo Include="OfficeIMO.Reader.Csv" />
     <InternalsVisibleTo Include="OfficeIMO.Reader.Epub" />
+    <InternalsVisibleTo Include="OfficeIMO.Reader.EmailStore" />
     <InternalsVisibleTo Include="OfficeIMO.Reader.Html" />
     <InternalsVisibleTo Include="OfficeIMO.Reader.Json" />
     <InternalsVisibleTo Include="OfficeIMO.Reader.OpenDocument" />
