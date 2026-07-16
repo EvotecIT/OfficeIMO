@@ -140,6 +140,18 @@ public sealed class DrawingOfficePackageSecurityTests {
     }
 
     [Fact]
+    public void InspectorRejectsRepeatedCentralDirectoryDigitalSignatures() {
+        byte[] package = CreateZipWithRepeatedCentralDirectorySignatures();
+
+        OfficePackageSecurityReport report = OfficePackageSecurityInspector.Inspect(package);
+
+        OfficePackageSecurityFinding finding = Assert.Single(
+            report.Findings,
+            item => item.Rule == OfficePackageSecurityRule.MalformedPackage);
+        Assert.Contains("more than one digital-signature record", finding.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public void InspectorReportsAmbiguousUnsafeAndMalformedRelationshipParts() {
         byte[] package = CreateZip(archive => {
             AddEntry(archive, "word/document.xml", "<document />");
@@ -319,6 +331,28 @@ public sealed class DrawingOfficePackageSecurityTests {
         using var output = new MemoryStream();
         using (var archive = new ZipArchive(output, ZipArchiveMode.Create, leaveOpen: true)) {
             populate(archive);
+        }
+        return output.ToArray();
+    }
+
+    private static byte[] CreateZipWithRepeatedCentralDirectorySignatures() {
+        using var output = new MemoryStream();
+        using (var writer = new BinaryWriter(output, Encoding.UTF8, leaveOpen: true)) {
+            writer.Write(0x04034b50U); // Leading ZIP local-header signature for container detection.
+            uint centralDirectoryOffset = checked((uint)output.Position);
+            writer.Write(0x05054b50U);
+            writer.Write((ushort)0);
+            writer.Write(0x05054b50U);
+            writer.Write((ushort)0);
+            uint centralDirectorySize = checked((uint)output.Position - centralDirectoryOffset);
+            writer.Write(0x06054b50U);
+            writer.Write((ushort)0);
+            writer.Write((ushort)0);
+            writer.Write((ushort)0);
+            writer.Write((ushort)0);
+            writer.Write(centralDirectorySize);
+            writer.Write(centralDirectoryOffset);
+            writer.Write((ushort)0);
         }
         return output.ToArray();
     }

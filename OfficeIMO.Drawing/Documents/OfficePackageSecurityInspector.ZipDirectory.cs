@@ -64,6 +64,7 @@ namespace OfficeIMO.Drawing {
             long cursor = checked((long)centralDirectoryOffset);
             long end = checked(cursor + (long)centralDirectorySize);
             long actualEntries = 0;
+            bool foundDigitalSignature = false;
             while (cursor < end) {
                 if (cursor > end - 4) {
                     return ZipCentralDirectoryScanResult.Invalid("The ZIP central directory ends inside a record signature.");
@@ -71,6 +72,10 @@ namespace OfficeIMO.Drawing {
 
                 uint signature = ReadZipUInt32(bytes, checked((int)cursor));
                 if (signature == CentralDirectoryFileHeaderSignature) {
+                    if (foundDigitalSignature) {
+                        return ZipCentralDirectoryScanResult.Invalid(
+                            "The ZIP central directory contains a file header after its digital-signature record.");
+                    }
                     if (cursor > end - 46) {
                         return ZipCentralDirectoryScanResult.Invalid("A ZIP central-directory file header is truncated.");
                     }
@@ -86,6 +91,10 @@ namespace OfficeIMO.Drawing {
                     actualEntries++;
                     if (actualEntries > entryLimit) return ZipCentralDirectoryScanResult.Exceeded(actualEntries);
                 } else if (signature == CentralDirectoryDigitalSignature) {
+                    if (foundDigitalSignature) {
+                        return ZipCentralDirectoryScanResult.Invalid(
+                            "The ZIP central directory contains more than one digital-signature record.");
+                    }
                     if (cursor > end - 6) {
                         return ZipCentralDirectoryScanResult.Invalid("The ZIP central-directory digital signature is truncated.");
                     }
@@ -94,6 +103,7 @@ namespace OfficeIMO.Drawing {
                         return ZipCentralDirectoryScanResult.Invalid("The ZIP central-directory digital signature exceeds the declared directory bounds.");
                     }
                     cursor += recordLength;
+                    foundDigitalSignature = true;
                 } else {
                     return ZipCentralDirectoryScanResult.Invalid(
                         $"The ZIP central directory contains unexpected signature 0x{signature:X8}.");
