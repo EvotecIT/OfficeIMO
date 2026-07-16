@@ -1,6 +1,7 @@
 using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.LegacyPpt;
+using OfficeIMO.PowerPoint.LegacyPpt.Internal;
 using OfficeIMO.PowerPoint.LegacyPpt.Model;
 using A = DocumentFormat.OpenXml.Drawing;
 using P = DocumentFormat.OpenXml.Presentation;
@@ -56,6 +57,86 @@ namespace OfficeIMO.Tests {
                 .SlideMasterParts.ElementAt(masterIndex).ThemePart?.Theme?
                 .ThemeElements?.FormatScheme);
             Assert.Empty(projected.ValidateDocument());
+        }
+
+        [Fact]
+        public void ImportedMasterThemeEdit_AppendsPreservingIncrementalRecord() {
+            LegacyPptPresentation original = LegacyPptPresentation.Load(
+                AccessibilityFixture);
+            LegacyPptMaster[] originalMainMasters = original.Masters
+                .Where(master => master.IsMainMaster).ToArray();
+            int masterIndex = Array.FindIndex(originalMainMasters,
+                master => master.RoundTripTheme?.ThemeXml != null);
+            Assert.True(masterIndex >= 0);
+            LegacyPptMaster originalMaster = originalMainMasters[masterIndex];
+
+            using PowerPointPresentation imported = PowerPointPresentation.Load(
+                AccessibilityFixture);
+            imported.SetThemeColor(PowerPointThemeColor.Accent5,
+                "123456", masterIndex);
+            imported.SetThemeColor(PowerPointThemeColor.Accent1,
+                "654321", masterIndex);
+            imported.SetThemeLatinFonts("Aptos Display", "Aptos",
+                masterIndex);
+
+            LegacyPptWritePreflightReport preflight = imported
+                .AnalyzeLegacyPptWrite();
+            Assert.True(preflight.CanWrite,
+                string.Join(Environment.NewLine, preflight.Findings));
+            byte[] bytes = imported.ToBytes(PowerPointFileFormat.Ppt);
+            LegacyPptPresentation saved = LegacyPptPresentation.Load(bytes);
+            LegacyPptMaster savedMaster = Assert.Single(saved.Masters,
+                master => master.MasterId == originalMaster.MasterId);
+
+            Assert.True(saved.Package.DocumentStream.AsSpan(0,
+                    original.Package.DocumentStream.Length)
+                .SequenceEqual(original.Package.DocumentStream));
+            Assert.Equal("123456", savedMaster.RoundTripTheme?
+                .Colors[PowerPointThemeColor.Accent5]);
+            Assert.Equal("654321", savedMaster.RoundTripTheme?
+                .Colors[PowerPointThemeColor.Accent1]);
+            Assert.Equal("654321", savedMaster.ColorScheme?.Accent1);
+            Assert.Equal(originalMaster.ColorScheme?.Background,
+                savedMaster.ColorScheme?.Background);
+            Assert.Equal(originalMaster.ColorScheme?.Text,
+                savedMaster.ColorScheme?.Text);
+            Assert.Equal(originalMaster.ColorScheme?.Shadow,
+                savedMaster.ColorScheme?.Shadow);
+            Assert.Equal(originalMaster.ColorScheme?.TitleText,
+                savedMaster.ColorScheme?.TitleText);
+            Assert.Equal(originalMaster.ColorScheme?.Fill,
+                savedMaster.ColorScheme?.Fill);
+            Assert.Equal(originalMaster.ColorScheme?.Accent2,
+                savedMaster.ColorScheme?.Accent2);
+            Assert.Equal(originalMaster.ColorScheme?.Accent3,
+                savedMaster.ColorScheme?.Accent3);
+            Assert.Equal("Aptos Display",
+                savedMaster.RoundTripTheme?.MajorLatinFont);
+            Assert.Equal("Aptos",
+                savedMaster.RoundTripTheme?.MinorLatinFont);
+
+            using var stream = new MemoryStream(bytes);
+            using PowerPointPresentation reopened =
+                PowerPointPresentation.Load(stream);
+            Assert.Equal("123456", reopened.GetThemeColor(
+                PowerPointThemeColor.Accent5, masterIndex));
+            Assert.Equal("654321", reopened.GetThemeColor(
+                PowerPointThemeColor.Accent1, masterIndex));
+            Assert.Equal("Aptos Display",
+                reopened.GetThemeFonts(masterIndex).MajorLatin);
+            Assert.Equal("Aptos",
+                reopened.GetThemeFonts(masterIndex).MinorLatin);
+            Assert.Empty(reopened.ValidateDocument());
+
+            IReadOnlyList<byte[]> originalUnrelated =
+                ReadUnrelatedMasterChildren(original, originalMaster.PersistId);
+            IReadOnlyList<byte[]> savedUnrelated =
+                ReadUnrelatedMasterChildren(saved, savedMaster.PersistId);
+            Assert.Equal(originalUnrelated.Count, savedUnrelated.Count);
+            for (int index = 0; index < originalUnrelated.Count; index++) {
+                Assert.True(originalUnrelated[index]
+                    .SequenceEqual(savedUnrelated[index]));
+            }
         }
 
         [Fact]
@@ -226,6 +307,18 @@ namespace OfficeIMO.Tests {
                 .GetFirstChild<A.Accent6Color>()!
                 .GetFirstChild<A.RgbColorModelHex>()!.Val!.Value);
             Assert.Empty(reopened.ValidateDocument());
+        }
+
+        private static IReadOnlyList<byte[]> ReadUnrelatedMasterChildren(
+            LegacyPptPresentation presentation, uint persistId) {
+            LegacyPptPersistObject persistObject =
+                presentation.Package.PersistObjects[persistId];
+            LegacyPptRecord record = LegacyPptRecordReader.ReadSingle(
+                persistObject.RecordBytes, 0, new LegacyPptImportOptions());
+            return record.Children.Where(child =>
+                    child.Type is not 0x040E and not 0x040F
+                    && !(child.Type == 0x07F0 && child.Instance == 1))
+                .Select(child => child.CopyRecordBytes()).ToArray();
         }
 
         private static int FindRoundTripThemeRecord(byte[] document) {

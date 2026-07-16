@@ -50,7 +50,7 @@ namespace OfficeIMO.PowerPoint {
 
         internal LegacyPptProjectionMap? LegacyPptProjectionMap => _legacyPptProjectionMap;
 
-        internal bool HasOnlyLegacyPptProjectedShapeChanges => _legacyPptProjectionMap != null
+        internal bool HasOnlyLegacyPptPreservableChanges => _legacyPptProjectionMap != null
             && _legacyPptPreservationFingerprint != null
             && _legacyPptPreservationFingerprint.Matches(_document!, _legacyPptProjectionMap);
 

@@ -101,6 +101,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(LegacyPptCapabilityState.Native,
                 themes.PptxToBinary);
             Assert.Contains("all twelve colors", themes.Note);
+            Assert.Contains("imported main-master theme edits", themes.Note);
         }
 
         [Fact]

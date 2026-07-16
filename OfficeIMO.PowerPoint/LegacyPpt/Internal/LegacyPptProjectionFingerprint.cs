@@ -6,8 +6,9 @@ using P = DocumentFormat.OpenXml.Presentation;
 
 namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
     /// <summary>
-    /// Retains a global package guard and independent normalized slide guards. Existing projected slides can be
-    /// reordered or removed, while any unsupported mutation to a retained slide or shared package part is rejected.
+    /// Retains a global package guard plus independent normalized slide and master-theme guards. Existing projected
+    /// slides can be reordered or removed, and mapped master themes can be edited, while unsupported mutations to a
+    /// retained slide or shared package part are rejected.
     /// </summary>
     internal sealed class LegacyPptProjectionFingerprint {
         private const string ClassicAnimationExtensionUri =
@@ -60,6 +61,14 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             PowerPointPackageFingerprint.Create(document,
                 (part, root) => {
                     if (part is PresentationPart) NormalizePresentationTopology(root);
+                    if (part is SlideMasterPart
+                        && projectionMap.IsProjectedMasterPart(part.Uri.ToString())) {
+                        NormalizeProjectedMasterThemeReference(root);
+                    }
+                    if (part is ThemePart
+                        && projectionMap.IsProjectedMasterThemePart(part.Uri.ToString())) {
+                        NormalizeProjectedMasterTheme(root);
+                    }
                     if (part is SlideLayoutPart
                         && projectionMap.IsProjectedLayoutPart(part.Uri.ToString())) {
                         NormalizeProjectedHeaderFooter(root);
@@ -69,6 +78,18 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                     or CommentAuthorsPart),
                 (owner, relationship) => !(relationship.OpenXmlPart is SlidePart
                     or SlideCommentsPart or CommentAuthorsPart));
+
+        private static void NormalizeProjectedMasterThemeReference(OpenXmlElement root) {
+            if (root is not P.SlideMaster master || master.ColorMap == null) return;
+            master.ColorMap.ClearAllAttributes();
+            master.ColorMap.RemoveAllChildren();
+        }
+
+        private static void NormalizeProjectedMasterTheme(OpenXmlElement root) {
+            if (root is not A.Theme theme) return;
+            theme.ClearAllAttributes();
+            theme.RemoveAllChildren();
+        }
 
         private static string CreateSlide(PresentationDocument document, SlidePart slidePart,
             LegacyPptProjectionMap projectionMap) => PowerPointPackageFingerprint.Create(document,

@@ -1,4 +1,5 @@
 using OfficeIMO.Drawing.Internal;
+using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.PowerPoint.LegacyPpt.Internal;
 using OfficeIMO.PowerPoint.LegacyPpt.Model;
 using System.Text;
@@ -68,7 +69,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             currentSlideIds = slideIds;
             LegacyPptPackage? package = presentation.LegacyPptPackage;
             LegacyPptProjectionMap? projectionMap = presentation.LegacyPptProjectionMap;
-            if (package == null || projectionMap == null || !presentation.HasOnlyLegacyPptProjectedShapeChanges
+            if (package == null || projectionMap == null || !presentation.HasOnlyLegacyPptPreservableChanges
                 || presentation.Slides.Count > 4082) {
                 return false;
             }
@@ -100,6 +101,35 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             if (customShowsChanged && !projectionMap.CanEditCustomShows) return false;
 
             try {
+                SlideMasterPart[] currentMasterParts = presentation.OpenXmlDocument
+                    .PresentationPart?.SlideMasterParts.ToArray()
+                    ?? Array.Empty<SlideMasterPart>();
+                foreach (SlideMasterPart masterPart in currentMasterParts) {
+                    if (!projectionMap.TryGetMaster(masterPart,
+                            out LegacyPptMasterProjection? masterProjection)
+                        || masterProjection == null) {
+                        return false;
+                    }
+                    if (masterProjection.ThemeMatches(masterPart)) continue;
+                    if (!package.PersistObjects.TryGetValue(
+                            masterProjection.PersistId,
+                            out LegacyPptPersistObject? masterPersistObject)
+                        || masterPersistObject == null) {
+                        return false;
+                    }
+                    LegacyPptRecord masterRecord = LegacyPptRecordReader.ReadSingle(
+                        masterPersistObject.RecordBytes, 0,
+                        new LegacyPptImportOptions());
+                    rewritten.Add(masterProjection.PersistId,
+                        LegacyPptWriter.BuildPreservedMasterThemeRecord(
+                            masterRecord, masterPart,
+                            masterProjection.GetChangedClassicColorSlots(
+                                masterPart)));
+                }
+                if (currentMasterParts.Length != projectionMap.Masters.Count) {
+                    return false;
+                }
+
                 var currentSlideOrder = new List<LegacyPptSlideProjection>(presentation.Slides.Count);
                 var addedSlides = new List<PowerPointSlide>();
                 bool encounteredAddedSlide = false;

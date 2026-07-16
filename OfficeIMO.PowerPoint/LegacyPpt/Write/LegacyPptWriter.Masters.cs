@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.PowerPoint.LegacyPpt.Internal;
+using A = DocumentFormat.OpenXml.Drawing;
 
 namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
     internal static partial class LegacyPptWriter {
@@ -151,7 +152,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             LegacyPptWriterShapeContext shapeContext =
                 LegacyPptWriterShapeContext.MainMaster,
             IReadOnlyList<byte[]>? textStyleRecords = null,
-            IReadOnlyList<byte[]>? roundTripThemeRecords = null) {
+            IReadOnlyList<byte[]>? roundTripThemeRecords = null,
+            bool rewriteColorScheme = true,
+            IReadOnlyList<int>? colorSchemeSlotsToRewrite = null) {
             var children = new List<byte[]>(prototype.Children.Count);
             bool wroteScheme = false;
             bool wroteTextStyles = false;
@@ -160,8 +163,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 new Dictionary<string, LegacyPptWriterAnimation>(
                     StringComparer.Ordinal));
             foreach (LegacyPptRecord child in prototype.Children) {
-                if (child.Type == RecordColorSchemeAtom && child.Instance == 1) {
-                    children.Add(BuildColorSchemeAtom(scheme));
+                if (rewriteColorScheme && child.Type == RecordColorSchemeAtom
+                    && child.Instance == 1) {
+                    children.Add(colorSchemeSlotsToRewrite == null
+                        ? BuildColorSchemeAtom(scheme)
+                        : PatchColorSchemeAtom(child, scheme,
+                            colorSchemeSlotsToRewrite));
                     wroteScheme = true;
                 } else if (child.Type == RecordDrawing && shapes != null
                            && drawingId.HasValue) {
@@ -181,7 +188,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     children.Add(child.CopyRecordBytes());
                 }
             }
-            if (!wroteScheme) children.Add(BuildColorSchemeAtom(scheme));
+            if (rewriteColorScheme && !wroteScheme) {
+                children.Add(BuildColorSchemeAtom(scheme));
+            }
             if (textStyleRecords != null && !wroteTextStyles) {
                 children.AddRange(textStyleRecords);
             }
@@ -189,6 +198,51 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 children.AddRange(roundTripThemeRecords);
             }
             return BuildContainer(prototype.Type, prototype.Instance, children);
+        }
+
+        /// <summary>
+        /// Rewrites only the classic color scheme and DrawingML round-trip theme records of an imported master.
+        /// Every unrelated source child record is retained byte-for-byte.
+        /// </summary>
+        internal static byte[] BuildPreservedMasterThemeRecord(
+            LegacyPptRecord prototype, SlideMasterPart source,
+            IReadOnlyList<int> changedClassicColorSlots) {
+            if (prototype == null) throw new ArgumentNullException(nameof(prototype));
+            if (source == null) throw new ArgumentNullException(nameof(source));
+            A.Theme theme = source.ThemePart?.Theme
+                ?? throw new InvalidDataException(
+                    "A projected binary slide master has no DrawingML theme to preserve.");
+            if (changedClassicColorSlots == null) {
+                throw new ArgumentNullException(nameof(changedClassicColorSlots));
+            }
+            return BuildMasterRecord(prototype, ReadColorScheme(source.ThemePart),
+                background: null,
+                roundTripThemeRecords: BuildRoundTripThemeRecords(
+                    theme, source.SlideMaster?.ColorMap),
+                rewriteColorScheme: changedClassicColorSlots.Count > 0,
+                colorSchemeSlotsToRewrite: changedClassicColorSlots);
+        }
+
+        private static byte[] PatchColorSchemeAtom(LegacyPptRecord source,
+            LegacyPptWriterColorScheme scheme,
+            IReadOnlyList<int> slots) {
+            if (source.PayloadLength < 32) {
+                throw new InvalidDataException(
+                    "The imported classic master color scheme is shorter than eight colors.");
+            }
+            byte[] record = source.CopyRecordBytes();
+            foreach (int index in slots) {
+                if (index < 0 || index >= scheme.Colors.Count) {
+                    throw new InvalidDataException(
+                        "A classic master color-scheme edit referenced an invalid slot.");
+                }
+                string color = scheme.Colors[index];
+                int offset = 8 + index * 4;
+                record[offset] = Convert.ToByte(color.Substring(0, 2), 16);
+                record[offset + 1] = Convert.ToByte(color.Substring(2, 2), 16);
+                record[offset + 2] = Convert.ToByte(color.Substring(4, 2), 16);
+            }
+            return record;
         }
 
         private static byte[] BuildColorSchemeAtom(LegacyPptWriterColorScheme scheme) {
