@@ -247,6 +247,38 @@ public sealed class ReaderEmailStoreModularTests {
         }
     }
 
+    [Fact]
+    public void Item_success_is_not_negated_by_store_wide_diagnostics() {
+        byte[] archive = CreateOlmArchive(new Dictionary<string, byte[]> {
+            ["Local/com.microsoft.__Messages/Inbox/valid.xml"] = Encoding.UTF8.GetBytes(
+                "<emails><email><OPFMessageCopySubject>Valid item</OPFMessageCopySubject>" +
+                "<OPFMessageCopyBody>Valid body</OPFMessageCopyBody></email></emails>"),
+            ["Local/com.microsoft.__Messages/Inbox/invalid.xml"] = Encoding.UTF8.GetBytes(
+                "<appointments><appointment>")
+        });
+        string path = Path.Combine(Path.GetTempPath(),
+            "officeimo-reader-store-diagnostics-" + Guid.NewGuid().ToString("N") + ".olm");
+        try {
+            File.WriteAllBytes(path, archive);
+            OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+                .AddEmailStoreHandler()
+                .Build();
+
+            ReaderEmailStoreItemResult result = Assert.Single(reader.ReadEmailStoreItems(path));
+
+            Assert.True(result.Succeeded);
+            Assert.Contains(result.StoreDiagnostics,
+                diagnostic => diagnostic.Code == "EMAIL_STORE_OLM_XML_INVALID" &&
+                    diagnostic.Severity == EmailDiagnosticSeverity.Error);
+            Assert.DoesNotContain(result.ItemDiagnostics,
+                diagnostic => diagnostic.Severity == EmailDiagnosticSeverity.Error);
+            Assert.Equal(result.StoreDiagnostics.Count + result.ItemDiagnostics.Count,
+                result.Diagnostics.Count);
+        } finally {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
     private static byte[] CreateEmlx(byte[] message, string? plist) {
         byte[] prefix = Encoding.ASCII.GetBytes(message.Length.ToString(CultureInfo.InvariantCulture) + "\n");
         byte[] metadata = plist == null ? Array.Empty<byte>() : Encoding.UTF8.GetBytes(plist);

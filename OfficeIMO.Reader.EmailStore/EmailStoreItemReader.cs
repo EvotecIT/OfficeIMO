@@ -49,6 +49,9 @@ public static class EmailStoreItemReader {
                         folder.Id, folder.ParentId, folder.Name)).ToArray(),
                     hierarchyDiagnostics,
                     cancellationToken);
+            EmailDiagnostic[] openingDiagnostics = hierarchyDiagnostics
+                .Concat(session.Diagnostics.Select(EmailStoreReaderProjection.MapDiagnostic))
+                .ToArray();
             int probeLimit = adapterOptions.MaxItems == int.MaxValue
                 ? int.MaxValue
                 : adapterOptions.MaxItems + 1;
@@ -64,7 +67,7 @@ public static class EmailStoreItemReader {
                 : session.Search(query, cancellationToken).Select(result => result.Reference);
 
             var cursor = new EmailDocumentProjectionCursor();
-            int diagnosticCursor = 0;
+            int diagnosticCursor = session.Diagnostics.Count;
             int attempted = 0;
             foreach (EmailStoreItemReference reference in references) {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -85,7 +88,6 @@ public static class EmailStoreItemReader {
                     EmailStoreItem item = session.ReadItem(reference,
                         EmailStoreReaderProjection.GetItemReadOptions(adapterOptions), cancellationToken);
                     var itemDiagnostics = new List<EmailDiagnostic>();
-                    if (itemIndex == 0) itemDiagnostics.AddRange(hierarchyDiagnostics);
                     AddNewStoreDiagnostics(session, itemDiagnostics, ref diagnosticCursor);
                     IReadOnlyList<ReaderChunk> chunks =
                         DocumentReaderEngine.ProjectEmailDocumentToChunks(
@@ -97,7 +99,8 @@ public static class EmailStoreItemReader {
                             cursor,
                             cancellationToken);
                     result = new ReaderEmailStoreItemResult(
-                        reference, summary, logicalPath, chunks, itemDiagnostics);
+                        reference, summary, logicalPath, chunks, itemDiagnostics,
+                        itemIndex == 0 ? openingDiagnostics : null);
                 } catch (Exception exception) when (
                     adapterOptions.ContinueOnItemError &&
                     (exception is InvalidDataException ||
@@ -105,7 +108,6 @@ public static class EmailStoreItemReader {
                      exception is KeyNotFoundException ||
                      exception is EmailStoreLimitExceededException)) {
                     var itemDiagnostics = new List<EmailDiagnostic>();
-                    if (itemIndex == 0) itemDiagnostics.AddRange(hierarchyDiagnostics);
                     AddNewStoreDiagnostics(session, itemDiagnostics, ref diagnosticCursor);
                     itemDiagnostics.Add(new EmailDiagnostic(
                         "EMAIL_STORE_READER_ITEM_SKIPPED",
@@ -116,7 +118,8 @@ public static class EmailStoreItemReader {
                         string.Concat("item/", reference.Id)));
                     result = new ReaderEmailStoreItemResult(
                         reference, summary, logicalPath,
-                        Array.Empty<ReaderChunk>(), itemDiagnostics);
+                        Array.Empty<ReaderChunk>(), itemDiagnostics,
+                        itemIndex == 0 ? openingDiagnostics : null);
                 }
                 yield return result;
             }

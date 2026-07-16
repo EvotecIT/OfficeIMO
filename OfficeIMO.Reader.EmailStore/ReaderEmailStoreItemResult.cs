@@ -10,12 +10,15 @@ public sealed class ReaderEmailStoreItemResult {
         EmailStoreItemSummary? summary,
         string logicalPath,
         IReadOnlyList<ReaderChunk> chunks,
-        IReadOnlyList<EmailDiagnostic> diagnostics) {
+        IReadOnlyList<EmailDiagnostic> itemDiagnostics,
+        IReadOnlyList<EmailDiagnostic>? storeDiagnostics = null) {
         Reference = reference;
         Summary = summary;
         LogicalPath = logicalPath;
         Chunks = chunks;
-        Diagnostics = diagnostics;
+        ItemDiagnostics = itemDiagnostics ?? throw new ArgumentNullException(nameof(itemDiagnostics));
+        StoreDiagnostics = storeDiagnostics ?? Array.Empty<EmailDiagnostic>();
+        Diagnostics = StoreDiagnostics.Concat(ItemDiagnostics).ToArray();
     }
 
     /// <summary>Stable reference within the source store.</summary>
@@ -26,9 +29,16 @@ public sealed class ReaderEmailStoreItemResult {
     public string LogicalPath { get; }
     /// <summary>Chunks for this item only.</summary>
     public IReadOnlyList<ReaderChunk> Chunks { get; }
-    /// <summary>Store and item diagnostics attributed to this item.</summary>
+    /// <summary>Item-scoped diagnostics emitted while reading and projecting this item.</summary>
+    public IReadOnlyList<EmailDiagnostic> ItemDiagnostics { get; }
+    /// <summary>
+    /// Store-open and hierarchy diagnostics. These are attached to the first streamed result only so callers see
+    /// them without receiving the same diagnostics for every item.
+    /// </summary>
+    public IReadOnlyList<EmailDiagnostic> StoreDiagnostics { get; }
+    /// <summary>Combined store and item diagnostics for compatibility and consolidated reporting.</summary>
     public IReadOnlyList<EmailDiagnostic> Diagnostics { get; }
-    /// <summary>Whether the item produced Reader chunks without an error diagnostic.</summary>
+    /// <summary>Whether this item produced Reader chunks without an item-scoped error diagnostic.</summary>
     public bool Succeeded => Chunks.Count > 0 &&
-        !Diagnostics.Any(diagnostic => diagnostic.Severity == EmailDiagnosticSeverity.Error);
+        !ItemDiagnostics.Any(diagnostic => diagnostic.Severity == EmailDiagnosticSeverity.Error);
 }
