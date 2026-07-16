@@ -15,15 +15,6 @@ internal static class PstPassword {
     }
 
     internal static uint ComputeChecksum(byte[] bytes) {
-        uint checksum = 0;
-        for (int index = 0; index < bytes.Length; index++) {
-            checksum ^= bytes[index];
-            for (int bit = 0; bit < 8; bit++) {
-                checksum = (checksum & 1) != 0
-                    ? (checksum >> 1) ^ 0xEDB88320U
-                    : checksum >> 1;
-            }
-        }
-        return checksum;
+        return PstCrc32.Compute(bytes);
     }
 }

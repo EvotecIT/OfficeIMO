@@ -48,6 +48,10 @@ internal sealed partial class PstStoreReader {
     internal IReadOnlyList<EmailStoreFolderInfo> Folders => _folderInfos;
     internal IReadOnlyList<EmailStoreDiagnostic> Diagnostics => _diagnostics;
 
+    internal EmailStoreStructuralValidationResult ValidateStructure(
+        EmailStoreValidationOptions options, CancellationToken cancellationToken) =>
+        Ndb.ValidateStructure(options, cancellationToken);
+
     internal EmailStoreReadResult Read(Stream stream, EmailStoreFormat format,
         CancellationToken cancellationToken) {
         Open(stream, format, loadCompleteIndexes: true, cancellationToken);

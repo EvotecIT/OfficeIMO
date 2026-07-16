@@ -28,5 +28,9 @@ internal sealed class PstStoreSessionBackend : IEmailStoreSessionBackend {
         CancellationToken cancellationToken) =>
         _reader.ReadReferencedItem(reference, options, cancellationToken);
 
+    internal EmailStoreStructuralValidationResult ValidateStructure(
+        EmailStoreValidationOptions options, CancellationToken cancellationToken) =>
+        _reader.ValidateStructure(options, cancellationToken);
+
     public void Dispose() => _lifetime.Dispose();
 }

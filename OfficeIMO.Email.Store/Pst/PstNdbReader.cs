@@ -1,6 +1,6 @@
 namespace OfficeIMO.Email.Store;
 
-internal sealed class PstNdbReader {
+internal sealed partial class PstNdbReader {
     private readonly Stream _stream;
     private readonly PstHeader _header;
     private readonly EmailStoreReaderOptions _options;

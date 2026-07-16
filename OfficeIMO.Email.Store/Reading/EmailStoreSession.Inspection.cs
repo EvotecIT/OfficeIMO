@@ -12,9 +12,17 @@ public sealed partial class EmailStoreSession {
         CancellationToken cancellationToken = default) {
         ThrowIfDisposed();
         EmailStoreValidationOptions effective = options ?? new EmailStoreValidationOptions();
+        EmailStoreStructuralValidationResult? structural = null;
+        if (effective.VerifyStructuralIntegrity) {
+            structural = _backend is PstStoreSessionBackend pst
+                ? pst.ValidateStructure(effective, cancellationToken)
+                : EmailStoreStructuralValidationResult.NotSupported();
+        }
         if (effective.Mode == EmailStoreValidationMode.Shallow) {
             return new EmailStoreValidationReport(
-                effective.Mode, 0, 0, 0, false, Diagnostics.ToArray());
+                effective.Mode, 0, 0, 0, false,
+                Diagnostics.Concat(structural?.Diagnostics ?? Array.Empty<EmailStoreDiagnostic>()).ToArray(),
+                effective.VerifyStructuralIntegrity, structural);
         }
 
         int enumerationLimit = effective.MaxItems == int.MaxValue
@@ -66,10 +74,12 @@ public sealed partial class EmailStoreSession {
         }
 
         EmailStoreDiagnostic[] diagnostics = Diagnostics
+            .Concat(structural?.Diagnostics ?? Array.Empty<EmailStoreDiagnostic>())
             .Concat(validationDiagnostics)
             .ToArray();
         return new EmailStoreValidationReport(
-            effective.Mode, examined, failed, orphaned, truncated, diagnostics);
+            effective.Mode, examined, failed, orphaned, truncated, diagnostics,
+            effective.VerifyStructuralIntegrity, structural);
     }
 
     /// <summary>

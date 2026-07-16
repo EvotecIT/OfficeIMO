@@ -6,7 +6,8 @@ internal static class PstTestFileBuilder {
 
     internal static byte[] Create(bool ost = false, bool ansi = false, byte cryptMethod = 0,
         bool fourK = false, bool compressBlocks = false, bool includeEmbeddedMessage = false,
-        byte[]? attachmentContent = null, uint? storePasswordChecksum = null) {
+        byte[]? attachmentContent = null, uint? storePasswordChecksum = null,
+        bool corruptPageCrc = false, bool corruptBlockCrc = false) {
         if (fourK && (!ost || ansi)) throw new ArgumentException("4K test stores must use the Unicode OST variant.");
         if (compressBlocks && !fourK) throw new ArgumentException("Only 4K test blocks can be compressed.");
         if (compressBlocks && cryptMethod != 0) throw new ArgumentException("The fixture does not combine compression and encoding.");
@@ -40,7 +41,8 @@ internal static class PstTestFileBuilder {
         foreach (TestBlock block in blocks) {
             block.StoredData = compressBlocks ? Compress(block.Data) : block.Data.ToArray();
             block.Offset = blockOffset;
-            blockOffset += Align(block.StoredData.Length + blockTrailerSize, blockAlignment);
+            block.AllocationLength = Align(block.StoredData.Length + blockTrailerSize, blockAlignment);
+            blockOffset += block.AllocationLength;
         }
         var file = new byte[blockOffset];
         WriteHeader(file, ost, ansi, fourK, cryptMethod, bbtOffset, nbtOffset);
@@ -50,6 +52,17 @@ internal static class PstTestFileBuilder {
             byte[] data = block.StoredData.ToArray();
             if (cryptMethod != 0 && (block.Bid & 0x02) == 0) PstCrypt.Decode(data, cryptMethod, block.Bid);
             Buffer.BlockCopy(data, 0, file, block.Offset, data.Length);
+            WriteBlockTrailer(file, block, data, ansi, fourK, blockTrailerSize);
+        }
+        if (corruptPageCrc) {
+            int trailerOffset = nbtOffset + (ansi ? 500 : fourK ? 4072 : 496);
+            int crcOffset = trailerOffset + (ansi ? 8 : 4);
+            file[crcOffset] ^= 0x01;
+        }
+        if (corruptBlockCrc) {
+            TestBlock messageBlock = nodes[3].DataBlock;
+            int trailerOffset = messageBlock.Offset + messageBlock.AllocationLength - blockTrailerSize;
+            file[trailerOffset + 4] ^= 0x01;
         }
         return file;
     }
@@ -102,15 +115,17 @@ internal static class PstTestFileBuilder {
                 }
             }
         }
-        WriteBTreePageMetadata(file, bbtOffset, blocks.Count, entrySize, 0x80, ansi, fourK);
+        WriteBTreePageMetadata(
+            file, bbtOffset, blocks.Count, entrySize, 0x80, 0x204, ansi, fourK);
     }
 
     private static void WriteNbt(byte[] file, IReadOnlyList<TestNode> nodes, bool ansi, bool fourK,
         int nbtOffset) {
         int entrySize = ansi ? 16 : 32;
-        for (int index = 0; index < nodes.Count; index++) {
+        TestNode[] ordered = nodes.OrderBy(node => node.Nid).ToArray();
+        for (int index = 0; index < ordered.Length; index++) {
             int offset = nbtOffset + index * entrySize;
-            TestNode node = nodes[index];
+            TestNode node = ordered[index];
             WriteUInt32(file, offset, node.Nid);
             if (ansi) {
                 WriteUInt32(file, offset + 4, checked((uint)node.DataBlock.Bid));
@@ -122,11 +137,12 @@ internal static class PstTestFileBuilder {
                 WriteUInt32(file, offset + 24, node.ParentNid);
             }
         }
-        WriteBTreePageMetadata(file, nbtOffset, nodes.Count, entrySize, 0x81, ansi, fourK);
+        WriteBTreePageMetadata(
+            file, nbtOffset, nodes.Count, entrySize, 0x81, 0x200, ansi, fourK);
     }
 
-    private static void WriteBTreePageMetadata(byte[] file, int pageOffset, int count, int entrySize, byte type,
-        bool ansi, bool fourK) {
+    private static void WriteBTreePageMetadata(byte[] file, int pageOffset, int count,
+        int entrySize, byte type, ulong pageBid, bool ansi, bool fourK) {
         int metadataOffset = ansi ? 496 : fourK ? 4056 : 488;
         int trailerOffset = ansi ? 500 : fourK ? 4072 : 496;
         if (fourK) {
@@ -142,6 +158,32 @@ internal static class PstTestFileBuilder {
         }
         file[pageOffset + trailerOffset] = type;
         file[pageOffset + trailerOffset + 1] = type;
+        WriteUInt16(file, pageOffset + trailerOffset + 2,
+            PstSignature.Compute(pageOffset, pageBid));
+        uint crc = PstCrc32.Compute(file, pageOffset, trailerOffset);
+        if (ansi) {
+            WriteUInt32(file, pageOffset + trailerOffset + 4, checked((uint)pageBid));
+            WriteUInt32(file, pageOffset + trailerOffset + 8, crc);
+        } else {
+            WriteUInt32(file, pageOffset + trailerOffset + 4, crc);
+            WriteUInt64(file, pageOffset + trailerOffset + 8, pageBid);
+            if (fourK) WriteUInt64(file, pageOffset + trailerOffset + 16, 1);
+        }
+    }
+
+    private static void WriteBlockTrailer(byte[] file, TestBlock block, byte[] storedData,
+        bool ansi, bool fourK, int trailerSize) {
+        int trailerOffset = block.Offset + block.AllocationLength - trailerSize;
+        WriteUInt16(file, trailerOffset, storedData.Length);
+        WriteUInt16(file, trailerOffset + 2,
+            PstSignature.Compute(block.Offset, block.Bid));
+        WriteUInt32(file, trailerOffset + 4, PstCrc32.Compute(storedData));
+        if (ansi) WriteUInt32(file, trailerOffset + 8, checked((uint)block.Bid));
+        else WriteUInt64(file, trailerOffset + 8, block.Bid);
+        if (fourK) {
+            WriteUInt16(file, trailerOffset + 16, 2);
+            WriteUInt16(file, trailerOffset + 18, block.Data.Length);
+        }
     }
 
     private static byte[] CreatePropertyContext(params (ushort Id, string Value)[] strings) {
@@ -376,5 +418,6 @@ internal static class PstTestFileBuilder {
         internal byte[] Data { get; }
         internal byte[] StoredData { get; set; } = Array.Empty<byte>();
         internal int Offset { get; set; }
+        internal int AllocationLength { get; set; }
     }
 }
