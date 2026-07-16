@@ -39,18 +39,41 @@ public sealed class NotebookWriterTests {
         Assert.True(dependencies < firstRoot);
     }
 
-    [Fact]
-    public void TableOfContentsRoundTripsRootHierarchy() {
+    [Theory]
+    [InlineData(OneNoteStorageFormat.RevisionStore)]
+    [InlineData(OneNoteStorageFormat.FileSynchronizationPackage)]
+    public void TableOfContentsRoundTripsRootHierarchy(OneNoteStorageFormat storageFormat) {
         OneNoteNotebook original = CreateNotebook();
 
-        byte[] data = OneNoteTableOfContentsWriter.Write(original);
+        byte[] data = OneNoteTableOfContentsWriter.Write(original, new OneNoteWriterOptions {
+            StorageFormat = storageFormat
+        });
         OneNoteNotebook result = OneNoteNotebookReader.Read(new MemoryStream(data));
 
         OneNoteFileHeader header = OneNoteFileProbe.ReadHeader(new MemoryStream(data));
         Assert.Equal(OneNoteFileKind.TableOfContents, header.FileKind);
-        Assert.Equal(OneNoteStorageFormat.RevisionStore, header.StorageFormat);
+        Assert.Equal(storageFormat, header.StorageFormat);
+        Assert.Equal(storageFormat, result.TableOfContentsStorageFormat);
         Assert.Equal(original.Id, result.Id);
         Assert.Equal(original.Id, header.FileId);
+        Assert.Equal("Root", Assert.Single(result.Sections).Name);
+        Assert.Equal("Group", Assert.Single(result.SectionGroups).Name);
+    }
+
+    [Fact]
+    public void LoadedFssHttpTableOfContentsPreservesItsStorageFormatByDefault() {
+        byte[] source = OneNoteTableOfContentsWriter.Write(CreateNotebook(), new OneNoteWriterOptions {
+            StorageFormat = OneNoteStorageFormat.FileSynchronizationPackage
+        });
+        OneNoteNotebook loaded = OneNoteNotebookReader.Read(new MemoryStream(source));
+
+        byte[] rewritten = OneNoteTableOfContentsWriter.Write(loaded);
+
+        OneNoteFileHeader header = OneNoteFileProbe.ReadHeader(new MemoryStream(rewritten));
+        OneNoteNotebook result = OneNoteNotebookReader.Read(new MemoryStream(rewritten));
+        Assert.Equal(OneNoteStorageFormat.FileSynchronizationPackage, header.StorageFormat);
+        Assert.Equal(OneNoteStorageFormat.FileSynchronizationPackage, result.TableOfContentsStorageFormat);
+        Assert.Equal(loaded.Id, result.Id);
         Assert.Equal("Root", Assert.Single(result.Sections).Name);
         Assert.Equal("Group", Assert.Single(result.SectionGroups).Name);
     }
