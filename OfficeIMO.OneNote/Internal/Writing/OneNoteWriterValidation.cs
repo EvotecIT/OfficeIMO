@@ -12,6 +12,7 @@ internal static class OneNoteWriterValidation {
 
     internal static void ValidateNotebookOptions(OneNoteWriterOptions options) {
         ValidateSectionOptions(options);
+        ValidateTraversalDepth(options.MaxSectionGroupDepth, nameof(options.MaxSectionGroupDepth));
         if (options.MaxPackageEntries < 1 || options.MaxPackageEntries > ushort.MaxValue) {
             throw new ArgumentOutOfRangeException(nameof(options.MaxPackageEntries), "MaxPackageEntries must be between 1 and 65535.");
         }

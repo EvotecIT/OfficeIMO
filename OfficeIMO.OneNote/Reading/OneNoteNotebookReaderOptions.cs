@@ -2,6 +2,9 @@ namespace OfficeIMO.OneNote;
 
 /// <summary>Controls offline notebook and table-of-contents loading.</summary>
 public sealed class OneNoteNotebookReaderOptions {
+    /// <summary>Default maximum nested section-group depth.</summary>
+    public const int DefaultMaxSectionGroupDepth = 32;
+
     /// <summary>Limits used when reading each <c>.onetoc2</c> and <c>.one</c> revision store.</summary>
     public OneNoteReaderOptions OneNoteOptions { get; set; } = new OneNoteReaderOptions();
 
@@ -21,7 +24,7 @@ public sealed class OneNoteNotebookReaderOptions {
     public bool IncludeRecycleBin { get; set; }
 
     /// <summary>Maximum nested section-group depth.</summary>
-    public int MaxSectionGroupDepth { get; set; } = 32;
+    public int MaxSectionGroupDepth { get; set; } = DefaultMaxSectionGroupDepth;
 
     /// <summary>Maximum total number of TOC entries across the notebook.</summary>
     public int MaxNotebookEntries { get; set; } = 10000;

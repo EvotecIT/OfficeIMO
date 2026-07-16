@@ -69,6 +69,43 @@ public sealed class WriterModelSafetyTests {
     }
 
     [Fact]
+    public void WriterRejectsSharedContentAcrossTableCells() {
+        var section = new OneNoteSection { Name = "Shared content" };
+        var page = new OneNotePage { Title = "Current" };
+        var table = new OneNoteTable();
+        var row = new OneNoteTableRow();
+        var first = new OneNoteTableCell();
+        var second = new OneNoteTableCell();
+        var paragraph = new OneNoteParagraph();
+        paragraph.Runs.Add(new OneNoteTextRun { Text = "Shared" });
+        first.Content.Add(paragraph);
+        second.Content.Add(paragraph);
+        row.Cells.Add(first);
+        row.Cells.Add(second);
+        table.Rows.Add(row);
+        page.DirectContent.Add(table);
+        section.Pages.Add(page);
+
+        OneNoteFormatException exception = Assert.Throws<OneNoteFormatException>(() =>
+            OneNoteSectionWriter.Write(section, NoRoundTrip()));
+
+        Assert.Equal("ONENOTE_WRITE_SHARED_CONTENT", exception.Code);
+    }
+
+    [Fact]
+    public void WriterRejectsSharedPageInstances() {
+        var section = new OneNoteSection { Name = "Shared page" };
+        var page = new OneNotePage { Title = "Current" };
+        section.Pages.Add(page);
+        section.Pages.Add(page);
+
+        OneNoteFormatException exception = Assert.Throws<OneNoteFormatException>(() =>
+            OneNoteSectionWriter.Write(section, NoRoundTrip()));
+
+        Assert.Equal("ONENOTE_WRITE_SHARED_PAGE", exception.Code);
+    }
+
+    [Fact]
     public void WriterRejectsContentDepthPastTheConfiguredLimit() {
         OneNoteSection section = CreateOutlineChain(4);
 

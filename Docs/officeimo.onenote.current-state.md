@@ -51,7 +51,7 @@ Manual desktop validation used Microsoft OneNote only as an interoperability ora
 
 ## Safety model
 
-Parsing is bounded by configurable byte, node, transaction, object, property, recursion, stream-object, asset, package-entry, and expansion limits. Writing validates caller-created page and content graphs for cycles, enforces configurable depth limits with a hard safety ceiling, and rejects native list levels outside the representable range. Shared Markdown projection clamps arbitrary list levels before indentation reaches Reader, HTML, or PDF. Package entry names reject traversal, rooted paths, and drive paths. Deterministic byte-mutation and truncation tests require malformed inputs either to parse safely or fail through bounded I/O/format exceptions rather than runtime index or allocation failures.
+Parsing is bounded by configurable byte, node, transaction, object, property, recursion, stream-object, asset, package-entry, and expansion limits. Writing validates caller-created notebook, page, and content graphs for cycles and shared instances, enforces configurable depth limits with a hard safety ceiling, reserves each scope's required table-of-contents filename, and rejects native list levels outside the representable range. Shared Markdown projection clamps arbitrary list levels before indentation reaches Reader, HTML, or PDF. Package entry names reject traversal, rooted paths, and drive paths. Deterministic byte-mutation and truncation tests require malformed inputs either to parse safely or fail through bounded I/O/format exceptions rather than runtime index or allocation failures.
 
 ## Projection ownership
 

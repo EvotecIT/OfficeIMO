@@ -54,7 +54,7 @@ var options = new OneNoteWriterOptions {
 OneNoteSectionWriter.Write(section, "Planning.one", options);
 ```
 
-`OneNoteWriterOptions.StorageFormat` applies to native `.one` and `.onetoc2` payloads. Use `OneNotePackageWriter` for the Cabinet-based `.onepkg` container. The same options also provide tighter output, package-entry, related-page-depth, and content-depth limits when needed.
+`OneNoteWriterOptions.StorageFormat` applies to native `.one` and `.onetoc2` payloads. Use `OneNotePackageWriter` for the Cabinet-based `.onepkg` container. The same options also provide tighter output, package-entry, section-group-depth, related-page-depth, and content-depth limits when needed.
 
 ## Notebooks and packages
 
@@ -106,7 +106,7 @@ These fail-closed boundaries distinguish preservation from authoring support.
 
 Conflict and version-history object spaces are traversed once per section. Repeated or cyclic references in malformed page graphs are pruned to a bounded spanning tree so the loaded model remains safe to convert and rewrite.
 
-Before writing, caller-created conflict/version relationships and nested content are checked for cycles and excessive depth. `MaxPageRelationshipDepth` and `MaxContentDepth` default to 128 and accept values up to the hard safety ceiling of 256. Native list levels are limited to 0 through `OneNoteListInfo.MaxLevel` (254); the shared Markdown projection clamps out-of-range caller values to that representable range so Markdown, HTML, PDF, and Reader conversion cannot allocate arbitrary indentation.
+Before writing, caller-created section-group, conflict/version, and nested-content relationships are checked for cycles, shared instances, and excessive depth. `MaxSectionGroupDepth` defaults to 32; `MaxPageRelationshipDepth` and `MaxContentDepth` default to 128. All three accept values up to the hard safety ceiling of 256, and configured writer bounds are propagated into read-back validation. The required `Open Notebook.onetoc2` filename is reserved when section-group directories are allocated. Native list levels are limited to 0 through `OneNoteListInfo.MaxLevel` (254); the shared Markdown projection clamps out-of-range caller values to that representable range so Markdown, HTML, PDF, and Reader conversion cannot allocate arbitrary indentation.
 
 Caller-owned streams stay open. Seekable read streams are restored to their original position. Async probe and Reader entry points support cancellation.
 

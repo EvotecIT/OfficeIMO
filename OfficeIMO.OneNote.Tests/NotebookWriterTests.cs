@@ -134,6 +134,85 @@ public sealed class NotebookWriterTests {
     }
 
     [Fact]
+    public void PackageWriterRejectsCyclicSectionGroupsBeforeDescending() {
+        var notebook = new OneNoteNotebook { Name = "Cycle" };
+        var group = new OneNoteSectionGroup { Name = "Loop" };
+        group.SectionGroups.Add(group);
+        notebook.SectionGroups.Add(group);
+
+        OneNoteFormatException exception = Assert.Throws<OneNoteFormatException>(() =>
+            OneNotePackageWriter.Write(notebook, new OneNoteWriterOptions { ValidateRoundTrip = false }));
+
+        Assert.Equal("ONENOTE_WRITE_GROUP_CYCLE", exception.Code);
+    }
+
+    [Fact]
+    public void PackageWriterRejectsSharedSectionGroupInstances() {
+        var notebook = new OneNoteNotebook { Name = "Shared" };
+        var group = new OneNoteSectionGroup { Name = "Repeated" };
+        notebook.SectionGroups.Add(group);
+        notebook.SectionGroups.Add(group);
+
+        OneNoteFormatException exception = Assert.Throws<OneNoteFormatException>(() =>
+            OneNotePackageWriter.Write(notebook, new OneNoteWriterOptions { ValidateRoundTrip = false }));
+
+        Assert.Equal("ONENOTE_WRITE_SHARED_GROUP", exception.Code);
+    }
+
+    [Fact]
+    public void PackageWriterRejectsSectionGroupDepthPastTheConfiguredLimit() {
+        OneNoteNotebook notebook = CreateGroupChain(4);
+
+        OneNoteFormatException exception = Assert.Throws<OneNoteFormatException>(() =>
+            OneNotePackageWriter.Write(notebook, new OneNoteWriterOptions {
+                MaxSectionGroupDepth = 3,
+                ValidateRoundTrip = false
+            }));
+
+        Assert.Equal("ONENOTE_WRITE_GROUP_DEPTH", exception.Code);
+    }
+
+    [Fact]
+    public void PackageWriterRoundTripUsesTheConfiguredSectionGroupDepth() {
+        int depth = OneNoteNotebookReaderOptions.DefaultMaxSectionGroupDepth + 1;
+
+        byte[] package = OneNotePackageWriter.Write(CreateGroupChain(depth), new OneNoteWriterOptions {
+            MaxSectionGroupDepth = depth
+        });
+
+        Assert.NotEmpty(package);
+    }
+
+    [Fact]
+    public void WritersReserveTheTocFileNameWhenAllocatingGroupDirectories() {
+        var notebook = new OneNoteNotebook { Name = "Reserved" };
+        var group = new OneNoteSectionGroup { Name = "Open Notebook.onetoc2" };
+        group.Sections.Add(CreateSection("Nested", "Nested page"));
+        notebook.SectionGroups.Add(group);
+
+        byte[] package = OneNotePackageWriter.Write(notebook);
+        string[] packageNames = OneNoteCabinetArchiveReader
+            .Read(package, 16 * 1024 * 1024, 16 * 1024 * 1024, 10)
+            .Select(entry => entry.Name.Replace('\\', '/'))
+            .ToArray();
+
+        Assert.Contains("Open Notebook.onetoc2", packageNames);
+        Assert.Contains("Open Notebook (2).onetoc2/Open Notebook.onetoc2", packageNames);
+        Assert.DoesNotContain(packageNames, name => name.StartsWith("Open Notebook.onetoc2/", StringComparison.OrdinalIgnoreCase));
+
+        string root = Path.Combine(Path.GetTempPath(), "OfficeIMO-OneNote-Reserved-" + Guid.NewGuid().ToString("N"));
+        try {
+            OneNoteNotebookWriter.Write(notebook, root);
+
+            Assert.True(File.Exists(Path.Combine(root, "Open Notebook.onetoc2")));
+            Assert.True(Directory.Exists(Path.Combine(root, "Open Notebook (2).onetoc2")));
+            Assert.True(File.Exists(Path.Combine(root, "Open Notebook (2).onetoc2", "Open Notebook.onetoc2")));
+        } finally {
+            if (Directory.Exists(root)) Directory.Delete(root, true);
+        }
+    }
+
+    [Fact]
     public void PackageWriterRejectsKnownLazyPayloadAgainstRemainingAggregateBudgetWithoutOpeningIt() {
         OneNoteSection first = CreateSection("First", "First page");
         long firstSectionBytes = OneNoteSectionWriter.Write(first, new OneNoteWriterOptions {
@@ -316,6 +395,19 @@ public sealed class NotebookWriterTests {
         var group = new OneNoteSectionGroup { Name = "Group" };
         group.Sections.Add(CreateSection("Nested", "Nested page"));
         notebook.SectionGroups.Add(group);
+        return notebook;
+    }
+
+    private static OneNoteNotebook CreateGroupChain(int groupCount) {
+        var notebook = new OneNoteNotebook { Name = "Groups" };
+        var root = new OneNoteSectionGroup { Name = "Group 0" };
+        OneNoteSectionGroup parent = root;
+        for (int index = 1; index < groupCount; index++) {
+            var child = new OneNoteSectionGroup { Name = "Group " + index };
+            parent.SectionGroups.Add(child);
+            parent = child;
+        }
+        notebook.SectionGroups.Add(root);
         return notebook;
     }
 

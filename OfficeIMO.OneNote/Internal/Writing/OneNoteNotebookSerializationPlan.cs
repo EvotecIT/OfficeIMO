@@ -14,6 +14,7 @@ internal sealed class OneNoteNotebookSerializationPlan {
     internal static OneNoteNotebookSerializationPlan Create(OneNoteNotebook notebook, OneNoteWriterOptions options) {
         if (notebook == null) throw new ArgumentNullException(nameof(notebook));
         OneNoteWriterValidation.ValidateNotebookOptions(options);
+        OneNoteWriteModelValidator.ValidateNotebook(notebook, options, validateSectionContent: true);
         var plan = new OneNoteNotebookSerializationPlan(options);
         Guid rootId = EnsureIdentity(notebook.Id);
         notebook.Id = rootId;
@@ -34,6 +35,7 @@ internal sealed class OneNoteNotebookSerializationPlan {
     internal static byte[] CreateRootTableOfContents(OneNoteNotebook notebook, OneNoteWriterOptions options) {
         if (notebook == null) throw new ArgumentNullException(nameof(notebook));
         OneNoteWriterValidation.ValidateNotebookOptions(options);
+        OneNoteWriteModelValidator.ValidateNotebook(notebook, options, validateSectionContent: false);
         Guid rootId = EnsureIdentity(notebook.Id);
         notebook.Id = rootId;
         IReadOnlyList<OneNoteTocWriteEntry> entries = CreateTocEntries(notebook.Sections, notebook.SectionGroups);
@@ -62,7 +64,7 @@ internal sealed class OneNoteNotebookSerializationPlan {
         OneNoteExtendedGuid? rootObjectId,
         IList<OneNoteOpaqueObject> preservedObjects) {
         int tocEntryIndex = _entries.Count;
-        var usedNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var usedNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { TocFileName };
         var tocEntries = new List<OneNoteTocWriteEntry>();
         uint order = 0;
         foreach (OneNoteNotebookHierarchyItem item in OneNoteNotebookHierarchy.Order(sections, groups)) {
@@ -148,6 +150,9 @@ internal sealed class OneNoteNotebookSerializationPlan {
                 if (toc) {
                     OneNoteNotebookReader.Read(stream, TocFileName, new OneNoteNotebookReaderOptions {
                         LoadSectionContent = false,
+                        MaxSectionGroupDepth = Math.Max(
+                            OneNoteNotebookReaderOptions.DefaultMaxSectionGroupDepth,
+                            options.MaxSectionGroupDepth),
                         OneNoteOptions = OneNoteWriterValidation.CreateReaderOptions(options, maxOutputBytes)
                     });
                 } else {
@@ -159,7 +164,7 @@ internal sealed class OneNoteNotebookSerializationPlan {
     }
 
     private static IReadOnlyList<OneNoteTocWriteEntry> CreateTocEntries(IList<OneNoteSection> sections, IList<OneNoteSectionGroup> groups) {
-        var usedNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var usedNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { TocFileName };
         var result = new List<OneNoteTocWriteEntry>();
         uint order = 0;
         foreach (OneNoteNotebookHierarchyItem item in OneNoteNotebookHierarchy.Order(sections, groups)) {

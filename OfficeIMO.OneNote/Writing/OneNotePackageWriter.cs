@@ -12,6 +12,9 @@ public static class OneNotePackageWriter {
                 OneNotePackageReader.Read(stream, "notebook.onepkg", new OneNoteNotebookReaderOptions {
                     ContinueOnSectionError = false,
                     IncludeRecycleBin = true,
+                    MaxSectionGroupDepth = Math.Max(
+                        OneNoteNotebookReaderOptions.DefaultMaxSectionGroupDepth,
+                        effective.MaxSectionGroupDepth),
                     MaxPackageEntries = effective.MaxPackageEntries,
                     MaxPackageExpandedBytes = effective.MaxOutputBytes,
                     MaxPackageEntryBytes = effective.MaxOutputBytes,

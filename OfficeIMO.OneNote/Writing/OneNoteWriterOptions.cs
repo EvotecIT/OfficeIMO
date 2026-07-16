@@ -8,6 +8,9 @@ public sealed class OneNoteWriterOptions {
     /// <summary>Default maximum nesting depth for serializable content elements.</summary>
     public const int DefaultMaxContentDepth = OneNoteReaderOptions.DefaultMaxPropertySetDepth;
 
+    /// <summary>Default maximum nesting depth for notebook section groups.</summary>
+    public const int DefaultMaxSectionGroupDepth = OneNoteNotebookReaderOptions.DefaultMaxSectionGroupDepth;
+
     /// <summary>
     /// Physical encoding for generated <c>.one</c> and <c>.onetoc2</c> payloads.
     /// <see cref="OneNoteStorageFormat.Unknown"/> preserves a loaded artifact's source encoding
@@ -23,6 +26,12 @@ public sealed class OneNoteWriterOptions {
 
     /// <summary>Maximum number of files emitted into a notebook directory or <c>.onepkg</c> archive.</summary>
     public int MaxPackageEntries { get; set; } = 10000;
+
+    /// <summary>
+    /// Maximum nesting depth for notebook section groups.
+    /// Values must be from 1 through <see cref="MaximumTraversalDepth"/>.
+    /// </summary>
+    public int MaxSectionGroupDepth { get; set; } = DefaultMaxSectionGroupDepth;
 
     /// <summary>
     /// Maximum nesting depth across conflict and version-history page relationships.
