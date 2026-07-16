@@ -80,7 +80,7 @@ internal sealed class OneNoteNotebookSerializationPlan {
                     _options.PreserveUnknownData,
                     _options.MaxPageRelationshipDepth,
                     _options.MaxContentDepth).BuildSection(section, tocId, fileName, sectionId);
-                AddEntry(Combine(prefix, fileName), SerializeGraph(graph, _options, false, section.StorageFormat, entryLimit));
+                AddEntry(Combine(prefix, fileName), SerializeGraph(graph, _options, false, section.StorageFormat, entryLimit, section));
                 tocEntries.Add(new OneNoteTocWriteEntry(sectionId, fileName, order++, section.ColorArgb));
             } else {
                 OneNoteSectionGroup group = item.Group!;
@@ -143,7 +143,8 @@ internal sealed class OneNoteNotebookSerializationPlan {
         OneNoteWriterOptions options,
         bool toc,
         OneNoteStorageFormat sourceStorageFormat,
-        long maxOutputBytes) {
+        long maxOutputBytes,
+        OneNoteSection? expectedSection = null) {
         byte[] data = OneNoteGraphSerializer.Write(graph, options, sourceStorageFormat, maxOutputBytes);
         if (options.ValidateRoundTrip) {
             using (var stream = new MemoryStream(data, false)) {
@@ -156,7 +157,10 @@ internal sealed class OneNoteNotebookSerializationPlan {
                         OneNoteOptions = OneNoteWriterValidation.CreateReaderOptions(options, maxOutputBytes)
                     });
                 } else {
-                    OneNoteSectionReader.Read(stream, OneNoteWriterValidation.CreateReaderOptions(options, maxOutputBytes));
+                    OneNoteSection roundTrip = OneNoteSectionReader.Read(
+                        stream,
+                        OneNoteWriterValidation.CreateReaderOptions(options, maxOutputBytes));
+                    if (expectedSection != null) OneNoteWriteRoundTripValidator.ValidateSection(expectedSection, roundTrip);
                 }
             }
         }

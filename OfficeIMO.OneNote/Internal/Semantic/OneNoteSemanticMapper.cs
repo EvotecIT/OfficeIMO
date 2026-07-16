@@ -487,6 +487,7 @@ internal static partial class OneNoteSemanticMapper {
         if (fontSize.HasValue) target.Style.FontSize = fontSize.Value / 2.0;
         target.Style.ColorArgb = ReadUInt32(style, FontColor);
         target.Style.HighlightColorArgb = ReadUInt32(style, Highlight);
+        target.Style.LanguageId = ReadUInt32(style, OneNoteSchema.LanguageId);
         target.Style.IsMath = ReadBoolean(style, MathFormatting);
         target.HyperlinkProtected = ReadBoolean(style, HyperlinkProtected) ?? false;
         if (ReadBoolean(style, Hyperlink) == true || target.HyperlinkProtected) {

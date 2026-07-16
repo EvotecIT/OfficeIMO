@@ -41,11 +41,11 @@ OneNote/RichEdit vertical tabs and form feeds project as line breaks. Other unsu
 
 Current pages are the default Reader and conversion surface. `OneNoteMarkdownOptions` and `ReaderOneNoteOptions` provide separate opt-ins for conflict pages and version-history snapshots so applications do not accidentally ingest superseded content. Reader metadata still reports current, conflict, and version counts. Notebook readers similarly exclude `OneNote_RecycleBin` by default and expose it through `OneNoteNotebookReaderOptions.IncludeRecycleBin`.
 
-Direct page content is accepted on read. Writers canonicalize it into an outline, preserving element content while producing the interoperable native hierarchy. Empty recycle-bin groups are written with a valid empty TOC.
+Direct page content is accepted on read. Writers canonicalize it into an outline, preserving element content while producing the interoperable native hierarchy. Shared native page-series objects retain contiguous current-page runs and their ordered cached metadata during preservation writes; an insertion or move that splits a source series starts a new native run so caller order remains authoritative. Empty recycle-bin groups are written with a valid empty TOC.
 
 ## Interoperability proof
 
-The automated suite validates desktop revision-store structures, transaction checksums, read-only declaration hashes, dependency graphs, FSSHTTP stream objects and cells, notebook TOCs, Cabinet packages, and read-after-write behavior. A legal fixture corpus covers both desktop and Microsoft 365/FSSHTTP sources.
+The automated suite validates desktop revision-store structures, transaction checksums, read-only declaration hashes, dependency graphs, FSSHTTP stream objects and cells, shared multi-page series (including caller insertions), notebook TOCs, Cabinet packages, and semantic read-after-write behavior. The default readback guard checks page identity/order/relationships, structural content and table topology, rich-text runs, supported layout/media metadata, and binary payload resolution plus known length; it is not a byte-for-byte payload or opaque-property equivalence check. A legal fixture corpus covers both desktop and Microsoft 365/FSSHTTP sources.
 
 Manual desktop validation used Microsoft OneNote only as an interoperability oracle: generated sections containing rich text, tags/tasks, conflict pages, and version history were opened, edited, saved, closed, and reopened. OfficeIMO then read the OneNote-saved artifacts with no parser diagnostics and observed the external edits. No COM or OneNote dependency exists in the shipping libraries.
 

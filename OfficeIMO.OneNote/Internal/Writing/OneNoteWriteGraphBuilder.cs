@@ -34,6 +34,8 @@ internal sealed partial class OneNoteWriteGraphBuilder {
         var graph = new OneNoteWriteGraph(fileId, OneNoteFileKind.Section, sectionSpaceId, ancestorId ?? Guid.Empty, OneNoteCrc32.ComputeFileName(fileName));
         var sectionSpace = new OneNoteWriteObjectSpace(sectionSpaceId, IdOrNew(sourceSectionSpace?.Revision.Id));
         var pageSeriesIds = new List<OneNoteExtendedGuid>();
+        var pageSeries = new List<PageSeriesWriteAccumulator>();
+        var emittedPageSeriesIds = new HashSet<OneNoteExtendedGuid>();
         DateTime sectionCreationUtc = section.Pages
             .Where(page => page.CreatedUtc.HasValue)
             .Select(page => page.CreatedUtc!.Value.ToUniversalTime())
@@ -72,15 +74,34 @@ internal sealed partial class OneNoteWriteGraphBuilder {
                 OneNoteSchema.JcidPageMetadata,
                 PageMetadataProperties(page, pageManagementId, pageCreationUtc)));
 
-            OneNoteExtendedGuid seriesId = IdOrNew(preservation?.GetPageSeriesId(page));
-            OneNoteRevisionStoreObject? sourceSeries = sourceSectionSpace?.GetObject(seriesId);
-            sectionSpace.Objects.Add(new OneNoteWriteObject(seriesId, OneNoteSchema.JcidPageSeriesNode, new[] {
-                Data(OneNoteSchema.NotebookManagementEntityGuid, (ReadGuidProperty(sourceSeries, OneNoteSchema.NotebookManagementEntityGuid) ?? Guid.NewGuid()).ToByteArray()),
-                ObjectSpaceReferences(OneNoteSchema.ChildGraphSpaceElementNodes, pageSpaceId),
-                Scalar(OneNoteSchema.TopologyCreationTimestamp, FileTime(pageCreationUtc)),
-                ObjectReferences(OneNoteSchema.MetaDataObjectsAboveGraphSpace, cachedMetadataId)
+            OneNoteExtendedGuid sourceSeriesId = IdOrNew(preservation?.GetPageSeriesId(page));
+            PageSeriesWriteAccumulator? series = pageSeries.LastOrDefault();
+            if (series == null || !series.SourceId.Equals(sourceSeriesId)) {
+                OneNoteExtendedGuid emittedSeriesId = sourceSeriesId;
+                if (!emittedPageSeriesIds.Add(emittedSeriesId)) {
+                    do {
+                        emittedSeriesId = _ids.New();
+                    } while (!emittedPageSeriesIds.Add(emittedSeriesId));
+                }
+                OneNoteRevisionStoreObject? sourceSeries = sourceSectionSpace?.GetObject(sourceSeriesId);
+                series = new PageSeriesWriteAccumulator(
+                    emittedSeriesId,
+                    sourceSeriesId,
+                    ReadGuidProperty(sourceSeries, OneNoteSchema.NotebookManagementEntityGuid) ?? Guid.NewGuid(),
+                    pageCreationUtc);
+                pageSeries.Add(series);
+            }
+            series.Add(pageSpaceId, cachedMetadataId, pageCreationUtc);
+        }
+
+        foreach (PageSeriesWriteAccumulator series in pageSeries) {
+            sectionSpace.Objects.Add(new OneNoteWriteObject(series.Id, OneNoteSchema.JcidPageSeriesNode, new[] {
+                Data(OneNoteSchema.NotebookManagementEntityGuid, series.ManagementId.ToByteArray()),
+                ObjectSpaceReferences(OneNoteSchema.ChildGraphSpaceElementNodes, series.PageSpaceIds.ToArray()),
+                Scalar(OneNoteSchema.TopologyCreationTimestamp, FileTime(series.CreationUtc)),
+                ObjectReferences(OneNoteSchema.MetaDataObjectsAboveGraphSpace, series.CachedMetadataIds)
             }));
-            pageSeriesIds.Add(seriesId);
+            pageSeriesIds.Add(series.Id);
         }
 
         OneNoteRevisionStoreObject? sourceSectionRoot = sourceSectionSpace?.GetRoot(1);
@@ -407,4 +428,30 @@ internal sealed partial class OneNoteWriteGraphBuilder {
     }
 
     private static uint PageLevel(int level) => level < 0 ? 1U : checked((uint)((long)level + 1L));
+
+    private sealed class PageSeriesWriteAccumulator {
+        internal PageSeriesWriteAccumulator(
+            OneNoteExtendedGuid id,
+            OneNoteExtendedGuid sourceId,
+            Guid managementId,
+            DateTime creationUtc) {
+            Id = id;
+            SourceId = sourceId;
+            ManagementId = managementId;
+            CreationUtc = creationUtc;
+        }
+
+        internal OneNoteExtendedGuid Id { get; }
+        internal OneNoteExtendedGuid SourceId { get; }
+        internal Guid ManagementId { get; }
+        internal DateTime CreationUtc { get; private set; }
+        internal IList<OneNoteExtendedGuid> PageSpaceIds { get; } = new List<OneNoteExtendedGuid>();
+        internal IList<OneNoteExtendedGuid> CachedMetadataIds { get; } = new List<OneNoteExtendedGuid>();
+
+        internal void Add(OneNoteExtendedGuid pageSpaceId, OneNoteExtendedGuid cachedMetadataId, DateTime creationUtc) {
+            PageSpaceIds.Add(pageSpaceId);
+            CachedMetadataIds.Add(cachedMetadataId);
+            if (creationUtc < CreationUtc) CreationUtc = creationUtc;
+        }
+    }
 }

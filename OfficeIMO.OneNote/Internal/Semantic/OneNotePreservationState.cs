@@ -40,10 +40,17 @@ internal sealed class OneNoteSectionPreservationState {
         foreach (OneNoteExtendedGuid seriesId in OneNoteSemanticMapper.GetReferences(sectionRoot, OneNoteSchema.ElementChildNodes)) {
             OneNoteRevisionStoreObject? series = sectionSpace.GetObject(seriesId);
             if (series?.Jcid.Value != OneNoteSchema.JcidPageSeriesNode) continue;
-            foreach (OneNoteExtendedGuid pageSpaceId in OneNoteSemanticMapper.GetReferences(series, OneNoteSchema.ChildGraphSpaceElementNodes)) {
+            OneNoteExtendedGuid[] pageSpaceIds = OneNoteSemanticMapper
+                .GetReferences(series, OneNoteSchema.ChildGraphSpaceElementNodes)
+                .ToArray();
+            OneNoteExtendedGuid[] cachedIds = OneNoteSemanticMapper
+                .GetReferences(series, OneNoteSchema.MetaDataObjectsAboveGraphSpace)
+                .ToArray();
+            for (int index = 0; index < pageSpaceIds.Length; index++) {
+                OneNoteExtendedGuid pageSpaceId = pageSpaceIds[index];
                 pageSeriesIds[pageSpaceId] = series.Id;
-                OneNoteExtendedGuid? cachedId = OneNoteSemanticMapper.GetReferences(series, OneNoteSchema.MetaDataObjectsAboveGraphSpace).FirstOrDefault();
-                if (cachedId != null) {
+                if (index < cachedIds.Length) {
+                    OneNoteExtendedGuid cachedId = cachedIds[index];
                     cachedMetadataIds[pageSpaceId] = cachedId;
                     sectionSpace.GetObject(cachedId);
                 }

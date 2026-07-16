@@ -21,7 +21,10 @@ public sealed class OneNoteWriterOptions {
     /// <summary>Maximum serialized output size. The default is 512 MiB.</summary>
     public long MaxOutputBytes { get; set; } = OneNoteReaderOptions.DefaultMaxInputBytes;
 
-    /// <summary>Reads the generated artifact back before returning it.</summary>
+    /// <summary>
+    /// Reads the generated artifact back and verifies page identity, order, relationships, structural content,
+    /// rich-text runs, supported layout/media metadata, and binary payload resolution state before returning it.
+    /// </summary>
     public bool ValidateRoundTrip { get; set; } = true;
 
     /// <summary>Maximum number of files emitted into a notebook directory or <c>.onepkg</c> archive.</summary>

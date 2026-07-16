@@ -28,6 +28,7 @@ public sealed class SectionWriterTests {
                         Assert.True(run.Style.Bold);
                         Assert.Equal("Aptos", run.Style.FontFamily);
                         Assert.Equal(12, run.Style.FontSize);
+                        Assert.Equal(0x0415U, run.Style.LanguageId);
                     },
                     run => {
                         Assert.Equal("world", run.Text);
@@ -612,6 +613,7 @@ public sealed class SectionWriterTests {
         first.Style.Bold = true;
         first.Style.FontFamily = "Aptos";
         first.Style.FontSize = 12;
+        first.Style.LanguageId = 0x0415U;
         var second = new OneNoteTextRun { Text = "world", Hyperlink = "https://example.test/" };
         second.Style.Italic = true;
         paragraph.Runs.Add(first);
