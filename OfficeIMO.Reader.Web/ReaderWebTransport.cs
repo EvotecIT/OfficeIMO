@@ -15,44 +15,62 @@ internal static class ReaderWebTransport {
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         timeout.CancelAfter(options.RequestTimeout);
         try {
-            using var request = new HttpRequestMessage(HttpMethod.Get, uri);
-            using HttpResponseMessage response = await httpClient.SendAsync(
-                request,
-                HttpCompletionOption.ResponseHeadersRead,
-                timeout.Token).ConfigureAwait(false);
-            Uri finalUri = response.RequestMessage?.RequestUri ?? uri;
-            ReaderWebUriPolicy.Validate(finalUri, options);
-            response.EnsureSuccessStatusCode();
-
-            long? declaredLength = response.Content.Headers.ContentLength;
-            if (declaredLength.HasValue && declaredLength.Value > maxResponseBytes) {
-                throw new IOException(
-                    "HTTP response exceeds the effective web input byte limit (" +
-                    declaredLength.Value.ToString(CultureInfo.InvariantCulture) + " > " +
-                    maxResponseBytes.ToString(CultureInfo.InvariantCulture) + ").");
-            }
-
-            MemoryStream content = await ReadBoundedContentAsync(
-                response.Content,
-                declaredLength,
-                maxResponseBytes,
-                timeout.Token).ConfigureAwait(false);
+            HttpRequestMessage? request = new HttpRequestMessage(HttpMethod.Get, uri);
             try {
-                string logicalSourceName = ResolveSourceName(
-                    sourceName,
-                    finalUri,
-                    response.Content.Headers.ContentDisposition);
-                return new ReaderWebDownload(
-                    content,
-                    logicalSourceName,
-                    uri,
-                    finalUri,
-                    (int)response.StatusCode,
-                    response.Content.Headers.ContentType?.ToString(),
-                    response.Content.Headers.LastModified?.UtcDateTime);
-            } catch {
-                content.Dispose();
-                throw;
+                Task<HttpResponseMessage> sendOperation = httpClient.SendAsync(
+                    request,
+                    HttpCompletionOption.ResponseHeadersRead,
+                    timeout.Token);
+                HttpResponseMessage response;
+                try {
+                    response = await WaitForOperationAsync(
+                        sendOperation,
+                        timeout.Token,
+                        lateResponse => lateResponse.Dispose()).ConfigureAwait(false);
+                } catch (OperationCanceledException) when (!sendOperation.IsCompleted) {
+                    DisposeAfterCompletion(sendOperation, request);
+                    request = null;
+                    throw;
+                }
+
+                using (response) {
+                    Uri finalUri = response.RequestMessage?.RequestUri ?? uri;
+                    ReaderWebUriPolicy.Validate(finalUri, options);
+                    response.EnsureSuccessStatusCode();
+
+                    long? declaredLength = response.Content.Headers.ContentLength;
+                    if (declaredLength.HasValue && declaredLength.Value > maxResponseBytes) {
+                        throw new IOException(
+                            "HTTP response exceeds the effective web input byte limit (" +
+                            declaredLength.Value.ToString(CultureInfo.InvariantCulture) + " > " +
+                            maxResponseBytes.ToString(CultureInfo.InvariantCulture) + ").");
+                    }
+
+                    MemoryStream content = await ReadBoundedContentAsync(
+                        response.Content,
+                        declaredLength,
+                        maxResponseBytes,
+                        timeout.Token).ConfigureAwait(false);
+                    try {
+                        string logicalSourceName = ResolveSourceName(
+                            sourceName,
+                            finalUri,
+                            response.Content.Headers.ContentDisposition);
+                        return new ReaderWebDownload(
+                            content,
+                            logicalSourceName,
+                            uri,
+                            finalUri,
+                            (int)response.StatusCode,
+                            response.Content.Headers.ContentType?.ToString(),
+                            response.Content.Headers.LastModified?.UtcDateTime);
+                    } catch {
+                        content.Dispose();
+                        throw;
+                    }
+                }
+            } finally {
+                request?.Dispose();
             }
         } catch (OperationCanceledException exception)
             when (!cancellationToken.IsCancellationRequested && timeout.IsCancellationRequested) {
@@ -133,6 +151,21 @@ internal static class ReaderWebTransport {
                     }
                 }
             },
+            CancellationToken.None,
+            TaskContinuationOptions.ExecuteSynchronously,
+            TaskScheduler.Default);
+    }
+
+    private static void DisposeAfterCompletion(Task operation, IDisposable resource) {
+        _ = operation.ContinueWith(
+            (completed, state) => {
+                try {
+                    ((IDisposable)state!).Dispose();
+                } catch {
+                    // Cleanup must not surface on the continuation scheduler.
+                }
+            },
+            resource,
             CancellationToken.None,
             TaskContinuationOptions.ExecuteSynchronously,
             TaskScheduler.Default);

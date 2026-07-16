@@ -330,6 +330,39 @@ public sealed class ReaderWebTests {
     }
 
     [Fact]
+    public async Task WebReader_TimesOutANonCooperativeSendAndReleasesItsRequestSlot() {
+        var pendingSend = new TaskCompletionSource<HttpResponseMessage>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        int responseIndex = 0;
+        var handler = new DelegateHttpHandler((request, cancellationToken) => {
+            if (Interlocked.Increment(ref responseIndex) == 1) {
+                return pendingSend.Task;
+            }
+            return Task.FromResult(TextResponse("recovered", "text/plain"));
+        });
+        using var httpClient = new HttpClient(handler);
+        OfficeDocumentWebReader webReader = OfficeDocumentReader.Default.CreateWebReader(
+            httpClient,
+            new ReaderWebOptions {
+                MaxConcurrentRequests = 1,
+                RequestTimeout = TimeSpan.FromMilliseconds(100)
+            });
+
+        await Assert.ThrowsAsync<TimeoutException>(() =>
+            webReader.ReadDocumentAsync(new Uri("https://example.test/stalled-send.txt")));
+        OfficeDocumentReadResult recovered = await webReader.ReadDocumentAsync(
+            new Uri("https://example.test/recovered.txt"));
+        var lateStream = new TrackingMemoryStream(Encoding.UTF8.GetBytes("late"));
+        pendingSend.TrySetResult(new HttpResponseMessage(HttpStatusCode.OK) {
+            Content = new StreamContent(lateStream)
+        });
+
+        Assert.Contains("recovered", recovered.Markdown, StringComparison.Ordinal);
+        Assert.True(SpinWait.SpinUntil(() => lateStream.IsDisposed, TimeSpan.FromSeconds(2)));
+        Assert.Equal(2, handler.CallCount);
+    }
+
+    [Fact]
     public async Task WebReader_TimesOutANonCooperativeBodyAndReleasesItsRequestSlot() {
         var blockingStream = new CancellationIgnoringReadStream();
         int responseIndex = 0;
