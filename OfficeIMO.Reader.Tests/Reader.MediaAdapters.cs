@@ -8,7 +8,7 @@ using Xunit;
 
 namespace OfficeIMO.Tests;
 
-public sealed class ReaderMediaAdapterTests {
+public sealed partial class ReaderMediaAdapterTests {
     [Fact]
     public void DocumentResultFactory_PreservesTheFiveParameterAdapterOverload() {
         Type[] parameterTypes = {

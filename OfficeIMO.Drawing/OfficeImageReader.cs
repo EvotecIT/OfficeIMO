@@ -458,31 +458,6 @@ public static partial class OfficeImageReader {
         return width > 0 && height > 0;
     }
 
-    private static bool TryReadWmf(byte[] data, out OfficeImageInfo info) {
-        info = new OfficeImageInfo(OfficeImageFormat.Unknown, 0, 0);
-        if (data.Length < 22 || ReadInt32LittleEndian(data, 0) != unchecked((int)0x9AC6CDD7)) {
-            return false;
-        }
-
-        if (!HasValidPlaceableWmfChecksum(data)) {
-            return false;
-        }
-
-        int left = ReadInt16LittleEndian(data, 6);
-        int top = ReadInt16LittleEndian(data, 8);
-        int right = ReadInt16LittleEndian(data, 10);
-        int bottom = ReadInt16LittleEndian(data, 12);
-        int unitsPerInch = ReadUInt16LittleEndian(data, 14);
-        if (unitsPerInch <= 0) {
-            return false;
-        }
-
-        int width = (int)Math.Round(Math.Abs(right - left) * 96.0 / unitsPerInch);
-        int height = (int)Math.Round(Math.Abs(bottom - top) * 96.0 / unitsPerInch);
-        info = new OfficeImageInfo(OfficeImageFormat.Wmf, width, height);
-        return width > 0 && height > 0;
-    }
-
     private static bool TryReadSvg(
         byte[] data,
         string? fileName,
@@ -760,12 +735,4 @@ public static partial class OfficeImageReader {
     private static short ReadInt16LittleEndian(byte[] data, int offset) =>
         offset + 2 <= data.Length ? unchecked((short)(data[offset] | (data[offset + 1] << 8))) : (short)0;
 
-    private static bool HasValidPlaceableWmfChecksum(byte[] data) {
-        int checksum = 0;
-        for (int offset = 0; offset < 20; offset += 2) {
-            checksum ^= ReadUInt16LittleEndian(data, offset);
-        }
-
-        return checksum == ReadUInt16LittleEndian(data, 20);
-    }
 }
