@@ -6,6 +6,9 @@ using DocumentFormat.OpenXml.Validation;
 using OfficeIMO.Excel.LegacyXls;
 using OfficeIMO.Excel.LegacyXls.Diagnostics;
 using OfficeIMO.Excel.LegacyXls.Model;
+using OfficeIMO.Excel.Xlsb;
+using OfficeIMO.Excel.Xlsb.Model;
+using OfficeIMO.Excel.Xlsb.Projection;
 using OfficeIMO.Excel.Utilities;
 using OfficeIMO.Drawing;
 using System.IO.Packaging;
@@ -208,7 +211,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (detectedFormat == ExcelFileFormat.Xlsb) {
-                throw new NotSupportedException("The input is a recognized XLSB workbook. XLSB package projection is being implemented and this build does not yet expose it as an ExcelDocument.");
+                return LoadXlsbFromNormalFlow(bytes, readOnly, saveOnDispose, filePath, options.XlsbImportOptions);
             }
 
             var effectiveOpenSettings = CreateOpenSettings(options.OpenSettings);
@@ -303,6 +306,22 @@ namespace OfficeIMO.Excel {
             }
 
             return message;
+        }
+
+        private static ExcelDocument LoadXlsbFromNormalFlow(
+            byte[] bytes,
+            bool readOnly,
+            bool saveOnDispose,
+            string? filePath,
+            XlsbImportOptions? importOptions) {
+            if (!readOnly && saveOnDispose) {
+                throw new NotSupportedException("SaveOnDispose is not supported when loading XLSB workbooks. Save explicitly to an .xlsx path while native XLSB writing is unavailable.");
+            }
+
+            XlsbWorkbook workbook = XlsbWorkbookReader.Load(bytes, importOptions);
+            ExcelDocument document = XlsbWorkbookProjector.ToExcelDocument(workbook);
+            document.MarkLoadedFromXlsb(filePath, workbook);
+            return document;
         }
 
         /// <summary>

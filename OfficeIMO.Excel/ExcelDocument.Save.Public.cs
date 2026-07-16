@@ -109,11 +109,15 @@ namespace OfficeIMO.Excel {
             var originalFilePath = FilePath;
             EnsureLegacyXlsSaveDoesNotDropImportedContent(options);
             EnsureLegacyBinaryExcelSaveTargetSupported(path, allowNativeXls: true, options);
-            EnsureXlsbFileTargetSupported(path);
+            EnsureXlsbFileTargetSupported(path, options);
 
             // Ensure target directory is writable
             EnsureDestinationFileWritable(path);
             EnsureDirectoryWritable(path);
+
+            if (TrySaveUnchangedXlsbToFile(path, options)) {
+                return;
+            }
 
             if (TrySaveNativeLegacyXlsToFile(path, options)) {
                 return;
@@ -181,7 +185,7 @@ namespace OfficeIMO.Excel {
             var originalFilePath = FilePath;
             EnsureLegacyXlsSaveDoesNotDropImportedContent(saveOptions);
             EnsureLegacyBinaryEncryptedSaveTargetSupported(path);
-            EnsureXlsbFileTargetSupported(path);
+            EnsureXlsbFileTargetSupported(path, saveOptions, allowUnchangedCopy: false);
             EnsureDestinationFileWritable(path);
             EnsureDirectoryWritable(path);
 
@@ -249,9 +253,13 @@ namespace OfficeIMO.Excel {
             var originalFilePath = FilePath;
             EnsureLegacyXlsSaveDoesNotDropImportedContent(options);
             EnsureLegacyBinaryExcelSaveTargetSupported(target, allowNativeXls: true, options);
-            EnsureXlsbFileTargetSupported(target);
+            EnsureXlsbFileTargetSupported(target, options);
             EnsureDestinationFileWritable(target);
             EnsureDirectoryWritable(target);
+
+            if (await TrySaveUnchangedXlsbToFileAsync(target, options, cancellationToken).ConfigureAwait(false)) {
+                return;
+            }
 
             if (await TrySaveNativeLegacyXlsToFileAsync(target, options, cancellationToken).ConfigureAwait(false)) {
                 return;
@@ -343,7 +351,7 @@ namespace OfficeIMO.Excel {
         private void SaveToStreamCore(Stream destination, ExcelFileFormat format, ExcelSaveOptions? options) {
             if (destination == null) throw new ArgumentNullException(nameof(destination));
             if (!destination.CanWrite) throw new ArgumentException("Destination stream must be writable.", nameof(destination));
-            EnsureXlsbStreamTargetSupported(format);
+            EnsureXlsbStreamTargetSupported(format, options);
             EnsureWritableForSave();
             EnsureLegacyXlsSaveDoesNotDropImportedContent(options);
 
@@ -351,6 +359,10 @@ namespace OfficeIMO.Excel {
                 using var buffer = new MemoryStream();
                 Save(buffer, format, options);
                 OfficeStreamWriter.WriteAllBytes(destination, buffer.ToArray());
+                return;
+            }
+
+            if (TrySaveUnchangedXlsbToStream(destination, format, options)) {
                 return;
             }
 
@@ -475,7 +487,7 @@ namespace OfficeIMO.Excel {
         private async Task SaveToStreamAsyncCore(Stream destination, ExcelFileFormat format, ExcelSaveOptions? options, CancellationToken cancellationToken) {
             if (destination == null) throw new ArgumentNullException(nameof(destination));
             if (!destination.CanWrite) throw new ArgumentException("Destination stream must be writable.", nameof(destination));
-            EnsureXlsbStreamTargetSupported(format);
+            EnsureXlsbStreamTargetSupported(format, options);
             EnsureWritableForSave();
             EnsureLegacyXlsSaveDoesNotDropImportedContent(options);
 
@@ -483,6 +495,10 @@ namespace OfficeIMO.Excel {
                 using var buffer = new MemoryStream();
                 await SaveAsync(buffer, format, options, cancellationToken).ConfigureAwait(false);
                 await OfficeStreamWriter.WriteAllBytesAsync(destination, buffer.ToArray(), cancellationToken).ConfigureAwait(false);
+                return;
+            }
+
+            if (await TrySaveUnchangedXlsbToStreamAsync(destination, format, options, cancellationToken).ConfigureAwait(false)) {
                 return;
             }
 

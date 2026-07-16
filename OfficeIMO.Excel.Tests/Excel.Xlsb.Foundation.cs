@@ -1,6 +1,8 @@
 using OfficeIMO.Excel;
 using OfficeIMO.Excel.Xlsb.Biff12;
 using OfficeIMO.Excel.Xlsb.Package;
+using OfficeIMO.Excel.Xlsb;
+using DocumentFormat.OpenXml.Spreadsheet;
 using System.IO.Compression;
 using System.Threading.Tasks;
 using Xunit;
@@ -93,6 +95,123 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Xlsb_ExcelGeneratedFixture_HasCanonicalPackageAndWorkbookRecords() {
+            string path = Path.Combine(
+                AppContext.BaseDirectory,
+                "Documents",
+                "XlsbCorpus",
+                "excel-generated",
+                "basic-values-formula.xlsb");
+            byte[] package = File.ReadAllBytes(path);
+
+            Assert.True(XlsbPackageDetector.TryFindWorkbookPart(package, out string? workbookPart));
+            Assert.Equal("xl/workbook.bin", workbookPart);
+            Assert.Equal(ExcelFileFormat.Xlsb, ExcelDocumentLoadRouting.DetectFormat(package, path));
+
+            using var packageStream = new MemoryStream(package, writable: false);
+            using var archive = new ZipArchive(packageStream, ZipArchiveMode.Read, leaveOpen: false);
+            ZipArchiveEntry workbookEntry = Assert.Single(
+                archive.Entries,
+                entry => string.Equals(entry.FullName, workbookPart, StringComparison.OrdinalIgnoreCase));
+            using Stream workbookStream = workbookEntry.Open();
+            IReadOnlyList<XlsbRecord> records = XlsbRecordReader.ReadAll(workbookStream);
+
+            Assert.NotEmpty(records);
+            Assert.Equal(131, records[0].Type); // BrtBeginBook
+            Assert.Equal(132, records[records.Count - 1].Type); // BrtEndBook
+        }
+
+        [Fact]
+        public void Xlsb_ExcelGeneratedFixture_LoadsThroughNormalExcelDocumentSurface() {
+            string path = Path.Combine(
+                AppContext.BaseDirectory,
+                "Documents",
+                "XlsbCorpus",
+                "excel-generated",
+                "basic-values-formula.xlsb");
+
+            using ExcelDocument document = ExcelDocument.Load(path);
+
+            Assert.Equal(ExcelFileFormat.Xlsb, document.SourceFormat);
+            Assert.Equal(path, document.SourcePath);
+            ExcelSheet sheet = Assert.Single(document.Sheets);
+            Assert.Equal("Arkusz1", sheet.Name);
+            Assert.True(sheet.TryGetCellText(1, 1, out string? a1));
+            Assert.True(sheet.TryGetCellText(1, 2, out string? b1));
+            Assert.True(sheet.TryGetCellText(2, 1, out string? a2));
+            Assert.True(sheet.TryGetCellText(2, 2, out string? b2));
+            Assert.True(sheet.TryGetCellText(3, 2, out string? b3));
+            Assert.Equal("Name", a1);
+            Assert.Equal("Amount", b1);
+            Assert.Equal("Alpha", a2);
+            Assert.Equal("42", b2);
+            Assert.Equal("50", b3);
+
+            Cell formulaCell = Assert.Single(
+                sheet.DeferredMetadataWorksheetPart.Worksheet.Descendants<Cell>(),
+                cell => cell.CellReference?.Value == "B3");
+            Assert.Equal("SUM(B2,8)", formulaCell.CellFormula?.Text);
+            Assert.NotEmpty(document.XlsbPreservedRecords);
+            Assert.Contains(document.XlsbImportDiagnostics, diagnostic => diagnostic.Code == "XLSB-RECORDS-PRESERVED");
+        }
+
+        [Fact]
+        public void Xlsb_UnmodifiedSource_CopiesByteForByteToNativeTarget() {
+            byte[] source = File.ReadAllBytes(GetExcelGeneratedXlsbFixturePath());
+            using var input = new MemoryStream(source, writable: false);
+            using ExcelDocument document = ExcelDocument.Load(input);
+
+            byte[] saved = document.ToBytes(ExcelFileFormat.Xlsb);
+
+            Assert.Equal(source, saved);
+            Assert.Equal(ExcelFileFormat.Xlsb, ExcelDocumentLoadRouting.DetectFormat(saved, "copy.xlsb"));
+        }
+
+        [Fact]
+        public void Xlsb_ModifiedSource_RejectsNativeRewriteBeforeWriting() {
+            using ExcelDocument document = ExcelDocument.Load(GetExcelGeneratedXlsbFixturePath());
+            document.Sheets[0].CellValue(2, 2, 43);
+            using var destination = new MemoryStream();
+
+            NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
+                document.Save(destination, ExcelFileFormat.Xlsb));
+
+            Assert.Contains("modified", exception.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Equal(0, destination.Length);
+        }
+
+        [Fact]
+        public void Xlsb_ProjectedWorkbook_SavesAsValidEditableXlsx() {
+            using ExcelDocument source = ExcelDocument.Load(GetExcelGeneratedXlsbFixturePath());
+            source.Sheets[0].CellValue(2, 2, 43);
+            using var destination = new MemoryStream();
+
+            source.Save(destination, ExcelFileFormat.Xlsx);
+            byte[] xlsx = destination.ToArray();
+
+            Assert.Equal(ExcelFileFormat.Xlsx, ExcelDocumentLoadRouting.DetectFormat(xlsx, "converted.xlsx"));
+            using ExcelDocument converted = ExcelDocument.Load(new MemoryStream(xlsx, writable: false));
+            Assert.True(converted.Sheets[0].TryGetCellText(2, 2, out string? value));
+            Assert.Equal("43", value);
+            Cell formulaCell = Assert.Single(
+                converted.Sheets[0].DeferredMetadataWorksheetPart.Worksheet.Descendants<Cell>(),
+                cell => cell.CellReference?.Value == "B3");
+            Assert.Equal("SUM(B2,8)", formulaCell.CellFormula?.Text);
+        }
+
+        [Fact]
+        public void Xlsb_ImportLimits_BlockCellExpansion() {
+            var options = new ExcelLoadOptions {
+                XlsbImportOptions = new XlsbImportOptions { MaxCells = 4 }
+            };
+
+            InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+                ExcelDocument.Load(GetExcelGeneratedXlsbFixturePath(), options));
+
+            Assert.Contains("limit of 4 populated cells", exception.Message, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
         public async Task Xlsb_SaveTargets_NeverWriteMislabeledXlsxContent() {
             using ExcelDocument document = ExcelDocument.Create();
             document.AddWorksheet("Data").CellValue(1, 1, "XLSB");
@@ -122,7 +241,7 @@ namespace OfficeIMO.Tests {
                     "<?xml version=\"1.0\" encoding=\"utf-8\"?>" +
                     "<Types xmlns=\"http://schemas.openxmlformats.org/package/2006/content-types\">" +
                     "<Default Extension=\"rels\" ContentType=\"application/vnd.openxmlformats-package.relationships+xml\"/>" +
-                    "<Override PartName=\"/xl/workbook.bin\" ContentType=\"application/vnd.ms-excel.sheet.binary.macroEnabled.main\"/>" +
+                    "<Default Extension=\"bin\" ContentType=\"application/vnd.ms-excel.sheet.binary.macroEnabled.main\"/>" +
                     "</Types>");
                 WriteZipEntry(
                     archive,
@@ -135,6 +254,15 @@ namespace OfficeIMO.Tests {
             }
 
             return package.ToArray();
+        }
+
+        private static string GetExcelGeneratedXlsbFixturePath() {
+            return Path.Combine(
+                AppContext.BaseDirectory,
+                "Documents",
+                "XlsbCorpus",
+                "excel-generated",
+                "basic-values-formula.xlsb");
         }
 
         private static void WriteZipEntry(ZipArchive archive, string name, string content) {

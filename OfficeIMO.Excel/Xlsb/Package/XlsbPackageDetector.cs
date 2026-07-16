@@ -71,6 +71,19 @@ namespace OfficeIMO.Excel.Xlsb.Package {
                 .Select(element => (string?)element.Attribute("ContentType"))
                 .FirstOrDefault();
 
+            if (string.IsNullOrWhiteSpace(contentType)) {
+                string extension = Path.GetExtension(workbookPartName).TrimStart('.');
+                contentType = document
+                    .Descendants()
+                    .Where(element => element.Name.LocalName == "Default")
+                    .Where(element => string.Equals(
+                        (string?)element.Attribute("Extension"),
+                        extension,
+                        StringComparison.OrdinalIgnoreCase))
+                    .Select(element => (string?)element.Attribute("ContentType"))
+                    .FirstOrDefault();
+            }
+
             return !string.IsNullOrWhiteSpace(contentType)
                 && contentType!.StartsWith("application/vnd.ms-excel", StringComparison.OrdinalIgnoreCase)
                 && (contentType.IndexOf("binary", StringComparison.OrdinalIgnoreCase) >= 0

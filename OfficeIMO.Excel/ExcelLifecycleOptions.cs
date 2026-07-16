@@ -1,5 +1,6 @@
 using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Drawing;
+using OfficeIMO.Excel.Xlsb;
 
 namespace OfficeIMO.Excel {
     /// <summary>Controls creation and persistence of an Excel workbook.</summary>
@@ -10,6 +11,9 @@ namespace OfficeIMO.Excel {
     public sealed class ExcelLoadOptions : DocumentLoadOptions {
         /// <summary>Provides optional low-level Open XML package settings.</summary>
         public OpenSettings? OpenSettings { get; set; }
+
+        /// <summary>Provides optional resource limits and reporting controls for XLSB sources.</summary>
+        public XlsbImportOptions? XlsbImportOptions { get; set; }
     }
 
     /// <summary>Controls creation of a workbook from a template package.</summary>

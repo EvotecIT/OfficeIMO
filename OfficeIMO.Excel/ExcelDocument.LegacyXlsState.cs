@@ -4,6 +4,8 @@ using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Excel.LegacyXls;
 using OfficeIMO.Excel.LegacyXls.Diagnostics;
 using OfficeIMO.Excel.LegacyXls.Model;
+using OfficeIMO.Excel.Xlsb;
+using OfficeIMO.Excel.Xlsb.Model;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -16,14 +18,26 @@ namespace OfficeIMO.Excel {
         private LegacyXlsChartSheet[] _legacyXlsChartSheets = Array.Empty<LegacyXlsChartSheet>();
         private LegacyXlsCompoundFeatureRecord[] _legacyXlsCompoundFeatures = Array.Empty<LegacyXlsCompoundFeatureRecord>();
         private string? _legacyXlsSourcePath;
+        private string? _xlsbSourcePath;
+        private byte[]? _xlsbOriginalPackageBytes;
+        private XlsbImportDiagnostic[] _xlsbImportDiagnostics = Array.Empty<XlsbImportDiagnostic>();
+        private XlsbPreservedRecordInfo[] _xlsbPreservedRecords = Array.Empty<XlsbPreservedRecordInfo>();
 
         /// <summary>Gets the detected physical format of the workbook source.</summary>
         public ExcelFileFormat SourceFormat { get; private set; } = ExcelFileFormat.Xlsx;
 
         /// <summary>Gets the original legacy source path, or the current Open XML file association.</summary>
-        public string? SourcePath => SourceFormat == ExcelFileFormat.Xls
-            ? _legacyXlsSourcePath
-            : string.IsNullOrWhiteSpace(FilePath) ? null : FilePath;
+        public string? SourcePath => SourceFormat switch {
+            ExcelFileFormat.Xls => _legacyXlsSourcePath,
+            ExcelFileFormat.Xlsb => _xlsbSourcePath,
+            _ => string.IsNullOrWhiteSpace(FilePath) ? null : FilePath
+        };
+
+        /// <summary>Gets diagnostics produced while importing an XLSB source.</summary>
+        public IReadOnlyList<XlsbImportDiagnostic> XlsbImportDiagnostics => _xlsbImportDiagnostics;
+
+        /// <summary>Gets BIFF12 records retained from the XLSB source but not projected into the normal workbook model.</summary>
+        public IReadOnlyList<XlsbPreservedRecordInfo> XlsbPreservedRecords => _xlsbPreservedRecords;
 
         /// <summary>
         /// Gets diagnostics produced while importing a legacy binary XLS source through normal loading.
@@ -65,6 +79,24 @@ namespace OfficeIMO.Excel {
             _legacyXlsChartSheets = workbook.ChartSheets.ToArray();
             _legacyXlsCompoundFeatures = workbook.CompoundFeatureRecords.ToArray();
 
+            if (!string.IsNullOrEmpty(sourcePath)) {
+                FilePath = sourcePath!;
+            }
+        }
+
+        internal void MarkLoadedFromXlsb(string? sourcePath, XlsbWorkbook workbook) {
+            if (workbook == null) throw new ArgumentNullException(nameof(workbook));
+
+            SourceFormat = ExcelFileFormat.Xlsb;
+            _xlsbSourcePath = sourcePath;
+            _xlsbOriginalPackageBytes = workbook.OriginalPackageBytes;
+            _xlsbImportDiagnostics = workbook.Diagnostics.ToArray();
+            _xlsbPreservedRecords = workbook.PreservedRecords.ToArray();
+            _packageDirty = false;
+            _packagePropertiesDirty = false;
+            _requiresSavePreflight = false;
+            _unchangedPackageBytes = null;
+            _packageContentTypesKnownNormalized = false;
             if (!string.IsNullOrEmpty(sourcePath)) {
                 FilePath = sourcePath!;
             }
