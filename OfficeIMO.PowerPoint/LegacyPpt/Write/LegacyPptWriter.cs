@@ -140,6 +140,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         includeOleObjects: true,
                         includeMedia: true,
                         includePictures: true,
+                        includeTables: true,
                         includeCharts: true,
                         includeSmartArt: true)).ToArray();
                 slideShapeCounts.Add(supportedShapes.Count);
@@ -206,11 +207,13 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
 
         private static bool IsSupportedShape(PowerPointShape shape,
             bool includeOleObjects, bool includeMedia = false,
-            bool includePictures = false, bool includeCharts = false,
+            bool includePictures = false, bool includeTables = false,
+            bool includeCharts = false,
             bool includeSmartArt = false) {
             if (shape is PowerPointTextBox) return true;
             if (includeMedia && shape is PowerPointMedia) return true;
             if (includePictures && shape is PowerPointPicture) return true;
+            if (includeTables && shape is PowerPointTable) return true;
             if (includeCharts && shape is PowerPointChart) return true;
             if (includeSmartArt && shape is PowerPointSmartArt) return true;
             if (includeOleObjects && shape is PowerPointOleObject) return true;

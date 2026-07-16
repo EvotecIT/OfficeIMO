@@ -6,6 +6,45 @@ using A = DocumentFormat.OpenXml.Drawing;
 
 namespace OfficeIMO.PowerPoint {
     internal static partial class PowerPointSlideImageRenderer {
+        internal static bool TryCreateTableDrawing(PowerPointTable table,
+            out OfficeDrawing drawing, out string? reason) {
+            if (table == null) throw new ArgumentNullException(nameof(table));
+            drawing = null!;
+            if (!table.TryGetBoundsPoints(out double left, out double top,
+                    out double width, out double height)
+                || width <= 0D || height <= 0D) {
+                reason = "The table has no positive renderable bounds.";
+                return false;
+            }
+            try {
+                drawing = new OfficeDrawing(width, height);
+                var diagnostics = new List<OfficeImageExportDiagnostic>();
+                var mapping = new PowerPointShapeBoundsMapping(-left, -top,
+                    1D, 1D);
+                A.ColorScheme? colorScheme = table.OwnerSlide == null
+                    ? null
+                    : GetSlideColorScheme(table.OwnerSlide);
+                AddTable(drawing, table, diagnostics, mapping, colorScheme);
+                OfficeImageExportDiagnostic? failure = diagnostics
+                    .FirstOrDefault(diagnostic => diagnostic.Severity
+                        != OfficeImageExportDiagnosticSeverity.Info);
+                if (failure != null || drawing.Elements.Count == 0) {
+                    reason = failure?.Message
+                        ?? "The table renderer produced no visible drawing content.";
+                    drawing = null!;
+                    return false;
+                }
+                reason = null;
+                return true;
+            } catch (Exception exception) when (exception is ArgumentException
+                                                or InvalidOperationException
+                                                or OverflowException) {
+                drawing = null!;
+                reason = $"The table cannot be projected through the shared drawing renderer: {exception.Message}";
+                return false;
+            }
+        }
+
         private static void AddTable(OfficeDrawing drawing, PowerPointTable table, List<OfficeImageExportDiagnostic> diagnostics, PowerPointShapeBoundsMapping mapping, A.ColorScheme? colorScheme) {
             if (!TryGetBounds(table, drawing, diagnostics, mapping, out double left, out double top, out double width, out double height)) {
                 return;

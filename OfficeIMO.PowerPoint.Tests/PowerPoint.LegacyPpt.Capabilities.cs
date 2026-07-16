@@ -90,6 +90,24 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void CapabilityContract_ReportsExplicitStaticTableConversion() {
+            LegacyPptCapability tables = LegacyPptCapabilityCatalog.Get(
+                LegacyPptFeature.Tables);
+
+            Assert.Equal(LegacyPptRepresentability.Native,
+                tables.Representability);
+            Assert.Equal(LegacyPptCapabilityState.Planned,
+                tables.ImportToEditableModel);
+            Assert.Equal(LegacyPptCapabilityState.Converted,
+                tables.NewBinaryWrite);
+            Assert.Equal(LegacyPptCapabilityState.Preserved,
+                tables.BinaryRoundTrip);
+            Assert.Equal(LegacyPptCapabilityState.Converted,
+                tables.PptxToBinary);
+            Assert.Contains("PPT-WRITE-TABLE-CONVERTED", tables.Note);
+        }
+
+        [Fact]
         public void CapabilityContract_ReportsExplicitStaticSmartArtConversion() {
             LegacyPptCapability smartArt = LegacyPptCapabilityCatalog.Get(
                 LegacyPptFeature.SmartArt);

@@ -36,6 +36,13 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                             return false;
                         }
                         contentType = pictureContentType!;
+                    } else if (shape is PowerPointTable table) {
+                        failureFeature = LegacyPptFeature.Tables;
+                        if (!TryRenderTablePicture(table, out imageBytes,
+                                out reason)) {
+                            return false;
+                        }
+                        contentType = "image/png";
                     } else if (shape is PowerPointChart chart) {
                         failureFeature = LegacyPptFeature.Charts;
                         if (!TryRenderChartPicture(chart, out imageBytes,
@@ -81,6 +88,25 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                                                 or InvalidOperationException
                                                 or OverflowException) {
                 reason = $"The chart cannot be rendered as a static binary PowerPoint visual: {exception.Message}";
+                return false;
+            }
+        }
+
+        internal static bool TryRenderTablePicture(PowerPointTable table,
+            out byte[] pngBytes, out string? reason) {
+            if (table == null) throw new ArgumentNullException(nameof(table));
+            pngBytes = Array.Empty<byte>();
+            if (!PowerPointSlideImageRenderer.TryCreateTableDrawing(table,
+                    out OfficeDrawing drawing, out reason)) {
+                return false;
+            }
+            try {
+                return TryRasterizeStaticVisual(drawing, "table",
+                    out pngBytes, out reason);
+            } catch (Exception exception) when (exception is ArgumentException
+                                                or InvalidOperationException
+                                                or OverflowException) {
+                reason = $"The table cannot be rendered as a static binary PowerPoint visual: {exception.Message}";
                 return false;
             }
         }

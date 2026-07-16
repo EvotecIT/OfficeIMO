@@ -148,6 +148,19 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 byte[]? clientData = BuildClientData(shape,
                     interactions.ShapeInteractions, animation, shapeContext);
                 if (clientData != null) children.Add(clientData);
+            } else if (shape is PowerPointTable table) {
+                LegacyPptWriterPicture catalogPicture = pictureCatalog?.Get(
+                        table)
+                    ?? throw new InvalidOperationException(
+                        "The converted table has no BLIP store catalog entry.");
+                shapeType = 75;
+                children.Add(BuildFsp(shapeType, shapeId));
+                children.Add(BuildStaticVisualFoptRecord(
+                    catalogPicture.OneBasedStoreIndex));
+                children.Add(BuildAnchor(shape));
+                byte[]? clientData = BuildClientData(shape,
+                    interactions.ShapeInteractions, animation, shapeContext);
+                if (clientData != null) children.Add(clientData);
             } else if (shape is PowerPointChart chart) {
                 LegacyPptWriterPicture catalogPicture = pictureCatalog?.Get(
                         chart)

@@ -197,6 +197,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     pictureFailureFeature,
                     pictureFailureFeature == LegacyPptFeature.Charts
                         ? "PPT-WRITE-CHART"
+                        : pictureFailureFeature == LegacyPptFeature.Tables
+                            ? "PPT-WRITE-TABLE"
                         : pictureFailureFeature == LegacyPptFeature.SmartArt
                             ? "PPT-WRITE-SMARTART"
                         : "PPT-WRITE-PICTURE",
@@ -257,6 +259,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                             includeOleObjects: true,
                             includeMedia: true,
                             includePictures: true,
+                            includeTables: true,
                             includeCharts: true,
                             includeSmartArt: true)) {
                         findings.Add(new LegacyPptWriteFinding(MapShapeFeature(shape), "PPT-WRITE-SHAPE",
@@ -264,7 +267,13 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                             slideIndex, shapeIndex));
                         continue;
                     }
-                    if (shape is PowerPointChart) {
+                    if (shape is PowerPointTable) {
+                        findings.Add(new LegacyPptWriteFinding(
+                            LegacyPptFeature.Tables,
+                            "PPT-WRITE-TABLE-CONVERTED",
+                            "The editable DrawingML table will be converted to a static PNG picture in binary PowerPoint. Cell structure and editability will not survive the conversion.",
+                            slideIndex, shapeIndex));
+                    } else if (shape is PowerPointChart) {
                         findings.Add(new LegacyPptWriteFinding(
                             LegacyPptFeature.Charts,
                             "PPT-WRITE-CHART-CONVERTED",
@@ -332,10 +341,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             bool includeOleObjects = false,
             bool includeMedia = false,
             bool includePictures = false,
+            bool includeTables = false,
             bool includeCharts = false,
             bool includeSmartArt = false) => shape is PowerPointTextBox
             || includeMedia && shape is PowerPointMedia
             || includePictures && shape is PowerPointPicture
+            || includeTables && shape is PowerPointTable
             || includeCharts && shape is PowerPointChart
             || includeSmartArt && shape is PowerPointSmartArt
             || includeOleObjects && shape is PowerPointOleObject
