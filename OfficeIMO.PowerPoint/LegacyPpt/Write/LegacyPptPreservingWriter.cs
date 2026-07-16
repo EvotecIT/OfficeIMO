@@ -1,3 +1,4 @@
+using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Drawing.Internal;
 using OfficeIMO.PowerPoint.LegacyPpt.Internal;
 using OfficeIMO.PowerPoint.LegacyPpt.Model;
@@ -138,23 +139,69 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         : string.Empty;
                     if (slideProjection.Notes == null) {
                         if (currentNotes.Length > 0) return false;
-                    } else if (!string.Equals(currentNotes,
-                                   NormalizeLogicalText(slideProjection.Notes.Text),
-                                   StringComparison.Ordinal)) {
-                        if (!package.PersistObjects.TryGetValue(
-                                slideProjection.Notes.PersistId,
-                                out LegacyPptPersistObject? notesPersistObject)
-                            || notesPersistObject == null) {
+                    } else {
+                        NotesSlidePart notesPart = slide.SlidePart.NotesSlidePart
+                            ?? throw new InvalidDataException(
+                                "The projected binary notes page has no notes-slide part.");
+                        bool notesTextChanged = !string.Equals(currentNotes,
+                            NormalizeLogicalText(slideProjection.Notes.Text),
+                            StringComparison.Ordinal);
+                        bool notesThemeChanged = !slideProjection.Notes
+                            .ThemeMatches(notesPart);
+                        if (notesThemeChanged && notesPart.ThemeOverridePart?
+                                .ThemeOverride == null) {
                             return false;
                         }
-                        LegacyPptRecord notesRecord = LegacyPptRecordReader.ReadSingle(
-                            notesPersistObject.RecordBytes, 0, new LegacyPptImportOptions());
-                        if (!TryRewriteNotesRecord(notesRecord,
-                                slideProjection.Notes.Text, currentNotes,
-                                out byte[] rewrittenNotes)) {
+                        bool notesBackgroundChanged = !slideProjection.Notes
+                            .BackgroundMatches(notesPart);
+                        LegacyPptWriter.LegacyPptWriterBackground?
+                            currentNotesBackground = null;
+                        if (notesBackgroundChanged
+                            && (!LegacyPptWriter.TryReadBackground(notesPart,
+                                    out currentNotesBackground, out _)
+                                || currentNotesBackground == null)) {
                             return false;
                         }
-                        rewritten.Add(slideProjection.Notes.PersistId, rewrittenNotes);
+                        if (notesTextChanged || notesThemeChanged
+                            || notesBackgroundChanged) {
+                            if (!package.PersistObjects.TryGetValue(
+                                    slideProjection.Notes.PersistId,
+                                    out LegacyPptPersistObject? notesPersistObject)
+                                || notesPersistObject == null) {
+                                return false;
+                            }
+                            LegacyPptRecord notesRecord = LegacyPptRecordReader
+                                .ReadSingle(notesPersistObject.RecordBytes, 0,
+                                    new LegacyPptImportOptions());
+                            byte[] notesBytes = notesRecord.CopyRecordBytes();
+                            if (notesTextChanged
+                                && !TryRewriteNotesRecord(notesRecord,
+                                    slideProjection.Notes.Text, currentNotes,
+                                    out notesBytes)) {
+                                return false;
+                            }
+                            if (notesBackgroundChanged) {
+                                LegacyPptRecord backgroundRecord =
+                                    LegacyPptRecordReader.ReadSingle(notesBytes,
+                                        0, new LegacyPptImportOptions());
+                                notesBytes = LegacyPptWriter
+                                    .BuildPreservedBackgroundRecord(
+                                        backgroundRecord,
+                                        currentNotesBackground!);
+                            }
+                            if (notesThemeChanged) {
+                                LegacyPptRecord themedRecord =
+                                    LegacyPptRecordReader.ReadSingle(notesBytes,
+                                        0, new LegacyPptImportOptions());
+                                notesBytes = LegacyPptWriter
+                                    .BuildPreservedThemeRecord(themedRecord,
+                                        notesPart, slideProjection.Notes
+                                            .GetChangedClassicColorSlots(
+                                                notesPart));
+                            }
+                            rewritten.Add(slideProjection.Notes.PersistId,
+                                notesBytes);
+                        }
                     }
 
                     PowerPointShape[] shapes = slide.Shapes.ToArray();

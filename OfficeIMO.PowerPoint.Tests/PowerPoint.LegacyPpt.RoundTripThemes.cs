@@ -311,36 +311,23 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void NativeWriter_RoundTripsNotesPageThemeOverride() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
-            PowerPointSlide slide = presentation.AddSlide(
-                P.SlideLayoutValues.Blank);
-            slide.Notes.Text = "Theme-aware speaker note";
-            NotesSlidePart notesPart = slide.SlidePart.NotesSlidePart!;
-            A.ThemeElements sourceElements = presentation.OpenXmlDocument
-                .PresentationPart!.SlideMasterParts.First().ThemePart!.Theme!
-                .ThemeElements!;
-            A.ColorScheme colors = (A.ColorScheme)sourceElements.ColorScheme!
-                .CloneNode(true);
-            A.Accent6Color accent6 = colors.GetFirstChild<A.Accent6Color>()!;
-            accent6.RemoveAllChildren();
-            accent6.Append(new A.RgbColorModelHex { Val = "C0FFEE" });
-            ThemeOverridePart overridePart = notesPart
-                .AddNewPart<ThemeOverridePart>();
-            overridePart.ThemeOverride = new A.ThemeOverride(
-                colors,
-                sourceElements.FontScheme!.CloneNode(true),
-                sourceElements.FormatScheme!.CloneNode(true));
-
-            byte[] bytes = presentation.ToBytes(PowerPointFileFormat.Ppt);
+            byte[] bytes = CreateNotesThemeOverrideBytes(
+                accent6: "C0FFEE", accent1: "123456",
+                background: "203040", text: "Theme-aware speaker note");
+            LegacyPptNotesPage notesPage = Assert.IsType<LegacyPptNotesPage>(
+                Assert.Single(LegacyPptPresentation.Load(bytes).Slides)
+                    .NotesPage);
             LegacyPptRoundTripTheme written = Assert.IsType<
-                LegacyPptRoundTripTheme>(Assert.Single(
-                    LegacyPptPresentation.Load(bytes).Slides).NotesPage!
-                    .RoundTripTheme);
+                LegacyPptRoundTripTheme>(notesPage.RoundTripTheme);
 
             Assert.True(written.IsOverride);
             Assert.Equal("C0FFEE",
                 written.Colors[PowerPointThemeColor.Accent6]);
+            Assert.Equal("123456", notesPage.ColorScheme?.Accent1);
+            Assert.False(notesPage.FollowsMasterColorScheme);
+            Assert.False(notesPage.FollowsMasterBackground);
+            Assert.Equal("203040", Assert.IsType<LegacyPptBackground>(
+                notesPage.Background).ForegroundColor);
 
             using var stream = new MemoryStream(bytes);
             using PowerPointPresentation reopened =
@@ -351,6 +338,83 @@ namespace OfficeIMO.Tests {
             Assert.Equal("C0FFEE", projected.ColorScheme!
                 .GetFirstChild<A.Accent6Color>()!
                 .GetFirstChild<A.RgbColorModelHex>()!.Val!.Value);
+            Assert.Equal("203040", reopened.Slides[0].SlidePart.NotesSlidePart!
+                .NotesSlide!.CommonSlideData!.Background!
+                .BackgroundProperties!.GetFirstChild<A.SolidFill>()!
+                .RgbColorModelHex!.Val!.Value);
+            Assert.Empty(reopened.ValidateDocument());
+        }
+
+        [Fact]
+        public void ImportedNotesThemeBackgroundAndTextEdit_AppendsPreservingRecord() {
+            byte[] sourceBytes = CreateNotesThemeOverrideBytes(
+                accent6: "C0FFEE", accent1: "123456",
+                background: "203040", text: "Original speaker note");
+            LegacyPptPresentation original = LegacyPptPresentation.Load(
+                sourceBytes);
+            LegacyPptNotesPage originalNotes = Assert.IsType<
+                LegacyPptNotesPage>(Assert.Single(original.Slides).NotesPage);
+
+            using var input = new MemoryStream(sourceBytes);
+            using PowerPointPresentation imported =
+                PowerPointPresentation.Load(input);
+            PowerPointSlide slide = imported.Slides[0];
+            slide.Notes.Text = "Edited speaker note";
+            NotesSlidePart notesPart = slide.SlidePart.NotesSlidePart!;
+            A.ThemeOverride theme = Assert.IsType<A.ThemeOverride>(
+                notesPart.ThemeOverridePart?.ThemeOverride);
+            SetThemeOverrideColor<A.Accent6Color>(theme, "6A7B8C");
+            SetThemeOverrideColor<A.Accent1Color>(theme, "102938");
+            notesPart.NotesSlide!.CommonSlideData!.Background = new P.Background(
+                new P.BackgroundProperties(
+                    new A.SolidFill(
+                        new A.RgbColorModelHex { Val = "405060" })));
+
+            LegacyPptWritePreflightReport preflight = imported
+                .AnalyzeLegacyPptWrite();
+            Assert.True(preflight.CanWrite,
+                string.Join(Environment.NewLine, preflight.Findings));
+            byte[] savedBytes = imported.ToBytes(PowerPointFileFormat.Ppt);
+            LegacyPptPresentation saved = LegacyPptPresentation.Load(savedBytes);
+            LegacyPptNotesPage savedNotes = Assert.IsType<LegacyPptNotesPage>(
+                Assert.Single(saved.Slides).NotesPage);
+
+            Assert.Equal("Edited speaker note", savedNotes.Text);
+            Assert.Equal("6A7B8C", savedNotes.RoundTripTheme?
+                .Colors[PowerPointThemeColor.Accent6]);
+            Assert.Equal("102938", savedNotes.ColorScheme?.Accent1);
+            Assert.Equal("405060", Assert.IsType<LegacyPptBackground>(
+                savedNotes.Background).ForegroundColor);
+            Assert.False(savedNotes.FollowsMasterColorScheme);
+            Assert.False(savedNotes.FollowsMasterBackground);
+            Assert.Equal(original.Package.UserEdits.Count + 1,
+                saved.Package.UserEdits.Count);
+            Assert.True(saved.Package.DocumentStream.AsSpan(0,
+                    original.Package.DocumentStream.Length)
+                .SequenceEqual(original.Package.DocumentStream));
+            IReadOnlyList<byte[]> originalUnrelated =
+                ReadUnrelatedNotesChildren(original, originalNotes.PersistId);
+            IReadOnlyList<byte[]> savedUnrelated =
+                ReadUnrelatedNotesChildren(saved, savedNotes.PersistId);
+            Assert.Equal(originalUnrelated.Count, savedUnrelated.Count);
+            for (int index = 0; index < originalUnrelated.Count; index++) {
+                Assert.True(originalUnrelated[index]
+                    .SequenceEqual(savedUnrelated[index]));
+            }
+
+            using var reopenedInput = new MemoryStream(savedBytes);
+            using PowerPointPresentation reopened =
+                PowerPointPresentation.Load(reopenedInput);
+            Assert.Equal("Edited speaker note", reopened.Slides[0].Notes.Text);
+            NotesSlidePart reopenedNotesPart = reopened.Slides[0].SlidePart
+                .NotesSlidePart!;
+            Assert.Equal("6A7B8C", reopenedNotesPart.ThemeOverridePart!
+                .ThemeOverride!.ColorScheme!
+                .GetFirstChild<A.Accent6Color>()!
+                .GetFirstChild<A.RgbColorModelHex>()!.Val!.Value);
+            Assert.Equal("405060", reopenedNotesPart.NotesSlide!
+                .CommonSlideData!.Background!.BackgroundProperties!
+                .GetFirstChild<A.SolidFill>()!.RgbColorModelHex!.Val!.Value);
             Assert.Empty(reopened.ValidateDocument());
         }
 
@@ -373,6 +437,34 @@ namespace OfficeIMO.Tests {
                 colors,
                 sourceElements.FontScheme!.CloneNode(true),
                 sourceElements.FormatScheme!.CloneNode(true));
+            return presentation.ToBytes(PowerPointFileFormat.Ppt);
+        }
+
+        private static byte[] CreateNotesThemeOverrideBytes(string accent6,
+            string accent1, string background, string text) {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            PowerPointSlide slide = presentation.AddSlide(
+                P.SlideLayoutValues.Blank);
+            slide.Notes.Text = text;
+            NotesSlidePart notesPart = slide.SlidePart.NotesSlidePart!;
+            A.ThemeElements sourceElements = presentation.OpenXmlDocument
+                .PresentationPart!.SlideMasterParts.First().ThemePart!.Theme!
+                .ThemeElements!;
+            A.ColorScheme colors = (A.ColorScheme)sourceElements.ColorScheme!
+                .CloneNode(true);
+            SetThemeColor<A.Accent6Color>(colors, accent6);
+            SetThemeColor<A.Accent1Color>(colors, accent1);
+            ThemeOverridePart overridePart = notesPart
+                .AddNewPart<ThemeOverridePart>();
+            overridePart.ThemeOverride = new A.ThemeOverride(
+                colors,
+                sourceElements.FontScheme!.CloneNode(true),
+                sourceElements.FormatScheme!.CloneNode(true));
+            notesPart.NotesSlide!.CommonSlideData!.Background =
+                new P.Background(new P.BackgroundProperties(
+                    new A.SolidFill(
+                        new A.RgbColorModelHex { Val = background })));
             return presentation.ToBytes(PowerPointFileFormat.Ppt);
         }
 
@@ -399,6 +491,18 @@ namespace OfficeIMO.Tests {
                 persistObject.RecordBytes, 0, new LegacyPptImportOptions());
             return record.Children.Where(child =>
                     child.Type is not 0x040E and not 0x040F
+                    && !(child.Type == 0x07F0 && child.Instance == 1))
+                .Select(child => child.CopyRecordBytes()).ToArray();
+        }
+
+        private static IReadOnlyList<byte[]> ReadUnrelatedNotesChildren(
+            LegacyPptPresentation presentation, uint persistId) {
+            LegacyPptPersistObject persistObject =
+                presentation.Package.PersistObjects[persistId];
+            LegacyPptRecord record = LegacyPptRecordReader.ReadSingle(
+                persistObject.RecordBytes, 0, new LegacyPptImportOptions());
+            return record.Children.Where(child => child.Type != 0x040C
+                    && child.Type is not 0x040E and not 0x040F
                     && !(child.Type == 0x07F0 && child.Instance == 1))
                 .Select(child => child.CopyRecordBytes()).ToArray();
         }

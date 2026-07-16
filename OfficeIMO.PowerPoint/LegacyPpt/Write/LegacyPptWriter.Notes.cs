@@ -1,5 +1,6 @@
 using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.PowerPoint.LegacyPpt.Internal;
+using A = DocumentFormat.OpenXml.Drawing;
 
 namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
     internal static partial class LegacyPptWriter {
@@ -19,19 +20,53 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         private static byte[] BuildNotesRecord(LegacyPptRecord prototype, string text,
             uint slideId, uint drawingId, NotesSlidePart? sourcePart) {
             var children = new List<byte[]>(prototype.Children.Count);
+            A.ThemeOverride? theme = sourcePart?.ThemeOverridePart?
+                .ThemeOverride;
             IReadOnlyList<byte[]> roundTripThemeRecords =
-                BuildRoundTripThemeRecords(sourcePart?.ThemeOverridePart?
-                        .ThemeOverride,
+                BuildRoundTripThemeRecords(theme,
                     sourcePart?.NotesSlide?.ColorMapOverride);
+            A.ColorScheme? overrideColors = theme?.ColorScheme;
+            LegacyPptWriterColorScheme? classicOverride = overrideColors == null
+                ? null
+                : ReadColorScheme(overrideColors);
+            LegacyPptWriterBackground? background = null;
+            if (sourcePart != null
+                && !TryReadBackground(sourcePart, out background,
+                    out string? backgroundReason)) {
+                throw new NotSupportedException(backgroundReason);
+            }
             bool replacedNotesBody = false;
+            bool wroteClassicOverride = false;
             foreach (LegacyPptRecord child in prototype.Children) {
                 if (child.Type == RecordNotesAtom) {
                     byte[] atom = child.CopyRecordBytes();
                     WriteUInt32(atom, 8, slideId);
+                    ushort flags = ReadUInt16(atom, 12);
+                    flags = background == null
+                        ? unchecked((ushort)(flags | 0x0004))
+                        : unchecked((ushort)(flags & ~0x0004));
+                    flags = classicOverride == null
+                        ? unchecked((ushort)(flags | 0x0002))
+                        : unchecked((ushort)(flags & ~0x0002));
+                    WriteUInt16(atom, 12, flags);
                     children.Add(atom);
                 } else if (child.Type == RecordDrawing) {
-                    children.Add(RewriteNotesDrawingRecord(child, text, drawingId,
-                        replaceNotesBody: false, ref replacedNotesBody));
+                    byte[] drawingBytes = RewriteNotesDrawingRecord(child,
+                        text, drawingId, replaceNotesBody: false,
+                        ref replacedNotesBody);
+                    if (background != null) {
+                        LegacyPptRecord drawingRecord = LegacyPptRecordReader
+                            .ReadSingle(drawingBytes, 0,
+                                new LegacyPptImportOptions());
+                        drawingBytes = BuildBackgroundDrawingRecord(
+                            drawingRecord, background);
+                    }
+                    children.Add(drawingBytes);
+                } else if (classicOverride != null
+                           && child.Type == RecordColorSchemeAtom
+                           && child.Instance == 1) {
+                    children.Add(BuildColorSchemeAtom(classicOverride));
+                    wroteClassicOverride = true;
                 } else if (!IsRoundTripThemeRecord(child.Type)) {
                     children.Add(child.CopyRecordBytes());
                 }
@@ -39,6 +74,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             if (!replacedNotesBody) {
                 throw new InvalidDataException(
                     "The embedded PowerPoint notes template has no notes-body text box.");
+            }
+            if (classicOverride != null && !wroteClassicOverride) {
+                children.Add(BuildColorSchemeAtom(classicOverride));
             }
             children.AddRange(roundTripThemeRecords);
             return BuildContainer(RecordNotes, instance: 0, children);

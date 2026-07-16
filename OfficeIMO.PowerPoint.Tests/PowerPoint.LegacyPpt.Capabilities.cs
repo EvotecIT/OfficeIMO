@@ -101,7 +101,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(LegacyPptCapabilityState.Native,
                 themes.PptxToBinary);
             Assert.Contains("all twelve colors", themes.Note);
-            Assert.Contains("Imported main-, title-, notes-, and handout-master theme edits plus edits to existing imported slide theme overrides",
+            Assert.Contains("Imported main-, title-, notes-, and handout-master theme edits plus edits to existing imported slide and notes-page theme overrides",
                 themes.Note);
         }
 
@@ -123,7 +123,7 @@ namespace OfficeIMO.Tests {
             LegacyPptCapability backgrounds = LegacyPptCapabilityCatalog.Get(
                 LegacyPptFeature.Backgrounds);
 
-            Assert.Contains("Supported imported slide, main-, title-, notes-, and handout-master background edits",
+            Assert.Contains("Supported imported slide, notes-page, main-, title-, notes-, and handout-master background edits",
                 backgrounds.Note);
             Assert.Contains("imported ordinary PPTX-layout background edits remain planned",
                 backgrounds.Note);

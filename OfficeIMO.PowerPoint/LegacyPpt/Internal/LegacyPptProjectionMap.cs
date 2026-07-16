@@ -52,6 +52,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 .Concat(titleMasters).Concat(specialMasters)
                 .Select(master => master.ThemePartUri)
                 .Concat(slides.Select(slide => slide.ThemePartUri))
+                .Concat(slides.Select(slide => slide.Notes?.ThemePartUri))
                 .Where(uri => uri != null).Cast<string>(), StringComparer.Ordinal);
             Hyperlinks = new ReadOnlyCollection<LegacyPptHyperlink>(hyperlinks.ToArray());
             CustomShows = new ReadOnlyCollection<LegacyPptCustomShow>(
@@ -184,8 +185,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                     sourceSlide.Transition, sourceSlide.Comments, shapes,
                     sourceSlide.NotesPage == null
                         ? null
-                        : new LegacyPptNotesProjection(sourceSlide.NotesPage.PersistId,
-                            sourceSlide.NotesPage.NotesId, sourceSlide.NotesPage.Text)));
+                        : CreateNotesProjection(projectedSlide,
+                            sourceSlide.NotesPage)));
             }
             return new LegacyPptProjectionMap(slides, CreateLayoutMasterMap(presentation, legacy),
                 CreateMasterProjections(presentation, legacy),
@@ -194,6 +195,19 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 legacy.Hyperlinks, legacy.CustomShows,
                 legacy.CustomShowsAreEditable, legacy.Sounds,
                 legacy.SoundIdSeed);
+        }
+
+        private static LegacyPptNotesProjection CreateNotesProjection(
+            PowerPointSlide projectedSlide, LegacyPptNotesPage source) {
+            NotesSlidePart part = projectedSlide.SlidePart.NotesSlidePart
+                ?? throw new InvalidDataException(
+                    "The projected binary notes page has no notes-slide part.");
+            return new LegacyPptNotesProjection(source.PersistId,
+                source.NotesId, source.Text,
+                part.ThemeOverridePart?.Uri.ToString(),
+                LegacyPptNotesProjection.CreateThemeFingerprint(part),
+                LegacyPptNotesProjection.CreateClassicColorFingerprints(part),
+                LegacyPptNotesProjection.CreateBackgroundFingerprint(part));
         }
 
         private static IReadOnlyList<LegacyPptMasterProjection> CreateMasterProjections(
@@ -713,10 +727,27 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
 
     /// <summary>Maps projected speaker-note text to its binary NotesContainer.</summary>
     internal sealed class LegacyPptNotesProjection {
-        internal LegacyPptNotesProjection(uint persistId, uint notesId, string text) {
+        internal LegacyPptNotesProjection(uint persistId, uint notesId,
+            string text, string? themePartUri, string themeFingerprint,
+            IReadOnlyList<string> classicColorFingerprints,
+            string backgroundFingerprint) {
             PersistId = persistId;
             NotesId = notesId;
             Text = text ?? string.Empty;
+            ThemePartUri = themePartUri;
+            ThemeFingerprint = themeFingerprint
+                ?? throw new ArgumentNullException(nameof(themeFingerprint));
+            ClassicColorFingerprints = new ReadOnlyCollection<string>(
+                (classicColorFingerprints
+                    ?? throw new ArgumentNullException(
+                        nameof(classicColorFingerprints))).ToArray());
+            if (ClassicColorFingerprints.Count != 8) {
+                throw new ArgumentException(
+                    "A projected classic color scheme requires eight fingerprints.",
+                    nameof(classicColorFingerprints));
+            }
+            BackgroundFingerprint = backgroundFingerprint
+                ?? throw new ArgumentNullException(nameof(backgroundFingerprint));
         }
 
         internal uint PersistId { get; }
@@ -724,6 +755,70 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
         internal uint NotesId { get; }
 
         internal string Text { get; }
+
+        internal string? ThemePartUri { get; }
+
+        internal string ThemeFingerprint { get; }
+
+        internal IReadOnlyList<string> ClassicColorFingerprints { get; }
+
+        internal string BackgroundFingerprint { get; }
+
+        internal bool ThemeMatches(NotesSlidePart part) => string.Equals(
+            ThemeFingerprint, CreateThemeFingerprint(part),
+            StringComparison.Ordinal);
+
+        internal bool BackgroundMatches(NotesSlidePart part) => string.Equals(
+            BackgroundFingerprint, CreateBackgroundFingerprint(part),
+            StringComparison.Ordinal);
+
+        internal IReadOnlyList<int> GetChangedClassicColorSlots(
+            NotesSlidePart part) {
+            IReadOnlyList<string> current =
+                CreateClassicColorFingerprints(part);
+            return Enumerable.Range(0, ClassicColorFingerprints.Count)
+                .Where(index => !string.Equals(
+                    ClassicColorFingerprints[index], current[index],
+                    StringComparison.Ordinal))
+                .ToArray();
+        }
+
+        internal static string CreateThemeFingerprint(NotesSlidePart part) {
+            if (part == null) throw new ArgumentNullException(nameof(part));
+            string theme = part.ThemeOverridePart?.ThemeOverride?.OuterXml
+                ?? string.Empty;
+            string colorMap = part.NotesSlide?.ColorMapOverride?.OuterXml
+                ?? string.Empty;
+            return theme + "\n" + colorMap;
+        }
+
+        internal static IReadOnlyList<string>
+            CreateClassicColorFingerprints(NotesSlidePart part) {
+            if (part == null) throw new ArgumentNullException(nameof(part));
+            A.ColorScheme? colors = part.ThemeOverridePart?.ThemeOverride?
+                .ColorScheme
+                ?? part.NotesMasterPart?.ThemePart?.Theme?.ThemeElements?
+                    .ColorScheme;
+            OpenXmlElement?[] slots = {
+                colors?.Light1Color,
+                colors?.Dark1Color,
+                colors?.Accent4Color,
+                colors?.Dark2Color,
+                colors?.Light2Color,
+                colors?.Accent1Color,
+                colors?.Accent2Color,
+                colors?.Accent3Color
+            };
+            return slots.Select(slot => slot?.OuterXml ?? string.Empty)
+                .ToArray();
+        }
+
+        internal static string CreateBackgroundFingerprint(
+            NotesSlidePart part) {
+            if (part == null) throw new ArgumentNullException(nameof(part));
+            return part.NotesSlide?.CommonSlideData?.Background?.OuterXml
+                ?? string.Empty;
+        }
     }
 
     /// <summary>Maps one projected Open XML shape to its OfficeArt shape container.</summary>

@@ -199,6 +199,11 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 string.Equals(slide.SlidePartUri, partUri.ToString(), StringComparison.Ordinal));
             if (slideProjection == null) return;
             if (root is P.NotesSlide notesRoot && slideProjection.Notes != null) {
+                if (notesRoot.ColorMapOverride != null) {
+                    notesRoot.ColorMapOverride.ClearAllAttributes();
+                    notesRoot.ColorMapOverride.RemoveAllChildren();
+                }
+                NormalizeProjectedBackground(notesRoot.CommonSlideData);
                 foreach (P.Shape shape in notesRoot.CommonSlideData?.ShapeTree?
                              .Elements<P.Shape>() ?? Enumerable.Empty<P.Shape>()) {
                     P.PlaceholderShape? placeholder = shape.NonVisualShapeProperties?
