@@ -481,7 +481,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 pictureTransparentColor: ResolveShapeColor(
                     pictureProperties.TransparentColor, colorScheme),
                 pictureRecolorColor: ResolveShapeColor(
-                    pictureProperties.RecolorColor, colorScheme));
+                    pictureProperties.RecolorColor, colorScheme),
+                fillBackColor: ResolveShapeColor(style.FillBackColor, colorScheme),
+                fillGradientStops: ResolveShapeGradientStops(style, colorScheme));
 
             if (textBody.IsStyleTruncated) {
                 AddDiagnostic("PPT-TEXT-STYLE-TRUNCATED", LegacyPptDiagnosticSeverity.Warning,
@@ -516,7 +518,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                     "The OfficeArt property table is truncated and could not be decoded.", fopt.Offset);
             } else if (!isPictureFrame && style.HasUnprojectedVisualStyle) {
                 AddDiagnostic("PPT-SHAPE-STYLE-PARTIAL", LegacyPptDiagnosticSeverity.Warning,
-                    "The shape uses a non-solid fill, compound line, custom dash, or richer shadow type that is preserved but not projected yet.",
+                    "The shape uses visual styling that is only partially projected; exact source properties remain preserved.",
                     shapeContainer.Offset);
             }
 
@@ -616,8 +618,15 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 groupCoordinateBounds: coordinateBounds, children: children,
                 shadowColor: ResolveShapeColor(style.ShadowColor, colorScheme),
                 interactions: ReadShapeInteractions(descriptor, options),
-                animation: ReadShapeAnimation(descriptor, options));
+                animation: ReadShapeAnimation(descriptor, options),
+                fillBackColor: ResolveShapeColor(style.FillBackColor, colorScheme),
+                fillGradientStops: ResolveShapeGradientStops(style, colorScheme));
         }
+
+        private static IReadOnlyList<LegacyPptGradientStop> ResolveShapeGradientStops(
+            OfficeArtShapeStyle style, LegacyPptColorScheme? colorScheme) =>
+            style.FillGradientStops.Select(stop => new LegacyPptGradientStop(
+                ResolveShapeColor(stop.Color, colorScheme), stop.Position)).ToArray();
 
         private void ParseBlipStore(LegacyPptRecord document, LegacyPptPackage package,
             LegacyPptImportOptions options) {

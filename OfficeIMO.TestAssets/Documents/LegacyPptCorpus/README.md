@@ -18,6 +18,20 @@ child coordinate systems, exact no-op saves, and incremental connector and outer
 edits. Its SHA-256 digest is
 `50f5094a5004cba187defe96d9d15f7e7302fcd8c1176711a1538eeee05eae20`.
 
+`VisualBaselines/ShapePowerPoint.libreoffice.png` is the 960 × 540 first-slide reference used to
+check shape geometry, scaled gradients, connectors, group children, and text placement. It was
+rendered from `ShapePowerPoint.ppt` with LibreOfficeDev 26.8.0.0.alpha0 and Poppler 26.05.0:
+
+```sh
+soffice --headless --convert-to pdf --outdir <output-directory> ShapePowerPoint.ppt
+pdftoppm -png -f 1 -singlefile -scale-to-x 960 -scale-to-y 540 \
+  <output-directory>/ShapePowerPoint.pdf \
+  <output-directory>/ShapePowerPoint.libreoffice
+```
+
+Its SHA-256 digest is
+`fe0632441e5ee73f6f6df023b5bb47140f124b9948a04814c081fd7233fbadb5`.
+
 `TransformPowerPoint.ppt` was generated from a one-slide PPTX built with `python-pptx`, then
 converted with LibreOffice. It contains clockwise and counterclockwise shape rotations, horizontal
 and vertical mirroring, plus a nested group. The fixture exercises OfficeArt fixed-point rotation,
@@ -63,6 +77,12 @@ names and descriptions. It exercises OfficeArt `wzName` and `wzDescription` deco
 non-visual metadata projection, Microsoft's four-byte CurrentUserAtom length overstatement, exact
 no-op saves, and loss blocking for unsupported metadata edits. Its SHA-256 digest is
 `ce8b78712e423238d9082503842152c07ebfc6770ebfc3654c0865b725f4e175`.
+
+`VisualBaselines/AccessibilityPowerPoint.libreoffice.png` is the 720 × 405 first-slide reference
+for the Microsoft-authored fixture. It checks that master editing prompts stay hidden while the
+shape gradient, connector, picture, visible text, and object placement remain present. It was
+rendered with the same LibreOffice and Poppler PDF pipeline shown above. Its SHA-256 digest is
+`bef2e19497f7302bc9d65d2e32045c03ed5451a104188d9bf4e0e56424569244`.
 
 `RichTextPowerPoint.ppt` was authored as a one-slide PPTX and saved to PowerPoint 97-2003 by
 Microsoft PowerPoint for Mac. Its text box contains separate bold red, italic green, underlined

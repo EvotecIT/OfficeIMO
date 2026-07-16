@@ -132,6 +132,34 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void NormalLoad_ProjectsScaledShapeGradientsWithResolvedEndpointColors() {
+            LegacyPptPresentation legacy = LegacyPptPresentation.Load(ShapeFixturePath);
+            LegacyPptShape binaryDiamond = legacy.Slides[0].Shapes.Single(shape =>
+                shape.Text == "Diamond");
+            Assert.Equal(7U, binaryDiamond.Style.FillType);
+            Assert.Equal(-180D, binaryDiamond.Style.FillAngleDegrees);
+            Assert.Equal("3E7FCC", binaryDiamond.FillColor);
+            Assert.Equal("A4C1FF", binaryDiamond.FillBackColor);
+
+            using PowerPointPresentation presentation = PowerPointPresentation.Load(ShapeFixturePath);
+            PowerPointTextBox diamond = presentation.Slides[0].TextBoxes.Single(shape =>
+                shape.Text == "Diamond");
+            P.Shape element = Assert.IsType<P.Shape>(diamond.Element);
+            A.GradientFill gradient = Assert.IsType<A.GradientFill>(element.ShapeProperties!
+                .GetFirstChild<A.GradientFill>());
+            A.GradientStop[] stops = gradient.GetFirstChild<A.GradientStopList>()!
+                .Elements<A.GradientStop>()
+                .ToArray();
+            Assert.Collection(stops,
+                stop => Assert.Equal("3E7FCC", stop.RgbColorModelHex!.Val!.Value),
+                stop => Assert.Equal("A4C1FF", stop.RgbColorModelHex!.Val!.Value));
+            A.LinearGradientFill linear = Assert.IsType<A.LinearGradientFill>(
+                gradient.GetFirstChild<A.LinearGradientFill>());
+            Assert.Equal(270 * 60000, linear.Angle!.Value);
+            Assert.True(linear.Scaled!.Value);
+        }
+
+        [Fact]
         public void UnmodifiedShapeBinarySave_PreservesOriginalPackageExactly() {
             byte[] source = File.ReadAllBytes(ShapeFixturePath);
             using PowerPointPresentation presentation = PowerPointPresentation.Load(ShapeFixturePath);

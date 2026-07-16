@@ -205,6 +205,42 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PowerPointSlide_ExportsShapeGradientThroughDrawingGradient() {
+            using var stream = new MemoryStream();
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            presentation.SlideSize.SetSizePoints(120, 80);
+            PowerPointSlide slide = presentation.AddSlide();
+            PowerPointTextBox textBox = slide.AddTextBoxPoints(string.Empty, 10, 10, 100, 60);
+            Shape shape = Assert.IsType<Shape>(textBox.Element);
+            shape.ShapeProperties!.Append(new A.GradientFill(
+                new A.GradientStopList(
+                    new A.GradientStop(new A.RgbColorModelHex { Val = "112233" }) {
+                        Position = 0
+                    },
+                    new A.GradientStop(new A.RgbColorModelHex { Val = "445566" }) {
+                        Position = 100000
+                    }),
+                new A.LinearGradientFill { Angle = 45 * 60000 }));
+
+            OfficeImageExportResult result = slide.ExportImage(
+                OfficeImageExportFormat.Svg,
+                new PowerPointImageExportOptions { IncludeSlideBackground = false });
+            PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot(
+                new PowerPointImageExportOptions { IncludeSlideBackground = false });
+            string svgText = Encoding.UTF8.GetString(result.Bytes);
+
+            OfficeDrawingShape rendered = Assert.Single(snapshot.Drawing.Elements
+                .OfType<OfficeDrawingShape>(), item => item.Shape.FillGradient != null);
+            Assert.Equal("#112233", rendered.Shape.FillGradient!.Stops[0].Color.ToString());
+            Assert.Equal("#445566", rendered.Shape.FillGradient.Stops[1].Color.ToString());
+            Assert.Contains("<linearGradient", svgText, StringComparison.Ordinal);
+            Assert.Contains("#112233", svgText, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("#445566", svgText, StringComparison.OrdinalIgnoreCase);
+            Assert.Empty(result.Diagnostics);
+            Assert.Empty(snapshot.Diagnostics);
+        }
+
+        [Fact]
         public void PowerPointSlide_ExportsInheritedThemeGradientBackgroundStyleThroughDrawingGradient() {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);

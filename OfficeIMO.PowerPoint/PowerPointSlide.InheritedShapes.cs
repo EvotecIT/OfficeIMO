@@ -20,8 +20,11 @@ namespace OfficeIMO.PowerPoint {
             IReadOnlyList<PowerPointShape> slideShapes = Shapes;
 
             if (ShowsMasterShapes(layoutPart?.SlideLayout)) {
+                // Master placeholders define geometry and styles for concrete slide/layout
+                // placeholders. Their editing prompts are not inherited slide content.
                 foreach (PowerPointShape masterShape in CreateInheritedShapes(masterPart?.SlideMaster?.CommonSlideData?.ShapeTree, masterPart)) {
-                    if (!IsPlaceholderOverridden(masterShape, layoutShapes) &&
+                    if (!IsStructuralPlaceholder(masterShape) &&
+                        !IsPlaceholderOverridden(masterShape, layoutShapes) &&
                         !IsPlaceholderOverridden(masterShape, slideShapes)) {
                         shapes.Add(masterShape);
                     }
@@ -58,6 +61,9 @@ namespace OfficeIMO.PowerPoint {
 
             return shapes;
         }
+
+        private static bool IsStructuralPlaceholder(PowerPointShape shape) =>
+            TryGetPlaceholderSignature(shape, out _, out _);
 
         private static bool IsPlaceholderOverridden(PowerPointShape inheritedShape, IReadOnlyList<PowerPointShape> overridingShapes) {
             if (!TryGetPlaceholderSignature(inheritedShape, out PlaceholderValues? inheritedType, out uint? inheritedIndex)) {

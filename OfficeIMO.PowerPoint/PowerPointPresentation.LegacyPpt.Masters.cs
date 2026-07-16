@@ -637,6 +637,8 @@ namespace OfficeIMO.PowerPoint {
             OfficeIMO.Drawing.Binary.OfficeArtShapeStyle style = source.Style;
             if (style.FillEnabled == false) {
                 SetLegacyShapeFill(properties, new A.NoFill());
+            } else if (CreateLegacyShapeGradientFill(source) is A.GradientFill gradient) {
+                SetLegacyShapeFill(properties, gradient);
             } else if (source.FillColor != null && style.FillType.GetValueOrDefault() == 0) {
                 SetLegacyShapeFill(properties, CreateLegacySolidFill(source.FillColor, style.FillOpacity));
             }

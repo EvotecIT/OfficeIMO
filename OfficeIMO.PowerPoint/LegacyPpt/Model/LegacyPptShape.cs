@@ -114,7 +114,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
             LegacyPptActiveXControl? activeXControl = null,
             LegacyPptMedia? media = null,
             string? pictureTransparentColor = null,
-            string? pictureRecolorColor = null) {
+            string? pictureRecolorColor = null,
+            string? fillBackColor = null,
+            IReadOnlyList<LegacyPptGradientStop>? fillGradientStops = null) {
             Kind = kind;
             OfficeArtShapeType = officeArtShapeType;
             ShapeId = shapeId;
@@ -125,6 +127,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
             Placeholder = placeholder;
             Style = style ?? throw new ArgumentNullException(nameof(style));
             FillColor = fillColor;
+            FillBackColor = fillBackColor;
+            FillGradientStops = new ReadOnlyCollection<LegacyPptGradientStop>(
+                fillGradientStops?.ToArray() ?? Array.Empty<LegacyPptGradientStop>());
             LineColor = lineColor;
             PictureStoreIndex = pictureStoreIndex;
             Picture = picture;
@@ -181,6 +186,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
 
         /// <summary>Gets the resolved solid fill color as RRGGBB, when available.</summary>
         public string? FillColor { get; }
+
+        /// <summary>Gets the resolved background or final gradient fill color as RRGGBB.</summary>
+        public string? FillBackColor { get; }
+
+        /// <summary>Gets resolved custom OfficeArt gradient stops.</summary>
+        public IReadOnlyList<LegacyPptGradientStop> FillGradientStops { get; }
 
         /// <summary>Gets the resolved line color as RRGGBB, when available.</summary>
         public string? LineColor { get; }

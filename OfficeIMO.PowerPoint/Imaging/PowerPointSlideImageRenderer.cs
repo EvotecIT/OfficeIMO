@@ -259,7 +259,7 @@ namespace OfficeIMO.PowerPoint {
                 return;
             }
 
-            OfficeShape frame = OfficeShape.Rectangle(width, height);
+            OfficeShape frame = CreateTextBoxFrame(textBox, width, height);
             ApplyShapeStyle(frame, textBox, colorScheme, mapping);
             ApplyShapeTransform(frame, textBox, width, height);
             if (hasVisibleFrame) {
@@ -353,14 +353,32 @@ namespace OfficeIMO.PowerPoint {
                 paragraphIndent: paragraphIndent);
         }
 
+        private static OfficeShape CreateTextBoxFrame(
+            PowerPointTextBox textBox,
+            double width,
+            double height) {
+            string? presetName = GetAutoShapePresetName(textBox);
+            return !string.IsNullOrEmpty(presetName)
+                   && OfficeShapePresets.TryCreate(presetName, width, height,
+                       out OfficeShape? preset)
+                   && preset != null
+                ? preset
+                : OfficeShape.Rectangle(width, height);
+        }
+
         private static bool HasVisibleFrame(PowerPointShape source, A.ColorScheme? colorScheme) {
-            return (source.FillTransparency != 100 && TryResolveShapeFillColor(source, colorScheme, out _)) ||
+            return (source.FillTransparency != 100
+                    && (HasResolvableShapeFillGradient(source, colorScheme)
+                        || TryResolveShapeFillColor(source, colorScheme, out _))) ||
                 TryResolveShapeOutlineColor(source, colorScheme, out _);
         }
 
         private static void ApplyShapeStyle(OfficeShape target, PowerPointShape source, A.ColorScheme? colorScheme, PowerPointShapeBoundsMapping mapping) {
-            if (source.FillTransparency != 100 && TryResolveShapeFillColor(source, colorScheme, out OfficeColor fill)) {
-                target.FillColor = fill;
+            if (source.FillTransparency != 100) {
+                if (!TryApplyShapeFillGradient(target, source, colorScheme)
+                    && TryResolveShapeFillColor(source, colorScheme, out OfficeColor fill)) {
+                    target.FillColor = fill;
+                }
             }
 
             if (TryResolveShapeOutlineColor(source, colorScheme, out OfficeColor stroke)) {

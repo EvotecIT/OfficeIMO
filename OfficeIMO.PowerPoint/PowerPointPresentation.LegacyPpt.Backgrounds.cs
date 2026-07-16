@@ -99,6 +99,64 @@ namespace OfficeIMO.PowerPoint {
             return first + (last - first) * position;
         }
 
+        private static A.GradientFill? CreateLegacyShapeGradientFill(LegacyPptShape source) {
+            uint fillType = source.Style.FillType.GetValueOrDefault();
+            if (fillType is < 4 or > 8
+                || source.FillColor == null
+                || source.FillBackColor == null) {
+                return null;
+            }
+
+            var gradient = new A.GradientFill { RotateWithShape = true };
+            var stops = new A.GradientStopList();
+            LegacyPptGradientStop[] customStops = source.FillGradientStops
+                .Where(stop => stop.Color != null)
+                .ToArray();
+            if (customStops.Length >= 2
+                && customStops.Length == source.FillGradientStops.Count) {
+                foreach (LegacyPptGradientStop stop in customStops) {
+                    stops.Append(new A.GradientStop(CreateLegacyBackgroundColor(stop.Color!,
+                        InterpolateLegacyShapeGradientOpacity(source, stop.Position))) {
+                        Position = checked((int)Math.Round(stop.Position * 100000D,
+                            MidpointRounding.AwayFromZero))
+                    });
+                }
+            } else {
+                stops.Append(
+                    new A.GradientStop(CreateLegacyBackgroundColor(source.FillColor,
+                        source.Style.FillOpacity)) { Position = 0 },
+                    new A.GradientStop(CreateLegacyBackgroundColor(source.FillBackColor,
+                        source.Style.FillBackOpacity)) { Position = 100000 });
+            }
+            gradient.Append(stops);
+            if (fillType is 4 or 7) {
+                double angle = NormalizeLegacyGradientAngle(
+                    90D + source.Style.FillAngleDegrees.GetValueOrDefault());
+                gradient.Append(new A.LinearGradientFill {
+                    Angle = checked((int)Math.Round(angle * 60000D,
+                        MidpointRounding.AwayFromZero)),
+                    Scaled = fillType == 7
+                });
+            } else {
+                gradient.Append(new A.PathGradientFill {
+                    Path = fillType == 5
+                        ? A.PathShadeValues.Circle
+                        : A.PathShadeValues.Shape
+                });
+            }
+            return gradient;
+        }
+
+        private static double? InterpolateLegacyShapeGradientOpacity(
+            LegacyPptShape source, double position) {
+            if (!source.Style.FillOpacity.HasValue && !source.Style.FillBackOpacity.HasValue) {
+                return null;
+            }
+            double first = source.Style.FillOpacity ?? 1D;
+            double last = source.Style.FillBackOpacity ?? first;
+            return first + (last - first) * position;
+        }
+
         private static A.BlipFill? CreateLegacyBackgroundBlipFill(OpenXmlPart ownerPart,
             LegacyPptBackground source) {
             if (source.Picture?.HasImportableImage != true) return null;

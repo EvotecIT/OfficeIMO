@@ -302,8 +302,9 @@ namespace OfficeIMO.Tests {
             Assert.Contains(masterShapes, shape => shape.NonVisualShapeProperties?
                 .ApplicationNonVisualDrawingProperties?.PlaceholderShape?
                 .Type?.Value == P.PlaceholderValues.Title);
-            Assert.Equal(2, reopened.Slides[0]
-                .GetInheritedShapesForExport().Count);
+            PowerPointShape inheritedDecoration = Assert.Single(reopened.Slides[0]
+                .GetInheritedShapesForExport());
+            Assert.Equal("Master decoration", inheritedDecoration.Name);
             Assert.Empty(reopened.ValidateDocument());
         }
 
