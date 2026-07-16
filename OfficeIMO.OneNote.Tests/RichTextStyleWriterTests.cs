@@ -20,7 +20,7 @@ public sealed class RichTextStyleWriterTests {
         section.Pages.Add(page);
 
         OneNoteSection loaded = OneNoteSectionReader.Read(new MemoryStream(OneNoteSectionWriter.Write(section)));
-        OneNoteParagraph loadedParagraph = Assert.IsType<OneNoteParagraph>(Assert.Single(Assert.Single(loaded.Pages).DirectContent));
+        OneNoteParagraph loadedParagraph = BodyParagraph(Assert.Single(loaded.Pages));
         Assert.Equal(loadedParagraph.Runs[0].StyleObjectId, loadedParagraph.Runs[1].StyleObjectId);
         loadedParagraph.Runs[0].Style.Italic = true;
 
@@ -33,7 +33,7 @@ public sealed class RichTextStyleWriterTests {
         Assert.NotEqual(styleIds[0], styleIds[1]);
 
         OneNoteSection roundTrip = OneNoteSectionReader.Read(new MemoryStream(OneNoteSectionWriter.Write(loaded)));
-        OneNoteParagraph result = Assert.IsType<OneNoteParagraph>(Assert.Single(Assert.Single(roundTrip.Pages).DirectContent));
+        OneNoteParagraph result = BodyParagraph(Assert.Single(roundTrip.Pages));
         Assert.Collection(result.Runs,
             run => {
                 Assert.True(run.Style.Bold);
@@ -43,5 +43,10 @@ public sealed class RichTextStyleWriterTests {
                 Assert.True(run.Style.Bold);
                 Assert.Null(run.Style.Italic);
             });
+    }
+
+    private static OneNoteParagraph BodyParagraph(OneNotePage page) {
+        Assert.Empty(page.DirectContent);
+        return Assert.IsType<OneNoteParagraph>(Assert.Single(Assert.Single(page.Outlines).Children));
     }
 }

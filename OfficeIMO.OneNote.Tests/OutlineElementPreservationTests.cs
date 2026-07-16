@@ -20,7 +20,9 @@ public sealed class OutlineElementPreservationTests {
         OneNoteWriteGraph graph = new OneNoteWriteGraphBuilder().BuildSection(section);
         OneNoteWriteObjectSpace pageSpace = graph.ObjectSpaces[1];
         OneNoteWriteObject pageNode = Assert.Single(pageSpace.Objects, item => item.Jcid == OneNoteSchema.JcidPageNode);
-        OneNoteExtendedGuid[] directIds = Property(pageNode, OneNoteSchema.ElementChildNodes).References.ToArray();
+        OneNoteExtendedGuid outlineId = Assert.Single(Property(pageNode, OneNoteSchema.ElementChildNodes).References);
+        OneNoteWriteObject outline = Assert.Single(pageSpace.Objects, item => item.Id == outlineId);
+        OneNoteExtendedGuid[] directIds = Property(outline, OneNoteSchema.ElementChildNodes).References.ToArray();
         Assert.Equal(2, directIds.Length);
         OneNoteExtendedGuid imageId = directIds[0];
         OneNoteExtendedGuid nestedId = directIds[1];
@@ -61,16 +63,22 @@ public sealed class OutlineElementPreservationTests {
         pageSpace.Objects[pageNodeIndex] = new OneNoteWriteObject(pageNode.Id, pageNode.Jcid, pageProperties);
 
         OneNoteSection loaded = OneNoteSectionReader.Read(new MemoryStream(OneNoteRevisionStoreWriter.Write(graph)));
-        AssertWrapper(loaded, authorId);
+        AssertWrapper(loaded, authorId, canonicalRoot: false);
 
         byte[] rewritten = OneNoteSectionWriter.Write(loaded, new OneNoteWriterOptions { PreserveUnknownData = false });
-        AssertWrapper(OneNoteSectionReader.Read(new MemoryStream(rewritten)), authorId);
+        AssertWrapper(OneNoteSectionReader.Read(new MemoryStream(rewritten)), authorId, canonicalRoot: true);
     }
 
-    private static void AssertWrapper(OneNoteSection section, OneNoteExtendedGuid expectedAuthorId) {
+    private static void AssertWrapper(OneNoteSection section, OneNoteExtendedGuid expectedAuthorId, bool canonicalRoot) {
         OneNotePage page = Assert.Single(section.Pages);
-        Assert.Empty(page.Outlines);
-        OneNoteOutline wrapper = Assert.IsType<OneNoteOutline>(Assert.Single(page.DirectContent));
+        OneNoteOutline wrapper;
+        if (canonicalRoot) {
+            Assert.Empty(page.DirectContent);
+            wrapper = Assert.IsType<OneNoteOutline>(Assert.Single(Assert.Single(page.Outlines).Children));
+        } else {
+            Assert.Empty(page.Outlines);
+            wrapper = Assert.IsType<OneNoteOutline>(Assert.Single(page.DirectContent));
+        }
         Assert.True(wrapper.IsOutlineElementWrapper);
         Assert.Equal(12.5, wrapper.Layout!.X);
         Assert.Equal(7.25, wrapper.Layout.Y);

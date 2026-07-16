@@ -66,21 +66,29 @@ public sealed class IdentityStabilityTests {
         var options = new OneNoteWriterOptions { StorageFormat = storageFormat };
 
         OneNoteSection loaded = OneNoteSectionReader.Read(new MemoryStream(OneNoteSectionWriter.Write(section, options)));
-        OneNoteParagraph loadedFirst = Assert.IsType<OneNoteParagraph>(loaded.Pages[0].DirectContent[0]);
-        OneNoteParagraph loadedSecond = Assert.IsType<OneNoteParagraph>(loaded.Pages[0].DirectContent[1]);
+        OneNoteParagraph[] loadedParagraphs = BodyParagraphs(loaded.Pages[0]);
+        OneNoteParagraph loadedFirst = loadedParagraphs[0];
+        OneNoteParagraph loadedSecond = loadedParagraphs[1];
         Assert.Equal(loadedFirst.Author!.ObjectId, loadedSecond.Author!.ObjectId);
 
         loadedSecond.Author.Name = "Edited author";
         OneNoteSection edited = OneNoteSectionReader.Read(new MemoryStream(OneNoteSectionWriter.Write(loaded, options)));
-        OneNoteParagraph editedFirst = Assert.IsType<OneNoteParagraph>(edited.Pages[0].DirectContent[0]);
-        OneNoteParagraph editedSecond = Assert.IsType<OneNoteParagraph>(edited.Pages[0].DirectContent[1]);
+        OneNoteParagraph[] editedParagraphs = BodyParagraphs(edited.Pages[0]);
+        OneNoteParagraph editedFirst = editedParagraphs[0];
+        OneNoteParagraph editedSecond = editedParagraphs[1];
         Assert.Equal("Shared author", editedFirst.Author!.Name);
         Assert.Equal("Edited author", editedSecond.Author!.Name);
         Assert.NotEqual(editedFirst.Author.ObjectId, editedSecond.Author.ObjectId);
 
         OneNoteSection repeated = OneNoteSectionReader.Read(new MemoryStream(OneNoteSectionWriter.Write(edited, options)));
-        Assert.Equal(editedFirst.Author.ObjectId, Assert.IsType<OneNoteParagraph>(repeated.Pages[0].DirectContent[0]).Author!.ObjectId);
-        Assert.Equal(editedSecond.Author.ObjectId, Assert.IsType<OneNoteParagraph>(repeated.Pages[0].DirectContent[1]).Author!.ObjectId);
+        OneNoteParagraph[] repeatedParagraphs = BodyParagraphs(repeated.Pages[0]);
+        Assert.Equal(editedFirst.Author.ObjectId, repeatedParagraphs[0].Author!.ObjectId);
+        Assert.Equal(editedSecond.Author.ObjectId, repeatedParagraphs[1].Author!.ObjectId);
+    }
+
+    private static OneNoteParagraph[] BodyParagraphs(OneNotePage page) {
+        Assert.Empty(page.DirectContent);
+        return Assert.Single(page.Outlines).Children.OfType<OneNoteParagraph>().ToArray();
     }
 
     private static OneNoteSection CreateSection(string name) {

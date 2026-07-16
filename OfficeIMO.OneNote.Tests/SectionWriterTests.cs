@@ -150,7 +150,7 @@ public sealed class SectionWriterTests {
     }
 
     [Fact]
-    public void PreservesDirectPageContentPlacementAcrossRoundTrip() {
+    public void NormalizesDirectPageContentIntoRenderableOutline() {
         var section = new OneNoteSection { Name = "Direct content" };
         var page = new OneNotePage { Title = "Direct page" };
         var paragraph = new OneNoteParagraph();
@@ -163,11 +163,25 @@ public sealed class SectionWriterTests {
         section.Pages.Add(page);
 
         byte[] data = OneNoteSectionWriter.Write(section);
+        Assert.Empty(page.DirectContent);
+        OneNoteOutline normalizedOutline = Assert.Single(page.Outlines);
+        Assert.Same(paragraph, normalizedOutline.Children[0]);
+        Assert.NotNull(normalizedOutline.Id);
+        OneNoteWriteObjectSpace pageSpace = new OneNoteWriteGraphBuilder().BuildSection(section).ObjectSpaces[1];
+        OneNoteWriteObject pageNode = Assert.Single(pageSpace.Objects, item => item.Jcid == OneNoteSchema.JcidPageNode);
+        OneNoteExtendedGuid outlineId = Assert.Single(Property(pageNode, OneNoteSchema.ElementChildNodes).References);
+        OneNoteWriteObject outline = Assert.Single(pageSpace.Objects, item => item.Id == outlineId);
+        Assert.Equal(OneNoteSchema.JcidOutlineNode, outline.Jcid);
+        Assert.Equal(2, Property(outline, OneNoteSchema.ElementChildNodes).References.Count);
+        Assert.Equal(1.0F, FloatValue(Property(outline, OneNoteSchema.OffsetFromParentHorizontal)));
+        Assert.Equal(2.4F, FloatValue(Property(outline, OneNoteSchema.OffsetFromParentVertical)));
+        Assert.Equal(normalizedOutline.Id, outline.Id);
+
         OneNoteSection roundTrip = OneNoteSectionReader.Read(new MemoryStream(data));
 
         OneNotePage result = Assert.Single(roundTrip.Pages);
-        Assert.Empty(result.Outlines);
-        Assert.Collection(result.DirectContent,
+        Assert.Empty(result.DirectContent);
+        Assert.Collection(Assert.Single(result.Outlines).Children,
             element => Assert.Equal("Outside an outline", Assert.Single(Assert.IsType<OneNoteParagraph>(element).Runs).Text),
             element => {
                 OneNoteEmbeddedFile file = Assert.IsType<OneNoteEmbeddedFile>(element);
@@ -401,7 +415,10 @@ public sealed class SectionWriterTests {
 
         OneNoteSection roundTrip = OneNoteSectionReader.Read(new MemoryStream(OneNoteSectionWriter.Write(section)));
 
-        OneNoteTag result = Assert.Single(Assert.IsType<OneNoteParagraph>(Assert.Single(roundTrip.Pages[0].DirectContent)).Tags);
+        OneNotePage resultPage = Assert.Single(roundTrip.Pages);
+        Assert.Empty(resultPage.DirectContent);
+        OneNoteParagraph resultParagraph = Assert.IsType<OneNoteParagraph>(Assert.Single(Assert.Single(resultPage.Outlines).Children));
+        OneNoteTag result = Assert.Single(resultParagraph.Tags);
         Assert.False(result.IsCheckable);
         Assert.Equal(13U, result.Shape);
         Assert.True(result.IsCompleted);
@@ -472,8 +489,8 @@ public sealed class SectionWriterTests {
         OneNotePage conflictResult = Assert.Single(current.ConflictPages);
         Assert.True(conflictResult.IsConflictPage);
         Assert.Equal("Conflict copy", conflictResult.Title);
-        Assert.Empty(conflictResult.Outlines);
-        OneNoteParagraph conflictResultParagraph = Assert.IsType<OneNoteParagraph>(Assert.Single(conflictResult.DirectContent));
+        Assert.Empty(conflictResult.DirectContent);
+        OneNoteParagraph conflictResultParagraph = Assert.IsType<OneNoteParagraph>(Assert.Single(Assert.Single(conflictResult.Outlines).Children));
         Assert.Equal("Conflicting content", string.Concat(conflictResultParagraph.Runs.Select(run => run.Text)));
     }
 
@@ -614,6 +631,9 @@ public sealed class SectionWriterTests {
         Assert.Single(item.Properties, property => (property.RawId & 0x7FFFFFFFU) == id);
 
     private static bool IsTrue(OneNoteWriteProperty property) => (property.RawId & 0x80000000U) != 0;
+
+    private static float FloatValue(OneNoteWriteProperty property) =>
+        BitConverter.ToSingle(BitConverter.GetBytes((uint)Assert.IsType<ulong>(property.Scalar)), 0);
 
     private static void AssertGuidProperty(OneNoteWriteObject item, uint id) {
         byte[] data = Assert.IsType<byte[]>(Property(item, id).Data);

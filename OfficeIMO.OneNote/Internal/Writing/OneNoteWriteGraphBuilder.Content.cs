@@ -3,6 +3,29 @@ using System.Text;
 namespace OfficeIMO.OneNote;
 
 internal sealed partial class OneNoteWriteGraphBuilder {
+    private const double DefaultBodyOutlineHorizontalOffset = 1.0;
+    private const double DefaultBodyOutlineVerticalOffset = 2.4;
+
+    /// <summary>
+    /// Normalizes page-level convenience content into the stable root outline required for Microsoft
+    /// OneNote to render it. Direct outline-element children are preserved by OneNote but remain invisible,
+    /// and the canonical MS-ONE body placement prevents the new outline from colliding with the title.
+    /// </summary>
+    /// <param name="page">Page whose direct content is moved into a native root outline.</param>
+    private static void NormalizeDirectContent(OneNotePage page) {
+        if (page.DirectContent.Count == 0) return;
+
+        var outline = new OneNoteOutline {
+            Layout = new OneNoteLayout {
+                X = DefaultBodyOutlineHorizontalOffset,
+                Y = DefaultBodyOutlineVerticalOffset
+            }
+        };
+        foreach (OneNoteElement child in page.DirectContent) outline.Children.Add(child);
+        page.DirectContent.Clear();
+        page.Outlines.Add(outline);
+    }
+
     private OneNoteExtendedGuid BuildOutline(OneNoteWriteObjectSpace space, OneNoteOutline outline, uint lastModifiedTime) {
         if (outline.IsOutlineElementWrapper) {
             return BuildOutlineElementWrapper(space, outline, lastModifiedTime);
