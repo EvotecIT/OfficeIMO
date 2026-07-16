@@ -49,6 +49,12 @@ public sealed class EpubChapter {
     public string? Title { get; internal set; }
 
     /// <summary>
+    /// First HTML <c>base</c> element href declared by this chapter, when present.
+    /// Relative content references are resolved through this value.
+    /// </summary>
+    public string? BaseHref { get; internal set; }
+
+    /// <summary>
     /// Plain-text content extracted from chapter HTML.
     /// </summary>
     public string Text { get; internal set; } = string.Empty;

@@ -157,6 +157,11 @@ internal static partial class EpubReader {
 
             emitted++;
             var title = ResolveChapterTitle(chapterDocument, navigation.TitleMap, normalizedPath);
+            string? baseHref = chapterDocument
+                .Descendants()
+                .Where(static element => element.Name.LocalName.Equals("base", StringComparison.OrdinalIgnoreCase))
+                .Select(element => NullIfWhiteSpace(GetAttribute(element, "href")))
+                .FirstOrDefault(static value => value != null);
 
             chapters.Add(new EpubChapter {
                 Order = emitted,
@@ -168,6 +173,7 @@ internal static partial class EpubReader {
                 RenditionLayout = candidate.RenditionLayout,
                 Encryption = chapterEncryption,
                 Title = title,
+                BaseHref = baseHref,
                 Text = text,
                 HasStructuredContent = hasStructuredContent,
                 Html = retainedHtml

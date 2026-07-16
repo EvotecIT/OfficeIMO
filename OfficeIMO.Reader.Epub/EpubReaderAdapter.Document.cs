@@ -71,15 +71,26 @@ internal static partial class EpubReaderAdapter {
                     virtualPath,
                     readerOptions,
                     cancellationToken: cancellationToken);
-                ResolveEpubChapterLinks(source.Path, chapter.Path, htmlResult.Links);
+                IReadOnlyList<OfficeDocumentLink> resolvedLinks = ResolveEpubChapterLinks(
+                    source.Path,
+                    chapter,
+                    htmlResult.Links,
+                    diagnostics);
                 string prefix = "epub-chapter-" + (chapterIndex + 1).ToString("D4", CultureInfo.InvariantCulture) + "-";
                 PrefixHtmlProjection(prefix, htmlResult, ref tableIndex);
                 chapterBlocks.AddRange(htmlResult.Blocks);
                 chapterTables.AddRange(htmlResult.Tables);
-                chapterLinks.AddRange(htmlResult.Links);
+                chapterLinks.AddRange(resolvedLinks);
                 chapterForms.AddRange(htmlResult.Forms);
-                visuals.AddRange(htmlResult.Visuals);
-                AddEpubChapterAssets(source.Path, chapter.Path, htmlResult.Assets, assets, chapterAssets);
+                AddEpubChapterAssets(source.Path, chapter, htmlResult.Assets, assets, chapterAssets, diagnostics);
+                IReadOnlyList<ReaderVisual> resolvedVisuals = ResolveEpubChapterVisuals(
+                    source.Path,
+                    chapter,
+                    htmlResult.Visuals,
+                    assets,
+                    chapterAssets,
+                    diagnostics);
+                visuals.AddRange(resolvedVisuals);
                 diagnostics.AddRange(htmlResult.Diagnostics.Where(static diagnostic =>
                     !string.Equals(diagnostic.Code, "ocr-needed", StringComparison.Ordinal)));
             }
@@ -159,128 +170,6 @@ internal static partial class EpubReaderAdapter {
         return pages;
     }
 
-    private static IEnumerable<OfficeDocumentAsset> BuildEpubAssets(EpubDocument document, string sourcePath) {
-        int assetIndex = 0;
-        foreach (EpubResource resource in document.Resources) {
-            if (string.IsNullOrWhiteSpace(resource.MediaType) || !resource.MediaType!.StartsWith("image/", StringComparison.OrdinalIgnoreCase)) continue;
-            string id = "epub-image-" + assetIndex.ToString("D4", CultureInfo.InvariantCulture);
-            string resourceLocation = resource.IsRemote && !string.IsNullOrWhiteSpace(resource.RemoteUri)
-                ? resource.RemoteUri!
-                : BuildVirtualPath(sourcePath, resource.Path);
-            string extensionSource = resource.Path;
-            if (resource.IsRemote && Uri.TryCreate(resource.RemoteUri, UriKind.Absolute, out Uri? remoteUri)) {
-                extensionSource = remoteUri.AbsolutePath;
-            }
-            string extension = Path.GetExtension(extensionSource);
-            yield return new OfficeDocumentAsset {
-                Id = id,
-                Kind = "image",
-                MediaType = resource.MediaType,
-                Extension = string.IsNullOrWhiteSpace(extension) ? null : extension,
-                FileName = OfficeDocumentAssetNaming.BuildFileName(id, extension),
-                LengthBytes = resource.LengthBytes,
-                PayloadHash = resource.Data == null ? null : ComputeEpubPayloadHash(resource.Data),
-                PayloadBytes = resource.Data,
-                SourceObjectId = resource.Id,
-                Location = new ReaderLocation {
-                    Path = resourceLocation,
-                    SourceBlockKind = "image",
-                    BlockAnchor = id
-                }
-            };
-            assetIndex++;
-        }
-    }
-
-    private static void AddEpubChapterAssets(
-        string sourcePath,
-        string chapterPath,
-        IReadOnlyList<OfficeDocumentAsset> htmlAssets,
-        List<OfficeDocumentAsset> documentAssets,
-        List<OfficeDocumentAsset> chapterAssets) {
-        foreach (OfficeDocumentAsset htmlAsset in htmlAssets) {
-            OfficeDocumentAsset? mappedAsset = null;
-            if (htmlAsset.PayloadBytes == null) {
-                string? resourceLocation = ResolveEpubResourceLocation(sourcePath, chapterPath, htmlAsset.SourceObjectId);
-                if (!string.IsNullOrWhiteSpace(resourceLocation)) {
-                    mappedAsset = documentAssets.FirstOrDefault(asset => string.Equals(asset.Location.Path, resourceLocation, StringComparison.Ordinal));
-                }
-            }
-
-            if (mappedAsset == null) {
-                mappedAsset = htmlAsset;
-                documentAssets.Add(mappedAsset);
-            }
-            if (!chapterAssets.Contains(mappedAsset)) chapterAssets.Add(mappedAsset);
-        }
-    }
-
-    private static string? ResolveEpubResourceLocation(string sourcePath, string chapterPath, string? sourceObjectId) {
-        if (string.IsNullOrWhiteSpace(sourceObjectId)) return null;
-        string candidate = sourceObjectId!.Trim();
-        if (candidate.StartsWith("data:", StringComparison.OrdinalIgnoreCase)) return null;
-        if (Uri.TryCreate(candidate, UriKind.Absolute, out Uri? absoluteUri) && !absoluteUri.IsFile) {
-            return candidate;
-        }
-        string? resourcePath = ResolveEpubResourcePath(chapterPath, candidate);
-        return string.IsNullOrWhiteSpace(resourcePath) ? null : BuildVirtualPath(sourcePath, resourcePath!);
-    }
-
-    private static string? ResolveEpubResourcePath(string chapterPath, string? sourceObjectId) {
-        if (string.IsNullOrWhiteSpace(sourceObjectId)) return null;
-        string candidate = sourceObjectId!.Trim();
-        int fragmentIndex = candidate.IndexOfAny(new[] { '#', '?' });
-        if (fragmentIndex >= 0) candidate = candidate.Substring(0, fragmentIndex);
-        if (candidate.Length == 0
-            || candidate.StartsWith("data:", StringComparison.OrdinalIgnoreCase)
-            || candidate.StartsWith("//", StringComparison.Ordinal)
-            || Uri.TryCreate(candidate, UriKind.Absolute, out _)) {
-            return null;
-        }
-
-        try {
-            candidate = Uri.UnescapeDataString(candidate).Replace('\\', '/');
-        } catch {
-            candidate = candidate.Replace('\\', '/');
-        }
-
-        string combined;
-        if (candidate.StartsWith("/", StringComparison.Ordinal)) {
-            combined = candidate.TrimStart('/');
-        } else {
-            int lastSlash = chapterPath.LastIndexOf('/');
-            string chapterDirectory = lastSlash < 0 ? string.Empty : chapterPath.Substring(0, lastSlash + 1);
-            combined = chapterDirectory + candidate;
-        }
-
-        var segments = new List<string>();
-        foreach (string segment in combined.Split(new[] { '/' }, StringSplitOptions.RemoveEmptyEntries)) {
-            if (segment == ".") continue;
-            if (segment == "..") {
-                if (segments.Count == 0) return null;
-                segments.RemoveAt(segments.Count - 1);
-            } else {
-                segments.Add(segment);
-            }
-        }
-        return segments.Count == 0 ? null : string.Join("/", segments);
-    }
-
-    private static void ResolveEpubChapterLinks(
-        string sourcePath,
-        string chapterPath,
-        IReadOnlyList<OfficeDocumentLink> links) {
-        foreach (OfficeDocumentLink link in links) {
-            if (string.IsNullOrWhiteSpace(link.Uri)) continue;
-            string rawUri = link.Uri!.Trim();
-            string? resourcePath = ResolveEpubResourcePath(chapterPath, rawUri);
-            if (resourcePath == null) continue;
-            int suffixIndex = rawUri.IndexOfAny(new[] { '?', '#' });
-            string suffix = suffixIndex < 0 ? string.Empty : rawUri.Substring(suffixIndex);
-            link.Uri = BuildVirtualPath(sourcePath, resourcePath) + suffix;
-        }
-    }
-
     private static void PrefixHtmlProjection(string prefix, OfficeDocumentReadResult result, ref int tableIndex) {
         foreach (OfficeDocumentBlock block in result.Blocks) {
             block.Id = prefix + block.Id;
@@ -313,8 +202,4 @@ internal static partial class EpubReaderAdapter {
         }
     }
 
-    private static string ComputeEpubPayloadHash(byte[] bytes) {
-        using var stream = new MemoryStream(bytes, writable: false);
-        return ComputeSha256Hex(stream);
-    }
 }

@@ -203,7 +203,8 @@ internal static partial class HtmlReaderAdapter {
                 projection.Assets.Add(asset);
                 projection.Visuals.Add(MapHtmlVisual(node, asset.Location, asset.PayloadHash, asset.MediaType, asset.SourceObjectId));
             }
-        } else if (node.Kind == HtmlLogicalNodeKind.Media) {
+        } else if (node.Kind == HtmlLogicalNodeKind.Media &&
+            !string.Equals(node.Name, "source", StringComparison.OrdinalIgnoreCase)) {
             string anchor = "html-media-" + projection.Visuals.Count.ToString("D4", CultureInfo.InvariantCulture);
             projection.Visuals.Add(MapHtmlVisual(node, BuildHtmlLocation(path, null, "media", anchor), null, null));
         }
@@ -357,10 +358,18 @@ internal static partial class HtmlReaderAdapter {
         string? mediaType,
         string? sourceOverride = null) {
         node.Attributes.TryGetValue("src", out string? source);
+        HtmlLogicalNode? mediaSource = null;
+        if (string.IsNullOrWhiteSpace(source) && node.Kind == HtmlLogicalNodeKind.Media) {
+            mediaSource = FindHtmlMediaSource(node);
+            mediaSource?.Attributes.TryGetValue("src", out source);
+        }
         if (!string.IsNullOrWhiteSpace(sourceOverride)) source = sourceOverride;
         node.Attributes.TryGetValue("alt", out string? altText);
         node.Attributes.TryGetValue("title", out string? title);
         if (mediaType == null && node.Attributes.TryGetValue("type", out string? declaredType)) mediaType = declaredType;
+        if (mediaType == null && mediaSource != null && mediaSource.Attributes.TryGetValue("type", out string? sourceType)) {
+            mediaType = sourceType;
+        }
         string content = altText ?? title ?? GetHtmlNodeText(node);
         if (string.IsNullOrWhiteSpace(content)) content = source ?? node.Name;
         return new ReaderVisual {
@@ -378,6 +387,20 @@ internal static partial class HtmlReaderAdapter {
                 BlockAnchor = location.BlockAnchor
             }
         };
+    }
+
+    private static HtmlLogicalNode? FindHtmlMediaSource(HtmlLogicalNode node) {
+        foreach (HtmlLogicalNode child in node.Children) {
+            if (child.Kind == HtmlLogicalNodeKind.Media
+                && string.Equals(child.Name, "source", StringComparison.OrdinalIgnoreCase)
+                && child.Attributes.TryGetValue("src", out string? source)
+                && !string.IsNullOrWhiteSpace(source)) {
+                return child;
+            }
+            HtmlLogicalNode? descendant = FindHtmlMediaSource(child);
+            if (descendant != null) return descendant;
+        }
+        return null;
     }
 
     private static IReadOnlyList<OfficeDocumentMetadataEntry> BuildHtmlMetadata(HtmlLogicalDocument logical, HtmlProjection projection) {

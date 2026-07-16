@@ -21,10 +21,16 @@ internal static partial class EpubReaderAdapter {
         string fileName = Path.GetFileName(source.Path);
         var chunks = new List<ReaderChunk>();
         var nonContentWarnings = new List<string>();
+        ReaderHtmlOptions htmlOptions = ReaderHtmlOptions.CreateOfficeIMOProfile();
+        if (htmlOptions.HtmlToMarkdownOptions != null) {
+            htmlOptions.HtmlToMarkdownOptions.UrlPolicy.ResolvedUrlTransform = value =>
+                ResolveEpubMarkdownReference(source.Path, chapter, value);
+        }
         foreach (ReaderChunk htmlChunk in HtmlReaderAdapter.ReadContent(
                      chapter.Html!,
                      virtualPath,
                      options,
+                     htmlOptions,
                      cancellationToken: cancellationToken)) {
             cancellationToken.ThrowIfCancellationRequested();
             if (IsHtmlNoMarkdownWarningChunk(htmlChunk)) {

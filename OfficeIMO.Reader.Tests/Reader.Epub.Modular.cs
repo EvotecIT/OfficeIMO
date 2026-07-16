@@ -65,7 +65,9 @@ public sealed partial class ReaderEpubModularTests {
             Assert.Equal(2, inlineImages.Length);
             Assert.Equal(2, inlineImages.Select(item => item.FileName).Distinct(StringComparer.Ordinal).Count());
             Assert.All(result.Pages, page => Assert.Contains(page.Assets, pageAsset => pageAsset.MediaType == "image/gif"));
-            ReaderVisual visual = Assert.Single(result.Visuals, item => item.Kind == "image" && item.SourceName == "images/cover.png");
+            ReaderVisual visual = Assert.Single(result.Visuals, item =>
+                item.Kind == "image" &&
+                item.SourceName == result.Source.Path + "::OEBPS/images/cover.png");
             Assert.StartsWith("epub-chapter-0001-html-image-", visual.Location!.BlockAnchor!, StringComparison.Ordinal);
             using (FileStream stream = File.OpenRead(epubPath)) {
                 OfficeDocumentReadResult jsonResult = OfficeDocumentReadResultJson.Deserialize(

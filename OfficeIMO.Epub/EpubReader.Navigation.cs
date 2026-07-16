@@ -84,6 +84,12 @@ internal static partial class EpubReader {
             return;
         }
 
+        string? baseHref = navDocument
+            .Descendants()
+            .Where(static element => IsName(element, "base"))
+            .Select(element => NullIfWhiteSpace(GetAttribute(element, "href")))
+            .FirstOrDefault(static value => value != null);
+
         foreach (XElement nav in navDocument.Descendants().Where(element => IsName(element, "nav"))) {
             string type = GetAttribute(nav, "type");
             List<EpubNavigationItem>? destination = ContainsSpaceSeparatedToken(type, "toc")
@@ -98,13 +104,14 @@ internal static partial class EpubReader {
             XElement? list = nav.Elements().FirstOrDefault(element => IsName(element, "ol"))
                 ?? nav.Descendants().FirstOrDefault(element => IsName(element, "ol"));
             if (list == null) continue;
-            destination.AddRange(ParseHtmlNavigationList(list, navPath, 1, options, limits, diagnostics));
+            destination.AddRange(ParseHtmlNavigationList(list, navPath, baseHref, 1, options, limits, diagnostics));
         }
     }
 
     private static IReadOnlyList<EpubNavigationItem> ParseHtmlNavigationList(
         XElement list,
         string navPath,
+        string? baseHref,
         int depth,
         EpubReadOptions options,
         NavigationLimitState limits,
@@ -122,7 +129,7 @@ internal static partial class EpubReader {
             string? target = null;
             string? fragment = null;
             bool isRemote = false;
-            if (href != null && !TryResolveNavigationTarget(navPath, href, out target, out fragment, out isRemote)) {
+            if (href != null && !TryResolveNavigationTarget(navPath, baseHref, href, out target, out fragment, out isRemote)) {
                 diagnostics.Warning(
                     "epub.navigation.target-invalid",
                     $"Navigation item '{label}' has invalid href '{href}'.",
@@ -132,7 +139,7 @@ internal static partial class EpubReader {
             XElement? childList = listItem.Elements().FirstOrDefault(element => IsName(element, "ol"));
             IReadOnlyList<EpubNavigationItem> children = childList == null
                 ? Array.Empty<EpubNavigationItem>()
-                : ParseHtmlNavigationList(childList, navPath, depth + 1, options, limits, diagnostics);
+                : ParseHtmlNavigationList(childList, navPath, baseHref, depth + 1, options, limits, diagnostics);
             if (label.Length == 0) label = target ?? string.Empty;
             items.Add(new EpubNavigationItem {
                 Source = EpubNavigationSource.Epub3Navigation,
@@ -240,7 +247,7 @@ internal static partial class EpubReader {
             string? target = null;
             string? fragment = null;
             bool isRemote = false;
-            if (href != null && !TryResolveNavigationTarget(ncxPath, href, out target, out fragment, out isRemote)) {
+            if (href != null && !TryResolveNavigationTarget(ncxPath, null, href, out target, out fragment, out isRemote)) {
                 diagnostics.Warning(
                     "epub.ncx.target-invalid",
                     $"NCX item '{label}' has invalid src '{href}'.",
@@ -276,6 +283,7 @@ internal static partial class EpubReader {
 
     private static bool TryResolveNavigationTarget(
         string basePath,
+        string? baseHref,
         string href,
         out string? target,
         out string? fragment,
@@ -285,30 +293,14 @@ internal static partial class EpubReader {
         isRemote = false;
         if (string.IsNullOrWhiteSpace(href)) return false;
 
-        string candidate = href.Trim();
-        int fragmentIndex = candidate.IndexOf('#');
-        string reference = fragmentIndex < 0 ? candidate : candidate.Substring(0, fragmentIndex);
-        if (fragmentIndex >= 0 && fragmentIndex + 1 < candidate.Length) {
-            string encodedFragment = candidate.Substring(fragmentIndex + 1);
-            try {
-                fragment = Uri.UnescapeDataString(encodedFragment);
-            } catch {
-                fragment = encodedFragment;
-            }
-        }
-
-        if (reference.Length == 0) {
-            target = NormalizePath(basePath);
-            return target.Length > 0;
-        }
-        if (TryGetRemoteResourceUri(reference, out string? remoteUri)) {
-            target = remoteUri;
-            isRemote = true;
-            return true;
-        }
-
-        target = ResolveRelativePath(basePath, reference);
-        return target.Length > 0;
+        EpubReference resolved = EpubReference.Resolve(basePath, baseHref, href);
+        if (!resolved.IsValid || resolved.Kind == EpubReferenceKind.Data) return false;
+        target = resolved.Kind == EpubReferenceKind.Container
+            ? resolved.ContainerPath
+            : resolved.Target;
+        fragment = resolved.Fragment;
+        isRemote = resolved.Kind == EpubReferenceKind.External;
+        return !string.IsNullOrWhiteSpace(target);
     }
 
     private static bool TryReserveNavigationItem(

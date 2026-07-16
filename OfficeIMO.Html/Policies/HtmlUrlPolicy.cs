@@ -58,6 +58,13 @@ public sealed class HtmlUrlPolicy {
     public bool RestrictUrlSchemes { get; set; }
 
     /// <summary>
+    /// Optional trusted transform applied after a URL passes policy checks and base-URI resolution.
+    /// Return <see langword="null"/> or an empty string to reject the resolved URL. Transformed
+    /// values are checked against this policy again before use.
+    /// </summary>
+    public Func<string, string?>? ResolvedUrlTransform { get; set; }
+
+    /// <summary>
     /// URL schemes allowed when <see cref="RestrictUrlSchemes"/> is enabled.
     /// </summary>
     public HashSet<string> AllowedUrlSchemes { get; } = new HashSet<string>(StringComparer.OrdinalIgnoreCase) {
@@ -76,7 +83,8 @@ public sealed class HtmlUrlPolicy {
             AllowMailtoUrls = AllowMailtoUrls,
             AllowDataUrls = AllowDataUrls,
             AllowProtocolRelativeUrls = AllowProtocolRelativeUrls,
-            RestrictUrlSchemes = RestrictUrlSchemes
+            RestrictUrlSchemes = RestrictUrlSchemes,
+            ResolvedUrlTransform = ResolvedUrlTransform
         };
 
         clone.AllowedUrlSchemes.Clear();
