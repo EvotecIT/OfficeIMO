@@ -18,8 +18,8 @@ internal static class ReaderWebUriPolicy {
         if (options.AllowedHosts.Count > 0 && !IsAllowedHost(host, options)) {
             throw new ReaderWebPolicyException(uri, "Reader Web rejected a host outside the configured allowlist.");
         }
-        if (!options.AllowPrivateNetworkTargets && IsPrivateOrNonRoutableTarget(uri, host)) {
-            throw new ReaderWebPolicyException(uri, "Reader Web rejected a loopback, private, link-local, or non-routable target.");
+        if (!options.AllowLocalhostAndNonPublicIpLiterals && IsLocalhostOrNonPublicIpLiteral(uri, host)) {
+            throw new ReaderWebPolicyException(uri, "Reader Web rejected a localhost name or a loopback, private, link-local, or non-routable IP literal.");
         }
     }
 
@@ -36,7 +36,7 @@ internal static class ReaderWebUriPolicy {
         return false;
     }
 
-    private static bool IsPrivateOrNonRoutableTarget(Uri uri, string host) {
+    private static bool IsLocalhostOrNonPublicIpLiteral(Uri uri, string host) {
         if (uri.IsLoopback ||
             string.Equals(host, "localhost", StringComparison.OrdinalIgnoreCase) ||
             host.EndsWith(".localhost", StringComparison.OrdinalIgnoreCase)) {

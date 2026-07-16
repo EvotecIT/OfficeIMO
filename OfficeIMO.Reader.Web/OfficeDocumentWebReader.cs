@@ -5,6 +5,9 @@ namespace OfficeIMO.Reader.Web;
 /// </summary>
 /// <remarks>
 /// The caller owns the Reader and <see cref="HttpClient"/> lifetimes. This type does not mutate or dispose either.
+/// URI validation provides defense in depth for schemes, allowlists, credentials, and non-public IP literals;
+/// it is not an SSRF isolation boundary. When reading an untrusted URI, configure the caller-owned HTTP handler
+/// to validate resolved addresses at connection time and validate each redirect before sending it.
 /// </remarks>
 public sealed class OfficeDocumentWebReader {
     private readonly OfficeDocumentReader _reader;
@@ -26,6 +29,10 @@ public sealed class OfficeDocumentWebReader {
     /// <summary>
     /// Downloads one bounded HTTP(S) response and routes its body through the configured Reader instance.
     /// </summary>
+    /// <remarks>
+    /// The URI must be trusted unless the caller-owned HTTP handler enforces connection-time address and
+    /// pre-request redirect policy. Reader Web cannot inspect or override those behaviors on an existing client.
+    /// </remarks>
     public async Task<OfficeDocumentReadResult> ReadDocumentAsync(
         Uri uri,
         string? sourceName = null,

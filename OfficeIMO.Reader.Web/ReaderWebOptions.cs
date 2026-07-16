@@ -22,7 +22,7 @@ public sealed class ReaderWebOptions {
 
     /// <summary>
     /// Gets or sets an optional exact host allowlist. An empty list permits any host that passes the
-    /// scheme and private-target checks.
+    /// scheme and non-public IP-literal checks.
     /// </summary>
     public IReadOnlyList<string> AllowedHosts { get; set; } = Array.Empty<string>();
 
@@ -30,10 +30,15 @@ public sealed class ReaderWebOptions {
     public bool AllowSubdomains { get; set; }
 
     /// <summary>
-    /// Gets or sets whether loopback, private, link-local, and non-routable literal IP targets are permitted.
+    /// Gets or sets whether localhost names and loopback, private, link-local, or non-routable IP literals are permitted.
     /// Default: false.
     /// </summary>
-    public bool AllowPrivateNetworkTargets { get; set; }
+    /// <remarks>
+    /// This option screens URI literals only. It does not resolve hostnames or intercept redirects.
+    /// When a URI is not trusted, the caller-provided HTTP handler must validate resolved addresses at
+    /// connection time and validate every redirect destination before sending the redirected request.
+    /// </remarks>
+    public bool AllowLocalhostAndNonPublicIpLiterals { get; set; }
 
     /// <summary>
     /// Gets or sets whether query strings are retained in transport metadata. Default: false.
@@ -63,7 +68,7 @@ public sealed class ReaderWebOptions {
             MaxConcurrentRequests = MaxConcurrentRequests,
             AllowedHosts = allowedHosts,
             AllowSubdomains = AllowSubdomains,
-            AllowPrivateNetworkTargets = AllowPrivateNetworkTargets,
+            AllowLocalhostAndNonPublicIpLiterals = AllowLocalhostAndNonPublicIpLiterals,
             IncludeQueryInMetadata = IncludeQueryInMetadata
         };
     }

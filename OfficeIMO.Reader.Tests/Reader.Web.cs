@@ -91,7 +91,7 @@ public sealed class ReaderWebTests {
     }
 
     [Fact]
-    public async Task WebReader_RejectsPrivateTargetsBeforeSending() {
+    public async Task WebReader_RejectsPrivateIpLiteralsBeforeSending() {
         var handler = new DelegateHttpHandler((request, cancellationToken) =>
             Task.FromResult(TextResponse("not reached", "text/plain")));
         using var httpClient = new HttpClient(handler);
@@ -219,7 +219,7 @@ public sealed class ReaderWebTests {
     }
 
     [Fact]
-    public async Task WebReader_CanExplicitlyAllowAPrivateTarget() {
+    public async Task WebReader_CanExplicitlyAllowLocalhost() {
         var handler = new DelegateHttpHandler((request, cancellationToken) =>
             Task.FromResult(TextResponse("local fixture", "text/plain")));
         using var httpClient = new HttpClient(handler);
@@ -227,7 +227,7 @@ public sealed class ReaderWebTests {
             httpClient,
             new ReaderWebOptions {
                 AllowedHosts = new[] { "localhost" },
-                AllowPrivateNetworkTargets = true
+                AllowLocalhostAndNonPublicIpLiterals = true
             });
 
         OfficeDocumentReadResult result = await webReader.ReadDocumentAsync(
