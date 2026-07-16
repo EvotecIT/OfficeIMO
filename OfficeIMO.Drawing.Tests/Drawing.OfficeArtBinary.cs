@@ -353,6 +353,52 @@ public partial class DrawingTests {
     }
 
     [Fact]
+    public void OfficeArtBlipStoreEntryWriter_CreatesCompressedEmfBlip() {
+        byte[] emf = BuildMinimalEmf();
+        byte[] blip = OfficeArtBlipStoreEntryWriter.CreateBlipRecord(
+            emf, "image/x-emf");
+        byte[] fbse = OfficeArtBlipStoreEntryWriter.CreateDelayed(
+            emf, "image/x-emf", delayedStreamOffset: 0);
+
+        Assert.Equal(0xF01A, blip[2] | blip[3] << 8);
+        Assert.Equal(0x03D4, (blip[0] | blip[1] << 8) >> 4);
+        Assert.Equal(0x02, fbse[8]);
+        Assert.Equal(0x04, fbse[9]);
+        Assert.Equal(0x00, blip[8 + 16 + 32]);
+        Assert.Equal(0xFE, blip[8 + 16 + 33]);
+        Assert.True(OfficeArtBlipStoreEntryReader.TryRead(fbse, 8,
+            checked((int)ReadOfficeArtUInt32(fbse, 4)), 0x0002,
+            blip, out OfficeArtBlipStoreEntry? entry));
+        Assert.NotNull(entry);
+        Assert.Equal(OfficeArtBlipType.Emf, entry!.RecordInstanceBlipType);
+        Assert.Equal("image/x-emf", entry.ContentType);
+        Assert.Equal(emf, entry.ImageBytes);
+    }
+
+    [Fact]
+    public void OfficeArtBlipStoreEntryWriter_CreatesCompressedPlaceableWmfBlip() {
+        byte[] wmf = BuildMinimalPlaceableWmf();
+        byte[] blip = OfficeArtBlipStoreEntryWriter.CreateBlipRecord(
+            wmf, "image/x-wmf");
+        byte[] fbse = OfficeArtBlipStoreEntryWriter.CreateDelayed(
+            wmf, "image/x-wmf", delayedStreamOffset: 0);
+
+        Assert.Equal(0xF01B, blip[2] | blip[3] << 8);
+        Assert.Equal(0x0216, (blip[0] | blip[1] << 8) >> 4);
+        Assert.Equal(0x03, fbse[8]);
+        Assert.Equal(0x04, fbse[9]);
+        Assert.Equal(0x00, blip[8 + 16 + 32]);
+        Assert.Equal(0xFE, blip[8 + 16 + 33]);
+        Assert.True(OfficeArtBlipStoreEntryReader.TryRead(fbse, 8,
+            checked((int)ReadOfficeArtUInt32(fbse, 4)), 0x0003,
+            blip, out OfficeArtBlipStoreEntry? entry));
+        Assert.NotNull(entry);
+        Assert.Equal(OfficeArtBlipType.Wmf, entry!.RecordInstanceBlipType);
+        Assert.Equal("image/x-wmf", entry.ContentType);
+        Assert.Equal(wmf, entry.ImageBytes);
+    }
+
+    [Fact]
     public void OfficeArtBlipStoreEntryWriter_RejectsMismatchedOrUnsupportedPayload() {
         Assert.Throws<NotSupportedException>(() =>
             OfficeArtBlipStoreEntryWriter.CreateEmbedded(
@@ -373,6 +419,51 @@ public partial class DrawingTests {
         WriteOfficeArtUInt32(payload, 28, delayedOffset);
         Buffer.BlockCopy(embeddedBlip, 0, payload, 36, embeddedBlip.Length);
         return payload;
+    }
+
+    private static byte[] BuildMinimalEmf() {
+        var result = new byte[108];
+        WriteOfficeArtUInt32(result, 0, 1U);
+        WriteOfficeArtUInt32(result, 4, 88U);
+        WriteOfficeArtUInt32(result, 16, 100U);
+        WriteOfficeArtUInt32(result, 20, 100U);
+        WriteOfficeArtUInt32(result, 32, 2540U);
+        WriteOfficeArtUInt32(result, 36, 2540U);
+        WriteOfficeArtUInt32(result, 40, 0x464D4520U);
+        WriteOfficeArtUInt32(result, 44, 0x00010000U);
+        WriteOfficeArtUInt32(result, 48, checked((uint)result.Length));
+        WriteOfficeArtUInt32(result, 52, 2U);
+        result[56] = 1;
+        WriteOfficeArtUInt32(result, 72, 100U);
+        WriteOfficeArtUInt32(result, 76, 100U);
+        WriteOfficeArtUInt32(result, 80, 25U);
+        WriteOfficeArtUInt32(result, 84, 25U);
+        WriteOfficeArtUInt32(result, 88, 14U);
+        WriteOfficeArtUInt32(result, 92, 20U);
+        WriteOfficeArtUInt32(result, 104, 20U);
+        return result;
+    }
+
+    private static byte[] BuildMinimalPlaceableWmf() {
+        var result = new byte[46];
+        WriteOfficeArtUInt32(result, 0, 0x9AC6CDD7U);
+        WriteOfficeArtUInt16(result, 10, 1440);
+        WriteOfficeArtUInt16(result, 12, 720);
+        WriteOfficeArtUInt16(result, 14, 1440);
+        ushort checksum = 0;
+        for (int offset = 0; offset < 20; offset += 2) {
+            checksum ^= unchecked((ushort)(result[offset]
+                | result[offset + 1] << 8));
+        }
+        WriteOfficeArtUInt16(result, 20, checksum);
+
+        WriteOfficeArtUInt16(result, 22, 1);
+        WriteOfficeArtUInt16(result, 24, 9);
+        WriteOfficeArtUInt16(result, 26, 0x0300);
+        WriteOfficeArtUInt32(result, 28, 12U);
+        WriteOfficeArtUInt32(result, 34, 3U);
+        WriteOfficeArtUInt32(result, 40, 3U);
+        return result;
     }
 
     private static byte[] BuildBlipRecord(ushort instance, ushort type, byte[] imageData,
@@ -400,5 +491,10 @@ public partial class DrawingTests {
         target[offset + 1] = unchecked((byte)(value >> 8));
         target[offset + 2] = unchecked((byte)(value >> 16));
         target[offset + 3] = unchecked((byte)(value >> 24));
+    }
+
+    private static void WriteOfficeArtUInt16(byte[] target, int offset, ushort value) {
+        target[offset] = unchecked((byte)value);
+        target[offset + 1] = unchecked((byte)(value >> 8));
     }
 }

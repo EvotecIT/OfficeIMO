@@ -119,5 +119,74 @@ namespace OfficeIMO.Tests {
                 && finding.Description.Contains("effects",
                     StringComparison.OrdinalIgnoreCase));
         }
+
+        [Fact]
+        public void NativeWriter_AuthorsAnEmfPicture() {
+            byte[] emf = BuildMinimalEmf();
+            byte[] bytes;
+            using (PowerPointPresentation source = PowerPointPresentation.Create()) {
+                using var stream = new MemoryStream(emf, writable: false);
+                source.AddSlide(P.SlideLayoutValues.Blank)
+                    .AddPicture(stream, ImagePartType.Emf,
+                        PowerPointUnits.FromPoints(20D),
+                        PowerPointUnits.FromPoints(30D),
+                        PowerPointUnits.FromPoints(120D),
+                        PowerPointUnits.FromPoints(90D));
+                Assert.True(source.AnalyzeLegacyPptWrite().CanWrite);
+                bytes = source.ToBytes(PowerPointFileFormat.Ppt);
+            }
+
+            LegacyPptPresentation legacy = LegacyPptPresentation.Load(bytes);
+            OfficeArtBlipStoreEntry entry = Assert.Single(
+                legacy.BlipStoreEntries);
+            Assert.Equal(OfficeArtBlipStorage.Delayed, entry.Storage);
+            Assert.Equal(OfficeArtBlipType.Emf, entry.RecordInstanceBlipType);
+            Assert.Equal("image/x-emf", entry.ContentType);
+            Assert.Equal(emf, entry.ImageBytes);
+            LegacyPptShape picture = Assert.Single(
+                Assert.Single(legacy.Slides).Shapes,
+                shape => shape.Kind == LegacyPptShapeKind.Picture);
+            Assert.Equal(new LegacyPptBounds(160, 240, 960, 720),
+                picture.Bounds);
+
+            using var input = new MemoryStream(bytes, writable: false);
+            using PowerPointPresentation projected = PowerPointPresentation.Load(
+                input);
+            Assert.Equal(emf,
+                Assert.Single(projected.Slides[0].Pictures).GetImageBytes());
+            Assert.Empty(projected.ValidateDocument());
+            Assert.Equal(bytes, projected.ToBytes(PowerPointFileFormat.Ppt));
+        }
+
+        private static byte[] BuildMinimalEmf() {
+            var result = new byte[108];
+            WriteUInt32(result, 0, 1U);
+            WriteUInt32(result, 4, 88U);
+            WriteUInt32(result, 16, 100U);
+            WriteUInt32(result, 20, 100U);
+            WriteUInt32(result, 32, 2540U);
+            WriteUInt32(result, 36, 2540U);
+            WriteUInt32(result, 40, 0x464D4520U);
+            WriteUInt32(result, 44, 0x00010000U);
+            WriteUInt32(result, 48, checked((uint)result.Length));
+            WriteUInt32(result, 52, 2U);
+            result[56] = 1;
+            WriteUInt32(result, 72, 100U);
+            WriteUInt32(result, 76, 100U);
+            WriteUInt32(result, 80, 25U);
+            WriteUInt32(result, 84, 25U);
+            WriteUInt32(result, 88, 14U);
+            WriteUInt32(result, 92, 20U);
+            WriteUInt32(result, 104, 20U);
+            return result;
+        }
+
+        private static void WriteUInt32(byte[] target, int offset,
+            uint value) {
+            target[offset] = unchecked((byte)value);
+            target[offset + 1] = unchecked((byte)(value >> 8));
+            target[offset + 2] = unchecked((byte)(value >> 16));
+            target[offset + 3] = unchecked((byte)(value >> 24));
+        }
     }
 }

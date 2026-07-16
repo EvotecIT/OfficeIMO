@@ -72,6 +72,24 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void CapabilityContract_ReportsNativeMetafileAuthoring() {
+            LegacyPptCapability metafiles = LegacyPptCapabilityCatalog.Get(
+                LegacyPptFeature.MetafilePictures);
+
+            Assert.Equal(LegacyPptRepresentability.Native,
+                metafiles.Representability);
+            Assert.Equal(LegacyPptCapabilityState.Native,
+                metafiles.ImportToEditableModel);
+            Assert.Equal(LegacyPptCapabilityState.Native,
+                metafiles.NewBinaryWrite);
+            Assert.Equal(LegacyPptCapabilityState.Preserved,
+                metafiles.BinaryRoundTrip);
+            Assert.Equal(LegacyPptCapabilityState.Native,
+                metafiles.PptxToBinary);
+            Assert.Contains("placeable-WMF", metafiles.Note);
+        }
+
+        [Fact]
         public void CapabilityContract_ReportsExplicitStaticChartConversion() {
             LegacyPptCapability charts = LegacyPptCapabilityCatalog.Get(
                 LegacyPptFeature.Charts);

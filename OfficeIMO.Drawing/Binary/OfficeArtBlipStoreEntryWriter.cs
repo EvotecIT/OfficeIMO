@@ -1,13 +1,15 @@
 using System;
+using OfficeIMO.Drawing.Internal;
 
 namespace OfficeIMO.Drawing.Binary;
 
-/// <summary>Writes bounded OfficeArt File BLIP Store Entry and raster BLIP records.</summary>
+/// <summary>Writes bounded OfficeArt File BLIP Store Entry and image BLIP records.</summary>
 public static class OfficeArtBlipStoreEntryWriter {
     private const ushort OfficeArtFbse = 0xF007;
 
     /// <summary>
-    /// Creates one complete embedded FBSE record for a PNG, JPEG, BMP/DIB, or TIFF image.
+    /// Creates one complete embedded FBSE record for a supported raster or
+    /// Windows metafile image.
     /// </summary>
     public static byte[] CreateEmbedded(byte[] imageBytes, string contentType,
         uint referenceCount = 1) {
@@ -22,7 +24,7 @@ public static class OfficeArtBlipStoreEntryWriter {
     }
 
     /// <summary>
-    /// Creates one FBSE record that points to a raster BLIP in an associated
+    /// Creates one FBSE record that points to an image BLIP in an associated
     /// <c>OfficeArtBStoreDelay</c> stream.
     /// </summary>
     public static byte[] CreateDelayed(byte[] imageBytes, string contentType,
@@ -40,7 +42,8 @@ public static class OfficeArtBlipStoreEntryWriter {
     }
 
     /// <summary>
-    /// Creates one standalone PNG, JPEG, BMP/DIB, or TIFF OfficeArt BLIP record.
+    /// Creates one standalone supported raster or Windows metafile OfficeArt
+    /// BLIP record.
     /// </summary>
     public static byte[] CreateBlipRecord(byte[] imageBytes,
         string contentType) => PrepareBlip(imageBytes, contentType).Record;
@@ -62,13 +65,100 @@ public static class OfficeArtBlipStoreEntryWriter {
             ? CopyRange(imageBytes, 14, imageBytes.Length - 14)
             : (byte[])imageBytes.Clone();
         byte[] uid = OfficeArtMd4.Compute(fileData);
-        var blipPayload = new byte[checked(17 + fileData.Length)];
-        Buffer.BlockCopy(uid, 0, blipPayload, 0, uid.Length);
-        blipPayload[16] = 0xFF;
-        Buffer.BlockCopy(fileData, 0, blipPayload, 17, fileData.Length);
+        byte[] blipPayload = format.MetafileType == MetafileType.None
+            ? BuildRasterPayload(uid, fileData)
+            : BuildMetafilePayload(format.MetafileType, uid, fileData);
         byte[] record = BuildRecord(version: 0, format.RecordInstance,
             format.RecordType, blipPayload);
         return new PreparedBlip(format, uid, record);
+    }
+
+    private static byte[] BuildRasterPayload(byte[] uid, byte[] fileData) {
+        var payload = new byte[checked(17 + fileData.Length)];
+        Buffer.BlockCopy(uid, 0, payload, 0, uid.Length);
+        payload[16] = 0xFF;
+        Buffer.BlockCopy(fileData, 0, payload, 17, fileData.Length);
+        return payload;
+    }
+
+    private static byte[] BuildMetafilePayload(MetafileType type,
+        byte[] uid, byte[] fileData) {
+        MetafileBounds bounds = type == MetafileType.Emf
+            ? ReadEmfBounds(fileData)
+            : ReadWmfBounds(fileData);
+        byte[] storedData = OfficeZlibCodec.Compress(fileData);
+        var payload = new byte[checked(50 + storedData.Length)];
+        Buffer.BlockCopy(uid, 0, payload, 0, uid.Length);
+        WriteUInt32(payload, 16, checked((uint)fileData.Length));
+        WriteUInt32(payload, 20, unchecked((uint)bounds.Left));
+        WriteUInt32(payload, 24, unchecked((uint)bounds.Top));
+        WriteUInt32(payload, 28, unchecked((uint)bounds.Right));
+        WriteUInt32(payload, 32, unchecked((uint)bounds.Bottom));
+        WriteUInt32(payload, 36, unchecked((uint)bounds.WidthEmus));
+        WriteUInt32(payload, 40, unchecked((uint)bounds.HeightEmus));
+        WriteUInt32(payload, 44, checked((uint)storedData.Length));
+        payload[48] = 0x00;
+        payload[49] = 0xFE;
+        Buffer.BlockCopy(storedData, 0, payload, 50, storedData.Length);
+        return payload;
+    }
+
+    private static MetafileBounds ReadEmfBounds(byte[] data) {
+        if (data.Length < 88 || ReadUInt32(data, 0) != 1U
+            || ReadUInt32(data, 4) < 88U
+            || ReadUInt32(data, 40) != 0x464D4520U) {
+            throw new NotSupportedException(
+                "The EMF payload has no valid enhanced-metafile header.");
+        }
+        int left = ReadInt32(data, 8);
+        int top = ReadInt32(data, 12);
+        int right = ReadInt32(data, 16);
+        int bottom = ReadInt32(data, 20);
+        int frameLeft = ReadInt32(data, 24);
+        int frameTop = ReadInt32(data, 28);
+        int frameRight = ReadInt32(data, 32);
+        int frameBottom = ReadInt32(data, 36);
+        long widthEmus = checked(((long)frameRight - frameLeft) * 360L);
+        long heightEmus = checked(((long)frameBottom - frameTop) * 360L);
+        return CreateMetafileBounds(left, top, right, bottom, widthEmus,
+            heightEmus, "EMF");
+    }
+
+    private static MetafileBounds ReadWmfBounds(byte[] data) {
+        if (data.Length < 40 || ReadUInt32(data, 0) != 0x9AC6CDD7U) {
+            throw new NotSupportedException(
+                "The WMF payload requires a valid placeable-metafile header.");
+        }
+        int left = unchecked((short)ReadUInt16(data, 6));
+        int top = unchecked((short)ReadUInt16(data, 8));
+        int right = unchecked((short)ReadUInt16(data, 10));
+        int bottom = unchecked((short)ReadUInt16(data, 12));
+        ushort unitsPerInch = ReadUInt16(data, 14);
+        if (unitsPerInch == 0) {
+            throw new NotSupportedException(
+                "The placeable WMF payload declares zero units per inch.");
+        }
+        long widthEmus = checked((long)Math.Round(
+            (right - left) * 914400D / unitsPerInch,
+            MidpointRounding.AwayFromZero));
+        long heightEmus = checked((long)Math.Round(
+            (bottom - top) * 914400D / unitsPerInch,
+            MidpointRounding.AwayFromZero));
+        return CreateMetafileBounds(left, top, right, bottom, widthEmus,
+            heightEmus, "WMF");
+    }
+
+    private static MetafileBounds CreateMetafileBounds(int left, int top,
+        int right, int bottom, long widthEmus, long heightEmus,
+        string formatName) {
+        if (right <= left || bottom <= top || widthEmus <= 0
+            || heightEmus <= 0 || widthEmus > int.MaxValue
+            || heightEmus > int.MaxValue) {
+            throw new NotSupportedException(
+                $"The {formatName} payload has invalid or oversized bounds.");
+        }
+        return new MetafileBounds(left, top, right, bottom,
+            checked((int)widthEmus), checked((int)heightEmus));
     }
 
     private static byte[] BuildFbsePayload(PreparedBlip prepared,
@@ -76,7 +166,7 @@ public static class OfficeArtBlipStoreEntryWriter {
         int embeddedLength = embedBlip ? prepared.Record.Length : 0;
         var payload = new byte[checked(36 + embeddedLength)];
         payload[0] = prepared.Format.BlipType;
-        payload[1] = prepared.Format.BlipType;
+        payload[1] = prepared.Format.MacOsBlipType;
         Buffer.BlockCopy(prepared.Uid, 0, payload, 2, prepared.Uid.Length);
         WriteUInt16(payload, 18, 0x00FF);
         WriteUInt32(payload, 20, checked((uint)prepared.Record.Length));
@@ -120,8 +210,23 @@ public static class OfficeArtBlipStoreEntryWriter {
             return new BlipFormat(0x11, 0x06E4, 0xF029,
                 stripBitmapHeader: false);
         }
+        if (normalized is "image/x-emf" or "image/emf"
+            && imageBytes.Length >= 44
+            && ReadUInt32(imageBytes, 0) == 1U
+            && ReadUInt32(imageBytes, 40) == 0x464D4520U) {
+            return new BlipFormat(0x02, 0x03D4, 0xF01A,
+                stripBitmapHeader: false, MetafileType.Emf,
+                macOsBlipType: 0x04);
+        }
+        if (normalized is "image/x-wmf" or "image/wmf"
+            && imageBytes.Length >= 4
+            && ReadUInt32(imageBytes, 0) == 0x9AC6CDD7U) {
+            return new BlipFormat(0x03, 0x0216, 0xF01B,
+                stripBitmapHeader: false, MetafileType.Wmf,
+                macOsBlipType: 0x04);
+        }
         throw new NotSupportedException(
-            $"OfficeArt embedded BLIP writing does not support '{contentType}' or its payload signature is invalid.");
+            $"OfficeArt BLIP writing does not support '{contentType}' or its payload signature is invalid.");
     }
 
     private static bool HasPrefix(byte[] source, params byte[] prefix) {
@@ -162,19 +267,37 @@ public static class OfficeArtBlipStoreEntryWriter {
         target[offset + 3] = unchecked((byte)(value >> 24));
     }
 
+    private static ushort ReadUInt16(byte[] source, int offset) =>
+        unchecked((ushort)(source[offset] | source[offset + 1] << 8));
+
+    private static uint ReadUInt32(byte[] source, int offset) =>
+        unchecked((uint)(source[offset]
+            | source[offset + 1] << 8
+            | source[offset + 2] << 16
+            | source[offset + 3] << 24));
+
+    private static int ReadInt32(byte[] source, int offset) =>
+        unchecked((int)ReadUInt32(source, offset));
+
     private readonly struct BlipFormat {
         internal BlipFormat(byte blipType, ushort recordInstance,
-            ushort recordType, bool stripBitmapHeader) {
+            ushort recordType, bool stripBitmapHeader,
+            MetafileType metafileType = MetafileType.None,
+            byte? macOsBlipType = null) {
             BlipType = blipType;
             RecordInstance = recordInstance;
             RecordType = recordType;
             StripBitmapHeader = stripBitmapHeader;
+            MetafileType = metafileType;
+            MacOsBlipType = macOsBlipType ?? blipType;
         }
 
         internal byte BlipType { get; }
         internal ushort RecordInstance { get; }
         internal ushort RecordType { get; }
         internal bool StripBitmapHeader { get; }
+        internal MetafileType MetafileType { get; }
+        internal byte MacOsBlipType { get; }
     }
 
     private readonly struct PreparedBlip {
@@ -188,5 +311,30 @@ public static class OfficeArtBlipStoreEntryWriter {
         internal BlipFormat Format { get; }
         internal byte[] Uid { get; }
         internal byte[] Record { get; }
+    }
+
+    private enum MetafileType {
+        None,
+        Emf,
+        Wmf
+    }
+
+    private readonly struct MetafileBounds {
+        internal MetafileBounds(int left, int top, int right, int bottom,
+            int widthEmus, int heightEmus) {
+            Left = left;
+            Top = top;
+            Right = right;
+            Bottom = bottom;
+            WidthEmus = widthEmus;
+            HeightEmus = heightEmus;
+        }
+
+        internal int Left { get; }
+        internal int Top { get; }
+        internal int Right { get; }
+        internal int Bottom { get; }
+        internal int WidthEmus { get; }
+        internal int HeightEmus { get; }
     }
 }

@@ -3,8 +3,25 @@ using System.IO;
 using System.IO.Compression;
 
 namespace OfficeIMO.Drawing.Internal {
-    /// <summary>Decodes RFC 1950 zlib streams with bounded output and checksum validation.</summary>
+    /// <summary>Encodes and decodes RFC 1950 zlib streams with checksum validation.</summary>
     internal static class OfficeZlibCodec {
+        internal static byte[] Compress(byte[] bytes) {
+            if (bytes == null) throw new ArgumentNullException(nameof(bytes));
+            using var output = new MemoryStream();
+            output.WriteByte(0x78);
+            output.WriteByte(0x9C);
+            using (var deflate = new DeflateStream(output,
+                       CompressionLevel.Optimal, leaveOpen: true)) {
+                deflate.Write(bytes, 0, bytes.Length);
+            }
+            uint checksum = Adler32(bytes);
+            output.WriteByte(unchecked((byte)(checksum >> 24)));
+            output.WriteByte(unchecked((byte)(checksum >> 16)));
+            output.WriteByte(unchecked((byte)(checksum >> 8)));
+            output.WriteByte(unchecked((byte)checksum));
+            return output.ToArray();
+        }
+
         internal static byte[] Decompress(byte[] bytes, int maximumOutputBytes,
             int? expectedOutputBytes = null) {
             if (bytes == null) throw new ArgumentNullException(nameof(bytes));

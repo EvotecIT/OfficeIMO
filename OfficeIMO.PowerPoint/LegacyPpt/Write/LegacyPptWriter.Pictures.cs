@@ -223,6 +223,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 "image/jpeg" or "image/jpg" => "image/jpeg",
                 "image/bmp" or "image/x-ms-bmp" => "image/bmp",
                 "image/tiff" or "image/tif" => "image/tiff",
+                "image/x-emf" or "image/emf" => "image/x-emf",
+                "image/x-wmf" or "image/wmf" => "image/x-wmf",
                 _ => null
             };
         }
