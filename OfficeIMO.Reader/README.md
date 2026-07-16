@@ -16,12 +16,22 @@ dotnet add package OfficeIMO.Reader
 ```csharp
 using OfficeIMO.Reader;
 
-foreach (var chunk in DocumentReader.Read(@"C:\Docs\Policy.docx")) {
+foreach (var chunk in OfficeDocumentReader.Default.Read(@"C:\Docs\Policy.docx")) {
     Console.WriteLine(chunk.Id);
     Console.WriteLine(chunk.Location.HeadingPath);
     Console.WriteLine(chunk.Markdown ?? chunk.Text);
 }
 ```
+
+When the caller only needs the portable Markdown projection, use the thin conversion helper:
+
+```csharp
+string markdown = await OfficeDocumentReader.Default.ConvertToMarkdownAsync(
+    @"C:\Docs\Policy.docx",
+    cancellationToken: cancellationToken);
+```
+
+`ConvertToMarkdown(...)` and `ConvertToMarkdownAsync(...)` support file paths, streams, and byte arrays. They return the `Markdown` emitted by the same rich `ReadDocument(...)` pipeline, or an empty string when a handler emits no Markdown. Use the rich read APIs when metadata, blocks, tables, assets, or diagnostics are needed.
 
 ## Streams and folders
 
@@ -29,9 +39,9 @@ foreach (var chunk in DocumentReader.Read(@"C:\Docs\Policy.docx")) {
 using OfficeIMO.Reader;
 
 using var stream = File.OpenRead(@"C:\Docs\Policy.docx");
-var chunksFromStream = DocumentReader.Read(stream, "Policy.docx").ToList();
+var chunksFromStream = OfficeDocumentReader.Default.Read(stream, "Policy.docx").ToList();
 
-var folderChunks = DocumentReader.ReadFolder(
+var folderChunks = OfficeDocumentReader.Default.ReadFolder(
     folderPath: @"C:\Docs",
     folderOptions: new ReaderFolderOptions {
         Recurse = true,
@@ -90,7 +100,7 @@ OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
 var chunks = reader.Read(@"C:\Docs\data.json").ToList();
 ```
 
-`Build()` freezes the handler configuration. The resulting `OfficeDocumentReader` is safe to reuse across concurrent reads and is unaffected by later builder changes. `DocumentReader` remains the simple built-in-only facade; modular formats are configured explicitly on `OfficeDocumentReaderBuilder`, so one reader cannot change another reader or process-wide state.
+`Build()` freezes the handler configuration. The resulting `OfficeDocumentReader` is safe to reuse across concurrent reads and is unaffected by later builder changes. `OfficeDocumentReader.Default` is the simple built-in-only instance; modular formats are configured explicitly on `OfficeDocumentReaderBuilder`, so one reader cannot change another reader or process-wide state.
 
 When the application wants every local adapter, `OfficeIMO.Reader.All` provides the same explicit, instance-scoped composition in one call:
 
@@ -268,9 +278,9 @@ Seekable stream probes restore the original position. Prefix probing is capped a
 Word, Excel, and PowerPoint rich reads use the format packages' public inspection models instead of reparsing Open XML in the Reader facade:
 
 ```csharp
-OfficeDocumentReadResult word = DocumentReader.ReadDocument("policy.docx");
-OfficeDocumentReadResult workbook = DocumentReader.ReadDocument("forecast.xlsx");
-OfficeDocumentReadResult deck = DocumentReader.ReadDocument("briefing.pptx");
+OfficeDocumentReadResult word = OfficeDocumentReader.Default.ReadDocument("policy.docx");
+OfficeDocumentReadResult workbook = OfficeDocumentReader.Default.ReadDocument("forecast.xlsx");
+OfficeDocumentReadResult deck = OfficeDocumentReader.Default.ReadDocument("briefing.pptx");
 
 Console.WriteLine($"{word.Blocks.Count} semantic Word blocks");
 Console.WriteLine($"{workbook.Tables.Count} named Excel tables");
@@ -300,7 +310,7 @@ var engine = new DelegateOfficeOcrEngine(
         };
     });
 
-OfficeDocumentReadResult source = DocumentReader.ReadDocument("scanned.pdf");
+OfficeDocumentReadResult source = OfficeDocumentReader.Default.ReadDocument("scanned.pdf");
 OfficeDocumentOcrExecutionResult execution = await source.ApplyOcrAsync(
     engine,
     new OfficeDocumentOcrExecutionOptions {
@@ -374,7 +384,7 @@ OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
 
 `reader.ReadDocument(...)` dispatches directly to these delegates. Existing `reader.Read(...)` calls remain usable by projecting the returned result's `Chunks` collection. A handler may continue to register `ReadPath` and `ReadStream` when chunk production is its native contract.
 
-Adapter authors can call `DocumentReader.CreateDocumentResult(...)` to create the common v5 source, chunks, assets, diagnostics, and baseline collections, then replace or enrich format-owned blocks, pages, tables, links, forms, visuals, and metadata.
+Rich handlers return `OfficeDocumentReadResult` directly and can populate the common v5 source, chunks, assets, diagnostics, and baseline collections before adding format-owned blocks, pages, tables, links, forms, visuals, and metadata.
 
 ## Host contracts
 
@@ -383,14 +393,14 @@ Adapter authors can call `DocumentReader.CreateDocumentResult(...)` to create th
 - `OfficeDocumentReader.GetCapabilities()` and `GetCapabilityManifestJson()` expose the frozen configuration of that reader instance.
 - Capability records distinguish basic path/stream support from native rich-result support through `SupportsDocumentPath` and `SupportsDocumentStream`.
 - `SupportsAsyncPath` and `SupportsAsyncStream` identify handlers with native asynchronous delegates; false means the async facade uses the bounded synchronous fallback.
-- `DocumentReader.Detect(...)` / `DetectAsync(...)` and `OfficeDocumentReader.Detect(...)` / `DetectAsync(...)` expose bounded extension/content evidence, confidence, media type, and mismatch state.
+- `OfficeDocumentReader.Detect(...)` / `DetectAsync(...)` expose bounded extension/content evidence, confidence, media type, and mismatch state.
 - `OfficeDocumentDiagnostic` carries stable categories, codes, sources, recoverability, and attributes so hosts do not need to parse warning text.
 - `OfficeDocumentReadResultJson` reads and writes stable schema version 5 envelopes; `OfficeDocumentReadResultSchema.GetJsonSchema()` exposes the packaged schema artifact.
 - `OfficeDocumentProcessorPipeline` freezes ordered processors and reports each completed, failed, or skipped step.
 - `OfficeDocumentStructuredExtractor` produces bounded non-generic records, sections, named tables, forms, and diagnostics without AI dependencies.
 - `ReaderHierarchicalChunker` produces token-bounded `ReaderChunk` leaves, exact overlap spans, and document/container/heading hierarchy nodes.
 - `OfficeDocumentReaderBuilder.AddHandler(...)` is the recommended custom-handler path for services and concurrent hosts.
-- Static `DocumentReader` registration is retained as a process-wide compatibility surface.
+- Reader configuration and custom handler registration stay instance-scoped and are frozen by `OfficeDocumentReaderBuilder.Build()`.
 
 ## Boundaries
 
