@@ -55,6 +55,20 @@ namespace OfficeIMO.Tests {
             Assert.Equal(199, record.Data[199]);
         }
 
+        [Fact]
+        public void Xlsb_RecordWriter_ProducesCanonicalReaderCompatibleFraming() {
+            byte[] payload = Enumerable.Range(0, 200).Select(index => (byte)index).ToArray();
+            using var stream = new MemoryStream();
+
+            XlsbRecordWriter.Write(stream, 637, payload);
+
+            Assert.Equal(204, stream.Length);
+            stream.Position = 0;
+            XlsbRecord record = Assert.Single(XlsbRecordReader.ReadAll(stream));
+            Assert.Equal(637, record.Type);
+            Assert.Equal(payload, record.Data);
+        }
+
         [Theory]
         [InlineData(new byte[] { 0x83 })]
         [InlineData(new byte[] { 0x83, 0x01, 0x80 })]
@@ -92,6 +106,21 @@ namespace OfficeIMO.Tests {
 
             Assert.False(XlsbPackageDetector.TryFindWorkbookPart(package, out _));
             Assert.Equal(ExcelFileFormat.Xlsx, ExcelDocumentLoadRouting.DetectFormat(package, "misleading.xlsb"));
+        }
+
+        [Fact]
+        public void Xlsb_PackageReader_RejectsOversizedUnreferencedPartsBeforeProjection() {
+            byte[] package = AddZipEntry(CreateMinimalXlsbPackage(), "xl/media/unreferenced.bin", new byte[2_048]);
+            var options = new XlsbImportOptions {
+                MaxPartBytes = 1_024,
+                MaxPackageBytes = 64 * 1_024
+            };
+
+            InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+                XlsbWorkbookReader.Load(package, options));
+
+            Assert.Contains("unreferenced.bin", exception.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("configured limit", exception.Message, StringComparison.OrdinalIgnoreCase);
         }
 
         [Fact]
@@ -168,15 +197,76 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Xlsb_ModifiedSource_RejectsNativeRewriteBeforeWriting() {
+        public void Xlsb_ModifiedSource_RewritesCellsAndPreservesOtherPackageParts() {
+            byte[] original = File.ReadAllBytes(GetExcelGeneratedXlsbFixturePath());
             using ExcelDocument document = ExcelDocument.Load(GetExcelGeneratedXlsbFixturePath());
             document.Sheets[0].CellValue(2, 2, 43);
+
+            byte[] rewritten = document.ToBytes(ExcelFileFormat.Xlsb);
+
+            Assert.Equal(ExcelFileFormat.Xlsb, ExcelDocumentLoadRouting.DetectFormat(rewritten, "rewritten.xlsb"));
+            using ExcelDocument reloaded = ExcelDocument.Load(new MemoryStream(rewritten, writable: false));
+            Assert.True(reloaded.Sheets[0].TryGetCellText(2, 2, out string? value));
+            Assert.Equal("43", value);
+            AssertPackageEntriesEqualExcept(original, rewritten, "xl/worksheets/sheet1.bin");
+            AssertWorksheetCellRecordsEqualExcept(original, rewritten, "xl/worksheets/sheet1.bin", (2, 2));
+        }
+
+        [Fact]
+        public void Xlsb_NativeRewrite_PreservesCompleteFormulaPayloadWhenCachedResultChanges() {
+            byte[] original = File.ReadAllBytes(GetExcelGeneratedXlsbFixturePath());
+            using ExcelDocument document = ExcelDocument.Load(new MemoryStream(original, writable: false));
+            document.Sheets[0].CellValue(3, 2, 51D);
+            Cell formulaCell = Assert.Single(document.Sheets[0].WorksheetPart.Worksheet.Descendants<Cell>(),
+                cell => string.Equals(cell.CellReference?.Value, "B3", StringComparison.Ordinal));
+            Assert.NotNull(formulaCell.CellFormula);
+
+            byte[] rewritten = document.ToBytes(ExcelFileFormat.Xlsb);
+
+            using ExcelDocument reloaded = ExcelDocument.Load(new MemoryStream(rewritten, writable: false));
+            Assert.True(reloaded.Sheets[0].TryGetCellText(3, 2, out string? cachedValue));
+            Assert.Equal("51", cachedValue);
+            Cell reloadedFormulaCell = Assert.Single(reloaded.Sheets[0].WorksheetPart.Worksheet.Descendants<Cell>(),
+                cell => string.Equals(cell.CellReference?.Value, "B3", StringComparison.Ordinal));
+            Assert.Equal("SUM(B2,8)", reloadedFormulaCell.CellFormula?.Text);
+            AssertFormulaPayloadEqual(original, rewritten, "xl/worksheets/sheet1.bin", (3, 2));
+        }
+
+        [Fact]
+        public void Xlsb_NativeRewrite_HandlesTextBooleanAndNewRowsAcrossSequentialSaves() {
+            using ExcelDocument document = ExcelDocument.Load(GetExcelGeneratedXlsbFixturePath());
+            ExcelSheet sheet = document.Sheets[0];
+            sheet.CellValue(2, 1, "Beta");
+            sheet.CellValue(1, 3, true);
+            sheet.CellValue(4, 1, "New row");
+
+            byte[] first = document.ToBytes(ExcelFileFormat.Xlsb);
+            sheet.CellValue(2, 2, 44);
+            byte[] second = document.ToBytes(ExcelFileFormat.Xlsb);
+
+            using ExcelDocument reloaded = ExcelDocument.Load(new MemoryStream(second, writable: false));
+            ExcelSheet reloadedSheet = Assert.Single(reloaded.Sheets);
+            Assert.True(reloadedSheet.TryGetCellText(2, 1, out string? a2));
+            Assert.True(reloadedSheet.TryGetCellText(1, 3, out string? c1));
+            Assert.True(reloadedSheet.TryGetCellText(4, 1, out string? a4));
+            Assert.True(reloadedSheet.TryGetCellText(2, 2, out string? b2));
+            Assert.Equal("Beta", a2);
+            Assert.Equal("1", c1);
+            Assert.Equal("New row", a4);
+            Assert.Equal("44", b2);
+            Assert.NotEqual(first, second);
+        }
+
+        [Fact]
+        public void Xlsb_UnsupportedStructuralMutation_RejectsBeforeWriting() {
+            using ExcelDocument document = ExcelDocument.Load(GetExcelGeneratedXlsbFixturePath());
+            document.Sheets[0].MergeRange("A1:B1");
             using var destination = new MemoryStream();
 
             NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
                 document.Save(destination, ExcelFileFormat.Xlsb));
 
-            Assert.Contains("modified", exception.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("cell-value edits only", exception.Message, StringComparison.OrdinalIgnoreCase);
             Assert.Equal(0, destination.Length);
         }
 
@@ -265,6 +355,96 @@ namespace OfficeIMO.Tests {
                 "basic-values-formula.xlsb");
         }
 
+        private static void AssertPackageEntriesEqualExcept(
+            byte[] expectedPackage,
+            byte[] actualPackage,
+            params string[] excludedEntries) {
+            var excluded = new HashSet<string>(excludedEntries, StringComparer.OrdinalIgnoreCase);
+            using var expectedStream = new MemoryStream(expectedPackage, writable: false);
+            using var actualStream = new MemoryStream(actualPackage, writable: false);
+            using var expectedArchive = new ZipArchive(expectedStream, ZipArchiveMode.Read, leaveOpen: false);
+            using var actualArchive = new ZipArchive(actualStream, ZipArchiveMode.Read, leaveOpen: false);
+            string[] expectedNames = expectedArchive.Entries.Select(entry => entry.FullName).OrderBy(name => name, StringComparer.Ordinal).ToArray();
+            string[] actualNames = actualArchive.Entries.Select(entry => entry.FullName).OrderBy(name => name, StringComparer.Ordinal).ToArray();
+            Assert.Equal(expectedNames, actualNames);
+
+            foreach (ZipArchiveEntry expectedEntry in expectedArchive.Entries.Where(entry => !excluded.Contains(entry.FullName))) {
+                ZipArchiveEntry actualEntry = Assert.Single(
+                    actualArchive.Entries,
+                    entry => string.Equals(entry.FullName, expectedEntry.FullName, StringComparison.OrdinalIgnoreCase));
+                using Stream expected = expectedEntry.Open();
+                using Stream actual = actualEntry.Open();
+                using var expectedBytes = new MemoryStream();
+                using var actualBytes = new MemoryStream();
+                expected.CopyTo(expectedBytes);
+                actual.CopyTo(actualBytes);
+                Assert.Equal(expectedBytes.ToArray(), actualBytes.ToArray());
+            }
+        }
+
+        private static void AssertWorksheetCellRecordsEqualExcept(
+            byte[] expectedPackage,
+            byte[] actualPackage,
+            string partName,
+            params (int Row, int Column)[] excludedCells) {
+            var excluded = new HashSet<(int Row, int Column)>(excludedCells);
+            IReadOnlyDictionary<(int Row, int Column), XlsbRecord> expected = ReadWorksheetCellRecords(expectedPackage, partName);
+            IReadOnlyDictionary<(int Row, int Column), XlsbRecord> actual = ReadWorksheetCellRecords(actualPackage, partName);
+            Assert.Equal(expected.Keys.OrderBy(key => key), actual.Keys.OrderBy(key => key));
+
+            foreach (KeyValuePair<(int Row, int Column), XlsbRecord> pair in expected) {
+                if (excluded.Contains(pair.Key)) continue;
+                Assert.Equal(pair.Value.Type, actual[pair.Key].Type);
+                Assert.Equal(pair.Value.Data, actual[pair.Key].Data);
+            }
+        }
+
+        private static void AssertFormulaPayloadEqual(
+            byte[] expectedPackage,
+            byte[] actualPackage,
+            string partName,
+            (int Row, int Column) cell) {
+            XlsbRecord expected = ReadWorksheetCellRecords(expectedPackage, partName)[cell];
+            XlsbRecord actual = ReadWorksheetCellRecords(actualPackage, partName)[cell];
+            Assert.Equal(expected.Type, actual.Type);
+            int cachedValueSize = expected.Type == 9 ? 8 : expected.Type == 8 ? ReadWideStringSize(expected.Data, 8) : 1;
+            int formulaOffset = 8 + cachedValueSize;
+            Assert.Equal(expected.Data.Skip(formulaOffset), actual.Data.Skip(formulaOffset));
+        }
+
+        private static int ReadWideStringSize(byte[] data, int offset) {
+            uint characters = (uint)(data[offset]
+                | (data[offset + 1] << 8)
+                | (data[offset + 2] << 16)
+                | (data[offset + 3] << 24));
+            return checked(4 + (int)characters * 2);
+        }
+
+        private static IReadOnlyDictionary<(int Row, int Column), XlsbRecord> ReadWorksheetCellRecords(
+            byte[] package,
+            string partName) {
+            using var packageStream = new MemoryStream(package, writable: false);
+            using var archive = new ZipArchive(packageStream, ZipArchiveMode.Read, leaveOpen: false);
+            ZipArchiveEntry entry = Assert.Single(archive.Entries,
+                candidate => string.Equals(candidate.FullName, partName, StringComparison.OrdinalIgnoreCase));
+            using Stream part = entry.Open();
+            IReadOnlyList<XlsbRecord> records = XlsbRecordReader.ReadAll(part);
+            var cells = new Dictionary<(int Row, int Column), XlsbRecord>();
+            int row = -1;
+            foreach (XlsbRecord record in records) {
+                if (record.Type == 0) {
+                    var cursor = new XlsbBinaryCursor(record.Data);
+                    row = checked(cursor.ReadInt32() + 1);
+                } else if ((record.Type >= 1 && record.Type <= 11) || record.Type == 62) {
+                    var cursor = new XlsbBinaryCursor(record.Data);
+                    int column = checked(cursor.ReadInt32() + 1);
+                    cells.Add((row, column), record);
+                }
+            }
+
+            return cells;
+        }
+
         private static void WriteZipEntry(ZipArchive archive, string name, string content) {
             WriteZipEntry(archive, name, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false).GetBytes(content));
         }
@@ -273,6 +453,17 @@ namespace OfficeIMO.Tests {
             ZipArchiveEntry entry = archive.CreateEntry(name, CompressionLevel.Fastest);
             using Stream stream = entry.Open();
             stream.Write(content, 0, content.Length);
+        }
+
+        private static byte[] AddZipEntry(byte[] package, string name, byte[] content) {
+            using var stream = new MemoryStream();
+            stream.Write(package, 0, package.Length);
+            stream.Position = 0;
+            using (var archive = new ZipArchive(stream, ZipArchiveMode.Update, leaveOpen: true)) {
+                WriteZipEntry(archive, name, content);
+            }
+
+            return stream.ToArray();
         }
 
         private static void AssertXlsbSaveResult(MemoryStream destination, Exception? failure) {

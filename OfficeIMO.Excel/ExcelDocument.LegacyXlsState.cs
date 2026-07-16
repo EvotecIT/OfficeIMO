@@ -20,6 +20,7 @@ namespace OfficeIMO.Excel {
         private string? _legacyXlsSourcePath;
         private string? _xlsbSourcePath;
         private byte[]? _xlsbOriginalPackageBytes;
+        private XlsbWorkbook? _xlsbAdvancedWorkbook;
         private XlsbImportDiagnostic[] _xlsbImportDiagnostics = Array.Empty<XlsbImportDiagnostic>();
         private XlsbPreservedRecordInfo[] _xlsbPreservedRecords = Array.Empty<XlsbPreservedRecordInfo>();
 
@@ -90,6 +91,7 @@ namespace OfficeIMO.Excel {
             SourceFormat = ExcelFileFormat.Xlsb;
             _xlsbSourcePath = sourcePath;
             _xlsbOriginalPackageBytes = workbook.OriginalPackageBytes;
+            _xlsbAdvancedWorkbook = workbook;
             _xlsbImportDiagnostics = workbook.Diagnostics.ToArray();
             _xlsbPreservedRecords = workbook.PreservedRecords.ToArray();
             _packageDirty = false;

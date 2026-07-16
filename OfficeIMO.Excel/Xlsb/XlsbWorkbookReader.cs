@@ -254,44 +254,61 @@ namespace OfficeIMO.Excel.Xlsb {
 
             int row = zeroBasedRow + 1;
             int column = zeroBasedColumn + 1;
+            XlsbCell cell;
             switch (record.Type) {
                 case BrtCellBlank:
-                    return new XlsbCell(row, column, XlsbCellValueKind.Blank, null, styleIndex);
+                    cell = new XlsbCell(row, column, XlsbCellValueKind.Blank, null, styleIndex);
+                    break;
                 case BrtCellRk:
-                    return new XlsbCell(row, column, XlsbCellValueKind.Number, BiffRkNumberReader.ReadRkNumber(cursor.ReadUInt32()), styleIndex);
+                    cell = new XlsbCell(row, column, XlsbCellValueKind.Number, BiffRkNumberReader.ReadRkNumber(cursor.ReadUInt32()), styleIndex);
+                    break;
                 case BrtCellError:
-                    return new XlsbCell(row, column, XlsbCellValueKind.Error, BiffErrorValue.ToText(cursor.ReadByte()), styleIndex);
+                    cell = new XlsbCell(row, column, XlsbCellValueKind.Error, BiffErrorValue.ToText(cursor.ReadByte()), styleIndex);
+                    break;
                 case BrtCellBool:
-                    return new XlsbCell(row, column, XlsbCellValueKind.Boolean, cursor.ReadByte() != 0, styleIndex);
+                    cell = new XlsbCell(row, column, XlsbCellValueKind.Boolean, cursor.ReadByte() != 0, styleIndex);
+                    break;
                 case BrtCellReal:
-                    return new XlsbCell(row, column, XlsbCellValueKind.Number, cursor.ReadDouble(), styleIndex);
+                    cell = new XlsbCell(row, column, XlsbCellValueKind.Number, cursor.ReadDouble(), styleIndex);
+                    break;
                 case BrtCellSt:
-                    return new XlsbCell(row, column, XlsbCellValueKind.Text, cursor.ReadWideString(options.MaxStringCharacters), styleIndex);
+                    cell = new XlsbCell(row, column, XlsbCellValueKind.Text, cursor.ReadWideString(options.MaxStringCharacters), styleIndex);
+                    break;
                 case BrtCellIsst:
                     uint sharedStringIndex = cursor.ReadUInt32();
                     if (sharedStringIndex >= sharedStrings.Count) {
                         throw new InvalidDataException($"The XLSB cell at row {row}, column {column} refers to missing shared string {sharedStringIndex}.");
                     }
 
-                    return new XlsbCell(row, column, XlsbCellValueKind.Text, sharedStrings[checked((int)sharedStringIndex)], styleIndex);
+                    cell = new XlsbCell(row, column, XlsbCellValueKind.Text, sharedStrings[checked((int)sharedStringIndex)], styleIndex);
+                    break;
                 case BrtCellRString:
                     byte flags = cursor.ReadByte();
                     string richText = cursor.ReadWideString(options.MaxStringCharacters);
                     if ((flags & 0x03) != 0 || cursor.Remaining > 0) {
                         PreserveRecord(options, workbook, partName, record);
                     }
-                    return new XlsbCell(row, column, XlsbCellValueKind.Text, richText, styleIndex);
+                    cell = new XlsbCell(row, column, XlsbCellValueKind.Text, richText, styleIndex);
+                    break;
                 case BrtFmlaNum:
-                    return ParseFormulaCell(record, cursor, row, column, styleIndex, XlsbCellValueKind.Number, cursor.ReadDouble(), options, workbook, partName);
+                    cell = ParseFormulaCell(record, cursor, row, column, styleIndex, XlsbCellValueKind.Number, cursor.ReadDouble(), options, workbook, partName);
+                    break;
                 case BrtFmlaBool:
-                    return ParseFormulaCell(record, cursor, row, column, styleIndex, XlsbCellValueKind.Boolean, cursor.ReadByte() != 0, options, workbook, partName);
+                    cell = ParseFormulaCell(record, cursor, row, column, styleIndex, XlsbCellValueKind.Boolean, cursor.ReadByte() != 0, options, workbook, partName);
+                    break;
                 case BrtFmlaError:
-                    return ParseFormulaCell(record, cursor, row, column, styleIndex, XlsbCellValueKind.Error, BiffErrorValue.ToText(cursor.ReadByte()), options, workbook, partName);
+                    cell = ParseFormulaCell(record, cursor, row, column, styleIndex, XlsbCellValueKind.Error, BiffErrorValue.ToText(cursor.ReadByte()), options, workbook, partName);
+                    break;
                 case BrtFmlaString:
-                    return ParseFormulaCell(record, cursor, row, column, styleIndex, XlsbCellValueKind.Text, cursor.ReadWideString(options.MaxStringCharacters), options, workbook, partName);
+                    cell = ParseFormulaCell(record, cursor, row, column, styleIndex, XlsbCellValueKind.Text, cursor.ReadWideString(options.MaxStringCharacters), options, workbook, partName);
+                    break;
                 default:
                     throw new InvalidOperationException($"Unsupported XLSB cell record type {record.Type}.");
             }
+
+            cell.SourceRecordType = record.Type;
+            cell.SourceRecordData = (byte[])record.Data.Clone();
+            return cell;
         }
 
         private static XlsbCell ParseFormulaCell(
@@ -305,6 +322,7 @@ namespace OfficeIMO.Excel.Xlsb {
             XlsbImportOptions options,
             XlsbWorkbook workbook,
             string partName) {
+            int formulaPayloadOffset = cursor.Position;
             cursor.ReadUInt16(); // grbit flags
             uint tokenCount = cursor.ReadUInt32();
             if (tokenCount > cursor.Remaining) {
@@ -313,7 +331,8 @@ namespace OfficeIMO.Excel.Xlsb {
 
             byte[] tokens = cursor.ReadBytes(checked((int)tokenCount));
             var cell = new XlsbCell(row, column, valueKind, cachedValue, styleIndex) {
-                FormulaBytes = tokens
+                FormulaBytes = tokens,
+                FormulaPayloadBytes = CopyTail(record.Data, formulaPayloadOffset)
             };
             if (XlsbFormulaTextReader.TryRead(tokens, out string? formulaText)) {
                 cell.FormulaText = formulaText;
@@ -329,6 +348,13 @@ namespace OfficeIMO.Excel.Xlsb {
             }
 
             return cell;
+        }
+
+        private static byte[] CopyTail(byte[] data, int offset) {
+            if (offset < 0 || offset > data.Length) throw new ArgumentOutOfRangeException(nameof(offset));
+            byte[] result = new byte[data.Length - offset];
+            Buffer.BlockCopy(data, offset, result, 0, result.Length);
+            return result;
         }
 
         private static IReadOnlyList<XlsbRecord> ReadRecords(byte[] bytes, XlsbImportOptions options) {

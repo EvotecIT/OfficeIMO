@@ -12,6 +12,7 @@ namespace OfficeIMO.Excel.Xlsb.Package {
         internal XlsbPackagePartReader(ZipArchive archive, XlsbImportOptions options) {
             if (archive == null) throw new ArgumentNullException(nameof(archive));
             _options = options ?? throw new ArgumentNullException(nameof(options));
+            ValidateDeclaredSizeBudget(archive);
             _entries = BuildEntryIndex(archive);
         }
 
@@ -135,6 +136,25 @@ namespace OfficeIMO.Excel.Xlsb.Package {
             }
 
             return entries;
+        }
+
+        private void ValidateDeclaredSizeBudget(ZipArchive archive) {
+            long total = 0;
+            foreach (ZipArchiveEntry entry in archive.Entries) {
+                if (entry.Length > _options.MaxPartBytes) {
+                    throw new InvalidDataException($"The XLSB package part '{entry.FullName}' declares {entry.Length} decompressed bytes, exceeding the configured limit of {_options.MaxPartBytes} bytes.");
+                }
+
+                try {
+                    total = checked(total + entry.Length);
+                } catch (OverflowException exception) {
+                    throw new InvalidDataException("The XLSB package declares an invalid aggregate decompressed size.", exception);
+                }
+
+                if (total > _options.MaxPackageBytes) {
+                    throw new InvalidDataException($"The XLSB package declares {total} aggregate decompressed bytes, exceeding the configured limit of {_options.MaxPackageBytes} bytes.");
+                }
+            }
         }
 
         private static string GetRelationshipPartName(string sourcePartName) {
