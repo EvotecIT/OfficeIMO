@@ -255,7 +255,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         private enum LegacyPptWriterShapeContext {
             Slide,
             MainMaster,
-            NotesMaster
+            NotesMaster,
+            HandoutMaster
         }
     }
 }

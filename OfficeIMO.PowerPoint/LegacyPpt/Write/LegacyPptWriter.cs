@@ -70,9 +70,6 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             }
 
             LegacyPptWriterTemplate template = Template.Value;
-            LegacyPptWriterMasterCatalog masters = ReadMasterCatalog(presentation,
-                template.Document, template.MainMasterPrototypes,
-                template.NotesMasterPrototype);
             var notes = new List<LegacyPptWriterNote>();
             for (int slideIndex = 0; slideIndex < presentation.Slides.Count; slideIndex++) {
                 PowerPointSlide slide = presentation.Slides[slideIndex];
@@ -84,10 +81,20 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     checked((uint)(14 + presentation.Slides.Count + noteIndex)),
                     checked((uint)(13 + presentation.Slides.Count + noteIndex))));
             }
-            if (presentation.Slides.Count + notes.Count > 4082) {
+            bool hasHandoutMaster = presentation.OpenXmlDocument.PresentationPart?
+                .HandoutMasterPart != null;
+            int maximumSlideAndNotesCount = hasHandoutMaster ? 4081 : 4082;
+            if (presentation.Slides.Count + notes.Count
+                    > maximumSlideAndNotesCount) {
                 throw new NotSupportedException(
-                    "Native binary PowerPoint saving supports at most 4,082 combined slide and notes persist objects.");
+                    $"Native binary PowerPoint saving supports at most {maximumSlideAndNotesCount} combined slide and notes persist objects"
+                    + (hasHandoutMaster ? " when a handout master is present." : "."));
             }
+            uint handoutDrawingId = checked((uint)(13
+                + presentation.Slides.Count + notes.Count));
+            LegacyPptWriterMasterCatalog masters = ReadMasterCatalog(presentation,
+                template.Document, template.MainMasterPrototypes,
+                template.NotesMasterPrototype, handoutDrawingId);
             IReadOnlyDictionary<int, LegacyPptWriterNote> notesBySlide = notes.ToDictionary(
                 note => note.SlideIndex);
             var slideRecords = new List<byte[]>(presentation.Slides.Count);
@@ -110,16 +117,23 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             }
             var notesRecords = notes.Select(note => BuildNotesRecord(template.NotesPrototype,
                 note.Text, unchecked((uint)(256 + note.SlideIndex)), note.DrawingId)).ToArray();
+            uint handoutMasterPersistId = masters.HandoutMasterPersistObject == null
+                ? 0U
+                : checked((uint)(14 + presentation.Slides.Count + notes.Count));
 
-            var persistObjects = new List<byte[]>(13 + slideRecords.Count + notesRecords.Length) {
+            var persistObjects = new List<byte[]>(14 + slideRecords.Count + notesRecords.Length) {
                 BuildDocumentRecord(template.Document, presentation, slideShapeCounts, notes,
                     interactionCatalog, customShows, soundCatalog, masters.Count,
-                    masters.DrawingShapeCounts, masters.Fonts)
+                    masters.DrawingShapeCounts, masters.Fonts,
+                    handoutMasterPersistId)
             };
             persistObjects.AddRange(masters.PersistObjects);
             persistObjects.Add(masters.NotesMasterPersistObject);
             persistObjects.AddRange(slideRecords);
             persistObjects.AddRange(notesRecords);
+            if (masters.HandoutMasterPersistObject != null) {
+                persistObjects.Add(masters.HandoutMasterPersistObject);
+            }
 
             byte[] documentStream = BuildDocumentStream(persistObjects, presentation.Slides.Count);
             byte[] currentUserStream = BuildCurrentUserStream(FindUserEditOffset(documentStream));
@@ -187,7 +201,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             LegacyPptWriterSoundCatalog soundCatalog,
             int masterCount,
             IReadOnlyDictionary<uint, int> masterDrawingShapeCounts,
-            LegacyPptWriterFontCatalog fonts) {
+            LegacyPptWriterFontCatalog fonts,
+            uint handoutMasterPersistId) {
             var children = new List<byte[]>();
             bool wroteSounds = false;
             bool wroteFonts = false;
@@ -201,7 +216,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     byte[] atom = child.CopyRecordBytes();
                     WriteInt32(atom, 8, ToMasterUnits(presentation.SlideSize.WidthEmus));
                     WriteInt32(atom, 12, ToMasterUnits(presentation.SlideSize.HeightEmus));
-                    PatchDocumentSettings(atom, presentation);
+                    PatchDocumentSettings(atom, presentation,
+                        handoutMasterPersistId);
                     children.Add(atom);
                     byte[] externalObjects = BuildExternalObjectListRecord(interactionCatalog);
                     if (externalObjects.Length > 0) children.Add(externalObjects);
@@ -278,7 +294,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         }
 
         private static void PatchDocumentSettings(byte[] atom,
-            PowerPointPresentation presentation) {
+            PowerPointPresentation presentation,
+            uint handoutMasterPersistId) {
             if (atom.Length < 48) {
                 throw new InvalidDataException("The embedded PowerPoint DocumentAtom template is truncated.");
             }
@@ -294,6 +311,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             int divisor = GreatestCommonDivisor(serverZoom, 100000);
             WriteInt32(atom, 24, serverZoom / divisor);
             WriteInt32(atom, 28, 100000 / divisor);
+            WriteUInt32(atom, 32, 13U);
+            WriteUInt32(atom, 36, handoutMasterPersistId);
             int firstSlideNumber = root.FirstSlideNum?.Value ?? 1;
             WriteUInt16(atom, 40, checked((ushort)Math.Min(
                 Math.Max(firstSlideNumber, 0), 9999)));
@@ -373,6 +392,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             for (int index = 0; index < notesCount; index++) {
                 clusters.Add(new KeyValuePair<uint, uint>(
                     unchecked((uint)(13 + slideShapeCounts.Count + index)), 4U));
+            }
+            foreach (KeyValuePair<uint, int> pair in masterDrawingShapeCounts
+                         .Where(pair => pair.Key > 12)
+                         .OrderBy(pair => pair.Key)) {
+                clusters.Add(new KeyValuePair<uint, uint>(pair.Key,
+                    checked(unchecked((uint)pair.Value) + 2U)));
             }
 
             uint maxDrawingId = clusters.Count == 0 ? 1U : clusters.Max(cluster => cluster.Key);

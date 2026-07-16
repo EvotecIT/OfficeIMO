@@ -98,6 +98,29 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 AddMasterShapeFindings(findings, notesMasterShapes,
                     "Notes master");
             }
+            HandoutMasterPart? handoutMasterPart = presentation.OpenXmlDocument
+                .PresentationPart?.HandoutMasterPart;
+            if (handoutMasterPart != null
+                && !LegacyPptWriter.TryReadBackground(handoutMasterPart, out _,
+                    out string? handoutBackgroundReason)) {
+                findings.Add(new LegacyPptWriteFinding(
+                    LegacyPptFeature.Backgrounds, "PPT-WRITE-BACKGROUND",
+                    handoutBackgroundReason
+                    ?? "The handout-master background cannot be encoded by the native binary writer."));
+            }
+            if (handoutMasterPart != null) {
+                IReadOnlyList<PowerPointShape> handoutMasterShapes =
+                    LegacyPptWriter.ReadMasterShapesForWrite(
+                        handoutMasterPart, out string? handoutMasterShapeReason);
+                if (handoutMasterShapeReason != null) {
+                    findings.Add(new LegacyPptWriteFinding(
+                        LegacyPptFeature.Masters,
+                        "PPT-WRITE-HANDOUT-MASTER-SHAPE",
+                        handoutMasterShapeReason));
+                }
+                AddMasterShapeFindings(findings, handoutMasterShapes,
+                    "Handout master");
+            }
             if (LegacyPptWriter.HasModernComments(presentation)) {
                 findings.Add(new LegacyPptWriteFinding(LegacyPptFeature.ModernComments,
                     "PPT-WRITE-MODERN-COMMENTS",

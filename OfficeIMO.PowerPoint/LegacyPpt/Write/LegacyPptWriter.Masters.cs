@@ -8,12 +8,14 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         internal const int MaxNativeMasterCount = 11;
         private const uint FirstMasterId = 0x80000000U;
         private const uint FirstMasterPersistId = 2U;
+        private const ushort RecordHandoutForWrite = 0x0FC9;
 
         private static LegacyPptWriterMasterCatalog ReadMasterCatalog(
             PowerPointPresentation presentation,
             LegacyPptRecord templateDocument,
             IReadOnlyList<LegacyPptRecord> prototypes,
-            LegacyPptRecord notesMasterPrototype) {
+            LegacyPptRecord notesMasterPrototype,
+            uint handoutDrawingId) {
             SlideMasterPart[] masterParts = presentation.OpenXmlDocument.PresentationPart?
                 .SlideMasterParts.ToArray() ?? Array.Empty<SlideMasterPart>();
             if (masterParts.Length == 0) {
@@ -84,9 +86,49 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 drawingShapeCounts.Add(notesDrawingId.Value,
                     notesShapes.Count);
             }
+            HandoutMasterPart? handoutMasterPart = presentation.OpenXmlDocument
+                .PresentationPart?.HandoutMasterPart;
+            byte[]? handoutMaster = null;
+            if (handoutMasterPart != null) {
+                if (!TryReadBackground(handoutMasterPart,
+                        out LegacyPptWriterBackground? handoutBackground,
+                        out string? handoutBackgroundReason)) {
+                    throw new NotSupportedException(handoutBackgroundReason);
+                }
+                IReadOnlyList<PowerPointShape> handoutShapes =
+                    ReadMasterShapesForWrite(handoutMasterPart, out _)
+                        .Where(IsSupportedShape).ToArray();
+                handoutMaster = BuildHandoutMasterRecord(
+                    notesMasterPrototype,
+                    ReadColorScheme(handoutMasterPart.ThemePart
+                        ?? masterParts[0].ThemePart), handoutBackground,
+                    handoutShapes, handoutDrawingId);
+                drawingShapeCounts.Add(handoutDrawingId,
+                    handoutShapes.Count);
+            }
             return new LegacyPptWriterMasterCatalog(masterIds, persistObjects,
-                notesMaster, masterParts.Length, drawingShapeCounts,
-                textStyles.Fonts);
+                notesMaster, handoutMaster, masterParts.Length,
+                drawingShapeCounts, textStyles.Fonts);
+        }
+
+        private static byte[] BuildHandoutMasterRecord(
+            LegacyPptRecord drawingPrototypeOwner,
+            LegacyPptWriterColorScheme scheme,
+            LegacyPptWriterBackground? background,
+            IReadOnlyList<PowerPointShape> shapes, uint drawingId) {
+            LegacyPptRecord drawingPrototype = drawingPrototypeOwner.Children
+                .First(record => record.Type == RecordDrawing);
+            var interactions = new LegacyPptWriterInteractionCatalog();
+            var animations = new LegacyPptWriterAnimationCatalog(
+                new Dictionary<string, LegacyPptWriterAnimation>(
+                    StringComparer.Ordinal));
+            return BuildContainer(RecordHandoutForWrite, instance: 0,
+                new[] {
+                    BuildDrawingRecord(drawingPrototype, shapes, drawingId,
+                        interactions, animations, background,
+                        LegacyPptWriterShapeContext.HandoutMaster),
+                    BuildColorSchemeAtom(scheme)
+                });
         }
 
         private static byte[] BuildMasterRecord(LegacyPptRecord prototype,
@@ -209,7 +251,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             internal LegacyPptWriterMasterCatalog(
                 IReadOnlyDictionary<string, uint> masterIds,
                 IReadOnlyList<byte[]> persistObjects,
-                byte[] notesMasterPersistObject, int count,
+                byte[] notesMasterPersistObject,
+                byte[]? handoutMasterPersistObject, int count,
                 IReadOnlyDictionary<uint, int> drawingShapeCounts,
                 LegacyPptWriterFontCatalog fonts) {
                 _masterIds = new ReadOnlyDictionary<string, uint>(
@@ -217,6 +260,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         StringComparer.Ordinal));
                 PersistObjects = new ReadOnlyCollection<byte[]>(persistObjects.ToArray());
                 NotesMasterPersistObject = notesMasterPersistObject;
+                HandoutMasterPersistObject = handoutMasterPersistObject;
                 Count = count;
                 DrawingShapeCounts = new ReadOnlyDictionary<uint, int>(
                     drawingShapeCounts.ToDictionary(pair => pair.Key,
@@ -227,6 +271,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             internal int Count { get; }
             internal IReadOnlyList<byte[]> PersistObjects { get; }
             internal byte[] NotesMasterPersistObject { get; }
+            internal byte[]? HandoutMasterPersistObject { get; }
             internal IReadOnlyDictionary<uint, int> DrawingShapeCounts { get; }
             internal LegacyPptWriterFontCatalog Fonts { get; }
 
