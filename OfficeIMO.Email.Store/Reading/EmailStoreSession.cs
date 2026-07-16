@@ -138,7 +138,11 @@ public sealed partial class EmailStoreSession : IDisposable {
         }
     }
 
-    /// <summary>Materializes the configured store scope as a compatibility convenience.</summary>
+    /// <summary>
+    /// Materializes the configured store scope as a compatibility convenience. Attachment payloads are omitted
+    /// when <see cref="EmailStoreReaderOptions.RetainAttachmentContent"/> is false; use selective session reads for
+    /// deferred attachment streams.
+    /// </summary>
     public EmailStoreReadResult ReadAll(CancellationToken cancellationToken = default) {
         ThrowIfDisposed();
         var store = new EmailStore { Format = Format, DisplayName = DisplayName };
@@ -155,7 +159,12 @@ public sealed partial class EmailStoreSession : IDisposable {
             includeAssociatedItems: _options.IncludeAssociatedItems,
             includeOrphanedItems: _options.IncludeOrphanedItems,
             maxItems: _options.MaxItemCount == int.MaxValue ? int.MaxValue : _options.MaxItemCount + 1);
+        EmailStoreItemReadOptions materializationOptions = _options.RetainAttachmentContent
+            ? EmailStoreItemReadOptions.Default
+            : new EmailStoreItemReadOptions(
+                EmailStoreItemReadParts.All & ~EmailStoreItemReadParts.AttachmentContent);
         int itemCount = 0;
+        long totalAttachmentBytes = 0;
         foreach (EmailStoreItemReference reference in EnumerateItems(
             enumerationOptions, cancellationToken)) {
             itemCount++;
@@ -163,7 +172,11 @@ public sealed partial class EmailStoreSession : IDisposable {
                 throw new EmailStoreLimitExceededException(nameof(EmailStoreReaderOptions.MaxItemCount),
                     itemCount, _options.MaxItemCount);
             }
-            EmailStoreItem item = ReadItem(reference, EmailStoreItemReadOptions.Default, cancellationToken);
+            EmailStoreItem item = ReadItem(reference, materializationOptions, cancellationToken);
+            if (_options.RetainAttachmentContent) {
+                totalAttachmentBytes = CountAttachmentBytes(
+                    item.Document, totalAttachmentBytes, _options.MaxTotalAttachmentBytes);
+            }
             EmailStoreFolder folder = folders[reference.FolderId];
             if (reference.IsAssociated) folder.MutableAssociatedItems.Add(item);
             else folder.MutableItems.Add(item);
@@ -245,4 +258,26 @@ public sealed partial class EmailStoreSession : IDisposable {
 
     private static bool Contains(string? text, string value) =>
         text != null && text.IndexOf(value, StringComparison.OrdinalIgnoreCase) >= 0;
+
+    private static long CountAttachmentBytes(OfficeIMO.Email.EmailDocument document,
+        long current, long maximum) {
+        foreach (OfficeIMO.Email.EmailAttachment attachment in document.Attachments) {
+            long length = attachment.Content != null
+                ? attachment.Content.LongLength
+                : attachment.ContentSource?.Length ?? attachment.Length;
+            if (length < 0) length = 0;
+            if (length > maximum || current > maximum - length) {
+                long actual = length > long.MaxValue - current
+                    ? long.MaxValue
+                    : current + length;
+                throw new EmailStoreLimitExceededException(
+                    nameof(EmailStoreReaderOptions.MaxTotalAttachmentBytes), actual, maximum);
+            }
+            current += length;
+            if (attachment.EmbeddedDocument != null) {
+                current = CountAttachmentBytes(attachment.EmbeddedDocument, current, maximum);
+            }
+        }
+        return current;
+    }
 }

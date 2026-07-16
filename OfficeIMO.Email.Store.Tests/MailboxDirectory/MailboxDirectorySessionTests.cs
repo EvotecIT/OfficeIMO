@@ -64,6 +64,28 @@ public sealed class MailboxDirectorySessionTests {
         }
     }
 
+    [Fact]
+    public void Materialized_read_enforces_total_attachment_bytes_across_items() {
+        string root = Path.Combine(Path.GetTempPath(),
+            "officeimo-mailbox-attachment-budget-" + Guid.NewGuid().ToString("N"));
+        try {
+            Directory.CreateDirectory(root);
+            File.WriteAllText(Path.Combine(root, "first.eml"), CreateMessageWithAttachment("First"));
+            File.WriteAllText(Path.Combine(root, "second.eml"), CreateMessageWithAttachment("Second"));
+            var options = new EmailStoreReaderOptions(
+                maxAttachmentBytes: 10,
+                maxTotalAttachmentBytes: 10);
+
+            EmailStoreLimitExceededException exception = Assert.Throws<EmailStoreLimitExceededException>(
+                () => new EmailStoreReader(options).Read(root));
+
+            Assert.Equal(nameof(EmailStoreReaderOptions.MaxTotalAttachmentBytes), exception.LimitName);
+            Assert.Equal(12, exception.Actual);
+        } finally {
+            if (Directory.Exists(root)) Directory.Delete(root, recursive: true);
+        }
+    }
+
     private static string CreateMailboxDirectory() {
         string root = Path.Combine(Path.GetTempPath(), "officeimo-mailbox-directory-" + Guid.NewGuid().ToString("N"));
         string apple = Path.Combine(root, "Inbox.mbox", "Messages");
@@ -86,4 +108,14 @@ public sealed class MailboxDirectorySessionTests {
         Buffer.BlockCopy(message, 0, result, prefix.Length, message.Length);
         return result;
     }
+
+    private static string CreateMessageWithAttachment(string subject) =>
+        "Subject: " + subject + "\r\n" +
+        "MIME-Version: 1.0\r\n" +
+        "Content-Type: multipart/mixed; boundary=store-boundary\r\n\r\n" +
+        "--store-boundary\r\nContent-Type: text/plain\r\n\r\nBody\r\n" +
+        "--store-boundary\r\nContent-Type: application/octet-stream\r\n" +
+        "Content-Disposition: attachment; filename=payload.bin\r\n" +
+        "Content-Transfer-Encoding: base64\r\n\r\nMTIzNDU2\r\n" +
+        "--store-boundary--\r\n";
 }

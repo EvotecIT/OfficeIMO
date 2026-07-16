@@ -150,9 +150,9 @@ EmailStoreReadResult result = new EmailStoreReader().Read("export.olm");
 PST and OST MAPI properties use the same projections as MSG and OFT, so messages, appointments, contacts, tasks, journals, notes, recipients, attachments, and named properties do not acquire a second public model.
 
 Folder metadata includes `SpecialFolderKind`, the `ClassificationSource` used to establish it, the MAPI
-`ContainerClass`, and `IsSearchFolder`. Provider identifiers take precedence; localized display-name matching is an
-explicit fallback. Selected items expose `ContentAvailability`, separating requested parts that are available,
-unavailable, or indeterminate. This matters for OST headers and other content that was never cached locally, and
+`ContainerClass`, and `IsSearchFolder`. Provider identifiers take precedence; language-dependent display-name
+matching is an explicit fallback. Selected items expose `ContentAvailability`, separating requested parts that are
+available, unavailable, or indeterminate. This matters for OST headers and other content that was never cached locally, and
 for partial EMLX artifacts whose sibling content is absent.
 
 PST/OST and mailbox-directory sessions are lazy. Single EMLX input contains one item. OLM currently validates and
@@ -227,6 +227,10 @@ var options = new EmailStoreReaderOptions(
 
 EmailStoreReadResult result = new EmailStoreReader(options).Read("archive.ost");
 ```
+
+For the materializing `EmailStoreReader`, `retainAttachmentContent: false` omits attachment payloads so the returned
+model never contains a deferred source whose session has already closed. Use `EmailStoreSession.ReadItem` with
+`preferStreamingAttachmentContent: true` when the caller wants on-demand payload streams.
 
 Set `PstPassword` only when a protected PST requires checksum validation. Passwords are not logged or copied into results. Caller-owned streams must be readable and seekable; reads restore the original stream position and leave the stream open.
 

@@ -183,6 +183,21 @@ public sealed class PstReaderTests {
     }
 
     [Fact]
+    public void Materialized_reader_does_not_return_expired_attachment_sources() {
+        var options = new EmailStoreReaderOptions(retainAttachmentContent: false);
+        using var stream = new MemoryStream(PstTestFileBuilder.Create(
+            attachmentContent: new byte[] { 1, 2, 3, 4 }));
+
+        EmailStoreReadResult result = new EmailStoreReader(options).Read(stream, "mailbox.pst");
+        EmailStoreItem item = Assert.Single(result.Store.Folders.SelectMany(folder => folder.Items));
+        EmailAttachment attachment = Assert.Single(item.Document.Attachments);
+
+        Assert.Null(attachment.Content);
+        Assert.Null(attachment.ContentSource);
+        Assert.False(item.LoadedParts.HasFlag(EmailStoreItemReadParts.AttachmentContent));
+    }
+
+    [Fact]
     public void EnforcesInputAndSeekabilityContracts() {
         byte[] bytes = PstTestFileBuilder.Create();
         var options = new EmailStoreReaderOptions(maxInputBytes: bytes.Length - 1L);
