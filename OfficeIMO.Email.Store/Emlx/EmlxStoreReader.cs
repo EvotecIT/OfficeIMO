@@ -65,28 +65,7 @@ internal sealed class EmlxStoreReader {
     }
 
     private EmailReadResult ReadMessage(byte[] messageBytes, CancellationToken cancellationToken) {
-        var options = new EmailReaderOptions(
-            maxInputBytes: _options.MaxMessageBytes,
-            maxAttachmentBytes: _options.MaxAttachmentBytes,
-            maxTotalAttachmentBytes: _options.MaxTotalAttachmentBytes,
-            maxNestedMessageDepth: _options.MaxNestedMessageDepth,
-            includeAttachmentContent: _options.RetainAttachmentContent,
-            maxDecodedPropertyBytes: _options.MaxDecodedPropertyBytesPerItem);
-        try {
-            return new EmailDocumentReader(options).Read(messageBytes, cancellationToken);
-        } catch (EmailLimitExceededException exception) when (
-            exception.LimitName == nameof(EmailReaderOptions.MaxInputBytes)) {
-            throw new EmailStoreLimitExceededException(nameof(EmailStoreReaderOptions.MaxMessageBytes),
-                exception.ActualValue, exception.MaximumValue);
-        } catch (EmailLimitExceededException exception) when (
-            exception.LimitName == nameof(EmailReaderOptions.MaxAttachmentBytes)) {
-            throw new EmailStoreLimitExceededException(nameof(EmailStoreReaderOptions.MaxAttachmentBytes),
-                exception.ActualValue, exception.MaximumValue);
-        } catch (EmailLimitExceededException exception) when (
-            exception.LimitName == nameof(EmailReaderOptions.MaxTotalAttachmentBytes)) {
-            throw new EmailStoreLimitExceededException(nameof(EmailStoreReaderOptions.MaxTotalAttachmentBytes),
-                exception.ActualValue, exception.MaximumValue);
-        }
+        return EmailStoreMessageReader.Read(messageBytes, _options, cancellationToken);
     }
 
     private void ReadMetadata(Stream stream, EmailDocument document, string itemName,

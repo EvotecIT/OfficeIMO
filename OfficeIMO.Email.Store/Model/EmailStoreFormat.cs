@@ -11,5 +11,7 @@ public enum EmailStoreFormat {
     /// <summary>Outlook for Mac archive.</summary>
     Olm = 3,
     /// <summary>Apple Mail EMLX item.</summary>
-    Emlx = 4
+    Emlx = 4,
+    /// <summary>Apple Mail, Maildir, or RFC message directory tree.</summary>
+    MailboxDirectory = 5
 }

@@ -25,7 +25,9 @@ public sealed class EmailStoreReaderOptions {
         long maxArchiveEntryBytes = 512L * 1024 * 1024,
         long maxArchiveDecodedBytes = 8L * 1024 * 1024 * 1024,
         long maxXmlCharactersPerItem = 64L * 1024 * 1024,
-        long maxMessageBytes = 256L * 1024 * 1024) {
+        long maxMessageBytes = 256L * 1024 * 1024,
+        int maxDirectoryDepth = 64,
+        int maxDirectoryFileCount = 1_000_000) {
         MaxInputBytes = Positive(maxInputBytes, nameof(maxInputBytes));
         MaxNodeCount = Positive(maxNodeCount, nameof(maxNodeCount));
         MaxBTreeDepth = Positive(maxBTreeDepth, nameof(maxBTreeDepth));
@@ -49,6 +51,8 @@ public sealed class EmailStoreReaderOptions {
         MaxArchiveDecodedBytes = Positive(maxArchiveDecodedBytes, nameof(maxArchiveDecodedBytes));
         MaxXmlCharactersPerItem = Positive(maxXmlCharactersPerItem, nameof(maxXmlCharactersPerItem));
         MaxMessageBytes = Positive(maxMessageBytes, nameof(maxMessageBytes));
+        MaxDirectoryDepth = Positive(maxDirectoryDepth, nameof(maxDirectoryDepth));
+        MaxDirectoryFileCount = Positive(maxDirectoryFileCount, nameof(maxDirectoryFileCount));
     }
 
     /// <summary>Default bounded options.</summary>
@@ -98,6 +102,10 @@ public sealed class EmailStoreReaderOptions {
     public long MaxXmlCharactersPerItem { get; }
     /// <summary>Maximum RFC 5322/MIME message bytes accepted from one store item.</summary>
     public long MaxMessageBytes { get; }
+    /// <summary>Maximum directory depth traversed by mailbox-directory sessions.</summary>
+    public int MaxDirectoryDepth { get; }
+    /// <summary>Maximum EML, EMLX, and Maildir files indexed by one mailbox-directory session.</summary>
+    public int MaxDirectoryFileCount { get; }
 
     private static int Positive(int value, string name) {
         if (value <= 0) throw new ArgumentOutOfRangeException(name);

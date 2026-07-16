@@ -12,6 +12,7 @@ public sealed class EmailStoreReader {
     /// <summary>Detects a store format from a bounded header.</summary>
     public static EmailStoreFormat DetectFormat(string path) {
         if (path == null) throw new ArgumentNullException(nameof(path));
+        if (Directory.Exists(path)) return EmailStoreFormat.MailboxDirectory;
         using (var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read)) {
             return DetectFormat(stream, Path.GetFileName(path));
         }

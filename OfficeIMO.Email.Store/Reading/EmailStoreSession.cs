@@ -44,6 +44,12 @@ public sealed partial class EmailStoreSession : IDisposable {
     public static EmailStoreSession Open(string path, EmailStoreReaderOptions? options = null,
         CancellationToken cancellationToken = default) {
         if (path == null) throw new ArgumentNullException(nameof(path));
+        if (Directory.Exists(path)) {
+            EmailStoreReaderOptions effective = options ?? EmailStoreReaderOptions.Default;
+            var backend = new MailboxDirectoryStoreSessionBackend(path, effective, cancellationToken);
+            return new EmailStoreSession(
+                Stream.Null, leaveOpen: true, originalPosition: 0, effective, backend);
+        }
         var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read,
             64 * 1024, FileOptions.RandomAccess);
         try {
