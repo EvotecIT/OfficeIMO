@@ -1,6 +1,11 @@
 namespace OfficeIMO.Email;
 
 internal static partial class VCardCodec {
+    private static readonly HashSet<string> RepeatableProjectedVCardProperties = new HashSet<string>(
+        StringComparer.OrdinalIgnoreCase) {
+            "ADR", "CATEGORIES", "EMAIL", "LABEL", "TEL", "URL", "X-MS-CHILD"
+        };
+
     private static readonly HashSet<string> ProjectedVCardExtensions = new HashSet<string>(
         StringComparer.OrdinalIgnoreCase) {
             "X-MS-ASSISTANT", "X-MS-CHILD", "X-MS-FILE-AS", "X-MS-HTML", "X-MS-INITIALS",
@@ -20,6 +25,11 @@ internal static partial class VCardCodec {
     private static bool IsExtensionPropertyName(string name) =>
         name.StartsWith("X-", StringComparison.OrdinalIgnoreCase) ||
         name.IndexOf(".X-", StringComparison.OrdinalIgnoreCase) >= 0;
+
+    private static bool HasDuplicateVCardSingletons(IEnumerable<VCardProperty> properties) =>
+        properties.Where(property => !RepeatableProjectedVCardProperties.Contains(property.Name))
+            .GroupBy(property => property.Name, StringComparer.OrdinalIgnoreCase)
+            .Any(group => group.Skip(1).Any());
 
     private static bool HasUnpreservedPropertyParameters(IEnumerable<VCardProperty> properties) =>
         properties.Any(property => {

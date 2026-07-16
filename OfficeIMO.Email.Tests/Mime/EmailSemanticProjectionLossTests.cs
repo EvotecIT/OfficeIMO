@@ -5,6 +5,79 @@ namespace OfficeIMO.Email.Tests;
 
 public sealed class EmailSemanticProjectionLossTests {
     [Fact]
+    public void BlocksCalendarRequestStatusBeforeStoreConversion() {
+        byte[] eml = Encoding.ASCII.GetBytes(
+            "Content-Type: text/calendar; charset=utf-8\r\n\r\nBEGIN:VCALENDAR\r\nVERSION:2.0\r\n" +
+            "METHOD:REPLY\r\nBEGIN:VEVENT\r\nUID:request-status@example.com\r\n" +
+            "DTSTART:20260801T100000Z\r\nREQUEST-STATUS:2.0;Success\r\n" +
+            "END:VEVENT\r\nEND:VCALENDAR\r\n");
+
+        AssertStoreProjectionBlocked(eml);
+    }
+
+    [Fact]
+    public void BlocksRequestCalendarWithOnlyTransportRecipientsBeforeStoreConversion() {
+        byte[] eml = Encoding.ASCII.GetBytes(
+            "To: Reader <reader@example.com>\r\nContent-Type: text/calendar; charset=utf-8\r\n\r\n" +
+            "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nMETHOD:REQUEST\r\nBEGIN:VEVENT\r\n" +
+            "UID:transport-only-recipient@example.com\r\nDTSTART:20260801T100000Z\r\n" +
+            "END:VEVENT\r\nEND:VCALENDAR\r\n");
+
+        AssertStoreProjectionBlocked(eml);
+    }
+
+    [Fact]
+    public void BlocksGroupedCalendarPropertiesBeforeStoreConversion() {
+        byte[] eml = Encoding.ASCII.GetBytes(
+            "Content-Type: text/calendar; charset=utf-8\r\n\r\nBEGIN:VCALENDAR\r\nVERSION:2.0\r\n" +
+            "METHOD:REQUEST\r\nBEGIN:VEVENT\r\nUID:grouped-property@example.com\r\n" +
+            "DTSTART:20260801T100000Z\r\ngrp.ATTENDEE:mailto:reader@example.com\r\n" +
+            "END:VEVENT\r\nEND:VCALENDAR\r\n");
+
+        AssertStoreProjectionBlocked(eml);
+    }
+
+    [Theory]
+    [InlineData("text/calendar", "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:charset@example.com\r\nDTSTART:20260801T100000Z\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n")]
+    [InlineData("text/vcard", "BEGIN:VCARD\r\nVERSION:3.0\r\nFN:Ada Lovelace\r\nEND:VCARD\r\n")]
+    public void BlocksSemanticCharsetFallbackBeforeStoreConversion(string contentType, string content) {
+        byte[] eml = Encoding.ASCII.GetBytes(
+            "Content-Type: " + contentType + "; charset=x-officeimo-unsupported\r\n\r\n" + content);
+        EmailReadResult result = new EmailDocumentReader().Read(eml);
+
+        EmailConversionReport report = new EmailDocumentWriter().AnalyzeConversion(
+            result.Document, EmailFileFormat.OutlookMsg);
+
+        Assert.Contains(result.Diagnostics,
+            diagnostic => diagnostic.Code == "EMAIL_MIME_CHARSET_UNSUPPORTED");
+        AssertProjectionBlocked(report);
+    }
+
+    [Theory]
+    [InlineData("SUMMARY:First\r\nSUMMARY:Second")]
+    [InlineData("UID:first@example.com\r\nUID:second@example.com")]
+    [InlineData("DTSTART:20260801T100000Z\r\nDTSTART:20260801T110000Z")]
+    public void BlocksDuplicateCalendarSingletonsBeforeStoreConversion(string duplicateProperties) {
+        byte[] eml = Encoding.ASCII.GetBytes(
+            "Content-Type: text/calendar; charset=utf-8\r\n\r\nBEGIN:VCALENDAR\r\nVERSION:2.0\r\n" +
+            "BEGIN:VEVENT\r\n" + duplicateProperties + "\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n");
+
+        AssertStoreProjectionBlocked(eml);
+    }
+
+    [Theory]
+    [InlineData("FN:First\r\nFN:Second")]
+    [InlineData("N:First;Ada;;;\r\nN:Second;Ada;;;")]
+    [InlineData("TITLE:Engineer\r\nTITLE:Architect")]
+    public void BlocksDuplicateVCardSingletonsBeforeStoreConversion(string duplicateProperties) {
+        byte[] eml = Encoding.ASCII.GetBytes(
+            "Content-Type: text/vcard; charset=utf-8\r\n\r\nBEGIN:VCARD\r\nVERSION:3.0\r\n" +
+            duplicateProperties + "\r\nEND:VCARD\r\n");
+
+        AssertStoreProjectionBlocked(eml);
+    }
+
+    [Fact]
     public void PreservesMissingMimeCalendarMethodWhenReusingUnchangedContent() {
         byte[] eml = Encoding.ASCII.GetBytes(
             "Content-Type: text/calendar; charset=utf-8\r\n\r\nBEGIN:VCALENDAR\r\nVERSION:2.0\r\n" +

@@ -16,6 +16,7 @@ internal static partial class VCardCodec {
         VCardProperty[] versions = properties.Where(property => property.Name == "VERSION").ToArray();
         document.MimeSemanticProjectionIsIncomplete |= cardCount > 1 ||
             versions.Length != 1 || !versions[0].Value.Trim().Equals("3.0", StringComparison.OrdinalIgnoreCase) ||
+            HasDuplicateVCardSingletons(properties) ||
             HasUnprojectedExtension(properties) ||
             HasUnpreservedPropertyParameters(properties) ||
             properties.Count(property => property.Name == "EMAIL") > 3 || properties.Any(property =>

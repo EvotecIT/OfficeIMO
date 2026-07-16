@@ -25,15 +25,20 @@ internal static partial class IcsCalendarCodec {
         bool hasMethodConflict = !string.IsNullOrWhiteSpace(calendarMethod) &&
             !string.IsNullOrWhiteSpace(mimeMethod) &&
             !string.Equals(calendarMethod, mimeMethod, StringComparison.OrdinalIgnoreCase);
-        bool hasCalendarRecipients = HasCalendarRecipients(document) ||
-            activeProperties.Any(property => property.Name == "ATTENDEE");
+        bool hasTransportRecipients = HasCalendarRecipients(document);
+        bool hasCalendarAttendees = activeProperties.Any(property => property.Name == "ATTENDEE");
+        bool hasCalendarRecipients = hasTransportRecipients || hasCalendarAttendees;
+        bool requestWouldSynthesizeAttendees =
+            string.Equals(effectiveMethod, "REQUEST", StringComparison.OrdinalIgnoreCase) &&
+            hasTransportRecipients && !hasCalendarAttendees;
         bool methodWouldChange =
             string.IsNullOrWhiteSpace(effectiveMethod) && hasCalendarRecipients ||
             string.Equals(effectiveMethod, "PUBLISH", StringComparison.OrdinalIgnoreCase) &&
             hasCalendarRecipients || !isEvent &&
             string.Equals(effectiveMethod, "REQUEST", StringComparison.OrdinalIgnoreCase) &&
             !hasCalendarRecipients;
-        if (hasMethodConflict || isEvent && !IsStoreProjectableMethod(effectiveMethod) ||
+        if (hasMethodConflict || requestWouldSynthesizeAttendees ||
+            isEvent && !IsStoreProjectableMethod(effectiveMethod) ||
             !isEvent && !IsStoreProjectableTaskMethod(effectiveMethod) || methodWouldChange) {
             document.MimeSemanticProjectionIsIncomplete = true;
         }

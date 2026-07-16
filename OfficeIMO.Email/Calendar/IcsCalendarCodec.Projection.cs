@@ -1,6 +1,11 @@
 namespace OfficeIMO.Email;
 
 internal static partial class IcsCalendarCodec {
+    private static readonly HashSet<string> RepeatableProjectedCalendarProperties = new HashSet<string>(
+        StringComparer.OrdinalIgnoreCase) {
+            "ATTENDEE", "CATEGORIES", "CONTACT", "X-OFFICEIMO-COMPANY"
+        };
+
     private static readonly HashSet<string> ProjectedCalendarExtensions = new HashSet<string>(
         StringComparer.OrdinalIgnoreCase) {
             "X-MICROSOFT-CDO-BUSYSTATUS", "X-MICROSOFT-DISALLOW-COUNTER",
@@ -44,6 +49,8 @@ internal static partial class IcsCalendarCodec {
         return calendarRoots != 1 || calendarItems > 1 || alarms > 1 || hasTimeZone || hasUnsupportedComponent ||
             hasUnsupportedVersion || hasConflictingEnvelopeSubject || wouldSynthesizeOrganizer ||
             HasDuplicateAttendeeAddresses(activeProperties) ||
+            HasDuplicateCalendarSingletons(activeProperties) ||
+            activeProperties.Any(property => property.Name.IndexOf('.') >= 0) ||
             activeProperties.Any(HasUnpreservedPropertyParameters) ||
             activeProperties.Any(property => property.Name.StartsWith("X-", StringComparison.OrdinalIgnoreCase) &&
                 !ProjectedCalendarExtensions.Contains(property.Name)) ||
@@ -51,7 +58,7 @@ internal static partial class IcsCalendarCodec {
             activeProperties.Any(property =>
                 property.Name == "RRULE" || property.Name == "RDATE" ||
                 property.Name == "EXDATE" || property.Name == "RECURRENCE-ID" ||
-                property.Name == "RELATED-TO" ||
+                property.Name == "RELATED-TO" || property.Name == "REQUEST-STATUS" ||
                 property.Name == "CREATED" || property.Name == "LAST-MODIFIED" ||
                 property.Name == "COMMENT" || property.Name == "RESOURCES" || property.Name == "GEO" ||
                 isEvent && property.Name == "CONTACT" ||
@@ -172,6 +179,11 @@ internal static partial class IcsCalendarCodec {
         }
         return false;
     }
+
+    private static bool HasDuplicateCalendarSingletons(IEnumerable<IcsProperty> properties) =>
+        properties.Where(property => !RepeatableProjectedCalendarProperties.Contains(property.Name))
+            .GroupBy(property => property.Name, StringComparer.OrdinalIgnoreCase)
+            .Any(group => group.Skip(1).Any());
 
     private static bool IsUnprojectableCalendarAddress(string? value) {
         if (string.IsNullOrWhiteSpace(value)) return true;

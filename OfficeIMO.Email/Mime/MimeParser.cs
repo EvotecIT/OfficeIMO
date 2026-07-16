@@ -187,14 +187,22 @@ internal static class MimeParser {
             state.Options.IncludeAttachmentContent || semanticBodyPart ? decoded : null, decoded.LongLength);
         if (semanticBodyPart) attachment.IsMimeBodyPart = true;
         string? semanticCharset = contentType.GetParameter("charset");
+        int semanticDiagnosticStart = state.Diagnostics.Count;
+        bool shouldProjectSemantic = attachment.IsMimeBodyPart && (calendarContent || vcardContent);
+        string? semanticText = shouldProjectSemantic
+            ? MimeTextCodec.DecodeText(decoded, semanticCharset, state.Diagnostics, location)
+            : null;
+        bool semanticCharsetFallback = state.Diagnostics.Skip(semanticDiagnosticStart).Any(diagnostic =>
+            diagnostic.Code == "EMAIL_MIME_CHARSET_UNSUPPORTED");
         if (calendarContent && attachment.IsMimeBodyPart && IcsCalendarCodec.TryProject(
-                MimeTextCodec.DecodeText(decoded, semanticCharset, state.Diagnostics, location),
-                document, state.Diagnostics, location, contentType.GetParameter("method"))) {
+                semanticText!, document, state.Diagnostics, location, contentType.GetParameter("method"))) {
             attachment.IsProjectedSemanticContent = true;
         } else if (vcardContent && attachment.IsMimeBodyPart && VCardCodec.TryProject(
-                       MimeTextCodec.DecodeText(decoded, semanticCharset, state.Diagnostics, location),
-                       document, state.Diagnostics, location)) {
+                       semanticText!, document, state.Diagnostics, location)) {
             attachment.IsProjectedSemanticContent = true;
+        }
+        if (attachment.IsProjectedSemanticContent && semanticCharsetFallback) {
+            document.MimeSemanticProjectionIsIncomplete = true;
         }
         if (attachment.IsProjectedSemanticContent && document.Attachments.Any(existing =>
             existing.IsProjectedSemanticContent)) document.MimeSemanticProjectionIsIncomplete = true;
