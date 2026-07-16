@@ -35,9 +35,9 @@ internal static class OneNoteCabinetArchiveWriter {
             const uint fileTableOffset = 44;
             long dataOffset = fileTableOffset + fileTable.Length;
             long cabinetSize = checked(dataOffset + folderData.Length + blockCount * 8L);
-            if (cabinetSize > uint.MaxValue || cabinetSize > maxOutputBytes) throw new IOException("OneNote package output exceeds MaxOutputBytes.");
+            int outputCapacity = GetOutputCapacity(cabinetSize, maxOutputBytes);
 
-            using (var output = new MemoryStream((int)cabinetSize)) {
+            using (var output = new MemoryStream(outputCapacity)) {
                 output.WriteByte((byte)'M'); output.WriteByte((byte)'S'); output.WriteByte((byte)'C'); output.WriteByte((byte)'F');
                 WriteUInt32(output, 0);
                 WriteUInt32(output, (uint)cabinetSize);
@@ -67,6 +67,17 @@ internal static class OneNoteCabinetArchiveWriter {
                 return output.ToArray();
             }
         }
+    }
+
+    /// <summary>Validates the CAB size fields against both the caller limit and managed buffer capacity.</summary>
+    internal static int GetOutputCapacity(long cabinetSize, long maxOutputBytes) {
+        if (cabinetSize > uint.MaxValue || cabinetSize > maxOutputBytes) {
+            throw new IOException("OneNote package output exceeds MaxOutputBytes.");
+        }
+        if (cabinetSize > int.MaxValue) {
+            throw new IOException("OneNote package output exceeds the supported in-memory size.");
+        }
+        return checked((int)cabinetSize);
     }
 
     private static void WriteUInt16(Stream stream, ushort value) => FssHttpStreamObjectWriter.WriteUInt16(stream, value);
