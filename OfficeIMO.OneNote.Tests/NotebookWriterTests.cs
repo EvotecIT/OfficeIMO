@@ -49,6 +49,8 @@ public sealed class NotebookWriterTests {
         OneNoteFileHeader header = OneNoteFileProbe.ReadHeader(new MemoryStream(data));
         Assert.Equal(OneNoteFileKind.TableOfContents, header.FileKind);
         Assert.Equal(OneNoteStorageFormat.RevisionStore, header.StorageFormat);
+        Assert.Equal(original.Id, result.Id);
+        Assert.Equal(original.Id, header.FileId);
         Assert.Equal("Root", Assert.Single(result.Sections).Name);
         Assert.Equal("Group", Assert.Single(result.SectionGroups).Name);
     }
@@ -61,6 +63,7 @@ public sealed class NotebookWriterTests {
         OneNoteNotebook result = OneNotePackageReader.Read(new MemoryStream(data), "Writer.onepkg");
 
         Assert.Equal(new byte[] { (byte)'M', (byte)'S', (byte)'C', (byte)'F' }, data.Take(4));
+        Assert.Equal(original.Id, result.Id);
         Assert.Equal("Root page", Assert.Single(Assert.Single(result.Sections).Pages).Title);
         OneNoteSectionGroup group = Assert.Single(result.SectionGroups);
         Assert.Equal("Nested page", Assert.Single(Assert.Single(group.Sections).Pages).Title);
@@ -71,9 +74,11 @@ public sealed class NotebookWriterTests {
     public void DirectoryWriterCreatesNativeHierarchyAndRefusesExistingContent() {
         string root = Path.Combine(Path.GetTempPath(), "OfficeIMO-OneNote-" + Guid.NewGuid().ToString("N"));
         try {
-            OneNoteNotebookWriter.Write(CreateNotebook(), root);
+            OneNoteNotebook original = CreateNotebook();
+            OneNoteNotebookWriter.Write(original, root);
 
             OneNoteNotebook result = OneNoteNotebookReader.Read(Path.Combine(root, "Open Notebook.onetoc2"));
+            Assert.Equal(original.Id, result.Id);
             Assert.Equal("Root page", Assert.Single(Assert.Single(result.Sections).Pages).Title);
             Assert.True(File.Exists(Path.Combine(root, "Group", "Open Notebook.onetoc2")));
             Assert.Throws<IOException>(() => OneNoteNotebookWriter.Write(CreateNotebook(), root));
@@ -112,7 +117,12 @@ public sealed class NotebookWriterTests {
     }
 
     private static OneNoteNotebook CreateNotebook() {
-        var notebook = new OneNoteNotebook { Name = "Writer", ColorArgb = 0xFF123456U, HistoryEnabled = true };
+        var notebook = new OneNoteNotebook {
+            Id = new Guid("9f84c4d1-a8f6-4fdb-8cb9-7c5d7bb6e2a1"),
+            Name = "Writer",
+            ColorArgb = 0xFF123456U,
+            HistoryEnabled = true
+        };
         notebook.Sections.Add(CreateSection("Root", "Root page"));
         var group = new OneNoteSectionGroup { Name = "Group" };
         group.Sections.Add(CreateSection("Nested", "Nested page"));

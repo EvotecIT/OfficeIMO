@@ -42,13 +42,9 @@ public static class OneNoteNotebookReader {
         string name = Path.GetFileNameWithoutExtension(sourceName);
         var notebook = new OneNoteNotebook {
             Name = string.IsNullOrWhiteSpace(name) || string.Equals(name, "Open Notebook", StringComparison.OrdinalIgnoreCase) ? "OneNote notebook" : name,
-            SourcePath = sourceName,
-            ColorArgb = toc.ColorArgb,
-            HistoryEnabled = toc.HistoryEnabled,
-            TableOfContentsRootObjectId = toc.RootObjectId,
-            TableOfContentsStorageFormat = toc.StorageFormat
+            SourcePath = sourceName
         };
-        foreach (OneNoteOpaqueObject item in toc.PreservedObjects) notebook.UnknownObjects.Add(item);
+        ApplyRootTocMetadata(notebook, store, toc);
 
         foreach (OneNoteTocEntry entry in toc.Entries.OrderBy(item => item.Order).ThenBy(item => item.Name, StringComparer.OrdinalIgnoreCase)) {
             if (notebook.Sections.Count + notebook.SectionGroups.Count >= effective.MaxNotebookEntries) {
@@ -90,6 +86,19 @@ public static class OneNoteNotebookReader {
         return notebook;
     }
 
+    /// <summary>Applies identity and preserved metadata from a root table of contents to its notebook.</summary>
+    internal static void ApplyRootTocMetadata(
+        OneNoteNotebook notebook,
+        OneNoteRevisionStore store,
+        OneNoteTocData toc) {
+        notebook.Id = store.Header.FileId;
+        notebook.ColorArgb = toc.ColorArgb;
+        notebook.HistoryEnabled = toc.HistoryEnabled;
+        notebook.TableOfContentsRootObjectId = toc.RootObjectId;
+        notebook.TableOfContentsStorageFormat = toc.StorageFormat;
+        foreach (OneNoteOpaqueObject item in toc.PreservedObjects) notebook.UnknownObjects.Add(item);
+    }
+
     private static void ReadToc(
         string tocPath,
         OneNoteNotebook notebook,
@@ -116,11 +125,7 @@ public static class OneNoteNotebookReader {
         }
         OneNoteTocData toc = OneNoteTocMapper.Map(store);
         if (group == null) {
-            notebook.ColorArgb = toc.ColorArgb;
-            notebook.HistoryEnabled = toc.HistoryEnabled;
-            notebook.TableOfContentsRootObjectId = toc.RootObjectId;
-            notebook.TableOfContentsStorageFormat = toc.StorageFormat;
-            foreach (OneNoteOpaqueObject item in toc.PreservedObjects) notebook.UnknownObjects.Add(item);
+            ApplyRootTocMetadata(notebook, store, toc);
         } else {
             group.TableOfContentsRootObjectId = toc.RootObjectId;
             group.TableOfContentsStorageFormat = toc.StorageFormat;

@@ -77,11 +77,7 @@ public static class OneNotePackageReader {
             if (store.Header.FileKind != OneNoteFileKind.TableOfContents) throw new OneNoteFormatException("ONENOTE_TOC_KIND", "A packaged notebook index is not a .onetoc2 revision store.");
             OneNoteTocData toc = OneNoteTocMapper.Map(store);
             if (group == null) {
-                notebook.ColorArgb = toc.ColorArgb;
-                notebook.HistoryEnabled = toc.HistoryEnabled;
-                notebook.TableOfContentsRootObjectId = toc.RootObjectId;
-                notebook.TableOfContentsStorageFormat = toc.StorageFormat;
-                foreach (OneNoteOpaqueObject item in toc.PreservedObjects) notebook.UnknownObjects.Add(item);
+                OneNoteNotebookReader.ApplyRootTocMetadata(notebook, store, toc);
             } else {
                 group.TableOfContentsRootObjectId = toc.RootObjectId;
                 group.TableOfContentsStorageFormat = toc.StorageFormat;
