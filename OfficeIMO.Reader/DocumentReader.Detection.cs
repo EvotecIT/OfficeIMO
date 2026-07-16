@@ -144,13 +144,13 @@ internal static partial class DocumentReaderEngine {
         bool contentOverridesExtension = options.DetectionMode == ReaderDetectionMode.PreferContent &&
                                          detection.IsMismatch;
         if (contentOverridesExtension) {
-            return TryResolveCustomHandlerByKind(detection.Kind, pathInput: true, out handler);
+            return TryResolveDetectedHandler(detection, pathInput: true, out handler);
         }
         if (hasExtensionHandler) {
             handler = extensionHandler;
             return true;
         }
-        return TryResolveCustomHandlerByKind(detection.Kind, pathInput: true, out handler);
+        return TryResolveDetectedHandler(detection, pathInput: true, out handler);
     }
 
     private static bool TryResolveStreamHandler(
@@ -173,13 +173,32 @@ internal static partial class DocumentReaderEngine {
         bool contentOverridesExtension = options.DetectionMode == ReaderDetectionMode.PreferContent &&
                                          detection.IsMismatch;
         if (contentOverridesExtension) {
-            return TryResolveCustomHandlerByKind(detection.Kind, pathInput: false, out handler);
+            return TryResolveDetectedHandler(detection, pathInput: false, out handler);
         }
         if (hasExtensionHandler) {
             handler = extensionHandler;
             return true;
         }
-        return TryResolveCustomHandlerByKind(detection.Kind, pathInput: false, out handler);
+        return TryResolveDetectedHandler(detection, pathInput: false, out handler);
+    }
+
+    private static bool TryResolveDetectedHandler(
+        ReaderDetectionResult detection,
+        bool pathInput,
+        out ReaderHandlerDescriptor handler) {
+        if (TryResolveCustomHandlerByKind(detection.Kind, pathInput, out handler)) {
+            return true;
+        }
+
+        if (!CanUseZipContainerFallback(detection)) {
+            return false;
+        }
+
+        return TryResolveCustomHandlerByKind(ReaderInputKind.Zip, pathInput, out handler);
+    }
+
+    private static bool CanUseZipContainerFallback(ReaderDetectionResult detection) {
+        return detection.Kind == ReaderInputKind.OpenDocument;
     }
 
     private static async Task<HandlerDetectionResolution> ResolvePathHandlerAsync(
@@ -345,6 +364,16 @@ internal static partial class DocumentReaderEngine {
             effectiveConfidence = content.Confidence;
         }
 
+        bool useContentMediaType = content.Kind == effectiveKind &&
+            content.MediaType != null &&
+            (effectiveKind != extensionResult.ExtensionKind ||
+             (mode == ReaderDetectionMode.PreferContent && content.MediaTypeIsDeclared));
+        string? effectiveMediaType = useContentMediaType
+            ? content.MediaType
+            : effectiveKind == extensionResult.ExtensionKind
+                ? extensionResult.MediaType ?? GetMediaType(effectiveKind)
+                : GetMediaType(effectiveKind);
+
         return new ReaderDetectionResult {
             SourceName = extensionResult.SourceName,
             Extension = extensionResult.Extension,
@@ -354,11 +383,7 @@ internal static partial class DocumentReaderEngine {
             ContentConfidence = content.Confidence,
             Kind = effectiveKind,
             Confidence = effectiveConfidence,
-            MediaType = effectiveKind == extensionResult.ExtensionKind
-                ? extensionResult.MediaType ?? GetMediaType(effectiveKind)
-                : content.Kind == effectiveKind && content.MediaType != null
-                    ? content.MediaType
-                    : GetMediaType(effectiveKind),
+            MediaType = effectiveMediaType,
             ContentInspected = true,
             ContainerInspected = containerInspected,
             InspectedBytes = inspectedBytes,
@@ -644,6 +669,9 @@ internal static partial class DocumentReaderEngine {
             ".json" => "application/json",
             ".xml" => "application/xml",
             ".yml" or ".yaml" => "application/yaml",
+            ".odt" => "application/vnd.oasis.opendocument.text",
+            ".ods" => "application/vnd.oasis.opendocument.spreadsheet",
+            ".odp" => "application/vnd.oasis.opendocument.presentation",
             _ => GetMediaType(kind)
         };
     }
@@ -672,17 +700,20 @@ internal static partial class DocumentReaderEngine {
             ReaderInputKind kind,
             ReaderDetectionConfidence confidence,
             string? mediaType,
-            IReadOnlyList<string> evidence) {
+            IReadOnlyList<string> evidence,
+            bool mediaTypeIsDeclared = false) {
             Kind = kind;
             Confidence = confidence;
             MediaType = mediaType;
             Evidence = evidence;
+            MediaTypeIsDeclared = mediaTypeIsDeclared;
         }
 
         public ReaderInputKind Kind { get; }
         public ReaderDetectionConfidence Confidence { get; }
         public string? MediaType { get; }
         public IReadOnlyList<string> Evidence { get; }
+        public bool MediaTypeIsDeclared { get; }
 
         public static DetectionCandidate Unknown(string evidence) =>
             new DetectionCandidate(ReaderInputKind.Unknown, ReaderDetectionConfidence.None, null, new[] { evidence });
@@ -693,8 +724,17 @@ internal static partial class DocumentReaderEngine {
         public static DetectionCandidate Medium(ReaderInputKind kind, string mediaType, string evidence) =>
             new DetectionCandidate(kind, ReaderDetectionConfidence.Medium, mediaType, new[] { evidence });
 
-        public static DetectionCandidate High(ReaderInputKind kind, string mediaType, string evidence) =>
-            new DetectionCandidate(kind, ReaderDetectionConfidence.High, mediaType, new[] { evidence });
+        public static DetectionCandidate High(
+            ReaderInputKind kind,
+            string mediaType,
+            string evidence,
+            bool mediaTypeIsDeclared = false) =>
+            new DetectionCandidate(
+                kind,
+                ReaderDetectionConfidence.High,
+                mediaType,
+                new[] { evidence },
+                mediaTypeIsDeclared);
     }
 
     private sealed class HandlerDetectionResolution {
