@@ -1,10 +1,13 @@
 using DocumentFormat.OpenXml.Packaging;
+using OfficeIMO.Drawing.Binary;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.LegacyPpt;
 using OfficeIMO.PowerPoint.LegacyPpt.Capabilities;
 using OfficeIMO.PowerPoint.LegacyPpt.Model;
+using OfficeIMO.Tests.Pdf;
 using OpenMcdf;
 using Xunit;
+using A = DocumentFormat.OpenXml.Drawing;
 using P = DocumentFormat.OpenXml.Presentation;
 using CfbVersion = OpenMcdf.Version;
 
@@ -74,6 +77,91 @@ namespace OfficeIMO.Tests {
             Assert.Equal(P.OleObjectFollowColorSchemeValues.TextAndBackground,
                 projectedOle.FollowColorScheme);
             Assert.Equal(storageBytes, projectedOle.GetData());
+            Assert.Empty(projected.ValidateDocument());
+            Assert.Equal(binary,
+                projected.ToBytes(PowerPointFileFormat.Ppt));
+        }
+
+        [Fact]
+        public void FreshEmbeddedOleObject_WritesExplicitPreviewImageAndEffects() {
+            byte[] storageBytes = CreateOleTestStorage("OLE preview");
+            byte[] imageBytes = PdfPngTestImages.CreateRgbPng(23, 91, 177);
+            byte[] binary;
+            using (PowerPointPresentation created =
+                   PowerPointPresentation.Create()) {
+                PowerPointSlide slide = created.AddSlide(
+                    P.SlideLayoutValues.Blank);
+                using var storage = new MemoryStream(storageBytes,
+                    writable: false);
+                PowerPointOleObject ole = slide.AddOleObject(storage,
+                    "Package", 12700L, 25400L, 2743200L, 1828800L);
+                ImagePart imagePart = slide.SlidePart.AddImagePart(
+                    DocumentFormat.OpenXml.Packaging.ImagePartType.Png);
+                using (var image = new MemoryStream(imageBytes,
+                           writable: false)) {
+                    imagePart.FeedData(image);
+                }
+                P.Picture preview = Assert.IsType<P.GraphicFrame>(ole.Element)
+                    .Graphic!.GraphicData!.GetFirstChild<P.OleObject>()!
+                    .GetFirstChild<P.Picture>()!;
+                preview.BlipFill = new P.BlipFill(
+                    new A.Blip(
+                        new A.Grayscale(),
+                        new A.ColorReplacement(
+                            new A.RgbColorModelHex { Val = "ED7D31" })) {
+                        Embed = slide.SlidePart.GetIdOfPart(imagePart)
+                    },
+                    new A.SourceRectangle { Left = 10000, Top = 20000 },
+                    new A.Stretch(new A.FillRectangle()));
+
+                Assert.Empty(created.ValidateDocument());
+                LegacyPptWritePreflightReport preflight = created
+                    .AnalyzeLegacyPptWrite();
+                Assert.True(preflight.CanWrite,
+                    string.Join(Environment.NewLine, preflight.Findings));
+                binary = created.ToBytes(PowerPointFileFormat.Ppt);
+            }
+
+            LegacyPptPresentation neutral = LegacyPptPresentation.Load(binary);
+            LegacyPptShape shape = Assert.Single(neutral.Slides[0].Shapes);
+            Assert.Equal(LegacyPptShapeKind.OleObject, shape.Kind);
+            Assert.Equal(imageBytes, Assert.IsType<OfficeArtBlipStoreEntry>(
+                shape.Picture).ImageBytes);
+            Assert.Equal(6554, shape.PictureProperties.CropFromLeftRaw);
+            Assert.Equal(13107, shape.PictureProperties.CropFromTopRaw);
+            Assert.True(shape.PictureProperties.Grayscale);
+            Assert.Equal("ED7D31", shape.PictureRecolorColor);
+            Assert.Equal(1U, Assert.Single(neutral.BlipStoreEntries)
+                .ReferenceCount);
+
+            using var input = new MemoryStream(binary, writable: false);
+            using PowerPointPresentation projected =
+                PowerPointPresentation.Load(input);
+            PowerPointOleObject projectedOle = Assert.IsType<
+                PowerPointOleObject>(Assert.Single(projected.Slides[0].Shapes));
+            Assert.Equal(storageBytes, projectedOle.GetData());
+            P.Picture projectedPreview = Assert.IsType<P.GraphicFrame>(
+                    projectedOle.Element).Graphic!.GraphicData!
+                .GetFirstChild<P.OleObject>()!.GetFirstChild<P.Picture>()!;
+            A.Blip projectedBlip = Assert.IsType<A.Blip>(
+                projectedPreview.BlipFill!.Blip);
+            Assert.NotNull(projectedBlip.GetFirstChild<A.Grayscale>());
+            Assert.Equal("ED7D31", projectedBlip
+                .GetFirstChild<A.ColorReplacement>()!
+                .GetFirstChild<A.RgbColorModelHex>()!.Val!.Value);
+            Assert.InRange(projectedPreview.BlipFill.SourceRectangle!
+                .Left!.Value, 9999, 10001);
+            Assert.InRange(projectedPreview.BlipFill.SourceRectangle!
+                .Top!.Value, 19999, 20001);
+            ImagePart projectedImage = Assert.IsType<ImagePart>(
+                projected.Slides[0].SlidePart.GetPartById(
+                    projectedBlip.Embed!.Value!));
+            using var projectedBytes = new MemoryStream();
+            using (Stream projectedImageStream = projectedImage.GetStream(
+                       FileMode.Open, FileAccess.Read)) {
+                projectedImageStream.CopyTo(projectedBytes);
+            }
+            Assert.Equal(imageBytes, projectedBytes.ToArray());
             Assert.Empty(projected.ValidateDocument());
             Assert.Equal(binary,
                 projected.ToBytes(PowerPointFileFormat.Ppt));
@@ -324,6 +412,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(LegacyPptCapabilityState.Native,
                 capability.PptxToBinary);
             Assert.Contains("compressed or uncompressed", capability.Note);
+            Assert.Contains("preview images", capability.Note);
             Assert.Contains("loss-blocked", capability.Note);
         }
 

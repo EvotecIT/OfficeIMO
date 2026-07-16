@@ -3,6 +3,7 @@ using System.Runtime.CompilerServices;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Drawing.Internal;
+using A = DocumentFormat.OpenXml.Drawing;
 using P = DocumentFormat.OpenXml.Presentation;
 
 namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
@@ -79,9 +80,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 reason = "Related parts on an embedded OLE storage have no binary PowerPoint mapping.";
                 return false;
             }
-            P.Picture? preview = source.GetFirstChild<P.Picture>();
-            if (preview?.BlipFill?.Blip?.Embed?.Value != null) {
-                reason = "An explicit OLE preview image cannot yet be encoded by the native binary writer.";
+            if (!TryReadOlePreview(slidePart, shape,
+                    out PowerPointPicture? preview, out _, out _,
+                    out reason)) {
                 return false;
             }
             byte[] storageBytes;
@@ -121,7 +122,55 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             result = new LegacyPptWriterOleObject(id,
                 source.ShowAsIcon?.Value == true ? 4U : 1U,
                 MapOleSubType(progId), colorFollow, name, progId,
-                storageBytes);
+                storageBytes, preview);
+            return true;
+        }
+
+        private static bool TryReadOlePreview(SlidePart slidePart,
+            PowerPointOleObject shape, out PowerPointPicture? preview,
+            out byte[] imageBytes, out string? contentType,
+            out string? reason) {
+            preview = null;
+            imageBytes = Array.Empty<byte>();
+            contentType = null;
+            reason = null;
+            if (shape.Element is not P.GraphicFrame frame) return true;
+            P.Picture? source = frame.Graphic?.GraphicData?
+                .GetFirstChild<P.OleObject>()?.GetFirstChild<P.Picture>();
+            A.Blip? blip = source?.BlipFill?.Blip;
+            if (source == null || blip == null
+                || string.IsNullOrWhiteSpace(blip.Embed?.Value)
+                    && string.IsNullOrWhiteSpace(blip.Link?.Value)) {
+                return true;
+            }
+
+            preview = new PowerPointPicture(source, slidePart);
+            if (preview.Left != shape.Left || preview.Top != shape.Top
+                || preview.Width != shape.Width || preview.Height != shape.Height
+                || preview.Rotation != shape.Rotation
+                || preview.HorizontalFlip != shape.HorizontalFlip
+                || preview.VerticalFlip != shape.VerticalFlip) {
+                preview = null;
+                reason = "The OLE preview uses geometry that differs from its owning object frame and cannot be represented by one binary OfficeArt shape.";
+                return false;
+            }
+            if ((!string.IsNullOrEmpty(preview.Name)
+                    && !string.Equals(preview.Name, shape.Name,
+                        StringComparison.Ordinal))
+                || (!string.IsNullOrEmpty(preview.Description)
+                    && !string.Equals(preview.Description,
+                        shape.Description, StringComparison.Ordinal))
+                || !TryReadShapeMetadataForWrite(preview, out _, out reason)) {
+                preview = null;
+                reason ??= "The OLE preview carries independent accessibility metadata that one binary OfficeArt object shape cannot preserve.";
+                return false;
+            }
+            if (!TryReadShapeVisualStyle(preview, out _, out reason)
+                || !TryReadPicture(preview, out imageBytes,
+                    out contentType, out reason)) {
+                preview = null;
+                return false;
+            }
             return true;
         }
 
@@ -232,7 +281,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         internal sealed class LegacyPptWriterOleObject {
             internal LegacyPptWriterOleObject(uint id, uint drawAspect,
                 uint subType, uint colorFollow, string? name,
-                string progId, byte[] storageBytes) {
+                string progId, byte[] storageBytes,
+                PowerPointPicture? preview) {
                 Id = id;
                 DrawAspect = drawAspect;
                 SubType = subType;
@@ -240,6 +290,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 Name = name;
                 ProgId = progId;
                 StorageBytes = storageBytes;
+                Preview = preview;
             }
 
             internal uint Id { get; }
@@ -250,6 +301,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             internal string? Name { get; }
             internal string ProgId { get; }
             internal byte[] StorageBytes { get; }
+            internal PowerPointPicture? Preview { get; }
         }
     }
 }

@@ -272,8 +272,26 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         "The OLE shape has no external-object catalog entry.");
                 shapeType = 75;
                 children.Add(BuildFsp(shapeType, shapeId, shape));
-                byte[]? formatting = BuildShapeFoptRecord(shape);
+                byte[]? formatting;
+                if (ole.Preview != null) {
+                    LegacyPptWriterPicture previewPicture =
+                        pictureCatalog?.Get(shape)
+                        ?? throw new InvalidOperationException(
+                            "The OLE preview has no BLIP store catalog entry.");
+                    formatting = BuildOlePreviewFoptRecord(
+                        (PowerPointOleObject)shape, ole.Preview,
+                        previewPicture.OneBasedStoreIndex);
+                } else {
+                    formatting = BuildShapeFoptRecord(shape);
+                }
                 if (formatting != null) children.Add(formatting);
+                if (ole.Preview != null) {
+                    byte[]? tertiaryPictureProperties =
+                        BuildPictureTertiaryFoptRecord(ole.Preview);
+                    if (tertiaryPictureProperties != null) {
+                        children.Add(tertiaryPictureProperties);
+                    }
+                }
                 children.Add(BuildAnchor(shape));
                 byte[]? clientData = BuildClientData(shape,
                     interactions.ShapeInteractions, animation, shapeContext,

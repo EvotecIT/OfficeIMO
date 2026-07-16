@@ -65,6 +65,17 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                             return false;
                         }
                         contentType = "image/png";
+                    } else if (shape is PowerPointOleObject ole) {
+                        failureFeature = LegacyPptFeature.EmbeddedOle;
+                        if (!TryReadOlePreview(slide.SlidePart, ole,
+                                out PowerPointPicture? preview,
+                                out imageBytes,
+                                out string? previewContentType,
+                                out reason)) {
+                            return false;
+                        }
+                        if (preview == null) continue;
+                        contentType = previewContentType!;
                     } else {
                         continue;
                     }
@@ -316,6 +327,24 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             PowerPointShape shape, uint oneBasedStoreIndex) {
             var properties = new List<LegacyPptWriterFoptProperty>(8);
             AddShapeFormattingProperties(properties, shape);
+            properties.Add(new LegacyPptWriterFoptProperty(0x4104,
+                oneBasedStoreIndex));
+            return BuildFoptRecord(properties);
+        }
+
+        private static byte[] BuildOlePreviewFoptRecord(
+            PowerPointOleObject shape, PowerPointPicture preview,
+            uint oneBasedStoreIndex) {
+            var properties = new List<LegacyPptWriterFoptProperty>(16);
+            AddShapeTransformProperties(properties, shape);
+            AddShapeVisualStyleProperties(properties, preview);
+            if (!TryReadShapeMetadataForWrite(shape,
+                    out IReadOnlyList<LegacyPptWriterFoptProperty> metadata,
+                    out string? reason)) {
+                throw new NotSupportedException(reason);
+            }
+            properties.AddRange(metadata);
+            AddPictureFormatProperties(properties, preview);
             properties.Add(new LegacyPptWriterFoptProperty(0x4104,
                 oneBasedStoreIndex));
             return BuildFoptRecord(properties);
