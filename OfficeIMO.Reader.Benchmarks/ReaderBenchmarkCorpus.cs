@@ -18,6 +18,7 @@ internal static class ReaderBenchmarkCorpus {
 
     private static IReadOnlyDictionary<string, ReaderBenchmarkInput> BuildInputs() {
         var inputs = new SortedDictionary<string, ReaderBenchmarkInput>(StringComparer.Ordinal) {
+            ["BinaryPowerPoint"] = new ReaderBenchmarkInput("BinaryPowerPoint", "deck.ppt", BuildBinaryPowerPoint()),
             ["Csv"] = Text("Csv", "records.csv", BuildCsv()),
             ["Epub"] = new ReaderBenchmarkInput("Epub", "book.epub", BuildEpub()),
             ["Excel"] = new ReaderBenchmarkInput("Excel", "workbook.xlsx", BuildExcel()),
@@ -164,6 +165,17 @@ internal static class ReaderBenchmarkCorpus {
             presentation.Save();
         }
         return stream.ToArray();
+    }
+
+    private static byte[] BuildBinaryPowerPoint() {
+        using PowerPointPresentation presentation = PowerPointPresentation.Create();
+        for (int slideNumber = 1; slideNumber <= 24; slideNumber++) {
+            PowerPointSlide slide = presentation.AddSlide();
+            slide.AddTextBox("Reader binary benchmark slide " + slideNumber);
+            slide.AddTextBox("Representative PowerPoint 97-2003 content with notes and normalized extraction.");
+            slide.Notes.Text = "Speaker notes for binary slide " + slideNumber;
+        }
+        return presentation.ToBytes(PowerPointFileFormat.Ppt);
     }
 
     private static byte[] BuildPdf() {

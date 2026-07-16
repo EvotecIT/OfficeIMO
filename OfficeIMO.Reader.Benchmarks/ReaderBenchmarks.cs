@@ -61,7 +61,7 @@ public class ReaderDetectionBenchmarks {
     private ReaderBenchmarkInput _input = null!;
     private ReaderDetectionOptions _options = null!;
 
-    [Params("Markdown", "Pdf", "Word", "Epub", "Visio")]
+    [Params("BinaryPowerPoint", "PowerPoint", "Markdown", "Pdf", "Word", "Epub", "Visio")]
     public string Format { get; set; } = string.Empty;
 
     [GlobalSetup]
