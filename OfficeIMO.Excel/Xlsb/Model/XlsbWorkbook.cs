@@ -22,6 +22,8 @@ namespace OfficeIMO.Excel.Xlsb.Model {
 
         internal XlsbCalculationProperties? CalculationProperties { get; set; }
 
+        internal XlsbWorkbookProtection? WorkbookProtection { get; set; }
+
         internal XlsbStylesheet? Stylesheet { get; set; }
 
         internal void AddWorksheet(XlsbWorksheet worksheet) => _worksheets.Add(worksheet);

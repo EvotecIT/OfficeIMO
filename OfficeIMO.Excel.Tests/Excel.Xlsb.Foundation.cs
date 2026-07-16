@@ -1100,6 +1100,50 @@ namespace OfficeIMO.Tests {
             Assert.True(properties.ForceFullCalculation?.Value);
         }
 
+        [Fact]
+        public void Xlsb_NewWorkbook_WritesClassicWorkbookProtection() {
+            using ExcelDocument document = ExcelDocument.Create();
+            document.AddWorksheet("Protected").CellValue(1, 1, "Locked structure");
+            document.ProtectWorkbook(new ExcelWorkbookProtectionOptions {
+                ProtectStructure = true,
+                ProtectWindows = true,
+                LegacyPasswordHash = "CAFE"
+            });
+            WorkbookProtection protection = Assert.IsType<WorkbookProtection>(
+                document.WorkbookRoot.GetFirstChild<WorkbookProtection>());
+            protection.LockRevision = true;
+            protection.RevisionsPassword = "BEEF";
+
+            byte[] package = document.ToBytes(ExcelFileFormat.Xlsb);
+            using (var archive = new ZipArchive(new MemoryStream(package, writable: false), ZipArchiveMode.Read)) {
+                using Stream workbookStream = Assert.IsType<ZipArchiveEntry>(archive.GetEntry("xl/workbook.bin")).Open();
+                XlsbRecord record = Assert.Single(XlsbRecordReader.ReadAll(workbookStream), item => item.Type == 534);
+                Assert.Equal(new byte[] { 0xFE, 0xCA, 0xEF, 0xBE, 0x07, 0x00 }, record.Data);
+            }
+
+            using ExcelDocument reloaded = ExcelDocument.Load(new MemoryStream(package, writable: false));
+            Assert.True(reloaded.IsWorkbookProtected);
+            WorkbookProtection result = Assert.IsType<WorkbookProtection>(
+                reloaded.WorkbookRoot.GetFirstChild<WorkbookProtection>());
+            Assert.Equal("CAFE", result.WorkbookPassword?.Value);
+            Assert.Equal("BEEF", result.RevisionsPassword?.Value);
+            Assert.True(result.LockStructure?.Value);
+            Assert.True(result.LockWindows?.Value);
+            Assert.True(result.LockRevision?.Value);
+
+            reloaded.Sheets[0].CellValue(1, 1, "Updated under protection");
+            byte[] rewritten = reloaded.ToBytes(ExcelFileFormat.Xlsb);
+            using (var archive = new ZipArchive(new MemoryStream(rewritten, writable: false), ZipArchiveMode.Read)) {
+                using Stream workbookStream = Assert.IsType<ZipArchiveEntry>(archive.GetEntry("xl/workbook.bin")).Open();
+                XlsbRecord record = Assert.Single(XlsbRecordReader.ReadAll(workbookStream), item => item.Type == 534);
+                Assert.Equal(new byte[] { 0xFE, 0xCA, 0xEF, 0xBE, 0x07, 0x00 }, record.Data);
+            }
+            using ExcelDocument rewrittenDocument = ExcelDocument.Load(new MemoryStream(rewritten, writable: false));
+            Assert.True(rewrittenDocument.IsWorkbookProtected);
+            Assert.True(rewrittenDocument.Sheets[0].TryGetCellText(1, 1, out string? rewrittenValue));
+            Assert.Equal("Updated under protection", rewrittenValue);
+        }
+
         private static byte[] CreateMinimalXlsbPackage() {
             byte[] workbookRecords = {
                 0x83, 0x01, 0x00,

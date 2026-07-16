@@ -45,6 +45,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 sheets,
                 document.DateSystem == ExcelDateSystem.NineteenFour,
                 document.WorkbookRoot.GetFirstChild<BookViews>(),
+                document.WorkbookRoot.GetFirstChild<WorkbookProtection>(),
                 document.WorkbookRoot.GetFirstChild<CalculationProperties>()));
             WriteEntry(archive, "xl/_rels/workbook.bin.rels", CreateWorkbookRelationships(sheets.Length, stylesPart != null));
             for (int index = 0; index < worksheetParts.Length; index++) {
@@ -72,6 +73,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             }
 
             ThrowIfDuplicateWorkbookElement<WorkbookProperties>(document.WorkbookRoot, "workbook properties");
+            ThrowIfDuplicateWorkbookElement<WorkbookProtection>(document.WorkbookRoot, "workbook protection");
             ThrowIfDuplicateWorkbookElement<BookViews>(document.WorkbookRoot, "workbook views");
             ThrowIfDuplicateWorkbookElement<Sheets>(document.WorkbookRoot, "worksheet collections");
             ThrowIfDuplicateWorkbookElement<CalculationProperties>(document.WorkbookRoot, "calculation properties");
@@ -79,6 +81,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             OpenXmlElement? unsupportedWorkbookChild = document.WorkbookRoot.ChildElements
                 .FirstOrDefault(element => element is not Sheets
                     && element is not WorkbookProperties
+                    && element is not WorkbookProtection
                     && element is not BookViews
                     && element is not CalculationProperties);
             if (unsupportedWorkbookChild != null) {
@@ -86,6 +89,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             }
 
             XlsbWorkbookViewWriter.Validate(document.WorkbookRoot.GetFirstChild<BookViews>(), sheets.Count);
+            XlsbWorkbookProtectionWriter.Validate(document.WorkbookRoot.GetFirstChild<WorkbookProtection>());
             XlsbCalculationPropertiesWriter.Validate(document.WorkbookRoot.GetFirstChild<CalculationProperties>());
 
             WorkbookProperties? properties = document.WorkbookRoot.GetFirstChild<WorkbookProperties>();

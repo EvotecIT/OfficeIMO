@@ -13,6 +13,9 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
             if (workbook.Stylesheet != null) {
                 XlsbStylesheetProjector.Install(document, workbook.Stylesheet);
             }
+            if (workbook.WorkbookProtection != null) {
+                XlsbWorkbookProtectionProjector.Apply(document, workbook.WorkbookProtection);
+            }
 
             foreach (XlsbWorksheet sourceSheet in workbook.Worksheets) {
                 ExcelSheet targetSheet = document.AddWorksheet(sourceSheet.Name);

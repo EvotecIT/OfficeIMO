@@ -62,12 +62,14 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             OpenXmlElement? unsupportedWorkbookChild = document.WorkbookRoot.ChildElements
                 .FirstOrDefault(element => element is not Sheets
                     && element is not WorkbookProperties
+                    && element is not WorkbookProtection
                     && element is not CalculationProperties);
             if (unsupportedWorkbookChild != null) {
                 throw new NotSupportedException($"Native XLSB rewriting currently accepts cell-value edits only. Workbook metadata '{unsupportedWorkbookChild.LocalName}' was modified; save as .xlsx.");
             }
 
             ValidateWorkbookProperties(document, sourceWorkbook);
+            ValidateWorkbookProtection(document, sourceWorkbook);
             ValidateCalculationProperties(document, sourceWorkbook);
             ValidateStylesheet(document, sourceWorkbook);
 
@@ -116,6 +118,13 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             CalculationProperties? properties = document.WorkbookRoot.GetFirstChild<CalculationProperties>();
             if (!XlsbCalculationPropertiesProjector.Matches(properties, sourceWorkbook.CalculationProperties)) {
                 throw new NotSupportedException("Native XLSB rewriting preserves but cannot modify workbook calculation properties. Save that change as .xlsx.");
+            }
+        }
+
+        private static void ValidateWorkbookProtection(ExcelDocument document, XlsbWorkbook sourceWorkbook) {
+            WorkbookProtection? protection = document.WorkbookRoot.GetFirstChild<WorkbookProtection>();
+            if (!XlsbWorkbookProtectionProjector.Matches(protection, sourceWorkbook.WorkbookProtection)) {
+                throw new NotSupportedException("Native XLSB rewriting preserves but cannot modify workbook protection. Save that change as .xlsx.");
             }
         }
 

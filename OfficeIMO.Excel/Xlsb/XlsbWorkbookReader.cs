@@ -45,6 +45,7 @@ namespace OfficeIMO.Excel.Xlsb {
         private const int BrtEndColInfos = 391;
         private const int BrtWsFmtInfo = 485;
         private const int BrtHLink = 494;
+        private const int BrtBookProtection = 534;
 
         private const string WorksheetRelationshipSuffix = "/worksheet";
         private const string SharedStringsRelationshipSuffix = "/sharedStrings";
@@ -159,6 +160,12 @@ namespace OfficeIMO.Excel.Xlsb {
                         }
                         workbook.CalculationProperties = ParseCalculationProperties(record);
                         break;
+                    case BrtBookProtection:
+                        if (workbook.WorkbookProtection != null) {
+                            throw new InvalidDataException($"The XLSB workbook contains more than one BrtBookProtection record; duplicate found at offset {record.Offset}.");
+                        }
+                        workbook.WorkbookProtection = ParseWorkbookProtection(record);
+                        break;
                     default:
                         PreserveRecord(options, workbook, partName, record);
                         break;
@@ -194,6 +201,20 @@ namespace OfficeIMO.Excel.Xlsb {
                 iterationDelta,
                 concurrentThreadCount,
                 flags);
+        }
+
+        private static XlsbWorkbookProtection ParseWorkbookProtection(XlsbRecord record) {
+            if (record.Data.Length != 6) {
+                throw new InvalidDataException($"The BrtBookProtection record at offset {record.Offset} has invalid payload length {record.Data.Length}.");
+            }
+            var cursor = new XlsbBinaryCursor(record.Data);
+            ushort workbookPassword = cursor.ReadUInt16();
+            ushort revisionsPassword = cursor.ReadUInt16();
+            ushort flags = cursor.ReadUInt16();
+            if ((flags & 0xFFF8) != 0) {
+                throw new InvalidDataException($"The BrtBookProtection record at offset {record.Offset} contains reserved protection flags.");
+            }
+            return new XlsbWorkbookProtection(workbookPassword, revisionsPassword, flags);
         }
 
         private static XlsbStylesheet? ReadStyles(

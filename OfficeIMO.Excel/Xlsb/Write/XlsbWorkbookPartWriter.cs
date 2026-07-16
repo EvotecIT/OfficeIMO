@@ -14,6 +14,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             IReadOnlyList<ExcelSheet> sheets,
             bool uses1904DateSystem,
             DocumentFormat.OpenXml.Spreadsheet.BookViews? workbookViews,
+            DocumentFormat.OpenXml.Spreadsheet.WorkbookProtection? workbookProtection,
             DocumentFormat.OpenXml.Spreadsheet.CalculationProperties? calculationProperties) {
             if (sheets == null) throw new ArgumentNullException(nameof(sheets));
             if (sheets.Count == 0) throw new NotSupportedException("Native XLSB generation requires at least one worksheet.");
@@ -21,6 +22,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             using var output = new MemoryStream(Math.Max(256, sheets.Count * 64));
             XlsbRecordWriter.Write(output, BrtBeginBook);
             XlsbRecordWriter.Write(output, BrtWbProp, CreateWorkbookPropertiesPayload(uses1904DateSystem));
+            XlsbWorkbookProtectionWriter.Write(output, workbookProtection);
             XlsbWorkbookViewWriter.Write(output, workbookViews, sheets.Count);
             XlsbRecordWriter.Write(output, BrtBeginBundleShs);
             for (int index = 0; index < sheets.Count; index++) {
