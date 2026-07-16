@@ -120,6 +120,113 @@ namespace OfficeIMO.Tests {
                 finding.Code == "PPT-WRITE-IMPORT-LOSS");
         }
 
+        [Fact]
+        public void ImportedNotesMasterShapeMove_AppendsPreservingIncrementalRecord() {
+            LegacyPptPresentation original = LegacyPptPresentation.Load(FixturePath);
+            LegacyPptSpecialMaster originalMaster = Assert.IsType<
+                LegacyPptSpecialMaster>(original.NotesMaster);
+            Assert.NotEmpty(originalMaster.Shapes);
+            using PowerPointPresentation imported = PowerPointPresentation.Load(
+                FixturePath);
+            NotesMasterPart notesPart = imported.OpenXmlDocument.PresentationPart!
+                .NotesMasterPart!;
+            PowerPointShape shape = LegacyPptWriter.ReadMasterShapesForWrite(
+                notesPart, out _)[0];
+            long expectedLeft = shape.Left + 15875L;
+            shape.Left = expectedLeft;
+            A.Accent6Color accent6 = notesPart.ThemePart!.Theme!
+                .ThemeElements!.ColorScheme!.GetFirstChild<A.Accent6Color>()!;
+            accent6.RemoveAllChildren();
+            accent6.Append(new A.RgbColorModelHex { Val = "2468AC" });
+
+            Assert.True(imported.AnalyzeLegacyPptWrite().CanWrite);
+            byte[] savedBytes = imported.ToBytes(PowerPointFileFormat.Ppt);
+            LegacyPptPresentation saved = LegacyPptPresentation.Load(savedBytes);
+            LegacyPptSpecialMaster savedMaster = Assert.IsType<
+                LegacyPptSpecialMaster>(saved.NotesMaster);
+
+            Assert.Equal(originalMaster.Shapes[0].Bounds.Left + 10,
+                savedMaster.Shapes[0].Bounds.Left);
+            Assert.Equal("2468AC", savedMaster.RoundTripTheme?
+                .Colors[PowerPointThemeColor.Accent6]);
+            Assert.True(saved.Package.DocumentStream.AsSpan(0,
+                    original.Package.DocumentStream.Length)
+                .SequenceEqual(original.Package.DocumentStream));
+            AssertUnrelatedMasterChildrenEqual(original, saved,
+                originalMaster.PersistId, 0x040E, 0x040F);
+
+            using var reopenedInput = new MemoryStream(savedBytes);
+            using PowerPointPresentation reopened =
+                PowerPointPresentation.Load(reopenedInput);
+            PowerPointShape reopenedShape = LegacyPptWriter
+                .ReadMasterShapesForWrite(reopened.OpenXmlDocument
+                    .PresentationPart!.NotesMasterPart!, out _)[0];
+            Assert.Equal(expectedLeft, reopenedShape.Left);
+            Assert.Equal("2468AC", reopened.OpenXmlDocument.PresentationPart!
+                .NotesMasterPart!.ThemePart!.Theme!.ThemeElements!
+                .ColorScheme!.GetFirstChild<A.Accent6Color>()!
+                .GetFirstChild<A.RgbColorModelHex>()!.Val!.Value);
+            Assert.Empty(reopened.ValidateDocument());
+        }
+
+        [Fact]
+        public void ImportedHandoutMasterShapeAndThemeEdit_AppendsPreservingRecord() {
+            byte[] sourceBytes;
+            using (PowerPointPresentation created =
+                   PowerPointPresentation.Create()) {
+                HandoutMasterPart handoutPart = CreateHandoutMaster(created);
+                handoutPart.HandoutMaster!.CommonSlideData!.ShapeTree!.Append(
+                    CreateNotesMasterShape(2U, "Handout marker",
+                        new PowerPointLayoutBox(300000, 400000, 500000, 500000),
+                        placeholder: null, text: null,
+                        shapeType: A.ShapeTypeValues.Ellipse));
+                created.AddSlide(P.SlideLayoutValues.Blank);
+                sourceBytes = created.ToBytes(PowerPointFileFormat.Ppt);
+            }
+            LegacyPptPresentation original = LegacyPptPresentation.Load(sourceBytes);
+            LegacyPptSpecialMaster originalMaster = Assert.IsType<
+                LegacyPptSpecialMaster>(original.HandoutMaster);
+
+            using var input = new MemoryStream(sourceBytes);
+            using PowerPointPresentation imported =
+                PowerPointPresentation.Load(input);
+            HandoutMasterPart handoutMasterPart = imported.OpenXmlDocument
+                .PresentationPart!.HandoutMasterPart!;
+            PowerPointShape shape = Assert.Single(LegacyPptWriter
+                .ReadMasterShapesForWrite(handoutMasterPart, out _));
+            shape.Left += 15875L;
+            A.Accent5Color accent5 = handoutMasterPart.ThemePart!.Theme!
+                .ThemeElements!.ColorScheme!.GetFirstChild<A.Accent5Color>()!;
+            accent5.RemoveAllChildren();
+            accent5.Append(new A.RgbColorModelHex { Val = "13579B" });
+
+            Assert.True(imported.AnalyzeLegacyPptWrite().CanWrite);
+            byte[] savedBytes = imported.ToBytes(PowerPointFileFormat.Ppt);
+            LegacyPptPresentation saved = LegacyPptPresentation.Load(savedBytes);
+            LegacyPptSpecialMaster savedMaster = Assert.IsType<
+                LegacyPptSpecialMaster>(saved.HandoutMaster);
+
+            Assert.Equal(originalMaster.Shapes[0].Bounds.Left + 10,
+                savedMaster.Shapes[0].Bounds.Left);
+            Assert.Equal("13579B", savedMaster.RoundTripTheme?
+                .Colors[PowerPointThemeColor.Accent5]);
+            Assert.True(saved.Package.DocumentStream.AsSpan(0,
+                    original.Package.DocumentStream.Length)
+                .SequenceEqual(original.Package.DocumentStream));
+
+            using var reopenedInput = new MemoryStream(savedBytes);
+            using PowerPointPresentation reopened =
+                PowerPointPresentation.Load(reopenedInput);
+            HandoutMasterPart reopenedPart = reopened.OpenXmlDocument
+                .PresentationPart!.HandoutMasterPart!;
+            Assert.Equal(shape.Left, Assert.Single(LegacyPptWriter
+                .ReadMasterShapesForWrite(reopenedPart, out _)).Left);
+            Assert.Equal("13579B", reopenedPart.ThemePart!.Theme!
+                .ThemeElements!.ColorScheme!.GetFirstChild<A.Accent5Color>()!
+                .GetFirstChild<A.RgbColorModelHex>()!.Val!.Value);
+            Assert.Empty(reopened.ValidateDocument());
+        }
+
         private static byte[] CreateBinaryWithEditableMasterText() {
             using PowerPointPresentation presentation =
                 PowerPointPresentation.Create();
@@ -154,11 +261,11 @@ namespace OfficeIMO.Tests {
 
         private static void AssertUnrelatedMasterChildrenEqual(
             LegacyPptPresentation original, LegacyPptPresentation saved,
-            uint persistId) {
+            uint persistId, params ushort[] additionallyExcludedTypes) {
             IReadOnlyList<byte[]> originalChildren = ReadMasterChildrenExceptDrawing(
-                original, persistId);
+                original, persistId, additionallyExcludedTypes);
             IReadOnlyList<byte[]> savedChildren = ReadMasterChildrenExceptDrawing(
-                saved, persistId);
+                saved, persistId, additionallyExcludedTypes);
             Assert.Equal(originalChildren.Count, savedChildren.Count);
             for (int index = 0; index < originalChildren.Count; index++) {
                 Assert.True(originalChildren[index]
@@ -167,12 +274,14 @@ namespace OfficeIMO.Tests {
         }
 
         private static IReadOnlyList<byte[]> ReadMasterChildrenExceptDrawing(
-            LegacyPptPresentation presentation, uint persistId) {
+            LegacyPptPresentation presentation, uint persistId,
+            IReadOnlyCollection<ushort> additionallyExcludedTypes) {
             LegacyPptPersistObject persistObject =
                 presentation.Package.PersistObjects[persistId];
             LegacyPptRecord record = LegacyPptRecordReader.ReadSingle(
                 persistObject.RecordBytes, 0, new LegacyPptImportOptions());
-            return record.Children.Where(child => child.Type != 0x040C)
+            return record.Children.Where(child => child.Type != 0x040C
+                    && !additionallyExcludedTypes.Contains(child.Type))
                 .Select(child => child.CopyRecordBytes()).ToArray();
         }
     }

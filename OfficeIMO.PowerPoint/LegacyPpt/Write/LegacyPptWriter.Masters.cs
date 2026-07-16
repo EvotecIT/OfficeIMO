@@ -209,16 +209,42 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             IReadOnlyList<int> changedClassicColorSlots) {
             if (prototype == null) throw new ArgumentNullException(nameof(prototype));
             if (source == null) throw new ArgumentNullException(nameof(source));
-            A.Theme theme = source.ThemePart?.Theme
+            return BuildPreservedMasterThemeRecord(prototype, source.ThemePart,
+                source.SlideMaster?.ColorMap, changedClassicColorSlots);
+        }
+
+        internal static byte[] BuildPreservedMasterThemeRecord(
+            LegacyPptRecord prototype, NotesMasterPart source,
+            IReadOnlyList<int> changedClassicColorSlots) {
+            if (prototype == null) throw new ArgumentNullException(nameof(prototype));
+            if (source == null) throw new ArgumentNullException(nameof(source));
+            return BuildPreservedMasterThemeRecord(prototype, source.ThemePart,
+                source.NotesMaster?.ColorMap, changedClassicColorSlots);
+        }
+
+        internal static byte[] BuildPreservedMasterThemeRecord(
+            LegacyPptRecord prototype, HandoutMasterPart source,
+            IReadOnlyList<int> changedClassicColorSlots) {
+            if (prototype == null) throw new ArgumentNullException(nameof(prototype));
+            if (source == null) throw new ArgumentNullException(nameof(source));
+            return BuildPreservedMasterThemeRecord(prototype, source.ThemePart,
+                source.HandoutMaster?.ColorMap, changedClassicColorSlots);
+        }
+
+        private static byte[] BuildPreservedMasterThemeRecord(
+            LegacyPptRecord prototype, ThemePart? themePart,
+            DocumentFormat.OpenXml.Presentation.ColorMap? colorMap,
+            IReadOnlyList<int> changedClassicColorSlots) {
+            A.Theme theme = themePart?.Theme
                 ?? throw new InvalidDataException(
-                    "A projected binary slide master has no DrawingML theme to preserve.");
+                    "A projected binary master has no DrawingML theme to preserve.");
             if (changedClassicColorSlots == null) {
                 throw new ArgumentNullException(nameof(changedClassicColorSlots));
             }
-            return BuildMasterRecord(prototype, ReadColorScheme(source.ThemePart),
+            return BuildMasterRecord(prototype, ReadColorScheme(themePart),
                 background: null,
                 roundTripThemeRecords: BuildRoundTripThemeRecords(
-                    theme, source.SlideMaster?.ColorMap),
+                    theme, colorMap),
                 rewriteColorScheme: changedClassicColorSlots.Count > 0,
                 colorSchemeSlotsToRewrite: changedClassicColorSlots);
         }

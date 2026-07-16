@@ -70,6 +70,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                         && masterProjection != null) {
                         NormalizeProjectedMaster(root, masterProjection);
                     }
+                    if (part is NotesMasterPart or HandoutMasterPart
+                        && projectionMap.TryGetSpecialMaster(part,
+                            out LegacyPptMasterProjection? specialProjection)
+                        && specialProjection != null) {
+                        NormalizeProjectedSpecialMaster(root, specialProjection);
+                    }
                     if (part is ThemePart
                         && projectionMap.IsProjectedMasterThemePart(part.Uri.ToString())) {
                         NormalizeProjectedMasterTheme(root);
@@ -99,6 +105,22 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             if (root is not A.Theme theme) return;
             theme.ClearAllAttributes();
             theme.RemoveAllChildren();
+        }
+
+        private static void NormalizeProjectedSpecialMaster(OpenXmlElement root,
+            LegacyPptMasterProjection projection) {
+            switch (root) {
+                case P.NotesMaster notes when notes.ColorMap != null:
+                    notes.ColorMap.ClearAllAttributes();
+                    notes.ColorMap.RemoveAllChildren();
+                    break;
+                case P.HandoutMaster handout when handout.ColorMap != null:
+                    handout.ColorMap.ClearAllAttributes();
+                    handout.ColorMap.RemoveAllChildren();
+                    break;
+            }
+            NormalizeProjectedShapes(root, projection.TryGetShape,
+                normalizeInteractions: false);
         }
 
         private static string CreateSlide(PresentationDocument document, SlidePart slidePart,

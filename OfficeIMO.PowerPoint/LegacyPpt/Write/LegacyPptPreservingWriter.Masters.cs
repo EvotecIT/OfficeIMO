@@ -61,14 +61,23 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         private static bool TryBuildMasterShapeEdits(SlideMasterPart masterPart,
             LegacyPptMasterProjection projection,
             out IReadOnlyDictionary<uint, ProjectedShapeEdit> edits) {
-            var result = new Dictionary<uint, ProjectedShapeEdit>();
-            edits = result;
             IReadOnlyList<PowerPointShape> shapes = LegacyPptWriter
                 .ReadMasterShapesForWrite(masterPart,
                     out string? unsupportedReason);
-            if (unsupportedReason != null || shapes.Count != projection.Shapes.Count) {
+            if (unsupportedReason != null) {
+                edits = new Dictionary<uint, ProjectedShapeEdit>();
                 return false;
             }
+            return TryBuildMasterShapeEdits(shapes, projection, out edits);
+        }
+
+        private static bool TryBuildMasterShapeEdits(
+            IReadOnlyList<PowerPointShape> shapes,
+            LegacyPptMasterProjection projection,
+            out IReadOnlyDictionary<uint, ProjectedShapeEdit> edits) {
+            var result = new Dictionary<uint, ProjectedShapeEdit>();
+            edits = result;
+            if (shapes.Count != projection.Shapes.Count) return false;
 
             foreach (PowerPointShape shape in shapes) {
                 uint? openXmlShapeId = shape.Id;
@@ -103,6 +112,92 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                             animation: null));
                 }
             }
+            return true;
+        }
+
+        private static bool TryBuildModifiedSpecialMasterPersistObjects(
+            PowerPointPresentation presentation, LegacyPptPackage package,
+            LegacyPptProjectionMap projectionMap,
+            IDictionary<uint, byte[]> rewritten) {
+            PresentationPart? presentationPart = presentation.OpenXmlDocument
+                .PresentationPart;
+            int processed = 0;
+            if (presentationPart?.NotesMasterPart is NotesMasterPart notesPart) {
+                if (projectionMap.TryGetSpecialMaster(notesPart,
+                        out LegacyPptMasterProjection? projection)
+                    && projection != null) {
+                    IReadOnlyList<PowerPointShape> shapes = LegacyPptWriter
+                        .ReadMasterShapesForWrite(notesPart,
+                            out string? unsupportedReason);
+                    if (unsupportedReason != null
+                        || !TryRewriteSpecialMaster(package, projection, shapes,
+                            !projection.ThemeMatches(notesPart),
+                            record => LegacyPptWriter.BuildPreservedMasterThemeRecord(
+                                record, notesPart,
+                                projection.GetChangedClassicColorSlots(notesPart)),
+                            rewritten)) {
+                        return false;
+                    }
+                    processed++;
+                }
+            }
+            if (presentationPart?.HandoutMasterPart
+                    is HandoutMasterPart handoutPart) {
+                if (projectionMap.TryGetSpecialMaster(handoutPart,
+                        out LegacyPptMasterProjection? projection)
+                    && projection != null) {
+                    IReadOnlyList<PowerPointShape> shapes = LegacyPptWriter
+                        .ReadMasterShapesForWrite(handoutPart,
+                            out string? unsupportedReason);
+                    if (unsupportedReason != null
+                        || !TryRewriteSpecialMaster(package, projection, shapes,
+                            !projection.ThemeMatches(handoutPart),
+                            record => LegacyPptWriter.BuildPreservedMasterThemeRecord(
+                                record, handoutPart,
+                                projection.GetChangedClassicColorSlots(handoutPart)),
+                            rewritten)) {
+                        return false;
+                    }
+                    processed++;
+                }
+            }
+            return processed == projectionMap.SpecialMasters.Count;
+        }
+
+        private static bool TryRewriteSpecialMaster(LegacyPptPackage package,
+            LegacyPptMasterProjection projection,
+            IReadOnlyList<PowerPointShape> shapes, bool themeChanged,
+            Func<LegacyPptRecord, byte[]> rewriteTheme,
+            IDictionary<uint, byte[]> rewritten) {
+            if (!TryBuildMasterShapeEdits(shapes, projection,
+                    out IReadOnlyDictionary<uint, ProjectedShapeEdit>
+                        shapeEdits)) {
+                return false;
+            }
+            if (!themeChanged && shapeEdits.Count == 0) return true;
+            if (!package.PersistObjects.TryGetValue(projection.PersistId,
+                    out LegacyPptPersistObject? persistObject)
+                || persistObject == null) {
+                return false;
+            }
+            LegacyPptRecord masterRecord = LegacyPptRecordReader.ReadSingle(
+                persistObject.RecordBytes, 0, new LegacyPptImportOptions());
+            byte[] bytes = masterRecord.CopyRecordBytes();
+            if (shapeEdits.Count > 0) {
+                RecordRewrite shapeRewrite = RewriteRecord(masterRecord,
+                    shapeEdits);
+                if (!shapeRewrite.Changed
+                    || shapeRewrite.PatchedShapeCount != shapeEdits.Count) {
+                    return false;
+                }
+                bytes = shapeRewrite.Bytes;
+            }
+            if (themeChanged) {
+                LegacyPptRecord themedRecord = LegacyPptRecordReader.ReadSingle(
+                    bytes, 0, new LegacyPptImportOptions());
+                bytes = rewriteTheme(themedRecord);
+            }
+            rewritten.Add(projection.PersistId, bytes);
             return true;
         }
     }

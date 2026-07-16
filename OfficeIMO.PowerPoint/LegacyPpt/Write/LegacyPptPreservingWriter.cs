@@ -104,6 +104,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         projectionMap, rewritten)) {
                     return false;
                 }
+                if (!TryBuildModifiedSpecialMasterPersistObjects(presentation,
+                        package, projectionMap, rewritten)) {
+                    return false;
+                }
 
                 var currentSlideOrder = new List<LegacyPptSlideProjection>(presentation.Slides.Count);
                 var addedSlides = new List<PowerPointSlide>();

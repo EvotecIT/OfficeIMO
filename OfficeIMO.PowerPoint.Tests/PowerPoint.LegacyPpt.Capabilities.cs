@@ -101,7 +101,8 @@ namespace OfficeIMO.Tests {
             Assert.Equal(LegacyPptCapabilityState.Native,
                 themes.PptxToBinary);
             Assert.Contains("all twelve colors", themes.Note);
-            Assert.Contains("imported main-master theme edits", themes.Note);
+            Assert.Contains("imported main-, notes-, and handout-master theme edits",
+                themes.Note);
         }
 
         [Fact]
@@ -111,9 +112,9 @@ namespace OfficeIMO.Tests {
 
             Assert.Equal(LegacyPptCapabilityState.Planned,
                 masters.BinaryRoundTrip);
-            Assert.Contains("Imported main-master position, size, and structurally plain text edits",
+            Assert.Contains("Imported main-, notes-, and handout-master position, size, and structurally plain text edits",
                 masters.Note);
-            Assert.Contains("Title-, notes-, and handout-master editing remains planned",
+            Assert.Contains("Title-master editing remains planned",
                 masters.Note);
         }
 
