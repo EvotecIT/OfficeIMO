@@ -198,16 +198,24 @@ internal static partial class OneNoteReaderAdapter {
     }
 
     private static IEnumerable<NotebookSectionScope> EnumerateNotebookSections(OneNoteNotebook notebook, string notebookName) {
-        foreach (OneNoteSection section in notebook.Sections) yield return new NotebookSectionScope(section, notebookName);
-        foreach (OneNoteSectionGroup group in notebook.SectionGroups) {
-            foreach (NotebookSectionScope scope in EnumerateNotebookGroup(group, notebookName + " > " + group.Name)) yield return scope;
+        foreach (OneNoteNotebookHierarchyItem item in OneNoteNotebookHierarchy.Order(notebook.Sections, notebook.SectionGroups)) {
+            if (item.Section != null) {
+                yield return new NotebookSectionScope(item.Section, notebookName);
+            } else {
+                OneNoteSectionGroup group = item.Group!;
+                foreach (NotebookSectionScope scope in EnumerateNotebookGroup(group, notebookName + " > " + group.Name)) yield return scope;
+            }
         }
     }
 
     private static IEnumerable<NotebookSectionScope> EnumerateNotebookGroup(OneNoteSectionGroup group, string parentHierarchy) {
-        foreach (OneNoteSection section in group.Sections) yield return new NotebookSectionScope(section, parentHierarchy);
-        foreach (OneNoteSectionGroup child in group.SectionGroups) {
-            foreach (NotebookSectionScope scope in EnumerateNotebookGroup(child, parentHierarchy + " > " + child.Name)) yield return scope;
+        foreach (OneNoteNotebookHierarchyItem item in OneNoteNotebookHierarchy.Order(group.Sections, group.SectionGroups)) {
+            if (item.Section != null) {
+                yield return new NotebookSectionScope(item.Section, parentHierarchy);
+            } else {
+                OneNoteSectionGroup child = item.Group!;
+                foreach (NotebookSectionScope scope in EnumerateNotebookGroup(child, parentHierarchy + " > " + child.Name)) yield return scope;
+            }
         }
     }
 

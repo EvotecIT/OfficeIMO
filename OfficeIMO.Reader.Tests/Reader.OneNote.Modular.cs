@@ -301,6 +301,38 @@ public sealed class ReaderOneNoteModularTests {
     }
 
     [Fact]
+    public void OneNoteAdapter_ProjectsNotebookInTableOfContentsOrderAtEveryLevel() {
+        var notebook = new OneNoteNotebook { Name = "Ordered" };
+        OneNoteSection middle = SectionWithPage("Middle", "Middle page");
+        middle.TableOfContentsOrder = 1;
+        notebook.Sections.Add(middle);
+
+        var last = new OneNoteSectionGroup { Name = "Last", TableOfContentsOrder = 2 };
+        last.Sections.Add(SectionWithPage("Last section", "Last page"));
+        notebook.SectionGroups.Add(last);
+
+        var first = new OneNoteSectionGroup { Name = "First", TableOfContentsOrder = 0 };
+        OneNoteSection nestedMiddle = SectionWithPage("Nested middle", "Nested middle page");
+        nestedMiddle.TableOfContentsOrder = 1;
+        first.Sections.Add(nestedMiddle);
+        var nestedFirst = new OneNoteSectionGroup { Name = "Nested first", TableOfContentsOrder = 0 };
+        nestedFirst.Sections.Add(SectionWithPage("Nested first section", "Nested first page"));
+        first.SectionGroups.Add(nestedFirst);
+        notebook.SectionGroups.Add(first);
+
+        OfficeDocumentReadResult result = OneNoteReaderAdapter.ReadDocument(notebook, "ordered.onepkg");
+
+        Assert.Equal(
+            new[] {
+                "Ordered > First > Nested first > Nested first section > Nested first page",
+                "Ordered > First > Nested middle > Nested middle page",
+                "Ordered > Middle > Middle page",
+                "Ordered > Last > Last section > Last page"
+            },
+            result.Chunks.Select(chunk => chunk.Location.HeadingPath).ToArray());
+    }
+
+    [Fact]
     public void OneNoteAdapter_BoundsUntrustedPageHierarchyDepth() {
         var section = new OneNoteSection { Name = "Bounded hierarchy" };
         section.Pages.Add(new OneNotePage { Title = "Deep page", Level = 10_000 });
@@ -389,6 +421,12 @@ public sealed class ReaderOneNoteModularTests {
         section.Pages.Add(page);
         notebook.Sections.Add(section);
         return OneNotePackageWriter.Write(notebook);
+    }
+
+    private static OneNoteSection SectionWithPage(string sectionName, string pageTitle) {
+        var section = new OneNoteSection { Name = sectionName };
+        section.Pages.Add(new OneNotePage { Title = pageTitle });
+        return section;
     }
 
     private static OneNoteParagraph BoldParagraph(string text) {

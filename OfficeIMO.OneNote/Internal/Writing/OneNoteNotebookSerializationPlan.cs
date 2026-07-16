@@ -63,7 +63,7 @@ internal sealed class OneNoteNotebookSerializationPlan {
         var usedNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var tocEntries = new List<OneNoteTocWriteEntry>();
         uint order = 0;
-        foreach (HierarchyItem item in OrderHierarchy(sections, groups)) {
+        foreach (OneNoteNotebookHierarchyItem item in OneNoteNotebookHierarchy.Order(sections, groups)) {
             if (item.Section != null) {
                 OneNoteSection section = item.Section;
                 string fileName = UniqueName(GetSectionFileName(section), usedNames);
@@ -138,7 +138,7 @@ internal sealed class OneNoteNotebookSerializationPlan {
         var usedNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var result = new List<OneNoteTocWriteEntry>();
         uint order = 0;
-        foreach (HierarchyItem item in OrderHierarchy(sections, groups)) {
+        foreach (OneNoteNotebookHierarchyItem item in OneNoteNotebookHierarchy.Order(sections, groups)) {
             if (item.Section != null) {
                 OneNoteSection section = item.Section;
                 string name = UniqueName(GetSectionFileName(section), usedNames);
@@ -156,20 +156,6 @@ internal sealed class OneNoteNotebookSerializationPlan {
             }
         }
         return result.AsReadOnly();
-    }
-
-    private static IReadOnlyList<HierarchyItem> OrderHierarchy(
-        IList<OneNoteSection> sections,
-        IList<OneNoteSectionGroup> groups) {
-        var items = new List<HierarchyItem>(sections.Count + groups.Count);
-        int sequence = 0;
-        foreach (OneNoteSection section in sections) items.Add(new HierarchyItem(section, sequence++));
-        foreach (OneNoteSectionGroup group in groups) items.Add(new HierarchyItem(group, sequence++));
-        return items
-            .OrderBy(item => item.SourceOrder.HasValue ? 0 : 1)
-            .ThenBy(item => item.SourceOrder ?? uint.MaxValue)
-            .ThenBy(item => item.Sequence)
-            .ToArray();
     }
 
     private static string GetSectionFileName(OneNoteSection section) {
@@ -218,22 +204,4 @@ internal sealed class OneNoteNotebookSerializationPlan {
         if (options.MaxPackageEntries < 1 || options.MaxPackageEntries > ushort.MaxValue) throw new ArgumentOutOfRangeException(nameof(options), "MaxPackageEntries must be between 1 and 65535.");
     }
 
-    private sealed class HierarchyItem {
-        internal HierarchyItem(OneNoteSection section, int sequence) {
-            Section = section;
-            SourceOrder = section.TableOfContentsOrder;
-            Sequence = sequence;
-        }
-
-        internal HierarchyItem(OneNoteSectionGroup group, int sequence) {
-            Group = group;
-            SourceOrder = group.TableOfContentsOrder;
-            Sequence = sequence;
-        }
-
-        internal OneNoteSection? Section { get; }
-        internal OneNoteSectionGroup? Group { get; }
-        internal uint? SourceOrder { get; }
-        internal int Sequence { get; }
-    }
 }

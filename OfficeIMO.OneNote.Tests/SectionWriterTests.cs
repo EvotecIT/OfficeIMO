@@ -41,6 +41,21 @@ public sealed class SectionWriterTests {
             });
     }
 
+    [Theory]
+    [InlineData(OneNoteStorageFormat.RevisionStore)]
+    [InlineData(OneNoteStorageFormat.FileSynchronizationPackage)]
+    public void MaximumPageHierarchyLevelRoundTripsWithoutArithmeticOverflow(OneNoteStorageFormat storageFormat) {
+        var section = new OneNoteSection { Name = "Hierarchy" };
+        section.Pages.Add(new OneNotePage { Title = "Extreme level", Level = int.MaxValue });
+
+        byte[] data = OneNoteSectionWriter.Write(section, new OneNoteWriterOptions {
+            StorageFormat = storageFormat
+        });
+        OneNoteSection result = OneNoteSectionReader.Read(new MemoryStream(data));
+
+        Assert.Equal(int.MaxValue, Assert.Single(result.Pages).Level);
+    }
+
     [Fact]
     public void EmitsCommittedDesktopPhysicalStructures() {
         byte[] data = OneNoteSectionWriter.Write(CreateSection());

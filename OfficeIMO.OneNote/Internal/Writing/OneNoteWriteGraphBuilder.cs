@@ -377,7 +377,7 @@ internal sealed partial class OneNoteWriteGraphBuilder {
         var properties = new List<OneNoteWriteProperty> {
             Data(OneNoteSchema.CachedTitleString, Unicode(page.Title)),
             Data(OneNoteSchema.NotebookManagementEntityGuid, managementId.ToByteArray()),
-            Scalar(OneNoteSchema.PageLevel, (uint)Math.Max(1, page.Level + 1)),
+            Scalar(OneNoteSchema.PageLevel, PageLevel(page.Level)),
             Scalar(OneNoteSchema.SchemaRevisionInOrderToRead, 40),
             Scalar(OneNoteSchema.SchemaRevisionInOrderToWrite, 40),
             Scalar(OneNoteSchema.TopologyCreationTimestamp, FileTime(creationUtc))
@@ -385,4 +385,6 @@ internal sealed partial class OneNoteWriteGraphBuilder {
         if (page.IsDeleted) properties.Add(Data(OneNoteSchema.IsDeletedGraphSpaceContent, Array.Empty<byte>()));
         return properties;
     }
+
+    private static uint PageLevel(int level) => level < 0 ? 1U : checked((uint)((long)level + 1L));
 }
