@@ -65,8 +65,14 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         slideIndex));
                 }
                 if (slideRoot?.Timing != null) {
-                    findings.Add(new LegacyPptWriteFinding(LegacyPptFeature.Animations, "PPT-WRITE-TIMING",
-                        "Animations and media timing are not encoded by the native binary writer.", slideIndex));
+                    var animationSounds = new LegacyPptWriter.LegacyPptWriterSoundCatalog();
+                    if (!LegacyPptWriter.TryReadClassicAnimations(new[] { slide },
+                            animationSounds, out _, out string? animationReason)) {
+                        findings.Add(new LegacyPptWriteFinding(LegacyPptFeature.Animations,
+                            "PPT-WRITE-TIMING",
+                            animationReason ?? "The timing tree cannot be encoded as classic binary PowerPoint animations.",
+                            slideIndex));
+                    }
                 }
                 if (slideRoot?.CommonSlideData?.Background != null) {
                     findings.Add(new LegacyPptWriteFinding(LegacyPptFeature.Backgrounds, "PPT-WRITE-BACKGROUND",
@@ -107,8 +113,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             if (slide == null) throw new ArgumentNullException(nameof(slide));
             if (slide.SlidePart.NotesSlidePart != null && !string.IsNullOrWhiteSpace(slide.Notes.Text)) return false;
             P.Slide? slideRoot = slide.SlidePart.Slide;
+            bool animationsSupported = slideRoot?.Timing == null
+                || LegacyPptWriter.TryReadClassicAnimations(new[] { slide },
+                    new LegacyPptWriter.LegacyPptWriterSoundCatalog(),
+                    out _, out _);
             if (!LegacyPptWriter.TryReadTransition(slide, out _, out _)
-                || slideRoot?.Timing != null
+                || !animationsSupported
                 || slideRoot?.CommonSlideData?.Background != null) {
                 return false;
             }

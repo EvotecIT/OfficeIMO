@@ -363,9 +363,16 @@ namespace OfficeIMO.PowerPoint {
             Add(features, "Presentation", "Unsupported transition markup", PowerPointFeatureSupportLevel.Preserved, unsupportedTransitionDetails.Count, null,
                 "Transition markup not mapped by OfficeIMO is detected as preserve-only slide metadata.",
                 unsupportedTransitionDetails);
+            int classicAnimationCount = Slides
+                .Where(slide => slide.HasOnlyClassicAnimationTiming())
+                .Sum(slide => slide.ClassicAnimations.Count);
+            Add(features, "Presentation", "Classic animations",
+                PowerPointFeatureSupportLevel.Editable,
+                classicAnimationCount, null,
+                "Classic shape and text entrance effects, paragraph builds, order, automatic advance, after-effects, and sounds can be authored, inspected, and round-tripped.");
             var advancedTimingDetails = DescribeAdvancedTimingMarkup();
             Add(features, "Presentation", "Animations and timing", PowerPointFeatureSupportLevel.Preserved, advancedTimingDetails.Count, null,
-                "Timing trees beyond OfficeIMO's media playback helpers are detected as preserve-only advanced animation metadata.",
+                "Timing trees beyond OfficeIMO's classic-animation and media-playback helpers are detected as preserve-only advanced animation metadata.",
                 advancedTimingDetails);
             Add(features, "Content", "External relationships", PowerPointFeatureSupportLevel.PartiallyEditable, externalHyperlinkDetails.Count, null,
                 "External hyperlinks can be authored and inspected.",
@@ -798,7 +805,10 @@ namespace OfficeIMO.PowerPoint {
 
         private List<string> DescribeAdvancedTimingMarkup() {
             return Slides
-                .SelectMany((slide, index) => EnumerateSlideTimingMarkup(slide, index + 1))
+                .SelectMany((slide, index) => EnumerateSlideTimingMarkup(
+                        slide, index + 1)
+                    .Where(item => item.Scope != "slide"
+                        || !slide.HasOnlyClassicAnimationTiming()))
                 .Where(item => !ContainsOnlyMediaPlaybackTiming(item.Timing, item.MediaShapeIds))
                 .Select(item => $"slide {item.Index} {item.Scope}: {item.Timing.Descendants().Count()} timing descendant(s)")
                 .ToList();

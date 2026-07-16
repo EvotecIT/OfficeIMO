@@ -395,7 +395,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 ResolveShapeColor(style.FillColor, colorScheme),
                 ResolveShapeColor(style.LineColor, colorScheme), pictureStoreIndex, picture,
                 transform, shadowColor: ResolveShapeColor(style.ShadowColor, colorScheme),
-                textBody: textBody, interactions: ReadShapeInteractions(shapeContainer, options));
+                textBody: textBody, interactions: ReadShapeInteractions(shapeContainer, options),
+                animation: ReadShapeAnimation(shapeContainer, options));
 
             if (textBody.IsStyleTruncated) {
                 AddDiagnostic("PPT-TEXT-STYLE-TRUNCATED", LegacyPptDiagnosticSeverity.Warning,
@@ -494,7 +495,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 style, ResolveShapeColor(style.FillColor, colorScheme),
                 ResolveShapeColor(style.LineColor, colorScheme), transform: transform,
                 groupCoordinateBounds: coordinateBounds, children: children,
-                shadowColor: ResolveShapeColor(style.ShadowColor, colorScheme));
+                shadowColor: ResolveShapeColor(style.ShadowColor, colorScheme),
+                animation: ReadShapeAnimation(descriptor, options));
         }
 
         private void ParseBlipStore(LegacyPptRecord document, LegacyPptPackage package,

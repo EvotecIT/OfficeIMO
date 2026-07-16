@@ -84,6 +84,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             CustomShowSlideEntryCount = presentation.CustomShows.Sum(show =>
                 show.SlideIds.Count);
             LegacyPptShape[] interactiveShapes = EnumerateShapes(presentation).ToArray();
+            AnimationCount = interactiveShapes.Count(shape => shape.Animation != null);
+            AnimationSoundCount = interactiveShapes.Count(shape =>
+                shape.Animation?.PlaysSound == true || shape.Animation?.StopsSound == true);
             ShapeInteractionCount = interactiveShapes.Sum(shape => shape.Interactions.Count);
             TextInteractionCount = interactiveShapes.Sum(shape =>
                 shape.TextBody.Interactions.Count);
@@ -191,6 +194,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
 
         /// <summary>Gets the number of ordered slide entries across named custom shows.</summary>
         public int CustomShowSlideEntryCount { get; }
+
+        /// <summary>Gets the number of decoded classic shape and text animations.</summary>
+        public int AnimationCount { get; }
+
+        /// <summary>Gets the number of classic animations that play or stop sound.</summary>
+        public int AnimationSoundCount { get; }
 
         /// <summary>Gets the number of decoded shape-level click and mouse-over actions.</summary>
         public int ShapeInteractionCount { get; }

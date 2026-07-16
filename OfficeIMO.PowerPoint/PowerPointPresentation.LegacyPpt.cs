@@ -100,6 +100,8 @@ namespace OfficeIMO.PowerPoint {
                     }
                 }
                 ProjectLegacyConnectorRules(slide, legacySlide.ConnectorRules, projectedShapeIds);
+                ProjectLegacyAnimations(slide, legacySlide.Shapes,
+                    projectedShapeIds, soundContext);
                 if (legacySlide.NotesPage != null) {
                     ProjectLegacyNotesPage(slide, legacySlide.NotesPage);
                 } else if (!string.IsNullOrWhiteSpace(legacySlide.NotesText)) {

@@ -148,5 +148,24 @@ namespace OfficeIMO.Tests {
             Assert.Equal(LegacyPptCapabilityState.Blocked,
                 sounds.PptxToBinary);
         }
+
+        [Fact]
+        public void CapabilityContract_ReportsNativeClassicAndBlockedModernAnimations() {
+            LegacyPptCapability animations = LegacyPptCapabilityCatalog.Get(
+                LegacyPptFeature.Animations);
+
+            Assert.Equal(LegacyPptCapabilityState.Native,
+                animations.ImportToEditableModel);
+            Assert.Equal(LegacyPptCapabilityState.Native,
+                animations.NewBinaryWrite);
+            Assert.Equal(LegacyPptCapabilityState.Native,
+                animations.BinaryRoundTrip);
+            Assert.Equal(LegacyPptCapabilityState.Blocked,
+                animations.PptxToBinary);
+            Assert.Contains("visibility-set scaffold", animations.Note,
+                StringComparison.Ordinal);
+            Assert.Contains("group-child animation edits", animations.Note,
+                StringComparison.Ordinal);
+        }
     }
 }

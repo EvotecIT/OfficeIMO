@@ -218,6 +218,11 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
 
         private void ValidateShapeSoundReferences(LegacyPptShape shape,
             string owner) {
+            if (shape.Animation?.PlaysSound == true
+                && !shape.Animation.HasSoundOverride) {
+                ValidateSoundReference(shape.Animation.SoundIdReference,
+                    $"{owner} shape {shape.ShapeId} animation");
+            }
             foreach (LegacyPptInteraction interaction in shape.Interactions) {
                 if (interaction.SoundIdReference != 0) {
                     ValidateSoundReference(interaction.SoundIdReference,

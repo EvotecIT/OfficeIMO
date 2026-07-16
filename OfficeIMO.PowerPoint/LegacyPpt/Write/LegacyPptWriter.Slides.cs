@@ -6,7 +6,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         private static byte[] BuildSlideRecord(LegacyPptRecord prototype, PowerPointSlide slide,
             IReadOnlyList<PowerPointShape> shapes, uint drawingId, uint? masterIdRef,
             uint? notesIdRef, IReadOnlyList<LegacyPptWriterComment> comments,
-            LegacyPptWriterInteractionCatalog interactionCatalog) {
+            LegacyPptWriterInteractionCatalog interactionCatalog,
+            LegacyPptWriterAnimationCatalog animationCatalog) {
             var children = new List<byte[]>();
             bool hasSlideShowInfo = false;
             if (!TryReadTransition(slide, interactionCatalog.Sounds,
@@ -39,7 +40,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     }
                 } else if (child.Type == RecordDrawing) {
                     children.Add(BuildDrawingRecord(prototype, shapes, drawingId,
-                        interactionCatalog));
+                        interactionCatalog, animationCatalog));
                 } else if (child.Type == RecordSlideShowSlideInfoAtom) {
                     if (needsSlideShowInfo) {
                         children.Add(PatchSlideShowInfo(child.CopyRecordBytes(), slide,

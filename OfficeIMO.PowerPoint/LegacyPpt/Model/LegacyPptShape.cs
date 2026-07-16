@@ -101,7 +101,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
             IReadOnlyList<LegacyPptShape>? children = null,
             string? shadowColor = null,
             LegacyPptTextBody? textBody = null,
-            IReadOnlyList<LegacyPptInteraction>? interactions = null) {
+            IReadOnlyList<LegacyPptInteraction>? interactions = null,
+            LegacyPptAnimation? animation = null) {
             Kind = kind;
             OfficeArtShapeType = officeArtShapeType;
             ShapeId = shapeId;
@@ -125,6 +126,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
                 children?.ToArray() ?? Array.Empty<LegacyPptShape>());
             Interactions = new ReadOnlyCollection<LegacyPptInteraction>(
                 interactions?.ToArray() ?? Array.Empty<LegacyPptInteraction>());
+            Animation = animation;
         }
 
         /// <summary>Gets the projected shape kind.</summary>
@@ -193,6 +195,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
 
         /// <summary>Gets shape-level click and mouse-over interactions.</summary>
         public IReadOnlyList<LegacyPptInteraction> Interactions { get; }
+
+        /// <summary>Gets the classic shape or text animation, when present and valid.</summary>
+        public LegacyPptAnimation? Animation { get; }
 
         /// <summary>Gets the shape-level click interaction, when present.</summary>
         public LegacyPptInteraction? ClickInteraction => Interactions.FirstOrDefault(

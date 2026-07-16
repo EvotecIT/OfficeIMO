@@ -106,7 +106,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                     shapes.Add(new LegacyPptShapeProjection(openXmlShapeId.Value, sourceShape.ShapeId,
                         sourceShape.RecordOffset, sourceShape.Kind, sourceShape.Bounds, sourceShape.Text,
                         textFormattingFingerprint, sourceShape.Interactions,
-                        sourceShape.TextBody.Interactions, projectableSoundIds));
+                        sourceShape.TextBody.Interactions, sourceShape.Animation,
+                        projectableSoundIds));
                 }
                 slides.Add(new LegacyPptSlideProjection(projectedSlide.SlidePart.Uri.ToString(),
                     sourceSlide.PersistId, sourceSlide.SlideId, sourceSlide.MasterId,
@@ -217,6 +218,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             string? textFormattingFingerprint,
             IReadOnlyList<LegacyPptInteraction> shapeInteractions,
             IReadOnlyList<LegacyPptTextInteraction> textInteractions,
+            LegacyPptAnimation? animation,
             ISet<uint> projectableSoundIds) {
             OpenXmlShapeId = openXmlShapeId;
             OfficeArtShapeId = officeArtShapeId;
@@ -229,6 +231,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 shapeInteractions.ToArray());
             TextInteractions = new ReadOnlyCollection<LegacyPptTextInteraction>(
                 textInteractions.ToArray());
+            Animation = animation;
             CanEditInteractions = ShapeInteractions.All(interaction =>
                     IsEditableInteraction(interaction, projectableSoundIds))
                 && TextInteractions.All(item => IsEditableInteraction(
@@ -236,6 +239,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 && ShapeInteractions.GroupBy(item => item.Trigger)
                     .All(group => group.Count() == 1)
                 && !HasOverlappingTextTriggers(TextInteractions);
+            CanEditAnimation = animation == null || IsEditableAnimation(
+                animation, projectableSoundIds);
         }
 
         internal uint OpenXmlShapeId { get; }
@@ -256,7 +261,28 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
 
         internal IReadOnlyList<LegacyPptTextInteraction> TextInteractions { get; }
 
+        internal LegacyPptAnimation? Animation { get; }
+
         internal bool CanEditInteractions { get; }
+
+        internal bool CanEditAnimation { get; }
+
+        private static bool IsEditableAnimation(LegacyPptAnimation animation,
+            ISet<uint> projectableSoundIds) {
+            const uint editableFlags = 0x00004055U;
+            if ((animation.RawFlags & ~editableFlags) != 0
+                || animation.OleVerb != 0
+                || animation.RawUnused != 0
+                || animation.HasSoundOverride
+                || animation.SlideCount != ushort.MaxValue
+                || animation.Automatic && animation.DelayMilliseconds < 0
+                || !animation.Automatic && animation.DelayMilliseconds != 0
+                || animation.PlaysOnShapeClick
+                || animation.Synchronous
+                || animation.HiddenWhileNotPlaying) return false;
+            return !animation.PlaysSound
+                || projectableSoundIds.Contains(animation.SoundIdReference);
+        }
 
         private static bool IsEditableInteraction(LegacyPptInteraction interaction,
             ISet<uint> projectableSoundIds) {

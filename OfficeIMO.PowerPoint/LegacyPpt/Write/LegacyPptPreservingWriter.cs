@@ -85,6 +85,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     soundCatalog,
                     out LegacyPptWriter.LegacyPptWriterInteractionCatalog interactionCatalog,
                     out _)
+                || !LegacyPptWriter.TryReadClassicAnimations(presentation.Slides,
+                    soundCatalog,
+                    out LegacyPptWriter.LegacyPptWriterAnimationCatalog animationCatalog,
+                    out _)
                 || !LegacyPptWriter.TryReadCustomShows(presentation,
                     out LegacyPptWriter.LegacyPptWriterCustomShowCatalog customShows,
                     out _)
@@ -181,11 +185,19 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                                     interactionContext.Remap(currentInteractions),
                                     shapeInteractionsChanged, textInteractionsChanged)
                                 : null;
+                        LegacyPptWriter.LegacyPptWriterAnimation? currentAnimation =
+                            animationCatalog.Get(shape);
+                        bool animationChanged = !AnimationsEqual(
+                            shapeProjection.Animation, currentAnimation);
+                        if (animationChanged && !shapeProjection.CanEditAnimation) {
+                            return false;
+                        }
                         if (changedBounds.HasValue || changedText != null
-                            || interactionEdit != null) {
+                            || interactionEdit != null || animationChanged) {
                             editsByOfficeArtId.Add(shapeProjection.OfficeArtShapeId,
                                 new ProjectedShapeEdit(changedBounds, shapeProjection.Text,
-                                    changedText, interactionEdit));
+                                    changedText, interactionEdit,
+                                    animationChanged, currentAnimation));
                         }
                     }
                     bool? hidden = slide.Hidden == slideProjection.Hidden ? null : slide.Hidden;
@@ -318,7 +330,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             bool patchedText = edit.Text == null
                 && edit.Interactions?.RewriteTextInteractions != true;
             bool patchedShapeInteractions = edit.Interactions?.RewriteShapeInteractions != true;
+            bool patchedAnimation = !edit.RewriteAnimation;
             bool appendedShapeInteractions = false;
+            bool appendedAnimation = false;
             bool sawClientData = false;
             foreach (LegacyPptRecord child in shapeContainer.Children) {
                 if (!patchedAnchor && edit.Bounds.HasValue
@@ -338,33 +352,64 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     }
                     children.Add(textbox);
                     patchedText = true;
-                } else if (edit.Interactions?.RewriteShapeInteractions == true
-                           && child.Type == OfficeArtClientData) {
+                } else if (child.Type == OfficeArtClientData
+                           && (edit.Interactions?.RewriteShapeInteractions == true
+                               || edit.RewriteAnimation)) {
                     sawClientData = true;
-                    if (!TryRewriteClientDataInteractions(child,
+                    byte[] clientData = child.CopyRecordBytes();
+                    if (edit.Interactions?.RewriteShapeInteractions == true
+                        && !TryRewriteClientDataInteractions(child,
                             edit.Interactions.Interactions.ShapeInteractions,
                             append: !appendedShapeInteractions,
-                            out byte[] clientData)) {
+                            out clientData)) {
+                        bytes = shapeContainer.CopyRecordBytes();
+                        return false;
+                    }
+                    LegacyPptRecord rewrittenClientData =
+                        LegacyPptRecordReader.ReadSingle(clientData, 0,
+                            new LegacyPptImportOptions());
+                    if (edit.RewriteAnimation
+                        && !TryRewriteClientDataAnimation(rewrittenClientData,
+                            append: !appendedAnimation ? edit.Animation : null,
+                            out clientData)) {
                         bytes = shapeContainer.CopyRecordBytes();
                         return false;
                     }
                     children.Add(clientData);
-                    appendedShapeInteractions = true;
-                    patchedShapeInteractions = true;
+                    if (edit.Interactions?.RewriteShapeInteractions == true) {
+                        appendedShapeInteractions = true;
+                        patchedShapeInteractions = true;
+                    }
+                    if (edit.RewriteAnimation) {
+                        appendedAnimation |= edit.Animation != null;
+                        patchedAnimation = true;
+                    }
                 } else {
                     children.Add(child.CopyRecordBytes());
                 }
             }
-            if (edit.Interactions?.RewriteShapeInteractions == true
-                && !sawClientData
-                && edit.Interactions.Interactions.ShapeInteractions.Count > 0) {
-                byte[][] actionRecords = edit.Interactions.Interactions.ShapeInteractions
-                    .Select(LegacyPptWriter.BuildInteractiveInfoRecord).ToArray();
-                children.Add(BuildRecord(version: 0x0F, instance: 0,
-                    OfficeArtClientData, Concat(actionRecords)));
-                patchedShapeInteractions = true;
+            if (!sawClientData
+                && (edit.Interactions?.RewriteShapeInteractions == true
+                    || edit.RewriteAnimation)) {
+                var clientChildren = new List<byte[]>();
+                if (edit.Animation != null) {
+                    clientChildren.Add(LegacyPptWriter.BuildAnimationInfoRecord(
+                        edit.Animation));
+                }
+                if (edit.Interactions?.RewriteShapeInteractions == true) {
+                    clientChildren.AddRange(edit.Interactions.Interactions
+                        .ShapeInteractions.Select(
+                            LegacyPptWriter.BuildInteractiveInfoRecord));
+                    patchedShapeInteractions = true;
+                }
+                patchedAnimation = true;
+                if (clientChildren.Count > 0) {
+                    children.Add(BuildRecord(version: 0x0F, instance: 0,
+                        OfficeArtClientData, Concat(clientChildren)));
+                }
             }
-            if (!patchedAnchor || !patchedText || !patchedShapeInteractions) {
+            if (!patchedAnchor || !patchedText || !patchedShapeInteractions
+                || !patchedAnimation) {
                 bytes = shapeContainer.CopyRecordBytes();
                 return false;
             }
@@ -736,11 +781,15 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
 
         private sealed class ProjectedShapeEdit {
             internal ProjectedShapeEdit(LegacyPptBounds? bounds, string originalText,
-                string? text, ProjectedInteractionEdit? interactions) {
+                string? text, ProjectedInteractionEdit? interactions,
+                bool rewriteAnimation,
+                LegacyPptWriter.LegacyPptWriterAnimation? animation) {
                 Bounds = bounds;
                 OriginalText = originalText ?? string.Empty;
                 Text = text;
                 Interactions = interactions;
+                RewriteAnimation = rewriteAnimation;
+                Animation = animation;
             }
 
             internal LegacyPptBounds? Bounds { get; }
@@ -750,6 +799,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             internal string? Text { get; }
 
             internal ProjectedInteractionEdit? Interactions { get; }
+
+            internal bool RewriteAnimation { get; }
+
+            internal LegacyPptWriter.LegacyPptWriterAnimation? Animation { get; }
         }
     }
 }

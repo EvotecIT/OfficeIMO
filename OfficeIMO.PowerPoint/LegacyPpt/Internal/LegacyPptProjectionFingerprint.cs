@@ -10,6 +10,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
     /// reordered or removed, while any unsupported mutation to a retained slide or shared package part is rejected.
     /// </summary>
     internal sealed class LegacyPptProjectionFingerprint {
+        private const string ClassicAnimationExtensionUri =
+            "{5BA743F1-2B69-4BB9-B2E0-4A418B7E7435}";
         private readonly IReadOnlyDictionary<string, string> _slides;
 
         private LegacyPptProjectionFingerprint(string global, IReadOnlyDictionary<string, string> slides) {
@@ -119,6 +121,20 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             if (root is P.Slide slideRoot) {
                 slideRoot.Show = null;
                 slideRoot.Transition = null;
+                P.SlideExtensionList? extensions = slideRoot
+                    .GetFirstChild<P.SlideExtensionList>();
+                P.SlideExtension? classicAnimations = extensions?
+                    .Elements<P.SlideExtension>().FirstOrDefault(extension =>
+                        string.Equals(extension.Uri?.Value,
+                            ClassicAnimationExtensionUri,
+                            StringComparison.Ordinal));
+                if (classicAnimations != null
+                    && HasOnlyTopLevelAnimationTargets(classicAnimations,
+                        slideProjection)) {
+                    slideRoot.Timing?.Remove();
+                    classicAnimations.Remove();
+                    if (extensions!.ChildElements.Count == 0) extensions.Remove();
+                }
             }
 
             foreach (P.Shape shape in root.Descendants<P.Shape>()) {
@@ -207,6 +223,23 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                     transform.Extents.Cy = 0L;
                 }
             }
+        }
+
+        private static bool HasOnlyTopLevelAnimationTargets(
+            P.SlideExtension extension,
+            LegacyPptSlideProjection slideProjection) {
+            OpenXmlElement[] animations = extension.Descendants()
+                .Where(element => element.NamespaceUri ==
+                        "https://schemas.officeimo.net/powerpoint/2026/classic-animations"
+                    && element.LocalName == "animation")
+                .ToArray();
+            return animations.Length > 0 && animations.All(animation =>
+                uint.TryParse(animation.GetAttributes().FirstOrDefault(attribute =>
+                        attribute.LocalName == "shapeId").Value,
+                    System.Globalization.NumberStyles.Integer,
+                    System.Globalization.CultureInfo.InvariantCulture,
+                    out uint shapeId)
+                && slideProjection.TryGetShape(shapeId, out _));
         }
     }
 }

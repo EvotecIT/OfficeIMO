@@ -20,7 +20,7 @@ namespace OfficeIMO.PowerPoint {
                 && normalizedContentType != "audio/aiff"
                 && normalizedContentType != "audio/x-aiff") {
                 throw new NotSupportedException(
-                    "Transition and action sounds require embedded WAV or AIFF audio.");
+                    "Transition, action, and animation sounds require embedded WAV or AIFF audio.");
             }
             string normalizedExtension = extension?.Trim().TrimStart('.')
                 ?? string.Empty;

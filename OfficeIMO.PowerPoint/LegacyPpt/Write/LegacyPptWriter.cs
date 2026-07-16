@@ -62,6 +62,11 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     out string? interactionReason)) {
                 throw new NotSupportedException(interactionReason);
             }
+            if (!TryReadClassicAnimations(presentation.Slides, soundCatalog,
+                    out LegacyPptWriterAnimationCatalog animationCatalog,
+                    out string? animationReason)) {
+                throw new NotSupportedException(animationReason);
+            }
 
             LegacyPptWriterTemplate template = Template.Value;
             var notes = new List<LegacyPptWriterNote>();
@@ -92,9 +97,11 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     : null;
                 commentsBySlide.TryGetValue(slide.SlidePart.Uri.ToString(),
                     out IReadOnlyList<LegacyPptWriterComment>? comments);
-                slideRecords.Add(BuildSlideRecord(template.SlidePrototype, slide, supportedShapes,
+                slideRecords.Add(BuildSlideRecord(
+                    template.SlidePrototype, slide, supportedShapes,
                     unchecked((uint)(13 + index)), masterIdRef: null, notesId,
-                    comments ?? Array.Empty<LegacyPptWriterComment>(), interactionCatalog));
+                    comments ?? Array.Empty<LegacyPptWriterComment>(),
+                    interactionCatalog, animationCatalog));
             }
             var notesRecords = notes.Select(note => BuildNotesRecord(template.NotesPrototype,
                 note.Text, unchecked((uint)(256 + note.SlideIndex)), note.DrawingId)).ToArray();
@@ -134,9 +141,14 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             if (!TryReadInteractions(new[] { slide },
                     out LegacyPptWriterInteractionCatalog interactionCatalog,
                     out string? reason)) throw new NotSupportedException(reason);
+            if (!TryReadClassicAnimations(new[] { slide }, interactionCatalog.Sounds,
+                    out LegacyPptWriterAnimationCatalog animationCatalog,
+                    out string? animationReason)) {
+                throw new NotSupportedException(animationReason);
+            }
             return BuildSlideRecord(Template.Value.SlidePrototype, slide, shapes, drawingId,
                 masterIdRef, notesIdRef: null, ReadClassicCommentsForSlide(slide),
-                interactionCatalog);
+                interactionCatalog, animationCatalog);
         }
 
         internal static byte[] BuildIncrementalSlideRecord(PowerPointSlide slide,
@@ -147,9 +159,14 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             if (shapes.Count != slide.Shapes.Count) {
                 throw new InvalidOperationException("The incremental slide contains an unsupported shape.");
             }
+            if (!TryReadClassicAnimations(new[] { slide }, interactionCatalog.Sounds,
+                    out LegacyPptWriterAnimationCatalog animationCatalog,
+                    out string? animationReason)) {
+                throw new NotSupportedException(animationReason);
+            }
             return BuildSlideRecord(Template.Value.SlidePrototype, slide, shapes, drawingId,
                 masterIdRef, notesIdRef: null, ReadClassicCommentsForSlide(slide),
-                interactionCatalog);
+                interactionCatalog, animationCatalog);
         }
 
         private static byte[] BuildDocumentRecord(LegacyPptRecord document, PowerPointPresentation presentation,
@@ -341,7 +358,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
 
         private static byte[] BuildDrawingRecord(LegacyPptRecord slidePrototype,
             IReadOnlyList<PowerPointShape> shapes, uint drawingId,
-            LegacyPptWriterInteractionCatalog interactionCatalog) {
+            LegacyPptWriterInteractionCatalog interactionCatalog,
+            LegacyPptWriterAnimationCatalog animationCatalog) {
             LegacyPptRecord baseDrawing = slidePrototype.Children.First(record => record.Type == RecordDrawing);
             LegacyPptRecord baseDgContainer = baseDrawing.Children.First(record => record.Type == OfficeArtDgContainer);
             LegacyPptRecord baseSpgr = baseDgContainer.Children.First(record => record.Type == OfficeArtSpgrContainer);
@@ -353,7 +371,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             for (int index = 0; index < shapes.Count; index++) {
                 spgrChildren.Add(BuildShapeRecord(shapes[index],
                     checked(baseShapeId + unchecked((uint)index) + 2U), index,
-                    interactionCatalog));
+                    interactionCatalog, animationCatalog));
             }
 
             byte[] background = PatchShapeId(baseBackground.CopyRecordBytes(), checked(baseShapeId + 1));
@@ -382,16 +400,18 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         }
 
         private static byte[] BuildShapeRecord(PowerPointShape shape, uint shapeId,
-            int shapeIndex, LegacyPptWriterInteractionCatalog interactionCatalog) {
+            int shapeIndex, LegacyPptWriterInteractionCatalog interactionCatalog,
+            LegacyPptWriterAnimationCatalog animationCatalog) {
             ushort shapeType;
             var children = new List<byte[]>();
             LegacyPptWriterShapeInteractions interactions = interactionCatalog.Get(shape);
+            LegacyPptWriterAnimation? animation = animationCatalog.Get(shape);
             if (shape is PowerPointTextBox textBox) {
                 shapeType = 202;
                 children.Add(BuildFsp(shapeType, shapeId));
                 children.Add(BuildAnchor(shape));
                 byte[]? clientData = BuildClientData(shape, shapeIndex,
-                    interactions.ShapeInteractions);
+                    interactions.ShapeInteractions, animation);
                 if (clientData != null) children.Add(clientData);
                 children.Add(BuildTextBox(textBox.Text, textInteractions:
                     interactions.TextInteractions));
@@ -402,7 +422,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 children.Add(BuildFsp(shapeType, shapeId));
                 children.Add(BuildAnchor(shape));
                 byte[]? clientData = BuildClientData(shape, shapeIndex,
-                    interactions.ShapeInteractions);
+                    interactions.ShapeInteractions, animation);
                 if (clientData != null) children.Add(clientData);
             } else {
                 throw new InvalidOperationException("Preflight admitted an unsupported PowerPoint shape.");
@@ -439,7 +459,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         }
 
         private static byte[]? BuildClientData(PowerPointShape shape, int shapeIndex,
-            IReadOnlyList<LegacyPptWriterInteraction> interactions) {
+            IReadOnlyList<LegacyPptWriterInteraction> interactions,
+            LegacyPptWriterAnimation? animation) {
             var children = new List<byte[]>();
             byte placeholderType = MapPlaceholder(shape.ShapePlaceholderType,
                 shape.ShapePlaceholderOrientation);
@@ -449,6 +470,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 children.Add(BuildPlaceholderAtom(position, placeholderType,
                     MapPlaceholderSize(shape.ShapePlaceholderSize)));
             }
+            if (animation != null) children.Add(BuildAnimationInfoRecord(animation));
             foreach (LegacyPptWriterInteraction interaction in interactions) {
                 children.Add(BuildInteractiveInfoRecord(interaction));
             }
