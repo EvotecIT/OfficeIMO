@@ -129,6 +129,24 @@ public sealed class FileHeaderTests {
     }
 
     [Fact]
+    public void OversizedTransactionLogFragmentFailsWithBoundedFormatError() {
+        var header = new OneNoteFileHeader {
+            TransactionLog = new OneNoteFileChunkReference(0, uint.MaxValue),
+            TransactionCount = 1,
+            ExpectedFileLength = uint.MaxValue
+        };
+
+        OneNoteFormatException exception = Assert.Throws<OneNoteFormatException>(() =>
+            OneNoteTransactionLogReader.Read(
+                new MemoryStream(),
+                header,
+                new OneNoteReaderOptions { MaxInputBytes = null }));
+
+        Assert.Equal("ONENOTE_TRANSACTION_FRAGMENT_SIZE", exception.Code);
+        Assert.Equal(0, exception.Offset);
+    }
+
+    [Fact]
     public void RootValidationAcceptsStructuralFragmentTerminator() {
         var nodes = new[] {
             Node(OneNoteFileNodeId.ObjectSpaceManifestListReference),

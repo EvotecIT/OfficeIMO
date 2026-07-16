@@ -33,6 +33,12 @@ internal static class OneNoteTransactionLogReader {
                 throw new OneNoteFormatException("ONENOTE_TRANSACTION_FRAGMENT_CYCLE", "The transaction-log fragment chain contains a cycle.", ToOffset(current.Offset));
             }
             ValidateBounds(current, header.ExpectedFileLength.Value);
+            if (current.Length > int.MaxValue) {
+                throw new OneNoteFormatException(
+                    "ONENOTE_TRANSACTION_FRAGMENT_SIZE",
+                    "A transaction-log fragment is too large to materialize.",
+                    ToOffset(current.Offset));
+            }
             byte[] data = ReadAt(stream, current.Offset, checked((int)current.Length));
 
             int entryBytes = ((data.Length - NextFragmentLength) / TransactionEntryLength) * TransactionEntryLength;
