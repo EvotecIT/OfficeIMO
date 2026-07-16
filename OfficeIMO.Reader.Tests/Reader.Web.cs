@@ -690,8 +690,10 @@ public sealed class ReaderWebTests {
 
         protected override Task<Stream> CreateContentReadStreamAsync() => _pendingOpen.Task;
 
+#if !NET472
         protected override Task<Stream> CreateContentReadStreamAsync(CancellationToken cancellationToken) =>
             _pendingOpen.Task;
+#endif
 
         protected override void Dispose(bool disposing) {
             if (disposing) Interlocked.Exchange(ref _isDisposed, 1);
