@@ -43,6 +43,10 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
         [JsonPropertyName("rgbColor")] public GoogleSlidesApiRgbColor? RgbColor { get; set; }
     }
 
+    internal sealed class GoogleSlidesApiOptionalColor {
+        [JsonPropertyName("opaqueColor")] public GoogleSlidesApiOpaqueColor? OpaqueColor { get; set; }
+    }
+
     internal sealed class GoogleSlidesApiRgbColor {
         [JsonPropertyName("red")] public double Red { get; set; }
         [JsonPropertyName("green")] public double Green { get; set; }
@@ -107,6 +111,7 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
         [JsonPropertyName("underline")] public bool? Underline { get; set; }
         [JsonPropertyName("fontSize")] public GoogleSlidesApiDimension? FontSize { get; set; }
         [JsonPropertyName("fontFamily")] public string? FontFamily { get; set; }
+        [JsonPropertyName("foregroundColor")] public GoogleSlidesApiOptionalColor? ForegroundColor { get; set; }
         [JsonPropertyName("link")] public GoogleSlidesApiLink? Link { get; set; }
     }
 

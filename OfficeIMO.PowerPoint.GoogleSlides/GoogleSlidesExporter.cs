@@ -211,11 +211,33 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
             }
         }
 
-        private static object ElementProperties(string slideId, GoogleSlidesElement element, double scale, double offsetX, double offsetY) => new {
-            pageObjectId = slideId,
-            size = new { width = new { magnitude = Math.Max(1, element.WidthPoints * scale), unit = "PT" }, height = new { magnitude = Math.Max(1, element.HeightPoints * scale), unit = "PT" } },
-            transform = new { scaleX = 1, scaleY = 1, translateX = offsetX + (element.LeftPoints * scale), translateY = offsetY + (element.TopPoints * scale), unit = "PT" },
-        };
+        private static object ElementProperties(string slideId, GoogleSlidesElement element, double scale, double offsetX, double offsetY) {
+            double width = Math.Max(1, element.WidthPoints * scale);
+            double height = Math.Max(1, element.HeightPoints * scale);
+            double left = offsetX + (element.LeftPoints * scale);
+            double top = offsetY + (element.TopPoints * scale);
+            double radians = element.RotationDegrees * (Math.PI / 180d);
+            double cosine = NormalizeTransformComponent(Math.Cos(radians));
+            double sine = NormalizeTransformComponent(Math.Sin(radians));
+            double translateX = left + (width / 2d) - (cosine * width / 2d) + (sine * height / 2d);
+            double translateY = top + (height / 2d) - (sine * width / 2d) - (cosine * height / 2d);
+
+            return new {
+                pageObjectId = slideId,
+                size = new { width = new { magnitude = width, unit = "PT" }, height = new { magnitude = height, unit = "PT" } },
+                transform = new {
+                    scaleX = cosine,
+                    scaleY = cosine,
+                    shearX = -sine,
+                    shearY = sine,
+                    translateX,
+                    translateY,
+                    unit = "PT"
+                },
+            };
+        }
+
+        private static double NormalizeTransformComponent(double value) => Math.Abs(value) < 0.000000000001d ? 0d : value;
 
         private static void ResolvePagePlacement(
             GoogleSlidesBatch batch,

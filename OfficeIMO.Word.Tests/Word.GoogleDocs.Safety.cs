@@ -160,5 +160,40 @@ namespace OfficeIMO.Tests {
                 if (File.Exists(filePath)) File.Delete(filePath);
             }
         }
+
+        [Fact]
+        public async Task Test_GoogleDocsExporter_BlocksInaccessibleDriveTargetBeforeMutation() {
+            string filePath = Path.Combine(_directoryWithFiles, "GoogleDocsDrivePreflight.docx");
+            try {
+                using var document = WordDocument.Create(filePath);
+                document.AddParagraph("Replacement content");
+                int docsMutationCount = 0;
+                using var httpClient = new HttpClient(new FakeHttpMessageHandler(request => {
+                    if (request.Method == HttpMethod.Get && request.RequestUri!.Host == "www.googleapis.com") {
+                        return Task.FromResult(new HttpResponseMessage(HttpStatusCode.Forbidden) {
+                            Content = new StringContent("{\"error\":{\"code\":403,\"message\":\"Insufficient Permission\"}}", Encoding.UTF8, "application/json")
+                        });
+                    }
+                    if (request.Method == HttpMethod.Post && request.RequestUri!.Host == "docs.googleapis.com") {
+                        docsMutationCount++;
+                    }
+                    return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound));
+                }));
+                var session = new GoogleWorkspaceSession(
+                    new FakeGoogleWorkspaceCredentialSource(),
+                    new GoogleWorkspaceSessionOptions { HttpClient = httpClient });
+
+                GoogleWorkspacePreflightException exception = await Assert.ThrowsAsync<GoogleWorkspacePreflightException>(() =>
+                    document.ExportToGoogleDocsAsync(session, new GoogleDocsSaveOptions {
+                        Location = new GoogleDriveFileLocation { ExistingFileId = "arbitrary-doc" },
+                        Replace = new GoogleDocsReplaceOptions { ConflictMode = GoogleDocsRevisionConflictMode.OverwriteLatest },
+                    }));
+
+                Assert.Equal(0, docsMutationCount);
+                Assert.Contains(exception.BlockingNotices, notice => notice.Code == "DOCS.REPLACE.DRIVE_ACCESS_REQUIRED");
+            } finally {
+                if (File.Exists(filePath)) File.Delete(filePath);
+            }
+        }
     }
 }

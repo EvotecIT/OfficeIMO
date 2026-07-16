@@ -72,6 +72,12 @@ namespace OfficeIMO.Word.GoogleDocs {
             using (var driveClient = new GoogleDriveClient(session, GoogleDriveClientOptions.ForFileAuthoring())) {
             try {
                 if (!string.IsNullOrWhiteSpace(effectiveLocation.ExistingFileId)) {
+                    await ValidateExistingDocumentDriveAccessAsync(
+                        driveClient,
+                        effectiveLocation.ExistingFileId!,
+                        batch.Report,
+                        cancellationToken).ConfigureAwait(false);
+
                     var existingDocument = await transport.SendJsonAsync<GoogleDocsApiDocumentResponse>(
                         accessToken.AccessToken,
                         HttpMethod.Get,
@@ -281,6 +287,45 @@ namespace OfficeIMO.Word.GoogleDocs {
             GoogleDocsApiCreateDocumentResponse document) {
             batch.TargetTabId = GoogleDocsApiPayloadBuilder.FlattenTabs(document.Tabs).FirstOrDefault()?.Properties.TabId;
             batch.WriteControlState = new GoogleDocsWriteControlState(GoogleDocsRevisionConflictMode.RequireRevision, document.RevisionId);
+        }
+
+        private static async Task ValidateExistingDocumentDriveAccessAsync(
+            GoogleDriveClient driveClient,
+            string documentId,
+            TranslationReport report,
+            CancellationToken cancellationToken) {
+            GoogleDriveFile metadata;
+            try {
+                metadata = await driveClient.GetFileAsync(documentId, report: report, cancellationToken: cancellationToken).ConfigureAwait(false);
+            } catch (GoogleWorkspaceApiException exception) when (
+                exception.ResponseStatusCode == System.Net.HttpStatusCode.Forbidden
+                || exception.ResponseStatusCode == System.Net.HttpStatusCode.NotFound) {
+                report.Add(
+                    TranslationSeverity.Error,
+                    "ExistingDocument",
+                    "The existing Google document is not available through the configured Drive authoring grant. Open or create it through this app, or provide credentials with a Drive scope that covers the target before replacing it.",
+                    code: "DOCS.REPLACE.DRIVE_ACCESS_REQUIRED",
+                    action: TranslationAction.Fail,
+                    targetId: documentId);
+                throw new GoogleWorkspacePreflightException(
+                    $"Google Docs replacement was blocked before mutation because Drive metadata for '{documentId}' is not accessible.",
+                    report,
+                    report.Notices.Where(notice => notice.Code == "DOCS.REPLACE.DRIVE_ACCESS_REQUIRED").ToArray());
+            }
+
+            if (metadata.Capabilities != null && !metadata.Capabilities.CanEdit) {
+                report.Add(
+                    TranslationSeverity.Error,
+                    "ExistingDocument",
+                    "The configured Google identity cannot edit the existing Drive file.",
+                    code: "DOCS.REPLACE.DRIVE_EDIT_REQUIRED",
+                    action: TranslationAction.Fail,
+                    targetId: documentId);
+                throw new GoogleWorkspacePreflightException(
+                    $"Google Docs replacement was blocked before mutation because '{documentId}' is not editable.",
+                    report,
+                    report.Notices.Where(notice => notice.Code == "DOCS.REPLACE.DRIVE_EDIT_REQUIRED").ToArray());
+            }
         }
 
     }

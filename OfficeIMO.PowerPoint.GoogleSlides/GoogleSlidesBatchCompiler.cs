@@ -50,7 +50,7 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                     string id = ObjectId("element", slideIndex, elementIndex++);
                     switch (shape) {
                         case PowerPointTextBox textBox:
-                            var text = new GoogleSlidesTextBox(id, shape.LeftPoints, shape.TopPoints, shape.WidthPoints, shape.HeightPoints, textBox.Text);
+                            var text = PreserveRotation(new GoogleSlidesTextBox(id, shape.LeftPoints, shape.TopPoints, shape.WidthPoints, shape.HeightPoints, textBox.Text), shape);
                             if (!textBox.UsesTextBoxGeometry && TryMapShape(textBox.ShapeType, out string textShapeType)) text.ShapeType = textShapeType;
                             PowerPointTextRun? firstRun = textBox.Paragraphs.SelectMany(paragraph => paragraph.Runs).FirstOrDefault();
                             if (firstRun != null) {
@@ -62,12 +62,12 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                             break;
                         case PowerPointTable table when !HasMergedCells(table):
                             IReadOnlyList<IReadOnlyList<string>> cells = table.RowItems.Select(row => (IReadOnlyList<string>)row.Cells.Select(cell => cell.Text).ToArray()).ToArray();
-                            target.Add(new GoogleSlidesTable(id, shape.LeftPoints, shape.TopPoints, shape.WidthPoints, shape.HeightPoints, cells));
+                            target.Add(PreserveRotation(new GoogleSlidesTable(id, shape.LeftPoints, shape.TopPoints, shape.WidthPoints, shape.HeightPoints, cells), shape));
                             plan.NativeTableCount++;
                             break;
                         case PowerPointPicture picture when IsSupportedSlidesImage(picture):
-                            target.Add(new GoogleSlidesImage(id, shape.LeftPoints, shape.TopPoints, shape.WidthPoints, shape.HeightPoints,
-                                picture.GetImageBytes(), picture.ContentType ?? "image/png", $"picture-{slideIndex + 1}-{elementIndex}{ImageExtension(picture.ContentType)}"));
+                            target.Add(PreserveRotation(new GoogleSlidesImage(id, shape.LeftPoints, shape.TopPoints, shape.WidthPoints, shape.HeightPoints,
+                                picture.GetImageBytes(), picture.ContentType ?? "image/png", $"picture-{slideIndex + 1}-{elementIndex}{ImageExtension(picture.ContentType)}"), shape));
                             plan.NativeImageCount++;
                             break;
                         case PowerPointPicture picture:
@@ -81,7 +81,7 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                                 action: TranslationAction.Skip);
                             break;
                         case PowerPointAutoShape autoShape when TryMapShape(autoShape, out string slidesShapeType):
-                            target.Add(new GoogleSlidesShape(id, shape.LeftPoints, shape.TopPoints, shape.WidthPoints, shape.HeightPoints, slidesShapeType));
+                            target.Add(PreserveRotation(new GoogleSlidesShape(id, shape.LeftPoints, shape.TopPoints, shape.WidthPoints, shape.HeightPoints, slidesShapeType), shape));
                             plan.NativeShapeCount++;
                             break;
                         default:
@@ -114,6 +114,11 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                 || contentType.Equals("image/jpeg", StringComparison.OrdinalIgnoreCase)
                 || contentType.Equals("image/jpg", StringComparison.OrdinalIgnoreCase)
                 || contentType.Equals("image/gif", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static T PreserveRotation<T>(T element, PowerPointShape source) where T : GoogleSlidesElement {
+            element.RotationDegrees = source.Rotation ?? 0d;
+            return element;
         }
 
         private static string ImageExtension(string? contentType) => (contentType ?? string.Empty).ToLowerInvariant() switch {

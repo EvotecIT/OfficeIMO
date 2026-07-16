@@ -2525,18 +2525,20 @@ namespace OfficeIMO.Tests {
 
                 Assert.Equal("existing-doc-123", result.DocumentId);
                 Assert.Equal("https://docs.google.com/document/d/existing-doc-123/edit", result.WebViewLink);
-                Assert.Equal(6, recordedRequests.Count);
+                Assert.Equal(7, recordedRequests.Count);
                 Assert.Equal("GET", recordedRequests[0].Method);
-                Assert.Equal("POST", recordedRequests[1].Method);
+                Assert.Contains("/drive/v3/files/existing-doc-123", recordedRequests[0].Uri.AbsoluteUri, StringComparison.Ordinal);
+                Assert.Equal("GET", recordedRequests[1].Method);
                 Assert.Equal("POST", recordedRequests[2].Method);
-                Assert.Equal("GET", recordedRequests[3].Method);
-                Assert.EndsWith("/comments?includeDeleted=true&fields=nextPageToken,comments(id,content,anchor,resolved,deleted,createdTime,modifiedTime,replies(id,content,action,deleted,createdTime))", recordedRequests[4].Uri.AbsoluteUri, StringComparison.Ordinal);
-                Assert.Equal("GET", recordedRequests[5].Method);
+                Assert.Equal("POST", recordedRequests[3].Method);
+                Assert.Equal("GET", recordedRequests[4].Method);
+                Assert.EndsWith("/comments?includeDeleted=true&fields=nextPageToken,comments(id,content,anchor,resolved,deleted,createdTime,modifiedTime,replies(id,content,action,deleted,createdTime))", recordedRequests[5].Uri.AbsoluteUri, StringComparison.Ordinal);
+                Assert.Equal("GET", recordedRequests[6].Method);
                 Assert.DoesNotContain(recordedRequests, request => request.Uri.AbsoluteUri == "https://docs.googleapis.com/v1/documents");
                 Assert.Contains(result.Report.Notices, n => n.Feature == "ExistingDocument");
 
-                Assert.Contains("\"deleteContentRange\"", recordedRequests[1].Body!);
-                Assert.Contains("\"backgroundColor\"", recordedRequests[2].Body!);
+                Assert.Contains("\"deleteContentRange\"", recordedRequests[2].Body!);
+                Assert.Contains("\"backgroundColor\"", recordedRequests[3].Body!);
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);

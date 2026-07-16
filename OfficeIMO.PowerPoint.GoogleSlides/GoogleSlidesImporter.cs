@@ -82,6 +82,7 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                             if (style?.Style != null && run != null) {
                                 run.Bold = style.Style.Bold == true; run.Italic = style.Style.Italic == true; run.Underline = style.Style.Underline == true;
                                 run.FontSize = style.Style.FontSize == null ? null : (int?)Math.Round(ToPoints(style.Style.FontSize)); run.FontName = style.Style.FontFamily;
+                                if (style.Style.ForegroundColor?.OpaqueColor?.RgbColor is GoogleSlidesApiRgbColor textColor) run.Color = ToHex(textColor);
                                 if (Uri.TryCreate(style.Style.Link?.Url, UriKind.Absolute, out Uri? link)) run.Hyperlink = link;
                             }
                         } else if (element.Shape != null) {

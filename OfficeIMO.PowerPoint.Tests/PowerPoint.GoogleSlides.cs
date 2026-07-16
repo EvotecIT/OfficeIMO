@@ -215,6 +215,40 @@ namespace OfficeIMO.Tests {
             Assert.Contains(result.Report.Notices, notice => notice.Code == "SLIDES.PAGE_SIZE.SCALED");
         }
 
+        [Fact]
+        public async Task Exporter_ProjectsPowerPointRotationIntoSlidesAffineTransform() {
+            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            PowerPointTextBox textBox = presentation.AddSlide().AddTextBoxPoints("Rotated", 10, 20, 100, 40);
+            textBox.Rotation = 90;
+            string? batchBody = null;
+            using var httpClient = new HttpClient(new DelegateHandler(async request => {
+                string uri = request.RequestUri!.AbsoluteUri;
+                if (request.Method == HttpMethod.Post && uri == "https://slides.googleapis.com/v1/presentations") return Json("{\"presentationId\":\"deck-rotated\"}");
+                if (request.Method == HttpMethod.Get && uri == "https://slides.googleapis.com/v1/presentations/deck-rotated") {
+                    return Json("{\"presentationId\":\"deck-rotated\",\"revisionId\":\"revision-1\",\"slides\":[{\"objectId\":\"initial-slide\"}]}");
+                }
+                if (request.Method == HttpMethod.Post && uri.EndsWith(":batchUpdate", StringComparison.Ordinal)) {
+                    batchBody = await request.Content!.ReadAsStringAsync().ConfigureAwait(false);
+                    return Json("{\"writeControl\":{\"requiredRevisionId\":\"revision-2\"}}");
+                }
+                if (request.Method == HttpMethod.Get && request.RequestUri.Host == "www.googleapis.com") return Json("{\"id\":\"deck-rotated\",\"mimeType\":\"application/vnd.google-apps.presentation\"}");
+                return new HttpResponseMessage(HttpStatusCode.NotFound);
+            }));
+
+            await presentation.ExportToGoogleSlidesAsync(Session(httpClient));
+
+            using JsonDocument payload = JsonDocument.Parse(Assert.IsType<string>(batchBody));
+            JsonElement transform = payload.RootElement.GetProperty("requests").EnumerateArray()
+                .Single(request => request.TryGetProperty("createShape", out _))
+                .GetProperty("createShape").GetProperty("elementProperties").GetProperty("transform");
+            Assert.Equal(0, transform.GetProperty("scaleX").GetDouble(), 12);
+            Assert.Equal(0, transform.GetProperty("scaleY").GetDouble(), 12);
+            Assert.Equal(-1, transform.GetProperty("shearX").GetDouble(), 12);
+            Assert.Equal(1, transform.GetProperty("shearY").GetDouble(), 12);
+            Assert.Equal(80, transform.GetProperty("translateX").GetDouble(), 12);
+            Assert.Equal(-10, transform.GetProperty("translateY").GetDouble(), 12);
+        }
+
         [Theory]
         [InlineData(false)]
         [InlineData(true)]
@@ -434,7 +468,7 @@ namespace OfficeIMO.Tests {
         public async Task NativeImporter_ProjectsTextTableAndNotesWhenDriveExportIsDisabled() {
             using var httpClient = new HttpClient(new DelegateHandler(request => {
                 if (request.RequestUri!.Host == "www.googleapis.com") return Task.FromResult(Json("{\"id\":\"deck-import\",\"name\":\"Import\",\"mimeType\":\"application/vnd.google-apps.presentation\",\"version\":4,\"capabilities\":{\"canDownload\":false}}"));
-                const string slides = "{\"presentationId\":\"deck-import\",\"title\":\"Import\",\"revisionId\":\"r4\",\"pageSize\":{\"width\":{\"magnitude\":720,\"unit\":\"PT\"},\"height\":{\"magnitude\":405,\"unit\":\"PT\"}},\"slides\":[{\"objectId\":\"slide-1\",\"pageProperties\":{\"pageBackgroundFill\":{\"solidFill\":{\"color\":{\"rgbColor\":{\"red\":0.2,\"green\":0.4,\"blue\":0.6}}}}},\"pageElements\":[{\"objectId\":\"text-1\",\"size\":{\"width\":{\"magnitude\":300,\"unit\":\"PT\"},\"height\":{\"magnitude\":80,\"unit\":\"PT\"}},\"transform\":{\"translateX\":20,\"translateY\":30,\"unit\":\"PT\"},\"shape\":{\"shapeType\":\"TEXT_BOX\",\"text\":{\"textElements\":[{\"textRun\":{\"content\":\"Imported text\\n\",\"style\":{\"bold\":true}}}]}}},{\"objectId\":\"shape-1\",\"size\":{\"width\":{\"magnitude\":120,\"unit\":\"PT\"},\"height\":{\"magnitude\":60,\"unit\":\"PT\"}},\"transform\":{\"translateX\":400,\"translateY\":30,\"unit\":\"PT\"},\"shape\":{\"shapeType\":\"RECTANGLE\"}},{\"objectId\":\"table-1\",\"size\":{\"width\":{\"magnitude\":300,\"unit\":\"PT\"},\"height\":{\"magnitude\":100,\"unit\":\"PT\"}},\"transform\":{\"translateX\":30,\"translateY\":130,\"unit\":\"PT\"},\"table\":{\"rows\":1,\"columns\":1,\"tableRows\":[{\"tableCells\":[{\"text\":{\"textElements\":[{\"textRun\":{\"content\":\"Cell\\n\"}}]}}]}]}}],\"slideProperties\":{\"isSkipped\":true,\"notesPage\":{\"notesProperties\":{\"speakerNotesObjectId\":\"notes-body\"},\"pageElements\":[{\"objectId\":\"notes-body\",\"shape\":{\"text\":{\"textElements\":[{\"textRun\":{\"content\":\"Imported notes\\n\"}}]}}}]}}}]}";
+                const string slides = "{\"presentationId\":\"deck-import\",\"title\":\"Import\",\"revisionId\":\"r4\",\"pageSize\":{\"width\":{\"magnitude\":720,\"unit\":\"PT\"},\"height\":{\"magnitude\":405,\"unit\":\"PT\"}},\"slides\":[{\"objectId\":\"slide-1\",\"pageProperties\":{\"pageBackgroundFill\":{\"solidFill\":{\"color\":{\"rgbColor\":{\"red\":0.2,\"green\":0.4,\"blue\":0.6}}}}},\"pageElements\":[{\"objectId\":\"text-1\",\"size\":{\"width\":{\"magnitude\":300,\"unit\":\"PT\"},\"height\":{\"magnitude\":80,\"unit\":\"PT\"}},\"transform\":{\"translateX\":20,\"translateY\":30,\"unit\":\"PT\"},\"shape\":{\"shapeType\":\"TEXT_BOX\",\"text\":{\"textElements\":[{\"textRun\":{\"content\":\"Imported text\\n\",\"style\":{\"bold\":true,\"foregroundColor\":{\"opaqueColor\":{\"rgbColor\":{\"red\":0.2,\"green\":0.4,\"blue\":0.6}}}}}}]}}},{\"objectId\":\"shape-1\",\"size\":{\"width\":{\"magnitude\":120,\"unit\":\"PT\"},\"height\":{\"magnitude\":60,\"unit\":\"PT\"}},\"transform\":{\"translateX\":400,\"translateY\":30,\"unit\":\"PT\"},\"shape\":{\"shapeType\":\"RECTANGLE\"}},{\"objectId\":\"table-1\",\"size\":{\"width\":{\"magnitude\":300,\"unit\":\"PT\"},\"height\":{\"magnitude\":100,\"unit\":\"PT\"}},\"transform\":{\"translateX\":30,\"translateY\":130,\"unit\":\"PT\"},\"table\":{\"rows\":1,\"columns\":1,\"tableRows\":[{\"tableCells\":[{\"text\":{\"textElements\":[{\"textRun\":{\"content\":\"Cell\\n\"}}]}}]}]}}],\"slideProperties\":{\"isSkipped\":true,\"notesPage\":{\"notesProperties\":{\"speakerNotesObjectId\":\"notes-body\"},\"pageElements\":[{\"objectId\":\"notes-body\",\"shape\":{\"text\":{\"textElements\":[{\"textRun\":{\"content\":\"Imported notes\\n\"}}]}}}]}}}]}";
                 return Task.FromResult(Json(slides));
             }));
 
@@ -443,7 +477,8 @@ namespace OfficeIMO.Tests {
                 PowerPointSlide slide = Assert.Single(imported.Presentation.Slides);
                 Assert.True(slide.Hidden);
                 Assert.Equal("336699", slide.BackgroundColor);
-                Assert.Contains(slide.TextBoxes, text => text.Text == "Imported text");
+                PowerPointTextBox importedText = Assert.Single(slide.TextBoxes, text => text.Text == "Imported text");
+                Assert.Equal("336699", Assert.Single(Assert.Single(importedText.Paragraphs).Runs).Color);
                 Assert.Equal(A.ShapeTypeValues.Rectangle, Assert.Single(slide.Shapes.OfType<PowerPointAutoShape>()).ShapeType);
                 Assert.Equal("Cell", Assert.Single(slide.Tables).RowItems[0].Cells[0].Text);
                 Assert.Equal("Imported notes", slide.Notes.Text);
@@ -564,6 +599,13 @@ namespace OfficeIMO.Tests {
             }
 
             Assert.NotEqual(ShapeHash(A.ShapeTypeValues.Rectangle), ShapeHash(A.ShapeTypeValues.RightArrow));
+
+            using PowerPointPresentation transformedPresentation = PowerPointPresentation.Create();
+            PowerPointAutoShape transformedShape = transformedPresentation.AddSlide().AddShapePoints(A.ShapeTypeValues.Rectangle, 20, 20, 160, 90);
+            string unrotated = ElementHash(GoogleSlidesDiffPlanner.CreateCheckpoint(transformedPresentation));
+            transformedShape.Rotation = 30;
+            string rotated = ElementHash(GoogleSlidesDiffPlanner.CreateCheckpoint(transformedPresentation));
+            Assert.NotEqual(unrotated, rotated);
 
             using PowerPointPresentation styledPresentation = PowerPointPresentation.Create();
             PowerPointTextBox textBox = styledPresentation.AddSlide().AddTextBoxPoints("Styled text", 20, 20, 180, 60);

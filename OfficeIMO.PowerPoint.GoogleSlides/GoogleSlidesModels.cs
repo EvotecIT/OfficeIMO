@@ -23,6 +23,8 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
         public double TopPoints { get; }
         public double WidthPoints { get; }
         public double HeightPoints { get; }
+        /// <summary>Clockwise rotation of the source PowerPoint element, in degrees.</summary>
+        public double RotationDegrees { get; internal set; }
     }
 
     public sealed class GoogleSlidesTextBox : GoogleSlidesElement {

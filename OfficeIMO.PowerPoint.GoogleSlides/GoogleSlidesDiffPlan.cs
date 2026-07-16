@@ -74,7 +74,7 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                     string picture = shape is PowerPointPicture image
                         ? $"{image.ContentType}|{Hash(image.GetImageBytes())}|{image.CropLeftRatio}|{image.CropTopRatio}|{image.CropRightRatio}|{image.CropBottomRatio}"
                         : string.Empty;
-                    result[$"{root}/element/{shape.DrawingOrder}"] = Hash($"{shape.ShapeContentType}|{shape.Name}|{shape.LeftPoints}|{shape.TopPoints}|{shape.WidthPoints}|{shape.HeightPoints}|{geometry}|{text}|{textStyle}|{picture}");
+                    result[$"{root}/element/{shape.DrawingOrder}"] = Hash($"{shape.ShapeContentType}|{shape.Name}|{shape.LeftPoints}|{shape.TopPoints}|{shape.WidthPoints}|{shape.HeightPoints}|{shape.Rotation}|{shape.HorizontalFlip}|{shape.VerticalFlip}|{geometry}|{text}|{textStyle}|{picture}");
                 }
                 if (slide.Notes.TryGetExistingText(out string notes)) result[root + "/notes"] = Hash(notes);
             }
