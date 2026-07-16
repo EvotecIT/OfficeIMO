@@ -65,6 +65,7 @@
   },
   "ExpectedVersionMapAsInclude": true,
   "ExpectedVersionMapUseWildcards": false,
+  "AlignPackageVersions": true,
   "ExcludeProjects": [],
   "NugetSource": [],
   "IncludePrerelease": false,
