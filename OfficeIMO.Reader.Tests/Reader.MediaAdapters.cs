@@ -223,6 +223,31 @@ public sealed class ReaderMediaAdapterTests {
     }
 
     [Fact]
+    public void ImageAdapter_IdentifiesContentVerifiedSvgAfterLongCommentPreamble() {
+        string svg = "<!--" + new string('x', 5000) +
+            "--><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"3\" height=\"2\"/>";
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddImageHandler().Build();
+
+        OfficeDocumentReadResult result = reader.ReadDocument(Encoding.UTF8.GetBytes(svg), "long-preamble.svg");
+
+        OfficeDocumentAsset asset = Assert.Single(result.Assets);
+        Assert.Equal("image/svg+xml", asset.MediaType);
+        Assert.Equal(3, asset.Width);
+        Assert.Equal(2, asset.Height);
+    }
+
+    [Fact]
+    public void ImageAdapter_RejectsInvalidSvgDespiteItsExtension() {
+        const string svg =
+            "<!DOCTYPE svg [<!ENTITY xxe SYSTEM \"file:///invalid\">]>" +
+            "<svg xmlns=\"http://www.w3.org/2000/svg\">&xxe;</svg>";
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddImageHandler().Build();
+
+        Assert.Throws<NotSupportedException>(() =>
+            reader.ReadDocument(Encoding.UTF8.GetBytes(svg), "invalid.svg"));
+    }
+
+    [Fact]
     public void ImageAdapter_IdentifiesContentVerifiedUtf16Svg() {
         const string svg = "\uFEFF<?xml version=\"1.0\" encoding=\"UTF-16\"?><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"4\" height=\"3\"/>";
         OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddImageHandler().Build();

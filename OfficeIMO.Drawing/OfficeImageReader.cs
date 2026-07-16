@@ -37,6 +37,23 @@ public static partial class OfficeImageReader {
     /// Tries to identify image metadata from a stream.
     /// </summary>
     public static bool TryIdentify(Stream stream, string? fileName, out OfficeImageInfo info) {
+        return TryIdentifyCore(stream, fileName, allowExtensionFallback: true, out info);
+    }
+
+    /// <summary>
+    /// Tries to identify image metadata from a stream while requiring the content to match
+    /// a supported format. The file name may select a content parser but cannot identify the
+    /// image by extension alone.
+    /// </summary>
+    public static bool TryIdentifyByContent(Stream stream, string? fileName, out OfficeImageInfo info) {
+        return TryIdentifyCore(stream, fileName, allowExtensionFallback: false, out info);
+    }
+
+    private static bool TryIdentifyCore(
+        Stream stream,
+        string? fileName,
+        bool allowExtensionFallback,
+        out OfficeImageInfo info) {
         if (stream == null) throw new ArgumentNullException(nameof(stream));
 
         var originalPosition = stream.CanSeek ? stream.Position : 0;
@@ -47,7 +64,7 @@ public static partial class OfficeImageReader {
                 data = ms.ToArray();
             }
 
-            return TryIdentify(data, fileName, out info);
+            return TryIdentifyCore(data, fileName, allowExtensionFallback, out info);
         } finally {
             if (stream.CanSeek) {
                 stream.Position = originalPosition;
@@ -59,6 +76,23 @@ public static partial class OfficeImageReader {
     /// Tries to identify image metadata from a byte array.
     /// </summary>
     public static bool TryIdentify(byte[]? data, string? fileName, out OfficeImageInfo info) {
+        return TryIdentifyCore(data, fileName, allowExtensionFallback: true, out info);
+    }
+
+    /// <summary>
+    /// Tries to identify image metadata from a byte array while requiring the content to match
+    /// a supported format. The file name may select a content parser but cannot identify the
+    /// image by extension alone.
+    /// </summary>
+    public static bool TryIdentifyByContent(byte[]? data, string? fileName, out OfficeImageInfo info) {
+        return TryIdentifyCore(data, fileName, allowExtensionFallback: false, out info);
+    }
+
+    private static bool TryIdentifyCore(
+        byte[]? data,
+        string? fileName,
+        bool allowExtensionFallback,
+        out OfficeImageInfo info) {
         info = new OfficeImageInfo(OfficeImageFormat.Unknown, 0, 0);
         if (data == null || data.Length == 0) {
             return false;
@@ -79,10 +113,12 @@ public static partial class OfficeImageReader {
             return true;
         }
 
-        var byExtension = FromExtension(fileName);
-        if (byExtension != OfficeImageFormat.Unknown) {
-            info = new OfficeImageInfo(byExtension, 0, 0);
-            return true;
+        if (allowExtensionFallback) {
+            var byExtension = FromExtension(fileName);
+            if (byExtension != OfficeImageFormat.Unknown) {
+                info = new OfficeImageInfo(byExtension, 0, 0);
+                return true;
+            }
         }
 
         return false;

@@ -3679,6 +3679,20 @@ public partial class DrawingTests {
     }
 
     [Fact]
+    public void OfficeImageReaderContentVerificationUsesSvgExtensionOnlyAsAParserHint() {
+        byte[] valid = Encoding.UTF8.GetBytes(
+            "<!--" + new string('x', 5000) + "--><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"3\" height=\"2\"/>");
+        byte[] invalid = Encoding.UTF8.GetBytes(
+            "<!DOCTYPE svg [<!ENTITY xxe SYSTEM \"file:///invalid\">]><svg xmlns=\"http://www.w3.org/2000/svg\">&xxe;</svg>");
+
+        Assert.True(OfficeImageReader.TryIdentifyByContent(valid, "long-preamble.svg", out OfficeImageInfo image));
+        Assert.Equal(OfficeImageFormat.Svg, image.Format);
+        Assert.Equal(3, image.Width);
+        Assert.Equal(2, image.Height);
+        Assert.False(OfficeImageReader.TryIdentifyByContent(invalid, "invalid.svg", out _));
+    }
+
+    [Fact]
     public void OfficeImageReaderReadsSvgPhysicalUnitsAsPixels() {
         var svg = System.Text.Encoding.UTF8.GetBytes("<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"1in\" height=\"2.54cm\"></svg>");
 

@@ -39,7 +39,7 @@ internal static class ImageReaderAdapter {
         CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         string sourceName = input.Source.Path ?? "image.bin";
-        if (!OfficeImageReader.TryIdentify(input.Bytes, fileName: null, out OfficeImageInfo info) ||
+        if (!OfficeImageReader.TryIdentifyByContent(input.Bytes, sourceName, out OfficeImageInfo info) ||
             info.Format == OfficeImageFormat.Unknown) {
             throw new NotSupportedException("Image format is not supported: " + sourceName);
         }

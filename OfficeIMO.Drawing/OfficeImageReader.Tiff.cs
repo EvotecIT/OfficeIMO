@@ -143,8 +143,8 @@ public static partial class OfficeImageReader {
 
     private static double ReadClassicTiffRational(byte[] data, int offset, bool littleEndian, double fallback) {
         if (offset < 0 || offset > data.Length - 8) return fallback;
-        int numerator = ReadInt32(data, offset, littleEndian);
-        int denominator = ReadInt32(data, offset + 4, littleEndian);
+        uint numerator = ReadUInt32(data, offset, littleEndian);
+        uint denominator = ReadUInt32(data, offset + 4, littleEndian);
         return denominator != 0 ? (double)numerator / denominator : fallback;
     }
 
