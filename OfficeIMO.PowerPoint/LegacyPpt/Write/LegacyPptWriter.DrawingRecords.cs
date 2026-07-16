@@ -12,12 +12,13 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             LegacyPptWriterAnimationCatalog animationCatalog,
             LegacyPptWriterMediaCatalog mediaCatalog,
             LegacyPptWriterOleObjectCatalog oleCatalog,
+            LegacyPptWriterPictureCatalog pictureCatalog,
             LegacyPptWriterBackground? background = null) {
             LegacyPptRecord baseDrawing = slidePrototype.Children.First(record => record.Type == RecordDrawing);
             return BuildDrawingRecord(baseDrawing, shapes, drawingId,
                 interactionCatalog, animationCatalog, background,
                 LegacyPptWriterShapeContext.Slide, mediaCatalog,
-                oleCatalog);
+                oleCatalog, pictureCatalog);
         }
 
         private static byte[] BuildDrawingRecord(LegacyPptRecord baseDrawing,
@@ -27,7 +28,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             LegacyPptWriterBackground? background,
             LegacyPptWriterShapeContext shapeContext,
             LegacyPptWriterMediaCatalog? mediaCatalog = null,
-            LegacyPptWriterOleObjectCatalog? oleCatalog = null) {
+            LegacyPptWriterOleObjectCatalog? oleCatalog = null,
+            LegacyPptWriterPictureCatalog? pictureCatalog = null) {
             LegacyPptRecord baseDgContainer = baseDrawing.Children.First(record => record.Type == OfficeArtDgContainer);
             LegacyPptRecord baseSpgr = baseDgContainer.Children.First(record => record.Type == OfficeArtSpgrContainer);
             LegacyPptRecord baseRootShape = baseSpgr.Children.First(record => record.Type == OfficeArtSpContainer);
@@ -40,7 +42,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 spgrChildren.Add(BuildShapeRecord(shapes[index],
                     checked(baseShapeId + unchecked((uint)index) + 2U),
                     interactionCatalog, animationCatalog, shapeContext,
-                    mediaCatalog, oleCatalog));
+                    mediaCatalog, oleCatalog, pictureCatalog));
             }
 
             byte[] backgroundShape = PatchShapeId(background == null
@@ -94,7 +96,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             LegacyPptWriterAnimationCatalog animationCatalog,
             LegacyPptWriterShapeContext shapeContext,
             LegacyPptWriterMediaCatalog? mediaCatalog,
-            LegacyPptWriterOleObjectCatalog? oleCatalog) {
+            LegacyPptWriterOleObjectCatalog? oleCatalog,
+            LegacyPptWriterPictureCatalog? pictureCatalog) {
             ushort shapeType;
             var children = new List<byte[]>();
             LegacyPptWriterShapeInteractions interactions = interactionCatalog.Get(shape);
@@ -132,6 +135,45 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         "The media shape has no external-object reference.");
                 }
                 children.Add(clientData);
+            } else if (shape is PowerPointPicture picture) {
+                LegacyPptWriterPicture catalogPicture = pictureCatalog?.Get(
+                        picture)
+                    ?? throw new InvalidOperationException(
+                        "The picture shape has no BLIP store catalog entry.");
+                shapeType = 75;
+                children.Add(BuildFsp(shapeType, shapeId));
+                children.Add(BuildPictureFoptRecord(picture,
+                    catalogPicture.OneBasedStoreIndex));
+                children.Add(BuildAnchor(shape));
+                byte[]? clientData = BuildClientData(shape,
+                    interactions.ShapeInteractions, animation, shapeContext);
+                if (clientData != null) children.Add(clientData);
+            } else if (shape is PowerPointChart chart) {
+                LegacyPptWriterPicture catalogPicture = pictureCatalog?.Get(
+                        chart)
+                    ?? throw new InvalidOperationException(
+                        "The converted chart has no BLIP store catalog entry.");
+                shapeType = 75;
+                children.Add(BuildFsp(shapeType, shapeId));
+                children.Add(BuildStaticVisualFoptRecord(
+                    catalogPicture.OneBasedStoreIndex));
+                children.Add(BuildAnchor(shape));
+                byte[]? clientData = BuildClientData(shape,
+                    interactions.ShapeInteractions, animation, shapeContext);
+                if (clientData != null) children.Add(clientData);
+            } else if (shape is PowerPointSmartArt smartArt) {
+                LegacyPptWriterPicture catalogPicture = pictureCatalog?.Get(
+                        smartArt)
+                    ?? throw new InvalidOperationException(
+                        "The converted SmartArt diagram has no BLIP store catalog entry.");
+                shapeType = 75;
+                children.Add(BuildFsp(shapeType, shapeId));
+                children.Add(BuildStaticVisualFoptRecord(
+                    catalogPicture.OneBasedStoreIndex));
+                children.Add(BuildAnchor(shape));
+                byte[]? clientData = BuildClientData(shape,
+                    interactions.ShapeInteractions, animation, shapeContext);
+                if (clientData != null) children.Add(clientData);
             } else if (shape is PowerPointOleObject) {
                 LegacyPptWriterOleObject ole = oleCatalog?.Get(shape)
                     ?? throw new InvalidOperationException(

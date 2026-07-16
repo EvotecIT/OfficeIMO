@@ -50,13 +50,61 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void CapabilityContract_ReportsImplementedRasterImportAndPreservingRoundTrip() {
+        public void CapabilityContract_ReportsNativeRasterAuthoringAndPreservingRoundTrip() {
             LegacyPptCapability raster = LegacyPptCapabilityCatalog.Get(LegacyPptFeature.RasterPictures);
 
             Assert.Equal(LegacyPptCapabilityState.Native, raster.ImportToEditableModel);
             Assert.Equal(LegacyPptCapabilityState.Preserved, raster.BinaryRoundTrip);
-            Assert.Equal(LegacyPptCapabilityState.Planned, raster.NewBinaryWrite);
-            Assert.Equal(LegacyPptCapabilityState.Planned, raster.PptxToBinary);
+            Assert.Equal(LegacyPptCapabilityState.Native, raster.NewBinaryWrite);
+            Assert.Equal(LegacyPptCapabilityState.Native, raster.PptxToBinary);
+            Assert.Contains("deduplicates identical payloads", raster.Note);
+
+            LegacyPptCapability crop = LegacyPptCapabilityCatalog.Get(
+                LegacyPptFeature.PictureCrop);
+            Assert.Equal(LegacyPptCapabilityState.Native,
+                crop.ImportToEditableModel);
+            Assert.Equal(LegacyPptCapabilityState.Native,
+                crop.NewBinaryWrite);
+            Assert.Equal(LegacyPptCapabilityState.Preserved,
+                crop.BinaryRoundTrip);
+            Assert.Equal(LegacyPptCapabilityState.Native,
+                crop.PptxToBinary);
+        }
+
+        [Fact]
+        public void CapabilityContract_ReportsExplicitStaticChartConversion() {
+            LegacyPptCapability charts = LegacyPptCapabilityCatalog.Get(
+                LegacyPptFeature.Charts);
+
+            Assert.Equal(LegacyPptRepresentability.Approximation,
+                charts.Representability);
+            Assert.Equal(LegacyPptCapabilityState.Planned,
+                charts.ImportToEditableModel);
+            Assert.Equal(LegacyPptCapabilityState.Converted,
+                charts.NewBinaryWrite);
+            Assert.Equal(LegacyPptCapabilityState.Preserved,
+                charts.BinaryRoundTrip);
+            Assert.Equal(LegacyPptCapabilityState.Converted,
+                charts.PptxToBinary);
+            Assert.Contains("PPT-WRITE-CHART-CONVERTED", charts.Note);
+        }
+
+        [Fact]
+        public void CapabilityContract_ReportsExplicitStaticSmartArtConversion() {
+            LegacyPptCapability smartArt = LegacyPptCapabilityCatalog.Get(
+                LegacyPptFeature.SmartArt);
+
+            Assert.Equal(LegacyPptRepresentability.Approximation,
+                smartArt.Representability);
+            Assert.Equal(LegacyPptCapabilityState.Planned,
+                smartArt.ImportToEditableModel);
+            Assert.Equal(LegacyPptCapabilityState.Converted,
+                smartArt.NewBinaryWrite);
+            Assert.Equal(LegacyPptCapabilityState.Preserved,
+                smartArt.BinaryRoundTrip);
+            Assert.Equal(LegacyPptCapabilityState.Converted,
+                smartArt.PptxToBinary);
+            Assert.Contains("PPT-WRITE-SMARTART-CONVERTED", smartArt.Note);
         }
 
         [Fact]

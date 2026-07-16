@@ -289,6 +289,80 @@ public partial class DrawingTests {
         Assert.Equal(image, entry.ImageBytes);
     }
 
+    [Theory]
+    [InlineData("", "31D6CFE0D16AE931B73C59D7E0C089C0")]
+    [InlineData("a", "BDE52CB31DE33E46245E05FBDBD6FB24")]
+    [InlineData("abc", "A448017AAF21D8525FC10AE87AA6729D")]
+    [InlineData("message digest", "D9130A8164549FE818874806E1C7014B")]
+    public void OfficeArtMd4_MatchesRfc1320Vectors(string value,
+        string expected) {
+        byte[] digest = OfficeArtMd4.Compute(
+            System.Text.Encoding.ASCII.GetBytes(value));
+
+        Assert.Equal(expected, BitConverter.ToString(digest)
+            .Replace("-", string.Empty));
+    }
+
+    [Fact]
+    public void OfficeArtBlipStoreEntryWriter_CreatesEmbeddedPngFbse() {
+        byte[] png = {
+            0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A
+        };
+        byte[] record = OfficeArtBlipStoreEntryWriter.CreateEmbedded(
+            png, "image/png", referenceCount: 3);
+
+        Assert.Equal(2, record[0] & 0x0F);
+        Assert.Equal(0xF007, record[2] | record[3] << 8);
+        Assert.True(OfficeArtBlipStoreEntryReader.TryRead(record, 8,
+            checked((int)ReadOfficeArtUInt32(record, 4)), 0x0006,
+            delayStream: null, out OfficeArtBlipStoreEntry? entry));
+        Assert.NotNull(entry);
+        Assert.Equal(OfficeArtBlipStorage.Embedded, entry!.Storage);
+        Assert.Equal(OfficeArtBlipType.Png, entry.RecordInstanceBlipType);
+        Assert.Equal(3U, entry.ReferenceCount);
+        Assert.Equal(33U, entry.SizeBytes);
+        Assert.Equal(png, entry.ImageBytes);
+        Assert.Equal("image/png", entry.ContentType);
+        Assert.Equal(BitConverter.ToString(OfficeArtMd4.Compute(png))
+            .Replace("-", string.Empty), entry.UidHex);
+    }
+
+    [Fact]
+    public void OfficeArtBlipStoreEntryWriter_CreatesDelayedPngFbseAndBlip() {
+        byte[] png = {
+            0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A
+        };
+        byte[] blip = OfficeArtBlipStoreEntryWriter.CreateBlipRecord(
+            png, "image/png");
+        byte[] record = OfficeArtBlipStoreEntryWriter.CreateDelayed(
+            png, "image/png", delayedStreamOffset: 0, referenceCount: 3);
+
+        Assert.Equal(36U, ReadOfficeArtUInt32(record, 4));
+        Assert.Equal(0xF01E, blip[2] | blip[3] << 8);
+        Assert.True(OfficeArtBlipStoreEntryReader.TryRead(record, 8,
+            checked((int)ReadOfficeArtUInt32(record, 4)), 0x0006,
+            blip, out OfficeArtBlipStoreEntry? entry));
+        Assert.NotNull(entry);
+        Assert.Equal(OfficeArtBlipStorage.Delayed, entry!.Storage);
+        Assert.Equal(0U, entry.DelayedStreamOffset);
+        Assert.Equal(3U, entry.ReferenceCount);
+        Assert.Equal(checked((uint)blip.Length), entry.SizeBytes);
+        Assert.Equal(png, entry.ImageBytes);
+        Assert.Equal(BitConverter.ToString(OfficeArtMd4.Compute(png))
+            .Replace("-", string.Empty), entry.UidHex);
+    }
+
+    [Fact]
+    public void OfficeArtBlipStoreEntryWriter_RejectsMismatchedOrUnsupportedPayload() {
+        Assert.Throws<NotSupportedException>(() =>
+            OfficeArtBlipStoreEntryWriter.CreateEmbedded(
+                new byte[] { 1, 2, 3 }, "image/png"));
+        Assert.Throws<NotSupportedException>(() =>
+            OfficeArtBlipStoreEntryWriter.CreateEmbedded(
+                new byte[] { (byte)'G', (byte)'I', (byte)'F' },
+                "image/gif"));
+    }
+
     private static byte[] BuildFbse(byte[] embeddedBlip, uint delayedOffset) {
         byte[] payload = new byte[36 + embeddedBlip.Length];
         payload[0] = 0x06;

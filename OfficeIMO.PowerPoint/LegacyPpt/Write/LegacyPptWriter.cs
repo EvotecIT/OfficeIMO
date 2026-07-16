@@ -76,6 +76,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     out string? oleReason)) {
                 throw new NotSupportedException(oleReason);
             }
+            if (!TryReadPictureCatalog(presentation.Slides,
+                    out LegacyPptWriterPictureCatalog pictureCatalog,
+                    out _,
+                    out string? pictureReason)) {
+                throw new NotSupportedException(pictureReason);
+            }
             if (!TryReadClassicAnimations(presentation.Slides, soundCatalog,
                     out LegacyPptWriterAnimationCatalog animationCatalog,
                     out string? animationReason)) {
@@ -132,7 +138,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 IReadOnlyList<PowerPointShape> supportedShapes = ReadSlideShapesForWrite(
                     slide, out _).Where(shape => IsSupportedShape(shape,
                         includeOleObjects: true,
-                        includeMedia: true)).ToArray();
+                        includeMedia: true,
+                        includePictures: true,
+                        includeCharts: true,
+                        includeSmartArt: true)).ToArray();
                 slideShapeCounts.Add(supportedShapes.Count);
                 uint? notesId = notesBySlide.TryGetValue(index, out LegacyPptWriterNote? note)
                     ? note.NotesId
@@ -144,7 +153,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     unchecked((uint)(13 + index)), masters.GetMasterId(slide), notesId,
                     comments ?? Array.Empty<LegacyPptWriterComment>(),
                     interactionCatalog, animationCatalog, mediaCatalog,
-                    oleCatalog));
+                    oleCatalog, pictureCatalog));
             }
             var notesRecords = notes.Select(note => BuildNotesRecord(template.NotesPrototype,
                 note.Text, unchecked((uint)(256 + note.SlideIndex)), note.DrawingId,
@@ -157,7 +166,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     interactionCatalog, customShows, soundCatalog, masters.Count,
                     masters.DrawingShapeCounts, masters.Fonts,
                     handoutMasterPersistId, vbaProjectPersistId,
-                    mediaCatalog, oleCatalog)
+                    mediaCatalog, oleCatalog, pictureCatalog)
             };
             persistObjects.AddRange(masters.PersistObjects);
             persistObjects.Add(masters.NotesMasterPersistObject);
@@ -179,6 +188,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 new OfficeCompoundStream("Current User", currentUserStream),
                 new OfficeCompoundStream("PowerPoint Document", documentStream)
             };
+            if (pictureCatalog.Entries.Count > 0) {
+                streams.Add(new OfficeCompoundStream("Pictures",
+                    pictureCatalog.BuildPicturesStream()));
+            }
             if (!LegacyPptPropertySetCodec.TryCreateFreshStreams(presentation,
                     out IReadOnlyList<OfficeCompoundStream> propertyStreams,
                     out string? propertyReason)) {
@@ -192,9 +205,14 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             IsSupportedShape(shape, includeOleObjects: false);
 
         private static bool IsSupportedShape(PowerPointShape shape,
-            bool includeOleObjects, bool includeMedia = false) {
+            bool includeOleObjects, bool includeMedia = false,
+            bool includePictures = false, bool includeCharts = false,
+            bool includeSmartArt = false) {
             if (shape is PowerPointTextBox) return true;
             if (includeMedia && shape is PowerPointMedia) return true;
+            if (includePictures && shape is PowerPointPicture) return true;
+            if (includeCharts && shape is PowerPointChart) return true;
+            if (includeSmartArt && shape is PowerPointSmartArt) return true;
             if (includeOleObjects && shape is PowerPointOleObject) return true;
             return shape is PowerPointAutoShape autoShape
                 && (autoShape.ShapeType == A.ShapeTypeValues.Rectangle
@@ -223,7 +241,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 masterIdRef, notesIdRef: null, ReadClassicCommentsForSlide(slide),
                 interactionCatalog, animationCatalog,
                 new LegacyPptWriterMediaCatalog(),
-                new LegacyPptWriterOleObjectCatalog());
+                new LegacyPptWriterOleObjectCatalog(),
+                new LegacyPptWriterPictureCatalog());
         }
 
         internal static byte[] BuildIncrementalSlideRecord(PowerPointSlide slide,
@@ -247,6 +266,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 interactionCatalog, animationCatalog,
                 new LegacyPptWriterMediaCatalog(),
                 new LegacyPptWriterOleObjectCatalog(),
+                new LegacyPptWriterPictureCatalog(),
                 layoutIsIndependentMaster);
         }
 
@@ -261,7 +281,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             uint handoutMasterPersistId,
             uint? vbaProjectPersistId,
             LegacyPptWriterMediaCatalog mediaCatalog,
-            LegacyPptWriterOleObjectCatalog oleCatalog) {
+            LegacyPptWriterOleObjectCatalog oleCatalog,
+            LegacyPptWriterPictureCatalog pictureCatalog) {
             var children = new List<byte[]>();
             bool wroteSounds = false;
             bool wroteFonts = false;
@@ -299,7 +320,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         wroteSounds = true;
                     }
                     children.Add(BuildDrawingGroupRecord(child,
-                        masterDrawingShapeCounts, slideShapeCounts, notes.Count));
+                        masterDrawingShapeCounts, slideShapeCounts, notes.Count,
+                        pictureCatalog));
                 } else if (child.Type == RecordHeadersFooters
                            && (child.Instance == 3 || child.Instance == 4)) {
                     children.Add(BuildDocumentHeaderFooterRecord(presentation,
@@ -410,7 +432,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
 
         private static byte[] BuildDrawingGroupRecord(LegacyPptRecord drawingGroup,
             IReadOnlyDictionary<uint, int> masterDrawingShapeCounts,
-            IReadOnlyList<int> slideShapeCounts, int notesCount) {
+            IReadOnlyList<int> slideShapeCounts, int notesCount,
+            LegacyPptWriterPictureCatalog pictureCatalog) {
             var drawingGroupChildren = new List<byte[]>();
             foreach (LegacyPptRecord child in drawingGroup.Children) {
                 if (child.Type != OfficeArtDggContainer) {
@@ -419,11 +442,29 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 }
 
                 var dggChildren = new List<byte[]>();
+                bool wrotePictureStore = false;
                 foreach (LegacyPptRecord dggChild in child.Children) {
-                    dggChildren.Add(dggChild.Type == OfficeArtDgg
-                        ? BuildDggAtom(dggChild, masterDrawingShapeCounts,
-                            slideShapeCounts, notesCount)
-                        : dggChild.CopyRecordBytes());
+                    if (dggChild.Type == OfficeArtDgg) {
+                        dggChildren.Add(BuildDggAtom(dggChild,
+                            masterDrawingShapeCounts, slideShapeCounts,
+                            notesCount));
+                        if (pictureCatalog.Entries.Count > 0
+                            && !child.Children.Any(candidate =>
+                                candidate.Type == OfficeArtBStoreContainer)) {
+                            dggChildren.Add(pictureCatalog.BuildStore());
+                            wrotePictureStore = true;
+                        }
+                    } else if (dggChild.Type == OfficeArtBStoreContainer) {
+                        if (pictureCatalog.Entries.Count > 0) {
+                            dggChildren.Add(pictureCatalog.BuildStore());
+                            wrotePictureStore = true;
+                        }
+                    } else {
+                        dggChildren.Add(dggChild.CopyRecordBytes());
+                    }
+                }
+                if (pictureCatalog.Entries.Count > 0 && !wrotePictureStore) {
+                    dggChildren.Add(pictureCatalog.BuildStore());
                 }
                 drawingGroupChildren.Add(BuildContainer(OfficeArtDggContainer, child.Instance, dggChildren));
             }

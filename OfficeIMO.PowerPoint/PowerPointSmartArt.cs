@@ -5,6 +5,7 @@ using System.Linq;
 using System.Xml.Linq;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
+using OfficeIMO.Drawing;
 using Dgm = DocumentFormat.OpenXml.Drawing.Diagrams;
 
 namespace OfficeIMO.PowerPoint {
@@ -31,6 +32,41 @@ namespace OfficeIMO.PowerPoint {
             XNamespace a = "http://schemas.openxmlformats.org/drawingml/2006/main";
             return paras.Select(paragraph => string.Concat(paragraph.Descendants(a + "t")
                 .Select(text => (string?)text ?? string.Empty))).ToList().AsReadOnly();
+        }
+
+        /// <summary>
+        /// Tries to expose the current SmartArt content through the shared
+        /// dependency-free semantic diagram contract.
+        /// </summary>
+        public bool TryGetOfficeDiagramSnapshot(
+            out OfficeDiagramSnapshot snapshot) {
+            try {
+                var (xdoc, ns, paras, _) = LoadNodeParagraphsWithPart();
+                IReadOnlyList<string> nodes = paras.Select(paragraph =>
+                        string.Concat(paragraph.Descendants(ns.a + "t")
+                            .Select(text => (string?)text ?? string.Empty)))
+                    .Where(text => !string.IsNullOrWhiteSpace(text))
+                    .ToArray();
+                XElement? properties = xdoc.Descendants(ns.dgm + "prSet")
+                    .FirstOrDefault(element =>
+                        element.Attribute("loCatId") != null
+                        || element.Attribute("loTypeId") != null);
+                string category = ((string?)properties?.Attribute("loCatId")
+                    ?? (string?)properties?.Attribute("loTypeId")
+                    ?? string.Empty).ToLowerInvariant();
+                OfficeDiagramKind kind = category.IndexOf("hierarchy",
+                        StringComparison.Ordinal) >= 0
+                    ? OfficeDiagramKind.Hierarchy
+                    : category.IndexOf("cycle", StringComparison.Ordinal) >= 0
+                        ? OfficeDiagramKind.Cycle
+                        : OfficeDiagramKind.Process;
+                snapshot = new OfficeDiagramSnapshot(Name, kind, nodes,
+                    WidthPoints, HeightPoints);
+                return true;
+            } catch {
+                snapshot = null!;
+                return false;
+            }
         }
 
         /// <summary>

@@ -190,6 +190,19 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     oleReason
                     ?? "An embedded OLE object cannot be encoded by the native binary writer."));
             }
+            if (!LegacyPptWriter.TryReadPictureCatalog(presentation.Slides,
+                    out _, out LegacyPptFeature pictureFailureFeature,
+                    out string? pictureReason)) {
+                findings.Add(new LegacyPptWriteFinding(
+                    pictureFailureFeature,
+                    pictureFailureFeature == LegacyPptFeature.Charts
+                        ? "PPT-WRITE-CHART"
+                        : pictureFailureFeature == LegacyPptFeature.SmartArt
+                            ? "PPT-WRITE-SMARTART"
+                        : "PPT-WRITE-PICTURE",
+                    pictureReason
+                    ?? "A visual cannot be encoded by the native binary writer."));
+            }
             for (int slideIndex = 0; slideIndex < presentation.Slides.Count; slideIndex++) {
                 PowerPointSlide slide = presentation.Slides[slideIndex];
                 IReadOnlyList<PowerPointShape> shapes = LegacyPptWriter
@@ -242,11 +255,27 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     }
                     if (!IsSupportedShape(shape,
                             includeOleObjects: true,
-                            includeMedia: true)) {
+                            includeMedia: true,
+                            includePictures: true,
+                            includeCharts: true,
+                            includeSmartArt: true)) {
                         findings.Add(new LegacyPptWriteFinding(MapShapeFeature(shape), "PPT-WRITE-SHAPE",
                             $"{shape.ShapeContentType} content is outside the native writer's supported shape subset.",
                             slideIndex, shapeIndex));
                         continue;
+                    }
+                    if (shape is PowerPointChart) {
+                        findings.Add(new LegacyPptWriteFinding(
+                            LegacyPptFeature.Charts,
+                            "PPT-WRITE-CHART-CONVERTED",
+                            "The editable DrawingML chart will be converted to a static PNG picture in binary PowerPoint. Chart data and editability will not survive the conversion.",
+                            slideIndex, shapeIndex));
+                    } else if (shape is PowerPointSmartArt) {
+                        findings.Add(new LegacyPptWriteFinding(
+                            LegacyPptFeature.SmartArt,
+                            "PPT-WRITE-SMARTART-CONVERTED",
+                            "The editable SmartArt diagram will be converted to a static PNG picture in binary PowerPoint. Diagram structure and editability will not survive the conversion.",
+                            slideIndex, shapeIndex));
                     }
                     if (HasUnsupportedVisualStyle(shape)) {
                         findings.Add(new LegacyPptWriteFinding(LegacyPptFeature.ShapeStyles, "PPT-WRITE-SHAPE-STYLE",
@@ -301,8 +330,14 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
 
         private static bool IsSupportedShape(PowerPointShape shape,
             bool includeOleObjects = false,
-            bool includeMedia = false) => shape is PowerPointTextBox
+            bool includeMedia = false,
+            bool includePictures = false,
+            bool includeCharts = false,
+            bool includeSmartArt = false) => shape is PowerPointTextBox
             || includeMedia && shape is PowerPointMedia
+            || includePictures && shape is PowerPointPicture
+            || includeCharts && shape is PowerPointChart
+            || includeSmartArt && shape is PowerPointSmartArt
             || includeOleObjects && shape is PowerPointOleObject
             || shape is PowerPointAutoShape autoShape
             && (autoShape.ShapeType == A.ShapeTypeValues.Rectangle

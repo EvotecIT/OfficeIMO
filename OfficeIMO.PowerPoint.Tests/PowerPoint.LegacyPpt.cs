@@ -744,9 +744,8 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void NativeWriter_BlocksKnownLossUnlessExplicitlyAllowed() {
-            string image = Path.Combine(AppContext.BaseDirectory, "Images", "EvotecLogo.png");
             using PowerPointPresentation presentation = PowerPointPresentation.Create();
-            presentation.AddSlide().AddPicture(image);
+            presentation.AddSlide().AddTable(2, 2);
 
             LegacyPptWritePreflightReport preflight = presentation.AnalyzeLegacyPptWrite();
             Assert.True(preflight.HasConversionLoss);
