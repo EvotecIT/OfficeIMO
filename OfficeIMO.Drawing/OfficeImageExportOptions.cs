@@ -21,6 +21,11 @@ public class OfficeImageExportOptions {
     public OfficeColor BackgroundColor { get; set; } = OfficeColor.White;
 
     /// <summary>
+    /// Format-specific settings used when the selected output is raster-based.
+    /// </summary>
+    public OfficeRasterEncodingOptions RasterEncoding { get; set; } = new OfficeRasterEncodingOptions();
+
+    /// <summary>
     /// Validates that an export scale is finite and positive.
     /// </summary>
     /// <param name="scale">Scale value to validate.</param>
