@@ -3,12 +3,15 @@
 ## CAB LZX decoder
 
 Parts of the managed CAB LZX decoder are ported and adapted from
-`deploymenttheory/go-sdk-winmediafoundry/pkg/cab`, which is itself adapted from
-`Microsoft/go-winio`. Both sources are available under the MIT License.
+[`deploymenttheory/go-sdk-winmediafoundry/pkg/cab/lzx.go` at commit
+`9bac64b86601e59fe756ec02f6be6dd825497b51`](https://github.com/deploymenttheory/go-sdk-winmediafoundry/blob/9bac64b86601e59fe756ec02f6be6dd825497b51/pkg/cab/lzx.go),
+which is itself adapted from [`Microsoft/go-winio/wim/lzx/lzx.go` at commit
+`fd345113149b541f26b1e96bc21e7c89a2f15995`](https://github.com/microsoft/go-winio/blob/fd345113149b541f26b1e96bc21e7c89a2f15995/wim/lzx/lzx.go).
+Both sources are available under the MIT License.
 
 Copyright (c) 2026 Deployment Theory
 
-Copyright (c) Microsoft Corporation
+Copyright (c) 2015 Microsoft
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of
 this software and associated documentation files (the "Software"), to deal in
