@@ -533,7 +533,7 @@ internal static partial class DocumentReaderEngine {
     }
 
     private static IEnumerable<ReaderChunk> ReadPowerPoint(string path, ReaderOptions opt, CancellationToken ct) {
-        using var presentation = LoadPowerPointForReader(path, opt);
+        using var presentation = LoadPowerPointForReader(path, opt, ct);
         IReadOnlyList<string>? legacyWarnings =
             BuildLegacyPowerPointWarnings(presentation);
         var chunks = presentation.ExtractMarkdownChunks(
@@ -564,7 +564,7 @@ internal static partial class DocumentReaderEngine {
 
     private static IEnumerable<ReaderChunk> ReadPowerPoint(Stream stream, string? sourceName, ReaderOptions opt, CancellationToken ct) {
         // Read-only stream opening already copies to an internal stream for safety.
-        using var presentation = LoadPowerPointForReader(stream, opt);
+        using var presentation = LoadPowerPointForReader(stream, opt, ct);
         IReadOnlyList<string>? legacyWarnings =
             BuildLegacyPowerPointWarnings(presentation);
         var chunks = presentation.ExtractMarkdownChunks(
@@ -594,16 +594,19 @@ internal static partial class DocumentReaderEngine {
     }
 
     private static PowerPointPresentation LoadPowerPointForReader(
-        string path, ReaderOptions options) {
+        string path, ReaderOptions options,
+        CancellationToken cancellationToken = default) {
         PowerPointLoadOptions loadOptions =
             CreatePowerPointReaderLoadOptions(options);
         try {
-            return PowerPointPresentation.Load(path, loadOptions);
+            return PowerPointPresentation.Load(path, loadOptions,
+                cancellationToken);
         } catch (Exception exception) when (
             ShouldRetryEncryptedPowerPointOpen(exception, options)) {
             try {
                 return PowerPointPresentation.LoadEncrypted(path,
-                    options.OpenPassword!, loadOptions);
+                    options.OpenPassword!, loadOptions,
+                    cancellationToken);
             } catch (CryptographicException) {
                 throw;
             } catch {
@@ -614,18 +617,21 @@ internal static partial class DocumentReaderEngine {
     }
 
     private static PowerPointPresentation LoadPowerPointForReader(
-        Stream stream, ReaderOptions options) {
+        Stream stream, ReaderOptions options,
+        CancellationToken cancellationToken = default) {
         if (stream.CanSeek) stream.Position = 0;
         PowerPointLoadOptions loadOptions =
             CreatePowerPointReaderLoadOptions(options);
         try {
-            return PowerPointPresentation.Load(stream, loadOptions);
+            return PowerPointPresentation.Load(stream, loadOptions,
+                cancellationToken);
         } catch (Exception exception) when (stream.CanSeek
             && ShouldRetryEncryptedPowerPointOpen(exception, options)) {
             stream.Position = 0;
             try {
                 return PowerPointPresentation.LoadEncrypted(stream,
-                    options.OpenPassword!, loadOptions);
+                    options.OpenPassword!, loadOptions,
+                    cancellationToken);
             } catch (CryptographicException) {
                 throw;
             } catch {

@@ -170,12 +170,20 @@ namespace OfficeIMO.PowerPoint {
                 return null;
             }
             if (index.Value >= 1001U) {
-                return formatScheme.GetFirstChild<A.BackgroundFillStyleList>()?
-                    .ChildElements.ElementAtOrDefault(checked((int)(index.Value - 1001U)));
+                OpenXmlElementList fills = formatScheme
+                    .GetFirstChild<A.BackgroundFillStyleList>()?
+                    .ChildElements ?? default;
+                uint zeroBased = index.Value - 1001U;
+                return zeroBased < unchecked((uint)fills.Count)
+                    ? fills[unchecked((int)zeroBased)]
+                    : null;
             }
-            return index.Value >= 1U
-                ? formatScheme.GetFirstChild<A.FillStyleList>()?
-                    .ChildElements.ElementAtOrDefault(checked((int)index.Value - 1))
+            if (index.Value < 1U) return null;
+            OpenXmlElementList styles = formatScheme
+                .GetFirstChild<A.FillStyleList>()?.ChildElements ?? default;
+            uint styleIndex = index.Value - 1U;
+            return styleIndex < unchecked((uint)styles.Count)
+                ? styles[unchecked((int)styleIndex)]
                 : null;
         }
 

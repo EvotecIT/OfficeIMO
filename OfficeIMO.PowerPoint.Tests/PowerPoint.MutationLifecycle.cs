@@ -3,6 +3,7 @@ using DocumentFormat.OpenXml.Presentation;
 using OfficeIMO.PowerPoint;
 using Xunit;
 using A = DocumentFormat.OpenXml.Drawing;
+using P = DocumentFormat.OpenXml.Presentation;
 
 namespace OfficeIMO.Tests {
     public sealed class PowerPointMutationLifecycleTests {
@@ -73,6 +74,75 @@ namespace OfficeIMO.Tests {
             Assert.True(second.SlidePart.TryGetPartById(
                 secondLink.Id!.Value!, out OpenXmlPart? secondTarget));
             Assert.Same(first.SlidePart, secondTarget);
+            Assert.Empty(presentation.ValidateDocument());
+        }
+
+        [Fact]
+        public void ImportingMutuallyLinkedSlidesImportsListedTargetsOnce() {
+            using PowerPointPresentation source =
+                PowerPointPresentation.Create();
+            PowerPointSlide first = source.AddSlide();
+            PowerPointTextRun firstRun = first.AddTextBox("Second")
+                .Paragraphs.Single().Runs.Single();
+            PowerPointSlide second = source.AddSlide();
+            PowerPointTextRun secondRun = second.AddTextBox("First")
+                .Paragraphs.Single().Runs.Single();
+            firstRun.SetHyperlink(second);
+            secondRun.SetHyperlink(first);
+            using PowerPointPresentation target =
+                PowerPointPresentation.Create();
+
+            PowerPointSlide importedFirst = target.ImportSlide(source, 0);
+
+            Assert.Equal(2, target.Slides.Count);
+            PowerPointSlide importedSecond = target.Slides[1];
+            A.HyperlinkOnClick firstLink = importedFirst.SlidePart.Slide!
+                .Descendants<A.HyperlinkOnClick>().Single();
+            A.HyperlinkOnClick secondLink = importedSecond.SlidePart.Slide!
+                .Descendants<A.HyperlinkOnClick>().Single();
+            Assert.True(importedFirst.SlidePart.TryGetPartById(
+                firstLink.Id!.Value!, out OpenXmlPart? firstTarget));
+            Assert.Same(importedSecond.SlidePart, firstTarget);
+            Assert.True(importedSecond.SlidePart.TryGetPartById(
+                secondLink.Id!.Value!, out OpenXmlPart? secondTarget));
+            Assert.Same(importedFirst.SlidePart, secondTarget);
+            Assert.Empty(target.ValidateDocument());
+        }
+
+        [Fact]
+        public void RemovingSlideCleansLayoutAndSoundedInboundLinks() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            PowerPointSlide source = presentation.AddSlide(
+                P.SlideLayoutValues.Title);
+            PowerPointSlide target = presentation.AddSlide();
+            PowerPointTextRun run = source.AddTextBox("Target")
+                .Paragraphs.Single().Runs.Single();
+            run.SetHyperlink(target);
+            using (var sound = new MemoryStream(CreateWave(),
+                       writable: false)) {
+                run.SetClickSound(sound, "Removed target sound");
+            }
+            SlideLayoutPart layoutPart = source.SlidePart.SlideLayoutPart!;
+            const string LayoutRelationshipId = "rIdSlideTarget";
+            layoutPart.AddPart(target.SlidePart, LayoutRelationshipId);
+            NonVisualDrawingProperties layoutProperties = layoutPart
+                .SlideLayout!.Descendants<NonVisualDrawingProperties>()
+                .First();
+            layoutProperties.Append(new A.HyperlinkOnClick {
+                Id = LayoutRelationshipId
+            });
+
+            presentation.RemoveSlide(1);
+
+            Assert.Empty(source.SlidePart.Slide!
+                .Descendants<A.HyperlinkOnClick>());
+            Assert.Empty(layoutPart.SlideLayout
+                .Descendants<A.HyperlinkOnClick>());
+            Assert.DoesNotContain(layoutPart.Parts, pair =>
+                pair.RelationshipId == LayoutRelationshipId);
+            Assert.Empty(source.SlidePart.DataPartReferenceRelationships);
+            Assert.Empty(presentation.OpenXmlDocument.DataParts);
             Assert.Empty(presentation.ValidateDocument());
         }
 

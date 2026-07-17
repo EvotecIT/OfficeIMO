@@ -163,7 +163,14 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>Loads an existing presentation into detached memory.</summary>
-        public static PowerPointPresentation Load(string filePath, PowerPointLoadOptions? options = null) {
+        public static PowerPointPresentation Load(string filePath,
+            PowerPointLoadOptions? options = null) => Load(filePath, options,
+                CancellationToken.None);
+
+        /// <summary>Loads an existing presentation into detached memory with cancellation.</summary>
+        public static PowerPointPresentation Load(string filePath,
+            PowerPointLoadOptions? options,
+            CancellationToken cancellationToken) {
             if (filePath == null) throw new ArgumentNullException(nameof(filePath));
             if (!File.Exists(filePath)) {
                 throw new FileNotFoundException($"File '{filePath}' doesn't exist.", filePath);
@@ -174,14 +181,22 @@ namespace OfficeIMO.PowerPoint {
             byte[] bytes;
             using (var source = new FileStream(filePath, FileMode.Open, FileAccess.Read,
                        FileShare.ReadWrite | FileShare.Delete)) {
-                bytes = ReadPresentationInputBytes(source, resolved);
+                bytes = ReadPresentationInputBytes(source, resolved,
+                    cancellationToken);
             }
             return LoadDocument(bytes, filePath, sourceStream: null,
-                resolved);
+                resolved, cancellationToken);
         }
 
         /// <summary>Loads a presentation from a caller-owned stream into memory. Editable writable seekable sources become the associated destination; other sources remain detached.</summary>
-        public static PowerPointPresentation Load(Stream stream, PowerPointLoadOptions? options = null) {
+        public static PowerPointPresentation Load(Stream stream,
+            PowerPointLoadOptions? options = null) => Load(stream, options,
+                CancellationToken.None);
+
+        /// <summary>Loads a presentation from a caller-owned stream into memory with cancellation.</summary>
+        public static PowerPointPresentation Load(Stream stream,
+            PowerPointLoadOptions? options,
+            CancellationToken cancellationToken) {
             if (stream == null) throw new ArgumentNullException(nameof(stream));
             if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
 
@@ -189,8 +204,9 @@ namespace OfficeIMO.PowerPoint {
             OfficeDocumentLifecycle.Validate(resolved.AccessMode, resolved.PersistenceMode, "presentation");
             OfficeDocumentLifecycle.EnsureSaveOnDisposeDestination(stream, resolved.PersistenceMode, nameof(stream));
 
-            return LoadDocument(ReadPresentationInputBytes(stream, resolved),
-                filePath: null, stream, resolved);
+            return LoadDocument(ReadPresentationInputBytes(stream, resolved,
+                    cancellationToken),
+                filePath: null, stream, resolved, cancellationToken);
         }
 
         /// <summary>Asynchronously loads an existing presentation into detached memory.</summary>
@@ -241,7 +257,15 @@ namespace OfficeIMO.PowerPoint {
         public static PowerPointPresentation LoadEncrypted(
             string filePath,
             string password,
-            PowerPointLoadOptions? options = null) {
+            PowerPointLoadOptions? options = null) => LoadEncrypted(filePath,
+                password, options, CancellationToken.None);
+
+        /// <summary>Loads a password-encrypted presentation into detached memory with cancellation.</summary>
+        public static PowerPointPresentation LoadEncrypted(
+            string filePath,
+            string password,
+            PowerPointLoadOptions? options,
+            CancellationToken cancellationToken) {
             if (filePath == null) throw new ArgumentNullException(nameof(filePath));
             if (password == null) throw new ArgumentNullException(nameof(password));
             if (!File.Exists(filePath)) {
@@ -253,7 +277,7 @@ namespace OfficeIMO.PowerPoint {
             using var source = new FileStream(filePath, FileMode.Open,
                 FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
             byte[] encryptedBytes = ReadPresentationInputBytes(source,
-                resolved);
+                resolved, cancellationToken);
             LegacyBinaryEncryptionKind legacyEncryption =
                 PowerPointPresentationLoadRouting
                     .GetLegacyBinaryEncryptionKind(encryptedBytes,
@@ -261,10 +285,13 @@ namespace OfficeIMO.PowerPoint {
             if (legacyEncryption == LegacyBinaryEncryptionKind.Encrypted) {
                 return LoadEncryptedLegacyPptFromNormalFlow(encryptedBytes,
                     password, PowerPointPresentationLoadRouting.GetFormat(
-                        filePath, legacyDefault: true), resolved);
+                        filePath, legacyDefault: true), resolved,
+                    cancellationToken);
             }
             ThrowIfUnencryptedLegacyBinary(legacyEncryption);
-            byte[] packageBytes = OfficeEncryption.DecryptPackage(encryptedBytes, password);
+            byte[] packageBytes = OfficeEncryption.DecryptPackage(
+                encryptedBytes, password, cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
             return LoadPackage(packageBytes, filePath: null, sourceStream: null, resolved);
         }
 
@@ -343,7 +370,15 @@ namespace OfficeIMO.PowerPoint {
         public static PowerPointPresentation LoadEncrypted(
             Stream stream,
             string password,
-            PowerPointLoadOptions? options = null) {
+            PowerPointLoadOptions? options = null) => LoadEncrypted(stream,
+                password, options, CancellationToken.None);
+
+        /// <summary>Loads a password-encrypted presentation stream into detached memory with cancellation.</summary>
+        public static PowerPointPresentation LoadEncrypted(
+            Stream stream,
+            string password,
+            PowerPointLoadOptions? options,
+            CancellationToken cancellationToken) {
             if (stream == null) throw new ArgumentNullException(nameof(stream));
             if (password == null) throw new ArgumentNullException(nameof(password));
             if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
@@ -351,17 +386,20 @@ namespace OfficeIMO.PowerPoint {
             PowerPointLoadOptions resolved = options ?? new PowerPointLoadOptions();
             EnsureEncryptedLoadUsesExplicitPersistence(resolved);
             byte[] encryptedBytes = ReadPresentationInputBytes(stream,
-                resolved);
+                resolved, cancellationToken);
             LegacyBinaryEncryptionKind legacyEncryption =
                 PowerPointPresentationLoadRouting
                     .GetLegacyBinaryEncryptionKind(encryptedBytes,
                         resolved.LegacyPptImportOptions);
             if (legacyEncryption == LegacyBinaryEncryptionKind.Encrypted) {
                 return LoadEncryptedLegacyPptFromNormalFlow(encryptedBytes,
-                    password, PowerPointFileFormat.Ppt, resolved);
+                    password, PowerPointFileFormat.Ppt, resolved,
+                    cancellationToken);
             }
             ThrowIfUnencryptedLegacyBinary(legacyEncryption);
-            byte[] packageBytes = OfficeEncryption.DecryptPackage(encryptedBytes, password);
+            byte[] packageBytes = OfficeEncryption.DecryptPackage(
+                encryptedBytes, password, cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
             return LoadPackage(packageBytes, filePath: null, sourceStream: null, resolved);
         }
 

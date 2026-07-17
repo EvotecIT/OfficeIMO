@@ -306,6 +306,31 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PowerPointSlide_BoundsOutOfRangeThemeFillIndex() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            PowerPointAutoShape source = slide.AddShapePoints(
+                A.ShapeTypeValues.Rectangle, 10, 10, 100, 60);
+            Shape shape = Assert.IsType<Shape>(source.Element);
+            shape.ShapeProperties!.RemoveAllChildren<A.SolidFill>();
+            shape.ShapeStyle = new ShapeStyle(
+                new A.LineReference { Index = 1U },
+                new A.FillReference { Index = uint.MaxValue },
+                new A.EffectReference { Index = 0U },
+                new A.FontReference {
+                    Index = A.FontCollectionIndexValues.Minor
+                });
+
+            PowerPointSlideVisualSnapshot snapshot =
+                slide.CreateVisualSnapshot(new PowerPointImageExportOptions {
+                    IncludeSlideBackground = false
+                });
+
+            Assert.NotNull(snapshot.Drawing);
+        }
+
+        [Fact]
         public void PowerPointSlide_ReportsUnsupportedPathGradientWithoutApproximatingIt() {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);

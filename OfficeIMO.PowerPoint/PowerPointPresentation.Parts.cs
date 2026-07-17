@@ -152,7 +152,8 @@ namespace OfficeIMO.PowerPoint {
 
         private SlideMasterPart CloneSlideMasterPart(
             SlideMasterPart sourceMasterPart,
-            out Dictionary<SlideLayoutPart, SlideLayoutPart> layoutMap) {
+            out Dictionary<SlideLayoutPart, SlideLayoutPart> layoutMap,
+            Func<SlidePart, SlidePart?>? slideResolver = null) {
             layoutMap = new Dictionary<SlideLayoutPart, SlideLayoutPart>();
 
             if (sourceMasterPart.SlideMaster == null) {
@@ -168,12 +169,16 @@ namespace OfficeIMO.PowerPoint {
                 string relId = partPair.RelationshipId;
 
                 if (part is SlideLayoutPart sourceLayoutPart) {
-                    SlideLayoutPart clonedLayout = CloneSlideLayoutPart(sourceLayoutPart, targetMasterPart, relId);
+                    SlideLayoutPart clonedLayout = CloneSlideLayoutPart(
+                        sourceLayoutPart, targetMasterPart, relId,
+                        slideResolver);
                     layoutMap[sourceLayoutPart] = clonedLayout;
                     continue;
                 }
 
-                ClonePartRecursive(part, targetMasterPart, relId, _ => false, includeDataParts: false);
+                ClonePartRecursive(part, targetMasterPart, relId,
+                    _ => false, includeDataParts: false,
+                    slideResolver: slideResolver);
             }
 
             CloneReferenceRelationships(sourceMasterPart, targetMasterPart, includeDataParts: false);
@@ -190,7 +195,8 @@ namespace OfficeIMO.PowerPoint {
         private static SlideLayoutPart CloneSlideLayoutPart(
             SlideLayoutPart sourceLayoutPart,
             SlideMasterPart targetMasterPart,
-            string relationshipId) {
+            string relationshipId,
+            Func<SlidePart, SlidePart?>? slideResolver = null) {
             if (sourceLayoutPart.SlideLayout == null) {
                 throw new InvalidOperationException("Source slide layout is missing.");
             }
@@ -202,7 +208,8 @@ namespace OfficeIMO.PowerPoint {
                 sourceLayoutPart,
                 targetLayoutPart,
                 shouldSkip: part => part is SlideMasterPart,
-                includeDataParts: false);
+                includeDataParts: false,
+                slideResolver: slideResolver);
 
             targetLayoutPart.AddPart(targetMasterPart);
             return targetLayoutPart;
@@ -213,13 +220,16 @@ namespace OfficeIMO.PowerPoint {
             OpenXmlPart targetPart,
             Func<OpenXmlPart, bool> shouldSkip,
             bool includeDataParts,
-            Dictionary<DataPart, MediaDataPart>? dataPartMap = null) {
+            Dictionary<DataPart, MediaDataPart>? dataPartMap = null,
+            Func<SlidePart, SlidePart?>? slideResolver = null) {
             foreach (var childPair in sourcePart.Parts) {
                 if (shouldSkip(childPair.OpenXmlPart)) {
                     continue;
                 }
 
-                ClonePartRecursive(childPair.OpenXmlPart, targetPart, childPair.RelationshipId, _ => false, includeDataParts, dataPartMap);
+                ClonePartRecursive(childPair.OpenXmlPart, targetPart,
+                    childPair.RelationshipId, _ => false, includeDataParts,
+                    dataPartMap, slideResolver);
             }
 
             CloneReferenceRelationships(sourcePart, targetPart, includeDataParts, dataPartMap);
@@ -231,13 +241,16 @@ namespace OfficeIMO.PowerPoint {
             Func<OpenXmlPart, bool> shouldShare,
             bool includeDataParts,
             Func<OpenXmlPart, bool>? shouldSkip = null,
-            Dictionary<DataPart, MediaDataPart>? dataPartMap = null) {
+            Dictionary<DataPart, MediaDataPart>? dataPartMap = null,
+            Func<SlidePart, SlidePart?>? slideResolver = null) {
             foreach (var partPair in source.Parts) {
                 if (shouldSkip != null && shouldSkip(partPair.OpenXmlPart)) {
                     continue;
                 }
 
-                ClonePartRecursive(partPair.OpenXmlPart, target, partPair.RelationshipId, shouldShare, includeDataParts, dataPartMap);
+                ClonePartRecursive(partPair.OpenXmlPart, target,
+                    partPair.RelationshipId, shouldShare, includeDataParts,
+                    dataPartMap, slideResolver);
             }
 
             CloneReferenceRelationships(source, target, includeDataParts, dataPartMap);
@@ -249,7 +262,18 @@ namespace OfficeIMO.PowerPoint {
             string relationshipId,
             Func<OpenXmlPart, bool> shouldShare,
             bool includeDataParts,
-            Dictionary<DataPart, MediaDataPart>? dataPartMap = null) {
+            Dictionary<DataPart, MediaDataPart>? dataPartMap = null,
+            Func<SlidePart, SlidePart?>? slideResolver = null) {
+            if (sourcePart is SlidePart sourceSlide
+                && slideResolver != null) {
+                SlidePart? targetSlide = slideResolver(sourceSlide);
+                if (targetSlide == null) {
+                    throw new InvalidDataException(
+                        "An imported internal slide target is not present in the import closure.");
+                }
+                AddExistingPart(targetContainer, targetSlide, relationshipId);
+                return;
+            }
             if (shouldShare(sourcePart)) {
                 AddExistingPart(targetContainer, sourcePart, relationshipId);
                 return;
@@ -263,7 +287,9 @@ namespace OfficeIMO.PowerPoint {
             CloneReferenceRelationships(sourcePart, newPart, includeDataParts, dataPartMap);
 
             foreach (var childPair in sourcePart.Parts) {
-                ClonePartRecursive(childPair.OpenXmlPart, newPart, childPair.RelationshipId, shouldShare, includeDataParts, dataPartMap);
+                ClonePartRecursive(childPair.OpenXmlPart, newPart,
+                    childPair.RelationshipId, shouldShare,
+                    includeDataParts, dataPartMap, slideResolver);
             }
         }
 
@@ -485,7 +511,8 @@ namespace OfficeIMO.PowerPoint {
         private void CloneImportedNotesSlidePart(
             SlidePart sourceSlidePart,
             SlidePart targetSlidePart,
-            Dictionary<DataPart, MediaDataPart> mediaPartMap) {
+            Dictionary<DataPart, MediaDataPart> mediaPartMap,
+            Func<SlidePart, SlidePart?>? slideResolver = null) {
             NotesSlidePart? sourceNotesPart = sourceSlidePart.NotesSlidePart;
             if (sourceNotesPart == null) {
                 return;
@@ -501,7 +528,8 @@ namespace OfficeIMO.PowerPoint {
                 targetNotesPart,
                 shouldSkip: part => part is NotesMasterPart,
                 includeDataParts: true,
-                dataPartMap: mediaPartMap);
+                dataPartMap: mediaPartMap,
+                slideResolver: slideResolver);
 
             NotesMasterPart targetNotesMasterPart = PowerPointUtils.EnsureNotesMasterPart(_presentationPart);
             if (!targetNotesPart.Parts.Any(pair => ReferenceEquals(pair.OpenXmlPart, targetNotesMasterPart))) {

@@ -105,13 +105,22 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         private static bool TryReadBackground(OpenXmlPart ownerPart,
             P.Background source, string ownerName,
             out LegacyPptWriterBackground? background, out string? reason) {
-            A.ColorScheme? colorScheme = GetBackgroundThemePart(ownerPart)?
-                .Theme?.ThemeElements?.ColorScheme;
+            A.ColorScheme? colorScheme = GetBackgroundColorScheme(ownerPart);
             A.SchemeColor? placeholderColor = source.BackgroundStyleReference?
                 .GetFirstChild<A.SchemeColor>();
             OpenXmlElement? fill = GetBackgroundFill(ownerPart, source,
                 out OpenXmlPart fillOwnerPart);
-            if (fill == null || fill is A.GroupFill) {
+            if (fill == null) {
+                if (source.BackgroundStyleReference != null) {
+                    background = null;
+                    reason = $"The {ownerName} background style reference cannot be resolved from its active theme.";
+                    return false;
+                }
+                background = null;
+                reason = null;
+                return true;
+            }
+            if (fill is A.GroupFill) {
                 background = null;
                 reason = null;
                 return true;
@@ -365,32 +374,111 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             }
             P.BackgroundStyleReference? reference = source.BackgroundStyleReference;
             if (reference?.Index?.Value == null) return null;
-            ThemePart? themePart = GetBackgroundThemePart(ownerPart);
-            A.FormatScheme? formatScheme = themePart?.Theme?.ThemeElements?
-                .FormatScheme;
-            if (formatScheme == null) return null;
-            fillOwnerPart = themePart!;
+            A.FormatScheme? formatScheme = GetBackgroundFormatScheme(
+                ownerPart, out OpenXmlPart? themePart);
+            if (formatScheme == null || themePart == null) return null;
+            fillOwnerPart = themePart;
             uint index = reference.Index.Value;
             if (index >= 1001U) {
-                return formatScheme.GetFirstChild<A.BackgroundFillStyleList>()?
-                    .ChildElements.ElementAtOrDefault(checked((int)(index - 1001U)));
+                OpenXmlElementList fills = formatScheme
+                    .GetFirstChild<A.BackgroundFillStyleList>()?
+                    .ChildElements ?? default;
+                uint zeroBased = index - 1001U;
+                return zeroBased < unchecked((uint)fills.Count)
+                    ? fills[unchecked((int)zeroBased)]
+                    : null;
             }
-            return index >= 1U
-                ? formatScheme.GetFirstChild<A.FillStyleList>()?
-                    .ChildElements.ElementAtOrDefault(checked((int)index - 1))
+            if (index < 1U) return null;
+            OpenXmlElementList styles = formatScheme
+                .GetFirstChild<A.FillStyleList>()?.ChildElements ?? default;
+            uint styleIndex = index - 1U;
+            return styleIndex < unchecked((uint)styles.Count)
+                ? styles[unchecked((int)styleIndex)]
                 : null;
         }
 
-        private static ThemePart? GetBackgroundThemePart(OpenXmlPart ownerPart) =>
-            ownerPart switch {
-                SlidePart slidePart => slidePart.SlideLayoutPart?.SlideMasterPart?.ThemePart,
-                SlideLayoutPart layoutPart => layoutPart.SlideMasterPart?.ThemePart,
-                SlideMasterPart masterPart => masterPart.ThemePart,
-                NotesSlidePart notesPart => notesPart.NotesMasterPart?.ThemePart,
-                NotesMasterPart notesMasterPart => notesMasterPart.ThemePart,
-                HandoutMasterPart handoutMasterPart => handoutMasterPart.ThemePart,
+        private static A.ColorScheme? GetBackgroundColorScheme(
+            OpenXmlPart ownerPart) => GetBackgroundThemeSources(ownerPart)
+            .Select(GetColorScheme)
+            .FirstOrDefault(scheme => scheme != null);
+
+        private static A.ColorScheme? GetColorScheme(
+            OpenXmlPart themePart) => themePart switch {
+                ThemeOverridePart themeOverridePart => themeOverridePart
+                    .ThemeOverride?.ColorScheme,
+                ThemePart masterThemePart => masterThemePart.Theme?
+                    .ThemeElements?.ColorScheme,
                 _ => null
             };
+
+        private static A.FormatScheme? GetBackgroundFormatScheme(
+            OpenXmlPart ownerPart, out OpenXmlPart? themeSourcePart) {
+            foreach (OpenXmlPart candidate in
+                     GetBackgroundThemeSources(ownerPart)) {
+                A.FormatScheme? scheme = GetFormatScheme(candidate);
+                if (scheme == null) continue;
+                themeSourcePart = candidate;
+                return scheme;
+            }
+            themeSourcePart = null;
+            return null;
+        }
+
+        private static A.FormatScheme? GetFormatScheme(
+            OpenXmlPart themePart) => themePart switch {
+                ThemeOverridePart themeOverridePart => themeOverridePart
+                    .ThemeOverride?.FormatScheme,
+                ThemePart masterThemePart => masterThemePart.Theme?
+                    .ThemeElements?.FormatScheme,
+                _ => null
+            };
+
+        private static IEnumerable<OpenXmlPart> GetBackgroundThemeSources(
+            OpenXmlPart ownerPart) {
+            switch (ownerPart) {
+                case SlidePart slidePart:
+                    if (slidePart.ThemeOverridePart != null) {
+                        yield return slidePart.ThemeOverridePart;
+                    }
+                    if (slidePart.SlideLayoutPart?.ThemeOverridePart != null) {
+                        yield return slidePart.SlideLayoutPart.ThemeOverridePart;
+                    }
+                    if (slidePart.SlideLayoutPart?.SlideMasterPart?.ThemePart
+                        != null) {
+                        yield return slidePart.SlideLayoutPart
+                            .SlideMasterPart.ThemePart;
+                    }
+                    break;
+                case SlideLayoutPart layoutPart:
+                    if (layoutPart.ThemeOverridePart != null) {
+                        yield return layoutPart.ThemeOverridePart;
+                    }
+                    if (layoutPart.SlideMasterPart?.ThemePart != null) {
+                        yield return layoutPart.SlideMasterPart.ThemePart;
+                    }
+                    break;
+                case SlideMasterPart masterPart
+                    when masterPart.ThemePart != null:
+                    yield return masterPart.ThemePart;
+                    break;
+                case NotesSlidePart notesPart:
+                    if (notesPart.ThemeOverridePart != null) {
+                        yield return notesPart.ThemeOverridePart;
+                    }
+                    if (notesPart.NotesMasterPart?.ThemePart != null) {
+                        yield return notesPart.NotesMasterPart.ThemePart;
+                    }
+                    break;
+                case NotesMasterPart notesMasterPart
+                    when notesMasterPart.ThemePart != null:
+                    yield return notesMasterPart.ThemePart;
+                    break;
+                case HandoutMasterPart handoutMasterPart
+                    when handoutMasterPart.ThemePart != null:
+                    yield return handoutMasterPart.ThemePart;
+                    break;
+            }
+        }
 
         private static byte[] BuildBackgroundDrawingRecord(LegacyPptRecord drawing,
             LegacyPptWriterBackground background,

@@ -198,28 +198,54 @@ namespace OfficeIMO.PowerPoint {
                 || action[expectedPrefix.Length] == '&');
 
         private void RemoveInboundSlideLinks(SlidePart targetSlidePart) {
-            foreach (SlidePart sourceSlidePart in _presentationPart.SlideParts
-                         .Where(part => !ReferenceEquals(part,
-                             targetSlidePart)).ToArray()) {
-                Slide? sourceSlide = sourceSlidePart.Slide;
-                if (sourceSlide == null) continue;
-                string[] relationshipIds = sourceSlidePart.Parts
+            var visited = new HashSet<OpenXmlPart>();
+            var pending = new Stack<OpenXmlPart>();
+            pending.Push(_presentationPart);
+            while (pending.Count > 0) {
+                OpenXmlPart ownerPart = pending.Pop();
+                if (!visited.Add(ownerPart)) continue;
+                foreach (IdPartPair child in ownerPart.Parts) {
+                    if (!ReferenceEquals(child.OpenXmlPart,
+                            targetSlidePart)) {
+                        pending.Push(child.OpenXmlPart);
+                    }
+                }
+                if (ReferenceEquals(ownerPart, _presentationPart)
+                    || ReferenceEquals(ownerPart, targetSlidePart)
+                    || ownerPart.RootElement == null) {
+                    continue;
+                }
+                string[] relationshipIds = ownerPart.Parts
                     .Where(pair => ReferenceEquals(pair.OpenXmlPart,
                         targetSlidePart))
                     .Select(pair => pair.RelationshipId)
                     .ToArray();
-                if (relationshipIds.Length == 0) continue;
+                bool changed = false;
                 foreach (string relationshipId in relationshipIds) {
-                    foreach (A.HyperlinkType hyperlink in sourceSlide
-                                 .Descendants<A.HyperlinkType>()
-                                 .Where(link => string.Equals(link.Id?.Value,
-                                     relationshipId,
-                                     StringComparison.Ordinal)).ToArray()) {
+                    A.HyperlinkType[] hyperlinks = ownerPart.RootElement
+                        .Descendants<A.HyperlinkType>()
+                        .Where(link => string.Equals(link.Id?.Value,
+                            relationshipId, StringComparison.Ordinal))
+                        .ToArray();
+                    string[] soundRelationshipIds = hyperlinks
+                        .SelectMany(link => link.Elements<A.HyperlinkSound>())
+                        .Select(sound => sound.Embed?.Value)
+                        .Where(id => !string.IsNullOrEmpty(id))
+                        .Cast<string>()
+                        .Distinct(StringComparer.Ordinal)
+                        .ToArray();
+                    foreach (A.HyperlinkType hyperlink in hyperlinks) {
                         hyperlink.Remove();
                     }
-                    sourceSlidePart.DeletePart(relationshipId);
+                    ownerPart.DeletePart(relationshipId);
+                    foreach (string soundRelationshipId in
+                             soundRelationshipIds) {
+                        PowerPointEmbeddedSound.RemoveIfUnused(ownerPart,
+                            soundRelationshipId);
+                    }
+                    changed |= hyperlinks.Length > 0;
                 }
-                sourceSlide.Save();
+                if (changed) ownerPart.RootElement.Save();
             }
         }
 
@@ -319,6 +345,7 @@ namespace OfficeIMO.PowerPoint {
         /// <param name="sourcePresentation">Presentation to import from.</param>
         /// <param name="sourceIndex">Index of the slide to import.</param>
         /// <param name="insertAt">Index where the imported slide should be inserted. Defaults to end.</param>
+        /// <remarks>Listed target slides reachable through internal slide links are imported once so the links remain valid.</remarks>
         public PowerPointSlide ImportSlide(PowerPointPresentation sourcePresentation, int sourceIndex, int? insertAt = null) {
             ThrowIfDisposed();
             if (sourcePresentation == null) {
@@ -339,66 +366,142 @@ namespace OfficeIMO.PowerPoint {
                 throw new ArgumentOutOfRangeException(nameof(insertAt));
             }
 
-            PowerPointSlide sourceSlide = sourceSlides[sourceIndex];
-            sourceSlide.Save();
-            Slide sourceSlideRoot = sourceSlide.SlidePart.Slide ?? throw new InvalidOperationException("Source slide is missing its slide definition.");
-
-            SlideLayoutPart? sourceLayoutPart = sourceSlide.SlidePart.SlideLayoutPart;
-            if (sourceLayoutPart == null) {
-                throw new InvalidOperationException("Source slide does not have a layout to import.");
+            PowerPointSlide requestedSource = sourceSlides[sourceIndex];
+            IReadOnlyList<PowerPointSlide> importSources =
+                CollectSlideImportClosure(sourcePresentation,
+                    requestedSource);
+            SlideIdList slideIdList = PresentationRoot.SlideIdList ??= new SlideIdList();
+            var importedSlides = new Dictionary<SlidePart, PowerPointSlide>();
+            for (int offset = 0; offset < importSources.Count; offset++) {
+                PowerPointSlide sourceSlide = importSources[offset];
+                sourceSlide.Save();
+                Slide sourceRoot = sourceSlide.SlidePart.Slide
+                    ?? throw new InvalidOperationException(
+                        "Source slide is missing its slide definition.");
+                string slideRelId = GetNextSlideRelationshipId();
+                SlidePart targetPart = _presentationPart
+                    .AddNewPart<SlidePart>(slideRelId);
+                targetPart.Slide = (Slide)sourceRoot.CloneNode(true);
+                var imported = new PowerPointSlide(targetPart);
+                int insertionIndex = targetIndex + offset;
+                SlideId slideId = new() { Id = GetNextSlideId() };
+                PowerPointUtils.SetRelationshipIdValue(slideId, slideRelId);
+                InsertSlideId(slideIdList, slideId, insertionIndex);
+                _slides.Insert(insertionIndex, imported);
+                importedSlides.Add(sourceSlide.SlidePart, imported);
+                imported.Hidden = sourceSlide.Hidden;
+                AssignSlideToNearestSection(slideId.Id?.Value
+                        ?? throw new InvalidOperationException(
+                            "Slide ID is missing."),
+                    insertionIndex);
             }
 
-            SlideLayoutPart? targetLayoutPart = FindMatchingLayout(sourceLayoutPart);
-            if (targetLayoutPart == null) {
-                SlideMasterPart sourceMasterPart = sourceLayoutPart.SlideMasterPart
-                    ?? throw new InvalidOperationException("Source slide layout does not have a master.");
+            SlidePart? ResolveImportedSlide(SlidePart sourcePart) =>
+                importedSlides.TryGetValue(sourcePart,
+                    out PowerPointSlide? imported)
+                    ? imported.SlidePart
+                    : null;
 
-                Dictionary<SlideLayoutPart, SlideLayoutPart> layoutMap;
-                CloneSlideMasterPart(sourceMasterPart, out layoutMap);
+            foreach (PowerPointSlide sourceSlide in importSources) {
+                SlidePart targetPart = importedSlides[sourceSlide.SlidePart]
+                    .SlidePart;
+                SlideLayoutPart sourceLayoutPart = sourceSlide.SlidePart
+                    .SlideLayoutPart
+                    ?? throw new InvalidOperationException(
+                        "Source slide does not have a layout to import.");
+                SlideLayoutPart? targetLayoutPart =
+                    FindMatchingLayout(sourceLayoutPart);
+                if (targetLayoutPart == null) {
+                    SlideMasterPart sourceMasterPart = sourceLayoutPart
+                        .SlideMasterPart
+                        ?? throw new InvalidOperationException(
+                            "Source slide layout does not have a master.");
+                    CloneSlideMasterPart(sourceMasterPart,
+                        out Dictionary<SlideLayoutPart, SlideLayoutPart>
+                            layoutMap,
+                        ResolveImportedSlide);
+                    if (!layoutMap.TryGetValue(sourceLayoutPart,
+                            out targetLayoutPart)) {
+                        throw new InvalidOperationException(
+                            "Failed to resolve the imported slide layout.");
+                    }
+                }
+                string? layoutRelId = sourceSlide.SlidePart
+                    .GetIdOfPart(sourceLayoutPart);
+                if (string.IsNullOrWhiteSpace(layoutRelId)) {
+                    layoutRelId = GetNextRelationshipId(targetPart);
+                }
+                targetPart.AddPart(targetLayoutPart, layoutRelId);
+            }
 
-                if (!layoutMap.TryGetValue(sourceLayoutPart, out targetLayoutPart)) {
-                    throw new InvalidOperationException("Failed to resolve the imported slide layout.");
+            var mediaPartMap = new Dictionary<DataPart, MediaDataPart>();
+            foreach (PowerPointSlide sourceSlide in importSources) {
+                SlidePart targetPart = importedSlides[sourceSlide.SlidePart]
+                    .SlidePart;
+                CloneSlidePartRelationships(sourceSlide.SlidePart,
+                    targetPart, shouldShare: _ => false,
+                    includeDataParts: true,
+                    shouldSkip: part => part is SlideLayoutPart
+                        || part is NotesSlidePart,
+                    dataPartMap: mediaPartMap,
+                    slideResolver: ResolveImportedSlide);
+                if (sourceSlide.SlidePart.NotesSlidePart != null) {
+                    CloneImportedNotesSlidePart(sourceSlide.SlidePart,
+                        targetPart, mediaPartMap, ResolveImportedSlide);
                 }
             }
 
-            string slideRelId = GetNextSlideRelationshipId();
-            SlidePart slidePart = _presentationPart.AddNewPart<SlidePart>(slideRelId);
-            slidePart.Slide = (Slide)sourceSlideRoot.CloneNode(true);
-
-            Dictionary<DataPart, MediaDataPart> mediaPartMap = new();
-            CloneSlidePartRelationships(
-                sourceSlide.SlidePart,
-                slidePart,
-                shouldShare: _ => false,
-                includeDataParts: true,
-                shouldSkip: part => part is SlideLayoutPart || part is NotesSlidePart,
-                dataPartMap: mediaPartMap);
-
-            string? layoutRelId = sourceSlide.SlidePart.GetIdOfPart(sourceLayoutPart);
-            if (string.IsNullOrWhiteSpace(layoutRelId)) {
-                layoutRelId = GetNextRelationshipId(slidePart);
-            }
-
-            slidePart.AddPart(targetLayoutPart, layoutRelId);
-
-            SlideIdList slideIdList = PresentationRoot.SlideIdList ??= new SlideIdList();
-            SlideId slideId = new() { Id = GetNextSlideId() };
-            PowerPointUtils.SetRelationshipIdValue(slideId, slideRelId);
-            InsertSlideId(slideIdList, slideId, targetIndex);
-            AssignSlideToNearestSection(slideId.Id?.Value ?? throw new InvalidOperationException("Slide ID is missing."),
-                targetIndex);
-
-            PowerPointSlide imported = new(slidePart);
-            imported.Hidden = sourceSlide.Hidden;
-
-            if (sourceSlide.SlidePart.NotesSlidePart != null) {
-                CloneImportedNotesSlidePart(sourceSlide.SlidePart, slidePart, mediaPartMap);
-            }
-
-            _slides.Insert(targetIndex, imported);
             PresentationRoot.Save();
+            return importedSlides[requestedSource.SlidePart];
+        }
 
-            return imported;
+        private static IReadOnlyList<PowerPointSlide>
+            CollectSlideImportClosure(
+                PowerPointPresentation sourcePresentation,
+                PowerPointSlide requestedSource) {
+            IReadOnlyList<PowerPointSlide> sourceSlides =
+                sourcePresentation.Slides;
+            var sourceByPart = sourceSlides.ToDictionary(slide =>
+                slide.SlidePart);
+            var selected = new HashSet<SlidePart>();
+            var pending = new Queue<SlidePart>();
+            pending.Enqueue(requestedSource.SlidePart);
+            while (pending.Count > 0) {
+                SlidePart sourcePart = pending.Dequeue();
+                if (!selected.Add(sourcePart)) continue;
+                foreach (SlidePart target in EnumerateInternalSlideTargets(
+                             sourcePart)) {
+                    if (!sourceByPart.ContainsKey(target)) {
+                        throw new InvalidDataException(
+                            "The source presentation contains an internal link to an unlisted slide.");
+                    }
+                    if (!selected.Contains(target)) pending.Enqueue(target);
+                }
+            }
+
+            return new[] { requestedSource }
+                .Concat(sourceSlides.Where(slide =>
+                    !ReferenceEquals(slide, requestedSource)
+                    && selected.Contains(slide.SlidePart)))
+                .ToArray();
+        }
+
+        private static IEnumerable<SlidePart> EnumerateInternalSlideTargets(
+            SlidePart sourcePart) {
+            var visited = new HashSet<OpenXmlPart>();
+            var pending = new Stack<OpenXmlPart>();
+            pending.Push(sourcePart);
+            while (pending.Count > 0) {
+                OpenXmlPart part = pending.Pop();
+                if (!visited.Add(part)) continue;
+                foreach (IdPartPair child in part.Parts) {
+                    if (child.OpenXmlPart is SlidePart slidePart) {
+                        yield return slidePart;
+                    } else {
+                        pending.Push(child.OpenXmlPart);
+                    }
+                }
+            }
         }
 
     }

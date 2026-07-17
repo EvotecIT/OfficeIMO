@@ -10,6 +10,69 @@ using Xunit;
 namespace OfficeIMO.Tests {
     public class PowerPointLegacyPptBackgroundPreservationTests {
         [Fact]
+        public void NativeWriter_ResolvesBackgroundStyleFromSlideThemeOverride() {
+            byte[] binary;
+            using (PowerPointPresentation presentation =
+                   PowerPointPresentation.Create()) {
+                PowerPointSlide slide = presentation.AddSlide(
+                    P.SlideLayoutValues.Blank);
+                A.ThemeElements masterElements = slide.SlidePart
+                    .SlideLayoutPart!.SlideMasterPart!.ThemePart!.Theme!
+                    .ThemeElements!;
+                A.FormatScheme format = (A.FormatScheme)masterElements
+                    .FormatScheme!.CloneNode(true);
+                A.BackgroundFillStyleList fills = format
+                    .GetFirstChild<A.BackgroundFillStyleList>()!;
+                fills.RemoveAllChildren();
+                fills.Append(new A.SolidFill(
+                    new A.RgbColorModelHex { Val = "12AB34" }));
+                ThemeOverridePart overridePart = slide.SlidePart
+                    .AddNewPart<ThemeOverridePart>();
+                overridePart.ThemeOverride = new A.ThemeOverride(
+                    masterElements.ColorScheme!.CloneNode(true),
+                    masterElements.FontScheme!.CloneNode(true), format);
+                slide.SlidePart.Slide!.CommonSlideData!.Background =
+                    new P.Background(new P.BackgroundStyleReference(
+                        new A.SchemeColor {
+                            Val = A.SchemeColorValues.PhColor
+                        }) { Index = 1001U });
+
+                LegacyPptWritePreflightReport preflight = presentation
+                    .AnalyzeLegacyPptWrite();
+                Assert.True(preflight.CanWrite,
+                    string.Join(Environment.NewLine, preflight.Findings));
+                binary = presentation.ToBytes(PowerPointFileFormat.Ppt);
+            }
+
+            LegacyPptBackground background = Assert.IsType<
+                LegacyPptBackground>(Assert.Single(
+                    LegacyPptPresentation.Load(binary).Slides).Background);
+            Assert.Equal(LegacyPptBackgroundKind.Solid, background.Kind);
+            Assert.Equal("12AB34", background.ForegroundColor);
+        }
+
+        [Fact]
+        public void NativeWriter_ReportsOutOfRangeBackgroundStyleIndex() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            PowerPointSlide slide = presentation.AddSlide(
+                P.SlideLayoutValues.Blank);
+            slide.SlidePart.Slide!.CommonSlideData!.Background =
+                new P.Background(new P.BackgroundStyleReference {
+                    Index = uint.MaxValue
+                });
+
+            LegacyPptWritePreflightReport preflight = presentation
+                .AnalyzeLegacyPptWrite();
+
+            Assert.False(preflight.CanWrite);
+            Assert.Contains(preflight.Findings, finding =>
+                finding.Code == "PPT-WRITE-BACKGROUND"
+                && finding.Description.Contains("cannot be resolved",
+                    StringComparison.OrdinalIgnoreCase));
+        }
+
+        [Fact]
         public void NativeWriter_WritesDeduplicatedPictureBackgrounds() {
             byte[] imageBytes = PdfPngTestImages.CreateRgbPng(37, 99, 235);
             byte[] binary;
