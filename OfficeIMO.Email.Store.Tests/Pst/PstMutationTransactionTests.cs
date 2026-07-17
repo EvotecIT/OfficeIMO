@@ -2,6 +2,7 @@ using OfficeIMO.Email;
 using System.Collections;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using System.Threading;
 
 namespace OfficeIMO.Email.Store.Tests;
 
@@ -240,18 +241,134 @@ public sealed class PstMutationTransactionTests {
     }
 
     [Fact]
-    public void PathIdentityUsesCaseInsensitiveAliasesOnWindowsAndMacOSOnly() {
-        string path = Path.Combine(Path.GetTempPath(), "Mailbox.pst");
-        string alias = Path.Combine(Path.GetTempPath(), "MAILBOX.PST");
+    public void FixedSearchFolderNidWithoutWriterProvenanceIsHandledConservatively() {
+        string path = TemporaryPstPath();
+        try {
+            byte[] original = PstTestFileBuilder.Create(includeFixedNidSearchFolder: true);
+            File.WriteAllBytes(path, original);
+            using var transaction = EmailStorePstMutationTransaction.Open(path);
+            transaction.CreateFolder("Commit trigger");
 
-        Assert.Equal(PstPathIdentity.Normalize(path, caseInsensitive: true),
-            PstPathIdentity.Normalize(alias, caseInsensitive: true));
-        Assert.NotEqual(PstPathIdentity.Normalize(path, caseInsensitive: false),
-            PstPathIdentity.Normalize(alias, caseInsensitive: false));
-        Assert.Equal(
-            RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ||
-            RuntimeInformation.IsOSPlatform(OSPlatform.OSX),
-            PstPathIdentity.IsCaseInsensitivePlatform);
+            InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
+                transaction.Commit());
+
+            Assert.Contains("EMAIL_STORE_PST_MUTATE_SEARCH_FOLDER_STATIC", exception.Message,
+                StringComparison.Ordinal);
+            Assert.Equal(original, File.ReadAllBytes(path));
+        } finally {
+            TryDelete(path);
+        }
+    }
+
+    [Theory]
+    [InlineData(0x8022U)]
+    [InlineData(0xA002U)]
+    public void MissingOrSelfParentFolderTriggersTheDefaultFidelityGuard(uint parentNid) {
+        string path = TemporaryPstPath();
+        try {
+            byte[] original = PstTestFileBuilder.Create(inboxParentNid: parentNid);
+            File.WriteAllBytes(path, original);
+            using var transaction = EmailStorePstMutationTransaction.Open(path);
+            transaction.CreateFolder("Commit trigger");
+
+            InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
+                transaction.Commit());
+
+            Assert.Contains("EMAIL_STORE_PST_MUTATE_FOLDER_PARENT_RECOVERED", exception.Message,
+                StringComparison.Ordinal);
+            Assert.Equal(original, File.ReadAllBytes(path));
+        } finally {
+            TryDelete(path);
+        }
+    }
+
+    [Fact]
+    public void MutationPreservesAndAcceptsSurroundingWhitespaceInOrdinaryFolderNames() {
+        string path = TemporaryPstPath();
+        try {
+            using (EmailStorePstWriter writer = EmailStorePstWriter.Create(path)) {
+                writer.AddFolder("  Existing folder  ", containerClass: "IPF.Note");
+                writer.Complete();
+            }
+
+            using (var transaction = EmailStorePstMutationTransaction.Open(path)) {
+                string existingId = Assert.Single(transaction.Folders,
+                    folder => folder.Name == "  Existing folder  ").Id;
+                transaction.RenameFolder(existingId, "  Renamed folder  ");
+                transaction.CreateFolder("  Created folder  ", containerClass: "IPF.Note");
+                Assert.True(transaction.Commit().Verification?.IsSuccessful);
+            }
+
+            using EmailStoreSession rewritten = EmailStoreSession.Open(path);
+            Assert.Single(rewritten.Folders, folder => folder.Name == "  Renamed folder  ");
+            Assert.Single(rewritten.Folders, folder => folder.Name == "  Created folder  ");
+        } finally {
+            TryDelete(path);
+        }
+    }
+
+    [Fact]
+    public void DeepFolderHierarchyMappingIsLinearAndCancellationAware() {
+        string sourcePath = TemporaryPstPath();
+        string destinationPath = TemporaryPstPath();
+        const int depth = 20000;
+        try {
+            using (EmailStorePstWriter sourceWriter = EmailStorePstWriter.Create(sourcePath)) {
+                sourceWriter.Complete();
+            }
+            using var transaction = EmailStorePstMutationTransaction.Open(sourcePath,
+                new EmailStorePstMutationOptions(maxFolderCount: depth + 100));
+            string parent = transaction.RootFolderId;
+            for (int index = 0; index < depth; index++) {
+                parent = transaction.CreateFolder("Level " + index.ToString(), parent);
+            }
+
+            using var destinationWriter = EmailStorePstWriter.Create(destinationPath,
+                new EmailStorePstWriterOptions(maxFolderCount: depth + 100));
+            var folderMap = new Dictionary<string, string>(StringComparer.Ordinal);
+            var parentMap = new Dictionary<string, string?>(StringComparer.Ordinal);
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+
+            transaction.BuildFolderMap(destinationWriter, folderMap, parentMap,
+                CancellationToken.None);
+
+            stopwatch.Stop();
+            Assert.Equal(transaction.Folders.Count, folderMap.Count);
+            Assert.True(stopwatch.Elapsed < TimeSpan.FromSeconds(10),
+                "Deep hierarchy mapping took " + stopwatch.Elapsed + ".");
+            using var cancelled = new CancellationTokenSource();
+            cancelled.Cancel();
+            Assert.Throws<OperationCanceledException>(() => transaction.BuildFolderMap(
+                destinationWriter, new Dictionary<string, string>(),
+                new Dictionary<string, string?>(), cancelled.Token));
+        } finally {
+            TryDelete(sourcePath);
+            TryDelete(destinationPath);
+        }
+    }
+
+    [Fact]
+    public void PathIdentityUsesTheActualDirectoryCaseBehavior() {
+        string directory = Path.Combine(Path.GetTempPath(),
+            "officeimo-path-identity-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        string path = Path.Combine(directory, "Mailbox.pst");
+        string alias = Path.Combine(directory, "MAILBOX.PST");
+        try {
+            File.WriteAllText(path, "identity");
+            bool actualCaseInsensitive = File.Exists(alias);
+
+            Assert.Equal(PstPathIdentity.Normalize(path, caseInsensitive: true),
+                PstPathIdentity.Normalize(alias, caseInsensitive: true));
+            Assert.NotEqual(PstPathIdentity.Normalize(path, caseInsensitive: false),
+                PstPathIdentity.Normalize(alias, caseInsensitive: false));
+            Assert.Equal(actualCaseInsensitive, PstPathIdentity.IsCaseInsensitiveFileSystem(path));
+            Assert.Equal(actualCaseInsensitive, PstPathIdentity.AreEquivalent(path, alias));
+        } finally {
+            try { Directory.Delete(directory, recursive: true); }
+            catch (IOException) { }
+            catch (UnauthorizedAccessException) { }
+        }
     }
 
     [Fact]

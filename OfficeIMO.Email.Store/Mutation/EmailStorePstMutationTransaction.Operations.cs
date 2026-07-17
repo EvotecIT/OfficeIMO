@@ -86,15 +86,20 @@ public sealed partial class EmailStorePstMutationTransaction {
             throw new InvalidOperationException("Mandatory PST folders cannot be deleted by a rewrite transaction.");
         }
         EnsureItemsIndexed(cancellationToken);
-        var removed = new HashSet<string>(StringComparer.Ordinal) { folder.Id };
-        bool changed;
-        do {
-            changed = false;
-            foreach (FolderState candidate in _folders.Values) {
-                if (candidate.Deleted || candidate.ParentId == null || removed.Contains(candidate.Id)) continue;
-                if (removed.Contains(candidate.ParentId) && removed.Add(candidate.Id)) changed = true;
-            }
-        } while (changed);
+        Dictionary<string, FolderState[]> childrenByParent = _folders.Values
+            .Where(candidate => !candidate.Deleted && candidate.ParentId != null)
+            .GroupBy(candidate => candidate.ParentId!, StringComparer.Ordinal)
+            .ToDictionary(group => group.Key, group => group.ToArray(), StringComparer.Ordinal);
+        var removed = new HashSet<string>(StringComparer.Ordinal);
+        var pending = new Queue<FolderState>();
+        pending.Enqueue(folder);
+        while (pending.Count > 0) {
+            cancellationToken.ThrowIfCancellationRequested();
+            FolderState current = pending.Dequeue();
+            if (!removed.Add(current.Id) ||
+                !childrenByParent.TryGetValue(current.Id, out FolderState[]? children)) continue;
+            foreach (FolderState child in children) pending.Enqueue(child);
+        }
 
         bool hasChildren = removed.Count > 1;
         bool hasItems = _items!.Values.Any(item => !item.Deleted && removed.Contains(item.FolderId));

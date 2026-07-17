@@ -38,7 +38,7 @@ public sealed partial class EmailStorePstMutationTransaction {
                 if (!_folders.Values.Any(folder => !folder.Deleted && folder.IsMappedSystemFolder)) {
                     writer.SuppressWriterOwnedSpamSearchFolder();
                 }
-                BuildFolderMap(writer, folderMap, folderParentMap);
+                BuildFolderMap(writer, folderMap, folderParentMap, cancellationToken);
                 FailOnFidelityDiagnostics();
                 var readOptions = new EmailStoreItemReadOptions(
                     EmailStoreItemReadParts.All, preferStreamingAttachmentContent: true);
@@ -140,10 +140,13 @@ public sealed partial class EmailStorePstMutationTransaction {
         }
     }
 
-    private void BuildFolderMap(EmailStorePstWriter writer,
+    internal void BuildFolderMap(EmailStorePstWriter writer,
         IDictionary<string, string> folderMap,
-        IDictionary<string, string?> folderParentMap) {
+        IDictionary<string, string?> folderParentMap,
+        CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         foreach (FolderState folder in _folders.Values.Where(folder => !folder.Deleted)) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (folder.IsMappedSystemFolder) {
                 folderMap[folder.Id] = writer.SpamSearchFolderId;
                 folderParentMap[folder.Id] = writer.MessageStoreRootFolderId;
@@ -182,59 +185,122 @@ public sealed partial class EmailStorePstMutationTransaction {
             }
         }
 
-        var pending = _folders.Values.Where(folder => !folder.Deleted &&
-            !folderMap.ContainsKey(folder.Id)).ToList();
-        bool progress;
-        do {
-            progress = false;
-            for (int index = pending.Count - 1; index >= 0; index--) {
-                FolderState folder = pending[index];
-                string parent;
-                if (folder.ParentId == null) parent = writer.RootFolderId;
-                else if (!folderMap.TryGetValue(folder.ParentId, out parent!)) continue;
-                EmailStoreSpecialFolderKind role =
-                    folder.ClassificationSource == EmailStoreFolderClassificationSource.SourceIdentifier &&
-                    PstStoreWriterCore.CanAssignUserSpecialFolder(folder.SpecialFolderKind)
-                        ? folder.SpecialFolderKind
-                        : EmailStoreSpecialFolderKind.Unknown;
-                if (folder.ClassificationSource == EmailStoreFolderClassificationSource.SourceIdentifier &&
-                    folder.SpecialFolderKind != EmailStoreSpecialFolderKind.Unknown &&
-                    !PstStoreWriterCore.SupportsSpecialFolderKind(folder.SpecialFolderKind)) {
-                    _diagnostics.Add(new EmailStoreDiagnostic(
-                        "EMAIL_STORE_PST_MUTATE_SPECIAL_FOLDER_UNSUPPORTED",
-                        "A source-identified special-folder role cannot be authored by the managed PST writer.",
-                        EmailStoreDiagnosticSeverity.Warning, folder.Id));
-                }
-                folderMap[folder.Id] = role == EmailStoreSpecialFolderKind.Unknown
-                    ? writer.AddFolder(folder.Name, parent, folder.ContainerClass)
-                    : writer.AddFolder(folder.Name, role, parent, folder.ContainerClass);
-                folderParentMap[folder.Id] = parent;
-                if (folder.IsSearchFolder) {
-                    _diagnostics.Add(new EmailStoreDiagnostic(
-                        "EMAIL_STORE_PST_MUTATE_SEARCH_FOLDER_STATIC",
-                        "A source search folder is retained as a static folder because its dynamic search definition cannot be regenerated.",
-                        EmailStoreDiagnosticSeverity.Warning, folder.Id));
-                }
-                pending.RemoveAt(index);
-                progress = true;
-            }
-        } while (progress && pending.Count > 0);
+        FolderState[] activeFolders = _folders.Values.Where(folder => !folder.Deleted).ToArray();
+        var activeById = activeFolders.ToDictionary(folder => folder.Id, StringComparer.Ordinal);
+        Dictionary<string, FolderState[]> childrenByParent = activeFolders
+            .Where(folder => folder.ParentId != null)
+            .GroupBy(folder => folder.ParentId!, StringComparer.Ordinal)
+            .ToDictionary(group => group.Key, group => group.ToArray(), StringComparer.Ordinal);
+        var ready = new Queue<FolderState>(activeFolders.Where(folder =>
+            !folderMap.ContainsKey(folder.Id) && folder.ParentId != null &&
+            folderMap.ContainsKey(folder.ParentId)));
+        MapReadyFolderHierarchy(writer, folderMap, folderParentMap,
+            childrenByParent, ready, cancellationToken);
 
-        foreach (FolderState folder in pending) {
-            EmailStoreSpecialFolderKind role =
-                folder.ClassificationSource == EmailStoreFolderClassificationSource.SourceIdentifier &&
-                PstStoreWriterCore.CanAssignUserSpecialFolder(folder.SpecialFolderKind)
-                    ? folder.SpecialFolderKind
-                    : EmailStoreSpecialFolderKind.Unknown;
-            folderMap[folder.Id] = role == EmailStoreSpecialFolderKind.Unknown
-                ? writer.AddFolder(folder.Name, writer.RootFolderId, folder.ContainerClass)
-                : writer.AddFolder(folder.Name, role, writer.RootFolderId, folder.ContainerClass);
-            folderParentMap[folder.Id] = writer.RootFolderId;
+        foreach (FolderState folder in activeFolders) {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (folderMap.ContainsKey(folder.Id)) continue;
+            bool unavailableParent = folder.ParentId == null ||
+                string.Equals(folder.ParentId, folder.Id, StringComparison.Ordinal) ||
+                !activeById.ContainsKey(folder.ParentId);
+            if (!unavailableParent) continue;
+            MapRecoveredFolder(writer, folder, folderMap, folderParentMap);
+            EnqueueChildren(folder.Id, childrenByParent, ready);
+            MapReadyFolderHierarchy(writer, folderMap, folderParentMap,
+                childrenByParent, ready, cancellationToken);
+        }
+
+        // Any remaining component contains a parent cycle. Recover one cycle node, then
+        // traverse its reverse adjacency once so descendants retain their relative hierarchy.
+        foreach (FolderState start in activeFolders) {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (folderMap.ContainsKey(start.Id)) continue;
+            var path = new HashSet<string>(StringComparer.Ordinal);
+            FolderState current = start;
+            while (!folderMap.ContainsKey(current.Id) && path.Add(current.Id)) {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (current.ParentId == null ||
+                    !activeById.TryGetValue(current.ParentId, out FolderState? parent)) {
+                    break;
+                }
+                current = parent;
+            }
+            if (folderMap.ContainsKey(current.Id)) {
+                ready.Enqueue(start);
+            } else {
+                MapRecoveredFolder(writer, current, folderMap, folderParentMap);
+                EnqueueChildren(current.Id, childrenByParent, ready);
+            }
+            MapReadyFolderHierarchy(writer, folderMap, folderParentMap,
+                childrenByParent, ready, cancellationToken);
+        }
+
+        if (activeFolders.Any(folder => !folderMap.ContainsKey(folder.Id))) {
+            throw new InvalidDataException("The source PST folder hierarchy could not be reconstructed.");
+        }
+    }
+
+    private void MapReadyFolderHierarchy(EmailStorePstWriter writer,
+        IDictionary<string, string> folderMap,
+        IDictionary<string, string?> folderParentMap,
+        IReadOnlyDictionary<string, FolderState[]> childrenByParent,
+        Queue<FolderState> ready,
+        CancellationToken cancellationToken) {
+        while (ready.Count > 0) {
+            cancellationToken.ThrowIfCancellationRequested();
+            FolderState folder = ready.Dequeue();
+            if (folderMap.ContainsKey(folder.Id) || folder.ParentId == null ||
+                !folderMap.TryGetValue(folder.ParentId, out string? parent)) {
+                continue;
+            }
+            MapOrdinaryFolder(writer, folder, parent, folderMap, folderParentMap);
+            EnqueueChildren(folder.Id, childrenByParent, ready);
+        }
+    }
+
+    private void MapRecoveredFolder(EmailStorePstWriter writer, FolderState folder,
+        IDictionary<string, string> folderMap,
+        IDictionary<string, string?> folderParentMap) {
+        MapOrdinaryFolder(writer, folder, writer.RootFolderId, folderMap, folderParentMap);
+        _diagnostics.Add(new EmailStoreDiagnostic(
+            "EMAIL_STORE_PST_MUTATE_FOLDER_PARENT_RECOVERED",
+            "A non-root folder with a missing, self-referencing, or cyclic parent was attached to the destination root.",
+            EmailStoreDiagnosticSeverity.Warning, folder.Id));
+    }
+
+    private void MapOrdinaryFolder(EmailStorePstWriter writer, FolderState folder,
+        string parent, IDictionary<string, string> folderMap,
+        IDictionary<string, string?> folderParentMap) {
+        EmailStoreSpecialFolderKind role =
+            folder.ClassificationSource == EmailStoreFolderClassificationSource.SourceIdentifier &&
+            PstStoreWriterCore.CanAssignUserSpecialFolder(folder.SpecialFolderKind)
+                ? folder.SpecialFolderKind
+                : EmailStoreSpecialFolderKind.Unknown;
+        if (folder.ClassificationSource == EmailStoreFolderClassificationSource.SourceIdentifier &&
+            folder.SpecialFolderKind != EmailStoreSpecialFolderKind.Unknown &&
+            !PstStoreWriterCore.SupportsSpecialFolderKind(folder.SpecialFolderKind)) {
             _diagnostics.Add(new EmailStoreDiagnostic(
-                "EMAIL_STORE_PST_MUTATE_FOLDER_PARENT_RECOVERED",
-                "A folder with an unavailable or cyclic parent was attached to the destination root.",
+                "EMAIL_STORE_PST_MUTATE_SPECIAL_FOLDER_UNSUPPORTED",
+                "A source-identified special-folder role cannot be authored by the managed PST writer.",
                 EmailStoreDiagnosticSeverity.Warning, folder.Id));
         }
+        folderMap[folder.Id] = role == EmailStoreSpecialFolderKind.Unknown
+            ? writer.AddFolder(folder.Name, parent, folder.ContainerClass)
+            : writer.AddFolder(folder.Name, role, parent, folder.ContainerClass);
+        folderParentMap[folder.Id] = parent;
+        if (folder.IsSearchFolder) {
+            _diagnostics.Add(new EmailStoreDiagnostic(
+                "EMAIL_STORE_PST_MUTATE_SEARCH_FOLDER_STATIC",
+                "A source search folder is retained as a static folder because its dynamic search definition cannot be regenerated.",
+                EmailStoreDiagnosticSeverity.Warning, folder.Id));
+        }
+    }
+
+    private static void EnqueueChildren(string folderId,
+        IReadOnlyDictionary<string, FolderState[]> childrenByParent,
+        Queue<FolderState> ready) {
+        if (!childrenByParent.TryGetValue(folderId, out FolderState[]? children)) return;
+        foreach (FolderState child in children) ready.Enqueue(child);
     }
 
     private EmailStorePstMutationVerificationReport VerifyStagedPst(string stagingPath,

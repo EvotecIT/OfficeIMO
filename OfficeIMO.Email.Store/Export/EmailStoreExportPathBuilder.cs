@@ -41,19 +41,19 @@ internal sealed class EmailStoreExportPathBuilder {
                 break;
             }
             if (!visited.Add(currentId)) {
-                segments.Push(string.Concat("folder-cycle__", SanitizeSegment(currentId, 48, "id")));
+                segments.Push(string.Concat("folder-cycle__", GetStableHash(currentId)));
                 basePath = _root;
                 break;
             }
             if (!_folders.TryGetValue(currentId, out EmailStoreFolderInfo? folder)) {
-                segments.Push(string.Concat("unknown-folder__", SanitizeSegment(currentId, 48, "id")));
+                segments.Push(string.Concat("unknown-folder__", GetStableHash(currentId)));
                 basePath = _root;
                 break;
             }
             segments.Push(string.Concat(
                 SanitizeSegment(folder.Name, 80, "folder"),
                 "__",
-                SanitizeSegment(folder.Id, 48, "id")));
+                GetStableHash(folder.Id)));
             currentId = folder.ParentId;
         }
         while (segments.Count > 0) basePath = Path.Combine(basePath, segments.Pop());

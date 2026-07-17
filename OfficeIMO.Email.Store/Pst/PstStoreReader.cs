@@ -36,6 +36,7 @@ internal sealed partial class PstStoreReader {
     private long _totalAttachmentBytes;
     private bool _completeIndexesLoaded;
     private bool _isPasswordProtected;
+    private bool _isOfficeImoWriterStore;
 
     internal PstStoreReader(EmailStoreReaderOptions options,
         EmailStoreSessionLifetime? lifetime = null) {
@@ -49,6 +50,7 @@ internal sealed partial class PstStoreReader {
     internal IReadOnlyList<EmailStoreFolderInfo> Folders => _folderInfos;
     internal IReadOnlyList<EmailStoreDiagnostic> Diagnostics => _diagnostics;
     internal bool IsPasswordProtected => _isPasswordProtected;
+    internal bool IsOfficeImoWriterStore => _isOfficeImoWriterStore;
 
     internal EmailStoreStructuralValidationResult ValidateStructure(
         EmailStoreValidationOptions options, CancellationToken cancellationToken) =>
@@ -104,6 +106,7 @@ internal sealed partial class PstStoreReader {
         _namedProperties = PstNamedPropertyMap.Empty;
         _headerItemPropertyId = null;
         _isPasswordProtected = false;
+        _isOfficeImoWriterStore = false;
 
         PstHeader header = PstHeader.Read(stream, format);
         _ndb = new PstNdbReader(stream, header, _options, cancellationToken);
@@ -132,6 +135,10 @@ internal sealed partial class PstStoreReader {
                 _isPasswordProtected = PstPassword.IsProtected(storeProperties);
             }
             _displayName = GetString(storeProperties, 0x3001);
+            _isOfficeImoWriterStore = string.Equals(
+                storeProperties.GetMapiValue<string>(PstWriterProvenance.PropertySet,
+                    PstWriterProvenance.PropertyName),
+                PstWriterProvenance.PropertyValue, StringComparison.Ordinal);
         }
 
         List<PstNodeReference> folderNodes = EnumerateNodes()

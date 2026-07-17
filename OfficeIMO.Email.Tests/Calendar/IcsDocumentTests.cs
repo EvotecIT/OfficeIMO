@@ -143,6 +143,22 @@ public sealed class IcsDocumentTests {
     }
 
     [Fact]
+    public void ValidationReportsEachDuplicatedRecurrencePart() {
+        var document = new IcsDocument();
+        ContentLineComponent appointment = document.Calendars.Single().AddComponent("VEVENT");
+        appointment.AddProperty("RRULE", "FREQ=DAILY;FREQ=WEEKLY;COUNT=2;COUNT=3");
+
+        ContentLineValidationIssue[] issues = document.Validate().Where(finding =>
+            finding.Code == "ICAL_RRULE_PART_DUPLICATE").ToArray();
+
+        Assert.Equal(2, issues.Length);
+        Assert.Contains(issues, issue => issue.Message.Contains("FREQ", StringComparison.Ordinal));
+        Assert.Contains(issues, issue => issue.Message.Contains("COUNT", StringComparison.Ordinal));
+        Assert.Contains("FREQ=DAILY;FREQ=WEEKLY;COUNT=2;COUNT=3", document.Serialize(),
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void ValidationAndSerializationRejectMissingOrMutatedCalendarRoots() {
         var empty = new IcsDocument();
         empty.Calendars.Clear();

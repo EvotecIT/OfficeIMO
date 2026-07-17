@@ -5,6 +5,7 @@ namespace OfficeIMO.Email.Store;
 
 internal sealed partial class PstStoreWriterCore {
     private static readonly byte[] CheckpointMagic = Encoding.ASCII.GetBytes("OIMOPSTC");
+    private const int MinimumCheckpointVersion = 1;
     private const int CheckpointVersion = 2;
     private const long MaxCheckpointPayloadBytes = 128L * 1024 * 1024;
 
@@ -159,7 +160,7 @@ internal sealed partial class PstStoreWriterCore {
                 throw new InvalidDataException("The file is not an OfficeIMO PST writer checkpoint.");
             }
             int version = reader.ReadInt32();
-            if (version != CheckpointVersion) {
+            if (version < MinimumCheckpointVersion || version > CheckpointVersion) {
                 throw new NotSupportedException("The PST writer checkpoint version is not supported.");
             }
             long payloadLength = reader.ReadInt64();
@@ -179,7 +180,7 @@ internal sealed partial class PstStoreWriterCore {
             try {
                 using (var payloadStream = new MemoryStream(payload, writable: false))
                 using (var payloadReader = new BinaryReader(payloadStream, Encoding.UTF8, leaveOpen: false)) {
-                    WriterCheckpointState state = ReadCheckpointPayload(payloadReader);
+                    WriterCheckpointState state = ReadCheckpointPayload(payloadReader, version);
                     if (payloadStream.Position != payloadStream.Length) {
                         throw new InvalidDataException("The PST writer checkpoint contains trailing state.");
                     }
@@ -210,7 +211,7 @@ internal sealed partial class PstStoreWriterCore {
         }
     }
 
-    private static WriterCheckpointState ReadCheckpointPayload(BinaryReader reader) {
+    private static WriterCheckpointState ReadCheckpointPayload(BinaryReader reader, int version) {
         var state = new WriterCheckpointState {
             DestinationPath = Path.GetFullPath(reader.ReadString()),
             TemporaryPath = Path.GetFullPath(reader.ReadString()),
@@ -245,9 +246,16 @@ internal sealed partial class PstStoreWriterCore {
             throw new InvalidDataException("The PST writer checkpoint folder count is invalid.");
         }
         for (int index = 0; index < folderCount; index++) {
-            var folder = new FolderState(reader.ReadUInt32(), reader.ReadUInt32(),
-                reader.ReadString(), ReadNullableString(reader), reader.ReadBoolean(),
-                ReadSpecialFolderKind(reader)) {
+            uint nid = reader.ReadUInt32();
+            uint parentNid = reader.ReadUInt32();
+            string name = reader.ReadString();
+            string? containerClass = ReadNullableString(reader);
+            bool isSearchFolder = reader.ReadBoolean();
+            EmailStoreSpecialFolderKind specialFolderKind = version >= 2
+                ? ReadSpecialFolderKind(reader)
+                : InferLegacySpecialFolderKind(nid);
+            var folder = new FolderState(nid, parentNid, name, containerClass,
+                isSearchFolder, specialFolderKind) {
                 NormalItemCount = reader.ReadInt32(),
                 AssociatedItemCount = reader.ReadInt32(),
                 UnreadItemCount = reader.ReadInt32()
@@ -264,6 +272,14 @@ internal sealed partial class PstStoreWriterCore {
         }
         state.Validate();
         return state;
+    }
+
+    private static EmailStoreSpecialFolderKind InferLegacySpecialFolderKind(uint nid) {
+        if (nid == RootFolderNid) return EmailStoreSpecialFolderKind.Root;
+        if (nid == IpmSubtreeNid) return EmailStoreSpecialFolderKind.IpmSubtree;
+        if (nid == SearchRootNid) return EmailStoreSpecialFolderKind.SearchRoot;
+        if (nid == DeletedItemsNid) return EmailStoreSpecialFolderKind.DeletedItems;
+        return EmailStoreSpecialFolderKind.Unknown;
     }
 
     private static EmailStoreSpecialFolderKind ReadSpecialFolderKind(BinaryReader reader) {

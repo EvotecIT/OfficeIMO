@@ -28,7 +28,7 @@ public sealed partial class EmailStorePstMutationTransaction : IDisposable {
         _sourceLength = sourceFile.Length;
         _sourceLastWriteTimeUtc = sourceFile.LastWriteTimeUtc;
         _folders = source.Folders.ToDictionary(folder => folder.Id,
-            folder => new FolderState(folder), StringComparer.Ordinal);
+            folder => new FolderState(folder, source.IsOfficeImoWriterStore), StringComparer.Ordinal);
         _diagnostics = new List<EmailStoreDiagnostic>(source.Diagnostics);
         _transactionLock = transactionLock;
         RootFolderId = ResolveRootFolderId(source.Folders);
@@ -44,8 +44,8 @@ public sealed partial class EmailStorePstMutationTransaction : IDisposable {
         string sourcePath = Path.GetFullPath(path);
         if (!File.Exists(sourcePath)) throw new FileNotFoundException("The PST does not exist.", sourcePath);
         var effective = options ?? new EmailStorePstMutationOptions();
-        if (effective.BackupPath != null && string.Equals(
-            sourcePath, Path.GetFullPath(effective.BackupPath), PstPathIdentity.Comparison)) {
+        if (effective.BackupPath != null && PstPathIdentity.AreEquivalent(
+            sourcePath, effective.BackupPath)) {
             throw new ArgumentException("The backup path must differ from the source PST.", nameof(options));
         }
         if (effective.BackupPath != null && File.Exists(effective.BackupPath) &&
@@ -219,7 +219,7 @@ public sealed partial class EmailStorePstMutationTransaction : IDisposable {
     }
 
     private sealed class FolderState {
-        internal FolderState(EmailStoreFolderInfo folder) {
+        internal FolderState(EmailStoreFolderInfo folder, bool isOfficeImoWriterStore) {
             Id = folder.Id;
             SourceId = folder.Id;
             ParentId = folder.ParentId;
@@ -230,7 +230,7 @@ public sealed partial class EmailStorePstMutationTransaction : IDisposable {
             SpecialFolderKind = folder.SpecialFolderKind;
             ClassificationSource = folder.ClassificationSource;
             IsSearchFolder = folder.IsSearchFolder;
-            IsMappedSystemFolder = folder.IsSearchFolder &&
+            IsMappedSystemFolder = isOfficeImoWriterStore && folder.IsSearchFolder &&
                 PstStoreWriterCore.IsWriterOwnedSearchFolderId(folder.Id);
         }
 

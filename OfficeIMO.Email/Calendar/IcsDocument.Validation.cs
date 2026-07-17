@@ -94,6 +94,15 @@ public sealed partial class IcsDocument {
             foreach (ContentLineProperty ruleProperty in component.GetProperties("RRULE")) {
                 try {
                     IcsRecurrenceRule rule = IcsRecurrenceRule.Parse(ruleProperty.Value);
+                    var seenParts = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                    var reportedDuplicateParts = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                    foreach (IcsRecurrencePart part in rule.Parts) {
+                        if (!seenParts.Add(part.Name) && reportedDuplicateParts.Add(part.Name)) {
+                            issues.Add(Issue("ICAL_RRULE_PART_DUPLICATE",
+                                "RRULE " + part.Name.ToUpperInvariant() + " must not occur more than once.",
+                                ContentLineValidationSeverity.Error, component, ruleProperty));
+                        }
+                    }
                     if (!RecurrenceFrequencies.Contains(rule.Frequency!))
                         issues.Add(Issue("ICAL_RRULE_FREQUENCY_INVALID", "RRULE FREQ is not a registered frequency.",
                             ContentLineValidationSeverity.Error, component, ruleProperty));

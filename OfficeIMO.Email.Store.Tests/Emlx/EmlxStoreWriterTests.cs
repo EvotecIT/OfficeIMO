@@ -34,6 +34,20 @@ public sealed class EmlxStoreWriterTests {
     }
 
     [Fact]
+    public void RewriteUsesPreservedAttachmentCountWhenAttachmentsAreNotMaterialized() {
+        var document = new EmailDocument { Subject = "Partial EMLX" };
+        document.Properties["Emlx:Flag:AttachmentCount"] = 37;
+
+        byte[] bytes = new EmailStoreEmlxWriter().ToBytes(document);
+        using var stream = new MemoryStream(bytes);
+        EmailDocument loaded = new EmailStoreReader().Read(stream, "partial.emlx")
+            .Store.Folders.Single().Items.Single().Document;
+
+        Assert.Empty(loaded.Attachments);
+        Assert.Equal(37, loaded.Properties["Emlx:Flag:AttachmentCount"]);
+    }
+
+    [Fact]
     public void WriterEnforcesCompleteArtifactLimit() {
         var document = new EmailDocument { Subject = "Bounded EMLX" };
         document.Body.Text = new string('x', 2048);

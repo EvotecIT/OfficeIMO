@@ -122,6 +122,24 @@ public sealed class EmailStoreNativeDirectoryExportTests {
     }
 
     [Fact]
+    public void FolderPathsRemainUniqueWhenSanitizedNamesAndTruncatedIdsMatch() {
+        string root = Path.Combine(Path.GetTempPath(), "officeimo-native-export-paths");
+        string sharedIdPrefix = "mailbox/" + new string('a', 64);
+        var folders = new[] {
+            new EmailStoreFolderInfo(sharedIdPrefix + "/first", null, "Projects:2026"),
+            new EmailStoreFolderInfo(sharedIdPrefix + "/second", null, "Projects?2026")
+        };
+        var paths = new EmailStoreExportPathBuilder(root, folders, preserveHierarchy: true);
+
+        string first = paths.GetFolderPath(folders[0].Id);
+        string second = paths.GetFolderPath(folders[1].Id);
+
+        Assert.NotEqual(first, second);
+        Assert.StartsWith(root, first, StringComparison.Ordinal);
+        Assert.StartsWith(root, second, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void EmlxExportContinuesAfterXmlForbiddenMetadataText() {
         string sourceRoot = Path.Combine(Path.GetTempPath(),
             "officeimo-native-source-" + Guid.NewGuid().ToString("N"));

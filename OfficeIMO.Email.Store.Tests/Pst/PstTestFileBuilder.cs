@@ -7,24 +7,31 @@ internal static class PstTestFileBuilder {
     internal static byte[] Create(bool ost = false, bool ansi = false, byte cryptMethod = 0,
         bool fourK = false, bool compressBlocks = false, bool includeEmbeddedMessage = false,
         byte[]? attachmentContent = null, uint? storePasswordChecksum = null,
-        bool corruptPageCrc = false, bool corruptBlockCrc = false) {
+        bool corruptPageCrc = false, bool corruptBlockCrc = false,
+        bool includeFixedNidSearchFolder = false, uint? inboxParentNid = null) {
         if (fourK && (!ost || ansi)) throw new ArgumentException("4K test stores must use the Unicode OST variant.");
         if (compressBlocks && !fourK) throw new ArgumentException("Only 4K test blocks can be compressed.");
         if (compressBlocks && cryptMethod != 0) throw new ArgumentException("The fixture does not combine compression and encoding.");
         if (includeEmbeddedMessage && attachmentContent != null) {
             throw new ArgumentException("The compact fixture supports one attachment shape at a time.");
         }
-        var nodes = new[] {
+        var nodeList = new List<TestNode> {
             new TestNode(0x21, 0, storePasswordChecksum.HasValue
                 ? CreateStorePropertyContext(storePasswordChecksum.Value)
                 : CreatePropertyContext((0x3001, "Test Store"))),
             new TestNode(0x122, 0x122, CreatePropertyContext((0x3001, "Root"))),
-            new TestNode(0x8022, 0x122, CreatePropertyContext((0x3001, "Inbox"))),
+            new TestNode(0x8022, inboxParentNid ?? 0x122, CreatePropertyContext((0x3001, "Inbox"))),
             new TestNode(0x8004, 0x8022, CreatePropertyContext(
                 (0x001A, "IPM.Note"),
                 (0x0037, "Synthetic PST message"),
                 (0x1000, "Body from the PST property context")))
         };
+        if (includeFixedNidSearchFolder) {
+            nodeList.Add(new TestNode(0x2223, 0x122, CreatePropertyContext(
+                (0x3001, "External fixed-NID search"),
+                (0x3613, "IPF.Note"))));
+        }
+        TestNode[] nodes = nodeList.ToArray();
 
         var blocks = nodes.Select(node => node.DataBlock).ToList();
         if (includeEmbeddedMessage) AddEmbeddedMessageBlocks(nodes[3], blocks, ansi);

@@ -1,5 +1,6 @@
 using OfficeIMO.Email;
 using System.Globalization;
+using System.Security.Cryptography;
 
 namespace OfficeIMO.Email.Store.Tests;
 
@@ -424,6 +425,40 @@ public sealed class PstWriterTests {
     }
 
     [Fact]
+    public void VersionOneCheckpointResumesAndMigratesToCurrentWriterState() {
+        string directory = Path.Combine(Path.GetTempPath(),
+            "officeimo-pst-v1-checkpoint-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        string path = Path.Combine(directory, "legacy-resumed.pst");
+        string checkpoint = Path.Combine(directory, "legacy.checkpoint");
+        string folderId;
+        try {
+            using (EmailStorePstWriter writer = EmailStorePstWriter.Create(path,
+                new EmailStorePstWriterOptions(checkpointPath: checkpoint,
+                    checkpointIntervalItems: 1))) {
+                folderId = writer.AddFolder("Legacy folder");
+                writer.AddItem(folderId, new EmailDocument { Subject = "before upgrade" });
+            }
+            DowngradeCheckpointToVersionOne(checkpoint);
+
+            using (EmailStorePstWriter resumed = EmailStorePstWriter.Resume(checkpoint)) {
+                resumed.AddItem(folderId, new EmailDocument { Subject = "after upgrade" });
+                resumed.Complete();
+            }
+
+            using EmailStoreSession session = EmailStoreSession.Open(path);
+            Assert.True(session.IsOfficeImoWriterStore);
+            Assert.Equal(new[] { "after upgrade", "before upgrade" }, session.EnumerateItems()
+                .Select(reference => session.ReadSummary(reference).Subject)
+                .OrderBy(value => value, StringComparer.Ordinal).ToArray());
+        } finally {
+            try { if (Directory.Exists(directory)) Directory.Delete(directory, recursive: true); }
+            catch (IOException) { }
+            catch (UnauthorizedAccessException) { }
+        }
+    }
+
+    [Fact]
     public void Delete_checkpoint_removes_only_its_writer_owned_crash_artifacts() {
         string directory = Path.Combine(Path.GetTempPath(),
             string.Concat("officeimo-pst-abandon-", Guid.NewGuid().ToString("N")));
@@ -602,6 +637,94 @@ public sealed class PstWriterTests {
 
     private static string TemporaryPstPath() => Path.Combine(Path.GetTempPath(),
         string.Concat("officeimo-email-store-", Guid.NewGuid().ToString("N"), ".pst"));
+
+    private static void DowngradeCheckpointToVersionOne(string checkpointPath) {
+        byte[] checkpoint = File.ReadAllBytes(checkpointPath);
+        byte[] payload;
+        byte[] magic;
+        using (var input = new MemoryStream(checkpoint, writable: false))
+        using (var reader = new BinaryReader(input, Encoding.UTF8, leaveOpen: false)) {
+            magic = reader.ReadBytes(8);
+            Assert.Equal(2, reader.ReadInt32());
+            long length = reader.ReadInt64();
+            payload = reader.ReadBytes(checked((int)length));
+            Assert.Equal(32, reader.ReadBytes(32).Length);
+            Assert.Equal(input.Length, input.Position);
+        }
+
+        byte[] legacyPayload;
+        using (var input = new MemoryStream(payload, writable: false))
+        using (var reader = new BinaryReader(input, Encoding.UTF8, leaveOpen: false))
+        using (var output = new MemoryStream())
+        using (var writer = new BinaryWriter(output, Encoding.UTF8, leaveOpen: true)) {
+            for (int index = 0; index < 3; index++) writer.Write(reader.ReadString());
+            for (int index = 0; index < 2; index++) writer.Write(reader.ReadBoolean());
+            for (int index = 0; index < 5; index++) writer.Write(reader.ReadInt32());
+            writer.Write(reader.ReadBoolean());
+            writer.Write(reader.ReadInt32());
+            writer.Write(reader.ReadBytes(16));
+            for (int index = 0; index < 2; index++) writer.Write(reader.ReadUInt32());
+            for (int index = 0; index < 2; index++) writer.Write(reader.ReadInt32());
+            for (int index = 0; index < 2; index++) writer.Write(reader.ReadInt64());
+            for (int index = 0; index < 2; index++) writer.Write(reader.ReadUInt64());
+            for (int index = 0; index < 4; index++) writer.Write(reader.ReadInt64());
+            writer.Write(reader.ReadBoolean());
+
+            int namedPropertyCount = reader.ReadInt32();
+            writer.Write(namedPropertyCount);
+            for (int index = 0; index < namedPropertyCount; index++) {
+                writer.Write(reader.ReadBytes(16));
+                bool stringNamed = reader.ReadBoolean();
+                writer.Write(stringNamed);
+                if (stringNamed) writer.Write(reader.ReadString());
+                else writer.Write(reader.ReadUInt32());
+            }
+
+            int folderCount = reader.ReadInt32();
+            writer.Write(folderCount);
+            for (int index = 0; index < folderCount; index++) {
+                writer.Write(reader.ReadUInt32());
+                writer.Write(reader.ReadUInt32());
+                writer.Write(reader.ReadString());
+                CopyNullableString(reader, writer);
+                writer.Write(reader.ReadBoolean());
+                reader.ReadInt32(); // v2 special-folder role is absent from the v1 contract.
+                for (int countIndex = 0; countIndex < 3; countIndex++)
+                    writer.Write(reader.ReadInt32());
+            }
+
+            int diagnosticCount = reader.ReadInt32();
+            writer.Write(diagnosticCount);
+            for (int index = 0; index < diagnosticCount; index++) {
+                writer.Write(reader.ReadString());
+                writer.Write(reader.ReadString());
+                writer.Write(reader.ReadInt32());
+                CopyNullableString(reader, writer);
+            }
+            Assert.Equal(input.Length, input.Position);
+            writer.Flush();
+            legacyPayload = output.ToArray();
+        }
+
+        byte[] digest;
+        using (SHA256 sha = SHA256.Create()) digest = sha.ComputeHash(legacyPayload);
+        using (var output = new MemoryStream())
+        using (var writer = new BinaryWriter(output, Encoding.UTF8, leaveOpen: true)) {
+            writer.Write(magic);
+            writer.Write(1);
+            writer.Write((long)legacyPayload.Length);
+            writer.Write(legacyPayload);
+            writer.Write(digest);
+            writer.Flush();
+            File.WriteAllBytes(checkpointPath, output.ToArray());
+        }
+    }
+
+    private static void CopyNullableString(BinaryReader reader, BinaryWriter writer) {
+        bool hasValue = reader.ReadBoolean();
+        writer.Write(hasValue);
+        if (hasValue) writer.Write(reader.ReadString());
+    }
 
     private static void AssertMaterializedNameToIdStreams(string path) {
         using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);

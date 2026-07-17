@@ -66,6 +66,11 @@ internal sealed partial class PstStoreWriterCore {
             WriteFolder(folder, items, childrenByParent, hasInbox);
         }
 
+        IReadOnlyList<MapiProperty> writerProvenance = _namedProperties.Map(new[] {
+            new MapiProperty(0, MapiPropertyType.Unicode, PstWriterProvenance.PropertyValue,
+                name: new MapiNamedProperty(PstWriterProvenance.PropertySet,
+                    PstWriterProvenance.PropertyName))
+        }, null, "store");
         PstWriterContextResult nameMap = PstPropertyContextWriter.Write(_file,
             _namedProperties.BuildProperties(), 65001, null, null, null,
             Report, "named-properties");
@@ -78,6 +83,7 @@ internal sealed partial class PstStoreWriterCore {
             new MapiProperty(0x35DF, MapiPropertyType.Integer32, 0x89),
             new MapiProperty(0x67FF, MapiPropertyType.Integer32, 0)
         };
+        storeProperties.AddRange(writerProvenance);
         AddSpecialFolderEntryId(storeProperties, 0x35E0, EmailStoreSpecialFolderKind.IpmSubtree);
         AddSpecialFolderEntryId(storeProperties, 0x35E1, EmailStoreSpecialFolderKind.Inbox);
         AddSpecialFolderEntryId(storeProperties, 0x35E2, EmailStoreSpecialFolderKind.Outbox);

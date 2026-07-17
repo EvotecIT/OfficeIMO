@@ -122,7 +122,7 @@ internal sealed partial class PstStoreWriterCore : IDisposable {
         }
         uint parentNid = parentFolderId == null ? IpmSubtreeNid : ParseFolderId(parentFolderId);
         uint nid = AllocateNid(ref _nextFolderIndex, 0x02);
-        _folders.Add(nid, new FolderState(nid, parentNid, name.Trim(), containerClass, false,
+        _folders.Add(nid, new FolderState(nid, parentNid, name, containerClass, false,
             specialFolderKind));
         _userFolderCount++;
         ReportProgress(EmailStorePstWriteStage.WritingFolders);

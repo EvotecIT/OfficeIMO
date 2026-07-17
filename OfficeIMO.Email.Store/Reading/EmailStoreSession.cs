@@ -47,6 +47,13 @@ public sealed partial class EmailStoreSession : IDisposable {
         }
     }
 
+    internal bool IsOfficeImoWriterStore {
+        get {
+            ThrowIfDisposed();
+            return _backend is PstStoreSessionBackend pst && pst.IsOfficeImoWriterStore;
+        }
+    }
+
     /// <summary>Opens a file with random-access sharing suitable for large PST/OST sources.</summary>
     public static EmailStoreSession Open(string path, EmailStoreReaderOptions? options = null,
         CancellationToken cancellationToken = default) {

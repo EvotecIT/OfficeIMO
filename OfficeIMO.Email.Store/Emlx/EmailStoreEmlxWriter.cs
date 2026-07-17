@@ -175,7 +175,10 @@ public sealed class EmailStoreEmlxWriter {
         if (PropertyFlag(document, "Emlx:Flag:Initial")) flags |= 1L << 7;
         if (PropertyFlag(document, "Emlx:Flag:Forwarded")) flags |= 1L << 8;
         if (PropertyFlag(document, "Emlx:Flag:Redirected")) flags |= 1L << 9;
-        flags |= (long)Math.Min(document.Attachments.Count, 63) << 10;
+        int attachmentCount = TryGetIntegerProperty(document, "Emlx:Flag:AttachmentCount", out int storedAttachmentCount)
+            ? storedAttachmentCount
+            : document.Attachments.Count;
+        flags |= (long)Math.Max(0, Math.Min(attachmentCount, 63)) << 10;
         if (TryGetIntegerProperty(document, "Emlx:Flag:PriorityLevel", out int priorityLevel))
             flags |= (long)Math.Max(0, Math.Min(priorityLevel, 127)) << 16;
         if (PropertyFlag(document, "Emlx:Flag:Signed")) flags |= 1L << 23;
