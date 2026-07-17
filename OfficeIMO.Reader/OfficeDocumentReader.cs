@@ -64,6 +64,12 @@ public sealed partial class OfficeDocumentReader {
         return ReaderCapabilityManifestJson.Serialize(GetCapabilityManifest(), indented);
     }
 
+    internal long? GetHandlerDefaultMaxInputBytes(string? sourceName) {
+        using (DocumentReaderEngine.UseHandlerRegistry(_handlers)) {
+            return DocumentReaderEngine.ResolveHandlerDefaultMaxInputBytes(sourceName);
+        }
+    }
+
     /// <summary>
     /// Reads a supported file using this reader's frozen handler configuration.
     /// </summary>

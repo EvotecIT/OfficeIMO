@@ -9,6 +9,7 @@ This document records the current Reader package boundaries and the remaining mo
 | `OfficeIMO.Reader` | Shared chunks and rich result, built-in default instance, isolated reader instances, bounded sync/async execution, detection, diagnostics, processors, structured extraction, hierarchical chunking, and OCR execution contracts. |
 | Format packages | Parse and inspect their own formats. Reader must not duplicate Word, Excel, PowerPoint, Markdown, PDF, RTF, HTML, EPUB, Visio, CSV, ZIP, or other format logic. Small transport formats without an owning package may use a narrow, isolated adapter. |
 | `OfficeIMO.Reader.*` adapters | Register path/stream handlers and project owning format models into the shared Reader contracts. |
+| `OfficeIMO.Reader.Web` | Explicit caller-injected HTTP transport that bounds retrieval and routes bytes through an existing Reader instance. |
 | `OfficeIMO.Reader.Ocr.Process` | Optional versioned external-process OCR bridge. |
 | `OfficeIMO.Reader.Ocr.Tesseract` | Optional Tesseract CLI provider with line and word geometry. |
 
@@ -24,6 +25,7 @@ The modular adapters are working packages in the publishing pipeline, not placeh
 - `OfficeIMO.Reader.Rtf`
 - `OfficeIMO.Reader.Subtitles`
 - `OfficeIMO.Reader.Visio`
+- `OfficeIMO.Reader.Web`
 - `OfficeIMO.Reader.Xml`
 - `OfficeIMO.Reader.Yaml`
 - `OfficeIMO.Reader.Zip`
@@ -41,6 +43,7 @@ The modular adapters are working packages in the publishing pipeline, not placeh
 - The stable rich transport is `OfficeDocumentReadResult` schema version 5.
 - Ordered processors, bounded structured extraction, token-aware hierarchical chunking, and optional OCR build on the shared result instead of adding format-specific host pipelines.
 - OCR providers remain opt-in and do not change the core package dependency graph.
+- Web retrieval remains opt-in, uses a caller-owned `HttpClient`, and is not composed by `OfficeIMO.Reader.All` or the global tool.
 
 ## Ownership rules for new adapters
 
@@ -66,5 +69,5 @@ Before publishing a new or changed adapter:
 
 - Continue increasing format fidelity in the owning packages and project that evidence through the adapters.
 - Add optional providers only when their dependency and runtime boundaries are clear.
-- Keep audio, video, URL, and transcription ingestion in separate packages if downstream products require them.
+- Keep audio, video, and transcription ingestion in separate packages if downstream products require them; URL retrieval remains isolated in `OfficeIMO.Reader.Web`.
 - Keep email and attachment ingestion in the existing Mailozaurr owner; it is outside the current OfficeIMO Reader stack.
