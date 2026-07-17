@@ -15,6 +15,7 @@ public sealed partial class EmailStoreSession {
         ThrowIfDisposed();
         var effective = options ?? new EmailStorePstConversionOptions();
         string destination = Path.GetFullPath(destinationPath);
+        ThrowIfMailboxDirectorySourceDestination(destination, "PST export");
         if (_stream is FileStream sourceFile && string.Equals(
             Path.GetFullPath(sourceFile.Name), destination, StringComparison.OrdinalIgnoreCase)) {
             throw new InvalidOperationException(
@@ -146,6 +147,7 @@ public sealed partial class EmailStoreSession {
         EmailStorePstConversionOptions options) {
         if (options.VerificationManifestPath == null) return;
         string manifest = Path.GetFullPath(options.VerificationManifestPath);
+        ThrowIfMailboxDirectorySourceDestination(manifest, "PST verification manifest");
         if (string.Equals(manifest, destination, StringComparison.OrdinalIgnoreCase)) {
             throw new InvalidOperationException(
                 "The verification manifest and destination PST must use different paths.");

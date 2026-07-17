@@ -15,6 +15,16 @@ public sealed class EmailSemanticProjectionLossTests {
     }
 
     [Theory]
+    [InlineData("BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:broken@example.com\r\nEND:VTODO\r\nEND:VCALENDAR\r\n")]
+    [InlineData("BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VJOURNAL\r\nUID:journal@example.com\r\nEND:VJOURNAL\r\nEND:VCALENDAR\r\n")]
+    public void BlocksCalendarBodiesThatCannotBeProjectedIntoAStore(string calendar) {
+        byte[] eml = Encoding.ASCII.GetBytes(
+            "Content-Type: text/calendar; charset=utf-8\r\n\r\n" + calendar);
+
+        AssertStoreProjectionBlocked(eml);
+    }
+
+    [Theory]
     [InlineData("text/directory; profile=vcard")]
     [InlineData("text/x-vcard")]
     [InlineData("application/vcard")]

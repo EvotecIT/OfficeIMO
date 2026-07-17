@@ -15,6 +15,7 @@ public sealed partial class EmailStoreSession {
         ThrowIfDisposed();
         EmailStoreMboxExportOptions effective = options ?? new EmailStoreMboxExportOptions();
         string destination = Path.GetFullPath(destinationPath);
+        ThrowIfMailboxDirectorySourceDestination(destination, "Mbox export");
         string directory = Path.GetDirectoryName(destination) ?? Path.GetFullPath(".");
         Directory.CreateDirectory(directory);
         var reportDiagnostics = new List<EmailStoreDiagnostic>();
@@ -113,6 +114,7 @@ public sealed partial class EmailStoreSession {
         ThrowIfDisposed();
         EmailStoreExportOptions effective = options ?? new EmailStoreExportOptions();
         string root = Path.GetFullPath(destinationDirectory);
+        ThrowIfMailboxDirectorySourceDestination(root, "Directory export");
         Directory.CreateDirectory(root);
         var writer = new EmailDocumentWriter(effective.WriterOptions);
         var entries = new List<EmailStoreExportEntry>();
@@ -171,6 +173,14 @@ public sealed partial class EmailStoreSession {
             manifestPath,
             entries,
             Diagnostics.Concat(exportDiagnostics).ToArray());
+    }
+
+    private void ThrowIfMailboxDirectorySourceDestination(string destinationPath, string operation) {
+        if (_backend is MailboxDirectoryStoreSessionBackend sourceDirectory &&
+            EmailStorePathIdentity.IsSameOrDescendant(destinationPath, sourceDirectory.RootPath)) {
+            throw new InvalidOperationException(string.Concat(
+                operation, " cannot write into its mailbox-directory source tree."));
+        }
     }
 
     private EmailStoreExportEntry ExportItem(EmailStoreItemReference reference,

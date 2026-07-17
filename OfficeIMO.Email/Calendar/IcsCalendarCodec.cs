@@ -13,12 +13,16 @@ internal static partial class IcsCalendarCodec {
         } catch (InvalidDataException exception) {
             diagnostics.Add(new EmailDiagnostic("EMAIL_ICALENDAR_PARSE_INVALID", exception.Message,
                 EmailDiagnosticSeverity.Warning, location));
+            document.MimeSemanticProjectionIsIncomplete = true;
             return false;
         }
         IcsProperty? activeComponent = properties.FirstOrDefault(property => property.Name == "BEGIN" &&
             (property.Value.Equals("VEVENT", StringComparison.OrdinalIgnoreCase) ||
              property.Value.Equals("VTODO", StringComparison.OrdinalIgnoreCase)));
-        if (activeComponent == null) return false;
+        if (activeComponent == null) {
+            document.MimeSemanticProjectionIsIncomplete = true;
+            return false;
+        }
         bool isEvent = activeComponent.Value.Equals("VEVENT", StringComparison.OrdinalIgnoreCase);
 
         IReadOnlyList<IcsProperty> activeProperties = SelectActiveComponentProperties(

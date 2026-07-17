@@ -264,6 +264,37 @@ public sealed class EmailStoreSessionTests {
         }
     }
 
+    [Theory]
+    [InlineData("directory")]
+    [InlineData("mbox")]
+    [InlineData("pst")]
+    public void MailboxDirectoryExportsRejectDestinationsInsideTheirSourceTree(string exportKind) {
+        string sourceRoot = Path.Combine(Path.GetTempPath(),
+            "oims-export-" + Guid.NewGuid().ToString("N").Substring(0, 12));
+        try {
+            Directory.CreateDirectory(sourceRoot);
+            string sourceMessage = Path.Combine(sourceRoot, "source.eml");
+            File.WriteAllText(sourceMessage, "Subject: Source\r\n\r\nBody\r\n");
+            using EmailStoreSession session = EmailStoreSession.Open(sourceRoot);
+
+            InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() => {
+                if (exportKind == "directory") {
+                    session.ExportToDirectory(Path.Combine(sourceRoot, "export"));
+                } else if (exportKind == "mbox") {
+                    session.ExportToMbox(Path.Combine(sourceRoot, "export.mbox"));
+                } else {
+                    session.ExportToPst(Path.Combine(sourceRoot, "export.pst"));
+                }
+            });
+
+            Assert.Contains("source tree", exception.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Equal(new[] { sourceMessage }, Directory.EnumerateFiles(
+                sourceRoot, "*", SearchOption.AllDirectories).ToArray());
+        } finally {
+            if (Directory.Exists(sourceRoot)) Directory.Delete(sourceRoot, recursive: true);
+        }
+    }
+
     [Fact]
     public void Streams_store_items_to_an_atomically_committed_mbox() {
         string directory = Path.Combine(Path.GetTempPath(), "officeimo-store-mbox-" + Guid.NewGuid().ToString("N"));
