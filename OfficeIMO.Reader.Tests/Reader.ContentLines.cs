@@ -60,6 +60,19 @@ public sealed class ReaderContentLineTests {
             chunk.Text.Contains("FN:Second contact"));
     }
 
+    [Fact]
+    public void VCardReadRoundTripsLegacyEscapedQuoteParameters() {
+        byte[] bytes = Encoding.UTF8.GetBytes("BEGIN:VCARD\r\nVERSION:3.0\r\n" +
+            "FN;X-NAME=\"Doe\\\", John\":Legacy contact\r\nEND:VCARD\r\n");
+
+        ReaderChunk[] chunks = OfficeDocumentReader.Default.Read(bytes, "legacy.vcf").ToArray();
+
+        Assert.NotEmpty(chunks);
+        Assert.Contains(chunks, chunk =>
+            chunk.Text.Contains("X-NAME=\"Doe\\\", John\"", StringComparison.Ordinal) &&
+            chunk.Text.Contains("Legacy contact", StringComparison.Ordinal));
+    }
+
     [Theory]
     [InlineData("BEGIN:VCALENDARJUNK\r\nplain text\r\n", ReaderInputKind.Calendar)]
     [InlineData("BEGIN:VCARDINAL\r\nplain text\r\n", ReaderInputKind.VCard)]

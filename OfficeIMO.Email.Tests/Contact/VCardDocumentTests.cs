@@ -185,6 +185,10 @@ public sealed class VCardDocumentTests {
 
         Assert.Equal("AlphaBeta", formattedName.Value);
         Assert.Equal("Doe\", John", formattedName.GetParameter("X-NAME")!.Values.Single());
+        ContentLineProperty reparsed = VCardDocument.Parse(VCardDocument.Parse(source).Serialize())
+            .Cards.Single().GetFirstProperty("FN")!;
+        Assert.Equal("AlphaBeta", reparsed.Value);
+        Assert.Equal("Doe\", John", reparsed.GetParameter("X-NAME")!.Values.Single());
     }
 
     [Fact]
@@ -244,7 +248,7 @@ public sealed class VCardDocumentTests {
     }
 
     [Fact]
-    public void LegacyParameterWriterRejectsUnrepresentableQuotesAndLineBreaks() {
+    public void LegacyParameterWriterEscapesQuotesAndRejectsLineBreaks() {
         var quoted = new VCardDocument();
         VCardDocument.SetVersion(quoted.Cards.Single(), VCardVersion.V3_0);
         quoted.Cards.Single().AddProperty("FN", "Legacy").SetParameter("X-NAME", "a\"b");
@@ -252,7 +256,10 @@ public sealed class VCardDocumentTests {
         VCardDocument.SetVersion(multiline.Cards.Single(), VCardVersion.V2_1);
         multiline.Cards.Single().AddProperty("FN", "Legacy").SetParameter("X-NAME", "a\nb");
 
-        Assert.Throws<InvalidDataException>(() => quoted.Serialize());
+        string serialized = quoted.Serialize();
+        Assert.Contains("X-NAME=\"a\\\"b\"", serialized, StringComparison.Ordinal);
+        Assert.Equal("a\"b", VCardDocument.Parse(serialized).Cards.Single()
+            .GetFirstProperty("FN")!.GetParameter("X-NAME")!.Values.Single());
         Assert.Throws<InvalidDataException>(() => multiline.Serialize());
     }
 

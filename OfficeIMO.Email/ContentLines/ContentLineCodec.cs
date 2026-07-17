@@ -81,51 +81,67 @@ internal static class ContentLineCodec {
     }
 
     private static IEnumerable<string> Unfold(string text, ContentLineReaderOptions options) {
-        StringBuilder? current = null;
-        StringBuilder? currentHeader = null;
-        int currentBytes = 0;
-        bool currentIsQuotedPrintable = false;
-        bool currentHeaderComplete = false;
+        using (IEnumerator<string> physicalLines = EnumeratePhysicalLines(text).GetEnumerator()) {
+            if (!physicalLines.MoveNext()) yield break;
+            string physical = physicalLines.Current;
+            while (true) {
+                var current = new StringBuilder(physical);
+                int currentBytes = Encoding.UTF8.GetByteCount(physical);
+                if (currentBytes > options.MaxUnfoldedLineBytes)
+                    throw new InvalidDataException("A content line exceeds the configured unfolded-line limit.");
+                bool? currentIsQuotedPrintable = null;
+                var deferredSoftBreaks = new List<int>();
+                bool reachedEnd = true;
+                while (physicalLines.MoveNext()) {
+                    string next = physicalLines.Current;
+                    bool folded = next.Length > 0 && (next[0] == ' ' || next[0] == '\t');
+                    if (folded) {
+                        if (EndsWithEquals(current)) {
+                            if (currentIsQuotedPrintable == true) RemoveTrailingEquals(current, ref currentBytes);
+                            else if (!currentIsQuotedPrintable.HasValue)
+                                deferredSoftBreaks.Add(current.Length - 1);
+                        }
+                        AppendUnfolded(current, next.Substring(1), ref currentBytes,
+                            options.MaxUnfoldedLineBytes);
+                        continue;
+                    }
+
+                    ResolveQuotedPrintableState(current, deferredSoftBreaks,
+                        ref currentIsQuotedPrintable, ref currentBytes);
+                    if (currentIsQuotedPrintable == true && EndsWithEquals(current)) {
+                        RemoveTrailingEquals(current, ref currentBytes);
+                        AppendUnfolded(current, next, ref currentBytes, options.MaxUnfoldedLineBytes);
+                        continue;
+                    }
+
+                    physical = next;
+                    reachedEnd = false;
+                    break;
+                }
+
+                ResolveQuotedPrintableState(current, deferredSoftBreaks,
+                    ref currentIsQuotedPrintable, ref currentBytes);
+                yield return current.ToString();
+                if (reachedEnd) yield break;
+            }
+        }
+    }
+
+    private static IEnumerable<string> EnumeratePhysicalLines(string text) {
         bool firstPhysicalLine = true;
         int start = 0;
         for (int index = 0; index <= text.Length; index++) {
             if (index < text.Length && text[index] != '\r' && text[index] != '\n') continue;
             string physical = text.Substring(start, index - start);
-            if (index < text.Length && text[index] == '\r' && index + 1 < text.Length && text[index + 1] == '\n') index++;
+            if (index < text.Length && text[index] == '\r' && index + 1 < text.Length &&
+                text[index + 1] == '\n') index++;
             start = index + 1;
             if (firstPhysicalLine) {
                 firstPhysicalLine = false;
                 if (physical.Length > 0 && physical[0] == '\uFEFF') physical = physical.Substring(1);
             }
-            if (current != null && current.Length > 0 && current[current.Length - 1] == '=' &&
-                currentIsQuotedPrintable) {
-                string continuation = physical.Length > 0 && (physical[0] == ' ' || physical[0] == '\t')
-                    ? physical.Substring(1)
-                    : physical;
-                current.Length--;
-                currentBytes--;
-                AppendUnfolded(current, continuation, ref currentBytes, options.MaxUnfoldedLineBytes);
-            } else if (physical.Length > 0 && (physical[0] == ' ' || physical[0] == '\t') && current != null) {
-                string continuation = physical.Substring(1);
-                AppendUnfolded(current, continuation, ref currentBytes, options.MaxUnfoldedLineBytes);
-                if (!currentHeaderComplete) {
-                    currentHeaderComplete = AppendContentLineHeader(currentHeader!, continuation);
-                    if (currentHeaderComplete)
-                        currentIsQuotedPrintable = IsQuotedPrintableHeader(currentHeader!.ToString());
-                }
-            } else {
-                if (current != null) yield return current.ToString();
-                current = new StringBuilder(physical);
-                currentHeader = new StringBuilder();
-                currentBytes = Encoding.UTF8.GetByteCount(physical);
-                if (currentBytes > options.MaxUnfoldedLineBytes)
-                    throw new InvalidDataException("A content line exceeds the configured unfolded-line limit.");
-                currentHeaderComplete = AppendContentLineHeader(currentHeader, physical);
-                currentIsQuotedPrintable = currentHeaderComplete &&
-                    IsQuotedPrintableHeader(currentHeader.ToString());
-            }
+            yield return physical;
         }
-        if (current != null) yield return current.ToString();
     }
 
     private static void AppendUnfolded(StringBuilder current, string value, ref int currentBytes,
@@ -137,13 +153,34 @@ internal static class ContentLineCodec {
         currentBytes += addedBytes;
     }
 
-    private static bool AppendContentLineHeader(StringBuilder header, string fragment) {
-        header.Append(fragment);
-        if (fragment.IndexOf(':') < 0) return false;
-        int delimiter = FindDelimiter(header.ToString(), ':');
-        if (delimiter < 0) return false;
-        header.Length = delimiter;
-        return true;
+    private static void ResolveQuotedPrintableState(StringBuilder current,
+        List<int> deferredSoftBreaks, ref bool? currentIsQuotedPrintable, ref int currentBytes) {
+        if (currentIsQuotedPrintable.HasValue) return;
+        if (deferredSoftBreaks.Count == 0 && !EndsWithEquals(current)) {
+            currentIsQuotedPrintable = false;
+            return;
+        }
+        string line = current.ToString();
+        int delimiter = FindDelimiter(line, ':');
+        currentIsQuotedPrintable = delimiter > 0 &&
+            IsQuotedPrintableHeader(line.Substring(0, delimiter));
+        if (currentIsQuotedPrintable != true) return;
+        for (int index = deferredSoftBreaks.Count - 1; index >= 0; index--) {
+            int offset = deferredSoftBreaks[index];
+            if (offset < current.Length && current[offset] == '=') {
+                current.Remove(offset, 1);
+                currentBytes--;
+            }
+        }
+        deferredSoftBreaks.Clear();
+    }
+
+    private static bool EndsWithEquals(StringBuilder value) =>
+        value.Length > 0 && value[value.Length - 1] == '=';
+
+    private static void RemoveTrailingEquals(StringBuilder value, ref int currentBytes) {
+        value.Length--;
+        currentBytes--;
     }
 
     private static bool IsQuotedPrintableHeader(string header) {
@@ -433,13 +470,14 @@ internal static class ContentLineCodec {
 
     private static string EncodeParameter(string value, ContentLineParameterEncoding parameterEncoding) {
         if (parameterEncoding == ContentLineParameterEncoding.Legacy) {
-            if (value.IndexOfAny(new[] { '\r', '\n', '"' }) >= 0) {
+            if (value.IndexOfAny(new[] { '\r', '\n' }) >= 0) {
                 throw new InvalidDataException(
-                    "A legacy content-line parameter contains a quote or line break that its syntax cannot represent.");
+                    "A legacy content-line parameter contains a line break that its syntax cannot represent.");
             }
-            bool legacyQuote = value.IndexOfAny(new[] { ':', ';', ',' }) >= 0 ||
+            bool legacyQuote = value.IndexOfAny(new[] { ':', ';', ',', '"' }) >= 0 ||
                 (value.Length > 0 && (char.IsWhiteSpace(value[0]) || char.IsWhiteSpace(value[value.Length - 1])));
-            return legacyQuote ? "\"" + value + "\"" : value;
+            string legacyEncoded = value.Replace("\"", "\\\"");
+            return legacyQuote ? "\"" + legacyEncoded + "\"" : legacyEncoded;
         }
         string encoded = value.Replace("^", "^^").Replace("\r\n", "^n").Replace("\r", "^n")
             .Replace("\n", "^n").Replace("\"", "^'");

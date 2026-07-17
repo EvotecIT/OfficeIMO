@@ -50,6 +50,20 @@ public sealed class ContentLineCodecTests {
     }
 
     [Fact]
+    public void ManyQuotedHeaderFoldsWithColonsParseWithinTheConfiguredLinearBound() {
+        var source = new StringBuilder("BEGIN:VCARD\r\nVERSION:4.0\r\nFN;X-NAME=\"start");
+        for (int index = 0; index < 10_000; index++) source.Append("\r\n :part");
+        source.Append("\r\n end\":display name\r\nEND:VCARD\r\n");
+
+        ContentLineProperty formattedName = VCardDocument.Parse(source.ToString(),
+            new ContentLineReaderOptions(maxInputBytes: 256 * 1024,
+                maxUnfoldedLineBytes: 128 * 1024)).Cards.Single().GetFirstProperty("FN")!;
+
+        Assert.Equal("display name", formattedName.Value);
+        Assert.StartsWith("start:part", formattedName.GetParameter("X-NAME")!.Values.Single());
+    }
+
+    [Fact]
     public void Parameters_RoundTripRfc6868AndRepeatedValues() {
         const string source = "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Test//EN\r\n" +
             "BEGIN:VEVENT\r\nATTENDEE;CN=Dee^'Arcy^^Team^nLine;MEMBER=\"mailto:a@example.com\",\"mailto:b@example.com\":mailto:c@example.com\r\n" +
