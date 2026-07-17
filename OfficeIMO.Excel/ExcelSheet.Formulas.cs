@@ -14,6 +14,7 @@ namespace OfficeIMO.Excel {
         private Stack<FormulaEvaluationDepthFrame>? _formulaEvaluationDepthFrames;
         private FormulaEvaluationGuardState? _formulaEvaluationGuardState;
         private IReadOnlyDictionary<uint, SharedFormulaDefinition>? _formulaEvaluationSharedDefinitions;
+        private Dictionary<string, IReadOnlyDictionary<uint, SharedFormulaDefinition>>? _formulaEvaluationSharedDefinitionsBySheet;
         private string? _formulaEvaluationCellReference;
 
         private sealed class FormulaEvaluationGuardState {
@@ -116,12 +117,17 @@ namespace OfficeIMO.Excel {
                 var previousDepthFrames = _formulaEvaluationDepthFrames;
                 var previousGuardState = _formulaEvaluationGuardState;
                 var previousSharedDefinitions = _formulaEvaluationSharedDefinitions;
+                var previousSharedDefinitionsBySheet = _formulaEvaluationSharedDefinitionsBySheet;
                 _formulaEvaluationCache = new Dictionary<string, FormulaArgumentValue>(StringComparer.OrdinalIgnoreCase);
                 _formulaEvaluationDepthCache = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
                 _formulaEvaluationStack = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                 _formulaEvaluationDepthFrames = new Stack<FormulaEvaluationDepthFrame>();
                 _formulaEvaluationGuardState = new FormulaEvaluationGuardState();
                 _formulaEvaluationSharedDefinitions = BuildSharedFormulaDefinitions();
+                _formulaEvaluationSharedDefinitionsBySheet = new Dictionary<string, IReadOnlyDictionary<uint, SharedFormulaDefinition>>(
+                    StringComparer.OrdinalIgnoreCase) {
+                    [Name] = _formulaEvaluationSharedDefinitions
+                };
                 bool changed = false;
 
                 try {
@@ -155,6 +161,7 @@ namespace OfficeIMO.Excel {
                     _formulaEvaluationDepthFrames = previousDepthFrames;
                     _formulaEvaluationGuardState = previousGuardState;
                     _formulaEvaluationSharedDefinitions = previousSharedDefinitions;
+                    _formulaEvaluationSharedDefinitionsBySheet = previousSharedDefinitionsBySheet;
                 }
 
                 if (changed) {
@@ -311,28 +318,37 @@ namespace OfficeIMO.Excel {
                     this,
                     formulaCells,
                     sharedFormulaDefinitions);
-                foreach (Cell cell in formulaCells) {
-                    string formula = ResolveCellFormulaText(cell, sharedFormulaDefinitions);
-                    bool supported = TryEvaluateFormulaCellValue(cell, out _, sharedFormulaDefinitions);
-                    IReadOnlyList<string> dependencies = GetFormulaDependencies(
-                        cell.CellReference?.Value,
-                        formula,
-                        dependencyAliases,
-                        dependencyTables);
-                    IReadOnlyList<string> dependencyIssues = GetFormulaDependencyIssues(
-                        cell.CellReference?.Value,
-                        dependencies,
-                        dependencyInspectionContext);
-                    formulas.Add(new ExcelFormulaCellInfo(
-                        Name,
-                        cell.CellReference?.Value ?? string.Empty,
-                        formula,
-                        cell.CellValue?.Text,
-                        cell.CellFormula!.CalculateCell?.Value ?? false,
-                        supported,
-                        supported ? null : GetUnsupportedFormulaReason(formula),
-                        dependencies,
-                        dependencyIssues));
+                var previousSharedDefinitionsBySheet = _formulaEvaluationSharedDefinitionsBySheet;
+                _formulaEvaluationSharedDefinitionsBySheet = new Dictionary<string, IReadOnlyDictionary<uint, SharedFormulaDefinition>>(
+                    StringComparer.OrdinalIgnoreCase) {
+                    [Name] = sharedFormulaDefinitions
+                };
+                try {
+                    foreach (Cell cell in formulaCells) {
+                        string formula = ResolveCellFormulaText(cell, sharedFormulaDefinitions);
+                        bool supported = TryEvaluateFormulaCellValue(cell, out _, sharedFormulaDefinitions);
+                        IReadOnlyList<string> dependencies = GetFormulaDependencies(
+                            cell.CellReference?.Value,
+                            formula,
+                            dependencyAliases,
+                            dependencyTables);
+                        IReadOnlyList<string> dependencyIssues = GetFormulaDependencyIssues(
+                            cell.CellReference?.Value,
+                            dependencies,
+                            dependencyInspectionContext);
+                        formulas.Add(new ExcelFormulaCellInfo(
+                            Name,
+                            cell.CellReference?.Value ?? string.Empty,
+                            formula,
+                            cell.CellValue?.Text,
+                            cell.CellFormula!.CalculateCell?.Value ?? false,
+                            supported,
+                            supported ? null : GetUnsupportedFormulaReason(formula),
+                            dependencies,
+                            dependencyIssues));
+                    }
+                } finally {
+                    _formulaEvaluationSharedDefinitionsBySheet = previousSharedDefinitionsBySheet;
                 }
 
                 return formulas;

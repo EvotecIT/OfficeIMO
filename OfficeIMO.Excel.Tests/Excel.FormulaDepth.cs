@@ -458,6 +458,47 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_FormulaDependencyGraph_ExpandsDefinedNameRangeEndpoints() {
+            using ExcelDocument document = ExcelDocument.Create();
+            ExcelSheet sheet = document.AddWorksheet("Named Range Endpoints");
+            sheet.CellValue(1, 1, 1d);
+            sheet.CellFormula(1, 2, "D1");
+            sheet.CellValue(1, 3, 3d);
+            sheet.CellFormula(1, 4, "SUM(Start:End)");
+            sheet.CellFormula(1, 5, "SUM((Start):(End))");
+            sheet.CellFormula(1, 6, "SUM(Start:C1)");
+            sheet.CellFormula(1, 7, "SUM(A1:End)");
+            document.SetNamedRange("Start", "'Named Range Endpoints'!A1", save: false);
+            document.SetNamedRange("End", "'Named Range Endpoints'!C1", save: false);
+
+            ExcelFormulaInspection inspection = document.InspectFormulas();
+            ExcelFormulaDependencyGraph graph = inspection.DependencyGraph;
+            ExcelFormulaDependencyNode range = Assert.IsType<ExcelFormulaDependencyNode>(
+                graph.FindNode("Named Range Endpoints", "D1"));
+
+            Assert.Equal(new[] { "Named Range Endpoints!A1:C1" }, range.Dependencies);
+            Assert.Equal(new[] { "Named Range Endpoints!B1" }, range.FormulaDependencies);
+            ExcelFormulaDependencyNode parenthesizedRange = Assert.IsType<ExcelFormulaDependencyNode>(
+                graph.FindNode("Named Range Endpoints", "E1"));
+            Assert.Equal(new[] { "Named Range Endpoints!A1:C1" }, parenthesizedRange.Dependencies);
+            Assert.Equal(new[] { "Named Range Endpoints!B1" }, parenthesizedRange.FormulaDependencies);
+            ExcelFormulaDependencyNode namedStartRange = Assert.IsType<ExcelFormulaDependencyNode>(
+                graph.FindNode("Named Range Endpoints", "F1"));
+            Assert.Equal(new[] { "Named Range Endpoints!A1:C1" }, namedStartRange.Dependencies);
+            Assert.Equal(new[] { "Named Range Endpoints!B1" }, namedStartRange.FormulaDependencies);
+            ExcelFormulaDependencyNode namedEndRange = Assert.IsType<ExcelFormulaDependencyNode>(
+                graph.FindNode("Named Range Endpoints", "G1"));
+            Assert.Equal(new[] { "Named Range Endpoints!A1:C1" }, namedEndRange.Dependencies);
+            Assert.Equal(new[] { "Named Range Endpoints!B1" }, namedEndRange.FormulaDependencies);
+            Assert.Equal(5, graph.EdgeCount);
+            Assert.True(graph.HasCircularReferences);
+            Assert.Equal(
+                new[] { "Named Range Endpoints!B1", "Named Range Endpoints!D1" },
+                Assert.Single(graph.CircularReferences).References);
+            Assert.Throws<InvalidOperationException>(() => inspection.EnsureNoDependencyIssues());
+        }
+
+        [Fact]
         public void Test_FormulaDependencyGraph_BoundsAcyclicDefinedNameExpansion() {
             using ExcelDocument document = ExcelDocument.Create();
             ExcelSheet sheet = document.AddWorksheet("Bounded Names");
@@ -658,6 +699,49 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("13", cachedC2);
                 Assert.Empty(document.ValidateOpenXml());
             }
+        }
+
+        [Fact]
+        public void Test_FormulaText_ResolvesSharedFormulaFollowers() {
+            string filePath = Path.Combine(_directoryWithFiles, "ExcelFormulaDepth.SharedFormulaText.xlsx");
+
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorksheet("Shared Formula Text");
+                sheet.CellValue(1, 1, 1d);
+                sheet.CellValue(2, 1, 2d);
+                sheet.CellFormula(1, 2, "A1+1");
+                sheet.CellFormula(2, 2, "A2+1");
+                sheet.CellFormula(1, 3, "FORMULATEXT(B2)");
+                document.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, true)) {
+                Worksheet worksheet = spreadsheet.WorkbookPart!.WorksheetParts.Single().Worksheet;
+                Cell master = Assert.Single(
+                    worksheet.Descendants<Cell>(),
+                    cell => cell.CellReference?.Value == "B1");
+                Cell follower = Assert.Single(
+                    worksheet.Descendants<Cell>(),
+                    cell => cell.CellReference?.Value == "B2");
+                master.CellFormula = new CellFormula("A1+1") {
+                    FormulaType = CellFormulaValues.Shared,
+                    SharedIndex = 11U,
+                    Reference = "B1:B2"
+                };
+                follower.CellFormula = new CellFormula {
+                    FormulaType = CellFormulaValues.Shared,
+                    SharedIndex = 11U
+                };
+                worksheet.Save();
+            }
+
+            using ExcelDocument loaded = ExcelDocument.Load(filePath);
+            ExcelSheet loadedSheet = loaded["Shared Formula Text"];
+            Assert.Equal("A2+1", loadedSheet.GetFormulaText(2, 2));
+            Assert.Equal(3, loaded.Calculate());
+            Assert.True(loadedSheet.TryGetCachedFormulaValue(1, 3, out string? formulaText));
+            Assert.Equal("=A2+1", formulaText);
+            Assert.Empty(loaded.ValidateOpenXml());
         }
 
         [Fact]

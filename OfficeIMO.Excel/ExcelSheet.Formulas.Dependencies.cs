@@ -299,8 +299,7 @@ namespace OfficeIMO.Excel {
             bool validStart = index == 0
                 || (!IsFormulaAliasIdentifierCharacter(formula[index - 1])
                     && formula[index - 1] != '!'
-                    && formula[index - 1] != ']'
-                    && formula[index - 1] != ':');
+                    && formula[index - 1] != ']');
             if (!validStart
                 || IsInsideFormulaErrorLiteral(formula, index)
                 || IsInsideFormulaStructuredReference(formula, index)
@@ -406,7 +405,7 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            if (match.Index > 0 && (formula[match.Index - 1] == ']' || formula[match.Index - 1] == ':')) {
+            if (match.Index > 0 && formula[match.Index - 1] == ']') {
                 return false;
             }
 

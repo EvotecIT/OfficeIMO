@@ -23,6 +23,7 @@ namespace OfficeIMO.Excel {
             ISet<string> dependencies) {
             List<FormulaDependencyReferenceMatch> orderedMatches = GetNonOverlappingFormulaDependencyMatches(matches);
             int[] groupingDepths = BuildOpenGroupingParenthesisDepths(formula);
+            orderedMatches = CombineFormulaRangeDependencyMatches(formula, orderedMatches, groupingDepths, sourceRow);
             int index = 0;
             while (index < orderedMatches.Count) {
                 int intersectionEnd = index;

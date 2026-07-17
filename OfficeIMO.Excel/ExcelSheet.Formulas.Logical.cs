@@ -238,7 +238,15 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            formulaText = referenceSheet.TryGetExistingCell(row, column)?.CellFormula?.Text ?? string.Empty;
+            Cell? cell = referenceSheet.TryGetExistingCell(row, column);
+            formulaText = cell?.CellFormula == null
+                ? string.Empty
+                : referenceSheet.ResolveCellFormulaText(
+                    cell,
+                    cell.CellFormula.FormulaType?.Value == CellFormulaValues.Shared
+                        && string.IsNullOrEmpty(cell.CellFormula.Text)
+                        ? GetFormulaEvaluationSharedDefinitions(referenceSheet)
+                        : null);
             return formulaText.Length > 0;
         }
 

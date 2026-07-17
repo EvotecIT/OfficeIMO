@@ -74,6 +74,22 @@ namespace OfficeIMO.Excel {
                 column - definition.Column);
         }
 
+        private IReadOnlyDictionary<uint, SharedFormulaDefinition> GetFormulaEvaluationSharedDefinitions(
+            ExcelSheet sheet) {
+            Dictionary<string, IReadOnlyDictionary<uint, SharedFormulaDefinition>>? definitionsBySheet =
+                _formulaEvaluationSharedDefinitionsBySheet;
+            if (definitionsBySheet == null) {
+                return sheet.BuildSharedFormulaDefinitions();
+            }
+
+            if (!definitionsBySheet.TryGetValue(sheet.Name, out IReadOnlyDictionary<uint, SharedFormulaDefinition>? definitions)) {
+                definitions = sheet.BuildSharedFormulaDefinitions();
+                definitionsBySheet.Add(sheet.Name, definitions);
+            }
+
+            return definitions;
+        }
+
         internal IReadOnlyDictionary<string, string> BuildResolvedFormulaTextMap() {
             IReadOnlyDictionary<uint, SharedFormulaDefinition> sharedFormulaDefinitions = BuildSharedFormulaDefinitions();
             var formulas = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
