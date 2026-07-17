@@ -47,6 +47,61 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_LegacyOfficeImoPivotInteractionMetadata_IsRecognizedWithoutMaskingNativeCaches() {
+            string filePath = Path.Combine(_directoryWithFiles, "PackageInteractions.LegacyOfficeImoMetadata.xlsx");
+            using (var document = ExcelDocument.Create(filePath)) {
+                document.AddWorksheet("Data").CellValue(1, 1, "Value");
+                document.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, true)) {
+                WorkbookPart workbookPart = spreadsheet.WorkbookPart!;
+                WriteExtendedPart(
+                    workbookPart.AddExtendedPart(
+                        "http://schemas.microsoft.com/office/2007/relationships/slicerCache",
+                        "application/vnd.ms-excel.slicerCache+xml",
+                        "xml"),
+                    "<pivotSlicerBinding xmlns=\"https://schemas.evotec.xyz/officeimo/excel\" name=\"LegacyRegion\" sourceName=\"Region\" pivotTableName=\"SalesPivot\"/>");
+                WriteExtendedPart(
+                    workbookPart.AddExtendedPart(
+                        "http://schemas.microsoft.com/office/2007/relationships/slicerCache",
+                        "application/vnd.ms-excel.slicerCache+xml",
+                        "xml"),
+                    "<slicerCacheDefinition xmlns=\"http://schemas.microsoft.com/office/spreadsheetml/2009/9/main\" name=\"NativeRegion\"/>");
+                WriteExtendedPart(
+                    workbookPart.AddExtendedPart(
+                        "http://schemas.microsoft.com/office/2011/relationships/timelineCache",
+                        "application/vnd.ms-excel.timelineCache+xml",
+                        "xml"),
+                    "<pivotTimelineBinding xmlns=\"https://schemas.evotec.xyz/officeimo/excel\" name=\"LegacyOrderDate\" sourceName=\"OrderDate\" pivotTableName=\"SalesPivot\"/>");
+                WriteExtendedPart(
+                    workbookPart.AddExtendedPart(
+                        "http://schemas.microsoft.com/office/2011/relationships/timelineCache",
+                        "application/vnd.ms-excel.timelineCache+xml",
+                        "xml"),
+                    "<timelineCacheDefinition xmlns=\"http://schemas.microsoft.com/office/spreadsheetml/2011/1/timeline\" name=\"NativeOrderDate\"/>");
+            }
+
+            using (var document = ExcelDocument.Load(filePath, new ExcelLoadOptions { AccessMode = DocumentAccessMode.ReadOnly })) {
+                ExcelPivotInteractionCacheInfo slicer = Assert.Single(document.GetWorkbookSlicerCaches());
+                Assert.Equal("LegacyRegion", slicer.Name);
+                Assert.Equal("Region", slicer.SourceName);
+                Assert.Equal("SalesPivot", slicer.PivotTableName);
+
+                ExcelPivotInteractionCacheInfo timeline = Assert.Single(document.GetWorkbookTimelineCaches());
+                Assert.Equal("LegacyOrderDate", timeline.Name);
+                Assert.Equal("OrderDate", timeline.SourceName);
+                Assert.Equal("SalesPivot", timeline.PivotTableName);
+
+                ExcelWorkbookSnapshot snapshot = document.CreateInspectionSnapshot();
+                Assert.Equal(1, snapshot.SlicerPartCount);
+                Assert.Equal(1, snapshot.TimelinePartCount);
+                Assert.Equal(1, snapshot.SlicerBindingMetadataPartCount);
+                Assert.Equal(1, snapshot.TimelineBindingMetadataPartCount);
+            }
+        }
+
+        [Fact]
         public void Test_CopyPackage_PreservesPartsAndNormalizesWorkbookContentType() {
             string sourcePath = Path.Combine(_directoryWithFiles, "PackageClone.Source.xlsx");
             string destinationPath = Path.Combine(_directoryWithFiles, "PackageClone.Target.xlsm");

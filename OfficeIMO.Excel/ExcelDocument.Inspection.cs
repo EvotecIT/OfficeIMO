@@ -323,20 +323,24 @@ namespace OfficeIMO.Excel {
 
         private static bool IsNativeSlicerPackagePart(OpenXmlPart part) {
             return string.Equals(part.ContentType, "application/vnd.ms-excel.slicer+xml", StringComparison.OrdinalIgnoreCase)
-                || string.Equals(part.ContentType, "application/vnd.ms-excel.slicerCache+xml", StringComparison.OrdinalIgnoreCase);
+                || (string.Equals(part.ContentType, MicrosoftWorkbookSlicerCacheContentType, StringComparison.OrdinalIgnoreCase)
+                    && !IsLegacyOfficeImoPivotInteractionMetadataPart(part, ExcelPivotInteractionCacheKind.Slicer));
         }
 
         private static bool IsNativeTimelinePackagePart(OpenXmlPart part) {
             return string.Equals(part.ContentType, "application/vnd.ms-excel.timeline+xml", StringComparison.OrdinalIgnoreCase)
-                || string.Equals(part.ContentType, "application/vnd.ms-excel.timelineCache+xml", StringComparison.OrdinalIgnoreCase);
+                || (string.Equals(part.ContentType, MicrosoftWorkbookTimelineCacheContentType, StringComparison.OrdinalIgnoreCase)
+                    && !IsLegacyOfficeImoPivotInteractionMetadataPart(part, ExcelPivotInteractionCacheKind.Timeline));
         }
 
         private static bool IsSlicerBindingMetadataPart(OpenXmlPart part) {
-            return string.Equals(part.ContentType, WorkbookSlicerCacheContentType, StringComparison.OrdinalIgnoreCase);
+            return string.Equals(part.ContentType, WorkbookSlicerCacheContentType, StringComparison.OrdinalIgnoreCase)
+                || IsLegacyOfficeImoPivotInteractionMetadataPart(part, ExcelPivotInteractionCacheKind.Slicer);
         }
 
         private static bool IsTimelineBindingMetadataPart(OpenXmlPart part) {
-            return string.Equals(part.ContentType, WorkbookTimelineCacheContentType, StringComparison.OrdinalIgnoreCase);
+            return string.Equals(part.ContentType, WorkbookTimelineCacheContentType, StringComparison.OrdinalIgnoreCase)
+                || IsLegacyOfficeImoPivotInteractionMetadataPart(part, ExcelPivotInteractionCacheKind.Timeline);
         }
 
         private static ExcelWorksheetProtectionSnapshot? BuildWorksheetProtectionSnapshot(SheetProtection? protection) {

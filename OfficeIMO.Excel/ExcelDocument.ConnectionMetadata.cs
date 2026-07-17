@@ -13,6 +13,11 @@ namespace OfficeIMO.Excel {
         private const string WorksheetQueryTableContentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.queryTable+xml";
         private const string SpreadsheetMainNamespace = "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
         private const string OfficeDocumentRelationshipsNamespace = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
+        private const string OfficeImoPivotInteractionNamespace = "https://schemas.evotec.xyz/officeimo/excel";
+        private const string MicrosoftWorkbookSlicerCacheRelationshipType = "http://schemas.microsoft.com/office/2007/relationships/slicerCache";
+        private const string MicrosoftWorkbookSlicerCacheContentType = "application/vnd.ms-excel.slicerCache+xml";
+        private const string MicrosoftWorkbookTimelineCacheRelationshipType = "http://schemas.microsoft.com/office/2011/relationships/timelineCache";
+        private const string MicrosoftWorkbookTimelineCacheContentType = "application/vnd.ms-excel.timelineCache+xml";
         private const string WorkbookSlicerCacheRelationshipType = "https://schemas.evotec.xyz/officeimo/excel/relationships/slicerCacheMetadata";
         private const string WorkbookSlicerCacheContentType = "application/vnd.officeimo.excel.slicerCache-metadata+xml";
         private const string WorkbookTimelineCacheRelationshipType = "https://schemas.evotec.xyz/officeimo/excel/relationships/timelineCacheMetadata";

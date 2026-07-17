@@ -179,17 +179,11 @@ namespace OfficeIMO.Excel {
         }
 
         private IReadOnlyList<ExcelPivotInteractionCacheInfo> GetWorkbookPivotInteractionCaches(ExcelPivotInteractionCacheKind kind) {
-            string contentType = kind == ExcelPivotInteractionCacheKind.Slicer
-                ? WorkbookSlicerCacheContentType
-                : WorkbookTimelineCacheContentType;
-            string relationshipType = kind == ExcelPivotInteractionCacheKind.Slicer
-                ? WorkbookSlicerCacheRelationshipType
-                : WorkbookTimelineCacheRelationshipType;
             var caches = new List<ExcelPivotInteractionCacheInfo>();
             foreach (IdPartPair pair in WorkbookPartRoot.Parts) {
                 OpenXmlPart part = pair.OpenXmlPart;
-                if (!string.Equals(part.ContentType, contentType, StringComparison.OrdinalIgnoreCase)
-                    || !string.Equals(part.RelationshipType, relationshipType, StringComparison.Ordinal)) {
+                if (!IsCurrentPivotInteractionMetadataPart(part, kind)
+                    && !IsLegacyOfficeImoPivotInteractionMetadataPart(part, kind)) {
                     continue;
                 }
 
@@ -215,6 +209,43 @@ namespace OfficeIMO.Excel {
                 .OrderBy(cache => cache.Name, StringComparer.OrdinalIgnoreCase)
                 .ThenBy(cache => cache.RelationshipId, StringComparer.Ordinal)
                 .ToList();
+        }
+
+        private static bool IsCurrentPivotInteractionMetadataPart(OpenXmlPart part, ExcelPivotInteractionCacheKind kind) {
+            string contentType = kind == ExcelPivotInteractionCacheKind.Slicer
+                ? WorkbookSlicerCacheContentType
+                : WorkbookTimelineCacheContentType;
+            string relationshipType = kind == ExcelPivotInteractionCacheKind.Slicer
+                ? WorkbookSlicerCacheRelationshipType
+                : WorkbookTimelineCacheRelationshipType;
+            return string.Equals(part.ContentType, contentType, StringComparison.OrdinalIgnoreCase)
+                && string.Equals(part.RelationshipType, relationshipType, StringComparison.Ordinal);
+        }
+
+        private static bool IsLegacyOfficeImoPivotInteractionMetadataPart(OpenXmlPart part, ExcelPivotInteractionCacheKind kind) {
+            string contentType = kind == ExcelPivotInteractionCacheKind.Slicer
+                ? MicrosoftWorkbookSlicerCacheContentType
+                : MicrosoftWorkbookTimelineCacheContentType;
+            string relationshipType = kind == ExcelPivotInteractionCacheKind.Slicer
+                ? MicrosoftWorkbookSlicerCacheRelationshipType
+                : MicrosoftWorkbookTimelineCacheRelationshipType;
+            if (!string.Equals(part.ContentType, contentType, StringComparison.OrdinalIgnoreCase)
+                || !string.Equals(part.RelationshipType, relationshipType, StringComparison.Ordinal)) {
+                return false;
+            }
+
+            try {
+                XDocument xml = XDocument.Parse(ReadPivotInteractionPartText(part));
+                XElement? root = xml.Root;
+                string expectedRootName = kind == ExcelPivotInteractionCacheKind.Slicer
+                    ? "pivotSlicerBinding"
+                    : "pivotTimelineBinding";
+                return root != null
+                    && string.Equals(root.Name.NamespaceName, OfficeImoPivotInteractionNamespace, StringComparison.Ordinal)
+                    && string.Equals(root.Name.LocalName, expectedRootName, StringComparison.Ordinal);
+            } catch (System.Xml.XmlException) {
+                return false;
+            }
         }
 
         private static string ReadPivotInteractionPartText(OpenXmlPart part) {
