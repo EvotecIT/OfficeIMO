@@ -77,33 +77,39 @@ namespace OfficeIMO.PowerPoint {
             return output.ToArray();
         }
 
-        internal static void RemoveIfUnused(SlidePart slidePart,
+        internal static void RemoveIfUnused(OpenXmlPart ownerPart,
             string? relationshipId) {
-            if (slidePart == null) {
-                throw new ArgumentNullException(nameof(slidePart));
+            if (ownerPart == null) {
+                throw new ArgumentNullException(nameof(ownerPart));
             }
-            if (string.IsNullOrEmpty(relationshipId)
-                || slidePart.Slide?.Descendants().Any(element =>
-                    element.GetAttributes().Any(attribute => string.Equals(
-                        attribute.Value, relationshipId,
-                        StringComparison.Ordinal))) == true) {
-                return;
-            }
-            AudioReferenceRelationship? relationship = slidePart
+            string id = relationshipId ?? string.Empty;
+            if (id.Length == 0) return;
+            if (ReferencesRelationship(ownerPart.RootElement,
+                    id)) return;
+            AudioReferenceRelationship? relationship = ownerPart
                 .DataPartReferenceRelationships
                 .OfType<AudioReferenceRelationship>()
                 .FirstOrDefault(candidate => string.Equals(candidate.Id,
-                    relationshipId, StringComparison.Ordinal));
+                    id, StringComparison.Ordinal));
             if (relationship == null) return;
             MediaDataPart? mediaPart = relationship.DataPart
                 as MediaDataPart;
-            slidePart.DeleteReferenceRelationship(relationship);
+            ownerPart.DeleteReferenceRelationship(relationship);
             if (mediaPart != null
                 && !mediaPart.GetDataPartReferenceRelationships().Any()
-                && slidePart.OpenXmlPackage is PresentationDocument document) {
+                && ownerPart.OpenXmlPackage is PresentationDocument document) {
                 document.DeletePart(mediaPart);
             }
         }
+
+        private static bool ReferencesRelationship(
+            OpenXmlPartRootElement? root, string relationshipId) =>
+            root != null && (root.GetAttributes().Any(attribute =>
+                string.Equals(attribute.Value, relationshipId,
+                    StringComparison.Ordinal))
+                || root.Descendants().Any(element => element.GetAttributes()
+                    .Any(attribute => string.Equals(attribute.Value,
+                        relationshipId, StringComparison.Ordinal))));
 
         private static string GetNextRelationshipId(SlidePart slidePart) {
             var used = new HashSet<string>(slidePart.Parts.Select(pair =>

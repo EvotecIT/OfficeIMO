@@ -256,7 +256,8 @@ namespace OfficeIMO.PowerPoint {
                 resolved);
             LegacyBinaryEncryptionKind legacyEncryption =
                 PowerPointPresentationLoadRouting
-                    .GetLegacyBinaryEncryptionKind(encryptedBytes);
+                    .GetLegacyBinaryEncryptionKind(encryptedBytes,
+                        resolved.LegacyPptImportOptions);
             if (legacyEncryption == LegacyBinaryEncryptionKind.Encrypted) {
                 return LoadEncryptedLegacyPptFromNormalFlow(encryptedBytes,
                     password, PowerPointPresentationLoadRouting.GetFormat(
@@ -293,7 +294,8 @@ namespace OfficeIMO.PowerPoint {
                 .ConfigureAwait(false);
             LegacyBinaryEncryptionKind legacyEncryption =
                 PowerPointPresentationLoadRouting
-                    .GetLegacyBinaryEncryptionKind(encryptedBytes);
+                    .GetLegacyBinaryEncryptionKind(encryptedBytes,
+                        resolved.LegacyPptImportOptions);
             if (legacyEncryption == LegacyBinaryEncryptionKind.Encrypted) {
                 return LoadEncryptedLegacyPptFromNormalFlow(encryptedBytes,
                     password, PowerPointPresentationLoadRouting.GetFormat(
@@ -323,7 +325,8 @@ namespace OfficeIMO.PowerPoint {
                 .ConfigureAwait(false);
             LegacyBinaryEncryptionKind legacyEncryption =
                 PowerPointPresentationLoadRouting
-                    .GetLegacyBinaryEncryptionKind(encryptedBytes);
+                    .GetLegacyBinaryEncryptionKind(encryptedBytes,
+                        resolved.LegacyPptImportOptions);
             if (legacyEncryption == LegacyBinaryEncryptionKind.Encrypted) {
                 return LoadEncryptedLegacyPptFromNormalFlow(encryptedBytes,
                     password, PowerPointFileFormat.Ppt, resolved,
@@ -351,7 +354,8 @@ namespace OfficeIMO.PowerPoint {
                 resolved);
             LegacyBinaryEncryptionKind legacyEncryption =
                 PowerPointPresentationLoadRouting
-                    .GetLegacyBinaryEncryptionKind(encryptedBytes);
+                    .GetLegacyBinaryEncryptionKind(encryptedBytes,
+                        resolved.LegacyPptImportOptions);
             if (legacyEncryption == LegacyBinaryEncryptionKind.Encrypted) {
                 return LoadEncryptedLegacyPptFromNormalFlow(encryptedBytes,
                     password, PowerPointFileFormat.Ppt, resolved);

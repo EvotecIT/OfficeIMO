@@ -1,7 +1,7 @@
 namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
     /// <summary>
-    /// Enforces one import-wide limit for decoded OLE, ActiveX, linked-object,
-    /// and VBA storage payloads.
+    /// Enforces one import-wide limit for decoded picture, OLE, ActiveX,
+    /// linked-object, and VBA payloads retained by the parser.
     /// </summary>
     internal sealed class LegacyPptDecodedStorageBudget {
         private readonly long _maximumDecodedBytes;

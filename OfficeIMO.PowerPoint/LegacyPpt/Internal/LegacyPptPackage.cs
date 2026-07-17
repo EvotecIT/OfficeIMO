@@ -223,7 +223,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 originalEncryptedBytes);
         }
 
-        private static OfficeCompoundReadOptions CreateCompoundReadOptions(
+        internal static OfficeCompoundReadOptions CreateCompoundReadOptions(
             LegacyPptImportOptions options) {
             int maxDirectoryEntries = Math.Max(1,
                 Math.Min(65536, options.MaxRecordCount));

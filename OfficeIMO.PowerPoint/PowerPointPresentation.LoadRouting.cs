@@ -1,4 +1,5 @@
 using OfficeIMO.Drawing.Internal;
+using OfficeIMO.PowerPoint.LegacyPpt;
 using OfficeIMO.PowerPoint.LegacyPpt.Internal;
 
 namespace OfficeIMO.PowerPoint {
@@ -31,7 +32,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         internal static LegacyBinaryEncryptionKind GetLegacyBinaryEncryptionKind(
-            byte[] bytes) {
+            byte[] bytes, LegacyPptImportOptions? importOptions = null) {
             if (!OfficeCompoundDocumentDetector.HasCompoundSignature(bytes)) {
                 return LegacyBinaryEncryptionKind.NotLegacyBinary;
             }
@@ -40,7 +41,10 @@ namespace OfficeIMO.PowerPoint {
                     .PowerPointPresentation) {
                 return LegacyBinaryEncryptionKind.NotLegacyBinary;
             }
+            LegacyPptImportOptions resolved = importOptions
+                ?? new LegacyPptImportOptions();
             if (!OfficeCompoundFileReader.TryRead(bytes,
+                    LegacyPptPackage.CreateCompoundReadOptions(resolved),
                     out OfficeCompoundFile? compound, out string? error)
                 || compound == null
                 || !compound.Streams.TryGetValue("Current User",

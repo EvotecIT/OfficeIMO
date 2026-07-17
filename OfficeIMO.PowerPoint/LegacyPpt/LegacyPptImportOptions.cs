@@ -17,8 +17,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
         public int MaxRecordDepth { get; set; } = 64;
 
         /// <summary>
-        /// Gets or sets the maximum aggregate bytes decoded from embedded OLE,
-        /// linked-object, ActiveX, and VBA storages during one import.
+        /// Gets or sets the maximum aggregate bytes retained from decoded pictures,
+        /// embedded OLE, linked-object, ActiveX, and VBA storages during one import.
         /// </summary>
         public long MaxDecodedStorageBytes { get; set; } = 64L * 1024 * 1024;
 

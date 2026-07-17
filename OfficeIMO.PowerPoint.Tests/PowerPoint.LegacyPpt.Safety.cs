@@ -1,3 +1,4 @@
+using OfficeIMO.Drawing;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.LegacyPpt;
 using OfficeIMO.PowerPoint.LegacyPpt.Internal;
@@ -372,6 +373,45 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PackageReader_ChargesDecodedPicturesToSharedBudget() {
+            byte[] firstImage = OfficePngWriter.Encode(new OfficeRasterImage(
+                4, 4, OfficeColor.FromRgb(10, 20, 30)));
+            byte[] secondImage = OfficePngWriter.Encode(new OfficeRasterImage(
+                4, 4, OfficeColor.FromRgb(40, 50, 60)));
+            byte[] bytes;
+            using (PowerPointPresentation created =
+                   PowerPointPresentation.Create()) {
+                PowerPointSlide slide = created.AddSlide();
+                using (var first = new MemoryStream(firstImage,
+                           writable: false)) {
+                    slide.AddPicture(first,
+                        OfficeIMO.PowerPoint.ImagePartType.Png);
+                }
+                using (var second = new MemoryStream(secondImage,
+                           writable: false)) {
+                    slide.AddPicture(second,
+                        OfficeIMO.PowerPoint.ImagePartType.Png,
+                        left: 1000000);
+                }
+                bytes = created.ToBytes(PowerPointFileFormat.Ppt);
+            }
+            LegacyPptPresentation unrestricted =
+                LegacyPptPresentation.Load(bytes);
+            Assert.Equal(2, unrestricted.BlipStoreEntries.Count);
+            long decodedBytes = unrestricted.BlipStoreEntries.Sum(entry =>
+                (long)entry.ImageByteCount);
+
+            InvalidDataException exception = Assert.Throws<
+                InvalidDataException>(() => LegacyPptPresentation.Load(bytes,
+                new LegacyPptImportOptions {
+                    MaxDecodedStorageBytes = decodedBytes - 1
+                }));
+
+            Assert.Contains("aggregate decoded embedded-storage",
+                exception.Message, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
         public void OleStorageDecoder_ReservesCompressedExpansionBeforeDecode() {
             byte[] decoded = CreateOleTestStorage("Compressed expansion");
             byte[] compressed = CompressVbaZlib(decoded);
@@ -453,16 +493,27 @@ namespace OfficeIMO.Tests {
             Assert.True(documentSize * 4UL
                 > unchecked((ulong)expanded.Length));
 
+            var importOptions = new LegacyPptImportOptions {
+                MaxInputBytes = expanded.Length
+            };
             InvalidDataException exception = Assert.Throws<
                 InvalidDataException>(() => LegacyPptPresentation.Load(
-                    expanded, new LegacyPptImportOptions {
-                        MaxInputBytes = expanded.Length
-                    }));
+                    expanded, importOptions));
 
             Assert.Contains("Compound stream bytes exceed",
                 exception.Message, StringComparison.OrdinalIgnoreCase);
             Assert.Contains(expanded.Length.ToString(), exception.Message,
                 StringComparison.Ordinal);
+            using var encryptedRoute = new MemoryStream(expanded,
+                writable: false);
+            InvalidDataException routeException = Assert.Throws<
+                InvalidDataException>(() =>
+                PowerPointPresentation.LoadEncrypted(encryptedRoute,
+                    "password", new PowerPointLoadOptions {
+                        LegacyPptImportOptions = importOptions
+                    }));
+            Assert.Contains("Compound stream bytes exceed",
+                routeException.Message, StringComparison.OrdinalIgnoreCase);
         }
 
         [Fact]

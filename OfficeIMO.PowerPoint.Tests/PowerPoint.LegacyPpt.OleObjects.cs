@@ -168,6 +168,38 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void RemovingOleObjectRemovesUnreferencedPreviewImage() {
+            byte[] storageBytes = CreateOleTestStorage("Removed OLE preview");
+            byte[] imageBytes = PdfPngTestImages.CreateRgbPng(12, 34, 56);
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            PowerPointSlide slide = presentation.AddSlide(
+                P.SlideLayoutValues.Blank);
+            using var storage = new MemoryStream(storageBytes,
+                writable: false);
+            PowerPointOleObject ole = slide.AddOleObject(storage, "Package");
+            ImagePart imagePart = slide.SlidePart.AddImagePart(
+                DocumentFormat.OpenXml.Packaging.ImagePartType.Png);
+            using (var image = new MemoryStream(imageBytes,
+                       writable: false)) {
+                imagePart.FeedData(image);
+            }
+            P.Picture preview = Assert.IsType<P.GraphicFrame>(ole.Element)
+                .Graphic!.GraphicData!.GetFirstChild<P.OleObject>()!
+                .GetFirstChild<P.Picture>()!;
+            preview.BlipFill = new P.BlipFill(new A.Blip {
+                Embed = slide.SlidePart.GetIdOfPart(imagePart)
+            }, new A.Stretch(new A.FillRectangle()));
+
+            ole.Remove();
+
+            Assert.Empty(slide.SlidePart.ImageParts);
+            Assert.Empty(slide.SlidePart.EmbeddedObjectParts);
+            Assert.Empty(slide.Shapes);
+            Assert.Empty(presentation.ValidateDocument());
+        }
+
+        [Fact]
         public void EmbeddedOleObjectAndVbaProject_UseDistinctNativePersistObjects() {
             byte[] oleStorage = CreateOleTestStorage("OLE and VBA");
             byte[] vbaProject = CreateVbaTestProject("OleVbaModule",

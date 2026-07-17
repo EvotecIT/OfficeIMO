@@ -124,6 +124,9 @@ public sealed class OfficeArtBlipStoreEntry {
     /// <summary>Gets a defensive copy of image bytes suitable for an Open XML image part.</summary>
     public byte[] ImageBytes => (byte[])_imageBytes.Clone();
 
+    /// <summary>Gets the number of decoded image bytes retained by this entry.</summary>
+    public int ImageByteCount => _imageBytes.Length;
+
     /// <summary>Gets whether this entry can be projected as an Open XML image.</summary>
     public bool HasImportableImage => _imageBytes.Length > 0 && !string.IsNullOrWhiteSpace(ContentType);
 

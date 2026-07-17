@@ -90,12 +90,19 @@ namespace OfficeIMO.PowerPoint {
                 throw new ArgumentException("An animation sound name is required.",
                     nameof(name));
             }
+            EnsureClassicAnimationTarget(shape);
             string relationshipId = PowerPointEmbeddedSound.Add(_slidePart,
                 audio, contentType, extension);
-            UpdateClassicAnimation(shape, animation => CopyClassicAnimation(
-                animation, playsSound: true,
-                stopsSound: stopExistingSounds,
-                soundRelationshipId: relationshipId, soundName: name));
+            try {
+                UpdateClassicAnimation(shape, animation => CopyClassicAnimation(
+                    animation, playsSound: true,
+                    stopsSound: stopExistingSounds,
+                    soundRelationshipId: relationshipId, soundName: name));
+            } catch {
+                PowerPointEmbeddedSound.RemoveIfUnused(_slidePart,
+                    relationshipId);
+                throw;
+            }
         }
 
         /// <summary>Controls whether existing sounds stop when a shape's classic animation starts.</summary>
@@ -124,7 +131,9 @@ namespace OfficeIMO.PowerPoint {
         internal void SetClassicAnimations(
             IReadOnlyList<PowerPointClassicAnimation> animations) {
             if (animations == null) throw new ArgumentNullException(nameof(animations));
-            string[] previousSoundRelationships = ReadClassicAnimations()
+            IReadOnlyList<PowerPointClassicAnimation> previousAnimations =
+                ReadClassicAnimations();
+            string[] previousSoundRelationships = previousAnimations
                 .Select(animation => animation.SoundRelationshipId)
                 .Where(id => !string.IsNullOrEmpty(id))
                 .Cast<string>()
@@ -134,7 +143,11 @@ namespace OfficeIMO.PowerPoint {
                 .OrderBy(animation => animation.Order)
                 .ToArray();
             if (ordered.Length == 0) {
-                SlideRoot.Timing = null;
+                if (HasOnlyClassicAnimationTiming()) {
+                    SlideRoot.Timing = null;
+                } else if (previousAnimations.Count > 0) {
+                    RemoveClassicTimingNodes(previousAnimations);
+                }
                 WriteClassicAnimationMetadata(ordered);
                 RemoveUnusedClassicAnimationSounds(
                     previousSoundRelationships);
@@ -204,6 +217,42 @@ namespace OfficeIMO.PowerPoint {
             RemoveUnusedClassicAnimationSounds(previousSoundRelationships);
         }
 
+        private void RemoveClassicTimingNodes(
+            IReadOnlyList<PowerPointClassicAnimation> animations) {
+            Timing? timing = SlideRoot.Timing;
+            if (timing == null) return;
+            foreach (AnimateEffect effect in timing.Descendants<AnimateEffect>()
+                         .ToArray()) {
+                string? value = effect.Descendants<ShapeTarget>()
+                    .FirstOrDefault()?.ShapeId?.Value;
+                if (!uint.TryParse(value, NumberStyles.Integer,
+                        CultureInfo.InvariantCulture, out uint shapeId)
+                    || !animations.Any(animation =>
+                        animation.ShapeId == shapeId
+                        && effect.CommonBehavior?.CommonTimeNode?.PresetId?.Value
+                        == (int)(byte)animation.Effect
+                        && effect.CommonBehavior.CommonTimeNode.PresetSubtype?.Value
+                        == animation.Direction)) {
+                    continue;
+                }
+                OpenXmlElement? owner = effect
+                    .Ancestors<ParallelTimeNode>().FirstOrDefault();
+                (owner ?? effect).Remove();
+            }
+            var shapeIds = new HashSet<string>(animations.Select(animation =>
+                animation.ShapeId.ToString(CultureInfo.InvariantCulture)),
+                StringComparer.Ordinal);
+            foreach (BuildParagraph build in timing.Descendants<BuildParagraph>()
+                         .Where(item => shapeIds.Contains(item.ShapeId?.Value
+                             ?? string.Empty)).ToArray()) {
+                build.Remove();
+            }
+            foreach (BuildList list in timing.Descendants<BuildList>()
+                         .Where(item => !item.HasChildren).ToArray()) {
+                list.Remove();
+            }
+        }
+
         private void RemoveUnusedClassicAnimationSounds(
             IEnumerable<string> relationshipIds) {
             foreach (string relationshipId in relationshipIds) {
@@ -253,24 +302,36 @@ namespace OfficeIMO.PowerPoint {
 
         private void UpdateClassicAnimation(PowerPointShape shape,
             Func<PowerPointClassicAnimation, PowerPointClassicAnimation> update) {
-            if (shape == null) throw new ArgumentNullException(nameof(shape));
-            if (!ReferenceEquals(shape.OwnerSlide, this)) {
-                throw new ArgumentException("The animation target must belong to this slide.",
-                    nameof(shape));
-            }
-            uint shapeId = shape.Id
-                ?? throw new InvalidOperationException("The animation target has no shape identifier.");
+            uint shapeId = EnsureClassicAnimationTarget(shape);
             List<PowerPointClassicAnimation> animations =
                 ReadClassicAnimations().ToList();
             int index = animations.FindIndex(animation =>
                 animation.ShapeId == shapeId);
-            if (index < 0) {
-                throw new InvalidOperationException(
-                    "The target shape has no classic animation.");
-            }
+            if (index < 0) throw CreateMissingClassicAnimationException();
             animations[index] = update(animations[index]);
             SetClassicAnimations(animations);
         }
+
+        private uint EnsureClassicAnimationTarget(PowerPointShape shape) {
+            if (shape == null) throw new ArgumentNullException(nameof(shape));
+            if (!ReferenceEquals(shape.OwnerSlide, this)) {
+                throw new ArgumentException(
+                    "The animation target must belong to this slide.",
+                    nameof(shape));
+            }
+            uint shapeId = shape.Id
+                ?? throw new InvalidOperationException(
+                    "The animation target has no shape identifier.");
+            if (!ReadClassicAnimations().Any(animation =>
+                    animation.ShapeId == shapeId)) {
+                throw CreateMissingClassicAnimationException();
+            }
+            return shapeId;
+        }
+
+        private static InvalidOperationException
+            CreateMissingClassicAnimationException() => new(
+                "The target shape has no classic animation.");
 
         private static PowerPointClassicAnimation CopyClassicAnimation(
             PowerPointClassicAnimation animation, bool? playsSound = null,

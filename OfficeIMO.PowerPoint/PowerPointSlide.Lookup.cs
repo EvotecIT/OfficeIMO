@@ -182,14 +182,43 @@ namespace OfficeIMO.PowerPoint {
                 ? frame.Graphic?.GraphicData?.GetFirstChild<OleObject>()?
                     .Id?.Value
                 : null;
+            string[] previewRelationshipIds = shape is PowerPointOleObject
+                ? shape.Element.Descendants<A.Blip>()
+                    .Select(blip => blip.Embed?.Value)
+                    .Where(id => !string.IsNullOrEmpty(id))
+                    .Cast<string>()
+                    .Distinct(StringComparer.Ordinal)
+                    .ToArray()
+                : Array.Empty<string>();
             RemoveClassicAnimation(shape);
             shape.Element.Remove();
             _shapes.Remove(shape);
             if (embeddedPart != null && relationshipId != null
                 && !SlideRoot.Descendants<OleObject>().Any(item =>
                     string.Equals(item.Id?.Value, relationshipId,
-                        StringComparison.Ordinal))) {
+                    StringComparison.Ordinal))) {
                 _slidePart.DeletePart(embeddedPart);
+            }
+            foreach (string previewRelationshipId in
+                     previewRelationshipIds) {
+                RemoveImageRelationshipIfUnused(previewRelationshipId);
+            }
+        }
+
+        private void RemoveImageRelationshipIfUnused(
+            string relationshipId) {
+            if (SlideRoot.GetAttributes().Any(attribute => string.Equals(
+                    attribute.Value, relationshipId,
+                    StringComparison.Ordinal))
+                || SlideRoot.Descendants().Any(element =>
+                    element.GetAttributes().Any(attribute => string.Equals(
+                        attribute.Value, relationshipId,
+                        StringComparison.Ordinal)))) {
+                return;
+            }
+            if (_slidePart.TryGetPartById(relationshipId,
+                    out OpenXmlPart? part) && part is ImagePart) {
+                _slidePart.DeletePart(relationshipId);
             }
         }
 

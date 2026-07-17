@@ -716,6 +716,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 if (OfficeArtBlipStoreEntryReader.TryRead(bytes, 8, fbse.PayloadLength, fbse.Instance,
                         package.PicturesStream, out OfficeArtBlipStoreEntry? entry,
                         options.MaxInputBytes) && entry != null) {
+                    _decodedStorageBudget.Consume(entry.ImageByteCount);
                     _blipStoreEntries.Add(entry);
                 } else if (options.ReportUnsupportedContent) {
                     AddDiagnostic("PPT-PICTURE-FBSE-TRUNCATED", LegacyPptDiagnosticSeverity.Warning,

@@ -175,8 +175,19 @@ namespace OfficeIMO.PowerPoint {
                         link.Action?.Value, prefix))
                     .ToArray();
                 if (links.Length == 0) continue;
+                string[] soundRelationshipIds = links
+                    .SelectMany(link => link.Elements<A.HyperlinkSound>())
+                    .Select(sound => sound.Embed?.Value)
+                    .Where(id => !string.IsNullOrEmpty(id))
+                    .Cast<string>()
+                    .Distinct(StringComparer.Ordinal)
+                    .ToArray();
                 foreach (A.HyperlinkType link in links) link.Remove();
                 root.Save();
+                foreach (string relationshipId in soundRelationshipIds) {
+                    PowerPointEmbeddedSound.RemoveIfUnused(part,
+                        relationshipId);
+                }
             }
         }
 
@@ -286,6 +297,7 @@ namespace OfficeIMO.PowerPoint {
             slidePart.Slide = (Slide)sourceSlideRoot.CloneNode(true);
 
             CloneSlidePartRelationships(sourcePart, slidePart, ShouldSharePart, includeDataParts: true);
+            RemapDuplicatedNotesSlideBacklink(sourcePart, slidePart);
 
             SlideIdList slideIdList = PresentationRoot.SlideIdList ??= new SlideIdList();
             SlideId slideId = new() { Id = GetNextSlideId() };

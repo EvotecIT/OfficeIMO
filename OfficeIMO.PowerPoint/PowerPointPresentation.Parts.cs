@@ -450,6 +450,38 @@ namespace OfficeIMO.PowerPoint {
                 || part is SlidePart;
         }
 
+        private static void RemapDuplicatedNotesSlideBacklink(
+            SlidePart sourceSlidePart, SlidePart targetSlidePart) {
+            NotesSlidePart? sourceNotesPart = sourceSlidePart.NotesSlidePart;
+            NotesSlidePart? targetNotesPart = targetSlidePart.NotesSlidePart;
+            if (sourceNotesPart == null || targetNotesPart == null) return;
+
+            var referencedRelationshipIds = new HashSet<string>(
+                (sourceNotesPart.NotesSlide == null
+                    ? Enumerable.Empty<OpenXmlElement>()
+                    : new OpenXmlElement[] { sourceNotesPart.NotesSlide }
+                        .Concat(sourceNotesPart.NotesSlide.Descendants()))
+                    .SelectMany(element => element.GetAttributes())
+                    .Select(attribute => attribute.Value)
+                    .OfType<string>()
+                    .Where(value => value.Length > 0),
+                StringComparer.Ordinal);
+            string? backlinkId = sourceNotesPart.Parts
+                .Where(pair => ReferenceEquals(pair.OpenXmlPart,
+                    sourceSlidePart))
+                .Select(pair => pair.RelationshipId)
+                .FirstOrDefault(id => !referencedRelationshipIds.Contains(id));
+            if (string.IsNullOrEmpty(backlinkId)
+                || !targetNotesPart.TryGetPartById(backlinkId,
+                    out OpenXmlPart? clonedBacklink)
+                || clonedBacklink is not SlidePart) {
+                return;
+            }
+
+            targetNotesPart.DeletePart(backlinkId);
+            targetNotesPart.AddPart(targetSlidePart, backlinkId);
+        }
+
         private void CloneImportedNotesSlidePart(
             SlidePart sourceSlidePart,
             SlidePart targetSlidePart,

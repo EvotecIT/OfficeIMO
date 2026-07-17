@@ -27,16 +27,21 @@ namespace OfficeIMO.Tests {
                 });
             NonVisualDrawingProperties properties = ((Shape)actionShape.Element)
                 .NonVisualShapeProperties!.NonVisualDrawingProperties!;
-            properties.Append(new A.HyperlinkOnClick {
-                Id = string.Empty,
-                Action = "ppaction://customshow?id=17&return=true"
-            });
+            using (var sound = new MemoryStream(CreateWave(),
+                       writable: false)) {
+                actionShape.SetClickSound(sound, "Removed show sound");
+            }
+            A.HyperlinkOnClick action = properties
+                .GetFirstChild<A.HyperlinkOnClick>()!;
+            action.Action = "ppaction://customshow?id=17&return=true";
 
             presentation.RemoveSlide(1);
 
             Assert.Null(presentationPart.Presentation.CustomShowList);
             Assert.Empty(source.SlidePart.Slide!
                 .Descendants<A.HyperlinkOnClick>());
+            Assert.Empty(source.SlidePart.DataPartReferenceRelationships);
+            Assert.Empty(presentation.OpenXmlDocument.DataParts);
             Assert.Empty(presentation.ValidateDocument());
         }
 
@@ -68,6 +73,27 @@ namespace OfficeIMO.Tests {
             Assert.True(second.SlidePart.TryGetPartById(
                 secondLink.Id!.Value!, out OpenXmlPart? secondTarget));
             Assert.Same(first.SlidePart, secondTarget);
+            Assert.Empty(presentation.ValidateDocument());
+        }
+
+        [Fact]
+        public void DuplicatedNotesBacklinkTargetsDuplicateSlide() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            PowerPointSlide source = presentation.AddSlide();
+            source.Notes.Text = "Duplicated notes";
+            source.SlidePart.NotesSlidePart!.AddPart(source.SlidePart);
+
+            PowerPointSlide duplicate = presentation.DuplicateSlide(0);
+
+            Assert.Same(source.SlidePart, source.SlidePart.NotesSlidePart!
+                .SlidePart);
+            Assert.Same(duplicate.SlidePart,
+                duplicate.SlidePart.NotesSlidePart!.SlidePart);
+            presentation.RemoveSlide(0);
+            Assert.Same(duplicate.SlidePart,
+                duplicate.SlidePart.NotesSlidePart!.SlidePart);
+            Assert.Equal("Duplicated notes", duplicate.Notes.Text);
             Assert.Empty(presentation.ValidateDocument());
         }
 
@@ -119,6 +145,45 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ClearingClassicAnimationsPreservesMediaTiming() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            using var audio = new MemoryStream(CreateWave(), writable: false);
+            slide.AddAudio(audio, "audio/wav", ".wav");
+            string originalTiming = slide.SlidePart.Slide!.Timing!.OuterXml;
+
+            slide.ClearClassicAnimations();
+
+            Assert.Equal(originalTiming,
+                slide.SlidePart.Slide.Timing!.OuterXml);
+            Assert.Single(slide.SlidePart.Slide.Timing.Descendants<Audio>());
+            Assert.Empty(presentation.ValidateDocument());
+        }
+
+        [Fact]
+        public void ClearingClassicAnimationsRemovesOnlyClassicMixedTiming() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            PowerPointAutoShape shape = slide.AddRectangle(
+                100000, 100000, 1000000, 500000);
+            slide.AddClassicAnimation(shape,
+                PowerPointClassicAnimationEffect.Fade);
+            using var audio = new MemoryStream(CreateWave(), writable: false);
+            slide.AddAudio(audio, "audio/wav", ".wav");
+
+            slide.ClearClassicAnimations();
+
+            Assert.Empty(slide.ClassicAnimations);
+            Assert.Empty(slide.SlidePart.Slide!.Timing!
+                .Descendants<AnimateEffect>());
+            Assert.Single(slide.SlidePart.Slide.Timing
+                .Descendants<Audio>());
+            Assert.Empty(presentation.ValidateDocument());
+        }
+
+        [Fact]
         public void FailedSoundIngestionDoesNotLeaveMediaParts() {
             using PowerPointPresentation presentation =
                 PowerPointPresentation.Create();
@@ -144,6 +209,22 @@ namespace OfficeIMO.Tests {
             Assert.Empty(presentation.OpenXmlDocument.DataParts);
             Assert.Empty(slide.SlidePart.DataPartReferenceRelationships
                 .OfType<AudioReferenceRelationship>());
+        }
+
+        [Fact]
+        public void InvalidClassicAnimationSoundTargetDoesNotCreateMediaPart() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            PowerPointAutoShape shape = slide.AddRectangle(
+                100000, 100000, 1000000, 500000);
+            using var sound = new MemoryStream(CreateWave(), writable: false);
+
+            Assert.Throws<InvalidOperationException>(() =>
+                slide.SetClassicAnimationSound(shape, sound, "No animation"));
+
+            Assert.Empty(slide.SlidePart.DataPartReferenceRelationships);
+            Assert.Empty(presentation.OpenXmlDocument.DataParts);
         }
 
         [Fact]
