@@ -540,6 +540,14 @@ _Dependency footprint:_ only OfficeIMO RTF, PDF, and Drawing packages.
 
 _Dependency footprint:_ only OfficeIMO AsciiDoc and Markdown packages.
 
+#### [OfficeIMO.AsciiDoc.Pdf](OfficeIMO.AsciiDoc.Pdf/README.md)
+
+- [x] Direct AsciiDoc-to-PDF lifecycle over the existing loss-aware Markdown projection
+- [x] Combined native parser, semantic projection, and PDF diagnostics
+- [x] Shared Markdown PDF resource, font, layout, proof, stream-ownership, and cancellation contracts
+
+_Dependency footprint:_ only OfficeIMO AsciiDoc.Markdown and Markdown.Pdf; no additional renderer or external dependency.
+
 #### [OfficeIMO.Latex.Markdown](OfficeIMO.Latex.Markdown/README.md)
 
 - [x] Bounded-profile LaTeX to typed Markdown and Markdown to canonical LaTeX
@@ -547,6 +555,14 @@ _Dependency footprint:_ only OfficeIMO AsciiDoc and Markdown packages.
 - [x] Deterministic escaping/labels and diagnostics for TeX layout or package behavior that cannot be represented
 
 _Dependency footprint:_ only OfficeIMO LaTeX and Markdown packages.
+
+#### [OfficeIMO.Latex.Pdf](OfficeIMO.Latex.Pdf/README.md)
+
+- [x] Direct bounded-profile LaTeX-to-PDF lifecycle over the existing loss-aware Markdown projection
+- [x] Combined native parser, semantic projection, and PDF diagnostics
+- [x] Explicit math, citation, package-behavior, and source-fallback limitations without TeX execution
+
+_Dependency footprint:_ only OfficeIMO Latex.Markdown and Markdown.Pdf; no additional renderer or external dependency.
 
 ### Unified Reader family
 

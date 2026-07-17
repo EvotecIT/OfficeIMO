@@ -13,6 +13,8 @@ public sealed class PdfConverterOptionsApiTests {
         var powerPoint = new OfficeIMO.PowerPoint.Pdf.PowerPointPdfSaveOptions();
         var html = new OfficeIMO.Html.Pdf.HtmlPdfSaveOptions();
         var rtf = new OfficeIMO.Rtf.Pdf.RtfPdfSaveOptions();
+        var asciiDoc = new OfficeIMO.AsciiDoc.Pdf.AsciiDocPdfSaveOptions();
+        var latex = new OfficeIMO.Latex.Pdf.LatexPdfSaveOptions();
 
         Assert.Equal(PdfTextFallbackFeatures.Default, markdown.TextFallbacks);
         Assert.Equal(PdfTextFallbackFeatures.Default, word.TextFallbacks);
@@ -24,6 +26,8 @@ public sealed class PdfConverterOptionsApiTests {
         AssertBalancedDefault(powerPoint.ResourcePolicy);
         AssertBalancedDefault(html.ResourcePolicy);
         AssertBalancedDefault(rtf.ResourcePolicy);
+        AssertBalancedDefault(asciiDoc.PdfOptions.ResourcePolicy);
+        AssertBalancedDefault(latex.PdfOptions.ResourcePolicy);
         AssertPortable(PdfResourcePolicy.CreatePortableDeterministic());
     }
 

@@ -3,10 +3,14 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.AsciiDoc;
+using OfficeIMO.AsciiDoc.Pdf;
 using OfficeIMO.Excel;
 using OfficeIMO.Excel.Pdf;
 using OfficeIMO.Html;
 using OfficeIMO.Html.Pdf;
+using OfficeIMO.Latex;
+using OfficeIMO.Latex.Pdf;
 using OfficeIMO.Markdown.Pdf;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.Pdf;
@@ -71,6 +75,52 @@ public sealed class PdfConversionScenarioManifestTests {
         Assert.DoesNotContain("pdf-table-import-word.docx", reviewFiles);
         Assert.Contains("pdf-table-import-excel.xlsx", reviewFiles);
         Assert.Contains("pdf-table-import-powerpoint.pptx", reviewFiles);
+    }
+
+    [Fact]
+    public void AsciiDocDirectAdapter_ProducesManifestedLossAwareProof() {
+        const string source =
+            "= AsciiDoc direct PDF proof\n" +
+            ":author: OfficeIMO\n\n" +
+            "== Reusable route\n" +
+            "Semantic route marker with stem:[x^2].\n\n" +
+            "* Native AsciiDoc parser\n" +
+            "* Shared Markdown PDF renderer\n";
+
+        PdfCore.PdfDocumentConversionResult result = AsciiDocDocument.Parse(source).Document.ToPdfDocumentResult();
+        byte[] pdf = result.ToBytes();
+        string text = PdfCore.PdfReadDocument.Load(pdf).ExtractText();
+
+        Assert.Contains("AsciiDoc direct PDF proof", text, StringComparison.Ordinal);
+        Assert.Contains("Semantic route marker", text, StringComparison.Ordinal);
+        Assert.Contains(result.Warnings, warning => warning.Converter == "OfficeIMO.AsciiDoc.Pdf" && warning.Code == "ADOCMD103");
+        Assert.Contains(result.Warnings, warning => warning.Details.TryGetValue("stage", out string? stage) && stage == "semantic-projection");
+
+        WriteReviewArtifact("asciidoc-direct-semantic-document.pdf", pdf);
+    }
+
+    [Fact]
+    public void LatexDirectAdapter_ProducesManifestedLossAwareProof() {
+        const string source =
+            "\\documentclass{article}\n" +
+            "\\title{LaTeX direct PDF proof}\n" +
+            "\\author{OfficeIMO}\n" +
+            "\\begin{document}\n" +
+            "\\maketitle\n" +
+            "\\section{Reusable route}\n" +
+            "Semantic route marker with citation \\cite{officeimo} and math $x^2$.\n" +
+            "\\end{document}\n";
+
+        PdfCore.PdfDocumentConversionResult result = LatexDocument.Parse(source).Document.ToPdfDocumentResult();
+        byte[] pdf = result.ToBytes();
+        string text = PdfCore.PdfReadDocument.Load(pdf).ExtractText();
+
+        Assert.Contains("LaTeX direct PDF proof", text, StringComparison.Ordinal);
+        Assert.Contains("Semantic route marker", text, StringComparison.Ordinal);
+        Assert.Contains(result.Warnings, warning => warning.Converter == "OfficeIMO.Latex.Pdf" && warning.Code == "LATEXMD101");
+        Assert.Contains(result.Warnings, warning => warning.Code == "LATEXMD102");
+
+        WriteReviewArtifact("latex-direct-semantic-document.pdf", pdf);
     }
 
     [Fact]
@@ -1998,7 +2048,7 @@ public sealed class PdfConversionScenarioManifestTests {
             foreach (string scenarioId in adapterScenarioIds) Assert.Contains(scenarioId, scenarioIds);
         }
 
-        Assert.Equal(new[] { "excel", "html", "markdown", "onenote", "powerpoint", "rtf", "word" },
+        Assert.Equal(new[] { "asciidoc", "excel", "html", "latex", "markdown", "onenote", "powerpoint", "rtf", "word" },
             catalogIds.OrderBy(id => id, StringComparer.Ordinal));
     }
 
@@ -2007,10 +2057,8 @@ public sealed class PdfConversionScenarioManifestTests {
         Assert.NotEmpty(routes);
 
         string[] expected = {
-            "asciidoc-via-markdown",
             "email-document",
             "epub-book",
-            "latex-via-markdown",
             "opendocument-presentation-via-powerpoint",
             "opendocument-spreadsheet-via-excel",
             "opendocument-text-via-word",

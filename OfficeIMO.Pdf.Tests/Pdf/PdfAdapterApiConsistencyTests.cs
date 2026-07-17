@@ -1,6 +1,8 @@
 using System.Reflection;
+using OfficeIMO.AsciiDoc.Pdf;
 using OfficeIMO.Excel.Pdf;
 using OfficeIMO.Html.Pdf;
+using OfficeIMO.Latex.Pdf;
 using OfficeIMO.Markdown.Pdf;
 using OfficeIMO.PowerPoint.Pdf;
 using OfficeIMO.Rtf.Pdf;
@@ -11,12 +13,14 @@ namespace OfficeIMO.Tests.Pdf;
 
 public sealed class PdfAdapterApiConsistencyTests {
     public static IEnumerable<object[]> AdapterTypes() {
+        yield return new object[] { typeof(AsciiDocPdfConverterExtensions) };
         yield return new object[] { typeof(WordPdfConverterExtensions) };
         yield return new object[] { typeof(ExcelPdfConverterExtensions) };
         yield return new object[] { typeof(PowerPointPdfConverterExtensions) };
         yield return new object[] { typeof(MarkdownPdfConverterExtensions) };
         yield return new object[] { typeof(RtfPdfConverterExtensions) };
         yield return new object[] { typeof(HtmlPdfConverterExtensions) };
+        yield return new object[] { typeof(LatexPdfConverterExtensions) };
     }
 
     [Theory]

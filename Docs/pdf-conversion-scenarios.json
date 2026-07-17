@@ -78,23 +78,31 @@
       "extensionTypes": [ "OfficeIMO.OneNote.Pdf.OneNoteSectionPdfConverterExtensions", "OfficeIMO.OneNote.Pdf.OneNoteNotebookPdfConverterExtensions" ],
       "scenarioIds": [ "onenote-semantic-document" ],
       "conversionMode": "explicit-semantic-document"
+    },
+    {
+      "id": "asciidoc",
+      "sourceFormats": [ "adoc", "asciidoc", "asc" ],
+      "adapter": "OfficeIMO.AsciiDoc.Pdf",
+      "projectPath": "OfficeIMO.AsciiDoc.Pdf/OfficeIMO.AsciiDoc.Pdf.csproj",
+      "ownerPaths": [ "OfficeIMO.AsciiDoc/**", "OfficeIMO.AsciiDoc.Markdown/**", "OfficeIMO.AsciiDoc.Pdf/**" ],
+      "optionsType": "OfficeIMO.AsciiDoc.Pdf.AsciiDocPdfSaveOptions",
+      "extensionTypes": [ "OfficeIMO.AsciiDoc.Pdf.AsciiDocPdfConverterExtensions" ],
+      "scenarioIds": [ "asciidoc-direct-semantic-document" ],
+      "conversionMode": "loss-aware-semantic-document"
+    },
+    {
+      "id": "latex",
+      "sourceFormats": [ "tex", "latex" ],
+      "adapter": "OfficeIMO.Latex.Pdf",
+      "projectPath": "OfficeIMO.Latex.Pdf/OfficeIMO.Latex.Pdf.csproj",
+      "ownerPaths": [ "OfficeIMO.Latex/**", "OfficeIMO.Latex.Markdown/**", "OfficeIMO.Latex.Pdf/**" ],
+      "optionsType": "OfficeIMO.Latex.Pdf.LatexPdfSaveOptions",
+      "extensionTypes": [ "OfficeIMO.Latex.Pdf.LatexPdfConverterExtensions" ],
+      "scenarioIds": [ "latex-direct-semantic-document" ],
+      "conversionMode": "loss-aware-semantic-document"
     }
   ],
   "compositionRoutes": [
-    {
-      "id": "asciidoc-via-markdown",
-      "sourceFormats": [ "adoc", "asciidoc", "asc" ],
-      "status": "manual-loss-aware-composition",
-      "stages": [ "OfficeIMO.AsciiDoc", "OfficeIMO.AsciiDoc.Markdown", "OfficeIMO.Markdown.Pdf" ],
-      "diagnosticContract": "Preserve AsciiDocToMarkdownResult.Report diagnostics with PdfDocumentConversionResult.WithAdditionalWarnings; there is no direct AsciiDoc PDF adapter yet."
-    },
-    {
-      "id": "latex-via-markdown",
-      "sourceFormats": [ "tex", "latex" ],
-      "status": "manual-loss-aware-composition",
-      "stages": [ "OfficeIMO.Latex", "OfficeIMO.Latex.Markdown", "OfficeIMO.Markdown.Pdf" ],
-      "diagnosticContract": "Preserve LatexToMarkdownResult.Report diagnostics with PdfDocumentConversionResult.WithAdditionalWarnings; there is no direct LaTeX PDF adapter yet."
-    },
     {
       "id": "opendocument-text-via-word",
       "sourceFormats": [ "odt", "ott" ],
@@ -140,12 +148,13 @@
   ],
   "qualityContract": {
     "goal": "Premium PDF support means generic, reusable OfficeIMO.Pdf capabilities with thin source adapters, visible diagnostics for every accepted degradation, and repeatable artifact proof for creation, conversion, reading, manipulation, and review workflows.",
-    "runtimeOwnership": "OfficeIMO.Pdf and OfficeIMO.Drawing own shared PDF layout, typography, reading, manipulation, diagnostics, compliance groundwork, and proof primitives. Word, Excel, PowerPoint, Markdown, HTML, RTF, OneNote, and Reader packages remain thin adapters over those primitives; OneNote.Markdown owns its explicit semantic projection and loss diagnostics.",
+    "runtimeOwnership": "OfficeIMO.Pdf and OfficeIMO.Drawing own shared PDF layout, typography, reading, manipulation, diagnostics, compliance groundwork, and proof primitives. Word, Excel, PowerPoint, Markdown, HTML, RTF, OneNote, AsciiDoc, LaTeX, and Reader packages remain thin adapters over those primitives; OneNote.Markdown, AsciiDoc.Markdown, and Latex.Markdown own their explicit semantic projections and loss diagnostics.",
     "nonGoals": [
       "No TestimoX-specific rendering logic.",
       "No silent visual-only redaction or silent content loss.",
       "No formal PDF/A, PDF/UA, Factur-X, or ZUGFeRD conformance claim without external validator proof.",
       "No browser-grade HTML/CSS renderer claim for OfficeIMO.Html.Pdf.",
+      "No TeX execution or TeX-layout parity claim for OfficeIMO.Latex.Pdf.",
       "No full editable PDF-to-Office reconstruction claim beyond declared logical-table reconstruction scenarios."
     ],
     "requiredProof": [
@@ -213,6 +222,18 @@
         "tier": "premium-adapter",
         "owner": "OfficeIMO.Markdown.Pdf over OfficeIMO.Pdf",
         "closureFocus": [ "invoice-statement-layout", "numeric-table-alignment", "business-report-polish" ]
+      },
+      {
+        "id": "asciidoc-direct-semantic-document",
+        "tier": "premium-adapter",
+        "owner": "OfficeIMO.AsciiDoc.Pdf over OfficeIMO.AsciiDoc.Markdown and OfficeIMO.Markdown.Pdf",
+        "closureFocus": [ "native-parser-diagnostics", "loss-aware-semantic-projection", "visible-source-fallback", "shared-pdf-resource-policy", "adapter-lifecycle" ]
+      },
+      {
+        "id": "latex-direct-semantic-document",
+        "tier": "accepted-degradation",
+        "owner": "OfficeIMO.Latex.Pdf over OfficeIMO.Latex.Markdown and OfficeIMO.Markdown.Pdf",
+        "closureFocus": [ "native-parser-diagnostics", "bounded-profile-projection", "math-and-citation-diagnostics", "shared-pdf-resource-policy", "adapter-lifecycle" ]
       },
       {
         "id": "rtf-pdf-roundtrip",
@@ -713,6 +734,95 @@
           "MarkdownPdfConverter",
           "PdfReadDocument",
           "PdfLogicalDocument"
+        ]
+      }
+    },
+    {
+      "id": "asciidoc-direct-semantic-document",
+      "path": "asciidoc-to-pdf",
+      "converter": "OfficeIMO.AsciiDoc.Pdf",
+      "sourceFormat": "adoc/asciidoc/asc",
+      "targetFormat": "pdf",
+      "status": "supported",
+      "sourceFeatures": [
+        "document-title-and-attributes",
+        "section-hierarchy",
+        "paragraphs-and-lists",
+        "tables",
+        "stem-source-fallback",
+        "source-located-diagnostics"
+      ],
+      "expectedSimplifications": [
+        "AsciiDoc is projected through the typed Markdown model; constructs without an equivalent remain visible as configured source fallbacks with combined parser, projection, and PDF diagnostics"
+      ],
+      "expectedWarnings": [
+        "ADOCMD103"
+      ],
+      "visualReviewFiles": [
+        "asciidoc-direct-semantic-document.pdf"
+      ],
+      "proof": {
+        "hash": true,
+        "textMarkers": [
+          "AsciiDoc direct PDF proof",
+          "Semantic route marker"
+        ],
+        "logicalSignals": [
+          "native-asciidoc-parser",
+          "loss-aware-markdown-projection",
+          "combined-diagnostics",
+          "shared-markdown-pdf-renderer"
+        ],
+        "visualPages": 1,
+        "validatorEvidence": [
+          "AsciiDocPdfConverterExtensions",
+          "PdfDocumentConversionResult",
+          "PdfReadDocument"
+        ]
+      }
+    },
+    {
+      "id": "latex-direct-semantic-document",
+      "path": "latex-to-pdf",
+      "converter": "OfficeIMO.Latex.Pdf",
+      "sourceFormat": "tex/latex",
+      "targetFormat": "pdf",
+      "status": "supported",
+      "sourceFeatures": [
+        "document-title-and-author",
+        "section-hierarchy",
+        "paragraphs",
+        "citations",
+        "inline-math",
+        "source-located-diagnostics"
+      ],
+      "expectedSimplifications": [
+        "LaTeX is not executed; the bounded semantic profile is projected through Markdown, while citations, math transport, package behavior, and unsupported constructs remain explicit warnings or visible source fallbacks"
+      ],
+      "expectedWarnings": [
+        "LATEXMD101",
+        "LATEXMD102"
+      ],
+      "visualReviewFiles": [
+        "latex-direct-semantic-document.pdf"
+      ],
+      "proof": {
+        "hash": true,
+        "textMarkers": [
+          "LaTeX direct PDF proof",
+          "Semantic route marker"
+        ],
+        "logicalSignals": [
+          "native-latex-parser",
+          "bounded-profile-markdown-projection",
+          "combined-diagnostics",
+          "shared-markdown-pdf-renderer"
+        ],
+        "visualPages": 1,
+        "validatorEvidence": [
+          "LatexPdfConverterExtensions",
+          "PdfDocumentConversionResult",
+          "PdfReadDocument"
         ]
       }
     },

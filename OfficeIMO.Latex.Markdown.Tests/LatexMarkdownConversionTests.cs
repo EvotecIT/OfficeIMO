@@ -50,14 +50,17 @@ public sealed class LatexMarkdownConversionTests {
     }
 
     [Fact]
-    public void LatexProjection_UsesExistingPdfBridge() {
-        LatexToMarkdownResult conversion = LatexDocument.Parse(Source).Document.ToMarkdownDocumentResult();
-
-        var pdf = conversion.Value.ToPdfDocument();
-        byte[] bytes = pdf.ToBytes();
+    public void DirectPdfAdapter_PreservesProjectionDiagnosticsAndProducesPdf() {
+        var result = LatexDocument.Parse(Source).Document.ToPdfDocumentResult();
+        byte[] bytes = result.ToBytes();
 
         Assert.True(bytes.Length > 100);
         Assert.Equal("%PDF-", Encoding.ASCII.GetString(bytes, 0, 5));
+        Assert.Contains(result.Warnings, warning =>
+            warning.Converter == "OfficeIMO.Latex.Pdf" &&
+            warning.Code == "LATEXMD101" &&
+            warning.Details["stage"] == "semantic-projection");
+        Assert.Contains(result.Warnings, warning => warning.Code == "LATEXMD102");
     }
 
     [Fact]
