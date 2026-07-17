@@ -91,6 +91,11 @@ namespace OfficeIMO.Excel {
         }
 
         private bool IsDateOnlyPivotSourceField(ExcelPivotTableInfo pivot, string sourceField) {
+            bool? currentSourceResult = TryIsDateOnlyPivotSourceFieldFromCurrentSource(pivot, sourceField);
+            if (currentSourceResult.HasValue) {
+                return currentSourceResult.Value;
+            }
+
             PivotTablePart? pivotPart = WorkbookPartRoot.WorksheetParts
                 .SelectMany(part => part.PivotTableParts)
                 .FirstOrDefault(part =>
@@ -114,16 +119,20 @@ namespace OfficeIMO.Excel {
                 }
             }
 
+            return false;
+        }
+
+        private bool? TryIsDateOnlyPivotSourceFieldFromCurrentSource(ExcelPivotTableInfo pivot, string sourceField) {
             if (string.IsNullOrWhiteSpace(pivot.SourceSheet)
                 || string.IsNullOrWhiteSpace(pivot.SourceRange)
                 || !A1.TryParseRange(pivot.SourceRange!.Replace("$", string.Empty), out int firstRow, out int firstColumn, out int lastRow, out int lastColumn)) {
-                return false;
+                return null;
             }
 
             ExcelSheet? sourceSheet = Sheets.FirstOrDefault(sheet =>
                 string.Equals(sheet.Name, pivot.SourceSheet, StringComparison.OrdinalIgnoreCase));
             if (sourceSheet == null) {
-                return false;
+                return null;
             }
 
             int sourceColumn = 0;

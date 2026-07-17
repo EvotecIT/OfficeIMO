@@ -68,8 +68,13 @@ namespace OfficeIMO.Excel {
             var categories = new string[effectiveBinCount];
             for (int index = 0; index < effectiveBinCount; index++) {
                 double lower = minimum + (index * effectiveBinWidth);
-                double upper = minimum == maximum ? maximum : lower + effectiveBinWidth;
-                categories[index] = FormatChartNumber(lower) + " – " + FormatChartNumber(upper);
+                double upper = minimum == maximum || index == effectiveBinCount - 1
+                    ? maximum
+                    : lower + effectiveBinWidth;
+                if (double.IsInfinity(lower) || double.IsInfinity(upper)) {
+                    throw new ArgumentException("Histogram values and bin settings produce an unrepresentable bin boundary.", nameof(values));
+                }
+                categories[index] = FormatChartRange(lower, upper);
             }
 
             var data = new ExcelChartData(categories, new[] { new ExcelChartSeries("Frequency", counts, seriesColorArgb: "4F46E5") });
@@ -275,8 +280,15 @@ namespace OfficeIMO.Excel {
                 .ToList();
         }
 
-        private static string FormatChartNumber(double value) {
-            return value.ToString("0.##########", CultureInfo.InvariantCulture);
+        private static string FormatChartRange(double lower, double upper) {
+            string lowerText = lower.ToString("G15", CultureInfo.InvariantCulture);
+            string upperText = upper.ToString("G15", CultureInfo.InvariantCulture);
+            if (lower != upper && string.Equals(lowerText, upperText, StringComparison.Ordinal)) {
+                lowerText = lower.ToString("G17", CultureInfo.InvariantCulture);
+                upperText = upper.ToString("G17", CultureInfo.InvariantCulture);
+            }
+
+            return lowerText + " – " + upperText;
         }
     }
 }

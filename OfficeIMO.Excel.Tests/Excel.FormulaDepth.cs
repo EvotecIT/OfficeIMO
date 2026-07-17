@@ -106,15 +106,22 @@ namespace OfficeIMO.Tests {
                 ExcelSheet structured = document.AddWorksheet("Structured");
                 structured.CellValue(1, 1, "Amount");
                 structured.CellFormula(2, 1, "SUM(Sales[Amount])");
-                structured.AddTable("A1:A2", hasHeader: true, name: "Sales", style: TableStyle.TableStyleMedium2);
+                structured.CellValue(1, 2, "A1");
+                structured.CellValue(2, 2, 2d);
+                structured.CellFormula(2, 3, "SUM(Sales[A1])");
+                structured.AddTable("A1:B2", hasHeader: true, name: "Sales", style: TableStyle.TableStyleMedium2);
+
+                ExcelSheet sales = document.AddWorksheet("Sales");
+                sales.CellValue(1, 1, 5d);
 
                 ExcelSheet tokens = document.AddWorksheet("Tokens");
                 tokens.CellValue(1, 1, 100d);
                 tokens.CellFormula(1, 2, "SUM(A1)");
                 tokens.CellFormula(1, 3, "LOG10(A1)");
+                tokens.CellFormula(1, 4, "Sales!A1+1");
 
                 ExcelFormulaDependencyGraph graph = document.InspectFormulas().DependencyGraph;
-                Assert.Equal(4, graph.NodeCount);
+                Assert.Equal(6, graph.NodeCount);
                 Assert.Equal(2, graph.EdgeCount);
                 Assert.Equal(2, graph.CircularReferenceCount);
 
@@ -128,6 +135,10 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(new[] { "Structured!A2" }, structuredNode.FormulaDependencies);
                 Assert.True(structuredNode.IsCircular);
 
+                ExcelFormulaDependencyNode cellLikeColumnNode = Assert.IsType<ExcelFormulaDependencyNode>(graph.FindNode("Structured", "C2"));
+                Assert.Equal(new[] { "Structured!B2" }, cellLikeColumnNode.Dependencies);
+                Assert.Empty(cellLikeColumnNode.FormulaDependencies);
+
                 ExcelFormulaDependencyNode sumNode = Assert.IsType<ExcelFormulaDependencyNode>(graph.FindNode("Tokens", "B1"));
                 Assert.Equal(new[] { "Tokens!A1" }, sumNode.Dependencies);
                 Assert.Empty(sumNode.FormulaDependencies);
@@ -135,6 +146,10 @@ namespace OfficeIMO.Tests {
                 ExcelFormulaDependencyNode logNode = Assert.IsType<ExcelFormulaDependencyNode>(graph.FindNode("Tokens", "C1"));
                 Assert.Equal(new[] { "Tokens!A1" }, logNode.Dependencies);
                 Assert.Empty(logNode.FormulaDependencies);
+
+                ExcelFormulaDependencyNode qualifiedNode = Assert.IsType<ExcelFormulaDependencyNode>(graph.FindNode("Tokens", "D1"));
+                Assert.Equal(new[] { "Sales!A1" }, qualifiedNode.Dependencies);
+                Assert.Empty(qualifiedNode.FormulaDependencies);
 
                 Assert.Throws<InvalidOperationException>(() => document.InspectFormulas().EnsureNoDependencyIssues());
             }

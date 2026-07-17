@@ -16,6 +16,58 @@ namespace OfficeIMO.Excel {
             internal bool AllowStructuredSuffix { get; }
         }
 
+        private readonly struct FormulaDependencyAliasMatch {
+            internal FormulaDependencyAliasMatch(int index, FormulaDependencyAlias alias) {
+                Index = index;
+                Alias = alias;
+            }
+
+            internal int Index { get; }
+            internal FormulaDependencyAlias Alias { get; }
+        }
+
+        private sealed class FormulaDependencyAliasCatalog {
+            private sealed class TrieNode {
+                internal Dictionary<char, TrieNode> Children { get; } = new Dictionary<char, TrieNode>();
+                internal List<FormulaDependencyAlias> Aliases { get; } = new List<FormulaDependencyAlias>();
+            }
+
+            private readonly TrieNode _root = new TrieNode();
+
+            internal FormulaDependencyAliasCatalog(IEnumerable<FormulaDependencyAlias> aliases) {
+                foreach (FormulaDependencyAlias alias in aliases) {
+                    TrieNode node = _root;
+                    foreach (char character in alias.Text) {
+                        char key = char.ToUpperInvariant(character);
+                        if (!node.Children.TryGetValue(key, out TrieNode? child)) {
+                            child = new TrieNode();
+                            node.Children.Add(key, child);
+                        }
+
+                        node = child;
+                    }
+
+                    node.Aliases.Add(alias);
+                }
+            }
+
+            internal IEnumerable<FormulaDependencyAliasMatch> FindMatches(string formula) {
+                for (int start = 0; start < formula.Length; start++) {
+                    TrieNode node = _root;
+                    for (int position = start; position < formula.Length; position++) {
+                        if (!node.Children.TryGetValue(char.ToUpperInvariant(formula[position]), out TrieNode? child)) {
+                            break;
+                        }
+
+                        node = child;
+                        foreach (FormulaDependencyAlias alias in node.Aliases) {
+                            yield return new FormulaDependencyAliasMatch(start, alias);
+                        }
+                    }
+                }
+            }
+        }
+
         private string GetUnsupportedFormulaReason(string formula) {
             if (string.IsNullOrWhiteSpace(formula)) {
                 return "Formula is empty.";
@@ -62,24 +114,21 @@ namespace OfficeIMO.Excel {
 
         private IReadOnlyList<string> GetFormulaDependencies(
             string formula,
-            IReadOnlyList<FormulaDependencyAlias> aliases) {
+            FormulaDependencyAliasCatalog aliases) {
             if (string.IsNullOrWhiteSpace(formula)) {
                 return Array.Empty<string>();
             }
 
             try {
                 string searchableFormula = MaskFormulaStringLiterals(formula);
-                var dependencies = new HashSet<string>(FormulaReferenceRegex.Matches(searchableFormula)
+                string directReferenceFormula = MaskFormulaStructuredReferenceSegments(searchableFormula);
+                var dependencies = new HashSet<string>(FormulaReferenceRegex.Matches(directReferenceFormula)
                     .Cast<Match>()
                     .Select(match => match.Groups["reference"].Value)
                     .Where(reference => !string.IsNullOrWhiteSpace(reference))
                     .Select(NormalizeFormulaDependencyReference), StringComparer.OrdinalIgnoreCase);
-                foreach (FormulaDependencyAlias alias in aliases) {
-                    AddFormulaAliasDependencies(
-                        searchableFormula,
-                        alias.Text,
-                        alias.AllowStructuredSuffix,
-                        dependencies);
+                foreach (FormulaDependencyAliasMatch match in aliases.FindMatches(searchableFormula)) {
+                    AddFormulaAliasDependency(searchableFormula, match, dependencies);
                 }
 
                 return dependencies
@@ -90,7 +139,7 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private IReadOnlyList<FormulaDependencyAlias> GetFormulaDependencyAliases() {
+        private FormulaDependencyAliasCatalog GetFormulaDependencyAliases() {
             var aliases = new List<FormulaDependencyAlias>();
             var aliasKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             DefinedNames? definedNames = WorkbookRoot.DefinedNames;
@@ -143,7 +192,7 @@ namespace OfficeIMO.Excel {
                 }
             }
 
-            return aliases;
+            return new FormulaDependencyAliasCatalog(aliases);
         }
 
         private static void AddFormulaDependencyAlias(
@@ -157,72 +206,78 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private void AddFormulaAliasDependencies(
+        private void AddFormulaAliasDependency(
             string formula,
-            string alias,
-            bool allowStructuredSuffix,
+            FormulaDependencyAliasMatch match,
             ISet<string> dependencies) {
-            foreach (string reference in FindFormulaAliasReferences(formula, alias, allowStructuredSuffix)) {
-                if (TryResolveFormulaRangeReference(reference, out ExcelSheet sheet, out int r1, out int c1, out int r2, out int c2)) {
-                    string start = A1.CellReference(r1, c1);
-                    string end = A1.CellReference(r2, c2);
-                    dependencies.Add(r1 == r2 && c1 == c2
-                        ? $"{sheet.Name}!{start}"
-                        : $"{sheet.Name}!{start}:{end}");
-                }
+            if (!TryGetFormulaAliasReference(formula, match, out string reference)
+                || !TryResolveFormulaRangeReference(reference, out ExcelSheet sheet, out int r1, out int c1, out int r2, out int c2)) {
+                return;
             }
+
+            string start = A1.CellReference(r1, c1);
+            string end = A1.CellReference(r2, c2);
+            dependencies.Add(r1 == r2 && c1 == c2
+                ? $"{sheet.Name}!{start}"
+                : $"{sheet.Name}!{start}:{end}");
         }
 
-        private static IEnumerable<string> FindFormulaAliasReferences(string formula, string alias, bool allowStructuredSuffix) {
-            int searchIndex = 0;
-            while (searchIndex < formula.Length) {
-                int index = formula.IndexOf(alias, searchIndex, StringComparison.OrdinalIgnoreCase);
-                if (index < 0) {
-                    yield break;
-                }
+        private static bool TryGetFormulaAliasReference(
+            string formula,
+            FormulaDependencyAliasMatch match,
+            out string reference) {
+            reference = string.Empty;
+            string alias = match.Alias.Text;
+            int index = match.Index;
+            int end = index + alias.Length;
+            bool validStart = index == 0
+                || (!IsFormulaAliasIdentifierCharacter(formula[index - 1]) && formula[index - 1] != '!');
+            if (!validStart || IsInsideFormulaStructuredReference(formula, index)) {
+                return false;
+            }
 
-                int end = index + alias.Length;
-                bool validStart = index == 0
-                    || (!IsFormulaAliasIdentifierCharacter(formula[index - 1]) && formula[index - 1] != '!');
-                bool insideStructuredReference = IsInsideFormulaStructuredReference(formula, index);
-                bool hasStructuredSuffix = allowStructuredSuffix && end < formula.Length && formula[end] == '[';
-                if (hasStructuredSuffix) {
-                    int bracketDepth = 0;
-                    int cursor = end;
-                    for (; cursor < formula.Length; cursor++) {
-                        if (formula[cursor] == '[') {
-                            bracketDepth++;
-                        } else if (formula[cursor] == ']') {
-                            bracketDepth--;
-                            if (bracketDepth == 0) {
-                                end = cursor + 1;
-                                break;
-                            }
+            bool hasStructuredSuffix = match.Alias.AllowStructuredSuffix
+                && end < formula.Length
+                && formula[end] == '[';
+            if (!match.Alias.AllowStructuredSuffix && end < formula.Length && formula[end] == '[') {
+                return false;
+            }
+
+            if (hasStructuredSuffix) {
+                int bracketDepth = 0;
+                int cursor = end;
+                for (; cursor < formula.Length; cursor++) {
+                    if (formula[cursor] == '[') {
+                        bracketDepth++;
+                    } else if (formula[cursor] == ']') {
+                        bracketDepth--;
+                        if (bracketDepth == 0) {
+                            end = cursor + 1;
+                            break;
                         }
                     }
-
-                    if (bracketDepth != 0) {
-                        hasStructuredSuffix = false;
-                        end = index + alias.Length;
-                    }
                 }
 
-                bool validEnd = end == formula.Length || !IsFormulaAliasIdentifierCharacter(formula[end]);
-                int nextToken = end;
-                while (nextToken < formula.Length && char.IsWhiteSpace(formula[nextToken])) {
-                    nextToken++;
+                if (bracketDepth != 0) {
+                    return false;
                 }
-                bool followedByFunctionCall = nextToken < formula.Length && formula[nextToken] == '(';
-                if (validStart
-                    && validEnd
-                    && !insideStructuredReference
-                    && !followedByFunctionCall
-                    && (!allowStructuredSuffix || hasStructuredSuffix || end == index + alias.Length)) {
-                    yield return formula.Substring(index, end - index);
-                }
-
-                searchIndex = index + alias.Length;
             }
+
+            if (end < formula.Length && IsFormulaAliasIdentifierCharacter(formula[end])) {
+                return false;
+            }
+
+            int nextToken = end;
+            while (nextToken < formula.Length && char.IsWhiteSpace(formula[nextToken])) {
+                nextToken++;
+            }
+
+            if (nextToken < formula.Length && (formula[nextToken] == '(' || formula[nextToken] == '!')) {
+                return false;
+            }
+
+            reference = formula.Substring(index, end - index);
+            return true;
         }
 
         private static bool IsInsideFormulaStructuredReference(string formula, int index) {
@@ -324,6 +379,24 @@ namespace OfficeIMO.Excel {
                 }
 
                 builder.Append(inString ? ' ' : character);
+            }
+
+            return builder.ToString();
+        }
+
+        private static string MaskFormulaStructuredReferenceSegments(string formula) {
+            var builder = new StringBuilder(formula.Length);
+            int bracketDepth = 0;
+            foreach (char character in formula) {
+                if (character == '[') {
+                    bracketDepth++;
+                    builder.Append(' ');
+                } else if (character == ']' && bracketDepth > 0) {
+                    bracketDepth--;
+                    builder.Append(' ');
+                } else {
+                    builder.Append(bracketDepth > 0 ? ' ' : character);
+                }
             }
 
             return builder.ToString();

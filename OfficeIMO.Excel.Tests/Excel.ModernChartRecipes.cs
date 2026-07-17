@@ -95,6 +95,16 @@ namespace OfficeIMO.Tests {
             Assert.Single(wideBinData.Categories);
             Assert.Equal(2d, Assert.Single(wideBinData.Series).Values.Single());
 
+            ExcelChart tinyRangeHistogram = sheet.AddHistogramChart(
+                new[] { 0d, 1e-11d },
+                row: 1,
+                column: 10,
+                binCount: 2);
+            Assert.True(tinyRangeHistogram.TryGetData(out ExcelChartData tinyRangeData));
+            Assert.Equal(2, tinyRangeData.Categories.Count);
+            Assert.Equal(2, tinyRangeData.Categories.Distinct(StringComparer.Ordinal).Count());
+            Assert.DoesNotContain("0 – 0", tinyRangeData.Categories);
+
             ExcelChart roundingSafeWaterfall = sheet.AddWaterfallChart(
                 new[] { "Start", "First", "Second" },
                 new[] { 0.3d, -0.1d, -0.2d },
@@ -219,6 +229,71 @@ namespace OfficeIMO.Tests {
                 A.Outline outline = Assert.IsType<A.Outline>(properties.GetFirstChild<A.Outline>());
                 A.EffectList effects = Assert.IsType<A.EffectList>(properties.GetFirstChild<A.EffectList>());
                 Assert.True(properties.ChildElements.ToList().IndexOf(outline) < properties.ChildElements.ToList().IndexOf(effects));
+            }
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath, new ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
+                Assert.Empty(document.ValidateOpenXml());
+            }
+        }
+
+        [Fact]
+        public void Test_SetSeriesLineColor_NormalizesLineFillAndInsertsOutlineBeforeEffects() {
+            string filePath = Path.Combine(_directoryWithFiles, "Excel.ModernChartRecipes.LineFill.xlsx");
+
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorksheet("Dashboard");
+                var data = new ExcelChartData(
+                    new[] { "A", "B" },
+                    new[] {
+                        new ExcelChartSeries("First", new[] { 1d, 2d }, seriesColorArgb: "4F46E5"),
+                        new ExcelChartSeries("Second", new[] { 2d, 3d }, seriesColorArgb: "16A34A")
+                    });
+                ExcelChart chart = sheet.AddChart(data, 1, 1, 500, 300, ExcelChartType.ColumnClustered, "Line normalization");
+                chart.SetSeriesNoFill(0).SetSeriesLineColor(0, "DC2626", 1.5d);
+                chart.SetSeriesLineColor(1, "16A34A");
+                document.Save();
+            }
+
+            using (DocumentFormat.OpenXml.Packaging.SpreadsheetDocument spreadsheet =
+                DocumentFormat.OpenXml.Packaging.SpreadsheetDocument.Open(filePath, true)) {
+                C.BarChartSeries secondSeries = spreadsheet.WorkbookPart!.WorksheetParts
+                    .Single(part => part.DrawingsPart != null)
+                    .DrawingsPart!
+                    .ChartParts
+                    .Single()
+                    .ChartSpace
+                    .Descendants<C.BarChartSeries>()
+                    .ElementAt(1);
+                C.ChartShapeProperties properties = secondSeries.GetFirstChild<C.ChartShapeProperties>()!;
+                properties.GetFirstChild<A.Outline>()?.Remove();
+                properties.Append(new A.EffectList());
+            }
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath)) {
+                Assert.Single(document["Dashboard"].Charts).SetSeriesLineColor(1, "2563EB");
+                document.Save();
+            }
+
+            using (DocumentFormat.OpenXml.Packaging.SpreadsheetDocument spreadsheet =
+                DocumentFormat.OpenXml.Packaging.SpreadsheetDocument.Open(filePath, false)) {
+                C.BarChartSeries[] series = spreadsheet.WorkbookPart!.WorksheetParts
+                    .Single(part => part.DrawingsPart != null)
+                    .DrawingsPart!
+                    .ChartParts
+                    .Single()
+                    .ChartSpace
+                    .Descendants<C.BarChartSeries>()
+                    .ToArray();
+                A.Outline firstOutline = Assert.IsType<A.Outline>(series[0].GetFirstChild<C.ChartShapeProperties>()!.GetFirstChild<A.Outline>());
+                Assert.Single(firstOutline.Elements<A.SolidFill>());
+                Assert.Empty(firstOutline.Elements<A.NoFill>());
+                Assert.Empty(firstOutline.Elements<A.GradientFill>());
+                Assert.Empty(firstOutline.Elements<A.PatternFill>());
+
+                C.ChartShapeProperties secondProperties = series[1].GetFirstChild<C.ChartShapeProperties>()!;
+                A.Outline secondOutline = Assert.IsType<A.Outline>(secondProperties.GetFirstChild<A.Outline>());
+                A.EffectList effects = Assert.IsType<A.EffectList>(secondProperties.GetFirstChild<A.EffectList>());
+                Assert.True(secondProperties.ChildElements.ToList().IndexOf(secondOutline) < secondProperties.ChildElements.ToList().IndexOf(effects));
             }
 
             using (ExcelDocument document = ExcelDocument.Load(filePath, new ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {

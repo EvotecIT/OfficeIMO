@@ -168,23 +168,10 @@ namespace OfficeIMO.Excel {
 
         private static void ApplyNoLine(OpenXmlCompositeElement props) {
             A.Outline outline = props.GetFirstChild<A.Outline>() ?? new A.Outline();
-            outline.RemoveAllChildren<A.SolidFill>();
-            outline.RemoveAllChildren<A.GradientFill>();
-            outline.RemoveAllChildren<A.PatternFill>();
-            outline.RemoveAllChildren<A.NoFill>();
+            RemoveShapeFillChoices(outline);
             outline.PrependChild(new A.NoFill());
             if (outline.Parent == null) {
-                OpenXmlElement? insertBefore = props.ChildElements.FirstOrDefault(child =>
-                    child.LocalName == "effectLst"
-                    || child.LocalName == "effectDag"
-                    || child.LocalName == "scene3d"
-                    || child.LocalName == "sp3d"
-                    || child.LocalName == "extLst");
-                if (insertBefore != null) {
-                    props.InsertBefore(outline, insertBefore);
-                } else {
-                    props.Append(outline);
-                }
+                InsertOutline(props, outline);
             }
         }
 
@@ -324,6 +311,20 @@ namespace OfficeIMO.Excel {
             }
         }
 
+        private static void InsertOutline(OpenXmlCompositeElement props, A.Outline outline) {
+            OpenXmlElement? insertBefore = props.ChildElements.FirstOrDefault(child =>
+                child.LocalName == "effectLst"
+                || child.LocalName == "effectDag"
+                || child.LocalName == "scene3d"
+                || child.LocalName == "sp3d"
+                || child.LocalName == "extLst");
+            if (insertBefore != null) {
+                props.InsertBefore(outline, insertBefore);
+            } else {
+                props.Append(outline);
+            }
+        }
+
         private static void ApplyTextSolidFill(A.TextCharacterPropertiesType props, string color) {
             props.RemoveAllChildren<A.SolidFill>();
             props.RemoveAllChildren<A.NoFill>();
@@ -349,28 +350,28 @@ namespace OfficeIMO.Excel {
 
         private static void ApplyLine(OpenXmlCompositeElement props, string color, double? widthPoints) {
             A.Outline outline = props.GetFirstChild<A.Outline>() ?? new A.Outline();
-            outline.RemoveAllChildren<A.SolidFill>();
-            outline.Append(new A.SolidFill(new A.RgbColorModelHex { Val = color }));
+            RemoveShapeFillChoices(outline);
+            outline.PrependChild(new A.SolidFill(new A.RgbColorModelHex { Val = color }));
             if (widthPoints != null) {
                 outline.Width = (int)Math.Round(widthPoints.Value * 12700d);
             }
 
             if (outline.Parent == null) {
-                props.Append(outline);
+                InsertOutline(props, outline);
             }
         }
 
         private static void ApplyOptionalLine(OpenXmlCompositeElement props, string? color, double? widthPoints) {
             A.Outline outline = props.GetFirstChild<A.Outline>() ?? new A.Outline();
             if (color != null) {
-                outline.RemoveAllChildren<A.SolidFill>();
-                outline.Append(new A.SolidFill(new A.RgbColorModelHex { Val = color }));
+                RemoveShapeFillChoices(outline);
+                outline.PrependChild(new A.SolidFill(new A.RgbColorModelHex { Val = color }));
             }
             if (widthPoints != null) {
                 outline.Width = (int)Math.Round(widthPoints.Value * 12700d);
             }
             if (outline.Parent == null) {
-                props.Append(outline);
+                InsertOutline(props, outline);
             }
         }
 

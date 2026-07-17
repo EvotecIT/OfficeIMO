@@ -83,6 +83,16 @@ namespace OfficeIMO.Excel {
         public int QueryTablePartCount { get; internal set; }
 
         /// <summary>
+        /// Number of chart package parts discovered during inspection.
+        /// </summary>
+        public int ChartPartCount { get; internal set; }
+
+        /// <summary>
+        /// Number of pivot-table package parts discovered during inspection.
+        /// </summary>
+        public int PivotTablePartCount { get; internal set; }
+
+        /// <summary>
         /// Whether slicer package parts were discovered.
         /// </summary>
         public bool HasSlicers => SlicerPartCount > 0;
@@ -111,6 +121,16 @@ namespace OfficeIMO.Excel {
         /// Whether worksheet query-table package parts were discovered.
         /// </summary>
         public bool HasQueryTables => QueryTablePartCount > 0;
+
+        /// <summary>
+        /// Whether chart package parts were discovered.
+        /// </summary>
+        public bool HasCharts => ChartPartCount > 0;
+
+        /// <summary>
+        /// Whether pivot-table package parts were discovered.
+        /// </summary>
+        public bool HasPivotTables => PivotTablePartCount > 0;
 
         internal void AddWorksheet(ExcelWorksheetSnapshot worksheet) {
             if (worksheet == null) throw new ArgumentNullException(nameof(worksheet));

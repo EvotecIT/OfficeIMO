@@ -17,7 +17,7 @@ public static class ExcelOpenDocumentConversionExtensions {
         effective.Validate();
         ExcelWorkbookSnapshot snapshot = source.CreateInspectionSnapshot();
         OdsDocument target = OdsDocument.Create();
-        var report = new OdfConversionReport("XLSX", "ODS");
+        var report = new OdfConversionReport(source.SourceFormat.ToString().ToUpperInvariant(), "ODS");
         target.Metadata.Title = snapshot.Title;
 
         int cells = 0, formulas = 0, styles = 0, hyperlinks = 0, comments = 0, merges = 0;
@@ -151,6 +151,8 @@ public static class ExcelOpenDocumentConversionExtensions {
         AddUnsupported(report, "structured-tables", tables, "Table cells remain; Excel table semantics and styles are not translated.");
         AddUnsupported(report, "filters", filters, "Filter state is not translated.");
         AddUnsupported(report, "built-in-names", builtInNames, "Excel print-area and print-title names are not translated.");
+        AddUnsupported(report, "charts", snapshot.ChartPartCount, "Excel chart parts are not translated to ODS.");
+        AddUnsupported(report, "pivot-tables", snapshot.PivotTablePartCount, "Excel pivot-table parts are not translated to ODS.");
         AddUnsupported(report, "slicers", snapshot.SlicerPartCount, null);
         AddUnsupported(report, "timelines", snapshot.TimelinePartCount, null);
         AddUnsupported(report, "slicer-binding-metadata", snapshot.SlicerBindingMetadataPartCount,

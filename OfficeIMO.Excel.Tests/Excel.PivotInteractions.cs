@@ -109,5 +109,35 @@ namespace OfficeIMO.Tests {
             Assert.Throws<InvalidOperationException>(() =>
                 document.AddPivotSlicerCache("SalesPivot", "Region", "ExplicitRegion"));
         }
+
+        [Fact]
+        public void Test_PivotTimelineCache_ValidatesRetargetedLiveSourceBeforeStaleCacheMetadata() {
+            using ExcelDocument document = ExcelDocument.Create();
+            ExcelSheet original = document.AddWorksheet("Original");
+            original.CellValue(1, 1, "Region");
+            original.CellValue(1, 2, "OrderDate");
+            original.CellValue(1, 3, "Sales");
+            original.CellValue(2, 1, "East");
+            original.CellValue(2, 2, new DateTime(2026, 1, 2));
+            original.CellValue(2, 3, 10d);
+            original.AddPivotTable(
+                sourceRange: "A1:C2",
+                destinationCell: "E2",
+                name: "SalesPivot",
+                rowFields: new[] { "Region" },
+                dataFields: new[] { new ExcelPivotDataField("Sales", DataConsolidateFunctionValues.Sum) });
+
+            ExcelSheet replacement = document.AddWorksheet("Replacement");
+            replacement.CellValue(1, 1, "Region");
+            replacement.CellValue(1, 2, "OrderDate");
+            replacement.CellValue(1, 3, "Sales");
+            replacement.CellValue(2, 1, "West");
+            replacement.CellValue(2, 2, "not a date");
+            replacement.CellValue(2, 3, 20d);
+
+            original.UpdatePivotTableSource("SalesPivot", replacement, "A1:C2");
+
+            Assert.Throws<ArgumentException>(() => document.AddPivotTimelineCache("SalesPivot", "OrderDate"));
+        }
     }
 }

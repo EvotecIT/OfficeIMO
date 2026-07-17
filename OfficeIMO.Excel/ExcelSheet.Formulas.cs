@@ -289,7 +289,7 @@ namespace OfficeIMO.Excel {
         public IReadOnlyList<ExcelFormulaCellInfo> GetFormulaCells() {
             return Locking.ExecuteRead(_excelDocument.EnsureLock(), () => {
                 var formulas = new List<ExcelFormulaCellInfo>();
-                IReadOnlyList<FormulaDependencyAlias> dependencyAliases = GetFormulaDependencyAliases();
+                FormulaDependencyAliasCatalog dependencyAliases = GetFormulaDependencyAliases();
                 foreach (var cell in WorksheetRoot.Descendants<Cell>().Where(c => c.CellFormula != null)) {
                     string formula = cell.CellFormula!.Text ?? string.Empty;
                     bool supported = TryEvaluateFormulaCellValue(cell, out _);
