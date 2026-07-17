@@ -238,6 +238,9 @@ namespace OfficeIMO.Excel {
                     if (!TryEvaluateFormulaValue(formula, out result)) {
                         return false;
                     }
+                    if (depthFrame.DependencyGuardBlocked) {
+                        return false;
+                    }
 
                     evaluationDepth = depthFrame.MaximumChildDepth + 1;
                     _formulaEvaluationCache[cacheKey] = result;

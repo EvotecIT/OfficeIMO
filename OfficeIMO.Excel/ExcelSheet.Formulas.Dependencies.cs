@@ -166,7 +166,8 @@ namespace OfficeIMO.Excel {
                     .Select(match => match.Groups["reference"].Value)
                     .Where(reference => !string.IsNullOrWhiteSpace(reference))
                     .Select(NormalizeFormulaDependencyReference), StringComparer.OrdinalIgnoreCase);
-                foreach (FormulaDependencyAliasMatch match in aliases.FindMatches(searchableFormula)) {
+                string aliasSearchFormula = MaskFormulaQuotedSheetQualifierSegments(searchableFormula);
+                foreach (FormulaDependencyAliasMatch match in aliases.FindMatches(aliasSearchFormula)) {
                     AddFormulaAliasDependency(searchableFormula, match, dependencies);
                 }
 
@@ -488,6 +489,40 @@ namespace OfficeIMO.Excel {
             }
 
             return builder.ToString();
+        }
+
+        private static string MaskFormulaQuotedSheetQualifierSegments(string formula) {
+            char[] masked = formula.ToCharArray();
+            for (int start = 0; start < formula.Length; start++) {
+                if (formula[start] != '\'') {
+                    continue;
+                }
+
+                int cursor = start + 1;
+                while (cursor < formula.Length) {
+                    if (formula[cursor] != '\'') {
+                        cursor++;
+                        continue;
+                    }
+                    if (cursor + 1 < formula.Length && formula[cursor + 1] == '\'') {
+                        cursor += 2;
+                        continue;
+                    }
+
+                    break;
+                }
+
+                if (cursor >= formula.Length || cursor + 1 >= formula.Length || formula[cursor + 1] != '!') {
+                    continue;
+                }
+
+                for (int index = start; index <= cursor; index++) {
+                    masked[index] = ' ';
+                }
+                start = cursor;
+            }
+
+            return new string(masked);
         }
 
         private static string MaskFormulaStructuredReferenceSegments(string formula) {

@@ -91,16 +91,12 @@ namespace OfficeIMO.Excel {
         }
 
         private bool IsDateOnlyPivotSourceField(ExcelPivotTableInfo pivot, string sourceField) {
-            bool? currentSourceResult = TryIsDateOnlyPivotSourceFieldFromCurrentSource(pivot, sourceField);
+            PivotTablePart? pivotPart = FindPivotTablePart(pivot);
+            bool? currentSourceResult = TryIsDateOnlyPivotSourceFieldFromCurrentSource(pivot, sourceField, pivotPart);
             if (currentSourceResult.HasValue) {
                 return currentSourceResult.Value;
             }
 
-            PivotTablePart? pivotPart = WorkbookPartRoot.WorksheetParts
-                .SelectMany(part => part.PivotTableParts)
-                .FirstOrDefault(part =>
-                    part.PivotTableDefinition?.CacheId?.Value == pivot.CacheId
-                    && string.Equals(part.PivotTableDefinition?.Name?.Value, pivot.Name, StringComparison.OrdinalIgnoreCase));
             CacheField? cacheField = pivotPart?
                 .PivotTableCacheDefinitionPart?
                 .PivotCacheDefinition?
@@ -122,7 +118,18 @@ namespace OfficeIMO.Excel {
             return false;
         }
 
-        private bool? TryIsDateOnlyPivotSourceFieldFromCurrentSource(ExcelPivotTableInfo pivot, string sourceField) {
+        private PivotTablePart? FindPivotTablePart(ExcelPivotTableInfo pivot) {
+            return WorkbookPartRoot.WorksheetParts
+                .SelectMany(part => part.PivotTableParts)
+                .FirstOrDefault(part =>
+                    part.PivotTableDefinition?.CacheId?.Value == pivot.CacheId
+                    && string.Equals(part.PivotTableDefinition?.Name?.Value, pivot.Name, StringComparison.OrdinalIgnoreCase));
+        }
+
+        private bool? TryIsDateOnlyPivotSourceFieldFromCurrentSource(
+            ExcelPivotTableInfo pivot,
+            string sourceField,
+            PivotTablePart? pivotPart) {
             if (string.IsNullOrWhiteSpace(pivot.SourceSheet)
                 || string.IsNullOrWhiteSpace(pivot.SourceRange)
                 || !A1.TryParseRange(pivot.SourceRange!.Replace("$", string.Empty), out int firstRow, out int firstColumn, out int lastRow, out int lastColumn)) {
@@ -139,7 +146,18 @@ namespace OfficeIMO.Excel {
             int sourceFieldIndex = normalizedHeaders.FindIndex(header =>
                 string.Equals(header, sourceField, StringComparison.OrdinalIgnoreCase));
             if (sourceFieldIndex < 0) {
-                return false;
+                List<CacheField> databaseFields = pivotPart?
+                    .PivotTableCacheDefinitionPart?
+                    .PivotCacheDefinition?
+                    .CacheFields?
+                    .Elements<CacheField>()
+                    .Where(field => field.DatabaseField?.Value != false)
+                    .ToList() ?? new List<CacheField>();
+                sourceFieldIndex = databaseFields.FindIndex(field =>
+                    string.Equals(field.Name?.Value, sourceField, StringComparison.OrdinalIgnoreCase));
+                if (sourceFieldIndex < 0 || sourceFieldIndex >= normalizedHeaders.Count) {
+                    return false;
+                }
             }
 
             int sourceColumn = firstColumn + sourceFieldIndex;

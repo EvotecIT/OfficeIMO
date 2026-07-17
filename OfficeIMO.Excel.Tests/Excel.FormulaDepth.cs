@@ -122,15 +122,19 @@ namespace OfficeIMO.Tests {
 
                 ExcelSheet sales = document.AddWorksheet("Sales");
                 sales.CellValue(1, 1, 5d);
+                ExcelSheet salesData = document.AddWorksheet("Sales Data");
+                salesData.CellValue(1, 3, 7d);
 
                 ExcelSheet tokens = document.AddWorksheet("Tokens");
                 tokens.CellValue(1, 1, 100d);
                 tokens.CellFormula(1, 2, "SUM(A1)");
                 tokens.CellFormula(1, 3, "LOG10(A1)");
                 tokens.CellFormula(1, 4, "Sales!A1+1");
+                tokens.CellFormula(1, 5, "'Sales Data'!C1");
+                document.SetNamedRange("Sales", "Tokens!A1", save: false);
 
                 ExcelFormulaDependencyGraph graph = document.InspectFormulas().DependencyGraph;
-                Assert.Equal(6, graph.NodeCount);
+                Assert.Equal(7, graph.NodeCount);
                 Assert.Equal(2, graph.EdgeCount);
                 Assert.Equal(2, graph.CircularReferenceCount);
 
@@ -159,6 +163,10 @@ namespace OfficeIMO.Tests {
                 ExcelFormulaDependencyNode qualifiedNode = Assert.IsType<ExcelFormulaDependencyNode>(graph.FindNode("Tokens", "D1"));
                 Assert.Equal(new[] { "Sales!A1" }, qualifiedNode.Dependencies);
                 Assert.Empty(qualifiedNode.FormulaDependencies);
+
+                ExcelFormulaDependencyNode quotedQualifierNode = Assert.IsType<ExcelFormulaDependencyNode>(graph.FindNode("Tokens", "E1"));
+                Assert.Equal(new[] { "Sales Data!C1" }, quotedQualifierNode.Dependencies);
+                Assert.Empty(quotedQualifierNode.FormulaDependencies);
 
                 Assert.Throws<InvalidOperationException>(() => document.InspectFormulas().EnsureNoDependencyIssues());
             }
@@ -203,6 +211,27 @@ namespace OfficeIMO.Tests {
             Assert.False(sheet.TryGetCachedFormulaValue(1, 1, out _));
             Assert.True(sheet.TryGetCachedFormulaValue(2, 1, out string? cached));
             Assert.Equal("2", cached);
+        }
+
+        [Fact]
+        public void Test_FormulaEvaluator_DoesNotCacheAggregatesAfterDependencyDepthGuard() {
+            using ExcelDocument document = ExcelDocument.Create();
+            ExcelSheet sheet = document.AddWorksheet("Depth");
+            sheet.CellFormula(1, 1, "SUBTOTAL(2,A2)");
+            sheet.CellFormula(1, 2, "COUNTBLANK(B2)");
+            sheet.CellFormula(1, 3, "COUNTIF(C2,\">0\")");
+            sheet.CellFormula(2, 1, "1+1");
+            sheet.CellFormula(2, 2, "1+1");
+            sheet.CellFormula(2, 3, "1+1");
+            document.Calculation.MaximumDependencyDepth = 1;
+
+            Assert.Equal(3, document.Calculate());
+            Assert.False(sheet.TryGetCachedFormulaValue(1, 1, out _));
+            Assert.False(sheet.TryGetCachedFormulaValue(1, 2, out _));
+            Assert.False(sheet.TryGetCachedFormulaValue(1, 3, out _));
+            Assert.True(sheet.TryGetCachedFormulaValue(2, 1, out _));
+            Assert.True(sheet.TryGetCachedFormulaValue(2, 2, out _));
+            Assert.True(sheet.TryGetCachedFormulaValue(2, 3, out _));
         }
 
         [Fact]
@@ -288,7 +317,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_FormulaInspection_ExpandsSharedWholeRowColumnSpillAndThreeDimensionalReferences() {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelFormulaDepth.SharedReferenceKinds.xlsx");
-            const string masterFormula = "SUM(A:A,$A:$A,1:1,$1:$1,A1#,$A1#,A$1#,$A$1#,A1%)+Q1:Q4!A1";
+            const string masterFormula = "SUM(A:A,$A:$A,1:1,$1:$1,A1#,$A1#,A$1#,$A$1#,A1%)+LOG10(A1)+Q1:Q4!A1";
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 document.AddWorksheet("Q1");
@@ -327,7 +356,7 @@ namespace OfficeIMO.Tests {
             ExcelSheet shared = loaded["Shared"];
             Assert.Equal(masterFormula, shared.GetFormulaText(1, 5));
             Assert.Equal(
-                "SUM(B:B,$A:$A,2:2,$1:$1,B2#,$A2#,B$1#,$A$1#,B2%)+Q1:Q4!B2",
+                "SUM(B:B,$A:$A,2:2,$1:$1,B2#,$A2#,B$1#,$A$1#,B2%)+LOG10(B2)+Q1:Q4!B2",
                 shared.GetFormulaText(2, 6));
         }
 
