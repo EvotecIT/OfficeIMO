@@ -237,14 +237,14 @@ internal static class OneNoteWriteRoundTripValidator {
             if (expectedStroke.Points.Count != actualStroke.Points.Count) Fail(path + "/stroke[" + strokeIndex + "] point count");
 
             OfficeTransform transform = expectedStroke.Transform ?? OfficeTransform.Identity;
-            double transformScale = InkTransformScale(transform);
+            (double transformedTipWidth, double transformedTipHeight) = expectedStroke.GetTransformedTipDimensions();
             double expectedOpacity = OfficeInkRenderer.GetEffectiveOpacity(expectedStroke);
             double actualOpacity = OfficeInkRenderer.GetEffectiveOpacity(actualStroke);
             if (expectedStroke.Color.R != actualStroke.Color.R ||
                 expectedStroke.Color.G != actualStroke.Color.G ||
                 expectedStroke.Color.B != actualStroke.Color.B ||
-                !InkFloatEquals(expectedStroke.Width * transformScale, actualStroke.Width) ||
-                !InkFloatEquals(expectedStroke.Height * transformScale, actualStroke.Height) ||
+                !InkFloatEquals(transformedTipWidth, actualStroke.Width) ||
+                !InkFloatEquals(transformedTipHeight, actualStroke.Height) ||
                 Math.Abs(expectedOpacity - actualOpacity) > 1D / byte.MaxValue + 0.000001D ||
                 expectedStroke.TipShape != actualStroke.TipShape ||
                 expectedStroke.Bias != actualStroke.Bias ||
@@ -286,12 +286,6 @@ internal static class OneNoteWriteRoundTripValidator {
             if (!string.IsNullOrWhiteSpace(alternative) && seen.Add(alternative)) result.Add(alternative);
         }
         return result;
-    }
-
-    private static double InkTransformScale(OfficeTransform transform) {
-        double x = Math.Sqrt(transform.M11 * transform.M11 + transform.M12 * transform.M12);
-        double y = Math.Sqrt(transform.M21 * transform.M21 + transform.M22 * transform.M22);
-        return Math.Max(0.000001D, (x + y) / 2D);
     }
 
     private static bool InkFloatEquals(double? expected, double? actual) {

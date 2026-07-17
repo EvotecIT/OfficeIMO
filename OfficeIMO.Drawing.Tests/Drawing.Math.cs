@@ -162,4 +162,20 @@ public class DrawingMathTests {
         Assert.Equal(visibleMetrics.Height, phantomMetrics.Height, 6);
         Assert.Empty(drawing.Elements);
     }
+
+    [Fact]
+    public void MatrixRowsReserveAlignedAscentAndDescent() {
+        OfficeMathExpression expression = OfficeMath.EquationArray(
+            1,
+            2,
+            OfficeMath.UpperLimit(OfficeMath.Identifier("max"), OfficeMath.Identifier("n")),
+            OfficeMath.LowerLimit(OfficeMath.Identifier("lim"), OfficeMath.Identifier("x")));
+
+        OfficeDrawing drawing = OfficeMathRenderer.Render(expression, new OfficeMathRenderOptions { Padding = 0 });
+
+        Assert.All(drawing.Elements.OfType<OfficeDrawingText>(), text => {
+            Assert.True(text.Y >= -0.000001D);
+            Assert.True(text.Y + text.Height <= drawing.Height + 0.000001D);
+        });
+    }
 }

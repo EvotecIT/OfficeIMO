@@ -92,7 +92,7 @@ public static class OfficeInkRenderer {
         if (stroke.Points.Count == 0 || stroke.Opacity <= 0D || stroke.Color.A == 0) return;
 
         OfficeTransform transform = stroke.Transform ?? OfficeTransform.Identity;
-        double transformScale = stroke.Transform.HasValue ? OfficeInkStroke.TransformScale(transform) : 1D;
+        (double transformedTipWidth, double transformedTipHeight) = stroke.GetTransformedTipDimensions();
         var points = new List<OfficeInkPoint>(stroke.Points.Count);
         for (int index = 0; index < stroke.Points.Count; index++) {
             OfficeInkPoint transformed = stroke.Points[index].Transform(transform);
@@ -108,7 +108,7 @@ public static class OfficeInkRenderer {
         double opacity = GetEffectiveOpacity(stroke, options.HighlighterOpacityFactor);
         OfficeColor renderColor = OfficeColor.FromRgb(stroke.Color.R, stroke.Color.G, stroke.Color.B);
         if (points.Count == 1) {
-            AddDot(drawing, stroke, renderColor, points[0], transformScale, opacity, options);
+            AddDot(drawing, stroke, renderColor, points[0], transformedTipWidth, transformedTipHeight, opacity, options);
             return;
         }
 
@@ -126,7 +126,7 @@ public static class OfficeInkRenderer {
             double pressure = options.UsePressure && !stroke.IgnorePressure
                 ? ResolvePressure(from.Pressure, to.Pressure, options.MinimumPressureFactor)
                 : 1D;
-            double thickness = Math.Max(0.01D, ((stroke.Width + stroke.Height) / 2D) * transformScale * pressure);
+            double thickness = Math.Max(0.01D, ((transformedTipWidth + transformedTipHeight) / 2D) * pressure);
             OfficeShape shape = OfficeShape.Line(x1, y1, x2, y2);
             shape.StrokeColor = renderColor;
             shape.StrokeWidth = thickness;
@@ -144,15 +144,16 @@ public static class OfficeInkRenderer {
         OfficeInkStroke stroke,
         OfficeColor renderColor,
         OfficeInkPoint point,
-        double transformScale,
+        double transformedTipWidth,
+        double transformedTipHeight,
         double opacity,
         OfficeInkRenderOptions options) {
         if (point.X < 0D || point.Y < 0D || point.X > drawing.Width || point.Y > drawing.Height) return;
         double pressure = options.UsePressure && !stroke.IgnorePressure
             ? ResolvePressure(point.Pressure, point.Pressure, options.MinimumPressureFactor)
             : 1D;
-        double width = Math.Max(0.01D, stroke.Width * transformScale * pressure);
-        double height = Math.Max(0.01D, stroke.Height * transformScale * pressure);
+        double width = Math.Max(0.01D, transformedTipWidth * pressure);
+        double height = Math.Max(0.01D, transformedTipHeight * pressure);
         double x = Math.Max(0D, Math.Min(drawing.Width - width, point.X - width / 2D));
         double y = Math.Max(0D, Math.Min(drawing.Height - height, point.Y - height / 2D));
         width = Math.Min(width, drawing.Width - x);

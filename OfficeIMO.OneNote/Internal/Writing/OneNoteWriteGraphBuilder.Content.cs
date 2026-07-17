@@ -344,7 +344,9 @@ internal sealed partial class OneNoteWriteGraphBuilder {
             case ".wav": return OneNoteMediaKind.Audio;
             case ".wmv":
             case ".avi":
-            case ".mpg": return OneNoteMediaKind.Video;
+            case ".mpg":
+            case ".mpeg":
+            case ".mp4": return OneNoteMediaKind.Video;
             default: return OneNoteMediaKind.Unknown;
         }
     }

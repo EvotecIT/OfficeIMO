@@ -114,7 +114,7 @@ internal sealed partial class OneNoteWriteGraphBuilder {
         pathValues.AddRange(OneNoteInkCodec.EncodePacketValues(yValues));
         pathValues.AddRange(OneNoteInkCodec.EncodePacketValues(pressureValues));
 
-        double transformScale = InkTransformScale(transform);
+        (double transformedTipWidth, double transformedTipHeight) = stroke.GetTransformedTipDimensions();
         OneNoteExtendedGuid propertyId = owner.StrokePropertyObjectIds.TryGetValue(stroke, out OneNoteExtendedGuid? retainedPropertyId)
             ? retainedPropertyId
             : _ids.New();
@@ -122,8 +122,8 @@ internal sealed partial class OneNoteWriteGraphBuilder {
         var propertyValues = new List<OneNoteWriteProperty> {
             Data(OneNoteSchema.InkDimensions, OneNoteInkCodec.EncodeDimensions(hasPressure)),
             Scalar(OneNoteSchema.InkColor, OneNoteInkCodec.EncodeColor(stroke.Color)),
-            Float(OneNoteSchema.InkHeight, stroke.Height * transformScale * OneNoteInkCodec.NativeUnitsPerHalfInch / Math.Abs(containerScaleY)),
-            Float(OneNoteSchema.InkWidth, stroke.Width * transformScale * OneNoteInkCodec.NativeUnitsPerHalfInch / Math.Abs(containerScaleX)),
+            Float(OneNoteSchema.InkHeight, transformedTipHeight * OneNoteInkCodec.NativeUnitsPerHalfInch / Math.Abs(containerScaleY)),
+            Float(OneNoteSchema.InkWidth, transformedTipWidth * OneNoteInkCodec.NativeUnitsPerHalfInch / Math.Abs(containerScaleX)),
             Boolean(OneNoteSchema.InkAntialised, true),
             Boolean(OneNoteSchema.InkFitToCurve, stroke.FitToCurve),
             Boolean(OneNoteSchema.InkIgnorePressure, stroke.IgnorePressure),
@@ -184,7 +184,8 @@ internal sealed partial class OneNoteWriteGraphBuilder {
         OneNoteMaterializedObjectSpace? sourceSpace) {
         var wordIds = new List<OneNoteExtendedGuid>();
         Guid recognizerBatchId = Guid.NewGuid();
-        foreach (OneNoteInk ink in OneNoteElementTraversal.Enumerate(page).OfType<OneNoteInk>()) {
+        OneNoteInk[] inks = OneNoteElementTraversal.Enumerate(page).OfType<OneNoteInk>().ToArray();
+        foreach (OneNoteInk ink in inks) {
             foreach (OfficeInkStroke stroke in ink.Strokes) {
                 IReadOnlyList<string> alternatives = RecognitionAlternatives(stroke);
                 if (alternatives.Count == 0 || !ink.StrokeObjectIds.TryGetValue(stroke, out OneNoteExtendedGuid? strokeId)) continue;
@@ -201,24 +202,110 @@ internal sealed partial class OneNoteWriteGraphBuilder {
                 wordIds.Add(wordId);
             }
         }
-        if (wordIds.Count == 0) return null;
+        OneNoteExtendedGuid? authoredLineId = null;
+        if (wordIds.Count > 0) {
+            OneNoteExtendedGuid blockId = _ids.New();
+            space.Objects.Add(new OneNoteWriteObject(
+                blockId,
+                OneNoteSchema.JcidRecognizedTextBlock,
+                new[] { ObjectReferences(OneNoteSchema.RecognizedTextChildNodes, wordIds) }));
+            authoredLineId = _ids.New();
+            space.Objects.Add(new OneNoteWriteObject(
+                authoredLineId,
+                OneNoteSchema.JcidRecognizedTextLine,
+                new[] { ObjectReferences(OneNoteSchema.RecognizedTextChildNodes, blockId) }));
+        }
 
-        OneNoteExtendedGuid blockId = _ids.New();
-        space.Objects.Add(new OneNoteWriteObject(
-            blockId,
-            OneNoteSchema.JcidRecognizedTextBlock,
-            new[] { ObjectReferences(OneNoteSchema.RecognizedTextChildNodes, wordIds) }));
-        OneNoteExtendedGuid lineId = _ids.New();
-        space.Objects.Add(new OneNoteWriteObject(
-            lineId,
-            OneNoteSchema.JcidRecognizedTextLine,
-            new[] { ObjectReferences(OneNoteSchema.RecognizedTextChildNodes, blockId) }));
+        var opaqueStrokeIds = new HashSet<OneNoteExtendedGuid>(inks.SelectMany(ink => ink.PreservedStrokeObjectIds));
+        OneNoteExtendedGuid? preservedRootId = BuildPreservedRecognitionTree(
+            space,
+            page,
+            sourceSpace,
+            opaqueStrokeIds,
+            authoredLineId);
+        if (preservedRootId != null) return preservedRootId;
+        if (authoredLineId == null) return null;
+
         OneNoteExtendedGuid rootId = _ids.New();
         space.Objects.Add(new OneNoteWriteObject(
             rootId,
             OneNoteSchema.JcidRecognizedTextRoot,
-            new[] { ObjectReferences(OneNoteSchema.RecognizedTextChildNodes, lineId) }));
+            new[] { ObjectReferences(OneNoteSchema.RecognizedTextChildNodes, authoredLineId) }));
         return rootId;
+    }
+
+    private static OneNoteExtendedGuid? BuildPreservedRecognitionTree(
+        OneNoteWriteObjectSpace outputSpace,
+        OneNotePage page,
+        OneNoteMaterializedObjectSpace? sourceSpace,
+        IReadOnlyCollection<OneNoteExtendedGuid> opaqueStrokeIds,
+        OneNoteExtendedGuid? appendedLineId) {
+        if (sourceSpace == null || page.PreservationIds.PageNodeId == null || opaqueStrokeIds.Count == 0) {
+            return null;
+        }
+
+        OneNoteRevisionStoreObject? pageNode = sourceSpace.GetObject(page.PreservationIds.PageNodeId);
+        OneNoteExtendedGuid? rootId = OneNoteSemanticMapper
+            .GetReferences(pageNode, OneNoteSchema.PageRecognizedTextContainer)
+            .FirstOrDefault();
+        if (rootId == null) return null;
+
+        return PreserveRecognitionNode(
+            outputSpace,
+            sourceSpace,
+            rootId,
+            opaqueStrokeIds,
+            new HashSet<OneNoteExtendedGuid>(),
+            0,
+            appendedLineId);
+    }
+
+    private static OneNoteExtendedGuid? PreserveRecognitionNode(
+        OneNoteWriteObjectSpace outputSpace,
+        OneNoteMaterializedObjectSpace sourceSpace,
+        OneNoteExtendedGuid id,
+        IReadOnlyCollection<OneNoteExtendedGuid> opaqueStrokeIds,
+        ISet<OneNoteExtendedGuid> path,
+        int depth,
+        OneNoteExtendedGuid? appendedRootChildId = null) {
+        if (depth > 8 || !path.Add(id)) return null;
+        try {
+            OneNoteRevisionStoreObject? item = sourceSpace.GetObject(id);
+            if (item == null) return null;
+            if (item.Jcid.Value == OneNoteSchema.JcidRecognizedTextWord) {
+                byte[]? references = OneNoteSemanticMapper.ReadData(item, OneNoteSchema.RecognizedTextStrokeReferences);
+                if (references == null) return null;
+                for (int offset = 0; offset + 20 <= references.Length; offset += 20) {
+                    uint allocation = OneNoteBinary.ReadUInt32(references, offset + 16);
+                    if (opaqueStrokeIds.Contains(new OneNoteExtendedGuid(id.Identifier, allocation, 17))) {
+                        return id;
+                    }
+                }
+                return null;
+            }
+
+            var retainedChildren = new List<OneNoteExtendedGuid>();
+            foreach (OneNoteExtendedGuid childId in OneNoteSemanticMapper.GetReferences(item, OneNoteSchema.RecognizedTextChildNodes)) {
+                OneNoteExtendedGuid? retainedChild = PreserveRecognitionNode(
+                    outputSpace,
+                    sourceSpace,
+                    childId,
+                    opaqueStrokeIds,
+                    path,
+                    depth + 1);
+                if (retainedChild != null) retainedChildren.Add(retainedChild);
+            }
+            if (appendedRootChildId != null) retainedChildren.Add(appendedRootChildId);
+            if (retainedChildren.Count == 0) return null;
+
+            outputSpace.Objects.Add(new OneNoteWriteObject(
+                id,
+                item.Jcid.Value,
+                new[] { ObjectReferences(OneNoteSchema.RecognizedTextChildNodes, retainedChildren) }));
+            return id;
+        } finally {
+            path.Remove(id);
+        }
     }
 
     private static OneNoteExtendedGuid NewRecognitionWordId(
@@ -339,12 +426,6 @@ internal sealed partial class OneNoteWriteGraphBuilder {
             case OfficeInkBias.Drawing: return 1UL;
             default: return 2UL;
         }
-    }
-
-    private static double InkTransformScale(OfficeTransform transform) {
-        double x = Math.Sqrt(transform.M11 * transform.M11 + transform.M12 * transform.M12);
-        double y = Math.Sqrt(transform.M21 * transform.M21 + transform.M22 * transform.M22);
-        return Math.Max(0.000001D, (x + y) / 2D);
     }
 
     private static double ValidInkScale(double value) =>

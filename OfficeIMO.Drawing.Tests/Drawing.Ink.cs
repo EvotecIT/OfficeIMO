@@ -40,10 +40,33 @@ public class DrawingInkTests {
 
         OfficeInkBounds bounds = stroke.GetBounds();
 
-        Assert.Equal(5, bounds.X, 6);
-        Assert.Equal(22.5, bounds.Y, 6);
-        Assert.Equal(30, bounds.Width, 6);
-        Assert.Equal(45, bounds.Height, 6);
+        Assert.Equal(6, bounds.X, 6);
+        Assert.Equal(21, bounds.Y, 6);
+        Assert.Equal(28, bounds.Width, 6);
+        Assert.Equal(48, bounds.Height, 6);
+        Assert.Equal((8D, 18D), stroke.GetTransformedTipDimensions());
+    }
+
+    [Fact]
+    public void InkRendererAppliesNonUniformTransformToEachTipAxis() {
+        var dot = new OfficeInkStroke {
+            Width = 4,
+            Height = 6,
+            Transform = OfficeTransform.Scale(2, 3)
+        }.AddPoint(10, 10);
+        var segment = new OfficeInkStroke {
+            Width = 4,
+            Height = 6,
+            Transform = OfficeTransform.Scale(2, 3)
+        }.AddPoint(10, 10).AddPoint(20, 10);
+
+        OfficeDrawing dotDrawing = OfficeInkRenderer.Render(new OfficeInkDocument().Add(dot), 100, 100);
+        OfficeDrawing segmentDrawing = OfficeInkRenderer.Render(new OfficeInkDocument().Add(segment), 100, 100);
+
+        OfficeShape renderedDot = Assert.Single(dotDrawing.Shapes).Shape;
+        Assert.Equal(8, renderedDot.Width, 6);
+        Assert.Equal(18, renderedDot.Height, 6);
+        Assert.Equal(13, Assert.Single(segmentDrawing.Shapes).Shape.StrokeWidth, 6);
     }
 
     [Fact]

@@ -151,6 +151,76 @@ public sealed class NativeInkMathWriterTests {
     }
 
     [Fact]
+    public void PreservesRecognitionTreeForOpaqueStrokeDuringUnrelatedEdit() {
+        var section = new OneNoteSection { Name = "Opaque recognition" };
+        var page = new OneNotePage { Title = "Before" };
+        var ink = new OneNoteInk();
+        var stroke = new OfficeInkStroke { RecognizedText = "hello", LanguageId = 1033 }
+            .AddPoint(0.1, 0.2)
+            .AddPoint(0.3, 0.4);
+        stroke.RecognitionAlternatives.Add("hello");
+        stroke.RecognitionAlternatives.Add("hullo");
+        ink.Ink.Add(stroke);
+        page.DirectContent.Add(ink);
+        section.Pages.Add(page);
+
+        OneNoteSection loaded = OneNoteSectionReader.Read(new MemoryStream(OneNoteSectionWriter.Write(section)));
+        OneNotePage loadedPage = Assert.Single(loaded.Pages);
+        OneNoteInk loadedInk = Assert.IsType<OneNoteInk>(Assert.Single(Assert.Single(loadedPage.Outlines).Children));
+        OfficeInkStroke opaqueStroke = Assert.Single(loadedInk.Strokes);
+        OneNoteExtendedGuid opaqueStrokeId = loadedInk.StrokeObjectIds[opaqueStroke];
+        OneNoteMaterializedObjectSpace sourceSpace = loaded.PreservationState!.GetPageSpace(loadedPage)!;
+        OneNoteRevisionStoreObject sourcePageNode = sourceSpace.GetObject(loadedPage.PreservationIds.PageNodeId!)!;
+        OneNoteRevisionStoreObject sourceRecognitionRoot = Referenced(sourceSpace, sourcePageNode, OneNoteSchema.PageRecognizedTextContainer);
+        OneNoteRevisionStoreObject sourceRecognitionLine = Referenced(sourceSpace, sourceRecognitionRoot, OneNoteSchema.RecognizedTextChildNodes);
+        OneNoteRevisionStoreObject sourceRecognitionBlock = Referenced(sourceSpace, sourceRecognitionLine, OneNoteSchema.RecognizedTextChildNodes);
+        OneNoteRevisionStoreObject sourceRecognitionWord = Referenced(sourceSpace, sourceRecognitionBlock, OneNoteSchema.RecognizedTextChildNodes);
+        Assert.True(loadedInk.Ink.Remove(opaqueStroke));
+        loadedInk.PreservedStrokeObjectIds.Add(opaqueStrokeId);
+        loadedPage.Title = "After";
+
+        OneNoteWriteObjectSpace output = new OneNoteWriteGraphBuilder().BuildSection(loaded).ObjectSpaces[1];
+        OneNoteWriteObject outputPageNode = Assert.Single(output.Objects, item => item.Id.Equals(loadedPage.PreservationIds.PageNodeId));
+        OneNoteWriteObject outputRecognitionRoot = Referenced(output, outputPageNode, OneNoteSchema.PageRecognizedTextContainer);
+        OneNoteWriteObject outputRecognitionLine = Referenced(output, outputRecognitionRoot, OneNoteSchema.RecognizedTextChildNodes);
+        OneNoteWriteObject outputRecognitionBlock = Referenced(output, outputRecognitionLine, OneNoteSchema.RecognizedTextChildNodes);
+        OneNoteWriteObject retainedRecognitionWord = Referenced(output, outputRecognitionBlock, OneNoteSchema.RecognizedTextChildNodes);
+
+        Assert.Equal(sourceRecognitionRoot.Id, outputRecognitionRoot.Id);
+        Assert.Equal(sourceRecognitionLine.Id, outputRecognitionLine.Id);
+        Assert.Equal(sourceRecognitionBlock.Id, outputRecognitionBlock.Id);
+        Assert.Equal(sourceRecognitionWord.Id, retainedRecognitionWord.Id);
+        Assert.Equal(OneNoteSchema.JcidRecognizedTextWord, retainedRecognitionWord.Jcid);
+        Assert.Equal(
+            OneNoteSemanticMapper.ReadData(sourceRecognitionWord, OneNoteSchema.RecognizedText),
+            Assert.Single(retainedRecognitionWord.Properties, property =>
+                (property.RawId & 0x7FFFFFFFU) == OneNoteSchema.RecognizedText).Data);
+    }
+
+    [Fact]
+    public void RoundTripsNonUniformlyTransformedInkTipDimensions() {
+        var section = new OneNoteSection { Name = "Transformed ink" };
+        var page = new OneNotePage { Title = "Ink" };
+        var ink = new OneNoteInk();
+        ink.Ink.Add(new OfficeInkStroke {
+            Width = 0.04,
+            Height = 0.06,
+            Transform = OfficeTransform.Scale(2, 3)
+        }.AddPoint(0.1, 0.2).AddPoint(0.3, 0.4));
+        page.DirectContent.Add(ink);
+        section.Pages.Add(page);
+
+        OneNoteSection roundTrip = OneNoteSectionReader.Read(new MemoryStream(OneNoteSectionWriter.Write(section)));
+        OfficeInkStroke actual = Assert.Single(Assert.IsType<OneNoteInk>(
+            Assert.Single(Assert.Single(Assert.Single(roundTrip.Pages).Outlines).Children)).Strokes);
+
+        Assert.Equal(0.08, actual.Width, 3);
+        Assert.Equal(0.18, actual.Height, 3);
+        Assert.Equal(0.2, actual.Points[0].X, 3);
+        Assert.Equal(0.6, actual.Points[0].Y, 3);
+    }
+
+    [Fact]
     public void UnionsPreservedOpaqueInkBoundsWithNewlyAuthoredStrokes() {
         var section = new OneNoteSection { Name = "Opaque ink bounds" };
         var page = new OneNotePage { Title = "Ink" };
@@ -320,6 +390,30 @@ public sealed class NativeInkMathWriterTests {
         OneNoteMaterializedObjectSpace pageSpace = roundTrip.PreservationState!.GetPageSpace(actualPage)!;
         OneNoteRevisionStoreObject pageNode = pageSpace.GetObject(actualPage.PreservationIds.PageNodeId!)!;
         Assert.Equal(recordingId.ToByteArray(), OneNoteSemanticMapper.ReadData(pageNode, OneNoteSchema.AudioRecordingGuids));
+    }
+
+    [Theory]
+    [InlineData("meeting.mpeg", "video/mpeg")]
+    [InlineData("meeting.mp4", "video/mp4")]
+    public void RoundTripsSupportedVideoRecordingExtensions(string fileName, string mediaType) {
+        var section = new OneNoteSection { Name = "Video" };
+        var page = new OneNotePage { Title = "Recording" };
+        page.DirectContent.Add(new OneNoteMedia {
+            FileName = fileName,
+            MediaType = mediaType,
+            Payload = OneNoteBinaryPayload.FromBytes(new byte[] { 1, 2, 3 }),
+            RecordingKind = OneNoteMediaKind.Video,
+            RecordingId = Guid.NewGuid()
+        });
+        section.Pages.Add(page);
+
+        OneNoteSection roundTrip = OneNoteSectionReader.Read(new MemoryStream(OneNoteSectionWriter.Write(section)));
+        OneNoteMedia actual = Assert.IsType<OneNoteMedia>(
+            Assert.Single(Assert.Single(Assert.Single(roundTrip.Pages).Outlines).Children));
+
+        Assert.Equal(OneNoteMediaKind.Video, actual.RecordingKind);
+        Assert.Equal(fileName, actual.FileName);
+        Assert.Equal(mediaType, actual.MediaType);
     }
 
     [Fact]
@@ -526,4 +620,13 @@ public sealed class NativeInkMathWriterTests {
         OneNoteMaterializedObjectSpace space,
         OneNoteRevisionStoreObject owner,
         uint propertyId) => space.GetObject(Assert.Single(OneNoteSemanticMapper.GetReferences(owner, propertyId)))!;
+
+    private static OneNoteWriteObject Referenced(
+        OneNoteWriteObjectSpace space,
+        OneNoteWriteObject owner,
+        uint propertyId) {
+        OneNoteWriteProperty property = Assert.Single(owner.Properties, item =>
+            (item.RawId & 0x7FFFFFFFU) == propertyId);
+        return Assert.Single(space.Objects, item => item.Id.Equals(Assert.Single(property.References)));
+    }
 }

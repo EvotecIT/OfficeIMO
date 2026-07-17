@@ -387,14 +387,16 @@ public static class OfficeMathRenderer {
             var widths = new double[columns];
             var heights = new double[rows];
             var baselines = new double[rows];
+            var descents = new double[rows];
             for (int row = 0; row < rows; row++) {
                 for (int column = 0; column < columns; column++) {
                     LayoutBox cell = Layout(expression.Children[row * columns + column], scale);
                     cells[row, column] = cell;
                     widths[column] = Math.Max(widths[column], cell.Width);
                     baselines[row] = Math.Max(baselines[row], cell.Baseline);
-                    heights[row] = Math.Max(heights[row], cell.Height);
+                    descents[row] = Math.Max(descents[row], cell.Height - cell.Baseline);
                 }
+                heights[row] = baselines[row] + descents[row];
             }
             double gap = _options.MatrixGap * scale;
             double tableWidth = Sum(widths) + gap * Math.Max(0, columns - 1);

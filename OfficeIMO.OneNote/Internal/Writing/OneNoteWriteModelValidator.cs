@@ -274,13 +274,15 @@ internal static class OneNoteWriteModelValidator {
                 case ".wav": extensionKind = OneNoteMediaKind.Audio; break;
                 case ".wmv":
                 case ".avi":
-                case ".mpg": extensionKind = OneNoteMediaKind.Video; break;
+                case ".mpg":
+                case ".mpeg":
+                case ".mp4": extensionKind = OneNoteMediaKind.Video; break;
                 default: extensionKind = OneNoteMediaKind.Unknown; break;
             }
             if (extensionKind == OneNoteMediaKind.Unknown) {
                 throw new OneNoteFormatException(
                     "ONENOTE_WRITE_MEDIA_EXTENSION",
-                    "A OneNote media element requires a .wma, .mp3, .wav, .wmv, .avi, or .mpg file name.");
+                    "A OneNote media element requires a .wma, .mp3, .wav, .wmv, .avi, .mpg, .mpeg, or .mp4 file name.");
             }
             if (media.RecordingKind != OneNoteMediaKind.Unknown && media.RecordingKind != extensionKind) {
                 throw new OneNoteFormatException(
