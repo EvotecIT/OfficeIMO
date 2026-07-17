@@ -90,6 +90,7 @@ namespace OfficeIMO.PowerPoint {
                 throw new ArgumentOutOfRangeException(nameof(height));
             }
 
+            uint shapeId = AllocateShapeId();
             MediaDataPart mediaPart = CreateMediaDataPart(media, contentType, extension);
             string fileReferenceId = GetNextRelationshipId(_slidePart);
             if (kind == PowerPointMediaKind.Audio) {
@@ -106,7 +107,6 @@ namespace OfficeIMO.PowerPoint {
             string posterRelationshipId = _slidePart.GetIdOfPart(posterPart);
 
             string name = GenerateUniqueName(kind == PowerPointMediaKind.Audio ? "Audio" : "Video");
-            uint shapeId = AllocateShapeId();
             Picture picture = CreateMediaPicture(kind, shapeId, name, fileReferenceId, playbackReferenceId,
                 posterRelationshipId, left, top, width, height);
 

@@ -61,13 +61,19 @@ namespace OfficeIMO.PowerPoint {
                 double? advanceAfterSeconds = TransitionAdvanceAfterSeconds;
                 SoundAction? soundAction = GetTransitionElement()?
                     .GetFirstChild<SoundAction>()?.CloneNode(true) as SoundAction;
-                string? soundRelationshipId = soundAction?
-                    .GetFirstChild<StartSoundAction>()?.Sound?.Embed?.Value;
+                string[] soundRelationshipIds = GetTransitionElements()
+                    .Select(transition => transition
+                        .GetFirstChild<SoundAction>()?
+                        .GetFirstChild<StartSoundAction>()?.Sound?.Embed?
+                        .Value)
+                    .Where(id => !string.IsNullOrEmpty(id))
+                    .Cast<string>()
+                    .Distinct(StringComparer.Ordinal)
+                    .ToArray();
 
                 RemoveTransitionMarkup();
                 if (value == SlideTransition.None) {
-                    PowerPointEmbeddedSound.RemoveIfUnused(_slidePart,
-                        soundRelationshipId);
+                    RemoveUnusedTransitionSounds(soundRelationshipIds);
                     return;
                 }
 
@@ -82,6 +88,7 @@ namespace OfficeIMO.PowerPoint {
                             durationSeconds, advanceOnClick,
                             advanceAfterSeconds);
                     }
+                    RemoveUnusedTransitionSounds(soundRelationshipIds);
                     return;
                 }
 
@@ -121,6 +128,15 @@ namespace OfficeIMO.PowerPoint {
                 SlideRoot.Transition = transition;
                 if (soundAction != null) transition.Append(soundAction);
                 ApplyTransitionSettings(GetTransitionElement(), speed, durationSeconds, advanceOnClick, advanceAfterSeconds);
+                RemoveUnusedTransitionSounds(soundRelationshipIds);
+            }
+        }
+
+        private void RemoveUnusedTransitionSounds(
+            IEnumerable<string> relationshipIds) {
+            foreach (string relationshipId in relationshipIds) {
+                PowerPointEmbeddedSound.RemoveIfUnused(_slidePart,
+                    relationshipId);
             }
         }
 

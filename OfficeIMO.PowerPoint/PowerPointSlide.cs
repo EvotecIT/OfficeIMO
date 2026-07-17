@@ -131,18 +131,25 @@ namespace OfficeIMO.PowerPoint {
             if (nextShapeId > _nextShapeId) _nextShapeId = nextShapeId;
         }
 
-        private uint AllocateShapeId() {
-            if (_shapeIdsExhausted) {
+        private uint AllocateShapeId() => AllocateShapeIds(1);
+
+        private uint AllocateShapeIds(int count) {
+            if (count <= 0) {
+                throw new ArgumentOutOfRangeException(nameof(count));
+            }
+            ulong lastShapeId = (ulong)_nextShapeId
+                + unchecked((uint)count) - 1UL;
+            if (_shapeIdsExhausted || lastShapeId > uint.MaxValue) {
                 throw new InvalidOperationException(
                     "The slide shape identifier space is exhausted.");
             }
-            uint shapeId = _nextShapeId;
-            if (shapeId == uint.MaxValue) {
+            uint firstShapeId = _nextShapeId;
+            if (lastShapeId == uint.MaxValue) {
                 _shapeIdsExhausted = true;
             } else {
-                _nextShapeId = shapeId + 1U;
+                _nextShapeId = unchecked((uint)lastShapeId + 1U);
             }
-            return shapeId;
+            return firstShapeId;
         }
 
         private void InsertTrackedShape(int index, PowerPointShape shape) {

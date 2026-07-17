@@ -4,6 +4,7 @@ using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.LegacyPpt;
 using OfficeIMO.PowerPoint.LegacyPpt.Capabilities;
 using Xunit;
+using P = DocumentFormat.OpenXml.Presentation;
 
 namespace OfficeIMO.Tests {
     public partial class PowerPointLegacyPptTests {
@@ -202,6 +203,41 @@ namespace OfficeIMO.Tests {
                 projectedSlide.ClassicAnimations);
             Assert.Equal(projectedMarker.Id, animation.ShapeId);
             Assert.Empty(projected.ValidateDocument());
+        }
+
+        [Fact]
+        public void OleCreationReservesBothShapeIdsBeforeAddingParts() {
+            byte[] bytes;
+            using (PowerPointPresentation presentation =
+                   PowerPointPresentation.Create()) {
+                PowerPointSlide slide = presentation.AddSlide();
+                PowerPointAutoShape first = slide.AddRectangle(
+                    1000, 1000, 2000, 1000);
+                PowerPointAutoShape second = slide.AddRectangle(
+                    4000, 1000, 2000, 1000);
+                PowerPointGroupShape group = slide.GroupShapes(
+                    new PowerPointShape[] { first, second });
+                group.GroupShape.Descendants<
+                        P.NonVisualDrawingProperties>().Last().Id =
+                    uint.MaxValue - 1U;
+                bytes = presentation.ToBytes();
+            }
+
+            using var input = new MemoryStream(bytes, writable: false);
+            using PowerPointPresentation loaded =
+                PowerPointPresentation.Load(input);
+            PowerPointSlide loadedSlide = Assert.Single(loaded.Slides);
+            int partCount = loadedSlide.SlidePart.Parts.Count();
+            using var storage = new MemoryStream(
+                CreateOleTestStorage("ID reservation"), writable: false);
+
+            Assert.Throws<InvalidOperationException>(() => loadedSlide
+                .AddOleObject(storage, "Package"));
+
+            Assert.Equal(partCount, loadedSlide.SlidePart.Parts.Count());
+            PowerPointAutoShape finalShape = loadedSlide.AddRectangle(
+                7000, 1000, 2000, 1000);
+            Assert.Equal(uint.MaxValue, finalShape.Id);
         }
 
         [Fact]

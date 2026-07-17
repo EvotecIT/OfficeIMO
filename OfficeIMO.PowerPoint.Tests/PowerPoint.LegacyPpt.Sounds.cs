@@ -1,4 +1,5 @@
 using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.LegacyPpt;
 using OfficeIMO.PowerPoint.LegacyPpt.Model;
@@ -293,6 +294,46 @@ namespace OfficeIMO.Tests {
             slide.Transition = SlideTransition.None;
 
             Assert.False(slide.HasTransitionSound);
+            Assert.Empty(slide.SlidePart.DataPartReferenceRelationships
+                .OfType<AudioReferenceRelationship>());
+            Assert.Empty(presentation.OpenXmlDocument.DataParts);
+            Assert.Empty(presentation.ValidateDocument());
+        }
+
+        [Fact]
+        public void RemovingTransitionReleasesSoundsFromAllFallbackBranches() {
+            byte[] wave = CreateWavePayload();
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            slide.Transition = SlideTransition.Morph;
+            using (var audio = new MemoryStream(wave, writable: false)) {
+                slide.SetTransitionSound(audio, "Choice sound");
+            }
+            MediaDataPart fallbackMedia = presentation.OpenXmlDocument
+                .CreateMediaDataPart("audio/wav", ".wav");
+            using (var audio = new MemoryStream(
+                       wave.Concat(new byte[] { 0x21 }).ToArray(),
+                       writable: false)) {
+                fallbackMedia.FeedData(audio);
+            }
+            AudioReferenceRelationship fallbackRelationship = slide
+                .SlidePart.AddAudioReferenceRelationship(fallbackMedia);
+            AlternateContent alternate = Assert.Single(slide.SlidePart
+                .Slide!.Elements<AlternateContent>());
+            P.Transition fallbackTransition = alternate
+                .GetFirstChild<AlternateContentFallback>()!
+                .GetFirstChild<P.Transition>()!;
+            fallbackTransition.GetFirstChild<P.SoundAction>()!
+                .GetFirstChild<P.StartSoundAction>()!.Sound!.Embed =
+                fallbackRelationship.Id;
+            Assert.Equal(2, slide.SlidePart
+                .DataPartReferenceRelationships
+                .OfType<AudioReferenceRelationship>().Count());
+            Assert.Equal(2, presentation.OpenXmlDocument.DataParts.Count());
+
+            slide.Transition = SlideTransition.None;
+
             Assert.Empty(slide.SlidePart.DataPartReferenceRelationships
                 .OfType<AudioReferenceRelationship>());
             Assert.Empty(presentation.OpenXmlDocument.DataParts);

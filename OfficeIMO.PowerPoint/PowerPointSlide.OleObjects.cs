@@ -40,6 +40,8 @@ namespace OfficeIMO.PowerPoint {
                     ?? "The embedded object is not an OLE compound storage.");
             }
 
+            uint shapeId = AllocateShapeIds(2);
+            uint previewShapeId = shapeId + 1U;
             EmbeddedObjectPart part = _slidePart
                 .AddEmbeddedObjectPart(contentType);
             using (var source = new MemoryStream(storageBytes,
@@ -47,8 +49,6 @@ namespace OfficeIMO.PowerPoint {
                 part.FeedData(source);
             }
             string relationshipId = _slidePart.GetIdOfPart(part);
-            uint shapeId = AllocateShapeId();
-            uint previewShapeId = AllocateShapeId();
             string name = GenerateUniqueName("Object");
 
             var picture = new P.Picture(
