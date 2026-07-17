@@ -210,7 +210,9 @@ public sealed partial class EmailStoreSession {
                 destinationPath = path;
                 bytesWritten = result.BytesWritten;
             }
-        } catch (EmailStoreLimitExceededException exception) {
+        } catch (Exception exception) when (
+            exception is EmailStoreLimitExceededException ||
+            exception is EmailLimitExceededException) {
             diagnostics.Add(new EmailStoreDiagnostic(
                 "EMAIL_STORE_EXPORT_ITEM_LIMIT",
                 exception.Message,
@@ -253,7 +255,9 @@ public sealed partial class EmailStoreSession {
             } else {
                 RollBackMboxEntry(output, initialLength);
             }
-        } catch (EmailStoreLimitExceededException exception) {
+        } catch (Exception exception) when (
+            exception is EmailStoreLimitExceededException ||
+            exception is EmailLimitExceededException) {
             RollBackMboxEntry(output, initialLength);
             diagnostics.Add(new EmailStoreDiagnostic(
                 "EMAIL_STORE_EXPORT_ITEM_LIMIT",

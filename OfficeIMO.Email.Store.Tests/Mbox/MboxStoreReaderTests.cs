@@ -129,6 +129,41 @@ public sealed class MboxStoreReaderTests {
         }
     }
 
+    [Fact]
+    public void MboxExportContinuesAfterAMessageExceedsTheWriterLimit() {
+        string destination = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".mbox");
+        try {
+            var sourceMailbox = new EmailMailbox();
+            sourceMailbox.Messages.Add(new EmailMailboxEntry(new EmailDocument {
+                Subject = "Oversized",
+                Body = { Text = new string('x', 65_536) }
+            }));
+            sourceMailbox.Messages.Add(new EmailMailboxEntry(new EmailDocument {
+                Subject = "Valid",
+                Body = { Text = "Small body" }
+            }));
+            using var stream = new MemoryStream(sourceMailbox.ToBytes());
+            using EmailStoreSession session = EmailStoreSession.Open(stream, "source.mbox");
+            var writerOptions = new EmailMailboxWriterOptions(
+                new EmailWriterOptions(maxOutputBytes: 4_096));
+
+            EmailStoreMboxExportReport report = session.ExportToMbox(destination,
+                new EmailStoreMboxExportOptions(
+                    continueOnError: true,
+                    writerOptions: writerOptions));
+
+            Assert.Equal(2, report.Entries.Count);
+            Assert.Equal(1, report.SucceededCount);
+            Assert.Contains(report.Entries, entry => entry.Diagnostics.Any(diagnostic =>
+                diagnostic.Code == "EMAIL_STORE_EXPORT_ITEM_LIMIT" &&
+                diagnostic.Message.Contains(nameof(EmailWriterOptions.MaxOutputBytes),
+                    StringComparison.Ordinal)));
+            Assert.Equal("Valid", Assert.Single(EmailMailbox.Load(destination).Messages).Document.Subject);
+        } finally {
+            if (File.Exists(destination)) File.Delete(destination);
+        }
+    }
+
     private static byte[] CreateMailboxBytes() {
         var mailbox = new EmailMailbox();
         mailbox.Messages.Add(new EmailMailboxEntry(new EmailDocument {

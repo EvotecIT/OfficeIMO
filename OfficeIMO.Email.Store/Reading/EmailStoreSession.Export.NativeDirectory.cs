@@ -111,7 +111,8 @@ public sealed partial class EmailStoreSession {
             }
         } catch (Exception exception) when (exception is InvalidDataException || exception is NotSupportedException ||
                                              exception is IOException || exception is UnauthorizedAccessException ||
-                                             exception is EmailStoreLimitExceededException) {
+                                             exception is EmailStoreLimitExceededException ||
+                                             exception is EmailLimitExceededException) {
             diagnostics.Add(new EmailStoreDiagnostic("EMAIL_STORE_MAILDIR_EXPORT_FAILED", exception.Message,
                 EmailStoreDiagnosticSeverity.Error, "item/" + reference.Id));
         } finally {

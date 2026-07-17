@@ -192,6 +192,45 @@ public sealed class EmailStoreNativeDirectoryExportTests {
         }
     }
 
+    [Fact]
+    public void MaildirExportContinuesAfterAMessageExceedsTheWriterLimit() {
+        string sourceRoot = Path.Combine(Path.GetTempPath(),
+            "oims-" + Guid.NewGuid().ToString("N").Substring(0, 12));
+        string destinationRoot = Path.Combine(Path.GetTempPath(),
+            "oimd-" + Guid.NewGuid().ToString("N").Substring(0, 12));
+        try {
+            Directory.CreateDirectory(sourceRoot);
+            File.WriteAllText(Path.Combine(sourceRoot, "01-oversized.eml"),
+                "Subject: Oversized\r\n\r\n" + new string('x', 65_536));
+            File.WriteAllText(Path.Combine(sourceRoot, "02-valid.eml"),
+                "Subject: Valid\r\n\r\nSmall body\r\n");
+            using EmailStoreSession session = EmailStoreSession.Open(sourceRoot);
+            var messageOptions = new EmailWriterOptions(maxOutputBytes: 4_096);
+
+            EmailStoreExportReport report = session.ExportToNativeDirectory(destinationRoot,
+                new EmailStoreNativeDirectoryExportOptions(
+                    EmailStoreNativeDirectoryFormat.Maildir,
+                    preserveFolderHierarchy: false,
+                    continueOnError: true,
+                    messageOptions: messageOptions));
+
+            Assert.Equal(2, report.Entries.Count);
+            Assert.True(report.SucceededCount == 1, string.Join(Environment.NewLine,
+                report.Entries.SelectMany(entry => entry.Diagnostics)
+                    .Select(diagnostic => diagnostic.Code + ": " + diagnostic.Message)));
+            Assert.Contains(report.Entries, entry => entry.Diagnostics.Any(diagnostic =>
+                diagnostic.Code == "EMAIL_STORE_MAILDIR_EXPORT_FAILED" &&
+                diagnostic.Message.Contains(nameof(EmailWriterOptions.MaxOutputBytes),
+                    StringComparison.Ordinal)));
+            EmailStoreExportEntry succeeded = Assert.Single(report.Entries, entry => entry.Succeeded);
+            Assert.True(File.Exists(succeeded.DestinationPath));
+            Assert.Equal("Valid", EmailDocument.Load(succeeded.DestinationPath!).Subject);
+        } finally {
+            if (Directory.Exists(sourceRoot)) Directory.Delete(sourceRoot, recursive: true);
+            if (Directory.Exists(destinationRoot)) Directory.Delete(destinationRoot, recursive: true);
+        }
+    }
+
     private static byte[] CreateMailboxBytes() {
         var mailbox = new EmailMailbox();
         var first = new EmailDocument { Subject = "Native first" };
