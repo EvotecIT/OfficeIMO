@@ -26,6 +26,10 @@ Measured on 2026-07-11 with an Apple M4, 24 GB memory, macOS 26.5, .NET 8.0.23 r
 
 These numbers are a local regression baseline, not a cross-machine throughput promise. The committed contracts enforce allocation ceilings proportional to source size plus fixed headroom and a ten-second hang ceiling. Returned strings, message models, and requested attachment payloads are intentionally included in the allocation measurement.
 
+The streaming path has a separate retained-memory contract: a generated 16 MiB attachment is written without a
+whole-artifact buffer, reopened as file-backed content, and held under 8 MiB of additional retained managed memory.
+All EML, MSG/OFT, and TNEF streaming tests also reject whole-payload source reads and destination writes.
+
 For realistic deployments, measure representative `.msg`, `.eml`, TNEF, and mbox corpora with the same reader options used by the application. In particular, `includeAttachmentContent: false` changes retained memory materially when callers only need metadata.
 
 ## PST and OST large-store evidence
@@ -55,6 +59,11 @@ reported truncation because it stopped at the configured limits.
 
 Those numbers prove behavior against one large real file, not general throughput. The repeatable guarantees are
 the configured page, block, decoded-property, searchable-character, attachment, item, and source-read bounds.
+
+The managed PST writer has cardinality-scale contracts independent of private mail: 2,000 deterministic messages
+must remain under 64 MiB of retained managed growth, finish within 45 seconds, and reopen with the exact item count.
+Separate 100,000-entry gates keep conversion mappings under 32 MiB and the semantic deduplication index under
+16 MiB of retained growth. The latter two structures are sequential/disk-backed rather than retained item lists.
 
 ## Outlook OAB evidence
 

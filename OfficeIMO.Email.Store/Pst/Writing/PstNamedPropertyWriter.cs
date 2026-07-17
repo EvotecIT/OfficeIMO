@@ -12,7 +12,10 @@ internal sealed class PstNamedPropertyWriter {
         new Dictionary<string, NamedEntry>(StringComparer.Ordinal);
     private readonly List<NamedEntry> _entries = new List<NamedEntry>();
 
-    internal PstNamedPropertyWriter() {
+    internal PstNamedPropertyWriter() : this(seedDefaults: true) { }
+
+    private PstNamedPropertyWriter(bool seedDefaults) {
+        if (!seedDefaults) return;
         // An empty binary entry stream is treated as a missing Name-to-ID map by
         // Outlook-compatible readers. Seed one harmless, standard public-string
         // mapping and one PS_COMMON mapping so every required map stream is
@@ -20,6 +23,38 @@ internal sealed class PstNamedPropertyWriter {
         GetOrAdd(new MapiNamedProperty(PsPublicStrings, "Keywords"));
         GetOrAdd(new MapiNamedProperty(
             new Guid("00062008-0000-0000-C000-000000000046"), 0x8501));
+    }
+
+    internal void WriteCheckpoint(BinaryWriter writer) {
+        writer.Write(_entries.Count);
+        foreach (NamedEntry entry in _entries) {
+            writer.Write(entry.Name.PropertySet.ToByteArray());
+            writer.Write(entry.Name.IsStringNamed);
+            if (entry.Name.IsStringNamed) writer.Write(entry.Name.Name!);
+            else writer.Write(entry.Name.LocalId.GetValueOrDefault());
+        }
+    }
+
+    internal static PstNamedPropertyWriter ReadCheckpoint(BinaryReader reader) {
+        int count = reader.ReadInt32();
+        if (count < 0 || count > 0x8000) {
+            throw new InvalidDataException("The PST named-property checkpoint has an invalid entry count.");
+        }
+        var result = new PstNamedPropertyWriter(seedDefaults: false);
+        for (int index = 0; index < count; index++) {
+            byte[] guidBytes = reader.ReadBytes(16);
+            if (guidBytes.Length != 16) throw new EndOfStreamException("The named-property checkpoint is truncated.");
+            Guid propertySet = new Guid(guidBytes);
+            bool isString = reader.ReadBoolean();
+            MapiNamedProperty name = isString
+                ? new MapiNamedProperty(propertySet, reader.ReadString())
+                : new MapiNamedProperty(propertySet, reader.ReadUInt32());
+            NamedEntry entry = result.GetOrAdd(name);
+            if (entry.PropertyId != checked((ushort)(0x8000 + index))) {
+                throw new InvalidDataException("The PST named-property checkpoint order is invalid.");
+            }
+        }
+        return result;
     }
 
     internal IReadOnlyList<MapiProperty> Map(IEnumerable<MapiProperty> properties,

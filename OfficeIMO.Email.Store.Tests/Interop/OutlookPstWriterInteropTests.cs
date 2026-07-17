@@ -1,24 +1,44 @@
 using OfficeIMO.Email;
+using System.Runtime.ExceptionServices;
 using System.Runtime.InteropServices;
+using System.Threading;
 
 namespace OfficeIMO.Email.Store.Tests;
 
 public sealed class OutlookPstWriterInteropTests {
     [OutlookInteropFact]
     public void Generated_unicode_pst_can_be_mounted_read_and_removed_by_classic_outlook() {
-#pragma warning disable CA1416
-        Type? outlookType = Type.GetTypeFromProgID("Outlook.Application");
-#pragma warning restore CA1416
-        Assert.NotNull(outlookType);
-
         string? retainedPath = Environment.GetEnvironmentVariable(
             "OFFICEIMO_EMAIL_STORE_OUTLOOK_INTEROP_OUTPUT");
         string path = string.IsNullOrWhiteSpace(retainedPath)
             ? Path.Combine(Path.GetTempPath(),
                 string.Concat("officeimo-outlook-interop-", Guid.NewGuid().ToString("N"), ".pst"))
             : Path.GetFullPath(retainedPath!);
+        Exception? failure = null;
+        var thread = new Thread(() => {
+            try { RunInterop(path, !string.IsNullOrWhiteSpace(retainedPath)); }
+            catch (Exception exception) { failure = exception; }
+        }) { IsBackground = true, Name = "OfficeIMO Outlook PST interoperability" };
+#pragma warning disable CA1416
+        thread.SetApartmentState(ApartmentState.STA);
+#pragma warning restore CA1416
+        thread.Start();
+        bool completed = thread.Join(TimeSpan.FromMinutes(2));
+        if (!completed && string.IsNullOrWhiteSpace(retainedPath)) TryDelete(path);
+        Assert.True(completed,
+            "Classic Outlook interoperability did not finish within two minutes.");
+        if (failure != null) ExceptionDispatchInfo.Capture(failure).Throw();
+    }
+
+    private static void RunInterop(string path, bool retainOutput) {
+#pragma warning disable CA1416
+        Type? outlookType = Type.GetTypeFromProgID("Outlook.Application");
+#pragma warning restore CA1416
+        Assert.NotNull(outlookType);
+
         object? application = null;
         object? nameSpace = null;
+        object? stores = null;
         object? store = null;
         object? root = null;
         try {
@@ -34,7 +54,7 @@ public sealed class OutlookPstWriterInteropTests {
                 }
                 writer.Complete();
             }
-            if (!string.IsNullOrWhiteSpace(retainedPath)) {
+            if (retainOutput) {
                 File.Copy(path, string.Concat(path, ".before-outlook"), overwrite: true);
             }
             application = Activator.CreateInstance(outlookType);
@@ -43,9 +63,10 @@ public sealed class OutlookPstWriterInteropTests {
             nameSpace = outlook.GetNamespace("MAPI");
             dynamic mapi = nameSpace!;
             mapi.AddStoreEx(path, 2); // OlStoreType.olStoreUnicode
-            dynamic stores = mapi.Stores;
-            for (int index = 1; index <= stores.Count; index++) {
-                dynamic candidate = stores.Item(index);
+            stores = mapi.Stores;
+            dynamic outlookStores = stores!;
+            for (int index = 1; index <= outlookStores.Count; index++) {
+                dynamic candidate = outlookStores.Item(index);
                 if (string.Equals(Convert.ToString(candidate.FilePath), path,
                     StringComparison.OrdinalIgnoreCase)) {
                     store = candidate;
@@ -68,18 +89,26 @@ public sealed class OutlookPstWriterInteropTests {
                 Release(folderObject);
             }
             mapi.RemoveStore(mountedRoot);
+            Release(root);
             root = null;
         } finally {
+            if (root != null && nameSpace != null) {
+                try { ((dynamic)nameSpace).RemoveStore((dynamic)root); }
+                catch (COMException) { }
+            }
             Release(root);
             Release(store);
+            Release(stores);
             Release(nameSpace);
             Release(application);
-            if (string.IsNullOrWhiteSpace(retainedPath)) {
-                try { if (File.Exists(path)) File.Delete(path); }
-                catch (IOException) { }
-                catch (UnauthorizedAccessException) { }
-            }
+            if (!retainOutput) TryDelete(path);
         }
+    }
+
+    private static void TryDelete(string path) {
+        try { if (File.Exists(path)) File.Delete(path); }
+        catch (IOException) { }
+        catch (UnauthorizedAccessException) { }
     }
 
     private static void Release(object? value) {

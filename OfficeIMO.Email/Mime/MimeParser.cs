@@ -232,7 +232,7 @@ internal static class MimeParser {
         contentType.Parameters.Keys.Any(parameter =>
             !parameter.Equals("charset", StringComparison.OrdinalIgnoreCase));
 
-    private static EmailAttachment CreateAttachment(IReadOnlyList<EmailHeader> headers, MimeValue contentType,
+    internal static EmailAttachment CreateAttachment(IReadOnlyList<EmailHeader> headers, MimeValue contentType,
         MimeValue disposition, string? fileName, bool inlineDisposition, bool attachmentDisposition,
         byte[]? content, long length, bool isMimeRelated = false) {
         var attachment = new EmailAttachment {
@@ -260,7 +260,7 @@ internal static class MimeParser {
         return attachment;
     }
 
-    private static void PopulateEnvelope(EmailDocument document, IReadOnlyList<EmailHeader> headers,
+    internal static void PopulateEnvelope(EmailDocument document, IReadOnlyList<EmailHeader> headers,
         IList<EmailDiagnostic> diagnostics, string location) {
         document.Subject = MimeHeaderParser.GetValue(headers, "Subject");
         document.From = MimeAddressParser.ParseOne(MimeHeaderParser.GetRawValue(headers, "From"), diagnostics,
@@ -389,7 +389,7 @@ internal static class MimeParser {
         return result;
     }
 
-    private static string? TrimAngleBrackets(string? value) {
+    internal static string? TrimAngleBrackets(string? value) {
         if (string.IsNullOrWhiteSpace(value)) return value;
         string trimmed = value!.Trim();
         if (trimmed.Length >= 2 && trimmed[0] == '<' && trimmed[trimmed.Length - 1] == '>') {

@@ -115,7 +115,7 @@ namespace OfficeIMO.Drawing.Internal {
                 }
 
                 var created = new OfficeCompoundWriterEntry(name, path, isStream ? (byte)2 : (byte)1,
-                    isStream ? stream.Bytes : null);
+                    isStream ? stream : (OfficeCompoundStream?)null);
                 parent.Children.Add(created);
                 parent = created;
             }
@@ -161,11 +161,11 @@ namespace OfficeIMO.Drawing.Internal {
     }
 
     internal sealed class OfficeCompoundWriterEntry {
-        internal OfficeCompoundWriterEntry(string name, string path, byte objectType, byte[]? bytes) {
+        internal OfficeCompoundWriterEntry(string name, string path, byte objectType, OfficeCompoundStream? stream) {
             Name = name;
             Path = path;
             ObjectType = objectType;
-            Bytes = bytes;
+            Stream = stream;
         }
 
         internal string Name { get; }
@@ -174,7 +174,7 @@ namespace OfficeIMO.Drawing.Internal {
 
         internal byte ObjectType { get; }
 
-        internal byte[]? Bytes { get; }
+        internal OfficeCompoundStream? Stream { get; }
 
         internal List<OfficeCompoundWriterEntry> Children { get; } = new List<OfficeCompoundWriterEntry>();
 

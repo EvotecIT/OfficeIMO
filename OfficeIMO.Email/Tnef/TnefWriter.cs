@@ -16,8 +16,14 @@ internal static class TnefWriter {
     };
 
     internal static byte[] Write(EmailDocument document, EmailWriterOptions options, IList<EmailDiagnostic> diagnostics) {
-        return WriteMessage(document, options, diagnostics, 0);
+        using (var output = new EmailBoundedMemoryStream(options.MaxOutputBytes)) {
+            Write(output, document, options, diagnostics);
+            return output.ToArray();
+        }
     }
+
+    internal static void Write(Stream output, EmailDocument document, EmailWriterOptions options,
+        IList<EmailDiagnostic> diagnostics) => WriteMessage(output, document, options, diagnostics, 0);
 
     /// <summary>Returns whether raw TNEF attributes exist that only the TNEF writer can reproduce.</summary>
     internal static bool HasUnmanagedRawAttributes(EmailDocument document) =>
@@ -25,12 +31,11 @@ internal static class TnefWriter {
         document.Attachments.Any(attachment => attachment.TnefAttributes.Any(attribute =>
             !ManagedAttachmentAttributes.Contains(attribute.Tag)));
 
-    private static byte[] WriteMessage(EmailDocument document, EmailWriterOptions options,
+    private static void WriteMessage(Stream output, EmailDocument document, EmailWriterOptions options,
         IList<EmailDiagnostic> diagnostics, int depth) {
         if (depth > options.MaxNestedMessageDepth) throw new InvalidOperationException("The embedded-message write depth exceeds the configured maximum.");
         int codePage = MapiStringEncodingContext.FromCodePage(document.OutlookCodePage ?? 65001).PrimaryCodePage;
-        using (EmailBoundedMemoryStream output = new EmailBoundedMemoryStream(options.MaxOutputBytes)) {
-            WriteUInt32(output, TnefConstants.Signature);
+        WriteUInt32(output, TnefConstants.Signature);
             WriteUInt16(output, 1);
             WriteAttribute(output, TnefAttributeLevel.Message, TnefConstants.TnefVersion, EncodeUInt32(TnefConstants.Version));
             byte[] codePageBytes = new byte[8];
@@ -71,15 +76,15 @@ internal static class TnefWriter {
             for (int index = 0; index < writableAttachments.Length; index++) {
                 WriteAttachment(output, writableAttachments[index], index, codePage, options, diagnostics, depth);
             }
-            return output.ToArray();
-        }
     }
 
     private static void WriteAttachment(Stream output, EmailAttachment attachment, int index, int codePage,
         EmailWriterOptions options, IList<EmailDiagnostic> diagnostics, int depth) {
-        byte[]? content = EmailAttachmentContent.ReadOrNull(attachment, options.MaxOutputBytes);
         int method = attachment.MapiAttachMethod ?? (attachment.EmbeddedDocument != null ? 5 :
             attachment.StructuredStorageStreams.Count > 0 ? 6 : 1);
+        bool hasContent = attachment.Content != null || attachment.ContentSource != null ||
+            EmailAttachmentStreamScope.HasStagedContent(attachment);
+        byte[]? content = method == 1 ? null : EmailAttachmentContent.ReadOrNull(attachment, options.MaxOutputBytes);
         byte[] rendition = new byte[14];
         MsgBinary.WriteUInt16(rendition, 0, method == 6 ? (ushort)2 : (ushort)1);
         MsgBinary.WriteUInt32(rendition, 2, attachment.IsInline ? 0U : 0xffffffffU);
@@ -89,16 +94,19 @@ internal static class TnefWriter {
             attachment.FileName, diagnostics, string.Concat(attachmentLocation, "/title"));
         WriteStringAttribute(output, TnefAttributeLevel.Attachment, TnefConstants.AttachTransportFilename, codePage,
             attachment.FileName, diagnostics, string.Concat(attachmentLocation, "/transport-filename"));
-        if (method == 1 && content != null) {
-            WriteAttribute(output, TnefAttributeLevel.Attachment, TnefConstants.AttachData, content);
+        if (method == 1 && hasContent) {
+            using (ContentLease lease = OpenContent(attachment, options.MaxOutputBytes)) {
+                WriteAttribute(output, TnefAttributeLevel.Attachment, TnefConstants.AttachData,
+                    lease.Stream, lease.Length, options.MaxOutputBytes);
+            }
         }
 
         MsgPropertyBuilder builder = MsgWriter.CreateAttachmentProperties(attachment, index, method, diagnostics,
-            attachmentLocation, attachment.EmbeddedDocument != null || content != null, content);
+            attachmentLocation, attachment.EmbeddedDocument != null || hasContent, content);
         var properties = builder.Properties.Where(property => !IsAttachmentAttributeProperty(property.PropertyId)).
             Select(Clone).ToList();
         if (method == 5 && attachment.EmbeddedDocument != null) {
-            byte[] nested = WriteMessage(attachment.EmbeddedDocument, options, diagnostics, depth + 1);
+            byte[] nested = WriteMessageToBytes(attachment.EmbeddedDocument, options, diagnostics, depth + 1);
             properties.RemoveAll(property => property.PropertyId == 0x3701);
             properties.Add(new MapiProperty(0x3701, MapiPropertyType.Object, Combine(IidMessage.ToByteArray(), nested)));
         } else if (method == 5 && content != null) {
@@ -168,6 +176,89 @@ internal static class TnefWriter {
         WriteUInt32(output, unchecked((uint)data.Length));
         output.Write(data, 0, data.Length);
         WriteUInt16(output, CalculateChecksum(data));
+    }
+
+    private static void WriteAttribute(Stream output, TnefAttributeLevel level, uint tag, Stream input,
+        long length, long maximumInputBytes) {
+        if (length < 0 || length > uint.MaxValue) {
+            throw new EmailLimitExceededException(nameof(EmailWriterOptions.MaxOutputBytes), length,
+                Math.Min(maximumInputBytes, uint.MaxValue));
+        }
+        if (length > maximumInputBytes) {
+            throw new EmailLimitExceededException(nameof(EmailWriterOptions.MaxOutputBytes), length,
+                maximumInputBytes);
+        }
+        output.WriteByte((byte)level);
+        WriteUInt32(output, tag);
+        WriteUInt32(output, unchecked((uint)length));
+        var buffer = new byte[81920];
+        long remaining = length;
+        uint checksum = 0;
+        while (remaining > 0) {
+            int read = input.Read(buffer, 0, (int)Math.Min(buffer.Length, remaining));
+            if (read == 0) throw new EndOfStreamException("The attachment content ended before its declared length.");
+            output.Write(buffer, 0, read);
+            for (int index = 0; index < read; index++) checksum += buffer[index];
+            remaining -= read;
+        }
+        if (input.ReadByte() >= 0) {
+            throw new InvalidDataException("The attachment content exceeds its declared length.");
+        }
+        WriteUInt16(output, unchecked((ushort)checksum));
+    }
+
+    private static byte[] WriteMessageToBytes(EmailDocument document, EmailWriterOptions options,
+        IList<EmailDiagnostic> diagnostics, int depth) {
+        using (var output = new EmailBoundedMemoryStream(options.MaxOutputBytes)) {
+            WriteMessage(output, document, options, diagnostics, depth);
+            return output.ToArray();
+        }
+    }
+
+    private static ContentLease OpenContent(EmailAttachment attachment, long maximumInputBytes) {
+        long? length = EmailAttachmentStreamScope.GetLength(attachment);
+        if (length.HasValue) return new ContentLease(EmailAttachmentStreamScope.OpenRead(attachment), length.Value);
+
+        string path = Path.Combine(Path.GetTempPath(),
+            string.Concat("OfficeIMO.Email.Tnef.", Guid.NewGuid().ToString("N"), ".content"));
+        try {
+            long copied = 0;
+            using (Stream input = EmailAttachmentStreamScope.OpenRead(attachment))
+            using (var output = new FileStream(path, FileMode.CreateNew, FileAccess.Write, FileShare.Read,
+                       81920, FileOptions.SequentialScan)) {
+                var buffer = new byte[81920];
+                while (true) {
+                    int read = input.Read(buffer, 0, buffer.Length);
+                    if (read == 0) break;
+                    copied = checked(copied + read);
+                    if (copied > maximumInputBytes) {
+                        throw new EmailLimitExceededException(nameof(EmailWriterOptions.MaxOutputBytes), copied,
+                            maximumInputBytes);
+                    }
+                    output.Write(buffer, 0, read);
+                }
+            }
+            return new ContentLease(new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read,
+                81920, FileOptions.SequentialScan), copied, path);
+        } catch {
+            OfficeFileCommit.DeleteIfExists(path);
+            throw;
+        }
+    }
+
+    private sealed class ContentLease : IDisposable {
+        private readonly string? _temporaryPath;
+        internal ContentLease(Stream stream, long length, string? temporaryPath = null) {
+            Stream = stream;
+            Length = length;
+            _temporaryPath = temporaryPath;
+        }
+        internal Stream Stream { get; }
+        internal long Length { get; }
+        public void Dispose() {
+            Stream.Dispose();
+            OfficeFileCommit.DeleteIfExists(_temporaryPath);
+        }
     }
 
     private static byte[] EncodeDate(DateTimeOffset value) {

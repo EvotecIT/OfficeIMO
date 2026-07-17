@@ -111,6 +111,36 @@ namespace OfficeIMO.Drawing.Internal {
             }
         }
 
+        /// <summary>Produces a file asynchronously and atomically commits it.</summary>
+        public static async Task WriteAsync(
+            string targetPath,
+            Func<Stream, CancellationToken, Task> writer,
+            ConflictPolicy conflictPolicy = ConflictPolicy.Replace,
+            CancellationToken cancellationToken = default) {
+#if NET6_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(writer);
+#else
+            if (writer == null) throw new ArgumentNullException(nameof(writer));
+#endif
+            cancellationToken.ThrowIfCancellationRequested();
+            EnsureTargetDirectory(targetPath);
+            string temporaryPath = CreateTemporaryPath(targetPath);
+            try {
+                using (var stream = new FileStream(temporaryPath, FileMode.CreateNew, FileAccess.ReadWrite,
+                           FileShare.None, 8192, FileOptions.Asynchronous)) {
+                    await writer(stream, cancellationToken).ConfigureAwait(false);
+                    cancellationToken.ThrowIfCancellationRequested();
+                    await stream.FlushAsync(cancellationToken).ConfigureAwait(false);
+                }
+
+                cancellationToken.ThrowIfCancellationRequested();
+                CommitTemporaryFile(temporaryPath, targetPath, conflictPolicy);
+                temporaryPath = string.Empty;
+            } finally {
+                DeleteIfExists(temporaryPath);
+            }
+        }
+
         /// <summary>Creates a same-directory temporary path suitable for an atomic commit.</summary>
         public static string CreateTemporaryPath(string targetPath) {
             string fullTargetPath = GetFullTargetPath(targetPath);
