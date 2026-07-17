@@ -265,6 +265,27 @@ public sealed class OneNoteRenderingTests {
     }
 
     [Fact]
+    public void TopLevelOutlineHeightReservesFollowingFlowContent() {
+        var page = new OneNotePage { PageSize = OneNotePageSize.IndexCard };
+        var first = new OneNoteOutline { Layout = new OneNoteLayout { Height = 2D } };
+        var firstParagraph = new OneNoteParagraph();
+        firstParagraph.Runs.Add(new OneNoteTextRun { Text = "First" });
+        first.Children.Add(firstParagraph);
+        var second = new OneNoteOutline();
+        var secondParagraph = new OneNoteParagraph();
+        secondParagraph.Runs.Add(new OneNoteTextRun { Text = "Second" });
+        second.Children.Add(secondParagraph);
+        page.Outlines.Add(first);
+        page.Outlines.Add(second);
+
+        OfficeDrawingRichText[] text = page.ToDrawing().Elements.OfType<OfficeDrawingRichText>().ToArray();
+        OfficeDrawingRichText firstText = Assert.Single(text, item => item.Runs.Any(run => run.Text == "First"));
+        OfficeDrawingRichText secondText = Assert.Single(text, item => item.Runs.Any(run => run.Text == "Second"));
+
+        Assert.True(secondText.Y >= firstText.Y + 2D * OneNotePageRenderer.PointsPerHalfInch);
+    }
+
+    [Fact]
     public void PageAndElementRightToLeftDefaultsAlignBodyParagraphsToTheRight() {
         var page = new OneNotePage { PageSize = OneNotePageSize.IndexCard, RightToLeft = true };
         var outline = new OneNoteOutline { Layout = new OneNoteLayout { X = 0.25, Y = 1, Width = 4.5 } };

@@ -52,7 +52,7 @@ public static partial class OneNotePageRenderer {
             double x = outline.Layout?.X.HasValue == true ? outline.Layout.X.Value * PointsPerHalfInch : marginLeft;
             double y = outline.Layout?.Y.HasValue == true ? outline.Layout.Y.Value * PointsPerHalfInch : flowY + pendingFlowSpace;
             double outlineWidth = ResolveWidth(outline.Layout, bodyWidth, width - x);
-            double used = context.RenderOutline(outline, x, y, outlineWidth);
+            double used = context.RenderElement(outline, x, y, outlineWidth, 0D);
             if (outline.Layout?.Y.HasValue != true) {
                 flowY = Math.Max(flowY, y + used);
                 pendingFlowSpace = 6D;
