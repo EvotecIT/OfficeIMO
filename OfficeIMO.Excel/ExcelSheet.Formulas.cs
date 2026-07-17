@@ -12,7 +12,12 @@ namespace OfficeIMO.Excel {
         private Dictionary<string, int>? _formulaEvaluationDepthCache;
         private HashSet<string>? _formulaEvaluationStack;
         private Stack<FormulaEvaluationDepthFrame>? _formulaEvaluationDepthFrames;
+        private FormulaEvaluationGuardState? _formulaEvaluationGuardState;
         private string? _formulaEvaluationCellReference;
+
+        private sealed class FormulaEvaluationGuardState {
+            internal bool DependencyGuardBlocked { get; set; }
+        }
 
         private sealed class FormulaEvaluationDepthFrame {
             internal int MaximumChildDepth { get; private set; }
@@ -108,19 +113,36 @@ namespace OfficeIMO.Excel {
                 var previousDepthCache = _formulaEvaluationDepthCache;
                 var previousStack = _formulaEvaluationStack;
                 var previousDepthFrames = _formulaEvaluationDepthFrames;
+                var previousGuardState = _formulaEvaluationGuardState;
                 _formulaEvaluationCache = new Dictionary<string, FormulaArgumentValue>(StringComparer.OrdinalIgnoreCase);
                 _formulaEvaluationDepthCache = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
                 _formulaEvaluationStack = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                 _formulaEvaluationDepthFrames = new Stack<FormulaEvaluationDepthFrame>();
+                _formulaEvaluationGuardState = new FormulaEvaluationGuardState();
+                bool changed = false;
 
                 try {
                     foreach (var cell in WorksheetRoot.Descendants<Cell>().Where(c => c.CellFormula != null).ToList()) {
+                        _formulaEvaluationGuardState.DependencyGuardBlocked = false;
                         if (!TryEvaluateFormulaCellValue(cell, out FormulaArgumentValue result)) {
+                            if (_formulaEvaluationGuardState.DependencyGuardBlocked) {
+                                if (cell.CellValue != null) {
+                                    cell.CellValue = null;
+                                    changed = true;
+                                }
+
+                                if (cell.CellFormula!.CalculateCell?.Value != true) {
+                                    cell.CellFormula.CalculateCell = true;
+                                    changed = true;
+                                }
+                            }
+
                             continue;
                         }
 
                         SetFormulaCachedValue(cell, result);
                         cell.CellFormula!.CalculateCell = false;
+                        changed = true;
                         count++;
                     }
                 } finally {
@@ -128,9 +150,10 @@ namespace OfficeIMO.Excel {
                     _formulaEvaluationDepthCache = previousDepthCache;
                     _formulaEvaluationStack = previousStack;
                     _formulaEvaluationDepthFrames = previousDepthFrames;
+                    _formulaEvaluationGuardState = previousGuardState;
                 }
 
-                if (count > 0) {
+                if (changed) {
                     _hasWorksheetMutations = true;
                     MarkRequiresSavePreparation();
                     ClearCellTextSharedStringCache();
@@ -225,6 +248,10 @@ namespace OfficeIMO.Excel {
         }
 
         private void BlockCurrentFormulaByDependencyGuard() {
+            if (_formulaEvaluationGuardState != null) {
+                _formulaEvaluationGuardState.DependencyGuardBlocked = true;
+            }
+
             if (_formulaEvaluationDepthFrames != null && _formulaEvaluationDepthFrames.Count > 0) {
                 _formulaEvaluationDepthFrames.Peek().BlockByDependencyGuard();
             }
@@ -262,10 +289,11 @@ namespace OfficeIMO.Excel {
         public IReadOnlyList<ExcelFormulaCellInfo> GetFormulaCells() {
             return Locking.ExecuteRead(_excelDocument.EnsureLock(), () => {
                 var formulas = new List<ExcelFormulaCellInfo>();
+                IReadOnlyList<FormulaDependencyAlias> dependencyAliases = GetFormulaDependencyAliases();
                 foreach (var cell in WorksheetRoot.Descendants<Cell>().Where(c => c.CellFormula != null)) {
                     string formula = cell.CellFormula!.Text ?? string.Empty;
                     bool supported = TryEvaluateFormulaCellValue(cell, out _);
-                    IReadOnlyList<string> dependencies = GetFormulaDependencies(formula);
+                    IReadOnlyList<string> dependencies = GetFormulaDependencies(formula, dependencyAliases);
                     IReadOnlyList<string> dependencyIssues = GetFormulaDependencyIssues(formula, cell.CellReference?.Value, dependencies);
                     formulas.Add(new ExcelFormulaCellInfo(
                         Name,

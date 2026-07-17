@@ -3,6 +3,8 @@ using System.IO;
 using System.Linq;
 using OfficeIMO.Excel;
 using Xunit;
+using A = DocumentFormat.OpenXml.Drawing;
+using C = DocumentFormat.OpenXml.Drawing.Charts;
 
 namespace OfficeIMO.Tests {
     public partial class Excel {
@@ -75,10 +77,84 @@ namespace OfficeIMO.Tests {
             ExcelSheet sheet = document.AddWorksheet("Dashboard");
 
             Assert.Throws<ArgumentException>(() => sheet.AddHistogramChart(new[] { 1d, double.NaN }, 1, 1));
+            Assert.Throws<ArgumentException>(() => sheet.AddHistogramChart(new[] { -double.MaxValue, double.MaxValue }, 1, 1));
+            Assert.Throws<ArgumentException>(() => sheet.AddHistogramChart(new[] { 0d, double.Epsilon }, 1, 1, binCount: 2));
             Assert.Throws<ArgumentException>(() => sheet.AddHistogramChart(new[] { 1d, 2d }, 1, 1, binCount: 2, binWidth: 1));
             Assert.Throws<ArgumentException>(() => sheet.AddParetoChart(new[] { "A", "B" }, new[] { 0d, 0d }, 1, 1));
+            Assert.Throws<ArgumentException>(() => sheet.AddParetoChart(new[] { "A", "B" }, new[] { double.MaxValue, double.MaxValue }, 1, 1));
             Assert.Throws<ArgumentException>(() => sheet.AddFunnelChart(new[] { "A" }, new[] { -1d }, 1, 1));
             Assert.Throws<ArgumentException>(() => sheet.AddWaterfallChart(new[] { "A" }, new[] { -1d }, 1, 1));
+            Assert.Throws<ArgumentException>(() => sheet.AddWaterfallChart(new[] { "A", "B" }, new[] { double.MaxValue, double.MaxValue }, 1, 1));
+
+            ExcelChart roundingSafeWaterfall = sheet.AddWaterfallChart(
+                new[] { "Start", "First", "Second" },
+                new[] { 0.3d, -0.1d, -0.2d },
+                row: 10,
+                column: 1);
+            Assert.True(roundingSafeWaterfall.TryGetData(out ExcelChartData roundingSafeData));
+            Assert.Equal(0d, roundingSafeData.Series[3].Values.Last());
+        }
+
+        [Fact]
+        public void Test_SetSeriesNoFill_NormalizesLoadedOutlineFillChoice() {
+            string filePath = Path.Combine(_directoryWithFiles, "Excel.ModernChartRecipes.NoFill.xlsx");
+
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorksheet("Dashboard");
+                var data = new ExcelChartData(
+                    new[] { "A", "B" },
+                    new[] { new ExcelChartSeries("Value", new[] { 1d, 2d }, seriesColorArgb: "4F46E5") });
+                sheet.AddChart(data, 1, 1, 500, 300, ExcelChartType.ColumnClustered, "Loaded outline")
+                    .SetSeriesNoFill(0, noLine: false);
+                document.Save();
+            }
+
+            using (DocumentFormat.OpenXml.Packaging.SpreadsheetDocument spreadsheet =
+                DocumentFormat.OpenXml.Packaging.SpreadsheetDocument.Open(filePath, true)) {
+                DocumentFormat.OpenXml.Packaging.ChartPart chartPart = spreadsheet.WorkbookPart!.WorksheetParts
+                    .Single(part => part.DrawingsPart != null)
+                    .DrawingsPart!
+                    .ChartParts
+                    .Single();
+                C.BarChartSeries series = chartPart.ChartSpace
+                    .Descendants<C.BarChartSeries>()
+                    .Single();
+                C.ChartShapeProperties properties = series.GetFirstChild<C.ChartShapeProperties>()!;
+                properties.GetFirstChild<A.Outline>()?.Remove();
+                properties.Append(new A.Outline(
+                    new A.GradientFill(),
+                    new A.PatternFill(),
+                    new A.PresetDash { Val = A.PresetLineDashValues.Dash }));
+                chartPart.ChartSpace.Save();
+            }
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath)) {
+                Assert.Single(document["Dashboard"].Charts).SetSeriesNoFill(0);
+                document.Save();
+            }
+
+            using (DocumentFormat.OpenXml.Packaging.SpreadsheetDocument spreadsheet =
+                DocumentFormat.OpenXml.Packaging.SpreadsheetDocument.Open(filePath, false)) {
+                A.Outline outline = spreadsheet.WorkbookPart!.WorksheetParts
+                    .Single(part => part.DrawingsPart != null)
+                    .DrawingsPart!
+                    .ChartParts
+                    .Single()
+                    .ChartSpace
+                    .Descendants<C.BarChartSeries>()
+                    .Single()
+                    .GetFirstChild<C.ChartShapeProperties>()!
+                    .GetFirstChild<A.Outline>()!;
+                Assert.Single(outline.Elements<A.NoFill>());
+                Assert.Empty(outline.Elements<A.SolidFill>());
+                Assert.Empty(outline.Elements<A.GradientFill>());
+                Assert.Empty(outline.Elements<A.PatternFill>());
+                Assert.IsType<A.NoFill>(outline.FirstChild);
+            }
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath, new ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
+                Assert.Empty(document.ValidateOpenXml());
+            }
         }
     }
 }

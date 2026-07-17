@@ -93,17 +93,21 @@ namespace OfficeIMO.Tests {
                     rowFields: new[] { "Region" },
                     dataFields: new[] { new ExcelPivotDataField("Sales", DataConsolidateFunctionValues.Sum) });
 
-                PivotCacheDefinition cache = original.WorksheetPart.PivotTableParts
+                PivotTableCacheDefinitionPart cachePart = original.WorksheetPart.PivotTableParts
                     .Single()
-                    .PivotTableCacheDefinitionPart!
-                    .PivotCacheDefinition!;
+                    .PivotTableCacheDefinitionPart!;
+                PivotCacheDefinition cache = cachePart.PivotCacheDefinition!;
                 WorksheetSource source = cache.CacheSource!.WorksheetSource!;
                 source.Sheet = null;
                 source.Reference = null;
                 if (useNamedSource) {
                     source.Name = "ExistingNamedSource";
                 } else {
-                    source.Id = "rIdExternalSource";
+                    ExternalRelationship relationship = cachePart.AddExternalRelationship(
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/externalLinkPath",
+                        new Uri("https://example.test/source.xlsx"),
+                        "rIdExternalSource");
+                    source.Id = relationship.Id;
                 }
 
                 ExcelSheet expanded = document.AddWorksheet("Expanded");
@@ -114,6 +118,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("A1:C5", source.Reference!.Value);
                 Assert.Null(source.Name);
                 Assert.Null(source.Id);
+                Assert.Empty(cachePart.ExternalRelationships);
                 document.Save();
             }
 

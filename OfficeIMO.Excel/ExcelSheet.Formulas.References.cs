@@ -429,7 +429,8 @@ namespace OfficeIMO.Excel {
                             _formulaEvaluationCache = _formulaEvaluationCache,
                             _formulaEvaluationDepthCache = _formulaEvaluationDepthCache,
                             _formulaEvaluationStack = _formulaEvaluationStack,
-                            _formulaEvaluationDepthFrames = _formulaEvaluationDepthFrames
+                            _formulaEvaluationDepthFrames = _formulaEvaluationDepthFrames,
+                            _formulaEvaluationGuardState = _formulaEvaluationGuardState
                         };
                     return TryResolveTableReferenceRange(table, sections, out r1, out c1, out r2, out c2);
                 }
@@ -740,7 +741,8 @@ namespace OfficeIMO.Excel {
                 _formulaEvaluationCache = _formulaEvaluationCache,
                 _formulaEvaluationDepthCache = _formulaEvaluationDepthCache,
                 _formulaEvaluationStack = _formulaEvaluationStack,
-                _formulaEvaluationDepthFrames = _formulaEvaluationDepthFrames
+                _formulaEvaluationDepthFrames = _formulaEvaluationDepthFrames,
+                _formulaEvaluationGuardState = _formulaEvaluationGuardState
             };
             return true;
         }

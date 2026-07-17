@@ -83,12 +83,17 @@ namespace OfficeIMO.Excel {
         }
 
         private IReadOnlyList<ExcelPivotInteractionCacheInfo> GetWorkbookPivotInteractionCaches(ExcelPivotInteractionCacheKind kind) {
-            string token = kind == ExcelPivotInteractionCacheKind.Slicer ? "slicerCache" : "timelineCache";
+            string contentType = kind == ExcelPivotInteractionCacheKind.Slicer
+                ? WorkbookSlicerCacheContentType
+                : WorkbookTimelineCacheContentType;
+            string relationshipType = kind == ExcelPivotInteractionCacheKind.Slicer
+                ? WorkbookSlicerCacheRelationshipType
+                : WorkbookTimelineCacheRelationshipType;
             var caches = new List<ExcelPivotInteractionCacheInfo>();
             foreach (IdPartPair pair in WorkbookPartRoot.Parts) {
                 OpenXmlPart part = pair.OpenXmlPart;
-                if (part.ContentType.IndexOf(token, StringComparison.OrdinalIgnoreCase) < 0
-                    && part.RelationshipType.IndexOf(token, StringComparison.OrdinalIgnoreCase) < 0) {
+                if (!string.Equals(part.ContentType, contentType, StringComparison.OrdinalIgnoreCase)
+                    || !string.Equals(part.RelationshipType, relationshipType, StringComparison.Ordinal)) {
                     continue;
                 }
 

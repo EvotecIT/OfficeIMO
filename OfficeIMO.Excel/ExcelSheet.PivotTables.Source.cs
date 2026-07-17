@@ -98,6 +98,18 @@ namespace OfficeIMO.Excel {
 
                 WorksheetSource worksheetSource = cacheDefinition.CacheSource.WorksheetSource
                     ?? cacheDefinition.CacheSource.AppendChild(new WorksheetSource());
+                string? externalSourceRelationshipId = worksheetSource.Id?.Value;
+                if (!string.IsNullOrWhiteSpace(externalSourceRelationshipId)) {
+                    ExternalRelationship? externalSourceRelationship = cachePart.ExternalRelationships
+                        .FirstOrDefault(relationship => string.Equals(
+                            relationship.Id,
+                            externalSourceRelationshipId,
+                            StringComparison.Ordinal));
+                    if (externalSourceRelationship != null) {
+                        cachePart.DeleteExternalRelationship(externalSourceRelationship);
+                    }
+                }
+
                 worksheetSource.Name = null;
                 worksheetSource.Id = null;
                 worksheetSource.Sheet = sourceSheet.Name;

@@ -172,8 +172,10 @@ namespace OfficeIMO.Excel {
         private static void ApplyNoLine(OpenXmlCompositeElement props) {
             A.Outline outline = props.GetFirstChild<A.Outline>() ?? new A.Outline();
             outline.RemoveAllChildren<A.SolidFill>();
+            outline.RemoveAllChildren<A.GradientFill>();
+            outline.RemoveAllChildren<A.PatternFill>();
             outline.RemoveAllChildren<A.NoFill>();
-            outline.Append(new A.NoFill());
+            outline.PrependChild(new A.NoFill());
             if (outline.Parent == null) {
                 props.Append(outline);
             }

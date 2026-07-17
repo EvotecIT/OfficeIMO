@@ -28,6 +28,11 @@ namespace OfficeIMO.Excel {
 
             double minimum = observations.Min();
             double maximum = observations.Max();
+            double range = maximum - minimum;
+            if (double.IsNaN(range) || double.IsInfinity(range)) {
+                throw new ArgumentException("Histogram values span a range that is too large to aggregate safely.", nameof(values));
+            }
+
             int effectiveBinCount;
             double effectiveBinWidth;
             if (minimum == maximum) {
@@ -35,13 +40,21 @@ namespace OfficeIMO.Excel {
                 effectiveBinWidth = 1D;
             } else if (binWidth.HasValue) {
                 effectiveBinWidth = binWidth.Value;
-                effectiveBinCount = checked((int)Math.Ceiling((maximum - minimum) / effectiveBinWidth));
+                double requestedBinCount = Math.Ceiling(range / effectiveBinWidth);
+                if (double.IsNaN(requestedBinCount) || double.IsInfinity(requestedBinCount) || requestedBinCount > 10000D) {
+                    throw new ArgumentOutOfRangeException(nameof(binWidth), "A histogram cannot exceed 10,000 bins.");
+                }
+
+                effectiveBinCount = (int)requestedBinCount;
             } else {
                 effectiveBinCount = binCount ?? Math.Max(1, (int)Math.Ceiling(Math.Sqrt(observations.Count)));
-                effectiveBinWidth = (maximum - minimum) / effectiveBinCount;
+                effectiveBinWidth = range / effectiveBinCount;
             }
             if (effectiveBinCount > 10000) {
                 throw new ArgumentOutOfRangeException(nameof(binCount), "A histogram cannot exceed 10,000 bins.");
+            }
+            if (!(effectiveBinWidth > 0) || double.IsInfinity(effectiveBinWidth)) {
+                throw new ArgumentException("Histogram values and bin settings produce an unrepresentable bin width.", nameof(values));
             }
 
             var counts = new double[effectiveBinCount];
@@ -84,14 +97,18 @@ namespace OfficeIMO.Excel {
                 .ThenBy(point => point.Category, StringComparer.OrdinalIgnoreCase)
                 .ToList();
             double total = points.Sum(point => point.Value);
-            if (!(total > 0)) {
-                throw new ArgumentException("Pareto values must contain a positive total.", nameof(values));
+            if (!(total > 0) || double.IsInfinity(total)) {
+                throw new ArgumentException("Pareto values must contain a finite positive total.", nameof(values));
             }
 
             double running = 0;
             var cumulative = new double[points.Count];
             for (int index = 0; index < points.Count; index++) {
                 running += points[index].Value;
+                if (double.IsNaN(running) || double.IsInfinity(running)) {
+                    throw new ArgumentException("Pareto values are too large to aggregate safely.", nameof(values));
+                }
+
                 cumulative[index] = running / total;
             }
 
@@ -173,6 +190,16 @@ namespace OfficeIMO.Excel {
             for (int index = 0; index < points.Count; index++) {
                 (string category, double change) = points[index];
                 double next = running + change;
+                if (double.IsNaN(next) || double.IsInfinity(next)) {
+                    throw new ArgumentException("Waterfall changes are too large to aggregate safely.", nameof(changes));
+                }
+
+                double roundingTolerance = 3.552713678800501E-15D
+                    * Math.Max(1D, Math.Max(Math.Abs(running), Math.Abs(change)));
+                if (next < 0 && next >= -roundingTolerance) {
+                    next = 0;
+                }
+
                 if (next < 0) {
                     throw new ArgumentException("The compatible waterfall recipe requires a non-negative running total.", nameof(changes));
                 }

@@ -41,6 +41,8 @@ namespace OfficeIMO.Tests {
                 Assert.True(snapshot.HasTimelines);
                 Assert.False(snapshot.HasSlicerBindingMetadata);
                 Assert.False(snapshot.HasTimelineBindingMetadata);
+                Assert.Empty(document.GetWorkbookSlicerCaches());
+                Assert.Empty(document.GetWorkbookTimelineCaches());
             }
         }
 

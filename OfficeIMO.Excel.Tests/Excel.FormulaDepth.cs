@@ -93,6 +93,64 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_FormulaDependencyGraph_ResolvesDefinedNamesAndStructuredReferences() {
+            string filePath = Path.Combine(_directoryWithFiles, "ExcelFormulaDepth.Aliases.xlsx");
+
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet named = document.AddWorksheet("Named Circular");
+                named.CellFormula(1, 1, "Loop+1");
+                document.SetNamedRange("Loop", "'Named Circular'!A1", save: false);
+
+                ExcelSheet structured = document.AddWorksheet("Structured");
+                structured.CellValue(1, 1, "Amount");
+                structured.CellFormula(2, 1, "SUM(Sales[Amount])");
+                structured.AddTable("A1:A2", hasHeader: true, name: "Sales", style: TableStyle.TableStyleMedium2);
+
+                ExcelFormulaDependencyGraph graph = document.InspectFormulas().DependencyGraph;
+                Assert.Equal(2, graph.NodeCount);
+                Assert.Equal(2, graph.EdgeCount);
+                Assert.Equal(2, graph.CircularReferenceCount);
+
+                ExcelFormulaDependencyNode namedNode = Assert.IsType<ExcelFormulaDependencyNode>(graph.FindNode("Named Circular", "A1"));
+                Assert.Equal(new[] { "Named Circular!A1" }, namedNode.Dependencies);
+                Assert.Equal(new[] { "Named Circular!A1" }, namedNode.FormulaDependencies);
+                Assert.True(namedNode.IsCircular);
+
+                ExcelFormulaDependencyNode structuredNode = Assert.IsType<ExcelFormulaDependencyNode>(graph.FindNode("Structured", "A2"));
+                Assert.Equal(new[] { "Structured!A2" }, structuredNode.Dependencies);
+                Assert.Equal(new[] { "Structured!A2" }, structuredNode.FormulaDependencies);
+                Assert.True(structuredNode.IsCircular);
+
+                Assert.Throws<InvalidOperationException>(() => document.InspectFormulas().EnsureNoDependencyIssues());
+            }
+        }
+
+        [Fact]
+        public void Test_FormulaEvaluator_ClearsPreExistingCacheWhenLowerDepthBlocksFormula() {
+            string filePath = Path.Combine(_directoryWithFiles, "ExcelFormulaDepth.PreExistingCache.xlsx");
+
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorksheet("Depth");
+                sheet.CellValue(1, 1, 1d);
+                sheet.CellFormula(2, 1, "A1+1");
+                sheet.CellFormula(3, 1, "A2+1");
+                sheet.CellFormula(4, 1, "A3+1");
+
+                document.Calculation.MaximumDependencyDepth = 4;
+                Assert.Equal(3, document.Calculate());
+                Assert.True(sheet.TryGetCachedFormulaValue(4, 1, out string? initialA4));
+                Assert.Equal("4", initialA4);
+
+                document.Calculation.MaximumDependencyDepth = 2;
+                Assert.Equal(2, document.Calculate());
+                Assert.False(sheet.TryGetCachedFormulaValue(4, 1, out _));
+                ExcelFormulaCellInfo blocked = Assert.Single(document.InspectFormulas().Formulas, formula => formula.CellReference == "A4");
+                Assert.True(blocked.IsDirty);
+                Assert.Equal("A3+1", blocked.Formula);
+            }
+        }
+
+        [Fact]
         public void Test_FormulaCalculationOptions_ValidateDependencyDepth() {
             var options = new ExcelCalculationOptions();
 
