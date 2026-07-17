@@ -367,6 +367,86 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void BinaryImport_ProjectsMasterFieldsAndLanguageAsRichText() {
+            byte[] bytes;
+            using (PowerPointPresentation source =
+                   PowerPointPresentation.Create()) {
+                SlideMasterPart masterPart = source.OpenXmlDocument
+                    .PresentationPart!.SlideMasterParts.Single();
+                P.ShapeTree tree = masterPart.SlideMaster!
+                    .CommonSlideData!.ShapeTree!;
+                tree.Append(
+                    new P.Shape(
+                        new P.NonVisualShapeProperties(
+                            new P.NonVisualDrawingProperties {
+                                Id = 800U,
+                                Name = "Master dynamic field"
+                            },
+                            new P.NonVisualShapeDrawingProperties(),
+                            new P.ApplicationNonVisualDrawingProperties()),
+                        new P.ShapeProperties(
+                            new A.Transform2D(
+                                new A.Offset { X = 100000, Y = 100000 },
+                                new A.Extents { Cx = 800000, Cy = 300000 }),
+                            new A.PresetGeometry(new A.AdjustValueList()) {
+                                Preset = A.ShapeTypeValues.Rectangle
+                            }),
+                        new P.TextBody(new A.BodyProperties(),
+                            new A.ListStyle(), new A.Paragraph(
+                                new A.Field(new A.Text("1")) {
+                                    Id = "{00000000-0000-0000-0000-000000000801}",
+                                    Type = "slidenum"
+                                }))),
+                    new P.Shape(
+                        new P.NonVisualShapeProperties(
+                            new P.NonVisualDrawingProperties {
+                                Id = 801U,
+                                Name = "Master language"
+                            },
+                            new P.NonVisualShapeDrawingProperties(),
+                            new P.ApplicationNonVisualDrawingProperties()),
+                        new P.ShapeProperties(
+                            new A.Transform2D(
+                                new A.Offset { X = 100000, Y = 500000 },
+                                new A.Extents { Cx = 1200000, Cy = 300000 }),
+                            new A.PresetGeometry(new A.AdjustValueList()) {
+                                Preset = A.ShapeTypeValues.Rectangle
+                            }),
+                        new P.TextBody(new A.BodyProperties(),
+                            new A.ListStyle(), new A.Paragraph(
+                                new A.Run(new A.RunProperties {
+                                    Language = "pl-PL"
+                                }, new A.Text("Język"))))));
+                source.AddSlide(P.SlideLayoutValues.Blank);
+                LegacyPptWritePreflightReport preflight = source
+                    .AnalyzeLegacyPptWrite();
+                Assert.True(preflight.CanWrite,
+                    string.Join(Environment.NewLine, preflight.Findings));
+                bytes = source.ToBytes(PowerPointFileFormat.Ppt);
+            }
+
+            LegacyPptMaster binaryMaster = Assert.Single(
+                LegacyPptPresentation.Load(bytes).Masters);
+            Assert.Contains(binaryMaster.Shapes, shape =>
+                shape.TextBody.Fields.Count == 1);
+            Assert.Contains(binaryMaster.Shapes, shape =>
+                shape.TextBody.HasLanguageInformation);
+
+            using var input = new MemoryStream(bytes, writable: false);
+            using PowerPointPresentation projected =
+                PowerPointPresentation.Load(input);
+            SlideMasterPart projectedMaster = projected.OpenXmlDocument
+                .PresentationPart!.SlideMasterParts.Single();
+            Assert.Single(projectedMaster.SlideMaster!
+                .Descendants<A.Field>(), field =>
+                field.Type?.Value == "slidenum");
+            Assert.Contains(projectedMaster.SlideMaster!
+                .Descendants<A.RunProperties>(), properties =>
+                properties.Language?.Value == "pl-PL");
+            Assert.Empty(projected.ValidateDocument());
+        }
+
+        [Fact]
         public void NativeWriter_RoundTripsMainMasterBaseTextStylesAndFonts() {
             using PowerPointPresentation presentation = PowerPointPresentation.Create();
             SlideMasterPart masterPart = presentation.OpenXmlDocument

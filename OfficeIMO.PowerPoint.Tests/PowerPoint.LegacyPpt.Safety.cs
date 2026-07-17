@@ -668,6 +668,55 @@ namespace OfficeIMO.Tests {
                 package.PersistObjects[second.PersistId].RecordBytes);
         }
 
+        [Fact]
+        public void PackageReader_RejectsOverlappingPersistRecordRanges() {
+            byte[] bytes = CreatePresentationBytes();
+            LegacyPptPresentation source = LegacyPptPresentation.Load(bytes);
+            byte[] document = (byte[])source.Package.DocumentStream.Clone();
+            LegacyPptRecord directory = LegacyPptRecordReader.ReadSingle(
+                document, checked((int)source.Package.UserEdits[0]
+                    .PersistDirectoryOffset), new LegacyPptImportOptions());
+            var entries = new List<(uint PersistId, int ValueOffset,
+                uint StreamOffset)>();
+            int position = 0;
+            while (position < directory.PayloadLength) {
+                uint packed = directory.ReadUInt32(position);
+                position += 4;
+                uint firstId = packed & 0x000FFFFF;
+                int count = unchecked((int)(packed >> 20));
+                for (int index = 0; index < count; index++) {
+                    entries.Add((checked(firstId + unchecked((uint)index)),
+                        checked(directory.PayloadOffset + position),
+                        directory.ReadUInt32(position)));
+                    position += 4;
+                }
+            }
+            (uint PersistId, int ValueOffset, uint StreamOffset) owner =
+                entries.First(entry => entry.StreamOffset <= int.MaxValue
+                    && ReadCompoundUInt32(document,
+                        checked((int)entry.StreamOffset + 4)) >= 8);
+            (uint PersistId, int ValueOffset, uint StreamOffset) alias =
+                entries.First(entry => entry.PersistId != owner.PersistId);
+            uint overlappingOffset = checked(owner.StreamOffset + 8U);
+            int overlappingHeader = checked((int)overlappingOffset);
+            WriteUInt16(document, overlappingHeader, 0);
+            WriteUInt16(document, overlappingHeader + 2, 0x1000);
+            WriteUInt32(document, overlappingHeader + 4, 0);
+            WriteUInt32(document, alias.ValueOffset, overlappingOffset);
+            byte[] overlapping = source.Package.RewriteCompoundStreams(
+                new Dictionary<string, byte[]>(
+                    StringComparer.OrdinalIgnoreCase) {
+                    ["PowerPoint Document"] = document
+                });
+
+            InvalidDataException exception = Assert.Throws<
+                InvalidDataException>(() => LegacyPptPackage.Read(
+                overlapping, new LegacyPptImportOptions()));
+
+            Assert.Contains("overlap", exception.Message,
+                StringComparison.OrdinalIgnoreCase);
+        }
+
         private static byte[] CreatePresentationBytes() {
             using PowerPointPresentation presentation =
                 PowerPointPresentation.Create();

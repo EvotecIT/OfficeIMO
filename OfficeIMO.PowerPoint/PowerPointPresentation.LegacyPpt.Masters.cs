@@ -425,7 +425,9 @@ namespace OfficeIMO.PowerPoint {
             if (source.Kind == LegacyPptShapeKind.TextBox) {
                 bool hasRichText = source.TextBody.HasExplicitCharacterFormatting
                     || source.TextBody.HasParagraphFormatting
-                    || source.TextBody.HasInteractions;
+                    || source.TextBody.HasInteractions
+                    || source.TextBody.Fields.Count > 0
+                    || source.TextBody.HasLanguageInformation;
                 bool deferTextInteractions =
                     ShouldDeferLegacyTextInteractions(source.TextBody,
                         slidePartsByLegacyId, deferredInteractions);

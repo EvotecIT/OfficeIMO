@@ -214,14 +214,27 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             var persistObjects = new Dictionary<uint, LegacyPptPersistObject>();
             var persistRecordsByOffset = new Dictionary<uint,
                 (ushort RecordType, byte[] RecordBytes)>();
-            foreach (KeyValuePair<uint, uint> pair in liveOffsets) {
+            long previousRecordEnd = -1;
+            foreach (KeyValuePair<uint, uint> pair in liveOffsets
+                         .OrderBy(item => item.Value)
+                         .ThenBy(item => item.Key)) {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (!persistRecordsByOffset.TryGetValue(pair.Value,
                         out (ushort RecordType, byte[] RecordBytes) cached)) {
-                    LegacyPptPersistObject read = ReadPersistObject(
-                        documentStream, pair.Key, pair.Value);
+                    InspectPersistObject(documentStream, pair.Key,
+                        pair.Value, out int recordOffset,
+                        out ushort recordType, out int recordLength);
+                    if (recordOffset < previousRecordEnd) {
+                        throw new InvalidDataException(
+                            $"Persist object {pair.Key} at offset 0x{pair.Value:X} overlaps another live persist record.");
+                    }
+                    LegacyPptPersistObject read = CopyPersistObject(
+                        documentStream, pair.Key, pair.Value, recordOffset,
+                        recordType, recordLength);
                     cached = (read.RecordType, read.RecordBytes);
                     persistRecordsByOffset.Add(pair.Value, cached);
+                    previousRecordEnd = checked((long)recordOffset
+                        + recordLength);
                 }
                 persistObjects.Add(pair.Key, new LegacyPptPersistObject(
                     pair.Key, pair.Value, cached.RecordType,
@@ -291,16 +304,25 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             return offsets;
         }
 
-        private static LegacyPptPersistObject ReadPersistObject(byte[] documentStream, uint persistId,
-            uint streamOffset) {
-            int offset = ToBoundedOffset(streamOffset, documentStream.Length, $"persist object {persistId}");
-            ushort recordType = ReadUInt16(documentStream, offset + 2);
+        private static void InspectPersistObject(byte[] documentStream,
+            uint persistId, uint streamOffset, out int offset,
+            out ushort recordType, out int totalLength) {
+            offset = ToBoundedOffset(streamOffset, documentStream.Length,
+                $"persist object {persistId}");
+            recordType = ReadUInt16(documentStream, offset + 2);
             uint payloadLength = ReadUInt32(documentStream, offset + 4);
-            long totalLength = 8L + payloadLength;
-            if (totalLength > int.MaxValue || offset > documentStream.Length - totalLength) {
+            long recordLength = 8L + payloadLength;
+            if (recordLength > int.MaxValue
+                || offset > documentStream.Length - recordLength) {
                 throw new InvalidDataException($"Persist object {persistId} extends beyond the PowerPoint Document stream.");
             }
-            var recordBytes = new byte[unchecked((int)totalLength)];
+            totalLength = unchecked((int)recordLength);
+        }
+
+        private static LegacyPptPersistObject CopyPersistObject(
+            byte[] documentStream, uint persistId, uint streamOffset,
+            int offset, ushort recordType, int totalLength) {
+            var recordBytes = new byte[totalLength];
             Buffer.BlockCopy(documentStream, offset, recordBytes, 0, recordBytes.Length);
             return new LegacyPptPersistObject(persistId, streamOffset, recordType, recordBytes);
         }

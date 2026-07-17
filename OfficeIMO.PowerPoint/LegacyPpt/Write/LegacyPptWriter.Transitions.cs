@@ -11,13 +11,38 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             out LegacyPptWriterTransition? transition, out string? reason) {
             transition = null;
             reason = null;
-            DocumentFormat.OpenXml.Presentation.Transition? transitionElement =
-                slide.SlidePart.Slide?.Transition;
-            DocumentFormat.OpenXml.Presentation.SoundAction? soundAction =
-                transitionElement?.GetFirstChild<
-                    DocumentFormat.OpenXml.Presentation.SoundAction>();
+            IReadOnlyList<DocumentFormat.OpenXml.Presentation.Transition>
+                transitionElements = slide.GetTransitionElements();
+            LegacyPptWriterSound? transitionSound = null;
+            (string Kind, uint? SoundId, bool BuiltIn, bool Loop)
+                soundSignature = default;
+            bool hasSoundSignature = false;
+            foreach (DocumentFormat.OpenXml.Presentation.Transition
+                     transitionElement in transitionElements) {
+                if (!TryReadTransitionSoundAction(transitionElement,
+                        slide.SlidePart, soundCatalog,
+                        out LegacyPptWriterSound? branchSound,
+                        out (string Kind, uint? SoundId, bool BuiltIn,
+                            bool Loop) branchSignature,
+                        out reason)) {
+                    return false;
+                }
+                if (hasSoundSignature
+                    && !soundSignature.Equals(branchSignature)) {
+                    reason = "AlternateContent transition branches contain inconsistent sound actions.";
+                    return false;
+                }
+                if (!hasSoundSignature) {
+                    transitionSound = branchSound;
+                    soundSignature = branchSignature;
+                    hasSoundSignature = true;
+                }
+            }
             bool hasTransitionEffect = slide.Transition != SlideTransition.None;
-            if (!hasTransitionEffect && soundAction == null) return true;
+            bool hasSoundAction = hasSoundSignature
+                && !string.Equals(soundSignature.Kind, "none",
+                    StringComparison.Ordinal);
+            if (!hasTransitionEffect && !hasSoundAction) return true;
 
             byte effectType = 0;
             byte effectDirection = 0;
@@ -30,33 +55,18 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             bool playSound = false;
             bool loopSound = false;
             bool stopSound = false;
-            if (soundAction != null) {
-                DocumentFormat.OpenXml.Presentation.StartSoundAction[] starts =
-                    soundAction.Elements<DocumentFormat.OpenXml.Presentation.StartSoundAction>()
-                        .ToArray();
-                DocumentFormat.OpenXml.Presentation.EndSoundAction[] ends =
-                    soundAction.Elements<DocumentFormat.OpenXml.Presentation.EndSoundAction>()
-                        .ToArray();
-                if (starts.Length + ends.Length != 1
-                    || soundAction.ChildElements.Count != 1) {
-                    reason = "A transition sound action must contain exactly one start-sound or end-sound action.";
+            if (string.Equals(soundSignature.Kind, "end",
+                    StringComparison.Ordinal)) {
+                stopSound = true;
+            } else if (string.Equals(soundSignature.Kind, "start",
+                           StringComparison.Ordinal)) {
+                if (transitionSound == null) {
+                    reason = "A transition start-sound action must contain exactly one representable embedded sound.";
                     return false;
                 }
-                if (ends.Length == 1) {
-                    stopSound = true;
-                } else {
-                    DocumentFormat.OpenXml.Presentation.Sound[] sounds = starts[0]
-                        .Elements<DocumentFormat.OpenXml.Presentation.Sound>().ToArray();
-                    if (sounds.Length != 1 || starts[0].ChildElements.Count != 1
-                        || !soundCatalog.TryGetOrAdd(slide.SlidePart, sounds[0],
-                            out LegacyPptWriterSound? sound, out reason)) {
-                        reason ??= "A transition start-sound action must contain exactly one representable embedded sound.";
-                        return false;
-                    }
-                    soundId = sound!.Id;
-                    playSound = true;
-                    loopSound = starts[0].Loop?.Value == true;
-                }
+                soundId = transitionSound.Id;
+                playSound = true;
+                loopSound = soundSignature.Loop;
             }
 
             byte speed = slide.TransitionSpeed switch {
@@ -95,6 +105,64 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             transition = new LegacyPptWriterTransition(effectType, effectDirection,
                 speed, slide.TransitionAdvanceOnClick != false, autoAdvance,
                 slideTime, soundId, playSound, loopSound, stopSound);
+            return true;
+        }
+
+        private static bool TryReadTransitionSoundAction(
+            DocumentFormat.OpenXml.Presentation.Transition transition,
+            DocumentFormat.OpenXml.Packaging.SlidePart ownerPart,
+            LegacyPptWriterSoundCatalog soundCatalog,
+            out LegacyPptWriterSound? resolvedSound,
+            out (string Kind, uint? SoundId, bool BuiltIn, bool Loop)
+                signature,
+            out string? reason) {
+            DocumentFormat.OpenXml.Presentation.SoundAction[] actions =
+                transition.Elements<
+                    DocumentFormat.OpenXml.Presentation.SoundAction>()
+                    .ToArray();
+            resolvedSound = null;
+            signature = ("none", null, false, false);
+            reason = null;
+            if (actions.Length == 0) return true;
+            if (actions.Length != 1) {
+                reason = "A transition branch must contain at most one sound action.";
+                return false;
+            }
+            DocumentFormat.OpenXml.Presentation.SoundAction soundAction =
+                actions[0];
+            DocumentFormat.OpenXml.Presentation.StartSoundAction[] starts =
+                soundAction.Elements<
+                    DocumentFormat.OpenXml.Presentation.StartSoundAction>()
+                    .ToArray();
+            DocumentFormat.OpenXml.Presentation.EndSoundAction[] ends =
+                soundAction.Elements<
+                    DocumentFormat.OpenXml.Presentation.EndSoundAction>()
+                    .ToArray();
+            if (soundAction.ChildElements.Count != 1
+                || starts.Length + ends.Length != 1) {
+                reason = "A transition sound action must contain exactly one start-sound or end-sound action.";
+                return false;
+            }
+            if (ends.Length == 1) {
+                signature = ("end", null, false, false);
+                return true;
+            }
+            DocumentFormat.OpenXml.Presentation.Sound[] sounds = starts[0]
+                .Elements<DocumentFormat.OpenXml.Presentation.Sound>()
+                .ToArray();
+            if (starts[0].ChildElements.Count != 1
+                || sounds.Length != 1) {
+                reason = "A transition start-sound action must contain exactly one embedded sound.";
+                return false;
+            }
+            if (!soundCatalog.TryGetOrAdd(ownerPart, sounds[0],
+                    out resolvedSound, out reason)) {
+                reason ??= "A transition start-sound action must contain exactly one representable embedded sound.";
+                return false;
+            }
+            signature = ("start", resolvedSound!.Id,
+                sounds[0].BuiltIn?.Value == true,
+                starts[0].Loop?.Value == true);
             return true;
         }
 

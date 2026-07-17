@@ -3,6 +3,7 @@ using DocumentFormat.OpenXml;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.LegacyPpt;
 using OfficeIMO.PowerPoint.LegacyPpt.Model;
+using OfficeIMO.PowerPoint.LegacyPpt.Write;
 using Xunit;
 using A = DocumentFormat.OpenXml.Drawing;
 using P = DocumentFormat.OpenXml.Presentation;
@@ -121,6 +122,135 @@ namespace OfficeIMO.Tests {
             Assert.Single(projected.Slides[0].SlidePart.Slide!.Transition!
                 .Descendants<P.EndSoundAction>());
             Assert.Empty(projected.ValidateDocument());
+        }
+
+        [Fact]
+        public void NativeWriter_ReadsConsistentAlternateContentTransitionSound() {
+            byte[] wave = CreateWavePayload();
+            byte[] bytes;
+            using (PowerPointPresentation source =
+                   PowerPointPresentation.Create()) {
+                PowerPointSlide slide = source.AddSlide(
+                    P.SlideLayoutValues.Blank);
+                slide.Transition = SlideTransition.Fade;
+                using (var audio = new MemoryStream(wave,
+                           writable: false)) {
+                    slide.SetTransitionSound(audio, "Alternate chime",
+                        loop: true);
+                }
+                MediaDataPart fallbackMedia = source.OpenXmlDocument
+                    .CreateMediaDataPart("audio/wav", ".wav");
+                using (var audio = new MemoryStream(wave,
+                           writable: false)) {
+                    fallbackMedia.FeedData(audio);
+                }
+                AudioReferenceRelationship fallbackRelationship = slide
+                    .SlidePart.AddAudioReferenceRelationship(fallbackMedia);
+                P.Transition authored = slide.SlidePart.Slide!.Transition!;
+                var choice = new AlternateContentChoice {
+                    Requires = "p14"
+                };
+                choice.Append(authored.CloneNode(true));
+                var fallback = new AlternateContentFallback();
+                P.Transition fallbackTransition =
+                    (P.Transition)authored.CloneNode(true);
+                P.Sound fallbackSound = Assert.Single(fallbackTransition
+                    .Descendants<P.Sound>());
+                Assert.NotEqual(fallbackSound.Embed?.Value,
+                    fallbackRelationship.Id);
+                fallbackSound.Embed = fallbackRelationship.Id;
+                fallback.Append(fallbackTransition);
+                var alternate = new AlternateContent(choice, fallback);
+                slide.SlidePart.Slide.Transition = null;
+                slide.SlidePart.Slide.AddNamespaceDeclaration("p14",
+                    "http://schemas.microsoft.com/office/powerpoint/2010/main");
+                slide.SlidePart.Slide.InsertAfter(alternate,
+                    slide.SlidePart.Slide.ColorMapOverride!);
+
+                LegacyPptWritePreflightReport preflight = source
+                    .AnalyzeLegacyPptWrite();
+                Assert.True(preflight.CanWrite,
+                    string.Join(Environment.NewLine, preflight.Findings));
+                Assert.Empty(source.ValidateDocument());
+                bytes = source.ToBytes(PowerPointFileFormat.Ppt);
+            }
+
+            LegacyPptPresentation binary = LegacyPptPresentation.Load(bytes);
+            LegacyPptTransition transition = Assert.IsType<
+                LegacyPptTransition>(Assert.Single(binary.Slides)
+                .Transition);
+            Assert.True(transition.PlaySound);
+            Assert.True(transition.LoopSound);
+            Assert.Equal(wave, Assert.Single(binary.Sounds).DataBytes);
+        }
+
+        [Fact]
+        public void NativeWriter_RejectsAlternateContentBuiltInSoundMismatch() {
+            byte[] wave = CreateWavePayload();
+            using PowerPointPresentation source =
+                PowerPointPresentation.Create();
+            PowerPointSlide slide = source.AddSlide(
+                P.SlideLayoutValues.Blank);
+            slide.Transition = SlideTransition.Fade;
+            using (var audio = new MemoryStream(wave,
+                       writable: false)) {
+                slide.SetTransitionSound(audio, "Alternate chime");
+            }
+            P.Transition authored = slide.SlidePart.Slide!.Transition!;
+            P.Transition choiceTransition =
+                (P.Transition)authored.CloneNode(true);
+            Assert.Single(choiceTransition.Descendants<P.Sound>()).BuiltIn =
+                true;
+            var choice = new AlternateContentChoice { Requires = "p14" };
+            choice.Append(choiceTransition);
+            var fallback = new AlternateContentFallback();
+            fallback.Append(authored.CloneNode(true));
+            slide.SlidePart.Slide.Transition = null;
+            slide.SlidePart.Slide.AddNamespaceDeclaration("p14",
+                "http://schemas.microsoft.com/office/powerpoint/2010/main");
+            slide.SlidePart.Slide.InsertAfter(
+                new AlternateContent(choice, fallback),
+                slide.SlidePart.Slide.ColorMapOverride!);
+            var importedSound = new LegacyPptSound(7,
+                "Alternate chime", ".wav", 104, wave);
+            var soundCatalog = new LegacyPptWriter
+                .LegacyPptWriterSoundCatalog(new[] { importedSound },
+                    soundIdSeed: 7);
+
+            Assert.False(LegacyPptWriter.TryReadTransition(slide,
+                soundCatalog, out _, out string? reason));
+            Assert.Contains("inconsistent", reason,
+                StringComparison.OrdinalIgnoreCase);
+            Assert.Empty(source.ValidateDocument());
+        }
+
+        [Fact]
+        public void NativeWriter_RejectsInconsistentAlternateContentTransitionSounds() {
+            using PowerPointPresentation source =
+                PowerPointPresentation.Create();
+            PowerPointSlide slide = source.AddSlide(
+                P.SlideLayoutValues.Blank);
+            var choice = new AlternateContentChoice { Requires = "p14" };
+            choice.Append(new P.Transition(new P.FadeTransition(),
+                new P.SoundAction(new P.EndSoundAction())));
+            var fallback = new AlternateContentFallback();
+            fallback.Append(new P.Transition(new P.FadeTransition()));
+            slide.SlidePart.Slide!.AddNamespaceDeclaration("p14",
+                "http://schemas.microsoft.com/office/powerpoint/2010/main");
+            slide.SlidePart.Slide.InsertAfter(
+                new AlternateContent(choice, fallback),
+                slide.SlidePart.Slide.ColorMapOverride!);
+
+            Assert.False(LegacyPptWriter.TryReadTransition(slide,
+                out _, out string? reason));
+            Assert.Contains("inconsistent", reason,
+                StringComparison.OrdinalIgnoreCase);
+            LegacyPptWritePreflightReport preflight = source
+                .AnalyzeLegacyPptWrite();
+            Assert.False(preflight.CanWrite);
+            Assert.Contains(preflight.Findings, finding =>
+                finding.Description.Contains("inconsistent",
+                    StringComparison.OrdinalIgnoreCase));
         }
 
         [Fact]
