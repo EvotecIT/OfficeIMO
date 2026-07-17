@@ -331,14 +331,18 @@ namespace OfficeIMO.Drawing.Internal {
                 .ToArray();
         }
 
-        private static IReadOnlyDictionary<int, string> BuildCompoundEntryPaths(IReadOnlyList<DirectoryEntry> entries) {
+        private static IReadOnlyDictionary<int, string> BuildCompoundEntryPaths(
+            IReadOnlyList<DirectoryEntry> entries,
+            CancellationToken cancellationToken = default) {
             var result = new Dictionary<int, string>();
             DirectoryEntry? root = entries.FirstOrDefault(entry => entry.ObjectType == 5);
             if (root != null) {
-                TraverseDirectoryTree(entries, root.ChildId, string.Empty, result, new HashSet<int>(), 0);
+                TraverseDirectoryTree(entries, root.ChildId, string.Empty,
+                    result, new HashSet<int>(), 0, cancellationToken);
             }
 
             foreach (DirectoryEntry entry in entries) {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (entry.ObjectType == 0 || string.IsNullOrEmpty(entry.Name)) {
                     continue;
                 }
@@ -391,7 +395,9 @@ namespace OfficeIMO.Drawing.Internal {
             string parentPath,
             Dictionary<int, string> result,
             HashSet<int> visited,
-            int depth) {
+            int depth,
+            CancellationToken cancellationToken) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (depth > 256) throw new InvalidDataException("Compound directory tree exceeds the supported depth.");
             if (entryId == FreeSect || entryId == EndOfChain || entryId >= entries.Count) {
                 return;
@@ -402,21 +408,26 @@ namespace OfficeIMO.Drawing.Internal {
                 return;
             }
 
-            TraverseDirectoryTree(entries, entry.LeftSiblingId, parentPath, result, visited, depth + 1);
+            TraverseDirectoryTree(entries, entry.LeftSiblingId, parentPath,
+                result, visited, depth + 1, cancellationToken);
             if (entry.ObjectType != 0 && !string.IsNullOrEmpty(entry.Name)) {
                 string path = string.IsNullOrEmpty(parentPath) ? entry.Name : parentPath + "/" + entry.Name;
                 result[entry.Index] = path;
                 if (entry.ObjectType == 1 || entry.ObjectType == 5) {
-                    TraverseDirectoryTree(entries, entry.ChildId, path, result, visited, depth + 1);
+                    TraverseDirectoryTree(entries, entry.ChildId, path,
+                        result, visited, depth + 1, cancellationToken);
                 }
             }
 
-            TraverseDirectoryTree(entries, entry.RightSiblingId, parentPath, result, visited, depth + 1);
+            TraverseDirectoryTree(entries, entry.RightSiblingId, parentPath,
+                result, visited, depth + 1, cancellationToken);
         }
 
-        private static uint[] BytesToUInt32Array(byte[] bytes) {
+        private static uint[] BytesToUInt32Array(byte[] bytes,
+            CancellationToken cancellationToken = default) {
             uint[] result = new uint[bytes.Length / 4];
             for (int i = 0; i < result.Length; i++) {
+                cancellationToken.ThrowIfCancellationRequested();
                 result[i] = ReadUInt32(bytes, i * 4);
             }
 

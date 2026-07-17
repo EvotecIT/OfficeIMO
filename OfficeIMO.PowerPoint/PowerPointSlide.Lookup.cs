@@ -182,6 +182,7 @@ namespace OfficeIMO.PowerPoint {
                 ? frame.Graphic?.GraphicData?.GetFirstChild<OleObject>()?
                     .Id?.Value
                 : null;
+            RemoveClassicAnimation(shape);
             shape.Element.Remove();
             _shapes.Remove(shape);
             if (embeddedPart != null && relationshipId != null

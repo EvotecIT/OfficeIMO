@@ -8,27 +8,33 @@ namespace OfficeIMO.PowerPoint {
     public sealed partial class PowerPointPresentation {
         private static void ProjectLegacySpecialMasters(PowerPointPresentation presentation,
             LegacyPptPresentation legacy,
-            LegacyPptSoundProjectionContext soundContext) {
+            LegacyPptSoundProjectionContext soundContext,
+            ICollection<LegacyPptDeferredProjection>
+                deferredInteractions) {
             if (legacy.NotesMaster != null) {
                 ProjectLegacyNotesMaster(presentation, legacy.NotesMaster,
-                    legacy.NotesHeaderFooterDefaults, soundContext);
+                    legacy.NotesHeaderFooterDefaults, soundContext,
+                    deferredInteractions);
             }
             if (legacy.HandoutMaster != null) {
                 ProjectLegacyHandoutMaster(presentation, legacy.HandoutMaster,
-                    legacy.NotesHeaderFooterDefaults, soundContext);
+                    legacy.NotesHeaderFooterDefaults, soundContext,
+                    deferredInteractions);
             }
         }
 
         private static void ProjectLegacyNotesMaster(PowerPointPresentation presentation,
             LegacyPptSpecialMaster source,
             LegacyPptHeaderFooterSettings? headerFooter,
-            LegacyPptSoundProjectionContext soundContext) {
+            LegacyPptSoundProjectionContext soundContext,
+            ICollection<LegacyPptDeferredProjection>
+                deferredInteractions) {
             NotesMasterPart part = PowerPointUtils.EnsureNotesMasterPart(
                 presentation._presentationPart);
             NotesMaster target = part.NotesMaster
                 ?? throw new InvalidDataException("The native PowerPoint scaffold has no notes master.");
             target.CommonSlideData = CreateLegacySpecialMasterCommonSlideData(part, source,
-                "Binary Notes Master", soundContext);
+                "Binary Notes Master", soundContext, deferredInteractions);
             ApplyLegacyRoundTripTheme(part, source.RoundTripTheme);
             if (source.RoundTripTheme?.ThemeXml == null) {
                 ApplyLegacySpecialMasterTheme(part.ThemePart,
@@ -42,14 +48,17 @@ namespace OfficeIMO.PowerPoint {
         private static void ProjectLegacyHandoutMaster(PowerPointPresentation presentation,
             LegacyPptSpecialMaster source,
             LegacyPptHeaderFooterSettings? headerFooter,
-            LegacyPptSoundProjectionContext soundContext) {
+            LegacyPptSoundProjectionContext soundContext,
+            ICollection<LegacyPptDeferredProjection>
+                deferredInteractions) {
             PresentationPart presentationPart = presentation._presentationPart;
             HandoutMasterPart part = presentationPart.HandoutMasterPart
                 ?? presentationPart.AddNewPart<HandoutMasterPart>();
             EnsureLegacySpecialMasterTheme(part, presentationPart);
 
             CommonSlideData commonSlideData = CreateLegacySpecialMasterCommonSlideData(part,
-                source, "Binary Handout Master", soundContext);
+                source, "Binary Handout Master", soundContext,
+                deferredInteractions);
             ColorMap colorMap = CloneLegacyColorMap(presentationPart);
             part.HandoutMaster = new HandoutMaster(commonSlideData, colorMap);
             ApplyLegacyRoundTripTheme(part, source.RoundTripTheme);
@@ -74,9 +83,12 @@ namespace OfficeIMO.PowerPoint {
 
         private static CommonSlideData CreateLegacySpecialMasterCommonSlideData(
             OpenXmlPart ownerPart, LegacyPptSpecialMaster source, string name,
-            LegacyPptSoundProjectionContext soundContext) {
+            LegacyPptSoundProjectionContext soundContext,
+            ICollection<LegacyPptDeferredProjection>
+                deferredInteractions) {
             var result = new CommonSlideData(CreateLegacyShapeTree(ownerPart, source.Shapes,
-                source.ConnectorRules, soundContext: soundContext)) { Name = name };
+                source.ConnectorRules, soundContext: soundContext,
+                deferredInteractions: deferredInteractions)) { Name = name };
             if (source.Background != null) {
                 ApplyLegacyBackground(ownerPart, result, source.Background);
             } else if (source.ColorScheme != null) {

@@ -10,7 +10,9 @@ namespace OfficeIMO.PowerPoint {
         private static void ApplyLegacyShapeInteractions(OpenXmlPart ownerPart,
             OpenXmlElement target, LegacyPptShape source,
             IReadOnlyDictionary<uint, SlidePart>? slidePartsByLegacyId = null,
-            LegacyPptSoundProjectionContext? soundContext = null) {
+            LegacyPptSoundProjectionContext? soundContext = null,
+            ICollection<LegacyPptDeferredProjection>?
+                deferredInteractions = null) {
             NonVisualDrawingProperties? properties = target switch {
                 Shape shape => shape.NonVisualShapeProperties?.NonVisualDrawingProperties,
                 ConnectionShape connector => connector.NonVisualConnectionShapeProperties?
@@ -24,17 +26,68 @@ namespace OfficeIMO.PowerPoint {
             };
             if (properties == null) return;
             foreach (LegacyPptInteraction interaction in source.Interactions) {
-                foreach (OpenXmlElement element in ProjectLegacyInteraction(ownerPart,
-                             interaction, shapeLevel: true,
-                             slidePartsByLegacyId: slidePartsByLegacyId,
-                             soundContext: soundContext)) {
-                    if (element is A.HyperlinkOnClick) {
-                        properties.RemoveAllChildren<A.HyperlinkOnClick>();
-                    } else if (element is A.HyperlinkOnHover) {
-                        properties.RemoveAllChildren<A.HyperlinkOnHover>();
-                    }
-                    properties.Append(element);
+                if (slidePartsByLegacyId == null
+                    && ShouldDeferLegacyInteraction(interaction)
+                    && deferredInteractions != null) {
+                    deferredInteractions.Add(new LegacyPptDeferredProjection(
+                        projectedSlides => {
+                            ApplyLegacyShapeInteraction(ownerPart, properties,
+                                interaction, projectedSlides, soundContext);
+                            ownerPart.RootElement?.Save();
+                        }));
+                    continue;
                 }
+                ApplyLegacyShapeInteraction(ownerPart, properties, interaction,
+                    slidePartsByLegacyId, soundContext);
+            }
+        }
+
+        private static bool ShouldDeferLegacyInteraction(
+            LegacyPptInteraction interaction) =>
+            interaction.Action == LegacyPptInteractionAction.CustomShow
+            || interaction.Action == LegacyPptInteractionAction.Hyperlink
+            && interaction.HyperlinkType ==
+                LegacyPptHyperlinkType.SlideNumber;
+
+        private static bool ShouldDeferLegacyTextInteractions(
+            LegacyPptTextBody textBody,
+            IReadOnlyDictionary<uint, SlidePart>? slidePartsByLegacyId,
+            ICollection<LegacyPptDeferredProjection>?
+                deferredInteractions) =>
+            slidePartsByLegacyId == null && deferredInteractions != null
+            && textBody.Interactions.Any(item =>
+                ShouldDeferLegacyInteraction(item.Interaction));
+
+        private static void ApplyLegacyShapeInteraction(OpenXmlPart ownerPart,
+            NonVisualDrawingProperties properties,
+            LegacyPptInteraction interaction,
+            IReadOnlyDictionary<uint, SlidePart>? slidePartsByLegacyId,
+            LegacyPptSoundProjectionContext? soundContext) {
+            foreach (OpenXmlElement element in ProjectLegacyInteraction(ownerPart,
+                         interaction, shapeLevel: true,
+                         slidePartsByLegacyId: slidePartsByLegacyId,
+                         soundContext: soundContext)) {
+                if (element is A.HyperlinkOnClick) {
+                    properties.RemoveAllChildren<A.HyperlinkOnClick>();
+                } else if (element is A.HyperlinkOnHover) {
+                    properties.RemoveAllChildren<A.HyperlinkOnHover>();
+                }
+                properties.Append(element);
+            }
+        }
+
+        internal sealed class LegacyPptDeferredProjection {
+            private readonly Action<IReadOnlyDictionary<uint, SlidePart>>
+                _apply;
+
+            internal LegacyPptDeferredProjection(
+                Action<IReadOnlyDictionary<uint, SlidePart>> apply) {
+                _apply = apply ?? throw new ArgumentNullException(nameof(apply));
+            }
+
+            internal void Apply(
+                IReadOnlyDictionary<uint, SlidePart> slidePartsByLegacyId) {
+                _apply(slidePartsByLegacyId);
             }
         }
 

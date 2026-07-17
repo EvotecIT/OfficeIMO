@@ -97,6 +97,94 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void BinaryImport_ProjectsMasterInternalSlideHyperlinkAfterSlides() {
+            byte[] bytes;
+            using (PowerPointPresentation source =
+                   PowerPointPresentation.Create()) {
+                source.AddSlide(
+                    P.SlideLayoutValues.Blank);
+                SlideMasterPart masterPart = source.OpenXmlDocument
+                    .PresentationPart!.SlideMasterParts.Single();
+                masterPart.SlideMaster!.CommonSlideData!.ShapeTree!.Append(
+                    new P.Shape(
+                        new P.NonVisualShapeProperties(
+                            new P.NonVisualDrawingProperties {
+                                Id = 2U,
+                                Name = "Master internal link"
+                            },
+                            new P.NonVisualShapeDrawingProperties(),
+                            new P.ApplicationNonVisualDrawingProperties()),
+                        new P.ShapeProperties(
+                            new A.Transform2D(
+                                new A.Offset { X = 100000, Y = 100000 },
+                                new A.Extents {
+                                    Cx = 1000000,
+                                    Cy = 500000
+                                }),
+                            new A.PresetGeometry(
+                                new A.AdjustValueList()) {
+                                Preset = A.ShapeTypeValues.Rectangle
+                            }),
+                        new P.TextBody(
+                            new A.BodyProperties(),
+                            new A.ListStyle(),
+                            new A.Paragraph(
+                                new A.Run(new A.Text("Master link"))))));
+                masterPart.SlideMaster.Save();
+                bytes = source.ToBytes(PowerPointFileFormat.Ppt);
+            }
+
+            LegacyPptPresentation legacy = LegacyPptPresentation.Load(bytes);
+            LegacyPptMaster master = Assert.Single(legacy.Masters);
+            LegacyPptShape sourceShape = Assert.Single(master.Shapes);
+            LegacyPptSlide target = Assert.Single(legacy.Slides);
+            var hyperlink = new LegacyPptHyperlink(1U, null, null,
+                target.SlideId.ToString(
+                    System.Globalization.CultureInfo.InvariantCulture)
+                + ",1,Master target");
+            hyperlink.ApplyExtension("Open target", 0U);
+            var interaction = new LegacyPptInteraction(
+                LegacyPptInteractionTrigger.MouseClick,
+                LegacyPptInteractionAction.Hyperlink,
+                LegacyPptInteractionJump.None,
+                LegacyPptHyperlinkType.SlideNumber,
+                soundIdReference: 0U, hyperlinkIdReference: 1U,
+                oleVerb: 0, flags: 0, name: null, hyperlink,
+                customShow: null);
+            var linkedShape = new LegacyPptShape(sourceShape.Kind,
+                sourceShape.OfficeArtShapeType, sourceShape.ShapeId,
+                sourceShape.RecordOffset, sourceShape.Bounds,
+                sourceShape.Text, sourceShape.Placeholder,
+                sourceShape.Style, sourceShape.FillColor,
+                sourceShape.LineColor, transform: sourceShape.Transform,
+                textBody: sourceShape.TextBody.WithInteractions(new[] {
+                    new LegacyPptTextInteraction(0,
+                        sourceShape.Text.Length, interaction)
+                }), interactions: new[] { interaction });
+            List<LegacyPptShape> masterShapes = Assert.IsType<
+                List<LegacyPptShape>>(master.Shapes);
+            masterShapes[0] = linkedShape;
+
+            using PowerPointPresentation projected =
+                PowerPointPresentation.ProjectLoadedLegacyPpt(legacy,
+                    sourcePath: null, PowerPointFileFormat.Ppt,
+                    new PowerPointLoadOptions());
+            SlideMasterPart projectedMaster = projected.OpenXmlDocument
+                .PresentationPart!.SlideMasterParts.Single();
+            A.HyperlinkOnClick[] links = projectedMaster.SlideMaster!
+                .Descendants<A.HyperlinkOnClick>().ToArray();
+            Assert.Equal(2, links.Length);
+            Assert.All(links, link => {
+                Assert.Equal("Open target", link.Tooltip?.Value);
+                Assert.True(projectedMaster.TryGetPartById(
+                    link.Id!.Value!, out OpenXmlPart? projectedTarget));
+                Assert.Same(projected.Slides[0].SlidePart,
+                    projectedTarget);
+            });
+            Assert.Empty(projected.ValidateDocument());
+        }
+
+        [Fact]
         public void ImportedInternalSlideHyperlink_RetargetsAndRemovesIncrementally() {
             byte[] sourceBytes;
             using (PowerPointPresentation source = PowerPointPresentation.Create()) {

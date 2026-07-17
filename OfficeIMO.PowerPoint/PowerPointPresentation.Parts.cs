@@ -446,7 +446,8 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static bool ShouldSharePart(OpenXmlPart part) {
-            return part is SlideLayoutPart || part is NotesMasterPart;
+            return part is SlideLayoutPart || part is NotesMasterPart
+                || part is SlidePart;
         }
 
         private void CloneImportedNotesSlidePart(

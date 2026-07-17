@@ -86,7 +86,7 @@ namespace OfficeIMO.PowerPoint {
                 cancellationToken: cancellationToken);
         }
 
-        private static PowerPointPresentation ProjectLoadedLegacyPpt(LegacyPptPresentation legacy,
+        internal static PowerPointPresentation ProjectLoadedLegacyPpt(LegacyPptPresentation legacy,
             string? sourcePath, PowerPointFileFormat sourceFormat, PowerPointLoadOptions loadOptions,
             Stream? sourceStream = null,
             CancellationToken cancellationToken = default) {
@@ -95,9 +95,12 @@ namespace OfficeIMO.PowerPoint {
             using PowerPointPresentation projected = Create();
             ApplyLegacyDocumentSettings(projected, legacy);
             var soundContext = new LegacyPptSoundProjectionContext(legacy);
+            var deferredInteractions =
+                new List<LegacyPptDeferredProjection>();
             LegacyPptLayoutCatalog layoutTargets = ProjectLegacyMasters(projected,
-                legacy, soundContext);
-            ProjectLegacySpecialMasters(projected, legacy, soundContext);
+                legacy, soundContext, deferredInteractions);
+            ProjectLegacySpecialMasters(projected, legacy, soundContext,
+                deferredInteractions);
 
             var slideProjections = new List<(LegacyPptSlide Source, PowerPointSlide Target)>(
                 legacy.Slides.Count);
@@ -120,6 +123,10 @@ namespace OfficeIMO.PowerPoint {
             }
 
             ProjectLegacyCustomShows(projected, legacy, slidePartsByLegacyId);
+            foreach (LegacyPptDeferredProjection interaction in
+                     deferredInteractions) {
+                interaction.Apply(slidePartsByLegacyId);
+            }
             foreach ((LegacyPptSlide legacySlide, PowerPointSlide slide) in slideProjections) {
                 cancellationToken.ThrowIfCancellationRequested();
                 var projectedShapeIds = new Dictionary<uint, uint>();
@@ -133,7 +140,8 @@ namespace OfficeIMO.PowerPoint {
                 ProjectLegacyAnimations(slide, legacySlide.Shapes,
                     projectedShapeIds, soundContext);
                 if (legacySlide.NotesPage != null) {
-                    ProjectLegacyNotesPage(slide, legacySlide.NotesPage);
+                    ProjectLegacyNotesPage(slide, legacySlide.NotesPage,
+                        slidePartsByLegacyId, soundContext);
                 } else if (!string.IsNullOrWhiteSpace(legacySlide.NotesText)) {
                     slide.Notes.Text = legacySlide.NotesText;
                 }

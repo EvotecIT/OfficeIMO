@@ -34,11 +34,27 @@ namespace OfficeIMO.PowerPoint {
             }
             MediaDataPart mediaPart = document.CreateMediaDataPart(contentType,
                 normalizedExtension);
-            if (audio.CanSeek) audio.Position = 0;
-            mediaPart.FeedData(audio);
             string relationshipId = GetNextRelationshipId(slidePart);
-            slidePart.AddAudioReferenceRelationship(mediaPart, relationshipId);
-            return relationshipId;
+            try {
+                if (audio.CanSeek) audio.Position = 0;
+                mediaPart.FeedData(audio);
+                slidePart.AddAudioReferenceRelationship(mediaPart,
+                    relationshipId);
+                return relationshipId;
+            } catch {
+                AudioReferenceRelationship? relationship = slidePart
+                    .DataPartReferenceRelationships
+                    .OfType<AudioReferenceRelationship>()
+                    .FirstOrDefault(candidate => ReferenceEquals(
+                        candidate.DataPart, mediaPart));
+                if (relationship != null) {
+                    slidePart.DeleteReferenceRelationship(relationship);
+                }
+                if (!mediaPart.GetDataPartReferenceRelationships().Any()) {
+                    document.DeletePart(mediaPart);
+                }
+                throw;
+            }
         }
 
         internal static MediaDataPart? Find(SlidePart slidePart,

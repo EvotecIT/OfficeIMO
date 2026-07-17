@@ -79,7 +79,22 @@ namespace OfficeIMO.PowerPoint {
                 ?? throw new InvalidOperationException(
                     "The media shape has no embedded data relationship.");
             if (media.CanSeek) media.Position = 0;
-            mediaPart.FeedData(media);
+            byte[] replacement = OfficeStreamReader.ReadAllBytes(media);
+            byte[] original;
+            using (Stream current = mediaPart.GetStream(FileMode.Open,
+                       FileAccess.Read)) {
+                original = OfficeStreamReader.ReadAllBytes(current);
+            }
+            try {
+                using var input = new MemoryStream(replacement,
+                    writable: false);
+                mediaPart.FeedData(input);
+            } catch {
+                using var rollback = new MemoryStream(original,
+                    writable: false);
+                mediaPart.FeedData(rollback);
+                throw;
+            }
         }
 
         internal static bool TryGetMediaKind(Picture picture, out PowerPointMediaKind kind) {

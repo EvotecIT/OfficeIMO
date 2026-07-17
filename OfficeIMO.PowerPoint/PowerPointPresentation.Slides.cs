@@ -121,11 +121,28 @@ namespace OfficeIMO.PowerPoint {
                 IEnumerable<SlideListEntry> customShowEntries = PresentationRoot
                     .CustomShowList?.Descendants<SlideListEntry>()
                     ?? Enumerable.Empty<SlideListEntry>();
+                var emptiedCustomShowIds = new HashSet<uint>();
                 foreach (SlideListEntry customShowEntry in customShowEntries.ToArray()) {
                     if (string.Equals(customShowEntry.Id?.Value, relId,
                             StringComparison.Ordinal)) {
+                        CustomShow? customShow = customShowEntry
+                            .Ancestors<CustomShow>().FirstOrDefault();
                         customShowEntry.Remove();
+                        if (customShow?.SlideList?.Elements<SlideListEntry>()
+                                .Any() == false) {
+                            if (customShow.Id?.Value is uint customShowId) {
+                                emptiedCustomShowIds.Add(customShowId);
+                            }
+                            customShow.Remove();
+                        }
                     }
+                }
+                if (PresentationRoot.CustomShowList?
+                        .Elements<CustomShow>().Any() == false) {
+                    PresentationRoot.CustomShowList.Remove();
+                }
+                foreach (uint customShowId in emptiedCustomShowIds) {
+                    RemoveCustomShowLinks(customShowId);
                 }
                 OpenXmlPart part = _presentationPart.GetPartById(relId);
                 if (part is SlidePart targetSlidePart) {
@@ -137,6 +154,37 @@ namespace OfficeIMO.PowerPoint {
             SyncSectionsWithSlides();
             PresentationRoot.Save();
         }
+
+        private void RemoveCustomShowLinks(uint customShowId) {
+            string prefix = "ppaction://customshow?id="
+                + customShowId.ToString(
+                    System.Globalization.CultureInfo.InvariantCulture);
+            var visited = new HashSet<OpenXmlPart>();
+            var pending = new Stack<OpenXmlPart>();
+            pending.Push(_presentationPart);
+            while (pending.Count > 0) {
+                OpenXmlPart part = pending.Pop();
+                if (!visited.Add(part)) continue;
+                foreach (IdPartPair child in part.Parts) {
+                    pending.Push(child.OpenXmlPart);
+                }
+                OpenXmlPartRootElement? root = part.RootElement;
+                if (root == null) continue;
+                A.HyperlinkType[] links = root.Descendants<A.HyperlinkType>()
+                    .Where(link => IsCustomShowAction(
+                        link.Action?.Value, prefix))
+                    .ToArray();
+                if (links.Length == 0) continue;
+                foreach (A.HyperlinkType link in links) link.Remove();
+                root.Save();
+            }
+        }
+
+        private static bool IsCustomShowAction(string? action,
+            string expectedPrefix) => action != null
+            && action.StartsWith(expectedPrefix, StringComparison.Ordinal)
+            && (action.Length == expectedPrefix.Length
+                || action[expectedPrefix.Length] == '&');
 
         private void RemoveInboundSlideLinks(SlidePart targetSlidePart) {
             foreach (SlidePart sourceSlidePart in _presentationPart.SlideParts

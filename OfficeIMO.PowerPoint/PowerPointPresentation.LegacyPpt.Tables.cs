@@ -28,7 +28,9 @@ namespace OfficeIMO.PowerPoint {
         private static P.GraphicFrame CreateLegacyTableFrame(
             OpenXmlPart ownerPart, LegacyPptShape source, uint shapeId,
             IReadOnlyDictionary<uint, SlidePart>? slidePartsByLegacyId,
-            LegacyPptSoundProjectionContext? soundContext) {
+            LegacyPptSoundProjectionContext? soundContext,
+            ICollection<LegacyPptDeferredProjection>?
+                deferredInteractions = null) {
             LegacyPptTable tableSource = source.Table
                 ?? throw new ArgumentException("The source shape is not a native binary table.", nameof(source));
             long width = Math.Max(1L, ToEmus(source.Bounds.Width));
@@ -87,9 +89,24 @@ namespace OfficeIMO.PowerPoint {
             foreach (LegacyPptTableCell sourceCell in tableSource.Cells) {
                 PowerPointTableCell targetCell = table.GetCell(
                     sourceCell.Row, sourceCell.Column);
+                bool deferTextInteractions =
+                    ShouldDeferLegacyTextInteractions(
+                        sourceCell.SourceShape.TextBody,
+                        slidePartsByLegacyId, deferredInteractions);
                 targetCell.Cell.TextBody = CreateLegacyTableTextBody(
                     ownerPart, sourceCell.SourceShape,
-                    slidePartsByLegacyId, soundContext);
+                    slidePartsByLegacyId, soundContext,
+                    suppressInteractions: deferTextInteractions);
+                if (deferTextInteractions) {
+                    deferredInteractions!.Add(new LegacyPptDeferredProjection(
+                        projectedSlides => {
+                            targetCell.Cell.TextBody =
+                                CreateLegacyTableTextBody(ownerPart,
+                                    sourceCell.SourceShape,
+                                    projectedSlides, soundContext);
+                            ownerPart.RootElement?.Save();
+                        }));
+                }
                 if (sourceCell.SourceShape.FillColor != null) {
                     targetCell.FillColor = sourceCell.SourceShape.FillColor;
                 }
@@ -151,12 +168,16 @@ namespace OfficeIMO.PowerPoint {
         private static A.TextBody CreateLegacyTableTextBody(
             OpenXmlPart ownerPart, LegacyPptShape source,
             IReadOnlyDictionary<uint, SlidePart>? slidePartsByLegacyId,
-            LegacyPptSoundProjectionContext? soundContext) {
+            LegacyPptSoundProjectionContext? soundContext,
+            bool suppressInteractions = false) {
             P.TextBody projected = LegacyPptTextProjection.CreateTextBody(
                 source.TextBody, source.TextFrame,
-                interaction => ProjectLegacyInteraction(ownerPart,
-                    interaction, slidePartsByLegacyId: slidePartsByLegacyId,
-                    soundContext: soundContext),
+                interaction => suppressInteractions
+                    ? Array.Empty<OpenXmlElement>()
+                    : ProjectLegacyInteraction(ownerPart,
+                        interaction,
+                        slidePartsByLegacyId: slidePartsByLegacyId,
+                        soundContext: soundContext),
                 pictureBullet => ProjectLegacyPictureBullet(ownerPart,
                     pictureBullet));
             var body = new A.TextBody();

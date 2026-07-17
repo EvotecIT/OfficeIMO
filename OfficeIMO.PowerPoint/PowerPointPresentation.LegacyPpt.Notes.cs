@@ -6,7 +6,9 @@ using A = DocumentFormat.OpenXml.Drawing;
 namespace OfficeIMO.PowerPoint {
     public sealed partial class PowerPointPresentation {
         private static void ProjectLegacyNotesPage(PowerPointSlide slide,
-            LegacyPptNotesPage source) {
+            LegacyPptNotesPage source,
+            IReadOnlyDictionary<uint, SlidePart> slidePartsByLegacyId,
+            LegacyPptSoundProjectionContext soundContext) {
             slide.Notes.Text = source.Text;
             NotesSlidePart part = slide.SlidePart.NotesSlidePart
                 ?? throw new InvalidDataException("The projected slide has no notes part.");
@@ -15,7 +17,10 @@ namespace OfficeIMO.PowerPoint {
 
             if (source.Shapes.Count > 0) {
                 target.CommonSlideData = new CommonSlideData(CreateLegacyShapeTree(part,
-                    source.Shapes, source.ConnectorRules)) { Name = "Binary Notes Page" };
+                    source.Shapes, source.ConnectorRules,
+                    slidePartsByLegacyId, soundContext)) {
+                    Name = "Binary Notes Page"
+                };
             }
             ApplyLegacyRoundTripTheme(part, source.RoundTripTheme);
             target.ShowMasterShapes = source.FollowsMasterObjects;

@@ -15,7 +15,9 @@ namespace OfficeIMO.PowerPoint {
 
         private static LegacyPptLayoutCatalog ProjectLegacyMasters(
             PowerPointPresentation presentation, LegacyPptPresentation legacy,
-            LegacyPptSoundProjectionContext soundContext) {
+            LegacyPptSoundProjectionContext soundContext,
+            ICollection<LegacyPptDeferredProjection>
+                deferredInteractions) {
             LegacyPptMaster[] mainMasters = legacy.Masters.Where(master => master.IsMainMaster).ToArray();
             var catalog = new LegacyPptLayoutCatalog();
             if (mainMasters.Length == 0) {
@@ -35,7 +37,7 @@ namespace OfficeIMO.PowerPoint {
                 SlideMasterPart masterPart = masterParts[index];
                 ApplyLegacyMaster(masterPart, mainMaster,
                     GetEffectiveLegacySlideHeaderFooter(legacy, mainMaster),
-                    soundContext);
+                    soundContext, deferredInteractions);
                 var target = new LegacyPptLayoutTarget(index, 0);
                 masterTargets.Add(mainMaster.MasterId, target);
                 ProjectLegacyMainMasterLayouts(catalog, legacy, mainMaster,
@@ -49,7 +51,7 @@ namespace OfficeIMO.PowerPoint {
                 }
                 SlideMasterPart parentPart = masterParts[parentTarget.MasterIndex];
                 int layoutIndex = AddLegacyTitleMasterLayout(parentPart, titleMaster,
-                    soundContext);
+                    soundContext, deferredInteractions);
                 var titleTarget = new LegacyPptLayoutTarget(parentTarget.MasterIndex, layoutIndex);
                 masterTargets[titleMaster.MasterId] = titleTarget;
                 catalog.AddMasterFallback(titleMaster.MasterId, titleTarget);
@@ -84,11 +86,14 @@ namespace OfficeIMO.PowerPoint {
 
         private static void ApplyLegacyMaster(SlideMasterPart masterPart, LegacyPptMaster master,
             LegacyPptHeaderFooterSettings? headerFooter,
-            LegacyPptSoundProjectionContext soundContext) {
+            LegacyPptSoundProjectionContext soundContext,
+            ICollection<LegacyPptDeferredProjection>
+                deferredInteractions) {
             SlideMaster slideMaster = masterPart.SlideMaster
                 ?? throw new InvalidDataException("The projected PowerPoint package has no slide master.");
             slideMaster.CommonSlideData = new CommonSlideData(CreateLegacyShapeTree(masterPart, master.Shapes,
-                master.ConnectorRules, soundContext: soundContext)) {
+                master.ConnectorRules, soundContext: soundContext,
+                deferredInteractions: deferredInteractions)) {
                 Name = GetLegacyMasterName(master)
             };
             ApplyLegacyRoundTripTheme(masterPart, master.RoundTripTheme);
@@ -116,12 +121,15 @@ namespace OfficeIMO.PowerPoint {
 
         private static int AddLegacyTitleMasterLayout(SlideMasterPart masterPart,
             LegacyPptMaster titleMaster,
-            LegacyPptSoundProjectionContext soundContext) {
+            LegacyPptSoundProjectionContext soundContext,
+            ICollection<LegacyPptDeferredProjection>
+                deferredInteractions) {
             string relationshipId = GetNextRelationshipId(masterPart);
             SlideLayoutPart layoutPart = masterPart.AddNewPart<SlideLayoutPart>(relationshipId);
             layoutPart.SlideLayout = CreateLegacyLayout(layoutPart, GetLegacyMasterName(titleMaster),
                 SlideLayoutValues.Title, titleMaster.Shapes,
-                titleMaster.ConnectorRules, soundContext);
+                titleMaster.ConnectorRules, soundContext,
+                deferredInteractions);
             layoutPart.AddPart(masterPart);
             if (!titleMaster.FollowsMasterObjects) {
                 layoutPart.SlideLayout.ShowMasterShapes = false;
@@ -239,16 +247,21 @@ namespace OfficeIMO.PowerPoint {
         private static SlideLayout CreateLegacyLayout(OpenXmlPart ownerPart, string name, SlideLayoutValues type,
             IReadOnlyList<LegacyPptShape> shapes,
             IReadOnlyList<LegacyPptConnectorRule>? connectorRules = null,
-            LegacyPptSoundProjectionContext? soundContext = null) => new(
-                new CommonSlideData(CreateLegacyShapeTree(ownerPart, shapes,
-                    connectorRules, soundContext: soundContext)) { Name = name },
+            LegacyPptSoundProjectionContext? soundContext = null,
+            ICollection<LegacyPptDeferredProjection>?
+                deferredInteractions = null) => new(
+            new CommonSlideData(CreateLegacyShapeTree(ownerPart, shapes,
+                connectorRules, soundContext: soundContext,
+                deferredInteractions: deferredInteractions)) { Name = name },
                 new ColorMapOverride(new A.MasterColorMapping())) { Type = type };
 
         private static ShapeTree CreateLegacyShapeTree(OpenXmlPart? ownerPart = null,
             IReadOnlyList<LegacyPptShape>? shapes = null,
             IReadOnlyList<LegacyPptConnectorRule>? connectorRules = null,
             IReadOnlyDictionary<uint, SlidePart>? slidePartsByLegacyId = null,
-            LegacyPptSoundProjectionContext? soundContext = null) {
+            LegacyPptSoundProjectionContext? soundContext = null,
+            ICollection<LegacyPptDeferredProjection>?
+                deferredInteractions = null) {
             var tree = new ShapeTree(
                 new NonVisualGroupShapeProperties(
                     new NonVisualDrawingProperties { Id = 1U, Name = string.Empty },
@@ -265,7 +278,7 @@ namespace OfficeIMO.PowerPoint {
             foreach (LegacyPptShape source in shapes) {
                 OpenXmlElement? shape = CreateLegacyOpenXmlShape(ownerPart, source,
                     ref nextShapeId, slidePartsByLegacyId, soundContext,
-                    projectedShapeIds);
+                    projectedShapeIds, deferredInteractions);
                 if (shape == null) continue;
                 tree.Append(shape);
             }
@@ -279,26 +292,31 @@ namespace OfficeIMO.PowerPoint {
             LegacyPptShape source, ref uint nextShapeId,
             IReadOnlyDictionary<uint, SlidePart>? slidePartsByLegacyId = null,
             LegacyPptSoundProjectionContext? soundContext = null,
-            IDictionary<uint, uint>? projectedShapeIds = null) {
+            IDictionary<uint, uint>? projectedShapeIds = null,
+            ICollection<LegacyPptDeferredProjection>?
+                deferredInteractions = null) {
             if (ownerPart == null) throw new ArgumentNullException(nameof(ownerPart));
             if (source == null) throw new ArgumentNullException(nameof(source));
             uint shapeId = nextShapeId++;
             OpenXmlElement? projected = source.Kind switch {
                 LegacyPptShapeKind.Picture => CreateLegacyPicture(ownerPart, source, shapeId),
                 LegacyPptShapeKind.Table => CreateLegacyTableFrame(ownerPart,
-                    source, shapeId, slidePartsByLegacyId, soundContext),
+                    source, shapeId, slidePartsByLegacyId, soundContext,
+                    deferredInteractions),
                 LegacyPptShapeKind.Group => CreateLegacyGroupShape(ownerPart, source, shapeId,
                     ref nextShapeId, slidePartsByLegacyId, soundContext,
-                    projectedShapeIds),
+                    projectedShapeIds, deferredInteractions),
                 _ => CreateLegacyShape(ownerPart, source, shapeId,
-                    slidePartsByLegacyId, soundContext)
+                    slidePartsByLegacyId, soundContext,
+                    deferredInteractions)
             };
             if (projected != null) {
                 RegisterLegacyShapeId(source, projected,
                     projectedShapeIds);
                 ApplyLegacyShapeMetadata(projected, source);
                 ApplyLegacyShapeInteractions(ownerPart, projected, source,
-                    slidePartsByLegacyId, soundContext);
+                    slidePartsByLegacyId, soundContext,
+                    deferredInteractions);
             }
             return projected;
         }
@@ -346,7 +364,9 @@ namespace OfficeIMO.PowerPoint {
         private static OpenXmlElement? CreateLegacyShape(OpenXmlPart ownerPart,
             LegacyPptShape source, uint shapeId,
             IReadOnlyDictionary<uint, SlidePart>? slidePartsByLegacyId,
-            LegacyPptSoundProjectionContext? soundContext) {
+            LegacyPptSoundProjectionContext? soundContext,
+            ICollection<LegacyPptDeferredProjection>?
+                deferredInteractions) {
             if (source.Kind == LegacyPptShapeKind.Connector
                 && LegacyPptShapeGeometryMapper.TryGetPreset(source.OfficeArtShapeType,
                     out A.ShapeTypeValues connectorGeometry)) {
@@ -406,12 +426,17 @@ namespace OfficeIMO.PowerPoint {
                 bool hasRichText = source.TextBody.HasExplicitCharacterFormatting
                     || source.TextBody.HasParagraphFormatting
                     || source.TextBody.HasInteractions;
+                bool deferTextInteractions =
+                    ShouldDeferLegacyTextInteractions(source.TextBody,
+                        slidePartsByLegacyId, deferredInteractions);
                 TextBody textBody = hasRichText
                     ? LegacyPptTextProjection.CreateTextBody(source.TextBody,
                         source.TextFrame,
-                        interaction => ProjectLegacyInteraction(ownerPart, interaction,
-                            slidePartsByLegacyId: slidePartsByLegacyId,
-                            soundContext: soundContext),
+                        interaction => deferTextInteractions
+                            ? Array.Empty<OpenXmlElement>()
+                            : ProjectLegacyInteraction(ownerPart, interaction,
+                                slidePartsByLegacyId: slidePartsByLegacyId,
+                                soundContext: soundContext),
                         pictureBullet => ProjectLegacyPictureBullet(ownerPart,
                             pictureBullet))
                     : new TextBody(
@@ -423,6 +448,22 @@ namespace OfficeIMO.PowerPoint {
                         textBody.BodyProperties, source.TextFrame);
                 }
                 shape.Append(textBody);
+                if (deferTextInteractions) {
+                    deferredInteractions!.Add(new LegacyPptDeferredProjection(
+                        projectedSlides => {
+                            shape.TextBody = LegacyPptTextProjection
+                                .CreateTextBody(source.TextBody,
+                                    source.TextFrame,
+                                    interaction => ProjectLegacyInteraction(
+                                        ownerPart, interaction,
+                                        slidePartsByLegacyId: projectedSlides,
+                                        soundContext: soundContext),
+                                    pictureBullet =>
+                                        ProjectLegacyPictureBullet(ownerPart,
+                                            pictureBullet));
+                            ownerPart.RootElement?.Save();
+                        }));
+                }
             }
             return shape;
         }
@@ -453,7 +494,9 @@ namespace OfficeIMO.PowerPoint {
             uint shapeId, ref uint nextShapeId,
             IReadOnlyDictionary<uint, SlidePart>? slidePartsByLegacyId,
             LegacyPptSoundProjectionContext? soundContext,
-            IDictionary<uint, uint>? projectedShapeIds) {
+            IDictionary<uint, uint>? projectedShapeIds,
+            ICollection<LegacyPptDeferredProjection>?
+                deferredInteractions) {
             if (!source.GroupCoordinateBounds.HasValue || source.Children.Count == 0) return null;
             LegacyPptBounds coordinate = source.GroupCoordinateBounds.Value;
             var transform = new A.TransformGroup(
@@ -483,7 +526,7 @@ namespace OfficeIMO.PowerPoint {
             foreach (LegacyPptShape child in source.Children) {
                 OpenXmlElement? projected = CreateLegacyOpenXmlShape(ownerPart, child,
                     ref nextShapeId, slidePartsByLegacyId, soundContext,
-                    projectedShapeIds);
+                    projectedShapeIds, deferredInteractions);
                 if (projected != null) group.Append(projected);
             }
             return group;

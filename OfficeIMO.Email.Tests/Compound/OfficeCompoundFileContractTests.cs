@@ -1,5 +1,6 @@
 using OfficeIMO.Drawing.Internal;
 using OpenMcdf;
+using System.Threading;
 using Xunit;
 
 namespace OfficeIMO.Email.Tests;
@@ -102,6 +103,72 @@ public sealed class OfficeCompoundFileContractTests {
         } finally {
             File.Delete(externalPath);
         }
+    }
+
+    [Fact]
+    public void SelectiveReaderObservesCancellationFromStreamCallback() {
+        byte[] compoundBytes = OfficeCompoundFileWriter.Write(new[] {
+            new OfficeCompoundStream("Empty", Array.Empty<byte>())
+        });
+        using var input = new MemoryStream(compoundBytes);
+        using var cancellation = new CancellationTokenSource();
+
+        Assert.Throws<OperationCanceledException>(() =>
+            OfficeCompoundFileReader.TryReadSelective(input,
+                new OfficeCompoundReadOptions(),
+                (_, _) => {
+                    cancellation.Cancel();
+                    return false;
+                },
+                (_, _) => throw new InvalidOperationException(
+                    "No stream should be externalized."),
+                cancellation.Token, out _, out _));
+
+        Assert.Equal(0, input.Position);
+    }
+
+    [Fact]
+    public void RewritePreservesRetainedMetadataAndRemovesStorageSubtree() {
+        var rootClassId = new Guid(
+            "64818D10-4F9B-11CF-86EA-00AA00B929E8");
+        var storageClassId = new Guid(
+            "00020906-0000-0000-C000-000000000046");
+        var entries = new[] {
+            new OfficeCompoundFileEntry("Keep", "Keep", 1, 0,
+                classId: storageClassId, stateBits: 9,
+                creationTime: 11, modifiedTime: 12),
+            new OfficeCompoundFileEntry("Value", "Keep/Value", 2, 3),
+            new OfficeCompoundFileEntry("Remove", "Remove", 1, 0),
+            new OfficeCompoundFileEntry("Value", "Remove/Value", 2, 3)
+        };
+        var source = new OfficeCompoundFile(
+            new Dictionary<string, byte[]>(StringComparer.OrdinalIgnoreCase) {
+                ["Keep/Value"] = new byte[] { 1, 2, 3 },
+                ["Remove/Value"] = new byte[] { 4, 5, 6 }
+            },
+            entries,
+            new OfficeCompoundFileEntry("Root Entry", "Root Entry", 5,
+                0, classId: rootClassId));
+
+        byte[] rewritten = OfficeCompoundFileWriter.Rewrite(source,
+            new Dictionary<string, byte[]> {
+                ["Keep/Value"] = new byte[] { 7, 8, 9 }
+            },
+            new[] { "Remove" });
+
+        Assert.True(OfficeCompoundFileReader.TryRead(rewritten,
+            out OfficeCompoundFile? result, out string? error), error);
+        Assert.Equal(new byte[] { 7, 8, 9 },
+            result!.Streams["Keep/Value"]);
+        Assert.DoesNotContain(result.Entries, entry =>
+            entry.Path.StartsWith("Remove", StringComparison.Ordinal));
+        OfficeCompoundFileEntry retained = Assert.Single(result.Entries,
+            entry => entry.Path == "Keep" && !entry.IsFallback);
+        Assert.Equal(storageClassId, retained.ClassId);
+        Assert.Equal(9U, retained.StateBits);
+        Assert.Equal(11UL, retained.CreationTime);
+        Assert.Equal(12UL, retained.ModifiedTime);
+        Assert.Equal(rootClassId, result.RootEntry.ClassId);
     }
 
     [Fact]

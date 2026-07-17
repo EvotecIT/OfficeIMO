@@ -49,6 +49,11 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>Removes the classic animation attached to a shape.</summary>
         public bool RemoveClassicAnimation(PowerPointShape shape) {
             if (shape == null) throw new ArgumentNullException(nameof(shape));
+            if (!ReferenceEquals(shape.OwnerSlide, this)) {
+                throw new ArgumentException(
+                    "The animation target must belong to this slide.",
+                    nameof(shape));
+            }
             uint? shapeId = shape.Id;
             if (!shapeId.HasValue) return false;
             List<PowerPointClassicAnimation> animations = ReadClassicAnimations().ToList();

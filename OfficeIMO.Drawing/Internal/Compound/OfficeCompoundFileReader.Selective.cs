@@ -81,14 +81,15 @@ namespace OfficeIMO.Drawing.Internal {
                     physicalSectorCount, fatSectorIds,
                     options.MaxDirectoryEntries, cancellationToken);
                 List<DirectoryEntry> entries = ReadDirectoryEntries(directoryBytes, majorVersion,
-                    options.MaxDirectoryEntries);
+                    options.MaxDirectoryEntries, cancellationToken);
                 DirectoryEntry? root = entries.FirstOrDefault(entry => entry.ObjectType == 5);
                 if (root == null) throw new InvalidDataException("Compound file root directory entry is missing.");
                 if (root.Size < 0 || root.Size > options.MaxTotalStreamBytes || root.Size > remainingBytes) {
                     throw new InvalidDataException("Compound file mini stream exceeds configured or physical bounds.");
                 }
 
-                IReadOnlyDictionary<int, string> streamPaths = BuildCompoundEntryPaths(entries);
+                IReadOnlyDictionary<int, string> streamPaths =
+                    BuildCompoundEntryPaths(entries, cancellationToken);
                 DirectoryEntry[] streamEntries = entries.Where(entry => entry.ObjectType == 2).ToArray();
                 if (streamEntries.Length > options.MaxStreamCount) {
                     throw new InvalidDataException($"Compound stream count {streamEntries.Length} exceeds {options.MaxStreamCount}.");
@@ -96,8 +97,10 @@ namespace OfficeIMO.Drawing.Internal {
                 long totalStreamBytes = 0;
                 var externalStreams = new HashSet<int>();
                 foreach (DirectoryEntry entry in streamEntries) {
+                    cancellationToken.ThrowIfCancellationRequested();
                     string path = streamPaths.TryGetValue(entry.Index, out string? entryPath) ? entryPath : entry.Name;
                     bool isExternal = externalize(path, entry.Size);
+                    cancellationToken.ThrowIfCancellationRequested();
                     if (isExternal) externalStreams.Add(entry.Index);
                     if (entry.Size < 0 || entry.Size > options.MaxStreamBytes ||
                         (!isExternal && entry.Size > int.MaxValue)) {
@@ -115,7 +118,8 @@ namespace OfficeIMO.Drawing.Internal {
                     ? Array.Empty<uint>()
                     : BytesToUInt32Array(ReadRegularChain(stream, basePosition, miniFatStart,
                         checked((long)miniFatSectorCount * sectorSize), sectorSize, physicalSectorCount,
-                        fatSectorIds, fatCache, cancellationToken));
+                        fatSectorIds, fatCache, cancellationToken),
+                        cancellationToken);
                 List<uint> rootChain = root.StartSector == EndOfChain || root.Size == 0
                     ? new List<uint>()
                     : GetRegularSectorChain(stream, basePosition, root.StartSector, root.Size, sectorSize,
@@ -124,9 +128,11 @@ namespace OfficeIMO.Drawing.Internal {
 
                 var streams = new Dictionary<string, byte[]>(StringComparer.OrdinalIgnoreCase);
                 foreach (DirectoryEntry entry in streamEntries) {
+                    cancellationToken.ThrowIfCancellationRequested();
                     string path = streamPaths.TryGetValue(entry.Index, out string? entryPath) ? entryPath : entry.Name;
                     if (externalStreams.Contains(entry.Index)) {
                         using (Stream destination = openExternalDestination(path, entry.Size)) {
+                            cancellationToken.ThrowIfCancellationRequested();
                             if (destination == null || !destination.CanWrite) {
                                 throw new InvalidDataException("The external compound destination is not writable.");
                             }
@@ -149,8 +155,11 @@ namespace OfficeIMO.Drawing.Internal {
                     }
                 }
 
-                compoundFile = new OfficeCompoundFile(streams, BuildCompoundEntries(entries),
+                cancellationToken.ThrowIfCancellationRequested();
+                compoundFile = new OfficeCompoundFile(streams,
+                    BuildCompoundEntries(entries, cancellationToken),
                     CreateCompoundEntry(root, "Root Entry"));
+                cancellationToken.ThrowIfCancellationRequested();
                 return true;
             } catch (Exception exception) when (exception is IOException || exception is ArgumentException ||
                 exception is InvalidDataException || exception is OverflowException ||
@@ -168,6 +177,7 @@ namespace OfficeIMO.Drawing.Internal {
             int physicalSectorCount, IReadOnlyList<uint> fatSectorIds,
             IDictionary<uint, byte[]> fatCache,
             CancellationToken cancellationToken) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (entry.Size == 0) return;
             if (entry.Size < miniCutoff) {
                 CopyMiniChain(input, output, entry.StartSector, entry.Size, miniFat, rootChain,
