@@ -25,7 +25,7 @@ namespace OfficeIMO.Word.Pdf {
 
             pdfOptions.PageSize = firstSection == null ? PdfCore.PageSizes.A4 : GetNativePageSize(firstSection, options);
             pdfOptions.Margins = firstSection == null ? PdfCore.PageMargins.Uniform(72) : GetNativeMargins(firstSection, options);
-            bool allowSystemFontEmbedding = options?.AllowSystemFontEmbedding == true;
+            bool allowSystemFontEmbedding = options?.ResourcePolicy.AllowSystemFontEmbedding == true;
             bool preserveConfiguredFontSlots = ApplyNativeDefaultFont(document, options, pdfOptions, allowSystemFontEmbedding, nativeFontMap) ||
                                                 options?.PdfOptions != null;
             HashSet<PdfCore.PdfStandardFont> registeredFontSlots = RegisterNativeDocumentFonts(document, pdfOptions, preserveConfiguredFontSlots, allowSystemFontEmbedding, nativeFontMap);
@@ -93,6 +93,7 @@ namespace OfficeIMO.Word.Pdf {
             if (!string.IsNullOrWhiteSpace(optionFontFamily) &&
                 TryApplyNativeDefaultFontCandidate(optionFontFamily, pdfOptions, embedSystemFont: allowSystemFontEmbedding)) {
                 nativeFontMap.Register(optionFontFamily!, pdfOptions.DefaultFont);
+                nativeFontMap.PreferPdfDefaultForDocumentDefaultFont();
                 return true;
             }
 
@@ -201,6 +202,12 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static void RegisterNativeTableFonts(WordTable table, PdfCore.PdfOptions pdfOptions, HashSet<string> registeredFamilies, HashSet<PdfCore.PdfStandardFont> registeredFontSlots, bool allowSystemFontEmbedding, NativeFontMap nativeFontMap) {
+            NativeTableStyleDefaults tableStyleDefaults = GetNativeTableStyleDefaults(
+                table,
+                GetNativeDocumentDefaults(table.Document),
+                ignoreFallbackTableStyle: pdfOptions.HasExplicitDefaultTableStyle);
+            RegisterNativeFontCandidate(tableStyleDefaults.RunStyle.FontFamily, pdfOptions, registeredFamilies, registeredFontSlots, allowSystemFontEmbedding, nativeFontMap);
+
             foreach (WordTableRow row in table.Rows) {
                 foreach (WordTableCell cell in row.Cells) {
                     foreach (WordParagraph paragraph in cell.Paragraphs) {
@@ -222,6 +229,8 @@ namespace OfficeIMO.Word.Pdf {
             RegisterNativeFontCandidate(paragraph.FontFamilyHighAnsi, pdfOptions, registeredFamilies, registeredFontSlots, allowSystemFontEmbedding, nativeFontMap);
             RegisterNativeFontCandidate(paragraph.FontFamilyEastAsia, pdfOptions, registeredFamilies, registeredFontSlots, allowSystemFontEmbedding, nativeFontMap);
             RegisterNativeFontCandidate(paragraph.FontFamilyComplexScript, pdfOptions, registeredFamilies, registeredFontSlots, allowSystemFontEmbedding, nativeFontMap);
+            RegisterNativeFontCandidate(GetNativeParagraphStyleDefaults(paragraph).FontFamily, pdfOptions, registeredFamilies, registeredFontSlots, allowSystemFontEmbedding, nativeFontMap);
+            RegisterNativeFontCandidate(GetNativeCharacterStyleDefaults(paragraph._document, GetNativeRunProperties(paragraph)).FontFamily, pdfOptions, registeredFamilies, registeredFontSlots, allowSystemFontEmbedding, nativeFontMap);
         }
 
         private static void RegisterNativeFontCandidate(string? familyName, PdfCore.PdfOptions pdfOptions, HashSet<string> registeredFamilies, HashSet<PdfCore.PdfStandardFont> registeredFontSlots, bool allowSystemFontEmbedding, NativeFontMap nativeFontMap) {

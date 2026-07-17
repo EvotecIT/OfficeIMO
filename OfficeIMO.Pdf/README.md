@@ -346,7 +346,7 @@ using var document = WordDocument.Load("proposal.docx");
 
 var options = new PdfSaveOptions {
     TextFallbacks = PdfTextFallbackFeatures.Default,
-    AllowSystemFontEmbedding = true
+    ResourcePolicy = PdfResourcePolicy.CreateTrustedHost()
 }.UseProfile(PdfExportProfile.PrintReady);
 
 var result = document.ToPdfDocumentResult(options);
@@ -354,7 +354,9 @@ result.Report.RequireNoErrorWarnings();
 result.Save("proposal.pdf");
 ```
 
-The Markdown, Word, Excel, PowerPoint, and OneNote PDF adapters expose the same `TextFallbacks` enum. `PdfTextFallbackFeatures.Default` enables document, monospace, symbol, and emoji groups. Add `PdfTextFallbackFeatures.MultilingualFonts` for installed CJK, Arabic, and other non-Latin families; OneNote adds that flag automatically unless fallbacks are set to `None`. Use `PdfTextFallbackFeatures.None` when strict standard-font output is preferred, or `AllowSystemFontEmbedding = true` when the converter may embed installed host fonts.
+The Word, Excel, PowerPoint, Markdown, HTML, RTF, and OneNote PDF adapters expose one `PdfResourcePolicy`. The balanced default enables installed fonts and bounded data URI/package resources for document fidelity while denying arbitrary local files and remote resolver calls. Use `PdfResourcePolicy.CreatePortableDeterministic()` for reproducible or untrusted conversion, and `CreateTrustedHost()` only when both source and host are trusted. Profiles never grant resource access.
+
+The text-capable adapters also expose `TextFallbacks`. `PdfTextFallbackFeatures.Default` enables document, monospace, symbol, and emoji groups. Add `PdfTextFallbackFeatures.MultilingualFonts` for CJK, Arabic, and other non-Latin family candidates; OneNote adds that candidate group unless fallbacks are `None`. Candidate selection does not read installed fonts unless the resource policy allows it.
 
 ### Generate a formal e-invoice carrier
 
@@ -464,6 +466,10 @@ PdfHtmlConverterExtensions.SaveAsHtml(
 | [OfficeIMO.Markdown.Pdf](../OfficeIMO.Markdown.Pdf/README.md) | Maps Markdown documents into PDF primitives. |
 | [OfficeIMO.PowerPoint.Pdf](../OfficeIMO.PowerPoint.Pdf/README.md) | Maps PowerPoint slides into PDF primitives. |
 | [OfficeIMO.Html.Pdf](../OfficeIMO.Html.Pdf/README.md) | Bridges HTML to PDF and PDF to HTML. |
+| [OfficeIMO.Rtf.Pdf](../OfficeIMO.Rtf.Pdf/README.md) | Maps semantic RTF into PDF and logical PDF content back to RTF. |
+| [OfficeIMO.OneNote.Pdf](../OfficeIMO.OneNote.Pdf/README.md) | Explicitly projects offline OneNote hierarchy into a semantic PDF document with loss diagnostics. |
+
+The canonical catalog also records manual loss-aware compositions for AsciiDoc, LaTeX, and OpenDocument, plus formats that are intentionally not advertised as direct conversion yet: email, EPUB, and Visio. See [`Docs/pdf-conversion-scenarios.json`](../Docs/pdf-conversion-scenarios.json).
 
 ## Boundaries
 

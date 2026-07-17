@@ -10,7 +10,7 @@ public static partial class MarkdownPdfConverterExtensions {
         bool hasCallerPdfOptions = options.PdfOptions != null;
         bool hasExplicitFontFamily = !string.IsNullOrWhiteSpace(options.FontFamily);
         if (hasExplicitFontFamily) {
-            pdfOptions.TryUseOfficeFontFamily(options.FontFamily, options.AllowSystemFontEmbedding);
+            pdfOptions.TryUseOfficeFontFamily(options.FontFamily, options.ResourcePolicy.AllowSystemFontEmbedding);
         }
 
         if (options.TextFallbacks == PdfCore.PdfTextFallbackFeatures.None) {
@@ -34,7 +34,7 @@ public static partial class MarkdownPdfConverterExtensions {
             pdfOptions.UseTextFallbacks(
                 documentAndMonospaceFallbacks,
                 CreateMarkdownReservedFontSlots(pdfOptions, preserveDocumentFontSlots, reserveCourier: false),
-                options.AllowSystemFontEmbedding);
+                options.ResourcePolicy.AllowSystemFontEmbedding);
         }
 
         PdfCore.PdfTextFallbackFeatures runFallbacks = fallbackFeatures &
@@ -43,7 +43,7 @@ public static partial class MarkdownPdfConverterExtensions {
             pdfOptions.UseTextFallbacks(
                 runFallbacks,
                 CreateMarkdownReservedFontSlots(pdfOptions, preserveDocumentFontSlots, reserveCourier: usesCodeFont),
-                options.AllowSystemFontEmbedding);
+                options.ResourcePolicy.AllowSystemFontEmbedding);
         }
     }
 

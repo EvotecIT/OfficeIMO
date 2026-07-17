@@ -48,10 +48,10 @@ public class MarkdownSaveAsPdfOptionsTests {
     }
 
     [Fact]
-    public void ToPdfDocument_Markdown_FontFamilyHonorsSystemFontEmbeddingOptOut() {
+    public void ToPdfDocument_Markdown_PortableDeterministicResourcePolicyDoesNotEmbedSystemFonts() {
         var options = new MarkdownPdfSaveOptions {
             FontFamily = "Georgia",
-            AllowSystemFontEmbedding = false
+            ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic()
         };
 
         PdfCore.PdfDocument document = OfficeIMO.Markdown.MarkdownReader.Parse("# Heading\n\nBody").ToPdfDocument(options);

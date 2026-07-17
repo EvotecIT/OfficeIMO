@@ -17,6 +17,7 @@ namespace OfficeIMO.Html.Pdf;
 /// </code>
 /// </example>
 public sealed class HtmlPdfSaveOptions : HtmlRenderOptions {
+    private PdfCore.PdfResourcePolicy _resourcePolicy = PdfCore.PdfResourcePolicy.CreateDefault();
     /// <summary>Creates direct paged HTML-to-PDF options using the standard defaults.</summary>
     public HtmlPdfSaveOptions() {
         Mode = HtmlRenderMode.Paged;
@@ -45,6 +46,12 @@ public sealed class HtmlPdfSaveOptions : HtmlRenderOptions {
     /// <summary>Optional host-provided shaping seam used with caller-supplied or resolved embedded fonts.</summary>
     public PdfCore.IPdfTextShapingProvider? TextShapingProvider { get; set; }
 
+    /// <summary>Host-resource policy. Defaults to balanced conversion: system fonts and bounded in-source resources are allowed, while local and remote reads are denied.</summary>
+    public PdfCore.PdfResourcePolicy ResourcePolicy {
+        get => _resourcePolicy;
+        set => _resourcePolicy = value ?? throw new ArgumentNullException(nameof(value));
+    }
+
     /// <summary>Creates an independent options snapshot for one PDF conversion.</summary>
     public HtmlPdfSaveOptions ClonePdf() {
         return new HtmlPdfSaveOptions(this);
@@ -61,5 +68,6 @@ public sealed class HtmlPdfSaveOptions : HtmlRenderOptions {
         TextShapingMode = source.TextShapingMode;
         FontFamily = source.FontFamily;
         TextShapingProvider = source.TextShapingProvider;
+        ResourcePolicy = source.ResourcePolicy.Clone();
     }
 }

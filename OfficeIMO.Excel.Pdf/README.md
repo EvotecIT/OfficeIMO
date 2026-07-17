@@ -74,7 +74,7 @@ var options = new ExcelPdfSaveOptions {
 }.UseProfile(PdfExportProfile.Faithful);
 
 options.TextFallbacks = PdfTextFallbackFeatures.Default;
-options.AllowSystemFontEmbedding = true;
+options.ResourcePolicy = PdfResourcePolicy.CreateTrustedHost();
 
 var result = workbook.TrySaveAsPdf("dashboard.pdf", options);
 if (!result.Succeeded) {
@@ -127,7 +127,9 @@ Console.WriteLine($"Imported {results.Count} table(s).");
 - Repeated print-title rows, headers, footers, page/date/time/sheet/workbook tokens, and supported header/footer images.
 - Cell display values, common number formats, fills, font emphasis, alignment, borders, merged cells, links, row heights, column widths, conditional fills/data bars/icons, and table layout primitives.
 - Supported worksheet images and common chart snapshots through shared OfficeIMO drawing primitives.
-- Profile presets through `ExcelPdfSaveOptions.UseProfile(...)`, plus shared `TextFallbacks` and `AllowSystemFontEmbedding` controls for Unicode, symbols, and emoji.
+- Deterministic profile presets through `ExcelPdfSaveOptions.UseProfile(...)`. Applying a profile always resets the complete profile-owned option set, so reusing an options instance is history-independent.
+- Shared `TextFallbacks` and `ResourcePolicy` controls for Unicode, symbols, emoji, and host-resource trust. The balanced default uses installed fonts while denying arbitrary local and remote reads; portable deterministic mode is explicit.
+- Source-faithful zero-options output: worksheet-name headings are opt-in through `IncludeSheetHeadings`.
 - Per-operation conversion warnings through `PdfDocumentConversionResult.Report` or `PdfSaveResult.Report`.
 
 ## Boundaries

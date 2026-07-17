@@ -2047,7 +2047,7 @@ public partial class Word {
 
             document.Save();
             document.SaveAsPdf(pdfPath, new PdfSaveOptions {
-                AllowSystemFontEmbedding = true,
+                ResourcePolicy = PdfResourcePolicy.CreateTrustedHost(),
                 IncludePageNumbers = false
             });
         }
@@ -2087,7 +2087,7 @@ public partial class Word {
 
             document.Save();
             document.SaveAsPdf(pdfPath, new PdfSaveOptions {
-                AllowSystemFontEmbedding = true,
+                ResourcePolicy = PdfResourcePolicy.CreateTrustedHost(),
                 IncludePageNumbers = false
             });
         }

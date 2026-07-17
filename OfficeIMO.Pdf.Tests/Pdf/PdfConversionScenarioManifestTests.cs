@@ -22,53 +22,22 @@ using Xunit;
 namespace OfficeIMO.Tests.Pdf;
 
 public sealed class PdfConversionScenarioManifestTests {
-    private static readonly string[] RequiredPaths = {
-        "word-to-pdf",
-        "excel-to-pdf",
-        "excel-dashboard-to-pdf",
-        "markdown-to-pdf",
-        "markdown-invoice-to-pdf",
-        "html-to-pdf",
-        "html-css-resource-policy-to-pdf",
-        "html-pdf-roundtrip",
-        "rtf-pdf-roundtrip",
-        "pdf-rewrite-preservation-matrix",
-        "pdf-redaction-removal-proof",
-        "pdf-form-appearance-semantics",
-        "pdf-provider-shaped-text",
-        "powerpoint-to-pdf",
-        "powerpoint-layout-theme-groups-to-pdf",
-        "cross-converter-typography-to-pdf",
-        "pdf-to-logical",
-        "pdf-logical-diagnostics-readback",
-        "pdf-reader-degradation-corpus",
-        "pdf-reader-hostile-action-corpus",
-        "pdf-reader-hostile-layout-corpus",
-        "pdf-reader-hostile-table-corpus",
-        "pdf-reader-ocr-handoff-corpus",
-        "pdf-reader-xfa-form-corpus",
-        "pdf-standard-security-roundtrip",
-        "pdf-to-html",
-        "pdf-to-editable-office"
-    };
-
     [Fact]
     public void PdfConversionManifest_CoversEverySupportedConversionPathWithObservableProof() {
         using JsonDocument document = JsonDocument.Parse(File.ReadAllText(GetManifestPath()));
         JsonElement root = document.RootElement;
-        Assert.Equal(1, root.GetProperty("version").GetInt32());
+        Assert.Equal(2, root.GetProperty("version").GetInt32());
 
         JsonElement scenarios = root.GetProperty("scenarios");
-        Assert.True(scenarios.GetArrayLength() >= RequiredPaths.Length);
+        Assert.NotEmpty(scenarios.EnumerateArray());
 
-        var seenPaths = new HashSet<string>(StringComparer.Ordinal);
         var seenIds = new HashSet<string>(StringComparer.Ordinal);
         foreach (JsonElement scenario in scenarios.EnumerateArray()) {
             string id = RequireString(scenario, "id");
             Assert.True(seenIds.Add(id), "Scenario ids must be unique. Duplicate: " + id);
 
             string path = RequireString(scenario, "path");
-            seenPaths.Add(path);
+            Assert.False(string.IsNullOrWhiteSpace(path));
             Assert.Equal("supported", RequireString(scenario, "status"));
             Assert.False(string.IsNullOrWhiteSpace(RequireString(scenario, "converter")));
             Assert.False(string.IsNullOrWhiteSpace(RequireString(scenario, "sourceFormat")));
@@ -85,10 +54,8 @@ public sealed class PdfConversionScenarioManifestTests {
         }
 
         AssertPremiumQualityContract(root.GetProperty("qualityContract"), seenIds);
-
-        foreach (string requiredPath in RequiredPaths) {
-            Assert.Contains(requiredPath, seenPaths);
-        }
+        AssertConverterCatalog(root.GetProperty("converterCatalog"), seenIds);
+        AssertCompositionRoutes(root.GetProperty("compositionRoutes"));
     }
 
     [Fact]
@@ -1994,12 +1961,74 @@ public sealed class PdfConversionScenarioManifestTests {
         Assert.Contains("pdf-form-appearance-semantics", scenarioIds);
         Assert.Contains("pdf-provider-shaped-text", scenarioIds);
 
-        IReadOnlyList<string> premiumBacklog = ReadStringArray(qualityContract, "premiumBacklog");
-        Assert.Contains("validator-backed-pdfa-profile", premiumBacklog);
-        Assert.Contains("validator-backed-pdfua-profile", premiumBacklog);
-        Assert.Contains("opentype-cff-charstring-subsetting", premiumBacklog);
-        Assert.DoesNotContain("opentype-cff-subsetting", premiumBacklog);
-        Assert.DoesNotContain("provider-backed-complex-script-shaping", premiumBacklog);
+        IReadOnlyList<string> knownLimits = ReadStringArray(qualityContract, "knownLimits");
+        Assert.Contains(knownLimits, item => item.Contains("IPdfTextShapingProvider", StringComparison.Ordinal));
+        Assert.Contains(knownLimits, item => item.Contains("OneNote", StringComparison.Ordinal));
+        Assert.Contains(knownLimits, item => item.Contains("external validator", StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static void AssertConverterCatalog(JsonElement converterCatalog, ISet<string> scenarioIds) {
+        string repositoryRoot = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(GetManifestPath())!, ".."));
+        string workflow = File.ReadAllText(Path.Combine(repositoryRoot, ".github", "workflows", "pdf-visual-review-gallery.yml"));
+        var catalogIds = new HashSet<string>(StringComparer.Ordinal);
+        var adapters = new HashSet<string>(StringComparer.Ordinal);
+
+        foreach (JsonElement entry in converterCatalog.EnumerateArray()) {
+            string id = RequireString(entry, "id");
+            Assert.True(catalogIds.Add(id), "Converter catalog ids must be unique. Duplicate: " + id);
+            Assert.True(adapters.Add(RequireString(entry, "adapter")), "Each PDF adapter must have one catalog owner entry.");
+            Assert.NotEmpty(ReadStringArray(entry, "sourceFormats"));
+            Assert.NotEmpty(ReadStringArray(entry, "extensionTypes"));
+            Assert.False(string.IsNullOrWhiteSpace(RequireString(entry, "optionsType")));
+            Assert.False(string.IsNullOrWhiteSpace(RequireString(entry, "conversionMode")));
+
+            string projectPath = RequireString(entry, "projectPath");
+            Assert.True(File.Exists(Path.Combine(repositoryRoot, projectPath.Replace('/', Path.DirectorySeparatorChar))),
+                "Catalog project does not exist: " + projectPath);
+
+            IReadOnlyList<string> ownerPaths = ReadStringArray(entry, "ownerPaths");
+            Assert.NotEmpty(ownerPaths);
+            foreach (string ownerPath in ownerPaths) {
+                Assert.Contains("'" + ownerPath + "'", workflow, StringComparison.Ordinal);
+            }
+
+            IReadOnlyList<string> adapterScenarioIds = ReadStringArray(entry, "scenarioIds");
+            Assert.NotEmpty(adapterScenarioIds);
+            foreach (string scenarioId in adapterScenarioIds) Assert.Contains(scenarioId, scenarioIds);
+        }
+
+        Assert.Equal(new[] { "excel", "html", "markdown", "onenote", "powerpoint", "rtf", "word" },
+            catalogIds.OrderBy(id => id, StringComparer.Ordinal));
+    }
+
+    private static void AssertCompositionRoutes(JsonElement compositionRoutes) {
+        JsonElement[] routes = compositionRoutes.EnumerateArray().ToArray();
+        Assert.NotEmpty(routes);
+
+        string[] expected = {
+            "asciidoc-via-markdown",
+            "email-document",
+            "epub-book",
+            "latex-via-markdown",
+            "opendocument-presentation-via-powerpoint",
+            "opendocument-spreadsheet-via-excel",
+            "opendocument-text-via-word",
+            "visio-diagram"
+        };
+        Assert.Equal(expected, routes
+            .Select(route => RequireString(route, "id"))
+            .OrderBy(id => id, StringComparer.Ordinal)
+            .ToArray());
+
+        foreach (JsonElement route in routes) {
+            Assert.NotEmpty(ReadStringArray(route, "sourceFormats"));
+            Assert.NotEmpty(ReadStringArray(route, "stages"));
+            Assert.False(string.IsNullOrWhiteSpace(RequireString(route, "diagnosticContract")));
+            string status = RequireString(route, "status");
+            Assert.True(
+                status == "manual-loss-aware-composition" || status == "not-yet-direct",
+                "Unknown composition-route status: " + status);
+        }
     }
 
     private static RtfDocument CreateRtfRoundtripDocument() {

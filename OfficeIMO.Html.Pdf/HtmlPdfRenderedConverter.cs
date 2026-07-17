@@ -26,6 +26,23 @@ internal static class HtmlPdfRenderedConverter {
     private static HtmlRenderOptions ResolveRenderOptions(HtmlPdfSaveOptions options) {
         HtmlRenderOptions renderOptions = options.ClonePdf();
         renderOptions.Mode = HtmlRenderMode.Paged;
+        renderOptions.UrlPolicy.AllowDataUrls = options.ResourcePolicy.AllowDataUris;
+        renderOptions.UrlPolicy.DisallowFileUrls = !options.ResourcePolicy.AllowLocalFileAccess;
+        HtmlRenderResourceResolver? resolver = renderOptions.ResourceResolver;
+        if (resolver != null) {
+            renderOptions.ResourceResolver = (request, cancellationToken) => {
+                bool isEmbeddedPackageResource = request.Uri.Scheme.Equals("cid", StringComparison.OrdinalIgnoreCase) ||
+                    request.Uri.Scheme.Equals("mhtml", StringComparison.OrdinalIgnoreCase);
+                bool allowed = isEmbeddedPackageResource
+                    ? options.ResourcePolicy.AllowEmbeddedPackageResources
+                    : request.Uri.IsFile
+                        ? options.ResourcePolicy.AllowLocalFileAccess
+                        : options.ResourcePolicy.AllowRemoteResourceResolution;
+                return allowed
+                    ? resolver(request, cancellationToken)
+                    : Task.FromResult<HtmlResolvedResource?>(null);
+            };
+        }
         return renderOptions;
     }
 
@@ -55,7 +72,7 @@ internal static class HtmlPdfRenderedConverter {
             rendered.Fonts.Faces.Select(face => face.FamilyName),
             StringComparer.OrdinalIgnoreCase);
         PdfCore.PdfTextFallbackFeatures activeTextFallbacks = ResolveTextFallbackFeatures(rendered, options.TextFallbacks);
-        if (activeTextFallbacks != PdfCore.PdfTextFallbackFeatures.None) {
+        if (activeTextFallbacks != PdfCore.PdfTextFallbackFeatures.None && options.ResourcePolicy.AllowSystemFontEmbedding) {
             RegisterUsedSystemFontFamilies(pdf, rendered, activeWebFontFamilies, reservedFontSlots);
         }
         ReserveUsedStandardFontSlots(rendered, activeWebFontFamilies, reservedFontSlots);
@@ -69,7 +86,7 @@ internal static class HtmlPdfRenderedConverter {
             reservedFontSlots.Add(PdfCore.PdfStandardFontMapper.GetFontFamily(slot));
         }
         if (activeTextFallbacks != PdfCore.PdfTextFallbackFeatures.None) {
-            pdf.Options.UseTextFallbacks(activeTextFallbacks, reservedFontSlots, allowSystemFontEmbedding: true);
+            pdf.Options.UseTextFallbacks(activeTextFallbacks, reservedFontSlots, options.ResourcePolicy.AllowSystemFontEmbedding);
         }
         pdf.UseTextShaping(options.TextShapingMode, options.TextShapingProvider);
         ILookup<int, HtmlRenderHeading> headingsByPage = rendered.Headings.ToLookup(heading => heading.PageNumber);

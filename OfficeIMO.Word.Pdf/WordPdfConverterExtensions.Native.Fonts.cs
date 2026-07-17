@@ -8,6 +8,11 @@ namespace OfficeIMO.Word.Pdf {
         private sealed class NativeFontMap {
             private readonly Dictionary<string, PdfCore.PdfStandardFont> _fontSlots = new(StringComparer.OrdinalIgnoreCase);
 
+            public bool UsePdfDefaultForDocumentDefaultFont { get; private set; }
+
+            public void PreferPdfDefaultForDocumentDefaultFont() =>
+                UsePdfDefaultForDocumentDefaultFont = true;
+
             public void Register(string familyName, PdfCore.PdfStandardFont fontSlot) {
                 if (string.IsNullOrWhiteSpace(familyName)) {
                     return;

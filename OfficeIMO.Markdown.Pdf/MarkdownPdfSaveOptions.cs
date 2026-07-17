@@ -10,6 +10,7 @@ public sealed class MarkdownPdfSaveOptions {
     private double _defaultImageHeight = 180D;
     private int _maximumDataUriImageBytes = 5 * 1024 * 1024;
     private int _maximumRemoteImageBytes = 5 * 1024 * 1024;
+    private PdfCore.PdfResourcePolicy _resourcePolicy = PdfCore.PdfResourcePolicy.CreateDefault();
 
     /// <summary>PDF creation options passed to the first-party PDF engine.</summary>
     public PdfCore.PdfOptions? PdfOptions { get; set; }
@@ -22,11 +23,14 @@ public sealed class MarkdownPdfSaveOptions {
     /// </summary>
     public PdfCore.PdfTextFallbackFeatures TextFallbacks { get; set; } = PdfCore.PdfTextFallbackFeatures.Default;
 
-    /// <summary>
-    /// When true, Markdown PDF export may load installed system fonts to cover Unicode, symbol, and emoji fallback runs.
-    /// Defaults to true so Markdown text can render common Unicode content without caller preprocessing.
-    /// </summary>
-    public bool AllowSystemFontEmbedding { get; set; } = true;
+    /// <summary>Host-resource policy. Defaults to balanced conversion: system fonts and bounded in-source resources are allowed, while local and remote reads are denied.</summary>
+    public PdfCore.PdfResourcePolicy ResourcePolicy {
+        get => _resourcePolicy;
+        set => _resourcePolicy = value ?? throw new ArgumentNullException(nameof(value));
+    }
+
+    /// <summary>When true, supported image references are rendered. Resource access is still governed by <see cref="ResourcePolicy"/>.</summary>
+    public bool IncludeImages { get; set; } = true;
 
     /// <summary>Applies the built-in Word-like PDF theme before rendering Markdown blocks.</summary>
     public bool ApplyDefaultTheme { get; set; } = true;
@@ -84,14 +88,8 @@ public sealed class MarkdownPdfSaveOptions {
     /// <summary>Base directory used to resolve relative local image paths.</summary>
     public string? BaseDirectory { get; set; }
 
-    /// <summary>When true, supported local image files are embedded as PDF images. Defaults to false for untrusted Markdown.</summary>
-    public bool IncludeLocalImages { get; set; }
-
     /// <summary>When true and <see cref="BaseDirectory"/> is set, local image paths must resolve inside that directory.</summary>
     public bool RestrictLocalImagesToBaseDirectory { get; set; } = true;
-
-    /// <summary>When true, supported base64 data URI images are embedded as PDF images.</summary>
-    public bool IncludeDataUriImages { get; set; } = true;
 
     /// <summary>Maximum decoded byte length for a single data URI image.</summary>
     public int MaximumDataUriImageBytes {
@@ -152,30 +150,27 @@ public sealed class MarkdownPdfSaveOptions {
     public MarkdownPdfSaveOptions UseProfile(PdfCore.PdfExportProfile profile) {
         switch (profile) {
             case PdfCore.PdfExportProfile.Faithful:
-                IncludeDataUriImages = true;
-                IncludeLocalImages = true;
+                IncludeImages = true;
                 ApplyDefaultTheme = true;
                 CreateOutlineFromHeadings = true;
                 FrontMatterRenderMode = MarkdownPdfFrontMatterRenderMode.DocumentHeader;
                 break;
             case PdfCore.PdfExportProfile.Lightweight:
-                IncludeDataUriImages = false;
-                IncludeLocalImages = false;
-                RemoteImageResolver = null;
+                IncludeImages = false;
                 ApplyDefaultTheme = true;
                 CreateOutlineFromHeadings = true;
+                FrontMatterRenderMode = MarkdownPdfFrontMatterRenderMode.DocumentHeader;
                 break;
             case PdfCore.PdfExportProfile.PrintReady:
-                IncludeDataUriImages = true;
+                IncludeImages = true;
                 ApplyDefaultTheme = true;
                 CreateOutlineFromHeadings = true;
                 FrontMatterRenderMode = MarkdownPdfFrontMatterRenderMode.DocumentHeader;
                 break;
             case PdfCore.PdfExportProfile.TextOnly:
-                IncludeDataUriImages = false;
-                IncludeLocalImages = false;
-                RemoteImageResolver = null;
+                IncludeImages = false;
                 ApplyDefaultTheme = false;
+                CreateOutlineFromHeadings = true;
                 FrontMatterRenderMode = MarkdownPdfFrontMatterRenderMode.Hidden;
                 break;
             default:
@@ -198,6 +193,7 @@ public sealed class MarkdownPdfSaveOptions {
         var clone = (MarkdownPdfSaveOptions)MemberwiseClone();
         clone._theme = _theme?.Clone();
         clone._style = _style?.Clone();
+        clone.ResourcePolicy = ResourcePolicy.Clone();
         clone.Warnings = new List<MarkdownPdfExportWarning>();
         clone.Report = new PdfCore.PdfConversionReport();
         return clone;

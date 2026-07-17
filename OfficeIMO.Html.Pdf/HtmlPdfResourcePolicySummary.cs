@@ -12,6 +12,21 @@ public sealed class HtmlPdfResourcePolicySummary {
     /// <summary>True when an application-supplied asynchronous resource resolver is configured.</summary>
     public bool HasResourceResolver { get; private set; }
 
+    /// <summary>True when installed host fonts may be discovered, read, and embedded.</summary>
+    public bool AllowSystemFontEmbedding { get; private set; }
+
+    /// <summary>True when local files may be resolved by the application-supplied resolver.</summary>
+    public bool AllowLocalFileAccess { get; private set; }
+
+    /// <summary>True when remote resources may be resolved by the application-supplied resolver.</summary>
+    public bool AllowRemoteResourceResolution { get; private set; }
+
+    /// <summary>True when inline data URI resources are accepted.</summary>
+    public bool AllowDataUris { get; private set; }
+
+    /// <summary>True when bounded resources already contained in a source package may be resolved.</summary>
+    public bool AllowEmbeddedPackageResources { get; private set; }
+
     /// <summary>Maximum duration allowed for one resource request.</summary>
     public TimeSpan ResourceTimeout { get; private set; }
 
@@ -36,6 +51,11 @@ public sealed class HtmlPdfResourcePolicySummary {
         HtmlUrlPolicy urlPolicy = options.UrlPolicy ?? HtmlUrlPolicy.CreateOfficeIMOProfile();
         return new HtmlPdfResourcePolicySummary {
             HasResourceResolver = options.ResourceResolver != null,
+            AllowSystemFontEmbedding = options.ResourcePolicy.AllowSystemFontEmbedding,
+            AllowLocalFileAccess = options.ResourcePolicy.AllowLocalFileAccess,
+            AllowRemoteResourceResolution = options.ResourcePolicy.AllowRemoteResourceResolution,
+            AllowDataUris = options.ResourcePolicy.AllowDataUris,
+            AllowEmbeddedPackageResources = options.ResourcePolicy.AllowEmbeddedPackageResources,
             ResourceTimeout = options.ResourceTimeout,
             MaxResourceBytes = options.MaxResourceBytes,
             MaxTotalResourceBytes = options.MaxTotalResourceBytes,

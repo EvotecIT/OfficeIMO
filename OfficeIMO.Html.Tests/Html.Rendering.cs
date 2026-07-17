@@ -3,6 +3,7 @@ using OfficeIMO.Drawing;
 using OfficeIMO.Html;
 using OfficeIMO.Html.Pdf;
 using OfficeIMO.Tests.Pdf;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using PdfCore = OfficeIMO.Pdf;
@@ -252,7 +253,9 @@ public sealed partial class HtmlRenderingTests {
     public async Task HtmlPdf_DirectRendererAsync_ResolvesExternalImageAndWritesSearchablePdf() {
         const string html = "<h1>AsyncPdfMarker</h1><img src='https://assets.example.test/async.png' width='40' height='25' alt='async image'>";
         byte[] imageBytes = PdfPngTestImages.CreateRgbPng(8, 5);
-        HtmlPdfSaveOptions options = new HtmlPdfSaveOptions();
+        HtmlPdfSaveOptions options = new HtmlPdfSaveOptions {
+            ResourcePolicy = PdfCore.PdfResourcePolicy.CreateTrustedHost()
+        };
         options.PageSize = new OfficePageSize(4D, 3D);
         options.Margins = HtmlRenderMargins.All(16D);
         options.ResourceResolver = (request, cancellationToken) =>
@@ -269,7 +272,9 @@ public sealed partial class HtmlRenderingTests {
     [Fact]
     public async Task HtmlPdf_DirectRendererAsync_AppliesExternalStylesheetPageRules() {
         const string html = "<link rel='stylesheet' href='https://assets.example.test/print.css'><p>ExternalCssPdfMarker</p>";
-        HtmlPdfSaveOptions options = new HtmlPdfSaveOptions();
+        HtmlPdfSaveOptions options = new HtmlPdfSaveOptions {
+            ResourcePolicy = PdfCore.PdfResourcePolicy.CreateTrustedHost()
+        };
         options.ResourceResolver = (request, cancellationToken) =>
             Task.FromResult<HtmlResolvedResource?>(new HtmlResolvedResource(
                 System.Text.Encoding.UTF8.GetBytes("@page { size:4in 3in; margin:12px; } p { color:#123456; }"),
@@ -300,12 +305,94 @@ public sealed partial class HtmlRenderingTests {
         HtmlPdfResourcePolicySummary summary = options.GetResourcePolicySummary();
 
         Assert.True(summary.HasResourceResolver);
+        Assert.True(summary.AllowSystemFontEmbedding);
+        Assert.False(summary.AllowLocalFileAccess);
+        Assert.False(summary.AllowRemoteResourceResolution);
+        Assert.True(summary.AllowDataUris);
+        Assert.True(summary.AllowEmbeddedPackageResources);
         Assert.Equal(TimeSpan.FromSeconds(5D), summary.ResourceTimeout);
         Assert.Equal(1024L, summary.MaxResourceBytes);
         Assert.Equal(4096L, summary.MaxTotalResourceBytes);
         Assert.Equal(12, summary.MaxResourceCount);
         Assert.Equal(4, summary.MaxStylesheetImportDepth);
         Assert.Contains("https", summary.AllowedUrlSchemes);
+    }
+
+    [Fact]
+    public async Task HtmlPdf_PortableResourcePolicyDoesNotInvokeRemoteResolver() {
+        int calls = 0;
+        var options = new HtmlPdfSaveOptions {
+            ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic(),
+            ResourceResolver = (request, cancellationToken) => {
+                calls++;
+                return Task.FromResult<HtmlResolvedResource?>(new HtmlResolvedResource(
+                    Encoding.UTF8.GetBytes("p { color: red; }"),
+                    "text/css"));
+            }
+        };
+
+        PdfCore.PdfDocumentConversionResult result = await HtmlConversionDocument.Parse(
+            "<link rel='stylesheet' href='https://assets.example.test/site.css'><p>Portable</p>")
+            .ToPdfDocumentResultAsync(options);
+
+        Assert.Equal(0, calls);
+        Assert.Contains(result.Warnings, warning => warning.Code == HtmlRenderDiagnosticCodes.ResourceUnavailable);
+    }
+
+    [Fact]
+    public async Task HtmlPdf_TrustedHostResourcePolicyInvokesRemoteResolver() {
+        int calls = 0;
+        var options = new HtmlPdfSaveOptions {
+            ResourcePolicy = PdfCore.PdfResourcePolicy.CreateTrustedHost(),
+            ResourceResolver = (request, cancellationToken) => {
+                calls++;
+                return Task.FromResult<HtmlResolvedResource?>(new HtmlResolvedResource(
+                    Encoding.UTF8.GetBytes("p { color: red; }"),
+                    "text/css"));
+            }
+        };
+
+        PdfCore.PdfDocumentConversionResult result = await HtmlConversionDocument.Parse(
+            "<link rel='stylesheet' href='https://assets.example.test/site.css'><p>Trusted</p>")
+            .ToPdfDocumentResultAsync(options);
+
+        Assert.Equal(1, calls);
+        Assert.DoesNotContain(result.Warnings, warning => warning.Code == HtmlRenderDiagnosticCodes.ExternalStylesheetPending);
+    }
+
+    [Fact]
+    public async Task MhtmlPdf_DefaultPolicyResolvesEmbeddedCidImageThroughDirectLifecycle() {
+        byte[] imageBytes = PdfPngTestImages.CreateRgbPng(8, 5);
+        var archive = new MhtmlDocument(
+            "<h1>MhtmlPdfMarker</h1><img src='cid:logo@example.test' width='40' height='25' alt='embedded logo'>",
+            new[] { new MhtmlResource(imageBytes, "image/png", contentId: "logo@example.test", fileName: "logo.png") });
+
+        PdfCore.PdfDocumentConversionResult result = await archive.ToPdfDocumentResultAsync();
+        byte[] pdf = result.ToBytes();
+
+        string text = PdfCore.PdfReadDocument.Load(pdf).ExtractText().Replace("\r", string.Empty).Replace("\n", string.Empty);
+        Assert.Contains("MhtmlPdfMarker", text, StringComparison.Ordinal);
+        Assert.Contains(PdfCore.PdfImageExtractor.ExtractImages(pdf), image => image.IsImageFile && image.MimeType == "image/png");
+        Assert.DoesNotContain(result.Warnings, warning => warning.Code == HtmlRenderDiagnosticCodes.ResourceUnavailable);
+    }
+
+    [Fact]
+    public void MhtmlPdf_ExposesCompleteDirectLifecycle() {
+        MethodInfo[] methods = typeof(HtmlPdfConverterExtensions)
+            .GetMethods(BindingFlags.Public | BindingFlags.Static)
+            .Where(method => method.GetParameters().FirstOrDefault()?.ParameterType == typeof(MhtmlDocument))
+            .ToArray();
+
+        Assert.Single(methods, method => method.Name == "ToPdf");
+        Assert.Single(methods, method => method.Name == "ToPdfAsync");
+        Assert.Single(methods, method => method.Name == "ToPdfDocument");
+        Assert.Single(methods, method => method.Name == "ToPdfDocumentAsync");
+        Assert.Single(methods, method => method.Name == "ToPdfDocumentResult");
+        Assert.Single(methods, method => method.Name == "ToPdfDocumentResultAsync");
+        Assert.Equal(2, methods.Count(method => method.Name == "SaveAsPdf"));
+        Assert.Equal(2, methods.Count(method => method.Name == "SaveAsPdfAsync"));
+        Assert.Equal(2, methods.Count(method => method.Name == "TrySaveAsPdf"));
+        Assert.Equal(2, methods.Count(method => method.Name == "TrySaveAsPdfAsync"));
     }
 
     [Fact]

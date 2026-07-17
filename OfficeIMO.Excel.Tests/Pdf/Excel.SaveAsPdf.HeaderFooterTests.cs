@@ -167,7 +167,7 @@ public partial class Excel {
             HeaderRowCount = 0,
             PageSize = new PdfCore.PageSize(420, 320),
             Margins = PdfCore.PageMargins.Uniform(54),
-            AllowSystemFontEmbedding = true
+            ResourcePolicy = PdfCore.PdfResourcePolicy.CreateTrustedHost()
         };
 
         byte[] bytes;

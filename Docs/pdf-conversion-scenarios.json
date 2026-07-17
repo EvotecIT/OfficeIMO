@@ -1,9 +1,146 @@
 {
-  "version": 1,
+  "version": 2,
   "description": "OfficeIMO PDF conversion proof scenarios. The manifest is consumed by tests and the PDF visual review gallery so converter coverage stays observable.",
+  "converterCatalog": [
+    {
+      "id": "word",
+      "sourceFormats": [ "doc", "docx", "docm", "dotx", "dotm" ],
+      "adapter": "OfficeIMO.Word.Pdf",
+      "projectPath": "OfficeIMO.Word.Pdf/OfficeIMO.Word.Pdf.csproj",
+      "ownerPaths": [ "OfficeIMO.Word/**", "OfficeIMO.Word.Pdf/**" ],
+      "optionsType": "OfficeIMO.Word.Pdf.PdfSaveOptions",
+      "extensionTypes": [ "OfficeIMO.Word.Pdf.WordPdfConverterExtensions" ],
+      "scenarioIds": [ "word-native-report" ],
+      "conversionMode": "native-paged"
+    },
+    {
+      "id": "excel",
+      "sourceFormats": [ "xlsx", "xlsm", "xltx", "xltm", "xls", "xlsb" ],
+      "adapter": "OfficeIMO.Excel.Pdf",
+      "projectPath": "OfficeIMO.Excel.Pdf/OfficeIMO.Excel.Pdf.csproj",
+      "ownerPaths": [ "OfficeIMO.Excel/**", "OfficeIMO.Excel.Pdf/**" ],
+      "optionsType": "OfficeIMO.Excel.Pdf.ExcelPdfSaveOptions",
+      "extensionTypes": [ "OfficeIMO.Excel.Pdf.ExcelPdfConverterExtensions" ],
+      "scenarioIds": [ "excel-native-daily-workbook", "excel-dashboard-report" ],
+      "conversionMode": "native-paged"
+    },
+    {
+      "id": "powerpoint",
+      "sourceFormats": [ "pptx", "pptm" ],
+      "adapter": "OfficeIMO.PowerPoint.Pdf",
+      "projectPath": "OfficeIMO.PowerPoint.Pdf/OfficeIMO.PowerPoint.Pdf.csproj",
+      "ownerPaths": [ "OfficeIMO.PowerPoint/**", "OfficeIMO.PowerPoint.Pdf/**", "OfficeIMO.PowerPoint.Html/**" ],
+      "optionsType": "OfficeIMO.PowerPoint.Pdf.PowerPointPdfSaveOptions",
+      "extensionTypes": [ "OfficeIMO.PowerPoint.Pdf.PowerPointPdfConverterExtensions" ],
+      "scenarioIds": [ "powerpoint-native-dense-layout", "powerpoint-layout-theme-groups" ],
+      "conversionMode": "native-slide-canvas"
+    },
+    {
+      "id": "markdown",
+      "sourceFormats": [ "md", "markdown" ],
+      "adapter": "OfficeIMO.Markdown.Pdf",
+      "projectPath": "OfficeIMO.Markdown.Pdf/OfficeIMO.Markdown.Pdf.csproj",
+      "ownerPaths": [ "OfficeIMO.Markdown/**", "OfficeIMO.Markdown.Pdf/**" ],
+      "optionsType": "OfficeIMO.Markdown.Pdf.MarkdownPdfSaveOptions",
+      "extensionTypes": [ "OfficeIMO.Markdown.Pdf.MarkdownPdfConverterExtensions" ],
+      "scenarioIds": [ "markdown-technical-document", "markdown-invoice-statement" ],
+      "conversionMode": "semantic-document"
+    },
+    {
+      "id": "html",
+      "sourceFormats": [ "html", "htm", "mhtml", "mht" ],
+      "adapter": "OfficeIMO.Html.Pdf",
+      "projectPath": "OfficeIMO.Html.Pdf/OfficeIMO.Html.Pdf.csproj",
+      "ownerPaths": [ "OfficeIMO.Html/**", "OfficeIMO.Html.Pdf/**" ],
+      "optionsType": "OfficeIMO.Html.Pdf.HtmlPdfSaveOptions",
+      "extensionTypes": [ "OfficeIMO.Html.Pdf.HtmlPdfConverterExtensions" ],
+      "scenarioIds": [ "html-document-profile", "html-css-resource-policy", "html-pdf-roundtrip-profile-contract" ],
+      "conversionMode": "declared-html-layout-subset"
+    },
+    {
+      "id": "rtf",
+      "sourceFormats": [ "rtf" ],
+      "adapter": "OfficeIMO.Rtf.Pdf",
+      "projectPath": "OfficeIMO.Rtf.Pdf/OfficeIMO.Rtf.Pdf.csproj",
+      "ownerPaths": [ "OfficeIMO.Rtf/**", "OfficeIMO.Rtf.Pdf/**" ],
+      "optionsType": "OfficeIMO.Rtf.Pdf.RtfPdfSaveOptions",
+      "extensionTypes": [ "OfficeIMO.Rtf.Pdf.RtfPdfConverterExtensions" ],
+      "scenarioIds": [ "rtf-pdf-roundtrip" ],
+      "conversionMode": "semantic-document"
+    },
+    {
+      "id": "onenote",
+      "sourceFormats": [ "one", "onetoc2", "onepkg" ],
+      "adapter": "OfficeIMO.OneNote.Pdf",
+      "projectPath": "OfficeIMO.OneNote.Pdf/OfficeIMO.OneNote.Pdf.csproj",
+      "ownerPaths": [ "OfficeIMO.OneNote/**", "OfficeIMO.OneNote.Markdown/**", "OfficeIMO.OneNote.Pdf/**" ],
+      "optionsType": "OfficeIMO.OneNote.Pdf.OneNotePdfSaveOptions",
+      "extensionTypes": [ "OfficeIMO.OneNote.Pdf.OneNoteSectionPdfConverterExtensions", "OfficeIMO.OneNote.Pdf.OneNoteNotebookPdfConverterExtensions" ],
+      "scenarioIds": [ "onenote-semantic-document" ],
+      "conversionMode": "explicit-semantic-document"
+    }
+  ],
+  "compositionRoutes": [
+    {
+      "id": "asciidoc-via-markdown",
+      "sourceFormats": [ "adoc", "asciidoc", "asc" ],
+      "status": "manual-loss-aware-composition",
+      "stages": [ "OfficeIMO.AsciiDoc", "OfficeIMO.AsciiDoc.Markdown", "OfficeIMO.Markdown.Pdf" ],
+      "diagnosticContract": "Preserve AsciiDocToMarkdownResult.Report diagnostics with PdfDocumentConversionResult.WithAdditionalWarnings; there is no direct AsciiDoc PDF adapter yet."
+    },
+    {
+      "id": "latex-via-markdown",
+      "sourceFormats": [ "tex", "latex" ],
+      "status": "manual-loss-aware-composition",
+      "stages": [ "OfficeIMO.Latex", "OfficeIMO.Latex.Markdown", "OfficeIMO.Markdown.Pdf" ],
+      "diagnosticContract": "Preserve LatexToMarkdownResult.Report diagnostics with PdfDocumentConversionResult.WithAdditionalWarnings; there is no direct LaTeX PDF adapter yet."
+    },
+    {
+      "id": "opendocument-text-via-word",
+      "sourceFormats": [ "odt", "ott" ],
+      "status": "manual-loss-aware-composition",
+      "stages": [ "OfficeIMO.OpenDocument", "OfficeIMO.Word.OpenDocument", "OfficeIMO.Word.Pdf" ],
+      "diagnosticContract": "Preserve OdfConversionResult diagnostics before PDF save; there is no direct OpenDocument PDF adapter yet."
+    },
+    {
+      "id": "opendocument-spreadsheet-via-excel",
+      "sourceFormats": [ "ods", "ots" ],
+      "status": "manual-loss-aware-composition",
+      "stages": [ "OfficeIMO.OpenDocument", "OfficeIMO.Excel.OpenDocument", "OfficeIMO.Excel.Pdf" ],
+      "diagnosticContract": "Preserve OdfConversionResult diagnostics before PDF save; there is no direct OpenDocument PDF adapter yet."
+    },
+    {
+      "id": "opendocument-presentation-via-powerpoint",
+      "sourceFormats": [ "odp", "otp" ],
+      "status": "manual-loss-aware-composition",
+      "stages": [ "OfficeIMO.OpenDocument", "OfficeIMO.PowerPoint.OpenDocument", "OfficeIMO.PowerPoint.Pdf" ],
+      "diagnosticContract": "Preserve OdfConversionResult diagnostics before PDF save; there is no direct OpenDocument PDF adapter yet."
+    },
+    {
+      "id": "email-document",
+      "sourceFormats": [ "eml", "msg", "tnef" ],
+      "status": "not-yet-direct",
+      "stages": [ "OfficeIMO.Email", "preferred body projection", "OfficeIMO.Html.Pdf or OfficeIMO.Rtf.Pdf" ],
+      "diagnosticContract": "A premium route still needs deterministic body selection, inline-resource resolution, attachment policy, and combined source/PDF diagnostics."
+    },
+    {
+      "id": "epub-book",
+      "sourceFormats": [ "epub" ],
+      "status": "not-yet-direct",
+      "stages": [ "OfficeIMO.Epub", "chapter HTML projection", "OfficeIMO.Html.Pdf" ],
+      "diagnosticContract": "A premium route still needs book-level chapter order, stylesheet/font/image resolution, navigation, pagination, and combined diagnostics."
+    },
+    {
+      "id": "visio-diagram",
+      "sourceFormats": [ "vsdx", "vssx", "vstx" ],
+      "status": "not-yet-direct",
+      "stages": [ "OfficeIMO.Visio", "OfficeIMO.Drawing SVG/PNG", "OfficeIMO.Pdf" ],
+      "diagnosticContract": "A premium route should preserve vector page output and hyperlinks; raster-only composition is not advertised as a direct Visio PDF converter."
+    }
+  ],
   "qualityContract": {
     "goal": "Premium PDF support means generic, reusable OfficeIMO.Pdf capabilities with thin source adapters, visible diagnostics for every accepted degradation, and repeatable artifact proof for creation, conversion, reading, manipulation, and review workflows.",
-    "runtimeOwnership": "OfficeIMO.Pdf and OfficeIMO.Drawing own shared PDF layout, typography, reading, manipulation, diagnostics, compliance groundwork, and proof primitives. Word, Excel, PowerPoint, Markdown, HTML, RTF, and Reader packages remain thin adapters over those primitives.",
+    "runtimeOwnership": "OfficeIMO.Pdf and OfficeIMO.Drawing own shared PDF layout, typography, reading, manipulation, diagnostics, compliance groundwork, and proof primitives. Word, Excel, PowerPoint, Markdown, HTML, RTF, OneNote, and Reader packages remain thin adapters over those primitives; OneNote.Markdown owns its explicit semantic projection and loss diagnostics.",
     "nonGoals": [
       "No TestimoX-specific rendering logic.",
       "No silent visual-only redaction or silent content loss.",
@@ -82,6 +219,12 @@
         "tier": "premium-adapter",
         "owner": "OfficeIMO.Rtf.Pdf over OfficeIMO.Rtf and OfficeIMO.Pdf",
         "closureFocus": [ "rtf-to-pdf", "pdf-to-rtf-semantic-import", "metadata", "text-markers", "page-boundaries", "accepted-fixed-layout-degradation" ]
+      },
+      {
+        "id": "onenote-semantic-document",
+        "tier": "accepted-degradation",
+        "owner": "OfficeIMO.OneNote.Pdf over OfficeIMO.OneNote.Markdown and OfficeIMO.Markdown.Pdf",
+        "closureFocus": [ "explicit-semantic-mode", "canvas-flattening-diagnostics", "asset-placeholder-diagnostics", "section-notebook-api-parity", "multilingual-text" ]
       },
       {
         "id": "pdf-rewrite-preservation-matrix",
@@ -192,11 +335,10 @@
         "closureFocus": [ "logical-table-reconstruction", "numeric-column-preservation", "editable-office-table-output" ]
       }
     ],
-    "premiumBacklog": [
-      "validator-backed-pdfa-profile",
-      "validator-backed-pdfua-profile",
-      "facturx-zugferd-validator-proof",
-      "opentype-cff-charstring-subsetting"
+    "knownLimits": [
+      "complex-script shaping beyond built-in scalar and Latin-ligature handling requires a caller-supplied IPdfTextShapingProvider",
+      "OneNote PDF is an explicit semantic-document projection and reports free-form canvas flattening and unresolved binary assets",
+      "formal PDF/A, PDF/UA, Factur-X, and ZUGFeRD claims require the external validator workflow for the exact artifact"
     ]
   },
   "scenarios": [
@@ -619,6 +761,54 @@
           "PdfReadDocument",
           "PdfLogicalDocument",
           "RtfPdfConverterExtensions.ToRtfDocumentFromPdf"
+        ]
+      }
+    },
+    {
+      "id": "onenote-semantic-document",
+      "path": "onenote-to-pdf",
+      "converter": "OfficeIMO.OneNote.Pdf",
+      "sourceFormat": "one/onetoc2/onepkg",
+      "targetFormat": "pdf",
+      "status": "supported",
+      "sourceFeatures": [
+        "notebook-and-section-hierarchy",
+        "headings",
+        "rich-text",
+        "lists",
+        "tables",
+        "links",
+        "binary-asset-placeholders",
+        "free-form-canvas-diagnostics"
+      ],
+      "expectedSimplifications": [
+        "OneNote PDF is an explicit semantic-document projection; free-form canvas placement is flattened into reading order and unresolved images, attachments, recordings, and ink become readable placeholders with conversion warnings"
+      ],
+      "expectedWarnings": [
+        "ONENOTE_MARKDOWN_CANVAS_FLATTENED",
+        "ONENOTE_MARKDOWN_ASSET_PLACEHOLDER"
+      ],
+      "visualReviewFiles": [
+        "onenote-semantic-document.pdf"
+      ],
+      "proof": {
+        "hash": true,
+        "textMarkers": [
+          "OneNote semantic PDF proof",
+          "Positioned note body"
+        ],
+        "logicalSignals": [
+          "explicit-semantic-projection",
+          "heading",
+          "paragraph",
+          "canvas-flattening-warning",
+          "asset-placeholder-warning"
+        ],
+        "visualPages": 1,
+        "validatorEvidence": [
+          "OneNoteMarkdownConversionResult",
+          "PdfDocumentConversionResult",
+          "PdfReadDocument"
         ]
       }
     },

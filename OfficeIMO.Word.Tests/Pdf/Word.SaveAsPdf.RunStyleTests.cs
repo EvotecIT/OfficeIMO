@@ -83,7 +83,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void SaveAsPdf_OfficeIMOEngine_Does_Not_Embed_System_Fonts_By_Default() {
+        public void SaveAsPdf_OfficeIMOEngine_PortableDeterministicPolicyDoesNotEmbedSystemFonts() {
             string docPath = Path.Combine(_directoryWithFiles, "PdfNativeDocumentDefaultFontNoEmbedding.docx");
             string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeDocumentDefaultFontNoEmbedding.pdf");
 
@@ -93,7 +93,8 @@ namespace OfficeIMO.Tests {
 
                 document.Save();
                 document.SaveAsPdf(pdfPath, new PdfSaveOptions {
-                    IncludePageNumbers = false
+                    IncludePageNumbers = false,
+                    ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
                 });
             }
 
@@ -119,7 +120,7 @@ namespace OfficeIMO.Tests {
 
                 document.Save();
                 document.SaveAsPdf(pdfPath, new PdfSaveOptions {
-                    AllowSystemFontEmbedding = true,
+                    ResourcePolicy = PdfResourcePolicy.CreateTrustedHost(),
                     IncludePageNumbers = false
                 });
             }
@@ -153,7 +154,7 @@ namespace OfficeIMO.Tests {
 
                 document.Save();
                 document.SaveAsPdf(pdfPath, new PdfSaveOptions {
-                    AllowSystemFontEmbedding = true,
+                    ResourcePolicy = PdfResourcePolicy.CreateTrustedHost(),
                     IncludePageNumbers = false
                 });
             }
@@ -192,7 +193,7 @@ namespace OfficeIMO.Tests {
 
                 document.Save();
                 document.SaveAsPdf(pdfPath, new PdfSaveOptions {
-                    AllowSystemFontEmbedding = true,
+                    ResourcePolicy = PdfResourcePolicy.CreateTrustedHost(),
                     IncludePageNumbers = false
                 });
             }

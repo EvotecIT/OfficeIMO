@@ -111,27 +111,22 @@ public static partial class PowerPointHtmlConverterExtensions {
             .Append(FormatNumber(height))
             .Append("pt;\">");
 
-        IReadOnlyList<OfficeImageExportDiagnostic> slideDiagnostics = Array.Empty<OfficeImageExportDiagnostic>();
-        if (options.UseSharedVisualSnapshot) {
-            var snapshotOptions = new PptCore.PowerPointImageExportOptions {
-                IncludeHiddenShapes = options.IncludeHiddenShapes,
-                IncludeTables = options.IncludeTables
-            };
-            PptCore.PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot(snapshotOptions);
-            slideDiagnostics = snapshot.Diagnostics;
-            body.Append("<div class=\"officeimo-shared-slide-snapshot\" data-officeimo-visual-owner=\"OfficeIMO.Drawing\" data-officeimo-snapshot-diagnostics=\"")
-                .Append(snapshot.Diagnostics.Count.ToString(CultureInfo.InvariantCulture))
-                .Append("\">")
-                .Append(OfficeDrawingSvgExporter.ToSvg(snapshot.Drawing))
-                .Append("</div>");
-            foreach (OfficeImageExportDiagnostic diagnostic in snapshot.Diagnostics) {
-                imageDiagnostics.Add(diagnostic);
-            }
+        var snapshotOptions = new PptCore.PowerPointImageExportOptions {
+            IncludeHiddenShapes = options.IncludeHiddenShapes,
+            IncludeTables = options.IncludeTables
+        };
+        PptCore.PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot(snapshotOptions);
+        IReadOnlyList<OfficeImageExportDiagnostic> slideDiagnostics = snapshot.Diagnostics;
+        body.Append("<div class=\"officeimo-shared-slide-snapshot\" data-officeimo-visual-owner=\"OfficeIMO.Drawing\" data-officeimo-snapshot-diagnostics=\"")
+            .Append(snapshot.Diagnostics.Count.ToString(CultureInfo.InvariantCulture))
+            .Append("\">")
+            .Append(OfficeDrawingSvgExporter.ToSvg(snapshot.Drawing))
+            .Append("</div>");
+        foreach (OfficeImageExportDiagnostic diagnostic in snapshot.Diagnostics) {
+            imageDiagnostics.Add(diagnostic);
         }
 
-        body.Append(options.UseSharedVisualSnapshot
-            ? "<div class=\"officeimo-positioned-shape-metadata\" hidden>"
-            : "<div class=\"officeimo-positioned-shape-fallback\">");
+        body.Append("<div class=\"officeimo-positioned-shape-metadata\" hidden>");
         foreach (PptCore.PowerPointShape shape in EnumerateVisualExportShapes(slide)) {
             if (!options.IncludeHiddenShapes && shape.Hidden) {
                 continue;

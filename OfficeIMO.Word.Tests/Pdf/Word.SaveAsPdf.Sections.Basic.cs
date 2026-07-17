@@ -163,12 +163,14 @@ public partial class Word {
             var headerLetter = page.Letters.Single(letter => letter.Value == "Q");
             var footerLetter = page.Letters.Single(letter => letter.Value == "X");
 
-            Assert.Contains("Times", headerLetter.FontName, StringComparison.OrdinalIgnoreCase);
+            string expectedHeaderFont = PdfCore.PdfEmbeddedFontFamily.TryFromSystem("Georgia", out _) ? "Georgia" : "Times";
+            Assert.Contains(expectedHeaderFont, headerLetter.FontName, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("Courier", footerLetter.FontName, StringComparison.OrdinalIgnoreCase);
         }
 
         string pdfContent = Encoding.ASCII.GetString(File.ReadAllBytes(pdfPath));
-        Assert.Contains("/BaseFont /Times", pdfContent, StringComparison.OrdinalIgnoreCase);
+        string expectedHeaderBaseFont = PdfCore.PdfEmbeddedFontFamily.TryFromSystem("Georgia", out _) ? "/BaseFont /Georgia" : "/BaseFont /Times";
+        Assert.Contains(expectedHeaderBaseFont, pdfContent, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("/BaseFont /Courier", pdfContent, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -305,7 +307,8 @@ public partial class Word {
             Assert.Contains("GreenStyledFooter", page.Text);
 
             var headerLetter = page.Letters.Single(letter => letter.Value == "Q");
-            Assert.Contains("Times", headerLetter.FontName, StringComparison.OrdinalIgnoreCase);
+            string expectedHeaderFont = PdfCore.PdfEmbeddedFontFamily.TryFromSystem("Georgia", out _) ? "Georgia" : "Times";
+            Assert.Contains(expectedHeaderFont, headerLetter.FontName, StringComparison.OrdinalIgnoreCase);
         }
 
         string content = ReadPdfPageContent(File.ReadAllBytes(pdfPath));
@@ -361,7 +364,8 @@ public partial class Word {
             Assert.Contains("GreenCharStyledFooter", page.Text);
 
             var headerLetter = page.Letters.Single(letter => letter.Value == "Q");
-            Assert.Contains("Times", headerLetter.FontName, StringComparison.OrdinalIgnoreCase);
+            string expectedHeaderFont = PdfCore.PdfEmbeddedFontFamily.TryFromSystem("Georgia", out _) ? "Georgia" : "Times";
+            Assert.Contains(expectedHeaderFont, headerLetter.FontName, StringComparison.OrdinalIgnoreCase);
         }
 
         string content = ReadPdfPageContent(File.ReadAllBytes(pdfPath));
@@ -395,13 +399,19 @@ public partial class Word {
             var headerLetter = page.Letters.Single(letter => letter.Value == "Q");
             var footerLetter = page.Letters.Single(letter => letter.Value == "X");
 
-            Assert.Contains("Times-Bold", headerLetter.FontName, StringComparison.OrdinalIgnoreCase);
-            Assert.Contains("Courier-Oblique", footerLetter.FontName, StringComparison.OrdinalIgnoreCase);
+            string expectedHeaderFont = PdfCore.PdfEmbeddedFontFamily.TryFromSystem("Georgia", out _) ? "Georgia-Bold" : "Times-Bold";
+            Assert.Contains(expectedHeaderFont, headerLetter.FontName, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("Courier", footerLetter.FontName, StringComparison.OrdinalIgnoreCase);
+            Assert.True(
+                footerLetter.FontName.Contains("Italic", StringComparison.OrdinalIgnoreCase) ||
+                footerLetter.FontName.Contains("Oblique", StringComparison.OrdinalIgnoreCase),
+                "Expected the explicit footer family to preserve italic emphasis.");
         }
 
         string pdfContent = Encoding.ASCII.GetString(File.ReadAllBytes(pdfPath));
-        Assert.Contains("/BaseFont /Times-Bold", pdfContent, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("/BaseFont /Courier-Oblique", pdfContent, StringComparison.OrdinalIgnoreCase);
+        string expectedHeaderBaseFont = PdfCore.PdfEmbeddedFontFamily.TryFromSystem("Georgia", out _) ? "/BaseFont /Georgia-Bold" : "/BaseFont /Times-Bold";
+        Assert.Contains(expectedHeaderBaseFont, pdfContent, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("/BaseFont /Courier", pdfContent, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]

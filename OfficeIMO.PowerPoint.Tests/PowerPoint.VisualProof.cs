@@ -74,7 +74,6 @@ namespace OfficeIMO.Tests {
                         htmlResult.ImageDiagnostics.Count);
 
                     var pdfOptions = new PowerPointPdfSaveOptions().UseProfile(PdfExportProfile.Faithful);
-                    Assert.True(pdfOptions.UseSharedVisualSnapshot);
                     PdfDocumentConversionResult pdfResult = presentation.ToPdfDocumentResult(pdfOptions);
                     byte[] pdf = pdfResult.ToBytes();
                     Assert.True(pdf.Length > 100);

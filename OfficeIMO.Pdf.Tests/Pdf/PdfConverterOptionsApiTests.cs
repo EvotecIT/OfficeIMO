@@ -6,37 +6,55 @@ namespace OfficeIMO.Tests.Pdf;
 
 public sealed class PdfConverterOptionsApiTests {
     [Fact]
-    public void ConverterOptionsExposeUnifiedTextFallbackDefaults() {
+    public void ConverterOptionsExposeUnifiedBalancedResourceDefaults() {
         var markdown = new MarkdownPdfSaveOptions();
         var word = new OfficeIMO.Word.Pdf.PdfSaveOptions();
         var excel = new OfficeIMO.Excel.Pdf.ExcelPdfSaveOptions();
         var powerPoint = new OfficeIMO.PowerPoint.Pdf.PowerPointPdfSaveOptions();
+        var html = new OfficeIMO.Html.Pdf.HtmlPdfSaveOptions();
+        var rtf = new OfficeIMO.Rtf.Pdf.RtfPdfSaveOptions();
 
         Assert.Equal(PdfTextFallbackFeatures.Default, markdown.TextFallbacks);
         Assert.Equal(PdfTextFallbackFeatures.Default, word.TextFallbacks);
         Assert.Equal(PdfTextFallbackFeatures.Default, excel.TextFallbacks);
         Assert.Equal(PdfTextFallbackFeatures.Default, powerPoint.TextFallbacks);
-        Assert.True(markdown.AllowSystemFontEmbedding);
-        Assert.False(word.AllowSystemFontEmbedding);
-        Assert.True(excel.AllowSystemFontEmbedding);
-        Assert.True(powerPoint.AllowSystemFontEmbedding);
+        AssertBalancedDefault(markdown.ResourcePolicy);
+        AssertBalancedDefault(word.ResourcePolicy);
+        AssertBalancedDefault(excel.ResourcePolicy);
+        AssertBalancedDefault(powerPoint.ResourcePolicy);
+        AssertBalancedDefault(html.ResourcePolicy);
+        AssertBalancedDefault(rtf.ResourcePolicy);
+        AssertPortable(PdfResourcePolicy.CreatePortableDeterministic());
     }
 
     [Fact]
     public void MarkdownProfileMapsToSingleOptionsObject() {
         var options = new MarkdownPdfSaveOptions {
-            IncludeDataUriImages = true,
-            IncludeLocalImages = true,
+            IncludeImages = true,
+            ResourcePolicy = PdfResourcePolicy.CreateTrustedHost(),
             ApplyDefaultTheme = true
         };
 
         MarkdownPdfSaveOptions returned = options.UseProfile(PdfExportProfile.TextOnly);
 
         Assert.Same(options, returned);
-        Assert.False(options.IncludeDataUriImages);
-        Assert.False(options.IncludeLocalImages);
+        Assert.False(options.IncludeImages);
+        Assert.True(options.ResourcePolicy.AllowDataUris);
+        Assert.True(options.ResourcePolicy.AllowLocalFileAccess);
         Assert.False(options.ApplyDefaultTheme);
         Assert.Equal(MarkdownPdfFrontMatterRenderMode.Hidden, options.FrontMatterRenderMode);
+    }
+
+    [Fact]
+    public void MarkdownProfilesDoNotDependOnPreviouslyAppliedProfile() {
+        var reused = new MarkdownPdfSaveOptions();
+        reused.UseProfile(PdfExportProfile.TextOnly).UseProfile(PdfExportProfile.Lightweight);
+        var fresh = new MarkdownPdfSaveOptions().UseProfile(PdfExportProfile.Lightweight);
+
+        Assert.Equal(fresh.IncludeImages, reused.IncludeImages);
+        Assert.Equal(fresh.ApplyDefaultTheme, reused.ApplyDefaultTheme);
+        Assert.Equal(fresh.CreateOutlineFromHeadings, reused.CreateOutlineFromHeadings);
+        Assert.Equal(fresh.FrontMatterRenderMode, reused.FrontMatterRenderMode);
     }
 
     [Fact]
@@ -49,7 +67,7 @@ public sealed class PdfConverterOptionsApiTests {
         OfficeIMO.Word.Pdf.PdfSaveOptions returned = options.UseProfile(PdfExportProfile.PrintReady);
 
         Assert.Same(options, returned);
-        Assert.True(options.IncludePageNumbers);
+        Assert.False(options.IncludePageNumbers);
         Assert.True(options.DefaultTableBorders);
     }
 
@@ -69,6 +87,15 @@ public sealed class PdfConverterOptionsApiTests {
         Assert.False(options.UseWorksheetCharts);
         Assert.False(options.UseWorksheetHyperlinks);
         Assert.True(options.UseWorksheetCellStyles);
+    }
+
+    [Fact]
+    public void ExcelProfilesDoNotDependOnPreviouslyAppliedProfile() {
+        var reused = new OfficeIMO.Excel.Pdf.ExcelPdfSaveOptions();
+        reused.UseProfile(PdfExportProfile.TextOnly).UseProfile(PdfExportProfile.PrintReady);
+        var fresh = new OfficeIMO.Excel.Pdf.ExcelPdfSaveOptions().UseProfile(PdfExportProfile.PrintReady);
+
+        Assert.Equal(GetExcelProfileState(fresh), GetExcelProfileState(reused));
     }
 
     [Fact]
@@ -98,4 +125,39 @@ public sealed class PdfConverterOptionsApiTests {
         Assert.Throws<ArgumentOutOfRangeException>(() => new OfficeIMO.Excel.Pdf.ExcelPdfSaveOptions().UseProfile(profile));
         Assert.Throws<ArgumentOutOfRangeException>(() => new OfficeIMO.PowerPoint.Pdf.PowerPointPdfSaveOptions().UseProfile(profile));
     }
+
+    private static void AssertPortable(PdfResourcePolicy policy) {
+        Assert.False(policy.AllowSystemFontEmbedding);
+        Assert.False(policy.AllowLocalFileAccess);
+        Assert.False(policy.AllowRemoteResourceResolution);
+        Assert.True(policy.AllowDataUris);
+        Assert.True(policy.AllowEmbeddedPackageResources);
+    }
+
+    private static void AssertBalancedDefault(PdfResourcePolicy policy) {
+        Assert.True(policy.AllowSystemFontEmbedding);
+        Assert.False(policy.AllowLocalFileAccess);
+        Assert.False(policy.AllowRemoteResourceResolution);
+        Assert.True(policy.AllowDataUris);
+        Assert.True(policy.AllowEmbeddedPackageResources);
+    }
+
+    private static bool[] GetExcelProfileState(OfficeIMO.Excel.Pdf.ExcelPdfSaveOptions options) => new[] {
+        options.RespectWorkbookSheetVisibility,
+        options.UseWorksheetPrintAreas,
+        options.UseWorksheetPageSetup,
+        options.UseWorksheetPrintTitleRows,
+        options.UseWorksheetPageBreaks,
+        options.UseWorksheetHeadersAndFooters,
+        options.UseWorksheetHeaderFooterImages,
+        options.UseWorksheetCellStyles,
+        options.UseWorksheetHyperlinks,
+        options.UseWorksheetImages,
+        options.UseWorksheetCharts,
+        options.UseWorksheetMergedCells,
+        options.UseWorksheetColumnWidths,
+        options.UseWorksheetRowHeights,
+        options.RespectWorksheetHiddenRowsAndColumns,
+        options.IncludeSheetHeadings
+    };
 }

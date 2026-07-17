@@ -8,6 +8,7 @@ namespace OfficeIMO.Excel.Pdf {
     public sealed class ExcelPdfSaveOptions {
         private int _headerRowCount = 1;
         private int? _maxRowsPerSheet;
+        private PdfCore.PdfResourcePolicy _resourcePolicy = PdfCore.PdfResourcePolicy.CreateDefault();
 
         /// <summary>
         /// Warnings populated when workbook content cannot be mapped faithfully.
@@ -31,10 +32,11 @@ namespace OfficeIMO.Excel.Pdf {
         /// </summary>
         public string? FontFamily { get; set; }
 
-        /// <summary>
-        /// When true, Excel PDF export may load installed system fonts to embed them into the generated PDF. Defaults to true to preserve existing workbook fidelity.
-        /// </summary>
-        public bool AllowSystemFontEmbedding { get; set; } = true;
+        /// <summary>Host-resource policy. Defaults to balanced conversion: system fonts and bounded in-source resources are allowed, while local and remote reads are denied.</summary>
+        public PdfCore.PdfResourcePolicy ResourcePolicy {
+            get => _resourcePolicy;
+            set => _resourcePolicy = value ?? throw new ArgumentNullException(nameof(value));
+        }
 
         /// <summary>
         /// Built-in generated-text fallback groups applied by the Excel PDF converter.
@@ -147,9 +149,9 @@ namespace OfficeIMO.Excel.Pdf {
         public bool RespectWorksheetHiddenRowsAndColumns { get; set; } = true;
 
         /// <summary>
-        /// Determines whether exported sheets start with the worksheet name as a PDF heading. Defaults to true.
+        /// Determines whether exported sheets start with a generated worksheet-name heading. Defaults to false.
         /// </summary>
-        public bool IncludeSheetHeadings { get; set; } = true;
+        public bool IncludeSheetHeadings { get; set; }
 
         /// <summary>
         /// Number of leading worksheet rows styled as table headers. Defaults to one row.
@@ -205,33 +207,61 @@ namespace OfficeIMO.Excel.Pdf {
                     UseWorksheetColumnWidths = true;
                     UseWorksheetRowHeights = true;
                     RespectWorksheetHiddenRowsAndColumns = true;
-                    IncludeSheetHeadings = true;
+                    IncludeSheetHeadings = false;
                     break;
                 case PdfCore.PdfExportProfile.Lightweight:
-                    UseWorksheetHeaderFooterImages = false;
-                    UseWorksheetImages = false;
-                    UseWorksheetCharts = false;
-                    UseWorksheetHyperlinks = false;
-                    UseWorksheetCellStyles = true;
-                    IncludeSheetHeadings = true;
-                    break;
-                case PdfCore.PdfExportProfile.PrintReady:
+                    RespectWorkbookSheetVisibility = true;
                     UseWorksheetPrintAreas = true;
                     UseWorksheetPageSetup = true;
                     UseWorksheetPrintTitleRows = true;
                     UseWorksheetPageBreaks = true;
                     UseWorksheetHeadersAndFooters = true;
+                    UseWorksheetHeaderFooterImages = false;
+                    UseWorksheetCellStyles = true;
+                    UseWorksheetHyperlinks = false;
+                    UseWorksheetImages = false;
+                    UseWorksheetCharts = false;
+                    UseWorksheetMergedCells = true;
+                    UseWorksheetColumnWidths = true;
+                    UseWorksheetRowHeights = true;
+                    RespectWorksheetHiddenRowsAndColumns = true;
+                    IncludeSheetHeadings = false;
+                    break;
+                case PdfCore.PdfExportProfile.PrintReady:
+                    RespectWorkbookSheetVisibility = true;
+                    UseWorksheetPrintAreas = true;
+                    UseWorksheetPageSetup = true;
+                    UseWorksheetPrintTitleRows = true;
+                    UseWorksheetPageBreaks = true;
+                    UseWorksheetHeadersAndFooters = true;
+                    UseWorksheetHeaderFooterImages = true;
+                    UseWorksheetCellStyles = true;
+                    UseWorksheetHyperlinks = true;
+                    UseWorksheetImages = true;
+                    UseWorksheetCharts = true;
+                    UseWorksheetMergedCells = true;
+                    UseWorksheetColumnWidths = true;
+                    UseWorksheetRowHeights = true;
                     RespectWorksheetHiddenRowsAndColumns = true;
                     IncludeSheetHeadings = false;
                     break;
                 case PdfCore.PdfExportProfile.TextOnly:
+                    RespectWorkbookSheetVisibility = true;
+                    UseWorksheetPrintAreas = true;
+                    UseWorksheetPageSetup = true;
+                    UseWorksheetPrintTitleRows = true;
+                    UseWorksheetPageBreaks = true;
+                    UseWorksheetHeadersAndFooters = true;
                     UseWorksheetHeaderFooterImages = false;
+                    UseWorksheetCellStyles = false;
+                    UseWorksheetHyperlinks = false;
                     UseWorksheetImages = false;
                     UseWorksheetCharts = false;
-                    UseWorksheetHyperlinks = false;
-                    UseWorksheetCellStyles = false;
                     UseWorksheetMergedCells = true;
-                    IncludeSheetHeadings = true;
+                    UseWorksheetColumnWidths = true;
+                    UseWorksheetRowHeights = true;
+                    RespectWorksheetHiddenRowsAndColumns = true;
+                    IncludeSheetHeadings = false;
                     break;
                 default:
                     throw new ArgumentOutOfRangeException(nameof(profile), profile, "Unsupported PDF export profile.");
@@ -243,6 +273,7 @@ namespace OfficeIMO.Excel.Pdf {
         internal ExcelPdfSaveOptions CloneForConversion() {
             var clone = (ExcelPdfSaveOptions)MemberwiseClone();
             clone.SheetNames = SheetNames?.ToArray();
+            clone.ResourcePolicy = ResourcePolicy.Clone();
             clone.Warnings = new List<ExcelPdfExportWarning>();
             clone.Report = new PdfCore.PdfConversionReport();
             return clone;

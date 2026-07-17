@@ -1038,7 +1038,8 @@ namespace OfficeIMO.Word.Pdf {
                 TryResolveNativeMappedFont(characterStyleDefaults.FontFamily, nativeFontMap, out font) ||
                 TryResolveNativeMappedFont(styleDefaults.FontFamily, nativeFontMap, out font) ||
                 TryResolveNativeMappedFont(tableRunStyleDefaults.FontFamily, nativeFontMap, out font) ||
-                TryResolveNativeMappedFont(nativeDefaults.FontFamily, nativeFontMap, out font)) {
+                (nativeFontMap?.UsePdfDefaultForDocumentDefaultFont != true &&
+                 TryResolveNativeMappedFont(nativeDefaults.FontFamily, nativeFontMap, out font))) {
                 return font;
             }
 

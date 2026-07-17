@@ -124,6 +124,23 @@ try {
         if ($LASTEXITCODE -ne 0) {
             throw "dotnet test failed with exit code $LASTEXITCODE."
         }
+
+        $oneNoteTestArgs = @(
+            'test',
+            (Join-Path $repoRoot 'OfficeIMO.OneNote.Tests/OfficeIMO.OneNote.Tests.csproj'),
+            '--configuration', $Configuration,
+            '--framework', $Framework,
+            '--filter', 'FullyQualifiedName~OneNotePdfVisualScenarioTests',
+            '--verbosity', 'minimal',
+            '-p:WarningLevel=0'
+        )
+        if ($NoRestore) {
+            $oneNoteTestArgs += '--no-restore'
+        }
+        & dotnet @oneNoteTestArgs
+        if ($LASTEXITCODE -ne 0) {
+            throw "OneNote PDF visual scenario test failed with exit code $LASTEXITCODE."
+        }
     } finally {
         Pop-Location
     }
@@ -196,11 +213,13 @@ $scenarioProof = @(
 $qualityContract = $scenarioManifest.qualityContract
 
 $proofSummary = [pscustomobject]@{
-    version = 1
+    version = 2
     generatedAt = $generatedAt
     commit = $commit
     outputDirectory = $resolvedOutputPath
     manifest = 'conversion-scenarios.json'
+    converterCatalog = @($scenarioManifest.converterCatalog)
+    compositionRoutes = @($scenarioManifest.compositionRoutes)
     qualityContract = $qualityContract
     scenarios = $scenarioProof
 }
@@ -252,10 +271,34 @@ foreach ($proofItem in @($qualityContract.requiredProof)) {
     $lines.Add("- $proofItem")
 }
 $lines.Add('')
-$lines.Add('Backlog still tracked by the contract:')
+$lines.Add('Known limits:')
 $lines.Add('')
-foreach ($backlogItem in @($qualityContract.premiumBacklog)) {
-    $lines.Add("- $backlogItem")
+foreach ($knownLimit in @($qualityContract.knownLimits)) {
+    $lines.Add("- $knownLimit")
+}
+$lines.Add('')
+$lines.Add('## Direct Converter Catalog')
+$lines.Add('')
+$lines.Add('| Source | Formats | Adapter | Mode |')
+$lines.Add('| --- | --- | --- | --- |')
+foreach ($converter in @($scenarioManifest.converterCatalog)) {
+    $source = ([string]$converter.id).Replace('|', '\|')
+    $formats = (@($converter.sourceFormats) -join ', ').Replace('|', '\|')
+    $adapter = ([string]$converter.adapter).Replace('|', '\|')
+    $mode = ([string]$converter.conversionMode).Replace('|', '\|')
+    $lines.Add("| $source | $formats | $adapter | $mode |")
+}
+$lines.Add('')
+$lines.Add('## Composed And Planned Routes')
+$lines.Add('')
+$lines.Add('| Route | Formats | Status | Stages |')
+$lines.Add('| --- | --- | --- | --- |')
+foreach ($route in @($scenarioManifest.compositionRoutes)) {
+    $routeId = ([string]$route.id).Replace('|', '\|')
+    $formats = (@($route.sourceFormats) -join ', ').Replace('|', '\|')
+    $routeStatus = ([string]$route.status).Replace('|', '\|')
+    $stages = (@($route.stages) -join ' -> ').Replace('|', '\|')
+    $lines.Add("| $routeId | $formats | $routeStatus | $stages |")
 }
 $lines.Add('')
 $lines.Add('| Scenario | Path | Converter | Review artifacts |')

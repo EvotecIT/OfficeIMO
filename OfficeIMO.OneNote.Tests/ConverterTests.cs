@@ -2,7 +2,10 @@ using OfficeIMO.Markdown;
 using OfficeIMO.OneNote.Html;
 using OfficeIMO.OneNote.Markdown;
 using OfficeIMO.OneNote.Pdf;
+using OfficeIMO.Pdf;
+using System.Reflection;
 using System.Text;
+using System.Threading;
 
 namespace OfficeIMO.OneNote.Tests;
 
@@ -115,6 +118,48 @@ public sealed class ConverterTests {
         Assert.Equal("%PDF", Encoding.ASCII.GetString(bytes, 0, 4));
         Assert.True(stream.CanWrite);
         Assert.Equal("%PDF", Encoding.ASCII.GetString(stream.ToArray(), 0, 4));
+    }
+
+    [Fact]
+    public void PdfConversionReportsSemanticProjectionLossInsteadOfSilentlyFlatteningIt() {
+        OneNoteSection section = CreateNotebook().SectionGroups[0].Sections[0];
+        section.Pages[0].DirectContent[0].Layout = new OneNoteLayout { X = 120, Y = 80, Width = 240 };
+
+        PdfDocumentConversionResult result = section.ToPdfDocumentResult();
+
+        Assert.Contains(result.Warnings, warning => warning.Code == "ONENOTE_MARKDOWN_CANVAS_FLATTENED");
+        Assert.Contains(result.Warnings, warning => warning.Code == "ONENOTE_MARKDOWN_ASSET_PLACEHOLDER");
+        Assert.True(result.HasLoss);
+        Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
+    }
+
+    [Theory]
+    [InlineData(typeof(OneNoteSectionPdfConverterExtensions))]
+    [InlineData(typeof(OneNoteNotebookPdfConverterExtensions))]
+    public void PdfAdaptersExposeTheSharedLifecyclePerSourceType(Type adapterType) {
+        MethodInfo[] methods = adapterType.GetMethods(BindingFlags.Public | BindingFlags.Static);
+
+        Assert.Single(methods, method => method.Name == "ToPdf");
+        Assert.Single(methods, method => method.Name == "ToPdfDocument");
+        Assert.Single(methods, method => method.Name == "ToPdfDocumentResult");
+        Assert.Equal(2, methods.Count(method => method.Name == "SaveAsPdf"));
+        Assert.Equal(2, methods.Count(method => method.Name == "TrySaveAsPdf"));
+        Assert.Equal(2, methods.Count(method => method.Name == "SaveAsPdfAsync"));
+        Assert.Equal(2, methods.Count(method => method.Name == "TrySaveAsPdfAsync"));
+    }
+
+    [Fact]
+    public async Task PdfAsyncAdaptersObservePreCanceledTokensBeforeProjection() {
+        OneNoteSection section = CreateNotebook().SectionGroups[0].Sections[0];
+        using var stream = new MemoryStream();
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            section.SaveAsPdfAsync(stream, cancellationToken: cancellation.Token));
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            section.TrySaveAsPdfAsync(stream, cancellationToken: cancellation.Token));
+        Assert.Equal(0, stream.Length);
     }
 
     [Fact]

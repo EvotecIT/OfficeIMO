@@ -18,16 +18,18 @@ public enum PowerPointPdfPageLayout {
 /// </summary>
 public sealed class PowerPointPdfSaveOptions {
     private int _handoutSlidesPerPage = 6;
+    private PdfCore.PdfResourcePolicy _resourcePolicy = PdfCore.PdfResourcePolicy.CreateDefault();
     /// <summary>PDF creation options passed to the first-party PDF engine.</summary>
     public PdfCore.PdfOptions? PdfOptions { get; set; }
 
     /// <summary>Optional PowerPoint-style font family used as the first-party PDF default font.</summary>
     public string? FontFamily { get; set; }
 
-    /// <summary>
-    /// When true, PowerPoint PDF export may load installed system fonts to embed them into the generated PDF. Defaults to true to preserve existing presentation fidelity.
-    /// </summary>
-    public bool AllowSystemFontEmbedding { get; set; } = true;
+    /// <summary>Host-resource policy. Defaults to balanced conversion: system fonts and bounded in-source resources are allowed, while local and remote reads are denied.</summary>
+    public PdfCore.PdfResourcePolicy ResourcePolicy {
+        get => _resourcePolicy;
+        set => _resourcePolicy = value ?? throw new ArgumentNullException(nameof(value));
+    }
 
     /// <summary>
     /// Built-in generated-text fallback groups applied by the PowerPoint PDF converter.
@@ -73,12 +75,6 @@ public sealed class PowerPointPdfSaveOptions {
     /// <summary>When true, notes-page and handout layouts include existing speaker-note text.</summary>
     public bool IncludeSpeakerNotes { get; set; } = true;
 
-    /// <summary>
-    /// When true, faithful slide pages use the same shared visual snapshot as PNG/SVG and visual-review HTML.
-    /// Selective export profiles automatically retain the legacy per-shape path.
-    /// </summary>
-    public bool UseSharedVisualSnapshot { get; set; }
-
     /// <summary>Maximum nested group-shape depth rendered during PDF export. Defaults to 32.</summary>
     public int MaxGroupShapeDepth { get; set; } = 32;
 
@@ -122,7 +118,6 @@ public sealed class PowerPointPdfSaveOptions {
                 IncludeTables = true;
                 IncludeCharts = true;
                 IncludeHiddenSlides = false;
-                UseSharedVisualSnapshot = true;
                 break;
             case PdfCore.PdfExportProfile.Lightweight:
                 IncludePictures = false;
@@ -131,7 +126,7 @@ public sealed class PowerPointPdfSaveOptions {
                 IncludeSlideBackgrounds = false;
                 IncludeTables = true;
                 IncludeCharts = false;
-                UseSharedVisualSnapshot = false;
+                IncludeHiddenSlides = false;
                 break;
             case PdfCore.PdfExportProfile.PrintReady:
                 IncludePictures = true;
@@ -141,7 +136,6 @@ public sealed class PowerPointPdfSaveOptions {
                 IncludeTables = true;
                 IncludeCharts = true;
                 IncludeHiddenSlides = false;
-                UseSharedVisualSnapshot = true;
                 break;
             case PdfCore.PdfExportProfile.TextOnly:
                 IncludePictures = false;
@@ -150,7 +144,7 @@ public sealed class PowerPointPdfSaveOptions {
                 IncludeSlideBackgrounds = false;
                 IncludeTables = true;
                 IncludeCharts = false;
-                UseSharedVisualSnapshot = false;
+                IncludeHiddenSlides = false;
                 break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(profile), profile, "Unsupported PDF export profile.");
@@ -170,6 +164,7 @@ public sealed class PowerPointPdfSaveOptions {
 
     internal PowerPointPdfSaveOptions CloneForConversion() {
         var clone = (PowerPointPdfSaveOptions)MemberwiseClone();
+        clone.ResourcePolicy = ResourcePolicy.Clone();
         clone.Warnings = new List<PowerPointPdfExportWarning>();
         clone.Report = new PdfCore.PdfConversionReport();
         return clone;

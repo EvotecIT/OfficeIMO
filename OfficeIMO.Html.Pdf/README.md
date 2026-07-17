@@ -33,6 +33,14 @@ byte[] pdf = source.ToPdf();
 source.SaveAsPdf("quarterly-update.pdf");
 ```
 
+MHTML archives have the same lifecycle. Embedded `cid:` and archive resources are resolved from the bounded source package without enabling local-file or remote-network access:
+
+```csharp
+MhtmlDocument archive = MhtmlDocument.Load("quarterly-update.mhtml");
+var result = await archive.ToPdfDocumentResultAsync();
+await result.SaveAsync("quarterly-update.pdf");
+```
+
 Naming is consistent across the direct output APIs:
 
 - `ToPdf()` returns encoded bytes.
@@ -73,6 +81,7 @@ Options are reusable configuration and are not mutated with operation results. R
 
 ```csharp
 var options = new HtmlPdfSaveOptions {
+    ResourcePolicy = PdfResourcePolicy.CreateTrustedHost(),
     ResourceResolver = (request, cancellationToken) =>
         Task.FromResult<HtmlResolvedResource?>(null)
 };
@@ -96,7 +105,7 @@ foreach (var diagnostic in svgResult.Diagnostics) {
 }
 ```
 
-Resource resolution is opt-in and controlled by `HtmlUrlPolicy`, timeouts, byte limits, count limits, and stylesheet-depth limits inherited from `HtmlRenderOptions`.
+Resource resolution is opt-in. `PdfResourcePolicy` is the host-access gate for local files, remote resolver calls, data URIs, embedded package resources, and installed fonts. `HtmlUrlPolicy` independently validates URL syntax and schemes; timeouts, byte limits, count limits, and stylesheet-depth limits inherited from `HtmlRenderOptions` bound resources after access is granted. The balanced default allows installed fonts plus bounded data URIs and MHTML package parts, but does not call local or remote resolvers. Portable deterministic mode disables installed-font discovery explicitly.
 
 ## Explicit document projections
 

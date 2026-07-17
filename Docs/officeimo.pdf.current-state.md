@@ -22,10 +22,30 @@ explicit:
 - `OfficeIMO.Pdf` should not gain a runtime dependency on another PDF engine,
   browser, JavaScript runtime, or native renderer.
 
-Word, Excel, PowerPoint, Markdown, HTML, RTF, and Reader packages remain thin
+Word, Excel, PowerPoint, Markdown, HTML, RTF, and OneNote packages remain thin
 adapters. Shared PDF parsing, writing, layout, rendering, security, signatures,
-forms, annotations, and manipulation belong in `OfficeIMO.Pdf`. Reusable vector
-and raster primitives belong in `OfficeIMO.Drawing`.
+forms, annotations, resource trust, and manipulation belong in `OfficeIMO.Pdf`.
+Reusable vector and raster primitives belong in `OfficeIMO.Drawing`. The
+machine-readable direct-adapter and composition-route inventory is
+[`pdf-conversion-scenarios.json`](pdf-conversion-scenarios.json); it is the
+source of truth for supported routes and visual proof ownership.
+
+Direct conversion uses one balanced resource default: installed fonts plus
+bounded data URI and embedded-package resources are available for Unicode and
+self-contained-document fidelity, while arbitrary local-file reads and remote
+resolver calls remain disabled. Reproducible or untrusted pipelines can choose
+`PdfResourcePolicy.CreatePortableDeterministic()`; applications that intentionally
+resolve local or remote resources can choose `CreateTrustedHost()`. Profiles
+control fidelity and content selection; they do not silently change trust. Zero-options and faithful Word or
+Excel output also do not inject page numbers or worksheet-name headings that
+were absent from the source.
+
+OneNote conversion is deliberately named as a semantic-document projection.
+It preserves hierarchy and reading-order content, reports canvas flattening and
+asset placeholders, and does not claim to reproduce the free-form OneNote
+canvas. PowerPoint has one stable native PDF shape renderer for full-slide
+output; the shared visual snapshot remains the owner for PNG, SVG, HTML review,
+and slide thumbnails, where its raster/vector scene contract is appropriate.
 
 ## Workflow Coverage
 
@@ -278,9 +298,13 @@ any repair is explicit, reproducible, and validated before save.
 
 ### P3 - Deepen Creation And Conversion
 
-- [ ] Complete OpenType/CFF charstring subsetting and provider-backed shaping,
-  bidirectional layout, mark positioning, font fallback, Unicode line breaking,
-  and dictionary-driven hyphenation behind the existing glyph-run seam.
+- [x] Complete dependency-free OpenType/CFF charstring subsetting for generated
+  and supported appearance-font output.
+- [ ] Supply or build an optional implementation of the existing
+  `IPdfTextShapingProvider` seam for full bidirectional layout, contextual
+  shaping, mark positioning, and script-specific substitution. Keep it outside
+  the dependency-free core; the built-in engine continues to provide Unicode
+  scalar and Latin-ligature modes with explicit diagnostics.
 - [x] Add shared block-aware multi-column flow, styled one-page containers,
   conditional/replayable flow constraints, position capture, semantic sections,
   generated TOCs, and optional-content layers before adapter-specific variants.
@@ -299,9 +323,14 @@ any repair is explicit, reproducible, and validated before save.
 - [ ] Expand generated annotations, form fields, signature appearances,
   attachments, layers, navigation, tagged structure, and accessible names
   through the same primitives used by existing-document editing.
-- [ ] Continue Word, Excel, PowerPoint, Markdown, HTML, RTF, and Reader fidelity
+- [ ] Continue Word, Excel, PowerPoint, Markdown, HTML, RTF, and OneNote fidelity
   through shared primitives first, with conversion warnings and proof snapshots
   preserved through post-processing.
+- [ ] Promote AsciiDoc, LaTeX, and OpenDocument manual compositions to direct
+  adapters only when their existing projection diagnostics flow automatically
+  into the final PDF result. Do not advertise email, EPUB, or Visio as direct
+  PDF conversion until body/asset/book/vector-page policies are explicit and
+  visually proven.
 
 Exit criterion: new fidelity work improves the shared engine or has a documented
 source-format reason to remain in a thin adapter.
