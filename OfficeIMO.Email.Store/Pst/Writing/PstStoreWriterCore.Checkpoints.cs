@@ -15,6 +15,7 @@ internal sealed partial class PstStoreWriterCore {
         string fullCheckpointPath = Path.GetFullPath(checkpointPath);
         WriterCheckpointState state = ReadCheckpointFile(fullCheckpointPath);
         state.ValidateOwnership(fullCheckpointPath);
+        CleanupCheckpointCommitFiles(fullCheckpointPath);
         EmailStorePstWriterOptions options = state.CreateOptions(
             fullCheckpointPath, progress);
         if (File.Exists(state.DestinationPath) && !options.OverwriteExisting) {
@@ -42,6 +43,7 @@ internal sealed partial class PstStoreWriterCore {
         WriterCheckpointState state = ReadCheckpointFile(fullPath);
         state.ValidateOwnership(fullPath);
         CleanupWorkingFiles(state.TemporaryPath, state.DestinationPath);
+        CleanupCheckpointCommitFiles(fullPath);
         TryDelete(fullPath);
     }
 
@@ -59,6 +61,7 @@ internal sealed partial class PstStoreWriterCore {
         string? directory = Path.GetDirectoryName(fullPath);
         if (string.IsNullOrEmpty(directory)) directory = Directory.GetCurrentDirectory();
         Directory.CreateDirectory(directory);
+        CleanupCheckpointCommitFiles(fullPath);
         string temporary = Path.Combine(directory, string.Concat(".", Path.GetFileName(fullPath),
             ".", Guid.NewGuid().ToString("N"), ".tmp"));
         try {
@@ -314,12 +317,30 @@ internal sealed partial class PstStoreWriterCore {
         if (suffix == ".blocks" || suffix == ".nodes" || suffix == ".items" ||
             suffix == ".item-data" || suffix == ".amap") return true;
         return HasGuidSuffix(suffix, ".nodes.sort.") || HasGuidSuffix(suffix, ".items.sort.") ||
-            HasGuidSuffix(suffix, ".btree.") || HasGuidSuffix(suffix, ".datatree.");
+            HasGuidSuffix(suffix, ".btree.") || HasGuidSuffix(suffix, ".datatree.") ||
+            HasGuidSuffix(suffix, ".table-matrix.") ||
+            HasGuidSuffix(suffix, ".table-row-index.") ||
+            HasGuidSuffix(suffix, ".table-subnodes.");
     }
 
     private static bool HasGuidSuffix(string value, string prefix) =>
         value.StartsWith(prefix, StringComparison.Ordinal) &&
         Guid.TryParseExact(value.Substring(prefix.Length), "N", out _);
+
+    private static void CleanupCheckpointCommitFiles(string checkpointPath) {
+        string fullPath = Path.GetFullPath(checkpointPath);
+        string? directory = Path.GetDirectoryName(fullPath);
+        if (string.IsNullOrEmpty(directory) || !Directory.Exists(directory)) return;
+        string prefix = string.Concat(".", Path.GetFileName(fullPath), ".");
+        foreach (string candidate in Directory.EnumerateFiles(directory)) {
+            string name = Path.GetFileName(candidate);
+            if (!name.StartsWith(prefix, StringComparison.Ordinal) ||
+                !name.EndsWith(".tmp", StringComparison.Ordinal) ||
+                name.Length <= prefix.Length + 4) continue;
+            string token = name.Substring(prefix.Length, name.Length - prefix.Length - 4);
+            if (Guid.TryParseExact(token, "N", out _)) TryDelete(candidate);
+        }
+    }
 
     private static void WriteNullableString(BinaryWriter writer, string? value) {
         writer.Write(value != null);

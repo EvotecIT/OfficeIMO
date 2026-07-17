@@ -334,13 +334,32 @@ public sealed class PstWriterTests {
                 Path.GetFileName(file).EndsWith(".tmp", StringComparison.Ordinal));
             similarName = string.Concat(workingFile, ".notes");
             File.WriteAllText(similarName, "keep-similar");
+            string[] tableArtifacts = {
+                string.Concat(workingFile, ".table-matrix.", Guid.NewGuid().ToString("N")),
+                string.Concat(workingFile, ".table-row-index.", Guid.NewGuid().ToString("N")),
+                string.Concat(workingFile, ".table-subnodes.", Guid.NewGuid().ToString("N"))
+            };
+            foreach (string artifact in tableArtifacts) File.WriteAllText(artifact, "remove");
+            string malformedTableArtifact = string.Concat(workingFile, ".table-matrix.not-a-guid");
+            File.WriteAllText(malformedTableArtifact, "keep-malformed");
+            string checkpointCommitArtifact = Path.Combine(directory, string.Concat(
+                ".", Path.GetFileName(checkpoint), ".", Guid.NewGuid().ToString("N"), ".tmp"));
+            File.WriteAllText(checkpointCommitArtifact, "remove");
+            string malformedCheckpointArtifact = Path.Combine(directory, string.Concat(
+                ".", Path.GetFileName(checkpoint), ".not-a-guid.tmp"));
+            File.WriteAllText(malformedCheckpointArtifact, "keep-malformed");
 
             EmailStorePstWriter.DeleteCheckpoint(checkpoint);
 
             Assert.False(File.Exists(checkpoint));
+            Assert.All(tableArtifacts, artifact => Assert.False(File.Exists(artifact)));
+            Assert.False(File.Exists(checkpointCommitArtifact));
             Assert.True(File.Exists(unrelated));
             Assert.True(File.Exists(similarName));
-            Assert.Equal(new[] { unrelated, similarName }.OrderBy(value => value, StringComparer.Ordinal),
+            Assert.True(File.Exists(malformedTableArtifact));
+            Assert.True(File.Exists(malformedCheckpointArtifact));
+            Assert.Equal(new[] { unrelated, similarName, malformedTableArtifact,
+                    malformedCheckpointArtifact }.OrderBy(value => value, StringComparer.Ordinal),
                 Directory.EnumerateFiles(directory).OrderBy(value => value, StringComparer.Ordinal));
         } finally {
             try { if (Directory.Exists(directory)) Directory.Delete(directory, recursive: true); }

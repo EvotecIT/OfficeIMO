@@ -79,10 +79,42 @@ public sealed class PstMergeTests {
             Assert.Equal(2, report.Sources.Count);
             Assert.True(report.Sources[0].Completed);
             Assert.False(report.Sources[1].Completed);
+            Assert.Equal(1, report.RetryCount);
+            Assert.Equal(1, report.Sources[1].RetryCount);
             Assert.Contains(report.Diagnostics, diagnostic =>
                 diagnostic.Code == "EMAIL_STORE_MERGE_SOURCE_SKIPPED");
             using EmailStoreSession merged = EmailStoreSession.Open(destination);
             Assert.Single(merged.EnumerateItems());
+        } finally {
+            DeleteDirectory(root);
+        }
+    }
+
+    [Fact]
+    public void MergeByFolderPathReportsContainerClassConflicts() {
+        string root = CreateTemporaryDirectory();
+        string first = Path.Combine(root, "first.pst");
+        string second = Path.Combine(root, "second.pst");
+        string destination = Path.Combine(root, "merged.pst");
+        try {
+            CreateSourceWithFolderClass(first, "First", "IPF.Note", CreateDocument("one"));
+            CreateSourceWithFolderClass(second, "Second", "IPF.Appointment", CreateDocument("two"));
+
+            EmailStorePstMergeReport report = EmailStoreConverter.MergeToPst(new[] {
+                new EmailStoreMergeSource(first), new EmailStoreMergeSource(second)
+            }, destination, new EmailStorePstMergeOptions(
+                folderMode: EmailStoreMergeFolderMode.MergeByFolderPath,
+                deduplicate: false));
+
+            Assert.Equal(2, report.WrittenItems);
+            Assert.Contains(report.Diagnostics, diagnostic =>
+                diagnostic.Code == "EMAIL_STORE_MERGE_FOLDER_CLASS_CONFLICT");
+            using EmailStoreSession merged = EmailStoreSession.Open(destination);
+            EmailStoreFolderInfo projects = Assert.Single(merged.Folders,
+                folder => folder.Name == "Projects");
+            Assert.Equal("IPF.Note", projects.ContainerClass);
+            Assert.Equal(2, merged.EnumerateItems(new EmailStoreEnumerationOptions(
+                projects.Id, includeDescendants: false)).Count());
         } finally {
             DeleteDirectory(root);
         }
@@ -152,6 +184,14 @@ public sealed class PstMergeTests {
     private static void CreateSource(string path, string displayName, params EmailDocument[] documents) {
         using var writer = EmailStorePstWriter.Create(path, new EmailStorePstWriterOptions(displayName));
         string folder = writer.AddFolder("Projects");
+        foreach (EmailDocument document in documents) writer.AddItem(folder, document);
+        writer.Complete();
+    }
+
+    private static void CreateSourceWithFolderClass(string path, string displayName,
+        string containerClass, params EmailDocument[] documents) {
+        using var writer = EmailStorePstWriter.Create(path, new EmailStorePstWriterOptions(displayName));
+        string folder = writer.AddFolder("Projects", containerClass: containerClass);
         foreach (EmailDocument document in documents) writer.AddItem(folder, document);
         writer.Complete();
     }
