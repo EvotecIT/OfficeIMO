@@ -8,6 +8,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
         internal static bool TryDecode(LegacyPptPersistObject persistObject,
             LegacyPptImportOptions options,
             LegacyPptRecordTraversalBudget recordBudget,
+            LegacyPptDecodedStorageBudget decodedStorageBudget,
             out byte[] storageBytes,
             out bool wasCompressed, out string? reason) {
             if (persistObject == null) {
@@ -16,6 +17,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             if (options == null) throw new ArgumentNullException(nameof(options));
             if (recordBudget == null) {
                 throw new ArgumentNullException(nameof(recordBudget));
+            }
+            if (decodedStorageBudget == null) {
+                throw new ArgumentNullException(nameof(decodedStorageBudget));
             }
             storageBytes = Array.Empty<byte>();
             wasCompressed = false;
@@ -36,6 +40,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 }
                 wasCompressed = storage.Instance == 1;
                 if (!wasCompressed) {
+                    decodedStorageBudget.Consume(storage.PayloadLength);
                     storageBytes = new byte[storage.PayloadLength];
                     Buffer.BlockCopy(persistObject.RecordBytes, 8,
                         storageBytes, 0, storageBytes.Length);
@@ -51,6 +56,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                         + $"{options.MaxInputBytes} bytes.";
                     return false;
                 }
+                decodedStorageBudget.Consume(checked((int)decompressedSize));
                 var compressedBytes = new byte[storage.PayloadLength - 4];
                 Buffer.BlockCopy(persistObject.RecordBytes, 12,
                     compressedBytes, 0, compressedBytes.Length);

@@ -45,7 +45,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
 
             try {
                 if (!LegacyPptOleStorageCodec.TryDecode(persistObject,
-                        options, _recordBudget, out byte[] projectBytes,
+                        options, _recordBudget, _decodedStorageBudget,
+                        out byte[] projectBytes,
                         out bool compressed,
                         out string? storageReason)) {
                     throw new InvalidDataException(storageReason

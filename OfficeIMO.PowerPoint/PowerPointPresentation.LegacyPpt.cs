@@ -70,6 +70,8 @@ namespace OfficeIMO.PowerPoint {
                 ReportUnsupportedContent = sourceOptions.ReportUnsupportedContent,
                 MaxRecordCount = sourceOptions.MaxRecordCount,
                 MaxRecordDepth = sourceOptions.MaxRecordDepth,
+                MaxDecodedStorageBytes =
+                    sourceOptions.MaxDecodedStorageBytes,
                 Password = password
             };
             LegacyPptPresentation legacy = LegacyPptPresentation.Load(bytes,

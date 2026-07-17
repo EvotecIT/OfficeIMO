@@ -60,6 +60,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
         private readonly Dictionary<uint, LegacyPptSound> _soundsById = new();
         private readonly List<LegacyPptImportDiagnostic> _diagnostics = new();
         private LegacyPptRecordTraversalBudget _recordBudget = null!;
+        private LegacyPptDecodedStorageBudget _decodedStorageBudget = null!;
 
         private LegacyPptPresentation() { }
 
@@ -134,11 +135,14 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             options ??= new LegacyPptImportOptions();
             var recordBudget = new LegacyPptRecordTraversalBudget(
                 options.MaxRecordCount);
+            var decodedStorageBudget = new LegacyPptDecodedStorageBudget(
+                options.MaxDecodedStorageBytes);
             LegacyPptPackage package = LegacyPptPackage.Read(bytes, options,
                 recordBudget);
             var presentation = new LegacyPptPresentation {
                 Package = package,
-                _recordBudget = recordBudget
+                _recordBudget = recordBudget,
+                _decodedStorageBudget = decodedStorageBudget
             };
             if (package.WasEncryptedSource) {
                 presentation.AddDiagnostic("PPT-ENCRYPTION-DECRYPTED",
@@ -149,6 +153,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             presentation.AddCompoundFeatureDiagnostics(package.CompoundFile, options);
             presentation.Parse(package, options);
             recordBudget.ThrowIfExceeded();
+            decodedStorageBudget.ThrowIfExceeded();
             return presentation;
         }
 

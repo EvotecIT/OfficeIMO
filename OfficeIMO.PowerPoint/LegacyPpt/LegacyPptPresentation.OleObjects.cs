@@ -187,7 +187,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             bool valid = package.PersistObjects.TryGetValue(persistId,
                     out LegacyPptPersistObject? persistObject)
                 && LegacyPptOleStorageCodec.TryDecode(persistObject!, options,
-                    _recordBudget, out storageBytes, out compressed,
+                    _recordBudget, _decodedStorageBudget, out storageBytes,
+                    out compressed,
                     out storageReason)
                 && OfficeCompoundFileReader.TryRead(storageBytes,
                     out OfficeCompoundFile? compound, out compoundReason)

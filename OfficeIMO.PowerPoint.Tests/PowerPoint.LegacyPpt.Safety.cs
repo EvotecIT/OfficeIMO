@@ -4,7 +4,7 @@ using OfficeIMO.PowerPoint.LegacyPpt.Internal;
 using Xunit;
 
 namespace OfficeIMO.Tests {
-    public class PowerPointLegacyPptSafetyTests {
+    public partial class PowerPointLegacyPptTests {
         [Fact]
         public void RecordReader_RejectsOversizedDeclaredPayloadWithoutAllocation() {
             byte[] record = CreateRecord(version: 0, payload: Array.Empty<byte>());
@@ -70,6 +70,92 @@ namespace OfficeIMO.Tests {
 
             Assert.Contains("exceeds", exception.Message,
                 StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
+        public void PackageReader_EnforcesImportWideDecodedStorageBudget() {
+            const string Password = "storage-budget";
+            byte[] firstStorage = CreateOleTestStorage("First storage");
+            byte[] secondStorage = CreateOleTestStorage("Second storage");
+            byte[] bytes;
+            byte[] encryptedBytes;
+            using (PowerPointPresentation created =
+                   PowerPointPresentation.Create()) {
+                PowerPointSlide slide = created.AddSlide();
+                using var first = new MemoryStream(firstStorage,
+                    writable: false);
+                using var second = new MemoryStream(secondStorage,
+                    writable: false);
+                slide.AddOleObject(first, "Package");
+                slide.AddOleObject(second, "Package");
+                bytes = created.ToBytes(PowerPointFileFormat.Ppt);
+                encryptedBytes = created.ToEncryptedBytes(Password,
+                    PowerPointFileFormat.Ppt);
+            }
+
+            LegacyPptPresentation unrestricted =
+                LegacyPptPresentation.Load(bytes);
+            Assert.Equal(2, unrestricted.OleObjects.Count);
+            long decodedBytes = unrestricted.OleObjects.Sum(item =>
+                (long)item.Length);
+
+            InvalidDataException exception = Assert.Throws<
+                InvalidDataException>(() => LegacyPptPresentation.Load(bytes,
+                new LegacyPptImportOptions {
+                    MaxDecodedStorageBytes = decodedBytes - 1
+                }));
+
+            Assert.Contains("aggregate decoded embedded-storage",
+                exception.Message, StringComparison.OrdinalIgnoreCase);
+
+            var loadOptions = new PowerPointLoadOptions {
+                LegacyPptImportOptions = new LegacyPptImportOptions {
+                    MaxDecodedStorageBytes = decodedBytes - 1
+                }
+            };
+            using var input = new MemoryStream(bytes, writable: false);
+            Assert.Throws<InvalidDataException>(() =>
+                PowerPointPresentation.Load(input, loadOptions));
+
+            using var encryptedInput = new MemoryStream(encryptedBytes,
+                writable: false);
+            Assert.Throws<InvalidDataException>(() =>
+                PowerPointPresentation.LoadEncrypted(encryptedInput,
+                    Password, loadOptions));
+        }
+
+        [Fact]
+        public void OleStorageDecoder_ReservesCompressedExpansionBeforeDecode() {
+            byte[] decoded = CreateOleTestStorage("Compressed expansion");
+            byte[] compressed = CompressVbaZlib(decoded);
+            var payload = new byte[checked(4 + compressed.Length)];
+            WriteVbaUInt32(payload, 0, checked((uint)decoded.Length));
+            Buffer.BlockCopy(compressed, 0, payload, 4,
+                compressed.Length);
+            byte[] record = BuildVbaRecord(version: 0, instance: 1,
+                type: 0x1011, payload);
+            var persistObject = new LegacyPptPersistObject(1, 0, 0x1011,
+                record);
+            var options = new LegacyPptImportOptions {
+                MaxDecodedStorageBytes = decoded.Length - 1
+            };
+            var recordBudget = new LegacyPptRecordTraversalBudget(
+                options.MaxRecordCount);
+            var decodedBudget = new LegacyPptDecodedStorageBudget(
+                options.MaxDecodedStorageBytes);
+
+            Assert.False(LegacyPptOleStorageCodec.TryDecode(persistObject,
+                options, recordBudget, decodedBudget,
+                out byte[] decodedStorage, out bool wasCompressed,
+                out string? reason));
+
+            Assert.Empty(decodedStorage);
+            Assert.True(wasCompressed);
+            Assert.Equal(0, decodedBudget.DecodedBytes);
+            Assert.Contains("aggregate decoded embedded-storage", reason,
+                StringComparison.OrdinalIgnoreCase);
+            Assert.Throws<InvalidDataException>(() =>
+                decodedBudget.ThrowIfExceeded());
         }
 
         [Fact]
