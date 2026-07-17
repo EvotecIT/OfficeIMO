@@ -104,18 +104,21 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public async Task PresentationFacade_EnforcesInputBudgetBeforeBuffering() {
-            const int length = 4096;
+        public async Task PresentationFacade_EnforcesBinaryInputBudget() {
+            byte[] bytes = CreatePresentationBytes();
             var loadOptions = new PowerPointLoadOptions {
                 LegacyPptImportOptions = new LegacyPptImportOptions {
-                    MaxInputBytes = length - 1
+                    MaxInputBytes = bytes.Length - 1
                 }
             };
 
-            using var loadStream = new ReadGuardStream(length);
-            using var encryptedStream = new ReadGuardStream(length);
-            using var loadAsyncStream = new ReadGuardStream(length);
-            using var encryptedAsyncStream = new ReadGuardStream(length);
+            using var loadStream = new MemoryStream(bytes, writable: false);
+            using var encryptedStream = new MemoryStream(bytes,
+                writable: false);
+            using var loadAsyncStream = new MemoryStream(bytes,
+                writable: false);
+            using var encryptedAsyncStream = new MemoryStream(bytes,
+                writable: false);
 
             Assert.Throws<InvalidDataException>(() =>
                 PowerPointPresentation.Load(loadStream, loadOptions));
@@ -129,10 +132,71 @@ namespace OfficeIMO.Tests {
                 PowerPointPresentation.LoadEncryptedAsync(
                     encryptedAsyncStream, "password", loadOptions));
 
-            Assert.Equal(0, loadStream.ReadCount);
-            Assert.Equal(0, encryptedStream.ReadCount);
-            Assert.Equal(0, loadAsyncStream.ReadCount);
-            Assert.Equal(0, encryptedAsyncStream.ReadCount);
+            var paddedBytes = new byte[256 * 1024];
+            Buffer.BlockCopy(bytes, 0, paddedBytes, 0, bytes.Length);
+            using var nonSeekable = new CountingNonSeekableReadStream(
+                paddedBytes);
+            Assert.Throws<InvalidDataException>(() =>
+                PowerPointPresentation.Load(nonSeekable, loadOptions));
+            Assert.InRange(nonSeekable.BytesRead, 1,
+                paddedBytes.Length - 1);
+        }
+
+        [Fact]
+        public async Task PresentationFacade_DoesNotApplyBinaryBudgetToOpenXml() {
+            const string password = "openxml-budget";
+            byte[] packageBytes;
+            byte[] encryptedBytes;
+            using (PowerPointPresentation source =
+                   PowerPointPresentation.Create()) {
+                source.AddSlide().AddTextBox("Open XML remains unbounded");
+                packageBytes = source.ToBytes();
+                encryptedBytes = source.ToEncryptedBytes(password);
+            }
+            var packageOptions = new PowerPointLoadOptions {
+                LegacyPptImportOptions = new LegacyPptImportOptions {
+                    MaxInputBytes = packageBytes.Length - 1
+                }
+            };
+            var encryptedOptions = new PowerPointLoadOptions {
+                LegacyPptImportOptions = new LegacyPptImportOptions {
+                    MaxInputBytes = encryptedBytes.Length - 1
+                }
+            };
+
+            using var packageInput = new MemoryStream(packageBytes,
+                writable: false);
+            using PowerPointPresentation package =
+                PowerPointPresentation.Load(packageInput, packageOptions);
+            Assert.Single(package.Slides);
+
+            using var packageAsyncInput = new MemoryStream(packageBytes,
+                writable: false);
+            using PowerPointPresentation packageAsync =
+                await PowerPointPresentation.LoadAsync(packageAsyncInput,
+                    packageOptions);
+            Assert.Single(packageAsync.Slides);
+
+            using var encryptedInput = new MemoryStream(encryptedBytes,
+                writable: false);
+            using PowerPointPresentation encrypted =
+                PowerPointPresentation.LoadEncrypted(encryptedInput,
+                    password, encryptedOptions);
+            Assert.Single(encrypted.Slides);
+
+            using var encryptedNonSeekable =
+                new CountingNonSeekableReadStream(encryptedBytes);
+            using PowerPointPresentation encryptedFromNonSeekable =
+                PowerPointPresentation.LoadEncrypted(encryptedNonSeekable,
+                    password, encryptedOptions);
+            Assert.Single(encryptedFromNonSeekable.Slides);
+
+            using var encryptedAsyncInput = new MemoryStream(encryptedBytes,
+                writable: false);
+            using PowerPointPresentation encryptedAsync =
+                await PowerPointPresentation.LoadEncryptedAsync(
+                    encryptedAsyncInput, password, encryptedOptions);
+            Assert.Single(encryptedAsync.Slides);
         }
 
         [Fact]
@@ -307,6 +371,43 @@ namespace OfficeIMO.Tests {
                 throw new NotSupportedException();
             public override void Write(byte[] buffer, int offset,
                 int count) => throw new NotSupportedException();
+        }
+
+        private sealed class CountingNonSeekableReadStream : Stream {
+            private readonly MemoryStream _inner;
+
+            public CountingNonSeekableReadStream(byte[] bytes) {
+                _inner = new MemoryStream(bytes, writable: false);
+            }
+
+            public int BytesRead { get; private set; }
+            public override bool CanRead => true;
+            public override bool CanSeek => false;
+            public override bool CanWrite => false;
+            public override long Length => throw new NotSupportedException();
+            public override long Position {
+                get => throw new NotSupportedException();
+                set => throw new NotSupportedException();
+            }
+
+            public override int Read(byte[] buffer, int offset, int count) {
+                int read = _inner.Read(buffer, offset, count);
+                BytesRead += read;
+                return read;
+            }
+
+            public override void Flush() { }
+            public override long Seek(long offset, SeekOrigin origin) =>
+                throw new NotSupportedException();
+            public override void SetLength(long value) =>
+                throw new NotSupportedException();
+            public override void Write(byte[] buffer, int offset,
+                int count) => throw new NotSupportedException();
+
+            protected override void Dispose(bool disposing) {
+                if (disposing) _inner.Dispose();
+                base.Dispose(disposing);
+            }
         }
     }
 }

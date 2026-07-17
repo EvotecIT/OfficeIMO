@@ -174,8 +174,7 @@ namespace OfficeIMO.PowerPoint {
             byte[] bytes;
             using (var source = new FileStream(filePath, FileMode.Open, FileAccess.Read,
                        FileShare.ReadWrite | FileShare.Delete)) {
-                bytes = OfficeStreamReader.ReadAllBytes(source,
-                    ResolveMaxInputBytes(resolved));
+                bytes = ReadPresentationInputBytes(source, resolved);
             }
             return LoadDocument(bytes, filePath, sourceStream: null,
                 resolved);
@@ -190,9 +189,8 @@ namespace OfficeIMO.PowerPoint {
             OfficeDocumentLifecycle.Validate(resolved.AccessMode, resolved.PersistenceMode, "presentation");
             OfficeDocumentLifecycle.EnsureSaveOnDisposeDestination(stream, resolved.PersistenceMode, nameof(stream));
 
-            return LoadDocument(OfficeStreamReader.ReadAllBytes(stream,
-                ResolveMaxInputBytes(resolved)), filePath: null, stream,
-                resolved);
+            return LoadDocument(ReadPresentationInputBytes(stream, resolved),
+                filePath: null, stream, resolved);
         }
 
         /// <summary>Asynchronously loads an existing presentation into detached memory.</summary>
@@ -215,8 +213,8 @@ namespace OfficeIMO.PowerPoint {
                 FileShare.ReadWrite | FileShare.Delete,
                 81920,
                 useAsync: true);
-            byte[] bytes = await OfficeStreamReader.ReadAllBytesAsync(source,
-                cancellationToken, ResolveMaxInputBytes(resolved))
+            byte[] bytes = await ReadPresentationInputBytesAsync(source,
+                resolved, cancellationToken)
                 .ConfigureAwait(false);
             return LoadDocument(bytes, fullPath, sourceStream: null,
                 resolved, cancellationToken);
@@ -232,8 +230,8 @@ namespace OfficeIMO.PowerPoint {
             PowerPointLoadOptions resolved = options ?? new PowerPointLoadOptions();
             OfficeDocumentLifecycle.Validate(resolved.AccessMode, resolved.PersistenceMode, "presentation");
             OfficeDocumentLifecycle.EnsureSaveOnDisposeDestination(stream, resolved.PersistenceMode, nameof(stream));
-            byte[] bytes = await OfficeStreamReader.ReadAllBytesAsync(stream,
-                cancellationToken, ResolveMaxInputBytes(resolved))
+            byte[] bytes = await ReadPresentationInputBytesAsync(stream,
+                resolved, cancellationToken)
                 .ConfigureAwait(false);
             return LoadDocument(bytes, filePath: null, stream, resolved,
                 cancellationToken);
@@ -254,8 +252,8 @@ namespace OfficeIMO.PowerPoint {
             EnsureEncryptedLoadUsesExplicitPersistence(resolved);
             using var source = new FileStream(filePath, FileMode.Open,
                 FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
-            byte[] encryptedBytes = OfficeStreamReader.ReadAllBytes(source,
-                ResolveMaxInputBytes(resolved));
+            byte[] encryptedBytes = ReadPresentationInputBytes(source,
+                resolved);
             LegacyBinaryEncryptionKind legacyEncryption =
                 PowerPointPresentationLoadRouting
                     .GetLegacyBinaryEncryptionKind(encryptedBytes);
@@ -290,8 +288,8 @@ namespace OfficeIMO.PowerPoint {
                 FileShare.ReadWrite | FileShare.Delete,
                 81920,
                 useAsync: true);
-            byte[] encryptedBytes = await OfficeStreamReader.ReadAllBytesAsync(
-                source, cancellationToken, ResolveMaxInputBytes(resolved))
+            byte[] encryptedBytes = await ReadPresentationInputBytesAsync(
+                source, resolved, cancellationToken)
                 .ConfigureAwait(false);
             LegacyBinaryEncryptionKind legacyEncryption =
                 PowerPointPresentationLoadRouting
@@ -320,8 +318,8 @@ namespace OfficeIMO.PowerPoint {
             if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
             PowerPointLoadOptions resolved = options ?? new PowerPointLoadOptions();
             EnsureEncryptedLoadUsesExplicitPersistence(resolved);
-            byte[] encryptedBytes = await OfficeStreamReader.ReadAllBytesAsync(
-                stream, cancellationToken, ResolveMaxInputBytes(resolved))
+            byte[] encryptedBytes = await ReadPresentationInputBytesAsync(
+                stream, resolved, cancellationToken)
                 .ConfigureAwait(false);
             LegacyBinaryEncryptionKind legacyEncryption =
                 PowerPointPresentationLoadRouting
@@ -349,8 +347,8 @@ namespace OfficeIMO.PowerPoint {
 
             PowerPointLoadOptions resolved = options ?? new PowerPointLoadOptions();
             EnsureEncryptedLoadUsesExplicitPersistence(resolved);
-            byte[] encryptedBytes = OfficeStreamReader.ReadAllBytes(stream,
-                ResolveMaxInputBytes(resolved));
+            byte[] encryptedBytes = ReadPresentationInputBytes(stream,
+                resolved);
             LegacyBinaryEncryptionKind legacyEncryption =
                 PowerPointPresentationLoadRouting
                     .GetLegacyBinaryEncryptionKind(encryptedBytes);
@@ -418,11 +416,6 @@ namespace OfficeIMO.PowerPoint {
             cancellationToken.ThrowIfCancellationRequested();
             return LoadPackage(bytes, filePath, sourceStream, options);
         }
-
-        private static int ResolveMaxInputBytes(
-            PowerPointLoadOptions options) =>
-            options.LegacyPptImportOptions?.MaxInputBytes
-            ?? LegacyPptImportOptions.DefaultMaxInputBytes;
 
         private static OpenSettings CreateOpenSettings(OpenSettings? openSettings) {
             if (openSettings == null) {

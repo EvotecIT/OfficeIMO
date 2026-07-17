@@ -27,18 +27,30 @@ public sealed partial class ReaderRegistryTests {
 
     [Fact]
     public void DocumentReader_PowerPointCapabilityIncludesBinaryVariants() {
-        ReaderHandlerCapability capability = Assert.Single(
+        ReaderHandlerCapability openXml = Assert.Single(
             OfficeDocumentReader.Default.GetCapabilities(), item =>
                 item.Id == "officeimo.reader.powerpoint");
+        ReaderHandlerCapability binary = Assert.Single(
+            OfficeDocumentReader.Default.GetCapabilities(), item =>
+                item.Id == "officeimo.reader.powerpoint.binary");
 
-        Assert.Equal(ReaderInputKind.PowerPoint, capability.Kind);
-        Assert.Equal(new[] {
-            ".pptx", ".pptm", ".ppt", ".pot", ".pps"
-        }, capability.Extensions);
-        Assert.True(capability.SupportsPath);
-        Assert.True(capability.SupportsStream);
+        Assert.Equal(ReaderInputKind.PowerPoint, openXml.Kind);
+        Assert.Equal(new[] { ".pptx", ".pptm" }, openXml.Extensions);
+        Assert.True(openXml.SupportsPath);
+        Assert.True(openXml.SupportsStream);
+        Assert.Null(openXml.DefaultMaxInputBytes);
+        Assert.Equal(ReaderInputKind.PowerPoint, binary.Kind);
+        Assert.Equal(new[] { ".ppt", ".pot", ".pps" },
+            binary.Extensions);
+        Assert.True(binary.SupportsPath);
+        Assert.True(binary.SupportsStream);
         Assert.Equal(LegacyPptImportOptions.DefaultMaxInputBytes,
-            capability.DefaultMaxInputBytes);
+            binary.DefaultMaxInputBytes);
+        Assert.Null(OfficeDocumentReader.Default
+            .GetHandlerDefaultMaxInputBytes("deck.pptx"));
+        Assert.Equal(LegacyPptImportOptions.DefaultMaxInputBytes,
+            OfficeDocumentReader.Default.GetHandlerDefaultMaxInputBytes(
+                "deck.ppt"));
     }
 
     [Fact]

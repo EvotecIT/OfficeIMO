@@ -62,9 +62,19 @@ internal static partial class DocumentReaderEngine {
         new ReaderHandlerCapability {
             Id = "officeimo.reader.powerpoint",
             DisplayName = "PowerPoint Reader",
-            Description = "Built-in PowerPoint (.pptx/.pptm/.ppt/.pot/.pps) slide extractor.",
+            Description = "Built-in Open XML PowerPoint (.pptx/.pptm) slide extractor.",
             Kind = ReaderInputKind.PowerPoint,
-            Extensions = new[] { ".pptx", ".pptm", ".ppt", ".pot", ".pps" },
+            Extensions = new[] { ".pptx", ".pptm" },
+            IsBuiltIn = true,
+            SupportsPath = true,
+            SupportsStream = true
+        },
+        new ReaderHandlerCapability {
+            Id = "officeimo.reader.powerpoint.binary",
+            DisplayName = "Binary PowerPoint Reader",
+            Description = "Built-in PowerPoint 97-2003 (.ppt/.pot/.pps) slide extractor.",
+            Kind = ReaderInputKind.PowerPoint,
+            Extensions = new[] { ".ppt", ".pot", ".pps" },
             IsBuiltIn = true,
             SupportsPath = true,
             SupportsStream = true,
