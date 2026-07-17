@@ -61,6 +61,43 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PackageReader_ChargesPersistIdsToRecordCountBudget() {
+            const string Password = "persist-budget";
+            byte[] bytes;
+            byte[] encrypted;
+            using (PowerPointPresentation presentation =
+                   PowerPointPresentation.Create()) {
+                for (int index = 0; index < 32; index++) {
+                    presentation.AddSlide().AddTextBox(
+                        "Persist budget " + index);
+                }
+                bytes = presentation.ToBytes(PowerPointFileFormat.Ppt);
+                encrypted = presentation.ToEncryptedBytes(Password,
+                    PowerPointFileFormat.Ppt);
+            }
+            LegacyPptPresentation source = LegacyPptPresentation.Load(bytes);
+            int persistIdCount = source.Package.UserEdits.Sum(edit =>
+                edit.PersistObjectOffsets.Count);
+            Assert.True(persistIdCount > 16);
+
+            InvalidDataException plain = Assert.Throws<InvalidDataException>(
+                () => LegacyPptPackage.Read(bytes,
+                    new LegacyPptImportOptions { MaxRecordCount = 16 }));
+
+            Assert.Contains("record count", plain.Message,
+                StringComparison.OrdinalIgnoreCase);
+
+            InvalidDataException encryptedException = Assert.Throws<
+                InvalidDataException>(() => LegacyPptPresentation.Load(
+                encrypted, new LegacyPptImportOptions {
+                    Password = Password,
+                    MaxRecordCount = 16
+                }));
+            Assert.Contains("record count", encryptedException.Message,
+                StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
         public void PackageReader_EnforcesDocumentStreamSizeBudget() {
             byte[] bytes = CreatePresentationBytes();
             LegacyPptPresentation source = LegacyPptPresentation.Load(bytes);

@@ -289,6 +289,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                     throw new InvalidDataException(
                         "An encrypted PersistDirectoryEntry has an invalid object count.");
                 }
+                recordBudget.Consume(count);
                 for (int index = 0; index < count; index++) {
                     uint objectId = checked(persistId
                         + unchecked((uint)index));

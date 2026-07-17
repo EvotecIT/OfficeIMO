@@ -277,6 +277,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 if (count == 0 || count > (directory.PayloadLength - position) / 4) {
                     throw new InvalidDataException("A PersistDirectoryEntry has an invalid object count.");
                 }
+                recordBudget.Consume(count);
                 for (int index = 0; index < count; index++) {
                     uint objectOffset = directory.ReadUInt32(position);
                     position += 4;

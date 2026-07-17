@@ -178,10 +178,27 @@ namespace OfficeIMO.Drawing.Internal {
             }
             cancellationToken.ThrowIfCancellationRequested();
 
-            if (!CompoundFile.TryRead(encryptedPackageBytes, out var streams) ||
-                !streams.TryGetValue("EncryptionInfo", out var encryptionInfoBytes) ||
-                !streams.TryGetValue("EncryptedPackage", out var encryptedPackage)) {
-                throw new InvalidDataException("The document is not an encrypted Office package.");
+            long compoundByteLimit = Math.Max(1L,
+                encryptedPackageBytes.LongLength);
+            int directoryEntryLimit = Math.Max(4, Math.Min(65536,
+                checked((int)Math.Min(int.MaxValue,
+                    compoundByteLimit / 128L + 1L))));
+            var compoundOptions = new OfficeCompoundReadOptions(
+                maxDirectoryEntries: directoryEntryLimit,
+                maxStreamCount: Math.Max(2, Math.Min(32768,
+                    directoryEntryLimit)),
+                maxStreamBytes: compoundByteLimit,
+                maxTotalStreamBytes: compoundByteLimit);
+            if (!OfficeCompoundFileReader.TryRead(encryptedPackageBytes,
+                    compoundOptions, out OfficeCompoundFile? compound,
+                    out string? compoundError)
+                || compound == null
+                || !compound.Streams.TryGetValue("EncryptionInfo",
+                    out byte[]? encryptionInfoBytes)
+                || !compound.Streams.TryGetValue("EncryptedPackage",
+                    out byte[]? encryptedPackage)) {
+                throw new InvalidDataException(compoundError
+                    ?? "The document is not an encrypted Office package.");
             }
 
             cancellationToken.ThrowIfCancellationRequested();

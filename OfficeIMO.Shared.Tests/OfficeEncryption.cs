@@ -31,6 +31,32 @@ namespace OfficeIMO.Shared.Tests {
         }
 
         [Fact]
+        public void DecryptPackage_BoundsAliasedCompoundStreams() {
+            byte[] encrypted = OfficeEncryption.EncryptPackage(
+                new byte[16 * 1024], Password);
+            int encryptionInfoEntry = FindCompoundDirectoryEntry(encrypted,
+                "EncryptionInfo");
+            int encryptedPackageEntry = FindCompoundDirectoryEntry(encrypted,
+                "EncryptedPackage");
+            uint packageStart = ReadUInt32(encrypted,
+                encryptedPackageEntry + 116);
+            ulong packageSize = ReadUInt64(encrypted,
+                encryptedPackageEntry + 120);
+            Assert.True(packageSize > 4096);
+            WriteUInt32(encrypted, encryptionInfoEntry + 116, packageStart);
+            WriteUInt64(encrypted, encryptionInfoEntry + 120, packageSize);
+            Assert.True(packageSize * 2UL > unchecked((ulong)encrypted.Length));
+
+            InvalidDataException exception = Assert.Throws<
+                InvalidDataException>(() => OfficeEncryption.DecryptPackage(
+                encrypted, Password, CancellationToken.None,
+                maximumDecryptedPackageBytes: 16 * 1024));
+
+            Assert.Contains("Compound stream bytes exceed",
+                exception.Message, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
         public void Word_SaveEncrypted_And_LoadEncrypted_RoundTrips() {
             string path = CreateTempPath(".docx");
 
@@ -231,6 +257,43 @@ namespace OfficeIMO.Shared.Tests {
             Assert.Equal(0xcf, bytes[1]);
             Assert.Equal(0x11, bytes[2]);
             Assert.Equal(0xe0, bytes[3]);
+        }
+
+        private static int FindCompoundDirectoryEntry(byte[] bytes,
+            string name) {
+            byte[] encoded = System.Text.Encoding.Unicode.GetBytes(name + '\0');
+            for (int offset = 512; offset <= bytes.Length - encoded.Length;
+                 offset += 128) {
+                if (bytes.AsSpan(offset, encoded.Length)
+                    .SequenceEqual(encoded)) return offset;
+            }
+            throw new InvalidDataException(
+                $"The compound directory entry '{name}' was not found.");
+        }
+
+        private static uint ReadUInt32(byte[] bytes, int offset) =>
+            unchecked((uint)(bytes[offset]
+                | bytes[offset + 1] << 8
+                | bytes[offset + 2] << 16
+                | bytes[offset + 3] << 24));
+
+        private static ulong ReadUInt64(byte[] bytes, int offset) =>
+            ReadUInt32(bytes, offset)
+            | unchecked((ulong)ReadUInt32(bytes, offset + 4) << 32);
+
+        private static void WriteUInt32(byte[] bytes, int offset,
+            uint value) {
+            bytes[offset] = unchecked((byte)value);
+            bytes[offset + 1] = unchecked((byte)(value >> 8));
+            bytes[offset + 2] = unchecked((byte)(value >> 16));
+            bytes[offset + 3] = unchecked((byte)(value >> 24));
+        }
+
+        private static void WriteUInt64(byte[] bytes, int offset,
+            ulong value) {
+            WriteUInt32(bytes, offset, unchecked((uint)value));
+            WriteUInt32(bytes, offset + 4,
+                unchecked((uint)(value >> 32)));
         }
     }
 }

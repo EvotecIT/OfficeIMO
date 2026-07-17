@@ -356,6 +356,54 @@ public sealed class ReaderDocumentReaderTests {
     }
 
     [Fact]
+    public void DocumentReader_BoundsEncryptedOpenXmlCompoundExpansion() {
+        const string password = "reader-compound-budget";
+        byte[] encrypted;
+        var randomBytes = new byte[32 * 1024];
+        new Random(42).NextBytes(randomBytes);
+        using (PowerPointPresentation source =
+               PowerPointPresentation.Create()) {
+            source.AddSlide().AddTextBox(
+                Convert.ToBase64String(randomBytes));
+            encrypted = source.ToEncryptedBytes(password);
+        }
+        int encryptionInfoEntry = FindReaderCompoundDirectoryEntry(encrypted,
+            "EncryptionInfo");
+        int encryptedPackageEntry = FindReaderCompoundDirectoryEntry(encrypted,
+            "EncryptedPackage");
+        uint packageStart = ReadReaderCompoundUInt32(encrypted,
+            encryptedPackageEntry + 116);
+        ulong packageSize = ReadReaderCompoundUInt64(encrypted,
+            encryptedPackageEntry + 120);
+        Assert.True(packageSize > 4096);
+        WriteReaderCompoundUInt32(encrypted, encryptionInfoEntry + 116,
+            packageStart);
+        WriteReaderCompoundUInt64(encrypted, encryptionInfoEntry + 120,
+            packageSize);
+        Assert.True(packageSize * 2UL > unchecked((ulong)encrypted.Length));
+        var options = new ReaderOptions {
+            OpenPassword = password,
+            MaxInputBytes = encrypted.Length,
+            DetectionMode = ReaderDetectionMode.PreferContent
+        };
+
+        using var stream = new MemoryStream(encrypted, writable: false);
+        ReaderDetectionResult detection = OfficeDocumentReader.Default.Detect(
+            stream, "encrypted.pptx");
+        Assert.True(detection.Evidence.Contains(
+                "container:ole-encrypted-openxml-package",
+                StringComparer.Ordinal),
+            string.Join(" | ", detection.Evidence));
+        stream.Position = 0;
+        InvalidDataException exception = Assert.Throws<InvalidDataException>(
+            () => OfficeDocumentReader.Default.Read(stream,
+                "encrypted.pptx", options).ToArray());
+
+        Assert.Contains("Compound stream bytes exceed", exception.Message,
+            StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public void DocumentReader_DetectsExtensionlessEncryptedOpenXmlPowerPointWithOpenPassword() {
         const string password = "reader-extensionless-pass";
         string path = Path.Combine(Path.GetTempPath(),
@@ -1920,5 +1968,42 @@ public sealed class ReaderDocumentReaderTests {
 
     private static string NormalizeWhitespace(string text) {
         return new string(text.Where(ch => !char.IsWhiteSpace(ch)).ToArray());
+    }
+
+    private static int FindReaderCompoundDirectoryEntry(byte[] bytes,
+        string name) {
+        byte[] encoded = Encoding.Unicode.GetBytes(name + '\0');
+        for (int offset = 512; offset <= bytes.Length - encoded.Length;
+             offset += 128) {
+            if (bytes.AsSpan(offset, encoded.Length)
+                .SequenceEqual(encoded)) return offset;
+        }
+        throw new InvalidDataException(
+            $"The compound directory entry '{name}' was not found.");
+    }
+
+    private static uint ReadReaderCompoundUInt32(byte[] bytes, int offset) =>
+        unchecked((uint)(bytes[offset]
+            | bytes[offset + 1] << 8
+            | bytes[offset + 2] << 16
+            | bytes[offset + 3] << 24));
+
+    private static ulong ReadReaderCompoundUInt64(byte[] bytes, int offset) =>
+        ReadReaderCompoundUInt32(bytes, offset)
+        | unchecked((ulong)ReadReaderCompoundUInt32(bytes, offset + 4) << 32);
+
+    private static void WriteReaderCompoundUInt32(byte[] bytes, int offset,
+        uint value) {
+        bytes[offset] = unchecked((byte)value);
+        bytes[offset + 1] = unchecked((byte)(value >> 8));
+        bytes[offset + 2] = unchecked((byte)(value >> 16));
+        bytes[offset + 3] = unchecked((byte)(value >> 24));
+    }
+
+    private static void WriteReaderCompoundUInt64(byte[] bytes, int offset,
+        ulong value) {
+        WriteReaderCompoundUInt32(bytes, offset, unchecked((uint)value));
+        WriteReaderCompoundUInt32(bytes, offset + 4,
+            unchecked((uint)(value >> 32)));
     }
 }

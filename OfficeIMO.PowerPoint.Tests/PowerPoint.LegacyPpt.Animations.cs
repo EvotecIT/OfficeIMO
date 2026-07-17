@@ -2,6 +2,7 @@ using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.LegacyPpt;
 using OfficeIMO.PowerPoint.LegacyPpt.Capabilities;
 using OfficeIMO.PowerPoint.LegacyPpt.Model;
+using A = DocumentFormat.OpenXml.Drawing;
 using P = DocumentFormat.OpenXml.Presentation;
 using Xunit;
 
@@ -273,6 +274,136 @@ namespace OfficeIMO.Tests {
             Assert.True(saved.Package.DocumentStream.AsSpan(0,
                     original.Package.DocumentStream.Length)
                 .SequenceEqual(original.Package.DocumentStream));
+        }
+
+        [Fact]
+        public void PptxTiming_MaterializesClassicSoundsAndAfterEffects() {
+            byte[] wave = CreateWavePayload();
+            byte[] pptx;
+            using (PowerPointPresentation source =
+                   PowerPointPresentation.Create()) {
+                PowerPointSlide slide = source.AddSlide(P.SlideLayoutValues.Blank);
+                PowerPointAutoShape dimmed = slide.AddRectangle(
+                    100000, 100000, 800000, 400000);
+                PowerPointAutoShape hiddenImmediately = slide.AddRectangle(
+                    100000, 600000, 800000, 400000);
+                PowerPointAutoShape hiddenOnClick = slide.AddRectangle(
+                    100000, 1100000, 800000, 400000);
+                slide.AddClassicAnimation(dimmed,
+                    PowerPointClassicAnimationEffect.Fade,
+                    new PowerPointClassicAnimationOptions {
+                        AfterEffect = PowerPointClassicAnimationAfterEffect.Dim,
+                        RawDimColor = 0xFE332211U,
+                        StopsSound = true
+                    });
+                slide.AddClassicAnimation(hiddenImmediately,
+                    PowerPointClassicAnimationEffect.Fade,
+                    new PowerPointClassicAnimationOptions {
+                        AfterEffect = PowerPointClassicAnimationAfterEffect
+                            .HideImmediately
+                    });
+                slide.AddClassicAnimation(hiddenOnClick,
+                    PowerPointClassicAnimationEffect.Fade,
+                    new PowerPointClassicAnimationOptions {
+                        AfterEffect = PowerPointClassicAnimationAfterEffect
+                            .HideOnNextClick
+                    });
+                using var audio = new MemoryStream(wave, writable: false);
+                slide.SetClassicAnimationSound(dimmed, audio,
+                    "Animation Chime", stopExistingSounds: true);
+
+                P.Timing timing = Assert.IsType<P.Timing>(
+                    slide.SlidePart.Slide!.Timing);
+                P.Audio sound = Assert.Single(timing.Descendants<P.Audio>());
+                P.SoundTarget soundTarget = Assert.IsType<P.SoundTarget>(
+                    sound.CommonMediaNode!.GetFirstChild<P.TargetElement>()!
+                        .FirstChild);
+                Assert.Equal(slide.ClassicAnimations[0].SoundRelationshipId,
+                    soundTarget.Embed?.Value);
+                P.Command stopSound = Assert.Single(
+                    timing.Descendants<P.Command>());
+                Assert.Equal(P.CommandValues.Event,
+                    stopSound.Type?.Value);
+                Assert.Equal("onstopaudio",
+                    stopSound.CommandName?.Value);
+                Assert.NotNull(stopSound.CommonBehavior?
+                    .GetFirstChild<P.TargetElement>()?
+                    .GetFirstChild<P.SlideTarget>());
+                Assert.Contains(stopSound.Descendants<P.Condition>(),
+                    condition => condition.Event?.Value ==
+                        P.TriggerEventValues.Begin);
+                P.AnimateColor dim = Assert.Single(
+                    timing.Descendants<P.AnimateColor>());
+                Assert.Equal(dimmed.Id!.Value.ToString(), dim.CommonBehavior!
+                    .GetFirstChild<P.TargetElement>()!
+                    .GetFirstChild<P.ShapeTarget>()!.ShapeId!.Value);
+                Assert.Equal("112233", dim.ToColor!
+                    .GetFirstChild<A.RgbColorModelHex>()!.Val!.Value);
+                P.SetBehavior[] hidden = timing.Descendants<P.SetBehavior>()
+                    .Where(set => string.Equals(set.ToVariantValue?
+                            .GetFirstChild<P.StringVariantValue>()?.Val?.Value,
+                        "hidden", StringComparison.OrdinalIgnoreCase))
+                    .ToArray();
+                Assert.Equal(2, hidden.Length);
+                Assert.Contains(hidden, set => set.Descendants<P.Condition>()
+                    .Any(condition => condition.Event?.Value ==
+                        P.TriggerEventValues.End));
+                Assert.Contains(hidden, set => set.Descendants<P.Condition>()
+                    .Any(condition => condition.Event?.Value ==
+                        P.TriggerEventValues.OnClick
+                        && condition.Descendants<P.SlideTarget>().Any()));
+                Assert.True(slide.HasOnlyClassicAnimationTiming());
+                Assert.Empty(source.ValidateDocument());
+                pptx = source.ToBytes();
+            }
+
+            using var input = new MemoryStream(pptx, writable: false);
+            using PowerPointPresentation reopened =
+                PowerPointPresentation.Load(input);
+            Assert.Equal(3, reopened.Slides[0].ClassicAnimations.Count);
+            Assert.True(reopened.Slides[0].ClassicAnimations[0].StopsSound);
+            Assert.Equal(wave, reopened.Slides[0]
+                .GetClassicAnimationSoundBytes(
+                    reopened.Slides[0].Shapes[0]));
+            Assert.Empty(reopened.ValidateDocument());
+        }
+
+        [Fact]
+        public void PptxTiming_MultipleStopSoundCommandsRemainClassicForPptExport() {
+            byte[] ppt;
+            using (PowerPointPresentation source =
+                   PowerPointPresentation.Create()) {
+                PowerPointSlide slide = source.AddSlide(
+                    P.SlideLayoutValues.Blank);
+                PowerPointAutoShape first = slide.AddRectangle(
+                    100000, 100000, 800000, 400000);
+                PowerPointAutoShape second = slide.AddRectangle(
+                    100000, 600000, 800000, 400000);
+                var options = new PowerPointClassicAnimationOptions {
+                    StopsSound = true
+                };
+                slide.AddClassicAnimation(first,
+                    PowerPointClassicAnimationEffect.Fade, options);
+                slide.AddClassicAnimation(second,
+                    PowerPointClassicAnimationEffect.Cut, options);
+
+                Assert.Equal(2, slide.SlidePart.Slide!.Timing!
+                    .Descendants<P.Command>().Count());
+                Assert.True(slide.HasOnlyClassicAnimationTiming());
+                LegacyPptWritePreflightReport preflight = source
+                    .AnalyzeLegacyPptWrite();
+                Assert.True(preflight.CanWrite,
+                    string.Join(Environment.NewLine, preflight.Findings));
+                Assert.Empty(source.ValidateDocument());
+                ppt = source.ToBytes(PowerPointFileFormat.Ppt);
+            }
+
+            LegacyPptAnimation[] animations = LegacyPptPresentation.Load(ppt)
+                .Slides[0].Shapes.Select(shape => shape.Animation)
+                .OfType<LegacyPptAnimation>().ToArray();
+            Assert.Equal(2, animations.Length);
+            Assert.All(animations, animation =>
+                Assert.True(animation.StopsSound));
         }
 
         [Fact]

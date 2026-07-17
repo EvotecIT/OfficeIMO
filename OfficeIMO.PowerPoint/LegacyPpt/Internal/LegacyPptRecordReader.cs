@@ -16,12 +16,17 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             }
         }
 
-        internal void Consume() {
-            if (_recordsTraversed >= _maximumRecordCount) {
+        internal void Consume() => Consume(1);
+
+        internal void Consume(int recordCount) {
+            if (recordCount < 0) {
+                throw new ArgumentOutOfRangeException(nameof(recordCount));
+            }
+            if (_recordsTraversed > _maximumRecordCount - recordCount) {
                 _wasExceeded = true;
                 throw CreateLimitException();
             }
-            _recordsTraversed++;
+            _recordsTraversed += recordCount;
         }
 
         private InvalidDataException CreateLimitException() =>

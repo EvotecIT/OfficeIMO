@@ -36,7 +36,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                         LegacyPptDiagnosticSeverity.Warning,
                         $"The {ownerName} DrawingML theme remains preserve-only: the payload exceeds the configured input limit.",
                         themeRecord.Offset);
-                } else if (!TryReadRoundTripThemeXml(themeRecord, out themeXml,
+                } else if (!TryReadRoundTripThemeXml(themeRecord,
+                        _decodedStorageBudget, out themeXml,
                         out themeRoot, out string? themeReason)) {
                     AddDiagnostic("PPT-ROUNDTRIP-THEME-INVALID",
                         LegacyPptDiagnosticSeverity.Warning,
@@ -51,7 +52,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                         $"The {ownerName} DrawingML color mapping remains preserve-only: the payload exceeds the configured input limit.",
                         mappingRecord.Offset);
                 } else if (!TryReadRoundTripColorMapping(mappingRecord,
-                        out mappingXml, out string? mappingReason)) {
+                        _decodedStorageBudget, out mappingXml,
+                        out string? mappingReason)) {
                     AddDiagnostic("PPT-ROUNDTRIP-COLOR-MAP-INVALID",
                         LegacyPptDiagnosticSeverity.Warning,
                         $"The {ownerName} DrawingML color mapping remains preserve-only: {mappingReason}",
@@ -78,8 +80,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
         }
 
         private static bool TryReadRoundTripThemeXml(
-            LegacyPptRecord record, out string? xml, out XElement? root,
-            out string? reason) {
+            LegacyPptRecord record,
+            LegacyPptDecodedStorageBudget decodedStorageBudget,
+            out string? xml, out XElement? root, out string? reason) {
             xml = null;
             root = null;
             reason = null;
@@ -106,9 +109,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 foreach (ZipArchiveEntry entry in archive.Entries) {
                     string name = OfficeArchiveSafety.NormalizeEntryName(
                         entry.FullName);
+                    if (!OfficeArchiveSafety.TryGetLength(entry,
+                            out long length)) {
+                        reason = "the embedded package has an invalid entry length.";
+                        return false;
+                    }
                     if (OfficeArchiveSafety.IsUnsafePath(name)
-                        || !OfficeArchiveSafety.TryGetLength(entry,
-                            out long length)
                         || length < 0
                         || length > MaximumRoundTripThemeXmlBytes
                         || OfficeArchiveSafety.IsCompressionRatioExceeded(
@@ -126,6 +132,11 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                     }
                     if (!name.EndsWith(".xml", StringComparison.OrdinalIgnoreCase)
                         || length == 0) continue;
+                    if (length > decodedStorageBudget
+                            .RemainingAllocationBytes) {
+                        reason = "the decoded theme exceeds the remaining aggregate storage limit.";
+                        return false;
+                    }
                     using Stream entryStream = entry.Open();
                     byte[] entryBytes = OfficeArchiveSafety.ReadEntryBytes(
                         entryStream, length,
@@ -138,6 +149,13 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                     }
                     if (candidateRoot.Name.LocalName is not "theme"
                         and not "themeOverride") continue;
+                    int retainedBytes = StrictUtf8.GetByteCount(candidate!);
+                    if (retainedBytes > decodedStorageBudget
+                            .RemainingAllocationBytes) {
+                        reason = "the decoded theme exceeds the remaining aggregate storage limit.";
+                        return false;
+                    }
+                    decodedStorageBudget.Consume(retainedBytes);
                     xml = candidate;
                     root = candidateRoot;
                     return true;
@@ -155,12 +173,19 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
         }
 
         private static bool TryReadRoundTripColorMapping(
-            LegacyPptRecord record, out string? xml, out string? reason) {
+            LegacyPptRecord record,
+            LegacyPptDecodedStorageBudget decodedStorageBudget,
+            out string? xml, out string? reason) {
             xml = null;
             reason = null;
             if (record.PayloadLength <= 0
                 || record.PayloadLength > MaximumRoundTripThemeXmlBytes) {
                 reason = "the mapping payload length is invalid.";
+                return false;
+            }
+            if (record.PayloadLength > decodedStorageBudget
+                    .RemainingAllocationBytes) {
+                reason = "the decoded color mapping exceeds the remaining aggregate storage limit.";
                 return false;
             }
             try {
@@ -175,6 +200,13 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                     reason = "the payload is not DrawingML color-mapping XML.";
                     return false;
                 }
+                int retainedBytes = StrictUtf8.GetByteCount(candidate);
+                if (retainedBytes > decodedStorageBudget
+                        .RemainingAllocationBytes) {
+                    reason = "the decoded color mapping exceeds the remaining aggregate storage limit.";
+                    return false;
+                }
+                decodedStorageBudget.Consume(retainedBytes);
                 xml = candidate;
                 return true;
             } catch (Exception exception) when (exception is XmlException

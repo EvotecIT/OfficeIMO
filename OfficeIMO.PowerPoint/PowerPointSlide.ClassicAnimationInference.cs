@@ -104,14 +104,12 @@ namespace OfficeIMO.PowerPoint {
                     PowerPointClassicAnimationAfterEffect.None,
                     PowerPointClassicTextBuild.AllAtOnce, rawDimColor: 0));
             }
-            return HasOnlyClassicVisibilitySetBehaviors(timing, result)
+            return HasOnlyClassicStandardActions(timing, result)
                 ? result : Array.Empty<PowerPointClassicAnimation>();
         }
 
-        private static bool HasOnlyClassicVisibilitySetBehaviors(Timing timing,
+        private static bool HasOnlyClassicStandardActions(Timing timing,
             IReadOnlyList<PowerPointClassicAnimation> animations) {
-            var animationTargets = new HashSet<uint>(animations.Select(
-                animation => animation.ShapeId));
             foreach (SetBehavior set in timing.Descendants<SetBehavior>()) {
                 CommonBehavior? behavior = set.CommonBehavior;
                 ShapeTarget? target = behavior?.GetFirstChild<TargetElement>()?
@@ -129,7 +127,9 @@ namespace OfficeIMO.PowerPoint {
                 if (!uint.TryParse(target?.ShapeId?.Value,
                         NumberStyles.Integer, CultureInfo.InvariantCulture,
                         out uint shapeId)
-                    || !animationTargets.Contains(shapeId)
+                    || animations.FirstOrDefault(animation =>
+                        animation.ShapeId == shapeId) is not
+                        PowerPointClassicAnimation animation
                     || set.ChildElements.Count != 2
                     || behavior == null
                     || behavior.Descendants<ShapeTarget>().Count() != 1
@@ -139,7 +139,14 @@ namespace OfficeIMO.PowerPoint {
                     || value == null
                     || set.ToVariantValue!.ChildElements.Count != 1
                     || !string.Equals(value.Val?.Value, "visible",
-                        StringComparison.OrdinalIgnoreCase)
+                            StringComparison.OrdinalIgnoreCase)
+                    && (!string.Equals(value.Val?.Value, "hidden",
+                            StringComparison.OrdinalIgnoreCase)
+                        || animation.AfterEffect is not
+                            (PowerPointClassicAnimationAfterEffect
+                                .HideImmediately or
+                             PowerPointClassicAnimationAfterEffect
+                                .HideOnNextClick))
                     || owner == null
                     || owner.Descendants<AnimateEffect>().Count(effect =>
                         uint.TryParse(effect.Descendants<ShapeTarget>()
@@ -150,8 +157,53 @@ namespace OfficeIMO.PowerPoint {
                     return false;
                 }
             }
+            foreach (AnimateColor color in timing.Descendants<AnimateColor>()) {
+                if (!animations.Any(animation =>
+                        IsClassicDimAction(color, animation))) return false;
+            }
+            foreach (Audio audio in timing.Descendants<Audio>()) {
+                if (!animations.Any(animation =>
+                        IsClassicSoundAction(audio, animation))) return false;
+            }
+            foreach (Command command in timing.Descendants<Command>()) {
+                if (!animations.Any(animation =>
+                        IsClassicStopSoundAction(command, animation))) {
+                    return false;
+                }
+            }
+            foreach (PowerPointClassicAnimation animation in animations) {
+                int hiddenCount = timing.Descendants<SetBehavior>().Count(set =>
+                    IsClassicHiddenAction(set, animation));
+                int dimCount = timing.Descendants<AnimateColor>().Count(color =>
+                    IsClassicDimAction(color, animation));
+                int soundCount = timing.Descendants<Audio>().Count(audio =>
+                    IsClassicSoundAction(audio, animation));
+                int stopSoundCount = timing.Descendants<Command>()
+                    .Count(command => IsClassicStopSoundAction(command,
+                        animation));
+                bool expectsHidden = animation.AfterEffect is
+                    PowerPointClassicAnimationAfterEffect.HideImmediately or
+                    PowerPointClassicAnimationAfterEffect.HideOnNextClick;
+                if (hiddenCount != (expectsHidden ? 1 : 0)
+                    || dimCount != (animation.AfterEffect ==
+                        PowerPointClassicAnimationAfterEffect.Dim ? 1 : 0)
+                    || soundCount != (animation.PlaysSound
+                        && !string.IsNullOrEmpty(
+                            animation.SoundRelationshipId) ? 1 : 0)
+                    || stopSoundCount != (animation.StopsSound ? 1 : 0)) {
+                    return false;
+                }
+            }
             return true;
         }
+
+        private static bool IsClassicHiddenAction(SetBehavior set,
+            PowerPointClassicAnimation animation) =>
+            IsClassicShapeBehavior(set.CommonBehavior, animation.ShapeId,
+                "style.visibility")
+            && string.Equals(set.ToVariantValue?
+                    .GetFirstChild<StringVariantValue>()?.Val?.Value,
+                "hidden", StringComparison.OrdinalIgnoreCase);
 
         private static bool TryMapClassicAnimationFilter(string? filter,
             out PowerPointClassicAnimationEffect effect, out byte direction) {

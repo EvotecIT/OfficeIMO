@@ -200,6 +200,28 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void BinaryImport_ChargesRoundTripThemesToAggregateBudget() {
+            byte[] bytes;
+            using (PowerPointPresentation presentation =
+                   PowerPointPresentation.Create()) {
+                presentation.AddSlide(P.SlideLayoutValues.Blank);
+                bytes = presentation.ToBytes(PowerPointFileFormat.Ppt);
+            }
+
+            LegacyPptPresentation decoded = LegacyPptPresentation.Load(bytes,
+                new LegacyPptImportOptions {
+                    MaxDecodedStorageBytes = 1
+                });
+
+            Assert.DoesNotContain(decoded.Masters, master =>
+                master.RoundTripTheme?.ThemeXml != null);
+            Assert.Contains(decoded.Diagnostics, diagnostic =>
+                diagnostic.Code == "PPT-ROUNDTRIP-THEME-INVALID"
+                && diagnostic.Message.Contains("aggregate storage",
+                    StringComparison.OrdinalIgnoreCase));
+        }
+
+        [Fact]
         public void NativeWriter_RoundTripsSlideThemeOverrideAndColorMapping() {
             byte[] bytes = CreateSlideThemeOverrideBytes(
                 accent5: "ABCDEF", accent1: "123456");
