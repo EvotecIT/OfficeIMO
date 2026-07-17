@@ -3,6 +3,7 @@ using OfficeIMO.Drawing.Internal;
 using OfficeIMO.PowerPoint.LegacyPpt;
 using System;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -12,6 +13,7 @@ namespace OfficeIMO.PowerPoint {
         private const int InputCopyBufferSize = 81920;
         private const long DefaultMaxCompoundTemporaryBytes =
             512L * 1024L * 1024L;
+        private const int UnixOwnerReadWritePermissions = 0x180;
 
         internal static byte[] ReadPresentationInputBytes(
             Stream source,
@@ -301,15 +303,36 @@ namespace OfficeIMO.PowerPoint {
             }
         }
 
-        private static FileStream CreateTemporaryInputStream(bool useAsync) {
+        internal static FileStream CreateTemporaryInputStream(bool useAsync) {
             string path = Path.Combine(Path.GetTempPath(),
                 "officeimo-powerpoint-" + Guid.NewGuid().ToString("N")
                 + ".tmp");
             FileOptions options = FileOptions.DeleteOnClose;
             if (useAsync) options |= FileOptions.Asynchronous;
-            return new FileStream(path, FileMode.CreateNew,
-                FileAccess.ReadWrite, FileShare.None, InputCopyBufferSize,
-                options);
+            FileStream? stream = null;
+            try {
+                stream = new FileStream(path, FileMode.CreateNew,
+                    FileAccess.ReadWrite, FileShare.None,
+                    InputCopyBufferSize, options);
+                RestrictTemporaryFilePermissions(path);
+                return stream;
+            } catch {
+                stream?.Dispose();
+                throw;
+            }
         }
+
+        private static void RestrictTemporaryFilePermissions(string path) {
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) return;
+            if (ChangeFileMode(path, UnixOwnerReadWritePermissions) == 0) {
+                return;
+            }
+            int error = Marshal.GetLastWin32Error();
+            throw new IOException(
+                $"Unable to secure the temporary presentation file (error {error}).");
+        }
+
+        [DllImport("libc", EntryPoint = "chmod", SetLastError = true)]
+        private static extern int ChangeFileMode(string path, int mode);
     }
 }

@@ -40,7 +40,7 @@ namespace OfficeIMO.PowerPoint {
             }
             string relationshipId = PowerPointEmbeddedSound.Add(_slidePart,
                 audio, contentType, extension);
-            Transition transition = SlideRoot.Transition ??= new Transition();
+            Transition transition = GetOrCreateTransitionElement();
             transition.RemoveAllChildren<SoundAction>();
             transition.Append(new SoundAction(
                 new StartSoundAction(new Sound {
@@ -51,7 +51,7 @@ namespace OfficeIMO.PowerPoint {
 
         /// <summary>Stops any currently playing transition sound on entry to this slide.</summary>
         public void StopTransitionSound() {
-            Transition transition = SlideRoot.Transition ??= new Transition();
+            Transition transition = GetOrCreateTransitionElement();
             transition.RemoveAllChildren<SoundAction>();
             transition.Append(new SoundAction(new EndSoundAction()));
         }
@@ -75,5 +75,11 @@ namespace OfficeIMO.PowerPoint {
         private StartSoundAction? GetTransitionStartSound() =>
             GetTransitionElement()?.GetFirstChild<SoundAction>()?
                 .GetFirstChild<StartSoundAction>();
+
+        private Transition GetOrCreateTransitionElement() {
+            Transition? transition = GetTransitionElement();
+            if (transition != null) return transition;
+            return SlideRoot.Transition = new Transition();
+        }
     }
 }

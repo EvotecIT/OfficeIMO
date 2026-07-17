@@ -84,6 +84,33 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void NativeWriter_PreservesFloatCustomPropertyVariant() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            presentation.AddSlide();
+            CustomFilePropertiesPart part = presentation.OpenXmlDocument
+                .AddCustomFilePropertiesPart();
+            part.Properties = new Properties(new CustomDocumentProperty(
+                new VTFloat("1.25")) {
+                FormatId = "{D5CDD505-2E9C-101B-9397-08002B2CF9AE}",
+                PropertyId = 2,
+                Name = "SinglePrecision"
+            });
+
+            byte[] bytes = presentation.ToBytes(PowerPointFileFormat.Ppt);
+
+            using var input = new MemoryStream(bytes, writable: false);
+            using PowerPointPresentation reopened =
+                PowerPointPresentation.Load(input);
+            CustomDocumentProperty custom = Assert.Single(reopened
+                .OpenXmlDocument.CustomFilePropertiesPart!.Properties!
+                .Elements<CustomDocumentProperty>());
+            Assert.Equal("1.25", custom.VTFloat?.Text);
+            Assert.Null(custom.VTDouble);
+            Assert.Empty(reopened.ValidateDocument());
+        }
+
+        [Fact]
         public void ReadOnlyImport_ProjectsOlePropertiesBeforeOpeningPackage() {
             DateTime createdAt = new DateTime(2025, 6, 7, 8, 9, 10,
                 DateTimeKind.Utc);

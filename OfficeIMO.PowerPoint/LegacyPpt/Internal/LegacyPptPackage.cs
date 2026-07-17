@@ -104,17 +104,24 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             if (options == null) throw new ArgumentNullException(nameof(options));
             return Read(bytes, options,
                 new LegacyPptRecordTraversalBudget(options.MaxRecordCount),
+                new LegacyPptDecodedStorageBudget(
+                    options.MaxDecodedStorageBytes),
                 CancellationToken.None);
         }
 
         internal static LegacyPptPackage Read(byte[] bytes,
             LegacyPptImportOptions options,
             LegacyPptRecordTraversalBudget recordBudget,
+            LegacyPptDecodedStorageBudget decodedStorageBudget,
             CancellationToken cancellationToken = default) {
             if (bytes == null) throw new ArgumentNullException(nameof(bytes));
             if (options == null) throw new ArgumentNullException(nameof(options));
             if (recordBudget == null) {
                 throw new ArgumentNullException(nameof(recordBudget));
+            }
+            if (decodedStorageBudget == null) {
+                throw new ArgumentNullException(
+                    nameof(decodedStorageBudget));
             }
             cancellationToken.ThrowIfCancellationRequested();
             if (!OfficeCompoundFileReader.TryRead(bytes, out OfficeCompoundFile? compound, out string? error)
@@ -142,7 +149,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 != LegacyPptCurrentUserAtom.UnencryptedHeaderToken) {
                 originalEncryptedBytes = (byte[])bytes.Clone();
                 bytes = LegacyPptRc4CryptoApi.DecryptPackage(bytes, compound,
-                    options, recordBudget, cancellationToken,
+                    options, recordBudget, decodedStorageBudget,
+                    cancellationToken,
                     out int keySizeBits,
                     out bool documentPropertiesEncrypted);
                 cancellationToken.ThrowIfCancellationRequested();

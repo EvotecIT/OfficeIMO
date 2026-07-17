@@ -68,9 +68,16 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
         internal static IReadOnlyDictionary<string, byte[]> Decrypt(
             OfficeCompoundFile source,
             OfficeBinaryRc4CryptoApiSession session,
+            LegacyPptImportOptions options,
+            LegacyPptDecodedStorageBudget decodedStorageBudget,
             CancellationToken cancellationToken = default) {
             if (source == null) throw new ArgumentNullException(nameof(source));
             if (session == null) throw new ArgumentNullException(nameof(session));
+            if (options == null) throw new ArgumentNullException(nameof(options));
+            if (decodedStorageBudget == null) {
+                throw new ArgumentNullException(
+                    nameof(decodedStorageBudget));
+            }
             cancellationToken.ThrowIfCancellationRequested();
             if (!source.Streams.TryGetValue(EncryptedSummaryStream,
                     out byte[]? encrypted)) {
@@ -125,7 +132,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 if (entry.IsStream) {
                     AddReplacement(replacements, entry.Name, data);
                 } else {
-                    AddStorageReplacements(replacements, entry.Name, data);
+                    AddStorageReplacements(replacements, entry.Name, data,
+                        options, decodedStorageBudget, cancellationToken);
                 }
             }
 
@@ -231,17 +239,42 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             return entries;
         }
 
-        private static void AddStorageReplacements(
+        internal static void AddStorageReplacements(
             IDictionary<string, byte[]> replacements, string storageName,
-            byte[] bytes) {
-            if (!OfficeCompoundFileReader.TryRead(bytes,
+            byte[] bytes, LegacyPptImportOptions options,
+            LegacyPptDecodedStorageBudget decodedStorageBudget,
+            CancellationToken cancellationToken = default) {
+            if (replacements == null) {
+                throw new ArgumentNullException(nameof(replacements));
+            }
+            if (options == null) throw new ArgumentNullException(nameof(options));
+            if (decodedStorageBudget == null) {
+                throw new ArgumentNullException(
+                    nameof(decodedStorageBudget));
+            }
+            cancellationToken.ThrowIfCancellationRequested();
+            int maxDirectoryEntries = Math.Max(1,
+                Math.Min(65536, options.MaxRecordCount));
+            int maxStreamCount = Math.Max(1,
+                Math.Min(32768, options.MaxRecordCount));
+            var readOptions = new OfficeCompoundReadOptions(
+                maxDirectoryEntries, maxStreamCount,
+                maxStreamBytes: int.MaxValue,
+                maxTotalStreamBytes: long.MaxValue,
+                streamSizeValidator: (_, size) => {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    decodedStorageBudget.Consume(checked((int)size));
+                });
+            if (!OfficeCompoundFileReader.TryRead(bytes, readOptions,
                     out OfficeCompoundFile? storage, out string? error)
                 || storage == null) {
+                decodedStorageBudget.ThrowIfExceeded();
                 throw new InvalidDataException(
                     $"EncryptedSummary storage '{storageName}' is not a valid compound file: {error}");
             }
             int streamCount = 0;
             foreach (OfficeCompoundFileEntry entry in storage.Entries) {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (!entry.IsStream || entry.IsFallback) continue;
                 AddReplacement(replacements,
                     storageName + "/" + entry.Path,

@@ -85,6 +85,51 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void MorphTransition_SoundActionsRemainOnMorphMarkup() {
+            string filePath = Path.Combine(Path.GetTempPath(),
+                Guid.NewGuid() + ".pptx");
+            byte[] audio = { 82, 73, 70, 70, 4, 0, 0, 0, 87, 65, 86, 69 };
+
+            try {
+                using (PowerPointPresentation presentation =
+                       PowerPointPresentation.Create(filePath)) {
+                    PowerPointSlide start = presentation.AddSlide();
+                    start.Transition = SlideTransition.Morph;
+                    using (var sound = new MemoryStream(audio,
+                               writable: false)) {
+                        start.SetTransitionSound(sound, "Morph sound");
+                    }
+
+                    PowerPointSlide stop = presentation.AddSlide();
+                    stop.Transition = SlideTransition.Morph;
+                    stop.StopTransitionSound();
+
+                    Assert.Equal(SlideTransition.Morph, start.Transition);
+                    Assert.Equal(SlideTransition.Morph, stop.Transition);
+                    presentation.Save();
+                }
+
+                using PowerPointPresentation reopened =
+                    PowerPointPresentation.Load(filePath);
+                PowerPointSlide startSlide = reopened.Slides[0];
+                PowerPointSlide stopSlide = reopened.Slides[1];
+                Assert.Equal(SlideTransition.Morph,
+                    startSlide.Transition);
+                Assert.True(startSlide.HasTransitionSound);
+                Assert.Equal("Morph sound",
+                    startSlide.TransitionSoundName);
+                Assert.Equal(audio,
+                    startSlide.GetTransitionSoundBytes());
+                Assert.Equal(SlideTransition.Morph,
+                    stopSlide.Transition);
+                Assert.True(stopSlide.TransitionStopsSound);
+                Assert.Empty(reopened.ValidateDocument());
+            } finally {
+                if (File.Exists(filePath)) File.Delete(filePath);
+            }
+        }
+
+        [Fact]
         public void AllSupportedTransitions_ValidateAndRoundTrip() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             SlideTransition[] transitions = Enum.GetValues(typeof(SlideTransition)).Cast<SlideTransition>().ToArray();

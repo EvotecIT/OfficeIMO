@@ -162,6 +162,27 @@ namespace OfficeIMO.Tests {
             Assert.Equal(4097, input.BytesRead);
         }
 
+#if NET8_0_OR_GREATER
+        [Fact]
+        public void PresentationFacade_TemporaryStorageIsOwnerOnlyOnUnix() {
+            if (OperatingSystem.IsWindows()) return;
+            using FileStream temporary = PowerPointPresentation
+                .CreateTemporaryInputStream(useAsync: false);
+            const UnixFileMode accessBits = UnixFileMode.UserRead
+                | UnixFileMode.UserWrite
+                | UnixFileMode.UserExecute
+                | UnixFileMode.GroupRead
+                | UnixFileMode.GroupWrite
+                | UnixFileMode.GroupExecute
+                | UnixFileMode.OtherRead
+                | UnixFileMode.OtherWrite
+                | UnixFileMode.OtherExecute;
+
+            Assert.Equal(UnixFileMode.UserRead | UnixFileMode.UserWrite,
+                File.GetUnixFileMode(temporary.Name) & accessBits);
+        }
+#endif
+
         [Fact]
         public async Task PresentationFacade_EnforcesExplicitPackageInputBudgetForOpenXml() {
             byte[] packageBytes;
@@ -375,6 +396,31 @@ namespace OfficeIMO.Tests {
                 StringComparison.OrdinalIgnoreCase);
             Assert.Throws<InvalidDataException>(() =>
                 decodedBudget.ThrowIfExceeded());
+        }
+
+        [Fact]
+        public void EncryptedSummaryStorage_ReservesSharedBudgetBeforeDecode() {
+            byte[] storage = CreateOleTestStorage(
+                "Encrypted summary storage");
+            var replacements = new Dictionary<string, byte[]>(
+                StringComparer.OrdinalIgnoreCase);
+            var options = new LegacyPptImportOptions {
+                MaxDecodedStorageBytes = 1
+            };
+            var budget = new LegacyPptDecodedStorageBudget(
+                options.MaxDecodedStorageBytes);
+
+            InvalidDataException exception = Assert.Throws<
+                InvalidDataException>(() => LegacyPptEncryptedSummary
+                    .AddStorageReplacements(replacements, "Nested", storage,
+                        options, budget));
+
+            Assert.Contains("aggregate decoded embedded-storage",
+                exception.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Empty(replacements);
+            Assert.Equal(0, budget.DecodedBytes);
+            Assert.Throws<InvalidDataException>(() =>
+                budget.ThrowIfExceeded());
         }
 
         [Fact]

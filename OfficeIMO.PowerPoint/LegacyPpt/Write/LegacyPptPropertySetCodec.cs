@@ -309,7 +309,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                             CultureInfo.InvariantCulture));
                     return true;
                 case float value:
-                    property.VTDouble = new VTDouble(value.ToString("R",
+                    property.VTFloat = new VTFloat(value.ToString("R",
                         CultureInfo.InvariantCulture));
                     return true;
                 case double value:

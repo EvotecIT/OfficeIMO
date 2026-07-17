@@ -160,7 +160,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             var decodedStorageBudget = new LegacyPptDecodedStorageBudget(
                 options.MaxDecodedStorageBytes);
             LegacyPptPackage package = LegacyPptPackage.Read(bytes, options,
-                recordBudget, cancellationToken);
+                recordBudget, decodedStorageBudget, cancellationToken);
             var presentation = new LegacyPptPresentation {
                 Package = package,
                 _recordBudget = recordBudget,

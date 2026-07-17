@@ -157,10 +157,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                            out double number)) {
                 property = OfficeOleProperty.Double(id, number);
             } else if (source.VTFloat != null
-                       && double.TryParse(source.VTFloat.Text,
+                       && float.TryParse(source.VTFloat.Text,
                            NumberStyles.Float, CultureInfo.InvariantCulture,
-                           out number)) {
-                property = OfficeOleProperty.Double(id, number);
+                           out float single)) {
+                property = OfficeOleProperty.Float(id, single);
             } else if (source.VTInt32 != null
                        && int.TryParse(source.VTInt32.Text,
                            NumberStyles.Integer,

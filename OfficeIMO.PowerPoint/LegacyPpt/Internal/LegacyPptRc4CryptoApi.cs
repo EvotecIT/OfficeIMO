@@ -13,6 +13,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
         internal static byte[] DecryptPackage(byte[] sourceBytes,
             OfficeCompoundFile source, LegacyPptImportOptions options,
             LegacyPptRecordTraversalBudget recordBudget,
+            LegacyPptDecodedStorageBudget decodedStorageBudget,
             CancellationToken cancellationToken,
             out int keySizeBits, out bool encryptedDocumentProperties) {
             if (sourceBytes == null) throw new ArgumentNullException(nameof(sourceBytes));
@@ -20,6 +21,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             if (options == null) throw new ArgumentNullException(nameof(options));
             if (recordBudget == null) {
                 throw new ArgumentNullException(nameof(recordBudget));
+            }
+            if (decodedStorageBudget == null) {
+                throw new ArgumentNullException(
+                    nameof(decodedStorageBudget));
             }
             if (options.Password == null) {
                 throw new CryptographicException(
@@ -95,6 +100,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 cancellationToken.ThrowIfCancellationRequested();
                 foreach (KeyValuePair<string, byte[]> replacement
                          in LegacyPptEncryptedSummary.Decrypt(source, session,
+                             options, decodedStorageBudget,
                              cancellationToken)) {
                     cancellationToken.ThrowIfCancellationRequested();
                     replacements[replacement.Key] = replacement.Value;
