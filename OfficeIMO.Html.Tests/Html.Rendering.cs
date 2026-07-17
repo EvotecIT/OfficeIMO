@@ -319,6 +319,28 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlPdf_TrustedResourcePolicyDoesNotRelaxCallerHyperlinkPolicy() {
+        const string webUri = "https://example.test/report";
+        const string fileUri = "file:///secret/report.pdf";
+        const string dataUri = "data:text/plain,private";
+        var options = new HtmlPdfSaveOptions {
+            ResourcePolicy = PdfCore.PdfResourcePolicy.CreateTrustedHost(),
+            UrlPolicy = HtmlUrlPolicy.CreateWebOnlyProfile()
+        };
+
+        byte[] pdf = HtmlConversionDocument.Parse($"""
+            <p><a href="{webUri}">Web report</a></p>
+            <p><a href="{fileUri}">Local report</a></p>
+            <p><a href="{dataUri}">Inline report</a></p>
+            """).ToPdf(options);
+        PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(pdf);
+
+        Assert.Contains(webUri, info.LinkUris);
+        Assert.DoesNotContain(fileUri, info.LinkUris);
+        Assert.DoesNotContain(dataUri, info.LinkUris);
+    }
+
+    [Fact]
     public async Task HtmlPdf_PortableResourcePolicyDoesNotInvokeRemoteResolver() {
         int calls = 0;
         var options = new HtmlPdfSaveOptions {

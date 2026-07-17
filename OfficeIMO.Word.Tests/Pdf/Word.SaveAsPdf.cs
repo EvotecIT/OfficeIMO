@@ -318,7 +318,11 @@ public partial class Word {
 
         Assert.True(File.Exists(pdfPath));
         AssertPdfUsesFont(pdfPath, "Times");
-        AssertPdfUsesFont(pdfPath, "Georgia");
+        if (PdfCore.PdfEmbeddedFontFamily.TryFromSystem("Georgia", out _)) {
+            AssertPdfUsesFont(pdfPath, "Georgia");
+        } else {
+            AssertPdfDoesNotUseFont(pdfPath, "Georgia");
+        }
     }
 
     [Theory]

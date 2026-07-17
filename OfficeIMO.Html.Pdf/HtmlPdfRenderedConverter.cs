@@ -26,10 +26,10 @@ internal static class HtmlPdfRenderedConverter {
     private static HtmlRenderOptions ResolveRenderOptions(HtmlPdfSaveOptions options) {
         HtmlRenderOptions renderOptions = options.ClonePdf();
         renderOptions.Mode = HtmlRenderMode.Paged;
-        renderOptions.UrlPolicy.AllowDataUrls = options.ResourcePolicy.AllowDataUris;
         HtmlRenderResourceResolver? embeddedPackageResolver = options.EmbeddedPackageResourceResolver;
-        renderOptions.UrlPolicy.DisallowFileUrls = !options.ResourcePolicy.AllowLocalFileAccess;
         renderOptions.ResourceUrlPolicy = renderOptions.UrlPolicy.Clone();
+        renderOptions.ResourceUrlPolicy.AllowDataUrls = options.ResourcePolicy.AllowDataUris;
+        renderOptions.ResourceUrlPolicy.DisallowFileUrls = !options.ResourcePolicy.AllowLocalFileAccess;
         if (embeddedPackageResolver != null && options.ResourcePolicy.AllowEmbeddedPackageResources) {
             renderOptions.ResourceUrlPolicy.DisallowFileUrls = false;
         }
