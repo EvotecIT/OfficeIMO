@@ -16,6 +16,7 @@ public sealed class EmlxStoreWriterTests {
         document.MessageMetadata.IsRead = true;
         document.MessageMetadata.IsDraft = true;
         document.Properties["Emlx:Flag:Flagged"] = true;
+        document.Properties["Emlx:Flag:PriorityLevel"] = 73;
 
         byte[] bytes = new EmailStoreEmlxWriter().ToBytes(document);
         using var stream = new MemoryStream(bytes);
@@ -29,6 +30,7 @@ public sealed class EmlxStoreWriterTests {
         Assert.True(loaded.MessageMetadata.IsRead);
         Assert.True(loaded.MessageMetadata.IsDraft);
         Assert.Equal(true, loaded.Properties["Emlx:Flag:Flagged"]);
+        Assert.Equal(73, loaded.Properties["Emlx:Flag:PriorityLevel"]);
     }
 
     [Fact]

@@ -258,8 +258,12 @@ internal static class ContentLineCodec {
         var result = new StringBuilder(value.Length);
         for (int index = 0; index < value.Length; index++) {
             if (decodeLegacyQuotedBackslashes && value[index] == '\\' && index + 1 < value.Length) {
-                result.Append(value[++index]);
-                continue;
+                char escaped = value[index + 1];
+                if (escaped == '\\' || escaped == '"') {
+                    result.Append(escaped);
+                    index++;
+                    continue;
+                }
             }
             if (value[index] != '^' || index + 1 >= value.Length) { result.Append(value[index]); continue; }
             char next = value[index + 1];

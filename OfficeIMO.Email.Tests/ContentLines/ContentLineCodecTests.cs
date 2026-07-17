@@ -96,14 +96,19 @@ public sealed class ContentLineCodecTests {
     [Fact]
     public void LegacyQuotedParameterEscapesDoNotSplitEmbeddedCommaOrQuote() {
         const string source = "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Test//EN\r\n" +
-            "BEGIN:VEVENT\r\nATTENDEE;CN=\"Doe, \\\"John\\\"\":mailto:john@example.com\r\n" +
+            "BEGIN:VEVENT\r\nATTENDEE;CN=\"Doe, \\\"John\\\"\";X-PATH=\"C:\\Temp\":mailto:john@example.com\r\n" +
             "END:VEVENT\r\nEND:VCALENDAR\r\n";
 
         ContentLineProperty attendee = IcsDocument.Parse(source).GetComponents("VEVENT")
             .Single().GetFirstProperty("ATTENDEE")!;
 
         Assert.Equal("Doe, \"John\"", attendee.GetParameter("CN")!.Values.Single());
+        Assert.Equal("C:\\Temp", attendee.GetParameter("X-PATH")!.Values.Single());
         Assert.Equal("mailto:john@example.com", attendee.Value);
+
+        ContentLineProperty reparsed = IcsDocument.Parse(IcsDocument.Parse(source).Serialize())
+            .GetComponents("VEVENT").Single().GetFirstProperty("ATTENDEE")!;
+        Assert.Equal("C:\\Temp", reparsed.GetParameter("X-PATH")!.Values.Single());
     }
 
     [Fact]

@@ -20,6 +20,7 @@ public sealed partial class EmailStorePstMutationTransaction {
         string? backupStagingPath = null;
         try {
             var folderMap = new Dictionary<string, string>(StringComparer.Ordinal);
+            var folderParentMap = new Dictionary<string, string?>(StringComparer.Ordinal);
             var itemMap = new Dictionary<string, string>(StringComparer.Ordinal);
             var verificationMappings = new List<VerificationMapping>();
             EmailStorePstWriteReport writeReport;
@@ -34,7 +35,7 @@ public sealed partial class EmailStorePstMutationTransaction {
                 maxNestedMessageDepth: _options.MaxNestedMessageDepth,
                 retainCheckpointOnDispose: false);
             using (EmailStorePstWriter writer = EmailStorePstWriter.Create(stagingPath, writerOptions)) {
-                BuildFolderMap(writer, folderMap);
+                BuildFolderMap(writer, folderMap, folderParentMap);
                 FailOnFidelityDiagnostics();
                 var readOptions = new EmailStoreItemReadOptions(
                     EmailStoreItemReadParts.All, preferStreamingAttachmentContent: true);
@@ -64,7 +65,8 @@ public sealed partial class EmailStorePstMutationTransaction {
 
             FailOnFidelityDiagnostics();
             EmailStorePstMutationVerificationReport? verification = _options.VerifyAfterWrite
-                ? VerifyStagedPst(stagingPath, folderMap, verificationMappings, cancellationToken)
+                ? VerifyStagedPst(stagingPath, folderMap, folderParentMap,
+                    verificationMappings, cancellationToken)
                 : null;
             if (verification?.IsSuccessful == false) {
                 throw new InvalidDataException(
@@ -130,22 +132,27 @@ public sealed partial class EmailStorePstMutationTransaction {
     }
 
     private void BuildFolderMap(EmailStorePstWriter writer,
-        IDictionary<string, string> folderMap) {
+        IDictionary<string, string> folderMap,
+        IDictionary<string, string?> folderParentMap) {
         foreach (FolderState folder in _folders.Values.Where(folder => !folder.Deleted)) {
             if (folder.IsMappedSystemFolder) {
                 folderMap[folder.Id] = writer.SpamSearchFolderId;
+                folderParentMap[folder.Id] = writer.SearchRootFolderId;
                 continue;
             }
             switch (folder.SpecialFolderKind) {
                 case EmailStoreSpecialFolderKind.Root:
                 case EmailStoreSpecialFolderKind.IpmSubtree:
                     folderMap[folder.Id] = writer.RootFolderId;
+                    folderParentMap[folder.Id] = null;
                     break;
                 case EmailStoreSpecialFolderKind.DeletedItems:
                     folderMap[folder.Id] = writer.DeletedItemsFolderId;
+                    folderParentMap[folder.Id] = writer.RootFolderId;
                     break;
                 case EmailStoreSpecialFolderKind.SearchRoot:
                     folderMap[folder.Id] = writer.SearchRootFolderId;
+                    folderParentMap[folder.Id] = writer.RootFolderId;
                     break;
             }
         }
@@ -161,6 +168,7 @@ public sealed partial class EmailStorePstMutationTransaction {
                 if (folder.ParentId == null) parent = writer.RootFolderId;
                 else if (!folderMap.TryGetValue(folder.ParentId, out parent!)) continue;
                 folderMap[folder.Id] = writer.AddFolder(folder.Name, parent, folder.ContainerClass);
+                folderParentMap[folder.Id] = parent;
                 if (folder.IsSearchFolder) {
                     _diagnostics.Add(new EmailStoreDiagnostic(
                         "EMAIL_STORE_PST_MUTATE_SEARCH_FOLDER_STATIC",
@@ -175,6 +183,7 @@ public sealed partial class EmailStorePstMutationTransaction {
         foreach (FolderState folder in pending) {
             folderMap[folder.Id] = writer.AddFolder(folder.Name, writer.RootFolderId,
                 folder.ContainerClass);
+            folderParentMap[folder.Id] = writer.RootFolderId;
             _diagnostics.Add(new EmailStoreDiagnostic(
                 "EMAIL_STORE_PST_MUTATE_FOLDER_PARENT_RECOVERED",
                 "A folder with an unavailable or cyclic parent was attached to the destination root.",
@@ -184,6 +193,7 @@ public sealed partial class EmailStorePstMutationTransaction {
 
     private EmailStorePstMutationVerificationReport VerifyStagedPst(string stagingPath,
         IReadOnlyDictionary<string, string> folderMap,
+        IReadOnlyDictionary<string, string?> folderParentMap,
         IReadOnlyList<VerificationMapping> mappings,
         CancellationToken cancellationToken) {
         int matchedFolders = 0;
@@ -219,9 +229,7 @@ public sealed partial class EmailStorePstMutationTransaction {
                     continue;
                 }
                 bool mandatoryAlias = folder.IsMandatory;
-                string? expectedParent = folder.ParentId == null
-                    ? null
-                    : folderMap[folder.ParentId];
+                string? expectedParent = folderParentMap[folder.Id];
                 bool matches = mandatoryAlias ||
                     string.Equals(actual.Name, folder.Name, StringComparison.Ordinal) &&
                     string.Equals(actual.ParentId, expectedParent, StringComparison.Ordinal) &&

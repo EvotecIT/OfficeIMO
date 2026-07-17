@@ -173,6 +173,8 @@ public sealed class EmailStoreEmlxWriter {
         if (PropertyFlag(document, "Emlx:Flag:Forwarded")) flags |= 1L << 8;
         if (PropertyFlag(document, "Emlx:Flag:Redirected")) flags |= 1L << 9;
         flags |= (long)Math.Min(document.Attachments.Count, 63) << 10;
+        if (TryGetIntegerProperty(document, "Emlx:Flag:PriorityLevel", out int priorityLevel))
+            flags |= (long)Math.Max(0, Math.Min(priorityLevel, 127)) << 16;
         if (PropertyFlag(document, "Emlx:Flag:Signed")) flags |= 1L << 23;
         if (PropertyFlag(document, "Emlx:Flag:IsJunk")) flags |= 1L << 24;
         if (PropertyFlag(document, "Emlx:Flag:IsNotJunk")) flags |= 1L << 25;
@@ -181,6 +183,16 @@ public sealed class EmailStoreEmlxWriter {
 
     private static bool PropertyFlag(EmailDocument document, string name) =>
         document.Properties.TryGetValue(name, out object? value) && value is bool enabled && enabled;
+
+    private static bool TryGetIntegerProperty(EmailDocument document, string name, out int result) {
+        if (document.Properties.TryGetValue(name, out object? value)) {
+            if (value is int number) { result = number; return true; }
+            if (value is short shortNumber) { result = shortNumber; return true; }
+            if (value is byte byteNumber) { result = byteNumber; return true; }
+        }
+        result = 0;
+        return false;
+    }
 
     private static void WriteInteger(XmlWriter writer, string key, long value) {
         writer.WriteElementString("key", key);
