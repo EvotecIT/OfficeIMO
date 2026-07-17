@@ -568,26 +568,34 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void ReplacingRunHyperlinkCleansOldTargetAndSoundRelationships() {
+        public void ReplacingRunHyperlinkPreservesSoundAndCleansOldTarget() {
             using PowerPointPresentation presentation =
                 PowerPointPresentation.Create();
             PowerPointSlide source = presentation.AddSlide();
             PowerPointSlide target = presentation.AddSlide();
             PowerPointTextRun run = source.AddTextBox("Target")
                 .Paragraphs.Single().Runs.Single();
-            run.SetHyperlink("https://example.test/old");
-            using (var sound = new MemoryStream(CreateWave(),
+            byte[] soundBytes = CreateWave();
+            using (var sound = new MemoryStream(soundBytes,
                        writable: false)) {
                 run.SetClickSound(sound, "Old link sound");
             }
+            run.SetClickStopsSound(true);
+            run.SetHyperlink("https://example.test/old");
             Assert.Single(source.SlidePart.HyperlinkRelationships);
             Assert.Single(presentation.OpenXmlDocument.DataParts);
+            Assert.Equal("Old link sound", run.ClickSoundName);
+            Assert.Equal(soundBytes, run.GetClickSoundBytes());
 
             run.SetHyperlink(target);
 
             Assert.Empty(source.SlidePart.HyperlinkRelationships);
-            Assert.Empty(source.SlidePart.DataPartReferenceRelationships);
-            Assert.Empty(presentation.OpenXmlDocument.DataParts);
+            Assert.Single(source.SlidePart.DataPartReferenceRelationships);
+            Assert.Single(presentation.OpenXmlDocument.DataParts);
+            Assert.Equal("Old link sound", run.ClickSoundName);
+            Assert.Equal(soundBytes, run.GetClickSoundBytes());
+            Assert.True(run.Run.RunProperties!
+                .GetFirstChild<A.HyperlinkOnClick>()!.EndSound!.Value);
             Assert.Contains(source.SlidePart.Parts, pair => ReferenceEquals(
                 pair.OpenXmlPart, target.SlidePart));
 
@@ -595,6 +603,8 @@ namespace OfficeIMO.Tests {
 
             Assert.DoesNotContain(source.SlidePart.Parts, pair =>
                 ReferenceEquals(pair.OpenXmlPart, target.SlidePart));
+            Assert.Empty(source.SlidePart.DataPartReferenceRelationships);
+            Assert.Empty(presentation.OpenXmlDocument.DataParts);
             Assert.Equal(2, presentation.Slides.Count);
             Assert.Empty(presentation.ValidateDocument());
         }

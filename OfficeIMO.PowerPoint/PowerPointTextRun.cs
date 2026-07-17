@@ -249,6 +249,21 @@ namespace OfficeIMO.PowerPoint {
             A.HyperlinkOnClick? replacement) {
             A.HyperlinkOnClick[] previous = properties
                 .Elements<A.HyperlinkOnClick>().ToArray();
+            if (replacement != null) {
+                A.HyperlinkSound? preservedSound = previous
+                    .SelectMany(link => link.Elements<A.HyperlinkSound>())
+                    .FirstOrDefault();
+                if (preservedSound != null) {
+                    replacement.Append((A.HyperlinkSound)preservedSound
+                        .CloneNode(true));
+                }
+                bool? preservedEndSound = previous
+                    .Select(link => link.EndSound?.Value)
+                    .FirstOrDefault(value => value.HasValue);
+                if (preservedEndSound.HasValue) {
+                    replacement.EndSound = preservedEndSound.Value;
+                }
+            }
             string[] relationshipIds = previous
                 .Select(link => link.Id?.Value)
                 .Where(id => !string.IsNullOrEmpty(id))

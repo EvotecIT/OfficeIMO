@@ -74,12 +74,28 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             keySizeBits = session.KeySizeBits;
             encryptedDocumentProperties = session.EncryptsDocumentProperties;
 
+            EncryptedPersistObject[] encryptedObjects = offsets
+                .Where(pair => pair.Key != encryptionPersistId)
+                .Select(pair => InspectEncryptedPersistObject(documentStream,
+                    pair.Key, pair.Value, session, cancellationToken))
+                .OrderBy(item => item.Offset)
+                .ThenBy(item => item.PersistId)
+                .ToArray();
+            ValidatePersistObjectRanges(encryptedObjects,
+                new EncryptedPersistObject(encryptionPersistId,
+                    ToBoundedOffset(encryptionOffset,
+                        documentStream.Length,
+                        "CryptSession10Container"),
+                    encryptionRecord.Length));
+            foreach (EncryptedPersistObject item in encryptedObjects) {
+                decodedStorageBudget.Consume(item.RecordLength);
+            }
+
             var plainObjects = new SortedDictionary<uint, byte[]>();
-            foreach (KeyValuePair<uint, uint> pair in offsets) {
+            foreach (EncryptedPersistObject item in encryptedObjects) {
                 cancellationToken.ThrowIfCancellationRequested();
-                if (pair.Key == encryptionPersistId) continue;
-                plainObjects.Add(pair.Key, DecryptPersistObject(documentStream,
-                    pair.Key, pair.Value, session, cancellationToken));
+                plainObjects.Add(item.PersistId, DecryptPersistObject(
+                    documentStream, item, session, cancellationToken));
             }
             cancellationToken.ThrowIfCancellationRequested();
             byte[] plainDocument = BuildDocumentStream(plainObjects, edit,
@@ -171,7 +187,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 new[] { "EncryptedSummary" });
         }
 
-        private static byte[] DecryptPersistObject(byte[] documentStream,
+        private static EncryptedPersistObject InspectEncryptedPersistObject(
+            byte[] documentStream,
             uint persistId, uint streamOffset,
             OfficeBinaryRc4CryptoApiSession session,
             CancellationToken cancellationToken) {
@@ -188,11 +205,53 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 throw new InvalidDataException(
                     $"Encrypted persist object {persistId} has an invalid record length.");
             }
-            byte[] record = CopyBytes(documentStream, offset,
+            return new EncryptedPersistObject(persistId, offset,
                 unchecked((int)recordLength));
-            session.TransformInPlace(record, 0, record.Length, persistId,
+        }
+
+        private static void ValidatePersistObjectRanges(
+            IReadOnlyCollection<EncryptedPersistObject> encryptedObjects,
+            EncryptedPersistObject encryptionObject) {
+            EncryptedPersistObject? previous = null;
+            foreach (EncryptedPersistObject current in encryptedObjects
+                         .Append(encryptionObject)
+                         .OrderBy(item => item.Offset)
+                         .ThenBy(item => item.PersistId)) {
+                if (previous.HasValue
+                    && current.Offset < previous.Value.EndOffset) {
+                    throw new InvalidDataException(
+                        $"Encrypted persist object {current.PersistId} overlaps persist object {previous.Value.PersistId} in the PowerPoint Document stream.");
+                }
+                previous = current;
+            }
+        }
+
+        private static byte[] DecryptPersistObject(byte[] documentStream,
+            EncryptedPersistObject item,
+            OfficeBinaryRc4CryptoApiSession session,
+            CancellationToken cancellationToken) {
+            byte[] record = CopyBytes(documentStream, item.Offset,
+                item.RecordLength);
+            session.TransformInPlace(record, 0, record.Length, item.PersistId,
                 cancellationToken);
             return record;
+        }
+
+        private readonly struct EncryptedPersistObject {
+            internal EncryptedPersistObject(uint persistId, int offset,
+                int recordLength) {
+                PersistId = persistId;
+                Offset = offset;
+                RecordLength = recordLength;
+            }
+
+            internal uint PersistId { get; }
+
+            internal int Offset { get; }
+
+            internal int RecordLength { get; }
+
+            internal int EndOffset => checked(Offset + RecordLength);
         }
 
         private static byte[] BuildDocumentStream(

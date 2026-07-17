@@ -1,3 +1,4 @@
+using OfficeIMO.Drawing.Internal;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.LegacyPpt;
 using OfficeIMO.PowerPoint.LegacyPpt.Internal;
@@ -61,6 +62,130 @@ namespace OfficeIMO.Tests {
             Assert.Contains(projected.Slides[0].TextBoxes,
                 textBox => textBox.Text == "Encrypted binary deck");
             Assert.Single(projected.Slides[0].Pictures);
+        }
+
+        [Fact]
+        public void LegacyEncryption_RejectsOverlappingPersistRangesBeforeDecrypting() {
+            const string password = "overlap-pass";
+            byte[] encryptedBytes = CreateEncryptedLegacyPresentation(
+                password);
+            Assert.True(OfficeCompoundFileReader.TryRead(encryptedBytes,
+                out OfficeCompoundFile? compound, out string? readError),
+                readError);
+            OfficeCompoundFile sourceCompound = Assert.IsType<
+                OfficeCompoundFile>(compound);
+            byte[] document = (byte[])sourceCompound.Streams[
+                "PowerPoint Document"].Clone();
+            LegacyPptCurrentUserAtom currentUser =
+                LegacyPptCurrentUserAtom.Read(sourceCompound.Streams[
+                    "Current User"]);
+            LegacyPptRecord edit = LegacyPptRecordReader.ReadSingle(
+                document, checked((int)currentUser.CurrentEditOffset),
+                new LegacyPptImportOptions());
+            LegacyPptRecord directory = LegacyPptRecordReader.ReadSingle(
+                document, checked((int)edit.ReadUInt32(12)),
+                new LegacyPptImportOptions());
+            var entries = new List<(uint PersistId, int ValueOffset,
+                uint StreamOffset)>();
+            int position = 0;
+            while (position < directory.PayloadLength) {
+                uint packed = directory.ReadUInt32(position);
+                position += 4;
+                uint firstId = packed & 0x000FFFFF;
+                int count = unchecked((int)(packed >> 20));
+                for (int index = 0; index < count; index++) {
+                    entries.Add((checked(firstId + unchecked((uint)index)),
+                        checked(directory.PayloadOffset + position),
+                        directory.ReadUInt32(position)));
+                    position += 4;
+                }
+            }
+
+            uint encryptionPersistId = edit.ReadUInt32(28);
+            uint encryptionOffset = entries.Single(entry =>
+                entry.PersistId == encryptionPersistId).StreamOffset;
+            int encryptionRecordOffset = checked((int)encryptionOffset);
+            int encryptionRecordLength = checked(8 + (int)
+                ReadCompoundUInt32(document, encryptionRecordOffset + 4));
+            var encryptionHeader = new byte[encryptionRecordLength - 8];
+            Buffer.BlockCopy(document, encryptionRecordOffset + 8,
+                encryptionHeader, 0, encryptionHeader.Length);
+            OfficeBinaryRc4CryptoApiSession session =
+                OfficeBinaryRc4CryptoApiSession.Open(encryptionHeader,
+                    password);
+
+            var inspected = new List<(uint PersistId, int ValueOffset,
+                uint StreamOffset, int RecordLength)>();
+            foreach ((uint persistId, int valueOffset, uint streamOffset)
+                     in entries.Where(entry => entry.PersistId !=
+                         encryptionPersistId)) {
+                int streamPosition = checked((int)streamOffset);
+                var header = new byte[8];
+                Buffer.BlockCopy(document, streamPosition, header, 0,
+                    header.Length);
+                session.TransformInPlace(header, 0, header.Length,
+                    persistId);
+                int recordLength = checked(8 + (int)
+                    ReadCompoundUInt32(header, 4));
+                inspected.Add((persistId, valueOffset, streamOffset,
+                    recordLength));
+            }
+            (uint PersistId, int ValueOffset, uint StreamOffset,
+                int RecordLength) owner = inspected.First(entry =>
+                    entry.RecordLength >= 16);
+            (uint PersistId, int ValueOffset, uint StreamOffset,
+                int RecordLength) alias = inspected.First(entry =>
+                    entry.PersistId != owner.PersistId);
+            uint overlappingOffset = checked(owner.StreamOffset + 8U);
+            var overlappingHeader = new byte[8];
+            overlappingHeader[3] = 0x10;
+            session.TransformInPlace(overlappingHeader, 0,
+                overlappingHeader.Length, alias.PersistId);
+            Buffer.BlockCopy(overlappingHeader, 0, document,
+                checked((int)overlappingOffset), overlappingHeader.Length);
+            WriteUInt32(document, alias.ValueOffset, overlappingOffset);
+
+            byte[] maliciousBytes = OfficeCompoundFileWriter.Rewrite(
+                sourceCompound, new Dictionary<string, byte[]> {
+                    ["PowerPoint Document"] = document
+                });
+            Assert.True(OfficeCompoundFileReader.TryRead(maliciousBytes,
+                out OfficeCompoundFile? maliciousCompound,
+                out string? maliciousError), maliciousError);
+            OfficeCompoundFile maliciousSource = Assert.IsType<
+                OfficeCompoundFile>(maliciousCompound);
+            var options = new LegacyPptImportOptions {
+                Password = password
+            };
+
+            InvalidDataException exception = Assert.Throws<
+                InvalidDataException>(() => LegacyPptRc4CryptoApi
+                    .DecryptPackage(maliciousBytes, maliciousSource,
+                        options, new LegacyPptRecordTraversalBudget(
+                            options.MaxRecordCount),
+                        new LegacyPptDecodedStorageBudget(
+                            options.MaxDecodedStorageBytes),
+                        CancellationToken.None, out _, out _));
+
+            Assert.Contains("overlap", exception.Message,
+                StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
+        public void LegacyEncryption_ChargesDecryptedPersistObjectsToStorageBudget() {
+            const string password = "persist-budget-pass";
+            byte[] encryptedBytes = CreateEncryptedLegacyPresentation(
+                password);
+
+            InvalidDataException exception = Assert.Throws<
+                InvalidDataException>(() => LegacyPptPresentation.Load(
+                    encryptedBytes, new LegacyPptImportOptions {
+                        Password = password,
+                        MaxDecodedStorageBytes = 1
+                    }));
+
+            Assert.Contains("aggregate decoded embedded-storage",
+                exception.Message, StringComparison.OrdinalIgnoreCase);
         }
 
         [Fact]
