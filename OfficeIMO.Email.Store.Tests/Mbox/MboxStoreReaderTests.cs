@@ -130,6 +130,25 @@ public sealed class MboxStoreReaderTests {
     }
 
     [Fact]
+    public void MboxStoreCannotExportOverItsOwnFileBackedSource() {
+        string source = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".mbox");
+        byte[] original = CreateMailboxBytes();
+        try {
+            File.WriteAllBytes(source, original);
+            using EmailStoreSession session = EmailStoreSession.Open(source);
+
+            InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
+                session.ExportToMbox(source,
+                    new EmailStoreMboxExportOptions(overwriteExisting: true)));
+
+            Assert.Contains("source store", exception.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Equal(original, File.ReadAllBytes(source));
+        } finally {
+            if (File.Exists(source)) File.Delete(source);
+        }
+    }
+
+    [Fact]
     public void MboxExportContinuesAfterAMessageExceedsTheWriterLimit() {
         string destination = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".mbox");
         try {

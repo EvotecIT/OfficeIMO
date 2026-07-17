@@ -364,12 +364,61 @@ public sealed class PstMutationTransactionTests {
                 EmailStorePathIdentity.Normalize(alias, caseInsensitive: false));
             Assert.Equal(actualCaseInsensitive, EmailStorePathIdentity.IsCaseInsensitiveFileSystem(path));
             Assert.Equal(actualCaseInsensitive, EmailStorePathIdentity.AreEquivalent(path, alias));
+            string root = Path.GetPathRoot(directory)!;
+            Assert.True(EmailStorePathIdentity.IsSameOrDescendant(
+                Path.Combine(root, "officeimo-root-descendant"), root));
         } finally {
             try { Directory.Delete(directory, recursive: true); }
             catch (IOException) { }
             catch (UnauthorizedAccessException) { }
         }
     }
+
+#if NET8_0_OR_GREATER
+    [Fact]
+    public void PhysicalPathAliasesCannotBypassBackupOrMutationLockOwnership() {
+        string container = Path.Combine(Path.GetTempPath(),
+            "officeimo-pst-alias-" + Guid.NewGuid().ToString("N"));
+        string sourceDirectory = Path.Combine(container, "source");
+        string aliasDirectory = Path.Combine(container, "alias");
+        string sourcePath = Path.Combine(sourceDirectory, "mailbox.pst");
+        bool aliasCreated = false;
+        try {
+            Directory.CreateDirectory(sourceDirectory);
+            CreateSource(sourcePath);
+            try {
+                Directory.CreateSymbolicLink(aliasDirectory, sourceDirectory);
+                aliasCreated = true;
+            } catch (UnauthorizedAccessException) when (
+                System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(
+                    System.Runtime.InteropServices.OSPlatform.Windows)) {
+                return;
+            } catch (IOException) when (
+                System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(
+                    System.Runtime.InteropServices.OSPlatform.Windows)) {
+                return;
+            }
+            string aliasPath = Path.Combine(aliasDirectory, "mailbox.pst");
+
+            Assert.True(EmailStorePathIdentity.AreEquivalent(sourcePath, aliasPath));
+            Assert.Equal(EmailStorePathIdentity.Normalize(sourcePath),
+                EmailStorePathIdentity.Normalize(aliasPath));
+            Assert.Throws<ArgumentException>(() => EmailStorePstMutationTransaction.Open(sourcePath,
+                new EmailStorePstMutationOptions(
+                    backupPath: aliasPath,
+                    overwriteBackup: true)));
+            using (EmailStorePstMutationTransaction first =
+                   EmailStorePstMutationTransaction.Open(sourcePath)) {
+                IOException exception = Assert.Throws<IOException>(() =>
+                    EmailStorePstMutationTransaction.Open(aliasPath));
+                Assert.Contains("already owns", exception.Message, StringComparison.OrdinalIgnoreCase);
+            }
+        } finally {
+            if (aliasCreated && Directory.Exists(aliasDirectory)) Directory.Delete(aliasDirectory);
+            if (Directory.Exists(container)) Directory.Delete(container, recursive: true);
+        }
+    }
+#endif
 
     [Fact]
     public void MutationLockRejectsASecondOfficeIMOTransactionForTheSamePath() {

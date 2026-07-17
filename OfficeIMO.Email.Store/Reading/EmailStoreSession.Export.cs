@@ -15,7 +15,7 @@ public sealed partial class EmailStoreSession {
         ThrowIfDisposed();
         EmailStoreMboxExportOptions effective = options ?? new EmailStoreMboxExportOptions();
         string destination = Path.GetFullPath(destinationPath);
-        ThrowIfMailboxDirectorySourceDestination(destination, "Mbox export");
+        ThrowIfStoreSourceDestination(destination, "Mbox export");
         string directory = Path.GetDirectoryName(destination) ?? Path.GetFullPath(".");
         Directory.CreateDirectory(directory);
         var reportDiagnostics = new List<EmailStoreDiagnostic>();
@@ -114,7 +114,7 @@ public sealed partial class EmailStoreSession {
         ThrowIfDisposed();
         EmailStoreExportOptions effective = options ?? new EmailStoreExportOptions();
         string root = Path.GetFullPath(destinationDirectory);
-        ThrowIfMailboxDirectorySourceDestination(root, "Directory export");
+        ThrowIfStoreSourceDestination(root, "Directory export");
         Directory.CreateDirectory(root);
         var writer = new EmailDocumentWriter(effective.WriterOptions);
         var entries = new List<EmailStoreExportEntry>();
@@ -175,11 +175,16 @@ public sealed partial class EmailStoreSession {
             Diagnostics.Concat(exportDiagnostics).ToArray());
     }
 
-    private void ThrowIfMailboxDirectorySourceDestination(string destinationPath, string operation) {
+    private void ThrowIfStoreSourceDestination(string destinationPath, string operation) {
         if (_backend is MailboxDirectoryStoreSessionBackend sourceDirectory &&
             EmailStorePathIdentity.IsSameOrDescendant(destinationPath, sourceDirectory.RootPath)) {
             throw new InvalidOperationException(string.Concat(
                 operation, " cannot write into its mailbox-directory source tree."));
+        }
+        if (_stream is FileStream sourceFile &&
+            EmailStorePathIdentity.IsSameOrDescendant(destinationPath, sourceFile.Name)) {
+            throw new InvalidOperationException(string.Concat(
+                operation, " cannot replace its read-only source store."));
         }
     }
 

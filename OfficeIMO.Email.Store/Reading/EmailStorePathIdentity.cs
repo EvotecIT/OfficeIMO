@@ -3,12 +3,17 @@ using System.Runtime.InteropServices;
 namespace OfficeIMO.Email.Store;
 
 internal static partial class EmailStorePathIdentity {
-    internal static string Normalize(string path) =>
-        Normalize(path, IsCaseInsensitiveFileSystem(path));
+    internal static string Normalize(string path) {
+        string identity = Path.GetFullPath(path);
+        if (TryResolvePhysicalPath(identity, out string resolved)) identity = resolved;
+        return Normalize(identity, IsCaseInsensitiveFileSystem(identity));
+    }
 
     internal static bool AreEquivalent(string left, string right) {
         string leftPath = Path.GetFullPath(left);
         string rightPath = Path.GetFullPath(right);
+        if (TryResolvePhysicalPath(leftPath, out string resolvedLeft)) leftPath = resolvedLeft;
+        if (TryResolvePhysicalPath(rightPath, out string resolvedRight)) rightPath = resolvedRight;
         if (string.Equals(leftPath, rightPath, StringComparison.Ordinal)) return true;
         return IsCaseInsensitiveFileSystem(leftPath) &&
             IsCaseInsensitiveFileSystem(rightPath) &&
@@ -39,7 +44,10 @@ internal static partial class EmailStorePathIdentity {
         if (rootResolved) root = resolvedRoot;
         StringComparison comparison = GetComparison(root);
         if (string.Equals(candidate, root, comparison)) return true;
-        string prefix = string.Concat(root, Path.DirectorySeparatorChar.ToString());
+        string prefix = root.EndsWith(Path.DirectorySeparatorChar.ToString(), StringComparison.Ordinal) ||
+                        root.EndsWith(Path.AltDirectorySeparatorChar.ToString(), StringComparison.Ordinal)
+            ? root
+            : string.Concat(root, Path.DirectorySeparatorChar.ToString());
         return candidate.StartsWith(prefix, comparison);
     }
 

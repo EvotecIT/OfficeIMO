@@ -15,12 +15,7 @@ public sealed partial class EmailStoreSession {
         ThrowIfDisposed();
         var effective = options ?? new EmailStorePstConversionOptions();
         string destination = Path.GetFullPath(destinationPath);
-        ThrowIfMailboxDirectorySourceDestination(destination, "PST export");
-        if (_stream is FileStream sourceFile && string.Equals(
-            Path.GetFullPath(sourceFile.Name), destination, StringComparison.OrdinalIgnoreCase)) {
-            throw new InvalidOperationException(
-                "Store conversion always writes a different destination file; in-place PST/OST mutation is not supported.");
-        }
+        ThrowIfStoreSourceDestination(destination, "PST export");
         ValidateVerificationManifestPath(destination, effective);
         if (File.Exists(destination) && !effective.OverwriteExisting) {
             throw new IOException("The destination PST already exists and overwriteExisting is false.");
@@ -147,15 +142,10 @@ public sealed partial class EmailStoreSession {
         EmailStorePstConversionOptions options) {
         if (options.VerificationManifestPath == null) return;
         string manifest = Path.GetFullPath(options.VerificationManifestPath);
-        ThrowIfMailboxDirectorySourceDestination(manifest, "PST verification manifest");
+        ThrowIfStoreSourceDestination(manifest, "PST verification manifest");
         if (string.Equals(manifest, destination, StringComparison.OrdinalIgnoreCase)) {
             throw new InvalidOperationException(
                 "The verification manifest and destination PST must use different paths.");
-        }
-        if (_stream is FileStream sourceFile && string.Equals(
-            Path.GetFullPath(sourceFile.Name), manifest, StringComparison.OrdinalIgnoreCase)) {
-            throw new InvalidOperationException(
-                "The verification manifest cannot replace the read-only source store.");
         }
         if (File.Exists(manifest) && !options.OverwriteExisting) {
             throw new IOException(

@@ -11,7 +11,7 @@ public sealed partial class EmailStoreSession {
         if (options == null) throw new ArgumentNullException(nameof(options));
         ThrowIfDisposed();
         string root = Path.GetFullPath(destinationDirectory);
-        ThrowIfMailboxDirectorySourceDestination(root, "Native directory export");
+        ThrowIfStoreSourceDestination(root, "Native directory export");
         Directory.CreateDirectory(root);
         var entries = new List<EmailStoreExportEntry>();
         var exportDiagnostics = new List<EmailStoreDiagnostic>();
