@@ -144,6 +144,7 @@ document.SaveAsPdf(stream);
 
 ```csharp
 using OfficeIMO.Markdown.Pdf;
+using OfficeIMO.Pdf;
 
 var options = new MarkdownPdfSaveOptions {
     RemoteImageResolver = null,
@@ -151,7 +152,6 @@ var options = new MarkdownPdfSaveOptions {
 }.UseProfile(PdfExportProfile.Faithful);
 
 options.TextFallbacks = PdfTextFallbackFeatures.Default;
-options.ResourcePolicy = PdfResourcePolicy.CreateTrustedHost();
 
 var result = "README.md".TrySaveAsPdfFromMarkdownFile("README.pdf", options);
 if (!result.Succeeded) {
@@ -175,7 +175,7 @@ result.Report.RequireNoErrorWarnings();
 - Visual themes for readable document rhythm, page treatment, links, code blocks, panels, tables, and checklist rows.
 - Profile presets through `MarkdownPdfSaveOptions.UseProfile(...)`, plus shared `TextFallbacks` and `ResourcePolicy` controls. Profiles may disable images for lightweight/text-only output but never grant local, remote, or host-font access.
 - `IncludeImages` controls whether images participate at all. `PdfResourcePolicy` is the only trust gate for local files, data URIs, remote resolvers, and installed host fonts. Local-image containment resolves symlinks and junctions before reading.
-- `PdfTextFallbackFeatures.MultilingualFonts` selects additional fallback families; actual installed-font discovery still requires an explicit trusted-host resource policy.
+- `PdfTextFallbackFeatures.MultilingualFonts` selects additional fallback families. The balanced default permits installed-font discovery without granting local-file or remote-resource access; use `PdfResourcePolicy.CreatePortableDeterministic()` when host fonts must not be inspected.
 - Per-operation conversion warnings through `PdfDocumentConversionResult.Report` or `PdfSaveResult.Report`.
 
 ## Visual themes

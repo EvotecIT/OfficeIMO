@@ -365,6 +365,29 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlPdf_GenericRenderOptionsAdoptPdfHyperlinkDefaults() {
+        const string webUri = "https://example.test/report";
+        const string ftpUri = "ftp://example.test/report";
+        const string customUri = "officeimo:report";
+        var sharedOptions = new HtmlRenderOptions {
+            ViewportWidth = 720D
+        };
+        var pdfOptions = new HtmlPdfSaveOptions(sharedOptions);
+
+        byte[] pdf = HtmlConversionDocument.Parse($"""
+            <a href="{webUri}">Web</a>
+            <a href="{ftpUri}">FTP</a>
+            <a href="{customUri}">Custom</a>
+            """).ToPdf(pdfOptions);
+        PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(pdf);
+
+        Assert.Equal(720D, pdfOptions.ViewportWidth);
+        Assert.Contains(webUri, info.LinkUris);
+        Assert.DoesNotContain(ftpUri, info.LinkUris);
+        Assert.DoesNotContain(customUri, info.LinkUris);
+    }
+
+    [Fact]
     public async Task HtmlPdf_WebOnlyResourcePolicyExpandsOnlyPermittedDataAndFileSchemes() {
         byte[] dataImage = PdfPngTestImages.CreateRgbPng(8, 5);
         byte[] fileImage = PdfPngTestImages.CreateRgbPng(5, 8);

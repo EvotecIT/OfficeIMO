@@ -29,12 +29,15 @@ public sealed class HtmlPdfSaveOptions : HtmlRenderOptions {
 
     /// <summary>
     /// Creates PDF-capable options from shared HTML rendering settings without changing their layout mode.
-    /// PDF conversion enforces paged layout on its own conversion snapshot.
+    /// PDF conversion enforces paged layout on its own conversion snapshot and applies PDF-safe hyperlink defaults.
     /// </summary>
     /// <param name="renderOptions">Shared settings used by PNG, SVG, and PDF rendering.</param>
+    /// <remarks>Set <see cref="HtmlRenderOptions.UrlPolicy"/> on the returned options to explicitly use a different hyperlink policy.</remarks>
     public HtmlPdfSaveOptions(HtmlRenderOptions renderOptions) : base(renderOptions) {
         if (renderOptions is HtmlPdfSaveOptions pdfOptions) {
             CopyPdfSettingsFrom(pdfOptions);
+        } else {
+            UrlPolicy = HtmlUrlPolicy.CreateHyperlinkProfile();
         }
     }
 
