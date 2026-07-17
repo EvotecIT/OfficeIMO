@@ -5,6 +5,7 @@
 ```csharp
 using OfficeIMO.AsciiDoc;
 using OfficeIMO.AsciiDoc.Pdf;
+using OfficeIMO.Pdf;
 
 AsciiDocDocument document = AsciiDocDocument.Load("guide.adoc").Document;
 PdfDocumentConversionResult result = document.SaveAsPdf("guide.pdf");

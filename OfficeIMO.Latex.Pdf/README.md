@@ -5,6 +5,7 @@
 ```csharp
 using OfficeIMO.Latex;
 using OfficeIMO.Latex.Pdf;
+using OfficeIMO.Pdf;
 
 LatexDocument document = LatexDocument.Load("article.tex").Document;
 PdfDocumentConversionResult result = document.SaveAsPdf("article.pdf");
