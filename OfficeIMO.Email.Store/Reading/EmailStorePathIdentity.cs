@@ -26,33 +26,87 @@ internal static class EmailStorePathIdentity {
     internal static StringComparison GetComparison(string path) =>
         IsCaseInsensitiveFileSystem(path) ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
 
+    internal static bool IsSameOrDescendant(string candidatePath, string rootPath) {
+        string candidate = TrimEndingDirectorySeparators(Path.GetFullPath(candidatePath));
+        string root = TrimEndingDirectorySeparators(Path.GetFullPath(rootPath));
+        StringComparison comparison = GetComparison(root);
+        if (string.Equals(candidate, root, comparison)) return true;
+        string prefix = string.Concat(root, Path.DirectorySeparatorChar.ToString());
+        return candidate.StartsWith(prefix, comparison);
+    }
+
     internal static bool IsCaseInsensitiveFileSystem(string path) {
         string fullPath = Path.GetFullPath(path);
-        string? directory = File.Exists(fullPath) ? Path.GetDirectoryName(fullPath) : fullPath;
-        while (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory)) {
-            directory = Path.GetDirectoryName(directory);
+        string? existingPath = TrimEndingDirectorySeparators(fullPath);
+        while (!string.IsNullOrEmpty(existingPath) &&
+               !File.Exists(existingPath) && !Directory.Exists(existingPath)) {
+            existingPath = Path.GetDirectoryName(existingPath);
         }
-        if (string.IsNullOrEmpty(directory)) {
+        if (string.IsNullOrEmpty(existingPath)) {
             return RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
         }
 
-        string probeName = string.Concat(".officeimo-case-probe-",
-            Guid.NewGuid().ToString("N"), "-a.tmp");
-        string probePath = Path.Combine(directory, probeName);
-        string alternatePath = Path.Combine(directory, probeName.ToUpperInvariant());
-        try {
-            using (new FileStream(probePath, FileMode.CreateNew, FileAccess.ReadWrite,
-                       FileShare.ReadWrite | FileShare.Delete, 1, FileOptions.RandomAccess)) {
-                return File.Exists(alternatePath);
+        if (TryDetectFromExistingName(existingPath, out bool caseInsensitive)) return caseInsensitive;
+        if (Directory.Exists(existingPath)) {
+            try {
+                foreach (string entry in Directory.EnumerateFileSystemEntries(existingPath)) {
+                    if (TryDetectFromExistingName(entry, out caseInsensitive)) return caseInsensitive;
+                }
+            } catch (IOException) {
+            } catch (UnauthorizedAccessException) {
             }
-        } catch (IOException) {
-            return RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
-        } catch (UnauthorizedAccessException) {
-            return RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
-        } finally {
-            try { if (File.Exists(probePath)) File.Delete(probePath); }
-            catch (IOException) { }
-            catch (UnauthorizedAccessException) { }
         }
+        return RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
+    }
+
+    private static bool TryDetectFromExistingName(string path, out bool caseInsensitive) {
+        caseInsensitive = false;
+        string existingPath = TrimEndingDirectorySeparators(path);
+        string? parent = Path.GetDirectoryName(existingPath);
+        string name = Path.GetFileName(existingPath);
+        if (string.IsNullOrEmpty(parent) || string.IsNullOrEmpty(name)) return false;
+
+        int letterIndex = -1;
+        for (int index = name.Length - 1; index >= 0; index--) {
+            if (char.IsLetter(name[index])) {
+                letterIndex = index;
+                break;
+            }
+        }
+        if (letterIndex < 0) return false;
+
+        char original = name[letterIndex];
+        char alternate = char.IsUpper(original) ? char.ToLowerInvariant(original) : char.ToUpperInvariant(original);
+        if (alternate == original) return false;
+        var alternateName = new StringBuilder(name);
+        alternateName[letterIndex] = alternate;
+        string alternatePath = Path.Combine(parent, alternateName.ToString());
+        if (!File.Exists(alternatePath) && !Directory.Exists(alternatePath)) {
+            caseInsensitive = false;
+            return true;
+        }
+
+        try {
+            int matches = Directory.EnumerateFileSystemEntries(parent)
+                .Count(entry => string.Equals(Path.GetFileName(entry), name,
+                    StringComparison.OrdinalIgnoreCase));
+            caseInsensitive = matches <= 1;
+            return true;
+        } catch (IOException) {
+            return false;
+        } catch (UnauthorizedAccessException) {
+            return false;
+        }
+    }
+
+    private static string TrimEndingDirectorySeparators(string path) {
+        string root = Path.GetPathRoot(path) ?? string.Empty;
+        int length = path.Length;
+        while (length > root.Length &&
+               (path[length - 1] == Path.DirectorySeparatorChar ||
+                path[length - 1] == Path.AltDirectorySeparatorChar)) {
+            length--;
+        }
+        return length == path.Length ? path : path.Substring(0, length);
     }
 }

@@ -490,10 +490,10 @@ internal static partial class DocumentReaderEngine {
 
         string trimmed = text.TrimStart('\uFEFF', ' ', '\t', '\r', '\n');
         string lower = trimmed.Length > 4096 ? trimmed.Substring(0, 4096).ToLowerInvariant() : trimmed.ToLowerInvariant();
-        if (lower.StartsWith("begin:vcalendar", StringComparison.Ordinal)) {
+        if (StartsWithContentLineRoot(lower, "begin:vcalendar")) {
             return DetectionCandidate.High(ReaderInputKind.Calendar, "text/calendar", "text:icalendar-root");
         }
-        if (lower.StartsWith("begin:vcard", StringComparison.Ordinal)) {
+        if (StartsWithContentLineRoot(lower, "begin:vcard")) {
             return DetectionCandidate.High(ReaderInputKind.VCard, "text/vcard", "text:vcard-root");
         }
         if (LooksLikeEmailMessage(trimmed)) {
@@ -520,6 +520,11 @@ internal static partial class DocumentReaderEngine {
         }
 
         return DetectionCandidate.Low(ReaderInputKind.Text, "text/plain", "content:mostly-text");
+    }
+
+    private static bool StartsWithContentLineRoot(string value, string root) {
+        if (!value.StartsWith(root, StringComparison.Ordinal)) return false;
+        return value.Length == root.Length || value[root.Length] == '\r' || value[root.Length] == '\n';
     }
 
     private static bool LooksLikeEmailMessage(string text) {

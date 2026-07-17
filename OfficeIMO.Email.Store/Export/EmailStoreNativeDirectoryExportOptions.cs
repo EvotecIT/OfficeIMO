@@ -19,6 +19,8 @@ public sealed class EmailStoreNativeDirectoryExportOptions {
         bool overwriteExisting = false, bool continueOnError = true, bool writeManifest = true,
         int maxItems = 100_000, EmailWriterOptions? messageOptions = null,
         EmailStoreEmlxWriterOptions? emlxOptions = null) {
+        if (!Enum.IsDefined(typeof(EmailStoreNativeDirectoryFormat), format))
+            throw new ArgumentOutOfRangeException(nameof(format));
         if (maxItems <= 0) throw new ArgumentOutOfRangeException(nameof(maxItems));
         Format = format;
         FolderId = string.IsNullOrWhiteSpace(folderId) ? null : folderId;

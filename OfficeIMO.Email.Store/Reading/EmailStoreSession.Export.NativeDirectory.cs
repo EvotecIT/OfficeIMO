@@ -11,6 +11,11 @@ public sealed partial class EmailStoreSession {
         if (options == null) throw new ArgumentNullException(nameof(options));
         ThrowIfDisposed();
         string root = Path.GetFullPath(destinationDirectory);
+        if (_backend is MailboxDirectoryStoreSessionBackend sourceDirectory &&
+            EmailStorePathIdentity.IsSameOrDescendant(root, sourceDirectory.RootPath)) {
+            throw new InvalidOperationException(
+                "Native directory export cannot write into its mailbox-directory source tree.");
+        }
         Directory.CreateDirectory(root);
         var entries = new List<EmailStoreExportEntry>();
         var exportDiagnostics = new List<EmailStoreDiagnostic>();

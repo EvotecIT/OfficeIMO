@@ -3,7 +3,7 @@ namespace OfficeIMO.Email;
 internal static partial class IcsCalendarCodec {
     private static List<IcsProperty> ParseProperties(string text) {
         var result = new List<IcsProperty>();
-        foreach (ContentLineComponent root in ContentLineCodec.Parse(text, ContentLineReaderOptions.Default))
+        foreach (ContentLineComponent root in IcsDocument.Parse(text).Calendars)
             FlattenComponent(root, result);
         return result;
     }

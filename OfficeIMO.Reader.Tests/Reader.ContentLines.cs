@@ -59,4 +59,15 @@ public sealed class ReaderContentLineTests {
         Assert.Contains(chunks, chunk => chunk.Text.Contains("FN:First contact") &&
             chunk.Text.Contains("FN:Second contact"));
     }
+
+    [Theory]
+    [InlineData("BEGIN:VCALENDARJUNK\r\nplain text\r\n", ReaderInputKind.Calendar)]
+    [InlineData("BEGIN:VCARDINAL\r\nplain text\r\n", ReaderInputKind.VCard)]
+    public void ContentDetectionRequiresAnExactContentLineRoot(
+        string content, ReaderInputKind falsePositiveKind) {
+        ReaderDetectionResult detection = OfficeDocumentReader.Default.Detect(
+            Encoding.ASCII.GetBytes(content), "renamed.bin");
+
+        Assert.NotEqual(falsePositiveKind, detection.Kind);
+    }
 }

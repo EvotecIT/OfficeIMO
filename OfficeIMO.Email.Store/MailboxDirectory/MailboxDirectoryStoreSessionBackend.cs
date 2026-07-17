@@ -19,8 +19,9 @@ internal sealed class MailboxDirectoryStoreSessionBackend : IEmailStoreSessionBa
     internal MailboxDirectoryStoreSessionBackend(string path, EmailStoreReaderOptions options,
         CancellationToken cancellationToken) {
         _root = AppendSeparator(Path.GetFullPath(path));
-        _pathComparer = EmailStorePathIdentity.GetComparer(_root);
-        _pathComparison = EmailStorePathIdentity.GetComparison(_root);
+        bool caseInsensitive = EmailStorePathIdentity.IsCaseInsensitiveFileSystem(_root);
+        _pathComparer = caseInsensitive ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
+        _pathComparison = caseInsensitive ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
         _options = options;
         DisplayName = new DirectoryInfo(path).Name;
         Index(cancellationToken);
@@ -31,6 +32,7 @@ internal sealed class MailboxDirectoryStoreSessionBackend : IEmailStoreSessionBa
     public long SourceLength => _sourceLength;
     public IReadOnlyList<EmailStoreFolderInfo> Folders => _folders;
     public IReadOnlyList<EmailStoreDiagnostic> Diagnostics => _diagnostics;
+    internal string RootPath => _root;
 
     public IEnumerable<EmailStoreItemReference> EnumerateItems(
         EmailStoreEnumerationOptions options, CancellationToken cancellationToken) {

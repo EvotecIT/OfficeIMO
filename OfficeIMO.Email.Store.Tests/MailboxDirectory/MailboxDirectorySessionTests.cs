@@ -1,5 +1,6 @@
 using OfficeIMO.Email;
 using System.Globalization;
+using System.Threading;
 
 namespace OfficeIMO.Email.Store.Tests;
 
@@ -159,6 +160,34 @@ public sealed class MailboxDirectorySessionTests {
             Assert.Contains(session.Folders, folder => folder.Name == "Inbox");
             Assert.Contains(session.Folders, folder => folder.Name == "inbox");
             Assert.Equal(2, materialized.Store.Folders.Sum(folder => folder.Items.Count));
+        } finally {
+            if (Directory.Exists(root)) Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void OpeningMailboxDirectoryDoesNotCreateCaseProbeArtifacts() {
+        string root = CreateMailboxDirectory();
+        try {
+            string[] before = Directory.EnumerateFileSystemEntries(root)
+                .Select(path => Path.GetFileName(path) ?? string.Empty)
+                .OrderBy(value => value, StringComparer.Ordinal).ToArray();
+            using var probeCreated = new ManualResetEventSlim();
+            using var watcher = new FileSystemWatcher(root, ".officeimo-case-probe-*") {
+                EnableRaisingEvents = true
+            };
+            watcher.Created += (_, _) => probeCreated.Set();
+
+            using (EmailStoreSession session = EmailStoreSession.Open(root)) {
+                Assert.NotEmpty(session.Folders);
+            }
+
+            string[] after = Directory.EnumerateFileSystemEntries(root)
+                .Select(path => Path.GetFileName(path) ?? string.Empty)
+                .OrderBy(value => value, StringComparer.Ordinal).ToArray();
+            Assert.Equal(before, after);
+            Assert.False(probeCreated.Wait(TimeSpan.FromMilliseconds(250)),
+                "Opening the read-only mailbox session created a filesystem case probe in its source.");
         } finally {
             if (Directory.Exists(root)) Directory.Delete(root, recursive: true);
         }

@@ -231,6 +231,43 @@ public sealed class EmailStoreNativeDirectoryExportTests {
         }
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void NativeDirectoryExportRejectsItsMailboxDirectorySourceTree(bool useDescendant) {
+        string sourceRoot = Path.Combine(Path.GetTempPath(),
+            "oims-" + Guid.NewGuid().ToString("N").Substring(0, 12));
+        try {
+            Directory.CreateDirectory(sourceRoot);
+            string sourceMessage = Path.Combine(sourceRoot, "source.eml");
+            File.WriteAllText(sourceMessage, "Subject: Source\r\n\r\nBody\r\n");
+            using EmailStoreSession session = EmailStoreSession.Open(sourceRoot);
+            string destination = useDescendant ? Path.Combine(sourceRoot, "export") : sourceRoot;
+
+            InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
+                session.ExportToNativeDirectory(destination,
+                    new EmailStoreNativeDirectoryExportOptions(
+                        EmailStoreNativeDirectoryFormat.Maildir)));
+
+            Assert.Contains("source tree", exception.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Equal(new[] { sourceMessage }, Directory.EnumerateFiles(
+                sourceRoot, "*", SearchOption.AllDirectories).ToArray());
+            if (useDescendant) Assert.False(Directory.Exists(destination));
+        } finally {
+            if (Directory.Exists(sourceRoot)) Directory.Delete(sourceRoot, recursive: true);
+        }
+    }
+
+    [Theory]
+    [InlineData(-1)]
+    [InlineData(2)]
+    [InlineData(int.MaxValue)]
+    public void NativeDirectoryExportOptionsRejectUndefinedFormats(int value) {
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            new EmailStoreNativeDirectoryExportOptions(
+                (EmailStoreNativeDirectoryFormat)value));
+    }
+
     private static byte[] CreateMailboxBytes() {
         var mailbox = new EmailMailbox();
         var first = new EmailDocument { Subject = "Native first" };
