@@ -142,6 +142,16 @@ public sealed class CabinetReaderTests {
         Assert.Equal("ONENOTE_CAB_EXPANDED_LIMIT", exception.Code);
     }
 
+    [Fact]
+    public void RejectsUncompressedFolderPastManagedBufferCapacityBeforeNarrowing() {
+        byte[] cabinet = BuildOversizedDeclaredUncompressedCabinet();
+
+        OneNoteFormatException exception = Assert.Throws<OneNoteFormatException>(() =>
+            OneNoteCabinetArchiveReader.Read(cabinet, long.MaxValue, 1, 1));
+
+        Assert.Equal("ONENOTE_CAB_EXPANDED_LIMIT", exception.Code);
+    }
+
     [Theory]
     [InlineData("/absolute.one")]
     [InlineData("../escape.one")]
@@ -184,6 +194,28 @@ public sealed class CabinetReaderTests {
         WriteUInt16(data, dataOffset + 4, (ushort)payload.Length);
         WriteUInt16(data, dataOffset + 6, (ushort)payload.Length);
         Buffer.BlockCopy(payload, 0, data, dataOffset + 8, payload.Length);
+        return data;
+    }
+
+    private static byte[] BuildOversizedDeclaredUncompressedCabinet() {
+        const int blockCount = 32769;
+        const int folderOffset = 36;
+        const int dataOffset = folderOffset + 8;
+        var data = new byte[dataOffset + blockCount * 8];
+        data[0] = (byte)'M'; data[1] = (byte)'S'; data[2] = (byte)'C'; data[3] = (byte)'F';
+        WriteUInt32(data, 8, (uint)data.Length);
+        WriteUInt32(data, 16, dataOffset);
+        data[24] = 3; data[25] = 1;
+        WriteUInt16(data, 26, 1);
+        WriteUInt16(data, 28, 0);
+        WriteUInt32(data, folderOffset, dataOffset);
+        WriteUInt16(data, folderOffset + 4, blockCount);
+        WriteUInt16(data, folderOffset + 6, 0);
+        for (int index = 0; index < blockCount; index++) {
+            int blockOffset = dataOffset + index * 8;
+            WriteUInt16(data, blockOffset + 4, 0);
+            WriteUInt16(data, blockOffset + 6, ushort.MaxValue);
+        }
         return data;
     }
 

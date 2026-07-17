@@ -302,6 +302,13 @@ internal sealed partial class OneNoteWriteGraphBuilder {
     }
 
     private OneNoteExtendedGuid BuildList(OneNoteWriteObjectSpace space, OneNoteListInfo list, uint lastModifiedTime) {
+        OneNoteExtendedGuid? existingId = list.ObjectId;
+        if (existingId != null && space.Objects.Any(item =>
+                item.Id.Equals(existingId) &&
+                item.Jcid == OneNoteSchema.JcidNumberListNode)) {
+            return existingId;
+        }
+
         string format = list.Ordered ? "\uFFFD" + (char)(list.Format ?? 0) : "\u2022";
         string encoded = new string((char)format.Length, 1) + format;
         var properties = new List<OneNoteWriteProperty> {

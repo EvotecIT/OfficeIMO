@@ -99,30 +99,39 @@ internal static partial class DocumentReaderEngine {
                     detection);
             }
 
-            using MemoryStream snapshot = ownsReadStream && readStream is MemoryStream bufferedInput
-                ? bufferedInput
-                : CopyToMemory(readStream, cancellationToken, opt.MaxInputBytes);
-            snapshot.Position = 0;
-            ReaderChunk[] chunks = Read(snapshot, logicalSourceName, opt, cancellationToken).ToArray();
-            snapshot.Position = 0;
-            bool customStreamReaderOwnsExtension = hasCustomStreamHandler && customStreamHandler.ReadStream != null;
-            IReadOnlyList<OfficeDocumentAsset> assets = customStreamReaderOwnsExtension
-                ? Array.Empty<OfficeDocumentAsset>()
-                : ReadOpenXmlImageAssets(snapshot, logicalSourceName, kind, opt, cancellationToken);
-            ReaderInputKind fallbackKind = customStreamReaderOwnsExtension ? customStreamHandler.Kind : kind;
-            OfficeDocumentReadResult result = BuildChunkDocumentResult(
-                chunks,
-                logicalSourceName,
-                fallbackKind,
-                BuildStreamDocumentSource(snapshot, logicalSourceName, chunks),
-                assets,
-                detection);
-            if (customStreamReaderOwnsExtension) {
-                return result;
+            MemoryStream? ownedSnapshot = null;
+            MemoryStream snapshot;
+            if (ReaderInputLimits.IsSnapshotStream(readStream)) {
+                snapshot = (MemoryStream)readStream;
+            } else {
+                ownedSnapshot = CopyToMemory(readStream, cancellationToken, opt.MaxInputBytes);
+                snapshot = ownedSnapshot;
             }
+            try {
+                snapshot.Position = 0;
+                ReaderChunk[] chunks = Read(snapshot, logicalSourceName, opt, cancellationToken).ToArray();
+                snapshot.Position = 0;
+                bool customStreamReaderOwnsExtension = hasCustomStreamHandler && customStreamHandler.ReadStream != null;
+                IReadOnlyList<OfficeDocumentAsset> assets = customStreamReaderOwnsExtension
+                    ? Array.Empty<OfficeDocumentAsset>()
+                    : ReadOpenXmlImageAssets(snapshot, logicalSourceName, kind, opt, cancellationToken);
+                ReaderInputKind fallbackKind = customStreamReaderOwnsExtension ? customStreamHandler.Kind : kind;
+                OfficeDocumentReadResult result = BuildChunkDocumentResult(
+                    chunks,
+                    logicalSourceName,
+                    fallbackKind,
+                    BuildStreamDocumentSource(snapshot, logicalSourceName, chunks),
+                    assets,
+                    detection);
+                if (customStreamReaderOwnsExtension) {
+                    return result;
+                }
 
-            snapshot.Position = 0;
-            return EnrichBuiltInDocumentResult(snapshot, logicalSourceName, kind, opt, result, cancellationToken);
+                snapshot.Position = 0;
+                return EnrichBuiltInDocumentResult(snapshot, logicalSourceName, kind, opt, result, cancellationToken);
+            } finally {
+                ownedSnapshot?.Dispose();
+            }
         } finally {
             if (ownsReadStream) {
                 readStream.Dispose();

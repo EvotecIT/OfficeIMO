@@ -124,6 +124,31 @@ OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
 
 The preset contains no parser or provider logic. It excludes OCR engines, process adapters, network clients, and hosted providers; those remain explicit host choices. Standalone images expose header metadata, source assets, and optional OCR candidates without running OCR. Notebook cells are never executed, and subtitle support reads local SRT/WebVTT text only.
 
+### Explicit bounded web transport
+
+Install `OfficeIMO.Reader.Web` only in hosts that intentionally allow network retrieval:
+
+```powershell
+dotnet add package OfficeIMO.Reader.Web
+```
+
+```csharp
+using OfficeIMO.Reader.Web;
+
+OfficeDocumentWebReader webReader = reader.CreateWebReader(
+    httpClient,
+    new ReaderWebOptions {
+        AllowedHosts = new[] { "docs.example.com" },
+        MaxResponseBytes = 16L * 1024 * 1024
+    });
+
+OfficeDocumentReadResult remote = await webReader.ReadDocumentAsync(
+    new Uri("https://docs.example.com/guide.html"),
+    cancellationToken: cancellationToken);
+```
+
+The web package performs bounded HTTP(S) GET retrieval and routes the bytes through the same configured Reader handlers and processors. It captures its options, bounds bytes, time, and concurrent operations, blocks obvious private literal targets by default, and omits query strings from metadata by default. The caller owns the `HttpClient` and its authentication, DNS, redirect, proxy, certificate, retry, and connection policy. It is deliberately absent from `OfficeIMO.Reader.All` and the global tool, so neither surface gains implicit network access.
+
 For scripts and shell pipelines, install the dependency-bounded global tool:
 
 ```powershell

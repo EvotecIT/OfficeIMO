@@ -141,12 +141,13 @@ internal static class OneNoteCabinetArchiveReader {
             sizes.Add(expandedLength);
             total += expandedLength;
             if (total > maxExpandedBytes) throw new OneNoteFormatException("ONENOTE_CAB_EXPANDED_LIMIT", "The expanded CAB folder exceeds the configured size limit.");
+            if (total > int.MaxValue) throw new OneNoteFormatException("ONENOTE_CAB_EXPANDED_LIMIT", "The expanded CAB folder is too large to materialize.");
             offset = checked(dataOffset + compressedLength);
         }
 
         switch ((ushort)(folder.Compression & CompressionMask)) {
             case CompressionNone: {
-                var output = new byte[checked((int)total)];
+                var output = new byte[(int)total];
                 int outputOffset = 0;
                 for (int index = 0; index < blocks.Count; index++) {
                     if (blocks[index].Length != sizes[index]) throw new OneNoteFormatException("ONENOTE_CAB_UNCOMPRESSED", "An uncompressed CAB block has inconsistent sizes.");

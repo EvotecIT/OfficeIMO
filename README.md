@@ -277,6 +277,8 @@ _Dependency footprint:_ `System.Text.Encoding.CodePages` plus first-party Office
 - [x] Common `OfficeIMO.Email.EmailDocument` projection instead of a second message or Outlook-item model
 - [x] Resumable semantic content search, special-folder roles, offline-content availability, and deferred attachment streams
 - [x] Inspection, bounded PST/OST structural validation, orphan discovery, EML/MSG/OFT/TNEF directory export, and streaming mbox export
+- [x] Managed Unicode PST creation with folders, typed items, recipients, attachments, embedded messages, named properties, and multi-valued MAPI properties
+- [x] Read-only OST/PST/OLM/EMLX/mailbox-directory conversion into a separate new PST with explicit fidelity diagnostics
 - [x] Configurable source, cache, tree, item, attachment, archive, XML, directory, and recursion limits with structured diagnostics
 
 _Dependency footprint:_ first-party `OfficeIMO.Email` and `OfficeIMO.Rtf`; no Outlook installation, native library, or third-party store parser.
@@ -714,6 +716,14 @@ _Dependency footprint:_ only OfficeIMO Reader and platform APIs; no audio codec,
 - [x] Point geometry and per-page topology visuals for graph-aware consumers
 
 _Dependency footprint:_ only OfficeIMO Reader and Visio.
+
+#### [OfficeIMO.Reader.Web](OfficeIMO.Reader.Web/README.md)
+
+- [x] Explicit caller-injected HTTP(S) transport over an existing Reader instance
+- [x] Response-byte, timeout, host, private-target, metadata-privacy, and concurrency bounds
+- [x] Existing handler and processor reuse without implicit network registration
+
+_Dependency footprint:_ only OfficeIMO Reader and framework `System.Net.Http`; no HTTP SDK, browser, process, model, or provider.
 
 #### [OfficeIMO.Reader.Xml](OfficeIMO.Reader.Xml/README.md)
 

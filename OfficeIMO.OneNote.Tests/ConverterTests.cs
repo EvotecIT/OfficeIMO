@@ -361,6 +361,23 @@ public sealed class ConverterTests {
         Assert.Contains("&lt;script&gt;", html, StringComparison.OrdinalIgnoreCase);
     }
 
+    [Fact]
+    public void MarkdownTableCellEscapesPipeExactlyOnce() {
+        var section = new OneNoteSection { Name = "Projection" };
+        var page = new OneNotePage { Title = "Table" };
+        var table = new OneNoteTable();
+        var row = new OneNoteTableRow();
+        row.Cells.Add(Cell("Left | Right"));
+        table.Rows.Add(row);
+        page.DirectContent.Add(table);
+        section.Pages.Add(page);
+
+        string markdown = section.ToMarkdown();
+
+        Assert.Contains(@"Left \| Right", markdown, StringComparison.Ordinal);
+        Assert.DoesNotContain(@"\\|", markdown, StringComparison.Ordinal);
+    }
+
     private static OneNoteSection SectionWithPage(string sectionName, string pageTitle) {
         var section = new OneNoteSection { Name = sectionName };
         section.Pages.Add(new OneNotePage { Title = pageTitle });

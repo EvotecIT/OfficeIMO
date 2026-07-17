@@ -247,7 +247,7 @@ public static class OneNoteMarkdownProjection {
             for (int column = 0; column < columns; column++) {
                 string value = column < row.Cells.Count ? CellMarkdown(row.Cells[column], assetUriResolver) : string.Empty;
                 builder.Append(' ');
-                builder.Append(value.Replace("|", "\\|").Replace("\r", " ").Replace("\n", "<br>"));
+                builder.Append(value.Replace("\r", " ").Replace("\n", "<br>"));
                 builder.Append(" |");
             }
             builder.AppendLine();

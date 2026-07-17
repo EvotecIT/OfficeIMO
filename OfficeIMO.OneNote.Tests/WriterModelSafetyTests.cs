@@ -155,6 +155,27 @@ public sealed class WriterModelSafetyTests {
     }
 
     [Fact]
+    public void WriterReusesASharedListDescriptorWithinAnObjectSpace() {
+        var section = new OneNoteSection { Name = "Lists" };
+        var page = new OneNotePage { Title = "Shared list" };
+        var list = new OneNoteListInfo { Ordered = true, Level = 1 };
+        for (int index = 1; index <= 2; index++) {
+            var paragraph = new OneNoteParagraph { List = list };
+            paragraph.Runs.Add(new OneNoteTextRun { Text = "Item " + index });
+            page.DirectContent.Add(paragraph);
+        }
+        section.Pages.Add(page);
+
+        byte[] data = OneNoteSectionWriter.Write(section);
+
+        OneNoteOutline outline = Assert.Single(Assert.Single(OneNoteSectionReader.Read(new MemoryStream(data)).Pages).Outlines);
+        OneNoteParagraph[] paragraphs = outline.Children.Cast<OneNoteParagraph>().ToArray();
+        Assert.Equal(2, paragraphs.Length);
+        Assert.All(paragraphs, paragraph => Assert.Equal(1, paragraph.List!.Level));
+        Assert.Equal(new[] { "Item 1", "Item 2" }, paragraphs.Select(paragraph => Assert.Single(paragraph.Runs).Text));
+    }
+
+    [Fact]
     public void WriterRejectsTraversalOptionsAboveTheHardSafetyLimit() {
         OneNoteSection section = CreateOutlineChain(1);
 
