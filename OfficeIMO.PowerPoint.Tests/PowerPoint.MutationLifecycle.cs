@@ -500,6 +500,23 @@ namespace OfficeIMO.Tests {
                 if (timeNode.Id?.Value is uint id) timeNode.Id = id + 100U;
             }
             advancedEffect.CommonBehavior!.CommonTimeNode!.Duration = "777";
+            var visibility = new SetBehavior(
+                new CommonBehavior(
+                    new CommonTimeNode {
+                        Id = 250U,
+                        Duration = "1",
+                        Fill = TimeNodeFillValues.Hold
+                    },
+                    new TargetElement(new ShapeTarget {
+                        ShapeId = shape.Id!.Value.ToString(
+                            System.Globalization.CultureInfo.InvariantCulture)
+                    }),
+                    new AttributeNameList(new AttributeName(
+                        "style.visibility"))),
+                new ToVariantValue(new StringVariantValue {
+                    Val = "visible"
+                }));
+            classicEffect.Parent!.InsertBefore(visibility, classicEffect);
             classicEffect.Parent!.Append(advancedEffect);
 
             Assert.True(slide.RemoveClassicAnimation(shape));
@@ -508,6 +525,7 @@ namespace OfficeIMO.Tests {
                 .Descendants<AnimateEffect>());
             Assert.Equal("777", remaining.CommonBehavior!
                 .CommonTimeNode!.Duration!.Value);
+            Assert.Empty(timing.Descendants<SetBehavior>());
             Assert.Empty(presentation.ValidateDocument());
         }
 

@@ -280,6 +280,7 @@ namespace OfficeIMO.PowerPoint {
                     .Ancestors<ParallelTimeNode>().FirstOrDefault();
                 candidates.Remove(effect);
                 effect.Remove();
+                RemoveClassicVisibilitySetter(owner, animation);
                 if (owner != null && !HasTimingAction(owner)) {
                     owner.Remove();
                 }
@@ -304,6 +305,40 @@ namespace OfficeIMO.PowerPoint {
                 or AnimateColor or AnimateEffect or AnimateMotion
                 or AnimateRotation or AnimateScale or Command or Audio
                 or Video or SetBehavior);
+
+        private static void RemoveClassicVisibilitySetter(
+            OpenXmlElement? owner,
+            PowerPointClassicAnimation animation) {
+            if (owner == null) return;
+            string shapeId = animation.ShapeId.ToString(
+                CultureInfo.InvariantCulture);
+            SetBehavior? setter = owner.Descendants<SetBehavior>()
+                .FirstOrDefault(set => {
+                    CommonBehavior? behavior = set.CommonBehavior;
+                    ShapeTarget? target = behavior?
+                        .GetFirstChild<TargetElement>()?
+                        .GetFirstChild<ShapeTarget>();
+                    AttributeName[] attributes = behavior?
+                        .GetFirstChild<AttributeNameList>()?
+                        .Elements<AttributeName>().ToArray()
+                        ?? Array.Empty<AttributeName>();
+                    StringVariantValue? value = set.ToVariantValue?
+                        .GetFirstChild<StringVariantValue>();
+                    return string.Equals(target?.ShapeId?.Value, shapeId,
+                               StringComparison.Ordinal)
+                           && set.ChildElements.Count == 2
+                           && behavior != null
+                           && behavior.Descendants<ShapeTarget>().Count() == 1
+                           && attributes.Length == 1
+                           && string.Equals(attributes[0].Text,
+                               "style.visibility", StringComparison.Ordinal)
+                           && value != null
+                           && set.ToVariantValue!.ChildElements.Count == 1
+                           && string.Equals(value.Val?.Value, "visible",
+                               StringComparison.OrdinalIgnoreCase);
+                });
+            setter?.Remove();
+        }
 
         private static bool IsClassicTimingEffect(AnimateEffect effect,
             PowerPointClassicAnimation animation) {
