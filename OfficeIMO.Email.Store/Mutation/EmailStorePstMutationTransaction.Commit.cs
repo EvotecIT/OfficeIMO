@@ -360,6 +360,7 @@ public sealed partial class EmailStorePstMutationTransaction {
         int matchedFolders = 0;
         int mismatchedFolders = 0;
         int failedFolders = 0;
+        int unexpectedFolders = 0;
         int matchedItems = 0;
         int mismatchedItems = 0;
         int failedItems = 0;
@@ -376,6 +377,19 @@ public sealed partial class EmailStorePstMutationTransaction {
             stagingPath, readerOptions, cancellationToken)) {
             var destinationFolders = destination.Folders.ToDictionary(
                 folder => folder.Id, StringComparer.Ordinal);
+            var expectedDestinationFolderIds = new HashSet<string>(
+                folderMap.Values, StringComparer.Ordinal);
+            foreach (EmailStoreFolderInfo unexpected in destinationFolders.Values.Where(folder =>
+                         !expectedDestinationFolderIds.Contains(folder.Id))) {
+                cancellationToken.ThrowIfCancellationRequested();
+                unexpectedFolders++;
+                AddIssue(issues, ref issuesTruncated,
+                    new EmailStorePstMutationVerificationIssue(
+                        EmailStorePstMutationVerificationEntity.Folder,
+                        string.Empty, unexpected.Id,
+                        "EMAIL_STORE_PST_MUTATE_VERIFY_FOLDER_UNEXPECTED",
+                        Array.Empty<EmailSemanticDifference>()));
+            }
             foreach (FolderState folder in _folders.Values.Where(folder => !folder.Deleted)) {
                 cancellationToken.ThrowIfCancellationRequested();
                 string destinationId = folderMap[folder.Id];
@@ -458,7 +472,7 @@ public sealed partial class EmailStorePstMutationTransaction {
             _diagnostics.AddRange(destination.Diagnostics);
         }
 
-        if (mismatchedFolders > 0 || failedFolders > 0) {
+        if (mismatchedFolders > 0 || failedFolders > 0 || unexpectedFolders > 0) {
             _diagnostics.Add(new EmailStoreDiagnostic(
                 "EMAIL_STORE_PST_MUTATE_VERIFY_FOLDER_FAILED",
                 "One or more staged folders did not match the intended hierarchy and metadata.",
@@ -472,7 +486,7 @@ public sealed partial class EmailStorePstMutationTransaction {
         }
         return new EmailStorePstMutationVerificationReport(
             _folders.Values.Count(folder => !folder.Deleted),
-            matchedFolders, mismatchedFolders, failedFolders,
+            matchedFolders, mismatchedFolders, failedFolders, unexpectedFolders,
             mappings.Count, matchedItems, mismatchedItems, failedItems,
             issues.AsReadOnly(), issuesTruncated);
     }

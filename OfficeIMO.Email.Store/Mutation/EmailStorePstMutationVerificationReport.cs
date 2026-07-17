@@ -26,7 +26,7 @@ public sealed class EmailStorePstMutationVerificationIssue {
     /// <summary>Kind of entity that was checked.</summary>
     public EmailStorePstMutationVerificationEntity Entity { get; }
 
-    /// <summary>Source or transaction-local identifier.</summary>
+    /// <summary>Source or transaction-local identifier; empty for an unexpected destination entity.</summary>
     public string EntityId { get; }
 
     /// <summary>Identifier assigned in the rewritten PST.</summary>
@@ -39,10 +39,11 @@ public sealed class EmailStorePstMutationVerificationIssue {
     public IReadOnlyList<EmailSemanticDifference> Differences { get; }
 }
 
-/// <summary>Aggregate semantic verification for a staged PST mutation.</summary>
+/// <summary>Aggregate folder-set and semantic verification for a staged PST mutation.</summary>
 public sealed class EmailStorePstMutationVerificationReport {
     internal EmailStorePstMutationVerificationReport(
         int attemptedFolders, int matchedFolders, int mismatchedFolders, int failedFolders,
+        int unexpectedFolders,
         int attemptedItems, int matchedItems,
         int mismatchedItems, int failedItems,
         IReadOnlyList<EmailStorePstMutationVerificationIssue> issues, bool issuesTruncated) {
@@ -50,6 +51,7 @@ public sealed class EmailStorePstMutationVerificationReport {
         MatchedFolders = matchedFolders;
         MismatchedFolders = mismatchedFolders;
         FailedFolders = failedFolders;
+        UnexpectedFolders = unexpectedFolders;
         AttemptedItems = attemptedItems;
         MatchedItems = matchedItems;
         MismatchedItems = mismatchedItems;
@@ -70,6 +72,9 @@ public sealed class EmailStorePstMutationVerificationReport {
     /// <summary>Number of intended folders that could not be found or checked.</summary>
     public int FailedFolders { get; }
 
+    /// <summary>Number of resulting folders that were not present in the intended destination mapping.</summary>
+    public int UnexpectedFolders { get; }
+
     /// <summary>Number of resulting items considered.</summary>
     public int AttemptedItems { get; }
 
@@ -88,7 +93,7 @@ public sealed class EmailStorePstMutationVerificationReport {
     /// <summary>Whether additional issue details were omitted.</summary>
     public bool IssuesTruncated { get; }
 
-    /// <summary>True when every resulting item was reopened and matched.</summary>
-    public bool IsSuccessful => MismatchedFolders == 0 && FailedFolders == 0 &&
+    /// <summary>True when every intended folder and item matched and no unexpected folder was introduced.</summary>
+    public bool IsSuccessful => MismatchedFolders == 0 && FailedFolders == 0 && UnexpectedFolders == 0 &&
         MismatchedItems == 0 && FailedItems == 0;
 }

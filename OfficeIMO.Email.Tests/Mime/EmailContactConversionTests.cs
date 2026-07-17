@@ -137,8 +137,21 @@ public sealed class EmailContactConversionTests {
         EmailDocument roundTrip = new EmailDocumentReader().Read(
             new EmailDocumentWriter().ToBytes(document, EmailFileFormat.OutlookMsg)).Document;
 
-        Assert.Equal("12 \"Main\" \\\\ St", document.Contact!.HomeAddress.Formatted);
-        Assert.Equal("12 \"Main\" \\\\ St", roundTrip.Contact!.HomeAddress.Formatted);
+        Assert.Equal("12 \"Main\" \\ St", document.Contact!.HomeAddress.Formatted);
+        Assert.Equal("12 \"Main\" \\ St", roundTrip.Contact!.HomeAddress.Formatted);
+    }
+
+    [Fact]
+    public void DecodesLegacyTextEscapesInVcardAddressLabels() {
+        byte[] eml = Encoding.ASCII.GetBytes(
+            "Content-Type: text/vcard; charset=utf-8\r\n\r\nBEGIN:VCARD\r\nVERSION:3.0\r\n" +
+            "FN:Ada Lovelace\r\n" +
+            "ADR;TYPE=HOME;LABEL=\"Line 1\\nLine 2\\, Suite\\; East\":;;Main Street;;;;\r\n" +
+            "END:VCARD\r\n");
+
+        OutlookPostalAddress address = new EmailDocumentReader().Read(eml).Document.Contact!.HomeAddress;
+
+        Assert.Equal("Line 1\nLine 2, Suite; East", address.Formatted);
     }
 
     [Fact]

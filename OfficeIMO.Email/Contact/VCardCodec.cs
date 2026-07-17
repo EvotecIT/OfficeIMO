@@ -319,7 +319,7 @@ internal static partial class VCardCodec {
             target.StateOrProvince = ValueAt(values, 4);
             target.PostalCode = ValueAt(values, 5);
             target.Country = ValueAt(values, 6);
-            if (property.Parameters.TryGetValue("LABEL", out string? label)) target.Formatted = label;
+            if (property.Parameters.TryGetValue("LABEL", out string? label)) target.Formatted = Unescape(label);
         }
         int labelWorkIndex = 0;
         foreach (VCardProperty property in properties.Where(property => property.Name == "LABEL")) {

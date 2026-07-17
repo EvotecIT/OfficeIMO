@@ -260,6 +260,27 @@ public sealed class PstMutationTransactionTests {
         }
     }
 
+    [Fact]
+    public void VerificationRejectsWriterSeededFoldersAbsentFromSource() {
+        string path = TemporaryPstPath();
+        try {
+            byte[] original = PstTestFileBuilder.Create();
+            File.WriteAllBytes(path, original);
+            using var transaction = EmailStorePstMutationTransaction.Open(path,
+                new EmailStorePstMutationOptions(failOnDataLoss: false));
+            transaction.CreateFolder("Commit trigger");
+
+            InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+                transaction.Commit());
+
+            Assert.Contains("staged PST did not match", exception.Message,
+                StringComparison.OrdinalIgnoreCase);
+            Assert.Equal(original, File.ReadAllBytes(path));
+        } finally {
+            TryDelete(path);
+        }
+    }
+
     [Theory]
     [InlineData(0x8022U)]
     [InlineData(0xA002U)]

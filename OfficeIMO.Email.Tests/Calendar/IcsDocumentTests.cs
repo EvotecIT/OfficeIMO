@@ -285,6 +285,112 @@ public sealed class IcsDocumentTests {
             StringComparison.Ordinal);
     }
 
+    [Theory]
+    [InlineData("DTSTAMP", "not-a-timestamp", "ICAL_TEMPORAL_VALUE_INVALID")]
+    [InlineData("CREATED", "20260717T250000Z", "ICAL_TEMPORAL_VALUE_INVALID")]
+    [InlineData("LAST-MODIFIED", "20260717T090000", "ICAL_TEMPORAL_VALUE_UTC_REQUIRED")]
+    [InlineData("COMPLETED", "20260717T090000", "ICAL_TEMPORAL_VALUE_UTC_REQUIRED")]
+    public void ValidationChecksStandardUtcTimestampProperties(
+        string propertyName, string value, string expectedCode) {
+        var document = new IcsDocument();
+        ContentLineComponent task = document.Calendars.Single().AddComponent("VTODO");
+        task.AddProperty(propertyName, value);
+
+        Assert.Contains(document.Validate(), issue => issue.Code == expectedCode &&
+            issue.PropertyName == propertyName);
+    }
+
+    [Theory]
+    [InlineData("20261340")]
+    [InlineData("20260717T250000Z")]
+    [InlineData("20260717T090000Zjunk")]
+    public void ValidationRejectsMalformedRecurrenceUntilValues(string until) {
+        var document = new IcsDocument();
+        ContentLineComponent appointment = document.Calendars.Single().AddComponent("VEVENT");
+        appointment.AddProperty("DTSTART", "20260717T090000Z");
+        appointment.AddProperty("RRULE", "FREQ=DAILY;UNTIL=" + until);
+
+        Assert.Contains(document.Validate(), issue => issue.Code == "ICAL_RRULE_UNTIL_INVALID" &&
+            issue.PropertyName == "RRULE");
+    }
+
+    [Theory]
+    [InlineData("20260717", "DATE", "20260720T090000Z")]
+    [InlineData("20260717T090000", "Europe/Warsaw", "20260720T090000")]
+    [InlineData("20260717T090000", null, "20260720T090000Z")]
+    public void ValidationRejectsRecurrenceUntilFormsThatDoNotMatchDtStart(
+        string start, string? startParameter, string until) {
+        var document = new IcsDocument();
+        ContentLineComponent appointment = document.Calendars.Single().AddComponent("VEVENT");
+        ContentLineProperty startProperty = appointment.AddProperty("DTSTART", start);
+        if (startParameter == "DATE") startProperty.SetParameter("VALUE", "DATE");
+        else if (startParameter != null) startProperty.SetParameter("TZID", startParameter);
+        appointment.AddProperty("RRULE", "FREQ=DAILY;UNTIL=" + until);
+
+        Assert.Contains(document.Validate(), issue =>
+            issue.Code == "ICAL_RRULE_UNTIL_TYPE_MISMATCH" && issue.PropertyName == "RRULE");
+    }
+
+    [Fact]
+    public void ValidationAcceptsRecurrenceUntilFormsRequiredByDtStart() {
+        var document = new IcsDocument();
+        ContentLineComponent calendar = document.Calendars.Single();
+        ContentLineComponent date = calendar.AddComponent("VEVENT");
+        date.AddProperty("DTSTART", "20260717").SetParameter("VALUE", "DATE");
+        date.AddProperty("RRULE", "FREQ=DAILY;UNTIL=20260720");
+        ContentLineComponent zoned = calendar.AddComponent("VEVENT");
+        zoned.AddProperty("DTSTART", "20260717T090000").SetParameter("TZID", "Europe/Warsaw");
+        zoned.AddProperty("RRULE", "FREQ=DAILY;UNTIL=20260720T090000Z");
+        ContentLineComponent floating = calendar.AddComponent("VEVENT");
+        floating.AddProperty("DTSTART", "20260717T090000");
+        floating.AddProperty("RRULE", "FREQ=DAILY;UNTIL=20260720T090000");
+
+        Assert.DoesNotContain(document.Validate(), issue =>
+            issue.Code == "ICAL_RRULE_UNTIL_INVALID" ||
+            issue.Code == "ICAL_RRULE_UNTIL_TYPE_MISMATCH");
+    }
+
+    [Theory]
+    [InlineData("not-a-duration", null, null)]
+    [InlineData("P1Y", null, null)]
+    [InlineData("20260717T090000", "DATE-TIME", null)]
+    [InlineData("20260717T090000Z", "DATE-TIME", "END")]
+    [InlineData("-PT15M", "TEXT", null)]
+    public void ValidationRejectsInvalidAlarmTriggers(
+        string value, string? valueType, string? related) {
+        var document = new IcsDocument();
+        ContentLineComponent alarm = document.Calendars.Single().AddComponent("VEVENT")
+            .AddComponent("VALARM");
+        alarm.AddProperty("ACTION", "DISPLAY");
+        alarm.AddProperty("DESCRIPTION", "Reminder");
+        ContentLineProperty trigger = alarm.AddProperty("TRIGGER", value);
+        if (valueType != null) trigger.SetParameter("VALUE", valueType);
+        if (related != null) trigger.SetParameter("RELATED", related);
+
+        Assert.Contains(document.Validate(), issue =>
+            issue.Code == "ICAL_ALARM_TRIGGER_INVALID" && issue.PropertyName == "TRIGGER");
+    }
+
+    [Theory]
+    [InlineData("-PT15M", null, null)]
+    [InlineData("PT0S", "DURATION", "START")]
+    [InlineData("+P1W", null, "END")]
+    [InlineData("20260717T090000Z", "DATE-TIME", null)]
+    public void ValidationAcceptsRfcAlarmTriggerForms(
+        string value, string? valueType, string? related) {
+        var document = new IcsDocument();
+        ContentLineComponent alarm = document.Calendars.Single().AddComponent("VEVENT")
+            .AddComponent("VALARM");
+        alarm.AddProperty("ACTION", "DISPLAY");
+        alarm.AddProperty("DESCRIPTION", "Reminder");
+        ContentLineProperty trigger = alarm.AddProperty("TRIGGER", value);
+        if (valueType != null) trigger.SetParameter("VALUE", valueType);
+        if (related != null) trigger.SetParameter("RELATED", related);
+
+        Assert.DoesNotContain(document.Validate(), issue =>
+            issue.Code == "ICAL_ALARM_TRIGGER_INVALID");
+    }
+
     [Fact]
     public void ValidationAndSerializationRejectMissingOrMutatedCalendarRoots() {
         var empty = new IcsDocument();

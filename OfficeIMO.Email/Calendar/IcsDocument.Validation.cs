@@ -4,6 +4,9 @@ public sealed partial class IcsDocument {
     private static readonly HashSet<string> RecurrenceFrequencies = new HashSet<string>(
         new[] { "SECONDLY", "MINUTELY", "HOURLY", "DAILY", "WEEKLY", "MONTHLY", "YEARLY" },
         StringComparer.OrdinalIgnoreCase);
+    private static readonly HashSet<string> UtcTimestampPropertyNames = new HashSet<string>(
+        new[] { "DTSTAMP", "CREATED", "LAST-MODIFIED", "COMPLETED" },
+        StringComparer.OrdinalIgnoreCase);
 
     /// <summary>Validates stable RFC 5545 structure without rejecting unknown or extension properties.</summary>
     public IReadOnlyList<ContentLineValidationIssue> Validate() {
@@ -79,6 +82,7 @@ public sealed partial class IcsDocument {
                 }
                 ValidateSingle(component, "ACTION", required: true, issues);
                 ValidateSingle(component, "TRIGGER", required: true, issues);
+                ValidateAlarmTriggers(component, issues);
                 string? action = component.GetFirstProperty("ACTION")?.Value;
                 if (string.Equals(action, "DISPLAY", StringComparison.OrdinalIgnoreCase))
                     ValidateSingle(component, "DESCRIPTION", required: true, issues);
@@ -115,21 +119,33 @@ public sealed partial class IcsDocument {
                     if (rule.GetValue("INTERVAL") != null && !rule.Interval.HasValue)
                         issues.Add(Issue("ICAL_RRULE_INTERVAL_INVALID", "RRULE INTERVAL must be a positive integer.",
                             ContentLineValidationSeverity.Error, component, ruleProperty));
+                    ValidateRecurrenceUntil(component, ruleProperty, rule, issues);
                 } catch (FormatException exception) {
                     issues.Add(Issue("ICAL_RRULE_INVALID", exception.Message, ContentLineValidationSeverity.Error,
                         component, ruleProperty));
                 }
             }
 
-            foreach (string temporalName in new[] { "DTSTART", "DTEND", "DUE", "RECURRENCE-ID", "RDATE", "EXDATE" }) {
+            foreach (string temporalName in new[] { "DTSTART", "DTEND", "DUE", "RECURRENCE-ID",
+                         "RDATE", "EXDATE", "DTSTAMP", "CREATED", "LAST-MODIFIED", "COMPLETED" }) {
                 foreach (ContentLineProperty property in component.GetProperties(temporalName)) {
-                    bool valid = temporalName == "RDATE" || temporalName == "EXDATE"
-                        ? ValidateRecurrenceDateValues(property,
-                            allowPeriod: temporalName == "RDATE")
-                        : IcsTemporalValue.TryParse(property, out _);
-                    if (!valid)
+                    IcsTemporalValue temporalValue = default;
+                    bool valid;
+                    if (temporalName == "RDATE" || temporalName == "EXDATE") {
+                        valid = ValidateRecurrenceDateValues(property,
+                            allowPeriod: temporalName == "RDATE");
+                    } else {
+                        valid = IcsTemporalValue.TryParse(property, out temporalValue);
+                    }
+                    if (!valid) {
                         issues.Add(Issue("ICAL_TEMPORAL_VALUE_INVALID", "The temporal property value is invalid.",
                             ContentLineValidationSeverity.Error, component, property));
+                    } else if (UtcTimestampPropertyNames.Contains(temporalName) &&
+                               temporalValue.Kind != IcsTemporalValueKind.UtcDateTime) {
+                        issues.Add(Issue("ICAL_TEMPORAL_VALUE_UTC_REQUIRED",
+                            temporalName + " must contain a UTC DATE-TIME value.",
+                            ContentLineValidationSeverity.Error, component, property));
+                    }
                 }
             }
 
@@ -199,6 +215,78 @@ public sealed partial class IcsDocument {
         return true;
     }
 
+    private static void ValidateRecurrenceUntil(ContentLineComponent component,
+        ContentLineProperty ruleProperty, IcsRecurrenceRule rule,
+        ICollection<ContentLineValidationIssue> issues) {
+        string? untilText = rule.GetValue("UNTIL");
+        if (untilText == null) return;
+        if (!TryParseRecurrenceUntil(untilText, out IcsTemporalValue until)) {
+            issues.Add(Issue("ICAL_RRULE_UNTIL_INVALID",
+                "RRULE UNTIL must contain a valid DATE or DATE-TIME value.",
+                ContentLineValidationSeverity.Error, component, ruleProperty));
+            return;
+        }
+
+        ContentLineProperty? startProperty = component.GetFirstProperty("DTSTART");
+        if (startProperty == null || !IcsTemporalValue.TryParse(startProperty, out IcsTemporalValue start)) return;
+        IcsTemporalValueKind expectedKind;
+        if (start.Kind == IcsTemporalValueKind.Date) {
+            expectedKind = IcsTemporalValueKind.Date;
+        } else if (string.Equals(component.Name, "STANDARD", StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(component.Name, "DAYLIGHT", StringComparison.OrdinalIgnoreCase) ||
+                   start.Kind == IcsTemporalValueKind.UtcDateTime ||
+                   start.Kind == IcsTemporalValueKind.ZonedDateTime) {
+            expectedKind = IcsTemporalValueKind.UtcDateTime;
+        } else {
+            expectedKind = IcsTemporalValueKind.FloatingDateTime;
+        }
+        if (until.Kind != expectedKind) {
+            issues.Add(Issue("ICAL_RRULE_UNTIL_TYPE_MISMATCH",
+                "RRULE UNTIL must use the DATE or DATE-TIME form required by DTSTART.",
+                ContentLineValidationSeverity.Error, component, ruleProperty));
+        }
+    }
+
+    private static bool TryParseRecurrenceUntil(string value, out IcsTemporalValue result) {
+        var property = new ContentLineProperty("UNTIL", value);
+        if (value.Length == 8) property.SetParameter("VALUE", "DATE");
+        return IcsTemporalValue.TryParse(property, out result);
+    }
+
+    private static void ValidateAlarmTriggers(ContentLineComponent component,
+        ICollection<ContentLineValidationIssue> issues) {
+        foreach (ContentLineProperty trigger in component.GetProperties("TRIGGER")) {
+            ContentLineParameter[] valueParameters = trigger.Parameters.Where(parameter =>
+                string.Equals(parameter.Name, "VALUE", StringComparison.OrdinalIgnoreCase)).ToArray();
+            ContentLineParameter[] relatedParameters = trigger.Parameters.Where(parameter =>
+                string.Equals(parameter.Name, "RELATED", StringComparison.OrdinalIgnoreCase)).ToArray();
+            bool validParameters = valueParameters.Length <= 1 && relatedParameters.Length <= 1 &&
+                valueParameters.All(parameter => parameter.Values.Count == 1 &&
+                    !string.IsNullOrWhiteSpace(parameter.Values[0])) &&
+                relatedParameters.All(parameter => parameter.Values.Count == 1 &&
+                    (string.Equals(parameter.Values[0], "START", StringComparison.OrdinalIgnoreCase) ||
+                     string.Equals(parameter.Values[0], "END", StringComparison.OrdinalIgnoreCase)));
+            string valueType = valueParameters.FirstOrDefault()?.Values.FirstOrDefault() ?? "DURATION";
+            bool valid;
+            if (!validParameters) {
+                valid = false;
+            } else if (string.Equals(valueType, "DATE-TIME", StringComparison.OrdinalIgnoreCase)) {
+                valid = relatedParameters.Length == 0 &&
+                    IcsTemporalValue.TryParse(trigger, out IcsTemporalValue absolute) &&
+                    absolute.Kind == IcsTemporalValueKind.UtcDateTime;
+            } else if (string.Equals(valueType, "DURATION", StringComparison.OrdinalIgnoreCase)) {
+                valid = ValidateDuration(trigger.Value, allowNegative: true, requireNonZero: false);
+            } else {
+                valid = false;
+            }
+            if (!valid) {
+                issues.Add(Issue("ICAL_ALARM_TRIGGER_INVALID",
+                    "VALARM TRIGGER must contain a duration or a UTC DATE-TIME value.",
+                    ContentLineValidationSeverity.Error, component, trigger));
+            }
+        }
+    }
+
     private static bool ValidatePeriodValue(ContentLineProperty property, string value) {
         int separator = value.IndexOf('/');
         if (separator <= 0 || separator != value.LastIndexOf('/') || separator == value.Length - 1)
@@ -228,20 +316,28 @@ public sealed partial class IcsDocument {
     }
 
     private static bool ValidatePositiveDuration(string value) {
-        if (value.Length < 3) return false;
-        int index = value[0] == '+' ? 1 : 0;
+        return ValidateDuration(value, allowNegative: false, requireNonZero: true);
+    }
+
+    private static bool ValidateDuration(string value, bool allowNegative, bool requireNonZero) {
+        if (value.Length < 2) return false;
+        int index = 0;
+        if (value[index] == '+' || value[index] == '-') {
+            if (value[index] == '-' && !allowNegative) return false;
+            index++;
+        }
         if (index >= value.Length || value[index++] != 'P') return false;
         bool nonZero = false;
         bool hasLeadingNumber = ReadDurationNumber(value, ref index, ref nonZero);
         if (hasLeadingNumber && index < value.Length && value[index] == 'W')
-            return index + 1 == value.Length && nonZero;
+            return index + 1 == value.Length && (!requireNonZero || nonZero);
         bool hasDays = false;
         if (hasLeadingNumber) {
             if (index >= value.Length || value[index] != 'D') return false;
             index++;
             hasDays = true;
         }
-        if (index == value.Length) return hasDays && nonZero;
+        if (index == value.Length) return hasDays && (!requireNonZero || nonZero);
         if (value[index] != 'T' || ++index == value.Length) return false;
         if (!ReadDurationNumber(value, ref index, ref nonZero) || index >= value.Length) return false;
         char designator = value[index++];
@@ -259,7 +355,7 @@ public sealed partial class IcsDocument {
             if (index < value.Length && (!ReadDurationNumber(value, ref index, ref nonZero) ||
                 index >= value.Length || value[index++] != 'S')) return false;
         } else if (designator != 'S') return false;
-        return index == value.Length && nonZero;
+        return index == value.Length && (!requireNonZero || nonZero);
     }
 
     private static bool ReadDurationNumber(string value, ref int index, ref bool nonZero) {

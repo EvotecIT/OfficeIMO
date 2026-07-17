@@ -292,8 +292,8 @@ writer-owned artifacts associated with that checkpoint.
 
 `EmailStorePstMutationTransaction` is a separate, explicit API for changing an existing Unicode PST. It locks the
 source, stages folder and item operations, builds a replacement through the same managed writer, reopens and
-semantically verifies the complete result, optionally commits a byte-for-byte backup, and only then atomically
-replaces the source:
+verifies the complete folder set and item semantics, optionally commits a byte-for-byte backup, and only then
+atomically replaces the source:
 
 ```csharp
 using EmailStorePstMutationTransaction mutation =
@@ -330,7 +330,8 @@ search or writer fidelity is a blocking diagnostic while `failOnDataLoss` remain
 may opt into a known lossy static projection with `failOnDataLoss: false`, but verification of the resulting semantic
 contents remains enabled unless explicitly disabled. Standard source-identified default-folder roles are rewritten
 and verified as EntryID-backed roles, not merely as matching names. Items cannot be added or moved into the
-writer-owned search folder because its contents are computed rather than authored as ordinary rows.
+writer-owned search folder because its contents are computed rather than authored as ordinary rows. Verification also
+rejects any writer-seeded folder that was not mapped from the intended source and transaction state.
 
 ## Convert OST or another store to a new PST
 

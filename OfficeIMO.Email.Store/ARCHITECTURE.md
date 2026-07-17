@@ -94,9 +94,10 @@ mutation: writer/index failures abort the atomic output.
 
 `EmailStorePstMutationTransaction` deliberately does not add a second in-place NDB editor. It opens and locks an
 existing Unicode PST, stages an explicit set of folder and item operations, and feeds the resulting hierarchy and
-semantic `EmailDocument` items through `EmailStorePstWriter`. The staging PST is reopened and every intended folder,
-metadata field, and item projection is verified before the source can be atomically replaced. A caller may request a
-byte-for-byte backup, and source length/timestamp drift aborts replacement.
+semantic `EmailDocument` items through `EmailStorePstWriter`. The staging PST is reopened and its complete folder set,
+every intended metadata field, and every item projection are verified before the source can be atomically replaced;
+writer-seeded folders absent from the source are treated as a verification failure. A caller may request a byte-for-byte
+backup, and source length/timestamp drift aborts replacement.
 
 The rewrite design reuses the mature writer, item projection, fidelity diagnostics, and atomic commit boundary. Its
 visible tradeoff is that NIDs and BIDs change, so commit returns folder and item ID mappings. Mandatory folders remain
