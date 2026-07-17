@@ -671,6 +671,14 @@ _Dependency footprint:_ only OfficeIMO Reader and platform APIs; no audio codec,
 
 _Dependency footprint:_ only OfficeIMO Reader and Visio.
 
+#### [OfficeIMO.Reader.Web](OfficeIMO.Reader.Web/README.md)
+
+- [x] Explicit caller-injected HTTP(S) transport over an existing Reader instance
+- [x] Response-byte, timeout, host, private-target, metadata-privacy, and concurrency bounds
+- [x] Existing handler and processor reuse without implicit network registration
+
+_Dependency footprint:_ only OfficeIMO Reader and framework `System.Net.Http`; no HTTP SDK, browser, process, model, or provider.
+
 #### [OfficeIMO.Reader.Xml](OfficeIMO.Reader.Xml/README.md)
 
 - [x] Element/attribute tree traversal into path rows

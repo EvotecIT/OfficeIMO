@@ -8,6 +8,14 @@ namespace OfficeIMO.Reader;
 /// Shared input-size guard helpers for reader adapters.
 /// </summary>
 public static class ReaderInputLimits {
+    internal static MemoryStream CreateSnapshotStream(int initialCapacity = 0) {
+        return new ReaderSnapshotStream(initialCapacity);
+    }
+
+    internal static bool IsSnapshotStream(Stream stream) {
+        return stream is ReaderSnapshotStream;
+    }
+
     /// <summary>
     /// Enforces <paramref name="maxBytes"/> against file length when available.
     /// </summary>
@@ -70,7 +78,7 @@ public static class ReaderInputLimits {
             stream.Position = 0;
         }
 
-        var buffer = new ReaderSnapshotStream();
+        var buffer = new ReaderSnapshotStream(0);
         try {
             var chunk = new byte[64 * 1024];
             long totalBytes = 0;
@@ -125,7 +133,7 @@ public static class ReaderInputLimits {
             stream.Position = 0;
         }
 
-        var buffer = new ReaderSnapshotStream();
+        var buffer = new ReaderSnapshotStream(0);
         try {
             var chunk = new byte[64 * 1024];
             long totalBytes = 0;
@@ -153,5 +161,7 @@ public static class ReaderInputLimits {
     }
 
     private sealed class ReaderSnapshotStream : MemoryStream {
+        internal ReaderSnapshotStream(int initialCapacity) : base(initialCapacity) {
+        }
     }
 }

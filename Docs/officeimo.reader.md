@@ -10,6 +10,8 @@
 
 It is designed for deterministic ingestion. Format-specific parsing stays in the owning OfficeIMO package, the facade remains thin, and optional adapters do not force unrelated dependencies into the core package.
 
+Remote HTTP(S) retrieval is available only through the separate `OfficeIMO.Reader.Web` transport. It requires a caller-owned `HttpClient`, remains outside `OfficeIMO.Reader.All`, and passes bounded response bytes into the same configured local handlers.
+
 ## Install / Reference
 
 Reference the `OfficeIMO.Reader` NuGet package or add a project reference. Install only the modular adapter packages required by the host.
@@ -26,6 +28,7 @@ The package README at `OfficeIMO.Reader/README.md` is the detailed API guide. Th
 - `ReadStructured(...)` emits bounded scalar records, sections, named tables, forms, and readiness diagnostics without an AI dependency.
 - `ReadHierarchical(...)` creates token-bounded RAG leaves with overlap, exact source spans, and document/container/heading ancestry.
 - `IOfficeOcrEngine` keeps OCR execution in a dependency-free core contract; process and Tesseract implementations are separate optional packages.
+- `OfficeDocumentWebReader` adds explicit bounded HTTP(S) retrieval without adding network behavior to the core Reader, all-adapters preset, or global tool.
 
 For format adapters, prefer instance-scoped registration:
 

@@ -55,6 +55,7 @@
     <ProjectReference Include="..\OfficeIMO.Reader.Rtf\OfficeIMO.Reader.Rtf.csproj" />
     <ProjectReference Include="..\OfficeIMO.Reader.Subtitles\OfficeIMO.Reader.Subtitles.csproj" />
     <ProjectReference Include="..\OfficeIMO.Reader.Visio\OfficeIMO.Reader.Visio.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Reader.Web\OfficeIMO.Reader.Web.csproj" />
     <ProjectReference Include="..\OfficeIMO.Reader.Xml\OfficeIMO.Reader.Xml.csproj" />
     <ProjectReference Include="..\OfficeIMO.Reader.Yaml\OfficeIMO.Reader.Yaml.csproj" />
     <ProjectReference Include="..\OfficeIMO.Reader.Zip\OfficeIMO.Reader.Zip.csproj" />
