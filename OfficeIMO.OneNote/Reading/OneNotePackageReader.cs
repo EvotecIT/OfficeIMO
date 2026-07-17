@@ -145,7 +145,7 @@ public static class OneNotePackageReader {
             if (state.Options.LoadSectionContent) AddDiagnostic(notebook, "ONENOTE_TOC_SECTION_MISSING", "A section referenced by the packaged TOC is missing.", state.SourcePath + "::" + path);
         }
         section.Id = entry.Id;
-        section.Name = Path.GetFileNameWithoutExtension(entry.Name);
+        if (string.IsNullOrWhiteSpace(section.Name)) section.Name = Path.GetFileNameWithoutExtension(entry.Name);
         section.ColorArgb = entry.ColorArgb ?? section.ColorArgb;
         section.SourcePath = state.SourcePath + "::" + path;
         return section;

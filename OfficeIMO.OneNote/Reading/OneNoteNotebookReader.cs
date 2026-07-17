@@ -215,7 +215,7 @@ public static class OneNoteNotebookReader {
             }
         }
         section.Id = entry.Id;
-        section.Name = Path.GetFileNameWithoutExtension(entry.Name);
+        if (string.IsNullOrWhiteSpace(section.Name)) section.Name = Path.GetFileNameWithoutExtension(entry.Name);
         section.ColorArgb = entry.ColorArgb ?? section.ColorArgb;
         section.SourcePath = path;
         return section;

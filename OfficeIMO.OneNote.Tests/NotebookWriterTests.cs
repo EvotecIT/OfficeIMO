@@ -94,6 +94,29 @@ public sealed class NotebookWriterTests {
     }
 
     [Fact]
+    public void NotebookReadersPreserveNativeSectionDisplayNameInsteadOfSanitizedTocName() {
+        const string displayName = "Roadmap: Q1";
+        OneNoteNotebook original = CreateNotebook();
+        original.Sections[0].Name = displayName;
+
+        byte[] package = OneNotePackageWriter.Write(original);
+        OneNoteNotebook packaged = OneNotePackageReader.Read(new MemoryStream(package), "Display.onepkg");
+
+        Assert.Equal(displayName, Assert.Single(packaged.Sections).Name);
+
+        string root = Path.Combine(Path.GetTempPath(), "OfficeIMO-OneNote-Display-" + Guid.NewGuid().ToString("N"));
+        try {
+            OneNoteNotebookWriter.Write(original, root);
+            Assert.True(File.Exists(Path.Combine(root, "Roadmap_ Q1.one")));
+
+            OneNoteNotebook directory = OneNoteNotebookReader.Read(Path.Combine(root, "Open Notebook.onetoc2"));
+            Assert.Equal(displayName, Assert.Single(directory.Sections).Name);
+        } finally {
+            if (Directory.Exists(root)) Directory.Delete(root, true);
+        }
+    }
+
+    [Fact]
     public void PackageWriterUsesRecycleBinSemanticFlagAndReaderKeepsItOptIn() {
         OneNoteNotebook original = CreateNotebook();
         original.SectionGroups.Add(new OneNoteSectionGroup {

@@ -378,6 +378,27 @@ public sealed class ConverterTests {
         Assert.DoesNotContain(@"\\|", markdown, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void MarkdownTableCellEncodesPipeInLinkDestination() {
+        var section = new OneNoteSection { Name = "Projection" };
+        var page = new OneNotePage { Title = "Table" };
+        var table = new OneNoteTable();
+        var row = new OneNoteTableRow();
+        var cell = new OneNoteTableCell();
+        var paragraph = new OneNoteParagraph();
+        paragraph.Runs.Add(new OneNoteTextRun { Text = "Link", Hyperlink = "https://example.test/a|b" });
+        cell.Content.Add(paragraph);
+        row.Cells.Add(cell);
+        table.Rows.Add(row);
+        page.DirectContent.Add(table);
+        section.Pages.Add(page);
+
+        string markdown = section.ToMarkdown();
+
+        Assert.Contains("[Link](https://example.test/a%7Cb)", markdown, StringComparison.Ordinal);
+        Assert.DoesNotContain("a|b", markdown, StringComparison.Ordinal);
+    }
+
     private static OneNoteSection SectionWithPage(string sectionName, string pageTitle) {
         var section = new OneNoteSection { Name = sectionName };
         section.Pages.Add(new OneNotePage { Title = pageTitle });

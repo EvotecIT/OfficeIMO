@@ -176,6 +176,62 @@ public sealed class WriterModelSafetyTests {
     }
 
     [Fact]
+    public void WriterSeparatesEditedListDescriptorsThatRetainANativeIdentity() {
+        var section = new OneNoteSection { Name = "Lists" };
+        var page = new OneNotePage { Title = "Edited lists" };
+        var retainedId = new OneNoteExtendedGuid(Guid.NewGuid(), 1, 17);
+        var first = new OneNoteParagraph {
+            List = new OneNoteListInfo { ObjectId = retainedId, Ordered = true, Format = 3, Level = 1, FontFamily = "Aptos" }
+        };
+        first.Runs.Add(new OneNoteTextRun { Text = "Numbered" });
+        var second = new OneNoteParagraph {
+            List = new OneNoteListInfo { ObjectId = retainedId, Ordered = false, Level = 2, FontFamily = "Calibri" }
+        };
+        second.Runs.Add(new OneNoteTextRun { Text = "Bullet" });
+        page.DirectContent.Add(first);
+        page.DirectContent.Add(second);
+        section.Pages.Add(page);
+
+        byte[] data = OneNoteSectionWriter.Write(section);
+
+        OneNoteParagraph[] paragraphs = Assert.Single(Assert.Single(OneNoteSectionReader.Read(new MemoryStream(data)).Pages).Outlines)
+            .Children.Cast<OneNoteParagraph>().ToArray();
+        Assert.True(paragraphs[0].List!.Ordered);
+        Assert.Equal(3U, paragraphs[0].List!.Format);
+        Assert.Equal("Aptos", paragraphs[0].List!.FontFamily);
+        Assert.False(paragraphs[1].List!.Ordered);
+        Assert.Equal(2, paragraphs[1].List!.Level);
+        Assert.Equal("Calibri", paragraphs[1].List!.FontFamily);
+        Assert.NotEqual(paragraphs[0].List!.ObjectId, paragraphs[1].List!.ObjectId);
+    }
+
+    [Fact]
+    public void WriterSeparatesEditedParagraphStylesThatRetainANativeIdentity() {
+        var section = new OneNoteSection { Name = "Styles" };
+        var page = new OneNotePage { Title = "Edited styles" };
+        var retainedId = new OneNoteExtendedGuid(Guid.NewGuid(), 1, 17);
+        var first = new OneNoteParagraph();
+        first.Style.ObjectId = retainedId;
+        first.Style.Alignment = OneNoteParagraphAlignment.Left;
+        first.Runs.Add(new OneNoteTextRun { Text = "Left" });
+        var second = new OneNoteParagraph();
+        second.Style.ObjectId = retainedId;
+        second.Style.Alignment = OneNoteParagraphAlignment.Right;
+        second.Runs.Add(new OneNoteTextRun { Text = "Right" });
+        page.DirectContent.Add(first);
+        page.DirectContent.Add(second);
+        section.Pages.Add(page);
+
+        byte[] data = OneNoteSectionWriter.Write(section);
+
+        OneNoteParagraph[] paragraphs = Assert.Single(Assert.Single(OneNoteSectionReader.Read(new MemoryStream(data)).Pages).Outlines)
+            .Children.Cast<OneNoteParagraph>().ToArray();
+        Assert.Equal(OneNoteParagraphAlignment.Left, paragraphs[0].Style.Alignment);
+        Assert.Equal(OneNoteParagraphAlignment.Right, paragraphs[1].Style.Alignment);
+        Assert.NotEqual(paragraphs[0].Style.ObjectId, paragraphs[1].Style.ObjectId);
+    }
+
+    [Fact]
     public void WriterRejectsTraversalOptionsAboveTheHardSafetyLimit() {
         OneNoteSection section = CreateOutlineChain(1);
 

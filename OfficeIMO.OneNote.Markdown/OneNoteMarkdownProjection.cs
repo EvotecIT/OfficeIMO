@@ -351,7 +351,8 @@ public static class OneNoteMarkdownProjection {
         character == '>' ||
         character == '"' ||
         character == '\'' ||
-        character == '\\';
+        character == '\\' ||
+        character == '|';
 
     private static string CreateCodeFence(string value) {
         int backtickRun = LongestRun(value, '`');

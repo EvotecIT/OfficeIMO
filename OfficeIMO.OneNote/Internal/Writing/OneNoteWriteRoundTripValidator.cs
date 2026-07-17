@@ -128,8 +128,28 @@ internal static class OneNoteWriteRoundTripValidator {
             }
             if (expectedRun != null) ValidateTextStyle(expectedRun.Style, actualRun.Style, path + "/run[" + index + "] style");
         }
+        ValidateList(expected.List, actual.List, path + " list");
         ValidateParagraphStyle(expected.Style, actual.Style, path + " paragraph style");
         ValidateElementList(expected.Children, actual.Children, path + "/children");
+    }
+
+    private static void ValidateList(OneNoteListInfo? expected, OneNoteListInfo? actual, string path) {
+        if (expected == null || actual == null) {
+            if (expected != null || actual != null) Fail(path);
+            return;
+        }
+
+        uint? expectedFormat = expected.Ordered ? expected.Format ?? 0U : null;
+        bool expectedRestart = expected.Restart || expected.DisplayIndex.HasValue;
+        int? expectedDisplayIndex = expectedRestart ? Math.Max(1, expected.DisplayIndex ?? 1) : (int?)null;
+        if (expected.Ordered != actual.Ordered ||
+            expectedFormat != actual.Format ||
+            expected.Level != actual.Level ||
+            expectedRestart != actual.Restart ||
+            expectedDisplayIndex != actual.DisplayIndex ||
+            !NormalizedStringEquals(expected.FontFamily, actual.FontFamily)) {
+            Fail(path);
+        }
     }
 
     private static void ValidateTable(OneNoteTable expected, OneNoteTable actual, string path) {

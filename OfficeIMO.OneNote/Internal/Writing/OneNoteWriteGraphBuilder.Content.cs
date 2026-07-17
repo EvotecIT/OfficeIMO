@@ -302,13 +302,6 @@ internal sealed partial class OneNoteWriteGraphBuilder {
     }
 
     private OneNoteExtendedGuid BuildList(OneNoteWriteObjectSpace space, OneNoteListInfo list, uint lastModifiedTime) {
-        OneNoteExtendedGuid? existingId = list.ObjectId;
-        if (existingId != null && space.Objects.Any(item =>
-                item.Id.Equals(existingId) &&
-                item.Jcid == OneNoteSchema.JcidNumberListNode)) {
-            return existingId;
-        }
-
         string format = list.Ordered ? "\uFFFD" + (char)(list.Format ?? 0) : "\u2022";
         string encoded = new string((char)format.Length, 1) + format;
         var properties = new List<OneNoteWriteProperty> {
@@ -318,6 +311,14 @@ internal sealed partial class OneNoteWriteGraphBuilder {
         AddString(properties, OneNoteSchema.ListFont, list.FontFamily);
         if (list.Restart || list.DisplayIndex.HasValue) properties.Add(Scalar(OneNoteSchema.ListRestart, (uint)Math.Max(1, list.DisplayIndex ?? 1)));
         OneNoteExtendedGuid id = IdOrNew(list.ObjectId);
+        OneNoteWriteObject? existing = space.Objects.FirstOrDefault(item => item.Id.Equals(id));
+        if (existing != null) {
+            if (existing.Jcid == OneNoteSchema.JcidNumberListNode && PropertiesEqual(existing.Properties, properties)) {
+                list.ObjectId = id;
+                return id;
+            }
+            id = _ids.New();
+        }
         list.ObjectId = id;
         space.Objects.Add(new OneNoteWriteObject(id, OneNoteSchema.JcidNumberListNode, properties));
         return id;
@@ -332,6 +333,14 @@ internal sealed partial class OneNoteWriteGraphBuilder {
         if (style.ExactLineSpacing.HasValue) properties.Add(Float(OneNoteSchema.ParagraphLineSpacingExact, style.ExactLineSpacing.Value));
         if (properties.Count == 0) return null;
         OneNoteExtendedGuid id = IdOrNew(style.ObjectId);
+        OneNoteWriteObject? existing = space.Objects.FirstOrDefault(item => item.Id.Equals(id));
+        if (existing != null) {
+            if (existing.Jcid == OneNoteSchema.JcidTextStyle && PropertiesEqual(existing.Properties, properties)) {
+                style.ObjectId = id;
+                return id;
+            }
+            id = _ids.New();
+        }
         style.ObjectId = id;
         space.Objects.Add(new OneNoteWriteObject(id, OneNoteSchema.JcidTextStyle, properties));
         return id;
