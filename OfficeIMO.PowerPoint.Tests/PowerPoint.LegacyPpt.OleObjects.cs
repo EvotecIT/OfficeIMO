@@ -478,6 +478,52 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void EmbeddedOleObject_UpdateDetachesCrossSlidePartAndOldRelationship() {
+            byte[] originalStorage = CreateOleTestStorage(
+                "Cross-slide shared OLE");
+            byte[] replacementStorage = CreateOleTestStorage(
+                "Cross-slide detached OLE");
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            PowerPointSlide firstSlide = presentation.AddSlide(
+                P.SlideLayoutValues.Blank);
+            PowerPointSlide secondSlide = presentation.AddSlide(
+                P.SlideLayoutValues.Blank);
+            using var firstSource = new MemoryStream(originalStorage,
+                writable: false);
+            using var secondSource = new MemoryStream(originalStorage,
+                writable: false);
+            PowerPointOleObject first = firstSlide.AddOleObject(firstSource,
+                "Package");
+            PowerPointOleObject second = secondSlide.AddOleObject(
+                secondSource, "Package");
+            P.OleObject secondDefinition = ((P.GraphicFrame)second.Element)
+                .Graphic!.GraphicData!.GetFirstChild<P.OleObject>()!;
+            string secondOriginalRelationshipId = secondDefinition.Id!
+                .Value!;
+            secondSlide.SlidePart.DeletePart(
+                secondOriginalRelationshipId);
+            const string SharedRelationshipId = "rIdSharedOle";
+            secondSlide.SlidePart.AddPart(first.EmbeddedPart,
+                SharedRelationshipId);
+            secondDefinition.Id = SharedRelationshipId;
+            Assert.Equal(2, first.EmbeddedPart.GetParentParts().Count());
+
+            using var replacement = new MemoryStream(replacementStorage,
+                writable: false);
+            second.UpdateData(replacement);
+
+            Assert.Equal(originalStorage, first.GetData());
+            Assert.Equal(replacementStorage, second.GetData());
+            Assert.DoesNotContain(secondSlide.SlidePart.Parts, pair =>
+                pair.RelationshipId == SharedRelationshipId);
+            Assert.Single(secondSlide.SlidePart
+                .GetPartsOfType<EmbeddedObjectPart>());
+            Assert.Single(first.EmbeddedPart.GetParentParts());
+            Assert.Empty(presentation.ValidateDocument());
+        }
+
+        [Fact]
         public void CompressedEmbeddedOleObject_ImportsAndRemainsExactAcrossUnrelatedEdit() {
             byte[] storageBytes = CreateOleTestStorage("Compressed OLE");
             byte[] uncompressedBytes;

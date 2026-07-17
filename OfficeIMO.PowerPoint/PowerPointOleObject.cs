@@ -136,17 +136,27 @@ namespace OfficeIMO.PowerPoint {
 
         private void ReplaceSharedEmbeddedPart(EmbeddedObjectPart original,
             Stream replacement) {
+            string originalRelationshipId = OleObject.Id?.Value
+                ?? throw new InvalidOperationException(
+                    "The OLE object has no embedded-part relationship.");
             EmbeddedObjectPart detached = _slidePart
                 .AddEmbeddedObjectPart(original.ContentType);
             try {
                 detached.FeedData(replacement);
-                OleObject.Id = _slidePart.GetIdOfPart(detached);
             } catch {
                 if (_slidePart.Parts.Any(pair =>
                         ReferenceEquals(pair.OpenXmlPart, detached))) {
                     _slidePart.DeletePart(detached);
                 }
                 throw;
+            }
+            OleObject.Id = _slidePart.GetIdOfPart(detached);
+            bool originalRelationshipStillUsed = _slidePart.RootElement?
+                .Descendants<P.OleObject>().Any(candidate => string.Equals(
+                    candidate.Id?.Value, originalRelationshipId,
+                    StringComparison.Ordinal)) == true;
+            if (!originalRelationshipStillUsed) {
+                _slidePart.DeletePart(originalRelationshipId);
             }
         }
 
