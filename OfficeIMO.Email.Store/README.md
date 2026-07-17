@@ -288,8 +288,8 @@ Conversion verification is enabled by default. The writer produces a same-direct
 compares every written item under the semantic migration profile before committing the destination. With
 `failOnDataLoss: true`, a mismatch leaves an existing destination and manifest unchanged. The default uses an
 ephemeral HMAC key. An optional TSV manifest can use a caller-supplied HMAC key for repeatable auditing; it contains
-ordinals, statuses, keyed digests, an aggregate digest, and value-free difference paths—never subjects, addresses,
-filenames, content, arbitrary named-property names, or store IDs.
+ordinals, statuses, keyed digests, an aggregate digest, and keyed HMAC tokens for differing canonical paths—never
+subjects, addresses, filenames, content, arbitrary named-property names, raw difference paths, or store IDs.
 
 ## Merge multiple stores into one PST
 

@@ -18,7 +18,7 @@ public sealed partial class EmailStoreSession {
         string? manifestPath = null;
         using VerificationManifestWriter? manifest = VerificationManifestWriter.TryCreate(
             manifestStagingPath ?? options.VerificationManifestPath,
-            manifestStagingPath == null && options.OverwriteExisting);
+            manifestStagingPath == null && options.OverwriteExisting, semanticOptions);
         using EmailStoreSession destination = EmailStoreSession.Open(destinationPath,
             new EmailStoreReaderOptions(
                 maxItemCount: Math.Max(1, mappings.Count),

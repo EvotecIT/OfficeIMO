@@ -80,7 +80,7 @@ public sealed class EmailStorePstConversionOptions {
     public EmailSemanticComparisonOptions? VerificationOptions { get; }
     /// <summary>
     /// Optional path for an aggregate TSV manifest containing ordinals, statuses, keyed source/destination
-    /// fingerprints, an aggregate digest, and value-free difference paths. Message subjects, addresses, content,
+    /// fingerprints, an aggregate digest, and keyed difference-path tokens. Message subjects, addresses, content,
     /// filenames, and store identifiers are never written. Supply a keyed <see cref="VerificationOptions"/> policy
     /// to make the manifest reproducible; the default ephemeral key intentionally prevents cross-run correlation.
     /// </summary>

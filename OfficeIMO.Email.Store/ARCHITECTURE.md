@@ -82,7 +82,7 @@ it enumerates the source, maps its folder tree, streams selected attachments, an
 be represented. All message and typed-item property projection stays in `OfficeIMO.Email` and is shared with MSG.
 A same-directory staging destination is reopened for versioned semantic comparison before the final atomic commit.
 With fail-on-data-loss enabled, verification failures preserve any existing destination and manifest. Optional
-manifests contain only keyed digests, aggregate status, ordinals, and value-free difference paths.
+manifests contain only keyed digests, aggregate status, ordinals, and keyed HMAC difference-path tokens.
 
 `EmailStoreConverter.MergeToPst` reuses the same session and writer boundaries for multiple PST, OST, OLM, EMLX,
 and mailbox-directory sources. It owns folder mapping policy, a bounded on-disk semantic hash set, source-read

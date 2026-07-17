@@ -1,4 +1,5 @@
 using OfficeIMO.Email;
+using System.Globalization;
 
 namespace OfficeIMO.Email.Store.Tests;
 
@@ -218,6 +219,63 @@ public sealed class PstWriterTests {
             TryDelete(sourcePath);
             TryDelete(destinationPath);
             TryDelete(manifestPath);
+        }
+    }
+
+    [Fact]
+    public void Verification_manifest_replaces_difference_paths_with_repeatable_keyed_tokens() {
+        const string privateSource = "private-source-subject";
+        const string privateDestination = "private-destination-subject";
+        string firstPath = string.Concat(TemporaryPstPath(), ".first.tsv");
+        string secondPath = string.Concat(TemporaryPstPath(), ".second.tsv");
+        byte[] key = Enumerable.Range(1, 32).Select(value => checked((byte)value)).ToArray();
+        var options = new EmailSemanticComparisonOptions(digestKey: key);
+        EmailSemanticComparisonReport comparison = EmailSemanticComparer.Compare(
+            new EmailDocument { Subject = privateSource },
+            new EmailDocument { Subject = privateDestination }, options);
+        Assert.False(comparison.IsMatch);
+
+        try {
+            string WriteManifest(string path) {
+                using VerificationManifestWriter writer =
+                    VerificationManifestWriter.TryCreate(path, overwrite: false,
+                        semanticOptions: options)!;
+                writer.Write(0, associated: false, orphaned: false, "MISMATCH",
+                    comparison, comparison.Differences);
+                writer.Complete(attempted: 1, matched: 0, mismatched: 1, failed: 0);
+                return File.ReadAllText(path);
+            }
+
+            string first = WriteManifest(firstPath);
+            string second = WriteManifest(secondPath);
+
+            Assert.Equal(first, second);
+            Assert.Contains("officeimo_email_store_verification_v2", first, StringComparison.Ordinal);
+            Assert.Contains("difference_token_algorithm\tHMAC-SHA-256", first, StringComparison.Ordinal);
+            Assert.Contains("difference_count\tdifference_path_tokens", first, StringComparison.Ordinal);
+            Assert.DoesNotContain(privateSource, first, StringComparison.Ordinal);
+            Assert.DoesNotContain(privateDestination, first, StringComparison.Ordinal);
+            Assert.All(comparison.Differences, difference =>
+                Assert.DoesNotContain(difference.Path, first, StringComparison.Ordinal));
+
+            string itemLine = Assert.Single(first.Split('\n'), line =>
+                line.StartsWith("0\t", StringComparison.Ordinal));
+            string[] fields = itemLine.Split('\t');
+            Assert.Equal(8, fields.Length);
+            Assert.Equal(comparison.Differences.Count.ToString(CultureInfo.InvariantCulture), fields[6]);
+            Assert.All(fields[7].Split(','), token => {
+                string[] parts = token.Split(':');
+                Assert.Equal(2, parts.Length);
+                Assert.True(int.TryParse(parts[0], NumberStyles.None,
+                    CultureInfo.InvariantCulture, out int kind));
+                Assert.True(Enum.IsDefined(typeof(EmailSemanticDifferenceKind), kind));
+                Assert.Equal(64, parts[1].Length);
+                Assert.All(parts[1], character => Assert.True(Uri.IsHexDigit(character)));
+            });
+        } finally {
+            TryDelete(firstPath);
+            TryDelete(secondPath);
+            Array.Clear(key, 0, key.Length);
         }
     }
 
