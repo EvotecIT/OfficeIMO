@@ -106,6 +106,15 @@ public sealed class ContentLineCodecTests {
     }
 
     [Fact]
+    public void ReaderRejectsNestingLimitsBeyondTheTraversableModelDepth() {
+        ContentLineReaderOptions supported = new ContentLineReaderOptions(maxNestingDepth: 256);
+
+        Assert.Equal(256, supported.MaxNestingDepth);
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            new ContentLineReaderOptions(maxNestingDepth: 257));
+    }
+
+    [Fact]
     public void LegacyQuotedParameterEscapesDoNotSplitEmbeddedCommaOrQuote() {
         const string source = "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Test//EN\r\n" +
             "BEGIN:VEVENT\r\nATTENDEE;CN=\"Doe, \\\"John\\\"\";X-PATH=\"C:\\Temp\":mailto:john@example.com\r\n" +

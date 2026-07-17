@@ -148,6 +148,26 @@ public sealed class VCardDocumentTests {
     }
 
     [Fact]
+    public void LegacyQuotedPrintableFoldingDoesNotTurnEncodedEqualsIntoASoftBreak() {
+        const string header = "FN;CHARSET=UTF-8;ENCODING=QUOTED-PRINTABLE:";
+        int prefixLength = 75 - Encoding.UTF8.GetByteCount(header) - 1;
+        string expected = new string('A', prefixLength) + "=C3=A9";
+        var document = new VCardDocument();
+        ContentLineComponent card = document.Cards.Single();
+        VCardDocument.SetVersion(card, VCardVersion.V2_1);
+        card.AddProperty("FN", expected)
+            .SetParameter("CHARSET", "UTF-8")
+            .SetParameter("ENCODING", "QUOTED-PRINTABLE");
+
+        string serialized = document.Serialize();
+        string actual = VCardDocument.Parse(serialized).Cards.Single().GetFirstProperty("FN")!.Value;
+
+        Assert.DoesNotContain("=\r\n ", serialized, StringComparison.Ordinal);
+        Assert.Contains("\r\n =C3", serialized, StringComparison.Ordinal);
+        Assert.Equal(expected, actual);
+    }
+
+    [Fact]
     public void ParameterEncodingIsVersionAwareAcrossLegacyAndV4Cards() {
         const string source = "BEGIN:VCARD\r\nVERSION:3.0\r\n" +
             "FN;X-LITERAL=alpha^nbeta:Legacy\r\nEND:VCARD\r\n" +

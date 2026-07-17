@@ -13,7 +13,8 @@ public sealed class ContentLineReaderOptions {
         if (maxUnfoldedLineBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maxUnfoldedLineBytes));
         if (maxComponents <= 0) throw new ArgumentOutOfRangeException(nameof(maxComponents));
         if (maxProperties <= 0) throw new ArgumentOutOfRangeException(nameof(maxProperties));
-        if (maxNestingDepth <= 0) throw new ArgumentOutOfRangeException(nameof(maxNestingDepth));
+        if (maxNestingDepth <= 0 || maxNestingDepth > ContentLineComponent.MaximumTraversalDepth)
+            throw new ArgumentOutOfRangeException(nameof(maxNestingDepth));
         MaxInputBytes = maxInputBytes;
         MaxUnfoldedLineBytes = maxUnfoldedLineBytes;
         MaxComponents = maxComponents;
@@ -30,7 +31,7 @@ public sealed class ContentLineReaderOptions {
     public int MaxComponents { get; }
     /// <summary>Maximum properties accepted across the document.</summary>
     public int MaxProperties { get; }
-    /// <summary>Maximum component nesting depth.</summary>
+    /// <summary>Maximum component nesting depth, up to the model traversal limit of 256.</summary>
     public int MaxNestingDepth { get; }
     /// <summary>Encoding used to decode the source. UTF-8 without replacement fallback is the default.</summary>
     public Encoding Encoding { get; }

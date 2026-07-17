@@ -117,6 +117,65 @@ public sealed class IcsDocumentTests {
     }
 
     [Fact]
+    public void ValidationChecksEveryRepeatedTimeZoneParameter() {
+        var document = new IcsDocument();
+        ContentLineComponent calendar = document.Calendars.Single();
+        ContentLineComponent timeZone = calendar.AddComponent("VTIMEZONE");
+        timeZone.AddProperty("TZID", "Europe/Warsaw");
+        ContentLineComponent appointment = calendar.AddComponent("VEVENT");
+        appointment.AddProperty("UID", "timezones@example.test");
+        appointment.AddProperty("DTSTAMP", "20260717T090000Z");
+        ContentLineProperty start = appointment.AddProperty("DTSTART", "20260717T090000");
+        start.Parameters.Add(new ContentLineParameter("TZID", "Europe/Warsaw"));
+        start.Parameters.Add(new ContentLineParameter("TZID", "Missing/Zone"));
+
+        ContentLineValidationIssue issue = Assert.Single(document.Validate(), finding =>
+            finding.Code == "ICAL_TIMEZONE_DEFINITION_MISSING");
+
+        Assert.Contains("Missing/Zone", issue.Message, StringComparison.Ordinal);
+        Assert.Contains(document.Validate(), finding =>
+            finding.Code == "ICAL_PARAMETER_CARDINALITY" && finding.PropertyName == "DTSTART");
+    }
+
+    [Theory]
+    [InlineData("RDATE", "not-a-date", null)]
+    [InlineData("RDATE", "20260717T090000Z,not-a-date", null)]
+    [InlineData("EXDATE", "20260717T25AA00", null)]
+    [InlineData("EXDATE", "20260717T090000Z/PT1H", "PERIOD")]
+    [InlineData("RDATE", "20260717T090000Z/-PT1H", "PERIOD")]
+    [InlineData("RDATE", "20260717T090000Z/P1Y", "PERIOD")]
+    [InlineData("RDATE", "20260717T100000Z/20260717T090000Z", "PERIOD")]
+    public void ValidationRejectsInvalidRecurrenceDateLists(
+        string propertyName, string value, string? valueType) {
+        var document = new IcsDocument();
+        ContentLineComponent appointment = document.Calendars.Single().AddComponent("VEVENT");
+        ContentLineProperty property = appointment.AddProperty(propertyName, value);
+        if (valueType != null) property.SetParameter("VALUE", valueType);
+
+        Assert.Contains(document.Validate(), finding =>
+            finding.Code == "ICAL_TEMPORAL_VALUE_INVALID" &&
+            finding.PropertyName == propertyName);
+    }
+
+    [Fact]
+    public void ValidationAcceptsDateTimeDateAndPeriodRecurrenceLists() {
+        var document = new IcsDocument();
+        ContentLineComponent appointment = document.Calendars.Single().AddComponent("VEVENT");
+        appointment.AddProperty("RDATE", "20260717T090000Z,20260718T090000Z");
+        appointment.AddProperty("EXDATE", "20260719,20260720").SetParameter("VALUE", "DATE");
+        appointment.AddProperty("RDATE", "20260721T090000Z/PT1H," +
+                "20260722T090000Z/20260722T100000Z," +
+                "20260723T090000Z/+PT30M," +
+                "20260724T090000Z/P1D," +
+                "20260725T090000Z/P1W," +
+                "20260726T090000Z/PT1H30M30S")
+            .SetParameter("VALUE", "PERIOD");
+
+        Assert.DoesNotContain(document.Validate(), finding =>
+            finding.Code == "ICAL_TEMPORAL_VALUE_INVALID");
+    }
+
+    [Fact]
     public void TemporalParserRejectsConflictingValueAndTimeZoneParameters() {
         var date = new ContentLineProperty("DTSTART", "20260717");
         date.SetParameter("VALUE", "DATE").SetParameter("TZID", "Europe/Warsaw");

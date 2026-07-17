@@ -123,8 +123,11 @@ public sealed partial class IcsDocument {
 
             foreach (string temporalName in new[] { "DTSTART", "DTEND", "DUE", "RECURRENCE-ID", "RDATE", "EXDATE" }) {
                 foreach (ContentLineProperty property in component.GetProperties(temporalName)) {
-                    if (temporalName == "RDATE" || temporalName == "EXDATE") continue;
-                    if (!IcsTemporalValue.TryParse(property, out _))
+                    bool valid = temporalName == "RDATE" || temporalName == "EXDATE"
+                        ? ValidateRecurrenceDateValues(property,
+                            allowPeriod: temporalName == "RDATE")
+                        : IcsTemporalValue.TryParse(property, out _);
+                    if (!valid)
                         issues.Add(Issue("ICAL_TEMPORAL_VALUE_INVALID", "The temporal property value is invalid.",
                             ContentLineValidationSeverity.Error, component, property));
                 }
@@ -142,12 +145,20 @@ public sealed partial class IcsDocument {
         if (depth > ContentLineComponent.MaximumTraversalDepth || !active.Add(component)) return;
         try {
             foreach (ContentLineProperty property in component.Properties) {
-                ContentLineParameter? timeZone = property.GetParameter("TZID");
-                foreach (string timeZoneId in timeZone?.Values ?? Array.Empty<string>()) {
-                    if (!definedTimeZones.Contains(timeZoneId))
-                        issues.Add(Issue("ICAL_TIMEZONE_DEFINITION_MISSING",
-                            "TZID '" + timeZoneId + "' has no matching VTIMEZONE definition in this VCALENDAR.",
-                            ContentLineValidationSeverity.Warning, component, property));
+                ContentLineParameter[] timeZones = property.Parameters.Where(parameter =>
+                    string.Equals(parameter.Name, "TZID", StringComparison.OrdinalIgnoreCase)).ToArray();
+                if (timeZones.Length > 1 || timeZones.Any(parameter => parameter.Values.Count != 1)) {
+                    issues.Add(Issue("ICAL_PARAMETER_CARDINALITY",
+                        "TZID must not occur more than once on one property.",
+                        ContentLineValidationSeverity.Error, component, property));
+                }
+                foreach (ContentLineParameter timeZone in timeZones) {
+                    foreach (string timeZoneId in timeZone.Values) {
+                        if (!definedTimeZones.Contains(timeZoneId))
+                            issues.Add(Issue("ICAL_TIMEZONE_DEFINITION_MISSING",
+                                "TZID '" + timeZoneId + "' has no matching VTIMEZONE definition in this VCALENDAR.",
+                                ContentLineValidationSeverity.Warning, component, property));
+                    }
                 }
             }
             foreach (ContentLineComponent child in component.Components)
@@ -155,6 +166,102 @@ public sealed partial class IcsDocument {
         } finally {
             active.Remove(component);
         }
+    }
+
+    private static bool ValidateRecurrenceDateValues(ContentLineProperty property, bool allowPeriod) {
+        ContentLineParameter[] valueParameters = property.Parameters.Where(parameter =>
+            string.Equals(parameter.Name, "VALUE", StringComparison.OrdinalIgnoreCase)).ToArray();
+        if (valueParameters.Length > 1 || valueParameters.Any(parameter => parameter.Values.Count != 1))
+            return false;
+        string? valueType = valueParameters.FirstOrDefault()?.Values[0];
+        bool isPeriod = string.Equals(valueType, "PERIOD", StringComparison.OrdinalIgnoreCase);
+        if (isPeriod && !allowPeriod) return false;
+        string[] values = property.Value.Split(',');
+        if (values.Length == 0) return false;
+        foreach (string value in values) {
+            if (value.Length == 0) return false;
+            if (isPeriod) {
+                if (!ValidatePeriodValue(property, value)) return false;
+                continue;
+            }
+            var candidate = new ContentLineProperty(property.Name, value);
+            foreach (ContentLineParameter parameter in property.Parameters)
+                candidate.Parameters.Add(parameter);
+            if (!IcsTemporalValue.TryParse(candidate, out _)) return false;
+        }
+        return true;
+    }
+
+    private static bool ValidatePeriodValue(ContentLineProperty property, string value) {
+        int separator = value.IndexOf('/');
+        if (separator <= 0 || separator != value.LastIndexOf('/') || separator == value.Length - 1)
+            return false;
+        string startText = value.Substring(0, separator);
+        string endText = value.Substring(separator + 1);
+        var startProperty = CreatePeriodDateTimeProperty(property, startText);
+        if (!IcsTemporalValue.TryParse(startProperty, out IcsTemporalValue start) ||
+            start.Kind == IcsTemporalValueKind.Date) return false;
+        if (endText[0] == 'P' || endText.StartsWith("+P", StringComparison.Ordinal))
+            return ValidatePositiveDuration(endText);
+        var endProperty = CreatePeriodDateTimeProperty(property, endText);
+        return IcsTemporalValue.TryParse(endProperty, out IcsTemporalValue end) &&
+            end.Kind != IcsTemporalValueKind.Date && end.Kind == start.Kind &&
+            string.Equals(end.TimeZoneId, start.TimeZoneId, StringComparison.Ordinal) &&
+            end.Value > start.Value;
+    }
+
+    private static ContentLineProperty CreatePeriodDateTimeProperty(
+        ContentLineProperty source, string value) {
+        var result = new ContentLineProperty(source.Name, value);
+        foreach (ContentLineParameter parameter in source.Parameters) {
+            if (!string.Equals(parameter.Name, "VALUE", StringComparison.OrdinalIgnoreCase))
+                result.Parameters.Add(parameter);
+        }
+        return result;
+    }
+
+    private static bool ValidatePositiveDuration(string value) {
+        if (value.Length < 3) return false;
+        int index = value[0] == '+' ? 1 : 0;
+        if (index >= value.Length || value[index++] != 'P') return false;
+        bool nonZero = false;
+        bool hasLeadingNumber = ReadDurationNumber(value, ref index, ref nonZero);
+        if (hasLeadingNumber && index < value.Length && value[index] == 'W')
+            return index + 1 == value.Length && nonZero;
+        bool hasDays = false;
+        if (hasLeadingNumber) {
+            if (index >= value.Length || value[index] != 'D') return false;
+            index++;
+            hasDays = true;
+        }
+        if (index == value.Length) return hasDays && nonZero;
+        if (value[index] != 'T' || ++index == value.Length) return false;
+        if (!ReadDurationNumber(value, ref index, ref nonZero) || index >= value.Length) return false;
+        char designator = value[index++];
+        if (designator == 'H') {
+            if (index < value.Length) {
+                if (!ReadDurationNumber(value, ref index, ref nonZero) || index >= value.Length) return false;
+                designator = value[index++];
+                if (designator != 'M') return false;
+                if (index < value.Length) {
+                    if (!ReadDurationNumber(value, ref index, ref nonZero) || index >= value.Length ||
+                        value[index++] != 'S') return false;
+                }
+            }
+        } else if (designator == 'M') {
+            if (index < value.Length && (!ReadDurationNumber(value, ref index, ref nonZero) ||
+                index >= value.Length || value[index++] != 'S')) return false;
+        } else if (designator != 'S') return false;
+        return index == value.Length && nonZero;
+    }
+
+    private static bool ReadDurationNumber(string value, ref int index, ref bool nonZero) {
+        int start = index;
+        while (index < value.Length && value[index] >= '0' && value[index] <= '9') {
+            if (value[index] != '0') nonZero = true;
+            index++;
+        }
+        return index > start;
     }
 
     private static void ValidateSingle(ContentLineComponent component, string propertyName, bool required,

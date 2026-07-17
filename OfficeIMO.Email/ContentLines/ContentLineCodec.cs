@@ -176,7 +176,8 @@ internal static class ContentLineCodec {
             string name = ContentLineSyntax.RequireToken(component.Name, nameof(component.Name));
             AppendFolded(output, new[] { "BEGIN:", name }, options, ref outputBytes);
             foreach (ContentLineProperty property in component.Properties)
-                AppendFolded(output, GetPropertyParts(property, parameterEncoding), options, ref outputBytes);
+                AppendFolded(output, GetPropertyParts(property, parameterEncoding), options, ref outputBytes,
+                    avoidQuotedPrintableSoftBreak: IsQuotedPrintableProperty(property));
             foreach (ContentLineComponent child in component.Components)
                 WriteComponent(output, child, options, parameterEncoding, depth + 1, active, ref outputBytes);
             AppendFolded(output, new[] { "END:", name }, options, ref outputBytes);
@@ -208,7 +209,8 @@ internal static class ContentLineCodec {
     }
 
     private static void AppendFolded(StringBuilder output, IEnumerable<string> parts,
-        ContentLineWriterOptions options, ref long outputBytes) {
+        ContentLineWriterOptions options, ref long outputBytes,
+        bool avoidQuotedPrintableSoftBreak = false) {
         var current = new StringBuilder();
         int octets = 0;
         int newlineBytes = options.Encoding.GetByteCount("\r\n");
@@ -220,12 +222,24 @@ internal static class ContentLineCodec {
                 string character = part.Substring(index, length);
                 int bytes = options.Encoding.GetByteCount(character);
                 if (current.Length > 0 && octets + bytes > options.FoldAtOctets) {
+                    bool moveEqualsToContinuation = avoidQuotedPrintableSoftBreak &&
+                        current[current.Length - 1] == '=';
+                    int equalsBytes = 0;
+                    if (moveEqualsToContinuation) {
+                        equalsBytes = options.Encoding.GetByteCount("=");
+                        current.Length--;
+                        octets -= equalsBytes;
+                    }
                     EnsureOutputLimit(outputBytes + octets + newlineBytes, options);
                     output.Append(current).Append("\r\n");
                     outputBytes += octets + newlineBytes;
                     current.Clear();
                     current.Append(' ');
                     octets = options.Encoding.GetByteCount(" ");
+                    if (moveEqualsToContinuation) {
+                        current.Append('=');
+                        octets += equalsBytes;
+                    }
                 }
                 EnsureOutputLimit(outputBytes + octets + bytes + newlineBytes, options);
                 current.Append(character);
@@ -237,6 +251,13 @@ internal static class ContentLineCodec {
         output.Append(current).Append("\r\n");
         outputBytes += octets + newlineBytes;
     }
+
+    private static bool IsQuotedPrintableProperty(ContentLineProperty property) =>
+        property.Parameters.Where(parameter => string.Equals(
+                parameter.Name, "ENCODING", StringComparison.OrdinalIgnoreCase))
+            .SelectMany(parameter => parameter.Values)
+            .Any(value => string.Equals(value, "QUOTED-PRINTABLE", StringComparison.OrdinalIgnoreCase) ||
+                          string.Equals(value, "QP", StringComparison.OrdinalIgnoreCase));
 
     private static void EnsureOutputLimit(long projectedBytes, ContentLineWriterOptions options) {
         if (projectedBytes > options.MaxOutputBytes)
