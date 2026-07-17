@@ -70,6 +70,31 @@ public class DrawingInkTests {
     }
 
     [Fact]
+    public void InkTipDimensionsUseCanvasAlignedBoundsForRotationAndShear() {
+        var rotated = new OfficeInkStroke {
+            Width = 4,
+            Height = 6,
+            Transform = OfficeTransform.RotateDegrees(90)
+        };
+        var shearedRectangle = new OfficeInkStroke {
+            Width = 4,
+            Height = 6,
+            TipShape = OfficeInkTipShape.Rectangle,
+            Transform = new OfficeTransform(1, 0, 0.5, 1, 0, 0)
+        };
+        var shearedEllipse = new OfficeInkStroke {
+            Width = 4,
+            Height = 6,
+            Transform = new OfficeTransform(1, 0, 0.5, 1, 0, 0)
+        };
+
+        Assert.Equal((6D, 4D), rotated.GetTransformedTipDimensions());
+        Assert.Equal((7D, 6D), shearedRectangle.GetTransformedTipDimensions());
+        Assert.Equal(Math.Sqrt(25D), shearedEllipse.GetTransformedTipDimensions().Width, 6);
+        Assert.Equal(6D, shearedEllipse.GetTransformedTipDimensions().Height, 6);
+    }
+
+    [Fact]
     public void InkRendererProjectsPressureAndHighlighterOpacityIntoDrawingScene() {
         var stroke = new OfficeInkStroke {
             Color = OfficeColor.Yellow,
@@ -95,19 +120,31 @@ public class DrawingInkTests {
         var drawing = OfficeInkRenderer.Render(new OfficeInkDocument().Add(stroke), 100, 40);
 
         Assert.Equal(2, drawing.Shapes.Count);
-        Assert.Equal(0, drawing.Shapes[0].X, 6);
-        Assert.Equal(20, drawing.Shapes[0].Shape.Width, 6);
+        Assert.True(drawing.Shapes[0].X < 0D);
+        Assert.Equal(20, drawing.Shapes[0].X + drawing.Shapes[0].Shape.Width, 6);
         Assert.Equal(20, drawing.Shapes[1].X, 6);
-        Assert.Equal(80, drawing.Shapes[1].Shape.Width, 6);
+        Assert.True(drawing.Shapes[1].X + drawing.Shapes[1].Shape.Width > drawing.Width);
     }
 
     [Fact]
-    public void InkRendererSkipsSegmentsThatClipToOneBoundaryPoint() {
+    public void InkRendererKeepsSegmentsWhosePaintedBoundsOverlapTheCanvas() {
         var stroke = new OfficeInkStroke().AddPoint(-10, -10).AddPoint(0, 0);
 
         OfficeDrawing drawing = OfficeInkRenderer.Render(new OfficeInkDocument().Add(stroke), 100, 40);
 
-        Assert.Empty(drawing.Shapes);
+        Assert.Single(drawing.Shapes);
+    }
+
+    [Fact]
+    public void InkRendererKeepsThickSegmentsAndDotsWithCentersOutsideTheCanvas() {
+        var segment = new OfficeInkStroke { Width = 8, Height = 8 }.AddPoint(10, -1).AddPoint(90, -1);
+        var dot = new OfficeInkStroke { Width = 8, Height = 8 }.AddPoint(-1, 20);
+
+        OfficeDrawing segmentDrawing = OfficeInkRenderer.Render(new OfficeInkDocument().Add(segment), 100, 40);
+        OfficeDrawing dotDrawing = OfficeInkRenderer.Render(new OfficeInkDocument().Add(dot), 100, 40);
+
+        Assert.Equal(-1, Assert.Single(segmentDrawing.Shapes).Y, 6);
+        Assert.Equal(-5, Assert.Single(dotDrawing.Shapes).X, 6);
     }
 
     [Fact]

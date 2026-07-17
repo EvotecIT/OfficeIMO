@@ -277,15 +277,22 @@ public sealed class OfficeInkStroke {
     }
 
     /// <summary>
-    /// Returns the pen-tip width and height after applying the linear axes of the optional affine transform.
-    /// Translation does not affect the returned dimensions.
+    /// Returns the axis-aligned pen-tip width and height after applying the linear portion of the optional affine transform.
+    /// Translation does not affect the returned dimensions. Elliptical and rectangular tips retain their distinct geometry.
     /// </summary>
     public (double Width, double Height) GetTransformedTipDimensions() {
         ValidateStyle();
         OfficeTransform transform = Transform ?? OfficeTransform.Identity;
-        double widthScale = TransformAxisScale(transform.M11, transform.M12);
-        double heightScale = TransformAxisScale(transform.M21, transform.M22);
-        return (Width * widthScale, Height * heightScale);
+        double transformedWidth;
+        double transformedHeight;
+        if (TipShape == OfficeInkTipShape.Rectangle) {
+            transformedWidth = Math.Abs(transform.M11) * Width + Math.Abs(transform.M21) * Height;
+            transformedHeight = Math.Abs(transform.M12) * Width + Math.Abs(transform.M22) * Height;
+        } else {
+            transformedWidth = Math.Sqrt(transform.M11 * transform.M11 * Width * Width + transform.M21 * transform.M21 * Height * Height);
+            transformedHeight = Math.Sqrt(transform.M12 * transform.M12 * Width * Width + transform.M22 * transform.M22 * Height * Height);
+        }
+        return (Math.Max(0.000001D, transformedWidth), Math.Max(0.000001D, transformedHeight));
     }
 
     /// <summary>Creates a detached copy of this stroke.</summary>
@@ -314,8 +321,6 @@ public sealed class OfficeInkStroke {
         if (double.IsNaN(Opacity) || double.IsInfinity(Opacity) || Opacity < 0D || Opacity > 1D) throw new InvalidOperationException("Ink stroke opacity must be from 0 through 1.");
     }
 
-    private static double TransformAxisScale(double x, double y) =>
-        Math.Max(0.000001D, Math.Sqrt(x * x + y * y));
 }
 
 /// <summary>A reusable collection of ink strokes in one canvas coordinate system.</summary>

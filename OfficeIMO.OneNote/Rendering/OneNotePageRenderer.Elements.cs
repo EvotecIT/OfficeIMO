@@ -106,8 +106,16 @@ public static partial class OneNotePageRenderer {
                 double cursorX = x + visualLine.Indent + alignmentOffset;
                 foreach (InlineMathItem item in visualLine.Items) {
                     if (item.Expression != null && item.MathOptions != null) {
-                        if (cursorY + item.Height <= _drawing.Height && cursorX + item.Width <= _drawing.Width) {
+                        double inlineRight = Math.Min(_drawing.Width, x + width);
+                        if (cursorY + item.Height <= _drawing.Height && cursorX + item.Width <= inlineRight) {
                             OfficeMathRenderer.AddToDrawing(_drawing, item.Expression, cursorX, cursorY, item.MathOptions);
+                        } else {
+                            AddDiagnostic("ONENOTE_RENDER_MATH_CLIPPED", "A mathematical expression exceeded the page canvas and was rendered as readable text.", item.Expression.ToPlainText());
+                            double fallbackWidth = Math.Min(inlineRight - cursorX, _drawing.Width - cursorX);
+                            double fallbackHeight = Math.Min(item.Height, _drawing.Height - cursorY);
+                            if (fallbackWidth > 0D && fallbackHeight > 0D) {
+                                RenderPlainMath(item.Expression, cursorX, cursorY, fallbackWidth, fallbackHeight, item.MathOptions.Font, item.MathOptions.Color);
+                            }
                         }
                     } else if (item.Text.Length > 0) {
                         double drawableWidth = Math.Max(1D, Math.Min(item.Width, _drawing.Width - cursorX));
@@ -175,7 +183,7 @@ public static partial class OneNotePageRenderer {
         internal double MeasureElementHeight(OneNoteElement element, double width) {
             if (element.Layout?.Height.HasValue == true) return Math.Max(1D, element.Layout.Height.Value * PointsPerHalfInch);
             if (element is OneNoteParagraph paragraph) return MeasureParagraphHeight(paragraph, width);
-            if (element is OneNoteOutline outline) return MeasureElementsHeight(outline.Children, width);
+            if (element is OneNoteOutline outline) return MeasureElementsBounds(outline.Children, width).Bottom;
             if (element is OneNoteTable table) return MeasureTableHeight(table, width);
             if (element is OneNoteImage image) {
                 if (image.HeightHalfInches.HasValue) return Math.Max(1D, image.HeightHalfInches.Value * PointsPerHalfInch);
@@ -197,17 +205,37 @@ public static partial class OneNotePageRenderer {
         }
 
         internal double MeasureElementsHeight(IEnumerable<OneNoteElement> elements, double width) {
-            double height = 0D;
+            return MeasureElementsBounds(elements, width).Bottom;
+        }
+
+        internal (double Right, double Bottom) MeasureElementsBounds(IEnumerable<OneNoteElement> elements, double width) {
+            double right = 0D;
+            double bottom = 0D;
+            double cursor = 0D;
             double pendingSpace = 0D;
             foreach (OneNoteElement element in elements) {
-                height += Math.Max(pendingSpace, ParagraphSpaceBefore(element));
+                bool participatesInFlow = element.Layout?.Y.HasValue != true;
+                double elementX = element.Layout?.X.HasValue == true ? element.Layout.X.Value * PointsPerHalfInch : 0D;
+                double elementY = element.Layout?.Y.HasValue == true
+                    ? element.Layout.Y.Value * PointsPerHalfInch
+                    : cursor + Math.Max(pendingSpace, ParagraphSpaceBefore(element));
+                double remainingWidth = Math.Max(1D, width - Math.Max(0D, elementX));
                 double elementWidth = element.Layout?.Width.HasValue == true
-                    ? Math.Min(width, element.Layout.Width.Value * PointsPerHalfInch)
-                    : width;
-                height += MeasureElementHeight(element, Math.Max(1D, elementWidth));
-                pendingSpace = element is OneNoteParagraph ? ParagraphSpaceAfter(element) : 6D;
+                    ? Math.Max(1D, element.Layout.Width.Value * PointsPerHalfInch)
+                    : remainingWidth;
+                double elementHeight = MeasureElementHeight(element, elementWidth);
+                double extentWidth = elementWidth;
+                if (element is OneNoteOutline outline && element.Layout?.Width.HasValue != true) {
+                    extentWidth = Math.Max(extentWidth, MeasureElementsBounds(outline.Children, elementWidth).Right);
+                }
+                right = Math.Max(right, elementX + extentWidth);
+                bottom = Math.Max(bottom, elementY + elementHeight);
+                if (participatesInFlow) {
+                    cursor = Math.Max(cursor, elementY + elementHeight);
+                    pendingSpace = element is OneNoteParagraph ? ParagraphSpaceAfter(element) : 6D;
+                }
             }
-            return Math.Max(DefaultParagraphHeight, height + pendingSpace);
+            return (Math.Max(1D, right), Math.Max(DefaultParagraphHeight, Math.Max(bottom, cursor + pendingSpace)));
         }
 
         private double MeasureParagraphHeight(OneNoteParagraph paragraph, double width) {
@@ -475,11 +503,19 @@ public static partial class OneNotePageRenderer {
             return Math.Max(DefaultParagraphHeight, metrics.Height);
         }
 
-        private double RenderPlainMath(OfficeMathExpression expression, double x, double y, double availableWidth, double availableHeight) {
+        private double RenderPlainMath(
+            OfficeMathExpression expression,
+            double x,
+            double y,
+            double availableWidth,
+            double availableHeight,
+            OfficeFontInfo? font = null,
+            OfficeColor? color = null) {
+            if (x >= _drawing.Width || y >= _drawing.Height || availableWidth <= 0D) return 0D;
             double height = Math.Min(24D, Math.Max(1D, _drawing.Height - y));
             if (availableHeight > 0D) height = Math.Min(height, availableHeight);
             double width = Math.Max(1D, Math.Min(availableWidth, _drawing.Width - x));
-            _drawing.AddText(expression.ToPlainText(), x, y, width, height, _options.Math.Font, _options.Math.Color, wrapText: false);
+            _drawing.AddText(expression.ToPlainText(), x, y, width, height, font ?? _options.Math.Font, color ?? _options.Math.Color, wrapText: false);
             return height;
         }
 

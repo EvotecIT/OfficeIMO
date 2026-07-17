@@ -271,7 +271,7 @@ public static class OfficeMathMarkup {
         }
         if (both) return OfficeMath.SubSuperscript(basis, first, ParseRequired(children, 2, source.Name.LocalName));
         bool accent = string.Equals((string?)source.Attribute(over ? "accent" : "accentunder"), "true", StringComparison.OrdinalIgnoreCase);
-        if (accent && first.ToPlainText() == "¯") return over ? OfficeMath.Overbar(basis) : OfficeMath.Underbar(basis);
+        if (accent && first.ToPlainText() == (over ? "¯" : "_")) return over ? OfficeMath.Overbar(basis) : OfficeMath.Underbar(basis);
         if (accent && over) return OfficeMath.Accent(basis, first.ToPlainText());
         return over ? OfficeMath.UpperLimit(basis, first) : OfficeMath.LowerLimit(basis, first);
     }
@@ -325,7 +325,7 @@ public static class OfficeMathMarkup {
 
     private static void AppendLatex(StringBuilder builder, OfficeMathExpression expression) {
         switch (expression.Kind) {
-            case OfficeMathKind.Text: builder.Append(EscapeLatexText(expression.Text ?? string.Empty)); break;
+            case OfficeMathKind.Text: builder.Append("\\text{").Append(EscapeLatexText(expression.Text ?? string.Empty)).Append('}'); break;
             case OfficeMathKind.Identifier:
             case OfficeMathKind.Number: builder.Append(expression.Text); break;
             case OfficeMathKind.Operator: builder.Append(SymbolToLatex(expression.Text)); break;
@@ -419,7 +419,7 @@ public static class OfficeMathMarkup {
         if (group) builder.Append('}');
     }
 
-    private static string EscapeLatexText(string text) => text.Replace("\\", "\\backslash ").Replace("{", "\\{").Replace("}", "\\}").Replace("#", "\\#").Replace("%", "\\%").Replace("&", "\\&");
+    private static string EscapeLatexText(string text) => text.Replace("\\", "\\backslash ").Replace("{", "\\{").Replace("}", "\\}").Replace("#", "\\#").Replace("%", "\\%").Replace("&", "\\&").Replace("_", "\\_").Replace("^", "\\^");
 
     private static string SymbolToLatex(string? symbol) {
         switch (symbol) {
@@ -481,7 +481,9 @@ public static class OfficeMathMarkup {
                     OfficeMathExpression atom = ParseAtom();
                     OfficeMathExpression? subscript = null;
                     OfficeMathExpression? superscript = null;
-                    while (_position < _text.Length && (_text[_position] == '_' || _text[_position] == '^')) {
+                    while (true) {
+                        SkipWhitespace();
+                        if (_position >= _text.Length || (_text[_position] != '_' && _text[_position] != '^')) break;
                         char marker = _text[_position++];
                         OfficeMathExpression script = ParseScript();
                         if (marker == '_') subscript = script; else superscript = script;
@@ -534,6 +536,15 @@ public static class OfficeMathMarkup {
                 case "underline": return OfficeMath.Underbar(ParseRequiredGroup());
                 case "boxed": return OfficeMath.Box(ParseRequiredGroup());
                 case "phantom": return OfficeMath.Phantom(ParseRequiredGroup());
+                case "text": return ParseTextGroup();
+                case "backslash": return OfficeMath.Text("\\");
+                case "_":
+                case "^":
+                case "{":
+                case "}":
+                case "#":
+                case "%":
+                case "&": return OfficeMath.Text(command);
                 case "prescript":
                     OfficeMathExpression leftSup = ParseRequiredGroup();
                     OfficeMathExpression leftSub = ParseRequiredGroup();
@@ -721,6 +732,43 @@ public static class OfficeMathMarkup {
             OfficeMathExpression expression = ParseSequence('}');
             Require('}');
             return expression;
+        }
+
+        private OfficeMathExpression ParseTextGroup() {
+            SkipWhitespace();
+            Require('{');
+            var builder = new StringBuilder();
+            int nestedBraces = 0;
+            while (_position < _text.Length) {
+                char value = _text[_position++];
+                if (value == '{') {
+                    nestedBraces++;
+                    builder.Append(value);
+                    continue;
+                }
+                if (value == '}') {
+                    if (nestedBraces == 0) return OfficeMath.Text(builder.ToString());
+                    nestedBraces--;
+                    builder.Append(value);
+                    continue;
+                }
+                if (value != '\\') {
+                    builder.Append(value);
+                    continue;
+                }
+
+                string escaped = ReadCommandName();
+                if (escaped == "backslash") {
+                    builder.Append('\\');
+                    if (_position < _text.Length && char.IsWhiteSpace(_text[_position])) _position++;
+                } else if (escaped == "_" || escaped == "^" || escaped == "{" || escaped == "}" ||
+                    escaped == "#" || escaped == "%" || escaped == "&") {
+                    builder.Append(escaped);
+                } else {
+                    builder.Append('\\').Append(escaped);
+                }
+            }
+            throw Error("A text group is missing a closing brace.");
         }
 
         private string ReadCommandName() {

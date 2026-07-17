@@ -120,13 +120,14 @@ public static class OfficeInkRenderer {
             double x2 = to.X;
             double y2 = to.Y;
             if (x1.Equals(x2) && y1.Equals(y2)) continue;
-            if (!TryClipLine(0D, 0D, drawing.Width, drawing.Height, ref x1, ref y1, ref x2, ref y2)) continue;
-            if (x1.Equals(x2) && y1.Equals(y2)) continue;
-
             double pressure = options.UsePressure && !stroke.IgnorePressure
                 ? ResolvePressure(from.Pressure, to.Pressure, options.MinimumPressureFactor)
                 : 1D;
             double thickness = Math.Max(0.01D, ((transformedTipWidth + transformedTipHeight) / 2D) * pressure);
+            double radius = thickness / 2D;
+            if (!TryClipLine(-radius, -radius, drawing.Width + radius, drawing.Height + radius, ref x1, ref y1, ref x2, ref y2)) continue;
+            if (x1.Equals(x2) && y1.Equals(y2)) continue;
+
             OfficeShape shape = OfficeShape.Line(x1, y1, x2, y2);
             shape.StrokeColor = renderColor;
             shape.StrokeWidth = thickness;
@@ -135,7 +136,10 @@ public static class OfficeInkRenderer {
                 ? OfficeStrokeLineCap.Square
                 : OfficeStrokeLineCap.Round;
             shape.StrokeLineJoin = OfficeStrokeLineJoin.Round;
-            drawing.AddShape(shape, Math.Min(x1, x2), Math.Min(y1, y2));
+            bool exceedsCanvas = Math.Min(x1, x2) < 0D || Math.Min(y1, y2) < 0D ||
+                Math.Max(x1, x2) > drawing.Width || Math.Max(y1, y2) > drawing.Height;
+            if (exceedsCanvas) drawing.AddShapeForClippedRendering(shape, Math.Min(x1, x2), Math.Min(y1, y2));
+            else drawing.AddShape(shape, Math.Min(x1, x2), Math.Min(y1, y2));
         }
     }
 
@@ -148,24 +152,25 @@ public static class OfficeInkRenderer {
         double transformedTipHeight,
         double opacity,
         OfficeInkRenderOptions options) {
-        if (point.X < 0D || point.Y < 0D || point.X > drawing.Width || point.Y > drawing.Height) return;
         double pressure = options.UsePressure && !stroke.IgnorePressure
             ? ResolvePressure(point.Pressure, point.Pressure, options.MinimumPressureFactor)
             : 1D;
         double width = Math.Max(0.01D, transformedTipWidth * pressure);
         double height = Math.Max(0.01D, transformedTipHeight * pressure);
-        double x = Math.Max(0D, Math.Min(drawing.Width - width, point.X - width / 2D));
-        double y = Math.Max(0D, Math.Min(drawing.Height - height, point.Y - height / 2D));
-        width = Math.Min(width, drawing.Width - x);
-        height = Math.Min(height, drawing.Height - y);
-        if (width <= 0D || height <= 0D) return;
+        double x = point.X - width / 2D;
+        double y = point.Y - height / 2D;
+        if (x >= drawing.Width || y >= drawing.Height || x + width <= 0D || y + height <= 0D) return;
 
         OfficeShape shape = stroke.TipShape == OfficeInkTipShape.Rectangle
             ? OfficeShape.Rectangle(width, height)
             : OfficeShape.Ellipse(width, height);
         shape.FillColor = renderColor;
         shape.FillOpacity = opacity;
-        drawing.AddShape(shape, x, y);
+        if (x < 0D || y < 0D || x + width > drawing.Width || y + height > drawing.Height) {
+            drawing.AddShapeForClippedRendering(shape, x, y);
+        } else {
+            drawing.AddShape(shape, x, y);
+        }
     }
 
     private static double ResolvePressure(double? first, double? second, double minimum) {

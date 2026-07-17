@@ -121,10 +121,11 @@ public static partial class OneNotePageRenderer {
             double x = outline.Layout?.X.HasValue == true ? outline.Layout.X.Value * PointsPerHalfInch : marginLeft;
             double y = outline.Layout?.Y.HasValue == true ? outline.Layout.Y.Value * PointsPerHalfInch : flow + pendingSpace;
             double width = ResolveEstimatedWidth(outline, bodyWidth, options);
+            (double childRight, double childBottom) = estimator.MeasureElementsBounds(outline.Children, width);
             double height = outline.Layout?.Height.HasValue == true
                 ? outline.Layout.Height.Value * PointsPerHalfInch
-                : estimator.MeasureElementsHeight(outline.Children, width);
-            right = Math.Max(right, x + width);
+                : childBottom;
+            right = Math.Max(right, x + Math.Max(width, childRight));
             bottom = Math.Max(bottom, y + height);
             if (outline.Layout?.Y.HasValue != true) {
                 flow = Math.Max(flow, y + height);

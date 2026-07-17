@@ -47,6 +47,13 @@ public class DrawingMathTests {
             Assert.Equal(expression, OfficeMathMarkup.FromMathMl(OfficeMathMarkup.ToMathMl(expression))));
     }
 
+    [Fact]
+    public void MathMlSerializerOutputPreservesUnderbars() {
+        OfficeMathExpression expression = OfficeMath.Underbar(OfficeMath.Identifier("x"));
+
+        Assert.Equal(expression, OfficeMathMarkup.FromMathMl(OfficeMathMarkup.ToMathMl(expression)));
+    }
+
     [Theory]
     [InlineData(@"\frac{x^2+1}{y}", "(x^(2)+1)/(y)")]
     [InlineData(@"\sqrt[3]{x}", "root[3](x)")]
@@ -83,6 +90,24 @@ public class DrawingMathTests {
 
         Assert.All(expressions, expression =>
             Assert.Equal(expression, OfficeMathMarkup.FromLatex(OfficeMathMarkup.ToLatex(expression))));
+    }
+
+    [Fact]
+    public void LatexParserAllowsWhitespaceBeforeScripts() {
+        OfficeMathExpression expression = OfficeMathMarkup.FromLatex("x ^{2} + y _ i");
+
+        Assert.Equal("x^(2)+y_(i)", expression.ToPlainText());
+        Assert.Equal(OfficeMathKind.Superscript, expression.Children[0].Kind);
+        Assert.Equal(OfficeMathKind.Subscript, expression.Children[2].Kind);
+    }
+
+    [Fact]
+    public void LatexSerializerEscapesTextWithoutTurningItIntoScripts() {
+        OfficeMathExpression expression = OfficeMath.Text(@"literal x_y^z\{#%&}");
+        string latex = OfficeMathMarkup.ToLatex(expression);
+
+        Assert.Contains(@"\text{literal x\_y\^z\backslash \{\#\%\&\}}", latex, StringComparison.Ordinal);
+        Assert.Equal(expression, OfficeMathMarkup.FromLatex(latex));
     }
 
     [Fact]

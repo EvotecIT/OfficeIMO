@@ -181,6 +181,46 @@ public sealed class OneNoteRenderingTests {
     }
 
     [Fact]
+    public void OversizedInlineMathRendersReadableFallbackInsideItsOutline() {
+        const string expressionText = "MMMMMMMMMMMMMMMMMMMMMMMM";
+        var page = new OneNotePage { PageSize = OneNotePageSize.IndexCard };
+        var outline = new OneNoteOutline { Layout = new OneNoteLayout { X = 0.25D, Y = 0.5D, Width = 0.75D } };
+        var paragraph = new OneNoteParagraph();
+        paragraph.AddMath(OfficeMath.Identifier(expressionText));
+        outline.Children.Add(paragraph);
+        page.Outlines.Add(outline);
+
+        OneNotePageVisualSnapshot snapshot = OneNotePageRenderer.CreateSnapshot(page);
+        OfficeDrawingText fallback = Assert.Single(snapshot.Drawing.Elements.OfType<OfficeDrawingText>(), item => item.Text == expressionText);
+        double outlineRight = (0.25D + 0.75D) * OneNotePageRenderer.PointsPerHalfInch;
+
+        Assert.True(fallback.X + fallback.Width <= outlineRight + 0.001D);
+        Assert.Contains(snapshot.Diagnostics, diagnostic => diagnostic.Code == "ONENOTE_RENDER_MATH_CLIPPED");
+    }
+
+    [Fact]
+    public void AutomaticCanvasIncludesPositionedOutlineChildren() {
+        var page = new OneNotePage { PageSize = OneNotePageSize.Automatic, Width = 1D, Height = 1D };
+        var outline = new OneNoteOutline { Layout = new OneNoteLayout { X = 0D, Y = 0D, Width = 2D } };
+        var paragraph = new OneNoteParagraph { Layout = new OneNoteLayout { X = 8D, Y = 10D, Width = 2D } };
+        paragraph.Runs.Add(new OneNoteTextRun { Text = "Positioned child" });
+        outline.Children.Add(paragraph);
+        page.Outlines.Add(outline);
+        var options = new OneNotePageRenderingOptions {
+            AutomaticPageWidthPoints = 120D,
+            AutomaticPageHeightPoints = 120D,
+            AutomaticPagePaddingPoints = 24D,
+            IncludeTitle = false
+        };
+
+        OfficeDrawing drawing = page.ToDrawing(options);
+        OfficeDrawingRichText text = Assert.Single(drawing.Elements.OfType<OfficeDrawingRichText>());
+
+        Assert.True(text.X + text.Width + options.AutomaticPagePaddingPoints <= drawing.Width + 0.001D);
+        Assert.True(text.Y + text.Height + options.AutomaticPagePaddingPoints <= drawing.Height + 0.001D);
+    }
+
+    [Fact]
     public void PageAndElementRightToLeftDefaultsAlignBodyParagraphsToTheRight() {
         var page = new OneNotePage { PageSize = OneNotePageSize.IndexCard, RightToLeft = true };
         var outline = new OneNoteOutline { Layout = new OneNoteLayout { X = 0.25, Y = 1, Width = 4.5 } };
