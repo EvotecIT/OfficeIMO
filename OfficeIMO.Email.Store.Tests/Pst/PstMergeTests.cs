@@ -184,6 +184,84 @@ public sealed class PstMergeTests {
         }
     }
 
+#if NET8_0_OR_GREATER
+    [Fact]
+    public void Physical_file_alias_cannot_be_used_as_merge_destination() {
+        string container = CreateTemporaryDirectory();
+        string sourceDirectory = Path.Combine(container, "source");
+        string aliasDirectory = Path.Combine(container, "alias");
+        string sourcePath = Path.Combine(sourceDirectory, "source.pst");
+        string destinationAlias = Path.Combine(aliasDirectory, "source.pst");
+        bool aliasCreated = false;
+        try {
+            Directory.CreateDirectory(sourceDirectory);
+            CreateSource(sourcePath, "Source", CreateDocument("preserved"));
+            byte[] original = File.ReadAllBytes(sourcePath);
+            try {
+                Directory.CreateSymbolicLink(aliasDirectory, sourceDirectory);
+                aliasCreated = true;
+            } catch (UnauthorizedAccessException) when (
+                System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(
+                    System.Runtime.InteropServices.OSPlatform.Windows)) {
+                return;
+            } catch (IOException) when (
+                System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(
+                    System.Runtime.InteropServices.OSPlatform.Windows)) {
+                return;
+            }
+
+            InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
+                EmailStoreConverter.MergeToPst(
+                    new[] { new EmailStoreMergeSource(sourcePath) }, destinationAlias,
+                    new EmailStorePstMergeOptions(overwriteExisting: true)));
+
+            Assert.Contains("source", exception.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Equal(original, File.ReadAllBytes(sourcePath));
+        } finally {
+            if (aliasCreated && Directory.Exists(aliasDirectory)) Directory.Delete(aliasDirectory);
+            DeleteDirectory(container);
+        }
+    }
+
+    [Fact]
+    public void Physical_directory_alias_cannot_place_merge_destination_inside_source() {
+        string container = CreateTemporaryDirectory();
+        string sourceDirectory = Path.Combine(container, "source");
+        string aliasDirectory = Path.Combine(container, "alias");
+        string sourceMessage = Path.Combine(sourceDirectory, "message.eml");
+        string destinationAlias = Path.Combine(aliasDirectory, "merged.pst");
+        bool aliasCreated = false;
+        try {
+            Directory.CreateDirectory(sourceDirectory);
+            const string message = "From: source@example.test\r\nSubject: preserved\r\n\r\nbody\r\n";
+            File.WriteAllText(sourceMessage, message);
+            try {
+                Directory.CreateSymbolicLink(aliasDirectory, sourceDirectory);
+                aliasCreated = true;
+            } catch (UnauthorizedAccessException) when (
+                System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(
+                    System.Runtime.InteropServices.OSPlatform.Windows)) {
+                return;
+            } catch (IOException) when (
+                System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(
+                    System.Runtime.InteropServices.OSPlatform.Windows)) {
+                return;
+            }
+
+            InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
+                EmailStoreConverter.MergeToPst(
+                    new[] { new EmailStoreMergeSource(sourceDirectory) }, destinationAlias));
+
+            Assert.Contains("inside", exception.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Equal(message, File.ReadAllText(sourceMessage));
+            Assert.False(File.Exists(destinationAlias));
+        } finally {
+            if (aliasCreated && Directory.Exists(aliasDirectory)) Directory.Delete(aliasDirectory);
+            DeleteDirectory(container);
+        }
+    }
+#endif
+
     private static void CreateSource(string path, string displayName, params EmailDocument[] documents) {
         using var writer = EmailStorePstWriter.Create(path, new EmailStorePstWriterOptions(displayName));
         string folder = writer.AddFolder("Projects");

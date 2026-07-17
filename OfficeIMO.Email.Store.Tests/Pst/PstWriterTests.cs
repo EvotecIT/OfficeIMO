@@ -567,6 +567,53 @@ public sealed class PstWriterTests {
         }
     }
 
+#if NET8_0_OR_GREATER
+    [Fact]
+    public void Verification_manifest_physical_alias_cannot_replace_destination() {
+        string container = Path.Combine(Path.GetTempPath(),
+            string.Concat("officeimo-pst-manifest-alias-", Guid.NewGuid().ToString("N")));
+        string destinationDirectory = Path.Combine(container, "destination");
+        string aliasDirectory = Path.Combine(container, "alias");
+        string sourcePath = Path.Combine(container, "source.pst");
+        string destinationPath = Path.Combine(destinationDirectory, "converted.pst");
+        string manifestAlias = Path.Combine(aliasDirectory, "converted.pst");
+        bool aliasCreated = false;
+        try {
+            Directory.CreateDirectory(destinationDirectory);
+            using (EmailStorePstWriter writer = EmailStorePstWriter.Create(sourcePath)) {
+                string folder = writer.AddFolder("Inbox");
+                writer.AddItem(folder, new EmailDocument { Subject = "alias preflight" });
+                writer.Complete();
+            }
+            try {
+                Directory.CreateSymbolicLink(aliasDirectory, destinationDirectory);
+                aliasCreated = true;
+            } catch (UnauthorizedAccessException) when (
+                System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(
+                    System.Runtime.InteropServices.OSPlatform.Windows)) {
+                return;
+            } catch (IOException) when (
+                System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(
+                    System.Runtime.InteropServices.OSPlatform.Windows)) {
+                return;
+            }
+
+            InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
+                EmailStoreConverter.ConvertToPst(sourcePath, destinationPath,
+                    conversionOptions: new EmailStorePstConversionOptions(
+                        overwriteExisting: true,
+                        verificationManifestPath: manifestAlias)));
+
+            Assert.Contains("different paths", exception.Message,
+                StringComparison.OrdinalIgnoreCase);
+            Assert.False(File.Exists(destinationPath));
+        } finally {
+            if (aliasCreated && Directory.Exists(aliasDirectory)) Directory.Delete(aliasDirectory);
+            if (Directory.Exists(container)) Directory.Delete(container, recursive: true);
+        }
+    }
+#endif
+
     [Fact]
     public void Verification_manifest_requires_post_write_verification() {
         ArgumentException exception = Assert.Throws<ArgumentException>(() =>

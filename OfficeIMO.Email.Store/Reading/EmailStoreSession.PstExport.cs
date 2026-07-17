@@ -143,7 +143,7 @@ public sealed partial class EmailStoreSession {
         if (options.VerificationManifestPath == null) return;
         string manifest = Path.GetFullPath(options.VerificationManifestPath);
         ThrowIfStoreSourceDestination(manifest, "PST verification manifest");
-        if (string.Equals(manifest, destination, StringComparison.OrdinalIgnoreCase)) {
+        if (EmailStorePathIdentity.AreEquivalent(manifest, destination)) {
             throw new InvalidOperationException(
                 "The verification manifest and destination PST must use different paths.");
         }
