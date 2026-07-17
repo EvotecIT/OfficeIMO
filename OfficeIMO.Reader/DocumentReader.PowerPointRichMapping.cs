@@ -167,12 +167,25 @@ internal static partial class DocumentReaderEngine {
             bool isList = paragraph.BulletCharacter != null || paragraph.IsNumbered;
             int level = paragraph.Level ?? 0;
             string? marker = paragraph.BulletCharacter;
-            if (paragraph.IsNumbered) {
+            if (isTitle || !isList) {
+                numberingState.Clear();
+            } else if (paragraph.IsNumbered) {
+                foreach (int nestedLevel in numberingState.Keys
+                             .Where(candidate => candidate > level)
+                             .ToArray()) {
+                    numberingState.Remove(nestedLevel);
+                }
                 int number = paragraph.NumberingStartAt
                     ?? (numberingState.TryGetValue(level, out int previous) ? previous + 1 : 1);
                 numberingState[level] = number;
                 marker = PowerPointNumberingFormatter.FormatMarker(number,
                     paragraph.NumberingScheme);
+            } else {
+                foreach (int resetLevel in numberingState.Keys
+                             .Where(candidate => candidate >= level)
+                             .ToArray()) {
+                    numberingState.Remove(resetLevel);
+                }
             }
             string kind = isTitle ? "heading" : isList ? "list-item" : "paragraph";
             ReaderLocation location = BuildPowerPointLocation(

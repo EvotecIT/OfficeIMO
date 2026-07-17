@@ -317,6 +317,8 @@ namespace OfficeIMO.PowerPoint {
             if (_cachedRelationshipIds == null) {
                 _cachedRelationshipIds = new HashSet<string>(
                     _slidePart.Parts.Select(p => p.RelationshipId)
+                        .Concat(_slidePart.DataPartReferenceRelationships
+                            .Select(r => r.Id))
                         .Concat(_slidePart.ExternalRelationships.Select(r => r.Id))
                         .Concat(_slidePart.HyperlinkRelationships.Select(r => r.Id))
                         .Where(id => !string.IsNullOrEmpty(id)),

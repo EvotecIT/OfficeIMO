@@ -244,6 +244,53 @@ public sealed class ReaderPowerPointExtractionTests {
         Assert.True(pptBefore < pptTable && pptTable < pptAfter);
     }
 
+    [Fact]
+    public void RichNumberingRestartsAtPlainAndParentBoundaries() {
+        byte[] bytes;
+        using (PowerPointPresentation presentation =
+               PowerPointPresentation.Create()) {
+            PowerPointTextBox text = presentation.AddSlide()
+                .AddTextBox(string.Empty);
+            text.SetNumberedList(new[] { "Before one", "Before two" });
+            text.AddParagraph("Plain boundary").ClearBullet();
+            PowerPointParagraph restarted = text.AddParagraph("After one");
+            restarted.SetNumbered(
+                A.TextAutoNumberSchemeValues.ArabicPeriod);
+            PowerPointParagraph parentOne = text.AddParagraph("Parent one");
+            parentOne.SetNumbered(
+                A.TextAutoNumberSchemeValues.ArabicPeriod);
+            PowerPointParagraph childOne = text.AddParagraph("Child one");
+            childOne.SetNumbered(
+                A.TextAutoNumberSchemeValues.ArabicPeriod);
+            childOne.Level = 1;
+            PowerPointParagraph parentTwo = text.AddParagraph("Parent two");
+            parentTwo.SetNumbered(
+                A.TextAutoNumberSchemeValues.ArabicPeriod);
+            PowerPointParagraph childTwo = text.AddParagraph("Child restart");
+            childTwo.SetNumbered(
+                A.TextAutoNumberSchemeValues.ArabicPeriod);
+            childTwo.Level = 1;
+            bytes = presentation.ToBytes();
+        }
+
+        OfficeDocumentReadResult result =
+            OfficeDocumentReader.Default.ReadDocument(
+                new MemoryStream(bytes, writable: false),
+                "numbering-boundaries.pptx");
+
+        Assert.Equal("2.", MarkerFor("Before two"));
+        Assert.Null(BlockFor("Plain boundary").Marker);
+        Assert.Equal("1.", MarkerFor("After one"));
+        Assert.Equal("2.", MarkerFor("Parent one"));
+        Assert.Equal("1.", MarkerFor("Child one"));
+        Assert.Equal("3.", MarkerFor("Parent two"));
+        Assert.Equal("1.", MarkerFor("Child restart"));
+
+        OfficeDocumentBlock BlockFor(string text) => Assert.Single(
+            result.Blocks, block => block.Text == text);
+        string? MarkerFor(string text) => BlockFor(text).Marker;
+    }
+
     private static byte[] CreateRichPresentation(bool binary) {
         using PowerPointPresentation presentation =
             PowerPointPresentation.Create();

@@ -110,6 +110,36 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ImportAndExportPreserveNotesAlongsideAudioRelationships() {
+            using PowerPointPresentation source =
+                PowerPointPresentation.Create();
+            PowerPointSlide sourceSlide = source.AddSlide();
+            using (var audio = new MemoryStream(CreateWave(),
+                       writable: false)) {
+                sourceSlide.AddAudio(audio, "audio/wav", ".wav");
+            }
+            sourceSlide.Notes.Text = "Media notes";
+            using PowerPointPresentation target =
+                PowerPointPresentation.Create();
+
+            PowerPointSlide imported = target.ImportSlide(source, 0);
+
+            Assert.Equal("Media notes", imported.Notes.Text);
+            Assert.Single(imported.Media);
+            Assert.Empty(target.ValidateDocument());
+
+            using var exportedStream = new MemoryStream();
+            source.ExportSlide(0, exportedStream);
+            exportedStream.Position = 0;
+            using PowerPointPresentation exported =
+                PowerPointPresentation.Load(exportedStream);
+            PowerPointSlide exportedSlide = Assert.Single(exported.Slides);
+            Assert.Equal("Media notes", exportedSlide.Notes.Text);
+            Assert.Single(exportedSlide.Media);
+            Assert.Empty(exported.ValidateDocument());
+        }
+
+        [Fact]
         public void RemovingSlideCleansLayoutAndSoundedInboundLinks() {
             using PowerPointPresentation presentation =
                 PowerPointPresentation.Create();
