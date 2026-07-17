@@ -2,9 +2,13 @@ using OfficeIMO.Drawing;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.LegacyPpt;
 using OfficeIMO.PowerPoint.LegacyPpt.Internal;
+using OfficeIMO.PowerPoint.LegacyPpt.Model;
 using DocumentFormat.OpenXml.Packaging;
+using System.IO.Compression;
 using System.Threading.Tasks;
 using Xunit;
+using A = DocumentFormat.OpenXml.Drawing;
+using P = DocumentFormat.OpenXml.Presentation;
 
 namespace OfficeIMO.Tests {
     public partial class PowerPointLegacyPptTests {
@@ -579,24 +583,15 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyVbaConversion_EnforcesPackageSecurityBeforeOpeningPackage() {
             byte[] packageBytes;
-            using (PowerPointPresentation source =
-                   PowerPointPresentation.Create()) {
-                source.AddSlide().AddTextBox("Pre-open VBA policy");
-                packageBytes = source.ToBytes();
-            }
-            using (var editable = new MemoryStream()) {
-                editable.Write(packageBytes, 0, packageBytes.Length);
-                editable.Position = 0;
-                using (PresentationDocument document =
-                       PresentationDocument.Open(editable, true)) {
-                    VbaProjectPart part = document.PresentationPart!
-                        .AddNewPart<VbaProjectPart>();
-                    using var project = new MemoryStream(
-                        CreateVbaTestProject("BoundaryModule",
-                            "Sub Main(): End Sub"), writable: false);
-                    part.FeedData(project);
+            using (var package = new MemoryStream()) {
+                using (var archive = new ZipArchive(package,
+                           ZipArchiveMode.Create, leaveOpen: true)) {
+                    ZipArchiveEntry vba = archive.CreateEntry(
+                        "ppt/vbaProject.bin");
+                    using Stream payload = vba.Open();
+                    payload.WriteByte(1);
                 }
-                packageBytes = editable.ToArray();
+                packageBytes = package.ToArray();
             }
             var loadOptions = new PowerPointLoadOptions {
                 PackageSecurity = OfficePackageSecurityOptions
@@ -671,7 +666,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void PresentationFacade_RejectsPreserveOnlyLegacyActiveContent() {
+        public void PresentationFacade_RejectsPreserveOnlyLegacyExternalContent() {
             byte[] storage = CreateOleTestStorage(
                 "Preserve-only linked OLE policy");
             byte[] binary = CreateExternalObjectFixture(storage,
@@ -681,11 +676,13 @@ namespace OfficeIMO.Tests {
                 binary);
             Assert.Empty(neutral.LinkedOleObjects);
             Assert.Contains(neutral.Diagnostics, diagnostic =>
-                diagnostic.Code.StartsWith("PPT-OLE-",
+                diagnostic.Code.StartsWith("PPT-OLE-LINK-",
                     StringComparison.Ordinal));
+            var security = OfficePackageSecurityOptions.SecureDefaults;
+            security.ExternalRelationships =
+                OfficePackageContentPolicy.Reject;
             var loadOptions = new PowerPointLoadOptions {
-                PackageSecurity = OfficePackageSecurityOptions
-                    .UntrustedDefaults
+                PackageSecurity = security
             };
 
             using var input = new MemoryStream(binary, writable: false);
@@ -693,7 +690,59 @@ namespace OfficeIMO.Tests {
                 OfficePackageSecurityException>(() =>
                     PowerPointPresentation.Load(input, loadOptions));
 
-            Assert.Equal(OfficePackageSecurityRule.EmbeddedPayloads,
+            Assert.Equal(OfficePackageSecurityRule.ExternalRelationships,
+                exception.Rule);
+        }
+
+        [Fact]
+        public void LegacyExternalPolicy_RecognizesLocationOnlyHyperlinks() {
+            var hyperlink = new LegacyPptHyperlink(1, friendlyName: null,
+                target: null, location: "https://example.test/location");
+
+            Assert.True(PowerPointPresentation.IsExternalLegacyHyperlink(
+                hyperlink));
+        }
+
+        [Fact]
+        public void PresentationFacade_RejectsLegacyRunProgramActions() {
+            var programUri = new Uri("file:///Applications/Calculator.app");
+            byte[] binary;
+            using (PowerPointPresentation source =
+                   PowerPointPresentation.Create()) {
+                PowerPointSlide slide = source.AddSlide(
+                    P.SlideLayoutValues.Blank);
+                PowerPointAutoShape shape = slide.AddRectangle(
+                    100000, 100000, 1000000, 500000);
+                HyperlinkRelationship relationship = slide.SlidePart
+                    .AddHyperlinkRelationship(programUri, true);
+                P.NonVisualDrawingProperties properties =
+                    ((P.Shape)shape.Element).NonVisualShapeProperties!
+                    .NonVisualDrawingProperties!;
+                properties.Append(new A.HyperlinkOnClick {
+                    Id = relationship.Id,
+                    Action = "ppaction://program"
+                });
+                binary = source.ToBytes(PowerPointFileFormat.Ppt);
+            }
+            LegacyPptPresentation neutral = LegacyPptPresentation.Load(
+                binary);
+            Assert.Contains(neutral.Slides[0].Shapes.SelectMany(shape =>
+                    shape.Interactions), interaction =>
+                interaction.Action ==
+                    LegacyPptInteractionAction.RunProgram);
+            var security = OfficePackageSecurityOptions.SecureDefaults;
+            security.ExternalRelationships =
+                OfficePackageContentPolicy.Reject;
+            var loadOptions = new PowerPointLoadOptions {
+                PackageSecurity = security
+            };
+
+            using var input = new MemoryStream(binary, writable: false);
+            OfficePackageSecurityException exception = Assert.Throws<
+                OfficePackageSecurityException>(() =>
+                    PowerPointPresentation.Load(input, loadOptions));
+
+            Assert.Equal(OfficePackageSecurityRule.ExternalRelationships,
                 exception.Rule);
         }
 

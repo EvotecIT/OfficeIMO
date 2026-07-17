@@ -45,12 +45,14 @@ namespace OfficeIMO.PowerPoint {
                     $"The binary PowerPoint presentation contains {legacy.ActiveXControls.Count} ActiveX control(s) while ActiveX content is rejected.",
                     Math.Max(1, legacy.ActiveXControls.Count), 0);
             }
-            int externalTargetCount = legacy.Hyperlinks.Count(link =>
-                    !link.IsInternalSlideTarget
-                    && !string.IsNullOrWhiteSpace(link.Target))
+            int externalTargetCount = legacy.Hyperlinks.Count(
+                    IsExternalLegacyHyperlink)
                 + legacy.LinkedOleObjects.Count
                 + legacy.Media.Count(media =>
-                    !string.IsNullOrWhiteSpace(media.Path));
+                    !string.IsNullOrWhiteSpace(media.Path))
+                + CountRunProgramInteractions(legacy)
+                + legacy.Diagnostics.Count(diagnostic =>
+                    IsPreserveOnlyExternalDiagnostic(diagnostic.Code));
             if (security.ExternalRelationships ==
                     OfficePackageContentPolicy.Reject
                 && externalTargetCount > 0) {
@@ -65,5 +67,68 @@ namespace OfficeIMO.PowerPoint {
             LegacyPptPresentation legacy, string prefix) =>
             legacy.Diagnostics.Any(diagnostic => diagnostic.Code.StartsWith(
                 prefix, StringComparison.Ordinal));
+
+        internal static bool IsExternalLegacyHyperlink(
+            LegacyPpt.Model.LegacyPptHyperlink hyperlink) =>
+            !hyperlink.IsInternalSlideTarget
+            && (!string.IsNullOrWhiteSpace(hyperlink.Target)
+                || !string.IsNullOrWhiteSpace(hyperlink.Location));
+
+        private static bool IsPreserveOnlyExternalDiagnostic(string code) =>
+            code.StartsWith("PPT-OLE-LINK-", StringComparison.Ordinal)
+            || code.StartsWith("PPT-HYPERLINK-", StringComparison.Ordinal)
+            || code.StartsWith("PPT-HYPERLINK9-", StringComparison.Ordinal)
+            || code.StartsWith("PPT-MEDIA-MALFORMED", StringComparison.Ordinal)
+            || code.StartsWith("PPT-MEDIA-UNKNOWN", StringComparison.Ordinal);
+
+        private static int CountRunProgramInteractions(
+            LegacyPptPresentation legacy) => EnumerateLegacyShapes(legacy)
+            .Sum(shape => shape.Interactions.Count(interaction =>
+                    interaction.Action == LegacyPpt.Model
+                        .LegacyPptInteractionAction.RunProgram)
+                + shape.TextBody.Interactions.Count(textInteraction =>
+                    textInteraction.Interaction.Action == LegacyPpt.Model
+                        .LegacyPptInteractionAction.RunProgram));
+
+        private static IEnumerable<LegacyPpt.Model.LegacyPptShape>
+            EnumerateLegacyShapes(LegacyPptPresentation legacy) {
+            foreach (LegacyPpt.Model.LegacyPptShape shape in legacy.Slides
+                         .SelectMany(slide => slide.Shapes)) {
+                foreach (LegacyPpt.Model.LegacyPptShape nested in
+                         EnumerateLegacyShapes(shape)) yield return nested;
+            }
+            foreach (LegacyPpt.Model.LegacyPptShape shape in legacy.Slides
+                         .Where(slide => slide.NotesPage != null)
+                         .SelectMany(slide => slide.NotesPage!.Shapes)) {
+                foreach (LegacyPpt.Model.LegacyPptShape nested in
+                         EnumerateLegacyShapes(shape)) yield return nested;
+            }
+            foreach (LegacyPpt.Model.LegacyPptShape shape in legacy.Masters
+                         .SelectMany(master => master.Shapes)) {
+                foreach (LegacyPpt.Model.LegacyPptShape nested in
+                         EnumerateLegacyShapes(shape)) yield return nested;
+            }
+            foreach (LegacyPpt.Model.LegacyPptShape shape in legacy
+                         .NotesMaster?.Shapes
+                     ?? Array.Empty<LegacyPpt.Model.LegacyPptShape>()) {
+                foreach (LegacyPpt.Model.LegacyPptShape nested in
+                         EnumerateLegacyShapes(shape)) yield return nested;
+            }
+            foreach (LegacyPpt.Model.LegacyPptShape shape in legacy
+                         .HandoutMaster?.Shapes
+                     ?? Array.Empty<LegacyPpt.Model.LegacyPptShape>()) {
+                foreach (LegacyPpt.Model.LegacyPptShape nested in
+                         EnumerateLegacyShapes(shape)) yield return nested;
+            }
+        }
+
+        private static IEnumerable<LegacyPpt.Model.LegacyPptShape>
+            EnumerateLegacyShapes(LegacyPpt.Model.LegacyPptShape shape) {
+            yield return shape;
+            foreach (LegacyPpt.Model.LegacyPptShape child in shape.Children) {
+                foreach (LegacyPpt.Model.LegacyPptShape nested in
+                         EnumerateLegacyShapes(child)) yield return nested;
+            }
+        }
     }
 }
