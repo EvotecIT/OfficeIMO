@@ -25,6 +25,8 @@ internal sealed partial class OneNoteWriteGraphBuilder {
             }
         };
         foreach (OneNoteElement child in movable) {
+            if (child.Layout?.X.HasValue == true) child.Layout.X -= DefaultBodyOutlineHorizontalOffset;
+            if (child.Layout?.Y.HasValue == true) child.Layout.Y -= DefaultBodyOutlineVerticalOffset;
             outline.Children.Add(child);
             page.DirectContent.Remove(child);
         }

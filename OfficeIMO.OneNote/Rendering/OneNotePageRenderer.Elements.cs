@@ -56,7 +56,8 @@ public static partial class OneNotePageRenderer {
             if (y >= _drawing.Height || x >= _drawing.Width) return 0D;
             x = Math.Max(0D, x);
             y = Math.Max(0D, y);
-            availableWidth = Math.Max(1D, Math.Min(availableWidth, _drawing.Width - x));
+            availableWidth = Math.Min(availableWidth, _drawing.Width - x);
+            if (availableWidth <= 0D) return 0D;
             bool rightToLeft = element.Layout?.RightToLeft ?? inheritedRightToLeft ?? _pageRightToLeft;
             if (element is OneNoteOutline outline) return RenderOutline(outline, x, y, availableWidth, rightToLeft);
             if (element is OneNoteParagraph paragraph) return RenderParagraph(paragraph, x, y, availableWidth, rightToLeft);
@@ -118,10 +119,12 @@ public static partial class OneNotePageRenderer {
                             }
                         }
                     } else if (item.Text.Length > 0) {
-                        double drawableWidth = Math.Max(1D, Math.Min(item.Width, _drawing.Width - cursorX));
-                        double drawableHeight = Math.Max(1D, Math.Min(item.Height, _drawing.Height - cursorY));
-                        _drawing.AddText(item.Text, cursorX, cursorY, drawableWidth, drawableHeight, CreateFont(item.Run),
-                            ResolveColor(item.Run.Style.ColorArgb), OfficeTextAlignment.Left, item.Height, wrapText: false);
+                        double drawableWidth = Math.Min(item.Width, _drawing.Width - cursorX);
+                        double drawableHeight = Math.Min(item.Height, _drawing.Height - cursorY);
+                        if (drawableWidth > 0D && drawableHeight > 0D) {
+                            _drawing.AddText(item.Text, cursorX, cursorY, drawableWidth, drawableHeight, CreateFont(item.Run),
+                                ResolveColor(item.Run.Style.ColorArgb), OfficeTextAlignment.Left, item.Height, wrapText: false);
+                        }
                     }
                     cursorX += item.Width;
                 }

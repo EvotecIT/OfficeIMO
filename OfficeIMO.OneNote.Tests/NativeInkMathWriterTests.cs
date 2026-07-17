@@ -32,8 +32,9 @@ public sealed class NativeInkMathWriterTests {
         OfficeInkStroke resultStroke = Assert.Single(result.Strokes);
 
         Assert.NotNull(result.PreservedInkBoundingBox);
-        Assert.Equal(1.25, result.Layout!.X!.Value, 5);
-        Assert.Equal(2.5, result.Layout.Y!.Value, 5);
+        OneNoteOutline resultOutline = Assert.Single(resultPage.Outlines);
+        Assert.Equal(1.25, resultOutline.Layout!.X!.Value + result.Layout!.X!.Value, 5);
+        Assert.Equal(2.5, resultOutline.Layout.Y!.Value + result.Layout.Y!.Value, 5);
         Assert.Equal(3, resultStroke.Points.Count);
         Assert.Equal(0.1, resultStroke.Points[0].X, 3);
         Assert.Equal(0.8, resultStroke.Points[1].Y, 3);
@@ -258,7 +259,7 @@ public sealed class NativeInkMathWriterTests {
     }
 
     [Fact]
-    public void ReusesUnchangedNativeStrokeWithUnsupportedPacketDimensions() {
+    public void ReusesNativeStrokeWithUnsupportedPacketDimensionsForRecognitionOnlyEdits() {
         var section = new OneNoteSection { Name = "Preserved packet dimensions" };
         var page = new OneNotePage { Title = "Ink" };
         var ink = new OneNoteInk();
@@ -285,6 +286,12 @@ public sealed class NativeInkMathWriterTests {
             .Concat(OneNoteInkCodec.EncodePacketValues(new long[] { 7, 9 })).ToArray());
         path.Data = OneNoteBinaryPayload.FromBytes(extendedPath);
         loadedInk.PreservedNativeStrokeSnapshots[loadedStroke] = loadedStroke.Clone();
+        byte[] sourceBounds = InkBounds(-100, -200, 1000, 1200);
+        loadedInk.PreservedInkBoundingBox = sourceBounds;
+        loadedStroke.RecognizedText = "updated";
+        loadedStroke.RecognitionAlternatives.Clear();
+        loadedStroke.RecognitionAlternatives.Add("updated");
+        loadedStroke.RecognitionAlternatives.Add("alternate");
 
         OneNoteWriteObjectSpace pageSpace = new OneNoteWriteGraphBuilder().BuildSection(loaded).ObjectSpaces[1];
         OneNoteWriteObject retainedProperties = Assert.Single(pageSpace.Objects, item => item.Id.Equals(propertyId));
@@ -295,6 +302,13 @@ public sealed class NativeInkMathWriterTests {
         OneNoteWriteObject retainedStroke = Assert.Single(pageSpace.Objects, item => item.Id.Equals(nativeStrokeId));
         Assert.Equal(extendedPath, Assert.Single(retainedStroke.Properties, property =>
             (property.RawId & 0x7FFFFFFFU) == OneNoteSchema.InkPath).Data);
+        OneNoteWriteObject inkData = Assert.Single(pageSpace.Objects, item => item.Jcid == OneNoteSchema.JcidInkDataNode);
+        Assert.Equal(sourceBounds, Assert.Single(inkData.Properties, property =>
+            (property.RawId & 0x7FFFFFFFU) == OneNoteSchema.InkBoundingBox).Data);
+        OneNoteWriteObject recognitionWord = Assert.Single(pageSpace.Objects, item => item.Jcid == OneNoteSchema.JcidRecognizedTextWord);
+        byte[] recognitionData = Assert.Single(recognitionWord.Properties, property =>
+            (property.RawId & 0x7FFFFFFFU) == OneNoteSchema.RecognizedText).Data!;
+        Assert.Contains("updated", System.Text.Encoding.Unicode.GetString(recognitionData), StringComparison.Ordinal);
 
         loadedStroke.Width = 2;
         OneNoteWriteObjectSpace editedPageSpace = new OneNoteWriteGraphBuilder().BuildSection(loaded).ObjectSpaces[1];

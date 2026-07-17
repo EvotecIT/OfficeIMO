@@ -221,6 +221,26 @@ public sealed class OneNoteRenderingTests {
     }
 
     [Fact]
+    public void PositionedElementAtCanvasEdgeUsesTheActualRemainingWidth() {
+        var page = new OneNotePage {
+            PageSize = OneNotePageSize.Custom,
+            Width = 4D,
+            Height = 4D
+        };
+        var paragraph = new OneNoteParagraph {
+            Layout = new OneNoteLayout { X = 3.99D, Y = 0.5D, Width = 1D }
+        };
+        paragraph.Runs.Add(new OneNoteTextRun { Text = "edge" });
+        page.DirectContent.Add(paragraph);
+
+        OfficeDrawing drawing = page.ToDrawing(new OneNotePageRenderingOptions { IncludeTitle = false });
+        OfficeDrawingRichText text = Assert.Single(drawing.Elements.OfType<OfficeDrawingRichText>());
+
+        Assert.True(text.Width > 0D);
+        Assert.True(text.X + text.Width <= drawing.Width + 0.001D);
+    }
+
+    [Fact]
     public void PageAndElementRightToLeftDefaultsAlignBodyParagraphsToTheRight() {
         var page = new OneNotePage { PageSize = OneNotePageSize.IndexCard, RightToLeft = true };
         var outline = new OneNoteOutline { Layout = new OneNoteLayout { X = 0.25, Y = 1, Width = 4.5 } };

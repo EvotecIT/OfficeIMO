@@ -222,7 +222,7 @@ namespace OfficeIMO.Word {
         private static OfficeMathExpression NaryExpression(OpenXmlElement element) {
             string character = ReadCharacter(element, "chr").Present
                 ? ReadCharacter(element, "chr").Value
-                : element.LocalName == "int" ? "∫" : "∫";
+                : element.LocalName == "int" ? "∫" : "∑";
             OfficeMathExpression content = ExpressionFromChild(element, "e");
             OfficeMathExpression lower = ExpressionFromChild(element, "sub");
             OfficeMathExpression upper = ExpressionFromChild(element, "sup");

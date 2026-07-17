@@ -31,9 +31,9 @@ internal sealed partial class OneNoteWriteGraphBuilder {
                 "Nested ink containing undecodable native strokes cannot be flattened after an existing stroke is edited.");
         }
 
-        bool retainNativeScaling = ink.PreservedStrokeObjectIds.Count > 0 || ink.Strokes.Any(stroke => CanReuseNativeStroke(ink, stroke));
-        double scaleX = retainNativeScaling ? ValidInkScale(ink.PreservedInkScaleX) : 1D;
-        double scaleY = retainNativeScaling ? ValidInkScale(ink.PreservedInkScaleY) : 1D;
+        bool retainsNativeStrokes = ink.PreservedStrokeObjectIds.Count > 0 || ink.Strokes.Any(stroke => CanReuseNativeStroke(ink, stroke));
+        double scaleX = retainsNativeStrokes ? ValidInkScale(ink.PreservedInkScaleX) : 1D;
+        double scaleY = retainsNativeStrokes ? ValidInkScale(ink.PreservedInkScaleY) : 1D;
         var strokeIds = new List<OneNoteExtendedGuid>(ink.PreservedStrokeObjectIds);
         var nativePoints = new List<OfficePoint>();
         foreach (OfficeInkStroke stroke in ink.Strokes) {
@@ -51,7 +51,7 @@ internal sealed partial class OneNoteWriteGraphBuilder {
         ink.InkDataObjectId = dataId;
         var dataProperties = new List<OneNoteWriteProperty>();
         if (strokeIds.Count > 0) dataProperties.Add(ObjectReferences(OneNoteSchema.InkStrokes, strokeIds));
-        byte[]? boundingBox = InkBoundingBox(ink, nativePoints);
+        byte[]? boundingBox = InkBoundingBox(ink, nativePoints, retainsNativeStrokes);
         if (boundingBox != null) dataProperties.Add(Data(OneNoteSchema.InkBoundingBox, boundingBox));
         space.Objects.Add(new OneNoteWriteObject(dataId, OneNoteSchema.JcidInkDataNode, dataProperties));
 
@@ -75,7 +75,7 @@ internal sealed partial class OneNoteWriteGraphBuilder {
             ink.Id == null || _activeSourceSpace?.GetObject(ink.Id) == null ||
             !ink.PreservedChildContainerIds.All(id => _activeSourceSpace.GetObject(id) != null)) return false;
         foreach (KeyValuePair<OfficeInkStroke, OfficeInkStroke> retained in ink.PreservedNestedStrokeSnapshots) {
-            if (!ink.Strokes.Contains(retained.Key) || !NativeStrokeSnapshotEquals(retained.Key, retained.Value)) return false;
+            if (!ink.Strokes.Contains(retained.Key) || !NativeStrokePayloadEquals(retained.Key, retained.Value)) return false;
         }
         authoredStrokes = ink.Strokes.Where(stroke => !ink.PreservedNestedStrokeSnapshots.ContainsKey(stroke)).ToArray();
         return true;
@@ -83,7 +83,7 @@ internal sealed partial class OneNoteWriteGraphBuilder {
 
     private bool CanReuseNativeStroke(OneNoteInk ink, OfficeInkStroke stroke) =>
         ink.PreservedNativeStrokeSnapshots.TryGetValue(stroke, out OfficeInkStroke? snapshot) &&
-        NativeStrokeSnapshotEquals(stroke, snapshot) &&
+        NativeStrokePayloadEquals(stroke, snapshot) &&
         ink.StrokeObjectIds.TryGetValue(stroke, out OneNoteExtendedGuid? preservedStrokeId) &&
         _activeSourceSpace?.GetObject(preservedStrokeId) != null;
 
@@ -160,20 +160,15 @@ internal sealed partial class OneNoteWriteGraphBuilder {
         }
     }
 
-    private static bool NativeStrokeSnapshotEquals(OfficeInkStroke left, OfficeInkStroke right) {
+    private static bool NativeStrokePayloadEquals(OfficeInkStroke left, OfficeInkStroke right) {
         if (left.Color != right.Color || left.Width != right.Width || left.Height != right.Height ||
             left.Opacity != right.Opacity || left.TipShape != right.TipShape || left.Bias != right.Bias ||
             left.FitToCurve != right.FitToCurve || left.IgnorePressure != right.IgnorePressure ||
             left.IsHighlighter != right.IsHighlighter || !Nullable.Equals(left.Transform, right.Transform) ||
             left.LanguageId != right.LanguageId ||
-            !string.Equals(left.RecognizedText, right.RecognizedText, StringComparison.Ordinal) ||
-            left.Points.Count != right.Points.Count ||
-            left.RecognitionAlternatives.Count != right.RecognitionAlternatives.Count) return false;
+            left.Points.Count != right.Points.Count) return false;
         for (int index = 0; index < left.Points.Count; index++) {
             if (!left.Points[index].Equals(right.Points[index])) return false;
-        }
-        for (int index = 0; index < left.RecognitionAlternatives.Count; index++) {
-            if (!string.Equals(left.RecognitionAlternatives[index], right.RecognitionAlternatives[index], StringComparison.Ordinal)) return false;
         }
         return true;
     }
@@ -352,12 +347,11 @@ internal sealed partial class OneNoteWriteGraphBuilder {
         }
     }
 
-    private static byte[]? InkBoundingBox(OneNoteInk ink, IReadOnlyList<OfficePoint> points) {
-        bool hasOpaqueStrokes = ink.PreservedStrokeObjectIds.Count > 0;
+    private static byte[]? InkBoundingBox(OneNoteInk ink, IReadOnlyList<OfficePoint> points, bool retainsNativeStrokes) {
         byte[]? source = ink.PreservedInkBoundingBox;
         bool sourceBoundsAreValid = TryReadInkBoundingBox(source, out int left, out int top, out int right, out int bottom);
-        bool hasSourceBounds = hasOpaqueStrokes && sourceBoundsAreValid;
-        if (hasOpaqueStrokes && !hasSourceBounds) {
+        bool hasSourceBounds = retainsNativeStrokes && sourceBoundsAreValid;
+        if (ink.PreservedStrokeObjectIds.Count > 0 && !hasSourceBounds) {
             throw new OneNoteFormatException(
                 "ONENOTE_WRITE_OPAQUE_INK_BOUNDS",
                 "Ink containing undecodable native strokes cannot be written without its complete native bounding box.");

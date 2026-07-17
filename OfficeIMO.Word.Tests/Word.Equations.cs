@@ -361,11 +361,11 @@ namespace OfficeIMO.Tests {
 
             WordEquation equation = Assert.Single(document.Equations);
 
-            Assert.Equal("hat(x)underbrace(y)int_(i)^(n)(z)(a|b)(c│d)(ef)", equation.Text);
+            Assert.Equal("hat(x)underbrace(y)sum_(i)^(n)(z)(a|b)(c│d)(ef)", equation.Text);
             string latex = equation.ToLatex();
             Assert.Contains("\\hat{x}", latex, StringComparison.Ordinal);
             Assert.Contains("\\underbrace{y}", latex, StringComparison.Ordinal);
-            Assert.Contains("\\int_{i}^{n} z", latex, StringComparison.Ordinal);
+            Assert.Contains("\\sum_{i}^{n} z", latex, StringComparison.Ordinal);
             Assert.Contains("\\left(a\\middle|b\\right)", latex, StringComparison.Ordinal);
             Assert.Contains("\\left(c\\middle|d\\right)", latex, StringComparison.Ordinal);
             Assert.Contains("\\left(ef\\right)", latex, StringComparison.Ordinal);
@@ -373,16 +373,17 @@ namespace OfficeIMO.Tests {
             string mathMl = equation.ToMathMl();
             Assert.Contains("<mover accent=\"true\"><mtext>x</mtext><mo>̂</mo></mover>", mathMl, StringComparison.Ordinal);
             Assert.Contains("<munder accentunder=\"true\"><mtext>y</mtext><mo>⏟</mo></munder>", mathMl, StringComparison.Ordinal);
-            Assert.Contains("<mo>∫</mo>", mathMl, StringComparison.Ordinal);
+            Assert.Contains("<mo>∑</mo>", mathMl, StringComparison.Ordinal);
             Assert.Contains("<mo>|</mo>", mathMl, StringComparison.Ordinal);
             Assert.Contains("<mo>│</mo>", mathMl, StringComparison.Ordinal);
 
             string field = equation.ToEquationFieldInstruction();
             Assert.Contains("\\o(x,̂)", field, StringComparison.Ordinal);
-            Assert.Contains("\\i(i,n,z)", field, StringComparison.Ordinal);
+            Assert.Contains("\\i\\su(i,n,z)", field, StringComparison.Ordinal);
             Assert.Contains("(a|b)", field, StringComparison.Ordinal);
             Assert.Contains("(c│d)", field, StringComparison.Ordinal);
             Assert.Contains("(ef)", field, StringComparison.Ordinal);
+            Assert.Equal("∑", equation.ToExpression().Children[2].Character);
         }
 
         [Fact]

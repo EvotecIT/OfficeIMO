@@ -245,7 +245,7 @@ namespace OfficeIMO.Word {
         private static string ReadNaryOperatorText(OpenXmlElement element) {
             if (element.LocalName == "int") return "int";
             MathCharacter character = ReadCharacter(element, "chr");
-            if (!character.Present) return "int";
+            if (!character.Present) return "sum";
             return character.Value switch {
                 "\u2211" => "sum",
                 "\u220F" => "prod",
