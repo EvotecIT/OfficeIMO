@@ -179,6 +179,7 @@ jobs:
           New-Item -ItemType Directory -Force -Path $feed | Out-Null
           $projects = @(
             'OfficeIMO.Drawing/OfficeIMO.Drawing.csproj',
+            'OfficeIMO.Email/OfficeIMO.Email.csproj',
             'OfficeIMO.Reader/OfficeIMO.Reader.csproj',
             'OfficeIMO.OneNote/OfficeIMO.OneNote.csproj',
             'OfficeIMO.OneNote.Markdown/OfficeIMO.OneNote.Markdown.csproj',
@@ -203,6 +204,7 @@ jobs:
           }
           $packageIds = @(
             'OfficeIMO.Drawing',
+            'OfficeIMO.Email',
             'OfficeIMO.Reader',
             'OfficeIMO.OneNote',
             'OfficeIMO.OneNote.Markdown',

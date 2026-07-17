@@ -53,11 +53,16 @@ internal sealed partial class PstStoreWriterCore : IDisposable {
         _nodes = new PstWriterNodeJournal(string.Concat(_temporaryPath, ".nodes"));
         _items = new PstWriterItemJournal(_temporaryPath);
         _file = new PstWriterFile(_temporaryPath);
-        AddSystemFolder(RootFolderNid, RootFolderNid, "Root - Mailbox", null, false);
-        AddSystemFolder(IpmSubtreeNid, RootFolderNid, "Top of Personal Folders", "IPF.Note", false);
-        AddSystemFolder(SearchRootNid, RootFolderNid, "Finder", null, false);
-        AddSystemFolder(DeletedItemsNid, IpmSubtreeNid, "Deleted Items", "IPF.Note", false);
-        AddSystemFolder(SpamSearchFolderNid, RootFolderNid, "SPAM Search Folder 2", "IPF.Note", true);
+        AddSystemFolder(RootFolderNid, RootFolderNid, "Root - Mailbox", null, false,
+            EmailStoreSpecialFolderKind.Root);
+        AddSystemFolder(IpmSubtreeNid, RootFolderNid, "Top of Personal Folders", "IPF.Note", false,
+            EmailStoreSpecialFolderKind.IpmSubtree);
+        AddSystemFolder(SearchRootNid, RootFolderNid, "Finder", null, false,
+            EmailStoreSpecialFolderKind.SearchRoot);
+        AddSystemFolder(DeletedItemsNid, IpmSubtreeNid, "Deleted Items", "IPF.Note", false,
+            EmailStoreSpecialFolderKind.DeletedItems);
+        AddSystemFolder(SpamSearchFolderNid, RootFolderNid, "SPAM Search Folder 2", "IPF.Note", true,
+            EmailStoreSpecialFolderKind.Unknown);
         ReportProgress(EmailStorePstWriteStage.Initializing);
     }
 
@@ -85,6 +90,7 @@ internal sealed partial class PstStoreWriterCore : IDisposable {
     }
 
     internal string RootFolderId => FormatId(IpmSubtreeNid);
+    internal string MessageStoreRootFolderId => FormatId(RootFolderNid);
     internal string DeletedItemsFolderId => FormatId(DeletedItemsNid);
     internal string SearchRootFolderId => FormatId(SearchRootNid);
     internal string SpamSearchFolderId => FormatId(SpamSearchFolderNid);
@@ -92,15 +98,27 @@ internal sealed partial class PstStoreWriterCore : IDisposable {
     internal static bool IsWriterOwnedSearchFolderId(string id) => string.Equals(
         id, FormatId(SpamSearchFolderNid), StringComparison.Ordinal);
 
-    internal string AddFolder(string name, string? parentFolderId, string? containerClass) {
+    internal string AddFolder(string name, string? parentFolderId, string? containerClass,
+        EmailStoreSpecialFolderKind specialFolderKind) {
         ThrowIfUnavailable();
         if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("A folder name is required.", nameof(name));
         if (_userFolderCount >= _options.MaxFolderCount) {
             throw new InvalidOperationException("The configured PST folder limit has been reached.");
         }
+        if (specialFolderKind != EmailStoreSpecialFolderKind.Unknown) {
+            if (!CanAssignUserSpecialFolder(specialFolderKind)) {
+                throw new ArgumentOutOfRangeException(nameof(specialFolderKind),
+                    "The managed PST writer cannot assign this well-known role to a user folder.");
+            }
+            if (_folders.Values.Any(folder => folder.SpecialFolderKind == specialFolderKind)) {
+                throw new InvalidOperationException(
+                    "The PST writer already contains a folder with the requested well-known role.");
+            }
+        }
         uint parentNid = parentFolderId == null ? IpmSubtreeNid : ParseFolderId(parentFolderId);
         uint nid = AllocateNid(ref _nextFolderIndex, 0x02);
-        _folders.Add(nid, new FolderState(nid, parentNid, name.Trim(), containerClass, false));
+        _folders.Add(nid, new FolderState(nid, parentNid, name.Trim(), containerClass, false,
+            specialFolderKind));
         _userFolderCount++;
         ReportProgress(EmailStorePstWriteStage.WritingFolders);
         return FormatId(nid);
@@ -196,9 +214,34 @@ internal sealed partial class PstStoreWriterCore : IDisposable {
         }
     }
 
+    internal static bool SupportsSpecialFolderKind(EmailStoreSpecialFolderKind kind) =>
+        kind == EmailStoreSpecialFolderKind.Root ||
+        kind == EmailStoreSpecialFolderKind.IpmSubtree ||
+        kind == EmailStoreSpecialFolderKind.Inbox ||
+        kind == EmailStoreSpecialFolderKind.Outbox ||
+        kind == EmailStoreSpecialFolderKind.SentItems ||
+        kind == EmailStoreSpecialFolderKind.DeletedItems ||
+        kind == EmailStoreSpecialFolderKind.Drafts ||
+        kind == EmailStoreSpecialFolderKind.Calendar ||
+        kind == EmailStoreSpecialFolderKind.Contacts ||
+        kind == EmailStoreSpecialFolderKind.Tasks ||
+        kind == EmailStoreSpecialFolderKind.Notes ||
+        kind == EmailStoreSpecialFolderKind.Journal ||
+        kind == EmailStoreSpecialFolderKind.SearchRoot ||
+        kind == EmailStoreSpecialFolderKind.CommonViews ||
+        kind == EmailStoreSpecialFolderKind.PersonalViews;
+
+    internal static bool CanAssignUserSpecialFolder(EmailStoreSpecialFolderKind kind) =>
+        SupportsSpecialFolderKind(kind) &&
+        kind != EmailStoreSpecialFolderKind.Root &&
+        kind != EmailStoreSpecialFolderKind.IpmSubtree &&
+        kind != EmailStoreSpecialFolderKind.DeletedItems &&
+        kind != EmailStoreSpecialFolderKind.SearchRoot;
+
     private void AddSystemFolder(uint nid, uint parentNid, string name,
-        string? containerClass, bool search) =>
-        _folders.Add(nid, new FolderState(nid, parentNid, name, containerClass, search));
+        string? containerClass, bool search, EmailStoreSpecialFolderKind specialFolderKind) =>
+        _folders.Add(nid, new FolderState(nid, parentNid, name, containerClass, search,
+            specialFolderKind));
 
     private uint ParseFolderId(string value) {
         if (value == null || value.Length != 12 ||
@@ -246,18 +289,21 @@ internal sealed partial class PstStoreWriterCore : IDisposable {
 
     private sealed class FolderState {
         internal FolderState(uint nid, uint parentNid, string name,
-            string? containerClass, bool isSearchFolder) {
+            string? containerClass, bool isSearchFolder,
+            EmailStoreSpecialFolderKind specialFolderKind) {
             Nid = nid;
             ParentNid = parentNid;
             Name = name;
             ContainerClass = containerClass;
             IsSearchFolder = isSearchFolder;
+            SpecialFolderKind = specialFolderKind;
         }
         internal uint Nid { get; }
         internal uint ParentNid { get; }
         internal string Name { get; }
         internal string? ContainerClass { get; }
         internal bool IsSearchFolder { get; }
+        internal EmailStoreSpecialFolderKind SpecialFolderKind { get; }
         internal int NormalItemCount { get; set; }
         internal int AssociatedItemCount { get; set; }
         internal int UnreadItemCount { get; set; }

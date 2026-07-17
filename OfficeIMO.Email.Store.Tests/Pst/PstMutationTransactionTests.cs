@@ -81,6 +81,99 @@ public sealed class PstMutationTransactionTests {
     }
 
     [Fact]
+    public void MutationPreservesStandardSpecialFolderIdentityAndDistinctRoots() {
+        string path = TemporaryPstPath();
+        try {
+            using (EmailStorePstWriter writer = EmailStorePstWriter.Create(path)) {
+                writer.AddFolder("Inbox source", containerClass: "IPF.Note",
+                    specialFolderKind: EmailStoreSpecialFolderKind.Inbox);
+                writer.AddFolder("Sent source", containerClass: "IPF.Note",
+                    specialFolderKind: EmailStoreSpecialFolderKind.SentItems);
+                writer.AddFolder("Outbox source", containerClass: "IPF.Note",
+                    specialFolderKind: EmailStoreSpecialFolderKind.Outbox);
+                writer.AddFolder("Calendar source", containerClass: "IPF.Appointment",
+                    specialFolderKind: EmailStoreSpecialFolderKind.Calendar);
+                writer.AddFolder("Contacts source", containerClass: "IPF.Contact",
+                    specialFolderKind: EmailStoreSpecialFolderKind.Contacts);
+                writer.Complete();
+            }
+
+            using (var transaction = EmailStorePstMutationTransaction.Open(path)) {
+                EmailStorePstMutationFolder inbox = Assert.Single(transaction.Folders,
+                    folder => folder.SpecialFolderKind == EmailStoreSpecialFolderKind.Inbox);
+                string rootId = Assert.Single(transaction.Folders,
+                    folder => folder.SpecialFolderKind == EmailStoreSpecialFolderKind.Root).Id;
+                string ipmSubtreeId = Assert.Single(transaction.Folders,
+                    folder => folder.SpecialFolderKind == EmailStoreSpecialFolderKind.IpmSubtree).Id;
+                transaction.RenameFolder(inbox.Id, "Renamed but still Inbox");
+                EmailStorePstMutationReport report = transaction.Commit();
+
+                Assert.True(report.Verification?.IsSuccessful);
+                Assert.NotEqual(report.FolderIdMap[rootId], report.FolderIdMap[ipmSubtreeId]);
+            }
+
+            using EmailStoreSession session = EmailStoreSession.Open(path);
+            foreach (EmailStoreSpecialFolderKind role in new[] {
+                EmailStoreSpecialFolderKind.Inbox,
+                EmailStoreSpecialFolderKind.SentItems,
+                EmailStoreSpecialFolderKind.Outbox,
+                EmailStoreSpecialFolderKind.Calendar,
+                EmailStoreSpecialFolderKind.Contacts
+            }) {
+                EmailStoreFolderInfo folder = Assert.Single(session.Folders,
+                    candidate => candidate.SpecialFolderKind == role);
+                Assert.Equal(EmailStoreFolderClassificationSource.SourceIdentifier,
+                    folder.ClassificationSource);
+            }
+            Assert.Equal("Renamed but still Inbox", Assert.Single(session.Folders,
+                folder => folder.SpecialFolderKind == EmailStoreSpecialFolderKind.Inbox).Name);
+            Assert.NotEqual(
+                Assert.Single(session.Folders, folder =>
+                    folder.SpecialFolderKind == EmailStoreSpecialFolderKind.Root).Id,
+                Assert.Single(session.Folders, folder =>
+                    folder.SpecialFolderKind == EmailStoreSpecialFolderKind.IpmSubtree).Id);
+        } finally {
+            TryDelete(path);
+        }
+    }
+
+    [Fact]
+    public void MutationLockRejectsASecondOfficeIMOTransactionForTheSamePath() {
+        string path = TemporaryPstPath();
+        try {
+            CreateSource(path);
+            using (EmailStorePstMutationTransaction first = EmailStorePstMutationTransaction.Open(path)) {
+                IOException exception = Assert.Throws<IOException>(() =>
+                    EmailStorePstMutationTransaction.Open(path));
+                Assert.Contains("already owns", exception.Message, StringComparison.OrdinalIgnoreCase);
+            }
+            using EmailStorePstMutationTransaction reopened = EmailStorePstMutationTransaction.Open(path);
+            Assert.NotEmpty(reopened.Folders);
+        } finally {
+            TryDelete(path);
+        }
+    }
+
+    [Fact]
+    public void WriterOwnedSearchFolderRejectsAddedAndMovedItemsBeforeCommit() {
+        string path = TemporaryPstPath();
+        try {
+            CreateSource(path);
+            using EmailStorePstMutationTransaction transaction =
+                EmailStorePstMutationTransaction.Open(path);
+            string searchFolder = Assert.Single(transaction.Folders,
+                folder => folder.Name == "SPAM Search Folder 2").Id;
+            string item = transaction.EnumerateItems().First().Id;
+
+            Assert.Throws<InvalidOperationException>(() => transaction.AddItem(
+                searchFolder, new EmailDocument { Subject = "Not searchable" }));
+            Assert.Throws<InvalidOperationException>(() => transaction.MoveItem(item, searchFolder));
+        } finally {
+            TryDelete(path);
+        }
+    }
+
+    [Fact]
     public void Disposing_uncommitted_transaction_leaves_source_bytes_unchanged() {
         string path = TemporaryPstPath();
         try {

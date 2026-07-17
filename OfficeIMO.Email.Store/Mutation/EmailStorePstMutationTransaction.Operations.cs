@@ -107,7 +107,7 @@ public sealed partial class EmailStorePstMutationTransaction {
         CancellationToken cancellationToken = default) {
         if (document == null) throw new ArgumentNullException(nameof(document));
         ThrowIfUnavailable();
-        GetFolder(folderId);
+        EnsureWritableItemFolder(GetFolder(folderId));
         EnsureItemsIndexed(cancellationToken);
         int activeItems = _items!.Values.Count(item => !item.Deleted);
         if (activeItems >= _options.MaxItemCount) {
@@ -137,7 +137,7 @@ public sealed partial class EmailStorePstMutationTransaction {
     public void MoveItem(string itemId, string destinationFolderId,
         CancellationToken cancellationToken = default) {
         ThrowIfUnavailable();
-        GetFolder(destinationFolderId);
+        EnsureWritableItemFolder(GetFolder(destinationFolderId));
         ItemState item = GetItem(itemId, cancellationToken);
         item.FolderId = destinationFolderId;
     }
@@ -155,5 +155,12 @@ public sealed partial class EmailStorePstMutationTransaction {
         ThrowIfUnavailable();
         ItemState item = GetItem(itemId, cancellationToken);
         item.Deleted = true;
+    }
+
+    private static void EnsureWritableItemFolder(FolderState folder) {
+        if (folder.IsMappedSystemFolder) {
+            throw new InvalidOperationException(
+                "Items cannot be added or moved into the writer-owned search folder.");
+        }
     }
 }

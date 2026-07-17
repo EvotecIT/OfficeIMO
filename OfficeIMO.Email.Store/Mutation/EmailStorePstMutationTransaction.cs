@@ -13,6 +13,7 @@ public sealed partial class EmailStorePstMutationTransaction : IDisposable {
     private readonly DateTime _sourceLastWriteTimeUtc;
     private readonly Dictionary<string, FolderState> _folders;
     private readonly List<EmailStoreDiagnostic> _diagnostics;
+    private PstMutationTransactionLock? _transactionLock;
     private EmailStoreSession? _source;
     private Dictionary<string, ItemState>? _items;
     private bool _committed;
@@ -20,7 +21,7 @@ public sealed partial class EmailStorePstMutationTransaction : IDisposable {
 
     private EmailStorePstMutationTransaction(string sourcePath,
         EmailStorePstMutationOptions options, EmailStoreSession source,
-        FileInfo sourceFile) {
+        FileInfo sourceFile, PstMutationTransactionLock transactionLock) {
         _sourcePath = sourcePath;
         _options = options;
         _source = source;
@@ -29,6 +30,7 @@ public sealed partial class EmailStorePstMutationTransaction : IDisposable {
         _folders = source.Folders.ToDictionary(folder => folder.Id,
             folder => new FolderState(folder), StringComparer.Ordinal);
         _diagnostics = new List<EmailStoreDiagnostic>(source.Diagnostics);
+        _transactionLock = transactionLock;
         RootFolderId = ResolveRootFolderId(source.Folders);
     }
 
@@ -61,7 +63,9 @@ public sealed partial class EmailStorePstMutationTransaction : IDisposable {
             maxNestedMessageDepth: effective.MaxNestedMessageDepth);
         EmailStoreSession? source = null;
         FileStream? input = null;
+        PstMutationTransactionLock? transactionLock = null;
         try {
+            transactionLock = PstMutationTransactionLock.Acquire(sourcePath);
             input = new FileStream(sourcePath, FileMode.Open, FileAccess.Read, FileShare.Read,
                 64 * 1024, FileOptions.RandomAccess);
             PstHeader header = PstHeader.Read(input, EmailStoreFormat.Pst);
@@ -87,10 +91,14 @@ public sealed partial class EmailStorePstMutationTransaction : IDisposable {
                     source.Folders.Count, effective.MaxFolderCount);
             }
             var sourceFile = new FileInfo(sourcePath);
-            return new EmailStorePstMutationTransaction(sourcePath, effective, source, sourceFile);
+            var transaction = new EmailStorePstMutationTransaction(
+                sourcePath, effective, source, sourceFile, transactionLock);
+            transactionLock = null;
+            return transaction;
         } catch {
             source?.Dispose();
             input?.Dispose();
+            transactionLock?.Dispose();
             throw;
         }
     }
@@ -139,6 +147,8 @@ public sealed partial class EmailStorePstMutationTransaction : IDisposable {
         _disposed = true;
         _source?.Dispose();
         _source = null;
+        _transactionLock?.Dispose();
+        _transactionLock = null;
     }
 
     private static string ResolveRootFolderId(IReadOnlyList<EmailStoreFolderInfo> folders) {
@@ -218,6 +228,7 @@ public sealed partial class EmailStorePstMutationTransaction : IDisposable {
             OriginalName = folder.Name;
             ContainerClass = folder.ContainerClass;
             SpecialFolderKind = folder.SpecialFolderKind;
+            ClassificationSource = folder.ClassificationSource;
             IsSearchFolder = folder.IsSearchFolder;
             IsMappedSystemFolder = folder.IsSearchFolder &&
                 PstStoreWriterCore.IsWriterOwnedSearchFolderId(folder.Id);
@@ -239,6 +250,7 @@ public sealed partial class EmailStorePstMutationTransaction : IDisposable {
         internal string OriginalName { get; }
         internal string? ContainerClass { get; }
         internal EmailStoreSpecialFolderKind SpecialFolderKind { get; }
+        internal EmailStoreFolderClassificationSource ClassificationSource { get; }
         internal bool IsSearchFolder { get; }
         internal bool IsMappedSystemFolder { get; set; }
         internal bool Deleted { get; set; }

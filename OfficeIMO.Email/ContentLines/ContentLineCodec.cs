@@ -1,15 +1,22 @@
 namespace OfficeIMO.Email;
 
+internal enum ContentLineParameterEncoding {
+    Rfc6868,
+    LegacyVCard
+}
+
 internal static class ContentLineCodec {
-    internal static IReadOnlyList<ContentLineComponent> Parse(byte[] bytes, ContentLineReaderOptions options) {
+    internal static IReadOnlyList<ContentLineComponent> Parse(byte[] bytes, ContentLineReaderOptions options,
+        bool decodeRfc6868Parameters = true) {
         if (bytes == null) throw new ArgumentNullException(nameof(bytes));
         if (options == null) throw new ArgumentNullException(nameof(options));
         if (bytes.LongLength > options.MaxInputBytes)
             throw new InvalidDataException("The content-line document exceeds the configured byte limit.");
-        return Parse(options.Encoding.GetString(bytes), options);
+        return Parse(options.Encoding.GetString(bytes), options, decodeRfc6868Parameters);
     }
 
-    internal static IReadOnlyList<ContentLineComponent> Parse(string text, ContentLineReaderOptions options) {
+    internal static IReadOnlyList<ContentLineComponent> Parse(string text, ContentLineReaderOptions options,
+        bool decodeRfc6868Parameters = true) {
         if (text == null) throw new ArgumentNullException(nameof(text));
         if (options == null) throw new ArgumentNullException(nameof(options));
         if (options.Encoding.GetByteCount(text) > options.MaxInputBytes)
@@ -22,7 +29,7 @@ internal static class ContentLineCodec {
             int propertyCount = 0;
             foreach (string line in Unfold(text, options)) {
                 if (line.Length == 0) continue;
-                ContentLineProperty property = ParseProperty(line);
+                ContentLineProperty property = ParseProperty(line, decodeRfc6868Parameters);
                 if (property.Group == null && string.Equals(property.Name, "BEGIN", StringComparison.OrdinalIgnoreCase)) {
                     string name = ContentLineSyntax.RequireToken(property.Value, "componentName");
                     if (++componentCount > options.MaxComponents)
@@ -55,13 +62,17 @@ internal static class ContentLineCodec {
         }
     }
 
-    internal static byte[] Serialize(IEnumerable<ContentLineComponent> components, ContentLineWriterOptions options) {
+    internal static byte[] Serialize(IEnumerable<ContentLineComponent> components, ContentLineWriterOptions options,
+        Func<ContentLineComponent, ContentLineParameterEncoding>? parameterEncoding = null) {
         if (components == null) throw new ArgumentNullException(nameof(components));
         if (options == null) throw new ArgumentNullException(nameof(options));
         var output = new StringBuilder();
         long outputBytes = 0;
-        foreach (ContentLineComponent component in components)
-            WriteComponent(output, component, options, 1, ref outputBytes);
+        foreach (ContentLineComponent component in components) {
+            ContentLineParameterEncoding encoding = parameterEncoding?.Invoke(component) ??
+                ContentLineParameterEncoding.Rfc6868;
+            WriteComponent(output, component, options, encoding, 1, ref outputBytes);
+        }
         byte[] bytes = options.Encoding.GetBytes(output.ToString());
         if (bytes.LongLength > options.MaxOutputBytes)
             throw new InvalidDataException("The content-line document exceeds the configured output byte limit.");
@@ -88,7 +99,8 @@ internal static class ContentLineCodec {
                 string continuation = physical.Length > 0 && (physical[0] == ' ' || physical[0] == '\t')
                     ? physical.Substring(1)
                     : physical;
-                AppendUnfolded(current, "\r\n", ref currentBytes, options.MaxUnfoldedLineBytes);
+                current.Length--;
+                currentBytes--;
                 AppendUnfolded(current, continuation, ref currentBytes, options.MaxUnfoldedLineBytes);
             } else if (physical.Length > 0 && (physical[0] == ' ' || physical[0] == '\t') && current != null)
                 AppendUnfolded(current, physical.Substring(1), ref currentBytes,
@@ -121,7 +133,7 @@ internal static class ContentLineCodec {
             header.IndexOf("ENCODING=QP", StringComparison.OrdinalIgnoreCase) >= 0;
     }
 
-    private static ContentLineProperty ParseProperty(string line) {
+    private static ContentLineProperty ParseProperty(string line, bool decodeRfc6868Parameters) {
         int colon = FindDelimiter(line, ':');
         if (colon <= 0) throw new InvalidDataException("A content line does not contain a property/value delimiter.");
         string[] segments = SplitDelimited(line.Substring(0, colon), ';').ToArray();
@@ -144,7 +156,7 @@ internal static class ContentLineCodec {
             var parameter = new ContentLineParameter(segment.Substring(0, equals));
             foreach (string value in SplitDelimited(segment.Substring(equals + 1), ',')) {
                 bool quoted = value.Length >= 2 && value[0] == '"' && value[value.Length - 1] == '"';
-                parameter.Values.Add(DecodeParameter(Unquote(value), quoted));
+                parameter.Values.Add(DecodeParameter(Unquote(value), quoted, decodeRfc6868Parameters));
             }
             property.Parameters.Add(parameter);
         }
@@ -152,19 +164,21 @@ internal static class ContentLineCodec {
     }
 
     private static void WriteComponent(StringBuilder output, ContentLineComponent component,
-        ContentLineWriterOptions options, int depth, ref long outputBytes) {
+        ContentLineWriterOptions options, ContentLineParameterEncoding parameterEncoding,
+        int depth, ref long outputBytes) {
         if (component == null) throw new InvalidDataException("A null content-line component cannot be serialized.");
         if (depth > 256) throw new InvalidDataException("The content-line component graph is too deeply nested.");
         string name = ContentLineSyntax.RequireToken(component.Name, nameof(component.Name));
         AppendFolded(output, new[] { "BEGIN:", name }, options, ref outputBytes);
         foreach (ContentLineProperty property in component.Properties)
-            AppendFolded(output, GetPropertyParts(property), options, ref outputBytes);
+            AppendFolded(output, GetPropertyParts(property, parameterEncoding), options, ref outputBytes);
         foreach (ContentLineComponent child in component.Components)
-            WriteComponent(output, child, options, depth + 1, ref outputBytes);
+            WriteComponent(output, child, options, parameterEncoding, depth + 1, ref outputBytes);
         AppendFolded(output, new[] { "END:", name }, options, ref outputBytes);
     }
 
-    private static IEnumerable<string> GetPropertyParts(ContentLineProperty property) {
+    private static IEnumerable<string> GetPropertyParts(ContentLineProperty property,
+        ContentLineParameterEncoding parameterEncoding) {
         if (property == null) throw new InvalidDataException("A null content-line property cannot be serialized.");
         if (!string.IsNullOrEmpty(property.Group)) {
             yield return ContentLineSyntax.RequireToken(property.Group!, nameof(property.Group));
@@ -178,7 +192,7 @@ internal static class ContentLineCodec {
             yield return "=";
             for (int index = 0; index < parameter.Values.Count; index++) {
                 if (index > 0) yield return ",";
-                yield return EncodeParameter(parameter.Values[index] ?? string.Empty);
+                yield return EncodeParameter(parameter.Values[index] ?? string.Empty, parameterEncoding);
             }
         }
         yield return ":";
@@ -254,7 +268,8 @@ internal static class ContentLineCodec {
         return (backslashes & 1) != 0;
     }
 
-    private static string DecodeParameter(string value, bool decodeLegacyQuotedBackslashes) {
+    private static string DecodeParameter(string value, bool decodeLegacyQuotedBackslashes,
+        bool decodeRfc6868Parameters) {
         var result = new StringBuilder(value.Length);
         for (int index = 0; index < value.Length; index++) {
             if (decodeLegacyQuotedBackslashes && value[index] == '\\' && index + 1 < value.Length) {
@@ -265,7 +280,10 @@ internal static class ContentLineCodec {
                     continue;
                 }
             }
-            if (value[index] != '^' || index + 1 >= value.Length) { result.Append(value[index]); continue; }
+            if (!decodeRfc6868Parameters || value[index] != '^' || index + 1 >= value.Length) {
+                result.Append(value[index]);
+                continue;
+            }
             char next = value[index + 1];
             if (next == '^') { result.Append('^'); index++; }
             else if (next == 'n' || next == 'N') { result.Append('\n'); index++; }
@@ -275,7 +293,29 @@ internal static class ContentLineCodec {
         return result.ToString();
     }
 
-    private static string EncodeParameter(string value) {
+    internal static void DecodeRfc6868Parameters(ContentLineComponent component) {
+        foreach (ContentLineProperty property in component.Properties) {
+            foreach (ContentLineParameter parameter in property.Parameters) {
+                for (int index = 0; index < parameter.Values.Count; index++) {
+                    parameter.Values[index] = DecodeParameter(parameter.Values[index] ?? string.Empty,
+                        decodeLegacyQuotedBackslashes: false, decodeRfc6868Parameters: true);
+                }
+            }
+        }
+        foreach (ContentLineComponent child in component.Components)
+            DecodeRfc6868Parameters(child);
+    }
+
+    private static string EncodeParameter(string value, ContentLineParameterEncoding parameterEncoding) {
+        if (parameterEncoding == ContentLineParameterEncoding.LegacyVCard) {
+            if (value.IndexOfAny(new[] { '\r', '\n', '"' }) >= 0) {
+                throw new InvalidDataException(
+                    "A vCard 2.1/3.0 parameter contains a quote or line break that legacy syntax cannot represent.");
+            }
+            bool legacyQuote = value.IndexOfAny(new[] { ':', ';', ',' }) >= 0 ||
+                (value.Length > 0 && (char.IsWhiteSpace(value[0]) || char.IsWhiteSpace(value[value.Length - 1])));
+            return legacyQuote ? "\"" + value + "\"" : value;
+        }
         string encoded = value.Replace("^", "^^").Replace("\r\n", "^n").Replace("\r", "^n")
             .Replace("\n", "^n").Replace("\"", "^'");
         bool quote = encoded.IndexOfAny(new[] { ':', ';', ',' }) >= 0 ||

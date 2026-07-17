@@ -42,6 +42,10 @@ public sealed class EmailStorePstWriter : IDisposable {
     public static void DeleteCheckpoint(string checkpointPath) =>
         PstStoreWriterCore.DeleteCheckpoint(checkpointPath);
 
+    /// <summary>Returns whether a user-created folder can receive this standard EntryID-backed role.</summary>
+    public static bool CanAssignSpecialFolderKind(EmailStoreSpecialFolderKind specialFolderKind) =>
+        PstStoreWriterCore.CanAssignUserSpecialFolder(specialFolderKind);
+
     /// <summary>Configured durable checkpoint path, or null when resumability is disabled.</summary>
     public string? CheckpointPath {
         get { ThrowIfUnavailable(); return _core.CheckpointPath; }
@@ -60,15 +64,23 @@ public sealed class EmailStorePstWriter : IDisposable {
         get { ThrowIfUnavailable(); return _core.SearchRootFolderId; }
     }
 
+    internal string MessageStoreRootFolderId {
+        get { ThrowIfUnavailable(); return _core.MessageStoreRootFolderId; }
+    }
+
     internal string SpamSearchFolderId {
         get { ThrowIfUnavailable(); return _core.SpamSearchFolderId; }
     }
 
-    /// <summary>Adds a folder. A null parent places it under <see cref="RootFolderId"/>.</summary>
+    /// <summary>
+    /// Adds a folder. A null parent places it under <see cref="RootFolderId"/>. Standard Outlook default-folder
+    /// identity can be assigned for roles supported by the managed writer.
+    /// </summary>
     public string AddFolder(string name, string? parentFolderId = null,
-        string? containerClass = null) {
+        string? containerClass = null,
+        EmailStoreSpecialFolderKind specialFolderKind = EmailStoreSpecialFolderKind.Unknown) {
         ThrowIfUnavailable();
-        return _core.AddFolder(name, parentFolderId, containerClass);
+        return _core.AddFolder(name, parentFolderId, containerClass, specialFolderKind);
     }
 
     /// <summary>Writes one message or typed Outlook item into a folder.</summary>

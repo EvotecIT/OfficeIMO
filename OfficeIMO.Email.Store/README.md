@@ -255,7 +255,9 @@ EmailStorePstWriteReport report = writer.Complete();
 The writer owns Unicode NDB allocation and indexes, Heap-on-Node property and table contexts, folders, ordinary
 and associated items, recipients, attachments, embedded messages, named properties, and fixed or variable
 multi-valued MAPI properties. It reuses `OfficeIMO.Email` item projection so appointments, contacts, tasks,
-journals, notes, and messages do not acquire a PST-only property model.
+journals, notes, and messages do not acquire a PST-only property model. `AddFolder` can assign supported standard
+roles such as Inbox, Sent Items, Outbox, Calendar, Contacts, Tasks, Drafts, and view folders; the writer emits their
+store/default-folder EntryID properties so readers and Outlook do not have to guess from localized display names.
 
 Set `failOnDataLoss: true` when a warning should prevent the final commit. Examples include an attachment whose
 payload was not retained, structured-storage metadata without its original compound payload, or a named property
@@ -315,14 +317,18 @@ string rewrittenItemId = mutationReport.ItemIdMap[newItem];
 The transaction can create, rename, move, and recursively delete non-mandatory folders; add, replace, move, and
 delete items; and move items between normal and associated contents. Disposing without `Commit()` leaves the source
 byte-for-byte unchanged. A no-op commit does not rewrite it. The transaction also detects source length or timestamp
-changes before replacement.
+changes before replacement. It holds both the source read lock and a path-scoped cross-process OfficeIMO mutation
+lock through staging and replacement. The final replacement remains an atomic filesystem operation; software that
+does not participate in the OfficeIMO lock must coordinate its own simultaneous replacement of the same path.
 
 This is a verified semantic rewrite, not in-place NDB allocation-map editing. PST folder and item identifiers change,
 so the report returns old/transaction-local to rewritten ID mappings. ANSI PST and OST inputs are rejected. Mandatory
 folders cannot be renamed, moved, or deleted. Dynamic search-folder definitions cannot be regenerated; unsupported
 search or writer fidelity is a blocking diagnostic while `failOnDataLoss` remains at its safe default. Applications
 may opt into a known lossy static projection with `failOnDataLoss: false`, but verification of the resulting semantic
-contents remains enabled unless explicitly disabled.
+contents remains enabled unless explicitly disabled. Standard source-identified default-folder roles are rewritten
+and verified as EntryID-backed roles, not merely as matching names. Items cannot be added or moved into the
+writer-owned search folder because its contents are computed rather than authored as ordinary rows.
 
 ## Convert OST or another store to a new PST
 

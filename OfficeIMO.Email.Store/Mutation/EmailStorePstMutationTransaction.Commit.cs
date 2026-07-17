@@ -116,12 +116,15 @@ public sealed partial class EmailStorePstMutationTransaction {
                 (!string.Equals(item.FolderId, item.OriginalFolderId, StringComparison.Ordinal) ||
                  item.IsAssociated != item.OriginalIsAssociated));
             int deletedItems = _items.Values.Count(item => !item.IsCreated && item.Deleted);
-            return new EmailStorePstMutationReport(_sourcePath, committedBackupPath,
+            var report = new EmailStorePstMutationReport(_sourcePath, committedBackupPath,
                 writeReport, verification, createdFolders, renamedFolders, movedFolders,
                 deletedFolders, addedItems, replacedItems, movedItems, deletedItems,
                 new ReadOnlyDictionary<string, string>(folderMap),
                 new ReadOnlyDictionary<string, string>(itemMap),
                 _diagnostics.AsReadOnly());
+            _transactionLock?.Dispose();
+            _transactionLock = null;
+            return report;
         } catch {
             Dispose();
             throw;
@@ -137,14 +140,17 @@ public sealed partial class EmailStorePstMutationTransaction {
         foreach (FolderState folder in _folders.Values.Where(folder => !folder.Deleted)) {
             if (folder.IsMappedSystemFolder) {
                 folderMap[folder.Id] = writer.SpamSearchFolderId;
-                folderParentMap[folder.Id] = writer.SearchRootFolderId;
+                folderParentMap[folder.Id] = writer.MessageStoreRootFolderId;
                 continue;
             }
             switch (folder.SpecialFolderKind) {
                 case EmailStoreSpecialFolderKind.Root:
+                    folderMap[folder.Id] = writer.MessageStoreRootFolderId;
+                    folderParentMap[folder.Id] = null;
+                    break;
                 case EmailStoreSpecialFolderKind.IpmSubtree:
                     folderMap[folder.Id] = writer.RootFolderId;
-                    folderParentMap[folder.Id] = null;
+                    folderParentMap[folder.Id] = writer.MessageStoreRootFolderId;
                     break;
                 case EmailStoreSpecialFolderKind.DeletedItems:
                     folderMap[folder.Id] = writer.DeletedItemsFolderId;
@@ -152,7 +158,7 @@ public sealed partial class EmailStorePstMutationTransaction {
                     break;
                 case EmailStoreSpecialFolderKind.SearchRoot:
                     folderMap[folder.Id] = writer.SearchRootFolderId;
-                    folderParentMap[folder.Id] = writer.RootFolderId;
+                    folderParentMap[folder.Id] = writer.MessageStoreRootFolderId;
                     break;
             }
         }
@@ -167,7 +173,20 @@ public sealed partial class EmailStorePstMutationTransaction {
                 string parent;
                 if (folder.ParentId == null) parent = writer.RootFolderId;
                 else if (!folderMap.TryGetValue(folder.ParentId, out parent!)) continue;
-                folderMap[folder.Id] = writer.AddFolder(folder.Name, parent, folder.ContainerClass);
+                EmailStoreSpecialFolderKind role = PstStoreWriterCore.CanAssignUserSpecialFolder(
+                    folder.SpecialFolderKind)
+                        ? folder.SpecialFolderKind
+                        : EmailStoreSpecialFolderKind.Unknown;
+                if (folder.ClassificationSource == EmailStoreFolderClassificationSource.SourceIdentifier &&
+                    folder.SpecialFolderKind != EmailStoreSpecialFolderKind.Unknown &&
+                    !PstStoreWriterCore.SupportsSpecialFolderKind(folder.SpecialFolderKind)) {
+                    _diagnostics.Add(new EmailStoreDiagnostic(
+                        "EMAIL_STORE_PST_MUTATE_SPECIAL_FOLDER_UNSUPPORTED",
+                        "A source-identified special-folder role cannot be authored by the managed PST writer.",
+                        EmailStoreDiagnosticSeverity.Warning, folder.Id));
+                }
+                folderMap[folder.Id] = writer.AddFolder(
+                    folder.Name, parent, folder.ContainerClass, role);
                 folderParentMap[folder.Id] = parent;
                 if (folder.IsSearchFolder) {
                     _diagnostics.Add(new EmailStoreDiagnostic(
@@ -181,8 +200,12 @@ public sealed partial class EmailStorePstMutationTransaction {
         } while (progress && pending.Count > 0);
 
         foreach (FolderState folder in pending) {
+            EmailStoreSpecialFolderKind role = PstStoreWriterCore.CanAssignUserSpecialFolder(
+                folder.SpecialFolderKind)
+                    ? folder.SpecialFolderKind
+                    : EmailStoreSpecialFolderKind.Unknown;
             folderMap[folder.Id] = writer.AddFolder(folder.Name, writer.RootFolderId,
-                folder.ContainerClass);
+                folder.ContainerClass, role);
             folderParentMap[folder.Id] = writer.RootFolderId;
             _diagnostics.Add(new EmailStoreDiagnostic(
                 "EMAIL_STORE_PST_MUTATE_FOLDER_PARENT_RECOVERED",
@@ -230,11 +253,17 @@ public sealed partial class EmailStorePstMutationTransaction {
                 }
                 bool mandatoryAlias = folder.IsMandatory;
                 string? expectedParent = folderParentMap[folder.Id];
-                bool matches = mandatoryAlias ||
+                bool metadataMatches = mandatoryAlias ||
                     string.Equals(actual.Name, folder.Name, StringComparison.Ordinal) &&
                     string.Equals(actual.ParentId, expectedParent, StringComparison.Ordinal) &&
                     string.Equals(actual.ContainerClass, folder.ContainerClass,
                         StringComparison.OrdinalIgnoreCase);
+                bool verifySpecialRole = PstStoreWriterCore.SupportsSpecialFolderKind(
+                    folder.SpecialFolderKind);
+                bool specialRoleMatches = !verifySpecialRole ||
+                    actual.SpecialFolderKind == folder.SpecialFolderKind &&
+                    actual.ClassificationSource == EmailStoreFolderClassificationSource.SourceIdentifier;
+                bool matches = metadataMatches && specialRoleMatches;
                 if (matches) matchedFolders++;
                 else {
                     mismatchedFolders++;

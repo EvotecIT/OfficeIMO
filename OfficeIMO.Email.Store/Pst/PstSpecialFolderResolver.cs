@@ -23,6 +23,7 @@ internal sealed class PstSpecialFolderResolver {
 
         AddProperties(storeProperties, providerUid, knownFolderNids,
             (0x35E0, EmailStoreSpecialFolderKind.IpmSubtree),
+            (0x35E1, EmailStoreSpecialFolderKind.Inbox),
             (0x35E2, EmailStoreSpecialFolderKind.Outbox),
             (0x35E3, EmailStoreSpecialFolderKind.DeletedItems),
             (0x35E4, EmailStoreSpecialFolderKind.SentItems),

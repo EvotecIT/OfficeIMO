@@ -5,7 +5,7 @@ namespace OfficeIMO.Email.Store;
 
 internal sealed partial class PstStoreWriterCore {
     private static readonly byte[] CheckpointMagic = Encoding.ASCII.GetBytes("OIMOPSTC");
-    private const int CheckpointVersion = 1;
+    private const int CheckpointVersion = 2;
     private const long MaxCheckpointPayloadBytes = 128L * 1024 * 1024;
 
     internal string? CheckpointPath => _options.CheckpointPath;
@@ -135,6 +135,7 @@ internal sealed partial class PstStoreWriterCore {
             writer.Write(folder.Name);
             WriteNullableString(writer, folder.ContainerClass);
             writer.Write(folder.IsSearchFolder);
+            writer.Write((int)folder.SpecialFolderKind);
             writer.Write(folder.NormalItemCount);
             writer.Write(folder.AssociatedItemCount);
             writer.Write(folder.UnreadItemCount);
@@ -245,7 +246,8 @@ internal sealed partial class PstStoreWriterCore {
         }
         for (int index = 0; index < folderCount; index++) {
             var folder = new FolderState(reader.ReadUInt32(), reader.ReadUInt32(),
-                reader.ReadString(), ReadNullableString(reader), reader.ReadBoolean()) {
+                reader.ReadString(), ReadNullableString(reader), reader.ReadBoolean(),
+                ReadSpecialFolderKind(reader)) {
                 NormalItemCount = reader.ReadInt32(),
                 AssociatedItemCount = reader.ReadInt32(),
                 UnreadItemCount = reader.ReadInt32()
@@ -262,6 +264,14 @@ internal sealed partial class PstStoreWriterCore {
         }
         state.Validate();
         return state;
+    }
+
+    private static EmailStoreSpecialFolderKind ReadSpecialFolderKind(BinaryReader reader) {
+        int value = reader.ReadInt32();
+        if (!Enum.IsDefined(typeof(EmailStoreSpecialFolderKind), value)) {
+            throw new InvalidDataException("The PST writer checkpoint contains an invalid special-folder role.");
+        }
+        return (EmailStoreSpecialFolderKind)value;
     }
 
     private void ReportProgress(EmailStorePstWriteStage stage) {

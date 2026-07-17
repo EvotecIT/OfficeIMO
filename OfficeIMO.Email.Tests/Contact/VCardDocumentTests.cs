@@ -134,6 +134,58 @@ public sealed class VCardDocumentTests {
     }
 
     [Fact]
+    public void LegacyQuotedPrintableSoftBreakRoundTripsAsOneContentLine() {
+        const string source = "BEGIN:VCARD\r\nVERSION:2.1\r\n" +
+            "FN;CHARSET=UTF-8;ENCODING=QUOTED-PRINTABLE:Jos=C3=\r\n =A9\r\nEND:VCARD\r\n";
+
+        VCardDocument parsed = VCardDocument.Parse(source);
+        string serialized = parsed.Serialize();
+        VCardDocument reparsed = VCardDocument.Parse(serialized);
+
+        Assert.Equal("Jos=C3=A9", parsed.Cards.Single().GetFirstProperty("FN")!.Value);
+        Assert.Equal("Jos=C3=A9", reparsed.Cards.Single().GetFirstProperty("FN")!.Value);
+        Assert.DoesNotContain("=\r\n =A9", serialized, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ParameterEncodingIsVersionAwareAcrossLegacyAndV4Cards() {
+        const string source = "BEGIN:VCARD\r\nVERSION:3.0\r\n" +
+            "FN;X-LITERAL=alpha^nbeta:Legacy\r\nEND:VCARD\r\n" +
+            "BEGIN:VCARD\r\nVERSION:4.0\r\n" +
+            "FN;X-QUOTE=alpha^'beta:Modern\r\nEND:VCARD\r\n";
+
+        VCardDocument parsed = VCardDocument.Parse(source);
+        Assert.Equal("alpha^nbeta", parsed.Cards[0].GetFirstProperty("FN")!
+            .Parameters.Single().Values.Single());
+        Assert.Equal("alpha\"beta", parsed.Cards[1].GetFirstProperty("FN")!
+            .Parameters.Single().Values.Single());
+
+        string serialized = parsed.Serialize();
+        Assert.Contains("X-LITERAL=alpha^nbeta", serialized, StringComparison.Ordinal);
+        Assert.DoesNotContain("X-LITERAL=alpha^^nbeta", serialized, StringComparison.Ordinal);
+        Assert.Contains("X-QUOTE=alpha^'beta", serialized, StringComparison.Ordinal);
+
+        VCardDocument reparsed = VCardDocument.Parse(serialized);
+        Assert.Equal("alpha^nbeta", reparsed.Cards[0].GetFirstProperty("FN")!
+            .Parameters.Single().Values.Single());
+        Assert.Equal("alpha\"beta", reparsed.Cards[1].GetFirstProperty("FN")!
+            .Parameters.Single().Values.Single());
+    }
+
+    [Fact]
+    public void LegacyParameterWriterRejectsUnrepresentableQuotesAndLineBreaks() {
+        var quoted = new VCardDocument();
+        VCardDocument.SetVersion(quoted.Cards.Single(), VCardVersion.V3_0);
+        quoted.Cards.Single().AddProperty("FN", "Legacy").SetParameter("X-NAME", "a\"b");
+        var multiline = new VCardDocument();
+        VCardDocument.SetVersion(multiline.Cards.Single(), VCardVersion.V2_1);
+        multiline.Cards.Single().AddProperty("FN", "Legacy").SetParameter("X-NAME", "a\nb");
+
+        Assert.Throws<InvalidDataException>(() => quoted.Serialize());
+        Assert.Throws<InvalidDataException>(() => multiline.Serialize());
+    }
+
+    [Fact]
     public void ValidationAndSerializationRejectMissingOrMutatedCardRoots() {
         var empty = new VCardDocument();
         empty.Cards.Clear();

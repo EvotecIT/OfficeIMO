@@ -41,6 +41,47 @@ public sealed class PstWriterTests {
     }
 
     [Fact]
+    public void StandardSpecialFolderRolesRoundTripAsSourceIdentifiers() {
+        string path = TemporaryPstPath();
+        try {
+            Assert.True(EmailStorePstWriter.CanAssignSpecialFolderKind(EmailStoreSpecialFolderKind.Inbox));
+            Assert.False(EmailStorePstWriter.CanAssignSpecialFolderKind(EmailStoreSpecialFolderKind.JunkEmail));
+            var roles = new[] {
+                EmailStoreSpecialFolderKind.Inbox,
+                EmailStoreSpecialFolderKind.Outbox,
+                EmailStoreSpecialFolderKind.SentItems,
+                EmailStoreSpecialFolderKind.Drafts,
+                EmailStoreSpecialFolderKind.Calendar,
+                EmailStoreSpecialFolderKind.Contacts,
+                EmailStoreSpecialFolderKind.Tasks,
+                EmailStoreSpecialFolderKind.Notes,
+                EmailStoreSpecialFolderKind.Journal,
+                EmailStoreSpecialFolderKind.CommonViews,
+                EmailStoreSpecialFolderKind.PersonalViews
+            };
+            using (EmailStorePstWriter writer = EmailStorePstWriter.Create(path)) {
+                foreach (EmailStoreSpecialFolderKind role in roles) {
+                    writer.AddFolder(role + " custom name", containerClass: "IPF.Note",
+                        specialFolderKind: role);
+                }
+                Assert.Throws<InvalidOperationException>(() => writer.AddFolder(
+                    "Second Inbox", specialFolderKind: EmailStoreSpecialFolderKind.Inbox));
+                writer.Complete();
+            }
+
+            using EmailStoreSession session = EmailStoreSession.Open(path);
+            foreach (EmailStoreSpecialFolderKind role in roles) {
+                EmailStoreFolderInfo folder = Assert.Single(session.Folders,
+                    candidate => candidate.SpecialFolderKind == role);
+                Assert.Equal(EmailStoreFolderClassificationSource.SourceIdentifier,
+                    folder.ClassificationSource);
+            }
+        } finally {
+            TryDelete(path);
+        }
+    }
+
+    [Fact]
     public void Unmapped_named_property_is_preserved_under_a_diagnostic_placeholder_mapping() {
         string path = TemporaryPstPath();
         try {
@@ -340,7 +381,7 @@ public sealed class PstWriterTests {
             using (EmailStorePstWriter writer = EmailStorePstWriter.Create(path,
                 new EmailStorePstWriterOptions(checkpointPath: checkpoint,
                     checkpointIntervalItems: 1, progress: progress))) {
-                folderId = writer.AddFolder("Inbox");
+                folderId = writer.AddFolder("Inbox", specialFolderKind: EmailStoreSpecialFolderKind.Inbox);
                 writer.AddItem(folderId, new EmailDocument { Subject = "first" });
                 Assert.True(File.Exists(checkpoint));
             }
@@ -357,6 +398,10 @@ public sealed class PstWriterTests {
             Assert.DoesNotContain(Directory.EnumerateFiles(directory), file =>
                 !string.Equals(file, path, StringComparison.OrdinalIgnoreCase));
             using EmailStoreSession session = EmailStoreSession.Open(path);
+            Assert.Equal(EmailStoreFolderClassificationSource.SourceIdentifier,
+                Assert.Single(session.Folders,
+                    folder => folder.SpecialFolderKind == EmailStoreSpecialFolderKind.Inbox)
+                    .ClassificationSource);
             string[] subjects = session.EnumerateItems()
                 .Select(reference => session.ReadItem(reference).Document.Subject ?? string.Empty)
                 .OrderBy(value => value, StringComparer.Ordinal).ToArray();

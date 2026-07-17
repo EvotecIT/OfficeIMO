@@ -74,11 +74,13 @@ public sealed partial class VCardDocument {
 
     /// <summary>Parses a vCard stream from text.</summary>
     public static VCardDocument Parse(string text, ContentLineReaderOptions? options = null) =>
-        FromComponents(ContentLineCodec.Parse(text, options ?? ContentLineReaderOptions.Default));
+        FromComponents(ContentLineCodec.Parse(text, options ?? ContentLineReaderOptions.Default,
+            decodeRfc6868Parameters: false));
 
     /// <summary>Loads a vCard stream from memory.</summary>
     public static VCardDocument Load(byte[] bytes, ContentLineReaderOptions? options = null) =>
-        FromComponents(ContentLineCodec.Parse(bytes, options ?? ContentLineReaderOptions.Default));
+        FromComponents(ContentLineCodec.Parse(bytes, options ?? ContentLineReaderOptions.Default,
+            decodeRfc6868Parameters: false));
 
     /// <summary>Loads a vCard file.</summary>
     public static VCardDocument Load(string filePath, ContentLineReaderOptions? options = null,
@@ -113,7 +115,10 @@ public sealed partial class VCardDocument {
     /// <summary>Serializes this document to bytes.</summary>
     public byte[] ToBytes(ContentLineWriterOptions? options = null) {
         ValidateCards(_cards);
-        return ContentLineCodec.Serialize(_cards, options ?? ContentLineWriterOptions.Default);
+        return ContentLineCodec.Serialize(_cards, options ?? ContentLineWriterOptions.Default,
+            card => GetVersion(card) == VCardVersion.V4_0
+                ? ContentLineParameterEncoding.Rfc6868
+                : ContentLineParameterEncoding.LegacyVCard);
     }
 
     /// <summary>Serializes this document to text using the configured output encoding.</summary>
@@ -144,7 +149,11 @@ public sealed partial class VCardDocument {
         if (components.Count == 0) throw new InvalidDataException("The vCard stream does not contain VCARD.");
         ValidateCards(components);
         var document = new VCardDocument(false);
-        foreach (ContentLineComponent component in components) document._cards.Add(component);
+        foreach (ContentLineComponent component in components) {
+            if (GetVersion(component) == VCardVersion.V4_0)
+                ContentLineCodec.DecodeRfc6868Parameters(component);
+            document._cards.Add(component);
+        }
         return document;
     }
 
