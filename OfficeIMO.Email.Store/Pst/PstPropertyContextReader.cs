@@ -48,8 +48,20 @@ internal sealed class PstPropertyContextReader {
                 var type = (MapiPropertyType)PstBinary.UInt16(record, 2);
                 uint rawValue = PstBinary.UInt32(record, 4);
                 if (deferredPropertyIds != null && deferredPropertyIds.Contains(id)) {
-                    if (sourceHnids != null) sourceHnids[id] = rawValue;
-                    properties.Add(new MapiProperty(id, type, null));
+                    uint sourceHnid = rawValue;
+                    byte[]? deferredRawData = null;
+                    if (type == MapiPropertyType.Object && rawValue != 0 &&
+                        (rawValue & 0x1F) == 0) {
+                        // PtypObject stores an eight-byte (NID, size) descriptor in
+                        // the heap. Resolving only that descriptor keeps the actual
+                        // embedded object deferred while exposing its subnode NID.
+                        deferredRawData = _heap.ResolveHnid(rawValue, 8);
+                        if (deferredRawData.Length >= 8) {
+                            sourceHnid = PstBinary.UInt32(deferredRawData, 0);
+                        }
+                    }
+                    if (sourceHnids != null) sourceHnids[id] = sourceHnid;
+                    properties.Add(new MapiProperty(id, type, null) { RawData = deferredRawData });
                     continue;
                 }
                 MapiProperty property = DecodeProperty(
@@ -62,6 +74,10 @@ internal sealed class PstPropertyContextReader {
         foreach (MapiProperty property in properties) {
             if (property.PropertyType == MapiPropertyType.String8 && property.RawData != null) {
                 property.Value = DecodeString8(property.RawData, codePage);
+            } else if (property.PropertyType == MapiPropertyType.MultipleString8 && property.RawData != null) {
+                property.Value = DecodeVariableElements(property.RawData)
+                    .Select(value => DecodeString8(value, codePage))
+                    .ToArray();
             }
         }
         return properties;
@@ -90,13 +106,22 @@ internal sealed class PstPropertyContextReader {
                 value = (rawValue & 0xFF) != 0;
                 break;
             default:
-                if (sourceHnids != null) sourceHnids[id] = rawValue;
                 rawData = _heap.ResolveHnid(rawValue, maximumDecodedBytes);
                 decodedBytes = checked(decodedBytes + rawData.Length);
                 if (decodedBytes > maximumDecodedBytes) {
                     throw new EmailStoreLimitExceededException(
                         nameof(EmailStoreItemReadOptions.MaxDecodedPropertyBytes), decodedBytes,
                         maximumDecodedBytes);
+                }
+                if (sourceHnids != null) {
+                    uint sourceHnid = rawValue;
+                    // A PC PtypObject value is an HNID whose allocation contains the
+                    // referenced subnode NID followed by its declared size. Retain the
+                    // historical direct-NID shape for compact third-party fixtures.
+                    if (type == MapiPropertyType.Object && (rawValue & 0x1F) == 0 && rawData.Length >= 8) {
+                        sourceHnid = PstBinary.UInt32(rawData, 0);
+                    }
+                    sourceHnids[id] = sourceHnid;
                 }
                 value = DecodeVariable(type, rawData);
                 break;
@@ -129,30 +154,133 @@ internal sealed class PstPropertyContextReader {
                 return ReadInt16Array(bytes);
             case MapiPropertyType.MultipleInteger32:
                 return ReadInt32Array(bytes);
+            case MapiPropertyType.MultipleFloating32:
+                return ReadSingleArray(bytes);
+            case MapiPropertyType.MultipleFloating64:
+            case MapiPropertyType.MultipleFloatingTime:
+                return ReadDoubleArray(bytes);
+            case MapiPropertyType.MultipleCurrency:
             case MapiPropertyType.MultipleInteger64:
-            case MapiPropertyType.MultipleTime:
                 return ReadInt64Array(bytes);
+            case MapiPropertyType.MultipleTime:
+                return ReadTimeArray(bytes);
+            case MapiPropertyType.MultipleGuid:
+                return ReadGuidArray(bytes);
+            case MapiPropertyType.MultipleUnicode:
+                return DecodeVariableElements(bytes)
+                    .Select(value => Encoding.Unicode.GetString(value).TrimEnd('\0'))
+                    .ToArray();
+            case MapiPropertyType.MultipleString8:
+                return DecodeVariableElements(bytes)
+                    .Select(value => DecodeString8(value, 1252))
+                    .ToArray();
+            case MapiPropertyType.MultipleBinary:
+                return DecodeVariableElements(bytes);
             default:
                 return bytes;
         }
     }
 
     private static short[] ReadInt16Array(byte[] bytes) {
+        EnsurePackedElementSize(bytes, 2);
         var values = new short[bytes.Length / 2];
         for (int index = 0; index < values.Length; index++) values[index] = PstBinary.Int16(bytes, index * 2);
         return values;
     }
 
     private static int[] ReadInt32Array(byte[] bytes) {
+        EnsurePackedElementSize(bytes, 4);
         var values = new int[bytes.Length / 4];
         for (int index = 0; index < values.Length; index++) values[index] = PstBinary.Int32(bytes, index * 4);
         return values;
     }
 
     private static long[] ReadInt64Array(byte[] bytes) {
+        EnsurePackedElementSize(bytes, 8);
         var values = new long[bytes.Length / 8];
         for (int index = 0; index < values.Length; index++) values[index] = PstBinary.Int64(bytes, index * 8);
         return values;
+    }
+
+    private static float[] ReadSingleArray(byte[] bytes) {
+        EnsurePackedElementSize(bytes, 4);
+        var values = new float[bytes.Length / 4];
+        for (int index = 0; index < values.Length; index++) values[index] = BitConverter.ToSingle(bytes, index * 4);
+        return values;
+    }
+
+    private static double[] ReadDoubleArray(byte[] bytes) {
+        EnsurePackedElementSize(bytes, 8);
+        var values = new double[bytes.Length / 8];
+        for (int index = 0; index < values.Length; index++) values[index] = BitConverter.ToDouble(bytes, index * 8);
+        return values;
+    }
+
+    private static DateTimeOffset?[] ReadTimeArray(byte[] bytes) {
+        EnsurePackedElementSize(bytes, 8);
+        var values = new DateTimeOffset?[bytes.Length / 8];
+        for (int index = 0; index < values.Length; index++) {
+            try {
+                values[index] = new DateTimeOffset(DateTime.FromFileTimeUtc(PstBinary.Int64(bytes, index * 8)));
+            } catch (ArgumentOutOfRangeException) {
+                values[index] = null;
+            }
+        }
+        return values;
+    }
+
+    private static Guid[] ReadGuidArray(byte[] bytes) {
+        EnsurePackedElementSize(bytes, 16);
+        var values = new Guid[bytes.Length / 16];
+        for (int index = 0; index < values.Length; index++) {
+            var value = new byte[16];
+            Buffer.BlockCopy(bytes, index * 16, value, 0, value.Length);
+            values[index] = new Guid(value);
+        }
+        return values;
+    }
+
+    private static byte[][] DecodeVariableElements(byte[] bytes) {
+        if (bytes.Length < 4) throw new InvalidDataException("A variable multi-valued PST property is truncated.");
+        uint rawCount = PstBinary.UInt32(bytes, 0);
+        if (rawCount > int.MaxValue) {
+            throw new InvalidDataException("A variable multi-valued PST property declares too many elements.");
+        }
+        int count = (int)rawCount;
+        int dataStart = checked(4 + count * 4);
+        if (dataStart > bytes.Length) {
+            throw new InvalidDataException("A variable multi-valued PST property offset table is truncated.");
+        }
+        var values = new byte[count][];
+        int previous = dataStart;
+        for (int index = 0; index < count; index++) {
+            int start = ReadBoundedOffset(bytes, 4 + index * 4);
+            int end = index + 1 < count
+                ? ReadBoundedOffset(bytes, 4 + (index + 1) * 4)
+                : bytes.Length;
+            if (start < dataStart || start < previous || end < start || end > bytes.Length) {
+                throw new InvalidDataException("A variable multi-valued PST property contains an invalid element offset.");
+            }
+            var value = new byte[end - start];
+            Buffer.BlockCopy(bytes, start, value, 0, value.Length);
+            values[index] = value;
+            previous = start;
+        }
+        return values;
+    }
+
+    private static int ReadBoundedOffset(byte[] bytes, int offset) {
+        uint value = PstBinary.UInt32(bytes, offset);
+        if (value > int.MaxValue) {
+            throw new InvalidDataException("A variable multi-valued PST property offset is out of range.");
+        }
+        return (int)value;
+    }
+
+    private static void EnsurePackedElementSize(byte[] bytes, int elementSize) {
+        if (bytes.Length % elementSize != 0) {
+            throw new InvalidDataException("A fixed multi-valued PST property has a partial trailing element.");
+        }
     }
 
     private static int ResolveCodePage(IEnumerable<MapiProperty> properties) {

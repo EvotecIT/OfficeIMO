@@ -24,6 +24,7 @@ internal sealed partial class PstNdbReader {
         : throw new InvalidOperationException("The complete PST indexes have not been loaded.");
 
     internal bool IsUnicode => _header.IsUnicode;
+    internal int HeapAllocationIndexBits => _header.Variant == PstVariant.Unicode4K ? 14 : 11;
 
     /// <summary>Loads complete BBT and NBT dictionaries for the legacy materializing reader.</summary>
     internal void LoadIndexes() {
