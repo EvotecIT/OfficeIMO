@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 using OfficeIMO.Excel;
 using Xunit;
 
@@ -48,6 +49,11 @@ namespace OfficeIMO.Tests {
                 InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() => inspection.EnsureNoDependencyIssues());
                 Assert.Contains("Circular!A1 -> Circular!B1", exception.Message, StringComparison.Ordinal);
                 Assert.Contains("Maximum dependency depth: 3", graph.ToMarkdown(), StringComparison.Ordinal);
+
+                ExcelFeatureFinding dependencyFinding = document.InspectFeatures().Features
+                    .Single(feature => feature.Name == "Formula dependency issues");
+                Assert.Contains(dependencyFinding.Details, detail =>
+                    detail.Contains("Circular reference: Circular!A1 -> Circular!B1", StringComparison.Ordinal));
             }
         }
 

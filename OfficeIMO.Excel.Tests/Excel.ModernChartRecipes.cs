@@ -62,6 +62,23 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
+            using (DocumentFormat.OpenXml.Packaging.SpreadsheetDocument spreadsheet =
+                DocumentFormat.OpenXml.Packaging.SpreadsheetDocument.Open(filePath, false)) {
+                C.BarChart waterfallChart = spreadsheet.WorkbookPart!.WorksheetParts
+                    .Where(part => part.DrawingsPart != null)
+                    .SelectMany(part => part.DrawingsPart!.ChartParts)
+                    .SelectMany(part => part.ChartSpace.Descendants<C.BarChart>())
+                    .Single(chart => chart.Elements<C.BarChartSeries>().Count() == 4);
+                C.BarChartSeries[] waterfallSeries = waterfallChart.Elements<C.BarChartSeries>().ToArray();
+                Assert.Null(waterfallSeries[0].GetFirstChild<C.DataLabels>());
+                Assert.Equal(new uint[] { 0, 1 }, waterfallSeries[1].GetFirstChild<C.DataLabels>()!
+                    .Elements<C.DataLabel>().Select(label => label.Index!.Val!.Value));
+                Assert.Equal(new uint[] { 2 }, waterfallSeries[2].GetFirstChild<C.DataLabels>()!
+                    .Elements<C.DataLabel>().Select(label => label.Index!.Val!.Value));
+                Assert.Equal(new uint[] { 3 }, waterfallSeries[3].GetFirstChild<C.DataLabels>()!
+                    .Elements<C.DataLabel>().Select(label => label.Index!.Val!.Value));
+            }
+
             using (ExcelDocument document = ExcelDocument.Load(filePath, new ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 Assert.Equal(4, document["Dashboard"].Charts.Count());
                 var validationErrors = document.ValidateOpenXml();
@@ -112,6 +129,15 @@ namespace OfficeIMO.Tests {
                 column: 1);
             Assert.True(roundingSafeWaterfall.TryGetData(out ExcelChartData roundingSafeData));
             Assert.Equal(0d, roundingSafeData.Series[3].Values.Last());
+
+            ExcelChart noTotalWaterfall = sheet.AddWaterfallChart(
+                new[] { "Start", "Cost" },
+                new[] { 2d, -1d },
+                row: 10,
+                column: 10,
+                includeTotal: false);
+            Assert.True(noTotalWaterfall.TryGetData(out ExcelChartData noTotalData));
+            Assert.Equal(3, noTotalData.Series.Count);
         }
 
         [Fact]

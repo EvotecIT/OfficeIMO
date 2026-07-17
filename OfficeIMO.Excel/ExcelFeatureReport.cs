@@ -593,12 +593,15 @@ namespace OfficeIMO.Excel {
             Add(features, "Calculation", "Formula calculation blockers", ExcelFeatureSupportLevel.Preserved, formulaCalculationBlockers.Length, null,
                 "These formula cells need Excel recalculation or broader evaluator support before OfficeIMO can calculate the workbook.",
                 formulaCalculationBlockers);
+            string[] formulaDependencyDetails = formulas.Formulas
+                .Where(formula => formula.DependencyIssues.Count > 0)
+                .Select(formula => $"{formula.SheetName}!{formula.CellReference}: {string.Join("; ", formula.DependencyIssues)}")
+                .Concat(formulas.DependencyGraph.CircularReferences.Select(circular =>
+                    $"Circular reference: {string.Join(" -> ", circular.References)}"))
+                .ToArray();
             Add(features, "Calculation", "Formula dependency issues", ExcelFeatureSupportLevel.Preserved, formulas.DependencyIssueCount, null,
                 "Formula dependencies need review before OfficeIMO calculation can be trusted; clean cached values remain usable when every formula cache is present and current.",
-                formulas.Formulas
-                    .Where(formula => formula.DependencyIssues.Count > 0)
-                    .Select(formula => $"{formula.SheetName}!{formula.CellReference}: {string.Join("; ", formula.DependencyIssues)}")
-                    .ToArray());
+                formulaDependencyDetails);
 
             var allParts = EnumeratePackageParts(_spreadSheetDocument).ToList();
             var vbaDetails = DescribePartsByUriOrContentType(allParts, "vbaProject");

@@ -225,20 +225,40 @@ namespace OfficeIMO.Excel {
                 totals[count - 1] = running;
             }
 
-            var data = new ExcelChartData(chartCategories, new[] {
+            var series = new List<ExcelChartSeries> {
                 new ExcelChartSeries("Baseline", baseline),
                 new ExcelChartSeries("Increase", increases, seriesColorArgb: "16A34A"),
-                new ExcelChartSeries("Decrease", decreases, seriesColorArgb: "DC2626"),
-                new ExcelChartSeries("Total", totals, seriesColorArgb: "2563EB")
-            });
+                new ExcelChartSeries("Decrease", decreases, seriesColorArgb: "DC2626")
+            };
+            var visibleSeriesStyles = new List<bool> { false, true, true };
+            if (includeTotal) {
+                series.Add(new ExcelChartSeries("Total", totals, seriesColorArgb: "2563EB"));
+                visibleSeriesStyles.Add(true);
+            }
+
+            var data = new ExcelChartData(chartCategories, series);
             ExcelChart chart = AddChart(data, row, column, widthPixels, heightPixels, ExcelChartType.ColumnStacked, title);
-            chart.ApplyAuthoredSeriesStyles(data.Series, new[] { false, true, true, true });
-            return chart.SetSeriesNoFill(0)
-                .SetSeriesDataLabels(1, showValue: true, position: C.DataLabelPositionValues.OutsideEnd, numberFormat: "+#,##0")
-                .SetSeriesDataLabels(2, showValue: true, position: C.DataLabelPositionValues.OutsideEnd, numberFormat: "-#,##0")
-                .SetSeriesDataLabels(3, showValue: true, position: C.DataLabelPositionValues.OutsideEnd, numberFormat: "#,##0")
+            chart.ApplyAuthoredSeriesStyles(data.Series, visibleSeriesStyles);
+            chart.SetSeriesNoFill(0)
                 .SetValueAxisGridlines(showMajor: true, showMinor: false, lineColor: "E5E7EB", lineWidthPoints: 0.5)
                 .SetValueAxisNumberFormat("#,##0", sourceLinked: false);
+
+            for (int index = 0; index < points.Count; index++) {
+                if (points[index].Value > 0) {
+                    chart.SetSeriesDataLabelForPoint(1, index, showValue: true,
+                        position: C.DataLabelPositionValues.OutsideEnd, numberFormat: "+#,##0");
+                } else if (points[index].Value < 0) {
+                    chart.SetSeriesDataLabelForPoint(2, index, showValue: true,
+                        position: C.DataLabelPositionValues.OutsideEnd, numberFormat: "-#,##0");
+                }
+            }
+
+            if (includeTotal) {
+                chart.SetSeriesDataLabelForPoint(3, count - 1, showValue: true,
+                    position: C.DataLabelPositionValues.OutsideEnd, numberFormat: "#,##0");
+            }
+
+            return chart;
         }
 
         private static List<double> MaterializeFiniteChartValues(IEnumerable<double> values, string parameterName, bool allowNegative) {
