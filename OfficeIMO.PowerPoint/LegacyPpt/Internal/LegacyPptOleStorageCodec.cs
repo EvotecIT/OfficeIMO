@@ -6,12 +6,17 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
         private const ushort RecordExternalOleObjectStorage = 0x1011;
 
         internal static bool TryDecode(LegacyPptPersistObject persistObject,
-            LegacyPptImportOptions options, out byte[] storageBytes,
+            LegacyPptImportOptions options,
+            LegacyPptRecordTraversalBudget recordBudget,
+            out byte[] storageBytes,
             out bool wasCompressed, out string? reason) {
             if (persistObject == null) {
                 throw new ArgumentNullException(nameof(persistObject));
             }
             if (options == null) throw new ArgumentNullException(nameof(options));
+            if (recordBudget == null) {
+                throw new ArgumentNullException(nameof(recordBudget));
+            }
             storageBytes = Array.Empty<byte>();
             wasCompressed = false;
             reason = null;
@@ -22,7 +27,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             }
             try {
                 LegacyPptRecord storage = LegacyPptRecordReader.ReadSingle(
-                    persistObject.RecordBytes, 0, options);
+                    persistObject.RecordBytes, 0, options, recordBudget);
                 if (storage.Version != 0
                     || storage.Type != RecordExternalOleObjectStorage
                     || (storage.Instance != 0 && storage.Instance != 1)) {

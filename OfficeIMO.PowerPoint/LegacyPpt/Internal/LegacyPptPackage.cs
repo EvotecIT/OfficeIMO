@@ -102,8 +102,19 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 replacementStreams, removedPaths);
 
         internal static LegacyPptPackage Read(byte[] bytes, LegacyPptImportOptions options) {
+            if (options == null) throw new ArgumentNullException(nameof(options));
+            return Read(bytes, options,
+                new LegacyPptRecordTraversalBudget(options.MaxRecordCount));
+        }
+
+        internal static LegacyPptPackage Read(byte[] bytes,
+            LegacyPptImportOptions options,
+            LegacyPptRecordTraversalBudget recordBudget) {
             if (bytes == null) throw new ArgumentNullException(nameof(bytes));
             if (options == null) throw new ArgumentNullException(nameof(options));
+            if (recordBudget == null) {
+                throw new ArgumentNullException(nameof(recordBudget));
+            }
             if (!OfficeCompoundFileReader.TryRead(bytes, out OfficeCompoundFile? compound, out string? error)
                 || compound == null) {
                 throw new InvalidDataException(error ?? "The input is not a valid OLE compound file.");
@@ -128,7 +139,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             if (currentUser.HeaderToken != UnencryptedCurrentUserToken) {
                 originalEncryptedBytes = (byte[])bytes.Clone();
                 bytes = LegacyPptRc4CryptoApi.DecryptPackage(bytes, compound,
-                    options, out int keySizeBits,
+                    options, recordBudget, out int keySizeBits,
                     out bool documentPropertiesEncrypted);
                 if (!OfficeCompoundFileReader.TryRead(bytes,
                         out compound, out error) || compound == null
@@ -156,7 +167,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                     throw new InvalidDataException("The UserEditAtom chain contains a cycle.");
                 }
                 LegacyPptRecord edit = LegacyPptRecordReader.ReadSingle(documentStream,
-                    ToBoundedOffset(editOffset, documentStream.Length, "UserEditAtom"), options);
+                    ToBoundedOffset(editOffset, documentStream.Length,
+                        "UserEditAtom"), options, recordBudget);
                 if (edit.Type != RecordUserEdit || edit.PayloadLength < 20) {
                     throw new InvalidDataException("The current edit pointer does not reference a valid UserEditAtom.");
                 }
@@ -167,7 +179,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 uint persistIdSeed = edit.PayloadLength >= 24 ? edit.ReadUInt32(20) : 0;
                 if (documentPersistId == 0) documentPersistId = editDocumentPersistId;
                 IReadOnlyDictionary<uint, uint> editOffsets = ReadPersistDirectory(
-                    documentStream, persistDirectoryOffset, options);
+                    documentStream, persistDirectoryOffset, options,
+                    recordBudget);
                 foreach (KeyValuePair<uint, uint> pair in editOffsets) {
                     if (!liveOffsets.ContainsKey(pair.Key)) liveOffsets.Add(pair.Key, pair.Value);
                 }
@@ -199,9 +212,11 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
         }
 
         private static IReadOnlyDictionary<uint, uint> ReadPersistDirectory(byte[] documentStream, uint offset,
-            LegacyPptImportOptions options) {
+            LegacyPptImportOptions options,
+            LegacyPptRecordTraversalBudget recordBudget) {
             LegacyPptRecord directory = LegacyPptRecordReader.ReadSingle(documentStream,
-                ToBoundedOffset(offset, documentStream.Length, "PersistDirectoryAtom"), options);
+                ToBoundedOffset(offset, documentStream.Length,
+                    "PersistDirectoryAtom"), options, recordBudget);
             if (directory.Type != RecordPersistDirectory) {
                 throw new InvalidDataException("The UserEditAtom does not point to a PersistDirectoryAtom.");
             }

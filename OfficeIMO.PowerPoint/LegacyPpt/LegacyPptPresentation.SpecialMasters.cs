@@ -43,7 +43,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             try {
                 record = LegacyPptRecordReader.ReadSingle(documentStream,
                     ToBoundedOffset(offset, documentStream.Length,
-                        $"{GetSpecialMasterName(kind)} master persist object"), options);
+                        $"{GetSpecialMasterName(kind)} master persist object"),
+                    options, _recordBudget);
             } catch (InvalidDataException exception) {
                 AddDiagnostic("PPT-SPECIAL-MASTER-READ", LegacyPptDiagnosticSeverity.Warning,
                     $"The {GetSpecialMasterName(kind)} master could not be decoded: {exception.Message}",
@@ -81,8 +82,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             if (options.ReportUnsupportedContent
                 && (atom.ReadUInt32(0) != 0 || atom.ReadUInt16(4) != 0)) {
                 AddDiagnostic("PPT-NOTES-MASTER-ATOM-INVALID",
-                    LegacyPptDiagnosticSeverity.Warning,
-                    "The notes master NotesAtom contains a slide reference or inheritance flags reserved for notes slides.",
+                    LegacyPptDiagnosticSeverity.Information,
+                    "The notes master NotesAtom contains slide-specific fields; they have no master semantics and were ignored.",
                     atom.Offset);
             }
         }

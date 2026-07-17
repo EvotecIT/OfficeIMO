@@ -42,7 +42,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                     try {
                         byte[] bytes = dataBlobs[0].CopyRecordBytes();
                         records = LegacyPptRecordReader.ReadSequence(bytes, 8,
-                            dataBlobs[0].PayloadLength, options);
+                            dataBlobs[0].PayloadLength, options,
+                            _recordBudget);
                     } catch (InvalidDataException) {
                         AddDiagnostic("PPT-HYPERLINK9-TRUNCATED",
                             LegacyPptDiagnosticSeverity.Warning,

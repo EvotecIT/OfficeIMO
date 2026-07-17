@@ -39,7 +39,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             try {
                 records = LegacyPptRecordReader.ReadSequence(
                     blobs[0].CopyRecordBytes(), 8, blobs[0].PayloadLength,
-                    options);
+                    options, _recordBudget);
             } catch (Exception exception) when (exception
                 is InvalidDataException or OverflowException
                     or ArgumentOutOfRangeException) {

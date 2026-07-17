@@ -99,6 +99,23 @@ index. It exercises independent binary decoding and native DrawingML
 `a:buBlip` projection. Its provenance and license are recorded alongside the
 fixture.
 
+## Malformed and security cases
+
+Malformed inputs are constructed or produced by narrowly mutating a valid file in the test suite instead of
+checking in opaque broken presentations. `PowerPoint.LegacyPpt.Safety.cs` covers oversized record lengths,
+record-count and nesting-depth budgets, document-stream size limits, and cyclic `UserEditAtom` chains. The
+feature-specific legacy tests also cover truncated Current User, text-style, text-ruler, theme, picture, linked
+OLE, and OfficeArt property payloads. This keeps each invalid field and expected failure visible in source while
+still exercising the complete compound-file load path where that boundary matters.
+
+## Generated-file compatibility gate
+
+The LibreOffice interoperability job creates fresh `.ppt`, `.pot`, and `.pps` files with text, notes, shapes,
+pictures, transitions, and multiple slides. LibreOffice Impress must open and render each variant to PDF, resave
+it as PowerPoint 97-2003, and return a file that OfficeIMO can reopen with the expected slide count, text, notes,
+picture presence, and valid projected document structure. The gate is implemented by
+`Build/validate-powerpoint-binary-libreoffice.sh` and the `LegacyPptLibreOfficeArtifact` tests.
+
 To regenerate a fixture from its PPTX source, use LibreOffice's headless converter:
 
 ```sh

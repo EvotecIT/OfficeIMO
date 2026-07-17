@@ -35,7 +35,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 LegacyPptRecord blob = blobs[0];
                 foreach (LegacyPptRecord record in LegacyPptRecordReader
                              .ReadSequence(blob.CopyRecordBytes(), 8,
-                                 blob.PayloadLength, options)
+                                 blob.PayloadLength, options, _recordBudget)
                              .Where(record => record.Type
                                  == RecordTextMasterStyle9Atom)) {
                     if (result.ContainsKey(record.Instance)) {

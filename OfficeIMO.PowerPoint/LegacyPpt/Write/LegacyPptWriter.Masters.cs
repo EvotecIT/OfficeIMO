@@ -186,7 +186,14 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 new Dictionary<string, LegacyPptWriterAnimation>(
                     StringComparer.Ordinal));
             foreach (LegacyPptRecord child in prototype.Children) {
-                if (rewriteColorScheme && child.Type == RecordColorSchemeAtom
+                if (shapeContext == LegacyPptWriterShapeContext.NotesMaster
+                    && child.Type == RecordNotesAtom
+                    && child.PayloadLength >= 6) {
+                    byte[] atom = child.CopyRecordBytes();
+                    WriteUInt32(atom, 8, 0);
+                    WriteUInt16(atom, 12, 0);
+                    children.Add(atom);
+                } else if (rewriteColorScheme && child.Type == RecordColorSchemeAtom
                     && child.Instance == 1) {
                     children.Add(colorSchemeSlotsToRewrite == null
                         ? BuildColorSchemeAtom(scheme)

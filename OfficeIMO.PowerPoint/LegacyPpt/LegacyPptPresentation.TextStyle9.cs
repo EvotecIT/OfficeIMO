@@ -43,7 +43,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 IReadOnlyList<LegacyPptRecord> records =
                     LegacyPptRecordReader.ReadSequence(
                         blob.CopyRecordBytes(), 8, blob.PayloadLength,
-                        options);
+                        options, _recordBudget);
                 if (records.Count != 1
                     || records[0].Type != RecordStyleTextProp9Atom) {
                     malformed = true;

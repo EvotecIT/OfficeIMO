@@ -243,8 +243,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
         private void ValidateSoundReference(uint id, string owner) {
             if (id == 0) {
                 AddDiagnostic("PPT-SOUND-REFERENCE-NULL",
-                    LegacyPptDiagnosticSeverity.Warning,
-                    $"The {owner} is marked to play a sound but has a null sound reference.",
+                    LegacyPptDiagnosticSeverity.Information,
+                    $"The {owner} is marked to play a null sound reference; no sound was projected.",
                     null);
             } else if (!_soundsById.ContainsKey(id)) {
                 AddDiagnostic("PPT-SOUND-REFERENCE-MISSING",

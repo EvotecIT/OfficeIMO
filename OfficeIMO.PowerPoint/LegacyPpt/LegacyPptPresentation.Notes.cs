@@ -66,7 +66,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             try {
                 LegacyPptRecord notes = LegacyPptRecordReader.ReadSingle(documentStream,
                     ToBoundedOffset(notesOffset, documentStream.Length,
-                        "notes persist object"), options);
+                        "notes persist object"), options, _recordBudget);
                 if (notes.Type != RecordNotes) {
                     AddDiagnostic("PPT-NOTES-TYPE", LegacyPptDiagnosticSeverity.Warning,
                         $"Notes id {slide.NotesId} points to record 0x{notes.Type:X4} instead of a NotesContainer.",

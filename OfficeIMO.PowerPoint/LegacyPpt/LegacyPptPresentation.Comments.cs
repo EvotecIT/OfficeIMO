@@ -42,7 +42,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             IReadOnlyList<LegacyPptRecord> records;
             try {
                 byte[] bytes = dataBlob.CopyRecordBytes();
-                records = LegacyPptRecordReader.ReadSequence(bytes, 8, dataBlob.PayloadLength, options);
+                records = LegacyPptRecordReader.ReadSequence(bytes, 8,
+                    dataBlob.PayloadLength, options, _recordBudget);
             } catch (InvalidDataException) {
                 AddDiagnostic("PPT-COMMENT-DATA-TRUNCATED", LegacyPptDiagnosticSeverity.Warning,
                     $"Slide {slide.SlideId} has malformed PP10 tag data; comments remain preserve-only.",

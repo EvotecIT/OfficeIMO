@@ -45,7 +45,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
 
             try {
                 if (!LegacyPptOleStorageCodec.TryDecode(persistObject,
-                        options, out byte[] projectBytes, out bool compressed,
+                        options, _recordBudget, out byte[] projectBytes,
+                        out bool compressed,
                         out string? storageReason)) {
                     throw new InvalidDataException(storageReason
                         ?? "The VBA project storage cannot be decoded.");

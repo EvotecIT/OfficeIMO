@@ -13,10 +13,14 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
 
         internal static byte[] DecryptPackage(byte[] sourceBytes,
             OfficeCompoundFile source, LegacyPptImportOptions options,
+            LegacyPptRecordTraversalBudget recordBudget,
             out int keySizeBits, out bool encryptedDocumentProperties) {
             if (sourceBytes == null) throw new ArgumentNullException(nameof(sourceBytes));
             if (source == null) throw new ArgumentNullException(nameof(source));
             if (options == null) throw new ArgumentNullException(nameof(options));
+            if (recordBudget == null) {
+                throw new ArgumentNullException(nameof(recordBudget));
+            }
             if (options.Password == null) {
                 throw new CryptographicException(
                     "The binary PowerPoint presentation is encrypted. Provide LegacyPptImportOptions.Password or use PowerPointPresentation.LoadEncrypted.");
@@ -34,7 +38,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
 
             LegacyPptRecord edit = LegacyPptRecordReader.ReadSingle(
                 documentStream, ToBoundedOffset(currentUser.CurrentEditOffset,
-                    documentStream.Length, "UserEditAtom"), options);
+                    documentStream.Length, "UserEditAtom"), options,
+                recordBudget);
             if (edit.Type != RecordUserEdit || edit.PayloadLength < 32
                 || edit.ReadUInt32(8) != 0) {
                 throw new InvalidDataException(
@@ -42,7 +47,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             }
             uint directoryOffset = edit.ReadUInt32(12);
             IReadOnlyDictionary<uint, uint> offsets = ReadPersistDirectory(
-                documentStream, directoryOffset, options);
+                documentStream, directoryOffset, options, recordBudget);
             uint encryptionPersistId = edit.ReadUInt32(28);
             if (encryptionPersistId == 0
                 || !offsets.TryGetValue(encryptionPersistId,
@@ -237,10 +242,11 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
         }
 
         private static IReadOnlyDictionary<uint, uint> ReadPersistDirectory(
-            byte[] documentStream, uint offset, LegacyPptImportOptions options) {
+            byte[] documentStream, uint offset, LegacyPptImportOptions options,
+            LegacyPptRecordTraversalBudget recordBudget) {
             LegacyPptRecord directory = LegacyPptRecordReader.ReadSingle(
                 documentStream, ToBoundedOffset(offset, documentStream.Length,
-                    "PersistDirectoryAtom"), options);
+                    "PersistDirectoryAtom"), options, recordBudget);
             if (directory.Type != RecordPersistDirectory) {
                 throw new InvalidDataException(
                     "The encrypted UserEditAtom does not reference a PersistDirectoryAtom.");

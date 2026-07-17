@@ -59,6 +59,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
         private readonly List<LegacyPptSound> _sounds = new();
         private readonly Dictionary<uint, LegacyPptSound> _soundsById = new();
         private readonly List<LegacyPptImportDiagnostic> _diagnostics = new();
+        private LegacyPptRecordTraversalBudget _recordBudget = null!;
 
         private LegacyPptPresentation() { }
 
@@ -131,8 +132,14 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
         public static LegacyPptPresentation Load(byte[] bytes, LegacyPptImportOptions? options = null) {
             if (bytes == null) throw new ArgumentNullException(nameof(bytes));
             options ??= new LegacyPptImportOptions();
-            LegacyPptPackage package = LegacyPptPackage.Read(bytes, options);
-            var presentation = new LegacyPptPresentation { Package = package };
+            var recordBudget = new LegacyPptRecordTraversalBudget(
+                options.MaxRecordCount);
+            LegacyPptPackage package = LegacyPptPackage.Read(bytes, options,
+                recordBudget);
+            var presentation = new LegacyPptPresentation {
+                Package = package,
+                _recordBudget = recordBudget
+            };
             if (package.WasEncryptedSource) {
                 presentation.AddDiagnostic("PPT-ENCRYPTION-DECRYPTED",
                     LegacyPptDiagnosticSeverity.Information,
@@ -141,6 +148,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             }
             presentation.AddCompoundFeatureDiagnostics(package.CompoundFile, options);
             presentation.Parse(package, options);
+            recordBudget.ThrowIfExceeded();
             return presentation;
         }
 
@@ -156,7 +164,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             }
 
             LegacyPptRecord document = LegacyPptRecordReader.ReadSingle(documentStream,
-                ToBoundedOffset(documentOffset, documentStream.Length, "document persist object"), options);
+                ToBoundedOffset(documentOffset, documentStream.Length,
+                    "document persist object"), options, _recordBudget);
             if (document.Type != RecordDocument) {
                 throw new InvalidDataException($"Persist object {documentPersistId} is record 0x{document.Type:X4}, not DocumentContainer.");
             }
@@ -207,7 +216,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 }
 
                 LegacyPptRecord slideRecord = LegacyPptRecordReader.ReadSingle(documentStream,
-                    ToBoundedOffset(slideOffset, documentStream.Length, "slide persist object"), options);
+                    ToBoundedOffset(slideOffset, documentStream.Length,
+                        "slide persist object"), options, _recordBudget);
                 if (slideRecord.Type != RecordSlide) {
                     AddDiagnostic("PPT-SLIDE-TYPE", LegacyPptDiagnosticSeverity.Warning,
                         $"Slide {slideId} points to record 0x{slideRecord.Type:X4}; the slide was skipped.", slideRecord.Offset);
@@ -264,7 +274,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 }
 
                 LegacyPptRecord masterRecord = LegacyPptRecordReader.ReadSingle(documentStream,
-                    ToBoundedOffset(masterOffset, documentStream.Length, "master persist object"), options);
+                    ToBoundedOffset(masterOffset, documentStream.Length,
+                        "master persist object"), options, _recordBudget);
                 bool isMainMaster = masterRecord.Type == RecordMainMaster;
                 if (!isMainMaster && masterRecord.Type != RecordSlide) {
                     AddDiagnostic("PPT-MASTER-TYPE", LegacyPptDiagnosticSeverity.Warning,
