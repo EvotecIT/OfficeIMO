@@ -7,7 +7,10 @@ internal static class OneNoteMathNativeCodec {
     internal const char ObjectStart = '\uFDD0';
     internal const char ObjectSeparator = '\uFDEE';
     internal const char ObjectEnd = '\uFDEF';
-    internal const uint PlainTextType = 0x90000000U;
+    private const byte TextAtomMarker = 0xF0;
+    private const byte IdentifierAtomMarker = 0xF1;
+    private const byte NumberAtomMarker = 0xF2;
+    private const byte OperatorAtomMarker = 0xF3;
 
     internal sealed class EncodedRun {
         internal EncodedRun(string text, OneNoteMathInlineDescriptor descriptor) { Text = text; Descriptor = descriptor; }
@@ -19,19 +22,14 @@ internal static class OneNoteMathNativeCodec {
         if (expression == null) throw new ArgumentNullException(nameof(expression));
         var runs = new List<EncodedRun>();
         AppendBoundaryGroup(expression, runs);
-        if (runs.Count == 0) runs.Add(new EncodedRun(string.Empty, new OneNoteMathInlineDescriptor { Type = PlainTextType }));
         return runs;
     }
 
     private static void AppendBoundaryGroup(OfficeMathExpression expression, IList<EncodedRun> runs) {
         var descriptor = new OneNoteMathInlineDescriptor { Type = 12, Count = 1 };
         runs.Add(new EncodedRun(ObjectStart.ToString(), descriptor));
-        if (IsSimpleSequence(expression)) {
-            runs.Add(new EncodedRun(Sanitize(expression.ToPlainText()) + ObjectEnd, new OneNoteMathInlineDescriptor { Type = 12 }));
-        } else {
-            AppendTopLevel(expression, runs);
-            runs.Add(new EncodedRun(ObjectEnd.ToString(), new OneNoteMathInlineDescriptor { Type = 12 }));
-        }
+        AppendTopLevel(expression, runs);
+        runs.Add(new EncodedRun(ObjectEnd.ToString(), new OneNoteMathInlineDescriptor { Type = 12 }));
     }
 
     internal static OfficeMathExpression Canonicalize(OfficeMathExpression expression) {
@@ -42,6 +40,16 @@ internal static class OneNoteMathNativeCodec {
             runs.Add(run);
         }
         return Decode(runs);
+    }
+
+    internal static OfficeMathExpression CanonicalizeLosslessly(OfficeMathExpression expression) {
+        OfficeMathExpression canonical = Canonicalize(expression);
+        if (!expression.Equals(canonical)) {
+            throw new OneNoteFormatException(
+                "ONENOTE_WRITE_MATH_LOSS",
+                "The structured expression cannot be represented by native OneNote math without changing its semantic tree.");
+        }
+        return canonical;
     }
 
     internal static OfficeMathExpression Decode(
@@ -67,10 +75,20 @@ internal static class OneNoteMathNativeCodec {
         if (expression.Kind == OfficeMathKind.Row) {
             for (int index = 0; index < expression.Children.Count; index++) AppendTopLevel(expression.Children[index], runs);
         } else if (IsSimple(expression)) {
-            runs.Add(new EncodedRun(Sanitize(expression.ToPlainText()), new OneNoteMathInlineDescriptor { Type = PlainTextType }));
+            AppendSimpleObject(expression, runs);
         } else {
             AppendObject(expression, runs);
         }
+    }
+
+    private static void AppendSimpleObject(OfficeMathExpression expression, IList<EncodedRun> runs) {
+        var descriptor = new OneNoteMathInlineDescriptor {
+            Type = 12,
+            Count = 1,
+            Alignment = SimpleAtomMarker(expression.Kind)
+        };
+        runs.Add(new EncodedRun(ObjectStart.ToString(), descriptor));
+        runs.Add(new EncodedRun(Sanitize(expression.ToPlainText()) + ObjectEnd, descriptor.Clone()));
     }
 
     private static void AppendObject(OfficeMathExpression expression, IList<EncodedRun> runs) {
@@ -84,12 +102,18 @@ internal static class OneNoteMathNativeCodec {
             OfficeMathExpression child = children[index];
             OneNoteMathInlineDescriptor parentDescriptor = Descriptor(expression, type);
             if (index > 0) parentDescriptor.Count = (uint)index;
-            if (IsSimpleSequence(child)) {
-                runs.Add(new EncodedRun(Sanitize(child.ToPlainText()) + terminal, parentDescriptor));
-            } else {
-                AppendTopLevel(child, runs);
-                runs.Add(new EncodedRun(terminal.ToString(), parentDescriptor));
-            }
+            AppendTopLevel(child, runs);
+            runs.Add(new EncodedRun(terminal.ToString(), parentDescriptor));
+        }
+    }
+
+    private static byte SimpleAtomMarker(OfficeMathKind kind) {
+        switch (kind) {
+            case OfficeMathKind.Text: return TextAtomMarker;
+            case OfficeMathKind.Identifier: return IdentifierAtomMarker;
+            case OfficeMathKind.Number: return NumberAtomMarker;
+            case OfficeMathKind.Operator: return OperatorAtomMarker;
+            default: throw new ArgumentOutOfRangeException(nameof(kind));
         }
     }
 
@@ -179,13 +203,6 @@ internal static class OneNoteMathNativeCodec {
         expression.Kind == OfficeMathKind.Text || expression.Kind == OfficeMathKind.Identifier ||
         expression.Kind == OfficeMathKind.Number || expression.Kind == OfficeMathKind.Operator;
 
-    private static bool IsSimpleSequence(OfficeMathExpression expression) {
-        if (IsSimple(expression)) return true;
-        if (expression.Kind != OfficeMathKind.Row) return false;
-        for (int index = 0; index < expression.Children.Count; index++) if (!IsSimple(expression.Children[index])) return false;
-        return true;
-    }
-
     private static string Sanitize(string value) => value.Replace(ObjectStart, ' ').Replace(ObjectSeparator, ' ').Replace(ObjectEnd, ' ');
 
     private sealed class NativeParser {
@@ -246,7 +263,16 @@ internal static class OneNoteMathNativeCodec {
             switch (descriptor.Type) {
                 case 10: return OfficeMath.Accent(Child(0), string.IsNullOrEmpty(character) ? "^" : character);
                 case 11: return OfficeMath.Box(Child(0));
-                case 12: return Collapse(children);
+                case 12:
+                    OfficeMathExpression grouped = Collapse(children);
+                    string groupedText = grouped.ToPlainText();
+                    switch (descriptor.Alignment) {
+                        case TextAtomMarker: return OfficeMath.Text(groupedText);
+                        case IdentifierAtomMarker: return OfficeMath.Identifier(groupedText);
+                        case NumberAtomMarker: return OfficeMath.Number(groupedText);
+                        case OperatorAtomMarker: return OfficeMath.Operator(groupedText);
+                        default: return grouped;
+                    }
                 case 13:
                     return OfficeMath.Delimited(Collapse(children), string.IsNullOrEmpty(character) ? "(" : character,
                         descriptor.Character1.HasValue ? ((char)descriptor.Character1.Value).ToString() : ")");

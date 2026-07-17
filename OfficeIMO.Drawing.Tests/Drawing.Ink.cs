@@ -98,6 +98,10 @@ public class DrawingInkTests {
         OfficePoint support = shearedEllipse.GetTransformedTipSupport(1D, 0D);
         Assert.Equal(2.5D, support.X, 6);
         Assert.Equal(1.8D, support.Y, 6);
+        Assert.False(shearedEllipse.IsTransformedTipAxisAligned());
+        Assert.True(new OfficeInkStroke { Transform = OfficeTransform.Scale(2D, 3D) }.IsTransformedTipAxisAligned());
+        Assert.True(new OfficeInkStroke { Width = 4D, Height = 4D, Transform = OfficeTransform.RotateDegrees(45D) }.IsTransformedTipAxisAligned());
+        Assert.False(new OfficeInkStroke { TipShape = OfficeInkTipShape.Rectangle, Transform = OfficeTransform.RotateDegrees(45D) }.IsTransformedTipAxisAligned());
         Assert.Throws<ArgumentOutOfRangeException>(() => shearedEllipse.GetTransformedTipExtent(0D, 0D));
     }
 

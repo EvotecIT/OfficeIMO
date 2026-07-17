@@ -58,6 +58,7 @@ public class DrawingMathTests {
     [InlineData(@"\frac{x^2+1}{y}", "(x^(2)+1)/(y)")]
     [InlineData(@"\sqrt[3]{x}", "root[3](x)")]
     [InlineData(@"\left(x+1\right)", "(x+1)")]
+    [InlineData(@"\left\langle x\right\rangle", "⟨x⟩")]
     public void LatexParserProducesStructuredExpressions(string latex, string plainText) {
         OfficeMathExpression expression = OfficeMathMarkup.FromLatex(latex);
 
@@ -160,7 +161,10 @@ public class DrawingMathTests {
         OfficeMathExpression[] expressions = {
             OfficeMath.DelimiterList("[", "]", ";", OfficeMath.Identifier("a"), OfficeMath.Identifier("b")),
             OfficeMath.Accent(OfficeMath.Identifier("x"), "custom accent"),
-            OfficeMath.StretchStack(OfficeMath.Identifier("x"), OfficeMath.Identifier("y"))
+            OfficeMath.StretchStack(OfficeMath.Identifier("x"), OfficeMath.Identifier("y")),
+            OfficeMath.SlashedFraction(OfficeMath.Identifier("a"), OfficeMath.Identifier("b")),
+            OfficeMath.LeftSubSuperscript(OfficeMath.Identifier("T"), OfficeMath.Identifier("i"), OfficeMath.Identifier("j")),
+            OfficeMath.Delimited(OfficeMath.Identifier("x"), "⟨", "⟩")
         };
 
         Assert.All(expressions, expression => {
@@ -168,6 +172,9 @@ public class DrawingMathTests {
             Assert.DoesNotContain("delimiterlist", latex, StringComparison.OrdinalIgnoreCase);
             Assert.DoesNotContain("officeimostretchstack", latex, StringComparison.OrdinalIgnoreCase);
             Assert.DoesNotContain(@"\accent{", latex, StringComparison.Ordinal);
+            Assert.DoesNotContain(@"\vcenter", latex, StringComparison.Ordinal);
+            Assert.DoesNotContain(@"\sfrac", latex, StringComparison.Ordinal);
+            Assert.DoesNotContain(@"\prescript", latex, StringComparison.Ordinal);
             Assert.Equal(expression, OfficeMathMarkup.FromLatex(latex));
         });
     }

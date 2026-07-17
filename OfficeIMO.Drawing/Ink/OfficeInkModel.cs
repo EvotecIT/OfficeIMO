@@ -285,6 +285,34 @@ public sealed class OfficeInkStroke {
     }
 
     /// <summary>
+    /// Returns whether the transformed pen tip remains an axis-aligned, non-degenerate ellipse or rectangle.
+    /// Formats that store only tip width and height can use this to reject affine geometry they cannot represent losslessly.
+    /// </summary>
+    public bool IsTransformedTipAxisAligned() {
+        ValidateStyle();
+        OfficeTransform transform = Transform ?? OfficeTransform.Identity;
+        double scale = Math.Max(1D, Math.Max(
+            Math.Max(Math.Abs(transform.M11), Math.Abs(transform.M12)),
+            Math.Max(Math.Abs(transform.M21), Math.Abs(transform.M22))));
+        double coefficientTolerance = scale * 0.000000000001D;
+        double determinantTolerance = scale * scale * 0.000000000001D;
+        if (Math.Abs(transform.M11 * transform.M22 - transform.M12 * transform.M21) <= determinantTolerance) return false;
+
+        if (TipShape == OfficeInkTipShape.Rectangle) {
+            bool diagonal = Math.Abs(transform.M12) <= coefficientTolerance && Math.Abs(transform.M21) <= coefficientTolerance;
+            bool antiDiagonal = Math.Abs(transform.M11) <= coefficientTolerance && Math.Abs(transform.M22) <= coefficientTolerance;
+            return diagonal || antiDiagonal;
+        }
+
+        double cross = transform.M11 * transform.M12 * Width * Width +
+            transform.M21 * transform.M22 * Height * Height;
+        double covarianceScale = Math.Max(1D, Math.Max(
+            Math.Abs(transform.M11 * transform.M11 * Width * Width + transform.M21 * transform.M21 * Height * Height),
+            Math.Abs(transform.M12 * transform.M12 * Width * Width + transform.M22 * transform.M22 * Height * Height)));
+        return Math.Abs(cross) <= covarianceScale * 0.000000000001D;
+    }
+
+    /// <summary>
     /// Returns the full transformed pen-tip extent projected onto a canvas-space axis.
     /// The axis does not need to be normalized. Translation does not affect the returned extent.
     /// </summary>

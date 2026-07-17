@@ -222,6 +222,24 @@ public sealed class NativeInkMathWriterTests {
     }
 
     [Fact]
+    public void RejectsAffineInkTipsThatNativeOneNoteCannotRepresentLosslessly() {
+        var section = new OneNoteSection { Name = "Affine ink" };
+        var page = new OneNotePage { Title = "Ink" };
+        var ink = new OneNoteInk();
+        ink.Ink.Add(new OfficeInkStroke {
+            Width = 0.04D,
+            Height = 0.06D,
+            Transform = new OfficeTransform(1D, 0D, 0.5D, 1D, 0D, 0D)
+        }.AddPoint(0.1D, 0.2D).AddPoint(0.3D, 0.4D));
+        page.DirectContent.Add(ink);
+        section.Pages.Add(page);
+
+        OneNoteFormatException error = Assert.Throws<OneNoteFormatException>(() => OneNoteSectionWriter.Write(section));
+
+        Assert.Equal("ONENOTE_WRITE_INK_AFFINE_TIP", error.Code);
+    }
+
+    [Fact]
     public void UnionsPreservedOpaqueInkBoundsWithNewlyAuthoredStrokes() {
         var section = new OneNoteSection { Name = "Opaque ink bounds" };
         var page = new OneNotePage { Title = "Ink" };
@@ -482,6 +500,7 @@ public sealed class NativeInkMathWriterTests {
     [Fact]
     public void NativeMathCodecRoundTripsAdvancedDrawingOwnedStructures() {
         OfficeMathExpression[] expressions = {
+            OfficeMath.Row(OfficeMath.Identifier("x"), OfficeMath.Number("2"), OfficeMath.Text("word"), OfficeMath.Operator("+")),
             OfficeMath.LeftSubSuperscript(OfficeMath.Identifier("T"), OfficeMath.Identifier("i"), OfficeMath.Identifier("j")),
             OfficeMath.LowerLimit(OfficeMath.Identifier("lim"), OfficeMath.Identifier("x")),
             OfficeMath.UpperLimit(OfficeMath.Identifier("max"), OfficeMath.Identifier("n")),
@@ -492,6 +511,28 @@ public sealed class NativeInkMathWriterTests {
         };
 
         Assert.All(expressions, expression => Assert.Equal(expression, OneNoteMathNativeCodec.Canonicalize(expression)));
+    }
+
+    [Fact]
+    public void NativeMathWriterPreservesAdjacentTokenKindsWithoutMutatingTheCaller() {
+        OfficeMathExpression expression = OfficeMath.Row(
+            OfficeMath.Identifier("x"),
+            OfficeMath.Number("2"),
+            OfficeMath.Identifier("y"));
+        var section = new OneNoteSection { Name = "Token boundaries" };
+        var page = new OneNotePage { Title = "Math" };
+        var paragraph = new OneNoteParagraph();
+        OneNoteTextRun authoredRun = paragraph.AddMath(expression);
+        page.DirectContent.Add(paragraph);
+        section.Pages.Add(page);
+
+        byte[] bytes = OneNoteSectionWriter.Write(section);
+        OneNoteSection roundTrip = OneNoteSectionReader.Read(new MemoryStream(bytes));
+        OneNoteParagraph actual = Assert.IsType<OneNoteParagraph>(
+            Assert.Single(Assert.Single(Assert.Single(roundTrip.Pages).Outlines).Children));
+
+        Assert.Same(expression, authoredRun.MathExpression);
+        Assert.Equal(expression, Assert.Single(actual.Runs).MathExpression);
     }
 
     [Fact]

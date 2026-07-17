@@ -348,7 +348,7 @@ public static class OfficeMathMarkup {
             case OfficeMathKind.Fraction:
                 builder.Append("\\frac{"); AppendLatex(builder, expression.Children[0]); builder.Append("}{"); AppendLatex(builder, expression.Children[1]); builder.Append('}'); break;
             case OfficeMathKind.SlashedFraction:
-                builder.Append("\\sfrac{"); AppendLatex(builder, expression.Children[0]); builder.Append("}{"); AppendLatex(builder, expression.Children[1]); builder.Append('}'); break;
+                builder.Append("\\left."); AppendLatex(builder, expression.Children[0]); builder.Append("\\middle/"); AppendLatex(builder, expression.Children[1]); builder.Append("\\right."); break;
             case OfficeMathKind.Radical:
                 builder.Append("\\sqrt");
                 if (expression.Children.Count == 2) { builder.Append('['); AppendLatex(builder, expression.Children[1]); builder.Append(']'); }
@@ -360,7 +360,7 @@ public static class OfficeMathMarkup {
             case OfficeMathKind.SubSuperscript:
                 AppendGroupedBase(builder, expression.Children[0]); builder.Append("_{"); AppendLatex(builder, expression.Children[1]); builder.Append("}^{"); AppendLatex(builder, expression.Children[2]); builder.Append('}'); break;
             case OfficeMathKind.LeftSubSuperscript:
-                builder.Append("\\prescript{"); AppendLatex(builder, expression.Children[2]); builder.Append("}{"); AppendLatex(builder, expression.Children[1]); builder.Append("}{"); AppendLatex(builder, expression.Children[0]); builder.Append('}'); break;
+                builder.Append("{}_{"); AppendLatex(builder, expression.Children[1]); builder.Append("}^{"); AppendLatex(builder, expression.Children[2]); builder.Append("}{"); AppendLatex(builder, expression.Children[0]); builder.Append('}'); break;
             case OfficeMathKind.LowerLimit:
                 builder.Append("\\underset{"); AppendLatex(builder, expression.Children[1]); builder.Append("}{"); AppendLatex(builder, expression.Children[0]); builder.Append('}'); break;
             case OfficeMathKind.UpperLimit:
@@ -427,14 +427,12 @@ public static class OfficeMathMarkup {
 
     private static void AppendLatexStack(StringBuilder builder, OfficeMathExpression expression) {
         bool stretch = expression.Kind == OfficeMathKind.StretchStack;
-        if (stretch) builder.Append("\\vcenter{");
-        builder.Append("\\begin{gathered}");
+        builder.Append(stretch ? "\\substack{" : "\\begin{gathered}");
         for (int index = 0; index < expression.Children.Count; index++) {
             if (index > 0) builder.Append("\\\\");
             AppendLatex(builder, expression.Children[index]);
         }
-        builder.Append("\\end{gathered}");
-        if (stretch) builder.Append('}');
+        builder.Append(stretch ? "}" : "\\end{gathered}");
     }
 
     private static void AppendGroupedBase(StringBuilder builder, OfficeMathExpression expression) {
@@ -487,7 +485,55 @@ public static class OfficeMathMarkup {
         }
     }
 
-    private static string DelimiterToLatex(string? delimiter) => delimiter == "{" ? "\\{" : delimiter == "}" ? "\\}" : delimiter ?? ".";
+    private static string DelimiterToLatex(string? delimiter) {
+        switch (delimiter) {
+            case "{": return "\\{";
+            case "}": return "\\}";
+            case "⟨":
+            case "langle": return "\\langle ";
+            case "⟩":
+            case "rangle": return "\\rangle ";
+            case "⌊":
+            case "lfloor": return "\\lfloor ";
+            case "⌋":
+            case "rfloor": return "\\rfloor ";
+            case "⌈":
+            case "lceil": return "\\lceil ";
+            case "⌉":
+            case "rceil": return "\\rceil ";
+            case "‖":
+            case "Vert":
+            case "lVert":
+            case "rVert": return "\\Vert ";
+            case "vert":
+            case "lvert":
+            case "rvert": return "\\vert ";
+            case "\\":
+            case "backslash": return "\\backslash ";
+            default: return delimiter ?? ".";
+        }
+    }
+
+    private static string? DelimiterFromLatexCommand(string command) {
+        switch (command) {
+            case "{": return "{";
+            case "}": return "}";
+            case "langle": return "⟨";
+            case "rangle": return "⟩";
+            case "lfloor": return "⌊";
+            case "rfloor": return "⌋";
+            case "lceil": return "⌈";
+            case "rceil": return "⌉";
+            case "vert":
+            case "lvert":
+            case "rvert": return "|";
+            case "Vert":
+            case "lVert":
+            case "rVert": return "‖";
+            case "backslash": return "\\";
+            default: return null;
+        }
+    }
 
     private static bool IsNarySymbol(string? value) => value == "∑" || value == "∏" || value == "∫" || value == "⋂" || value == "⋃";
 
@@ -552,6 +598,13 @@ public static class OfficeMathMarkup {
                     } else if (subscript != null && superscript != null) atom = OfficeMath.SubSuperscript(atom, subscript, superscript);
                     else if (subscript != null) atom = OfficeMath.Subscript(atom, subscript);
                     else if (superscript != null) atom = OfficeMath.Superscript(atom, superscript);
+                    if (atom.Kind == OfficeMathKind.SubSuperscript && atom.Children[0].ToPlainText().Length == 0) {
+                        SkipWhitespace();
+                        if (_position < _text.Length && (terminator == '\0' || _text[_position] != terminator)) {
+                            OfficeMathExpression basis = Peek('{') ? ParseRequiredGroup() : ParseAtom();
+                            atom = OfficeMath.LeftSubSuperscript(basis, atom.Children[1], atom.Children[2]);
+                        }
+                    }
                     items.Add(atom);
                 }
                 return CollapseRow(items);
@@ -622,6 +675,7 @@ public static class OfficeMathMarkup {
                 case "stackrel":
                     OfficeMathExpression accent = ParseRequiredGroup();
                     return OfficeMath.Accent(ParseRequiredGroup(), accent.ToPlainText());
+                case "substack": return ParseSubstack();
                 case "vcenter":
                     OfficeMathExpression centered = ParseRequiredGroup();
                     return centered.Kind == OfficeMathKind.Stack
@@ -635,6 +689,7 @@ public static class OfficeMathMarkup {
                     string inner = _text.Substring(_position, rightIndex - _position);
                     _position = rightIndex + 6;
                     string right = ReadDelimiter();
+                    if (TryParseSlashedFraction(inner, left, right, out OfficeMathExpression? slashed)) return slashed!;
                     if (TryParseDelimiterList(inner, left, right, out OfficeMathExpression? delimiterList)) return delimiterList!;
                     return OfficeMath.Delimited(new LatexParser(inner, _maximumDepth, _depth).Parse(), left, right);
                 default:
@@ -692,6 +747,53 @@ public static class OfficeMathMarkup {
                 .Select(row => CollapseRow(Enumerable.Range(0, columns).Select(column => cells[row * columns + column])))
                 .ToArray();
             return OfficeMath.Stack(stackRows);
+        }
+
+        private OfficeMathExpression ParseSubstack() {
+            string body = ReadRequiredGroupSource();
+            IReadOnlyList<IReadOnlyList<string>> sourceRows = SplitEnvironmentBody(body);
+            OfficeMathExpression[] rows = sourceRows
+                .Select(row => CollapseRow(row.Select(cell => string.IsNullOrWhiteSpace(cell)
+                    ? OfficeMath.Text(string.Empty)
+                    : new LatexParser(cell, _maximumDepth, _depth).Parse())))
+                .ToArray();
+            return OfficeMath.StretchStack(rows);
+        }
+
+        private bool TryParseSlashedFraction(string source, string left, string right, out OfficeMathExpression? expression) {
+            expression = null;
+            if (left != "." || right != ".") return false;
+            int braceDepth = 0;
+            int delimiterDepth = 0;
+            for (int index = 0; index < source.Length; index++) {
+                char value = source[index];
+                if (value == '\\') {
+                    if (braceDepth == 0 && MatchesCommand(source, index, "left")) {
+                        delimiterDepth++;
+                        index += 4;
+                        continue;
+                    }
+                    if (braceDepth == 0 && MatchesCommand(source, index, "right")) {
+                        if (delimiterDepth > 0) delimiterDepth--;
+                        index += 5;
+                        continue;
+                    }
+                    if (braceDepth == 0 && delimiterDepth == 0 && MatchesCommand(source, index, "middle")) {
+                        int delimiterIndex = index + "\\middle".Length;
+                        while (delimiterIndex < source.Length && char.IsWhiteSpace(source[delimiterIndex])) delimiterIndex++;
+                        if (delimiterIndex >= source.Length || source[delimiterIndex] != '/') return false;
+                        expression = OfficeMath.SlashedFraction(
+                            new LatexParser(source.Substring(0, index), _maximumDepth, _depth).Parse(),
+                            new LatexParser(source.Substring(delimiterIndex + 1), _maximumDepth, _depth).Parse());
+                        return true;
+                    }
+                    if (index + 1 < source.Length && (source[index + 1] == '{' || source[index + 1] == '}')) index++;
+                    continue;
+                }
+                if (value == '{') braceDepth++;
+                else if (value == '}' && braceDepth > 0) braceDepth--;
+            }
+            return false;
         }
 
         private bool TryParseDelimiterList(string source, string left, string right, out OfficeMathExpression? expression) {
@@ -778,6 +880,23 @@ public static class OfficeMathMarkup {
             string value = _text.Substring(start, _position - start);
             _position++;
             return value;
+        }
+
+        private string ReadRequiredGroupSource() {
+            SkipWhitespace();
+            Require('{');
+            int start = _position;
+            int depth = 1;
+            while (_position < _text.Length) {
+                char value = _text[_position++];
+                if (value == '\\' && _position < _text.Length) {
+                    _position++;
+                    continue;
+                }
+                if (value == '{') depth++;
+                else if (value == '}' && --depth == 0) return _text.Substring(start, _position - start - 1);
+            }
+            throw Error("A braced operand is missing its closing brace.");
         }
 
         private int FindMatchingEnvironmentEnd(string environment) {
@@ -919,7 +1038,9 @@ public static class OfficeMathMarkup {
             if (_text[_position] == '\\') {
                 _position++;
                 string command = ReadCommandName();
-                return command == "{" ? "{" : command == "}" ? "}" : command;
+                string? delimiter = DelimiterFromLatexCommand(command);
+                if (delimiter == null) throw Error("Unsupported named delimiter \\" + command + ".");
+                return delimiter;
             }
             return _text[_position++].ToString(CultureInfo.InvariantCulture);
         }

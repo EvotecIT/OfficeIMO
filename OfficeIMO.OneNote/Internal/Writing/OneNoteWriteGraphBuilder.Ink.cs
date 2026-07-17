@@ -435,5 +435,10 @@ internal static class OneNoteInkWriterValidationExtensions {
         if (double.IsNaN(stroke.Opacity) || double.IsInfinity(stroke.Opacity) || stroke.Opacity < 0D || stroke.Opacity > 1D) {
             throw new OneNoteFormatException("ONENOTE_WRITE_INK_STYLE", "Ink stroke opacity must be from 0 through 1.");
         }
+        if (!stroke.IsTransformedTipAxisAligned()) {
+            throw new OneNoteFormatException(
+                "ONENOTE_WRITE_INK_AFFINE_TIP",
+                "Native OneNote ink stores axis-aligned pen-tip dimensions and cannot preserve this rotated, sheared, or degenerate affine tip losslessly.");
+        }
     }
 }

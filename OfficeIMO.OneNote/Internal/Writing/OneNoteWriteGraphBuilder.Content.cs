@@ -319,11 +319,7 @@ internal sealed partial class OneNoteWriteGraphBuilder {
 
     private OneNoteExtendedGuid BuildMath(OneNoteWriteObjectSpace space, OneNoteMath math, uint lastModifiedTime) {
         if (math.RawPayload != null) throw new OneNoteFormatException("ONENOTE_WRITE_UNSUPPORTED_MATH_PAYLOAD", "An opaque mathematical payload cannot be regenerated without a structured expression.");
-        OfficeIMO.Drawing.OfficeMathExpression expression = OneNoteMathNativeCodec.Canonicalize(math.GetExpression());
-        math.Expression = expression;
-        math.Text = expression.ToPlainText();
-        math.MathMl = OfficeIMO.Drawing.OfficeMathMarkup.ToMathMl(expression);
-        math.Latex = OfficeIMO.Drawing.OfficeMathMarkup.ToLatex(expression);
+        OfficeIMO.Drawing.OfficeMathExpression expression = OneNoteMathNativeCodec.CanonicalizeLosslessly(math.GetExpression());
         var paragraph = new OneNoteParagraph {
             Id = math.Id,
             ContentObjectId = math.ContentObjectId,
@@ -365,10 +361,9 @@ internal sealed partial class OneNoteWriteGraphBuilder {
                 foreach (OneNoteTextRun native in OneNoteMathRunPreservation.CloneForWrite(semantic)) output.Add(native);
                 continue;
             }
-            semantic.MathExpression = OneNoteMathNativeCodec.Canonicalize(semantic.MathExpression);
-            semantic.Text = semantic.MathExpression.ToPlainText();
+            OfficeIMO.Drawing.OfficeMathExpression expression = OneNoteMathNativeCodec.CanonicalizeLosslessly(semantic.MathExpression);
             bool first = true;
-            foreach (OneNoteMathNativeCodec.EncodedRun encoded in OneNoteMathNativeCodec.Encode(semantic.MathExpression)) {
+            foreach (OneNoteMathNativeCodec.EncodedRun encoded in OneNoteMathNativeCodec.Encode(expression)) {
                 var native = new OneNoteTextRun {
                     Text = encoded.Text,
                     MathDescriptor = encoded.Descriptor,
