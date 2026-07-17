@@ -91,9 +91,11 @@ namespace OfficeIMO.Tests {
             using ExcelDocument document = ExcelDocument.Create();
             ExcelSheet sheet = document.AddWorksheet("Intersections");
             sheet.CellFormula(1, 1, "D1");
+            sheet.CellFormula(1, 2, "D3");
             sheet.CellFormula(2, 2, "1+1");
             sheet.CellFormula(1, 4, "SUM(A1:B2 B2:C3)");
             sheet.CellFormula(2, 4, "SUM(Data B2:C3)");
+            sheet.CellFormula(3, 4, "SUM(A1 (A1:B2))");
             document.SetNamedRange("Data", "Intersections!A1:B2", save: false);
 
             ExcelSheet structuredSheet = document.AddWorksheet("Structured Intersections");
@@ -117,11 +119,15 @@ namespace OfficeIMO.Tests {
                 graph.FindNode("Intersections", "D2"));
             Assert.Equal(new[] { "Intersections!B2" }, namedIntersection.Dependencies);
             Assert.Equal(new[] { "Intersections!B2" }, namedIntersection.FormulaDependencies);
+            ExcelFormulaDependencyNode parenthesizedIntersection = Assert.IsType<ExcelFormulaDependencyNode>(
+                graph.FindNode("Intersections", "D3"));
+            Assert.Equal(new[] { "Intersections!A1" }, parenthesizedIntersection.Dependencies);
+            Assert.Equal(new[] { "Intersections!A1" }, parenthesizedIntersection.FormulaDependencies);
             ExcelFormulaDependencyNode structuredIntersection = Assert.IsType<ExcelFormulaDependencyNode>(
                 graph.FindNode("Structured Intersections", "D1"));
             Assert.Equal(new[] { "Structured Intersections!A2" }, structuredIntersection.Dependencies);
             Assert.Equal(new[] { "Structured Intersections!A2" }, structuredIntersection.FormulaDependencies);
-            Assert.Equal(4, graph.EdgeCount);
+            Assert.Equal(6, graph.EdgeCount);
             Assert.False(graph.HasCircularReferences);
         }
 

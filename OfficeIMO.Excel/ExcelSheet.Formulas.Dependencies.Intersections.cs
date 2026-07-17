@@ -67,13 +67,16 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
+            bool hasIntersectionWhitespace = false;
             for (int index = start; index < right.Index; index++) {
-                if (!char.IsWhiteSpace(formula[index])) {
+                if (char.IsWhiteSpace(formula[index])) {
+                    hasIntersectionWhitespace = true;
+                } else if (formula[index] != '(' || !hasIntersectionWhitespace) {
                     return false;
                 }
             }
 
-            return true;
+            return hasIntersectionWhitespace;
         }
 
         private void AddFormulaIntersectionDependency(

@@ -13,12 +13,57 @@ using Xunit;
 using OpenXmlCell = DocumentFormat.OpenXml.Spreadsheet.Cell;
 using OpenXmlCellFormula = DocumentFormat.OpenXml.Spreadsheet.CellFormula;
 using OpenXmlCellFormulaValues = DocumentFormat.OpenXml.Spreadsheet.CellFormulaValues;
+using OpenXmlDrawing = DocumentFormat.OpenXml.Spreadsheet.Drawing;
+using OpenXmlDrawingsPart = DocumentFormat.OpenXml.Packaging.DrawingsPart;
+using OpenXmlExtendedChartPart = DocumentFormat.OpenXml.Packaging.ExtendedChartPart;
+using OpenXmlExtendedChartSpace = DocumentFormat.OpenXml.Office2016.Drawing.ChartDrawing.ChartSpace;
 using OpenXmlSpreadsheetDocument = DocumentFormat.OpenXml.Packaging.SpreadsheetDocument;
 using OpenXmlWorksheet = DocumentFormat.OpenXml.Spreadsheet.Worksheet;
+using OpenXmlWorksheetDrawing = DocumentFormat.OpenXml.Drawing.Spreadsheet.WorksheetDrawing;
 
 namespace OfficeIMO.OpenDocument.Converters.Tests;
 
 public sealed class OpenDocumentConversionLossReportTests {
+    [Fact]
+    public void ExcelToOdsReportsNativeChartExParts() {
+        string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xlsx");
+        try {
+            using (ExcelDocument created = ExcelDocument.Create(filePath)) {
+                created.AddWorksheet("Data").CellValue(1, 1, 1d);
+                created.Save();
+            }
+
+            using (OpenXmlSpreadsheetDocument spreadsheet = OpenXmlSpreadsheetDocument.Open(filePath, true)) {
+                var worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.Single();
+                OpenXmlDrawingsPart drawingsPart = worksheetPart.AddNewPart<OpenXmlDrawingsPart>();
+                drawingsPart.WorksheetDrawing = new OpenXmlWorksheetDrawing();
+                worksheetPart.Worksheet!.Append(new OpenXmlDrawing {
+                    Id = worksheetPart.GetIdOfPart(drawingsPart)
+                });
+                worksheetPart.Worksheet.Save();
+
+                OpenXmlExtendedChartPart chartPart = drawingsPart.AddNewPart<OpenXmlExtendedChartPart>();
+                chartPart.ChartSpace = new OpenXmlExtendedChartSpace();
+                chartPart.ChartSpace.Save();
+            }
+
+            using ExcelDocument source = ExcelDocument.Load(filePath);
+            ExcelWorkbookSnapshot snapshot = source.CreateInspectionSnapshot();
+            OdfConversionResult<OdsDocument> conversion = source.ToOpenDocumentResult();
+
+            Assert.Equal(1, snapshot.ChartPartCount);
+            Assert.True(snapshot.HasCharts);
+            Assert.Contains(conversion.Report.Mappings, mapping =>
+                mapping.Feature == "charts"
+                && mapping.Status == OdfConversionMappingStatus.Unsupported
+                && mapping.Count == 1);
+        } finally {
+            if (File.Exists(filePath)) {
+                File.Delete(filePath);
+            }
+        }
+    }
+
     [Fact]
     public void ExcelToOdsReportsOfficeImoPivotBindingMetadataLoss() {
         using ExcelDocument source = ExcelDocument.Create();

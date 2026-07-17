@@ -38,13 +38,13 @@ namespace OfficeIMO.Tests {
 
                 ExcelChart funnel = sheet.AddFunnelChart(
                     new[] { "Leads", "Qualified", "Won" },
-                    new[] { 100d, 60d, 20d },
+                    new[] { 100.25d, 60.5d, 20.125d },
                     row: 20,
                     column: 1);
                 Assert.Equal(ExcelChartType.BarStacked, funnel.ChartType);
                 Assert.True(funnel.TryGetData(out ExcelChartData funnelData));
-                Assert.Equal(new[] { 0d, 20d, 40d }, funnelData.Series[0].Values);
-                Assert.Equal(new[] { 100d, 60d, 20d }, funnelData.Series[1].Values);
+                Assert.Equal(new[] { 0d, 19.875d, 40.0625d }, funnelData.Series[0].Values);
+                Assert.Equal(new[] { 100.25d, 60.5d, 20.125d }, funnelData.Series[1].Values);
 
                 ExcelChart waterfall = sheet.AddWaterfallChart(
                     new[] { "Start", "Growth", "Cost" },
@@ -83,6 +83,14 @@ namespace OfficeIMO.Tests {
                     .Elements<C.DataLabel>().Select(label => label.Index!.Val!.Value));
                 Assert.Equal("#,##0.###############", waterfallSeries[3].GetFirstChild<C.DataLabels>()!
                     .GetFirstChild<C.DataLabel>()!.GetFirstChild<C.NumberingFormat>()?.FormatCode?.Value);
+
+                C.BarChart funnelChart = spreadsheet.WorkbookPart!.WorksheetParts
+                    .Where(part => part.DrawingsPart != null)
+                    .SelectMany(part => part.DrawingsPart!.ChartParts)
+                    .SelectMany(part => part.ChartSpace.Descendants<C.BarChart>())
+                    .Single(chart => chart.Elements<C.BarChartSeries>().Count() == 3);
+                Assert.Equal("#,##0.###############", funnelChart.Elements<C.BarChartSeries>().ElementAt(1)
+                    .GetFirstChild<C.DataLabels>()?.GetFirstChild<C.NumberingFormat>()?.FormatCode?.Value);
             }
 
             using (ExcelDocument document = ExcelDocument.Load(filePath, new ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {

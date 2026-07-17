@@ -45,7 +45,7 @@ namespace OfficeIMO.Excel {
                 snapshot.TimelineBindingMetadataPartCount = CountPackageParts(workbookPart, IsTimelineBindingMetadataPart);
                 snapshot.ConnectionPartCount = CountPackagePartsByContentType(workbookPart, "connections");
                 snapshot.QueryTablePartCount = CountPackagePartsByContentType(workbookPart, "queryTable");
-                snapshot.ChartPartCount = CountPackageParts(workbookPart, part => part is ChartPart);
+                snapshot.ChartPartCount = CountPackageParts(workbookPart, part => part is ChartPart || part is ExtendedChartPart);
                 snapshot.PivotTablePartCount = CountPackageParts(workbookPart, part => part is PivotTablePart);
                 var sheetElements = workbook.Sheets?.Elements<Sheet>().ToList() ?? new List<Sheet>();
                 int? activeWorksheetIndex = GetActiveWorksheetIndex(workbook, sheetElements.Count);

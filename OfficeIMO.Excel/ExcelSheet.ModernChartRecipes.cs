@@ -173,7 +173,7 @@ namespace OfficeIMO.Excel {
             chart.ApplyAuthoredSeriesStyles(data.Series, new[] { false, true, false });
             return chart.SetSeriesNoFill(0)
                 .SetSeriesNoFill(2)
-                .SetSeriesDataLabels(1, showValue: true, position: C.DataLabelPositionValues.Center, numberFormat: "#,##0")
+                .SetSeriesDataLabels(1, showValue: true, position: C.DataLabelPositionValues.Center, numberFormat: "#,##0.###############")
                 .SetCategoryAxisReverseOrder()
                 .SetValueAxisGridlines(showMajor: false, showMinor: false);
         }

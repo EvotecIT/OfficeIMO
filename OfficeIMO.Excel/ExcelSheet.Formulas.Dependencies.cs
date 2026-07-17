@@ -164,6 +164,7 @@ namespace OfficeIMO.Excel {
                 List<FormulaDependencyReferenceMatch> dependencyMatches = FormulaReferenceRegex.Matches(directReferenceFormula)
                     .Cast<Match>()
                     .Where(match => IsLocalFormulaReferenceMatch(searchableFormula, match))
+                    .Where(match => !IsFormulaDependencyFunctionToken(searchableFormula, match))
                     .Where(match => !string.IsNullOrWhiteSpace(match.Groups["reference"].Value))
                     .Select(match => new FormulaDependencyReferenceMatch(
                         match.Index,
@@ -408,6 +409,27 @@ namespace OfficeIMO.Excel {
             }
 
             return true;
+        }
+
+        private bool IsFormulaDependencyFunctionToken(string formula, Match match) {
+            string token = match.Groups["reference"].Value;
+            if (token.IndexOf('!') >= 0 || token.IndexOf(':') >= 0 || token.IndexOf('$') >= 0) {
+                return false;
+            }
+
+            int cursor = match.Index + match.Length;
+            int whitespaceStart = cursor;
+            while (cursor < formula.Length && char.IsWhiteSpace(formula[cursor])) {
+                cursor++;
+            }
+
+            if (cursor >= formula.Length || formula[cursor] != '(') {
+                return false;
+            }
+
+            return cursor == whitespaceStart
+                || ExcelFormulaCapabilities.IsBuiltInFunction(token)
+                || _excelDocument.Calculation.TryGetCustomFunction(token, out _);
         }
 
         private static bool IsStartOfThreeDimensionalReference(string formula, int index) {
