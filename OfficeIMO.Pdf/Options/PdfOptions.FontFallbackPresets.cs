@@ -2,6 +2,12 @@ namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfOptions {
     /// <summary>
+    /// Default installed multilingual family candidates used by document converters for CJK,
+    /// Arabic, and other non-Latin generated PDF text.
+    /// </summary>
+    public const string DefaultDocumentMultilingualFontFamilyFallback = "Arial Unicode MS, Noto Sans CJK JP, Yu Gothic, PingFang SC, Microsoft YaHei, Noto Sans CJK SC, Meiryo, Hiragino Sans GB, Microsoft JhengHei, Noto Sans CJK TC, Malgun Gothic, Apple SD Gothic Neo, Noto Sans CJK KR, MS Gothic, SimSun, Noto Sans JP, Noto Sans SC, Noto Sans TC, Noto Sans KR, Noto Sans Arabic, Noto Naskh Arabic, Arabic Typesetting, Traditional Arabic, Nirmala UI, Microsoft Uighur, DejaVu Sans";
+
+    /// <summary>
     /// Default installed symbol and emoji family candidates used by document converters for generated PDF text fallback runs.
     /// </summary>
     public const string DefaultDocumentSymbolAndEmojiFontFamilyFallback = "Segoe UI Symbol, Apple Symbols, DejaVu Sans, Noto Sans Symbols 2, Noto Sans Symbols, Symbola, Arial Unicode MS, Segoe UI Emoji, Noto Emoji, Noto Color Emoji, Arial";
@@ -36,9 +42,15 @@ public sealed partial class PdfOptions {
             }
         }
 
-        if ((features & PdfTextFallbackFeatures.SymbolAndEmojiFonts) != 0) {
+        PdfTextFallbackFeatures runFallbacks = features &
+            (PdfTextFallbackFeatures.MultilingualFonts | PdfTextFallbackFeatures.SymbolAndEmojiFonts);
+        if (runFallbacks == PdfTextFallbackFeatures.SymbolAndEmojiFonts) {
             AddRegisteredFontFamilySlot(reservedSlots, PdfStandardFont.TimesRoman);
-            TryRegisterEmbeddedFontFallbacksFromSystem(DefaultDocumentSymbolAndEmojiFontFamilyFallback, reservedFontSlots: reservedSlots);
+            TryRegisterEmbeddedFontFallbacksFromSystem(
+                DefaultDocumentSymbolAndEmojiFontFamilyFallback,
+                reservedFontSlots: reservedSlots);
+        } else if (runFallbacks != PdfTextFallbackFeatures.None) {
+            TryRegisterRunFallbacksFromSystem(runFallbacks, reservedSlots);
         }
 
         if ((features & PdfTextFallbackFeatures.MonospaceFont) != 0) {
@@ -48,6 +60,56 @@ public sealed partial class PdfOptions {
         }
 
         return this;
+    }
+
+    private bool TryRegisterRunFallbacksFromSystem(
+        PdfTextFallbackFeatures features,
+        IEnumerable<PdfStandardFont> reservedFontSlots) {
+        if (_embeddedFontFallbacks != null) return true;
+
+        bool multilingual = (features & PdfTextFallbackFeatures.MultilingualFonts) != 0;
+        bool symbols = (features & PdfTextFallbackFeatures.SymbolAndEmojiFonts) != 0;
+        var reservedSlots = new HashSet<PdfStandardFont>();
+        foreach (PdfStandardFont slot in reservedFontSlots) AddRegisteredFontFamilySlot(reservedSlots, slot);
+        AddRegisteredFontFamilySlot(reservedSlots, PdfStandardFont.TimesRoman);
+        var candidates = new List<PdfEmbeddedFontFallbackCandidate>();
+        var registeredFamilies = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        if (multilingual) AddInstalledRunFallbackCandidates(
+            DefaultDocumentMultilingualFontFamilyFallback,
+            multilingual && symbols ? 1 : 2,
+            candidates,
+            registeredFamilies);
+        if (symbols) AddInstalledRunFallbackCandidates(
+            DefaultDocumentSymbolAndEmojiFontFamilyFallback,
+            multilingual && symbols ? 1 : 2,
+            candidates,
+            registeredFamilies);
+        if (candidates.Count < 2) {
+            string remaining = multilingual
+                ? DefaultDocumentMultilingualFontFamilyFallback
+                : DefaultDocumentSymbolAndEmojiFontFamilyFallback;
+            AddInstalledRunFallbackCandidates(remaining, 2 - candidates.Count, candidates, registeredFamilies);
+        }
+
+        PdfStandardFont[] slots = GetAvailableEmbeddedFallbackFontSlots(candidates.Count, reservedSlots).ToArray();
+        if (slots.Length == 0 || candidates.Count == 0) return false;
+        if (slots.Length < candidates.Count) candidates = SelectPreferredEmbeddedFallbackCandidates(candidates, slots.Length);
+        RegisterEmbeddedFontFallbacks(new PdfEmbeddedFontFallbackSet(candidates, slots));
+        return true;
+    }
+
+    private static void AddInstalledRunFallbackCandidates(
+        string familyNames,
+        int count,
+        List<PdfEmbeddedFontFallbackCandidate> candidates,
+        HashSet<string> registeredFamilies) {
+        foreach (string familyName in EnumerateOfficeFontFamilyCandidates(familyNames)) {
+            if (count == 0) return;
+            if (!registeredFamilies.Add(familyName)) continue;
+            if (!PdfEmbeddedFontFamily.TryFromSystem(familyName, out PdfEmbeddedFontFamily? family) || family == null) continue;
+            candidates.Add(new PdfEmbeddedFontFallbackCandidate(family.FamilyName, family.Regular));
+            count--;
+        }
     }
 
     /// <summary>

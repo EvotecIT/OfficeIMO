@@ -266,6 +266,11 @@ internal static partial class DocumentReaderEngine {
                     ? InspectEmailCompound(stream, originalPosition, options.MaxContainerEntries)
                     : InspectEmailCompound(prefix);
                 containerInspected = true;
+            } else if (IsCabinet(prefix) && options.InspectContainers) {
+                candidate = restorePosition
+                    ? InspectCabinetContainer(stream, originalPosition, options.MaxContainerEntries)
+                    : InspectCabinetContainer(prefix, options.MaxContainerEntries);
+                containerInspected = true;
             }
 
             return BuildCombinedDetection(
@@ -307,6 +312,15 @@ internal static partial class DocumentReaderEngine {
                 candidate = restorePosition
                     ? InspectEmailCompound(stream, originalPosition, options.MaxContainerEntries)
                     : InspectEmailCompound(prefix);
+                containerInspected = true;
+            } else if (IsCabinet(prefix) && options.InspectContainers) {
+                candidate = restorePosition
+                    ? await InspectCabinetContainerAsync(
+                        stream,
+                        originalPosition,
+                        options.MaxContainerEntries,
+                        cancellationToken).ConfigureAwait(false)
+                    : InspectCabinetContainer(prefix, options.MaxContainerEntries);
                 containerInspected = true;
             }
 
@@ -445,6 +459,12 @@ internal static partial class DocumentReaderEngine {
         if (prefix.Length == 0) {
             return DetectionCandidate.Unknown("content:empty");
         }
+        if (StartsWith(prefix, new byte[] { 0xE4, 0x52, 0x5C, 0x7B, 0x8C, 0xD8, 0xA7, 0x4D, 0xAE, 0xB1, 0x53, 0x78, 0xD0, 0x29, 0x96, 0xD3 })) {
+            return DetectionCandidate.High(ReaderInputKind.OneNote, "application/onenote", "signature:onenote-section");
+        }
+        if (StartsWith(prefix, new byte[] { 0xA1, 0x2F, 0xFF, 0x43, 0xD9, 0xEF, 0x76, 0x4C, 0x9E, 0xE2, 0x10, 0xEA, 0x57, 0x22, 0x76, 0x5F })) {
+            return DetectionCandidate.High(ReaderInputKind.OneNote, "application/onenote", "signature:onenote-toc");
+        }
         if (IndexOfAscii(prefix, "%PDF-", Math.Min(prefix.Length, 1024)) >= 0) {
             return DetectionCandidate.High(ReaderInputKind.Pdf, "application/pdf", "signature:pdf");
         }
@@ -458,6 +478,9 @@ internal static partial class DocumentReaderEngine {
         }
         if (StartsWith(prefix, new byte[] { 0xD0, 0xCF, 0x11, 0xE0, 0xA1, 0xB1, 0x1A, 0xE1 })) {
             return DetectionCandidate.Unknown("signature:ole-compound");
+        }
+        if (IsCabinet(prefix)) {
+            return DetectionCandidate.Unknown("signature:cabinet");
         }
 
         string? text = DecodeTextPrefix(prefix);
@@ -639,6 +662,7 @@ internal static partial class DocumentReaderEngine {
             ReaderInputKind.Markdown => "text/markdown",
             ReaderInputKind.Pdf => "application/pdf",
             ReaderInputKind.Email => "message/rfc822",
+            ReaderInputKind.OneNote => "application/onenote",
             ReaderInputKind.Text => "text/plain",
             ReaderInputKind.Csv => "text/csv",
             ReaderInputKind.Json => "application/json",

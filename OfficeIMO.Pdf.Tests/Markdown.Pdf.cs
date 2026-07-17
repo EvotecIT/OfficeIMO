@@ -116,6 +116,30 @@ Console.WriteLine("OfficeIMO");
     }
 
     [Fact]
+    public void Markdown_SaveAsPdf_MultilingualTextFallbacksCoverCjkWhenAvailable() {
+        const string cjk = "\u300D\u4E00";
+        PdfCore.PdfEmbeddedFontFallbackSet? fallbackSet = new PdfCore.PdfOptions()
+            .UseTextFallbacks(
+                PdfCore.PdfTextFallbackFeatures.DocumentFont |
+                PdfCore.PdfTextFallbackFeatures.MultilingualFonts |
+                PdfCore.PdfTextFallbackFeatures.SymbolAndEmojiFonts)
+            .EmbeddedFontFallbacks;
+        if (fallbackSet == null || !fallbackSet.PlanText(cjk).IsFullyCovered) return;
+
+        PdfCore.PdfDocumentConversionResult result = OfficeIMO.Markdown.MarkdownReader
+            .Parse("# Multilingual\n\nText " + cjk)
+            .ToPdfDocumentResult(new MarkdownPdfSaveOptions {
+                TextFallbacks = PdfCore.PdfTextFallbackFeatures.Default |
+                    PdfCore.PdfTextFallbackFeatures.MultilingualFonts
+            });
+        byte[] pdf = result.ToBytes();
+
+        Assert.Equal("%PDF", System.Text.Encoding.ASCII.GetString(pdf, 0, 4));
+        Assert.DoesNotContain(result.Warnings, warning => warning.Code == "unsupported-text-glyph");
+        Assert.DoesNotContain(result.Warnings, warning => warning.Code == "missing-embedded-font-fallback-glyph");
+    }
+
+    [Fact]
     public void MarkdownDoc_SaveAsPdf_Renders_SoftBreak_As_Space() {
         var markdown = MarkdownDoc.Create();
         markdown.Add(new ParagraphBlock(new InlineSequence()

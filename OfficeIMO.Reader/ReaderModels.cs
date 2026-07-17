@@ -89,7 +89,11 @@ public enum ReaderInputKind {
     /// <summary>
     /// Email, Outlook item, TNEF payload, or mbox mailbox.
     /// </summary>
-    Email = 19
+    Email = 19,
+    /// <summary>
+    /// Offline Microsoft OneNote artifact.
+    /// </summary>
+    OneNote = 20
 }
 
 /// <summary>

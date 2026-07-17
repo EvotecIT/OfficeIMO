@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.IO.Compression;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -215,7 +216,7 @@ internal static partial class DocumentReaderEngine {
         ushort compression,
         uint compressedSize,
         long returnPosition) {
-        if (compression != 0 || compressedSize == 0 || compressedSize > 128) return null;
+        if ((compression != 0 && compression != 8) || compressedSize == 0 || compressedSize > 128) return null;
 
         var header = new byte[30];
         long headerPosition = start + localHeaderOffset;
@@ -237,7 +238,7 @@ internal static partial class DocumentReaderEngine {
         stream.Position = dataPosition;
         var mimeBytes = new byte[(int)compressedSize];
         DetectionCandidate? candidate = ReadExact(stream, mimeBytes, 0, mimeBytes.Length)
-            ? MatchContainerMimeType(mimeBytes)
+            ? MatchContainerMimeType(mimeBytes, compression)
             : null;
         stream.Position = returnPosition;
         return candidate;
@@ -251,7 +252,7 @@ internal static partial class DocumentReaderEngine {
         uint compressedSize,
         long returnPosition,
         CancellationToken cancellationToken) {
-        if (compression != 0 || compressedSize == 0 || compressedSize > 128) return null;
+        if ((compression != 0 && compression != 8) || compressedSize == 0 || compressedSize > 128) return null;
 
         var header = new byte[30];
         long headerPosition = start + localHeaderOffset;
@@ -275,7 +276,7 @@ internal static partial class DocumentReaderEngine {
         var mimeBytes = new byte[(int)compressedSize];
         DetectionCandidate? candidate = await ReadExactAsync(stream, mimeBytes, 0, mimeBytes.Length, cancellationToken)
                 .ConfigureAwait(false)
-            ? MatchContainerMimeType(mimeBytes)
+            ? MatchContainerMimeType(mimeBytes, compression)
             : null;
         stream.Position = returnPosition;
         return candidate;
@@ -285,7 +286,12 @@ internal static partial class DocumentReaderEngine {
         return Encoding.UTF8.GetString(nameBytes).Replace('\\', '/').ToLowerInvariant();
     }
 
-    private static DetectionCandidate? MatchContainerMimeType(byte[] mimeBytes) {
+    private static DetectionCandidate? MatchContainerMimeType(byte[] mimeBytes, ushort compression) {
+        if (compression == 8) {
+            byte[]? inflated = InflateMimeType(mimeBytes);
+            if (inflated == null) return null;
+            mimeBytes = inflated;
+        }
         string mediaType = Encoding.ASCII.GetString(mimeBytes).Trim();
         if (string.Equals(mediaType, "application/epub+zip", StringComparison.Ordinal)) {
             return EpubCandidate();
@@ -296,6 +302,29 @@ internal static partial class DocumentReaderEngine {
             return OpenDocumentCandidate(mediaType);
         }
         return null;
+    }
+
+    private static byte[]? InflateMimeType(byte[] compressedBytes) {
+        try {
+            using (var input = new MemoryStream(compressedBytes, false))
+            using (var inflater = new DeflateStream(input, CompressionMode.Decompress)) {
+                var output = new byte[129];
+                int total = 0;
+                while (total < output.Length) {
+                    int read = inflater.Read(output, total, output.Length - total);
+                    if (read <= 0) break;
+                    total += read;
+                }
+                if (total > 128) return null;
+                var result = new byte[total];
+                Buffer.BlockCopy(output, 0, result, 0, total);
+                return result;
+            }
+        } catch (InvalidDataException) {
+            return null;
+        } catch (IOException) {
+            return null;
+        }
     }
 
     private static DetectionCandidate GenericZipCandidate() {

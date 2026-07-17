@@ -37,9 +37,11 @@ public static partial class MarkdownPdfConverterExtensions {
                 options.AllowSystemFontEmbedding);
         }
 
-        if ((fallbackFeatures & PdfCore.PdfTextFallbackFeatures.SymbolAndEmojiFonts) != 0) {
+        PdfCore.PdfTextFallbackFeatures runFallbacks = fallbackFeatures &
+            (PdfCore.PdfTextFallbackFeatures.MultilingualFonts | PdfCore.PdfTextFallbackFeatures.SymbolAndEmojiFonts);
+        if (runFallbacks != PdfCore.PdfTextFallbackFeatures.None) {
             pdfOptions.UseTextFallbacks(
-                PdfCore.PdfTextFallbackFeatures.SymbolAndEmojiFonts,
+                runFallbacks,
                 CreateMarkdownReservedFontSlots(pdfOptions, preserveDocumentFontSlots, reserveCourier: usesCodeFont),
                 options.AllowSystemFontEmbedding);
         }

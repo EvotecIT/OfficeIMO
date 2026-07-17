@@ -50,7 +50,8 @@
         "OpenDocument",
         "AsciiDoc",
         "Latex",
-        "Email"
+        "Email",
+        "OneNote"
       ]
     },
     "source": {
