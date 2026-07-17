@@ -61,15 +61,8 @@ namespace OfficeIMO.PowerPoint {
                 double? advanceAfterSeconds = TransitionAdvanceAfterSeconds;
                 SoundAction? soundAction = GetTransitionElement()?
                     .GetFirstChild<SoundAction>()?.CloneNode(true) as SoundAction;
-                string[] soundRelationshipIds = GetTransitionElements()
-                    .Select(transition => transition
-                        .GetFirstChild<SoundAction>()?
-                        .GetFirstChild<StartSoundAction>()?.Sound?.Embed?
-                        .Value)
-                    .Where(id => !string.IsNullOrEmpty(id))
-                    .Cast<string>()
-                    .Distinct(StringComparer.Ordinal)
-                    .ToArray();
+                string[] soundRelationshipIds =
+                    GetTransitionSoundRelationshipIds();
 
                 RemoveTransitionMarkup();
                 if (value == SlideTransition.None) {

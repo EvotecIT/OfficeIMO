@@ -1,4 +1,5 @@
 using DocumentFormat.OpenXml.Presentation;
+using System.Linq;
 
 namespace OfficeIMO.PowerPoint {
     public partial class PowerPointSlide {
@@ -38,8 +39,8 @@ namespace OfficeIMO.PowerPoint {
                 throw new ArgumentException("A transition sound name is required.",
                     nameof(name));
             }
-            string? previousRelationshipId = GetTransitionStartSound()?
-                .Sound?.Embed?.Value;
+            string[] previousRelationshipIds =
+                GetTransitionSoundRelationshipIds();
             string relationshipId = PowerPointEmbeddedSound.Add(_slidePart,
                 audio, contentType, extension);
             foreach (Transition transition in
@@ -51,27 +52,25 @@ namespace OfficeIMO.PowerPoint {
                         Name = name
                     }) { Loop = loop }));
             }
-            PowerPointEmbeddedSound.RemoveIfUnused(_slidePart,
-                previousRelationshipId);
+            RemoveUnusedTransitionSounds(previousRelationshipIds);
         }
 
         /// <summary>Stops any currently playing transition sound on entry to this slide.</summary>
         public void StopTransitionSound() {
-            string? previousRelationshipId = GetTransitionStartSound()?
-                .Sound?.Embed?.Value;
+            string[] previousRelationshipIds =
+                GetTransitionSoundRelationshipIds();
             foreach (Transition transition in
                      GetOrCreateTransitionElements()) {
                 transition.RemoveAllChildren<SoundAction>();
                 transition.Append(new SoundAction(new EndSoundAction()));
             }
-            PowerPointEmbeddedSound.RemoveIfUnused(_slidePart,
-                previousRelationshipId);
+            RemoveUnusedTransitionSounds(previousRelationshipIds);
         }
 
         /// <summary>Removes this slide's start- or stop-sound transition action.</summary>
         public void ClearTransitionSound() {
-            string? relationshipId = GetTransitionStartSound()?
-                .Sound?.Embed?.Value;
+            string[] relationshipIds =
+                GetTransitionSoundRelationshipIds();
             foreach (Transition transition in GetTransitionElements()) {
                 transition.RemoveAllChildren<SoundAction>();
                 if (ReferenceEquals(transition, SlideRoot.Transition)
@@ -80,8 +79,7 @@ namespace OfficeIMO.PowerPoint {
                     SlideRoot.Transition = null;
                 }
             }
-            PowerPointEmbeddedSound.RemoveIfUnused(_slidePart,
-                relationshipId);
+            RemoveUnusedTransitionSounds(relationshipIds);
         }
 
         /// <summary>Returns the exact embedded transition sound bytes, when present.</summary>
@@ -93,6 +91,16 @@ namespace OfficeIMO.PowerPoint {
         private StartSoundAction? GetTransitionStartSound() =>
             GetTransitionElement()?.GetFirstChild<SoundAction>()?
                 .GetFirstChild<StartSoundAction>();
+
+        private string[] GetTransitionSoundRelationshipIds() =>
+            GetTransitionElements()
+                .Select(transition => transition
+                    .GetFirstChild<SoundAction>()?
+                    .GetFirstChild<StartSoundAction>()?.Sound?.Embed?.Value)
+                .Where(id => !string.IsNullOrEmpty(id))
+                .Cast<string>()
+                .Distinct(StringComparer.Ordinal)
+                .ToArray();
 
         private IReadOnlyList<Transition> GetOrCreateTransitionElements() {
             IReadOnlyList<Transition> transitions =

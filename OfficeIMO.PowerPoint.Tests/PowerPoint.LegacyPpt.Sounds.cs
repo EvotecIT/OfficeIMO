@@ -300,8 +300,13 @@ namespace OfficeIMO.Tests {
             Assert.Empty(presentation.ValidateDocument());
         }
 
-        [Fact]
-        public void RemovingTransitionReleasesSoundsFromAllFallbackBranches() {
+        [Theory]
+        [InlineData("none")]
+        [InlineData("replace")]
+        [InlineData("stop")]
+        [InlineData("clear")]
+        public void TransitionSoundMutationsReleaseAllFallbackMedia(
+            string mutation) {
             byte[] wave = CreateWavePayload();
             using PowerPointPresentation presentation =
                 PowerPointPresentation.Create();
@@ -332,11 +337,40 @@ namespace OfficeIMO.Tests {
                 .OfType<AudioReferenceRelationship>().Count());
             Assert.Equal(2, presentation.OpenXmlDocument.DataParts.Count());
 
-            slide.Transition = SlideTransition.None;
+            switch (mutation) {
+                case "replace":
+                    using (var audio = new MemoryStream(
+                               wave.Concat(new byte[] { 0x42 }).ToArray(),
+                               writable: false)) {
+                        slide.SetTransitionSound(audio,
+                            "Replacement sound");
+                    }
+                    break;
+                case "stop":
+                    slide.StopTransitionSound();
+                    break;
+                case "clear":
+                    slide.ClearTransitionSound();
+                    break;
+                default:
+                    slide.Transition = SlideTransition.None;
+                    break;
+            }
 
-            Assert.Empty(slide.SlidePart.DataPartReferenceRelationships
-                .OfType<AudioReferenceRelationship>());
-            Assert.Empty(presentation.OpenXmlDocument.DataParts);
+            int expectedMediaCount = mutation == "replace" ? 1 : 0;
+            Assert.Equal(expectedMediaCount, slide.SlidePart
+                .DataPartReferenceRelationships
+                .OfType<AudioReferenceRelationship>().Count());
+            Assert.Equal(expectedMediaCount,
+                presentation.OpenXmlDocument.DataParts.Count());
+            if (mutation == "replace") {
+                Assert.Equal("Replacement sound",
+                    slide.TransitionSoundName);
+            } else if (mutation == "stop") {
+                Assert.True(slide.TransitionStopsSound);
+            } else {
+                Assert.False(slide.HasTransitionSound);
+            }
             Assert.Empty(presentation.ValidateDocument());
         }
 
