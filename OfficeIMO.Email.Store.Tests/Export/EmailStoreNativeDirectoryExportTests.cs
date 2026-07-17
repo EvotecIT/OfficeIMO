@@ -258,6 +258,57 @@ public sealed class EmailStoreNativeDirectoryExportTests {
         }
     }
 
+#if NET8_0_OR_GREATER
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    public void NativeDirectoryExportRejectsLinkedAliasesOfItsSource(int scenario) {
+        string container = Path.Combine(Path.GetTempPath(),
+            "oims-link-" + Guid.NewGuid().ToString("N").Substring(0, 12));
+        string sourceRoot = Path.Combine(container, "source");
+        string alias = Path.Combine(container, "alias");
+        bool linkCreated = false;
+        try {
+            Directory.CreateDirectory(sourceRoot);
+            string sourceMessage = Path.Combine(sourceRoot, "source.eml");
+            File.WriteAllText(sourceMessage, "Subject: Source\r\n\r\nBody\r\n");
+            try {
+                Directory.CreateSymbolicLink(alias, sourceRoot);
+                linkCreated = true;
+            } catch (UnauthorizedAccessException) when (
+                System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(
+                    System.Runtime.InteropServices.OSPlatform.Windows)) {
+                return;
+            } catch (IOException) when (
+                System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(
+                    System.Runtime.InteropServices.OSPlatform.Windows)) {
+                return;
+            }
+
+            string source = scenario == 2 ? alias : sourceRoot;
+            string destination = scenario switch {
+                0 => alias,
+                1 => Path.Combine(alias, "export"),
+                _ => sourceRoot
+            };
+            using EmailStoreSession session = EmailStoreSession.Open(source);
+
+            InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
+                session.ExportToNativeDirectory(destination,
+                    new EmailStoreNativeDirectoryExportOptions(
+                        EmailStoreNativeDirectoryFormat.Maildir)));
+
+            Assert.Contains("source tree", exception.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Equal(new[] { sourceMessage }, Directory.EnumerateFiles(
+                sourceRoot, "*", SearchOption.AllDirectories).ToArray());
+        } finally {
+            if (linkCreated && Directory.Exists(alias)) Directory.Delete(alias);
+            if (Directory.Exists(container)) Directory.Delete(container, recursive: true);
+        }
+    }
+#endif
+
     [Theory]
     [InlineData(-1)]
     [InlineData(2)]

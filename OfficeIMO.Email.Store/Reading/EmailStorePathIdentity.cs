@@ -2,7 +2,7 @@ using System.Runtime.InteropServices;
 
 namespace OfficeIMO.Email.Store;
 
-internal static class EmailStorePathIdentity {
+internal static partial class EmailStorePathIdentity {
     internal static string Normalize(string path) =>
         Normalize(path, IsCaseInsensitiveFileSystem(path));
 
@@ -29,6 +29,14 @@ internal static class EmailStorePathIdentity {
     internal static bool IsSameOrDescendant(string candidatePath, string rootPath) {
         string candidate = TrimEndingDirectorySeparators(Path.GetFullPath(candidatePath));
         string root = TrimEndingDirectorySeparators(Path.GetFullPath(rootPath));
+        bool candidateResolved = TryResolvePhysicalPath(candidate, out string resolvedCandidate);
+        bool rootResolved = TryResolvePhysicalPath(root, out string resolvedRoot);
+        if ((!candidateResolved && ContainsReparsePointInExistingAncestry(candidate)) ||
+            (!rootResolved && ContainsReparsePointInExistingAncestry(root))) {
+            return true;
+        }
+        if (candidateResolved) candidate = resolvedCandidate;
+        if (rootResolved) root = resolvedRoot;
         StringComparison comparison = GetComparison(root);
         if (string.Equals(candidate, root, comparison)) return true;
         string prefix = string.Concat(root, Path.DirectorySeparatorChar.ToString());
@@ -46,10 +54,20 @@ internal static class EmailStorePathIdentity {
             return RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
         }
 
-        if (TryDetectFromExistingName(existingPath, out bool caseInsensitive)) return caseInsensitive;
-        if (Directory.Exists(existingPath)) {
+        string? directory = Directory.Exists(existingPath)
+            ? existingPath
+            : Path.GetDirectoryName(existingPath);
+        if (string.IsNullOrEmpty(directory)) {
+            return RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
+        }
+
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows) &&
+            TryGetWindowsDirectoryCaseInsensitive(directory, out bool caseInsensitive)) {
+            return caseInsensitive;
+        }
+        if (Directory.Exists(directory)) {
             try {
-                foreach (string entry in Directory.EnumerateFileSystemEntries(existingPath)) {
+                foreach (string entry in Directory.EnumerateFileSystemEntries(directory)) {
                     if (TryDetectFromExistingName(entry, out caseInsensitive)) return caseInsensitive;
                 }
             } catch (IOException) {
@@ -97,6 +115,25 @@ internal static class EmailStorePathIdentity {
         } catch (UnauthorizedAccessException) {
             return false;
         }
+    }
+
+    private static bool ContainsReparsePointInExistingAncestry(string path) {
+        string? candidate = TrimEndingDirectorySeparators(Path.GetFullPath(path));
+        while (!string.IsNullOrEmpty(candidate)) {
+            try {
+                if ((File.Exists(candidate) || Directory.Exists(candidate)) &&
+                    (File.GetAttributes(candidate) & FileAttributes.ReparsePoint) != 0) {
+                    return true;
+                }
+            } catch (IOException) {
+            } catch (UnauthorizedAccessException) {
+            }
+
+            string? parent = Path.GetDirectoryName(candidate);
+            if (string.IsNullOrEmpty(parent) || string.Equals(parent, candidate, StringComparison.Ordinal)) break;
+            candidate = parent;
+        }
+        return false;
     }
 
     private static string TrimEndingDirectorySeparators(string path) {

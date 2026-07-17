@@ -1,5 +1,7 @@
 using OfficeIMO.Email;
+using System.Diagnostics;
 using System.Globalization;
+using System.Runtime.InteropServices;
 using System.Threading;
 
 namespace OfficeIMO.Email.Store.Tests;
@@ -166,6 +168,36 @@ public sealed class MailboxDirectorySessionTests {
     }
 
     [Fact]
+    public void WindowsPerDirectoryCaseSensitivityKeepsDistinctFolders() {
+        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) return;
+        string root = Path.Combine(Path.GetTempPath(),
+            "oims-caseflag-" + Guid.NewGuid().ToString("N").Substring(0, 12));
+        try {
+            Directory.CreateDirectory(root);
+            if (!TryEnableWindowsDirectoryCaseSensitivity(root)) return;
+            string upper = Path.Combine(root, "Inbox");
+            string lower = Path.Combine(root, "inbox");
+            Directory.CreateDirectory(upper);
+            Directory.CreateDirectory(lower);
+            File.WriteAllText(Path.Combine(upper, "upper.eml"),
+                "Subject: Upper folder\r\n\r\nBody\r\n");
+            File.WriteAllText(Path.Combine(lower, "lower.eml"),
+                "Subject: Lower folder\r\n\r\nBody\r\n");
+
+            Assert.False(EmailStorePathIdentity.IsCaseInsensitiveFileSystem(root));
+            using EmailStoreSession session = EmailStoreSession.Open(root);
+            EmailStoreReadResult materialized = session.ReadAll();
+
+            Assert.Equal(2, session.Folders.Count);
+            Assert.Contains(session.Folders, folder => folder.Name == "Inbox");
+            Assert.Contains(session.Folders, folder => folder.Name == "inbox");
+            Assert.Equal(2, materialized.Store.Folders.Sum(folder => folder.Items.Count));
+        } finally {
+            if (Directory.Exists(root)) Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
     public void OpeningMailboxDirectoryDoesNotCreateCaseProbeArtifacts() {
         string root = CreateMailboxDirectory();
         try {
@@ -206,6 +238,24 @@ public sealed class MailboxDirectorySessionTests {
         File.WriteAllText(Path.Combine(maildir, "maildir-message"),
             "From: maildir@example.test\r\nSubject: Maildir message\r\n\r\nMaildir body\r\n");
         return root;
+    }
+
+    private static bool TryEnableWindowsDirectoryCaseSensitivity(string path) {
+        var startInfo = new ProcessStartInfo {
+            FileName = "fsutil.exe",
+            Arguments = "file setCaseSensitiveInfo \"" + path + "\" enable",
+            CreateNoWindow = true,
+            UseShellExecute = false,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true
+        };
+        using Process? process = Process.Start(startInfo);
+        if (process == null) return false;
+        if (!process.WaitForExit(10_000)) {
+            process.Kill();
+            return false;
+        }
+        return process.ExitCode == 0;
     }
 
     private static byte[] CreateEmlx(byte[] message) {
