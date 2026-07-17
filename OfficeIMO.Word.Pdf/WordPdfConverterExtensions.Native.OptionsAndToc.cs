@@ -278,16 +278,11 @@ namespace OfficeIMO.Word.Pdf {
 
         private static string GetEmbeddedFontFamilyName(PdfCore.PdfOptions options, PdfCore.PdfStandardFont slot) {
             PdfCore.PdfStandardFont normalizedSlot = PdfCore.PdfStandardFontMapper.GetFontFamily(slot);
-            if (!options.EmbeddedFonts.TryGetValue(normalizedSlot, out PdfCore.PdfEmbeddedFont? embedded) ||
-                string.IsNullOrWhiteSpace(embedded.FontName)) {
+            string? embeddedFamilyName = options.GetEmbeddedFontFamilyName(normalizedSlot);
+            if (embeddedFamilyName == null) {
                 return "unnamed embedded family in " + normalizedSlot + " slot";
             }
-
-            string fontName = embedded.FontName!;
-            const string regularSuffix = "-Regular";
-            return fontName.EndsWith(regularSuffix, StringComparison.OrdinalIgnoreCase)
-                ? fontName.Substring(0, fontName.Length - regularSuffix.Length)
-                : fontName;
+            return embeddedFamilyName;
         }
 
         private sealed class NativeTableOfContentsEntry {

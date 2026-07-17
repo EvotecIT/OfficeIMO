@@ -130,6 +130,33 @@ public sealed class PdfConverterOptionsApiTests {
         Assert.Throws<ArgumentOutOfRangeException>(() => new OfficeIMO.PowerPoint.Pdf.PowerPointPdfSaveOptions().UseProfile(profile));
     }
 
+    [Fact]
+    public void PdfOptionsTrackAndCloneExplicitFontSlots() {
+        var defaults = new PdfOptions();
+        PdfOptions defaultClone = defaults.Clone();
+
+        Assert.False(defaults.HasExplicitDefaultFont);
+        Assert.False(defaults.HasExplicitHeaderFont);
+        Assert.False(defaults.HasExplicitFooterFont);
+        Assert.False(defaultClone.HasExplicitDefaultFont);
+        Assert.False(defaultClone.HasExplicitHeaderFont);
+        Assert.False(defaultClone.HasExplicitFooterFont);
+
+        var configured = new PdfOptions {
+            DefaultFont = PdfStandardFont.Courier,
+            HeaderFont = PdfStandardFont.TimesRoman,
+            FooterFont = PdfStandardFont.Helvetica
+        };
+        PdfOptions configuredClone = configured.Clone();
+
+        Assert.True(configured.HasExplicitDefaultFont);
+        Assert.True(configured.HasExplicitHeaderFont);
+        Assert.True(configured.HasExplicitFooterFont);
+        Assert.True(configuredClone.HasExplicitDefaultFont);
+        Assert.True(configuredClone.HasExplicitHeaderFont);
+        Assert.True(configuredClone.HasExplicitFooterFont);
+    }
+
     private static void AssertPortable(PdfResourcePolicy policy) {
         Assert.False(policy.AllowSystemFontEmbedding);
         Assert.False(policy.AllowLocalFileAccess);

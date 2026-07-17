@@ -19,8 +19,11 @@ public sealed partial class PdfOptions {
         set {
             Guard.StandardFont(value, nameof(HeaderFont), "PDF header font must be one of the supported standard PDF fonts.");
             _headerFont = value;
+            _hasExplicitHeaderFont = true;
         }
     }
+    /// <summary>Gets whether the header font slot was explicitly supplied by the caller or a theme.</summary>
+    public bool HasExplicitHeaderFont => _hasExplicitHeaderFont;
     /// <summary>Header font size in points.</summary>
     public double HeaderFontSize { get; set; } = 9;
     /// <summary>Header text color. When null, the current PDF fill color is preserved.</summary>
@@ -50,8 +53,11 @@ public sealed partial class PdfOptions {
         set {
             Guard.StandardFont(value, nameof(FooterFont), "PDF footer font must be one of the supported standard PDF fonts.");
             _footerFont = value;
+            _hasExplicitFooterFont = true;
         }
     }
+    /// <summary>Gets whether the footer font slot was explicitly supplied by the caller or a theme.</summary>
+    public bool HasExplicitFooterFont => _hasExplicitFooterFont;
     /// <summary>Footer font size in points.</summary>
     public double FooterFontSize { get; set; } = 9;
     /// <summary>Footer text color. When null, the current PDF fill color is preserved.</summary>

@@ -32,6 +32,71 @@ public class RtfPdfConverterTests {
     }
 
     [Fact]
+    public void RtfDocument_ToPdfDocument_UnrelatedPdfOptionsPreserveRtfDefaultFont() {
+        string? installedFamily = new[] { "Arial", "Calibri", "Liberation Sans", "DejaVu Sans" }
+            .FirstOrDefault(candidate => PdfCore.PdfEmbeddedFontFamily.TryFromSystem(candidate, out _));
+        if (installedFamily == null) return;
+
+        RtfDocument document = RtfDocument.Create();
+        int fontId = document.AddFont(installedFamily);
+        document.Settings.SetDefaultFont(fontId);
+        document.AddParagraph("RTF configured default marker");
+        var callerPdfOptions = new PdfCore.PdfOptions {
+            CompressContentStreams = false
+        };
+
+        PdfCore.PdfDocumentConversionResult result = document.ToPdfDocumentResult(new RtfPdfSaveOptions {
+            PdfOptions = callerPdfOptions
+        });
+
+        Assert.False(callerPdfOptions.HasExplicitDefaultFont);
+        Assert.Empty(callerPdfOptions.EmbeddedFonts);
+        Assert.True(result.Value.Options.EmbeddedFontFamilySlotMatches(result.Value.Options.DefaultFont, installedFamily));
+    }
+
+    [Fact]
+    public void RtfDocument_ToPdfDocument_ExplicitPdfDefaultFontOverridesRtfDefaultFont() {
+        RtfDocument document = RtfDocument.Create();
+        document.Settings.SetDefaultFont(0);
+        document.AddParagraph("RTF explicit PDF default marker");
+        var callerPdfOptions = new PdfCore.PdfOptions {
+            DefaultFont = PdfCore.PdfStandardFont.Courier
+        };
+
+        PdfCore.PdfDocumentConversionResult result = document.ToPdfDocumentResult(new RtfPdfSaveOptions {
+            PdfOptions = callerPdfOptions,
+            ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic()
+        });
+
+        Assert.True(callerPdfOptions.HasExplicitDefaultFont);
+        Assert.Equal(PdfCore.PdfStandardFont.Courier, result.Value.Options.DefaultFont);
+    }
+
+    [Fact]
+    public void RtfDocument_ToPdfDocument_ReportsFontSlotExhaustionAndUsesDefaultRunSlot() {
+        var pdfOptions = new PdfCore.PdfOptions();
+        pdfOptions.RegisterFontFamily(PdfCore.PdfStandardFont.Helvetica, new PdfCore.PdfEmbeddedFontFamily("Caller Sans", new byte[] { 1 }));
+        pdfOptions.RegisterFontFamily(PdfCore.PdfStandardFont.TimesRoman, new PdfCore.PdfEmbeddedFontFamily("Caller Serif", new byte[] { 2 }));
+        pdfOptions.RegisterFontFamily(PdfCore.PdfStandardFont.Courier, new PdfCore.PdfEmbeddedFontFamily("Caller Mono", new byte[] { 3 }));
+
+        RtfDocument document = RtfDocument.Create();
+        document.Settings.SetDefaultFont(0);
+        int runFontId = document.AddFont("Arial");
+        RtfRun run = document.AddParagraph().AddText("RTF exhausted font marker");
+        run.FontId = runFontId;
+
+        PdfCore.PdfDocumentConversionResult result = document.ToPdfDocumentResult(new RtfPdfSaveOptions {
+            PdfOptions = pdfOptions,
+            ResourcePolicy = PdfCore.PdfResourcePolicy.CreateTrustedHost()
+        });
+
+        PdfCore.PdfConversionWarning warning = Assert.Single(result.Warnings, item => item.Code == "FontFamilySlotExhausted");
+        Assert.Equal("Arial", warning.Details["fontFamily"]);
+        PdfCore.RichParagraphBlock paragraph = Assert.IsType<PdfCore.RichParagraphBlock>(Assert.Single(result.Value.Blocks));
+        Assert.Null(Assert.Single(paragraph.Runs).Font);
+    }
+
+    [Fact]
     public void RtfDocument_ToPdfDocument_Renders_Paragraphs_Runs_And_PageSetup() {
         RtfDocument document = RtfDocument.Create();
         document.Info.Title = "RTF PDF";

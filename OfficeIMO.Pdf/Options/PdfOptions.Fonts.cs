@@ -129,11 +129,23 @@ public sealed partial class PdfOptions {
         familyName.Trim().Replace(" ", string.Empty).Replace("-", string.Empty);
 
     internal bool EmbeddedFontFamilySlotMatches(PdfStandardFont slot, string familyName) {
+        string? embeddedFamilyName = GetEmbeddedFontFamilyName(slot);
+        if (embeddedFamilyName == null) {
+            return false;
+        }
+
+        return string.Equals(
+            NormalizeOfficeFontFamilyKey(embeddedFamilyName),
+            NormalizeOfficeFontFamilyKey(familyName),
+            StringComparison.OrdinalIgnoreCase);
+    }
+
+    internal string? GetEmbeddedFontFamilyName(PdfStandardFont slot) {
         PdfStandardFont normalizedSlot = PdfStandardFontMapper.GetFontFamily(slot);
         if (_embeddedFonts == null ||
             !_embeddedFonts.TryGetValue(normalizedSlot, out PdfEmbeddedFont? embedded) ||
             string.IsNullOrWhiteSpace(embedded.FontName)) {
-            return false;
+            return null;
         }
 
         string embeddedFamilyName = embedded.FontName!;
@@ -142,10 +154,7 @@ public sealed partial class PdfOptions {
             embeddedFamilyName = embeddedFamilyName.Substring(0, embeddedFamilyName.Length - regularSuffix.Length);
         }
 
-        return string.Equals(
-            NormalizeOfficeFontFamilyKey(embeddedFamilyName),
-            NormalizeOfficeFontFamilyKey(familyName),
-            StringComparison.OrdinalIgnoreCase);
+        return embeddedFamilyName;
     }
 
     internal bool TryRegisterMappedOfficeFontFamily(

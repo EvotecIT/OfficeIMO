@@ -10,11 +10,11 @@ internal static partial class RtfPdfConverter {
 
         RtfPdfSaveOptions normalized = options ?? new RtfPdfSaveOptions();
         PdfCore.PdfOptions pdfOptions = normalized.PdfOptions ?? new PdfCore.PdfOptions();
+        pdfOptions.ReportDiagnosticsTo(normalized.Report, "OfficeIMO.Rtf.Pdf");
         IReadOnlyDictionary<int, PdfCore.PdfStandardFont> fontSlots = ConfigureDocumentFonts(
             document,
             pdfOptions,
-            normalized,
-            preserveConfiguredFontSlots: normalized.PdfOptions != null);
+            normalized);
         ApplyPageSetup(document, document.PageSetup, pdfOptions);
         if (document.Sections.Count > 0) {
             ApplyPageSetup(document, document.Sections[0].PageSetup, pdfOptions);
