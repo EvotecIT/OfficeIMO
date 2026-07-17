@@ -11,9 +11,10 @@ The package supports:
 - standards-based iCalendar (`VEVENT`/`VTODO`) and vCard projection when appointments, tasks, or contacts cross the EML boundary
 - TNEF payloads such as `winmail.dat`
 - mboxo and mboxrd mailbox archives
-- reopenable attachment content and per-message mbox streaming for large or store-backed workflows
-- bounded synchronous and asynchronous reads, immutable reader configuration, cancellation, and structured diagnostics
+- reopenable attachment content, file-backed streaming reads, and per-message mbox streaming for large or store-backed workflows
+- bounded synchronous and genuinely asynchronous source/destination I/O, immutable reader configuration, cancellation, and structured diagnostics
 - deterministic EML, MSG, OFT, TNEF, and mbox writing with explicit conversion-loss policy
+- versioned semantic fingerprints and value-free comparison reports for migration verification and deduplication
 
 MSG output includes the root storage identity, complete named-property forward and reverse mappings, and the compatibility metadata required by native Outlook. A document without an explicit date receives a deterministic creation-time fallback; set `Date` or `MessageMetadata.CreatedDate` when the real timestamp matters.
 
@@ -64,6 +65,25 @@ if (result.HasErrors) {
 }
 ```
 
+When attachment payloads should not be retained in managed arrays, use the streaming reader. Ordinary MIME,
+MSG/OFT, and TNEF attachments become reopenable temporary-file sources while headers, bodies, recipients, and typed
+Outlook fields keep the same model:
+
+```csharp
+using EmailReadResult result = await new EmailDocumentReader(options)
+    .ReadStreamingAsync("large-message.msg", cancellationToken);
+
+foreach (EmailAttachment attachment in result.Document.Attachments) {
+    using Stream content = await attachment.OpenContentStreamAsync(cancellationToken);
+    await content.CopyToAsync(destination, 81920, cancellationToken);
+}
+```
+
+Dispose the `EmailReadResult` after consuming its file-backed content. Its temporary files and attachment sources
+belong to that result and become unavailable after disposal. `Write` and `WriteAsync` consume `ContentSource`
+attachments in chunks; the async path uses asynchronous source and destination I/O rather than wrapping the
+synchronous writer in a task.
+
 The same model can be written as EML, MSG, OFT, or TNEF. Conversion is a load followed by a save:
 
 ```csharp
@@ -91,6 +111,26 @@ if (report.CanWrite) {
 Use `EmailConversionLossPolicy.Warn` only when the application has made an explicit decision to accept a documented
 loss. Opaque MAPI/TNEF metadata that has no portable EML equivalent is reported as a warning while common message
 content remains writable.
+
+## Compare message semantics
+
+Semantic comparison hashes a canonical, versioned projection rather than serialized bytes. The migration profile
+normalizes store identity and serialization details, the strict profile includes representation details, and the
+deduplication profile excludes synchronization and modification state:
+
+```csharp
+EmailSemanticComparisonReport comparison = EmailSemanticComparer.Compare(source, destination);
+
+if (!comparison.IsMatch) {
+    foreach (EmailSemanticDifference difference in comparison.Differences) {
+        Console.WriteLine($"{difference.Kind}: {difference.Path}");
+    }
+}
+```
+
+Difference reports contain canonical paths and lengths, not message values. Before persisting fingerprints for
+private mail, provide a random `digestKey` through `EmailSemanticComparisonOptions`; the resulting HMAC-SHA-256
+fingerprints cannot be correlated without that caller-owned key.
 
 ## Read an mbox archive
 
@@ -247,9 +287,10 @@ foreach (OfficeDocumentAsset attachment in result.Assets) {
 `OfficeIMO.Email` owns offline artifact parsing, serialization, and format-neutral Outlook data. It does not connect to mail servers, authenticate users, resolve certificates or keys, verify DKIM/ARC/PGP/S/MIME signatures, or decrypt protected messages. MailKit, MimeKit, and applications such as Mailozaurr remain the owners for those operations.
 
 The package does not expose general-purpose CFB transactions or mailbox-store traversal. Its compound implementation
-serves MSG/OFT and structured attachments only. `OfficeIMO.Email.Store` is the separate read-only source owner for
-PST, OST, OLM, EMLX, Apple Mail, and Maildir traversal, selection, validation, and item export. PST/OST mutation and
-transactional store commits remain outside both packages.
+serves MSG/OFT and structured attachments only. `OfficeIMO.Email.Store` is the separate source and new-PST owner
+for PST, OST, OLM, EMLX, Apple Mail, and Maildir traversal, selection, validation, export, verified conversion, and
+multi-store merge. Existing PST/OST mutation, append, repair, compaction, and OST writing remain outside both
+packages.
 
 For exact pass-through of an ordinary unprotected artifact, read with `preserveRawSource: true` and write with
 `usePreservedRawSource: true`. Protected artifacts use safe unchanged pass-through automatically.

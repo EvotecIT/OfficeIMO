@@ -13,21 +13,34 @@ internal sealed partial class PstStoreWriterCore : IDisposable {
     private readonly string _temporaryPath;
     private readonly EmailStorePstWriterOptions _options;
     private readonly PstWriterFile _file;
-    private readonly Guid _providerUid = Guid.NewGuid();
-    private readonly PstNamedPropertyWriter _namedProperties = new PstNamedPropertyWriter();
-    private readonly List<PstWriterNode> _nodes = new List<PstWriterNode>();
+    private readonly Guid _providerUid;
+    private readonly PstNamedPropertyWriter _namedProperties;
+    private readonly PstWriterNodeJournal _nodes;
+    private readonly PstWriterItemJournal _items;
     private readonly Dictionary<uint, FolderState> _folders = new Dictionary<uint, FolderState>();
     private readonly List<EmailStoreDiagnostic> _diagnostics = new List<EmailStoreDiagnostic>();
     private uint _nextFolderIndex = 0x10000;
     private uint _nextMessageIndex = 0x200000;
     private int _userFolderCount;
     private int _itemCount;
+    private int _lastCheckpointItemCount;
+    private bool _diagnosticsTruncated;
     private bool _completed;
+    private bool _finalizing;
+    private bool _abandon;
     private bool _disposed;
 
     internal PstStoreWriterCore(string destinationPath, EmailStorePstWriterOptions options) {
         _options = options ?? throw new ArgumentNullException(nameof(options));
+        _providerUid = Guid.NewGuid();
+        _namedProperties = new PstNamedPropertyWriter();
         _destinationPath = Path.GetFullPath(destinationPath);
+        if (options.CheckpointPath != null && string.Equals(
+            Path.GetFullPath(options.CheckpointPath), _destinationPath,
+            StringComparison.OrdinalIgnoreCase)) {
+            throw new InvalidOperationException(
+                "The PST checkpoint and destination must use different paths.");
+        }
         string? directory = Path.GetDirectoryName(_destinationPath);
         if (string.IsNullOrEmpty(directory)) directory = Directory.GetCurrentDirectory();
         Directory.CreateDirectory(directory);
@@ -37,12 +50,38 @@ internal sealed partial class PstStoreWriterCore : IDisposable {
         _temporaryPath = Path.Combine(directory,
             string.Concat(".", Path.GetFileName(_destinationPath), ".",
                 Guid.NewGuid().ToString("N"), ".tmp"));
+        _nodes = new PstWriterNodeJournal(string.Concat(_temporaryPath, ".nodes"));
+        _items = new PstWriterItemJournal(_temporaryPath);
         _file = new PstWriterFile(_temporaryPath);
         AddSystemFolder(RootFolderNid, RootFolderNid, "Root - Mailbox", null, false);
         AddSystemFolder(IpmSubtreeNid, RootFolderNid, "Top of Personal Folders", "IPF.Note", false);
         AddSystemFolder(SearchRootNid, RootFolderNid, "Finder", null, false);
         AddSystemFolder(DeletedItemsNid, IpmSubtreeNid, "Deleted Items", "IPF.Note", false);
         AddSystemFolder(SpamSearchFolderNid, RootFolderNid, "SPAM Search Folder 2", "IPF.Note", true);
+        ReportProgress(EmailStorePstWriteStage.Initializing);
+    }
+
+    private PstStoreWriterCore(WriterCheckpointState state,
+        EmailStorePstWriterOptions options) {
+        _options = options;
+        _destinationPath = state.DestinationPath;
+        _temporaryPath = state.TemporaryPath;
+        _providerUid = state.ProviderUid;
+        _namedProperties = state.NamedProperties;
+        _nextFolderIndex = state.NextFolderIndex;
+        _nextMessageIndex = state.NextMessageIndex;
+        _userFolderCount = state.UserFolderCount;
+        _itemCount = state.ItemCount;
+        _lastCheckpointItemCount = state.ItemCount;
+        _diagnosticsTruncated = state.DiagnosticsTruncated;
+        foreach (FolderState folder in state.Folders) _folders.Add(folder.Nid, folder);
+        _diagnostics.AddRange(state.Diagnostics);
+        _nodes = new PstWriterNodeJournal(string.Concat(_temporaryPath, ".nodes"),
+            resume: true, state.NodeCount);
+        _items = new PstWriterItemJournal(_temporaryPath, resume: true,
+            state.ItemJournalCount, state.ItemPayloadLength);
+        _file = new PstWriterFile(_temporaryPath, state.File);
+        ReportProgress(EmailStorePstWriteStage.Initializing);
     }
 
     internal string RootFolderId => FormatId(IpmSubtreeNid);
@@ -59,6 +98,7 @@ internal sealed partial class PstStoreWriterCore : IDisposable {
         uint nid = AllocateNid(ref _nextFolderIndex, 0x02);
         _folders.Add(nid, new FolderState(nid, parentNid, name.Trim(), containerClass, false));
         _userFolderCount++;
+        ReportProgress(EmailStorePstWriteStage.WritingFolders);
         return FormatId(nid);
     }
 
@@ -74,36 +114,82 @@ internal sealed partial class PstStoreWriterCore : IDisposable {
         WrittenMessage message = WriteMessage(document, itemNid, depth: 0, cancellationToken);
         _nodes.Add(new PstWriterNode(itemNid, folderNid, message.Context.DataBid,
             message.Context.SubnodeBid));
-        _folders[folderNid].Items.Add(new ItemState(itemNid, isAssociated, message.TableProperties));
+        IReadOnlyList<MapiProperty> tableProperties = SelectTableProperties(
+            message.TableProperties, isAssociated ? AssociatedColumns : ContentsColumns);
+        _items.Add(folderNid, itemNid, isAssociated, tableProperties);
+        FolderState folder = _folders[folderNid];
+        if (isAssociated) folder.AssociatedItemCount++;
+        else {
+            folder.NormalItemCount++;
+            if (IsUnread(tableProperties)) folder.UnreadItemCount++;
+        }
         _itemCount++;
+        ReportProgress(EmailStorePstWriteStage.WritingItems);
+        if (_options.CheckpointPath != null &&
+            _itemCount - _lastCheckpointItemCount >= _options.CheckpointIntervalItems) {
+            Checkpoint();
+        }
         return FormatId(itemNid);
     }
 
     internal EmailStorePstWriteReport Complete(CancellationToken cancellationToken) {
         ThrowIfUnavailable();
         cancellationToken.ThrowIfCancellationRequested();
-        WriteStoreStructure(cancellationToken);
+        _finalizing = true;
+        ReportProgress(EmailStorePstWriteStage.Finalizing);
+        using (PstWriterItemJournal.PstWriterItemSortedReader items =
+            _items.OpenSorted(_options.MaxIndexRecordsInMemory)) {
+            WriteStoreStructure(cancellationToken, items);
+            if (!items.IsExhausted) {
+                throw new InvalidDataException("The PST item spool contained an unmapped folder row.");
+            }
+        }
         if (_options.FailOnDataLoss && _diagnostics.Any(item =>
             item.Severity != EmailStoreDiagnosticSeverity.Information)) {
             throw new InvalidOperationException(
                 "PST creation produced fidelity diagnostics and FailOnDataLoss is enabled.");
         }
-        PstWriterTreeRoot nbt = _file.WriteNodeTree(_nodes);
+        PstWriterTreeRoot nbt = _file.WriteNodeTree(
+            _nodes.ReadSorted(_options.MaxIndexRecordsInMemory), _nodes.Count);
         PstWriterTreeRoot bbt = _file.WriteBlockTree();
-        _file.FinalizeFile(nbt, bbt, _nodes);
+        _file.FinalizeFile(nbt, bbt, _nodes.MaximumIndexes);
         _file.Dispose();
+        _nodes.Dispose();
+        _items.Dispose();
         CommitTemporaryFile();
         _completed = true;
+        DeleteCheckpointFile();
         long bytes = new FileInfo(_destinationPath).Length;
+        ReportProgress(EmailStorePstWriteStage.Completed);
         return new EmailStorePstWriteReport(_destinationPath, _userFolderCount,
-            _itemCount, bytes, _diagnostics.ToArray());
+            _itemCount, bytes, _diagnostics.ToArray(), _diagnosticsTruncated);
     }
 
     public void Dispose() {
         if (_disposed) return;
         _disposed = true;
+        bool preserve = false;
+        if (!_completed && !_abandon && _options.CheckpointPath != null &&
+            _options.RetainCheckpointOnDispose) {
+            if (!_finalizing) {
+                try { CheckpointCore(); }
+                catch (IOException) { }
+                catch (UnauthorizedAccessException) { }
+            }
+            preserve = File.Exists(_options.CheckpointPath);
+        }
+        if (preserve) {
+            _file.PreserveOnDispose();
+            _nodes.PreserveOnDispose();
+            _items.PreserveOnDispose();
+        }
         _file.Dispose();
-        if (!_completed) TryDelete(_temporaryPath);
+        _nodes.Dispose();
+        _items.Dispose();
+        if (!_completed && !preserve) {
+            DeleteCheckpointFile();
+            CleanupWorkingFiles(_temporaryPath, _destinationPath);
+        }
     }
 
     private void AddSystemFolder(uint nid, uint parentNid, string name,
@@ -134,7 +220,10 @@ internal sealed partial class PstStoreWriterCore : IDisposable {
         if (_completed) throw new InvalidOperationException("The PST writer has already completed.");
     }
 
-    private void Report(EmailStoreDiagnostic diagnostic) => _diagnostics.Add(diagnostic);
+    private void Report(EmailStoreDiagnostic diagnostic) {
+        if (_diagnostics.Count < _options.MaxDiagnostics) _diagnostics.Add(diagnostic);
+        else _diagnosticsTruncated = true;
+    }
 
     private static uint AllocateNid(ref uint nextIndex, uint type) {
         uint value = checked(nextIndex | type);
@@ -165,19 +254,9 @@ internal sealed partial class PstStoreWriterCore : IDisposable {
         internal string Name { get; }
         internal string? ContainerClass { get; }
         internal bool IsSearchFolder { get; }
-        internal List<ItemState> Items { get; } = new List<ItemState>();
-    }
-
-    private sealed class ItemState {
-        internal ItemState(uint nid, bool isAssociated,
-            IReadOnlyList<MapiProperty> tableProperties) {
-            Nid = nid;
-            IsAssociated = isAssociated;
-            TableProperties = tableProperties;
-        }
-        internal uint Nid { get; }
-        internal bool IsAssociated { get; }
-        internal IReadOnlyList<MapiProperty> TableProperties { get; }
+        internal int NormalItemCount { get; set; }
+        internal int AssociatedItemCount { get; set; }
+        internal int UnreadItemCount { get; set; }
     }
 
     private readonly struct WrittenMessage {

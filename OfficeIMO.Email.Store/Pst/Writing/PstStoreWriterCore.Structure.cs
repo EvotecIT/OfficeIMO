@@ -46,7 +46,8 @@ internal sealed partial class PstStoreWriterCore {
         Column(0x3705, MapiPropertyType.Integer32), Column(0x370B, MapiPropertyType.Integer32)
     };
 
-    private void WriteStoreStructure(CancellationToken cancellationToken) {
+    private void WriteStoreStructure(CancellationToken cancellationToken,
+        PstWriterItemJournal.PstWriterItemSortedReader items) {
         WriteTemplateTable(0x60D, HierarchyColumns, "template/hierarchy");
         WriteTemplateTable(0x60E, ContentsColumns, "template/contents");
         WriteTemplateTable(0x60F, AssociatedColumns, "template/associated");
@@ -56,7 +57,7 @@ internal sealed partial class PstStoreWriterCore {
 
         foreach (FolderState folder in _folders.Values.OrderBy(item => item.Nid)) {
             cancellationToken.ThrowIfCancellationRequested();
-            WriteFolder(folder);
+            WriteFolder(folder, items);
         }
 
         PstWriterContextResult nameMap = PstPropertyContextWriter.Write(_file,
@@ -83,19 +84,17 @@ internal sealed partial class PstStoreWriterCore {
         _nodes.Add(new PstWriterNode(0x201, 0, emptyQueue));
     }
 
-    private void WriteFolder(FolderState folder) {
+    private void WriteFolder(FolderState folder,
+        PstWriterItemJournal.PstWriterItemSortedReader items) {
         FolderState[] children = _folders.Values.Where(item => item.ParentNid == folder.Nid &&
             item.Nid != folder.Nid).OrderBy(item => item.Nid).ToArray();
-        ItemState[] normalItems = folder.Items.Where(item => !item.IsAssociated).ToArray();
-        ItemState[] associatedItems = folder.Items.Where(item => item.IsAssociated).ToArray();
-        int unread = normalItems.Count(item => IsUnread(item.TableProperties));
         var folderProperties = new List<MapiProperty> {
             new MapiProperty(0x0FF9, MapiPropertyType.Binary, CreateEntryId(folder.Nid)),
             new MapiProperty(0x3001, MapiPropertyType.Unicode, folder.Name),
-            new MapiProperty(0x3602, MapiPropertyType.Integer32, normalItems.Length),
-            new MapiProperty(0x3603, MapiPropertyType.Integer32, unread),
+            new MapiProperty(0x3602, MapiPropertyType.Integer32, folder.NormalItemCount),
+            new MapiProperty(0x3603, MapiPropertyType.Integer32, folder.UnreadItemCount),
             new MapiProperty(0x360A, MapiPropertyType.Boolean, children.Length > 0),
-            new MapiProperty(0x3617, MapiPropertyType.Integer32, associatedItems.Length)
+            new MapiProperty(0x3617, MapiPropertyType.Integer32, folder.AssociatedItemCount)
         };
         if (!string.IsNullOrWhiteSpace(folder.ContainerClass)) {
             folderProperties.Add(new MapiProperty(0x3613, MapiPropertyType.Unicode, folder.ContainerClass));
@@ -121,10 +120,8 @@ internal sealed partial class PstStoreWriterCore {
         var hierarchyRows = children.Select(child => new PstWriterTableRow(child.Nid,
             new[] {
                 new MapiProperty(0x3001, MapiPropertyType.Unicode, child.Name),
-                new MapiProperty(0x3602, MapiPropertyType.Integer32,
-                    child.Items.Count(item => !item.IsAssociated)),
-                new MapiProperty(0x3603, MapiPropertyType.Integer32,
-                    child.Items.Count(item => !item.IsAssociated && IsUnread(item.TableProperties))),
+                new MapiProperty(0x3602, MapiPropertyType.Integer32, child.NormalItemCount),
+                new MapiProperty(0x3603, MapiPropertyType.Integer32, child.UnreadItemCount),
                 new MapiProperty(0x360A, MapiPropertyType.Boolean,
                     _folders.Values.Any(item => item.ParentNid == child.Nid && item.Nid != child.Nid)),
                 new MapiProperty(0x3613, MapiPropertyType.Unicode, child.ContainerClass)
@@ -132,12 +129,10 @@ internal sealed partial class PstStoreWriterCore {
         WriteFolderTable((folder.Nid & ~0x1FU) | 0x0D, folder.Nid,
             hierarchyRows, HierarchyColumns, "hierarchy");
         WriteFolderTable((folder.Nid & ~0x1FU) | 0x0E, folder.Nid,
-            normalItems.Select(item => new PstWriterTableRow(item.Nid,
-                SelectTableProperties(item.TableProperties, ContentsColumns))),
+            items.ReadRows(folder.Nid, associated: false),
             ContentsColumns, "contents");
         WriteFolderTable((folder.Nid & ~0x1FU) | 0x0F, folder.Nid,
-            associatedItems.Select(item => new PstWriterTableRow(item.Nid,
-                SelectTableProperties(item.TableProperties, AssociatedColumns))),
+            items.ReadRows(folder.Nid, associated: true),
             AssociatedColumns, "associated");
     }
 

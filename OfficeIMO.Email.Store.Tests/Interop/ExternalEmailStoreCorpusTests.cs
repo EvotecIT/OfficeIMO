@@ -109,6 +109,12 @@ public sealed class ExternalEmailStoreCorpusTests {
                         maxItems: maximumItems));
                 convertedItems = checked(convertedItems + report.ConvertedItems);
                 Assert.Equal(report.ConvertedItems, report.WriteReport.ItemCount);
+                Assert.NotNull(report.Verification);
+                Assert.True(report.Verification!.IsSuccessful);
+                Assert.Equal(report.ConvertedItems, report.Verification.AttemptedItems);
+                Assert.Equal(report.ConvertedItems, report.Verification.MatchedItems);
+                Assert.Empty(report.Verification.Issues);
+                Assert.Null(report.Verification.ManifestPath);
                 using EmailStoreSession converted = EmailStoreSession.Open(destinationPath,
                     new EmailStoreReaderOptions(includeAssociatedItems: true,
                         includeOrphanedItems: true));

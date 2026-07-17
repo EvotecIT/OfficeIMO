@@ -11,7 +11,7 @@ internal static class EmailCompoundReadPolicy {
         return new OfficeCompoundReadOptions(
             options.MaxCompoundDirectoryEntries,
             options.MaxCompoundDirectoryEntries,
-            Math.Min(options.MaxInputBytes, int.MaxValue),
+            options.MaxInputBytes,
             GetCompoundByteLimit(options, options.MaxDecodedPropertyBytes,
                 options.MaxTotalAttachmentBytes),
             (path, size) => {
@@ -48,7 +48,7 @@ internal static class EmailCompoundReadPolicy {
         return new OfficeCompoundReadOptions(
             options.MaxCompoundDirectoryEntries,
             options.MaxCompoundDirectoryEntries,
-            Math.Min(options.MaxInputBytes, int.MaxValue),
+            options.MaxInputBytes,
             GetCompoundByteLimit(options, 0,
                 Math.Min(options.MaxAttachmentBytes,
                     Math.Max(0, options.MaxTotalAttachmentBytes - existingTotalAttachmentBytes))),

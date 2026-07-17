@@ -21,7 +21,19 @@ namespace OfficeIMO.Drawing.Internal {
             if (streams == null) throw new ArgumentNullException(nameof(streams));
             if (streams.Count == 0) throw new ArgumentException("At least one compound stream is required.", nameof(streams));
 
-            return Write(OfficeCompoundWriterLayout.Create(streams), rootClassId);
+            using (var output = new MemoryStream()) {
+                Write(output, streams, rootClassId);
+                return output.ToArray();
+            }
+        }
+
+        internal static void Write(Stream output, IReadOnlyList<OfficeCompoundStream> streams,
+            Guid? rootClassId = null) {
+            if (output == null) throw new ArgumentNullException(nameof(output));
+            if (!output.CanWrite) throw new ArgumentException("The compound output must be writable.", nameof(output));
+            if (streams == null) throw new ArgumentNullException(nameof(streams));
+            if (streams.Count == 0) throw new ArgumentException("At least one compound stream is required.", nameof(streams));
+            Write(output, OfficeCompoundWriterLayout.Create(streams), rootClassId);
         }
 
         /// <summary>Rewrites selected streams while retaining the source directory hierarchy and metadata.</summary>
@@ -52,18 +64,21 @@ namespace OfficeIMO.Drawing.Internal {
             if (streams.Count == 0) {
                 throw new ArgumentException("At least one compound stream is required.", nameof(source));
             }
-            return Write(OfficeCompoundWriterLayout.Create(streams, source),
-                source.RootEntry.ClassId == Guid.Empty ? null : source.RootEntry.ClassId);
+            using (var output = new MemoryStream()) {
+                Write(output, OfficeCompoundWriterLayout.Create(streams, source),
+                    source.RootEntry.ClassId == Guid.Empty ? null : source.RootEntry.ClassId);
+                return output.ToArray();
+            }
         }
 
-        private static byte[] Write(OfficeCompoundWriterLayout directoryLayout, Guid? rootClassId) {
+        private static void Write(Stream output, OfficeCompoundWriterLayout directoryLayout, Guid? rootClassId) {
 
             PaddedStream[] paddedStreams = directoryLayout.Streams
                 .Select(PadStream)
                 .OrderBy(stream => stream.Entry.Path, StringComparer.OrdinalIgnoreCase)
                 .ToArray();
 
-            MiniStreamLayout miniStreamLayout = MiniStreamLayout.Create(paddedStreams);
+            using MiniStreamLayout miniStreamLayout = MiniStreamLayout.Create(paddedStreams);
             int regularStreamSectorCount = 0;
             foreach (PaddedStream stream in paddedStreams) {
                 if (stream.IsMiniStream) {
@@ -71,13 +86,14 @@ namespace OfficeIMO.Drawing.Internal {
                 }
 
                 stream.StartSector = unchecked((uint)regularStreamSectorCount);
-                regularStreamSectorCount += stream.PaddedBytes.Length / SectorSize;
+                regularStreamSectorCount = checked(regularStreamSectorCount + stream.SectorCount);
             }
 
             uint miniStreamStartSector = EndOfChain;
-            if (miniStreamLayout.StreamBytes.Length > 0) {
+            if (miniStreamLayout.StreamByteLength > 0) {
                 miniStreamStartSector = unchecked((uint)regularStreamSectorCount);
-                regularStreamSectorCount += miniStreamLayout.StreamBytes.Length / SectorSize;
+                regularStreamSectorCount = checked(regularStreamSectorCount +
+                    miniStreamLayout.StreamByteLength / SectorSize);
             }
 
             int directorySectorCount = CalculateDirectorySectorCount(directoryLayout.Entries.Count);
@@ -100,7 +116,7 @@ namespace OfficeIMO.Drawing.Internal {
             byte[] fat = BuildFat(
                 paddedStreams,
                 miniStreamStartSector,
-                miniStreamLayout.StreamBytes.Length / SectorSize,
+                miniStreamLayout.StreamByteLength / SectorSize,
                 directorySector,
                 directorySectorCount,
                 miniFatStartSector,
@@ -111,18 +127,15 @@ namespace OfficeIMO.Drawing.Internal {
                 difatSectorCount);
             byte[] difat = BuildDifat(firstFatSector, fatSectorCount, firstDifatSector, difatSectorCount);
 
-            using var output = new MemoryStream();
             output.Write(BuildHeader(directorySector, firstFatSector, fatSectorCount, miniFatStartSector,
                 miniFatSectorCount, firstDifatSector, difatSectorCount), 0, SectorSize);
             foreach (PaddedStream stream in paddedStreams) {
                 if (!stream.IsMiniStream) {
-                    output.Write(stream.PaddedBytes, 0, stream.PaddedBytes.Length);
+                    WritePaddedStream(output, stream, SectorSize);
                 }
             }
 
-            if (miniStreamLayout.StreamBytes.Length > 0) {
-                output.Write(miniStreamLayout.StreamBytes, 0, miniStreamLayout.StreamBytes.Length);
-            }
+            miniStreamLayout.WriteTo(output);
 
             output.Write(directory, 0, directory.Length);
             if (miniStreamLayout.FatBytes.Length > 0) {
@@ -131,7 +144,6 @@ namespace OfficeIMO.Drawing.Internal {
 
             output.Write(fat, 0, fat.Length);
             if (difat.Length > 0) output.Write(difat, 0, difat.Length);
-            return output.ToArray();
         }
 
         internal static long GetSerializedLength(IReadOnlyList<OfficeCompoundStream> streams) {
@@ -142,13 +154,17 @@ namespace OfficeIMO.Drawing.Internal {
             int regularStreamSectorCount = 0;
             int miniSectorCount = 0;
             foreach (OfficeCompoundWriterEntry stream in layout.Streams) {
-                int length = stream.Bytes?.Length ?? 0;
+                long length = stream.Stream?.Length ?? 0;
+                if (length > uint.MaxValue) {
+                    throw new NotSupportedException(
+                        "A version 3 compound stream cannot exceed 4 GiB.");
+                }
                 if (length == 0) continue;
                 if (length < MiniStreamCutoffSize) {
-                    miniSectorCount = checked(miniSectorCount + ((length + MiniSectorSize - 1) / MiniSectorSize));
+                    miniSectorCount = checked(miniSectorCount + (int)((length + MiniSectorSize - 1) / MiniSectorSize));
                 } else {
                     regularStreamSectorCount = checked(regularStreamSectorCount +
-                        ((length + SectorSize - 1) / SectorSize));
+                        (int)((length + SectorSize - 1) / SectorSize));
                 }
             }
 
@@ -259,7 +275,7 @@ namespace OfficeIMO.Drawing.Internal {
 
             foreach (PaddedStream stream in streams) {
                 if (!stream.IsMiniStream) {
-                    WriteFatChain(fat, stream.StartSector, stream.PaddedBytes.Length / SectorSize);
+                    WriteFatChain(fat, stream.StartSector, stream.SectorCount);
                 }
             }
 
@@ -335,28 +351,6 @@ namespace OfficeIMO.Drawing.Internal {
             WriteUInt64(buffer, offset + 120, size);
         }
 
-        private static byte[] PadToSector(byte[] data) {
-            int paddedLength = ((data.Length + SectorSize - 1) / SectorSize) * SectorSize;
-            if (paddedLength == data.Length) {
-                return data;
-            }
-
-            byte[] padded = new byte[paddedLength];
-            Buffer.BlockCopy(data, 0, padded, 0, data.Length);
-            return padded;
-        }
-
-        private static byte[] PadToMiniSector(byte[] data) {
-            int paddedLength = ((data.Length + MiniSectorSize - 1) / MiniSectorSize) * MiniSectorSize;
-            if (paddedLength == data.Length) {
-                return data;
-            }
-
-            byte[] padded = new byte[paddedLength];
-            Buffer.BlockCopy(data, 0, padded, 0, data.Length);
-            return padded;
-        }
-
         private static void WriteUInt16(byte[] buffer, int offset, ushort value) {
             buffer[offset] = (byte)(value & 0xff);
             buffer[offset + 1] = (byte)((value >> 8) & 0xff);
@@ -379,40 +373,83 @@ namespace OfficeIMO.Drawing.Internal {
         }
 
         private static PaddedStream PadStream(OfficeCompoundWriterEntry entry) {
-            byte[] bytes = entry.Bytes ?? Array.Empty<byte>();
-            bool isMiniStream = bytes.Length < MiniStreamCutoffSize;
-            byte[] paddedBytes = isMiniStream ? PadToMiniSector(bytes) : PadToSector(bytes);
-            return new PaddedStream(entry, bytes.Length, paddedBytes, isMiniStream);
+            OfficeCompoundStream payload = entry.Stream ?? throw new InvalidDataException("A compound stream has no payload.");
+            long length = payload.Length;
+            if (length < 0) throw new InvalidDataException("A compound stream has a negative length.");
+            if (length > uint.MaxValue) {
+                throw new NotSupportedException("A version 3 compound stream cannot exceed 4 GiB.");
+            }
+            bool isMiniStream = length < MiniStreamCutoffSize;
+            int unit = isMiniStream ? MiniSectorSize : SectorSize;
+            int sectorCount = checked((int)((length + unit - 1) / unit));
+            return new PaddedStream(entry, payload, length, sectorCount, isMiniStream);
+        }
+
+        private static void WritePaddedStream(Stream output, PaddedStream stream, int unitSize) {
+            using (Stream input = stream.Payload.OpenRead()) {
+                CopyExact(input, output, stream.OriginalLength);
+                if (input.ReadByte() >= 0) throw new InvalidDataException("A compound stream exceeds its declared length.");
+            }
+            long paddedLength = checked((long)stream.SectorCount * unitSize);
+            WriteZeros(output, paddedLength - stream.OriginalLength);
+        }
+
+        private static void CopyExact(Stream input, Stream output, long length) {
+            var buffer = new byte[81920];
+            long remaining = length;
+            while (remaining > 0) {
+                int read = input.Read(buffer, 0, (int)Math.Min(buffer.Length, remaining));
+                if (read == 0) throw new EndOfStreamException("A compound stream ended before its declared length.");
+                output.Write(buffer, 0, read);
+                remaining -= read;
+            }
+        }
+
+        private static void WriteZeros(Stream output, long count) {
+            if (count <= 0) return;
+            var zeros = new byte[Math.Min(SectorSize, checked((int)count))];
+            while (count > 0) {
+                int write = (int)Math.Min(zeros.Length, count);
+                output.Write(zeros, 0, write);
+                count -= write;
+            }
         }
 
         private sealed class PaddedStream {
-            internal PaddedStream(OfficeCompoundWriterEntry entry, int originalLength, byte[] paddedBytes, bool isMiniStream) {
+            internal PaddedStream(OfficeCompoundWriterEntry entry, OfficeCompoundStream payload,
+                long originalLength, int sectorCount, bool isMiniStream) {
                 Entry = entry;
+                Payload = payload;
                 OriginalLength = originalLength;
-                PaddedBytes = paddedBytes;
+                SectorCount = sectorCount;
                 IsMiniStream = isMiniStream;
                 StartSector = EndOfChain;
             }
 
             internal OfficeCompoundWriterEntry Entry { get; }
 
-            internal int OriginalLength { get; }
+            internal OfficeCompoundStream Payload { get; }
 
-            internal byte[] PaddedBytes { get; }
+            internal long OriginalLength { get; }
+
+            internal int SectorCount { get; }
 
             internal bool IsMiniStream { get; }
 
             internal uint StartSector { get; set; }
         }
 
-        private sealed class MiniStreamLayout {
-            private MiniStreamLayout(byte[] streamBytes, byte[] fatBytes, int streamLength) {
-                StreamBytes = streamBytes;
+        private sealed class MiniStreamLayout : IDisposable {
+            private MiniStreamLayout(string? streamPath, int streamByteLength, byte[] fatBytes, int streamLength) {
+                StreamPath = streamPath;
+                StreamByteLength = streamByteLength;
                 FatBytes = fatBytes;
                 StreamLength = streamLength;
             }
 
-            internal byte[] StreamBytes { get; }
+            internal string? StreamPath { get; }
+
+            internal int StreamByteLength { get; }
 
             internal byte[] FatBytes { get; }
 
@@ -420,36 +457,61 @@ namespace OfficeIMO.Drawing.Internal {
 
             internal static MiniStreamLayout Create(IReadOnlyList<PaddedStream> streams) {
                 var miniStreams = streams
-                    .Where(stream => stream.IsMiniStream && stream.PaddedBytes.Length > 0)
+                    .Where(stream => stream.IsMiniStream && stream.SectorCount > 0)
                     .ToArray();
                 if (miniStreams.Length == 0) {
-                    return new MiniStreamLayout(Array.Empty<byte>(), Array.Empty<byte>(), 0);
+                    return new MiniStreamLayout(null, 0, Array.Empty<byte>(), 0);
                 }
 
                 int miniSectorCount = 0;
-                using var miniStream = new MemoryStream();
-                foreach (PaddedStream stream in miniStreams) {
-                    stream.StartSector = unchecked((uint)miniSectorCount);
-                    miniSectorCount += stream.PaddedBytes.Length / MiniSectorSize;
-                    miniStream.Write(stream.PaddedBytes, 0, stream.PaddedBytes.Length);
-                }
-
-                byte[] miniFat = new byte[(((miniSectorCount * 4) + SectorSize - 1) / SectorSize) * SectorSize];
-                for (int offset = 0; offset < miniFat.Length; offset += 4) {
-                    WriteUInt32(miniFat, offset, FreeSect);
-                }
-
-                foreach (PaddedStream stream in miniStreams) {
-                    int streamMiniSectorCount = stream.PaddedBytes.Length / MiniSectorSize;
-                    for (int i = 0; i < streamMiniSectorCount; i++) {
-                        bool lastSector = i + 1 == streamMiniSectorCount;
-                        uint sector = unchecked(stream.StartSector + (uint)i);
-                        WriteUInt32(miniFat, checked((int)sector * 4), lastSector ? EndOfChain : unchecked(sector + 1));
+                string path = Path.Combine(Path.GetTempPath(),
+                    string.Concat("OfficeIMO.Cfb.", Guid.NewGuid().ToString("N"), ".mini"));
+                try {
+                    using (var miniStream = new FileStream(path, FileMode.CreateNew, FileAccess.Write,
+                               FileShare.Read, 81920, FileOptions.SequentialScan)) {
+                        foreach (PaddedStream stream in miniStreams) {
+                            stream.StartSector = unchecked((uint)miniSectorCount);
+                            miniSectorCount = checked(miniSectorCount + stream.SectorCount);
+                            WritePaddedStream(miniStream, stream, MiniSectorSize);
+                        }
+                        int streamByteLength = checked(((miniSectorCount * MiniSectorSize) + SectorSize - 1) /
+                            SectorSize * SectorSize);
+                        WriteZeros(miniStream, streamByteLength - miniStream.Position);
                     }
-                }
 
-                byte[] streamBytes = PadToSector(miniStream.ToArray());
-                return new MiniStreamLayout(streamBytes, miniFat, checked(miniSectorCount * MiniSectorSize));
+                    byte[] miniFat = new byte[(((miniSectorCount * 4) + SectorSize - 1) / SectorSize) * SectorSize];
+                    for (int offset = 0; offset < miniFat.Length; offset += 4) {
+                        WriteUInt32(miniFat, offset, FreeSect);
+                    }
+
+                    foreach (PaddedStream stream in miniStreams) {
+                        for (int i = 0; i < stream.SectorCount; i++) {
+                            bool lastSector = i + 1 == stream.SectorCount;
+                            uint sector = unchecked(stream.StartSector + (uint)i);
+                            WriteUInt32(miniFat, checked((int)sector * 4), lastSector ? EndOfChain : unchecked(sector + 1));
+                        }
+                    }
+
+                    int byteLength = checked(((miniSectorCount * MiniSectorSize) + SectorSize - 1) /
+                        SectorSize * SectorSize);
+                    return new MiniStreamLayout(path, byteLength, miniFat,
+                        checked(miniSectorCount * MiniSectorSize));
+                } catch {
+                    if (File.Exists(path)) File.Delete(path);
+                    throw;
+                }
+            }
+
+            internal void WriteTo(Stream output) {
+                if (StreamPath == null) return;
+                using (var input = new FileStream(StreamPath, FileMode.Open, FileAccess.Read,
+                           FileShare.Read, 81920, FileOptions.SequentialScan)) {
+                    CopyExact(input, output, StreamByteLength);
+                }
+            }
+
+            public void Dispose() {
+                if (StreamPath != null && File.Exists(StreamPath)) File.Delete(StreamPath);
             }
         }
 
@@ -461,11 +523,39 @@ namespace OfficeIMO.Drawing.Internal {
     internal readonly struct OfficeCompoundStream {
         internal OfficeCompoundStream(string name, byte[] bytes) {
             Name = name ?? throw new ArgumentNullException(nameof(name));
-            Bytes = bytes ?? throw new ArgumentNullException(nameof(bytes));
+            _bytes = bytes ?? throw new ArgumentNullException(nameof(bytes));
+            _openRead = null;
+            Length = bytes.LongLength;
+        }
+
+        internal OfficeCompoundStream(string name, long length, Func<Stream> openRead) {
+            Name = name ?? throw new ArgumentNullException(nameof(name));
+            if (length < 0) throw new ArgumentOutOfRangeException(nameof(length));
+            _bytes = null;
+            _openRead = openRead ?? throw new ArgumentNullException(nameof(openRead));
+            Length = length;
         }
 
         internal string Name { get; }
 
-        internal byte[] Bytes { get; }
+        internal long Length { get; }
+
+        // Byte-backed legacy document writers still use the original internal contract. Streaming payloads never
+        // pass through this member, so preserving it does not reintroduce whole-stream buffering.
+        internal byte[] Bytes => _bytes ?? throw new InvalidOperationException(
+            "A streaming compound payload does not expose an in-memory byte array.");
+
+        private readonly byte[]? _bytes;
+        private readonly Func<Stream>? _openRead;
+
+        internal Stream OpenRead() {
+            if (_bytes != null) return new MemoryStream(_bytes, writable: false);
+            Stream stream = _openRead!();
+            if (stream == null || !stream.CanRead) {
+                stream?.Dispose();
+                throw new InvalidDataException("A compound stream source did not return a readable stream.");
+            }
+            return stream;
+        }
     }
 }

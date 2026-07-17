@@ -19,20 +19,22 @@ public sealed class EmailDocumentWriter {
     /// <summary>Writes an artifact to a file.</summary>
     public EmailWriteResult Write(EmailDocument document, string filePath, EmailFileFormat format = EmailFileFormat.Eml) {
         if (filePath == null) throw new ArgumentNullException(nameof(filePath));
-        byte[] data = ToBytes(document, format, out EmailWriteResult result);
-        if (result.HasErrors && data.Length == 0) return result;
-        OfficeFileCommit.WriteAllBytes(filePath, data);
-        return result;
+        WritePreparation preparation = Prepare(document, format);
+        if (!preparation.CanWrite) return preparation.CreateBlockedResult();
+        EmailWriteResult? result = null;
+        OfficeFileCommit.Write(filePath, stream => result = WritePrepared(preparation, stream));
+        return result!;
     }
 
     /// <summary>Writes an artifact to a stream without closing it.</summary>
     public EmailWriteResult Write(EmailDocument document, Stream stream, EmailFileFormat format = EmailFileFormat.Eml) {
         if (stream == null) throw new ArgumentNullException(nameof(stream));
         if (!stream.CanWrite) throw new ArgumentException("The stream must be writable.", nameof(stream));
-        byte[] data = ToBytes(document, format, out EmailWriteResult result);
-        if (result.HasErrors && data.Length == 0) return result;
-        OfficeStreamWriter.WriteAllBytes(stream, data);
-        return result;
+        WritePreparation preparation = Prepare(document, format);
+        if (!preparation.CanWrite) return preparation.CreateBlockedResult();
+        EmailWriteResult? result = null;
+        OfficeStreamWriter.Write(stream, output => result = WritePrepared(preparation, output));
+        return result!;
     }
 
     /// <summary>Writes an artifact to memory.</summary>
@@ -47,12 +49,20 @@ public sealed class EmailDocumentWriter {
         EmailFileFormat format = EmailFileFormat.Eml, CancellationToken cancellationToken = default) {
         if (filePath == null) throw new ArgumentNullException(nameof(filePath));
         cancellationToken.ThrowIfCancellationRequested();
-        byte[] data = ToBytes(document, format, out EmailWriteResult result);
-        if (result.HasErrors && data.Length == 0) return result;
-        cancellationToken.ThrowIfCancellationRequested();
-        await OfficeFileCommit.WriteAllBytesAsync(filePath, data, cancellationToken: cancellationToken)
-            .ConfigureAwait(false);
-        return result;
+        WritePreparation preparation = Prepare(document, format);
+        if (!preparation.CanWrite) return preparation.CreateBlockedResult();
+        using (EmailAttachmentStaging staging = preparation.PreservedSource != null
+                   ? EmailAttachmentStaging.CreateEmpty()
+                   : await EmailAttachmentStaging.CreateAsync(
+                       document, _options.MaxOutputBytes, cancellationToken).ConfigureAwait(false))
+        using (staging.EnterScope()) {
+            EmailWriteResult? result = null;
+            await OfficeFileCommit.WriteAsync(filePath,
+                async (output, token) => result = await WritePreparedAsync(preparation, output, token)
+                    .ConfigureAwait(false),
+                cancellationToken: cancellationToken).ConfigureAwait(false);
+            return result!;
+        }
     }
 
     /// <summary>Asynchronously writes an artifact to a stream without closing it.</summary>
@@ -61,14 +71,34 @@ public sealed class EmailDocumentWriter {
         if (stream == null) throw new ArgumentNullException(nameof(stream));
         if (!stream.CanWrite) throw new ArgumentException("The stream must be writable.", nameof(stream));
         cancellationToken.ThrowIfCancellationRequested();
-        byte[] data = ToBytes(document, format, out EmailWriteResult result);
-        if (result.HasErrors && data.Length == 0) return result;
-        cancellationToken.ThrowIfCancellationRequested();
-        await OfficeStreamWriter.WriteAllBytesAsync(stream, data, cancellationToken).ConfigureAwait(false);
-        return result;
+        WritePreparation preparation = Prepare(document, format);
+        if (!preparation.CanWrite) return preparation.CreateBlockedResult();
+        using (EmailAttachmentStaging staging = preparation.PreservedSource != null
+                   ? EmailAttachmentStaging.CreateEmpty()
+                   : await EmailAttachmentStaging.CreateAsync(
+                       document, _options.MaxOutputBytes, cancellationToken).ConfigureAwait(false))
+        using (staging.EnterScope()) {
+            EmailWriteResult? result = null;
+            await OfficeStreamWriter.WriteAsync(stream,
+                async (output, token) => result = await WritePreparedAsync(preparation, output, token)
+                    .ConfigureAwait(false), cancellationToken).ConfigureAwait(false);
+            return result!;
+        }
     }
 
     internal byte[] ToBytes(EmailDocument document, EmailFileFormat format, out EmailWriteResult result) {
+        WritePreparation preparation = Prepare(document, format);
+        if (!preparation.CanWrite) {
+            result = preparation.CreateBlockedResult();
+            return Array.Empty<byte>();
+        }
+        using (var output = new MemoryStream()) {
+            result = WritePrepared(preparation, output);
+            return output.ToArray();
+        }
+    }
+
+    private WritePreparation Prepare(EmailDocument document, EmailFileFormat format) {
         if (document == null) throw new ArgumentNullException(nameof(document));
         if (format != EmailFileFormat.Eml && format != EmailFileFormat.OutlookMsg &&
             format != EmailFileFormat.OutlookTemplate && format != EmailFileFormat.Tnef) {
@@ -81,9 +111,7 @@ public sealed class EmailDocumentWriter {
             byte[]? baseline = document.RawSourceModelFingerprint;
             if (baseline != null && EmailDocumentStateFingerprint.Matches(document, baseline)) {
                 EnsureOutputLimit(document.RawSource.LongLength);
-                byte[] preserved = (byte[])document.RawSource.Clone();
-                result = new EmailWriteResult(preserved.LongLength, diagnostics.AsReadOnly(), true);
-                return preserved;
+                return new WritePreparation(document, format, diagnostics, document.RawSource);
             }
             diagnostics.Add(new EmailDiagnostic("EMAIL_RAW_SOURCE_SKIPPED_MODEL_CHANGED",
                 "The preserved source was not reused because the email model changed after reading or could not be verified as unchanged.",
@@ -93,19 +121,61 @@ public sealed class EmailDocumentWriter {
         EmailConversionReport conversion = EmailConversionAnalyzer.Analyze(document, format, _options);
         diagnostics.AddRange(conversion.Diagnostics);
         if (!conversion.CanWrite) {
-            result = new EmailWriteResult(0, diagnostics.AsReadOnly(), false);
-            return Array.Empty<byte>();
+            return new WritePreparation(document, format, diagnostics, preservedSource: null, canWrite: false);
         }
 
         EmailOutputPreflight.EnsurePayloadsFit(document, format, _options.MaxOutputBytes);
-        byte[] data = format == EmailFileFormat.Eml
-            ? MimeWriter.Write(document, _options, diagnostics)
-            : format == EmailFileFormat.OutlookMsg || format == EmailFileFormat.OutlookTemplate
-                ? MsgWriter.Write(document, _options, diagnostics, format == EmailFileFormat.OutlookTemplate)
-                : TnefWriter.Write(document, _options, diagnostics);
-        EnsureOutputLimit(data.LongLength);
-        result = new EmailWriteResult(data.LongLength, diagnostics.AsReadOnly(), false);
-        return data;
+        return new WritePreparation(document, format, diagnostics, preservedSource: null);
+    }
+
+    private EmailWriteResult WritePrepared(WritePreparation preparation, Stream output) {
+        using (var bounded = new EmailBoundedWriteStream(output, _options.MaxOutputBytes)) {
+            if (preparation.PreservedSource != null) {
+                bounded.Write(preparation.PreservedSource, 0, preparation.PreservedSource.Length);
+            } else if (preparation.Format == EmailFileFormat.Eml) {
+                MimeWriter.Write(bounded, preparation.Document, _options, preparation.Diagnostics);
+            } else if (preparation.Format == EmailFileFormat.Tnef) {
+                TnefWriter.Write(bounded, preparation.Document, _options, preparation.Diagnostics);
+            } else {
+                MsgWriter.Write(bounded, preparation.Document, _options, preparation.Diagnostics,
+                    preparation.Format == EmailFileFormat.OutlookTemplate);
+            }
+            return new EmailWriteResult(bounded.BytesWritten, preparation.Diagnostics.AsReadOnly(),
+                preparation.PreservedSource != null);
+        }
+    }
+
+    private async Task<EmailWriteResult> WritePreparedAsync(WritePreparation preparation, Stream output,
+        CancellationToken cancellationToken) {
+        if (preparation.PreservedSource != null) {
+            using (var bounded = new EmailBoundedWriteStream(output, _options.MaxOutputBytes)) {
+                await bounded.WriteAsync(preparation.PreservedSource, 0, preparation.PreservedSource.Length,
+                    cancellationToken).ConfigureAwait(false);
+                return new EmailWriteResult(bounded.BytesWritten, preparation.Diagnostics.AsReadOnly(), true);
+            }
+        }
+
+        long bytesWritten = await EmailAsyncWritePipeline.RunAsync(output, _options.MaxOutputBytes,
+            producer => SerializeGenerated(preparation, producer), cancellationToken).ConfigureAwait(false);
+        return new EmailWriteResult(bytesWritten, preparation.Diagnostics.AsReadOnly(), false);
+    }
+
+    private void SerializeGenerated(WritePreparation preparation, Stream output) {
+        if (preparation.Format == EmailFileFormat.Eml) {
+            MimeWriter.Write(output, preparation.Document, _options, preparation.Diagnostics);
+            return;
+        }
+        if (preparation.Format == EmailFileFormat.Tnef) {
+            TnefWriter.Write(output, preparation.Document, _options, preparation.Diagnostics);
+            return;
+        }
+        if (preparation.Format == EmailFileFormat.OutlookMsg ||
+            preparation.Format == EmailFileFormat.OutlookTemplate) {
+            MsgWriter.Write(output, preparation.Document, _options, preparation.Diagnostics,
+                preparation.Format == EmailFileFormat.OutlookTemplate);
+            return;
+        }
+        throw new NotSupportedException();
     }
 
     private void EnsureOutputLimit(long length) {
@@ -129,5 +199,25 @@ public sealed class EmailDocumentWriter {
         EmailDiagnostic diagnostic = result.Diagnostics.First(item => item.Severity == EmailDiagnosticSeverity.Error);
         throw new InvalidDataException(string.Concat("The email artifact could not be serialized: ",
             diagnostic.Code, ": ", diagnostic.Message));
+    }
+
+    private sealed class WritePreparation {
+        internal WritePreparation(EmailDocument document, EmailFileFormat format,
+            List<EmailDiagnostic> diagnostics, byte[]? preservedSource, bool canWrite = true) {
+            Document = document;
+            Format = format;
+            Diagnostics = diagnostics;
+            PreservedSource = preservedSource;
+            CanWrite = canWrite;
+        }
+
+        internal EmailDocument Document { get; }
+        internal EmailFileFormat Format { get; }
+        internal List<EmailDiagnostic> Diagnostics { get; }
+        internal byte[]? PreservedSource { get; }
+        internal bool CanWrite { get; }
+
+        internal EmailWriteResult CreateBlockedResult() =>
+            new EmailWriteResult(0, Diagnostics.AsReadOnly(), false);
     }
 }

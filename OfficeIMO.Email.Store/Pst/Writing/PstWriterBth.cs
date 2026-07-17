@@ -5,16 +5,25 @@ internal static class PstWriterBth {
 
     internal static void Complete(PstWriterHeap heap, byte[] header,
         int keySize, int valueSize, byte[] leafRecords) {
+        using (var stream = new MemoryStream(leafRecords, writable: false)) {
+            Complete(heap, header, keySize, valueSize, stream,
+                leafRecords.Length / checked(keySize + valueSize));
+        }
+    }
+
+    internal static void Complete(PstWriterHeap heap, byte[] header,
+        int keySize, int valueSize, Stream leafRecords, long recordCount) {
         if (heap == null) throw new ArgumentNullException(nameof(heap));
         if (header == null || header.Length < 8) throw new ArgumentException("A BTH header requires eight bytes.", nameof(header));
-        int recordSize = checked(keySize + valueSize);
-        if (recordSize <= 0 || leafRecords.Length % recordSize != 0) {
-            throw new ArgumentException("BTH leaf records are not aligned to their declared size.", nameof(leafRecords));
+        if (leafRecords == null || !leafRecords.CanRead) {
+            throw new ArgumentException("BTH leaf records require a readable stream.", nameof(leafRecords));
         }
+        int recordSize = checked(keySize + valueSize);
+        if (recordSize <= 0 || recordCount < 0) throw new ArgumentOutOfRangeException(nameof(recordCount));
         header[0] = 0xB5;
         header[1] = checked((byte)keySize);
         header[2] = checked((byte)valueSize);
-        if (leafRecords.Length == 0) {
+        if (recordCount == 0) {
             header[3] = 0;
             PstBinary.WriteUInt32(header, 4, 0);
             return;
@@ -22,12 +31,10 @@ internal static class PstWriterBth {
 
         int recordsPerLeaf = Math.Max(1, MaximumAllocationBytes / recordSize);
         var level = new List<BthReference>();
-        int recordCount = leafRecords.Length / recordSize;
-        for (int recordIndex = 0; recordIndex < recordCount; recordIndex += recordsPerLeaf) {
-            int count = Math.Min(recordsPerLeaf, recordCount - recordIndex);
+        for (long recordIndex = 0; recordIndex < recordCount; recordIndex += recordsPerLeaf) {
+            int count = checked((int)Math.Min(recordsPerLeaf, recordCount - recordIndex));
             var allocation = new byte[count * recordSize];
-            Buffer.BlockCopy(leafRecords, recordIndex * recordSize,
-                allocation, 0, allocation.Length);
+            ReadExactly(leafRecords, allocation);
             uint hid = heap.Add(allocation);
             var firstKey = new byte[keySize];
             Buffer.BlockCopy(allocation, 0, firstKey, 0, keySize);
@@ -57,6 +64,15 @@ internal static class PstWriterBth {
         }
         header[3] = checked((byte)indexLevels);
         PstBinary.WriteUInt32(header, 4, level[0].Hid);
+    }
+
+    private static void ReadExactly(Stream source, byte[] buffer) {
+        int total = 0;
+        while (total < buffer.Length) {
+            int read = source.Read(buffer, total, buffer.Length - total);
+            if (read == 0) throw new EndOfStreamException("The BTH record stream ended unexpectedly.");
+            total += read;
+        }
     }
 
     private sealed class BthReference {

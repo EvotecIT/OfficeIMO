@@ -1,6 +1,6 @@
 # OfficeIMO.Email.Store
 
-`OfficeIMO.Email.Store` is the fully managed mailbox-store package for PST, OST, OLM, EMLX, Apple Mail, and Maildir sources. Source stores remain read-only. Selected items project into the common `OfficeIMO.Email.EmailDocument` model, and applications can create a new Unicode PST or convert a supported source into a separate PST without Outlook, native libraries, or third-party parser packages.
+`OfficeIMO.Email.Store` is the fully managed mailbox-store package for PST, OST, OLM, EMLX, Apple Mail, and Maildir sources. Source stores remain read-only. Selected items project into the common `OfficeIMO.Email.EmailDocument` model, and applications can create, verify, resume, or merge a separate Unicode PST without Outlook, native libraries, or third-party parser packages.
 
 ## Install
 
@@ -242,6 +242,29 @@ payload was not retained, structured-storage metadata without its original compo
 whose source Name-to-ID mapping was unavailable. `Diagnostics` identifies the affected item or property without
 including message or attachment content.
 
+Writer cardinality state is disk-backed: block/allocation maps, NBT/BBT records, folder table rows, data-tree
+indexes, and conversion mappings do not grow as retained managed lists. Configure a checkpoint path for durable
+resume after cancellation or process interruption:
+
+```csharp
+const string checkpoint = "project-archive.pst.checkpoint";
+
+using (EmailStorePstWriter writer = EmailStorePstWriter.Create(
+    "project-archive.pst",
+    new EmailStorePstWriterOptions(
+        checkpointPath: checkpoint,
+        checkpointIntervalItems: 1_000))) {
+    // Add folders and items. Disposing an incomplete writer preserves its latest checkpoint.
+}
+
+using EmailStorePstWriter resumed = EmailStorePstWriter.Resume(checkpoint);
+// Continue from the integrity-checked committed item boundary, then call Complete().
+```
+
+Resume truncates writer-owned working files to the last committed checkpoint before accepting more items. Normal
+completion removes the checkpoint and temporary journals. `Abandon` or `DeleteCheckpoint` removes only the exact
+writer-owned artifacts associated with that checkpoint.
+
 ## Convert OST or another store to a new PST
 
 Conversion opens the source read-only and always writes a different destination:
@@ -260,6 +283,39 @@ The same API accepts every format supported by `EmailStoreSession`. Search-folde
 folders, but their dynamic query definitions are not regenerated. Content that was never cached in an OST cannot
 be recovered from the offline file. The conversion report separates converted and skipped items and combines
 reader, conversion, and writer diagnostics.
+
+Conversion verification is enabled by default. The writer produces a same-directory staging PST, reopens it, and
+compares every written item under the semantic migration profile before committing the destination. With
+`failOnDataLoss: true`, a mismatch leaves an existing destination and manifest unchanged. The default uses an
+ephemeral HMAC key. An optional TSV manifest can use a caller-supplied HMAC key for repeatable auditing; it contains
+ordinals, statuses, keyed digests, an aggregate digest, and keyed HMAC tokens for differing canonical paths—never
+subjects, addresses, filenames, content, arbitrary named-property names, raw difference paths, or store IDs.
+
+## Merge multiple stores into one PST
+
+`MergeToPst` accepts PST, OST, OLM, standalone EMLX, and mailbox-directory sources through one reusable engine:
+
+```csharp
+EmailStorePstMergeReport report = EmailStoreConverter.MergeToPst(
+    new[] {
+        new EmailStoreMergeSource("current.ost", "Current mailbox"),
+        new EmailStoreMergeSource("archive.pst", "Archive"),
+        new EmailStoreMergeSource("Outlook for Mac.olm"),
+        new EmailStoreMergeSource("Apple Mail")
+    },
+    "combined.pst",
+    new EmailStorePstMergeOptions(
+        folderMode: EmailStoreMergeFolderMode.SeparateSourceRoots,
+        deduplicate: true,
+        maxRetries: 2));
+```
+
+Folder modes preserve isolated source roots, merge equal folder paths, or flatten items. Deduplication uses a
+bounded on-disk hash index and a keyed semantic content fingerprint; associated items remain in a separate domain.
+Transient source-open and item-read I/O failures are retried. Permanently unreadable sources/items are reported
+according to the continuation policy. A destination writer or dedup-index failure aborts the atomic merge instead
+of continuing from uncertain state. Reports contain aggregate counts, source outcomes, bounded diagnostics, and
+privacy-safe progress.
 
 ## Limits and attachment retention
 
@@ -284,11 +340,14 @@ Set `PstPassword` only when a protected PST requires checksum validation. Passwo
 
 ## Boundaries
 
-- This package owns store/container traversal, bounded selection, validation/recovery discovery, new Unicode PST creation, and export/conversion orchestration.
+- This package owns store/container traversal, bounded selection, validation/recovery discovery, new Unicode PST creation, verified conversion, and multi-store merge orchestration.
 - `OfficeIMO.Email` owns EML/MIME, MSG/OFT, TNEF, mbox, MAPI models, and item serialization.
 - `OfficeIMO.Reader.EmailStore` owns optional Reader registration and rich-result projection.
 - Existing PST/OST mutation, append, compaction, repair, password/encryption authoring, Outlook profiles, Exchange synchronization, cloud download, and server-side recovery remain outside this package.
 - The writer currently emits Unicode PST files. It does not emit ANSI PST or OST files, and one data tree is limited to 4 GiB.
+- Synthetic always-on gates cover deterministic round trips, malformed MIME/TNEF/compound input, memory budgets,
+  checkpoints, merge/deduplication, and scale. libpff and classic Outlook mount/read/remove gates are opt-in so
+  normal builds remain dependency-free; private PST/OST corpus tests are also opt-in and retain aggregate evidence only.
 
 ## Targets and dependencies
 

@@ -10,22 +10,35 @@ internal static class MsgWriter {
 
     internal static byte[] Write(EmailDocument document, EmailWriterOptions options,
         IList<EmailDiagnostic> diagnostics, bool asTemplate = false) {
-        var streams = new List<OfficeCompoundStream>();
-        var names = new MsgNamedPropertyWriter();
-        BuildMessage(document, string.Empty, MsgPropertyStreamKind.TopLevel, names, streams, diagnostics, options, 0,
-            asTemplate);
-        names.WriteStreams(streams);
-        long outputLength = OfficeCompoundFileWriter.GetSerializedLength(streams);
-        if (outputLength > options.MaxOutputBytes) {
-            throw new EmailLimitExceededException(nameof(EmailWriterOptions.MaxOutputBytes), outputLength,
-                options.MaxOutputBytes);
+        using (var output = new EmailBoundedMemoryStream(options.MaxOutputBytes)) {
+            Write(output, document, options, diagnostics, asTemplate);
+            return output.ToArray();
         }
-        return OfficeCompoundFileWriter.Write(streams, MessageStorageClassId);
+    }
+
+    internal static void Write(Stream output, EmailDocument document, EmailWriterOptions options,
+        IList<EmailDiagnostic> diagnostics, bool asTemplate = false) {
+        var streams = new List<OfficeCompoundStream>();
+        var resources = new List<IDisposable>();
+        var names = new MsgNamedPropertyWriter();
+        try {
+            BuildMessage(document, string.Empty, MsgPropertyStreamKind.TopLevel, names, streams, resources,
+                diagnostics, options, 0, asTemplate);
+            names.WriteStreams(streams);
+            long outputLength = OfficeCompoundFileWriter.GetSerializedLength(streams);
+            if (outputLength > options.MaxOutputBytes) {
+                throw new EmailLimitExceededException(nameof(EmailWriterOptions.MaxOutputBytes), outputLength,
+                    options.MaxOutputBytes);
+            }
+            OfficeCompoundFileWriter.Write(output, streams, MessageStorageClassId);
+        } finally {
+            foreach (IDisposable resource in resources) resource.Dispose();
+        }
     }
 
     private static void BuildMessage(EmailDocument document, string prefix, MsgPropertyStreamKind kind,
-        MsgNamedPropertyWriter names, IList<OfficeCompoundStream> streams, IList<EmailDiagnostic> diagnostics,
-        EmailWriterOptions options, int depth, bool asTemplate = false) {
+        MsgNamedPropertyWriter names, IList<OfficeCompoundStream> streams, IList<IDisposable> resources,
+        IList<EmailDiagnostic> diagnostics, EmailWriterOptions options, int depth, bool asTemplate = false) {
         if (depth > options.MaxNestedMessageDepth) throw new InvalidOperationException("The embedded-message write depth exceeds the configured maximum.");
         EmailRecipient[] storageRecipients = document.Recipients
             .Where(recipient => recipient.Kind != EmailRecipientKind.ReplyTo)
@@ -49,23 +62,36 @@ internal static class MsgWriter {
 
         for (int index = 0; index < writableAttachments.Length; index++) {
             EmailAttachment attachment = writableAttachments[index];
-            byte[]? content = EmailAttachmentContent.ReadOrNull(attachment, options.MaxOutputBytes);
             string storage = MsgBinary.CombinePath(prefix,
                 string.Concat("__attach_version1.0_#", index.ToString("X8", CultureInfo.InvariantCulture)));
             int method = attachment.MapiAttachMethod ?? (attachment.EmbeddedDocument != null ? 5 :
                 attachment.StructuredStorageStreams.Count > 0 ? 6 : 1);
+            bool hasContent = attachment.Content != null || attachment.ContentSource != null ||
+                EmailAttachmentStreamScope.HasStagedContent(attachment);
+            byte[]? content = method == 1 ? null : EmailAttachmentContent.ReadOrNull(attachment, options.MaxOutputBytes);
             EmailDocument? embeddedDocument = attachment.EmbeddedDocument ??
                 TryReadOpaqueEmbeddedTnef(attachment, content, diagnostics, storage);
             MsgPropertyBuilder properties = CreateAttachmentProperties(attachment, index, method, diagnostics, storage,
-                embeddedDocument != null || attachment.StructuredStorageStreams.Count > 0 || content != null, content);
+                embeddedDocument != null || attachment.StructuredStorageStreams.Count > 0 || hasContent, content,
+                EmailAttachmentStreamScope.GetLength(attachment));
+            IReadOnlyDictionary<uint, OfficeCompoundStream>? streamOverrides = null;
+            if (method == 1 && hasContent) {
+                string contentStreamName = MsgBinary.CombinePath(storage, "__substg1.0_37010102");
+                AttachmentContentRegistration registration = AttachmentContentRegistration.Create(
+                    attachment, contentStreamName, options.MaxOutputBytes);
+                resources.Add(registration);
+                streamOverrides = new Dictionary<uint, OfficeCompoundStream> {
+                    [0x37010102U] = registration.Stream
+                };
+            }
             MsgPropertyWriter.Write(storage, MsgPropertyStreamKind.ChildObject, properties.Properties,
                 0, 0, names, streams, diagnostics, codePage,
-                method == 5 ? 1U : method == 6 ? 4U : 0U);
+                method == 5 ? 1U : method == 6 ? 4U : 0U, streamOverrides);
 
             string objectStorage = MsgBinary.CombinePath(storage, "__substg1.0_3701000D");
             if (method == 5 && embeddedDocument != null) {
                 BuildMessage(embeddedDocument, objectStorage, MsgPropertyStreamKind.EmbeddedMessage,
-                    names, streams, diagnostics, options, depth + 1);
+                    names, streams, resources, diagnostics, options, depth + 1);
             } else if (method == 5 && attachment.StructuredStorageStreams.Count > 0) {
                 foreach (KeyValuePair<string, byte[]> stream in attachment.StructuredStorageStreams
                     .OrderBy(item => item.Key, StringComparer.OrdinalIgnoreCase)) {
@@ -273,7 +299,7 @@ internal static class MsgWriter {
 
     internal static MsgPropertyBuilder CreateAttachmentProperties(EmailAttachment attachment, int index, int method,
         IList<EmailDiagnostic> diagnostics, string location, bool hasRetainedObjectContent = false,
-        byte[]? materializedContent = null) {
+        byte[]? materializedContent = null, long? retainedContentLength = null) {
         var properties = new MsgPropertyBuilder(attachment.MapiProperties);
         properties.Set(0x0FFE, MapiPropertyType.Integer32, 7);
         properties.Set(0x3705, MapiPropertyType.Integer32, method);
@@ -309,6 +335,11 @@ internal static class MsgWriter {
             byte[] content = materializedContent ?? attachment.Content!;
             properties.Set(0x3701, MapiPropertyType.Binary, content);
             properties.Set(0x0E20, MapiPropertyType.Integer32, content.Length);
+        } else if (hasRetainedObjectContent) {
+            // Keep the variable-property row so a caller can provide a reopenable stream override.
+            properties.Set(0x3701, MapiPropertyType.Binary, Array.Empty<byte>());
+            properties.Set(0x0E20, MapiPropertyType.Integer32,
+                checked((int)Math.Min(retainedContentLength ?? attachment.Length, int.MaxValue)));
         } else {
             properties.Set(0x3701, MapiPropertyType.Binary, null);
             properties.Set(0x0E20, MapiPropertyType.Integer32, checked((int)Math.Min(attachment.Length, int.MaxValue)));
@@ -333,6 +364,59 @@ internal static class MsgWriter {
             "Opaque embedded TNEF content was projected while writing MSG storage.",
             EmailDiagnosticSeverity.Warning, location));
         return TnefReader.Read(nested, EmailReaderOptions.Default, diagnostics, CancellationToken.None);
+    }
+
+    private sealed class AttachmentContentRegistration : IDisposable {
+        private readonly string? _temporaryPath;
+
+        private AttachmentContentRegistration(OfficeCompoundStream stream, string? temporaryPath) {
+            Stream = stream;
+            _temporaryPath = temporaryPath;
+        }
+
+        internal OfficeCompoundStream Stream { get; }
+
+        internal static AttachmentContentRegistration Create(EmailAttachment attachment, string streamName,
+            long maximumBytes) {
+            long? length = EmailAttachmentStreamScope.GetLength(attachment);
+            if (length.HasValue) {
+                if (length.Value > maximumBytes) {
+                    throw new EmailLimitExceededException(nameof(EmailWriterOptions.MaxOutputBytes), length.Value,
+                        maximumBytes);
+                }
+                return new AttachmentContentRegistration(new OfficeCompoundStream(streamName, length.Value,
+                    () => EmailAttachmentStreamScope.OpenRead(attachment)), null);
+            }
+
+            string path = Path.Combine(Path.GetTempPath(),
+                string.Concat("OfficeIMO.Email.Msg.", Guid.NewGuid().ToString("N"), ".content"));
+            try {
+                long copied = 0;
+                using (Stream input = EmailAttachmentStreamScope.OpenRead(attachment))
+                using (var output = new FileStream(path, FileMode.CreateNew, FileAccess.Write, FileShare.Read,
+                           81920, FileOptions.SequentialScan)) {
+                    var buffer = new byte[81920];
+                    while (true) {
+                        int read = input.Read(buffer, 0, buffer.Length);
+                        if (read == 0) break;
+                        copied = checked(copied + read);
+                        if (copied > maximumBytes) {
+                            throw new EmailLimitExceededException(nameof(EmailWriterOptions.MaxOutputBytes), copied,
+                                maximumBytes);
+                        }
+                        output.Write(buffer, 0, read);
+                    }
+                }
+                return new AttachmentContentRegistration(new OfficeCompoundStream(streamName, copied,
+                    () => new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read,
+                        81920, FileOptions.SequentialScan)), path);
+            } catch {
+                OfficeFileCommit.DeleteIfExists(path);
+                throw;
+            }
+        }
+
+        public void Dispose() => OfficeFileCommit.DeleteIfExists(_temporaryPath);
     }
 
     private static string GetLogicalExtension(string? fileName) {
