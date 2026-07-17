@@ -153,6 +153,10 @@ public static class ExcelOpenDocumentConversionExtensions {
         AddUnsupported(report, "built-in-names", builtInNames, "Excel print-area and print-title names are not translated.");
         AddUnsupported(report, "slicers", snapshot.SlicerPartCount, null);
         AddUnsupported(report, "timelines", snapshot.TimelinePartCount, null);
+        AddUnsupported(report, "slicer-binding-metadata", snapshot.SlicerBindingMetadataPartCount,
+            "OfficeIMO slicer binding metadata is not represented in ODS.");
+        AddUnsupported(report, "timeline-binding-metadata", snapshot.TimelineBindingMetadataPartCount,
+            "OfficeIMO timeline binding metadata is not represented in ODS.");
         AddUnsupported(report, "connections", snapshot.ConnectionPartCount, null);
         AddUnsupported(report, "query-tables", snapshot.QueryTablePartCount, null);
         if (truncated) report.Add("expansion-limits", OdfConversionMappingStatus.Skipped, 1,

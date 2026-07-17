@@ -34,6 +34,7 @@ namespace OfficeIMO.Tests {
                 Assert.Throws<ArgumentException>(() => document.AddPivotSlicerCache("SalesPivot", "MissingField"));
 
                 document.AddPivotSlicerCache("SalesPivot", "Region");
+                Assert.Throws<ArgumentException>(() => document.AddPivotTimelineCache("SalesPivot", "Sales"));
                 document.AddPivotTimelineCache("SalesPivot", "OrderDate", "SalesDateTimeline");
                 Assert.Throws<InvalidOperationException>(() => document.AddPivotTimelineCache("SalesPivot", "OrderDate", "SalesDateTimeline"));
 

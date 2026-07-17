@@ -184,6 +184,7 @@ namespace OfficeIMO.Excel {
                 int end = index + alias.Length;
                 bool validStart = index == 0
                     || (!IsFormulaAliasIdentifierCharacter(formula[index - 1]) && formula[index - 1] != '!');
+                bool insideStructuredReference = IsInsideFormulaStructuredReference(formula, index);
                 bool hasStructuredSuffix = allowStructuredSuffix && end < formula.Length && formula[end] == '[';
                 if (hasStructuredSuffix) {
                     int bracketDepth = 0;
@@ -207,12 +208,34 @@ namespace OfficeIMO.Excel {
                 }
 
                 bool validEnd = end == formula.Length || !IsFormulaAliasIdentifierCharacter(formula[end]);
-                if (validStart && validEnd && (!allowStructuredSuffix || hasStructuredSuffix || end == index + alias.Length)) {
+                int nextToken = end;
+                while (nextToken < formula.Length && char.IsWhiteSpace(formula[nextToken])) {
+                    nextToken++;
+                }
+                bool followedByFunctionCall = nextToken < formula.Length && formula[nextToken] == '(';
+                if (validStart
+                    && validEnd
+                    && !insideStructuredReference
+                    && !followedByFunctionCall
+                    && (!allowStructuredSuffix || hasStructuredSuffix || end == index + alias.Length)) {
                     yield return formula.Substring(index, end - index);
                 }
 
                 searchIndex = index + alias.Length;
             }
+        }
+
+        private static bool IsInsideFormulaStructuredReference(string formula, int index) {
+            int bracketDepth = 0;
+            for (int position = 0; position < index; position++) {
+                if (formula[position] == '[') {
+                    bracketDepth++;
+                } else if (formula[position] == ']' && bracketDepth > 0) {
+                    bracketDepth--;
+                }
+            }
+
+            return bracketDepth > 0;
         }
 
         private static bool IsFormulaAliasIdentifierCharacter(char character) {

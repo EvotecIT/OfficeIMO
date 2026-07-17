@@ -4,7 +4,8 @@ namespace OfficeIMO.Excel {
     /// </summary>
     public sealed class ExcelPivotSourceUpdateOptions {
         /// <summary>
-        /// When true, the new source headers must match the existing pivot cache database fields.
+        /// When true, the new source header names must match the existing pivot cache database fields.
+        /// Field count must always remain stable because this operation does not rebuild pivot field definitions.
         /// </summary>
         public bool RequireMatchingHeaders { get; set; } = true;
 

@@ -127,6 +127,31 @@ namespace OfficeIMO.Tests {
             }
         }
 
+        [Fact]
+        public void Test_UpdatePivotTableSource_RequiresStableFieldCountWhenHeaderNamesAreRelaxed() {
+            string filePath = Path.Combine(_directoryWithFiles, "ExcelPivotTable.UpdateSource.RelaxedHeaders.xlsx");
+
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet original = document.AddWorksheet("Original");
+            WritePivotSource(original, "Region", "Product", "Sales", 3);
+            original.AddPivotTable(
+                sourceRange: "A1:C4",
+                destinationCell: "E2",
+                name: "SalesPivot",
+                rowFields: new[] { "Region" },
+                dataFields: new[] { new ExcelPivotDataField("Sales", DataConsolidateFunctionValues.Sum) });
+
+            ExcelSheet renamed = document.AddWorksheet("Renamed");
+            WritePivotSource(renamed, "Area", "Item", "Amount", 4);
+            var relaxed = new ExcelPivotSourceUpdateOptions { RequireMatchingHeaders = false };
+            ExcelPivotSourceUpdateResult update = original.UpdatePivotTableSource("SalesPivot", renamed, "A1:C5", relaxed);
+            Assert.Equal("Renamed", update.SourceSheet);
+
+            InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
+                original.UpdatePivotTableSource("SalesPivot", renamed, "A1:B5", relaxed));
+            Assert.Contains("field count", exception.Message, StringComparison.OrdinalIgnoreCase);
+        }
+
         private static void WritePivotSource(ExcelSheet sheet, string firstHeader, string secondHeader, string thirdHeader, int dataRows) {
             sheet.CellValue(1, 1, firstHeader);
             sheet.CellValue(1, 2, secondHeader);

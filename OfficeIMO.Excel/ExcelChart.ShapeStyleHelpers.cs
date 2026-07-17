@@ -177,7 +177,17 @@ namespace OfficeIMO.Excel {
             outline.RemoveAllChildren<A.NoFill>();
             outline.PrependChild(new A.NoFill());
             if (outline.Parent == null) {
-                props.Append(outline);
+                OpenXmlElement? insertBefore = props.ChildElements.FirstOrDefault(child =>
+                    child.LocalName == "effectLst"
+                    || child.LocalName == "effectDag"
+                    || child.LocalName == "scene3d"
+                    || child.LocalName == "sp3d"
+                    || child.LocalName == "extLst");
+                if (insertBefore != null) {
+                    props.InsertBefore(outline, insertBefore);
+                } else {
+                    props.Append(outline);
+                }
             }
         }
 

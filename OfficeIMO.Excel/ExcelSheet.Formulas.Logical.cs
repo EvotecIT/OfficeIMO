@@ -172,7 +172,9 @@ namespace OfficeIMO.Excel {
                 return true;
             }
 
-            if (tokens.Count != 1 || !TryResolveInfoArgument(tokens[0], out FormulaArgumentValue value)) {
+            if (tokens.Count != 1
+                || !TryResolveInfoArgument(tokens[0], out FormulaArgumentValue value)
+                || value.IsUnresolvedFormula) {
                 return false;
             }
 

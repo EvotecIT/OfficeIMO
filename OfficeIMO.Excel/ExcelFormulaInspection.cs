@@ -203,10 +203,31 @@ namespace OfficeIMO.Excel {
                     formula.DependencyIssues));
             }
 
+            var formulaCellsBySheet = new Dictionary<string, List<FormulaCellIndexEntry>>(StringComparer.OrdinalIgnoreCase);
+            foreach (ExcelFormulaDependencyNodeBuilder builder in builders.Values) {
+                var cell = A1.ParseCellRef(builder.CellReference);
+                if (cell.Row <= 0 || cell.Col <= 0) {
+                    continue;
+                }
+
+                if (!formulaCellsBySheet.TryGetValue(builder.SheetName, out List<FormulaCellIndexEntry>? entries)) {
+                    entries = new List<FormulaCellIndexEntry>();
+                    formulaCellsBySheet.Add(builder.SheetName, entries);
+                }
+
+                entries.Add(new FormulaCellIndexEntry(cell.Row, cell.Col, builder.Reference));
+            }
+            foreach (List<FormulaCellIndexEntry> entries in formulaCellsBySheet.Values) {
+                entries.Sort((left, right) => {
+                    int rowComparison = left.Row.CompareTo(right.Row);
+                    return rowComparison != 0 ? rowComparison : left.Column.CompareTo(right.Column);
+                });
+            }
+
             foreach (ExcelFormulaCellInfo formula in formulas) {
                 string sourceReference = FormatReference(formula.SheetName, formula.CellReference);
                 foreach (string dependency in formula.Dependencies) {
-                    foreach (string targetReference in FindCoveredFormulaReferences(dependency, builders.Keys)) {
+                    foreach (string targetReference in FindCoveredFormulaReferences(dependency, builders, formulaCellsBySheet)) {
                         if (builders.TryGetValue(sourceReference, out ExcelFormulaDependencyNodeBuilder? sourceNode)
                             && builders.TryGetValue(targetReference, out ExcelFormulaDependencyNodeBuilder? dependencyNode)) {
                             sourceNode.FormulaDependencies.Add(targetReference);
@@ -276,33 +297,57 @@ namespace OfficeIMO.Excel {
             return builder.ToString();
         }
 
-        private static IEnumerable<string> FindCoveredFormulaReferences(string dependency, IEnumerable<string> formulaReferences) {
-            foreach (string formulaReference in formulaReferences) {
-                if (ReferenceContainsFormulaCell(dependency, formulaReference)) {
-                    yield return formulaReference;
-                }
-            }
-        }
-
-        private static bool ReferenceContainsFormulaCell(string dependency, string formulaReference) {
-            if (!TrySplitQualifiedReference(dependency, out string dependencySheet, out string dependencyAddress)
-                || !TrySplitQualifiedReference(formulaReference, out string formulaSheet, out string formulaAddress)
-                || !string.Equals(dependencySheet, formulaSheet, StringComparison.OrdinalIgnoreCase)) {
-                return false;
-            }
-
-            var formulaCell = A1.ParseCellRef(formulaAddress);
-            if (formulaCell.Row <= 0 || formulaCell.Col <= 0) {
-                return false;
+        private static IEnumerable<string> FindCoveredFormulaReferences(
+            string dependency,
+            IReadOnlyDictionary<string, ExcelFormulaDependencyNodeBuilder> builders,
+            IReadOnlyDictionary<string, List<FormulaCellIndexEntry>> formulaCellsBySheet) {
+            if (!TrySplitQualifiedReference(dependency, out string dependencySheet, out string dependencyAddress)) {
+                yield break;
             }
 
             string normalizedDependency = dependencyAddress.Replace("$", string.Empty);
             if (A1.TryParseRange(normalizedDependency, out int r1, out int c1, out int r2, out int c2)) {
-                return formulaCell.Row >= r1 && formulaCell.Row <= r2 && formulaCell.Col >= c1 && formulaCell.Col <= c2;
+                if (!formulaCellsBySheet.TryGetValue(dependencySheet, out List<FormulaCellIndexEntry>? entries)) {
+                    yield break;
+                }
+
+                int index = FindFirstFormulaRow(entries, r1);
+                for (; index < entries.Count && entries[index].Row <= r2; index++) {
+                    FormulaCellIndexEntry entry = entries[index];
+                    if (entry.Column >= c1 && entry.Column <= c2) {
+                        yield return entry.Reference;
+                    }
+                }
+
+                yield break;
             }
 
             var dependencyCell = A1.ParseCellRef(normalizedDependency);
-            return dependencyCell.Row == formulaCell.Row && dependencyCell.Col == formulaCell.Col;
+            if (dependencyCell.Row <= 0 || dependencyCell.Col <= 0) {
+                yield break;
+            }
+
+            string targetReference = FormatReference(
+                dependencySheet,
+                A1.CellReference(dependencyCell.Row, dependencyCell.Col));
+            if (builders.ContainsKey(targetReference)) {
+                yield return targetReference;
+            }
+        }
+
+        private static int FindFirstFormulaRow(IReadOnlyList<FormulaCellIndexEntry> entries, int minimumRow) {
+            int low = 0;
+            int high = entries.Count;
+            while (low < high) {
+                int middle = low + ((high - low) / 2);
+                if (entries[middle].Row < minimumRow) {
+                    low = middle + 1;
+                } else {
+                    high = middle;
+                }
+            }
+
+            return low;
         }
 
         private static bool TrySplitQualifiedReference(string reference, out string sheetName, out string address) {
@@ -336,6 +381,18 @@ namespace OfficeIMO.Excel {
 
         private static string EscapeMarkdownCell(string value) {
             return value.Replace("\\", "\\\\").Replace("|", "\\|").Replace("\r", " ").Replace("\n", " ");
+        }
+
+        private sealed class FormulaCellIndexEntry {
+            internal FormulaCellIndexEntry(int row, int column, string reference) {
+                Row = row;
+                Column = column;
+                Reference = reference;
+            }
+
+            internal int Row { get; }
+            internal int Column { get; }
+            internal string Reference { get; }
         }
 
         private sealed class ExcelFormulaDependencyNodeBuilder {

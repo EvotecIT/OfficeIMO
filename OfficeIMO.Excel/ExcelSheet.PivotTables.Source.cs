@@ -73,6 +73,10 @@ namespace OfficeIMO.Excel {
                     .Where(field => field.DatabaseField?.Value != false)
                     .Select(field => field.Name?.Value ?? string.Empty)
                     .ToList() ?? new List<string>();
+                if (existingHeaders.Count != newHeaders.Count) {
+                    throw new InvalidOperationException(
+                        $"The new pivot source field count ({newHeaders.Count}) does not match the existing database cache field count ({existingHeaders.Count}).");
+                }
                 if (options?.RequireMatchingHeaders != false
                     && !existingHeaders.SequenceEqual(newHeaders, StringComparer.OrdinalIgnoreCase)) {
                     throw new InvalidOperationException(

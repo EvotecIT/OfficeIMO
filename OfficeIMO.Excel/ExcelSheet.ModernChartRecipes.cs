@@ -40,7 +40,7 @@ namespace OfficeIMO.Excel {
                 effectiveBinWidth = 1D;
             } else if (binWidth.HasValue) {
                 effectiveBinWidth = binWidth.Value;
-                double requestedBinCount = Math.Ceiling(range / effectiveBinWidth);
+                double requestedBinCount = Math.Max(1D, Math.Ceiling(range / effectiveBinWidth));
                 if (double.IsNaN(requestedBinCount) || double.IsInfinity(requestedBinCount) || requestedBinCount > 10000D) {
                     throw new ArgumentOutOfRangeException(nameof(binWidth), "A histogram cannot exceed 10,000 bins.");
                 }

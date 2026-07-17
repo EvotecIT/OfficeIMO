@@ -15,6 +15,31 @@ namespace OfficeIMO.OpenDocument.Converters.Tests;
 
 public sealed class OpenDocumentConversionLossReportTests {
     [Fact]
+    public void ExcelToOdsReportsOfficeImoPivotBindingMetadataLoss() {
+        using ExcelDocument source = ExcelDocument.Create();
+        source.AddWorksheet("Data");
+        source.AddWorkbookSlicerCache(new ExcelSlicerCacheOptions {
+            Name = "RegionSlicer",
+            SourceName = "Region"
+        });
+        source.AddWorkbookTimelineCache(new ExcelTimelineCacheOptions {
+            Name = "OrderTimeline",
+            SourceName = "OrderDate"
+        });
+
+        OdfConversionResult<OdsDocument> conversion = source.ToOpenDocumentResult();
+
+        Assert.Contains(conversion.Report.Mappings, mapping =>
+            mapping.Feature == "slicer-binding-metadata"
+            && mapping.Status == OdfConversionMappingStatus.Unsupported
+            && mapping.Count == 1);
+        Assert.Contains(conversion.Report.Mappings, mapping =>
+            mapping.Feature == "timeline-binding-metadata"
+            && mapping.Status == OdfConversionMappingStatus.Unsupported
+            && mapping.Count == 1);
+    }
+
+    [Fact]
     public void ExcelFormulaConversionDoesNotRewriteQuotedCellLikeText() {
         using ExcelDocument source = ExcelDocument.Create(new MemoryStream());
         ExcelSheet sheet = source.AddWorksheet("Data");

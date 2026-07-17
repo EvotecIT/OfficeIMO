@@ -1,6 +1,7 @@
 using System.Text;
 using System.Xml.Linq;
 using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Spreadsheet;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelDocument {
@@ -30,6 +31,11 @@ namespace OfficeIMO.Excel {
         /// </remarks>
         public ExtendedPart AddPivotTimelineCache(string pivotTableName, string sourceField, string? cacheName = null) {
             ExcelPivotTableInfo pivot = ValidatePivotInteractionBinding(pivotTableName, sourceField);
+            if (!IsDateOnlyPivotSourceField(pivot, sourceField.Trim())) {
+                throw new ArgumentException(
+                    $"Field '{sourceField}' is not a date-only source field and cannot be used for a timeline binding.",
+                    nameof(sourceField));
+            }
             string name = EnsureUniquePivotInteractionCacheName(
                 string.IsNullOrWhiteSpace(cacheName) ? CreatePivotInteractionCacheName("Timeline", sourceField) : cacheName!,
                 GetWorkbookTimelineCaches());
@@ -80,6 +86,69 @@ namespace OfficeIMO.Excel {
             }
 
             return pivot;
+        }
+
+        private bool IsDateOnlyPivotSourceField(ExcelPivotTableInfo pivot, string sourceField) {
+            PivotTablePart? pivotPart = WorkbookPartRoot.WorksheetParts
+                .SelectMany(part => part.PivotTableParts)
+                .FirstOrDefault(part =>
+                    part.PivotTableDefinition?.CacheId?.Value == pivot.CacheId
+                    && string.Equals(part.PivotTableDefinition?.Name?.Value, pivot.Name, StringComparison.OrdinalIgnoreCase));
+            CacheField? cacheField = pivotPart?
+                .PivotTableCacheDefinitionPart?
+                .PivotCacheDefinition?
+                .CacheFields?
+                .Elements<CacheField>()
+                .FirstOrDefault(field => string.Equals(field.Name?.Value, sourceField, StringComparison.OrdinalIgnoreCase));
+            SharedItems? sharedItems = cacheField?.SharedItems;
+            if (sharedItems != null) {
+                bool containsDate = sharedItems.ContainsDate?.Value == true
+                    || sharedItems.Elements<DateTimeItem>().Any();
+                bool containsNonDate = sharedItems.ContainsString?.Value == true
+                    || sharedItems.ContainsNumber?.Value == true
+                    || sharedItems.ChildElements.Any(item => !(item is DateTimeItem) && !(item is MissingItem));
+                if (containsDate || containsNonDate) {
+                    return containsDate && !containsNonDate;
+                }
+            }
+
+            if (string.IsNullOrWhiteSpace(pivot.SourceSheet)
+                || string.IsNullOrWhiteSpace(pivot.SourceRange)
+                || !A1.TryParseRange(pivot.SourceRange!.Replace("$", string.Empty), out int firstRow, out int firstColumn, out int lastRow, out int lastColumn)) {
+                return false;
+            }
+
+            ExcelSheet? sourceSheet = Sheets.FirstOrDefault(sheet =>
+                string.Equals(sheet.Name, pivot.SourceSheet, StringComparison.OrdinalIgnoreCase));
+            if (sourceSheet == null) {
+                return false;
+            }
+
+            int sourceColumn = 0;
+            for (int column = firstColumn; column <= lastColumn; column++) {
+                if (sourceSheet.TryGetCellText(firstRow, column, out string header)
+                    && string.Equals(header, sourceField, StringComparison.OrdinalIgnoreCase)) {
+                    sourceColumn = column;
+                    break;
+                }
+            }
+            if (sourceColumn == 0) {
+                return false;
+            }
+
+            bool foundDate = false;
+            for (int row = firstRow + 1; row <= lastRow; row++) {
+                if (!sourceSheet.TryGetCellValueSnapshot(row, sourceColumn, out ExcelCellValueSnapshot? value)) {
+                    continue;
+                }
+                if (value!.Kind != ExcelCellValueKind.DateTime) {
+                    return false;
+                }
+
+                foundDate = true;
+            }
+
+            return foundDate;
         }
 
         private IReadOnlyList<ExcelPivotInteractionCacheInfo> GetWorkbookPivotInteractionCaches(ExcelPivotInteractionCacheKind kind) {

@@ -86,6 +86,15 @@ namespace OfficeIMO.Tests {
             Assert.Throws<ArgumentException>(() => sheet.AddWaterfallChart(new[] { "A" }, new[] { -1d }, 1, 1));
             Assert.Throws<ArgumentException>(() => sheet.AddWaterfallChart(new[] { "A", "B" }, new[] { double.MaxValue, double.MaxValue }, 1, 1));
 
+            ExcelChart wideBinHistogram = sheet.AddHistogramChart(
+                new[] { 0d, double.Epsilon },
+                row: 1,
+                column: 1,
+                binWidth: double.MaxValue);
+            Assert.True(wideBinHistogram.TryGetData(out ExcelChartData wideBinData));
+            Assert.Single(wideBinData.Categories);
+            Assert.Equal(2d, Assert.Single(wideBinData.Series).Values.Single());
+
             ExcelChart roundingSafeWaterfall = sheet.AddWaterfallChart(
                 new[] { "Start", "First", "Second" },
                 new[] { 0.3d, -0.1d, -0.2d },
@@ -150,6 +159,61 @@ namespace OfficeIMO.Tests {
                 Assert.Empty(outline.Elements<A.GradientFill>());
                 Assert.Empty(outline.Elements<A.PatternFill>());
                 Assert.IsType<A.NoFill>(outline.FirstChild);
+            }
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath, new ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
+                Assert.Empty(document.ValidateOpenXml());
+            }
+        }
+
+        [Fact]
+        public void Test_SetSeriesNoFill_InsertsMissingOutlineBeforeEffects() {
+            string filePath = Path.Combine(_directoryWithFiles, "Excel.ModernChartRecipes.NoFillEffects.xlsx");
+
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorksheet("Dashboard");
+                var data = new ExcelChartData(
+                    new[] { "A", "B" },
+                    new[] { new ExcelChartSeries("Value", new[] { 1d, 2d }, seriesColorArgb: "4F46E5") });
+                sheet.AddChart(data, 1, 1, 500, 300, ExcelChartType.ColumnClustered, "Effect ordering")
+                    .SetSeriesNoFill(0, noLine: false);
+                document.Save();
+            }
+
+            using (DocumentFormat.OpenXml.Packaging.SpreadsheetDocument spreadsheet =
+                DocumentFormat.OpenXml.Packaging.SpreadsheetDocument.Open(filePath, true)) {
+                C.ChartShapeProperties properties = spreadsheet.WorkbookPart!.WorksheetParts
+                    .Single(part => part.DrawingsPart != null)
+                    .DrawingsPart!
+                    .ChartParts
+                    .Single()
+                    .ChartSpace
+                    .Descendants<C.BarChartSeries>()
+                    .Single()
+                    .GetFirstChild<C.ChartShapeProperties>()!;
+                properties.GetFirstChild<A.Outline>()?.Remove();
+                properties.Append(new A.EffectList());
+            }
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath)) {
+                Assert.Single(document["Dashboard"].Charts).SetSeriesNoFill(0);
+                document.Save();
+            }
+
+            using (DocumentFormat.OpenXml.Packaging.SpreadsheetDocument spreadsheet =
+                DocumentFormat.OpenXml.Packaging.SpreadsheetDocument.Open(filePath, false)) {
+                C.ChartShapeProperties properties = spreadsheet.WorkbookPart!.WorksheetParts
+                    .Single(part => part.DrawingsPart != null)
+                    .DrawingsPart!
+                    .ChartParts
+                    .Single()
+                    .ChartSpace
+                    .Descendants<C.BarChartSeries>()
+                    .Single()
+                    .GetFirstChild<C.ChartShapeProperties>()!;
+                A.Outline outline = Assert.IsType<A.Outline>(properties.GetFirstChild<A.Outline>());
+                A.EffectList effects = Assert.IsType<A.EffectList>(properties.GetFirstChild<A.EffectList>());
+                Assert.True(properties.ChildElements.ToList().IndexOf(outline) < properties.ChildElements.ToList().IndexOf(effects));
             }
 
             using (ExcelDocument document = ExcelDocument.Load(filePath, new ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {

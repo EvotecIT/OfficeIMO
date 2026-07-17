@@ -100,14 +100,21 @@ namespace OfficeIMO.Tests {
                 ExcelSheet named = document.AddWorksheet("Named Circular");
                 named.CellFormula(1, 1, "Loop+1");
                 document.SetNamedRange("Loop", "'Named Circular'!A1", save: false);
+                document.SetNamedRange("Amount", "'Named Circular'!A1", save: false);
+                document.SetNamedRange("SUM", "'Named Circular'!A1", save: false);
 
                 ExcelSheet structured = document.AddWorksheet("Structured");
                 structured.CellValue(1, 1, "Amount");
                 structured.CellFormula(2, 1, "SUM(Sales[Amount])");
                 structured.AddTable("A1:A2", hasHeader: true, name: "Sales", style: TableStyle.TableStyleMedium2);
 
+                ExcelSheet tokens = document.AddWorksheet("Tokens");
+                tokens.CellValue(1, 1, 100d);
+                tokens.CellFormula(1, 2, "SUM(A1)");
+                tokens.CellFormula(1, 3, "LOG10(A1)");
+
                 ExcelFormulaDependencyGraph graph = document.InspectFormulas().DependencyGraph;
-                Assert.Equal(2, graph.NodeCount);
+                Assert.Equal(4, graph.NodeCount);
                 Assert.Equal(2, graph.EdgeCount);
                 Assert.Equal(2, graph.CircularReferenceCount);
 
@@ -120,6 +127,14 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(new[] { "Structured!A2" }, structuredNode.Dependencies);
                 Assert.Equal(new[] { "Structured!A2" }, structuredNode.FormulaDependencies);
                 Assert.True(structuredNode.IsCircular);
+
+                ExcelFormulaDependencyNode sumNode = Assert.IsType<ExcelFormulaDependencyNode>(graph.FindNode("Tokens", "B1"));
+                Assert.Equal(new[] { "Tokens!A1" }, sumNode.Dependencies);
+                Assert.Empty(sumNode.FormulaDependencies);
+
+                ExcelFormulaDependencyNode logNode = Assert.IsType<ExcelFormulaDependencyNode>(graph.FindNode("Tokens", "C1"));
+                Assert.Equal(new[] { "Tokens!A1" }, logNode.Dependencies);
+                Assert.Empty(logNode.FormulaDependencies);
 
                 Assert.Throws<InvalidOperationException>(() => document.InspectFormulas().EnsureNoDependencyIssues());
             }
@@ -148,6 +163,22 @@ namespace OfficeIMO.Tests {
                 Assert.True(blocked.IsDirty);
                 Assert.Equal("A3+1", blocked.Formula);
             }
+        }
+
+        [Fact]
+        public void Test_FormulaEvaluator_DoesNotConsumeDepthBlockedValuesInInfoFunctions() {
+            string filePath = Path.Combine(_directoryWithFiles, "ExcelFormulaDepth.InfoFunction.xlsx");
+
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorksheet("Depth");
+            sheet.CellFormula(1, 1, "ISBLANK(A2)");
+            sheet.CellFormula(2, 1, "1+1");
+            document.Calculation.MaximumDependencyDepth = 1;
+
+            Assert.Equal(1, document.Calculate());
+            Assert.False(sheet.TryGetCachedFormulaValue(1, 1, out _));
+            Assert.True(sheet.TryGetCachedFormulaValue(2, 1, out string? cached));
+            Assert.Equal("2", cached);
         }
 
         [Fact]
