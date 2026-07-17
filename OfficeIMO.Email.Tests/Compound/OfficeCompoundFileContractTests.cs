@@ -64,6 +64,47 @@ public sealed class OfficeCompoundFileContractTests {
     }
 
     [Fact]
+    public void VersionThreeWriterRejectsAStreamLargerThanItsDirectoryCanRepresent() {
+        var streams = new[] {
+            new OfficeCompoundStream("TooLarge", (long)uint.MaxValue + 1,
+                () => throw new InvalidOperationException("Preflight must reject before opening content."))
+        };
+
+        NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
+            OfficeCompoundFileWriter.GetSerializedLength(streams));
+
+        Assert.Contains("4 GiB", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SelectiveReaderExternalizesARegularStreamWithoutMaterializingIt() {
+        byte[] large = Enumerable.Range(0, 1024 * 1024 + 19).Select(index => (byte)(index % 251)).ToArray();
+        byte[] compoundBytes = OfficeCompoundFileWriter.Write(new[] {
+            new OfficeCompoundStream("Metadata", Encoding.UTF8.GetBytes("small")),
+            new OfficeCompoundStream("Storage/Large", large)
+        });
+        string externalPath = Path.GetTempFileName();
+        try {
+            using var input = new MemoryStream(new byte[7].Concat(compoundBytes).ToArray());
+            input.Position = 7;
+            long originalPosition = input.Position;
+            bool success = OfficeCompoundFileReader.TryReadSelective(input,
+                new OfficeCompoundReadOptions(maxStreamBytes: 2 * 1024 * 1024),
+                (path, _) => path == "Storage/Large",
+                (_, _) => new FileStream(externalPath, FileMode.Create, FileAccess.Write, FileShare.Read),
+                out OfficeCompoundFile? compound, out string? error);
+
+            Assert.True(success, error);
+            Assert.Equal(originalPosition, input.Position);
+            Assert.Equal("small", Encoding.UTF8.GetString(compound!.Streams["Metadata"]));
+            Assert.Empty(compound.Streams["Storage/Large"]);
+            Assert.Equal(large, File.ReadAllBytes(externalPath));
+        } finally {
+            File.Delete(externalPath);
+        }
+    }
+
+    [Fact]
     public void WriterEmitsDifatForLargeCompoundFiles() {
         byte[] content = new byte[8 * 1024 * 1024];
         for (int i = 0; i < content.Length; i += 4096) content[i] = (byte)(i / 4096 % 251);
@@ -119,6 +160,27 @@ public sealed class OfficeCompoundFileContractTests {
 
         Assert.False(success);
         Assert.Contains("mini stream exceeds configured bounds", error, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void SelectiveReaderBoundsDeclaredRootMiniStreamBeforeBuildingItsSectorIndex() {
+        byte[] compound = OfficeCompoundFileWriter.Write(new[] {
+            new OfficeCompoundStream("Property", new byte[] { 1 })
+        });
+        int directoryOffset = checked(((int)ReadUInt32(compound, 48) + 1) * 512);
+        WriteUInt64(compound, directoryOffset + 120, 512);
+        var options = new OfficeCompoundReadOptions(
+            maxTotalStreamBytes: 1);
+
+        using var source = new MemoryStream(compound);
+        bool success = OfficeCompoundFileReader.TryReadSelective(source, options,
+            (_, _) => false,
+            (_, _) => throw new InvalidOperationException("No stream should be externalized."),
+            out _, out string? error);
+
+        Assert.False(success);
+        Assert.Contains("mini stream exceeds configured or physical bounds", error,
+            StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]

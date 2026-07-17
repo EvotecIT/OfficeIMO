@@ -5,7 +5,8 @@ namespace OfficeIMO.Email;
 internal static class MsgPropertyWriter {
     internal static void Write(string prefix, MsgPropertyStreamKind kind, IReadOnlyList<MapiProperty> properties,
         int recipientCount, int attachmentCount, MsgNamedPropertyWriter names, IList<OfficeCompoundStream> streams,
-        IList<EmailDiagnostic> diagnostics, int string8CodePage, uint objectReserved = 0) {
+        IList<EmailDiagnostic> diagnostics, int string8CodePage, uint objectReserved = 0,
+        IReadOnlyDictionary<uint, OfficeCompoundStream>? streamOverrides = null) {
         var resolved = properties.Select(property => new ResolvedProperty(property,
                 property.Name == null ? property.PropertyId : names.GetPropertyId(property.Name)))
             .GroupBy(item => item.Tag)
@@ -34,7 +35,14 @@ internal static class MsgPropertyWriter {
                         string8CodePage);
                     MsgBinary.WriteUInt32(propertyStream, offset + 8, unchecked((uint)valueStream.Length));
                 } else if (MsgValueWriter.IsVariable(property.PropertyType)) {
-                    if (property.PropertyType == MapiPropertyType.Object) {
+                    if (streamOverrides != null && streamOverrides.TryGetValue(resolvedProperty.Tag,
+                            out OfficeCompoundStream streamOverride)) {
+                        if (streamOverride.Length > uint.MaxValue) {
+                            throw new OverflowException("A MSG property stream exceeds the CFB v3 property length limit.");
+                        }
+                        streams.Add(streamOverride);
+                        MsgBinary.WriteUInt32(propertyStream, offset + 8, unchecked((uint)streamOverride.Length));
+                    } else if (property.PropertyType == MapiPropertyType.Object) {
                         MsgBinary.WriteUInt32(propertyStream, offset + 8, 0xffffffffU);
                         MsgBinary.WriteUInt32(propertyStream, offset + 12, objectReserved);
                     } else {

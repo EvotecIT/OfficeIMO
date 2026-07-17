@@ -3,12 +3,14 @@ namespace OfficeIMO.Email.Store;
 /// <summary>Result of creating a new Unicode PST.</summary>
 public sealed class EmailStorePstWriteReport {
     internal EmailStorePstWriteReport(string destinationPath, int folderCount, int itemCount,
-        long bytesWritten, IReadOnlyList<EmailStoreDiagnostic> diagnostics) {
+        long bytesWritten, IReadOnlyList<EmailStoreDiagnostic> diagnostics,
+        bool diagnosticsTruncated = false) {
         DestinationPath = destinationPath;
         FolderCount = folderCount;
         ItemCount = itemCount;
         BytesWritten = bytesWritten;
         Diagnostics = diagnostics;
+        DiagnosticsTruncated = diagnosticsTruncated;
     }
 
     /// <summary>Committed destination path.</summary>
@@ -25,6 +27,9 @@ public sealed class EmailStorePstWriteReport {
 
     /// <summary>Preservation and compatibility diagnostics.</summary>
     public IReadOnlyList<EmailStoreDiagnostic> Diagnostics { get; }
+
+    /// <summary>True when additional diagnostics existed beyond the configured retention limit.</summary>
+    public bool DiagnosticsTruncated { get; }
 
     /// <summary>True when at least one error diagnostic was emitted.</summary>
     public bool HasErrors => Diagnostics.Any(item => item.Severity == EmailStoreDiagnosticSeverity.Error);

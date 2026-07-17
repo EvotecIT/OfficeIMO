@@ -71,11 +71,23 @@ the official [MS-PST overview](https://learn.microsoft.com/en-us/openspecs/offic
 [LTP layer](https://learn.microsoft.com/en-us/openspecs/office_file_formats/ms-pst/77007716-7993-44fe-9b40-9526157cfc6d),
 and [minimum object requirements](https://learn.microsoft.com/en-us/openspecs/office_file_formats/ms-pst/7af54176-5108-4ac7-973f-8252ad223acb).
 
-The public writer is incremental at the item boundary and new-file-only. It allocates data blocks, subnode trees,
-BBT/NBT pages, allocation maps, property contexts, table contexts, and the mandatory store and folder objects,
-then commits a same-directory temporary file. `EmailStoreSession.ExportToPst` remains a thin orchestration surface:
+The public writer is incremental at the item boundary and new-file-only. Allocation maps, block/node records,
+page levels, table rows, data-tree indexes, and conversion mappings are disk-backed journals with bounded sort
+runs rather than store-cardinality managed collections. Integrity-checked checkpoints record exact journal lengths,
+folder state, counters, named properties, and diagnostics; resume truncates every writer-owned artifact back to
+that committed boundary before continuing. The final PST still commits through a same-directory temporary file.
+
+`EmailStoreSession.ExportToPst` remains a thin orchestration surface:
 it enumerates the source, maps its folder tree, streams selected attachments, and reports source items that cannot
 be represented. All message and typed-item property projection stays in `OfficeIMO.Email` and is shared with MSG.
+A same-directory staging destination is reopened for versioned semantic comparison before the final atomic commit.
+With fail-on-data-loss enabled, verification failures preserve any existing destination and manifest. Optional
+manifests contain only keyed digests, aggregate status, ordinals, and value-free difference paths.
+
+`EmailStoreConverter.MergeToPst` reuses the same session and writer boundaries for multiple PST, OST, OLM, EMLX,
+and mailbox-directory sources. It owns folder mapping policy, a bounded on-disk semantic hash set, source-read
+retries, aggregate progress, and conflict diagnostics. It never retries or skips after an uncertain destination
+mutation: writer/index failures abort the atomic output.
 
 Current validation covers:
 
@@ -83,6 +95,8 @@ Current validation covers:
 - multi-block heaps, multi-leaf table indexes, large attachment data trees, embedded messages, associated items,
   recipients, named properties, and fixed and variable multi-valued properties;
 - synthetic OST-to-new-PST conversion with a byte-for-byte unchanged source;
+- deterministic semantic read/write round trips and malformed/hostile-input contracts;
+- 2,000-message PST creation and 100,000-entry conversion/dedup indexes under retained-memory ceilings;
 - independent libpff open and synthetic message export;
 - an opt-in classic Outlook mount/read/remove test for Windows interoperability hosts;
 - an opt-in private-corpus lane that reports only aggregate structure and diagnostic counts.

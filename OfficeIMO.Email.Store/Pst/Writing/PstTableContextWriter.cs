@@ -16,19 +16,18 @@ internal sealed class PstWriterTableRow {
 
 internal static class PstTableContextWriter {
     private const int MaximumBlockPayload = 8176;
-    private const int PreferredHeapValueLimit = 3580;
 
     internal static PstWriterContextResult Write(PstWriterFile file,
         IEnumerable<PstWriterTableRow> sourceRows, int codePage,
         IEnumerable<MapiProperty>? requiredColumns,
         Action<EmailStoreDiagnostic>? reportDiagnostic, string location) {
-        PstWriterTableRow[] rows = sourceRows == null
-            ? Array.Empty<PstWriterTableRow>()
-            : sourceRows.GroupBy(item => item.RowId)
-                .Select(group => group.Last())
-                .OrderBy(item => item.RowId)
-                .ToArray();
-        Column[] columns = CreateColumns(rows, requiredColumns);
+        if (file == null) throw new ArgumentNullException(nameof(file));
+        if (sourceRows == null) sourceRows = Array.Empty<PstWriterTableRow>();
+        if (requiredColumns == null) {
+            throw new ArgumentNullException(nameof(requiredColumns),
+                "Streaming PST tables require an explicit column contract.");
+        }
+        Column[] columns = CreateColumns(requiredColumns);
         if (columns.Length > byte.MaxValue) {
             throw new NotSupportedException("A PST Table Context cannot contain more than 255 columns.");
         }
@@ -39,129 +38,149 @@ internal static class PstTableContextWriter {
         if (rowSize <= 0 || rowSize > MaximumBlockPayload) {
             throw new NotSupportedException("A PST table row exceeds the supported Unicode block size.");
         }
+        int rowsPerFullBlock = MaximumBlockPayload / rowSize;
+        if (rowsPerFullBlock <= 0) throw new NotSupportedException("A PST row is larger than one data block.");
 
         var heap = new PstWriterHeap(0x7C);
         var info = new byte[22 + columns.Length * 8];
         uint infoHid = heap.Add(info);
         var rowIndexHeader = new byte[8];
         uint rowIndexHeaderHid = heap.Add(rowIndexHeader);
-        var rowIndexRecords = new byte[rows.Length * 8];
-
-        var subnodes = new List<PstWriterSubnode>();
         const uint rowMatrixNid = 0x3F;
         uint nextLocalIndex = 2;
-        var encodedRows = new List<EncodedRow>(rows.Length);
-        for (int rowIndex = 0; rowIndex < rows.Length; rowIndex++) {
-            PstWriterTableRow row = rows[rowIndex];
-            var values = row.Properties
-                .GroupBy(item => item.PropertyId)
-                .ToDictionary(group => group.Key, group => group.Last());
-            values[0x67F2] = new MapiProperty(0x67F2, MapiPropertyType.Integer32,
-                unchecked((int)row.RowId));
-            if (!values.ContainsKey(0x67F3)) {
-                values[0x67F3] = new MapiProperty(0x67F3, MapiPropertyType.Integer32, 0);
-            }
-            var encoded = new EncodedRow(row.RowId, columns.Length);
-            foreach (Column column in columns) {
-                if (!values.TryGetValue(column.PropertyId, out MapiProperty? property)) continue;
-                try {
-                    encoded.Values[column.BitIndex] = EncodeCell(property, column, codePage);
-                } catch (Exception exception) when (exception is ArgumentException ||
-                    exception is InvalidCastException || exception is FormatException ||
-                    exception is OverflowException || exception is NotSupportedException) {
-                    reportDiagnostic?.Invoke(new EmailStoreDiagnostic(
-                        "EMAIL_STORE_PST_WRITE_TABLE_CELL_OMITTED",
-                        string.Concat("Table property 0x", property.PropertyTag.ToString("X8", CultureInfo.InvariantCulture),
-                            " was omitted: ", exception.Message),
-                        EmailStoreDiagnosticSeverity.Warning, location));
-                }
-            }
-            encodedRows.Add(encoded);
-            PstBinary.WriteUInt32(rowIndexRecords, rowIndex * 8, row.RowId);
-            PstBinary.WriteUInt32(rowIndexRecords, rowIndex * 8 + 4, checked((uint)rowIndex));
-        }
-
-        List<EncodedCell> variableCells = encodedRows.SelectMany(item => item.Values)
-            .Where(item => item != null && item.Bytes != null && item.Bytes.Length > 0)
-            .Select(item => item!)
-            .ToList();
-        foreach (EncodedCell cell in variableCells.Where(item => item.Bytes!.Length > PreferredHeapValueLimit)) {
-            cell.UseSubnode = true;
-        }
-        var matrix = new byte[checked(rows.Length * rowSize)];
-        for (int rowIndex = 0; rowIndex < encodedRows.Count; rowIndex++) {
-            int rowOffset = rowIndex * rowSize;
-            EncodedRow row = encodedRows[rowIndex];
-            foreach (Column column in columns) {
-                EncodedCell? cell = row.Values[column.BitIndex];
-                if (cell == null) continue;
-                int destination = rowOffset + column.DataOffset;
-                if (cell.Bytes != null) {
-                    uint hnid;
-                    if (cell.Bytes.Length == 0) {
-                        hnid = 0;
-                    } else if (cell.UseSubnode) {
-                        uint nid = checked((nextLocalIndex++ << 5) | 0x1FU);
-                        subnodes.Add(new PstWriterSubnode(nid, file.WriteDataTree(cell.Bytes)));
-                        hnid = nid;
-                    } else {
-                        hnid = heap.Add(cell.Bytes);
-                    }
-                    PstBinary.WriteUInt32(matrix, destination, hnid);
-                } else {
-                    Buffer.BlockCopy(cell.InlineBytes!, 0, matrix, destination, cell.InlineBytes!.Length);
-                }
-                int bitmapOffset = rowOffset + oneByteEnd + column.BitIndex / 8;
-                matrix[bitmapOffset] |= checked((byte)(1 << (7 - column.BitIndex % 8)));
-            }
-        }
-
+        string matrixPath = file.CreateTemporaryIndexPath("table-matrix");
+        string rowIndexPath = file.CreateTemporaryIndexPath("table-row-index");
+        string subnodePath = file.CreateTemporaryIndexPath("table-subnodes");
+        int rowCount = 0;
         ulong rowMatrixBid = 0;
-        if (rows.Length > 0) {
-            IReadOnlyList<byte[]> blocks = PartitionRows(matrix, rowSize, rows.Length);
-            rowMatrixBid = file.WriteDataTreeBlocks(blocks);
-            subnodes.Add(new PstWriterSubnode(rowMatrixNid, rowMatrixBid));
-        }
+        ulong subnodeBid;
+        using (var subnodes = new PstWriterSubnodeJournal(subnodePath))
+        try {
+            using (var matrix = new FileStream(matrixPath, FileMode.CreateNew, FileAccess.ReadWrite,
+                FileShare.Read, 64 * 1024, FileOptions.SequentialScan))
+            using (var rowIndex = new FileStream(rowIndexPath, FileMode.CreateNew, FileAccess.ReadWrite,
+                FileShare.Read, 64 * 1024, FileOptions.SequentialScan)) {
+                var matrixBlock = new byte[MaximumBlockPayload];
+                int rowsInBlock = 0;
+                uint previousRowId = 0;
+                bool hasPreviousRow = false;
+                foreach (PstWriterTableRow row in sourceRows) {
+                    if (hasPreviousRow && row.RowId <= previousRowId) {
+                        throw new InvalidDataException(
+                            "Streaming PST table rows must have unique ascending row identifiers.");
+                    }
+                    previousRowId = row.RowId;
+                    hasPreviousRow = true;
+                    var values = row.Properties.GroupBy(item => item.PropertyId)
+                        .ToDictionary(group => group.Key, group => group.Last());
+                    values[0x67F2] = new MapiProperty(0x67F2, MapiPropertyType.Integer32,
+                        unchecked((int)row.RowId));
+                    if (!values.ContainsKey(0x67F3)) {
+                        values[0x67F3] = new MapiProperty(0x67F3, MapiPropertyType.Integer32, 0);
+                    }
 
-        info[0] = 0x7C;
-        info[1] = checked((byte)columns.Length);
-        PstBinary.WriteUInt16(info, 2, dataEnd);
-        PstBinary.WriteUInt16(info, 4, twoByteEnd);
-        PstBinary.WriteUInt16(info, 6, oneByteEnd);
-        PstBinary.WriteUInt16(info, 8, rowSize);
-        PstBinary.WriteUInt32(info, 10, rowIndexHeaderHid);
-        PstBinary.WriteUInt32(info, 14, rows.Length == 0 ? 0 : rowMatrixNid);
-        PstBinary.WriteUInt32(info, 18, 0);
-        for (int index = 0; index < columns.Length; index++) {
-            Column column = columns[index];
-            int offset = 22 + index * 8;
-            PstBinary.WriteUInt32(info, offset,
-                ((uint)column.PropertyId << 16) | (ushort)column.PropertyType);
-            PstBinary.WriteUInt16(info, offset + 4, column.DataOffset);
-            info[offset + 6] = checked((byte)column.Size);
-            info[offset + 7] = checked((byte)column.BitIndex);
-        }
+                    int rowOffset = rowsInBlock * rowSize;
+                    foreach (Column column in columns) {
+                        if (!values.TryGetValue(column.PropertyId, out MapiProperty? property)) continue;
+                        try {
+                            EncodedCell cell = EncodeCell(property, column, codePage);
+                            int destination = rowOffset + column.DataOffset;
+                            if (cell.Bytes != null) {
+                                uint hnid = 0;
+                                if (cell.Bytes.Length > 0) {
+                                    uint nid = checked((nextLocalIndex++ << 5) | 0x1FU);
+                                    subnodes.Add(new PstWriterSubnode(nid, file.WriteDataTree(cell.Bytes)));
+                                    hnid = nid;
+                                }
+                                PstBinary.WriteUInt32(matrixBlock, destination, hnid);
+                            } else {
+                                Buffer.BlockCopy(cell.InlineBytes!, 0, matrixBlock,
+                                    destination, cell.InlineBytes!.Length);
+                            }
+                            int bitmapOffset = rowOffset + oneByteEnd + column.BitIndex / 8;
+                            matrixBlock[bitmapOffset] |= checked((byte)(1 << (7 - column.BitIndex % 8)));
+                        } catch (Exception exception) when (exception is ArgumentException ||
+                            exception is InvalidCastException || exception is FormatException ||
+                            exception is OverflowException || exception is NotSupportedException) {
+                            reportDiagnostic?.Invoke(new EmailStoreDiagnostic(
+                                "EMAIL_STORE_PST_WRITE_TABLE_CELL_OMITTED",
+                                string.Concat("Table property 0x",
+                                    property.PropertyTag.ToString("X8", CultureInfo.InvariantCulture),
+                                    " was omitted: ", exception.Message),
+                                EmailStoreDiagnosticSeverity.Warning, location));
+                        }
+                    }
 
-        PstWriterBth.Complete(heap, rowIndexHeader, 4, 4, rowIndexRecords);
-        ulong dataBid = file.WriteDataTreeBlocks(heap.Build(infoHid));
-        ulong subnodeBid = PstWriterSubnodeTree.Write(file, subnodes);
-        return new PstWriterContextResult(dataBid, subnodeBid);
+                    var indexRecord = new byte[8];
+                    PstBinary.WriteUInt32(indexRecord, 0, row.RowId);
+                    PstBinary.WriteUInt32(indexRecord, 4, checked((uint)rowCount));
+                    rowIndex.Write(indexRecord, 0, indexRecord.Length);
+                    rowCount = checked(rowCount + 1);
+                    rowsInBlock++;
+                    if (rowsInBlock == rowsPerFullBlock) {
+                        matrix.Write(matrixBlock, 0, matrixBlock.Length);
+                        Array.Clear(matrixBlock, 0, matrixBlock.Length);
+                        rowsInBlock = 0;
+                    }
+                }
+                if (rowsInBlock > 0) matrix.Write(matrixBlock, 0, rowsInBlock * rowSize);
+
+                if (rowCount > 0) {
+                    matrix.Position = 0;
+                    rowMatrixBid = file.WriteDataTree(matrix, matrix.Length);
+                }
+                rowIndex.Position = 0;
+                PstWriterBth.Complete(heap, rowIndexHeader, 4, 4, rowIndex, rowCount);
+            }
+
+            info[0] = 0x7C;
+            info[1] = checked((byte)columns.Length);
+            PstBinary.WriteUInt16(info, 2, dataEnd);
+            PstBinary.WriteUInt16(info, 4, twoByteEnd);
+            PstBinary.WriteUInt16(info, 6, oneByteEnd);
+            PstBinary.WriteUInt16(info, 8, rowSize);
+            PstBinary.WriteUInt32(info, 10, rowIndexHeaderHid);
+            PstBinary.WriteUInt32(info, 14, rowCount == 0 ? 0 : rowMatrixNid);
+            PstBinary.WriteUInt32(info, 18, 0);
+            for (int index = 0; index < columns.Length; index++) {
+                Column column = columns[index];
+                int offset = 22 + index * 8;
+                PstBinary.WriteUInt32(info, offset,
+                    ((uint)column.PropertyId << 16) | (ushort)column.PropertyType);
+                PstBinary.WriteUInt16(info, offset + 4, column.DataOffset);
+                info[offset + 6] = checked((byte)column.Size);
+                info[offset + 7] = checked((byte)column.BitIndex);
+            }
+
+            ulong dataBid = file.WriteDataTreeBlocks(heap.Build(infoHid));
+            int subnodeCount = subnodes.Count + (rowCount == 0 ? 0 : 1);
+            subnodeBid = PstWriterSubnodeTree.WriteSorted(file,
+                EnumerateTableSubnodes(rowCount, rowMatrixNid, rowMatrixBid, subnodes), subnodeCount);
+            return new PstWriterContextResult(dataBid, subnodeBid);
+        } finally {
+            TryDelete(matrixPath);
+            TryDelete(rowIndexPath);
+        }
     }
 
-    private static Column[] CreateColumns(IReadOnlyList<PstWriterTableRow> rows,
-        IEnumerable<MapiProperty>? requiredColumns) {
+    private static IEnumerable<PstWriterSubnode> EnumerateTableSubnodes(int rowCount,
+        uint rowMatrixNid, ulong rowMatrixBid, PstWriterSubnodeJournal values) {
+        if (rowCount > 0) yield return new PstWriterSubnode(rowMatrixNid, rowMatrixBid);
+        foreach (PstWriterSubnode value in values.ReadAll()) yield return value;
+    }
+
+    private static void TryDelete(string path) {
+        try { if (File.Exists(path)) File.Delete(path); }
+        catch (IOException) { }
+        catch (UnauthorizedAccessException) { }
+    }
+
+    private static Column[] CreateColumns(IEnumerable<MapiProperty> requiredColumns) {
         var types = new Dictionary<ushort, MapiPropertyType> {
             [0x67F2] = MapiPropertyType.Integer32,
             [0x67F3] = MapiPropertyType.Integer32
         };
-        if (requiredColumns != null) {
-            foreach (MapiProperty property in requiredColumns) types[property.PropertyId] = property.PropertyType;
-        }
-        foreach (PstWriterTableRow row in rows) {
-            foreach (MapiProperty property in row.Properties) {
-                if (!types.ContainsKey(property.PropertyId)) types.Add(property.PropertyId, property.PropertyType);
-            }
-        }
+        foreach (MapiProperty property in requiredColumns) types[property.PropertyId] = property.PropertyType;
         Column[] columns = types.OrderBy(item => ((uint)item.Key << 16) | (ushort)item.Value)
             .Select(item => new Column(item.Key, item.Value, GetTableWidth(item.Value))).ToArray();
         int nextBit = 2;
@@ -244,23 +263,6 @@ internal static class PstTableContextWriter {
         }
     }
 
-    private static IReadOnlyList<byte[]> PartitionRows(byte[] matrix, int rowSize, int rowCount) {
-        int rowsPerFullBlock = MaximumBlockPayload / rowSize;
-        if (rowsPerFullBlock <= 0) throw new NotSupportedException("A PST row is larger than one data block.");
-        var blocks = new List<byte[]>();
-        int rowIndex = 0;
-        while (rowIndex < rowCount) {
-            int count = Math.Min(rowsPerFullBlock, rowCount - rowIndex);
-            bool isLast = rowIndex + count == rowCount;
-            int used = count * rowSize;
-            var block = new byte[isLast ? used : MaximumBlockPayload];
-            Buffer.BlockCopy(matrix, rowIndex * rowSize, block, 0, used);
-            blocks.Add(block);
-            rowIndex += count;
-        }
-        return blocks;
-    }
-
     private sealed class Column {
         internal Column(ushort propertyId, MapiPropertyType propertyType, int size) {
             PropertyId = propertyId;
@@ -274,15 +276,6 @@ internal static class PstTableContextWriter {
         internal int BitIndex { get; set; }
     }
 
-    private sealed class EncodedRow {
-        internal EncodedRow(uint rowId, int columns) {
-            RowId = rowId;
-            Values = new EncodedCell?[columns];
-        }
-        internal uint RowId { get; }
-        internal EncodedCell?[] Values { get; }
-    }
-
     private sealed class EncodedCell {
         private EncodedCell(byte[]? inlineBytes, byte[]? bytes) {
             InlineBytes = inlineBytes;
@@ -290,7 +283,6 @@ internal static class PstTableContextWriter {
         }
         internal byte[]? InlineBytes { get; }
         internal byte[]? Bytes { get; }
-        internal bool UseSubnode { get; set; }
         internal static EncodedCell Inline(byte[] bytes) => new EncodedCell(bytes, null);
         internal static EncodedCell Variable(byte[] bytes) => new EncodedCell(null, bytes);
     }

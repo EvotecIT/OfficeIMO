@@ -68,6 +68,47 @@ public sealed class EmailDocumentReader {
             sourceName);
     }
 
+    /// <summary>
+    /// Reads an artifact with large payloads retained as reopenable temporary-file sources. Dispose the returned
+    /// result when those sources are no longer needed.
+    /// </summary>
+    public EmailReadResult ReadStreaming(Stream stream, string? sourceName = null,
+        CancellationToken cancellationToken = default) {
+        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        if (!stream.CanRead) throw new ArgumentException("The stream must be readable.", nameof(stream));
+        cancellationToken.ThrowIfCancellationRequested();
+        var workspace = new EmailReadWorkspace();
+        try {
+            if (stream.CanSeek) {
+                long position = stream.Position;
+                try {
+                    stream.Position = 0;
+                    return ParseStreaming(stream, sourceName, workspace, cancellationToken);
+                } finally {
+                    stream.Position = position;
+                }
+            }
+            string inputPath = workspace.CreateInputPath();
+            CopyInput(stream, inputPath, cancellationToken);
+            using (var staged = new FileStream(inputPath, FileMode.Open, FileAccess.Read, FileShare.Read,
+                       81920, FileOptions.SequentialScan)) {
+                return ParseStreaming(staged, sourceName, workspace, cancellationToken);
+            }
+        } catch {
+            workspace.Dispose();
+            throw;
+        }
+    }
+
+    /// <summary>Reads a file through the streaming payload path.</summary>
+    public EmailReadResult ReadStreaming(string filePath, CancellationToken cancellationToken = default) {
+        if (filePath == null) throw new ArgumentNullException(nameof(filePath));
+        using (var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read,
+                   81920, FileOptions.SequentialScan)) {
+            return ReadStreaming(stream, filePath, cancellationToken);
+        }
+    }
+
     /// <summary>Asynchronously reads an artifact from a file.</summary>
     public async Task<EmailReadResult> ReadAsync(string filePath, CancellationToken cancellationToken = default) {
         if (filePath == null) throw new ArgumentNullException(nameof(filePath));
@@ -94,6 +135,40 @@ public sealed class EmailDocumentReader {
         byte[] data = await EmailByteReader.ReadAllAsync(stream, _options.MaxInputBytes, cancellationToken)
             .ConfigureAwait(false);
         return Parse(data, cancellationToken, sourceName);
+    }
+
+    /// <summary>
+    /// Asynchronously stages source I/O and reads large payloads into reopenable temporary-file sources. Dispose the
+    /// returned result when those sources are no longer needed.
+    /// </summary>
+    public async Task<EmailReadResult> ReadStreamingAsync(Stream stream, string? sourceName = null,
+        CancellationToken cancellationToken = default) {
+        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        if (!stream.CanRead) throw new ArgumentException("The stream must be readable.", nameof(stream));
+        cancellationToken.ThrowIfCancellationRequested();
+        var workspace = new EmailReadWorkspace();
+        try {
+            string inputPath = workspace.CreateInputPath();
+            await CopyInputAsync(stream, inputPath, cancellationToken).ConfigureAwait(false);
+            using (var staged = new FileStream(inputPath, FileMode.Open, FileAccess.Read, FileShare.Read,
+                       81920, FileOptions.SequentialScan)) {
+                return await Task.Run(() => ParseStreaming(staged, sourceName, workspace, cancellationToken),
+                    cancellationToken).ConfigureAwait(false);
+            }
+        } catch {
+            workspace.Dispose();
+            throw;
+        }
+    }
+
+    /// <summary>Asynchronously reads a file through the streaming payload path.</summary>
+    public async Task<EmailReadResult> ReadStreamingAsync(string filePath,
+        CancellationToken cancellationToken = default) {
+        if (filePath == null) throw new ArgumentNullException(nameof(filePath));
+        using (var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read,
+                   81920, FileOptions.Asynchronous | FileOptions.SequentialScan)) {
+            return await ReadStreamingAsync(stream, filePath, cancellationToken).ConfigureAwait(false);
+        }
     }
 
     /// <summary>Detects the artifact format from content rather than the filename.</summary>
@@ -191,6 +266,149 @@ public sealed class EmailDocumentReader {
         cancellationToken.ThrowIfCancellationRequested();
         if (_options.PreserveRawSource || document.Protection.IsProtected) PreserveRawSource(document, data);
         return new EmailReadResult(document, diagnostics.AsReadOnly(), data.LongLength);
+    }
+
+    private EmailReadResult ParseStreaming(Stream stream, string? sourceName, EmailReadWorkspace workspace,
+        CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (!stream.CanSeek) throw new ArgumentException("Streaming parsing requires a seekable staged source.", nameof(stream));
+        long length = stream.Length - stream.Position;
+        if (length > _options.MaxInputBytes) {
+            throw new EmailLimitExceededException(nameof(EmailReaderOptions.MaxInputBytes), length,
+                _options.MaxInputBytes);
+        }
+        byte[] signature = new byte[Math.Min(8, checked((int)length))];
+        long start = stream.Position;
+        int signatureRead = stream.Read(signature, 0, signature.Length);
+        stream.Position = start;
+        if (signatureRead == CompoundSignature.Length && StartsWith(signature, CompoundSignature)) {
+            var diagnostics = new List<EmailDiagnostic>();
+            OfficeCompoundFile? compound;
+            string? error;
+            try {
+                bool read = OfficeCompoundFileReader.TryReadSelective(stream,
+                    EmailCompoundReadPolicy.Create(_options), IsExternalMsgAttachment,
+                    workspace.OpenExternalDestination, out compound, out error);
+                if (!read || compound == null) {
+                    diagnostics.Add(new EmailDiagnostic("EMAIL_MSG_COMPOUND_INVALID",
+                        error ?? "The MSG compound file is invalid.", EmailDiagnosticSeverity.Error));
+                    var unknown = new EmailDocument {
+                        Format = EmailFileFormat.Unknown,
+                        OutlookItemKind = OutlookItemKind.Unknown
+                    };
+                    return new EmailReadResult(unknown, diagnostics.AsReadOnly(), length, workspace);
+                }
+            } catch (OfficeCompoundStreamLimitExceededException exception) {
+                throw new EmailLimitExceededException(exception.LimitName, exception.ActualValue,
+                    exception.MaximumValue);
+            }
+
+            IReadOnlyDictionary<string, IEmailContentSource> sources = workspace.GetSources();
+            if (!MsgReader.TryRead(compound, _options, diagnostics, cancellationToken, sources,
+                    out EmailDocument document)) {
+                diagnostics.Add(new EmailDiagnostic("EMAIL_FORMAT_UNKNOWN",
+                    "The compound artifact is not an Outlook MSG item.", EmailDiagnosticSeverity.Error));
+            }
+            ApplySourceFormat(document, sourceName);
+            if (_options.PreserveRawSource || document.Protection.IsProtected) {
+                diagnostics.Add(new EmailDiagnostic("EMAIL_STREAMING_RAW_SOURCE_NOT_RETAINED",
+                    "The streaming reader retains payloads as reopenable sources and does not duplicate the complete raw artifact in memory.",
+                    EmailDiagnosticSeverity.Warning));
+            }
+            return new EmailReadResult(document, diagnostics.AsReadOnly(), length, workspace);
+        }
+        if (signatureRead >= TnefSignature.Length && StartsWith(signature, TnefSignature)) {
+            var diagnostics = new List<EmailDiagnostic>();
+            EmailDocument document = TnefStreamingParser.Parse(stream, _options, diagnostics,
+                cancellationToken, workspace);
+            if (_options.PreserveRawSource || document.Protection.IsProtected) {
+                diagnostics.Add(new EmailDiagnostic("EMAIL_STREAMING_RAW_SOURCE_NOT_RETAINED",
+                    "The streaming reader retains payloads as reopenable sources and does not duplicate the complete raw artifact in memory.",
+                    EmailDiagnosticSeverity.Warning));
+            }
+            return new EmailReadResult(document, diagnostics.AsReadOnly(), length, workspace);
+        }
+
+        int prefixLength = checked((int)Math.Min(length, 64L * 1024L));
+        byte[] prefix = new byte[prefixLength];
+        stream.Position = start;
+        int prefixRead = 0;
+        while (prefixRead < prefix.Length) {
+            int read = stream.Read(prefix, prefixRead, prefix.Length - prefixRead);
+            if (read == 0) break;
+            prefixRead += read;
+        }
+        stream.Position = start;
+        if (LooksLikeMessage(prefix)) {
+            var diagnostics = new List<EmailDiagnostic>();
+            EmailDocument document = MimeStreamingParser.Parse(stream, _options, diagnostics,
+                cancellationToken, workspace);
+            if (_options.PreserveRawSource || document.Protection.IsProtected) {
+                diagnostics.Add(new EmailDiagnostic("EMAIL_STREAMING_RAW_SOURCE_NOT_RETAINED",
+                    "The streaming reader retains payloads as reopenable sources and does not duplicate the complete raw artifact in memory.",
+                    EmailDiagnosticSeverity.Warning));
+            }
+            return new EmailReadResult(document, diagnostics.AsReadOnly(), length, workspace);
+        }
+
+        // Retain the rich bounded parser for unrecognized and aggregate formats so diagnostics remain compatible.
+        byte[] data = EmailByteReader.ReadAll(stream, _options.MaxInputBytes, cancellationToken);
+        EmailReadResult fallback = Parse(data, cancellationToken, sourceName);
+        return new EmailReadResult(fallback.Document, fallback.Diagnostics, fallback.BytesRead, workspace);
+    }
+
+    private static bool IsExternalMsgAttachment(string path, long length) =>
+        length >= 0 && path.IndexOf("__attach_version1.0_#", StringComparison.OrdinalIgnoreCase) >= 0 &&
+        path.EndsWith("/__substg1.0_37010102", StringComparison.OrdinalIgnoreCase);
+
+    private void CopyInput(Stream input, string path, CancellationToken cancellationToken) {
+        long originalPosition = input.CanSeek ? input.Position : 0;
+        try {
+            if (input.CanSeek) input.Position = 0;
+            using (var output = new FileStream(path, FileMode.CreateNew, FileAccess.Write, FileShare.Read,
+                       81920, FileOptions.SequentialScan)) {
+                var buffer = new byte[81920];
+                long total = 0;
+                while (true) {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    int read = input.Read(buffer, 0, buffer.Length);
+                    if (read == 0) break;
+                    total = checked(total + read);
+                    if (total > _options.MaxInputBytes) {
+                        throw new EmailLimitExceededException(nameof(EmailReaderOptions.MaxInputBytes), total,
+                            _options.MaxInputBytes);
+                    }
+                    output.Write(buffer, 0, read);
+                }
+            }
+        } finally {
+            if (input.CanSeek) input.Position = originalPosition;
+        }
+    }
+
+    private async Task CopyInputAsync(Stream input, string path, CancellationToken cancellationToken) {
+        long originalPosition = input.CanSeek ? input.Position : 0;
+        try {
+            if (input.CanSeek) input.Position = 0;
+            using (var output = new FileStream(path, FileMode.CreateNew, FileAccess.Write, FileShare.Read,
+                       81920, FileOptions.Asynchronous | FileOptions.SequentialScan)) {
+                var buffer = new byte[81920];
+                long total = 0;
+                while (true) {
+                    int read = await input.ReadAsync(buffer, 0, buffer.Length, cancellationToken).ConfigureAwait(false);
+                    if (read == 0) break;
+                    total = checked(total + read);
+                    if (total > _options.MaxInputBytes) {
+                        throw new EmailLimitExceededException(nameof(EmailReaderOptions.MaxInputBytes), total,
+                            _options.MaxInputBytes);
+                    }
+                    await output.WriteAsync(buffer, 0, read, cancellationToken).ConfigureAwait(false);
+                }
+                await output.FlushAsync(cancellationToken).ConfigureAwait(false);
+            }
+        } finally {
+            if (input.CanSeek) input.Position = originalPosition;
+        }
     }
 
     private static void ApplySourceFormat(EmailDocument document, string? sourceName) {

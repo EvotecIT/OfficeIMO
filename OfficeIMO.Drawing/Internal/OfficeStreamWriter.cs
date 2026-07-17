@@ -120,6 +120,36 @@ namespace OfficeIMO.Drawing.Internal {
             }
         }
 
+        /// <summary>
+        /// Produces a complete artifact with asynchronous I/O without closing the destination. Seekable streams are
+        /// truncated to the completed artifact and rewound after the producer succeeds.
+        /// </summary>
+        public static async Task WriteAsync(
+            Stream destination,
+            Func<Stream, CancellationToken, Task> writer,
+            CancellationToken cancellationToken = default) {
+#if NET6_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(destination);
+            ArgumentNullException.ThrowIfNull(writer);
+#else
+            if (destination == null) throw new ArgumentNullException(nameof(destination));
+            if (writer == null) throw new ArgumentNullException(nameof(writer));
+#endif
+            EnsureWritable(destination);
+            cancellationToken.ThrowIfCancellationRequested();
+            long originalPosition = PositionForDirectWrite(destination);
+            try {
+                await writer(destination, cancellationToken).ConfigureAwait(false);
+                cancellationToken.ThrowIfCancellationRequested();
+                CompleteDirectWrite(destination);
+                await destination.FlushAsync(cancellationToken).ConfigureAwait(false);
+                RewindDestination(destination);
+            } catch {
+                RestorePositionAfterFailedDirectWrite(destination, originalPosition);
+                throw;
+            }
+        }
+
         private static void EnsureWritable(Stream destination) {
             if (!destination.CanWrite) {
                 throw new ArgumentException("Destination stream must be writable.", nameof(destination));

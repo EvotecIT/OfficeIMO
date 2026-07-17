@@ -14,6 +14,10 @@ public sealed class EmailStorePstWriter : IDisposable {
         _core = new PstStoreWriterCore(destinationPath, options);
     }
 
+    private EmailStorePstWriter(PstStoreWriterCore core) {
+        _core = core;
+    }
+
     /// <summary>Creates a writer targeting a new PST path.</summary>
     public static EmailStorePstWriter Create(string destinationPath,
         EmailStorePstWriterOptions? options = null) {
@@ -21,6 +25,26 @@ public sealed class EmailStorePstWriter : IDisposable {
             throw new ArgumentException("A destination path is required.", nameof(destinationPath));
         }
         return new EmailStorePstWriter(destinationPath, options ?? new EmailStorePstWriterOptions());
+    }
+
+    /// <summary>Resumes a writer from its last integrity-checked durable checkpoint.</summary>
+    public static EmailStorePstWriter Resume(string checkpointPath,
+        IProgress<EmailStorePstWriteProgress>? progress = null) {
+        if (string.IsNullOrWhiteSpace(checkpointPath)) {
+            throw new ArgumentException("A checkpoint path is required.", nameof(checkpointPath));
+        }
+        return new EmailStorePstWriter(PstStoreWriterCore.Resume(checkpointPath, progress));
+    }
+
+    /// <summary>
+    /// Deletes a checkpoint and its exact writer-owned working files. A missing checkpoint is a no-op.
+    /// </summary>
+    public static void DeleteCheckpoint(string checkpointPath) =>
+        PstStoreWriterCore.DeleteCheckpoint(checkpointPath);
+
+    /// <summary>Configured durable checkpoint path, or null when resumability is disabled.</summary>
+    public string? CheckpointPath {
+        get { ThrowIfUnavailable(); return _core.CheckpointPath; }
     }
 
     /// <summary>Identifier of the mandatory Top of Personal Folders container.</summary>
@@ -49,6 +73,18 @@ public sealed class EmailStorePstWriter : IDisposable {
         ThrowIfUnavailable();
         if (document == null) throw new ArgumentNullException(nameof(document));
         return _core.AddItem(folderId, document, isAssociated, cancellationToken);
+    }
+
+    /// <summary>Flushes all working data and atomically commits a resumable integrity-checked checkpoint.</summary>
+    public void Checkpoint() {
+        ThrowIfUnavailable();
+        _core.Checkpoint();
+    }
+
+    /// <summary>Marks this incomplete writer for cleanup instead of checkpoint retention on disposal.</summary>
+    public void Abandon() {
+        ThrowIfUnavailable();
+        _core.Abandon();
     }
 
     /// <summary>Finalizes indexes and allocation maps, then atomically commits the PST.</summary>

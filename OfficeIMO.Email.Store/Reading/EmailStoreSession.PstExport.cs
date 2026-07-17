@@ -1,3 +1,5 @@
+using OfficeIMO.Drawing.Internal;
+
 namespace OfficeIMO.Email.Store;
 
 public sealed partial class EmailStoreSession {
@@ -18,74 +20,145 @@ public sealed partial class EmailStoreSession {
             throw new InvalidOperationException(
                 "Store conversion always writes a different destination file; in-place PST/OST mutation is not supported.");
         }
+        ValidateVerificationManifestPath(destination, effective);
+        if (File.Exists(destination) && !effective.OverwriteExisting) {
+            throw new IOException("The destination PST already exists and overwriteExisting is false.");
+        }
 
         var diagnostics = new List<EmailStoreDiagnostic>();
+        string? stagingPath = effective.VerifyAfterWrite
+            ? OfficeFileCommit.CreateStagingPath(destination)
+            : null;
+        string? manifestStagingPath = effective.VerificationManifestPath == null
+            ? null
+            : OfficeFileCommit.CreateTemporaryPath(
+                Path.GetFullPath(effective.VerificationManifestPath));
+        string writerDestination = stagingPath ?? destination;
         var writerOptions = new EmailStorePstWriterOptions(
             effective.DisplayName ?? DisplayName,
-            effective.OverwriteExisting,
+            stagingPath == null && effective.OverwriteExisting,
             effective.FailOnDataLoss,
             maxFolderCount: Math.Max(1, Folders.Count + 8),
             maxItemCount: effective.MaxItems,
             maxNestedMessageDepth: effective.MaxNestedMessageDepth);
-        using EmailStorePstWriter writer = EmailStorePstWriter.Create(destination, writerOptions);
-        Dictionary<string, string> folderMap = CreatePstFolderMap(writer, effective, diagnostics);
-        int converted = 0;
-        int skipped = 0;
-        var enumeration = new EmailStoreEnumerationOptions(
-            includeAssociatedItems: effective.IncludeAssociatedItems,
-            includeOrphanedItems: effective.IncludeOrphanedItems,
-            maxItems: effective.MaxItems);
-        var readOptions = new EmailStoreItemReadOptions(
-            EmailStoreItemReadParts.All, preferStreamingAttachmentContent: true);
-        foreach (EmailStoreItemReference reference in EnumerateItems(enumeration, cancellationToken)) {
-            cancellationToken.ThrowIfCancellationRequested();
-            EmailStoreFolderInfo? sourceFolder = Folders.FirstOrDefault(item => item.Id == reference.FolderId);
-            if (sourceFolder?.IsSearchFolder == true && !effective.IncludeSearchFolders) {
-                skipped++;
-                continue;
-            }
-            if (!folderMap.TryGetValue(reference.FolderId, out string? destinationFolder)) {
-                skipped++;
-                diagnostics.Add(new EmailStoreDiagnostic(
-                    "EMAIL_STORE_PST_CONVERT_FOLDER_UNMAPPED",
-                    "An item was skipped because its source folder could not be mapped.",
-                    EmailStoreDiagnosticSeverity.Error, reference.Id));
-                if (!effective.ContinueOnItemError) {
-                    throw new InvalidDataException("A source item folder could not be mapped.");
+        try {
+            using (EmailStorePstWriter writer = EmailStorePstWriter.Create(writerDestination, writerOptions))
+            using (PstConversionMappingJournal? mappings = effective.VerifyAfterWrite
+                       ? new PstConversionMappingJournal(writerDestination)
+                       : null) {
+                Dictionary<string, string> folderMap = CreatePstFolderMap(writer, effective, diagnostics);
+                int converted = 0;
+                int skipped = 0;
+                var enumeration = new EmailStoreEnumerationOptions(
+                    includeAssociatedItems: effective.IncludeAssociatedItems,
+                    includeOrphanedItems: effective.IncludeOrphanedItems,
+                    maxItems: effective.MaxItems);
+                var readOptions = new EmailStoreItemReadOptions(
+                    EmailStoreItemReadParts.All, preferStreamingAttachmentContent: true);
+                foreach (EmailStoreItemReference reference in EnumerateItems(enumeration, cancellationToken)) {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    EmailStoreFolderInfo? sourceFolder = Folders.FirstOrDefault(item => item.Id == reference.FolderId);
+                    if (sourceFolder?.IsSearchFolder == true && !effective.IncludeSearchFolders) {
+                        skipped++;
+                        continue;
+                    }
+                    if (!folderMap.TryGetValue(reference.FolderId, out string? destinationFolder)) {
+                        skipped++;
+                        diagnostics.Add(new EmailStoreDiagnostic(
+                            "EMAIL_STORE_PST_CONVERT_FOLDER_UNMAPPED",
+                            "An item was skipped because its source folder could not be mapped.",
+                            EmailStoreDiagnosticSeverity.Error, reference.Id));
+                        if (!effective.ContinueOnItemError) {
+                            throw new InvalidDataException("A source item folder could not be mapped.");
+                        }
+                        continue;
+                    }
+                    try {
+                        EmailStoreItem item = ReadItem(reference, readOptions, cancellationToken);
+                        string destinationItemId = writer.AddItem(destinationFolder, item.Document,
+                            reference.IsAssociated, cancellationToken);
+                        converted++;
+                        if (effective.VerifyAfterWrite) {
+                            mappings!.Add(converted, reference,
+                                destinationFolder, destinationItemId);
+                        }
+                        if (reference.IsOrphaned) {
+                            diagnostics.Add(new EmailStoreDiagnostic(
+                                "EMAIL_STORE_PST_CONVERT_ORPHAN_RECOVERED",
+                                "An item absent from its source contents table was recovered from the source index and copied.",
+                                EmailStoreDiagnosticSeverity.Information, reference.Id));
+                        }
+                    } catch (Exception exception) when (effective.ContinueOnItemError &&
+                        (exception is InvalidDataException || exception is NotSupportedException ||
+                         exception is IOException || exception is EmailStoreLimitExceededException)) {
+                        skipped++;
+                        diagnostics.Add(new EmailStoreDiagnostic(
+                            "EMAIL_STORE_PST_CONVERT_ITEM_SKIPPED",
+                            string.Concat("A source item could not be copied: ", exception.Message),
+                            EmailStoreDiagnosticSeverity.Error, reference.Id));
+                    }
                 }
-                continue;
-            }
-            try {
-                EmailStoreItem item = ReadItem(reference, readOptions, cancellationToken);
-                writer.AddItem(destinationFolder, item.Document, reference.IsAssociated,
-                    cancellationToken);
-                converted++;
-                if (reference.IsOrphaned) {
-                    diagnostics.Add(new EmailStoreDiagnostic(
-                        "EMAIL_STORE_PST_CONVERT_ORPHAN_RECOVERED",
-                        "An item absent from its source contents table was recovered from the source index and copied.",
-                        EmailStoreDiagnosticSeverity.Information, reference.Id));
-                }
-            } catch (Exception exception) when (effective.ContinueOnItemError &&
-                (exception is InvalidDataException || exception is NotSupportedException ||
-                 exception is IOException || exception is EmailStoreLimitExceededException)) {
-                skipped++;
-                diagnostics.Add(new EmailStoreDiagnostic(
-                    "EMAIL_STORE_PST_CONVERT_ITEM_SKIPPED",
-                    string.Concat("A source item could not be copied: ", exception.Message),
-                    EmailStoreDiagnosticSeverity.Error, reference.Id));
-            }
-        }
 
-        if (effective.FailOnDataLoss && diagnostics.Any(item =>
-            item.Severity != EmailStoreDiagnosticSeverity.Information)) {
-            throw new InvalidOperationException(
-                "Store conversion produced fidelity diagnostics and FailOnDataLoss is enabled.");
+                if (effective.FailOnDataLoss && diagnostics.Any(item =>
+                    item.Severity != EmailStoreDiagnosticSeverity.Information)) {
+                    throw new InvalidOperationException(
+                        "Store conversion produced fidelity diagnostics and FailOnDataLoss is enabled.");
+                }
+                EmailStorePstWriteReport writeReport = writer.Complete(cancellationToken);
+                diagnostics.AddRange(writeReport.Diagnostics);
+                EmailStorePstVerificationReport? verification = effective.VerifyAfterWrite
+                    ? VerifyPstConversion(writerDestination, mappings!, effective, diagnostics,
+                        manifestStagingPath, cancellationToken)
+                    : null;
+                if (effective.FailOnDataLoss && verification?.IsSuccessful == false) {
+                    throw new InvalidOperationException(
+                        "PST conversion semantic verification reported data loss; the destination was not changed.");
+                }
+                if (stagingPath != null) {
+                    OfficeFileCommit.CommitTemporaryFile(stagingPath, destination,
+                        effective.OverwriteExisting
+                            ? OfficeFileCommit.ConflictPolicy.Replace
+                            : OfficeFileCommit.ConflictPolicy.FailIfExists);
+                    stagingPath = null;
+                    writeReport = new EmailStorePstWriteReport(destination, writeReport.FolderCount,
+                        writeReport.ItemCount, new FileInfo(destination).Length,
+                        writeReport.Diagnostics, writeReport.DiagnosticsTruncated);
+                }
+                if (manifestStagingPath != null) {
+                    string manifestDestination = Path.GetFullPath(effective.VerificationManifestPath!);
+                    OfficeFileCommit.CommitTemporaryFile(manifestStagingPath, manifestDestination,
+                        effective.OverwriteExisting
+                            ? OfficeFileCommit.ConflictPolicy.Replace
+                            : OfficeFileCommit.ConflictPolicy.FailIfExists);
+                    manifestStagingPath = null;
+                    verification = verification!.WithManifestPath(manifestDestination);
+                }
+                return new EmailStorePstConversionReport(Format, writeReport,
+                    Folders.Count, converted, skipped, verification, diagnostics.ToArray());
+            }
+        } finally {
+            OfficeFileCommit.DeleteIfExists(stagingPath);
+            OfficeFileCommit.DeleteIfExists(manifestStagingPath);
         }
-        EmailStorePstWriteReport writeReport = writer.Complete(cancellationToken);
-        diagnostics.AddRange(writeReport.Diagnostics);
-        return new EmailStorePstConversionReport(Format, writeReport,
-            Folders.Count, converted, skipped, diagnostics.ToArray());
+    }
+
+    private void ValidateVerificationManifestPath(string destination,
+        EmailStorePstConversionOptions options) {
+        if (options.VerificationManifestPath == null) return;
+        string manifest = Path.GetFullPath(options.VerificationManifestPath);
+        if (string.Equals(manifest, destination, StringComparison.OrdinalIgnoreCase)) {
+            throw new InvalidOperationException(
+                "The verification manifest and destination PST must use different paths.");
+        }
+        if (_stream is FileStream sourceFile && string.Equals(
+            Path.GetFullPath(sourceFile.Name), manifest, StringComparison.OrdinalIgnoreCase)) {
+            throw new InvalidOperationException(
+                "The verification manifest cannot replace the read-only source store.");
+        }
+        if (File.Exists(manifest) && !options.OverwriteExisting) {
+            throw new IOException(
+                "The verification manifest already exists and overwriteExisting is false.");
+        }
     }
 
     private Dictionary<string, string> CreatePstFolderMap(EmailStorePstWriter writer,
