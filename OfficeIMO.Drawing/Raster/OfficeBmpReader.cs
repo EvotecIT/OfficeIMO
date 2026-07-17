@@ -19,6 +19,7 @@ public static class OfficeBmpReader {
             if (bytes == null || bytes.Length < BitmapFileHeaderSize + BitmapInfoHeaderSize) {
                 return false;
             }
+            OfficeRasterGuards.EnsurePayloadWithinLimits(bytes.Length, "BMP payload exceeds size limits.");
 
             if (bytes[0] != (byte)'B' || bytes[1] != (byte)'M') {
                 return false;
@@ -41,6 +42,7 @@ public static class OfficeBmpReader {
             }
 
             int height = Math.Abs(signedHeight);
+            if (!OfficeRasterGuards.TryEnsurePixelCount(width, height, out _)) return false;
             bool topDown = signedHeight < 0;
             int rowStride = checked(((width * bitsPerPixel) + 31) / 32 * 4);
             if (pixelOffset + ((long)rowStride * height) > bytes.Length) {

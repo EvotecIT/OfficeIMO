@@ -1,8 +1,10 @@
+using OfficeIMO.Drawing;
+
 namespace OfficeIMO.OneNote;
 
 /// <summary>
 /// Checks the generated section's page identity/order/relationships, structural content hierarchy,
-/// rich-text runs, supported layout and media metadata, and binary payload resolution state.
+/// rich-text runs, supported layout, ink, math and media metadata, and binary payload resolution state.
 /// </summary>
 internal static class OneNoteWriteRoundTripValidator {
     internal static void ValidateSection(OneNoteSection expected, OneNoteSection actual) {
@@ -36,7 +38,18 @@ internal static class OneNoteWriteRoundTripValidator {
             !NormalizedStringEquals(expected.OriginalAuthor, actual.OriginalAuthor) ||
             !NormalizedStringEquals(expected.MostRecentAuthor, actual.MostRecentAuthor) ||
             !FloatEquals(expected.Width, actual.Width) ||
-            !FloatEquals(expected.Height, actual.Height)) {
+            !FloatEquals(expected.Height, actual.Height) ||
+            !ExpectedNullableEquals(expected.PageSize, actual.PageSize) ||
+            !ExpectedNullableEquals(expected.Orientation, actual.Orientation) ||
+            !ExpectedNullableEquals(expected.RightToLeft, actual.RightToLeft) ||
+            !ExpectedNullableEquals(expected.IsReadOnly, actual.IsReadOnly) ||
+            !ExpectedNullableEquals(expected.ResolveChildCollisions, actual.ResolveChildCollisions) ||
+            !FloatEquals(expected.Margins.Left, actual.Margins.Left) ||
+            !FloatEquals(expected.Margins.Right, actual.Margins.Right) ||
+            !FloatEquals(expected.Margins.Top, actual.Margins.Top) ||
+            !FloatEquals(expected.Margins.Bottom, actual.Margins.Bottom) ||
+            !FloatEquals(expected.Margins.OriginX, actual.Margins.OriginX) ||
+            !FloatEquals(expected.Margins.OriginY, actual.Margins.OriginY)) {
             Fail(path + " metadata");
         }
 
@@ -60,6 +73,20 @@ internal static class OneNoteWriteRoundTripValidator {
     }
 
     private static void ValidateElement(OneNoteElement expected, OneNoteElement actual, string path) {
+        if (expected is OneNoteMath expectedMathBlock && actual is OneNoteParagraph actualMathParagraph) {
+            ValidateLayout(expected.Layout, actual.Layout, path + " layout");
+            if (!NormalizedStringEquals(expected.Author?.Name, actual.Author?.Name)) Fail(path + " author");
+            OfficeMathExpression expectedExpression = expectedMathBlock.GetExpression();
+            OfficeMathExpression[] actualExpressions = actualMathParagraph.Runs
+                .Where(run => run.MathExpression != null)
+                .Select(run => run.MathExpression!)
+                .ToArray();
+            OfficeMathExpression actualExpression = actualExpressions.Length == 1
+                ? actualExpressions[0]
+                : OfficeMath.Row(actualExpressions);
+            if (!expectedExpression.Equals(actualExpression)) Fail(path + " math expression");
+            return;
+        }
         if (expected.Kind != actual.Kind) Fail(path + " kind");
         ValidateLayout(expected.Layout, actual.Layout, path + " layout");
         if (!NormalizedStringEquals(expected.Author?.Name, actual.Author?.Name)) Fail(path + " author");
@@ -81,6 +108,12 @@ internal static class OneNoteWriteRoundTripValidator {
             if (!NormalizedStringEquals(expectedImage.AltText, actualImage.AltText) ||
                 !NormalizedStringEquals(expectedImage.SourcePath, actualImage.SourcePath) ||
                 !NormalizedStringEquals(expectedImage.Hyperlink, actualImage.Hyperlink) ||
+                !NormalizedStringEquals(expectedImage.OcrText, actualImage.OcrText) ||
+                !ExpectedNullableEquals(expectedImage.OcrLanguageId, actualImage.OcrLanguageId) ||
+                !ExpectedNullableEquals(expectedImage.DisplayedPageNumber, actualImage.DisplayedPageNumber) ||
+                !ExpectedNullableEquals(expectedImage.IsBackground, actualImage.IsBackground) ||
+                !ExpectedNullableEquals(expectedImage.SizeSetByUser, actualImage.SizeSetByUser) ||
+                !ExpectedNullableEquals(expectedImage.UploadState, actualImage.UploadState) ||
                 !FloatEquals(expectedImage.WidthHalfInches, actualImage.WidthHalfInches) ||
                 !FloatEquals(expectedImage.HeightHalfInches, actualImage.HeightHalfInches)) {
                 Fail(path + " image metadata");
@@ -95,17 +128,22 @@ internal static class OneNoteWriteRoundTripValidator {
         if (expected is OneNoteMedia expectedMedia && actual is OneNoteMedia actualMedia) {
             ValidateBinary(expectedMedia, actualMedia, path);
             if (expectedMedia.RecordingKind != actualMedia.RecordingKind ||
+                !ExpectedNullableEquals(expectedMedia.RecordingId, actualMedia.RecordingId) ||
+                !DurationEquals(expectedMedia.Duration, actualMedia.Duration) ||
                 !NormalizedStringEquals(expectedMedia.SourcePath, actualMedia.SourcePath)) {
                 Fail(path + " media metadata");
             }
             return;
         }
+        if (expected is OneNoteInk expectedInk && actual is OneNoteInk actualInk) {
+            ValidateBinary(expectedInk, actualInk, path);
+            ValidateInk(expectedInk, actualInk, path);
+            return;
+        }
         if (expected is OneNoteMath expectedMath && actual is OneNoteMath actualMath) {
-            if (!string.Equals(expectedMath.Text, actualMath.Text, StringComparison.Ordinal) ||
-                !string.Equals(expectedMath.MathMl, actualMath.MathMl, StringComparison.Ordinal) ||
-                !string.Equals(expectedMath.Latex, actualMath.Latex, StringComparison.Ordinal)) {
-                Fail(path + " math projection");
-            }
+            OfficeIMO.Drawing.OfficeMathExpression expectedExpression = expectedMath.GetExpression();
+            OfficeIMO.Drawing.OfficeMathExpression actualExpression = actualMath.GetExpression();
+            if (!expectedExpression.Equals(actualExpression)) Fail(path + " math expression");
             ValidatePayload(expectedMath.RawPayload, actualMath.RawPayload, path + " math payload");
             return;
         }
@@ -125,6 +163,9 @@ internal static class OneNoteWriteRoundTripValidator {
                 !NormalizedStringEquals(expectedRun?.Hyperlink, actualRun.Hyperlink) ||
                 (expectedRun?.HyperlinkProtected ?? false) != actualRun.HyperlinkProtected) {
                 Fail(path + "/run[" + index + "]");
+            }
+            if (!Equals(expectedRun?.MathExpression, actualRun.MathExpression)) {
+                Fail(path + "/run[" + index + "] math expression");
             }
             if (expectedRun != null) ValidateTextStyle(expectedRun.Style, actualRun.Style, path + "/run[" + index + "] style");
         }
@@ -183,6 +224,81 @@ internal static class OneNoteWriteRoundTripValidator {
         ValidatePayload(expected.Payload, actual.Payload, path + " payload");
     }
 
+    private static bool DurationEquals(TimeSpan? expected, TimeSpan? actual) {
+        if (!expected.HasValue || !actual.HasValue) return expected.HasValue == actual.HasValue;
+        return Math.Abs((expected.Value - actual.Value).TotalMilliseconds) <= 0.500001D;
+    }
+
+    private static void ValidateInk(OneNoteInk expected, OneNoteInk actual, string path) {
+        if (expected.Strokes.Count != actual.Strokes.Count) Fail(path + " stroke count");
+        for (int strokeIndex = 0; strokeIndex < expected.Strokes.Count; strokeIndex++) {
+            OfficeInkStroke expectedStroke = expected.Strokes[strokeIndex];
+            OfficeInkStroke actualStroke = actual.Strokes[strokeIndex];
+            if (expectedStroke.Points.Count != actualStroke.Points.Count) Fail(path + "/stroke[" + strokeIndex + "] point count");
+
+            OfficeTransform transform = expectedStroke.Transform ?? OfficeTransform.Identity;
+            double transformScale = InkTransformScale(transform);
+            double expectedOpacity = OfficeInkRenderer.GetEffectiveOpacity(expectedStroke);
+            double actualOpacity = OfficeInkRenderer.GetEffectiveOpacity(actualStroke);
+            if (expectedStroke.Color.R != actualStroke.Color.R ||
+                expectedStroke.Color.G != actualStroke.Color.G ||
+                expectedStroke.Color.B != actualStroke.Color.B ||
+                !InkFloatEquals(expectedStroke.Width * transformScale, actualStroke.Width) ||
+                !InkFloatEquals(expectedStroke.Height * transformScale, actualStroke.Height) ||
+                Math.Abs(expectedOpacity - actualOpacity) > 1D / byte.MaxValue + 0.000001D ||
+                expectedStroke.TipShape != actualStroke.TipShape ||
+                expectedStroke.Bias != actualStroke.Bias ||
+                expectedStroke.FitToCurve != actualStroke.FitToCurve ||
+                expectedStroke.IgnorePressure != actualStroke.IgnorePressure ||
+                !ExpectedNullableEquals(expectedStroke.LanguageId, actualStroke.LanguageId)) {
+                Fail(path + "/stroke[" + strokeIndex + "] style");
+            }
+
+            bool hasPressure = expectedStroke.Points.Any(point => point.Pressure.HasValue);
+            for (int pointIndex = 0; pointIndex < expectedStroke.Points.Count; pointIndex++) {
+                OfficeInkPoint expectedPoint = expectedStroke.Points[pointIndex].Transform(transform);
+                OfficeInkPoint actualPoint = actualStroke.Points[pointIndex];
+                double expectedX = OneNoteInkCodec.ToNativeCoordinate(expectedPoint.X) / OneNoteInkCodec.NativeUnitsPerHalfInch;
+                double expectedY = OneNoteInkCodec.ToNativeCoordinate(expectedPoint.Y) / OneNoteInkCodec.NativeUnitsPerHalfInch;
+                double? expectedPressure = hasPressure
+                    ? Math.Round(Math.Max(0D, Math.Min(1D, expectedPoint.Pressure ?? 1D)) * 32767D) / 32767D
+                    : (double?)null;
+                if (!InkFloatEquals(expectedX, actualPoint.X) ||
+                    !InkFloatEquals(expectedY, actualPoint.Y) ||
+                    !InkFloatEquals(expectedPressure, actualPoint.Pressure)) {
+                    Fail(path + "/stroke[" + strokeIndex + "]/point[" + pointIndex + "]");
+                }
+            }
+
+            IReadOnlyList<string> expectedAlternatives = NormalizedRecognitionAlternatives(expectedStroke);
+            if (!string.Equals(expectedAlternatives.FirstOrDefault(), actualStroke.RecognizedText, StringComparison.Ordinal) ||
+                !expectedAlternatives.SequenceEqual(actualStroke.RecognitionAlternatives)) {
+                Fail(path + "/stroke[" + strokeIndex + "] recognition");
+            }
+        }
+    }
+
+    private static IReadOnlyList<string> NormalizedRecognitionAlternatives(OfficeInkStroke stroke) {
+        var result = new List<string>();
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        if (!string.IsNullOrWhiteSpace(stroke.RecognizedText) && seen.Add(stroke.RecognizedText!)) result.Add(stroke.RecognizedText!);
+        foreach (string alternative in stroke.RecognitionAlternatives) {
+            if (!string.IsNullOrWhiteSpace(alternative) && seen.Add(alternative)) result.Add(alternative);
+        }
+        return result;
+    }
+
+    private static double InkTransformScale(OfficeTransform transform) {
+        double x = Math.Sqrt(transform.M11 * transform.M11 + transform.M12 * transform.M12);
+        double y = Math.Sqrt(transform.M21 * transform.M21 + transform.M22 * transform.M22);
+        return Math.Max(0.000001D, (x + y) / 2D);
+    }
+
+    private static bool InkFloatEquals(double? expected, double? actual) {
+        if (!expected.HasValue || !actual.HasValue) return expected.HasValue == actual.HasValue;
+        return Math.Abs(expected.Value - actual.Value) <= 0.00001D;
+    }
+
     private static void ValidatePayload(OneNoteBinaryPayload? expected, OneNoteBinaryPayload? actual, string path) {
         if ((expected == null) != (actual == null)) Fail(path + " resolution");
         if (expected?.Length.HasValue == true && expected.Length != actual?.Length) Fail(path + " length");
@@ -194,7 +310,12 @@ internal static class OneNoteWriteRoundTripValidator {
             !FloatEquals(expected?.Width, actual?.Width) ||
             !FloatEquals(expected?.Height, actual?.Height) ||
             !ExpectedNullableEquals(expected?.Tight, actual?.Tight) ||
-            !ExpectedNullableEquals(expected?.RightToLeft, actual?.RightToLeft)) {
+            !ExpectedNullableEquals(expected?.RightToLeft, actual?.RightToLeft) ||
+            !FloatEquals(expected?.MinimumWidth, actual?.MinimumWidth) ||
+            !ExpectedNullableEquals(expected?.AlignmentInParent, actual?.AlignmentInParent) ||
+            !ExpectedNullableEquals(expected?.AlignmentSelf, actual?.AlignmentSelf) ||
+            !ExpectedNullableEquals(expected?.CollisionPriority, actual?.CollisionPriority) ||
+            !ExpectedNullableEquals(expected?.TightAlignment, actual?.TightAlignment)) {
             Fail(path);
         }
     }

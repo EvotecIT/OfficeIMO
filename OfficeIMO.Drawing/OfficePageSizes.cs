@@ -31,9 +31,24 @@ public static class OfficePageSizes {
     /// <summary>ISO A5, 148 x 210 millimeters.</summary>
     public static OfficePageSize A5 => OfficePageSize.FromMillimeters(148D, 210D);
 
+    /// <summary>ISO A6, 105 x 148 millimeters.</summary>
+    public static OfficePageSize A6 => OfficePageSize.FromMillimeters(105D, 148D);
+
     /// <summary>JIS B4, 257 x 364 millimeters.</summary>
     public static OfficePageSize B4Jis => OfficePageSize.FromMillimeters(257D, 364D);
 
     /// <summary>JIS B5, 182 x 257 millimeters.</summary>
     public static OfficePageSize B5Jis => OfficePageSize.FromMillimeters(182D, 257D);
+
+    /// <summary>JIS B6, 128 x 182 millimeters.</summary>
+    public static OfficePageSize B6Jis => OfficePageSize.FromMillimeters(128D, 182D);
+
+    /// <summary>Japanese postcard, 100 x 148 millimeters.</summary>
+    public static OfficePageSize JapanesePostcard => OfficePageSize.FromMillimeters(100D, 148D);
+
+    /// <summary>Index card, 3 x 5 inches.</summary>
+    public static OfficePageSize IndexCard => new OfficePageSize(3D, 5D);
+
+    /// <summary>Billfold page, 3.75 x 6.75 inches.</summary>
+    public static OfficePageSize Billfold => new OfficePageSize(3.75D, 6.75D);
 }

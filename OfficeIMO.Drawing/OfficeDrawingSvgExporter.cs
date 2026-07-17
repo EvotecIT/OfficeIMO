@@ -79,7 +79,12 @@ public static partial class OfficeDrawingSvgExporter {
         return escaped.ToString();
     }
 
-    private static void AppendElements(StringBuilder sb, IReadOnlyList<OfficeDrawingElement> elements, ref int gradientId, ref int clipPathId) {
+    private static void AppendElements(
+        StringBuilder sb,
+        IReadOnlyList<OfficeDrawingElement> elements,
+        IOfficeRasterImageCodec? imageCodec,
+        ref int gradientId,
+        ref int clipPathId) {
         for (int i = 0; i < elements.Count; i++) {
             switch (elements[i]) {
                 case OfficeDrawingShape drawingShape:
@@ -119,25 +124,25 @@ public static partial class OfficeDrawingSvgExporter {
                     string? imageClipPathId = drawingImage.Projection.HasCrop
                         ? "officeimo-image-clip-" + (++clipPathId).ToString(CultureInfo.InvariantCulture)
                         : null;
-                    AppendImage(sb, drawingImage, imageClipPathId);
+                    AppendImage(sb, drawingImage, imageClipPathId, imageCodec);
                     break;
                 case OfficeDrawingImagePattern imagePattern:
-                    AppendImagePattern(sb, imagePattern, ref clipPathId);
+                    AppendImagePattern(sb, imagePattern, imageCodec, ref clipPathId);
                     break;
                 case OfficeDrawingTilingPattern tilingPattern:
-                    AppendTilingPattern(sb, tilingPattern, ref gradientId, ref clipPathId);
+                    AppendTilingPattern(sb, tilingPattern, imageCodec, ref gradientId, ref clipPathId);
                     break;
                 case OfficeDrawingGroup drawingGroup:
-                    AppendGroup(sb, drawingGroup, ref gradientId, ref clipPathId);
+                    AppendGroup(sb, drawingGroup, imageCodec, ref gradientId, ref clipPathId);
                     break;
                 case OfficeDrawingEffectGroup effectGroup:
-                    AppendEffectGroup(sb, effectGroup, ref gradientId, ref clipPathId);
+                    AppendEffectGroup(sb, effectGroup, imageCodec, ref gradientId, ref clipPathId);
                     break;
             }
         }
     }
 
-    private static void AppendGroup(StringBuilder sb, OfficeDrawingGroup drawingGroup, ref int gradientId, ref int clipPathId) {
+    private static void AppendGroup(StringBuilder sb, OfficeDrawingGroup drawingGroup, IOfficeRasterImageCodec? imageCodec, ref int gradientId, ref int clipPathId) {
         string groupClipPathId = "officeimo-group-clip-" + (++clipPathId).ToString(CultureInfo.InvariantCulture);
         AppendClipPathDefinition(sb, groupClipPathId, drawingGroup.ClipPath);
         string transform = BuildGroupTransformAttribute(drawingGroup);
@@ -153,7 +158,7 @@ public static partial class OfficeDrawingSvgExporter {
                 .Append(Format(drawingGroup.ContentOffsetY))
                 .Append(")\">");
         }
-        AppendElements(sb, drawingGroup.InnerDrawing.Elements, ref gradientId, ref clipPathId);
+        AppendElements(sb, drawingGroup.InnerDrawing.Elements, imageCodec, ref gradientId, ref clipPathId);
         if (hasContentOffset) sb.Append("</g>");
         sb.Append("</g>");
     }
@@ -328,9 +333,9 @@ public static partial class OfficeDrawingSvgExporter {
         return new OfficeDrawingShape(shape, clampedX, clampedY);
     }
 
-    private static void AppendImage(StringBuilder sb, OfficeDrawingImage drawingImage, string? clipPathId) {
+    private static void AppendImage(StringBuilder sb, OfficeDrawingImage drawingImage, string? clipPathId, IOfficeRasterImageCodec? imageCodec) {
         byte[] bytes = drawingImage.EncodedBytes;
-        if (!OfficeSvgImageRenderer.TryCreateDataUri(drawingImage.ContentType, bytes, null, out string dataUri)) {
+        if (!OfficeSvgImageRenderer.TryCreateDataUri(drawingImage.ContentType, bytes, null, imageCodec, out string dataUri)) {
             return;
         }
 

@@ -12,6 +12,7 @@ internal sealed partial class OneNoteWriteGraphBuilder {
     private readonly bool _preserveUnknownData;
     private readonly int _maxPageRelationshipDepth;
     private readonly int _maxContentDepth;
+    private OneNoteMaterializedObjectSpace? _activeSourceSpace;
 
     internal OneNoteWriteGraphBuilder(
         long maxPayloadBytes = OneNoteReaderOptions.DefaultMaxInputBytes,
@@ -181,13 +182,17 @@ internal sealed partial class OneNoteWriteGraphBuilder {
         IReadOnlyList<OneNoteExtendedGuid>? versionHistoryContextIds = null,
         bool forceConflict = false,
         OneNoteExtendedGuid? contextId = null) {
+        OneNoteMaterializedObjectSpace? previousSourceSpace = _activeSourceSpace;
+        _activeSourceSpace = sourceSpace;
         page.Id = spaceId;
         var space = new OneNoteWriteObjectSpace(spaceId, IdOrNew(sourceSpace?.Revision.Id), contextId);
         uint lastModifiedTime = Time32(page.LastModifiedUtc?.ToUniversalTime() ?? creationUtc);
         NormalizeDirectContent(page);
         var pageContentIds = new List<OneNoteExtendedGuid>();
         foreach (OneNoteOutline outline in page.Outlines) pageContentIds.Add(BuildOutline(space, outline, lastModifiedTime));
+        foreach (OneNoteElement element in page.DirectContent) pageContentIds.Add(BuildOutlineChild(space, element, lastModifiedTime));
         OneNoteExtendedGuid titleId = BuildTitle(space, page, lastModifiedTime, Time32(creationUtc));
+        OneNoteExtendedGuid? recognitionRootId = BuildInkRecognition(space, page, sourceSpace);
 
         OneNoteExtendedGuid pageNodeId = IdOrNew(page.PreservationIds.PageNodeId);
         page.PreservationIds.PageNodeId = pageNodeId;
@@ -197,9 +202,30 @@ internal sealed partial class OneNoteWriteGraphBuilder {
             ObjectReferences(OneNoteSchema.StructureElementChildNodes, titleId)
         };
         if (pageContentIds.Count > 0) pageProperties.Add(ObjectReferences(OneNoteSchema.ElementChildNodes, pageContentIds));
+        Guid[] recordingIds = OneNoteElementTraversal.Enumerate(page)
+            .OfType<OneNoteMedia>()
+            .Where(media => media.RecordingId.HasValue)
+            .Select(media => media.RecordingId!.Value)
+            .Distinct()
+            .ToArray();
+        if (recordingIds.Length > 0) {
+            pageProperties.Add(Data(OneNoteSchema.AudioRecordingGuids, recordingIds.SelectMany(id => id.ToByteArray()).ToArray()));
+        }
+        if (recognitionRootId != null) pageProperties.Add(ObjectReferences(OneNoteSchema.PageRecognizedTextContainer, recognitionRootId));
         if (!string.IsNullOrWhiteSpace(page.OriginalAuthor)) pageProperties.Add(Data(OneNoteSchema.Author, Unicode(page.OriginalAuthor!)));
         if (page.Width.HasValue) pageProperties.Add(Float(OneNoteSchema.PageWidth, page.Width.Value));
         if (page.Height.HasValue) pageProperties.Add(Float(OneNoteSchema.PageHeight, page.Height.Value));
+        if (page.PageSize.HasValue) pageProperties.Add(Scalar(OneNoteSchema.PageSize, (uint)page.PageSize.Value));
+        if (page.Orientation.HasValue) pageProperties.Add(Boolean(OneNoteSchema.PortraitPage, page.Orientation.Value == OneNotePageOrientation.Portrait));
+        if (page.Margins.Left.HasValue) pageProperties.Add(Float(OneNoteSchema.PageMarginLeft, page.Margins.Left.Value));
+        if (page.Margins.Right.HasValue) pageProperties.Add(Float(OneNoteSchema.PageMarginRight, page.Margins.Right.Value));
+        if (page.Margins.Top.HasValue) pageProperties.Add(Float(OneNoteSchema.PageMarginTop, page.Margins.Top.Value));
+        if (page.Margins.Bottom.HasValue) pageProperties.Add(Float(OneNoteSchema.PageMarginBottom, page.Margins.Bottom.Value));
+        if (page.Margins.OriginX.HasValue) pageProperties.Add(Float(OneNoteSchema.PageMarginOriginX, page.Margins.OriginX.Value));
+        if (page.Margins.OriginY.HasValue) pageProperties.Add(Float(OneNoteSchema.PageMarginOriginY, page.Margins.OriginY.Value));
+        AddBoolean(pageProperties, OneNoteSchema.EditRootRtl, page.RightToLeft);
+        AddBoolean(pageProperties, OneNoteSchema.IsReadOnly, page.IsReadOnly);
+        AddBoolean(pageProperties, OneNoteSchema.LayoutResolveChildCollisions, page.ResolveChildCollisions);
         space.Objects.Add(new OneNoteWriteObject(pageNodeId, OneNoteSchema.JcidPageNode, pageProperties));
 
         OneNoteExtendedGuid manifestId = IdOrNew(page.PreservationIds.ManifestId);
@@ -235,6 +261,7 @@ internal sealed partial class OneNoteWriteGraphBuilder {
         if (preservation != null && sourceSpace != null) {
             OneNotePreservationWriter.MergeSpace(space, sourceSpace, preservation, _maxPayloadBytes);
         }
+        _activeSourceSpace = previousSourceSpace;
         return space;
     }
 

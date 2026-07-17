@@ -366,6 +366,18 @@ public static class OfficeSvgImageRenderer {
     /// <param name="dataUri">SVG data URI when the image can be represented in SVG output.</param>
     /// <returns><see langword="true" /> when the image can be embedded in SVG output.</returns>
     public static bool TryCreateDataUri(string? declaredContentType, byte[]? bytes, string? fileName, out string dataUri) {
+        return TryCreateDataUri(declaredContentType, bytes, fileName, null, out dataUri);
+    }
+
+    /// <summary>
+    /// Creates an SVG-safe data URI, using an optional shared raster codec when Drawing cannot decode the source format.
+    /// </summary>
+    public static bool TryCreateDataUri(
+        string? declaredContentType,
+        byte[]? bytes,
+        string? fileName,
+        IOfficeRasterImageCodec? imageCodec,
+        out string dataUri) {
         dataUri = string.Empty;
         if (bytes == null || bytes.Length == 0) {
             return false;
@@ -377,6 +389,11 @@ public static class OfficeSvgImageRenderer {
         }
 
         if (OfficeRasterImageDecoder.TryDecode(bytes, out OfficeRasterImage? raster) && raster != null) {
+            dataUri = CreateDataUri("image/png", OfficePngWriter.Encode(raster));
+            return true;
+        }
+
+        if (imageCodec != null && imageCodec.TryDecode((byte[])bytes.Clone(), declaredContentType, out raster) && raster != null) {
             dataUri = CreateDataUri("image/png", OfficePngWriter.Encode(raster));
             return true;
         }

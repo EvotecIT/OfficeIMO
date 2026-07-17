@@ -297,11 +297,12 @@ _Dependency footprint:_ only first-party `OfficeIMO.Email`; no Outlook installat
 
 - [x] Managed read, create, edit, save, and round-trip writing for desktop and FSSHTTP-encoded `.one` sections
 - [x] Native `.onetoc2` notebook hierarchy and managed Cabinet `.onepkg` read/write
-- [x] Pages/subpages, outlines, rich text, lists, tables, links, images, attachments, tags/tasks, metadata, conflicts, versions, ink/math preservation, revisions, and opaque data
+- [x] Pages/subpages, rich content, layout, OCR/media metadata, editable native ink/recognition and structured math, conflicts, versions, revisions, and opaque data
+- [x] Shared Drawing canvas with PNG/JPEG/TIFF/SVG/WebP plus position-preserving visual HTML/PDF and semantic conversion paths
 - [x] Correct half-inch image geometry, web-picture fallback, and loss-aware unresolved image relationship preservation
-- [x] Lazy assets, bounded corruption-resistant parsing, structured diagnostics, legal fixtures, benchmarks, and Microsoft OneNote open/edit/save/reopen interoperability proof
+- [x] Lazy assets, bounded corruption-resistant parsing, structured diagnostics, legal desktop/FSSHTTP/handwriting fixtures, benchmarks, and Microsoft OneNote open/edit/save/reopen interoperability proof
 
-_Dependency footprint:_ zero third-party runtime dependencies; no Microsoft Graph, GraphEssentialsX, COM, installed OneNote, or commercial SDK.
+_Dependency footprint:_ only first-party `OfficeIMO.Drawing`; zero third-party runtime dependencies and no Microsoft Graph, GraphEssentialsX, COM, installed OneNote, or commercial SDK.
 
 #### [OfficeIMO.Epub](OfficeIMO.Epub/README.md)
 
@@ -491,22 +492,24 @@ _Dependency footprint:_ only OfficeIMO Markdown, PDF, and Drawing packages.
 - [x] Safe RichEdit/control/noncharacter normalization without mutating the native model
 - [x] Bounded cycle, shared-instance, and depth validation across hierarchy, related pages, and recursive content
 
-_Dependency footprint:_ only OfficeIMO OneNote and Markdown; it is the single projection owner used by Reader, HTML, and PDF.
+_Dependency footprint:_ only OfficeIMO OneNote and Markdown; it is the single semantic projection owner used by Reader and the semantic HTML/PDF paths.
 
 #### [OfficeIMO.OneNote.Html](OfficeIMO.OneNote.Html/README.md)
 
 - [x] Standalone HTML documents, embeddable fragments, bytes, streams, and sync/async save paths
 - [x] Offline rendering through the shared OneNote projection and first-party Markdown HTML renderer
+- [x] Position-preserving responsive SVG-page HTML from the shared OneNote Drawing canvas with optional assistive text
 
-_Dependency footprint:_ only OfficeIMO OneNote.Markdown and Markdown.
+_Dependency footprint:_ OfficeIMO OneNote.Markdown, Markdown, and Drawing.
 
 #### [OfficeIMO.OneNote.Pdf](OfficeIMO.OneNote.Pdf/README.md)
 
 - [x] PDF document, bytes, streams, and sync/async save paths with first-party conversion diagnostics
 - [x] OneNote hierarchy and semantic content rendered through the shared Markdown projection
+- [x] Position-preserving image-backed PDF pages from the shared OneNote Drawing canvas with bounded configurable raster scale
 - [x] Multilingual system-font fallback by default with explicit strict-font opt-out
 
-_Dependency footprint:_ only OfficeIMO OneNote.Markdown, Markdown.Pdf, PDF, and Drawing.
+_Dependency footprint:_ OfficeIMO OneNote.Markdown, Markdown.Pdf, PDF, and Drawing.
 
 #### [OfficeIMO.Html.Pdf](OfficeIMO.Html.Pdf/README.md)
 
@@ -858,6 +861,10 @@ flowchart LR
     PowerPoint <--> ODP["OpenDocument: ODP"]
     PowerPoint --> PDF
     OneNote["OneNote: ONE/ONETOC2/ONEPKG"] --> Markdown
+    OneNote --> DrawingCanvas["Drawing canvas"]
+    DrawingCanvas --> Images["PNG/JPEG/TIFF/SVG/WebP"]
+    DrawingCanvas --> HTML
+    DrawingCanvas --> PDF
     Markdown <--> HTML
     Markdown <--> RTF
     Markdown <--> AsciiDoc["AsciiDoc"]
@@ -917,6 +924,9 @@ OneNoteSection reopened = OneNoteSectionReader.Read("Planning.one");
 File.WriteAllText("Planning.md", reopened.ToMarkdown());
 reopened.SaveAsHtml("Planning.html");
 reopened.SaveAsPdf("Planning.pdf");
+reopened.SaveAsVisualHtml("Planning-visual.html");
+reopened.SaveAsVisualPdf("Planning-visual.pdf");
+reopened.Pages[0].ToImage().WithDpi(144).AsPng().Save("Planning-page-1.png");
 ```
 
 ### Create a Word document with page variants

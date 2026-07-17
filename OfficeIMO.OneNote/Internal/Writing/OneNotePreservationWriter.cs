@@ -62,7 +62,7 @@ internal static class OneNotePreservationWriter {
             uint key = PropertyKey(original);
             if (generatedById.TryGetValue(key, out OneNoteWriteProperty? replacement)) {
                 if (emitted.Add(key)) merged.Add(MergeReferences(replacement, original, mappedObjectIds));
-            } else if (IsClearedTypedProperty(generated.Jcid, key)) {
+            } else if (IsClearedTypedProperty(generated, key)) {
                 continue;
             } else {
                 OneNoteWriteProperty? retained = FilterRemovedTypedReferences(original, mappedObjectIds);
@@ -196,14 +196,21 @@ internal static class OneNotePreservationWriter {
             case OneNoteSchema.PictureContainer & 0x03FFFFFFU:
             case OneNoteSchema.WebPictureContainer14 & 0x03FFFFFFU:
             case OneNoteSchema.EmbeddedFileContainer & 0x03FFFFFFU:
+            case OneNoteSchema.PageRecognizedTextContainer & 0x03FFFFFFU:
+            case OneNoteSchema.RecognizedTextChildNodes & 0x03FFFFFFU:
                 return true;
             default:
                 return false;
         }
     }
 
-    private static bool IsClearedTypedProperty(uint jcid, uint propertyKey) {
-        bool pageMetadata = jcid == OneNoteSchema.JcidPageMetadata || jcid == OneNoteSchema.JcidConflictPageMetadata;
-        return pageMetadata && propertyKey == (OneNoteSchema.IsDeletedGraphSpaceContent & 0x03FFFFFFU);
+    private static bool IsClearedTypedProperty(OneNoteWriteObject generated, uint propertyKey) {
+        bool pageMetadata = generated.Jcid == OneNoteSchema.JcidPageMetadata || generated.Jcid == OneNoteSchema.JcidConflictPageMetadata;
+        if (pageMetadata && propertyKey == (OneNoteSchema.IsDeletedGraphSpaceContent & 0x03FFFFFFU)) return true;
+        if (generated.Jcid != OneNoteSchema.JcidInkContainer) return false;
+        bool writesInkData = generated.Properties.Any(property => PropertyKey(property) == (OneNoteSchema.InkData & 0x03FFFFFFU));
+        bool writesNestedChildren = generated.Properties.Any(property => PropertyKey(property) == (OneNoteSchema.ContentChildNodes & 0x03FFFFFFU));
+        return writesNestedChildren && propertyKey == (OneNoteSchema.InkData & 0x03FFFFFFU) ||
+               writesInkData && propertyKey == (OneNoteSchema.ContentChildNodes & 0x03FFFFFFU);
     }
 }

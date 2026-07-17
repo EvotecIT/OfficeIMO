@@ -1,4 +1,5 @@
 using OfficeIMO.Markdown;
+using OfficeIMO.Drawing;
 using OfficeIMO.OneNote.Html;
 using OfficeIMO.OneNote.Markdown;
 using OfficeIMO.OneNote.Pdf;
@@ -115,6 +116,118 @@ public sealed class ConverterTests {
         Assert.Equal("%PDF", Encoding.ASCII.GetString(bytes, 0, 4));
         Assert.True(stream.CanWrite);
         Assert.Equal("%PDF", Encoding.ASCII.GetString(stream.ToArray(), 0, 4));
+    }
+
+    [Fact]
+    public async Task VisualHtmlUsesTheNativeSvgCanvasAndAccessibleEncodedText() {
+        OneNoteSection section = CreateNotebook().SectionGroups[0].Sections[0];
+        section.Pages[0].Title = "Visual <script>title</script>";
+        var options = new OneNoteVisualHtmlOptions {
+            DocumentTitle = "Canvas export",
+            PageRendering = new OneNotePageRenderingOptions { Scale = 0.5D }
+        };
+
+        string document = section.ToVisualHtmlDocument(options);
+        string fragment = section.ToVisualHtmlFragment(options);
+        using var stream = new MemoryStream();
+        await section.SaveAsVisualHtmlAsync(stream, options);
+
+        Assert.Contains("<!DOCTYPE html>", document, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("<svg", document, StringComparison.Ordinal);
+        Assert.Contains("data-section-path=\"Section A\"", document, StringComparison.Ordinal);
+        Assert.Contains("officeimo-onenote-assistive", document, StringComparison.Ordinal);
+        Assert.Contains("Visual &lt;script&gt;title&lt;/script&gt;", document, StringComparison.Ordinal);
+        Assert.DoesNotContain("<script>title", document, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("<!DOCTYPE html>", fragment, StringComparison.OrdinalIgnoreCase);
+        Assert.True(stream.CanWrite);
+        Assert.Contains("<svg", Encoding.UTF8.GetString(stream.ToArray()), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void VisualHtmlSurfacesAndEmbedsFallbackForNonEmbeddableSourceImages() {
+        byte[] sourceTiff = OfficeRasterImageEncoder.Encode(
+            new OfficeRasterImage(8, 4, OfficeColor.CornflowerBlue),
+            OfficeImageExportFormat.Tiff);
+        var section = new OneNoteSection { Name = "TIFF" };
+        var page = new OneNotePage { Title = "Scan", PageSize = OneNotePageSize.IndexCard };
+        page.DirectContent.Add(new OneNoteImage {
+            FileName = "scan.tiff",
+            MediaType = "image/tiff",
+            Payload = OneNoteBinaryPayload.FromBytes(sourceTiff)
+        });
+        section.Pages.Add(page);
+        var diagnostics = new List<OfficeImageExportDiagnostic>();
+
+        string html = section.ToVisualHtmlDocument(new OneNoteVisualHtmlOptions { DiagnosticSink = diagnostics });
+
+        Assert.Contains(diagnostics, diagnostic => diagnostic.Code == "DRAWING_RASTER_IMAGE_UNSUPPORTED");
+        Assert.Contains("data:image/png;base64,", html, StringComparison.Ordinal);
+        Assert.Contains("<image", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task VisualPdfPreservesPageGeometryAndLeavesCallerOwnedStreamOpen() {
+        OneNoteSection section = CreateNotebook().SectionGroups[0].Sections[0];
+        section.Pages[0].PageSize = OneNotePageSize.IndexCard;
+        OneNoteImage image = Assert.Single(section.Pages[0].DirectContent.OfType<OneNoteImage>());
+        image.Payload = OneNoteBinaryPayload.FromBytes(OfficePngWriter.Encode(new OfficeRasterImage(4, 4, OfficeColor.CornflowerBlue)));
+        var options = new OneNoteVisualPdfOptions { RasterScale = 0.5D };
+
+        OfficeIMO.Pdf.PdfDocumentConversionResult result = section.ToVisualPdfDocumentResult(options);
+        byte[] bytes = result.Value.ToBytes();
+        using var stream = new MemoryStream();
+        await section.SaveAsVisualPdfAsync(stream, options);
+        OfficeIMO.Pdf.PdfDocumentInfo info = OfficeIMO.Pdf.PdfDocument.Load(bytes).Read.DocumentInfo();
+
+        Assert.False(result.HasLoss);
+        Assert.Equal("%PDF", Encoding.ASCII.GetString(bytes, 0, 4));
+        Assert.Equal(1, info.PageCount);
+        Assert.InRange(info.Pages[0].Width, 215.9D, 216.1D);
+        Assert.InRange(info.Pages[0].Height, 359.9D, 360.1D);
+        Assert.True(stream.CanWrite);
+        Assert.Equal("%PDF", Encoding.ASCII.GetString(stream.ToArray(), 0, 4));
+    }
+
+    [Fact]
+    public void VisualPdfMaximumRasterPixelsRemainsAHardLimitForVeryLargeCanvases() {
+        var section = new OneNoteSection { Name = "Large canvas" };
+        section.Pages.Add(new OneNotePage {
+            Title = "Large page",
+            PageSize = OneNotePageSize.Custom,
+            Width = 100000D / OneNotePageRenderer.PointsPerHalfInch,
+            Height = 100000D / OneNotePageRenderer.PointsPerHalfInch
+        });
+        var options = new OneNoteVisualPdfOptions {
+            RasterScale = 1D,
+            MaximumRasterPixels = 10_000L
+        };
+
+        OfficeIMO.Pdf.PdfDocumentConversionResult result = section.ToVisualPdfDocumentResult(options);
+
+        OfficeIMO.Pdf.PdfConversionWarning warning = Assert.Single(result.Warnings, item =>
+            item.Code == "ONENOTE_PDF_RASTER_SCALE_LIMITED");
+        Assert.Contains("to 0.001", warning.Message, StringComparison.Ordinal);
+        Assert.True(result.Value.ToBytes().Length > 100);
+    }
+
+    [Fact]
+    public void CanonicalPageTraversalSharesNativeTocOrderAcrossVisualExporters() {
+        var notebook = new OneNoteNotebook { Name = "Ordered visuals" };
+        OneNoteSection second = SectionWithPage("Second", "Page 2");
+        second.TableOfContentsOrder = 1;
+        notebook.Sections.Add(second);
+        var firstGroup = new OneNoteSectionGroup { Name = "First", TableOfContentsOrder = 0 };
+        firstGroup.Sections.Add(SectionWithPage("Nested", "Page 1"));
+        notebook.SectionGroups.Add(firstGroup);
+
+        IReadOnlyList<OneNotePageReference> pages = OneNotePageTraversal.Flatten(notebook);
+        string html = notebook.ToVisualHtmlFragment(new OneNoteVisualHtmlOptions {
+            PageRendering = new OneNotePageRenderingOptions { Scale = 0.25D }
+        });
+
+        Assert.Equal(new[] { "Page 1", "Page 2" }, pages.Select(page => page.Page.Title));
+        Assert.Equal(new[] { "First/Nested", "Second" }, pages.Select(page => page.SectionPath));
+        Assert.True(html.IndexOf("First/Nested", StringComparison.Ordinal) < html.IndexOf("Second", StringComparison.Ordinal));
     }
 
     [Fact]

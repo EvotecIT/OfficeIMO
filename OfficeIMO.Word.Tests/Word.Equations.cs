@@ -3,7 +3,9 @@ using System.Linq;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Drawing;
 using OfficeIMO.Word;
+using SharedMath = OfficeIMO.Drawing.OfficeMath;
 using M = DocumentFormat.OpenXml.Math;
 using W14 = DocumentFormat.OpenXml.Office2010.Word;
 using Xunit;
@@ -53,6 +55,149 @@ namespace OfficeIMO.Tests {
             using (var document = WordDocument.Load(filePath)) {
                 Assert.Single(document.Equations);
             }
+        }
+
+        [Fact]
+        public void SharedMathModelAuthorsEditableOmmlAndRoundTripsWithoutAnotherDependency() {
+            OfficeMathExpression expression = SharedMath.Row(
+                SharedMath.Fraction(SharedMath.Identifier("a"), SharedMath.Number("2")),
+                SharedMath.Operator("+"),
+                SharedMath.Radical(SharedMath.Identifier("x")));
+            using WordDocument document = WordDocument.Create();
+
+            document.AddEquation(expression);
+            WordEquation equation = Assert.Single(document.Equations);
+
+            Assert.Equal(expression, equation.ToExpression());
+            Assert.Contains("<m:f>", equation.Omml, StringComparison.Ordinal);
+            Assert.Contains("<m:rad>", equation.Omml, StringComparison.Ordinal);
+            Assert.Equal("\\frac{a}{2}+\\sqrt{x}", OfficeMathMarkup.ToLatex(equation.ToExpression()));
+            Assert.NotEmpty(equation.ToDrawing().Elements);
+            Assert.Equal(expression, WordMathMarkup.FromOmml(WordMathMarkup.ToOmml(expression, display: true)));
+            Assert.Empty(document.ValidateDocument());
+        }
+
+        [Fact]
+        public void SharedMathModelCanReplaceExistingWordEquationStructure() {
+            const string omml = "<m:oMath xmlns:m=\"http://schemas.openxmlformats.org/officeDocument/2006/math\"><m:r><m:t>x</m:t></m:r></m:oMath>";
+            using WordDocument document = WordDocument.Create();
+            document.AddEquation(omml);
+            OfficeMathExpression replacement = SharedMath.Matrix(2, 2,
+                SharedMath.Number("1"), SharedMath.Number("0"),
+                SharedMath.Number("0"), SharedMath.Number("1"));
+
+            WordEquation equation = Assert.Single(document.Equations).SetExpression(replacement);
+
+            Assert.Equal(replacement, equation.ToExpression());
+            Assert.Contains("<m:m>", equation.Omml, StringComparison.Ordinal);
+            Assert.Equal(4, equation.ToExpression().Children.Count);
+            Assert.Empty(document.ValidateDocument());
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void SharedMathReplacementKeepsLegacyEqFieldAtItsInlinePosition(bool complexField) {
+            using WordDocument document = WordDocument.Create();
+            WordParagraph paragraph = document.AddParagraph();
+            paragraph._paragraph.Append(new Run(new Text("before ") { Space = SpaceProcessingModeValues.Preserve }));
+            if (complexField) {
+                paragraph._paragraph.Append(
+                    new Run(new FieldChar { FieldCharType = FieldCharValues.Begin }),
+                    new Run(new FieldCode(" EQ x ") { Space = SpaceProcessingModeValues.Preserve }),
+                    new Run(new FieldChar { FieldCharType = FieldCharValues.Separate }),
+                    new Run(new Text("old")),
+                    new Run(new FieldChar { FieldCharType = FieldCharValues.End }));
+            } else {
+                var field = new SimpleField { Instruction = " EQ x " };
+                field.Append(new Run(new Text("old")));
+                paragraph._paragraph.Append(field);
+            }
+            paragraph._paragraph.Append(new Run(new Text(" after") { Space = SpaceProcessingModeValues.Preserve }));
+
+            Assert.Single(document.Equations).SetExpression(SharedMath.Identifier("x"));
+
+            OpenXmlElement[] children = paragraph._paragraph.ChildElements.ToArray();
+            int before = Array.FindIndex(children, child => child.Descendants<Text>().Any(text => text.Text == "before "));
+            int math = Array.FindIndex(children, child => child is M.OfficeMath);
+            int after = Array.FindIndex(children, child => child.Descendants<Text>().Any(text => text.Text == " after"));
+            Assert.True(before < math && math < after);
+            Assert.Equal("before x after", string.Concat(paragraph._paragraph.Descendants()
+                .Where(descendant => descendant.LocalName == "t")
+                .Select(descendant => descendant.InnerText)));
+            Assert.Empty(document.ValidateDocument());
+        }
+
+        [Fact]
+        public void SharedMultiColumnEquationArrayRoundTripsThroughNativeAlignmentMarks() {
+            OfficeMathExpression expression = SharedMath.EquationArray(2, 2,
+                SharedMath.Identifier("left"), SharedMath.Identifier("right"),
+                SharedMath.Identifier("next"), SharedMath.Fraction(SharedMath.Number("1"), SharedMath.Number("2")));
+
+            string omml = WordMathMarkup.ToOmml(expression, display: true);
+            OfficeMathExpression parsed = WordMathMarkup.FromOmml(omml);
+
+            Assert.Equal(expression, parsed);
+            Assert.Equal(2, parsed.ColumnCount);
+            Assert.Equal(2, parsed.RowCount);
+            Assert.Equal(2, omml.Split(new[] { "<m:aln" }, StringSplitOptions.None).Length - 1);
+            using WordDocument document = WordDocument.Create();
+            document.AddEquation(expression);
+            Assert.Empty(document.ValidateDocument());
+        }
+
+        [Fact]
+        public void SharedAdvancedMathStructuresRoundTripThroughNativeOmml() {
+            OfficeMathExpression[] expressions = {
+                SharedMath.LeftSubSuperscript(SharedMath.Identifier("T"), SharedMath.Identifier("i"), SharedMath.Identifier("j")),
+                SharedMath.LowerLimit(SharedMath.Identifier("lim"), SharedMath.Identifier("x")),
+                SharedMath.UpperLimit(SharedMath.Identifier("max"), SharedMath.Identifier("n")),
+                SharedMath.SlashedFraction(SharedMath.Identifier("a"), SharedMath.Identifier("b")),
+                SharedMath.DelimiterList("[", "]", ";", SharedMath.Identifier("a"), SharedMath.Identifier("b"))
+            };
+
+            Assert.All(expressions, expression => {
+                string omml = WordMathMarkup.ToOmml(expression, display: true);
+                Assert.Equal(expression, WordMathMarkup.FromOmml(omml));
+                using WordDocument document = WordDocument.Create();
+                document.AddEquation(expression);
+                Assert.Empty(document.ValidateDocument());
+            });
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void SharedStackNodesFailClosedWhenWordHasNoLosslessOmmlMapping(bool stretch) {
+            OfficeMathExpression expression = stretch
+                ? SharedMath.StretchStack(SharedMath.Identifier("a"), SharedMath.Identifier("b"))
+                : SharedMath.Stack(SharedMath.Identifier("a"), SharedMath.Identifier("b"));
+
+            NotSupportedException error = Assert.Throws<NotSupportedException>(() => WordMathMarkup.ToOmml(expression));
+
+            Assert.Contains(expression.Kind.ToString(), error.Message, StringComparison.Ordinal);
+            Assert.Contains("equation array", error.Message, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
+        public void SharedMathReplacementPreservesDisplayMathParagraphProperties() {
+            const string omml = "<m:oMathPara xmlns:m=\"http://schemas.openxmlformats.org/officeDocument/2006/math\"><m:oMathParaPr><m:jc m:val=\"center\"/></m:oMathParaPr><m:oMath><m:r><m:t>x</m:t></m:r></m:oMath></m:oMathPara>";
+            using WordDocument document = WordDocument.Create();
+            WordParagraph paragraph = document.AddEquation(omml);
+            OpenXmlElement mathParagraph = Assert.Single(paragraph._paragraph.Descendants(),
+                element => element.LocalName == "oMathPara");
+            OpenXmlElement properties = Assert.Single(mathParagraph.ChildElements,
+                element => element.LocalName == "oMathParaPr");
+            string originalProperties = properties.OuterXml;
+
+            Assert.Single(document.Equations).SetExpression(SharedMath.Fraction(
+                SharedMath.Identifier("a"), SharedMath.Identifier("b")));
+
+            Assert.Equal(originalProperties, Assert.Single(mathParagraph.ChildElements,
+                element => element.LocalName == "oMathParaPr").OuterXml);
+            Assert.Single(mathParagraph.ChildElements, element => element.LocalName == "oMath");
+            Assert.Contains("<m:f>", mathParagraph.OuterXml, StringComparison.Ordinal);
+            Assert.Empty(document.ValidateDocument());
         }
 
         [Fact]

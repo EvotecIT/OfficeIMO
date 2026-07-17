@@ -248,30 +248,6 @@ public sealed class SectionWriterTests {
     }
 
     [Fact]
-    public void RejectsUnsupportedTypedContentInsteadOfDroppingIt() {
-        var section = new OneNoteSection { Name = "Unsupported" };
-        var page = new OneNotePage { Title = "Ink" };
-        page.DirectContent.Add(new OneNoteInk());
-        section.Pages.Add(page);
-
-        OneNoteFormatException exception = Assert.Throws<OneNoteFormatException>(() => OneNoteSectionWriter.Write(section));
-
-        Assert.Equal("ONENOTE_WRITE_UNSUPPORTED_INK", exception.Code);
-    }
-
-    [Fact]
-    public void RejectsRawMathInsteadOfFlatteningItToPlainText() {
-        var section = new OneNoteSection { Name = "Unsupported" };
-        var page = new OneNotePage { Title = "Math" };
-        page.DirectContent.Add(new OneNoteMath { Text = "x+y", MathMl = "<math><mi>x</mi></math>" });
-        section.Pages.Add(page);
-
-        OneNoteFormatException exception = Assert.Throws<OneNoteFormatException>(() => OneNoteSectionWriter.Write(section));
-
-        Assert.Equal("ONENOTE_WRITE_UNSUPPORTED_MATH", exception.Code);
-    }
-
-    [Fact]
     public void RoundTripsTablesListsParagraphStylesAssetsAndMath() {
         var section = new OneNoteSection { Name = "Content" };
         var page = new OneNotePage { Title = "Kinds", MostRecentAuthor = "Recent author" };
@@ -285,7 +261,7 @@ public sealed class SectionWriterTests {
         outline.Children.Add(listed);
 
         var table = new OneNoteTable { BordersVisible = true };
-        table.ColumnWidths.Add(120);
+        table.ColumnWidths.Add(3);
         var row = new OneNoteTableRow();
         var cell = new OneNoteTableCell { ShadingColorArgb = 0xFF112233 };
         var cellText = new OneNoteParagraph();
@@ -342,7 +318,7 @@ public sealed class SectionWriterTests {
 
         OneNoteTable resultTable = Assert.IsType<OneNoteTable>(result.Children[1]);
         Assert.True(resultTable.BordersVisible);
-        Assert.Equal(120, Assert.Single(resultTable.ColumnWidths));
+        Assert.Equal(3, Assert.Single(resultTable.ColumnWidths));
         Assert.Equal(0xFF112233U, Assert.Single(Assert.Single(resultTable.Rows).Cells).ShadingColorArgb);
         OneNoteImage resultImage = Assert.IsType<OneNoteImage>(result.Children[2]);
         Assert.Equal(new byte[] { 1, 2, 3, 4 }, resultImage.Payload!.ToArray(16));
@@ -350,8 +326,70 @@ public sealed class SectionWriterTests {
         Assert.Equal(1.25, resultImage.HeightHalfInches);
         OneNoteEmbeddedFile resultFile = Assert.IsType<OneNoteEmbeddedFile>(result.Children[3]);
         Assert.Equal(new byte[] { 5, 6, 7 }, resultFile.Payload!.ToArray(16));
-        OneNoteMath resultMath = Assert.IsType<OneNoteMath>(result.Children[4]);
-        Assert.Equal("x+y", resultMath.Text);
+        OneNoteParagraph resultMath = Assert.IsType<OneNoteParagraph>(result.Children[4]);
+        Assert.Equal("x+y", Assert.Single(resultMath.Runs).MathExpression!.ToPlainText());
+    }
+
+    [Fact]
+    public void NativeTableWriterInfersAndEmitsOneHalfInchWidthPerColumn() {
+        var table = new OneNoteTable();
+        var row = new OneNoteTableRow();
+        row.Cells.Add(new OneNoteTableCell());
+        row.Cells.Add(new OneNoteTableCell());
+        table.Rows.Add(row);
+        OneNoteSection section = CreateTableSection(table);
+
+        OneNoteWriteObjectSpace pageSpace = new OneNoteWriteGraphBuilder().BuildSection(section).ObjectSpaces[1];
+        OneNoteWriteObject nativeTable = Assert.Single(pageSpace.Objects, item => item.Jcid == OneNoteSchema.JcidTableNode);
+        byte[] widths = Property(nativeTable, OneNoteSchema.TableColumnWidths).Data!;
+        OneNoteSection roundTrip = OneNoteSectionReader.Read(new MemoryStream(OneNoteSectionWriter.Write(section)));
+        OneNoteTable actual = Assert.IsType<OneNoteTable>(Assert.Single(Assert.Single(roundTrip.Pages).Outlines).Children.Single());
+
+        Assert.Equal(new[] { 1D, 1D }, table.ColumnWidths);
+        Assert.Equal(2, widths[0]);
+        Assert.Equal(1F, BitConverter.ToSingle(widths, 1));
+        Assert.Equal(1F, BitConverter.ToSingle(widths, 5));
+        Assert.Equal(new[] { 1D, 1D }, actual.ColumnWidths);
+    }
+
+    [Fact]
+    public void NativeTableWriterRejectsRaggedRowTopology() {
+        var table = new OneNoteTable();
+        var first = new OneNoteTableRow();
+        first.Cells.Add(new OneNoteTableCell());
+        first.Cells.Add(new OneNoteTableCell());
+        var second = new OneNoteTableRow();
+        second.Cells.Add(new OneNoteTableCell());
+        table.Rows.Add(first);
+        table.Rows.Add(second);
+
+        OneNoteFormatException error = Assert.Throws<OneNoteFormatException>(() =>
+            OneNoteSectionWriter.Write(CreateTableSection(table)));
+
+        Assert.Equal("ONENOTE_WRITE_TABLE_TOPOLOGY", error.Code);
+    }
+
+    [Fact]
+    public void NativeTableWriterRejectsMissingOrOutOfRangeColumnWidths() {
+        var countMismatch = new OneNoteTable();
+        var mismatchRow = new OneNoteTableRow();
+        mismatchRow.Cells.Add(new OneNoteTableCell());
+        countMismatch.Rows.Add(mismatchRow);
+        countMismatch.ColumnWidths.Add(1D);
+        countMismatch.ColumnWidths.Add(2D);
+        var tooNarrow = new OneNoteTable();
+        var narrowRow = new OneNoteTableRow();
+        narrowRow.Cells.Add(new OneNoteTableCell());
+        tooNarrow.Rows.Add(narrowRow);
+        tooNarrow.ColumnWidths.Add(0.5D);
+
+        OneNoteFormatException mismatch = Assert.Throws<OneNoteFormatException>(() =>
+            OneNoteSectionWriter.Write(CreateTableSection(countMismatch)));
+        OneNoteFormatException width = Assert.Throws<OneNoteFormatException>(() =>
+            OneNoteSectionWriter.Write(CreateTableSection(tooNarrow)));
+
+        Assert.Equal("ONENOTE_WRITE_TABLE_WIDTHS", mismatch.Code);
+        Assert.Equal("ONENOTE_WRITE_TABLE_WIDTH", width.Code);
     }
 
     [Fact]
@@ -622,6 +660,14 @@ public sealed class SectionWriterTests {
         parent.Outlines.Add(outline);
         section.Pages.Add(parent);
         section.Pages.Add(new OneNotePage { Title = "Child page", Level = 1 });
+        return section;
+    }
+
+    private static OneNoteSection CreateTableSection(OneNoteTable table) {
+        var section = new OneNoteSection { Name = "Native table" };
+        var page = new OneNotePage { Title = "Table" };
+        page.DirectContent.Add(table);
+        section.Pages.Add(page);
         return section;
     }
 

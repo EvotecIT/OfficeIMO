@@ -12,6 +12,15 @@ public static partial class OfficeDrawingSvgExporter {
     /// <param name="sizeUnit">Unit written on the root width and height attributes.</param>
     /// <returns>SVG markup representing the drawing.</returns>
     public static string ToSvg(OfficeDrawing drawing, double scale, OfficeSvgSizeUnit sizeUnit) {
+        return ToSvg(drawing, scale, sizeUnit, null);
+    }
+
+    /// <summary>Converts a drawing to SVG and uses an optional shared codec for source images that require transcoding.</summary>
+    public static string ToSvg(
+        OfficeDrawing drawing,
+        double scale,
+        OfficeSvgSizeUnit sizeUnit,
+        IOfficeRasterImageCodec? imageCodec) {
         if (drawing == null) throw new ArgumentNullException(nameof(drawing));
         if (double.IsNaN(scale) || double.IsInfinity(scale) || scale <= 0D) {
             throw new ArgumentOutOfRangeException(nameof(scale), "Scale must be a positive finite value.");
@@ -39,7 +48,7 @@ public static partial class OfficeDrawingSvgExporter {
         AppendEmbeddedFonts(builder, drawing.Fonts);
         int gradientId = 0;
         int clipPathId = 0;
-        AppendElements(builder, drawing.Elements, ref gradientId, ref clipPathId);
+        AppendElements(builder, drawing.Elements, imageCodec, ref gradientId, ref clipPathId);
         builder.Append("</svg>");
         return builder.ToString();
     }
@@ -47,4 +56,12 @@ public static partial class OfficeDrawingSvgExporter {
     /// <summary>Converts a drawing to UTF-8 SVG bytes with an explicit root size unit.</summary>
     public static byte[] ToSvgBytes(OfficeDrawing drawing, double scale, OfficeSvgSizeUnit sizeUnit) =>
         Encoding.UTF8.GetBytes(ToSvg(drawing, scale, sizeUnit));
+
+    /// <summary>Converts a drawing to UTF-8 SVG bytes and uses an optional shared image codec.</summary>
+    public static byte[] ToSvgBytes(
+        OfficeDrawing drawing,
+        double scale,
+        OfficeSvgSizeUnit sizeUnit,
+        IOfficeRasterImageCodec? imageCodec) =>
+        Encoding.UTF8.GetBytes(ToSvg(drawing, scale, sizeUnit, imageCodec));
 }
