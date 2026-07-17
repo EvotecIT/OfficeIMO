@@ -119,9 +119,33 @@ namespace OfficeIMO.PowerPoint {
         private static void ApplyLegacyTableBorder(
             PowerPointTableCell cell, TableCellBorders side,
             LegacyPptTableBorder? border) {
-            if (!border.HasValue) return;
+            if (!border.HasValue || !border.Value.IsVisible) {
+                ApplyInvisibleLegacyTableBorder(cell, side);
+                return;
+            }
             LegacyPptTableBorder value = border.Value;
             cell.SetBorders(side, value.Color, value.WidthPoints);
+        }
+
+        private static void ApplyInvisibleLegacyTableBorder(
+            PowerPointTableCell cell, TableCellBorders side) {
+            A.TableCellProperties properties = cell.Cell.TableCellProperties
+                ??= new A.TableCellProperties();
+            if (side == TableCellBorders.Left) {
+                properties.LeftBorderLineProperties =
+                    new A.LeftBorderLineProperties(new A.NoFill());
+            } else if (side == TableCellBorders.Top) {
+                properties.TopBorderLineProperties =
+                    new A.TopBorderLineProperties(new A.NoFill());
+            } else if (side == TableCellBorders.Right) {
+                properties.RightBorderLineProperties =
+                    new A.RightBorderLineProperties(new A.NoFill());
+            } else if (side == TableCellBorders.Bottom) {
+                properties.BottomBorderLineProperties =
+                    new A.BottomBorderLineProperties(new A.NoFill());
+            } else {
+                throw new ArgumentOutOfRangeException(nameof(side));
+            }
         }
 
         private static A.TextBody CreateLegacyTableTextBody(

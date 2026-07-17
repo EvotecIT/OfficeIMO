@@ -51,6 +51,7 @@ internal static partial class DocumentReaderEngine {
         bool hasCustomPathHandler = TryResolvePathHandler(
             path,
             opt,
+            cancellationToken,
             out ReaderHandlerDescriptor customPathHandler,
             out ReaderDetectionResult detection);
         if (hasCustomPathHandler) {

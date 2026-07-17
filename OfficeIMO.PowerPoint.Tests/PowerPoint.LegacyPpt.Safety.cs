@@ -1,6 +1,7 @@
 using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.LegacyPpt;
 using OfficeIMO.PowerPoint.LegacyPpt.Internal;
+using System.Threading.Tasks;
 using Xunit;
 
 namespace OfficeIMO.Tests {
@@ -100,6 +101,38 @@ namespace OfficeIMO.Tests {
             } finally {
                 if (File.Exists(path)) File.Delete(path);
             }
+        }
+
+        [Fact]
+        public async Task PresentationFacade_EnforcesInputBudgetBeforeBuffering() {
+            const int length = 4096;
+            var loadOptions = new PowerPointLoadOptions {
+                LegacyPptImportOptions = new LegacyPptImportOptions {
+                    MaxInputBytes = length - 1
+                }
+            };
+
+            using var loadStream = new ReadGuardStream(length);
+            using var encryptedStream = new ReadGuardStream(length);
+            using var loadAsyncStream = new ReadGuardStream(length);
+            using var encryptedAsyncStream = new ReadGuardStream(length);
+
+            Assert.Throws<InvalidDataException>(() =>
+                PowerPointPresentation.Load(loadStream, loadOptions));
+            Assert.Throws<InvalidDataException>(() =>
+                PowerPointPresentation.LoadEncrypted(encryptedStream,
+                    "password", loadOptions));
+            await Assert.ThrowsAsync<InvalidDataException>(() =>
+                PowerPointPresentation.LoadAsync(loadAsyncStream,
+                    loadOptions));
+            await Assert.ThrowsAsync<InvalidDataException>(() =>
+                PowerPointPresentation.LoadEncryptedAsync(
+                    encryptedAsyncStream, "password", loadOptions));
+
+            Assert.Equal(0, loadStream.ReadCount);
+            Assert.Equal(0, encryptedStream.ReadCount);
+            Assert.Equal(0, loadAsyncStream.ReadCount);
+            Assert.Equal(0, encryptedAsyncStream.ReadCount);
         }
 
         [Fact]

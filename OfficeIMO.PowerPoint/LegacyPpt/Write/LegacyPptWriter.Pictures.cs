@@ -14,11 +14,18 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
 
         internal static bool TryReadPictureCatalog(
             PowerPointPresentation presentation,
+            LegacyPptWriterFontCatalog tableFonts,
+            LegacyPptWriterPictureBulletCatalog pictureBullets,
+            bool convertUnsupportedTables,
             out LegacyPptWriterPictureCatalog catalog,
             out LegacyPptFeature failureFeature,
             out string? reason) {
             if (presentation == null) throw new ArgumentNullException(
                 nameof(presentation));
+            if (tableFonts == null) throw new ArgumentNullException(
+                nameof(tableFonts));
+            if (pictureBullets == null) throw new ArgumentNullException(
+                nameof(pictureBullets));
             catalog = new LegacyPptWriterPictureCatalog();
             var materializedLayoutPictures = new HashSet<OpenXmlElement>(
                 ReferenceComparer.Instance);
@@ -62,6 +69,16 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     } else if (shape is PowerPointSmartArt smartArt) {
                         failureFeature = LegacyPptFeature.SmartArt;
                         if (!TryRenderSmartArtPicture(smartArt, out imageBytes,
+                                out reason)) {
+                            return false;
+                        }
+                        contentType = "image/png";
+                    } else if (convertUnsupportedTables
+                        && shape is PowerPointTable table
+                        && !TryReadTableForWrite(table, tableFonts,
+                            pictureBullets, out _)) {
+                        failureFeature = LegacyPptFeature.Tables;
+                        if (!TryRenderTablePicture(table, out imageBytes,
                                 out reason)) {
                             return false;
                         }
@@ -541,6 +558,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
 
             internal LegacyPptWriterPicture Get(PowerPointShape shape) =>
                 Get(shape.Element);
+
+            internal bool Contains(PowerPointShape shape) =>
+                _pictures.ContainsKey(shape.Element);
 
             internal LegacyPptWriterPicture Get(OpenXmlElement element) =>
                 _pictures.TryGetValue(element,

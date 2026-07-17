@@ -241,6 +241,28 @@ public sealed class ReaderAsyncTests {
                 sourceName: null, options, cancellation.Token));
     }
 
+    [Fact]
+    public void DocumentReader_ReadDocument_CancelsEncryptedDetectionAfterInitialProbe() {
+        const string password = "reader-sync-cancel-pass";
+        byte[] encrypted;
+        using (PowerPointPresentation source =
+               PowerPointPresentation.Create()) {
+            source.AddSlide().AddTextBox("Encrypted sync cancellation probe");
+            encrypted = source.ToEncryptedBytes(password);
+        }
+        using var cancellation = new CancellationTokenSource();
+        using var stream = new CancelAfterFirstSyncReadStream(encrypted,
+            cancellation.Cancel);
+        var options = new ReaderOptions {
+            OpenPassword = password,
+            DetectionMaxProbeBytes = 256
+        };
+
+        Assert.ThrowsAny<OperationCanceledException>(() =>
+            OfficeDocumentReader.Default.ReadDocument(stream,
+                sourceName: null, options, cancellation.Token));
+    }
+
     private static OfficeDocumentReadResult CreateResult(string path, string text) {
         return new OfficeDocumentReadResult {
             Kind = ReaderInputKind.Text,
@@ -330,6 +352,45 @@ public sealed class ReaderAsyncTests {
             if (Interlocked.Increment(ref _asyncReads) == 1) {
                 _cancel();
             }
+            return read;
+        }
+
+        public override void Flush() { }
+        public override long Seek(long offset, SeekOrigin origin) =>
+            _inner.Seek(offset, origin);
+        public override void SetLength(long value) =>
+            throw new NotSupportedException();
+        public override void Write(byte[] buffer, int offset, int count) =>
+            throw new NotSupportedException();
+
+        protected override void Dispose(bool disposing) {
+            if (disposing) _inner.Dispose();
+            base.Dispose(disposing);
+        }
+    }
+
+    private sealed class CancelAfterFirstSyncReadStream : Stream {
+        private readonly MemoryStream _inner;
+        private readonly Action _cancel;
+        private int _reads;
+
+        public CancelAfterFirstSyncReadStream(byte[] bytes, Action cancel) {
+            _inner = new MemoryStream(bytes, writable: false);
+            _cancel = cancel;
+        }
+
+        public override bool CanRead => true;
+        public override bool CanSeek => true;
+        public override bool CanWrite => false;
+        public override long Length => _inner.Length;
+        public override long Position {
+            get => _inner.Position;
+            set => _inner.Position = value;
+        }
+
+        public override int Read(byte[] buffer, int offset, int count) {
+            int read = _inner.Read(buffer, offset, count);
+            if (Interlocked.Increment(ref _reads) == 1) _cancel();
             return read;
         }
 

@@ -78,16 +78,18 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     out string? oleReason)) {
                 throw new NotSupportedException(oleReason);
             }
-            if (!TryReadPictureCatalog(presentation,
-                    out LegacyPptWriterPictureCatalog pictureCatalog,
-                    out _,
-                    out string? pictureReason)) {
-                throw new NotSupportedException(pictureReason);
-            }
             if (!TryReadPictureBulletCatalog(presentation,
                     out LegacyPptWriterPictureBulletCatalog pictureBullets,
                     out string? pictureBulletReason)) {
                 throw new NotSupportedException(pictureBulletReason);
+            }
+            if (!TryReadPictureCatalog(presentation,
+                    CreateFontCatalogForWrite(), pictureBullets,
+                    convertUnsupportedTables: options?.LossPolicy
+                        == PowerPointConversionLossPolicy.Allow,
+                    out LegacyPptWriterPictureCatalog pictureCatalog,
+                    out _, out string? pictureReason)) {
+                throw new NotSupportedException(pictureReason);
             }
             if (!TryReadClassicAnimations(presentation.Slides, soundCatalog,
                     out LegacyPptWriterAnimationCatalog animationCatalog,
@@ -145,7 +147,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         includePictures: true,
                         includeCharts: true,
                         includeSmartArt: true)).ToArray();
-                slideShapeCounts.Add(CountDrawingShapes(supportedShapes));
+                slideShapeCounts.Add(CountDrawingShapes(supportedShapes,
+                    pictureCatalog));
                 uint? notesId = notesBySlide.TryGetValue(index, out LegacyPptWriterNote? note)
                     ? note.NotesId
                     : null;

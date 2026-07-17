@@ -1,5 +1,6 @@
 using OfficeIMO.Reader;
 using OfficeIMO.Reader.Json;
+using OfficeIMO.PowerPoint.LegacyPpt;
 using System.Text;
 using Xunit;
 
@@ -36,6 +37,8 @@ public sealed partial class ReaderRegistryTests {
         }, capability.Extensions);
         Assert.True(capability.SupportsPath);
         Assert.True(capability.SupportsStream);
+        Assert.Equal(LegacyPptImportOptions.DefaultMaxInputBytes,
+            capability.DefaultMaxInputBytes);
     }
 
     [Fact]

@@ -58,6 +58,7 @@ internal static partial class DocumentReaderEngine {
                 readStream,
                 logicalSourceName,
                 opt,
+                cancellationToken,
                 out ReaderHandlerDescriptor customStreamHandler,
                 out ReaderDetectionResult detection);
             if (hasCustomStreamHandler) {
@@ -641,16 +642,19 @@ internal static partial class DocumentReaderEngine {
 
     private static PowerPointLoadOptions CreatePowerPointReaderLoadOptions(
         ReaderOptions options) {
+        long requestedMaxInputBytes = options.MaxInputBytes
+            ?? LegacyPptImportOptions.DefaultMaxInputBytes;
         var loadOptions = new PowerPointLoadOptions {
             AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly,
-            OpenSettings = CreateOpenSettings(options)
-        };
-        if (!string.IsNullOrEmpty(options.OpenPassword)) {
-            loadOptions.LegacyPptImportOptions = new LegacyPptImportOptions {
+            OpenSettings = CreateOpenSettings(options),
+            LegacyPptImportOptions = new LegacyPptImportOptions {
+                MaxInputBytes = requestedMaxInputBytes > int.MaxValue
+                    ? int.MaxValue
+                    : checked((int)requestedMaxInputBytes),
                 Password = options.OpenPassword,
                 ReportUnsupportedContent = true
-            };
-        }
+            }
+        };
         return loadOptions;
     }
 

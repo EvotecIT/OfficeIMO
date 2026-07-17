@@ -67,7 +67,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         }
 
         internal static int CountDrawingShapes(
-            IEnumerable<PowerPointShape> shapes) {
+            IEnumerable<PowerPointShape> shapes,
+            LegacyPptWriterPictureCatalog? pictureCatalog = null) {
             int count = 0;
             foreach (PowerPointShape shape in shapes) {
                 if (shape is PowerPointGroupShape group) {
@@ -77,9 +78,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         throw new NotSupportedException(reason);
                     }
                     count = checked(count + 1
-                        + CountDrawingShapes(children));
+                        + CountDrawingShapes(children, pictureCatalog));
                 } else if (shape is PowerPointTable table) {
-                    count = checked(count + CountTableDrawingShapes(table));
+                    count = checked(count + (pictureCatalog?.Contains(table)
+                        == true ? 1 : CountTableDrawingShapes(table)));
                 } else {
                     count = checked(count + 1);
                 }
@@ -126,6 +128,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         mediaCatalog, oleCatalog, pictureCatalog, fonts,
                         pictureBullets)
                     : child is PowerPointTable table
+                        && pictureCatalog?.Contains(table) != true
                     ? BuildTableRecord(table, ref nextShapeId,
                         interactionCatalog, animationCatalog, shapeContext,
                         fonts, pictureBullets)

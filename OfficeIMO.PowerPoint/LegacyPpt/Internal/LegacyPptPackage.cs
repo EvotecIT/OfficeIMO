@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using OfficeIMO.Drawing.Internal;
+using System.Threading;
 
 namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
     /// <summary>
@@ -102,17 +103,20 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
         internal static LegacyPptPackage Read(byte[] bytes, LegacyPptImportOptions options) {
             if (options == null) throw new ArgumentNullException(nameof(options));
             return Read(bytes, options,
-                new LegacyPptRecordTraversalBudget(options.MaxRecordCount));
+                new LegacyPptRecordTraversalBudget(options.MaxRecordCount),
+                CancellationToken.None);
         }
 
         internal static LegacyPptPackage Read(byte[] bytes,
             LegacyPptImportOptions options,
-            LegacyPptRecordTraversalBudget recordBudget) {
+            LegacyPptRecordTraversalBudget recordBudget,
+            CancellationToken cancellationToken = default) {
             if (bytes == null) throw new ArgumentNullException(nameof(bytes));
             if (options == null) throw new ArgumentNullException(nameof(options));
             if (recordBudget == null) {
                 throw new ArgumentNullException(nameof(recordBudget));
             }
+            cancellationToken.ThrowIfCancellationRequested();
             if (!OfficeCompoundFileReader.TryRead(bytes, out OfficeCompoundFile? compound, out string? error)
                 || compound == null) {
                 throw new InvalidDataException(error ?? "The input is not a valid OLE compound file.");
@@ -138,8 +142,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 != LegacyPptCurrentUserAtom.UnencryptedHeaderToken) {
                 originalEncryptedBytes = (byte[])bytes.Clone();
                 bytes = LegacyPptRc4CryptoApi.DecryptPackage(bytes, compound,
-                    options, recordBudget, out int keySizeBits,
+                    options, recordBudget, cancellationToken,
+                    out int keySizeBits,
                     out bool documentPropertiesEncrypted);
+                cancellationToken.ThrowIfCancellationRequested();
                 if (!OfficeCompoundFileReader.TryRead(bytes,
                         out compound, out error) || compound == null
                     || !compound.Streams.TryGetValue("PowerPoint Document",
@@ -162,6 +168,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             uint editOffset = currentEditOffset;
             uint documentPersistId = 0;
             while (editOffset != 0) {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (!visitedEdits.Add(editOffset)) {
                     throw new InvalidDataException("The UserEditAtom chain contains a cycle.");
                 }
@@ -193,6 +200,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
 
             var persistObjects = new Dictionary<uint, LegacyPptPersistObject>();
             foreach (KeyValuePair<uint, uint> pair in liveOffsets) {
+                cancellationToken.ThrowIfCancellationRequested();
                 persistObjects.Add(pair.Key, ReadPersistObject(documentStream, pair.Key, pair.Value));
             }
             return new LegacyPptPackage(bytes, compound, documentStream, currentUserStream,

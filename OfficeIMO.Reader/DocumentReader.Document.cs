@@ -27,6 +27,7 @@ internal static partial class DocumentReaderEngine {
         bool hasCustomPathHandler = TryResolvePathHandler(
             path,
             opt,
+            cancellationToken,
             out ReaderHandlerDescriptor customPathHandler,
             out ReaderDetectionResult detection);
         ReaderInputKind kind = detection.Kind;
@@ -80,6 +81,7 @@ internal static partial class DocumentReaderEngine {
                 readStream,
                 logicalSourceName,
                 opt,
+                cancellationToken,
                 out ReaderHandlerDescriptor customStreamHandler,
                 out ReaderDetectionResult detection);
             ReaderInputKind kind = detection.Kind;

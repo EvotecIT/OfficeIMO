@@ -1,5 +1,6 @@
 using OfficeIMO.Drawing.Internal;
 using System.Security.Cryptography;
+using System.Threading;
 
 namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
     /// <summary>Reads and writes record-scoped RC4 CryptoAPI encryption for binary PowerPoint packages.</summary>
@@ -12,6 +13,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
         internal static byte[] DecryptPackage(byte[] sourceBytes,
             OfficeCompoundFile source, LegacyPptImportOptions options,
             LegacyPptRecordTraversalBudget recordBudget,
+            CancellationToken cancellationToken,
             out int keySizeBits, out bool encryptedDocumentProperties) {
             if (sourceBytes == null) throw new ArgumentNullException(nameof(sourceBytes));
             if (source == null) throw new ArgumentNullException(nameof(source));
@@ -23,6 +25,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 throw new CryptographicException(
                     "The binary PowerPoint presentation is encrypted. Provide LegacyPptImportOptions.Password or use PowerPointPresentation.LoadEncrypted.");
             }
+            cancellationToken.ThrowIfCancellationRequested();
             byte[] documentStream = GetRequiredStream(source,
                 "PowerPoint Document");
             byte[] currentUserStream = GetRequiredStream(source,
@@ -62,15 +65,18 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             OfficeBinaryRc4CryptoApiSession session =
                 OfficeBinaryRc4CryptoApiSession.Open(encryptionHeader,
                     options.Password);
+            cancellationToken.ThrowIfCancellationRequested();
             keySizeBits = session.KeySizeBits;
             encryptedDocumentProperties = session.EncryptsDocumentProperties;
 
             var plainObjects = new SortedDictionary<uint, byte[]>();
             foreach (KeyValuePair<uint, uint> pair in offsets) {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (pair.Key == encryptionPersistId) continue;
                 plainObjects.Add(pair.Key, DecryptPersistObject(documentStream,
-                    pair.Key, pair.Value, session));
+                    pair.Key, pair.Value, session, cancellationToken));
             }
+            cancellationToken.ThrowIfCancellationRequested();
             byte[] plainDocument = BuildDocumentStream(plainObjects, edit,
                 encryptionPersistId: null, out uint plainEditOffset);
             var replacements = new Dictionary<string, byte[]>(
@@ -82,14 +88,18 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             };
             if (source.Streams.TryGetValue("Pictures", out byte[]? pictures)) {
                 replacements["Pictures"] = TransformPictures(pictures,
-                    session, encrypting: false);
+                    session, encrypting: false,
+                    cancellationToken: cancellationToken);
             }
             if (session.EncryptsDocumentProperties) {
+                cancellationToken.ThrowIfCancellationRequested();
                 foreach (KeyValuePair<string, byte[]> replacement
                          in LegacyPptEncryptedSummary.Decrypt(source, session)) {
+                    cancellationToken.ThrowIfCancellationRequested();
                     replacements[replacement.Key] = replacement.Value;
                 }
             }
+            cancellationToken.ThrowIfCancellationRequested();
             return OfficeCompoundFileWriter.Rewrite(source, replacements,
                 new[] { "EncryptedSummary" });
         }
@@ -156,11 +166,14 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
 
         private static byte[] DecryptPersistObject(byte[] documentStream,
             uint persistId, uint streamOffset,
-            OfficeBinaryRc4CryptoApiSession session) {
+            OfficeBinaryRc4CryptoApiSession session,
+            CancellationToken cancellationToken) {
+            cancellationToken.ThrowIfCancellationRequested();
             int offset = ToBoundedOffset(streamOffset, documentStream.Length,
                 $"persist object {persistId}");
             byte[] header = CopyBytes(documentStream, offset, 8);
-            session.TransformInPlace(header, 0, header.Length, persistId);
+            session.TransformInPlace(header, 0, header.Length, persistId,
+                cancellationToken);
             uint payloadLength = ReadUInt32(header, 4);
             long recordLength = 8L + payloadLength;
             if (recordLength > int.MaxValue
@@ -170,7 +183,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             }
             byte[] record = CopyBytes(documentStream, offset,
                 unchecked((int)recordLength));
-            session.TransformInPlace(record, 0, record.Length, persistId);
+            session.TransformInPlace(record, 0, record.Length, persistId,
+                cancellationToken);
             return record;
         }
 
@@ -283,10 +297,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
         }
 
         private static byte[] TransformPictures(byte[] source,
-            OfficeBinaryRc4CryptoApiSession session, bool encrypting) {
+            OfficeBinaryRc4CryptoApiSession session, bool encrypting,
+            CancellationToken cancellationToken = default) {
             byte[] pictures = (byte[])source.Clone();
             int position = 0;
             while (position < pictures.Length) {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (pictures.Length - position < 8) {
                     throw new InvalidDataException(
                         "The encrypted Pictures stream has a truncated record header.");
@@ -301,7 +317,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 uint payloadLength = encrypting
                     ? ReadUInt32(pictures, position + 4)
                     : 0;
-                TransformPictureField(pictures, position, 8, session);
+                TransformPictureField(pictures, position, 8, session,
+                    cancellationToken);
                 if (!encrypting) {
                     versionAndInstance = ReadUInt16(pictures, position);
                     recordType = ReadUInt16(pictures, position + 2);
@@ -315,7 +332,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 position += 8;
                 TransformPicturePayload(pictures, ref position,
                     checked((int)end), versionAndInstance, recordType,
-                    session, encrypting);
+                    session, encrypting, cancellationToken);
                 if (position != end) {
                     throw new InvalidDataException(
                         $"Picture record at offset 0x{recordStart:X} was not transformed completely.");
@@ -327,7 +344,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
         private static void TransformPicturePayload(byte[] pictures,
             ref int position, int end, ushort versionAndInstance,
             ushort recordType, OfficeBinaryRc4CryptoApiSession session,
-            bool encrypting) {
+            bool encrypting,
+            CancellationToken cancellationToken) {
             if (recordType == 0xF007) {
                 int[] parts = { 1, 1, 16, 2, 4, 4, 4, 1, 1, 1, 1 };
                 int nameLength = encrypting
@@ -335,14 +353,14 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                     : 0;
                 foreach (int part in parts) {
                     TransformBoundedPictureField(pictures, ref position,
-                        end, part, session);
+                        end, part, session, cancellationToken);
                 }
                 if (!encrypting) {
                     nameLength = pictures[position - 3];
                 }
                 if (nameLength > 0) {
                     TransformBoundedPictureField(pictures, ref position,
-                        end, nameLength, session);
+                        end, nameLength, session, cancellationToken);
                 }
                 if (position == end) return;
                 if (end - position < 8) {
@@ -355,7 +373,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 recordType = encrypting
                     ? ReadUInt16(pictures, position + 2)
                     : (ushort)0;
-                TransformPictureField(pictures, position, 8, session);
+                TransformPictureField(pictures, position, 8, session,
+                    cancellationToken);
                 if (!encrypting) {
                     versionAndInstance = ReadUInt16(pictures, position);
                     recordType = ReadUInt16(pictures, position + 2);
@@ -370,14 +389,14 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 || instance == 0x6E5 || instance == 0x7A9 ? 2 : 1;
             for (int index = 0; index < uidCount; index++) {
                 TransformBoundedPictureField(pictures, ref position,
-                    end, 16, session);
+                    end, 16, session, cancellationToken);
             }
             int metadataLength = recordType == 0xF01A
                 || recordType == 0xF01B || recordType == 0xF01C ? 34 : 1;
             TransformBoundedPictureField(pictures, ref position, end,
-                metadataLength, session);
+                metadataLength, session, cancellationToken);
             TransformBoundedPictureField(pictures, ref position, end,
-                end - position, session);
+                end - position, session, cancellationToken);
         }
 
         private static int ReadPictureNameLength(byte[] pictures,
@@ -391,18 +410,23 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
 
         private static void TransformBoundedPictureField(byte[] pictures,
             ref int position, int end, int length,
-            OfficeBinaryRc4CryptoApiSession session) {
+            OfficeBinaryRc4CryptoApiSession session,
+            CancellationToken cancellationToken) {
             if (length < 0 || position > end - length) {
                 throw new InvalidDataException(
                     "The encrypted picture field extends beyond its record.");
             }
-            TransformPictureField(pictures, position, length, session);
+            TransformPictureField(pictures, position, length, session,
+                cancellationToken);
             position += length;
         }
 
         private static void TransformPictureField(byte[] pictures, int offset,
-            int length, OfficeBinaryRc4CryptoApiSession session) =>
-            session.TransformInPlace(pictures, offset, length, blockNumber: 0);
+            int length, OfficeBinaryRc4CryptoApiSession session,
+            CancellationToken cancellationToken) =>
+            session.TransformInPlace(pictures, offset, length,
+                blockNumber: 0,
+                cancellationToken: cancellationToken);
 
         private static byte[] ReadPlainRecord(byte[] stream, uint streamOffset,
             ushort expectedType, string description) {

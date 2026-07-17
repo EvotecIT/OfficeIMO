@@ -108,6 +108,16 @@ namespace OfficeIMO.Tests {
             Assert.Contains("Merged", finding.Description);
             Assert.Throws<NotSupportedException>(() => source.ToBytes(
                 PowerPointFileFormat.Ppt));
+
+            byte[] converted = source.ToBytes(PowerPointFileFormat.Ppt,
+                new PowerPointSaveOptions {
+                    LossPolicy = PowerPointConversionLossPolicy.Allow
+                });
+            using var input = new MemoryStream(converted, writable: false);
+            using PowerPointPresentation reopened =
+                PowerPointPresentation.Load(input);
+            Assert.Empty(reopened.Slides[0].Tables);
+            Assert.Single(reopened.Slides[0].Pictures);
         }
 
         [Fact]
@@ -129,6 +139,41 @@ namespace OfficeIMO.Tests {
                 StringComparison.Ordinal);
             Assert.Throws<NotSupportedException>(() => source.ToBytes(
                 PowerPointFileFormat.Ppt));
+        }
+
+        [Fact]
+        public void NativeWriter_RoundTripsExplicitInvisibleTableBorders() {
+            byte[] bytes;
+            using (PowerPointPresentation source =
+                   PowerPointPresentation.Create()) {
+                PowerPointTable table = source.AddSlide().AddTable(1, 1);
+                table.SetCellBorders(TableCellBorders.All, "2563EB", 1.25D);
+                A.TableCellProperties properties = table.GetCell(0, 0)
+                    .Cell.TableCellProperties!;
+                properties.LeftBorderLineProperties =
+                    new A.LeftBorderLineProperties(new A.NoFill());
+                bytes = source.ToBytes(PowerPointFileFormat.Ppt);
+            }
+
+            LegacyPptPresentation legacy = LegacyPptPresentation.Load(bytes);
+            LegacyPptTableCell nativeCell = Assert.Single(Assert.Single(
+                legacy.Slides).Shapes, shape =>
+                shape.Kind == LegacyPptShapeKind.Table).Table!.Cells.Single();
+            Assert.True(nativeCell.LeftBorder.HasValue);
+            Assert.False(nativeCell.LeftBorder.Value.IsVisible);
+            Assert.True(nativeCell.TopBorder?.IsVisible);
+
+            using var input = new MemoryStream(bytes, writable: false);
+            using PowerPointPresentation projected =
+                PowerPointPresentation.Load(input);
+            A.TableCellProperties projectedProperties = Assert.Single(
+                projected.Slides[0].Tables).GetCell(0, 0).Cell
+                .TableCellProperties!;
+            Assert.NotNull(projectedProperties.LeftBorderLineProperties?
+                .GetFirstChild<A.NoFill>());
+            Assert.NotNull(projectedProperties.TopBorderLineProperties?
+                .GetFirstChild<A.SolidFill>());
+            Assert.Empty(projected.ValidateDocument());
         }
     }
 }

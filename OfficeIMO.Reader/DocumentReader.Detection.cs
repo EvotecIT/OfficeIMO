@@ -117,25 +117,34 @@ internal static partial class DocumentReaderEngine {
         return await DetectAsync(stream, sourceName, options, cancellationToken).ConfigureAwait(false);
     }
 
-    private static ReaderDetectionResult DetectForRead(string path, ReaderOptions options) {
+    private static ReaderDetectionResult DetectForRead(string path,
+        ReaderOptions options, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         ReaderDetectionResult detection = Detect(path,
             CreateDetectionOptions(options));
-        return ResolveEncryptedOpenXmlDetection(path, options, detection);
+        cancellationToken.ThrowIfCancellationRequested();
+        return ResolveEncryptedOpenXmlDetection(path, options, detection,
+            cancellationToken);
     }
 
-    private static ReaderDetectionResult DetectForRead(Stream stream, string? sourceName, ReaderOptions options) {
+    private static ReaderDetectionResult DetectForRead(Stream stream,
+        string? sourceName, ReaderOptions options,
+        CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         ReaderDetectionResult detection = Detect(stream, sourceName,
             CreateDetectionOptions(options));
+        cancellationToken.ThrowIfCancellationRequested();
         return ResolveEncryptedOpenXmlDetection(stream, sourceName,
-            options, detection);
+            options, detection, cancellationToken);
     }
 
     private static bool TryResolvePathHandler(
         string path,
         ReaderOptions options,
+        CancellationToken cancellationToken,
         out ReaderHandlerDescriptor handler,
         out ReaderDetectionResult detection) {
-        detection = DetectForRead(path, options);
+        detection = DetectForRead(path, options, cancellationToken);
         return TrySelectPathHandler(path, options, detection, out handler);
     }
 
@@ -162,9 +171,11 @@ internal static partial class DocumentReaderEngine {
         Stream stream,
         string? sourceName,
         ReaderOptions options,
+        CancellationToken cancellationToken,
         out ReaderHandlerDescriptor handler,
         out ReaderDetectionResult detection) {
-        detection = DetectForRead(stream, sourceName, options);
+        detection = DetectForRead(stream, sourceName, options,
+            cancellationToken);
         return TrySelectStreamHandler(sourceName, options, detection, out handler);
     }
 

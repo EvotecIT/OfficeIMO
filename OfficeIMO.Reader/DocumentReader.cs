@@ -2,6 +2,7 @@ using OfficeIMO.Excel;
 using OfficeIMO.Markdown;
 using OfficeIMO.Pdf;
 using OfficeIMO.PowerPoint;
+using OfficeIMO.PowerPoint.LegacyPpt;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Markdown;
 using DocumentFormat.OpenXml.Packaging;
@@ -66,7 +67,9 @@ internal static partial class DocumentReaderEngine {
             Extensions = new[] { ".pptx", ".pptm", ".ppt", ".pot", ".pps" },
             IsBuiltIn = true,
             SupportsPath = true,
-            SupportsStream = true
+            SupportsStream = true,
+            DefaultMaxInputBytes =
+                LegacyPptImportOptions.DefaultMaxInputBytes
         },
         new ReaderHandlerCapability {
             Id = "officeimo.reader.markdown",

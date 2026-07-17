@@ -3,6 +3,7 @@ using OfficeIMO.Drawing.Binary;
 using OfficeIMO.PowerPoint.LegacyPpt.Diagnostics;
 using OfficeIMO.PowerPoint.LegacyPpt.Internal;
 using OfficeIMO.PowerPoint.LegacyPpt.Model;
+using System.Threading;
 
 namespace OfficeIMO.PowerPoint.LegacyPpt {
     /// <summary>
@@ -137,6 +138,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
 
         /// <summary>Loads a PowerPoint 97-2003 binary presentation from bytes.</summary>
         public static LegacyPptPresentation Load(byte[] bytes, LegacyPptImportOptions? options = null) {
+            return Load(bytes, options, CancellationToken.None);
+        }
+
+        internal static LegacyPptPresentation Load(byte[] bytes,
+            LegacyPptImportOptions? options,
+            CancellationToken cancellationToken) {
             if (bytes == null) throw new ArgumentNullException(nameof(bytes));
             options ??= new LegacyPptImportOptions();
             if (options.MaxInputBytes < 1) {
@@ -147,12 +154,13 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 throw new InvalidDataException(
                     $"The binary PowerPoint input exceeds {options.MaxInputBytes} bytes.");
             }
+            cancellationToken.ThrowIfCancellationRequested();
             var recordBudget = new LegacyPptRecordTraversalBudget(
                 options.MaxRecordCount);
             var decodedStorageBudget = new LegacyPptDecodedStorageBudget(
                 options.MaxDecodedStorageBytes);
             LegacyPptPackage package = LegacyPptPackage.Read(bytes, options,
-                recordBudget);
+                recordBudget, cancellationToken);
             var presentation = new LegacyPptPresentation {
                 Package = package,
                 _recordBudget = recordBudget,
@@ -165,7 +173,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                     null);
             }
             presentation.AddCompoundFeatureDiagnostics(package.CompoundFile, options);
-            presentation.Parse(package, options);
+            presentation.Parse(package, options, cancellationToken);
             recordBudget.ThrowIfExceeded();
             decodedStorageBudget.ThrowIfExceeded();
             return presentation;
@@ -174,7 +182,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
         /// <summary>Creates a compact import inventory.</summary>
         public LegacyPptImportReport CreateImportReport() => new LegacyPptImportReport(this);
 
-        private void Parse(LegacyPptPackage package, LegacyPptImportOptions options) {
+        private void Parse(LegacyPptPackage package,
+            LegacyPptImportOptions options,
+            CancellationToken cancellationToken) {
+            cancellationToken.ThrowIfCancellationRequested();
             byte[] documentStream = package.DocumentStream;
             IReadOnlyDictionary<uint, uint> persistOffsets = package.PersistObjectOffsets;
             uint documentPersistId = package.DocumentPersistId;
@@ -193,6 +204,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             ParseDocumentSettings(documentAtom);
             ParseDocumentHeaderFooterSettings(document, options);
 
+            cancellationToken.ThrowIfCancellationRequested();
             ParseBlipStore(document, package, options);
             ParsePictureBullets(document, options);
             ParseFontCollection(document, options);
@@ -203,8 +215,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             ValidateExternalObjectIdSeed(document, options);
             ParseVbaProject(document, package, options);
 
+            cancellationToken.ThrowIfCancellationRequested();
             ParseSpecialMasters(documentAtom, documentStream, persistOffsets, options);
-            ParseMasters(document, documentStream, persistOffsets, options);
+            ParseMasters(document, documentStream, persistOffsets, options,
+                cancellationToken);
 
             LegacyPptRecord? slideList = document.Children.FirstOrDefault(record =>
                 record.Type == RecordSlideListWithText && record.Instance == 0);
@@ -221,6 +235,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
 
             int slideIndex = 0;
             foreach (LegacyPptRecord slidePersist in slideList.Children.Where(record => record.Type == RecordSlidePersistAtom)) {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (slidePersist.PayloadLength < 16) {
                     AddDiagnostic("PPT-SLIDE-PERSIST-TRUNCATED", LegacyPptDiagnosticSeverity.Warning,
                         "A slide directory entry is truncated and was skipped.", slidePersist.Offset);
@@ -245,6 +260,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
 
                 var slide = new LegacyPptSlide(slideId, persistId) { Name = $"Slide {++slideIndex}" };
                 ParseSlide(slideRecord, slide, options);
+                cancellationToken.ThrowIfCancellationRequested();
                 TryReadNotes(slide, documentStream, persistOffsets, notesDirectory, options);
                 _slides.Add(slide);
             }
@@ -272,13 +288,16 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
         }
 
         private void ParseMasters(LegacyPptRecord document, byte[] documentStream,
-            IReadOnlyDictionary<uint, uint> persistOffsets, LegacyPptImportOptions options) {
+            IReadOnlyDictionary<uint, uint> persistOffsets,
+            LegacyPptImportOptions options,
+            CancellationToken cancellationToken) {
             LegacyPptRecord? masterList = document.Children.FirstOrDefault(record =>
                 record.Type == RecordSlideListWithText && record.Instance == 1);
             if (masterList == null) return;
 
             foreach (LegacyPptRecord masterPersist in masterList.Children.Where(record =>
                          record.Type == RecordSlidePersistAtom)) {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (masterPersist.PayloadLength < 20) {
                     AddDiagnostic("PPT-MASTER-PERSIST-TRUNCATED", LegacyPptDiagnosticSeverity.Warning,
                         "A master directory entry is truncated and was skipped.", masterPersist.Offset);

@@ -42,7 +42,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
 
             uint baseShapeId = drawingId << 10;
             var spgrChildren = new List<byte[]> { PatchShapeId(baseRootShape.CopyRecordBytes(), baseShapeId) };
-            int contentShapeCount = CountDrawingShapes(shapes);
+            int contentShapeCount = CountDrawingShapes(shapes,
+                pictureCatalog);
             uint nextShapeId = checked(baseShapeId + 2U);
             foreach (PowerPointShape shape in shapes) {
                 spgrChildren.Add(shape is PowerPointGroupShape group
@@ -51,6 +52,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         mediaCatalog, oleCatalog, pictureCatalog, fonts,
                         pictureBullets)
                     : shape is PowerPointTable table
+                        && pictureCatalog?.Contains(table) != true
                     ? BuildTableRecord(table, ref nextShapeId,
                         interactionCatalog, animationCatalog, shapeContext,
                         fonts, pictureBullets)
@@ -259,6 +261,18 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 children.Add(BuildFsp(shapeType, shapeId, shape));
                 children.Add(BuildStaticVisualFoptRecord(
                     shape, catalogPicture.OneBasedStoreIndex));
+                children.Add(BuildAnchor(shape));
+                byte[]? clientData = BuildClientData(shape,
+                    interactions.ShapeInteractions, animation, shapeContext);
+                if (clientData != null) children.Add(clientData);
+            } else if (shape is PowerPointTable convertedTable
+                && pictureCatalog?.Contains(convertedTable) == true) {
+                LegacyPptWriterPicture catalogPicture = pictureCatalog.Get(
+                    convertedTable);
+                shapeType = 75;
+                children.Add(BuildFsp(shapeType, shapeId, shape));
+                children.Add(BuildStaticVisualFoptRecord(shape,
+                    catalogPicture.OneBasedStoreIndex));
                 children.Add(BuildAnchor(shape));
                 byte[]? clientData = BuildClientData(shape,
                     interactions.ShapeInteractions, animation, shapeContext);

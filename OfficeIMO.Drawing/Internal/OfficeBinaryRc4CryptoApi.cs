@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Security.Cryptography;
 using System.Text;
+using System.Threading;
 
 namespace OfficeIMO.Drawing.Internal {
     /// <summary>
@@ -90,7 +91,8 @@ namespace OfficeIMO.Drawing.Internal {
         }
 
         internal void TransformInPlace(byte[] bytes, int offset, int length,
-            uint blockNumber) {
+            uint blockNumber,
+            CancellationToken cancellationToken = default) {
             if (bytes == null) throw new ArgumentNullException(nameof(bytes));
             if (offset < 0 || length < 0 || offset > bytes.Length - length) {
                 throw new ArgumentOutOfRangeException(nameof(offset));
@@ -98,10 +100,14 @@ namespace OfficeIMO.Drawing.Internal {
             byte[] key = DeriveKey(blockNumber);
             var transform = new OfficeRc4Transform(key);
             for (int index = 0; index < length; index++) {
+                if ((index & 0xFFFF) == 0) {
+                    cancellationToken.ThrowIfCancellationRequested();
+                }
                 int position = offset + index;
                 bytes[position] = unchecked((byte)(bytes[position]
                     ^ transform.NextByte()));
             }
+            cancellationToken.ThrowIfCancellationRequested();
         }
 
         private byte[] DeriveKey(uint blockNumber) {

@@ -240,6 +240,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 }
             }
             if (!LegacyPptWriter.TryReadPictureCatalog(presentation,
+                    shapeTextFonts, pictureBullets,
+                    convertUnsupportedTables: true,
                     out _, out LegacyPptFeature pictureFailureFeature,
                     out string? pictureReason)) {
                 findings.Add(new LegacyPptWriteFinding(

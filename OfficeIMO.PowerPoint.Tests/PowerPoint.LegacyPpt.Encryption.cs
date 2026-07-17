@@ -4,6 +4,7 @@ using OfficeIMO.PowerPoint.LegacyPpt.Internal;
 using OfficeIMO.Tests.Pdf;
 using System.Security.Cryptography;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
 
@@ -383,6 +384,27 @@ namespace OfficeIMO.Tests {
             }
         }
 
+        [Theory]
+        [InlineData(PowerPointFileFormat.Ppt)]
+        [InlineData(PowerPointFileFormat.Pptx)]
+        public async Task Encryption_AsyncLoadCancelsAfterInputBuffering(
+            PowerPointFileFormat format) {
+            const string password = "cancel-after-buffering";
+            byte[] encrypted;
+            using (PowerPointPresentation source =
+                   PowerPointPresentation.Create()) {
+                source.AddSlide().AddTextBox("Cancellation boundary");
+                encrypted = source.ToEncryptedBytes(password, format);
+            }
+
+            using var cancellation = new CancellationTokenSource();
+            using var input = new CancelAtEndAsyncReadStream(encrypted,
+                cancellation.Cancel);
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+                PowerPointPresentation.LoadEncryptedAsync(input, password,
+                    cancellationToken: cancellation.Token));
+        }
+
         [Fact]
         public void LegacyEncryption_StreamSaveRetainsImportedBinaryFormat() {
             const string sourcePassword = "stream-source";
@@ -446,6 +468,50 @@ namespace OfficeIMO.Tests {
                 if (index == value.Length) return true;
             }
             return false;
+        }
+
+        private sealed class CancelAtEndAsyncReadStream : Stream {
+            private readonly MemoryStream _inner;
+            private readonly Action _cancel;
+
+            public CancelAtEndAsyncReadStream(byte[] bytes, Action cancel) {
+                _inner = new MemoryStream(bytes, writable: false);
+                _cancel = cancel;
+            }
+
+            public override bool CanRead => true;
+            public override bool CanSeek => true;
+            public override bool CanWrite => false;
+            public override long Length => _inner.Length;
+            public override long Position {
+                get => _inner.Position;
+                set => _inner.Position = value;
+            }
+
+            public override int Read(byte[] buffer, int offset, int count) =>
+                _inner.Read(buffer, offset, count);
+
+            public override async Task<int> ReadAsync(byte[] buffer,
+                int offset, int count,
+                CancellationToken cancellationToken) {
+                int read = await _inner.ReadAsync(buffer, offset, count,
+                    CancellationToken.None).ConfigureAwait(false);
+                if (read == 0) _cancel();
+                return read;
+            }
+
+            public override void Flush() { }
+            public override long Seek(long offset, SeekOrigin origin) =>
+                _inner.Seek(offset, origin);
+            public override void SetLength(long value) =>
+                throw new NotSupportedException();
+            public override void Write(byte[] buffer, int offset,
+                int count) => throw new NotSupportedException();
+
+            protected override void Dispose(bool disposing) {
+                if (disposing) _inner.Dispose();
+                base.Dispose(disposing);
+            }
         }
     }
 }

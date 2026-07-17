@@ -5,6 +5,7 @@ using OfficeIMO.PowerPoint.LegacyPpt;
 using OfficeIMO.PowerPoint.LegacyPpt.Internal;
 using OfficeIMO.PowerPoint.LegacyPpt.Model;
 using OfficeIMO.PowerPoint.LegacyPpt.Write;
+using System.Threading;
 using A = DocumentFormat.OpenXml.Drawing;
 
 namespace OfficeIMO.PowerPoint {
@@ -50,19 +51,23 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static PowerPointPresentation LoadLegacyPptFromNormalFlow(byte[] bytes, string? sourcePath,
-            Stream? sourceStream, PowerPointLoadOptions options) {
+            Stream? sourceStream, PowerPointLoadOptions options,
+            CancellationToken cancellationToken = default) {
             if (options.PersistenceMode == DocumentPersistenceMode.SaveOnDispose && sourceStream == null
                 && string.IsNullOrEmpty(sourcePath)) {
                 throw new NotSupportedException("SaveOnDispose requires an associated destination for binary PowerPoint sources.");
             }
-            LegacyPptPresentation legacy = LegacyPptPresentation.Load(bytes, options.LegacyPptImportOptions);
+            LegacyPptPresentation legacy = LegacyPptPresentation.Load(bytes,
+                options.LegacyPptImportOptions, cancellationToken);
             PowerPointFileFormat sourceFormat = PowerPointPresentationLoadRouting.GetFormat(sourcePath, legacyDefault: true);
-            return ProjectLoadedLegacyPpt(legacy, sourcePath, sourceFormat, options, sourceStream);
+            return ProjectLoadedLegacyPpt(legacy, sourcePath, sourceFormat,
+                options, sourceStream, cancellationToken);
         }
 
         private static PowerPointPresentation LoadEncryptedLegacyPptFromNormalFlow(
             byte[] bytes, string password, PowerPointFileFormat sourceFormat,
-            PowerPointLoadOptions options) {
+            PowerPointLoadOptions options,
+            CancellationToken cancellationToken = default) {
             LegacyPptImportOptions sourceOptions = options.LegacyPptImportOptions
                 ?? new LegacyPptImportOptions();
             var importOptions = new LegacyPptImportOptions {
@@ -75,15 +80,18 @@ namespace OfficeIMO.PowerPoint {
                 Password = password
             };
             LegacyPptPresentation legacy = LegacyPptPresentation.Load(bytes,
-                importOptions);
+                importOptions, cancellationToken);
             return ProjectLoadedLegacyPpt(legacy, sourcePath: null,
-                sourceFormat, options);
+                sourceFormat, options,
+                cancellationToken: cancellationToken);
         }
 
         private static PowerPointPresentation ProjectLoadedLegacyPpt(LegacyPptPresentation legacy,
             string? sourcePath, PowerPointFileFormat sourceFormat, PowerPointLoadOptions loadOptions,
-            Stream? sourceStream = null) {
+            Stream? sourceStream = null,
+            CancellationToken cancellationToken = default) {
             if (legacy == null) throw new ArgumentNullException(nameof(legacy));
+            cancellationToken.ThrowIfCancellationRequested();
             using PowerPointPresentation projected = Create();
             ApplyLegacyDocumentSettings(projected, legacy);
             var soundContext = new LegacyPptSoundProjectionContext(legacy);
@@ -95,6 +103,7 @@ namespace OfficeIMO.PowerPoint {
                 legacy.Slides.Count);
             var slidePartsByLegacyId = new Dictionary<uint, SlidePart>();
             foreach (LegacyPptSlide legacySlide in legacy.Slides) {
+                cancellationToken.ThrowIfCancellationRequested();
                 PowerPointSlide slide = layoutTargets.TryGet(legacySlide,
                     out LegacyPptLayoutTarget target)
                     ? projected.AddSlide(target.MasterIndex, target.LayoutIndex)
@@ -112,8 +121,10 @@ namespace OfficeIMO.PowerPoint {
 
             ProjectLegacyCustomShows(projected, legacy, slidePartsByLegacyId);
             foreach ((LegacyPptSlide legacySlide, PowerPointSlide slide) in slideProjections) {
+                cancellationToken.ThrowIfCancellationRequested();
                 var projectedShapeIds = new Dictionary<uint, uint>();
                 foreach (LegacyPptShape shape in legacySlide.Shapes) {
+                    cancellationToken.ThrowIfCancellationRequested();
                     OpenXmlElement? projectedShape = ProjectLegacyShape(slide, shape,
                         slidePartsByLegacyId, soundContext);
                     if (projectedShape != null) {
@@ -132,6 +143,7 @@ namespace OfficeIMO.PowerPoint {
 
             ProjectLegacyComments(projected, legacy);
             ProjectLegacyVbaProject(projected, legacy);
+            cancellationToken.ThrowIfCancellationRequested();
             bool readOnlyProjection = loadOptions.AccessMode ==
                 DocumentAccessMode.ReadOnly;
             if (readOnlyProjection) {
@@ -139,11 +151,19 @@ namespace OfficeIMO.PowerPoint {
             }
 
             byte[] packageBytes = projected.ToBytes();
+            cancellationToken.ThrowIfCancellationRequested();
             if (legacy.VbaProject != null) {
                 packageBytes = ConvertProjectedVbaPackageToMacroEnabled(
                     packageBytes);
             }
-            PowerPointPresentation presentation = LoadPackage(packageBytes, sourcePath, sourceStream, loadOptions);
+            PowerPointPresentation presentation = LoadPackage(packageBytes,
+                sourcePath, sourceStream, loadOptions);
+            try {
+                cancellationToken.ThrowIfCancellationRequested();
+            } catch {
+                presentation.Dispose();
+                throw;
+            }
             if (readOnlyProjection) {
                 LegacyPptPropertySetCodec.ApplyReadOnlyDateOverrides(
                     presentation, legacy.Package);

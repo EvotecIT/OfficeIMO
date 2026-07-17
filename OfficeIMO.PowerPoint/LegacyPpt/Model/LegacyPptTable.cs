@@ -138,14 +138,19 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
                 LegacyPptShape> gridLines, int left, int top,
             int width, int height) {
             if (!gridLines.TryGetValue((left, top, width, height),
-                    out LegacyPptShape? line)
-                || line.Style.LineEnabled == false
-                || line.Style.LineWidthEmus.GetValueOrDefault() <= 0
-                || string.IsNullOrWhiteSpace(line.LineColor)) {
+                    out LegacyPptShape? line)) {
                 return null;
             }
-            return new LegacyPptTableBorder(line.LineColor!,
-                line.Style.LineWidthEmus!.Value / 12700D);
+            if (line.Style.LineEnabled == false
+                || line.Style.LineWidthEmus is <= 0) {
+                return new LegacyPptTableBorder(isVisible: false,
+                    color: line.LineColor ?? "000000", widthPoints: 0D);
+            }
+            return new LegacyPptTableBorder(isVisible: true,
+                color: line.LineColor ?? "000000",
+                widthPoints: line.Style.LineWidthEmus.HasValue
+                    ? line.Style.LineWidthEmus.Value / 12700D
+                    : 0.75D);
         }
 
         private static bool HasStyleFlag(byte? flags, int bit) =>
@@ -194,25 +199,30 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
         /// <summary>Gets the source OfficeArt cell shape and its text/style metadata.</summary>
         public LegacyPptShape SourceShape { get; }
 
-        /// <summary>Gets the resolved left border, when visible.</summary>
+        /// <summary>Gets the resolved left border, including an explicit invisible border.</summary>
         public LegacyPptTableBorder? LeftBorder { get; }
 
-        /// <summary>Gets the resolved top border, when visible.</summary>
+        /// <summary>Gets the resolved top border, including an explicit invisible border.</summary>
         public LegacyPptTableBorder? TopBorder { get; }
 
-        /// <summary>Gets the resolved right border, when visible.</summary>
+        /// <summary>Gets the resolved right border, including an explicit invisible border.</summary>
         public LegacyPptTableBorder? RightBorder { get; }
 
-        /// <summary>Gets the resolved bottom border, when visible.</summary>
+        /// <summary>Gets the resolved bottom border, including an explicit invisible border.</summary>
         public LegacyPptTableBorder? BottomBorder { get; }
     }
 
-    /// <summary>Describes one visible native binary PowerPoint table border.</summary>
+    /// <summary>Describes one native binary PowerPoint table border.</summary>
     public readonly struct LegacyPptTableBorder {
-        internal LegacyPptTableBorder(string color, double widthPoints) {
+        internal LegacyPptTableBorder(bool isVisible, string color,
+            double widthPoints) {
+            IsVisible = isVisible;
             Color = color;
             WidthPoints = widthPoints;
         }
+
+        /// <summary>Gets whether the border is explicitly visible.</summary>
+        public bool IsVisible { get; }
 
         /// <summary>Gets the resolved border color as RRGGBB.</summary>
         public string Color { get; }
