@@ -62,9 +62,13 @@ public sealed partial class VCardDocument {
                     issues.Add(Issue("VCARD4_CHARSET_FORBIDDEN",
                         "vCard 4.0 is UTF-8 and does not use the CHARSET parameter.",
                         ContentLineValidationSeverity.Error, card, property.Name));
-                string? encoding = property.GetParameter("ENCODING")?.Values.FirstOrDefault();
-                if (version == VCardVersion.V4_0 && (string.Equals(encoding, "QUOTED-PRINTABLE",
-                    StringComparison.OrdinalIgnoreCase) || string.Equals(encoding, "QP", StringComparison.OrdinalIgnoreCase)))
+                bool hasLegacyEncoding = property.Parameters.Where(parameter => string.Equals(
+                        parameter.Name, "ENCODING", StringComparison.OrdinalIgnoreCase))
+                    .SelectMany(parameter => parameter.Values)
+                    .Any(encoding => string.Equals(encoding, "QUOTED-PRINTABLE",
+                                         StringComparison.OrdinalIgnoreCase) ||
+                                     string.Equals(encoding, "QP", StringComparison.OrdinalIgnoreCase));
+                if (version == VCardVersion.V4_0 && hasLegacyEncoding)
                     issues.Add(Issue("VCARD4_ENCODING_FORBIDDEN",
                         "vCard 4.0 does not use quoted-printable property encoding.",
                         ContentLineValidationSeverity.Error, card, property.Name));
@@ -76,9 +80,15 @@ public sealed partial class VCardDocument {
 
     private static void ValidatePreference(ContentLineComponent card, ContentLineProperty property,
         ICollection<ContentLineValidationIssue> issues) {
-        ContentLineParameter? preference = property.GetParameter("PREF");
-        if (preference == null) return;
-        foreach (string value in preference.Values) {
+        ContentLineParameter[] preferences = property.Parameters.Where(parameter =>
+            string.Equals(parameter.Name, "PREF", StringComparison.OrdinalIgnoreCase)).ToArray();
+        if (preferences.Length == 0) return;
+        if (preferences.Length != 1 || preferences[0].Values.Count != 1) {
+            issues.Add(Issue("VCARD4_PREF_CARDINALITY",
+                "PREF must occur at most once and contain exactly one value.",
+                ContentLineValidationSeverity.Error, card, property.Name));
+        }
+        foreach (string value in preferences.SelectMany(preference => preference.Values)) {
             if (!int.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out int number) ||
                 number < 1 || number > 100) {
                 issues.Add(Issue("VCARD4_PREF_INVALID", "PREF must be an integer from 1 through 100.",

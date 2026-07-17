@@ -299,6 +299,15 @@ public sealed class IcsDocumentTests {
     }
 
     [Fact]
+    public void SerializationRejectsLiteralLineBreaksInRawPropertyValues() {
+        var document = new IcsDocument();
+        document.Calendars.Single().AddProperty("X-INJECTED",
+            "safe\r\nEND:VCALENDAR\r\nBEGIN:VCALENDAR");
+
+        Assert.Throws<InvalidDataException>(() => document.Serialize());
+    }
+
+    [Fact]
     public void LegacyVcalendarParametersPreserveLiteralCaretSequences() {
         const string source = "BEGIN:VCALENDAR\r\nVERSION:1.0\r\nPRODID:-//Legacy//EN\r\n" +
             "BEGIN:VEVENT\r\nATTENDEE;X-LITERAL=alpha^nbeta:mailto:a@example.com\r\n" +

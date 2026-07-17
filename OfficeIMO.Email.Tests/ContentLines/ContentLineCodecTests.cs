@@ -39,14 +39,14 @@ public sealed class ContentLineCodecTests {
     [Fact]
     public void ManyShortPhysicalFoldsUnfoldWithinTheConfiguredLinearBound() {
         var source = new StringBuilder("BEGIN:VCARD\r\nVERSION:4.0\r\nFN:first");
-        for (int index = 0; index < 20_000; index++) source.Append("\r\n x");
+        for (int index = 0; index < 100_000; index++) source.Append("\r\n x");
         source.Append("\r\nEND:VCARD\r\n");
 
         VCardDocument document = VCardDocument.Parse(source.ToString(),
-            new ContentLineReaderOptions(maxInputBytes: 256 * 1024,
-                maxUnfoldedLineBytes: 64 * 1024));
+            new ContentLineReaderOptions(maxInputBytes: 1024 * 1024,
+                maxUnfoldedLineBytes: 256 * 1024));
 
-        Assert.Equal(20_005, document.Cards[0].GetFirstProperty("FN")?.Value.Length);
+        Assert.Equal(100_005, document.Cards[0].GetFirstProperty("FN")?.Value.Length);
     }
 
     [Fact]

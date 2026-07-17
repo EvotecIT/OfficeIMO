@@ -88,6 +88,33 @@ public sealed class VCardDocumentTests {
     }
 
     [Fact]
+    public void ValidationChecksEveryV4EncodingAndPreferenceParameterValue() {
+        var document = new VCardDocument();
+        ContentLineComponent card = document.Cards.Single();
+        card.AddProperty("FN", "Version four");
+        card.AddProperty("N", "Four;Version;;;");
+        ContentLineProperty note = card.AddProperty("NOTE", "legacy=20text");
+        note.Parameters.Add(new ContentLineParameter("ENCODING", "8BIT", "QUOTED-PRINTABLE"));
+        ContentLineProperty photo = card.AddProperty("PHOTO", "legacy-photo");
+        photo.Parameters.Add(new ContentLineParameter("ENCODING", "8BIT"));
+        photo.Parameters.Add(new ContentLineParameter("ENCODING", "QP"));
+        ContentLineProperty email = card.AddProperty("EMAIL", "four@example.test");
+        email.Parameters.Add(new ContentLineParameter("PREF", "1"));
+        email.Parameters.Add(new ContentLineParameter("PREF", "101"));
+
+        IReadOnlyList<ContentLineValidationIssue> issues = document.Validate();
+
+        Assert.Contains(issues, issue => issue.Code == "VCARD4_ENCODING_FORBIDDEN" &&
+            issue.PropertyName == "NOTE");
+        Assert.Contains(issues, issue => issue.Code == "VCARD4_ENCODING_FORBIDDEN" &&
+            issue.PropertyName == "PHOTO");
+        Assert.Contains(issues, issue => issue.Code == "VCARD4_PREF_CARDINALITY" &&
+            issue.PropertyName == "EMAIL");
+        Assert.Contains(issues, issue => issue.Code == "VCARD4_PREF_INVALID" &&
+            issue.PropertyName == "EMAIL");
+    }
+
+    [Fact]
     public void GroupAndTextHelpersCreateInteroperableV4Card() {
         var document = new VCardDocument();
         ContentLineComponent group = document.AddGroup("Engineering, Europe",
@@ -214,6 +241,14 @@ public sealed class VCardDocumentTests {
 
         Assert.Throws<InvalidDataException>(() => quoted.Serialize());
         Assert.Throws<InvalidDataException>(() => multiline.Serialize());
+    }
+
+    [Fact]
+    public void SerializationRejectsLiteralLineBreaksInRawPropertyValues() {
+        var document = new VCardDocument();
+        document.Cards.Single().AddProperty("FN", "safe\nEND:VCARD\nBEGIN:VCARD");
+
+        Assert.Throws<InvalidDataException>(() => document.Serialize());
     }
 
     [Fact]

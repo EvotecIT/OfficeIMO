@@ -82,8 +82,13 @@ internal static class ContentLineCodec {
 
     private static IEnumerable<string> Unfold(string text, ContentLineReaderOptions options) {
         StringBuilder? current = null;
+        StringBuilder? currentHeader = null;
         int currentBytes = 0;
         bool currentIsQuotedPrintable = false;
+        bool currentHeaderComplete = false;
+        bool currentHeaderQuoted = false;
+        bool currentHeaderPendingQuote = false;
+        int currentHeaderBackslashes = 0;
         bool firstPhysicalLine = true;
         int start = 0;
         for (int index = 0; index <= text.Length; index++) {
@@ -104,16 +109,30 @@ internal static class ContentLineCodec {
                 currentBytes--;
                 AppendUnfolded(current, continuation, ref currentBytes, options.MaxUnfoldedLineBytes);
             } else if (physical.Length > 0 && (physical[0] == ' ' || physical[0] == '\t') && current != null) {
-                AppendUnfolded(current, physical.Substring(1), ref currentBytes,
-                    options.MaxUnfoldedLineBytes);
-                currentIsQuotedPrintable = IsQuotedPrintableContentLine(current.ToString());
+                string continuation = physical.Substring(1);
+                AppendUnfolded(current, continuation, ref currentBytes, options.MaxUnfoldedLineBytes);
+                if (!currentHeaderComplete) {
+                    currentHeaderComplete = AppendContentLineHeader(currentHeader!, continuation,
+                        ref currentHeaderQuoted, ref currentHeaderPendingQuote,
+                        ref currentHeaderBackslashes);
+                    if (currentHeaderComplete)
+                        currentIsQuotedPrintable = IsQuotedPrintableHeader(currentHeader!.ToString());
+                }
             } else {
                 if (current != null) yield return current.ToString();
                 current = new StringBuilder(physical);
+                currentHeader = new StringBuilder();
                 currentBytes = Encoding.UTF8.GetByteCount(physical);
                 if (currentBytes > options.MaxUnfoldedLineBytes)
                     throw new InvalidDataException("A content line exceeds the configured unfolded-line limit.");
-                currentIsQuotedPrintable = IsQuotedPrintableContentLine(physical);
+                currentHeaderQuoted = false;
+                currentHeaderPendingQuote = false;
+                currentHeaderBackslashes = 0;
+                currentHeaderComplete = AppendContentLineHeader(currentHeader, physical,
+                    ref currentHeaderQuoted, ref currentHeaderPendingQuote,
+                    ref currentHeaderBackslashes);
+                currentIsQuotedPrintable = currentHeaderComplete &&
+                    IsQuotedPrintableHeader(currentHeader.ToString());
             }
         }
         if (current != null) yield return current.ToString();
@@ -128,9 +147,26 @@ internal static class ContentLineCodec {
         currentBytes += addedBytes;
     }
 
-    private static bool IsQuotedPrintableContentLine(string line) {
-        int colon = FindDelimiter(line, ':');
-        string header = colon >= 0 ? line.Substring(0, colon) : line;
+    private static bool AppendContentLineHeader(StringBuilder header, string fragment,
+        ref bool quoted, ref bool pendingQuote, ref int backslashes) {
+        foreach (char character in fragment) {
+            if (pendingQuote) {
+                if (character == ';' || character == ',' || character == ':') quoted = !quoted;
+                pendingQuote = false;
+            }
+            if (character == ':' && !quoted) return true;
+            header.Append(character);
+            if (character == '"') {
+                if ((backslashes & 1) != 0) pendingQuote = true;
+                else quoted = !quoted;
+                backslashes = 0;
+            } else if (character == '\\') backslashes++;
+            else backslashes = 0;
+        }
+        return false;
+    }
+
+    private static bool IsQuotedPrintableHeader(string header) {
         try {
             foreach (string segment in SplitDelimited(header, ';').Skip(1)) {
                 int equals = FindDelimiter(segment, '=');
@@ -143,7 +179,7 @@ internal static class ContentLineCodec {
                 }
             }
         } catch (InvalidDataException) {
-            // A quoted parameter can span a regular folded physical line. Detection is retried after unfolding.
+            // Malformed quoting is rejected later by the full property parser.
         }
         return false;
     }
@@ -219,7 +255,11 @@ internal static class ContentLineCodec {
             }
         }
         yield return ":";
-        yield return property.Value ?? string.Empty;
+        string value = property.Value ?? string.Empty;
+        if (value.IndexOf('\r') >= 0 || value.IndexOf('\n') >= 0)
+            throw new InvalidDataException(
+                "A content-line property value cannot contain a literal CR or LF; use the format escape instead.");
+        yield return value;
     }
 
     private static void AppendFolded(StringBuilder output, IEnumerable<string> parts,
