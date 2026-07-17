@@ -118,6 +118,49 @@ public sealed class OneNoteRenderingTests {
     }
 
     [Fact]
+    public void WebpExportAlsoHonorsTheCodecDimensionLimit() {
+        var page = new OneNotePage {
+            PageSize = OneNotePageSize.Custom,
+            Width = 20_000D / OneNotePageRenderer.PointsPerHalfInch,
+            Height = 1D
+        };
+        var options = new OneNotePageRenderingOptions {
+            IncludeTitle = false,
+            Scale = 1D,
+            MaximumRasterPixels = 1_000_000L
+        };
+
+        OfficeImageExportResult result = OneNotePageImageRenderer.Render(page, OfficeImageExportFormat.Webp, options);
+
+        int maximumDimension = OfficeRasterImageEncoder.GetMaximumDimension(OfficeImageExportFormat.Webp);
+        Assert.Equal(maximumDimension, result.Width);
+        Assert.True(result.Height <= maximumDimension);
+        Assert.True(OfficeWebpCodec.IsWebp(result.Bytes));
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "ONENOTE_IMAGE_RASTER_SCALE_LIMITED");
+    }
+
+    [Fact]
+    public void JpegExportAlsoHonorsTheEncoderDimensionLimit() {
+        var page = new OneNotePage {
+            PageSize = OneNotePageSize.Custom,
+            Width = 70_000D / OneNotePageRenderer.PointsPerHalfInch,
+            Height = 1D / OneNotePageRenderer.PointsPerHalfInch
+        };
+        var options = new OneNotePageRenderingOptions {
+            IncludeTitle = false,
+            Scale = 1D,
+            MaximumRasterPixels = 100_000_000L
+        };
+
+        OfficeImageExportResult result = OneNotePageImageRenderer.Render(page, OfficeImageExportFormat.Jpeg, options);
+
+        Assert.Equal(OfficeRasterImageEncoder.GetMaximumDimension(OfficeImageExportFormat.Jpeg), result.Width);
+        Assert.Equal(1, result.Height);
+        Assert.Equal(new byte[] { 0xFF, 0xD8 }, result.Bytes.Take(2));
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "ONENOTE_IMAGE_RASTER_SCALE_LIMITED");
+    }
+
+    [Fact]
     public void RasterExportReportsAndPaintsUnsupportedSourceImagesInsteadOfDroppingThem() {
         var page = new OneNotePage { PageSize = OneNotePageSize.IndexCard };
         page.DirectContent.Add(new OneNoteImage {
@@ -215,6 +258,31 @@ public sealed class OneNoteRenderingTests {
 
         OfficeDrawing drawing = page.ToDrawing(options);
         OfficeDrawingRichText text = Assert.Single(drawing.Elements.OfType<OfficeDrawingRichText>());
+
+        Assert.True(text.X + text.Width + options.AutomaticPagePaddingPoints <= drawing.Width + 0.001D);
+        Assert.True(text.Y + text.Height + options.AutomaticPagePaddingPoints <= drawing.Height + 0.001D);
+    }
+
+    [Fact]
+    public void AutomaticCanvasIncludesPositionedParagraphChildren() {
+        var page = new OneNotePage { PageSize = OneNotePageSize.Automatic, Width = 1D, Height = 1D };
+        var parent = new OneNoteParagraph { Layout = new OneNoteLayout { Width = 2D } };
+        parent.Runs.Add(new OneNoteTextRun { Text = "Parent" });
+        var positioned = new OneNoteParagraph { Layout = new OneNoteLayout { X = 8D, Y = 1D, Width = 2D } };
+        positioned.Runs.Add(new OneNoteTextRun { Text = "Positioned nested child" });
+        parent.Children.Add(positioned);
+        page.DirectContent.Add(parent);
+        var options = new OneNotePageRenderingOptions {
+            AutomaticPageWidthPoints = 120D,
+            AutomaticPageHeightPoints = 120D,
+            AutomaticPagePaddingPoints = 24D,
+            IncludeTitle = false
+        };
+
+        OfficeDrawing drawing = page.ToDrawing(options);
+        OfficeDrawingRichText text = Assert.Single(
+            drawing.Elements.OfType<OfficeDrawingRichText>(),
+            item => item.Runs.Any(run => run.Text == "Positioned nested child"));
 
         Assert.True(text.X + text.Width + options.AutomaticPagePaddingPoints <= drawing.Width + 0.001D);
         Assert.True(text.Y + text.Height + options.AutomaticPagePaddingPoints <= drawing.Height + 0.001D);
@@ -361,6 +429,31 @@ public sealed class OneNoteRenderingTests {
         Assert.True(frames[0].Shape.Height > 32D);
         Assert.Equal(90D, frames[1].X - frames[0].X, 6);
         Assert.True(frames[2].Y >= frames[0].Y + frames[0].Shape.Height);
+    }
+
+    [Fact]
+    public void TableCellChildrenHonorPositionAndWidthLayouts() {
+        var page = new OneNotePage { PageSize = OneNotePageSize.Letter };
+        var table = new OneNoteTable { Layout = new OneNoteLayout { X = 0.5D, Y = 0.5D, Width = 4D }, BordersVisible = true };
+        table.ColumnWidths.Add(4D);
+        var row = new OneNoteTableRow();
+        var cell = new OneNoteTableCell();
+        var positioned = new OneNoteParagraph { Layout = new OneNoteLayout { X = 0.5D, Y = 0.25D, Width = 1D } };
+        positioned.Runs.Add(new OneNoteTextRun { Text = "Positioned cell child" });
+        cell.Content.Add(positioned);
+        row.Cells.Add(cell);
+        table.Rows.Add(row);
+        page.DirectContent.Add(table);
+
+        OfficeDrawing drawing = page.ToDrawing(new OneNotePageRenderingOptions { IncludeTitle = false });
+        OfficeDrawingShape frame = Assert.Single(
+            drawing.Elements.OfType<OfficeDrawingShape>(),
+            shape => shape.Shape.StrokeWidth == 0.75D);
+        OfficeDrawingRichText text = Assert.Single(drawing.Elements.OfType<OfficeDrawingRichText>());
+
+        Assert.Equal(frame.X + 4D + 0.5D * OneNotePageRenderer.PointsPerHalfInch, text.X, 6);
+        Assert.Equal(frame.Y + 4D + 0.25D * OneNotePageRenderer.PointsPerHalfInch, text.Y, 6);
+        Assert.Equal(OneNotePageRenderer.PointsPerHalfInch, text.Width, 6);
     }
 
     [Fact]

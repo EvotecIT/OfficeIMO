@@ -32,14 +32,15 @@ internal static class OneNotePageImageRenderer {
         if (format == OfficeImageExportFormat.Png || format == OfficeImageExportFormat.Jpeg ||
             format == OfficeImageExportFormat.Tiff || format == OfficeImageExportFormat.Webp) {
             var diagnostics = new List<OfficeImageExportDiagnostic>(snapshot.Diagnostics);
+            int maximumDimension = OfficeRasterImageEncoder.GetMaximumDimension(format);
             OfficeRasterScaleLimit limit = OfficeRasterScaleLimiter.Resolve(
-                snapshot.Drawing.Width, snapshot.Drawing.Height, options.Scale, options.MaximumRasterPixels);
+                snapshot.Drawing.Width, snapshot.Drawing.Height, options.Scale, options.MaximumRasterPixels, maximumDimension);
             if (limit.WasLimited) {
                 diagnostics.Add(new OfficeImageExportDiagnostic(
                     OfficeImageExportDiagnosticSeverity.Warning,
                     "ONENOTE_IMAGE_RASTER_SCALE_LIMITED",
                     "The raster scale was reduced from " + Format(options.Scale) + " to " + Format(limit.Scale) +
-                    " to respect MaximumRasterPixels.",
+                    " to respect the decoded-raster limits.",
                     source ?? "OneNote page"));
             }
             var fallbackCodec = new OfficeRasterImageFallbackCodec(options.ImageCodec, diagnostics, source ?? "OneNote page");

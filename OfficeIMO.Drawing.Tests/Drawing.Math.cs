@@ -116,6 +116,19 @@ public class DrawingMathTests {
     }
 
     [Fact]
+    public void LatexGreekCommandsRemainIdentifiersInScriptsAndMathMl() {
+        OfficeMathExpression expression = OfficeMathMarkup.FromLatex(@"\alpha_i+\beta");
+
+        Assert.Equal(OfficeMathKind.Subscript, expression.Children[0].Kind);
+        Assert.Equal(OfficeMathKind.Identifier, expression.Children[0].Children[0].Kind);
+        Assert.Equal(OfficeMathKind.Operator, expression.Children[1].Kind);
+        Assert.Equal(OfficeMathKind.Identifier, expression.Children[2].Kind);
+        string mathMl = OfficeMathMarkup.ToMathMl(expression);
+        Assert.Contains("<mi>α</mi>", mathMl, StringComparison.Ordinal);
+        Assert.Contains("<mi>β</mi>", mathMl, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void LatexSerializerEscapesTextWithoutTurningItIntoScripts() {
         OfficeMathExpression expression = OfficeMath.Text(@"literal x_y^z\{#%&$~}");
         string latex = OfficeMathMarkup.ToLatex(expression);

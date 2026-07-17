@@ -541,12 +541,20 @@ public static class OfficeMathMarkup {
     private static bool IsNarySymbol(string? value) => value == "∑" || value == "∏" || value == "∫" || value == "⋂" || value == "⋃";
 
     private sealed class LatexParser {
-        private static readonly Dictionary<string, string> Symbols = new Dictionary<string, string>(StringComparer.Ordinal) {
-            ["sum"] = "∑", ["prod"] = "∏", ["int"] = "∫", ["infty"] = "∞", ["le"] = "≤", ["leq"] = "≤",
-            ["ge"] = "≥", ["geq"] = "≥", ["ne"] = "≠", ["neq"] = "≠", ["times"] = "×", ["div"] = "÷",
-            ["pm"] = "±", ["to"] = "→", ["alpha"] = "α", ["beta"] = "β", ["gamma"] = "γ", ["delta"] = "δ",
-            ["theta"] = "θ", ["lambda"] = "λ", ["mu"] = "μ", ["pi"] = "π", ["sigma"] = "σ", ["phi"] = "φ", ["omega"] = "ω"
-        };
+        private static readonly Dictionary<string, (string Value, OfficeMathKind Kind)> Symbols =
+            new Dictionary<string, (string Value, OfficeMathKind Kind)>(StringComparer.Ordinal) {
+                ["sum"] = ("∑", OfficeMathKind.Operator), ["prod"] = ("∏", OfficeMathKind.Operator), ["int"] = ("∫", OfficeMathKind.Operator),
+                ["infty"] = ("∞", OfficeMathKind.Operator), ["le"] = ("≤", OfficeMathKind.Operator), ["leq"] = ("≤", OfficeMathKind.Operator),
+                ["ge"] = ("≥", OfficeMathKind.Operator), ["geq"] = ("≥", OfficeMathKind.Operator), ["ne"] = ("≠", OfficeMathKind.Operator),
+                ["neq"] = ("≠", OfficeMathKind.Operator), ["times"] = ("×", OfficeMathKind.Operator), ["div"] = ("÷", OfficeMathKind.Operator),
+                ["pm"] = ("±", OfficeMathKind.Operator), ["to"] = ("→", OfficeMathKind.Operator),
+                ["alpha"] = ("α", OfficeMathKind.Identifier), ["beta"] = ("β", OfficeMathKind.Identifier),
+                ["gamma"] = ("γ", OfficeMathKind.Identifier), ["delta"] = ("δ", OfficeMathKind.Identifier),
+                ["theta"] = ("θ", OfficeMathKind.Identifier), ["lambda"] = ("λ", OfficeMathKind.Identifier),
+                ["mu"] = ("μ", OfficeMathKind.Identifier), ["pi"] = ("π", OfficeMathKind.Identifier),
+                ["sigma"] = ("σ", OfficeMathKind.Identifier), ["phi"] = ("φ", OfficeMathKind.Identifier),
+                ["omega"] = ("ω", OfficeMathKind.Identifier)
+            };
         private static readonly HashSet<string> Functions = new HashSet<string>(new[] { "sin", "cos", "tan", "log", "ln", "exp", "lim", "min", "max" }, StringComparer.Ordinal);
         private readonly string _text;
         private readonly int _maximumDepth;
@@ -696,7 +704,9 @@ public static class OfficeMathMarkup {
                     if (TryParseDelimiterList(inner, left, right, out OfficeMathExpression? delimiterList)) return delimiterList!;
                     return OfficeMath.Delimited(new LatexParser(inner, _maximumDepth, _depth).Parse(), left, right);
                 default:
-                    if (Symbols.TryGetValue(command, out string? symbol)) return OfficeMath.Operator(symbol);
+                    if (Symbols.TryGetValue(command, out (string Value, OfficeMathKind Kind) symbol)) {
+                        return symbol.Kind == OfficeMathKind.Identifier ? OfficeMath.Identifier(symbol.Value) : OfficeMath.Operator(symbol.Value);
+                    }
                     if (Functions.Contains(command)) {
                         return OfficeMath.Function(command, ParseFunctionArgument());
                     }

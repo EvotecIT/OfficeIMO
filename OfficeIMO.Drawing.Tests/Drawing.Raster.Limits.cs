@@ -18,6 +18,16 @@ public sealed class DrawingRasterLimitTests {
     }
 
     [Fact]
+    public void RasterScaleLimiterHonorsPerDimensionLimit() {
+        OfficeRasterScaleLimit limit = OfficeRasterScaleLimiter.Resolve(20_000D, 100D, 1D, 10_000_000L, 16_384);
+
+        Assert.True(limit.WasLimited);
+        Assert.Equal(16_384, limit.PixelWidth);
+        Assert.True(limit.PixelHeight <= 16_384);
+        Assert.True(limit.PixelCount <= 10_000_000L);
+    }
+
+    [Fact]
     public void FallbackCodecProducesVisibleContentAndStructuredDiagnostic() {
         var diagnostics = new List<OfficeImageExportDiagnostic>();
         var codec = new OfficeRasterImageFallbackCodec(diagnostics: diagnostics, source: "sample.svg");

@@ -25,24 +25,7 @@ public static partial class OneNotePageRenderer {
 
         internal double RenderOutline(OneNoteOutline outline, double x, double y, double width, bool? inheritedRightToLeft = null) {
             bool rightToLeft = outline.Layout?.RightToLeft ?? inheritedRightToLeft ?? _pageRightToLeft;
-            double cursor = y;
-            double pendingSpaceAfter = 0D;
-            foreach (OneNoteElement child in outline.Children) {
-                bool participatesInFlow = child.Layout?.Y.HasValue != true;
-                double childX = child.Layout?.X.HasValue == true ? x + child.Layout.X.Value * PointsPerHalfInch : x;
-                double childY = child.Layout?.Y.HasValue == true
-                    ? y + child.Layout.Y.Value * PointsPerHalfInch
-                    : cursor + Math.Max(pendingSpaceAfter, ParagraphSpaceBefore(child));
-                double available = child.Layout?.Width.HasValue == true
-                    ? child.Layout.Width.Value * PointsPerHalfInch
-                    : width - Math.Max(0D, childX - x);
-                double used = RenderElement(child, childX, childY, available, 0D, inheritedRightToLeft: rightToLeft);
-                if (participatesInFlow) {
-                    cursor = Math.Max(cursor, childY + used);
-                    pendingSpaceAfter = child is OneNoteParagraph ? ParagraphSpaceAfter(child) : 5D;
-                }
-            }
-            return Math.Max(DefaultParagraphHeight, cursor + pendingSpaceAfter - y);
+            return Math.Max(DefaultParagraphHeight, RenderChildren(outline.Children, x, y, width, 0D, rightToLeft));
         }
 
         internal double RenderElement(
@@ -109,10 +92,21 @@ public static partial class OneNotePageRenderer {
         }
 
         private double RenderParagraphChildren(OneNoteParagraph paragraph, double x, double y, double width, double textHeight, bool rightToLeft) {
-            double cursor = y + textHeight;
+            return Math.Max(DefaultParagraphHeight, RenderChildren(paragraph.Children, x, y, width, textHeight, rightToLeft));
+        }
+
+        private double RenderChildren(
+            IEnumerable<OneNoteElement> children,
+            double x,
+            double y,
+            double width,
+            double initialHeight,
+            bool rightToLeft,
+            double availableHeight = 0D) {
+            double cursor = y + initialHeight;
             double bottom = cursor;
             double pendingSpace = 0D;
-            foreach (OneNoteElement child in paragraph.Children) {
+            foreach (OneNoteElement child in children) {
                 bool participatesInFlow = child.Layout?.Y.HasValue != true;
                 double childX = child.Layout?.X.HasValue == true ? x + child.Layout.X.Value * PointsPerHalfInch : x;
                 double childY = child.Layout?.Y.HasValue == true
@@ -121,14 +115,17 @@ public static partial class OneNotePageRenderer {
                 double available = child.Layout?.Width.HasValue == true
                     ? child.Layout.Width.Value * PointsPerHalfInch
                     : width - Math.Max(0D, childX - x);
-                double used = RenderElement(child, childX, childY, available, 0D, inheritedRightToLeft: rightToLeft);
+                double childAvailableHeight = availableHeight > 0D
+                    ? Math.Max(1D, availableHeight - Math.Max(0D, childY - y))
+                    : 0D;
+                double used = RenderElement(child, childX, childY, available, childAvailableHeight, inheritedRightToLeft: rightToLeft);
                 bottom = Math.Max(bottom, childY + used);
                 if (participatesInFlow) {
                     cursor = Math.Max(cursor, childY + used);
                     pendingSpace = child is OneNoteParagraph ? ParagraphSpaceAfter(child) : 5D;
                 }
             }
-            return Math.Max(DefaultParagraphHeight, Math.Max(bottom, cursor + pendingSpace) - y);
+            return Math.Max(initialHeight, Math.Max(bottom, cursor + pendingSpace) - y);
         }
 
         private double RenderInlineMathParagraph(OneNoteParagraph paragraph, string prefix, double x, double y, double width, bool rightToLeft) {
@@ -261,10 +258,7 @@ public static partial class OneNotePageRenderer {
                     ? Math.Max(1D, element.Layout.Width.Value * PointsPerHalfInch)
                     : remainingWidth;
                 double elementHeight = MeasureElementHeight(element, elementWidth);
-                double extentWidth = elementWidth;
-                if (element is OneNoteOutline outline && element.Layout?.Width.HasValue != true) {
-                    extentWidth = Math.Max(extentWidth, MeasureElementsBounds(outline.Children, elementWidth).Right);
-                }
+                double extentWidth = MeasureElementWidthExtent(element, elementWidth);
                 right = Math.Max(right, elementX + extentWidth);
                 bottom = Math.Max(bottom, elementY + elementHeight);
                 if (participatesInFlow) {
@@ -273,6 +267,12 @@ public static partial class OneNotePageRenderer {
                 }
             }
             return (Math.Max(1D, right), Math.Max(DefaultParagraphHeight, Math.Max(bottom, cursor + pendingSpace)));
+        }
+
+        internal double MeasureElementWidthExtent(OneNoteElement element, double width) {
+            if (element is OneNoteOutline outline) return Math.Max(width, MeasureElementsBounds(outline.Children, width).Right);
+            if (element is OneNoteParagraph paragraph) return Math.Max(width, MeasureElementsBounds(paragraph.Children, width).Right);
+            return width;
         }
 
         private double MeasureParagraphHeight(OneNoteParagraph paragraph, double width) {
@@ -473,21 +473,14 @@ public static partial class OneNotePageRenderer {
                     frame.StrokeWidth = table.BordersVisible ? 0.75D : 0D;
                     _drawing.AddShape(frame, cursorX, cursorY);
                     if (cell != null) {
-                        double contentY = cursorY + 4D;
-                        double pendingCellSpace = 0D;
-                        foreach (OneNoteElement content in cell.Content) {
-                            double childY = contentY + Math.Max(pendingCellSpace, ParagraphSpaceBefore(content));
-                            double used = RenderElement(
-                                content,
-                                cursorX + 4D,
-                                childY,
-                                Math.Max(1D, cellWidth - 8D),
-                                Math.Max(1D, rowHeight - 8D),
-                                inheritedRightToLeft: rightToLeft);
-                            contentY = childY + used;
-                            pendingCellSpace = content is OneNoteParagraph ? ParagraphSpaceAfter(content) : 2D;
-                            if (contentY >= cursorY + rowHeight) break;
-                        }
+                        RenderChildren(
+                            cell.Content,
+                            cursorX + 4D,
+                            cursorY + 4D,
+                            Math.Max(1D, cellWidth - 8D),
+                            0D,
+                            rightToLeft,
+                            Math.Max(1D, rowHeight - 8D));
                     }
                     cursorX += columns[column];
                 }

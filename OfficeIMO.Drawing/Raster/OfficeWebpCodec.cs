@@ -11,8 +11,6 @@ namespace OfficeIMO.Drawing;
 /// auditable implementation over compression efficiency while producing standards-compatible WebP.
 /// </remarks>
 public static class OfficeWebpCodec {
-    private const int MaximumDimension = 16384;
-
     /// <summary>Returns whether the payload is a RIFF WebP container.</summary>
     public static bool IsWebp(byte[]? encodedBytes) =>
         encodedBytes != null && encodedBytes.Length >= 12 &&
@@ -21,8 +19,8 @@ public static class OfficeWebpCodec {
     /// <summary>Encodes an RGBA image as a lossless VP8L WebP image.</summary>
     public static byte[] Encode(OfficeRasterImage image) {
         if (image == null) throw new ArgumentNullException(nameof(image));
-        if (image.Width > MaximumDimension) throw new ArgumentOutOfRangeException(nameof(image), "WebP width cannot exceed 16,384 pixels.");
-        if (image.Height > MaximumDimension) throw new ArgumentOutOfRangeException(nameof(image), "WebP height cannot exceed 16,384 pixels.");
+        if (image.Width > OfficeRasterImageEncoder.WebpMaximumDimension) throw new ArgumentOutOfRangeException(nameof(image), "WebP width cannot exceed 16,384 pixels.");
+        if (image.Height > OfficeRasterImageEncoder.WebpMaximumDimension) throw new ArgumentOutOfRangeException(nameof(image), "WebP height cannot exceed 16,384 pixels.");
 
         byte[] pixels = image.GetPixels();
         bool hasAlpha = HasTransparency(pixels);

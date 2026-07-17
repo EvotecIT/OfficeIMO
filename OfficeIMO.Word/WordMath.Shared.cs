@@ -6,10 +6,14 @@ using M = DocumentFormat.OpenXml.Math;
 namespace OfficeIMO.Word {
     internal static partial class WordMath {
         private static readonly XNamespace OmmlNamespace = MathNamespace;
+        private static readonly XNamespace MarkupCompatibilityNamespace = "http://schemas.openxmlformats.org/markup-compatibility/2006";
+        private static readonly XNamespace OfficeImoMathNamespace = "https://schemas.evotec.xyz/officeimo/math";
+        private const string OfficeImoMathPrefix = "oim";
+        private const string OfficeImoTokenKindAttribute = "kind";
 
         internal static OfficeMathExpression ToExpression(OpenXmlElement element) {
             if (element == null) throw new ArgumentNullException(nameof(element));
-            if (element is M.Text text) return ClassifyToken(text.Text ?? string.Empty);
+            if (element is M.Text text) return ClassifyToken(text);
 
             switch (element.LocalName) {
                 case "f":
@@ -77,7 +81,12 @@ namespace OfficeIMO.Word {
 
         internal static string ToOmml(OfficeMathExpression expression, bool display) {
             if (expression == null) throw new ArgumentNullException(nameof(expression));
-            var officeMath = new XElement(OmmlNamespace + "oMath", new XAttribute(XNamespace.Xmlns + "m", OmmlNamespace));
+            var officeMath = new XElement(
+                OmmlNamespace + "oMath",
+                new XAttribute(XNamespace.Xmlns + "m", OmmlNamespace),
+                new XAttribute(XNamespace.Xmlns + "mc", MarkupCompatibilityNamespace),
+                new XAttribute(XNamespace.Xmlns + OfficeImoMathPrefix, OfficeImoMathNamespace),
+                new XAttribute(MarkupCompatibilityNamespace + "Ignorable", OfficeImoMathPrefix));
             AppendOmml(officeMath, expression);
             if (!display) return officeMath.ToString(SaveOptions.DisableFormatting);
             var paragraph = new XElement(OmmlNamespace + "oMathPara", new XAttribute(XNamespace.Xmlns + "m", OmmlNamespace), officeMath);
@@ -90,7 +99,7 @@ namespace OfficeIMO.Word {
                 case OfficeMathKind.Identifier:
                 case OfficeMathKind.Number:
                 case OfficeMathKind.Operator:
-                    parent.Add(MathRun(expression.Text ?? string.Empty));
+                    parent.Add(MathRun(expression.Text ?? string.Empty, expression.Kind));
                     return;
                 case OfficeMathKind.Row:
                     foreach (OfficeMathExpression child in expression.Children) AppendOmml(parent, child);
@@ -308,10 +317,27 @@ namespace OfficeIMO.Word {
             return values.Length == 1 ? values[0] : OfficeIMO.Drawing.OfficeMath.Row(values);
         }
 
+        private static OfficeMathExpression ClassifyToken(M.Text text) {
+            string value = text.Text ?? string.Empty;
+            string? serializedKind = text.Parent?.ExtendedAttributes
+                .Where(attribute => attribute.LocalName == OfficeImoTokenKindAttribute && attribute.NamespaceUri == OfficeImoMathNamespace.NamespaceName)
+                .Select(attribute => attribute.Value)
+                .FirstOrDefault();
+            if (Enum.TryParse(serializedKind, true, out OfficeMathKind kind)) {
+                switch (kind) {
+                    case OfficeMathKind.Text: return OfficeIMO.Drawing.OfficeMath.Text(value);
+                    case OfficeMathKind.Identifier: return OfficeIMO.Drawing.OfficeMath.Identifier(value);
+                    case OfficeMathKind.Number: return OfficeIMO.Drawing.OfficeMath.Number(value);
+                    case OfficeMathKind.Operator: return OfficeIMO.Drawing.OfficeMath.Operator(value);
+                }
+            }
+            return ClassifyToken(value);
+        }
+
         private static OfficeMathExpression ClassifyToken(string value) {
             if (value.Length > 0 && double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out _)) return OfficeIMO.Drawing.OfficeMath.Number(value);
-            if (value.Length > 0 && value.All(character => char.IsLetter(character))) return OfficeIMO.Drawing.OfficeMath.Identifier(value);
-            if (value.Length > 0 && value.All(character => "+-−=*/×÷±∑∏∫≤≥≠→∞,.;:|".IndexOf(character) >= 0)) return OfficeIMO.Drawing.OfficeMath.Operator(value);
+            if (value.Length > 0 && char.IsLetter(value[0]) && value.Skip(1).All(character => char.IsLetterOrDigit(character))) return OfficeIMO.Drawing.OfficeMath.Identifier(value);
+            if (value.Length > 0 && value.All(character => "+-−=*/×÷±∑∏∫≤≥≠→∞,.;:|()[]{}⟨⟩".IndexOf(character) >= 0)) return OfficeIMO.Drawing.OfficeMath.Operator(value);
             return OfficeIMO.Drawing.OfficeMath.Text(value);
         }
 
@@ -329,12 +355,12 @@ namespace OfficeIMO.Word {
         private static XElement CharacterValue(string name, string value) =>
             new XElement(OmmlNamespace + name, new XAttribute(OmmlNamespace + "val", value));
 
-        private static XElement MathRun(string value) {
+        private static XElement MathRun(string value, OfficeMathKind kind) {
             var text = new XElement(OmmlNamespace + "t", value);
             if (value.Length > 0 && (char.IsWhiteSpace(value[0]) || char.IsWhiteSpace(value[value.Length - 1]))) {
                 text.SetAttributeValue(XNamespace.Xml + "space", "preserve");
             }
-            return new XElement(OmmlNamespace + "r", text);
+            return new XElement(OmmlNamespace + "r", new XAttribute(OfficeImoMathNamespace + OfficeImoTokenKindAttribute, kind), text);
         }
 
         private static XElement AlignmentRun() =>

@@ -71,9 +71,29 @@ namespace OfficeIMO.Tests {
             Assert.Equal(expression, equation.ToExpression());
             Assert.Contains("<m:f>", equation.Omml, StringComparison.Ordinal);
             Assert.Contains("<m:rad>", equation.Omml, StringComparison.Ordinal);
-            Assert.Equal("\\frac{a}{2}+\\sqrt{x}", OfficeMathMarkup.ToLatex(equation.ToExpression()));
+            Assert.Equal("\\frac{a}{2} + \\sqrt{x}", OfficeMathMarkup.ToLatex(equation.ToExpression()));
             Assert.NotEmpty(equation.ToDrawing().Elements);
             Assert.Equal(expression, WordMathMarkup.FromOmml(WordMathMarkup.ToOmml(expression, display: true)));
+            Assert.Empty(document.ValidateDocument());
+        }
+
+        [Fact]
+        public void GeneratedOmmlPreservesAuthoredTokenKindsExactly() {
+            OfficeMathExpression expression = SharedMath.Row(
+                SharedMath.Identifier("x2"),
+                SharedMath.Number("NaN"),
+                SharedMath.Operator("["),
+                SharedMath.Text("word"),
+                SharedMath.Operator("]"),
+                SharedMath.Operator("custom"));
+
+            string omml = WordMathMarkup.ToOmml(expression, display: true);
+
+            Assert.Contains("oim:kind", omml, StringComparison.Ordinal);
+            Assert.Equal(expression, WordMathMarkup.FromOmml(omml));
+            using WordDocument document = WordDocument.Create();
+            document.AddEquation(expression);
+            Assert.Equal(expression, Assert.Single(document.Equations).ToExpression());
             Assert.Empty(document.ValidateDocument());
         }
 

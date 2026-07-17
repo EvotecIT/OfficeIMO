@@ -140,7 +140,7 @@ public static partial class OneNotePageRenderer {
                 : flow + Math.Max(pendingSpace, RenderContext.ParagraphSpaceBefore(element));
             double elementWidth = ResolveEstimatedWidth(element, bodyWidth, options);
             double elementHeight = estimator.MeasureElementHeight(element, elementWidth);
-            right = Math.Max(right, x + elementWidth);
+            right = Math.Max(right, x + estimator.MeasureElementWidthExtent(element, elementWidth));
             bottom = Math.Max(bottom, y + elementHeight);
             if (element.Layout?.Y.HasValue != true) {
                 flow = Math.Max(flow, y + elementHeight);

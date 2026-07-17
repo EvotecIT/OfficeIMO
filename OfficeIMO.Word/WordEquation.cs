@@ -110,6 +110,7 @@ namespace OfficeIMO.Word {
             if (_officeMath != null) {
                 _officeMath.RemoveAllChildren();
                 foreach (OpenXmlElement child in replacement.ChildElements.ToList()) _officeMath.Append(child.CloneNode(true));
+                CopyCompatibilityMetadata(replacement, _officeMath);
                 return this;
             }
             if (_mathParagraph != null) {
@@ -135,6 +136,23 @@ namespace OfficeIMO.Word {
             _simpleField?.Remove();
             if (_runs != null) foreach (Run run in _runs.ToList()) run.Remove();
             return new WordEquation(_document, _paragraph, replacement);
+        }
+
+        private static void CopyCompatibilityMetadata(OpenXmlElement source, OpenXmlElement target) {
+            foreach (KeyValuePair<string, string> declaration in source.NamespaceDeclarations) {
+                if (target.NamespaceDeclarations.Any(existing => existing.Key == declaration.Key)) {
+                    target.RemoveNamespaceDeclaration(declaration.Key);
+                }
+                target.AddNamespaceDeclaration(declaration.Key, declaration.Value);
+            }
+            string? sourceIgnorable = source.MCAttributes?.Ignorable?.Value;
+            if (string.IsNullOrWhiteSpace(sourceIgnorable)) return;
+            MarkupCompatibilityAttributes attributes = target.MCAttributes ?? new MarkupCompatibilityAttributes();
+            attributes.Ignorable = string.Join(" ",
+                ((attributes.Ignorable?.Value ?? string.Empty) + " " + sourceIgnorable)
+                    .Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries)
+                    .Distinct(StringComparer.Ordinal));
+            target.MCAttributes = attributes;
         }
 
         private OpenXmlCompositeElement ResolveReplacementParent(OpenXmlElement? firstBacking) {
