@@ -72,13 +72,22 @@ public sealed class EmailStorePstWriter : IDisposable {
         get { ThrowIfUnavailable(); return _core.SpamSearchFolderId; }
     }
 
-    /// <summary>
-    /// Adds a folder. A null parent places it under <see cref="RootFolderId"/>. Standard Outlook default-folder
-    /// identity can be assigned for roles supported by the managed writer.
-    /// </summary>
+    internal void ConfigureFolderMetadata(string folderId, string name, string? containerClass) {
+        ThrowIfUnavailable();
+        _core.ConfigureFolderMetadata(folderId, name, containerClass);
+    }
+
+    /// <summary>Adds a folder. A null parent places it under <see cref="RootFolderId"/>.</summary>
     public string AddFolder(string name, string? parentFolderId = null,
-        string? containerClass = null,
-        EmailStoreSpecialFolderKind specialFolderKind = EmailStoreSpecialFolderKind.Unknown) {
+        string? containerClass = null) {
+        ThrowIfUnavailable();
+        return _core.AddFolder(name, parentFolderId, containerClass,
+            EmailStoreSpecialFolderKind.Unknown);
+    }
+
+    /// <summary>Adds a folder with a supported standard Outlook default-folder identity.</summary>
+    public string AddFolder(string name, EmailStoreSpecialFolderKind specialFolderKind,
+        string? parentFolderId = null, string? containerClass = null) {
         ThrowIfUnavailable();
         return _core.AddFolder(name, parentFolderId, containerClass, specialFolderKind);
     }

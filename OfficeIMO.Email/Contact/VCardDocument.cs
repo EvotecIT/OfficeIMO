@@ -118,7 +118,7 @@ public sealed partial class VCardDocument {
         return ContentLineCodec.Serialize(_cards, options ?? ContentLineWriterOptions.Default,
             card => GetVersion(card) == VCardVersion.V4_0
                 ? ContentLineParameterEncoding.Rfc6868
-                : ContentLineParameterEncoding.LegacyVCard);
+                : ContentLineParameterEncoding.Legacy);
     }
 
     /// <summary>Serializes this document to text using the configured output encoding.</summary>

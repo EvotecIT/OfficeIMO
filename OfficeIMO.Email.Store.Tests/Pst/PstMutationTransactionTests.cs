@@ -1,4 +1,7 @@
 using OfficeIMO.Email;
+using System.Collections;
+using System.Reflection;
+using System.Runtime.InteropServices;
 
 namespace OfficeIMO.Email.Store.Tests;
 
@@ -85,16 +88,16 @@ public sealed class PstMutationTransactionTests {
         string path = TemporaryPstPath();
         try {
             using (EmailStorePstWriter writer = EmailStorePstWriter.Create(path)) {
-                writer.AddFolder("Inbox source", containerClass: "IPF.Note",
-                    specialFolderKind: EmailStoreSpecialFolderKind.Inbox);
-                writer.AddFolder("Sent source", containerClass: "IPF.Note",
-                    specialFolderKind: EmailStoreSpecialFolderKind.SentItems);
-                writer.AddFolder("Outbox source", containerClass: "IPF.Note",
-                    specialFolderKind: EmailStoreSpecialFolderKind.Outbox);
-                writer.AddFolder("Calendar source", containerClass: "IPF.Appointment",
-                    specialFolderKind: EmailStoreSpecialFolderKind.Calendar);
-                writer.AddFolder("Contacts source", containerClass: "IPF.Contact",
-                    specialFolderKind: EmailStoreSpecialFolderKind.Contacts);
+                writer.AddFolder("Inbox source", EmailStoreSpecialFolderKind.Inbox,
+                    containerClass: "IPF.Note");
+                writer.AddFolder("Sent source", EmailStoreSpecialFolderKind.SentItems,
+                    containerClass: "IPF.Note");
+                writer.AddFolder("Outbox source", EmailStoreSpecialFolderKind.Outbox,
+                    containerClass: "IPF.Note");
+                writer.AddFolder("Calendar source", EmailStoreSpecialFolderKind.Calendar,
+                    containerClass: "IPF.Appointment");
+                writer.AddFolder("Contacts source", EmailStoreSpecialFolderKind.Contacts,
+                    containerClass: "IPF.Contact");
                 writer.Complete();
             }
 
@@ -132,6 +135,39 @@ public sealed class PstMutationTransactionTests {
                     folder.SpecialFolderKind == EmailStoreSpecialFolderKind.Root).Id,
                 Assert.Single(session.Folders, folder =>
                     folder.SpecialFolderKind == EmailStoreSpecialFolderKind.IpmSubtree).Id);
+        } finally {
+            TryDelete(path);
+        }
+    }
+
+    [Fact]
+    public void MutationPreservesMandatoryFolderDisplayMetadata() {
+        string path = TemporaryPstPath();
+        try {
+            using (EmailStorePstWriter writer = EmailStorePstWriter.Create(path)) {
+                writer.ConfigureFolderMetadata(writer.MessageStoreRootFolderId, "Korzen skrzynki", null);
+                writer.ConfigureFolderMetadata(writer.RootFolderId, "Gora folderow osobistych", "IPF.Note");
+                writer.ConfigureFolderMetadata(writer.DeletedItemsFolderId, "Elementy usuniete", "IPF.Note");
+                writer.ConfigureFolderMetadata(writer.SearchRootFolderId, "Wyszukiwanie", null);
+                writer.ConfigureFolderMetadata(writer.SpamSearchFolderId, "Wyszukiwanie spamu", "IPF.Note");
+                writer.Complete();
+            }
+
+            using (var transaction = EmailStorePstMutationTransaction.Open(path)) {
+                transaction.CreateFolder("Commit trigger");
+                Assert.True(transaction.Commit().Verification?.IsSuccessful);
+            }
+
+            using EmailStoreSession session = EmailStoreSession.Open(path);
+            Assert.Equal("Korzen skrzynki", Assert.Single(session.Folders,
+                folder => folder.SpecialFolderKind == EmailStoreSpecialFolderKind.Root).Name);
+            Assert.Equal("Gora folderow osobistych", Assert.Single(session.Folders,
+                folder => folder.SpecialFolderKind == EmailStoreSpecialFolderKind.IpmSubtree).Name);
+            Assert.Equal("Elementy usuniete", Assert.Single(session.Folders,
+                folder => folder.SpecialFolderKind == EmailStoreSpecialFolderKind.DeletedItems).Name);
+            Assert.Equal("Wyszukiwanie", Assert.Single(session.Folders,
+                folder => folder.SpecialFolderKind == EmailStoreSpecialFolderKind.SearchRoot).Name);
+            Assert.Contains(session.Folders, folder => folder.Name == "Wyszukiwanie spamu");
         } finally {
             TryDelete(path);
         }
@@ -227,6 +263,65 @@ public sealed class PstMutationTransactionTests {
             Assert.Empty(result.EnumerateItems());
         } finally {
             TryDelete(path);
+        }
+    }
+
+    [Fact]
+    public void MoveFolderRejectsAnExistingAncestorCycleInsteadOfLooping() {
+        string path = TemporaryPstPath();
+        try {
+            using (EmailStorePstWriter writer = EmailStorePstWriter.Create(path)) {
+                writer.AddFolder("First");
+                writer.AddFolder("Second");
+                writer.AddFolder("Moved");
+                writer.Complete();
+            }
+            using EmailStorePstMutationTransaction transaction =
+                EmailStorePstMutationTransaction.Open(path);
+            EmailStorePstMutationFolder first = Assert.Single(transaction.Folders,
+                folder => folder.Name == "First");
+            EmailStorePstMutationFolder second = Assert.Single(transaction.Folders,
+                folder => folder.Name == "Second");
+            EmailStorePstMutationFolder moved = Assert.Single(transaction.Folders,
+                folder => folder.Name == "Moved");
+            FieldInfo foldersField = typeof(EmailStorePstMutationTransaction).GetField(
+                "_folders", BindingFlags.Instance | BindingFlags.NonPublic)!;
+            var folders = (IDictionary)foldersField.GetValue(transaction)!;
+            object firstState = folders[first.Id]!;
+            object secondState = folders[second.Id]!;
+            PropertyInfo parentId = firstState.GetType().GetProperty(
+                "ParentId", BindingFlags.Instance | BindingFlags.NonPublic)!;
+            parentId.SetValue(firstState, second.Id);
+            parentId.SetValue(secondState, first.Id);
+
+            InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
+                transaction.MoveFolder(moved.Id, first.Id));
+
+            Assert.Contains("already contains a cycle", exception.Message,
+                StringComparison.OrdinalIgnoreCase);
+        } finally {
+            TryDelete(path);
+        }
+    }
+
+    [Fact]
+    public void LinuxAllowsCaseDistinctBackupAndSourcePaths() {
+        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Linux)) return;
+        string directory = Path.Combine(Path.GetTempPath(),
+            "officeimo-pst-backup-case-" + Guid.NewGuid().ToString("N"));
+        string source = Path.Combine(directory, "Archive.pst");
+        string backup = Path.Combine(directory, "archive.pst");
+        try {
+            Directory.CreateDirectory(directory);
+            CreateSource(source);
+
+            using EmailStorePstMutationTransaction transaction =
+                EmailStorePstMutationTransaction.Open(source,
+                    new EmailStorePstMutationOptions(backupPath: backup));
+
+            Assert.NotEmpty(transaction.Folders);
+        } finally {
+            if (Directory.Exists(directory)) Directory.Delete(directory, recursive: true);
         }
     }
 

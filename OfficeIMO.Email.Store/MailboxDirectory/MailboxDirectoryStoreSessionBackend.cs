@@ -70,6 +70,7 @@ internal sealed class MailboxDirectoryStoreSessionBackend : IEmailStoreSessionBa
             document.Properties["EmailStore:ItemId"] = file.Id;
             document.Properties["EmailStore:FolderId"] = file.FolderId;
             document.Properties["EmailStore:RelativePath"] = file.RelativePath;
+            ApplyMaildirFlags(document, file.MaildirFlags);
             return new EmailStoreItem(
                 file.Id, file.FolderId, document, format: EmailStoreFormat.MailboxDirectory);
         }
@@ -129,7 +130,8 @@ internal sealed class MailboxDirectoryStoreSessionBackend : IEmailStoreSessionBa
                     file.FullName,
                     ToRelativePath(file.FullName),
                     IsEmlx(file.Name),
-                    GetLogicalFolderPath(ToRelativePath(file.DirectoryName ?? _root))));
+                    GetLogicalFolderPath(ToRelativePath(file.DirectoryName ?? _root)),
+                    ParseMaildirFlags(file.Name)));
             }
         }
 
@@ -144,7 +146,8 @@ internal sealed class MailboxDirectoryStoreSessionBackend : IEmailStoreSessionBa
             string folderId = GetFolderId(candidate.FolderPath);
             string id = string.Concat("directory:item:", candidate.RelativePath.Replace('\\', '/'));
             var file = new MailboxFile(
-                id, folderId, candidate.Path, candidate.RelativePath, candidate.IsEmlx);
+                id, folderId, candidate.Path, candidate.RelativePath, candidate.IsEmlx,
+                candidate.MaildirFlags);
             _files.Add(file);
             _filesById.Add(id, file);
         }
@@ -252,6 +255,23 @@ internal sealed class MailboxDirectoryStoreSessionBackend : IEmailStoreSessionBa
     private static bool IsEmlx(string name) =>
         name.EndsWith(".emlx", StringComparison.OrdinalIgnoreCase);
 
+    internal static string? ParseMaildirFlags(string name) {
+        if (name == null) throw new ArgumentNullException(nameof(name));
+        int marker = name.LastIndexOf(":2,", StringComparison.Ordinal);
+        return marker < 0 ? null : name.Substring(marker + 3);
+    }
+
+    internal static void ApplyMaildirFlags(EmailDocument document, string? flags) {
+        if (document == null) throw new ArgumentNullException(nameof(document));
+        if (flags == null) return;
+        document.MessageMetadata.IsDraft = flags.IndexOf('D') >= 0;
+        document.MessageMetadata.IsRead = flags.IndexOf('S') >= 0;
+        document.Properties["Emlx:Flag:Flagged"] = flags.IndexOf('F') >= 0;
+        document.Properties["Emlx:Flag:Forwarded"] = flags.IndexOf('P') >= 0;
+        document.Properties["Emlx:Flag:Answered"] = flags.IndexOf('R') >= 0;
+        document.Properties["Emlx:Flag:Deleted"] = flags.IndexOf('T') >= 0;
+    }
+
     private static string GetFolderId(string path) =>
         string.Concat("directory:folder:", path);
 
@@ -278,30 +298,36 @@ internal sealed class MailboxDirectoryStoreSessionBackend : IEmailStoreSessionBa
     }
 
     private sealed class MailboxCandidate {
-        internal MailboxCandidate(string path, string relativePath, bool isEmlx, string folderPath) {
+        internal MailboxCandidate(string path, string relativePath, bool isEmlx, string folderPath,
+            string? maildirFlags) {
             Path = path;
             RelativePath = relativePath;
             IsEmlx = isEmlx;
             FolderPath = folderPath;
+            MaildirFlags = maildirFlags;
         }
         internal string Path { get; }
         internal string RelativePath { get; }
         internal bool IsEmlx { get; }
         internal string FolderPath { get; }
+        internal string? MaildirFlags { get; }
     }
 
     private sealed class MailboxFile {
-        internal MailboxFile(string id, string folderId, string path, string relativePath, bool isEmlx) {
+        internal MailboxFile(string id, string folderId, string path, string relativePath, bool isEmlx,
+            string? maildirFlags) {
             Id = id;
             FolderId = folderId;
             Path = path;
             RelativePath = relativePath;
             IsEmlx = isEmlx;
+            MaildirFlags = maildirFlags;
         }
         internal string Id { get; }
         internal string FolderId { get; }
         internal string Path { get; }
         internal string RelativePath { get; }
         internal bool IsEmlx { get; }
+        internal string? MaildirFlags { get; }
     }
 }

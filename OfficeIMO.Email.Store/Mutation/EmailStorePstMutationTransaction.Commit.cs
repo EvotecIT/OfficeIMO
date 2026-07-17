@@ -95,6 +95,9 @@ public sealed partial class EmailStorePstMutationTransaction {
                 _source.Dispose();
                 _source = null;
                 EnsureSourceUnchanged();
+                // FileShare.Delete is required for the atomic replacement itself. The adjacent
+                // OfficeIMO lock owns pathname coordination; uncooperative replacers remain an
+                // explicitly documented filesystem boundary rather than being silently assumed safe.
                 OfficeFileCommit.CommitTemporaryFile(stagingPath, _sourcePath,
                     OfficeFileCommit.ConflictPolicy.Replace);
             }
@@ -141,24 +144,34 @@ public sealed partial class EmailStorePstMutationTransaction {
             if (folder.IsMappedSystemFolder) {
                 folderMap[folder.Id] = writer.SpamSearchFolderId;
                 folderParentMap[folder.Id] = writer.MessageStoreRootFolderId;
+                writer.ConfigureFolderMetadata(writer.SpamSearchFolderId,
+                    folder.Name, folder.ContainerClass);
                 continue;
             }
             switch (folder.SpecialFolderKind) {
                 case EmailStoreSpecialFolderKind.Root:
                     folderMap[folder.Id] = writer.MessageStoreRootFolderId;
                     folderParentMap[folder.Id] = null;
+                    writer.ConfigureFolderMetadata(writer.MessageStoreRootFolderId,
+                        folder.Name, folder.ContainerClass);
                     break;
                 case EmailStoreSpecialFolderKind.IpmSubtree:
                     folderMap[folder.Id] = writer.RootFolderId;
                     folderParentMap[folder.Id] = writer.MessageStoreRootFolderId;
+                    writer.ConfigureFolderMetadata(writer.RootFolderId,
+                        folder.Name, folder.ContainerClass);
                     break;
                 case EmailStoreSpecialFolderKind.DeletedItems:
                     folderMap[folder.Id] = writer.DeletedItemsFolderId;
                     folderParentMap[folder.Id] = writer.RootFolderId;
+                    writer.ConfigureFolderMetadata(writer.DeletedItemsFolderId,
+                        folder.Name, folder.ContainerClass);
                     break;
                 case EmailStoreSpecialFolderKind.SearchRoot:
                     folderMap[folder.Id] = writer.SearchRootFolderId;
                     folderParentMap[folder.Id] = writer.MessageStoreRootFolderId;
+                    writer.ConfigureFolderMetadata(writer.SearchRootFolderId,
+                        folder.Name, folder.ContainerClass);
                     break;
             }
         }
@@ -185,8 +198,9 @@ public sealed partial class EmailStorePstMutationTransaction {
                         "A source-identified special-folder role cannot be authored by the managed PST writer.",
                         EmailStoreDiagnosticSeverity.Warning, folder.Id));
                 }
-                folderMap[folder.Id] = writer.AddFolder(
-                    folder.Name, parent, folder.ContainerClass, role);
+                folderMap[folder.Id] = role == EmailStoreSpecialFolderKind.Unknown
+                    ? writer.AddFolder(folder.Name, parent, folder.ContainerClass)
+                    : writer.AddFolder(folder.Name, role, parent, folder.ContainerClass);
                 folderParentMap[folder.Id] = parent;
                 if (folder.IsSearchFolder) {
                     _diagnostics.Add(new EmailStoreDiagnostic(
@@ -204,8 +218,9 @@ public sealed partial class EmailStorePstMutationTransaction {
                 folder.SpecialFolderKind)
                     ? folder.SpecialFolderKind
                     : EmailStoreSpecialFolderKind.Unknown;
-            folderMap[folder.Id] = writer.AddFolder(folder.Name, writer.RootFolderId,
-                folder.ContainerClass, role);
+            folderMap[folder.Id] = role == EmailStoreSpecialFolderKind.Unknown
+                ? writer.AddFolder(folder.Name, writer.RootFolderId, folder.ContainerClass)
+                : writer.AddFolder(folder.Name, role, writer.RootFolderId, folder.ContainerClass);
             folderParentMap[folder.Id] = writer.RootFolderId;
             _diagnostics.Add(new EmailStoreDiagnostic(
                 "EMAIL_STORE_PST_MUTATE_FOLDER_PARENT_RECOVERED",
@@ -251,9 +266,8 @@ public sealed partial class EmailStorePstMutationTransaction {
                             Array.Empty<EmailSemanticDifference>()));
                     continue;
                 }
-                bool mandatoryAlias = folder.IsMandatory;
                 string? expectedParent = folderParentMap[folder.Id];
-                bool metadataMatches = mandatoryAlias ||
+                bool metadataMatches =
                     string.Equals(actual.Name, folder.Name, StringComparison.Ordinal) &&
                     string.Equals(actual.ParentId, expectedParent, StringComparison.Ordinal) &&
                     string.Equals(actual.ContainerClass, folder.ContainerClass,

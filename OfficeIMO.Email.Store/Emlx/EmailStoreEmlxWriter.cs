@@ -157,6 +157,9 @@ public sealed class EmailStoreEmlxWriter {
             exception.LimitName == nameof(EmailWriterOptions.MaxOutputBytes)) {
             throw new EmailLimitExceededException(nameof(EmailStoreEmlxWriterOptions.MaxOutputBytes),
                 exception.ActualValue, maxOutputBytes);
+        } catch (Exception exception) when (exception is ArgumentException || exception is XmlException) {
+            throw new InvalidDataException(
+                "The EMLX property-list metadata contains text that XML cannot represent.", exception);
         }
     }
 

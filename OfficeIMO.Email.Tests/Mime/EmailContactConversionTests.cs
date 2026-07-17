@@ -127,7 +127,7 @@ public sealed class EmailContactConversionTests {
     }
 
     [Fact]
-    public void DecodesQuotedVcardParameterEscapesThroughStoreConversion() {
+    public void PreservesQuotedVcardParameterBackslashesThroughStoreConversion() {
         byte[] eml = Encoding.ASCII.GetBytes(
             "Content-Type: text/vcard; charset=utf-8\r\n\r\nBEGIN:VCARD\r\nVERSION:3.0\r\n" +
             "FN:Ada Lovelace\r\nADR;TYPE=HOME;LABEL=\"12 \\\"Main\\\" \\\\ St\":;;Main Street;;;;\r\n" +
@@ -137,8 +137,20 @@ public sealed class EmailContactConversionTests {
         EmailDocument roundTrip = new EmailDocumentReader().Read(
             new EmailDocumentWriter().ToBytes(document, EmailFileFormat.OutlookMsg)).Document;
 
-        Assert.Equal("12 \"Main\" \\ St", document.Contact!.HomeAddress.Formatted);
-        Assert.Equal("12 \"Main\" \\ St", roundTrip.Contact!.HomeAddress.Formatted);
+        Assert.Equal("12 \"Main\" \\\\ St", document.Contact!.HomeAddress.Formatted);
+        Assert.Equal("12 \"Main\" \\\\ St", roundTrip.Contact!.HomeAddress.Formatted);
+    }
+
+    [Fact]
+    public void MimeVcardProjectionPreservesLegacyLiteralCaretParameters() {
+        byte[] eml = Encoding.ASCII.GetBytes(
+            "Content-Type: text/vcard; charset=utf-8\r\n\r\nBEGIN:VCARD\r\nVERSION:3.0\r\n" +
+            "FN:Ada Lovelace\r\n" +
+            "ADR;TYPE=HOME;LABEL=alpha^nbeta:;;Main Street;;;;\r\nEND:VCARD\r\n");
+
+        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+
+        Assert.Equal("alpha^nbeta", document.Contact!.HomeAddress.Formatted);
     }
 
     [Fact]

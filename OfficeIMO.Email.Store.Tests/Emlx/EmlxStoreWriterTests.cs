@@ -57,4 +57,14 @@ public sealed class EmlxStoreWriterTests {
         Assert.Equal(nameof(EmailStoreEmlxWriterOptions.MaxOutputBytes), exception.LimitName);
         Assert.True(exception.ActualValue > exception.MaximumValue);
     }
+
+    [Fact]
+    public void WriterNormalizesXmlForbiddenMetadataTextToInvalidDataException() {
+        var document = new EmailDocument { Subject = "invalid\u0001subject" };
+
+        InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+            new EmailStoreEmlxWriter().ToBytes(document));
+
+        Assert.Contains("XML cannot represent", exception.Message, StringComparison.Ordinal);
+    }
 }

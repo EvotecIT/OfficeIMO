@@ -104,8 +104,10 @@ internal sealed partial class PstStoreWriterCore {
         if (!string.IsNullOrWhiteSpace(folder.ContainerClass)) {
             folderProperties.Add(new MapiProperty(0x3613, MapiPropertyType.Unicode, folder.ContainerClass));
         }
-        if (folder.SpecialFolderKind == EmailStoreSpecialFolderKind.Root ||
-            folder.SpecialFolderKind == EmailStoreSpecialFolderKind.Inbox) {
+        bool hasInbox = _folders.Values.Any(item =>
+            item.SpecialFolderKind == EmailStoreSpecialFolderKind.Inbox);
+        if (folder.SpecialFolderKind == EmailStoreSpecialFolderKind.Inbox ||
+            (folder.SpecialFolderKind == EmailStoreSpecialFolderKind.Root && !hasInbox)) {
             AddSpecialFolderEntryId(folderProperties, 0x36D0, EmailStoreSpecialFolderKind.Calendar);
             AddSpecialFolderEntryId(folderProperties, 0x36D1, EmailStoreSpecialFolderKind.Contacts);
             AddSpecialFolderEntryId(folderProperties, 0x36D2, EmailStoreSpecialFolderKind.Journal);

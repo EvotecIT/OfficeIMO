@@ -194,7 +194,11 @@ public sealed partial class EmailStoreSession {
             }
 
             temporaryPath = OfficeFileCommit.CreateStagingPath(path);
-            EmailWriteResult result = writer.Write(item.Document, temporaryPath, options.Format);
+            EmailWriteResult result;
+            using (var stream = new FileStream(temporaryPath, FileMode.CreateNew, FileAccess.Write, FileShare.None)) {
+                result = writer.Write(item.Document, stream, options.Format);
+                stream.Flush();
+            }
             foreach (EmailDiagnostic diagnostic in result.Diagnostics) {
                 diagnostics.Add(ConvertDiagnostic(diagnostic, reference.Id));
             }
@@ -309,7 +313,7 @@ public sealed partial class EmailStoreSession {
                 temporaryPath, FileMode.CreateNew, FileAccess.Write, FileShare.Read))
             using (var writer = new StreamWriter(stream,
                 new UTF8Encoding(encoderShouldEmitUTF8Identifier: false))) {
-                writer.WriteLine("ItemId\tFolderId\tAssociated\tRecovered\tSucceeded\tBytes\tRelativePath\tMaildirFlags\tDiagnosticCodes");
+                writer.WriteLine("ItemId\tFolderId\tAssociated\tRecovered\tSucceeded\tBytes\tRelativePath\tMaildirFlags\tDiagnosticCount");
                 foreach (EmailStoreExportEntry entry in entries) {
                     string relativePath = entry.DestinationPath == null
                         ? string.Empty
@@ -330,7 +334,7 @@ public sealed partial class EmailStoreSession {
                     writer.Write('\t');
                     writer.Write(EscapeManifest(entry.MaildirFlags ?? string.Empty));
                     writer.Write('\t');
-                    writer.Write(EscapeManifest(string.Join(",", entry.Diagnostics.Select(item => item.Code))));
+                    writer.Write(entry.Diagnostics.Count.ToString(CultureInfo.InvariantCulture));
                     writer.WriteLine();
                 }
             }

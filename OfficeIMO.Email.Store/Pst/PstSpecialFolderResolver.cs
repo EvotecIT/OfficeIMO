@@ -40,6 +40,13 @@ internal sealed class PstSpecialFolderResolver {
             ? kind
             : EmailStoreSpecialFolderKind.Unknown;
 
+    internal static bool TryGetStoreFolderNid(IEnumerable<MapiProperty> storeProperties,
+        ushort propertyId, out uint nid) {
+        if (storeProperties == null) throw new ArgumentNullException(nameof(storeProperties));
+        return TryGetFolderNid(storeProperties, propertyId,
+            GetBinary(storeProperties, 0x0FF9), out nid);
+    }
+
     internal static bool TryGetFolderNid(IEnumerable<MapiProperty> properties,
         ushort propertyId, byte[]? providerUid, out uint nid) {
         if (properties == null) throw new ArgumentNullException(nameof(properties));

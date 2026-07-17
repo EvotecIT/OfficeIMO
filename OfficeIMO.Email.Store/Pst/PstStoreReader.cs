@@ -165,8 +165,16 @@ internal sealed partial class PstStoreReader {
         }
 
         PstFolderDescriptor? root = descriptors.FirstOrDefault(item => item.Node.Nid == 0x122);
-        PstFolderDescriptor? inbox = descriptors.FirstOrDefault(item =>
-            EmailStoreSpecialFolderClassifier.FromDisplayName(item.Name) == EmailStoreSpecialFolderKind.Inbox);
+        PstFolderDescriptor? inbox = null;
+        if (PstSpecialFolderResolver.TryGetStoreFolderNid(
+            storeProperties, 0x35E1, out uint inboxNid)) {
+            inbox = descriptors.FirstOrDefault(item => item.Node.Nid == inboxNid);
+        }
+        if (inbox == null) {
+            inbox = descriptors.FirstOrDefault(item =>
+                EmailStoreSpecialFolderClassifier.FromDisplayName(item.Name) ==
+                    EmailStoreSpecialFolderKind.Inbox);
+        }
         var specialFolders = new PstSpecialFolderResolver(
             storeProperties, root?.Properties, inbox?.Properties, folderIds);
         foreach (PstFolderDescriptor descriptor in descriptors) {

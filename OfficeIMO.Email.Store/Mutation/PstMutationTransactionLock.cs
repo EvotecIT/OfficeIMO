@@ -26,17 +26,21 @@ internal sealed class PstMutationTransactionLock : IDisposable {
         }
         byte[] digest;
         using (SHA256 sha = SHA256.Create()) digest = sha.ComputeHash(Encoding.UTF8.GetBytes(identity));
-        string lockName = BitConverter.ToString(digest).Replace("-", string.Empty) + ".lock";
+        string lockName = ".officeimo-pst-" +
+            BitConverter.ToString(digest).Replace("-", string.Empty) + ".lock";
         Array.Clear(digest, 0, digest.Length);
 
         try {
-            string lockDirectory = Path.Combine(Path.GetTempPath(), "OfficeIMO", "PstMutationLocks");
-            Directory.CreateDirectory(lockDirectory);
+            string lockDirectory = Path.GetDirectoryName(identity) ?? Directory.GetCurrentDirectory();
             string lockPath = Path.Combine(lockDirectory, lockName);
             var lockStream = new FileStream(lockPath, FileMode.OpenOrCreate, FileAccess.ReadWrite,
                 FileShare.None, 1, FileOptions.RandomAccess);
             return new PstMutationTransactionLock(lockStream, identity);
-        } catch (Exception exception) when (exception is IOException || exception is UnauthorizedAccessException) {
+        } catch (UnauthorizedAccessException exception) {
+            ProcessLocks.TryRemove(identity, out _);
+            throw new IOException(
+                "The adjacent OfficeIMO PST mutation lock could not be created.", exception);
+        } catch (IOException exception) {
             ProcessLocks.TryRemove(identity, out _);
             throw new IOException("Another OfficeIMO mutation transaction already owns this PST path.", exception);
         }

@@ -10,6 +10,7 @@ internal static partial class VCardCodec {
         } catch (InvalidDataException exception) {
             diagnostics.Add(new EmailDiagnostic("EMAIL_VCARD_PARSE_INVALID", exception.Message,
                 EmailDiagnosticSeverity.Warning, location));
+            document.MimeSemanticProjectionIsIncomplete = true;
             return false;
         }
         if (!properties.Any(property => property.Name == "BEGIN" &&
@@ -318,7 +319,7 @@ internal static partial class VCardCodec {
             target.StateOrProvince = ValueAt(values, 4);
             target.PostalCode = ValueAt(values, 5);
             target.Country = ValueAt(values, 6);
-            if (property.Parameters.TryGetValue("LABEL", out string? label)) target.Formatted = Unescape(label);
+            if (property.Parameters.TryGetValue("LABEL", out string? label)) target.Formatted = label;
         }
         int labelWorkIndex = 0;
         foreach (VCardProperty property in properties.Where(property => property.Name == "LABEL")) {
@@ -413,7 +414,7 @@ internal static partial class VCardCodec {
 
     private static List<VCardProperty> Parse(string text, IList<EmailDiagnostic> diagnostics, string location) {
         var result = new List<VCardProperty>();
-        foreach (ContentLineComponent root in ContentLineCodec.Parse(text, ContentLineReaderOptions.Default)) {
+        foreach (ContentLineComponent root in VCardDocument.Parse(text).Cards) {
             result.Add(new VCardProperty("BEGIN", root.Name, null));
             foreach (ContentLineProperty source in root.Properties) {
                 var property = new VCardProperty(source.Name.ToUpperInvariant(), source.Value, source.Group);

@@ -57,7 +57,12 @@ public sealed partial class EmailStorePstMutationTransaction {
             throw new InvalidOperationException("A folder cannot be its own parent.");
         }
         FolderState? ancestor = parent;
+        var visited = new HashSet<string>(StringComparer.Ordinal);
         while (ancestor != null) {
+            if (!visited.Add(ancestor.Id)) {
+                throw new InvalidOperationException(
+                    "The source folder hierarchy already contains a cycle; the move was not staged.");
+            }
             if (ReferenceEquals(ancestor, folder)) {
                 throw new InvalidOperationException("Moving the folder would create a hierarchy cycle.");
             }

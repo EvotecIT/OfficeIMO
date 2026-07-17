@@ -86,6 +86,23 @@ public sealed class MailboxDirectorySessionTests {
         }
     }
 
+    [Fact]
+    public void CanonicalMaildirFlagsProjectIntoMessageMetadataAndProperties() {
+        string? flags = MailboxDirectoryStoreSessionBackend.ParseMaildirFlags(
+            "maildir-message:2,DFPRST");
+        var document = new EmailDocument();
+
+        MailboxDirectoryStoreSessionBackend.ApplyMaildirFlags(document, flags);
+
+        Assert.Equal("DFPRST", flags);
+        Assert.True(document.MessageMetadata.IsDraft);
+        Assert.True(document.MessageMetadata.IsRead);
+        Assert.Equal(true, document.Properties["Emlx:Flag:Flagged"]);
+        Assert.Equal(true, document.Properties["Emlx:Flag:Forwarded"]);
+        Assert.Equal(true, document.Properties["Emlx:Flag:Answered"]);
+        Assert.Equal(true, document.Properties["Emlx:Flag:Deleted"]);
+    }
+
     private static string CreateMailboxDirectory() {
         string root = Path.Combine(Path.GetTempPath(), "officeimo-mailbox-directory-" + Guid.NewGuid().ToString("N"));
         string apple = Path.Combine(root, "Inbox.mbox", "Messages");

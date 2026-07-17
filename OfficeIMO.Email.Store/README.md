@@ -317,9 +317,10 @@ string rewrittenItemId = mutationReport.ItemIdMap[newItem];
 The transaction can create, rename, move, and recursively delete non-mandatory folders; add, replace, move, and
 delete items; and move items between normal and associated contents. Disposing without `Commit()` leaves the source
 byte-for-byte unchanged. A no-op commit does not rewrite it. The transaction also detects source length or timestamp
-changes before replacement. It holds both the source read lock and a path-scoped cross-process OfficeIMO mutation
-lock through staging and replacement. The final replacement remains an atomic filesystem operation; software that
-does not participate in the OfficeIMO lock must coordinate its own simultaneous replacement of the same path.
+changes before replacement. It holds both the source read lock and an adjacent, path-scoped cross-process OfficeIMO
+mutation lock through staging and replacement. The final replacement remains an atomic filesystem operation;
+software that does not participate in the OfficeIMO lock must coordinate its own simultaneous replacement of the
+same path.
 
 This is a verified semantic rewrite, not in-place NDB allocation-map editing. PST folder and item identifiers change,
 so the report returns old/transaction-local to rewritten ID mappings. ANSI PST and OST inputs are rejected. Mandatory

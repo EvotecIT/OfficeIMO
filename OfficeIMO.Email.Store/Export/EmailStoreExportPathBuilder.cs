@@ -26,7 +26,7 @@ internal sealed class EmailStoreExportPathBuilder {
         string baseName = SanitizeSegment(subject, 96, "item");
         string stableId = SanitizeSegment(reference.Id, 48, "id");
         return Path.Combine(directory,
-            string.Concat(baseName, "__", stableId, extension));
+            string.Concat(baseName, "__", stableId, ".", GetStableHash(reference.Id), extension));
     }
 
     internal string GetFolderPath(string folderId) {
@@ -84,5 +84,15 @@ internal sealed class EmailStoreExportPathBuilder {
         }
         string result = builder.ToString().Trim(' ', '.');
         return string.IsNullOrEmpty(result) ? fallback : result;
+    }
+
+    internal static string GetStableHash(string value) {
+        if (value == null) throw new ArgumentNullException(nameof(value));
+        ulong hash = 14695981039346656037UL;
+        foreach (byte item in Encoding.UTF8.GetBytes(value)) {
+            hash ^= item;
+            hash *= 1099511628211UL;
+        }
+        return hash.ToString("x16", CultureInfo.InvariantCulture);
     }
 }

@@ -61,11 +61,13 @@ public sealed class PstWriterTests {
             };
             using (EmailStorePstWriter writer = EmailStorePstWriter.Create(path)) {
                 foreach (EmailStoreSpecialFolderKind role in roles) {
-                    writer.AddFolder(role + " custom name", containerClass: "IPF.Note",
-                        specialFolderKind: role);
+                    string name = role == EmailStoreSpecialFolderKind.Inbox
+                        ? "Skrzynka odbiorcza"
+                        : role + " custom name";
+                    writer.AddFolder(name, role, containerClass: "IPF.Note");
                 }
                 Assert.Throws<InvalidOperationException>(() => writer.AddFolder(
-                    "Second Inbox", specialFolderKind: EmailStoreSpecialFolderKind.Inbox));
+                    "Second Inbox", EmailStoreSpecialFolderKind.Inbox));
                 writer.Complete();
             }
 
@@ -79,6 +81,12 @@ public sealed class PstWriterTests {
         } finally {
             TryDelete(path);
         }
+    }
+
+    [Fact]
+    public void AddFolderRetainsTheOriginalThreeParameterClrOverload() {
+        Assert.NotNull(typeof(EmailStorePstWriter).GetMethod(nameof(EmailStorePstWriter.AddFolder),
+            new[] { typeof(string), typeof(string), typeof(string) }));
     }
 
     [Fact]
@@ -381,7 +389,7 @@ public sealed class PstWriterTests {
             using (EmailStorePstWriter writer = EmailStorePstWriter.Create(path,
                 new EmailStorePstWriterOptions(checkpointPath: checkpoint,
                     checkpointIntervalItems: 1, progress: progress))) {
-                folderId = writer.AddFolder("Inbox", specialFolderKind: EmailStoreSpecialFolderKind.Inbox);
+                folderId = writer.AddFolder("Inbox", EmailStoreSpecialFolderKind.Inbox);
                 writer.AddItem(folderId, new EmailDocument { Subject = "first" });
                 Assert.True(File.Exists(checkpoint));
             }

@@ -603,7 +603,7 @@ public sealed class EmailCalendarProjectionEdgeTests {
     }
 
     [Fact]
-    public void UnescapesQuotedCalendarParameters() {
+    public void PreservesQuotedCalendarParameterBackslashes() {
         const string parameterName = "Alice \\\"A\\\" \\\\ Team";
         byte[] eml = Calendar(
             "BEGIN:VEVENT\r\nUID:parameter@example.com\r\nDTSTART:20260801T100000Z\r\n" +
@@ -614,8 +614,8 @@ public sealed class EmailCalendarProjectionEdgeTests {
         EmailDocument roundTrip = new EmailDocumentReader().Read(
             new EmailDocumentWriter().ToBytes(document, EmailFileFormat.OutlookMsg)).Document;
 
-        Assert.Equal("Alice \"A\" \\ Team", Assert.Single(document.Recipients).Address.DisplayName);
-        Assert.Equal("Alice \"A\" \\ Team", Assert.Single(roundTrip.Recipients).Address.DisplayName);
+        Assert.Equal("Alice \"A\" \\\\ Team", Assert.Single(document.Recipients).Address.DisplayName);
+        Assert.Equal("Alice \"A\" \\\\ Team", Assert.Single(roundTrip.Recipients).Address.DisplayName);
     }
 
     [Fact]

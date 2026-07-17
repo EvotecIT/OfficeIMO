@@ -134,7 +134,11 @@ public sealed partial class EmailStoreSession {
             if (File.Exists(path) && !options.OverwriteExisting)
                 throw new IOException("The EMLX destination item already exists.");
             temporaryPath = string.Concat(path, ".", Guid.NewGuid().ToString("N"), ".tmp");
-            EmailWriteResult result = writer.Write(item.Document, temporaryPath);
+            EmailWriteResult result;
+            using (var stream = new FileStream(temporaryPath, FileMode.CreateNew, FileAccess.Write, FileShare.None)) {
+                result = writer.Write(item.Document, stream);
+                stream.Flush();
+            }
             foreach (EmailDiagnostic diagnostic in result.Diagnostics)
                 diagnostics.Add(ConvertDiagnostic(diagnostic, reference.Id));
             if (!result.HasErrors) {
@@ -159,9 +163,7 @@ public sealed partial class EmailStoreSession {
 
     private static string BuildMaildirFileName(string itemId) {
         string stable = EmailStoreExportPathBuilder.SanitizeSegment(itemId, 96, "item");
-        ulong hash = 14695981039346656037UL;
-        foreach (byte value in Encoding.UTF8.GetBytes(itemId)) { hash ^= value; hash *= 1099511628211UL; }
-        return stable + "." + hash.ToString("x16", CultureInfo.InvariantCulture) + ".officeimo";
+        return stable + "." + EmailStoreExportPathBuilder.GetStableHash(itemId) + ".officeimo";
     }
 
     private static string GetMaildirFlags(EmailDocument document) {

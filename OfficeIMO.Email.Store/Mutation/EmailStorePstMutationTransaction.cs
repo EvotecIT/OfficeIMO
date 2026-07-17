@@ -1,4 +1,5 @@
 using OfficeIMO.Email;
+using System.Runtime.InteropServices;
 
 namespace OfficeIMO.Email.Store;
 
@@ -45,7 +46,7 @@ public sealed partial class EmailStorePstMutationTransaction : IDisposable {
         if (!File.Exists(sourcePath)) throw new FileNotFoundException("The PST does not exist.", sourcePath);
         var effective = options ?? new EmailStorePstMutationOptions();
         if (effective.BackupPath != null && string.Equals(
-            sourcePath, effective.BackupPath, StringComparison.OrdinalIgnoreCase)) {
+            sourcePath, effective.BackupPath, GetPathComparison())) {
             throw new ArgumentException("The backup path must differ from the source PST.", nameof(options));
         }
         if (effective.BackupPath != null && File.Exists(effective.BackupPath) &&
@@ -160,6 +161,11 @@ public sealed partial class EmailStorePstMutationTransaction : IDisposable {
         if (root == null) throw new InvalidDataException("The PST does not expose a root folder.");
         return root.Id;
     }
+
+    private static StringComparison GetPathComparison() =>
+        RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+            ? StringComparison.OrdinalIgnoreCase
+            : StringComparison.Ordinal;
 
     private void EnsureItemsIndexed(CancellationToken cancellationToken) {
         if (_items != null) return;

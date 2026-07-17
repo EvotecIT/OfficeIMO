@@ -154,4 +154,22 @@ public sealed class IcsDocumentTests {
         Assert.Throws<InvalidDataException>(() => empty.ToBytes());
         Assert.Throws<InvalidDataException>(() => mutated.ToBytes());
     }
+
+    [Fact]
+    public void LegacyVcalendarParametersPreserveLiteralCaretSequences() {
+        const string source = "BEGIN:VCALENDAR\r\nVERSION:1.0\r\nPRODID:-//Legacy//EN\r\n" +
+            "BEGIN:VEVENT\r\nATTENDEE;X-LITERAL=alpha^nbeta:mailto:a@example.com\r\n" +
+            "END:VEVENT\r\nEND:VCALENDAR\r\n";
+
+        IcsDocument document = IcsDocument.Parse(source);
+        string value = document.GetComponents("VEVENT").Single().GetFirstProperty("ATTENDEE")!
+            .GetParameter("X-LITERAL")!.Values.Single();
+        string serialized = document.Serialize();
+
+        Assert.Equal("alpha^nbeta", value);
+        Assert.Contains("X-LITERAL=alpha^nbeta", serialized, StringComparison.Ordinal);
+        Assert.DoesNotContain("X-LITERAL=alpha^^nbeta", serialized, StringComparison.Ordinal);
+        Assert.Equal(value, IcsDocument.Parse(serialized).GetComponents("VEVENT").Single()
+            .GetFirstProperty("ATTENDEE")!.GetParameter("X-LITERAL")!.Values.Single());
+    }
 }

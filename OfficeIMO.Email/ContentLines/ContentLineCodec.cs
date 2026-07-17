@@ -2,7 +2,7 @@ namespace OfficeIMO.Email;
 
 internal enum ContentLineParameterEncoding {
     Rfc6868,
-    LegacyVCard
+    Legacy
 }
 
 internal static class ContentLineCodec {
@@ -238,7 +238,7 @@ internal static class ContentLineCodec {
     private static int FindDelimiter(string value, char delimiter) {
         bool quoted = false;
         for (int index = 0; index < value.Length; index++) {
-            if (value[index] == '"' && !IsEscaped(value, index)) quoted = !quoted;
+            if (value[index] == '"' && !IsNonStandardEscapedQuote(value, index)) quoted = !quoted;
             else if (value[index] == delimiter && !quoted) return index;
         }
         return -1;
@@ -248,7 +248,7 @@ internal static class ContentLineCodec {
         bool quoted = false;
         int start = 0;
         for (int index = 0; index < value.Length; index++) {
-            if (value[index] == '"' && !IsEscaped(value, index)) quoted = !quoted;
+            if (value[index] == '"' && !IsNonStandardEscapedQuote(value, index)) quoted = !quoted;
             else if (value[index] == delimiter && !quoted) {
                 yield return value.Substring(start, index - start);
                 start = index + 1;
@@ -262,10 +262,12 @@ internal static class ContentLineCodec {
         ? value.Substring(1, value.Length - 2)
         : value;
 
-    private static bool IsEscaped(string value, int index) {
+    private static bool IsNonStandardEscapedQuote(string value, int index) {
         int backslashes = 0;
         for (int current = index - 1; current >= 0 && value[current] == '\\'; current--) backslashes++;
-        return (backslashes & 1) != 0;
+        if ((backslashes & 1) == 0 || index + 1 >= value.Length) return false;
+        char next = value[index + 1];
+        return next != ';' && next != ',' && next != ':';
     }
 
     private static string DecodeParameter(string value, bool decodeLegacyQuotedBackslashes,
@@ -274,7 +276,7 @@ internal static class ContentLineCodec {
         for (int index = 0; index < value.Length; index++) {
             if (decodeLegacyQuotedBackslashes && value[index] == '\\' && index + 1 < value.Length) {
                 char escaped = value[index + 1];
-                if (escaped == '\\' || escaped == '"') {
+                if (escaped == '"') {
                     result.Append(escaped);
                     index++;
                     continue;
@@ -307,10 +309,10 @@ internal static class ContentLineCodec {
     }
 
     private static string EncodeParameter(string value, ContentLineParameterEncoding parameterEncoding) {
-        if (parameterEncoding == ContentLineParameterEncoding.LegacyVCard) {
+        if (parameterEncoding == ContentLineParameterEncoding.Legacy) {
             if (value.IndexOfAny(new[] { '\r', '\n', '"' }) >= 0) {
                 throw new InvalidDataException(
-                    "A vCard 2.1/3.0 parameter contains a quote or line break that legacy syntax cannot represent.");
+                    "A legacy content-line parameter contains a quote or line break that its syntax cannot represent.");
             }
             bool legacyQuote = value.IndexOfAny(new[] { ':', ';', ',' }) >= 0 ||
                 (value.Length > 0 && (char.IsWhiteSpace(value[0]) || char.IsWhiteSpace(value[value.Length - 1])));

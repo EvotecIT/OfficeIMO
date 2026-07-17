@@ -36,11 +36,13 @@ public sealed partial class IcsDocument {
 
     /// <summary>Parses an iCalendar stream from text.</summary>
     public static IcsDocument Parse(string text, ContentLineReaderOptions? options = null) =>
-        FromComponents(ContentLineCodec.Parse(text, options ?? ContentLineReaderOptions.Default));
+        FromComponents(ContentLineCodec.Parse(text, options ?? ContentLineReaderOptions.Default,
+            decodeRfc6868Parameters: false));
 
     /// <summary>Loads an iCalendar stream from memory.</summary>
     public static IcsDocument Load(byte[] bytes, ContentLineReaderOptions? options = null) =>
-        FromComponents(ContentLineCodec.Parse(bytes, options ?? ContentLineReaderOptions.Default));
+        FromComponents(ContentLineCodec.Parse(bytes, options ?? ContentLineReaderOptions.Default,
+            decodeRfc6868Parameters: false));
 
     /// <summary>Loads an iCalendar file.</summary>
     public static IcsDocument Load(string filePath, ContentLineReaderOptions? options = null,
@@ -75,7 +77,10 @@ public sealed partial class IcsDocument {
     /// <summary>Serializes this document to bytes.</summary>
     public byte[] ToBytes(ContentLineWriterOptions? options = null) {
         ValidateCalendars(_calendars);
-        return ContentLineCodec.Serialize(_calendars, options ?? ContentLineWriterOptions.Default);
+        return ContentLineCodec.Serialize(_calendars, options ?? ContentLineWriterOptions.Default,
+            calendar => UsesRfc6868(calendar)
+                ? ContentLineParameterEncoding.Rfc6868
+                : ContentLineParameterEncoding.Legacy);
     }
 
     /// <summary>Serializes this document to text using the configured output encoding.</summary>
@@ -105,8 +110,17 @@ public sealed partial class IcsDocument {
     private static IcsDocument FromComponents(IReadOnlyList<ContentLineComponent> components) {
         ValidateCalendars(components);
         var document = new IcsDocument(false);
-        foreach (ContentLineComponent component in components) document._calendars.Add(component);
+        foreach (ContentLineComponent component in components) {
+            if (UsesRfc6868(component)) ContentLineCodec.DecodeRfc6868Parameters(component);
+            document._calendars.Add(component);
+        }
         return document;
+    }
+
+    private static bool UsesRfc6868(ContentLineComponent calendar) {
+        ContentLineProperty? version = calendar.GetFirstProperty("VERSION");
+        return version == null || !string.Equals(
+            version.Value.Trim(), "1.0", StringComparison.OrdinalIgnoreCase);
     }
 
     private static void ValidateCalendars(IEnumerable<ContentLineComponent> calendars) {

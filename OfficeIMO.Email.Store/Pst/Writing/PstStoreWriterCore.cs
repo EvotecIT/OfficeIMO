@@ -124,6 +124,16 @@ internal sealed partial class PstStoreWriterCore : IDisposable {
         return FormatId(nid);
     }
 
+    internal void ConfigureFolderMetadata(string folderId, string name, string? containerClass) {
+        ThrowIfUnavailable();
+        if (string.IsNullOrWhiteSpace(name)) {
+            throw new ArgumentException("A folder name is required.", nameof(name));
+        }
+        FolderState folder = _folders[ParseFolderId(folderId)];
+        folder.Name = name;
+        folder.ContainerClass = containerClass;
+    }
+
     internal string AddItem(string folderId, EmailDocument document, bool isAssociated,
         CancellationToken cancellationToken) {
         ThrowIfUnavailable();
@@ -300,8 +310,8 @@ internal sealed partial class PstStoreWriterCore : IDisposable {
         }
         internal uint Nid { get; }
         internal uint ParentNid { get; }
-        internal string Name { get; }
-        internal string? ContainerClass { get; }
+        internal string Name { get; set; }
+        internal string? ContainerClass { get; set; }
         internal bool IsSearchFolder { get; }
         internal EmailStoreSpecialFolderKind SpecialFolderKind { get; }
         internal int NormalItemCount { get; set; }

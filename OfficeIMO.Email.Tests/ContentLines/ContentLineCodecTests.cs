@@ -112,6 +112,25 @@ public sealed class ContentLineCodecTests {
     }
 
     [Fact]
+    public void QuotedRfcParametersPreserveLiteralAndTrailingBackslashes() {
+        const string source = "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Test//EN\r\n" +
+            "BEGIN:VEVENT\r\nATTENDEE;X-DOUBLE=\"C:\\\\Temp\";X-TRAIL=\"C:\\\":mailto:a@example.com\r\n" +
+            "END:VEVENT\r\nEND:VCALENDAR\r\n";
+
+        ContentLineProperty attendee = IcsDocument.Parse(source).GetComponents("VEVENT")
+            .Single().GetFirstProperty("ATTENDEE")!;
+
+        Assert.Equal("C:\\\\Temp", attendee.GetParameter("X-DOUBLE")!.Values.Single());
+        Assert.Equal("C:\\", attendee.GetParameter("X-TRAIL")!.Values.Single());
+        ContentLineProperty reparsed = IcsDocument.Parse(IcsDocument.Parse(source).Serialize())
+            .GetComponents("VEVENT").Single().GetFirstProperty("ATTENDEE")!;
+        Assert.Equal(attendee.GetParameter("X-DOUBLE")!.Values,
+            reparsed.GetParameter("X-DOUBLE")!.Values);
+        Assert.Equal(attendee.GetParameter("X-TRAIL")!.Values,
+            reparsed.GetParameter("X-TRAIL")!.Values);
+    }
+
+    [Fact]
     public void WriterCountsContinuationSpaceInConfiguredEncoding() {
         var document = new VCardDocument();
         document.Cards.Single().AddProperty("FN", "abcdefghijklmnop");
