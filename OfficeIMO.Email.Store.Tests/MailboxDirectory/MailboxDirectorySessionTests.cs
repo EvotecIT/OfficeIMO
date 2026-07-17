@@ -86,10 +86,13 @@ public sealed class MailboxDirectorySessionTests {
         }
     }
 
-    [Fact]
-    public void CanonicalMaildirFlagsProjectIntoMessageMetadataAndProperties() {
+    [Theory]
+    [InlineData("cur")]
+    [InlineData("Cur")]
+    [InlineData("CUR")]
+    public void CanonicalMaildirFlagsProjectIntoMessageMetadataAndProperties(string parentDirectoryName) {
         string? flags = MailboxDirectoryStoreSessionBackend.ParseMaildirFlags(
-            "maildir-message:2,DFPRST", "cur");
+            "maildir-message:2,DFPRST", parentDirectoryName);
         var document = new EmailDocument();
 
         MailboxDirectoryStoreSessionBackend.ApplyMaildirFlags(document, flags);

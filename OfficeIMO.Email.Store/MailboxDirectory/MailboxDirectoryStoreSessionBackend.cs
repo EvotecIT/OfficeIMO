@@ -265,7 +265,7 @@ internal sealed class MailboxDirectoryStoreSessionBackend : IEmailStoreSessionBa
 
     internal static string? ParseMaildirFlags(string name, string? parentDirectoryName) {
         if (name == null) throw new ArgumentNullException(nameof(name));
-        if (!string.Equals(parentDirectoryName, "cur", StringComparison.Ordinal)) return null;
+        if (!string.Equals(parentDirectoryName, "cur", StringComparison.OrdinalIgnoreCase)) return null;
         int marker = name.LastIndexOf(":2,", StringComparison.Ordinal);
         if (marker <= 0) return null;
         string flags = name.Substring(marker + 3);
