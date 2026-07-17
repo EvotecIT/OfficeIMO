@@ -27,6 +27,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                          record.Type == RecordExternalObjectList)) {
                 foreach (LegacyPptRecord container in list.Children.Where(record =>
                              record.Type == RecordExternalOleEmbed)) {
+                    HasEmbeddedOleContent = true;
                     LegacyPptEmbeddedOleObject? ole = TryReadEmbeddedOleObject(
                         container, package, options);
                     if (ole == null) continue;

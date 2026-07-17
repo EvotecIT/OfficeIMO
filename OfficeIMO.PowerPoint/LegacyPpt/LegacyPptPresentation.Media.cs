@@ -28,6 +28,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             foreach (LegacyPptRecord list in document.Children.Where(record =>
                          record.Type == RecordExternalObjectList)) {
                 foreach (LegacyPptRecord container in list.Children) {
+                    if (container.Type is RecordExternalAviMovie
+                        or RecordExternalMciMovie
+                        or RecordExternalMidiAudio
+                        or RecordExternalWavAudioLink) {
+                        HasExternalMediaContent = true;
+                    }
                     LegacyPptMedia? media = container.Type switch {
                         RecordExternalAviMovie => ReadVideoMedia(container,
                             LegacyPptMediaKind.AviMovie, options),

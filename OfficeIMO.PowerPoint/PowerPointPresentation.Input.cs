@@ -31,6 +31,7 @@ namespace OfficeIMO.PowerPoint {
                 long originalPosition = source.Position;
                 try {
                     source.Position = 0;
+                    ValidateSeekablePackageSize(source, options);
                     long detectionLimit = ResolveCompoundDetectionLimit(
                         options);
                     EnsureSeekableInputWithinDetectionLimit(source,
@@ -52,11 +53,13 @@ namespace OfficeIMO.PowerPoint {
 
             byte[] prefix = ReadPrefix(source, cancellationToken);
             if (!OfficeCompoundDocumentDetector.HasCompoundSignature(prefix)) {
+                long? inputLimit = ResolveInputLimit(
+                    OfficeCompoundDocumentDetector.DocumentKind.NotCompound,
+                    options, PowerPointPresentationLoadRouting
+                        .HasLegacyBinaryExtension(sourceName));
                 return ReadRemainderToMemory(source, prefix,
-                    cancellationToken, ResolveInputLimit(
-                        OfficeCompoundDocumentDetector.DocumentKind.NotCompound,
-                        options, PowerPointPresentationLoadRouting
-                            .HasLegacyBinaryExtension(sourceName)));
+                    cancellationToken, inputLimit,
+                    ResolveBindingPackageSecurity(inputLimit, options));
             }
             return ReadCompoundInputThroughTemporaryStorage(source, prefix,
                 options, cancellationToken);
@@ -78,6 +81,7 @@ namespace OfficeIMO.PowerPoint {
             try {
                 if (source.CanSeek) {
                     source.Position = 0;
+                    ValidateSeekablePackageSize(source, options);
                     long detectionLimit = ResolveCompoundDetectionLimit(
                         options);
                     EnsureSeekableInputWithinDetectionLimit(source,
@@ -97,12 +101,14 @@ namespace OfficeIMO.PowerPoint {
                     cancellationToken).ConfigureAwait(false);
                 if (!OfficeCompoundDocumentDetector
                         .HasCompoundSignature(prefix)) {
+                    long? inputLimit = ResolveInputLimit(
+                        OfficeCompoundDocumentDetector.DocumentKind
+                            .NotCompound, options,
+                        PowerPointPresentationLoadRouting
+                            .HasLegacyBinaryExtension(sourceName));
                     return await ReadRemainderToMemoryAsync(source, prefix,
-                        cancellationToken, ResolveInputLimit(
-                            OfficeCompoundDocumentDetector.DocumentKind
-                                .NotCompound, options,
-                            PowerPointPresentationLoadRouting
-                                .HasLegacyBinaryExtension(sourceName)))
+                        cancellationToken, inputLimit,
+                        ResolveBindingPackageSecurity(inputLimit, options))
                         .ConfigureAwait(false);
                 }
                 return await ReadCompoundInputThroughTemporaryStorageAsync(
@@ -122,7 +128,8 @@ namespace OfficeIMO.PowerPoint {
                 useAsync: false);
             temporary.Write(prefix, 0, prefix.Length);
             CopyTo(source, temporary, cancellationToken,
-                ResolveCompoundTemporaryLimit(options), prefix.Length);
+                ResolveCompoundTemporaryLimit(options), prefix.Length,
+                options.PackageSecurity);
             temporary.Position = 0;
             OfficeCompoundDocumentDetector.DocumentKind kind =
                 OfficeCompoundDocumentDetector.Detect(temporary,
@@ -145,7 +152,8 @@ namespace OfficeIMO.PowerPoint {
             await temporary.WriteAsync(prefix, 0, prefix.Length,
                 cancellationToken).ConfigureAwait(false);
             await CopyToAsync(source, temporary, cancellationToken,
-                    ResolveCompoundTemporaryLimit(options), prefix.Length)
+                    ResolveCompoundTemporaryLimit(options), prefix.Length,
+                    options.PackageSecurity)
                 .ConfigureAwait(false);
             await temporary.FlushAsync(cancellationToken)
                 .ConfigureAwait(false);
@@ -189,6 +197,22 @@ namespace OfficeIMO.PowerPoint {
             PowerPointLoadOptions options) =>
             ResolvePackageInputLimit(options)
             ?? ResolveCompoundTemporaryLimit(options);
+
+        private static void ValidateSeekablePackageSize(Stream source,
+            PowerPointLoadOptions options) {
+            if (options.PackageSecurity != null) {
+                OfficePackageSecurityInspector.ValidateSourceSize(
+                    source.Length, options.PackageSecurity);
+            }
+        }
+
+        private static OfficePackageSecurityOptions?
+            ResolveBindingPackageSecurity(long? effectiveLimit,
+                PowerPointLoadOptions options) =>
+            options.PackageSecurity != null
+            && effectiveLimit == options.PackageSecurity.MaxPackageBytes
+                ? options.PackageSecurity
+                : null;
 
         private static void EnsureSeekableInputWithinDetectionLimit(
             Stream source, long detectionLimit,
@@ -268,23 +292,25 @@ namespace OfficeIMO.PowerPoint {
 
         private static byte[] ReadRemainderToMemory(Stream source,
             byte[] prefix, CancellationToken cancellationToken,
-            long? maxBytes = null) {
+            long? maxBytes = null,
+            OfficePackageSecurityOptions? packageSecurity = null) {
             using var output = new MemoryStream();
             output.Write(prefix, 0, prefix.Length);
             CopyTo(source, output, cancellationToken, maxBytes,
-                prefix.Length);
+                prefix.Length, packageSecurity);
             return output.ToArray();
         }
 
         private static async Task<byte[]> ReadRemainderToMemoryAsync(
             Stream source, byte[] prefix,
             CancellationToken cancellationToken,
-            long? maxBytes = null) {
+            long? maxBytes = null,
+            OfficePackageSecurityOptions? packageSecurity = null) {
             using var output = new MemoryStream();
             await output.WriteAsync(prefix, 0, prefix.Length,
                 cancellationToken).ConfigureAwait(false);
             await CopyToAsync(source, output, cancellationToken, maxBytes,
-                    prefix.Length)
+                    prefix.Length, packageSecurity)
                 .ConfigureAwait(false);
             return output.ToArray();
         }
@@ -292,16 +318,18 @@ namespace OfficeIMO.PowerPoint {
         private static void CopyTo(Stream source, Stream destination,
             CancellationToken cancellationToken,
             long? maxBytes = null,
-            long initialBytes = 0) {
+            long initialBytes = 0,
+            OfficePackageSecurityOptions? packageSecurity = null) {
             var buffer = new byte[InputCopyBufferSize];
             long total = initialBytes;
             while (true) {
                 cancellationToken.ThrowIfCancellationRequested();
                 int requested = ResolveCopyReadSize(buffer.Length, total,
-                    maxBytes);
+                    maxBytes, packageSecurity);
                 int read = source.Read(buffer, 0, requested);
                 if (read == 0) break;
-                EnsureCanAddToCopyTotal(total, read, maxBytes);
+                EnsureCanAddToCopyTotal(total, read, maxBytes,
+                    packageSecurity);
                 total = checked(total + read);
                 destination.Write(buffer, 0, read);
             }
@@ -311,16 +339,18 @@ namespace OfficeIMO.PowerPoint {
         private static async Task CopyToAsync(Stream source,
             Stream destination, CancellationToken cancellationToken,
             long? maxBytes = null,
-            long initialBytes = 0) {
+            long initialBytes = 0,
+            OfficePackageSecurityOptions? packageSecurity = null) {
             var buffer = new byte[InputCopyBufferSize];
             long total = initialBytes;
             while (true) {
                 int requested = ResolveCopyReadSize(buffer.Length, total,
-                    maxBytes);
+                    maxBytes, packageSecurity);
                 int read = await source.ReadAsync(buffer, 0, requested,
                     cancellationToken).ConfigureAwait(false);
                 if (read == 0) break;
-                EnsureCanAddToCopyTotal(total, read, maxBytes);
+                EnsureCanAddToCopyTotal(total, read, maxBytes,
+                    packageSecurity);
                 total = checked(total + read);
                 await destination.WriteAsync(buffer, 0, read,
                     cancellationToken).ConfigureAwait(false);
@@ -329,9 +359,10 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static int ResolveCopyReadSize(int bufferLength, long total,
-            long? maxBytes) {
+            long? maxBytes,
+            OfficePackageSecurityOptions? packageSecurity) {
             if (!maxBytes.HasValue) return bufferLength;
-            EnsureWithinCopyLimit(total, maxBytes);
+            EnsureWithinCopyLimit(total, maxBytes, packageSecurity);
             long remaining = maxBytes.Value - total;
             return remaining < bufferLength
                 ? checked((int)remaining + 1)
@@ -339,21 +370,33 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static void EnsureWithinCopyLimit(long total,
-            long? maxBytes) {
+            long? maxBytes,
+            OfficePackageSecurityOptions? packageSecurity) {
             if (maxBytes.HasValue && total > maxBytes.Value) {
-                throw new InvalidDataException(
-                    $"Stream exceeds the configured maximum size ({maxBytes.Value} bytes)."
-                );
+                ThrowInputLimitExceeded(maxBytes.Value, packageSecurity);
             }
         }
 
         private static void EnsureCanAddToCopyTotal(long total, int read,
-            long? maxBytes) {
+            long? maxBytes,
+            OfficePackageSecurityOptions? packageSecurity) {
             if (maxBytes.HasValue && total > maxBytes.Value - read) {
-                throw new InvalidDataException(
-                    $"Stream exceeds the configured maximum size ({maxBytes.Value} bytes)."
-                );
+                ThrowInputLimitExceeded(maxBytes.Value, packageSecurity);
             }
+        }
+
+        private static void ThrowInputLimitExceeded(long maximumBytes,
+            OfficePackageSecurityOptions? packageSecurity) {
+            if (packageSecurity != null) {
+                OfficePackageSecurityInspector.ValidateSourceSize(
+                    maximumBytes == long.MaxValue
+                        ? maximumBytes
+                        : maximumBytes + 1,
+                    packageSecurity);
+            }
+            throw new InvalidDataException(
+                $"Stream exceeds the configured maximum size ({maximumBytes} bytes)."
+            );
         }
 
         internal static FileStream CreateTemporaryInputStream(bool useAsync) {

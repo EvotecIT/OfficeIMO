@@ -1,4 +1,5 @@
 using DocumentFormat.OpenXml.Packaging;
+using OfficeIMO.Drawing;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.LegacyPpt;
 using OfficeIMO.PowerPoint.LegacyPpt.Capabilities;
@@ -50,6 +51,19 @@ namespace OfficeIMO.Tests {
             Assert.Equal(20, shape.Bounds.Top);
             Assert.Equal(100, shape.Bounds.Width);
             Assert.Equal(50, shape.Bounds.Height);
+
+            var security = OfficePackageSecurityOptions.SecureDefaults;
+            security.ExternalRelationships =
+                OfficePackageContentPolicy.Reject;
+            using (var secureInput = new MemoryStream(binary,
+                       writable: false))
+            using (PowerPointPresentation secure =
+                   PowerPointPresentation.Load(secureInput,
+                       new PowerPointLoadOptions {
+                           PackageSecurity = security
+                       })) {
+                Assert.Single(secure.Slides[0].Shapes);
+            }
 
             using var input = new MemoryStream(binary, writable: false);
             using PowerPointPresentation projected =

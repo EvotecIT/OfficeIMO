@@ -228,10 +228,13 @@ namespace OfficeIMO.Tests {
             };
             using var input = new CountingNonSeekableReadStream(padded);
 
-            InvalidDataException exception = Assert.Throws<
-                InvalidDataException>(() => PowerPointPresentation.Load(
+            OfficePackageSecurityException exception = Assert.Throws<
+                OfficePackageSecurityException>(() =>
+                PowerPointPresentation.Load(
                     input, options));
 
+            Assert.Equal(OfficePackageSecurityRule.PackageSize,
+                exception.Rule);
             Assert.Contains("4096", exception.Message,
                 StringComparison.Ordinal);
             Assert.Equal(4097, input.BytesRead);
@@ -247,13 +250,16 @@ namespace OfficeIMO.Tests {
             };
             using var input = new CountingSeekableReadStream(binary);
 
-            InvalidDataException exception = Assert.Throws<
-                InvalidDataException>(() => PowerPointPresentation.Load(
-                input, options));
+            OfficePackageSecurityException exception = Assert.Throws<
+                OfficePackageSecurityException>(() =>
+                PowerPointPresentation.Load(
+                    input, options));
 
+            Assert.Equal(OfficePackageSecurityRule.PackageSize,
+                exception.Rule);
             Assert.Contains((binary.Length - 1L).ToString(),
                 exception.Message, StringComparison.Ordinal);
-            Assert.Equal(8, input.BytesRead);
+            Assert.Equal(0, input.BytesRead);
         }
 
 #if NET8_0_OR_GREATER
@@ -301,19 +307,111 @@ namespace OfficeIMO.Tests {
 
             using var syncInput = new MemoryStream(packageBytes,
                 writable: false);
-            Assert.Throws<InvalidDataException>(() =>
+            OfficePackageSecurityException syncException = Assert.Throws<
+                OfficePackageSecurityException>(() =>
                 PowerPointPresentation.Load(syncInput, options));
+            Assert.Equal(OfficePackageSecurityRule.PackageSize,
+                syncException.Rule);
 
             using var asyncInput = new MemoryStream(packageBytes,
                 writable: false);
-            await Assert.ThrowsAsync<InvalidDataException>(() =>
+            OfficePackageSecurityException asyncException = await Assert
+                .ThrowsAsync<OfficePackageSecurityException>(() =>
                 PowerPointPresentation.LoadAsync(asyncInput, options));
+            Assert.Equal(OfficePackageSecurityRule.PackageSize,
+                asyncException.Rule);
 
             using var nonSeekable = new CountingNonSeekableReadStream(
                 packageBytes);
-            Assert.Throws<InvalidDataException>(() =>
+            OfficePackageSecurityException nonSeekableException = Assert
+                .Throws<OfficePackageSecurityException>(() =>
                 PowerPointPresentation.Load(nonSeekable, options));
+            Assert.Equal(OfficePackageSecurityRule.PackageSize,
+                nonSeekableException.Rule);
             Assert.Equal(maxBytes + 1, nonSeekable.BytesRead);
+
+            string path = Path.Combine(Path.GetTempPath(),
+                Guid.NewGuid() + ".pptx");
+            try {
+                File.WriteAllBytes(path, packageBytes);
+                OfficePackageSecurityException pathException = Assert.Throws<
+                    OfficePackageSecurityException>(() =>
+                    PowerPointPresentation.Load(path, options));
+                Assert.Equal(OfficePackageSecurityRule.PackageSize,
+                    pathException.Rule);
+                OfficePackageSecurityException asyncPathException = await
+                    Assert.ThrowsAsync<OfficePackageSecurityException>(() =>
+                        PowerPointPresentation.LoadAsync(path, options));
+                Assert.Equal(OfficePackageSecurityRule.PackageSize,
+                    asyncPathException.Rule);
+            } finally {
+                if (File.Exists(path)) File.Delete(path);
+            }
+        }
+
+        [Fact]
+        public async Task EncryptedPresentationFacade_EnforcesTypedPackageInputBudget() {
+            const string password = "typed-package-limit";
+            byte[] encrypted;
+            using (PowerPointPresentation source =
+                   PowerPointPresentation.Create()) {
+                source.AddSlide().AddTextBox("Encrypted package budget");
+                encrypted = source.ToEncryptedBytes(password);
+            }
+            var options = new PowerPointLoadOptions {
+                PackageSecurity = new OfficePackageSecurityOptions {
+                    MaxPackageBytes = encrypted.Length - 1L
+                }
+            };
+
+            using (var syncInput = new MemoryStream(encrypted,
+                       writable: false)) {
+                OfficePackageSecurityException exception = Assert.Throws<
+                    OfficePackageSecurityException>(() =>
+                    PowerPointPresentation.LoadEncrypted(syncInput,
+                        password, options));
+                Assert.Equal(OfficePackageSecurityRule.PackageSize,
+                    exception.Rule);
+            }
+            using (var asyncInput = new MemoryStream(encrypted,
+                       writable: false)) {
+                OfficePackageSecurityException exception = await Assert
+                    .ThrowsAsync<OfficePackageSecurityException>(() =>
+                        PowerPointPresentation.LoadEncryptedAsync(asyncInput,
+                            password, options));
+                Assert.Equal(OfficePackageSecurityRule.PackageSize,
+                    exception.Rule);
+            }
+            using (var nonSeekable = new CountingNonSeekableReadStream(
+                       encrypted)) {
+                OfficePackageSecurityException exception = Assert.Throws<
+                    OfficePackageSecurityException>(() =>
+                    PowerPointPresentation.LoadEncrypted(nonSeekable,
+                        password, options));
+                Assert.Equal(OfficePackageSecurityRule.PackageSize,
+                    exception.Rule);
+                Assert.Equal(encrypted.Length, nonSeekable.BytesRead);
+            }
+
+            string path = Path.Combine(Path.GetTempPath(),
+                Guid.NewGuid() + ".pptx");
+            try {
+                File.WriteAllBytes(path, encrypted);
+                OfficePackageSecurityException pathException = Assert.Throws<
+                    OfficePackageSecurityException>(() =>
+                    PowerPointPresentation.LoadEncrypted(path, password,
+                        options));
+                Assert.Equal(OfficePackageSecurityRule.PackageSize,
+                    pathException.Rule);
+                OfficePackageSecurityException asyncPathException = await
+                    Assert.ThrowsAsync<OfficePackageSecurityException>(() =>
+                        PowerPointPresentation.LoadEncryptedAsync(path,
+                            password, options));
+                Assert.Equal(OfficePackageSecurityRule.PackageSize,
+                    asyncPathException.Rule);
+            } finally {
+                if (File.Exists(path)) File.Delete(path);
+            }
         }
 
         [Fact]

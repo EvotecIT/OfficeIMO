@@ -24,6 +24,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                          record.Type == RecordExternalObjectList)) {
                 foreach (LegacyPptRecord container in list.Children.Where(
                              record => record.Type == RecordExternalOleLink)) {
+                    HasLinkedOleContent = true;
                     LegacyPptLinkedOleObject? linked =
                         TryReadLinkedOleObject(container, package, options);
                     if (linked == null) continue;

@@ -1,4 +1,5 @@
 using DocumentFormat.OpenXml.Packaging;
+using OfficeIMO.Drawing;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.LegacyPpt;
 using OfficeIMO.PowerPoint.LegacyPpt.Capabilities;
@@ -51,6 +52,19 @@ namespace OfficeIMO.Tests {
             LegacyPptImportReport inventory = legacy.CreateImportReport();
             Assert.Equal(1, inventory.CustomShowCount);
             Assert.Equal(2, inventory.CustomShowSlideEntryCount);
+
+            var security = OfficePackageSecurityOptions.SecureDefaults;
+            security.ExternalRelationships =
+                OfficePackageContentPolicy.Reject;
+            using (var secureInput = new MemoryStream(bytes,
+                       writable: false))
+            using (PowerPointPresentation secure =
+                   PowerPointPresentation.Load(secureInput,
+                       new PowerPointLoadOptions {
+                           PackageSecurity = security
+                       })) {
+                Assert.Equal(3, secure.Slides.Count);
+            }
 
             using var input = new MemoryStream(bytes, writable: false);
             using PowerPointPresentation projected = PowerPointPresentation.Load(input);

@@ -41,6 +41,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
 
         private void ParseHyperlinkList(LegacyPptRecord list,
             LegacyPptImportOptions options) {
+            foreach (LegacyPptRecord container in list.Children.Where(
+                         record => record.Type == RecordExternalHyperlink)) {
+                if (HasReadableExternalHyperlinkTarget(container)) {
+                    HasExternalHyperlinkContent = true;
+                }
+            }
             if (list.Version != 0x0F || list.Instance != 0) {
                 AddDiagnostic("PPT-HYPERLINK-LIST", LegacyPptDiagnosticSeverity.Warning,
                     "An external-object list has an invalid record header; hyperlinks remain preserve-only.",
@@ -80,6 +86,18 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                     $"The external-object id seed {seed} is below hyperlink id {greatestId}; new targets require a repaired seed.",
                     listAtoms[0].Offset);
             }
+        }
+
+        private static bool HasReadableExternalHyperlinkTarget(
+            LegacyPptRecord container) {
+            if (!TryReadHyperlinkString(container, 1, out string? target)
+                || !TryReadHyperlinkString(container, 3,
+                    out string? location)
+                || string.IsNullOrEmpty(target)
+                && string.IsNullOrEmpty(location)) return false;
+            var hyperlink = new LegacyPptHyperlink(1,
+                friendlyName: null, target, location);
+            return !hyperlink.IsInternalSlideTarget;
         }
 
         private LegacyPptHyperlink? TryReadHyperlink(LegacyPptRecord container) {

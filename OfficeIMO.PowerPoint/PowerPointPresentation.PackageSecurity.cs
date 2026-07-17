@@ -16,43 +16,35 @@ namespace OfficeIMO.PowerPoint {
             OfficePackageSecurityOptions? security = options.PackageSecurity;
             if (security == null) return;
 
-            bool hasVba = legacy.VbaProject != null
-                || HasLegacyDiagnostic(legacy, "PPT-VBA-");
             if (security.Macros == OfficePackageContentPolicy.Reject
-                && hasVba) {
+                && legacy.HasVbaContent) {
                 throw new OfficePackageSecurityException(
                     OfficePackageSecurityRule.Macros,
                     "The binary PowerPoint presentation contains a VBA project while macro content is rejected.");
             }
-            int embeddedObjectCount = checked(legacy.OleObjects.Count
-                + legacy.LinkedOleObjects.Count);
-            bool hasEmbeddedObjects = embeddedObjectCount > 0
-                || HasLegacyDiagnostic(legacy, "PPT-OLE-");
+            int embeddedObjectCount = checked(
+                (legacy.HasEmbeddedOleContent ? 1 : 0)
+                + (legacy.HasLinkedOleContent ? 1 : 0));
             if (security.EmbeddedPayloads ==
                     OfficePackageContentPolicy.Reject
-                && hasEmbeddedObjects) {
+                && embeddedObjectCount > 0) {
                 throw new OfficePackageSecurityException(
                     OfficePackageSecurityRule.EmbeddedPayloads,
                     $"The binary PowerPoint presentation contains {embeddedObjectCount} embedded or cached OLE payload(s) while embedded content is rejected.",
-                    Math.Max(1, embeddedObjectCount), 0);
+                    embeddedObjectCount, 0);
             }
-            bool hasActiveX = legacy.ActiveXControls.Count > 0
-                || HasLegacyDiagnostic(legacy, "PPT-ACTIVEX-");
             if (security.ActiveX == OfficePackageContentPolicy.Reject
-                && hasActiveX) {
+                && legacy.HasActiveXContent) {
                 throw new OfficePackageSecurityException(
                     OfficePackageSecurityRule.ActiveX,
-                    $"The binary PowerPoint presentation contains {legacy.ActiveXControls.Count} ActiveX control(s) while ActiveX content is rejected.",
-                    Math.Max(1, legacy.ActiveXControls.Count), 0);
+                    "The binary PowerPoint presentation contains ActiveX content while ActiveX content is rejected.",
+                    1, 0);
             }
-            int externalTargetCount = legacy.Hyperlinks.Count(
-                    IsExternalLegacyHyperlink)
-                + legacy.LinkedOleObjects.Count
-                + legacy.Media.Count(media =>
-                    !string.IsNullOrWhiteSpace(media.Path))
-                + CountRunProgramInteractions(legacy)
-                + legacy.Diagnostics.Count(diagnostic =>
-                    IsPreserveOnlyExternalDiagnostic(diagnostic.Code));
+            int externalTargetCount =
+                (legacy.HasExternalHyperlinkContent ? 1 : 0)
+                + (legacy.HasLinkedOleContent ? 1 : 0)
+                + (legacy.HasExternalMediaContent ? 1 : 0)
+                + CountRunProgramInteractions(legacy);
             if (security.ExternalRelationships ==
                     OfficePackageContentPolicy.Reject
                 && externalTargetCount > 0) {
@@ -63,23 +55,11 @@ namespace OfficeIMO.PowerPoint {
             }
         }
 
-        private static bool HasLegacyDiagnostic(
-            LegacyPptPresentation legacy, string prefix) =>
-            legacy.Diagnostics.Any(diagnostic => diagnostic.Code.StartsWith(
-                prefix, StringComparison.Ordinal));
-
         internal static bool IsExternalLegacyHyperlink(
             LegacyPpt.Model.LegacyPptHyperlink hyperlink) =>
             !hyperlink.IsInternalSlideTarget
             && (!string.IsNullOrWhiteSpace(hyperlink.Target)
                 || !string.IsNullOrWhiteSpace(hyperlink.Location));
-
-        private static bool IsPreserveOnlyExternalDiagnostic(string code) =>
-            code.StartsWith("PPT-OLE-LINK-", StringComparison.Ordinal)
-            || code.StartsWith("PPT-HYPERLINK-", StringComparison.Ordinal)
-            || code.StartsWith("PPT-HYPERLINK9-", StringComparison.Ordinal)
-            || code.StartsWith("PPT-MEDIA-MALFORMED", StringComparison.Ordinal)
-            || code.StartsWith("PPT-MEDIA-UNKNOWN", StringComparison.Ordinal);
 
         private static int CountRunProgramInteractions(
             LegacyPptPresentation legacy) => EnumerateLegacyShapes(legacy)

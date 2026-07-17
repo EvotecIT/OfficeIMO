@@ -1,5 +1,6 @@
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
+using OfficeIMO.Drawing;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.LegacyPpt;
 using OfficeIMO.PowerPoint.LegacyPpt.Capabilities;
@@ -41,6 +42,19 @@ namespace OfficeIMO.Tests {
             Assert.Null(hyperlink.TargetSlideName);
             Assert.Null(hyperlink.Uri);
             Assert.Equal("Go to destination", hyperlink.ScreenTip);
+
+            var security = OfficePackageSecurityOptions.SecureDefaults;
+            security.ExternalRelationships =
+                OfficePackageContentPolicy.Reject;
+            using (var secureInput = new MemoryStream(bytes,
+                       writable: false))
+            using (PowerPointPresentation secure =
+                   PowerPointPresentation.Load(secureInput,
+                       new PowerPointLoadOptions {
+                           PackageSecurity = security
+                       })) {
+                Assert.Equal(2, secure.Slides.Count);
+            }
 
             using var input = new MemoryStream(bytes, writable: false);
             using PowerPointPresentation projected = PowerPointPresentation.Load(input);

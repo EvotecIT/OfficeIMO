@@ -24,6 +24,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 foreach (LegacyPptRecord container in list.Children.Where(
                              record => record.Type ==
                                  RecordExternalOleControl)) {
+                    HasActiveXContent = true;
                     LegacyPptActiveXControl? control = TryReadActiveXControl(
                         container, package, options);
                     if (control == null) continue;
