@@ -200,6 +200,52 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void RemovingGroupCleansDescendantOlePreviewAnimationAndSound() {
+            byte[] storageBytes = CreateOleTestStorage("Grouped removal");
+            byte[] imageBytes = PdfPngTestImages.CreateRgbPng(91, 82, 73);
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            PowerPointSlide slide = presentation.AddSlide(
+                P.SlideLayoutValues.Blank);
+            using var storage = new MemoryStream(storageBytes,
+                writable: false);
+            PowerPointOleObject ole = slide.AddOleObject(storage,
+                "Package");
+            ImagePart imagePart = slide.SlidePart.AddImagePart(
+                DocumentFormat.OpenXml.Packaging.ImagePartType.Png);
+            using (var image = new MemoryStream(imageBytes,
+                       writable: false)) {
+                imagePart.FeedData(image);
+            }
+            P.Picture preview = Assert.IsType<P.GraphicFrame>(ole.Element)
+                .Graphic!.GraphicData!.GetFirstChild<P.OleObject>()!
+                .GetFirstChild<P.Picture>()!;
+            preview.BlipFill = new P.BlipFill(new A.Blip {
+                Embed = slide.SlidePart.GetIdOfPart(imagePart)
+            }, new A.Stretch(new A.FillRectangle()));
+            PowerPointAutoShape marker = slide.AddRectangle(
+                1200000, 100000, 600000, 600000);
+            PowerPointGroupShape group = slide.GroupShapes(
+                new PowerPointShape[] { ole, marker }, "Removed group");
+            slide.AddClassicAnimation(marker,
+                PowerPointClassicAnimationEffect.Fade);
+            using (var sound = new MemoryStream(CreateMediaWavePayload(),
+                       writable: false)) {
+                marker.SetClickSound(sound, "Grouped action sound");
+            }
+
+            group.Remove();
+
+            Assert.Empty(slide.Shapes);
+            Assert.Empty(slide.ClassicAnimations);
+            Assert.Empty(slide.SlidePart.EmbeddedObjectParts);
+            Assert.Empty(slide.SlidePart.ImageParts);
+            Assert.Empty(slide.SlidePart.DataPartReferenceRelationships);
+            Assert.Empty(presentation.OpenXmlDocument.DataParts);
+            Assert.Empty(presentation.ValidateDocument());
+        }
+
+        [Fact]
         public void EmbeddedOleObjectAndVbaProject_UseDistinctNativePersistObjects() {
             byte[] oleStorage = CreateOleTestStorage("OLE and VBA");
             byte[] vbaProject = CreateVbaTestProject("OleVbaModule",

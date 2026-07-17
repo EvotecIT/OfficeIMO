@@ -346,7 +346,19 @@ namespace OfficeIMO.PowerPoint {
         /// <param name="sourceIndex">Index of the slide to import.</param>
         /// <param name="insertAt">Index where the imported slide should be inserted. Defaults to end.</param>
         /// <remarks>Listed target slides reachable through internal slide links are imported once so the links remain valid.</remarks>
-        public PowerPointSlide ImportSlide(PowerPointPresentation sourcePresentation, int sourceIndex, int? insertAt = null) {
+        public PowerPointSlide ImportSlide(PowerPointPresentation sourcePresentation,
+            int sourceIndex, int? insertAt = null) => ImportSlideCore(
+                sourcePresentation, sourceIndex, insertAt,
+                includeLinkedSlides: true);
+
+        internal PowerPointSlide ImportSlideForExport(
+            PowerPointPresentation sourcePresentation, int sourceIndex) =>
+            ImportSlideCore(sourcePresentation, sourceIndex,
+                insertAt: null, includeLinkedSlides: false);
+
+        private PowerPointSlide ImportSlideCore(
+            PowerPointPresentation sourcePresentation, int sourceIndex,
+            int? insertAt, bool includeLinkedSlides) {
             ThrowIfDisposed();
             if (sourcePresentation == null) {
                 throw new ArgumentNullException(nameof(sourcePresentation));
@@ -368,91 +380,184 @@ namespace OfficeIMO.PowerPoint {
 
             PowerPointSlide requestedSource = sourceSlides[sourceIndex];
             IReadOnlyList<PowerPointSlide> importSources =
-                CollectSlideImportClosure(sourcePresentation,
-                    requestedSource);
-            SlideIdList slideIdList = PresentationRoot.SlideIdList ??= new SlideIdList();
-            var importedSlides = new Dictionary<SlidePart, PowerPointSlide>();
-            for (int offset = 0; offset < importSources.Count; offset++) {
-                PowerPointSlide sourceSlide = importSources[offset];
+                includeLinkedSlides
+                    ? CollectSlideImportClosure(sourcePresentation,
+                        requestedSource)
+                    : new[] { requestedSource };
+            ValidateSlideImportSources(importSources);
+            Presentation originalPresentation = (Presentation)
+                PresentationRoot.CloneNode(true);
+            var originalTopLevelParts = new HashSet<OpenXmlPart>(
+                _presentationPart.Parts.Select(pair => pair.OpenXmlPart));
+            var originalDataParts = new HashSet<DataPart>(
+                _document!.DataParts);
+            try {
+                SlideIdList slideIdList = PresentationRoot.SlideIdList ??= new SlideIdList();
+                var importedSlides = new Dictionary<SlidePart, PowerPointSlide>();
+                var mediaPartMap = new Dictionary<DataPart, MediaDataPart>();
+                for (int offset = 0; offset < importSources.Count; offset++) {
+                    PowerPointSlide sourceSlide = importSources[offset];
+                    sourceSlide.Save();
+                    Slide sourceRoot = sourceSlide.SlidePart.Slide
+                        ?? throw new InvalidOperationException(
+                            "Source slide is missing its slide definition.");
+                    string slideRelId = GetNextSlideRelationshipId();
+                    SlidePart targetPart = _presentationPart
+                        .AddNewPart<SlidePart>(slideRelId);
+                    targetPart.Slide = (Slide)sourceRoot.CloneNode(true);
+                    var imported = new PowerPointSlide(targetPart);
+                    int insertionIndex = targetIndex + offset;
+                    SlideId slideId = new() { Id = GetNextSlideId() };
+                    PowerPointUtils.SetRelationshipIdValue(slideId, slideRelId);
+                    InsertSlideId(slideIdList, slideId, insertionIndex);
+                    _slides.Insert(insertionIndex, imported);
+                    importedSlides.Add(sourceSlide.SlidePart, imported);
+                    imported.Hidden = sourceSlide.Hidden;
+                    AssignSlideToNearestSection(slideId.Id?.Value
+                            ?? throw new InvalidOperationException(
+                                "Slide ID is missing."),
+                        insertionIndex);
+                }
+
+                SlidePart? ResolveImportedSlide(SlidePart sourcePart) =>
+                    importedSlides.TryGetValue(sourcePart,
+                        out PowerPointSlide? imported)
+                        ? imported.SlidePart
+                        : null;
+
+                foreach (PowerPointSlide sourceSlide in importSources) {
+                    SlidePart targetPart = importedSlides[sourceSlide.SlidePart]
+                        .SlidePart;
+                    SlideLayoutPart sourceLayoutPart = sourceSlide.SlidePart
+                        .SlideLayoutPart
+                        ?? throw new InvalidOperationException(
+                            "Source slide does not have a layout to import.");
+                    SlideLayoutPart? targetLayoutPart =
+                        FindMatchingLayout(sourceLayoutPart);
+                    if (targetLayoutPart == null) {
+                        SlideMasterPart sourceMasterPart = sourceLayoutPart
+                            .SlideMasterPart
+                            ?? throw new InvalidOperationException(
+                                "Source slide layout does not have a master.");
+                        CloneSlideMasterPart(sourceMasterPart,
+                            out Dictionary<SlideLayoutPart, SlideLayoutPart>
+                            layoutMap,
+                            ResolveImportedSlide,
+                            skipUnresolvedSlideTargets: !includeLinkedSlides,
+                            dataPartMap: mediaPartMap);
+                        if (!layoutMap.TryGetValue(sourceLayoutPart,
+                                out targetLayoutPart)) {
+                            throw new InvalidOperationException(
+                                "Failed to resolve the imported slide layout.");
+                        }
+                    }
+                    string? layoutRelId = sourceSlide.SlidePart
+                        .GetIdOfPart(sourceLayoutPart);
+                    if (string.IsNullOrWhiteSpace(layoutRelId)) {
+                        layoutRelId = GetNextRelationshipId(targetPart);
+                    }
+                    targetPart.AddPart(targetLayoutPart, layoutRelId);
+                }
+
+                foreach (PowerPointSlide sourceSlide in importSources) {
+                    SlidePart targetPart = importedSlides[sourceSlide.SlidePart]
+                        .SlidePart;
+                    CloneSlidePartRelationships(sourceSlide.SlidePart,
+                        targetPart, shouldShare: _ => false,
+                        includeDataParts: true,
+                        shouldSkip: part => part is SlideLayoutPart
+                            || part is NotesSlidePart,
+                        dataPartMap: mediaPartMap,
+                        slideResolver: ResolveImportedSlide,
+                        skipUnresolvedSlideTargets: !includeLinkedSlides);
+                    if (sourceSlide.SlidePart.NotesSlidePart != null) {
+                        CloneImportedNotesSlidePart(sourceSlide.SlidePart,
+                            targetPart, mediaPartMap, ResolveImportedSlide,
+                            skipUnresolvedSlideTargets:
+                                !includeLinkedSlides);
+                    }
+                }
+
+                if (!includeLinkedSlides) {
+                    RemoveUnreferencedAudioRelationships(
+                        importedSlides.Values.Select(slide =>
+                            slide.SlidePart));
+                }
+
+                PresentationRoot.Save();
+                return importedSlides[requestedSource.SlidePart];
+            } catch {
+                RollBackFailedSlideImport(originalPresentation,
+                    originalTopLevelParts, originalDataParts);
+                throw;
+            }
+        }
+
+        private static void ValidateSlideImportSources(
+            IEnumerable<PowerPointSlide> importSources) {
+            foreach (PowerPointSlide sourceSlide in importSources) {
                 sourceSlide.Save();
-                Slide sourceRoot = sourceSlide.SlidePart.Slide
+                _ = sourceSlide.SlidePart.Slide
                     ?? throw new InvalidOperationException(
                         "Source slide is missing its slide definition.");
-                string slideRelId = GetNextSlideRelationshipId();
-                SlidePart targetPart = _presentationPart
-                    .AddNewPart<SlidePart>(slideRelId);
-                targetPart.Slide = (Slide)sourceRoot.CloneNode(true);
-                var imported = new PowerPointSlide(targetPart);
-                int insertionIndex = targetIndex + offset;
-                SlideId slideId = new() { Id = GetNextSlideId() };
-                PowerPointUtils.SetRelationshipIdValue(slideId, slideRelId);
-                InsertSlideId(slideIdList, slideId, insertionIndex);
-                _slides.Insert(insertionIndex, imported);
-                importedSlides.Add(sourceSlide.SlidePart, imported);
-                imported.Hidden = sourceSlide.Hidden;
-                AssignSlideToNearestSection(slideId.Id?.Value
-                        ?? throw new InvalidOperationException(
-                            "Slide ID is missing."),
-                    insertionIndex);
-            }
-
-            SlidePart? ResolveImportedSlide(SlidePart sourcePart) =>
-                importedSlides.TryGetValue(sourcePart,
-                    out PowerPointSlide? imported)
-                    ? imported.SlidePart
-                    : null;
-
-            foreach (PowerPointSlide sourceSlide in importSources) {
-                SlidePart targetPart = importedSlides[sourceSlide.SlidePart]
-                    .SlidePart;
-                SlideLayoutPart sourceLayoutPart = sourceSlide.SlidePart
+                SlideLayoutPart layout = sourceSlide.SlidePart
                     .SlideLayoutPart
                     ?? throw new InvalidOperationException(
                         "Source slide does not have a layout to import.");
-                SlideLayoutPart? targetLayoutPart =
-                    FindMatchingLayout(sourceLayoutPart);
-                if (targetLayoutPart == null) {
-                    SlideMasterPart sourceMasterPart = sourceLayoutPart
-                        .SlideMasterPart
-                        ?? throw new InvalidOperationException(
-                            "Source slide layout does not have a master.");
-                    CloneSlideMasterPart(sourceMasterPart,
-                        out Dictionary<SlideLayoutPart, SlideLayoutPart>
-                            layoutMap,
-                        ResolveImportedSlide);
-                    if (!layoutMap.TryGetValue(sourceLayoutPart,
-                            out targetLayoutPart)) {
-                        throw new InvalidOperationException(
-                            "Failed to resolve the imported slide layout.");
-                    }
-                }
-                string? layoutRelId = sourceSlide.SlidePart
-                    .GetIdOfPart(sourceLayoutPart);
-                if (string.IsNullOrWhiteSpace(layoutRelId)) {
-                    layoutRelId = GetNextRelationshipId(targetPart);
-                }
-                targetPart.AddPart(targetLayoutPart, layoutRelId);
+                _ = layout.SlideLayout
+                    ?? throw new InvalidOperationException(
+                        "Source slide layout is missing its definition.");
+                SlideMasterPart master = layout.SlideMasterPart
+                    ?? throw new InvalidOperationException(
+                        "Source slide layout does not have a master.");
+                _ = master.SlideMaster
+                    ?? throw new InvalidOperationException(
+                        "Source slide master is missing its definition.");
             }
+        }
 
-            var mediaPartMap = new Dictionary<DataPart, MediaDataPart>();
-            foreach (PowerPointSlide sourceSlide in importSources) {
-                SlidePart targetPart = importedSlides[sourceSlide.SlidePart]
-                    .SlidePart;
-                CloneSlidePartRelationships(sourceSlide.SlidePart,
-                    targetPart, shouldShare: _ => false,
-                    includeDataParts: true,
-                    shouldSkip: part => part is SlideLayoutPart
-                        || part is NotesSlidePart,
-                    dataPartMap: mediaPartMap,
-                    slideResolver: ResolveImportedSlide);
-                if (sourceSlide.SlidePart.NotesSlidePart != null) {
-                    CloneImportedNotesSlidePart(sourceSlide.SlidePart,
-                        targetPart, mediaPartMap, ResolveImportedSlide);
+        private void RollBackFailedSlideImport(
+            Presentation originalPresentation,
+            ISet<OpenXmlPart> originalTopLevelParts,
+            ISet<DataPart> originalDataParts) {
+            foreach (IdPartPair relationship in _presentationPart.Parts
+                         .Where(pair => !originalTopLevelParts.Contains(
+                             pair.OpenXmlPart)).ToArray()) {
+                _presentationPart.DeletePart(relationship.RelationshipId);
+            }
+            foreach (DataPart dataPart in _document!.DataParts
+                         .Where(part => !originalDataParts.Contains(part))
+                         .ToArray()) {
+                if (!dataPart.GetDataPartReferenceRelationships().Any()) {
+                    _document.DeletePart(dataPart);
                 }
             }
-
+            PresentationRoot = (Presentation)
+                originalPresentation.CloneNode(true);
+            _slides.Clear();
+            LoadExistingSlides();
             PresentationRoot.Save();
-            return importedSlides[requestedSource.SlidePart];
+        }
+
+        private static void RemoveUnreferencedAudioRelationships(
+            IEnumerable<SlidePart> importedSlideParts) {
+            var visited = new HashSet<OpenXmlPart>();
+            var pending = new Stack<OpenXmlPart>(importedSlideParts
+                .Cast<OpenXmlPart>());
+            while (pending.Count > 0) {
+                OpenXmlPart part = pending.Pop();
+                if (!visited.Add(part)) continue;
+                foreach (IdPartPair child in part.Parts) {
+                    pending.Push(child.OpenXmlPart);
+                }
+                foreach (AudioReferenceRelationship relationship in part
+                             .DataPartReferenceRelationships
+                             .OfType<AudioReferenceRelationship>()
+                             .ToArray()) {
+                    PowerPointEmbeddedSound.RemoveIfUnused(part,
+                        relationship.Id);
+                }
+            }
         }
 
         private static IReadOnlyList<PowerPointSlide>

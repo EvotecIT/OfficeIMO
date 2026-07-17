@@ -194,6 +194,142 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ShapeRemovalCleansActionSoundMedia() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            PowerPointAutoShape shape = slide.AddRectangle(
+                100000, 100000, 1000000, 500000);
+            using (var sound = new MemoryStream(CreateWave(),
+                       writable: false)) {
+                shape.SetClickSound(sound, "Removed action sound");
+            }
+
+            shape.Remove();
+
+            Assert.Empty(slide.SlidePart.DataPartReferenceRelationships);
+            Assert.Empty(presentation.OpenXmlDocument.DataParts);
+            Assert.Empty(presentation.ValidateDocument());
+        }
+
+        [Fact]
+        public void SharedMediaUpdateDetachesOnlyTheSelectedFrame() {
+            byte[] original = CreateWave();
+            byte[] replacement = (byte[])original.Clone();
+            replacement[replacement.Length - 1] ^= 0x11;
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            using var input = new MemoryStream(original, writable: false);
+            PowerPointMedia first = slide.AddAudio(input, "audio/wav",
+                ".wav");
+            PowerPointMedia second = Assert.IsType<PowerPointMedia>(
+                first.Duplicate(offsetX: 1000000));
+            Assert.Equal(first.MediaReferenceId,
+                second.MediaReferenceId);
+
+            using var updated = new MemoryStream(replacement,
+                writable: false);
+            first.UpdateData(updated);
+
+            Assert.Equal(replacement, first.GetData());
+            Assert.Equal(original, second.GetData());
+            Assert.NotEqual(first.MediaReferenceId,
+                second.MediaReferenceId);
+            Assert.Equal(2, presentation.OpenXmlDocument.DataParts.Count());
+            Assert.Empty(presentation.ValidateDocument());
+        }
+
+        [Fact]
+        public void ImportSlideClonesSharedMasterAndLayoutActionSound() {
+            byte[] wave = CreateWave();
+            using PowerPointPresentation source =
+                PowerPointPresentation.Create();
+            PowerPointSlide sourceSlide = source.AddSlide();
+            SlideLayoutPart sourceLayout = sourceSlide.SlidePart
+                .SlideLayoutPart!;
+            sourceLayout.SlideLayout!.CommonSlideData!.Name =
+                "Sounded import layout";
+            SlideMasterPart sourceMaster = sourceLayout.SlideMasterPart!;
+            MediaDataPart media = source.OpenXmlDocument
+                .CreateMediaDataPart("audio/wav", ".wav");
+            using (var input = new MemoryStream(wave, writable: false)) {
+                media.FeedData(input);
+            }
+            AudioReferenceRelationship masterRelationship = sourceMaster
+                .AddAudioReferenceRelationship(media, "rIdMasterSound");
+            AudioReferenceRelationship layoutRelationship = sourceLayout
+                .AddAudioReferenceRelationship(media, "rIdLayoutSound");
+            sourceMaster.SlideMaster!.CommonSlideData!.ShapeTree!.Append(
+                CreateSoundedShape(200U, "Master sound",
+                    masterRelationship.Id, "Shared master sound"));
+            sourceLayout.SlideLayout.CommonSlideData!.ShapeTree!.Append(
+                CreateSoundedShape(201U, "Layout sound",
+                    layoutRelationship.Id, "Shared layout sound"));
+            sourceMaster.SlideMaster.Save();
+            sourceLayout.SlideLayout.Save();
+            using PowerPointPresentation target =
+                PowerPointPresentation.Create();
+
+            PowerPointSlide imported = target.ImportSlide(source, 0);
+
+            SlideLayoutPart importedLayout = imported.SlidePart
+                .SlideLayoutPart!;
+            SlideMasterPart importedMaster = importedLayout
+                .SlideMasterPart!;
+            AudioReferenceRelationship importedMasterRelationship =
+                Assert.Single(importedMaster.DataPartReferenceRelationships
+                    .OfType<AudioReferenceRelationship>());
+            AudioReferenceRelationship importedLayoutRelationship =
+                Assert.Single(importedLayout.DataPartReferenceRelationships
+                    .OfType<AudioReferenceRelationship>());
+            Assert.Same(importedMasterRelationship.DataPart,
+                importedLayoutRelationship.DataPart);
+            Assert.Equal(importedMasterRelationship.Id, importedMaster
+                .SlideMaster!.Descendants<A.HyperlinkSound>().Single()
+                .Embed!.Value);
+            Assert.Equal(importedLayoutRelationship.Id, importedLayout
+                .SlideLayout!.Descendants<A.HyperlinkSound>().Single()
+                .Embed!.Value);
+            Assert.Single(target.OpenXmlDocument.DataParts);
+            using Stream importedData = importedMasterRelationship.DataPart
+                .GetStream(FileMode.Open, FileAccess.Read);
+            using var copied = new MemoryStream();
+            importedData.CopyTo(copied);
+            Assert.Equal(wave, copied.ToArray());
+            Assert.Empty(target.ValidateDocument());
+        }
+
+        [Fact]
+        public void FailedLinkedSlideImportLeavesDestinationUnchanged() {
+            using PowerPointPresentation source =
+                PowerPointPresentation.Create();
+            PowerPointSlide first = source.AddSlide();
+            PowerPointTextRun link = first.AddTextBox("Broken target")
+                .Paragraphs.Single().Runs.Single();
+            PowerPointSlide brokenTarget = source.AddSlide();
+            link.SetHyperlink(brokenTarget);
+            brokenTarget.SlidePart.DeletePart(
+                brokenTarget.SlidePart.SlideLayoutPart!);
+            using PowerPointPresentation target =
+                PowerPointPresentation.Create();
+            int originalPartCount = target.OpenXmlDocument
+                .PresentationPart!.Parts.Count();
+            string originalPresentationXml = target.OpenXmlDocument
+                .PresentationPart.Presentation!.OuterXml;
+
+            Assert.Throws<InvalidOperationException>(() =>
+                target.ImportSlide(source, 0));
+
+            Assert.Empty(target.Slides);
+            Assert.Equal(originalPartCount, target.OpenXmlDocument
+                .PresentationPart.Parts.Count());
+            Assert.Equal(originalPresentationXml, target.OpenXmlDocument
+                .PresentationPart.Presentation!.OuterXml);
+            Assert.Empty(target.ValidateDocument());
+        }
+
+        [Fact]
         public void RemovingClassicAnimationRejectsForeignShapeWithSameId() {
             using PowerPointPresentation presentation =
                 PowerPointPresentation.Create();
@@ -280,6 +416,40 @@ namespace OfficeIMO.Tests {
                 .Descendants<AnimateEffect>());
             Assert.Equal(mediaTiming, Assert.Single(slide.SlidePart.Slide
                 .Timing.Descendants<Audio>()).OuterXml);
+            Assert.Empty(presentation.ValidateDocument());
+        }
+
+        [Fact]
+        public void RemovingClassicAnimationPreservesMatchingAdvancedEffect() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            PowerPointAutoShape shape = slide.AddRectangle(
+                100000, 100000, 1000000, 500000);
+            slide.AddClassicAnimation(shape,
+                PowerPointClassicAnimationEffect.Fade);
+            Timing timing = slide.SlidePart.Slide!.Timing!;
+            AnimateEffect classicEffect = Assert.Single(
+                timing.Descendants<AnimateEffect>());
+            ParallelTimeNode classicOwner = classicEffect
+                .Ancestors<ParallelTimeNode>().First();
+            ParallelTimeNode advancedOwner = (ParallelTimeNode)
+                classicOwner.CloneNode(true);
+            foreach (CommonTimeNode timeNode in advancedOwner
+                         .Descendants<CommonTimeNode>()) {
+                if (timeNode.Id?.Value is uint id) timeNode.Id = id + 100U;
+            }
+            AnimateEffect advancedEffect = advancedOwner
+                .Descendants<AnimateEffect>().Single();
+            advancedEffect.CommonBehavior!.CommonTimeNode!.Duration = "777";
+            classicOwner.Parent!.Append(advancedOwner);
+
+            Assert.True(slide.RemoveClassicAnimation(shape));
+
+            AnimateEffect remaining = Assert.Single(timing
+                .Descendants<AnimateEffect>());
+            Assert.Equal("777", remaining.CommonBehavior!
+                .CommonTimeNode!.Duration!.Value);
             Assert.Empty(presentation.ValidateDocument());
         }
 
@@ -376,6 +546,32 @@ namespace OfficeIMO.Tests {
             Assert.Equal(original, media.GetData());
             Assert.Single(presentation.OpenXmlDocument.DataParts);
             Assert.Empty(presentation.ValidateDocument());
+        }
+
+        private static Shape CreateSoundedShape(uint id, string name,
+            string relationshipId, string soundName) {
+            var properties = new NonVisualDrawingProperties {
+                Id = id,
+                Name = name
+            };
+            properties.Append(new A.HyperlinkOnClick(
+                new A.HyperlinkSound {
+                    Embed = relationshipId,
+                    Name = soundName
+                }) { Id = string.Empty });
+            return new Shape(
+                new NonVisualShapeProperties(properties,
+                    new NonVisualShapeDrawingProperties(),
+                    new ApplicationNonVisualDrawingProperties()),
+                new ShapeProperties(
+                    new A.Transform2D(
+                        new A.Offset { X = 100000, Y = 100000 },
+                        new A.Extents { Cx = 500000, Cy = 300000 }),
+                    new A.PresetGeometry(new A.AdjustValueList()) {
+                        Preset = A.ShapeTypeValues.Rectangle
+                    }),
+                new TextBody(new A.BodyProperties(), new A.ListStyle(),
+                    new A.Paragraph(new A.EndParagraphRunProperties())));
         }
 
         private static byte[] CreateWave() => new byte[] {

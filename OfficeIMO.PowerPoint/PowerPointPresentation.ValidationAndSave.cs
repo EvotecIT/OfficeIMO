@@ -329,7 +329,7 @@ namespace OfficeIMO.PowerPoint {
 
             ValidateSlideIndex(slideIndex);
             using PowerPointPresentation exported = Create();
-            exported.ImportSlide(this, slideIndex);
+            exported.ImportSlideForExport(this, slideIndex);
             exported.Save(destination);
         }
 

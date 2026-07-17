@@ -30,9 +30,14 @@ namespace OfficeIMO.PowerPoint {
                 long originalPosition = source.Position;
                 try {
                     source.Position = 0;
+                    long detectionLimit = ResolveCompoundDetectionLimit(
+                        options);
+                    EnsureSeekableInputWithinDetectionLimit(source,
+                        detectionLimit, cancellationToken);
                     OfficeCompoundDocumentDetector.DocumentKind kind =
                         OfficeCompoundDocumentDetector.Detect(source,
-                            long.MaxValue, CompoundDetectionDirectoryLimit,
+                            detectionLimit,
+                            CompoundDetectionDirectoryLimit,
                             cancellationToken, out _);
                     long? maxInputBytes = ResolveInputLimit(kind, options);
                     return OfficeStreamReader.ReadAllBytes(source,
@@ -66,9 +71,13 @@ namespace OfficeIMO.PowerPoint {
             try {
                 if (source.CanSeek) {
                     source.Position = 0;
+                    long detectionLimit = ResolveCompoundDetectionLimit(
+                        options);
+                    EnsureSeekableInputWithinDetectionLimit(source,
+                        detectionLimit, cancellationToken);
                     OfficeCompoundDocumentDetector.DocumentKind kind =
                         OfficeCompoundDocumentDetector.Detect(source,
-                            long.MaxValue,
+                            detectionLimit,
                             CompoundDetectionDirectoryLimit,
                             cancellationToken, out _);
                     return await OfficeStreamReader.ReadAllBytesAsync(source,
@@ -105,7 +114,8 @@ namespace OfficeIMO.PowerPoint {
             temporary.Position = 0;
             OfficeCompoundDocumentDetector.DocumentKind kind =
                 OfficeCompoundDocumentDetector.Detect(temporary,
-                    long.MaxValue, CompoundDetectionDirectoryLimit,
+                    ResolveCompoundDetectionLimit(options),
+                    CompoundDetectionDirectoryLimit,
                     cancellationToken, out _);
             long? maxInputBytes = ResolveInputLimit(kind, options);
             return OfficeStreamReader.ReadAllBytes(temporary,
@@ -130,7 +140,8 @@ namespace OfficeIMO.PowerPoint {
             temporary.Position = 0;
             OfficeCompoundDocumentDetector.DocumentKind kind =
                 OfficeCompoundDocumentDetector.Detect(temporary,
-                    long.MaxValue, CompoundDetectionDirectoryLimit,
+                    ResolveCompoundDetectionLimit(options),
+                    CompoundDetectionDirectoryLimit,
                     cancellationToken, out _);
             long? maxInputBytes = ResolveInputLimit(kind, options);
             return await OfficeStreamReader.ReadAllBytesAsync(temporary,
@@ -158,6 +169,34 @@ namespace OfficeIMO.PowerPoint {
             if (packageLimit.HasValue) return packageLimit.Value;
             return Math.Max(DefaultMaxCompoundTemporaryBytes,
                 ResolveLegacyInputLimit(options));
+        }
+
+        private static long ResolveCompoundDetectionLimit(
+            PowerPointLoadOptions options) =>
+            ResolvePackageInputLimit(options)
+            ?? ResolveCompoundTemporaryLimit(options);
+
+        private static void EnsureSeekableInputWithinDetectionLimit(
+            Stream source, long detectionLimit,
+            CancellationToken cancellationToken) {
+            long remaining = checked(source.Length - source.Position);
+            if (remaining <= detectionLimit) return;
+            long originalPosition = source.Position;
+            var signature = new byte[8];
+            int total = 0;
+            while (total < signature.Length) {
+                cancellationToken.ThrowIfCancellationRequested();
+                int read = source.Read(signature, total,
+                    signature.Length - total);
+                if (read == 0) break;
+                total += read;
+            }
+            source.Position = originalPosition;
+            if (OfficeCompoundDocumentDetector.HasCompoundSignature(
+                    signature)) {
+                throw new InvalidDataException(
+                    $"Stream exceeds the configured maximum size ({detectionLimit} bytes).");
+            }
         }
 
         private static long? ResolvePackageInputLimit(

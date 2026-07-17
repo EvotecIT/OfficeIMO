@@ -174,38 +174,44 @@ namespace OfficeIMO.PowerPoint {
             }
 
             EnsureShapeOnSlide(shape);
-            EmbeddedObjectPart? embeddedPart = shape is PowerPointOleObject ole
-                ? ole.EmbeddedPart
-                : null;
-            string? relationshipId = shape is PowerPointOleObject oleShape
-                && oleShape.Element is GraphicFrame frame
-                ? frame.Graphic?.GraphicData?.GetFirstChild<OleObject>()?
-                    .Id?.Value
-                : null;
-            string[] previewRelationshipIds = shape is PowerPointOleObject
-                ? shape.Element.Descendants<A.Blip>()
-                    .Select(blip => blip.Embed?.Value)
-                    .Where(id => !string.IsNullOrEmpty(id))
-                    .Cast<string>()
-                    .Distinct(StringComparer.Ordinal)
-                    .ToArray()
-                : Array.Empty<string>();
-            RemoveClassicAnimation(shape);
+            var knownRelationshipIds = new HashSet<string>(
+                _slidePart.Parts.Select(pair => pair.RelationshipId)
+                    .Concat(_slidePart.DataPartReferenceRelationships
+                        .Select(relationship => relationship.Id))
+                    .Concat(_slidePart.ExternalRelationships.Select(
+                        relationship => relationship.Id))
+                    .Concat(_slidePart.HyperlinkRelationships.Select(
+                        relationship => relationship.Id)),
+                StringComparer.Ordinal);
+            string[] relationshipIds = new[] { shape.Element }
+                .Concat(shape.Element.Descendants())
+                .SelectMany(element => element.GetAttributes())
+                .Select(attribute => attribute.Value)
+                .Where(value => value != null
+                    && knownRelationshipIds.Contains(value))
+                .Cast<string>()
+                .Distinct(StringComparer.Ordinal)
+                .ToArray();
+            var removedShapeIds = new HashSet<uint>(shape.Element
+                .Descendants<NonVisualDrawingProperties>()
+                .Select(properties => properties.Id?.Value)
+                .Where(id => id.HasValue)
+                .Select(id => id!.Value));
+            if (shape.Id.HasValue) removedShapeIds.Add(shape.Id.Value);
+            PowerPointClassicAnimation[] remainingAnimations =
+                ReadClassicAnimations().Where(animation =>
+                    !removedShapeIds.Contains(animation.ShapeId)).ToArray();
+            if (remainingAnimations.Length != ClassicAnimations.Count) {
+                SetClassicAnimations(remainingAnimations);
+            }
             shape.Element.Remove();
             _shapes.Remove(shape);
-            if (embeddedPart != null && relationshipId != null
-                && !SlideRoot.Descendants<OleObject>().Any(item =>
-                    string.Equals(item.Id?.Value, relationshipId,
-                    StringComparison.Ordinal))) {
-                _slidePart.DeletePart(embeddedPart);
-            }
-            foreach (string previewRelationshipId in
-                     previewRelationshipIds) {
-                RemoveImageRelationshipIfUnused(previewRelationshipId);
+            foreach (string relationshipId in relationshipIds) {
+                RemoveSlideRelationshipIfUnused(relationshipId);
             }
         }
 
-        private void RemoveImageRelationshipIfUnused(
+        private void RemoveSlideRelationshipIfUnused(
             string relationshipId) {
             if (SlideRoot.GetAttributes().Any(attribute => string.Equals(
                     attribute.Value, relationshipId,
@@ -216,8 +222,38 @@ namespace OfficeIMO.PowerPoint {
                         StringComparison.Ordinal)))) {
                 return;
             }
+            DataPartReferenceRelationship? dataRelationship = _slidePart
+                .DataPartReferenceRelationships.FirstOrDefault(
+                    relationship => string.Equals(relationship.Id,
+                        relationshipId, StringComparison.Ordinal));
+            if (dataRelationship != null) {
+                DataPart dataPart = dataRelationship.DataPart;
+                _slidePart.DeleteReferenceRelationship(dataRelationship);
+                if (!dataPart.GetDataPartReferenceRelationships().Any()
+                    && _slidePart.OpenXmlPackage is PresentationDocument
+                        document) {
+                    document.DeletePart(dataPart);
+                }
+                return;
+            }
+            ExternalRelationship? external = _slidePart
+                .ExternalRelationships.FirstOrDefault(relationship =>
+                    string.Equals(relationship.Id, relationshipId,
+                        StringComparison.Ordinal));
+            if (external != null) {
+                _slidePart.DeleteReferenceRelationship(external);
+                return;
+            }
+            HyperlinkRelationship? hyperlink = _slidePart
+                .HyperlinkRelationships.FirstOrDefault(relationship =>
+                    string.Equals(relationship.Id, relationshipId,
+                        StringComparison.Ordinal));
+            if (hyperlink != null) {
+                _slidePart.DeleteReferenceRelationship(hyperlink);
+                return;
+            }
             if (_slidePart.TryGetPartById(relationshipId,
-                    out OpenXmlPart? part) && part is ImagePart) {
+                    out _)) {
                 _slidePart.DeletePart(relationshipId);
             }
         }

@@ -163,6 +163,25 @@ namespace OfficeIMO.Tests {
             Assert.Equal(4097, input.BytesRead);
         }
 
+        [Fact]
+        public void PresentationFacade_RejectsOversizedSeekableCompoundBeforeDetection() {
+            byte[] binary = CreatePresentationBytes();
+            var options = new PowerPointLoadOptions {
+                PackageSecurity = new OfficePackageSecurityOptions {
+                    MaxPackageBytes = binary.Length - 1L
+                }
+            };
+            using var input = new CountingSeekableReadStream(binary);
+
+            InvalidDataException exception = Assert.Throws<
+                InvalidDataException>(() => PowerPointPresentation.Load(
+                input, options));
+
+            Assert.Contains((binary.Length - 1L).ToString(),
+                exception.Message, StringComparison.Ordinal);
+            Assert.Equal(8, input.BytesRead);
+        }
+
 #if NET8_0_OR_GREATER
         [Fact]
         public void PresentationFacade_TemporaryStorageIsOwnerOnlyOnUnix() {
@@ -536,6 +555,50 @@ namespace OfficeIMO.Tests {
                 StringComparison.OrdinalIgnoreCase);
         }
 
+        [Fact]
+        public void PackageReader_SharesPersistRecordsAliasedByOffset() {
+            byte[] bytes = CreatePresentationBytes();
+            LegacyPptPresentation source = LegacyPptPresentation.Load(bytes);
+            byte[] document = (byte[])source.Package.DocumentStream.Clone();
+            uint directoryOffset = source.Package.UserEdits[0]
+                .PersistDirectoryOffset;
+            LegacyPptRecord directory = LegacyPptRecordReader.ReadSingle(
+                document, checked((int)directoryOffset),
+                new LegacyPptImportOptions());
+            var entries = new List<(uint PersistId, int ValueOffset,
+                uint StreamOffset)>();
+            int position = 0;
+            while (position < directory.PayloadLength) {
+                uint packed = directory.ReadUInt32(position);
+                position += 4;
+                uint firstId = packed & 0x000FFFFF;
+                int count = unchecked((int)(packed >> 20));
+                for (int index = 0; index < count; index++) {
+                    entries.Add((checked(firstId + unchecked((uint)index)),
+                        checked(directory.PayloadOffset + position),
+                        directory.ReadUInt32(position)));
+                    position += 4;
+                }
+            }
+            (uint PersistId, int ValueOffset, uint StreamOffset) first =
+                entries[0];
+            (uint PersistId, int ValueOffset, uint StreamOffset) second =
+                entries.First(entry => entry.StreamOffset !=
+                    first.StreamOffset);
+            WriteUInt32(document, second.ValueOffset, first.StreamOffset);
+            byte[] aliased = source.Package.RewriteCompoundStreams(
+                new Dictionary<string, byte[]>(
+                    StringComparer.OrdinalIgnoreCase) {
+                    ["PowerPoint Document"] = document
+                });
+
+            LegacyPptPackage package = LegacyPptPackage.Read(aliased,
+                new LegacyPptImportOptions());
+
+            Assert.Same(package.PersistObjects[first.PersistId].RecordBytes,
+                package.PersistObjects[second.PersistId].RecordBytes);
+        }
+
         private static byte[] CreatePresentationBytes() {
             using PowerPointPresentation presentation =
                 PowerPointPresentation.Create();
@@ -667,6 +730,20 @@ namespace OfficeIMO.Tests {
             protected override void Dispose(bool disposing) {
                 if (disposing) _inner.Dispose();
                 base.Dispose(disposing);
+            }
+        }
+
+        private sealed class CountingSeekableReadStream : MemoryStream {
+            internal CountingSeekableReadStream(byte[] bytes)
+                : base(bytes, writable: false) { }
+
+            internal int BytesRead { get; private set; }
+
+            public override int Read(byte[] buffer, int offset,
+                int count) {
+                int read = base.Read(buffer, offset, count);
+                BytesRead += read;
+                return read;
             }
         }
     }

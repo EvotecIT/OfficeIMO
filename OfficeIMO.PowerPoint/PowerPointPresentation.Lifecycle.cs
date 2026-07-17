@@ -290,7 +290,8 @@ namespace OfficeIMO.PowerPoint {
             }
             ThrowIfUnencryptedLegacyBinary(legacyEncryption);
             byte[] packageBytes = OfficeEncryption.DecryptPackage(
-                encryptedBytes, password, cancellationToken);
+                encryptedBytes, password, cancellationToken,
+                ResolvePackageInputLimit(resolved));
             cancellationToken.ThrowIfCancellationRequested();
             return LoadPackage(packageBytes, filePath: null, sourceStream: null, resolved);
         }
@@ -331,7 +332,8 @@ namespace OfficeIMO.PowerPoint {
             }
             ThrowIfUnencryptedLegacyBinary(legacyEncryption);
             byte[] packageBytes = OfficeEncryption.DecryptPackage(
-                encryptedBytes, password, cancellationToken);
+                encryptedBytes, password, cancellationToken,
+                ResolvePackageInputLimit(resolved));
             cancellationToken.ThrowIfCancellationRequested();
             return LoadPackage(packageBytes, filePath: null, sourceStream: null, resolved);
         }
@@ -361,7 +363,8 @@ namespace OfficeIMO.PowerPoint {
             }
             ThrowIfUnencryptedLegacyBinary(legacyEncryption);
             byte[] packageBytes = OfficeEncryption.DecryptPackage(
-                encryptedBytes, password, cancellationToken);
+                encryptedBytes, password, cancellationToken,
+                ResolvePackageInputLimit(resolved));
             cancellationToken.ThrowIfCancellationRequested();
             return LoadPackage(packageBytes, filePath: null, sourceStream: null, resolved);
         }
@@ -398,7 +401,8 @@ namespace OfficeIMO.PowerPoint {
             }
             ThrowIfUnencryptedLegacyBinary(legacyEncryption);
             byte[] packageBytes = OfficeEncryption.DecryptPackage(
-                encryptedBytes, password, cancellationToken);
+                encryptedBytes, password, cancellationToken,
+                ResolvePackageInputLimit(resolved));
             cancellationToken.ThrowIfCancellationRequested();
             return LoadPackage(packageBytes, filePath: null, sourceStream: null, resolved);
         }

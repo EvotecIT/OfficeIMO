@@ -46,7 +46,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                             StringComparison.Ordinal)
                         && !string.Equals(attribute.LocalName, "id",
                             StringComparison.Ordinal))
-                    || show.ChildElements.Any(child => child is not P.SlideList)) {
+                    || show.ChildElements.Any(child => child is not P.SlideList)
+                    || show.Elements<P.SlideList>().Skip(1).Any()) {
                     reason = $"Custom show '{name}' contains extension data that have no binary representation.";
                     return false;
                 }

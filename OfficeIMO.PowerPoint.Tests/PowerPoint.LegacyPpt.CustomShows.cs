@@ -194,6 +194,29 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void NativeWriter_BlocksMultipleSlideListsInCustomShow() {
+            using PowerPointPresentation source =
+                PowerPointPresentation.Create();
+            PowerPointSlide slide = source.AddSlide(
+                P.SlideLayoutValues.Blank);
+            AddCustomShow(source, 1, "Duplicated list", slide);
+            P.CustomShow show = source.OpenXmlDocument.PresentationPart!
+                .Presentation!.CustomShowList!.Elements<P.CustomShow>()
+                .Single();
+            show.Append(new P.SlideList(new P.SlideListEntry {
+                Id = source.OpenXmlDocument.PresentationPart
+                    .GetIdOfPart(slide.SlidePart)
+            }));
+
+            LegacyPptWriteFinding finding = Assert.Single(
+                source.AnalyzeLegacyPptWrite().Findings,
+                item => item.Code == "PPT-WRITE-CUSTOM-SHOW");
+
+            Assert.Contains("extension data", finding.Description,
+                StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
         public void ImportedCustomShow_TracksAppendedAndRemovedSlides() {
             byte[] sourceBytes;
             using (PowerPointPresentation source = PowerPointPresentation.Create()) {

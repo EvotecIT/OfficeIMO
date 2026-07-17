@@ -62,7 +62,8 @@ internal static partial class DocumentReaderEngine {
         ReaderDetectionResult outerDetection,
         CancellationToken cancellationToken) {
         byte[] decrypted = OfficeEncryption.DecryptPackage(encryptedBytes,
-            options.OpenPassword!, cancellationToken);
+            options.OpenPassword!, cancellationToken,
+            options.MaxInputBytes);
         cancellationToken.ThrowIfCancellationRequested();
         ReaderDetectionResult innerDetection = Detect(decrypted, sourceName,
             CreateDetectionOptions(options));

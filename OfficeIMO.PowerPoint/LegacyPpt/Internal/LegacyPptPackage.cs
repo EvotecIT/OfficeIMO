@@ -212,9 +212,20 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             }
 
             var persistObjects = new Dictionary<uint, LegacyPptPersistObject>();
+            var persistRecordsByOffset = new Dictionary<uint,
+                (ushort RecordType, byte[] RecordBytes)>();
             foreach (KeyValuePair<uint, uint> pair in liveOffsets) {
                 cancellationToken.ThrowIfCancellationRequested();
-                persistObjects.Add(pair.Key, ReadPersistObject(documentStream, pair.Key, pair.Value));
+                if (!persistRecordsByOffset.TryGetValue(pair.Value,
+                        out (ushort RecordType, byte[] RecordBytes) cached)) {
+                    LegacyPptPersistObject read = ReadPersistObject(
+                        documentStream, pair.Key, pair.Value);
+                    cached = (read.RecordType, read.RecordBytes);
+                    persistRecordsByOffset.Add(pair.Value, cached);
+                }
+                persistObjects.Add(pair.Key, new LegacyPptPersistObject(
+                    pair.Key, pair.Value, cached.RecordType,
+                    cached.RecordBytes));
             }
             return new LegacyPptPackage(bytes, compound, documentStream, currentUserStream,
                 currentEditOffset, documentPersistId, edits, liveOffsets,

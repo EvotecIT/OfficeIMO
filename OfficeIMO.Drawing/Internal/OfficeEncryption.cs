@@ -162,8 +162,20 @@ namespace OfficeIMO.Drawing.Internal {
         /// </summary>
         public static byte[] DecryptPackage(byte[] encryptedPackageBytes,
             string password, CancellationToken cancellationToken) {
+            return DecryptPackage(encryptedPackageBytes, password,
+                cancellationToken, maximumDecryptedPackageBytes: null);
+        }
+
+        internal static byte[] DecryptPackage(byte[] encryptedPackageBytes,
+            string password, CancellationToken cancellationToken,
+            long? maximumDecryptedPackageBytes) {
             if (encryptedPackageBytes == null) throw new ArgumentNullException(nameof(encryptedPackageBytes));
             if (password == null) throw new ArgumentNullException(nameof(password));
+            if (maximumDecryptedPackageBytes.HasValue
+                && maximumDecryptedPackageBytes.Value < 1) {
+                throw new ArgumentOutOfRangeException(
+                    nameof(maximumDecryptedPackageBytes));
+            }
             cancellationToken.ThrowIfCancellationRequested();
 
             if (!CompoundFile.TryRead(encryptedPackageBytes, out var streams) ||
@@ -183,7 +195,8 @@ namespace OfficeIMO.Drawing.Internal {
                     cancellationToken);
                 return DecryptPackagePayload(encryptedPackage, secretKey,
                     descriptor.KeyDataSaltValue,
-                    descriptor.KeyDataHashAlgorithm, cancellationToken);
+                    descriptor.KeyDataHashAlgorithm, cancellationToken,
+                    maximumDecryptedPackageBytes);
             } finally {
                 Clear(secretKey);
             }
@@ -343,13 +356,20 @@ namespace OfficeIMO.Drawing.Internal {
 
         private static byte[] DecryptPackagePayload(byte[] encryptedPackage,
             byte[] secretKey, byte[] keyDataSalt, string hashName,
-            CancellationToken cancellationToken) {
+            CancellationToken cancellationToken,
+            long? maximumDecryptedPackageBytes) {
             cancellationToken.ThrowIfCancellationRequested();
             if (encryptedPackage.Length < 8) {
                 throw new InvalidDataException("EncryptedPackage stream is too small.");
             }
 
             ulong packageSize = ReadUInt64(encryptedPackage, 0);
+            if (maximumDecryptedPackageBytes.HasValue
+                && packageSize > unchecked((ulong)
+                    maximumDecryptedPackageBytes.Value)) {
+                throw new InvalidDataException(
+                    $"The decrypted Office package declares {packageSize} bytes, exceeding the configured maximum of {maximumDecryptedPackageBytes.Value} bytes.");
+            }
             if (packageSize > int.MaxValue) {
                 throw new NotSupportedException("Encrypted packages larger than 2 GB are not supported by this API.");
             }

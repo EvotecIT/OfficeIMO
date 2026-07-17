@@ -270,36 +270,114 @@ namespace OfficeIMO.PowerPoint {
             IReadOnlyList<PowerPointClassicAnimation> animations) {
             Timing? timing = SlideRoot.Timing;
             if (timing == null) return;
-            foreach (AnimateEffect effect in timing.Descendants<AnimateEffect>()
-                         .ToArray()) {
-                string? value = effect.Descendants<ShapeTarget>()
-                    .FirstOrDefault()?.ShapeId?.Value;
-                if (!uint.TryParse(value, NumberStyles.Integer,
-                        CultureInfo.InvariantCulture, out uint shapeId)
-                    || !animations.Any(animation =>
-                        animation.ShapeId == shapeId
-                        && effect.CommonBehavior?.CommonTimeNode?.PresetId?.Value
-                        == (int)(byte)animation.Effect
-                        && effect.CommonBehavior.CommonTimeNode.PresetSubtype?.Value
-                        == animation.Direction)) {
-                    continue;
-                }
+            var candidates = timing.Descendants<AnimateEffect>().ToList();
+            foreach (PowerPointClassicAnimation animation in animations
+                         .OrderBy(item => item.Order)) {
+                AnimateEffect? effect = candidates.FirstOrDefault(item =>
+                    IsClassicTimingEffect(item, animation));
+                if (effect == null) continue;
                 OpenXmlElement? owner = effect
                     .Ancestors<ParallelTimeNode>().FirstOrDefault();
+                if (owner != null) {
+                    foreach (AnimateEffect ownedEffect in owner
+                                 .Descendants<AnimateEffect>()) {
+                        candidates.Remove(ownedEffect);
+                    }
+                } else {
+                    candidates.Remove(effect);
+                }
                 (owner ?? effect).Remove();
             }
-            var shapeIds = new HashSet<string>(animations.Select(animation =>
-                animation.ShapeId.ToString(CultureInfo.InvariantCulture)),
-                StringComparer.Ordinal);
-            foreach (BuildParagraph build in timing.Descendants<BuildParagraph>()
-                         .Where(item => shapeIds.Contains(item.ShapeId?.Value
-                             ?? string.Empty)).ToArray()) {
+            var builds = timing.Descendants<BuildParagraph>().ToList();
+            foreach (PowerPointClassicAnimation animation in animations
+                         .OrderBy(item => item.Order)) {
+                BuildParagraph? build = builds.FirstOrDefault(item =>
+                    IsClassicBuild(item, animation));
+                if (build == null) continue;
+                builds.Remove(build);
                 build.Remove();
             }
             foreach (BuildList list in timing.Descendants<BuildList>()
                          .Where(item => !item.HasChildren).ToArray()) {
                 list.Remove();
             }
+        }
+
+        private static bool IsClassicTimingEffect(AnimateEffect effect,
+            PowerPointClassicAnimation animation) {
+            CommonTimeNode? effectTime = effect.CommonBehavior?
+                .CommonTimeNode;
+            string? shapeId = effect.Descendants<ShapeTarget>()
+                .FirstOrDefault()?.ShapeId?.Value;
+            ParallelTimeNode? owner = effect
+                .Ancestors<ParallelTimeNode>().FirstOrDefault();
+            CommonTimeNode? ownerTime = owner?
+                .GetFirstChild<CommonTimeNode>();
+            Condition? start = ownerTime?
+                .GetFirstChild<StartConditionList>()?
+                .GetFirstChild<Condition>();
+            bool expectedAfterEffect = animation.AfterEffect !=
+                PowerPointClassicAnimationAfterEffect.None;
+            bool targetMatches = string.Equals(shapeId,
+                animation.ShapeId.ToString(CultureInfo.InvariantCulture),
+                StringComparison.Ordinal);
+            bool startMatches = animation.Automatic
+                ? start?.Event == null && string.Equals(start?.Delay?.Value,
+                    animation.DelayMilliseconds.ToString(
+                        CultureInfo.InvariantCulture),
+                    StringComparison.Ordinal)
+                : start?.Event?.Value == TriggerEventValues.OnClick;
+            return targetMatches
+                && effect.Transition?.Value ==
+                    AnimateEffectTransitionValues.In
+                && string.Equals(effect.Filter?.Value,
+                    GetClassicAnimationFilter(animation.Effect,
+                        animation.Direction), StringComparison.Ordinal)
+                && effectTime?.Duration?.Value == "500"
+                && effectTime.Fill?.Value == TimeNodeFillValues.Hold
+                && effectTime.PresetClass?.Value ==
+                    TimeNodePresetClassValues.Entrance
+                && effectTime.PresetId?.Value ==
+                    (int)(byte)animation.Effect
+                && effectTime.PresetSubtype?.Value == animation.Direction
+                && effectTime.AutoReverse?.Value == animation.Reverse
+                && effectTime.AfterEffect?.Value == expectedAfterEffect
+                && ownerTime?.Duration?.Value == "indefinite"
+                && ownerTime.Fill?.Value == TimeNodeFillValues.Hold
+                && ownerTime.NodeType?.Value == (animation.Automatic
+                    ? TimeNodeValues.AfterEffect
+                    : TimeNodeValues.ClickEffect)
+                && startMatches;
+        }
+
+        private static bool IsClassicBuild(BuildParagraph build,
+            PowerPointClassicAnimation animation) {
+            string shapeId = animation.ShapeId.ToString(
+                CultureInfo.InvariantCulture);
+            if (!string.Equals(build.ShapeId?.Value, shapeId,
+                    StringComparison.Ordinal)
+                || build.GroupId?.Value != 0U) return false;
+            if (animation.BuildType is >=
+                    PowerPointClassicAnimationBuildType.ByLevel1Paragraph
+                and <= PowerPointClassicAnimationBuildType.ByLevel5Paragraph) {
+                return build.Build?.Value == ParagraphBuildValues.Paragraph
+                    && build.BuildLevel?.Value == unchecked((uint)
+                        ((byte)animation.BuildType - 1))
+                    && build.AnimateBackground?.Value ==
+                        animation.AnimateBackground
+                    && build.Reverse?.Value == animation.Reverse
+                    && string.Equals(build.AutoAdvance?.Value,
+                        animation.Automatic
+                            ? animation.DelayMilliseconds.ToString(
+                                CultureInfo.InvariantCulture)
+                            : null,
+                        StringComparison.Ordinal);
+            }
+            return animation.BuildType ==
+                    PowerPointClassicAnimationBuildType.AsOneObject
+                && build.Build?.Value == ParagraphBuildValues.Whole
+                && build.AnimateBackground?.Value ==
+                    animation.AnimateBackground;
         }
 
         private void RemoveUnusedClassicAnimationSounds(

@@ -1,7 +1,9 @@
 using System;
 using System.IO;
 using System.Security.Cryptography;
+using System.Threading;
 using DocumentFormat.OpenXml.Packaging;
+using OfficeIMO.Drawing.Internal;
 using OfficeIMO.Excel;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.Word;
@@ -10,6 +12,23 @@ using Xunit;
 namespace OfficeIMO.Shared.Tests {
     public class OfficeEncryptionTests {
         private const string Password = "OfficeIMO-Secret-123";
+
+        [Fact]
+        public void DecryptPackage_RejectsDeclaredPlaintextSizeBeforeAllocation() {
+            byte[] plaintext = new byte[4096];
+            byte[] encrypted = OfficeEncryption.EncryptPackage(plaintext,
+                Password);
+
+            InvalidDataException exception = Assert.Throws<
+                InvalidDataException>(() => OfficeEncryption.DecryptPackage(
+                encrypted, Password, CancellationToken.None,
+                maximumDecryptedPackageBytes: plaintext.Length - 1L));
+
+            Assert.Contains("4096", exception.Message,
+                StringComparison.Ordinal);
+            Assert.Contains("4095", exception.Message,
+                StringComparison.Ordinal);
+        }
 
         [Fact]
         public void Word_SaveEncrypted_And_LoadEncrypted_RoundTrips() {
