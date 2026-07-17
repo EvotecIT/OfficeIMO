@@ -62,6 +62,41 @@ public sealed class NativeInkMathWriterTests {
     }
 
     [Fact]
+    public void ReaderRejectsInkPathsAboveTheDecodedValueLimitBeforeAllocation() {
+        var section = new OneNoteSection { Name = "Ink value limit" };
+        var page = new OneNotePage { Title = "Ink" };
+        var ink = new OneNoteInk();
+        ink.Ink.Add(new OfficeInkStroke().AddPoint(0.1D, 0.2D).AddPoint(0.3D, 0.4D));
+        page.DirectContent.Add(ink);
+        section.Pages.Add(page);
+        byte[] bytes = OneNoteSectionWriter.Write(section);
+        var options = new OneNoteReaderOptions { MaxInkPathValues = 3 };
+
+        OneNoteFormatException exception = Assert.Throws<OneNoteFormatException>(() =>
+            OneNoteSectionReader.Read(new MemoryStream(bytes), options));
+
+        Assert.Equal("ONENOTE_INK_PATH_LIMIT", exception.Code);
+    }
+
+    [Fact]
+    public void WriterRejectsInkPathsThatItsReadBackLimitCannotAccept() {
+        var section = new OneNoteSection { Name = "Ink value limit" };
+        var page = new OneNotePage { Title = "Ink" };
+        var ink = new OneNoteInk();
+        ink.Ink.Add(new OfficeInkStroke().AddPoint(0.1D, 0.2D).AddPoint(0.3D, 0.4D));
+        page.DirectContent.Add(ink);
+        section.Pages.Add(page);
+
+        OneNoteFormatException exception = Assert.Throws<OneNoteFormatException>(() =>
+            OneNoteSectionWriter.Write(section, new OneNoteWriterOptions {
+                MaxInkPathValues = 3,
+                ValidateRoundTrip = false
+            }));
+
+        Assert.Equal("ONENOTE_WRITE_INK_PATH_LIMIT", exception.Code);
+    }
+
+    [Fact]
     public void WritesNativeTransparencyAndPreservesHighlighterEffectiveOpacity() {
         var section = new OneNoteSection { Name = "Ink opacity" };
         var page = new OneNotePage { Title = "Ink" };

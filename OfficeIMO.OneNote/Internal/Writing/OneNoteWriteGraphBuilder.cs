@@ -12,17 +12,20 @@ internal sealed partial class OneNoteWriteGraphBuilder {
     private readonly bool _preserveUnknownData;
     private readonly int _maxPageRelationshipDepth;
     private readonly int _maxContentDepth;
+    private readonly int _maxInkPathValues;
     private OneNoteMaterializedObjectSpace? _activeSourceSpace;
 
     internal OneNoteWriteGraphBuilder(
         long maxPayloadBytes = OneNoteReaderOptions.DefaultMaxInputBytes,
         bool preserveUnknownData = true,
         int maxPageRelationshipDepth = OneNoteReaderOptions.DefaultMaxPageRelationshipDepth,
-        int maxContentDepth = OneNoteWriterOptions.DefaultMaxContentDepth) {
+        int maxContentDepth = OneNoteWriterOptions.DefaultMaxContentDepth,
+        int maxInkPathValues = OneNoteReaderOptions.DefaultMaxInkPathValues) {
         _maxPayloadBytes = maxPayloadBytes;
         _preserveUnknownData = preserveUnknownData;
         _maxPageRelationshipDepth = maxPageRelationshipDepth;
         _maxContentDepth = maxContentDepth;
+        _maxInkPathValues = maxInkPathValues;
     }
 
     internal OneNoteWriteGraph BuildSection(OneNoteSection section, Guid? ancestorId = null, string? fileName = null, Guid? fileIdOverride = null) {

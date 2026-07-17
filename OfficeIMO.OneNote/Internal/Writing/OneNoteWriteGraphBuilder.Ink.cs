@@ -4,6 +4,7 @@ namespace OfficeIMO.OneNote;
 
 internal sealed partial class OneNoteWriteGraphBuilder {
     private OneNoteExtendedGuid BuildInk(OneNoteWriteObjectSpace space, OneNoteInk ink, uint lastModifiedTime) {
+        foreach (OfficeInkStroke stroke in ink.Strokes) ValidateInkPathValueCount(stroke);
         if (CanPreserveNestedInkContainer(ink, out IReadOnlyList<OfficeInkStroke>? authoredStrokes)) {
             var retainedChildren = new List<OneNoteExtendedGuid>(ink.PreservedChildContainerIds);
             if (authoredStrokes.Count > 0) {
@@ -67,6 +68,16 @@ internal sealed partial class OneNoteWriteGraphBuilder {
         containerProperties.Add(Float(OneNoteSchema.InkScalingY, scaleY));
         space.Objects.Add(new OneNoteWriteObject(containerId, OneNoteSchema.JcidInkContainer, containerProperties));
         return containerId;
+    }
+
+    private void ValidateInkPathValueCount(OfficeInkStroke stroke) {
+        bool hasPressure = stroke.Points.Any(point => point.Pressure.HasValue);
+        long pathValueCount = (long)stroke.Points.Count * (hasPressure ? 3L : 2L);
+        if (pathValueCount > _maxInkPathValues) {
+            throw new OneNoteFormatException(
+                "ONENOTE_WRITE_INK_PATH_LIMIT",
+                "An ink stroke exceeds MaxInkPathValues.");
+        }
     }
 
     private bool CanPreserveNestedInkContainer(OneNoteInk ink, out IReadOnlyList<OfficeInkStroke> authoredStrokes) {

@@ -344,6 +344,50 @@ public sealed class OneNoteRenderingTests {
     }
 
     [Fact]
+    public void NegativeElementOffsetClipsInkInsteadOfShiftingItOntoThePage() {
+        var page = new OneNotePage {
+            PageSize = OneNotePageSize.Custom,
+            Width = 4D,
+            Height = 3D
+        };
+        var ink = new OneNoteInk {
+            Layout = new OneNoteLayout { X = -1D, Y = 1D, Width = 2D, Height = 1D }
+        };
+        ink.Ink.Add(new OfficeInkStroke { Width = 0.1D, Height = 0.1D }
+            .AddPoint(0D, 0.5D)
+            .AddPoint(2D, 0.5D));
+        page.DirectContent.Add(ink);
+
+        OfficeDrawing drawing = page.ToDrawing(new OneNotePageRenderingOptions { IncludeTitle = false });
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(drawing, 1D, OfficeColor.White);
+
+        Assert.Contains(Enumerable.Range(0, raster.Height), y => raster.GetPixel(20, y) != OfficeColor.White);
+        Assert.DoesNotContain(Enumerable.Range(0, raster.Height), y => raster.GetPixel(60, y) != OfficeColor.White);
+    }
+
+    [Fact]
+    public void NegativeVerticalElementOffsetClipsInkInsteadOfShiftingItOntoThePage() {
+        var page = new OneNotePage {
+            PageSize = OneNotePageSize.Custom,
+            Width = 3D,
+            Height = 4D
+        };
+        var ink = new OneNoteInk {
+            Layout = new OneNoteLayout { X = 1D, Y = -1D, Width = 1D, Height = 2D }
+        };
+        ink.Ink.Add(new OfficeInkStroke { Width = 0.1D, Height = 0.1D }
+            .AddPoint(0.5D, 0D)
+            .AddPoint(0.5D, 2D));
+        page.DirectContent.Add(ink);
+
+        OfficeDrawing drawing = page.ToDrawing(new OneNotePageRenderingOptions { IncludeTitle = false });
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(drawing, 1D, OfficeColor.White);
+
+        Assert.Contains(Enumerable.Range(0, raster.Width), x => raster.GetPixel(x, 20) != OfficeColor.White);
+        Assert.DoesNotContain(Enumerable.Range(0, raster.Width), x => raster.GetPixel(x, 60) != OfficeColor.White);
+    }
+
+    [Fact]
     public void ParagraphChildrenRenderAfterRunsAndExplicitFlowHeightIsReserved() {
         var page = new OneNotePage { PageSize = OneNotePageSize.IndexCard };
         var outline = new OneNoteOutline { Layout = new OneNoteLayout { X = 0.25D, Y = 0.5D, Width = 4D } };

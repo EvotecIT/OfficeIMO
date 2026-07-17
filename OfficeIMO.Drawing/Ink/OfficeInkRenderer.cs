@@ -109,7 +109,7 @@ public static class OfficeInkRenderer {
         double opacity = GetEffectiveOpacity(stroke, options.HighlighterOpacityFactor);
         OfficeColor renderColor = OfficeColor.FromRgb(stroke.Color.R, stroke.Color.G, stroke.Color.B);
         bool affineTipGeometry = stroke.RequiresAffineTipGeometry();
-        if (points.Count == 1) {
+        if (AllPointsSharePosition(points)) {
             if (affineTipGeometry) AddTransformedTip(drawing, stroke, renderColor, points[0], opacity, ResolvePointPressure(stroke, points[0], options));
             else AddDot(drawing, stroke, renderColor, points[0], transformedTipWidth, transformedTipHeight, opacity, options);
             return;
@@ -274,6 +274,15 @@ public static class OfficeInkRenderer {
             : first ?? second ?? 1D;
         value = Math.Max(0D, Math.Min(1D, value));
         return minimum + (1D - minimum) * value;
+    }
+
+    private static bool AllPointsSharePosition(IReadOnlyList<OfficeInkPoint> points) {
+        double x = points[0].X;
+        double y = points[0].Y;
+        for (int index = 1; index < points.Count; index++) {
+            if (!points[index].X.Equals(x) || !points[index].Y.Equals(y)) return false;
+        }
+        return true;
     }
 
     private static double ResolvePointPressure(OfficeInkStroke stroke, OfficeInkPoint point, OfficeInkRenderOptions options) =>

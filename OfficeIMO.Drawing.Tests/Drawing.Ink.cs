@@ -198,6 +198,22 @@ public class DrawingInkTests {
     }
 
     [Fact]
+    public void InkRendererTreatsDuplicateCoordinatePacketsAsADot() {
+        var stroke = new OfficeInkStroke { Width = 8D, Height = 6D }
+            .AddPoint(25D, 25D)
+            .AddPoint(25D, 25D);
+
+        OfficeDrawing drawing = OfficeInkRenderer.Render(new OfficeInkDocument().Add(stroke), 100D, 100D);
+
+        OfficeDrawingShape dot = Assert.Single(drawing.Shapes);
+        Assert.Equal(OfficeShapeKind.Ellipse, dot.Shape.Kind);
+        Assert.Equal(21D, dot.X, 6);
+        Assert.Equal(22D, dot.Y, 6);
+        Assert.Equal(8D, dot.Shape.Width, 6);
+        Assert.Equal(6D, dot.Shape.Height, 6);
+    }
+
+    [Fact]
     public void InkPointsValidatePressureAndCoordinates() {
         Assert.Throws<ArgumentOutOfRangeException>(() => new OfficeInkPoint(double.NaN, 0));
         Assert.Throws<ArgumentOutOfRangeException>(() => new OfficeInkPoint(0, 0, 1.01));

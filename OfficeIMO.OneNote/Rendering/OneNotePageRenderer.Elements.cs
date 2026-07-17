@@ -3,7 +3,7 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.OneNote;
 
 public static partial class OneNotePageRenderer {
-    private sealed class RenderContext {
+    private sealed partial class RenderContext {
         private const double DefaultParagraphHeight = 20D;
         private readonly OfficeDrawing _drawing;
         private readonly OneNotePageRenderingOptions _options;
@@ -37,8 +37,16 @@ public static partial class OneNotePageRenderer {
             bool forcePageBounds = false,
             bool? inheritedRightToLeft = null) {
             if (y >= _drawing.Height || x >= _drawing.Width) return 0D;
-            x = Math.Max(0D, x);
-            y = Math.Max(0D, y);
+            if (x < 0D || y < 0D) {
+                return RenderElementWithNegativeOffset(
+                    element,
+                    x,
+                    y,
+                    availableWidth,
+                    availableHeight,
+                    forcePageBounds,
+                    inheritedRightToLeft);
+            }
             availableWidth = Math.Min(availableWidth, _drawing.Width - x);
             if (availableWidth <= 0D) return 0D;
             double explicitHeight = element.Layout?.Height.HasValue == true

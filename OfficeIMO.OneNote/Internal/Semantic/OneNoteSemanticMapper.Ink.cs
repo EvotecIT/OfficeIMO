@@ -101,7 +101,11 @@ internal static partial class OneNoteSemanticMapper {
         int xIndex = IndexOfDimension(dimensions, OneNoteInkCodec.XDimension);
         int yIndex = IndexOfDimension(dimensions, OneNoteInkCodec.YDimension);
         if (xIndex < 0 || yIndex < 0 || dimensions.Count == 0) return null;
-        IReadOnlyList<long> values = OneNoteInkCodec.DecodeSignedVector(pathData, Math.Min(pathData.Length, (int)Math.Min(int.MaxValue, options.MaxInputBytes ?? int.MaxValue)));
+        int maximumPathValues = Math.Min(options.MaxInkPathValues, pathData.Length);
+        if (options.MaxInputBytes.HasValue) {
+            maximumPathValues = Math.Min(maximumPathValues, (int)Math.Min(int.MaxValue, options.MaxInputBytes.Value));
+        }
+        IReadOnlyList<long> values = OneNoteInkCodec.DecodeSignedVector(pathData, maximumPathValues);
         if (values.Count == 0 || values.Count % dimensions.Count != 0) return null;
         int pointCount = values.Count / dimensions.Count;
         int pressureIndex = IndexOfDimension(dimensions, OneNoteInkCodec.PressureDimension);
