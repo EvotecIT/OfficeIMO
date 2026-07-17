@@ -509,20 +509,23 @@ namespace OfficeIMO.Excel {
                 string area,
                 bool areaIsExplicit,
                 string? firstColumn,
-                string? lastColumn) {
+                string? lastColumn,
+                string? additionalArea = null) {
                 Area = area;
                 AreaIsExplicit = areaIsExplicit;
                 FirstColumn = firstColumn;
                 LastColumn = lastColumn;
+                AdditionalArea = additionalArea;
             }
 
             internal string Area { get; }
             internal bool AreaIsExplicit { get; }
             internal string? FirstColumn { get; }
             internal string? LastColumn { get; }
+            internal string? AdditionalArea { get; }
 
             internal FormulaStructuredTableReference WithArea(string area) {
-                return new FormulaStructuredTableReference(area, true, FirstColumn, LastColumn);
+                return new FormulaStructuredTableReference(area, true, FirstColumn, LastColumn, AdditionalArea);
             }
         }
 
@@ -585,26 +588,61 @@ namespace OfficeIMO.Excel {
                 return true;
             }
 
-            if (sections.Count == 2 && separators[0] == ':') {
+            if (!IsStructuredTableAreaSpecifier(sections[0])) {
+                if (sections.Count != 2 || separators[0] != ':') {
+                    return false;
+                }
+
                 reference = new FormulaStructuredTableReference("#Data", false, sections[0], sections[1]);
                 return true;
             }
 
-            if (!IsStructuredTableAreaSpecifier(sections[0]) || separators[0] != ',') {
-                return false;
+            string area = sections[0];
+            string? additionalArea = null;
+            int areaCount = 1;
+            if (sections.Count > 1 && IsStructuredTableAreaSpecifier(sections[1])) {
+                if (separators[0] != ',' || !IsSupportedStructuredTableAreaCombination(area, sections[1])) {
+                    return false;
+                }
+
+                additionalArea = sections[1];
+                areaCount = 2;
             }
 
-            if (sections.Count == 2) {
-                reference = new FormulaStructuredTableReference(sections[0], true, sections[1], sections[1]);
+            int columnCount = sections.Count - areaCount;
+            if (columnCount == 0) {
+                reference = new FormulaStructuredTableReference(area, true, null, null, additionalArea);
                 return true;
             }
 
-            if (sections.Count == 3 && separators[1] == ':') {
-                reference = new FormulaStructuredTableReference(sections[0], true, sections[1], sections[2]);
+            if (separators[areaCount - 1] != ',') {
+                return false;
+            }
+
+            string firstColumn = sections[areaCount];
+            if (columnCount == 1) {
+                reference = new FormulaStructuredTableReference(area, true, firstColumn, firstColumn, additionalArea);
+                return true;
+            }
+
+            if (columnCount == 2 && separators[areaCount] == ':') {
+                reference = new FormulaStructuredTableReference(
+                    area,
+                    true,
+                    firstColumn,
+                    sections[areaCount + 1],
+                    additionalArea);
                 return true;
             }
 
             return false;
+        }
+
+        private static bool IsSupportedStructuredTableAreaCombination(string first, string second) {
+            return (string.Equals(first, "#Headers", StringComparison.OrdinalIgnoreCase)
+                    && string.Equals(second, "#Data", StringComparison.OrdinalIgnoreCase))
+                || (string.Equals(first, "#Data", StringComparison.OrdinalIgnoreCase)
+                    && string.Equals(second, "#Totals", StringComparison.OrdinalIgnoreCase));
         }
 
         private static bool TryParseStructuredCurrentRowColumns(
@@ -649,6 +687,13 @@ namespace OfficeIMO.Excel {
             separators = new List<char>();
             int index = 0;
             while (index < value.Length) {
+                while (index < value.Length && char.IsWhiteSpace(value[index])) {
+                    index++;
+                }
+                if (index == value.Length) {
+                    return sections.Count > 0;
+                }
+
                 if (value[index] != '[') {
                     return false;
                 }
@@ -665,6 +710,9 @@ namespace OfficeIMO.Excel {
 
                 sections.Add(section);
                 index = end + 1;
+                while (index < value.Length && char.IsWhiteSpace(value[index])) {
+                    index++;
+                }
                 if (index == value.Length) {
                     return true;
                 }
@@ -705,6 +753,23 @@ namespace OfficeIMO.Excel {
 
             if (!TryResolveTableAreaRows(reference.Area, tableR1, tableR2, headerRows, totalsRows, currentRow, out r1, out r2)) {
                 return false;
+            }
+            if (reference.AdditionalArea != null) {
+                if (!TryResolveTableAreaRows(
+                    reference.AdditionalArea,
+                    tableR1,
+                    tableR2,
+                    headerRows,
+                    totalsRows,
+                    currentRow,
+                    out int additionalR1,
+                    out int additionalR2)
+                    || additionalR1 > r2 + 1) {
+                    return false;
+                }
+
+                r1 = Math.Min(r1, additionalR1);
+                r2 = Math.Max(r2, additionalR2);
             }
 
             c1 = tableC1;

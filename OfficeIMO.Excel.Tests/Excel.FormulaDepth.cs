@@ -233,6 +233,53 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_FormulaStructuredReferences_ResolveWhitespaceAndCombinedItems() {
+            using ExcelDocument document = ExcelDocument.Create();
+            ExcelSheet sheet = document.AddWorksheet("Structured Combined Items");
+            sheet.CellValue(1, 1, "A");
+            sheet.CellValue(1, 2, "B");
+            sheet.CellValue(1, 3, "C");
+            sheet.CellValue(2, 1, 10d);
+            sheet.CellFormula(2, 2, "1+1");
+            sheet.CellValue(2, 3, 30d);
+            sheet.CellValue(3, 1, 1d);
+            sheet.CellValue(3, 2, 5d);
+            sheet.CellValue(3, 3, 3d);
+            sheet.CellFormula(1, 5, "SUM(Sales[[#Data], [A] : [C]])");
+            sheet.CellFormula(2, 5, "SUM(Sales[[#Headers],[#Data],[B]])");
+            sheet.CellFormula(3, 5, "SUM(Sales[[#Data],[#Totals],[B]])");
+            sheet.AddTable("A1:C3", hasHeader: true, name: "Sales", style: TableStyle.TableStyleMedium2);
+            Table table = Assert.Single(
+                document.WorkbookPartRoot.WorksheetParts.SelectMany(part => part.TableDefinitionParts)).Table;
+            table.TotalsRowShown = true;
+            table.TotalsRowCount = 1U;
+            table.Save();
+
+            Assert.Equal(4, document.Calculate());
+            Assert.True(sheet.TryGetCachedFormulaValue(1, 5, out string? whitespaceValue));
+            Assert.Equal("42", whitespaceValue);
+            Assert.True(sheet.TryGetCachedFormulaValue(2, 5, out string? headerDataValue));
+            Assert.Equal("2", headerDataValue);
+            Assert.True(sheet.TryGetCachedFormulaValue(3, 5, out string? dataTotalsValue));
+            Assert.Equal("7", dataTotalsValue);
+
+            ExcelFormulaDependencyGraph graph = document.InspectFormulas().DependencyGraph;
+            ExcelFormulaDependencyNode whitespace = Assert.IsType<ExcelFormulaDependencyNode>(
+                graph.FindNode("Structured Combined Items", "E1"));
+            ExcelFormulaDependencyNode headerData = Assert.IsType<ExcelFormulaDependencyNode>(
+                graph.FindNode("Structured Combined Items", "E2"));
+            ExcelFormulaDependencyNode dataTotals = Assert.IsType<ExcelFormulaDependencyNode>(
+                graph.FindNode("Structured Combined Items", "E3"));
+
+            Assert.Equal(new[] { "Structured Combined Items!A2:C2" }, whitespace.Dependencies);
+            Assert.Equal(new[] { "Structured Combined Items!B2" }, whitespace.FormulaDependencies);
+            Assert.Equal(new[] { "Structured Combined Items!B1:B2" }, headerData.Dependencies);
+            Assert.Equal(new[] { "Structured Combined Items!B2" }, headerData.FormulaDependencies);
+            Assert.Equal(new[] { "Structured Combined Items!B2:B3" }, dataTotals.Dependencies);
+            Assert.Equal(new[] { "Structured Combined Items!B2" }, dataTotals.FormulaDependencies);
+        }
+
+        [Fact]
         public void Test_FormulaDependencyGraph_ResolvesUnqualifiedCurrentRowStructuredReferences() {
             using ExcelDocument document = ExcelDocument.Create();
             ExcelSheet sheet = document.AddWorksheet("Unqualified Current Row");
