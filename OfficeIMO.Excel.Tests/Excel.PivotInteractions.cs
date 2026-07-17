@@ -169,5 +169,35 @@ namespace OfficeIMO.Tests {
                     .Select(cache => cache.SourceName)
                     .OrderBy(name => name, StringComparer.OrdinalIgnoreCase));
         }
+
+        [Fact]
+        public void Test_PivotTimelineCache_AcceptsStyledFormulaDateCaches() {
+            using ExcelDocument document = ExcelDocument.Create();
+            ExcelSheet sheet = document.AddWorksheet("Sales");
+            sheet.CellValue(1, 1, "Region");
+            sheet.CellValue(1, 2, "OrderDate");
+            sheet.CellValue(1, 3, "Amount");
+            sheet.CellValue(2, 1, "East");
+            sheet.CellFormula(2, 2, "DATE(2026,1,2)");
+            sheet.CellAt(2, 2).DateTime("yyyy-mm-dd");
+            sheet.CellValue(2, 3, 10d);
+            Assert.Equal(1, document.Calculate());
+
+            Cell formulaCell = Assert.Single(sheet.WorksheetPart.Worksheet.Descendants<Cell>(), cell =>
+                cell.CellReference?.Value == "B2");
+            formulaCell.DataType = null;
+            sheet.WorksheetPart.Worksheet.Save();
+
+            sheet.AddPivotTable(
+                sourceRange: "A1:C2",
+                destinationCell: "E2",
+                name: "SalesPivot",
+                rowFields: new[] { "Region" },
+                dataFields: new[] { new ExcelPivotDataField("Amount", DataConsolidateFunctionValues.Sum) });
+
+            document.AddPivotTimelineCache("SalesPivot", "OrderDate");
+            ExcelPivotInteractionCacheInfo timeline = Assert.Single(document.GetWorkbookTimelineCaches());
+            Assert.Equal("OrderDate", timeline.SourceName);
+        }
     }
 }
