@@ -83,6 +83,53 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PptmPathSavesPreserveVbaAndMacroEnabledType() {
+            byte[] projectBytes = CreateVbaTestProject("PptmModule",
+                "Sub PptmSave()\nEnd Sub");
+            string sourcePath = Path.Combine(Path.GetTempPath(),
+                $"officeimo-{Guid.NewGuid():N}.pptm");
+            string copyPath = Path.Combine(Path.GetTempPath(),
+                $"officeimo-{Guid.NewGuid():N}.pptm");
+            string encryptedPath = Path.Combine(Path.GetTempPath(),
+                $"officeimo-{Guid.NewGuid():N}.pptm");
+            try {
+                using (PowerPointPresentation created =
+                       PowerPointPresentation.Create()) {
+                    created.AddSlide().AddTitle("PPTM source");
+                    SetVbaProject(created, projectBytes);
+                    created.SaveCopy(sourcePath);
+                    created.SaveEncrypted(encryptedPath,
+                        "OfficeIMO-pptm-pass");
+                }
+                AssertMacroEnabledPackage(sourcePath, projectBytes);
+                using (PowerPointPresentation encrypted =
+                       PowerPointPresentation.LoadEncrypted(encryptedPath,
+                           "OfficeIMO-pptm-pass")) {
+                    Assert.Equal(
+                        PresentationDocumentType.MacroEnabledPresentation,
+                        encrypted.OpenXmlDocument.DocumentType);
+                    Assert.Equal(projectBytes, ReadVbaProject(encrypted));
+                }
+
+                using (PowerPointPresentation loaded =
+                       PowerPointPresentation.Load(sourcePath)) {
+                    Assert.Equal(projectBytes, ReadVbaProject(loaded));
+                    loaded.Slides[0].TextBoxes.Single().Text =
+                        "PPTM saved";
+                    loaded.Save();
+                    loaded.SaveCopy(copyPath);
+                }
+
+                AssertMacroEnabledPackage(sourcePath, projectBytes);
+                AssertMacroEnabledPackage(copyPath, projectBytes);
+            } finally {
+                if (File.Exists(sourcePath)) File.Delete(sourcePath);
+                if (File.Exists(copyPath)) File.Delete(copyPath);
+                if (File.Exists(encryptedPath)) File.Delete(encryptedPath);
+            }
+        }
+
+        [Fact]
         public void ImportedVbaProject_ReplacementAndRemovalUseIncrementalPersistRecords() {
             byte[] originalProject = CreateVbaTestProject("OriginalModule",
                 "Sub Original()\nEnd Sub");
@@ -261,6 +308,21 @@ namespace OfficeIMO.Tests {
             using var output = new MemoryStream();
             stream.CopyTo(output);
             return output.ToArray();
+        }
+
+        private static void AssertMacroEnabledPackage(string path,
+            byte[] expectedProject) {
+            using PresentationDocument document =
+                PresentationDocument.Open(path, false);
+            Assert.Equal(PresentationDocumentType.MacroEnabledPresentation,
+                document.DocumentType);
+            VbaProjectPart part = Assert.IsType<VbaProjectPart>(document
+                .PresentationPart!.VbaProjectPart);
+            using Stream input = part.GetStream(FileMode.Open,
+                FileAccess.Read);
+            using var output = new MemoryStream();
+            input.CopyTo(output);
+            Assert.Equal(expectedProject, output.ToArray());
         }
 
         private static byte[] CreateVbaTestProject(string moduleName,

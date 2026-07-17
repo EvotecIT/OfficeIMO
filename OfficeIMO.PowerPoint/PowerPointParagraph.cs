@@ -28,6 +28,8 @@ namespace OfficeIMO.PowerPoint {
         public string Text {
             get => Paragraph.InnerText ?? string.Empty;
             set {
+                string[] discardedSoundIds = PowerPointEmbeddedSound
+                    .GetRelationshipIds(Paragraph);
                 A.EndParagraphRunProperties? endProps = Paragraph.GetFirstChild<A.EndParagraphRunProperties>();
                 endProps?.Remove();
                 Paragraph.RemoveAllChildren<A.Run>();
@@ -36,6 +38,8 @@ namespace OfficeIMO.PowerPoint {
                 if (endProps != null) {
                     Paragraph.Append(endProps);
                 }
+                PowerPointEmbeddedSound.RemoveIfUnused(_slidePart,
+                    discardedSoundIds);
             }
         }
 

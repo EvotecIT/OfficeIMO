@@ -253,6 +253,64 @@ namespace OfficeIMO.Tests {
                     StringComparison.OrdinalIgnoreCase));
         }
 
+        [Theory]
+        [InlineData("effect")]
+        [InlineData("speed")]
+        [InlineData("duration")]
+        [InlineData("advance")]
+        [InlineData("missing")]
+        public void NativeWriter_RejectsInconsistentAlternateContentTransitionSettings(
+            string difference) {
+            using PowerPointPresentation source =
+                PowerPointPresentation.Create();
+            PowerPointSlide slide = source.AddSlide(
+                P.SlideLayoutValues.Blank);
+            var choiceTransition = new P.Transition(
+                new P.FadeTransition());
+            var fallbackTransition = new P.Transition(
+                difference == "effect"
+                    ? new P.WipeTransition()
+                    : new P.FadeTransition());
+            switch (difference) {
+                case "speed":
+                    choiceTransition.Speed = P.TransitionSpeedValues.Slow;
+                    fallbackTransition.Speed = P.TransitionSpeedValues.Fast;
+                    break;
+                case "duration":
+                    choiceTransition.Duration = "750";
+                    fallbackTransition.Duration = "500";
+                    break;
+                case "advance":
+                    choiceTransition.AdvanceOnClick = true;
+                    choiceTransition.AdvanceAfterTime = "1000";
+                    fallbackTransition.AdvanceOnClick = false;
+                    fallbackTransition.AdvanceAfterTime = "2000";
+                    break;
+            }
+            var choice = new AlternateContentChoice { Requires = "p14" };
+            if (difference != "missing") {
+                choice.Append(choiceTransition);
+            }
+            var fallback = new AlternateContentFallback();
+            fallback.Append(fallbackTransition);
+            slide.SlidePart.Slide!.AddNamespaceDeclaration("p14",
+                "http://schemas.microsoft.com/office/powerpoint/2010/main");
+            slide.SlidePart.Slide.InsertAfter(
+                new AlternateContent(choice, fallback),
+                slide.SlidePart.Slide.ColorMapOverride!);
+
+            Assert.False(LegacyPptWriter.TryReadTransition(slide,
+                out _, out string? reason));
+            Assert.Contains("inconsistent", reason,
+                StringComparison.OrdinalIgnoreCase);
+            LegacyPptWritePreflightReport preflight = source
+                .AnalyzeLegacyPptWrite();
+            Assert.False(preflight.CanWrite);
+            Assert.Contains(preflight.Findings, finding =>
+                finding.Description.Contains("inconsistent",
+                    StringComparison.OrdinalIgnoreCase));
+        }
+
         [Fact]
         public void ImportedSoundPresentation_UnrelatedEditPreservesSoundSemantics() {
             byte[] sourceBytes = CreateBinarySoundPresentation();
@@ -404,6 +462,47 @@ namespace OfficeIMO.Tests {
             Assert.Empty(slide.SlidePart.DataPartReferenceRelationships
                 .OfType<AudioReferenceRelationship>());
             Assert.Empty(presentation.OpenXmlDocument.DataParts);
+            Assert.Empty(presentation.ValidateDocument());
+        }
+
+        [Fact]
+        public void TextContainerReplacementsReleaseDiscardedRunSounds() {
+            byte[] wave = CreateWavePayload();
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            PowerPointTextBox cleared = slide.AddTextBox("Clear sound");
+            using (var audio = new MemoryStream(wave, writable: false)) {
+                cleared.Paragraphs.Single().Runs.Single()
+                    .SetClickSound(audio, "Clear sound");
+            }
+            PowerPointTextBox paragraphReplaced = slide.AddTextBox(
+                "Paragraph sound");
+            using (var audio = new MemoryStream(wave, writable: false)) {
+                paragraphReplaced.Paragraphs.Single().Runs.Single()
+                    .SetMouseOverSound(audio, "Paragraph sound");
+            }
+            PowerPointTableCell cell = slide.AddTable(1, 1)
+                .GetCell(0, 0);
+            cell.Text = "Cell sound";
+            using (var audio = new MemoryStream(wave, writable: false)) {
+                cell.Runs.Single().SetClickSound(audio, "Cell sound");
+            }
+            Assert.Equal(3, slide.SlidePart
+                .DataPartReferenceRelationships
+                .OfType<AudioReferenceRelationship>().Count());
+            Assert.Equal(3, presentation.OpenXmlDocument.DataParts.Count());
+
+            cleared.Clear();
+            paragraphReplaced.Paragraphs.Single().Text =
+                "Paragraph replaced";
+            cell.Text = "Cell replaced";
+
+            Assert.Empty(slide.SlidePart.DataPartReferenceRelationships
+                .OfType<AudioReferenceRelationship>());
+            Assert.Empty(presentation.OpenXmlDocument.DataParts);
+            Assert.Empty(slide.SlidePart.Slide!
+                .Descendants<A.HyperlinkSound>());
             Assert.Empty(presentation.ValidateDocument());
         }
 

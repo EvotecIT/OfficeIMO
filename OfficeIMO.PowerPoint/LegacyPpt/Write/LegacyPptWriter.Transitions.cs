@@ -11,44 +11,72 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             out LegacyPptWriterTransition? transition, out string? reason) {
             transition = null;
             reason = null;
-            IReadOnlyList<DocumentFormat.OpenXml.Presentation.Transition>
-                transitionElements = slide.GetTransitionElements();
-            LegacyPptWriterSound? transitionSound = null;
-            (string Kind, uint? SoundId, bool BuiltIn, bool Loop)
-                soundSignature = default;
-            bool hasSoundSignature = false;
-            foreach (DocumentFormat.OpenXml.Presentation.Transition
-                     transitionElement in transitionElements) {
-                if (!TryReadTransitionSoundAction(transitionElement,
+            IReadOnlyList<DocumentFormat.OpenXml.Presentation.Transition?>
+                transitionBranches = slide.GetTransitionBranches();
+            LegacyPptWriterTransitionBranch? firstBranch = null;
+            foreach (DocumentFormat.OpenXml.Presentation.Transition?
+                     transitionElement in transitionBranches) {
+                if (!TryReadTransitionBranch(transitionElement,
                         slide.SlidePart, soundCatalog,
-                        out LegacyPptWriterSound? branchSound,
-                        out (string Kind, uint? SoundId, bool BuiltIn,
-                            bool Loop) branchSignature,
+                        out LegacyPptWriterTransitionBranch? branch,
                         out reason)) {
                     return false;
                 }
-                if (hasSoundSignature
-                    && !soundSignature.Equals(branchSignature)) {
-                    reason = "AlternateContent transition branches contain inconsistent sound actions.";
+                if (firstBranch != null
+                    && !firstBranch.IsEquivalentTo(branch!)) {
+                    reason = "AlternateContent transition branches contain inconsistent effects, timing, advance settings, or sound actions.";
                     return false;
                 }
-                if (!hasSoundSignature) {
-                    transitionSound = branchSound;
-                    soundSignature = branchSignature;
-                    hasSoundSignature = true;
-                }
+                firstBranch ??= branch;
             }
-            bool hasTransitionEffect = slide.Transition != SlideTransition.None;
-            bool hasSoundAction = hasSoundSignature
-                && !string.Equals(soundSignature.Kind, "none",
-                    StringComparison.Ordinal);
-            if (!hasTransitionEffect && !hasSoundAction) return true;
+            if (firstBranch?.HasData != true) return true;
+            transition = firstBranch.Transition;
+            return true;
+        }
 
+        private static bool TryReadTransitionBranch(
+            DocumentFormat.OpenXml.Presentation.Transition? transition,
+            DocumentFormat.OpenXml.Packaging.SlidePart ownerPart,
+            LegacyPptWriterSoundCatalog soundCatalog,
+            out LegacyPptWriterTransitionBranch? branch,
+            out string? reason) {
+            branch = null;
+            reason = null;
+            if (transition == null) {
+                branch = new LegacyPptWriterTransitionBranch(
+                    hasData: false, hasEffect: false, soundKind: "none",
+                    soundBuiltIn: false,
+                    new LegacyPptWriterTransition(effectType: 0,
+                        effectDirection: 0, speed: 1,
+                        manualAdvance: true, autoAdvance: false,
+                        slideTimeMilliseconds: 0));
+                return true;
+            }
+            SlideTransition effect = PowerPointSlide.GetTransitionValue(
+                transition);
+            bool hasEffect = effect != SlideTransition.None;
+            bool hasEffectMarkup = transition.ChildElements.Any(child =>
+                child is not DocumentFormat.OpenXml.Presentation.SoundAction
+                && !string.Equals(child.LocalName, "extLst",
+                    StringComparison.Ordinal));
             byte effectType = 0;
             byte effectDirection = 0;
-            if (hasTransitionEffect && !LegacyPptTransitionMapping.TryGetBinary(slide.Transition,
+            if (hasEffect && !LegacyPptTransitionMapping.TryGetBinary(effect,
                     out effectType, out effectDirection)) {
-                reason = $"The {slide.Transition} transition has no PowerPoint 97-2003 representation.";
+                reason = $"The {effect} transition has no PowerPoint 97-2003 representation.";
+                return false;
+            }
+            if (hasEffectMarkup && !hasEffect) {
+                reason = "A transition branch contains an effect with no PowerPoint 97-2003 representation.";
+                return false;
+            }
+
+            if (!TryReadTransitionSoundAction(transition, ownerPart,
+                    soundCatalog,
+                    out LegacyPptWriterSound? resolvedSound,
+                    out (string Kind, uint? SoundId, bool BuiltIn,
+                        bool Loop) soundSignature,
+                    out reason)) {
                 return false;
             }
             uint soundId = 0;
@@ -60,31 +88,46 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 stopSound = true;
             } else if (string.Equals(soundSignature.Kind, "start",
                            StringComparison.Ordinal)) {
-                if (transitionSound == null) {
+                if (resolvedSound == null) {
                     reason = "A transition start-sound action must contain exactly one representable embedded sound.";
                     return false;
                 }
-                soundId = transitionSound.Id;
+                soundId = resolvedSound.Id;
                 playSound = true;
                 loopSound = soundSignature.Loop;
             }
 
-            byte speed = slide.TransitionSpeed switch {
-                SlideTransitionSpeed.Slow => 0,
-                SlideTransitionSpeed.Fast => 2,
-                _ => 1
-            };
-            if (slide.TransitionDurationSeconds.HasValue) {
-                double duration = slide.TransitionDurationSeconds.Value;
-                byte? durationSpeed = NearlyEqual(duration, 0.75) ? (byte)0
-                    : NearlyEqual(duration, 0.5) ? (byte)1
-                    : NearlyEqual(duration, 0.25) ? (byte)2
-                    : null;
+            DocumentFormat.OpenXml.Presentation.TransitionSpeedValues?
+                speedValue = transition.Speed?.Value;
+            byte speed = speedValue
+                         == DocumentFormat.OpenXml.Presentation
+                             .TransitionSpeedValues.Slow
+                ? (byte)0
+                : speedValue == DocumentFormat.OpenXml.Presentation
+                    .TransitionSpeedValues.Fast
+                    ? (byte)2
+                    : (byte)1;
+            string? durationText = transition.Duration?.Value;
+            if (!string.IsNullOrWhiteSpace(durationText)) {
+                if (!uint.TryParse(durationText,
+                        System.Globalization.NumberStyles.None,
+                        System.Globalization.CultureInfo.InvariantCulture,
+                        out uint durationMilliseconds)) {
+                    reason = "A transition branch contains an invalid duration.";
+                    return false;
+                }
+                byte? durationSpeed = durationMilliseconds switch {
+                    750 => 0,
+                    500 => 1,
+                    250 => 2,
+                    _ => null
+                };
                 if (!durationSpeed.HasValue) {
                     reason = "Binary PowerPoint transition duration must be exactly 0.75, 0.5, or 0.25 seconds.";
                     return false;
                 }
-                if (slide.TransitionSpeed.HasValue && speed != durationSpeed.Value) {
+                if (transition.Speed?.Value != null
+                    && speed != durationSpeed.Value) {
                     reason = "The requested transition speed and duration describe different binary speed values.";
                     return false;
                 }
@@ -92,19 +135,37 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             }
 
             int slideTime = 0;
-            bool autoAdvance = slide.TransitionAdvanceAfterSeconds.HasValue;
+            string? advanceAfterText = transition.AdvanceAfterTime?.Value;
+            bool autoAdvance = !string.IsNullOrWhiteSpace(
+                advanceAfterText);
             if (autoAdvance) {
-                double seconds = slide.TransitionAdvanceAfterSeconds!.Value;
-                if (seconds < 0 || seconds > 86399) {
+                if (!uint.TryParse(advanceAfterText,
+                        System.Globalization.NumberStyles.None,
+                        System.Globalization.CultureInfo.InvariantCulture,
+                        out uint advanceMilliseconds)) {
+                    reason = "A transition branch contains an invalid automatic-advance time.";
+                    return false;
+                }
+                if (advanceMilliseconds > 86399000U) {
                     reason = "Binary PowerPoint automatic advance must be between 0 and 86,399 seconds.";
                     return false;
                 }
-                slideTime = checked((int)Math.Round(seconds * 1000.0,
-                    MidpointRounding.AwayFromZero));
+                slideTime = checked((int)advanceMilliseconds);
             }
-            transition = new LegacyPptWriterTransition(effectType, effectDirection,
-                speed, slide.TransitionAdvanceOnClick != false, autoAdvance,
+            bool hasSettings = transition.Speed?.Value != null
+                || !string.IsNullOrWhiteSpace(durationText)
+                || transition.AdvanceOnClick?.Value != null
+                || autoAdvance;
+            var projected = new LegacyPptWriterTransition(effectType,
+                effectDirection, speed,
+                transition.AdvanceOnClick?.Value != false, autoAdvance,
                 slideTime, soundId, playSound, loopSound, stopSound);
+            branch = new LegacyPptWriterTransitionBranch(
+                hasEffect || hasSettings
+                    || !string.Equals(soundSignature.Kind, "none",
+                        StringComparison.Ordinal),
+                hasEffect, soundSignature.Kind, soundSignature.BuiltIn,
+                projected);
             return true;
         }
 
@@ -166,8 +227,44 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             return true;
         }
 
-        private static bool NearlyEqual(double left, double right) =>
-            Math.Abs(left - right) < 0.0005;
+        private sealed class LegacyPptWriterTransitionBranch {
+            internal LegacyPptWriterTransitionBranch(bool hasData,
+                bool hasEffect, string soundKind, bool soundBuiltIn,
+                LegacyPptWriterTransition transition) {
+                HasData = hasData;
+                HasEffect = hasEffect;
+                SoundKind = soundKind;
+                SoundBuiltIn = soundBuiltIn;
+                Transition = transition;
+            }
+
+            internal bool HasData { get; }
+            internal bool HasEffect { get; }
+            internal string SoundKind { get; }
+            internal bool SoundBuiltIn { get; }
+            internal LegacyPptWriterTransition Transition { get; }
+
+            internal bool IsEquivalentTo(
+                LegacyPptWriterTransitionBranch other) =>
+                other != null
+                && HasEffect == other.HasEffect
+                && string.Equals(SoundKind, other.SoundKind,
+                    StringComparison.Ordinal)
+                && SoundBuiltIn == other.SoundBuiltIn
+                && Transition.EffectType == other.Transition.EffectType
+                && Transition.EffectDirection
+                    == other.Transition.EffectDirection
+                && Transition.Speed == other.Transition.Speed
+                && Transition.ManualAdvance
+                    == other.Transition.ManualAdvance
+                && Transition.AutoAdvance == other.Transition.AutoAdvance
+                && Transition.SlideTimeMilliseconds
+                    == other.Transition.SlideTimeMilliseconds
+                && Transition.SoundId == other.Transition.SoundId
+                && Transition.PlaySound == other.Transition.PlaySound
+                && Transition.LoopSound == other.Transition.LoopSound
+                && Transition.StopSound == other.Transition.StopSound;
+        }
 
         internal static byte[] PatchSlideShowInfo(byte[] record,
             PowerPointSlide slide,

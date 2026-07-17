@@ -158,10 +158,14 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public void Clear() {
             TextBody textBody = EnsureTextBody();
+            string[] discardedSoundIds = PowerPointEmbeddedSound
+                .GetRelationshipIds(textBody);
             A.Paragraph? templateParagraph = textBody.Elements<A.Paragraph>().FirstOrDefault();
 
             textBody.RemoveAllChildren<A.Paragraph>();
             textBody.Append(CreateEmptyParagraph(templateParagraph));
+            PowerPointEmbeddedSound.RemoveIfUnused(_slidePart,
+                discardedSoundIds);
         }
 
         /// <summary>
@@ -177,6 +181,8 @@ namespace OfficeIMO.PowerPoint {
             set {
                 string textValue = value ?? string.Empty;
                 TextBody textBody = EnsureTextBody();
+                string[] discardedSoundIds = PowerPointEmbeddedSound
+                    .GetRelationshipIds(textBody);
 
                 A.Paragraph? templateParagraph = textBody.Elements<A.Paragraph>().FirstOrDefault();
                 A.ParagraphProperties? templateParagraphProperties = templateParagraph?.GetFirstChild<A.ParagraphProperties>();
@@ -197,18 +203,23 @@ namespace OfficeIMO.PowerPoint {
 
                     A.Run run = new();
                     if (templateRunProperties != null) {
-                        run.RunProperties = (A.RunProperties)templateRunProperties.CloneNode(true);
+                        run.RunProperties = CloneRunPropertiesForReplacement(
+                            templateRunProperties);
                     }
 
                     run.Append(new A.Text(line));
                     paragraph.Append(run);
 
                     if (templateEndParagraphRunProperties != null) {
-                        paragraph.Append((A.EndParagraphRunProperties)templateEndParagraphRunProperties.CloneNode(true));
+                        paragraph.Append(
+                            CloneEndPropertiesForReplacement(
+                                templateEndParagraphRunProperties));
                     }
 
                     textBody.Append(paragraph);
                 }
+                PowerPointEmbeddedSound.RemoveIfUnused(_slidePart,
+                    discardedSoundIds);
             }
         }
 
@@ -655,6 +666,8 @@ namespace OfficeIMO.PowerPoint {
         private IReadOnlyList<PowerPointParagraph> ReplaceParagraphs<T>(IEnumerable<T> items,
             Func<T, A.Paragraph?, PowerPointParagraph> addParagraph) {
             TextBody textBody = EnsureTextBody();
+            string[] discardedSoundIds = PowerPointEmbeddedSound
+                .GetRelationshipIds(textBody);
             A.Paragraph? templateParagraph = textBody.Elements<A.Paragraph>().FirstOrDefault();
             textBody.RemoveAllChildren<A.Paragraph>();
 
@@ -666,6 +679,9 @@ namespace OfficeIMO.PowerPoint {
             if (results.Count == 0) {
                 textBody.Append(CreateEmptyParagraph(templateParagraph));
             }
+
+            PowerPointEmbeddedSound.RemoveIfUnused(_slidePart,
+                discardedSoundIds);
 
             return results;
         }
@@ -682,14 +698,16 @@ namespace OfficeIMO.PowerPoint {
                 .Select(existingRun => existingRun.RunProperties)
                 .FirstOrDefault(runProperties => runProperties != null);
             if (templateRunProps != null) {
-                run.RunProperties = (A.RunProperties)templateRunProps.CloneNode(true);
+                run.RunProperties = CloneRunPropertiesForReplacement(
+                    templateRunProps);
             }
 
             paragraph.Append(run);
 
             A.EndParagraphRunProperties? templateEnd = templateParagraph?.GetFirstChild<A.EndParagraphRunProperties>();
             if (templateEnd != null) {
-                paragraph.Append((A.EndParagraphRunProperties)templateEnd.CloneNode(true));
+                paragraph.Append(CloneEndPropertiesForReplacement(
+                    templateEnd));
             }
 
             textBody.Append(paragraph);
@@ -710,7 +728,8 @@ namespace OfficeIMO.PowerPoint {
                 .Select(existingRun => existingRun.RunProperties)
                 .FirstOrDefault(runProperties => runProperties != null);
             if (templateRunProps != null) {
-                run.RunProperties = (A.RunProperties)templateRunProps.CloneNode(true);
+                run.RunProperties = CloneRunPropertiesForReplacement(
+                    templateRunProps);
             }
 
             paragraph.Append(run);
@@ -718,10 +737,32 @@ namespace OfficeIMO.PowerPoint {
             A.EndParagraphRunProperties? templateEnd =
                 templateParagraph?.GetFirstChild<A.EndParagraphRunProperties>();
             if (templateEnd != null) {
-                paragraph.Append((A.EndParagraphRunProperties)templateEnd.CloneNode(true));
+                paragraph.Append(CloneEndPropertiesForReplacement(
+                    templateEnd));
             }
 
             return paragraph;
+        }
+
+        private static A.RunProperties CloneRunPropertiesForReplacement(
+            A.RunProperties source) {
+            var clone = (A.RunProperties)source.CloneNode(true);
+            foreach (A.HyperlinkType hyperlink in clone.ChildElements
+                         .OfType<A.HyperlinkType>()) {
+                hyperlink.RemoveAllChildren<A.HyperlinkSound>();
+            }
+            return clone;
+        }
+
+        private static A.EndParagraphRunProperties
+            CloneEndPropertiesForReplacement(
+                A.EndParagraphRunProperties source) {
+            var clone = (A.EndParagraphRunProperties)source.CloneNode(true);
+            foreach (A.HyperlinkType hyperlink in clone.ChildElements
+                         .OfType<A.HyperlinkType>()) {
+                hyperlink.RemoveAllChildren<A.HyperlinkSound>();
+            }
+            return clone;
         }
 
         private A.BodyProperties? GetBodyProperties() {

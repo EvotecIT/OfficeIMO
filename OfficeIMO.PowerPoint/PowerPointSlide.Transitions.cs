@@ -17,42 +17,8 @@ namespace OfficeIMO.PowerPoint {
         public SlideTransition Transition {
             get {
                 Transition? t = GetTransitionElement();
-                if (t == null) {
-                    return SlideTransition.None;
-                }
-
-                SlideTransition? classicTransition = GetClassicTransition(t);
-                if (classicTransition.HasValue) {
-                    return classicTransition.Value;
-                }
-
-                if (t.GetFirstChild<P14.FlashTransition>() != null) {
-                    return SlideTransition.Flash;
-                }
-
-                P14.WarpTransition? warp = t.GetFirstChild<P14.WarpTransition>();
-                if (warp != null) {
-                    return warp.Direction?.Value == TransitionInOutDirectionValues.Out
-                        ? SlideTransition.WarpOut
-                        : SlideTransition.WarpIn;
-                }
-
-                if (t.GetFirstChild<P14.PrismTransition>() != null) {
-                    return SlideTransition.Prism;
-                }
-
-                P14.FerrisTransition? ferris = t.GetFirstChild<P14.FerrisTransition>();
-                if (ferris != null) {
-                    return ferris.Direction?.Value == P14.TransitionLeftRightDirectionTypeValues.Right
-                        ? SlideTransition.FerrisRight
-                        : SlideTransition.FerrisLeft;
-                }
-
-                if (HasMorphTransition(t)) {
-                    return SlideTransition.Morph;
-                }
-
-                return SlideTransition.None;
+                return t == null ? SlideTransition.None
+                    : GetTransitionValue(t);
             }
             set {
                 SlideTransitionSpeed? speed = TransitionSpeed;
@@ -123,6 +89,49 @@ namespace OfficeIMO.PowerPoint {
                 ApplyTransitionSettings(GetTransitionElement(), speed, durationSeconds, advanceOnClick, advanceAfterSeconds);
                 RemoveUnusedTransitionSounds(soundRelationshipIds);
             }
+        }
+
+        internal static SlideTransition GetTransitionValue(
+            Transition transition) {
+            if (transition == null) {
+                throw new ArgumentNullException(nameof(transition));
+            }
+
+            SlideTransition? classicTransition = GetClassicTransition(
+                transition);
+            if (classicTransition.HasValue) {
+                return classicTransition.Value;
+            }
+
+            if (transition.GetFirstChild<P14.FlashTransition>() != null) {
+                return SlideTransition.Flash;
+            }
+
+            P14.WarpTransition? warp = transition
+                .GetFirstChild<P14.WarpTransition>();
+            if (warp != null) {
+                return warp.Direction?.Value == TransitionInOutDirectionValues.Out
+                    ? SlideTransition.WarpOut
+                    : SlideTransition.WarpIn;
+            }
+
+            if (transition.GetFirstChild<P14.PrismTransition>() != null) {
+                return SlideTransition.Prism;
+            }
+
+            P14.FerrisTransition? ferris = transition
+                .GetFirstChild<P14.FerrisTransition>();
+            if (ferris != null) {
+                return ferris.Direction?.Value == P14.TransitionLeftRightDirectionTypeValues.Right
+                    ? SlideTransition.FerrisRight
+                    : SlideTransition.FerrisLeft;
+            }
+
+            if (HasMorphTransition(transition)) {
+                return SlideTransition.Morph;
+            }
+
+            return SlideTransition.None;
         }
 
         private void RemoveUnusedTransitionSounds(
@@ -350,21 +359,30 @@ namespace OfficeIMO.PowerPoint {
         }
 
         internal IReadOnlyList<Transition> GetTransitionElements() {
-            if (SlideRoot.Transition is Transition transition) {
-                return new[] { transition };
-            }
-            AlternateContent? alternateContent = GetTransitionAlternateContent();
-            if (alternateContent == null) {
-                return Array.Empty<Transition>();
-            }
-            return alternateContent.Elements<AlternateContentChoice>()
-                .Select(choice => choice.GetFirstChild<Transition>())
-                .Concat(new[] { alternateContent
-                    .GetFirstChild<AlternateContentFallback>()?
-                    .GetFirstChild<Transition>() })
+            return GetTransitionBranches()
                 .Where(candidate => candidate != null)
                 .Cast<Transition>()
                 .ToArray();
+        }
+
+        internal IReadOnlyList<Transition?> GetTransitionBranches() {
+            if (SlideRoot.Transition is Transition transition) {
+                return new Transition?[] { transition };
+            }
+            AlternateContent? alternateContent = GetTransitionAlternateContent();
+            if (alternateContent == null) {
+                return Array.Empty<Transition?>();
+            }
+            List<Transition?> branches = alternateContent
+                .Elements<AlternateContentChoice>()
+                .Select(choice => choice.GetFirstChild<Transition>())
+                .ToList();
+            AlternateContentFallback? fallback = alternateContent
+                .GetFirstChild<AlternateContentFallback>();
+            if (fallback != null) {
+                branches.Add(fallback.GetFirstChild<Transition>());
+            }
+            return branches;
         }
 
         private AlternateContent? GetTransitionAlternateContent() {

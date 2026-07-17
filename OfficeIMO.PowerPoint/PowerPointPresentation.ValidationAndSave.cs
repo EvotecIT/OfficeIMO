@@ -224,7 +224,8 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private byte[] CreatePackageBytesForSave(
-            bool preserveVbaProject = false) {
+            bool preserveVbaProject = false,
+            bool macroEnabledDestination = false) {
             ThrowIfDisposed();
             if (AccessMode == DocumentAccessMode.ReadOnly) {
                 throw new InvalidOperationException("The presentation is read-only and cannot be saved.");
@@ -253,6 +254,14 @@ namespace OfficeIMO.PowerPoint {
                             PresentationDocumentType.Presentation);
                     }
                     clone.Save();
+                } else if (macroEnabledDestination
+                           || clone.PresentationPart?.VbaProjectPart != null) {
+                    if (clone.DocumentType
+                        != PresentationDocumentType.MacroEnabledPresentation) {
+                        clone.ChangeDocumentType(
+                            PresentationDocumentType.MacroEnabledPresentation);
+                    }
+                    clone.Save();
                 }
                 // Dispose finalizes the cloned package before its bytes are committed.
             }
@@ -261,9 +270,15 @@ namespace OfficeIMO.PowerPoint {
 
         private byte[] CreateBytesForPath(string filePath, PowerPointSaveOptions? options) {
             PowerPointFileFormat format = PowerPointPresentationLoadRouting.GetFormat(filePath);
-            return IsLegacyBinaryFormat(format)
-                ? CreateLegacyPptBytesForSave(options)
-                : CreatePackageBytesForSave();
+            if (IsLegacyBinaryFormat(format)) {
+                return CreateLegacyPptBytesForSave(options);
+            }
+            bool macroEnabledDestination = string.Equals(
+                Path.GetExtension(filePath), ".pptm",
+                StringComparison.OrdinalIgnoreCase);
+            return CreatePackageBytesForSave(
+                preserveVbaProject: macroEnabledDestination,
+                macroEnabledDestination: macroEnabledDestination);
         }
 
         private byte[] CreateLegacyPptBytesForSave(
@@ -377,8 +392,8 @@ namespace OfficeIMO.PowerPoint {
                 .GetFormat(filePath);
             byte[] encryptedBytes = IsLegacyBinaryFormat(format)
                 ? CreateEncryptedLegacyPptBytes(password, options)
-                : OfficeEncryption.EncryptPackage(CreatePackageBytesForSave(),
-                    password);
+                : OfficeEncryption.EncryptPackage(CreateBytesForPath(
+                    filePath, options), password);
             OfficeFileCommit.WriteAllBytes(filePath, encryptedBytes);
         }
 

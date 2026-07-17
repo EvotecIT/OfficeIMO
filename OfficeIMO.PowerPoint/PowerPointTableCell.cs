@@ -29,6 +29,8 @@ namespace OfficeIMO.PowerPoint {
 
             set {
                 Cell.TextBody ??= PowerPointTableTextDefaults.CreateTextBody();
+                string[] discardedSoundIds = PowerPointEmbeddedSound
+                    .GetRelationshipIds(Cell.TextBody);
                 A.Paragraph? sourceParagraph = Cell.TextBody.GetFirstChild<A.Paragraph>();
                 A.RunProperties? existingRunProperties = sourceParagraph?
                     .Elements<A.Run>()
@@ -61,6 +63,8 @@ namespace OfficeIMO.PowerPoint {
 
                 Cell.TextBody.RemoveAllChildren<A.Paragraph>();
                 Cell.TextBody.Append(paragraph);
+                PowerPointEmbeddedSound.RemoveIfUnused(_slidePart,
+                    discardedSoundIds);
             }
         }
 

@@ -153,6 +153,8 @@ namespace OfficeIMO.PowerPoint {
 
         private IReadOnlyList<PowerPointParagraph> ReplaceTableCellParagraphs<T>(IEnumerable<T> items, Func<T, A.Paragraph?, PowerPointParagraph> addParagraph) {
             A.TextBody textBody = EnsureTextBody();
+            string[] discardedSoundIds = PowerPointEmbeddedSound
+                .GetRelationshipIds(textBody);
             A.Paragraph? templateParagraph = textBody.Elements<A.Paragraph>().FirstOrDefault();
             textBody.RemoveAllChildren<A.Paragraph>();
 
@@ -164,6 +166,9 @@ namespace OfficeIMO.PowerPoint {
             if (results.Count == 0) {
                 textBody.Append(CreateEmptyParagraph(templateParagraph));
             }
+
+            PowerPointEmbeddedSound.RemoveIfUnused(_slidePart,
+                discardedSoundIds);
 
             return results;
         }

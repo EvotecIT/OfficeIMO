@@ -1,4 +1,5 @@
 using DocumentFormat.OpenXml.Packaging;
+using A = DocumentFormat.OpenXml.Drawing;
 
 namespace OfficeIMO.PowerPoint {
     internal static class PowerPointEmbeddedSound {
@@ -99,6 +100,31 @@ namespace OfficeIMO.PowerPoint {
                 && !mediaPart.GetDataPartReferenceRelationships().Any()
                 && ownerPart.OpenXmlPackage is PresentationDocument document) {
                 document.DeletePart(mediaPart);
+            }
+        }
+
+        internal static string[] GetRelationshipIds(
+            DocumentFormat.OpenXml.OpenXmlElement container) {
+            if (container == null) {
+                throw new ArgumentNullException(nameof(container));
+            }
+            return container.Descendants<A.HyperlinkSound>()
+                .Select(sound => sound.Embed?.Value)
+                .Where(id => !string.IsNullOrEmpty(id))
+                .Cast<string>()
+                .Distinct(StringComparer.Ordinal)
+                .ToArray();
+        }
+
+        internal static void RemoveIfUnused(OpenXmlPart? ownerPart,
+            IEnumerable<string> relationshipIds) {
+            if (ownerPart == null) return;
+            if (relationshipIds == null) {
+                throw new ArgumentNullException(nameof(relationshipIds));
+            }
+            foreach (string relationshipId in relationshipIds.Distinct(
+                         StringComparer.Ordinal)) {
+                RemoveIfUnused(ownerPart, relationshipId);
             }
         }
 
