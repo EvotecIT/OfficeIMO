@@ -12,7 +12,7 @@ internal static partial class OneNoteReaderAdapter {
         var units = new List<ProjectionPart>();
 
         var heading = new OneNotePage { Title = page.Title, Level = page.Level };
-        int headingLevel = Math.Min(6, Math.Max(1, page.Level + 1));
+        int headingLevel = Math.Min(5, Math.Max(0, page.Level)) + 1;
         units.Add(new ProjectionPart(
             OneNoteMarkdownProjection.ToText(heading),
             OneNoteMarkdownProjection.ToMarkdown(heading, headingLevel, resolver)));
