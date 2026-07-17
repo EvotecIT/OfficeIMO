@@ -224,7 +224,7 @@ namespace OfficeIMO.PowerPoint {
         private void ApplyUniqueNonVisualDrawingProperties(OpenXmlElement element, string baseName) {
             string resolvedBaseName = string.IsNullOrWhiteSpace(baseName) ? "Shape" : baseName;
             string name = GenerateUniqueName(resolvedBaseName);
-            uint id = _nextShapeId++;
+            uint id = AllocateShapeId();
 
             switch (element) {
                 case Shape s: {

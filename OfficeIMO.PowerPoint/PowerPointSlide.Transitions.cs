@@ -61,9 +61,13 @@ namespace OfficeIMO.PowerPoint {
                 double? advanceAfterSeconds = TransitionAdvanceAfterSeconds;
                 SoundAction? soundAction = GetTransitionElement()?
                     .GetFirstChild<SoundAction>()?.CloneNode(true) as SoundAction;
+                string? soundRelationshipId = soundAction?
+                    .GetFirstChild<StartSoundAction>()?.Sound?.Embed?.Value;
 
                 RemoveTransitionMarkup();
                 if (value == SlideTransition.None) {
+                    PowerPointEmbeddedSound.RemoveIfUnused(_slidePart,
+                        soundRelationshipId);
                     return;
                 }
 

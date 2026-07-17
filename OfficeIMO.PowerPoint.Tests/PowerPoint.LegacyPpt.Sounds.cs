@@ -277,6 +277,29 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void RemovingTransitionReleasesItsMediaPart() {
+            byte[] wave = CreateWavePayload();
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            slide.Transition = SlideTransition.Fade;
+            using (var audio = new MemoryStream(wave, writable: false)) {
+                slide.SetTransitionSound(audio, "Removed transition");
+            }
+            Assert.Single(slide.SlidePart.DataPartReferenceRelationships
+                .OfType<AudioReferenceRelationship>());
+            Assert.Single(presentation.OpenXmlDocument.DataParts);
+
+            slide.Transition = SlideTransition.None;
+
+            Assert.False(slide.HasTransitionSound);
+            Assert.Empty(slide.SlidePart.DataPartReferenceRelationships
+                .OfType<AudioReferenceRelationship>());
+            Assert.Empty(presentation.OpenXmlDocument.DataParts);
+            Assert.Empty(presentation.ValidateDocument());
+        }
+
+        [Fact]
         public void PublicApis_AuthorSoundOnlyTransitionShapeAndTextActions() {
             byte[] wave = CreateWavePayload();
             byte[] bytes;

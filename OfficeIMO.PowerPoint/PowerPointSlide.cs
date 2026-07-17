@@ -18,6 +18,7 @@ namespace OfficeIMO.PowerPoint {
         private readonly SlidePart _slidePart;
         private PowerPointNotes? _notes;
         private uint _nextShapeId = 2;
+        private bool _shapeIdsExhausted;
         private const string P14Namespace = "http://schemas.microsoft.com/office/powerpoint/2010/main";
         private const string P159Namespace = "http://schemas.microsoft.com/office/powerpoint/2015/09/main";
         private const string MarkupCompatibilityNamespace = "http://schemas.openxmlformats.org/markup-compatibility/2006";
@@ -126,7 +127,22 @@ namespace OfficeIMO.PowerPoint {
         }
 
         internal void ReserveShapeIdsThrough(uint nextShapeId) {
+            if (_shapeIdsExhausted) return;
             if (nextShapeId > _nextShapeId) _nextShapeId = nextShapeId;
+        }
+
+        private uint AllocateShapeId() {
+            if (_shapeIdsExhausted) {
+                throw new InvalidOperationException(
+                    "The slide shape identifier space is exhausted.");
+            }
+            uint shapeId = _nextShapeId;
+            if (shapeId == uint.MaxValue) {
+                _shapeIdsExhausted = true;
+            } else {
+                _nextShapeId = shapeId + 1U;
+            }
+            return shapeId;
         }
 
         private void InsertTrackedShape(int index, PowerPointShape shape) {
@@ -189,10 +205,11 @@ namespace OfficeIMO.PowerPoint {
             if (descendantMaxId > maxId) maxId = descendantMaxId;
 
             if (maxId == uint.MaxValue) {
-                throw new InvalidDataException(
-                    "The slide shape identifier space is exhausted.");
+                _nextShapeId = uint.MaxValue;
+                _shapeIdsExhausted = true;
+            } else {
+                _nextShapeId = maxId + 1U;
             }
-            _nextShapeId = maxId + 1;
 
             if (_slidePart.NotesSlidePart != null) {
                 _notes = new PowerPointNotes(_slidePart);

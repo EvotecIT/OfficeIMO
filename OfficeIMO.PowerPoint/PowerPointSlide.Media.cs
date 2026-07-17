@@ -106,7 +106,7 @@ namespace OfficeIMO.PowerPoint {
             string posterRelationshipId = _slidePart.GetIdOfPart(posterPart);
 
             string name = GenerateUniqueName(kind == PowerPointMediaKind.Audio ? "Audio" : "Video");
-            uint shapeId = _nextShapeId++;
+            uint shapeId = AllocateShapeId();
             Picture picture = CreateMediaPicture(kind, shapeId, name, fileReferenceId, playbackReferenceId,
                 posterRelationshipId, left, top, width, height);
 

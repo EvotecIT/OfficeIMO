@@ -22,7 +22,7 @@ namespace OfficeIMO.PowerPoint {
 
             Shape shape = new(
                 new NonVisualShapeProperties(
-                    new NonVisualDrawingProperties { Id = _nextShapeId++, Name = shapeName },
+                    new NonVisualDrawingProperties { Id = AllocateShapeId(), Name = shapeName },
                     new NonVisualShapeDrawingProperties(new A.ShapeLocks { NoGrouping = true }),
                     new ApplicationNonVisualDrawingProperties()
                 ),
@@ -45,7 +45,7 @@ namespace OfficeIMO.PowerPoint {
             var connection = new ConnectionShape(
                 new NonVisualConnectionShapeProperties(
                     new NonVisualDrawingProperties {
-                        Id = _nextShapeId++,
+                        Id = AllocateShapeId(),
                         Name = GenerateUniqueName("Connector")
                     },
                     new NonVisualConnectorShapeDrawingProperties(),

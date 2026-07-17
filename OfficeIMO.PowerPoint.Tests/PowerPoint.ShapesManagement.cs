@@ -8,7 +8,7 @@ using Xunit;
 namespace OfficeIMO.Tests {
     public class PowerPointShapesManagement {
         [Fact]
-        public void LoadingSlideRejectsExhaustedDescendantShapeIds() {
+        public void ShapeAllocationStopsWhenDescendantIdsAreExhausted() {
             byte[] bytes;
             using (PowerPointPresentation presentation =
                    PowerPointPresentation.Create()) {
@@ -21,14 +21,20 @@ namespace OfficeIMO.Tests {
                     new PowerPointShape[] { first, second });
                 NonVisualDrawingProperties descendant = group.GroupShape
                     .Descendants<NonVisualDrawingProperties>().Last();
-                descendant.Id = uint.MaxValue;
+                descendant.Id = uint.MaxValue - 1U;
                 bytes = presentation.ToBytes();
             }
 
             using var stream = new MemoryStream(bytes, writable: false);
-            InvalidDataException exception = Assert.Throws<
-                InvalidDataException>(() => PowerPointPresentation.Load(
-                    stream));
+            using PowerPointPresentation loaded =
+                PowerPointPresentation.Load(stream);
+            PowerPointSlide loadedSlide = Assert.Single(loaded.Slides);
+            PowerPointAutoShape finalShape = loadedSlide.AddRectangle(
+                7000, 1000, 2000, 1000);
+            Assert.Equal(uint.MaxValue, finalShape.Id);
+            InvalidOperationException exception = Assert.Throws<
+                InvalidOperationException>(() => loadedSlide.AddRectangle(
+                    10000, 1000, 2000, 1000));
             Assert.Contains("identifier space is exhausted",
                 exception.Message, StringComparison.OrdinalIgnoreCase);
         }

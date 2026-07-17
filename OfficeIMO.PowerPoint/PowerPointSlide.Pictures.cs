@@ -45,7 +45,7 @@ namespace OfficeIMO.PowerPoint {
             string name = GenerateUniqueName("Picture");
             DocumentFormat.OpenXml.Presentation.Picture picture = new(
                 new NonVisualPictureProperties(
-                    new NonVisualDrawingProperties { Id = _nextShapeId++, Name = name },
+                    new NonVisualDrawingProperties { Id = AllocateShapeId(), Name = name },
                     new NonVisualPictureDrawingProperties(new A.PictureLocks { NoChangeAspect = true }),
                     new ApplicationNonVisualDrawingProperties()
                 ),
@@ -111,7 +111,7 @@ namespace OfficeIMO.PowerPoint {
             string name = GenerateUniqueName("Picture");
             DocumentFormat.OpenXml.Presentation.Picture picture = new(
                 new NonVisualPictureProperties(
-                    new NonVisualDrawingProperties { Id = _nextShapeId++, Name = name },
+                    new NonVisualDrawingProperties { Id = AllocateShapeId(), Name = name },
                     new NonVisualPictureDrawingProperties(new A.PictureLocks { NoChangeAspect = true }),
                     new ApplicationNonVisualDrawingProperties()
                 ),

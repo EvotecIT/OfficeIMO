@@ -47,8 +47,8 @@ namespace OfficeIMO.PowerPoint {
                 part.FeedData(source);
             }
             string relationshipId = _slidePart.GetIdOfPart(part);
-            uint shapeId = _nextShapeId++;
-            uint previewShapeId = _nextShapeId++;
+            uint shapeId = AllocateShapeId();
+            uint previewShapeId = AllocateShapeId();
             string name = GenerateUniqueName("Object");
 
             var picture = new P.Picture(

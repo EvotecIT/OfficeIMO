@@ -39,7 +39,7 @@ namespace OfficeIMO.PowerPoint {
 
             GroupShape group = new GroupShape(
                 new NonVisualGroupShapeProperties(
-                    new NonVisualDrawingProperties { Id = _nextShapeId++, Name = groupName },
+                    new NonVisualDrawingProperties { Id = AllocateShapeId(), Name = groupName },
                     new NonVisualGroupShapeDrawingProperties(),
                     new ApplicationNonVisualDrawingProperties()),
                 new GroupShapeProperties(

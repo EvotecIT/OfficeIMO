@@ -34,7 +34,7 @@ namespace OfficeIMO.PowerPoint {
             List<string> nodes = NormalizeSmartArtNodes(nodeTexts);
             var (layoutRelId, colorsRelId, styleRelId, dataRelId) = AddSmartArtParts(type, nodes);
             string name = GenerateUniqueName("SmartArt");
-            GraphicFrame frame = CreateSmartArtFrame(_nextShapeId++, name, layoutRelId, colorsRelId, styleRelId,
+            GraphicFrame frame = CreateSmartArtFrame(AllocateShapeId(), name, layoutRelId, colorsRelId, styleRelId,
                 dataRelId, left, top, width, height);
 
             CommonSlideData data = SlideRoot.CommonSlideData ??= new CommonSlideData(new ShapeTree());
