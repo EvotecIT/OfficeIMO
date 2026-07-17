@@ -130,6 +130,20 @@ public sealed class IcsDocumentTests {
         Assert.False(IcsTemporalValue.TryParse(unsupported, out _));
     }
 
+    [Theory]
+    [InlineData("20260717T0930Z")]
+    [InlineData("20260717T0930")]
+    public void TemporalParserAndValidationRejectDateTimesWithoutSeconds(string text) {
+        var property = new ContentLineProperty("DTSTART", text);
+        Assert.False(IcsTemporalValue.TryParse(property, out _));
+
+        var document = new IcsDocument();
+        ContentLineComponent appointment = document.Calendars.Single().AddComponent("VEVENT");
+        appointment.AddProperty(property.Name, property.Value);
+
+        Assert.Single(document.Validate(), issue => issue.Code == "ICAL_TEMPORAL_VALUE_INVALID");
+    }
+
     [Fact]
     public void ValidationReportsInvalidRecurrencePartNamesInsteadOfThrowing() {
         var document = new IcsDocument();

@@ -69,14 +69,14 @@ public readonly struct IcsTemporalValue : IEquatable<IcsTemporalValue> {
             value = Date(date);
             return true;
         }
-        if (DateTime.TryParseExact(text, new[] { "yyyyMMdd'T'HHmmss'Z'", "yyyyMMdd'T'HHmm'Z'" },
+        if (DateTime.TryParseExact(text, "yyyyMMdd'T'HHmmss'Z'",
             CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal,
             out DateTime utc)) {
             if (!string.IsNullOrWhiteSpace(timeZoneId)) return false;
             value = Utc(new DateTimeOffset(utc, TimeSpan.Zero));
             return true;
         }
-        if (!DateTime.TryParseExact(text, new[] { "yyyyMMdd'T'HHmmss", "yyyyMMdd'T'HHmm" },
+        if (!DateTime.TryParseExact(text, "yyyyMMdd'T'HHmmss",
             CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime local)) return false;
         value = string.IsNullOrWhiteSpace(timeZoneId) ? Floating(local) : Zoned(local, timeZoneId!);
         return true;
