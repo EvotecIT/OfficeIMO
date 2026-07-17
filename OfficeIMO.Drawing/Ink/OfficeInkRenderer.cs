@@ -123,9 +123,12 @@ public static class OfficeInkRenderer {
             double pressure = options.UsePressure && !stroke.IgnorePressure
                 ? ResolvePressure(from.Pressure, to.Pressure, options.MinimumPressureFactor)
                 : 1D;
-            double thickness = Math.Max(0.01D, ((transformedTipWidth + transformedTipHeight) / 2D) * pressure);
-            double radius = thickness / 2D;
-            if (!TryClipLine(-radius, -radius, drawing.Width + radius, drawing.Height + radius, ref x1, ref y1, ref x2, ref y2)) continue;
+            double deltaX = to.X - from.X;
+            double deltaY = to.Y - from.Y;
+            double thickness = Math.Max(0.01D, stroke.GetTransformedTipExtent(-deltaY, deltaX) * pressure);
+            double clipHalfWidth = transformedTipWidth * pressure / 2D;
+            double clipHalfHeight = transformedTipHeight * pressure / 2D;
+            if (!TryClipLine(-clipHalfWidth, -clipHalfHeight, drawing.Width + clipHalfWidth, drawing.Height + clipHalfHeight, ref x1, ref y1, ref x2, ref y2)) continue;
             if (x1.Equals(x2) && y1.Equals(y2)) continue;
 
             OfficeShape shape = OfficeShape.Line(x1, y1, x2, y2);

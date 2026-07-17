@@ -66,7 +66,7 @@ public class DrawingInkTests {
         OfficeShape renderedDot = Assert.Single(dotDrawing.Shapes).Shape;
         Assert.Equal(8, renderedDot.Width, 6);
         Assert.Equal(18, renderedDot.Height, 6);
-        Assert.Equal(13, Assert.Single(segmentDrawing.Shapes).Shape.StrokeWidth, 6);
+        Assert.Equal(18, Assert.Single(segmentDrawing.Shapes).Shape.StrokeWidth, 6);
     }
 
     [Fact]
@@ -92,6 +92,23 @@ public class DrawingInkTests {
         Assert.Equal((7D, 6D), shearedRectangle.GetTransformedTipDimensions());
         Assert.Equal(Math.Sqrt(25D), shearedEllipse.GetTransformedTipDimensions().Width, 6);
         Assert.Equal(6D, shearedEllipse.GetTransformedTipDimensions().Height, 6);
+        Assert.Equal(5D, shearedEllipse.GetTransformedTipExtent(1D, 0D), 6);
+        Assert.Equal(6D, shearedEllipse.GetTransformedTipExtent(0D, 1D), 6);
+        Assert.Throws<ArgumentOutOfRangeException>(() => shearedEllipse.GetTransformedTipExtent(0D, 0D));
+    }
+
+    [Fact]
+    public void InkRendererUsesTipExtentPerpendicularToEachSegment() {
+        var horizontal = new OfficeInkStroke { Width = 4, Height = 6, Transform = OfficeTransform.Scale(2, 3) }
+            .AddPoint(10, 10).AddPoint(40, 10);
+        var vertical = new OfficeInkStroke { Width = 4, Height = 6, Transform = OfficeTransform.Scale(2, 3) }
+            .AddPoint(10, 10).AddPoint(10, 40);
+
+        OfficeShape horizontalLine = Assert.Single(OfficeInkRenderer.Render(new OfficeInkDocument().Add(horizontal), 100, 100).Shapes).Shape;
+        OfficeShape verticalLine = Assert.Single(OfficeInkRenderer.Render(new OfficeInkDocument().Add(vertical), 100, 100).Shapes).Shape;
+
+        Assert.Equal(18D, horizontalLine.StrokeWidth, 6);
+        Assert.Equal(8D, verticalLine.StrokeWidth, 6);
     }
 
     [Fact]

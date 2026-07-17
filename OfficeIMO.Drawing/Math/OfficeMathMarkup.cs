@@ -327,8 +327,18 @@ public static class OfficeMathMarkup {
         switch (expression.Kind) {
             case OfficeMathKind.Text: builder.Append("\\text{").Append(EscapeLatexText(expression.Text ?? string.Empty)).Append('}'); break;
             case OfficeMathKind.Identifier:
-            case OfficeMathKind.Number: builder.Append(expression.Text); break;
-            case OfficeMathKind.Operator: builder.Append(SymbolToLatex(expression.Text)); break;
+                AppendLatexToken(builder, "officeimoidentifier", expression.Text ?? string.Empty, IsSafeLatexIdentifier);
+                break;
+            case OfficeMathKind.Number:
+                AppendLatexToken(builder, "officeimonumber", expression.Text ?? string.Empty, IsSafeLatexNumber);
+                break;
+            case OfficeMathKind.Operator:
+                string operatorText = expression.Text ?? string.Empty;
+                string operatorLatex = SymbolToLatex(operatorText);
+                if (!IsNarySymbol(operatorText) &&
+                    (!string.Equals(operatorLatex, operatorText, StringComparison.Ordinal) || IsSafeLatexOperator(operatorText))) builder.Append(operatorLatex);
+                else AppendEscapedLatexCommand(builder, "officeimooperator", operatorText);
+                break;
             case OfficeMathKind.Row:
                 foreach (OfficeMathExpression child in expression.Children) AppendLatex(builder, child);
                 break;
@@ -364,7 +374,14 @@ public static class OfficeMathMarkup {
                 }
                 break;
             case OfficeMathKind.Function:
-                builder.Append('\\').Append(expression.Text).Append("\\left("); AppendLatex(builder, expression.Children[0]); builder.Append("\\right)"); break;
+                string functionName = expression.Text ?? string.Empty;
+                if (LatexParser.IsKnownFunctionName(functionName)) {
+                    builder.Append('\\').Append(functionName).Append("\\left("); AppendLatex(builder, expression.Children[0]); builder.Append("\\right)");
+                } else {
+                    AppendEscapedLatexCommand(builder, "officeimofunction", functionName);
+                    builder.Append('{'); AppendLatex(builder, expression.Children[0]); builder.Append('}');
+                }
+                break;
             case OfficeMathKind.Nary:
                 builder.Append(SymbolToLatex(expression.Character));
                 if (expression.Children.Count > 1) { builder.Append("_{"); AppendLatex(builder, expression.Children[1]); builder.Append('}'); }
@@ -421,6 +438,24 @@ public static class OfficeMathMarkup {
 
     private static string EscapeLatexText(string text) => text.Replace("\\", "\\backslash ").Replace("{", "\\{").Replace("}", "\\}").Replace("#", "\\#").Replace("%", "\\%").Replace("&", "\\&").Replace("_", "\\_").Replace("^", "\\^");
 
+    private static void AppendLatexToken(StringBuilder builder, string command, string text, Func<string, bool> canWriteRaw) {
+        if (canWriteRaw(text)) builder.Append(text);
+        else AppendEscapedLatexCommand(builder, command, text);
+    }
+
+    private static void AppendEscapedLatexCommand(StringBuilder builder, string command, string text) =>
+        builder.Append('\\').Append(command).Append('{').Append(EscapeLatexText(text)).Append('}');
+
+    private static bool IsSafeLatexIdentifier(string text) =>
+        text.Length > 0 && char.IsLetter(text[0]) && text.Skip(1).All(char.IsLetterOrDigit);
+
+    private static bool IsSafeLatexNumber(string text) =>
+        text.Length > 0 && text.All(character => char.IsDigit(character) || character == '.');
+
+    private static bool IsSafeLatexOperator(string text) =>
+        text.Length == 1 && !char.IsLetterOrDigit(text[0]) && !char.IsWhiteSpace(text[0]) &&
+        text[0] != '.' && text[0] != '_' && text[0] != '^' && text[0] != '\\' && text[0] != '{' && text[0] != '}';
+
     private static string SymbolToLatex(string? symbol) {
         switch (symbol) {
             case "∑": return "\\sum";
@@ -454,12 +489,15 @@ public static class OfficeMathMarkup {
         private readonly int _maximumDepth;
         private int _depth;
         private int _position;
+        private bool _preserveNextOperatorKind;
 
         internal LatexParser(string text, int maximumDepth, int initialDepth = 0) {
             _text = text;
             _maximumDepth = maximumDepth;
             _depth = initialDepth;
         }
+
+        internal static bool IsKnownFunctionName(string name) => Functions.Contains(name);
 
         internal OfficeMathExpression Parse() {
             OfficeMathExpression expression = ParseSequence('\0');
@@ -479,6 +517,8 @@ public static class OfficeMathMarkup {
                     SkipWhitespace();
                     if (_position >= _text.Length || (terminator != '\0' && _text[_position] == terminator)) break;
                     OfficeMathExpression atom = ParseAtom();
+                    bool preserveOperatorKind = _preserveNextOperatorKind;
+                    _preserveNextOperatorKind = false;
                     OfficeMathExpression? subscript = null;
                     OfficeMathExpression? superscript = null;
                     while (true) {
@@ -488,7 +528,7 @@ public static class OfficeMathMarkup {
                         OfficeMathExpression script = ParseScript();
                         if (marker == '_') subscript = script; else superscript = script;
                     }
-                    if (IsNaryExpression(atom)) {
+                    if (!preserveOperatorKind && IsNaryExpression(atom)) {
                         SkipWhitespace();
                         OfficeMathExpression content = _position < _text.Length &&
                             (terminator == '\0' || _text[_position] != terminator)
@@ -536,7 +576,15 @@ public static class OfficeMathMarkup {
                 case "underline": return OfficeMath.Underbar(ParseRequiredGroup());
                 case "boxed": return OfficeMath.Box(ParseRequiredGroup());
                 case "phantom": return OfficeMath.Phantom(ParseRequiredGroup());
-                case "text": return ParseTextGroup();
+                case "text": return OfficeMath.Text(ParseTextGroupValue());
+                case "officeimoidentifier": return OfficeMath.Identifier(ParseTextGroupValue());
+                case "officeimonumber": return OfficeMath.Number(ParseTextGroupValue());
+                case "officeimooperator":
+                    _preserveNextOperatorKind = true;
+                    return OfficeMath.Operator(ParseTextGroupValue());
+                case "officeimofunction":
+                    string functionName = ParseTextGroupValue();
+                    return OfficeMath.Function(functionName, ParseRequiredGroup());
                 case "backslash": return OfficeMath.Text("\\");
                 case "_":
                 case "^":
@@ -734,7 +782,7 @@ public static class OfficeMathMarkup {
             return expression;
         }
 
-        private OfficeMathExpression ParseTextGroup() {
+        private string ParseTextGroupValue() {
             SkipWhitespace();
             Require('{');
             var builder = new StringBuilder();
@@ -747,7 +795,7 @@ public static class OfficeMathMarkup {
                     continue;
                 }
                 if (value == '}') {
-                    if (nestedBraces == 0) return OfficeMath.Text(builder.ToString());
+                    if (nestedBraces == 0) return builder.ToString();
                     nestedBraces--;
                     builder.Append(value);
                     continue;

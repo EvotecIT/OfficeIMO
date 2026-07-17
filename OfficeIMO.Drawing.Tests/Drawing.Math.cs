@@ -111,6 +111,25 @@ public class DrawingMathTests {
     }
 
     [Fact]
+    public void LatexSerializerLosslesslyEscapesAuthoredTokenKindsAndFunctionNames() {
+        OfficeMathExpression[] expressions = {
+            OfficeMath.Identifier("x_y"),
+            OfficeMath.Identifier("123"),
+            OfficeMath.Number("-1.5e+2"),
+            OfficeMath.Number("NaN"),
+            OfficeMath.Operator("=>"),
+            OfficeMath.Operator("_"),
+            OfficeMath.Operator("∑"),
+            OfficeMath.Function("log_2", OfficeMath.Identifier("x")),
+            OfficeMath.Function("sum", OfficeMath.Identifier("x")),
+            OfficeMath.Function("custom", OfficeMath.Identifier("x"))
+        };
+
+        Assert.All(expressions, expression =>
+            Assert.Equal(expression, OfficeMathMarkup.FromLatex(OfficeMathMarkup.ToLatex(expression))));
+    }
+
+    [Fact]
     public void PortableMarkupRoundTripsAdvancedSharedMathStructures() {
         OfficeMathExpression[] expressions = {
             OfficeMath.LeftSubSuperscript(OfficeMath.Identifier("T"), OfficeMath.Identifier("i"), OfficeMath.Identifier("j")),

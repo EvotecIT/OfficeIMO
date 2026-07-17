@@ -281,18 +281,28 @@ public sealed class OfficeInkStroke {
     /// Translation does not affect the returned dimensions. Elliptical and rectangular tips retain their distinct geometry.
     /// </summary>
     public (double Width, double Height) GetTransformedTipDimensions() {
+        return (GetTransformedTipExtent(1D, 0D), GetTransformedTipExtent(0D, 1D));
+    }
+
+    /// <summary>
+    /// Returns the full transformed pen-tip extent projected onto a canvas-space axis.
+    /// The axis does not need to be normalized. Translation does not affect the returned extent.
+    /// </summary>
+    public double GetTransformedTipExtent(double axisX, double axisY) {
         ValidateStyle();
+        if (double.IsNaN(axisX) || double.IsInfinity(axisX)) throw new ArgumentOutOfRangeException(nameof(axisX), "The projection axis must be finite.");
+        if (double.IsNaN(axisY) || double.IsInfinity(axisY)) throw new ArgumentOutOfRangeException(nameof(axisY), "The projection axis must be finite.");
+        double axisLength = Math.Sqrt(axisX * axisX + axisY * axisY);
+        if (axisLength <= 0.000000000001D) throw new ArgumentOutOfRangeException(nameof(axisX), "The projection axis must have a non-zero length.");
+        double normalizedX = axisX / axisLength;
+        double normalizedY = axisY / axisLength;
         OfficeTransform transform = Transform ?? OfficeTransform.Identity;
-        double transformedWidth;
-        double transformedHeight;
-        if (TipShape == OfficeInkTipShape.Rectangle) {
-            transformedWidth = Math.Abs(transform.M11) * Width + Math.Abs(transform.M21) * Height;
-            transformedHeight = Math.Abs(transform.M12) * Width + Math.Abs(transform.M22) * Height;
-        } else {
-            transformedWidth = Math.Sqrt(transform.M11 * transform.M11 * Width * Width + transform.M21 * transform.M21 * Height * Height);
-            transformedHeight = Math.Sqrt(transform.M12 * transform.M12 * Width * Width + transform.M22 * transform.M22 * Height * Height);
-        }
-        return (Math.Max(0.000001D, transformedWidth), Math.Max(0.000001D, transformedHeight));
+        double localX = transform.M11 * normalizedX + transform.M12 * normalizedY;
+        double localY = transform.M21 * normalizedX + transform.M22 * normalizedY;
+        double extent = TipShape == OfficeInkTipShape.Rectangle
+            ? Math.Abs(localX) * Width + Math.Abs(localY) * Height
+            : Math.Sqrt(localX * localX * Width * Width + localY * localY * Height * Height);
+        return Math.Max(0.000001D, extent);
     }
 
     /// <summary>Creates a detached copy of this stroke.</summary>
