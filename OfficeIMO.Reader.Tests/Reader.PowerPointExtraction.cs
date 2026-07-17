@@ -3,6 +3,8 @@ using OfficeIMO.Reader;
 using System;
 using System.IO;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using Xunit;
 using A = DocumentFormat.OpenXml.Drawing;
 
@@ -82,6 +84,22 @@ public sealed class ReaderPowerPointExtractionTests {
         } finally {
             if (File.Exists(path)) File.Delete(path);
         }
+    }
+
+    [Fact]
+    public async Task AsyncCompoundDetectionHonorsCancellationAfterPrefixRead() {
+        byte[] bytes = CreateRichPresentation(binary: true);
+        using var cancellation = new CancellationTokenSource();
+        using var stream = new CancelAfterAsyncReadStream(bytes,
+            cancellation.Cancel);
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            OfficeDocumentReader.Default.DetectAsync(stream,
+                "extensionless-upload", cancellationToken:
+                cancellation.Token));
+
+        Assert.True(stream.ReadCount >= 1);
+        Assert.Equal(0, stream.Position);
     }
 
     [Fact]
@@ -288,5 +306,28 @@ public sealed class ReaderPowerPointExtractionTests {
             block.Kind == "speaker-notes"
             && block.Text.Contains("Speaker reminder",
                 StringComparison.Ordinal));
+    }
+
+    private sealed class CancelAfterAsyncReadStream : MemoryStream {
+        private readonly Action _cancel;
+        private bool _cancelled;
+
+        public CancelAfterAsyncReadStream(byte[] bytes, Action cancel)
+            : base(bytes, writable: false) {
+            _cancel = cancel;
+        }
+
+        public int ReadCount { get; private set; }
+
+        public override Task<int> ReadAsync(byte[] buffer, int offset,
+            int count, CancellationToken cancellationToken) {
+            int read = base.Read(buffer, offset, count);
+            ReadCount++;
+            if (!_cancelled) {
+                _cancelled = true;
+                _cancel();
+            }
+            return Task.FromResult(read);
+        }
     }
 }

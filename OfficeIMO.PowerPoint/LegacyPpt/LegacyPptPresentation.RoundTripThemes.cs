@@ -118,14 +118,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                     if (!name.EndsWith(".xml", StringComparison.OrdinalIgnoreCase)
                         || length == 0) continue;
                     using Stream entryStream = entry.Open();
-                    using var buffer = new MemoryStream(
-                        checked((int)length));
-                    entryStream.CopyTo(buffer);
-                    if (buffer.Length != length) {
-                        reason = "an embedded XML part is truncated.";
-                        return false;
-                    }
-                    if (!TryParseDrawingXml(buffer.ToArray(),
+                    byte[] entryBytes = OfficeArchiveSafety.ReadEntryBytes(
+                        entryStream, length,
+                        MaximumRoundTripThemeXmlBytes);
+                    if (!TryParseDrawingXml(entryBytes,
                             out string? candidate,
                             out XElement? candidateRoot)
                         || candidateRoot == null) {

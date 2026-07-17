@@ -332,7 +332,7 @@ internal static partial class DocumentReaderEngine {
             } else if (IsOleCompound(prefix) && options.InspectContainers) {
                 candidate = restorePosition
                     ? InspectOfficeCompound(stream, originalPosition,
-                        options.MaxContainerEntries)
+                        options.MaxContainerEntries, cancellationToken)
                     : InspectOfficeCompound(prefix);
                 containerInspected = true;
             } else if (IsCabinet(prefix) && options.InspectContainers) {

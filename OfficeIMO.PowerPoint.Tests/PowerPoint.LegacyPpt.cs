@@ -617,6 +617,22 @@ namespace OfficeIMO.Tests {
 
             Assert.Contains("legacy Word", wordError.Message, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("legacy Excel", excelError.Message, StringComparison.OrdinalIgnoreCase);
+
+            var boundedOptions = new PowerPointLoadOptions {
+                LegacyPptImportOptions = new LegacyPptImportOptions {
+                    MaxInputBytes = 1
+                }
+            };
+            InvalidDataException boundedWord = Assert.Throws<
+                InvalidDataException>(() => PowerPointPresentation.Load(doc,
+                    boundedOptions));
+            InvalidDataException boundedExcel = Assert.Throws<
+                InvalidDataException>(() => PowerPointPresentation.Load(xls,
+                    boundedOptions));
+            Assert.Contains("exceeds", boundedWord.Message,
+                StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("exceeds", boundedExcel.Message,
+                StringComparison.OrdinalIgnoreCase);
         }
 
         [Fact]

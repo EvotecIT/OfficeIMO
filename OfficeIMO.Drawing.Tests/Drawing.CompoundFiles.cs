@@ -75,6 +75,53 @@ public sealed class DrawingCompoundFileTests {
         Assert.Equal(0, stream.Position);
     }
 
+    [Fact]
+    public void DocumentDetectionIgnoresNestedFallbackStreamAliases() {
+        var streams = new Dictionary<string, byte[]>(
+            StringComparer.OrdinalIgnoreCase) {
+            ["Nested/EncryptionInfo"] = new byte[] { 1 },
+            ["Nested/EncryptedPackage"] = new byte[] { 2 }
+        };
+        var source = new OfficeCompoundFile(streams, new[] {
+            new OfficeCompoundFileEntry("Nested", "Nested", 1, 0),
+            new OfficeCompoundFileEntry("EncryptionInfo",
+                "Nested/EncryptionInfo", 2, 1),
+            new OfficeCompoundFileEntry("EncryptedPackage",
+                "Nested/EncryptedPackage", 2, 1)
+        }, new OfficeCompoundFileEntry("Root Entry", "Root Entry", 5, 0));
+        byte[] compound = OfficeCompoundFileWriter.Rewrite(source,
+            new Dictionary<string, byte[]>());
+
+        OfficeCompoundDocumentDetector.DocumentKind kind =
+            OfficeCompoundDocumentDetector.Detect(compound, out _);
+
+        Assert.Equal(OfficeCompoundDocumentDetector.DocumentKind
+            .UnknownCompound, kind);
+    }
+
+    [Fact]
+    public void DocumentDetectionRecognizesActualRootEncryptedPackageStreams() {
+        var streams = new Dictionary<string, byte[]>(
+            StringComparer.OrdinalIgnoreCase) {
+            ["EncryptionInfo"] = new byte[] { 1 },
+            ["EncryptedPackage"] = new byte[] { 2 }
+        };
+        var source = new OfficeCompoundFile(streams, new[] {
+            new OfficeCompoundFileEntry("EncryptionInfo",
+                "EncryptionInfo", 2, 1),
+            new OfficeCompoundFileEntry("EncryptedPackage",
+                "EncryptedPackage", 2, 1)
+        }, new OfficeCompoundFileEntry("Root Entry", "Root Entry", 5, 0));
+        byte[] compound = OfficeCompoundFileWriter.Rewrite(source,
+            new Dictionary<string, byte[]>());
+
+        OfficeCompoundDocumentDetector.DocumentKind kind =
+            OfficeCompoundDocumentDetector.Detect(compound, out _);
+
+        Assert.Equal(OfficeCompoundDocumentDetector.DocumentKind
+            .EncryptedOpenXmlPackage, kind);
+    }
+
     private static byte[] CreateVersion4RootOnlyCompoundFile() {
         byte[] compound = new byte[SectorSize * 3];
         byte[] signature = { 0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1 };

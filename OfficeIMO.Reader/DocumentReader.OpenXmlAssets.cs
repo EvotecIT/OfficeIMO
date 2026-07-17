@@ -55,7 +55,8 @@ internal static partial class DocumentReaderEngine {
         if (kind == ReaderInputKind.PowerPoint
             && (!string.IsNullOrEmpty(opt.OpenPassword)
                 || IsLegacyPowerPointExtension(sourceName)
-                || IsLegacyPowerPointCompound(stream, opt))) {
+                || IsLegacyPowerPointCompound(stream, opt,
+                    cancellationToken))) {
             using PowerPointPresentation presentation =
                 LoadPowerPointForReader(stream, opt);
             return CollectProjectedPowerPointImageAssets(presentation,
@@ -106,12 +107,14 @@ internal static partial class DocumentReaderEngine {
     }
 
     private static bool IsLegacyPowerPointCompound(Stream stream,
-        ReaderOptions options) {
+        ReaderOptions options,
+        CancellationToken cancellationToken) {
         if (!stream.CanSeek) return false;
         long position = stream.Position;
         try {
             DetectionCandidate candidate = InspectOfficeCompound(stream,
-                position, options.DetectionMaxContainerEntries);
+                position, options.DetectionMaxContainerEntries,
+                cancellationToken);
             return candidate.Kind == ReaderInputKind.PowerPoint
                 && string.Equals(candidate.MediaType,
                     "application/vnd.ms-powerpoint",

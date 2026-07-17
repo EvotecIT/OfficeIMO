@@ -3,6 +3,7 @@ using OfficeIMO.Drawing.Internal;
 using System;
 using System.IO;
 using System.Linq;
+using System.Threading;
 
 namespace OfficeIMO.Reader;
 
@@ -29,17 +30,20 @@ internal static partial class DocumentReaderEngine {
     }
 
     private static DetectionCandidate InspectOfficeCompound(Stream stream,
-        long position, int maxContainerEntries) {
+        long position, int maxContainerEntries,
+        CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         stream.Position = position;
         long remainingBytes = checked(stream.Length - position);
         DetectionCandidate office = MapOfficeCompoundKind(
             OfficeCompoundDocumentDetector.Detect(stream, remainingBytes,
-                maxContainerEntries, out _));
+                maxContainerEntries, cancellationToken, out _));
         return office.Kind != ReaderInputKind.Unknown
             || office.Evidence.Contains(EncryptedOpenXmlEvidence,
                 StringComparer.Ordinal)
             ? office
-            : InspectEmailCompound(stream, position, maxContainerEntries);
+            : InspectEmailCompound(stream, position, maxContainerEntries,
+                cancellationToken);
     }
 
     private static DetectionCandidate MapOfficeCompoundKind(
@@ -63,10 +67,21 @@ internal static partial class DocumentReaderEngine {
     }
 
     private static DetectionCandidate InspectEmailCompound(Stream stream, long position,
-        int maxContainerEntries) {
+        int maxContainerEntries,
+        CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         stream.Position = position;
         var emailOptions = new EmailReaderOptions(maxCompoundDirectoryEntries: maxContainerEntries);
-        return EmailDocumentReader.DetectFormat(stream, emailOptions) == EmailFileFormat.OutlookMsg
+        long remainingBytes = checked(stream.Length - position);
+        if (remainingBytes > emailOptions.MaxInputBytes) {
+            return DetectionCandidate.Unknown(
+                "container:ole-compound-unrecognized");
+        }
+        bool inspected = OfficeCompoundFileReader.TryContainsStreamPath(
+            stream, "__properties_version1.0", emailOptions.MaxInputBytes,
+            emailOptions.MaxCompoundDirectoryEntries, cancellationToken,
+            out bool contains, out _);
+        return inspected && contains
             ? DetectionCandidate.High(ReaderInputKind.Email, "application/vnd.ms-outlook",
                 "container:msg-properties-stream")
             : DetectionCandidate.Unknown("container:ole-compound-unrecognized");

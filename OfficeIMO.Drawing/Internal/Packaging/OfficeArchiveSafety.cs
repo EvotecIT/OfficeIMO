@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.IO.Compression;
 
 namespace OfficeIMO.Drawing.Internal;
@@ -74,6 +75,40 @@ internal static class OfficeArchiveSafety {
 
         if (compressedLength <= 0) return false;
         return (double)uncompressedLength / compressedLength > maxRatio;
+    }
+
+    /// <summary>
+    /// Reads exactly the declared entry length and rejects truncated or
+    /// over-expanding payloads before materializing bytes beyond that bound.
+    /// </summary>
+    internal static byte[] ReadEntryBytes(Stream source,
+        long declaredLength, long maximumLength) {
+        if (source == null) throw new ArgumentNullException(nameof(source));
+        if (declaredLength < 0 || declaredLength > maximumLength
+            || maximumLength < 0 || declaredLength > int.MaxValue) {
+            throw new InvalidDataException(
+                "The archive entry has an invalid declared length.");
+        }
+
+        using var output = new MemoryStream(checked((int)declaredLength));
+        var buffer = new byte[81920];
+        long remaining = declaredLength;
+        while (remaining > 0) {
+            int requested = (int)Math.Min(buffer.Length, remaining);
+            int read = source.Read(buffer, 0, requested);
+            if (read <= 0 || read > requested) {
+                throw new InvalidDataException(
+                    "The archive entry is shorter than its declared length.");
+            }
+            output.Write(buffer, 0, read);
+            remaining -= read;
+        }
+
+        if (source.Read(buffer, 0, 1) != 0) {
+            throw new InvalidDataException(
+                "The archive entry exceeds its declared expansion length.");
+        }
+        return output.ToArray();
     }
 
     private static bool ContainsNull(string value) {

@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Threading;
 
 namespace OfficeIMO.Drawing.Internal {
@@ -12,18 +11,35 @@ namespace OfficeIMO.Drawing.Internal {
         /// </summary>
         internal static bool TryContainsStreamPath(Stream stream, string expectedPath, long maxInputBytes,
             int maxDirectoryEntries, out bool contains, out string? error) {
+            return TryContainsStreamPath(stream, expectedPath,
+                maxInputBytes, maxDirectoryEntries, CancellationToken.None,
+                out contains, out error);
+        }
+
+        internal static bool TryContainsStreamPath(Stream stream,
+            string expectedPath, long maxInputBytes,
+            int maxDirectoryEntries, CancellationToken cancellationToken,
+            out bool contains, out string? error) {
             contains = false;
             if (string.IsNullOrWhiteSpace(expectedPath)) {
                 throw new ArgumentException("A stream path is required.", nameof(expectedPath));
             }
 
             if (!TryInspectDirectory(stream, maxInputBytes, maxDirectoryEntries,
-                out IReadOnlyList<OfficeCompoundFileEntry> entries, out error)) {
+                cancellationToken,
+                out IReadOnlyList<OfficeCompoundFileEntry> entries,
+                out error)) {
                 return false;
             }
 
-            contains = entries.Any(entry => entry.IsStream &&
-                string.Equals(entry.Path, expectedPath, StringComparison.OrdinalIgnoreCase));
+            foreach (OfficeCompoundFileEntry entry in entries) {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (entry.IsStream && string.Equals(entry.Path, expectedPath,
+                        StringComparison.OrdinalIgnoreCase)) {
+                    contains = true;
+                    break;
+                }
+            }
             return true;
         }
 

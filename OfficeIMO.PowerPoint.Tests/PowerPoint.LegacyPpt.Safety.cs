@@ -142,6 +142,59 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PresentationFacade_EnforcesCompoundTemporaryStorageBudget() {
+            byte[] binary = CreatePresentationBytes();
+            var padded = new byte[256 * 1024];
+            Buffer.BlockCopy(binary, 0, padded, 0, binary.Length);
+            var options = new PowerPointLoadOptions {
+                PackageSecurity = new OfficePackageSecurityOptions {
+                    MaxPackageBytes = 4096
+                }
+            };
+            using var input = new CountingNonSeekableReadStream(padded);
+
+            InvalidDataException exception = Assert.Throws<
+                InvalidDataException>(() => PowerPointPresentation.Load(
+                    input, options));
+
+            Assert.Contains("4096", exception.Message,
+                StringComparison.Ordinal);
+            Assert.Equal(4097, input.BytesRead);
+        }
+
+        [Fact]
+        public async Task PresentationFacade_EnforcesExplicitPackageInputBudgetForOpenXml() {
+            byte[] packageBytes;
+            using (PowerPointPresentation source =
+                   PowerPointPresentation.Create()) {
+                source.AddSlide().AddTextBox("Package input budget");
+                packageBytes = source.ToBytes();
+            }
+            long maxBytes = packageBytes.Length - 1L;
+            var options = new PowerPointLoadOptions {
+                PackageSecurity = new OfficePackageSecurityOptions {
+                    MaxPackageBytes = maxBytes
+                }
+            };
+
+            using var syncInput = new MemoryStream(packageBytes,
+                writable: false);
+            Assert.Throws<InvalidDataException>(() =>
+                PowerPointPresentation.Load(syncInput, options));
+
+            using var asyncInput = new MemoryStream(packageBytes,
+                writable: false);
+            await Assert.ThrowsAsync<InvalidDataException>(() =>
+                PowerPointPresentation.LoadAsync(asyncInput, options));
+
+            using var nonSeekable = new CountingNonSeekableReadStream(
+                packageBytes);
+            Assert.Throws<InvalidDataException>(() =>
+                PowerPointPresentation.Load(nonSeekable, options));
+            Assert.Equal(maxBytes + 1, nonSeekable.BytesRead);
+        }
+
+        [Fact]
         public async Task PresentationFacade_DoesNotApplyBinaryBudgetToOpenXml() {
             const string password = "openxml-budget";
             byte[] packageBytes;

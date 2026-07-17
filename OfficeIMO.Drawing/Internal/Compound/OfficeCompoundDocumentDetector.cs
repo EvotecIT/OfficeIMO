@@ -118,7 +118,8 @@ namespace OfficeIMO.Drawing.Internal {
             CancellationToken cancellationToken) {
             foreach (OfficeCompoundFileEntry entry in entries) {
                 cancellationToken.ThrowIfCancellationRequested();
-                if (entry.IsStream && string.Equals(entry.Path, name,
+                if (!entry.IsFallback && entry.IsStream
+                    && string.Equals(entry.Path, name,
                         StringComparison.OrdinalIgnoreCase)) {
                     return true;
                 }
