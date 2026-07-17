@@ -57,27 +57,23 @@ public readonly struct IcsTemporalValue : IEquatable<IcsTemporalValue> {
     public static bool TryParse(ContentLineProperty? property, out IcsTemporalValue value) {
         value = default;
         if (property == null) return false;
-        string text = property.Value.Trim();
+        string text = property.Value;
         string? valueType = property.GetParameter("VALUE")?.Values.FirstOrDefault();
         string? timeZoneId = property.GetParameter("TZID")?.Values.FirstOrDefault();
         if (valueType != null && !string.Equals(valueType, "DATE", StringComparison.OrdinalIgnoreCase) &&
             !string.Equals(valueType, "DATE-TIME", StringComparison.OrdinalIgnoreCase)) return false;
         if (string.Equals(valueType, "DATE", StringComparison.OrdinalIgnoreCase)) {
             if (!string.IsNullOrWhiteSpace(timeZoneId)) return false;
-            if (!DateTime.TryParseExact(text, "yyyyMMdd", CultureInfo.InvariantCulture,
-                DateTimeStyles.None, out DateTime date)) return false;
+            if (!TryParseDate(text, out DateTime date)) return false;
             value = Date(date);
             return true;
         }
-        if (DateTime.TryParseExact(text, "yyyyMMdd'T'HHmmss'Z'",
-            CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal,
-            out DateTime utc)) {
+        if (TryParseDateTime(text, utc: true, out DateTime utc)) {
             if (!string.IsNullOrWhiteSpace(timeZoneId)) return false;
             value = Utc(new DateTimeOffset(utc, TimeSpan.Zero));
             return true;
         }
-        if (!DateTime.TryParseExact(text, "yyyyMMdd'T'HHmmss",
-            CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime local)) return false;
+        if (!TryParseDateTime(text, utc: false, out DateTime local)) return false;
         value = string.IsNullOrWhiteSpace(timeZoneId) ? Floating(local) : Zoned(local, timeZoneId!);
         return true;
     }
@@ -123,5 +119,49 @@ public readonly struct IcsTemporalValue : IEquatable<IcsTemporalValue> {
             if (string.Equals(property.Parameters[index].Name, name, StringComparison.OrdinalIgnoreCase))
                 property.Parameters.RemoveAt(index);
         }
+    }
+
+    private static bool TryParseDate(string text, out DateTime value) {
+        value = default;
+        if (text.Length != 8 || !TryReadNumber(text, 0, 4, out int year) ||
+            !TryReadNumber(text, 4, 2, out int month) ||
+            !TryReadNumber(text, 6, 2, out int day)) return false;
+        try {
+            value = new DateTime(year, month, day, 0, 0, 0, DateTimeKind.Unspecified);
+            return true;
+        } catch (ArgumentOutOfRangeException) {
+            return false;
+        }
+    }
+
+    private static bool TryParseDateTime(string text, bool utc, out DateTime value) {
+        value = default;
+        int expectedLength = utc ? 16 : 15;
+        if (text.Length != expectedLength || text[8] != 'T' ||
+            utc && text[15] != 'Z' ||
+            !TryReadNumber(text, 0, 4, out int year) ||
+            !TryReadNumber(text, 4, 2, out int month) ||
+            !TryReadNumber(text, 6, 2, out int day) ||
+            !TryReadNumber(text, 9, 2, out int hour) ||
+            !TryReadNumber(text, 11, 2, out int minute) ||
+            !TryReadNumber(text, 13, 2, out int second) || second > 60) return false;
+        try {
+            value = new DateTime(year, month, day, hour, minute, Math.Min(second, 59),
+                utc ? DateTimeKind.Utc : DateTimeKind.Unspecified);
+            if (second == 60) value = value.AddSeconds(1);
+            return true;
+        } catch (ArgumentOutOfRangeException) {
+            return false;
+        }
+    }
+
+    private static bool TryReadNumber(string text, int offset, int length, out int value) {
+        value = 0;
+        for (int index = offset; index < offset + length; index++) {
+            char character = text[index];
+            if (character < '0' || character > '9') return false;
+            value = checked(value * 10 + character - '0');
+        }
+        return true;
     }
 }

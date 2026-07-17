@@ -720,6 +720,103 @@ public sealed class PstWriterTests {
         }
     }
 
+    [Fact]
+    public void CaseDistinctCheckpointAndDestinationPathsAreAllowedOnCaseSensitiveFileSystems() {
+        string root = Path.Combine(Path.GetTempPath(),
+            "officeimo-pst-checkpoint-case-" + Guid.NewGuid().ToString("N"));
+        string upper = Path.Combine(root, "CaseDir");
+        string lower = Path.Combine(root, "casedir");
+        try {
+            Directory.CreateDirectory(upper);
+            Directory.CreateDirectory(lower);
+            if (EmailStorePathIdentity.IsCaseInsensitiveFileSystem(root)) return;
+            string destination = Path.Combine(upper, "archive.pst");
+            string checkpoint = Path.Combine(lower, "archive.pst");
+
+            using (EmailStorePstWriter writer = EmailStorePstWriter.Create(destination,
+                       new EmailStorePstWriterOptions(checkpointPath: checkpoint))) {
+                writer.Checkpoint();
+            }
+
+            Assert.True(File.Exists(checkpoint));
+            EmailStorePstWriter.DeleteCheckpoint(checkpoint);
+            Assert.False(File.Exists(checkpoint));
+        } finally {
+            if (Directory.Exists(root)) Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void CaseDistinctTamperedCheckpointCannotResumeOrDeleteAnotherDirectorysWorkingFiles() {
+        string root = Path.Combine(Path.GetTempPath(),
+            "officeimo-pst-checkpoint-ownership-" + Guid.NewGuid().ToString("N"));
+        string upper = Path.Combine(root, "CaseDir");
+        string lower = Path.Combine(root, "casedir");
+        try {
+            Directory.CreateDirectory(upper);
+            Directory.CreateDirectory(lower);
+            if (EmailStorePathIdentity.IsCaseInsensitiveFileSystem(root)) return;
+            string destination = Path.Combine(upper, "archive.pst");
+            string checkpoint = Path.Combine(root, "archive.checkpoint");
+            using (EmailStorePstWriter writer = EmailStorePstWriter.Create(destination,
+                       new EmailStorePstWriterOptions(checkpointPath: checkpoint))) {
+                writer.Checkpoint();
+            }
+            string workingFile = Assert.Single(Directory.EnumerateFiles(upper), file =>
+                Path.GetFileName(file).EndsWith(".tmp", StringComparison.Ordinal));
+            RewriteCheckpointDestination(checkpoint, Path.Combine(lower, "archive.pst"));
+
+            Assert.Throws<InvalidDataException>(() => EmailStorePstWriter.Resume(checkpoint));
+            Assert.Throws<InvalidDataException>(() => EmailStorePstWriter.DeleteCheckpoint(checkpoint));
+            Assert.True(File.Exists(workingFile));
+            Assert.True(File.Exists(checkpoint));
+        } finally {
+            if (Directory.Exists(root)) Directory.Delete(root, recursive: true);
+        }
+    }
+
+    private static void RewriteCheckpointDestination(string checkpointPath, string destinationPath) {
+        byte[] checkpoint = File.ReadAllBytes(checkpointPath);
+        byte[] magic;
+        int version;
+        byte[] payload;
+        using (var input = new MemoryStream(checkpoint, writable: false))
+        using (var reader = new BinaryReader(input, Encoding.UTF8, leaveOpen: false)) {
+            magic = reader.ReadBytes(8);
+            version = reader.ReadInt32();
+            long length = reader.ReadInt64();
+            payload = reader.ReadBytes(checked((int)length));
+            Assert.Equal(32, reader.ReadBytes(32).Length);
+            Assert.Equal(input.Length, input.Position);
+        }
+
+        byte[] rewrittenPayload;
+        using (var input = new MemoryStream(payload, writable: false))
+        using (var reader = new BinaryReader(input, Encoding.UTF8, leaveOpen: true))
+        using (var output = new MemoryStream())
+        using (var writer = new BinaryWriter(output, Encoding.UTF8, leaveOpen: true)) {
+            reader.ReadString();
+            int remainingOffset = checked((int)input.Position);
+            writer.Write(Path.GetFullPath(destinationPath));
+            writer.Write(payload, remainingOffset, payload.Length - remainingOffset);
+            writer.Flush();
+            rewrittenPayload = output.ToArray();
+        }
+
+        byte[] digest;
+        using (SHA256 sha = SHA256.Create()) digest = sha.ComputeHash(rewrittenPayload);
+        using (var output = new MemoryStream())
+        using (var writer = new BinaryWriter(output, Encoding.UTF8, leaveOpen: true)) {
+            writer.Write(magic);
+            writer.Write(version);
+            writer.Write((long)rewrittenPayload.Length);
+            writer.Write(rewrittenPayload);
+            writer.Write(digest);
+            writer.Flush();
+            File.WriteAllBytes(checkpointPath, output.ToArray());
+        }
+    }
+
     private static void CopyNullableString(BinaryReader reader, BinaryWriter writer) {
         bool hasValue = reader.ReadBoolean();
         writer.Write(hasValue);

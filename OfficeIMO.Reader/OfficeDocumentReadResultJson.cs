@@ -67,6 +67,7 @@ public static partial class OfficeDocumentReadResultJson {
             : result.SchemaVersion;
         OfficeDocumentReadResultSchema.EnsureSupported(schemaId, schemaVersion);
         EnsureKindSupported(schemaVersion, result.Kind);
+        EnsureChunkKindsSupported(schemaVersion, result.Chunks);
         EnsureStringCollection(result.CapabilitiesUsed, "capabilitiesUsed");
         EnsureDiagnosticContracts(result.Diagnostics);
 
@@ -109,6 +110,7 @@ public static partial class OfficeDocumentReadResultJson {
             throw new JsonException("The document read result payload produced a null result.");
         }
         EnsureKindSupported(schemaVersion, result.Kind);
+        EnsureChunkKindsSupported(schemaVersion, result.Chunks);
         result = NormalizeDeserializedResult(result);
         EnsureDiagnosticContracts(result.Diagnostics);
         return result;
@@ -176,6 +178,14 @@ public static partial class OfficeDocumentReadResultJson {
             schemaVersion == 5 && (kind == ReaderInputKind.Calendar || kind == ReaderInputKind.VCard)) {
             throw new JsonException(
                 $"Reader input kind '{kind}' is not supported by document read result schema version {schemaVersion}.");
+        }
+    }
+
+    private static void EnsureChunkKindsSupported(int schemaVersion, IReadOnlyList<ReaderChunk>? chunks) {
+        if (chunks == null) return;
+        for (int index = 0; index < chunks.Count; index++) {
+            ReaderChunk? chunk = chunks[index];
+            if (chunk != null) EnsureKindSupported(schemaVersion, chunk.Kind);
         }
     }
 

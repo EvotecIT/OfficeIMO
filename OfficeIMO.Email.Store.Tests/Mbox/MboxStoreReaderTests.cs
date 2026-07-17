@@ -1,4 +1,5 @@
 using OfficeIMO.Email;
+using System.Globalization;
 using Xunit;
 
 namespace OfficeIMO.Email.Store.Tests;
@@ -52,6 +53,31 @@ public sealed class MboxStoreReaderTests {
     }
 
     [Fact]
+    public void OpeningMboxStreamsWithoutRequestingTheWholeAggregate() {
+        byte[] bytes = CreateLargeMailboxBytes();
+        using var stream = new MaximumReadSizeStream(bytes, 32);
+
+        using EmailStoreSession session = EmailStoreSession.Open(stream, "large.mbox");
+
+        Assert.Equal(2, session.Folders.Single().ItemCount);
+        Assert.Equal(2, session.EnumerateItems().Count());
+    }
+
+    [Fact]
+    public void OpeningMboxEnforcesAggregateAttachmentBytesAcrossItems() {
+        using var stream = new MemoryStream(CreateMailboxWithAttachments());
+        var options = new EmailStoreReaderOptions(
+            maxAttachmentBytes: 10,
+            maxTotalAttachmentBytes: 10);
+
+        EmailStoreLimitExceededException exception = Assert.Throws<EmailStoreLimitExceededException>(() =>
+            EmailStoreSession.Open(stream, "attachments.mbox", options));
+
+        Assert.Equal(nameof(EmailStoreReaderOptions.MaxTotalAttachmentBytes), exception.LimitName);
+        Assert.Equal(12, exception.Actual);
+    }
+
+    [Fact]
     public void MboxStoreCanExportThroughTheSharedSessionBoundary() {
         string destination = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".mbox");
         try {
@@ -93,5 +119,47 @@ public sealed class MboxStoreReaderTests {
             EnvelopeDate = new DateTimeOffset(2026, 7, 17, 10, 0, 0, TimeSpan.Zero)
         });
         return mailbox.ToBytes();
+    }
+
+    private static byte[] CreateLargeMailboxBytes() {
+        var mailbox = new EmailMailbox();
+        for (int index = 0; index < 2; index++) {
+            var document = new EmailDocument {
+                Subject = "Large " + index.ToString(CultureInfo.InvariantCulture)
+            };
+            document.Body.Text = new string((char)('a' + index), 100_000);
+            mailbox.Messages.Add(new EmailMailboxEntry(document));
+        }
+        return mailbox.ToBytes();
+    }
+
+    private static byte[] CreateMailboxWithAttachments() {
+        string message =
+            "Subject: Attachment\r\nMIME-Version: 1.0\r\n" +
+            "Content-Type: multipart/mixed; boundary=store-boundary\r\n\r\n" +
+            "--store-boundary\r\nContent-Type: text/plain\r\n\r\nBody\r\n" +
+            "--store-boundary\r\nContent-Type: application/octet-stream\r\n" +
+            "Content-Disposition: attachment; filename=payload.bin\r\n" +
+            "Content-Transfer-Encoding: base64\r\n\r\nMTIzNDU2\r\n" +
+            "--store-boundary--\r\n";
+        string mailbox =
+            "From first@example.test Fri Jul 17 09:00:00 2026\r\n" + message +
+            "From second@example.test Fri Jul 17 10:00:00 2026\r\n" + message;
+        return Encoding.ASCII.GetBytes(mailbox);
+    }
+
+    private sealed class MaximumReadSizeStream : MemoryStream {
+        private readonly int _maximumReadSize;
+
+        internal MaximumReadSizeStream(byte[] bytes, int maximumReadSize) : base(bytes, writable: false) {
+            _maximumReadSize = maximumReadSize;
+        }
+
+        public override int Read(byte[] buffer, int offset, int count) {
+            if (count > _maximumReadSize) {
+                throw new InvalidOperationException("The mbox reader requested an aggregate-sized buffer.");
+            }
+            return base.Read(buffer, offset, count);
+        }
     }
 }

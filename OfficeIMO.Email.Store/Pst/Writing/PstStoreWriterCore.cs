@@ -35,9 +35,8 @@ internal sealed partial class PstStoreWriterCore : IDisposable {
         _providerUid = Guid.NewGuid();
         _namedProperties = new PstNamedPropertyWriter();
         _destinationPath = Path.GetFullPath(destinationPath);
-        if (options.CheckpointPath != null && string.Equals(
-            Path.GetFullPath(options.CheckpointPath), _destinationPath,
-            StringComparison.OrdinalIgnoreCase)) {
+        if (options.CheckpointPath != null && EmailStorePathIdentity.AreEquivalent(
+            options.CheckpointPath, _destinationPath)) {
             throw new InvalidOperationException(
                 "The PST checkpoint and destination must use different paths.");
         }

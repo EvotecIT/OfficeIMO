@@ -21,13 +21,14 @@ internal static class EmailStoreMessageReader {
         }
     }
 
-    internal static EmailReaderOptions CreateOptions(EmailStoreReaderOptions options) =>
+    internal static EmailReaderOptions CreateOptions(EmailStoreReaderOptions options,
+        bool? includeAttachmentContent = null) =>
         new EmailReaderOptions(
             maxInputBytes: options.MaxMessageBytes,
             maxAttachmentBytes: options.MaxAttachmentBytes,
             maxTotalAttachmentBytes: options.MaxTotalAttachmentBytes,
             maxNestedMessageDepth: options.MaxNestedMessageDepth,
-            includeAttachmentContent: options.RetainAttachmentContent,
+            includeAttachmentContent: includeAttachmentContent ?? options.RetainAttachmentContent,
             maxMapiPropertyCount: options.MaxPropertiesPerItem,
             maxDecodedPropertyBytes: options.MaxDecodedPropertyBytesPerItem);
 

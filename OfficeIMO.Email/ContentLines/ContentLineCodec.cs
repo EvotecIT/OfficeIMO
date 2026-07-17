@@ -338,7 +338,10 @@ internal static class ContentLineSyntax {
     internal static string RequireToken(string value, string parameterName) {
         if (string.IsNullOrWhiteSpace(value)) throw new ArgumentException("A content-line token cannot be empty.", parameterName);
         foreach (char character in value) {
-            if (char.IsLetterOrDigit(character) || character == '-') continue;
+            if (character >= 'A' && character <= 'Z' ||
+                character >= 'a' && character <= 'z' ||
+                character >= '0' && character <= '9' ||
+                character == '-') continue;
             throw new ArgumentException("A content-line token contains an invalid character.", parameterName);
         }
         return value;

@@ -149,7 +149,7 @@ EmailStoreReadResult result = new EmailStoreReader().Read("export.olm");
 | OST | The supported PST-compatible NDB paths plus compressed blocks used by supported OST variants. Server-only or unmaterialized content cannot be recovered from an offline file. |
 | OLM | Bounded Outlook for Mac ZIP/XML archives, folders, messages and typed items, and safe in-archive attachments. |
 | EMLX | One Apple Mail EMLX item, including its RFC 5322/MIME message and supported XML property-list metadata. Partial files report that external Apple Mail content may be absent. Standalone and directory writers produce length-prefixed EML plus optional Apple property-list metadata. |
-| Mbox | Mboxo and mboxrd archives exposed through the common store session, folder, item, query, validation, and export contracts. |
+| Mbox | Mboxo and mboxrd archives exposed through the common store session, folder, item, query, validation, and export contracts. Opening builds a bounded offset/summary index while retaining at most one decoded message; selected items are decoded on demand. |
 | Mailbox directory | Lazy Apple Mail `.mbox/.../Messages/*.emlx`, Maildir `cur/new`, and EML/MIME directory trees. Reparse points are not followed. |
 
 PST and OST MAPI properties use the same projections as MSG and OFT, so messages, appointments, contacts, tasks, journals, notes, recipients, attachments, and named properties do not acquire a second public model.
@@ -160,9 +160,10 @@ matching is an explicit fallback. Selected items expose `ContentAvailability`, s
 available, unavailable, or indeterminate. This matters for OST headers and other content that was never cached locally, and
 for partial EMLX artifacts whose sibling content is absent.
 
-PST/OST and mailbox-directory sessions are lazy. Single EMLX input contains one item. OLM currently validates and
-materializes its bounded ZIP/XML archive when the session opens; query, validation, and export then use the same
-session contracts.
+PST/OST and mailbox-directory sessions are lazy. Mbox opening streams the aggregate once to build item offsets and
+summaries, enforces the cross-item attachment budget, and does not retain decoded messages; selected entries are
+decoded again on demand. Single EMLX input contains one item. OLM currently validates and materializes its bounded
+ZIP/XML archive when the session opens; query, validation, and export then use the same session contracts.
 
 ## Inspect, validate, and recover
 

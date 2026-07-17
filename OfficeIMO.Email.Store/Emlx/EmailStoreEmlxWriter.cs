@@ -175,7 +175,8 @@ public sealed class EmailStoreEmlxWriter {
         if (PropertyFlag(document, "Emlx:Flag:Initial")) flags |= 1L << 7;
         if (PropertyFlag(document, "Emlx:Flag:Forwarded")) flags |= 1L << 8;
         if (PropertyFlag(document, "Emlx:Flag:Redirected")) flags |= 1L << 9;
-        int attachmentCount = TryGetIntegerProperty(document, "Emlx:Flag:AttachmentCount", out int storedAttachmentCount)
+        int attachmentCount = PropertyFlag(document, "Emlx:IsPartial") &&
+            TryGetIntegerProperty(document, "Emlx:Flag:AttachmentCount", out int storedAttachmentCount)
             ? storedAttachmentCount
             : document.Attachments.Count;
         flags |= (long)Math.Max(0, Math.Min(attachmentCount, 63)) << 10;

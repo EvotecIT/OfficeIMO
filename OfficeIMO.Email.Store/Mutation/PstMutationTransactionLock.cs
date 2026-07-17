@@ -19,7 +19,7 @@ internal sealed class PstMutationTransactionLock : IDisposable {
 
     internal static PstMutationTransactionLock Acquire(string sourcePath) {
         string fullPath = Path.GetFullPath(sourcePath);
-        string identity = PstPathIdentity.Normalize(fullPath);
+        string identity = EmailStorePathIdentity.Normalize(fullPath);
         if (!ProcessLocks.TryAdd(identity, 0)) {
             throw new IOException("Another OfficeIMO mutation transaction already owns this PST path.");
         }

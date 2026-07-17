@@ -320,7 +320,8 @@ internal sealed partial class PstStoreWriterCore {
         string temporary = Path.GetFullPath(temporaryPath);
         string? destinationDirectory = Path.GetDirectoryName(destination);
         string? temporaryDirectory = Path.GetDirectoryName(temporary);
-        if (!string.Equals(destinationDirectory, temporaryDirectory, StringComparison.OrdinalIgnoreCase)) {
+        if (destinationDirectory == null || temporaryDirectory == null ||
+            !EmailStorePathIdentity.AreEquivalent(destinationDirectory, temporaryDirectory)) {
             throw new InvalidDataException("The PST checkpoint working path is outside the destination directory.");
         }
         string expectedPrefix = string.Concat(".", Path.GetFileName(destination), ".");
@@ -457,8 +458,8 @@ internal sealed partial class PstStoreWriterCore {
 
         internal void ValidateOwnership(string checkpointPath) {
             string fullCheckpointPath = Path.GetFullPath(checkpointPath);
-            if (string.Equals(fullCheckpointPath, DestinationPath, StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(fullCheckpointPath, TemporaryPath, StringComparison.OrdinalIgnoreCase)) {
+            if (EmailStorePathIdentity.AreEquivalent(fullCheckpointPath, DestinationPath) ||
+                EmailStorePathIdentity.AreEquivalent(fullCheckpointPath, TemporaryPath)) {
                 throw new InvalidDataException(
                     "The PST checkpoint path collides with a destination or working file.");
             }

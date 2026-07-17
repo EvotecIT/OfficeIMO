@@ -25,6 +25,18 @@ public sealed class ContentLineCodecTests {
     }
 
     [Fact]
+    public void PublicContentLineApisRejectNonAsciiTokens() {
+        Assert.Throws<ArgumentException>(() => new ContentLineComponent("VÉVENT"));
+        Assert.Throws<ArgumentException>(() => new ContentLineProperty("NÅME", "value"));
+        Assert.Throws<ArgumentException>(() => new ContentLineParameter("TYPÉ", "work"));
+
+        var document = new VCardDocument();
+        ContentLineProperty property = document.Cards.Single().AddProperty("EMAIL", "a@example.test");
+        property.Group = "grøup";
+        Assert.Throws<ArgumentException>(() => document.Serialize());
+    }
+
+    [Fact]
     public void ManyShortPhysicalFoldsUnfoldWithinTheConfiguredLinearBound() {
         var source = new StringBuilder("BEGIN:VCARD\r\nVERSION:4.0\r\nFN:first");
         for (int index = 0; index < 20_000; index++) source.Append("\r\n x");

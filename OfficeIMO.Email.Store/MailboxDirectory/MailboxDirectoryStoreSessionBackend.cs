@@ -4,6 +4,8 @@ namespace OfficeIMO.Email.Store;
 
 internal sealed class MailboxDirectoryStoreSessionBackend : IEmailStoreSessionBackend {
     private readonly string _root;
+    private readonly StringComparer _pathComparer;
+    private readonly StringComparison _pathComparison;
     private readonly EmailStoreReaderOptions _options;
     private readonly List<EmailStoreDiagnostic> _diagnostics = new List<EmailStoreDiagnostic>();
     private readonly List<EmailStoreFolderInfo> _folders = new List<EmailStoreFolderInfo>();
@@ -17,6 +19,8 @@ internal sealed class MailboxDirectoryStoreSessionBackend : IEmailStoreSessionBa
     internal MailboxDirectoryStoreSessionBackend(string path, EmailStoreReaderOptions options,
         CancellationToken cancellationToken) {
         _root = AppendSeparator(Path.GetFullPath(path));
+        _pathComparer = EmailStorePathIdentity.GetComparer(_root);
+        _pathComparison = EmailStorePathIdentity.GetComparison(_root);
         _options = options;
         DisplayName = new DirectoryInfo(path).Name;
         Index(cancellationToken);
@@ -98,7 +102,7 @@ internal sealed class MailboxDirectoryStoreSessionBackend : IEmailStoreSessionBa
                 continue;
             }
 
-            foreach (FileSystemInfo entry in entries.OrderBy(item => item.Name, StringComparer.OrdinalIgnoreCase)) {
+            foreach (FileSystemInfo entry in entries.OrderBy(item => item.Name, _pathComparer)) {
                 cancellationToken.ThrowIfCancellationRequested();
                 if ((entry.Attributes & FileAttributes.ReparsePoint) != 0) {
                     _diagnostics.Add(new EmailStoreDiagnostic(
@@ -136,13 +140,13 @@ internal sealed class MailboxDirectoryStoreSessionBackend : IEmailStoreSessionBa
         }
 
         var folderCounts = candidates
-            .GroupBy(candidate => candidate.FolderPath, StringComparer.OrdinalIgnoreCase)
-            .ToDictionary(group => group.Key, group => group.Count(), StringComparer.OrdinalIgnoreCase);
-        foreach (string path in folderCounts.Keys.OrderBy(item => item, StringComparer.OrdinalIgnoreCase)) {
+            .GroupBy(candidate => candidate.FolderPath, _pathComparer)
+            .ToDictionary(group => group.Key, group => group.Count(), _pathComparer);
+        foreach (string path in folderCounts.Keys.OrderBy(item => item, _pathComparer)) {
             EnsureFolder(path, folderCounts);
         }
         foreach (MailboxCandidate candidate in candidates.OrderBy(
-            item => item.RelativePath, StringComparer.OrdinalIgnoreCase)) {
+            item => item.RelativePath, _pathComparer)) {
             string folderId = GetFolderId(candidate.FolderPath);
             string id = string.Concat("directory:item:", candidate.RelativePath.Replace('\\', '/'));
             var file = new MailboxFile(
@@ -207,11 +211,11 @@ internal sealed class MailboxDirectoryStoreSessionBackend : IEmailStoreSessionBa
 
     private string ToRelativePath(string fullPath) {
         string normalized = Path.GetFullPath(fullPath);
-        if (normalized.StartsWith(_root, StringComparison.OrdinalIgnoreCase)) {
+        if (normalized.StartsWith(_root, _pathComparison)) {
             return normalized.Substring(_root.Length).Replace('\\', '/');
         }
         string rootWithoutSeparator = _root.TrimEnd(Path.DirectorySeparatorChar);
-        return string.Equals(normalized, rootWithoutSeparator, StringComparison.OrdinalIgnoreCase)
+        return string.Equals(normalized, rootWithoutSeparator, _pathComparison)
             ? string.Empty
             : normalized;
     }

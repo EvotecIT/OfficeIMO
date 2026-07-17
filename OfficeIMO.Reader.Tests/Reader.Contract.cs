@@ -235,6 +235,36 @@ public sealed class ReaderContractTests {
     }
 
     [Fact]
+    public void OfficeDocumentReadResultJson_RejectsVersion6KindsInVersion5Chunks() {
+        var result = new OfficeDocumentReadResult {
+            SchemaVersion = 5,
+            Kind = ReaderInputKind.Email,
+            Chunks = new[] {
+                new ReaderChunk { Id = "calendar", Kind = ReaderInputKind.Calendar }
+            }
+        };
+
+        JsonException writeException = Assert.Throws<JsonException>(() =>
+            OfficeDocumentReadResultJson.Serialize(result));
+        Assert.Contains("schema version 5", writeException.Message,
+            StringComparison.OrdinalIgnoreCase);
+
+        JsonObject invalid = JsonNode.Parse(OfficeDocumentReadResultJson.Serialize(
+            new OfficeDocumentReadResult {
+                Kind = ReaderInputKind.Email,
+                Chunks = new[] {
+                    new ReaderChunk { Id = "contact", Kind = ReaderInputKind.VCard }
+                }
+            }))!.AsObject();
+        invalid["schemaVersion"] = 5;
+
+        JsonException readException = Assert.Throws<JsonException>(() =>
+            OfficeDocumentReadResultJson.Deserialize(invalid.ToJsonString()));
+        Assert.Contains("schema version 5", readException.Message,
+            StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public void OfficeDocumentReadResultJson_RejectsUnknownTransportMembers() {
         string json = OfficeDocumentReadResultJson.Serialize(new OfficeDocumentReadResult());
         string withUnknownMember = json.Insert(json.Length - 1, ",\"futureField\":true");

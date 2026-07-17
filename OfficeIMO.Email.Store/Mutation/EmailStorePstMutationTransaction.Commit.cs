@@ -145,7 +145,9 @@ public sealed partial class EmailStorePstMutationTransaction {
         IDictionary<string, string?> folderParentMap,
         CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
-        foreach (FolderState folder in _folders.Values.Where(folder => !folder.Deleted)) {
+        FolderState[] activeFolders = _folders.Values.Where(folder => !folder.Deleted).ToArray();
+        ValidateMappedSystemFolderParents(activeFolders);
+        foreach (FolderState folder in activeFolders) {
             cancellationToken.ThrowIfCancellationRequested();
             if (folder.IsMappedSystemFolder) {
                 folderMap[folder.Id] = writer.SpamSearchFolderId;
@@ -185,7 +187,6 @@ public sealed partial class EmailStorePstMutationTransaction {
             }
         }
 
-        FolderState[] activeFolders = _folders.Values.Where(folder => !folder.Deleted).ToArray();
         var activeById = activeFolders.ToDictionary(folder => folder.Id, StringComparer.Ordinal);
         Dictionary<string, FolderState[]> childrenByParent = activeFolders
             .Where(folder => folder.ParentId != null)
@@ -239,6 +240,54 @@ public sealed partial class EmailStorePstMutationTransaction {
             throw new InvalidDataException("The source PST folder hierarchy could not be reconstructed.");
         }
     }
+
+    private void ValidateMappedSystemFolderParents(IReadOnlyList<FolderState> activeFolders) {
+        FolderState? messageStoreRoot = FindSourceIdentifiedFolder(
+            activeFolders, EmailStoreSpecialFolderKind.Root);
+        FolderState? ipmSubtree = FindSourceIdentifiedFolder(
+            activeFolders, EmailStoreSpecialFolderKind.IpmSubtree);
+        foreach (FolderState folder in activeFolders) {
+            string? expectedParent;
+            bool expectedParentAvailable;
+            if (folder.IsMappedSystemFolder) {
+                expectedParent = messageStoreRoot?.Id;
+                expectedParentAvailable = messageStoreRoot != null;
+            } else if (folder.ClassificationSource !=
+                       EmailStoreFolderClassificationSource.SourceIdentifier) {
+                continue;
+            } else {
+                switch (folder.SpecialFolderKind) {
+                    case EmailStoreSpecialFolderKind.Root:
+                        expectedParent = null;
+                        expectedParentAvailable = true;
+                        break;
+                    case EmailStoreSpecialFolderKind.IpmSubtree:
+                    case EmailStoreSpecialFolderKind.SearchRoot:
+                        expectedParent = messageStoreRoot?.Id;
+                        expectedParentAvailable = messageStoreRoot != null;
+                        break;
+                    case EmailStoreSpecialFolderKind.DeletedItems:
+                        expectedParent = ipmSubtree?.Id;
+                        expectedParentAvailable = ipmSubtree != null;
+                        break;
+                    default:
+                        continue;
+                }
+            }
+            if (expectedParentAvailable &&
+                string.Equals(folder.ParentId, expectedParent, StringComparison.Ordinal)) continue;
+            _diagnostics.Add(new EmailStoreDiagnostic(
+                "EMAIL_STORE_PST_MUTATE_FOLDER_PARENT_RECOVERED",
+                "A source-identified system folder had an invalid parent and was attached to its canonical destination parent.",
+                EmailStoreDiagnosticSeverity.Warning, folder.Id));
+        }
+    }
+
+    private static FolderState? FindSourceIdentifiedFolder(
+        IEnumerable<FolderState> folders, EmailStoreSpecialFolderKind kind) =>
+        folders.FirstOrDefault(folder =>
+            folder.ClassificationSource == EmailStoreFolderClassificationSource.SourceIdentifier &&
+            folder.SpecialFolderKind == kind);
 
     private void MapReadyFolderHierarchy(EmailStorePstWriter writer,
         IDictionary<string, string> folderMap,

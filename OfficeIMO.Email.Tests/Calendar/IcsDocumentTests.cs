@@ -144,6 +144,34 @@ public sealed class IcsDocumentTests {
         Assert.Single(document.Validate(), issue => issue.Code == "ICAL_TEMPORAL_VALUE_INVALID");
     }
 
+    [Theory]
+    [InlineData("19970630T235960Z", null, IcsTemporalValueKind.UtcDateTime)]
+    [InlineData("19970630T235960", null, IcsTemporalValueKind.FloatingDateTime)]
+    [InlineData("19970630T235960", "Europe/Warsaw", IcsTemporalValueKind.ZonedDateTime)]
+    public void TemporalParserAcceptsLeapSecondsAndPreservesTheirLexicalForm(
+        string text, string? timeZoneId, IcsTemporalValueKind expectedKind) {
+        var property = new ContentLineProperty("DTSTART", text);
+        if (timeZoneId != null) property.SetParameter("TZID", timeZoneId);
+
+        Assert.True(IcsTemporalValue.TryParse(property, out IcsTemporalValue temporal));
+        Assert.Equal(expectedKind, temporal.Kind);
+        var document = new IcsDocument();
+        ContentLineComponent appointment = document.Calendars.Single().AddComponent("VEVENT");
+        appointment.Properties.Add(property);
+
+        Assert.DoesNotContain(document.Validate(), issue => issue.Code == "ICAL_TEMPORAL_VALUE_INVALID");
+        Assert.Contains("DTSTART", document.Serialize(), StringComparison.Ordinal);
+        Assert.Contains(text, document.Serialize(), StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(" 20260717T090000Z")]
+    [InlineData("20260717T090000Z ")]
+    [InlineData("20260717T090061Z")]
+    public void TemporalParserRejectsWhitespaceAndSecondsBeyondLeapSecond(string text) {
+        Assert.False(IcsTemporalValue.TryParse(new ContentLineProperty("DTSTART", text), out _));
+    }
+
     [Fact]
     public void ValidationReportsInvalidRecurrencePartNamesInsteadOfThrowing() {
         var document = new IcsDocument();

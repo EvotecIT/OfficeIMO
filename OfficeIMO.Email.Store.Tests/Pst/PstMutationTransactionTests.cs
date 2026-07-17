@@ -358,12 +358,12 @@ public sealed class PstMutationTransactionTests {
             File.WriteAllText(path, "identity");
             bool actualCaseInsensitive = File.Exists(alias);
 
-            Assert.Equal(PstPathIdentity.Normalize(path, caseInsensitive: true),
-                PstPathIdentity.Normalize(alias, caseInsensitive: true));
-            Assert.NotEqual(PstPathIdentity.Normalize(path, caseInsensitive: false),
-                PstPathIdentity.Normalize(alias, caseInsensitive: false));
-            Assert.Equal(actualCaseInsensitive, PstPathIdentity.IsCaseInsensitiveFileSystem(path));
-            Assert.Equal(actualCaseInsensitive, PstPathIdentity.AreEquivalent(path, alias));
+            Assert.Equal(EmailStorePathIdentity.Normalize(path, caseInsensitive: true),
+                EmailStorePathIdentity.Normalize(alias, caseInsensitive: true));
+            Assert.NotEqual(EmailStorePathIdentity.Normalize(path, caseInsensitive: false),
+                EmailStorePathIdentity.Normalize(alias, caseInsensitive: false));
+            Assert.Equal(actualCaseInsensitive, EmailStorePathIdentity.IsCaseInsensitiveFileSystem(path));
+            Assert.Equal(actualCaseInsensitive, EmailStorePathIdentity.AreEquivalent(path, alias));
         } finally {
             try { Directory.Delete(directory, recursive: true); }
             catch (IOException) { }
@@ -497,6 +497,34 @@ public sealed class PstMutationTransactionTests {
 
             Assert.Contains("already contains a cycle", exception.Message,
                 StringComparison.OrdinalIgnoreCase);
+        } finally {
+            TryDelete(path);
+        }
+    }
+
+    [Fact]
+    public void InvalidMandatoryFolderParentTriggersTheDefaultFidelityGuard() {
+        string path = TemporaryPstPath();
+        try {
+            using (EmailStorePstWriter writer = EmailStorePstWriter.Create(path)) writer.Complete();
+            byte[] original = File.ReadAllBytes(path);
+            using var transaction = EmailStorePstMutationTransaction.Open(path);
+            string ipmSubtreeId = Assert.Single(transaction.Folders,
+                folder => folder.SpecialFolderKind == EmailStoreSpecialFolderKind.IpmSubtree).Id;
+            FieldInfo foldersField = typeof(EmailStorePstMutationTransaction).GetField(
+                "_folders", BindingFlags.Instance | BindingFlags.NonPublic)!;
+            var folders = (IDictionary)foldersField.GetValue(transaction)!;
+            object ipmSubtree = folders[ipmSubtreeId]!;
+            PropertyInfo parentId = ipmSubtree.GetType().GetProperty(
+                "ParentId", BindingFlags.Instance | BindingFlags.NonPublic)!;
+            parentId.SetValue(ipmSubtree, ipmSubtreeId);
+
+            InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
+                transaction.Commit());
+
+            Assert.Contains("EMAIL_STORE_PST_MUTATE_FOLDER_PARENT_RECOVERED", exception.Message,
+                StringComparison.Ordinal);
+            Assert.Equal(original, File.ReadAllBytes(path));
         } finally {
             TryDelete(path);
         }

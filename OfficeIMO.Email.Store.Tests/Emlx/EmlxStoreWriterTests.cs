@@ -37,6 +37,7 @@ public sealed class EmlxStoreWriterTests {
     public void RewriteUsesPreservedAttachmentCountWhenAttachmentsAreNotMaterialized() {
         var document = new EmailDocument { Subject = "Partial EMLX" };
         document.Properties["Emlx:Flag:AttachmentCount"] = 37;
+        document.Properties["Emlx:IsPartial"] = true;
 
         byte[] bytes = new EmailStoreEmlxWriter().ToBytes(document);
         using var stream = new MemoryStream(bytes);
@@ -45,6 +46,26 @@ public sealed class EmlxStoreWriterTests {
 
         Assert.Empty(loaded.Attachments);
         Assert.Equal(37, loaded.Properties["Emlx:Flag:AttachmentCount"]);
+    }
+
+    [Fact]
+    public void RewriteUsesMaterializedAttachmentCountAfterDocumentEdits() {
+        var document = new EmailDocument { Subject = "Edited EMLX" };
+        document.Properties["Emlx:Flag:AttachmentCount"] = 37;
+        document.Attachments.Add(new EmailAttachment {
+            FileName = "current.bin",
+            ContentType = "application/octet-stream",
+            Content = new byte[] { 1, 2, 3 },
+            Length = 3
+        });
+
+        byte[] bytes = new EmailStoreEmlxWriter().ToBytes(document);
+        using var stream = new MemoryStream(bytes);
+        EmailDocument loaded = new EmailStoreReader().Read(stream, "edited.emlx")
+            .Store.Folders.Single().Items.Single().Document;
+
+        Assert.Single(loaded.Attachments);
+        Assert.Equal(1, loaded.Properties["Emlx:Flag:AttachmentCount"]);
     }
 
     [Fact]

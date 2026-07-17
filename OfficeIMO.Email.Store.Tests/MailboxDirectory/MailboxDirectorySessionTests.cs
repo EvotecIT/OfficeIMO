@@ -103,6 +103,34 @@ public sealed class MailboxDirectorySessionTests {
         Assert.Equal(true, document.Properties["Emlx:Flag:Deleted"]);
     }
 
+    [Fact]
+    public void CaseDistinctFoldersRemainDistinctOnCaseSensitiveFileSystems() {
+        string root = Path.Combine(Path.GetTempPath(),
+            "officeimo-mailbox-directory-case-" + Guid.NewGuid().ToString("N"));
+        try {
+            Directory.CreateDirectory(root);
+            if (EmailStorePathIdentity.IsCaseInsensitiveFileSystem(root)) return;
+            string upper = Path.Combine(root, "Inbox");
+            string lower = Path.Combine(root, "inbox");
+            Directory.CreateDirectory(upper);
+            Directory.CreateDirectory(lower);
+            File.WriteAllText(Path.Combine(upper, "upper.eml"),
+                "Subject: Upper folder\r\n\r\nBody\r\n");
+            File.WriteAllText(Path.Combine(lower, "lower.eml"),
+                "Subject: Lower folder\r\n\r\nBody\r\n");
+
+            using EmailStoreSession session = EmailStoreSession.Open(root);
+            EmailStoreReadResult materialized = session.ReadAll();
+
+            Assert.Equal(2, session.Folders.Count);
+            Assert.Contains(session.Folders, folder => folder.Name == "Inbox");
+            Assert.Contains(session.Folders, folder => folder.Name == "inbox");
+            Assert.Equal(2, materialized.Store.Folders.Sum(folder => folder.Items.Count));
+        } finally {
+            if (Directory.Exists(root)) Directory.Delete(root, recursive: true);
+        }
+    }
+
     private static string CreateMailboxDirectory() {
         string root = Path.Combine(Path.GetTempPath(), "officeimo-mailbox-directory-" + Guid.NewGuid().ToString("N"));
         string apple = Path.Combine(root, "Inbox.mbox", "Messages");

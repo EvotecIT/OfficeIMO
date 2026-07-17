@@ -2,7 +2,7 @@ using System.Runtime.InteropServices;
 
 namespace OfficeIMO.Email.Store;
 
-internal static class PstPathIdentity {
+internal static class EmailStorePathIdentity {
     internal static string Normalize(string path) =>
         Normalize(path, IsCaseInsensitiveFileSystem(path));
 
@@ -11,6 +11,7 @@ internal static class PstPathIdentity {
         string rightPath = Path.GetFullPath(right);
         if (string.Equals(leftPath, rightPath, StringComparison.Ordinal)) return true;
         return IsCaseInsensitiveFileSystem(leftPath) &&
+            IsCaseInsensitiveFileSystem(rightPath) &&
             string.Equals(leftPath, rightPath, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -18,6 +19,12 @@ internal static class PstPathIdentity {
         string identity = Path.GetFullPath(path);
         return caseInsensitive ? identity.ToUpperInvariant() : identity;
     }
+
+    internal static StringComparer GetComparer(string path) =>
+        IsCaseInsensitiveFileSystem(path) ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
+
+    internal static StringComparison GetComparison(string path) =>
+        IsCaseInsensitiveFileSystem(path) ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
 
     internal static bool IsCaseInsensitiveFileSystem(string path) {
         string fullPath = Path.GetFullPath(path);

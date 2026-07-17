@@ -44,7 +44,7 @@ public sealed partial class EmailStorePstMutationTransaction : IDisposable {
         string sourcePath = Path.GetFullPath(path);
         if (!File.Exists(sourcePath)) throw new FileNotFoundException("The PST does not exist.", sourcePath);
         var effective = options ?? new EmailStorePstMutationOptions();
-        if (effective.BackupPath != null && PstPathIdentity.AreEquivalent(
+        if (effective.BackupPath != null && EmailStorePathIdentity.AreEquivalent(
             sourcePath, effective.BackupPath)) {
             throw new ArgumentException("The backup path must differ from the source PST.", nameof(options));
         }
