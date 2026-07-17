@@ -90,6 +90,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             if (!TryBuildStyleTextProp9Record(paragraphs,
                     pictureBullets, out byte[]? style9Record,
                     out reason)) return false;
+            if (!TryBuildTextSpecialInfoRecord(paragraphs,
+                    out byte[]? specialInfoRecord,
+                    out reason)) return false;
 
             var logicalText = new System.Text.StringBuilder();
             using var paragraphRuns = new MemoryStream();
@@ -127,7 +130,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     RecordStyleTextPropAtomForWrite, payload.ToArray());
             }
             content = new LegacyPptWriterTextBoxContent(text, styleRecord,
-                rulerRecord, style9Record, fieldRecords);
+                rulerRecord, style9Record, specialInfoRecord, fieldRecords);
             return true;
         }
 
@@ -364,7 +367,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 .CloneNode(true);
             foreach (OpenXmlAttribute attribute in clone.GetAttributes()
                          .Where(attribute => attribute.LocalName is "lang"
-                             or "altLang" or "dirty" or "smtClean")
+                             or "altLang" or "noProof" or "dirty" or "err"
+                             or "smtClean")
                          .ToArray()) {
                 clone.RemoveAttribute(attribute.LocalName,
                     attribute.NamespaceUri);
@@ -547,12 +551,13 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         internal sealed class LegacyPptWriterTextBoxContent {
             internal LegacyPptWriterTextBoxContent(string text,
                 byte[]? styleRecord, byte[]? rulerRecord,
-                byte[]? style9Record,
+                byte[]? style9Record, byte[]? specialInfoRecord,
                 IEnumerable<byte[]> fieldRecords) {
                 Text = text;
                 StyleRecord = styleRecord;
                 RulerRecord = rulerRecord;
                 Style9Record = style9Record;
+                SpecialInfoRecord = specialInfoRecord;
                 FieldRecords = fieldRecords.ToArray();
             }
 
@@ -563,6 +568,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             internal byte[]? RulerRecord { get; }
 
             internal byte[]? Style9Record { get; }
+
+            internal byte[]? SpecialInfoRecord { get; }
 
             internal IReadOnlyList<byte[]> FieldRecords { get; }
         }

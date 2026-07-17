@@ -250,6 +250,11 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(LegacyPptCapabilityState.Native,
                     capability.PptxToBinary);
             }
+            LegacyPptCapability richText = LegacyPptCapabilityCatalog.Get(
+                LegacyPptFeature.RichText);
+            Assert.Contains("primary and alternate language LCIDs",
+                richText.Note);
+            Assert.Contains("paragraph-end markers", richText.Note);
 
             LegacyPptCapability autoFit = LegacyPptCapabilityCatalog.Get(
                 LegacyPptFeature.TextAutoFit);

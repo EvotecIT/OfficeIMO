@@ -448,7 +448,6 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         private static byte[] BuildTextBox(string text, uint textType = 0U,
             IReadOnlyList<LegacyPptWriterTextInteraction>? textInteractions = null) {
             string normalized = (text ?? string.Empty).Replace("\r\n", "\r").Replace("\n", "\r");
-            if (!normalized.EndsWith("\r", StringComparison.Ordinal)) normalized += "\r";
             var headerPayload = new byte[4];
             WriteUInt32(headerPayload, 0, textType);
             byte[] header = BuildRecord(version: 0, instance: 0, RecordTextHeader,
@@ -478,6 +477,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 children.Add(content.StyleRecord);
             }
             children.AddRange(content.FieldRecords);
+            if (content.SpecialInfoRecord != null) {
+                children.Add(content.SpecialInfoRecord);
+            }
             foreach (LegacyPptWriterTextInteraction interaction
                      in textInteractions) {
                 children.Add(BuildInteractiveInfoRecord(

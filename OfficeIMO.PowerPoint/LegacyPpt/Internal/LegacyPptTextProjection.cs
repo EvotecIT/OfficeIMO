@@ -22,7 +22,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             if (source == null) throw new ArgumentNullException(nameof(source));
             if (source.HasExplicitCharacterFormatting
                 || source.HasParagraphFormatting || source.HasInteractions
-                || source.Fields.Count > 0) {
+                || source.Fields.Count > 0 || source.HasLanguageInformation) {
                 shape.TextBody = CreateTextBody(source, frame,
                     projectInteraction, projectPictureBullet);
                 return;
@@ -61,6 +61,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                         or A.Field or A.Break)) {
                     paragraph.Append(new A.Run(new A.Text(string.Empty)));
                 }
+                ApplyParagraphEndLanguage(paragraph, source, paragraphEnd);
                 textBody.Append(paragraph);
                 paragraphStart = checked(paragraphEnd + 1);
             }
@@ -395,6 +396,11 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 AddClippedBoundaries(boundaries, run.Start,
                     checked(run.Start + run.Length), paragraphStart, paragraphEnd);
             }
+            foreach (LegacyPptTextLanguageRun run in source.LanguageRuns) {
+                AddClippedBoundaries(boundaries, run.Start,
+                    checked(run.Start + run.Length), paragraphStart,
+                    paragraphEnd);
+            }
             foreach (LegacyPptTextInteraction interaction in source.Interactions) {
                 AddClippedBoundaries(boundaries, interaction.Start,
                     checked(interaction.Start + interaction.Length), paragraphStart, paragraphEnd);
@@ -411,6 +417,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 if (end <= start) continue;
                 LegacyPptCharacterRun? formatting = source.CharacterRuns.FirstOrDefault(run =>
                     start >= run.Start && start < run.Start + run.Length);
+                LegacyPptTextLanguageRun? language = source.LanguageRuns
+                    .FirstOrDefault(run => start >= run.Start
+                        && start < run.Start + run.Length);
                 LegacyPptInteraction[] interactions = source.Interactions.Where(item =>
                         start >= item.Start && end <= item.Start + item.Length)
                     .Select(item => item.Interaction)
@@ -421,6 +430,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                     : null;
                 AppendRun(paragraph,
                     source.Text.Substring(start, end - start), formatting,
+                    language,
                     field, interactions, projectInteraction);
             }
         }
@@ -436,10 +446,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
 
         private static void AppendRun(A.Paragraph paragraph, string text,
             LegacyPptCharacterRun? source,
+            LegacyPptTextLanguageRun? language,
             LegacyPptTextField? field,
             IReadOnlyList<LegacyPptInteraction> interactions,
             Func<LegacyPptInteraction, IReadOnlyList<OpenXmlElement>>? projectInteraction) {
-            A.RunProperties? properties = source == null ? null : CreateRunProperties(source);
+            A.RunProperties? properties = CreateRunProperties(source,
+                language);
             if (projectInteraction != null && interactions.Count > 0) {
                 properties ??= new A.RunProperties();
                 foreach (LegacyPptInteraction interaction in interactions
@@ -514,10 +526,16 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             return new Guid(guidBytes).ToString("B").ToUpperInvariant();
         }
 
-        private static A.RunProperties? CreateRunProperties(LegacyPptCharacterRun source) {
-            if (!HasNativeCharacterFormatting(source)) return null;
+        private static A.RunProperties? CreateRunProperties(
+            LegacyPptCharacterRun? source,
+            LegacyPptTextLanguageRun? language) {
+            if ((source == null || !HasNativeCharacterFormatting(source))
+                && !HasNativeLanguageInformation(language)) {
+                return null;
+            }
             var properties = new A.RunProperties();
-            ApplyCharacterFormatting(properties, source);
+            if (source != null) ApplyCharacterFormatting(properties, source);
+            ApplyLanguageInformation(properties, language);
             return properties;
         }
 
@@ -535,6 +553,41 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 || source.Color != null || source.BaselinePositionPercent.HasValue
                 || source.Typeface != null || source.AnsiTypeface != null
                 || source.OldEastAsianTypeface != null || source.SymbolTypeface != null;
+
+        private static bool HasNativeLanguageInformation(
+            LegacyPptTextLanguageRun? source) => source != null
+                && (source.Language != null
+                    || source.AlternativeLanguage != null || source.NoProof
+                    || source.SpellingError.HasValue
+                    || source.NeedsRecheck.HasValue);
+
+        private static void ApplyLanguageInformation(
+            A.TextCharacterPropertiesType properties,
+            LegacyPptTextLanguageRun? source) {
+            if (source == null) return;
+            if (source.Language != null) properties.Language = source.Language;
+            if (source.AlternativeLanguage != null) {
+                properties.AlternativeLanguage = source.AlternativeLanguage;
+            }
+            if (source.NoProof) properties.NoProof = true;
+            if (source.SpellingError.HasValue) {
+                properties.SpellingError = source.SpellingError.Value;
+            }
+            if (source.NeedsRecheck.HasValue) {
+                properties.Dirty = source.NeedsRecheck.Value;
+            }
+        }
+
+        private static void ApplyParagraphEndLanguage(A.Paragraph paragraph,
+            LegacyPptTextBody source, int paragraphEnd) {
+            LegacyPptTextLanguageRun? language = source.LanguageRuns
+                .FirstOrDefault(run => paragraphEnd >= run.Start
+                    && paragraphEnd < run.Start + run.Length);
+            if (!HasNativeLanguageInformation(language)) return;
+            var properties = new A.EndParagraphRunProperties();
+            ApplyLanguageInformation(properties, language);
+            paragraph.Append(properties);
+        }
 
         private static void ApplyCharacterFormatting(A.TextCharacterPropertiesType properties,
             LegacyPptCharacterRun source) {

@@ -30,6 +30,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
         private const ushort RecordTextMasterStyleAtom = 0x0FA3;
         private const ushort RecordTextRulerAtom = 0x0FA6;
         private const ushort RecordTextBytes = 0x0FA8;
+        private const ushort RecordTextSpecialInfoAtom = 0x0FAA;
         private const ushort RecordFontEntityAtom = 0x0FB7;
         private const ushort RecordFontEmbedDataBlob = 0x0FB8;
         private const ushort RecordSlideListWithText = 0x0FF0;
@@ -433,12 +434,38 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 options, out bool isTextStyle9Malformed);
             textBody = LegacyPptTextStyle9Reader.Apply(textBody, textStyle9,
                     _pictureBulletsByIndex, isTextStyle9Malformed);
+            LegacyPptRecord? textSpecialInfo = textbox?.DescendantsAndSelf()
+                .FirstOrDefault(record =>
+                    record.Type == RecordTextSpecialInfoAtom);
+            bool hasDuplicateTextSpecialInfo = textbox?.DescendantsAndSelf()
+                .Count(record => record.Type == RecordTextSpecialInfoAtom) > 1;
+            textBody = hasDuplicateTextSpecialInfo
+                ? textBody.WithLanguageInformation(
+                    Array.Empty<LegacyPptTextLanguageRun>(),
+                    hasTextSpecialInfoRecord: true,
+                    hasUnprojectedTextSpecialInfo: true,
+                    isTextSpecialInfoTruncated: true)
+                : LegacyPptTextSpecialInfoCodec.Apply(textBody,
+                    textSpecialInfo, textData.RawCharacterCount);
             IReadOnlyList<LegacyPptTextField> fields = ReadTextFields(
                 textbox, text, options, out bool hasFieldRecords,
                 out bool isFieldDataMalformed);
             textBody = textBody.WithFields(fields, hasFieldRecords,
                     isFieldDataMalformed)
                 .WithInteractions(ReadTextInteractions(textbox, text.Length, options));
+            if (textBody.IsTextSpecialInfoTruncated
+                && options.ReportUnsupportedContent) {
+                AddDiagnostic("PPT-TEXT-SPECIAL-INFO-TRUNCATED",
+                    LegacyPptDiagnosticSeverity.Warning,
+                    "A TextSpecialInfoAtom is malformed or does not cover its text exactly; language metadata remains preserve-only.",
+                    textSpecialInfo?.Offset ?? shapeContainer.Offset);
+            } else if (textBody.HasUnprojectedTextSpecialInfo
+                       && options.ReportUnsupportedContent) {
+                AddDiagnostic("PPT-TEXT-SPECIAL-INFO-PARTIAL",
+                    LegacyPptDiagnosticSeverity.Information,
+                    "Text language and spelling metadata was projected while grammar, bidirectional analysis, extension, smart-tag, transient language, or mixed explicit no-language fields remain preserve-only.",
+                    textSpecialInfo?.Offset ?? shapeContainer.Offset);
+            }
             LegacyPptPlaceholder? placeholder = ReadPlaceholder(shapeContainer, options);
             LegacyPptShapeKind kind = ClassifyShape(shapeType, textbox != null || text.Length > 0,
                 (shapeFlags & (1U << 8)) != 0);
@@ -745,8 +772,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             string text = textRecord.Type == RecordTextChars
                 ? textRecord.ReadUtf16Text()
                 : textRecord.ReadLowByteUnicodeText();
-            return new LegacyPptTextData(
-                text.TrimEnd('\0').Replace("\r", "\n").TrimEnd('\n'), text.Length);
+            string rawText = text.TrimEnd('\0');
+            return new LegacyPptTextData(rawText.Replace("\r", "\n"),
+                rawText.Length);
         }
 
         private static LegacyPptTextType? ReadTextType(LegacyPptRecord? header) {

@@ -601,6 +601,12 @@ namespace OfficeIMO.Tests {
             Assert.Equal("OfficeIMO Edited", savedFirst.Typeface);
             Assert.Equal(LegacyPptTextAlignment.Right,
                 savedShape.TextBody.ParagraphRuns[0].Alignment);
+            LegacyPptTextLanguageRun savedLanguage = Assert.Single(
+                savedShape.TextBody.LanguageRuns);
+            Assert.Equal((ushort)0, savedLanguage.LanguageId);
+            Assert.Equal((ushort)0,
+                savedLanguage.AlternativeLanguageId);
+            Assert.False(savedLanguage.HasUnprojectedInformation);
             Assert.Contains(saved.Fonts,
                 font => font.Typeface == "OfficeIMO Edited");
             Assert.Equal(original.Package.UserEdits.Count + 1,

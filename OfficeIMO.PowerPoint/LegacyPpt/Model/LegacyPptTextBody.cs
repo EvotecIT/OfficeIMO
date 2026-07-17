@@ -14,7 +14,11 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
             bool isStyle9Truncated = false,
             IReadOnlyList<LegacyPptTextField>? fields = null,
             bool hasFieldRecords = false,
-            bool isFieldDataMalformed = false) {
+            bool isFieldDataMalformed = false,
+            IReadOnlyList<LegacyPptTextLanguageRun>? languageRuns = null,
+            bool hasTextSpecialInfoRecord = false,
+            bool hasUnprojectedTextSpecialInfo = false,
+            bool isTextSpecialInfoTruncated = false) {
             Text = text ?? string.Empty;
             CharacterRuns = new ReadOnlyCollection<LegacyPptCharacterRun>(
                 characterRuns?.ToArray() ?? throw new ArgumentNullException(nameof(characterRuns)));
@@ -36,6 +40,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
                 fields?.ToArray() ?? Array.Empty<LegacyPptTextField>());
             HasFieldRecords = hasFieldRecords;
             IsFieldDataMalformed = isFieldDataMalformed;
+            LanguageRuns = new ReadOnlyCollection<LegacyPptTextLanguageRun>(
+                languageRuns?.ToArray()
+                    ?? Array.Empty<LegacyPptTextLanguageRun>());
+            HasTextSpecialInfoRecord = hasTextSpecialInfoRecord;
+            HasUnprojectedTextSpecialInfo = hasUnprojectedTextSpecialInfo;
+            IsTextSpecialInfoTruncated = isTextSpecialInfoTruncated;
         }
 
         /// <summary>Gets the normalized text, with binary paragraph separators represented by line feeds.</summary>
@@ -93,6 +103,27 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
         /// <summary>Gets whether one or more field records were malformed or overlapped.</summary>
         public bool IsFieldDataMalformed { get; }
 
+        /// <summary>
+        /// Gets language and proofing runs over the logical text plus its
+        /// terminal paragraph marker.
+        /// </summary>
+        public IReadOnlyList<LegacyPptTextLanguageRun> LanguageRuns { get; }
+
+        /// <summary>Gets whether the binary text box contains a TextSpecialInfoAtom.</summary>
+        public bool HasTextSpecialInfoRecord { get; }
+
+        /// <summary>Gets whether the special-info atom contains fields that remain preserve-only.</summary>
+        public bool HasUnprojectedTextSpecialInfo { get; }
+
+        /// <summary>Gets whether the special-info atom is malformed or does not cover the text exactly.</summary>
+        public bool IsTextSpecialInfoTruncated { get; }
+
+        /// <summary>Gets whether at least one text range has explicit language or proofing metadata.</summary>
+        public bool HasLanguageInformation => LanguageRuns.Any(run =>
+            run.Language != null || run.AlternativeLanguage != null
+                || run.NoProof || run.SpellingError.HasValue
+                || run.NeedsRecheck.HasValue);
+
         /// <summary>Gets whether the text contains at least one interactive range.</summary>
         public bool HasInteractions => Interactions.Count > 0;
 
@@ -111,7 +142,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
                 IsStyleTruncated, TextType, Ruler, HasRulerRecord,
                 IsRulerTruncated, interactions, HasStyle9Record,
                 IsStyle9Truncated, Fields, HasFieldRecords,
-                IsFieldDataMalformed);
+                IsFieldDataMalformed, LanguageRuns,
+                HasTextSpecialInfoRecord, HasUnprojectedTextSpecialInfo,
+                IsTextSpecialInfoTruncated);
 
         internal LegacyPptTextBody WithFields(
             IReadOnlyList<LegacyPptTextField> fields,
@@ -121,7 +154,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
                 HasUnprojectedParagraphFormatting, IsStyleTruncated,
                 TextType, Ruler, HasRulerRecord, IsRulerTruncated,
                 Interactions, HasStyle9Record, IsStyle9Truncated, fields,
-                hasFieldRecords, isFieldDataMalformed);
+                hasFieldRecords, isFieldDataMalformed, LanguageRuns,
+                HasTextSpecialInfoRecord, HasUnprojectedTextSpecialInfo,
+                IsTextSpecialInfoTruncated);
 
         internal LegacyPptTextBody WithPpt9Formatting(
             IReadOnlyList<LegacyPptParagraphRun> paragraphRuns,
@@ -134,7 +169,77 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
                 IsStyleTruncated, TextType, Ruler, HasRulerRecord,
                 IsRulerTruncated, Interactions, hasStyle9Record: true,
                 isStyle9Truncated, Fields, HasFieldRecords,
-                IsFieldDataMalformed);
+                IsFieldDataMalformed, LanguageRuns,
+                HasTextSpecialInfoRecord, HasUnprojectedTextSpecialInfo,
+                IsTextSpecialInfoTruncated);
+
+        internal LegacyPptTextBody WithLanguageInformation(
+            IReadOnlyList<LegacyPptTextLanguageRun> languageRuns,
+            bool hasTextSpecialInfoRecord,
+            bool hasUnprojectedTextSpecialInfo,
+            bool isTextSpecialInfoTruncated) => new(Text, CharacterRuns,
+                ParagraphRuns, HasStyleRecord,
+                HasUnprojectedCharacterFormatting,
+                HasUnprojectedParagraphFormatting, IsStyleTruncated,
+                TextType, Ruler, HasRulerRecord, IsRulerTruncated,
+                Interactions, HasStyle9Record, IsStyle9Truncated, Fields,
+                HasFieldRecords, IsFieldDataMalformed, languageRuns,
+                hasTextSpecialInfoRecord, hasUnprojectedTextSpecialInfo,
+                isTextSpecialInfoTruncated);
+    }
+
+    /// <summary>
+    /// Represents language and proofing metadata for a counted binary text
+    /// range. The range can include paragraph markers and the terminal marker
+    /// immediately after <see cref="LegacyPptTextBody.Text"/>.
+    /// </summary>
+    public sealed class LegacyPptTextLanguageRun {
+        internal LegacyPptTextLanguageRun(int start, int length,
+            ushort? languageId, string? language,
+            ushort? alternativeLanguageId, string? alternativeLanguage,
+            bool noProof, bool? spellingError, bool? needsRecheck,
+            bool hasUnprojectedInformation) {
+            Start = start;
+            Length = length;
+            LanguageId = languageId;
+            Language = language;
+            AlternativeLanguageId = alternativeLanguageId;
+            AlternativeLanguage = alternativeLanguage;
+            NoProof = noProof;
+            SpellingError = spellingError;
+            NeedsRecheck = needsRecheck;
+            HasUnprojectedInformation = hasUnprojectedInformation;
+        }
+
+        /// <summary>Gets the zero-based offset in the logical text and terminal-marker sequence.</summary>
+        public int Start { get; }
+
+        /// <summary>Gets the number of logical characters covered by this run.</summary>
+        public int Length { get; }
+
+        /// <summary>Gets the native primary language identifier, when present.</summary>
+        public ushort? LanguageId { get; }
+
+        /// <summary>Gets the primary BCP 47 language tag, when the LCID is projectable.</summary>
+        public string? Language { get; }
+
+        /// <summary>Gets the native alternate language identifier, when present.</summary>
+        public ushort? AlternativeLanguageId { get; }
+
+        /// <summary>Gets the alternate BCP 47 language tag, when the LCID is projectable.</summary>
+        public string? AlternativeLanguage { get; }
+
+        /// <summary>Gets whether native proofing is disabled for this range.</summary>
+        public bool NoProof { get; }
+
+        /// <summary>Gets whether the native spell checker marked the range as misspelled.</summary>
+        public bool? SpellingError { get; }
+
+        /// <summary>Gets whether the native spell checker marked the range for rechecking.</summary>
+        public bool? NeedsRecheck { get; }
+
+        /// <summary>Gets whether the run contains special-info fields that remain preserve-only.</summary>
+        public bool HasUnprojectedInformation { get; }
     }
 
     /// <summary>Represents one character-formatting run from a binary PowerPoint text box.</summary>

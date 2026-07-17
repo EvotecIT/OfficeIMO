@@ -294,7 +294,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                     (sourceShape.TextBody.HasStyleRecord
                         || sourceShape.TextBody.HasStyle9Record
                         || sourceShape.TextBody.HasFieldRecords
-                        || sourceShape.TextBody.HasInteractions)
+                        || sourceShape.TextBody.HasInteractions
+                        || sourceShape.TextBody.HasTextSpecialInfoRecord)
                     && projectedShape.Element is P.Shape projectedTextShape
                         ? LegacyPptTextProjection.CreateFormattingFingerprint(
                             projectedTextShape.TextBody, ownerPart)
@@ -315,6 +316,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                             .HasUnprojectedCharacterFormatting
                         && !sourceShape.TextBody
                             .HasUnprojectedParagraphFormatting
+                        && !sourceShape.TextBody
+                            .HasUnprojectedTextSpecialInfo
+                        && !sourceShape.TextBody
+                            .IsTextSpecialInfoTruncated
                         && !sourceShape.TextBody.IsRulerTruncated,
                     sourceShape.Kind == LegacyPptShapeKind.TextBox
                         ? LegacyPptShapeProjection
