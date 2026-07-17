@@ -540,6 +540,11 @@ namespace OfficeIMO.Drawing.Internal {
 
         internal long Length { get; }
 
+        // Byte-backed legacy document writers still use the original internal contract. Streaming payloads never
+        // pass through this member, so preserving it does not reintroduce whole-stream buffering.
+        internal byte[] Bytes => _bytes ?? throw new InvalidOperationException(
+            "A streaming compound payload does not expose an in-memory byte array.");
+
         private readonly byte[]? _bytes;
         private readonly Func<Stream>? _openRead;
 
