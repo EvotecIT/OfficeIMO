@@ -249,6 +249,29 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_FormulaEvaluator_CountsCachedUnsupportedFormulaDependenciesTowardDepth() {
+            using ExcelDocument document = ExcelDocument.Create();
+            ExcelSheet sheet = document.AddWorksheet("Depth");
+            sheet.CellFormula(1, 1, "UNSUPPORTED()");
+            sheet.CellFormula(2, 1, "SUM(A1)");
+            sheet.CellFormula(3, 1, "SUM(A2)");
+
+            Cell unsupported = Assert.Single(sheet.WorksheetPart.Worksheet.Descendants<Cell>(), cell =>
+                cell.CellReference?.Value == "A1");
+            unsupported.CellValue = new CellValue("1");
+            unsupported.DataType = CellValues.Number;
+            sheet.WorksheetPart.Worksheet.Save();
+            document.Calculation.MaximumDependencyDepth = 2;
+
+            Assert.Equal(1, document.Calculate());
+            Assert.True(sheet.TryGetCachedFormulaValue(1, 1, out string? unsupportedCache));
+            Assert.Equal("1", unsupportedCache);
+            Assert.True(sheet.TryGetCachedFormulaValue(2, 1, out string? cachedA2));
+            Assert.Equal("1", cachedA2);
+            Assert.False(sheet.TryGetCachedFormulaValue(3, 1, out _));
+        }
+
+        [Fact]
         public void Test_FormulaCalculationOptions_ValidateDependencyDepth() {
             var options = new ExcelCalculationOptions();
 
@@ -331,7 +354,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_FormulaInspection_ExpandsSharedWholeRowColumnSpillAndThreeDimensionalReferences() {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelFormulaDepth.SharedReferenceKinds.xlsx");
-            const string masterFormula = "SUM(A:A,$A:$A,1:1,$1:$1,A1#,$A1#,A$1#,$A$1#,A1%)+LOG10(A1)+Q1:Q4!A1";
+            const string masterFormula = "SUM(A:A,$A:$A,1:1,$1:$1,A1#,$A1#,A$1#,$A$1#,A1%)+LOG10(A1)+LOG10 (A1)+FOO1 (A1)+SUM(A1 (A1:A2))+Q1:Q4!A1";
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 document.AddWorksheet("Q1");
@@ -367,11 +390,31 @@ namespace OfficeIMO.Tests {
             }
 
             using ExcelDocument loaded = ExcelDocument.Load(filePath);
+            loaded.Calculation.RegisterCustomFunction("FOO1", (_, _) => ExcelFormulaValue.Blank);
             ExcelSheet shared = loaded["Shared"];
             Assert.Equal(masterFormula, shared.GetFormulaText(1, 5));
             Assert.Equal(
-                "SUM(B:B,$A:$A,2:2,$1:$1,B2#,$A2#,B$1#,$A$1#,B2%)+LOG10(B2)+Q1:Q4!B2",
+                "SUM(B:B,$A:$A,2:2,$1:$1,B2#,$A2#,B$1#,$A$1#,B2%)+LOG10(B2)+LOG10 (B2)+FOO1 (B2)+SUM(B2 (B2:B3))+Q1:Q4!B2",
                 shared.GetFormulaText(2, 6));
+        }
+
+        [Fact]
+        public void Test_FormulaDependencyGraph_IgnoresDefinedNamesInsideErrorLiterals() {
+            using ExcelDocument document = ExcelDocument.Create();
+            ExcelSheet sheet = document.AddWorksheet("Errors");
+            sheet.CellFormula(1, 1, "#NAME?");
+            sheet.CellFormula(1, 2, "A1+1");
+            document.SetNamedRange("NAME", "Errors!B1", save: false);
+
+            ExcelFormulaDependencyGraph graph = document.InspectFormulas().DependencyGraph;
+            ExcelFormulaDependencyNode error = Assert.IsType<ExcelFormulaDependencyNode>(graph.FindNode("Errors", "A1"));
+            Assert.Empty(error.Dependencies);
+            Assert.Empty(error.FormulaDependencies);
+            ExcelFormulaDependencyNode dependent = Assert.IsType<ExcelFormulaDependencyNode>(graph.FindNode("Errors", "B1"));
+            Assert.Equal(new[] { "Errors!A1" }, dependent.Dependencies);
+            Assert.Equal(new[] { "Errors!A1" }, dependent.FormulaDependencies);
+            Assert.Equal(1, graph.EdgeCount);
+            Assert.False(graph.HasCircularReferences);
         }
 
         [Fact]

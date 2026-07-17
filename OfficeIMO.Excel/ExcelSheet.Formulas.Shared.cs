@@ -5,7 +5,7 @@ using DocumentFormat.OpenXml.Spreadsheet;
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
         private static readonly Regex SharedFormulaReferenceRegex = new Regex(
-            @"(?<![A-Za-z0-9_\.])(?<qualifier>(?:'(?:[^']|'')+'|\[[^\]]+\][A-Za-z0-9_\. ]+|[A-Za-z_][A-Za-z0-9_\. ]*:[A-Za-z_][A-Za-z0-9_\. ]*|[A-Za-z_][A-Za-z0-9_\. ]*)!)?(?:(?<cellStartColumnAbsolute>\$?)(?<cellStartColumn>[A-Za-z]{1,3})(?<cellStartRowAbsolute>\$?)(?<cellStartRow>\d{1,7})(?::(?<cellEndColumnAbsolute>\$?)(?<cellEndColumn>[A-Za-z]{1,3})(?<cellEndRowAbsolute>\$?)(?<cellEndRow>\d{1,7}))?(?<cellSpill>#)?|(?<wholeStartColumnAbsolute>\$?)(?<wholeStartColumn>[A-Za-z]{1,3}):(?<wholeEndColumnAbsolute>\$?)(?<wholeEndColumn>[A-Za-z]{1,3})|(?<wholeStartRowAbsolute>\$?)(?<wholeStartRow>\d{1,7}):(?<wholeEndRowAbsolute>\$?)(?<wholeEndRow>\d{1,7}))(?![A-Za-z0-9_\.]|\s*\()",
+            @"(?<![A-Za-z0-9_\.])(?<qualifier>(?:'(?:[^']|'')+'|\[[^\]]+\][A-Za-z0-9_\. ]+|[A-Za-z_][A-Za-z0-9_\. ]*:[A-Za-z_][A-Za-z0-9_\. ]*|[A-Za-z_][A-Za-z0-9_\. ]*)!)?(?:(?<cellStartColumnAbsolute>\$?)(?<cellStartColumn>[A-Za-z]{1,3})(?<cellStartRowAbsolute>\$?)(?<cellStartRow>\d{1,7})(?::(?<cellEndColumnAbsolute>\$?)(?<cellEndColumn>[A-Za-z]{1,3})(?<cellEndRowAbsolute>\$?)(?<cellEndRow>\d{1,7}))?(?<cellSpill>#)?|(?<wholeStartColumnAbsolute>\$?)(?<wholeStartColumn>[A-Za-z]{1,3}):(?<wholeEndColumnAbsolute>\$?)(?<wholeEndColumn>[A-Za-z]{1,3})|(?<wholeStartRowAbsolute>\$?)(?<wholeStartRow>\d{1,7}):(?<wholeEndRowAbsolute>\$?)(?<wholeEndRow>\d{1,7}))(?![A-Za-z0-9_\.]|\()",
             RegexOptions.IgnoreCase | RegexOptions.Compiled,
             FormulaRegexTimeout);
 
@@ -104,7 +104,7 @@ namespace OfficeIMO.Excel {
                 && column <= lastColumn;
         }
 
-        private static string TranslateSharedFormula(string formula, int rowOffset, int columnOffset) {
+        private string TranslateSharedFormula(string formula, int rowOffset, int columnOffset) {
             if (formula.Length == 0 || (rowOffset == 0 && columnOffset == 0)) {
                 return formula;
             }
@@ -112,8 +112,33 @@ namespace OfficeIMO.Excel {
             return RewriteFormulaReferencesOutsideStrings(formula, segment =>
                 SharedFormulaReferenceRegex.Replace(segment, match =>
                     IsInsideFormulaStructuredReference(segment, match.Index)
+                        || IsSharedFormulaFunctionToken(segment, match)
                         ? match.Value
                         : TranslateSharedFormulaReference(match, rowOffset, columnOffset)));
+        }
+
+        private bool IsSharedFormulaFunctionToken(string formula, Match match) {
+            if (match.Groups["qualifier"].Success
+                || match.Groups["cellEndColumn"].Success
+                || match.Groups["cellSpill"].Success
+                || match.Groups["cellStartColumnAbsolute"].Value.Length > 0
+                || match.Groups["cellStartRowAbsolute"].Value.Length > 0) {
+                return false;
+            }
+
+            int cursor = match.Index + match.Length;
+            int whitespaceStart = cursor;
+            while (cursor < formula.Length && char.IsWhiteSpace(formula[cursor])) {
+                cursor++;
+            }
+
+            if (cursor == whitespaceStart || cursor >= formula.Length || formula[cursor] != '(') {
+                return false;
+            }
+
+            string token = match.Groups["cellStartColumn"].Value + match.Groups["cellStartRow"].Value;
+            return ExcelFormulaCapabilities.IsBuiltInFunction(token)
+                || _excelDocument.Calculation.TryGetCustomFunction(token, out _);
         }
 
         private static string TranslateSharedFormulaReference(Match match, int rowOffset, int columnOffset) {

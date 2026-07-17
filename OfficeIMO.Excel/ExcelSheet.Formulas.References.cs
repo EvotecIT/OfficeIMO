@@ -800,6 +800,12 @@ namespace OfficeIMO.Excel {
                 return FormulaArgumentValue.UnresolvedFormula();
             }
 
+            if (unresolvedFormula
+                && _formulaEvaluationDepthFrames != null
+                && _formulaEvaluationDepthFrames.Count > 0) {
+                _formulaEvaluationDepthFrames.Peek().IncludeChild(1);
+            }
+
             if (value.Kind == ExcelCellDataKind.Error) {
                 return FormulaArgumentValue.Error(value.CachedText ?? value.Value?.ToString() ?? "#VALUE!");
             }

@@ -167,6 +167,9 @@ namespace OfficeIMO.Excel {
                 if (!sourceSheet.TryGetCellValueSnapshot(row, sourceColumn, out ExcelCellValueSnapshot? value)) {
                     continue;
                 }
+                if (value!.Kind == ExcelCellValueKind.Text && value.Text.Length == 0) {
+                    continue;
+                }
                 if (value!.Kind != ExcelCellValueKind.DateTime
                     && !sourceSheet.IsPivotDateSourceValue(row, sourceColumn)) {
                     return false;

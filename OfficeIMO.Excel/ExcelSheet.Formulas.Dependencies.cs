@@ -275,6 +275,7 @@ namespace OfficeIMO.Excel {
                     && formula[index - 1] != ']'
                     && formula[index - 1] != ':');
             if (!validStart
+                || IsInsideFormulaErrorLiteral(formula, index)
                 || IsInsideFormulaStructuredReference(formula, index)
                 || IsInsideQuotedFormulaSheetQualifier(formula, index)) {
                 return false;
@@ -325,6 +326,30 @@ namespace OfficeIMO.Excel {
 
             reference = formula.Substring(index, end - index);
             return true;
+        }
+
+        private static bool IsInsideFormulaErrorLiteral(string formula, int index) {
+            int start = index;
+            while (start > 0 && IsFormulaErrorLiteralCharacter(formula[start - 1])) {
+                start--;
+            }
+
+            int end = index;
+            while (end < formula.Length && IsFormulaErrorLiteralCharacter(formula[end])) {
+                end++;
+            }
+
+            return start < end
+                && formula[start] == '#'
+                && TryParseFormulaErrorLiteral(formula.Substring(start, end - start), out _);
+        }
+
+        private static bool IsFormulaErrorLiteralCharacter(char character) {
+            return char.IsLetterOrDigit(character)
+                || character == '#'
+                || character == '/'
+                || character == '!'
+                || character == '?';
         }
 
         private static bool IsInsideFormulaStructuredReference(string formula, int index) {

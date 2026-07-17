@@ -23,12 +23,19 @@ namespace OfficeIMO.Tests {
                 sheet.CellValue(3, 1, "West");
                 sheet.CellValue(3, 2, new DateTime(2026, 2, 3));
                 sheet.CellValue(3, 3, 20d);
+                sheet.CellValue(4, 1, "North");
+                sheet.CellValue(4, 2, string.Empty);
+                sheet.CellValue(4, 3, 5d);
                 sheet.AddPivotTable(
-                    sourceRange: "A1:C3",
+                    sourceRange: "A1:C4",
                     destinationCell: "E2",
                     name: "SalesPivot",
                     rowFields: new[] { "Region" },
                     dataFields: new[] { new ExcelPivotDataField("Sales", DataConsolidateFunctionValues.Sum) });
+
+                Assert.True(sheet.TryGetCellValueSnapshot(4, 2, out ExcelCellValueSnapshot? blankDate));
+                Assert.Equal(ExcelCellValueKind.Text, blankDate!.Kind);
+                Assert.Equal(string.Empty, blankDate.Text);
 
                 Assert.Throws<ArgumentException>(() => document.AddPivotSlicerCache("MissingPivot", "Region"));
                 Assert.Throws<ArgumentException>(() => document.AddPivotSlicerCache("SalesPivot", "MissingField"));
