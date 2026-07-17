@@ -108,6 +108,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
             OfficeArtShapeTransform? transform = null,
             LegacyPptBounds? groupCoordinateBounds = null,
             IReadOnlyList<LegacyPptShape>? children = null,
+            byte? tableStyleFlags = null,
             string? shadowColor = null,
             LegacyPptTextBody? textBody = null,
             IReadOnlyList<LegacyPptInteraction>? interactions = null,
@@ -148,7 +149,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
             Children = new ReadOnlyCollection<LegacyPptShape>(
                 children?.ToArray() ?? Array.Empty<LegacyPptShape>());
             Table = kind == LegacyPptShapeKind.Group
-                ? LegacyPptTable.TryCreate(Style, Children)
+                ? LegacyPptTable.TryCreate(Style, Children, tableStyleFlags)
                 : null;
             if (Table != null) Kind = LegacyPptShapeKind.Table;
             Interactions = new ReadOnlyCollection<LegacyPptInteraction>(

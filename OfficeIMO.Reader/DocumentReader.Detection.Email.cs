@@ -1,6 +1,8 @@
 using OfficeIMO.Email;
 using OfficeIMO.Drawing.Internal;
+using System;
 using System.IO;
+using System.Linq;
 
 namespace OfficeIMO.Reader;
 
@@ -20,6 +22,8 @@ internal static partial class DocumentReaderEngine {
         DetectionCandidate office = MapOfficeCompoundKind(
             OfficeCompoundDocumentDetector.Detect(boundedPayload, out _));
         return office.Kind != ReaderInputKind.Unknown
+            || office.Evidence.Contains(EncryptedOpenXmlEvidence,
+                StringComparer.Ordinal)
             ? office
             : InspectEmailCompound(boundedPayload);
     }
@@ -32,6 +36,8 @@ internal static partial class DocumentReaderEngine {
             OfficeCompoundDocumentDetector.Detect(stream, remainingBytes,
                 maxContainerEntries, out _));
         return office.Kind != ReaderInputKind.Unknown
+            || office.Evidence.Contains(EncryptedOpenXmlEvidence,
+                StringComparer.Ordinal)
             ? office
             : InspectEmailCompound(stream, position, maxContainerEntries);
     }
@@ -49,6 +55,9 @@ internal static partial class DocumentReaderEngine {
                 DetectionCandidate.High(ReaderInputKind.PowerPoint,
                     "application/vnd.ms-powerpoint",
                     "container:ole-powerpoint-presentation"),
+            OfficeCompoundDocumentDetector.DocumentKind.EncryptedOpenXmlPackage =>
+                DetectionCandidate.Unknown(
+                    "container:ole-encrypted-openxml-package"),
             _ => DetectionCandidate.Unknown("container:ole-compound-unrecognized")
         };
     }

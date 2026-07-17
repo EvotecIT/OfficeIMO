@@ -8,10 +8,19 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
 
         private LegacyPptTable(IReadOnlyList<int> columnBoundaries,
             IReadOnlyList<int> rowBoundaries,
-            IReadOnlyList<LegacyPptTableCell> cells) {
+            IReadOnlyList<LegacyPptTableCell> cells,
+            byte? styleFlags,
+            bool hasExplicitGridLines) {
             ColumnWidths = new ReadOnlyCollection<int>(CreateSizes(columnBoundaries));
             RowHeights = new ReadOnlyCollection<int>(CreateSizes(rowBoundaries));
             Cells = new ReadOnlyCollection<LegacyPptTableCell>(cells.ToArray());
+            FirstRow = HasStyleFlag(styleFlags, 0);
+            LastRow = HasStyleFlag(styleFlags, 1);
+            FirstColumn = HasStyleFlag(styleFlags, 2);
+            LastColumn = HasStyleFlag(styleFlags, 3);
+            BandedRows = HasStyleFlag(styleFlags, 4);
+            BandedColumns = HasStyleFlag(styleFlags, 5);
+            HasExplicitGridLines = hasExplicitGridLines;
         }
 
         /// <summary>Gets the number of table rows.</summary>
@@ -29,8 +38,29 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
         /// <summary>Gets native table cells in row-major drawing order.</summary>
         public IReadOnlyList<LegacyPptTableCell> Cells { get; }
 
+        /// <summary>Gets whether first-row styling was retained by the binary producer.</summary>
+        public bool FirstRow { get; }
+
+        /// <summary>Gets whether last-row styling was retained by the binary producer.</summary>
+        public bool LastRow { get; }
+
+        /// <summary>Gets whether first-column styling was retained by the binary producer.</summary>
+        public bool FirstColumn { get; }
+
+        /// <summary>Gets whether last-column styling was retained by the binary producer.</summary>
+        public bool LastColumn { get; }
+
+        /// <summary>Gets whether alternating row styling was retained by the binary producer.</summary>
+        public bool BandedRows { get; }
+
+        /// <summary>Gets whether alternating column styling was retained by the binary producer.</summary>
+        public bool BandedColumns { get; }
+
+        internal bool HasExplicitGridLines { get; }
+
         internal static LegacyPptTable? TryCreate(OfficeArtShapeStyle style,
-            IReadOnlyList<LegacyPptShape> children) {
+            IReadOnlyList<LegacyPptShape> children,
+            byte? styleFlags = null) {
             if (style == null) throw new ArgumentNullException(nameof(style));
             if (children == null) throw new ArgumentNullException(nameof(children));
             OfficeArtProperty? tableMarker = style.Properties.LastOrDefault(
@@ -52,6 +82,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
                 .Distinct().OrderBy(value => value).ToArray();
             if (horizontal.Length < 2 || vertical.Length < 2) return null;
 
+            IReadOnlyDictionary<(int Left, int Top, int Width, int Height),
+                LegacyPptShape> gridLines = children
+                .Where(IsGridLineCandidate)
+                .GroupBy(shape => (shape.Bounds.Left, shape.Bounds.Top,
+                    shape.Bounds.Width, shape.Bounds.Height))
+                .ToDictionary(group => group.Key, group => group.Last());
             var cells = new List<LegacyPptTableCell>(candidates.Length);
             foreach (LegacyPptShape candidate in candidates) {
                 int left = Array.BinarySearch(horizontal, candidate.Bounds.Left);
@@ -63,8 +99,20 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
                 if (left < 0 || right <= left || top < 0 || bottom <= top) {
                     return null;
                 }
+                int cellLeft = horizontal[left];
+                int cellRight = horizontal[right];
+                int cellTop = vertical[top];
+                int cellBottom = vertical[bottom];
                 cells.Add(new LegacyPptTableCell(top, left,
-                    bottom - top, right - left, candidate));
+                    bottom - top, right - left, candidate,
+                    FindBorder(gridLines, cellLeft, cellTop, 0,
+                        cellBottom - cellTop),
+                    FindBorder(gridLines, cellLeft, cellTop,
+                        cellRight - cellLeft, 0),
+                    FindBorder(gridLines, cellRight, cellTop, 0,
+                        cellBottom - cellTop),
+                    FindBorder(gridLines, cellLeft, cellBottom,
+                        cellRight - cellLeft, 0)));
             }
             if (cells.GroupBy(cell => (cell.Row, cell.Column)).Any(group => group.Count() > 1)) {
                 return null;
@@ -72,7 +120,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
             return new LegacyPptTable(horizontal, vertical, cells
                 .OrderBy(cell => cell.Row)
                 .ThenBy(cell => cell.Column)
-                .ToArray());
+                .ToArray(), styleFlags, gridLines.Count > 0);
         }
 
         private static bool IsCellCandidate(LegacyPptShape shape) =>
@@ -80,6 +128,28 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
             && shape.Kind is LegacyPptShapeKind.TextBox
                 or LegacyPptShapeKind.Rectangle
                 or LegacyPptShapeKind.AutoShape;
+
+        private static bool IsGridLineCandidate(LegacyPptShape shape) =>
+            shape.Kind == LegacyPptShapeKind.Line
+            && (shape.Bounds.Width == 0 || shape.Bounds.Height == 0);
+
+        private static LegacyPptTableBorder? FindBorder(
+            IReadOnlyDictionary<(int Left, int Top, int Width, int Height),
+                LegacyPptShape> gridLines, int left, int top,
+            int width, int height) {
+            if (!gridLines.TryGetValue((left, top, width, height),
+                    out LegacyPptShape? line)
+                || line.Style.LineEnabled == false
+                || line.Style.LineWidthEmus.GetValueOrDefault() <= 0
+                || string.IsNullOrWhiteSpace(line.LineColor)) {
+                return null;
+            }
+            return new LegacyPptTableBorder(line.LineColor!,
+                line.Style.LineWidthEmus!.Value / 12700D);
+        }
+
+        private static bool HasStyleFlag(byte? flags, int bit) =>
+            flags.HasValue && (flags.Value & (1 << bit)) != 0;
 
         private static int[] CreateSizes(IReadOnlyList<int> boundaries) {
             var sizes = new int[boundaries.Count - 1];
@@ -93,12 +163,20 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
     /// <summary>Represents one native binary PowerPoint table cell.</summary>
     public sealed class LegacyPptTableCell {
         internal LegacyPptTableCell(int row, int column, int rowSpan,
-            int columnSpan, LegacyPptShape sourceShape) {
+            int columnSpan, LegacyPptShape sourceShape,
+            LegacyPptTableBorder? leftBorder,
+            LegacyPptTableBorder? topBorder,
+            LegacyPptTableBorder? rightBorder,
+            LegacyPptTableBorder? bottomBorder) {
             Row = row;
             Column = column;
             RowSpan = rowSpan;
             ColumnSpan = columnSpan;
             SourceShape = sourceShape ?? throw new ArgumentNullException(nameof(sourceShape));
+            LeftBorder = leftBorder;
+            TopBorder = topBorder;
+            RightBorder = rightBorder;
+            BottomBorder = bottomBorder;
         }
 
         /// <summary>Gets the zero-based starting row.</summary>
@@ -115,5 +193,31 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
 
         /// <summary>Gets the source OfficeArt cell shape and its text/style metadata.</summary>
         public LegacyPptShape SourceShape { get; }
+
+        /// <summary>Gets the resolved left border, when visible.</summary>
+        public LegacyPptTableBorder? LeftBorder { get; }
+
+        /// <summary>Gets the resolved top border, when visible.</summary>
+        public LegacyPptTableBorder? TopBorder { get; }
+
+        /// <summary>Gets the resolved right border, when visible.</summary>
+        public LegacyPptTableBorder? RightBorder { get; }
+
+        /// <summary>Gets the resolved bottom border, when visible.</summary>
+        public LegacyPptTableBorder? BottomBorder { get; }
+    }
+
+    /// <summary>Describes one visible native binary PowerPoint table border.</summary>
+    public readonly struct LegacyPptTableBorder {
+        internal LegacyPptTableBorder(string color, double widthPoints) {
+            Color = color;
+            WidthPoints = widthPoints;
+        }
+
+        /// <summary>Gets the resolved border color as RRGGBB.</summary>
+        public string Color { get; }
+
+        /// <summary>Gets the border width in points.</summary>
+        public double WidthPoints { get; }
     }
 }

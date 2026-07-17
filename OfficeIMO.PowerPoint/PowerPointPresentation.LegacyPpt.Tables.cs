@@ -69,12 +69,12 @@ namespace OfficeIMO.PowerPoint {
                 }));
             var table = new PowerPointTable(frame,
                 ownerPart as SlidePart);
-            table.FirstRow = false;
-            table.LastRow = false;
-            table.FirstColumn = false;
-            table.LastColumn = false;
-            table.BandedRows = false;
-            table.BandedColumns = false;
+            table.FirstRow = tableSource.FirstRow;
+            table.LastRow = tableSource.LastRow;
+            table.FirstColumn = tableSource.FirstColumn;
+            table.LastColumn = tableSource.LastColumn;
+            table.BandedRows = tableSource.BandedRows;
+            table.BandedColumns = tableSource.BandedColumns;
             table.StyleId = null;
 
             for (int index = 0; index < columnWidths.Length; index++) {
@@ -93,8 +93,18 @@ namespace OfficeIMO.PowerPoint {
                 if (sourceCell.SourceShape.FillColor != null) {
                     targetCell.FillColor = sourceCell.SourceShape.FillColor;
                 }
-                if (sourceCell.SourceShape.LineColor != null) {
+                if (!tableSource.HasExplicitGridLines
+                    && sourceCell.SourceShape.LineColor != null) {
                     targetCell.BorderColor = sourceCell.SourceShape.LineColor;
+                } else {
+                    ApplyLegacyTableBorder(targetCell,
+                        TableCellBorders.Left, sourceCell.LeftBorder);
+                    ApplyLegacyTableBorder(targetCell,
+                        TableCellBorders.Top, sourceCell.TopBorder);
+                    ApplyLegacyTableBorder(targetCell,
+                        TableCellBorders.Right, sourceCell.RightBorder);
+                    ApplyLegacyTableBorder(targetCell,
+                        TableCellBorders.Bottom, sourceCell.BottomBorder);
                 }
             }
             foreach (LegacyPptTableCell sourceCell in tableSource.Cells.Where(
@@ -104,6 +114,14 @@ namespace OfficeIMO.PowerPoint {
                     sourceCell.Column + sourceCell.ColumnSpan - 1);
             }
             return frame;
+        }
+
+        private static void ApplyLegacyTableBorder(
+            PowerPointTableCell cell, TableCellBorders side,
+            LegacyPptTableBorder? border) {
+            if (!border.HasValue) return;
+            LegacyPptTableBorder value = border.Value;
+            cell.SetBorders(side, value.Color, value.WidthPoints);
         }
 
         private static A.TextBody CreateLegacyTableTextBody(

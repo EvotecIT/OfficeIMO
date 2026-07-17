@@ -9,7 +9,9 @@ namespace OfficeIMO.PowerPoint {
         ///     Gets the paragraphs contained in the table cell.
         /// </summary>
         public IReadOnlyList<PowerPointParagraph> Paragraphs =>
-            EnsureTextBody().Elements<A.Paragraph>().Select(paragraph => new PowerPointParagraph(paragraph)).ToList();
+            EnsureTextBody().Elements<A.Paragraph>()
+                .Select(paragraph => new PowerPointParagraph(paragraph, _slidePart))
+                .ToList();
 
         /// <summary>
         ///     Adds a paragraph to the table cell.
@@ -80,7 +82,7 @@ namespace OfficeIMO.PowerPoint {
             return Cell.TextBody;
         }
 
-        private static PowerPointParagraph AppendParagraph(A.TextBody textBody, string text, A.Paragraph? templateParagraph) {
+        private PowerPointParagraph AppendParagraph(A.TextBody textBody, string text, A.Paragraph? templateParagraph) {
             A.Paragraph paragraph = new();
             if (templateParagraph?.ParagraphProperties != null) {
                 paragraph.ParagraphProperties = (A.ParagraphProperties)templateParagraph.ParagraphProperties.CloneNode(true);
@@ -105,7 +107,7 @@ namespace OfficeIMO.PowerPoint {
             }
 
             textBody.Append(paragraph);
-            return new PowerPointParagraph(paragraph);
+            return new PowerPointParagraph(paragraph, _slidePart);
         }
 
         private static A.Paragraph CreateEmptyParagraph(A.Paragraph? templateParagraph) {

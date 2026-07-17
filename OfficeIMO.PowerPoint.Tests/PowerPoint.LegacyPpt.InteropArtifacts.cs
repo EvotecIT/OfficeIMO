@@ -102,6 +102,15 @@ namespace OfficeIMO.Tests {
             PowerPointSlide second = presentation.AddSlide();
             second.AddTextBox("Second slide " + marker,
                 900000, 900000, 4200000, 800000);
+            PowerPointTable table = second.AddTable(2, 2,
+                900000, 2200000, 5000000, 1500000);
+            table.HeaderRow = true;
+            table.GetCell(0, 0).Text = "Region";
+            table.GetCell(0, 1).Text = "Revenue";
+            table.GetCell(1, 0).Text = marker;
+            table.GetCell(1, 1).Text = "120";
+            table.SetCellBorders(TableCellBorders.All, "2563EB",
+                widthPoints: 1.25D);
             presentation.Save();
         }
 
@@ -116,6 +125,12 @@ namespace OfficeIMO.Tests {
             string text = ReadAllText(presentation);
             Assert.Contains("Binary interoperability " + marker, text);
             Assert.Contains("Second slide " + marker, text);
+            PowerPointTable table = Assert.Single(
+                presentation.Slides[1].Tables);
+            Assert.Equal("Region", table.GetCell(0, 0).Text);
+            Assert.Equal("Revenue", table.GetCell(0, 1).Text);
+            Assert.Equal(marker, table.GetCell(1, 0).Text);
+            Assert.Equal("120", table.GetCell(1, 1).Text);
             Assert.Contains(marker,
                 presentation.Slides[0].GetSpeakerNotesText());
             Assert.True(presentation.Slides.Sum(slide =>

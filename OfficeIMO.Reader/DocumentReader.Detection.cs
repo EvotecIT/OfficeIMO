@@ -118,11 +118,16 @@ internal static partial class DocumentReaderEngine {
     }
 
     private static ReaderDetectionResult DetectForRead(string path, ReaderOptions options) {
-        return Detect(path, CreateDetectionOptions(options));
+        ReaderDetectionResult detection = Detect(path,
+            CreateDetectionOptions(options));
+        return ResolveEncryptedOpenXmlDetection(path, options, detection);
     }
 
     private static ReaderDetectionResult DetectForRead(Stream stream, string? sourceName, ReaderOptions options) {
-        return Detect(stream, sourceName, CreateDetectionOptions(options));
+        ReaderDetectionResult detection = Detect(stream, sourceName,
+            CreateDetectionOptions(options));
+        return ResolveEncryptedOpenXmlDetection(stream, sourceName,
+            options, detection);
     }
 
     private static bool TryResolvePathHandler(
@@ -209,6 +214,8 @@ internal static partial class DocumentReaderEngine {
             path,
             CreateDetectionOptions(options),
             cancellationToken).ConfigureAwait(false);
+        detection = ResolveEncryptedOpenXmlDetection(path, options,
+            detection);
         bool hasHandler = TrySelectPathHandler(path, options, detection, out ReaderHandlerDescriptor handler);
         return new HandlerDetectionResolution(hasHandler ? handler : null, detection);
     }
@@ -223,6 +230,8 @@ internal static partial class DocumentReaderEngine {
             sourceName,
             CreateDetectionOptions(options),
             cancellationToken).ConfigureAwait(false);
+        detection = ResolveEncryptedOpenXmlDetection(stream, sourceName,
+            options, detection);
         bool hasHandler = TrySelectStreamHandler(sourceName, options, detection, out ReaderHandlerDescriptor handler);
         return new HandlerDetectionResolution(hasHandler ? handler : null, detection);
     }

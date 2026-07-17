@@ -659,6 +659,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 style, ResolveShapeColor(style.FillColor, colorScheme),
                 ResolveShapeColor(style.LineColor, colorScheme), transform: transform,
                 groupCoordinateBounds: coordinateBounds, children: children,
+                tableStyleFlags: ReadOfficeImoTableStyleFlags(descriptor,
+                    options),
                 shadowColor: ResolveShapeColor(style.ShadowColor, colorScheme),
                 interactions: ReadShapeInteractions(descriptor, options),
                 animation: ReadShapeAnimation(descriptor, options),

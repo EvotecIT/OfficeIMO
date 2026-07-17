@@ -168,9 +168,12 @@ public sealed class ReaderPowerPointExtractionTests {
             PowerPointSlide slide = presentation.AddSlide();
             slide.AddTextBox("Before table");
             PowerPointTable table = slide.AddTable(2, 2);
+            table.HeaderRow = true;
             table.GetCell(0, 0).Text = "Region";
             table.GetCell(0, 1).Text = "Revenue";
             table.GetCell(1, 0).Text = "North";
+            table.GetCell(1, 0).Paragraphs[0].Runs[0].SetHyperlink(
+                "https://example.test/north");
             table.GetCell(1, 1).Text = "120";
             slide.AddTextBox("After table");
 
@@ -192,12 +195,16 @@ public sealed class ReaderPowerPointExtractionTests {
                      pptxResult, pptResult
                  }) {
             ReaderTable semanticTable = Assert.Single(result.Tables);
-            Assert.Contains("Region", semanticTable.Columns.Concat(
-                semanticTable.Rows.SelectMany(static row => row)),
-                StringComparer.Ordinal);
-            Assert.Contains("120", semanticTable.Columns.Concat(
-                semanticTable.Rows.SelectMany(static row => row)),
-                StringComparer.Ordinal);
+            Assert.Equal(new[] { "Region", "Revenue" },
+                semanticTable.Columns);
+            Assert.Single(semanticTable.Rows);
+            Assert.Equal(new[] { "North", "120" },
+                semanticTable.Rows[0]);
+            Assert.Contains("[North](<https://example.test/north>)",
+                result.Markdown ?? string.Empty, StringComparison.Ordinal);
+            Assert.Contains(result.Links, link =>
+                link.Uri == "https://example.test/north"
+                && link.Text == "North");
         }
 
         int pptxBefore = pptxResult.Blocks.ToList().FindIndex(block =>

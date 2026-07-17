@@ -350,7 +350,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             LegacyPptWriterAnimation? animation,
             LegacyPptWriterShapeContext shapeContext,
             uint? externalObjectId = null,
-            byte[]? style9Record = null) {
+            byte[]? style9Record = null,
+            byte[]? additionalRecord = null) {
             var children = new List<byte[]>();
             if (externalObjectId.HasValue) {
                 children.Add(BuildExternalObjectReferenceAtom(
@@ -372,6 +373,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             if (style9Record != null) {
                 children.Add(BuildShapePpt9ProgrammableTagsRecord(
                     style9Record));
+            }
+            if (additionalRecord != null) {
+                children.Add(additionalRecord);
             }
             return children.Count == 0
                 ? null

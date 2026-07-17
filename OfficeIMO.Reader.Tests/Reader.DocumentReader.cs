@@ -324,6 +324,56 @@ public sealed class ReaderDocumentReaderTests {
     }
 
     [Fact]
+    public void DocumentReader_DetectsExtensionlessEncryptedOpenXmlPowerPointWithOpenPassword() {
+        const string password = "reader-extensionless-pass";
+        string path = Path.Combine(Path.GetTempPath(),
+            Guid.NewGuid().ToString("N"));
+        try {
+            byte[] encrypted;
+            using (PowerPointPresentation source =
+                   PowerPointPresentation.Create()) {
+                source.AddSlide().AddTextBox("Reader encrypted PPTX");
+                encrypted = source.ToEncryptedBytes(password);
+            }
+            File.WriteAllBytes(path, encrypted);
+            var options = new ReaderOptions { OpenPassword = password };
+
+            IReadOnlyList<ReaderChunk> pathChunks = OfficeDocumentReader
+                .Default.Read(path, options).ToArray();
+            using var chunkStream = new MemoryStream(encrypted,
+                writable: false);
+            IReadOnlyList<ReaderChunk> streamChunks = OfficeDocumentReader
+                .Default.Read(chunkStream, sourceName: null, options)
+                .ToArray();
+            OfficeDocumentReadResult pathResult = OfficeDocumentReader
+                .Default.ReadDocument(path, options);
+            using var stream = new MemoryStream(encrypted,
+                writable: false);
+            OfficeDocumentReadResult streamResult = OfficeDocumentReader
+                .Default.ReadDocument(stream, sourceName: null, options);
+
+            Assert.Equal(ReaderInputKind.PowerPoint, pathResult.Kind);
+            Assert.Equal(ReaderInputKind.PowerPoint, streamResult.Kind);
+            AssertEncryptedPowerPointChunks(pathChunks);
+            AssertEncryptedPowerPointChunks(streamChunks);
+            AssertEncryptedPowerPointChunks(pathResult.Chunks);
+            AssertEncryptedPowerPointChunks(streamResult.Chunks);
+            OfficeDocumentDiagnostic detectionDiagnostic = Assert.Single(
+                pathResult.Diagnostics, diagnostic =>
+                    diagnostic.Code == "input-kind-detected");
+            Assert.True(detectionDiagnostic.Attributes.TryGetValue(
+                "evidence", out string? evidence));
+            Assert.NotNull(evidence);
+            Assert.Contains("container:ole-encrypted-openxml-package",
+                evidence!, StringComparison.Ordinal);
+            Assert.Contains("decryption:open-password", evidence!,
+                StringComparison.Ordinal);
+        } finally {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Fact]
     public void DocumentReader_LegacyPowerPointWarningsExposeImportDiagnostics() {
         string path = GetRepositoryPath("OfficeIMO.TestAssets", "Documents",
             "LegacyPptCorpus", "AccessibilityPowerPoint.ppt");

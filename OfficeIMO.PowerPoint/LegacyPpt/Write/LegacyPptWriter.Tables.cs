@@ -1,5 +1,6 @@
 using OfficeIMO.Drawing;
 using OfficeIMO.PowerPoint.LegacyPpt.Model;
+using System.Text;
 
 namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
     internal static partial class LegacyPptWriter {
@@ -110,7 +111,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 interactionCatalog.Get(table);
             byte[]? clientData = BuildClientData(table,
                 interactions.ShapeInteractions, animationCatalog.Get(table),
-                shapeContext);
+                shapeContext, additionalRecord:
+                    BuildTableStyleProgrammableTagsRecord(table));
             if (clientData != null) descriptorChildren.Add(clientData);
 
             var children = new List<byte[]>(CountTableDrawingShapes(table)) {
@@ -161,6 +163,29 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 unchecked((ushort)(0x8000 | TableRowPropertiesIdForWrite)),
                 checked((uint)rows.Length), rows));
             return BuildFoptRecord(properties, OfficeArtTertiaryFopt);
+        }
+
+        private static byte[] BuildTableStyleProgrammableTagsRecord(
+            PowerPointTable table) {
+            byte flags = 0;
+            if (table.FirstRow) flags |= 1 << 0;
+            if (table.LastRow) flags |= 1 << 1;
+            if (table.FirstColumn) flags |= 1 << 2;
+            if (table.LastColumn) flags |= 1 << 3;
+            if (table.BandedRows) flags |= 1 << 4;
+            if (table.BandedColumns) flags |= 1 << 5;
+            byte[] tagName = BuildRecord(version: 0, instance: 0,
+                RecordCString,
+                Encoding.Unicode.GetBytes(
+                    LegacyPptTableMetadata.TagName));
+            byte[] data = BuildRecord(version: 0, instance: 0,
+                RecordBinaryTagDataBlob, new byte[] {
+                    LegacyPptTableMetadata.Version, flags
+                });
+            byte[] tag = BuildContainer(RecordProgBinaryTag, instance: 0,
+                new[] { tagName, data });
+            return BuildContainer(RecordProgTags, instance: 0,
+                new[] { tag });
         }
 
         private static byte[] BuildTablePrimaryPropertiesRecord(
