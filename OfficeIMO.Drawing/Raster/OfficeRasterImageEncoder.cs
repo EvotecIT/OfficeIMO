@@ -19,6 +19,16 @@ public static class OfficeRasterImageEncoder {
         _ => throw new ArgumentOutOfRangeException(nameof(format))
     };
 
+    /// <summary>Returns the maximum source pixel count accepted by a raster encoder.</summary>
+    public static long GetMaximumPixelCount(OfficeImageExportFormat format) => format switch {
+        OfficeImageExportFormat.Png => long.MaxValue,
+        OfficeImageExportFormat.Jpeg => OfficeRasterGuards.MaximumEncodedBytes / 4L,
+        OfficeImageExportFormat.Tiff => long.MaxValue,
+        OfficeImageExportFormat.Webp => long.MaxValue,
+        OfficeImageExportFormat.Svg => throw new ArgumentException("SVG output does not have a raster pixel limit.", nameof(format)),
+        _ => throw new ArgumentOutOfRangeException(nameof(format))
+    };
+
     /// <summary>Encodes an RGBA image using the requested raster format.</summary>
     public static byte[] Encode(
         OfficeRasterImage image,

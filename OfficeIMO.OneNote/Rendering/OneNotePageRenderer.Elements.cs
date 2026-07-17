@@ -62,13 +62,15 @@ public static partial class OneNotePageRenderer {
         }
 
         private double RenderParagraph(OneNoteParagraph paragraph, double x, double y, double width, bool rightToLeft) {
+            string prefix = CreateParagraphPrefix(paragraph);
             double textHeight;
-            if (paragraph.Runs.Count == 0) {
+            if (paragraph.Runs.Count == 0 && prefix.Length == 0) {
                 textHeight = DefaultParagraphHeight;
             } else if (!paragraph.Runs.Any(run => run.MathExpression != null)) {
-                string prefix = CreateParagraphPrefix(paragraph);
                 IReadOnlyList<OfficeRichTextRun> runs = CreateParagraphRichTextRuns(paragraph, prefix);
-                double fontSize = paragraph.Runs.Max(run => run.Style.FontSize ?? _options.DefaultFont.Size);
+                double fontSize = paragraph.Runs.Count == 0
+                    ? _options.DefaultFont.Size
+                    : paragraph.Runs.Max(run => run.Style.FontSize ?? _options.DefaultFont.Size);
                 double lineHeight = ResolveParagraphLineHeight(paragraph, fontSize);
                 textHeight = Math.Min(
                     MeasureRichTextHeight(runs, width, lineHeight, CreateParagraphIndent(paragraph)),
@@ -86,7 +88,7 @@ public static partial class OneNotePageRenderer {
                         paragraphIndent: CreateParagraphIndent(paragraph));
                 }
             } else {
-                textHeight = RenderInlineMathParagraph(paragraph, CreateParagraphPrefix(paragraph), x, y, width, rightToLeft);
+                textHeight = RenderInlineMathParagraph(paragraph, prefix, x, y, width, rightToLeft);
             }
             return RenderParagraphChildren(paragraph, x, y, width, textHeight, rightToLeft);
         }
@@ -276,19 +278,20 @@ public static partial class OneNotePageRenderer {
         }
 
         private double MeasureParagraphHeight(OneNoteParagraph paragraph, double width) {
+            string prefix = CreateParagraphPrefix(paragraph);
             double textHeight;
-            if (paragraph.Runs.Count == 0) {
+            if (paragraph.Runs.Count == 0 && prefix.Length == 0) {
                 textHeight = DefaultParagraphHeight;
             } else if (paragraph.Runs.Any(run => run.MathExpression != null)) {
-                string prefix = CreateParagraphPrefix(paragraph);
                 IReadOnlyList<InlineMathLine> lines = CreateInlineMathLines(paragraph, prefix, width);
                 double exactLineHeight = ParagraphDistance(paragraph.Style.ExactLineSpacing);
                 double height = lines.Sum(line => Math.Max(line.Height + 3D, exactLineHeight)) - 3D;
                 textHeight = Math.Max(DefaultParagraphHeight, height);
             } else {
-                string prefix = CreateParagraphPrefix(paragraph);
                 IReadOnlyList<OfficeRichTextRun> runs = CreateParagraphRichTextRuns(paragraph, prefix);
-                double fontSize = paragraph.Runs.Max(run => run.Style.FontSize ?? _options.DefaultFont.Size);
+                double fontSize = paragraph.Runs.Count == 0
+                    ? _options.DefaultFont.Size
+                    : paragraph.Runs.Max(run => run.Style.FontSize ?? _options.DefaultFont.Size);
                 double lineHeight = ResolveParagraphLineHeight(paragraph, fontSize);
                 textHeight = MeasureRichTextHeight(runs, width, lineHeight, CreateParagraphIndent(paragraph));
             }
@@ -332,6 +335,11 @@ public static partial class OneNotePageRenderer {
         }
 
         private IReadOnlyList<OfficeRichTextRun> CreateParagraphRichTextRuns(OneNoteParagraph paragraph, string prefix) {
+            if (paragraph.Runs.Count == 0) {
+                return prefix.Length == 0
+                    ? Array.Empty<OfficeRichTextRun>()
+                    : new[] { CreateRichTextRun(new OneNoteTextRun(), prefix) };
+            }
             var runs = new List<OfficeRichTextRun>(paragraph.Runs.Count);
             for (int index = 0; index < paragraph.Runs.Count; index++) {
                 OneNoteTextRun run = paragraph.Runs[index];

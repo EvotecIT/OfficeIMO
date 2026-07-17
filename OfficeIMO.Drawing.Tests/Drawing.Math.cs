@@ -55,6 +55,19 @@ public class DrawingMathTests {
     }
 
     [Fact]
+    public void MathMlMultiScriptsWithoutPrescriptsImportAsRightSideScripts() {
+        const string mathMl = "<math xmlns=\"http://www.w3.org/1998/Math/MathML\">" +
+            "<mmultiscripts><mi>x</mi><mi>i</mi><mi>j</mi></mmultiscripts></math>";
+
+        OfficeMathExpression expression = OfficeMathMarkup.FromMathMl(mathMl);
+
+        Assert.Equal(OfficeMathKind.SubSuperscript, expression.Kind);
+        Assert.Equal("x", expression.Children[0].Text);
+        Assert.Equal("i", expression.Children[1].Text);
+        Assert.Equal("j", expression.Children[2].Text);
+    }
+
+    [Fact]
     public void MathMlSemanticsIgnoresAnnotationPayloads() {
         const string mathMl = "<math xmlns=\"http://www.w3.org/1998/Math/MathML\"><semantics>" +
             "<mrow><mi>x</mi><mo>+</mo><mn>1</mn></mrow>" +

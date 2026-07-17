@@ -4,7 +4,7 @@ namespace OfficeIMO.Drawing;
 
 internal static class OfficeRasterGuards {
     private const long MaximumPixels = 50_000_000L;
-    private const int MaximumEncodedBytes = 128 * 1024 * 1024;
+    internal const int MaximumEncodedBytes = 128 * 1024 * 1024;
 
     public static void EnsurePayloadWithinLimits(int length, string message) {
         if (length < 0 || length > MaximumEncodedBytes) throw new FormatException(message);

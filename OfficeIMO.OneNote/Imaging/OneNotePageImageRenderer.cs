@@ -32,9 +32,7 @@ internal static class OneNotePageImageRenderer {
         if (format == OfficeImageExportFormat.Png || format == OfficeImageExportFormat.Jpeg ||
             format == OfficeImageExportFormat.Tiff || format == OfficeImageExportFormat.Webp) {
             var diagnostics = new List<OfficeImageExportDiagnostic>(snapshot.Diagnostics);
-            int maximumDimension = OfficeRasterImageEncoder.GetMaximumDimension(format);
-            OfficeRasterScaleLimit limit = OfficeRasterScaleLimiter.Resolve(
-                snapshot.Drawing.Width, snapshot.Drawing.Height, options.Scale, options.MaximumRasterPixels, maximumDimension);
+            OfficeRasterScaleLimit limit = ResolveRasterScaleLimit(snapshot.Drawing.Width, snapshot.Drawing.Height, format, options);
             if (limit.WasLimited) {
                 diagnostics.Add(new OfficeImageExportDiagnostic(
                     OfficeImageExportDiagnosticSeverity.Warning,
@@ -60,6 +58,21 @@ internal static class OneNotePageImageRenderer {
                 diagnostics);
         }
         throw new ArgumentOutOfRangeException(nameof(format));
+    }
+
+    internal static OfficeRasterScaleLimit ResolveRasterScaleLimit(
+        double width,
+        double height,
+        OfficeImageExportFormat format,
+        OneNotePageRenderingOptions options) {
+        if (options == null) throw new ArgumentNullException(nameof(options));
+        long maximumPixels = Math.Min(options.MaximumRasterPixels, OfficeRasterImageEncoder.GetMaximumPixelCount(format));
+        return OfficeRasterScaleLimiter.Resolve(
+            width,
+            height,
+            options.Scale,
+            maximumPixels,
+            OfficeRasterImageEncoder.GetMaximumDimension(format));
     }
 
     private static int Scaled(double value, double scale) => Math.Max(1, checked((int)Math.Ceiling(value * scale)));

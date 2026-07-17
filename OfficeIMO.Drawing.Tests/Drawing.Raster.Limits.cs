@@ -28,6 +28,12 @@ public sealed class DrawingRasterLimitTests {
     }
 
     [Fact]
+    public void JpegPixelLimitMatchesTheSharedEncoderByteCeiling() {
+        Assert.Equal(33_554_432L, OfficeRasterImageEncoder.GetMaximumPixelCount(OfficeImageExportFormat.Jpeg));
+        Assert.Equal(long.MaxValue, OfficeRasterImageEncoder.GetMaximumPixelCount(OfficeImageExportFormat.Png));
+    }
+
+    [Fact]
     public void FallbackCodecProducesVisibleContentAndStructuredDiagnostic() {
         var diagnostics = new List<OfficeImageExportDiagnostic>();
         var codec = new OfficeRasterImageFallbackCodec(diagnostics: diagnostics, source: "sample.svg");

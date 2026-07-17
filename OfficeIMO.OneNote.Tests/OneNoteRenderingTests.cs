@@ -161,6 +161,25 @@ public sealed class OneNoteRenderingTests {
     }
 
     [Fact]
+    public void JpegScaleLimitAlsoHonorsTheEncoderByteCeiling() {
+        var options = new OneNotePageRenderingOptions {
+            Scale = 1D,
+            MaximumRasterPixels = 100_000_000L
+        };
+
+        OfficeRasterScaleLimit limit = OneNotePageImageRenderer.ResolveRasterScaleLimit(
+            6_000D,
+            6_000D,
+            OfficeImageExportFormat.Jpeg,
+            options);
+
+        Assert.True(limit.WasLimited);
+        Assert.True(limit.PixelCount <= OfficeRasterImageEncoder.GetMaximumPixelCount(OfficeImageExportFormat.Jpeg));
+        Assert.True(limit.PixelWidth < 6_000);
+        Assert.True(limit.PixelHeight < 6_000);
+    }
+
+    [Fact]
     public void RasterExportReportsAndPaintsUnsupportedSourceImagesInsteadOfDroppingThem() {
         var page = new OneNotePage { PageSize = OneNotePageSize.IndexCard };
         page.DirectContent.Add(new OneNoteImage {
@@ -221,6 +240,22 @@ public sealed class OneNoteRenderingTests {
         Assert.Contains("☐", combined, StringComparison.Ordinal);
         Assert.True(next.X > 0.25D * OneNotePageRenderer.PointsPerHalfInch + 18D);
         Assert.True(next.Y > 1D * OneNotePageRenderer.PointsPerHalfInch);
+    }
+
+    [Fact]
+    public void EmptyTaggedListParagraphRendersItsSyntheticPrefix() {
+        var page = new OneNotePage { PageSize = OneNotePageSize.IndexCard };
+        var paragraph = new OneNoteParagraph {
+            List = new OneNoteListInfo { Ordered = false }
+        };
+        paragraph.Tags.Add(new OneNoteTag { IsCheckable = true, IsCompleted = false });
+        page.DirectContent.Add(paragraph);
+
+        OfficeDrawingRichText text = Assert.Single(page.ToDrawing().Elements.OfType<OfficeDrawingRichText>());
+        string rendered = string.Concat(text.Runs.Select(run => run.Text));
+
+        Assert.Contains("•", rendered, StringComparison.Ordinal);
+        Assert.Contains("☐", rendered, StringComparison.Ordinal);
     }
 
     [Fact]

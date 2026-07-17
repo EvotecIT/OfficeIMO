@@ -284,6 +284,13 @@ public static class OfficeMathMarkup {
         for (int index = 0; index < children.Count; index++) {
             if (children[index].Name.LocalName == "mprescripts") { marker = index; break; }
         }
+        if (marker < 0) {
+            if (children.Count != 3) throw new FormatException("MathML element '" + owner + "' has invalid postscripts.");
+            return OfficeMath.SubSuperscript(
+                ParseMathMlElement(children[0]),
+                ParseMathMlElement(children[1]),
+                ParseMathMlElement(children[2]));
+        }
         if (marker < 1 || marker + 2 >= children.Count) throw new FormatException("MathML element '" + owner + "' has invalid prescripts.");
         return OfficeMath.LeftSubSuperscript(
             ParseMathMlElement(children[0]),

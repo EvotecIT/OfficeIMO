@@ -167,6 +167,22 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void NestedEquationArrayKeepsItsOwnAlignmentRunsInsideTheOuterCell() {
+            OfficeMathExpression nested = SharedMath.EquationArray(1, 2,
+                SharedMath.Identifier("left"),
+                SharedMath.Identifier("right"));
+            OfficeMathExpression expression = SharedMath.EquationArray(1, 1, nested);
+
+            string omml = WordMathMarkup.ToOmml(expression, display: true);
+            OfficeMathExpression parsed = WordMathMarkup.FromOmml(omml);
+
+            Assert.Equal(expression, parsed);
+            using WordDocument document = WordDocument.Create();
+            document.AddEquation(expression);
+            Assert.Empty(document.ValidateDocument());
+        }
+
+        [Fact]
         public void SharedAdvancedMathStructuresRoundTripThroughNativeOmml() {
             OfficeMathExpression[] expressions = {
                 SharedMath.LeftSubSuperscript(SharedMath.Identifier("T"), SharedMath.Identifier("i"), SharedMath.Identifier("j")),

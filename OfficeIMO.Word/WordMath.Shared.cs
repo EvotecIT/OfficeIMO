@@ -287,8 +287,7 @@ namespace OfficeIMO.Word {
                 var cells = new List<OfficeMathExpression>();
                 var current = new List<OfficeMathExpression>();
                 foreach (OpenXmlElement child in row.ChildElements) {
-                    if (child.LocalName == "aln" || child.Descendants().Any(descendant =>
-                        descendant.NamespaceUri == MathNamespace && descendant.LocalName == "aln")) {
+                    if (IsAlignmentRun(child)) {
                         cells.Add(CollapseExpressions(current));
                         current.Clear();
                     } else if (!child.LocalName.EndsWith("Pr", StringComparison.Ordinal)) current.Add(ToExpression(child));
@@ -304,6 +303,14 @@ namespace OfficeIMO.Word {
                 }
             }
             return OfficeIMO.Drawing.OfficeMath.EquationArray(rows.Count, columns, flattened.ToArray());
+        }
+
+        private static bool IsAlignmentRun(OpenXmlElement element) {
+            if (element.NamespaceUri != MathNamespace) return false;
+            if (element.LocalName == "aln") return true;
+            if (element.LocalName != "r") return false;
+            OpenXmlElement? properties = FindFirstChild(element, "rPr");
+            return properties != null && FindFirstChild(properties, "aln") != null;
         }
 
         private static OfficeMathExpression ExpressionFromChild(OpenXmlElement element, string localName) {
