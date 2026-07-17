@@ -87,6 +87,7 @@ namespace OfficeIMO.Excel {
 
         private bool TryResolveDefinedNameRange(
             string token,
+            int? currentRow,
             out ExcelSheet sheet,
             out int r1,
             out int c1,
@@ -116,9 +117,10 @@ namespace OfficeIMO.Excel {
                     return false;
                 }
 
-                if (resolutionSheet.TryParseQualifiedFormulaRange(
+                if (resolutionSheet.TryResolveDefinedNameReferenceTarget(
                     reference,
                     defaultSheet,
+                    currentRow,
                     out ExcelSheet resolvedSheet,
                     out int resolvedR1,
                     out int resolvedC1,
@@ -132,25 +134,45 @@ namespace OfficeIMO.Excel {
                     return true;
                 }
 
-                if (resolutionSheet.TryParseQualifiedFormulaCellReference(
-                    reference,
-                    defaultSheet,
-                    out resolvedSheet,
-                    out resolvedR1,
-                    out resolvedC1)) {
-                    sheet = resolvedSheet;
-                    r1 = resolvedR1;
-                    c1 = resolvedC1;
-                    r2 = resolvedR1;
-                    c2 = resolvedC1;
-                    return true;
-                }
-
                 resolutionSheet = defaultSheet;
                 currentToken = reference;
             }
 
             return false;
+        }
+
+        private bool TryResolveDefinedNameReferenceTarget(
+            string reference,
+            ExcelSheet defaultSheet,
+            int? currentRow,
+            out ExcelSheet sheet,
+            out int r1,
+            out int c1,
+            out int r2,
+            out int c2) {
+            if (TryParseQualifiedFormulaRange(reference, defaultSheet, out sheet, out r1, out c1, out r2, out c2)) {
+                return true;
+            }
+
+            if (TryParseQualifiedFormulaCellReference(reference, defaultSheet, out sheet, out r1, out c1)) {
+                r2 = r1;
+                c2 = c1;
+                return true;
+            }
+
+            if (TryParseQualifiedFormulaWholeRange(
+                reference,
+                defaultSheet,
+                out sheet,
+                out r1,
+                out c1,
+                out r2,
+                out c2,
+                out _)) {
+                return true;
+            }
+
+            return TryResolveTableReferenceRange(reference, currentRow, out sheet, out r1, out c1, out r2, out c2);
         }
 
         private bool TryGetDefinedNameReference(
@@ -196,7 +218,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (reference.Length == 0
-                || reference.IndexOf(',') >= 0
+                || ContainsTopLevelFormulaComma(reference)
                 || reference.IndexOf("#REF!", StringComparison.OrdinalIgnoreCase) >= 0) {
                 return false;
             }
@@ -209,6 +231,32 @@ namespace OfficeIMO.Excel {
             }
 
             return true;
+        }
+
+        private static bool ContainsTopLevelFormulaComma(string reference) {
+            bool inQuotedQualifier = false;
+            int bracketDepth = 0;
+            for (int index = 0; index < reference.Length; index++) {
+                char character = reference[index];
+                if (character == '\'') {
+                    if (inQuotedQualifier
+                        && index + 1 < reference.Length
+                        && reference[index + 1] == '\'') {
+                        index++;
+                        continue;
+                    }
+
+                    inQuotedQualifier = !inQuotedQualifier;
+                } else if (!inQuotedQualifier && character == '[') {
+                    bracketDepth++;
+                } else if (!inQuotedQualifier && character == ']' && bracketDepth > 0) {
+                    bracketDepth--;
+                } else if (character == ',' && !inQuotedQualifier && bracketDepth == 0) {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         private ExcelSheet CreateDefinedNameResolutionSheet(Sheet sheetElement) {
@@ -233,12 +281,15 @@ namespace OfficeIMO.Excel {
             }
 
             char first = token[0];
-            if (!char.IsLetter(first) && first != '_') {
+            if (!char.IsLetter(first) && first != '_' && first != '\\') {
                 return false;
             }
 
             foreach (char character in token) {
-                if (!char.IsLetterOrDigit(character) && character != '_' && character != '.') {
+                if (!char.IsLetterOrDigit(character)
+                    && character != '_'
+                    && character != '.'
+                    && character != '\\') {
                     return false;
                 }
             }

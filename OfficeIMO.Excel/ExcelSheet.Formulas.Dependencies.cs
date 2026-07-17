@@ -392,7 +392,7 @@ namespace OfficeIMO.Excel {
         }
 
         private static bool IsFormulaAliasIdentifierCharacter(char character) {
-            return char.IsLetterOrDigit(character) || character == '_' || character == '.';
+            return char.IsLetterOrDigit(character) || character == '_' || character == '.' || character == '\\';
         }
 
         private static bool IsLocalFormulaReferenceMatch(string formula, Match match) {
@@ -582,29 +582,15 @@ namespace OfficeIMO.Excel {
             sheet = this;
             r1 = c1 = r2 = c2 = 0;
             address = string.Empty;
-            if (!TrySplitQualifiedReference(token, out string? sheetName, out string reference)) {
-                return false;
-            }
-
-            if (sheetName != null && !TryGetFormulaReferenceSheet(sheetName, out sheet)) {
-                return false;
-            }
-
-            if (A1.TryParseWholeColumnRange(reference, out c1, out c2)) {
-                r1 = 1;
-                r2 = A1.MaxRows;
-                address = A1.ColumnIndexToLetters(c1) + ":" + A1.ColumnIndexToLetters(c2);
-                return true;
-            }
-
-            if (A1.TryParseWholeRowRange(reference, out r1, out r2)) {
-                c1 = 1;
-                c2 = A1.MaxColumns;
-                address = r1.ToString(CultureInfo.InvariantCulture) + ":" + r2.ToString(CultureInfo.InvariantCulture);
-                return true;
-            }
-
-            return false;
+            return TryParseQualifiedFormulaWholeRange(
+                token,
+                null,
+                out sheet,
+                out r1,
+                out c1,
+                out r2,
+                out c2,
+                out address);
         }
 
         private static string MaskFormulaStringLiterals(string formula) {

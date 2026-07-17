@@ -427,6 +427,94 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_FormulaDependencyGraph_ResolvesDefinedNamesWithQuotedCommas() {
+            using ExcelDocument document = ExcelDocument.Create();
+            ExcelSheet sheet = document.AddWorksheet("Sales, East");
+            sheet.CellFormula(1, 1, "B1");
+            sheet.CellFormula(1, 2, "CommaAlias");
+            document.SetNamedRange("CommaAlias", "'Sales, East'!A1", save: false);
+
+            ExcelFormulaInspection inspection = document.InspectFormulas();
+            ExcelFormulaDependencyGraph graph = inspection.DependencyGraph;
+            ExcelFormulaDependencyNode aliasNode = Assert.IsType<ExcelFormulaDependencyNode>(
+                graph.FindNode("Sales, East", "B1"));
+
+            Assert.Equal(new[] { "Sales, East!A1" }, aliasNode.Dependencies);
+            Assert.Equal(new[] { "Sales, East!A1" }, aliasNode.FormulaDependencies);
+            Assert.Equal(2, graph.EdgeCount);
+            Assert.Equal(
+                new[] { "Sales, East!A1", "Sales, East!B1" },
+                Assert.Single(graph.CircularReferences).References);
+            Assert.Throws<InvalidOperationException>(() => inspection.EnsureNoDependencyIssues());
+        }
+
+        [Fact]
+        public void Test_FormulaDependencyGraph_ResolvesWholeRowAndColumnDefinedNames() {
+            using ExcelDocument document = ExcelDocument.Create();
+            ExcelSheet columns = document.AddWorksheet("Whole Column Name");
+            columns.CellFormula(1, 1, "SUM(AllB)");
+            columns.CellFormula(1, 2, "A1");
+            ExcelSheet rows = document.AddWorksheet("Whole Row Name");
+            rows.CellFormula(1, 1, "SUM(AllRows)");
+            rows.CellFormula(2, 1, "A1");
+            document.WorkbookRoot.DefinedNames ??= new DefinedNames();
+            document.WorkbookRoot.DefinedNames.Append(
+                new DefinedName("'Whole Column Name'!B:B") { Name = "AllB" },
+                new DefinedName("'Whole Row Name'!2:2") { Name = "AllRows" });
+
+            ExcelFormulaInspection inspection = document.InspectFormulas();
+            ExcelFormulaDependencyGraph graph = inspection.DependencyGraph;
+            ExcelFormulaDependencyNode columnNode = Assert.IsType<ExcelFormulaDependencyNode>(
+                graph.FindNode("Whole Column Name", "A1"));
+            ExcelFormulaDependencyNode rowNode = Assert.IsType<ExcelFormulaDependencyNode>(
+                graph.FindNode("Whole Row Name", "A1"));
+
+            Assert.Equal(new[] { "Whole Column Name!B1:B1048576" }, columnNode.Dependencies);
+            Assert.Equal(new[] { "Whole Column Name!B1" }, columnNode.FormulaDependencies);
+            Assert.Equal(new[] { "Whole Row Name!A2:XFD2" }, rowNode.Dependencies);
+            Assert.Equal(new[] { "Whole Row Name!A2" }, rowNode.FormulaDependencies);
+            Assert.Equal(4, graph.EdgeCount);
+            Assert.Equal(2, graph.CircularReferenceCount);
+            Assert.Throws<InvalidOperationException>(() => inspection.EnsureNoDependencyIssues());
+        }
+
+        [Fact]
+        public void Test_FormulaDependencyGraph_ResolvesBackslashTableAndStructuredDefinedName() {
+            using ExcelDocument document = ExcelDocument.Create();
+            ExcelSheet sheet = document.AddWorksheet("Backslash Table");
+            sheet.CellValue(1, 1, "Amount");
+            sheet.CellFormula(2, 1, "C2");
+            sheet.CellFormula(2, 3, "SUM(TableAlias)");
+            sheet.CellFormula(1, 4, "SUM(\\Sales[Amount])");
+            sheet.AddTable("A1:A2", hasHeader: true, name: "Sales", style: TableStyle.TableStyleMedium2);
+            Table table = Assert.Single(
+                document.WorkbookPartRoot.WorksheetParts.SelectMany(part => part.TableDefinitionParts)).Table;
+            table.Name = "\\Sales";
+            table.DisplayName = "\\Sales";
+            document.WorkbookRoot.DefinedNames ??= new DefinedNames();
+            document.WorkbookRoot.DefinedNames.Append(
+                new DefinedName("CurrentAmount") { Name = "TableAlias" },
+                new DefinedName("\\Sales[[#This Row],[Amount]]") { Name = "CurrentAmount" });
+
+            ExcelFormulaInspection inspection = document.InspectFormulas();
+            ExcelFormulaDependencyGraph graph = inspection.DependencyGraph;
+            ExcelFormulaDependencyNode aliasNode = Assert.IsType<ExcelFormulaDependencyNode>(
+                graph.FindNode("Backslash Table", "C2"));
+            ExcelFormulaDependencyNode directNode = Assert.IsType<ExcelFormulaDependencyNode>(
+                graph.FindNode("Backslash Table", "D1"));
+
+            Assert.Equal(new[] { "Backslash Table!A2" }, aliasNode.Dependencies);
+            Assert.Equal(new[] { "Backslash Table!A2" }, aliasNode.FormulaDependencies);
+            Assert.Equal(new[] { "Backslash Table!A2" }, directNode.Dependencies);
+            Assert.Equal(new[] { "Backslash Table!A2" }, directNode.FormulaDependencies);
+            Assert.Equal(3, graph.EdgeCount);
+            Assert.Equal(
+                new[] { "Backslash Table!A2", "Backslash Table!C2" },
+                Assert.Single(graph.CircularReferences).References);
+            Assert.Throws<InvalidOperationException>(() => inspection.EnsureNoDependencyIssues());
+        }
+
+        [Fact]
         public void Test_FormulaDependencyGraph_ResolvesChainedDefinedNamesAndGuardsNameCycles() {
             using ExcelDocument document = ExcelDocument.Create();
             ExcelSheet sheet = document.AddWorksheet("Chained Names");

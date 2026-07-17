@@ -372,6 +372,47 @@ namespace OfficeIMO.Excel {
             return A1.TryParseRange(reference.Replace("$", string.Empty), out r1, out c1, out r2, out c2);
         }
 
+        private bool TryParseQualifiedFormulaWholeRange(
+            string token,
+            ExcelSheet? defaultSheet,
+            out ExcelSheet sheet,
+            out int r1,
+            out int c1,
+            out int r2,
+            out int c2,
+            out string address) {
+            sheet = this;
+            r1 = c1 = r2 = c2 = 0;
+            address = string.Empty;
+            if (!TrySplitQualifiedReference(token, out string? sheetName, out string reference)) {
+                return false;
+            }
+
+            if (sheetName != null) {
+                if (!TryGetFormulaReferenceSheet(sheetName, out sheet)) {
+                    return false;
+                }
+            } else if (defaultSheet != null) {
+                sheet = defaultSheet;
+            }
+
+            if (A1.TryParseWholeColumnRange(reference, out c1, out c2)) {
+                r1 = 1;
+                r2 = A1.MaxRows;
+                address = A1.ColumnIndexToLetters(c1) + ":" + A1.ColumnIndexToLetters(c2);
+                return true;
+            }
+
+            if (A1.TryParseWholeRowRange(reference, out r1, out r2)) {
+                c1 = 1;
+                c2 = A1.MaxColumns;
+                address = r1.ToString(CultureInfo.InvariantCulture) + ":" + r2.ToString(CultureInfo.InvariantCulture);
+                return true;
+            }
+
+            return false;
+        }
+
         private bool TryResolveFormulaRangeReference(string token, out ExcelSheet sheet, out int r1, out int c1, out int r2, out int c2) {
             return TryResolveFormulaRangeReference(token, null, out sheet, out r1, out c1, out r2, out c2);
         }
@@ -398,7 +439,7 @@ namespace OfficeIMO.Excel {
                 return true;
             }
 
-            return TryResolveDefinedNameRange(token, out sheet, out r1, out c1, out r2, out c2);
+            return TryResolveDefinedNameRange(token, currentRow, out sheet, out r1, out c1, out r2, out c2);
         }
 
         private bool TryResolveTableReferenceRange(
