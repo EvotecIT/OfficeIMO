@@ -89,7 +89,7 @@ public sealed class MailboxDirectorySessionTests {
     [Fact]
     public void CanonicalMaildirFlagsProjectIntoMessageMetadataAndProperties() {
         string? flags = MailboxDirectoryStoreSessionBackend.ParseMaildirFlags(
-            "maildir-message:2,DFPRST");
+            "maildir-message:2,DFPRST", "cur");
         var document = new EmailDocument();
 
         MailboxDirectoryStoreSessionBackend.ApplyMaildirFlags(document, flags);
@@ -101,6 +101,36 @@ public sealed class MailboxDirectorySessionTests {
         Assert.Equal(true, document.Properties["Emlx:Flag:Forwarded"]);
         Assert.Equal(true, document.Properties["Emlx:Flag:Answered"]);
         Assert.Equal(true, document.Properties["Emlx:Flag:Deleted"]);
+    }
+
+    [Theory]
+    [InlineData("archive:2,S.eml", "cur")]
+    [InlineData("archive:2,S", "new")]
+    [InlineData("archive:2,S", "Messages")]
+    [InlineData(":2,S", "cur")]
+    [InlineData("archive:2,s", "cur")]
+    public void MaildirFlagsRequireACanonicalTerminalCurSuffix(string name, string parent) {
+        Assert.Null(MailboxDirectoryStoreSessionBackend.ParseMaildirFlags(name, parent));
+    }
+
+    [Fact]
+    public void MaildirTreatsOpaqueEmlxFileNamesAsRfcMessages() {
+        string root = Path.Combine(Path.GetTempPath(),
+            "officeimo-maildir-opaque-emlx-" + Guid.NewGuid().ToString("N"));
+        try {
+            string directory = Path.Combine(root, "new");
+            Directory.CreateDirectory(directory);
+            File.WriteAllText(Path.Combine(directory, "123.emlx"),
+                "From: sender@example.test\r\nSubject: Opaque Maildir name\r\n\r\nBody\r\n");
+
+            using EmailStoreSession session = EmailStoreSession.Open(root);
+            EmailStoreItemReference reference = Assert.Single(session.EnumerateItems());
+            EmailStoreItem item = session.ReadItem(reference);
+
+            Assert.Equal("Opaque Maildir name", item.Document.Subject);
+        } finally {
+            if (Directory.Exists(root)) Directory.Delete(root, recursive: true);
+        }
     }
 
     [Fact]

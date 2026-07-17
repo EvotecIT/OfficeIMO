@@ -88,7 +88,7 @@ public sealed partial class EmailStoreSession {
             string flags = GetMaildirFlags(item.Document);
             maildirFlags = flags;
             bool supportsInfoSuffix = Array.IndexOf(Path.GetInvalidFileNameChars(), ':') < 0;
-            bool useCurrent = flags.Length > 0 && supportsInfoSuffix;
+            bool useCurrent = supportsInfoSuffix;
             if (flags.Length > 0 && !supportsInfoSuffix) flagsCouldNotBeWritten = true;
             string fileName = BuildMaildirFileName(reference.Id);
             if (useCurrent) fileName += ":2," + flags;

@@ -8,6 +8,7 @@ internal sealed class MboxStoreSessionBackend : IEmailStoreSessionBackend {
     private readonly Stream _stream;
     private readonly EmailStoreReaderOptions _options;
     private readonly List<EmailStoreDiagnostic> _diagnostics = new List<EmailStoreDiagnostic>();
+    private readonly HashSet<DiagnosticKey> _diagnosticKeys = new HashSet<DiagnosticKey>();
     private readonly List<MboxItem> _items = new List<MboxItem>();
     private readonly Dictionary<string, MboxItem> _itemsById =
         new Dictionary<string, MboxItem>(StringComparer.Ordinal);
@@ -134,17 +135,19 @@ internal sealed class MboxStoreSessionBackend : IEmailStoreSessionBackend {
 
     private void AddDiagnostics(IEnumerable<EmailDiagnostic> diagnostics, string itemId) {
         foreach (EmailDiagnostic diagnostic in diagnostics) {
-            _diagnostics.Add(new EmailStoreDiagnostic(
-                diagnostic.Code,
-                diagnostic.Message,
-                diagnostic.Severity == EmailDiagnosticSeverity.Error
-                    ? EmailStoreDiagnosticSeverity.Error
-                    : diagnostic.Severity == EmailDiagnosticSeverity.Information
-                        ? EmailStoreDiagnosticSeverity.Information
-                        : EmailStoreDiagnosticSeverity.Warning,
-                diagnostic.Location == null
-                    ? itemId
-                    : string.Concat(itemId, "/", diagnostic.Location)));
+            EmailStoreDiagnosticSeverity severity = diagnostic.Severity == EmailDiagnosticSeverity.Error
+                ? EmailStoreDiagnosticSeverity.Error
+                : diagnostic.Severity == EmailDiagnosticSeverity.Information
+                    ? EmailStoreDiagnosticSeverity.Information
+                    : EmailStoreDiagnosticSeverity.Warning;
+            string location = diagnostic.Location == null
+                ? itemId
+                : string.Concat(itemId, "/", diagnostic.Location);
+            var key = new DiagnosticKey(diagnostic.Code, diagnostic.Message, severity, location);
+            if (_diagnosticKeys.Add(key)) {
+                _diagnostics.Add(new EmailStoreDiagnostic(
+                    diagnostic.Code, diagnostic.Message, severity, location));
+            }
         }
     }
 
@@ -194,6 +197,38 @@ internal sealed class MboxStoreSessionBackend : IEmailStoreSessionBackend {
         internal EmailStoreItemSummary Summary { get; }
     }
 
+    private readonly struct DiagnosticKey : IEquatable<DiagnosticKey> {
+        internal DiagnosticKey(string code, string message,
+            EmailStoreDiagnosticSeverity severity, string location) {
+            Code = code;
+            Message = message;
+            Severity = severity;
+            Location = location;
+        }
+
+        private string Code { get; }
+        private string Message { get; }
+        private EmailStoreDiagnosticSeverity Severity { get; }
+        private string Location { get; }
+
+        public bool Equals(DiagnosticKey other) =>
+            string.Equals(Code, other.Code, StringComparison.Ordinal) &&
+            string.Equals(Message, other.Message, StringComparison.Ordinal) &&
+            Severity == other.Severity &&
+            string.Equals(Location, other.Location, StringComparison.Ordinal);
+
+        public override bool Equals(object? obj) => obj is DiagnosticKey other && Equals(other);
+
+        public override int GetHashCode() {
+            unchecked {
+                int hash = StringComparer.Ordinal.GetHashCode(Code);
+                hash = hash * 397 ^ StringComparer.Ordinal.GetHashCode(Message);
+                hash = hash * 397 ^ (int)Severity;
+                return hash * 397 ^ StringComparer.Ordinal.GetHashCode(Location);
+            }
+        }
+    }
+
     private sealed class ReadOnlySegmentStream : Stream {
         private readonly Stream _source;
         private readonly long _start;
@@ -224,10 +259,20 @@ internal sealed class MboxStoreSessionBackend : IEmailStoreSessionBackend {
                 throw new ArgumentOutOfRangeException();
             int bounded = (int)Math.Min(count, _length - _position);
             if (bounded == 0) return 0;
-            _source.Position = checked(_start + _position);
+            long absolutePosition = checked(_start + _position);
+            if (_source.Position != absolutePosition) _source.Position = absolutePosition;
             int read = _source.Read(buffer, offset, bounded);
             _position += read;
             return read;
+        }
+
+        public override int ReadByte() {
+            if (_position >= _length) return -1;
+            long absolutePosition = checked(_start + _position);
+            if (_source.Position != absolutePosition) _source.Position = absolutePosition;
+            int value = _source.ReadByte();
+            if (value >= 0) _position++;
+            return value;
         }
 
         public override long Seek(long offset, SeekOrigin origin) {

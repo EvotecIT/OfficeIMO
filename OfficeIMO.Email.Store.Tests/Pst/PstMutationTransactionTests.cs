@@ -531,6 +531,39 @@ public sealed class PstMutationTransactionTests {
     }
 
     [Fact]
+    public void RecursiveDeleteRejectsMalformedMandatoryDescendants() {
+        string path = TemporaryPstPath();
+        try {
+            using (EmailStorePstWriter writer = EmailStorePstWriter.Create(path)) {
+                writer.AddFolder("Ordinary parent");
+                writer.Complete();
+            }
+            byte[] original = File.ReadAllBytes(path);
+            using var transaction = EmailStorePstMutationTransaction.Open(path);
+            EmailStorePstMutationFolder ordinary = Assert.Single(transaction.Folders,
+                folder => folder.Name == "Ordinary parent");
+            string ipmSubtreeId = Assert.Single(transaction.Folders,
+                folder => folder.SpecialFolderKind == EmailStoreSpecialFolderKind.IpmSubtree).Id;
+            FieldInfo foldersField = typeof(EmailStorePstMutationTransaction).GetField(
+                "_folders", BindingFlags.Instance | BindingFlags.NonPublic)!;
+            var folders = (IDictionary)foldersField.GetValue(transaction)!;
+            object ipmSubtree = folders[ipmSubtreeId]!;
+            PropertyInfo parentId = ipmSubtree.GetType().GetProperty(
+                "ParentId", BindingFlags.Instance | BindingFlags.NonPublic)!;
+            parentId.SetValue(ipmSubtree, ordinary.Id);
+
+            InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
+                transaction.DeleteFolder(ordinary.Id, recursive: true));
+
+            Assert.Contains("mandatory PST folder", exception.Message, StringComparison.Ordinal);
+            Assert.Contains(transaction.Folders, folder => folder.Id == ordinary.Id);
+            Assert.Equal(original, File.ReadAllBytes(path));
+        } finally {
+            TryDelete(path);
+        }
+    }
+
+    [Fact]
     public void LinuxAllowsCaseDistinctBackupAndSourcePaths() {
         if (!RuntimeInformation.IsOSPlatform(OSPlatform.Linux)) return;
         string directory = Path.Combine(Path.GetTempPath(),

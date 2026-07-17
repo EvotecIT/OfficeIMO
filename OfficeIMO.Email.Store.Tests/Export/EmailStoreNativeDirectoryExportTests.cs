@@ -42,6 +42,29 @@ public sealed class EmailStoreNativeDirectoryExportTests {
     }
 
     [Fact]
+    public void MaildirExportKeepsStoredUnreadMessagesInCurWhenSuffixesAreSupported() {
+        if (Array.IndexOf(Path.GetInvalidFileNameChars(), ':') >= 0) return;
+        string root = Path.Combine(Path.GetTempPath(),
+            "officeimo-native-maildir-cur-" + Guid.NewGuid().ToString("N"));
+        try {
+            using var source = new MemoryStream(CreateMailboxBytes());
+            using EmailStoreSession session = EmailStoreSession.Open(source, "source.mbox");
+
+            EmailStoreExportReport report = session.ExportToNativeDirectory(root,
+                new EmailStoreNativeDirectoryExportOptions(EmailStoreNativeDirectoryFormat.Maildir));
+
+            EmailStoreExportEntry unread = Assert.Single(report.Entries,
+                entry => string.Equals(entry.MaildirFlags, string.Empty, StringComparison.Ordinal));
+            Assert.Equal("cur", Path.GetFileName(Path.GetDirectoryName(unread.DestinationPath!)));
+            Assert.EndsWith(":2,", Path.GetFileName(unread.DestinationPath!), StringComparison.Ordinal);
+            Assert.All(report.Entries, entry => Assert.Equal(
+                "cur", Path.GetFileName(Path.GetDirectoryName(entry.DestinationPath!))));
+        } finally {
+            if (Directory.Exists(root)) Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
     public void EmlxExportDoesNotReplaceAnExistingDestinationByDefault() {
         string root = Path.Combine(Path.GetTempPath(), "officeimo-native-export-" + Guid.NewGuid().ToString("N"));
         try {

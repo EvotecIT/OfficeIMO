@@ -78,6 +78,33 @@ public sealed class MboxStoreReaderTests {
     }
 
     [Fact]
+    public void SelectedMboxReadsDoNotDelegateThroughSingleByteBufferReads() {
+        using var stream = new RejectSingleByteBufferReadStream(CreateMailboxBytes());
+        using EmailStoreSession session = EmailStoreSession.Open(stream, "archive.mbox");
+        EmailStoreItemReference reference = session.EnumerateItems().First();
+
+        EmailStoreItem item = session.ReadItem(reference);
+
+        Assert.Equal("First message", item.Document.Subject);
+    }
+
+    [Fact]
+    public void RepeatedMboxReadsDoNotDuplicateIndexedDiagnostics() {
+        byte[] bytes = Encoding.ASCII.GetBytes(
+            "From sender@example.com Fri Jul 10 12:00:00 2026\nplain body\n");
+        using var stream = new MemoryStream(bytes);
+        using EmailStoreSession session = EmailStoreSession.Open(stream, "diagnostics.mbox");
+        EmailStoreItemReference reference = Assert.Single(session.EnumerateItems());
+        int indexedCount = session.Diagnostics.Count;
+
+        session.ReadItem(reference);
+        session.ReadItem(reference);
+
+        Assert.True(indexedCount > 0);
+        Assert.Equal(indexedCount, session.Diagnostics.Count);
+    }
+
+    [Fact]
     public void MboxStoreCanExportThroughTheSharedSessionBoundary() {
         string destination = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".mbox");
         try {
@@ -158,6 +185,18 @@ public sealed class MboxStoreReaderTests {
         public override int Read(byte[] buffer, int offset, int count) {
             if (count > _maximumReadSize) {
                 throw new InvalidOperationException("The mbox reader requested an aggregate-sized buffer.");
+            }
+            return base.Read(buffer, offset, count);
+        }
+    }
+
+    private sealed class RejectSingleByteBufferReadStream : MemoryStream {
+        internal RejectSingleByteBufferReadStream(byte[] bytes) : base(bytes, writable: false) { }
+
+        public override int Read(byte[] buffer, int offset, int count) {
+            if (count == 1) {
+                throw new InvalidOperationException(
+                    "Selected mbox reads must use the source stream's ReadByte implementation.");
             }
             return base.Read(buffer, offset, count);
         }

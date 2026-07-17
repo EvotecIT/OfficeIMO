@@ -14,10 +14,12 @@ public enum IcsTemporalValueKind {
 
 /// <summary>A parsed iCalendar DATE or DATE-TIME value that retains its original time semantics.</summary>
 public readonly struct IcsTemporalValue : IEquatable<IcsTemporalValue> {
-    private IcsTemporalValue(DateTime value, IcsTemporalValueKind kind, string? timeZoneId) {
+    private IcsTemporalValue(DateTime value, IcsTemporalValueKind kind, string? timeZoneId,
+        bool isLeapSecond = false) {
         Value = value;
         Kind = kind;
         TimeZoneId = timeZoneId;
+        IsLeapSecond = isLeapSecond;
     }
 
     /// <summary>Clock value. Inspect <see cref="Kind"/> before interpreting it.</summary>
@@ -26,6 +28,11 @@ public readonly struct IcsTemporalValue : IEquatable<IcsTemporalValue> {
     public IcsTemporalValueKind Kind { get; }
     /// <summary>TZID for <see cref="IcsTemporalValueKind.ZonedDateTime"/>.</summary>
     public string? TimeZoneId { get; }
+    /// <summary>
+    /// Whether the parsed DATE-TIME used the RFC 5545 leap-second value 60. When true,
+    /// <see cref="Value"/> is the normalized following instant while serialization restores second 60.
+    /// </summary>
+    public bool IsLeapSecond { get; }
 
     /// <summary>Creates a DATE value.</summary>
     public static IcsTemporalValue Date(DateTime value) => new IcsTemporalValue(value.Date,
@@ -68,13 +75,18 @@ public readonly struct IcsTemporalValue : IEquatable<IcsTemporalValue> {
             value = Date(date);
             return true;
         }
-        if (TryParseDateTime(text, utc: true, out DateTime utc)) {
+        if (TryParseDateTime(text, utc: true, out DateTime utc, out bool utcLeapSecond)) {
             if (!string.IsNullOrWhiteSpace(timeZoneId)) return false;
-            value = Utc(new DateTimeOffset(utc, TimeSpan.Zero));
+            value = new IcsTemporalValue(utc, IcsTemporalValueKind.UtcDateTime, null, utcLeapSecond);
             return true;
         }
-        if (!TryParseDateTime(text, utc: false, out DateTime local)) return false;
-        value = string.IsNullOrWhiteSpace(timeZoneId) ? Floating(local) : Zoned(local, timeZoneId!);
+        if (!TryParseDateTime(text, utc: false, out DateTime local, out bool localLeapSecond)) return false;
+        value = new IcsTemporalValue(local,
+            string.IsNullOrWhiteSpace(timeZoneId)
+                ? IcsTemporalValueKind.FloatingDateTime
+                : IcsTemporalValueKind.ZonedDateTime,
+            string.IsNullOrWhiteSpace(timeZoneId) ? null : timeZoneId,
+            localLeapSecond);
         return true;
     }
 
@@ -89,21 +101,22 @@ public readonly struct IcsTemporalValue : IEquatable<IcsTemporalValue> {
                 property.SetParameter("VALUE", "DATE");
                 break;
             case IcsTemporalValueKind.UtcDateTime:
-                property.Value = Value.ToUniversalTime().ToString("yyyyMMdd'T'HHmmss'Z'", CultureInfo.InvariantCulture);
+                property.Value = FormatDateTime(Value.ToUniversalTime(), utc: true, IsLeapSecond);
                 break;
             case IcsTemporalValueKind.ZonedDateTime:
                 if (string.IsNullOrWhiteSpace(TimeZoneId)) throw new InvalidOperationException("A zoned value requires TZID.");
-                property.Value = Value.ToString("yyyyMMdd'T'HHmmss", CultureInfo.InvariantCulture);
+                property.Value = FormatDateTime(Value, utc: false, IsLeapSecond);
                 property.SetParameter("TZID", TimeZoneId!);
                 break;
             default:
-                property.Value = Value.ToString("yyyyMMdd'T'HHmmss", CultureInfo.InvariantCulture);
+                property.Value = FormatDateTime(Value, utc: false, IsLeapSecond);
                 break;
         }
     }
 
     /// <inheritdoc />
     public bool Equals(IcsTemporalValue other) => Value == other.Value && Kind == other.Kind &&
+        IsLeapSecond == other.IsLeapSecond &&
         string.Equals(TimeZoneId, other.TimeZoneId, StringComparison.Ordinal);
 
     /// <inheritdoc />
@@ -111,7 +124,10 @@ public readonly struct IcsTemporalValue : IEquatable<IcsTemporalValue> {
 
     /// <inheritdoc />
     public override int GetHashCode() {
-        unchecked { return ((Value.GetHashCode() * 397) ^ (int)Kind) * 397 ^ (TimeZoneId?.GetHashCode() ?? 0); }
+        unchecked {
+            int hash = ((Value.GetHashCode() * 397) ^ (int)Kind) * 397 ^ IsLeapSecond.GetHashCode();
+            return hash * 397 ^ (TimeZoneId?.GetHashCode() ?? 0);
+        }
     }
 
     private static void RemoveParameter(ContentLineProperty property, string name) {
@@ -134,8 +150,10 @@ public readonly struct IcsTemporalValue : IEquatable<IcsTemporalValue> {
         }
     }
 
-    private static bool TryParseDateTime(string text, bool utc, out DateTime value) {
+    private static bool TryParseDateTime(string text, bool utc, out DateTime value,
+        out bool isLeapSecond) {
         value = default;
+        isLeapSecond = false;
         int expectedLength = utc ? 16 : 15;
         if (text.Length != expectedLength || text[8] != 'T' ||
             utc && text[15] != 'Z' ||
@@ -148,11 +166,23 @@ public readonly struct IcsTemporalValue : IEquatable<IcsTemporalValue> {
         try {
             value = new DateTime(year, month, day, hour, minute, Math.Min(second, 59),
                 utc ? DateTimeKind.Utc : DateTimeKind.Unspecified);
-            if (second == 60) value = value.AddSeconds(1);
+            if (second == 60) {
+                value = value.AddSeconds(1);
+                isLeapSecond = true;
+            }
             return true;
         } catch (ArgumentOutOfRangeException) {
             return false;
         }
+    }
+
+    private static string FormatDateTime(DateTime value, bool utc, bool isLeapSecond) {
+        DateTime lexicalValue = isLeapSecond ? value.AddSeconds(-1) : value;
+        string prefix = lexicalValue.ToString("yyyyMMdd'T'HHmm", CultureInfo.InvariantCulture);
+        string seconds = isLeapSecond
+            ? "60"
+            : lexicalValue.ToString("ss", CultureInfo.InvariantCulture);
+        return string.Concat(prefix, seconds, utc ? "Z" : string.Empty);
     }
 
     private static bool TryReadNumber(string text, int offset, int length, out int value) {

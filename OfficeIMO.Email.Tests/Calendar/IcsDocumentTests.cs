@@ -155,6 +155,11 @@ public sealed class IcsDocumentTests {
 
         Assert.True(IcsTemporalValue.TryParse(property, out IcsTemporalValue temporal));
         Assert.Equal(expectedKind, temporal.Kind);
+        Assert.True(temporal.IsLeapSecond);
+        var applied = new ContentLineProperty("DTSTART", string.Empty);
+        temporal.ApplyTo(applied);
+        Assert.Equal(text, applied.Value);
+        Assert.Equal(timeZoneId, applied.GetParameter("TZID")?.Values.SingleOrDefault());
         var document = new IcsDocument();
         ContentLineComponent appointment = document.Calendars.Single().AddComponent("VEVENT");
         appointment.Properties.Add(property);

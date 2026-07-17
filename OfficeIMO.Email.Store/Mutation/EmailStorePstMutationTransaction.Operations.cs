@@ -96,6 +96,10 @@ public sealed partial class EmailStorePstMutationTransaction {
         while (pending.Count > 0) {
             cancellationToken.ThrowIfCancellationRequested();
             FolderState current = pending.Dequeue();
+            if (current.IsMandatory) {
+                throw new InvalidOperationException(
+                    "Recursive deletion cannot include a mandatory PST folder, even when its source parent relationship is malformed.");
+            }
             if (!removed.Add(current.Id) ||
                 !childrenByParent.TryGetValue(current.Id, out FolderState[]? children)) continue;
             foreach (FolderState child in children) pending.Enqueue(child);

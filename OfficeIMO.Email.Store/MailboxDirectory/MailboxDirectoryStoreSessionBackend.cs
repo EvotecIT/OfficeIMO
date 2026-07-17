@@ -133,9 +133,9 @@ internal sealed class MailboxDirectoryStoreSessionBackend : IEmailStoreSessionBa
                 candidates.Add(new MailboxCandidate(
                     file.FullName,
                     ToRelativePath(file.FullName),
-                    IsEmlx(file.Name),
+                    IsEmlx(file),
                     GetLogicalFolderPath(ToRelativePath(file.DirectoryName ?? _root)),
-                    ParseMaildirFlags(file.Name)));
+                    ParseMaildirFlags(file.Name, file.Directory?.Name)));
             }
         }
 
@@ -256,13 +256,24 @@ internal sealed class MailboxDirectoryStoreSessionBackend : IEmailStoreSessionBa
         }
     }
 
-    private static bool IsEmlx(string name) =>
-        name.EndsWith(".emlx", StringComparison.OrdinalIgnoreCase);
+    private static bool IsEmlx(FileInfo file) {
+        string? parent = file.Directory?.Name;
+        if (string.Equals(parent, "cur", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(parent, "new", StringComparison.OrdinalIgnoreCase)) return false;
+        return file.Name.EndsWith(".emlx", StringComparison.OrdinalIgnoreCase);
+    }
 
-    internal static string? ParseMaildirFlags(string name) {
+    internal static string? ParseMaildirFlags(string name, string? parentDirectoryName) {
         if (name == null) throw new ArgumentNullException(nameof(name));
+        if (!string.Equals(parentDirectoryName, "cur", StringComparison.Ordinal)) return null;
         int marker = name.LastIndexOf(":2,", StringComparison.Ordinal);
-        return marker < 0 ? null : name.Substring(marker + 3);
+        if (marker <= 0) return null;
+        string flags = name.Substring(marker + 3);
+        for (int index = 0; index < flags.Length; index++) {
+            char value = flags[index];
+            if (value < 'A' || value > 'Z') return null;
+        }
+        return flags;
     }
 
     internal static void ApplyMaildirFlags(EmailDocument document, string? flags) {
