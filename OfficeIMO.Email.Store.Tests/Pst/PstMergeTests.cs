@@ -121,15 +121,17 @@ public sealed class PstMergeTests {
     }
 
     [Fact]
-    public void MergesPstOlmEmlxAndMailboxDirectoryThroughOneSurface() {
+    public void MergesPstOstOlmEmlxAndMailboxDirectoryThroughOneSurface() {
         string root = CreateTemporaryDirectory();
         string pst = Path.Combine(root, "source.pst");
+        string ost = Path.Combine(root, "source.ost");
         string olm = Path.Combine(root, "source.olm");
         string emlx = Path.Combine(root, "source.emlx");
         string mailbox = Path.Combine(root, "mailbox");
         string destination = Path.Combine(root, "merged.pst");
         try {
             CreateSource(pst, "PST", CreateDocument("pst"));
+            File.WriteAllBytes(ost, PstTestFileBuilder.Create(ost: true));
             const string olmXml = "<emails><email><OPFMessageCopySubject>olm</OPFMessageCopySubject>" +
                 "<OPFMessageCopyBody>body-olm</OPFMessageCopyBody></email></emails>";
             using (var builder = new OlmTestArchiveBuilder()) {
@@ -144,17 +146,18 @@ public sealed class PstMergeTests {
                 "From: source@example.test\r\nSubject: directory\r\n\r\nbody-directory\r\n");
 
             EmailStorePstMergeReport report = EmailStoreConverter.MergeToPst(new[] {
-                new EmailStoreMergeSource(pst), new EmailStoreMergeSource(olm),
-                new EmailStoreMergeSource(emlx), new EmailStoreMergeSource(mailbox)
+                new EmailStoreMergeSource(pst), new EmailStoreMergeSource(ost),
+                new EmailStoreMergeSource(olm), new EmailStoreMergeSource(emlx),
+                new EmailStoreMergeSource(mailbox)
             }, destination, new EmailStorePstMergeOptions(
                 folderMode: EmailStoreMergeFolderMode.Flatten, deduplicate: false));
 
-            Assert.Equal(4, report.WrittenItems);
-            Assert.Equal(new[] { EmailStoreFormat.Pst, EmailStoreFormat.Olm,
-                EmailStoreFormat.Emlx, EmailStoreFormat.MailboxDirectory },
+            Assert.Equal(5, report.WrittenItems);
+            Assert.Equal(new[] { EmailStoreFormat.Pst, EmailStoreFormat.Ost,
+                EmailStoreFormat.Olm, EmailStoreFormat.Emlx, EmailStoreFormat.MailboxDirectory },
                 report.Sources.Select(source => source.Format));
             using EmailStoreSession merged = EmailStoreSession.Open(destination);
-            Assert.Equal(4, merged.EnumerateItems().Count());
+            Assert.Equal(5, merged.EnumerateItems().Count());
         } finally {
             DeleteDirectory(root);
         }
