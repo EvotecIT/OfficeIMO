@@ -24,7 +24,8 @@ internal static partial class DocumentReaderEngine {
         }
 
         if (kind == ReaderInputKind.PowerPoint
-            && IsLegacyPowerPointExtension(path)) {
+            && (!string.IsNullOrEmpty(opt.OpenPassword)
+                || IsLegacyPowerPointExtension(path))) {
             using PowerPointPresentation presentation =
                 LoadPowerPointForReader(path, opt);
             return CollectProjectedPowerPointImageAssets(presentation, path,
@@ -44,7 +45,8 @@ internal static partial class DocumentReaderEngine {
         }
 
         if (kind == ReaderInputKind.PowerPoint
-            && (IsLegacyPowerPointExtension(sourceName)
+            && (!string.IsNullOrEmpty(opt.OpenPassword)
+                || IsLegacyPowerPointExtension(sourceName)
                 || IsLegacyPowerPointCompound(stream, opt))) {
             using PowerPointPresentation presentation =
                 LoadPowerPointForReader(stream, opt);

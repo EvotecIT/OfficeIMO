@@ -289,6 +289,41 @@ public sealed class ReaderDocumentReaderTests {
     }
 
     [Fact]
+    public void DocumentReader_CanReadEncryptedOpenXmlPowerPointWithOpenPassword() {
+        const string password = "reader-openxml-pass";
+        string path = Path.Combine(Path.GetTempPath(),
+            Guid.NewGuid().ToString("N") + ".pptx");
+        try {
+            using (PowerPointPresentation source =
+                   PowerPointPresentation.Create()) {
+                source.AddSlide().AddTextBox("Reader encrypted PPTX");
+                source.SaveEncrypted(path, password);
+            }
+            var options = new ReaderOptions { OpenPassword = password };
+
+            IReadOnlyList<ReaderChunk> pathChunks =
+                OfficeDocumentReader.Default.Read(path, options).ToArray();
+            using var chunkStream = File.OpenRead(path);
+            IReadOnlyList<ReaderChunk> streamChunks = OfficeDocumentReader
+                .Default.Read(chunkStream, "encrypted.pptx", options)
+                .ToArray();
+            OfficeDocumentReadResult pathResult = OfficeDocumentReader
+                .Default.ReadDocument(path, options);
+            using var resultStream = File.OpenRead(path);
+            OfficeDocumentReadResult streamResult = OfficeDocumentReader
+                .Default.ReadDocument(resultStream, "encrypted.pptx",
+                    options);
+
+            AssertEncryptedPowerPointChunks(pathChunks);
+            AssertEncryptedPowerPointChunks(streamChunks);
+            AssertEncryptedPowerPointChunks(pathResult.Chunks);
+            AssertEncryptedPowerPointChunks(streamResult.Chunks);
+        } finally {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Fact]
     public void DocumentReader_LegacyPowerPointWarningsExposeImportDiagnostics() {
         string path = GetRepositoryPath("OfficeIMO.TestAssets", "Documents",
             "LegacyPptCorpus", "AccessibilityPowerPoint.ppt");
@@ -367,6 +402,14 @@ public sealed class ReaderDocumentReaderTests {
         Assert.Equal(new[] { "Name", "Value" }, chunk.Tables![0].Columns);
         Assert.Equal("Token", chunk.Tables[0].Rows[0][0]);
         Assert.Equal("7", chunk.Tables[0].Rows[0][1]);
+    }
+
+    private static void AssertEncryptedPowerPointChunks(
+        IReadOnlyList<ReaderChunk> chunks) {
+        Assert.Contains(chunks, chunk => chunk.Kind
+            == ReaderInputKind.PowerPoint
+            && (chunk.Markdown ?? chunk.Text).Contains(
+                "Reader encrypted PPTX", StringComparison.Ordinal));
     }
 
     [Fact]

@@ -559,16 +559,48 @@ internal static partial class DocumentReaderEngine {
 
     private static PowerPointPresentation LoadPowerPointForReader(
         string path, ReaderOptions options) {
-        return PowerPointPresentation.Load(path,
-            CreatePowerPointReaderLoadOptions(options));
+        PowerPointLoadOptions loadOptions =
+            CreatePowerPointReaderLoadOptions(options);
+        try {
+            return PowerPointPresentation.Load(path, loadOptions);
+        } catch (Exception exception) when (
+            ShouldRetryEncryptedPowerPointOpen(exception, options)) {
+            try {
+                return PowerPointPresentation.LoadEncrypted(path,
+                    options.OpenPassword!, loadOptions);
+            } catch {
+                ExceptionDispatchInfo.Capture(exception).Throw();
+                throw;
+            }
+        }
     }
 
     private static PowerPointPresentation LoadPowerPointForReader(
         Stream stream, ReaderOptions options) {
         if (stream.CanSeek) stream.Position = 0;
-        return PowerPointPresentation.Load(stream,
-            CreatePowerPointReaderLoadOptions(options));
+        PowerPointLoadOptions loadOptions =
+            CreatePowerPointReaderLoadOptions(options);
+        try {
+            return PowerPointPresentation.Load(stream, loadOptions);
+        } catch (Exception exception) when (stream.CanSeek
+            && ShouldRetryEncryptedPowerPointOpen(exception, options)) {
+            stream.Position = 0;
+            try {
+                return PowerPointPresentation.LoadEncrypted(stream,
+                    options.OpenPassword!, loadOptions);
+            } catch {
+                ExceptionDispatchInfo.Capture(exception).Throw();
+                throw;
+            }
+        }
     }
+
+    private static bool ShouldRetryEncryptedPowerPointOpen(
+        Exception exception, ReaderOptions options) =>
+        !string.IsNullOrEmpty(options.OpenPassword)
+        && (exception is InvalidDataException
+            || exception is OpenXmlPackageException
+            || exception is IOException);
 
     private static PowerPointLoadOptions CreatePowerPointReaderLoadOptions(
         ReaderOptions options) {
