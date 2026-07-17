@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
+using System.Threading;
 
 namespace OfficeIMO.Drawing.Internal {
     /// <summary>
@@ -44,7 +44,15 @@ namespace OfficeIMO.Drawing.Internal {
         /// </summary>
         internal static DocumentKind Detect(Stream stream, long maxInputBytes,
             int maxDirectoryEntries, out string? error) {
+            return Detect(stream, maxInputBytes, maxDirectoryEntries,
+                CancellationToken.None, out error);
+        }
+
+        internal static DocumentKind Detect(Stream stream, long maxInputBytes,
+            int maxDirectoryEntries, CancellationToken cancellationToken,
+            out string? error) {
             if (stream == null) throw new ArgumentNullException(nameof(stream));
+            cancellationToken.ThrowIfCancellationRequested();
             if (!stream.CanRead || !stream.CanSeek) {
                 error = "Compound document detection requires a readable seekable stream.";
                 return DocumentKind.UnknownCompound;
@@ -54,6 +62,7 @@ namespace OfficeIMO.Drawing.Internal {
             try {
                 var signature = new byte[OleCompoundSignature.Length];
                 int read = stream.Read(signature, 0, signature.Length);
+                cancellationToken.ThrowIfCancellationRequested();
                 if (read != signature.Length || !HasCompoundSignature(signature)) {
                     error = null;
                     return DocumentKind.NotCompound;
@@ -62,27 +71,35 @@ namespace OfficeIMO.Drawing.Internal {
                 stream.Position = originalPosition;
                 if (!OfficeCompoundFileReader.TryInspectDirectory(stream,
                         maxInputBytes, maxDirectoryEntries,
+                        cancellationToken,
                         out IReadOnlyList<OfficeCompoundFileEntry> entries,
                         out error)) {
                     return DocumentKind.UnknownCompound;
                 }
 
-                return Detect(entries);
+                return Detect(entries, cancellationToken);
             } finally {
                 stream.Position = originalPosition;
             }
         }
 
         private static DocumentKind Detect(
-            IReadOnlyList<OfficeCompoundFileEntry> entries) {
-            bool hasWordDocument = ContainsRootStream(entries, "WordDocument");
-            bool hasWorkbook = ContainsRootStream(entries, "Workbook")
-                || ContainsRootStream(entries, "Book");
+            IReadOnlyList<OfficeCompoundFileEntry> entries,
+            CancellationToken cancellationToken = default) {
+            bool hasWordDocument = ContainsRootStream(entries, "WordDocument",
+                cancellationToken);
+            bool hasWorkbook = ContainsRootStream(entries, "Workbook",
+                    cancellationToken)
+                || ContainsRootStream(entries, "Book", cancellationToken);
             bool hasPowerPointPresentation =
-                ContainsRootStream(entries, "PowerPoint Document")
-                && ContainsRootStream(entries, "Current User");
-            bool hasEncryptedPackage = ContainsRootStream(entries, "EncryptedPackage")
-                && ContainsRootStream(entries, "EncryptionInfo");
+                ContainsRootStream(entries, "PowerPoint Document",
+                    cancellationToken)
+                && ContainsRootStream(entries, "Current User",
+                    cancellationToken);
+            bool hasEncryptedPackage = ContainsRootStream(entries,
+                    "EncryptedPackage", cancellationToken)
+                && ContainsRootStream(entries, "EncryptionInfo",
+                    cancellationToken);
 
             int recognizedRootCount = (hasWordDocument ? 1 : 0)
                 + (hasWorkbook ? 1 : 0)
@@ -97,9 +114,16 @@ namespace OfficeIMO.Drawing.Internal {
         }
 
         private static bool ContainsRootStream(
-            IEnumerable<OfficeCompoundFileEntry> entries, string name) =>
-            entries.Any(entry => entry.IsStream
-                && string.Equals(entry.Path, name,
-                    StringComparison.OrdinalIgnoreCase));
+            IEnumerable<OfficeCompoundFileEntry> entries, string name,
+            CancellationToken cancellationToken) {
+            foreach (OfficeCompoundFileEntry entry in entries) {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (entry.IsStream && string.Equals(entry.Path, name,
+                        StringComparison.OrdinalIgnoreCase)) {
+                    return true;
+                }
+            }
+            return false;
+        }
     }
 }

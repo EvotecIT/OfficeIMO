@@ -138,8 +138,7 @@ namespace OfficeIMO.Tests {
                 paddedBytes);
             Assert.Throws<InvalidDataException>(() =>
                 PowerPointPresentation.Load(nonSeekable, loadOptions));
-            Assert.InRange(nonSeekable.BytesRead, 1,
-                paddedBytes.Length - 1);
+            Assert.Equal(paddedBytes.Length, nonSeekable.BytesRead);
         }
 
         [Fact]
@@ -197,6 +196,46 @@ namespace OfficeIMO.Tests {
                 await PowerPointPresentation.LoadEncryptedAsync(
                     encryptedAsyncInput, password, encryptedOptions);
             Assert.Single(encryptedAsync.Slides);
+        }
+
+        [Fact]
+        public async Task PresentationFacade_ClassifiesCompleteLargeEncryptedOpenXmlFromNonSeekableStream() {
+            const string password = "large-openxml-budget";
+            var randomBytes = new byte[128 * 1024];
+            new Random(42).NextBytes(randomBytes);
+            string largeText = Convert.ToBase64String(randomBytes);
+            byte[] encryptedBytes;
+            using (PowerPointPresentation source =
+                   PowerPointPresentation.Create()) {
+                source.AddSlide().AddTextBox(largeText);
+                encryptedBytes = source.ToEncryptedBytes(password);
+            }
+
+            Assert.True(encryptedBytes.Length > 81920);
+            var options = new PowerPointLoadOptions {
+                LegacyPptImportOptions = new LegacyPptImportOptions {
+                    MaxInputBytes = 4096
+                }
+            };
+
+            using var syncInput = new CountingNonSeekableReadStream(
+                encryptedBytes);
+            using PowerPointPresentation sync =
+                PowerPointPresentation.LoadEncrypted(syncInput, password,
+                    options);
+            Assert.Equal(largeText.Length,
+                Assert.Single(sync.Slides[0].TextBoxes).Text.Length);
+            Assert.Equal(encryptedBytes.Length, syncInput.BytesRead);
+
+            using var asyncInput = new CountingNonSeekableReadStream(
+                encryptedBytes);
+            using PowerPointPresentation asyncPresentation =
+                await PowerPointPresentation.LoadEncryptedAsync(asyncInput,
+                    password, options);
+            Assert.Equal(largeText.Length,
+                Assert.Single(asyncPresentation.Slides[0].TextBoxes)
+                    .Text.Length);
+            Assert.Equal(encryptedBytes.Length, asyncInput.BytesRead);
         }
 
         [Fact]

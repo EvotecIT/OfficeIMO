@@ -28,7 +28,7 @@ namespace OfficeIMO.PowerPoint {
                     OfficeCompoundDocumentDetector.DocumentKind kind =
                         OfficeCompoundDocumentDetector.Detect(source,
                             long.MaxValue, CompoundDetectionDirectoryLimit,
-                            out _);
+                            cancellationToken, out _);
                     long? maxInputBytes = ResolveInputLimit(kind, options);
                     return OfficeStreamReader.ReadAllBytes(source,
                         cancellationToken, maxInputBytes);
@@ -83,12 +83,12 @@ namespace OfficeIMO.PowerPoint {
             using FileStream temporary = CreateTemporaryInputStream(
                 useAsync: false);
             temporary.Write(prefix, 0, prefix.Length);
-            CopyCompoundToTemporary(source, temporary, prefix.Length,
-                options, cancellationToken);
+            CopyTo(source, temporary, cancellationToken);
             temporary.Position = 0;
             OfficeCompoundDocumentDetector.DocumentKind kind =
                 OfficeCompoundDocumentDetector.Detect(temporary,
-                    long.MaxValue, CompoundDetectionDirectoryLimit, out _);
+                    long.MaxValue, CompoundDetectionDirectoryLimit,
+                    cancellationToken, out _);
             long? maxInputBytes = ResolveInputLimit(kind, options);
             return OfficeStreamReader.ReadAllBytes(temporary,
                 cancellationToken, maxInputBytes);
@@ -104,15 +104,15 @@ namespace OfficeIMO.PowerPoint {
                 useAsync: true);
             await temporary.WriteAsync(prefix, 0, prefix.Length,
                 cancellationToken).ConfigureAwait(false);
-            await CopyCompoundToTemporaryAsync(source, temporary,
-                prefix.Length, options, cancellationToken).ConfigureAwait(
-                    false);
+            await CopyToAsync(source, temporary, cancellationToken)
+                .ConfigureAwait(false);
             await temporary.FlushAsync(cancellationToken)
                 .ConfigureAwait(false);
             temporary.Position = 0;
             OfficeCompoundDocumentDetector.DocumentKind kind =
                 OfficeCompoundDocumentDetector.Detect(temporary,
-                    long.MaxValue, CompoundDetectionDirectoryLimit, out _);
+                    long.MaxValue, CompoundDetectionDirectoryLimit,
+                    cancellationToken, out _);
             long? maxInputBytes = ResolveInputLimit(kind, options);
             return await OfficeStreamReader.ReadAllBytesAsync(temporary,
                 cancellationToken, maxInputBytes).ConfigureAwait(false);
@@ -214,76 +214,6 @@ namespace OfficeIMO.PowerPoint {
                     cancellationToken).ConfigureAwait(false);
             }
             cancellationToken.ThrowIfCancellationRequested();
-        }
-
-        private static void CopyCompoundToTemporary(Stream source,
-            FileStream temporary, long totalBytes,
-            PowerPointLoadOptions options,
-            CancellationToken cancellationToken) {
-            int legacyLimit = ResolveLegacyInputLimit(options);
-            bool knownNonLegacy = false;
-            var buffer = new byte[InputCopyBufferSize];
-            while (true) {
-                cancellationToken.ThrowIfCancellationRequested();
-                int read = source.Read(buffer, 0, buffer.Length);
-                if (read == 0) break;
-                temporary.Write(buffer, 0, read);
-                totalBytes = checked(totalBytes + read);
-                if (!knownNonLegacy && totalBytes > legacyLimit) {
-                    knownNonLegacy = ClassifyOversizedCompound(temporary,
-                        legacyLimit);
-                }
-            }
-            cancellationToken.ThrowIfCancellationRequested();
-        }
-
-        private static async Task CopyCompoundToTemporaryAsync(
-            Stream source, FileStream temporary, long totalBytes,
-            PowerPointLoadOptions options,
-            CancellationToken cancellationToken) {
-            int legacyLimit = ResolveLegacyInputLimit(options);
-            bool knownNonLegacy = false;
-            var buffer = new byte[InputCopyBufferSize];
-            while (true) {
-                int read = await source.ReadAsync(buffer, 0, buffer.Length,
-                    cancellationToken).ConfigureAwait(false);
-                if (read == 0) break;
-                await temporary.WriteAsync(buffer, 0, read,
-                    cancellationToken).ConfigureAwait(false);
-                totalBytes = checked(totalBytes + read);
-                if (!knownNonLegacy && totalBytes > legacyLimit) {
-                    await temporary.FlushAsync(cancellationToken)
-                        .ConfigureAwait(false);
-                    knownNonLegacy = ClassifyOversizedCompound(temporary,
-                        legacyLimit);
-                }
-            }
-            cancellationToken.ThrowIfCancellationRequested();
-        }
-
-        private static bool ClassifyOversizedCompound(FileStream temporary,
-            int legacyLimit) {
-            long end = temporary.Position;
-            temporary.Flush();
-            temporary.Position = 0;
-            try {
-                OfficeCompoundDocumentDetector.DocumentKind kind =
-                    OfficeCompoundDocumentDetector.Detect(temporary,
-                        end, CompoundDetectionDirectoryLimit, out _);
-                if (kind is OfficeCompoundDocumentDetector.DocumentKind
-                        .EncryptedOpenXmlPackage
-                    or OfficeCompoundDocumentDetector.DocumentKind
-                        .WordDocument
-                    or OfficeCompoundDocumentDetector.DocumentKind
-                        .ExcelWorkbook) {
-                    return true;
-                }
-                throw new InvalidDataException(
-                    $"Stream exceeds the configured maximum size ({legacyLimit} bytes)."
-                );
-            } finally {
-                temporary.Position = end;
-            }
         }
 
         private static FileStream CreateTemporaryInputStream(bool useAsync) {
