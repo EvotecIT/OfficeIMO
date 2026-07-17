@@ -28,8 +28,11 @@ internal static class HtmlPdfRenderedConverter {
         renderOptions.Mode = HtmlRenderMode.Paged;
         renderOptions.UrlPolicy.AllowDataUrls = options.ResourcePolicy.AllowDataUris;
         HtmlRenderResourceResolver? embeddedPackageResolver = options.EmbeddedPackageResourceResolver;
-        renderOptions.UrlPolicy.DisallowFileUrls = !options.ResourcePolicy.AllowLocalFileAccess &&
-            !(embeddedPackageResolver != null && options.ResourcePolicy.AllowEmbeddedPackageResources);
+        renderOptions.UrlPolicy.DisallowFileUrls = !options.ResourcePolicy.AllowLocalFileAccess;
+        renderOptions.ResourceUrlPolicy = renderOptions.UrlPolicy.Clone();
+        if (embeddedPackageResolver != null && options.ResourcePolicy.AllowEmbeddedPackageResources) {
+            renderOptions.ResourceUrlPolicy.DisallowFileUrls = false;
+        }
         HtmlRenderResourceResolver? hostResolver = renderOptions.ResourceResolver;
         if (embeddedPackageResolver != null || hostResolver != null) {
             renderOptions.ResourceResolver = async (request, cancellationToken) => {

@@ -1963,6 +1963,7 @@ public sealed class PdfConversionScenarioManifestTests {
 
         IReadOnlyList<string> knownLimits = ReadStringArray(qualityContract, "knownLimits");
         Assert.Contains(knownLimits, item => item.Contains("IPdfTextShapingProvider", StringComparison.Ordinal));
+        Assert.Contains(knownLimits, item => item.Contains("NativeFontFamilySlotExhausted", StringComparison.Ordinal));
         Assert.Contains(knownLimits, item => item.Contains("OneNote", StringComparison.Ordinal));
         Assert.Contains(knownLimits, item => item.Contains("external validator", StringComparison.OrdinalIgnoreCase));
     }

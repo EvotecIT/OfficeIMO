@@ -395,7 +395,7 @@ public sealed partial class HtmlRenderingTests {
     public async Task MhtmlPdf_DefaultPolicyResolvesEmbeddedContentLocationFromFileBackedArchive() {
         byte[] imageBytes = PdfPngTestImages.CreateRgbPng(8, 5);
         var source = new MhtmlDocument(
-            "<img src='images/logo.png' width='40' height='25' alt='file-backed embedded logo'>",
+            "<a href='local-review.pdf'>blocked local link</a><img src='images/logo.png' width='40' height='25' alt='file-backed embedded logo'>",
             new[] { new MhtmlResource(imageBytes, "image/png", contentLocation: "images/logo.png", fileName: "logo.png") });
         string path = Path.Combine(Path.GetTempPath(), "officeimo-mhtml-pdf-" + Guid.NewGuid().ToString("N") + ".mht");
         try {
@@ -407,6 +407,7 @@ public sealed partial class HtmlRenderingTests {
             byte[] pdf = result.ToBytes();
 
             Assert.Contains(PdfCore.PdfImageExtractor.ExtractImages(pdf), image => image.IsImageFile && image.MimeType == "image/png");
+            Assert.DoesNotContain(PdfCore.PdfInspector.Inspect(pdf).LinkUris, link => link.StartsWith("file:", StringComparison.OrdinalIgnoreCase));
             Assert.DoesNotContain(result.Warnings, warning => warning.Code == HtmlRenderDiagnosticCodes.ResourceUnavailable);
         } finally {
             if (File.Exists(path)) File.Delete(path);

@@ -242,13 +242,16 @@ namespace OfficeIMO.Word.Pdf {
                 PdfCore.PdfStandardFontMapper.TryMapFontFamily(trimmedFamilyName, out PdfCore.PdfStandardFont mappedFont) &&
                 registeredFontSlots.Contains(PdfCore.PdfStandardFontMapper.GetFontFamily(mappedFont)) &&
                 !EmbeddedFontSlotMatchesFamily(pdfOptions, mappedFont, trimmedFamilyName) &&
-                PdfCore.PdfOptions.TrySelectAvailableFontFamilySlot(trimmedFamilyName, registeredFontSlots, out PdfCore.PdfStandardFont distinctFontSlot) &&
                 PdfCore.PdfEmbeddedFontFamily.TryFromSystem(trimmedFamilyName, out PdfCore.PdfEmbeddedFontFamily? distinctEmbeddedFamily) &&
                 distinctEmbeddedFamily != null) {
-                registeredFontSlots.Add(distinctFontSlot);
-                pdfOptions.RegisterFontFamily(distinctFontSlot, distinctEmbeddedFamily);
-                nativeFontMap.Register(trimmedFamilyName, distinctFontSlot);
-                return;
+                if (PdfCore.PdfOptions.TrySelectAvailableFontFamilySlot(trimmedFamilyName, registeredFontSlots, out PdfCore.PdfStandardFont distinctFontSlot)) {
+                    registeredFontSlots.Add(distinctFontSlot);
+                    pdfOptions.RegisterFontFamily(distinctFontSlot, distinctEmbeddedFamily);
+                    nativeFontMap.Register(trimmedFamilyName, distinctFontSlot);
+                    return;
+                }
+
+                nativeFontMap.ReportSlotExhaustion(trimmedFamilyName, mappedFont);
             }
 
             if (pdfOptions.TryRegisterMappedOfficeFontFamily(trimmedFamilyName, registeredFontSlots, allowSystemFontEmbedding, out PdfCore.PdfStandardFont fontFamily)) {

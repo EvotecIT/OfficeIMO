@@ -2,6 +2,7 @@ using OfficeIMO.Word;
 using OfficeIMO.Word.Pdf;
 using OfficeIMO.Pdf;
 using DocumentFormat.OpenXml.Wordprocessing;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -160,6 +161,34 @@ namespace OfficeIMO.Tests {
 
             Assert.Contains("/BaseFont /Calibri", content, StringComparison.Ordinal);
             Assert.Contains("/BaseFont /Arial", content, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void SaveAsPdf_OfficeIMOEngine_Reports_When_Distinct_Mapped_Font_Slots_Are_Exhausted() {
+            IReadOnlyList<string> fontFamilies = FindMappedEmbeddableSansFontFamilies(4);
+            if (fontFamilies.Count < 4) {
+                return;
+            }
+
+            string docPath = Path.Combine(_directoryWithFiles, "PdfNativeMappedFontSlotExhaustion.docx");
+            using WordDocument document = WordDocument.Create(docPath);
+            document.Settings.FontFamily = fontFamilies[0];
+            for (int index = 0; index < fontFamilies.Count; index++) {
+                document.AddParagraph().AddText("Distinct font " + index).SetFontFamily(fontFamilies[index]);
+            }
+
+            document.Save();
+            PdfDocumentConversionResult result = document.ToPdfDocumentResult(new PdfSaveOptions {
+                IncludePageNumbers = false
+            });
+
+            PdfConversionWarning[] warnings = result.Warnings
+                .Where(item => item.Code == "NativeFontFamilySlotExhausted")
+                .ToArray();
+            Assert.NotEmpty(warnings);
+            Assert.Contains(warnings, warning => warning.Details["fontFamily"] == fontFamilies[fontFamilies.Count - 1]);
+            Assert.All(warnings, warning => Assert.Contains(warning.Details["fontFamily"], fontFamilies));
+            Assert.Throws<InvalidOperationException>(() => result.Report.RequireNoLoss());
         }
 
         [Fact]
@@ -478,6 +507,30 @@ namespace OfficeIMO.Tests {
             }
 
             return null;
+        }
+
+        private static IReadOnlyList<string> FindMappedEmbeddableSansFontFamilies(int count) {
+            var result = new List<string>(count);
+            foreach (string candidate in new[] {
+                "Arial",
+                "Calibri",
+                "Aptos",
+                "Segoe UI",
+                "Tahoma",
+                "Verdana"
+            }) {
+                if (PdfStandardFontMapper.TryMapFontFamily(candidate, out PdfStandardFont mapped) &&
+                    PdfStandardFontMapper.GetFontFamily(mapped) == PdfStandardFont.Helvetica &&
+                    PdfEmbeddedFontFamily.TryFromSystem(candidate, out PdfEmbeddedFontFamily? family) &&
+                    family != null) {
+                    result.Add(candidate);
+                    if (result.Count == count) {
+                        break;
+                    }
+                }
+            }
+
+            return result;
         }
 
         private static string SanitizeExpectedPdfFontName(string fontFamily) {

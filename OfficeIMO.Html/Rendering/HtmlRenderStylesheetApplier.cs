@@ -88,7 +88,7 @@ internal static class HtmlRenderStylesheetApplier {
         }
 
         var resourceOptions = new HtmlResourcePipelineOptions {
-            UrlPolicy = (options.UrlPolicy ?? HtmlUrlPolicy.CreateOfficeIMOProfile()).Clone(),
+            UrlPolicy = options.GetResourceUrlPolicy().Clone(),
             MediaContext = options.MediaContext,
             MediaWidth = options.Mode == HtmlRenderMode.Paged ? options.PageWidth : options.ViewportWidth,
             MediaHeight = options.Mode == HtmlRenderMode.Paged ? options.PageHeight : options.ViewportHeight ?? 1056D
@@ -126,7 +126,7 @@ internal static class HtmlRenderStylesheetApplier {
         return HtmlResourcePipeline.RebaseExternalStylesheetUrls(
             builder.ToString(),
             stylesheetUri,
-            options.UrlPolicy ?? HtmlUrlPolicy.CreateOfficeIMOProfile());
+            options.GetResourceUrlPolicy());
     }
 
     private static void ReportCycle(HtmlDiagnosticReport diagnostics, HashSet<string> reportedCycles, string source) {

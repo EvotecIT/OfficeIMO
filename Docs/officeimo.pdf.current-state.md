@@ -40,6 +40,11 @@ control fidelity and content selection; they do not silently change trust. Zero-
 Excel output also do not inject page numbers or worksheet-name headings that
 were absent from the source.
 
+Word conversion embeds distinct mapped document and run fonts while a PDF
+family slot is available. The current writer has three such standard-family
+slots; documents needing more receive a `NativeFontFamilySlotExhausted` loss
+warning with the exact font and substitution instead of a silent alias.
+
 OneNote conversion is deliberately named as a semantic-document projection.
 It preserves hierarchy and reading-order content, reports canvas flattening and
 asset placeholders, and does not claim to reproduce the free-form OneNote
