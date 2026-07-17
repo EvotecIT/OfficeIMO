@@ -164,6 +164,46 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void SaveAsPdf_OfficeIMOEngine_EmptyMappedFontSlotDoesNotMatchRequestedFamily() {
+            var options = new PdfOptions();
+
+            Assert.False(WordPdfConverterExtensions.EmbeddedFontSlotMatchesFamily(
+                options,
+                PdfStandardFont.Helvetica,
+                "Arial"));
+        }
+
+        [Fact]
+        public void SaveAsPdf_OfficeIMOEngine_EmbedsAvailableMappedFontAfterUnavailableFamilyClaimsSlot() {
+            string? availableFamily = FindMappedEmbeddableSansFontFamilies(1).FirstOrDefault();
+            if (availableFamily == null) {
+                return;
+            }
+
+            const string unavailableFamily = "sans-serif";
+            Assert.False(PdfEmbeddedFontFamily.TryFromSystem(unavailableFamily, out PdfEmbeddedFontFamily? _));
+            string docPath = Path.Combine(_directoryWithFiles, "PdfNativeAvailableFontAfterUnavailableMappedFamily.docx");
+            string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeAvailableFontAfterUnavailableMappedFamily.pdf");
+
+            using (WordDocument document = WordDocument.Create(docPath)) {
+                document.Settings.FontFamily = unavailableFamily;
+                document.AddParagraph().AddText("Unavailable mapped family").SetFontFamily(unavailableFamily);
+                document.AddParagraph().AddText("Available mapped family").SetFontFamily(availableFamily);
+
+                document.Save();
+                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                    IncludePageNumbers = false,
+                    ResourcePolicy = PdfResourcePolicy.CreateTrustedHost()
+                });
+            }
+
+            string content = Encoding.ASCII.GetString(File.ReadAllBytes(pdfPath));
+
+            Assert.Contains("/FontFile2", content, StringComparison.Ordinal);
+            Assert.Contains("/BaseFont /" + SanitizeExpectedPdfFontName(availableFamily), content, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void SaveAsPdf_OfficeIMOEngine_Reports_When_Distinct_Mapped_Font_Slots_Are_Exhausted() {
             IReadOnlyList<string> fontFamilies = FindMappedEmbeddableSansFontFamilies(4);
             if (fontFamilies.Count < 4) {
