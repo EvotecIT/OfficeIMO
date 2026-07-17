@@ -79,7 +79,7 @@ public static class PowerPointExtractionExtensions {
                 }
             }
 
-            var markdown = md.ToString().TrimEnd();
+            var markdown = NormalizeLineEndings(md.ToString()).TrimEnd();
             if (markdown.Length > chunking.MaxChars) {
                 markdown = markdown.Substring(0, chunking.MaxChars) + "\n\n<!-- truncated -->";
                 warnings = new List<string> { "Markdown truncated to MaxChars." };
@@ -99,6 +99,9 @@ public static class PowerPointExtractionExtensions {
             };
         }
     }
+
+    private static string NormalizeLineEndings(string value) =>
+        value.Replace("\r\n", "\n").Replace('\r', '\n');
 
     private static void AppendTextBoxMarkdown(StringBuilder markdown, PowerPointTextBox textBox) {
         bool isTitle = textBox.ShapePlaceholderType == PlaceholderValues.Title

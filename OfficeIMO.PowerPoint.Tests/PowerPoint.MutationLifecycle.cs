@@ -213,6 +213,26 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ShapeRemovalIgnoresOrdinaryAttributesMatchingLayoutId() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            SlideLayoutPart layout = slide.SlidePart.SlideLayoutPart!;
+            string layoutRelationshipId = slide.SlidePart.GetIdOfPart(layout);
+            PowerPointAutoShape shape = slide.AddRectangle(
+                100000, 100000, 1000000, 500000);
+            shape.Name = layoutRelationshipId;
+
+            shape.Remove();
+
+            Assert.Same(layout, slide.SlidePart.SlideLayoutPart);
+            Assert.Contains(slide.SlidePart.Parts, pair =>
+                pair.RelationshipId == layoutRelationshipId
+                && ReferenceEquals(pair.OpenXmlPart, layout));
+            Assert.Empty(presentation.ValidateDocument());
+        }
+
+        [Fact]
         public void SharedMediaUpdateDetachesOnlyTheSelectedFrame() {
             byte[] original = CreateWave();
             byte[] replacement = (byte[])original.Clone();
@@ -223,6 +243,8 @@ namespace OfficeIMO.Tests {
             using var input = new MemoryStream(original, writable: false);
             PowerPointMedia first = slide.AddAudio(input, "audio/wav",
                 ".wav");
+            first.Name = first.MediaReferenceId!;
+            string originalName = first.Name!;
             PowerPointMedia second = Assert.IsType<PowerPointMedia>(
                 first.Duplicate(offsetX: 1000000));
             Assert.Equal(first.MediaReferenceId,
@@ -236,6 +258,46 @@ namespace OfficeIMO.Tests {
             Assert.Equal(original, second.GetData());
             Assert.NotEqual(first.MediaReferenceId,
                 second.MediaReferenceId);
+            Assert.Equal(originalName, first.Name);
+            Assert.Equal(2, presentation.OpenXmlDocument.DataParts.Count());
+            Assert.Empty(presentation.ValidateDocument());
+        }
+
+        [Fact]
+        public void MediaUpdateDetachesFromMasterConsumer() {
+            byte[] original = CreateWave();
+            byte[] replacement = (byte[])original.Clone();
+            replacement[replacement.Length - 1] ^= 0x22;
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            using var input = new MemoryStream(original, writable: false);
+            PowerPointMedia media = slide.AddAudio(input, "audio/wav",
+                ".wav");
+            MediaDataPart sharedPart = Assert.IsType<MediaDataPart>(slide
+                .SlidePart.DataPartReferenceRelationships.Single(
+                    relationship => relationship.Id ==
+                        media.MediaReferenceId).DataPart);
+            SlideMasterPart master = slide.SlidePart.SlideLayoutPart!
+                .SlideMasterPart!;
+            AudioReferenceRelationship masterRelationship = master
+                .AddAudioReferenceRelationship(sharedPart,
+                    "rIdMasterMedia");
+            master.SlideMaster!.CommonSlideData!.ShapeTree!.Append(
+                CreateSoundedShape(202U, "Master media consumer",
+                    masterRelationship.Id, "Shared master media"));
+            master.SlideMaster.Save();
+
+            using var updated = new MemoryStream(replacement,
+                writable: false);
+            media.UpdateData(updated);
+
+            Assert.Equal(replacement, media.GetData());
+            using Stream masterData = masterRelationship.DataPart.GetStream(
+                FileMode.Open, FileAccess.Read);
+            using var copied = new MemoryStream();
+            masterData.CopyTo(copied);
+            Assert.Equal(original, copied.ToArray());
             Assert.Equal(2, presentation.OpenXmlDocument.DataParts.Count());
             Assert.Empty(presentation.ValidateDocument());
         }
@@ -431,18 +493,14 @@ namespace OfficeIMO.Tests {
             Timing timing = slide.SlidePart.Slide!.Timing!;
             AnimateEffect classicEffect = Assert.Single(
                 timing.Descendants<AnimateEffect>());
-            ParallelTimeNode classicOwner = classicEffect
-                .Ancestors<ParallelTimeNode>().First();
-            ParallelTimeNode advancedOwner = (ParallelTimeNode)
-                classicOwner.CloneNode(true);
-            foreach (CommonTimeNode timeNode in advancedOwner
+            AnimateEffect advancedEffect = (AnimateEffect)
+                classicEffect.CloneNode(true);
+            foreach (CommonTimeNode timeNode in advancedEffect
                          .Descendants<CommonTimeNode>()) {
                 if (timeNode.Id?.Value is uint id) timeNode.Id = id + 100U;
             }
-            AnimateEffect advancedEffect = advancedOwner
-                .Descendants<AnimateEffect>().Single();
             advancedEffect.CommonBehavior!.CommonTimeNode!.Duration = "777";
-            classicOwner.Parent!.Append(advancedOwner);
+            classicEffect.Parent!.Append(advancedEffect);
 
             Assert.True(slide.RemoveClassicAnimation(shape));
 

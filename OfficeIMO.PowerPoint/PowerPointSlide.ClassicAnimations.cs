@@ -278,15 +278,11 @@ namespace OfficeIMO.PowerPoint {
                 if (effect == null) continue;
                 OpenXmlElement? owner = effect
                     .Ancestors<ParallelTimeNode>().FirstOrDefault();
-                if (owner != null) {
-                    foreach (AnimateEffect ownedEffect in owner
-                                 .Descendants<AnimateEffect>()) {
-                        candidates.Remove(ownedEffect);
-                    }
-                } else {
-                    candidates.Remove(effect);
+                candidates.Remove(effect);
+                effect.Remove();
+                if (owner != null && !HasTimingAction(owner)) {
+                    owner.Remove();
                 }
-                (owner ?? effect).Remove();
             }
             var builds = timing.Descendants<BuildParagraph>().ToList();
             foreach (PowerPointClassicAnimation animation in animations
@@ -302,6 +298,12 @@ namespace OfficeIMO.PowerPoint {
                 list.Remove();
             }
         }
+
+        private static bool HasTimingAction(OpenXmlElement owner) =>
+            owner.Descendants().Any(element => element is Animate
+                or AnimateColor or AnimateEffect or AnimateMotion
+                or AnimateRotation or AnimateScale or Command or Audio
+                or Video or SetBehavior);
 
         private static bool IsClassicTimingEffect(AnimateEffect effect,
             PowerPointClassicAnimation animation) {

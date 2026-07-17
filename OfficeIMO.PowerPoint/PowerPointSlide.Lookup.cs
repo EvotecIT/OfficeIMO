@@ -186,6 +186,7 @@ namespace OfficeIMO.PowerPoint {
             string[] relationshipIds = new[] { shape.Element }
                 .Concat(shape.Element.Descendants())
                 .SelectMany(element => element.GetAttributes())
+                .Where(IsRelationshipAttribute)
                 .Select(attribute => attribute.Value)
                 .Where(value => value != null
                     && knownRelationshipIds.Contains(value))
@@ -213,13 +214,15 @@ namespace OfficeIMO.PowerPoint {
 
         private void RemoveSlideRelationshipIfUnused(
             string relationshipId) {
-            if (SlideRoot.GetAttributes().Any(attribute => string.Equals(
-                    attribute.Value, relationshipId,
-                    StringComparison.Ordinal))
+            if (SlideRoot.GetAttributes().Any(attribute =>
+                    IsRelationshipAttribute(attribute)
+                    && string.Equals(attribute.Value, relationshipId,
+                        StringComparison.Ordinal))
                 || SlideRoot.Descendants().Any(element =>
-                    element.GetAttributes().Any(attribute => string.Equals(
-                        attribute.Value, relationshipId,
-                        StringComparison.Ordinal)))) {
+                    element.GetAttributes().Any(attribute =>
+                        IsRelationshipAttribute(attribute)
+                        && string.Equals(attribute.Value, relationshipId,
+                            StringComparison.Ordinal)))) {
                 return;
             }
             DataPartReferenceRelationship? dataRelationship = _slidePart
@@ -257,6 +260,12 @@ namespace OfficeIMO.PowerPoint {
                 _slidePart.DeletePart(relationshipId);
             }
         }
+
+        private static bool IsRelationshipAttribute(
+            OpenXmlAttribute attribute) => string.Equals(
+            attribute.NamespaceUri,
+            "http://schemas.openxmlformats.org/officeDocument/2006/relationships",
+            StringComparison.Ordinal);
 
         private static int CountOccurrences(string value, string oldValue) {
             int count = 0;

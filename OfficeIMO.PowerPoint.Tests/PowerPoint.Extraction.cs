@@ -131,6 +131,7 @@ namespace OfficeIMO.Tests {
 
             string markdown = presentation.ExtractMarkdownChunks().Single().Markdown;
 
+            Assert.DoesNotContain("\r", markdown, StringComparison.Ordinal);
             Assert.Contains("### Extraction contract", markdown, StringComparison.Ordinal);
             Assert.Contains("- • Parent bullet", markdown, StringComparison.Ordinal);
             Assert.Contains("    - • Nested bullet", markdown, StringComparison.Ordinal);

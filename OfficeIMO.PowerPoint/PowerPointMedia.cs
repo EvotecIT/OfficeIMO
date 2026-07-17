@@ -104,7 +104,7 @@ namespace OfficeIMO.PowerPoint {
 
         private bool IsSharedOutsideThisFrame(MediaDataPart mediaPart) {
             SlidePart owner = SlidePart;
-            if (owner.OpenXmlPackage is not PresentationDocument document) {
+            if (owner.OpenXmlPackage is not PresentationDocument) {
                 return true;
             }
             var localRelationshipIds = new HashSet<string>(new[] {
@@ -119,18 +119,13 @@ namespace OfficeIMO.PowerPoint {
                     return true;
                 }
             }
-            foreach (SlidePart slidePart in document.PresentationPart?
-                         .SlideParts ?? Enumerable.Empty<SlidePart>()) {
-                foreach (DataPartReferenceRelationship relationship in
-                         slidePart.DataPartReferenceRelationships) {
-                    if (!ReferenceEquals(relationship.DataPart, mediaPart)) {
-                        continue;
-                    }
-                    if (!ReferenceEquals(slidePart, owner)
-                        || !localRelationshipIds.Contains(relationship.Id)) {
-                        return true;
-                    }
-                }
+            int currentFrameRelationshipCount = owner
+                .DataPartReferenceRelationships.Count(relationship =>
+                    ReferenceEquals(relationship.DataPart, mediaPart)
+                    && localRelationshipIds.Contains(relationship.Id));
+            if (mediaPart.GetDataPartReferenceRelationships().Count()
+                > currentFrameRelationshipCount) {
+                return true;
             }
             return false;
         }
@@ -139,11 +134,13 @@ namespace OfficeIMO.PowerPoint {
             OpenXmlElement? root, string relationshipId) {
             if (root == null) return 0;
             int count = root.GetAttributes().Count(attribute =>
-                string.Equals(attribute.Value, relationshipId,
+                IsRelationshipAttribute(attribute)
+                && string.Equals(attribute.Value, relationshipId,
                     StringComparison.Ordinal));
             return count + root.Descendants().Sum(element => element
-                .GetAttributes().Count(attribute => string.Equals(
-                    attribute.Value, relationshipId,
+                .GetAttributes().Count(attribute =>
+                    IsRelationshipAttribute(attribute)
+                    && string.Equals(attribute.Value, relationshipId,
                     StringComparison.Ordinal)));
         }
 
@@ -252,7 +249,8 @@ namespace OfficeIMO.PowerPoint {
                          .Concat(root.Descendants())) {
                 foreach (OpenXmlAttribute attribute in element
                              .GetAttributes().Where(attribute =>
-                                 string.Equals(attribute.Value, oldValue,
+                                 IsRelationshipAttribute(attribute)
+                                 && string.Equals(attribute.Value, oldValue,
                                      StringComparison.Ordinal)).ToArray()) {
                     element.SetAttribute(new OpenXmlAttribute(
                         attribute.Prefix, attribute.LocalName,
@@ -260,6 +258,12 @@ namespace OfficeIMO.PowerPoint {
                 }
             }
         }
+
+        private static bool IsRelationshipAttribute(
+            OpenXmlAttribute attribute) => string.Equals(
+            attribute.NamespaceUri,
+            "http://schemas.openxmlformats.org/officeDocument/2006/relationships",
+            StringComparison.Ordinal);
 
         private static string GetNextMediaRelationshipId(
             SlidePart owner) {
