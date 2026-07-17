@@ -27,6 +27,9 @@ internal static class HtmlPdfRenderedConverter {
         HtmlRenderOptions renderOptions = options.ClonePdf();
         renderOptions.Mode = HtmlRenderMode.Paged;
         HtmlRenderResourceResolver? embeddedPackageResolver = options.EmbeddedPackageResourceResolver;
+        HtmlUrlPolicy hostResourceUrlPolicy = (options.EmbeddedPackageHostResourceUrlPolicy ?? renderOptions.GetResourceUrlPolicy()).Clone();
+        hostResourceUrlPolicy.AllowDataUrls = options.ResourcePolicy.AllowDataUris;
+        hostResourceUrlPolicy.DisallowFileUrls = !options.ResourcePolicy.AllowLocalFileAccess;
         renderOptions.ResourceUrlPolicy = renderOptions.GetResourceUrlPolicy().Clone();
         renderOptions.ResourceUrlPolicy.AllowDataUrls = options.ResourcePolicy.AllowDataUris;
         renderOptions.ResourceUrlPolicy.DisallowFileUrls = !options.ResourcePolicy.AllowLocalFileAccess;
@@ -45,6 +48,8 @@ internal static class HtmlPdfRenderedConverter {
                 bool hostResourceAllowed = request.Uri.IsFile
                     ? options.ResourcePolicy.AllowLocalFileAccess
                     : options.ResourcePolicy.AllowRemoteResourceResolution;
+                hostResourceAllowed = hostResourceAllowed
+                    && HtmlUrlPolicyEvaluator.IsAllowed(request.Uri.AbsoluteUri, hostResourceUrlPolicy);
                 return hostResourceAllowed
                     ? await hostResolver(request, cancellationToken).ConfigureAwait(false)
                     : null;

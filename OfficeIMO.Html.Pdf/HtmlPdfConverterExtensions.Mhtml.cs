@@ -128,6 +128,7 @@ public static partial class HtmlPdfConverterExtensions {
         operation.BaseUri ??= document.BaseUri;
         operation.EmbeddedPackageResourceResolver = document.CreateResourceResolver();
         if (!operation.ResourcePolicy.AllowEmbeddedPackageResources) return operation;
+        operation.EmbeddedPackageHostResourceUrlPolicy = operation.GetResourceUrlPolicy().Clone();
         HtmlRenderResourceResolver? hostResolver = operation.ResourceResolver;
         document.ConfigureRenderOptions(operation);
         operation.ResourceResolver = hostResolver;

@@ -20,6 +20,7 @@ public sealed class HtmlPdfSaveOptions : HtmlRenderOptions {
     private PdfCore.PdfResourcePolicy _resourcePolicy = PdfCore.PdfResourcePolicy.CreateDefault();
 
     internal HtmlRenderResourceResolver? EmbeddedPackageResourceResolver { get; set; }
+    internal HtmlUrlPolicy? EmbeddedPackageHostResourceUrlPolicy { get; set; }
     /// <summary>Creates direct paged HTML-to-PDF options using the standard defaults.</summary>
     public HtmlPdfSaveOptions() {
         Mode = HtmlRenderMode.Paged;
@@ -73,5 +74,6 @@ public sealed class HtmlPdfSaveOptions : HtmlRenderOptions {
         TextShapingProvider = source.TextShapingProvider;
         ResourcePolicy = source.ResourcePolicy.Clone();
         EmbeddedPackageResourceResolver = source.EmbeddedPackageResourceResolver;
+        EmbeddedPackageHostResourceUrlPolicy = source.EmbeddedPackageHostResourceUrlPolicy?.Clone();
     }
 }

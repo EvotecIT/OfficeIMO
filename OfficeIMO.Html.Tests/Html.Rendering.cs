@@ -485,6 +485,30 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public async Task MhtmlPdf_PackageSchemeExpansionDoesNotReachTrustedHostResolver() {
+        int hostResolverCalls = 0;
+        byte[] imageBytes = PdfPngTestImages.CreateRgbPng(8, 5);
+        var archive = new MhtmlDocument(
+            "<img src='cid:logo' width='40' height='25' alt='embedded logo'><img src='ftp://snapshot.example.test/missing.png' alt='missing'>",
+            new[] { new MhtmlResource(imageBytes, "image/png", contentId: "logo", fileName: "logo.png") },
+            contentLocation: "ftp://snapshot.example.test/archive/page.html");
+
+        PdfCore.PdfDocumentConversionResult result = await archive.ToPdfDocumentResultAsync(new HtmlPdfSaveOptions {
+            UrlPolicy = HtmlUrlPolicy.CreateWebOnlyProfile(),
+            ResourcePolicy = PdfCore.PdfResourcePolicy.CreateTrustedHost(),
+            ResourceResolver = (request, cancellationToken) => {
+                hostResolverCalls++;
+                return Task.FromResult<HtmlResolvedResource?>(new HtmlResolvedResource(imageBytes, "image/png"));
+            }
+        });
+        byte[] pdf = result.ToBytes();
+
+        Assert.Single(PdfCore.PdfImageExtractor.ExtractImages(pdf), image => image.IsImageFile && image.MimeType == "image/png");
+        Assert.Equal(0, hostResolverCalls);
+        Assert.Contains(result.Warnings, warning => warning.Code == HtmlRenderDiagnosticCodes.ResourceUnavailable);
+    }
+
+    [Fact]
     public void MhtmlPdf_ExposesCompleteDirectLifecycle() {
         MethodInfo[] methods = typeof(HtmlPdfConverterExtensions)
             .GetMethods(BindingFlags.Public | BindingFlags.Static)
