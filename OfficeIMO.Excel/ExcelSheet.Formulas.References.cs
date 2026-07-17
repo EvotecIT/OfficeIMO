@@ -320,6 +320,21 @@ namespace OfficeIMO.Excel {
             return false;
         }
 
+        private bool TryEvaluateSingleReferenceFormulaValue(string formula, out FormulaArgumentValue value) {
+            string token = formula.Trim();
+            if (token.StartsWith("=", StringComparison.Ordinal)) {
+                token = token.Substring(1).Trim();
+            }
+
+            if (!TryResolveFormulaReferenceArgument(token, out ExcelSheet sheet, out int row, out int column)) {
+                value = default;
+                return false;
+            }
+
+            value = sheet.ResolveCellArgument(row, column);
+            return value.HasValue && !value.IsUnresolvedFormula;
+        }
+
         private bool TryParseQualifiedFormulaCellReference(string token, ExcelSheet? defaultSheet, out ExcelSheet sheet, out int row, out int column) {
             sheet = this;
             row = 0;

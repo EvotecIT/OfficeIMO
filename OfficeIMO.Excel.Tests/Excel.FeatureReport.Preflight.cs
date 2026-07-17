@@ -381,6 +381,7 @@ namespace OfficeIMO.Tests {
                 sheet.CellValue(1, 1, 2d);
                 sheet.CellFormula(1, 2, "A1+1");
                 sheet.CellFormula(1, 3, "B1+1");
+                sheet.CellFormula(1, 4, "C1+1");
                 document.Save();
             }
 

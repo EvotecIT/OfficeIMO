@@ -221,6 +221,7 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(1, 5, "Unqualified At");
             sheet.CellValue(1, 6, "Unqualified Plain");
             sheet.CellValue(1, 7, "Unqualified Compare");
+            sheet.CellValue(1, 8, "Unqualified Direct");
             sheet.CellValue(2, 1, 10d);
             sheet.CellValue(2, 2, 20d);
             sheet.CellFormula(2, 3, "Sales[@B]+1");
@@ -228,7 +229,9 @@ namespace OfficeIMO.Tests {
             sheet.CellFormula(2, 5, "[@B]+1");
             sheet.CellFormula(2, 6, "SUM([B])");
             sheet.CellFormula(2, 7, "IF([@B]>10,1,0)");
-            sheet.AddTable("A1:G2", hasHeader: true, name: "Sales", style: TableStyle.TableStyleMedium2);
+            sheet.CellFormula(2, 8, "[@B]");
+            sheet.CellFormula(4, 8, "[@B]");
+            sheet.AddTable("A1:H2", hasHeader: true, name: "Sales", style: TableStyle.TableStyleMedium2);
 
             int calculated = document.Calculate();
             Assert.True(sheet.TryGetCachedFormulaValue(2, 3, out string? atValue));
@@ -241,7 +244,10 @@ namespace OfficeIMO.Tests {
             Assert.Equal("20", unqualifiedPlainValue);
             Assert.True(sheet.TryGetCachedFormulaValue(2, 7, out string? unqualifiedCompareValue));
             Assert.Equal("1", unqualifiedCompareValue);
-            Assert.Equal(5, calculated);
+            Assert.True(sheet.TryGetCachedFormulaValue(2, 8, out string? unqualifiedDirectValue));
+            Assert.Equal("20", unqualifiedDirectValue);
+            Assert.False(sheet.TryGetCachedFormulaValue(4, 8, out _));
+            Assert.Equal(6, calculated);
         }
 
         [Fact]

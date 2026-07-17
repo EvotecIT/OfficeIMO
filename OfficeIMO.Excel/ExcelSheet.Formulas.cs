@@ -318,13 +318,26 @@ namespace OfficeIMO.Excel {
                     this,
                     formulaCells,
                     sharedFormulaDefinitions);
+                var previousCache = _formulaEvaluationCache;
+                var previousDepthCache = _formulaEvaluationDepthCache;
+                var previousStack = _formulaEvaluationStack;
+                var previousDepthFrames = _formulaEvaluationDepthFrames;
+                var previousGuardState = _formulaEvaluationGuardState;
+                var previousSharedDefinitions = _formulaEvaluationSharedDefinitions;
                 var previousSharedDefinitionsBySheet = _formulaEvaluationSharedDefinitionsBySheet;
+                _formulaEvaluationCache = new Dictionary<string, FormulaArgumentValue>(StringComparer.OrdinalIgnoreCase);
+                _formulaEvaluationDepthCache = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+                _formulaEvaluationStack = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                _formulaEvaluationDepthFrames = new Stack<FormulaEvaluationDepthFrame>();
+                _formulaEvaluationGuardState = new FormulaEvaluationGuardState();
+                _formulaEvaluationSharedDefinitions = sharedFormulaDefinitions;
                 _formulaEvaluationSharedDefinitionsBySheet = new Dictionary<string, IReadOnlyDictionary<uint, SharedFormulaDefinition>>(
                     StringComparer.OrdinalIgnoreCase) {
                     [Name] = sharedFormulaDefinitions
                 };
                 try {
                     foreach (Cell cell in formulaCells) {
+                        _formulaEvaluationGuardState.DependencyGuardBlocked = false;
                         string formula = ResolveCellFormulaText(cell, sharedFormulaDefinitions);
                         bool supported = TryEvaluateFormulaCellValue(cell, out _, sharedFormulaDefinitions);
                         IReadOnlyList<string> dependencies = GetFormulaDependencies(
@@ -348,6 +361,12 @@ namespace OfficeIMO.Excel {
                             dependencyIssues));
                     }
                 } finally {
+                    _formulaEvaluationCache = previousCache;
+                    _formulaEvaluationDepthCache = previousDepthCache;
+                    _formulaEvaluationStack = previousStack;
+                    _formulaEvaluationDepthFrames = previousDepthFrames;
+                    _formulaEvaluationGuardState = previousGuardState;
+                    _formulaEvaluationSharedDefinitions = previousSharedDefinitions;
                     _formulaEvaluationSharedDefinitionsBySheet = previousSharedDefinitionsBySheet;
                 }
 
@@ -517,6 +536,10 @@ namespace OfficeIMO.Excel {
                 }
             } catch (RegexMatchTimeoutException) {
                 return false;
+            }
+
+            if (TryEvaluateSingleReferenceFormulaValue(formula, out result)) {
+                return true;
             }
 
             if (TryEvaluateFormula(formula, out double numeric)) {
