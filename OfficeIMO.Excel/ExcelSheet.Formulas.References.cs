@@ -445,6 +445,10 @@ namespace OfficeIMO.Excel {
                 return true;
             }
 
+            if (TryResolveUnqualifiedCurrentRowTableReferenceRange(token, currentRow, out sheet, out r1, out c1, out r2, out c2)) {
+                return true;
+            }
+
             return TryResolveDefinedNameRange(token, currentRow, out sheet, out r1, out c1, out r2, out c2);
         }
 

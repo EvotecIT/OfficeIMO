@@ -57,7 +57,8 @@ namespace OfficeIMO.Excel {
         /// True when OfficeIMO's lightweight evaluator can calculate all discovered formulas without known dependency issues.
         /// </summary>
         public bool CanCalculateFormulas =>
-            FindFeatureCount("Formula calculation blockers") == 0;
+            FindFeatureCount("Formula calculation blockers") == 0 &&
+            CountFormulaDependencyIssues(includeMissingCachedDependencyIssues: false) == 0;
 
         /// <summary>
         /// True when template binding can be attempted without preserve-only or unsupported advanced package features.

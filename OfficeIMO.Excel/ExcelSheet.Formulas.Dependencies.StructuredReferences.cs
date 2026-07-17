@@ -110,7 +110,8 @@ namespace OfficeIMO.Excel {
                     break;
                 }
 
-                if (CanStartUnqualifiedStructuredReference(formula, index)) {
+                if (CanStartUnqualifiedStructuredReference(formula, index)
+                    && !ContinuesAsExternalWorkbookQualifier(formula, end)) {
                     string reference = formula.Substring(index, end - index);
                     if (TryGetUnqualifiedCurrentRowReference(reference, out FormulaStructuredTableReference structuredReference)
                         && TryResolveTableReferenceRange(
@@ -149,6 +150,10 @@ namespace OfficeIMO.Excel {
                 && previous != '\'';
         }
 
+        private static bool ContinuesAsExternalWorkbookQualifier(string formula, int end) {
+            return end < formula.Length && IsFormulaAliasIdentifierCharacter(formula[end]);
+        }
+
         private static bool TryFindStructuredReferenceEnd(string formula, int start, out int end) {
             int depth = 0;
             for (int index = start; index < formula.Length; index++) {
@@ -180,6 +185,62 @@ namespace OfficeIMO.Excel {
 
             structuredReference = structuredReference.WithArea("#This Row");
             return true;
+        }
+
+        private bool TryResolveUnqualifiedCurrentRowTableReferenceRange(
+            string token,
+            int? currentRow,
+            out ExcelSheet sheet,
+            out int firstRow,
+            out int firstColumn,
+            out int lastRow,
+            out int lastColumn) {
+            sheet = this;
+            firstRow = 0;
+            firstColumn = 0;
+            lastRow = 0;
+            lastColumn = 0;
+            if (!currentRow.HasValue
+                || _formulaEvaluationCellReference == null
+                || !TryParseCellReference(_formulaEvaluationCellReference, out int evaluationRow, out int evaluationColumn)
+                || evaluationRow != currentRow.Value
+                || !TryGetUnqualifiedCurrentRowReference(token, out FormulaStructuredTableReference structuredReference)
+                || !TryGetContainingFormulaTable(evaluationRow, evaluationColumn, out Table table)) {
+                return false;
+            }
+
+            return TryResolveTableReferenceRange(
+                table,
+                structuredReference,
+                currentRow,
+                out firstRow,
+                out firstColumn,
+                out lastRow,
+                out lastColumn);
+        }
+
+        private bool TryGetContainingFormulaTable(int row, int column, out Table table) {
+            foreach (Table candidate in _worksheetPart.TableDefinitionParts
+                .Select(part => part.Table)
+                .OfType<Table>()) {
+                if (candidate.Reference?.Value != null
+                    && A1.TryParseRange(
+                        candidate.Reference.Value.Replace("$", string.Empty),
+                        out int firstRow,
+                        out int firstColumn,
+                        out int lastRow,
+                        out int lastColumn)
+                    && row >= firstRow
+                    && row <= lastRow
+                    && column >= firstColumn
+                    && column <= lastColumn) {
+                    table = candidate;
+                    return true;
+                }
+            }
+
+            table = null!;
+            return false;
         }
     }
 }

@@ -520,10 +520,10 @@ namespace OfficeIMO.Excel {
                         issues.Add($"Dependency '{formattedDependencyCell}' is a formula without a cached result.");
                     }
 
-                    string dependencyFormula = dependencySheet.ResolveCellFormulaText(
+                    if (!dependencySheet.TryEvaluateFormulaCellValue(
                         dependencyCell,
-                        inspectionContext.GetSharedFormulaDefinitions(dependencySheet));
-                    if (!dependencySheet.TryEvaluateFormulaValue(dependencyFormula, out _)) {
+                        out _,
+                        inspectionContext.GetSharedFormulaDefinitions(dependencySheet))) {
                         issues.Add($"Dependency '{formattedDependencyCell}' contains a formula outside the lightweight evaluator support.");
                     }
                 }

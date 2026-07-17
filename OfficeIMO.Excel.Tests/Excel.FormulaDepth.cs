@@ -218,18 +218,30 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(1, 2, "B");
             sheet.CellValue(1, 3, "At");
             sheet.CellValue(1, 4, "Explicit");
+            sheet.CellValue(1, 5, "Unqualified At");
+            sheet.CellValue(1, 6, "Unqualified Plain");
+            sheet.CellValue(1, 7, "Unqualified Compare");
             sheet.CellValue(2, 1, 10d);
             sheet.CellValue(2, 2, 20d);
             sheet.CellFormula(2, 3, "Sales[@B]+1");
             sheet.CellFormula(2, 4, "SUM(Sales[[#This Row],[B]])");
-            sheet.AddTable("A1:D2", hasHeader: true, name: "Sales", style: TableStyle.TableStyleMedium2);
+            sheet.CellFormula(2, 5, "[@B]+1");
+            sheet.CellFormula(2, 6, "SUM([B])");
+            sheet.CellFormula(2, 7, "IF([@B]>10,1,0)");
+            sheet.AddTable("A1:G2", hasHeader: true, name: "Sales", style: TableStyle.TableStyleMedium2);
 
             int calculated = document.Calculate();
             Assert.True(sheet.TryGetCachedFormulaValue(2, 3, out string? atValue));
             Assert.Equal("21", atValue);
             Assert.True(sheet.TryGetCachedFormulaValue(2, 4, out string? explicitValue));
             Assert.Equal("20", explicitValue);
-            Assert.Equal(2, calculated);
+            Assert.True(sheet.TryGetCachedFormulaValue(2, 5, out string? unqualifiedAtValue));
+            Assert.Equal("21", unqualifiedAtValue);
+            Assert.True(sheet.TryGetCachedFormulaValue(2, 6, out string? unqualifiedPlainValue));
+            Assert.Equal("20", unqualifiedPlainValue);
+            Assert.True(sheet.TryGetCachedFormulaValue(2, 7, out string? unqualifiedCompareValue));
+            Assert.Equal("1", unqualifiedCompareValue);
+            Assert.Equal(5, calculated);
         }
 
         [Fact]
@@ -287,6 +299,7 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(1, 2, "B");
             sheet.CellValue(1, 3, "Sales Amount");
             sheet.CellValue(1, 4, "% Commission");
+            sheet.CellValue(1, 5, "Book.xlsx");
             sheet.CellFormula(2, 1, "[@B]");
             sheet.CellFormula(2, 2, "[[#This Row],[A]]");
             sheet.CellFormula(2, 3, "[% Commission]");
@@ -296,8 +309,9 @@ namespace OfficeIMO.Tests {
             sheet.CellFormula(3, 2, "[@B]Sheet1!A1");
             sheet.CellValue(3, 3, 1d);
             sheet.CellValue(3, 4, 2d);
+            sheet.CellFormula(3, 5, "[Book.xlsx]Sheet1!RemoteName");
             sheet.AddTable(
-                "A1:D3",
+                "A1:E3",
                 hasHeader: true,
                 name: "UnqualifiedCurrentRowData",
                 style: TableStyle.TableStyleMedium2);
@@ -332,6 +346,10 @@ namespace OfficeIMO.Tests {
                 graph.FindNode("Unqualified Current Row", "B3"));
             Assert.Empty(externalReference.Dependencies);
             Assert.Empty(externalReference.FormulaDependencies);
+            ExcelFormulaDependencyNode externalWorkbook = Assert.IsType<ExcelFormulaDependencyNode>(
+                graph.FindNode("Unqualified Current Row", "E3"));
+            Assert.Empty(externalWorkbook.Dependencies);
+            Assert.Empty(externalWorkbook.FormulaDependencies);
             Assert.Equal(4, graph.EdgeCount);
             Assert.Equal(2, graph.CircularReferenceCount);
             Assert.True(graph.HasCircularReferences);
@@ -383,10 +401,15 @@ namespace OfficeIMO.Tests {
         public void Test_FormulaDependencyInspection_EvaluatesCrossSheetDependenciesOnOwningSheet() {
             using ExcelDocument document = ExcelDocument.Create();
             ExcelSheet source = document.AddWorksheet("Source");
-            source.CellFormula(1, 1, "Other!A1");
+            source.CellFormula(1, 1, "Other!C2");
             ExcelSheet other = document.AddWorksheet("Other");
-            other.CellFormula(1, 1, "B1+1");
-            other.CellValue(1, 2, 2d);
+            other.CellValue(1, 1, "Amount");
+            other.CellValue(1, 2, "Label");
+            other.CellValue(1, 3, "Result");
+            other.CellValue(2, 1, 2d);
+            other.CellValue(2, 2, "Row");
+            other.CellFormula(2, 3, "OtherSales[@Amount]+1");
+            other.AddTable("A1:C2", hasHeader: true, name: "OtherSales", style: TableStyle.TableStyleMedium2);
             Assert.Equal(1, other.RecalculateSupportedFormulas());
 
             ExcelFormulaInspection inspection = document.InspectFormulas();

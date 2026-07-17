@@ -395,6 +395,37 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void FeatureReport_Preflight_BlocksCircularFormulasWithCleanCachedResults() {
+            string filePath = Path.Combine(_directoryWithFiles, "FeatureReport.Preflight.CircularFormulaCaches.xlsx");
+
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorksheet("Calc");
+                sheet.CellFormula(1, 1, "B1+1");
+                sheet.CellFormula(1, 2, "A1+1");
+                document.Save();
+            }
+
+            AddCachedFormulaValue(filePath, "A1", "1");
+            AddCachedFormulaValue(filePath, "B1", "2");
+            ClearWorkbookRecalculationRequest(filePath);
+
+            using ExcelDocument loaded = ExcelDocument.Load(
+                filePath,
+                new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
+            ExcelFeatureReport report = loaded.InspectFeatures();
+
+            Assert.True(report.Can(ExcelPreflightCapability.UseCachedFormulaValues));
+            Assert.False(report.Can(ExcelPreflightCapability.CalculateFormulas));
+            string diagnostics = string.Join(
+                Environment.NewLine,
+                report.GetCapabilityDiagnostics(ExcelPreflightCapability.CalculateFormulas));
+            Assert.Contains("Formula dependency issues", diagnostics);
+            Assert.Contains("Circular reference", diagnostics);
+            Assert.Contains("Formula dependency issues", Assert.Throws<InvalidOperationException>(() =>
+                report.EnsureCan(ExcelPreflightCapability.CalculateFormulas)).Message);
+        }
+
+        [Fact]
         public void FeatureReport_Preflight_BlocksUnsupportedFormulasEvenWhenDependenciesOnlyMissCaches() {
             string filePath = Path.Combine(_directoryWithFiles, "FeatureReport.Preflight.UnsupportedFormulaChain.xlsx");
 
