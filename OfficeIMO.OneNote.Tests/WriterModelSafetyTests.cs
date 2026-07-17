@@ -93,6 +93,60 @@ public sealed class WriterModelSafetyTests {
     }
 
     [Fact]
+    public void WriterRejectsSharedTableRowInstancesBeforeAssigningNativeIdentities() {
+        var section = new OneNoteSection { Name = "Shared row" };
+        var page = new OneNotePage { Title = "Current" };
+        var table = new OneNoteTable();
+        var row = new OneNoteTableRow();
+        row.Cells.Add(new OneNoteTableCell());
+        table.Rows.Add(row);
+        table.Rows.Add(row);
+        page.DirectContent.Add(table);
+        section.Pages.Add(page);
+
+        OneNoteFormatException exception = Assert.Throws<OneNoteFormatException>(() =>
+            OneNoteSectionWriter.Write(section, NoRoundTrip()));
+
+        Assert.Equal("ONENOTE_WRITE_SHARED_TABLE_ROW", exception.Code);
+    }
+
+    [Fact]
+    public void WriterRejectsSharedTableCellInstancesBeforeAssigningNativeIdentities() {
+        var section = new OneNoteSection { Name = "Shared cell" };
+        var page = new OneNotePage { Title = "Current" };
+        var table = new OneNoteTable();
+        var firstRow = new OneNoteTableRow();
+        var secondRow = new OneNoteTableRow();
+        var cell = new OneNoteTableCell();
+        firstRow.Cells.Add(cell);
+        secondRow.Cells.Add(cell);
+        table.Rows.Add(firstRow);
+        table.Rows.Add(secondRow);
+        page.DirectContent.Add(table);
+        section.Pages.Add(page);
+
+        OneNoteFormatException exception = Assert.Throws<OneNoteFormatException>(() =>
+            OneNoteSectionWriter.Write(section, NoRoundTrip()));
+
+        Assert.Equal("ONENOTE_WRITE_SHARED_TABLE_CELL", exception.Code);
+    }
+
+    [Fact]
+    public void WriterRejectsNullTextRunsBeforeSerialization() {
+        var section = new OneNoteSection { Name = "Null run" };
+        var page = new OneNotePage { Title = "Current" };
+        var paragraph = new OneNoteParagraph();
+        paragraph.Runs.Add(null!);
+        page.DirectContent.Add(paragraph);
+        section.Pages.Add(page);
+
+        OneNoteFormatException exception = Assert.Throws<OneNoteFormatException>(() =>
+            OneNoteSectionWriter.Write(section, NoRoundTrip()));
+
+        Assert.Equal("ONENOTE_WRITE_NULL_TEXT_RUN", exception.Code);
+    }
+
+    [Fact]
     public void WriterRejectsSharedPageInstances() {
         var section = new OneNoteSection { Name = "Shared page" };
         var page = new OneNotePage { Title = "Current" };

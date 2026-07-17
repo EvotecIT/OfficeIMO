@@ -273,6 +273,21 @@ public sealed class ConverterTests {
     }
 
     [Fact]
+    public void ProjectionRejectsNullTextRunsBeforeFormatting() {
+        var paragraph = new OneNoteParagraph();
+        paragraph.Runs.Add(null!);
+        var section = new OneNoteSection {
+            Pages = { new OneNotePage { DirectContent = { paragraph } } }
+        };
+
+        AssertProjectionError("ONENOTE_PROJECTION_NULL_TEXT_RUN", () => OneNoteMarkdownProjection.ToText(paragraph));
+        AssertProjectionError("ONENOTE_PROJECTION_NULL_TEXT_RUN", () => OneNoteMarkdownProjection.ToMarkdown(paragraph));
+        AssertProjectionError("ONENOTE_PROJECTION_NULL_TEXT_RUN", () => section.ToMarkdown());
+        AssertProjectionError("ONENOTE_PROJECTION_NULL_TEXT_RUN", () => section.ToHtmlDocument());
+        AssertProjectionError("ONENOTE_PROJECTION_NULL_TEXT_RUN", () => section.ToPdf());
+    }
+
+    [Fact]
     public void ProjectionDepthOptionsEnforceTheHardTraversalCeiling() {
         int invalid = OneNoteWriterOptions.MaximumTraversalDepth + 1;
         var section = new OneNoteSection();

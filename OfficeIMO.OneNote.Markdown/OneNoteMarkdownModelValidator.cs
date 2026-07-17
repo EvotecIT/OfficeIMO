@@ -111,6 +111,9 @@ internal static class OneNoteMarkdownModelValidator {
             _activeElements.Add(element);
             try {
                 if (element is OneNoteParagraph paragraph) {
+                    foreach (OneNoteTextRun run in paragraph.Runs) {
+                        if (run == null) throw Error("ONENOTE_PROJECTION_NULL_TEXT_RUN", "A projected OneNote paragraph cannot contain a null text run.");
+                    }
                     foreach (OneNoteElement child in paragraph.Children) ValidateElement(child, depth + 1);
                 } else if (element is OneNoteOutline outline) {
                     foreach (OneNoteElement child in outline.Children) ValidateElement(child, depth + 1);

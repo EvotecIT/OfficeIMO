@@ -44,6 +44,8 @@ internal static class OneNoteWriteModelValidator {
         private readonly HashSet<OneNotePage> _visitedPages = new HashSet<OneNotePage>(ReferenceComparer<OneNotePage>.Instance);
         private readonly HashSet<OneNoteElement> _activeElements = new HashSet<OneNoteElement>(ReferenceComparer<OneNoteElement>.Instance);
         private readonly HashSet<OneNoteElement> _visitedElements = new HashSet<OneNoteElement>(ReferenceComparer<OneNoteElement>.Instance);
+        private readonly HashSet<OneNoteTableRow> _visitedTableRows = new HashSet<OneNoteTableRow>(ReferenceComparer<OneNoteTableRow>.Instance);
+        private readonly HashSet<OneNoteTableCell> _visitedTableCells = new HashSet<OneNoteTableCell>(ReferenceComparer<OneNoteTableCell>.Instance);
 
         internal ValidationState(
             int maxSectionGroupDepth,
@@ -146,6 +148,11 @@ internal static class OneNoteWriteModelValidator {
             try {
                 if (element is OneNoteParagraph paragraph) {
                     ValidateList(paragraph.List);
+                    foreach (OneNoteTextRun run in paragraph.Runs) {
+                        if (run == null) {
+                            throw new OneNoteFormatException("ONENOTE_WRITE_NULL_TEXT_RUN", "A OneNote paragraph cannot contain a null text run.");
+                        }
+                    }
                     foreach (OneNoteElement child in paragraph.Children) ValidateElement(child, depth + 1);
                 } else if (element is OneNoteOutline outline) {
                     ValidateList(outline.WrapperList);
@@ -155,9 +162,19 @@ internal static class OneNoteWriteModelValidator {
                         if (row == null) {
                             throw new OneNoteFormatException("ONENOTE_WRITE_NULL_TABLE_ROW", "A OneNote table cannot contain a null row.");
                         }
+                        if (!_visitedTableRows.Add(row)) {
+                            throw new OneNoteFormatException(
+                                "ONENOTE_WRITE_SHARED_TABLE_ROW",
+                                "A OneNote table row instance can appear in only one location.");
+                        }
                         foreach (OneNoteTableCell cell in row.Cells) {
                             if (cell == null) {
                                 throw new OneNoteFormatException("ONENOTE_WRITE_NULL_TABLE_CELL", "A OneNote table row cannot contain a null cell.");
+                            }
+                            if (!_visitedTableCells.Add(cell)) {
+                                throw new OneNoteFormatException(
+                                    "ONENOTE_WRITE_SHARED_TABLE_CELL",
+                                    "A OneNote table cell instance can appear in only one location.");
                             }
                             foreach (OneNoteElement child in cell.Content) ValidateElement(child, depth + 1);
                         }
