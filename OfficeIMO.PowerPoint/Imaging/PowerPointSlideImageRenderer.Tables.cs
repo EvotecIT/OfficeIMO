@@ -316,6 +316,26 @@ namespace OfficeIMO.PowerPoint {
                 ?? ResolveTableStyleFillColor(table, row, column, tableStyle, colorScheme)
                 ?? OfficeColor.White;
 
+        internal static OfficeColor ResolveTableCellFillColorForBinary(
+            PowerPointTable table, int row, int column) {
+            A.ColorScheme? colorScheme = table.OwnerSlide == null
+                ? null
+                : GetSlideColorScheme(table.OwnerSlide);
+            return ResolveTableCellFillColor(table,
+                table.GetCell(row, column), row, column,
+                ResolveTableStyle(table), colorScheme);
+        }
+
+        internal static OfficeBorderBox ResolveTableCellBordersForBinary(
+            PowerPointTable table, int row, int column) {
+            A.ColorScheme? colorScheme = table.OwnerSlide == null
+                ? null
+                : GetSlideColorScheme(table.OwnerSlide);
+            return ResolveTableCellBorders(table,
+                table.GetCell(row, column), row, column, 1, 1,
+                ResolveTableStyle(table), colorScheme);
+        }
+
         private static OfficeBorderBox ResolveTableCellBorders(PowerPointTable table, PowerPointTableCell cell, int row, int column, int rowSpan, int columnSpan, A.TableStyleEntry? tableStyle, A.ColorScheme? colorScheme) {
             A.TableCellProperties? properties = cell.Cell.TableCellProperties;
             return new OfficeBorderBox(

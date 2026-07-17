@@ -247,6 +247,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                             || !slideProjection.TryGetShape(openXmlShapeId.Value,
                                 out LegacyPptShapeProjection? shapeProjection)
                             || shapeProjection == null
+                            || shapeProjection.Kind == LegacyPptShapeKind.Table
                             || !MatchesProjectedKind(shape, shapeProjection.Kind)) {
                             return false;
                         }
@@ -672,7 +673,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         pictureBulletDocument, pictureBullets,
                         replaceExisting: true,
                         out byte[] documentWithPictureBullets)) return false;
-                if (!documentWithPictureBullets.AsSpan().SequenceEqual(
+                if (!documentWithPictureBullets.SequenceEqual(
                         pictureBulletSource)) {
                     rewritten[package.DocumentPersistId] =
                         documentWithPictureBullets;

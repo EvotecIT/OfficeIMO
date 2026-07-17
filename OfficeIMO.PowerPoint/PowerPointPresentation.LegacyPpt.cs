@@ -245,6 +245,10 @@ namespace OfficeIMO.PowerPoint {
                             ".wav", left, top, width, height);
                     }
                     break;
+                case LegacyPptShapeKind.Table:
+                    projectedShape = ProjectLegacyTable(slide, shape,
+                        slidePartsByLegacyId, soundContext);
+                    break;
                 case LegacyPptShapeKind.Group:
                     ShapeTree tree = slide.SlidePart.Slide?.CommonSlideData?.ShapeTree
                         ?? throw new InvalidDataException("The projected slide has no shape tree.");

@@ -25,6 +25,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
         /// <summary>A nested OfficeArt shape group with its own child coordinate system.</summary>
         Group,
 
+        /// <summary>A native OfficeArt table group with semantic rows and cells.</summary>
+        Table,
+
         /// <summary>An OfficeArt picture frame with importable image data.</summary>
         Picture,
 
@@ -144,6 +147,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
             GroupCoordinateBounds = groupCoordinateBounds;
             Children = new ReadOnlyCollection<LegacyPptShape>(
                 children?.ToArray() ?? Array.Empty<LegacyPptShape>());
+            Table = kind == LegacyPptShapeKind.Group
+                ? LegacyPptTable.TryCreate(Style, Children)
+                : null;
+            if (Table != null) Kind = LegacyPptShapeKind.Table;
             Interactions = new ReadOnlyCollection<LegacyPptInteraction>(
                 interactions?.ToArray() ?? Array.Empty<LegacyPptInteraction>());
             Animation = animation;
@@ -231,6 +238,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
 
         /// <summary>Gets nested shapes in drawing order when this is a group shape.</summary>
         public IReadOnlyList<LegacyPptShape> Children { get; }
+
+        /// <summary>Gets the decoded native table when this group carries OfficeArt table semantics.</summary>
+        public LegacyPptTable? Table { get; }
 
         /// <summary>Gets shape-level click and mouse-over interactions.</summary>
         public IReadOnlyList<LegacyPptInteraction> Interactions { get; }

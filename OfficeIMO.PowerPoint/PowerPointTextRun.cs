@@ -144,7 +144,8 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
-        /// Gets or sets the hyperlink target for this run.
+        /// Gets or sets the hyperlink target for this run. Internal slide links are returned as
+        /// stable Markdown-compatible fragments such as <c>#slide-2</c>.
         /// </summary>
         public Uri? Hyperlink {
             get {
@@ -152,14 +153,9 @@ namespace OfficeIMO.PowerPoint {
                     return null;
                 }
 
-                string? relId = Run.RunProperties?.GetFirstChild<A.HyperlinkOnClick>()?.Id;
-                if (string.IsNullOrWhiteSpace(relId)) {
-                    return null;
-                }
-
-                HyperlinkRelationship? rel = _ownerPart.HyperlinkRelationships
-                    .FirstOrDefault(r => string.Equals(r.Id, relId, StringComparison.Ordinal));
-                return rel?.Uri;
+                return PowerPointHyperlinkResolver.Resolve(_ownerPart,
+                    _slidePart, Run.RunProperties?
+                        .GetFirstChild<A.HyperlinkOnClick>());
             }
             set {
                 if (value == null) {
@@ -196,6 +192,47 @@ namespace OfficeIMO.PowerPoint {
             A.RunProperties props = EnsureRunProperties();
             props.RemoveAllChildren<A.HyperlinkOnClick>();
             var hyperlink = new A.HyperlinkOnClick { Id = rel.Id };
+            if (!string.IsNullOrWhiteSpace(tooltip)) {
+                hyperlink.Tooltip = tooltip;
+            }
+            props.Append(hyperlink);
+        }
+
+        /// <summary>
+        /// Sets an internal hyperlink from this run to another slide in the same presentation.
+        /// </summary>
+        public void SetHyperlink(PowerPointSlide targetSlide,
+            string? tooltip = null) {
+            if (targetSlide == null) {
+                throw new ArgumentNullException(nameof(targetSlide));
+            }
+            if (_slidePart == null) {
+                throw new InvalidOperationException(
+                    "Hyperlinks require a slide context.");
+            }
+
+            PresentationPart? sourcePresentation = _slidePart.GetParentParts()
+                .OfType<PresentationPart>().FirstOrDefault();
+            PresentationPart? targetPresentation = targetSlide.SlidePart
+                .GetParentParts().OfType<PresentationPart>().FirstOrDefault();
+            if (sourcePresentation == null
+                || !ReferenceEquals(sourcePresentation, targetPresentation)) {
+                throw new ArgumentException(
+                    "The hyperlink target must belong to the same presentation.",
+                    nameof(targetSlide));
+            }
+
+            if (!_slidePart.Parts.Any(pair => ReferenceEquals(
+                    pair.OpenXmlPart, targetSlide.SlidePart))) {
+                _slidePart.AddPart(targetSlide.SlidePart);
+            }
+
+            A.RunProperties props = EnsureRunProperties();
+            props.RemoveAllChildren<A.HyperlinkOnClick>();
+            var hyperlink = new A.HyperlinkOnClick {
+                Id = _slidePart.GetIdOfPart(targetSlide.SlidePart),
+                Action = "ppaction://hlinksldjump"
+            };
             if (!string.IsNullOrWhiteSpace(tooltip)) {
                 hyperlink.Tooltip = tooltip;
             }

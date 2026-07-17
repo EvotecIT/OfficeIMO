@@ -37,8 +37,10 @@ internal static partial class DocumentReaderEngine {
             var slideBlocks = new List<OfficeDocumentBlock>();
             var slideTables = new List<ReaderTable>();
             var slideLinks = new List<OfficeDocumentLink>();
-            for (int shapeIndex = 0; shapeIndex < slide.Shapes.Count; shapeIndex++) {
-                PowerPointShape shape = slide.Shapes[shapeIndex];
+            PowerPointShape[] slideShapes = slide.EnumerateShapesDeep(
+                slide.Shapes, includeHidden: true).ToArray();
+            for (int shapeIndex = 0; shapeIndex < slideShapes.Length; shapeIndex++) {
+                PowerPointShape shape = slideShapes[shapeIndex];
                 shapeCount++;
                 string shapeAnchor = "powerpoint-slide-" + slideNumber.ToString("D4", CultureInfo.InvariantCulture)
                     + "-shape-" + (shape.Id?.ToString(CultureInfo.InvariantCulture) ?? shapeIndex.ToString(CultureInfo.InvariantCulture));

@@ -810,7 +810,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void NativeWriter_BlocksKnownLossUnlessExplicitlyAllowed() {
             using PowerPointPresentation presentation = PowerPointPresentation.Create();
-            presentation.AddSlide().AddTable(2, 2);
+            presentation.AddSlide().AddChart();
 
             LegacyPptWritePreflightReport preflight = presentation.AnalyzeLegacyPptWrite();
             Assert.True(preflight.HasConversionLoss);

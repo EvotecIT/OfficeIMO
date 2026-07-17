@@ -139,7 +139,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
                 if (!string.IsNullOrEmpty(Location)) {
                     value = string.IsNullOrEmpty(value)
                         ? Location!
-                        : value + (value.Contains("#", StringComparison.Ordinal) ? string.Empty : "#") + Location;
+                        : value + (value.IndexOf("#", StringComparison.Ordinal) >= 0
+                            ? string.Empty
+                            : "#") + Location;
                 }
                 return Uri.TryCreate(value, UriKind.RelativeOrAbsolute, out Uri? uri) ? uri : null;
             }

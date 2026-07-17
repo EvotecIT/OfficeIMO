@@ -52,13 +52,6 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                             return false;
                         }
                         contentType = pictureContentType!;
-                    } else if (shape is PowerPointTable table) {
-                        failureFeature = LegacyPptFeature.Tables;
-                        if (!TryRenderTablePicture(table, out imageBytes,
-                                out reason)) {
-                            return false;
-                        }
-                        contentType = "image/png";
                     } else if (shape is PowerPointChart chart) {
                         failureFeature = LegacyPptFeature.Charts;
                         if (!TryRenderChartPicture(chart, out imageBytes,
@@ -576,7 +569,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 }
                 LegacyPptWriterPicture? entry = candidates.FirstOrDefault(
                     candidate => candidate.ContentType == contentType
-                        && candidate.ImageBytes.AsSpan().SequenceEqual(imageBytes));
+                        && candidate.ImageBytes.SequenceEqual(imageBytes));
                 if (entry == null) {
                     if (_baseStoreEntryCount + _entries.Count
                         >= MaximumStoreEntryCount) {

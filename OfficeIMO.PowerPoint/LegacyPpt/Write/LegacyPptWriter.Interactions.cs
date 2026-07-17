@@ -86,6 +86,27 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 interactions = LegacyPptWriterShapeInteractions.Empty;
                 return false;
             }
+            if (shape is PowerPointTable table) {
+                for (int row = 0; row < table.Rows; row++) {
+                    for (int column = 0; column < table.Columns; column++) {
+                        PowerPointTableCell cell = table.GetCell(row, column);
+                        var cellActions = new List<LegacyPptWriterTextInteraction>();
+                        if (cell.Cell.TextBody != null
+                            && !TryReadTextInteractions(slidePart,
+                                cell.Cell.TextBody, catalog, cellActions,
+                                out reason)) {
+                            interactions = LegacyPptWriterShapeInteractions.Empty;
+                            return false;
+                        }
+                        if (cellActions.Count > 0) {
+                            catalog.Add(cell.Cell,
+                                new LegacyPptWriterShapeInteractions(
+                                    Array.Empty<LegacyPptWriterInteraction>(),
+                                    cellActions));
+                        }
+                    }
+                }
+            }
             interactions = new LegacyPptWriterShapeInteractions(shapeActions, textActions);
             return true;
         }
@@ -101,7 +122,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             && !hyperlink.HasChildren;
 
         private static bool TryReadTextInteractions(SlidePart slidePart,
-            P.TextBody textBody, LegacyPptWriterInteractionCatalog catalog,
+            OpenXmlCompositeElement textBody,
+            LegacyPptWriterInteractionCatalog catalog,
             ICollection<LegacyPptWriterTextInteraction> result, out string? reason) {
             reason = null;
             A.Paragraph[] paragraphs = textBody.Elements<A.Paragraph>().ToArray();
@@ -561,7 +583,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             internal bool HasInteractions => _shapes.Count > 0;
 
             internal LegacyPptWriterShapeInteractions Get(PowerPointShape shape) =>
-                _shapes.TryGetValue(shape.Element, out LegacyPptWriterShapeInteractions? value)
+                Get(shape.Element);
+
+            internal LegacyPptWriterShapeInteractions Get(OpenXmlElement element) =>
+                _shapes.TryGetValue(element, out LegacyPptWriterShapeInteractions? value)
                     ? value
                     : LegacyPptWriterShapeInteractions.Empty;
 

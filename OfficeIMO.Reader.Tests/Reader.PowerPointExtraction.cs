@@ -13,6 +13,8 @@ public sealed class ReaderPowerPointExtractionTests {
     [Theory]
     [InlineData("pptx", false)]
     [InlineData("ppt", true)]
+    [InlineData("pot", true)]
+    [InlineData("pps", true)]
     public void RichExtractionHasPptxAndPptPathStreamParity(
         string extension, bool binary) {
         string path = Path.Combine(Path.GetTempPath(),
@@ -48,7 +50,117 @@ public sealed class ReaderPowerPointExtractionTests {
     }
 
     [Fact]
-    public void TableContractKeepsPptxSemanticAndPptConversionExplicit() {
+    public void ExtensionlessBinaryPowerPointUsesCompoundContentDetection() {
+        byte[] bytes = CreateRichPresentation(binary: true);
+        string path = Path.Combine(Path.GetTempPath(),
+            Guid.NewGuid().ToString("N"));
+        try {
+            File.WriteAllBytes(path, bytes);
+            ReaderDetectionResult byteDetection =
+                OfficeDocumentReader.Default.Detect(bytes);
+            ReaderDetectionResult pathDetection =
+                OfficeDocumentReader.Default.Detect(path);
+            using var stream = new MemoryStream(bytes, writable: false);
+            OfficeDocumentReadResult streamResult =
+                OfficeDocumentReader.Default.ReadDocument(stream);
+            OfficeDocumentReadResult pathResult =
+                OfficeDocumentReader.Default.ReadDocument(path);
+
+            foreach (ReaderDetectionResult detection in new[] {
+                         byteDetection, pathDetection
+                     }) {
+                Assert.Equal(ReaderInputKind.PowerPoint, detection.Kind);
+                Assert.Equal(ReaderInputKind.PowerPoint,
+                    detection.ContentKind);
+                Assert.Equal("application/vnd.ms-powerpoint",
+                    detection.MediaType);
+                Assert.Contains("container:ole-powerpoint-presentation",
+                    detection.Evidence);
+            }
+            AssertPowerPointRichExtraction(streamResult);
+            AssertPowerPointRichExtraction(pathResult);
+        } finally {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void RichExtractionRecursesThroughGroupsInDrawingOrder() {
+        byte[] bytes;
+        using (PowerPointPresentation presentation =
+               PowerPointPresentation.Create()) {
+            PowerPointSlide slide = presentation.AddSlide();
+            slide.AddTextBox("Before group");
+            PowerPointTextBox groupedText =
+                slide.AddTextBox("Grouped paragraph");
+            PowerPointTable groupedTable = slide.AddTable(2, 1);
+            groupedTable.GetCell(0, 0).Text = "Header";
+            groupedTable.GetCell(1, 0).Text = "Grouped cell";
+            slide.GroupShapes(new PowerPointShape[] {
+                groupedText,
+                groupedTable
+            }, "Content group");
+            slide.AddTextBox("After group");
+            bytes = presentation.ToBytes();
+        }
+
+        OfficeDocumentReadResult result =
+            OfficeDocumentReader.Default.ReadDocument(
+                new MemoryStream(bytes, writable: false),
+                "grouped-content.pptx");
+
+        int before = result.Blocks.ToList().FindIndex(block =>
+            block.Text == "Before group");
+        int groupedTextIndex = result.Blocks.ToList().FindIndex(block =>
+            block.Text == "Grouped paragraph");
+        int groupedTableIndex = result.Blocks.ToList().FindIndex(block =>
+            block.Kind == "table"
+            && block.Text.Contains("Grouped cell", StringComparison.Ordinal));
+        int after = result.Blocks.ToList().FindIndex(block =>
+            block.Text == "After group");
+        Assert.True(before < groupedTextIndex
+            && groupedTextIndex < groupedTableIndex
+            && groupedTableIndex < after);
+        Assert.Contains("Grouped paragraph", result.Markdown ?? string.Empty,
+            StringComparison.Ordinal);
+        Assert.Contains("Grouped cell", result.Markdown ?? string.Empty,
+            StringComparison.Ordinal);
+        Assert.Contains(result.Tables, table => table.Rows
+            .SelectMany(static row => row)
+            .Contains("Grouped cell", StringComparer.Ordinal));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void InternalRunHyperlinksBecomeMarkdownSlideLinks(bool binary) {
+        byte[] bytes;
+        using (PowerPointPresentation presentation =
+               PowerPointPresentation.Create()) {
+            PowerPointSlide source = presentation.AddSlide();
+            PowerPointSlide target = presentation.AddSlide();
+            PowerPointTextBox link = source.AddTextBox("Open ");
+            link.Paragraphs[0].AddRun("destination")
+                .SetHyperlink(target, "Jump to destination");
+            target.AddTitle("Destination");
+            bytes = binary
+                ? presentation.ToBytes(PowerPointFileFormat.Ppt)
+                : presentation.ToBytes();
+        }
+
+        OfficeDocumentReadResult result =
+            OfficeDocumentReader.Default.ReadDocument(
+                new MemoryStream(bytes, writable: false),
+                binary ? "internal-link.ppt" : "internal-link.pptx");
+
+        Assert.Contains("[destination](<#slide-2>)",
+            result.Markdown ?? string.Empty, StringComparison.Ordinal);
+        Assert.Contains(result.Links, link => link.Uri == "#slide-2"
+            && link.Text == "destination");
+    }
+
+    [Fact]
+    public void TableContractKeepsPptxAndPptSemanticParity() {
         byte[] pptxBytes;
         byte[] pptBytes;
         using (PowerPointPresentation presentation =
@@ -62,15 +174,9 @@ public sealed class ReaderPowerPointExtractionTests {
             table.GetCell(1, 1).Text = "120";
             slide.AddTextBox("After table");
 
-            Assert.Contains(presentation.AnalyzeLegacyPptWrite().Findings,
-                finding => finding.Code == "PPT-WRITE-TABLE-CONVERTED");
-            Assert.Throws<NotSupportedException>(() =>
-                presentation.ToBytes(PowerPointFileFormat.Ppt));
+            Assert.True(presentation.AnalyzeLegacyPptWrite().CanWrite);
             pptxBytes = presentation.ToBytes();
-            pptBytes = presentation.ToBytes(PowerPointFileFormat.Ppt,
-                new PowerPointSaveOptions {
-                    LossPolicy = PowerPointConversionLossPolicy.Allow
-                });
+            pptBytes = presentation.ToBytes(PowerPointFileFormat.Ppt);
         }
 
         OfficeDocumentReadResult pptxResult =
@@ -82,11 +188,17 @@ public sealed class ReaderPowerPointExtractionTests {
                 new MemoryStream(pptBytes, writable: false),
                 "reader-table.ppt");
 
-        ReaderTable semanticTable = Assert.Single(pptxResult.Tables);
-        Assert.Contains("Region", semanticTable.Columns.Concat(
-            semanticTable.Rows.SelectMany(static row => row)),
-            StringComparer.Ordinal);
-        Assert.Empty(pptResult.Tables);
+        foreach (OfficeDocumentReadResult result in new[] {
+                     pptxResult, pptResult
+                 }) {
+            ReaderTable semanticTable = Assert.Single(result.Tables);
+            Assert.Contains("Region", semanticTable.Columns.Concat(
+                semanticTable.Rows.SelectMany(static row => row)),
+                StringComparer.Ordinal);
+            Assert.Contains("120", semanticTable.Columns.Concat(
+                semanticTable.Rows.SelectMany(static row => row)),
+                StringComparer.Ordinal);
+        }
 
         int pptxBefore = pptxResult.Blocks.ToList().FindIndex(block =>
             block.Text == "Before table");
@@ -98,11 +210,11 @@ public sealed class ReaderPowerPointExtractionTests {
 
         int pptBefore = pptResult.Blocks.ToList().FindIndex(block =>
             block.Text == "Before table");
-        int pptPicture = pptResult.Blocks.ToList().FindIndex(block =>
-            block.Kind == "picture");
+        int pptTable = pptResult.Blocks.ToList().FindIndex(block =>
+            block.Kind == "table");
         int pptAfter = pptResult.Blocks.ToList().FindIndex(block =>
             block.Text == "After table");
-        Assert.True(pptBefore < pptPicture && pptPicture < pptAfter);
+        Assert.True(pptBefore < pptTable && pptTable < pptAfter);
     }
 
     private static byte[] CreateRichPresentation(bool binary) {

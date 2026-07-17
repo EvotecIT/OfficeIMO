@@ -263,8 +263,9 @@ internal static partial class DocumentReaderEngine {
                 }
             } else if (IsOleCompound(prefix) && options.InspectContainers) {
                 candidate = restorePosition
-                    ? InspectEmailCompound(stream, originalPosition, options.MaxContainerEntries)
-                    : InspectEmailCompound(prefix);
+                    ? InspectOfficeCompound(stream, originalPosition,
+                        options.MaxContainerEntries)
+                    : InspectOfficeCompound(prefix);
                 containerInspected = true;
             }
 
@@ -305,8 +306,9 @@ internal static partial class DocumentReaderEngine {
                 if (containerCandidate.Kind != ReaderInputKind.Unknown) candidate = containerCandidate;
             } else if (IsOleCompound(prefix) && options.InspectContainers) {
                 candidate = restorePosition
-                    ? InspectEmailCompound(stream, originalPosition, options.MaxContainerEntries)
-                    : InspectEmailCompound(prefix);
+                    ? InspectOfficeCompound(stream, originalPosition,
+                        options.MaxContainerEntries)
+                    : InspectOfficeCompound(prefix);
                 containerInspected = true;
             }
 

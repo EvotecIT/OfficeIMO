@@ -68,10 +68,23 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
 
         internal static int CountDrawingShapes(
             IEnumerable<PowerPointShape> shapes) {
-            IReadOnlyList<PowerPointShape> flattened =
-                FlattenShapeTreeForWrite(shapes, out string? reason);
-            if (reason != null) throw new NotSupportedException(reason);
-            return flattened.Count;
+            int count = 0;
+            foreach (PowerPointShape shape in shapes) {
+                if (shape is PowerPointGroupShape group) {
+                    if (!TryReadGroupForWrite(group,
+                            out IReadOnlyList<PowerPointShape> children,
+                            out string? reason)) {
+                        throw new NotSupportedException(reason);
+                    }
+                    count = checked(count + 1
+                        + CountDrawingShapes(children));
+                } else if (shape is PowerPointTable table) {
+                    count = checked(count + CountTableDrawingShapes(table));
+                } else {
+                    count = checked(count + 1);
+                }
+            }
+            return count;
         }
 
         private static byte[] BuildGroupRecord(PowerPointGroupShape group,
@@ -112,6 +125,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         interactionCatalog, animationCatalog, shapeContext,
                         mediaCatalog, oleCatalog, pictureCatalog, fonts,
                         pictureBullets)
+                    : child is PowerPointTable table
+                    ? BuildTableRecord(table, ref nextShapeId,
+                        interactionCatalog, animationCatalog, shapeContext,
+                        fonts, pictureBullets)
                     : BuildShapeRecord(child, nextShapeId++,
                         interactionCatalog, animationCatalog, shapeContext,
                         mediaCatalog, oleCatalog, pictureCatalog, fonts,

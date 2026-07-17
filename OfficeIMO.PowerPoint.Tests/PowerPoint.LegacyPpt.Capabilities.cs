@@ -170,21 +170,21 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void CapabilityContract_ReportsExplicitStaticTableConversion() {
+        public void CapabilityContract_ReportsNativeEditableTables() {
             LegacyPptCapability tables = LegacyPptCapabilityCatalog.Get(
                 LegacyPptFeature.Tables);
 
             Assert.Equal(LegacyPptRepresentability.Native,
                 tables.Representability);
-            Assert.Equal(LegacyPptCapabilityState.Preserved,
+            Assert.Equal(LegacyPptCapabilityState.Native,
                 tables.ImportToEditableModel);
-            Assert.Equal(LegacyPptCapabilityState.Converted,
+            Assert.Equal(LegacyPptCapabilityState.Native,
                 tables.NewBinaryWrite);
-            Assert.Equal(LegacyPptCapabilityState.Preserved,
+            Assert.Equal(LegacyPptCapabilityState.Native,
                 tables.BinaryRoundTrip);
-            Assert.Equal(LegacyPptCapabilityState.Converted,
+            Assert.Equal(LegacyPptCapabilityState.Native,
                 tables.PptxToBinary);
-            Assert.Contains("PPT-WRITE-TABLE-CONVERTED", tables.Note);
+            Assert.Contains("native editable OfficeArt table groups", tables.Note);
         }
 
         [Fact]

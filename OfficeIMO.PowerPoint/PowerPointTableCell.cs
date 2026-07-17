@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Drawing;
 using A = DocumentFormat.OpenXml.Drawing;
 
@@ -10,9 +11,11 @@ namespace OfficeIMO.PowerPoint {
     /// </summary>
     public partial class PowerPointTableCell {
         private const int EmusPerPoint = 12700;
+        private readonly SlidePart? _slidePart;
 
-        internal PowerPointTableCell(TableCell cell) {
+        internal PowerPointTableCell(TableCell cell, SlidePart? slidePart = null) {
             Cell = cell;
+            _slidePart = slidePart;
         }
 
         internal TableCell Cell { get; }
@@ -197,7 +200,7 @@ namespace OfficeIMO.PowerPoint {
                 .Elements<A.Paragraph>()
                 .FirstOrDefault()?
                 .Elements<A.Run>()
-                .Select(run => new PowerPointTextRun(run))
+                .Select(run => new PowerPointTextRun(run, _slidePart))
                 .ToList() ?? new List<PowerPointTextRun>();
 
         /// <summary>
@@ -205,7 +208,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public PowerPointTextRun AddRun(string text, Action<PowerPointTextRun>? configure = null) {
             A.Run run = InsertRun(text);
-            var wrapper = new PowerPointTextRun(run);
+            var wrapper = new PowerPointTextRun(run, _slidePart);
             configure?.Invoke(wrapper);
             return wrapper;
         }

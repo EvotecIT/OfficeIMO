@@ -73,8 +73,42 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             if (!TryReadTextFrameForWrite(textBox, out _, out reason)) {
                 return false;
             }
-            if (body.BodyProperties == null || body.ListStyle == null
-                || body.ListStyle.HasAttributes || body.ListStyle.HasChildren
+            return TryBuildTextBodyContent(body, body.BodyProperties,
+                body.ListStyle, fonts, pictureBullets, out content,
+                out reason);
+        }
+
+        internal static bool TryBuildTableCellContent(
+            PowerPointTableCell cell, LegacyPptWriterFontCatalog fonts,
+            LegacyPptWriterPictureBulletCatalog pictureBullets,
+            out LegacyPptWriterTextBoxContent? content,
+            out string? reason) {
+            if (cell == null) throw new ArgumentNullException(nameof(cell));
+            if (fonts == null) throw new ArgumentNullException(nameof(fonts));
+            if (pictureBullets == null) throw new ArgumentNullException(
+                nameof(pictureBullets));
+            A.TextBody? body = cell.Cell.TextBody;
+            if (body == null) {
+                content = null;
+                reason = "The table cell has no DrawingML text body.";
+                return false;
+            }
+            return TryBuildTextBodyContent(body, body.BodyProperties,
+                body.ListStyle, fonts, pictureBullets, out content,
+                out reason);
+        }
+
+        private static bool TryBuildTextBodyContent(
+            OpenXmlCompositeElement body, A.BodyProperties? bodyProperties,
+            A.ListStyle? listStyle, LegacyPptWriterFontCatalog fonts,
+            LegacyPptWriterPictureBulletCatalog pictureBullets,
+            out LegacyPptWriterTextBoxContent? content,
+            out string? reason) {
+            content = null;
+            reason = null;
+            if (bodyProperties == null || listStyle == null
+                || body.HasAttributes
+                || listStyle.HasAttributes || listStyle.HasChildren
                 || body.ChildElements.Any(child => child is not A.BodyProperties
                     and not A.ListStyle and not A.Paragraph)) {
                 reason = "The text body contains content outside the base binary text contract.";

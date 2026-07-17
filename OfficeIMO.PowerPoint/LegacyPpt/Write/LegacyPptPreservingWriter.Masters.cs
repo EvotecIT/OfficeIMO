@@ -151,6 +151,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     || !projection.TryGetShape(openXmlShapeId.Value,
                         out LegacyPptShapeProjection? shapeProjection)
                     || shapeProjection == null
+                    || shapeProjection.Kind == LegacyPptShapeKind.Table
                     || !MatchesProjectedKind(shape, shapeProjection.Kind)) {
                     return false;
                 }

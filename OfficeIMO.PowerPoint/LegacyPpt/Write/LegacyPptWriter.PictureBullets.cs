@@ -322,7 +322,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             if (byHash.TryGetValue(key,
                     out List<LegacyPptWriterPictureBulletEntry>? matches)) {
                 entry = matches.FirstOrDefault(candidate => candidate
-                    .ImageBytes.AsSpan().SequenceEqual(imageBytes));
+                    .ImageBytes.SequenceEqual(imageBytes));
             }
             if (entry != null) return true;
             if (entries.Count >= 0x81) {

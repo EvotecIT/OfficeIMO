@@ -44,7 +44,8 @@ internal static partial class DocumentReaderEngine {
         }
 
         if (kind == ReaderInputKind.PowerPoint
-            && IsLegacyPowerPointExtension(sourceName)) {
+            && (IsLegacyPowerPointExtension(sourceName)
+                || IsLegacyPowerPointCompound(stream, opt))) {
             using PowerPointPresentation presentation =
                 LoadPowerPointForReader(stream, opt);
             return CollectProjectedPowerPointImageAssets(presentation,
@@ -85,6 +86,22 @@ internal static partial class DocumentReaderEngine {
         }
 
         return assets.Count == 0 ? Array.Empty<OfficeDocumentAsset>() : assets;
+    }
+
+    private static bool IsLegacyPowerPointCompound(Stream stream,
+        ReaderOptions options) {
+        if (!stream.CanSeek) return false;
+        long position = stream.Position;
+        try {
+            DetectionCandidate candidate = InspectOfficeCompound(stream,
+                position, options.DetectionMaxContainerEntries);
+            return candidate.Kind == ReaderInputKind.PowerPoint
+                && string.Equals(candidate.MediaType,
+                    "application/vnd.ms-powerpoint",
+                    StringComparison.OrdinalIgnoreCase);
+        } finally {
+            stream.Position = position;
+        }
     }
 
     private static IReadOnlyList<OfficeDocumentAsset>

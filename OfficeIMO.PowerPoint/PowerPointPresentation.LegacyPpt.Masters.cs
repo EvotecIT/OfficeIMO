@@ -284,6 +284,8 @@ namespace OfficeIMO.PowerPoint {
             uint shapeId = nextShapeId++;
             OpenXmlElement? projected = source.Kind switch {
                 LegacyPptShapeKind.Picture => CreateLegacyPicture(ownerPart, source, shapeId),
+                LegacyPptShapeKind.Table => CreateLegacyTableFrame(ownerPart,
+                    source, shapeId, slidePartsByLegacyId, soundContext),
                 LegacyPptShapeKind.Group => CreateLegacyGroupShape(ownerPart, source, shapeId,
                     ref nextShapeId, slidePartsByLegacyId, soundContext),
                 _ => CreateLegacyShape(ownerPart, source, shapeId,
@@ -532,7 +534,7 @@ namespace OfficeIMO.PowerPoint {
                 if (source.Length != imageBytes.Length) continue;
                 using var copy = new MemoryStream();
                 source.CopyTo(copy);
-                if (copy.ToArray().AsSpan().SequenceEqual(imageBytes)) {
+                if (copy.ToArray().SequenceEqual(imageBytes)) {
                     return existing;
                 }
             }

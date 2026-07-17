@@ -121,6 +121,8 @@ public sealed class OfficeArtProperty {
         0x033F => "ShapeBooleanProperties",
         0x0380 => "wzName",
         0x0381 => "wzDescription",
+        0x039F => "tableProperties",
+        0x03A0 => "tableRowProperties",
         0x03BF => "GroupShapeBooleanProperties",
         _ => $"PropertyId:0x{propertyId:X4}"
     };

@@ -50,6 +50,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         interactionCatalog, animationCatalog, shapeContext,
                         mediaCatalog, oleCatalog, pictureCatalog, fonts,
                         pictureBullets)
+                    : shape is PowerPointTable table
+                    ? BuildTableRecord(table, ref nextShapeId,
+                        interactionCatalog, animationCatalog, shapeContext,
+                        fonts, pictureBullets)
                     : BuildShapeRecord(shape, nextShapeId++,
                         interactionCatalog, animationCatalog, shapeContext,
                         mediaCatalog, oleCatalog, pictureCatalog, fonts,
@@ -112,6 +116,11 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         LegacyPptWriterShapeContext.Slide,
                         mediaCatalog: null, oleCatalog: null,
                         pictureCatalog: null, fonts, pictureBullets)
+                    : shape is PowerPointTable table
+                    ? BuildTableRecord(table, ref nextShapeId,
+                        interactions, animations,
+                        LegacyPptWriterShapeContext.Slide,
+                        fonts, pictureBullets)
                     : BuildShapeRecord(shape, nextShapeId++,
                         interactions, animations,
                         LegacyPptWriterShapeContext.Slide,
@@ -224,19 +233,6 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 if (tertiaryPictureProperties != null) {
                     children.Add(tertiaryPictureProperties);
                 }
-                children.Add(BuildAnchor(shape));
-                byte[]? clientData = BuildClientData(shape,
-                    interactions.ShapeInteractions, animation, shapeContext);
-                if (clientData != null) children.Add(clientData);
-            } else if (shape is PowerPointTable table) {
-                LegacyPptWriterPicture catalogPicture = pictureCatalog?.Get(
-                        table)
-                    ?? throw new InvalidOperationException(
-                        "The converted table has no BLIP store catalog entry.");
-                shapeType = 75;
-                children.Add(BuildFsp(shapeType, shapeId, shape));
-                children.Add(BuildStaticVisualFoptRecord(
-                    shape, catalogPicture.OneBasedStoreIndex));
                 children.Add(BuildAnchor(shape));
                 byte[]? clientData = BuildClientData(shape,
                     interactions.ShapeInteractions, animation, shapeContext);

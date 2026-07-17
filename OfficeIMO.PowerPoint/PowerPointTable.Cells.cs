@@ -19,7 +19,7 @@ namespace OfficeIMO.PowerPoint {
             A.Table table = Frame.Graphic!.GraphicData!.GetFirstChild<A.Table>()!;
             A.TableRow tableRow = table.Elements<A.TableRow>().ElementAt(row);
             A.TableCell cell = tableRow.Elements<A.TableCell>().ElementAt(column);
-            return new PowerPointTableCell(cell);
+            return new PowerPointTableCell(cell, _slidePart);
         }
 
         /// <summary>

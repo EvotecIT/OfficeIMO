@@ -1,4 +1,5 @@
 using OfficeIMO.Email;
+using OfficeIMO.Drawing.Internal;
 using System.IO;
 
 namespace OfficeIMO.Reader;
@@ -13,6 +14,43 @@ internal static partial class DocumentReaderEngine {
             ? DetectionCandidate.High(ReaderInputKind.Email, "application/vnd.ms-outlook",
                 "container:msg-properties-stream")
             : DetectionCandidate.Unknown("container:ole-compound-unrecognized");
+    }
+
+    private static DetectionCandidate InspectOfficeCompound(byte[] boundedPayload) {
+        DetectionCandidate office = MapOfficeCompoundKind(
+            OfficeCompoundDocumentDetector.Detect(boundedPayload, out _));
+        return office.Kind != ReaderInputKind.Unknown
+            ? office
+            : InspectEmailCompound(boundedPayload);
+    }
+
+    private static DetectionCandidate InspectOfficeCompound(Stream stream,
+        long position, int maxContainerEntries) {
+        stream.Position = position;
+        long remainingBytes = checked(stream.Length - position);
+        DetectionCandidate office = MapOfficeCompoundKind(
+            OfficeCompoundDocumentDetector.Detect(stream, remainingBytes,
+                maxContainerEntries, out _));
+        return office.Kind != ReaderInputKind.Unknown
+            ? office
+            : InspectEmailCompound(stream, position, maxContainerEntries);
+    }
+
+    private static DetectionCandidate MapOfficeCompoundKind(
+        OfficeCompoundDocumentDetector.DocumentKind kind) {
+        return kind switch {
+            OfficeCompoundDocumentDetector.DocumentKind.WordDocument =>
+                DetectionCandidate.High(ReaderInputKind.Word,
+                    "application/msword", "container:ole-word-document"),
+            OfficeCompoundDocumentDetector.DocumentKind.ExcelWorkbook =>
+                DetectionCandidate.High(ReaderInputKind.Excel,
+                    "application/vnd.ms-excel", "container:ole-excel-workbook"),
+            OfficeCompoundDocumentDetector.DocumentKind.PowerPointPresentation =>
+                DetectionCandidate.High(ReaderInputKind.PowerPoint,
+                    "application/vnd.ms-powerpoint",
+                    "container:ole-powerpoint-presentation"),
+            _ => DetectionCandidate.Unknown("container:ole-compound-unrecognized")
+        };
     }
 
     private static DetectionCandidate InspectEmailCompound(Stream stream, long position,

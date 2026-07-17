@@ -418,6 +418,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 return shape is PowerPointOleObject;
             }
             if (kind == LegacyPptShapeKind.Connector) return shape is PowerPointConnectionShape;
+            if (kind == LegacyPptShapeKind.Table) return shape is PowerPointTable;
             if (kind == LegacyPptShapeKind.Group) return shape is PowerPointGroupShape;
             if (shape is not PowerPointAutoShape autoShape) return false;
             if (kind == LegacyPptShapeKind.AutoShape) return autoShape.ShapeType.HasValue;

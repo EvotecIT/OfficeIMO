@@ -320,7 +320,6 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                             includeOleObjects: true,
                             includeMedia: true,
                             includePictures: true,
-                            includeTables: true,
                             includeCharts: true,
                             includeSmartArt: true)) {
                         findings.Add(new LegacyPptWriteFinding(MapShapeFeature(shape), "PPT-WRITE-SHAPE",
@@ -328,11 +327,15 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                             slideIndex, shapeIndex));
                         continue;
                     }
-                    if (shape is PowerPointTable) {
+                    if (shape is PowerPointTable table
+                        && !LegacyPptWriter.TryReadTableForWrite(table,
+                            shapeTextFonts, pictureBullets,
+                            out string? tableReason)) {
                         findings.Add(new LegacyPptWriteFinding(
                             LegacyPptFeature.Tables,
-                            "PPT-WRITE-TABLE-CONVERTED",
-                            "The editable DrawingML table will be converted to a static PNG picture in binary PowerPoint. Cell structure and editability will not survive the conversion.",
+                            "PPT-WRITE-TABLE",
+                            tableReason
+                            ?? "The DrawingML table cannot be encoded as a native binary PowerPoint table.",
                             slideIndex, shapeIndex));
                     } else if (shape is PowerPointChart) {
                         findings.Add(new LegacyPptWriteFinding(
@@ -434,6 +437,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 if (shape is PowerPointTextBox textBox
                     && !LegacyPptWriter.TryReadTextBoxForWrite(textBox,
                         fonts, pictureBullets, out _)) return false;
+                if (shape is PowerPointTable table
+                    && !LegacyPptWriter.TryReadTableForWrite(table,
+                        fonts, pictureBullets, out _)) return false;
             }
             return true;
         }
@@ -442,12 +448,11 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             bool includeOleObjects = false,
             bool includeMedia = false,
             bool includePictures = false,
-            bool includeTables = false,
             bool includeCharts = false,
             bool includeSmartArt = false) => shape is PowerPointTextBox
+            || shape is PowerPointTable
             || includeMedia && shape is PowerPointMedia
             || includePictures && shape is PowerPointPicture
-            || includeTables && shape is PowerPointTable
             || includeCharts && shape is PowerPointChart
             || includeSmartArt && shape is PowerPointSmartArt
             || includeOleObjects && shape is PowerPointOleObject

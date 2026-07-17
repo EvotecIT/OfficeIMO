@@ -59,9 +59,9 @@ public static class PowerPointExtractionExtensions {
             md.AppendLine();
 
             int tableIndex = 0;
-            foreach (PowerPointShape shape in slide.Shapes) {
+            foreach (PowerPointShape shape in slide.EnumerateShapesDeep(
+                         slide.Shapes, extract.IncludeHiddenShapes)) {
                 cancellationToken.ThrowIfCancellationRequested();
-                if (!extract.IncludeHiddenShapes && shape.Hidden) continue;
 
                 if (shape is PowerPointTextBox textBox) {
                     AppendTextBoxMarkdown(md, textBox);

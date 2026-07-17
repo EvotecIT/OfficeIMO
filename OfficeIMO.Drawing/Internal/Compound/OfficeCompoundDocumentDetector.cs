@@ -1,4 +1,7 @@
 using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 
 namespace OfficeIMO.Drawing.Internal {
     /// <summary>
@@ -31,16 +34,55 @@ namespace OfficeIMO.Drawing.Internal {
             error = null;
             if (!HasCompoundSignature(bytes)) return DocumentKind.NotCompound;
 
-            if (!OfficeCompoundFileReader.TryRead(bytes, out OfficeCompoundFile? compoundFile, out error) || compoundFile == null) {
+            using var stream = new MemoryStream(bytes, writable: false);
+            return Detect(stream, bytes.LongLength, 65536, out error);
+        }
+
+        /// <summary>
+        /// Identifies the root Office document payload by inspecting only compound-file directory metadata.
+        /// The source position is restored before this method returns.
+        /// </summary>
+        internal static DocumentKind Detect(Stream stream, long maxInputBytes,
+            int maxDirectoryEntries, out string? error) {
+            if (stream == null) throw new ArgumentNullException(nameof(stream));
+            if (!stream.CanRead || !stream.CanSeek) {
+                error = "Compound document detection requires a readable seekable stream.";
                 return DocumentKind.UnknownCompound;
             }
 
-            bool hasWordDocument = compoundFile.Streams.ContainsKey("WordDocument");
-            bool hasWorkbook = compoundFile.Streams.ContainsKey("Workbook") || compoundFile.Streams.ContainsKey("Book");
-            bool hasPowerPointPresentation = compoundFile.Streams.ContainsKey("PowerPoint Document")
-                && compoundFile.Streams.ContainsKey("Current User");
-            bool hasEncryptedPackage = compoundFile.Streams.ContainsKey("EncryptedPackage")
-                && compoundFile.Streams.ContainsKey("EncryptionInfo");
+            long originalPosition = stream.Position;
+            try {
+                var signature = new byte[OleCompoundSignature.Length];
+                int read = stream.Read(signature, 0, signature.Length);
+                if (read != signature.Length || !HasCompoundSignature(signature)) {
+                    error = null;
+                    return DocumentKind.NotCompound;
+                }
+
+                stream.Position = originalPosition;
+                if (!OfficeCompoundFileReader.TryInspectDirectory(stream,
+                        maxInputBytes, maxDirectoryEntries,
+                        out IReadOnlyList<OfficeCompoundFileEntry> entries,
+                        out error)) {
+                    return DocumentKind.UnknownCompound;
+                }
+
+                return Detect(entries);
+            } finally {
+                stream.Position = originalPosition;
+            }
+        }
+
+        private static DocumentKind Detect(
+            IReadOnlyList<OfficeCompoundFileEntry> entries) {
+            bool hasWordDocument = ContainsRootStream(entries, "WordDocument");
+            bool hasWorkbook = ContainsRootStream(entries, "Workbook")
+                || ContainsRootStream(entries, "Book");
+            bool hasPowerPointPresentation =
+                ContainsRootStream(entries, "PowerPoint Document")
+                && ContainsRootStream(entries, "Current User");
+            bool hasEncryptedPackage = ContainsRootStream(entries, "EncryptedPackage")
+                && ContainsRootStream(entries, "EncryptionInfo");
 
             int recognizedRootCount = (hasWordDocument ? 1 : 0)
                 + (hasWorkbook ? 1 : 0)
@@ -53,5 +95,11 @@ namespace OfficeIMO.Drawing.Internal {
             if (hasEncryptedPackage) return DocumentKind.EncryptedOpenXmlPackage;
             return DocumentKind.UnknownCompound;
         }
+
+        private static bool ContainsRootStream(
+            IEnumerable<OfficeCompoundFileEntry> entries, string name) =>
+            entries.Any(entry => entry.IsStream
+                && string.Equals(entry.Path, name,
+                    StringComparison.OrdinalIgnoreCase));
     }
 }
