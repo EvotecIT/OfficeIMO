@@ -175,6 +175,19 @@ public sealed class VCardDocumentTests {
     }
 
     [Fact]
+    public void LegacyQuotedPrintableHeaderAcceptsEscapedQuoteBeforeComma() {
+        const string source = "BEGIN:VCARD\r\nVERSION:2.1\r\n" +
+            "FN;ENCODING=QUOTED-PRINTABLE;X-NAME=\"Doe\\\", John\":Alpha=\r\n" +
+            "Beta\r\nEND:VCARD\r\n";
+
+        ContentLineProperty formattedName = VCardDocument.Parse(source).Cards.Single()
+            .GetFirstProperty("FN")!;
+
+        Assert.Equal("AlphaBeta", formattedName.Value);
+        Assert.Equal("Doe\", John", formattedName.GetParameter("X-NAME")!.Values.Single());
+    }
+
+    [Fact]
     public void LegacyQuotedPrintableFoldingDoesNotTurnEncodedEqualsIntoASoftBreak() {
         const string header = "FN;CHARSET=UTF-8;ENCODING=QUOTED-PRINTABLE:";
         int prefixLength = 75 - Encoding.UTF8.GetByteCount(header) - 1;

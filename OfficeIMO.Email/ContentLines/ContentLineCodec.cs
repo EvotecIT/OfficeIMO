@@ -86,9 +86,6 @@ internal static class ContentLineCodec {
         int currentBytes = 0;
         bool currentIsQuotedPrintable = false;
         bool currentHeaderComplete = false;
-        bool currentHeaderQuoted = false;
-        bool currentHeaderPendingQuote = false;
-        int currentHeaderBackslashes = 0;
         bool firstPhysicalLine = true;
         int start = 0;
         for (int index = 0; index <= text.Length; index++) {
@@ -112,9 +109,7 @@ internal static class ContentLineCodec {
                 string continuation = physical.Substring(1);
                 AppendUnfolded(current, continuation, ref currentBytes, options.MaxUnfoldedLineBytes);
                 if (!currentHeaderComplete) {
-                    currentHeaderComplete = AppendContentLineHeader(currentHeader!, continuation,
-                        ref currentHeaderQuoted, ref currentHeaderPendingQuote,
-                        ref currentHeaderBackslashes);
+                    currentHeaderComplete = AppendContentLineHeader(currentHeader!, continuation);
                     if (currentHeaderComplete)
                         currentIsQuotedPrintable = IsQuotedPrintableHeader(currentHeader!.ToString());
                 }
@@ -125,12 +120,7 @@ internal static class ContentLineCodec {
                 currentBytes = Encoding.UTF8.GetByteCount(physical);
                 if (currentBytes > options.MaxUnfoldedLineBytes)
                     throw new InvalidDataException("A content line exceeds the configured unfolded-line limit.");
-                currentHeaderQuoted = false;
-                currentHeaderPendingQuote = false;
-                currentHeaderBackslashes = 0;
-                currentHeaderComplete = AppendContentLineHeader(currentHeader, physical,
-                    ref currentHeaderQuoted, ref currentHeaderPendingQuote,
-                    ref currentHeaderBackslashes);
+                currentHeaderComplete = AppendContentLineHeader(currentHeader, physical);
                 currentIsQuotedPrintable = currentHeaderComplete &&
                     IsQuotedPrintableHeader(currentHeader.ToString());
             }
@@ -147,23 +137,13 @@ internal static class ContentLineCodec {
         currentBytes += addedBytes;
     }
 
-    private static bool AppendContentLineHeader(StringBuilder header, string fragment,
-        ref bool quoted, ref bool pendingQuote, ref int backslashes) {
-        foreach (char character in fragment) {
-            if (pendingQuote) {
-                if (character == ';' || character == ',' || character == ':') quoted = !quoted;
-                pendingQuote = false;
-            }
-            if (character == ':' && !quoted) return true;
-            header.Append(character);
-            if (character == '"') {
-                if ((backslashes & 1) != 0) pendingQuote = true;
-                else quoted = !quoted;
-                backslashes = 0;
-            } else if (character == '\\') backslashes++;
-            else backslashes = 0;
-        }
-        return false;
+    private static bool AppendContentLineHeader(StringBuilder header, string fragment) {
+        header.Append(fragment);
+        if (fragment.IndexOf(':') < 0) return false;
+        int delimiter = FindDelimiter(header.ToString(), ':');
+        if (delimiter < 0) return false;
+        header.Length = delimiter;
+        return true;
     }
 
     private static bool IsQuotedPrintableHeader(string header) {

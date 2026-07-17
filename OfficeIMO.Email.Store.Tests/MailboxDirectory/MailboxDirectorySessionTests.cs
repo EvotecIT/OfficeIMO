@@ -198,6 +198,44 @@ public sealed class MailboxDirectorySessionTests {
     }
 
     [Fact]
+    public void WindowsNestedCaseSensitiveDirectoryKeepsDistinctFolders() {
+        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) return;
+        string root = Path.Combine(Path.GetTempPath(),
+            "oims-nested-caseflag-" + Guid.NewGuid().ToString("N").Substring(0, 8));
+        try {
+            Directory.CreateDirectory(root);
+            if (!EmailStorePathIdentity.IsCaseInsensitiveFileSystem(root)) return;
+            string caseSensitive = Path.Combine(root, "CaseSensitive");
+            Directory.CreateDirectory(caseSensitive);
+            if (!TryEnableWindowsDirectoryCaseSensitivity(caseSensitive)) return;
+            string upper = Path.Combine(caseSensitive, "Inbox");
+            string lower = Path.Combine(caseSensitive, "inbox");
+            Directory.CreateDirectory(upper);
+            Directory.CreateDirectory(lower);
+            File.WriteAllText(Path.Combine(upper, "upper.eml"),
+                "Subject: Upper nested folder\r\n\r\nBody\r\n");
+            File.WriteAllText(Path.Combine(lower, "lower.eml"),
+                "Subject: Lower nested folder\r\n\r\nBody\r\n");
+
+            Assert.True(EmailStorePathIdentity.IsCaseInsensitiveFileSystem(root));
+            Assert.False(EmailStorePathIdentity.IsCaseInsensitiveFileSystem(caseSensitive));
+            using EmailStoreSession session = EmailStoreSession.Open(root);
+            EmailStoreReadResult materialized = session.ReadAll();
+
+            Assert.Equal(3, session.Folders.Count);
+            EmailStoreFolderInfo upperFolder = Assert.Single(session.Folders,
+                folder => folder.Name == "Inbox");
+            EmailStoreFolderInfo lowerFolder = Assert.Single(session.Folders,
+                folder => folder.Name == "inbox");
+            Assert.Equal(upperFolder.ParentId, lowerFolder.ParentId);
+            Assert.NotEqual(upperFolder.Id, lowerFolder.Id);
+            Assert.Equal(2, materialized.Store.Folders.Sum(folder => folder.Items.Count));
+        } finally {
+            if (Directory.Exists(root)) Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
     public void OpeningMailboxDirectoryDoesNotCreateCaseProbeArtifacts() {
         string root = CreateMailboxDirectory();
         try {
