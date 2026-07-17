@@ -5,6 +5,10 @@
 
 `OfficeIMO.Reader` is a read-only facade for deterministic document extraction. It normalizes supported source files into `ReaderChunk` objects for search, indexing, chat, RAG, migration, and review workflows.
 
+Built-in email-family handling includes EML, MSG, OFT, TNEF, Mbox, standalone iCalendar (`.ics`/`.vcs`), and
+standalone vCard (`.vcf`/`.vcard`). Calendar and contact extraction delegates to the public lossless engines in
+`OfficeIMO.Email`; optional PST, OST, OLM, and EMLX stores remain in `OfficeIMO.Reader.EmailStore`.
+
 ## Install
 
 ```powershell
@@ -477,6 +481,6 @@ The benchmark corpus is generated deterministically before measurement. Benchmar
 ## Dependency footprint
 
 - **External:** `System.Text.Json` for schema/result serialization.
-- **OfficeIMO:** Native Word, Excel, PowerPoint, email, Markdown, PDF, and Drawing engines are reused directly; optional formats stay in adapter packages.
+- **OfficeIMO:** Native Word, Excel, PowerPoint, email/iCalendar/vCard, Markdown, PDF, and Drawing engines are reused directly; optional formats stay in adapter packages.
 
 See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

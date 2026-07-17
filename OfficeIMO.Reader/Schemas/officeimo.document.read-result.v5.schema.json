@@ -51,7 +51,9 @@
         "AsciiDoc",
         "Latex",
         "Email",
-        "OneNote"
+        "OneNote",
+        "Calendar",
+        "VCard"
       ]
     },
     "source": {

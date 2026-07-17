@@ -6,6 +6,7 @@
 - PowerPoint (`.pptx`, `.pptm`) -> slide-aligned Markdown chunks (optionally including notes)
 - Markdown (`.md`, `.markdown`) -> heading-aware chunks
 - PDF (`.pdf`) -> page-aware text chunks
+- Email (`.eml`, `.msg`, `.oft`, `.tnef`, `.mbox`/`.mbx`), iCalendar (`.ics`, `.vcs`), and vCard (`.vcf`, `.vcard`) -> semantic text/Markdown chunks and metadata
 - CSV/TSV, EPUB, HTML, standalone images, JSON, Jupyter notebooks, RTF, SRT/WebVTT subtitles, structured text, Visio, XML, YAML, and ZIP through modular adapter packages
 
 It is designed for deterministic ingestion. Format-specific parsing stays in the owning OfficeIMO package, the facade remains thin, and optional adapters do not force unrelated dependencies into the core package.

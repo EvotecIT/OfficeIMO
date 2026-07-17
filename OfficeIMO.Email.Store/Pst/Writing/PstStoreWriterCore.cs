@@ -87,6 +87,10 @@ internal sealed partial class PstStoreWriterCore : IDisposable {
     internal string RootFolderId => FormatId(IpmSubtreeNid);
     internal string DeletedItemsFolderId => FormatId(DeletedItemsNid);
     internal string SearchRootFolderId => FormatId(SearchRootNid);
+    internal string SpamSearchFolderId => FormatId(SpamSearchFolderNid);
+
+    internal static bool IsWriterOwnedSearchFolderId(string id) => string.Equals(
+        id, FormatId(SpamSearchFolderNid), StringComparison.Ordinal);
 
     internal string AddFolder(string name, string? parentFolderId, string? containerClass) {
         ThrowIfUnavailable();

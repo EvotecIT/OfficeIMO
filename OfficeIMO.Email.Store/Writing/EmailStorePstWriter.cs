@@ -60,6 +60,10 @@ public sealed class EmailStorePstWriter : IDisposable {
         get { ThrowIfUnavailable(); return _core.SearchRootFolderId; }
     }
 
+    internal string SpamSearchFolderId {
+        get { ThrowIfUnavailable(); return _core.SpamSearchFolderId; }
+    }
+
     /// <summary>Adds a folder. A null parent places it under <see cref="RootFolderId"/>.</summary>
     public string AddFolder(string name, string? parentFolderId = null,
         string? containerClass = null) {

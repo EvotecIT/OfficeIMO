@@ -8,7 +8,7 @@ The package supports:
 - Outlook MSG and OFT files with standard and named MAPI properties, legacy code pages, recipients, embedded messages, linked attachments, and OLE/custom-storage attachments
 - MS-OXRTFCP compressed and uncompressed RTF bodies, including bounded expansion and checksum validation
 - Outlook messages, appointments, contacts, tasks, journals, and sticky notes with typed read/write models
-- standards-based iCalendar (`VEVENT`/`VTODO`) and vCard projection when appointments, tasks, or contacts cross the EML boundary
+- standalone iCalendar (`.ics`) and vCard (`.vcf`/`.vcard`) documents with ordered, lossless content-line mutation, validation, bounded I/O, and standards-based EML projection
 - TNEF payloads such as `winmail.dat`
 - mboxo and mboxrd mailbox archives
 - reopenable attachment content, file-backed streaming reads, and per-message mbox streaming for large or store-backed workflows
@@ -188,6 +188,38 @@ template.Subject = "Reusable meeting request";
 template.Save("updated.oft");
 ```
 
+## Standalone iCalendar and vCard documents
+
+`IcsDocument` and `VCardDocument` expose the same ordered content-line model used by MIME projections. Repeated,
+grouped, unknown, IANA, and `X-` properties and their parameters remain available for inspection and mutation instead
+of being discarded by a narrow typed projection:
+
+```csharp
+IcsDocument calendar = IcsDocument.Load("meeting.ics");
+ContentLineComponent meeting = calendar.GetComponents("VEVENT").Single();
+meeting.SetProperty("SUMMARY", "Updated planning meeting");
+meeting.SetTemporalValue("DTSTART",
+    IcsTemporalValue.Zoned(new DateTime(2026, 7, 20, 9, 0, 0), "Europe/Warsaw"));
+
+IReadOnlyList<ContentLineValidationIssue> calendarIssues = calendar.Validate();
+calendar.Save("updated.ics");
+
+VCardDocument contacts = VCardDocument.Load("contacts.vcf");
+ContentLineComponent contact = contacts.Cards[0];
+contact.SetVCardText("FN", "Ada Lovelace");
+contact.AddProperty("EMAIL", "ada@example.test").SetParameter("TYPE", "work");
+
+IReadOnlyList<ContentLineValidationIssue> contactIssues = contacts.Validate();
+contacts.Save("updated.vcf");
+```
+
+iCalendar temporal helpers retain `DATE`, floating, UTC, and `TZID`-local forms without resolving identifiers through
+the host operating system. RRULE helpers parse and update known recurrence parts while retaining unknown parts.
+vCard 2.1, 3.0, and 4.0 syntax is supported, including groups, repeated properties, binary/data-URI values, RFC 6868
+parameter escaping, legacy quoted parameters, and quoted-printable continuation. Validation reports conformance
+issues; it does not erase vendor data. Legacy `.vcs` vCalendar files use the same preservation model, while validation
+continues to report constructs that are not RFC 5545 iCalendar 2.0.
+
 When an appointment or task is written as EML, it becomes a `text/calendar` iCalendar part. Contacts become vCard
 attachments. Reminders become `VALARM`; task fields without a direct iCalendar property use valid `X-OFFICEIMO-*`
 extensions so they survive an OfficeIMO EML/MSG/TNEF cycle while remaining ignorable to other calendar readers.
@@ -241,7 +273,7 @@ EmailStoreItemReference firstReference = session.EnumerateItems(
 EmailDocument firstMessage = session.ReadItem(firstReference).Document;
 ```
 
-`OfficeIMO.Email` remains sufficient for individual EML, MSG, OFT, TNEF, and mbox artifacts.
+`OfficeIMO.Email` remains sufficient for individual EML, MSG, OFT, TNEF, mbox, iCalendar, and vCard artifacts.
 
 ### Store-backed attachment content
 
@@ -269,7 +301,11 @@ that define the typed item are retained because they are semantic message conten
 
 ## Reader integration
 
-`OfficeIMO.Reader` recognizes `.eml`, `.msg`, `.oft`, `.mbox`, `.mbx`, `.tnef`, and `winmail.dat`. Add `OfficeIMO.Reader.EmailStore` for PST, OST, OLM, and EMLX. Its rich result includes envelope and Outlook metadata, structured diagnostics, materializable attachment assets, embedded messages, and chunks extracted from supported attachment formats.
+`OfficeIMO.Reader` recognizes `.eml`, `.msg`, `.oft`, `.mbox`, `.mbx`, `.tnef`, `winmail.dat`, `.ics`, `.vcs`,
+`.vcf`, and `.vcard`. Calendar and contact files are routed through the public `IcsDocument` and `VCardDocument`
+engines. Add `OfficeIMO.Reader.EmailStore` for PST, OST, OLM, and EMLX. Its rich result includes envelope and Outlook
+metadata, structured diagnostics, materializable attachment assets, embedded messages, and chunks extracted from
+supported attachment formats.
 
 ```csharp
 using OfficeIMO.Reader;
@@ -287,10 +323,10 @@ foreach (OfficeDocumentAsset attachment in result.Assets) {
 `OfficeIMO.Email` owns offline artifact parsing, serialization, and format-neutral Outlook data. It does not connect to mail servers, authenticate users, resolve certificates or keys, verify DKIM/ARC/PGP/S/MIME signatures, or decrypt protected messages. MailKit, MimeKit, and applications such as Mailozaurr remain the owners for those operations.
 
 The package does not expose general-purpose CFB transactions or mailbox-store traversal. Its compound implementation
-serves MSG/OFT and structured attachments only. `OfficeIMO.Email.Store` is the separate source and new-PST owner
-for PST, OST, OLM, EMLX, Apple Mail, and Maildir traversal, selection, validation, export, verified conversion, and
-multi-store merge. Existing PST/OST mutation, append, repair, compaction, and OST writing remain outside both
-packages.
+serves MSG/OFT and structured attachments only. `OfficeIMO.Email.Store` is the separate owner for PST, OST, OLM,
+EMLX, Mbox, Apple Mail, and Maildir traversal, selection, validation, native export, verified conversion, multi-store
+merge, and verified atomic rewrite mutation of an existing Unicode PST. ANSI PST mutation, OST mutation/writing,
+in-place NDB editing, append, repair, compaction, and password/encryption authoring remain outside the contract.
 
 For exact pass-through of an ordinary unprotected artifact, read with `preserveRawSource: true` and write with
 `usePreservedRawSource: true`. Protected artifacts use safe unchanged pass-through automatically.
@@ -298,6 +334,6 @@ For exact pass-through of an ordinary unprotected artifact, read with `preserveR
 ## Dependency footprint
 
 - **External:** No third-party email engine or Outlook interop. `System.Text.Encoding.CodePages` supplies legacy encodings.
-- **OfficeIMO:** `OfficeIMO.Drawing` and `OfficeIMO.Rtf`. MIME, MSG/MAPI, TNEF, mbox, and compressed-RTF handling are first-party.
+- **OfficeIMO:** `OfficeIMO.Drawing` and `OfficeIMO.Rtf`. MIME, MSG/MAPI, TNEF, mbox, iCalendar, vCard, and compressed-RTF handling are first-party.
 
 See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

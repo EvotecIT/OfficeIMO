@@ -220,6 +220,10 @@ public sealed partial class EmailStoreSession : IDisposable {
                     backend = new MaterializedEmailStoreSessionBackend(
                         new EmlxStoreReader(options).Read(stream, sourceName, cancellationToken));
                     break;
+                case EmailStoreFormat.Mbox:
+                    backend = new MaterializedEmailStoreSessionBackend(
+                        new MboxStoreReader(options).Read(stream, sourceName, cancellationToken));
+                    break;
                 default:
                     throw new InvalidDataException("The source is not a supported email-store artifact.");
             }

@@ -93,7 +93,15 @@ public enum ReaderInputKind {
     /// <summary>
     /// Offline Microsoft OneNote artifact.
     /// </summary>
-    OneNote = 20
+    OneNote = 20,
+    /// <summary>
+    /// Standalone iCalendar stream.
+    /// </summary>
+    Calendar = 21,
+    /// <summary>
+    /// Standalone vCard stream.
+    /// </summary>
+    VCard = 22
 }
 
 /// <summary>

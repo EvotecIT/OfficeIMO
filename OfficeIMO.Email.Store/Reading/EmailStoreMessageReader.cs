@@ -21,7 +21,7 @@ internal static class EmailStoreMessageReader {
         }
     }
 
-    private static EmailReaderOptions CreateOptions(EmailStoreReaderOptions options) =>
+    internal static EmailReaderOptions CreateOptions(EmailStoreReaderOptions options) =>
         new EmailReaderOptions(
             maxInputBytes: options.MaxMessageBytes,
             maxAttachmentBytes: options.MaxAttachmentBytes,

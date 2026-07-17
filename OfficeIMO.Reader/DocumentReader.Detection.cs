@@ -490,6 +490,12 @@ internal static partial class DocumentReaderEngine {
 
         string trimmed = text.TrimStart('\uFEFF', ' ', '\t', '\r', '\n');
         string lower = trimmed.Length > 4096 ? trimmed.Substring(0, 4096).ToLowerInvariant() : trimmed.ToLowerInvariant();
+        if (lower.StartsWith("begin:vcalendar", StringComparison.Ordinal)) {
+            return DetectionCandidate.High(ReaderInputKind.Calendar, "text/calendar", "text:icalendar-root");
+        }
+        if (lower.StartsWith("begin:vcard", StringComparison.Ordinal)) {
+            return DetectionCandidate.High(ReaderInputKind.VCard, "text/vcard", "text:vcard-root");
+        }
         if (LooksLikeEmailMessage(trimmed)) {
             return DetectionCandidate.High(ReaderInputKind.Email, "message/rfc822", "text:rfc-message-headers");
         }
@@ -662,6 +668,8 @@ internal static partial class DocumentReaderEngine {
             ReaderInputKind.Markdown => "text/markdown",
             ReaderInputKind.Pdf => "application/pdf",
             ReaderInputKind.Email => "message/rfc822",
+            ReaderInputKind.Calendar => "text/calendar",
+            ReaderInputKind.VCard => "text/vcard",
             ReaderInputKind.OneNote => "application/onenote",
             ReaderInputKind.Text => "text/plain",
             ReaderInputKind.Csv => "text/csv",
@@ -689,6 +697,9 @@ internal static partial class DocumentReaderEngine {
             ".oft" => "application/vnd.ms-outlook",
             ".mbox" or ".mbx" => "application/mbox",
             ".tnef" => "application/ms-tnef",
+            ".ics" => "text/calendar",
+            ".vcs" => "text/x-vcalendar",
+            ".vcf" or ".vcard" => "text/vcard",
             ".csv" => "text/csv",
             ".tsv" => "text/tab-separated-values",
             ".json" => "application/json",
@@ -715,6 +726,8 @@ internal static partial class DocumentReaderEngine {
             ReaderInputKind.Markdown or
             ReaderInputKind.Pdf or
             ReaderInputKind.Email or
+            ReaderInputKind.Calendar or
+            ReaderInputKind.VCard or
             ReaderInputKind.Text => kind,
             _ => ReaderInputKind.Unknown
         };

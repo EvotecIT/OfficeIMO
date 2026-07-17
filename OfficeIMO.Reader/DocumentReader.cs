@@ -34,6 +34,7 @@ internal static partial class DocumentReaderEngine {
         ".md", ".markdown",
         ".pdf",
         ".eml", ".msg", ".oft", ".mbox", ".mbx", ".tnef",
+        ".ics", ".vcs", ".vcf", ".vcard",
         ".txt", ".log", ".csv", ".tsv", ".json", ".xml", ".yml", ".yaml"
     };
 
@@ -98,6 +99,28 @@ internal static partial class DocumentReaderEngine {
             SupportsPath = true,
             SupportsStream = true,
             DefaultMaxInputBytes = OfficeIMO.Email.EmailReaderOptions.Default.MaxInputBytes
+        },
+        new ReaderHandlerCapability {
+            Id = "officeimo.reader.calendar",
+            DisplayName = "iCalendar/vCalendar Reader",
+            Description = "Built-in standalone iCalendar (.ics) and legacy vCalendar (.vcs) content-line extractor.",
+            Kind = ReaderInputKind.Calendar,
+            Extensions = new[] { ".ics", ".vcs" },
+            IsBuiltIn = true,
+            SupportsPath = true,
+            SupportsStream = true,
+            DefaultMaxInputBytes = OfficeIMO.Email.ContentLineReaderOptions.Default.MaxInputBytes
+        },
+        new ReaderHandlerCapability {
+            Id = "officeimo.reader.vcard",
+            DisplayName = "vCard Reader",
+            Description = "Built-in standalone vCard (.vcf/.vcard) content-line extractor.",
+            Kind = ReaderInputKind.VCard,
+            Extensions = new[] { ".vcf", ".vcard" },
+            IsBuiltIn = true,
+            SupportsPath = true,
+            SupportsStream = true,
+            DefaultMaxInputBytes = OfficeIMO.Email.ContentLineReaderOptions.Default.MaxInputBytes
         },
         new ReaderHandlerCapability {
             Id = "officeimo.reader.text",
@@ -266,6 +289,8 @@ internal static partial class DocumentReaderEngine {
             ".md" or ".markdown" => ReaderInputKind.Markdown,
             ".pdf" => ReaderInputKind.Pdf,
             ".eml" or ".msg" or ".oft" or ".mbox" or ".mbx" or ".tnef" => ReaderInputKind.Email,
+            ".ics" or ".vcs" => ReaderInputKind.Calendar,
+            ".vcf" or ".vcard" => ReaderInputKind.VCard,
             ".txt" or ".log" or ".csv" or ".tsv" or ".json" or ".xml" or ".yml" or ".yaml" => ReaderInputKind.Text,
             ".ppt" => ReaderInputKind.Unknown, // Legacy binary PowerPoint is not supported.
             _ => ReaderInputKind.Unknown

@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <Description>Managed streaming EML, Outlook MSG/OFT, TNEF, mailbox, and semantic comparison engine without third-party email runtime dependencies.</Description>
+    <Description>Managed EML, Outlook MSG/OFT, TNEF, mbox, iCalendar, vCard, and semantic comparison engine without third-party email runtime dependencies.</Description>
     <AssemblyName>OfficeIMO.Email</AssemblyName>
     <AssemblyTitle>OfficeIMO.Email</AssemblyTitle>
     <VersionPrefix>2.0.1</VersionPrefix>
@@ -11,7 +11,7 @@
     <Company>Evotec</Company>
     <Authors>Przemyslaw Klys</Authors>
     <PackageId>OfficeIMO.Email</PackageId>
-    <PackageTags>email;eml;mime;outlook;msg;oft;template;tnef;mbox;reader;writer;streaming;semantic;managed</PackageTags>
+    <PackageTags>email;eml;mime;outlook;msg;oft;template;tnef;mbox;ics;icalendar;vcard;vcf;reader;writer;streaming;semantic;managed</PackageTags>
     <PackageProjectUrl>https://github.com/EvotecIT/OfficeIMO</PackageProjectUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <RepositoryUrl>https://github.com/EvotecIT/OfficeIMO</RepositoryUrl>

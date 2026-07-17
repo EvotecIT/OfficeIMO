@@ -46,6 +46,10 @@ public sealed class EmailStoreReader {
         if (string.Equals(extension, ".olm", StringComparison.OrdinalIgnoreCase) &&
             count >= 4 && header[0] == 0x50 && header[1] == 0x4B) return EmailStoreFormat.Olm;
         if (string.Equals(extension, ".emlx", StringComparison.OrdinalIgnoreCase)) return EmailStoreFormat.Emlx;
+        if (string.Equals(extension, ".mbox", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(extension, ".mbx", StringComparison.OrdinalIgnoreCase) ||
+            count >= 5 && header[0] == (byte)'F' && header[1] == (byte)'r' && header[2] == (byte)'o' &&
+            header[3] == (byte)'m' && header[4] == (byte)' ') return EmailStoreFormat.Mbox;
         return EmailStoreFormat.Unknown;
     }
 

@@ -16,16 +16,20 @@ internal sealed class EmailStoreExportPathBuilder {
     }
 
     internal string GetItemPath(EmailStoreItemReference reference, string? subject, EmailFileFormat format) {
+        return GetItemPath(reference, subject, GetExtension(format));
+    }
+
+    internal string GetItemPath(EmailStoreItemReference reference, string? subject, string extension) {
         string directory = _preserveHierarchy ? GetFolderPath(reference.FolderId) : _root;
         if (reference.IsAssociated) directory = Path.Combine(directory, "_associated");
         if (reference.IsOrphaned) directory = Path.Combine(directory, "_recovered");
         string baseName = SanitizeSegment(subject, 96, "item");
         string stableId = SanitizeSegment(reference.Id, 48, "id");
         return Path.Combine(directory,
-            string.Concat(baseName, "__", stableId, GetExtension(format)));
+            string.Concat(baseName, "__", stableId, extension));
     }
 
-    private string GetFolderPath(string folderId) {
+    internal string GetFolderPath(string folderId) {
         if (_paths.TryGetValue(folderId, out string? existing)) return existing;
         var segments = new Stack<string>();
         var visited = new HashSet<string>(StringComparer.Ordinal);
@@ -63,7 +67,7 @@ internal sealed class EmailStoreExportPathBuilder {
         : format == EmailFileFormat.OutlookTemplate ? ".oft"
         : ".tnef";
 
-    private static string SanitizeSegment(string? value, int maximumLength, string fallback) {
+    internal static string SanitizeSegment(string? value, int maximumLength, string fallback) {
         if (string.IsNullOrWhiteSpace(value)) return fallback;
         var builder = new StringBuilder(Math.Min(value!.Length, maximumLength));
         bool previousReplacement = false;
