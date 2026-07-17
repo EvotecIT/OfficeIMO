@@ -300,12 +300,18 @@ namespace OfficeIMO.PowerPoint {
             OpenXmlPartRootElement? root,
             string relationshipId) => root != null
             && (root.GetAttributes().Any(attribute => string.Equals(
-                    attribute.Value, relationshipId,
+                    attribute.NamespaceUri,
+                    PowerPointUtils.RelationshipIdNamespace,
+                    StringComparison.Ordinal)
+                && string.Equals(attribute.Value, relationshipId,
                     StringComparison.Ordinal))
                 || root.Descendants().Any(element => element
                     .GetAttributes().Any(attribute => string.Equals(
-                        attribute.Value, relationshipId,
-                        StringComparison.Ordinal))));
+                            attribute.NamespaceUri,
+                            PowerPointUtils.RelationshipIdNamespace,
+                            StringComparison.Ordinal)
+                        && string.Equals(attribute.Value, relationshipId,
+                            StringComparison.Ordinal))));
 
         private A.RunProperties EnsureRunProperties() {
             return Run.RunProperties ??= new A.RunProperties();

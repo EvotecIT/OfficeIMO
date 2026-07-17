@@ -105,11 +105,17 @@ namespace OfficeIMO.PowerPoint {
         private static bool ReferencesRelationship(
             OpenXmlPartRootElement? root, string relationshipId) =>
             root != null && (root.GetAttributes().Any(attribute =>
-                string.Equals(attribute.Value, relationshipId,
+                string.Equals(attribute.NamespaceUri,
+                    PowerPointUtils.RelationshipIdNamespace,
+                    StringComparison.Ordinal)
+                && string.Equals(attribute.Value, relationshipId,
                     StringComparison.Ordinal))
                 || root.Descendants().Any(element => element.GetAttributes()
-                    .Any(attribute => string.Equals(attribute.Value,
-                        relationshipId, StringComparison.Ordinal))));
+                    .Any(attribute => string.Equals(attribute.NamespaceUri,
+                            PowerPointUtils.RelationshipIdNamespace,
+                            StringComparison.Ordinal)
+                        && string.Equals(attribute.Value, relationshipId,
+                            StringComparison.Ordinal))));
 
         private static string GetNextRelationshipId(SlidePart slidePart) {
             var used = new HashSet<string>(slidePart.Parts.Select(pair =>

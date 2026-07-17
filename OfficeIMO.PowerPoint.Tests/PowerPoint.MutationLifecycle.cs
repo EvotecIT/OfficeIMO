@@ -600,6 +600,48 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ClearingRunHyperlinkIgnoresShapeNameMatchingRelationshipId() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            PowerPointTextRun run = slide.AddTextBox("Link")
+                .Paragraphs.Single().Runs.Single();
+            run.SetHyperlink("https://example.test/remove");
+            string relationshipId = Assert.Single(slide.SlidePart
+                .HyperlinkRelationships).Id;
+            slide.AddRectangle(100000, 100000, 1000000, 500000)
+                .Name = relationshipId;
+
+            run.ClearHyperlink();
+
+            Assert.Empty(slide.SlidePart.HyperlinkRelationships);
+            Assert.Empty(presentation.ValidateDocument());
+        }
+
+        [Fact]
+        public void ClearingShapeSoundIgnoresShapeNameMatchingRelationshipId() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            PowerPointAutoShape sounded = slide.AddRectangle(
+                100000, 100000, 1000000, 500000);
+            using (var sound = new MemoryStream(CreateWave(),
+                       writable: false)) {
+                sounded.SetClickSound(sound, "Remove sound");
+            }
+            string relationshipId = Assert.Single(slide.SlidePart
+                .DataPartReferenceRelationships).Id;
+            slide.AddRectangle(100000, 700000, 1000000, 500000)
+                .Name = relationshipId;
+
+            sounded.ClearClickSound();
+
+            Assert.Empty(slide.SlidePart.DataPartReferenceRelationships);
+            Assert.Empty(presentation.OpenXmlDocument.DataParts);
+            Assert.Empty(presentation.ValidateDocument());
+        }
+
+        [Fact]
         public void FailedSoundIngestionDoesNotLeaveMediaParts() {
             using PowerPointPresentation presentation =
                 PowerPointPresentation.Create();
