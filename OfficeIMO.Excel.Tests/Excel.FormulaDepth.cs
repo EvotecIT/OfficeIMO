@@ -368,6 +368,60 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_FormulaDependencyGraph_ResolvesChainedDefinedNamesAndGuardsNameCycles() {
+            using ExcelDocument document = ExcelDocument.Create();
+            ExcelSheet sheet = document.AddWorksheet("Chained Names");
+            sheet.CellFormula(1, 1, "B1");
+            sheet.CellFormula(1, 2, "Alias");
+            sheet.CellFormula(1, 3, "First");
+            document.WorkbookRoot.DefinedNames ??= new DefinedNames();
+            document.WorkbookRoot.DefinedNames.Append(
+                new DefinedName("'Chained Names'!A1") { Name = "Base" },
+                new DefinedName("Base") { Name = "Alias" },
+                new DefinedName("Second") { Name = "First" },
+                new DefinedName("First") { Name = "Second" });
+
+            ExcelFormulaInspection inspection = document.InspectFormulas();
+            ExcelFormulaDependencyGraph graph = inspection.DependencyGraph;
+            ExcelFormulaDependencyNode aliasNode = Assert.IsType<ExcelFormulaDependencyNode>(
+                graph.FindNode("Chained Names", "B1"));
+            ExcelFormulaDependencyNode cyclicNameNode = Assert.IsType<ExcelFormulaDependencyNode>(
+                graph.FindNode("Chained Names", "C1"));
+
+            Assert.Equal(new[] { "Chained Names!A1" }, aliasNode.Dependencies);
+            Assert.Equal(new[] { "Chained Names!A1" }, aliasNode.FormulaDependencies);
+            Assert.Empty(cyclicNameNode.Dependencies);
+            Assert.Empty(cyclicNameNode.FormulaDependencies);
+            Assert.Equal(2, graph.EdgeCount);
+            Assert.True(graph.HasCircularReferences);
+            Assert.Equal(new[] { "Chained Names!A1", "Chained Names!B1" }, Assert.Single(graph.CircularReferences).References);
+            Assert.Throws<InvalidOperationException>(() => inspection.EnsureNoDependencyIssues());
+        }
+
+        [Fact]
+        public void Test_FormulaDependencyGraph_BoundsAcyclicDefinedNameExpansion() {
+            using ExcelDocument document = ExcelDocument.Create();
+            ExcelSheet sheet = document.AddWorksheet("Bounded Names");
+            sheet.CellValue(1, 1, 1d);
+            sheet.CellFormula(1, 2, "Name000");
+            document.WorkbookRoot.DefinedNames ??= new DefinedNames();
+            for (int index = 0; index < 256; index++) {
+                document.WorkbookRoot.DefinedNames.Append(new DefinedName($"Name{index + 1:000}") {
+                    Name = $"Name{index:000}"
+                });
+            }
+            document.WorkbookRoot.DefinedNames.Append(new DefinedName("'Bounded Names'!A1") { Name = "Name256" });
+
+            ExcelFormulaDependencyGraph graph = document.InspectFormulas().DependencyGraph;
+            ExcelFormulaDependencyNode node = Assert.IsType<ExcelFormulaDependencyNode>(
+                graph.FindNode("Bounded Names", "B1"));
+
+            Assert.Empty(node.Dependencies);
+            Assert.Empty(node.FormulaDependencies);
+            Assert.False(graph.HasCircularReferences);
+        }
+
+        [Fact]
         public void Test_FormulaEvaluator_ClearsPreExistingCacheWhenLowerDepthBlocksFormula() {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelFormulaDepth.PreExistingCache.xlsx");
 
