@@ -18,6 +18,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
 
         internal long DecodedBytes => _decodedBytes;
 
+        internal int RemainingAllocationBytes => checked((int)Math.Min(
+            int.MaxValue, Math.Max(0L,
+                _maximumDecodedBytes - _decodedBytes)));
+
         internal void ThrowIfExceeded() {
             if (_wasExceeded) throw CreateLimitException();
         }
@@ -31,6 +35,11 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 throw CreateLimitException();
             }
             _decodedBytes += byteCount;
+        }
+
+        internal void RejectAllocation() {
+            _wasExceeded = true;
+            throw CreateLimitException();
         }
 
         private InvalidDataException CreateLimitException() =>

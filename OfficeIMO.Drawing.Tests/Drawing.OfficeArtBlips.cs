@@ -89,6 +89,23 @@ public sealed class DrawingOfficeArtBlipTests {
     }
 
     [Fact]
+    public void ReaderRejectsImageBeforeAllocatingPastDecodedLimit() {
+        byte[] png = {
+            0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A
+        };
+        byte[] blip = BuildBlipRecord(0x06E0, 0xF01E, png);
+
+        Assert.True(OfficeArtBlipStoreEntryReader.TryRead(
+            BuildFbse(blip, uint.MaxValue), 0x0006,
+            out OfficeArtBlipStoreEntry? entry,
+            maximumDecodedImageBytes: png.Length - 1));
+
+        Assert.NotNull(entry);
+        Assert.Empty(entry!.ImageBytes);
+        Assert.True(entry.WasImageRejectedBySizeLimit);
+    }
+
+    [Fact]
     public void ReaderUsesTwoUidRasterPrefixAndBuildsBmpFileHeader() {
         byte[] dib = new byte[44];
         WriteUInt32(dib, 0, 40);

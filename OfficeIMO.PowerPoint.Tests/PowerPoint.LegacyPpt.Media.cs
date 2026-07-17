@@ -66,6 +66,43 @@ namespace OfficeIMO.Tests {
                 projected.ToBytes(PowerPointFileFormat.Ppt));
         }
 
+        [Fact]
+        public void ImportedEmbeddedWaveMedia_BlocksPayloadOnlyReplacement() {
+            byte[] original = CreateMediaWavePayload();
+            byte[] replacement = (byte[])original.Clone();
+            replacement[replacement.Length - 1] ^= 0x20;
+            byte[] sourceBytes;
+            using (PowerPointPresentation source =
+                   PowerPointPresentation.Create()) {
+                PowerPointSlide slide = source.AddSlide(
+                    P.SlideLayoutValues.Blank);
+                using var audio = new MemoryStream(original,
+                    writable: false);
+                slide.AddAudio(audio, "audio/wav", ".wav");
+                sourceBytes = source.ToBytes(PowerPointFileFormat.Ppt);
+            }
+
+            using (var input = new MemoryStream(sourceBytes,
+                       writable: false))
+            using (PowerPointPresentation imported =
+                   PowerPointPresentation.Load(input)) {
+                PowerPointMedia media = Assert.Single(
+                    imported.Slides[0].Media);
+                using var updated = new MemoryStream(replacement,
+                    writable: false);
+                media.UpdateData(updated);
+
+                LegacyPptWritePreflightReport preflight = imported
+                    .AnalyzeLegacyPptWrite();
+                Assert.False(preflight.CanWrite);
+                Assert.Contains(preflight.Findings, finding =>
+                    finding.Code == "PPT-WRITE-IMPORT-LOSS");
+                Assert.Throws<NotSupportedException>(() =>
+                    imported.ToBytes(PowerPointFileFormat.Ppt));
+                Assert.Equal(replacement, media.GetData());
+            }
+        }
+
         [Theory]
         [InlineData(true, "video/mp4", ".mp4",
             LegacyPptFeature.EmbeddedVideo)]

@@ -101,15 +101,23 @@ namespace OfficeIMO.PowerPoint {
                     "OLE storage stream must be readable.", nameof(storage));
             }
             byte[] storageBytes = ReadStorage(storage);
-            if (!OfficeCompoundFileReader.TryRead(storageBytes,
-                    out OfficeCompoundFile? compound, out string? reason)
-                || compound == null) {
+            if (!TryValidateStorage(storageBytes, out string? reason)) {
                 throw new InvalidDataException(reason
                     ?? "The embedded object is not an OLE compound storage.");
             }
             using var source = new MemoryStream(storageBytes,
                 writable: false);
             EmbeddedPart.FeedData(source);
+        }
+
+        internal static bool TryValidateStorage(byte[] storageBytes,
+            out string? reason) {
+            var limits = new OfficeCompoundReadOptions(
+                maxStreamBytes: MaximumStorageBytes,
+                maxTotalStreamBytes: MaximumStorageBytes);
+            return OfficeCompoundFileReader.TryRead(storageBytes, limits,
+                out OfficeCompoundFile? compound, out reason)
+                && compound != null;
         }
 
         private static byte[] ReadStorage(Stream storage) {

@@ -254,6 +254,68 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void RemovingOneClassicAnimationPreservesMixedMediaTiming() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            PowerPointAutoShape first = slide.AddRectangle(
+                100000, 100000, 1000000, 500000);
+            PowerPointAutoShape second = slide.AddRectangle(
+                100000, 700000, 1000000, 500000);
+            slide.AddClassicAnimation(first,
+                PowerPointClassicAnimationEffect.Fade);
+            slide.AddClassicAnimation(second,
+                PowerPointClassicAnimationEffect.Wipe);
+            using var audio = new MemoryStream(CreateWave(), writable: false);
+            slide.AddAudio(audio, "audio/wav", ".wav");
+            string mediaTiming = Assert.Single(slide.SlidePart.Slide!
+                .Timing!.Descendants<Audio>()).OuterXml;
+
+            Assert.True(slide.RemoveClassicAnimation(first));
+
+            PowerPointClassicAnimation remaining = Assert.Single(
+                slide.ClassicAnimations);
+            Assert.Equal(second.Id, remaining.ShapeId);
+            Assert.Single(slide.SlidePart.Slide.Timing!
+                .Descendants<AnimateEffect>());
+            Assert.Equal(mediaTiming, Assert.Single(slide.SlidePart.Slide
+                .Timing.Descendants<Audio>()).OuterXml);
+            Assert.Empty(presentation.ValidateDocument());
+        }
+
+        [Fact]
+        public void ReplacingRunHyperlinkCleansOldTargetAndSoundRelationships() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            PowerPointSlide source = presentation.AddSlide();
+            PowerPointSlide target = presentation.AddSlide();
+            PowerPointTextRun run = source.AddTextBox("Target")
+                .Paragraphs.Single().Runs.Single();
+            run.SetHyperlink("https://example.test/old");
+            using (var sound = new MemoryStream(CreateWave(),
+                       writable: false)) {
+                run.SetClickSound(sound, "Old link sound");
+            }
+            Assert.Single(source.SlidePart.HyperlinkRelationships);
+            Assert.Single(presentation.OpenXmlDocument.DataParts);
+
+            run.SetHyperlink(target);
+
+            Assert.Empty(source.SlidePart.HyperlinkRelationships);
+            Assert.Empty(source.SlidePart.DataPartReferenceRelationships);
+            Assert.Empty(presentation.OpenXmlDocument.DataParts);
+            Assert.Contains(source.SlidePart.Parts, pair => ReferenceEquals(
+                pair.OpenXmlPart, target.SlidePart));
+
+            run.ClearHyperlink();
+
+            Assert.DoesNotContain(source.SlidePart.Parts, pair =>
+                ReferenceEquals(pair.OpenXmlPart, target.SlidePart));
+            Assert.Equal(2, presentation.Slides.Count);
+            Assert.Empty(presentation.ValidateDocument());
+        }
+
+        [Fact]
         public void FailedSoundIngestionDoesNotLeaveMediaParts() {
             using PowerPointPresentation presentation =
                 PowerPointPresentation.Create();

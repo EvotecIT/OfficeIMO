@@ -322,6 +322,43 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void EmbeddedOleObject_BoundsLogicalCompoundExpansion() {
+            byte[] valid = CreateOleTestStorage("Bounded OLE");
+            byte[] oversizedLogical = (byte[])valid.Clone();
+            const ulong StreamSize = 40UL * 1024UL * 1024UL;
+            foreach (string name in new[] {
+                         "\u0001Ole10Native", "CONTENTS"
+                     }) {
+                int entry = FindCompoundDirectoryEntry(oversizedLogical,
+                    name);
+                WriteCompoundUInt64(oversizedLogical, entry + 120,
+                    StreamSize);
+            }
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            PowerPointSlide slide = presentation.AddSlide(
+                P.SlideLayoutValues.Blank);
+
+            InvalidDataException addException = Assert.Throws<
+                InvalidDataException>(() => slide.AddOleObject(
+                new MemoryStream(oversizedLogical, writable: false),
+                "Package"));
+
+            Assert.Contains("Compound stream bytes exceed",
+                addException.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Empty(slide.OleObjects);
+            using var original = new MemoryStream(valid, writable: false);
+            PowerPointOleObject ole = slide.AddOleObject(original,
+                "Package");
+            InvalidDataException updateException = Assert.Throws<
+                InvalidDataException>(() => ole.UpdateData(
+                new MemoryStream(oversizedLogical, writable: false)));
+            Assert.Contains("Compound stream bytes exceed",
+                updateException.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Equal(valid, ole.GetData());
+        }
+
+        [Fact]
         public void EmbeddedOleObject_DuplicateOwnsIndependentStorageAndRemovalCleansPart() {
             byte[] originalStorage = CreateOleTestStorage("Original part");
             byte[] duplicateStorage = CreateOleTestStorage("Duplicate part");

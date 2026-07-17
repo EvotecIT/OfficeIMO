@@ -33,9 +33,8 @@ namespace OfficeIMO.PowerPoint {
             }
 
             byte[] storageBytes = ReadOleStorage(storage);
-            if (!OfficeCompoundFileReader.TryRead(storageBytes,
-                    out OfficeCompoundFile? compound, out string? reason)
-                || compound == null) {
+            if (!PowerPointOleObject.TryValidateStorage(storageBytes,
+                    out string? reason)) {
                 throw new InvalidDataException(reason
                     ?? "The embedded object is not an OLE compound storage.");
             }

@@ -109,7 +109,12 @@ public static class PowerPointExtractionExtensions {
         ParagraphMarkdownKind? previousKind = null;
         foreach (PowerPointParagraph paragraph in textBox.Paragraphs) {
             string text = RenderParagraphText(paragraph).Trim();
-            if (text.Length == 0) continue;
+            if (text.Length == 0) {
+                numberingState.Clear();
+                listContentIndents.Clear();
+                if (appended) previousKind = ParagraphMarkdownKind.Plain;
+                continue;
+            }
 
             ParagraphMarkdownKind kind = isTitle
                 ? ParagraphMarkdownKind.Heading
@@ -124,9 +129,25 @@ public static class PowerPointExtractionExtensions {
             }
 
             if (kind == ParagraphMarkdownKind.Heading) {
+                numberingState.Clear();
+                listContentIndents.Clear();
                 markdown.Append("### ").AppendLine(text);
             } else {
                 int level = Math.Max(0, paragraph.Level ?? 0);
+                if (kind == ParagraphMarkdownKind.NumberedList) {
+                    RemoveListState(numberingState, level,
+                        includeLevel: false);
+                    RemoveListState(listContentIndents, level,
+                        includeLevel: false);
+                } else if (kind == ParagraphMarkdownKind.BulletList) {
+                    RemoveListState(numberingState, level,
+                        includeLevel: true);
+                    RemoveListState(listContentIndents, level,
+                        includeLevel: false);
+                } else {
+                    numberingState.Clear();
+                    listContentIndents.Clear();
+                }
                 int indent = ResolveListIndent(level, listContentIndents);
                 if (kind == ParagraphMarkdownKind.NumberedList) {
                     int number = ResolveNumberingValue(paragraph, level, numberingState);
@@ -176,6 +197,15 @@ public static class PowerPointExtractionExtensions {
             ?? (numberingState.TryGetValue(level, out int previous) ? previous + 1 : 1);
         numberingState[level] = number;
         return number;
+    }
+
+    private static void RemoveListState(IDictionary<int, int> state,
+        int level, bool includeLevel) {
+        foreach (int key in state.Keys.Where(key => includeLevel
+                     ? key >= level
+                     : key > level).ToArray()) {
+            state.Remove(key);
+        }
     }
 
     private static bool IsListKind(ParagraphMarkdownKind kind) =>

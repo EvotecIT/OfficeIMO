@@ -190,12 +190,11 @@ namespace OfficeIMO.PowerPoint {
 
             HyperlinkRelationship rel = _slidePart.AddHyperlinkRelationship(uri, true);
             A.RunProperties props = EnsureRunProperties();
-            props.RemoveAllChildren<A.HyperlinkOnClick>();
             var hyperlink = new A.HyperlinkOnClick { Id = rel.Id };
             if (!string.IsNullOrWhiteSpace(tooltip)) {
                 hyperlink.Tooltip = tooltip;
             }
-            props.Append(hyperlink);
+            ReplaceClickHyperlink(props, hyperlink);
         }
 
         /// <summary>
@@ -228,7 +227,6 @@ namespace OfficeIMO.PowerPoint {
             }
 
             A.RunProperties props = EnsureRunProperties();
-            props.RemoveAllChildren<A.HyperlinkOnClick>();
             var hyperlink = new A.HyperlinkOnClick {
                 Id = _slidePart.GetIdOfPart(targetSlide.SlidePart),
                 Action = "ppaction://hlinksldjump"
@@ -236,7 +234,7 @@ namespace OfficeIMO.PowerPoint {
             if (!string.IsNullOrWhiteSpace(tooltip)) {
                 hyperlink.Tooltip = tooltip;
             }
-            props.Append(hyperlink);
+            ReplaceClickHyperlink(props, hyperlink);
         }
 
         /// <summary>
@@ -244,8 +242,70 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public void ClearHyperlink() {
             A.RunProperties? props = Run.RunProperties;
-            props?.RemoveAllChildren<A.HyperlinkOnClick>();
+            if (props != null) ReplaceClickHyperlink(props, replacement: null);
         }
+
+        private void ReplaceClickHyperlink(A.RunProperties properties,
+            A.HyperlinkOnClick? replacement) {
+            A.HyperlinkOnClick[] previous = properties
+                .Elements<A.HyperlinkOnClick>().ToArray();
+            string[] relationshipIds = previous
+                .Select(link => link.Id?.Value)
+                .Where(id => !string.IsNullOrEmpty(id))
+                .Cast<string>()
+                .Distinct(StringComparer.Ordinal)
+                .ToArray();
+            string[] soundRelationshipIds = previous
+                .SelectMany(link => link.Elements<A.HyperlinkSound>())
+                .Select(sound => sound.Embed?.Value)
+                .Where(id => !string.IsNullOrEmpty(id))
+                .Cast<string>()
+                .Distinct(StringComparer.Ordinal)
+                .ToArray();
+            foreach (A.HyperlinkOnClick hyperlink in previous) {
+                hyperlink.Remove();
+            }
+            if (replacement != null) properties.Append(replacement);
+            if (_slidePart == null) return;
+            foreach (string relationshipId in relationshipIds) {
+                RemoveHyperlinkRelationshipIfUnused(_slidePart,
+                    relationshipId);
+            }
+            foreach (string soundRelationshipId in soundRelationshipIds) {
+                PowerPointEmbeddedSound.RemoveIfUnused(_slidePart,
+                    soundRelationshipId);
+            }
+        }
+
+        private static void RemoveHyperlinkRelationshipIfUnused(
+            SlidePart slidePart, string relationshipId) {
+            if (ReferencesRelationship(slidePart.RootElement,
+                    relationshipId)) return;
+            HyperlinkRelationship? external = slidePart
+                .HyperlinkRelationships.FirstOrDefault(relationship =>
+                    string.Equals(relationship.Id, relationshipId,
+                        StringComparison.Ordinal));
+            if (external != null) {
+                slidePart.DeleteReferenceRelationship(external);
+                return;
+            }
+            if (slidePart.Parts.Any(pair => string.Equals(
+                    pair.RelationshipId, relationshipId,
+                    StringComparison.Ordinal))) {
+                slidePart.DeletePart(relationshipId);
+            }
+        }
+
+        private static bool ReferencesRelationship(
+            OpenXmlPartRootElement? root,
+            string relationshipId) => root != null
+            && (root.GetAttributes().Any(attribute => string.Equals(
+                    attribute.Value, relationshipId,
+                    StringComparison.Ordinal))
+                || root.Descendants().Any(element => element
+                    .GetAttributes().Any(attribute => string.Equals(
+                        attribute.Value, relationshipId,
+                        StringComparison.Ordinal))));
 
         private A.RunProperties EnsureRunProperties() {
             return Run.RunProperties ??= new A.RunProperties();

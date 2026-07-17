@@ -11,6 +11,8 @@ namespace OfficeIMO.PowerPoint {
             Func<OpenXmlPart, bool>? includePart = null,
             Func<OpenXmlPart, IdPartPair, bool>? includeRelationship = null,
             Func<OpenXmlPart, ReferenceRelationship, bool>? includeReferenceRelationship = null,
+            Func<OpenXmlPart, DataPartReferenceRelationship, bool>?
+                includeDataPartReferenceRelationship = null,
             bool includePackageProperties = true) {
             if (document == null) throw new ArgumentNullException(nameof(document));
             var parts = new HashSet<OpenXmlPart>();
@@ -44,6 +46,30 @@ namespace OfficeIMO.PowerPoint {
                     if (includeRelationship != null && !includeRelationship(part, relationship)) continue;
                     content.Append('|').Append(relationship.RelationshipId).Append('=')
                         .Append(relationship.OpenXmlPart.Uri);
+                }
+                foreach (DataPartReferenceRelationship relationship in part
+                             .DataPartReferenceRelationships
+                             .OrderBy(item => item.Id,
+                                 StringComparer.Ordinal)) {
+                    if (includeDataPartReferenceRelationship != null
+                        && !includeDataPartReferenceRelationship(part,
+                            relationship)) continue;
+                    DataPart dataPart = relationship.DataPart;
+                    content.Append("|data:").Append(relationship.Id)
+                        .Append('=').Append(relationship.RelationshipType)
+                        .Append('>').Append(dataPart.Uri).Append('|')
+                        .Append(dataPart.ContentType).Append('|');
+                    try {
+                        using Stream stream = dataPart.GetStream(
+                            FileMode.Open, FileAccess.Read);
+                        using SHA256 dataHash = SHA256.Create();
+                        content.Append(Convert.ToBase64String(
+                            dataHash.ComputeHash(stream)));
+                    } catch (Exception exception) when (
+                        exception is InvalidDataException
+                        || exception is IOException) {
+                        content.Append("unreadable");
+                    }
                 }
                 IEnumerable<ReferenceRelationship> references = part.ExternalRelationships
                     .Cast<ReferenceRelationship>()

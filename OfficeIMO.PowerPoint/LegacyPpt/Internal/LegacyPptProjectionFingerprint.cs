@@ -236,7 +236,42 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                     && !editableImages.IsEditableImageRelationship(owner,
                         relationship),
             (owner, relationship) => relationship is not HyperlinkRelationship,
+            (owner, relationship) =>
+                !IsWriterSupportedAudioDataRelationship(owner,
+                    relationship),
             includePackageProperties: false);
+
+        private static bool IsWriterSupportedAudioDataRelationship(
+            OpenXmlPart owner,
+            DataPartReferenceRelationship relationship) {
+            if (owner is not SlidePart slidePart
+                || slidePart.Slide == null) return false;
+            var referencedAudioIds = new HashSet<string>(
+                slidePart.Slide.Descendants<P.Sound>()
+                    .Select(sound => sound.Embed?.Value)
+                    .Concat(slidePart.Slide.Descendants<A.HyperlinkSound>()
+                        .Select(sound => sound.Embed?.Value))
+                    .Concat(slidePart.Slide.Descendants()
+                        .Where(element => string.Equals(element.LocalName,
+                                "snd", StringComparison.Ordinal)
+                            || string.Equals(element.LocalName, "sound",
+                                StringComparison.Ordinal))
+                        .Select(element => element.GetAttributes()
+                            .FirstOrDefault(attribute => string.Equals(
+                                attribute.LocalName, "embed",
+                                StringComparison.Ordinal)).Value))
+                    .Where(id => !string.IsNullOrEmpty(id))
+                    .Cast<string>(), StringComparer.Ordinal);
+            if (referencedAudioIds.Count == 0) return false;
+            DataPartReferenceRelationship[] dataRelationships = slidePart
+                .DataPartReferenceRelationships.Where(candidate =>
+                    ReferenceEquals(candidate.DataPart,
+                        relationship.DataPart)).ToArray();
+            return dataRelationships.Length > 0
+                && dataRelationships.All(candidate =>
+                    candidate is AudioReferenceRelationship
+                    && referencedAudioIds.Contains(candidate.Id));
+        }
 
         private sealed class EditableImageFingerprintScope {
             private readonly ISet<string> _relationshipKeys;

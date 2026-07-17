@@ -12,7 +12,8 @@ public sealed class OfficeArtBlipStoreEntry {
         string uidHex, ushort tag, uint sizeBytes, uint referenceCount, uint delayedStreamOffset,
         byte nameByteCount, string? name, OfficeArtBlipStorage storage, byte? blipRecordVersion,
         ushort? blipRecordInstance, ushort? blipRecordType, uint? blipPayloadLength,
-        int? blipPayloadAvailableLength, string? blipPayloadSha256, byte[]? imageBytes) {
+        int? blipPayloadAvailableLength, string? blipPayloadSha256,
+        byte[]? imageBytes, bool wasImageRejectedBySizeLimit) {
         RecordInstance = recordInstance;
         RecordInstanceBlipType = TryGetBlipType(recordInstance);
         RecordInstanceBlipTypeName = GetBlipTypeName(recordInstance);
@@ -40,6 +41,7 @@ public sealed class OfficeArtBlipStoreEntry {
         ContentType = GetContentType(blipRecordType, RecordInstanceBlipType,
             Win32BlipTypeKind, MacOsBlipTypeKind);
         _imageBytes = imageBytes == null ? Array.Empty<byte>() : (byte[])imageBytes.Clone();
+        WasImageRejectedBySizeLimit = wasImageRejectedBySizeLimit;
     }
 
     /// <summary>Gets the BLIP type value stored in the FBSE OfficeArt record instance field.</summary>
@@ -129,6 +131,8 @@ public sealed class OfficeArtBlipStoreEntry {
 
     /// <summary>Gets whether this entry can be projected as an Open XML image.</summary>
     public bool HasImportableImage => _imageBytes.Length > 0 && !string.IsNullOrWhiteSpace(ContentType);
+
+    internal bool WasImageRejectedBySizeLimit { get; }
 
     internal static OfficeArtBlipType? TryGetBlipType(ushort value) => value switch {
         0x00 => OfficeArtBlipType.Error,

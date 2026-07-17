@@ -713,9 +713,17 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             if (store == null) return;
             foreach (LegacyPptRecord fbse in store.Children.Where(record => record.Type == OfficeArtFbse)) {
                 byte[] bytes = fbse.CopyRecordBytes();
+                int remainingDecodedBytes = _decodedStorageBudget
+                    .RemainingAllocationBytes;
+                int perImageLimit = Math.Min(options.MaxInputBytes,
+                    remainingDecodedBytes);
                 if (OfficeArtBlipStoreEntryReader.TryRead(bytes, 8, fbse.PayloadLength, fbse.Instance,
                         package.PicturesStream, out OfficeArtBlipStoreEntry? entry,
-                        options.MaxInputBytes) && entry != null) {
+                        perImageLimit) && entry != null) {
+                    if (entry.WasImageRejectedBySizeLimit
+                        && remainingDecodedBytes <= options.MaxInputBytes) {
+                        _decodedStorageBudget.RejectAllocation();
+                    }
                     _decodedStorageBudget.Consume(entry.ImageByteCount);
                     _blipStoreEntries.Add(entry);
                 } else if (options.ReportUnsupportedContent) {

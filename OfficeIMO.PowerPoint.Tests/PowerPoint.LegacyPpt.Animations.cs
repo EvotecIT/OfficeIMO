@@ -253,7 +253,10 @@ namespace OfficeIMO.Tests {
                 using var audio = new MemoryStream(replacement, writable: false);
                 slide.SetClassicAnimationSound(shape, audio,
                     "Replacement Animation", stopExistingSounds: false);
-                Assert.True(imported.AnalyzeLegacyPptWrite().CanWrite);
+                LegacyPptWritePreflightReport preflight = imported
+                    .AnalyzeLegacyPptWrite();
+                Assert.True(preflight.CanWrite,
+                    string.Join(Environment.NewLine, preflight.Findings));
                 savedBytes = imported.ToBytes(PowerPointFileFormat.Ppt);
             }
 

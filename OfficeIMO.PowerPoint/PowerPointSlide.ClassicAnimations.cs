@@ -154,8 +154,16 @@ namespace OfficeIMO.PowerPoint {
                 return;
             }
 
+            bool preserveUnrelatedTiming = SlideRoot.Timing != null
+                && previousAnimations.Count > 0
+                && !HasOnlyClassicAnimationTiming();
+            if (preserveUnrelatedTiming) {
+                RemoveClassicTimingNodes(previousAnimations);
+            }
             var childNodes = new ChildTimeNodeList();
-            uint timingId = 2;
+            uint timingId = preserveUnrelatedTiming
+                ? GetNextTimingId()
+                : 2U;
             foreach (PowerPointClassicAnimation animation in ordered) {
                 var effectTime = new CommonTimeNode {
                     Id = timingId++,
@@ -208,13 +216,54 @@ namespace OfficeIMO.PowerPoint {
             var timing = new Timing(new TimeNodeList(new ParallelTimeNode(root)));
             BuildList? buildList = CreateClassicBuildList(ordered);
             if (buildList != null) timing.Append(buildList);
-            SlideRoot.Timing?.Remove();
-            OpenXmlElement? insertBefore = SlideRoot
-                .GetFirstChild<SlideExtensionList>();
-            if (insertBefore == null) SlideRoot.Append(timing);
-            else SlideRoot.InsertBefore(timing, insertBefore);
+            if (preserveUnrelatedTiming) {
+                AppendClassicTiming(SlideRoot.Timing!, childNodes,
+                    buildList);
+            } else {
+                SlideRoot.Timing?.Remove();
+                OpenXmlElement? insertBefore = SlideRoot
+                    .GetFirstChild<SlideExtensionList>();
+                if (insertBefore == null) SlideRoot.Append(timing);
+                else SlideRoot.InsertBefore(timing, insertBefore);
+            }
             WriteClassicAnimationMetadata(ordered);
             RemoveUnusedClassicAnimationSounds(previousSoundRelationships);
+        }
+
+        private static void AppendClassicTiming(Timing timing,
+            ChildTimeNodeList classicNodes, BuildList? classicBuilds) {
+            TimeNodeList timeNodeList = timing
+                .GetFirstChild<TimeNodeList>()
+                ?? timing.AppendChild(new TimeNodeList());
+            ParallelTimeNode rootParallel = timeNodeList
+                .Elements<ParallelTimeNode>()
+                .FirstOrDefault(node => node.GetFirstChild<CommonTimeNode>()?
+                    .NodeType?.Value == TimeNodeValues.TmingRoot)
+                ?? timeNodeList.AppendChild(new ParallelTimeNode());
+            CommonTimeNode root = rootParallel
+                .GetFirstChild<CommonTimeNode>()
+                ?? rootParallel.AppendChild(new CommonTimeNode {
+                    Id = 1U,
+                    Duration = "indefinite",
+                    Restart = TimeNodeRestartValues.Never,
+                    NodeType = TimeNodeValues.TmingRoot
+                });
+            ChildTimeNodeList targetNodes = root
+                .GetFirstChild<ChildTimeNodeList>()
+                ?? root.AppendChild(new ChildTimeNodeList());
+            foreach (OpenXmlElement node in classicNodes.ChildElements
+                         .ToArray()) {
+                node.Remove();
+                targetNodes.Append(node);
+            }
+            if (classicBuilds == null) return;
+            BuildList targetBuilds = timing.GetFirstChild<BuildList>()
+                ?? timing.AppendChild(new BuildList());
+            foreach (OpenXmlElement build in classicBuilds.ChildElements
+                         .ToArray()) {
+                build.Remove();
+                targetBuilds.Append(build);
+            }
         }
 
         private void RemoveClassicTimingNodes(

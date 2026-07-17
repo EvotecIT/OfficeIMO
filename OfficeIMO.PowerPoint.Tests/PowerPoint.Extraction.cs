@@ -155,6 +155,36 @@ namespace OfficeIMO.Tests {
                 "The table should be emitted before the following textbox.");
         }
 
+        [Fact]
+        public void ExtractMarkdownChunks_RestartsNumberingAtListBoundaries() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            PowerPointTextBox text = slide.AddTextBox(string.Empty);
+            text.SetNumberedList(new[] { "Before one", "Before two" });
+            text.AddParagraph("Plain boundary").ClearBullet();
+            PowerPointParagraph restarted = text.AddParagraph("After one");
+            restarted.SetNumbered(A.TextAutoNumberSchemeValues.ArabicPeriod);
+            PowerPointParagraph parentOne = text.AddParagraph("Parent one");
+            parentOne.SetNumbered(A.TextAutoNumberSchemeValues.ArabicPeriod);
+            PowerPointParagraph childOne = text.AddParagraph("Child one");
+            childOne.SetNumbered(A.TextAutoNumberSchemeValues.ArabicPeriod);
+            childOne.Level = 1;
+            PowerPointParagraph parentTwo = text.AddParagraph("Parent two");
+            parentTwo.SetNumbered(A.TextAutoNumberSchemeValues.ArabicPeriod);
+            PowerPointParagraph childTwo = text.AddParagraph("Child restart");
+            childTwo.SetNumbered(A.TextAutoNumberSchemeValues.ArabicPeriod);
+            childTwo.Level = 1;
+
+            string markdown = presentation.ExtractMarkdownChunks()
+                .Single().Markdown;
+
+            Assert.Contains("2. Before two\n\nPlain boundary\n\n1. After one",
+                markdown, StringComparison.Ordinal);
+            Assert.Contains("2. Parent one\n    1. Child one\n3. Parent two\n    1. Child restart",
+                markdown, StringComparison.Ordinal);
+        }
+
         private static void AppendNotesParagraph(string filePath, string text) {
             using PresentationDocument document = PresentationDocument.Open(filePath, true);
             NotesSlidePart notesPart = document.PresentationPart!.SlideParts.First().NotesSlidePart!;
