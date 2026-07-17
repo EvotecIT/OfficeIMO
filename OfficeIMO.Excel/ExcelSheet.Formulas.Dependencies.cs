@@ -160,15 +160,21 @@ namespace OfficeIMO.Excel {
                 string searchableFormula = MaskFormulaStringLiterals(formula);
                 string directReferenceFormula = MaskFormulaNonLocalReferenceSegments(searchableFormula);
                 directReferenceFormula = MaskFormulaStructuredReferenceSegments(directReferenceFormula);
-                var dependencies = new HashSet<string>(FormulaReferenceRegex.Matches(directReferenceFormula)
+                List<FormulaDependencyReferenceMatch> dependencyMatches = FormulaReferenceRegex.Matches(directReferenceFormula)
                     .Cast<Match>()
                     .Where(match => IsLocalFormulaReferenceMatch(searchableFormula, match))
-                    .Select(match => match.Groups["reference"].Value)
-                    .Where(reference => !string.IsNullOrWhiteSpace(reference))
-                    .Select(NormalizeFormulaDependencyReference), StringComparer.OrdinalIgnoreCase);
+                    .Where(match => !string.IsNullOrWhiteSpace(match.Groups["reference"].Value))
+                    .Select(match => new FormulaDependencyReferenceMatch(
+                        match.Index,
+                        match.Length,
+                        match.Groups["reference"].Value))
+                    .ToList();
+                var dependencies = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                IReadOnlyList<FormulaLexicalBinding> lexicalBindings = GetFormulaLexicalBindings(searchableFormula);
                 foreach (FormulaDependencyAliasMatch match in aliases.FindMatches(searchableFormula)) {
-                    AddFormulaAliasDependency(searchableFormula, match, dependencies);
+                    AddFormulaAliasDependencyMatch(searchableFormula, match, lexicalBindings, dependencyMatches);
                 }
+                AddFormulaDependencies(searchableFormula, dependencyMatches, dependencies);
 
                 return dependencies
                     .OrderBy(reference => reference, StringComparer.OrdinalIgnoreCase)
@@ -245,20 +251,24 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private void AddFormulaAliasDependency(
+        private void AddFormulaAliasDependencyMatch(
             string formula,
             FormulaDependencyAliasMatch match,
-            ISet<string> dependencies) {
-            if (!TryGetFormulaAliasReference(formula, match, out string reference)
-                || !TryResolveFormulaRangeReference(reference, out ExcelSheet sheet, out int r1, out int c1, out int r2, out int c2)) {
+            IReadOnlyList<FormulaLexicalBinding> lexicalBindings,
+            ICollection<FormulaDependencyReferenceMatch> dependencyMatches) {
+            if (!TryGetFormulaAliasReference(formula, match, out string reference)) {
                 return;
             }
 
-            string start = A1.CellReference(r1, c1);
-            string end = A1.CellReference(r2, c2);
-            dependencies.Add(r1 == r2 && c1 == c2
-                ? $"{sheet.Name}!{start}"
-                : $"{sheet.Name}!{start}:{end}");
+            bool hasStructuredSuffix = match.Alias.AllowStructuredSuffix
+                && reference.Length > match.Alias.Text.Length;
+            if ((!hasStructuredSuffix
+                    && lexicalBindings.Any(binding => binding.Shadows(match.Alias.Text, match.Index, match.Alias.Text.Length)))
+                || !TryResolveFormulaRangeReference(reference, out _, out _, out _, out _, out _)) {
+                return;
+            }
+
+            dependencyMatches.Add(new FormulaDependencyReferenceMatch(match.Index, reference.Length, reference));
         }
 
         private static bool TryGetFormulaAliasReference(
@@ -476,7 +486,7 @@ namespace OfficeIMO.Excel {
                     string dependencyFormula = dependencySheet.ResolveCellFormulaText(
                         dependencyCell,
                         inspectionContext.GetSharedFormulaDefinitions(dependencySheet));
-                    if (!TryEvaluateFormulaValue(dependencyFormula, out _)) {
+                    if (!dependencySheet.TryEvaluateFormulaValue(dependencyFormula, out _)) {
                         issues.Add($"Dependency '{formattedDependencyCell}' contains a formula outside the lightweight evaluator support.");
                     }
                 }

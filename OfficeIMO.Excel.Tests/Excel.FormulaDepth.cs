@@ -87,6 +87,103 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_FormulaDependencyGraph_RespectsRangeIntersections() {
+            using ExcelDocument document = ExcelDocument.Create();
+            ExcelSheet sheet = document.AddWorksheet("Intersections");
+            sheet.CellFormula(1, 1, "D1");
+            sheet.CellFormula(2, 2, "1+1");
+            sheet.CellFormula(1, 4, "SUM(A1:B2 B2:C3)");
+            sheet.CellFormula(2, 4, "SUM(Data B2:C3)");
+            document.SetNamedRange("Data", "Intersections!A1:B2", save: false);
+
+            ExcelSheet structuredSheet = document.AddWorksheet("Structured Intersections");
+            structuredSheet.CellValue(1, 1, "Amount");
+            structuredSheet.CellValue(1, 2, "Other");
+            structuredSheet.CellFormula(2, 1, "1+1");
+            structuredSheet.CellValue(2, 2, 3d);
+            structuredSheet.CellFormula(1, 4, "SUM(IntersectionData[Amount] A2:B2)");
+            structuredSheet.AddTable(
+                "A1:B2",
+                hasHeader: true,
+                name: "IntersectionData",
+                style: TableStyle.TableStyleMedium2);
+
+            ExcelFormulaDependencyGraph graph = document.InspectFormulas().DependencyGraph;
+            ExcelFormulaDependencyNode intersection = Assert.IsType<ExcelFormulaDependencyNode>(
+                graph.FindNode("Intersections", "D1"));
+            Assert.Equal(new[] { "Intersections!B2" }, intersection.Dependencies);
+            Assert.Equal(new[] { "Intersections!B2" }, intersection.FormulaDependencies);
+            ExcelFormulaDependencyNode namedIntersection = Assert.IsType<ExcelFormulaDependencyNode>(
+                graph.FindNode("Intersections", "D2"));
+            Assert.Equal(new[] { "Intersections!B2" }, namedIntersection.Dependencies);
+            Assert.Equal(new[] { "Intersections!B2" }, namedIntersection.FormulaDependencies);
+            ExcelFormulaDependencyNode structuredIntersection = Assert.IsType<ExcelFormulaDependencyNode>(
+                graph.FindNode("Structured Intersections", "D1"));
+            Assert.Equal(new[] { "Structured Intersections!A2" }, structuredIntersection.Dependencies);
+            Assert.Equal(new[] { "Structured Intersections!A2" }, structuredIntersection.FormulaDependencies);
+            Assert.Equal(4, graph.EdgeCount);
+            Assert.False(graph.HasCircularReferences);
+        }
+
+        [Fact]
+        public void Test_FormulaDependencyGraph_IgnoresLexicallyScopedNames() {
+            using ExcelDocument document = ExcelDocument.Create();
+            ExcelSheet sheet = document.AddWorksheet("Lexical");
+            sheet.CellFormula(1, 1, "LET(Input,1,Input+1)");
+            sheet.CellFormula(1, 2, "A1");
+            sheet.CellFormula(2, 1, "Input+LET(Input,1,Input+1)");
+            sheet.CellFormula(2, 2, "LAMBDA(Input,Input+1)(1)");
+            sheet.CellFormula(3, 1, "LET(Input,{1,2},SUM(Input))");
+            sheet.CellValue(1, 4, "Amount");
+            sheet.CellValue(1, 5, "Other");
+            sheet.CellValue(2, 4, 1d);
+            sheet.CellValue(2, 5, 2d);
+            sheet.AddTable("D1:E2", hasHeader: true, name: "LexicalData", style: TableStyle.TableStyleMedium2);
+            sheet.CellFormula(4, 1, "LET(Input,LexicalData[[#Headers],[Amount]],Input)");
+            ExcelSheet quotedQualifier = document.AddWorksheet("O'A,B)");
+            quotedQualifier.CellValue(1, 1, 5d);
+            sheet.CellFormula(5, 1, "LET(Input,'O''A,B)'!A1,Input)");
+            sheet.CellFormula(6, 1, "LET(LexicalData,1,SUM(LexicalData[Amount]))");
+            document.SetNamedRange("Input", "Lexical!B1", save: false);
+
+            ExcelFormulaDependencyGraph graph = document.InspectFormulas().DependencyGraph;
+            ExcelFormulaDependencyNode let = Assert.IsType<ExcelFormulaDependencyNode>(graph.FindNode("Lexical", "A1"));
+            Assert.Empty(let.Dependencies);
+            Assert.Empty(let.FormulaDependencies);
+            ExcelFormulaDependencyNode mixed = Assert.IsType<ExcelFormulaDependencyNode>(graph.FindNode("Lexical", "A2"));
+            Assert.Equal(new[] { "Lexical!B1" }, mixed.Dependencies);
+            Assert.Equal(new[] { "Lexical!B1" }, mixed.FormulaDependencies);
+            ExcelFormulaDependencyNode lambda = Assert.IsType<ExcelFormulaDependencyNode>(graph.FindNode("Lexical", "B2"));
+            Assert.Empty(lambda.Dependencies);
+            ExcelFormulaDependencyNode array = Assert.IsType<ExcelFormulaDependencyNode>(graph.FindNode("Lexical", "A3"));
+            Assert.Empty(array.Dependencies);
+            ExcelFormulaDependencyNode structured = Assert.IsType<ExcelFormulaDependencyNode>(graph.FindNode("Lexical", "A4"));
+            Assert.Equal(new[] { "Lexical!D1" }, structured.Dependencies);
+            ExcelFormulaDependencyNode quoted = Assert.IsType<ExcelFormulaDependencyNode>(graph.FindNode("Lexical", "A5"));
+            Assert.Equal(new[] { "O'A,B)!A1" }, quoted.Dependencies);
+            ExcelFormulaDependencyNode tableCollision = Assert.IsType<ExcelFormulaDependencyNode>(graph.FindNode("Lexical", "A6"));
+            Assert.Equal(new[] { "Lexical!D2" }, tableCollision.Dependencies);
+            Assert.False(graph.HasCircularReferences);
+        }
+
+        [Fact]
+        public void Test_FormulaDependencyInspection_EvaluatesCrossSheetDependenciesOnOwningSheet() {
+            using ExcelDocument document = ExcelDocument.Create();
+            ExcelSheet source = document.AddWorksheet("Source");
+            source.CellFormula(1, 1, "Other!A1");
+            ExcelSheet other = document.AddWorksheet("Other");
+            other.CellFormula(1, 1, "B1+1");
+            other.CellValue(1, 2, 2d);
+            Assert.Equal(1, other.RecalculateSupportedFormulas());
+
+            ExcelFormulaInspection inspection = document.InspectFormulas();
+            ExcelFormulaCellInfo sourceFormula = Assert.Single(inspection.Formulas, formula =>
+                formula.SheetName == "Source" && formula.CellReference == "A1");
+            Assert.Empty(sourceFormula.DependencyIssues);
+            inspection.EnsureNoDependencyIssues();
+        }
+
+        [Fact]
         public void Test_FormulaEvaluator_StopsAtConfiguredDependencyDepth() {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelFormulaDepth.Budget.xlsx");
 
