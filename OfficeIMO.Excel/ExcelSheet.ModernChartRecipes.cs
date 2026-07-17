@@ -40,7 +40,8 @@ namespace OfficeIMO.Excel {
                 effectiveBinWidth = 1D;
             } else if (binWidth.HasValue) {
                 effectiveBinWidth = binWidth.Value;
-                double requestedBinCount = Math.Max(1D, Math.Ceiling(range / effectiveBinWidth));
+                double binCountQuotient = SnapHistogramBinCountQuotient(range / effectiveBinWidth);
+                double requestedBinCount = Math.Max(1D, Math.Ceiling(binCountQuotient));
                 if (double.IsNaN(requestedBinCount) || double.IsInfinity(requestedBinCount) || requestedBinCount > 10000D) {
                     throw new ArgumentOutOfRangeException(nameof(binWidth), "A histogram cannot exceed 10,000 bins.");
                 }
@@ -91,6 +92,19 @@ namespace OfficeIMO.Excel {
                 .SetValueAxisTitle("Frequency")
                 .SetValueAxisNumberFormat("0", sourceLinked: false)
                 .SetValueAxisGridlines(showMajor: true, showMinor: false, lineColor: "E5E7EB", lineWidthPoints: 0.5);
+        }
+
+        private static double SnapHistogramBinCountQuotient(double quotient) {
+            if (double.IsNaN(quotient) || double.IsInfinity(quotient)) {
+                return quotient;
+            }
+
+            double nearestInteger = Math.Round(quotient);
+            const double MachineEpsilon = 2.2204460492503131E-16;
+            double tolerance = Math.Max(1D, Math.Abs(quotient)) * MachineEpsilon * 8D;
+            return Math.Abs(quotient - nearestInteger) <= tolerance
+                ? nearestInteger
+                : quotient;
         }
 
         /// <summary>

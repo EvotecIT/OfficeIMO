@@ -247,13 +247,15 @@ namespace OfficeIMO.Excel {
                     ? MicrosoftWorkbookSlicerCacheNamespace
                     : MicrosoftWorkbookTimelineCacheNamespace;
 
-                // The legacy writer used native root names and allowed the native name/sourceName attributes.
-                // Its unqualified pivotTableName attribute is the safe discriminator from genuine native caches.
+                // The legacy writer used native root names with flat name/sourceName metadata and no native payload children.
+                // PivotTableName was optional, so preserve both legacy shapes without classifying populated native caches as metadata.
                 string? pivotTableName = (string?)root?.Attribute("pivotTableName");
+                string? sourceName = (string?)root?.Attribute("sourceName");
                 return root != null
                     && string.Equals(root.Name.NamespaceName, expectedNamespace, StringComparison.Ordinal)
                     && string.Equals(root.Name.LocalName, expectedRootName, StringComparison.Ordinal)
-                    && !string.IsNullOrWhiteSpace(pivotTableName);
+                    && (!string.IsNullOrWhiteSpace(pivotTableName)
+                        || !string.IsNullOrWhiteSpace(sourceName) && !root.Elements().Any());
             } catch (System.Xml.XmlException) {
                 return false;
             }

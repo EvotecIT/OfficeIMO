@@ -145,6 +145,16 @@ namespace OfficeIMO.Tests {
             Assert.Equal(2, tinyRangeData.Categories.Distinct(StringComparer.Ordinal).Count());
             Assert.DoesNotContain("0 – 0", tinyRangeData.Categories);
 
+            ExcelChart decimalWidthHistogram = sheet.AddHistogramChart(
+                new[] { 0d, 2.1d },
+                row: 1,
+                column: 20,
+                binWidth: 0.3d);
+            Assert.True(decimalWidthHistogram.TryGetData(out ExcelChartData decimalWidthData));
+            Assert.Equal(7, decimalWidthData.Categories.Count);
+            Assert.Equal(7, decimalWidthData.Categories.Distinct(StringComparer.Ordinal).Count());
+            Assert.Equal(2d, decimalWidthData.Series.Single().Values.Sum());
+
             ExcelChart roundingSafeWaterfall = sheet.AddWaterfallChart(
                 new[] { "Start", "First", "Second" },
                 new[] { 0.3d, -0.1d, -0.2d },
