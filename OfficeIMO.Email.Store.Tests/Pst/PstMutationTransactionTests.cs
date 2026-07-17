@@ -174,6 +174,87 @@ public sealed class PstMutationTransactionTests {
     }
 
     [Fact]
+    public void MutationKeepsDisplayNameDuplicateSeparateFromSourceIdentifiedSystemFolder() {
+        string path = TemporaryPstPath();
+        try {
+            using (EmailStorePstWriter writer = EmailStorePstWriter.Create(path)) {
+                string duplicate = writer.AddFolder("Deleted Items", containerClass: "IPF.Note");
+                writer.AddItem(duplicate, new EmailDocument { Subject = "Keep duplicate separate" });
+                writer.Complete();
+            }
+            string sourceSystemId;
+            string sourceDuplicateId;
+            using (EmailStoreSession source = EmailStoreSession.Open(path)) {
+                EmailStoreFolderInfo[] matching = source.Folders.Where(folder =>
+                    folder.Name == "Deleted Items").ToArray();
+                sourceSystemId = Assert.Single(matching, folder =>
+                    folder.ClassificationSource == EmailStoreFolderClassificationSource.SourceIdentifier).Id;
+                sourceDuplicateId = Assert.Single(matching, folder =>
+                    folder.ClassificationSource == EmailStoreFolderClassificationSource.DisplayName).Id;
+            }
+
+            EmailStorePstMutationReport report;
+            using (var transaction = EmailStorePstMutationTransaction.Open(path)) {
+                transaction.CreateFolder("Commit trigger");
+                report = transaction.Commit();
+            }
+
+            Assert.NotEqual(report.FolderIdMap[sourceSystemId], report.FolderIdMap[sourceDuplicateId]);
+            using EmailStoreSession rewritten = EmailStoreSession.Open(path);
+            EmailStoreFolderInfo[] rewrittenMatching = rewritten.Folders.Where(folder =>
+                folder.Name == "Deleted Items").ToArray();
+            Assert.Equal(2, rewrittenMatching.Length);
+            EmailStoreFolderInfo duplicateFolder = Assert.Single(rewrittenMatching, folder =>
+                folder.ClassificationSource == EmailStoreFolderClassificationSource.DisplayName);
+            Assert.Equal("Keep duplicate separate", Assert.Single(rewritten.EnumerateItems(
+                new EmailStoreEnumerationOptions(folderId: duplicateFolder.Id))
+                .Select(reference => rewritten.ReadSummary(reference))).Subject);
+        } finally {
+            TryDelete(path);
+        }
+    }
+
+    [Fact]
+    public void MutationDoesNotAddWriterOwnedSpamSearchFolderWhenSourceDoesNotHaveOne() {
+        string path = TemporaryPstPath();
+        try {
+            using (EmailStorePstWriter writer = EmailStorePstWriter.Create(path)) {
+                writer.SuppressWriterOwnedSpamSearchFolder();
+                writer.AddFolder("Inbox", containerClass: "IPF.Note");
+                writer.Complete();
+            }
+            using (EmailStoreSession source = EmailStoreSession.Open(path)) {
+                Assert.DoesNotContain(source.Folders, folder => folder.Name == "SPAM Search Folder 2");
+            }
+
+            using (var transaction = EmailStorePstMutationTransaction.Open(path)) {
+                transaction.CreateFolder("Commit trigger");
+                Assert.True(transaction.Commit().Verification?.IsSuccessful);
+            }
+
+            using EmailStoreSession rewritten = EmailStoreSession.Open(path);
+            Assert.DoesNotContain(rewritten.Folders, folder => folder.Name == "SPAM Search Folder 2");
+        } finally {
+            TryDelete(path);
+        }
+    }
+
+    [Fact]
+    public void PathIdentityUsesCaseInsensitiveAliasesOnWindowsAndMacOSOnly() {
+        string path = Path.Combine(Path.GetTempPath(), "Mailbox.pst");
+        string alias = Path.Combine(Path.GetTempPath(), "MAILBOX.PST");
+
+        Assert.Equal(PstPathIdentity.Normalize(path, caseInsensitive: true),
+            PstPathIdentity.Normalize(alias, caseInsensitive: true));
+        Assert.NotEqual(PstPathIdentity.Normalize(path, caseInsensitive: false),
+            PstPathIdentity.Normalize(alias, caseInsensitive: false));
+        Assert.Equal(
+            RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ||
+            RuntimeInformation.IsOSPlatform(OSPlatform.OSX),
+            PstPathIdentity.IsCaseInsensitivePlatform);
+    }
+
+    [Fact]
     public void MutationLockRejectsASecondOfficeIMOTransactionForTheSamePath() {
         string path = TemporaryPstPath();
         try {

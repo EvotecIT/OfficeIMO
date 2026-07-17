@@ -49,6 +49,13 @@
     <EmbeddedResource Include="Schemas\officeimo.document.read-result.v5.schema.json">
       <LogicalName>OfficeIMO.Reader.Schemas.officeimo.document.read-result.v5.schema.json</LogicalName>
     </EmbeddedResource>
+    <None Include="Schemas\officeimo.document.read-result.v6.schema.json">
+      <Pack>True</Pack>
+      <PackagePath>schemas\officeimo.document.read-result.v6.schema.json</PackagePath>
+    </None>
+    <EmbeddedResource Include="Schemas\officeimo.document.read-result.v6.schema.json">
+      <LogicalName>OfficeIMO.Reader.Schemas.officeimo.document.read-result.v6.schema.json</LogicalName>
+    </EmbeddedResource>
   </ItemGroup>
 
   <ItemGroup>

@@ -95,6 +95,11 @@ internal sealed partial class PstStoreWriterCore : IDisposable {
     internal string SearchRootFolderId => FormatId(SearchRootNid);
     internal string SpamSearchFolderId => FormatId(SpamSearchFolderNid);
 
+    internal void SuppressWriterOwnedSpamSearchFolder() {
+        ThrowIfUnavailable();
+        _folders.Remove(SpamSearchFolderNid);
+    }
+
     internal static bool IsWriterOwnedSearchFolderId(string id) => string.Equals(
         id, FormatId(SpamSearchFolderNid), StringComparison.Ordinal);
 

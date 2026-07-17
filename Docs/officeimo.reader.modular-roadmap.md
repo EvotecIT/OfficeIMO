@@ -40,7 +40,7 @@ The modular adapters are working packages in the publishing pipeline, not placeh
 - Registrations can provide chunk delegates, native rich-result delegates, and native asynchronous path/stream delegates.
 - Path, stream, byte, and non-seekable input paths share the same bounded input behavior.
 - Capability manifests distinguish chunk, rich-result, and native async support.
-- The stable rich transport is `OfficeDocumentReadResult` schema version 5.
+- The stable rich transport starts at `OfficeDocumentReadResult` schema version 5; current version 6 adds calendar and vCard kinds while the Reader continues to accept version 5 payloads.
 - Ordered processors, bounded structured extraction, token-aware hierarchical chunking, and optional OCR build on the shared result instead of adding format-specific host pipelines.
 - OCR providers remain opt-in and do not change the core package dependency graph.
 - Web retrieval remains opt-in, uses a caller-owned `HttpClient`, and is not composed by `OfficeIMO.Reader.All` or the global tool.

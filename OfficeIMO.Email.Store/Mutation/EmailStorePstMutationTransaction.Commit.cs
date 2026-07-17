@@ -35,6 +35,9 @@ public sealed partial class EmailStorePstMutationTransaction {
                 maxNestedMessageDepth: _options.MaxNestedMessageDepth,
                 retainCheckpointOnDispose: false);
             using (EmailStorePstWriter writer = EmailStorePstWriter.Create(stagingPath, writerOptions)) {
+                if (!_folders.Values.Any(folder => !folder.Deleted && folder.IsMappedSystemFolder)) {
+                    writer.SuppressWriterOwnedSpamSearchFolder();
+                }
                 BuildFolderMap(writer, folderMap, folderParentMap);
                 FailOnFidelityDiagnostics();
                 var readOptions = new EmailStoreItemReadOptions(
@@ -148,6 +151,9 @@ public sealed partial class EmailStorePstMutationTransaction {
                     folder.Name, folder.ContainerClass);
                 continue;
             }
+            if (folder.ClassificationSource != EmailStoreFolderClassificationSource.SourceIdentifier) {
+                continue;
+            }
             switch (folder.SpecialFolderKind) {
                 case EmailStoreSpecialFolderKind.Root:
                     folderMap[folder.Id] = writer.MessageStoreRootFolderId;
@@ -186,8 +192,9 @@ public sealed partial class EmailStorePstMutationTransaction {
                 string parent;
                 if (folder.ParentId == null) parent = writer.RootFolderId;
                 else if (!folderMap.TryGetValue(folder.ParentId, out parent!)) continue;
-                EmailStoreSpecialFolderKind role = PstStoreWriterCore.CanAssignUserSpecialFolder(
-                    folder.SpecialFolderKind)
+                EmailStoreSpecialFolderKind role =
+                    folder.ClassificationSource == EmailStoreFolderClassificationSource.SourceIdentifier &&
+                    PstStoreWriterCore.CanAssignUserSpecialFolder(folder.SpecialFolderKind)
                         ? folder.SpecialFolderKind
                         : EmailStoreSpecialFolderKind.Unknown;
                 if (folder.ClassificationSource == EmailStoreFolderClassificationSource.SourceIdentifier &&
@@ -214,8 +221,9 @@ public sealed partial class EmailStorePstMutationTransaction {
         } while (progress && pending.Count > 0);
 
         foreach (FolderState folder in pending) {
-            EmailStoreSpecialFolderKind role = PstStoreWriterCore.CanAssignUserSpecialFolder(
-                folder.SpecialFolderKind)
+            EmailStoreSpecialFolderKind role =
+                folder.ClassificationSource == EmailStoreFolderClassificationSource.SourceIdentifier &&
+                PstStoreWriterCore.CanAssignUserSpecialFolder(folder.SpecialFolderKind)
                     ? folder.SpecialFolderKind
                     : EmailStoreSpecialFolderKind.Unknown;
             folderMap[folder.Id] = role == EmailStoreSpecialFolderKind.Unknown
@@ -272,8 +280,9 @@ public sealed partial class EmailStorePstMutationTransaction {
                     string.Equals(actual.ParentId, expectedParent, StringComparison.Ordinal) &&
                     string.Equals(actual.ContainerClass, folder.ContainerClass,
                         StringComparison.OrdinalIgnoreCase);
-                bool verifySpecialRole = PstStoreWriterCore.SupportsSpecialFolderKind(
-                    folder.SpecialFolderKind);
+                bool verifySpecialRole =
+                    folder.ClassificationSource == EmailStoreFolderClassificationSource.SourceIdentifier &&
+                    PstStoreWriterCore.SupportsSpecialFolderKind(folder.SpecialFolderKind);
                 bool specialRoleMatches = !verifySpecialRole ||
                     actual.SpecialFolderKind == folder.SpecialFolderKind &&
                     actual.ClassificationSource == EmailStoreFolderClassificationSource.SourceIdentifier;

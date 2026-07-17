@@ -72,6 +72,11 @@ public sealed class EmailStorePstWriter : IDisposable {
         get { ThrowIfUnavailable(); return _core.SpamSearchFolderId; }
     }
 
+    internal void SuppressWriterOwnedSpamSearchFolder() {
+        ThrowIfUnavailable();
+        _core.SuppressWriterOwnedSpamSearchFolder();
+    }
+
     internal void ConfigureFolderMetadata(string folderId, string name, string? containerClass) {
         ThrowIfUnavailable();
         _core.ConfigureFolderMetadata(folderId, name, containerClass);

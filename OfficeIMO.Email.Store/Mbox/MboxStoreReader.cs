@@ -71,6 +71,8 @@ internal sealed class MboxStoreReader {
             ? nameof(EmailStoreReaderOptions.MaxInputBytes)
             : exception.LimitName == nameof(EmailMailboxReaderOptions.MaxMessageCount)
                 ? nameof(EmailStoreReaderOptions.MaxItemCount)
+                : exception.LimitName == nameof(EmailReaderOptions.MaxInputBytes)
+                    ? nameof(EmailStoreReaderOptions.MaxMessageBytes)
                 : exception.LimitName;
         return new EmailStoreLimitExceededException(name, exception.ActualValue, exception.MaximumValue);
     }

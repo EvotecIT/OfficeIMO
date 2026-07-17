@@ -2,6 +2,7 @@ namespace OfficeIMO.Email;
 
 /// <summary>Ordered content-line component with properties and nested components.</summary>
 public sealed class ContentLineComponent {
+    internal const int MaximumTraversalDepth = 256;
     private readonly List<ContentLineProperty> _properties = new List<ContentLineProperty>();
     private readonly List<ContentLineComponent> _components = new List<ContentLineComponent>();
 
@@ -52,10 +53,33 @@ public sealed class ContentLineComponent {
 
     /// <summary>Enumerates matching nested components in document order.</summary>
     public IEnumerable<ContentLineComponent> GetComponents(string name, bool recursive = false) {
-        foreach (ContentLineComponent component in _components) {
-            if (string.Equals(component.Name, name, StringComparison.OrdinalIgnoreCase)) yield return component;
-            if (!recursive) continue;
-            foreach (ContentLineComponent descendant in component.GetComponents(name, true)) yield return descendant;
+        var active = new HashSet<ContentLineComponent> { this };
+        foreach (ContentLineComponent component in EnumerateComponents(
+            this, name, recursive, active, depth: 1)) {
+            yield return component;
+        }
+    }
+
+    private static IEnumerable<ContentLineComponent> EnumerateComponents(
+        ContentLineComponent parent, string name, bool recursive,
+        ISet<ContentLineComponent> active, int depth) {
+        foreach (ContentLineComponent component in parent._components) {
+            if (component == null)
+                throw new InvalidDataException("A null content-line component cannot be traversed.");
+            if (depth + 1 > MaximumTraversalDepth)
+                throw new InvalidDataException("The content-line component graph is too deeply nested.");
+            if (!active.Add(component))
+                throw new InvalidDataException("The content-line component graph contains a cycle.");
+            try {
+                if (string.Equals(component.Name, name, StringComparison.OrdinalIgnoreCase)) yield return component;
+                if (!recursive) continue;
+                foreach (ContentLineComponent descendant in EnumerateComponents(
+                    component, name, true, active, depth + 1)) {
+                    yield return descendant;
+                }
+            } finally {
+                active.Remove(component);
+            }
         }
     }
 }

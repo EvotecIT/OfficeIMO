@@ -172,4 +172,26 @@ public sealed class IcsDocumentTests {
         Assert.Equal(value, IcsDocument.Parse(serialized).GetComponents("VEVENT").Single()
             .GetFirstProperty("ATTENDEE")!.GetParameter("X-LITERAL")!.Values.Single());
     }
+
+    [Fact]
+    public void MutableComponentCyclesAreReportedAndRejectedWithoutRecursiveOverflow() {
+        var document = new IcsDocument();
+        ContentLineComponent calendar = document.Calendars.Single();
+        calendar.Components.Add(calendar);
+
+        Assert.Contains(document.Validate(), issue => issue.Code == "ICAL_COMPONENT_GRAPH_CYCLE");
+        Assert.Throws<InvalidDataException>(() => document.GetComponents("VEVENT").ToArray());
+        Assert.Throws<InvalidDataException>(() => document.ToBytes());
+    }
+
+    [Fact]
+    public void ExcessivelyDeepMutableGraphsAreReportedAndRejected() {
+        var document = new IcsDocument();
+        ContentLineComponent current = document.Calendars.Single();
+        for (int index = 0; index < 257; index++) current = current.AddComponent("XNODE");
+
+        Assert.Contains(document.Validate(), issue => issue.Code == "ICAL_COMPONENT_DEPTH_EXCEEDED");
+        Assert.Throws<InvalidDataException>(() => document.GetComponents("MISSING").ToArray());
+        Assert.Throws<InvalidDataException>(() => document.ToBytes());
+    }
 }

@@ -1,5 +1,4 @@
 using OfficeIMO.Email;
-using System.Runtime.InteropServices;
 
 namespace OfficeIMO.Email.Store;
 
@@ -46,7 +45,7 @@ public sealed partial class EmailStorePstMutationTransaction : IDisposable {
         if (!File.Exists(sourcePath)) throw new FileNotFoundException("The PST does not exist.", sourcePath);
         var effective = options ?? new EmailStorePstMutationOptions();
         if (effective.BackupPath != null && string.Equals(
-            sourcePath, effective.BackupPath, GetPathComparison())) {
+            sourcePath, Path.GetFullPath(effective.BackupPath), PstPathIdentity.Comparison)) {
             throw new ArgumentException("The backup path must differ from the source PST.", nameof(options));
         }
         if (effective.BackupPath != null && File.Exists(effective.BackupPath) &&
@@ -162,11 +161,6 @@ public sealed partial class EmailStorePstMutationTransaction : IDisposable {
         return root.Id;
     }
 
-    private static StringComparison GetPathComparison() =>
-        RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
-            ? StringComparison.OrdinalIgnoreCase
-            : StringComparison.Ordinal;
-
     private void EnsureItemsIndexed(CancellationToken cancellationToken) {
         if (_items != null) return;
         var items = new Dictionary<string, ItemState>(StringComparer.Ordinal);
@@ -262,10 +256,11 @@ public sealed partial class EmailStorePstMutationTransaction : IDisposable {
         internal bool Deleted { get; set; }
         internal bool IsCreated => SourceId == null;
         internal bool IsMandatory => IsMappedSystemFolder ||
-            SpecialFolderKind == EmailStoreSpecialFolderKind.Root ||
-            SpecialFolderKind == EmailStoreSpecialFolderKind.IpmSubtree ||
-            SpecialFolderKind == EmailStoreSpecialFolderKind.DeletedItems ||
-            SpecialFolderKind == EmailStoreSpecialFolderKind.SearchRoot;
+            ClassificationSource == EmailStoreFolderClassificationSource.SourceIdentifier &&
+            (SpecialFolderKind == EmailStoreSpecialFolderKind.Root ||
+             SpecialFolderKind == EmailStoreSpecialFolderKind.IpmSubtree ||
+             SpecialFolderKind == EmailStoreSpecialFolderKind.DeletedItems ||
+             SpecialFolderKind == EmailStoreSpecialFolderKind.SearchRoot);
         internal bool HasChanges => IsCreated ? !Deleted : Deleted ||
             !string.Equals(Name, OriginalName, StringComparison.Ordinal) ||
             !string.Equals(ParentId, OriginalParentId, StringComparison.Ordinal);

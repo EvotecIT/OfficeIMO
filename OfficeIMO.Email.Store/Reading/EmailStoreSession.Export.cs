@@ -240,8 +240,8 @@ public sealed partial class EmailStoreSession {
         try {
             EmailStoreItem item = ReadItem(reference, cancellationToken);
             var mailboxEntry = new EmailMailboxEntry(item.Document) {
-                EnvelopeSender = item.Document.From?.Address,
-                EnvelopeDate = item.Document.Date
+                EnvelopeSender = GetMboxEnvelopeSender(item.Document),
+                EnvelopeDate = GetMboxEnvelopeDate(item.Document)
             };
             EmailWriteResult result = writer.WriteEntries(
                 new[] { mailboxEntry }, output, cancellationToken);
@@ -272,6 +272,22 @@ public sealed partial class EmailStoreSession {
                 string.Concat("item/", reference.Id)));
         }
         return new EmailStoreMboxExportEntry(reference, bytesWritten, diagnostics);
+    }
+
+    private static string? GetMboxEnvelopeSender(EmailDocument document) {
+        if (document.Properties.TryGetValue("Mbox:EnvelopeSender", out object? value) &&
+            value is string sender && !string.IsNullOrWhiteSpace(sender)) {
+            return sender;
+        }
+        return document.From?.Address;
+    }
+
+    private static DateTimeOffset? GetMboxEnvelopeDate(EmailDocument document) {
+        if (document.Properties.TryGetValue("Mbox:EnvelopeDate", out object? value) &&
+            value is DateTimeOffset date) {
+            return date;
+        }
+        return document.Date;
     }
 
     private static void RollBackMboxEntry(Stream output, long initialLength) {

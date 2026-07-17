@@ -25,6 +25,33 @@ public sealed class MboxStoreReaderTests {
     }
 
     [Fact]
+    public void BomPrefixedMboxIsDetectedWithoutAFileExtension() {
+        byte[] mailbox = CreateMailboxBytes();
+        byte[] preamble = Encoding.UTF8.GetPreamble();
+        var bytes = new byte[preamble.Length + mailbox.Length];
+        Buffer.BlockCopy(preamble, 0, bytes, 0, preamble.Length);
+        Buffer.BlockCopy(mailbox, 0, bytes, preamble.Length, mailbox.Length);
+        using var stream = new MemoryStream(bytes);
+
+        Assert.Equal(EmailStoreFormat.Mbox, EmailStoreReader.DetectFormat(stream, "renamed.bin"));
+        using EmailStoreSession session = EmailStoreSession.Open(stream, "renamed.bin");
+        Assert.Equal(2, session.EnumerateItems().Count());
+    }
+
+    [Fact]
+    public void PerMessageLimitReportsTheStoreMaxMessageBytesOption() {
+        using var stream = new MemoryStream(CreateMailboxBytes());
+        var options = new EmailStoreReaderOptions(
+            maxInputBytes: stream.Length + 1,
+            maxMessageBytes: 64);
+
+        EmailStoreLimitExceededException exception = Assert.Throws<EmailStoreLimitExceededException>(() =>
+            EmailStoreSession.Open(stream, "archive.mbox", options));
+
+        Assert.Equal(nameof(EmailStoreReaderOptions.MaxMessageBytes), exception.LimitName);
+    }
+
+    [Fact]
     public void MboxStoreCanExportThroughTheSharedSessionBoundary() {
         string destination = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".mbox");
         try {
@@ -38,6 +65,12 @@ public sealed class MboxStoreReaderTests {
             Assert.Equal(2, report.Entries.Count);
             Assert.Equal(new[] { "First message", "Second message" },
                 mailbox.Messages.Select(entry => entry.Document.Subject));
+            Assert.Equal(new[] { "first@example.com", "second@example.com" },
+                mailbox.Messages.Select(entry => entry.EnvelopeSender));
+            Assert.Equal(new[] {
+                new DateTimeOffset(2026, 7, 17, 9, 0, 0, TimeSpan.Zero),
+                new DateTimeOffset(2026, 7, 17, 10, 0, 0, TimeSpan.Zero)
+            }, mailbox.Messages.Select(entry => entry.EnvelopeDate!.Value));
         } finally {
             if (File.Exists(destination)) File.Delete(destination);
         }

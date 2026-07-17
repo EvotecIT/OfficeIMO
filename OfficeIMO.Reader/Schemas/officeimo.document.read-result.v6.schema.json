@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "urn:officeimo:schema:document-read-result:5",
+  "$id": "urn:officeimo:schema:document-read-result:6",
   "title": "OfficeIMO document read result",
-  "description": "Stable OfficeIMO.Reader transport envelope, schema version 5.",
+  "description": "Stable OfficeIMO.Reader transport envelope, schema version 6.",
   "type": "object",
   "required": [
     "schemaId",
@@ -27,7 +27,7 @@
       "const": "officeimo.document.read-result"
     },
     "schemaVersion": {
-      "const": 5
+      "const": 6
     },
     "kind": {
       "enum": [
@@ -51,7 +51,9 @@
         "AsciiDoc",
         "Latex",
         "Email",
-        "OneNote"
+        "OneNote",
+        "Calendar",
+        "VCard"
       ]
     },
     "source": {

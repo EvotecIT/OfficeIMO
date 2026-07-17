@@ -68,10 +68,11 @@ internal static class ContentLineCodec {
         if (options == null) throw new ArgumentNullException(nameof(options));
         var output = new StringBuilder();
         long outputBytes = 0;
+        var active = new HashSet<ContentLineComponent>();
         foreach (ContentLineComponent component in components) {
             ContentLineParameterEncoding encoding = parameterEncoding?.Invoke(component) ??
                 ContentLineParameterEncoding.Rfc6868;
-            WriteComponent(output, component, options, encoding, 1, ref outputBytes);
+            WriteComponent(output, component, options, encoding, 1, active, ref outputBytes);
         }
         byte[] bytes = options.Encoding.GetBytes(output.ToString());
         if (bytes.LongLength > options.MaxOutputBytes)
@@ -165,16 +166,23 @@ internal static class ContentLineCodec {
 
     private static void WriteComponent(StringBuilder output, ContentLineComponent component,
         ContentLineWriterOptions options, ContentLineParameterEncoding parameterEncoding,
-        int depth, ref long outputBytes) {
+        int depth, ISet<ContentLineComponent> active, ref long outputBytes) {
         if (component == null) throw new InvalidDataException("A null content-line component cannot be serialized.");
-        if (depth > 256) throw new InvalidDataException("The content-line component graph is too deeply nested.");
-        string name = ContentLineSyntax.RequireToken(component.Name, nameof(component.Name));
-        AppendFolded(output, new[] { "BEGIN:", name }, options, ref outputBytes);
-        foreach (ContentLineProperty property in component.Properties)
-            AppendFolded(output, GetPropertyParts(property, parameterEncoding), options, ref outputBytes);
-        foreach (ContentLineComponent child in component.Components)
-            WriteComponent(output, child, options, parameterEncoding, depth + 1, ref outputBytes);
-        AppendFolded(output, new[] { "END:", name }, options, ref outputBytes);
+        if (depth > ContentLineComponent.MaximumTraversalDepth)
+            throw new InvalidDataException("The content-line component graph is too deeply nested.");
+        if (!active.Add(component))
+            throw new InvalidDataException("The content-line component graph contains a cycle.");
+        try {
+            string name = ContentLineSyntax.RequireToken(component.Name, nameof(component.Name));
+            AppendFolded(output, new[] { "BEGIN:", name }, options, ref outputBytes);
+            foreach (ContentLineProperty property in component.Properties)
+                AppendFolded(output, GetPropertyParts(property, parameterEncoding), options, ref outputBytes);
+            foreach (ContentLineComponent child in component.Components)
+                WriteComponent(output, child, options, parameterEncoding, depth + 1, active, ref outputBytes);
+            AppendFolded(output, new[] { "END:", name }, options, ref outputBytes);
+        } finally {
+            active.Remove(component);
+        }
     }
 
     private static IEnumerable<string> GetPropertyParts(ContentLineProperty property,
