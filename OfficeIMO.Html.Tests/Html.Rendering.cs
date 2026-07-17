@@ -325,7 +325,7 @@ public sealed partial class HtmlRenderingTests {
         const string dataUri = "data:text/plain,private";
         var options = new HtmlPdfSaveOptions {
             ResourcePolicy = PdfCore.PdfResourcePolicy.CreateTrustedHost(),
-            UrlPolicy = HtmlUrlPolicy.CreateWebOnlyProfile()
+            UrlPolicy = HtmlUrlPolicy.CreateHyperlinkProfile()
         };
 
         byte[] pdf = HtmlConversionDocument.Parse($"""
