@@ -125,6 +125,29 @@ public sealed partial class PdfOptions {
         return registeredFamilies.Add(key);
     }
 
+    internal static string NormalizeOfficeFontFamilyKey(string familyName) =>
+        familyName.Trim().Replace(" ", string.Empty).Replace("-", string.Empty);
+
+    internal bool EmbeddedFontFamilySlotMatches(PdfStandardFont slot, string familyName) {
+        PdfStandardFont normalizedSlot = PdfStandardFontMapper.GetFontFamily(slot);
+        if (_embeddedFonts == null ||
+            !_embeddedFonts.TryGetValue(normalizedSlot, out PdfEmbeddedFont? embedded) ||
+            string.IsNullOrWhiteSpace(embedded.FontName)) {
+            return false;
+        }
+
+        string embeddedFamilyName = embedded.FontName!;
+        const string regularSuffix = "-Regular";
+        if (embeddedFamilyName.EndsWith(regularSuffix, StringComparison.OrdinalIgnoreCase)) {
+            embeddedFamilyName = embeddedFamilyName.Substring(0, embeddedFamilyName.Length - regularSuffix.Length);
+        }
+
+        return string.Equals(
+            NormalizeOfficeFontFamilyKey(embeddedFamilyName),
+            NormalizeOfficeFontFamilyKey(familyName),
+            StringComparison.OrdinalIgnoreCase);
+    }
+
     internal bool TryRegisterMappedOfficeFontFamily(
         string familyName,
         HashSet<PdfStandardFont> registeredFontSlots,

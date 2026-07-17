@@ -9,6 +9,29 @@ namespace OfficeIMO.Tests.Rtf;
 
 public class RtfPdfConverterTests {
     [Fact]
+    public void RtfDocument_ToPdfDocument_ResourcePolicyControlsSystemFontEmbedding() {
+        string? installedFamily = new[] { "Arial", "Calibri", "Liberation Sans", "DejaVu Sans" }
+            .FirstOrDefault(candidate => PdfCore.PdfEmbeddedFontFamily.TryFromSystem(candidate, out _));
+        if (installedFamily == null) return;
+
+        RtfDocument document = RtfDocument.Create();
+        int fontId = document.AddFont(installedFamily);
+        document.Settings.SetDefaultFont(fontId);
+        RtfRun run = document.AddParagraph().AddText("RTF font policy marker");
+        run.FontId = fontId;
+
+        PdfCore.PdfDocument portable = document.ToPdfDocument(new RtfPdfSaveOptions {
+            ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic()
+        });
+        PdfCore.PdfDocument balanced = document.ToPdfDocument();
+
+        Assert.Empty(portable.Options.EmbeddedFonts);
+        Assert.NotEmpty(balanced.Options.EmbeddedFonts);
+        Assert.Contains("RTF font policy marker", PdfCore.PdfReadDocument.Load(portable.ToBytes()).ExtractText(), StringComparison.Ordinal);
+        Assert.Contains("RTF font policy marker", PdfCore.PdfReadDocument.Load(balanced.ToBytes()).ExtractText(), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void RtfDocument_ToPdfDocument_Renders_Paragraphs_Runs_And_PageSetup() {
         RtfDocument document = RtfDocument.Create();
         document.Info.Title = "RTF PDF";
@@ -451,9 +474,9 @@ public class RtfPdfConverterTests {
 
         Assert.True(amount.Left > label.Right, $"Expected tabbed amount to render after label. LabelRight={label.Right}; AmountLeft={amount.Left}.");
         Assert.InRange(amount.Right, expectedRight - 10D, expectedRight + 10D);
-
-        string content = ExtractPdfContentStreams(pdf);
-        Assert.Contains("2E2E2E", content, StringComparison.Ordinal);
+        Assert.True(
+            letters.Count(letter => letter.Value == "." && letter.StartBaseLine.X > label.Right && letter.EndBaseLine.X < amount.Left) >= 3,
+            "Expected at least three visible dot-leader glyphs between the label and amount.");
 
         static (double Left, double Right) FindTextBounds(IReadOnlyList<UglyToad.PdfPig.Content.Letter> letters, string text) {
             for (int index = 0; index <= letters.Count - text.Length; index++) {

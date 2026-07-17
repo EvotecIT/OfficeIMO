@@ -28,14 +28,16 @@ internal static class HtmlPdfRenderedConverter {
         renderOptions.Mode = HtmlRenderMode.Paged;
         HtmlRenderResourceResolver? embeddedPackageResolver = options.EmbeddedPackageResourceResolver;
         HtmlUrlPolicy hostResourceUrlPolicy = (options.EmbeddedPackageHostResourceUrlPolicy ?? renderOptions.GetResourceUrlPolicy()).Clone();
-        hostResourceUrlPolicy.AllowDataUrls = options.ResourcePolicy.AllowDataUris;
-        hostResourceUrlPolicy.DisallowFileUrls = !options.ResourcePolicy.AllowLocalFileAccess;
+        ApplyResourceAccessPolicy(
+            hostResourceUrlPolicy,
+            allowDataUrls: options.ResourcePolicy.AllowDataUris,
+            allowFileUrls: options.ResourcePolicy.AllowLocalFileAccess);
         renderOptions.ResourceUrlPolicy = renderOptions.GetResourceUrlPolicy().Clone();
-        renderOptions.ResourceUrlPolicy.AllowDataUrls = options.ResourcePolicy.AllowDataUris;
-        renderOptions.ResourceUrlPolicy.DisallowFileUrls = !options.ResourcePolicy.AllowLocalFileAccess;
-        if (embeddedPackageResolver != null && options.ResourcePolicy.AllowEmbeddedPackageResources) {
-            renderOptions.ResourceUrlPolicy.DisallowFileUrls = false;
-        }
+        ApplyResourceAccessPolicy(
+            renderOptions.ResourceUrlPolicy,
+            allowDataUrls: options.ResourcePolicy.AllowDataUris,
+            allowFileUrls: options.ResourcePolicy.AllowLocalFileAccess ||
+                embeddedPackageResolver != null && options.ResourcePolicy.AllowEmbeddedPackageResources);
         HtmlRenderResourceResolver? hostResolver = renderOptions.ResourceResolver;
         if (embeddedPackageResolver != null || hostResolver != null) {
             renderOptions.ResourceResolver = async (request, cancellationToken) => {
@@ -56,6 +58,21 @@ internal static class HtmlPdfRenderedConverter {
             };
         }
         return renderOptions;
+    }
+
+    private static void ApplyResourceAccessPolicy(HtmlUrlPolicy policy, bool allowDataUrls, bool allowFileUrls) {
+        policy.AllowDataUrls = allowDataUrls;
+        policy.DisallowFileUrls = !allowFileUrls;
+        SetAllowedScheme(policy, "data", allowDataUrls);
+        SetAllowedScheme(policy, Uri.UriSchemeFile, allowFileUrls);
+    }
+
+    private static void SetAllowedScheme(HtmlUrlPolicy policy, string scheme, bool allowed) {
+        if (allowed) {
+            policy.AllowedUrlSchemes.Add(scheme);
+        } else {
+            policy.AllowedUrlSchemes.Remove(scheme);
+        }
     }
 
     private static HtmlPdfRenderResult CreatePdf(HtmlRenderDocument rendered, HtmlPdfSaveOptions options, CancellationToken cancellationToken) {

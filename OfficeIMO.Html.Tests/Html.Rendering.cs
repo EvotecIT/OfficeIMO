@@ -341,6 +341,63 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlPdf_DefaultHyperlinkPolicyEmitsOnlyCommonWebAndMailSchemes() {
+        const string webUri = "https://example.test/report";
+        const string mailUri = "mailto:reports@example.test";
+        const string ftpUri = "ftp://example.test/report";
+        const string cidUri = "cid:report";
+        const string customUri = "officeimo:report";
+
+        byte[] pdf = HtmlConversionDocument.Parse($"""
+            <a href="{webUri}">Web</a>
+            <a href="{mailUri}">Mail</a>
+            <a href="{ftpUri}">FTP</a>
+            <a href="{cidUri}">CID</a>
+            <a href="{customUri}">Custom</a>
+            """).ToPdf();
+        PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(pdf);
+
+        Assert.Contains(webUri, info.LinkUris);
+        Assert.Contains(mailUri, info.LinkUris);
+        Assert.DoesNotContain(ftpUri, info.LinkUris);
+        Assert.DoesNotContain(cidUri, info.LinkUris);
+        Assert.DoesNotContain(customUri, info.LinkUris);
+    }
+
+    [Fact]
+    public async Task HtmlPdf_WebOnlyResourcePolicyExpandsOnlyPermittedDataAndFileSchemes() {
+        byte[] dataImage = PdfPngTestImages.CreateRgbPng(8, 5);
+        byte[] fileImage = PdfPngTestImages.CreateRgbPng(5, 8);
+        string dataUri = "data:image/png;base64," + Convert.ToBase64String(dataImage);
+        string fileUri = new Uri(Path.Combine(Path.GetTempPath(), "officeimo-web-only-resource.png")).AbsoluteUri;
+        int fileResolverCalls = 0;
+        var options = new HtmlPdfSaveOptions {
+            UrlPolicy = HtmlUrlPolicy.CreateWebOnlyProfile(),
+            ResourcePolicy = PdfCore.PdfResourcePolicy.CreateTrustedHost(),
+            ResourceResolver = (request, cancellationToken) => {
+                if (!request.Uri.IsFile) return Task.FromResult<HtmlResolvedResource?>(null);
+                fileResolverCalls++;
+                return Task.FromResult<HtmlResolvedResource?>(new HtmlResolvedResource(fileImage, "image/png"));
+            }
+        };
+
+        PdfCore.PdfDocumentConversionResult result = await HtmlConversionDocument.Parse($"""
+            <a href="{dataUri}">Blocked data link</a>
+            <a href="{fileUri}">Blocked file link</a>
+            <img src="{dataUri}" width="40" height="25" alt="data image">
+            <img src="{fileUri}" width="25" height="40" alt="file image">
+            """).ToPdfDocumentResultAsync(options);
+        byte[] pdf = result.ToBytes();
+        PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(pdf);
+
+        Assert.Equal(1, fileResolverCalls);
+        Assert.Equal(2, PdfCore.PdfImageExtractor.ExtractImages(pdf).Count(image => image.IsImageFile && image.MimeType == "image/png"));
+        Assert.DoesNotContain(dataUri, info.LinkUris);
+        Assert.DoesNotContain(fileUri, info.LinkUris);
+        Assert.DoesNotContain(result.Warnings, warning => warning.Code == HtmlRenderDiagnosticCodes.ResourceUnavailable);
+    }
+
+    [Fact]
     public async Task HtmlPdf_PortableResourcePolicyDoesNotInvokeRemoteResolver() {
         int calls = 0;
         var options = new HtmlPdfSaveOptions {

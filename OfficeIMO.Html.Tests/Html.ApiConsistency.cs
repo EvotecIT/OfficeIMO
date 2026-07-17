@@ -138,6 +138,12 @@ public sealed class HtmlApiConsistencyTests {
 
         Assert.True(options.UrlPolicy.DisallowFileUrls);
         Assert.False(options.UrlPolicy.AllowDataUrls);
+        Assert.True(options.UrlPolicy.RestrictUrlSchemes);
+        Assert.True(HtmlUrlPolicyEvaluator.IsAllowed("https://example.test/report", options.UrlPolicy));
+        Assert.True(HtmlUrlPolicyEvaluator.IsAllowed("mailto:reports@example.test", options.UrlPolicy));
+        Assert.False(HtmlUrlPolicyEvaluator.IsAllowed("cid:report", options.UrlPolicy));
+        Assert.False(HtmlUrlPolicyEvaluator.IsAllowed("ftp://example.test/report", options.UrlPolicy));
+        Assert.False(HtmlUrlPolicyEvaluator.IsAllowed("officeimo:report", options.UrlPolicy));
     }
 
     [Fact]

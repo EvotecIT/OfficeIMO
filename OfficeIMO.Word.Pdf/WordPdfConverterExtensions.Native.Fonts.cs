@@ -173,7 +173,7 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static string NormalizeNativeFontFamily(string familyName) {
-            return familyName.Trim().Replace(" ", string.Empty).Replace("-", string.Empty);
+            return PdfCore.PdfOptions.NormalizeOfficeFontFamilyKey(familyName);
         }
     }
 }

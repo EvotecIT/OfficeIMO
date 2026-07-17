@@ -273,12 +273,7 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         internal static bool EmbeddedFontSlotMatchesFamily(PdfCore.PdfOptions options, PdfCore.PdfStandardFont slot, string familyName) {
-            PdfCore.PdfStandardFont normalizedSlot = PdfCore.PdfStandardFontMapper.GetFontFamily(slot);
-            return options.EmbeddedFonts.ContainsKey(normalizedSlot) &&
-                   string.Equals(
-                       NormalizeNativeFontFamily(GetEmbeddedFontFamilyName(options, normalizedSlot)),
-                       NormalizeNativeFontFamily(familyName),
-                       StringComparison.OrdinalIgnoreCase);
+            return options.EmbeddedFontFamilySlotMatches(slot, familyName);
         }
 
         private static string GetEmbeddedFontFamilyName(PdfCore.PdfOptions options, PdfCore.PdfStandardFont slot) {

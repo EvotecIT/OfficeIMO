@@ -10,6 +10,11 @@ internal static partial class RtfPdfConverter {
 
         RtfPdfSaveOptions normalized = options ?? new RtfPdfSaveOptions();
         PdfCore.PdfOptions pdfOptions = normalized.PdfOptions ?? new PdfCore.PdfOptions();
+        IReadOnlyDictionary<int, PdfCore.PdfStandardFont> fontSlots = ConfigureDocumentFonts(
+            document,
+            pdfOptions,
+            normalized,
+            preserveConfiguredFontSlots: normalized.PdfOptions != null);
         ApplyPageSetup(document, document.PageSetup, pdfOptions);
         if (document.Sections.Count > 0) {
             ApplyPageSetup(document, document.Sections[0].PageSetup, pdfOptions);
@@ -19,7 +24,7 @@ internal static partial class RtfPdfConverter {
 
         PdfCore.PdfDocument pdf = PdfCore.PdfDocument.Create(pdfOptions);
         ApplyMetadata(document, pdf, normalized);
-        PdfRenderState state = new PdfRenderState(document);
+        PdfRenderState state = new PdfRenderState(document, fontSlots);
 
         RenderDocumentBlocks(document, pdf, normalized, state, pdfOptions);
 
