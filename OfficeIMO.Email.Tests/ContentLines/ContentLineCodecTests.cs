@@ -4,6 +4,40 @@ namespace OfficeIMO.Email.Tests;
 
 public sealed class ContentLineCodecTests {
     [Fact]
+    public void LeadingUtf8BomIsIgnored() {
+        byte[] payload = new UTF8Encoding(encoderShouldEmitUTF8Identifier: true).GetPreamble()
+            .Concat(Encoding.UTF8.GetBytes(
+                "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//BOM//EN\r\nEND:VCALENDAR\r\n"))
+            .ToArray();
+
+        IcsDocument document = IcsDocument.Load(payload);
+
+        Assert.Single(document.Calendars);
+        Assert.Equal("-//BOM//EN", document.Calendars[0].GetFirstProperty("PRODID")?.Value);
+    }
+
+    [Fact]
+    public void MalformedInputTokensAreReportedAsInvalidData() {
+        Assert.Throws<InvalidDataException>(() => IcsDocument.Parse(
+            "BEGIN:VCAL ENDAR\r\nVERSION:2.0\r\nEND:VCAL ENDAR\r\n"));
+        Assert.Throws<InvalidDataException>(() => VCardDocument.Parse(
+            "BEGIN:VCARD\r\nVERSION:4.0\r\nBAD NAME:value\r\nEND:VCARD\r\n"));
+    }
+
+    [Fact]
+    public void ManyShortPhysicalFoldsUnfoldWithinTheConfiguredLinearBound() {
+        var source = new StringBuilder("BEGIN:VCARD\r\nVERSION:4.0\r\nFN:first");
+        for (int index = 0; index < 20_000; index++) source.Append("\r\n x");
+        source.Append("\r\nEND:VCARD\r\n");
+
+        VCardDocument document = VCardDocument.Parse(source.ToString(),
+            new ContentLineReaderOptions(maxInputBytes: 256 * 1024,
+                maxUnfoldedLineBytes: 64 * 1024));
+
+        Assert.Equal(20_005, document.Cards[0].GetFirstProperty("FN")?.Value.Length);
+    }
+
+    [Fact]
     public void Parameters_RoundTripRfc6868AndRepeatedValues() {
         const string source = "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Test//EN\r\n" +
             "BEGIN:VEVENT\r\nATTENDEE;CN=Dee^'Arcy^^Team^nLine;MEMBER=\"mailto:a@example.com\",\"mailto:b@example.com\":mailto:c@example.com\r\n" +

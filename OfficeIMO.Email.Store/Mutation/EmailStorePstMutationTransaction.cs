@@ -77,6 +77,10 @@ public sealed partial class EmailStorePstMutationTransaction : IDisposable {
                 throw new NotSupportedException(
                     "Existing-store mutation supports Unicode PST files only; OST files remain read-only sources.");
             }
+            if (source.IsPstPasswordProtected) {
+                throw new NotSupportedException(
+                    "Existing-store mutation rejects password-protected PST files because the managed writer cannot preserve password protection.");
+            }
             if (source.Folders.Count > effective.MaxFolderCount) {
                 throw new EmailStoreLimitExceededException(
                     nameof(EmailStorePstMutationOptions.MaxFolderCount),

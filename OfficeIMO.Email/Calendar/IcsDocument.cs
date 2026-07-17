@@ -73,8 +73,10 @@ public sealed partial class IcsDocument {
     }
 
     /// <summary>Serializes this document to bytes.</summary>
-    public byte[] ToBytes(ContentLineWriterOptions? options = null) =>
-        ContentLineCodec.Serialize(_calendars, options ?? ContentLineWriterOptions.Default);
+    public byte[] ToBytes(ContentLineWriterOptions? options = null) {
+        ValidateCalendars(_calendars);
+        return ContentLineCodec.Serialize(_calendars, options ?? ContentLineWriterOptions.Default);
+    }
 
     /// <summary>Serializes this document to text using the configured output encoding.</summary>
     public string Serialize(ContentLineWriterOptions? options = null) {
@@ -101,13 +103,21 @@ public sealed partial class IcsDocument {
         ContentLineDocumentIO.WriteAsync(stream, ToBytes(options), cancellationToken);
 
     private static IcsDocument FromComponents(IReadOnlyList<ContentLineComponent> components) {
-        if (components.Count == 0) throw new InvalidDataException("The iCalendar stream does not contain VCALENDAR.");
+        ValidateCalendars(components);
         var document = new IcsDocument(false);
-        foreach (ContentLineComponent component in components) {
-            if (!string.Equals(component.Name, "VCALENDAR", StringComparison.OrdinalIgnoreCase))
-                throw new InvalidDataException("The iCalendar stream contains a non-VCALENDAR root component.");
-            document._calendars.Add(component);
-        }
+        foreach (ContentLineComponent component in components) document._calendars.Add(component);
         return document;
+    }
+
+    private static void ValidateCalendars(IEnumerable<ContentLineComponent> calendars) {
+        int count = 0;
+        foreach (ContentLineComponent calendar in calendars) {
+            count++;
+            if (!string.Equals(calendar.Name, "VCALENDAR", StringComparison.OrdinalIgnoreCase))
+                throw new InvalidDataException(
+                    "The iCalendar stream contains a non-VCALENDAR root component.");
+        }
+        if (count == 0) throw new InvalidDataException(
+            "The iCalendar document does not contain a calendar.");
     }
 }

@@ -101,7 +101,8 @@ byte-for-byte backup, and source length/timestamp drift aborts replacement.
 The rewrite design reuses the mature writer, item projection, fidelity diagnostics, and atomic commit boundary. Its
 visible tradeoff is that NIDs and BIDs change, so commit returns folder and item ID mappings. Mandatory folders remain
 protected. Search folders cannot accept normal descendants and dynamic query definitions cannot be regenerated; the
-safe default blocks those and all other known-loss diagnostics. ANSI PST and OST files remain read-only inputs.
+safe default blocks those and all other known-loss diagnostics. Password-protected PSTs are rejected for mutation
+because the writer cannot preserve their protection. ANSI PST and OST files remain read-only inputs.
 Disposing an uncommitted transaction or committing a no-op never rewrites the source.
 
 Current validation covers:

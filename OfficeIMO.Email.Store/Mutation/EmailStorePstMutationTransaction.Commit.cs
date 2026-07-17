@@ -26,7 +26,9 @@ public sealed partial class EmailStorePstMutationTransaction {
             var writerOptions = new EmailStorePstWriterOptions(
                 _source!.DisplayName,
                 overwriteExisting: false,
-                failOnDataLoss: _options.FailOnDataLoss,
+                // The transaction owns the final fidelity gate so it can combine late source-read
+                // diagnostics with writer diagnostics before deciding whether replacement is safe.
+                failOnDataLoss: false,
                 maxFolderCount: _options.MaxFolderCount,
                 maxItemCount: _options.MaxItemCount,
                 maxNestedMessageDepth: _options.MaxNestedMessageDepth,
@@ -71,10 +73,6 @@ public sealed partial class EmailStorePstMutationTransaction {
             FailOnFidelityDiagnostics();
             cancellationToken.ThrowIfCancellationRequested();
 
-            _source.Dispose();
-            _source = null;
-            EnsureSourceUnchanged();
-
             string? committedBackupPath = null;
             if (_options.BackupPath != null) {
                 backupStagingPath = OfficeFileCommit.CreateStagingPath(_options.BackupPath);
@@ -90,8 +88,14 @@ public sealed partial class EmailStorePstMutationTransaction {
             }
 
             cancellationToken.ThrowIfCancellationRequested();
-            OfficeFileCommit.CommitTemporaryFile(stagingPath, _sourcePath,
-                OfficeFileCommit.ConflictPolicy.Replace);
+            using (var commitGuard = new FileStream(_sourcePath, FileMode.Open, FileAccess.Read,
+                FileShare.Read | FileShare.Delete, 1, FileOptions.RandomAccess)) {
+                _source.Dispose();
+                _source = null;
+                EnsureSourceUnchanged();
+                OfficeFileCommit.CommitTemporaryFile(stagingPath, _sourcePath,
+                    OfficeFileCommit.ConflictPolicy.Replace);
+            }
             stagingPath = string.Empty;
             _committed = true;
             writeReport = new EmailStorePstWriteReport(_sourcePath, writeReport.FolderCount,
@@ -305,6 +309,7 @@ public sealed partial class EmailStorePstMutationTransaction {
     }
 
     private void FailOnFidelityDiagnostics() {
+        CaptureSourceDiagnostics();
         if (!_options.FailOnDataLoss) return;
         EmailStoreDiagnostic[] fidelity = _diagnostics.Where(diagnostic =>
             diagnostic.Severity != EmailStoreDiagnosticSeverity.Information).ToArray();
@@ -313,6 +318,20 @@ public sealed partial class EmailStorePstMutationTransaction {
                 string.Concat("The staged PST emitted a fidelity diagnostic and FailOnDataLoss is enabled; ",
                     "the original was not changed. Codes: ",
                     string.Join(", ", fidelity.Select(diagnostic => diagnostic.Code).Distinct(StringComparer.Ordinal))));
+        }
+    }
+
+    private void CaptureSourceDiagnostics() {
+        if (_source == null) return;
+        foreach (EmailStoreDiagnostic diagnostic in _source.Diagnostics) {
+            if (_diagnostics.Any(existing =>
+                existing.Severity == diagnostic.Severity &&
+                string.Equals(existing.Code, diagnostic.Code, StringComparison.Ordinal) &&
+                string.Equals(existing.Message, diagnostic.Message, StringComparison.Ordinal) &&
+                string.Equals(existing.Location, diagnostic.Location, StringComparison.Ordinal))) {
+                continue;
+            }
+            _diagnostics.Add(diagnostic);
         }
     }
 

@@ -8,7 +8,17 @@ public sealed partial class IcsDocument {
     /// <summary>Validates stable RFC 5545 structure without rejecting unknown or extension properties.</summary>
     public IReadOnlyList<ContentLineValidationIssue> Validate() {
         var issues = new List<ContentLineValidationIssue>();
+        if (_calendars.Count == 0) {
+            issues.Add(new ContentLineValidationIssue("ICAL_ROOT_REQUIRED",
+                "The iCalendar document must contain at least one VCALENDAR root.",
+                ContentLineValidationSeverity.Error, "VCALENDAR"));
+        }
         foreach (ContentLineComponent calendar in _calendars) {
+            if (!string.Equals(calendar.Name, "VCALENDAR", StringComparison.OrdinalIgnoreCase)) {
+                issues.Add(new ContentLineValidationIssue("ICAL_ROOT_INVALID",
+                    "Every iCalendar document root must be VCALENDAR.",
+                    ContentLineValidationSeverity.Error, calendar.Name));
+            }
             var definedTimeZones = new HashSet<string>(StringComparer.Ordinal);
             ValidateSingle(calendar, "VERSION", required: true, issues);
             ValidateSingle(calendar, "PRODID", required: true, issues);

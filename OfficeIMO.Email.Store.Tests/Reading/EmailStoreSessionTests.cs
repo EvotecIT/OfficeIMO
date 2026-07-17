@@ -245,6 +245,9 @@ public sealed class EmailStoreSessionTests {
             using var source = new MemoryStream(PstTestFileBuilder.Create());
             using EmailStoreSession session = EmailStoreSession.Open(source, "archive.pst");
             EmailStoreExportReport first = session.ExportToDirectory(destination);
+            string path = Assert.Single(first.Entries).DestinationPath!;
+            byte[] sentinel = Encoding.ASCII.GetBytes("existing artifact");
+            File.WriteAllBytes(path, sentinel);
 
             EmailStoreExportReport second = session.ExportToDirectory(destination);
 
@@ -253,6 +256,7 @@ public sealed class EmailStoreSessionTests {
             Assert.False(failed.Succeeded);
             Assert.Contains(failed.Diagnostics,
                 diagnostic => diagnostic.Code == "EMAIL_STORE_EXPORT_DESTINATION_EXISTS");
+            Assert.Equal(sentinel, File.ReadAllBytes(path));
             Assert.Contains(second.Diagnostics,
                 diagnostic => diagnostic.Code == "EMAIL_STORE_EXPORT_MANIFEST_EXISTS");
         } finally {

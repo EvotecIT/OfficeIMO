@@ -129,4 +129,29 @@ public sealed class IcsDocumentTests {
         Assert.False(IcsTemporalValue.TryParse(utc, out _));
         Assert.False(IcsTemporalValue.TryParse(unsupported, out _));
     }
+
+    [Fact]
+    public void ValidationReportsInvalidRecurrencePartNamesInsteadOfThrowing() {
+        var document = new IcsDocument();
+        ContentLineComponent appointment = document.Calendars.Single().AddComponent("VEVENT");
+        appointment.AddProperty("RRULE", "FREQ=DAILY;BAD_NAME=value");
+
+        ContentLineValidationIssue issue = Assert.Single(document.Validate(), finding =>
+            finding.Code == "ICAL_RRULE_INVALID");
+
+        Assert.Equal(ContentLineValidationSeverity.Error, issue.Severity);
+    }
+
+    [Fact]
+    public void ValidationAndSerializationRejectMissingOrMutatedCalendarRoots() {
+        var empty = new IcsDocument();
+        empty.Calendars.Clear();
+        var mutated = new IcsDocument();
+        mutated.Calendars.Single().Name = "VCARD";
+
+        Assert.Contains(empty.Validate(), issue => issue.Code == "ICAL_ROOT_REQUIRED");
+        Assert.Contains(mutated.Validate(), issue => issue.Code == "ICAL_ROOT_INVALID");
+        Assert.Throws<InvalidDataException>(() => empty.ToBytes());
+        Assert.Throws<InvalidDataException>(() => mutated.ToBytes());
+    }
 }

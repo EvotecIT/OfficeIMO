@@ -74,14 +74,40 @@ public sealed class EmailStoreEmlxWriter {
 
     private byte[] Create(EmailDocument document, out EmailWriteResult result) {
         if (document == null) throw new ArgumentNullException(nameof(document));
-        var messageWriter = new EmailDocumentWriter(_options.MessageOptions);
-        byte[] message = messageWriter.ToBytes(document, EmailFileFormat.Eml, out EmailWriteResult messageResult);
+        byte[] metadata = _options.IncludeMetadata
+            ? CreateMetadata(document, _options.MaxOutputBytes)
+            : Array.Empty<byte>();
+        long fixedBytes = checked(metadata.LongLength + (metadata.Length > 0 ? 1L : 0L) + 2L);
+        if (fixedBytes >= _options.MaxOutputBytes) {
+            throw new EmailLimitExceededException(
+                nameof(EmailStoreEmlxWriterOptions.MaxOutputBytes),
+                checked(fixedBytes + 1L), _options.MaxOutputBytes);
+        }
+        long messageBudget = Math.Min(_options.MessageOptions.MaxOutputBytes,
+            Math.Min(_options.MaxOutputBytes - fixedBytes, int.MaxValue));
+        EmailWriterOptions sourceOptions = _options.MessageOptions;
+        var boundedMessageOptions = new EmailWriterOptions(
+            sourceOptions.ConversionLossPolicy,
+            sourceOptions.UsePreservedRawSource,
+            sourceOptions.IncludeBccHeader,
+            sourceOptions.Base64LineLength,
+            sourceOptions.MaxNestedMessageDepth,
+            messageBudget);
+        var messageWriter = new EmailDocumentWriter(boundedMessageOptions);
+        byte[] message;
+        EmailWriteResult messageResult;
+        try {
+            message = messageWriter.ToBytes(document, EmailFileFormat.Eml, out messageResult);
+        } catch (EmailLimitExceededException exception) when (
+            exception.LimitName == nameof(EmailWriterOptions.MaxOutputBytes)) {
+            throw new EmailLimitExceededException(nameof(EmailStoreEmlxWriterOptions.MaxOutputBytes),
+                exception.ActualValue, _options.MaxOutputBytes);
+        }
         if (messageResult.HasErrors) {
             result = messageResult;
             return Array.Empty<byte>();
         }
         byte[] prefix = Encoding.ASCII.GetBytes(message.LongLength.ToString(CultureInfo.InvariantCulture) + "\n");
-        byte[] metadata = _options.IncludeMetadata ? CreateMetadata(document) : Array.Empty<byte>();
         long total = checked(prefix.LongLength + message.LongLength + metadata.LongLength +
             (metadata.Length > 0 ? 1L : 0L));
         if (total > _options.MaxOutputBytes || total > int.MaxValue)
@@ -99,32 +125,38 @@ public sealed class EmailStoreEmlxWriter {
         return output;
     }
 
-    private static byte[] CreateMetadata(EmailDocument document) {
-        using (var output = new MemoryStream()) {
-            var settings = new XmlWriterSettings {
-                Encoding = new UTF8Encoding(false),
-                Indent = true,
-                NewLineChars = "\n",
-                NewLineHandling = NewLineHandling.Replace,
-                CloseOutput = false
-            };
-            using (XmlWriter writer = XmlWriter.Create(output, settings)) {
-                writer.WriteStartDocument();
-                writer.WriteDocType("plist", "-//Apple//DTD PLIST 1.0//EN",
-                    "http://www.apple.com/DTDs/PropertyList-1.0.dtd", null);
-                writer.WriteStartElement("plist");
-                writer.WriteAttributeString("version", "1.0");
-                writer.WriteStartElement("dict");
-                WriteInteger(writer, "flags", CreateFlags(document));
-                WriteDate(writer, "date-received", document.ReceivedDate);
-                WriteDate(writer, "date-sent", document.Date);
-                WriteString(writer, "subject", document.Subject);
-                WriteString(writer, "message-id", document.MessageId);
-                writer.WriteEndElement();
-                writer.WriteEndElement();
-                writer.WriteEndDocument();
+    private static byte[] CreateMetadata(EmailDocument document, long maxOutputBytes) {
+        try {
+            using (var output = new EmailBoundedMemoryStream(maxOutputBytes)) {
+                var settings = new XmlWriterSettings {
+                    Encoding = new UTF8Encoding(false),
+                    Indent = true,
+                    NewLineChars = "\n",
+                    NewLineHandling = NewLineHandling.Replace,
+                    CloseOutput = false
+                };
+                using (XmlWriter writer = XmlWriter.Create(output, settings)) {
+                    writer.WriteStartDocument();
+                    writer.WriteDocType("plist", "-//Apple//DTD PLIST 1.0//EN",
+                        "http://www.apple.com/DTDs/PropertyList-1.0.dtd", null);
+                    writer.WriteStartElement("plist");
+                    writer.WriteAttributeString("version", "1.0");
+                    writer.WriteStartElement("dict");
+                    WriteInteger(writer, "flags", CreateFlags(document));
+                    WriteDate(writer, "date-received", document.ReceivedDate);
+                    WriteDate(writer, "date-sent", document.Date);
+                    WriteString(writer, "subject", document.Subject);
+                    WriteString(writer, "message-id", document.MessageId);
+                    writer.WriteEndElement();
+                    writer.WriteEndElement();
+                    writer.WriteEndDocument();
+                }
+                return output.ToArray();
             }
-            return output.ToArray();
+        } catch (EmailLimitExceededException exception) when (
+            exception.LimitName == nameof(EmailWriterOptions.MaxOutputBytes)) {
+            throw new EmailLimitExceededException(nameof(EmailStoreEmlxWriterOptions.MaxOutputBytes),
+                exception.ActualValue, maxOutputBytes);
         }
     }
 

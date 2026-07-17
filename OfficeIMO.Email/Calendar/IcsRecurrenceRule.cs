@@ -47,7 +47,12 @@ public sealed class IcsRecurrenceRule {
             int equals = segment.IndexOf('=');
             if (equals <= 0 || equals == segment.Length - 1)
                 throw new FormatException("The recurrence rule contains a malformed part.");
-            rule._parts.Add(new IcsRecurrencePart(segment.Substring(0, equals), segment.Substring(equals + 1)));
+            try {
+                rule._parts.Add(new IcsRecurrencePart(
+                    segment.Substring(0, equals), segment.Substring(equals + 1)));
+            } catch (ArgumentException exception) {
+                throw new FormatException("The recurrence rule contains an invalid part name.", exception);
+            }
         }
         if (string.IsNullOrWhiteSpace(rule.Frequency)) throw new FormatException("The recurrence rule does not declare FREQ.");
         return rule;

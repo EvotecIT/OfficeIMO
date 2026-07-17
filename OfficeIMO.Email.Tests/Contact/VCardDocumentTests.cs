@@ -116,4 +116,33 @@ public sealed class VCardDocumentTests {
         Assert.Equal("3.0", card.Properties[0].Value);
         Assert.DoesNotContain(document.Validate(), issue => issue.Code == "VCARD_VERSION_ORDER");
     }
+
+    [Fact]
+    public void V4AllowsMultipleFormattedNamesButV3DoesNot() {
+        var v4 = new VCardDocument();
+        v4.Cards.Single().AddProperty("FN", "Primary name");
+        v4.Cards.Single().AddProperty("FN", "Nom français").SetParameter("LANGUAGE", "fr");
+        var v3 = new VCardDocument();
+        VCardDocument.SetVersion(v3.Cards.Single(), VCardVersion.V3_0);
+        v3.Cards.Single().AddProperty("FN", "Primary name");
+        v3.Cards.Single().AddProperty("FN", "Second name");
+
+        Assert.DoesNotContain(v4.Validate(), issue =>
+            issue.Code == "VCARD_PROPERTY_CARDINALITY" && issue.PropertyName == "FN");
+        Assert.Contains(v3.Validate(), issue =>
+            issue.Code == "VCARD_PROPERTY_CARDINALITY" && issue.PropertyName == "FN");
+    }
+
+    [Fact]
+    public void ValidationAndSerializationRejectMissingOrMutatedCardRoots() {
+        var empty = new VCardDocument();
+        empty.Cards.Clear();
+        var mutated = new VCardDocument();
+        mutated.Cards.Single().Name = "VCALENDAR";
+
+        Assert.Contains(empty.Validate(), issue => issue.Code == "VCARD_ROOT_REQUIRED");
+        Assert.Contains(mutated.Validate(), issue => issue.Code == "VCARD_ROOT_INVALID");
+        Assert.Throws<InvalidDataException>(() => empty.ToBytes());
+        Assert.Throws<InvalidDataException>(() => mutated.ToBytes());
+    }
 }

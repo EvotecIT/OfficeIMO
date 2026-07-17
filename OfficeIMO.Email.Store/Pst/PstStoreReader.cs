@@ -35,6 +35,7 @@ internal sealed partial class PstStoreReader {
     private long _sourceLength;
     private long _totalAttachmentBytes;
     private bool _completeIndexesLoaded;
+    private bool _isPasswordProtected;
 
     internal PstStoreReader(EmailStoreReaderOptions options,
         EmailStoreSessionLifetime? lifetime = null) {
@@ -47,6 +48,7 @@ internal sealed partial class PstStoreReader {
     internal long SourceLength => _sourceLength;
     internal IReadOnlyList<EmailStoreFolderInfo> Folders => _folderInfos;
     internal IReadOnlyList<EmailStoreDiagnostic> Diagnostics => _diagnostics;
+    internal bool IsPasswordProtected => _isPasswordProtected;
 
     internal EmailStoreStructuralValidationResult ValidateStructure(
         EmailStoreValidationOptions options, CancellationToken cancellationToken) =>
@@ -101,6 +103,7 @@ internal sealed partial class PstStoreReader {
         _folderInfos.Clear();
         _namedProperties = PstNamedPropertyMap.Empty;
         _headerItemPropertyId = null;
+        _isPasswordProtected = false;
 
         PstHeader header = PstHeader.Read(stream, format);
         _ndb = new PstNdbReader(stream, header, _options, cancellationToken);
@@ -124,7 +127,10 @@ internal sealed partial class PstStoreReader {
             // PidTagPstPassword is a personal-store protection contract. Cached OSTs can reuse
             // the tag for unrelated provider state and are opened through the Outlook profile,
             // not with the legacy PST password checksum.
-            if (format == EmailStoreFormat.Pst) PstPassword.Validate(storeProperties, _options);
+            if (format == EmailStoreFormat.Pst) {
+                PstPassword.Validate(storeProperties, _options);
+                _isPasswordProtected = PstPassword.IsProtected(storeProperties);
+            }
             _displayName = GetString(storeProperties, 0x3001);
         }
 

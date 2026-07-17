@@ -395,7 +395,7 @@ For the materializing `EmailStoreReader`, `retainAttachmentContent: false` omits
 model never contains a deferred source whose session has already closed. Use `EmailStoreSession.ReadItem` with
 `preferStreamingAttachmentContent: true` when the caller wants on-demand payload streams.
 
-Set `PstPassword` only when a protected PST requires checksum validation. Passwords are not logged or copied into results. Caller-owned streams must be readable and seekable; reads restore the original stream position and leave the stream open.
+Set `PstPassword` only when a protected PST requires checksum validation. Passwords are not logged or copied into results. Protected PSTs remain readable after validation, but mutation rejects them because the managed writer cannot preserve the protection. Caller-owned streams must be readable and seekable; reads restore the original stream position and leave the stream open.
 
 ## Boundaries
 

@@ -15,39 +15,44 @@ internal static class ContentLineCodec {
         if (options.Encoding.GetByteCount(text) > options.MaxInputBytes)
             throw new InvalidDataException("The content-line document exceeds the configured byte limit.");
 
-        var roots = new List<ContentLineComponent>();
-        var stack = new Stack<ContentLineComponent>();
-        int componentCount = 0;
-        int propertyCount = 0;
-        foreach (string line in Unfold(text, options)) {
-            if (line.Length == 0) continue;
-            ContentLineProperty property = ParseProperty(line);
-            if (property.Group == null && string.Equals(property.Name, "BEGIN", StringComparison.OrdinalIgnoreCase)) {
-                string name = ContentLineSyntax.RequireToken(property.Value, "componentName");
-                if (++componentCount > options.MaxComponents)
-                    throw new InvalidDataException("The content-line document exceeds the configured component limit.");
-                if (stack.Count + 1 > options.MaxNestingDepth)
-                    throw new InvalidDataException("The content-line document exceeds the configured nesting limit.");
-                var component = new ContentLineComponent(name);
-                if (stack.Count == 0) roots.Add(component); else stack.Peek().Components.Add(component);
-                stack.Push(component);
-                continue;
+        try {
+            var roots = new List<ContentLineComponent>();
+            var stack = new Stack<ContentLineComponent>();
+            int componentCount = 0;
+            int propertyCount = 0;
+            foreach (string line in Unfold(text, options)) {
+                if (line.Length == 0) continue;
+                ContentLineProperty property = ParseProperty(line);
+                if (property.Group == null && string.Equals(property.Name, "BEGIN", StringComparison.OrdinalIgnoreCase)) {
+                    string name = ContentLineSyntax.RequireToken(property.Value, "componentName");
+                    if (++componentCount > options.MaxComponents)
+                        throw new InvalidDataException("The content-line document exceeds the configured component limit.");
+                    if (stack.Count + 1 > options.MaxNestingDepth)
+                        throw new InvalidDataException("The content-line document exceeds the configured nesting limit.");
+                    var component = new ContentLineComponent(name);
+                    if (stack.Count == 0) roots.Add(component); else stack.Peek().Components.Add(component);
+                    stack.Push(component);
+                    continue;
+                }
+                if (property.Group == null && string.Equals(property.Name, "END", StringComparison.OrdinalIgnoreCase)) {
+                    if (stack.Count == 0 || !string.Equals(stack.Peek().Name, property.Value,
+                        StringComparison.OrdinalIgnoreCase))
+                        throw new InvalidDataException("The content-line document contains a mismatched END component.");
+                    stack.Pop();
+                    continue;
+                }
+                if (stack.Count == 0)
+                    throw new InvalidDataException("A property was found outside a BEGIN/END component.");
+                if (++propertyCount > options.MaxProperties)
+                    throw new InvalidDataException("The content-line document exceeds the configured property limit.");
+                stack.Peek().Properties.Add(property);
             }
-            if (property.Group == null && string.Equals(property.Name, "END", StringComparison.OrdinalIgnoreCase)) {
-                if (stack.Count == 0 || !string.Equals(stack.Peek().Name, property.Value,
-                    StringComparison.OrdinalIgnoreCase))
-                    throw new InvalidDataException("The content-line document contains a mismatched END component.");
-                stack.Pop();
-                continue;
-            }
-            if (stack.Count == 0)
-                throw new InvalidDataException("A property was found outside a BEGIN/END component.");
-            if (++propertyCount > options.MaxProperties)
-                throw new InvalidDataException("The content-line document exceeds the configured property limit.");
-            stack.Peek().Properties.Add(property);
+            if (stack.Count != 0)
+                throw new InvalidDataException("The content-line document contains an unterminated component.");
+            return roots;
+        } catch (ArgumentException exception) {
+            throw new InvalidDataException("The content-line document contains an invalid token.", exception);
         }
-        if (stack.Count != 0) throw new InvalidDataException("The content-line document contains an unterminated component.");
-        return roots;
     }
 
     internal static byte[] Serialize(IEnumerable<ContentLineComponent> components, ContentLineWriterOptions options) {
@@ -64,29 +69,49 @@ internal static class ContentLineCodec {
     }
 
     private static IEnumerable<string> Unfold(string text, ContentLineReaderOptions options) {
-        string? current = null;
+        StringBuilder? current = null;
+        int currentBytes = 0;
+        bool currentIsQuotedPrintable = false;
+        bool firstPhysicalLine = true;
         int start = 0;
         for (int index = 0; index <= text.Length; index++) {
             if (index < text.Length && text[index] != '\r' && text[index] != '\n') continue;
             string physical = text.Substring(start, index - start);
             if (index < text.Length && text[index] == '\r' && index + 1 < text.Length && text[index + 1] == '\n') index++;
             start = index + 1;
-            if (current != null && current.EndsWith("=", StringComparison.Ordinal) &&
-                IsQuotedPrintableContentLine(current)) {
+            if (firstPhysicalLine) {
+                firstPhysicalLine = false;
+                if (physical.Length > 0 && physical[0] == '\uFEFF') physical = physical.Substring(1);
+            }
+            if (current != null && current.Length > 0 && current[current.Length - 1] == '=' &&
+                currentIsQuotedPrintable) {
                 string continuation = physical.Length > 0 && (physical[0] == ' ' || physical[0] == '\t')
                     ? physical.Substring(1)
                     : physical;
-                current += "\r\n" + continuation;
+                AppendUnfolded(current, "\r\n", ref currentBytes, options.MaxUnfoldedLineBytes);
+                AppendUnfolded(current, continuation, ref currentBytes, options.MaxUnfoldedLineBytes);
             } else if (physical.Length > 0 && (physical[0] == ' ' || physical[0] == '\t') && current != null)
-                current += physical.Substring(1);
+                AppendUnfolded(current, physical.Substring(1), ref currentBytes,
+                    options.MaxUnfoldedLineBytes);
             else {
-                if (current != null) yield return current;
-                current = physical;
+                if (current != null) yield return current.ToString();
+                current = new StringBuilder(physical);
+                currentBytes = Encoding.UTF8.GetByteCount(physical);
+                if (currentBytes > options.MaxUnfoldedLineBytes)
+                    throw new InvalidDataException("A content line exceeds the configured unfolded-line limit.");
+                currentIsQuotedPrintable = IsQuotedPrintableContentLine(physical);
             }
-            if (current != null && Encoding.UTF8.GetByteCount(current) > options.MaxUnfoldedLineBytes)
-                throw new InvalidDataException("A content line exceeds the configured unfolded-line limit.");
         }
-        if (current != null) yield return current;
+        if (current != null) yield return current.ToString();
+    }
+
+    private static void AppendUnfolded(StringBuilder current, string value, ref int currentBytes,
+        int maximumBytes) {
+        int addedBytes = Encoding.UTF8.GetByteCount(value);
+        if (addedBytes > maximumBytes - currentBytes)
+            throw new InvalidDataException("A content line exceeds the configured unfolded-line limit.");
+        current.Append(value);
+        currentBytes += addedBytes;
     }
 
     private static bool IsQuotedPrintableContentLine(string line) {

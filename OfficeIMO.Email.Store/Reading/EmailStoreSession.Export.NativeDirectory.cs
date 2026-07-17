@@ -52,7 +52,7 @@ public sealed partial class EmailStoreSession {
                         "The export manifest already exists and overwriteExisting is false.",
                         EmailStoreDiagnosticSeverity.Warning, candidate));
                 } else {
-                    WriteExportManifest(candidate, root, entries);
+                    WriteExportManifest(candidate, root, entries, options.OverwriteExisting);
                     manifestPath = candidate;
                 }
             } catch (Exception exception) when (exception is IOException || exception is UnauthorizedAccessException) {
@@ -72,6 +72,7 @@ public sealed partial class EmailStoreSession {
         string? destinationPath = null;
         long bytesWritten = 0;
         string? temporaryPath = null;
+        string? maildirFlags = null;
         try {
             EmailStoreItem item = ReadItem(reference, cancellationToken);
             string folder = paths.GetFolderPath(reference.FolderId);
@@ -85,6 +86,7 @@ public sealed partial class EmailStoreSession {
             Directory.CreateDirectory(temporaryDirectory);
 
             string flags = GetMaildirFlags(item.Document);
+            maildirFlags = flags;
             bool supportsInfoSuffix = Array.IndexOf(Path.GetInvalidFileNameChars(), ':') < 0;
             bool useCurrent = flags.Length > 0 && supportsInfoSuffix;
             if (flags.Length > 0 && !supportsInfoSuffix) flagsCouldNotBeWritten = true;
@@ -115,7 +117,7 @@ public sealed partial class EmailStoreSession {
         } finally {
             if (temporaryPath != null) OfficeFileCommit.DeleteIfExists(temporaryPath);
         }
-        return new EmailStoreExportEntry(reference, destinationPath, bytesWritten, diagnostics);
+        return new EmailStoreExportEntry(reference, destinationPath, bytesWritten, diagnostics, maildirFlags);
     }
 
     private EmailStoreExportEntry ExportEmlxItem(EmailStoreItemReference reference,
@@ -124,22 +126,33 @@ public sealed partial class EmailStoreSession {
         var diagnostics = new List<EmailStoreDiagnostic>();
         string? destinationPath = null;
         long bytesWritten = 0;
+        string? temporaryPath = null;
         try {
             EmailStoreItem item = ReadItem(reference, cancellationToken);
             string path = paths.GetItemPath(reference, item.Document.Subject, ".emlx");
             Directory.CreateDirectory(Path.GetDirectoryName(path)!);
             if (File.Exists(path) && !options.OverwriteExisting)
                 throw new IOException("The EMLX destination item already exists.");
-            EmailWriteResult result = writer.Write(item.Document, path);
+            temporaryPath = string.Concat(path, ".", Guid.NewGuid().ToString("N"), ".tmp");
+            EmailWriteResult result = writer.Write(item.Document, temporaryPath);
             foreach (EmailDiagnostic diagnostic in result.Diagnostics)
                 diagnostics.Add(ConvertDiagnostic(diagnostic, reference.Id));
-            if (!result.HasErrors) { destinationPath = path; bytesWritten = result.BytesWritten; }
+            if (!result.HasErrors) {
+                OfficeFileCommit.CommitTemporaryFile(temporaryPath, path,
+                    options.OverwriteExisting ? OfficeFileCommit.ConflictPolicy.Replace :
+                        OfficeFileCommit.ConflictPolicy.FailIfExists);
+                temporaryPath = null;
+                destinationPath = path;
+                bytesWritten = result.BytesWritten;
+            }
         } catch (Exception exception) when (exception is InvalidDataException || exception is NotSupportedException ||
                                              exception is IOException || exception is UnauthorizedAccessException ||
                                              exception is EmailStoreLimitExceededException ||
                                              exception is EmailLimitExceededException) {
             diagnostics.Add(new EmailStoreDiagnostic("EMAIL_STORE_EMLX_EXPORT_FAILED", exception.Message,
                 EmailStoreDiagnosticSeverity.Error, "item/" + reference.Id));
+        } finally {
+            if (temporaryPath != null) OfficeFileCommit.DeleteIfExists(temporaryPath);
         }
         return new EmailStoreExportEntry(reference, destinationPath, bytesWritten, diagnostics);
     }

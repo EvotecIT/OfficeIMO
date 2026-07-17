@@ -35,11 +35,24 @@ public sealed class EmlxStoreWriterTests {
     public void WriterEnforcesCompleteArtifactLimit() {
         var document = new EmailDocument { Subject = "Bounded EMLX" };
         document.Body.Text = new string('x', 2048);
+        var writer = new EmailStoreEmlxWriter(new EmailStoreEmlxWriterOptions(
+            includeMetadata: false, maxOutputBytes: 128));
+
+        EmailLimitExceededException exception = Assert.Throws<EmailLimitExceededException>(() =>
+            writer.ToBytes(document));
+
+        Assert.Equal(nameof(EmailStoreEmlxWriterOptions.MaxOutputBytes), exception.LimitName);
+    }
+
+    [Fact]
+    public void WriterBoundsMetadataBeforeMaterializingTheMessage() {
+        var document = new EmailDocument { Subject = new string('x', 2048) };
         var writer = new EmailStoreEmlxWriter(new EmailStoreEmlxWriterOptions(maxOutputBytes: 128));
 
         EmailLimitExceededException exception = Assert.Throws<EmailLimitExceededException>(() =>
             writer.ToBytes(document));
 
         Assert.Equal(nameof(EmailStoreEmlxWriterOptions.MaxOutputBytes), exception.LimitName);
+        Assert.True(exception.ActualValue > exception.MaximumValue);
     }
 }

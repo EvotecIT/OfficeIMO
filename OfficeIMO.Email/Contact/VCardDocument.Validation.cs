@@ -2,13 +2,23 @@ namespace OfficeIMO.Email;
 
 public sealed partial class VCardDocument {
     private static readonly string[] SingletonProperties = {
-        "VERSION", "FN", "N", "BDAY", "ANNIVERSARY", "GENDER", "KIND", "PRODID", "REV", "UID"
+        "VERSION", "N", "BDAY", "ANNIVERSARY", "GENDER", "KIND", "PRODID", "REV", "UID"
     };
 
     /// <summary>Validates version-specific stable vCard contracts while retaining extension properties.</summary>
     public IReadOnlyList<ContentLineValidationIssue> Validate() {
         var issues = new List<ContentLineValidationIssue>();
+        if (_cards.Count == 0) {
+            issues.Add(new ContentLineValidationIssue("VCARD_ROOT_REQUIRED",
+                "The vCard document must contain at least one VCARD root.",
+                ContentLineValidationSeverity.Error, "VCARD"));
+        }
         foreach (ContentLineComponent card in _cards) {
+            if (!string.Equals(card.Name, "VCARD", StringComparison.OrdinalIgnoreCase)) {
+                issues.Add(new ContentLineValidationIssue("VCARD_ROOT_INVALID",
+                    "Every vCard document root must be VCARD.",
+                    ContentLineValidationSeverity.Error, card.Name));
+            }
             VCardVersion version;
             try { version = GetVersion(card); }
             catch (InvalidDataException exception) {
@@ -27,6 +37,10 @@ public sealed partial class VCardDocument {
             Require(card, "N", version == VCardVersion.V4_0
                 ? ContentLineValidationSeverity.Warning
                 : ContentLineValidationSeverity.Error, issues);
+            if (version != VCardVersion.V4_0 && card.GetProperties("FN").Skip(1).Any())
+                issues.Add(Issue("VCARD_PROPERTY_CARDINALITY",
+                    "FN must not occur more than once before vCard 4.0.",
+                    ContentLineValidationSeverity.Error, card, "FN"));
             foreach (string propertyName in SingletonProperties) {
                 if (card.GetProperties(propertyName).Skip(1).Any())
                     issues.Add(Issue("VCARD_PROPERTY_CARDINALITY",

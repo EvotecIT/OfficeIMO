@@ -167,6 +167,49 @@ public sealed class PstMutationTransactionTests {
         }
     }
 
+    [Fact]
+    public void Password_protected_pst_is_rejected_when_protection_cannot_be_preserved() {
+        string path = TemporaryPstPath();
+        try {
+            const string password = "OfficeIMO";
+            uint checksum = PstPassword.ComputeChecksum(Encoding.ASCII.GetBytes(password));
+            byte[] bytes = PstTestFileBuilder.Create(storePasswordChecksum: checksum);
+            File.WriteAllBytes(path, bytes);
+
+            NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
+                EmailStorePstMutationTransaction.Open(path,
+                    new EmailStorePstMutationOptions(pstPassword: password)));
+
+            Assert.Contains("cannot preserve password protection", exception.Message,
+                StringComparison.OrdinalIgnoreCase);
+            Assert.Equal(bytes, File.ReadAllBytes(path));
+        } finally {
+            TryDelete(path);
+        }
+    }
+
+    [Fact]
+    public void Late_source_read_diagnostics_abort_default_mutation() {
+        string path = TemporaryPstPath();
+        try {
+            byte[] bytes = PstTestFileBuilder.Create(includeEmbeddedMessage: true);
+            File.WriteAllBytes(path, bytes);
+            using var transaction = EmailStorePstMutationTransaction.Open(path,
+                new EmailStorePstMutationOptions(maxNestedMessageDepth: 0));
+            string inbox = Assert.Single(transaction.Folders, folder => folder.Name == "Inbox").Id;
+            transaction.RenameFolder(inbox, "Inbox renamed");
+
+            InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
+                transaction.Commit());
+
+            Assert.Contains("EMAIL_STORE_PST_EMBEDDED_DEPTH_LIMIT", exception.Message,
+                StringComparison.Ordinal);
+            Assert.Equal(bytes, File.ReadAllBytes(path));
+        } finally {
+            TryDelete(path);
+        }
+    }
+
     private static void CreateSource(string path) {
         using var writer = EmailStorePstWriter.Create(path,
             new EmailStorePstWriterOptions("Mutation source"));
