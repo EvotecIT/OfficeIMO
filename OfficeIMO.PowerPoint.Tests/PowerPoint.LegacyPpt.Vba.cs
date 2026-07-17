@@ -4,6 +4,7 @@ using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.LegacyPpt;
 using OfficeIMO.PowerPoint.LegacyPpt.Capabilities;
+using OfficeIMO.PowerPoint.LegacyPpt.Internal;
 using OfficeIMO.PowerPoint.LegacyPpt.Model;
 using OpenMcdf;
 using Xunit;
@@ -221,6 +222,56 @@ namespace OfficeIMO.Tests {
                                    && pair.Key != "Current User")
                     .Select(pair => pair.Key)
                     .OrderBy(name => name, StringComparer.OrdinalIgnoreCase));
+        }
+
+        [Fact]
+        public void BinaryImport_BoundsVbaCompoundValidation() {
+            byte[] projectBytes = CreateVbaTestProject("BoundedModule",
+                "Sub Main(): End Sub");
+            byte[] binary;
+            using (PowerPointPresentation source =
+                   PowerPointPresentation.Create()) {
+                source.AddSlide().AddTextBox("Bounded VBA import");
+                SetVbaProject(source, projectBytes);
+                binary = source.ToBytes(PowerPointFileFormat.Ppt);
+            }
+            LegacyPptPresentation original = LegacyPptPresentation.Load(
+                binary);
+            LegacyPptVbaProject vba = Assert.IsType<LegacyPptVbaProject>(
+                original.VbaProject);
+            LegacyPptPersistObject persist = original.Package
+                .PersistObjects[vba.PersistId];
+            Assert.True(persist.RecordBytes.AsSpan(8)
+                .SequenceEqual(projectBytes));
+
+            byte[] expandedStorage = (byte[])projectBytes.Clone();
+            foreach (string streamName in new[] {
+                         "dir", "_VBA_PROJECT"
+                     }) {
+                int entry = FindCompoundDirectoryEntry(expandedStorage,
+                    streamName);
+                WriteCompoundUInt64(expandedStorage, entry + 120,
+                    checked((ulong)expandedStorage.Length));
+            }
+            byte[] document = (byte[])original.Package.DocumentStream
+                .Clone();
+            Buffer.BlockCopy(expandedStorage, 0, document,
+                checked((int)persist.StreamOffset + 8),
+                expandedStorage.Length);
+            byte[] malicious = original.Package.RewriteCompoundStreams(
+                new Dictionary<string, byte[]> {
+                    ["PowerPoint Document"] = document
+                });
+
+            LegacyPptPresentation imported = LegacyPptPresentation.Load(
+                malicious);
+
+            Assert.Null(imported.VbaProject);
+            Assert.Contains(imported.Diagnostics, diagnostic =>
+                diagnostic.Code == "PPT-VBA-STORAGE-MALFORMED"
+                && diagnostic.Message.Contains(
+                    "Compound stream bytes exceed",
+                    StringComparison.OrdinalIgnoreCase));
         }
 
         [Fact]

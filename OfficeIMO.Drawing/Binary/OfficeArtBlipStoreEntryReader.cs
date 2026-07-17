@@ -97,7 +97,8 @@ public static class OfficeArtBlipStoreEntryReader {
             result.PayloadSha256,
             OfficeArtBlipStoreEntry.GetContentType(result.RecordType,
                 recordInstanceType: null, win32Type: null, macOsType: null),
-            result.ImageBytes ?? Array.Empty<byte>());
+            result.ImageBytes ?? Array.Empty<byte>(),
+            result.WasImageRejectedBySizeLimit);
         return true;
     }
 
@@ -138,7 +139,7 @@ public static class OfficeArtBlipStoreEntryReader {
             entry.BlipPayloadLength.Value,
             entry.BlipPayloadAvailableLength.Value,
             entry.BlipPayloadSha256, entry.ContentType,
-            entry.ImageBytes);
+            entry.ImageBytes, entry.WasImageRejectedBySizeLimit);
         return true;
     }
 
@@ -419,7 +420,8 @@ public static class OfficeArtBlipStoreEntryReader {
         internal OfficeArtBlipRecordData(byte recordVersion,
             ushort recordInstance, ushort recordType, uint payloadLength,
             int payloadAvailableLength, string? payloadSha256,
-            string? contentType, byte[] imageBytes) {
+            string? contentType, byte[] imageBytes,
+            bool wasImageRejectedBySizeLimit) {
             RecordVersion = recordVersion;
             RecordInstance = recordInstance;
             RecordType = recordType;
@@ -430,6 +432,7 @@ public static class OfficeArtBlipStoreEntryReader {
             _imageBytes = imageBytes == null
                 ? Array.Empty<byte>()
                 : (byte[])imageBytes.Clone();
+            WasImageRejectedBySizeLimit = wasImageRejectedBySizeLimit;
         }
 
         internal byte RecordVersion { get; }
@@ -439,6 +442,7 @@ public static class OfficeArtBlipStoreEntryReader {
         internal int PayloadAvailableLength { get; }
         internal string? PayloadSha256 { get; }
         internal string? ContentType { get; }
+        internal bool WasImageRejectedBySizeLimit { get; }
         internal byte[] ImageBytes => _imageBytes == null
             ? Array.Empty<byte>()
             : (byte[])_imageBytes.Clone();

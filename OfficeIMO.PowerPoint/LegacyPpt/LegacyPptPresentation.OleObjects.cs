@@ -190,7 +190,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                     _recordBudget, _decodedStorageBudget, out storageBytes,
                     out compressed,
                     out storageReason)
-                && OfficeCompoundFileReader.TryRead(storageBytes,
+                && LegacyPptCompoundStorageValidator.TryRead(storageBytes,
+                    options,
                     out OfficeCompoundFile? compound, out compoundReason)
                 && compound != null;
             if (valid) return true;

@@ -50,6 +50,7 @@ namespace OfficeIMO.Tests {
 
             LegacyPptPresentation legacy = LegacyPptPresentation.Load(
                 binary);
+            Assert.Empty(legacy.BlipStoreEntries);
             LegacyPptPictureBullet pictureBullet = Assert.Single(
                 legacy.PictureBullets);
             Assert.Equal((ushort)0, pictureBullet.Index);
@@ -61,6 +62,15 @@ namespace OfficeIMO.Tests {
             Assert.Equal((ushort)0, run.BulletPictureReference);
             Assert.Same(pictureBullet, run.PictureBullet);
             Assert.True(run.HasBullet);
+
+            InvalidDataException budgetException = Assert.Throws<
+                InvalidDataException>(() => LegacyPptPresentation.Load(
+                    binary, new LegacyPptImportOptions {
+                        MaxDecodedStorageBytes = image.Length - 1
+                    }));
+            Assert.Contains("aggregate decoded embedded-storage",
+                budgetException.Message,
+                StringComparison.OrdinalIgnoreCase);
 
             using var binaryStream = new MemoryStream(binary,
                 writable: false);

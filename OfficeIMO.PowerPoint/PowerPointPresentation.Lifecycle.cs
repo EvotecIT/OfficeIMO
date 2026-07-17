@@ -420,6 +420,10 @@ namespace OfficeIMO.PowerPoint {
             string? filePath,
             Stream? sourceStream,
             PowerPointLoadOptions options) {
+            if (options.PackageSecurity != null) {
+                OfficePackageSecurityInspector.Validate(bytes,
+                    options.PackageSecurity);
+            }
             OfficeDocumentLifecycle.Validate(options.AccessMode, options.PersistenceMode, "presentation");
             bool editable = options.AccessMode == DocumentAccessMode.ReadWrite;
             Stream? associatedStream = OfficeDocumentLifecycle.ResolveAssociatedDestination(

@@ -106,23 +106,33 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             }
             byte[] bytes = entity.CopyRecordBytes();
             byte preferredType = bytes[8];
+            int remainingDecodedBytes = _decodedStorageBudget
+                .RemainingAllocationBytes;
+            int perImageLimit = Math.Min(options.MaxInputBytes,
+                remainingDecodedBytes);
             if (preferredType is not 0x02 and not 0x03 and not 0x05
                 and not 0x06
                 || !OfficeArtBlipStoreEntryReader.TryReadBlipStoreFileBlock(bytes,
                     10, entity.PayloadLength - 2,
                     out OfficeArtBlipStoreEntryReader
-                        .OfficeArtBlipRecordData blip)) {
+                        .OfficeArtBlipRecordData blip, perImageLimit)) {
                 AddDiagnostic("PPT-PICTURE-BULLET-BLIP",
                     LegacyPptDiagnosticSeverity.Warning,
                     $"Picture-bullet index {entity.Instance} has an unsupported or malformed OfficeArt BLIP.",
                     entity.Offset);
                 return false;
             }
+            if (blip.WasImageRejectedBySizeLimit
+                && remainingDecodedBytes <= options.MaxInputBytes) {
+                _decodedStorageBudget.RejectAllocation();
+            }
+            byte[] imageBytes = blip.ImageBytes;
+            _decodedStorageBudget.Consume(imageBytes.Length);
             pictureBullet = new LegacyPptPictureBullet(entity.Instance,
                 preferredType, bytes[9], blip.RecordVersion,
                 blip.RecordInstance, blip.RecordType, blip.PayloadLength,
                 blip.PayloadAvailableLength, blip.PayloadSha256,
-                blip.ContentType, blip.ImageBytes);
+                blip.ContentType, imageBytes);
             if (!pictureBullet.HasImportableImage) {
                 AddDiagnostic("PPT-PICTURE-BULLET-IMAGE",
                     LegacyPptDiagnosticSeverity.Warning,

@@ -3,6 +3,7 @@ using OfficeIMO.Drawing.Binary;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.LegacyPpt;
 using OfficeIMO.PowerPoint.LegacyPpt.Capabilities;
+using OfficeIMO.PowerPoint.LegacyPpt.Internal;
 using OfficeIMO.PowerPoint.LegacyPpt.Model;
 using OfficeIMO.Tests.Pdf;
 using OpenMcdf;
@@ -402,6 +403,59 @@ namespace OfficeIMO.Tests {
             Assert.Contains("Compound stream bytes exceed",
                 updateException.Message, StringComparison.OrdinalIgnoreCase);
             Assert.Equal(valid, ole.GetData());
+        }
+
+        [Fact]
+        public void BinaryImport_BoundsOleCompoundValidation() {
+            byte[] storageBytes = CreateOleTestStorage(
+                "Bounded binary import OLE");
+            byte[] binary;
+            using (PowerPointPresentation source =
+                   PowerPointPresentation.Create()) {
+                PowerPointSlide slide = source.AddSlide(
+                    P.SlideLayoutValues.Blank);
+                using var storage = new MemoryStream(storageBytes,
+                    writable: false);
+                slide.AddOleObject(storage, "Package");
+                binary = source.ToBytes(PowerPointFileFormat.Ppt);
+            }
+            LegacyPptPresentation original = LegacyPptPresentation.Load(
+                binary);
+            LegacyPptEmbeddedOleObject ole = Assert.Single(
+                original.OleObjects);
+            LegacyPptPersistObject persist = original.Package
+                .PersistObjects[ole.PersistId];
+            Assert.True(persist.RecordBytes.AsSpan(8)
+                .SequenceEqual(storageBytes));
+
+            byte[] expandedStorage = (byte[])storageBytes.Clone();
+            foreach (string streamName in new[] {
+                         "\u0001Ole10Native", "CONTENTS"
+                     }) {
+                int entry = FindCompoundDirectoryEntry(expandedStorage,
+                    streamName);
+                WriteCompoundUInt64(expandedStorage, entry + 120,
+                    checked((ulong)expandedStorage.Length));
+            }
+            byte[] document = (byte[])original.Package.DocumentStream
+                .Clone();
+            Buffer.BlockCopy(expandedStorage, 0, document,
+                checked((int)persist.StreamOffset + 8),
+                expandedStorage.Length);
+            byte[] malicious = original.Package.RewriteCompoundStreams(
+                new Dictionary<string, byte[]> {
+                    ["PowerPoint Document"] = document
+                });
+
+            LegacyPptPresentation imported = LegacyPptPresentation.Load(
+                malicious);
+
+            Assert.Empty(imported.OleObjects);
+            Assert.Contains(imported.Diagnostics, diagnostic =>
+                diagnostic.Code == "PPT-OLE-STORAGE"
+                && diagnostic.Message.Contains(
+                    "Compound stream bytes exceed",
+                    StringComparison.OrdinalIgnoreCase));
         }
 
         [Fact]

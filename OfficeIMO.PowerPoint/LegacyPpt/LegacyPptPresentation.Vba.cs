@@ -54,6 +54,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 }
 
                 if (!LegacyPptVbaProjectCodec.IsValidProject(projectBytes,
+                        options,
                         out string? error)) {
                     throw new InvalidDataException(error
                         ?? "The referenced VBA project is not a valid VBA compound storage.");

@@ -2,6 +2,7 @@ using OfficeIMO.Drawing;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.LegacyPpt;
 using OfficeIMO.PowerPoint.LegacyPpt.Internal;
+using DocumentFormat.OpenXml.Packaging;
 using System.Threading.Tasks;
 using Xunit;
 
@@ -458,6 +459,98 @@ namespace OfficeIMO.Tests {
             Assert.Throws<InvalidDataException>(() =>
                 PowerPointPresentation.LoadEncrypted(encryptedInput,
                     Password, loadOptions));
+        }
+
+        [Fact]
+        public void CompoundStorageValidation_BoundsOleAndVbaLogicalExpansion() {
+            var options = new LegacyPptImportOptions();
+            byte[] oleStorage = CreateOleTestStorage("Bounded import OLE");
+            foreach (string streamName in new[] {
+                         "\u0001Ole10Native", "CONTENTS"
+                     }) {
+                int entry = FindCompoundDirectoryEntry(oleStorage,
+                    streamName);
+                WriteCompoundUInt64(oleStorage, entry + 120,
+                    checked((ulong)oleStorage.Length));
+            }
+
+            Assert.False(LegacyPptCompoundStorageValidator.TryRead(
+                oleStorage, options, out _, out string? oleReason));
+            Assert.Contains("Compound stream bytes exceed", oleReason,
+                StringComparison.OrdinalIgnoreCase);
+
+            byte[] vbaStorage = CreateVbaTestProject("BoundedModule",
+                "Sub Main(): End Sub");
+            foreach (string streamName in new[] {
+                         "dir", "_VBA_PROJECT"
+                     }) {
+                int entry = FindCompoundDirectoryEntry(vbaStorage,
+                    streamName);
+                WriteCompoundUInt64(vbaStorage, entry + 120,
+                    checked((ulong)vbaStorage.Length));
+            }
+
+            Assert.False(LegacyPptVbaProjectCodec.IsValidProject(
+                vbaStorage, options, out string? vbaReason));
+            Assert.Contains("Compound stream bytes exceed", vbaReason,
+                StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
+        public async Task PresentationFacade_EnforcesPackageSecurityPolicies() {
+            byte[] packageBytes;
+            using (PowerPointPresentation source =
+                   PowerPointPresentation.Create()) {
+                source.AddSlide().AddTextBox("Security policy");
+                packageBytes = source.ToBytes();
+            }
+            using (var editable = new MemoryStream()) {
+                editable.Write(packageBytes, 0, packageBytes.Length);
+                editable.Position = 0;
+                using (PresentationDocument document =
+                       PresentationDocument.Open(editable, true)) {
+                    document.PresentationPart!.AddExternalRelationship(
+                        "urn:officeimo:test", new Uri(
+                            "https://example.test/presentation"),
+                        "rSecurityExternal");
+                }
+                packageBytes = editable.ToArray();
+            }
+            var loadOptions = new PowerPointLoadOptions {
+                PackageSecurity = OfficePackageSecurityOptions
+                    .UntrustedDefaults
+            };
+
+            using (var input = new MemoryStream(packageBytes,
+                       writable: false)) {
+                OfficePackageSecurityException exception = Assert.Throws<
+                    OfficePackageSecurityException>(() =>
+                        PowerPointPresentation.Load(input, loadOptions));
+                Assert.Equal(OfficePackageSecurityRule
+                    .ExternalRelationships, exception.Rule);
+            }
+            using (var input = new MemoryStream(packageBytes,
+                       writable: false)) {
+                OfficePackageSecurityException exception = await Assert
+                    .ThrowsAsync<OfficePackageSecurityException>(() =>
+                        PowerPointPresentation.LoadAsync(input,
+                            loadOptions));
+                Assert.Equal(OfficePackageSecurityRule
+                    .ExternalRelationships, exception.Rule);
+            }
+
+            string path = Path.Combine(Path.GetTempPath(),
+                Guid.NewGuid() + ".pptx");
+            try {
+                File.WriteAllBytes(path, packageBytes);
+                OfficePackageSecurityException exception = Assert.Throws<
+                    OfficePackageSecurityException>(() =>
+                        PowerPointPresentation.Load(path, loadOptions));
+                Assert.Equal(OfficePackageSecurityRule
+                    .ExternalRelationships, exception.Rule);
+            } finally {
+                if (File.Exists(path)) File.Delete(path);
+            }
         }
 
         [Fact]
