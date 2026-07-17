@@ -167,7 +167,10 @@ internal static partial class DocumentReaderEngine {
             bool isList = paragraph.BulletCharacter != null || paragraph.IsNumbered;
             int level = paragraph.Level ?? 0;
             string? marker = paragraph.BulletCharacter;
-            if (isTitle || !isList) {
+            if (isTitle) {
+                marker = null;
+                numberingState.Clear();
+            } else if (!isList) {
                 numberingState.Clear();
             } else if (paragraph.IsNumbered) {
                 foreach (int nestedLevel in numberingState.Keys

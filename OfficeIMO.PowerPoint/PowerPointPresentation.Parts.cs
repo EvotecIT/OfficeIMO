@@ -527,6 +527,10 @@ namespace OfficeIMO.PowerPoint {
                     : new OpenXmlElement[] { sourceNotesPart.NotesSlide }
                         .Concat(sourceNotesPart.NotesSlide.Descendants()))
                     .SelectMany(element => element.GetAttributes())
+                    .Where(attribute => string.Equals(
+                        attribute.NamespaceUri,
+                        PowerPointUtils.RelationshipIdNamespace,
+                        StringComparison.Ordinal))
                     .Select(attribute => attribute.Value)
                     .OfType<string>()
                     .Where(value => value.Length > 0),

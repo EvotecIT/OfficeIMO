@@ -182,7 +182,7 @@ namespace OfficeIMO.PowerPoint {
             using (var source = new FileStream(filePath, FileMode.Open, FileAccess.Read,
                        FileShare.ReadWrite | FileShare.Delete)) {
                 bytes = ReadPresentationInputBytes(source, resolved,
-                    cancellationToken);
+                    cancellationToken, filePath);
             }
             return LoadDocument(bytes, filePath, sourceStream: null,
                 resolved, cancellationToken);
@@ -230,7 +230,7 @@ namespace OfficeIMO.PowerPoint {
                 81920,
                 useAsync: true);
             byte[] bytes = await ReadPresentationInputBytesAsync(source,
-                resolved, cancellationToken)
+                resolved, cancellationToken, fullPath)
                 .ConfigureAwait(false);
             return LoadDocument(bytes, fullPath, sourceStream: null,
                 resolved, cancellationToken);
@@ -277,7 +277,7 @@ namespace OfficeIMO.PowerPoint {
             using var source = new FileStream(filePath, FileMode.Open,
                 FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
             byte[] encryptedBytes = ReadPresentationInputBytes(source,
-                resolved, cancellationToken);
+                resolved, cancellationToken, filePath);
             LegacyBinaryEncryptionKind legacyEncryption =
                 PowerPointPresentationLoadRouting
                     .GetLegacyBinaryEncryptionKind(encryptedBytes,
@@ -318,7 +318,7 @@ namespace OfficeIMO.PowerPoint {
                 81920,
                 useAsync: true);
             byte[] encryptedBytes = await ReadPresentationInputBytesAsync(
-                source, resolved, cancellationToken)
+                source, resolved, cancellationToken, fullPath)
                 .ConfigureAwait(false);
             LegacyBinaryEncryptionKind legacyEncryption =
                 PowerPointPresentationLoadRouting

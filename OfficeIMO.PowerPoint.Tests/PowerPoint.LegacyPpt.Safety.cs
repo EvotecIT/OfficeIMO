@@ -142,6 +142,38 @@ namespace OfficeIMO.Tests {
             Assert.Equal(paddedBytes.Length, nonSeekable.BytesRead);
         }
 
+        [Theory]
+        [InlineData(".ppt")]
+        [InlineData(".pot")]
+        [InlineData(".pps")]
+        public async Task PresentationFacade_EnforcesLegacyExtensionLimitOnMalformedInput(
+            string extension) {
+            string path = Path.Combine(Path.GetTempPath(),
+                Guid.NewGuid().ToString("N") + extension);
+            try {
+                File.WriteAllBytes(path, new byte[65]);
+                var options = new PowerPointLoadOptions {
+                    LegacyPptImportOptions = new LegacyPptImportOptions {
+                        MaxInputBytes = 64
+                    }
+                };
+
+                InvalidDataException syncException = Assert.Throws<
+                    InvalidDataException>(() => PowerPointPresentation.Load(
+                    path, options));
+                InvalidDataException asyncException = await Assert
+                    .ThrowsAsync<InvalidDataException>(() =>
+                        PowerPointPresentation.LoadAsync(path, options));
+
+                Assert.Contains("maximum size", syncException.Message,
+                    StringComparison.OrdinalIgnoreCase);
+                Assert.Contains("maximum size", asyncException.Message,
+                    StringComparison.OrdinalIgnoreCase);
+            } finally {
+                if (File.Exists(path)) File.Delete(path);
+            }
+        }
+
         [Fact]
         public void PresentationFacade_EnforcesCompoundTemporaryStorageBudget() {
             byte[] binary = CreatePresentationBytes();

@@ -280,7 +280,7 @@ namespace OfficeIMO.PowerPoint {
                     .Ancestors<ParallelTimeNode>().FirstOrDefault();
                 candidates.Remove(effect);
                 effect.Remove();
-                RemoveClassicVisibilitySetter(owner, animation);
+                RemoveClassicVisibilitySetters(owner, animation);
                 if (owner != null && !HasTimingAction(owner)) {
                     owner.Remove();
                 }
@@ -306,14 +306,14 @@ namespace OfficeIMO.PowerPoint {
                 or AnimateRotation or AnimateScale or Command or Audio
                 or Video or SetBehavior);
 
-        private static void RemoveClassicVisibilitySetter(
+        private static void RemoveClassicVisibilitySetters(
             OpenXmlElement? owner,
             PowerPointClassicAnimation animation) {
             if (owner == null) return;
             string shapeId = animation.ShapeId.ToString(
                 CultureInfo.InvariantCulture);
-            SetBehavior? setter = owner.Descendants<SetBehavior>()
-                .FirstOrDefault(set => {
+            SetBehavior[] setters = owner.Descendants<SetBehavior>()
+                .Where(set => {
                     CommonBehavior? behavior = set.CommonBehavior;
                     ShapeTarget? target = behavior?
                         .GetFirstChild<TargetElement>()?
@@ -336,8 +336,10 @@ namespace OfficeIMO.PowerPoint {
                            && set.ToVariantValue!.ChildElements.Count == 1
                            && string.Equals(value.Val?.Value, "visible",
                                StringComparison.OrdinalIgnoreCase);
-                });
-            setter?.Remove();
+                }).ToArray();
+            foreach (SetBehavior setter in setters) {
+                setter.Remove();
+            }
         }
 
         private static bool IsClassicTimingEffect(AnimateEffect effect,

@@ -18,7 +18,8 @@ namespace OfficeIMO.PowerPoint {
         internal static byte[] ReadPresentationInputBytes(
             Stream source,
             PowerPointLoadOptions options,
-            CancellationToken cancellationToken = default) {
+            CancellationToken cancellationToken = default,
+            string? sourceName = null) {
             if (source == null) throw new ArgumentNullException(nameof(source));
             if (options == null) throw new ArgumentNullException(nameof(options));
             if (!source.CanRead) {
@@ -39,7 +40,9 @@ namespace OfficeIMO.PowerPoint {
                             detectionLimit,
                             CompoundDetectionDirectoryLimit,
                             cancellationToken, out _);
-                    long? maxInputBytes = ResolveInputLimit(kind, options);
+                    long? maxInputBytes = ResolveInputLimit(kind, options,
+                        PowerPointPresentationLoadRouting
+                            .HasLegacyBinaryExtension(sourceName));
                     return OfficeStreamReader.ReadAllBytes(source,
                         cancellationToken, maxInputBytes);
                 } finally {
@@ -50,7 +53,10 @@ namespace OfficeIMO.PowerPoint {
             byte[] prefix = ReadPrefix(source, cancellationToken);
             if (!OfficeCompoundDocumentDetector.HasCompoundSignature(prefix)) {
                 return ReadRemainderToMemory(source, prefix,
-                    cancellationToken, ResolvePackageInputLimit(options));
+                    cancellationToken, ResolveInputLimit(
+                        OfficeCompoundDocumentDetector.DocumentKind.NotCompound,
+                        options, PowerPointPresentationLoadRouting
+                            .HasLegacyBinaryExtension(sourceName)));
             }
             return ReadCompoundInputThroughTemporaryStorage(source, prefix,
                 options, cancellationToken);
@@ -59,7 +65,8 @@ namespace OfficeIMO.PowerPoint {
         internal static async Task<byte[]> ReadPresentationInputBytesAsync(
             Stream source,
             PowerPointLoadOptions options,
-            CancellationToken cancellationToken = default) {
+            CancellationToken cancellationToken = default,
+            string? sourceName = null) {
             if (source == null) throw new ArgumentNullException(nameof(source));
             if (options == null) throw new ArgumentNullException(nameof(options));
             if (!source.CanRead) {
@@ -81,7 +88,9 @@ namespace OfficeIMO.PowerPoint {
                             CompoundDetectionDirectoryLimit,
                             cancellationToken, out _);
                     return await OfficeStreamReader.ReadAllBytesAsync(source,
-                        cancellationToken, ResolveInputLimit(kind, options))
+                        cancellationToken, ResolveInputLimit(kind, options,
+                            PowerPointPresentationLoadRouting
+                                .HasLegacyBinaryExtension(sourceName)))
                         .ConfigureAwait(false);
                 }
                 byte[] prefix = await ReadPrefixAsync(source,
@@ -89,8 +98,11 @@ namespace OfficeIMO.PowerPoint {
                 if (!OfficeCompoundDocumentDetector
                         .HasCompoundSignature(prefix)) {
                     return await ReadRemainderToMemoryAsync(source, prefix,
-                        cancellationToken,
-                        ResolvePackageInputLimit(options))
+                        cancellationToken, ResolveInputLimit(
+                            OfficeCompoundDocumentDetector.DocumentKind
+                                .NotCompound, options,
+                            PowerPointPresentationLoadRouting
+                                .HasLegacyBinaryExtension(sourceName)))
                         .ConfigureAwait(false);
                 }
                 return await ReadCompoundInputThroughTemporaryStorageAsync(
@@ -150,11 +162,13 @@ namespace OfficeIMO.PowerPoint {
 
         private static long? ResolveInputLimit(
             OfficeCompoundDocumentDetector.DocumentKind kind,
-            PowerPointLoadOptions options) {
+            PowerPointLoadOptions options,
+            bool expectedLegacyBinary = false) {
             long? packageLimit = ResolvePackageInputLimit(options);
-            if (kind is OfficeCompoundDocumentDetector.DocumentKind
+            if (kind == OfficeCompoundDocumentDetector.DocumentKind
                     .EncryptedOpenXmlPackage
-                or OfficeCompoundDocumentDetector.DocumentKind.NotCompound) {
+                || (kind == OfficeCompoundDocumentDetector.DocumentKind
+                    .NotCompound && !expectedLegacyBinary)) {
                 return packageLimit;
             }
             long legacyLimit = ResolveLegacyInputLimit(options);

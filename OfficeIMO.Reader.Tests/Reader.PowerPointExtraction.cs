@@ -291,6 +291,30 @@ public sealed class ReaderPowerPointExtractionTests {
         string? MarkerFor(string text) => BlockFor(text).Marker;
     }
 
+    [Fact]
+    public void RichTitleHeadingDoesNotExposeItsParagraphBullet() {
+        byte[] bytes;
+        using (PowerPointPresentation presentation =
+               PowerPointPresentation.Create()) {
+            PowerPointTextBox title = presentation.AddSlide()
+                .AddTitle("Bulleted title");
+            title.Paragraphs[0].SetBullet();
+            bytes = presentation.ToBytes();
+        }
+
+        OfficeDocumentReadResult result =
+            OfficeDocumentReader.Default.ReadDocument(
+                new MemoryStream(bytes, writable: false),
+                "bulleted-title.pptx");
+
+        OfficeDocumentBlock heading = Assert.Single(result.Blocks,
+            block => block.Kind == "heading"
+                && block.Text == "Bulleted title");
+        Assert.Null(heading.Marker);
+        Assert.Contains("### Bulleted title", result.Markdown
+            ?? string.Empty, StringComparison.Ordinal);
+    }
+
     private static byte[] CreateRichPresentation(bool binary) {
         using PowerPointPresentation presentation =
             PowerPointPresentation.Create();

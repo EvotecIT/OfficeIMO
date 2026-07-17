@@ -183,6 +183,12 @@ namespace OfficeIMO.Tests {
             PowerPointSlide source = presentation.AddSlide();
             source.Notes.Text = "Duplicated notes";
             source.SlidePart.NotesSlidePart!.AddPart(source.SlidePart);
+            NotesSlidePart sourceNotesPart = source.SlidePart.NotesSlidePart;
+            string backlinkId = sourceNotesPart.GetIdOfPart(
+                source.SlidePart);
+            sourceNotesPart.NotesSlide!
+                .Descendants<NonVisualDrawingProperties>().First()
+                .Name = backlinkId;
 
             PowerPointSlide duplicate = presentation.DuplicateSlide(0);
 
@@ -547,6 +553,8 @@ namespace OfficeIMO.Tests {
                     Val = "visible"
                 }));
             classicEffect.Parent!.InsertBefore(visibility, classicEffect);
+            classicEffect.Parent.InsertBefore(
+                (SetBehavior)visibility.CloneNode(true), classicEffect);
             classicEffect.Parent!.Append(advancedEffect);
 
             Assert.True(slide.RemoveClassicAnimation(shape));
