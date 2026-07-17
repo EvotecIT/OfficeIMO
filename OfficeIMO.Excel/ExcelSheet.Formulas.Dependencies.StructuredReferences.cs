@@ -112,10 +112,10 @@ namespace OfficeIMO.Excel {
 
                 if (CanStartUnqualifiedStructuredReference(formula, index)) {
                     string reference = formula.Substring(index, end - index);
-                    if (TryGetUnqualifiedCurrentRowSections(reference, out List<string> sections)
+                    if (TryGetUnqualifiedCurrentRowReference(reference, out FormulaStructuredTableReference structuredReference)
                         && TryResolveTableReferenceRange(
                             table,
-                            sections,
+                            structuredReference,
                             sourceRow,
                             out int firstRow,
                             out int firstColumn,
@@ -167,27 +167,19 @@ namespace OfficeIMO.Excel {
             return false;
         }
 
-        private static bool TryGetUnqualifiedCurrentRowSections(string reference, out List<string> sections) {
-            if (!TryParseStructuredTableReference("T" + reference, out _, out sections)) {
+        private static bool TryGetUnqualifiedCurrentRowReference(
+            string reference,
+            out FormulaStructuredTableReference structuredReference) {
+            if (!TryParseStructuredTableReference("T" + reference, out _, out structuredReference)) {
                 return false;
             }
 
-            if (sections.Count == 1) {
-                string section = sections[0];
-                if ((section.Length > 1 && section[0] == '@')
-                    || string.Equals(section, "#This Row", StringComparison.OrdinalIgnoreCase)) {
-                    return true;
-                }
-                if (IsStructuredTableAreaSpecifier(section)) {
-                    return false;
-                }
-
-                sections = new List<string> { "#This Row", section };
-                return true;
+            if (structuredReference.AreaIsExplicit) {
+                return string.Equals(structuredReference.Area, "#This Row", StringComparison.OrdinalIgnoreCase);
             }
 
-            return sections.Count == 2
-                && string.Equals(sections[0], "#This Row", StringComparison.OrdinalIgnoreCase);
+            structuredReference = structuredReference.WithArea("#This Row");
+            return true;
         }
     }
 }

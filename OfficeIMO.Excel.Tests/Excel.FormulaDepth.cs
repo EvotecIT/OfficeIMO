@@ -184,6 +184,55 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_FormulaDependencyGraph_ResolvesStructuredColumnRanges() {
+            using ExcelDocument document = ExcelDocument.Create();
+            ExcelSheet sheet = document.AddWorksheet("Structured Column Ranges");
+            sheet.CellValue(1, 1, "A");
+            sheet.CellValue(1, 2, "B");
+            sheet.CellValue(1, 3, "C");
+            sheet.CellFormula(2, 1, "SUM(Sales[[B]:[C]])");
+            sheet.CellFormula(2, 2, "A2");
+            sheet.CellValue(2, 3, 1d);
+            sheet.CellFormula(2, 5, "SUM(Sales[[#Data],[B]:[C]])");
+            sheet.AddTable("A1:C2", hasHeader: true, name: "Sales", style: TableStyle.TableStyleMedium2);
+
+            ExcelFormulaDependencyGraph graph = document.InspectFormulas().DependencyGraph;
+            ExcelFormulaDependencyNode implicitData = Assert.IsType<ExcelFormulaDependencyNode>(
+                graph.FindNode("Structured Column Ranges", "A2"));
+            ExcelFormulaDependencyNode explicitData = Assert.IsType<ExcelFormulaDependencyNode>(
+                graph.FindNode("Structured Column Ranges", "E2"));
+
+            Assert.Equal(new[] { "Structured Column Ranges!B2:C2" }, implicitData.Dependencies);
+            Assert.Equal(new[] { "Structured Column Ranges!B2" }, implicitData.FormulaDependencies);
+            Assert.Equal(new[] { "Structured Column Ranges!B2:C2" }, explicitData.Dependencies);
+            Assert.Equal(new[] { "Structured Column Ranges!B2" }, explicitData.FormulaDependencies);
+            Assert.True(implicitData.IsCircular);
+            Assert.Throws<InvalidOperationException>(() => document.InspectFormulas().EnsureNoDependencyIssues());
+        }
+
+        [Fact]
+        public void Test_FormulaEvaluator_ResolvesCurrentRowStructuredReferences() {
+            using ExcelDocument document = ExcelDocument.Create();
+            ExcelSheet sheet = document.AddWorksheet("Structured Evaluation");
+            sheet.CellValue(1, 1, "A");
+            sheet.CellValue(1, 2, "B");
+            sheet.CellValue(1, 3, "At");
+            sheet.CellValue(1, 4, "Explicit");
+            sheet.CellValue(2, 1, 10d);
+            sheet.CellValue(2, 2, 20d);
+            sheet.CellFormula(2, 3, "Sales[@B]+1");
+            sheet.CellFormula(2, 4, "SUM(Sales[[#This Row],[B]])");
+            sheet.AddTable("A1:D2", hasHeader: true, name: "Sales", style: TableStyle.TableStyleMedium2);
+
+            int calculated = document.Calculate();
+            Assert.True(sheet.TryGetCachedFormulaValue(2, 3, out string? atValue));
+            Assert.Equal("21", atValue);
+            Assert.True(sheet.TryGetCachedFormulaValue(2, 4, out string? explicitValue));
+            Assert.Equal("20", explicitValue);
+            Assert.Equal(2, calculated);
+        }
+
+        [Fact]
         public void Test_FormulaDependencyGraph_ResolvesUnqualifiedCurrentRowStructuredReferences() {
             using ExcelDocument document = ExcelDocument.Create();
             ExcelSheet sheet = document.AddWorksheet("Unqualified Current Row");

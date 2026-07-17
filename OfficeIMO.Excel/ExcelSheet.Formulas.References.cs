@@ -414,7 +414,13 @@ namespace OfficeIMO.Excel {
         }
 
         private bool TryResolveFormulaRangeReference(string token, out ExcelSheet sheet, out int r1, out int c1, out int r2, out int c2) {
-            return TryResolveFormulaRangeReference(token, null, out sheet, out r1, out c1, out r2, out c2);
+            int? currentRow = null;
+            if (_formulaEvaluationCellReference != null
+                && TryParseCellReference(_formulaEvaluationCellReference, out int evaluationRow, out _)) {
+                currentRow = evaluationRow;
+            }
+
+            return TryResolveFormulaRangeReference(token, currentRow, out sheet, out r1, out c1, out r2, out c2);
         }
 
         private bool TryResolveFormulaRangeReference(
@@ -498,10 +504,35 @@ namespace OfficeIMO.Excel {
             return false;
         }
 
-        private static bool TryParseStructuredTableReference(string token, out string tableName, out List<string> sections) {
+        private readonly struct FormulaStructuredTableReference {
+            internal FormulaStructuredTableReference(
+                string area,
+                bool areaIsExplicit,
+                string? firstColumn,
+                string? lastColumn) {
+                Area = area;
+                AreaIsExplicit = areaIsExplicit;
+                FirstColumn = firstColumn;
+                LastColumn = lastColumn;
+            }
+
+            internal string Area { get; }
+            internal bool AreaIsExplicit { get; }
+            internal string? FirstColumn { get; }
+            internal string? LastColumn { get; }
+
+            internal FormulaStructuredTableReference WithArea(string area) {
+                return new FormulaStructuredTableReference(area, true, FirstColumn, LastColumn);
+            }
+        }
+
+        private static bool TryParseStructuredTableReference(
+            string token,
+            out string tableName,
+            out FormulaStructuredTableReference reference) {
             string value = token.Trim();
             tableName = string.Empty;
-            sections = new List<string>();
+            reference = default;
             if (value.Length == 0 || value.IndexOf('!') >= 0) {
                 return false;
             }
@@ -513,40 +544,109 @@ namespace OfficeIMO.Excel {
             }
 
             if (bracketStart < 0) {
+                reference = new FormulaStructuredTableReference("#Data", false, null, null);
                 return true;
             }
 
             string specifier = value.Substring(bracketStart);
-            if (specifier.Length >= 4 && specifier.StartsWith("[[", StringComparison.Ordinal) && specifier.EndsWith("]]", StringComparison.Ordinal)) {
-                return TryParseStructuredTableSectionList(specifier.Substring(1, specifier.Length - 2), sections);
+            if (specifier.Length < 2 || specifier[0] != '[' || specifier[specifier.Length - 1] != ']') {
+                return false;
             }
 
-            if (specifier.Length >= 2 && specifier[0] == '[' && specifier[specifier.Length - 1] == ']') {
-                string section = specifier.Substring(1, specifier.Length - 2).Trim();
-                if (section.Length >= 4
-                    && section[0] == '@'
-                    && section[1] == '['
-                    && section[section.Length - 1] == ']') {
-                    string item = section.Substring(2, section.Length - 3).Trim();
-                    if (item.Length == 0 || item.IndexOf('[') >= 0 || item.IndexOf(']') >= 0) {
-                        return false;
-                    }
+            string content = specifier.Substring(1, specifier.Length - 2).Trim();
+            if (content.Length == 0) {
+                return false;
+            }
 
-                    sections.Add("@" + item);
-                    return true;
-                }
-                if (section.Length == 0 || section.IndexOf('[') >= 0 || section.IndexOf(']') >= 0) {
+            if (content[0] == '@') {
+                return TryParseStructuredCurrentRowColumns(content.Substring(1).Trim(), out reference);
+            }
+
+            if (content[0] != '[') {
+                if (content.IndexOf('[') >= 0 || content.IndexOf(']') >= 0) {
                     return false;
                 }
 
-                sections.Add(section);
+                reference = IsStructuredTableAreaSpecifier(content)
+                    ? new FormulaStructuredTableReference(content, true, null, null)
+                    : new FormulaStructuredTableReference("#Data", false, content, content);
+                return true;
+            }
+
+            if (!TryParseStructuredTableSectionSequence(content, out List<string> sections, out List<char> separators)) {
+                return false;
+            }
+
+            if (sections.Count == 1) {
+                string section = sections[0];
+                reference = IsStructuredTableAreaSpecifier(section)
+                    ? new FormulaStructuredTableReference(section, true, null, null)
+                    : new FormulaStructuredTableReference("#Data", false, section, section);
+                return true;
+            }
+
+            if (sections.Count == 2 && separators[0] == ':') {
+                reference = new FormulaStructuredTableReference("#Data", false, sections[0], sections[1]);
+                return true;
+            }
+
+            if (!IsStructuredTableAreaSpecifier(sections[0]) || separators[0] != ',') {
+                return false;
+            }
+
+            if (sections.Count == 2) {
+                reference = new FormulaStructuredTableReference(sections[0], true, sections[1], sections[1]);
+                return true;
+            }
+
+            if (sections.Count == 3 && separators[1] == ':') {
+                reference = new FormulaStructuredTableReference(sections[0], true, sections[1], sections[2]);
                 return true;
             }
 
             return false;
         }
 
-        private static bool TryParseStructuredTableSectionList(string value, List<string> sections) {
+        private static bool TryParseStructuredCurrentRowColumns(
+            string value,
+            out FormulaStructuredTableReference reference) {
+            reference = default;
+            if (value.Length == 0) {
+                return false;
+            }
+
+            if (value[0] != '[') {
+                if (value.IndexOf('[') >= 0 || value.IndexOf(']') >= 0) {
+                    return false;
+                }
+
+                reference = new FormulaStructuredTableReference("#This Row", true, value, value);
+                return true;
+            }
+
+            if (!TryParseStructuredTableSectionSequence(value, out List<string> sections, out List<char> separators)) {
+                return false;
+            }
+
+            if (sections.Count == 1) {
+                reference = new FormulaStructuredTableReference("#This Row", true, sections[0], sections[0]);
+                return true;
+            }
+
+            if (sections.Count == 2 && separators[0] == ':') {
+                reference = new FormulaStructuredTableReference("#This Row", true, sections[0], sections[1]);
+                return true;
+            }
+
+            return false;
+        }
+
+        private static bool TryParseStructuredTableSectionSequence(
+            string value,
+            out List<string> sections,
+            out List<char> separators) {
+            sections = new List<string>();
+            separators = new List<char>();
             int index = 0;
             while (index < value.Length) {
                 if (value[index] != '[') {
@@ -569,10 +669,11 @@ namespace OfficeIMO.Excel {
                     return true;
                 }
 
-                if (value[index] != ',') {
+                if (value[index] != ',' && value[index] != ':') {
                     return false;
                 }
 
+                separators.Add(value[index]);
                 index++;
             }
 
@@ -581,7 +682,7 @@ namespace OfficeIMO.Excel {
 
         private static bool TryResolveTableReferenceRange(
             Table table,
-            IReadOnlyList<string> sections,
+            FormulaStructuredTableReference reference,
             int? currentRow,
             out int r1,
             out int c1,
@@ -602,43 +703,21 @@ namespace OfficeIMO.Excel {
                 ? Math.Max(1U, table.TotalsRowCount?.Value ?? 1U)
                 : 0U;
 
-            string? item = null;
-            string area = "#Data";
-            if (sections.Count == 1) {
-                string section = sections[0];
-                if (section.Length > 1 && section[0] == '@') {
-                    area = "#This Row";
-                    item = section.Substring(1).Trim();
-                } else if (IsStructuredTableAreaSpecifier(section)) {
-                    area = section;
-                } else {
-                    item = section;
-                }
-            } else if (sections.Count == 2) {
-                if (!IsStructuredTableAreaSpecifier(sections[0])) {
-                    return false;
-                }
-
-                area = sections[0];
-                item = sections[1];
-            } else if (sections.Count != 0) {
-                return false;
-            }
-
-            if (!TryResolveTableAreaRows(area, tableR1, tableR2, headerRows, totalsRows, currentRow, out r1, out r2)) {
+            if (!TryResolveTableAreaRows(reference.Area, tableR1, tableR2, headerRows, totalsRows, currentRow, out r1, out r2)) {
                 return false;
             }
 
             c1 = tableC1;
             c2 = tableC2;
-            if (!string.IsNullOrWhiteSpace(item)) {
-                int offset = ResolveTableColumnOffset(table, item!);
-                if (offset < 0) {
+            if (!string.IsNullOrWhiteSpace(reference.FirstColumn)) {
+                int firstOffset = ResolveTableColumnOffset(table, reference.FirstColumn!);
+                int lastOffset = ResolveTableColumnOffset(table, reference.LastColumn ?? reference.FirstColumn!);
+                if (firstOffset < 0 || lastOffset < firstOffset) {
                     return false;
                 }
 
-                c1 = tableC1 + offset;
-                c2 = c1;
+                c1 = tableC1 + firstOffset;
+                c2 = tableC1 + lastOffset;
             }
 
             return r1 <= r2 && c1 <= c2;
