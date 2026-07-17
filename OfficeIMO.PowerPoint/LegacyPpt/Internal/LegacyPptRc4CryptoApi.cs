@@ -7,8 +7,6 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
         private const ushort RecordUserEdit = 0x0FF5;
         private const ushort RecordPersistDirectory = 0x1772;
         private const ushort RecordCryptSession10 = 0x2F14;
-        private const uint EncryptedCurrentUserToken = 0xF3D1C4DF;
-        private const uint UnencryptedCurrentUserToken = 0xE391C05F;
         private const int DefaultKeySizeBits = 128;
 
         internal static byte[] DecryptPackage(byte[] sourceBytes,
@@ -31,7 +29,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 "Current User");
             LegacyPptCurrentUserAtom currentUser =
                 LegacyPptCurrentUserAtom.Read(currentUserStream);
-            if (currentUser.HeaderToken != EncryptedCurrentUserToken) {
+            if (currentUser.HeaderToken
+                != LegacyPptCurrentUserAtom.EncryptedHeaderToken) {
                 throw new InvalidDataException(
                     "The Current User stream does not advertise RC4 CryptoAPI encryption.");
             }
@@ -78,7 +77,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 StringComparer.OrdinalIgnoreCase) {
                 ["PowerPoint Document"] = plainDocument,
                 ["Current User"] = PatchCurrentUser(currentUserStream,
-                    UnencryptedCurrentUserToken, plainEditOffset)
+                    LegacyPptCurrentUserAtom.UnencryptedHeaderToken,
+                    plainEditOffset)
             };
             if (source.Streams.TryGetValue("Pictures", out byte[]? pictures)) {
                 replacements["Pictures"] = TransformPictures(pictures,
@@ -133,7 +133,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 StringComparer.OrdinalIgnoreCase) {
                 ["PowerPoint Document"] = encryptedDocument,
                 ["Current User"] = PatchCurrentUser(package.CurrentUserStream,
-                    EncryptedCurrentUserToken, encryptedEditOffset)
+                    LegacyPptCurrentUserAtom.EncryptedHeaderToken,
+                    encryptedEditOffset)
             };
             if (package.PicturesStream != null) {
                 replacements["Pictures"] = TransformPictures(

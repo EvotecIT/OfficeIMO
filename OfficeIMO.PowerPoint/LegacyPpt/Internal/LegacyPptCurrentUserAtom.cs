@@ -4,6 +4,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
         private const ushort RecordCurrentUser = 0x0FF6;
         private const int RecordHeaderLength = 8;
         private const int FixedPayloadLength = 20;
+        internal const uint EncryptedHeaderToken = 0xF3D1C4DF;
+        internal const uint UnencryptedHeaderToken = 0xE391C05F;
 
         private LegacyPptCurrentUserAtom(uint headerToken, uint currentEditOffset,
             bool hasFourBytePayloadOverstatement) {

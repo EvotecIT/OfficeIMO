@@ -240,12 +240,15 @@ namespace OfficeIMO.PowerPoint {
             PowerPointLoadOptions resolved = options ?? new PowerPointLoadOptions();
             EnsureEncryptedLoadUsesExplicitPersistence(resolved);
             byte[] encryptedBytes = File.ReadAllBytes(filePath);
-            if (PowerPointPresentationLoadRouting.IsEncryptedLegacyBinary(
-                    encryptedBytes)) {
+            LegacyBinaryEncryptionKind legacyEncryption =
+                PowerPointPresentationLoadRouting
+                    .GetLegacyBinaryEncryptionKind(encryptedBytes);
+            if (legacyEncryption == LegacyBinaryEncryptionKind.Encrypted) {
                 return LoadEncryptedLegacyPptFromNormalFlow(encryptedBytes,
                     password, PowerPointPresentationLoadRouting.GetFormat(
                         filePath, legacyDefault: true), resolved);
             }
+            ThrowIfUnencryptedLegacyBinary(legacyEncryption);
             byte[] packageBytes = OfficeEncryption.DecryptPackage(encryptedBytes, password);
             return LoadPackage(packageBytes, filePath: null, sourceStream: null, resolved);
         }
@@ -272,12 +275,15 @@ namespace OfficeIMO.PowerPoint {
                 81920,
                 useAsync: true);
             byte[] encryptedBytes = await OfficeStreamReader.ReadAllBytesAsync(source, cancellationToken).ConfigureAwait(false);
-            if (PowerPointPresentationLoadRouting.IsEncryptedLegacyBinary(
-                    encryptedBytes)) {
+            LegacyBinaryEncryptionKind legacyEncryption =
+                PowerPointPresentationLoadRouting
+                    .GetLegacyBinaryEncryptionKind(encryptedBytes);
+            if (legacyEncryption == LegacyBinaryEncryptionKind.Encrypted) {
                 return LoadEncryptedLegacyPptFromNormalFlow(encryptedBytes,
                     password, PowerPointPresentationLoadRouting.GetFormat(
                         fullPath, legacyDefault: true), resolved);
             }
+            ThrowIfUnencryptedLegacyBinary(legacyEncryption);
             byte[] packageBytes = OfficeEncryption.DecryptPackage(encryptedBytes, password);
             return LoadPackage(packageBytes, filePath: null, sourceStream: null, resolved);
         }
@@ -294,11 +300,14 @@ namespace OfficeIMO.PowerPoint {
             PowerPointLoadOptions resolved = options ?? new PowerPointLoadOptions();
             EnsureEncryptedLoadUsesExplicitPersistence(resolved);
             byte[] encryptedBytes = await OfficeStreamReader.ReadAllBytesAsync(stream, cancellationToken).ConfigureAwait(false);
-            if (PowerPointPresentationLoadRouting.IsEncryptedLegacyBinary(
-                    encryptedBytes)) {
+            LegacyBinaryEncryptionKind legacyEncryption =
+                PowerPointPresentationLoadRouting
+                    .GetLegacyBinaryEncryptionKind(encryptedBytes);
+            if (legacyEncryption == LegacyBinaryEncryptionKind.Encrypted) {
                 return LoadEncryptedLegacyPptFromNormalFlow(encryptedBytes,
                     password, PowerPointFileFormat.Ppt, resolved);
             }
+            ThrowIfUnencryptedLegacyBinary(legacyEncryption);
             byte[] packageBytes = OfficeEncryption.DecryptPackage(encryptedBytes, password);
             return LoadPackage(packageBytes, filePath: null, sourceStream: null, resolved);
         }
@@ -315,13 +324,24 @@ namespace OfficeIMO.PowerPoint {
             PowerPointLoadOptions resolved = options ?? new PowerPointLoadOptions();
             EnsureEncryptedLoadUsesExplicitPersistence(resolved);
             byte[] encryptedBytes = ReadAllBytes(stream);
-            if (PowerPointPresentationLoadRouting.IsEncryptedLegacyBinary(
-                    encryptedBytes)) {
+            LegacyBinaryEncryptionKind legacyEncryption =
+                PowerPointPresentationLoadRouting
+                    .GetLegacyBinaryEncryptionKind(encryptedBytes);
+            if (legacyEncryption == LegacyBinaryEncryptionKind.Encrypted) {
                 return LoadEncryptedLegacyPptFromNormalFlow(encryptedBytes,
                     password, PowerPointFileFormat.Ppt, resolved);
             }
+            ThrowIfUnencryptedLegacyBinary(legacyEncryption);
             byte[] packageBytes = OfficeEncryption.DecryptPackage(encryptedBytes, password);
             return LoadPackage(packageBytes, filePath: null, sourceStream: null, resolved);
+        }
+
+        private static void ThrowIfUnencryptedLegacyBinary(
+            LegacyBinaryEncryptionKind encryptionKind) {
+            if (encryptionKind == LegacyBinaryEncryptionKind.Unencrypted) {
+                throw new InvalidDataException(
+                    "The binary PowerPoint presentation is not password-encrypted. Use PowerPointPresentation.Load instead.");
+            }
         }
 
         private static PowerPointPresentation LoadPackage(

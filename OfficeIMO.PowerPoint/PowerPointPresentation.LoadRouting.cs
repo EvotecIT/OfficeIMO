@@ -1,6 +1,13 @@
 using OfficeIMO.Drawing.Internal;
+using OfficeIMO.PowerPoint.LegacyPpt.Internal;
 
 namespace OfficeIMO.PowerPoint {
+    internal enum LegacyBinaryEncryptionKind {
+        NotLegacyBinary,
+        Unencrypted,
+        Encrypted
+    }
+
     internal static class PowerPointPresentationLoadRouting {
         internal static bool IsLegacyBinary(byte[] bytes, string? filePath) {
             if (OfficeCompoundDocumentDetector.HasCompoundSignature(bytes)) {
@@ -23,12 +30,35 @@ namespace OfficeIMO.PowerPoint {
             return HasLegacyBinaryExtension(filePath) && !HasZipSignature(bytes);
         }
 
-        internal static bool IsEncryptedLegacyBinary(byte[] bytes) {
+        internal static LegacyBinaryEncryptionKind GetLegacyBinaryEncryptionKind(
+            byte[] bytes) {
             if (!OfficeCompoundDocumentDetector.HasCompoundSignature(bytes)) {
-                return false;
+                return LegacyBinaryEncryptionKind.NotLegacyBinary;
             }
-            return OfficeCompoundDocumentDetector.Detect(bytes, out _)
-                == OfficeCompoundDocumentDetector.DocumentKind.PowerPointPresentation;
+            if (OfficeCompoundDocumentDetector.Detect(bytes, out _)
+                != OfficeCompoundDocumentDetector.DocumentKind
+                    .PowerPointPresentation) {
+                return LegacyBinaryEncryptionKind.NotLegacyBinary;
+            }
+            if (!OfficeCompoundFileReader.TryRead(bytes,
+                    out OfficeCompoundFile? compound, out string? error)
+                || compound == null
+                || !compound.Streams.TryGetValue("Current User",
+                    out byte[]? currentUserStream)) {
+                throw new InvalidDataException(error
+                    ?? "The binary PowerPoint container has no Current User stream.");
+            }
+
+            uint token = LegacyPptCurrentUserAtom.Read(currentUserStream)
+                .HeaderToken;
+            if (token == LegacyPptCurrentUserAtom.EncryptedHeaderToken) {
+                return LegacyBinaryEncryptionKind.Encrypted;
+            }
+            if (token == LegacyPptCurrentUserAtom.UnencryptedHeaderToken) {
+                return LegacyBinaryEncryptionKind.Unencrypted;
+            }
+            throw new InvalidDataException(
+                "The binary PowerPoint Current User stream has an unsupported encryption token.");
         }
 
         internal static bool HasLegacyBinaryExtension(string? filePath) {

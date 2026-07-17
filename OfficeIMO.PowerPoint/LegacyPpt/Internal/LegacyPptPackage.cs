@@ -9,8 +9,6 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
     internal sealed class LegacyPptPackage {
         private const ushort RecordUserEdit = 0x0FF5;
         private const ushort RecordPersistDirectory = 0x1772;
-        private const uint UnencryptedCurrentUserToken = 0xE391C05F;
-
         private readonly byte[] _originalBytes;
         private readonly byte[]? _originalEncryptedBytes;
 
@@ -136,7 +134,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             byte[]? originalEncryptedBytes = null;
             LegacyPptCurrentUserAtom currentUser = LegacyPptCurrentUserAtom.Read(
                 currentUserStream);
-            if (currentUser.HeaderToken != UnencryptedCurrentUserToken) {
+            if (currentUser.HeaderToken
+                != LegacyPptCurrentUserAtom.UnencryptedHeaderToken) {
                 originalEncryptedBytes = (byte[])bytes.Clone();
                 bytes = LegacyPptRc4CryptoApi.DecryptPackage(bytes, compound,
                     options, recordBudget, out int keySizeBits,
@@ -205,7 +204,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
 
         private static uint ReadCurrentEditOffset(byte[] currentUserStream) {
             LegacyPptCurrentUserAtom currentUser = LegacyPptCurrentUserAtom.Read(currentUserStream);
-            if (currentUser.HeaderToken != UnencryptedCurrentUserToken) {
+            if (currentUser.HeaderToken
+                != LegacyPptCurrentUserAtom.UnencryptedHeaderToken) {
                 throw new NotSupportedException("Encrypted PowerPoint 97-2003 binary presentations are not supported.");
             }
             return currentUser.CurrentEditOffset;

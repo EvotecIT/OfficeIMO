@@ -84,6 +84,48 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public async Task LegacyEncryption_LoadEncryptedRejectsPlainBinaryInput() {
+            byte[] plainBytes;
+            using (PowerPointPresentation source =
+                   PowerPointPresentation.Create()) {
+                source.AddSlide().AddTextBox("Plain binary deck");
+                plainBytes = source.ToBytes(PowerPointFileFormat.Ppt);
+            }
+
+            using (var stream = new MemoryStream(plainBytes)) {
+                InvalidDataException failure = Assert.Throws<InvalidDataException>(
+                    () => PowerPointPresentation.LoadEncrypted(stream,
+                        "ignored-password"));
+                Assert.Contains("not password-encrypted", failure.Message);
+            }
+            using (var stream = new MemoryStream(plainBytes)) {
+                InvalidDataException failure = await Assert.ThrowsAsync<
+                    InvalidDataException>(() => PowerPointPresentation
+                    .LoadEncryptedAsync(stream, "ignored-password"));
+                Assert.Contains("not password-encrypted", failure.Message);
+            }
+
+            string path = Path.Combine(Path.GetTempPath(),
+                Guid.NewGuid() + ".ppt");
+            try {
+                File.WriteAllBytes(path, plainBytes);
+                InvalidDataException pathFailure = Assert.Throws<
+                    InvalidDataException>(() => PowerPointPresentation
+                    .LoadEncrypted(path, "ignored-password"));
+                Assert.Contains("not password-encrypted",
+                    pathFailure.Message);
+                InvalidDataException asyncPathFailure = await Assert
+                    .ThrowsAsync<InvalidDataException>(() =>
+                        PowerPointPresentation.LoadEncryptedAsync(path,
+                            "ignored-password"));
+                Assert.Contains("not password-encrypted",
+                    asyncPathFailure.Message);
+            } finally {
+                if (File.Exists(path)) File.Delete(path);
+            }
+        }
+
+        [Fact]
         public void LegacyEncryption_NormalPathSaveRetainsSourceEncryption() {
             const string password = "normal-save-pass";
             string path = Path.Combine(Path.GetTempPath(),
