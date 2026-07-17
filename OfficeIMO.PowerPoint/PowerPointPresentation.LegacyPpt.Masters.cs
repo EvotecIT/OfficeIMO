@@ -264,10 +264,10 @@ namespace OfficeIMO.PowerPoint {
             var projectedShapeIds = new Dictionary<uint, uint>();
             foreach (LegacyPptShape source in shapes) {
                 OpenXmlElement? shape = CreateLegacyOpenXmlShape(ownerPart, source,
-                    ref nextShapeId, slidePartsByLegacyId, soundContext);
+                    ref nextShapeId, slidePartsByLegacyId, soundContext,
+                    projectedShapeIds);
                 if (shape == null) continue;
                 tree.Append(shape);
-                RegisterLegacyShapeIds(source, shape, projectedShapeIds);
             }
             if (connectorRules != null) {
                 ProjectLegacyConnectorRules(tree, connectorRules, projectedShapeIds);
@@ -278,7 +278,8 @@ namespace OfficeIMO.PowerPoint {
         internal static OpenXmlElement? CreateLegacyOpenXmlShape(OpenXmlPart ownerPart,
             LegacyPptShape source, ref uint nextShapeId,
             IReadOnlyDictionary<uint, SlidePart>? slidePartsByLegacyId = null,
-            LegacyPptSoundProjectionContext? soundContext = null) {
+            LegacyPptSoundProjectionContext? soundContext = null,
+            IDictionary<uint, uint>? projectedShapeIds = null) {
             if (ownerPart == null) throw new ArgumentNullException(nameof(ownerPart));
             if (source == null) throw new ArgumentNullException(nameof(source));
             uint shapeId = nextShapeId++;
@@ -287,16 +288,42 @@ namespace OfficeIMO.PowerPoint {
                 LegacyPptShapeKind.Table => CreateLegacyTableFrame(ownerPart,
                     source, shapeId, slidePartsByLegacyId, soundContext),
                 LegacyPptShapeKind.Group => CreateLegacyGroupShape(ownerPart, source, shapeId,
-                    ref nextShapeId, slidePartsByLegacyId, soundContext),
+                    ref nextShapeId, slidePartsByLegacyId, soundContext,
+                    projectedShapeIds),
                 _ => CreateLegacyShape(ownerPart, source, shapeId,
                     slidePartsByLegacyId, soundContext)
             };
             if (projected != null) {
+                RegisterLegacyShapeId(source, projected,
+                    projectedShapeIds);
                 ApplyLegacyShapeMetadata(projected, source);
                 ApplyLegacyShapeInteractions(ownerPart, projected, source,
                     slidePartsByLegacyId, soundContext);
             }
             return projected;
+        }
+
+        internal static bool CanCreateLegacyOpenXmlShape(
+            LegacyPptShape source) {
+            if (source == null) throw new ArgumentNullException(nameof(source));
+            return source.Kind switch {
+                LegacyPptShapeKind.TextBox or
+                LegacyPptShapeKind.Rectangle or
+                LegacyPptShapeKind.Ellipse or
+                LegacyPptShapeKind.Line => true,
+                LegacyPptShapeKind.AutoShape or
+                LegacyPptShapeKind.Connector =>
+                    LegacyPptShapeGeometryMapper.TryGetPreset(
+                        source.OfficeArtShapeType, out _),
+                LegacyPptShapeKind.Picture =>
+                    source.Picture?.HasImportableImage == true
+                    && source.Picture.ContentType != null,
+                LegacyPptShapeKind.Table => source.Table != null,
+                LegacyPptShapeKind.Group =>
+                    source.GroupCoordinateBounds.HasValue
+                    && source.Children.Count > 0,
+                _ => false
+            };
         }
 
         private static void ApplyLegacyShapeMetadata(OpenXmlElement target, LegacyPptShape source) {
@@ -425,7 +452,8 @@ namespace OfficeIMO.PowerPoint {
         private static GroupShape? CreateLegacyGroupShape(OpenXmlPart ownerPart, LegacyPptShape source,
             uint shapeId, ref uint nextShapeId,
             IReadOnlyDictionary<uint, SlidePart>? slidePartsByLegacyId,
-            LegacyPptSoundProjectionContext? soundContext) {
+            LegacyPptSoundProjectionContext? soundContext,
+            IDictionary<uint, uint>? projectedShapeIds) {
             if (!source.GroupCoordinateBounds.HasValue || source.Children.Count == 0) return null;
             LegacyPptBounds coordinate = source.GroupCoordinateBounds.Value;
             var transform = new A.TransformGroup(
@@ -454,7 +482,8 @@ namespace OfficeIMO.PowerPoint {
                 new GroupShapeProperties(transform));
             foreach (LegacyPptShape child in source.Children) {
                 OpenXmlElement? projected = CreateLegacyOpenXmlShape(ownerPart, child,
-                    ref nextShapeId, slidePartsByLegacyId, soundContext);
+                    ref nextShapeId, slidePartsByLegacyId, soundContext,
+                    projectedShapeIds);
                 if (projected != null) group.Append(projected);
             }
             return group;

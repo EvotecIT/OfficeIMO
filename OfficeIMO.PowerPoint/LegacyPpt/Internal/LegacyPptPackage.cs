@@ -124,7 +124,11 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                     nameof(decodedStorageBudget));
             }
             cancellationToken.ThrowIfCancellationRequested();
-            if (!OfficeCompoundFileReader.TryRead(bytes, out OfficeCompoundFile? compound, out string? error)
+            OfficeCompoundReadOptions compoundReadOptions =
+                CreateCompoundReadOptions(options);
+            if (!OfficeCompoundFileReader.TryRead(bytes,
+                    compoundReadOptions,
+                    out OfficeCompoundFile? compound, out string? error)
                 || compound == null) {
                 throw new InvalidDataException(error ?? "The input is not a valid OLE compound file.");
             }
@@ -155,6 +159,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                     out bool documentPropertiesEncrypted);
                 cancellationToken.ThrowIfCancellationRequested();
                 if (!OfficeCompoundFileReader.TryRead(bytes,
+                        compoundReadOptions,
                         out compound, out error) || compound == null
                     || !compound.Streams.TryGetValue("PowerPoint Document",
                         out documentStream)
@@ -216,6 +221,17 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 persistObjects, wasEncryptedSource, encryptionKeySizeBits,
                 encryptedDocumentProperties, encryptionPassword,
                 originalEncryptedBytes);
+        }
+
+        private static OfficeCompoundReadOptions CreateCompoundReadOptions(
+            LegacyPptImportOptions options) {
+            int maxDirectoryEntries = Math.Max(1,
+                Math.Min(65536, options.MaxRecordCount));
+            int maxStreamCount = Math.Max(1,
+                Math.Min(32768, options.MaxRecordCount));
+            return new OfficeCompoundReadOptions(maxDirectoryEntries,
+                maxStreamCount, options.MaxInputBytes,
+                options.MaxInputBytes);
         }
 
         private static uint ReadCurrentEditOffset(byte[] currentUserStream) {

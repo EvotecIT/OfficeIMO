@@ -94,11 +94,16 @@ namespace OfficeIMO.Tests {
                 using (PowerPointPresentation presentation =
                        PowerPointPresentation.Create(filePath)) {
                     PowerPointSlide start = presentation.AddSlide();
-                    start.Transition = SlideTransition.Morph;
+                    start.Transition = SlideTransition.Fade;
+                    start.TransitionSpeed = SlideTransitionSpeed.Fast;
+                    start.TransitionDurationSeconds = 0.8;
+                    start.TransitionAdvanceOnClick = false;
+                    start.TransitionAdvanceAfterSeconds = 2.5;
                     using (var sound = new MemoryStream(audio,
                                writable: false)) {
                         start.SetTransitionSound(sound, "Morph sound");
                     }
+                    start.Transition = SlideTransition.Morph;
 
                     PowerPointSlide stop = presentation.AddSlide();
                     stop.Transition = SlideTransition.Morph;
@@ -120,13 +125,59 @@ namespace OfficeIMO.Tests {
                     startSlide.TransitionSoundName);
                 Assert.Equal(audio,
                     startSlide.GetTransitionSoundBytes());
+                Assert.Equal(SlideTransitionSpeed.Fast,
+                    startSlide.TransitionSpeed);
+                Assert.Equal(0.8,
+                    startSlide.TransitionDurationSeconds);
+                Assert.False(startSlide.TransitionAdvanceOnClick);
+                Assert.Equal(2.5,
+                    startSlide.TransitionAdvanceAfterSeconds);
                 Assert.Equal(SlideTransition.Morph,
                     stopSlide.Transition);
                 Assert.True(stopSlide.TransitionStopsSound);
                 Assert.Empty(reopened.ValidateDocument());
+
+                using PresentationDocument document =
+                    PresentationDocument.Open(filePath, false);
+                SlidePart[] slideParts = document.PresentationPart!
+                    .SlideParts.ToArray();
+                Transition[] startTransitions = GetAlternateTransitions(
+                    slideParts[0]);
+                Assert.Equal(2, startTransitions.Length);
+                Assert.All(startTransitions, transition => {
+                    Assert.NotNull(transition.GetFirstChild<SoundAction>()?
+                        .GetFirstChild<StartSoundAction>());
+                    Assert.Equal(TransitionSpeedValues.Fast,
+                        transition.Speed?.Value);
+                    Assert.Equal("800", transition.Duration?.Value);
+                    Assert.False(transition.AdvanceOnClick?.Value);
+                    Assert.Equal("2500",
+                        transition.AdvanceAfterTime?.Value);
+                });
+                Transition[] stopTransitions = GetAlternateTransitions(
+                    slideParts[1]);
+                Assert.Equal(2, stopTransitions.Length);
+                Assert.All(stopTransitions, transition =>
+                    Assert.NotNull(transition
+                        .GetFirstChild<SoundAction>()?
+                        .GetFirstChild<EndSoundAction>()));
             } finally {
                 if (File.Exists(filePath)) File.Delete(filePath);
             }
+        }
+
+        private static Transition[] GetAlternateTransitions(
+            SlidePart slidePart) {
+            AlternateContent content = Assert.Single(slidePart.Slide
+                .Elements<AlternateContent>());
+            return content.Elements<AlternateContentChoice>()
+                .Select(choice => choice.GetFirstChild<Transition>())
+                .Concat(new[] { content
+                    .GetFirstChild<AlternateContentFallback>()?
+                    .GetFirstChild<Transition>() })
+                .Where(transition => transition != null)
+                .Cast<Transition>()
+                .ToArray();
         }
 
         [Fact]

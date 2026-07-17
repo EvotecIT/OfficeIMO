@@ -55,6 +55,8 @@ namespace OfficeIMO.PowerPoint {
                 throw new ArgumentException("An action sound name is required.",
                     nameof(name));
             }
+            string? previousRelationshipId = GetInteractionSound(mouseOver)?
+                .Embed?.Value;
             string relationshipId = PowerPointEmbeddedSound.Add(
                 OwnerSlide.SlidePart, audio, contentType, extension);
             A.HyperlinkType hyperlink = GetOrCreateInteraction(mouseOver);
@@ -63,6 +65,8 @@ namespace OfficeIMO.PowerPoint {
                 Embed = relationshipId,
                 Name = name
             });
+            PowerPointEmbeddedSound.RemoveIfUnused(OwnerSlide.SlidePart,
+                previousRelationshipId);
         }
 
         private void SetInteractionStopsSound(bool mouseOver, bool value) {
@@ -72,8 +76,15 @@ namespace OfficeIMO.PowerPoint {
             if (hyperlink != null) hyperlink.EndSound = value ? true : null;
         }
 
-        private void ClearInteractionSound(bool mouseOver) =>
-            GetInteraction(mouseOver)?.RemoveAllChildren<A.HyperlinkSound>();
+        private void ClearInteractionSound(bool mouseOver) {
+            if (OwnerSlide == null) return;
+            A.HyperlinkType? hyperlink = GetInteraction(mouseOver);
+            string? relationshipId = hyperlink?
+                .GetFirstChild<A.HyperlinkSound>()?.Embed?.Value;
+            hyperlink?.RemoveAllChildren<A.HyperlinkSound>();
+            PowerPointEmbeddedSound.RemoveIfUnused(OwnerSlide.SlidePart,
+                relationshipId);
+        }
 
         private byte[]? GetInteractionSoundBytes(bool mouseOver) {
             if (OwnerSlide == null) return null;

@@ -368,8 +368,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                     throw new InvalidDataException(childReason);
                 }
                 LegacyPptShape[] sourceChildren = sourceShape.Children
-                    .Where(child => child.Kind
-                        != LegacyPptShapeKind.Unsupported)
+                    .Where(PowerPointPresentation
+                        .CanCreateLegacyOpenXmlShape)
                     .ToArray();
                 AddShapeProjectionTree(result, sourceChildren,
                     projectedChildren, projectableSoundIds,
@@ -524,7 +524,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 IReadOnlyList<PowerPointShape> projected, string ownerName,
                 OpenXmlPart ownerPart) {
             LegacyPptShape[] sourceShapes = source.Where(shape =>
-                shape.Kind != LegacyPptShapeKind.Unsupported).ToArray();
+                PowerPointPresentation.CanCreateLegacyOpenXmlShape(shape))
+                .ToArray();
             var result = new List<LegacyPptShapeProjection>();
             AddShapeProjectionTree(result, sourceShapes, projected,
                 new HashSet<uint>(), ownerName, ownerPart);

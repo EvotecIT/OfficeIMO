@@ -424,6 +424,41 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PackageReader_BoundsAliasedTopLevelCompoundStreams() {
+            byte[] expanded = CreatePresentationBytes();
+            int documentEntry = FindCompoundDirectoryEntry(expanded,
+                "PowerPoint Document");
+            uint documentStart = ReadCompoundUInt32(expanded,
+                documentEntry + 116);
+            ulong documentSize = ReadCompoundUInt64(expanded,
+                documentEntry + 120);
+            Assert.True(documentSize > 4096);
+            foreach (string alias in new[] {
+                         "Current User", "\u0005SummaryInformation",
+                         "\u0005DocumentSummaryInformation"
+                     }) {
+                int aliasEntry = FindCompoundDirectoryEntry(expanded,
+                    alias);
+                WriteUInt32(expanded, aliasEntry + 116, documentStart);
+                WriteCompoundUInt64(expanded, aliasEntry + 120,
+                    documentSize);
+            }
+            Assert.True(documentSize * 4UL
+                > unchecked((ulong)expanded.Length));
+
+            InvalidDataException exception = Assert.Throws<
+                InvalidDataException>(() => LegacyPptPresentation.Load(
+                    expanded, new LegacyPptImportOptions {
+                        MaxInputBytes = expanded.Length
+                    }));
+
+            Assert.Contains("Compound stream bytes exceed",
+                exception.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains(expanded.Length.ToString(), exception.Message,
+                StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void PackageReader_RejectsCyclicUserEditChain() {
             byte[] bytes = CreatePresentationBytes();
             LegacyPptPresentation source = LegacyPptPresentation.Load(bytes);
@@ -470,6 +505,35 @@ namespace OfficeIMO.Tests {
             target[offset + 1] = unchecked((byte)(value >> 8));
             target[offset + 2] = unchecked((byte)(value >> 16));
             target[offset + 3] = unchecked((byte)(value >> 24));
+        }
+
+        private static int FindCompoundDirectoryEntry(byte[] bytes,
+            string name) {
+            byte[] encoded = Encoding.Unicode.GetBytes(name + '\0');
+            for (int offset = 512; offset <= bytes.Length - encoded.Length;
+                 offset += 128) {
+                if (bytes.AsSpan(offset, encoded.Length)
+                    .SequenceEqual(encoded)) return offset;
+            }
+            throw new InvalidDataException(
+                $"The compound directory entry '{name}' was not found.");
+        }
+
+        private static uint ReadCompoundUInt32(byte[] bytes, int offset) =>
+            unchecked((uint)(bytes[offset]
+                | bytes[offset + 1] << 8
+                | bytes[offset + 2] << 16
+                | bytes[offset + 3] << 24));
+
+        private static ulong ReadCompoundUInt64(byte[] bytes, int offset) =>
+            ReadCompoundUInt32(bytes, offset)
+            | unchecked((ulong)ReadCompoundUInt32(bytes, offset + 4) << 32);
+
+        private static void WriteCompoundUInt64(byte[] bytes, int offset,
+            ulong value) {
+            WriteUInt32(bytes, offset, unchecked((uint)value));
+            WriteUInt32(bytes, offset + 4,
+                unchecked((uint)(value >> 32)));
         }
 
         private sealed class ReadGuardStream : Stream {

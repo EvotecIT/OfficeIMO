@@ -69,6 +69,15 @@ namespace OfficeIMO.PowerPoint {
 
                 if (value == SlideTransition.Morph) {
                     SetMorphTransition();
+                    foreach (Transition morphTransition in
+                             GetTransitionElements()) {
+                        if (soundAction != null) {
+                            morphTransition.Append(soundAction.CloneNode(true));
+                        }
+                        ApplyTransitionSettings(morphTransition, speed,
+                            durationSeconds, advanceOnClick,
+                            advanceAfterSeconds);
+                    }
                     return;
                 }
 
@@ -133,17 +142,17 @@ namespace OfficeIMO.PowerPoint {
                 return SlideTransitionSpeed.Medium;
             }
             set {
-                Transition? transition = GetTransitionElement();
-                if (transition == null) {
-                    return;
+                foreach (Transition transition in GetTransitionElements()) {
+                    transition.Speed = value switch {
+                        SlideTransitionSpeed.Slow =>
+                            TransitionSpeedValues.Slow,
+                        SlideTransitionSpeed.Fast =>
+                            TransitionSpeedValues.Fast,
+                        SlideTransitionSpeed.Medium =>
+                            TransitionSpeedValues.Medium,
+                        _ => null
+                    };
                 }
-
-                transition.Speed = value switch {
-                    SlideTransitionSpeed.Slow => TransitionSpeedValues.Slow,
-                    SlideTransitionSpeed.Fast => TransitionSpeedValues.Fast,
-                    SlideTransitionSpeed.Medium => TransitionSpeedValues.Medium,
-                    _ => null
-                };
             }
         }
 
@@ -160,16 +169,15 @@ namespace OfficeIMO.PowerPoint {
                 return milliseconds.Value / 1000.0;
             }
             set {
-                Transition? transition = GetTransitionElement();
-                if (transition == null) {
-                    return;
-                }
-
-                if (value.HasValue) {
-                    EnsureTransitionCompatibilityNamespace(transition, "p14", P14Namespace);
-                    transition.Duration = ToMillisecondsString(value);
-                } else {
-                    RemoveTransitionAttribute(transition, "dur", P14Namespace);
+                foreach (Transition transition in GetTransitionElements()) {
+                    if (value.HasValue) {
+                        EnsureTransitionCompatibilityNamespace(transition,
+                            "p14", P14Namespace);
+                        transition.Duration = ToMillisecondsString(value);
+                    } else {
+                        RemoveTransitionAttribute(transition, "dur",
+                            P14Namespace);
+                    }
                 }
             }
         }
@@ -182,15 +190,13 @@ namespace OfficeIMO.PowerPoint {
                 return GetTransitionElement()?.AdvanceOnClick?.Value;
             }
             set {
-                Transition? transition = GetTransitionElement();
-                if (transition == null) {
-                    return;
-                }
-
-                if (value.HasValue) {
-                    transition.AdvanceOnClick = value;
-                } else {
-                    RemoveTransitionAttribute(transition, "advClick", string.Empty);
+                foreach (Transition transition in GetTransitionElements()) {
+                    if (value.HasValue) {
+                        transition.AdvanceOnClick = value;
+                    } else {
+                        RemoveTransitionAttribute(transition, "advClick",
+                            string.Empty);
+                    }
                 }
             }
         }
@@ -208,15 +214,14 @@ namespace OfficeIMO.PowerPoint {
                 return milliseconds.Value / 1000.0;
             }
             set {
-                Transition? transition = GetTransitionElement();
-                if (transition == null) {
-                    return;
-                }
-
-                if (value.HasValue) {
-                    transition.AdvanceAfterTime = ToMillisecondsString(value);
-                } else {
-                    RemoveTransitionAttribute(transition, "advTm", string.Empty);
+                foreach (Transition transition in GetTransitionElements()) {
+                    if (value.HasValue) {
+                        transition.AdvanceAfterTime =
+                            ToMillisecondsString(value);
+                    } else {
+                        RemoveTransitionAttribute(transition, "advTm",
+                            string.Empty);
+                    }
                 }
             }
         }
@@ -328,24 +333,25 @@ namespace OfficeIMO.PowerPoint {
         }
 
         internal Transition? GetTransitionElement() {
-            Transition? transition = SlideRoot.Transition;
-            if (transition != null) {
-                return transition;
-            }
+            return GetTransitionElements().FirstOrDefault();
+        }
 
+        internal IReadOnlyList<Transition> GetTransitionElements() {
+            if (SlideRoot.Transition is Transition transition) {
+                return new[] { transition };
+            }
             AlternateContent? alternateContent = GetTransitionAlternateContent();
             if (alternateContent == null) {
-                return null;
+                return Array.Empty<Transition>();
             }
-
-            foreach (AlternateContentChoice choice in alternateContent.Elements<AlternateContentChoice>()) {
-                Transition? choiceTransition = choice.GetFirstChild<Transition>();
-                if (choiceTransition != null) {
-                    return choiceTransition;
-                }
-            }
-
-            return alternateContent.GetFirstChild<AlternateContentFallback>()?.GetFirstChild<Transition>();
+            return alternateContent.Elements<AlternateContentChoice>()
+                .Select(choice => choice.GetFirstChild<Transition>())
+                .Concat(new[] { alternateContent
+                    .GetFirstChild<AlternateContentFallback>()?
+                    .GetFirstChild<Transition>() })
+                .Where(candidate => candidate != null)
+                .Cast<Transition>()
+                .ToArray();
         }
 
         private AlternateContent? GetTransitionAlternateContent() {
@@ -362,8 +368,15 @@ namespace OfficeIMO.PowerPoint {
 
         private void SetMorphTransition() {
             Slide slide = SlideRoot;
-            slide.AddNamespaceDeclaration("mc", MarkupCompatibilityNamespace);
-            slide.AddNamespaceDeclaration("p159", P159Namespace);
+            if (!string.Equals(slide.LookupNamespace("mc"),
+                    MarkupCompatibilityNamespace, StringComparison.Ordinal)) {
+                slide.AddNamespaceDeclaration("mc",
+                    MarkupCompatibilityNamespace);
+            }
+            if (!string.Equals(slide.LookupNamespace("p159"),
+                    P159Namespace, StringComparison.Ordinal)) {
+                slide.AddNamespaceDeclaration("p159", P159Namespace);
+            }
             slide.MCAttributes = MergeIgnorableNamespace(slide.MCAttributes, "p159");
 
             Transition morphTransition = new();

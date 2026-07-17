@@ -1,6 +1,7 @@
 using OfficeIMO.Drawing;
 using OfficeIMO.Drawing.Internal;
 using OfficeIMO.PowerPoint.LegacyPpt;
+using Microsoft.Win32.SafeHandles;
 using System;
 using System.IO;
 using System.Runtime.InteropServices;
@@ -13,7 +14,6 @@ namespace OfficeIMO.PowerPoint {
         private const int InputCopyBufferSize = 81920;
         private const long DefaultMaxCompoundTemporaryBytes =
             512L * 1024L * 1024L;
-        private const int UnixOwnerReadWritePermissions = 0x180;
 
         internal static byte[] ReadPresentationInputBytes(
             Stream source,
@@ -304,35 +304,44 @@ namespace OfficeIMO.PowerPoint {
         }
 
         internal static FileStream CreateTemporaryInputStream(bool useAsync) {
-            string path = Path.Combine(Path.GetTempPath(),
-                "officeimo-powerpoint-" + Guid.NewGuid().ToString("N")
-                + ".tmp");
+            bool isWindows = RuntimeInformation.IsOSPlatform(
+                OSPlatform.Windows);
+            string path = isWindows
+                ? Path.Combine(Path.GetTempPath(),
+                    "officeimo-powerpoint-" + Guid.NewGuid().ToString("N")
+                    + ".tmp")
+                : CreateSecureUnixTemporaryPath();
             FileOptions options = FileOptions.DeleteOnClose;
             if (useAsync) options |= FileOptions.Asynchronous;
-            FileStream? stream = null;
             try {
-                stream = new FileStream(path, FileMode.CreateNew,
+                return new FileStream(path,
+                    isWindows ? FileMode.CreateNew : FileMode.Open,
                     FileAccess.ReadWrite, FileShare.None,
                     InputCopyBufferSize, options);
-                RestrictTemporaryFilePermissions(path);
-                return stream;
             } catch {
-                stream?.Dispose();
+                if (!isWindows && File.Exists(path)) File.Delete(path);
                 throw;
             }
         }
 
-        private static void RestrictTemporaryFilePermissions(string path) {
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) return;
-            if (ChangeFileMode(path, UnixOwnerReadWritePermissions) == 0) {
-                return;
+        private static string CreateSecureUnixTemporaryPath() {
+            var template = new StringBuilder(Path.Combine(
+                Path.GetTempPath(), "officeimo-powerpoint-"
+                + Guid.NewGuid().ToString("N") + "-XXXXXX"));
+            int descriptor = CreateSecureTemporaryFile(template);
+            if (descriptor < 0) {
+                int error = Marshal.GetLastWin32Error();
+                throw new IOException(
+                    $"Unable to create a secure temporary presentation file (error {error}).");
             }
-            int error = Marshal.GetLastWin32Error();
-            throw new IOException(
-                $"Unable to secure the temporary presentation file (error {error}).");
+            using var handle = new SafeFileHandle(
+                new IntPtr(descriptor), ownsHandle: true);
+            return template.ToString();
         }
 
-        [DllImport("libc", EntryPoint = "chmod", SetLastError = true)]
-        private static extern int ChangeFileMode(string path, int mode);
+        [DllImport("libc", EntryPoint = "mkstemp", SetLastError = true,
+            CharSet = CharSet.Ansi)]
+        private static extern int CreateSecureTemporaryFile(
+            StringBuilder template);
     }
 }

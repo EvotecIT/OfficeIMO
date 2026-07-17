@@ -166,6 +166,45 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void GroupProjection_MapsAnimationsPastOmittedOleChildren() {
+            byte[] bytes;
+            using (PowerPointPresentation presentation =
+                   PowerPointPresentation.Create()) {
+                PowerPointSlide slide = presentation.AddSlide();
+                byte[] storageBytes = CreateOleTestStorage(
+                    "Animated group OLE");
+                using var storage = new MemoryStream(storageBytes,
+                    writable: false);
+                PowerPointOleObject ole = slide.AddOleObject(storage,
+                    "Package", 100000L, 100000L, 1000000L, 600000L);
+                PowerPointAutoShape marker = slide.AddRectangle(
+                    1200000L, 100000L, 600000L, 600000L);
+                PowerPointGroupShape group = slide.GroupShapes(
+                    new PowerPointShape[] { ole, marker },
+                    "Animated group");
+                slide.AddClassicAnimation(marker,
+                    PowerPointClassicAnimationEffect.Fade);
+                Assert.Contains(slide.GetGroupChildren(group),
+                    child => child.Id == marker.Id);
+                bytes = presentation.ToBytes(PowerPointFileFormat.Ppt);
+            }
+
+            using var input = new MemoryStream(bytes, writable: false);
+            using PowerPointPresentation projected =
+                PowerPointPresentation.Load(input);
+            PowerPointSlide projectedSlide = Assert.Single(
+                projected.Slides);
+            PowerPointGroupShape projectedGroup = Assert.Single(
+                projectedSlide.Shapes.OfType<PowerPointGroupShape>());
+            PowerPointShape projectedMarker = Assert.Single(
+                projectedSlide.GetGroupChildren(projectedGroup));
+            PowerPointClassicAnimation animation = Assert.Single(
+                projectedSlide.ClassicAnimations);
+            Assert.Equal(projectedMarker.Id, animation.ShapeId);
+            Assert.Empty(projected.ValidateDocument());
+        }
+
+        [Fact]
         public void NativeWriter_ReportsOpenXmlSignatureBeforeMutationPolicyRuns() {
             using PowerPointPresentation presentation =
                 PowerPointPresentation.Create();

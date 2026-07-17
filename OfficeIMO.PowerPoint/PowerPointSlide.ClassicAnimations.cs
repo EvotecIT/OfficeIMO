@@ -119,12 +119,20 @@ namespace OfficeIMO.PowerPoint {
         internal void SetClassicAnimations(
             IReadOnlyList<PowerPointClassicAnimation> animations) {
             if (animations == null) throw new ArgumentNullException(nameof(animations));
+            string[] previousSoundRelationships = ReadClassicAnimations()
+                .Select(animation => animation.SoundRelationshipId)
+                .Where(id => !string.IsNullOrEmpty(id))
+                .Cast<string>()
+                .Distinct(StringComparer.Ordinal)
+                .ToArray();
             PowerPointClassicAnimation[] ordered = animations
                 .OrderBy(animation => animation.Order)
                 .ToArray();
             if (ordered.Length == 0) {
                 SlideRoot.Timing = null;
                 WriteClassicAnimationMetadata(ordered);
+                RemoveUnusedClassicAnimationSounds(
+                    previousSoundRelationships);
                 return;
             }
 
@@ -188,6 +196,15 @@ namespace OfficeIMO.PowerPoint {
             if (insertBefore == null) SlideRoot.Append(timing);
             else SlideRoot.InsertBefore(timing, insertBefore);
             WriteClassicAnimationMetadata(ordered);
+            RemoveUnusedClassicAnimationSounds(previousSoundRelationships);
+        }
+
+        private void RemoveUnusedClassicAnimationSounds(
+            IEnumerable<string> relationshipIds) {
+            foreach (string relationshipId in relationshipIds) {
+                PowerPointEmbeddedSound.RemoveIfUnused(_slidePart,
+                    relationshipId);
+            }
         }
 
         internal bool HasOnlyClassicAnimationTiming() {

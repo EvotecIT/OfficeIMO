@@ -126,10 +126,8 @@ namespace OfficeIMO.PowerPoint {
                 foreach (LegacyPptShape shape in legacySlide.Shapes) {
                     cancellationToken.ThrowIfCancellationRequested();
                     OpenXmlElement? projectedShape = ProjectLegacyShape(slide, shape,
-                        slidePartsByLegacyId, soundContext);
-                    if (projectedShape != null) {
-                        RegisterLegacyShapeIds(shape, projectedShape, projectedShapeIds);
-                    }
+                        slidePartsByLegacyId, soundContext,
+                        projectedShapeIds);
                 }
                 ProjectLegacyConnectorRules(slide, legacySlide.ConnectorRules, projectedShapeIds);
                 ProjectLegacyAnimations(slide, legacySlide.Shapes,
@@ -177,7 +175,8 @@ namespace OfficeIMO.PowerPoint {
 
         private static OpenXmlElement? ProjectLegacyShape(PowerPointSlide slide, LegacyPptShape shape,
             IReadOnlyDictionary<uint, SlidePart> slidePartsByLegacyId,
-            LegacyPptSoundProjectionContext soundContext) {
+            LegacyPptSoundProjectionContext soundContext,
+            IDictionary<uint, uint> projectedShapeIds) {
             long left = ToEmus(shape.Bounds.Left);
             long top = ToEmus(shape.Bounds.Top);
             long width = Math.Max(1L, ToEmus(shape.Bounds.Width));
@@ -277,7 +276,8 @@ namespace OfficeIMO.PowerPoint {
                         .DefaultIfEmpty(1U)
                         .Max() + 1U;
                     OpenXmlElement? group = CreateLegacyOpenXmlShape(slide.SlidePart, shape,
-                        ref nextShapeId, slidePartsByLegacyId, soundContext);
+                        ref nextShapeId, slidePartsByLegacyId, soundContext,
+                        projectedShapeIds);
                     if (group != null) {
                         tree.Append(group);
                         slide.ReserveShapeIdsThrough(nextShapeId);
@@ -312,12 +312,16 @@ namespace OfficeIMO.PowerPoint {
                 ApplyLegacyShapeMetadata(projectedElement, shape);
                 ApplyLegacyShapeInteractions(slide.SlidePart, projectedElement, shape,
                     slidePartsByLegacyId, soundContext);
+                RegisterLegacyShapeId(shape, projectedElement,
+                    projectedShapeIds);
             }
             return projectedShape?.Element;
         }
 
-        private static void RegisterLegacyShapeIds(LegacyPptShape source, OpenXmlElement projected,
-            IDictionary<uint, uint> projectedShapeIds) {
+        private static void RegisterLegacyShapeId(LegacyPptShape source,
+            OpenXmlElement projected,
+            IDictionary<uint, uint>? projectedShapeIds) {
+            if (projectedShapeIds == null) return;
             uint? projectedId = projected switch {
                 DocumentFormat.OpenXml.Presentation.Shape item => item.NonVisualShapeProperties?
                     .NonVisualDrawingProperties?.Id?.Value,
@@ -332,19 +336,6 @@ namespace OfficeIMO.PowerPoint {
                 _ => null
             };
             if (projectedId.HasValue) projectedShapeIds[source.ShapeId] = projectedId.Value;
-            if (source.Kind != LegacyPptShapeKind.Group
-                || projected is not DocumentFormat.OpenXml.Presentation.GroupShape group) return;
-
-            LegacyPptShape[] sourceChildren = source.Children
-                .Where(child => child.Kind != LegacyPptShapeKind.Unsupported)
-                .ToArray();
-            OpenXmlElement[] projectedChildren = group.ChildElements
-                .Where(IsLegacyDrawingElement)
-                .ToArray();
-            int count = Math.Min(sourceChildren.Length, projectedChildren.Length);
-            for (int index = 0; index < count; index++) {
-                RegisterLegacyShapeIds(sourceChildren[index], projectedChildren[index], projectedShapeIds);
-            }
         }
 
         private static void ProjectLegacyConnectorRules(PowerPointSlide slide,
@@ -388,13 +379,6 @@ namespace OfficeIMO.PowerPoint {
                 }
             }
         }
-
-        private static bool IsLegacyDrawingElement(OpenXmlElement element) =>
-            element is DocumentFormat.OpenXml.Presentation.Shape
-                or DocumentFormat.OpenXml.Presentation.ConnectionShape
-                or DocumentFormat.OpenXml.Presentation.Picture
-                or DocumentFormat.OpenXml.Presentation.GroupShape
-                or DocumentFormat.OpenXml.Presentation.GraphicFrame;
 
         private static void ApplyLegacyOlePreview(SlidePart slidePart,
             PowerPointOleObject target, LegacyPptShape source) {

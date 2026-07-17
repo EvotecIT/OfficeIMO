@@ -125,6 +125,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                     throw new InvalidDataException(
                         $"EncryptedSummary entry '{entry.Name}' has an invalid data range.");
                 }
+                if (!entry.IsStream) {
+                    decodedStorageBudget.Consume(entry.StreamSize);
+                }
                 byte[] data = CopyBytes(encrypted, entry.StreamOffset,
                     entry.StreamSize);
                 session.TransformInPlace(data, 0, data.Length,

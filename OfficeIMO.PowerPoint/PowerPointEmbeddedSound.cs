@@ -61,6 +61,34 @@ namespace OfficeIMO.PowerPoint {
             return output.ToArray();
         }
 
+        internal static void RemoveIfUnused(SlidePart slidePart,
+            string? relationshipId) {
+            if (slidePart == null) {
+                throw new ArgumentNullException(nameof(slidePart));
+            }
+            if (string.IsNullOrEmpty(relationshipId)
+                || slidePart.Slide?.Descendants().Any(element =>
+                    element.GetAttributes().Any(attribute => string.Equals(
+                        attribute.Value, relationshipId,
+                        StringComparison.Ordinal))) == true) {
+                return;
+            }
+            AudioReferenceRelationship? relationship = slidePart
+                .DataPartReferenceRelationships
+                .OfType<AudioReferenceRelationship>()
+                .FirstOrDefault(candidate => string.Equals(candidate.Id,
+                    relationshipId, StringComparison.Ordinal));
+            if (relationship == null) return;
+            MediaDataPart? mediaPart = relationship.DataPart
+                as MediaDataPart;
+            slidePart.DeleteReferenceRelationship(relationship);
+            if (mediaPart != null
+                && !mediaPart.GetDataPartReferenceRelationships().Any()
+                && slidePart.OpenXmlPackage is PresentationDocument document) {
+                document.DeletePart(mediaPart);
+            }
+        }
+
         private static string GetNextRelationshipId(SlidePart slidePart) {
             var used = new HashSet<string>(slidePart.Parts.Select(pair =>
                     pair.RelationshipId)

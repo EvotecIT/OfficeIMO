@@ -128,11 +128,40 @@ namespace OfficeIMO.PowerPoint {
                     }
                 }
                 OpenXmlPart part = _presentationPart.GetPartById(relId);
+                if (part is SlidePart targetSlidePart) {
+                    RemoveInboundSlideLinks(targetSlidePart);
+                }
                 _presentationPart.DeletePart(part);
             }
 
             SyncSectionsWithSlides();
             PresentationRoot.Save();
+        }
+
+        private void RemoveInboundSlideLinks(SlidePart targetSlidePart) {
+            foreach (SlidePart sourceSlidePart in _presentationPart.SlideParts
+                         .Where(part => !ReferenceEquals(part,
+                             targetSlidePart)).ToArray()) {
+                Slide? sourceSlide = sourceSlidePart.Slide;
+                if (sourceSlide == null) continue;
+                string[] relationshipIds = sourceSlidePart.Parts
+                    .Where(pair => ReferenceEquals(pair.OpenXmlPart,
+                        targetSlidePart))
+                    .Select(pair => pair.RelationshipId)
+                    .ToArray();
+                if (relationshipIds.Length == 0) continue;
+                foreach (string relationshipId in relationshipIds) {
+                    foreach (A.HyperlinkType hyperlink in sourceSlide
+                                 .Descendants<A.HyperlinkType>()
+                                 .Where(link => string.Equals(link.Id?.Value,
+                                     relationshipId,
+                                     StringComparison.Ordinal)).ToArray()) {
+                        hyperlink.Remove();
+                    }
+                    sourceSlidePart.DeletePart(relationshipId);
+                }
+                sourceSlide.Save();
+            }
         }
 
         private void ValidateSlideIndex(int index) {

@@ -38,32 +38,50 @@ namespace OfficeIMO.PowerPoint {
                 throw new ArgumentException("A transition sound name is required.",
                     nameof(name));
             }
+            string? previousRelationshipId = GetTransitionStartSound()?
+                .Sound?.Embed?.Value;
             string relationshipId = PowerPointEmbeddedSound.Add(_slidePart,
                 audio, contentType, extension);
-            Transition transition = GetOrCreateTransitionElement();
-            transition.RemoveAllChildren<SoundAction>();
-            transition.Append(new SoundAction(
-                new StartSoundAction(new Sound {
-                    Embed = relationshipId,
-                    Name = name
-                }) { Loop = loop }));
+            foreach (Transition transition in
+                     GetOrCreateTransitionElements()) {
+                transition.RemoveAllChildren<SoundAction>();
+                transition.Append(new SoundAction(
+                    new StartSoundAction(new Sound {
+                        Embed = relationshipId,
+                        Name = name
+                    }) { Loop = loop }));
+            }
+            PowerPointEmbeddedSound.RemoveIfUnused(_slidePart,
+                previousRelationshipId);
         }
 
         /// <summary>Stops any currently playing transition sound on entry to this slide.</summary>
         public void StopTransitionSound() {
-            Transition transition = GetOrCreateTransitionElement();
-            transition.RemoveAllChildren<SoundAction>();
-            transition.Append(new SoundAction(new EndSoundAction()));
+            string? previousRelationshipId = GetTransitionStartSound()?
+                .Sound?.Embed?.Value;
+            foreach (Transition transition in
+                     GetOrCreateTransitionElements()) {
+                transition.RemoveAllChildren<SoundAction>();
+                transition.Append(new SoundAction(new EndSoundAction()));
+            }
+            PowerPointEmbeddedSound.RemoveIfUnused(_slidePart,
+                previousRelationshipId);
         }
 
         /// <summary>Removes this slide's start- or stop-sound transition action.</summary>
         public void ClearTransitionSound() {
-            Transition? transition = GetTransitionElement();
-            transition?.RemoveAllChildren<SoundAction>();
-            if (transition != null && transition.ChildElements.Count == 0
-                && !transition.HasAttributes) {
-                SlideRoot.Transition = null;
+            string? relationshipId = GetTransitionStartSound()?
+                .Sound?.Embed?.Value;
+            foreach (Transition transition in GetTransitionElements()) {
+                transition.RemoveAllChildren<SoundAction>();
+                if (ReferenceEquals(transition, SlideRoot.Transition)
+                    && transition.ChildElements.Count == 0
+                    && !transition.HasAttributes) {
+                    SlideRoot.Transition = null;
+                }
             }
+            PowerPointEmbeddedSound.RemoveIfUnused(_slidePart,
+                relationshipId);
         }
 
         /// <summary>Returns the exact embedded transition sound bytes, when present.</summary>
@@ -76,10 +94,11 @@ namespace OfficeIMO.PowerPoint {
             GetTransitionElement()?.GetFirstChild<SoundAction>()?
                 .GetFirstChild<StartSoundAction>();
 
-        private Transition GetOrCreateTransitionElement() {
-            Transition? transition = GetTransitionElement();
-            if (transition != null) return transition;
-            return SlideRoot.Transition = new Transition();
+        private IReadOnlyList<Transition> GetOrCreateTransitionElements() {
+            IReadOnlyList<Transition> transitions =
+                GetTransitionElements();
+            if (transitions.Count > 0) return transitions;
+            return new[] { SlideRoot.Transition = new Transition() };
         }
     }
 }

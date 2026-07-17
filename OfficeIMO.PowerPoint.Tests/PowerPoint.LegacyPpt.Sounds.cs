@@ -241,6 +241,42 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ShapeActionSound_ReplacementAndClearReleaseMediaParts() {
+            byte[] first = CreateWavePayload();
+            byte[] second = first.Concat(new byte[] { 0x31, 0x32 })
+                .ToArray();
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            PowerPointAutoShape shape = slide.AddRectangle(
+                100000L, 100000L, 800000L, 500000L);
+            using (var audio = new MemoryStream(first, writable: false)) {
+                shape.SetClickSound(audio, "First click");
+            }
+            Assert.Single(slide.SlidePart.DataPartReferenceRelationships
+                .OfType<AudioReferenceRelationship>());
+            Assert.Single(presentation.OpenXmlDocument.DataParts);
+
+            using (var audio = new MemoryStream(second, writable: false)) {
+                shape.SetClickSound(audio, "Second click");
+            }
+
+            Assert.Equal("Second click", shape.ClickSoundName);
+            Assert.Equal(second, shape.GetClickSoundBytes());
+            Assert.Single(slide.SlidePart.DataPartReferenceRelationships
+                .OfType<AudioReferenceRelationship>());
+            Assert.Single(presentation.OpenXmlDocument.DataParts);
+
+            shape.ClearClickSound();
+
+            Assert.Null(shape.ClickSoundName);
+            Assert.Empty(slide.SlidePart.DataPartReferenceRelationships
+                .OfType<AudioReferenceRelationship>());
+            Assert.Empty(presentation.OpenXmlDocument.DataParts);
+            Assert.Empty(presentation.ValidateDocument());
+        }
+
+        [Fact]
         public void PublicApis_AuthorSoundOnlyTransitionShapeAndTextActions() {
             byte[] wave = CreateWavePayload();
             byte[] bytes;
