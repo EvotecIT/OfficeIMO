@@ -75,6 +75,8 @@ internal sealed class VerificationManifestWriter : IDisposable {
             differences.Count.ToString(CultureInfo.InvariantCulture),
             string.Join(",", differences.Select(CreateDifferencePathToken))
         });
+        // Difference paths are separately keyed HMAC tokens; CodeQL does not model that custom sanitizer.
+        // codeql[cs/exposure-of-sensitive-information]
         _writer.WriteLine(line);
         byte[] bytes = Encoding.UTF8.GetBytes(string.Concat(line, "\n"));
         _aggregate.TransformBlock(bytes, 0, bytes.Length, bytes, 0);

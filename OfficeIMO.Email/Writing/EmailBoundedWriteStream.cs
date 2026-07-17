@@ -55,8 +55,8 @@ internal sealed class EmailBoundedWriteStream : Stream {
         if (offset < 0 || count < 0 || offset > buffer.Length - count) throw new ArgumentOutOfRangeException(nameof(offset));
         long end = checked(Position + count);
         EnsureWithinLimit(end);
-        // lgtm[cs/exposure-of-sensitive-information] The caller explicitly selected this output stream;
-        // serializing the requested email content is the API contract, not telemetry or an implicit disclosure.
+        // The caller explicitly selected this output stream; serialization is the API contract, not telemetry.
+        // codeql[cs/exposure-of-sensitive-information]
         _destination.Write(buffer, offset, count);
         if (end > _maximumPosition) _maximumPosition = end;
     }
@@ -64,8 +64,8 @@ internal sealed class EmailBoundedWriteStream : Stream {
     public override void WriteByte(byte value) {
         long end = checked(Position + 1);
         EnsureWithinLimit(end);
-        // lgtm[cs/exposure-of-sensitive-information] The caller explicitly selected this output stream;
-        // serializing the requested email content is the API contract, not telemetry or an implicit disclosure.
+        // The caller explicitly selected this output stream; serialization is the API contract, not telemetry.
+        // codeql[cs/exposure-of-sensitive-information]
         _destination.WriteByte(value);
         if (end > _maximumPosition) _maximumPosition = end;
     }
@@ -76,8 +76,8 @@ internal sealed class EmailBoundedWriteStream : Stream {
         if (offset < 0 || count < 0 || offset > buffer.Length - count) throw new ArgumentOutOfRangeException(nameof(offset));
         long end = checked(Position + count);
         EnsureWithinLimit(end);
-        // lgtm[cs/exposure-of-sensitive-information] The caller explicitly selected this output stream;
-        // serializing the requested email content is the API contract, not telemetry or an implicit disclosure.
+        // The caller explicitly selected this output stream; serialization is the API contract, not telemetry.
+        // codeql[cs/exposure-of-sensitive-information]
         await _destination.WriteAsync(buffer, offset, count, cancellationToken).ConfigureAwait(false);
         if (end > _maximumPosition) _maximumPosition = end;
     }
@@ -87,8 +87,8 @@ internal sealed class EmailBoundedWriteStream : Stream {
         CancellationToken cancellationToken = default) {
         long end = checked(Position + buffer.Length);
         EnsureWithinLimit(end);
-        // lgtm[cs/exposure-of-sensitive-information] The caller explicitly selected this output stream;
-        // serializing the requested email content is the API contract, not telemetry or an implicit disclosure.
+        // The caller explicitly selected this output stream; serialization is the API contract, not telemetry.
+        // codeql[cs/exposure-of-sensitive-information]
         await _destination.WriteAsync(buffer, cancellationToken).ConfigureAwait(false);
         if (end > _maximumPosition) _maximumPosition = end;
     }
