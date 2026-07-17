@@ -119,20 +119,34 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
         /// <summary>Loads a PowerPoint 97-2003 binary presentation from a path.</summary>
         public static LegacyPptPresentation Load(string path, LegacyPptImportOptions? options = null) {
             if (path == null) throw new ArgumentNullException(nameof(path));
-            return Load(File.ReadAllBytes(path), options);
+            options ??= new LegacyPptImportOptions();
+            using var stream = new FileStream(path, FileMode.Open,
+                FileAccess.Read, FileShare.Read);
+            return Load(OfficeStreamReader.ReadAllBytes(stream,
+                options.MaxInputBytes), options);
         }
 
         /// <summary>Loads a PowerPoint 97-2003 binary presentation from a stream.</summary>
         public static LegacyPptPresentation Load(Stream stream, LegacyPptImportOptions? options = null) {
             if (stream == null) throw new ArgumentNullException(nameof(stream));
             if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
-            return Load(OfficeStreamReader.ReadAllBytes(stream), options);
+            options ??= new LegacyPptImportOptions();
+            return Load(OfficeStreamReader.ReadAllBytes(stream,
+                options.MaxInputBytes), options);
         }
 
         /// <summary>Loads a PowerPoint 97-2003 binary presentation from bytes.</summary>
         public static LegacyPptPresentation Load(byte[] bytes, LegacyPptImportOptions? options = null) {
             if (bytes == null) throw new ArgumentNullException(nameof(bytes));
             options ??= new LegacyPptImportOptions();
+            if (options.MaxInputBytes < 1) {
+                throw new ArgumentOutOfRangeException(
+                    nameof(options.MaxInputBytes));
+            }
+            if (bytes.Length > options.MaxInputBytes) {
+                throw new InvalidDataException(
+                    $"The binary PowerPoint input exceeds {options.MaxInputBytes} bytes.");
+            }
             var recordBudget = new LegacyPptRecordTraversalBudget(
                 options.MaxRecordCount);
             var decodedStorageBudget = new LegacyPptDecodedStorageBudget(

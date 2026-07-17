@@ -1,7 +1,7 @@
 namespace OfficeIMO.PowerPoint.LegacyPpt {
     /// <summary>Controls dependency-free PowerPoint 97-2003 binary import behavior.</summary>
     public sealed class LegacyPptImportOptions {
-        /// <summary>Gets or sets the maximum PowerPoint Document stream size.</summary>
+        /// <summary>Gets or sets the maximum input and PowerPoint Document stream size.</summary>
         public int MaxInputBytes { get; set; } = 64 * 1024 * 1024;
 
         /// <summary>Gets or sets whether recognized but unsupported content is reported as warnings.</summary>

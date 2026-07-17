@@ -73,6 +73,36 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PackageReader_EnforcesInputBudgetBeforeBufferingPathOrStream() {
+            byte[] bytes = CreatePresentationBytes();
+            int limit = bytes.Length - 1;
+            string path = Path.Combine(Path.GetTempPath(),
+                Guid.NewGuid().ToString("N") + ".ppt");
+            try {
+                File.WriteAllBytes(path, bytes);
+                var options = new LegacyPptImportOptions {
+                    MaxInputBytes = limit
+                };
+
+                InvalidDataException pathException = Assert.Throws<
+                    InvalidDataException>(() => LegacyPptPresentation.Load(
+                    path, options));
+                using var stream = new ReadGuardStream(bytes.Length);
+                InvalidDataException streamException = Assert.Throws<
+                    InvalidDataException>(() => LegacyPptPresentation.Load(
+                    stream, options));
+
+                Assert.Contains("exceeds", pathException.Message,
+                    StringComparison.OrdinalIgnoreCase);
+                Assert.Contains("exceeds", streamException.Message,
+                    StringComparison.OrdinalIgnoreCase);
+                Assert.Equal(0, stream.ReadCount);
+            } finally {
+                if (File.Exists(path)) File.Delete(path);
+            }
+        }
+
+        [Fact]
         public void PackageReader_EnforcesImportWideDecodedStorageBudget() {
             const string Password = "storage-budget";
             byte[] firstStorage = CreateOleTestStorage("First storage");
@@ -205,6 +235,45 @@ namespace OfficeIMO.Tests {
             target[offset + 1] = unchecked((byte)(value >> 8));
             target[offset + 2] = unchecked((byte)(value >> 16));
             target[offset + 3] = unchecked((byte)(value >> 24));
+        }
+
+        private sealed class ReadGuardStream : Stream {
+            private long _position;
+
+            public ReadGuardStream(long length) {
+                Length = length;
+            }
+
+            public int ReadCount { get; private set; }
+            public override bool CanRead => true;
+            public override bool CanSeek => true;
+            public override bool CanWrite => false;
+            public override long Length { get; }
+            public override long Position {
+                get => _position;
+                set => _position = value;
+            }
+
+            public override int Read(byte[] buffer, int offset, int count) {
+                ReadCount++;
+                throw new InvalidOperationException(
+                    "The length guard should reject the stream before reading.");
+            }
+
+            public override void Flush() { }
+            public override long Seek(long offset, SeekOrigin origin) {
+                _position = origin switch {
+                    SeekOrigin.Begin => offset,
+                    SeekOrigin.Current => checked(_position + offset),
+                    SeekOrigin.End => checked(Length + offset),
+                    _ => throw new ArgumentOutOfRangeException(nameof(origin))
+                };
+                return _position;
+            }
+            public override void SetLength(long value) =>
+                throw new NotSupportedException();
+            public override void Write(byte[] buffer, int offset,
+                int count) => throw new NotSupportedException();
         }
     }
 }
