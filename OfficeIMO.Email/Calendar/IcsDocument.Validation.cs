@@ -147,13 +147,15 @@ public sealed partial class IcsDocument {
             foreach (ContentLineProperty property in component.Properties) {
                 ContentLineParameter[] timeZones = property.Parameters.Where(parameter =>
                     string.Equals(parameter.Name, "TZID", StringComparison.OrdinalIgnoreCase)).ToArray();
-                if (timeZones.Length > 1 || timeZones.Any(parameter => parameter.Values.Count != 1)) {
+                if (timeZones.Length > 1 || timeZones.Any(parameter => parameter.Values.Count != 1 ||
+                    string.IsNullOrWhiteSpace(parameter.Values[0]))) {
                     issues.Add(Issue("ICAL_PARAMETER_CARDINALITY",
-                        "TZID must not occur more than once on one property.",
+                        "TZID must occur at most once and contain exactly one non-empty value.",
                         ContentLineValidationSeverity.Error, component, property));
                 }
                 foreach (ContentLineParameter timeZone in timeZones) {
                     foreach (string timeZoneId in timeZone.Values) {
+                        if (string.IsNullOrWhiteSpace(timeZoneId)) continue;
                         if (!definedTimeZones.Contains(timeZoneId))
                             issues.Add(Issue("ICAL_TIMEZONE_DEFINITION_MISSING",
                                 "TZID '" + timeZoneId + "' has no matching VTIMEZONE definition in this VCALENDAR.",
@@ -171,8 +173,13 @@ public sealed partial class IcsDocument {
     private static bool ValidateRecurrenceDateValues(ContentLineProperty property, bool allowPeriod) {
         ContentLineParameter[] valueParameters = property.Parameters.Where(parameter =>
             string.Equals(parameter.Name, "VALUE", StringComparison.OrdinalIgnoreCase)).ToArray();
-        if (valueParameters.Length > 1 || valueParameters.Any(parameter => parameter.Values.Count != 1))
+        if (valueParameters.Length > 1 || valueParameters.Any(parameter => parameter.Values.Count != 1 ||
+            string.IsNullOrWhiteSpace(parameter.Values[0])))
             return false;
+        ContentLineParameter[] timeZoneParameters = property.Parameters.Where(parameter =>
+            string.Equals(parameter.Name, "TZID", StringComparison.OrdinalIgnoreCase)).ToArray();
+        if (timeZoneParameters.Length > 1 || timeZoneParameters.Any(parameter =>
+            parameter.Values.Count != 1 || string.IsNullOrWhiteSpace(parameter.Values[0]))) return false;
         string? valueType = valueParameters.FirstOrDefault()?.Values[0];
         bool isPeriod = string.Equals(valueType, "PERIOD", StringComparison.OrdinalIgnoreCase);
         if (isPeriod && !allowPeriod) return false;

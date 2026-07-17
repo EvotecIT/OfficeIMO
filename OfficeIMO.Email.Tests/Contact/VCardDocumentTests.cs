@@ -168,6 +168,17 @@ public sealed class VCardDocumentTests {
     }
 
     [Fact]
+    public void UnrelatedParameterTextDoesNotEnableQuotedPrintableSoftBreaks() {
+        const string source = "BEGIN:VCARD\r\nVERSION:3.0\r\n" +
+            "X-TEST;X-NOTE=\"ENCODING=QP\":value=\r\nFN:Next property\r\nEND:VCARD\r\n";
+
+        ContentLineComponent card = VCardDocument.Parse(source).Cards.Single();
+
+        Assert.Equal("value=", card.GetFirstProperty("X-TEST")!.Value);
+        Assert.Equal("Next property", card.GetFirstProperty("FN")!.Value);
+    }
+
+    [Fact]
     public void ParameterEncodingIsVersionAwareAcrossLegacyAndV4Cards() {
         const string source = "BEGIN:VCARD\r\nVERSION:3.0\r\n" +
             "FN;X-LITERAL=alpha^nbeta:Legacy\r\nEND:VCARD\r\n" +

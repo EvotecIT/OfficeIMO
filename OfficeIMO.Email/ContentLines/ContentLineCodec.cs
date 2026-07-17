@@ -103,10 +103,11 @@ internal static class ContentLineCodec {
                 current.Length--;
                 currentBytes--;
                 AppendUnfolded(current, continuation, ref currentBytes, options.MaxUnfoldedLineBytes);
-            } else if (physical.Length > 0 && (physical[0] == ' ' || physical[0] == '\t') && current != null)
+            } else if (physical.Length > 0 && (physical[0] == ' ' || physical[0] == '\t') && current != null) {
                 AppendUnfolded(current, physical.Substring(1), ref currentBytes,
                     options.MaxUnfoldedLineBytes);
-            else {
+                currentIsQuotedPrintable = IsQuotedPrintableContentLine(current.ToString());
+            } else {
                 if (current != null) yield return current.ToString();
                 current = new StringBuilder(physical);
                 currentBytes = Encoding.UTF8.GetByteCount(physical);
@@ -130,8 +131,21 @@ internal static class ContentLineCodec {
     private static bool IsQuotedPrintableContentLine(string line) {
         int colon = FindDelimiter(line, ':');
         string header = colon >= 0 ? line.Substring(0, colon) : line;
-        return header.IndexOf("ENCODING=QUOTED-PRINTABLE", StringComparison.OrdinalIgnoreCase) >= 0 ||
-            header.IndexOf("ENCODING=QP", StringComparison.OrdinalIgnoreCase) >= 0;
+        try {
+            foreach (string segment in SplitDelimited(header, ';').Skip(1)) {
+                int equals = FindDelimiter(segment, '=');
+                if (equals <= 0 || !string.Equals(segment.Substring(0, equals), "ENCODING",
+                    StringComparison.OrdinalIgnoreCase)) continue;
+                foreach (string value in SplitDelimited(segment.Substring(equals + 1), ',')) {
+                    string encoding = Unquote(value);
+                    if (string.Equals(encoding, "QUOTED-PRINTABLE", StringComparison.OrdinalIgnoreCase) ||
+                        string.Equals(encoding, "QP", StringComparison.OrdinalIgnoreCase)) return true;
+                }
+            }
+        } catch (InvalidDataException) {
+            // A quoted parameter can span a regular folded physical line. Detection is retried after unfolding.
+        }
+        return false;
     }
 
     private static ContentLineProperty ParseProperty(string line, bool decodeRfc6868Parameters) {

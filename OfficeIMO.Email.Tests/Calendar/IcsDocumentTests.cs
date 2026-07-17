@@ -189,6 +189,27 @@ public sealed class IcsDocumentTests {
         Assert.False(IcsTemporalValue.TryParse(unsupported, out _));
     }
 
+    [Fact]
+    public void TemporalParserAndValidationRejectMalformedSingletonParameters() {
+        var document = new IcsDocument();
+        ContentLineComponent appointment = document.Calendars.Single().AddComponent("VEVENT");
+        ContentLineProperty repeatedValue = appointment.AddProperty("DTSTART", "20260717T090000");
+        repeatedValue.Parameters.Add(new ContentLineParameter("VALUE", "DATE-TIME"));
+        repeatedValue.Parameters.Add(new ContentLineParameter("VALUE", "DATE-TIME"));
+        ContentLineProperty emptyTimeZone = appointment.AddProperty("DTEND", "20260717T100000");
+        emptyTimeZone.Parameters.Add(new ContentLineParameter("TZID", string.Empty));
+
+        Assert.False(IcsTemporalValue.TryParse(repeatedValue, out _));
+        Assert.False(IcsTemporalValue.TryParse(emptyTimeZone, out _));
+        ContentLineValidationIssue[] issues = document.Validate().ToArray();
+        Assert.Contains(issues, issue => issue.Code == "ICAL_TEMPORAL_VALUE_INVALID" &&
+            issue.PropertyName == "DTSTART");
+        Assert.Contains(issues, issue => issue.Code == "ICAL_TEMPORAL_VALUE_INVALID" &&
+            issue.PropertyName == "DTEND");
+        Assert.Contains(issues, issue => issue.Code == "ICAL_PARAMETER_CARDINALITY" &&
+            issue.PropertyName == "DTEND");
+    }
+
     [Theory]
     [InlineData("20260717T0930Z")]
     [InlineData("20260717T0930")]

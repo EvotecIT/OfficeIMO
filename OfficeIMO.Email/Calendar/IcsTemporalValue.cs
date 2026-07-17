@@ -65,8 +65,8 @@ public readonly struct IcsTemporalValue : IEquatable<IcsTemporalValue> {
         value = default;
         if (property == null) return false;
         string text = property.Value;
-        string? valueType = property.GetParameter("VALUE")?.Values.FirstOrDefault();
-        string? timeZoneId = property.GetParameter("TZID")?.Values.FirstOrDefault();
+        if (!TryGetOptionalSingletonParameter(property, "VALUE", out string? valueType) ||
+            !TryGetOptionalSingletonParameter(property, "TZID", out string? timeZoneId)) return false;
         if (valueType != null && !string.Equals(valueType, "DATE", StringComparison.OrdinalIgnoreCase) &&
             !string.Equals(valueType, "DATE-TIME", StringComparison.OrdinalIgnoreCase)) return false;
         if (string.Equals(valueType, "DATE", StringComparison.OrdinalIgnoreCase)) {
@@ -135,6 +135,18 @@ public readonly struct IcsTemporalValue : IEquatable<IcsTemporalValue> {
             if (string.Equals(property.Parameters[index].Name, name, StringComparison.OrdinalIgnoreCase))
                 property.Parameters.RemoveAt(index);
         }
+    }
+
+    private static bool TryGetOptionalSingletonParameter(ContentLineProperty property, string name,
+        out string? value) {
+        value = null;
+        ContentLineParameter[] parameters = property.Parameters.Where(parameter =>
+            string.Equals(parameter.Name, name, StringComparison.OrdinalIgnoreCase)).ToArray();
+        if (parameters.Length == 0) return true;
+        if (parameters.Length != 1 || parameters[0].Values.Count != 1 ||
+            string.IsNullOrWhiteSpace(parameters[0].Values[0])) return false;
+        value = parameters[0].Values[0];
+        return true;
     }
 
     private static bool TryParseDate(string text, out DateTime value) {
