@@ -51,6 +51,38 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PptxOutput_StripsVbaWithoutMutatingBinaryModel() {
+            byte[] projectBytes = CreateVbaTestProject("PptxModule",
+                "Sub PptxExport()\nEnd Sub");
+            byte[] binary;
+            using (PowerPointPresentation created =
+                   PowerPointPresentation.Create()) {
+                created.AddSlide().AddTitle("Macro source");
+                SetVbaProject(created, projectBytes);
+                binary = created.ToBytes(PowerPointFileFormat.Ppt);
+            }
+
+            using var input = new MemoryStream(binary);
+            using PowerPointPresentation imported =
+                PowerPointPresentation.Load(input);
+            byte[] pptx = imported.ToBytes(PowerPointFileFormat.Pptx);
+
+            using (var package = new MemoryStream(pptx, writable: false))
+            using (PresentationDocument document =
+                   PresentationDocument.Open(package, false)) {
+                Assert.Equal(PresentationDocumentType.Presentation,
+                    document.DocumentType);
+                Assert.Null(document.PresentationPart!.VbaProjectPart);
+            }
+            Assert.Equal(projectBytes, ReadVbaProject(imported));
+            byte[] binaryAfterPptxExport = imported.ToBytes(
+                PowerPointFileFormat.Ppt);
+            Assert.Equal(projectBytes, Assert.IsType<LegacyPptVbaProject>(
+                LegacyPptPresentation.Load(binaryAfterPptxExport)
+                    .VbaProject).GetBytes());
+        }
+
+        [Fact]
         public void ImportedVbaProject_ReplacementAndRemovalUseIncrementalPersistRecords() {
             byte[] originalProject = CreateVbaTestProject("OriginalModule",
                 "Sub Original()\nEnd Sub");

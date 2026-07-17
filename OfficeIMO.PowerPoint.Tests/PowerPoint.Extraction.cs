@@ -92,6 +92,32 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ExtractMarkdownChunks_DoesNotSplitSurrogatePairAtLimit() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            const string Emoji = "\U0001F600";
+            slide.AddTextBox(new string('A', 400) + Emoji + " after");
+            string complete = presentation.ExtractMarkdownChunks()
+                .Single().Markdown;
+            int emojiOffset = complete.IndexOf(Emoji,
+                StringComparison.Ordinal);
+            Assert.True(emojiOffset >= 0);
+
+            string truncated = presentation.ExtractMarkdownChunks(
+                chunking: new PowerPointExtractChunkingOptions {
+                    MaxChars = emojiOffset + 1
+                }).Single().Markdown;
+
+            Assert.DoesNotContain("\uD83D", truncated,
+                StringComparison.Ordinal);
+            Assert.DoesNotContain("\uDE00", truncated,
+                StringComparison.Ordinal);
+            Assert.Contains("<!-- truncated -->", truncated,
+                StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void ExtractMarkdownChunks_PreservesParagraphSemanticsLinksAndShapeOrder() {
             using PowerPointPresentation presentation = PowerPointPresentation.Create();
             PowerPointSlide slide = presentation.AddSlide();

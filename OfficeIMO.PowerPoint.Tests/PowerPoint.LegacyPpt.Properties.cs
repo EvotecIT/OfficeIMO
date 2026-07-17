@@ -207,6 +207,34 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ImportedPropertyEdit_WithDelimiterCollisionIsPersisted() {
+            byte[] sourceBytes;
+            using (PowerPointPresentation created =
+                   PowerPointPresentation.Create()) {
+                created.AddSlide();
+                created.BuiltinDocumentProperties.Creator = "a|b";
+                created.BuiltinDocumentProperties.Title = "c";
+                sourceBytes = created.ToBytes(PowerPointFileFormat.Ppt);
+            }
+
+            byte[] savedBytes;
+            using (var input = new MemoryStream(sourceBytes))
+            using (PowerPointPresentation imported =
+                   PowerPointPresentation.Load(input)) {
+                imported.BuiltinDocumentProperties.Creator = "a";
+                imported.BuiltinDocumentProperties.Title = "b|c";
+                savedBytes = imported.ToBytes(PowerPointFileFormat.Ppt);
+            }
+
+            Assert.NotEqual(sourceBytes, savedBytes);
+            using var reopenedInput = new MemoryStream(savedBytes);
+            using PowerPointPresentation reopened =
+                PowerPointPresentation.Load(reopenedInput);
+            Assert.Equal("a", reopened.BuiltinDocumentProperties.Creator);
+            Assert.Equal("b|c", reopened.BuiltinDocumentProperties.Title);
+        }
+
+        [Fact]
         public void ImportedUnknownProperty_IsPreservedForUnrelatedEditsAndBlocksMetadataLoss() {
             byte[] sourceBytes;
             using (PowerPointPresentation created =

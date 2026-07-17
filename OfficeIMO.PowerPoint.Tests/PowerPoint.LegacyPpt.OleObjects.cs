@@ -441,6 +441,43 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void EmbeddedOleObject_UpdateDetachesSharedPart() {
+            byte[] originalStorage = CreateOleTestStorage("Shared OLE");
+            byte[] replacementStorage = CreateOleTestStorage("Detached OLE");
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            PowerPointSlide slide = presentation.AddSlide(
+                P.SlideLayoutValues.Blank);
+            using var source = new MemoryStream(originalStorage,
+                writable: false);
+            PowerPointOleObject first = slide.AddOleObject(source,
+                "Package");
+            PowerPointOleObject second = Assert.IsType<PowerPointOleObject>(
+                first.Duplicate(12700L, 12700L));
+            P.OleObject firstDefinition = ((P.GraphicFrame)first.Element)
+                .Graphic!.GraphicData!.GetFirstChild<P.OleObject>()!;
+            P.OleObject secondDefinition = ((P.GraphicFrame)second.Element)
+                .Graphic!.GraphicData!.GetFirstChild<P.OleObject>()!;
+            string secondRelationshipId = secondDefinition.Id!.Value!;
+            secondDefinition.Id = firstDefinition.Id!.Value!;
+            slide.SlidePart.DeletePart(secondRelationshipId);
+            Assert.Single(slide.SlidePart
+                .GetPartsOfType<EmbeddedObjectPart>());
+
+            using var replacement = new MemoryStream(replacementStorage,
+                writable: false);
+            second.UpdateData(replacement);
+
+            Assert.Equal(originalStorage, first.GetData());
+            Assert.Equal(replacementStorage, second.GetData());
+            Assert.NotEqual(firstDefinition.Id!.Value,
+                secondDefinition.Id!.Value);
+            Assert.Equal(2, slide.SlidePart
+                .GetPartsOfType<EmbeddedObjectPart>().Count());
+            Assert.Empty(presentation.ValidateDocument());
+        }
+
+        [Fact]
         public void CompressedEmbeddedOleObject_ImportsAndRemainsExactAcrossUnrelatedEdit() {
             byte[] storageBytes = CreateOleTestStorage("Compressed OLE");
             byte[] uncompressedBytes;

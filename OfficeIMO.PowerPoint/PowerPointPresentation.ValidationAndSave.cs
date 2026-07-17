@@ -223,7 +223,8 @@ namespace OfficeIMO.PowerPoint {
             _discardChangesOnDispose = false;
         }
 
-        private byte[] CreatePackageBytesForSave() {
+        private byte[] CreatePackageBytesForSave(
+            bool preserveVbaProject = false) {
             ThrowIfDisposed();
             if (AccessMode == DocumentAccessMode.ReadOnly) {
                 throw new InvalidOperationException("The presentation is read-only and cannot be saved.");
@@ -237,7 +238,22 @@ namespace OfficeIMO.PowerPoint {
             _document!.Save();
 
             using var packageStream = new MemoryStream();
-            using (var clone = _document.Clone(packageStream)) {
+            using (PresentationDocument clone = _document.Clone(
+                       packageStream)) {
+                if (!preserveVbaProject) {
+                    PresentationPart? presentationPart = clone
+                        .PresentationPart;
+                    if (presentationPart?.VbaProjectPart != null) {
+                        presentationPart.DeletePart(
+                            presentationPart.VbaProjectPart);
+                    }
+                    if (clone.DocumentType
+                        != PresentationDocumentType.Presentation) {
+                        clone.ChangeDocumentType(
+                            PresentationDocumentType.Presentation);
+                    }
+                    clone.Save();
+                }
                 // Dispose finalizes the cloned package before its bytes are committed.
             }
             return packageStream.ToArray();

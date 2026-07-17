@@ -156,7 +156,8 @@ namespace OfficeIMO.PowerPoint {
                 LegacyPptPropertySetCodec.Apply(projected, legacy.Package);
             }
 
-            byte[] packageBytes = projected.ToBytes();
+            byte[] packageBytes = projected.CreatePackageBytesForSave(
+                preserveVbaProject: true);
             cancellationToken.ThrowIfCancellationRequested();
             if (legacy.VbaProject != null) {
                 packageBytes = ConvertProjectedVbaPackageToMacroEnabled(

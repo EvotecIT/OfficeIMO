@@ -85,14 +85,23 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             reason = null;
             try {
                 byte[] recordBytes = record.CopyRecordBytes();
+                OfficeArchiveSafety.ZipCentralDirectoryScanResult directory =
+                    OfficeArchiveSafety.ScanZipCentralDirectory(recordBytes,
+                        8, record.PayloadLength,
+                        MaximumRoundTripThemeEntryCount);
+                if (!directory.IsValid) {
+                    reason = directory.Error
+                        ?? "the embedded package has a malformed central directory.";
+                    return false;
+                }
+                if (directory.LimitExceeded) {
+                    reason = "the embedded package contains too many entries.";
+                    return false;
+                }
                 using var stream = new MemoryStream(recordBytes, 8,
                     record.PayloadLength, writable: false);
                 using var archive = new ZipArchive(stream, ZipArchiveMode.Read,
                     leaveOpen: false);
-                if (archive.Entries.Count > MaximumRoundTripThemeEntryCount) {
-                    reason = "the embedded package contains too many entries.";
-                    return false;
-                }
                 long totalUncompressedLength = 0;
                 foreach (ZipArchiveEntry entry in archive.Entries) {
                     string name = OfficeArchiveSafety.NormalizeEntryName(

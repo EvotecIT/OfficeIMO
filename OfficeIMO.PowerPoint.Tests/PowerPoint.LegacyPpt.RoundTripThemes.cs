@@ -381,6 +381,32 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void BinaryImport_RejectsRoundTripThemeEntryCountBeforeOpeningEntries() {
+            LegacyPptPresentation source = LegacyPptPresentation.Load(
+                AccessibilityFixture);
+            byte[] document = source.Package.DocumentStream.ToArray();
+            int recordOffset = FindRoundTripThemeRecord(document);
+            Assert.True(recordOffset >= 0);
+            int payloadLength = ReadInt32(document, recordOffset + 4);
+            byte[] oversizedDirectory = CreateThemeArchive(
+                entryCount: 65, payloadLength);
+            Buffer.BlockCopy(oversizedDirectory, 0, document,
+                recordOffset + 8, payloadLength);
+            byte[] guarded = source.Package.RewriteCompoundStreams(
+                new Dictionary<string, byte[]> {
+                    ["PowerPoint Document"] = document
+                });
+
+            LegacyPptPresentation decoded = LegacyPptPresentation.Load(
+                guarded);
+
+            Assert.Contains(decoded.Diagnostics, diagnostic =>
+                diagnostic.Code == "PPT-ROUNDTRIP-THEME-INVALID"
+                && diagnostic.Message.Contains("too many entries",
+                    StringComparison.OrdinalIgnoreCase));
+        }
+
+        [Fact]
         public void NativeWriter_RoundTripsNotesPageThemeOverride() {
             byte[] bytes = CreateNotesThemeOverrideBytes(
                 accent6: "C0FFEE", accent1: "123456",
@@ -593,5 +619,48 @@ namespace OfficeIMO.Tests {
             }
             return -1;
         }
+
+        private static byte[] CreateThemeArchive(int entryCount,
+            int targetLength) {
+            const uint LocalFileHeaderSignature = 0x04034B50U;
+            const uint CentralDirectoryHeaderSignature = 0x02014B50U;
+            const uint EndOfCentralDirectorySignature = 0x06054B50U;
+            using var output = new MemoryStream();
+            using (var writer = new BinaryWriter(output,
+                       Encoding.UTF8, leaveOpen: true)) {
+                writer.Write(LocalFileHeaderSignature);
+                writer.Write(new byte[26]);
+                int centralDirectoryOffset = checked((int)output.Position);
+                for (int index = 0; index < entryCount; index++) {
+                    writer.Write(CentralDirectoryHeaderSignature);
+                    writer.Write(new byte[42]);
+                }
+                int centralDirectorySize = checked((int)output.Position)
+                    - centralDirectoryOffset;
+                writer.Write(EndOfCentralDirectorySignature);
+                writer.Write((ushort)0);
+                writer.Write((ushort)0);
+                writer.Write(checked((ushort)entryCount));
+                writer.Write(checked((ushort)entryCount));
+                writer.Write(checked((uint)centralDirectorySize));
+                writer.Write(checked((uint)centralDirectoryOffset));
+                writer.Write((ushort)0);
+            }
+            byte[] bytes = output.ToArray();
+            int commentLength = targetLength - bytes.Length;
+            Assert.InRange(commentLength, 0, ushort.MaxValue);
+            int endOfCentralDirectory = bytes.Length - 22;
+            Array.Resize(ref bytes, targetLength);
+            bytes[endOfCentralDirectory + 20] = (byte)commentLength;
+            bytes[endOfCentralDirectory + 21] =
+                (byte)(commentLength >> 8);
+            return bytes;
+        }
+
+        private static int ReadInt32(byte[] bytes, int offset) =>
+            bytes[offset]
+            | bytes[offset + 1] << 8
+            | bytes[offset + 2] << 16
+            | bytes[offset + 3] << 24;
     }
 }

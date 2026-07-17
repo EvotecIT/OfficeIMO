@@ -1,5 +1,7 @@
 using System;
 using System.IO;
+using System.Linq;
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Drawing.Internal;
 using P = DocumentFormat.OpenXml.Presentation;
@@ -107,7 +109,45 @@ namespace OfficeIMO.PowerPoint {
             }
             using var source = new MemoryStream(storageBytes,
                 writable: false);
-            EmbeddedPart.FeedData(source);
+            EmbeddedObjectPart embeddedPart = EmbeddedPart;
+            if (IsSharedOutsideThisFrame(embeddedPart)) {
+                ReplaceSharedEmbeddedPart(embeddedPart, source);
+                return;
+            }
+            embeddedPart.FeedData(source);
+        }
+
+        private bool IsSharedOutsideThisFrame(
+            EmbeddedObjectPart embeddedPart) {
+            int localConsumers = _slidePart.RootElement?
+                .Descendants<P.OleObject>()
+                .Count(candidate => {
+                    string? relationshipId = candidate.Id?.Value;
+                    return relationshipId != null
+                        && relationshipId.Length != 0
+                        && _slidePart.TryGetPartById(relationshipId,
+                            out OpenXmlPart? target)
+                        && ReferenceEquals(target, embeddedPart);
+                }) ?? 0;
+            if (localConsumers > 1) return true;
+            return embeddedPart.GetParentParts().Any(parent =>
+                !ReferenceEquals(parent, _slidePart));
+        }
+
+        private void ReplaceSharedEmbeddedPart(EmbeddedObjectPart original,
+            Stream replacement) {
+            EmbeddedObjectPart detached = _slidePart
+                .AddEmbeddedObjectPart(original.ContentType);
+            try {
+                detached.FeedData(replacement);
+                OleObject.Id = _slidePart.GetIdOfPart(detached);
+            } catch {
+                if (_slidePart.Parts.Any(pair =>
+                        ReferenceEquals(pair.OpenXmlPart, detached))) {
+                    _slidePart.DeletePart(detached);
+                }
+                throw;
+            }
         }
 
         internal static bool TryValidateStorage(byte[] storageBytes,

@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
 using DocumentFormat.OpenXml;
@@ -86,23 +87,26 @@ namespace OfficeIMO.PowerPoint {
 
             if (includePackageProperties) {
                 var properties = document.PackageProperties;
-                content.Append("|core|")
-                    .Append(properties.Creator).Append('|')
-                    .Append(properties.Title).Append('|')
-                    .Append(properties.Description).Append('|')
-                    .Append(properties.Category).Append('|')
-                    .Append(properties.ContentStatus).Append('|')
-                    .Append(properties.ContentType).Append('|')
-                    .Append(properties.Identifier).Append('|')
-                    .Append(properties.Keywords).Append('|')
-                    .Append(properties.Language).Append('|')
-                    .Append(properties.Subject).Append('|')
-                    .Append(properties.Revision).Append('|')
-                    .Append(properties.LastModifiedBy).Append('|')
-                    .Append(properties.Version).Append('|')
-                    .Append(properties.Created?.ToUniversalTime().Ticks).Append('|')
-                    .Append(properties.Modified?.ToUniversalTime().Ticks).Append('|')
-                    .Append(properties.LastPrinted?.ToUniversalTime().Ticks);
+                content.Append("|core|");
+                AppendPackageProperty(content, "Creator", properties.Creator);
+                AppendPackageProperty(content, "Title", properties.Title);
+                AppendPackageProperty(content, "Description", properties.Description);
+                AppendPackageProperty(content, "Category", properties.Category);
+                AppendPackageProperty(content, "ContentStatus", properties.ContentStatus);
+                AppendPackageProperty(content, "ContentType", properties.ContentType);
+                AppendPackageProperty(content, "Identifier", properties.Identifier);
+                AppendPackageProperty(content, "Keywords", properties.Keywords);
+                AppendPackageProperty(content, "Language", properties.Language);
+                AppendPackageProperty(content, "Subject", properties.Subject);
+                AppendPackageProperty(content, "Revision", properties.Revision);
+                AppendPackageProperty(content, "LastModifiedBy", properties.LastModifiedBy);
+                AppendPackageProperty(content, "Version", properties.Version);
+                AppendPackageProperty(content, "Created", properties.Created?
+                    .ToUniversalTime().Ticks.ToString(CultureInfo.InvariantCulture));
+                AppendPackageProperty(content, "Modified", properties.Modified?
+                    .ToUniversalTime().Ticks.ToString(CultureInfo.InvariantCulture));
+                AppendPackageProperty(content, "LastPrinted", properties.LastPrinted?
+                    .ToUniversalTime().Ticks.ToString(CultureInfo.InvariantCulture));
             }
 
             using SHA256 sha = SHA256.Create();
@@ -112,6 +116,14 @@ namespace OfficeIMO.PowerPoint {
         private static void CollectParts(OpenXmlPart part, ISet<OpenXmlPart> parts) {
             if (!parts.Add(part)) return;
             foreach (IdPartPair child in part.Parts) CollectParts(child.OpenXmlPart, parts);
+        }
+
+        private static void AppendPackageProperty(StringBuilder content,
+            string name, string? value) {
+            string resolved = value ?? string.Empty;
+            content.Append(name.Length).Append(':').Append(name)
+                .Append('=').Append(resolved.Length).Append(':')
+                .Append(resolved).Append(';');
         }
     }
 }

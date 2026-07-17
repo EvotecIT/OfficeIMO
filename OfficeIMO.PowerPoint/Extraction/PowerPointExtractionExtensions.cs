@@ -81,7 +81,14 @@ public static class PowerPointExtractionExtensions {
 
             var markdown = NormalizeLineEndings(md.ToString()).TrimEnd();
             if (markdown.Length > chunking.MaxChars) {
-                markdown = markdown.Substring(0, chunking.MaxChars) + "\n\n<!-- truncated -->";
+                int truncationLength = chunking.MaxChars;
+                if (truncationLength > 0
+                    && char.IsHighSurrogate(markdown[truncationLength - 1])
+                    && char.IsLowSurrogate(markdown[truncationLength])) {
+                    truncationLength--;
+                }
+                markdown = markdown.Substring(0, truncationLength)
+                    + "\n\n<!-- truncated -->";
                 warnings = new List<string> { "Markdown truncated to MaxChars." };
             }
 
