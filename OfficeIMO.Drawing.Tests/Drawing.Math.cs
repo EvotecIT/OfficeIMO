@@ -103,10 +103,10 @@ public class DrawingMathTests {
 
     [Fact]
     public void LatexSerializerEscapesTextWithoutTurningItIntoScripts() {
-        OfficeMathExpression expression = OfficeMath.Text(@"literal x_y^z\{#%&}");
+        OfficeMathExpression expression = OfficeMath.Text(@"literal x_y^z\{#%&$~}");
         string latex = OfficeMathMarkup.ToLatex(expression);
 
-        Assert.Contains(@"\text{literal x\_y\^z\backslash \{\#\%\&\}}", latex, StringComparison.Ordinal);
+        Assert.Contains(@"\text{literal x\_y\^z\backslash \{\#\%\&\$\textasciitilde \}}", latex, StringComparison.Ordinal);
         Assert.Equal(expression, OfficeMathMarkup.FromLatex(latex));
     }
 
@@ -115,18 +115,33 @@ public class DrawingMathTests {
         OfficeMathExpression[] expressions = {
             OfficeMath.Identifier("x_y"),
             OfficeMath.Identifier("123"),
+            OfficeMath.Identifier("x y"),
             OfficeMath.Number("-1.5e+2"),
             OfficeMath.Number("NaN"),
+            OfficeMath.Number("1 2"),
             OfficeMath.Operator("=>"),
             OfficeMath.Operator("_"),
             OfficeMath.Operator("∑"),
+            OfficeMath.Operator("&"),
+            OfficeMath.Operator("%"),
+            OfficeMath.Operator("#"),
+            OfficeMath.Operator("$"),
+            OfficeMath.Operator("~"),
+            OfficeMath.Operator("\\"),
+            OfficeMath.Operator("{"),
+            OfficeMath.Operator("}"),
             OfficeMath.Function("log_2", OfficeMath.Identifier("x")),
             OfficeMath.Function("sum", OfficeMath.Identifier("x")),
-            OfficeMath.Function("custom", OfficeMath.Identifier("x"))
+            OfficeMath.Function("custom", OfficeMath.Identifier("x")),
+            OfficeMath.Function("log base", OfficeMath.Identifier("x")),
+            OfficeMath.Matrix(1, 1, OfficeMath.Operator("&"))
         };
 
-        Assert.All(expressions, expression =>
-            Assert.Equal(expression, OfficeMathMarkup.FromLatex(OfficeMathMarkup.ToLatex(expression))));
+        Assert.All(expressions, expression => {
+            string latex = OfficeMathMarkup.ToLatex(expression);
+            Assert.DoesNotContain("officeimo", latex, StringComparison.OrdinalIgnoreCase);
+            Assert.Equal(expression, OfficeMathMarkup.FromLatex(latex));
+        });
     }
 
     [Fact]
