@@ -1,8 +1,11 @@
 using System;
 using System.IO;
 using System.Linq;
+using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel;
 using Xunit;
+using TableStyle = OfficeIMO.Excel.TableStyle;
 
 namespace OfficeIMO.Tests {
     public partial class Excel {
@@ -209,6 +212,86 @@ namespace OfficeIMO.Tests {
             Assert.Equal(256, options.MaximumDependencyDepth);
             Assert.Throws<ArgumentOutOfRangeException>(() => options.MaximumDependencyDepth = 0);
             Assert.Equal(256, options.MaximumDependencyDepth);
+        }
+
+        [Fact]
+        public void Test_FormulaInspection_ExpandsSharedFormulaFollowers() {
+            string filePath = Path.Combine(_directoryWithFiles, "ExcelFormulaDepth.Shared.xlsx");
+
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorksheet("Shared");
+                sheet.CellValue(1, 1, 1d);
+                sheet.CellValue(2, 1, 2d);
+                sheet.CellFormula(1, 2, "SUM(A1,$A1,A$1,$A$1)");
+                sheet.CellFormula(1, 3, "SUM(B1,$A1,B$1,$A$1)");
+                sheet.CellFormula(2, 2, "SUM(A2,$A2,A$1,$A$1)");
+                sheet.CellFormula(2, 3, "SUM(B2,$A2,B$1,$A$1)");
+                Assert.Equal(4, document.Calculate());
+                document.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, true)) {
+                Worksheet worksheet = spreadsheet.WorkbookPart!.WorksheetParts.Single().Worksheet;
+                Cell[] formulaCells = worksheet.Descendants<Cell>()
+                    .Where(cell => cell.CellFormula != null)
+                    .ToArray();
+                Cell master = Assert.Single(formulaCells, cell => cell.CellReference?.Value == "B1");
+                master.CellFormula = new CellFormula("SUM(A1,$A1,A$1,$A$1)") {
+                    FormulaType = CellFormulaValues.Shared,
+                    SharedIndex = 0U,
+                    Reference = "B1:C2"
+                };
+                foreach (Cell follower in formulaCells.Where(cell => cell != master)) {
+                    follower.CellFormula = new CellFormula {
+                        FormulaType = CellFormulaValues.Shared,
+                        SharedIndex = 0U
+                    };
+                }
+                worksheet.Save();
+            }
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath)) {
+                ExcelSheet sheet = document.Sheets[0];
+                Assert.Equal("SUM(A1,$A1,A$1,$A$1)", sheet.GetFormulaText(1, 2));
+                Assert.Equal("SUM(B1,$A1,B$1,$A$1)", sheet.GetFormulaText(1, 3));
+                Assert.Equal("SUM(A2,$A2,A$1,$A$1)", sheet.GetFormulaText(2, 2));
+                Assert.Equal("SUM(B2,$A2,B$1,$A$1)", sheet.GetFormulaText(2, 3));
+
+                ExcelFormulaInspection inspection = document.InspectFormulas();
+                Assert.Equal(4, inspection.Formulas.Count);
+                Assert.All(inspection.Formulas, formula => Assert.True(formula.IsSupportedByOfficeIMO));
+                Assert.Equal(new[] { "Shared!A1" }, Assert.Single(inspection.Formulas, formula => formula.CellReference == "B1").Dependencies);
+                Assert.Contains("Shared!B2", Assert.Single(inspection.Formulas, formula => formula.CellReference == "C2").Dependencies);
+
+                Assert.Equal(4, document.Calculate());
+                Assert.True(sheet.TryGetCachedFormulaValue(1, 3, out string? cachedC1));
+                Assert.Equal("10", cachedC1);
+                Assert.True(sheet.TryGetCachedFormulaValue(2, 3, out string? cachedC2));
+                Assert.Equal("13", cachedC2);
+                Assert.Empty(document.ValidateOpenXml());
+            }
+        }
+
+        [Fact]
+        public void Test_FormulaDependencyGraph_DoesNotTreatExternalOrThreeDimensionalReferencesAsLocal() {
+            using ExcelDocument document = ExcelDocument.Create();
+            ExcelSheet data = document.AddWorksheet("Data");
+            data.CellValue(1, 1, 10d);
+            ExcelSheet first = document.AddWorksheet("First");
+            first.CellValue(1, 1, 20d);
+            ExcelSheet last = document.AddWorksheet("Last");
+            last.CellValue(1, 1, 30d);
+            ExcelSheet tokens = document.AddWorksheet("Tokens");
+            tokens.CellFormula(1, 1, "[Other.xlsx]Data!A1+First:Last!A1+'First:Last'!A1");
+            document.SetNamedRange("Data", "Data!A1", save: false);
+            document.SetNamedRange("First", "First!A1", save: false);
+
+            ExcelFormulaDependencyGraph graph = document.InspectFormulas().DependencyGraph;
+            ExcelFormulaDependencyNode node = Assert.IsType<ExcelFormulaDependencyNode>(graph.FindNode("Tokens", "A1"));
+            Assert.Empty(node.Dependencies);
+            Assert.Empty(node.FormulaDependencies);
+            Assert.Equal(0, graph.EdgeCount);
+            Assert.False(graph.HasCircularReferences);
         }
     }
 }

@@ -135,17 +135,14 @@ namespace OfficeIMO.Excel {
                 return null;
             }
 
-            int sourceColumn = 0;
-            for (int column = firstColumn; column <= lastColumn; column++) {
-                if (sourceSheet.TryGetCellText(firstRow, column, out string header)
-                    && string.Equals(header, sourceField, StringComparison.OrdinalIgnoreCase)) {
-                    sourceColumn = column;
-                    break;
-                }
-            }
-            if (sourceColumn == 0) {
+            List<string> normalizedHeaders = sourceSheet.BuildPivotHeaders(firstRow, firstColumn, lastColumn);
+            int sourceFieldIndex = normalizedHeaders.FindIndex(header =>
+                string.Equals(header, sourceField, StringComparison.OrdinalIgnoreCase));
+            if (sourceFieldIndex < 0) {
                 return false;
             }
+
+            int sourceColumn = firstColumn + sourceFieldIndex;
 
             bool foundDate = false;
             for (int row = firstRow + 1; row <= lastRow; row++) {

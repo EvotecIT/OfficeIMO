@@ -9,7 +9,7 @@ using System.Text;
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
 
-        private List<string> BuildPivotHeaders(int headerRow, int startColumn, int endColumn) {
+        internal List<string> BuildPivotHeaders(int headerRow, int startColumn, int endColumn) {
             var headers = new List<string>();
             var used = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             for (int col = startColumn; col <= endColumn; col++) {

@@ -139,5 +139,35 @@ namespace OfficeIMO.Tests {
 
             Assert.Throws<ArgumentException>(() => document.AddPivotTimelineCache("SalesPivot", "OrderDate"));
         }
+
+        [Fact]
+        public void Test_PivotTimelineCache_UsesNormalizedDuplicateAndBlankSourceHeaders() {
+            using ExcelDocument document = ExcelDocument.Create();
+            ExcelSheet sheet = document.AddWorksheet("Sales");
+            sheet.CellValue(1, 1, "Region");
+            sheet.CellValue(1, 2, "Date");
+            sheet.CellValue(1, 3, "Date");
+            sheet.CellValue(1, 5, "Amount");
+            sheet.CellValue(2, 1, "East");
+            sheet.CellValue(2, 2, "not a date");
+            sheet.CellValue(2, 3, new DateTime(2026, 1, 2));
+            sheet.CellValue(2, 4, new DateTime(2026, 2, 3));
+            sheet.CellValue(2, 5, 10d);
+            sheet.AddPivotTable(
+                sourceRange: "A1:E2",
+                destinationCell: "G2",
+                name: "SalesPivot",
+                rowFields: new[] { "Region" },
+                dataFields: new[] { new ExcelPivotDataField("Amount", DataConsolidateFunctionValues.Sum) });
+
+            document.AddPivotTimelineCache("SalesPivot", "Date_2");
+            document.AddPivotTimelineCache("SalesPivot", "Column4");
+
+            Assert.Equal(
+                new[] { "Column4", "Date_2" },
+                document.GetWorkbookTimelineCaches()
+                    .Select(cache => cache.SourceName)
+                    .OrderBy(name => name, StringComparer.OrdinalIgnoreCase));
+        }
     }
 }

@@ -124,6 +124,7 @@ namespace OfficeIMO.Excel {
                 string directReferenceFormula = MaskFormulaStructuredReferenceSegments(searchableFormula);
                 var dependencies = new HashSet<string>(FormulaReferenceRegex.Matches(directReferenceFormula)
                     .Cast<Match>()
+                    .Where(match => IsLocalFormulaReferenceMatch(searchableFormula, match))
                     .Select(match => match.Groups["reference"].Value)
                     .Where(reference => !string.IsNullOrWhiteSpace(reference))
                     .Select(NormalizeFormulaDependencyReference), StringComparer.OrdinalIgnoreCase);
@@ -231,7 +232,10 @@ namespace OfficeIMO.Excel {
             int index = match.Index;
             int end = index + alias.Length;
             bool validStart = index == 0
-                || (!IsFormulaAliasIdentifierCharacter(formula[index - 1]) && formula[index - 1] != '!');
+                || (!IsFormulaAliasIdentifierCharacter(formula[index - 1])
+                    && formula[index - 1] != '!'
+                    && formula[index - 1] != ']'
+                    && formula[index - 1] != ':');
             if (!validStart || IsInsideFormulaStructuredReference(formula, index)) {
                 return false;
             }
@@ -272,7 +276,10 @@ namespace OfficeIMO.Excel {
                 nextToken++;
             }
 
-            if (nextToken < formula.Length && (formula[nextToken] == '(' || formula[nextToken] == '!')) {
+            if (nextToken < formula.Length
+                && (formula[nextToken] == '('
+                    || formula[nextToken] == '!'
+                    || IsStartOfThreeDimensionalReference(formula, nextToken))) {
                 return false;
             }
 
@@ -295,6 +302,62 @@ namespace OfficeIMO.Excel {
 
         private static bool IsFormulaAliasIdentifierCharacter(char character) {
             return char.IsLetterOrDigit(character) || character == '_' || character == '.';
+        }
+
+        private static bool IsLocalFormulaReferenceMatch(string formula, Match match) {
+            if (!match.Success || match.Index < 0 || match.Index + match.Length > formula.Length) {
+                return false;
+            }
+
+            string originalToken = formula.Substring(match.Index, match.Length);
+            if (originalToken.IndexOf('[') >= 0 || originalToken.IndexOf(']') >= 0) {
+                return false;
+            }
+
+            if (match.Index > 0 && (formula[match.Index - 1] == ']' || formula[match.Index - 1] == ':')) {
+                return false;
+            }
+
+            string reference = match.Groups["reference"].Value;
+            int qualifierSeparator = reference.LastIndexOf('!');
+            if (qualifierSeparator > 0) {
+                string qualifier = reference.Substring(0, qualifierSeparator);
+                if (qualifier.IndexOf(':') >= 0 || qualifier.IndexOf('[') >= 0 || qualifier.IndexOf(']') >= 0) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        private static bool IsStartOfThreeDimensionalReference(string formula, int index) {
+            if (index >= formula.Length || formula[index] != ':') {
+                return false;
+            }
+
+            for (int cursor = index + 1; cursor < formula.Length; cursor++) {
+                char character = formula[cursor];
+                if (character == '!') {
+                    return true;
+                }
+                if (character == '+'
+                    || character == '-'
+                    || character == '*'
+                    || character == '/'
+                    || character == '^'
+                    || character == '&'
+                    || character == '='
+                    || character == '<'
+                    || character == '>'
+                    || character == ','
+                    || character == ';'
+                    || character == '('
+                    || character == ')') {
+                    return false;
+                }
+            }
+
+            return false;
         }
 
         private IReadOnlyList<string> GetFormulaDependencyIssues(string formula, string? sourceCellReference, IReadOnlyList<string> dependencies) {
@@ -335,7 +398,7 @@ namespace OfficeIMO.Excel {
                         issues.Add($"Dependency '{formattedDependencyCell}' is a formula without a cached result.");
                     }
 
-                    string dependencyFormula = dependencyCell.CellFormula!.Text ?? string.Empty;
+                    string dependencyFormula = dependencySheet.ResolveCellFormulaText(dependencyCell);
                     if (!TryEvaluateFormulaValue(dependencyFormula, out _)) {
                         issues.Add($"Dependency '{formattedDependencyCell}' contains a formula outside the lightweight evaluator support.");
                     }
