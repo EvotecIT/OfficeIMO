@@ -427,7 +427,9 @@ namespace OfficeIMO.Excel {
                         ? this
                         : new ExcelSheet(_excelDocument, _spreadSheetDocument, sheetElement) {
                             _formulaEvaluationCache = _formulaEvaluationCache,
-                            _formulaEvaluationStack = _formulaEvaluationStack
+                            _formulaEvaluationDepthCache = _formulaEvaluationDepthCache,
+                            _formulaEvaluationStack = _formulaEvaluationStack,
+                            _formulaEvaluationDepthFrames = _formulaEvaluationDepthFrames
                         };
                     return TryResolveTableReferenceRange(table, sections, out r1, out c1, out r2, out c2);
                 }
@@ -736,7 +738,9 @@ namespace OfficeIMO.Excel {
 
             sheet = new ExcelSheet(_excelDocument, _spreadSheetDocument, sheetElement) {
                 _formulaEvaluationCache = _formulaEvaluationCache,
-                _formulaEvaluationStack = _formulaEvaluationStack
+                _formulaEvaluationDepthCache = _formulaEvaluationDepthCache,
+                _formulaEvaluationStack = _formulaEvaluationStack,
+                _formulaEvaluationDepthFrames = _formulaEvaluationDepthFrames
             };
             return true;
         }
@@ -778,6 +782,12 @@ namespace OfficeIMO.Excel {
             if (cell?.CellFormula != null && _formulaEvaluationCache != null) {
                 if (TryEvaluateFormulaCellValue(cell, out FormulaArgumentValue formulaResult)) {
                     return formulaResult;
+                }
+
+                if (_formulaEvaluationDepthFrames != null
+                    && _formulaEvaluationDepthFrames.Count > 0
+                    && _formulaEvaluationDepthFrames.Peek().DependencyGuardBlocked) {
+                    return FormulaArgumentValue.UnresolvedFormula();
                 }
 
                 unresolvedFormula = true;

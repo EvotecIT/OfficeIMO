@@ -602,8 +602,10 @@ namespace OfficeIMO.Excel {
 
             var allParts = EnumeratePackageParts(_spreadSheetDocument).ToList();
             var vbaDetails = DescribePartsByUriOrContentType(allParts, "vbaProject");
-            var slicerDetails = DescribePartsByUriOrContentType(allParts, "slicer");
-            var timelineDetails = DescribePartsByUriOrContentType(allParts, "timeline");
+            var slicerDetails = DescribeParts(allParts, IsNativeSlicerPackagePart);
+            var timelineDetails = DescribeParts(allParts, IsNativeTimelinePackagePart);
+            var slicerBindingMetadataDetails = DescribeParts(allParts, IsSlicerBindingMetadataPart);
+            var timelineBindingMetadataDetails = DescribeParts(allParts, IsTimelineBindingMetadataPart);
             var externalLinkDetails = DescribePartsByUriOrContentType(allParts, "externalLink");
             var connectionDetails = DescribePartsByUriOrContentType(allParts, "connection")
                 .Concat(DescribePartsByUriOrContentType(allParts, "queryTable"))
@@ -625,9 +627,13 @@ namespace OfficeIMO.Excel {
             Add(features, "Compatibility", "VBA macros", ExcelFeatureSupportLevel.PartiallyEditable, vbaDetails.Count, null,
                 "VBA projects can be attached, hash-checked, inspected, extracted with byte limits, and removed; OfficeIMO does not edit VBA source or sign macro projects.", vbaDetails);
             Add(features, "Compatibility", "Slicers", ExcelFeatureSupportLevel.PartiallyEditable, slicerDetails.Count, null,
-                "Slicer cache metadata can be authored and preserved; full Excel UI slicer shape/materialization remains partial.", slicerDetails);
+                "Native Excel slicer parts can be inspected and preserved; native cache and UI authoring remains partial.", slicerDetails);
             Add(features, "Compatibility", "Timelines", ExcelFeatureSupportLevel.PartiallyEditable, timelineDetails.Count, null,
-                "Timeline cache metadata can be authored and preserved; full Excel UI timeline shape/materialization remains partial.", timelineDetails);
+                "Native Excel timeline parts can be inspected and preserved; native cache and UI authoring remains partial.", timelineDetails);
+            Add(features, "Compatibility", "Slicer binding metadata", ExcelFeatureSupportLevel.Editable, slicerBindingMetadataDetails.Count, null,
+                "OfficeIMO-owned pivot slicer binding metadata can be authored and read back, but it is not a native Excel slicer cache or UI object.", slicerBindingMetadataDetails);
+            Add(features, "Compatibility", "Timeline binding metadata", ExcelFeatureSupportLevel.Editable, timelineBindingMetadataDetails.Count, null,
+                "OfficeIMO-owned pivot timeline binding metadata can be authored and read back, but it is not a native Excel timeline cache or UI object.", timelineBindingMetadataDetails);
             Add(features, "Compatibility", "External workbook links", ExcelFeatureSupportLevel.Preserved, externalLinkDetails.Count + externalRelationshipDetails.Count, null,
                 "External relationships and workbook-link parts should be treated carefully during round trips.",
                 externalLinkDetails.Concat(externalRelationshipDetails).ToArray());
@@ -774,6 +780,17 @@ namespace OfficeIMO.Excel {
                 .Where(part =>
                     part.Uri.OriginalString.IndexOf(fragment, StringComparison.OrdinalIgnoreCase) >= 0
                     || part.ContentType.IndexOf(fragment, StringComparison.OrdinalIgnoreCase) >= 0)
+                .Select(DescribePart)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(detail => detail, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+        }
+
+        private static List<string> DescribeParts(IEnumerable<OpenXmlPart> parts, Func<OpenXmlPart, bool> predicate) {
+            if (predicate == null) throw new ArgumentNullException(nameof(predicate));
+
+            return parts
+                .Where(predicate)
                 .Select(DescribePart)
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .OrderBy(detail => detail, StringComparer.OrdinalIgnoreCase)

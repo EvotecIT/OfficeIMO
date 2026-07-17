@@ -9,8 +9,25 @@ namespace OfficeIMO.Excel {
         private const int MaxSupportedFormulaLength = 8192;
         private static readonly TimeSpan FormulaRegexTimeout = TimeSpan.FromSeconds(1);
         private Dictionary<string, FormulaArgumentValue>? _formulaEvaluationCache;
+        private Dictionary<string, int>? _formulaEvaluationDepthCache;
         private HashSet<string>? _formulaEvaluationStack;
+        private Stack<FormulaEvaluationDepthFrame>? _formulaEvaluationDepthFrames;
         private string? _formulaEvaluationCellReference;
+
+        private sealed class FormulaEvaluationDepthFrame {
+            internal int MaximumChildDepth { get; private set; }
+            internal bool DependencyGuardBlocked { get; private set; }
+
+            internal void IncludeChild(int depth) {
+                if (depth > MaximumChildDepth) {
+                    MaximumChildDepth = depth;
+                }
+            }
+
+            internal void BlockByDependencyGuard() {
+                DependencyGuardBlocked = true;
+            }
+        }
 
         private static readonly Regex SimpleFunctionFormulaRegex = new Regex(
             @"^\s*=?\s*(SUM|AVERAGE|AVERAGEA|MIN|MINA|MAX|MAXA|COUNT|COUNTA|COUNTBLANK|SUBTOTAL|COUNTIF|SUMIF|AVERAGEIF|COUNTIFS|SUMIFS|AVERAGEIFS|MINIFS|MAXIFS|PRODUCT|MEDIAN|LARGE|SMALL|MODE\.SNGL|MODE|GEOMEAN|HARMEAN|AVEDEV|DEVSQ|SUMXMY2|SUMX2MY2|SUMX2PY2|SUMSQ|SUMPRODUCT|STDEV\.S|STDEV\.P|VAR\.S|VAR\.P|PERCENTILE\.INC|PERCENTILE\.EXC|QUARTILE\.INC|QUARTILE\.EXC|PERCENTRANK\.INC|PERCENTRANK\.EXC|RANK\.EQ|RANK\.AVG|COVAR|COVARIANCE\.P|COVARIANCE\.S|CORREL|SLOPE|INTERCEPT|RSQ|FORECAST\.LINEAR|PMT|PV|FV|NPER|NPV|VLOOKUP|HLOOKUP|XLOOKUP|INDEX|MATCH|XMATCH|ABS|SIGN|ROUND|ROUNDUP|ROUNDDOWN|MROUND|TRUNC|INT|CEILING\.MATH|FLOOR\.MATH|CEILING|FLOOR|POWER|SQRT|LN|LOG10|EXP|PI|RADIANS|DEGREES|MOD|ROW|COLUMN|ROWS|COLUMNS|DATE|TIME|DATEVALUE|TIMEVALUE|TODAY|NOW|YEAR|MONTH|DAY|HOUR|MINUTE|SECOND|DATEDIF|YEARFRAC|EDATE|EOMONTH|DAYS|DAYS360|WEEKDAY|WEEKNUM|ISOWEEKNUM|NETWORKDAYS|WORKDAY\.INTL|WORKDAY|IF|IFS|SWITCH|CHOOSE|ISBLANK|ISNUMBER|ISTEXT|ISERROR|ISERR|ISNA|ISFORMULA|AND|OR|NOT|IFERROR|IFNA|CONCAT|CONCATENATE|TEXT|TEXTJOIN|TEXTBEFORE|TEXTAFTER|FORMULATEXT|LEFT|RIGHT|MID|LEN|TRIM|UPPER|LOWER|PROPER|SUBSTITUTE|FIND|SEARCH|VALUE|EXACT|REPT)\s*\((.*)\)\s*$",
@@ -88,9 +105,13 @@ namespace OfficeIMO.Excel {
                 MaterializePendingDirectCellValues();
 
                 var previousCache = _formulaEvaluationCache;
+                var previousDepthCache = _formulaEvaluationDepthCache;
                 var previousStack = _formulaEvaluationStack;
+                var previousDepthFrames = _formulaEvaluationDepthFrames;
                 _formulaEvaluationCache = new Dictionary<string, FormulaArgumentValue>(StringComparer.OrdinalIgnoreCase);
+                _formulaEvaluationDepthCache = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
                 _formulaEvaluationStack = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                _formulaEvaluationDepthFrames = new Stack<FormulaEvaluationDepthFrame>();
 
                 try {
                     foreach (var cell in WorksheetRoot.Descendants<Cell>().Where(c => c.CellFormula != null).ToList()) {
@@ -104,7 +125,9 @@ namespace OfficeIMO.Excel {
                     }
                 } finally {
                     _formulaEvaluationCache = previousCache;
+                    _formulaEvaluationDepthCache = previousDepthCache;
                     _formulaEvaluationStack = previousStack;
+                    _formulaEvaluationDepthFrames = previousDepthFrames;
                 }
 
                 if (count > 0) {
@@ -139,35 +162,71 @@ namespace OfficeIMO.Excel {
             string? previousCellReference = _formulaEvaluationCellReference;
             _formulaEvaluationCellReference = reference;
             try {
-                if (reference == null || _formulaEvaluationCache == null || _formulaEvaluationStack == null) {
+                if (reference == null
+                    || _formulaEvaluationCache == null
+                    || _formulaEvaluationDepthCache == null
+                    || _formulaEvaluationStack == null
+                    || _formulaEvaluationDepthFrames == null) {
                     return TryEvaluateFormulaValue(cell.CellFormula.Text ?? string.Empty, out result);
                 }
 
                 string cacheKey = GetFormulaEvaluationCacheKey(reference);
-                if (_formulaEvaluationCache.TryGetValue(cacheKey, out result)) {
+                if (_formulaEvaluationCache.TryGetValue(cacheKey, out FormulaArgumentValue cachedResult)) {
+                    if (!_formulaEvaluationDepthCache.TryGetValue(cacheKey, out int cachedDepth)
+                        || _formulaEvaluationStack.Count + cachedDepth > _excelDocument.Calculation.MaximumDependencyDepth) {
+                        BlockCurrentFormulaByDependencyGuard();
+                        return false;
+                    }
+
+                    if (_formulaEvaluationDepthFrames.Count > 0) {
+                        _formulaEvaluationDepthFrames.Peek().IncludeChild(cachedDepth);
+                    }
+
+                    result = cachedResult;
                     return true;
                 }
 
                 if (_formulaEvaluationStack.Count >= _excelDocument.Calculation.MaximumDependencyDepth) {
+                    BlockCurrentFormulaByDependencyGuard();
                     return false;
                 }
 
                 if (!_formulaEvaluationStack.Add(cacheKey)) {
+                    BlockCurrentFormulaByDependencyGuard();
                     return false;
                 }
 
+                var depthFrame = new FormulaEvaluationDepthFrame();
+                _formulaEvaluationDepthFrames.Push(depthFrame);
+                bool evaluated = false;
+                int evaluationDepth = 0;
                 try {
                     if (!TryEvaluateFormulaValue(cell.CellFormula.Text ?? string.Empty, out result)) {
                         return false;
                     }
 
+                    evaluationDepth = depthFrame.MaximumChildDepth + 1;
                     _formulaEvaluationCache[cacheKey] = result;
+                    _formulaEvaluationDepthCache[cacheKey] = evaluationDepth;
+                    evaluated = true;
                     return true;
                 } finally {
+                    _formulaEvaluationDepthFrames.Pop();
                     _formulaEvaluationStack.Remove(cacheKey);
+                    if (evaluated && _formulaEvaluationDepthFrames.Count > 0) {
+                        _formulaEvaluationDepthFrames.Peek().IncludeChild(evaluationDepth);
+                    } else if (depthFrame.DependencyGuardBlocked && _formulaEvaluationDepthFrames.Count > 0) {
+                        _formulaEvaluationDepthFrames.Peek().BlockByDependencyGuard();
+                    }
                 }
             } finally {
                 _formulaEvaluationCellReference = previousCellReference;
+            }
+        }
+
+        private void BlockCurrentFormulaByDependencyGuard() {
+            if (_formulaEvaluationDepthFrames != null && _formulaEvaluationDepthFrames.Count > 0) {
+                _formulaEvaluationDepthFrames.Peek().BlockByDependencyGuard();
             }
         }
 

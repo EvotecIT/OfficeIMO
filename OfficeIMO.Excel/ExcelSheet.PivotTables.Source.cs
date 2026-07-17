@@ -98,6 +98,8 @@ namespace OfficeIMO.Excel {
 
                 WorksheetSource worksheetSource = cacheDefinition.CacheSource.WorksheetSource
                     ?? cacheDefinition.CacheSource.AppendChild(new WorksheetSource());
+                worksheetSource.Name = null;
+                worksheetSource.Id = null;
                 worksheetSource.Sheet = sourceSheet.Name;
                 worksheetSource.Reference = normalizedSourceRange;
                 cacheDefinition.RecordCount = (uint)(lastRow - firstRow);

@@ -59,6 +59,8 @@ namespace OfficeIMO.Tests {
 
                 Assert.Equal("Expanded", source.Sheet!.Value);
                 Assert.Equal("A1:C5", source.Reference!.Value);
+                Assert.Null(source.Name);
+                Assert.Null(source.Id);
                 Assert.Equal(4U, cache.RecordCount!.Value);
                 Assert.True(cache.RefreshOnLoad!.Value);
                 Assert.False(cache.SaveData!.Value);
@@ -70,6 +72,52 @@ namespace OfficeIMO.Tests {
                 ExcelPivotTableInfo pivot = Assert.Single(document.GetPivotTables());
                 Assert.Equal("Expanded", pivot.SourceSheet);
                 Assert.Equal("A1:C5", pivot.SourceRange);
+                Assert.Empty(document.ValidateOpenXml());
+            }
+        }
+
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
+        public void Test_UpdatePivotTableSource_ClearsNamedAndExternalSourceAttributes(bool useNamedSource) {
+            string sourceKind = useNamedSource ? "Named" : "External";
+            string filePath = Path.Combine(_directoryWithFiles, $"ExcelPivotTable.UpdateSource.{sourceKind}.xlsx");
+
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet original = document.AddWorksheet("Original");
+                WritePivotSource(original, "Region", "Product", "Sales", 3);
+                original.AddPivotTable(
+                    sourceRange: "A1:C4",
+                    destinationCell: "E2",
+                    name: "SalesPivot",
+                    rowFields: new[] { "Region" },
+                    dataFields: new[] { new ExcelPivotDataField("Sales", DataConsolidateFunctionValues.Sum) });
+
+                PivotCacheDefinition cache = original.WorksheetPart.PivotTableParts
+                    .Single()
+                    .PivotTableCacheDefinitionPart!
+                    .PivotCacheDefinition!;
+                WorksheetSource source = cache.CacheSource!.WorksheetSource!;
+                source.Sheet = null;
+                source.Reference = null;
+                if (useNamedSource) {
+                    source.Name = "ExistingNamedSource";
+                } else {
+                    source.Id = "rIdExternalSource";
+                }
+
+                ExcelSheet expanded = document.AddWorksheet("Expanded");
+                WritePivotSource(expanded, "Region", "Product", "Sales", 4);
+                original.UpdatePivotTableSource("SalesPivot", expanded, "A1:C5");
+
+                Assert.Equal("Expanded", source.Sheet!.Value);
+                Assert.Equal("A1:C5", source.Reference!.Value);
+                Assert.Null(source.Name);
+                Assert.Null(source.Id);
+                document.Save();
+            }
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath, new ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(document.ValidateOpenXml());
             }
         }

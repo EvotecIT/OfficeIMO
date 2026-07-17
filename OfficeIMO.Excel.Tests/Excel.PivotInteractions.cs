@@ -56,8 +56,12 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("Slicer_Region", Assert.Single(document.GetWorkbookSlicerCaches()).Name);
                 Assert.Equal("SalesDateTimeline", Assert.Single(document.GetWorkbookTimelineCaches()).Name);
                 ExcelWorkbookSnapshot snapshot = document.CreateInspectionSnapshot();
-                Assert.True(snapshot.HasSlicers);
-                Assert.True(snapshot.HasTimelines);
+                Assert.False(snapshot.HasSlicers);
+                Assert.False(snapshot.HasTimelines);
+                Assert.Equal(1, snapshot.SlicerBindingMetadataPartCount);
+                Assert.Equal(1, snapshot.TimelineBindingMetadataPartCount);
+                Assert.True(snapshot.HasSlicerBindingMetadata);
+                Assert.True(snapshot.HasTimelineBindingMetadata);
                 Assert.Empty(document.ValidateOpenXml());
             }
 

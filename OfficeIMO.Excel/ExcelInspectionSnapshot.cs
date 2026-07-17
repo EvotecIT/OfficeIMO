@@ -61,6 +61,18 @@ namespace OfficeIMO.Excel {
         public int TimelinePartCount { get; internal set; }
 
         /// <summary>
+        /// Number of OfficeIMO-owned slicer binding metadata parts discovered during inspection.
+        /// These parts are not native Excel slicer caches or UI objects.
+        /// </summary>
+        public int SlicerBindingMetadataPartCount { get; internal set; }
+
+        /// <summary>
+        /// Number of OfficeIMO-owned timeline binding metadata parts discovered during inspection.
+        /// These parts are not native Excel timeline caches or UI objects.
+        /// </summary>
+        public int TimelineBindingMetadataPartCount { get; internal set; }
+
+        /// <summary>
         /// Number of package parts related to workbook connections discovered during inspection.
         /// </summary>
         public int ConnectionPartCount { get; internal set; }
@@ -79,6 +91,16 @@ namespace OfficeIMO.Excel {
         /// Whether timeline package parts were discovered.
         /// </summary>
         public bool HasTimelines => TimelinePartCount > 0;
+
+        /// <summary>
+        /// Whether OfficeIMO-owned slicer binding metadata was discovered.
+        /// </summary>
+        public bool HasSlicerBindingMetadata => SlicerBindingMetadataPartCount > 0;
+
+        /// <summary>
+        /// Whether OfficeIMO-owned timeline binding metadata was discovered.
+        /// </summary>
+        public bool HasTimelineBindingMetadata => TimelineBindingMetadataPartCount > 0;
 
         /// <summary>
         /// Whether workbook connection package parts were discovered.

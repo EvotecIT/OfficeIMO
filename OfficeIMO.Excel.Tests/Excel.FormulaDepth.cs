@@ -61,13 +61,23 @@ namespace OfficeIMO.Tests {
                 sheet.CellFormula(3, 1, "A4+1");
                 sheet.CellFormula(2, 1, "A3+1");
                 sheet.CellFormula(1, 1, "A2+1");
+
+                ExcelSheet dependenciesFirst = document.AddWorksheet("DependenciesFirst");
+                dependenciesFirst.CellValue(1, 1, 1d);
+                dependenciesFirst.CellFormula(2, 1, "A1+1");
+                dependenciesFirst.CellFormula(3, 1, "A2+1");
+                dependenciesFirst.CellFormula(4, 1, "A3+1");
                 document.Calculation.MaximumDependencyDepth = 2;
 
-                Assert.Equal(2, document.Calculate());
+                Assert.Equal(4, document.Calculate());
                 Assert.False(sheet.TryGetCachedFormulaValue(1, 1, out _));
                 Assert.True(sheet.TryGetCachedFormulaValue(2, 1, out string? cachedA2));
                 Assert.Equal("3", cachedA2);
                 Assert.Equal("A2+1", sheet.GetFormulaText(1, 1));
+                Assert.False(dependenciesFirst.TryGetCachedFormulaValue(4, 1, out _));
+                Assert.True(dependenciesFirst.TryGetCachedFormulaValue(3, 1, out string? cachedForwardA3));
+                Assert.Equal("3", cachedForwardA3);
+                Assert.Equal("A3+1", dependenciesFirst.GetFormulaText(4, 1));
                 document.Save();
             }
 
@@ -75,6 +85,9 @@ namespace OfficeIMO.Tests {
                 ExcelSheet sheet = document.Sheets[0];
                 Assert.Equal("A2+1", sheet.GetFormulaText(1, 1));
                 Assert.False(sheet.TryGetCachedFormulaValue(1, 1, out _));
+                ExcelSheet dependenciesFirst = document.Sheets[1];
+                Assert.Equal("A3+1", dependenciesFirst.GetFormulaText(4, 1));
+                Assert.False(dependenciesFirst.TryGetCachedFormulaValue(4, 1, out _));
                 Assert.Empty(document.ValidateOpenXml());
             }
         }

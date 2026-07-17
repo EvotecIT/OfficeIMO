@@ -39,8 +39,10 @@ namespace OfficeIMO.Excel {
                     .SharedStringTable?
                     .Elements<SharedStringItem>()
                     .ToList();
-                snapshot.SlicerPartCount = CountPackagePartsByContentType(workbookPart, "slicer");
-                snapshot.TimelinePartCount = CountPackagePartsByContentType(workbookPart, "timeline");
+                snapshot.SlicerPartCount = CountPackageParts(workbookPart, IsNativeSlicerPackagePart);
+                snapshot.TimelinePartCount = CountPackageParts(workbookPart, IsNativeTimelinePackagePart);
+                snapshot.SlicerBindingMetadataPartCount = CountPackageParts(workbookPart, IsSlicerBindingMetadataPart);
+                snapshot.TimelineBindingMetadataPartCount = CountPackageParts(workbookPart, IsTimelineBindingMetadataPart);
                 snapshot.ConnectionPartCount = CountPackagePartsByContentType(workbookPart, "connections");
                 snapshot.QueryTablePartCount = CountPackagePartsByContentType(workbookPart, "queryTable");
                 var sheetElements = workbook.Sheets?.Elements<Sheet>().ToList() ?? new List<Sheet>();
@@ -282,17 +284,54 @@ namespace OfficeIMO.Excel {
         private static int CountPackagePartsByContentType(OpenXmlPartContainer container, string marker) {
             if (string.IsNullOrWhiteSpace(marker)) return 0;
 
+            return CountPackageParts(
+                container,
+                part => part.ContentType.IndexOf(marker, StringComparison.OrdinalIgnoreCase) >= 0);
+        }
+
+        private static int CountPackageParts(OpenXmlPartContainer container, Func<OpenXmlPart, bool> predicate) {
+            if (predicate == null) throw new ArgumentNullException(nameof(predicate));
+
+            return CountPackageParts(container, predicate, new HashSet<Uri>());
+        }
+
+        private static int CountPackageParts(
+            OpenXmlPartContainer container,
+            Func<OpenXmlPart, bool> predicate,
+            HashSet<Uri> visitedParts) {
             int count = 0;
             foreach (var relationship in container.Parts) {
                 var part = relationship.OpenXmlPart;
-                if (part.ContentType.IndexOf(marker, StringComparison.OrdinalIgnoreCase) >= 0) {
+                if (!visitedParts.Add(part.Uri)) {
+                    continue;
+                }
+
+                if (predicate(part)) {
                     count++;
                 }
 
-                count += CountPackagePartsByContentType(part, marker);
+                count += CountPackageParts(part, predicate, visitedParts);
             }
 
             return count;
+        }
+
+        private static bool IsNativeSlicerPackagePart(OpenXmlPart part) {
+            return string.Equals(part.ContentType, "application/vnd.ms-excel.slicer+xml", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(part.ContentType, "application/vnd.ms-excel.slicerCache+xml", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool IsNativeTimelinePackagePart(OpenXmlPart part) {
+            return string.Equals(part.ContentType, "application/vnd.ms-excel.timeline+xml", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(part.ContentType, "application/vnd.ms-excel.timelineCache+xml", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool IsSlicerBindingMetadataPart(OpenXmlPart part) {
+            return string.Equals(part.ContentType, WorkbookSlicerCacheContentType, StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool IsTimelineBindingMetadataPart(OpenXmlPart part) {
+            return string.Equals(part.ContentType, WorkbookTimelineCacheContentType, StringComparison.OrdinalIgnoreCase);
         }
 
         private static ExcelWorksheetProtectionSnapshot? BuildWorksheetProtectionSnapshot(SheetProtection? protection) {

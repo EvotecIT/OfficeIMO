@@ -39,6 +39,8 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(1, snapshot.TimelinePartCount);
                 Assert.True(snapshot.HasSlicers);
                 Assert.True(snapshot.HasTimelines);
+                Assert.False(snapshot.HasSlicerBindingMetadata);
+                Assert.False(snapshot.HasTimelineBindingMetadata);
             }
         }
 
@@ -219,14 +221,20 @@ namespace OfficeIMO.Tests {
 
             using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 ExcelWorkbookSnapshot snapshot = document.CreateInspectionSnapshot();
-                Assert.Equal(1, snapshot.SlicerPartCount);
-                Assert.Equal(1, snapshot.TimelinePartCount);
-                Assert.True(snapshot.HasSlicers);
-                Assert.True(snapshot.HasTimelines);
+                Assert.Equal(0, snapshot.SlicerPartCount);
+                Assert.Equal(0, snapshot.TimelinePartCount);
+                Assert.False(snapshot.HasSlicers);
+                Assert.False(snapshot.HasTimelines);
+                Assert.Equal(1, snapshot.SlicerBindingMetadataPartCount);
+                Assert.Equal(1, snapshot.TimelineBindingMetadataPartCount);
+                Assert.True(snapshot.HasSlicerBindingMetadata);
+                Assert.True(snapshot.HasTimelineBindingMetadata);
 
                 ExcelFeatureReport report = document.InspectFeatures();
-                Assert.Equal(ExcelFeatureSupportLevel.PartiallyEditable, report.FindFeatures("Slicers").Single().SupportLevel);
-                Assert.Equal(ExcelFeatureSupportLevel.PartiallyEditable, report.FindFeatures("Timelines").Single().SupportLevel);
+                Assert.Empty(report.FindFeatures("Slicers"));
+                Assert.Empty(report.FindFeatures("Timelines"));
+                Assert.Equal(ExcelFeatureSupportLevel.Editable, report.FindFeatures("Slicer binding metadata").Single().SupportLevel);
+                Assert.Equal(ExcelFeatureSupportLevel.Editable, report.FindFeatures("Timeline binding metadata").Single().SupportLevel);
             }
 
             using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
