@@ -554,7 +554,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void PresentationFacade_EnforcesPackageSecurityBeforeLegacyVbaConversion() {
+        public void PresentationFacade_EnforcesPackageSecurityOnLegacyVba() {
             byte[] binary;
             using (PowerPointPresentation source =
                    PowerPointPresentation.Create()) {
@@ -574,6 +574,158 @@ namespace OfficeIMO.Tests {
                     PowerPointPresentation.Load(input, loadOptions));
 
             Assert.Equal(OfficePackageSecurityRule.Macros, exception.Rule);
+        }
+
+        [Fact]
+        public void LegacyVbaConversion_EnforcesPackageSecurityBeforeOpeningPackage() {
+            byte[] packageBytes;
+            using (PowerPointPresentation source =
+                   PowerPointPresentation.Create()) {
+                source.AddSlide().AddTextBox("Pre-open VBA policy");
+                packageBytes = source.ToBytes();
+            }
+            using (var editable = new MemoryStream()) {
+                editable.Write(packageBytes, 0, packageBytes.Length);
+                editable.Position = 0;
+                using (PresentationDocument document =
+                       PresentationDocument.Open(editable, true)) {
+                    VbaProjectPart part = document.PresentationPart!
+                        .AddNewPart<VbaProjectPart>();
+                    using var project = new MemoryStream(
+                        CreateVbaTestProject("BoundaryModule",
+                            "Sub Main(): End Sub"), writable: false);
+                    part.FeedData(project);
+                }
+                packageBytes = editable.ToArray();
+            }
+            var loadOptions = new PowerPointLoadOptions {
+                PackageSecurity = OfficePackageSecurityOptions
+                    .UntrustedDefaults
+            };
+
+            OfficePackageSecurityException exception = Assert.Throws<
+                OfficePackageSecurityException>(() =>
+                    PowerPointPresentation
+                        .ConvertProjectedVbaPackageToMacroEnabled(
+                            packageBytes, loadOptions));
+
+            Assert.Equal(OfficePackageSecurityRule.Macros, exception.Rule);
+        }
+
+        [Fact]
+        public void PresentationFacade_EnforcesPackageSecurityOnOriginalLegacyContainer() {
+            byte[] binary = CreatePresentationBytes();
+            LegacyPptPresentation source = LegacyPptPresentation.Load(binary);
+            byte[] withOpaqueObjectPool = source.Package
+                .RewriteCompoundStreams(new Dictionary<string, byte[]> {
+                    ["ObjectPool/Preserved/Contents"] =
+                        new byte[] { 1, 2, 3, 4 }
+                });
+            var loadOptions = new PowerPointLoadOptions {
+                PackageSecurity = OfficePackageSecurityOptions
+                    .UntrustedDefaults
+            };
+
+            using var input = new MemoryStream(withOpaqueObjectPool,
+                writable: false);
+            OfficePackageSecurityException exception = Assert.Throws<
+                OfficePackageSecurityException>(() =>
+                    PowerPointPresentation.Load(input, loadOptions));
+
+            Assert.Equal(OfficePackageSecurityRule.EmbeddedPayloads,
+                exception.Rule);
+        }
+
+        [Theory]
+        [InlineData(false, OfficePackageSecurityRule.EmbeddedPayloads)]
+        [InlineData(true, OfficePackageSecurityRule.ActiveX)]
+        public void PresentationFacade_EnforcesLegacyActiveContentPolicies(
+            bool activeX, OfficePackageSecurityRule expectedRule) {
+            byte[] storage = CreateOleTestStorage(activeX
+                ? "ActiveX policy"
+                : "OLE policy");
+            byte[] binary;
+            if (activeX) {
+                binary = CreateExternalObjectFixture(storage,
+                    ExternalObjectFixtureKind.ActiveX, compressed: false);
+            } else {
+                using PowerPointPresentation source =
+                    PowerPointPresentation.Create();
+                PowerPointSlide slide = source.AddSlide();
+                using var payload = new MemoryStream(storage,
+                    writable: false);
+                slide.AddOleObject(payload, "Package");
+                binary = source.ToBytes(PowerPointFileFormat.Ppt);
+            }
+            var loadOptions = new PowerPointLoadOptions {
+                PackageSecurity = OfficePackageSecurityOptions
+                    .UntrustedDefaults
+            };
+
+            using var input = new MemoryStream(binary, writable: false);
+            OfficePackageSecurityException exception = Assert.Throws<
+                OfficePackageSecurityException>(() =>
+                    PowerPointPresentation.Load(input, loadOptions));
+
+            Assert.Equal(expectedRule, exception.Rule);
+        }
+
+        [Fact]
+        public void PresentationFacade_RejectsPreserveOnlyLegacyActiveContent() {
+            byte[] storage = CreateOleTestStorage(
+                "Preserve-only linked OLE policy");
+            byte[] binary = CreateExternalObjectFixture(storage,
+                ExternalObjectFixtureKind.LinkedOle, compressed: false,
+                linkedUpdateMode: uint.MaxValue);
+            LegacyPptPresentation neutral = LegacyPptPresentation.Load(
+                binary);
+            Assert.Empty(neutral.LinkedOleObjects);
+            Assert.Contains(neutral.Diagnostics, diagnostic =>
+                diagnostic.Code.StartsWith("PPT-OLE-",
+                    StringComparison.Ordinal));
+            var loadOptions = new PowerPointLoadOptions {
+                PackageSecurity = OfficePackageSecurityOptions
+                    .UntrustedDefaults
+            };
+
+            using var input = new MemoryStream(binary, writable: false);
+            OfficePackageSecurityException exception = Assert.Throws<
+                OfficePackageSecurityException>(() =>
+                    PowerPointPresentation.Load(input, loadOptions));
+
+            Assert.Equal(OfficePackageSecurityRule.EmbeddedPayloads,
+                exception.Rule);
+        }
+
+        [Fact]
+        public void EncryptedLegacyLoad_ValidatesOuterSourceBeforePasswordProcessing() {
+            const string password = "source-policy-pass";
+            byte[] encrypted;
+            using (PowerPointPresentation source =
+                   PowerPointPresentation.Create()) {
+                source.AddSlide().AddTextBox("Encrypted source policy");
+                encrypted = source.ToEncryptedBytes(password,
+                    PowerPointFileFormat.Ppt);
+            }
+            OfficePackageSecurityReport report =
+                OfficePackageSecurityInspector.Inspect(encrypted);
+            Assert.Equal(OfficePackageContainerKind.CompoundBinary,
+                report.ContainerKind);
+            Assert.True(report.PartCount > 1);
+            var security = OfficePackageSecurityOptions.SecureDefaults;
+            security.MaxPartCount = report.PartCount - 1;
+            var loadOptions = new PowerPointLoadOptions {
+                PackageSecurity = security
+            };
+
+            using var input = new MemoryStream(encrypted, writable: false);
+            OfficePackageSecurityException exception = Assert.Throws<
+                OfficePackageSecurityException>(() =>
+                    PowerPointPresentation.LoadEncrypted(input,
+                        "wrong-password", loadOptions));
+
+            Assert.Equal(OfficePackageSecurityRule.PartCount,
+                exception.Rule);
         }
 
         [Fact]

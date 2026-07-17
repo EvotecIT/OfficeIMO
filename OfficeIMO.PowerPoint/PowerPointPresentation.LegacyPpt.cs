@@ -92,6 +92,7 @@ namespace OfficeIMO.PowerPoint {
             CancellationToken cancellationToken = default) {
             if (legacy == null) throw new ArgumentNullException(nameof(legacy));
             cancellationToken.ThrowIfCancellationRequested();
+            ValidateLegacyContentSecurity(legacy, loadOptions);
             using PowerPointPresentation projected = Create();
             ApplyLegacyDocumentSettings(projected, legacy);
             var soundContext = new LegacyPptSoundProjectionContext(legacy);

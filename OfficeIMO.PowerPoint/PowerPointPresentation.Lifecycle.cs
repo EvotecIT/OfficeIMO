@@ -278,6 +278,7 @@ namespace OfficeIMO.PowerPoint {
                 FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
             byte[] encryptedBytes = ReadPresentationInputBytes(source,
                 resolved, cancellationToken, filePath);
+            ValidatePackageSecurity(encryptedBytes, resolved);
             LegacyBinaryEncryptionKind legacyEncryption =
                 PowerPointPresentationLoadRouting
                     .GetLegacyBinaryEncryptionKind(encryptedBytes,
@@ -320,6 +321,7 @@ namespace OfficeIMO.PowerPoint {
             byte[] encryptedBytes = await ReadPresentationInputBytesAsync(
                 source, resolved, cancellationToken, fullPath)
                 .ConfigureAwait(false);
+            ValidatePackageSecurity(encryptedBytes, resolved);
             LegacyBinaryEncryptionKind legacyEncryption =
                 PowerPointPresentationLoadRouting
                     .GetLegacyBinaryEncryptionKind(encryptedBytes,
@@ -352,6 +354,7 @@ namespace OfficeIMO.PowerPoint {
             byte[] encryptedBytes = await ReadPresentationInputBytesAsync(
                 stream, resolved, cancellationToken)
                 .ConfigureAwait(false);
+            ValidatePackageSecurity(encryptedBytes, resolved);
             LegacyBinaryEncryptionKind legacyEncryption =
                 PowerPointPresentationLoadRouting
                     .GetLegacyBinaryEncryptionKind(encryptedBytes,
@@ -390,6 +393,7 @@ namespace OfficeIMO.PowerPoint {
             EnsureEncryptedLoadUsesExplicitPersistence(resolved);
             byte[] encryptedBytes = ReadPresentationInputBytes(stream,
                 resolved, cancellationToken);
+            ValidatePackageSecurity(encryptedBytes, resolved);
             LegacyBinaryEncryptionKind legacyEncryption =
                 PowerPointPresentationLoadRouting
                     .GetLegacyBinaryEncryptionKind(encryptedBytes,
@@ -420,10 +424,7 @@ namespace OfficeIMO.PowerPoint {
             string? filePath,
             Stream? sourceStream,
             PowerPointLoadOptions options) {
-            if (options.PackageSecurity != null) {
-                OfficePackageSecurityInspector.Validate(bytes,
-                    options.PackageSecurity);
-            }
+            ValidatePackageSecurity(bytes, options);
             OfficeDocumentLifecycle.Validate(options.AccessMode, options.PersistenceMode, "presentation");
             bool editable = options.AccessMode == DocumentAccessMode.ReadWrite;
             Stream? associatedStream = OfficeDocumentLifecycle.ResolveAssociatedDestination(
@@ -459,7 +460,9 @@ namespace OfficeIMO.PowerPoint {
             Stream? sourceStream,
             PowerPointLoadOptions options,
             CancellationToken cancellationToken = default) {
-            if (PowerPointPresentationLoadRouting.IsLegacyBinary(bytes, filePath)) {
+            if (PowerPointPresentationLoadRouting.IsLegacyBinary(bytes,
+                    filePath)) {
+                ValidatePackageSecurity(bytes, options);
                 return LoadLegacyPptFromNormalFlow(bytes, filePath,
                     sourceStream, options, cancellationToken);
             }
