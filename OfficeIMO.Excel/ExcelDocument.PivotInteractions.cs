@@ -13,9 +13,10 @@ namespace OfficeIMO.Excel {
         /// </remarks>
         public ExtendedPart AddPivotSlicerCache(string pivotTableName, string sourceField, string? cacheName = null) {
             ExcelPivotTableInfo pivot = ValidatePivotInteractionBinding(pivotTableName, sourceField);
-            string name = EnsureUniquePivotInteractionCacheName(
-                string.IsNullOrWhiteSpace(cacheName) ? CreatePivotInteractionCacheName("Slicer", sourceField) : cacheName!,
-                GetWorkbookSlicerCaches());
+            IReadOnlyList<ExcelPivotInteractionCacheInfo> existingCaches = GetWorkbookSlicerCaches();
+            string name = string.IsNullOrWhiteSpace(cacheName)
+                ? CreateUniquePivotInteractionCacheName("Slicer", sourceField, existingCaches)
+                : EnsureUniquePivotInteractionCacheName(cacheName!, existingCaches);
             return AddWorkbookSlicerCache(new ExcelSlicerCacheOptions {
                 Name = name,
                 SourceName = sourceField.Trim(),
@@ -36,9 +37,10 @@ namespace OfficeIMO.Excel {
                     $"Field '{sourceField}' is not a date-only source field and cannot be used for a timeline binding.",
                     nameof(sourceField));
             }
-            string name = EnsureUniquePivotInteractionCacheName(
-                string.IsNullOrWhiteSpace(cacheName) ? CreatePivotInteractionCacheName("Timeline", sourceField) : cacheName!,
-                GetWorkbookTimelineCaches());
+            IReadOnlyList<ExcelPivotInteractionCacheInfo> existingCaches = GetWorkbookTimelineCaches();
+            string name = string.IsNullOrWhiteSpace(cacheName)
+                ? CreateUniquePivotInteractionCacheName("Timeline", sourceField, existingCaches)
+                : EnsureUniquePivotInteractionCacheName(cacheName!, existingCaches);
             return AddWorkbookTimelineCache(new ExcelTimelineCacheOptions {
                 Name = name,
                 SourceName = sourceField.Trim(),
@@ -222,6 +224,27 @@ namespace OfficeIMO.Excel {
             }
 
             return builder.Length > 255 ? builder.ToString(0, 255) : builder.ToString();
+        }
+
+        private static string CreateUniquePivotInteractionCacheName(
+            string prefix,
+            string sourceField,
+            IReadOnlyList<ExcelPivotInteractionCacheInfo> existingCaches) {
+            string baseName = CreatePivotInteractionCacheName(prefix, sourceField);
+            if (!existingCaches.Any(cache => string.Equals(cache.Name, baseName, StringComparison.OrdinalIgnoreCase))) {
+                return baseName;
+            }
+
+            for (int suffix = 2; suffix < int.MaxValue; suffix++) {
+                string suffixText = "_" + suffix.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                int baseLength = Math.Min(baseName.Length, 255 - suffixText.Length);
+                string candidate = baseName.Substring(0, baseLength) + suffixText;
+                if (!existingCaches.Any(cache => string.Equals(cache.Name, candidate, StringComparison.OrdinalIgnoreCase))) {
+                    return candidate;
+                }
+            }
+
+            throw new InvalidOperationException("Unable to generate a unique pivot interaction cache name.");
         }
     }
 }

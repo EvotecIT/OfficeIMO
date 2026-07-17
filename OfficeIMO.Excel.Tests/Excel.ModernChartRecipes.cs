@@ -129,6 +129,8 @@ namespace OfficeIMO.Tests {
                     .Descendants<C.BarChartSeries>()
                     .Single();
                 C.ChartShapeProperties properties = series.GetFirstChild<C.ChartShapeProperties>()!;
+                properties.Append(new A.BlipFill());
+                properties.Append(new A.GroupFill());
                 properties.GetFirstChild<A.Outline>()?.Remove();
                 properties.Append(new A.Outline(
                     new A.GradientFill(),
@@ -159,6 +161,9 @@ namespace OfficeIMO.Tests {
                 Assert.Empty(outline.Elements<A.GradientFill>());
                 Assert.Empty(outline.Elements<A.PatternFill>());
                 Assert.IsType<A.NoFill>(outline.FirstChild);
+                C.ChartShapeProperties properties = Assert.IsType<C.ChartShapeProperties>(outline.Parent);
+                Assert.Empty(properties.Elements<A.BlipFill>());
+                Assert.Empty(properties.Elements<A.GroupFill>());
             }
 
             using (ExcelDocument document = ExcelDocument.Load(filePath, new ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {

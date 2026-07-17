@@ -77,5 +77,37 @@ namespace OfficeIMO.Tests {
                     pair.OpenXmlPart.RelationshipType.StartsWith("http://schemas.microsoft.com/office/", StringComparison.OrdinalIgnoreCase));
             }
         }
+
+        [Fact]
+        public void Test_PivotInteractionCaches_GenerateUniqueDefaultNames() {
+            using ExcelDocument document = ExcelDocument.Create();
+            ExcelSheet sheet = document.AddWorksheet("Sales");
+            sheet.CellValue(1, 1, "Region");
+            sheet.CellValue(1, 2, "OrderDate");
+            sheet.CellValue(1, 3, "Sales");
+            sheet.CellValue(2, 1, "East");
+            sheet.CellValue(2, 2, new DateTime(2026, 1, 2));
+            sheet.CellValue(2, 3, 10d);
+            sheet.AddPivotTable(
+                sourceRange: "A1:C2",
+                destinationCell: "E2",
+                name: "SalesPivot",
+                rowFields: new[] { "Region" },
+                dataFields: new[] { new ExcelPivotDataField("Sales", DataConsolidateFunctionValues.Sum) });
+
+            document.AddPivotSlicerCache("SalesPivot", "Region");
+            document.AddPivotSlicerCache("SalesPivot", "Region");
+            document.AddPivotTimelineCache("SalesPivot", "OrderDate");
+            document.AddPivotTimelineCache("SalesPivot", "OrderDate");
+
+            Assert.Equal(new[] { "Slicer_Region", "Slicer_Region_2" },
+                document.GetWorkbookSlicerCaches().Select(cache => cache.Name));
+            Assert.Equal(new[] { "Timeline_OrderDate", "Timeline_OrderDate_2" },
+                document.GetWorkbookTimelineCaches().Select(cache => cache.Name));
+
+            document.AddPivotSlicerCache("SalesPivot", "Region", "ExplicitRegion");
+            Assert.Throws<InvalidOperationException>(() =>
+                document.AddPivotSlicerCache("SalesPivot", "Region", "ExplicitRegion"));
+        }
     }
 }

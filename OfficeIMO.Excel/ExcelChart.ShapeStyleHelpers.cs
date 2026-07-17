@@ -162,10 +162,7 @@ namespace OfficeIMO.Excel {
         }
 
         private static void ApplyNoFill(OpenXmlCompositeElement props) {
-            props.RemoveAllChildren<A.SolidFill>();
-            props.RemoveAllChildren<A.GradientFill>();
-            props.RemoveAllChildren<A.PatternFill>();
-            props.RemoveAllChildren<A.NoFill>();
+            RemoveShapeFillChoices(props);
             InsertShapeFill(props, new A.NoFill());
         }
 
@@ -296,11 +293,20 @@ namespace OfficeIMO.Excel {
         }
 
         private static void ApplySolidFill(OpenXmlCompositeElement props, string color) {
-            props.RemoveAllChildren<A.SolidFill>();
-            props.RemoveAllChildren<A.NoFill>();
-            props.RemoveAllChildren<A.GradientFill>();
-            props.RemoveAllChildren<A.PatternFill>();
+            RemoveShapeFillChoices(props);
             InsertShapeFill(props, new A.SolidFill(new A.RgbColorModelHex { Val = color }));
+        }
+
+        private static void RemoveShapeFillChoices(OpenXmlCompositeElement props) {
+            foreach (OpenXmlElement child in props.ChildElements.Where(child =>
+                child.LocalName == "noFill"
+                || child.LocalName == "solidFill"
+                || child.LocalName == "gradFill"
+                || child.LocalName == "blipFill"
+                || child.LocalName == "pattFill"
+                || child.LocalName == "grpFill").ToList()) {
+                child.Remove();
+            }
         }
 
         private static void InsertShapeFill(OpenXmlCompositeElement props, OpenXmlElement fill) {
