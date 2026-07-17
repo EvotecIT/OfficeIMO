@@ -405,6 +405,7 @@ public sealed partial class HtmlRenderingTests {
         var archive = new MhtmlDocument(
             """
             <h1>Synchronous MHTML</h1>
+            <a href='cid:logo@example.test'>blocked package link</a>
             <img src='cid:logo@example.test' width='40' height='25' alt='CID logo'>
             <img src='images/chart.png' width='25' height='40' alt='location chart'>
             """,
@@ -414,10 +415,15 @@ public sealed partial class HtmlRenderingTests {
             },
             contentLocation: "https://snapshot.example.test/archive/page.html");
 
-        PdfCore.PdfDocumentConversionResult result = archive.ToPdfDocumentResult();
+        var options = new HtmlPdfSaveOptions {
+            UrlPolicy = HtmlUrlPolicy.CreateWebOnlyProfile()
+        };
+        PdfCore.PdfDocumentConversionResult result = archive.ToPdfDocumentResult(options);
         byte[] pdf = result.ToBytes();
 
         Assert.Equal(2, PdfCore.PdfImageExtractor.ExtractImages(pdf).Count(image => image.IsImageFile && image.MimeType == "image/png"));
+        Assert.DoesNotContain(PdfCore.PdfInspector.Inspect(pdf).LinkUris, link => link.StartsWith("cid:", StringComparison.OrdinalIgnoreCase));
+        Assert.DoesNotContain("cid", options.UrlPolicy.AllowedUrlSchemes);
         Assert.DoesNotContain(result.Warnings, warning => warning.Code == HtmlRenderDiagnosticCodes.ResourceUnavailable);
     }
 

@@ -36,6 +36,27 @@ public sealed class MhtmlDocumentTests {
     }
 
     [Fact]
+    public void ConfigureRenderOptionsAllowsPackageResourcesWithoutRelaxingHyperlinks() {
+        var document = new MhtmlDocument(
+            "<a href='cid:logo'>link</a><img src='cid:logo'>",
+            new[] { new MhtmlResource(new byte[] { 1, 2, 3 }, "image/png", contentId: "logo") },
+            "file:///snapshot/page.html");
+        var options = new HtmlRenderOptions {
+            UrlPolicy = HtmlUrlPolicy.CreateWebOnlyProfile()
+        };
+
+        document.ConfigureRenderOptions(options);
+
+        Assert.DoesNotContain("cid", options.UrlPolicy.AllowedUrlSchemes);
+        Assert.DoesNotContain(Uri.UriSchemeFile, options.UrlPolicy.AllowedUrlSchemes);
+        Assert.True(options.UrlPolicy.DisallowFileUrls);
+        Assert.NotNull(options.ResourceUrlPolicy);
+        Assert.Contains("cid", options.ResourceUrlPolicy!.AllowedUrlSchemes);
+        Assert.Contains(Uri.UriSchemeFile, options.ResourceUrlPolicy.AllowedUrlSchemes);
+        Assert.False(options.ResourceUrlPolicy.DisallowFileUrls);
+    }
+
+    [Fact]
     public void ConstructedArchiveRoundTripsUnreferencedRelatedResource() {
         var resource = new MhtmlResource(Encoding.UTF8.GetBytes("body { color: black; }"),
             "text/css", contentLocation: "styles/site.css", fileName: "site.css");

@@ -125,10 +125,12 @@ public static partial class HtmlPdfConverterExtensions {
 
     private static HtmlPdfSaveOptions PrepareMhtmlOptions(MhtmlDocument document, HtmlPdfSaveOptions? options) {
         HtmlPdfSaveOptions operation = options?.ClonePdf() ?? new HtmlPdfSaveOptions();
+        operation.BaseUri ??= document.BaseUri;
+        operation.EmbeddedPackageResourceResolver = document.CreateResourceResolver();
+        if (!operation.ResourcePolicy.AllowEmbeddedPackageResources) return operation;
         HtmlRenderResourceResolver? hostResolver = operation.ResourceResolver;
         document.ConfigureRenderOptions(operation);
         operation.ResourceResolver = hostResolver;
-        operation.EmbeddedPackageResourceResolver = document.CreateResourceResolver();
         return operation;
     }
 

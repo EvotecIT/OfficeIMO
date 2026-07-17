@@ -112,17 +112,21 @@ public sealed class MhtmlDocument {
     public HtmlRenderResourceResolver CreateResourceResolver() => ResolveResourceAsync;
 
     /// <summary>
-    /// Applies the archive base URI and embedded-resource resolver to render options. An existing resolver remains as
-    /// the fallback for resources absent from the archive.
+    /// Applies the archive base URI, resource-only URL policy, and embedded-resource resolver to render options.
+    /// The hyperlink policy is left unchanged, and an existing resolver remains the fallback for resources absent
+    /// from the archive.
     /// </summary>
     public void ConfigureRenderOptions(HtmlRenderOptions options) {
         if (options == null) throw new ArgumentNullException(nameof(options));
         options.BaseUri ??= BaseUri;
         options.UrlPolicy ??= HtmlUrlPolicy.CreateOfficeIMOProfile();
-        if (options.UrlPolicy.RestrictUrlSchemes) {
-            options.UrlPolicy.AllowedUrlSchemes.Add("cid");
-            options.UrlPolicy.AllowedUrlSchemes.Add(BaseUri.Scheme);
+        HtmlUrlPolicy resourceUrlPolicy = (options.ResourceUrlPolicy ?? options.UrlPolicy).Clone();
+        if (resourceUrlPolicy.RestrictUrlSchemes) {
+            resourceUrlPolicy.AllowedUrlSchemes.Add("cid");
+            resourceUrlPolicy.AllowedUrlSchemes.Add(BaseUri.Scheme);
         }
+        resourceUrlPolicy.DisallowFileUrls = false;
+        options.ResourceUrlPolicy = resourceUrlPolicy;
         HtmlRenderResourceResolver embeddedResolver = CreateResourceResolver();
         HtmlRenderResourceResolver? fallbackResolver = options.ResourceResolver;
         options.ResourceResolver = async (request, cancellationToken) => {

@@ -27,7 +27,7 @@ internal static class HtmlPdfRenderedConverter {
         HtmlRenderOptions renderOptions = options.ClonePdf();
         renderOptions.Mode = HtmlRenderMode.Paged;
         HtmlRenderResourceResolver? embeddedPackageResolver = options.EmbeddedPackageResourceResolver;
-        renderOptions.ResourceUrlPolicy = renderOptions.UrlPolicy.Clone();
+        renderOptions.ResourceUrlPolicy = renderOptions.GetResourceUrlPolicy().Clone();
         renderOptions.ResourceUrlPolicy.AllowDataUrls = options.ResourcePolicy.AllowDataUris;
         renderOptions.ResourceUrlPolicy.DisallowFileUrls = !options.ResourcePolicy.AllowLocalFileAccess;
         if (embeddedPackageResolver != null && options.ResourcePolicy.AllowEmbeddedPackageResources) {
