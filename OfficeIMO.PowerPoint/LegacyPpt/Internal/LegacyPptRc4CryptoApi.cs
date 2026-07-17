@@ -94,7 +94,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             if (session.EncryptsDocumentProperties) {
                 cancellationToken.ThrowIfCancellationRequested();
                 foreach (KeyValuePair<string, byte[]> replacement
-                         in LegacyPptEncryptedSummary.Decrypt(source, session)) {
+                         in LegacyPptEncryptedSummary.Decrypt(source, session,
+                             cancellationToken)) {
                     cancellationToken.ThrowIfCancellationRequested();
                     replacements[replacement.Key] = replacement.Value;
                 }

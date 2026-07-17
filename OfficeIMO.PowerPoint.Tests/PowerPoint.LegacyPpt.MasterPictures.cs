@@ -71,6 +71,53 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void NativeWriter_RasterizesUnsupportedTablesOnMastersWhenAllowed() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            PowerPointSlide slide = presentation.AddSlide(
+                P.SlideLayoutValues.Blank);
+            PowerPointTable sourceTable = slide.AddTable(2, 2);
+            sourceTable.GetCell(0, 0).Text = "Merged master";
+            sourceTable.MergeCells(0, 0, 0, 1);
+            P.GraphicFrame masterTable = Assert.IsType<P.GraphicFrame>(
+                sourceTable.Element.CloneNode(true));
+            masterTable.NonVisualGraphicFrameProperties!
+                .NonVisualDrawingProperties!.Id = 100U;
+            masterTable.NonVisualGraphicFrameProperties
+                .NonVisualDrawingProperties.Name = "Merged master table";
+            sourceTable.Element.Remove();
+            SlideMasterPart masterPart = presentation.OpenXmlDocument
+                .PresentationPart!.SlideMasterParts.Single();
+            masterPart.SlideMaster!.CommonSlideData!.ShapeTree!
+                .Append(masterTable);
+            masterPart.SlideMaster.Save();
+
+            LegacyPptWriteFinding finding = Assert.Single(presentation
+                .AnalyzeLegacyPptWrite().Findings, item =>
+                    item.Code == "PPT-WRITE-MASTER-TABLE");
+            Assert.Equal(LegacyPptFeature.Tables, finding.Feature);
+            Assert.Throws<NotSupportedException>(() => presentation.ToBytes(
+                PowerPointFileFormat.Ppt));
+
+            byte[] bytes = presentation.ToBytes(PowerPointFileFormat.Ppt,
+                new PowerPointSaveOptions {
+                    LossPolicy = PowerPointConversionLossPolicy.Allow
+                });
+            LegacyPptPresentation binary = LegacyPptPresentation.Load(bytes);
+            Assert.Contains(Assert.Single(binary.Masters).Shapes,
+                shape => shape.Kind == LegacyPptShapeKind.Picture);
+
+            using var input = new MemoryStream(bytes, writable: false);
+            using PowerPointPresentation reopened =
+                PowerPointPresentation.Load(input);
+            Assert.Contains(LegacyPptWriter.ReadMasterShapesForWrite(
+                reopened.OpenXmlDocument.PresentationPart!
+                    .SlideMasterParts.Single(), out _),
+                shape => shape is PowerPointPicture);
+            Assert.Empty(reopened.ValidateDocument());
+        }
+
+        [Fact]
         public void NativeWriter_MaterializesLayoutPicturesIntoAffectedSlides() {
             byte[] imageBytes = PdfPngTestImages.CreateRgbPng(142, 82, 42);
             using PowerPointPresentation presentation =

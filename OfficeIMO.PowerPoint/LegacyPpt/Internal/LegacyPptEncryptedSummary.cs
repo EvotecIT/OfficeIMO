@@ -1,5 +1,6 @@
 using OfficeIMO.Drawing.Internal;
 using System.Text;
+using System.Threading;
 
 namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
     /// <summary>Restores streams carried by an RC4 CryptoAPI EncryptedSummary stream.</summary>
@@ -66,9 +67,11 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
 
         internal static IReadOnlyDictionary<string, byte[]> Decrypt(
             OfficeCompoundFile source,
-            OfficeBinaryRc4CryptoApiSession session) {
+            OfficeBinaryRc4CryptoApiSession session,
+            CancellationToken cancellationToken = default) {
             if (source == null) throw new ArgumentNullException(nameof(source));
             if (session == null) throw new ArgumentNullException(nameof(session));
+            cancellationToken.ThrowIfCancellationRequested();
             if (!source.Streams.TryGetValue(EncryptedSummaryStream,
                     out byte[]? encrypted)) {
                 throw new InvalidDataException(
@@ -81,7 +84,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
 
             byte[] header = CopyBytes(encrypted, 0, 8);
             session.TransformInPlace(header, 0, header.Length,
-                blockNumber: 0);
+                blockNumber: 0, cancellationToken);
             uint descriptorOffsetValue = ReadUInt32(header, 0);
             uint descriptorSizeValue = ReadUInt32(header, 4);
             if (descriptorOffsetValue < 8
@@ -101,12 +104,14 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             byte[] descriptors = CopyBytes(encrypted, descriptorOffset,
                 descriptorSize);
             session.TransformInPlace(descriptors, 0, descriptors.Length,
-                blockNumber: 0);
+                blockNumber: 0, cancellationToken);
             IReadOnlyList<EncryptedStreamDescriptor> entries =
-                ReadDescriptors(descriptors, descriptorOffset);
+                ReadDescriptors(descriptors, descriptorOffset,
+                    cancellationToken);
             var replacements = new Dictionary<string, byte[]>(
                 StringComparer.OrdinalIgnoreCase);
             foreach (EncryptedStreamDescriptor entry in entries) {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (entry.StreamOffset < 8
                     || entry.StreamOffset > descriptorOffset
                     || entry.StreamSize > descriptorOffset - entry.StreamOffset) {
@@ -116,7 +121,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 byte[] data = CopyBytes(encrypted, entry.StreamOffset,
                     entry.StreamSize);
                 session.TransformInPlace(data, 0, data.Length,
-                    entry.BlockNumber);
+                    entry.BlockNumber, cancellationToken);
                 if (entry.IsStream) {
                     AddReplacement(replacements, entry.Name, data);
                 } else {
@@ -124,6 +129,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 }
             }
 
+            cancellationToken.ThrowIfCancellationRequested();
             if (!replacements.ContainsKey(SummaryInformationStream)
                 || !replacements.ContainsKey(DocumentSummaryInformationStream)) {
                 throw new InvalidDataException(
@@ -165,7 +171,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
         }
 
         private static IReadOnlyList<EncryptedStreamDescriptor>
-            ReadDescriptors(byte[] bytes, int descriptorOffset) {
+            ReadDescriptors(byte[] bytes, int descriptorOffset,
+                CancellationToken cancellationToken) {
+            cancellationToken.ThrowIfCancellationRequested();
             uint countValue = ReadUInt32(bytes, 0);
             if (countValue > int.MaxValue
                 || countValue > unchecked((uint)((bytes.Length - 4) / 18))) {
@@ -177,6 +185,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             int position = 4;
             for (int index = 0; index < count; index++) {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (position > bytes.Length - 18) {
                     throw new InvalidDataException(
                         "An EncryptedSummary descriptor is truncated.");

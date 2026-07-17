@@ -263,6 +263,21 @@ public sealed class ReaderAsyncTests {
                 sourceName: null, options, cancellation.Token));
     }
 
+    [Fact]
+    public void DocumentReader_Read_CancelsSourceHashWithoutScanningRemainder() {
+        byte[] bytes = new byte[256 * 1024];
+        using var cancellation = new CancellationTokenSource();
+        using var stream = new CancelAfterFirstSyncReadStream(bytes,
+            cancellation.Cancel);
+
+        Assert.ThrowsAny<OperationCanceledException>(() =>
+            OfficeDocumentReader.Default.Read(stream, "large.txt",
+                new ReaderOptions { ComputeHashes = true },
+                cancellation.Token).ToArray());
+
+        Assert.InRange(stream.BytesRead, 1, 81920);
+    }
+
     private static OfficeDocumentReadResult CreateResult(string path, string text) {
         return new OfficeDocumentReadResult {
             Kind = ReaderInputKind.Text,
@@ -382,6 +397,7 @@ public sealed class ReaderAsyncTests {
         public override bool CanRead => true;
         public override bool CanSeek => true;
         public override bool CanWrite => false;
+        public long BytesRead { get; private set; }
         public override long Length => _inner.Length;
         public override long Position {
             get => _inner.Position;
@@ -390,6 +406,7 @@ public sealed class ReaderAsyncTests {
 
         public override int Read(byte[] buffer, int offset, int count) {
             int read = _inner.Read(buffer, offset, count);
+            BytesRead += read;
             if (Interlocked.Increment(ref _reads) == 1) _cancel();
             return read;
         }

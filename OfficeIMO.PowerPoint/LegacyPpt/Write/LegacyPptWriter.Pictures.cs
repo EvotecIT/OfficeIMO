@@ -141,6 +141,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     return false;
                 }
                 if (!TryAddMasterPictures(catalog, masterShapes,
+                        tableFonts, pictureBullets, convertUnsupportedTables,
                         out failureFeature, out reason)) {
                     return false;
                 }
@@ -165,6 +166,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     return false;
                 }
                 if (!TryAddMasterPictures(catalog, notesMasterShapes,
+                        tableFonts, pictureBullets, convertUnsupportedTables,
                         out failureFeature, out reason)) {
                     return false;
                 }
@@ -189,6 +191,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     return false;
                 }
                 if (!TryAddMasterPictures(catalog, handoutMasterShapes,
+                        tableFonts, pictureBullets, convertUnsupportedTables,
                         out failureFeature, out reason)) {
                     return false;
                 }

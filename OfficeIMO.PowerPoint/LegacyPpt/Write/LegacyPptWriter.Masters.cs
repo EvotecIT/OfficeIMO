@@ -71,7 +71,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         pictureBullets: pictureBullets,
                         pictureCatalog: pictureCatalog));
                     drawingShapeCounts.Add(drawingId,
-                        CountDrawingShapes(supportedShapes));
+                        CountDrawingShapes(supportedShapes, pictureCatalog));
                     masterIds.Add(masterParts[index].Uri.ToString(),
                         checked(FirstMasterId + unchecked((uint)index)));
                 } else {
@@ -105,7 +105,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 pictureCatalog: pictureCatalog);
             if (notesShapes != null) {
                 drawingShapeCounts.Add(notesDrawingId,
-                    CountDrawingShapes(notesShapes));
+                    CountDrawingShapes(notesShapes, pictureCatalog));
             }
             HandoutMasterPart? handoutMasterPart = presentation.OpenXmlDocument
                 .PresentationPart?.HandoutMasterPart;
@@ -130,7 +130,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         handoutMasterPart.HandoutMaster?.ColorMap),
                     textStyles.Fonts, pictureBullets, pictureCatalog);
                 drawingShapeCounts.Add(topology.HandoutMasterDrawingId,
-                    CountDrawingShapes(handoutShapes));
+                    CountDrawingShapes(handoutShapes, pictureCatalog));
             }
             return new LegacyPptWriterMasterCatalog(masterIds, persistObjects,
                 notesMaster, handoutMaster, masterParts.Length,

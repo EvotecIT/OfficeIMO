@@ -42,6 +42,20 @@ public sealed partial class ReaderRegistryTests {
     }
 
     [Fact]
+    public void DocumentReader_BoundsUnidentifiedStreamsBeforeDetection() {
+        Assert.Equal(LegacyPptImportOptions.DefaultMaxInputBytes,
+            DocumentReaderEngine.ResolveStreamMaxInputBytes(null,
+                new ReaderOptions(), streamCanSeek: false));
+        Assert.Equal(LegacyPptImportOptions.DefaultMaxInputBytes,
+            DocumentReaderEngine.ResolveStreamMaxInputBytes("content.bin",
+                new ReaderOptions(), streamCanSeek: false));
+        Assert.Null(DocumentReaderEngine.ResolveStreamMaxInputBytes(
+            "content.bin", new ReaderOptions(), streamCanSeek: true));
+        Assert.Null(DocumentReaderEngine.ResolveStreamMaxInputBytes(
+            "document.docx", new ReaderOptions(), streamCanSeek: false));
+    }
+
+    [Fact]
     public void DocumentReader_CapabilityManifestJson_IsDeterministicAndValid() {
         string first = OfficeDocumentReader.Default.GetCapabilityManifestJson();
         string second = OfficeDocumentReader.Default.GetCapabilityManifestJson();

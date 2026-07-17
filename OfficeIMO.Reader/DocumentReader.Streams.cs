@@ -47,11 +47,13 @@ internal static partial class DocumentReaderEngine {
 
         Stream readStream = ReaderInputLimits.EnsureSeekableReadStream(
             stream,
-            ResolveInitialMaxInputBytes(logicalSourceName, opt),
+            ResolveStreamMaxInputBytes(logicalSourceName, opt,
+                stream.CanSeek),
             cancellationToken,
             out bool ownsReadStream);
         try {
-            var source = BuildSourceInfoFromStream(readStream, logicalSourceName, opt.ComputeHashes);
+            var source = BuildSourceInfoFromStream(readStream,
+                logicalSourceName, opt.ComputeHashes, cancellationToken);
 
             IEnumerable<ReaderChunk> raw;
             bool hasCustomStreamHandler = TryResolveStreamHandler(

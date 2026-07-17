@@ -33,6 +33,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         private static bool TryAddMasterPictures(
             LegacyPptWriterPictureCatalog catalog,
             IEnumerable<PowerPointShape> shapes,
+            LegacyPptWriterFontCatalog tableFonts,
+            LegacyPptWriterPictureBulletCatalog pictureBullets,
+            bool convertUnsupportedTables,
             out LegacyPptFeature failureFeature, out string? reason) {
             if (catalog == null) throw new ArgumentNullException(
                 nameof(catalog));
@@ -43,12 +46,31 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 failureFeature = LegacyPptFeature.Groups;
                 return false;
             }
-            foreach (PowerPointPicture picture in flattened
-                         .OfType<PowerPointPicture>()) {
-                if (!TryReadPicture(picture, out byte[] imageBytes,
-                        out string? contentType, out reason)
-                    || !catalog.TryAdd(picture, imageBytes,
-                        contentType!, out reason)) {
+            foreach (PowerPointShape shape in flattened) {
+                byte[] imageBytes;
+                string contentType;
+                if (shape is PowerPointPicture picture) {
+                    if (!TryReadPicture(picture, out imageBytes,
+                            out string? pictureContentType, out reason)) {
+                        failureFeature = LegacyPptFeature.RasterPictures;
+                        return false;
+                    }
+                    contentType = pictureContentType!;
+                } else if (convertUnsupportedTables
+                    && shape is PowerPointTable table
+                    && !TryReadTableForWrite(table, tableFonts,
+                        pictureBullets, out _)) {
+                    if (!TryRenderTablePicture(table, out imageBytes,
+                            out reason)) {
+                        failureFeature = LegacyPptFeature.Tables;
+                        return false;
+                    }
+                    contentType = "image/png";
+                } else {
+                    continue;
+                }
+                if (!catalog.TryAdd(shape, imageBytes, contentType,
+                        out reason)) {
                     failureFeature = LegacyPptFeature.RasterPictures;
                     return false;
                 }

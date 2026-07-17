@@ -69,7 +69,8 @@ internal static partial class DocumentReaderEngine {
         bool? computeSourceHash = null) {
         EmailExtraction extraction = CreateProjectedEmailExtraction(
             documents, logicalPaths, diagnostics, format, sourceName, options, cancellationToken);
-        SourceInfo source = BuildSourceInfoFromPath(path, computeSourceHash ?? options.ComputeHashes);
+        SourceInfo source = BuildSourceInfoFromPath(path,
+            computeSourceHash ?? options.ComputeHashes, cancellationToken);
         EnrichEmailChunks(extraction.Chunks, source, options.ComputeHashes);
         return BuildEmailDocumentResult(extraction, sourceName, BuildPathDocumentSource(path, extraction.Chunks));
     }
@@ -88,7 +89,8 @@ internal static partial class DocumentReaderEngine {
         if (stream == null) throw new ArgumentNullException(nameof(stream));
         EmailExtraction extraction = CreateProjectedEmailExtraction(
             documents, logicalPaths, diagnostics, format, sourceName, options, cancellationToken);
-        SourceInfo source = BuildSourceInfoFromStream(stream, sourceName, computeSourceHash ?? options.ComputeHashes);
+        SourceInfo source = BuildSourceInfoFromStream(stream, sourceName,
+            computeSourceHash ?? options.ComputeHashes, cancellationToken);
         EnrichEmailChunks(extraction.Chunks, source, options.ComputeHashes);
         return BuildEmailDocumentResult(extraction, sourceName,
             BuildStreamDocumentSource(stream, sourceName, extraction.Chunks));

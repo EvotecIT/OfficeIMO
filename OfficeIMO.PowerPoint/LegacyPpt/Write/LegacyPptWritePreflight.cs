@@ -536,6 +536,13 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         LegacyPptFeature.RichText,
                         "PPT-WRITE-MASTER-RICH-TEXT",
                         $"{location}: {textReason}"));
+                } else if (shape is PowerPointTable table
+                    && !LegacyPptWriter.TryReadTableForWrite(table, fonts,
+                        pictureBullets, out string? tableReason)) {
+                    findings.Add(new LegacyPptWriteFinding(
+                        LegacyPptFeature.Tables,
+                        "PPT-WRITE-MASTER-TABLE",
+                        $"{location}: {tableReason ?? "The DrawingML table cannot be encoded as a native binary PowerPoint table."}"));
                 }
             }
         }
