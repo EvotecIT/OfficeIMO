@@ -221,8 +221,17 @@ sheet.ChartFromTable("RevenueTable")
     .Size(640, 320)
     .At(row: 1, column: 5);
 
+sheet.AddHistogramChart(new[] { 8d, 10d, 10d, 12d, 15d, 18d }, row: 18, column: 1, binCount: 3);
+sheet.AddParetoChart(
+    new[] { "Late", "Damaged", "Missing" },
+    new[] { 18d, 7d, 3d },
+    row: 18,
+    column: 10);
+
 document.Save();
 ```
+
+Histogram, Pareto, funnel, and waterfall helpers build compatible XLSX charts from raw values. They do not claim to be native ChartEx parts. Use `ExcelFormatCapabilityReport.Current.ToMarkdown()` when a workflow must choose between XLSX, XLS, and XLSB targets.
 
 ### Pivot tables and pivot-backed charts
 
@@ -261,6 +270,13 @@ sheet.Pivot("A1:D4")
     .Captions(rowHeader: "Region", columnHeader: "Quarter", grandTotal: "Total")
     .At("F2", "SalesPivot");
 
+sheet.CellValue(5, 1, "APAC");
+sheet.CellValue(5, 2, "Beta");
+sheet.CellValue(5, 3, "Q2");
+sheet.CellValue(5, 4, 87000);
+sheet.UpdatePivotTableSource("SalesPivot", sheet, "A1:D5");
+document.AddPivotSlicerCache("SalesPivot", "Region");
+
 var pivot = sheet.GetPivotTables().Single(p => p.Name == "SalesPivot");
 Console.WriteLine($"{pivot.Name}: {string.Join(", ", pivot.RowFields)}");
 
@@ -272,7 +288,7 @@ chart.SetPivotSource("SalesPivot");
 document.Save();
 ```
 
-Pivot support is useful but still marked partial in the compatibility matrix. It covers source-range pivots, row/column/page/data fields, styles, layouts, filters, calculated fields, grouping metadata, and readback. Slicers, timelines, external connections, and query-table authoring are still preserve-oriented or roadmap areas.
+Pivot support is useful but still marked partial in the compatibility matrix. It covers source-range pivots, row/column/page/data fields, styles, layouts, filters, calculated fields, grouping metadata, guarded source updates, and readback. Slicer and timeline pivot/field bindings can be validated and persisted as OfficeIMO-owned metadata without pretending to be native Excel cache parts; native cache structures and UI shapes remain open work.
 
 ### Formula inspection and calculation policy
 
@@ -281,11 +297,17 @@ using var document = ExcelDocument.Load("report.xlsx");
 
 var formulas = document.InspectFormulas();
 Console.WriteLine(formulas.ToMarkdown());
+Console.WriteLine($"Maximum dependency depth: {formulas.DependencyGraph.MaximumDependencyDepth}");
+
+foreach (var cycle in formulas.DependencyGraph.CircularReferences) {
+    Console.WriteLine("Circular: " + string.Join(" -> ", cycle.References));
+}
 
 foreach (var formula in formulas.Formulas.Where(f => !f.IsSupportedByOfficeIMO)) {
     Console.WriteLine($"{formula.SheetName}!{formula.CellReference}: {formula.UnsupportedReason}");
 }
 
+document.Calculation.MaximumDependencyDepth = 512;
 int calculated = document.Calculate();
 document.Save("report.xlsx", new ExcelSaveOptions {
     EvaluateFormulasBeforeSave = true,

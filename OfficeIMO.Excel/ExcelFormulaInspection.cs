@@ -12,8 +12,8 @@ namespace OfficeIMO.Excel {
             UnsupportedFormulas = TotalFormulas - SupportedFormulas;
             MissingCachedResults = formulas.Count(formula => !formula.HasCachedValue);
             DirtyFormulas = formulas.Count(formula => formula.IsDirty);
-            DependencyIssueCount = formulas.Sum(formula => formula.DependencyIssues.Count);
             DependencyGraph = ExcelFormulaDependencyGraph.Create(formulas);
+            DependencyIssueCount = formulas.Sum(formula => formula.DependencyIssues.Count) + DependencyGraph.CircularReferenceCount;
         }
 
         /// <summary>Formula cells discovered in workbook order.</summary>
@@ -90,6 +90,7 @@ namespace OfficeIMO.Excel {
                 var issues = Formulas
                     .Where(formula => formula.DependencyIssues.Count > 0)
                     .Select(formula => $"{formula.SheetName}!{formula.CellReference}: {string.Join("; ", formula.DependencyIssues)}")
+                    .Concat(DependencyGraph.CircularReferences.Select(circular => $"Circular reference: {string.Join(" -> ", circular.References)}"))
                     .ToArray();
                 throw new InvalidOperationException("Formula dependency issues: " + string.Join(", ", issues));
             }
@@ -110,6 +111,8 @@ namespace OfficeIMO.Excel {
             builder.AppendLine($"Missing cached results: {MissingCachedResults}");
             builder.AppendLine($"Dirty formulas: {DirtyFormulas}");
             builder.AppendLine($"Dependency issues: {DependencyIssueCount}");
+            builder.AppendLine($"Maximum formula dependency depth: {DependencyGraph.MaximumDependencyDepth}");
+            builder.AppendLine($"Circular reference groups: {DependencyGraph.CircularReferenceCount}");
             builder.AppendLine();
             builder.AppendLine("| Sheet | Cell | Formula | Supported | Cached | Dirty | Dependencies | Dependency issues | Reason |");
             builder.AppendLine("| --- | --- | --- | --- | --- | --- | --- | --- | --- |");
@@ -150,8 +153,13 @@ namespace OfficeIMO.Excel {
     public sealed class ExcelFormulaDependencyGraph {
         private readonly Dictionary<string, ExcelFormulaDependencyNode> _nodesByReference;
 
-        private ExcelFormulaDependencyGraph(IReadOnlyList<ExcelFormulaDependencyNode> nodes) {
+        private ExcelFormulaDependencyGraph(
+            IReadOnlyList<ExcelFormulaDependencyNode> nodes,
+            IReadOnlyList<ExcelFormulaCircularReference> circularReferences,
+            int maximumDependencyDepth) {
             Nodes = nodes;
+            CircularReferences = circularReferences;
+            MaximumDependencyDepth = maximumDependencyDepth;
             _nodesByReference = nodes.ToDictionary(node => node.Reference, StringComparer.OrdinalIgnoreCase);
         }
 
@@ -161,8 +169,23 @@ namespace OfficeIMO.Excel {
         /// <summary>Total formula nodes in the graph.</summary>
         public int NodeCount => Nodes.Count;
 
+        /// <summary>Total direct formula-to-formula dependency edges.</summary>
+        public int EdgeCount => Nodes.Sum(node => node.FormulaDependencies.Count);
+
+        /// <summary>Longest resolvable formula-to-formula dependency chain, counting formula cells.</summary>
+        public int MaximumDependencyDepth { get; }
+
+        /// <summary>Circular formula-reference groups detected in the workbook.</summary>
+        public IReadOnlyList<ExcelFormulaCircularReference> CircularReferences { get; }
+
+        /// <summary>Total circular formula-reference groups.</summary>
+        public int CircularReferenceCount => CircularReferences.Count;
+
+        /// <summary>True when one or more circular formula-reference groups were detected.</summary>
+        public bool HasCircularReferences => CircularReferenceCount > 0;
+
         /// <summary>True when at least one formula node has dependency diagnostics.</summary>
-        public bool HasDependencyIssues => Nodes.Any(node => node.HasDependencyIssues);
+        public bool HasDependencyIssues => HasCircularReferences || Nodes.Any(node => node.HasDependencyIssues);
 
         internal static ExcelFormulaDependencyGraph Create(IReadOnlyList<ExcelFormulaCellInfo> formulas) {
             var builders = new Dictionary<string, ExcelFormulaDependencyNodeBuilder>(StringComparer.OrdinalIgnoreCase);
@@ -184,17 +207,29 @@ namespace OfficeIMO.Excel {
                 string sourceReference = FormatReference(formula.SheetName, formula.CellReference);
                 foreach (string dependency in formula.Dependencies) {
                     foreach (string targetReference in FindCoveredFormulaReferences(dependency, builders.Keys)) {
-                        if (builders.TryGetValue(targetReference, out ExcelFormulaDependencyNodeBuilder? dependencyNode)) {
+                        if (builders.TryGetValue(sourceReference, out ExcelFormulaDependencyNodeBuilder? sourceNode)
+                            && builders.TryGetValue(targetReference, out ExcelFormulaDependencyNodeBuilder? dependencyNode)) {
+                            sourceNode.FormulaDependencies.Add(targetReference);
                             dependencyNode.Dependents.Add(sourceReference);
                         }
                     }
                 }
             }
 
+            ExcelFormulaDependencyAnalysisResult analysis = ExcelFormulaDependencyAnalysis.Analyze(
+                builders.ToDictionary(
+                    pair => pair.Key,
+                    pair => (IReadOnlyCollection<string>)pair.Value.FormulaDependencies,
+                    StringComparer.OrdinalIgnoreCase));
             var nodes = builders.Values
-                .Select(builder => builder.ToNode())
+                .Select(builder => builder.ToNode(
+                    analysis.Depths.TryGetValue(builder.Reference, out int depth) ? depth : (int?)null,
+                    analysis.CircularReferences.Contains(builder.Reference)))
                 .ToList();
-            return new ExcelFormulaDependencyGraph(nodes);
+            var circularReferences = analysis.CircularReferenceGroups
+                .Select(references => new ExcelFormulaCircularReference(references))
+                .ToList();
+            return new ExcelFormulaDependencyGraph(nodes, circularReferences, analysis.MaximumDepth);
         }
 
         /// <summary>
@@ -213,9 +248,12 @@ namespace OfficeIMO.Excel {
             builder.AppendLine("# Excel Formula Dependency Graph");
             builder.AppendLine();
             builder.AppendLine($"Formula nodes: {NodeCount}");
+            builder.AppendLine($"Formula dependency edges: {EdgeCount}");
+            builder.AppendLine($"Maximum dependency depth: {MaximumDependencyDepth}");
+            builder.AppendLine($"Circular reference groups: {CircularReferenceCount}");
             builder.AppendLine();
-            builder.AppendLine("| Formula | Dependencies | Dependents | Dependency issues |");
-            builder.AppendLine("| --- | --- | --- | --- |");
+            builder.AppendLine("| Formula | Dependencies | Formula dependencies | Dependents | Depth | Circular | Dependency issues |");
+            builder.AppendLine("| --- | --- | --- | --- | --- | --- | --- |");
 
             foreach (ExcelFormulaDependencyNode node in Nodes) {
                 builder.Append("| ");
@@ -223,7 +261,13 @@ namespace OfficeIMO.Excel {
                 builder.Append(" | ");
                 builder.Append(EscapeMarkdownCell(string.Join("; ", node.Dependencies)));
                 builder.Append(" | ");
+                builder.Append(EscapeMarkdownCell(string.Join("; ", node.FormulaDependencies)));
+                builder.Append(" | ");
                 builder.Append(EscapeMarkdownCell(string.Join("; ", node.Dependents)));
+                builder.Append(" | ");
+                builder.Append(node.DependencyDepth?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "unresolved");
+                builder.Append(" | ");
+                builder.Append(node.IsCircular ? "yes" : "no");
                 builder.Append(" | ");
                 builder.Append(EscapeMarkdownCell(string.Join("; ", node.DependencyIssues)));
                 builder.AppendLine(" |");
@@ -306,6 +350,7 @@ namespace OfficeIMO.Excel {
                 CellReference = cellReference;
                 Dependencies = dependencies;
                 DependencyIssues = dependencyIssues;
+                FormulaDependencies = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                 Dependents = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             }
 
@@ -314,16 +359,20 @@ namespace OfficeIMO.Excel {
             internal string CellReference { get; }
             internal IReadOnlyList<string> Dependencies { get; }
             internal IReadOnlyList<string> DependencyIssues { get; }
+            internal HashSet<string> FormulaDependencies { get; }
             internal HashSet<string> Dependents { get; }
 
-            internal ExcelFormulaDependencyNode ToNode() {
+            internal ExcelFormulaDependencyNode ToNode(int? dependencyDepth, bool isCircular) {
                 return new ExcelFormulaDependencyNode(
                     Reference,
                     SheetName,
                     CellReference,
                     Dependencies,
+                    FormulaDependencies.OrderBy(dependency => dependency, StringComparer.OrdinalIgnoreCase).ToList(),
                     Dependents.OrderBy(dependent => dependent, StringComparer.OrdinalIgnoreCase).ToList(),
-                    DependencyIssues);
+                    DependencyIssues,
+                    dependencyDepth,
+                    isCircular);
             }
         }
     }
@@ -337,14 +386,20 @@ namespace OfficeIMO.Excel {
             string sheetName,
             string cellReference,
             IReadOnlyList<string> dependencies,
+            IReadOnlyList<string> formulaDependencies,
             IReadOnlyList<string> dependents,
-            IReadOnlyList<string> dependencyIssues) {
+            IReadOnlyList<string> dependencyIssues,
+            int? dependencyDepth,
+            bool isCircular) {
             Reference = reference;
             SheetName = sheetName;
             CellReference = cellReference;
             Dependencies = dependencies;
+            FormulaDependencies = formulaDependencies;
             Dependents = dependents;
             DependencyIssues = dependencyIssues;
+            DependencyDepth = dependencyDepth;
+            IsCircular = isCircular;
         }
 
         /// <summary>Qualified formula cell reference, such as Sheet1!A1.</summary>
@@ -359,14 +414,37 @@ namespace OfficeIMO.Excel {
         /// <summary>Direct A1/range dependencies detected for this formula.</summary>
         public IReadOnlyList<string> Dependencies { get; }
 
+        /// <summary>Formula cells directly referenced by this formula cell.</summary>
+        public IReadOnlyList<string> FormulaDependencies { get; }
+
         /// <summary>Formula cells that directly depend on this formula cell.</summary>
         public IReadOnlyList<string> Dependents { get; }
 
         /// <summary>Dependency diagnostics associated with this formula cell.</summary>
         public IReadOnlyList<string> DependencyIssues { get; }
 
+        /// <summary>
+        /// Resolvable dependency depth for this formula cell, or null when a circular dependency prevents a finite depth.
+        /// </summary>
+        public int? DependencyDepth { get; }
+
+        /// <summary>True when this formula cell participates directly in a circular reference.</summary>
+        public bool IsCircular { get; }
+
         /// <summary>True when dependency diagnostics found one or more issues.</summary>
-        public bool HasDependencyIssues => DependencyIssues.Count > 0;
+        public bool HasDependencyIssues => IsCircular || DependencyIssues.Count > 0;
+    }
+
+    /// <summary>
+    /// A strongly connected group of formula cells that forms a circular reference.
+    /// </summary>
+    public sealed class ExcelFormulaCircularReference {
+        internal ExcelFormulaCircularReference(IReadOnlyList<string> references) {
+            References = references;
+        }
+
+        /// <summary>Qualified formula cell references in ordinal order.</summary>
+        public IReadOnlyList<string> References { get; }
     }
 
     /// <summary>
@@ -435,7 +513,7 @@ namespace OfficeIMO.Excel {
         private static readonly string[] Functions = { "SUM", "AVERAGE", "AVERAGEA", "MIN", "MINA", "MAX", "MAXA", "COUNT", "COUNTA", "COUNTBLANK", "SUBTOTAL", "COUNTIF", "SUMIF", "AVERAGEIF", "COUNTIFS", "SUMIFS", "AVERAGEIFS", "MINIFS", "MAXIFS", "PRODUCT", "MEDIAN", "LARGE", "SMALL", "MODE.SNGL", "MODE", "GEOMEAN", "HARMEAN", "AVEDEV", "DEVSQ", "SUMXMY2", "SUMX2MY2", "SUMX2PY2", "SUMSQ", "SUMPRODUCT", "STDEV.S", "STDEV.P", "VAR.S", "VAR.P", "PERCENTILE.INC", "PERCENTILE.EXC", "QUARTILE.INC", "QUARTILE.EXC", "PERCENTRANK.INC", "PERCENTRANK.EXC", "RANK.EQ", "RANK.AVG", "COVAR", "COVARIANCE.P", "COVARIANCE.S", "CORREL", "SLOPE", "INTERCEPT", "RSQ", "FORECAST.LINEAR", "PMT", "PV", "FV", "NPER", "NPV", "VLOOKUP", "HLOOKUP", "XLOOKUP", "INDEX", "MATCH", "XMATCH", "CONCAT", "CONCATENATE", "TEXT", "TEXTJOIN", "TEXTBEFORE", "TEXTAFTER", "FORMULATEXT", "LEFT", "RIGHT", "MID", "LEN", "TRIM", "UPPER", "LOWER", "PROPER", "SUBSTITUTE", "FIND", "SEARCH", "VALUE", "EXACT", "REPT", "ABS", "SIGN", "ROUND", "ROUNDUP", "ROUNDDOWN", "MROUND", "TRUNC", "INT", "CEILING.MATH", "FLOOR.MATH", "CEILING", "FLOOR", "POWER", "SQRT", "LN", "LOG10", "EXP", "PI", "RADIANS", "DEGREES", "MOD", "ROW", "COLUMN", "ROWS", "COLUMNS", "DATE", "TIME", "DATEVALUE", "TIMEVALUE", "TODAY", "NOW", "YEAR", "MONTH", "DAY", "HOUR", "MINUTE", "SECOND", "DATEDIF", "YEARFRAC", "EDATE", "EOMONTH", "DAYS", "DAYS360", "WEEKDAY", "WEEKNUM", "ISOWEEKNUM", "NETWORKDAYS", "WORKDAY", "WORKDAY.INTL", "IF", "IFS", "SWITCH", "CHOOSE", "ISBLANK", "ISNUMBER", "ISTEXT", "ISERROR", "ISERR", "ISNA", "ISFORMULA", "AND", "OR", "NOT", "IFERROR", "IFNA" };
         private static readonly HashSet<string> FunctionSet = new HashSet<string>(Functions, StringComparer.OrdinalIgnoreCase);
         private static readonly string[] Operators = { "+", "-", "*", "/", ">", "<", ">=", "<=", "=", "<>" };
-        private static readonly string[] OperandKinds = { "number literal", "text literal", "same-sheet A1 cell reference", "same-sheet A1 range for function arguments", "cross-sheet A1 cell/range reference", "A1-backed named range reference", "simple table structured reference", "same-sheet numeric/text comparison for IF/IFS/SWITCH/AND/OR/NOT", "direct dependency diagnostics for A1 cell and range references" };
+        private static readonly string[] OperandKinds = { "number literal", "text literal", "same-sheet A1 cell reference", "same-sheet A1 range for function arguments", "cross-sheet A1 cell/range reference", "A1-backed named range reference", "simple table structured reference", "same-sheet numeric/text comparison for IF/IFS/SWITCH/AND/OR/NOT", "bounded dependency depth and circular-reference graph diagnostics" };
 
         private ExcelFormulaCapabilities() {
         }
@@ -460,6 +538,6 @@ namespace OfficeIMO.Excel {
         public int MaxFormulaLength => 8192;
 
         /// <summary>Short human-readable summary of the current evaluator scope.</summary>
-        public string Summary => "Supports simple same-sheet arithmetic plus SUM/AVERAGE/AVERAGEA/MIN/MINA/MAX/MAXA/COUNT/COUNTA/COUNTBLANK/SUBTOTAL/COUNTIF/SUMIF/AVERAGEIF/COUNTIFS/SUMIFS/AVERAGEIFS/MINIFS/MAXIFS/PRODUCT/MEDIAN/LARGE/SMALL/SUMSQ/SUMPRODUCT, bounded MODE.SNGL/MODE/GEOMEAN/HARMEAN/AVEDEV/DEVSQ/SUMXMY2/SUMX2MY2/SUMX2PY2/STDEV.S/STDEV.P/VAR.S/VAR.P/PERCENTILE.INC/PERCENTILE.EXC/QUARTILE.INC/QUARTILE.EXC/PERCENTRANK.INC/PERCENTRANK.EXC/RANK.EQ/RANK.AVG/COVAR/COVARIANCE.P/COVARIANCE.S/CORREL/SLOPE/INTERCEPT/RSQ/FORECAST.LINEAR statistical report formulas, bounded PMT/PV/FV/NPER/NPV financial report formulas, exact-match VLOOKUP/HLOOKUP/INDEX/MATCH/XMATCH returning numeric or text values where applicable, XLOOKUP if-not-found fallbacks plus forward/reverse exact and bounded next-smaller/next-larger numeric search, MATCH/XMATCH bounded exact and next-smaller/next-larger numeric positions, CONCAT/CONCATENATE/TEXT/TEXTJOIN/TEXTBEFORE/TEXTAFTER/FORMULATEXT/LEFT/RIGHT/MID/LEN/TRIM/UPPER/LOWER/PROPER/SUBSTITUTE/FIND/SEARCH/VALUE/EXACT/REPT text helpers, bounded TEXT number/date/time formats for report labels, ABS/SIGN/ROUND/ROUNDUP/ROUNDDOWN/MROUND/TRUNC/INT/CEILING.MATH/FLOOR.MATH/CEILING/FLOOR/POWER/SQRT/LN/LOG10/EXP/PI/RADIANS/DEGREES/MOD, ROW/COLUMN/ROWS/COLUMNS reference-shape helpers, DATE/TIME/DATEVALUE/TIMEVALUE/TODAY/NOW/YEAR/MONTH/DAY/HOUR/MINUTE/SECOND/DATEDIF/YEARFRAC/EDATE/EOMONTH/DAYS/DAYS360/WEEKDAY/WEEKNUM/ISOWEEKNUM/NETWORKDAYS/WORKDAY/WORKDAY.INTL, IF/IFS/SWITCH/CHOOSE with numeric/text comparison or selector branches, ISBLANK/ISNUMBER/ISTEXT/ISERROR/ISERR/ISNA/ISFORMULA report guards, AND/OR/NOT comparisons, and IFERROR/IFNA fallbacks returning numbers or text over numbers, text literals, A1 cells, A1 ranges, A1-backed named ranges, simple table structured references, cross-sheet references, and nested formulas. Inspection reports direct A1 dependencies, workbook-level dependency graphs, and dependency issues for preflight diagnostics.";
+        public string Summary => "Supports simple same-sheet arithmetic plus SUM/AVERAGE/AVERAGEA/MIN/MINA/MAX/MAXA/COUNT/COUNTA/COUNTBLANK/SUBTOTAL/COUNTIF/SUMIF/AVERAGEIF/COUNTIFS/SUMIFS/AVERAGEIFS/MINIFS/MAXIFS/PRODUCT/MEDIAN/LARGE/SMALL/SUMSQ/SUMPRODUCT, bounded MODE.SNGL/MODE/GEOMEAN/HARMEAN/AVEDEV/DEVSQ/SUMXMY2/SUMX2MY2/SUMX2PY2/STDEV.S/STDEV.P/VAR.S/VAR.P/PERCENTILE.INC/PERCENTILE.EXC/QUARTILE.INC/QUARTILE.EXC/PERCENTRANK.INC/PERCENTRANK.EXC/RANK.EQ/RANK.AVG/COVAR/COVARIANCE.P/COVARIANCE.S/CORREL/SLOPE/INTERCEPT/RSQ/FORECAST.LINEAR statistical report formulas, bounded PMT/PV/FV/NPER/NPV financial report formulas, exact-match VLOOKUP/HLOOKUP/INDEX/MATCH/XMATCH returning numeric or text values where applicable, XLOOKUP if-not-found fallbacks plus forward/reverse exact and bounded next-smaller/next-larger numeric search, MATCH/XMATCH bounded exact and next-smaller/next-larger numeric positions, CONCAT/CONCATENATE/TEXT/TEXTJOIN/TEXTBEFORE/TEXTAFTER/FORMULATEXT/LEFT/RIGHT/MID/LEN/TRIM/UPPER/LOWER/PROPER/SUBSTITUTE/FIND/SEARCH/VALUE/EXACT/REPT text helpers, bounded TEXT number/date/time formats for report labels, ABS/SIGN/ROUND/ROUNDUP/ROUNDDOWN/MROUND/TRUNC/INT/CEILING.MATH/FLOOR.MATH/CEILING/FLOOR/POWER/SQRT/LN/LOG10/EXP/PI/RADIANS/DEGREES/MOD, ROW/COLUMN/ROWS/COLUMNS reference-shape helpers, DATE/TIME/DATEVALUE/TIMEVALUE/TODAY/NOW/YEAR/MONTH/DAY/HOUR/MINUTE/SECOND/DATEDIF/YEARFRAC/EDATE/EOMONTH/DAYS/DAYS360/WEEKDAY/WEEKNUM/ISOWEEKNUM/NETWORKDAYS/WORKDAY/WORKDAY.INTL, IF/IFS/SWITCH/CHOOSE with numeric/text comparison or selector branches, ISBLANK/ISNUMBER/ISTEXT/ISERROR/ISERR/ISNA/ISFORMULA report guards, AND/OR/NOT comparisons, and IFERROR/IFNA fallbacks returning numbers or text over numbers, text literals, A1 cells, A1 ranges, A1-backed named ranges, simple table structured references, cross-sheet references, and nested formulas. Inspection reports direct A1 dependencies, formula-to-formula edges, maximum dependency depth, circular-reference groups, and dependency issues for preflight diagnostics.";
     }
 }

@@ -126,7 +126,9 @@ namespace OfficeIMO.Tests {
                 CreateDesktopExcelTableWorkbook(Path.Combine(directory, "Table.Filter.Freeze.xlsx")),
                 CreateDesktopExcelFormattingWorkbook(Path.Combine(directory, "Formatting.Validation.xlsx")),
                 CreateDesktopExcelChartWorkbook(Path.Combine(directory, "Charts.ComboScatter.xlsx")),
-                CreateDesktopExcelRecipeChartWorkbook(Path.Combine(directory, "Charts.Recipes.xlsx"))
+                CreateDesktopExcelRecipeChartWorkbook(Path.Combine(directory, "Charts.Recipes.xlsx")),
+                CreateDesktopExcelModernChartWorkbook(Path.Combine(directory, "Charts.ModernCompatible.xlsx")),
+                CreateDesktopExcelPivotInteractionWorkbook(Path.Combine(directory, "Pivot.Interactions.xlsx"))
             };
 
             AssertWorkbooksOpenViaExcelComWhenAvailable(files,
@@ -227,6 +229,48 @@ namespace OfficeIMO.Tests {
 
             document.Save();
             return filePath;
+        }
+
+        private static string CreateDesktopExcelModernChartWorkbook(string filePath) {
+            using var document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorksheet("Dashboard");
+            sheet.AddHistogramChart(new[] { 1d, 2d, 2d, 3d, 5d, 8d }, row: 1, column: 1, binCount: 3);
+            sheet.AddParetoChart(new[] { "Returns", "Delays", "Damage" }, new[] { 8d, 13d, 3d }, row: 1, column: 10);
+            sheet.AddFunnelChart(new[] { "Leads", "Qualified", "Won" }, new[] { 120d, 70d, 25d }, row: 20, column: 1);
+            sheet.AddWaterfallChart(new[] { "Opening", "Growth", "Cost" }, new[] { 100d, 35d, -20d }, row: 20, column: 10);
+            document.Save();
+            return filePath;
+        }
+
+        private static string CreateDesktopExcelPivotInteractionWorkbook(string filePath) {
+            using var document = ExcelDocument.Create(filePath);
+            ExcelSheet source = document.AddWorksheet("Source");
+            WriteDesktopPivotSource(source, 3);
+            source.AddPivotTable(
+                sourceRange: "A1:C4",
+                destinationCell: "E2",
+                name: "SalesPivot",
+                rowFields: new[] { "Region" },
+                dataFields: new[] { new ExcelPivotDataField("Sales", DataConsolidateFunctionValues.Sum, "Total Sales") });
+
+            ExcelSheet expanded = document.AddWorksheet("Expanded");
+            WriteDesktopPivotSource(expanded, 4);
+            source.UpdatePivotTableSource("SalesPivot", expanded, "$A$1:$C$5");
+            document.AddPivotSlicerCache("SalesPivot", "Region");
+            document.AddPivotTimelineCache("SalesPivot", "Date");
+            document.Save();
+            return filePath;
+        }
+
+        private static void WriteDesktopPivotSource(ExcelSheet sheet, int dataRows) {
+            sheet.CellValue(1, 1, "Region");
+            sheet.CellValue(1, 2, "Date");
+            sheet.CellValue(1, 3, "Sales");
+            for (int index = 0; index < dataRows; index++) {
+                sheet.CellValue(index + 2, 1, index % 2 == 0 ? "East" : "West");
+                sheet.CellValue(index + 2, 2, new DateTime(2026, index + 1, 1));
+                sheet.CellValue(index + 2, 3, (index + 1) * 100d);
+            }
         }
     }
 }

@@ -166,7 +166,7 @@ namespace OfficeIMO.Excel {
             props.RemoveAllChildren<A.GradientFill>();
             props.RemoveAllChildren<A.PatternFill>();
             props.RemoveAllChildren<A.NoFill>();
-            props.Append(new A.NoFill());
+            InsertShapeFill(props, new A.NoFill());
         }
 
         private static void ApplyNoLine(OpenXmlCompositeElement props) {
@@ -288,7 +288,22 @@ namespace OfficeIMO.Excel {
             props.RemoveAllChildren<A.NoFill>();
             props.RemoveAllChildren<A.GradientFill>();
             props.RemoveAllChildren<A.PatternFill>();
-            props.Append(new A.SolidFill(new A.RgbColorModelHex { Val = color }));
+            InsertShapeFill(props, new A.SolidFill(new A.RgbColorModelHex { Val = color }));
+        }
+
+        private static void InsertShapeFill(OpenXmlCompositeElement props, OpenXmlElement fill) {
+            OpenXmlElement? insertBefore = props.ChildElements.FirstOrDefault(child =>
+                child is A.Outline
+                || child.LocalName == "effectLst"
+                || child.LocalName == "effectDag"
+                || child.LocalName == "scene3d"
+                || child.LocalName == "sp3d"
+                || child.LocalName == "extLst");
+            if (insertBefore != null) {
+                props.InsertBefore(fill, insertBefore);
+            } else {
+                props.Append(fill);
+            }
         }
 
         private static void ApplyTextSolidFill(A.TextCharacterPropertiesType props, string color) {

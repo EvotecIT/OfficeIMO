@@ -148,6 +148,10 @@ namespace OfficeIMO.Excel {
                     return true;
                 }
 
+                if (_formulaEvaluationStack.Count >= _excelDocument.Calculation.MaximumDependencyDepth) {
+                    return false;
+                }
+
                 if (!_formulaEvaluationStack.Add(cacheKey)) {
                     return false;
                 }
