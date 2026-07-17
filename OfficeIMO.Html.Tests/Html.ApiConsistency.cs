@@ -133,6 +133,14 @@ public sealed class HtmlApiConsistencyTests {
     }
 
     [Fact]
+    public void HtmlPdfOptions_DefaultHyperlinkPolicyBlocksFileAndDataUrls() {
+        var options = new HtmlPdfSaveOptions();
+
+        Assert.True(options.UrlPolicy.DisallowFileUrls);
+        Assert.False(options.UrlPolicy.AllowDataUrls);
+    }
+
+    [Fact]
     public void HtmlPdf_ByteSerializationHonorsCancellation() {
         PdfCore.PdfDocumentConversionResult result = OfficeIMO.Html.HtmlConversionDocument.Parse("<p>Cancellation contract</p>").ToPdfDocumentResult();
         using var cancellation = new CancellationTokenSource();

@@ -399,6 +399,29 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void MhtmlPdf_SynchronousLifecycleResolvesEmbeddedCidAndContentLocationImages() {
+        byte[] cidImage = PdfPngTestImages.CreateRgbPng(8, 5);
+        byte[] locationImage = PdfPngTestImages.CreateRgbPng(5, 8);
+        var archive = new MhtmlDocument(
+            """
+            <h1>Synchronous MHTML</h1>
+            <img src='cid:logo@example.test' width='40' height='25' alt='CID logo'>
+            <img src='images/chart.png' width='25' height='40' alt='location chart'>
+            """,
+            new[] {
+                new MhtmlResource(cidImage, "image/png", contentId: "logo@example.test", fileName: "logo.png"),
+                new MhtmlResource(locationImage, "image/png", contentLocation: "images/chart.png", fileName: "chart.png")
+            },
+            contentLocation: "https://snapshot.example.test/archive/page.html");
+
+        PdfCore.PdfDocumentConversionResult result = archive.ToPdfDocumentResult();
+        byte[] pdf = result.ToBytes();
+
+        Assert.Equal(2, PdfCore.PdfImageExtractor.ExtractImages(pdf).Count(image => image.IsImageFile && image.MimeType == "image/png"));
+        Assert.DoesNotContain(result.Warnings, warning => warning.Code == HtmlRenderDiagnosticCodes.ResourceUnavailable);
+    }
+
+    [Fact]
     public async Task MhtmlPdf_DefaultPolicyResolvesEmbeddedContentLocationIndependentlyOfUriScheme() {
         byte[] imageBytes = PdfPngTestImages.CreateRgbPng(8, 5);
         var archive = new MhtmlDocument(

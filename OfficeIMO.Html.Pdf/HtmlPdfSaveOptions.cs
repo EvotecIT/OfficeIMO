@@ -23,6 +23,7 @@ public sealed class HtmlPdfSaveOptions : HtmlRenderOptions {
     /// <summary>Creates direct paged HTML-to-PDF options using the standard defaults.</summary>
     public HtmlPdfSaveOptions() {
         Mode = HtmlRenderMode.Paged;
+        UrlPolicy = HtmlUrlPolicy.CreateHyperlinkProfile();
     }
 
     /// <summary>

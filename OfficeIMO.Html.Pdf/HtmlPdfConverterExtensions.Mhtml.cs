@@ -33,8 +33,9 @@ public static partial class HtmlPdfConverterExtensions {
     /// <summary>Converts an MHTML archive and returns MIME, HTML-render, and PDF diagnostics.</summary>
     public static PdfCore.PdfDocumentConversionResult ToPdfDocumentResult(this MhtmlDocument document, HtmlPdfSaveOptions? options = null) {
         if (document == null) throw new ArgumentNullException(nameof(document));
-        PdfCore.PdfDocumentConversionResult result = document.HtmlDocument.ToPdfDocumentResult(PrepareMhtmlOptions(document, options));
-        return AddMhtmlDiagnostics(result, document);
+        return Task.Run(() => document.ToPdfDocumentResultAsync(options, CancellationToken.None))
+            .GetAwaiter()
+            .GetResult();
     }
 
     /// <summary>Asynchronously converts an MHTML archive and returns MIME, HTML-render, and PDF diagnostics.</summary>
