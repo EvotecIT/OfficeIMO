@@ -264,6 +264,23 @@ public sealed class VCardDocumentTests {
     }
 
     [Fact]
+    public void LegacyParameterWriterPreservesBackslashRunsBeforeQuotes() {
+        string[] values = { "a\"b", "a\\\"b", "a\\\\\"b", "a\\\\\\\"b" };
+
+        foreach (string value in values) {
+            var document = new VCardDocument();
+            VCardDocument.SetVersion(document.Cards.Single(), VCardVersion.V3_0);
+            document.Cards.Single().AddProperty("FN", "Legacy").SetParameter("X-NAME", value);
+
+            string serialized = document.Serialize();
+            string reparsed = VCardDocument.Parse(serialized).Cards.Single()
+                .GetFirstProperty("FN")!.GetParameter("X-NAME")!.Values.Single();
+
+            Assert.Equal(value, reparsed);
+        }
+    }
+
+    [Fact]
     public void SerializationRejectsLiteralLineBreaksInRawPropertyValues() {
         var document = new VCardDocument();
         document.Cards.Single().AddProperty("FN", "safe\nEND:VCARD\nBEGIN:VCARD");

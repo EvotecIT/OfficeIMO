@@ -87,7 +87,7 @@ internal static class ContentLineCodec {
             while (true) {
                 var current = new StringBuilder(physical);
                 int currentBytes = Encoding.UTF8.GetByteCount(physical);
-                if (currentBytes > options.MaxUnfoldedLineBytes)
+                if (currentBytes > options.MaxUnfoldedLineBytes && !EndsWithEquals(current))
                     throw new InvalidDataException("A content line exceeds the configured unfolded-line limit.");
                 bool? currentIsQuotedPrintable = null;
                 var deferredSoftBreaks = new List<int>();
@@ -98,11 +98,16 @@ internal static class ContentLineCodec {
                     if (folded) {
                         if (EndsWithEquals(current)) {
                             if (currentIsQuotedPrintable == true) RemoveTrailingEquals(current, ref currentBytes);
-                            else if (!currentIsQuotedPrintable.HasValue)
-                                deferredSoftBreaks.Add(current.Length - 1);
+                            else if (!currentIsQuotedPrintable.HasValue) {
+                                int offset = current.Length - 1;
+                                if (deferredSoftBreaks.Count == 0 ||
+                                    deferredSoftBreaks[deferredSoftBreaks.Count - 1] != offset)
+                                    deferredSoftBreaks.Add(offset);
+                            }
                         }
                         AppendUnfolded(current, next.Substring(1), ref currentBytes,
-                            options.MaxUnfoldedLineBytes);
+                            options.MaxUnfoldedLineBytes,
+                            currentIsQuotedPrintable.HasValue ? 0 : deferredSoftBreaks.Count);
                         continue;
                     }
 
@@ -113,6 +118,8 @@ internal static class ContentLineCodec {
                         AppendUnfolded(current, next, ref currentBytes, options.MaxUnfoldedLineBytes);
                         continue;
                     }
+                    if (currentBytes > options.MaxUnfoldedLineBytes)
+                        throw new InvalidDataException("A content line exceeds the configured unfolded-line limit.");
 
                     physical = next;
                     reachedEnd = false;
@@ -121,6 +128,8 @@ internal static class ContentLineCodec {
 
                 ResolveQuotedPrintableState(current, deferredSoftBreaks,
                     ref currentIsQuotedPrintable, ref currentBytes);
+                if (currentBytes > options.MaxUnfoldedLineBytes)
+                    throw new InvalidDataException("A content line exceeds the configured unfolded-line limit.");
                 yield return current.ToString();
                 if (reachedEnd) yield break;
             }
@@ -145,9 +154,9 @@ internal static class ContentLineCodec {
     }
 
     private static void AppendUnfolded(StringBuilder current, string value, ref int currentBytes,
-        int maximumBytes) {
+        int maximumBytes, int deferredBytes = 0) {
         int addedBytes = Encoding.UTF8.GetByteCount(value);
-        if (addedBytes > maximumBytes - currentBytes)
+        if (addedBytes > maximumBytes - (currentBytes - deferredBytes))
             throw new InvalidDataException("A content line exceeds the configured unfolded-line limit.");
         current.Append(value);
         currentBytes += addedBytes;
@@ -164,13 +173,22 @@ internal static class ContentLineCodec {
         int delimiter = FindDelimiter(line, ':');
         currentIsQuotedPrintable = delimiter > 0 &&
             IsQuotedPrintableHeader(line.Substring(0, delimiter));
-        if (currentIsQuotedPrintable != true) return;
-        for (int index = deferredSoftBreaks.Count - 1; index >= 0; index--) {
-            int offset = deferredSoftBreaks[index];
-            if (offset < current.Length && current[offset] == '=') {
-                current.Remove(offset, 1);
-                currentBytes--;
+        if (currentIsQuotedPrintable == true) {
+            int writeIndex = 0;
+            int deferredIndex = 0;
+            for (int readIndex = 0; readIndex < current.Length; readIndex++) {
+                if (deferredIndex < deferredSoftBreaks.Count &&
+                    readIndex == deferredSoftBreaks[deferredIndex]) {
+                    deferredIndex++;
+                    if (readIndex > delimiter) {
+                        currentBytes--;
+                        continue;
+                    }
+                }
+                if (writeIndex != readIndex) current[writeIndex] = current[readIndex];
+                writeIndex++;
             }
+            current.Length = writeIndex;
         }
         deferredSoftBreaks.Clear();
     }
@@ -292,12 +310,21 @@ internal static class ContentLineCodec {
                     char.IsLowSurrogate(part[index + 1]) ? 2 : 1;
                 string character = part.Substring(index, length);
                 int bytes = options.Encoding.GetByteCount(character);
+                if (current.Length == 0 && bytes > options.FoldAtOctets)
+                    throw new InvalidDataException(
+                        "The configured fold limit cannot accommodate an encoded character.");
                 if (current.Length > 0 && octets + bytes > options.FoldAtOctets) {
                     bool moveEqualsToContinuation = avoidQuotedPrintableSoftBreak &&
                         current[current.Length - 1] == '=';
                     int equalsBytes = 0;
                     if (moveEqualsToContinuation) {
                         equalsBytes = options.Encoding.GetByteCount("=");
+                    }
+                    int continuationBytes = options.Encoding.GetByteCount(" ") + equalsBytes;
+                    if (continuationBytes + bytes > options.FoldAtOctets)
+                        throw new InvalidDataException(
+                            "The configured fold limit cannot accommodate a continuation prefix and encoded character.");
+                    if (moveEqualsToContinuation) {
                         current.Length--;
                         octets -= equalsBytes;
                     }
@@ -306,7 +333,7 @@ internal static class ContentLineCodec {
                     outputBytes += octets + newlineBytes;
                     current.Clear();
                     current.Append(' ');
-                    octets = options.Encoding.GetByteCount(" ");
+                    octets = continuationBytes - equalsBytes;
                     if (moveEqualsToContinuation) {
                         current.Append('=');
                         octets += equalsBytes;
@@ -345,7 +372,7 @@ internal static class ContentLineCodec {
         }
         for (int index = 0; index < value.Length; index++) {
             if (value[index] == '"') {
-                if (hasAmbiguousQuotes && IsOddBackslashQuote(value, index) &&
+                if (hasAmbiguousQuotes && IsBackslashQuote(value, index) &&
                     ShouldTreatAsEscapedQuote(quoted, index,
                         canFinishUnquoted!, canFinishQuoted!)) continue;
                 quoted = !quoted;
@@ -366,7 +393,7 @@ internal static class ContentLineCodec {
         }
         for (int index = 0; index < value.Length; index++) {
             if (value[index] == '"') {
-                if (hasAmbiguousQuotes && IsOddBackslashQuote(value, index) &&
+                if (hasAmbiguousQuotes && IsBackslashQuote(value, index) &&
                     ShouldTreatAsEscapedQuote(quoted, index,
                         canFinishUnquoted!, canFinishQuoted!)) continue;
                 quoted = !quoted;
@@ -386,16 +413,13 @@ internal static class ContentLineCodec {
 
     private static bool HasNonStandardEscapedQuoteCandidate(string value) {
         for (int index = 0; index < value.Length; index++) {
-            if (value[index] == '"' && IsOddBackslashQuote(value, index)) return true;
+            if (value[index] == '"' && IsBackslashQuote(value, index)) return true;
         }
         return false;
     }
 
-    private static bool IsOddBackslashQuote(string value, int index) {
-        int backslashes = 0;
-        for (int current = index - 1; current >= 0 && value[current] == '\\'; current--) backslashes++;
-        return (backslashes & 1) != 0;
-    }
+    private static bool IsBackslashQuote(string value, int index) =>
+        index > 0 && value[index - 1] == '\\';
 
     private static void BuildQuoteReachability(string value, char? terminalDelimiter,
         out bool[] canFinishUnquoted, out bool[] canFinishQuoted) {
@@ -407,7 +431,7 @@ internal static class ContentLineCodec {
                 canFinishUnquoted[index] = true;
                 canFinishQuoted[index] = canFinishQuoted[index + 1];
             } else if (value[index] == '"') {
-                if (IsOddBackslashQuote(value, index)) {
+                if (IsBackslashQuote(value, index)) {
                     bool reachable = canFinishUnquoted[index + 1] || canFinishQuoted[index + 1];
                     canFinishUnquoted[index] = reachable;
                     canFinishQuoted[index] = reachable;

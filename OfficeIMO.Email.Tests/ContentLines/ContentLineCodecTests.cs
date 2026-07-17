@@ -64,6 +64,60 @@ public sealed class ContentLineCodecTests {
     }
 
     [Fact]
+    public void ManyDeferredQuotedPrintableSoftBreaksCompactWithinTheConfiguredLinearBound() {
+        var source = new StringBuilder(
+            "BEGIN:VCARD\r\nVERSION:2.1\r\nFN;ENCODING=QUOTED-PRINTABLE:start");
+        for (int index = 0; index < 25_000; index++) source.Append("=\r\n x");
+        source.Append("display name\r\nEND:VCARD\r\n");
+
+        ContentLineProperty formattedName = VCardDocument.Parse(source.ToString(),
+            new ContentLineReaderOptions(maxInputBytes: 256 * 1024,
+                maxUnfoldedLineBytes: 64 * 1024)).Cards.Single().GetFirstProperty("FN")!;
+
+        Assert.Equal("start" + new string('x', 25_000) + "display name", formattedName.Value);
+    }
+
+    [Fact]
+    public void QuotedPrintableUnfoldingPreservesEqualsMarkersInThePropertyHeader() {
+        const string source = "BEGIN:VCARD\r\nVERSION:2.1\r\n" +
+            "FN;ENCODING=QUOTED-PRINTABLE;X-NAME=\"a=\r\n b\":value\r\nEND:VCARD\r\n";
+
+        ContentLineProperty formattedName = VCardDocument.Parse(source)
+            .Cards.Single().GetFirstProperty("FN")!;
+
+        Assert.Equal("a=b", formattedName.GetParameter("X-NAME")!.Values.Single());
+        Assert.Equal("value", formattedName.Value);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData(" ")]
+    public void QuotedPrintableSoftBreakMarkerDoesNotCountAgainstTheUnfoldedLineLimit(
+        string continuationPrefix) {
+        const string prefix = "FN;ENCODING=QUOTED-PRINTABLE:";
+        string value = new string('a', 64 - prefix.Length - 1);
+        string source = "BEGIN:VCARD\r\nVERSION:2.1\r\n" + prefix + value +
+            "=\r\n" + continuationPrefix + "b\r\nEND:VCARD\r\n";
+
+        ContentLineProperty formattedName = VCardDocument.Parse(source,
+            new ContentLineReaderOptions(maxUnfoldedLineBytes: 64))
+            .Cards.Single().GetFirstProperty("FN")!;
+
+        Assert.Equal(value + "b", formattedName.Value);
+    }
+
+    [Fact]
+    public void EmptyPhysicalFoldsDoNotDuplicateDeferredSoftBreakOffsets() {
+        const string source = "BEGIN:VCARD\r\nVERSION:2.1\r\n" +
+            "FN;ENCODING=QUOTED-PRINTABLE:A=\r\n \r\n B=\r\n \r\n C\r\nEND:VCARD\r\n";
+
+        ContentLineProperty formattedName = VCardDocument.Parse(source)
+            .Cards.Single().GetFirstProperty("FN")!;
+
+        Assert.Equal("ABC", formattedName.Value);
+    }
+
+    [Fact]
     public void Parameters_RoundTripRfc6868AndRepeatedValues() {
         const string source = "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Test//EN\r\n" +
             "BEGIN:VEVENT\r\nATTENDEE;CN=Dee^'Arcy^^Team^nLine;MEMBER=\"mailto:a@example.com\",\"mailto:b@example.com\":mailto:c@example.com\r\n" +
@@ -194,5 +248,14 @@ public sealed class ContentLineCodecTests {
 
         Assert.Contains(lines, line => line.StartsWith(" ", StringComparison.Ordinal));
         Assert.All(lines, line => Assert.True(encoding.GetByteCount(line) <= 12, line));
+    }
+
+    [Fact]
+    public void WriterRejectsAFoldLimitThatCannotFitAUnicodeContinuation() {
+        var document = new VCardDocument();
+        document.Cards.Single().AddProperty("FN", "😀");
+
+        Assert.Throws<InvalidDataException>(() => document.Serialize(
+            new ContentLineWriterOptions(foldAtOctets: 4)));
     }
 }
