@@ -238,11 +238,19 @@ namespace OfficeIMO.Excel {
                 XDocument xml = XDocument.Parse(ReadPivotInteractionPartText(part));
                 XElement? root = xml.Root;
                 string expectedRootName = kind == ExcelPivotInteractionCacheKind.Slicer
-                    ? "pivotSlicerBinding"
-                    : "pivotTimelineBinding";
+                    ? "slicerCacheDefinition"
+                    : "timelineCacheDefinition";
+                string expectedNamespace = kind == ExcelPivotInteractionCacheKind.Slicer
+                    ? MicrosoftWorkbookSlicerCacheNamespace
+                    : MicrosoftWorkbookTimelineCacheNamespace;
+
+                // The legacy writer used native root names and allowed the native name/sourceName attributes.
+                // Its unqualified pivotTableName attribute is the safe discriminator from genuine native caches.
+                string? pivotTableName = (string?)root?.Attribute("pivotTableName");
                 return root != null
-                    && string.Equals(root.Name.NamespaceName, OfficeImoPivotInteractionNamespace, StringComparison.Ordinal)
-                    && string.Equals(root.Name.LocalName, expectedRootName, StringComparison.Ordinal);
+                    && string.Equals(root.Name.NamespaceName, expectedNamespace, StringComparison.Ordinal)
+                    && string.Equals(root.Name.LocalName, expectedRootName, StringComparison.Ordinal)
+                    && !string.IsNullOrWhiteSpace(pivotTableName);
             } catch (System.Xml.XmlException) {
                 return false;
             }

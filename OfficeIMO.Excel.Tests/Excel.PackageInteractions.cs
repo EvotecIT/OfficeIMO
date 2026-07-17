@@ -61,25 +61,25 @@ namespace OfficeIMO.Tests {
                         "http://schemas.microsoft.com/office/2007/relationships/slicerCache",
                         "application/vnd.ms-excel.slicerCache+xml",
                         "xml"),
-                    "<pivotSlicerBinding xmlns=\"https://schemas.evotec.xyz/officeimo/excel\" name=\"LegacyRegion\" sourceName=\"Region\" pivotTableName=\"SalesPivot\"/>");
+                    "<slicerCacheDefinition xmlns=\"http://schemas.microsoft.com/office/spreadsheetml/2009/9/main\" name=\"LegacyRegion\" sourceName=\"Region\" pivotTableName=\"SalesPivot\"/>");
                 WriteExtendedPart(
                     workbookPart.AddExtendedPart(
                         "http://schemas.microsoft.com/office/2007/relationships/slicerCache",
                         "application/vnd.ms-excel.slicerCache+xml",
                         "xml"),
-                    "<slicerCacheDefinition xmlns=\"http://schemas.microsoft.com/office/spreadsheetml/2009/9/main\" name=\"NativeRegion\"/>");
+                    "<slicerCacheDefinition xmlns=\"http://schemas.microsoft.com/office/spreadsheetml/2009/9/main\" name=\"NativeRegion\" sourceName=\"NativeRegionSource\"/>");
                 WriteExtendedPart(
                     workbookPart.AddExtendedPart(
                         "http://schemas.microsoft.com/office/2011/relationships/timelineCache",
                         "application/vnd.ms-excel.timelineCache+xml",
                         "xml"),
-                    "<pivotTimelineBinding xmlns=\"https://schemas.evotec.xyz/officeimo/excel\" name=\"LegacyOrderDate\" sourceName=\"OrderDate\" pivotTableName=\"SalesPivot\"/>");
+                    "<timelineCacheDefinition xmlns=\"http://schemas.microsoft.com/office/spreadsheetml/2011/1/main\" name=\"LegacyOrderDate\" sourceName=\"OrderDate\" pivotTableName=\"SalesPivot\"/>");
                 WriteExtendedPart(
                     workbookPart.AddExtendedPart(
                         "http://schemas.microsoft.com/office/2011/relationships/timelineCache",
                         "application/vnd.ms-excel.timelineCache+xml",
                         "xml"),
-                    "<timelineCacheDefinition xmlns=\"http://schemas.microsoft.com/office/spreadsheetml/2011/1/timeline\" name=\"NativeOrderDate\"/>");
+                    "<timelineCacheDefinition xmlns=\"http://schemas.microsoft.com/office/spreadsheetml/2011/1/main\" name=\"NativeOrderDate\" sourceName=\"NativeOrderDateSource\"/>");
             }
 
             using (var document = ExcelDocument.Load(filePath, new ExcelLoadOptions { AccessMode = DocumentAccessMode.ReadOnly })) {

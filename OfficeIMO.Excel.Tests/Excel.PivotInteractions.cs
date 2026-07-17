@@ -95,14 +95,28 @@ namespace OfficeIMO.Tests {
                 rowFields: new[] { "Region" },
                 dataFields: new[] { new ExcelPivotDataField("Sales", DataConsolidateFunctionValues.Sum) });
 
+            WorkbookPart workbookPart = document._spreadSheetDocument.WorkbookPart!;
+            WriteExtendedPart(
+                workbookPart.AddExtendedPart(
+                    "http://schemas.microsoft.com/office/2007/relationships/slicerCache",
+                    "application/vnd.ms-excel.slicerCache+xml",
+                    "xml"),
+                "<slicerCacheDefinition xmlns=\"http://schemas.microsoft.com/office/spreadsheetml/2009/9/main\" name=\"Slicer_Region\" sourceName=\"Region\" pivotTableName=\"SalesPivot\"/>");
+            WriteExtendedPart(
+                workbookPart.AddExtendedPart(
+                    "http://schemas.microsoft.com/office/2011/relationships/timelineCache",
+                    "application/vnd.ms-excel.timelineCache+xml",
+                    "xml"),
+                "<timelineCacheDefinition xmlns=\"http://schemas.microsoft.com/office/spreadsheetml/2011/1/main\" name=\"Timeline_OrderDate\" sourceName=\"OrderDate\" pivotTableName=\"SalesPivot\"/>");
+
             document.AddPivotSlicerCache("SalesPivot", "Region");
             document.AddPivotSlicerCache("SalesPivot", "Region");
             document.AddPivotTimelineCache("SalesPivot", "OrderDate");
             document.AddPivotTimelineCache("SalesPivot", "OrderDate");
 
-            Assert.Equal(new[] { "Slicer_Region", "Slicer_Region_2" },
+            Assert.Equal(new[] { "Slicer_Region", "Slicer_Region_2", "Slicer_Region_3" },
                 document.GetWorkbookSlicerCaches().Select(cache => cache.Name));
-            Assert.Equal(new[] { "Timeline_OrderDate", "Timeline_OrderDate_2" },
+            Assert.Equal(new[] { "Timeline_OrderDate", "Timeline_OrderDate_2", "Timeline_OrderDate_3" },
                 document.GetWorkbookTimelineCaches().Select(cache => cache.Name));
 
             document.AddPivotSlicerCache("SalesPivot", "Region", "ExplicitRegion");
