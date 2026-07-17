@@ -150,6 +150,7 @@ namespace OfficeIMO.Excel {
         }
 
         private IReadOnlyList<string> GetFormulaDependencies(
+            string? sourceCellReference,
             string formula,
             FormulaDependencyAliasCatalog aliases) {
             if (string.IsNullOrWhiteSpace(formula)) {
@@ -170,11 +171,14 @@ namespace OfficeIMO.Excel {
                         match.Groups["reference"].Value))
                     .ToList();
                 var dependencies = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                int? sourceRow = TryParseCellReference(sourceCellReference ?? string.Empty, out int row, out _)
+                    ? row
+                    : (int?)null;
                 IReadOnlyList<FormulaLexicalBinding> lexicalBindings = GetFormulaLexicalBindings(searchableFormula);
                 foreach (FormulaDependencyAliasMatch match in aliases.FindMatches(searchableFormula)) {
-                    AddFormulaAliasDependencyMatch(searchableFormula, match, lexicalBindings, dependencyMatches);
+                    AddFormulaAliasDependencyMatch(searchableFormula, match, lexicalBindings, sourceRow, dependencyMatches);
                 }
-                AddFormulaDependencies(searchableFormula, dependencyMatches, dependencies);
+                AddFormulaDependencies(searchableFormula, dependencyMatches, sourceRow, dependencies);
 
                 return dependencies
                     .OrderBy(reference => reference, StringComparer.OrdinalIgnoreCase)
@@ -255,6 +259,7 @@ namespace OfficeIMO.Excel {
             string formula,
             FormulaDependencyAliasMatch match,
             IReadOnlyList<FormulaLexicalBinding> lexicalBindings,
+            int? sourceRow,
             ICollection<FormulaDependencyReferenceMatch> dependencyMatches) {
             if (!TryGetFormulaAliasReference(formula, match, out string reference)) {
                 return;
@@ -264,7 +269,7 @@ namespace OfficeIMO.Excel {
                 && reference.Length > match.Alias.Text.Length;
             if ((!hasStructuredSuffix
                     && lexicalBindings.Any(binding => binding.Shadows(match.Alias.Text, match.Index, match.Alias.Text.Length)))
-                || !TryResolveFormulaRangeReference(reference, out _, out _, out _, out _, out _)) {
+                || !TryResolveFormulaRangeReference(reference, sourceRow, out _, out _, out _, out _, out _)) {
                 return;
             }
 
@@ -498,10 +503,11 @@ namespace OfficeIMO.Excel {
                 .ToList();
         }
 
-        private string NormalizeFormulaDependencyReference(string reference) {
+        private string NormalizeFormulaDependencyReference(string reference, int? sourceRow) {
             string normalized = reference.Trim().Replace("$", string.Empty);
             if (TryResolveFormulaDependencyReference(
                 normalized,
+                sourceRow,
                 out ExcelSheet sheet,
                 out _,
                 out _,
@@ -522,7 +528,19 @@ namespace OfficeIMO.Excel {
             out int r2,
             out int c2,
             out string address) {
-            if (TryResolveFormulaRangeReference(token, out sheet, out r1, out c1, out r2, out c2)) {
+            return TryResolveFormulaDependencyReference(token, null, out sheet, out r1, out c1, out r2, out c2, out address);
+        }
+
+        private bool TryResolveFormulaDependencyReference(
+            string token,
+            int? sourceRow,
+            out ExcelSheet sheet,
+            out int r1,
+            out int c1,
+            out int r2,
+            out int c2,
+            out string address) {
+            if (TryResolveFormulaRangeReference(token, sourceRow, out sheet, out r1, out c1, out r2, out c2)) {
                 string start = A1.CellReference(r1, c1);
                 string end = A1.CellReference(r2, c2);
                 address = r1 == r2 && c1 == c2 ? start : start + ":" + end;

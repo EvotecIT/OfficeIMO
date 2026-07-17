@@ -48,16 +48,16 @@ namespace OfficeIMO.Tests {
 
                 ExcelChart waterfall = sheet.AddWaterfallChart(
                     new[] { "Start", "Growth", "Cost" },
-                    new[] { 100d, 40d, -30d },
+                    new[] { 100.25d, 40.5d, -30.1d },
                     row: 20,
                     column: 10);
                 Assert.Equal(ExcelChartType.ColumnStacked, waterfall.ChartType);
                 Assert.True(waterfall.TryGetData(out ExcelChartData waterfallData));
                 Assert.Equal(new[] { "Start", "Growth", "Cost", "Total" }, waterfallData.Categories);
-                Assert.Equal(new[] { 0d, 100d, 110d, 0d }, waterfallData.Series[0].Values);
-                Assert.Equal(new[] { 100d, 40d, 0d, 0d }, waterfallData.Series[1].Values);
-                Assert.Equal(new[] { 0d, 0d, 30d, 0d }, waterfallData.Series[2].Values);
-                Assert.Equal(new[] { 0d, 0d, 0d, 110d }, waterfallData.Series[3].Values);
+                Assert.Equal(new[] { 0d, 100.25d, 110.65d, 0d }, waterfallData.Series[0].Values);
+                Assert.Equal(new[] { 100.25d, 40.5d, 0d, 0d }, waterfallData.Series[1].Values);
+                Assert.Equal(new[] { 0d, 0d, 30.1d, 0d }, waterfallData.Series[2].Values);
+                Assert.Equal(new[] { 0d, 0d, 0d, 110.65d }, waterfallData.Series[3].Values);
 
                 document.Save();
             }
@@ -73,10 +73,16 @@ namespace OfficeIMO.Tests {
                 Assert.Null(waterfallSeries[0].GetFirstChild<C.DataLabels>());
                 Assert.Equal(new uint[] { 0, 1 }, waterfallSeries[1].GetFirstChild<C.DataLabels>()!
                     .Elements<C.DataLabel>().Select(label => label.Index!.Val!.Value));
+                Assert.All(waterfallSeries[1].GetFirstChild<C.DataLabels>()!.Elements<C.DataLabel>(), label =>
+                    Assert.Equal("+#,##0.###############", label.GetFirstChild<C.NumberingFormat>()?.FormatCode?.Value));
                 Assert.Equal(new uint[] { 2 }, waterfallSeries[2].GetFirstChild<C.DataLabels>()!
                     .Elements<C.DataLabel>().Select(label => label.Index!.Val!.Value));
+                Assert.Equal("-#,##0.###############", waterfallSeries[2].GetFirstChild<C.DataLabels>()!
+                    .GetFirstChild<C.DataLabel>()!.GetFirstChild<C.NumberingFormat>()?.FormatCode?.Value);
                 Assert.Equal(new uint[] { 3 }, waterfallSeries[3].GetFirstChild<C.DataLabels>()!
                     .Elements<C.DataLabel>().Select(label => label.Index!.Val!.Value));
+                Assert.Equal("#,##0.###############", waterfallSeries[3].GetFirstChild<C.DataLabels>()!
+                    .GetFirstChild<C.DataLabel>()!.GetFirstChild<C.NumberingFormat>()?.FormatCode?.Value);
             }
 
             using (ExcelDocument document = ExcelDocument.Load(filePath, new ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
@@ -96,6 +102,7 @@ namespace OfficeIMO.Tests {
             Assert.Throws<ArgumentException>(() => sheet.AddHistogramChart(new[] { 1d, double.NaN }, 1, 1));
             Assert.Throws<ArgumentException>(() => sheet.AddHistogramChart(new[] { -double.MaxValue, double.MaxValue }, 1, 1));
             Assert.Throws<ArgumentException>(() => sheet.AddHistogramChart(new[] { 0d, double.Epsilon }, 1, 1, binCount: 2));
+            Assert.Throws<ArgumentException>(() => sheet.AddHistogramChart(new[] { 1e16d, 10000000000000002d }, 1, 1, binWidth: 1d));
             Assert.Throws<ArgumentException>(() => sheet.AddHistogramChart(new[] { 1d, 2d }, 1, 1, binCount: 2, binWidth: 1));
             Assert.Throws<ArgumentException>(() => sheet.AddParetoChart(new[] { "A", "B" }, new[] { 0d, 0d }, 1, 1));
             Assert.Throws<ArgumentException>(() => sheet.AddParetoChart(new[] { "A", "B" }, new[] { double.MaxValue, double.MaxValue }, 1, 1));

@@ -57,6 +57,20 @@ namespace OfficeIMO.Excel {
                 throw new ArgumentException("Histogram values and bin settings produce an unrepresentable bin width.", nameof(values));
             }
 
+            var boundaries = new double[effectiveBinCount + 1];
+            boundaries[0] = minimum;
+            for (int index = 1; index <= effectiveBinCount; index++) {
+                double boundary = index == effectiveBinCount
+                    ? maximum
+                    : minimum + (index * effectiveBinWidth);
+                if (double.IsInfinity(boundary)
+                    || minimum != maximum && !(boundary > boundaries[index - 1])) {
+                    throw new ArgumentException("Histogram values and bin settings produce an unrepresentable bin boundary.", nameof(values));
+                }
+
+                boundaries[index] = boundary;
+            }
+
             var counts = new double[effectiveBinCount];
             foreach (double observation in observations) {
                 int index = minimum == maximum || observation == maximum
@@ -67,14 +81,7 @@ namespace OfficeIMO.Excel {
 
             var categories = new string[effectiveBinCount];
             for (int index = 0; index < effectiveBinCount; index++) {
-                double lower = minimum + (index * effectiveBinWidth);
-                double upper = minimum == maximum || index == effectiveBinCount - 1
-                    ? maximum
-                    : lower + effectiveBinWidth;
-                if (double.IsInfinity(lower) || double.IsInfinity(upper)) {
-                    throw new ArgumentException("Histogram values and bin settings produce an unrepresentable bin boundary.", nameof(values));
-                }
-                categories[index] = FormatChartRange(lower, upper);
+                categories[index] = FormatChartRange(boundaries[index], boundaries[index + 1]);
             }
 
             var data = new ExcelChartData(categories, new[] { new ExcelChartSeries("Frequency", counts, seriesColorArgb: "4F46E5") });
@@ -238,24 +245,25 @@ namespace OfficeIMO.Excel {
 
             var data = new ExcelChartData(chartCategories, series);
             ExcelChart chart = AddChart(data, row, column, widthPixels, heightPixels, ExcelChartType.ColumnStacked, title);
+            const string waterfallNumberFormat = "#,##0.###############";
             chart.ApplyAuthoredSeriesStyles(data.Series, visibleSeriesStyles);
             chart.SetSeriesNoFill(0)
                 .SetValueAxisGridlines(showMajor: true, showMinor: false, lineColor: "E5E7EB", lineWidthPoints: 0.5)
-                .SetValueAxisNumberFormat("#,##0", sourceLinked: false);
+                .SetValueAxisNumberFormat(waterfallNumberFormat, sourceLinked: false);
 
             for (int index = 0; index < points.Count; index++) {
                 if (points[index].Value > 0) {
                     chart.SetSeriesDataLabelForPoint(1, index, showValue: true,
-                        position: C.DataLabelPositionValues.OutsideEnd, numberFormat: "+#,##0");
+                        position: C.DataLabelPositionValues.OutsideEnd, numberFormat: "+" + waterfallNumberFormat);
                 } else if (points[index].Value < 0) {
                     chart.SetSeriesDataLabelForPoint(2, index, showValue: true,
-                        position: C.DataLabelPositionValues.OutsideEnd, numberFormat: "-#,##0");
+                        position: C.DataLabelPositionValues.OutsideEnd, numberFormat: "-" + waterfallNumberFormat);
                 }
             }
 
             if (includeTotal) {
                 chart.SetSeriesDataLabelForPoint(3, count - 1, showValue: true,
-                    position: C.DataLabelPositionValues.OutsideEnd, numberFormat: "#,##0");
+                    position: C.DataLabelPositionValues.OutsideEnd, numberFormat: waterfallNumberFormat);
             }
 
             return chart;

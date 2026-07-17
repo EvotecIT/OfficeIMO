@@ -373,6 +373,17 @@ namespace OfficeIMO.Excel {
         }
 
         private bool TryResolveFormulaRangeReference(string token, out ExcelSheet sheet, out int r1, out int c1, out int r2, out int c2) {
+            return TryResolveFormulaRangeReference(token, null, out sheet, out r1, out c1, out r2, out c2);
+        }
+
+        private bool TryResolveFormulaRangeReference(
+            string token,
+            int? currentRow,
+            out ExcelSheet sheet,
+            out int r1,
+            out int c1,
+            out int r2,
+            out int c2) {
             if (TryParseQualifiedFormulaRange(token, out sheet, out r1, out c1, out r2, out c2)) {
                 return true;
             }
@@ -383,14 +394,21 @@ namespace OfficeIMO.Excel {
                 return true;
             }
 
-            if (TryResolveTableReferenceRange(token, out sheet, out r1, out c1, out r2, out c2)) {
+            if (TryResolveTableReferenceRange(token, currentRow, out sheet, out r1, out c1, out r2, out c2)) {
                 return true;
             }
 
             return TryResolveDefinedNameRange(token, out sheet, out r1, out c1, out r2, out c2);
         }
 
-        private bool TryResolveTableReferenceRange(string token, out ExcelSheet sheet, out int r1, out int c1, out int r2, out int c2) {
+        private bool TryResolveTableReferenceRange(
+            string token,
+            int? currentRow,
+            out ExcelSheet sheet,
+            out int r1,
+            out int c1,
+            out int r2,
+            out int c2) {
             sheet = this;
             r1 = 0;
             c1 = 0;
@@ -432,7 +450,7 @@ namespace OfficeIMO.Excel {
                             _formulaEvaluationDepthFrames = _formulaEvaluationDepthFrames,
                             _formulaEvaluationGuardState = _formulaEvaluationGuardState
                         };
-                    return TryResolveTableReferenceRange(table, sections, out r1, out c1, out r2, out c2);
+                    return TryResolveTableReferenceRange(table, sections, currentRow, out r1, out c1, out r2, out c2);
                 }
             }
 
@@ -508,7 +526,14 @@ namespace OfficeIMO.Excel {
             return sections.Count > 0;
         }
 
-        private static bool TryResolveTableReferenceRange(Table table, IReadOnlyList<string> sections, out int r1, out int c1, out int r2, out int c2) {
+        private static bool TryResolveTableReferenceRange(
+            Table table,
+            IReadOnlyList<string> sections,
+            int? currentRow,
+            out int r1,
+            out int c1,
+            out int r2,
+            out int c2) {
             r1 = 0;
             c1 = 0;
             r2 = 0;
@@ -527,10 +552,14 @@ namespace OfficeIMO.Excel {
             string? item = null;
             string area = "#Data";
             if (sections.Count == 1) {
-                if (IsStructuredTableAreaSpecifier(sections[0])) {
-                    area = sections[0];
+                string section = sections[0];
+                if (section.Length > 1 && section[0] == '@') {
+                    area = "#This Row";
+                    item = section.Substring(1).Trim();
+                } else if (IsStructuredTableAreaSpecifier(section)) {
+                    area = section;
                 } else {
-                    item = sections[0];
+                    item = section;
                 }
             } else if (sections.Count == 2) {
                 if (!IsStructuredTableAreaSpecifier(sections[0])) {
@@ -543,7 +572,7 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            if (!TryResolveTableAreaRows(area, tableR1, tableR2, headerRows, totalsRows, out r1, out r2)) {
+            if (!TryResolveTableAreaRows(area, tableR1, tableR2, headerRows, totalsRows, currentRow, out r1, out r2)) {
                 return false;
             }
 
@@ -562,7 +591,15 @@ namespace OfficeIMO.Excel {
             return r1 <= r2 && c1 <= c2;
         }
 
-        private static bool TryResolveTableAreaRows(string area, int tableR1, int tableR2, uint headerRows, uint totalsRows, out int r1, out int r2) {
+        private static bool TryResolveTableAreaRows(
+            string area,
+            int tableR1,
+            int tableR2,
+            uint headerRows,
+            uint totalsRows,
+            int? currentRow,
+            out int r1,
+            out int r2) {
             r1 = tableR1;
             r2 = tableR2;
             if (string.Equals(area, "#All", StringComparison.OrdinalIgnoreCase)) {
@@ -587,6 +624,17 @@ namespace OfficeIMO.Excel {
                 return r1 >= tableR1;
             }
 
+            if (string.Equals(area, "#This Row", StringComparison.OrdinalIgnoreCase)) {
+                int dataR1 = tableR1 + (int)headerRows;
+                int dataR2 = tableR2 - (int)totalsRows;
+                if (!currentRow.HasValue || currentRow.Value < dataR1 || currentRow.Value > dataR2) {
+                    return false;
+                }
+
+                r1 = r2 = currentRow.Value;
+                return true;
+            }
+
             if (!string.Equals(area, "#Data", StringComparison.OrdinalIgnoreCase)) {
                 return false;
             }
@@ -600,7 +648,8 @@ namespace OfficeIMO.Excel {
             return string.Equals(section, "#All", StringComparison.OrdinalIgnoreCase)
                 || string.Equals(section, "#Data", StringComparison.OrdinalIgnoreCase)
                 || string.Equals(section, "#Headers", StringComparison.OrdinalIgnoreCase)
-                || string.Equals(section, "#Totals", StringComparison.OrdinalIgnoreCase);
+                || string.Equals(section, "#Totals", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(section, "#This Row", StringComparison.OrdinalIgnoreCase);
         }
 
         private static int ResolveTableColumnOffset(Table table, string columnName) {

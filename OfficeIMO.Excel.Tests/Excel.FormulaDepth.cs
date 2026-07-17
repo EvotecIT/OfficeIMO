@@ -126,6 +126,43 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_FormulaDependencyGraph_ResolvesCurrentRowStructuredReferences() {
+            using ExcelDocument document = ExcelDocument.Create();
+            ExcelSheet sheet = document.AddWorksheet("Current Row");
+            sheet.CellValue(1, 1, "A");
+            sheet.CellValue(1, 2, "B");
+            sheet.CellFormula(2, 1, "CurrentRowData[@B]");
+            sheet.CellFormula(2, 2, "CurrentRowData[[#This Row],[A]]");
+            sheet.AddTable("A1:B2", hasHeader: true, name: "CurrentRowData", style: TableStyle.TableStyleMedium2);
+
+            ExcelSheet crossSource = document.AddWorksheet("Cross Source");
+            crossSource.CellFormula(2, 1, "CrossRowData[@B]");
+            ExcelSheet crossTable = document.AddWorksheet("Cross Table");
+            crossTable.CellValue(1, 1, "A");
+            crossTable.CellValue(1, 2, "B");
+            crossTable.CellValue(2, 1, 1d);
+            crossTable.CellFormula(2, 2, "'Cross Source'!A2");
+            crossTable.AddTable("A1:B2", hasHeader: true, name: "CrossRowData", style: TableStyle.TableStyleMedium2);
+
+            ExcelFormulaDependencyGraph graph = document.InspectFormulas().DependencyGraph;
+            ExcelFormulaDependencyNode first = Assert.IsType<ExcelFormulaDependencyNode>(graph.FindNode("Current Row", "A2"));
+            Assert.Equal(new[] { "Current Row!B2" }, first.Dependencies);
+            Assert.Equal(new[] { "Current Row!B2" }, first.FormulaDependencies);
+            ExcelFormulaDependencyNode second = Assert.IsType<ExcelFormulaDependencyNode>(graph.FindNode("Current Row", "B2"));
+            Assert.Equal(new[] { "Current Row!A2" }, second.Dependencies);
+            Assert.Equal(new[] { "Current Row!A2" }, second.FormulaDependencies);
+            ExcelFormulaDependencyNode crossFirst = Assert.IsType<ExcelFormulaDependencyNode>(graph.FindNode("Cross Source", "A2"));
+            Assert.Equal(new[] { "Cross Table!B2" }, crossFirst.Dependencies);
+            Assert.Equal(new[] { "Cross Table!B2" }, crossFirst.FormulaDependencies);
+            ExcelFormulaDependencyNode crossSecond = Assert.IsType<ExcelFormulaDependencyNode>(graph.FindNode("Cross Table", "B2"));
+            Assert.Equal(new[] { "Cross Source!A2" }, crossSecond.Dependencies);
+            Assert.Equal(new[] { "Cross Source!A2" }, crossSecond.FormulaDependencies);
+            Assert.Equal(4, graph.EdgeCount);
+            Assert.True(graph.HasCircularReferences);
+            Assert.Throws<InvalidOperationException>(() => document.InspectFormulas().EnsureNoDependencyIssues());
+        }
+
+        [Fact]
         public void Test_FormulaDependencyGraph_IgnoresLexicallyScopedNames() {
             using ExcelDocument document = ExcelDocument.Create();
             ExcelSheet sheet = document.AddWorksheet("Lexical");

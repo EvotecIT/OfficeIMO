@@ -313,7 +313,10 @@ namespace OfficeIMO.Excel {
                 foreach (Cell cell in formulaCells) {
                     string formula = ResolveCellFormulaText(cell, sharedFormulaDefinitions);
                     bool supported = TryEvaluateFormulaCellValue(cell, out _, sharedFormulaDefinitions);
-                    IReadOnlyList<string> dependencies = GetFormulaDependencies(formula, dependencyAliases);
+                    IReadOnlyList<string> dependencies = GetFormulaDependencies(
+                        cell.CellReference?.Value,
+                        formula,
+                        dependencyAliases);
                     IReadOnlyList<string> dependencyIssues = GetFormulaDependencyIssues(
                         cell.CellReference?.Value,
                         dependencies,

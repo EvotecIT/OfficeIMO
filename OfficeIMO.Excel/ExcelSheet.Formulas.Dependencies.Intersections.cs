@@ -19,6 +19,7 @@ namespace OfficeIMO.Excel {
         private void AddFormulaDependencies(
             string formula,
             IEnumerable<FormulaDependencyReferenceMatch> matches,
+            int? sourceRow,
             ISet<string> dependencies) {
             List<FormulaDependencyReferenceMatch> orderedMatches = GetNonOverlappingFormulaDependencyMatches(matches);
             int index = 0;
@@ -30,9 +31,9 @@ namespace OfficeIMO.Excel {
                 }
 
                 if (intersectionEnd == index) {
-                    dependencies.Add(NormalizeFormulaDependencyReference(orderedMatches[index].Reference));
+                    dependencies.Add(NormalizeFormulaDependencyReference(orderedMatches[index].Reference, sourceRow));
                 } else {
-                    AddFormulaIntersectionDependency(orderedMatches, index, intersectionEnd, dependencies);
+                    AddFormulaIntersectionDependency(orderedMatches, index, intersectionEnd, sourceRow, dependencies);
                 }
 
                 index = intersectionEnd + 1;
@@ -79,6 +80,7 @@ namespace OfficeIMO.Excel {
             IReadOnlyList<FormulaDependencyReferenceMatch> matches,
             int startIndex,
             int endIndex,
+            int? sourceRow,
             ISet<string> dependencies) {
             ExcelSheet? intersectionSheet = null;
             int intersectionR1 = 1;
@@ -89,6 +91,7 @@ namespace OfficeIMO.Excel {
                 string reference = matches[index].Reference;
                 if (!TryResolveFormulaDependencyReference(
                     reference,
+                    sourceRow,
                     out ExcelSheet sheet,
                     out int r1,
                     out int c1,
