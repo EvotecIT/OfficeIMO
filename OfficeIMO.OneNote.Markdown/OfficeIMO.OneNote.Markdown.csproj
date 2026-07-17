@@ -1,0 +1,46 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Description>Semantic offline OneNote to Markdown conversion for OfficeIMO.</Description>
+    <AssemblyName>OfficeIMO.OneNote.Markdown</AssemblyName>
+    <AssemblyTitle>OfficeIMO.OneNote.Markdown</AssemblyTitle>
+    <VersionPrefix>2.0.1</VersionPrefix>
+    <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
+    <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">$(TargetFrameworks);net472</TargetFrameworks>
+    <IsPackable>true</IsPackable>
+    <IsPublishable>true</IsPublishable>
+    <Company>Evotec</Company>
+    <Authors>Przemyslaw Klys</Authors>
+    <PackageId>OfficeIMO.OneNote.Markdown</PackageId>
+    <PackageTags>onenote;markdown;offline;converter;officeimo</PackageTags>
+    <PackageProjectUrl>https://github.com/EvotecIT/OfficeIMO</PackageProjectUrl>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <RepositoryUrl>https://github.com/EvotecIT/OfficeIMO</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageIcon>OfficeIMO.png</PackageIcon>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <LangVersion>Latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <ProduceReferenceAssembly>false</ProduceReferenceAssembly>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\OfficeIMO.Markdown\OfficeIMO.Markdown.csproj" />
+    <ProjectReference Include="..\OfficeIMO.OneNote\OfficeIMO.OneNote.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\Assets\OfficeIMO.png" Pack="true" PackagePath="\" />
+    <None Include="README.md" Pack="true" PackagePath="README.md" />
+  </ItemGroup>
+  <ItemGroup>
+    <Using Include="System" />
+    <Using Include="System.Collections.Generic" />
+    <Using Include="System.IO" />
+    <Using Include="System.Linq" />
+    <Using Include="System.Text" />
+    <Using Include="System.Threading" />
+    <Using Include="System.Threading.Tasks" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="OfficeIMO.Reader.OneNote" />
+  </ItemGroup>
+</Project>

@@ -38,6 +38,7 @@
     <ProjectReference Include="..\OfficeIMO.Reader.Json\OfficeIMO.Reader.Json.csproj" />
     <ProjectReference Include="..\OfficeIMO.Reader.Latex\OfficeIMO.Reader.Latex.csproj" />
     <ProjectReference Include="..\OfficeIMO.Reader.Notebook\OfficeIMO.Reader.Notebook.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Reader.OneNote\OfficeIMO.Reader.OneNote.csproj" />
     <ProjectReference Include="..\OfficeIMO.Reader.OpenDocument\OfficeIMO.Reader.OpenDocument.csproj" />
     <ProjectReference Include="..\OfficeIMO.Reader.Pdf\OfficeIMO.Reader.Pdf.csproj" />
     <ProjectReference Include="..\OfficeIMO.Reader.Rtf\OfficeIMO.Reader.Rtf.csproj" />

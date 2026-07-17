@@ -37,6 +37,11 @@
         <ProjectReference Include="..\\OfficeIMO.Word.OpenDocument\\OfficeIMO.Word.OpenDocument.csproj" />
         <ProjectReference Include="..\\OfficeIMO.Excel.OpenDocument\\OfficeIMO.Excel.OpenDocument.csproj" />
         <ProjectReference Include="..\\OfficeIMO.PowerPoint.OpenDocument\\OfficeIMO.PowerPoint.OpenDocument.csproj" />
+        <ProjectReference Include="..\\OfficeIMO.OneNote\\OfficeIMO.OneNote.csproj" />
+        <ProjectReference Include="..\\OfficeIMO.OneNote.Markdown\\OfficeIMO.OneNote.Markdown.csproj" />
+        <ProjectReference Include="..\\OfficeIMO.OneNote.Html\\OfficeIMO.OneNote.Html.csproj" />
+        <ProjectReference Include="..\\OfficeIMO.OneNote.Pdf\\OfficeIMO.OneNote.Pdf.csproj" />
+        <ProjectReference Include="..\\OfficeIMO.Reader.OneNote\\OfficeIMO.Reader.OneNote.csproj" />
     </ItemGroup>
 
     <ItemGroup>

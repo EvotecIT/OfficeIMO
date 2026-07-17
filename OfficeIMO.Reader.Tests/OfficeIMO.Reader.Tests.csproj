@@ -51,6 +51,7 @@
     <ProjectReference Include="..\OfficeIMO.Reader.Json\OfficeIMO.Reader.Json.csproj" />
     <ProjectReference Include="..\OfficeIMO.Reader.Notebook\OfficeIMO.Reader.Notebook.csproj" />
     <ProjectReference Include="..\OfficeIMO.Reader.OpenDocument\OfficeIMO.Reader.OpenDocument.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Reader.OneNote\OfficeIMO.Reader.OneNote.csproj" />
     <ProjectReference Include="..\OfficeIMO.Reader.Pdf\OfficeIMO.Reader.Pdf.csproj" />
     <ProjectReference Include="..\OfficeIMO.Reader.Rtf\OfficeIMO.Reader.Rtf.csproj" />
     <ProjectReference Include="..\OfficeIMO.Reader.Subtitles\OfficeIMO.Reader.Subtitles.csproj" />
@@ -84,6 +85,7 @@
 
   <ItemGroup>
     <None Include="..\OfficeIMO.TestAssets\Images\**" Link="Images\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\OfficeIMO.OneNote.Tests\Fixtures\*.one" Link="OneNoteFixtures\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Update="ReaderGolden\**" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 

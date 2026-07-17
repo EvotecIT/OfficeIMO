@@ -7,13 +7,15 @@ internal sealed class PstTableContextReader {
     private readonly bool _isUnicode;
     private readonly EmailStoreReaderOptions _options;
     private readonly CancellationToken _cancellationToken;
+    private readonly Action<string>? _reportCellWarning;
 
     internal PstTableContextReader(PstHeap heap, bool isUnicode, EmailStoreReaderOptions options,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken, Action<string>? reportCellWarning = null) {
         _heap = heap;
         _isUnicode = isUnicode;
         _options = options;
         _cancellationToken = cancellationToken;
+        _reportCellWarning = reportCellWarning;
     }
 
     internal IReadOnlyList<IReadOnlyList<MapiProperty>> ReadRows() => EnumerateRows().ToArray();
@@ -26,7 +28,8 @@ internal sealed class PstTableContextReader {
 
         int columnCount = info[1];
         int rowSize = PstBinary.UInt16(info, 8);
-        int existenceOffset = PstBinary.UInt16(info, 6);
+        int existenceBytes = checked((columnCount + 7) / 8);
+        int existenceOffset = rowSize - existenceBytes;
         uint rowIndexHid = PstBinary.UInt32(info, 10);
         uint rowsHnid = PstBinary.UInt32(info, 14);
         if (rowSize <= 0 || existenceOffset < 0 || existenceOffset > rowSize ||
@@ -41,32 +44,58 @@ internal sealed class PstTableContextReader {
             int dataOffset = PstBinary.UInt16(info, offset + 4);
             int dataSize = info[offset + 6];
             int bitIndex = info[offset + 7];
-            if (dataOffset < 0 || dataSize < 0 || dataOffset > rowSize - dataSize) {
+            if (bitIndex >= columnCount || dataOffset < 0 || dataSize < 0 ||
+                dataOffset > existenceOffset - dataSize) {
                 throw new InvalidDataException("A PST table column points outside its row.");
             }
             columns.Add(new PstTableColumn(tag, dataOffset, dataSize, bitIndex));
         }
 
-        IReadOnlyList<int> rowIndexes = ReadRowIndexes(rowIndexHid);
+        IReadOnlyList<int> rowIndexes;
+        try {
+            rowIndexes = ReadRowIndexes(rowIndexHid);
+        } catch (InvalidDataException exception) {
+            throw CreateTableInfoException(info, columnCount, rowSize, existenceOffset,
+                rowIndexHid, rowsHnid, "row-index", exception);
+        }
         IEnumerable<byte[]> rowBlocks = _heap.EnumerateHnidBlocks(
-            rowsHnid, _options.MaxDecodedPropertyBytesPerItem);
+            rowsHnid, _options.MaxDecodedTableBytes);
         using (var cursor = new PstTableRowCursor(rowBlocks, rowSize)) {
             foreach (int rowIndex in rowIndexes.OrderBy(index => index)) {
                 _cancellationToken.ThrowIfCancellationRequested();
-                PstTableRow row = cursor.GetRow(rowIndex);
+                PstTableRow row;
+                try {
+                    row = cursor.GetRow(rowIndex);
+                } catch (InvalidDataException exception) {
+                    throw CreateTableInfoException(info, columnCount, rowSize, existenceOffset,
+                        rowIndexHid, rowsHnid, "row-matrix", exception);
+                }
                 var properties = new List<MapiProperty>(columns.Count);
                 long decodedBytes = 0;
                 foreach (PstTableColumn column in columns) {
                     int existenceByte = row.Offset + existenceOffset + column.BitIndex / 8;
                     if (existenceByte >= row.Offset + row.Length ||
                         (row.Bytes[existenceByte] & (1 << (7 - column.BitIndex % 8))) == 0) continue;
-                    MapiProperty property = DecodeColumn(row, column, ref decodedBytes);
-                    properties.Add(property);
+                    MapiProperty? property = DecodeColumn(row, rowIndex, column, ref decodedBytes);
+                    if (property != null) properties.Add(property);
                 }
                 yield return properties;
             }
         }
     }
+
+    private static InvalidDataException CreateTableInfoException(
+        byte[] info, int columnCount, int rowSize, int existenceOffset,
+        uint rowIndexHid, uint rowsHnid, string component, InvalidDataException exception) =>
+        new InvalidDataException(string.Concat(
+            "TCINFO ", component,
+            " bytes=", info.Length.ToString(CultureInfo.InvariantCulture),
+            " columns=", columnCount.ToString(CultureInfo.InvariantCulture),
+            " row-size=", rowSize.ToString(CultureInfo.InvariantCulture),
+            " existence-offset=", existenceOffset.ToString(CultureInfo.InvariantCulture),
+            " row-index=0x", rowIndexHid.ToString("X8", CultureInfo.InvariantCulture),
+            " rows=0x", rowsHnid.ToString("X8", CultureInfo.InvariantCulture),
+            ": ", exception.Message), exception);
 
     private IReadOnlyList<int> ReadRowIndexes(uint headerHid) {
         if (headerHid == 0) return Array.Empty<int>();
@@ -86,7 +115,8 @@ internal sealed class PstTableContextReader {
         return indexes;
     }
 
-    private MapiProperty DecodeColumn(PstTableRow row, PstTableColumn column, ref long decodedBytes) {
+    private MapiProperty? DecodeColumn(
+        PstTableRow row, int rowIndex, PstTableColumn column, ref long decodedBytes) {
         ushort id = (ushort)(column.Tag >> 16);
         var type = (MapiPropertyType)(ushort)column.Tag;
         object? value;
@@ -123,7 +153,18 @@ internal sealed class PstTableContextReader {
                 break;
             default:
                 uint hnid = PstBinary.UInt32(row.Bytes, offset);
-                rawData = _heap.ResolveHnid(hnid, _options.MaxDecodedPropertyBytesPerItem);
+                try {
+                    rawData = _heap.ResolveHnid(hnid, _options.MaxDecodedPropertyBytesPerItem);
+                } catch (InvalidDataException exception) {
+                    _reportCellWarning?.Invoke(string.Concat(
+                        "Table row ", rowIndex.ToString(CultureInfo.InvariantCulture),
+                        " column tag 0x", column.Tag.ToString("X8", CultureInfo.InvariantCulture),
+                        " type 0x", ((ushort)type).ToString("X4", CultureInfo.InvariantCulture),
+                        " width ", column.DataSize.ToString(CultureInfo.InvariantCulture),
+                        " contains invalid HNID 0x", hnid.ToString("X8", CultureInfo.InvariantCulture),
+                        ": ", exception.Message));
+                    return null;
+                }
                 decodedBytes = checked(decodedBytes + rawData.Length);
                 if (decodedBytes > _options.MaxDecodedPropertyBytesPerItem) {
                     throw new EmailStoreLimitExceededException(

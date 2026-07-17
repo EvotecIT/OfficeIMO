@@ -172,7 +172,7 @@ result.Report.RequireNoErrorWarnings();
 - PDF metadata from options, YAML front matter, or the first heading.
 - Paragraphs, rich inline formatting, links, lists, task lists, tables, code blocks, semantic fenced blocks, callouts, details, definition lists, block quotes, footnotes, and generated table-of-contents blocks.
 - Visual themes for readable document rhythm, page treatment, links, code blocks, panels, tables, and checklist rows.
-- Profile presets through `MarkdownPdfSaveOptions.UseProfile(...)`, plus shared `TextFallbacks` and `AllowSystemFontEmbedding` controls for Unicode, symbols, and emoji.
+- Profile presets through `MarkdownPdfSaveOptions.UseProfile(...)`, plus shared `TextFallbacks` and `AllowSystemFontEmbedding` controls. `PdfTextFallbackFeatures.MultilingualFonts` opts into installed CJK, Arabic, and other non-Latin families in addition to the default document, monospace, symbol, and emoji groups.
 - Per-operation conversion warnings through `PdfDocumentConversionResult.Report` or `PdfSaveResult.Report`.
 
 ## Visual themes

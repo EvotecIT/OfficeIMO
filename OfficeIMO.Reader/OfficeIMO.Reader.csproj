@@ -71,6 +71,7 @@
     <InternalsVisibleTo Include="OfficeIMO.Reader.Json" />
     <InternalsVisibleTo Include="OfficeIMO.Reader.Notebook" />
     <InternalsVisibleTo Include="OfficeIMO.Reader.OpenDocument" />
+    <InternalsVisibleTo Include="OfficeIMO.Reader.OneNote" />
     <InternalsVisibleTo Include="OfficeIMO.Reader.Pdf" />
     <InternalsVisibleTo Include="OfficeIMO.Reader.Rtf" />
     <InternalsVisibleTo Include="OfficeIMO.Reader.Subtitles" />

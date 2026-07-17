@@ -52,10 +52,10 @@ Mailbox-directory sessions index bounded file metadata and open only selected EM
 skipped. OLM is bounded but currently materialized during open because one XML archive entry can contain multiple
 logical items; making OLM item payloads lazy would require a durable XML item-location index.
 
-## OST to PST decision
+## Managed PST writer and conversion
 
-OST-to-PST output is feasible, but it is a separate major writer project. It is not safe to copy an OST and change
-its client signature. A valid PST creator must implement and validate all three format layers:
+OST-to-PST conversion never copies a store and changes its client signature. `EmailStorePstWriter` creates a new
+Unicode PST through three internal layers:
 
 1. NDB: Unicode header state and checksums, allocation maps, BBT/NBT construction, block/page allocation, BID/NID
    counters, data trees, subnode trees, and an atomic commit strategy.
@@ -64,25 +64,34 @@ its client signature. A valid PST creator must implement and validate all three 
 3. Messaging: mandatory store/folder/message properties, hierarchy and contents tables, recipients, attachments,
    embedded messages, named-property maps, search/deleted folders, and entry identifiers.
 
-Microsoft's current PST specification explicitly describes the format as a read/write contract and defines minimum
-objects required for a mountable file. It also requires allocation metadata and header state to be maintained. See
+Microsoft's PST specification describes the format as a read/write contract and defines the minimum objects
+required for a mountable file. It also requires allocation metadata and header state to be maintained. See
 the official [MS-PST overview](https://learn.microsoft.com/en-us/openspecs/office_file_formats/ms-pst/141923d5-15ab-4ef1-a524-6dce75aae546),
 [NDB layer requirements](https://learn.microsoft.com/en-us/openspecs/office_file_formats/ms-pst/9d2083cf-fd37-4a0d-b61a-d2ef10a89a04),
 [LTP layer](https://learn.microsoft.com/en-us/openspecs/office_file_formats/ms-pst/77007716-7993-44fe-9b40-9526157cfc6d),
 and [minimum object requirements](https://learn.microsoft.com/en-us/openspecs/office_file_formats/ms-pst/7af54176-5108-4ac7-973f-8252ad223acb).
 
-A future writer should be append-oriented and Unicode-only, write to a new destination, never mutate the OST, and
-remain internal until it passes:
+The public writer is incremental at the item boundary and new-file-only. It allocates data blocks, subnode trees,
+BBT/NBT pages, allocation maps, property contexts, table contexts, and the mandatory store and folder objects,
+then commits a same-directory temporary file. `EmailStoreSession.ExportToPst` remains a thin orchestration surface:
+it enumerates the source, maps its folder tree, streams selected attachments, and reports source items that cannot
+be represented. All message and typed-item property projection stays in `OfficeIMO.Email` and is shared with MSG.
 
-- reopen and deep-validation tests through an independent read path;
-- Outlook mount/import interoperability on supported Windows test hosts;
-- named-property, typed-item, recipient, attachment, and embedded-message round trips;
-- corruption/fault-injection tests around allocation and commit boundaries;
-- multi-gigabyte and multi-million-item stress tests with bounded memory;
-- conversion manifests that distinguish preserved, normalized, omitted, and server-only data.
+Current validation covers:
 
-Until those gates exist, supported migration outputs are EML/MSG/OFT/TNEF directories and streaming mbox. MSG is
-the closest current first-party output when retaining Outlook/MAPI item semantics matters.
+- reopen and structural CRC/signature validation through the OfficeIMO reader;
+- multi-block heaps, multi-leaf table indexes, large attachment data trees, embedded messages, associated items,
+  recipients, named properties, and fixed and variable multi-valued properties;
+- synthetic OST-to-new-PST conversion with a byte-for-byte unchanged source;
+- independent libpff open and synthetic message export;
+- an opt-in classic Outlook mount/read/remove test for Windows interoperability hosts;
+- an opt-in private-corpus lane that reports only aggregate structure and diagnostic counts.
+
+This is a projection conversion, not an Exchange recovery service. Search results are materialized as static
+folders; a source Name-to-ID entry that is unavailable receives a diagnostic placeholder mapping; and attachment
+or OST content absent from the local source is reported rather than fabricated. The writer does not append to,
+repair, compact, password-protect, encrypt, or otherwise mutate existing PST/OST files. ANSI PST and OST output are
+also outside the current contract.
 
 ## Source and output safety
 

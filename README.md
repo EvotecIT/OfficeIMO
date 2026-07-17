@@ -10,7 +10,7 @@
 
 OfficeIMO is a family of COM-free .NET libraries for creating, reading, editing, converting, and exporting Office and document formats. It runs in services, desktop applications, build agents, containers, and automation hosts without Microsoft Office, Excel, PowerPoint, Visio, or LibreOffice automation.
 
-This is not one facade over a collection of unrelated document libraries. OfficeIMO owns its PDF, Markdown, RTF, OpenDocument, AsciiDoc, LaTeX, CSV, EPUB, ZIP, drawing, legacy Word `.doc`, legacy Excel `.xls`, and legacy PowerPoint `.ppt`/`.pot`/`.pps` implementations. Word, Excel, and PowerPoint use the Open XML SDK for package mechanics; HTML uses AngleSharp for DOM and CSS parsing. Converters compose the same first-party object models used by the native packages and return diagnostics when a target format cannot carry everything from the source.
+This is not one facade over a collection of unrelated document libraries. OfficeIMO owns its OneNote, PDF, Markdown, RTF, OpenDocument, AsciiDoc, LaTeX, CSV, EPUB, ZIP, drawing, legacy Word `.doc`, legacy Excel `.xls`, and legacy PowerPoint `.ppt`/`.pot`/`.pps` implementations. Word, Excel, and PowerPoint use the Open XML SDK for package mechanics; HTML uses AngleSharp for DOM and CSS parsing. Converters compose the same first-party object models used by the native packages and return diagnostics when a target format cannot carry everything from the source.
 
 The current coordinated package line is `2.0.x`. Applications should upgrade OfficeIMO packages together because `2.0` deliberately removed contradictory aliases and standardized document lifecycle and conversion APIs. See the [2.0 breaking API migration](Docs/officeimo.breaking-api-migration.md).
 
@@ -22,7 +22,7 @@ OfficeIMO keeps document engines first-party and optional integrations isolated.
 
 | Package family | Direct external runtime dependency | What OfficeIMO owns |
 | --- | --- | --- |
-| Drawing, PDF, Markdown, RTF, OpenDocument, AsciiDoc, LaTeX, CSV, EPUB, ZIP | No third-party document engine | Parsing, object models, writing, rendering primitives, safety limits, and diagnostics |
+| Drawing, OneNote, PDF, Markdown, RTF, OpenDocument, AsciiDoc, LaTeX, CSV, EPUB, ZIP | No third-party document engine | Parsing, object models, writing, rendering primitives, safety limits, and diagnostics |
 | Word, Excel, PowerPoint | [Open XML SDK](https://github.com/dotnet/Open-XML-SDK) | Fluent/editable object models, lifecycle, validation, conversions, managed image export, and first-party `.doc`/`.xls`/`.ppt` support |
 | HTML and MHTML | [AngleSharp](https://github.com/AngleSharp/AngleSharp) and AngleSharp.Css | Resource policy, web-archive projection, media filtering, layout scene, Office/RTF mappings, and PDF/PNG/SVG output |
 | Email, email stores, and address books | No third-party email engine | EML/MIME, MSG/OFT, TNEF, mbox, PST/OST, OLM, EMLX, Outlook OAB, MAPI projection, limits, and diagnostics |
@@ -38,15 +38,16 @@ OfficeIMO keeps document engines first-party and optional integrations isolated.
 
 | Surface | Current repository coverage |
 | --- | ---: |
-| Coordinated `2.0.x` release packages | 61 |
-| Documented package, tool, and example projects below | 69 |
-| Native format, foundation, and shared-service packages | 20 |
-| Conversion and cloud bridge packages | 20 |
-| Unified Reader packages | 18 |
+| Coordinated `2.0.x` release packages | 66 |
+| Documented package, tool, and example projects below | 74 |
+| Native format, foundation, and shared-service packages | 21 |
+| Conversion and cloud bridge packages | 23 |
+| Unified Reader packages | 19 |
 | Markdown renderer and OfficeIMO Markup surfaces | 11 |
 | Runnable example projects | 1 |
 | Modern Office authoring/editing | `.docx`, `.xlsx`, `.pptx`, `.vsdx` |
 | First-party legacy binary support | Word 97–2003 `.doc`, Excel BIFF8 `.xls`, PowerPoint 97–2003 `.ppt`/`.pot`/`.pps` |
+| First-party offline OneNote support | Desktop/FSSHTTP `.one`, `.onetoc2`, `.onepkg` |
 | Managed PNG/JPEG/TIFF/WebP/SVG-capable document surfaces | Word, Excel, and PowerPoint; other surfaces retain their documented PNG/SVG contracts |
 
 The checkboxes describe the exact level of support: authoring, editing, reading, preserving, inspecting, converting, or exporting. A checked inspection or preservation item is not presented as full authoring support.
@@ -277,6 +278,8 @@ _Dependency footprint:_ `System.Text.Encoding.CodePages` plus first-party Office
 - [x] Common `OfficeIMO.Email.EmailDocument` projection instead of a second message or Outlook-item model
 - [x] Resumable semantic content search, special-folder roles, offline-content availability, and deferred attachment streams
 - [x] Inspection, bounded PST/OST structural validation, orphan discovery, EML/MSG/OFT/TNEF directory export, and streaming mbox export
+- [x] Managed Unicode PST creation with folders, typed items, recipients, attachments, embedded messages, named properties, and multi-valued MAPI properties
+- [x] Read-only OST/PST/OLM/EMLX/mailbox-directory conversion into a separate new PST with explicit fidelity diagnostics
 - [x] Configurable source, cache, tree, item, attachment, archive, XML, directory, and recursion limits with structured diagnostics
 
 _Dependency footprint:_ first-party `OfficeIMO.Email` and `OfficeIMO.Rtf`; no Outlook installation, native library, or third-party store parser.
@@ -290,6 +293,16 @@ _Dependency footprint:_ first-party `OfficeIMO.Email` and `OfficeIMO.Rtf`; no Ou
 - [x] Shared `EmailAddress`, `OutlookContact`, `MapiProperty`, and diagnostics models instead of duplicate directory primitives
 
 _Dependency footprint:_ only first-party `OfficeIMO.Email`; no Outlook installation, native library, or third-party OAB parser.
+
+#### [OfficeIMO.OneNote](OfficeIMO.OneNote/README.md)
+
+- [x] Managed read, create, edit, save, and round-trip writing for desktop and FSSHTTP-encoded `.one` sections
+- [x] Native `.onetoc2` notebook hierarchy and managed Cabinet `.onepkg` read/write
+- [x] Pages/subpages, outlines, rich text, lists, tables, links, images, attachments, tags/tasks, metadata, conflicts, versions, ink/math preservation, revisions, and opaque data
+- [x] Correct half-inch image geometry, web-picture fallback, and loss-aware unresolved image relationship preservation
+- [x] Lazy assets, bounded corruption-resistant parsing, structured diagnostics, legal fixtures, benchmarks, and Microsoft OneNote open/edit/save/reopen interoperability proof
+
+_Dependency footprint:_ zero third-party runtime dependencies; no Microsoft Graph, GraphEssentialsX, COM, installed OneNote, or commercial SDK.
 
 #### [OfficeIMO.Epub](OfficeIMO.Epub/README.md)
 
@@ -472,6 +485,30 @@ _Dependency footprint:_ only OfficeIMO HTML and Markdown packages; AngleSharp re
 
 _Dependency footprint:_ only OfficeIMO Markdown, PDF, and Drawing packages.
 
+#### [OfficeIMO.OneNote.Markdown](OfficeIMO.OneNote.Markdown/README.md)
+
+- [x] Shared semantic projection for OneNote hierarchy, rich text, lists, tables, links, assets, math, conflicts, and version history
+- [x] Markdown text, UTF-8 bytes, and typed `MarkdownDoc` output
+- [x] Safe RichEdit/control/noncharacter normalization without mutating the native model
+- [x] Bounded cycle, shared-instance, and depth validation across hierarchy, related pages, and recursive content
+
+_Dependency footprint:_ only OfficeIMO OneNote and Markdown; it is the single projection owner used by Reader, HTML, and PDF.
+
+#### [OfficeIMO.OneNote.Html](OfficeIMO.OneNote.Html/README.md)
+
+- [x] Standalone HTML documents, embeddable fragments, bytes, streams, and sync/async save paths
+- [x] Offline rendering through the shared OneNote projection and first-party Markdown HTML renderer
+
+_Dependency footprint:_ only OfficeIMO OneNote.Markdown and Markdown.
+
+#### [OfficeIMO.OneNote.Pdf](OfficeIMO.OneNote.Pdf/README.md)
+
+- [x] PDF document, bytes, streams, and sync/async save paths with first-party conversion diagnostics
+- [x] OneNote hierarchy and semantic content rendered through the shared Markdown projection
+- [x] Multilingual system-font fallback by default with explicit strict-font opt-out
+
+_Dependency footprint:_ only OfficeIMO OneNote.Markdown, Markdown.Pdf, PDF, and Drawing.
+
 #### [OfficeIMO.Html.Pdf](OfficeIMO.Html.Pdf/README.md)
 
 - [x] Direct HTML-to-PDF, PNG, and SVG rendering from `HtmlConversionDocument`
@@ -614,6 +651,16 @@ _Dependency footprint:_ only OfficeIMO Reader, LaTeX, and LaTeX.Markdown.
 - [x] Deterministic ingestion without running kernels or executing cells
 
 _Dependency footprint:_ only OfficeIMO Reader; JSON comes from Reader's established runtime graph.
+
+#### [OfficeIMO.Reader.OneNote](OfficeIMO.Reader.OneNote/README.md)
+
+- [x] Offline `.one`, `.onetoc2`, and `.onepkg` path/stream ingestion with async, non-seekable, cancellation, and input-limit behavior
+- [x] Page/subpage hierarchy, chunks, tables, links, assets, metadata, conflicts/version counts, diagnostics, hashes, and Markdown/text projections
+- [x] Current-only default with explicit conflict/version/recycle-bin opt-ins and unresolved-image metadata
+- [x] Complete-graph projection validation before chunks, tables, assets, links, and metadata traversal
+- [x] Thin registration over the native OneNote engine and shared OneNote.Markdown projection
+
+_Dependency footprint:_ only OfficeIMO Reader, OneNote, and OneNote.Markdown.
 
 #### [OfficeIMO.Reader.OpenDocument](OfficeIMO.Reader.OpenDocument/README.md)
 
@@ -788,7 +835,7 @@ _Dependency footprint:_ VS Code plus the bundled OfficeIMO Markup CLI; Mermaid C
 
 #### [OfficeIMO.Examples](OfficeIMO.Examples/README.md)
 
-- [x] Runnable Word, Excel, PowerPoint, Visio, PDF, OpenDocument, Markdown, Markup, Reader, and conversion samples
+- [x] Runnable Word, Excel, PowerPoint, Visio, OneNote, PDF, OpenDocument, Markdown, Markup, Reader, and conversion samples
 - [x] Focused switches for PDF, presentation, OpenDocument, and Visio showcase artifacts
 - [x] Machine-readable summaries and browsable galleries for reviewing generated output
 
@@ -811,6 +858,7 @@ flowchart LR
     PowerPoint["PowerPoint: PPT/POT/PPS/PPTX"] <--> HTML
     PowerPoint <--> ODP["OpenDocument: ODP"]
     PowerPoint --> PDF
+    OneNote["OneNote: ONE/ONETOC2/ONEPKG"] --> Markdown
     Markdown <--> HTML
     Markdown <--> RTF
     Markdown <--> AsciiDoc["AsciiDoc"]
@@ -838,11 +886,39 @@ dotnet add package OfficeIMO.Excel.Html
 
 dotnet add package OfficeIMO.Reader
 dotnet add package OfficeIMO.Reader.Pdf
+
+dotnet add package OfficeIMO.OneNote
+dotnet add package OfficeIMO.OneNote.Markdown
+dotnet add package OfficeIMO.OneNote.Html
+dotnet add package OfficeIMO.OneNote.Pdf
+dotnet add package OfficeIMO.Reader.OneNote
 ```
 
 All coordinated packages use the same `2.0.x` compatibility line. Avoid mixing OfficeIMO `1.x` and `2.x` packages in one application.
 
 ## Common workflows
+
+### Create, reopen, and convert an offline OneNote section
+
+```csharp
+using OfficeIMO.OneNote;
+using OfficeIMO.OneNote.Html;
+using OfficeIMO.OneNote.Markdown;
+using OfficeIMO.OneNote.Pdf;
+
+var section = new OneNoteSection { Name = "Planning" };
+var page = new OneNotePage { Title = "Release" };
+var paragraph = new OneNoteParagraph();
+paragraph.Runs.Add(new OneNoteTextRun { Text = "Validate the packed artifact" });
+page.DirectContent.Add(paragraph);
+section.Pages.Add(page);
+
+section.Save("Planning.one");
+OneNoteSection reopened = OneNoteSectionReader.Read("Planning.one");
+File.WriteAllText("Planning.md", reopened.ToMarkdown());
+reopened.SaveAsHtml("Planning.html");
+reopened.SaveAsPdf("Planning.pdf");
+```
 
 ### Create a Word document with page variants
 
@@ -974,4 +1050,5 @@ Most shipping libraries target `netstandard2.0`, `net8.0`, and `net10.0`. Many a
 - [AsciiDoc support matrix](Docs/officeimo.asciidoc-support-matrix.md)
 - [LaTeX support matrix](Docs/officeimo.latex-support-matrix.md)
 - [Markdown compatibility matrix](Docs/officeimo.markdown.compatibility-matrix.md)
+- [OneNote current state](Docs/officeimo.onenote.current-state.md)
 - [Changelog](CHANGELOG.MD)

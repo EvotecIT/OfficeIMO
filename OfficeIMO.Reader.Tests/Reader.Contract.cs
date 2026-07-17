@@ -16,6 +16,7 @@ public sealed class ReaderContractTests {
             typeof(OfficeIMO.Reader.Json.OfficeDocumentReaderBuilderJsonExtensions),
             typeof(OfficeIMO.Reader.Latex.OfficeDocumentReaderBuilderLatexExtensions),
             typeof(OfficeIMO.Reader.OpenDocument.OfficeDocumentReaderBuilderOpenDocumentExtensions),
+            typeof(OfficeIMO.Reader.OneNote.OfficeDocumentReaderBuilderOneNoteExtensions),
             typeof(OfficeIMO.Reader.Pdf.OfficeDocumentReaderBuilderPdfExtensions),
             typeof(OfficeIMO.Reader.Rtf.OfficeDocumentReaderBuilderRtfExtensions),
             typeof(OfficeIMO.Reader.Visio.OfficeDocumentReaderBuilderVisioExtensions),

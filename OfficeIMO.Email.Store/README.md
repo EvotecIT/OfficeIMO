@@ -1,6 +1,6 @@
 # OfficeIMO.Email.Store
 
-`OfficeIMO.Email.Store` is the fully managed mailbox-store package for PST, OST, OLM, EMLX, Apple Mail, and Maildir sources. Sources remain read-only. Selected items project into the common `OfficeIMO.Email.EmailDocument` model and can be exported through `OfficeIMO.Email` without Outlook, native libraries, or third-party parser packages.
+`OfficeIMO.Email.Store` is the fully managed mailbox-store package for PST, OST, OLM, EMLX, Apple Mail, and Maildir sources. Source stores remain read-only. Selected items project into the common `OfficeIMO.Email.EmailDocument` model, and applications can create a new Unicode PST or convert a supported source into a separate PST without Outlook, native libraries, or third-party parser packages.
 
 ## Install
 
@@ -210,8 +210,56 @@ EmailStoreMboxExportReport mailbox = session.ExportToMbox(
 Output conversion uses `OfficeIMO.Email` and its explicit semantic-loss policy. Existing destinations are not
 replaced by default. Per-item failures and fidelity warnings remain visible in the export report.
 
-True OST-to-PST conversion is not advertised. It requires a complete new PST writer rather than changing an OST
-signature. The separate writer scope and validation gates are documented in [ARCHITECTURE.md](ARCHITECTURE.md).
+## Create a Unicode PST
+
+`EmailStorePstWriter` creates a new PST incrementally and commits it through a same-directory temporary file. It
+does not append to or edit an existing PST:
+
+```csharp
+using OfficeIMO.Email;
+using OfficeIMO.Email.Store;
+
+using EmailStorePstWriter writer = EmailStorePstWriter.Create(
+    "created.pst",
+    new EmailStorePstWriterOptions(displayName: "Project archive"));
+
+string inbox = writer.AddFolder("Inbox", containerClass: "IPF.Note");
+writer.AddItem(inbox, new EmailDocument {
+    Subject = "Created without Outlook",
+    MessageClass = "IPM.Note"
+});
+
+EmailStorePstWriteReport report = writer.Complete();
+```
+
+The writer owns Unicode NDB allocation and indexes, Heap-on-Node property and table contexts, folders, ordinary
+and associated items, recipients, attachments, embedded messages, named properties, and fixed or variable
+multi-valued MAPI properties. It reuses `OfficeIMO.Email` item projection so appointments, contacts, tasks,
+journals, notes, and messages do not acquire a PST-only property model.
+
+Set `failOnDataLoss: true` when a warning should prevent the final commit. Examples include an attachment whose
+payload was not retained, structured-storage metadata without its original compound payload, or a named property
+whose source Name-to-ID mapping was unavailable. `Diagnostics` identifies the affected item or property without
+including message or attachment content.
+
+## Convert OST or another store to a new PST
+
+Conversion opens the source read-only and always writes a different destination:
+
+```csharp
+EmailStorePstConversionReport report = EmailStoreConverter.ConvertToPst(
+    "mailbox.ost",
+    "mailbox-converted.pst",
+    conversionOptions: new EmailStorePstConversionOptions(
+        includeAssociatedItems: true,
+        includeOrphanedItems: true,
+        failOnDataLoss: false));
+```
+
+The same API accepts every format supported by `EmailStoreSession`. Search-folder results can be copied as static
+folders, but their dynamic query definitions are not regenerated. Content that was never cached in an OST cannot
+be recovered from the offline file. The conversion report separates converted and skipped items and combines
+reader, conversion, and writer diagnostics.
 
 ## Limits and attachment retention
 
@@ -236,15 +284,16 @@ Set `PstPassword` only when a protected PST requires checksum validation. Passwo
 
 ## Boundaries
 
-- This package owns store/container traversal, bounded selection, validation/recovery discovery, and export orchestration.
+- This package owns store/container traversal, bounded selection, validation/recovery discovery, new Unicode PST creation, and export/conversion orchestration.
 - `OfficeIMO.Email` owns EML/MIME, MSG/OFT, TNEF, mbox, MAPI models, and item serialization.
 - `OfficeIMO.Reader.EmailStore` owns optional Reader registration and rich-result projection.
-- PST/OST writing or mutation, Outlook profiles, Exchange synchronization, cloud download, and server-side recovery are outside this offline reader.
+- Existing PST/OST mutation, append, compaction, repair, password/encryption authoring, Outlook profiles, Exchange synchronization, cloud download, and server-side recovery remain outside this package.
+- The writer currently emits Unicode PST files. It does not emit ANSI PST or OST files, and one data tree is limited to 4 GiB.
 
 ## Targets and dependencies
 
 - Targets: `netstandard2.0`, `net8.0`, `net10.0`; `net472` is included when building on Windows.
-- External parser dependencies: none.
+- External runtime parser/writer dependencies: none.
 - Direct first-party dependencies: `OfficeIMO.Email` and `OfficeIMO.Rtf`.
 - `OfficeIMO.Email` carries Microsoft's `System.Text.Encoding.CodePages` compatibility package for legacy message
   encodings; no Outlook installation, native component, or third-party PST/OST/OLM parser is used.

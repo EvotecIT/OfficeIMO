@@ -30,20 +30,39 @@ internal sealed class PstHeap {
     internal byte[] GetAllocation(uint hid) {
         _cancellationToken.ThrowIfCancellationRequested();
         if (hid == 0) return Array.Empty<byte>();
-        if ((hid & 0x1F) != 0) throw new InvalidDataException("A heap allocation identifier has an invalid type.");
+        if ((hid & 0x1F) != 0) {
+            throw new InvalidDataException(string.Concat(
+                "Heap allocation identifier 0x", hid.ToString("X8", CultureInfo.InvariantCulture),
+                " has non-HID type 0x", (hid & 0x1F).ToString("X2", CultureInfo.InvariantCulture), "."));
+        }
 
-        int blockIndex = checked((int)(hid >> 16));
-        int allocationIndex = checked((int)((hid >> 5) & 0x7FF)) - 1;
-        if (blockIndex < 0 || allocationIndex < 0) {
+        int allocationIndexBits = _ndb.HeapAllocationIndexBits;
+        uint allocationIndexMask = (1U << allocationIndexBits) - 1U;
+        int allocationIndex = checked((int)((hid >> 5) & allocationIndexMask)) - 1;
+        int blockIndex = checked((int)(hid >> (5 + allocationIndexBits)));
+        if (allocationIndex < 0) {
             throw new InvalidDataException("A heap allocation identifier is out of range.");
         }
 
-        byte[] block = _dataTree.GetBlock(blockIndex);
+        byte[] block;
+        try {
+            block = _dataTree.GetBlock(blockIndex);
+        } catch (InvalidDataException exception) {
+            throw new InvalidDataException(string.Concat(
+                "Heap allocation identifier 0x", hid.ToString("X8", CultureInfo.InvariantCulture),
+                " references an unavailable HN data block."), exception);
+        }
         int mapOffset = PstBinary.UInt16(block, 0);
         PstBinary.Ensure(block, mapOffset, 4);
         int allocationCount = PstBinary.UInt16(block, mapOffset);
         if (allocationIndex >= allocationCount) {
-            throw new InvalidDataException("A heap allocation index is out of range.");
+            throw new InvalidDataException(string.Concat(
+                "Heap allocation identifier 0x", hid.ToString("X8", CultureInfo.InvariantCulture),
+                " requests allocation ", (allocationIndex + 1).ToString(CultureInfo.InvariantCulture),
+                " from a page containing ", allocationCount.ToString(CultureInfo.InvariantCulture),
+                " allocations (block-bytes=", block.Length.ToString(CultureInfo.InvariantCulture),
+                ", map-offset=", mapOffset.ToString(CultureInfo.InvariantCulture),
+                ")."));
         }
         int offsetsStart = mapOffset + 4;
         PstBinary.Ensure(block, offsetsStart, checked((allocationCount + 1) * 2));
@@ -101,21 +120,36 @@ internal sealed class PstHeap {
         int indexLevels) {
         var visited = new HashSet<uint>();
         foreach (byte[] record in EnumerateBthLeafRecordsCore(rootHid, keySize, valueSize,
-            indexLevels, 0, visited)) yield return record;
+            indexLevels, 0, visited, parentHid: 0, parentRecordIndex: -1)) yield return record;
     }
 
     private IEnumerable<byte[]> EnumerateBthLeafRecordsCore(uint hid, int keySize, int valueSize,
-        int remainingIndexLevels, int depth, HashSet<uint> visited) {
+        int remainingIndexLevels, int depth, HashSet<uint> visited,
+        uint parentHid, int parentRecordIndex) {
         _cancellationToken.ThrowIfCancellationRequested();
         if (depth > _options.MaxBTreeDepth) {
             throw new EmailStoreLimitExceededException(nameof(EmailStoreReaderOptions.MaxBTreeDepth),
                 depth, _options.MaxBTreeDepth);
         }
         if (!visited.Add(hid)) throw new InvalidDataException("The PST BTree-on-Heap contains a cycle.");
-        byte[] allocation = GetAllocation(hid);
+        byte[] allocation;
+        try {
+            allocation = GetAllocation(hid);
+        } catch (InvalidDataException exception) when (parentRecordIndex >= 0) {
+            throw new InvalidDataException(string.Concat(
+                "BTree-on-Heap allocation 0x", parentHid.ToString("X8", CultureInfo.InvariantCulture),
+                " record ", parentRecordIndex.ToString(CultureInfo.InvariantCulture),
+                " references invalid child 0x", hid.ToString("X8", CultureInfo.InvariantCulture),
+                ": ", exception.Message), exception);
+        }
         int recordSize = keySize + (remainingIndexLevels > 0 ? 4 : valueSize);
         if (recordSize <= 0 || allocation.Length % recordSize != 0) {
-            throw new InvalidDataException("A PST BTree-on-Heap allocation has an invalid record layout.");
+            throw new InvalidDataException(string.Concat(
+                "BTree-on-Heap allocation 0x", hid.ToString("X8", CultureInfo.InvariantCulture),
+                " has ", allocation.Length.ToString(CultureInfo.InvariantCulture),
+                " bytes, which is not divisible by its ",
+                recordSize.ToString(CultureInfo.InvariantCulture), "-byte record size at index level ",
+                remainingIndexLevels.ToString(CultureInfo.InvariantCulture), "."));
         }
         int count = allocation.Length / recordSize;
         for (int index = 0; index < count; index++) {
@@ -123,7 +157,7 @@ internal sealed class PstHeap {
             if (remainingIndexLevels > 0) {
                 uint child = PstBinary.UInt32(allocation, offset + keySize);
                 foreach (byte[] record in EnumerateBthLeafRecordsCore(child, keySize, valueSize,
-                    remainingIndexLevels - 1, depth + 1, visited)) yield return record;
+                    remainingIndexLevels - 1, depth + 1, visited, hid, index)) yield return record;
             } else {
                 var record = new byte[recordSize];
                 Buffer.BlockCopy(allocation, offset, record, 0, recordSize);
