@@ -18,7 +18,11 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static byte[] ConvertProjectedVbaPackageToMacroEnabled(
-            byte[] packageBytes) {
+            byte[] packageBytes, PowerPointLoadOptions loadOptions) {
+            if (loadOptions.PackageSecurity != null) {
+                OfficePackageSecurityInspector.Validate(packageBytes,
+                    loadOptions.PackageSecurity);
+            }
             using var stream = new MemoryStream();
             stream.Write(packageBytes, 0, packageBytes.Length);
             stream.Position = 0;

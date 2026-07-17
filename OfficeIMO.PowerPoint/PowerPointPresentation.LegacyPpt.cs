@@ -161,7 +161,7 @@ namespace OfficeIMO.PowerPoint {
             cancellationToken.ThrowIfCancellationRequested();
             if (legacy.VbaProject != null) {
                 packageBytes = ConvertProjectedVbaPackageToMacroEnabled(
-                    packageBytes);
+                    packageBytes, loadOptions);
             }
             PowerPointPresentation presentation = LoadPackage(packageBytes,
                 sourcePath, sourceStream, loadOptions);

@@ -554,6 +554,29 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PresentationFacade_EnforcesPackageSecurityBeforeLegacyVbaConversion() {
+            byte[] binary;
+            using (PowerPointPresentation source =
+                   PowerPointPresentation.Create()) {
+                source.AddSlide().AddTextBox("Legacy VBA security policy");
+                SetVbaProject(source, CreateVbaTestProject(
+                    "SecurityModule", "Sub Main(): End Sub"));
+                binary = source.ToBytes(PowerPointFileFormat.Ppt);
+            }
+            var loadOptions = new PowerPointLoadOptions {
+                PackageSecurity = OfficePackageSecurityOptions
+                    .UntrustedDefaults
+            };
+
+            using var input = new MemoryStream(binary, writable: false);
+            OfficePackageSecurityException exception = Assert.Throws<
+                OfficePackageSecurityException>(() =>
+                    PowerPointPresentation.Load(input, loadOptions));
+
+            Assert.Equal(OfficePackageSecurityRule.Macros, exception.Rule);
+        }
+
+        [Fact]
         public void PackageReader_ChargesDecodedPicturesToSharedBudget() {
             byte[] firstImage = OfficePngWriter.Encode(new OfficeRasterImage(
                 4, 4, OfficeColor.FromRgb(10, 20, 30)));
