@@ -89,6 +89,50 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void NativeWriter_PreservesImplicitAutomaticNumberingContinuation() {
+            byte[] bytes;
+            using (PowerPointPresentation presentation = PowerPointPresentation
+                       .Create()) {
+                PowerPointTextBox textBox = presentation.AddSlide(
+                        P.SlideLayoutValues.Blank)
+                    .AddTextBoxPoints(string.Empty, 30, 30, 320, 120);
+                A.Paragraph first = CreateNumberedParagraph("Third", 0,
+                    A.TextAutoNumberSchemeValues
+                        .AlphaLowerCharacterParenR, 3);
+                A.Paragraph second = CreateNumberedParagraph("Fourth", 0,
+                    A.TextAutoNumberSchemeValues
+                        .AlphaLowerCharacterParenR, 1);
+                second.ParagraphProperties!
+                    .GetFirstChild<A.AutoNumberedBullet>()!.StartAt = null;
+                Assert.IsType<P.Shape>(textBox.Element).TextBody =
+                    new P.TextBody(new A.BodyProperties(), new A.ListStyle(),
+                        first, second);
+
+                bytes = presentation.ToBytes(PowerPointFileFormat.Ppt);
+            }
+
+            LegacyPptShape shape = Assert.Single(
+                Assert.Single(LegacyPptPresentation.Load(bytes).Slides)
+                    .Shapes);
+            Assert.Collection(shape.TextBody.ParagraphRuns,
+                paragraph => AssertAutoNumber(paragraph,
+                    LegacyPptAutoNumberScheme.AlphaLowerParenRight, 3),
+                paragraph => AssertAutoNumber(paragraph,
+                    LegacyPptAutoNumberScheme.AlphaLowerParenRight, 4));
+
+            using var input = new MemoryStream(bytes, writable: false);
+            using PowerPointPresentation reopened = PowerPointPresentation
+                .Load(input);
+            PowerPointParagraph[] paragraphs = reopened.Slides[0].TextBoxes
+                .Single().Paragraphs.ToArray();
+            Assert.Equal(3, paragraphs[0].NumberingStartAt);
+            Assert.Equal(4, paragraphs[1].NumberingStartAt);
+            Assert.Equal(A.TextAutoNumberSchemeValues
+                    .AlphaLowerCharacterParenR,
+                paragraphs[1].NumberingScheme);
+        }
+
+        [Fact]
         public void NativeWriter_AuthorsPpt9MasterAutomaticNumbering() {
             byte[] bytes;
             using (PowerPointPresentation presentation =

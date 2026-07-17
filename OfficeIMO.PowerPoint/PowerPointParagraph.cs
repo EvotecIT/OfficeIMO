@@ -168,6 +168,12 @@ namespace OfficeIMO.PowerPoint {
         public bool IsNumbered => Paragraph.ParagraphProperties?.GetFirstChild<A.AutoNumberedBullet>() != null;
 
         /// <summary>
+        /// Gets the PowerPoint automatic-numbering scheme assigned to this paragraph, when present.
+        /// </summary>
+        public A.TextAutoNumberSchemeValues? NumberingScheme =>
+            Paragraph.ParagraphProperties?.GetFirstChild<A.AutoNumberedBullet>()?.Type?.Value;
+
+        /// <summary>
         /// Gets the explicit PowerPoint numbering start value, when present.
         /// </summary>
         public int? NumberingStartAt => Paragraph.ParagraphProperties?.GetFirstChild<A.AutoNumberedBullet>()?.StartAt?.Value;
@@ -628,11 +634,13 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static int? ToTextCoordinate(double? points) {
-            return points != null ? (int)Math.Round(points.Value * 100) : null;
+            return points != null
+                ? checked((int)Math.Round(points.Value * PowerPointUnits.EmusPerPoint))
+                : null;
         }
 
         private static double? FromTextCoordinate(int? value) {
-            return value != null ? value.Value / 100d : null;
+            return value != null ? value.Value / PowerPointUnits.EmusPerPoint : null;
         }
 
         private static int ToSpacingPoints(double points) {

@@ -18,6 +18,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 return true;
             }
             using var payload = new MemoryStream();
+            var numberingState = new Dictionary<int, int>();
             foreach (A.Paragraph paragraph in paragraphs) {
                 A.AutoNumberedBullet? numbering = paragraph
                     .ParagraphProperties?
@@ -25,8 +26,20 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 A.PictureBullet? pictureBullet = paragraph
                     .ParagraphProperties?
                     .GetFirstChild<A.PictureBullet>();
+                int? numberingStart = null;
+                if (numbering != null) {
+                    int level = paragraph.ParagraphProperties?.Level?.Value
+                        ?? 0;
+                    numberingStart = numbering.StartAt?.Value
+                        ?? (numberingState.TryGetValue(level,
+                                out int previous)
+                            ? checked(previous + 1)
+                            : 1);
+                    numberingState[level] = numberingStart.Value;
+                }
                 if (!TryWriteAutomaticNumberingException9(payload,
-                        numbering, pictureBullet, pictureBullets,
+                        numbering, numberingStart, pictureBullet,
+                        pictureBullets,
                         out reason)) return false;
                 // StyleTextProp9 character and special-information
                 // exceptions are empty for DrawingML automatic numbering.
@@ -40,6 +53,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
 
         private static bool TryWriteAutomaticNumberingException9(
             Stream output, A.AutoNumberedBullet? numbering,
+            int? numberingStart,
             A.PictureBullet? pictureBullet,
             LegacyPptWriterPictureBulletCatalog pictureBullets,
             out string? reason) {
@@ -77,7 +91,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 reason = "An automatic-numbering scheme has no classic binary PowerPoint equivalent.";
                 return false;
             }
-            int rawStart = numbering.StartAt?.Value ?? 1;
+            int rawStart = numberingStart ?? 1;
             if (rawStart < 1 || rawStart > short.MaxValue) {
                 reason = "An automatic-numbering start value lies outside the classic binary PowerPoint signed 16-bit range.";
                 return false;

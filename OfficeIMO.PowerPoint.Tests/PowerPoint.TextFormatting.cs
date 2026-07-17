@@ -154,8 +154,8 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("336699", rp.GetFirstChild<A.SolidFill>()?.RgbColorModelHex?.Val);
 
                 A.ParagraphProperties pp = paragraph.ParagraphProperties!;
-                Assert.Equal(1800, pp.LeftMargin!.Value);
-                Assert.Equal(-1800, pp.Indent!.Value);
+                Assert.Equal(PowerPointUnits.FromPoints(18), pp.LeftMargin!.Value);
+                Assert.Equal(PowerPointUnits.FromPoints(-18), pp.Indent!.Value);
                 Assert.Equal(120000, pp.LineSpacing!.SpacingPercent!.Val!.Value);
                 Assert.Equal(400, pp.SpaceAfter!.SpacingPoints!.Val!.Value);
             }

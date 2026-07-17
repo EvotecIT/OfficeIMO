@@ -159,9 +159,19 @@ internal static partial class DocumentReaderEngine {
         }
 
         bool isTitle = textBox.ShapePlaceholderType == PlaceholderValues.Title || textBox.ShapePlaceholderType == PlaceholderValues.CenteredTitle;
+        var numberingState = new Dictionary<int, int>();
         for (int paragraphIndex = 0; paragraphIndex < paragraphs.Count; paragraphIndex++) {
             PowerPointParagraph paragraph = paragraphs[paragraphIndex];
             bool isList = paragraph.BulletCharacter != null || paragraph.IsNumbered;
+            int level = paragraph.Level ?? 0;
+            string? marker = paragraph.BulletCharacter;
+            if (paragraph.IsNumbered) {
+                int number = paragraph.NumberingStartAt
+                    ?? (numberingState.TryGetValue(level, out int previous) ? previous + 1 : 1);
+                numberingState[level] = number;
+                marker = PowerPointNumberingFormatter.FormatMarker(number,
+                    paragraph.NumberingScheme);
+            }
             string kind = isTitle ? "heading" : isList ? "list-item" : "paragraph";
             ReaderLocation location = BuildPowerPointLocation(
                 shapeLocation.Path,
@@ -174,7 +184,7 @@ internal static partial class DocumentReaderEngine {
                 Kind = kind,
                 Text = paragraph.Text,
                 Level = isTitle ? 1 : paragraph.Level,
-                Marker = paragraph.IsNumbered ? "1." : paragraph.BulletCharacter,
+                Marker = marker,
                 Location = location,
                 Region = region
             });

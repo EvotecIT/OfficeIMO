@@ -362,8 +362,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             for (int level = 0; level < levelCount; level++) {
                 levels.TryGetValue(level,
                     out A.TextParagraphPropertiesType? properties);
+                A.AutoNumberedBullet? numbering = properties?
+                    .GetFirstChild<A.AutoNumberedBullet>();
                 if (!TryWriteAutomaticNumberingException9(payload,
-                        properties?.GetFirstChild<A.AutoNumberedBullet>(),
+                        numbering, numbering?.StartAt?.Value ?? 1,
                         properties?.GetFirstChild<A.PictureBullet>(),
                         pictureBullets,
                         out reason)) return false;
