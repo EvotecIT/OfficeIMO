@@ -22,11 +22,16 @@ namespace OfficeIMO.Excel {
             int? sourceRow,
             ISet<string> dependencies) {
             List<FormulaDependencyReferenceMatch> orderedMatches = GetNonOverlappingFormulaDependencyMatches(matches);
+            int[] groupingDepths = BuildOpenGroupingParenthesisDepths(formula);
             int index = 0;
             while (index < orderedMatches.Count) {
                 int intersectionEnd = index;
                 while (intersectionEnd + 1 < orderedMatches.Count
-                    && IsFormulaIntersectionSeparator(formula, orderedMatches[intersectionEnd], orderedMatches[intersectionEnd + 1])) {
+                    && IsFormulaIntersectionSeparator(
+                        formula,
+                        orderedMatches[intersectionEnd],
+                        orderedMatches[intersectionEnd + 1],
+                        groupingDepths[orderedMatches[intersectionEnd].Index + orderedMatches[intersectionEnd].Length])) {
                     intersectionEnd++;
                 }
 
@@ -61,22 +66,131 @@ namespace OfficeIMO.Excel {
         private static bool IsFormulaIntersectionSeparator(
             string formula,
             FormulaDependencyReferenceMatch left,
-            FormulaDependencyReferenceMatch right) {
+            FormulaDependencyReferenceMatch right,
+            int availableClosingParentheses) {
             int start = left.Index + left.Length;
             if (start >= right.Index) {
                 return false;
             }
 
-            bool hasIntersectionWhitespace = false;
-            for (int index = start; index < right.Index; index++) {
-                if (char.IsWhiteSpace(formula[index])) {
-                    hasIntersectionWhitespace = true;
-                } else if (formula[index] != '(' || !hasIntersectionWhitespace) {
+            int cursor = start;
+            for (int consumed = 0; consumed < availableClosingParentheses; consumed++) {
+                int whitespaceStart = cursor;
+                while (cursor < right.Index && char.IsWhiteSpace(formula[cursor])) {
+                    cursor++;
+                }
+
+                if (cursor >= right.Index || formula[cursor] != ')') {
+                    cursor = whitespaceStart;
+                    break;
+                }
+
+                cursor++;
+            }
+
+            int separatorStart = cursor;
+            while (cursor < right.Index && char.IsWhiteSpace(formula[cursor])) {
+                cursor++;
+            }
+
+            if (cursor == separatorStart) {
+                return false;
+            }
+
+            for (; cursor < right.Index; cursor++) {
+                if (formula[cursor] != '(' && !char.IsWhiteSpace(formula[cursor])) {
                     return false;
                 }
             }
 
-            return hasIntersectionWhitespace;
+            return true;
+        }
+
+        private static int[] BuildOpenGroupingParenthesisDepths(string formula) {
+            var depths = new int[formula.Length + 1];
+            var parentheses = new Stack<bool>();
+            int groupingDepth = 0;
+            bool inString = false;
+            bool inQuotedQualifier = false;
+            int structuredReferenceDepth = 0;
+            for (int index = 0; index < formula.Length; index++) {
+                char character = formula[index];
+                if (inString) {
+                    if (character == '"') {
+                        if (index + 1 < formula.Length && formula[index + 1] == '"') {
+                            depths[index + 1] = groupingDepth;
+                            index++;
+                        } else {
+                            inString = false;
+                        }
+                    }
+                    depths[index + 1] = groupingDepth;
+                    continue;
+                }
+
+                if (inQuotedQualifier) {
+                    if (character == '\'') {
+                        if (index + 1 < formula.Length && formula[index + 1] == '\'') {
+                            depths[index + 1] = groupingDepth;
+                            index++;
+                        } else {
+                            inQuotedQualifier = false;
+                        }
+                    }
+                    depths[index + 1] = groupingDepth;
+                    continue;
+                }
+
+                if (character == '"') {
+                    inString = true;
+                    depths[index + 1] = groupingDepth;
+                    continue;
+                }
+                if (character == '\'') {
+                    inQuotedQualifier = true;
+                    depths[index + 1] = groupingDepth;
+                    continue;
+                }
+                if (character == '[') {
+                    structuredReferenceDepth++;
+                    depths[index + 1] = groupingDepth;
+                    continue;
+                }
+                if (character == ']' && structuredReferenceDepth > 0) {
+                    structuredReferenceDepth--;
+                    depths[index + 1] = groupingDepth;
+                    continue;
+                }
+                if (structuredReferenceDepth > 0) {
+                    depths[index + 1] = groupingDepth;
+                    continue;
+                }
+
+                if (character == '(') {
+                    int preceding = index - 1;
+                    while (preceding >= 0 && char.IsWhiteSpace(formula[preceding])) {
+                        preceding--;
+                    }
+                    bool functionCall = preceding >= 0
+                        && (char.IsLetterOrDigit(formula[preceding])
+                            || formula[preceding] == '_'
+                            || formula[preceding] == '.'
+                            || formula[preceding] == ')');
+                    bool grouping = !functionCall;
+                    parentheses.Push(grouping);
+                    if (grouping) {
+                        groupingDepth++;
+                    }
+                } else if (character == ')' && parentheses.Count > 0) {
+                    if (parentheses.Pop()) {
+                        groupingDepth--;
+                    }
+                }
+
+                depths[index + 1] = groupingDepth;
+            }
+
+            return depths;
         }
 
         private void AddFormulaIntersectionDependency(

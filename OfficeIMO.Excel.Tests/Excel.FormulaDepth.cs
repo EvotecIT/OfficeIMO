@@ -96,6 +96,9 @@ namespace OfficeIMO.Tests {
             sheet.CellFormula(1, 4, "SUM(A1:B2 B2:C3)");
             sheet.CellFormula(2, 4, "SUM(Data B2:C3)");
             sheet.CellFormula(3, 4, "SUM(A1 (A1:B2))");
+            sheet.CellFormula(4, 4, "SUM((A1:B2) B2:C3)");
+            sheet.CellFormula(5, 4, "SUM((A1:B2) (B2:C3))");
+            sheet.CellFormula(6, 4, "SUM((A1:B2 B2:C3) B2:D2)");
             document.SetNamedRange("Data", "Intersections!A1:B2", save: false);
 
             ExcelSheet structuredSheet = document.AddWorksheet("Structured Intersections");
@@ -123,11 +126,23 @@ namespace OfficeIMO.Tests {
                 graph.FindNode("Intersections", "D3"));
             Assert.Equal(new[] { "Intersections!A1" }, parenthesizedIntersection.Dependencies);
             Assert.Equal(new[] { "Intersections!A1" }, parenthesizedIntersection.FormulaDependencies);
+            ExcelFormulaDependencyNode leftParenthesizedIntersection = Assert.IsType<ExcelFormulaDependencyNode>(
+                graph.FindNode("Intersections", "D4"));
+            Assert.Equal(new[] { "Intersections!B2" }, leftParenthesizedIntersection.Dependencies);
+            Assert.Equal(new[] { "Intersections!B2" }, leftParenthesizedIntersection.FormulaDependencies);
+            ExcelFormulaDependencyNode bothParenthesizedIntersection = Assert.IsType<ExcelFormulaDependencyNode>(
+                graph.FindNode("Intersections", "D5"));
+            Assert.Equal(new[] { "Intersections!B2" }, bothParenthesizedIntersection.Dependencies);
+            Assert.Equal(new[] { "Intersections!B2" }, bothParenthesizedIntersection.FormulaDependencies);
+            ExcelFormulaDependencyNode compositeParenthesizedIntersection = Assert.IsType<ExcelFormulaDependencyNode>(
+                graph.FindNode("Intersections", "D6"));
+            Assert.Equal(new[] { "Intersections!B2" }, compositeParenthesizedIntersection.Dependencies);
+            Assert.Equal(new[] { "Intersections!B2" }, compositeParenthesizedIntersection.FormulaDependencies);
             ExcelFormulaDependencyNode structuredIntersection = Assert.IsType<ExcelFormulaDependencyNode>(
                 graph.FindNode("Structured Intersections", "D1"));
             Assert.Equal(new[] { "Structured Intersections!A2" }, structuredIntersection.Dependencies);
             Assert.Equal(new[] { "Structured Intersections!A2" }, structuredIntersection.FormulaDependencies);
-            Assert.Equal(6, graph.EdgeCount);
+            Assert.Equal(9, graph.EdgeCount);
             Assert.False(graph.HasCircularReferences);
         }
 
@@ -390,6 +405,21 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, document.Calculate());
             Assert.False(sheet.TryGetCachedFormulaValue(1, 1, out _));
             Assert.True(sheet.TryGetCachedFormulaValue(2, 1, out string? cached));
+            Assert.Equal("2", cached);
+        }
+
+        [Fact]
+        public void Test_FormulaEvaluator_EnforcesDependencyDepthAcrossWorksheets() {
+            using ExcelDocument document = ExcelDocument.Create();
+            ExcelSheet source = document.AddWorksheet("Source");
+            ExcelSheet other = document.AddWorksheet("Other");
+            source.CellFormula(1, 1, "Other!A1+1");
+            other.CellFormula(1, 1, "1+1");
+            document.Calculation.MaximumDependencyDepth = 1;
+
+            Assert.Equal(1, document.Calculate());
+            Assert.False(source.TryGetCachedFormulaValue(1, 1, out _));
+            Assert.True(other.TryGetCachedFormulaValue(1, 1, out string? cached));
             Assert.Equal("2", cached);
         }
 
