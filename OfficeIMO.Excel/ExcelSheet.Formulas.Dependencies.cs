@@ -166,8 +166,7 @@ namespace OfficeIMO.Excel {
                     .Select(match => match.Groups["reference"].Value)
                     .Where(reference => !string.IsNullOrWhiteSpace(reference))
                     .Select(NormalizeFormulaDependencyReference), StringComparer.OrdinalIgnoreCase);
-                string aliasSearchFormula = MaskFormulaQuotedSheetQualifierSegments(searchableFormula);
-                foreach (FormulaDependencyAliasMatch match in aliases.FindMatches(aliasSearchFormula)) {
+                foreach (FormulaDependencyAliasMatch match in aliases.FindMatches(searchableFormula)) {
                     AddFormulaAliasDependency(searchableFormula, match, dependencies);
                 }
 
@@ -275,7 +274,9 @@ namespace OfficeIMO.Excel {
                     && formula[index - 1] != '!'
                     && formula[index - 1] != ']'
                     && formula[index - 1] != ':');
-            if (!validStart || IsInsideFormulaStructuredReference(formula, index)) {
+            if (!validStart
+                || IsInsideFormulaStructuredReference(formula, index)
+                || IsInsideQuotedFormulaSheetQualifier(formula, index)) {
                 return false;
             }
 
@@ -491,8 +492,7 @@ namespace OfficeIMO.Excel {
             return builder.ToString();
         }
 
-        private static string MaskFormulaQuotedSheetQualifierSegments(string formula) {
-            char[] masked = formula.ToCharArray();
+        private static bool IsInsideQuotedFormulaSheetQualifier(string formula, int index) {
             for (int start = 0; start < formula.Length; start++) {
                 if (formula[start] != '\'') {
                     continue;
@@ -512,17 +512,20 @@ namespace OfficeIMO.Excel {
                     break;
                 }
 
-                if (cursor >= formula.Length || cursor + 1 >= formula.Length || formula[cursor + 1] != '!') {
+                if (cursor >= formula.Length) {
+                    return false;
+                }
+                if (cursor + 1 >= formula.Length || formula[cursor + 1] != '!') {
                     continue;
                 }
 
-                for (int index = start; index <= cursor; index++) {
-                    masked[index] = ' ';
+                if (index > start && index <= cursor) {
+                    return true;
                 }
                 start = cursor;
             }
 
-            return new string(masked);
+            return false;
         }
 
         private static string MaskFormulaStructuredReferenceSegments(string formula) {

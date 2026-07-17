@@ -158,10 +158,10 @@ namespace OfficeIMO.Tests {
                 dataFields: new[] { new ExcelPivotDataField("Sales", DataConsolidateFunctionValues.Sum) });
 
             ExcelSheet replacement = document.AddWorksheet("Replacement");
-            replacement.CellValue(1, 1, "Area");
+            replacement.CellValue(1, 1, "OrderDate");
             replacement.CellValue(1, 2, "Date");
             replacement.CellValue(1, 3, "Amount");
-            replacement.CellValue(2, 1, "West");
+            replacement.CellValue(2, 1, "not a date");
             replacement.CellValue(2, 2, new DateTime(2026, 2, 3));
             replacement.CellValue(2, 3, 20d);
 
@@ -173,6 +173,22 @@ namespace OfficeIMO.Tests {
             document.AddPivotTimelineCache("SalesPivot", "OrderDate");
 
             Assert.Equal("OrderDate", Assert.Single(document.GetWorkbookTimelineCaches()).SourceName);
+
+            ExcelSheet misleading = document.AddWorksheet("Misleading");
+            misleading.CellValue(1, 1, "OrderDate");
+            misleading.CellValue(1, 2, "Date");
+            misleading.CellValue(1, 3, "Amount");
+            misleading.CellValue(2, 1, new DateTime(2026, 3, 4));
+            misleading.CellValue(2, 2, "not a date");
+            misleading.CellValue(2, 3, 30d);
+            original.UpdatePivotTableSource(
+                "SalesPivot",
+                misleading,
+                "A1:C2",
+                new ExcelPivotSourceUpdateOptions { RequireMatchingHeaders = false });
+
+            Assert.Throws<ArgumentException>(() =>
+                document.AddPivotTimelineCache("SalesPivot", "OrderDate", "InvalidTimeline"));
         }
 
         [Fact]

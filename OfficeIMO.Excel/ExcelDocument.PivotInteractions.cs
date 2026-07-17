@@ -143,21 +143,21 @@ namespace OfficeIMO.Excel {
             }
 
             List<string> normalizedHeaders = sourceSheet.BuildPivotHeaders(firstRow, firstColumn, lastColumn);
-            int sourceFieldIndex = normalizedHeaders.FindIndex(header =>
-                string.Equals(header, sourceField, StringComparison.OrdinalIgnoreCase));
+            List<CacheField> databaseFields = pivotPart?
+                .PivotTableCacheDefinitionPart?
+                .PivotCacheDefinition?
+                .CacheFields?
+                .Elements<CacheField>()
+                .Where(field => field.DatabaseField?.Value != false)
+                .ToList() ?? new List<CacheField>();
+            int sourceFieldIndex = databaseFields.FindIndex(field =>
+                string.Equals(field.Name?.Value, sourceField, StringComparison.OrdinalIgnoreCase));
             if (sourceFieldIndex < 0) {
-                List<CacheField> databaseFields = pivotPart?
-                    .PivotTableCacheDefinitionPart?
-                    .PivotCacheDefinition?
-                    .CacheFields?
-                    .Elements<CacheField>()
-                    .Where(field => field.DatabaseField?.Value != false)
-                    .ToList() ?? new List<CacheField>();
-                sourceFieldIndex = databaseFields.FindIndex(field =>
-                    string.Equals(field.Name?.Value, sourceField, StringComparison.OrdinalIgnoreCase));
-                if (sourceFieldIndex < 0 || sourceFieldIndex >= normalizedHeaders.Count) {
-                    return false;
-                }
+                sourceFieldIndex = normalizedHeaders.FindIndex(header =>
+                    string.Equals(header, sourceField, StringComparison.OrdinalIgnoreCase));
+            }
+            if (sourceFieldIndex < 0 || sourceFieldIndex >= normalizedHeaders.Count) {
+                return false;
             }
 
             int sourceColumn = firstColumn + sourceFieldIndex;

@@ -124,6 +124,10 @@ namespace OfficeIMO.Tests {
                 sales.CellValue(1, 1, 5d);
                 ExcelSheet salesData = document.AddWorksheet("Sales Data");
                 salesData.CellValue(1, 3, 7d);
+                salesData.SetNamedRange("SharedInput", "C1", save: false);
+                ExcelSheet apostropheSales = document.AddWorksheet("O'Sales");
+                apostropheSales.CellValue(1, 3, 8d);
+                apostropheSales.SetNamedRange("EscapedInput", "C1", save: false);
 
                 ExcelSheet tokens = document.AddWorksheet("Tokens");
                 tokens.CellValue(1, 1, 100d);
@@ -131,10 +135,12 @@ namespace OfficeIMO.Tests {
                 tokens.CellFormula(1, 3, "LOG10(A1)");
                 tokens.CellFormula(1, 4, "Sales!A1+1");
                 tokens.CellFormula(1, 5, "'Sales Data'!C1");
+                tokens.CellFormula(1, 6, "'Sales Data'!SharedInput+1");
+                tokens.CellFormula(1, 7, "'O''Sales'!EscapedInput+1");
                 document.SetNamedRange("Sales", "Tokens!A1", save: false);
 
                 ExcelFormulaDependencyGraph graph = document.InspectFormulas().DependencyGraph;
-                Assert.Equal(7, graph.NodeCount);
+                Assert.Equal(9, graph.NodeCount);
                 Assert.Equal(2, graph.EdgeCount);
                 Assert.Equal(2, graph.CircularReferenceCount);
 
@@ -167,6 +173,14 @@ namespace OfficeIMO.Tests {
                 ExcelFormulaDependencyNode quotedQualifierNode = Assert.IsType<ExcelFormulaDependencyNode>(graph.FindNode("Tokens", "E1"));
                 Assert.Equal(new[] { "Sales Data!C1" }, quotedQualifierNode.Dependencies);
                 Assert.Empty(quotedQualifierNode.FormulaDependencies);
+
+                ExcelFormulaDependencyNode scopedAliasNode = Assert.IsType<ExcelFormulaDependencyNode>(graph.FindNode("Tokens", "F1"));
+                Assert.Equal(new[] { "Sales Data!C1" }, scopedAliasNode.Dependencies);
+                Assert.Empty(scopedAliasNode.FormulaDependencies);
+
+                ExcelFormulaDependencyNode escapedQualifierNode = Assert.IsType<ExcelFormulaDependencyNode>(graph.FindNode("Tokens", "G1"));
+                Assert.Equal(new[] { "O'Sales!C1" }, escapedQualifierNode.Dependencies);
+                Assert.Empty(escapedQualifierNode.FormulaDependencies);
 
                 Assert.Throws<InvalidOperationException>(() => document.InspectFormulas().EnsureNoDependencyIssues());
             }
