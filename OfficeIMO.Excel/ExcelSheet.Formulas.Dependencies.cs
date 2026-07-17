@@ -68,6 +68,43 @@ namespace OfficeIMO.Excel {
             }
         }
 
+        private sealed class FormulaDependencyInspectionContext {
+            private readonly Dictionary<string, IReadOnlyList<Cell>> _formulaCells =
+                new Dictionary<string, IReadOnlyList<Cell>>(StringComparer.OrdinalIgnoreCase);
+            private readonly Dictionary<string, IReadOnlyDictionary<uint, SharedFormulaDefinition>> _sharedFormulaDefinitions =
+                new Dictionary<string, IReadOnlyDictionary<uint, SharedFormulaDefinition>>(StringComparer.OrdinalIgnoreCase);
+
+            internal FormulaDependencyInspectionContext(
+                ExcelSheet sourceSheet,
+                IReadOnlyList<Cell> sourceFormulaCells,
+                IReadOnlyDictionary<uint, SharedFormulaDefinition> sourceSharedFormulaDefinitions) {
+                _formulaCells.Add(sourceSheet.Name, sourceFormulaCells);
+                _sharedFormulaDefinitions.Add(sourceSheet.Name, sourceSharedFormulaDefinitions);
+            }
+
+            internal IReadOnlyList<Cell> GetFormulaCells(ExcelSheet sheet) {
+                if (!_formulaCells.TryGetValue(sheet.Name, out IReadOnlyList<Cell>? cells)) {
+                    cells = sheet.WorksheetRoot.Descendants<Cell>()
+                        .Where(cell => cell.CellFormula != null)
+                        .ToList();
+                    _formulaCells.Add(sheet.Name, cells);
+                }
+
+                return cells;
+            }
+
+            internal IReadOnlyDictionary<uint, SharedFormulaDefinition> GetSharedFormulaDefinitions(ExcelSheet sheet) {
+                if (!_sharedFormulaDefinitions.TryGetValue(
+                    sheet.Name,
+                    out IReadOnlyDictionary<uint, SharedFormulaDefinition>? definitions)) {
+                    definitions = sheet.BuildSharedFormulaDefinitions();
+                    _sharedFormulaDefinitions.Add(sheet.Name, definitions);
+                }
+
+                return definitions;
+            }
+        }
+
         private string GetUnsupportedFormulaReason(string formula) {
             if (string.IsNullOrWhiteSpace(formula)) {
                 return "Formula is empty.";
@@ -121,7 +158,8 @@ namespace OfficeIMO.Excel {
 
             try {
                 string searchableFormula = MaskFormulaStringLiterals(formula);
-                string directReferenceFormula = MaskFormulaStructuredReferenceSegments(searchableFormula);
+                string directReferenceFormula = MaskFormulaNonLocalReferenceSegments(searchableFormula);
+                directReferenceFormula = MaskFormulaStructuredReferenceSegments(directReferenceFormula);
                 var dependencies = new HashSet<string>(FormulaReferenceRegex.Matches(directReferenceFormula)
                     .Cast<Match>()
                     .Where(match => IsLocalFormulaReferenceMatch(searchableFormula, match))
@@ -360,7 +398,10 @@ namespace OfficeIMO.Excel {
             return false;
         }
 
-        private IReadOnlyList<string> GetFormulaDependencyIssues(string formula, string? sourceCellReference, IReadOnlyList<string> dependencies) {
+        private IReadOnlyList<string> GetFormulaDependencyIssues(
+            string? sourceCellReference,
+            IReadOnlyList<string> dependencies,
+            FormulaDependencyInspectionContext inspectionContext) {
             if (dependencies.Count == 0) {
                 return Array.Empty<string>();
             }
@@ -380,7 +421,7 @@ namespace OfficeIMO.Excel {
                     issues.Add($"Dependency '{dependency}' references its own formula cell.");
                 }
 
-                foreach (Cell dependencyCell in dependencySheet.WorksheetRoot.Descendants<Cell>().Where(cell => cell.CellFormula != null)) {
+                foreach (Cell dependencyCell in inspectionContext.GetFormulaCells(dependencySheet)) {
                     string? dependencyReference = NormalizeFormulaCellReference(dependencyCell.CellReference?.Value);
                     if (dependencyReference == null
                         || !TryParseCellReference(dependencyReference, out int dependencyRow, out int dependencyColumn)
@@ -398,7 +439,9 @@ namespace OfficeIMO.Excel {
                         issues.Add($"Dependency '{formattedDependencyCell}' is a formula without a cached result.");
                     }
 
-                    string dependencyFormula = dependencySheet.ResolveCellFormulaText(dependencyCell);
+                    string dependencyFormula = dependencySheet.ResolveCellFormulaText(
+                        dependencyCell,
+                        inspectionContext.GetSharedFormulaDefinitions(dependencySheet));
                     if (!TryEvaluateFormulaValue(dependencyFormula, out _)) {
                         issues.Add($"Dependency '{formattedDependencyCell}' contains a formula outside the lightweight evaluator support.");
                     }

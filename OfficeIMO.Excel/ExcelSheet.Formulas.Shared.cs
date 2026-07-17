@@ -1,8 +1,14 @@
 using System.Globalization;
+using System.Text.RegularExpressions;
 using DocumentFormat.OpenXml.Spreadsheet;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
+        private static readonly Regex SharedFormulaReferenceRegex = new Regex(
+            @"(?<![A-Za-z0-9_\.])(?<qualifier>(?:'(?:[^']|'')+'|\[[^\]]+\][A-Za-z0-9_\. ]+|[A-Za-z_][A-Za-z0-9_\. ]*:[A-Za-z_][A-Za-z0-9_\. ]*|[A-Za-z_][A-Za-z0-9_\. ]*)!)?(?:(?<cellStartColumnAbsolute>\$?)(?<cellStartColumn>[A-Za-z]{1,3})(?<cellStartRowAbsolute>\$?)(?<cellStartRow>\d{1,7})(?::(?<cellEndColumnAbsolute>\$?)(?<cellEndColumn>[A-Za-z]{1,3})(?<cellEndRowAbsolute>\$?)(?<cellEndRow>\d{1,7}))?(?<cellSpill>#)?|(?<wholeStartColumnAbsolute>\$?)(?<wholeStartColumn>[A-Za-z]{1,3}):(?<wholeEndColumnAbsolute>\$?)(?<wholeEndColumn>[A-Za-z]{1,3})|(?<wholeStartRowAbsolute>\$?)(?<wholeStartRow>\d{1,7}):(?<wholeEndRowAbsolute>\$?)(?<wholeEndRow>\d{1,7}))(?![A-Za-z0-9_\.]|\s*\()",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled,
+            FormulaRegexTimeout);
+
         private sealed class SharedFormulaDefinition {
             internal SharedFormulaDefinition(int row, int column, string formula, string? reference) {
                 Row = row;
@@ -68,6 +74,19 @@ namespace OfficeIMO.Excel {
                 column - definition.Column);
         }
 
+        internal IReadOnlyDictionary<string, string> BuildResolvedFormulaTextMap() {
+            IReadOnlyDictionary<uint, SharedFormulaDefinition> sharedFormulaDefinitions = BuildSharedFormulaDefinitions();
+            var formulas = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            foreach (Cell cell in WorksheetRoot.Descendants<Cell>().Where(candidate => candidate.CellFormula != null)) {
+                string? cellReference = cell.CellReference?.Value;
+                if (!string.IsNullOrWhiteSpace(cellReference)) {
+                    formulas[cellReference!] = ResolveCellFormulaText(cell, sharedFormulaDefinitions);
+                }
+            }
+
+            return formulas;
+        }
+
         private static bool ContainsSharedFormulaCell(SharedFormulaDefinition definition, int row, int column) {
             if (string.IsNullOrWhiteSpace(definition.Reference)) {
                 return true;
@@ -91,36 +110,149 @@ namespace OfficeIMO.Excel {
             }
 
             return RewriteFormulaReferencesOutsideStrings(formula, segment =>
-                ReplaceFormulaReferences(segment, match => {
-                    if (IsInsideFormulaStructuredReference(segment, match.Index)
-                        || !int.TryParse(match.Groups["row"].Value, NumberStyles.None, CultureInfo.InvariantCulture, out int sourceRow)) {
+                SharedFormulaReferenceRegex.Replace(segment, match =>
+                    IsInsideFormulaStructuredReference(segment, match.Index)
+                        ? match.Value
+                        : TranslateSharedFormulaReference(match, rowOffset, columnOffset)));
+        }
+
+        private static string TranslateSharedFormulaReference(Match match, int rowOffset, int columnOffset) {
+            string qualifier = match.Groups["qualifier"].Value;
+            if (match.Groups["cellStartColumn"].Success) {
+                string? start = TranslateSharedFormulaCell(
+                    match.Groups["cellStartColumn"].Value,
+                    match.Groups["cellStartColumnAbsolute"].Value,
+                    match.Groups["cellStartRow"].Value,
+                    match.Groups["cellStartRowAbsolute"].Value,
+                    rowOffset,
+                    columnOffset);
+                if (start == null) {
+                    return match.Value;
+                }
+
+                string reference = start;
+                if (match.Groups["cellEndColumn"].Success) {
+                    string? end = TranslateSharedFormulaCell(
+                        match.Groups["cellEndColumn"].Value,
+                        match.Groups["cellEndColumnAbsolute"].Value,
+                        match.Groups["cellEndRow"].Value,
+                        match.Groups["cellEndRowAbsolute"].Value,
+                        rowOffset,
+                        columnOffset);
+                    if (end == null) {
                         return match.Value;
                     }
 
-                    int sourceColumn = A1.ParseColumnIndexFromCellReferenceWithKnownRowFast(
-                        match.Groups["col"].Value + sourceRow.ToString(CultureInfo.InvariantCulture));
-                    if (sourceRow <= 0 || sourceRow > A1.MaxRows || sourceColumn <= 0 || sourceColumn > A1.MaxColumns) {
-                        return match.Value;
-                    }
+                    reference += ":" + end;
+                }
 
-                    int targetRow = match.Groups["rowAbs"].Value.Length > 0
-                        ? sourceRow
-                        : sourceRow + rowOffset;
-                    int targetColumn = match.Groups["colAbs"].Value.Length > 0
-                        ? sourceColumn
-                        : sourceColumn + columnOffset;
-                    if (targetRow <= 0 || targetRow > A1.MaxRows || targetColumn <= 0 || targetColumn > A1.MaxColumns) {
-                        return "#REF!";
-                    }
+                return qualifier + reference + match.Groups["cellSpill"].Value;
+            }
 
-                    string sheetQualifier = match.Groups["sheet"].Value;
-                    return sheetQualifier
-                        + (sheetQualifier.Length > 0 ? "!" : string.Empty)
-                        + match.Groups["colAbs"].Value
-                        + A1.ColumnIndexToLetters(targetColumn)
-                        + match.Groups["rowAbs"].Value
-                        + targetRow.ToString(CultureInfo.InvariantCulture);
-                }));
+            if (match.Groups["wholeStartColumn"].Success) {
+                string? start = TranslateSharedFormulaColumn(
+                    match.Groups["wholeStartColumn"].Value,
+                    match.Groups["wholeStartColumnAbsolute"].Value,
+                    columnOffset);
+                string? end = TranslateSharedFormulaColumn(
+                    match.Groups["wholeEndColumn"].Value,
+                    match.Groups["wholeEndColumnAbsolute"].Value,
+                    columnOffset);
+                return start == null || end == null
+                    ? match.Value
+                    : qualifier + start + ":" + end;
+            }
+
+            if (match.Groups["wholeStartRow"].Success) {
+                string? start = TranslateSharedFormulaRow(
+                    match.Groups["wholeStartRow"].Value,
+                    match.Groups["wholeStartRowAbsolute"].Value,
+                    rowOffset);
+                string? end = TranslateSharedFormulaRow(
+                    match.Groups["wholeEndRow"].Value,
+                    match.Groups["wholeEndRowAbsolute"].Value,
+                    rowOffset);
+                return start == null || end == null
+                    ? match.Value
+                    : qualifier + start + ":" + end;
+            }
+
+            return match.Value;
+        }
+
+        private static string? TranslateSharedFormulaCell(
+            string columnText,
+            string columnAbsolute,
+            string rowText,
+            string rowAbsolute,
+            int rowOffset,
+            int columnOffset) {
+            if (!int.TryParse(rowText, NumberStyles.None, CultureInfo.InvariantCulture, out int sourceRow)
+                || !TryParseSharedFormulaColumn(columnText, out int sourceColumn)
+                || sourceRow <= 0
+                || sourceRow > A1.MaxRows
+                || sourceColumn <= 0
+                || sourceColumn > A1.MaxColumns) {
+                return null;
+            }
+
+            int targetRow = rowAbsolute.Length > 0 ? sourceRow : sourceRow + rowOffset;
+            int targetColumn = columnAbsolute.Length > 0 ? sourceColumn : sourceColumn + columnOffset;
+            if (targetRow <= 0 || targetRow > A1.MaxRows || targetColumn <= 0 || targetColumn > A1.MaxColumns) {
+                return "#REF!";
+            }
+
+            return columnAbsolute
+                + A1.ColumnIndexToLetters(targetColumn)
+                + rowAbsolute
+                + targetRow.ToString(CultureInfo.InvariantCulture);
+        }
+
+        private static string? TranslateSharedFormulaColumn(string columnText, string columnAbsolute, int columnOffset) {
+            if (!TryParseSharedFormulaColumn(columnText, out int sourceColumn)
+                || sourceColumn <= 0
+                || sourceColumn > A1.MaxColumns) {
+                return null;
+            }
+
+            int targetColumn = columnAbsolute.Length > 0 ? sourceColumn : sourceColumn + columnOffset;
+            return targetColumn <= 0 || targetColumn > A1.MaxColumns
+                ? "#REF!"
+                : columnAbsolute + A1.ColumnIndexToLetters(targetColumn);
+        }
+
+        private static string? TranslateSharedFormulaRow(string rowText, string rowAbsolute, int rowOffset) {
+            if (!int.TryParse(rowText, NumberStyles.None, CultureInfo.InvariantCulture, out int sourceRow)
+                || sourceRow <= 0
+                || sourceRow > A1.MaxRows) {
+                return null;
+            }
+
+            int targetRow = rowAbsolute.Length > 0 ? sourceRow : sourceRow + rowOffset;
+            return targetRow <= 0 || targetRow > A1.MaxRows
+                ? "#REF!"
+                : rowAbsolute + targetRow.ToString(CultureInfo.InvariantCulture);
+        }
+
+        private static bool TryParseSharedFormulaColumn(string columnText, out int column) {
+            column = A1.ParseColumnIndexFromCellReferenceWithKnownRowFast(columnText + "1");
+            return column > 0;
+        }
+
+        private static string MaskFormulaNonLocalReferenceSegments(string formula) {
+            char[] masked = formula.ToCharArray();
+            foreach (Match match in SharedFormulaReferenceRegex.Matches(formula)) {
+                string qualifier = match.Groups["qualifier"].Value;
+                if (qualifier.IndexOf('[') < 0 && qualifier.IndexOf(']') < 0 && qualifier.IndexOf(':') < 0) {
+                    continue;
+                }
+
+                for (int index = match.Index; index < match.Index + match.Length; index++) {
+                    masked[index] = ' ';
+                }
+            }
+
+            return new string(masked);
         }
     }
 }

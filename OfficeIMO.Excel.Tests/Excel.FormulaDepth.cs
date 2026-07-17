@@ -263,6 +263,19 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(new[] { "Shared!A1" }, Assert.Single(inspection.Formulas, formula => formula.CellReference == "B1").Dependencies);
                 Assert.Contains("Shared!B2", Assert.Single(inspection.Formulas, formula => formula.CellReference == "C2").Dependencies);
 
+                ExcelWorkbookSnapshot snapshot = document.CreateInspectionSnapshot();
+                ExcelCellSnapshot snapshotFollower = Assert.Single(
+                    Assert.Single(snapshot.Worksheets).Cells,
+                    cell => cell.Row == 2 && cell.Column == 3);
+                Assert.Equal("SUM(B2,$A2,B$1,$A$1)", snapshotFollower.Formula);
+
+                foreach (ExcelFileFormat format in new[] { ExcelFileFormat.Xls, ExcelFileFormat.Xlsb }) {
+                    byte[] binary = document.ToBytes(format);
+                    using ExcelDocument converted = ExcelDocument.Load(new MemoryStream(binary, writable: false));
+                    Assert.Equal(format, converted.SourceFormat);
+                    Assert.Equal("SUM(B2,$A2,B$1,$A$1)", converted["Shared"].GetFormulaText(2, 3));
+                }
+
                 Assert.Equal(4, document.Calculate());
                 Assert.True(sheet.TryGetCachedFormulaValue(1, 3, out string? cachedC1));
                 Assert.Equal("10", cachedC1);
@@ -270,6 +283,52 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("13", cachedC2);
                 Assert.Empty(document.ValidateOpenXml());
             }
+        }
+
+        [Fact]
+        public void Test_FormulaInspection_ExpandsSharedWholeRowColumnSpillAndThreeDimensionalReferences() {
+            string filePath = Path.Combine(_directoryWithFiles, "ExcelFormulaDepth.SharedReferenceKinds.xlsx");
+            const string masterFormula = "SUM(A:A,$A:$A,1:1,$1:$1,A1#,$A1#,A$1#,$A$1#,A1%)+Q1:Q4!A1";
+
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                document.AddWorksheet("Q1");
+                document.AddWorksheet("Q4");
+                ExcelSheet sheet = document.AddWorksheet("Shared");
+                sheet.CellFormula(1, 5, masterFormula);
+                sheet.CellFormula(1, 6, masterFormula);
+                sheet.CellFormula(2, 5, masterFormula);
+                sheet.CellFormula(2, 6, masterFormula);
+                document.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, true)) {
+                Worksheet worksheet = spreadsheet.WorkbookPart!.WorksheetParts
+                    .Single(part => part.Worksheet.Descendants<Cell>().Any(cell => cell.CellReference?.Value == "E1"))
+                    .Worksheet;
+                Cell[] formulaCells = worksheet.Descendants<Cell>()
+                    .Where(cell => cell.CellFormula != null)
+                    .ToArray();
+                Cell master = Assert.Single(formulaCells, cell => cell.CellReference?.Value == "E1");
+                master.CellFormula = new CellFormula(masterFormula) {
+                    FormulaType = CellFormulaValues.Shared,
+                    SharedIndex = 7U,
+                    Reference = "E1:F2"
+                };
+                foreach (Cell follower in formulaCells.Where(cell => cell != master)) {
+                    follower.CellFormula = new CellFormula {
+                        FormulaType = CellFormulaValues.Shared,
+                        SharedIndex = 7U
+                    };
+                }
+                worksheet.Save();
+            }
+
+            using ExcelDocument loaded = ExcelDocument.Load(filePath);
+            ExcelSheet shared = loaded["Shared"];
+            Assert.Equal(masterFormula, shared.GetFormulaText(1, 5));
+            Assert.Equal(
+                "SUM(B:B,$A:$A,2:2,$1:$1,B2#,$A2#,B$1#,$A$1#,B2%)+Q1:Q4!B2",
+                shared.GetFormulaText(2, 6));
         }
 
         [Fact]
@@ -281,8 +340,10 @@ namespace OfficeIMO.Tests {
             first.CellValue(1, 1, 20d);
             ExcelSheet last = document.AddWorksheet("Last");
             last.CellValue(1, 1, 30d);
+            document.AddWorksheet("Q1");
+            document.AddWorksheet("Q4");
             ExcelSheet tokens = document.AddWorksheet("Tokens");
-            tokens.CellFormula(1, 1, "[Other.xlsx]Data!A1+First:Last!A1+'First:Last'!A1");
+            tokens.CellFormula(1, 1, "[Other.xlsx]Data!A1+First:Last!A1+'First:Last'!A1+Q1:Q4!A1");
             document.SetNamedRange("Data", "Data!A1", save: false);
             document.SetNamedRange("First", "First!A1", save: false);
 

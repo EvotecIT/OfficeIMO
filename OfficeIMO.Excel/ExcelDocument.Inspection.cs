@@ -64,6 +64,7 @@ namespace OfficeIMO.Excel {
 
                     var worksheet = worksheetPart.Worksheet ?? throw new InvalidOperationException("Worksheet is missing.");
                     var sheetName = sheet.Name?.Value ?? $"Sheet{sheetIndex + 1}";
+                    IReadOnlyDictionary<string, string> resolvedFormulaTexts = this[sheetName].BuildResolvedFormulaTextMap();
                     var readerSheet = reader.GetSheet(sheetName);
                     var typedValues = BuildTypedCellMap(readerSheet);
                     string usedRangeA1 = readerSheet.GetUsedRangeA1();
@@ -157,7 +158,9 @@ namespace OfficeIMO.Excel {
                                     Row = rowIndex,
                                     Column = columnIndex,
                                     Value = GetTypedValue(typedValues, rowIndex, columnIndex),
-                                    Formula = cell.CellFormula?.Text,
+                                    Formula = resolvedFormulaTexts.TryGetValue(cellReference, out string? formulaText)
+                                        ? formulaText
+                                        : cell.CellFormula?.Text,
                                     StyleIndex = cell.StyleIndex?.Value,
                                     Style = BuildCellStyleSnapshot(styleContext, cell.StyleIndex?.Value),
                                     Hyperlink = hyperlinkMap.TryGetValue(cellReference, out var hyperlink) ? hyperlink : null,

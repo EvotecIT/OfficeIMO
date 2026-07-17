@@ -10,6 +10,11 @@ using OfficeIMO.PowerPoint.OpenDocument;
 using OfficeIMO.Word;
 using OfficeIMO.Word.OpenDocument;
 using Xunit;
+using OpenXmlCell = DocumentFormat.OpenXml.Spreadsheet.Cell;
+using OpenXmlCellFormula = DocumentFormat.OpenXml.Spreadsheet.CellFormula;
+using OpenXmlCellFormulaValues = DocumentFormat.OpenXml.Spreadsheet.CellFormulaValues;
+using OpenXmlSpreadsheetDocument = DocumentFormat.OpenXml.Packaging.SpreadsheetDocument;
+using OpenXmlWorksheet = DocumentFormat.OpenXml.Spreadsheet.Worksheet;
 
 namespace OfficeIMO.OpenDocument.Converters.Tests;
 
@@ -129,6 +134,46 @@ public sealed class OpenDocumentConversionLossReportTests {
         using ExcelDocument roundTrip = reverse.Value;
         ExcelCellSnapshot formula = roundTrip.CreateInspectionSnapshot().Worksheets.Single(sheet => sheet.Name == "Data").Cells.Single();
         Assert.Equal("SUM('Other'!A1,'Other Sheet'!B2:C3)", formula.Formula);
+    }
+
+    [Fact]
+    public void ExcelToOdsExpandsSharedFormulaFollowers() {
+        string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xlsx");
+        try {
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorksheet("Data");
+                sheet.CellValue(1, 1, 1d);
+                sheet.CellValue(2, 1, 2d);
+                sheet.CellFormula(1, 2, "A1+1");
+                sheet.CellFormula(2, 2, "A2+1");
+                document.Save();
+            }
+
+            using (OpenXmlSpreadsheetDocument spreadsheet = OpenXmlSpreadsheetDocument.Open(filePath, true)) {
+                OpenXmlWorksheet worksheet = spreadsheet.WorkbookPart!.WorksheetParts.Single().Worksheet
+                    ?? throw new InvalidDataException("Worksheet is missing.");
+                OpenXmlCell master = Assert.Single(worksheet.Descendants<OpenXmlCell>(), cell => cell.CellReference?.Value == "B1")!;
+                OpenXmlCell follower = Assert.Single(worksheet.Descendants<OpenXmlCell>(), cell => cell.CellReference?.Value == "B2")!;
+                master.CellFormula = new OpenXmlCellFormula("A1+1") {
+                    FormulaType = OpenXmlCellFormulaValues.Shared,
+                    SharedIndex = 0U,
+                    Reference = "B1:B2"
+                };
+                follower.CellFormula = new OpenXmlCellFormula {
+                    FormulaType = OpenXmlCellFormulaValues.Shared,
+                    SharedIndex = 0U
+                };
+                worksheet.Save();
+            }
+
+            using ExcelDocument source = ExcelDocument.Load(filePath);
+            OdsDocument converted = source.ToOpenDocument();
+            Assert.Equal("of:=[.A2]+1", converted.GetSheet("Data")!.Cell(1, 1).Formula);
+        } finally {
+            if (File.Exists(filePath)) {
+                File.Delete(filePath);
+            }
+        }
     }
 
     [Fact]

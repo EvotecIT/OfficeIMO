@@ -302,11 +302,19 @@ namespace OfficeIMO.Excel {
                 var formulas = new List<ExcelFormulaCellInfo>();
                 FormulaDependencyAliasCatalog dependencyAliases = GetFormulaDependencyAliases();
                 IReadOnlyDictionary<uint, SharedFormulaDefinition> sharedFormulaDefinitions = BuildSharedFormulaDefinitions();
-                foreach (var cell in WorksheetRoot.Descendants<Cell>().Where(c => c.CellFormula != null)) {
+                List<Cell> formulaCells = WorksheetRoot.Descendants<Cell>().Where(c => c.CellFormula != null).ToList();
+                var dependencyInspectionContext = new FormulaDependencyInspectionContext(
+                    this,
+                    formulaCells,
+                    sharedFormulaDefinitions);
+                foreach (Cell cell in formulaCells) {
                     string formula = ResolveCellFormulaText(cell, sharedFormulaDefinitions);
                     bool supported = TryEvaluateFormulaCellValue(cell, out _, sharedFormulaDefinitions);
                     IReadOnlyList<string> dependencies = GetFormulaDependencies(formula, dependencyAliases);
-                    IReadOnlyList<string> dependencyIssues = GetFormulaDependencyIssues(formula, cell.CellReference?.Value, dependencies);
+                    IReadOnlyList<string> dependencyIssues = GetFormulaDependencyIssues(
+                        cell.CellReference?.Value,
+                        dependencies,
+                        dependencyInspectionContext);
                     formulas.Add(new ExcelFormulaCellInfo(
                         Name,
                         cell.CellReference?.Value ?? string.Empty,
