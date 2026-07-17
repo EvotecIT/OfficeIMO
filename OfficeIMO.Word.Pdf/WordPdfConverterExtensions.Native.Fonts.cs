@@ -35,7 +35,7 @@ namespace OfficeIMO.Word.Pdf {
                     _fontSlots.TryGetValue(NormalizeNativeFontFamily(familyName!), out fontSlot);
             }
 
-            public void ReportSlotExhaustion(string familyName, PdfCore.PdfStandardFont fallbackSlot) {
+            public void ReportSlotExhaustion(string familyName, PdfCore.PdfStandardFont fallbackSlot, string occupyingFontFamily) {
                 string normalizedFamily = NormalizeNativeFontFamily(familyName);
                 if (_report == null || !_reportedSlotExhaustion.Add(normalizedFamily)) {
                     return;
@@ -46,10 +46,11 @@ namespace OfficeIMO.Word.Pdf {
                     "OfficeIMO.Word.Pdf",
                     "NativeFontFamilySlotExhausted",
                     "word:font[" + familyName + "]",
-                    "The installed font family could not receive a distinct embedded PDF family slot because all standard-family slots are occupied; the run uses the reported " + normalizedSlot + " substitution.",
+                    "The installed font family could not receive a distinct embedded PDF family slot because all standard-family slots are occupied; runs use the occupying embedded family '" + occupyingFontFamily + "' in the logical " + normalizedSlot + " slot.",
                     details: new Dictionary<string, string> {
                         ["fontFamily"] = familyName,
-                        ["fallbackSlot"] = normalizedSlot.ToString()
+                        ["fallbackSlot"] = normalizedSlot.ToString(),
+                        ["occupyingFontFamily"] = occupyingFontFamily
                     }));
             }
         }

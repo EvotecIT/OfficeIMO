@@ -188,6 +188,8 @@ namespace OfficeIMO.Tests {
             Assert.NotEmpty(warnings);
             Assert.Contains(warnings, warning => warning.Details["fontFamily"] == fontFamilies[fontFamilies.Count - 1]);
             Assert.All(warnings, warning => Assert.Contains(warning.Details["fontFamily"], fontFamilies));
+            Assert.All(warnings, warning => Assert.Equal(fontFamilies[0], warning.Details["occupyingFontFamily"]));
+            Assert.All(warnings, warning => Assert.Equal(PdfStandardFont.Helvetica.ToString(), warning.Details["fallbackSlot"]));
             Assert.Throws<InvalidOperationException>(() => result.Report.RequireNoLoss());
         }
 
