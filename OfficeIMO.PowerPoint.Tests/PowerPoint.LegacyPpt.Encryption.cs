@@ -358,7 +358,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(PowerPointFileFormat.Pps,
                     fromPath.SourceFormat);
 
-                byte[] bytes = await File.ReadAllBytesAsync(path);
+                byte[] bytes = File.ReadAllBytes(path);
                 using var encryptedStream = new MemoryStream(bytes);
                 using PowerPointPresentation fromStream =
                     await PowerPointPresentation.LoadEncryptedAsync(

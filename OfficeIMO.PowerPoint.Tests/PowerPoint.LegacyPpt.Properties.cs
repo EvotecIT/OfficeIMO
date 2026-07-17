@@ -278,11 +278,11 @@ namespace OfficeIMO.Tests {
             WriteUInt16(stream, 0xFFFE);
             WriteUInt16(stream, 0);
             WriteUInt32(stream, 0);
-            stream.Write(new byte[16]);
+            WriteBytes(stream, new byte[16]);
             WriteUInt32(stream, 1);
-            stream.Write(SummaryInformationFormatId.ToByteArray());
+            WriteBytes(stream, SummaryInformationFormatId.ToByteArray());
             WriteUInt32(stream, 48);
-            stream.Write(section);
+            WriteBytes(stream, section);
             return stream.ToArray();
         }
 
@@ -293,7 +293,7 @@ namespace OfficeIMO.Tests {
             foreach ((uint _, byte[] value) in properties) {
                 offsets.Add(checked((uint)(8 + properties.Count * 8
                     + values.Length)));
-                values.Write(value);
+                WriteBytes(values, value);
                 while (values.Length % 4 != 0) values.WriteByte(0);
             }
             using var stream = new MemoryStream();
@@ -304,7 +304,7 @@ namespace OfficeIMO.Tests {
                 WriteUInt32(stream, properties[index].Id);
                 WriteUInt32(stream, offsets[index]);
             }
-            stream.Write(values.ToArray());
+            WriteBytes(stream, values.ToArray());
             return stream.ToArray();
         }
 
@@ -322,7 +322,8 @@ namespace OfficeIMO.Tests {
             WriteUInt16(stream, 0x001F);
             WriteUInt16(stream, 0);
             WriteUInt32(stream, checked((uint)(value.Length + 1)));
-            stream.Write(System.Text.Encoding.Unicode.GetBytes(value + '\0'));
+            WriteBytes(stream,
+                System.Text.Encoding.Unicode.GetBytes(value + '\0'));
             while (stream.Length % 4 != 0) stream.WriteByte(0);
             return stream.ToArray();
         }
@@ -331,6 +332,9 @@ namespace OfficeIMO.Tests {
             stream.WriteByte((byte)value);
             stream.WriteByte((byte)(value >> 8));
         }
+
+        private static void WriteBytes(Stream stream, byte[] bytes) =>
+            stream.Write(bytes, 0, bytes.Length);
 
         private static void WriteUInt32(Stream stream, uint value) {
             stream.WriteByte((byte)value);

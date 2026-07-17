@@ -105,7 +105,7 @@ namespace OfficeIMO.Tests {
         }
 
         private static string Normalize(string value) => (value ?? string.Empty)
-            .Replace("\r\n", "\n", StringComparison.Ordinal)
+            .Replace("\r\n", "\n")
             .Replace('\r', '\n');
     }
 }
