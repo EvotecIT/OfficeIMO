@@ -61,6 +61,32 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_FormulaDependencyGraph_ResolvesWholeRowAndColumnReferences() {
+            using ExcelDocument document = ExcelDocument.Create();
+            ExcelSheet columns = document.AddWorksheet("Whole Columns");
+            columns.CellFormula(1, 1, "SUM(B:B)");
+            columns.CellFormula(1, 2, "A1");
+            ExcelSheet rows = document.AddWorksheet("Whole Rows");
+            rows.CellFormula(1, 1, "SUM(2:2)");
+            rows.CellFormula(2, 1, "A1");
+
+            ExcelFormulaDependencyGraph graph = document.InspectFormulas().DependencyGraph;
+            Assert.Equal(4, graph.NodeCount);
+            Assert.Equal(4, graph.EdgeCount);
+            Assert.Equal(2, graph.CircularReferenceCount);
+
+            ExcelFormulaDependencyNode columnNode = Assert.IsType<ExcelFormulaDependencyNode>(
+                graph.FindNode("Whole Columns", "A1"));
+            Assert.Equal(new[] { "Whole Columns!B:B" }, columnNode.Dependencies);
+            Assert.Equal(new[] { "Whole Columns!B1" }, columnNode.FormulaDependencies);
+
+            ExcelFormulaDependencyNode rowNode = Assert.IsType<ExcelFormulaDependencyNode>(
+                graph.FindNode("Whole Rows", "A1"));
+            Assert.Equal(new[] { "Whole Rows!2:2" }, rowNode.Dependencies);
+            Assert.Equal(new[] { "Whole Rows!A2" }, rowNode.FormulaDependencies);
+        }
+
+        [Fact]
         public void Test_FormulaEvaluator_StopsAtConfiguredDependencyDepth() {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelFormulaDepth.Budget.xlsx");
 

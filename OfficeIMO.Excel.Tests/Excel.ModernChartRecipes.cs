@@ -102,6 +102,11 @@ namespace OfficeIMO.Tests {
             Assert.Throws<ArgumentException>(() => sheet.AddFunnelChart(new[] { "A" }, new[] { -1d }, 1, 1));
             Assert.Throws<ArgumentException>(() => sheet.AddWaterfallChart(new[] { "A" }, new[] { -1d }, 1, 1));
             Assert.Throws<ArgumentException>(() => sheet.AddWaterfallChart(new[] { "A", "B" }, new[] { double.MaxValue, double.MaxValue }, 1, 1));
+            Assert.Throws<ArgumentException>(() => sheet.AddWaterfallChart(
+                new[] { "A", "B" },
+                new[] { 1e16d, -10000000000000002d },
+                1,
+                1));
             Assert.Throws<ArgumentOutOfRangeException>(() => sheet.AddHistogramChart(new[] { 1d, 2d }, 1, 1, widthPixels: -1));
             Assert.Throws<ArgumentOutOfRangeException>(() => sheet.AddParetoChart(new[] { "A" }, new[] { 1d }, 1, 1, heightPixels: 0));
             Assert.Single(document.Sheets);

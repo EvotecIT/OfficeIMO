@@ -322,6 +322,33 @@ namespace OfficeIMO.Excel {
                 yield break;
             }
 
+            if (A1.TryParseWholeColumnRange(normalizedDependency, out c1, out c2)) {
+                if (!formulaCellsBySheet.TryGetValue(dependencySheet, out List<FormulaCellIndexEntry>? entries)) {
+                    yield break;
+                }
+
+                foreach (FormulaCellIndexEntry entry in entries) {
+                    if (entry.Column >= c1 && entry.Column <= c2) {
+                        yield return entry.Reference;
+                    }
+                }
+
+                yield break;
+            }
+
+            if (A1.TryParseWholeRowRange(normalizedDependency, out r1, out r2)) {
+                if (!formulaCellsBySheet.TryGetValue(dependencySheet, out List<FormulaCellIndexEntry>? entries)) {
+                    yield break;
+                }
+
+                int index = FindFirstFormulaRow(entries, r1);
+                for (; index < entries.Count && entries[index].Row <= r2; index++) {
+                    yield return entries[index].Reference;
+                }
+
+                yield break;
+            }
+
             var dependencyCell = A1.ParseCellRef(normalizedDependency);
             if (dependencyCell.Row <= 0 || dependencyCell.Col <= 0) {
                 yield break;

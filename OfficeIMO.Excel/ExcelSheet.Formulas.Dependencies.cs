@@ -436,7 +436,14 @@ namespace OfficeIMO.Excel {
             var issues = new List<string>();
             string? sourceReference = NormalizeFormulaCellReference(sourceCellReference);
             foreach (string dependency in dependencies) {
-                if (!TryResolveFormulaRangeReference(dependency, out ExcelSheet dependencySheet, out int r1, out int c1, out int r2, out int c2)) {
+                if (!TryResolveFormulaDependencyReference(
+                    dependency,
+                    out ExcelSheet dependencySheet,
+                    out int r1,
+                    out int c1,
+                    out int r2,
+                    out int c2,
+                    out _)) {
                     issues.Add($"Cannot resolve dependency '{dependency}'.");
                     continue;
                 }
@@ -483,15 +490,61 @@ namespace OfficeIMO.Excel {
 
         private string NormalizeFormulaDependencyReference(string reference) {
             string normalized = reference.Trim().Replace("$", string.Empty);
-            if (TryResolveFormulaRangeReference(normalized, out ExcelSheet sheet, out int r1, out int c1, out int r2, out int c2)) {
-                string start = A1.CellReference(r1, c1);
-                string end = A1.CellReference(r2, c2);
-                return r1 == r2 && c1 == c2
-                    ? $"{sheet.Name}!{start}"
-                    : $"{sheet.Name}!{start}:{end}";
+            if (TryResolveFormulaDependencyReference(
+                normalized,
+                out ExcelSheet sheet,
+                out _,
+                out _,
+                out _,
+                out _,
+                out string address)) {
+                return $"{sheet.Name}!{address}";
             }
 
             return normalized;
+        }
+
+        private bool TryResolveFormulaDependencyReference(
+            string token,
+            out ExcelSheet sheet,
+            out int r1,
+            out int c1,
+            out int r2,
+            out int c2,
+            out string address) {
+            if (TryResolveFormulaRangeReference(token, out sheet, out r1, out c1, out r2, out c2)) {
+                string start = A1.CellReference(r1, c1);
+                string end = A1.CellReference(r2, c2);
+                address = r1 == r2 && c1 == c2 ? start : start + ":" + end;
+                return true;
+            }
+
+            sheet = this;
+            r1 = c1 = r2 = c2 = 0;
+            address = string.Empty;
+            if (!TrySplitQualifiedReference(token, out string? sheetName, out string reference)) {
+                return false;
+            }
+
+            if (sheetName != null && !TryGetFormulaReferenceSheet(sheetName, out sheet)) {
+                return false;
+            }
+
+            if (A1.TryParseWholeColumnRange(reference, out c1, out c2)) {
+                r1 = 1;
+                r2 = A1.MaxRows;
+                address = A1.ColumnIndexToLetters(c1) + ":" + A1.ColumnIndexToLetters(c2);
+                return true;
+            }
+
+            if (A1.TryParseWholeRowRange(reference, out r1, out r2)) {
+                c1 = 1;
+                c2 = A1.MaxColumns;
+                address = r1.ToString(CultureInfo.InvariantCulture) + ":" + r2.ToString(CultureInfo.InvariantCulture);
+                return true;
+            }
+
+            return false;
         }
 
         private static string MaskFormulaStringLiterals(string formula) {

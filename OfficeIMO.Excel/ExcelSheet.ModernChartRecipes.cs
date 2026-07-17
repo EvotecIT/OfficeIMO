@@ -200,7 +200,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 double roundingTolerance = 3.552713678800501E-15D
-                    * Math.Max(1D, Math.Max(Math.Abs(running), Math.Abs(change)));
+                    * Math.Max(1D, Math.Abs(next));
                 if (next < 0 && next >= -roundingTolerance) {
                     next = 0;
                 }
