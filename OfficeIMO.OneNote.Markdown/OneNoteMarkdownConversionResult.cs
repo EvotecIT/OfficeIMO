@@ -42,45 +42,45 @@ public sealed class OneNoteMarkdownConversionResult {
 }
 
 internal static class OneNoteMarkdownDiagnosticCollector {
-    internal static IReadOnlyList<OneNoteMarkdownDiagnostic> Collect(OneNoteSection section, OneNoteMarkdownOptions options) {
+    internal static IReadOnlyList<OneNoteMarkdownDiagnostic> Collect(OneNoteSection section, OneNoteMarkdownOptions options, ISet<OneNoteBinaryElement> resolvedAssets) {
         var diagnostics = new List<OneNoteMarkdownDiagnostic>();
         AddSourceDiagnostics(diagnostics, section.Diagnostics, SourceName(section.Name, "OneNote section"));
         AddOpaqueDiagnostic(diagnostics, section.UnknownObjects.Count, SourceName(section.Name, "OneNote section"));
-        foreach (OneNotePage page in section.Pages) InspectPage(diagnostics, page, options);
+        foreach (OneNotePage page in section.Pages) InspectPage(diagnostics, page, options, resolvedAssets);
         return diagnostics.AsReadOnly();
     }
 
-    internal static IReadOnlyList<OneNoteMarkdownDiagnostic> Collect(OneNoteNotebook notebook, OneNoteMarkdownOptions options) {
+    internal static IReadOnlyList<OneNoteMarkdownDiagnostic> Collect(OneNoteNotebook notebook, OneNoteMarkdownOptions options, ISet<OneNoteBinaryElement> resolvedAssets) {
         var diagnostics = new List<OneNoteMarkdownDiagnostic>();
         AddSourceDiagnostics(diagnostics, notebook.Diagnostics, SourceName(notebook.Name, "OneNote notebook"));
         AddOpaqueDiagnostic(diagnostics, notebook.UnknownObjects.Count, SourceName(notebook.Name, "OneNote notebook"));
-        foreach (OneNoteSection section in notebook.Sections) InspectSection(diagnostics, section, options);
-        foreach (OneNoteSectionGroup group in notebook.SectionGroups) InspectGroup(diagnostics, group, options);
+        foreach (OneNoteSection section in notebook.Sections) InspectSection(diagnostics, section, options, resolvedAssets);
+        foreach (OneNoteSectionGroup group in notebook.SectionGroups) InspectGroup(diagnostics, group, options, resolvedAssets);
         return diagnostics.AsReadOnly();
     }
 
-    private static void InspectGroup(List<OneNoteMarkdownDiagnostic> diagnostics, OneNoteSectionGroup group, OneNoteMarkdownOptions options) {
+    private static void InspectGroup(List<OneNoteMarkdownDiagnostic> diagnostics, OneNoteSectionGroup group, OneNoteMarkdownOptions options, ISet<OneNoteBinaryElement> resolvedAssets) {
         string source = SourceName(group.Name, "Section group");
         AddOpaqueDiagnostic(diagnostics, group.UnknownObjects.Count, source);
-        foreach (OneNoteSection section in group.Sections) InspectSection(diagnostics, section, options);
-        foreach (OneNoteSectionGroup child in group.SectionGroups) InspectGroup(diagnostics, child, options);
+        foreach (OneNoteSection section in group.Sections) InspectSection(diagnostics, section, options, resolvedAssets);
+        foreach (OneNoteSectionGroup child in group.SectionGroups) InspectGroup(diagnostics, child, options, resolvedAssets);
     }
 
-    private static void InspectSection(List<OneNoteMarkdownDiagnostic> diagnostics, OneNoteSection section, OneNoteMarkdownOptions options) {
+    private static void InspectSection(List<OneNoteMarkdownDiagnostic> diagnostics, OneNoteSection section, OneNoteMarkdownOptions options, ISet<OneNoteBinaryElement> resolvedAssets) {
         string source = SourceName(section.Name, "OneNote section");
         AddSourceDiagnostics(diagnostics, section.Diagnostics, source);
         AddOpaqueDiagnostic(diagnostics, section.UnknownObjects.Count, source);
-        foreach (OneNotePage page in section.Pages) InspectPage(diagnostics, page, options);
+        foreach (OneNotePage page in section.Pages) InspectPage(diagnostics, page, options, resolvedAssets);
     }
 
-    private static void InspectPage(List<OneNoteMarkdownDiagnostic> diagnostics, OneNotePage page, OneNoteMarkdownOptions options) {
+    private static void InspectPage(List<OneNoteMarkdownDiagnostic> diagnostics, OneNotePage page, OneNoteMarkdownOptions options, ISet<OneNoteBinaryElement> resolvedAssets) {
         string source = SourceName(page.Title, "Untitled page");
         AddSourceDiagnostics(diagnostics, page.Diagnostics, source);
         AddOpaqueDiagnostic(diagnostics, page.UnknownObjects.Count, source);
 
         var state = new PageProjectionState();
-        foreach (OneNoteOutline outline in page.Outlines) InspectElement(outline, options, state);
-        foreach (OneNoteElement element in page.DirectContent) InspectElement(element, options, state);
+        foreach (OneNoteOutline outline in page.Outlines) InspectElement(outline, options, resolvedAssets, state);
+        foreach (OneNoteElement element in page.DirectContent) InspectElement(element, options, resolvedAssets, state);
         if (page.Width.HasValue || page.Height.HasValue) state.HasPositionedLayout = true;
 
         if (state.HasPositionedLayout) {
@@ -114,14 +114,14 @@ internal static class OneNoteMarkdownDiagnosticCollector {
         AddOpaqueDiagnostic(diagnostics, state.OpaqueItemCount, source);
 
         if (options.IncludeConflictPages) {
-            foreach (OneNotePage conflict in page.ConflictPages) InspectPage(diagnostics, conflict, options);
+            foreach (OneNotePage conflict in page.ConflictPages) InspectPage(diagnostics, conflict, options, resolvedAssets);
         }
         if (options.IncludeVersionHistory) {
-            foreach (OneNotePage version in page.VersionHistory) InspectPage(diagnostics, version, options);
+            foreach (OneNotePage version in page.VersionHistory) InspectPage(diagnostics, version, options, resolvedAssets);
         }
     }
 
-    private static void InspectElement(OneNoteElement element, OneNoteMarkdownOptions options, PageProjectionState state) {
+    private static void InspectElement(OneNoteElement element, OneNoteMarkdownOptions options, ISet<OneNoteBinaryElement> resolvedAssets, PageProjectionState state) {
         OneNoteLayout? layout = element.Layout;
         if (layout != null && (layout.X.HasValue || layout.Y.HasValue || layout.Width.HasValue || layout.Height.HasValue)) {
             state.HasPositionedLayout = true;
@@ -130,7 +130,7 @@ internal static class OneNoteMarkdownDiagnosticCollector {
         if (element.Tags.Count > 0 || element.Author != null) state.SimplifiedFormattingCount++;
 
         if (element is OneNoteOutline outline) {
-            foreach (OneNoteElement child in outline.Children) InspectElement(child, options, state);
+            foreach (OneNoteElement child in outline.Children) InspectElement(child, options, resolvedAssets, state);
         } else if (element is OneNoteParagraph paragraph) {
             if (paragraph.Style.Alignment.HasValue || paragraph.Style.SpaceBefore.HasValue || paragraph.Style.SpaceAfter.HasValue || paragraph.Style.ExactLineSpacing.HasValue) {
                 state.SimplifiedFormattingCount++;
@@ -143,17 +143,17 @@ internal static class OneNoteMarkdownDiagnosticCollector {
                 }
                 state.OpaqueItemCount += run.UnknownProperties.Count;
             }
-            foreach (OneNoteElement child in paragraph.Children) InspectElement(child, options, state);
+            foreach (OneNoteElement child in paragraph.Children) InspectElement(child, options, resolvedAssets, state);
         } else if (element is OneNoteTable table) {
             foreach (OneNoteTableRow row in table.Rows) {
                 foreach (OneNoteTableCell cell in row.Cells) {
                     if (cell.ShadingColorArgb.HasValue) state.SimplifiedFormattingCount++;
                     state.OpaqueItemCount += cell.UnknownProperties.Count;
-                    foreach (OneNoteElement child in cell.Content) InspectElement(child, options, state);
+                    foreach (OneNoteElement child in cell.Content) InspectElement(child, options, resolvedAssets, state);
                 }
             }
         } else if (element is OneNoteBinaryElement binary) {
-            bool resolved = binary.Payload != null && options.AssetUriResolver != null;
+            bool resolved = binary.Payload != null && resolvedAssets.Contains(binary);
             if (!resolved) state.PlaceholderAssetCount++;
             else if (binary is not OneNoteImage) state.LinkedBinaryCount++;
         }

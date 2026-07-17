@@ -136,6 +136,33 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void SaveAsPdf_OfficeIMOEngine_Embeds_Distinct_Mapped_Run_Font_In_A_Separate_Slot() {
+            if (!PdfEmbeddedFontFamily.TryFromSystem("Calibri", out PdfEmbeddedFontFamily? _) ||
+                !PdfEmbeddedFontFamily.TryFromSystem("Arial", out PdfEmbeddedFontFamily? _)) {
+                return;
+            }
+
+            string docPath = Path.Combine(_directoryWithFiles, "PdfNativeDistinctMappedRunFonts.docx");
+            string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeDistinctMappedRunFonts.pdf");
+
+            using (WordDocument document = WordDocument.Create(docPath)) {
+                document.Settings.FontFamily = "Calibri";
+                document.AddParagraph("Calibri default");
+                document.AddParagraph().AddText("Arial run").SetFontFamily("Arial");
+
+                document.Save();
+                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                    IncludePageNumbers = false
+                });
+            }
+
+            string content = Encoding.ASCII.GetString(File.ReadAllBytes(pdfPath));
+
+            Assert.Contains("/BaseFont /Calibri", content, StringComparison.Ordinal);
+            Assert.Contains("/BaseFont /Arial", content, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void SaveAsPdf_OfficeIMOEngine_Embeds_Unmapped_Run_Font_When_Allowed_And_Available() {
             string? fontFamily = FindUnmappedEmbeddableWordFontFamily();
             if (fontFamily == null) {

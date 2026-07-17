@@ -238,6 +238,19 @@ namespace OfficeIMO.Word.Pdf {
                 return;
             }
 
+            if (allowSystemFontEmbedding &&
+                PdfCore.PdfStandardFontMapper.TryMapFontFamily(trimmedFamilyName, out PdfCore.PdfStandardFont mappedFont) &&
+                registeredFontSlots.Contains(PdfCore.PdfStandardFontMapper.GetFontFamily(mappedFont)) &&
+                !EmbeddedFontSlotMatchesFamily(pdfOptions, mappedFont, trimmedFamilyName) &&
+                PdfCore.PdfOptions.TrySelectAvailableFontFamilySlot(trimmedFamilyName, registeredFontSlots, out PdfCore.PdfStandardFont distinctFontSlot) &&
+                PdfCore.PdfEmbeddedFontFamily.TryFromSystem(trimmedFamilyName, out PdfCore.PdfEmbeddedFontFamily? distinctEmbeddedFamily) &&
+                distinctEmbeddedFamily != null) {
+                registeredFontSlots.Add(distinctFontSlot);
+                pdfOptions.RegisterFontFamily(distinctFontSlot, distinctEmbeddedFamily);
+                nativeFontMap.Register(trimmedFamilyName, distinctFontSlot);
+                return;
+            }
+
             if (pdfOptions.TryRegisterMappedOfficeFontFamily(trimmedFamilyName, registeredFontSlots, allowSystemFontEmbedding, out PdfCore.PdfStandardFont fontFamily)) {
                 nativeFontMap.Register(trimmedFamilyName, fontFamily);
                 return;
@@ -251,6 +264,15 @@ namespace OfficeIMO.Word.Pdf {
                 pdfOptions.RegisterFontFamily(fontSlot, embeddedFamily);
                 nativeFontMap.Register(trimmedFamilyName, fontSlot);
             }
+        }
+
+        private static bool EmbeddedFontSlotMatchesFamily(PdfCore.PdfOptions options, PdfCore.PdfStandardFont slot, string familyName) {
+            PdfCore.PdfStandardFont normalizedSlot = PdfCore.PdfStandardFontMapper.GetFontFamily(slot);
+            return !options.EmbeddedFonts.TryGetValue(normalizedSlot, out PdfCore.PdfEmbeddedFont? embedded) ||
+                string.Equals(
+                    NormalizeNativeFontFamily(embedded.FontName ?? string.Empty),
+                    NormalizeNativeFontFamily(familyName),
+                    StringComparison.OrdinalIgnoreCase);
         }
 
         private sealed class NativeTableOfContentsEntry {

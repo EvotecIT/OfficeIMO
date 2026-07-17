@@ -27,20 +27,24 @@ internal static class HtmlPdfRenderedConverter {
         HtmlRenderOptions renderOptions = options.ClonePdf();
         renderOptions.Mode = HtmlRenderMode.Paged;
         renderOptions.UrlPolicy.AllowDataUrls = options.ResourcePolicy.AllowDataUris;
-        renderOptions.UrlPolicy.DisallowFileUrls = !options.ResourcePolicy.AllowLocalFileAccess;
-        HtmlRenderResourceResolver? resolver = renderOptions.ResourceResolver;
-        if (resolver != null) {
-            renderOptions.ResourceResolver = (request, cancellationToken) => {
-                bool isEmbeddedPackageResource = request.Uri.Scheme.Equals("cid", StringComparison.OrdinalIgnoreCase) ||
-                    request.Uri.Scheme.Equals("mhtml", StringComparison.OrdinalIgnoreCase);
-                bool allowed = isEmbeddedPackageResource
-                    ? options.ResourcePolicy.AllowEmbeddedPackageResources
-                    : request.Uri.IsFile
-                        ? options.ResourcePolicy.AllowLocalFileAccess
-                        : options.ResourcePolicy.AllowRemoteResourceResolution;
-                return allowed
-                    ? resolver(request, cancellationToken)
-                    : Task.FromResult<HtmlResolvedResource?>(null);
+        HtmlRenderResourceResolver? embeddedPackageResolver = options.EmbeddedPackageResourceResolver;
+        renderOptions.UrlPolicy.DisallowFileUrls = !options.ResourcePolicy.AllowLocalFileAccess &&
+            !(embeddedPackageResolver != null && options.ResourcePolicy.AllowEmbeddedPackageResources);
+        HtmlRenderResourceResolver? hostResolver = renderOptions.ResourceResolver;
+        if (embeddedPackageResolver != null || hostResolver != null) {
+            renderOptions.ResourceResolver = async (request, cancellationToken) => {
+                if (embeddedPackageResolver != null && options.ResourcePolicy.AllowEmbeddedPackageResources) {
+                    HtmlResolvedResource? embedded = await embeddedPackageResolver(request, cancellationToken).ConfigureAwait(false);
+                    if (embedded != null) return embedded;
+                }
+
+                if (hostResolver == null) return null;
+                bool hostResourceAllowed = request.Uri.IsFile
+                    ? options.ResourcePolicy.AllowLocalFileAccess
+                    : options.ResourcePolicy.AllowRemoteResourceResolution;
+                return hostResourceAllowed
+                    ? await hostResolver(request, cancellationToken).ConfigureAwait(false)
+                    : null;
             };
         }
         return renderOptions;

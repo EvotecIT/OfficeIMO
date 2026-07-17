@@ -377,6 +377,62 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public async Task MhtmlPdf_DefaultPolicyResolvesEmbeddedContentLocationIndependentlyOfUriScheme() {
+        byte[] imageBytes = PdfPngTestImages.CreateRgbPng(8, 5);
+        var archive = new MhtmlDocument(
+            "<h1>MhtmlLocationMarker</h1><img src='images/logo.png' width='40' height='25' alt='embedded location logo'>",
+            new[] { new MhtmlResource(imageBytes, "image/png", contentLocation: "images/logo.png", fileName: "logo.png") },
+            contentLocation: "https://snapshot.example.test/archive/page.html");
+
+        PdfCore.PdfDocumentConversionResult result = await archive.ToPdfDocumentResultAsync();
+        byte[] pdf = result.ToBytes();
+
+        Assert.Contains(PdfCore.PdfImageExtractor.ExtractImages(pdf), image => image.IsImageFile && image.MimeType == "image/png");
+        Assert.DoesNotContain(result.Warnings, warning => warning.Code == HtmlRenderDiagnosticCodes.ResourceUnavailable);
+    }
+
+    [Fact]
+    public async Task MhtmlPdf_DefaultPolicyResolvesEmbeddedContentLocationFromFileBackedArchive() {
+        byte[] imageBytes = PdfPngTestImages.CreateRgbPng(8, 5);
+        var source = new MhtmlDocument(
+            "<img src='images/logo.png' width='40' height='25' alt='file-backed embedded logo'>",
+            new[] { new MhtmlResource(imageBytes, "image/png", contentLocation: "images/logo.png", fileName: "logo.png") });
+        string path = Path.Combine(Path.GetTempPath(), "officeimo-mhtml-pdf-" + Guid.NewGuid().ToString("N") + ".mht");
+        try {
+            source.Save(path);
+            MhtmlDocument archive = MhtmlDocument.Load(path);
+            Assert.True(archive.BaseUri.IsFile);
+
+            PdfCore.PdfDocumentConversionResult result = await archive.ToPdfDocumentResultAsync();
+            byte[] pdf = result.ToBytes();
+
+            Assert.Contains(PdfCore.PdfImageExtractor.ExtractImages(pdf), image => image.IsImageFile && image.MimeType == "image/png");
+            Assert.DoesNotContain(result.Warnings, warning => warning.Code == HtmlRenderDiagnosticCodes.ResourceUnavailable);
+        } finally {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public async Task MhtmlPdf_EmbeddedPolicyCannotBeBypassedByTrustedHostUriSchemes() {
+        byte[] imageBytes = PdfPngTestImages.CreateRgbPng(8, 5);
+        var archive = new MhtmlDocument(
+            "<img src='https://snapshot.example.test/assets/logo.png' width='40' height='25' alt='blocked embedded logo'>",
+            new[] { new MhtmlResource(imageBytes, "image/png", contentLocation: "https://snapshot.example.test/assets/logo.png", fileName: "logo.png") },
+            contentLocation: "https://snapshot.example.test/archive/page.html");
+        PdfCore.PdfResourcePolicy policy = PdfCore.PdfResourcePolicy.CreateTrustedHost();
+        policy.AllowEmbeddedPackageResources = false;
+
+        PdfCore.PdfDocumentConversionResult result = await archive.ToPdfDocumentResultAsync(new HtmlPdfSaveOptions {
+            ResourcePolicy = policy
+        });
+        byte[] pdf = result.ToBytes();
+
+        Assert.DoesNotContain(PdfCore.PdfImageExtractor.ExtractImages(pdf), image => image.IsImageFile && image.MimeType == "image/png");
+        Assert.Contains(result.Warnings, warning => warning.Code == HtmlRenderDiagnosticCodes.ResourceUnavailable);
+    }
+
+    [Fact]
     public void MhtmlPdf_ExposesCompleteDirectLifecycle() {
         MethodInfo[] methods = typeof(HtmlPdfConverterExtensions)
             .GetMethods(BindingFlags.Public | BindingFlags.Static)

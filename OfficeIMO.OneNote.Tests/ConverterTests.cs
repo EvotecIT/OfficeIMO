@@ -133,6 +133,23 @@ public sealed class ConverterTests {
         Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
     }
 
+    [Fact]
+    public void NullAssetResolverOutcomeRemainsAReportedProjectionLoss() {
+        OneNoteSection section = CreateNotebook().SectionGroups[0].Sections[0];
+        var options = new OneNoteMarkdownOptions { AssetUriResolver = _ => null };
+
+        OneNoteMarkdownConversionResult markdown = section.ToMarkdownDocumentResult(options);
+        PdfDocumentConversionResult pdf = section.ToPdfDocumentResult(new OneNotePdfSaveOptions {
+            ProjectionOptions = options
+        });
+
+        Assert.True(markdown.HasLoss);
+        Assert.Contains(markdown.Diagnostics, diagnostic => diagnostic.Code == "ONENOTE_MARKDOWN_ASSET_PLACEHOLDER");
+        Assert.True(pdf.HasLoss);
+        Assert.Contains(pdf.Warnings, warning => warning.Code == "ONENOTE_MARKDOWN_ASSET_PLACEHOLDER");
+        Assert.Throws<InvalidOperationException>(() => pdf.RequireNoLoss());
+    }
+
     [Theory]
     [InlineData(typeof(OneNoteSectionPdfConverterExtensions))]
     [InlineData(typeof(OneNoteNotebookPdfConverterExtensions))]
