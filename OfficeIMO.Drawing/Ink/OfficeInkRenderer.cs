@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace OfficeIMO.Drawing;
 
@@ -107,9 +108,15 @@ public static class OfficeInkRenderer {
 
         double opacity = GetEffectiveOpacity(stroke, options.HighlighterOpacityFactor);
         OfficeColor renderColor = OfficeColor.FromRgb(stroke.Color.R, stroke.Color.G, stroke.Color.B);
+        bool affineTipGeometry = stroke.RequiresAffineTipGeometry();
         if (points.Count == 1) {
-            AddDot(drawing, stroke, renderColor, points[0], transformedTipWidth, transformedTipHeight, opacity, options);
+            if (affineTipGeometry) AddTransformedTip(drawing, stroke, renderColor, points[0], opacity, ResolvePointPressure(stroke, points[0], options));
+            else AddDot(drawing, stroke, renderColor, points[0], transformedTipWidth, transformedTipHeight, opacity, options);
             return;
+        }
+
+        if (affineTipGeometry) {
+            AddTransformedTip(drawing, stroke, renderColor, points[0], opacity, ResolvePointPressure(stroke, points[0], options));
         }
 
         for (int index = 1; index < points.Count; index++) {
@@ -120,6 +127,11 @@ public static class OfficeInkRenderer {
             double x2 = to.X;
             double y2 = to.Y;
             if (x1.Equals(x2) && y1.Equals(y2)) continue;
+            if (affineTipGeometry) {
+                AddAffineTipSegment(drawing, stroke, renderColor, from, to, opacity, options, transformedTipWidth, transformedTipHeight);
+                AddTransformedTip(drawing, stroke, renderColor, to, opacity, ResolvePointPressure(stroke, to, options));
+                continue;
+            }
             double pressure = options.UsePressure && !stroke.IgnorePressure
                 ? ResolvePressure(from.Pressure, to.Pressure, options.MinimumPressureFactor)
                 : 1D;
@@ -144,6 +156,85 @@ public static class OfficeInkRenderer {
             if (exceedsCanvas) drawing.AddShapeForClippedRendering(shape, Math.Min(x1, x2), Math.Min(y1, y2));
             else drawing.AddShape(shape, Math.Min(x1, x2), Math.Min(y1, y2));
         }
+    }
+
+    private static void AddAffineTipSegment(
+        OfficeDrawing drawing,
+        OfficeInkStroke stroke,
+        OfficeColor renderColor,
+        OfficeInkPoint from,
+        OfficeInkPoint to,
+        double opacity,
+        OfficeInkRenderOptions options,
+        double transformedTipWidth,
+        double transformedTipHeight) {
+        double deltaX = to.X - from.X;
+        double deltaY = to.Y - from.Y;
+        double fromPressure = ResolvePointPressure(stroke, from, options);
+        double toPressure = ResolvePointPressure(stroke, to, options);
+        double maximumPressure = Math.Max(fromPressure, toPressure);
+        double x1 = from.X;
+        double y1 = from.Y;
+        double x2 = to.X;
+        double y2 = to.Y;
+        double clipHalfWidth = transformedTipWidth * maximumPressure / 2D;
+        double clipHalfHeight = transformedTipHeight * maximumPressure / 2D;
+        if (!TryClipLine(-clipHalfWidth, -clipHalfHeight, drawing.Width + clipHalfWidth, drawing.Height + clipHalfHeight, ref x1, ref y1, ref x2, ref y2)) return;
+        if (x1.Equals(x2) && y1.Equals(y2)) return;
+
+        OfficePoint support = stroke.GetTransformedTipSupport(-deltaY, deltaX);
+        OfficePoint fromSupport = new OfficePoint(support.X * fromPressure, support.Y * fromPressure);
+        OfficePoint toSupport = new OfficePoint(support.X * toPressure, support.Y * toPressure);
+        var points = new[] {
+            new OfficePoint(x1 + fromSupport.X, y1 + fromSupport.Y),
+            new OfficePoint(x2 + toSupport.X, y2 + toSupport.Y),
+            new OfficePoint(x2 - toSupport.X, y2 - toSupport.Y),
+            new OfficePoint(x1 - fromSupport.X, y1 - fromSupport.Y)
+        };
+        double minimumX = points.Min(point => point.X);
+        double minimumY = points.Min(point => point.Y);
+        OfficeShape body = OfficeShape.Polygon(points);
+        body.FillColor = renderColor;
+        body.FillOpacity = opacity;
+        body.StrokeWidth = 0D;
+        drawing.AddShapeForClippedRendering(body, minimumX, minimumY);
+    }
+
+    private static void AddTransformedTip(
+        OfficeDrawing drawing,
+        OfficeInkStroke stroke,
+        OfficeColor renderColor,
+        OfficeInkPoint point,
+        double opacity,
+        double pressure) {
+        (double transformedWidth, double transformedHeight) = stroke.GetTransformedTipDimensions();
+        transformedWidth *= pressure;
+        transformedHeight *= pressure;
+        double left = point.X - transformedWidth / 2D;
+        double top = point.Y - transformedHeight / 2D;
+        if (left >= drawing.Width || top >= drawing.Height || left + transformedWidth <= 0D || top + transformedHeight <= 0D) return;
+
+        OfficeTransform transform = stroke.Transform ?? OfficeTransform.Identity;
+        if (Math.Abs(transform.M12) <= 0.000000000001D && Math.Abs(transform.M21) <= 0.000000000001D) {
+            OfficeShape aligned = stroke.TipShape == OfficeInkTipShape.Rectangle
+                ? OfficeShape.Rectangle(transformedWidth, transformedHeight)
+                : OfficeShape.Ellipse(transformedWidth, transformedHeight);
+            aligned.FillColor = renderColor;
+            aligned.FillOpacity = opacity;
+            drawing.AddShapeForClippedRendering(aligned, left, top);
+            return;
+        }
+
+        double localWidth = stroke.Width * pressure;
+        double localHeight = stroke.Height * pressure;
+        OfficeShape tip = stroke.TipShape == OfficeInkTipShape.Rectangle
+            ? OfficeShape.Rectangle(localWidth, localHeight)
+            : OfficeShape.Ellipse(localWidth, localHeight);
+        tip.FillColor = renderColor;
+        tip.FillOpacity = opacity;
+        tip.Transform = OfficeTransform.Translate(-localWidth / 2D, -localHeight / 2D)
+            .Then(new OfficeTransform(transform.M11, transform.M12, transform.M21, transform.M22, 0D, 0D));
+        drawing.AddShapeForClippedRendering(tip, point.X, point.Y);
     }
 
     private static void AddDot(
@@ -184,6 +275,11 @@ public static class OfficeInkRenderer {
         value = Math.Max(0D, Math.Min(1D, value));
         return minimum + (1D - minimum) * value;
     }
+
+    private static double ResolvePointPressure(OfficeInkStroke stroke, OfficeInkPoint point, OfficeInkRenderOptions options) =>
+        options.UsePressure && !stroke.IgnorePressure
+            ? ResolvePressure(point.Pressure, point.Pressure, options.MinimumPressureFactor)
+            : 1D;
 
     private static bool TryClipLine(
         double left,

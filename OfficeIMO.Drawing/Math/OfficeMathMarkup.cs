@@ -340,7 +340,10 @@ public static class OfficeMathMarkup {
                 else AppendStyledLatexToken(builder, "mathbin", operatorText);
                 break;
             case OfficeMathKind.Row:
-                foreach (OfficeMathExpression child in expression.Children) AppendLatex(builder, child);
+                for (int index = 0; index < expression.Children.Count; index++) {
+                    if (index > 0) builder.Append(' ');
+                    AppendLatex(builder, expression.Children[index]);
+                }
                 break;
             case OfficeMathKind.Fraction:
                 builder.Append("\\frac{"); AppendLatex(builder, expression.Children[0]); builder.Append("}{"); AppendLatex(builder, expression.Children[1]); builder.Append('}'); break;
@@ -365,13 +368,16 @@ public static class OfficeMathMarkup {
             case OfficeMathKind.Delimited:
                 builder.Append("\\left").Append(DelimiterToLatex(expression.Character)); AppendLatex(builder, expression.Children[0]); builder.Append("\\right").Append(DelimiterToLatex(expression.SecondaryCharacter)); break;
             case OfficeMathKind.DelimiterList:
-                builder.Append("\\delimiterlist{").Append(EscapeLatexText(expression.Character ?? "(")).Append("}{")
-                    .Append(EscapeLatexText(expression.SecondaryCharacter ?? ")")).Append("}{")
-                    .Append(EscapeLatexText(expression.SeparatorCharacter ?? ",")).Append("}{")
-                    .Append(expression.Children.Count.ToString(CultureInfo.InvariantCulture)).Append('}');
-                foreach (OfficeMathExpression child in expression.Children) {
-                    builder.Append('{'); AppendLatex(builder, child); builder.Append('}');
+                builder.Append("\\left").Append(DelimiterToLatex(expression.Character ?? "("));
+                for (int index = 0; index < expression.Children.Count; index++) {
+                    if (index > 0) {
+                        builder.Append("\\mathpunct{");
+                        AppendLatexText(builder, expression.SeparatorCharacter ?? ",");
+                        builder.Append('}');
+                    }
+                    AppendLatex(builder, expression.Children[index]);
                 }
+                builder.Append("\\right").Append(DelimiterToLatex(expression.SecondaryCharacter ?? ")"));
                 break;
             case OfficeMathKind.Function:
                 string functionName = expression.Text ?? string.Empty;
@@ -391,7 +397,7 @@ public static class OfficeMathMarkup {
             case OfficeMathKind.EquationArray:
                 AppendLatexMatrix(builder, expression); break;
             case OfficeMathKind.Accent:
-                builder.Append("\\accent{").Append(EscapeLatexText(expression.Character ?? "^")).Append("}{"); AppendLatex(builder, expression.Children[0]); builder.Append('}'); break;
+                builder.Append("\\stackrel{"); AppendLatexText(builder, expression.Character ?? "^"); builder.Append("}{"); AppendLatex(builder, expression.Children[0]); builder.Append('}'); break;
             case OfficeMathKind.Overbar:
                 builder.Append("\\overline{"); AppendLatex(builder, expression.Children[0]); builder.Append('}'); break;
             case OfficeMathKind.Underbar:
@@ -420,13 +426,15 @@ public static class OfficeMathMarkup {
     }
 
     private static void AppendLatexStack(StringBuilder builder, OfficeMathExpression expression) {
-        string environment = expression.Kind == OfficeMathKind.StretchStack ? "officeimostretchstack" : "gathered";
-        builder.Append("\\begin{").Append(environment).Append('}');
+        bool stretch = expression.Kind == OfficeMathKind.StretchStack;
+        if (stretch) builder.Append("\\vcenter{");
+        builder.Append("\\begin{gathered}");
         for (int index = 0; index < expression.Children.Count; index++) {
             if (index > 0) builder.Append("\\\\");
             AppendLatex(builder, expression.Children[index]);
         }
-        builder.Append("\\end{").Append(environment).Append('}');
+        builder.Append("\\end{gathered}");
+        if (stretch) builder.Append('}');
     }
 
     private static void AppendGroupedBase(StringBuilder builder, OfficeMathExpression expression) {
@@ -444,7 +452,10 @@ public static class OfficeMathMarkup {
     }
 
     private static void AppendStyledLatexToken(StringBuilder builder, string command, string text) =>
-        builder.Append('\\').Append(command).Append("{\\text{").Append(EscapeLatexText(text)).Append("}}");
+        builder.Append('\\').Append(command).Append('{').Append("\\text{").Append(EscapeLatexText(text)).Append("}}");
+
+    private static void AppendLatexText(StringBuilder builder, string text) =>
+        builder.Append("\\text{").Append(EscapeLatexText(text)).Append('}');
 
     private static bool IsSafeLatexIdentifier(string text) =>
         text.Length > 0 && char.IsLetter(text[0]) && text.Skip(1).All(char.IsLetterOrDigit);
@@ -602,26 +613,20 @@ public static class OfficeMathMarkup {
                     OfficeMathExpression leftSup = ParseRequiredGroup();
                     OfficeMathExpression leftSub = ParseRequiredGroup();
                     return OfficeMath.LeftSubSuperscript(ParseRequiredGroup(), leftSub, leftSup);
-                case "delimiterlist":
-                    string listLeft = ParseRequiredGroup().ToPlainText();
-                    string listRight = ParseRequiredGroup().ToPlainText();
-                    string listSeparator = ParseRequiredGroup().ToPlainText();
-                    string countText = ParseRequiredGroup().ToPlainText();
-                    if (!int.TryParse(countText, NumberStyles.None, CultureInfo.InvariantCulture, out int itemCount) || itemCount < 1 || itemCount > 4096) {
-                        throw Error("A delimiter list has an invalid item count.");
-                    }
-                    var listItems = new OfficeMathExpression[itemCount];
-                    for (int itemIndex = 0; itemIndex < itemCount; itemIndex++) listItems[itemIndex] = ParseRequiredGroup();
-                    return OfficeMath.DelimiterList(listLeft, listRight, listSeparator, listItems);
                 case "underset":
                     OfficeMathExpression lower = ParseRequiredGroup();
                     return OfficeMath.LowerLimit(ParseRequiredGroup(), lower);
                 case "overset":
                     OfficeMathExpression upper = ParseRequiredGroup();
                     return OfficeMath.UpperLimit(ParseRequiredGroup(), upper);
-                case "accent":
+                case "stackrel":
                     OfficeMathExpression accent = ParseRequiredGroup();
                     return OfficeMath.Accent(ParseRequiredGroup(), accent.ToPlainText());
+                case "vcenter":
+                    OfficeMathExpression centered = ParseRequiredGroup();
+                    return centered.Kind == OfficeMathKind.Stack
+                        ? OfficeMath.StretchStack(centered.Children.ToArray())
+                        : centered;
                 case "begin": return ParseEnvironment();
                 case "left":
                     string left = ReadDelimiter();
@@ -630,6 +635,7 @@ public static class OfficeMathMarkup {
                     string inner = _text.Substring(_position, rightIndex - _position);
                     _position = rightIndex + 6;
                     string right = ReadDelimiter();
+                    if (TryParseDelimiterList(inner, left, right, out OfficeMathExpression? delimiterList)) return delimiterList!;
                     return OfficeMath.Delimited(new LatexParser(inner, _maximumDepth, _depth).Parse(), left, right);
                 default:
                     if (Symbols.TryGetValue(command, out string? symbol)) return OfficeMath.Operator(symbol);
@@ -658,7 +664,7 @@ public static class OfficeMathMarkup {
 
         private OfficeMathExpression ParseEnvironment() {
             string environment = ReadRequiredGroupName();
-            if (environment != "bmatrix" && environment != "aligned" && environment != "gathered" && environment != "officeimostretchstack") {
+            if (environment != "bmatrix" && environment != "aligned" && environment != "gathered") {
                 throw Error("Unsupported mathematical environment '" + environment + "'.");
             }
             int end = FindMatchingEnvironmentEnd(environment);
@@ -685,7 +691,82 @@ public static class OfficeMathMarkup {
             OfficeMathExpression[] stackRows = Enumerable.Range(0, rows)
                 .Select(row => CollapseRow(Enumerable.Range(0, columns).Select(column => cells[row * columns + column])))
                 .ToArray();
-            return environment == "officeimostretchstack" ? OfficeMath.StretchStack(stackRows) : OfficeMath.Stack(stackRows);
+            return OfficeMath.Stack(stackRows);
+        }
+
+        private bool TryParseDelimiterList(string source, string left, string right, out OfficeMathExpression? expression) {
+            var itemSources = new List<string>();
+            string? separator = null;
+            int itemStart = 0;
+            int braceDepth = 0;
+            int delimiterDepth = 0;
+            for (int index = 0; index < source.Length; index++) {
+                char value = source[index];
+                if (value == '\\') {
+                    if (braceDepth == 0 && MatchesCommand(source, index, "left")) {
+                        delimiterDepth++;
+                        index += 4;
+                        continue;
+                    }
+                    if (braceDepth == 0 && MatchesCommand(source, index, "right")) {
+                        if (delimiterDepth > 0) delimiterDepth--;
+                        index += 5;
+                        continue;
+                    }
+                    if (braceDepth == 0 && delimiterDepth == 0 && MatchesCommand(source, index, "mathpunct")) {
+                        int groupStart = index + "\\mathpunct".Length;
+                        while (groupStart < source.Length && char.IsWhiteSpace(source[groupStart])) groupStart++;
+                        if (groupStart >= source.Length || source[groupStart] != '{') continue;
+                        int groupEnd = FindGroupEnd(source, groupStart);
+                        if (groupEnd < 0) throw Error("A \\mathpunct separator is missing a closing brace.");
+                        string separatorSource = source.Substring(groupStart + 1, groupEnd - groupStart - 1);
+                        string currentSeparator = new LatexParser(separatorSource, _maximumDepth, _depth).Parse().ToPlainText();
+                        if (separator != null && !string.Equals(separator, currentSeparator, StringComparison.Ordinal)) {
+                            throw Error("A delimiter list must use one separator.");
+                        }
+                        separator = currentSeparator;
+                        itemSources.Add(source.Substring(itemStart, index - itemStart));
+                        itemStart = groupEnd + 1;
+                        index = groupEnd;
+                        continue;
+                    }
+                    if (index + 1 < source.Length && (source[index + 1] == '{' || source[index + 1] == '}')) index++;
+                    continue;
+                }
+                if (value == '{') braceDepth++;
+                else if (value == '}' && braceDepth > 0) braceDepth--;
+            }
+            if (separator == null) {
+                expression = null;
+                return false;
+            }
+            itemSources.Add(source.Substring(itemStart));
+            OfficeMathExpression[] items = itemSources
+                .Select(item => new LatexParser(item, _maximumDepth, _depth).Parse())
+                .ToArray();
+            expression = OfficeMath.DelimiterList(left, right, separator, items);
+            return true;
+        }
+
+        private static int FindGroupEnd(string source, int groupStart) {
+            int depth = 0;
+            for (int index = groupStart; index < source.Length; index++) {
+                if (source[index] == '\\' && index + 1 < source.Length && (source[index + 1] == '{' || source[index + 1] == '}')) {
+                    index++;
+                    continue;
+                }
+                if (source[index] == '{') depth++;
+                else if (source[index] == '}' && --depth == 0) return index;
+            }
+            return -1;
+        }
+
+        private static bool MatchesCommand(string source, int index, string command) {
+            int start = index + 1;
+            if (start + command.Length > source.Length ||
+                string.Compare(source, start, command, 0, command.Length, StringComparison.Ordinal) != 0) return false;
+            int end = start + command.Length;
+            return end >= source.Length || !char.IsLetter(source[end]);
         }
 
         private string ReadRequiredGroupName() {

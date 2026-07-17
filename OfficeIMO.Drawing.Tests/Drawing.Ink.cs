@@ -66,7 +66,8 @@ public class DrawingInkTests {
         OfficeShape renderedDot = Assert.Single(dotDrawing.Shapes).Shape;
         Assert.Equal(8, renderedDot.Width, 6);
         Assert.Equal(18, renderedDot.Height, 6);
-        Assert.Equal(18, Assert.Single(segmentDrawing.Shapes).Shape.StrokeWidth, 6);
+        OfficeShape renderedBody = Assert.Single(segmentDrawing.Shapes, item => item.Shape.Kind == OfficeShapeKind.Polygon).Shape;
+        Assert.Equal(18, renderedBody.Height, 6);
     }
 
     [Fact]
@@ -94,6 +95,9 @@ public class DrawingInkTests {
         Assert.Equal(6D, shearedEllipse.GetTransformedTipDimensions().Height, 6);
         Assert.Equal(5D, shearedEllipse.GetTransformedTipExtent(1D, 0D), 6);
         Assert.Equal(6D, shearedEllipse.GetTransformedTipExtent(0D, 1D), 6);
+        OfficePoint support = shearedEllipse.GetTransformedTipSupport(1D, 0D);
+        Assert.Equal(2.5D, support.X, 6);
+        Assert.Equal(1.8D, support.Y, 6);
         Assert.Throws<ArgumentOutOfRangeException>(() => shearedEllipse.GetTransformedTipExtent(0D, 0D));
     }
 
@@ -104,11 +108,36 @@ public class DrawingInkTests {
         var vertical = new OfficeInkStroke { Width = 4, Height = 6, Transform = OfficeTransform.Scale(2, 3) }
             .AddPoint(10, 10).AddPoint(10, 40);
 
-        OfficeShape horizontalLine = Assert.Single(OfficeInkRenderer.Render(new OfficeInkDocument().Add(horizontal), 100, 100).Shapes).Shape;
-        OfficeShape verticalLine = Assert.Single(OfficeInkRenderer.Render(new OfficeInkDocument().Add(vertical), 100, 100).Shapes).Shape;
+        OfficeShape horizontalBody = Assert.Single(
+            OfficeInkRenderer.Render(new OfficeInkDocument().Add(horizontal), 100, 200).Shapes,
+            item => item.Shape.Kind == OfficeShapeKind.Polygon).Shape;
+        OfficeShape verticalBody = Assert.Single(
+            OfficeInkRenderer.Render(new OfficeInkDocument().Add(vertical), 100, 200).Shapes,
+            item => item.Shape.Kind == OfficeShapeKind.Polygon).Shape;
 
-        Assert.Equal(18D, horizontalLine.StrokeWidth, 6);
-        Assert.Equal(8D, verticalLine.StrokeWidth, 6);
+        Assert.Equal(18D, horizontalBody.Height, 6);
+        Assert.Equal(8D, verticalBody.Width, 6);
+    }
+
+    [Fact]
+    public void InkRendererRetainsAffineTipGeometryAtEndpointsAndDots() {
+        var stroke = new OfficeInkStroke {
+            Width = 4,
+            Height = 6,
+            Transform = new OfficeTransform(1, 0, 0.5, 1, 0, 0)
+        }.AddPoint(10, 10).AddPoint(30, 10);
+        var dot = new OfficeInkStroke {
+            Width = 4,
+            Height = 6,
+            Transform = new OfficeTransform(1, 0, 0.5, 1, 0, 0)
+        }.AddPoint(10, 10);
+
+        OfficeDrawing strokeDrawing = OfficeInkRenderer.Render(new OfficeInkDocument().Add(stroke), 100, 100);
+        OfficeDrawing dotDrawing = OfficeInkRenderer.Render(new OfficeInkDocument().Add(dot), 100, 100);
+
+        Assert.Equal(2, strokeDrawing.Shapes.Count(item => item.Shape.Kind == OfficeShapeKind.Ellipse));
+        Assert.All(strokeDrawing.Shapes.Where(item => item.Shape.Kind == OfficeShapeKind.Ellipse), item => Assert.True(item.Shape.Transform.HasValue));
+        Assert.True(Assert.Single(dotDrawing.Shapes).Shape.Transform.HasValue);
     }
 
     [Fact]

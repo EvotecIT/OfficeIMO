@@ -290,19 +290,32 @@ public sealed class OfficeInkStroke {
     /// </summary>
     public double GetTransformedTipExtent(double axisX, double axisY) {
         ValidateStyle();
-        if (double.IsNaN(axisX) || double.IsInfinity(axisX)) throw new ArgumentOutOfRangeException(nameof(axisX), "The projection axis must be finite.");
-        if (double.IsNaN(axisY) || double.IsInfinity(axisY)) throw new ArgumentOutOfRangeException(nameof(axisY), "The projection axis must be finite.");
-        double axisLength = Math.Sqrt(axisX * axisX + axisY * axisY);
-        if (axisLength <= 0.000000000001D) throw new ArgumentOutOfRangeException(nameof(axisX), "The projection axis must have a non-zero length.");
-        double normalizedX = axisX / axisLength;
-        double normalizedY = axisY / axisLength;
+        NormalizeProjectionAxis(axisX, axisY, out double normalizedX, out double normalizedY);
+        OfficePoint support = GetTransformedTipSupportCore(normalizedX, normalizedY);
+        return Math.Max(0.000001D, 2D * Math.Abs(support.X * normalizedX + support.Y * normalizedY));
+    }
+
+    /// <summary>
+    /// Returns the transformed pen-tip support offset from its center in a canvas-space direction.
+    /// This is the reusable tangent point used to sweep affine elliptical and rectangular tips along a path.
+    /// </summary>
+    public OfficePoint GetTransformedTipSupport(double axisX, double axisY) {
+        ValidateStyle();
+        NormalizeProjectionAxis(axisX, axisY, out double normalizedX, out double normalizedY);
+        return GetTransformedTipSupportCore(normalizedX, normalizedY);
+    }
+
+    internal bool RequiresAffineTipGeometry() {
+        ValidateStyle();
+        if (TipShape == OfficeInkTipShape.Rectangle) return true;
         OfficeTransform transform = Transform ?? OfficeTransform.Identity;
-        double localX = transform.M11 * normalizedX + transform.M12 * normalizedY;
-        double localY = transform.M21 * normalizedX + transform.M22 * normalizedY;
-        double extent = TipShape == OfficeInkTipShape.Rectangle
-            ? Math.Abs(localX) * Width + Math.Abs(localY) * Height
-            : Math.Sqrt(localX * localX * Width * Width + localY * localY * Height * Height);
-        return Math.Max(0.000001D, extent);
+        double widthSquared = Width * Width;
+        double heightSquared = Height * Height;
+        double horizontal = transform.M11 * transform.M11 * widthSquared + transform.M21 * transform.M21 * heightSquared;
+        double vertical = transform.M12 * transform.M12 * widthSquared + transform.M22 * transform.M22 * heightSquared;
+        double cross = transform.M11 * transform.M12 * widthSquared + transform.M21 * transform.M22 * heightSquared;
+        double tolerance = Math.Max(1D, Math.Max(Math.Abs(horizontal), Math.Abs(vertical))) * 0.000000000001D;
+        return Math.Abs(horizontal - vertical) > tolerance || Math.Abs(cross) > tolerance;
     }
 
     /// <summary>Creates a detached copy of this stroke.</summary>
@@ -329,6 +342,39 @@ public sealed class OfficeInkStroke {
         if (double.IsNaN(Width) || double.IsInfinity(Width) || Width <= 0D) throw new InvalidOperationException("Ink stroke width must be finite and positive.");
         if (double.IsNaN(Height) || double.IsInfinity(Height) || Height <= 0D) throw new InvalidOperationException("Ink stroke height must be finite and positive.");
         if (double.IsNaN(Opacity) || double.IsInfinity(Opacity) || Opacity < 0D || Opacity > 1D) throw new InvalidOperationException("Ink stroke opacity must be from 0 through 1.");
+    }
+
+    private OfficePoint GetTransformedTipSupportCore(double normalizedX, double normalizedY) {
+        OfficeTransform transform = Transform ?? OfficeTransform.Identity;
+        double localDirectionX = transform.M11 * normalizedX + transform.M12 * normalizedY;
+        double localDirectionY = transform.M21 * normalizedX + transform.M22 * normalizedY;
+        double localSupportX;
+        double localSupportY;
+        if (TipShape == OfficeInkTipShape.Rectangle) {
+            localSupportX = Math.Sign(localDirectionX) * Width / 2D;
+            localSupportY = Math.Sign(localDirectionY) * Height / 2D;
+        } else {
+            double radiusX = Width / 2D;
+            double radiusY = Height / 2D;
+            double denominator = Math.Sqrt(
+                radiusX * radiusX * localDirectionX * localDirectionX +
+                radiusY * radiusY * localDirectionY * localDirectionY);
+            if (denominator <= 0.000000000001D) return new OfficePoint(0D, 0D);
+            localSupportX = radiusX * radiusX * localDirectionX / denominator;
+            localSupportY = radiusY * radiusY * localDirectionY / denominator;
+        }
+        return new OfficePoint(
+            transform.M11 * localSupportX + transform.M21 * localSupportY,
+            transform.M12 * localSupportX + transform.M22 * localSupportY);
+    }
+
+    private static void NormalizeProjectionAxis(double axisX, double axisY, out double normalizedX, out double normalizedY) {
+        if (double.IsNaN(axisX) || double.IsInfinity(axisX)) throw new ArgumentOutOfRangeException(nameof(axisX), "The projection axis must be finite.");
+        if (double.IsNaN(axisY) || double.IsInfinity(axisY)) throw new ArgumentOutOfRangeException(nameof(axisY), "The projection axis must be finite.");
+        double axisLength = Math.Sqrt(axisX * axisX + axisY * axisY);
+        if (axisLength <= 0.000000000001D) throw new ArgumentOutOfRangeException(nameof(axisX), "The projection axis must have a non-zero length.");
+        normalizedX = axisX / axisLength;
+        normalizedY = axisY / axisLength;
     }
 
 }

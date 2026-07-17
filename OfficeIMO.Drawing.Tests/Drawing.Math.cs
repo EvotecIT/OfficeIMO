@@ -74,7 +74,7 @@ public class DrawingMathTests {
 
         string latex = OfficeMathMarkup.ToLatex(expression);
 
-        Assert.Contains(@"\sum_{i=0}^{n} {x}", latex);
+        Assert.Contains(@"\sum_{i = 0}^{n} {x}", latex);
         Assert.Contains(@"\boxed{\overline{v}}", latex);
         Assert.Contains(@"\begin{bmatrix}1&2\end{bmatrix}", latex);
     }
@@ -140,6 +140,34 @@ public class DrawingMathTests {
         Assert.All(expressions, expression => {
             string latex = OfficeMathMarkup.ToLatex(expression);
             Assert.DoesNotContain("officeimo", latex, StringComparison.OrdinalIgnoreCase);
+            Assert.Equal(expression, OfficeMathMarkup.FromLatex(latex));
+        });
+    }
+
+    [Fact]
+    public void LatexRowsKeepAdjacentTokenKindsSeparate() {
+        OfficeMathExpression expression = OfficeMath.Row(
+            OfficeMath.Identifier("x"),
+            OfficeMath.Number("2"),
+            OfficeMath.Identifier("y"),
+            OfficeMath.Identifier("z"));
+
+        Assert.Equal(expression, OfficeMathMarkup.FromLatex(OfficeMathMarkup.ToLatex(expression)));
+    }
+
+    [Fact]
+    public void LatexAdvancedStructuresUseStandardRenderableConstructs() {
+        OfficeMathExpression[] expressions = {
+            OfficeMath.DelimiterList("[", "]", ";", OfficeMath.Identifier("a"), OfficeMath.Identifier("b")),
+            OfficeMath.Accent(OfficeMath.Identifier("x"), "custom accent"),
+            OfficeMath.StretchStack(OfficeMath.Identifier("x"), OfficeMath.Identifier("y"))
+        };
+
+        Assert.All(expressions, expression => {
+            string latex = OfficeMathMarkup.ToLatex(expression);
+            Assert.DoesNotContain("delimiterlist", latex, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("officeimostretchstack", latex, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain(@"\accent{", latex, StringComparison.Ordinal);
             Assert.Equal(expression, OfficeMathMarkup.FromLatex(latex));
         });
     }
