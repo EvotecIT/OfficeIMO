@@ -20,13 +20,18 @@ internal sealed class EmailStoreExportPathBuilder {
     }
 
     internal string GetItemPath(EmailStoreItemReference reference, string? subject, string extension) {
-        string directory = _preserveHierarchy ? GetFolderPath(reference.FolderId) : _root;
-        if (reference.IsAssociated) directory = Path.Combine(directory, "_associated");
-        if (reference.IsOrphaned) directory = Path.Combine(directory, "_recovered");
+        string directory = GetItemDirectory(reference);
         string baseName = SanitizeSegment(subject, 96, "item");
         string stableId = SanitizeSegment(reference.Id, 48, "id");
         return Path.Combine(directory,
             string.Concat(baseName, "__", stableId, ".", GetStableHash(reference.Id), extension));
+    }
+
+    internal string GetItemDirectory(EmailStoreItemReference reference) {
+        string directory = _preserveHierarchy ? GetFolderPath(reference.FolderId) : _root;
+        if (reference.IsAssociated) directory = Path.Combine(directory, "_associated");
+        if (reference.IsOrphaned) directory = Path.Combine(directory, "_recovered");
+        return directory;
     }
 
     internal string GetFolderPath(string folderId) {

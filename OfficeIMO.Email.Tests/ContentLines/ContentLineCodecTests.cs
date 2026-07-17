@@ -132,6 +132,23 @@ public sealed class ContentLineCodecTests {
         Assert.Equal("C:\\Temp", reparsed.GetParameter("X-PATH")!.Values.Single());
     }
 
+    [Theory]
+    [InlineData("CN=\"Doe\\\", John\"", "Doe\", John")]
+    [InlineData("CN=\"Doe\\\"; John\"", "Doe\"; John")]
+    [InlineData("CN=\"key\\\": value\"", "key\": value")]
+    public void LegacyEscapedQuotesBeforeDelimitersRemainInsideTheParameter(
+        string parameter, string expected) {
+        string source = "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Test//EN\r\n" +
+            "BEGIN:VEVENT\r\nATTENDEE;" + parameter + ":mailto:a@example.com\r\n" +
+            "END:VEVENT\r\nEND:VCALENDAR\r\n";
+
+        ContentLineProperty attendee = IcsDocument.Parse(source).GetComponents("VEVENT")
+            .Single().GetFirstProperty("ATTENDEE")!;
+
+        Assert.Equal(expected, attendee.GetParameter("CN")!.Values.Single());
+        Assert.Equal("mailto:a@example.com", attendee.Value);
+    }
+
     [Fact]
     public void QuotedRfcParametersPreserveLiteralAndTrailingBackslashes() {
         const string source = "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Test//EN\r\n" +

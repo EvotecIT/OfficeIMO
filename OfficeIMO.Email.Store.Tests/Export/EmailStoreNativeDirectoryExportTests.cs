@@ -65,6 +65,44 @@ public sealed class EmailStoreNativeDirectoryExportTests {
     }
 
     [Fact]
+    public void FlatMaildirExportDoesNotRecreateSourceFolderHierarchy() {
+        string sourceRoot = Path.Combine(Path.GetTempPath(),
+            "oims-flat-source-" + Guid.NewGuid().ToString("N").Substring(0, 12));
+        string destinationRoot = Path.Combine(Path.GetTempPath(),
+            "oims-flat-maildir-" + Guid.NewGuid().ToString("N").Substring(0, 12));
+        try {
+            string inbox = Path.Combine(sourceRoot, "Inbox");
+            string archive = Path.Combine(sourceRoot, "Archive");
+            Directory.CreateDirectory(inbox);
+            Directory.CreateDirectory(archive);
+            File.WriteAllText(Path.Combine(inbox, "first.eml"),
+                "Subject: First\r\n\r\nBody\r\n");
+            File.WriteAllText(Path.Combine(archive, "second.eml"),
+                "Subject: Second\r\n\r\nBody\r\n");
+            using EmailStoreSession session = EmailStoreSession.Open(sourceRoot);
+
+            EmailStoreExportReport report = session.ExportToNativeDirectory(destinationRoot,
+                new EmailStoreNativeDirectoryExportOptions(
+                    EmailStoreNativeDirectoryFormat.Maildir,
+                    preserveFolderHierarchy: false));
+
+            Assert.False(report.HasErrors);
+            Assert.Equal(2, report.SucceededCount);
+            Assert.All(report.Entries, entry => {
+                string maildirDirectory = Path.GetDirectoryName(entry.DestinationPath!)!;
+                string exportRoot = Path.GetDirectoryName(maildirDirectory)!;
+                Assert.True(EmailStorePathIdentity.AreEquivalent(destinationRoot, exportRoot));
+            });
+            Assert.DoesNotContain(Directory.EnumerateDirectories(destinationRoot), path =>
+                string.Equals(Path.GetFileName(path), "Inbox", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(Path.GetFileName(path), "Archive", StringComparison.OrdinalIgnoreCase));
+        } finally {
+            if (Directory.Exists(sourceRoot)) Directory.Delete(sourceRoot, recursive: true);
+            if (Directory.Exists(destinationRoot)) Directory.Delete(destinationRoot, recursive: true);
+        }
+    }
+
+    [Fact]
     public void EmlxExportDoesNotReplaceAnExistingDestinationByDefault() {
         string root = Path.Combine(Path.GetTempPath(), "officeimo-native-export-" + Guid.NewGuid().ToString("N"));
         try {

@@ -320,8 +320,19 @@ internal static class ContentLineCodec {
 
     private static int FindDelimiter(string value, char delimiter) {
         bool quoted = false;
+        bool hasAmbiguousQuotes = HasNonStandardEscapedQuoteCandidate(value);
+        bool[]? canFinishUnquoted = null;
+        bool[]? canFinishQuoted = null;
+        if (hasAmbiguousQuotes) {
+            BuildQuoteReachability(value, delimiter, out canFinishUnquoted, out canFinishQuoted);
+        }
         for (int index = 0; index < value.Length; index++) {
-            if (value[index] == '"' && !IsNonStandardEscapedQuote(value, index)) quoted = !quoted;
+            if (value[index] == '"') {
+                if (hasAmbiguousQuotes && IsOddBackslashQuote(value, index) &&
+                    ShouldTreatAsEscapedQuote(quoted, index,
+                        canFinishUnquoted!, canFinishQuoted!)) continue;
+                quoted = !quoted;
+            }
             else if (value[index] == delimiter && !quoted) return index;
         }
         return -1;
@@ -330,8 +341,19 @@ internal static class ContentLineCodec {
     private static IEnumerable<string> SplitDelimited(string value, char delimiter) {
         bool quoted = false;
         int start = 0;
+        bool hasAmbiguousQuotes = HasNonStandardEscapedQuoteCandidate(value);
+        bool[]? canFinishUnquoted = null;
+        bool[]? canFinishQuoted = null;
+        if (hasAmbiguousQuotes) {
+            BuildQuoteReachability(value, null, out canFinishUnquoted, out canFinishQuoted);
+        }
         for (int index = 0; index < value.Length; index++) {
-            if (value[index] == '"' && !IsNonStandardEscapedQuote(value, index)) quoted = !quoted;
+            if (value[index] == '"') {
+                if (hasAmbiguousQuotes && IsOddBackslashQuote(value, index) &&
+                    ShouldTreatAsEscapedQuote(quoted, index,
+                        canFinishUnquoted!, canFinishQuoted!)) continue;
+                quoted = !quoted;
+            }
             else if (value[index] == delimiter && !quoted) {
                 yield return value.Substring(start, index - start);
                 start = index + 1;
@@ -345,12 +367,50 @@ internal static class ContentLineCodec {
         ? value.Substring(1, value.Length - 2)
         : value;
 
-    private static bool IsNonStandardEscapedQuote(string value, int index) {
+    private static bool HasNonStandardEscapedQuoteCandidate(string value) {
+        for (int index = 0; index < value.Length; index++) {
+            if (value[index] == '"' && IsOddBackslashQuote(value, index)) return true;
+        }
+        return false;
+    }
+
+    private static bool IsOddBackslashQuote(string value, int index) {
         int backslashes = 0;
         for (int current = index - 1; current >= 0 && value[current] == '\\'; current--) backslashes++;
-        if ((backslashes & 1) == 0 || index + 1 >= value.Length) return false;
-        char next = value[index + 1];
-        return next != ';' && next != ',' && next != ':';
+        return (backslashes & 1) != 0;
+    }
+
+    private static void BuildQuoteReachability(string value, char? terminalDelimiter,
+        out bool[] canFinishUnquoted, out bool[] canFinishQuoted) {
+        canFinishUnquoted = new bool[value.Length + 1];
+        canFinishQuoted = new bool[value.Length + 1];
+        if (!terminalDelimiter.HasValue) canFinishUnquoted[value.Length] = true;
+        for (int index = value.Length - 1; index >= 0; index--) {
+            if (terminalDelimiter.HasValue && value[index] == terminalDelimiter.Value) {
+                canFinishUnquoted[index] = true;
+                canFinishQuoted[index] = canFinishQuoted[index + 1];
+            } else if (value[index] == '"') {
+                if (IsOddBackslashQuote(value, index)) {
+                    bool reachable = canFinishUnquoted[index + 1] || canFinishQuoted[index + 1];
+                    canFinishUnquoted[index] = reachable;
+                    canFinishQuoted[index] = reachable;
+                } else {
+                    canFinishUnquoted[index] = canFinishQuoted[index + 1];
+                    canFinishQuoted[index] = canFinishUnquoted[index + 1];
+                }
+            } else {
+                canFinishUnquoted[index] = canFinishUnquoted[index + 1];
+                canFinishQuoted[index] = canFinishQuoted[index + 1];
+            }
+        }
+    }
+
+    private static bool ShouldTreatAsEscapedQuote(bool quoted, int index,
+        bool[] canFinishUnquoted, bool[] canFinishQuoted) {
+        int next = index + 1;
+        bool canStay = quoted ? canFinishQuoted[next] : canFinishUnquoted[next];
+        bool canToggle = quoted ? canFinishUnquoted[next] : canFinishQuoted[next];
+        return quoted ? canStay || !canToggle : !canToggle && canStay;
     }
 
     private static string DecodeParameter(string value, bool decodeLegacyQuotedBackslashes,

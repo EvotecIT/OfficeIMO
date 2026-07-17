@@ -80,9 +80,7 @@ public sealed partial class EmailStoreSession {
         string? maildirFlags = null;
         try {
             EmailStoreItem item = ReadItem(reference, cancellationToken);
-            string folder = paths.GetFolderPath(reference.FolderId);
-            if (reference.IsAssociated) folder = Path.Combine(folder, "_associated");
-            if (reference.IsOrphaned) folder = Path.Combine(folder, "_recovered");
+            string folder = paths.GetItemDirectory(reference);
             string currentDirectory = Path.Combine(folder, "cur");
             string newDirectory = Path.Combine(folder, "new");
             string temporaryDirectory = Path.Combine(folder, "tmp");
