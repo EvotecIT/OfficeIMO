@@ -152,15 +152,16 @@ namespace OfficeIMO.Excel {
         private IReadOnlyList<string> GetFormulaDependencies(
             string? sourceCellReference,
             string formula,
-            FormulaDependencyAliasCatalog aliases) {
+            FormulaDependencyAliasCatalog aliases,
+            FormulaDependencyTableCatalog tables) {
             if (string.IsNullOrWhiteSpace(formula)) {
                 return Array.Empty<string>();
             }
 
             try {
                 string searchableFormula = MaskFormulaStringLiterals(formula);
-                string directReferenceFormula = MaskFormulaNonLocalReferenceSegments(searchableFormula);
-                directReferenceFormula = MaskFormulaStructuredReferenceSegments(directReferenceFormula);
+                string localReferenceFormula = MaskFormulaNonLocalReferenceSegments(searchableFormula);
+                string directReferenceFormula = MaskFormulaStructuredReferenceSegments(localReferenceFormula);
                 List<FormulaDependencyReferenceMatch> dependencyMatches = FormulaReferenceRegex.Matches(directReferenceFormula)
                     .Cast<Match>()
                     .Where(match => IsLocalFormulaReferenceMatch(searchableFormula, match))
@@ -172,12 +173,22 @@ namespace OfficeIMO.Excel {
                         match.Groups["reference"].Value))
                     .ToList();
                 var dependencies = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-                int? sourceRow = TryParseCellReference(sourceCellReference ?? string.Empty, out int row, out _)
-                    ? row
-                    : (int?)null;
+                bool hasSourceCell = TryParseCellReference(
+                    sourceCellReference ?? string.Empty,
+                    out int parsedSourceRow,
+                    out int parsedSourceColumn);
+                int? sourceRow = hasSourceCell ? parsedSourceRow : (int?)null;
                 IReadOnlyList<FormulaLexicalBinding> lexicalBindings = GetFormulaLexicalBindings(searchableFormula);
                 foreach (FormulaDependencyAliasMatch match in aliases.FindMatches(searchableFormula)) {
                     AddFormulaAliasDependencyMatch(searchableFormula, match, lexicalBindings, sourceRow, dependencyMatches);
+                }
+                if (hasSourceCell) {
+                    AddUnqualifiedCurrentRowDependencyMatches(
+                        localReferenceFormula,
+                        parsedSourceRow,
+                        parsedSourceColumn,
+                        tables,
+                        dependencyMatches);
                 }
                 AddFormulaDependencies(searchableFormula, dependencyMatches, sourceRow, dependencies);
 

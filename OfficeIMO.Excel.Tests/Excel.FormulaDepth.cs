@@ -184,6 +184,65 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_FormulaDependencyGraph_ResolvesUnqualifiedCurrentRowStructuredReferences() {
+            using ExcelDocument document = ExcelDocument.Create();
+            ExcelSheet sheet = document.AddWorksheet("Unqualified Current Row");
+            sheet.CellValue(1, 1, "A");
+            sheet.CellValue(1, 2, "B");
+            sheet.CellValue(1, 3, "Sales Amount");
+            sheet.CellValue(1, 4, "% Commission");
+            sheet.CellFormula(2, 1, "[@B]");
+            sheet.CellFormula(2, 2, "[[#This Row],[A]]");
+            sheet.CellFormula(2, 3, "[% Commission]");
+            sheet.CellFormula(2, 4, "[@[Sales Amount]]");
+            sheet.CellFormula(2, 6, "[@B]");
+            sheet.CellFormula(3, 1, "UnknownTable[[#This Row],[B]]");
+            sheet.CellFormula(3, 2, "[@B]Sheet1!A1");
+            sheet.CellValue(3, 3, 1d);
+            sheet.CellValue(3, 4, 2d);
+            sheet.AddTable(
+                "A1:D3",
+                hasHeader: true,
+                name: "UnqualifiedCurrentRowData",
+                style: TableStyle.TableStyleMedium2);
+
+            ExcelFormulaInspection inspection = document.InspectFormulas();
+            ExcelFormulaDependencyGraph graph = inspection.DependencyGraph;
+            ExcelFormulaDependencyNode first = Assert.IsType<ExcelFormulaDependencyNode>(
+                graph.FindNode("Unqualified Current Row", "A2"));
+            Assert.Equal(new[] { "Unqualified Current Row!B2" }, first.Dependencies);
+            Assert.Equal(new[] { "Unqualified Current Row!B2" }, first.FormulaDependencies);
+            ExcelFormulaDependencyNode second = Assert.IsType<ExcelFormulaDependencyNode>(
+                graph.FindNode("Unqualified Current Row", "B2"));
+            Assert.Equal(new[] { "Unqualified Current Row!A2" }, second.Dependencies);
+            Assert.Equal(new[] { "Unqualified Current Row!A2" }, second.FormulaDependencies);
+            ExcelFormulaDependencyNode spaced = Assert.IsType<ExcelFormulaDependencyNode>(
+                graph.FindNode("Unqualified Current Row", "C2"));
+            Assert.Equal(new[] { "Unqualified Current Row!D2" }, spaced.Dependencies);
+            Assert.Equal(new[] { "Unqualified Current Row!D2" }, spaced.FormulaDependencies);
+            ExcelFormulaDependencyNode nested = Assert.IsType<ExcelFormulaDependencyNode>(
+                graph.FindNode("Unqualified Current Row", "D2"));
+            Assert.Equal(new[] { "Unqualified Current Row!C2" }, nested.Dependencies);
+            Assert.Equal(new[] { "Unqualified Current Row!C2" }, nested.FormulaDependencies);
+            ExcelFormulaDependencyNode outsideTable = Assert.IsType<ExcelFormulaDependencyNode>(
+                graph.FindNode("Unqualified Current Row", "F2"));
+            Assert.Empty(outsideTable.Dependencies);
+            Assert.Empty(outsideTable.FormulaDependencies);
+            ExcelFormulaDependencyNode unresolvedTable = Assert.IsType<ExcelFormulaDependencyNode>(
+                graph.FindNode("Unqualified Current Row", "A3"));
+            Assert.Empty(unresolvedTable.Dependencies);
+            Assert.Empty(unresolvedTable.FormulaDependencies);
+            ExcelFormulaDependencyNode externalReference = Assert.IsType<ExcelFormulaDependencyNode>(
+                graph.FindNode("Unqualified Current Row", "B3"));
+            Assert.Empty(externalReference.Dependencies);
+            Assert.Empty(externalReference.FormulaDependencies);
+            Assert.Equal(4, graph.EdgeCount);
+            Assert.Equal(2, graph.CircularReferenceCount);
+            Assert.True(graph.HasCircularReferences);
+            Assert.Throws<InvalidOperationException>(() => inspection.EnsureNoDependencyIssues());
+        }
+
+        [Fact]
         public void Test_FormulaDependencyGraph_IgnoresLexicallyScopedNames() {
             using ExcelDocument document = ExcelDocument.Create();
             ExcelSheet sheet = document.AddWorksheet("Lexical");

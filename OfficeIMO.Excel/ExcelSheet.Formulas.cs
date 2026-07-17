@@ -304,6 +304,7 @@ namespace OfficeIMO.Excel {
             return Locking.ExecuteRead(_excelDocument.EnsureLock(), () => {
                 var formulas = new List<ExcelFormulaCellInfo>();
                 FormulaDependencyAliasCatalog dependencyAliases = GetFormulaDependencyAliases();
+                FormulaDependencyTableCatalog dependencyTables = GetFormulaDependencyTables();
                 IReadOnlyDictionary<uint, SharedFormulaDefinition> sharedFormulaDefinitions = BuildSharedFormulaDefinitions();
                 List<Cell> formulaCells = WorksheetRoot.Descendants<Cell>().Where(c => c.CellFormula != null).ToList();
                 var dependencyInspectionContext = new FormulaDependencyInspectionContext(
@@ -316,7 +317,8 @@ namespace OfficeIMO.Excel {
                     IReadOnlyList<string> dependencies = GetFormulaDependencies(
                         cell.CellReference?.Value,
                         formula,
-                        dependencyAliases);
+                        dependencyAliases,
+                        dependencyTables);
                     IReadOnlyList<string> dependencyIssues = GetFormulaDependencyIssues(
                         cell.CellReference?.Value,
                         dependencies,

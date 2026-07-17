@@ -482,6 +482,18 @@ namespace OfficeIMO.Excel {
 
             if (specifier.Length >= 2 && specifier[0] == '[' && specifier[specifier.Length - 1] == ']') {
                 string section = specifier.Substring(1, specifier.Length - 2).Trim();
+                if (section.Length >= 4
+                    && section[0] == '@'
+                    && section[1] == '['
+                    && section[section.Length - 1] == ']') {
+                    string item = section.Substring(2, section.Length - 3).Trim();
+                    if (item.Length == 0 || item.IndexOf('[') >= 0 || item.IndexOf(']') >= 0) {
+                        return false;
+                    }
+
+                    sections.Add("@" + item);
+                    return true;
+                }
                 if (section.Length == 0 || section.IndexOf('[') >= 0 || section.IndexOf(']') >= 0) {
                     return false;
                 }
