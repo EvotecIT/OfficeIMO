@@ -122,6 +122,7 @@ public sealed class EmailContentSourceTests {
     [Theory]
     [InlineData(EmailFileFormat.Eml, "message.eml")]
     [InlineData(EmailFileFormat.OutlookMsg, "message.msg")]
+    [InlineData(EmailFileFormat.OutlookTemplate, "message.oft")]
     [InlineData(EmailFileFormat.Tnef, "winmail.dat")]
     public async Task StreamingReaderAsyncUsesAsyncSourceIo(EmailFileFormat format, string sourceName) {
         const int payloadLength = 512 * 1024 + 29;
