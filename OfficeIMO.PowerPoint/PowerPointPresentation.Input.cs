@@ -306,25 +306,20 @@ namespace OfficeIMO.PowerPoint {
         internal static FileStream CreateTemporaryInputStream(bool useAsync) {
             bool isWindows = RuntimeInformation.IsOSPlatform(
                 OSPlatform.Windows);
-            string path = isWindows
-                ? Path.Combine(Path.GetTempPath(),
-                    "officeimo-powerpoint-" + Guid.NewGuid().ToString("N")
-                    + ".tmp")
-                : CreateSecureUnixTemporaryPath();
+            if (!isWindows) {
+                return CreateSecureUnixTemporaryStream();
+            }
+            string path = Path.Combine(Path.GetTempPath(),
+                "officeimo-powerpoint-" + Guid.NewGuid().ToString("N")
+                + ".tmp");
             FileOptions options = FileOptions.DeleteOnClose;
             if (useAsync) options |= FileOptions.Asynchronous;
-            try {
-                return new FileStream(path,
-                    isWindows ? FileMode.CreateNew : FileMode.Open,
-                    FileAccess.ReadWrite, FileShare.None,
-                    InputCopyBufferSize, options);
-            } catch {
-                if (!isWindows && File.Exists(path)) File.Delete(path);
-                throw;
-            }
+            return new FileStream(path, FileMode.CreateNew,
+                FileAccess.ReadWrite, FileShare.None,
+                InputCopyBufferSize, options);
         }
 
-        private static string CreateSecureUnixTemporaryPath() {
+        private static FileStream CreateSecureUnixTemporaryStream() {
             var template = new StringBuilder(Path.Combine(
                 Path.GetTempPath(), "officeimo-powerpoint-"
                 + Guid.NewGuid().ToString("N") + "-XXXXXX"));
@@ -334,9 +329,18 @@ namespace OfficeIMO.PowerPoint {
                 throw new IOException(
                     $"Unable to create a secure temporary presentation file (error {error}).");
             }
-            using var handle = new SafeFileHandle(
+            var handle = new SafeFileHandle(
                 new IntPtr(descriptor), ownsHandle: true);
-            return template.ToString();
+            string path = template.ToString();
+            try {
+                File.Delete(path);
+                return new FileStream(handle, FileAccess.ReadWrite,
+                    InputCopyBufferSize, isAsync: false);
+            } catch {
+                handle.Dispose();
+                if (File.Exists(path)) File.Delete(path);
+                throw;
+            }
         }
 
         [DllImport("libc", EntryPoint = "mkstemp", SetLastError = true,

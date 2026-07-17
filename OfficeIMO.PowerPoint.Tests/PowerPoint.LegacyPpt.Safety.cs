@@ -178,8 +178,15 @@ namespace OfficeIMO.Tests {
                 | UnixFileMode.OtherWrite
                 | UnixFileMode.OtherExecute;
 
+            Assert.False(File.Exists(temporary.Name));
+            string descriptorPath = "/dev/fd/"
+                + temporary.SafeFileHandle.DangerousGetHandle()
+                    .ToInt64();
             Assert.Equal(UnixFileMode.UserRead | UnixFileMode.UserWrite,
-                File.GetUnixFileMode(temporary.Name) & accessBits);
+                File.GetUnixFileMode(descriptorPath) & accessBits);
+            temporary.WriteByte(0x5A);
+            temporary.Position = 0;
+            Assert.Equal(0x5A, temporary.ReadByte());
         }
 #endif
 

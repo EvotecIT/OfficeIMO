@@ -188,6 +188,10 @@ namespace OfficeIMO.PowerPoint {
                 .Max();
             if (descendantMaxId > maxId) maxId = descendantMaxId;
 
+            if (maxId == uint.MaxValue) {
+                throw new InvalidDataException(
+                    "The slide shape identifier space is exhausted.");
+            }
             _nextShapeId = maxId + 1;
 
             if (_slidePart.NotesSlidePart != null) {
