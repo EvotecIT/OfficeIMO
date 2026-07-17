@@ -52,6 +52,11 @@ public class RtfPdfConverterTests {
         Assert.False(callerPdfOptions.HasExplicitDefaultFont);
         Assert.Empty(callerPdfOptions.EmbeddedFonts);
         Assert.True(result.Value.Options.EmbeddedFontFamilySlotMatches(result.Value.Options.DefaultFont, installedFamily));
+        Assert.Equal(result.Value.Options.DefaultFont, result.Value.Options.HeaderFont);
+        Assert.Equal(result.Value.Options.DefaultFont, result.Value.Options.FooterFont);
+        Assert.False(result.Value.Options.HasExplicitDefaultFont);
+        Assert.False(result.Value.Options.HasExplicitHeaderFont);
+        Assert.False(result.Value.Options.HasExplicitFooterFont);
     }
 
     [Fact]
@@ -60,7 +65,8 @@ public class RtfPdfConverterTests {
         document.Settings.SetDefaultFont(0);
         document.AddParagraph("RTF explicit PDF default marker");
         var callerPdfOptions = new PdfCore.PdfOptions {
-            DefaultFont = PdfCore.PdfStandardFont.Courier
+            DefaultFont = PdfCore.PdfStandardFont.Courier,
+            HeaderFont = PdfCore.PdfStandardFont.TimesRoman
         };
 
         PdfCore.PdfDocumentConversionResult result = document.ToPdfDocumentResult(new RtfPdfSaveOptions {
@@ -70,6 +76,10 @@ public class RtfPdfConverterTests {
 
         Assert.True(callerPdfOptions.HasExplicitDefaultFont);
         Assert.Equal(PdfCore.PdfStandardFont.Courier, result.Value.Options.DefaultFont);
+        Assert.Equal(PdfCore.PdfStandardFont.TimesRoman, result.Value.Options.HeaderFont);
+        Assert.Equal(PdfCore.PdfStandardFont.Courier, result.Value.Options.FooterFont);
+        Assert.True(result.Value.Options.HasExplicitHeaderFont);
+        Assert.False(result.Value.Options.HasExplicitFooterFont);
     }
 
     [Fact]

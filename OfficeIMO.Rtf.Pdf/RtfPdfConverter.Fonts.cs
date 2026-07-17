@@ -25,6 +25,7 @@ internal static partial class RtfPdfConverter {
             if (preserveConfiguredDefaultFont) {
                 PdfCore.PdfStandardFont configuredDefaultSlot = PdfCore.PdfStandardFontMapper.GetFontFamily(pdfOptions.DefaultFont);
                 registeredFontSlots.Add(configuredDefaultSlot);
+                pdfOptions.ApplyInheritedFontFamily(configuredDefaultSlot);
                 familySlots[defaultFont.Name] = configuredDefaultSlot;
                 fontSlots[defaultFont.Id] = configuredDefaultSlot;
             } else if (TryRegisterDocumentFont(
@@ -34,7 +35,7 @@ internal static partial class RtfPdfConverter {
                 allowSystemFontEmbedding,
                 options,
                 out PdfCore.PdfStandardFont defaultSlot)) {
-                pdfOptions.DefaultFont = defaultSlot;
+                pdfOptions.ApplyInheritedFontFamily(defaultSlot);
                 familySlots[defaultFont.Name] = defaultSlot;
                 fontSlots[defaultFont.Id] = defaultSlot;
             }

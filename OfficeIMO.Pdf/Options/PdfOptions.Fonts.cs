@@ -157,6 +157,13 @@ public sealed partial class PdfOptions {
         return embeddedFamilyName;
     }
 
+    internal void ApplyInheritedFontFamily(PdfStandardFont slot) {
+        PdfStandardFont normalizedSlot = PdfStandardFontMapper.GetFontFamily(slot);
+        if (!_hasExplicitDefaultFont) _defaultFont = normalizedSlot;
+        if (!_hasExplicitHeaderFont) _headerFont = normalizedSlot;
+        if (!_hasExplicitFooterFont) _footerFont = normalizedSlot;
+    }
+
     internal bool TryRegisterMappedOfficeFontFamily(
         string familyName,
         HashSet<PdfStandardFont> registeredFontSlots,
