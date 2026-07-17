@@ -241,6 +241,30 @@ public sealed class OneNoteRenderingTests {
     }
 
     [Fact]
+    public void ParagraphChildrenRenderAfterRunsAndExplicitFlowHeightIsReserved() {
+        var page = new OneNotePage { PageSize = OneNotePageSize.IndexCard };
+        var outline = new OneNoteOutline { Layout = new OneNoteLayout { X = 0.25D, Y = 0.5D, Width = 4D } };
+        var parent = new OneNoteParagraph { Layout = new OneNoteLayout { Height = 2D } };
+        parent.Runs.Add(new OneNoteTextRun { Text = "Parent" });
+        var nested = new OneNoteParagraph();
+        nested.Runs.Add(new OneNoteTextRun { Text = "Nested" });
+        parent.Children.Add(nested);
+        var following = new OneNoteParagraph();
+        following.Runs.Add(new OneNoteTextRun { Text = "Following" });
+        outline.Children.Add(parent);
+        outline.Children.Add(following);
+        page.Outlines.Add(outline);
+
+        OfficeDrawingRichText[] text = page.ToDrawing().Elements.OfType<OfficeDrawingRichText>().ToArray();
+        OfficeDrawingRichText parentText = Assert.Single(text, item => item.Runs.Any(run => run.Text == "Parent"));
+        OfficeDrawingRichText nestedText = Assert.Single(text, item => item.Runs.Any(run => run.Text == "Nested"));
+        OfficeDrawingRichText followingText = Assert.Single(text, item => item.Runs.Any(run => run.Text == "Following"));
+
+        Assert.True(nestedText.Y >= parentText.Y + parentText.Height);
+        Assert.True(followingText.Y >= parentText.Y + 2D * OneNotePageRenderer.PointsPerHalfInch);
+    }
+
+    [Fact]
     public void PageAndElementRightToLeftDefaultsAlignBodyParagraphsToTheRight() {
         var page = new OneNotePage { PageSize = OneNotePageSize.IndexCard, RightToLeft = true };
         var outline = new OneNoteOutline { Layout = new OneNoteLayout { X = 0.25, Y = 1, Width = 4.5 } };

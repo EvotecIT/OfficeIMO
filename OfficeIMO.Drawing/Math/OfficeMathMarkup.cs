@@ -182,12 +182,15 @@ public static class OfficeMathMarkup {
 
     private static OfficeMathExpression ParseMathMlElement(XElement element) {
         string name = element.Name.LocalName.ToLowerInvariant();
-        List<XElement> children = element.Elements().Where(item => item.Name.LocalName != "annotation").ToList();
+        List<XElement> children = element.Elements().Where(item =>
+            !string.Equals(item.Name.LocalName, "annotation", StringComparison.OrdinalIgnoreCase) &&
+            !string.Equals(item.Name.LocalName, "annotation-xml", StringComparison.OrdinalIgnoreCase)).ToList();
         switch (name) {
             case "math":
             case "mstyle":
-            case "semantics":
                 return CollapseRow(children.Select(ParseMathMlElement));
+            case "semantics":
+                return children.Count == 0 ? OfficeMath.Text(string.Empty) : ParseMathMlElement(children[0]);
             case "mrow":
                 if (TryParseFunctionRow(children, out OfficeMathExpression? function)) return function!;
                 if (TryParseNaryRow(children, out OfficeMathExpression? nary)) return nary!;

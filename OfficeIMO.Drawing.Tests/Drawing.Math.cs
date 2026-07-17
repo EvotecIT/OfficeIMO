@@ -54,6 +54,19 @@ public class DrawingMathTests {
         Assert.Equal(expression, OfficeMathMarkup.FromMathMl(OfficeMathMarkup.ToMathMl(expression)));
     }
 
+    [Fact]
+    public void MathMlSemanticsIgnoresAnnotationPayloads() {
+        const string mathMl = "<math xmlns=\"http://www.w3.org/1998/Math/MathML\"><semantics>" +
+            "<mrow><mi>x</mi><mo>+</mo><mn>1</mn></mrow>" +
+            "<annotation encoding=\"application/x-tex\">duplicated</annotation>" +
+            "<annotation-xml encoding=\"application/xml\"><mrow><mi>wrong</mi></mrow></annotation-xml>" +
+            "</semantics></math>";
+
+        OfficeMathExpression expression = OfficeMathMarkup.FromMathMl(mathMl);
+
+        Assert.Equal("x+1", expression.ToPlainText());
+    }
+
     [Theory]
     [InlineData(@"\frac{x^2+1}{y}", "(x^(2)+1)/(y)")]
     [InlineData(@"\sqrt[3]{x}", "root[3](x)")]

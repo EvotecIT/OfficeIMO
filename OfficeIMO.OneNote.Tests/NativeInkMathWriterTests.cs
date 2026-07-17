@@ -96,6 +96,26 @@ public sealed class NativeInkMathWriterTests {
     }
 
     [Fact]
+    public void WrittenInkBoundsIncludeNominalPenExtents() {
+        var section = new OneNoteSection { Name = "Ink bounds" };
+        var page = new OneNotePage { Title = "Ink" };
+        var ink = new OneNoteInk();
+        ink.Ink.Add(new OfficeInkStroke { Width = 2D, Height = 4D }.AddPoint(10D, 20D));
+        page.DirectContent.Add(ink);
+        section.Pages.Add(page);
+
+        OneNoteWriteObjectSpace graph = new OneNoteWriteGraphBuilder().BuildSection(section).ObjectSpaces[1];
+        OneNoteWriteObject inkData = Assert.Single(graph.Objects, item => item.Jcid == OneNoteSchema.JcidInkDataNode);
+        byte[] bounds = Assert.Single(inkData.Properties, property =>
+            (property.RawId & 0x7FFFFFFFU) == OneNoteSchema.InkBoundingBox).Data!;
+
+        Assert.True(ReadInt32(bounds, 0) <= 9D * OneNoteInkCodec.NativeUnitsPerHalfInch);
+        Assert.True(ReadInt32(bounds, 4) <= 18D * OneNoteInkCodec.NativeUnitsPerHalfInch);
+        Assert.True(ReadInt32(bounds, 8) >= 11D * OneNoteInkCodec.NativeUnitsPerHalfInch);
+        Assert.True(ReadInt32(bounds, 12) >= 22D * OneNoteInkCodec.NativeUnitsPerHalfInch);
+    }
+
+    [Fact]
     public void RoundTripsStructuredMathMlAsNativeOneNoteMath() {
         var section = new OneNoteSection { Name = "Structured math" };
         var page = new OneNotePage { Title = "Math" };
@@ -304,7 +324,7 @@ public sealed class NativeInkMathWriterTests {
             .Concat(OneNoteInkCodec.EncodePacketValues(new long[] { 7, 9 })).ToArray());
         path.Data = OneNoteBinaryPayload.FromBytes(extendedPath);
         loadedInk.PreservedNativeStrokeSnapshots[loadedStroke] = loadedStroke.Clone();
-        byte[] sourceBounds = InkBounds(-100, -200, 1000, 1200);
+        byte[] sourceBounds = InkBounds(-1000, -1200, 2000, 2200);
         loadedInk.PreservedInkBoundingBox = sourceBounds;
         loadedStroke.RecognizedText = "updated";
         loadedStroke.RecognitionAlternatives.Clear();

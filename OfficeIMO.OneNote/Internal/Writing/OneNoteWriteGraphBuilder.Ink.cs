@@ -100,13 +100,18 @@ internal sealed partial class OneNoteWriteGraphBuilder {
         var yValues = new List<long>(stroke.Points.Count);
         var pressureValues = new List<long>(stroke.Points.Count);
         bool hasPressure = stroke.Points.Any(point => point.Pressure.HasValue);
+        (double transformedTipWidth, double transformedTipHeight) = stroke.GetTransformedTipDimensions();
+        double nativeHalfTipWidth = transformedTipWidth * OneNoteInkCodec.NativeUnitsPerHalfInch /
+            Math.Abs(containerScaleX) / 2D;
+        double nativeHalfTipHeight = transformedTipHeight * OneNoteInkCodec.NativeUnitsPerHalfInch /
+            Math.Abs(containerScaleY) / 2D;
         for (int index = 0; index < stroke.Points.Count; index++) {
             OfficeInkPoint point = stroke.Points[index].Transform(transform);
             int x = OneNoteInkCodec.ToNativeCoordinate(point.X / containerScaleX);
             int y = OneNoteInkCodec.ToNativeCoordinate(point.Y / containerScaleY);
             xValues.Add(x);
             yValues.Add(y);
-            allNativePoints.Add(new OfficePoint(x, y));
+            AddNativePointBounds(allNativePoints, x, y, nativeHalfTipWidth, nativeHalfTipHeight);
             if (hasPressure) pressureValues.Add((long)Math.Round(Math.Max(0D, Math.Min(1D, point.Pressure ?? 1D)) * 32767D));
         }
         var pathValues = new List<long>(xValues.Count + yValues.Count + pressureValues.Count);
@@ -114,7 +119,6 @@ internal sealed partial class OneNoteWriteGraphBuilder {
         pathValues.AddRange(OneNoteInkCodec.EncodePacketValues(yValues));
         pathValues.AddRange(OneNoteInkCodec.EncodePacketValues(pressureValues));
 
-        (double transformedTipWidth, double transformedTipHeight) = stroke.GetTransformedTipDimensions();
         OneNoteExtendedGuid propertyId = owner.StrokePropertyObjectIds.TryGetValue(stroke, out OneNoteExtendedGuid? retainedPropertyId)
             ? retainedPropertyId
             : _ids.New();
@@ -152,12 +156,27 @@ internal sealed partial class OneNoteWriteGraphBuilder {
         double containerScaleX,
         double containerScaleY) {
         OfficeTransform transform = stroke.Transform ?? OfficeTransform.Identity;
+        (double transformedTipWidth, double transformedTipHeight) = stroke.GetTransformedTipDimensions();
+        double nativeHalfTipWidth = transformedTipWidth * OneNoteInkCodec.NativeUnitsPerHalfInch /
+            Math.Abs(containerScaleX) / 2D;
+        double nativeHalfTipHeight = transformedTipHeight * OneNoteInkCodec.NativeUnitsPerHalfInch /
+            Math.Abs(containerScaleY) / 2D;
         for (int index = 0; index < stroke.Points.Count; index++) {
             OfficeInkPoint point = stroke.Points[index].Transform(transform);
-            output.Add(new OfficePoint(
-                OneNoteInkCodec.ToNativeCoordinate(point.X / containerScaleX),
-                OneNoteInkCodec.ToNativeCoordinate(point.Y / containerScaleY)));
+            int x = OneNoteInkCodec.ToNativeCoordinate(point.X / containerScaleX);
+            int y = OneNoteInkCodec.ToNativeCoordinate(point.Y / containerScaleY);
+            AddNativePointBounds(output, x, y, nativeHalfTipWidth, nativeHalfTipHeight);
         }
+    }
+
+    private static void AddNativePointBounds(
+        ICollection<OfficePoint> output,
+        double x,
+        double y,
+        double halfWidth,
+        double halfHeight) {
+        output.Add(new OfficePoint(x - halfWidth, y - halfHeight));
+        output.Add(new OfficePoint(x + halfWidth, y + halfHeight));
     }
 
     private static bool NativeStrokePayloadEquals(OfficeInkStroke left, OfficeInkStroke right) {
@@ -358,10 +377,14 @@ internal sealed partial class OneNoteWriteGraphBuilder {
         }
         if (points.Count == 0) return hasSourceBounds ? (byte[])source!.Clone() : null;
 
-        int pointLeft = NativeCoordinate(points[0].X);
-        int pointTop = NativeCoordinate(points[0].Y);
-        int pointRight = pointLeft;
-        int pointBottom = pointTop;
+        double minimumX = points.Min(point => point.X);
+        double minimumY = points.Min(point => point.Y);
+        double maximumX = points.Max(point => point.X);
+        double maximumY = points.Max(point => point.Y);
+        int pointLeft = NativeCoordinate(Math.Floor(minimumX));
+        int pointTop = NativeCoordinate(Math.Floor(minimumY));
+        int pointRight = NativeCoordinate(Math.Ceiling(maximumX));
+        int pointBottom = NativeCoordinate(Math.Ceiling(maximumY));
         if (!hasSourceBounds) {
             left = pointLeft;
             top = pointTop;
@@ -372,14 +395,6 @@ internal sealed partial class OneNoteWriteGraphBuilder {
             top = Math.Min(top, pointTop);
             right = Math.Max(right, pointRight);
             bottom = Math.Max(bottom, pointBottom);
-        }
-        for (int index = 1; index < points.Count; index++) {
-            int x = NativeCoordinate(points[index].X);
-            int y = NativeCoordinate(points[index].Y);
-            left = Math.Min(left, x);
-            top = Math.Min(top, y);
-            right = Math.Max(right, x);
-            bottom = Math.Max(bottom, y);
         }
         var data = new byte[16];
         WriteInt32LittleEndian(data, 0, left);
