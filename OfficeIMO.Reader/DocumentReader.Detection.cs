@@ -215,7 +215,7 @@ internal static partial class DocumentReaderEngine {
             CreateDetectionOptions(options),
             cancellationToken).ConfigureAwait(false);
         detection = ResolveEncryptedOpenXmlDetection(path, options,
-            detection);
+            detection, cancellationToken);
         bool hasHandler = TrySelectPathHandler(path, options, detection, out ReaderHandlerDescriptor handler);
         return new HandlerDetectionResolution(hasHandler ? handler : null, detection);
     }
@@ -231,7 +231,7 @@ internal static partial class DocumentReaderEngine {
             CreateDetectionOptions(options),
             cancellationToken).ConfigureAwait(false);
         detection = ResolveEncryptedOpenXmlDetection(stream, sourceName,
-            options, detection);
+            options, detection, cancellationToken);
         bool hasHandler = TrySelectStreamHandler(sourceName, options, detection, out ReaderHandlerDescriptor handler);
         return new HandlerDetectionResolution(hasHandler ? handler : null, detection);
     }

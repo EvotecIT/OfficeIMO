@@ -70,6 +70,36 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     }
                 }
             }
+            for (int rowBoundary = 1; rowBoundary < table.Rows;
+                 rowBoundary++) {
+                for (int column = 0; column < table.Columns; column++) {
+                    OfficeBorderSide? upper = PowerPointSlideImageRenderer
+                        .ResolveTableCellBordersForBinary(table,
+                            rowBoundary - 1, column).Bottom;
+                    OfficeBorderSide? lower = PowerPointSlideImageRenderer
+                        .ResolveTableCellBordersForBinary(table,
+                            rowBoundary, column).Top;
+                    if (!CanShareTableGridEdge(upper, lower)) {
+                        reason = "Opposing table cell borders on a shared horizontal edge must use identical color, width, and visibility for native binary writing.";
+                        return false;
+                    }
+                }
+            }
+            for (int columnBoundary = 1;
+                 columnBoundary < table.Columns; columnBoundary++) {
+                for (int row = 0; row < table.Rows; row++) {
+                    OfficeBorderSide? left = PowerPointSlideImageRenderer
+                        .ResolveTableCellBordersForBinary(table, row,
+                            columnBoundary - 1).Right;
+                    OfficeBorderSide? right = PowerPointSlideImageRenderer
+                        .ResolveTableCellBordersForBinary(table, row,
+                            columnBoundary).Left;
+                    if (!CanShareTableGridEdge(left, right)) {
+                        reason = "Opposing table cell borders on a shared vertical edge must use identical color, width, and visibility for native binary writing.";
+                        return false;
+                    }
+                }
+            }
             reason = null;
             return true;
         }
@@ -363,6 +393,15 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             !border.HasValue || !border.Value.IsVisible
             || border.Value.DashStyle == OfficeStrokeDashStyle.Solid
             && border.Value.LineKind == OfficeBorderLineKind.Single;
+
+        private static bool CanShareTableGridEdge(
+            OfficeBorderSide? first, OfficeBorderSide? second) {
+            bool firstVisible = first?.IsVisible == true;
+            bool secondVisible = second?.IsVisible == true;
+            if (!firstVisible && !secondVisible) return true;
+            return firstVisible && secondVisible
+                && first!.Value == second!.Value;
+        }
 
         private static byte[] BuildTableLineFsp(uint shapeId) {
             var payload = new byte[8];

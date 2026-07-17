@@ -324,6 +324,38 @@ public sealed class ReaderDocumentReaderTests {
     }
 
     [Fact]
+    public void DocumentReader_PreservesWrongPasswordErrorsForEncryptedOpenXmlPowerPoint() {
+        const string password = "reader-correct-pass";
+        string path = Path.Combine(Path.GetTempPath(),
+            Guid.NewGuid().ToString("N") + ".pptx");
+        try {
+            using (PowerPointPresentation source =
+                   PowerPointPresentation.Create()) {
+                source.AddSlide().AddTextBox("Reader encrypted PPTX");
+                source.SaveEncrypted(path, password);
+            }
+            var options = new ReaderOptions {
+                OpenPassword = "reader-wrong-pass"
+            };
+
+            CryptographicException pathException = Assert.Throws<
+                CryptographicException>(() => OfficeDocumentReader.Default
+                .Read(path, options).ToArray());
+            using var stream = File.OpenRead(path);
+            CryptographicException streamException = Assert.Throws<
+                CryptographicException>(() => OfficeDocumentReader.Default
+                .Read(stream, "encrypted.pptx", options).ToArray());
+
+            Assert.Contains("password is incorrect", pathException.Message,
+                StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("password is incorrect", streamException.Message,
+                StringComparison.OrdinalIgnoreCase);
+        } finally {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Fact]
     public void DocumentReader_DetectsExtensionlessEncryptedOpenXmlPowerPointWithOpenPassword() {
         const string password = "reader-extensionless-pass";
         string path = Path.Combine(Path.GetTempPath(),
@@ -368,6 +400,42 @@ public sealed class ReaderDocumentReaderTests {
                 evidence!, StringComparison.Ordinal);
             Assert.Contains("decryption:open-password", evidence!,
                 StringComparison.Ordinal);
+        } finally {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void DocumentReader_DetectsExtensionlessEncryptedOpenXmlWordWithOpenPassword() {
+        const string password = "reader-extensionless-word-pass";
+        string path = Path.Combine(Path.GetTempPath(),
+            Guid.NewGuid().ToString("N"));
+        try {
+            byte[] encrypted;
+            using (WordDocument source = WordDocument.Create()) {
+                source.AddParagraph("Reader encrypted Word");
+                using var output = new MemoryStream();
+                source.SaveEncrypted(output, password);
+                encrypted = output.ToArray();
+            }
+            File.WriteAllBytes(path, encrypted);
+            var options = new ReaderOptions { OpenPassword = password };
+
+            OfficeDocumentReadResult pathResult = OfficeDocumentReader
+                .Default.ReadDocument(path, options);
+            using var stream = new MemoryStream(encrypted,
+                writable: false);
+            OfficeDocumentReadResult streamResult = OfficeDocumentReader
+                .Default.ReadDocument(stream, sourceName: null, options);
+
+            foreach (OfficeDocumentReadResult result in new[] {
+                         pathResult, streamResult
+                     }) {
+                Assert.Equal(ReaderInputKind.Word, result.Kind);
+                Assert.Contains("Reader encrypted Word",
+                    result.Markdown ?? string.Empty,
+                    StringComparison.Ordinal);
+            }
         } finally {
             if (File.Exists(path)) File.Delete(path);
         }

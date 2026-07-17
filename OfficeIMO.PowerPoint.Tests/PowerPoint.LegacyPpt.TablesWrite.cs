@@ -109,5 +109,26 @@ namespace OfficeIMO.Tests {
             Assert.Throws<NotSupportedException>(() => source.ToBytes(
                 PowerPointFileFormat.Ppt));
         }
+
+        [Fact]
+        public void NativeWriter_BlocksConflictingSharedTableBorders() {
+            using PowerPointPresentation source = PowerPointPresentation
+                .Create();
+            PowerPointTable table = source.AddSlide().AddTable(1, 2);
+            table.GetCell(0, 0).SetBorders(TableCellBorders.Right,
+                "C1121F", widthPoints: 1.25D);
+            table.GetCell(0, 1).SetBorders(TableCellBorders.Left,
+                "2563EB", widthPoints: 2D);
+
+            LegacyPptWriteFinding finding = Assert.Single(
+                source.AnalyzeLegacyPptWrite().Findings,
+                candidate => candidate.Code == "PPT-WRITE-TABLE");
+
+            Assert.Equal(LegacyPptFeature.Tables, finding.Feature);
+            Assert.Contains("shared vertical edge", finding.Description,
+                StringComparison.Ordinal);
+            Assert.Throws<NotSupportedException>(() => source.ToBytes(
+                PowerPointFileFormat.Ppt));
+        }
     }
 }

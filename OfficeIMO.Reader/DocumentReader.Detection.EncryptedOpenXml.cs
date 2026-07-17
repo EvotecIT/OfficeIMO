@@ -13,25 +13,29 @@ internal static partial class DocumentReaderEngine {
 
     private static ReaderDetectionResult ResolveEncryptedOpenXmlDetection(
         string path, ReaderOptions options,
-        ReaderDetectionResult detection) {
+        ReaderDetectionResult detection,
+        CancellationToken cancellationToken = default) {
         if (!ShouldInspectEncryptedOpenXml(options, detection)) {
             return detection;
         }
+        cancellationToken.ThrowIfCancellationRequested();
         using var stream = new FileStream(path, FileMode.Open,
             FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
         using MemoryStream snapshot = CopyToMemory(stream,
-            CancellationToken.None,
+            cancellationToken,
             ResolveInitialMaxInputBytes(path, options));
         return DetectDecryptedOpenXml(snapshot.ToArray(), path, options,
-            detection);
+            detection, cancellationToken);
     }
 
     private static ReaderDetectionResult ResolveEncryptedOpenXmlDetection(
         Stream stream, string? sourceName, ReaderOptions options,
-        ReaderDetectionResult detection) {
+        ReaderDetectionResult detection,
+        CancellationToken cancellationToken = default) {
         if (!ShouldInspectEncryptedOpenXml(options, detection)) {
             return detection;
         }
+        cancellationToken.ThrowIfCancellationRequested();
         if (!stream.CanSeek) {
             throw new InvalidDataException(
                 "Encrypted Open XML content detection requires a seekable stream.");
@@ -39,9 +43,9 @@ internal static partial class DocumentReaderEngine {
         long originalPosition = stream.Position;
         try {
             using MemoryStream snapshot = CopyToMemory(stream,
-                CancellationToken.None, options.MaxInputBytes);
+                cancellationToken, options.MaxInputBytes);
             return DetectDecryptedOpenXml(snapshot.ToArray(), sourceName,
-                options, detection);
+                options, detection, cancellationToken);
         } finally {
             stream.Position = originalPosition;
         }
@@ -55,11 +59,14 @@ internal static partial class DocumentReaderEngine {
 
     private static ReaderDetectionResult DetectDecryptedOpenXml(
         byte[] encryptedBytes, string? sourceName, ReaderOptions options,
-        ReaderDetectionResult outerDetection) {
+        ReaderDetectionResult outerDetection,
+        CancellationToken cancellationToken) {
         byte[] decrypted = OfficeEncryption.DecryptPackage(encryptedBytes,
-            options.OpenPassword!);
+            options.OpenPassword!, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
         ReaderDetectionResult innerDetection = Detect(decrypted, sourceName,
             CreateDetectionOptions(options));
+        cancellationToken.ThrowIfCancellationRequested();
         if (innerDetection.Kind is not (ReaderInputKind.Word
                 or ReaderInputKind.Excel
                 or ReaderInputKind.PowerPoint)) {

@@ -19,10 +19,8 @@ internal static partial class DocumentReaderEngine {
         cancellationToken.ThrowIfCancellationRequested();
         switch (kind) {
             case ReaderInputKind.Word:
-                using (WordDocument document = WordDocument.Load(path, new WordLoadOptions {
-                    AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly,
-                    OpenSettings = CreateOpenSettings(options)
-                })) {
+                using (WordDocument document = LoadWordForReader(path,
+                           options)) {
                     return ApplyWordRichMapping(document.CreateInspectionSnapshot(), options, result);
                 }
             case ReaderInputKind.Excel:
@@ -49,11 +47,8 @@ internal static partial class DocumentReaderEngine {
         cancellationToken.ThrowIfCancellationRequested();
         switch (kind) {
             case ReaderInputKind.Word:
-                stream.Position = 0;
-                using (WordDocument document = WordDocument.Load(stream, new WordLoadOptions {
-                    AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly,
-                    OpenSettings = CreateOpenSettings(options)
-                })) {
+                using (WordDocument document = LoadWordForReader(stream,
+                           options)) {
                     return ApplyWordRichMapping(document.CreateInspectionSnapshot(), options, result);
                 }
             case ReaderInputKind.Excel:

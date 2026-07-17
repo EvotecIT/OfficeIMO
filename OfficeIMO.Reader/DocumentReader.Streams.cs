@@ -125,10 +125,7 @@ internal static partial class DocumentReaderEngine {
     }
 
     private static IEnumerable<ReaderChunk> ReadWord(string path, ReaderOptions opt, CancellationToken ct) {
-        using var doc = WordDocument.Load(path, new WordLoadOptions {
-            AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly,
-            OpenSettings = CreateOpenSettings(opt)
-        });
+        using var doc = LoadWordForReader(path, opt);
         IReadOnlyList<string>? legacyWarnings = BuildLegacyWordWarnings(doc);
         var chunks = doc.ExtractMarkdownChunks(
             markdownOptions: new WordToMarkdownOptions(),
@@ -159,10 +156,7 @@ internal static partial class DocumentReaderEngine {
     private static IEnumerable<ReaderChunk> ReadWord(Stream stream, string? sourceName, ReaderOptions opt, CancellationToken ct) {
         // Copy input so we can open read-only without affecting caller's stream.
         using var ms = CopyToMemory(stream, ct);
-        using var doc = WordDocument.Load(ms, new WordLoadOptions {
-            AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly,
-            OpenSettings = CreateOpenSettings(opt)
-        });
+        using var doc = LoadWordForReader(ms, opt);
         IReadOnlyList<string>? legacyWarnings = BuildLegacyWordWarnings(doc);
 
         var chunks = doc.ExtractMarkdownChunks(
@@ -190,6 +184,45 @@ internal static partial class DocumentReaderEngine {
             outIndex++;
         }
     }
+
+    private static WordDocument LoadWordForReader(string path,
+        ReaderOptions opt) {
+        WordLoadOptions loadOptions = CreateWordLoadOptions(opt);
+        try {
+            return WordDocument.Load(path, loadOptions);
+        } catch (Exception exception) when (ShouldRetryEncryptedWordOpen(
+                     exception, opt)) {
+            return WordDocument.LoadEncrypted(path, opt.OpenPassword!,
+                loadOptions);
+        }
+    }
+
+    private static WordDocument LoadWordForReader(Stream stream,
+        ReaderOptions opt) {
+        WordLoadOptions loadOptions = CreateWordLoadOptions(opt);
+        stream.Position = 0;
+        try {
+            return WordDocument.Load(stream, loadOptions);
+        } catch (Exception exception) when (ShouldRetryEncryptedWordOpen(
+                     exception, opt)) {
+            stream.Position = 0;
+            return WordDocument.LoadEncrypted(stream, opt.OpenPassword!,
+                loadOptions);
+        }
+    }
+
+    private static WordLoadOptions CreateWordLoadOptions(
+        ReaderOptions opt) => new WordLoadOptions {
+        AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly,
+        OpenSettings = CreateOpenSettings(opt)
+    };
+
+    private static bool ShouldRetryEncryptedWordOpen(Exception exception,
+        ReaderOptions opt) =>
+        !string.IsNullOrEmpty(opt.OpenPassword)
+        && (exception is InvalidDataException
+            || exception is OpenXmlPackageException
+            || exception is IOException);
 
     private static IEnumerable<ReaderChunk> ReadExcel(string path, ReaderOptions opt, CancellationToken ct) {
         if (IsLegacyExcelExtension(path)) {
@@ -568,6 +601,8 @@ internal static partial class DocumentReaderEngine {
             try {
                 return PowerPointPresentation.LoadEncrypted(path,
                     options.OpenPassword!, loadOptions);
+            } catch (CryptographicException) {
+                throw;
             } catch {
                 ExceptionDispatchInfo.Capture(exception).Throw();
                 throw;
@@ -588,6 +623,8 @@ internal static partial class DocumentReaderEngine {
             try {
                 return PowerPointPresentation.LoadEncrypted(stream,
                     options.OpenPassword!, loadOptions);
+            } catch (CryptographicException) {
+                throw;
             } catch {
                 ExceptionDispatchInfo.Capture(exception).Throw();
                 throw;
