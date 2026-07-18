@@ -18,7 +18,8 @@ internal static partial class PdfWriter {
         System.Collections.Generic.IReadOnlyList<TextRun> runs = BuildPageTextRuns(text, footerFont, opts.FooterFontSize, opts.FooterTextColor, opts);
         double textWidth = MeasurePageTextRuns(runs, footerFont, opts.FooterFontSize, opts);
         double imagesWidth = MeasureHeaderFooterImagesWidth(opts.GetFooterImagesForPage(variantPage), opts.FooterAlign);
-        double groupWidth = CombineHeaderFooterInlineWidths(textWidth, imagesWidth);
+        double shapesWidth = MeasureHeaderFooterShapesWidth(opts.GetFooterShapesForPage(variantPage), opts.FooterAlign);
+        double groupWidth = CombineHeaderFooterInlineWidths(textWidth, imagesWidth, shapesWidth);
         double x = AlignHeaderFooterGroup(opts, groupWidth, opts.FooterAlign);
         double y = opts.MarginBottom - opts.FooterOffsetY;
         PdfColor? footerColor = opts.FooterTextColor;
@@ -42,7 +43,8 @@ internal static partial class PdfWriter {
         System.Collections.Generic.IReadOnlyList<TextRun> runs = BuildPageTextRuns(text, headerFont, opts.HeaderFontSize, opts.HeaderTextColor, opts);
         double textWidth = MeasurePageTextRuns(runs, headerFont, opts.HeaderFontSize, opts);
         double imagesWidth = MeasureHeaderFooterImagesWidth(opts.GetHeaderImagesForPage(variantPage), opts.HeaderAlign);
-        double groupWidth = CombineHeaderFooterInlineWidths(textWidth, imagesWidth);
+        double shapesWidth = MeasureHeaderFooterShapesWidth(opts.GetHeaderShapesForPage(variantPage), opts.HeaderAlign);
+        double groupWidth = CombineHeaderFooterInlineWidths(textWidth, imagesWidth, shapesWidth);
         double x = AlignHeaderFooterGroup(opts, groupWidth, opts.HeaderAlign);
         double y = opts.PageHeight - opts.MarginTop + opts.HeaderOffsetY;
         PdfColor? headerColor = opts.HeaderTextColor;
@@ -154,12 +156,16 @@ internal static partial class PdfWriter {
         System.Collections.Generic.IReadOnlyList<PdfHeaderFooterImage> images = isHeader
             ? opts.GetHeaderImagesForPage(variantPage)
             : opts.GetFooterImagesForPage(variantPage);
+        System.Collections.Generic.IReadOnlyList<PdfHeaderFooterShape> shapes = isHeader
+            ? opts.GetHeaderShapesForPage(variantPage)
+            : opts.GetFooterShapesForPage(variantPage);
 
         if (!string.IsNullOrEmpty(zones.Left)) {
             string text = FormatPageText(zones.Left!, page, pages, documentPages, opts.PageNumberStyle);
             double textWidth = MeasurePageTextRuns(BuildPageTextRuns(text, font, fontSize, color: null, opts), font, fontSize, opts);
             double imagesWidth = MeasureHeaderFooterImagesWidth(images, PdfAlign.Left);
-            double occupiedWidth = CombineHeaderFooterInlineWidths(textWidth, imagesWidth);
+            double shapesWidth = MeasureHeaderFooterShapesWidth(shapes, PdfAlign.Left);
+            double occupiedWidth = CombineHeaderFooterInlineWidths(textWidth, imagesWidth, shapesWidth);
             layouts.Add(new PageTextZoneLayout(text, contentLeft, textWidth, PdfAlign.Left, contentLeft, occupiedWidth));
         }
 
@@ -167,7 +173,8 @@ internal static partial class PdfWriter {
             string text = FormatPageText(zones.Center!, page, pages, documentPages, opts.PageNumberStyle);
             double textWidth = MeasurePageTextRuns(BuildPageTextRuns(text, font, fontSize, color: null, opts), font, fontSize, opts);
             double imagesWidth = MeasureHeaderFooterImagesWidth(images, PdfAlign.Center);
-            double occupiedWidth = CombineHeaderFooterInlineWidths(textWidth, imagesWidth);
+            double shapesWidth = MeasureHeaderFooterShapesWidth(shapes, PdfAlign.Center);
+            double occupiedWidth = CombineHeaderFooterInlineWidths(textWidth, imagesWidth, shapesWidth);
             double occupiedX = contentLeft + ((contentWidth - occupiedWidth) / 2);
             layouts.Add(new PageTextZoneLayout(text, occupiedX, textWidth, PdfAlign.Center, occupiedX, occupiedWidth));
         }
@@ -176,7 +183,8 @@ internal static partial class PdfWriter {
             string text = FormatPageText(zones.Right!, page, pages, documentPages, opts.PageNumberStyle);
             double textWidth = MeasurePageTextRuns(BuildPageTextRuns(text, font, fontSize, color: null, opts), font, fontSize, opts);
             double imagesWidth = MeasureHeaderFooterImagesWidth(images, PdfAlign.Right);
-            double occupiedWidth = CombineHeaderFooterInlineWidths(textWidth, imagesWidth);
+            double shapesWidth = MeasureHeaderFooterShapesWidth(shapes, PdfAlign.Right);
+            double occupiedWidth = CombineHeaderFooterInlineWidths(textWidth, imagesWidth, shapesWidth);
             double occupiedX = contentLeft + contentWidth - occupiedWidth;
             layouts.Add(new PageTextZoneLayout(text, occupiedX, textWidth, PdfAlign.Right, occupiedX, occupiedWidth));
         }

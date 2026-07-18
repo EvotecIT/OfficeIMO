@@ -620,10 +620,44 @@ namespace OfficeIMO.Tests.Pdf {
             Assert.Contains("0 0.502 0 RG", rawPdf);
             Assert.Contains(" re B", rawPdf);
             using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
-            string text = pdf.GetPage(1).Text;
+            var page = pdf.GetPage(1);
+            string text = page.Text;
             Assert.Contains("HeaderShapeText", text);
             Assert.Contains("Header footer shape body", text);
             Assert.DoesNotContain("Page 1", text, StringComparison.Ordinal);
+
+            var letters = page.Letters.ToList();
+            string letterText = string.Concat(letters.Select(letter => letter.Value));
+            int headerStart = letterText.IndexOf("HeaderShapeText", StringComparison.Ordinal);
+            Assert.True(headerStart >= 0);
+            var headerLetters = letters
+                .Skip(headerStart)
+                .Take("HeaderShapeText".Length)
+                .ToList();
+            double textLeft = headerLetters.Min(letter => letter.StartBaseLine.X);
+            double textRight = headerLetters.Max(letter => letter.EndBaseLine.X);
+
+            System.Text.RegularExpressions.Match headerPlacement = System.Text.RegularExpressions.Regex.Match(
+                rawPdf,
+                @"(?<x>-?\d+(?:\.\d+)?) (?<y>-?\d+(?:\.\d+)?) 20 10 re B",
+                System.Text.RegularExpressions.RegexOptions.CultureInvariant);
+            Assert.True(headerPlacement.Success, "Expected the 20-by-10 header rectangle placement.");
+            double headerShapeX = double.Parse(
+                headerPlacement.Groups["x"].Value,
+                System.Globalization.CultureInfo.InvariantCulture);
+
+            Assert.True(headerShapeX >= textRight + 3.9D, "Aligned header text and shapes must not overlap.");
+            Assert.InRange(Math.Abs((textLeft + headerShapeX + 20D) / 2D - 150D), 0D, 0.1D);
+
+            System.Text.RegularExpressions.Match footerPlacement = System.Text.RegularExpressions.Regex.Match(
+                rawPdf,
+                @"(?<x>-?\d+(?:\.\d+)?) (?<y>-?\d+(?:\.\d+)?) 22 8 re B",
+                System.Text.RegularExpressions.RegexOptions.CultureInvariant);
+            Assert.True(footerPlacement.Success, "Expected the 22-by-8 footer rectangle placement.");
+            double footerShapeX = double.Parse(
+                footerPlacement.Groups["x"].Value,
+                System.Globalization.CultureInfo.InvariantCulture);
+            Assert.InRange(footerShapeX, 247.99D, 248.01D);
         }
 
     }

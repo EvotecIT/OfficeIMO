@@ -869,7 +869,10 @@ public sealed partial class PdfLogicalDocument {
         return From(PdfReadDocument.Open(path), options);
     }
 
-    /// <summary>Loads a PDF from the current position of a readable stream and returns the logical read model.</summary>
+    /// <summary>
+    /// Loads a PDF from a readable stream and returns the logical read model.
+    /// Seekable streams are read from the beginning and restored; non-seekable streams are read forward from their current position.
+    /// </summary>
     public static PdfLogicalDocument Load(Stream stream, PdfTextLayoutOptions? options = null) {
         Guard.NotNull(stream, nameof(stream));
         return From(PdfReadDocument.Open(stream), options);
@@ -897,12 +900,18 @@ public sealed partial class PdfLogicalDocument {
         return FromPageRanges(PdfReadDocument.Open(path), options, pageRanges);
     }
 
-    /// <summary>Loads selected source page ranges from the current position of a readable stream into the logical read model, preserving caller order and overlaps.</summary>
+    /// <summary>
+    /// Loads selected source page ranges from a readable stream into the logical read model, preserving caller order and overlaps.
+    /// Seekable streams are read from the beginning and restored; non-seekable streams are read forward from their current position.
+    /// </summary>
     public static PdfLogicalDocument LoadPageRanges(Stream stream, params PdfPageRange[] pageRanges) {
         return LoadPageRanges(stream, null, pageRanges);
     }
 
-    /// <summary>Loads selected source page ranges from the current position of a readable stream into the logical read model, preserving caller order and overlaps.</summary>
+    /// <summary>
+    /// Loads selected source page ranges from a readable stream into the logical read model, preserving caller order and overlaps.
+    /// Seekable streams are read from the beginning and restored; non-seekable streams are read forward from their current position.
+    /// </summary>
     public static PdfLogicalDocument LoadPageRanges(Stream stream, PdfTextLayoutOptions? options, params PdfPageRange[] pageRanges) {
         Guard.NotNull(stream, nameof(stream));
         return FromPageRanges(PdfReadDocument.Open(stream), options, pageRanges);

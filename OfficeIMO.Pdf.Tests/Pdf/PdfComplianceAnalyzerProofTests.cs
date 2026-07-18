@@ -107,6 +107,53 @@ public partial class PdfComplianceAnalyzerTests {
     }
 
     [Fact]
+    public void DocumentProofRejectsArtifactFromAnotherDocument() {
+        PdfDocument document = PdfDocument.Open(PdfDocument.Create()
+            .Paragraph(paragraph => paragraph.Text("First artifact."))
+            .ToBytes());
+        byte[] differentArtifact = PdfDocument.Create()
+            .Paragraph(paragraph => paragraph.Text("Different artifact."))
+            .ToBytes();
+
+        var exception = Assert.Throws<ArgumentException>(() =>
+            document.AssessComplianceProof(
+                PdfComplianceProfile.PdfA3B,
+                differentArtifact,
+                externalValidations: null));
+
+        Assert.Equal("artifact", exception.ParamName);
+        Assert.Contains("exact artifact", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ArtifactReadbackFailureWinsWhenReadinessRowsShareAnId() {
+        var optimisticReadiness = new PdfComplianceReadinessReport(
+            PdfComplianceProfile.PdfA3B,
+            "PDF/A-3b",
+            new[] {
+                new PdfComplianceRequirement(
+                    "readback-output-intent",
+                    "Readback catalog output intent",
+                    PdfComplianceRequirementStatus.Satisfied,
+                    "Earlier evidence reported an output intent.")
+            });
+        byte[] artifactWithoutOutputIntent = PdfDocument.Create()
+            .Paragraph(paragraph => paragraph.Text("No output intent."))
+            .ToBytes();
+
+        PdfComplianceProofReport proof = PdfComplianceAnalyzer.AssessProof(
+            optimisticReadiness,
+            artifactWithoutOutputIntent,
+            externalValidations: null);
+
+        PdfComplianceRequirement? requirement = proof.Readiness.FindRequirement("readback-output-intent");
+        Assert.NotNull(requirement);
+        Assert.Equal(PdfComplianceRequirementStatus.Missing, requirement!.Status);
+        Assert.False(proof.IsInternallyReady);
+        Assert.False(proof.CanClaimConformance);
+    }
+
+    [Fact]
     public void DocumentProofWithoutArtifactCannotBeClaimable() {
         PdfExternalValidationResult veraPdf = PdfExternalValidationResult.Passed(
             PdfExternalValidatorKind.VeraPdf,

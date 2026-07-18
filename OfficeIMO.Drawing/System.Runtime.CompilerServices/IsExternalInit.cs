@@ -1,3 +1,4 @@
+#if NETSTANDARD2_0 || NETFRAMEWORK
 namespace System.Runtime.CompilerServices;
 
 using System.ComponentModel;
@@ -6,4 +7,5 @@ using System.ComponentModel;
 /// Reserved for compiler metadata that supports init-only properties on older targets.
 /// </summary>
 [EditorBrowsable(EditorBrowsableState.Never)]
-internal static class IsExternalInit { }
+public static class IsExternalInit { }
+#endif

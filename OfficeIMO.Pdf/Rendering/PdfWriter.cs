@@ -236,7 +236,13 @@ internal static partial class PdfWriter {
                 EnsurePageTextFontResources(pageOpts, headerFooterVariantPageNumber, headerFooterPageNumber, headerFooterTotalPages, totalPages, pageOpts.FooterFont, pageOpts.FooterFontSize, isHeader: false, EnsurePageFontResource);
             }
 
-            string headerFooterShapeContent = BuildHeaderFooterShapes(page, pageOpts, headerFooterVariantPageNumber);
+            string headerFooterShapeContent = BuildHeaderFooterShapes(
+                page,
+                pageOpts,
+                headerFooterVariantPageNumber,
+                headerFooterPageNumber,
+                headerFooterTotalPages,
+                totalPages);
 
             var fontResources = new List<(string Name, int Id)>();
             foreach (var kvp in pageFontResources.OrderBy(kvp => kvp.Value, StringComparer.Ordinal)) {

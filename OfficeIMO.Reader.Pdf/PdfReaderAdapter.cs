@@ -43,31 +43,12 @@ internal static partial class PdfReaderAdapter {
             SourceId = BuildSourceId(logicalSourceName)
         };
 
-        Stream parseStream;
-        bool ownsParseStream;
-        if (pdfStream.CanSeek) {
-            ReaderInputLimits.EnforceSeekableStreamSize(pdfStream, effectiveReaderOptions.MaxInputBytes);
-            parseStream = ReaderInputLimits.EnsureSeekableReadStream(pdfStream, null, cancellationToken, out ownsParseStream);
-        } else {
-            parseStream = ReaderInputLimits.EnsureSeekableReadStream(pdfStream, effectiveReaderOptions.MaxInputBytes, cancellationToken, out ownsParseStream);
-        }
-
-        try {
-            long parseStartPosition = parseStream.CanSeek ? parseStream.Position : 0L;
-            UpdateSourceMetadataFromSeekableStream(source, parseStream, effectiveReaderOptions.ComputeHashes, parseStartPosition);
-            if (parseStream.CanSeek) {
-                parseStream.Position = parseStartPosition;
-            }
-
-            PdfDocument pdf = PdfDocument.Open(parseStream, CreatePdfReadOptions(effectiveReaderOptions));
-            PdfLogicalDocument document = LoadDocument(pdf, effectivePdfOptions);
-            foreach (var chunk in Read(document, source, effectiveReaderOptions, effectivePdfOptions, applyPageRanges: false, cancellationToken)) {
-                yield return chunk;
-            }
-        } finally {
-            if (ownsParseStream) {
-                parseStream.Dispose();
-            }
+        cancellationToken.ThrowIfCancellationRequested();
+        PdfDocument pdf = OpenReaderPdf(pdfStream, effectiveReaderOptions);
+        UpdateSourceMetadataFromPdfDocument(source, pdf, effectiveReaderOptions.ComputeHashes);
+        PdfLogicalDocument document = LoadDocument(pdf, effectivePdfOptions);
+        foreach (var chunk in Read(document, source, effectiveReaderOptions, effectivePdfOptions, applyPageRanges: false, cancellationToken)) {
+            yield return chunk;
         }
     }
 
@@ -924,6 +905,21 @@ internal static partial class PdfReaderAdapter {
             : null;
     }
 
+    private static PdfDocument OpenReaderPdf(Stream stream, ReaderOptions options) {
+        try {
+            PdfReadOptions? readOptions = CreatePdfReadOptions(options);
+            return ReaderInputLimits.TryGetOwnedSnapshotBytes(stream, out byte[] ownedBytes)
+                ? PdfDocument.OpenOwned(ownedBytes, readOptions)
+                : PdfDocument.Open(stream, readOptions);
+        } catch (PdfReadLimitException exception) when (exception.Kind == PdfReadLimitKind.InputBytes) {
+            throw new IOException(
+                "Input exceeds MaxInputBytes (" +
+                exception.Actual.ToString(CultureInfo.InvariantCulture) + " > " +
+                exception.Limit.ToString(CultureInfo.InvariantCulture) + ").",
+                exception);
+        }
+    }
+
     private static ReaderChunk EnrichChunk(ReaderChunk chunk, SourceMetadata source, bool computeHashes) {
         chunk.SourceId ??= source.SourceId;
         chunk.SourceHash ??= source.SourceHash;
@@ -983,17 +979,11 @@ internal static partial class PdfReaderAdapter {
         };
     }
 
-    private static void UpdateSourceMetadataFromSeekableStream(SourceMetadata source, Stream stream, bool computeHash, long startPosition) {
-        try {
-            if (stream.CanSeek) {
-                source.LengthBytes = Math.Max(0L, stream.Length - startPosition);
-            }
-        } catch {
-            // Best-effort metadata.
-        }
-
+    private static void UpdateSourceMetadataFromPdfDocument(SourceMetadata source, PdfDocument document, bool computeHash) {
+        byte[] bytes = document.GetBytesForOperation();
+        source.LengthBytes = bytes.LongLength;
         if (computeHash) {
-            source.SourceHash ??= TryComputeStreamSha256(stream, startPosition);
+            source.SourceHash ??= ComputeSha256Hex(bytes);
         }
     }
 
@@ -1008,32 +998,6 @@ internal static partial class PdfReaderAdapter {
             using var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
             return ComputeSha256Hex(fs);
         } catch {
-            return null;
-        }
-    }
-
-    private static string? TryComputeStreamSha256(Stream stream, long startPosition) {
-        if (stream == null || !stream.CanSeek) return null;
-
-        long position;
-        try {
-            position = stream.Position;
-        } catch {
-            return null;
-        }
-
-        try {
-            stream.Position = startPosition;
-            var hash = ComputeSha256Hex(stream);
-            stream.Position = position;
-            return hash;
-        } catch {
-            try {
-                stream.Position = position;
-            } catch {
-                // ignore
-            }
-
             return null;
         }
     }

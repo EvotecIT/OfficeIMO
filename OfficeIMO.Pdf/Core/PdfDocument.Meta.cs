@@ -50,6 +50,13 @@ public sealed partial class PdfDocument {
         new PdfDocument(PdfDocumentSource.FromCallerBytes(pdf, readOptions));
 
     /// <summary>
+    /// Opens a byte buffer owned by a trusted OfficeIMO adapter without making another snapshot.
+    /// The adapter must never mutate the buffer after this call.
+    /// </summary>
+    internal static PdfDocument OpenOwned(byte[] pdf, PdfReadOptions? readOptions = null) =>
+        new PdfDocument(PdfDocumentSource.FromOwnedBytes(pdf, readOptions));
+
+    /// <summary>
     /// Opens an existing PDF from a bounded file snapshot.
     /// </summary>
     public static PdfDocument Open(string path, PdfReadOptions? readOptions = null) =>

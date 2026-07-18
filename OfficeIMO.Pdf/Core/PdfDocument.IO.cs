@@ -30,7 +30,8 @@ public sealed partial class PdfDocument {
         AssessComplianceProof(_options.ComplianceProfile, externalValidations);
 
     /// <summary>
-    /// Combines generated-document readiness with external validator evidence bound to the exact supplied PDF bytes.
+    /// Combines this document's readiness with external validator evidence bound to the exact supplied PDF bytes.
+    /// The supplied artifact must be byte-for-byte identical to this document.
     /// </summary>
     public PdfComplianceProofReport AssessComplianceProof(byte[] artifact, IEnumerable<PdfExternalValidationResult>? externalValidations = null) =>
         AssessComplianceProof(_options.ComplianceProfile, artifact, externalValidations);
@@ -54,8 +55,31 @@ public sealed partial class PdfDocument {
     /// <param name="artifact">The exact PDF bytes supplied to each external validator.</param>
     /// <param name="externalValidations">External validator results for the same exact artifact.</param>
     public PdfComplianceProofReport AssessComplianceProof(PdfComplianceProfile profile, byte[] artifact, IEnumerable<PdfExternalValidationResult>? externalValidations = null) {
+        Guard.NotNull(artifact, nameof(artifact));
+        EnsureComplianceArtifactMatchesDocument(artifact);
         PdfComplianceReadinessReport readiness = AssessCompliance(profile);
         return PdfComplianceAnalyzer.AssessProof(readiness, artifact, externalValidations);
+    }
+
+    private void EnsureComplianceArtifactMatchesDocument(byte[] artifact) {
+        byte[] documentArtifact = GetBytesForOperation();
+        if (documentArtifact.Length == artifact.Length) {
+            bool matches = true;
+            for (int i = 0; i < artifact.Length; i++) {
+                if (documentArtifact[i] != artifact[i]) {
+                    matches = false;
+                    break;
+                }
+            }
+
+            if (matches) {
+                return;
+            }
+        }
+
+        throw new ArgumentException(
+            "Compliance proof bytes must be the exact artifact produced by or opened as this PdfDocument.",
+            nameof(artifact));
     }
 
     /// <summary>

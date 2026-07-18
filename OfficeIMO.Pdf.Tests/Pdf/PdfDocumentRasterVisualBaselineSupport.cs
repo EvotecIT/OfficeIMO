@@ -163,7 +163,8 @@ public partial class PdfDocumentRasterVisualBaselineTests {
             return true;
         }
 
-        if (string.Equals(Environment.GetEnvironmentVariable("OFFICEIMO_REQUIRE_PDF_RASTER_BASELINE_MATCH"), "1", StringComparison.Ordinal)) {
+        if (IsRequired() ||
+            string.Equals(Environment.GetEnvironmentVariable("OFFICEIMO_REQUIRE_PDF_RASTER_BASELINE_MATCH"), "1", StringComparison.Ordinal)) {
             throw new InvalidOperationException(
                 "Strict PDF raster baselines were generated with Poppler " +
                 (string.IsNullOrEmpty(baselineVersion) ? "(unrecorded)" : baselineVersion) +

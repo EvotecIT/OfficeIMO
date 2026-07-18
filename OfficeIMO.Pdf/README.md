@@ -94,6 +94,9 @@ facade:
 
 - Replace `PdfDocument.Load(...)` and `PdfReadDocument.Load(...)` with
   `PdfDocument.Open(...)` or `PdfReadDocument.Open(...)`.
+- Seekable PDF input streams are now consistently read from the beginning and
+  restored to their original position. Non-seekable streams are read forward
+  from their current position.
 - Keep one opened `PdfDocument` and reuse it for `Read`, `Inspect`, `Preflight`,
   `Analyze`, compliance, and manipulation work. The source snapshot and canonical
   parse are cached for that document.
@@ -540,8 +543,9 @@ Build/Export-PdfVisualReviewGallery.ps1 -Configuration Release -Framework net8.0
 
 Pixel baselines are strict when the installed Poppler major/minor version
 matches the recorded renderer. A different renderer version still runs semantic
-and page-count checks and reports the mismatch; release investigations can opt
-into a strict cross-version comparison.
+and page-count checks in ordinary local runs. Required-rasterizer and CI visual
+gates fail on a version mismatch; release investigations can deliberately opt
+into a cross-version comparison.
 
 ## Current state
 

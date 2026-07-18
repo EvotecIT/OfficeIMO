@@ -8,8 +8,7 @@ PdfPerformanceBudget budget = JsonSerializer.Deserialize<PdfPerformanceBudget>(
     ?? throw new InvalidOperationException("PDF performance budget manifest is invalid.");
 
 byte[] corpus = CreateCorpus();
-PdfPerformanceMeasurement cold = Measure("cold-workflow", corpus, RunColdWorkflow);
-PdfPerformanceMeasurement cached = Measure("cached-workflow", corpus, RunCachedWorkflow);
+(PdfPerformanceMeasurement cold, PdfPerformanceMeasurement cached) = MeasureWorkflows(corpus);
 double speedup = cold.ElapsedMilliseconds / Math.Max(cached.ElapsedMilliseconds, 0.001D);
 double allocationReduction = cold.AllocatedBytes / (double)Math.Max(cached.AllocatedBytes, 1L);
 
@@ -92,19 +91,58 @@ static long RunCachedWorkflow(byte[] corpus) {
     return text.Length + info.PageCount + preflight.Diagnostics.Count + analysis.Diagnostics.ObjectCount;
 }
 
-static PdfPerformanceMeasurement Measure(string name, byte[] corpus, Func<byte[], long> operation) {
-    operation(corpus);
+static (PdfPerformanceMeasurement Cold, PdfPerformanceMeasurement Cached) MeasureWorkflows(byte[] corpus) {
+    const int sampleCount = 7;
+    RunColdWorkflow(corpus);
+    RunCachedWorkflow(corpus);
+
+    var coldSamples = new List<PdfPerformanceSample>(sampleCount);
+    var cachedSamples = new List<PdfPerformanceSample>(sampleCount);
+    for (int sample = 0; sample < sampleCount; sample++) {
+        // Alternate order so sustained machine load cannot systematically favor either workflow.
+        if (sample % 2 == 0) {
+            coldSamples.Add(MeasureOnce(corpus, RunColdWorkflow));
+            cachedSamples.Add(MeasureOnce(corpus, RunCachedWorkflow));
+        } else {
+            cachedSamples.Add(MeasureOnce(corpus, RunCachedWorkflow));
+            coldSamples.Add(MeasureOnce(corpus, RunColdWorkflow));
+        }
+    }
+
+    return (
+        Summarize("cold-workflow", coldSamples),
+        Summarize("cached-workflow", cachedSamples));
+}
+
+static PdfPerformanceSample MeasureOnce(byte[] corpus, Func<byte[], long> operation) {
     GC.Collect(2, GCCollectionMode.Forced, blocking: true, compacting: true);
-    long allocatedBefore = GC.GetTotalAllocatedBytes(precise: true);
+    long allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
     var stopwatch = Stopwatch.StartNew();
     long output = operation(corpus);
     stopwatch.Stop();
-    long allocated = GC.GetTotalAllocatedBytes(precise: true) - allocatedBefore;
+    long allocated = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
     if (output <= 0) {
-        throw new InvalidOperationException(name + " produced no observable output.");
+        throw new InvalidOperationException("PDF performance workflow produced no observable output.");
     }
 
-    return new PdfPerformanceMeasurement(name, stopwatch.Elapsed.TotalMilliseconds, allocated, output);
+    return new PdfPerformanceSample(stopwatch.Elapsed.TotalMilliseconds, allocated, output);
+}
+
+static PdfPerformanceMeasurement Summarize(string name, IReadOnlyList<PdfPerformanceSample> samples) {
+    long output = samples[0].Output;
+    if (samples.Any(sample => sample.Output != output)) {
+        throw new InvalidOperationException(name + " produced inconsistent output between samples.");
+    }
+
+    double elapsed = samples
+        .Select(sample => sample.ElapsedMilliseconds)
+        .OrderBy(value => value)
+        .ElementAt(samples.Count / 2);
+    long allocated = samples
+        .Select(sample => sample.AllocatedBytes)
+        .OrderBy(value => value)
+        .ElementAt(samples.Count / 2);
+    return new PdfPerformanceMeasurement(name, elapsed, allocated, output);
 }
 
 static void Print(PdfPerformanceMeasurement measurement) {
@@ -121,6 +159,11 @@ internal sealed record PdfPerformanceBudget(
 
 internal sealed record PdfPerformanceMeasurement(
     string Name,
+    double ElapsedMilliseconds,
+    long AllocatedBytes,
+    long Output);
+
+internal sealed record PdfPerformanceSample(
     double ElapsedMilliseconds,
     long AllocatedBytes,
     long Output);

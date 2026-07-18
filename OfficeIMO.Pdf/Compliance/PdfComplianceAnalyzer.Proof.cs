@@ -69,19 +69,35 @@ internal static partial class PdfComplianceAnalyzer {
         }
 
         var requirements = new List<PdfComplianceRequirement>(generated.Requirements.Count + artifact.Requirements.Count);
-        var requirementIds = new HashSet<string>(StringComparer.Ordinal);
-        AddDistinct(generated.Requirements);
-        AddDistinct(artifact.Requirements);
+        var requirementIndexes = new Dictionary<string, int>(StringComparer.Ordinal);
+        AddOrReconcile(generated.Requirements);
+        AddOrReconcile(artifact.Requirements);
         return new PdfComplianceReadinessReport(generated.Profile, generated.DisplayName, requirements.AsReadOnly());
 
-        void AddDistinct(IReadOnlyList<PdfComplianceRequirement> source) {
+        void AddOrReconcile(IReadOnlyList<PdfComplianceRequirement> source) {
             for (int i = 0; i < source.Count; i++) {
                 PdfComplianceRequirement requirement = source[i];
-                if (requirementIds.Add(requirement.Id)) {
+                if (!requirementIndexes.TryGetValue(requirement.Id, out int existingIndex)) {
+                    requirementIndexes.Add(requirement.Id, requirements.Count);
                     requirements.Add(requirement);
+                    continue;
+                }
+
+                PdfComplianceRequirement existing = requirements[existingIndex];
+                if (GetBlockingRank(requirement.Status) > GetBlockingRank(existing.Status)) {
+                    requirements[existingIndex] = requirement;
                 }
             }
         }
+    }
+
+    private static int GetBlockingRank(PdfComplianceRequirementStatus status) {
+        return status switch {
+            PdfComplianceRequirementStatus.Satisfied => 0,
+            PdfComplianceRequirementStatus.Missing => 1,
+            PdfComplianceRequirementStatus.Unsupported => 2,
+            _ => throw new ArgumentOutOfRangeException(nameof(status), status, "Unsupported PDF compliance requirement status.")
+        };
     }
 
     private static PdfExternalValidationResult[] SnapshotExternalValidations(IEnumerable<PdfExternalValidationResult>? externalValidations) {

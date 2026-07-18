@@ -72,17 +72,18 @@ public partial class PdfLogicalDocumentTests {
     }
 
     [Fact]
-    public void Load_ReadsStreamFromCurrentPosition() {
+    public void Load_ReadsCompleteSeekableStreamAndRestoresPosition() {
         byte[] source = PdfDocument.Create()
             .Paragraph(p => p.Text("Logical stream marker."))
             .ToBytes();
-        byte[] prefix = Encoding.ASCII.GetBytes("prefix");
-        using var stream = new MemoryStream(prefix.Concat(source).ToArray());
-        stream.Position = prefix.Length;
+        using var stream = new MemoryStream(source);
+        stream.Position = source.Length / 2;
+        long originalPosition = stream.Position;
 
         PdfLogicalDocument logical = PdfLogicalDocument.Load(stream);
 
         Assert.Single(logical.Pages);
         Assert.Contains(logical.Pages[0].TextBlocks, block => block.Text.Contains("Logical stream marker", StringComparison.Ordinal));
+        Assert.Equal(originalPosition, stream.Position);
     }
 }
