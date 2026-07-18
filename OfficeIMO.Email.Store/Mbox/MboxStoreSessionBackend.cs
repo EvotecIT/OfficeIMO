@@ -72,8 +72,12 @@ internal sealed class MboxStoreSessionBackend : IEmailStoreSessionBackend {
         AddDiagnostics(entry.Diagnostics, item.Id);
         EmailDocument document = entry.Entry.Document;
         ApplyStoreProperties(document, item.Id, entry.Entry);
+        EmailStoreItemReadParts loadedParts = EmailStoreItemReadParts.All;
+        if (!options.Includes(EmailStoreItemReadParts.AttachmentContent)) {
+            loadedParts &= ~EmailStoreItemReadParts.AttachmentContent;
+        }
         return new EmailStoreItem(item.Id, FolderId, document,
-            loadedParts: options.Parts, format: EmailStoreFormat.Mbox, summary: item.Summary);
+            loadedParts: loadedParts, format: EmailStoreFormat.Mbox, summary: item.Summary);
     }
 
     public void Dispose() { }

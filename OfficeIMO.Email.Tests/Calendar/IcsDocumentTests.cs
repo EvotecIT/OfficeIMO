@@ -359,8 +359,10 @@ public sealed class IcsDocumentTests {
     public void ValidationRejectsInvalidAlarmTriggers(
         string value, string? valueType, string? related) {
         var document = new IcsDocument();
-        ContentLineComponent alarm = document.Calendars.Single().AddComponent("VEVENT")
-            .AddComponent("VALARM");
+        ContentLineComponent appointment = document.Calendars.Single().AddComponent("VEVENT");
+        appointment.AddProperty("DTSTART", "20260717T090000Z");
+        appointment.AddProperty("DTEND", "20260717T100000Z");
+        ContentLineComponent alarm = appointment.AddComponent("VALARM");
         alarm.AddProperty("ACTION", "DISPLAY");
         alarm.AddProperty("DESCRIPTION", "Reminder");
         ContentLineProperty trigger = alarm.AddProperty("TRIGGER", value);
@@ -379,8 +381,10 @@ public sealed class IcsDocumentTests {
     public void ValidationAcceptsRfcAlarmTriggerForms(
         string value, string? valueType, string? related) {
         var document = new IcsDocument();
-        ContentLineComponent alarm = document.Calendars.Single().AddComponent("VEVENT")
-            .AddComponent("VALARM");
+        ContentLineComponent appointment = document.Calendars.Single().AddComponent("VEVENT");
+        appointment.AddProperty("DTSTART", "20260717T090000Z");
+        appointment.AddProperty("DTEND", "20260717T100000Z");
+        ContentLineComponent alarm = appointment.AddComponent("VALARM");
         alarm.AddProperty("ACTION", "DISPLAY");
         alarm.AddProperty("DESCRIPTION", "Reminder");
         ContentLineProperty trigger = alarm.AddProperty("TRIGGER", value);
@@ -397,6 +401,7 @@ public sealed class IcsDocumentTests {
     [InlineData("VTODO", "-PT1H", null)]
     [InlineData("VTODO", "PT0S", null)]
     [InlineData("VEVENT", "PT1H", "DATE-TIME")]
+    [InlineData("VEVENT", "PT1H", "DURATION")]
     public void ValidationRejectsInvalidEventAndTaskDurations(
         string componentName, string value, string? valueType) {
         var document = new IcsDocument();
@@ -416,7 +421,7 @@ public sealed class IcsDocumentTests {
         var document = new IcsDocument();
         ContentLineComponent component = document.Calendars.Single().AddComponent(componentName);
         component.AddProperty("DTSTART", "20260717T090000Z");
-        component.AddProperty("DURATION", value).SetParameter("VALUE", "DURATION");
+        component.AddProperty("DURATION", value);
 
         Assert.DoesNotContain(document.Validate(), issue => issue.Code == "ICAL_DURATION_INVALID");
         Assert.DoesNotContain(document.Validate(), issue => issue.Code == "ICAL_DURATION_END_CONFLICT");
@@ -456,6 +461,134 @@ public sealed class IcsDocumentTests {
 
         Assert.Contains(document.Validate(), issue =>
             issue.Code == "ICAL_DURATION_START_REQUIRED" && issue.PropertyName == "DURATION");
+    }
+
+    [Fact]
+    public void ValidationRequiresWholeDayDurationForDateStart() {
+        var document = new IcsDocument();
+        ContentLineComponent appointment = document.Calendars.Single().AddComponent("VEVENT");
+        appointment.AddProperty("DTSTART", "20260717").SetParameter("VALUE", "DATE");
+        appointment.AddProperty("DURATION", "PT1H");
+
+        Assert.Contains(document.Validate(), issue =>
+            issue.Code == "ICAL_DURATION_DATE_START_INVALID" && issue.PropertyName == "DURATION");
+    }
+
+    [Theory]
+    [InlineData("P2D")]
+    [InlineData("P1W")]
+    public void ValidationAcceptsWholeDayDurationsForDateStart(string duration) {
+        var document = new IcsDocument();
+        ContentLineComponent appointment = document.Calendars.Single().AddComponent("VEVENT");
+        appointment.AddProperty("DTSTART", "20260717").SetParameter("VALUE", "DATE");
+        appointment.AddProperty("DURATION", duration);
+
+        Assert.DoesNotContain(document.Validate(), issue =>
+            issue.Code == "ICAL_DURATION_DATE_START_INVALID" || issue.Code == "ICAL_DURATION_INVALID");
+    }
+
+    [Theory]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    public void ValidationRequiresAlarmDurationAndRepeatTogether(bool addDuration, bool addRepeat) {
+        ContentLineComponent alarm = CreateValidAlarm(out IcsDocument document);
+        if (addDuration) alarm.AddProperty("DURATION", "PT5M");
+        if (addRepeat) alarm.AddProperty("REPEAT", "3");
+
+        Assert.Contains(document.Validate(), issue => issue.Code == "ICAL_ALARM_REPEAT_PAIR_REQUIRED");
+    }
+
+    [Theory]
+    [InlineData("PT0S", "3", "ICAL_ALARM_DURATION_INVALID")]
+    [InlineData("PT5M", "-1", "ICAL_ALARM_REPEAT_INVALID")]
+    [InlineData("PT5M", "not-an-integer", "ICAL_ALARM_REPEAT_INVALID")]
+    public void ValidationRejectsInvalidAlarmRepetition(
+        string duration, string repeat, string expectedCode) {
+        ContentLineComponent alarm = CreateValidAlarm(out IcsDocument document);
+        alarm.AddProperty("DURATION", duration);
+        alarm.AddProperty("REPEAT", repeat);
+
+        Assert.Contains(document.Validate(), issue => issue.Code == expectedCode);
+    }
+
+    [Theory]
+    [InlineData("0")]
+    [InlineData("+3")]
+    public void ValidationAcceptsValidAlarmRepetition(string repeat) {
+        ContentLineComponent alarm = CreateValidAlarm(out IcsDocument document);
+        alarm.AddProperty("DURATION", "PT5M");
+        alarm.AddProperty("REPEAT", repeat);
+
+        Assert.DoesNotContain(document.Validate(), issue =>
+            issue.Code.StartsWith("ICAL_ALARM_REPEAT", StringComparison.Ordinal) ||
+            issue.Code == "ICAL_ALARM_DURATION_INVALID");
+    }
+
+    [Theory]
+    [InlineData("DURATION", "ICAL_ALARM_DURATION_INVALID")]
+    [InlineData("REPEAT", "ICAL_ALARM_REPEAT_INVALID")]
+    public void ValidationRejectsValueParametersOnAlarmRepetitionProperties(
+        string propertyName, string expectedCode) {
+        ContentLineComponent alarm = CreateValidAlarm(out IcsDocument document);
+        alarm.AddProperty("DURATION", "PT5M");
+        alarm.AddProperty("REPEAT", "3");
+        alarm.GetFirstProperty(propertyName)!.SetParameter("VALUE",
+            propertyName == "DURATION" ? "DURATION" : "INTEGER");
+
+        Assert.Contains(document.Validate(), issue => issue.Code == expectedCode);
+    }
+
+    [Theory]
+    [InlineData("DURATION")]
+    [InlineData("REPEAT")]
+    public void ValidationRejectsDuplicateAlarmRepetitionProperties(string propertyName) {
+        ContentLineComponent alarm = CreateValidAlarm(out IcsDocument document);
+        alarm.AddProperty("DURATION", "PT5M");
+        alarm.AddProperty("REPEAT", "3");
+        alarm.AddProperty(propertyName, propertyName == "DURATION" ? "PT10M" : "4");
+
+        Assert.Contains(document.Validate(), issue =>
+            issue.Code == "ICAL_PROPERTY_CARDINALITY" && issue.PropertyName == propertyName);
+    }
+
+    [Theory]
+    [InlineData("START", "ICAL_ALARM_TRIGGER_START_REQUIRED")]
+    [InlineData("END", "ICAL_ALARM_TRIGGER_END_REQUIRED")]
+    public void ValidationRequiresRelativeAlarmParentAnchors(string relationship, string expectedCode) {
+        var document = new IcsDocument();
+        ContentLineComponent alarm = document.Calendars.Single().AddComponent("VEVENT")
+            .AddComponent("VALARM");
+        alarm.AddProperty("ACTION", "DISPLAY");
+        alarm.AddProperty("DESCRIPTION", "Reminder");
+        alarm.AddProperty("TRIGGER", "-PT15M").SetParameter("RELATED", relationship);
+
+        Assert.Contains(document.Validate(), issue => issue.Code == expectedCode);
+    }
+
+    [Fact]
+    public void ValidationAcceptsEndRelativeAlarmWithDerivedParentEnd() {
+        var document = new IcsDocument();
+        ContentLineComponent appointment = document.Calendars.Single().AddComponent("VEVENT");
+        appointment.AddProperty("DTSTART", "20260717T090000Z");
+        appointment.AddProperty("DURATION", "PT1H");
+        ContentLineComponent alarm = appointment.AddComponent("VALARM");
+        alarm.AddProperty("ACTION", "DISPLAY");
+        alarm.AddProperty("DESCRIPTION", "Reminder");
+        alarm.AddProperty("TRIGGER", "-PT15M").SetParameter("RELATED", "END");
+
+        Assert.DoesNotContain(document.Validate(), issue =>
+            issue.Code == "ICAL_ALARM_TRIGGER_END_REQUIRED");
+    }
+
+    private static ContentLineComponent CreateValidAlarm(out IcsDocument document) {
+        document = new IcsDocument();
+        ContentLineComponent appointment = document.Calendars.Single().AddComponent("VEVENT");
+        appointment.AddProperty("DTSTART", "20260717T090000Z");
+        ContentLineComponent alarm = appointment.AddComponent("VALARM");
+        alarm.AddProperty("ACTION", "DISPLAY");
+        alarm.AddProperty("DESCRIPTION", "Reminder");
+        alarm.AddProperty("TRIGGER", "-PT15M");
+        return alarm;
     }
 
     [Fact]

@@ -44,14 +44,14 @@ public sealed partial class IcsDocument {
             }
             var active = new HashSet<ContentLineComponent> { calendar };
             foreach (ContentLineComponent component in calendar.Components)
-                ValidateComponent(component, calendar.Name, issues, active, depth: 2);
+                ValidateComponent(component, calendar, issues, active, depth: 2);
             ValidateTimeZoneReferences(calendar, definedTimeZones, issues,
                 new HashSet<ContentLineComponent>(), depth: 1);
         }
         return issues.AsReadOnly();
     }
 
-    private static void ValidateComponent(ContentLineComponent component, string parentName,
+    private static void ValidateComponent(ContentLineComponent component, ContentLineComponent parent,
         ICollection<ContentLineValidationIssue> issues, ISet<ContentLineComponent> active, int depth) {
         if (depth > ContentLineComponent.MaximumTraversalDepth) {
             issues.Add(Issue("ICAL_COMPONENT_DEPTH_EXCEEDED",
@@ -76,13 +76,15 @@ public sealed partial class IcsDocument {
             } else if (name == "VTIMEZONE") {
                 ValidateSingle(component, "TZID", required: true, issues);
             } else if (name == "VALARM") {
-                if (parentName != "VEVENT" && parentName != "VTODO") {
+                if (!string.Equals(parent.Name, "VEVENT", StringComparison.OrdinalIgnoreCase) &&
+                    !string.Equals(parent.Name, "VTODO", StringComparison.OrdinalIgnoreCase)) {
                     issues.Add(Issue("ICAL_ALARM_PARENT_INVALID", "VALARM must be nested in VEVENT or VTODO.",
                         ContentLineValidationSeverity.Error, component));
                 }
                 ValidateSingle(component, "ACTION", required: true, issues);
                 ValidateSingle(component, "TRIGGER", required: true, issues);
-                ValidateAlarmTriggers(component, issues);
+                ValidateAlarmTriggers(component, parent, issues);
+                ValidateAlarmRepetition(component, issues);
                 string? action = component.GetFirstProperty("ACTION")?.Value;
                 if (string.Equals(action, "DISPLAY", StringComparison.OrdinalIgnoreCase))
                     ValidateSingle(component, "DESCRIPTION", required: true, issues);
@@ -154,7 +156,7 @@ public sealed partial class IcsDocument {
             }
 
             foreach (ContentLineComponent child in component.Components)
-                ValidateComponent(child, name, issues, active, depth + 1);
+                ValidateComponent(child, component, issues, active, depth + 1);
         } finally {
             active.Remove(component);
         }
@@ -257,7 +259,7 @@ public sealed partial class IcsDocument {
         return IcsTemporalValue.TryParse(property, out result);
     }
 
-    private static void ValidateAlarmTriggers(ContentLineComponent component,
+    private static void ValidateAlarmTriggers(ContentLineComponent component, ContentLineComponent parent,
         ICollection<ContentLineValidationIssue> issues) {
         foreach (ContentLineProperty trigger in component.GetProperties("TRIGGER")) {
             ContentLineParameter[] valueParameters = trigger.Parameters.Where(parameter =>
@@ -280,6 +282,7 @@ public sealed partial class IcsDocument {
                     absolute.Kind == IcsTemporalValueKind.UtcDateTime;
             } else if (string.Equals(valueType, "DURATION", StringComparison.OrdinalIgnoreCase)) {
                 valid = ValidateDuration(trigger.Value, allowNegative: true, requireNonZero: false);
+                if (valid) ValidateRelativeAlarmAnchor(component, parent, trigger, relatedParameters, issues);
             } else {
                 valid = false;
             }
@@ -287,6 +290,69 @@ public sealed partial class IcsDocument {
                 issues.Add(Issue("ICAL_ALARM_TRIGGER_INVALID",
                     "VALARM TRIGGER must contain a duration or a UTC DATE-TIME value.",
                     ContentLineValidationSeverity.Error, component, trigger));
+            }
+        }
+    }
+
+    private static void ValidateRelativeAlarmAnchor(ContentLineComponent alarm, ContentLineComponent parent,
+        ContentLineProperty trigger, IReadOnlyList<ContentLineParameter> relatedParameters,
+        ICollection<ContentLineValidationIssue> issues) {
+        string relationship = relatedParameters.FirstOrDefault()?.Values.FirstOrDefault() ?? "START";
+        if (string.Equals(relationship, "START", StringComparison.OrdinalIgnoreCase)) {
+            if (parent.GetFirstProperty("DTSTART") == null) {
+                issues.Add(Issue("ICAL_ALARM_TRIGGER_START_REQUIRED",
+                    "A START-relative VALARM TRIGGER requires DTSTART on its parent component.",
+                    ContentLineValidationSeverity.Error, alarm, trigger));
+            }
+            return;
+        }
+
+        bool hasExplicitEnd = string.Equals(parent.Name, "VEVENT", StringComparison.OrdinalIgnoreCase)
+            ? parent.GetFirstProperty("DTEND") != null
+            : parent.GetFirstProperty("DUE") != null;
+        bool hasDerivedEnd = parent.GetFirstProperty("DTSTART") != null &&
+            parent.GetFirstProperty("DURATION") != null;
+        if (!hasExplicitEnd && !hasDerivedEnd) {
+            issues.Add(Issue("ICAL_ALARM_TRIGGER_END_REQUIRED",
+                "An END-relative VALARM TRIGGER requires an explicit end or DTSTART with DURATION on its parent component.",
+                ContentLineValidationSeverity.Error, alarm, trigger));
+        }
+    }
+
+    private static void ValidateAlarmRepetition(ContentLineComponent component,
+        ICollection<ContentLineValidationIssue> issues) {
+        ContentLineProperty[] durations = component.GetProperties("DURATION").ToArray();
+        ContentLineProperty[] repeats = component.GetProperties("REPEAT").ToArray();
+        ValidateSingle(component, "DURATION", required: false, issues);
+        ValidateSingle(component, "REPEAT", required: false, issues);
+
+        if ((durations.Length > 0) != (repeats.Length > 0)) {
+            string missingProperty = durations.Length > 0 ? "REPEAT" : "DURATION";
+            issues.Add(Issue("ICAL_ALARM_REPEAT_PAIR_REQUIRED",
+                "VALARM DURATION and REPEAT must occur together.",
+                ContentLineValidationSeverity.Error, component, propertyName: missingProperty));
+        }
+
+        foreach (ContentLineProperty duration in durations) {
+            bool hasForbiddenValueParameter = duration.Parameters.Any(parameter =>
+                string.Equals(parameter.Name, "VALUE", StringComparison.OrdinalIgnoreCase));
+            if (hasForbiddenValueParameter || !ValidatePositiveDuration(duration.Value)) {
+                issues.Add(Issue("ICAL_ALARM_DURATION_INVALID",
+                    "VALARM DURATION must contain a positive RFC duration and cannot declare VALUE.",
+                    ContentLineValidationSeverity.Error, component, duration));
+            }
+        }
+
+        foreach (ContentLineProperty repeat in repeats) {
+            bool hasForbiddenValueParameter = repeat.Parameters.Any(parameter =>
+                string.Equals(parameter.Name, "VALUE", StringComparison.OrdinalIgnoreCase));
+            bool validInteger = int.TryParse(repeat.Value,
+                System.Globalization.NumberStyles.AllowLeadingSign,
+                System.Globalization.CultureInfo.InvariantCulture, out int count) && count >= 0;
+            if (hasForbiddenValueParameter || !validInteger) {
+                issues.Add(Issue("ICAL_ALARM_REPEAT_INVALID",
+                    "VALARM REPEAT must contain a non-negative integer and cannot declare VALUE.",
+                    ContentLineValidationSeverity.Error, component, repeat));
             }
         }
     }
@@ -314,14 +380,19 @@ public sealed partial class IcsDocument {
             }
         }
         foreach (ContentLineProperty duration in durations) {
-            ContentLineParameter[] valueParameters = duration.Parameters.Where(parameter =>
-                string.Equals(parameter.Name, "VALUE", StringComparison.OrdinalIgnoreCase)).ToArray();
-            bool validParameters = valueParameters.Length <= 1 &&
-                valueParameters.All(parameter => parameter.Values.Count == 1 &&
-                    string.Equals(parameter.Values[0], "DURATION", StringComparison.OrdinalIgnoreCase));
-            if (!validParameters || !ValidatePositiveDuration(duration.Value)) {
+            bool hasForbiddenValueParameter = duration.Parameters.Any(parameter =>
+                string.Equals(parameter.Name, "VALUE", StringComparison.OrdinalIgnoreCase));
+            if (hasForbiddenValueParameter || !ValidatePositiveDuration(duration.Value)) {
                 issues.Add(Issue("ICAL_DURATION_INVALID",
-                    component.Name + " DURATION must contain a positive RFC duration value.",
+                    component.Name + " DURATION must contain a positive RFC duration and cannot declare VALUE.",
+                    ContentLineValidationSeverity.Error, component, duration));
+            }
+            ContentLineProperty? startProperty = component.GetFirstProperty("DTSTART");
+            if (startProperty != null &&
+                IcsTemporalValue.TryParse(startProperty, out IcsTemporalValue start) &&
+                start.Kind == IcsTemporalValueKind.Date && duration.Value.IndexOf('T') >= 0) {
+                issues.Add(Issue("ICAL_DURATION_DATE_START_INVALID",
+                    component.Name + " with a DATE DTSTART requires a day- or week-based DURATION.",
                     ContentLineValidationSeverity.Error, component, duration));
             }
         }

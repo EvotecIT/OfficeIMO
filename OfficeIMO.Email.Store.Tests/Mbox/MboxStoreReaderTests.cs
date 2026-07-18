@@ -88,9 +88,11 @@ public sealed class MboxStoreReaderTests {
         EmailStoreItem contentItem = session.ReadItem(reference,
             new EmailStoreItemReadOptions(EmailStoreItemReadParts.AttachmentContent));
 
-        Assert.Equal(metadataOnly.Parts, metadataItem.LoadedParts);
+        Assert.Equal(EmailStoreItemReadParts.All & ~EmailStoreItemReadParts.AttachmentContent,
+            metadataItem.LoadedParts);
         Assert.Null(Assert.Single(metadataItem.Document.Attachments).Content);
         Assert.False(metadataItem.LoadedParts.HasFlag(EmailStoreItemReadParts.AttachmentContent));
+        Assert.Equal(EmailStoreItemReadParts.All, contentItem.LoadedParts);
         Assert.True(contentItem.LoadedParts.HasFlag(EmailStoreItemReadParts.AttachmentContent));
         Assert.Equal("123456", Encoding.ASCII.GetString(
             Assert.Single(contentItem.Document.Attachments).Content!));
