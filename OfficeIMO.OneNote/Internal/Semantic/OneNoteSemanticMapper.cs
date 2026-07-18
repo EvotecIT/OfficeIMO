@@ -48,6 +48,8 @@ internal static partial class OneNoteSemanticMapper {
     private const uint ImageFilename = 0x1C001DD7;
     private const uint ImageAltText = 0x1C001E58;
     private const uint IRecordMedia = 0x14001D24;
+    private const uint AudioRecordingGuid = 0x1C001C97;
+    private const uint AudioRecordingDuration = 0x14001CFD;
     private const uint PictureWidth = 0x140034CD;
     private const uint PictureHeight = 0x140034CE;
     private const uint PageWidth = 0x14001C01;
@@ -168,8 +170,19 @@ internal static partial class OneNoteSemanticMapper {
                 IsVersionHistoryPage = isVersionHistoryPage,
                 IsDeleted = ReadData(metadata, IsDeletedGraphSpaceContent) != null,
                 Width = ReadFloat(pageNode, PageWidth),
-                Height = ReadFloat(pageNode, PageHeight)
+                Height = ReadFloat(pageNode, PageHeight),
+                PageSize = ReadPageSize(pageNode),
+                Orientation = ReadPageOrientation(pageNode),
+                RightToLeft = ReadBoolean(pageNode, OneNoteSchema.EditRootRtl),
+                IsReadOnly = ReadBoolean(pageNode, OneNoteSchema.IsReadOnly),
+                ResolveChildCollisions = ReadBoolean(pageNode, OneNoteSchema.LayoutResolveChildCollisions)
             };
+            page.Margins.Left = ReadFloat(pageNode, OneNoteSchema.PageMarginLeft);
+            page.Margins.Right = ReadFloat(pageNode, OneNoteSchema.PageMarginRight);
+            page.Margins.Top = ReadFloat(pageNode, OneNoteSchema.PageMarginTop);
+            page.Margins.Bottom = ReadFloat(pageNode, OneNoteSchema.PageMarginBottom);
+            page.Margins.OriginX = ReadFloat(pageNode, OneNoteSchema.PageMarginOriginX);
+            page.Margins.OriginY = ReadFloat(pageNode, OneNoteSchema.PageMarginOriginY);
             page.PreservationIds.ManifestId = manifest.Id;
             page.PreservationIds.MetadataId = metadata?.Id;
             page.PreservationIds.RevisionMetadataId = revisionMetadata?.Id;
@@ -184,6 +197,7 @@ internal static partial class OneNoteSemanticMapper {
                 if (element is OneNoteOutline outline && !outline.IsOutlineElementWrapper) page.Outlines.Add(outline);
                 else if (element != null) page.DirectContent.Add(element);
             }
+            ApplyInkRecognition(page, ReadInkRecognition(space, pageNode));
 
             if (string.IsNullOrWhiteSpace(page.Title)) {
                 foreach (OneNoteExtendedGuid titleId in GetReferences(pageNode, StructureElementChildNodes)) {
@@ -236,13 +250,15 @@ internal static partial class OneNoteSemanticMapper {
                 case JcidOutlineElementNode:
                     return BuildOutlineElement(space, item, materializer, options, depth, path);
                 case JcidRichTextNode:
-                    return BuildParagraph(space, item);
+                    return BuildParagraph(space, item, options);
                 case JcidImageNode:
                     return BuildImage(space, item, materializer);
                 case JcidEmbeddedFileNode:
                     return BuildEmbeddedFile(space, item, materializer);
                 case JcidTableNode:
                     return BuildTable(space, item, materializer, options, depth, path);
+                case OneNoteSchema.JcidInkContainer:
+                    return BuildInk(space, item, options, depth, path);
                 default:
                     return null;
             }
@@ -271,17 +287,6 @@ internal static partial class OneNoteSemanticMapper {
             OneNoteElement? child = BuildElement(space, childId, materializer, options, depth + 1, path);
             if (child != null) paragraph.Children.Add(child);
         }
-        if (primary is OneNoteParagraph && paragraph.Children.Count == 0 && paragraph.List == null &&
-            paragraph.Runs.Count > 0 && paragraph.Runs.All(run => run.Style.IsMath == true)) {
-            var math = new OneNoteMath {
-                Id = item.Id,
-                Text = string.Concat(paragraph.Runs.Select(run => run.Text)),
-                Layout = paragraph.Layout,
-                Author = paragraph.Author
-            };
-            foreach (OneNoteTag tag in paragraph.Tags) math.Tags.Add(tag);
-            return math;
-        }
         if (primary != null && !(primary is OneNoteParagraph)) {
             var wrapper = new OneNoteOutline {
                 Id = item.Id,
@@ -298,7 +303,10 @@ internal static partial class OneNoteSemanticMapper {
         return paragraph;
     }
 
-    private static OneNoteParagraph BuildParagraph(OneNoteMaterializedObjectSpace space, OneNoteRevisionStoreObject item) {
+    private static OneNoteParagraph BuildParagraph(
+        OneNoteMaterializedObjectSpace space,
+        OneNoteRevisionStoreObject item,
+        OneNoteReaderOptions options) {
         string text = ReadString(item, RichEditTextUnicode) ?? ReadSingleByteString(item, TextExtendedAscii) ?? string.Empty;
         var paragraph = new OneNoteParagraph { Id = item.Id, ContentObjectId = item.Id, Layout = ReadLayout(item) };
         IReadOnlyList<uint> boundaries = ReadUInt32Array(item, TextRunIndex);
@@ -314,6 +322,11 @@ internal static partial class OneNoteSemanticMapper {
             start = end;
         }
         if (paragraph.Runs.Count == 0) paragraph.Runs.Add(new OneNoteTextRun { Text = text });
+        IReadOnlyList<OneNotePropertySet> mathDescriptors = FindProperty(item.PropertySet, OneNoteSchema.MathInlineObjects)?.ChildPropertySets ?? Array.Empty<OneNotePropertySet>();
+        for (int index = 0; index < paragraph.Runs.Count && index < mathDescriptors.Count; index++) {
+            paragraph.Runs[index].MathDescriptor = ReadMathDescriptor(mathDescriptors[index]);
+        }
+        CollapseInlineMathRuns(paragraph, options.MaxPropertySetDepth);
 
         OneNoteRevisionStoreObject? paragraphStyle = GetReferences(item, ParagraphStyle).Select(space.GetObject).FirstOrDefault(style => style != null);
         if (paragraphStyle != null) {
@@ -329,35 +342,6 @@ internal static partial class OneNoteSemanticMapper {
         return paragraph;
     }
 
-    private static OneNoteImage BuildImage(OneNoteMaterializedObjectSpace space, OneNoteRevisionStoreObject item, OneNoteObjectSpaceMaterializer materializer) {
-        var image = new OneNoteImage {
-            Id = item.Id,
-            FileName = ReadString(item, ImageFilename),
-            AltText = ReadString(item, ImageAltText),
-            SourcePath = ReadString(item, SourceFilePath),
-            Hyperlink = ReadString(item, HyperlinkUrl),
-            WidthHalfInches = ReadFloat(item, PictureWidth),
-            HeightHalfInches = ReadFloat(item, PictureHeight),
-            Layout = ReadLayout(item)
-        };
-        image.MediaType = ResolveMediaType(image.FileName);
-        image.PictureContainerObjectId = GetReferences(item, PictureContainer).FirstOrDefault();
-        image.WebPictureContainerObjectId = GetReferences(item, OneNoteSchema.WebPictureContainer14).FirstOrDefault();
-        OneNoteRevisionStoreObject? picture = image.PictureContainerObjectId == null
-            ? null
-            : space.GetObject(image.PictureContainerObjectId);
-        OneNoteRevisionStoreObject? webPicture = image.WebPictureContainerObjectId == null
-            ? null
-            : space.GetObject(image.WebPictureContainerObjectId);
-        PopulateBinaryPayload(image, picture, materializer);
-        if (image.Payload == null && webPicture != null) {
-            PopulateBinaryPayload(image, webPicture, materializer);
-            image.PayloadUsesWebPictureContainer = image.Payload != null;
-        }
-        ApplyTags(image, item, space);
-        return image;
-    }
-
     private static OneNoteBinaryElement BuildEmbeddedFile(OneNoteMaterializedObjectSpace space, OneNoteRevisionStoreObject item, OneNoteObjectSpaceMaterializer materializer) {
         OneNoteBinaryElement embedded = CreateEmbeddedElement(item);
         OneNoteRevisionStoreObject? binary = GetReferences(item, EmbeddedFileContainer).Select(space.GetObject).FirstOrDefault(value => value != null);
@@ -370,10 +354,15 @@ internal static partial class OneNoteSemanticMapper {
         string? fileName = ReadString(item, EmbeddedFileName);
         string? sourcePath = ReadString(item, SourceFilePath);
         uint? recordingKind = ReadUInt32(item, IRecordMedia);
+        Guid? recordingId = ReadGuidData(item, AudioRecordingGuid);
         OneNoteBinaryElement result;
-        if (recordingKind == 1 || recordingKind == 2) {
+        if (recordingKind == 1 || recordingKind == 2 || recordingId.HasValue) {
+            uint? durationMilliseconds = ReadUInt32(item, AudioRecordingDuration);
             result = new OneNoteMedia {
-                RecordingKind = recordingKind == 1 ? OneNoteMediaKind.Audio : OneNoteMediaKind.Video,
+                RecordingKind = recordingKind == 1 ? OneNoteMediaKind.Audio :
+                    recordingKind == 2 ? OneNoteMediaKind.Video : OneNoteMediaKind.Unknown,
+                RecordingId = recordingId,
+                Duration = durationMilliseconds.HasValue ? TimeSpan.FromMilliseconds(durationMilliseconds.Value) : (TimeSpan?)null,
                 SourcePath = sourcePath
             };
         } else {
@@ -384,6 +373,11 @@ internal static partial class OneNoteSemanticMapper {
         result.MediaType = ResolveMediaType(fileName);
         result.Layout = ReadLayout(item);
         return result;
+    }
+
+    private static Guid? ReadGuidData(OneNoteRevisionStoreObject item, uint propertyId) {
+        byte[]? data = ReadData(item, propertyId);
+        return data != null && data.Length == 16 ? new Guid(data) : (Guid?)null;
     }
 
     private static string? ResolveMediaType(string? fileName) {
@@ -460,17 +454,6 @@ internal static partial class OneNoteSemanticMapper {
             target.PayloadFileDataId = fileDataId;
             target.Payload = payload;
         }
-    }
-
-    private static OneNoteLayout ReadLayout(OneNoteRevisionStoreObject item) {
-        return new OneNoteLayout {
-            X = ReadFloat(item, OffsetFromParentHorizontal),
-            Y = ReadFloat(item, OffsetFromParentVertical),
-            Width = ReadFloat(item, LayoutMaxWidth),
-            Height = ReadFloat(item, LayoutMaxHeight),
-            Tight = ReadBoolean(item, LayoutTightLayout),
-            RightToLeft = ReadBoolean(item, OutlineElementRtl)
-        };
     }
 
     internal static void ApplyTextStyle(OneNoteTextRun target, OneNoteRevisionStoreObject? style) {
@@ -600,6 +583,14 @@ internal static partial class OneNoteSemanticMapper {
             case JcidRevisionMetadata:
             case 0x00020046:
             case 0x0012004D:
+            case OneNoteSchema.JcidInkContainer:
+            case OneNoteSchema.JcidInkDataNode:
+            case OneNoteSchema.JcidInkStrokeNode:
+            case OneNoteSchema.JcidStrokePropertiesNode:
+            case OneNoteSchema.JcidRecognizedTextRoot:
+            case OneNoteSchema.JcidRecognizedTextLine:
+            case OneNoteSchema.JcidRecognizedTextBlock:
+            case OneNoteSchema.JcidRecognizedTextWord:
                 return true;
             default:
                 return false;

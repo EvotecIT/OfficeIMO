@@ -80,8 +80,9 @@ public sealed class OutlineElementPreservationTests {
             wrapper = Assert.IsType<OneNoteOutline>(Assert.Single(page.DirectContent));
         }
         Assert.True(wrapper.IsOutlineElementWrapper);
-        Assert.Equal(12.5, wrapper.Layout!.X);
-        Assert.Equal(7.25, wrapper.Layout.Y);
+        OneNoteLayout? rootLayout = canonicalRoot ? Assert.Single(page.Outlines).Layout : null;
+        Assert.Equal(12.5, (rootLayout?.X ?? 0D) + wrapper.Layout!.X);
+        Assert.Equal(7.25, (rootLayout?.Y ?? 0D) + wrapper.Layout.Y);
         Assert.Equal("Wrapper author", wrapper.Author!.Name);
         Assert.Equal(expectedAuthorId, wrapper.Author.ObjectId);
         Assert.True(wrapper.WrapperList!.Ordered);

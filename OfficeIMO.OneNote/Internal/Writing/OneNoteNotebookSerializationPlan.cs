@@ -79,7 +79,8 @@ internal sealed class OneNoteNotebookSerializationPlan {
                     entryLimit,
                     _options.PreserveUnknownData,
                     _options.MaxPageRelationshipDepth,
-                    _options.MaxContentDepth).BuildSection(section, tocId, fileName, sectionId);
+                    _options.MaxContentDepth,
+                    _options.MaxInkPathValues).BuildSection(section, tocId, fileName, sectionId);
                 AddEntry(Combine(prefix, fileName), SerializeGraph(graph, _options, false, section.StorageFormat, entryLimit, section));
                 tocEntries.Add(new OneNoteTocWriteEntry(sectionId, fileName, order++, section.ColorArgb));
             } else {

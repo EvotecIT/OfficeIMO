@@ -36,11 +36,12 @@ internal static partial class OneNoteSemanticMapper {
         uint? shape = ReadUInt32(state, NoteTagShape);
         OneNoteExtendedGuid? definitionId = GetReferences(state, NoteTagDefinitionOid).FirstOrDefault();
         OneNoteRevisionStoreObject? definition = definitionId == null ? null : resolveObject(definitionId);
-        bool isTask = (status & 0x04U) != 0 || actionItemType >= 100;
+        bool isTask = (status & 0x04U) != 0 || IsTaskActionItemType(actionItemType);
 
         if (!isTask && definition?.Jcid.Value == JcidNoteTagSharedDefinition) {
             actionItemType = ReadUInt32(definition, ActionItemType);
             shape = ReadUInt32(definition, NoteTagShape);
+            isTask = IsTaskActionItemType(actionItemType);
         }
 
         return new OneNoteTag {
@@ -69,6 +70,9 @@ internal static partial class OneNoteSemanticMapper {
         if (shape == 69 || shape == 71 || shape == 73) return true;
         return shape >= 89 && shape <= 99;
     }
+
+    private static bool IsTaskActionItemType(uint? actionItemType) =>
+        actionItemType.HasValue && actionItemType.Value >= 100 && actionItemType.Value <= 105;
 
     private static IReadOnlyList<OneNoteExtendedGuid> GetReferences(OneNotePropertySet? set, uint propertyId) {
         return FindProperty(set, propertyId)?.ReferencedIds ?? Array.Empty<OneNoteExtendedGuid>();
