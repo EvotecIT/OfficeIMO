@@ -196,6 +196,26 @@ Layout settings remain layout options and are not duplicated as themes. Office c
 
 Generic file-copy, file-lock probing, duplicate color helpers, public internal save writers, and other APIs with no useful Office document contract were removed rather than renamed.
 
+## PDF converter trust and fidelity defaults
+
+All PDF adapter options now use `PdfResourcePolicy`. The balanced default enables installed fonts and bounded data URI/package resources for document fidelity while denying arbitrary local-file and remote resolver access. For fully reproducible or untrusted conversion, set `PdfResourcePolicy.CreatePortableDeterministic()`. For trusted inputs that intentionally use local or remote resources, set:
+
+```csharp
+options.ResourcePolicy = PdfResourcePolicy.CreateTrustedHost();
+```
+
+The following duplicate trust switches were removed:
+
+| Removed member | Replacement |
+| --- | --- |
+| `AllowSystemFontEmbedding` | `ResourcePolicy.AllowSystemFontEmbedding` or `CreateTrustedHost()` |
+| Markdown `IncludeLocalImages` | `IncludeImages` plus `ResourcePolicy.AllowLocalFileAccess` |
+| Markdown `IncludeDataUriImages` | `IncludeImages` plus `ResourcePolicy.AllowDataUris` |
+
+Profiles no longer change trust. Markdown text-only/lightweight profiles only change image participation, and Excel profiles reset their complete profile-owned option set on every application.
+
+Word `IncludePageNumbers` and Excel `IncludeSheetHeadings` now default to `false`; set either to `true` when synthetic visible labels are desired. PowerPoint removed `UseSharedVisualSnapshot`: full-slide PDF always uses its hyperlink-capable native PDF renderer, while PNG/SVG/HTML review and thumbnails use the shared visual snapshot. OneNote now accepts one `OneNotePdfSaveOptions` object and returns explicit semantic-projection diagnostics through `ToPdfDocumentResult()`.
+
 ## Migration checklist
 
 - Replace aliases with the canonical names; do not add consumer-side compatibility shims.

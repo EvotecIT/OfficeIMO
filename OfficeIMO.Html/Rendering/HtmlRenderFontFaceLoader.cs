@@ -14,7 +14,7 @@ internal static class HtmlRenderFontFaceLoader {
         HtmlDiagnosticReport diagnostics) {
         var fonts = new OfficeFontFaceCollection();
         Uri? baseUri = HtmlDocumentParser.ResolveEffectiveBaseUri(document, options.BaseUri);
-        HtmlUrlPolicy resourcePolicy = HtmlResourceUrlPolicy.Create(options.UrlPolicy);
+        HtmlUrlPolicy resourcePolicy = HtmlResourceUrlPolicy.Create(options.GetResourceUrlPolicy());
         var reported = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var pipelineOptions = new HtmlResourcePipelineOptions {
             MediaContext = options.MediaContext,

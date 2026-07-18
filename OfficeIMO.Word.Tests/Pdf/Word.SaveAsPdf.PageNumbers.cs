@@ -8,7 +8,7 @@ using Xunit;
 namespace OfficeIMO.Tests {
     public partial class Word {
         [Fact]
-        public void SaveAsPdf_Can_Disable_PageNumbers() {
+        public void SaveAsPdf_DefaultDoesNotInjectPageNumbers() {
             string docPath = Path.Combine(_directoryWithFiles, "PdfNoNumbers.docx");
             string pdfNoNumbers = Path.Combine(_directoryWithFiles, "PdfWithoutNumbers.pdf");
 
@@ -17,10 +17,14 @@ namespace OfficeIMO.Tests {
                 document.AddPageBreak();
                 document.AddParagraph("Page2");
                 document.Save();
-                document.SaveAsPdf(pdfNoNumbers, new PdfSaveOptions { IncludePageNumbers = false });
+                document.SaveAsPdf(pdfNoNumbers);
             }
 
             Assert.True(File.Exists(pdfNoNumbers));
+            using (PdfPigDocument pdf = PdfPigDocument.Open(pdfNoNumbers)) {
+                Assert.DoesNotContain("1/2", pdf.GetPage(1).Text);
+                Assert.DoesNotContain("2/2", pdf.GetPage(2).Text);
+            }
         }
 
         [Fact]
@@ -33,10 +37,17 @@ namespace OfficeIMO.Tests {
                 document.AddPageBreak();
                 document.AddParagraph("Page2");
                 document.Save();
-                document.SaveAsPdf(pdfCustom, new PdfSaveOptions { PageNumberFormat = "Page {current} of {total}" });
+                document.SaveAsPdf(pdfCustom, new PdfSaveOptions {
+                    IncludePageNumbers = true,
+                    PageNumberFormat = "Page {current} of {total}"
+                });
             }
 
             Assert.True(File.Exists(pdfCustom));
+            using (PdfPigDocument pdf = PdfPigDocument.Open(pdfCustom)) {
+                Assert.Contains("Page 1 of 2", pdf.GetPage(1).Text);
+                Assert.Contains("Page 2 of 2", pdf.GetPage(2).Text);
+            }
         }
 
         [Fact]
@@ -73,7 +84,9 @@ namespace OfficeIMO.Tests {
                 document.AddPageBreak();
                 document.AddParagraph("Native section page numbering second page");
                 document.Save();
-                document.SaveAsPdf(pdfPath, new PdfSaveOptions());
+                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                    IncludePageNumbers = true
+                });
             }
 
             Assert.True(File.Exists(pdfPath));

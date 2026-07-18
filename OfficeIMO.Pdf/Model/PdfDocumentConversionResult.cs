@@ -63,6 +63,18 @@ public sealed partial class PdfDocumentConversionResult {
     }
 
     /// <summary>
+    /// Returns a new conversion result that prepends adapter or source-projection warnings while retaining
+    /// the original converter report as a live linked source for save-time diagnostics.
+    /// </summary>
+    public PdfDocumentConversionResult WithAdditionalWarnings(IEnumerable<PdfConversionWarning> warnings) {
+        Guard.NotNull(warnings, nameof(warnings));
+        var combinedSource = new PdfConversionReport();
+        combinedSource.AddRange(warnings);
+        combinedSource.LinkReport(_sourceReport);
+        return new PdfDocumentConversionResult(Value, combinedSource, combinedSource);
+    }
+
+    /// <summary>
     /// Applies PDF post-processing while preserving the captured conversion diagnostics in the returned result.
     /// </summary>
     public PdfDocumentConversionResult Process(Func<PdfDocument, PdfDocument> process) {

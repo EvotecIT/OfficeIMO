@@ -121,7 +121,8 @@ public sealed class HtmlApiConsistencyTests {
             TextFallbacks = PdfCore.PdfTextFallbackFeatures.None,
             TextShapingMode = PdfCore.PdfTextShapingMode.UnicodeScalar,
             FontFamily = fontFamily,
-            TextShapingProvider = shapingProvider
+            TextShapingProvider = shapingProvider,
+            UrlPolicy = HtmlUrlPolicy.CreateOfficeIMOProfile()
         };
 
         var copied = new HtmlPdfSaveOptions(options);
@@ -130,6 +131,21 @@ public sealed class HtmlApiConsistencyTests {
         Assert.Equal(PdfCore.PdfTextShapingMode.UnicodeScalar, copied.TextShapingMode);
         Assert.Same(fontFamily, copied.FontFamily);
         Assert.Same(shapingProvider, copied.TextShapingProvider);
+        Assert.False(copied.UrlPolicy.RestrictUrlSchemes);
+    }
+
+    [Fact]
+    public void HtmlPdfOptions_DefaultHyperlinkPolicyBlocksFileAndDataUrls() {
+        var options = new HtmlPdfSaveOptions();
+
+        Assert.True(options.UrlPolicy.DisallowFileUrls);
+        Assert.False(options.UrlPolicy.AllowDataUrls);
+        Assert.True(options.UrlPolicy.RestrictUrlSchemes);
+        Assert.True(HtmlUrlPolicyEvaluator.IsAllowed("https://example.test/report", options.UrlPolicy));
+        Assert.True(HtmlUrlPolicyEvaluator.IsAllowed("mailto:reports@example.test", options.UrlPolicy));
+        Assert.False(HtmlUrlPolicyEvaluator.IsAllowed("cid:report", options.UrlPolicy));
+        Assert.False(HtmlUrlPolicyEvaluator.IsAllowed("ftp://example.test/report", options.UrlPolicy));
+        Assert.False(HtmlUrlPolicyEvaluator.IsAllowed("officeimo:report", options.UrlPolicy));
     }
 
     [Fact]

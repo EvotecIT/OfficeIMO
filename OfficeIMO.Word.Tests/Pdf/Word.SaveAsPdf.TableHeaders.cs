@@ -282,7 +282,11 @@ public partial class Word {
         Assert.Contains("RichFooterValue", text);
 
         string raw = Encoding.ASCII.GetString(bytes);
-        Assert.Contains("Helvetica-Oblique", raw);
+        Assert.True(
+            raw.Contains("Helvetica-Oblique", StringComparison.Ordinal) ||
+            raw.Contains("-Italic", StringComparison.Ordinal) ||
+            raw.Contains("-Oblique", StringComparison.Ordinal),
+            "Expected the first-row table style to preserve italic font selection.");
         Assert.Contains("16 Tf", raw);
         Assert.Contains("14 Tf", raw);
         Assert.Contains("0.133 0.333 0.667 rg", raw);

@@ -19,8 +19,7 @@ public class PowerPointSaveAsPdfSecurityTests {
             slide.GroupShapes(new PowerPointShape[] { textBox, secondTextBox }, "Outer");
 
             var options = new PowerPointPdfSaveOptions {
-                MaxGroupShapeDepth = 0,
-                UseSharedVisualSnapshot = true
+                MaxGroupShapeDepth = 0
             };
 
             PdfCore.PdfDocumentConversionResult result = presentation.ToPdfDocumentResult(options);

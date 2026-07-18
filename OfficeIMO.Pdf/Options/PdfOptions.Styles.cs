@@ -7,8 +7,11 @@ public sealed partial class PdfOptions {
         set {
             Guard.StandardFont(value, nameof(DefaultFont), "PDF default font must be one of the supported standard PDF fonts.");
             _defaultFont = value;
+            _hasExplicitDefaultFont = true;
         }
     }
+    /// <summary>Gets whether the default paragraph font slot was explicitly supplied by the caller or a theme.</summary>
+    public bool HasExplicitDefaultFont => _hasExplicitDefaultFont;
     /// <summary>Default paragraph font size in points. Default 11.</summary>
     public double DefaultFontSize { get; set; } = 11;
     /// <summary>Default text color for blocks when none is specified.</summary>

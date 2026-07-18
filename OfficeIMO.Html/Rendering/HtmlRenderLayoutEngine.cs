@@ -69,7 +69,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (string.IsNullOrWhiteSpace(language)) language = document.DocumentElement?.GetAttribute("xml:lang");
         _metadata = new HtmlRenderMetadata(document.Title, language, ResolveDocumentDirection(document, computedStyles));
         _baseUri = HtmlDocumentParser.ResolveEffectiveBaseUri(document, options.BaseUri);
-        _resourceUrlPolicy = HtmlResourceUrlPolicy.Create(options.UrlPolicy);
+        _resourceUrlPolicy = HtmlResourceUrlPolicy.Create(options.GetResourceUrlPolicy());
     }
 
     private static HtmlRenderTextDirection ResolveDocumentDirection(IHtmlDocument document, HtmlComputedStyleSet computedStyles) {

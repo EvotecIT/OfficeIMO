@@ -234,7 +234,7 @@ Console.WriteLine("OfficeIMO");
         string text = PdfCore.PdfReadDocument.Load(pdf).ExtractText();
 
         Assert.True(pdf.Length > 0);
-        PdfCore.PdfConversionWarning warning = Assert.Single(result.Warnings, item => item.Code == "UnsupportedImage");
+        PdfCore.PdfConversionWarning warning = Assert.Single(result.Warnings, item => item.Code == "RemoteImageDisabled");
         Assert.Equal("OfficeIMO.Markdown.Pdf", warning.Converter);
         Assert.Contains("OfficeIMO logo", text);
     }
@@ -251,7 +251,7 @@ Console.WriteLine("OfficeIMO");
         PdfCore.PdfDocumentConversionResult result = OfficeIMO.Markdown.MarkdownReader.Parse(markdown).ToPdfDocumentResult(options);
         PdfCore.PdfDocument processed = result.Value.AppendMetadataRevision(title: "Processed Markdown PDF");
 
-        PdfCore.PdfConversionWarning warning = Assert.Single(result.Warnings, item => item.Code == "UnsupportedImage");
+        PdfCore.PdfConversionWarning warning = Assert.Single(result.Warnings, item => item.Code == "RemoteImageDisabled");
         Assert.True(result.HasWarnings);
         Assert.Equal("OfficeIMO.Markdown.Pdf", warning.Converter);
         Assert.Equal("Processed Markdown PDF", processed.Inspect().Metadata.Title);
@@ -291,6 +291,7 @@ Console.WriteLine("OfficeIMO");
     public void Markdown_SaveAsPdf_EmbedsRemoteImagesThroughExplicitResolver() {
         Uri? requestedUri = null;
         var options = new MarkdownPdfSaveOptions {
+            ResourcePolicy = PdfCore.PdfResourcePolicy.CreateTrustedHost(),
             RemoteImageResolver = uri => {
                 requestedUri = uri;
                 return CreateMinimalRgbPng();
@@ -318,6 +319,7 @@ Console.WriteLine("OfficeIMO");
     [Fact]
     public void Markdown_SaveAsPdf_WarnsWhenResolvedRemoteImageExceedsLimit() {
         var options = new MarkdownPdfSaveOptions {
+            ResourcePolicy = PdfCore.PdfResourcePolicy.CreateTrustedHost(),
             MaximumRemoteImageBytes = 3,
             RemoteImageResolver = _ => new byte[] { 1, 2, 3, 4 }
         };
@@ -355,7 +357,7 @@ _Figure 1. Embedded from a relative Markdown path._
 """);
 
             var options = new MarkdownPdfSaveOptions {
-                IncludeLocalImages = true,
+                ResourcePolicy = PdfCore.PdfResourcePolicy.CreateTrustedHost(),
                 BaseDirectory = directory
             };
             PdfCore.PdfDocumentConversionResult result = OfficeIMO.Markdown.MarkdownDoc.Load(markdownPath).ToPdfDocumentResult(options);
@@ -398,7 +400,7 @@ _Figure 1. Embedded from a relative Markdown path._
 """);
 
             var options = new MarkdownPdfSaveOptions {
-                IncludeLocalImages = true,
+                ResourcePolicy = PdfCore.PdfResourcePolicy.CreateTrustedHost(),
                 BaseDirectory = markdownDirectory
             };
             PdfCore.PdfDocumentConversionResult result = OfficeIMO.Markdown.MarkdownDoc.Load(markdownPath).ToPdfDocumentResult(options);
@@ -420,6 +422,38 @@ _Figure 1. Embedded from a relative Markdown path._
         }
     }
 
+#if NET8_0_OR_GREATER
+    [Fact]
+    public void MarkdownPdfConverter_BlocksLocalImageSymlinkThatEscapesBaseDirectory() {
+        string directory = Path.Combine(Path.GetTempPath(), "OfficeIMO.Markdown.Pdf.Symlink", Guid.NewGuid().ToString("N"));
+        string markdownDirectory = Path.Combine(directory, "docs");
+        string outsideDirectory = Path.Combine(directory, "outside");
+        string linkPath = Path.Combine(markdownDirectory, "linked.png");
+        Directory.CreateDirectory(markdownDirectory);
+        Directory.CreateDirectory(outsideDirectory);
+        try {
+            string outsideImagePath = Path.Combine(outsideDirectory, "secret.png");
+            File.WriteAllBytes(outsideImagePath, CreateMinimalRgbPng());
+            File.CreateSymbolicLink(linkPath, outsideImagePath);
+
+            var options = new MarkdownPdfSaveOptions {
+                ResourcePolicy = PdfCore.PdfResourcePolicy.CreateTrustedHost(),
+                BaseDirectory = markdownDirectory
+            };
+            PdfCore.PdfDocumentConversionResult result = OfficeIMO.Markdown.MarkdownReader
+                .Parse("![Secret pixel](linked.png){width=32 height=32}")
+                .ToPdfDocumentResult(options);
+
+            PdfCore.PdfConversionWarning warning = Assert.Single(result.Warnings);
+            Assert.Equal("LocalImageOutsideBaseDirectory", warning.Code);
+            Assert.Empty(PdfCore.PdfImageExtractor.ExtractImages(result.ToBytes()));
+        } finally {
+            if (File.Exists(linkPath)) File.Delete(linkPath);
+            if (Directory.Exists(directory)) Directory.Delete(directory, recursive: true);
+        }
+    }
+#endif
+
     [Fact]
     public void Markdown_SaveAsPdf_ScalesOversizedLocalImagesIntoContentFrame() {
         string directory = Path.Combine(Path.GetTempPath(), "OfficeIMO.Markdown.Pdf.ScaleDown", Guid.NewGuid().ToString("N"));
@@ -431,7 +465,7 @@ _Figure 1. Embedded from a relative Markdown path._
             var options = new MarkdownPdfSaveOptions {
                 ApplyDefaultTheme = false,
                 BaseDirectory = directory,
-                IncludeLocalImages = true,
+                ResourcePolicy = PdfCore.PdfResourcePolicy.CreateTrustedHost(),
                 PdfOptions = new PdfCore.PdfOptions {
                     PageWidth = 220,
                     PageHeight = 180,

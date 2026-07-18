@@ -391,7 +391,7 @@ OfficeIMO.Markdown.MarkdownDoc.Load("README.md").SaveAsPdf("README.pdf");
             var options = new MarkdownPdfSaveOptions {
                 DefaultImageWidth = 104,
                 DefaultImageHeight = 36,
-                IncludeLocalImages = true,
+                ResourcePolicy = OfficeIMO.Pdf.PdfResourcePolicy.CreateTrustedHost(),
                 BaseDirectory = workDir
             };
 

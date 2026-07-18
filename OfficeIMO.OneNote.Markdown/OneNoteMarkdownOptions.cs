@@ -35,6 +35,9 @@ public sealed class OneNoteMarkdownOptions {
     /// </summary>
     public Func<OneNoteBinaryElement, string?>? AssetUriResolver { get; set; }
 
+    /// <summary>Creates a validated independent snapshot for one projection operation.</summary>
+    public OneNoteMarkdownOptions Clone() => CloneValidated();
+
     internal OneNoteMarkdownOptions CloneValidated() {
         if (HeadingLevel < 1 || HeadingLevel > 6) throw new ArgumentOutOfRangeException(nameof(HeadingLevel), "HeadingLevel must be from 1 through 6.");
         ValidateDepth(MaxSectionGroupDepth, nameof(MaxSectionGroupDepth));

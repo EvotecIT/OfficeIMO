@@ -14,7 +14,8 @@ public sealed class HtmlUrlPolicy {
     /// </summary>
     public static HtmlUrlPolicy CreateHyperlinkProfile() => new HtmlUrlPolicy {
         DisallowFileUrls = true,
-        AllowDataUrls = false
+        AllowDataUrls = false,
+        RestrictUrlSchemes = true
     };
 
     /// <summary>

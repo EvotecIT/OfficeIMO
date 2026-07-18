@@ -25,7 +25,7 @@ namespace OfficeIMO.Word.Pdf {
 
             pdfOptions.PageSize = firstSection == null ? PdfCore.PageSizes.A4 : GetNativePageSize(firstSection, options);
             pdfOptions.Margins = firstSection == null ? PdfCore.PageMargins.Uniform(72) : GetNativeMargins(firstSection, options);
-            bool allowSystemFontEmbedding = options?.AllowSystemFontEmbedding == true;
+            bool allowSystemFontEmbedding = options?.ResourcePolicy.AllowSystemFontEmbedding == true;
             bool preserveConfiguredFontSlots = ApplyNativeDefaultFont(document, options, pdfOptions, allowSystemFontEmbedding, nativeFontMap) ||
                                                 options?.PdfOptions != null;
             HashSet<PdfCore.PdfStandardFont> registeredFontSlots = RegisterNativeDocumentFonts(document, pdfOptions, preserveConfiguredFontSlots, allowSystemFontEmbedding, nativeFontMap);
@@ -93,6 +93,7 @@ namespace OfficeIMO.Word.Pdf {
             if (!string.IsNullOrWhiteSpace(optionFontFamily) &&
                 TryApplyNativeDefaultFontCandidate(optionFontFamily, pdfOptions, embedSystemFont: allowSystemFontEmbedding)) {
                 nativeFontMap.Register(optionFontFamily!, pdfOptions.DefaultFont);
+                nativeFontMap.PreferPdfDefaultForDocumentDefaultFont();
                 return true;
             }
 
@@ -201,6 +202,12 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static void RegisterNativeTableFonts(WordTable table, PdfCore.PdfOptions pdfOptions, HashSet<string> registeredFamilies, HashSet<PdfCore.PdfStandardFont> registeredFontSlots, bool allowSystemFontEmbedding, NativeFontMap nativeFontMap) {
+            NativeTableStyleDefaults tableStyleDefaults = GetNativeTableStyleDefaults(
+                table,
+                GetNativeDocumentDefaults(table.Document),
+                ignoreFallbackTableStyle: pdfOptions.HasExplicitDefaultTableStyle);
+            RegisterNativeFontCandidate(tableStyleDefaults.RunStyle.FontFamily, pdfOptions, registeredFamilies, registeredFontSlots, allowSystemFontEmbedding, nativeFontMap);
+
             foreach (WordTableRow row in table.Rows) {
                 foreach (WordTableCell cell in row.Cells) {
                     foreach (WordParagraph paragraph in cell.Paragraphs) {
@@ -222,11 +229,32 @@ namespace OfficeIMO.Word.Pdf {
             RegisterNativeFontCandidate(paragraph.FontFamilyHighAnsi, pdfOptions, registeredFamilies, registeredFontSlots, allowSystemFontEmbedding, nativeFontMap);
             RegisterNativeFontCandidate(paragraph.FontFamilyEastAsia, pdfOptions, registeredFamilies, registeredFontSlots, allowSystemFontEmbedding, nativeFontMap);
             RegisterNativeFontCandidate(paragraph.FontFamilyComplexScript, pdfOptions, registeredFamilies, registeredFontSlots, allowSystemFontEmbedding, nativeFontMap);
+            RegisterNativeFontCandidate(GetNativeParagraphStyleDefaults(paragraph).FontFamily, pdfOptions, registeredFamilies, registeredFontSlots, allowSystemFontEmbedding, nativeFontMap);
+            RegisterNativeFontCandidate(GetNativeCharacterStyleDefaults(paragraph._document, GetNativeRunProperties(paragraph)).FontFamily, pdfOptions, registeredFamilies, registeredFontSlots, allowSystemFontEmbedding, nativeFontMap);
         }
 
         private static void RegisterNativeFontCandidate(string? familyName, PdfCore.PdfOptions pdfOptions, HashSet<string> registeredFamilies, HashSet<PdfCore.PdfStandardFont> registeredFontSlots, bool allowSystemFontEmbedding, NativeFontMap nativeFontMap) {
             if (!PdfCore.PdfOptions.TryAddOfficeFontFamilyKey(familyName, registeredFamilies, NormalizeNativeFontFamily, out string trimmedFamilyName)) {
                 return;
+            }
+
+            if (allowSystemFontEmbedding &&
+                PdfCore.PdfStandardFontMapper.TryMapFontFamily(trimmedFamilyName, out PdfCore.PdfStandardFont mappedFont) &&
+                registeredFontSlots.Contains(PdfCore.PdfStandardFontMapper.GetFontFamily(mappedFont)) &&
+                !EmbeddedFontSlotMatchesFamily(pdfOptions, mappedFont, trimmedFamilyName) &&
+                PdfCore.PdfEmbeddedFontFamily.TryFromSystem(trimmedFamilyName, out PdfCore.PdfEmbeddedFontFamily? distinctEmbeddedFamily) &&
+                distinctEmbeddedFamily != null) {
+                if (PdfCore.PdfOptions.TrySelectAvailableFontFamilySlot(trimmedFamilyName, registeredFontSlots, out PdfCore.PdfStandardFont distinctFontSlot)) {
+                    registeredFontSlots.Add(distinctFontSlot);
+                    pdfOptions.RegisterFontFamily(distinctFontSlot, distinctEmbeddedFamily);
+                    nativeFontMap.Register(trimmedFamilyName, distinctFontSlot);
+                    return;
+                }
+
+                nativeFontMap.ReportSlotExhaustion(
+                    trimmedFamilyName,
+                    mappedFont,
+                    GetEmbeddedFontFamilyName(pdfOptions, mappedFont));
             }
 
             if (pdfOptions.TryRegisterMappedOfficeFontFamily(trimmedFamilyName, registeredFontSlots, allowSystemFontEmbedding, out PdfCore.PdfStandardFont fontFamily)) {
@@ -242,6 +270,19 @@ namespace OfficeIMO.Word.Pdf {
                 pdfOptions.RegisterFontFamily(fontSlot, embeddedFamily);
                 nativeFontMap.Register(trimmedFamilyName, fontSlot);
             }
+        }
+
+        internal static bool EmbeddedFontSlotMatchesFamily(PdfCore.PdfOptions options, PdfCore.PdfStandardFont slot, string familyName) {
+            return options.EmbeddedFontFamilySlotMatches(slot, familyName);
+        }
+
+        private static string GetEmbeddedFontFamilyName(PdfCore.PdfOptions options, PdfCore.PdfStandardFont slot) {
+            PdfCore.PdfStandardFont normalizedSlot = PdfCore.PdfStandardFontMapper.GetFontFamily(slot);
+            string? embeddedFamilyName = options.GetEmbeddedFontFamilyName(normalizedSlot);
+            if (embeddedFamilyName == null) {
+                return "unnamed embedded family in " + normalizedSlot + " slot";
+            }
+            return embeddedFamilyName;
         }
 
         private sealed class NativeTableOfContentsEntry {

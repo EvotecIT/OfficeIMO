@@ -1,6 +1,8 @@
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfWriter {
+    private static readonly string[] LayoutLineSeparators = { "\r\n", "\r", "\n" };
+
     private static readonly int[] HelveticaBoldAsciiWidths = new[] {
         278, 333, 474, 556, 556, 889, 722, 238, 333, 333,
         389, 584, 278, 333, 278, 278, 556, 556, 556, 556,
@@ -177,6 +179,13 @@ internal static partial class PdfWriter {
     }
 
     private static double EstimateSimpleTextWidthForOptions(string? text, PdfStandardFont font, double fontSize, PdfOptions? options) {
+        if (!string.IsNullOrEmpty(text) && text!.Any(character => character == '\r' || character == '\n')) {
+            string layoutText = text!;
+            return layoutText
+                .Split(LayoutLineSeparators, StringSplitOptions.None)
+                .Max(line => EstimateSimpleTextWidthForOptions(line, font, fontSize, options));
+        }
+
         if (options != null &&
             options.TryGetEmbeddedStandardFontProgram(font, out PdfTrueTypeFontProgram? fontProgram) &&
             fontProgram != null) {

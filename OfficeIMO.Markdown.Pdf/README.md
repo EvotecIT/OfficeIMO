@@ -91,7 +91,8 @@ using OfficeIMO.Pdf;
 
 var options = new MarkdownPdfSaveOptions {
     BaseDirectory = Path.GetDirectoryName(Path.GetFullPath("Docs/status.md")),
-    IncludeLocalImages = true,
+    IncludeImages = true,
+    ResourcePolicy = PdfResourcePolicy.CreateTrustedHost(),
     DefaultImageWidth = 420,
     DefaultImageHeight = 240,
     PdfTheme = MarkdownPdfStyle.Report()
@@ -143,14 +144,14 @@ document.SaveAsPdf(stream);
 
 ```csharp
 using OfficeIMO.Markdown.Pdf;
+using OfficeIMO.Pdf;
 
 var options = new MarkdownPdfSaveOptions {
     RemoteImageResolver = null,
-    IncludeDataUriImages = true
+    IncludeImages = true
 }.UseProfile(PdfExportProfile.Faithful);
 
 options.TextFallbacks = PdfTextFallbackFeatures.Default;
-options.AllowSystemFontEmbedding = true;
 
 var result = "README.md".TrySaveAsPdfFromMarkdownFile("README.pdf", options);
 if (!result.Succeeded) {
@@ -172,7 +173,9 @@ result.Report.RequireNoErrorWarnings();
 - PDF metadata from options, YAML front matter, or the first heading.
 - Paragraphs, rich inline formatting, links, lists, task lists, tables, code blocks, semantic fenced blocks, callouts, details, definition lists, block quotes, footnotes, and generated table-of-contents blocks.
 - Visual themes for readable document rhythm, page treatment, links, code blocks, panels, tables, and checklist rows.
-- Profile presets through `MarkdownPdfSaveOptions.UseProfile(...)`, plus shared `TextFallbacks` and `AllowSystemFontEmbedding` controls. `PdfTextFallbackFeatures.MultilingualFonts` opts into installed CJK, Arabic, and other non-Latin families in addition to the default document, monospace, symbol, and emoji groups.
+- Profile presets through `MarkdownPdfSaveOptions.UseProfile(...)`, plus shared `TextFallbacks` and `ResourcePolicy` controls. Profiles may disable images for lightweight/text-only output but never grant local, remote, or host-font access.
+- `IncludeImages` controls whether images participate at all. `PdfResourcePolicy` is the only trust gate for local files, data URIs, remote resolvers, and installed host fonts. Local-image containment resolves symlinks and junctions before reading.
+- `PdfTextFallbackFeatures.MultilingualFonts` selects additional fallback families. The balanced default permits installed-font discovery without granting local-file or remote-resource access; use `PdfResourcePolicy.CreatePortableDeterministic()` when host fonts must not be inspected.
 - Per-operation conversion warnings through `PdfDocumentConversionResult.Report` or `PdfSaveResult.Report`.
 
 ## Visual themes

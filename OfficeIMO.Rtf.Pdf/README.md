@@ -23,6 +23,8 @@ result.Report.RequireNoErrorWarnings();
 result.Save("output.pdf");
 ```
 
+All PDF adapters expose the same `PdfResourcePolicy`. RTF conversion uses the balanced default: it may discover and embed installed fonts, but it does not allow arbitrary local-file or remote-resource reads. Use `PdfResourcePolicy.CreatePortableDeterministic()` when conversion must not inspect host fonts. RTF currently reads document content only from the typed model, so `CreateTrustedHost()` does not add useful access unless a future format-specific resolver requires it.
+
 For raw RTF strings, bytes, or streams, use source-explicit APIs such as `ToPdfFromRtf()`, `ToPdfDocumentFromRtf()`, and `SaveAsPdfFromRtf()`. Typed `RtfDocument` instances use the standard `ToPdf()`, `ToPdfDocument()`, and destination-only `SaveAsPdf()` names.
 
 PNG, JPEG, and supported DIB images use the shared managed drawing layer. Set `RtfPdfSaveOptions.ImageConverter` when WMF/EMF content must be rasterized; a null or invalid callback result is reported rather than silently treated as an image.

@@ -45,6 +45,9 @@ public sealed partial class PdfOptions {
     private PdfStandardFont _defaultFont = PdfStandardFont.Helvetica;
     private PdfStandardFont _headerFont = PdfStandardFont.Helvetica;
     private PdfStandardFont _footerFont = PdfStandardFont.Helvetica;
+    private bool _hasExplicitDefaultFont;
+    private bool _hasExplicitHeaderFont;
+    private bool _hasExplicitFooterFont;
     private int _pageNumberStart = 1;
     private bool _hasExplicitPageNumberStart;
     private PdfPageNumberStyle _pageNumberStyle = PdfPageNumberStyle.Arabic;

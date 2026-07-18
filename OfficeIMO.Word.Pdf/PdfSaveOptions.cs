@@ -6,26 +6,26 @@ namespace OfficeIMO.Word.Pdf {
     /// Options controlling first-party OfficeIMO PDF export.
     /// </summary>
     public class PdfSaveOptions {
+        private PdfCore.PdfResourcePolicy _resourcePolicy = PdfCore.PdfResourcePolicy.CreateDefault();
         /// <summary>
         /// PDF creation options passed to the first-party PDF engine. The options are cloned before export.
         /// </summary>
         public PdfCore.PdfOptions? PdfOptions { get; set; }
 
         /// <summary>
-        /// Optional Word-style font family used as the first-party PDF default font. By default, the family maps to the nearest PDF standard font without embedding installed host fonts.
+        /// Optional Word-style font family used as the first-party PDF default font. When the resource policy allows system fonts, an installed family is embedded; otherwise it maps to the nearest PDF standard font.
         /// </summary>
         public string? FontFamily { get; set; }
 
-        /// <summary>
-        /// When true, first-party Word PDF export may load installed system fonts to embed them into the generated PDF.
-        /// Defaults to false so untrusted DOCX content cannot silently copy host font files into exported PDFs.
-        /// Explicit font data supplied through <see cref="PdfOptions"/> remains available regardless of this setting.
-        /// </summary>
-        public bool AllowSystemFontEmbedding { get; set; }
+        /// <summary>Host-resource policy. Defaults to balanced conversion: system fonts and bounded in-source resources are allowed, while local and remote reads are denied.</summary>
+        public PdfCore.PdfResourcePolicy ResourcePolicy {
+            get => _resourcePolicy;
+            set => _resourcePolicy = value ?? throw new ArgumentNullException(nameof(value));
+        }
 
         /// <summary>
         /// Built-in generated-text fallback groups applied by the Word PDF converter when system font embedding is allowed.
-        /// Defaults to the recommended preset, but no host font files are embedded unless <see cref="AllowSystemFontEmbedding"/> is true.
+        /// Defaults to the recommended preset, but no host font files are embedded unless <see cref="ResourcePolicy"/> allows them.
         /// </summary>
         public PdfCore.PdfTextFallbackFeatures TextFallbacks { get; set; } = PdfCore.PdfTextFallbackFeatures.Default;
 
@@ -79,9 +79,9 @@ namespace OfficeIMO.Word.Pdf {
         internal PdfCore.PdfConversionReport Report { get; } = new PdfCore.PdfConversionReport();
 
         /// <summary>
-        /// Determines whether page numbers are rendered in the PDF footer. Defaults to true.
+        /// Determines whether generated page numbers are rendered when the Word source has no page-number field. Defaults to false.
         /// </summary>
-        public bool IncludePageNumbers { get; set; } = true;
+        public bool IncludePageNumbers { get; set; }
 
         /// <summary>
         /// Optional format for page numbers. Use "{current}" for the current page and "{total}" for total pages.
@@ -100,7 +100,7 @@ namespace OfficeIMO.Word.Pdf {
         public PdfSaveOptions UseProfile(PdfCore.PdfExportProfile profile) {
             switch (profile) {
                 case PdfCore.PdfExportProfile.Faithful:
-                    IncludePageNumbers = true;
+                    IncludePageNumbers = false;
                     DefaultTableBorders = false;
                     break;
                 case PdfCore.PdfExportProfile.Lightweight:
@@ -108,7 +108,7 @@ namespace OfficeIMO.Word.Pdf {
                     DefaultTableBorders = false;
                     break;
                 case PdfCore.PdfExportProfile.PrintReady:
-                    IncludePageNumbers = true;
+                    IncludePageNumbers = false;
                     DefaultTableBorders = true;
                     break;
                 case PdfCore.PdfExportProfile.TextOnly:
@@ -125,7 +125,7 @@ namespace OfficeIMO.Word.Pdf {
         internal PdfSaveOptions CloneForConversion() => new() {
             PdfOptions = PdfOptions,
             FontFamily = FontFamily,
-            AllowSystemFontEmbedding = AllowSystemFontEmbedding,
+            ResourcePolicy = ResourcePolicy.Clone(),
             TextFallbacks = TextFallbacks,
             PageSize = PageSize,
             Margins = Margins,
