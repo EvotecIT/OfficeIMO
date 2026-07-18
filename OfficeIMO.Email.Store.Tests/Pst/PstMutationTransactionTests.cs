@@ -395,6 +395,25 @@ public sealed class PstMutationTransactionTests {
         }
     }
 
+    [Fact]
+    public void PathIdentityUsesTheCaseBehaviorOfAnEmptyDirectoryEntry() {
+        string parent = Path.Combine(Path.GetTempPath(),
+            "officeimo-empty-path-identity-" + Guid.NewGuid().ToString("N"));
+        string directory = Path.Combine(parent, "EmptyMailboxDirectory");
+        string alias = Path.Combine(parent, "EMPTYMAILBOXDIRECTORY");
+        try {
+            Directory.CreateDirectory(directory);
+            bool actualCaseInsensitive = Directory.Exists(alias);
+
+            Assert.Equal(actualCaseInsensitive,
+                EmailStorePathIdentity.IsCaseInsensitiveFileSystem(directory));
+        } finally {
+            try { Directory.Delete(parent, recursive: true); }
+            catch (IOException) { }
+            catch (UnauthorizedAccessException) { }
+        }
+    }
+
 #if NET8_0_OR_GREATER
     [Fact]
     public void PhysicalPathAliasesCannotBypassBackupOrMutationLockOwnership() {
@@ -436,6 +455,39 @@ public sealed class PstMutationTransactionTests {
             }
         } finally {
             if (aliasCreated && Directory.Exists(aliasDirectory)) Directory.Delete(aliasDirectory);
+            if (Directory.Exists(container)) Directory.Delete(container, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void PhysicalFileAliasPlacesMutationLockBesideResolvedSource() {
+        string container = Path.Combine(Path.GetTempPath(),
+            "officeimo-pst-file-alias-" + Guid.NewGuid().ToString("N"));
+        string sourceDirectory = Path.Combine(container, "source");
+        string aliasDirectory = Path.Combine(container, "alias");
+        string sourcePath = Path.Combine(sourceDirectory, "mailbox.pst");
+        string aliasPath = Path.Combine(aliasDirectory, "mailbox-link.pst");
+        try {
+            Directory.CreateDirectory(sourceDirectory);
+            Directory.CreateDirectory(aliasDirectory);
+            CreateSource(sourcePath);
+            try {
+                File.CreateSymbolicLink(aliasPath, sourcePath);
+            } catch (UnauthorizedAccessException) when (
+                System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(
+                    System.Runtime.InteropServices.OSPlatform.Windows)) {
+                return;
+            } catch (IOException) when (
+                System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(
+                    System.Runtime.InteropServices.OSPlatform.Windows)) {
+                return;
+            }
+
+            using (PstMutationTransactionLock.Acquire(aliasPath)) {
+                Assert.Single(Directory.GetFiles(sourceDirectory, ".officeimo-pst-*.lock"));
+                Assert.Empty(Directory.GetFiles(aliasDirectory, ".officeimo-pst-*.lock"));
+            }
+        } finally {
             if (Directory.Exists(container)) Directory.Delete(container, recursive: true);
         }
     }

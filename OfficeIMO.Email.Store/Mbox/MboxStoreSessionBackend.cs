@@ -60,7 +60,9 @@ internal sealed class MboxStoreSessionBackend : IEmailStoreSessionBackend {
         EmailMailboxEntryReadResult entry;
         try {
             var mailboxOptions = CreateMailboxOptions(
-                EmailStoreMessageReader.CreateOptions(_options), maximumMessages: 1);
+                EmailStoreMessageReader.CreateOptions(_options,
+                    includeAttachmentContent: options.Includes(EmailStoreItemReadParts.AttachmentContent)),
+                maximumMessages: 1);
             using (var input = new ReadOnlySegmentStream(_stream, item.Offset, item.Length)) {
                 entry = new EmailMailboxReader(mailboxOptions).ReadEntries(input, cancellationToken).Single();
             }
@@ -70,11 +72,8 @@ internal sealed class MboxStoreSessionBackend : IEmailStoreSessionBackend {
         AddDiagnostics(entry.Diagnostics, item.Id);
         EmailDocument document = entry.Entry.Document;
         ApplyStoreProperties(document, item.Id, entry.Entry);
-        EmailStoreItemReadParts loadedParts = _options.RetainAttachmentContent
-            ? EmailStoreItemReadParts.All
-            : EmailStoreItemReadParts.All & ~EmailStoreItemReadParts.AttachmentContent;
         return new EmailStoreItem(item.Id, FolderId, document,
-            loadedParts: loadedParts, format: EmailStoreFormat.Mbox, summary: item.Summary);
+            loadedParts: options.Parts, format: EmailStoreFormat.Mbox, summary: item.Summary);
     }
 
     public void Dispose() { }

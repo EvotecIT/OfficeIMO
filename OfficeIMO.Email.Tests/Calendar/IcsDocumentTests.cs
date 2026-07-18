@@ -391,6 +391,35 @@ public sealed class IcsDocumentTests {
             issue.Code == "ICAL_ALARM_TRIGGER_INVALID");
     }
 
+    [Theory]
+    [InlineData("VEVENT", "not-a-duration", null)]
+    [InlineData("VEVENT", "P1Y", null)]
+    [InlineData("VTODO", "-PT1H", null)]
+    [InlineData("VTODO", "PT0S", null)]
+    [InlineData("VEVENT", "PT1H", "DATE-TIME")]
+    public void ValidationRejectsInvalidEventAndTaskDurations(
+        string componentName, string value, string? valueType) {
+        var document = new IcsDocument();
+        ContentLineComponent component = document.Calendars.Single().AddComponent(componentName);
+        ContentLineProperty duration = component.AddProperty("DURATION", value);
+        if (valueType != null) duration.SetParameter("VALUE", valueType);
+
+        Assert.Contains(document.Validate(), issue =>
+            issue.Code == "ICAL_DURATION_INVALID" && issue.PropertyName == "DURATION");
+    }
+
+    [Theory]
+    [InlineData("VEVENT", "P1W")]
+    [InlineData("VEVENT", "+P2DT3H4M5S")]
+    [InlineData("VTODO", "PT30M")]
+    public void ValidationAcceptsPositiveEventAndTaskDurations(string componentName, string value) {
+        var document = new IcsDocument();
+        ContentLineComponent component = document.Calendars.Single().AddComponent(componentName);
+        component.AddProperty("DURATION", value).SetParameter("VALUE", "DURATION");
+
+        Assert.DoesNotContain(document.Validate(), issue => issue.Code == "ICAL_DURATION_INVALID");
+    }
+
     [Fact]
     public void ValidationAndSerializationRejectMissingOrMutatedCalendarRoots() {
         var empty = new IcsDocument();

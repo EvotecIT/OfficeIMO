@@ -4,9 +4,13 @@ namespace OfficeIMO.Email.Store;
 
 internal static partial class EmailStorePathIdentity {
     internal static string Normalize(string path) {
-        string identity = Path.GetFullPath(path);
-        if (TryResolvePhysicalPath(identity, out string resolved)) identity = resolved;
+        string identity = ResolvePhysicalPath(path);
         return Normalize(identity, IsCaseInsensitiveFileSystem(identity));
+    }
+
+    internal static string ResolvePhysicalPath(string path) {
+        string fullPath = Path.GetFullPath(path);
+        return TryResolvePhysicalPath(fullPath, out string resolved) ? resolved : fullPath;
     }
 
     internal static bool AreEquivalent(string left, string right) {
@@ -74,6 +78,7 @@ internal static partial class EmailStorePathIdentity {
             return caseInsensitive;
         }
         if (Directory.Exists(directory)) {
+            if (TryDetectFromExistingName(directory, out caseInsensitive)) return caseInsensitive;
             try {
                 foreach (string entry in Directory.EnumerateFileSystemEntries(directory)) {
                     if (TryDetectFromExistingName(entry, out caseInsensitive)) return caseInsensitive;

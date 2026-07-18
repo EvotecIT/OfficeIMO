@@ -78,6 +78,25 @@ public sealed class MboxStoreReaderTests {
     }
 
     [Fact]
+    public void SelectiveMboxReadsOnlyDecodeRequestedAttachmentContent() {
+        using var stream = new MemoryStream(CreateMailboxWithAttachments());
+        using EmailStoreSession session = EmailStoreSession.Open(stream, "attachments.mbox");
+        EmailStoreItemReference reference = session.EnumerateItems().First();
+        var metadataOnly = new EmailStoreItemReadOptions(EmailStoreItemReadParts.AttachmentMetadata);
+
+        EmailStoreItem metadataItem = session.ReadItem(reference, metadataOnly);
+        EmailStoreItem contentItem = session.ReadItem(reference,
+            new EmailStoreItemReadOptions(EmailStoreItemReadParts.AttachmentContent));
+
+        Assert.Equal(metadataOnly.Parts, metadataItem.LoadedParts);
+        Assert.Null(Assert.Single(metadataItem.Document.Attachments).Content);
+        Assert.False(metadataItem.LoadedParts.HasFlag(EmailStoreItemReadParts.AttachmentContent));
+        Assert.True(contentItem.LoadedParts.HasFlag(EmailStoreItemReadParts.AttachmentContent));
+        Assert.Equal("123456", Encoding.ASCII.GetString(
+            Assert.Single(contentItem.Document.Attachments).Content!));
+    }
+
+    [Fact]
     public void SelectedMboxReadsDoNotDelegateThroughSingleByteBufferReads() {
         using var stream = new RejectSingleByteBufferReadStream(CreateMailboxBytes());
         using EmailStoreSession session = EmailStoreSession.Open(stream, "archive.mbox");

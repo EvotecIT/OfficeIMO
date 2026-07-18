@@ -126,6 +126,10 @@ public sealed partial class IcsDocument {
                 }
             }
 
+            if (name == "VEVENT" || name == "VTODO") {
+                ValidateDurations(component, issues);
+            }
+
             foreach (string temporalName in new[] { "DTSTART", "DTEND", "DUE", "RECURRENCE-ID",
                          "RDATE", "EXDATE", "DTSTAMP", "CREATED", "LAST-MODIFIED", "COMPLETED" }) {
                 foreach (ContentLineProperty property in component.GetProperties(temporalName)) {
@@ -283,6 +287,22 @@ public sealed partial class IcsDocument {
                 issues.Add(Issue("ICAL_ALARM_TRIGGER_INVALID",
                     "VALARM TRIGGER must contain a duration or a UTC DATE-TIME value.",
                     ContentLineValidationSeverity.Error, component, trigger));
+            }
+        }
+    }
+
+    private static void ValidateDurations(ContentLineComponent component,
+        ICollection<ContentLineValidationIssue> issues) {
+        foreach (ContentLineProperty duration in component.GetProperties("DURATION")) {
+            ContentLineParameter[] valueParameters = duration.Parameters.Where(parameter =>
+                string.Equals(parameter.Name, "VALUE", StringComparison.OrdinalIgnoreCase)).ToArray();
+            bool validParameters = valueParameters.Length <= 1 &&
+                valueParameters.All(parameter => parameter.Values.Count == 1 &&
+                    string.Equals(parameter.Values[0], "DURATION", StringComparison.OrdinalIgnoreCase));
+            if (!validParameters || !ValidatePositiveDuration(duration.Value)) {
+                issues.Add(Issue("ICAL_DURATION_INVALID",
+                    component.Name + " DURATION must contain a positive RFC duration value.",
+                    ContentLineValidationSeverity.Error, component, duration));
             }
         }
     }

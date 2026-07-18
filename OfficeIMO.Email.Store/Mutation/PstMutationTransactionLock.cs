@@ -18,8 +18,8 @@ internal sealed class PstMutationTransactionLock : IDisposable {
     }
 
     internal static PstMutationTransactionLock Acquire(string sourcePath) {
-        string fullPath = Path.GetFullPath(sourcePath);
-        string identity = EmailStorePathIdentity.Normalize(fullPath);
+        string physicalPath = EmailStorePathIdentity.ResolvePhysicalPath(sourcePath);
+        string identity = EmailStorePathIdentity.Normalize(physicalPath);
         if (!ProcessLocks.TryAdd(identity, 0)) {
             throw new IOException("Another OfficeIMO mutation transaction already owns this PST path.");
         }
@@ -30,7 +30,7 @@ internal sealed class PstMutationTransactionLock : IDisposable {
         Array.Clear(digest, 0, digest.Length);
 
         try {
-            string lockDirectory = Path.GetDirectoryName(fullPath) ?? Directory.GetCurrentDirectory();
+            string lockDirectory = Path.GetDirectoryName(physicalPath) ?? Directory.GetCurrentDirectory();
             string lockPath = Path.Combine(lockDirectory, lockName);
             var lockStream = new FileStream(lockPath, FileMode.OpenOrCreate, FileAccess.ReadWrite,
                 FileShare.None, 1, FileOptions.RandomAccess);
