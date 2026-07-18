@@ -143,6 +143,10 @@ public partial class PdfDocumentRasterVisualBaselineTests {
     private static bool IsRequired() =>
         string.Equals(Environment.GetEnvironmentVariable("OFFICEIMO_REQUIRE_PDF_RASTERIZER"), "1", StringComparison.Ordinal);
 
+    private static bool IsStrictRasterBaselineRequired() =>
+        IsRequired() ||
+        string.Equals(Environment.GetEnvironmentVariable("OFFICEIMO_REQUIRE_PDF_RASTER_BASELINE_MATCH"), "1", StringComparison.Ordinal);
+
     private static bool CanAssertRasterBaseline(string rasterizerPath) {
         string currentVersion = ReadPdftoppmVersion(rasterizerPath);
         string versionPath = Path.Combine(GetPdfTestsProjectRoot(), "Pdf", "VisualBaselines", "poppler-version.txt");
@@ -163,8 +167,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
             return true;
         }
 
-        if (IsRequired() ||
-            string.Equals(Environment.GetEnvironmentVariable("OFFICEIMO_REQUIRE_PDF_RASTER_BASELINE_MATCH"), "1", StringComparison.Ordinal)) {
+        if (IsStrictRasterBaselineRequired()) {
             throw new InvalidOperationException(
                 "Strict PDF raster baselines were generated with Poppler " +
                 (string.IsNullOrEmpty(baselineVersion) ? "(unrecorded)" : baselineVersion) +

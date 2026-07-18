@@ -30,11 +30,47 @@ public sealed partial class PdfDocument {
         AssessComplianceProof(_options.ComplianceProfile, externalValidations);
 
     /// <summary>
-    /// Combines this document's readiness with external validator evidence bound to the exact supplied PDF bytes.
-    /// The supplied artifact must be byte-for-byte identical to this document.
+    /// Atomically renders or snapshots this document with readiness evidence for its configured compliance profile.
     /// </summary>
-    public PdfComplianceProofReport AssessComplianceProof(byte[] artifact, IEnumerable<PdfExternalValidationResult>? externalValidations = null) =>
-        AssessComplianceProof(_options.ComplianceProfile, artifact, externalValidations);
+    public PdfComplianceArtifact CreateComplianceArtifact() =>
+        CreateComplianceArtifact(_options.ComplianceProfile);
+
+    /// <summary>
+    /// Atomically renders or snapshots this document with readiness evidence for <paramref name="profile"/>.
+    /// Use the returned artifact's bytes for external validation, then call its
+    /// <see cref="PdfComplianceArtifact.AssessProof"/> method with those validator results.
+    /// </summary>
+    public PdfComplianceArtifact CreateComplianceArtifact(PdfComplianceProfile profile) {
+        Guard.ComplianceProfile(profile, nameof(profile));
+        if (_source is not null) {
+            PdfComplianceReadinessReport openedReadiness = AssessCompliance(profile);
+            return new PdfComplianceArtifact(_source.CopyBytes(), openedReadiness, ReadOptions);
+        }
+
+        ThrowIfTextEncodingPreflightFails();
+        (byte[] bytes, PdfGeneratedDocumentComplianceEvidence evidence) = PdfWriter.WriteComplianceArtifact(
+            this,
+            _blocks,
+            _options,
+            _title,
+            _author,
+            _subject,
+            _keywords);
+        PdfComplianceReadinessReport generatedReadiness = PdfComplianceAnalyzer.AssessDocument(
+            profile,
+            _options,
+            evidence.StandardFonts,
+            evidence.FontUsages,
+            _title,
+            evidence.Images,
+            evidence.Drawings,
+            evidence.Forms);
+        PdfStandardEncryptionOptions? encryption = _options.EncryptionSnapshot;
+        PdfReadOptions? readOptions = encryption == null
+            ? null
+            : new PdfReadOptions { Password = encryption.UserPassword };
+        return new PdfComplianceArtifact(bytes, generatedReadiness, readOptions);
+    }
 
     /// <summary>
     /// Combines generated-document compliance readiness for a formal profile with external validator evidence.
@@ -46,40 +82,6 @@ public sealed partial class PdfDocument {
         return _source is null
             ? PdfComplianceAnalyzer.AssessProof(readiness, externalValidations)
             : PdfComplianceAnalyzer.AssessProof(readiness, GetBytesForOperation(), externalValidations);
-    }
-
-    /// <summary>
-    /// Combines generated-document readiness with external validator evidence bound to the exact supplied PDF bytes.
-    /// </summary>
-    /// <param name="profile">Compliance profile to assess without enabling formal profile generation.</param>
-    /// <param name="artifact">The exact PDF bytes supplied to each external validator.</param>
-    /// <param name="externalValidations">External validator results for the same exact artifact.</param>
-    public PdfComplianceProofReport AssessComplianceProof(PdfComplianceProfile profile, byte[] artifact, IEnumerable<PdfExternalValidationResult>? externalValidations = null) {
-        Guard.NotNull(artifact, nameof(artifact));
-        EnsureComplianceArtifactMatchesDocument(artifact);
-        PdfComplianceReadinessReport readiness = AssessCompliance(profile);
-        return PdfComplianceAnalyzer.AssessProof(readiness, artifact, externalValidations);
-    }
-
-    private void EnsureComplianceArtifactMatchesDocument(byte[] artifact) {
-        byte[] documentArtifact = GetBytesForOperation();
-        if (documentArtifact.Length == artifact.Length) {
-            bool matches = true;
-            for (int i = 0; i < artifact.Length; i++) {
-                if (documentArtifact[i] != artifact[i]) {
-                    matches = false;
-                    break;
-                }
-            }
-
-            if (matches) {
-                return;
-            }
-        }
-
-        throw new ArgumentException(
-            "Compliance proof bytes must be the exact artifact produced by or opened as this PdfDocument.",
-            nameof(artifact));
     }
 
     /// <summary>

@@ -6,15 +6,47 @@ namespace OfficeIMO.Pdf;
 
 internal static partial class PdfWriter {
     public static byte[] Write(PdfDocument doc, IEnumerable<IPdfBlock> blocks, PdfOptions opts, string? title, string? author, string? subject, string? keywords) =>
-        WriteCore(doc, blocks, opts, title, author, subject, keywords, outputStream: null, out _)!;
+        WriteCore(doc, blocks, opts, title, author, subject, keywords, outputStream: null, out _, out _)!;
+
+    internal static (byte[] Bytes, PdfGeneratedDocumentComplianceEvidence ComplianceEvidence) WriteComplianceArtifact(
+        PdfDocument doc,
+        IEnumerable<IPdfBlock> blocks,
+        PdfOptions opts,
+        string? title,
+        string? author,
+        string? subject,
+        string? keywords) {
+        byte[] bytes = WriteCore(
+            doc,
+            blocks,
+            opts,
+            title,
+            author,
+            subject,
+            keywords,
+            outputStream: null,
+            out _,
+            out PdfGeneratedDocumentComplianceEvidence complianceEvidence)!;
+        return (bytes, complianceEvidence);
+    }
 
     public static long Write(Stream destination, PdfDocument doc, IEnumerable<IPdfBlock> blocks, PdfOptions opts, string? title, string? author, string? subject, string? keywords) {
         Guard.NotNull(destination, nameof(destination));
-        WriteCore(doc, blocks, opts, title, author, subject, keywords, destination, out long bytesWritten);
+        WriteCore(doc, blocks, opts, title, author, subject, keywords, destination, out long bytesWritten, out _);
         return bytesWritten;
     }
 
-    private static byte[]? WriteCore(PdfDocument doc, IEnumerable<IPdfBlock> blocks, PdfOptions opts, string? title, string? author, string? subject, string? keywords, Stream? outputStream, out long bytesWritten) {
+    private static byte[]? WriteCore(
+        PdfDocument doc,
+        IEnumerable<IPdfBlock> blocks,
+        PdfOptions opts,
+        string? title,
+        string? author,
+        string? subject,
+        string? keywords,
+        Stream? outputStream,
+        out long bytesWritten,
+        out PdfGeneratedDocumentComplianceEvidence complianceEvidence) {
         PdfComplianceValidator.ValidateGenerationOptions(opts);
         opts.ResetEmbeddedFontProgramUsage();
 
@@ -24,10 +56,8 @@ internal static partial class PdfWriter {
         ValidateNamedDestinationLinks(layout.Pages);
         ValidateUriActionLinks(layout.Pages, opts);
         ValidateGeneratedFormFieldNames(layout.Pages);
-        PdfComplianceValidator.ValidateGeneratedDocument(
-            opts,
-            title,
-            CollectGeneratedComplianceEvidence(layout, opts));
+        complianceEvidence = CollectGeneratedComplianceEvidence(layout, opts);
+        PdfComplianceValidator.ValidateGeneratedDocument(opts, title, complianceEvidence);
 
         // Build PDF objects as byte arrays, then assemble with xref.
         using var objects = new PdfObjectStore(opts.ObjectBufferMemoryLimitBytes);

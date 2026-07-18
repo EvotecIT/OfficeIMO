@@ -101,6 +101,10 @@ PDF primitive exists somewhere in the codebase.
 - `PdfDocument.Analyze(...)` is the consolidated health, capability,
   diagnostics, optimization, signature, repair, mutation, and optional
   compliance report.
+- `PdfDocument.CreateComplianceArtifact(...)` captures exact output bytes and
+  the matching writer/readback readiness in one immutable snapshot. External
+  validators consume those bytes, and the snapshot reconciles their results
+  without rerendering or accepting evidence for another artifact.
 - `OfficeIMO.Drawing` is the shared managed scene, SVG, and raster owner.
 - `OfficeIMO.Html` owns HTML/CSS parsing, resource policy, layout, pagination,
   and its backend-neutral render scene.

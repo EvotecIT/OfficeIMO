@@ -103,6 +103,10 @@ facade:
 - Use `PdfDocument.Analyze(...)` when a workflow needs the combined health,
   rewrite-safety, diagnostics, optimization, signature, repair, and compliance
   view.
+- Use `CreateComplianceArtifact(...)` instead of separately rendering bytes and
+  passing them back to `AssessComplianceProof(...)`. The returned immutable
+  snapshot keeps exact output bytes and matching readiness evidence together,
+  including for randomized encrypted output.
 - Use the fluent `Pages`, `Forms`, `Attachments`, `Bookmarks`, `Annotations`,
   `Stamp`, `Security`, and metadata operations instead of the former public
   static engine classes. Those implementation engines are now internal so there
@@ -353,11 +357,12 @@ var options = new PdfOptions()
     .EmbedStandardFont(PdfStandardFont.Helvetica, fontBytes, "Source Serif 4")
     .RequireCompliance(PdfComplianceProfile.PdfA2B);
 
-PdfDocument document = PdfDocument.Create(options)
+PdfComplianceArtifact artifact = PdfDocument.Create(options)
     .Meta(title: "Archive copy")
-    .Paragraph(paragraph => paragraph.Text("This artifact is ready for external validation."));
+    .Paragraph(paragraph => paragraph.Text("This artifact is ready for external validation."))
+    .CreateComplianceArtifact(PdfComplianceProfile.PdfA2B);
 
-byte[] pdf = document.ToBytes();
+byte[] pdf = artifact.ToBytes();
 File.WriteAllBytes("archive.pdf", pdf);
 
 // Create this result from the validator invocation in your build or release lane.
@@ -369,10 +374,7 @@ PdfExternalValidationResult validation = PdfExternalValidationResult.PassedForAr
     pdf,
     "PDF/A-2b");
 
-PdfComplianceProofReport proof = document.AssessComplianceProof(
-    PdfComplianceProfile.PdfA2B,
-    pdf,
-    new[] { validation });
+PdfComplianceProofReport proof = artifact.AssessProof(new[] { validation });
 
 if (!proof.CanClaimConformance) {
     throw new InvalidOperationException(proof.ExternalProofSummary);

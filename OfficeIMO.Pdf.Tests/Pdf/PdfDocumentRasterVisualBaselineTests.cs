@@ -271,7 +271,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
         }
 
         if (!TryFindPdftoppm(out string rasterizerPath)) {
-            if (IsRequired()) {
+            if (IsStrictRasterBaselineRequired()) {
                 throw new InvalidOperationException("PDF raster baseline tests require Poppler pdftoppm. Install Poppler or set OFFICEIMO_PDF_RASTERIZER to pdftoppm.exe.");
             }
 

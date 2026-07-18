@@ -49,10 +49,18 @@ internal static partial class PdfComplianceAnalyzer {
     /// Combines an existing readiness report with exact PDF artifact identity and external validator evidence.
     /// </summary>
     public static PdfComplianceProofReport AssessProof(PdfComplianceReadinessReport readiness, byte[] artifact, IEnumerable<PdfExternalValidationResult>? externalValidations = null) {
+        return AssessProof(readiness, artifact, externalValidations, readOptions: null);
+    }
+
+    internal static PdfComplianceProofReport AssessProof(
+        PdfComplianceReadinessReport readiness,
+        byte[] artifact,
+        IEnumerable<PdfExternalValidationResult>? externalValidations,
+        PdfReadOptions? readOptions) {
         Guard.NotNull(readiness, nameof(readiness));
         Guard.NotNull(artifact, nameof(artifact));
 
-        PdfComplianceReadinessReport artifactReadiness = AssessReadback(readiness.Profile, artifact);
+        PdfComplianceReadinessReport artifactReadiness = AssessReadback(readiness.Profile, artifact, readOptions);
         PdfComplianceReadinessReport combinedReadiness = CombineReadiness(readiness, artifactReadiness);
         PdfExternalValidationResult[] validationSnapshot = SnapshotExternalValidations(externalValidations);
         return new PdfComplianceProofReport(

@@ -88,7 +88,8 @@ public partial class PdfComplianceAnalyzerTests {
         PdfDocument document = PdfDocument.Create(new PdfOptions()
                 .ConfigurePdfAGroundwork(PdfComplianceProfile.PdfA3B))
             .Paragraph(paragraph => paragraph.Text("Generated text must still have embedded font proof."));
-        byte[] artifact = document.ToBytes();
+        PdfComplianceArtifact complianceArtifact = document.CreateComplianceArtifact(PdfComplianceProfile.PdfA3B);
+        byte[] artifact = complianceArtifact.ToBytes();
         PdfExternalValidationResult veraPdf = PdfExternalValidationResult.PassedForArtifact(
             PdfExternalValidatorKind.VeraPdf,
             "veraPDF",
@@ -97,7 +98,7 @@ public partial class PdfComplianceAnalyzerTests {
             artifact,
             "PDF/A-3b");
 
-        PdfComplianceProofReport proof = document.AssessComplianceProof(PdfComplianceProfile.PdfA3B, artifact, new[] { veraPdf });
+        PdfComplianceProofReport proof = complianceArtifact.AssessProof(new[] { veraPdf });
 
         Assert.False(proof.IsInternallyReady);
         Assert.True(proof.HasRequiredExternalValidation);
@@ -107,22 +108,48 @@ public partial class PdfComplianceAnalyzerTests {
     }
 
     [Fact]
-    public void DocumentProofRejectsArtifactFromAnotherDocument() {
-        PdfDocument document = PdfDocument.Open(PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("First artifact."))
-            .ToBytes());
-        byte[] differentArtifact = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Different artifact."))
+    public void ComplianceArtifactRejectsValidatorEvidenceFromAnotherDocument() {
+        var options = new PdfOptions().ConfigurePdfAGroundwork(PdfComplianceProfile.PdfA3B);
+        PdfComplianceArtifact artifact = PdfDocument.Create(options)
+            .Meta(title: "First artifact")
+            .CreateComplianceArtifact(PdfComplianceProfile.PdfA3B);
+        byte[] differentBytes = PdfDocument.Create(options)
+            .Meta(title: "Different artifact")
             .ToBytes();
+        PdfExternalValidationResult differentValidation = PdfExternalValidationResult.PassedForArtifact(
+            PdfExternalValidatorKind.VeraPdf,
+            "veraPDF",
+            "1.30.2",
+            "A different PDF/A-3b artifact passed.",
+            differentBytes,
+            "PDF/A-3b");
 
-        var exception = Assert.Throws<ArgumentException>(() =>
-            document.AssessComplianceProof(
-                PdfComplianceProfile.PdfA3B,
-                differentArtifact,
-                externalValidations: null));
+        PdfComplianceProofReport proof = artifact.AssessProof(new[] { differentValidation });
 
-        Assert.Equal("artifact", exception.ParamName);
-        Assert.Contains("exact artifact", exception.Message, StringComparison.Ordinal);
+        Assert.NotEqual(artifact.ArtifactSha256, differentValidation.ArtifactSha256);
+        Assert.False(proof.HasRequiredExternalValidation);
+        Assert.False(proof.CanClaimConformance);
+        Assert.Contains(PdfExternalValidatorKind.VeraPdf, proof.MissingExternalValidators);
+    }
+
+    [Fact]
+    public void ComplianceArtifactUsesTheSingleEncryptedRenderItCaptured() {
+        PdfDocument document = PdfDocument.Create(new PdfOptions().SetEncryption("open", "owner"))
+            .Paragraph(paragraph => paragraph.Text("Encrypted exact artifact."));
+
+        PdfComplianceArtifact artifact = document.CreateComplianceArtifact(PdfComplianceProfile.PdfA3B);
+        byte[] firstCopy = artifact.ToBytes();
+        firstCopy[0] ^= 0x01;
+        byte[] exactBytes = artifact.ToBytes();
+        PdfComplianceProofReport proof = artifact.AssessProof();
+
+        Assert.True(PdfInspector.Probe(exactBytes).HasEncryption);
+        Assert.NotEqual(firstCopy[0], exactBytes[0]);
+        Assert.Equal(PdfArtifactFingerprint.ComputeSha256(exactBytes), artifact.ArtifactSha256);
+        Assert.Equal(exactBytes.LongLength, artifact.ArtifactSizeBytes);
+        Assert.Equal(artifact.ArtifactSha256, proof.ArtifactSha256);
+        Assert.Equal(artifact.ArtifactSizeBytes, proof.ArtifactSizeBytes);
+        AssertRequirement(proof.Readiness, "pdfa-no-encryption", PdfComplianceRequirementStatus.Missing);
     }
 
     [Fact]
