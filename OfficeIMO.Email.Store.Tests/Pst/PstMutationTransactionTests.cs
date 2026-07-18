@@ -84,6 +84,37 @@ public sealed class PstMutationTransactionTests {
         }
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Source_change_aborts_before_creating_or_replacing_backup(bool backupExists) {
+        string path = TemporaryPstPath();
+        string backupPath = string.Concat(path, ".backup.pst");
+        byte[] previousBackup = { 0x45, 0x56, 0x4F, 0x54, 0x45, 0x43 };
+        try {
+            CreateSource(path);
+            if (backupExists) File.WriteAllBytes(backupPath, previousBackup);
+            using EmailStorePstMutationTransaction transaction = EmailStorePstMutationTransaction.Open(path,
+                new EmailStorePstMutationOptions(backupPath: backupPath, overwriteBackup: true));
+            string inbox = Assert.Single(transaction.Folders, folder => folder.Name == "Inbox").Id;
+            transaction.RenameFolder(inbox, "Changed in transaction");
+            FieldInfo sourceWriteTime = typeof(EmailStorePstMutationTransaction).GetField(
+                "_sourceLastWriteTimeUtc", BindingFlags.Instance | BindingFlags.NonPublic)!;
+            sourceWriteTime.SetValue(transaction, File.GetLastWriteTimeUtc(path).AddMinutes(-1));
+
+            Assert.Throws<IOException>(() => transaction.Commit());
+
+            if (backupExists) {
+                Assert.Equal(previousBackup, File.ReadAllBytes(backupPath));
+            } else {
+                Assert.False(File.Exists(backupPath));
+            }
+        } finally {
+            TryDelete(path);
+            TryDelete(backupPath);
+        }
+    }
+
     [Fact]
     public void MutationPreservesStandardSpecialFolderIdentityAndDistinctRoots() {
         string path = TemporaryPstPath();
