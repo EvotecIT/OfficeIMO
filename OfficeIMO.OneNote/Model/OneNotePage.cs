@@ -39,11 +39,29 @@ public sealed class OneNotePage {
     /// <summary>Whether the page is marked as deleted content.</summary>
     public bool IsDeleted { get; set; }
 
-    /// <summary>Optional width in OneNote layout units.</summary>
+    /// <summary>Optional width in OneNote half-inch layout units.</summary>
     public double? Width { get; set; }
 
-    /// <summary>Optional height in OneNote layout units.</summary>
+    /// <summary>Optional height in OneNote half-inch layout units.</summary>
     public double? Height { get; set; }
+
+    /// <summary>Named native page size, or automatic sizing when absent.</summary>
+    public OneNotePageSize? PageSize { get; set; }
+
+    /// <summary>Native page orientation.</summary>
+    public OneNotePageOrientation? Orientation { get; set; }
+
+    /// <summary>Page margins and their layout origins, in half-inch units.</summary>
+    public OneNotePageMargins Margins { get; } = new OneNotePageMargins();
+
+    /// <summary>Whether the page uses right-to-left root layout.</summary>
+    public bool? RightToLeft { get; set; }
+
+    /// <summary>Whether the page is marked read-only.</summary>
+    public bool? IsReadOnly { get; set; }
+
+    /// <summary>Whether OneNote resolves collisions between freely positioned outlines.</summary>
+    public bool? ResolveChildCollisions { get; set; }
 
     /// <summary>Page-level outlines in source order.</summary>
     public IList<OneNoteOutline> Outlines { get; } = new List<OneNoteOutline>();
@@ -65,6 +83,66 @@ public sealed class OneNotePage {
 
     /// <summary>Diagnostics produced while loading the page.</summary>
     public IList<OneNoteDiagnostic> Diagnostics { get; } = new List<OneNoteDiagnostic>();
+}
+
+/// <summary>Native OneNote page-size identifiers.</summary>
+public enum OneNotePageSize {
+    /// <summary>The page automatically grows to fit its content.</summary>
+    Automatic = 0,
+    /// <summary>U.S. statement, 5.5 by 8.5 inches.</summary>
+    Statement = 1,
+    /// <summary>ANSI letter, 8.5 by 11 inches.</summary>
+    Letter = 2,
+    /// <summary>ANSI tabloid, 11 by 17 inches.</summary>
+    Tabloid = 3,
+    /// <summary>U.S. legal, 8.5 by 14 inches.</summary>
+    Legal = 4,
+    /// <summary>ISO A3.</summary>
+    A3 = 5,
+    /// <summary>ISO A4.</summary>
+    A4 = 6,
+    /// <summary>ISO A5.</summary>
+    A5 = 7,
+    /// <summary>ISO A6.</summary>
+    A6 = 8,
+    /// <summary>JIS B4.</summary>
+    B4 = 9,
+    /// <summary>JIS B5.</summary>
+    B5 = 10,
+    /// <summary>JIS B6.</summary>
+    B6 = 11,
+    /// <summary>Japanese postcard.</summary>
+    JapanesePostcard = 12,
+    /// <summary>Index card, 3 by 5 inches.</summary>
+    IndexCard = 13,
+    /// <summary>Billfold, 3.75 by 6.75 inches.</summary>
+    Billfold = 14,
+    /// <summary>Caller-defined width and height.</summary>
+    Custom = 15
+}
+
+/// <summary>OneNote page orientation.</summary>
+public enum OneNotePageOrientation {
+    /// <summary>Portrait orientation.</summary>
+    Portrait = 0,
+    /// <summary>Landscape orientation.</summary>
+    Landscape = 1
+}
+
+/// <summary>Page margins and margin origins in OneNote half-inch units.</summary>
+public sealed class OneNotePageMargins {
+    /// <summary>Left margin width.</summary>
+    public double? Left { get; set; }
+    /// <summary>Right margin width.</summary>
+    public double? Right { get; set; }
+    /// <summary>Top margin width.</summary>
+    public double? Top { get; set; }
+    /// <summary>Bottom margin width.</summary>
+    public double? Bottom { get; set; }
+    /// <summary>Horizontal margin origin.</summary>
+    public double? OriginX { get; set; }
+    /// <summary>Vertical margin origin.</summary>
+    public double? OriginY { get; set; }
 }
 
 internal sealed class OneNotePagePreservationIds {
@@ -97,7 +175,7 @@ public sealed class OneNoteTag {
     /// <summary>Tag definition identity. Serialization assigns and retains it for a new non-task tag.</summary>
     public OneNoteExtendedGuid? DefinitionId { get; set; }
 
-    /// <summary>MS-ONE action-item identity (0-99 for normal tags and 100-105 for task tags).</summary>
+    /// <summary>MS-ONE action-item identity (0-99 for known normal tags, 100-105 for task tags; other native values are preserved).</summary>
     public uint? ActionItemType { get; set; }
 
     /// <summary>Tag label.</summary>

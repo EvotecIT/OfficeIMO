@@ -1,3 +1,5 @@
+using OfficeIMO.Drawing;
+
 namespace OfficeIMO.OneNote;
 
 /// <summary>
@@ -105,6 +107,24 @@ public sealed class OneNoteImage : OneNoteBinaryElement {
     /// <summary>Optional hyperlink associated with the image.</summary>
     public string? Hyperlink { get; set; }
 
+    /// <summary>Optical-character-recognition text stored with the image.</summary>
+    public string? OcrText { get; set; }
+
+    /// <summary>LCID used for image optical-character recognition.</summary>
+    public uint? OcrLanguageId { get; set; }
+
+    /// <summary>Displayed printout page number when the image represents a printed page.</summary>
+    public uint? DisplayedPageNumber { get; set; }
+
+    /// <summary>Whether the image is directly placed as a page background.</summary>
+    public bool? IsBackground { get; set; }
+
+    /// <summary>Whether the displayed size was explicitly selected by the user.</summary>
+    public bool? SizeSetByUser { get; set; }
+
+    /// <summary>Native upload-state value for source compatibility.</summary>
+    public uint? UploadState { get; set; }
+
     /// <summary>
     /// Original image width in the half-inch increments used by the MS-ONE
     /// <c>PictureWidth</c> property.
@@ -137,47 +157,38 @@ public sealed class OneNoteEmbeddedFile : OneNoteBinaryElement {
 /// Ink or handwriting content preserved from a OneNote page.
 /// </summary>
 public sealed class OneNoteInk : OneNoteBinaryElement {
+    internal OneNoteExtendedGuid? InkDataObjectId { get; set; }
+    internal IDictionary<OfficeInkStroke, OneNoteExtendedGuid> StrokeObjectIds { get; } = new Dictionary<OfficeInkStroke, OneNoteExtendedGuid>();
+    internal IDictionary<OfficeInkStroke, OneNoteExtendedGuid> StrokePropertyObjectIds { get; } = new Dictionary<OfficeInkStroke, OneNoteExtendedGuid>();
+    internal IDictionary<OfficeInkStroke, OfficeInkStroke> PreservedNativeStrokeSnapshots { get; } = new Dictionary<OfficeInkStroke, OfficeInkStroke>();
+    internal IDictionary<OfficeInkStroke, OfficeInkStroke> PreservedNestedStrokeSnapshots { get; } = new Dictionary<OfficeInkStroke, OfficeInkStroke>();
+    internal IList<OneNoteExtendedGuid> PreservedStrokeObjectIds { get; } = new List<OneNoteExtendedGuid>();
+    internal IList<OneNoteExtendedGuid> PreservedChildContainerIds { get; } = new List<OneNoteExtendedGuid>();
+    internal byte[]? PreservedInkBoundingBox { get; set; }
+    internal double PreservedInkScaleX { get; set; } = 1D;
+    internal double PreservedInkScaleY { get; set; } = 1D;
+
     /// <inheritdoc />
     public override OneNoteElementKind Kind => OneNoteElementKind.Ink;
 
-    /// <summary>Decoded strokes when the ink representation is understood.</summary>
-    public IList<OneNoteInkStroke> Strokes { get; } = new List<OneNoteInkStroke>();
-}
+    /// <summary>Decoded, editable strokes in the reusable Drawing-owned ink model.</summary>
+    public OfficeInkDocument Ink { get; } = new OfficeInkDocument();
 
-/// <summary>
-/// A decoded ink stroke.
-/// </summary>
-public sealed class OneNoteInkStroke {
-    /// <summary>Stroke points in source order.</summary>
-    public IList<OneNoteInkPoint> Points { get; } = new List<OneNoteInkPoint>();
-
-    /// <summary>Stroke color encoded as ARGB.</summary>
-    public uint? ColorArgb { get; set; }
-
-    /// <summary>Stroke width.</summary>
-    public double? Width { get; set; }
-}
-
-/// <summary>
-/// A point in a decoded ink stroke.
-/// </summary>
-public sealed class OneNoteInkPoint {
-    /// <summary>Horizontal coordinate.</summary>
-    public double X { get; set; }
-
-    /// <summary>Vertical coordinate.</summary>
-    public double Y { get; set; }
-
-    /// <summary>Optional pen pressure.</summary>
-    public double? Pressure { get; set; }
+    /// <summary>Decoded strokes in paint order.</summary>
+    public IReadOnlyList<OfficeInkStroke> Strokes => Ink.Strokes;
 }
 
 /// <summary>
 /// Mathematical content and its best available projections.
 /// </summary>
 public sealed class OneNoteMath : OneNoteElement {
+    internal OneNoteExtendedGuid? ContentObjectId { get; set; }
+
     /// <inheritdoc />
     public override OneNoteElementKind Kind => OneNoteElementKind.Math;
+
+    /// <summary>Structured, editable mathematical content owned by OfficeIMO.Drawing.</summary>
+    public OfficeMathExpression? Expression { get; set; }
 
     /// <summary>Plain-text mathematical projection.</summary>
     public string? Text { get; set; }
@@ -190,6 +201,25 @@ public sealed class OneNoteMath : OneNoteElement {
 
     /// <summary>Raw mathematical payload preserved for loss-aware writing.</summary>
     public OneNoteBinaryPayload? RawPayload { get; set; }
+
+    /// <summary>Assigns a structured expression and refreshes its portable projections.</summary>
+    public OneNoteMath SetExpression(OfficeMathExpression expression, bool populateProjections = true) {
+        Expression = expression ?? throw new ArgumentNullException(nameof(expression));
+        Text = expression.ToPlainText();
+        if (populateProjections) {
+            MathMl = OfficeMathMarkup.ToMathMl(expression);
+            Latex = OfficeMathMarkup.ToLatex(expression);
+        }
+        return this;
+    }
+
+    /// <summary>Returns the structured expression or derives it from MathML, LaTeX, or plain text.</summary>
+    public OfficeMathExpression GetExpression() {
+        if (Expression != null) return Expression;
+        if (!string.IsNullOrWhiteSpace(MathMl)) return OfficeMathMarkup.FromMathMl(MathMl!);
+        if (!string.IsNullOrWhiteSpace(Latex)) return OfficeMathMarkup.FromLatex(Latex!);
+        return OfficeMath.Text(Text ?? string.Empty);
+    }
 }
 
 /// <summary>

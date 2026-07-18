@@ -68,6 +68,21 @@ public sealed class OneNoteLayout {
 
     /// <summary>Whether the element is placed in right-to-left reading order.</summary>
     public bool? RightToLeft { get; set; }
+
+    /// <summary>Minimum outline width.</summary>
+    public double? MinimumWidth { get; set; }
+
+    /// <summary>Native alignment flags relative to the parent.</summary>
+    public uint? AlignmentInParent { get; set; }
+
+    /// <summary>Native self-alignment flags.</summary>
+    public uint? AlignmentSelf { get; set; }
+
+    /// <summary>Native collision-resolution priority.</summary>
+    public uint? CollisionPriority { get; set; }
+
+    /// <summary>Whether tight alignment is enabled.</summary>
+    public bool? TightAlignment { get; set; }
 }
 
 /// <summary>
@@ -97,6 +112,13 @@ public sealed class OneNoteParagraph : OneNoteElement {
     /// <summary>Formatted text runs in source order.</summary>
     public IList<OneNoteTextRun> Runs { get; } = new List<OneNoteTextRun>();
 
+    /// <summary>Appends a structured inline mathematical expression.</summary>
+    public OneNoteTextRun AddMath(OfficeIMO.Drawing.OfficeMathExpression expression) {
+        var run = new OneNoteTextRun().SetMathExpression(expression);
+        Runs.Add(run);
+        return run;
+    }
+
     /// <summary>Optional list marker metadata.</summary>
     public OneNoteListInfo? List { get; set; }
 
@@ -113,8 +135,28 @@ public sealed class OneNoteParagraph : OneNoteElement {
 /// A formatted text run.
 /// </summary>
 public sealed class OneNoteTextRun {
+    internal OneNoteMathInlineDescriptor? MathDescriptor { get; set; }
+    internal OfficeIMO.Drawing.OfficeMathExpression? PreservedMathExpression { get; set; }
+    internal IReadOnlyList<OneNoteTextRun>? PreservedNativeMathRuns { get; set; }
+
     /// <summary>Unicode run text.</summary>
     public string Text { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Optional structured inline mathematical expression. The reusable expression tree is owned by
+    /// OfficeIMO.Drawing; OneNote maps it to and from the native rich-text math grammar.
+    /// </summary>
+    public OfficeIMO.Drawing.OfficeMathExpression? MathExpression { get; set; }
+
+    /// <summary>Assigns a structured inline mathematical expression and its readable text projection.</summary>
+    public OneNoteTextRun SetMathExpression(OfficeIMO.Drawing.OfficeMathExpression expression) {
+        MathExpression = expression ?? throw new ArgumentNullException(nameof(expression));
+        PreservedMathExpression = null;
+        PreservedNativeMathRuns = null;
+        Text = expression.ToPlainText();
+        Style.IsMath = true;
+        return this;
+    }
 
     /// <summary>Run formatting.</summary>
     public OneNoteTextStyle Style { get; } = new OneNoteTextStyle();
@@ -184,13 +226,13 @@ public sealed class OneNoteParagraphStyle {
     /// <summary>Horizontal alignment.</summary>
     public OneNoteParagraphAlignment? Alignment { get; set; }
 
-    /// <summary>Space before the paragraph.</summary>
+    /// <summary>Space before the paragraph in native half-inch units.</summary>
     public double? SpaceBefore { get; set; }
 
-    /// <summary>Space after the paragraph.</summary>
+    /// <summary>Space after the paragraph in native half-inch units.</summary>
     public double? SpaceAfter { get; set; }
 
-    /// <summary>Exact line spacing.</summary>
+    /// <summary>Exact line spacing in native half-inch units.</summary>
     public double? ExactLineSpacing { get; set; }
 }
 

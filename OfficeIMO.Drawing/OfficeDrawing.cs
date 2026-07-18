@@ -62,6 +62,13 @@ public sealed partial class OfficeDrawing {
         return this;
     }
 
+    internal OfficeDrawing AddShapeForClippedRendering(OfficeShape shape, double x, double y) {
+        var item = new OfficeDrawingShape(shape, x, y);
+        _shapes.Add(item);
+        _elements.Add(item);
+        return this;
+    }
+
     /// <summary>Adds a shape behind existing foreground content while keeping an initial page background underneath it.</summary>
     public OfficeDrawing AddShapeBehindContent(OfficeShape shape, double x, double y) {
         var item = new OfficeDrawingShape(shape, x, y);

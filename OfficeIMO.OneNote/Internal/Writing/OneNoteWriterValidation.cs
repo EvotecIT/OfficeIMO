@@ -6,6 +6,9 @@ internal static class OneNoteWriterValidation {
         if (options.MaxOutputBytes < 1) {
             throw new ArgumentOutOfRangeException(nameof(options.MaxOutputBytes), "MaxOutputBytes must be greater than zero.");
         }
+        if (options.MaxInkPathValues < 1) {
+            throw new ArgumentOutOfRangeException(nameof(options.MaxInkPathValues), "MaxInkPathValues must be greater than zero.");
+        }
         ValidateTraversalDepth(options.MaxPageRelationshipDepth, nameof(options.MaxPageRelationshipDepth));
         ValidateTraversalDepth(options.MaxContentDepth, nameof(options.MaxContentDepth));
     }
@@ -25,6 +28,7 @@ internal static class OneNoteWriterValidation {
         MaxInputBytes = maxOutputBytes,
         MaxAssetBytes = maxOutputBytes,
         MaxTotalAssetBytes = maxOutputBytes,
+        MaxInkPathValues = options.MaxInkPathValues,
         MaxPageRelationshipDepth = Math.Max(
             OneNoteReaderOptions.DefaultMaxPageRelationshipDepth,
             options.MaxPageRelationshipDepth),

@@ -70,20 +70,59 @@ OneNoteNotebook reopened = OneNotePackageReader.Read("Offline notebook.onepkg");
 
 `OneNoteNotebookReader` opens a notebook directory or `.onetoc2`. `OneNotePackageReader` opens `.onepkg`. Both retain section-group and page/subpage hierarchy.
 
+## Author ink and editable math
+
+Ink and math use reusable models from `OfficeIMO.Drawing`; this package only maps those models to OneNote's native object graph and coordinate system.
+
+```csharp
+using OfficeIMO.Drawing;
+
+var page = new OneNotePage { Title = "Ink and math" };
+var ink = new OneNoteInk {
+    Layout = new OneNoteLayout { X = 1.0, Y = 2.0 }
+};
+var stroke = new OfficeInkStroke {
+    Color = OfficeColor.SteelBlue,
+    Width = 0.04,
+    Height = 0.04,
+    Bias = OfficeInkBias.Handwriting,
+    LanguageId = 1033,
+    RecognizedText = "approved"
+};
+stroke.RecognitionAlternatives.Add("approved");
+stroke.RecognitionAlternatives.Add("approve");
+stroke.AddPoint(0.1, 0.2, 0.4)
+      .AddPoint(0.8, 0.5, 1.0)
+      .AddPoint(1.6, 0.25, 0.6);
+ink.Ink.Add(stroke);
+page.DirectContent.Add(ink);
+
+var equation = OfficeMath.Fraction(
+    OfficeMath.Row(OfficeMath.Identifier("x"), OfficeMath.Operator("+"), OfficeMath.Number("1")),
+    OfficeMath.Radical(OfficeMath.Identifier("y")));
+var mathParagraph = new OneNoteParagraph();
+mathParagraph.AddMath(equation);
+page.DirectContent.Add(mathParagraph);
+```
+
+The writer emits native stroke, pressure, pen-style, transparency, language, and handwriting-recognition objects. Loaded nested ink containers and unsupported packet dimensions are retained exactly while unchanged; edited supported strokes are re-encoded without applying native container scaling twice. Drawing owns highlighter effective opacity, so rendering and native transparency use the same visual result. When direct ink also contains undecodable strokes, its preserved native bounding box is retained and unioned with authored strokes; writing fails closed if that complete bound is unavailable. An edit that would relocate undecodable nested ink also fails closed. Structured math remains editable and can be projected to MathML, LaTeX, plain text, or the shared Drawing renderer. Native descriptor character fields reject multi-character or surrogate values rather than truncating them. A standalone `OneNoteMath` is an authoring convenience; its native canonical read shape is a paragraph containing one inline math run.
+
 ## Semantic coverage
 
 The typed model covers:
 
 - notebooks, section groups, sections, pages, and subpages;
 - positioned outlines, rich text and run styles, lists, hyperlinks, and tables;
-- images, embedded files, recordings/media, lazy payloads, and layout metadata;
+- images, printout/background images, OCR text and language, embedded files, recordings/media identity and duration, lazy payloads, and layout metadata;
 - note tags, Outlook-style task tags, authors, timestamps, and revisions;
 - conflict copies and version-history pages;
-- ink/handwriting payloads and decoded strokes where the representation is understood;
-- plain and structured math projections where present;
+- editable ink strokes, pressure, pen style, transforms, language, and handwriting-recognition alternatives;
+- editable inline and block math backed by the shared structured expression tree;
 - diagnostics plus unknown objects, properties, roots, and relationships for loss-aware preservation.
 
 Native picture dimensions are exposed as `WidthHalfInches` and `HeightHalfInches`. MS-ONE stores these properties as IEEE-754 floating-point counts of half-inch units; Reader converts them to pixels at 96 DPI when it emits asset metadata. Images can carry both the normal `PictureContainer` relationship and the newer `WebPictureContainer14` relationship. Reading prefers the normal payload and falls back to the web payload when necessary. A loaded image whose payload cannot be resolved still retains its native relationships and can survive an unrelated preservation write; explicitly canonicalizing such an image without a payload fails instead of inventing or silently dropping data.
+
+Page width, height, paragraph spacing, exact line spacing, image dimensions, and table column widths use native half-inch units. Named page sizes are written with their canonical dimensions and orientation; custom pages require both dimensions. Native tables require rectangular row topology and one width of at least one half-inch per column. An omitted width collection is normalized to one half-inch per column. Adjacent paragraph spacing collapses to the larger of the preceding `SpaceAfter` and following `SpaceBefore`, matching OneNote layout.
 
 When a loaded section is edited, unsupported source structures are preserved unless the typed edit replaces or deletes their owning relationship. Known typed properties win over stale opaque values. Native `PageSeriesNode` objects can own several current pages; preservation writes keep contiguous members in that shared series shape and align cached page metadata by reference order instead of collapsing the series to one page. An insertion or move that splits the source series starts a new native series run, so preservation never overrides the caller's requested page order.
 
@@ -93,8 +132,8 @@ New notebooks, groups, sections, pages, and content receive their native logical
 
 ## Deliberate write boundaries
 
-- New plain-text math can be serialized. Creating or replacing raw MathML/LaTeX payloads currently fails with `ONENOTE_WRITE_UNSUPPORTED_MATH` instead of flattening them silently.
-- Source ink is retained during unrelated edits. Creating or replacing native ink currently fails with `ONENOTE_WRITE_UNSUPPORTED_INK` instead of dropping strokes.
+- The structured math API covers the expression kinds represented by `OfficeMathExpression`. Unknown source math objects remain available to the loss-aware preservation layer rather than being guessed or flattened.
+- Typed ink authoring covers the native X/Y/pressure dimensions and pen properties represented by `OfficeInkStroke`. Unknown ink objects and properties remain opaque when they cannot be projected safely.
 - MS-ONE task tags are always checkable. A task or explicit normal-tag shape that contradicts `IsCheckable` fails closed instead of silently changing the tag after a round trip.
 - Encrypted or otherwise unsupported sections produce diagnostics; notebook readers can continue with other sections when configured to do so.
 
@@ -112,11 +151,34 @@ Before writing or projecting, caller-created section-group, conflict/version, an
 
 Caller-owned streams stay open. Seekable read streams are restored to their original position. Async probe and Reader entry points support cancellation.
 
+## Page rendering and image export
+
+The OneNote package maps a page once to `OfficeDrawing`. The page mapper measures hard and soft rich-text wrapping, exact line spacing, tables and cell content, inline/block math, images, and ink against the final canvas width. Automatic canvases expand from those measured bounds. The shared Drawing engine then owns SVG and pixel output, so PNG, JPEG, TIFF, and lossless WebP do not have separate OneNote renderers.
+
+```csharp
+using OfficeIMO.Drawing;
+
+OfficeDrawing canvas = page.ToDrawing();
+
+page.ToImage()
+    .WithDpi(144)
+    .AsPng()
+    .Save("page.png");
+
+notebook.ToImages()
+    .AllPages()
+    .WithDpi(144)
+    .AsTiff()
+    .Save("Notebook pages");
+```
+
+The canvas includes positioned outlines, styled text, lists and tags, tables, images and printouts, ink, structured math, plus placeholders for attachments and recordings. Page and element RTL state flows into body, table, and inline-math alignment. `OneNotePageRenderingOptions` controls automatic page bounds, source-payload limits, the hard `MaximumRasterPixels` output allocation ceiling, fonts, background color, ink/math settings, and feature inclusion. Oversized PNG/JPEG/TIFF/WebP exports reduce scale and report `ONENOTE_IMAGE_RASTER_SCALE_LIMITED`. Drawing decodes bounded PNG, JPEG, uncompressed BMP, and first-frame GIF source pictures directly; set `ImageCodec` (or use the fluent `WithImageCodec(...)` method) for additional source formats. If a source picture still cannot be decoded, raster, SVG, and visual-HTML export paint a visible placeholder and report `DRAWING_RASTER_IMAGE_UNSUPPORTED` instead of dropping it. Visual HTML can collect these warnings through `OneNoteVisualHtmlOptions.DiagnosticSink`. Section and notebook batch exports use `OneNotePageTraversal` so page selection and names follow native table-of-contents order.
+
 ## Conversion and Reader packages
 
 - `OfficeIMO.OneNote.Markdown` owns the shared semantic Markdown/text projection.
-- `OfficeIMO.OneNote.Html` renders HTML through the first-party Markdown model.
-- `OfficeIMO.OneNote.Pdf` renders PDF through `OfficeIMO.Markdown.Pdf` and `OfficeIMO.Pdf`.
+- `OfficeIMO.OneNote.Html` offers semantic Markdown-backed HTML and position-preserving responsive SVG-page HTML.
+- `OfficeIMO.OneNote.Pdf` offers semantic, selectable-text PDF and position-preserving visual PDF from the same Drawing canvas used by image export.
 - `OfficeIMO.Reader.OneNote` emits page-aware chunks, hierarchy, tables, links, assets, metadata, hashes, diagnostics, and Markdown/text projections.
 
 Conflict copies and version-history snapshots are opt-in in direct conversions through `OneNoteMarkdownOptions`. Reader reports their counts in structured metadata while keeping current pages as the default chunk surface.
@@ -125,6 +187,6 @@ Notebook readers exclude the `OneNote_RecycleBin` section group by default. Set 
 
 ## Compatibility evidence
 
-The test corpus contains legally reusable Apache-2.0 OneNote fixtures for desktop and Microsoft 365/FSSHTTP encodings. Tests cover native read/write round trips, unknown-data preservation, deterministic corruption mutations, truncation, limits, package paths, and all supported target frameworks. Release validation also covers packed-NuGet consumer use. Generated desktop sections have also been opened, edited, saved, closed, and reopened with Microsoft OneNote during interoperability validation; OneNote is not required at runtime or in CI.
+The test corpus contains legally reusable Apache-2.0 fixtures for desktop and Microsoft 365/FSSHTTP encodings plus an MPL-2.0 real-world handwriting-recognition fixture. Tests cover native read/write round trips, decoded ink geometry and recognition, image formats, visual conversion, unknown-data preservation, deterministic corruption mutations, truncation, limits, package paths, and supported target frameworks. Generated desktop sections have also been opened, edited, saved, closed, and reopened with Microsoft OneNote during interoperability validation; OneNote is not required at runtime or in CI.
 
 See the [current-state and capability matrix](../Docs/officeimo.onenote.current-state.md) for detailed boundaries and links to the Microsoft format specifications.
