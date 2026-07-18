@@ -91,9 +91,12 @@ slides, masters, layouts, placeholders, themes, text, shapes, pictures, notes, c
 transitions, animations, properties, macros, embedded objects, and media contracts exposed by the normal
 PowerPoint model:
 
-Open XML output is always a macro-free `.pptx`. VBA imported from a binary presentation remains available
-in the editable model and is retained when saving back to `.ppt`, `.pot`, or `.pps`, but it is omitted from
+Explicit `.pptx` output is macro-free. VBA imported from a binary presentation remains available in the
+editable model and is retained when saving back to `.ppt`, `.pot`, or `.pps`, but it is omitted from
 `Save("output.pptx")` and `ToBytes(PowerPointFileFormat.Pptx)` so the package content matches its extension.
+Matching macro-enabled Open XML path destinations (`.pptm`, `.potm`, `.ppsm`, and `.ppam`) preserve their
+package type and VBA, including encrypted path saves. Associated no-format stream saves preserve the loaded
+macro-enabled package type and VBA as well.
 
 ```csharp
 using OfficeIMO.PowerPoint.LegacyPpt;
