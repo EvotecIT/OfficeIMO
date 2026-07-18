@@ -37,12 +37,20 @@ internal static class OfficeImageExportPath {
             return resolved;
         }
 
-        for (int suffix = 1; suffix < int.MaxValue; suffix++) {
-            string candidate = suffix == 1 ? resolved : CreateSuffixedPath(resolved, suffix);
-            if (OfficeFileCommit.TryWriteAllBytes(candidate, bytes)) return candidate;
-        }
+        string stagingPath = OfficeFileCommit.StageAllBytes(resolved, bytes);
+        try {
+            for (int suffix = 1; suffix < int.MaxValue; suffix++) {
+                string candidate = suffix == 1 ? resolved : CreateSuffixedPath(resolved, suffix);
+                if (OfficeFileCommit.TryCommitTemporaryFileIfAbsent(stagingPath, candidate)) {
+                    stagingPath = string.Empty;
+                    return candidate;
+                }
+            }
 
-        throw new IOException("Could not allocate a unique image export destination.");
+            throw new IOException("Could not allocate a unique image export destination.");
+        } finally {
+            OfficeFileCommit.DeleteIfExists(stagingPath);
+        }
     }
 
     internal static async Task<string> WriteAllBytesAsync(
@@ -61,15 +69,24 @@ internal static class OfficeImageExportPath {
             return resolved;
         }
 
-        for (int suffix = 1; suffix < int.MaxValue; suffix++) {
-            cancellationToken.ThrowIfCancellationRequested();
-            string candidate = suffix == 1 ? resolved : CreateSuffixedPath(resolved, suffix);
-            if (await OfficeFileCommit.TryWriteAllBytesAsync(candidate, bytes, cancellationToken).ConfigureAwait(false)) {
-                return candidate;
+        string stagingPath = await OfficeFileCommit.StageAllBytesAsync(
+            resolved,
+            bytes,
+            cancellationToken).ConfigureAwait(false);
+        try {
+            for (int suffix = 1; suffix < int.MaxValue; suffix++) {
+                cancellationToken.ThrowIfCancellationRequested();
+                string candidate = suffix == 1 ? resolved : CreateSuffixedPath(resolved, suffix);
+                if (OfficeFileCommit.TryCommitTemporaryFileIfAbsent(stagingPath, candidate)) {
+                    stagingPath = string.Empty;
+                    return candidate;
+                }
             }
-        }
 
-        throw new IOException("Could not allocate a unique image export destination.");
+            throw new IOException("Could not allocate a unique image export destination.");
+        } finally {
+            OfficeFileCommit.DeleteIfExists(stagingPath);
+        }
     }
 
     internal static OfficeFileCommit.ConflictPolicy ToCommitPolicy(OfficeImageExportFileConflictPolicy policy) =>

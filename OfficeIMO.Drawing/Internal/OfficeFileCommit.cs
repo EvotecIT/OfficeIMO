@@ -50,11 +50,8 @@ namespace OfficeIMO.Drawing.Internal {
             Write(targetPath, stream => stream.Write(bytes, 0, bytes.Length), conflictPolicy);
         }
 
-        /// <summary>
-        /// Atomically writes a completed byte array only when the destination can be claimed.
-        /// </summary>
-        /// <returns><c>false</c> when another writer already claimed the destination.</returns>
-        public static bool TryWriteAllBytes(string targetPath, byte[] bytes) {
+        /// <summary>Writes completed bytes to a same-directory staging file for a later atomic commit.</summary>
+        public static string StageAllBytes(string targetPath, byte[] bytes) {
 #if NET6_0_OR_GREATER
             ArgumentNullException.ThrowIfNull(bytes);
 #else
@@ -69,11 +66,10 @@ namespace OfficeIMO.Drawing.Internal {
                     stream.Flush();
                 }
 
-                if (!TryMoveIfAbsent(temporaryPath, fullTargetPath)) return false;
-                temporaryPath = string.Empty;
-                return true;
-            } finally {
+                return temporaryPath;
+            } catch {
                 DeleteIfExists(temporaryPath);
+                throw;
             }
         }
 
@@ -109,11 +105,8 @@ namespace OfficeIMO.Drawing.Internal {
             }
         }
 
-        /// <summary>
-        /// Asynchronously writes a completed byte array only when the destination can be claimed.
-        /// </summary>
-        /// <returns><c>false</c> when another writer already claimed the destination.</returns>
-        public static async Task<bool> TryWriteAllBytesAsync(
+        /// <summary>Asynchronously writes completed bytes to a same-directory staging file.</summary>
+        public static async Task<string> StageAllBytesAsync(
             string targetPath,
             byte[] bytes,
             CancellationToken cancellationToken = default) {
@@ -137,11 +130,10 @@ namespace OfficeIMO.Drawing.Internal {
                 }
 
                 cancellationToken.ThrowIfCancellationRequested();
-                if (!TryMoveIfAbsent(temporaryPath, fullTargetPath)) return false;
-                temporaryPath = string.Empty;
-                return true;
-            } finally {
+                return temporaryPath;
+            } catch {
                 DeleteIfExists(temporaryPath);
+                throw;
             }
         }
 
@@ -283,6 +275,21 @@ namespace OfficeIMO.Drawing.Internal {
             }
 
             ReplaceUsingBackup(temporaryPath, fullTargetPath);
+        }
+
+        /// <summary>
+        /// Atomically commits an existing staging file only when the destination can be claimed.
+        /// </summary>
+        /// <returns><c>false</c> when another writer already claimed the destination.</returns>
+        public static bool TryCommitTemporaryFileIfAbsent(
+            string temporaryPath,
+            string targetPath) {
+            if (string.IsNullOrWhiteSpace(temporaryPath)) {
+                throw new ArgumentException("Temporary path cannot be empty.", nameof(temporaryPath));
+            }
+
+            EnsureTargetDirectory(targetPath);
+            return TryMoveIfAbsent(temporaryPath, GetFullTargetPath(targetPath));
         }
 
         private static void EnsureDestinationWritable(string targetPath) {
