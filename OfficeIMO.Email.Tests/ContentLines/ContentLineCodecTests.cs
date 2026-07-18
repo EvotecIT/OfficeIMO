@@ -25,6 +25,14 @@ public sealed class ContentLineCodecTests {
     }
 
     [Fact]
+    public void ComponentDelimitersRejectParameters() {
+        Assert.Throws<InvalidDataException>(() => IcsDocument.Parse(
+            "BEGIN;X-PARAM=value:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Test//EN\r\nEND:VCALENDAR\r\n"));
+        Assert.Throws<InvalidDataException>(() => VCardDocument.Parse(
+            "BEGIN:VCARD\r\nVERSION:4.0\r\nFN:Test\r\nEND;X-PARAM=value:VCARD\r\n"));
+    }
+
+    [Fact]
     public void PublicContentLineApisRejectNonAsciiTokens() {
         Assert.Throws<ArgumentException>(() => new ContentLineComponent("VÉVENT"));
         Assert.Throws<ArgumentException>(() => new ContentLineProperty("NÅME", "value"));

@@ -31,6 +31,8 @@ internal static class ContentLineCodec {
                 if (line.Length == 0) continue;
                 ContentLineProperty property = ParseProperty(line, decodeRfc6868Parameters);
                 if (property.Group == null && string.Equals(property.Name, "BEGIN", StringComparison.OrdinalIgnoreCase)) {
+                    if (property.Parameters.Count != 0)
+                        throw new InvalidDataException("BEGIN component delimiters cannot contain parameters.");
                     string name = ContentLineSyntax.RequireToken(property.Value, "componentName");
                     if (++componentCount > options.MaxComponents)
                         throw new InvalidDataException("The content-line document exceeds the configured component limit.");
@@ -42,6 +44,8 @@ internal static class ContentLineCodec {
                     continue;
                 }
                 if (property.Group == null && string.Equals(property.Name, "END", StringComparison.OrdinalIgnoreCase)) {
+                    if (property.Parameters.Count != 0)
+                        throw new InvalidDataException("END component delimiters cannot contain parameters.");
                     if (stack.Count == 0 || !string.Equals(stack.Peek().Name, property.Value,
                         StringComparison.OrdinalIgnoreCase))
                         throw new InvalidDataException("The content-line document contains a mismatched END component.");

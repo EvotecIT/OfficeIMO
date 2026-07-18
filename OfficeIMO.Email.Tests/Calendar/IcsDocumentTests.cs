@@ -285,6 +285,17 @@ public sealed class IcsDocumentTests {
             StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void ValidationRejectsDuplicateRecurrenceRuleProperties() {
+        var document = new IcsDocument();
+        ContentLineComponent appointment = document.Calendars.Single().AddComponent("VEVENT");
+        appointment.AddProperty("RRULE", "FREQ=DAILY");
+        appointment.AddProperty("RRULE", "FREQ=WEEKLY");
+
+        Assert.Contains(document.Validate(), issue => issue.Code == "ICAL_PROPERTY_CARDINALITY" &&
+            issue.ComponentName == "VEVENT" && issue.PropertyName == "RRULE");
+    }
+
     [Theory]
     [InlineData("BYSECOND=61")]
     [InlineData("BYMINUTE=-1")]
@@ -469,6 +480,44 @@ public sealed class IcsDocumentTests {
     }
 
     [Theory]
+    [InlineData("20261025", "VALUE", "DATE")]
+    [InlineData("20261025T030000Z", null, null)]
+    [InlineData("20261025T030000", "TZID", "Europe/Warsaw")]
+    [InlineData("20261025T030000/20261025T040000", "VALUE", "PERIOD")]
+    public void ValidationRejectsNonFloatingTimeZoneObservanceRecurrenceDates(
+        string value, string? parameterName, string? parameterValue) {
+        var document = new IcsDocument();
+        ContentLineComponent timeZone = document.Calendars.Single().AddComponent("VTIMEZONE");
+        timeZone.AddProperty("TZID", "Europe/Warsaw");
+        ContentLineComponent standard = timeZone.AddComponent("STANDARD");
+        standard.AddProperty("DTSTART", "20261025T030000");
+        standard.AddProperty("TZOFFSETFROM", "+0200");
+        standard.AddProperty("TZOFFSETTO", "+0100");
+        ContentLineProperty recurrenceDate = standard.AddProperty("RDATE", value);
+        if (parameterName != null) recurrenceDate.SetParameter(parameterName, parameterValue!);
+
+        Assert.Contains(document.Validate(), issue =>
+            issue.Code == "ICAL_TIMEZONE_OBSERVANCE_RDATE_INVALID" &&
+            issue.ComponentName == "STANDARD" && issue.PropertyName == "RDATE");
+    }
+
+    [Fact]
+    public void ValidationAcceptsFloatingTimeZoneObservanceRecurrenceDateLists() {
+        var document = new IcsDocument();
+        ContentLineComponent timeZone = document.Calendars.Single().AddComponent("VTIMEZONE");
+        timeZone.AddProperty("TZID", "Europe/Warsaw");
+        ContentLineComponent standard = timeZone.AddComponent("STANDARD");
+        standard.AddProperty("DTSTART", "20261025T030000");
+        standard.AddProperty("TZOFFSETFROM", "+0200");
+        standard.AddProperty("TZOFFSETTO", "+0100");
+        standard.AddProperty("RDATE", "20271031T030000,20281029T030000")
+            .SetParameter("VALUE", "DATE-TIME");
+
+        Assert.DoesNotContain(document.Validate(), issue =>
+            issue.Code == "ICAL_TIMEZONE_OBSERVANCE_RDATE_INVALID");
+    }
+
+    [Theory]
     [InlineData("20260718T090000", "20260718T100000Z", "DTSTART",
         "ICAL_TEMPORAL_VALUE_UTC_REQUIRED")]
     [InlineData("20260718T090000Z", "20260718T100000", "DTEND",
@@ -487,6 +536,43 @@ public sealed class IcsDocumentTests {
     }
 
     [Theory]
+    [InlineData("not-a-period")]
+    [InlineData("20260718T090000/20260718T100000Z")]
+    [InlineData("20260718T090000Z/20260718T100000")]
+    [InlineData("20260718T100000Z/20260718T090000Z")]
+    [InlineData("20260718T090000Z/-PT1H")]
+    [InlineData("20260718T090000Z/PT0S")]
+    [InlineData("20260718T090000Z/PT1H,")]
+    public void ValidationRejectsInvalidFreeBusyPeriods(string value) {
+        var document = new IcsDocument();
+        ContentLineComponent freeBusy = document.Calendars.Single().AddComponent("VFREEBUSY");
+        freeBusy.AddProperty("FREEBUSY", value);
+
+        Assert.Contains(document.Validate(), issue => issue.Code == "ICAL_FREEBUSY_PERIOD_INVALID" &&
+            issue.ComponentName == "VFREEBUSY" && issue.PropertyName == "FREEBUSY");
+    }
+
+    [Fact]
+    public void ValidationAcceptsUtcFreeBusyPeriodLists() {
+        var document = new IcsDocument();
+        ContentLineComponent freeBusy = document.Calendars.Single().AddComponent("VFREEBUSY");
+        freeBusy.AddProperty("FREEBUSY", "20260718T090000Z/20260718T100000Z," +
+            "20260718T140000Z/PT30M").SetParameter("FBTYPE", "BUSY");
+
+        Assert.DoesNotContain(document.Validate(), issue => issue.Code == "ICAL_FREEBUSY_PERIOD_INVALID");
+    }
+
+    [Fact]
+    public void ValidationRejectsValueParametersOnFixedTypeFreeBusyProperties() {
+        var document = new IcsDocument();
+        ContentLineComponent freeBusy = document.Calendars.Single().AddComponent("VFREEBUSY");
+        freeBusy.AddProperty("FREEBUSY", "20260718T090000Z/PT1H").SetParameter("VALUE", "PERIOD");
+
+        Assert.Contains(document.Validate(), issue => issue.Code == "ICAL_FREEBUSY_PERIOD_INVALID" &&
+            issue.ComponentName == "VFREEBUSY" && issue.PropertyName == "FREEBUSY");
+    }
+
+    [Theory]
     [InlineData("20260718", "20260718T090000Z", "ICAL_RECURRENCE_ID_TYPE_MISMATCH")]
     [InlineData("20260718T090000Z", "20260718", "ICAL_RECURRENCE_ID_TYPE_MISMATCH")]
     [InlineData("20260718T090000", "20260718T090000Z",
@@ -496,14 +582,60 @@ public sealed class IcsDocumentTests {
     public void ValidationMatchesRecurrenceIdToDtStart(string startValue,
         string recurrenceValue, string expectedCode) {
         var document = new IcsDocument();
-        ContentLineComponent appointment = document.Calendars.Single().AddComponent("VEVENT");
-        ContentLineProperty start = appointment.AddProperty("DTSTART", startValue);
-        ContentLineProperty recurrence = appointment.AddProperty("RECURRENCE-ID", recurrenceValue);
-        if (startValue.Length == 8) start.SetParameter("VALUE", "DATE");
+        ContentLineComponent calendar = document.Calendars.Single();
+        ContentLineComponent master = calendar.AddComponent("VEVENT");
+        master.AddProperty("UID", "recurrence-value@example.test");
+        ContentLineProperty start = master.AddProperty("DTSTART", startValue);
+        ContentLineComponent exception = calendar.AddComponent("VEVENT");
+        exception.AddProperty("UID", "recurrence-value@example.test");
+        ContentLineProperty exceptionStart = exception.AddProperty("DTSTART", startValue);
+        ContentLineProperty recurrence = exception.AddProperty("RECURRENCE-ID", recurrenceValue);
+        if (startValue.Length == 8) {
+            start.SetParameter("VALUE", "DATE");
+            exceptionStart.SetParameter("VALUE", "DATE");
+        }
         if (recurrenceValue.Length == 8) recurrence.SetParameter("VALUE", "DATE");
 
         Assert.Contains(document.Validate(), issue => issue.Code == expectedCode &&
             issue.ComponentName == "VEVENT" && issue.PropertyName == "RECURRENCE-ID");
+    }
+
+    [Theory]
+    [InlineData("Europe/Warsaw", null, "ICAL_RECURRENCE_ID_REPRESENTATION_MISMATCH")]
+    [InlineData("Europe/Warsaw", "Europe/Berlin", "ICAL_RECURRENCE_ID_TIMEZONE_MISMATCH")]
+    public void ValidationMatchesRecurrenceIdTimeZoneToDtStart(string startTimeZone,
+        string? recurrenceTimeZone, string expectedCode) {
+        var document = new IcsDocument();
+        ContentLineComponent calendar = document.Calendars.Single();
+        ContentLineComponent master = calendar.AddComponent("VEVENT");
+        master.AddProperty("UID", "recurrence-zone@example.test");
+        master.AddProperty("DTSTART", "20260718T090000").SetParameter("TZID", startTimeZone);
+        ContentLineComponent exception = calendar.AddComponent("VEVENT");
+        exception.AddProperty("UID", "recurrence-zone@example.test");
+        exception.AddProperty("DTSTART", "20260725T090000").SetParameter("TZID", "America/New_York");
+        ContentLineProperty recurrence = exception.AddProperty("RECURRENCE-ID", "20260725T090000");
+        if (recurrenceTimeZone != null) recurrence.SetParameter("TZID", recurrenceTimeZone);
+
+        Assert.Contains(document.Validate(), issue => issue.Code == expectedCode &&
+            issue.ComponentName == "VEVENT" && issue.PropertyName == "RECURRENCE-ID");
+    }
+
+    [Fact]
+    public void ValidationAcceptsMatchingRecurrenceIdTimeZones() {
+        var document = new IcsDocument();
+        ContentLineComponent calendar = document.Calendars.Single();
+        ContentLineComponent master = calendar.AddComponent("VEVENT");
+        master.AddProperty("UID", "rescheduled-zone@example.test");
+        master.AddProperty("DTSTART", "20260718T090000").SetParameter("TZID", "Europe/Warsaw");
+        ContentLineComponent exception = calendar.AddComponent("VEVENT");
+        exception.AddProperty("UID", "rescheduled-zone@example.test");
+        exception.AddProperty("DTSTART", "20260725T090000").SetParameter("TZID", "America/New_York");
+        exception.AddProperty("RECURRENCE-ID", "20260725T090000")
+            .SetParameter("TZID", "Europe/Warsaw");
+
+        Assert.DoesNotContain(document.Validate(), issue =>
+            issue.Code == "ICAL_RECURRENCE_ID_REPRESENTATION_MISMATCH" ||
+            issue.Code == "ICAL_RECURRENCE_ID_TIMEZONE_MISMATCH");
     }
 
     [Theory]
@@ -513,11 +645,17 @@ public sealed class IcsDocumentTests {
     public void ValidationAcceptsMatchingRecurrenceIdValueForms(
         string startValue, string recurrenceValue, bool isDate) {
         var document = new IcsDocument();
-        ContentLineComponent appointment = document.Calendars.Single().AddComponent("VEVENT");
-        ContentLineProperty start = appointment.AddProperty("DTSTART", startValue);
-        ContentLineProperty recurrence = appointment.AddProperty("RECURRENCE-ID", recurrenceValue);
+        ContentLineComponent calendar = document.Calendars.Single();
+        ContentLineComponent master = calendar.AddComponent("VEVENT");
+        master.AddProperty("UID", "matching-form@example.test");
+        ContentLineProperty start = master.AddProperty("DTSTART", startValue);
+        ContentLineComponent exception = calendar.AddComponent("VEVENT");
+        exception.AddProperty("UID", "matching-form@example.test");
+        ContentLineProperty exceptionStart = exception.AddProperty("DTSTART", startValue);
+        ContentLineProperty recurrence = exception.AddProperty("RECURRENCE-ID", recurrenceValue);
         if (isDate) {
             start.SetParameter("VALUE", "DATE");
+            exceptionStart.SetParameter("VALUE", "DATE");
             recurrence.SetParameter("VALUE", "DATE");
         }
 

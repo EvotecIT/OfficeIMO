@@ -145,6 +145,72 @@ public sealed class VCardDocumentTests {
         Assert.Contains("BEGIN:X-VENDOR-COMPONENT", document.Serialize(), StringComparison.Ordinal);
     }
 
+    [Theory]
+    [InlineData(VCardVersion.V3_0, "BDAY", "not-a-date", null)]
+    [InlineData(VCardVersion.V3_0, "BDAY", "2026-02-30", null)]
+    [InlineData(VCardVersion.V3_0, "BDAY", "2026-07-18T09:00:00Z", null)]
+    [InlineData(VCardVersion.V3_0, "BDAY", "2026-07-18T09:00:00,Z", "date-time")]
+    [InlineData(VCardVersion.V3_0, "BDAY", "2026-07-18T09:00:00.5Z", "date-time")]
+    [InlineData(VCardVersion.V4_0, "BDAY", "not-a-date", null)]
+    [InlineData(VCardVersion.V4_0, "BDAY", "20230229", null)]
+    [InlineData(VCardVersion.V4_0, "BDAY", "1985-13", null)]
+    [InlineData(VCardVersion.V4_0, "BDAY", "--0230", null)]
+    [InlineData(VCardVersion.V4_0, "BDAY", "---00", null)]
+    [InlineData(VCardVersion.V4_0, "BDAY", "T240000", null)]
+    [InlineData(VCardVersion.V4_0, "BDAY", "T--61", null)]
+    [InlineData(VCardVersion.V4_0, "BDAY", "T102200+2400", null)]
+    [InlineData(VCardVersion.V4_0, "BDAY", "20260718", "date")]
+    [InlineData(VCardVersion.V4_0, "ANNIVERSARY", "not-a-date", null)]
+    public void ValidationRejectsInvalidVersionSpecificDateValues(VCardVersion version,
+        string propertyName, string value, string? valueType) {
+        var document = new VCardDocument();
+        ContentLineComponent card = document.Cards.Single();
+        VCardDocument.SetVersion(card, version);
+        card.AddProperty("FN", "Versioned contact");
+        card.AddProperty("N", "Contact;Versioned;;;");
+        ContentLineProperty property = card.AddProperty(propertyName, value);
+        if (valueType != null) property.SetParameter("VALUE", valueType);
+
+        Assert.Contains(document.Validate(), issue => issue.Code == "VCARD_DATE_VALUE_INVALID" &&
+            issue.PropertyName == propertyName);
+    }
+
+    [Theory]
+    [InlineData(VCardVersion.V3_0, "BDAY", "20260718", null)]
+    [InlineData(VCardVersion.V3_0, "BDAY", "2026-07-18", "date")]
+    [InlineData(VCardVersion.V3_0, "BDAY", "2026-07-18T09:00:00Z", "date-time")]
+    [InlineData(VCardVersion.V3_0, "BDAY", "1953-10-15T23:10:00,5Z", "date-time")]
+    [InlineData(VCardVersion.V3_0, "BDAY", "19531015T231000,125-0600", "date-time")]
+    [InlineData(VCardVersion.V4_0, "BDAY", "--0415", null)]
+    [InlineData(VCardVersion.V4_0, "BDAY", "19961022T140000", null)]
+    [InlineData(VCardVersion.V4_0, "BDAY", "--1022T1400", null)]
+    [InlineData(VCardVersion.V4_0, "BDAY", "---22T14", null)]
+    [InlineData(VCardVersion.V4_0, "BDAY", "1985-04", null)]
+    [InlineData(VCardVersion.V4_0, "BDAY", "1985", null)]
+    [InlineData(VCardVersion.V4_0, "BDAY", "---12", null)]
+    [InlineData(VCardVersion.V4_0, "BDAY", "T102200", null)]
+    [InlineData(VCardVersion.V4_0, "BDAY", "T1022", null)]
+    [InlineData(VCardVersion.V4_0, "BDAY", "T10", null)]
+    [InlineData(VCardVersion.V4_0, "BDAY", "T-2200", null)]
+    [InlineData(VCardVersion.V4_0, "BDAY", "T--00", null)]
+    [InlineData(VCardVersion.V4_0, "BDAY", "T102200Z", null)]
+    [InlineData(VCardVersion.V4_0, "BDAY", "T102200-0800", "date-and-or-time")]
+    [InlineData(VCardVersion.V4_0, "BDAY", "circa 1800", "text")]
+    [InlineData(VCardVersion.V4_0, "ANNIVERSARY", "19960415", null)]
+    public void ValidationAcceptsVersionSpecificDateValues(VCardVersion version,
+        string propertyName, string value, string? valueType) {
+        var document = new VCardDocument();
+        ContentLineComponent card = document.Cards.Single();
+        VCardDocument.SetVersion(card, version);
+        card.AddProperty("FN", "Versioned contact");
+        card.AddProperty("N", "Contact;Versioned;;;");
+        ContentLineProperty property = card.AddProperty(propertyName, value);
+        if (valueType != null) property.SetParameter("VALUE", valueType);
+
+        Assert.DoesNotContain(document.Validate(), issue => issue.Code == "VCARD_DATE_VALUE_INVALID" &&
+            issue.PropertyName == propertyName);
+    }
+
     [Fact]
     public void GroupAndTextHelpersCreateInteroperableV4Card() {
         var document = new VCardDocument();
