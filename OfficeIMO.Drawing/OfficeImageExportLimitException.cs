@@ -16,6 +16,30 @@ public sealed class OfficeImageExportLimitException : InvalidOperationException 
         MaximumDimension = maximumDimension;
     }
 
+    internal OfficeImageExportLimitException(
+        double requestedScale,
+        long requestedPixels,
+        long maximumPixels,
+        int maximumDimension,
+        OfficeImageExportFormat format,
+        double effectiveDpiX,
+        double effectiveDpiY,
+        double minimumDpi)
+        : base(CreateDensityMessage(
+            requestedScale,
+            requestedPixels,
+            maximumPixels,
+            maximumDimension,
+            format,
+            effectiveDpiX,
+            effectiveDpiY,
+            minimumDpi)) {
+        RequestedScale = requestedScale;
+        RequestedPixels = requestedPixels;
+        MaximumPixels = maximumPixels;
+        MaximumDimension = maximumDimension;
+    }
+
     /// <summary>Caller-requested scale.</summary>
     public double RequestedScale { get; }
 
@@ -44,4 +68,24 @@ public sealed class OfficeImageExportLimitException : InvalidOperationException 
         " pixels and " +
         maximumDimension.ToString(System.Globalization.CultureInfo.InvariantCulture) +
         " pixels per dimension.";
+
+    private static string CreateDensityMessage(
+        double requestedScale,
+        long requestedPixels,
+        long maximumPixels,
+        int maximumDimension,
+        OfficeImageExportFormat format,
+        double effectiveDpiX,
+        double effectiveDpiY,
+        double minimumDpi) =>
+        CreateMessage(requestedScale, requestedPixels, maximumPixels, maximumDimension) +
+        " Reducing the image to those limits would require " +
+        format +
+        " density metadata of " +
+        effectiveDpiX.ToString("0.########", System.Globalization.CultureInfo.InvariantCulture) +
+        "x" +
+        effectiveDpiY.ToString("0.########", System.Globalization.CultureInfo.InvariantCulture) +
+        " DPI, below the encoder's minimum representable " +
+        minimumDpi.ToString("0.########", System.Globalization.CultureInfo.InvariantCulture) +
+        " DPI.";
 }

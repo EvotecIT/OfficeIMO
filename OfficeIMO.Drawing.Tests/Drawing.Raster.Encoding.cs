@@ -6,6 +6,73 @@ namespace OfficeIMO.Tests;
 
 public sealed class DrawingRasterEncodingTests {
     [Theory]
+    [InlineData(OfficeImageExportFormat.Png)]
+    [InlineData(OfficeImageExportFormat.Jpeg)]
+    [InlineData(OfficeImageExportFormat.Tiff)]
+    [InlineData(OfficeImageExportFormat.Webp)]
+    public void SharedRasterEncoderRejectsDensityThatWouldSerializeAsZero(
+        OfficeImageExportFormat format) {
+        OfficeRasterEncodingOptions options = CreateSubMinimumDensityOptions(format);
+
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            OfficeRasterImageEncoder.Encode(
+                CreateSampleImage(),
+                format,
+                options));
+    }
+
+    [Fact]
+    public void SharedRasterOptionsCloneAndEncoderPreserveNestedTiffDensity() {
+        OfficeRasterImage image = CreateSampleImage();
+        var options = new OfficeRasterEncodingOptions {
+            Tiff = new OfficeTiffEncodeOptions {
+                Compression = OfficeTiffCompression.PackBits,
+                DpiX = 144D,
+                DpiY = 120D
+            }
+        };
+
+        OfficeRasterEncodingOptions clone = options.Clone();
+        byte[] encoded = OfficeRasterImageEncoder.Encode(
+            image,
+            OfficeImageExportFormat.Tiff,
+            options);
+
+        Assert.Equal(144D, clone.Tiff.DpiX);
+        Assert.Equal(120D, clone.Tiff.DpiY);
+        OfficeImageInfo info = OfficeImageReader.Identify(encoded);
+        Assert.Equal(144D, info.DpiX, precision: 3);
+        Assert.Equal(120D, info.DpiY, precision: 3);
+    }
+
+    private static OfficeRasterEncodingOptions CreateSubMinimumDensityOptions(
+        OfficeImageExportFormat format) {
+        var options = new OfficeRasterEncodingOptions();
+        switch (format) {
+            case OfficeImageExportFormat.Png:
+                options.Png.DpiX = 0.01D;
+                options.Png.DpiY = 0.01D;
+                break;
+            case OfficeImageExportFormat.Jpeg:
+                options.Jpeg.DpiX = 0.49D;
+                options.Jpeg.DpiY = 0.49D;
+                break;
+            case OfficeImageExportFormat.Tiff:
+                options.Tiff.DpiX = 0.0009D;
+                options.Tiff.DpiY = 0.0009D;
+                break;
+            case OfficeImageExportFormat.Webp:
+                options.DpiX = 0.00009D;
+                options.DpiY = 0.00009D;
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(format));
+        }
+
+        return options;
+    }
+
+    [Theory]
     [InlineData(OfficeTiffCompression.None)]
     [InlineData(OfficeTiffCompression.PackBits)]
     public void OfficeTiffCodec_EncodesIdentifiableRgbaTiff(OfficeTiffCompression compression) {

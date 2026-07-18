@@ -7,34 +7,80 @@ namespace OfficeIMO.Excel {
 
         private OfficeImageExportResult ApplyPageSetupCanvas(
             OfficeImageExportFormat format,
+            OfficeImageExportFormat rasterPlanningFormat,
             OfficeImageExportResult content,
-            ExcelWorksheetImageExportOptions options) {
+            ExcelWorksheetImageExportOptions options,
+            ref ExcelRasterRenderState rasterState) {
             ExcelSheetPageSetup pageSetup = GetPageSetup();
             if (!ShouldApplyPageSetupCanvas(pageSetup)) {
                 return content;
             }
 
-            PageSetupCanvasGeometry geometry = ResolvePageSetupCanvasGeometry(pageSetup, options.Scale, content.Width, content.Height);
-            OfficeImageLayer? contentLayer = CreatePageSetupContentLayer(format, content, geometry);
+            double contentScaleRatio = 1D;
+            PageSetupCanvasGeometry geometry = ResolvePageSetupCanvasGeometry(
+                pageSetup,
+                rasterState.Scale,
+                content.Width,
+                content.Height);
+            OfficeRasterExportPlan? plan = null;
+            if (format != OfficeImageExportFormat.Svg) {
+                plan = OfficeRasterExportPlanner.Resolve(
+                    geometry.Width / rasterState.Scale,
+                    geometry.Height / rasterState.Scale,
+                    rasterPlanningFormat,
+                    options,
+                    Name + "!pageSetup");
+                if (plan.Value.Limit.Scale < rasterState.Scale) {
+                    contentScaleRatio = plan.Value.Limit.Scale / rasterState.Scale;
+                    rasterState = ExcelRasterRenderState.FromPlan(plan.Value);
+                    geometry = ResolvePageSetupCanvasGeometry(
+                        pageSetup,
+                        rasterState.Scale,
+                        Math.Max(1, (int)Math.Ceiling(content.Width * contentScaleRatio)),
+                        Math.Max(1, (int)Math.Ceiling(content.Height * contentScaleRatio)));
+                    geometry = new PageSetupCanvasGeometry(
+                        plan.Value.Limit.PixelWidth,
+                        plan.Value.Limit.PixelHeight,
+                        geometry.ContentX,
+                        geometry.ContentY,
+                        geometry.ContentScale);
+                }
+            }
+
+            OfficeImageLayer? contentLayer = CreatePageSetupContentLayer(
+                format,
+                content,
+                geometry,
+                contentScaleRatio);
             if (contentLayer == null) {
                 return content;
             }
 
-            var diagnostics = new List<OfficeImageExportDiagnostic>(content.Diagnostics.Count + 1);
+            var diagnostics = new List<OfficeImageExportDiagnostic>(content.Diagnostics.Count + 2);
             diagnostics.AddRange(content.Diagnostics);
+            if (contentScaleRatio < 1D && plan?.Diagnostic != null) {
+                diagnostics.Add(plan.Value.Diagnostic);
+            }
             AddPageSetupPaperSizeDiagnostic(pageSetup, diagnostics);
 
-            byte[] bytes = format == OfficeImageExportFormat.Svg
-                ? OfficeImageComposer.ComposeSvgBytes(
-                    geometry.Width,
-                    geometry.Height,
-                    options.BackgroundColor,
-                    new[] { contentLayer })
-                : OfficeImageComposer.ComposePng(
+            byte[] bytes;
+            if (format == OfficeImageExportFormat.Svg) {
+                bytes = OfficeImageComposer.ComposeSvgBytes(
                     geometry.Width,
                     geometry.Height,
                     options.BackgroundColor,
                     new[] { contentLayer });
+            } else {
+                OfficeRasterImage image = OfficeImageComposer.ComposeRaster(
+                    geometry.Width,
+                    geometry.Height,
+                    options.BackgroundColor,
+                    new[] { contentLayer });
+                bytes = OfficeRasterImageEncoder.Encode(
+                    image,
+                    format,
+                    rasterState.EncodingOptions);
+            }
 
             return new OfficeImageExportResult(
                 format,
@@ -104,13 +150,15 @@ namespace OfficeIMO.Excel {
         private static OfficeImageLayer? CreatePageSetupContentLayer(
             OfficeImageExportFormat format,
             OfficeImageExportResult content,
-            PageSetupCanvasGeometry geometry) {
-            double width = Math.Max(1D, content.Width * geometry.ContentScale);
-            double height = Math.Max(1D, content.Height * geometry.ContentScale);
+            PageSetupCanvasGeometry geometry,
+            double contentScaleRatio) {
+            double width = Math.Max(1D, content.Width * contentScaleRatio * geometry.ContentScale);
+            double height = Math.Max(1D, content.Height * contentScaleRatio * geometry.ContentScale);
             if (format == OfficeImageExportFormat.Svg) {
                 string svgInner = OfficeSvgFormatting.ExtractSvgInner(Encoding.UTF8.GetString(content.Bytes));
-                if (Math.Abs(geometry.ContentScale - 1D) > 0.0000001D) {
-                    svgInner = "<g transform=\"scale(" + OfficeSvgFormatting.FormatNumber(geometry.ContentScale) + ")\">" + svgInner + "</g>";
+                double svgScale = contentScaleRatio * geometry.ContentScale;
+                if (Math.Abs(svgScale - 1D) > 0.0000001D) {
+                    svgInner = "<g transform=\"scale(" + OfficeSvgFormatting.FormatNumber(svgScale) + ")\">" + svgInner + "</g>";
                 }
 
                 return OfficeImageLayer.FromSvgInner(

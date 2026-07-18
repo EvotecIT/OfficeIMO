@@ -128,6 +128,55 @@ public sealed class OneNoteRenderingTests {
     }
 
     [Fact]
+    public void DirectSvgExportAppliesTargetDpiBeforeConstructingTheResult() {
+        var page = new OneNotePage {
+            PageSize = OneNotePageSize.Custom,
+            Width = 2D,
+            Height = 2D
+        };
+        var options = new OneNotePageRenderingOptions {
+            IncludeTitle = false,
+            TargetDpi = 144D
+        };
+
+        OfficeImageExportResult result = page.ExportImage(
+            OfficeImageExportFormat.Svg,
+            options);
+
+        Assert.Equal(144, result.Width);
+        Assert.Equal(144, result.Height);
+        Assert.Equal(1D, options.Scale);
+        Assert.Equal(144D, options.TargetDpi);
+    }
+
+    [Fact]
+    public void RasterLimitReducesEncodedDensityWithTheRenderedOneNoteScale() {
+        var page = new OneNotePage {
+            PageSize = OneNotePageSize.Custom,
+            Width = 100D / OneNotePageRenderer.PointsPerHalfInch,
+            Height = 100D / OneNotePageRenderer.PointsPerHalfInch
+        };
+        var options = new OneNotePageRenderingOptions {
+            IncludeTitle = false,
+            TargetDpi = 144D,
+            MaximumRasterPixels = 2_500L
+        };
+
+        OfficeImageExportResult result = page.ExportImage(
+            OfficeImageExportFormat.Png,
+            options);
+
+        Assert.Equal(50, result.Width);
+        Assert.Equal(50, result.Height);
+        Assert.InRange(result.DpiX, 35.95D, 36.05D);
+        Assert.InRange(result.DpiY, 35.95D, 36.05D);
+        Assert.InRange(result.PhysicalWidthInches, 1.387D, 1.390D);
+        Assert.Contains(
+            result.Diagnostics,
+            diagnostic => diagnostic.Code == OfficeImageExportDiagnosticCodes.RasterScaleReduced);
+    }
+
+    [Fact]
     public void WebpExportAlsoHonorsTheCodecDimensionLimit() {
         var page = new OneNotePage {
             PageSize = OneNotePageSize.Custom,

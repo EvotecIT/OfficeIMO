@@ -63,7 +63,10 @@ namespace OfficeIMO.Word {
                     ImageCodec = fallbackCodec,
                     CancellationToken = cancellationToken
                 });
-                byte[] bytes = OfficeRasterImageEncoder.Encode(image, format, options.RasterEncoding);
+                byte[] bytes = OfficeRasterImageEncoder.Encode(
+                    image,
+                    format,
+                    plan.CreateEncodingOptions());
                 cancellationToken.ThrowIfCancellationRequested();
                 return options.EnsureAccepted(new OfficeImageExportResult(format, image.Width, image.Height, bytes, "Page " + (options.PageIndex + 1), source, diagnostics));
             }

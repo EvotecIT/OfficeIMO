@@ -363,8 +363,11 @@ public static class OfficeWebpCodec {
     }
 
     private static void ValidateDpi(double dpi, string name) {
-        if (dpi <= 0D || double.IsNaN(dpi) || double.IsInfinity(dpi) || dpi > MaximumDpi) {
-            throw new ArgumentOutOfRangeException(name, "WebP DPI must be finite, positive, and no greater than 1,000,000.");
+        if (dpi < OfficeRasterImageEncoder.WebpMinimumDpi ||
+            double.IsNaN(dpi) ||
+            double.IsInfinity(dpi) ||
+            dpi > MaximumDpi) {
+            throw new ArgumentOutOfRangeException(name, "WebP DPI must be finite and between 0.0001 and 1,000,000.");
         }
     }
 

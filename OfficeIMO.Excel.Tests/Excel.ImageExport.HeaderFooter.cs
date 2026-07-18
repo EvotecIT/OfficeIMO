@@ -380,6 +380,52 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ExcelWorksheet_SafetyReducedHeaderFooterBandsDoNotOverlapContent() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorksheet("Report");
+            FillPageBreakGrid(sheet);
+            for (int row = 3; row <= 4; row++) {
+                for (int column = 1; column <= 4; column++) {
+                    sheet.CellBackground(row, column, "#00FF00");
+                }
+            }
+            sheet.SetHeaderFooter(headerLeft: "Prepared", footerRight: "Internal");
+            sheet.AddManualRowPageBreak(2, save: false);
+
+            OfficeImageExportResult result = sheet.ExportImages(
+                OfficeImageExportFormat.Png,
+                new ExcelWorksheetImageExportOptions {
+                    Range = "A1:D4",
+                    SplitByManualPageBreaks = true,
+                    ShowGridlines = false,
+                    MaximumRasterPixels = 1_000L
+                })[1];
+
+            Assert.True((long)result.Width * result.Height <= 1_000L);
+            Assert.Contains(
+                result.Diagnostics,
+                diagnostic => diagnostic.Code == OfficeImageExportDiagnosticCodes.RasterScaleReduced &&
+                    diagnostic.Source == "Report!headerFooter");
+            Assert.True(OfficePngReader.TryDecode(result.Bytes, out OfficeRasterImage? image));
+            Assert.NotNull(image);
+            int footerHeight = Math.Max(
+                1,
+                (int)Math.Ceiling(28D * result.DpiY / 96D));
+            int footerTop = result.Height - footerHeight;
+            OfficeColor lastContentPixel = image!.GetPixel(1, footerTop - 1);
+            OfficeColor firstFooterPixel = image.GetPixel(1, footerTop);
+            Assert.True(
+                lastContentPixel.G > 180 &&
+                lastContentPixel.R < 80 &&
+                lastContentPixel.B < 80);
+            Assert.False(
+                firstFooterPixel.G > 180 &&
+                firstFooterPixel.R < 80 &&
+                firstFooterPixel.B < 80);
+        }
+
+        [Fact]
         public void ExcelWorksheet_PageSlicedImageExportKeepsHeaderFooterInsidePageSetupCanvas() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);

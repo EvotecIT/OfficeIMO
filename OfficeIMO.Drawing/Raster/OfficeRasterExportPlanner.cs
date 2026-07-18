@@ -5,15 +5,19 @@ namespace OfficeIMO.Drawing;
 
 /// <summary>Resolved raster allocation plan shared by document image exporters.</summary>
 public readonly struct OfficeRasterExportPlan {
+    private readonly OfficeRasterEncodingOptions? _encodingOptions;
+
     internal OfficeRasterExportPlan(
         OfficeRasterScaleLimit limit,
         long maximumPixels,
         int maximumDimension,
-        OfficeImageExportDiagnostic? diagnostic) {
+        OfficeImageExportDiagnostic? diagnostic,
+        OfficeRasterEncodingOptions encodingOptions) {
         Limit = limit;
         MaximumPixels = maximumPixels;
         MaximumDimension = maximumDimension;
         Diagnostic = diagnostic;
+        _encodingOptions = encodingOptions ?? throw new ArgumentNullException(nameof(encodingOptions));
     }
 
     /// <summary>Effective raster scale and dimensions.</summary>
@@ -27,6 +31,12 @@ public readonly struct OfficeRasterExportPlan {
 
     /// <summary>Scale-reduction diagnostic, or null when the request fit unchanged.</summary>
     public OfficeImageExportDiagnostic? Diagnostic { get; }
+
+    /// <summary>
+    /// Creates detached encoder settings whose density reflects the effective raster scale.
+    /// </summary>
+    public OfficeRasterEncodingOptions CreateEncodingOptions() =>
+        (_encodingOptions ?? new OfficeRasterEncodingOptions()).Clone();
 }
 
 /// <summary>Creates overflow-safe raster allocation plans before any image surface is allocated.</summary>
@@ -67,9 +77,17 @@ public static class OfficeRasterExportPlanner {
             options.Scale,
             maximumPixels,
             maximumDimension);
+        OfficeRasterEncodingOptions encodingOptions = options.RasterEncoding.Resolve(
+            format,
+            limit.Scale / options.Scale);
 
         if (!limit.WasLimited) {
-            return new OfficeRasterExportPlan(limit, maximumPixels, maximumDimension, diagnostic: null);
+            return new OfficeRasterExportPlan(
+                limit,
+                maximumPixels,
+                maximumDimension,
+                diagnostic: null,
+                encodingOptions);
         }
 
         if (options.RasterOverflowBehavior == OfficeRasterOverflowBehavior.Throw) {
@@ -80,6 +98,19 @@ public static class OfficeRasterExportPlanner {
                 maximumDimension);
         }
 
+        double minimumDpi = OfficeRasterImageEncoder.GetMinimumDpi(format);
+        if (encodingOptions.DpiX < minimumDpi || encodingOptions.DpiY < minimumDpi) {
+            throw new OfficeImageExportLimitException(
+                options.Scale,
+                CalculateRequestedPixels(width, height, options.Scale),
+                maximumPixels,
+                maximumDimension,
+                format,
+                encodingOptions.DpiX,
+                encodingOptions.DpiY,
+                minimumDpi);
+        }
+
         var diagnostic = new OfficeImageExportDiagnostic(
             OfficeImageExportDiagnosticSeverity.Warning,
             OfficeImageExportDiagnosticCodes.RasterScaleReduced,
@@ -88,7 +119,12 @@ public static class OfficeRasterExportPlanner {
             " pixels and " + maximumDimension.ToString(CultureInfo.InvariantCulture) + " pixels per dimension.",
             source,
             OfficeImageExportLossKind.Approximation);
-        return new OfficeRasterExportPlan(limit, maximumPixels, maximumDimension, diagnostic);
+        return new OfficeRasterExportPlan(
+            limit,
+            maximumPixels,
+            maximumDimension,
+            diagnostic,
+            encodingOptions);
     }
 
     private static long CalculateRequestedPixels(double width, double height, double scale) {

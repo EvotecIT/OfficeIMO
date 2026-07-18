@@ -204,8 +204,15 @@ public static class OfficePngWriter {
     }
 
     private static void ValidateDpi(double dpi, string paramName) {
-        if (dpi <= 0D || double.IsNaN(dpi) || double.IsInfinity(dpi) || dpi > uint.MaxValue * 0.0254D) {
-            throw new ArgumentOutOfRangeException(paramName, "PNG DPI must be finite, positive, and encodable.");
+        if (dpi < OfficeRasterImageEncoder.PngMinimumDpi ||
+            double.IsNaN(dpi) ||
+            double.IsInfinity(dpi) ||
+            dpi > uint.MaxValue * 0.0254D) {
+            throw new ArgumentOutOfRangeException(
+                paramName,
+                "PNG DPI must be finite and between 0.0127 and " +
+                (uint.MaxValue * 0.0254D).ToString(System.Globalization.CultureInfo.InvariantCulture) +
+                ".");
         }
     }
 

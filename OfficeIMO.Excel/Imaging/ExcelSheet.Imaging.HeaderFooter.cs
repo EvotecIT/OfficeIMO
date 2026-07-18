@@ -13,10 +13,12 @@ namespace OfficeIMO.Excel {
 
         private OfficeImageExportResult ApplyHeaderFooterTextChrome(
             OfficeImageExportFormat format,
+            OfficeImageExportFormat rasterPlanningFormat,
             OfficeImageExportResult content,
             ExcelWorksheetImageExportOptions options,
             int pageNumber,
-            int pageCount) {
+            int pageCount,
+            ref ExcelRasterRenderState rasterState) {
             DateTime headerFooterDateTime = options.HeaderFooterDateTime ?? DateTime.Now;
             if (!TryCreateHeaderFooterTextChrome(pageNumber, pageCount, headerFooterDateTime, out HeaderFooterTextChrome chrome)) {
                 return content;
@@ -39,12 +41,8 @@ namespace OfficeIMO.Excel {
                 headerFooterSource,
                 options.Fonts,
                 combinedDiagnostics);
-            var fallbackCodec = new OfficeRasterImageFallbackCodec(options.ImageCodec, combinedDiagnostics, headerFooterSource);
-            IReadOnlyList<OfficeImageExportDiagnostic> diagnostics = combinedDiagnostics.Count == content.Diagnostics.Count
-                ? content.Diagnostics
-                : combinedDiagnostics.AsReadOnly();
 
-            double scale = options.Scale;
+            double scale = rasterState.Scale;
             int headerHeight = chrome.HasHeader ? ResolveHeaderFooterBandHeight(chrome.HeaderImageHeightPoints, scale) : 0;
             int footerHeight = chrome.HasFooter ? ResolveHeaderFooterBandHeight(chrome.FooterImageHeightPoints, scale) : 0;
             bool pageSetupCanvasApplied = ShouldApplyPageSetupCanvas(GetPageSetup());
@@ -52,15 +50,55 @@ namespace OfficeIMO.Excel {
             int height = pageSetupCanvasApplied
                 ? Math.Max(1, content.Height)
                 : Math.Max(1, content.Height + headerHeight + footerHeight);
+            double contentScaleRatio = 1D;
+            OfficeRasterExportPlan? plan = null;
+            if (format != OfficeImageExportFormat.Svg) {
+                plan = OfficeRasterExportPlanner.Resolve(
+                    width / scale,
+                    height / scale,
+                    rasterPlanningFormat,
+                    options,
+                    headerFooterSource);
+                if (plan.Value.Limit.Scale < scale) {
+                    contentScaleRatio = plan.Value.Limit.Scale / scale;
+                    rasterState = ExcelRasterRenderState.FromPlan(plan.Value);
+                    scale = rasterState.Scale;
+                    headerHeight = chrome.HasHeader ? ResolveHeaderFooterBandHeight(chrome.HeaderImageHeightPoints, scale) : 0;
+                    footerHeight = chrome.HasFooter ? ResolveHeaderFooterBandHeight(chrome.FooterImageHeightPoints, scale) : 0;
+                    width = plan.Value.Limit.PixelWidth;
+                    height = plan.Value.Limit.PixelHeight;
+                    if (plan.Value.Diagnostic != null) {
+                        combinedDiagnostics.Add(plan.Value.Diagnostic);
+                    }
+                }
+            }
+
+            var fallbackCodec = new OfficeRasterImageFallbackCodec(options.ImageCodec, combinedDiagnostics, headerFooterSource);
+            IReadOnlyList<OfficeImageExportDiagnostic> diagnostics = combinedDiagnostics.Count == content.Diagnostics.Count
+                ? content.Diagnostics
+                : combinedDiagnostics.AsReadOnly();
             int contentY = pageSetupCanvasApplied ? 0 : headerHeight;
+            int contentWidth = Math.Min(
+                width,
+                Math.Max(1, (int)Math.Ceiling(content.Width * contentScaleRatio)));
+            int contentHeight = Math.Min(
+                height,
+                Math.Max(1, (int)Math.Ceiling(content.Height * contentScaleRatio)));
+            if (!pageSetupCanvasApplied && contentScaleRatio < 1D) {
+                contentHeight = ReconcileHeaderFooterRasterHeights(
+                    height,
+                    ref headerHeight,
+                    ref footerHeight);
+                contentY = headerHeight;
+            }
 
             if (format == OfficeImageExportFormat.Svg) {
                 OfficeImageLayer layer = OfficeImageLayer.FromSvgInner(
                     OfficeSvgFormatting.ExtractSvgInner(Encoding.UTF8.GetString(content.Bytes)),
                     0D,
                     contentY,
-                    content.Width,
-                    content.Height);
+                    contentWidth,
+                    contentHeight);
                 return new OfficeImageExportResult(
                     format,
                     width,
@@ -70,8 +108,8 @@ namespace OfficeIMO.Excel {
                         height,
                         options.BackgroundColor,
                         new[] { layer },
-                        beforeLayers: pageSetupCanvasApplied ? null : builder => AppendHeaderFooterSvgText(builder, chrome, width, height, headerHeight, options.Scale, fallbackCodec),
-                        afterLayers: pageSetupCanvasApplied ? builder => AppendHeaderFooterSvgText(builder, chrome, width, height, headerHeight, options.Scale, fallbackCodec) : null),
+                        beforeLayers: pageSetupCanvasApplied ? null : builder => AppendHeaderFooterSvgText(builder, chrome, width, height, headerHeight, scale, fallbackCodec),
+                        afterLayers: pageSetupCanvasApplied ? builder => AppendHeaderFooterSvgText(builder, chrome, width, height, headerHeight, scale, fallbackCodec) : null),
                     content.Name,
                     content.Source,
                     diagnostics);
@@ -81,21 +119,53 @@ namespace OfficeIMO.Excel {
                 return content;
             }
 
-            OfficeImageLayer contentLayer = OfficeImageLayer.FromRaster(contentImage, 0D, contentY, content.Width, content.Height);
+            OfficeImageLayer contentLayer = OfficeImageLayer.FromRaster(
+                contentImage,
+                0D,
+                contentY,
+                contentWidth,
+                contentHeight);
+            OfficeRasterImage image = OfficeImageComposer.ComposeRaster(
+                width,
+                height,
+                options.BackgroundColor,
+                new[] { contentLayer },
+                beforeLayers: pageSetupCanvasApplied ? null : canvas => DrawHeaderFooterRaster(canvas, chrome, width, height, headerHeight, footerHeight, scale, fallbackCodec),
+                afterLayers: pageSetupCanvasApplied ? canvas => DrawHeaderFooterRaster(canvas, chrome, width, height, headerHeight, footerHeight, scale, fallbackCodec) : null);
             return new OfficeImageExportResult(
                 format,
                 width,
                 height,
-                OfficeImageComposer.ComposePng(
-                    width,
-                    height,
-                    options.BackgroundColor,
-                    new[] { contentLayer },
-                    beforeLayers: pageSetupCanvasApplied ? null : canvas => DrawHeaderFooterRaster(canvas, chrome, width, height, headerHeight, footerHeight, scale, fallbackCodec),
-                    afterLayers: pageSetupCanvasApplied ? canvas => DrawHeaderFooterRaster(canvas, chrome, width, height, headerHeight, footerHeight, scale, fallbackCodec) : null),
+                OfficeRasterImageEncoder.Encode(
+                    image,
+                    format,
+                    rasterState.EncodingOptions),
                 content.Name,
                 content.Source,
                 diagnostics);
+        }
+
+        private static int ReconcileHeaderFooterRasterHeights(
+            int canvasHeight,
+            ref int headerHeight,
+            ref int footerHeight) {
+            int maximumBandHeight = Math.Max(0, canvasHeight - 1);
+            int totalBandHeight = checked(headerHeight + footerHeight);
+            if (totalBandHeight > maximumBandHeight) {
+                if (totalBandHeight == 0 || maximumBandHeight == 0) {
+                    headerHeight = 0;
+                    footerHeight = 0;
+                } else {
+                    headerHeight = Math.Min(
+                        maximumBandHeight,
+                        (int)Math.Round(
+                            maximumBandHeight * (headerHeight / (double)totalBandHeight),
+                            MidpointRounding.AwayFromZero));
+                    footerHeight = maximumBandHeight - headerHeight;
+                }
+            }
+
+            return canvasHeight - headerHeight - footerHeight;
         }
 
         private bool CanRenderHeaderFooterTextChrome(DateTime headerFooterDateTime) {
@@ -299,7 +369,7 @@ namespace OfficeIMO.Excel {
             double fontSize = HeaderFooterFontSize * scale;
             double padding = HeaderFooterHorizontalPadding * scale;
             OfficeTextZoneLayout zones = OfficeTextZoneLayout.CreateThreeColumn(width, padding, HeaderFooterZoneGap * scale);
-            if (chrome.HasHeader) {
+            if (chrome.HasHeader && headerHeight > 0) {
                 double y = Math.Max(0D, (headerHeight - fontSize) / 2D);
                 DrawHeaderFooterRasterImages(canvas, chrome, isHeader: true, 0D, headerHeight, zones, scale, imageCodec);
                 DrawHeaderFooterRasterLine(canvas, chrome.HeaderLeft, zones.Left, y, fontSize, chrome.FontFamily, OfficeTextAlignment.Left);
@@ -307,7 +377,7 @@ namespace OfficeIMO.Excel {
                 DrawHeaderFooterRasterLine(canvas, chrome.HeaderRight, zones.Right, y, fontSize, chrome.FontFamily, OfficeTextAlignment.Right);
             }
 
-            if (chrome.HasFooter) {
+            if (chrome.HasFooter && footerHeight > 0) {
                 double footerTop = height - footerHeight;
                 double y = footerTop + Math.Max(0D, (footerHeight - fontSize) / 2D);
                 DrawHeaderFooterRasterImages(canvas, chrome, isHeader: false, footerTop, footerHeight, zones, scale, imageCodec);

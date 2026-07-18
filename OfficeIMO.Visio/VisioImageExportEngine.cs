@@ -60,12 +60,10 @@ internal static class VisioImageExportEngine {
         OfficeRasterImage image = VisioPngRenderer.RenderRaster(
             page,
             CreatePngOptions(options, effectivePixelsPerInch, diagnostics, resultSource, cancellationToken));
-        OfficeRasterEncodingOptions encoding = options.RasterEncoding.Clone();
-        if (options.TargetDpi.HasValue && plan.Limit.Scale < options.Scale) {
-            encoding.DpiX = effectivePixelsPerInch;
-            encoding.DpiY = effectivePixelsPerInch;
-        }
-        byte[] encoded = OfficeRasterImageEncoder.Encode(image, format, encoding);
+        byte[] encoded = OfficeRasterImageEncoder.Encode(
+            image,
+            format,
+            plan.CreateEncodingOptions());
         cancellationToken.ThrowIfCancellationRequested();
         return options.EnsureAccepted(new OfficeImageExportResult(
             format,

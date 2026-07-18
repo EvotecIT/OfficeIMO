@@ -4,32 +4,72 @@ using System.Threading;
 using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Excel {
+    internal readonly struct ExcelRasterRenderState {
+        internal ExcelRasterRenderState(
+            double scale,
+            OfficeRasterEncodingOptions encodingOptions) {
+            Scale = scale;
+            EncodingOptions = encodingOptions?.Clone() ??
+                throw new ArgumentNullException(nameof(encodingOptions));
+        }
+
+        internal double Scale { get; }
+        internal OfficeRasterEncodingOptions EncodingOptions { get; }
+
+        internal static ExcelRasterRenderState FromPlan(OfficeRasterExportPlan plan) =>
+            new ExcelRasterRenderState(plan.Limit.Scale, plan.CreateEncodingOptions());
+    }
+
     internal static partial class ExcelRangeImageRenderer {
         internal static OfficeImageExportResult Render(
             ExcelRangeVisualSnapshot snapshot,
             OfficeImageExportFormat format,
             ExcelImageExportOptions options,
+            CancellationToken cancellationToken = default) =>
+            Render(
+                snapshot,
+                format,
+                options,
+                format,
+                out _,
+                cancellationToken);
+
+        internal static OfficeImageExportResult Render(
+            ExcelRangeVisualSnapshot snapshot,
+            OfficeImageExportFormat format,
+            ExcelImageExportOptions options,
+            OfficeImageExportFormat rasterPlanningFormat,
+            out ExcelRasterRenderState rasterState,
             CancellationToken cancellationToken = default) {
             cancellationToken.ThrowIfCancellationRequested();
             List<OfficeImageExportDiagnostic> diagnostics = new List<OfficeImageExportDiagnostic>(snapshot.Diagnostics);
             if (format == OfficeImageExportFormat.Svg) {
+                rasterState = new ExcelRasterRenderState(options.Scale, options.RasterEncoding);
                 string svg = RenderSvg(snapshot, options, diagnostics);
                 cancellationToken.ThrowIfCancellationRequested();
                 return options.EnsureAccepted(new OfficeImageExportResult(format, ScaledWidth(snapshot, options), ScaledHeight(snapshot, options), Encoding.UTF8.GetBytes(svg), snapshot.SheetName, snapshot.SheetName + "!" + snapshot.Range, diagnostics.AsReadOnly()));
+            }
+            if (!rasterPlanningFormat.IsRaster()) {
+                throw new ArgumentException("A raster planning format is required.", nameof(rasterPlanningFormat));
             }
 
             string source = snapshot.SheetName + "!" + snapshot.Range;
             OfficeRasterExportPlan plan = OfficeRasterExportPlanner.Resolve(
                 snapshot.Width,
                 snapshot.Height,
-                format,
+                rasterPlanningFormat,
                 options,
                 source);
+            rasterState = ExcelRasterRenderState.FromPlan(plan);
             if (plan.Diagnostic != null) diagnostics.Add(plan.Diagnostic);
             ExcelImageExportOptions renderOptions = options.Clone();
-            renderOptions.Scale = plan.Limit.Scale;
+            renderOptions.Scale = rasterState.Scale;
+            renderOptions.TargetDpi = null;
             OfficeRasterImage image = RenderRaster(snapshot, renderOptions, diagnostics, cancellationToken);
-            byte[] bytes = OfficeRasterImageEncoder.Encode(image, format, options.RasterEncoding);
+            byte[] bytes = OfficeRasterImageEncoder.Encode(
+                image,
+                format,
+                rasterState.EncodingOptions);
             cancellationToken.ThrowIfCancellationRequested();
             return options.EnsureAccepted(new OfficeImageExportResult(format, image.Width, image.Height, bytes, snapshot.SheetName, source, diagnostics.AsReadOnly()));
         }

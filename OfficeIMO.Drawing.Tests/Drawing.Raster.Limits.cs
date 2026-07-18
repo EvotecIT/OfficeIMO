@@ -135,6 +135,66 @@ public sealed class DrawingRasterLimitTests {
         Assert.Equal("test surface", plan.Diagnostic.Source);
     }
 
+    [Theory]
+    [InlineData(OfficeImageExportFormat.Png)]
+    [InlineData(OfficeImageExportFormat.Jpeg)]
+    [InlineData(OfficeImageExportFormat.Tiff)]
+    [InlineData(OfficeImageExportFormat.Webp)]
+    public void RasterExportPlannerPreservesPhysicalSizeWhenReducingTargetDpi(
+        OfficeImageExportFormat format) {
+        var options = new OfficeImageExportOptions {
+            TargetDpi = 192D,
+            MaximumRasterPixels = 2_500L
+        };
+
+        OfficeRasterExportPlan plan = OfficeRasterExportPlanner.Resolve(
+            100D,
+            100D,
+            format,
+            options);
+        var image = new OfficeRasterImage(
+            plan.Limit.PixelWidth,
+            plan.Limit.PixelHeight,
+            OfficeColor.White);
+        byte[] encoded = OfficeRasterImageEncoder.Encode(
+            image,
+            format,
+            plan.CreateEncodingOptions());
+        OfficeImageInfo info = OfficeImageReader.Identify(encoded);
+        double expectedDpi = plan.Limit.Scale * options.LogicalUnitsPerInch;
+
+        Assert.True(plan.Limit.WasLimited);
+        Assert.InRange(info.DpiX, expectedDpi - 0.05D, expectedDpi + 0.05D);
+        Assert.InRange(info.DpiY, expectedDpi - 0.05D, expectedDpi + 0.05D);
+        Assert.InRange(
+            image.Width / info.DpiX,
+            100D / options.LogicalUnitsPerInch - 0.002D,
+            100D / options.LogicalUnitsPerInch + 0.002D);
+    }
+
+    [Theory]
+    [InlineData(OfficeImageExportFormat.Png, 10_000D)]
+    [InlineData(OfficeImageExportFormat.Jpeg, 1_000D)]
+    [InlineData(OfficeImageExportFormat.Tiff, 100_000D)]
+    [InlineData(OfficeImageExportFormat.Webp, 1_000_000D)]
+    public void RasterExportPlannerRejectsSafetyScaleWhoseDensityCannotBeEncoded(
+        OfficeImageExportFormat format,
+        double logicalSize) {
+        var options = new OfficeImageExportOptions {
+            MaximumRasterPixels = 1L
+        };
+
+        OfficeImageExportLimitException exception = Assert.Throws<OfficeImageExportLimitException>(() =>
+            OfficeRasterExportPlanner.Resolve(
+                logicalSize,
+                logicalSize,
+                format,
+                options));
+
+        Assert.Contains(format.ToString(), exception.Message, StringComparison.Ordinal);
+        Assert.Contains("minimum representable", exception.Message, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void RasterExportPlannerCanRejectOversizedRequestsWithTypedEvidence() {
         var options = new OfficeImageExportOptions {

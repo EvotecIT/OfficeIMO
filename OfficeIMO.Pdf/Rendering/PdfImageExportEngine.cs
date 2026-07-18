@@ -75,7 +75,10 @@ internal static class PdfImageExportEngine {
             ImageCodec = fallbackCodec,
             CancellationToken = cancellationToken
         });
-        byte[] bytes = OfficeRasterImageEncoder.Encode(raster, format, effective.RasterEncoding);
+        byte[] bytes = OfficeRasterImageEncoder.Encode(
+            raster,
+            format,
+            plan.CreateEncodingOptions());
         cancellationToken.ThrowIfCancellationRequested();
         return options.EnsureAccepted(new OfficeImageExportResult(
             format,

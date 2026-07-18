@@ -223,8 +223,11 @@ public static class OfficeTiffCodec {
     }
 
     private static void ValidateDpi(double dpi, string name) {
-        if (dpi <= 0D || double.IsNaN(dpi) || double.IsInfinity(dpi) || dpi > 1000000D) {
-            throw new ArgumentOutOfRangeException(name, "DPI must be finite, positive, and no greater than 1,000,000.");
+        if (dpi < OfficeRasterImageEncoder.TiffMinimumDpi ||
+            double.IsNaN(dpi) ||
+            double.IsInfinity(dpi) ||
+            dpi > 1000000D) {
+            throw new ArgumentOutOfRangeException(name, "TIFF DPI must be finite and between 0.001 and 1,000,000.");
         }
     }
 

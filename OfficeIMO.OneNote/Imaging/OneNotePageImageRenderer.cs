@@ -14,20 +14,22 @@ internal static class OneNotePageImageRenderer {
         if (page == null) throw new ArgumentNullException(nameof(page));
         if (options == null) throw new ArgumentNullException(nameof(options));
         cancellationToken.ThrowIfCancellationRequested();
-        OneNotePageVisualSnapshot snapshot = OneNotePageRenderer.CreateSnapshot(page, options);
+        OneNotePageRenderingOptions effective = options.Clone();
+        effective.Validate();
+        OneNotePageVisualSnapshot snapshot = OneNotePageRenderer.CreateSnapshot(page, effective);
         cancellationToken.ThrowIfCancellationRequested();
         if (format == OfficeImageExportFormat.Svg) {
             var diagnostics = new List<OfficeImageExportDiagnostic>(snapshot.Diagnostics);
-            var fallbackCodec = new OfficeRasterImageFallbackCodec(options.ImageCodec, diagnostics, source ?? "OneNote page");
+            var fallbackCodec = new OfficeRasterImageFallbackCodec(effective.ImageCodec, diagnostics, source ?? "OneNote page");
             byte[] bytes = OfficeDrawingSvgExporter.ToSvgBytes(
                 snapshot.Drawing,
-                options.Scale,
+                effective.Scale,
                 OfficeSvgSizeUnit.Pixel,
                 fallbackCodec);
-            return options.EnsureAccepted(new OfficeImageExportResult(
+            return effective.EnsureAccepted(new OfficeImageExportResult(
                 format,
-                Scaled(snapshot.Drawing.Width, options.Scale),
-                Scaled(snapshot.Drawing.Height, options.Scale),
+                Scaled(snapshot.Drawing.Width, effective.Scale),
+                Scaled(snapshot.Drawing.Height, effective.Scale),
                 bytes,
                 name ?? page.Title,
                 source ?? "OneNote page",
@@ -40,19 +42,22 @@ internal static class OneNotePageImageRenderer {
                 snapshot.Drawing.Width,
                 snapshot.Drawing.Height,
                 format,
-                options,
+                effective,
                 source ?? "OneNote page");
             if (plan.Diagnostic != null) diagnostics.Add(plan.Diagnostic);
-            var fallbackCodec = new OfficeRasterImageFallbackCodec(options.ImageCodec, diagnostics, source ?? "OneNote page");
+            var fallbackCodec = new OfficeRasterImageFallbackCodec(effective.ImageCodec, diagnostics, source ?? "OneNote page");
             OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(snapshot.Drawing, new OfficeDrawingRasterRenderOptions {
                 Scale = plan.Limit.Scale,
-                Background = options.BackgroundColor,
+                Background = effective.BackgroundColor,
                 ImageCodec = fallbackCodec,
                 CancellationToken = cancellationToken
             });
-            byte[] bytes = OfficeRasterImageEncoder.Encode(raster, format, options.RasterEncoding);
+            byte[] bytes = OfficeRasterImageEncoder.Encode(
+                raster,
+                format,
+                plan.CreateEncodingOptions());
             cancellationToken.ThrowIfCancellationRequested();
-            return options.EnsureAccepted(new OfficeImageExportResult(
+            return effective.EnsureAccepted(new OfficeImageExportResult(
                 format,
                 raster.Width,
                 raster.Height,
@@ -70,7 +75,9 @@ internal static class OneNotePageImageRenderer {
         OfficeImageExportFormat format,
         OneNotePageRenderingOptions options) {
         if (options == null) throw new ArgumentNullException(nameof(options));
-        return OfficeRasterExportPlanner.Resolve(width, height, format, options).Limit;
+        OneNotePageRenderingOptions effective = options.Clone();
+        effective.Validate();
+        return OfficeRasterExportPlanner.Resolve(width, height, format, effective).Limit;
     }
 
     private static int Scaled(double value, double scale) => Math.Max(1, checked((int)Math.Ceiling(value * scale)));
