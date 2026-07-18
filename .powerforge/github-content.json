@@ -1,0 +1,39 @@
+{
+  "$schema": "https://raw.githubusercontent.com/EvotecIT/PSPublishModule/main/Schemas/github.content.schema.json",
+  "tokenEnvName": "GITHUB_TOKEN",
+  "sponsors": {
+    "enabled": true,
+    "sponsorableLogin": "PrzemyslawKlys",
+    "includeFormer": true,
+    "failOnEmpty": true,
+    "requireFundingTierData": true,
+    "tierRecognition": {
+      "enabled": true,
+      "useDefaultTiers": true,
+      "unmappedTierKey": "Sponsors"
+    },
+    "outputs": [
+      {
+        "path": "SPONSORS.md",
+        "blockId": "sponsors",
+        "layout": "Full",
+        "title": "OfficeIMO Sponsors",
+        "introduction": "OfficeIMO is MIT-licensed and available without feature gates. These people and organizations support or have helped fund its development, testing, and documentation.",
+        "closing": "You can support OfficeIMO through [GitHub Sponsors](https://github.com/sponsors/PrzemyslawKlys). Companies that need a VAT invoice can contact [contact@evotec.pl](mailto:contact@evotec.pl).",
+        "includeFormer": true,
+        "createIfMissing": true
+      },
+      {
+        "path": "README.md",
+        "blockId": "sponsors-readme",
+        "layout": "Compact",
+        "includeFormer": false,
+        "createIfMissing": false,
+        "missingBlockBehavior": "Fail",
+        "avatarSize": 48,
+        "maxEntries": 12,
+        "moreLink": "SPONSORS.md"
+      }
+    ]
+  }
+}
