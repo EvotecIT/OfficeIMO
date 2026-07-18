@@ -87,6 +87,45 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_FormulaDependencyGraph_IgnoresReferenceShapeFunctionArguments() {
+            using ExcelDocument document = ExcelDocument.Create();
+            ExcelSheet sheet = document.AddWorksheet("Reference Shapes");
+            sheet.CellFormula(1, 1, "ROW(A1)");
+            sheet.CellFormula(1, 2, "COLUMN(B1)");
+            sheet.CellFormula(1, 3, "ROWS(C1:C3)");
+            sheet.CellFormula(1, 4, "COLUMNS(D1:F1)");
+            sheet.CellFormula(1, 5, "SUM(ROW(E1),F1)");
+            sheet.CellFormula(1, 6, "1+1");
+            sheet.CellFormula(1, 7, "ROWS(ShapeRows)");
+            sheet.CellFormula(1, 8, "COLUMNS(ShapeTable[[A]:[B]])");
+            sheet.CellValue(1, 10, "A");
+            sheet.CellValue(1, 11, "B");
+            sheet.CellFormula(2, 10, "1+1");
+            sheet.CellValue(2, 11, 3d);
+            sheet.AddTable("J1:K2", hasHeader: true, name: "ShapeTable", style: TableStyle.TableStyleMedium2);
+            document.SetNamedRange("ShapeRows", "'Reference Shapes'!C1:C3", save: false);
+
+            Assert.Equal(9, document.Calculate());
+            ExcelFormulaInspection inspection = document.InspectFormulas();
+            ExcelFormulaDependencyGraph graph = inspection.DependencyGraph;
+            foreach (string reference in new[] { "A1", "B1", "C1", "D1", "G1", "H1" }) {
+                ExcelFormulaDependencyNode node = Assert.IsType<ExcelFormulaDependencyNode>(
+                    graph.FindNode("Reference Shapes", reference));
+                Assert.Empty(node.Dependencies);
+                Assert.Empty(node.FormulaDependencies);
+                Assert.False(node.IsCircular);
+            }
+
+            ExcelFormulaDependencyNode mixed = Assert.IsType<ExcelFormulaDependencyNode>(
+                graph.FindNode("Reference Shapes", "E1"));
+            Assert.Equal(new[] { "Reference Shapes!F1" }, mixed.Dependencies);
+            Assert.Equal(new[] { "Reference Shapes!F1" }, mixed.FormulaDependencies);
+            Assert.Equal(1, graph.EdgeCount);
+            Assert.False(graph.HasCircularReferences);
+            inspection.EnsureNoDependencyIssues();
+        }
+
+        [Fact]
         public void Test_FormulaDependencyGraph_RespectsRangeIntersections() {
             using ExcelDocument document = ExcelDocument.Create();
             ExcelSheet sheet = document.AddWorksheet("Intersections");

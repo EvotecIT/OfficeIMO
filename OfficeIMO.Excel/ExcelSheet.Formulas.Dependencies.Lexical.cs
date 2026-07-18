@@ -144,6 +144,56 @@ namespace OfficeIMO.Excel {
             return false;
         }
 
+        private string MaskFormulaReferenceShapeArguments(string formula, int? sourceRow) {
+            char[]? maskedFormula = null;
+            for (int index = 0; index < formula.Length; index++) {
+                if (!TryGetFormulaReferenceShapeFunctionCall(formula, index, out int openingParenthesis)
+                    || !TryFindClosingFormulaParenthesis(formula, openingParenthesis, out int closingParenthesis)) {
+                    continue;
+                }
+
+                List<FormulaArgumentSpan> arguments = GetFormulaArgumentSpans(
+                    formula,
+                    openingParenthesis + 1,
+                    closingParenthesis);
+                if (arguments.Count != 1) {
+                    continue;
+                }
+
+                FormulaArgumentSpan argument = arguments[0];
+                string reference = formula.Substring(argument.Start, argument.End - argument.Start).Trim();
+                if (!TryResolveFormulaRangeReference(
+                    reference,
+                    sourceRow,
+                    out _,
+                    out _,
+                    out _,
+                    out _,
+                    out _)) {
+                    continue;
+                }
+
+                maskedFormula ??= formula.ToCharArray();
+                for (int position = argument.Start; position < argument.End; position++) {
+                    maskedFormula[position] = ' ';
+                }
+
+                index = closingParenthesis;
+            }
+
+            return maskedFormula == null ? formula : new string(maskedFormula);
+        }
+
+        private static bool TryGetFormulaReferenceShapeFunctionCall(
+            string formula,
+            int index,
+            out int openingParenthesis) {
+            return TryMatchFormulaFunctionName(formula, index, "ROW", out openingParenthesis)
+                || TryMatchFormulaFunctionName(formula, index, "COLUMN", out openingParenthesis)
+                || TryMatchFormulaFunctionName(formula, index, "ROWS", out openingParenthesis)
+                || TryMatchFormulaFunctionName(formula, index, "COLUMNS", out openingParenthesis);
+        }
+
         private static bool TryMatchFormulaFunctionName(
             string formula,
             int index,
