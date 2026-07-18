@@ -4,14 +4,16 @@ namespace OfficeIMO.Email.Store;
 internal sealed class PstBlockReadStream : Stream {
     private readonly IEnumerator<byte[]> _blocks;
     private readonly EmailStoreSessionLifetime _lifetime;
+    private readonly Action<int>? _bytesRead;
     private byte[]? _current;
     private int _currentOffset;
     private bool _disposed;
 
     internal PstBlockReadStream(Func<IEnumerable<byte[]>> blocks,
-        EmailStoreSessionLifetime lifetime) {
+        EmailStoreSessionLifetime lifetime, Action<int>? bytesRead = null) {
         if (blocks == null) throw new ArgumentNullException(nameof(blocks));
         _lifetime = lifetime ?? throw new ArgumentNullException(nameof(lifetime));
+        _bytesRead = bytesRead;
         _blocks = blocks().GetEnumerator();
     }
 
@@ -44,6 +46,7 @@ internal sealed class PstBlockReadStream : Stream {
             _currentOffset += copy;
             written += copy;
         }
+        if (written > 0) _bytesRead?.Invoke(written);
         return written;
     }
 

@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <Description>Unified, read-only document extraction facade for OfficeIMO (Word/Excel/PowerPoint/Markdown/PDF) intended for AI ingestion.</Description>
+    <Description>Unified, read-only document extraction facade for OfficeIMO formats, including Office, email, iCalendar, vCard, Markdown, and PDF.</Description>
     <AssemblyName>OfficeIMO.Reader</AssemblyName>
     <AssemblyTitle>OfficeIMO.Reader</AssemblyTitle>
     <VersionPrefix>2.0.1</VersionPrefix>
@@ -11,7 +11,7 @@
     <Company>Evotec</Company>
     <Authors>Przemyslaw Klys</Authors>
     <PackageId>OfficeIMO.Reader</PackageId>
-    <PackageTags>reader;ingestion;rag;docx;doc;xlsx;xls;pptx;pptm;ppt;pot;pps;markdown;pdf;eml;msg;oft;mbox;tnef;officeimo</PackageTags>
+    <PackageTags>reader;ingestion;rag;docx;doc;xlsx;xls;pptx;pptm;ppt;pot;pps;markdown;pdf;eml;msg;oft;mbox;tnef;ics;icalendar;vcf;vcard;officeimo</PackageTags>
     <PackageProjectUrl>https://github.com/EvotecIT/OfficeIMO</PackageProjectUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <RepositoryUrl>https://github.com/EvotecIT/OfficeIMO</RepositoryUrl>
@@ -48,6 +48,13 @@
     </None>
     <EmbeddedResource Include="Schemas\officeimo.document.read-result.v5.schema.json">
       <LogicalName>OfficeIMO.Reader.Schemas.officeimo.document.read-result.v5.schema.json</LogicalName>
+    </EmbeddedResource>
+    <None Include="Schemas\officeimo.document.read-result.v6.schema.json">
+      <Pack>True</Pack>
+      <PackagePath>schemas\officeimo.document.read-result.v6.schema.json</PackagePath>
+    </None>
+    <EmbeddedResource Include="Schemas\officeimo.document.read-result.v6.schema.json">
+      <LogicalName>OfficeIMO.Reader.Schemas.officeimo.document.read-result.v6.schema.json</LogicalName>
     </EmbeddedResource>
   </ItemGroup>
 

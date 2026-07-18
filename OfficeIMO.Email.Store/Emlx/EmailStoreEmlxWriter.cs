@@ -1,0 +1,323 @@
+using OfficeIMO.Drawing.Internal;
+using OfficeIMO.Email;
+using System.Xml;
+
+namespace OfficeIMO.Email.Store;
+
+/// <summary>Writes Apple Mail EMLX envelopes over the OfficeIMO.Email EML engine.</summary>
+public sealed class EmailStoreEmlxWriter {
+    private const string MetadataPropertyPrefix = "Emlx:Metadata:";
+    private static readonly HashSet<string> DerivedMetadataKeys = new HashSet<string>(
+        new[] { "flags", "date-received", "date-sent", "subject", "message-id" },
+        StringComparer.OrdinalIgnoreCase);
+    private readonly EmailStoreEmlxWriterOptions _options;
+
+    /// <summary>Creates a writer with the default policy.</summary>
+    public EmailStoreEmlxWriter() : this(EmailStoreEmlxWriterOptions.Default) { }
+
+    /// <summary>Creates a writer with an explicit policy.</summary>
+    public EmailStoreEmlxWriter(EmailStoreEmlxWriterOptions options) {
+        _options = options ?? throw new ArgumentNullException(nameof(options));
+    }
+
+    /// <summary>Writer policy.</summary>
+    public EmailStoreEmlxWriterOptions Options => _options;
+
+    /// <summary>Serializes one message to complete EMLX bytes.</summary>
+    public byte[] ToBytes(EmailDocument document) {
+        byte[] bytes = Create(document, out EmailWriteResult result);
+        if (!result.HasErrors) return bytes;
+        EmailDiagnostic error = result.Diagnostics.First(diagnostic =>
+            diagnostic.Severity == EmailDiagnosticSeverity.Error);
+        throw new InvalidDataException("The EMLX artifact could not be serialized: " +
+            error.Code + ": " + error.Message);
+    }
+
+    /// <summary>Atomically writes one EMLX file.</summary>
+    public EmailWriteResult Write(EmailDocument document, string filePath) {
+        if (filePath == null) throw new ArgumentNullException(nameof(filePath));
+        byte[] bytes = Create(document, out EmailWriteResult result);
+        if (result.HasErrors) return result;
+        OfficeFileCommit.WriteAllBytes(filePath, bytes);
+        return result;
+    }
+
+    /// <summary>Writes one EMLX artifact to a caller-owned stream without closing it.</summary>
+    public EmailWriteResult Write(EmailDocument document, Stream stream) {
+        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        if (!stream.CanWrite) throw new ArgumentException("The stream must be writable.", nameof(stream));
+        byte[] bytes = Create(document, out EmailWriteResult result);
+        if (result.HasErrors) return result;
+        OfficeStreamWriter.WriteAllBytes(stream, bytes);
+        return result;
+    }
+
+    /// <summary>Asynchronously atomically writes one EMLX file.</summary>
+    public async Task<EmailWriteResult> WriteAsync(EmailDocument document, string filePath,
+        CancellationToken cancellationToken = default) {
+        if (filePath == null) throw new ArgumentNullException(nameof(filePath));
+        cancellationToken.ThrowIfCancellationRequested();
+        byte[] bytes = Create(document, out EmailWriteResult result);
+        if (result.HasErrors) return result;
+        await OfficeFileCommit.WriteAllBytesAsync(filePath, bytes, cancellationToken: cancellationToken)
+            .ConfigureAwait(false);
+        return result;
+    }
+
+    /// <summary>Asynchronously writes to a caller-owned stream without closing it.</summary>
+    public async Task<EmailWriteResult> WriteAsync(EmailDocument document, Stream stream,
+        CancellationToken cancellationToken = default) {
+        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        if (!stream.CanWrite) throw new ArgumentException("The stream must be writable.", nameof(stream));
+        cancellationToken.ThrowIfCancellationRequested();
+        byte[] bytes = Create(document, out EmailWriteResult result);
+        if (result.HasErrors) return result;
+        await OfficeStreamWriter.WriteAllBytesAsync(stream, bytes, cancellationToken).ConfigureAwait(false);
+        return result;
+    }
+
+    private byte[] Create(EmailDocument document, out EmailWriteResult result) {
+        if (document == null) throw new ArgumentNullException(nameof(document));
+        byte[] metadata = _options.IncludeMetadata
+            ? CreateMetadata(document, _options.MaxOutputBytes, _options.MaxMetadataDepth,
+                _options.MaxMetadataProperties)
+            : Array.Empty<byte>();
+        long fixedBytes = checked(metadata.LongLength + (metadata.Length > 0 ? 1L : 0L) + 2L);
+        if (fixedBytes >= _options.MaxOutputBytes) {
+            throw new EmailLimitExceededException(
+                nameof(EmailStoreEmlxWriterOptions.MaxOutputBytes),
+                checked(fixedBytes + 1L), _options.MaxOutputBytes);
+        }
+        long messageBudget = Math.Min(_options.MessageOptions.MaxOutputBytes,
+            Math.Min(_options.MaxOutputBytes - fixedBytes, int.MaxValue));
+        EmailWriterOptions sourceOptions = _options.MessageOptions;
+        var boundedMessageOptions = new EmailWriterOptions(
+            sourceOptions.ConversionLossPolicy,
+            sourceOptions.UsePreservedRawSource,
+            sourceOptions.IncludeBccHeader,
+            sourceOptions.Base64LineLength,
+            sourceOptions.MaxNestedMessageDepth,
+            messageBudget);
+        var messageWriter = new EmailDocumentWriter(boundedMessageOptions);
+        byte[] message;
+        EmailWriteResult messageResult;
+        try {
+            message = messageWriter.ToBytes(document, EmailFileFormat.Eml, out messageResult);
+        } catch (EmailLimitExceededException exception) when (
+            exception.LimitName == nameof(EmailWriterOptions.MaxOutputBytes)) {
+            throw new EmailLimitExceededException(nameof(EmailStoreEmlxWriterOptions.MaxOutputBytes),
+                exception.ActualValue, _options.MaxOutputBytes);
+        }
+        if (messageResult.HasErrors) {
+            result = messageResult;
+            return Array.Empty<byte>();
+        }
+        byte[] prefix = Encoding.ASCII.GetBytes(message.LongLength.ToString(CultureInfo.InvariantCulture) + "\n");
+        long total = checked(prefix.LongLength + message.LongLength + metadata.LongLength +
+            (metadata.Length > 0 ? 1L : 0L));
+        if (total > _options.MaxOutputBytes || total > int.MaxValue)
+            throw new EmailLimitExceededException(nameof(EmailStoreEmlxWriterOptions.MaxOutputBytes), total,
+                Math.Min(_options.MaxOutputBytes, int.MaxValue));
+        var output = new byte[(int)total];
+        int offset = 0;
+        Buffer.BlockCopy(prefix, 0, output, offset, prefix.Length); offset += prefix.Length;
+        Buffer.BlockCopy(message, 0, output, offset, message.Length); offset += message.Length;
+        if (metadata.Length > 0) {
+            output[offset++] = (byte)'\n';
+            Buffer.BlockCopy(metadata, 0, output, offset, metadata.Length);
+        }
+        result = new EmailWriteResult(total, messageResult.Diagnostics, messageResult.UsedPreservedSource);
+        return output;
+    }
+
+    private static byte[] CreateMetadata(EmailDocument document, long maxOutputBytes,
+        int maxMetadataDepth, int maxMetadataProperties) {
+        try {
+            using (var output = new EmailBoundedMemoryStream(maxOutputBytes)) {
+                int metadataPropertyCount = 0;
+                var settings = new XmlWriterSettings {
+                    Encoding = new UTF8Encoding(false),
+                    Indent = true,
+                    NewLineChars = "\n",
+                    NewLineHandling = NewLineHandling.Replace,
+                    CloseOutput = false
+                };
+                using (XmlWriter writer = XmlWriter.Create(output, settings)) {
+                    writer.WriteStartDocument();
+                    writer.WriteDocType("plist", "-//Apple//DTD PLIST 1.0//EN",
+                        "http://www.apple.com/DTDs/PropertyList-1.0.dtd", null);
+                    writer.WriteStartElement("plist");
+                    writer.WriteAttributeString("version", "1.0");
+                    writer.WriteStartElement("dict");
+                    foreach (KeyValuePair<string, object?> pair in GetRetainedMetadata(document)) {
+                        WriteMetadataKey(writer, pair.Key, ref metadataPropertyCount, maxMetadataProperties);
+                        WritePlistValue(writer, pair.Value, pair.Key, depth: 1, maxMetadataDepth,
+                            ref metadataPropertyCount, maxMetadataProperties);
+                    }
+                    WriteInteger(writer, "flags", CreateFlags(document),
+                        ref metadataPropertyCount, maxMetadataProperties);
+                    WriteDate(writer, "date-received", document.ReceivedDate,
+                        ref metadataPropertyCount, maxMetadataProperties);
+                    WriteDate(writer, "date-sent", document.Date,
+                        ref metadataPropertyCount, maxMetadataProperties);
+                    WriteString(writer, "subject", document.Subject,
+                        ref metadataPropertyCount, maxMetadataProperties);
+                    WriteString(writer, "message-id", document.MessageId,
+                        ref metadataPropertyCount, maxMetadataProperties);
+                    writer.WriteEndElement();
+                    writer.WriteEndElement();
+                    writer.WriteEndDocument();
+                }
+                return output.ToArray();
+            }
+        } catch (EmailLimitExceededException exception) when (
+            exception.LimitName == nameof(EmailWriterOptions.MaxOutputBytes)) {
+            throw new EmailLimitExceededException(nameof(EmailStoreEmlxWriterOptions.MaxOutputBytes),
+                exception.ActualValue, maxOutputBytes);
+        } catch (Exception exception) when (exception is ArgumentException || exception is XmlException) {
+            throw new InvalidDataException(
+                "The EMLX property-list metadata contains text that XML cannot represent.", exception);
+        }
+    }
+
+    private static IEnumerable<KeyValuePair<string, object?>> GetRetainedMetadata(EmailDocument document) {
+        var retained = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
+        foreach (KeyValuePair<string, object?> pair in document.Properties) {
+            if (!pair.Key.StartsWith(MetadataPropertyPrefix, StringComparison.OrdinalIgnoreCase)) continue;
+            string key = pair.Key.Substring(MetadataPropertyPrefix.Length);
+            if (key.Length == 0)
+                throw new InvalidDataException("A retained EMLX metadata property has an empty plist key.");
+            if (DerivedMetadataKeys.Contains(key)) continue;
+            if (retained.ContainsKey(key)) {
+                throw new InvalidDataException(
+                    "Retained EMLX metadata contains duplicate plist keys that differ only by case.");
+            }
+            retained.Add(key, pair.Value);
+        }
+        return retained.OrderBy(pair => pair.Key, StringComparer.Ordinal);
+    }
+
+    private static void WritePlistValue(XmlWriter writer, object? value, string path, int depth,
+        int maxMetadataDepth, ref int metadataPropertyCount, int maxMetadataProperties) {
+        if (depth > maxMetadataDepth) {
+            throw new InvalidDataException(
+                "Retained EMLX metadata exceeds the supported plist nesting depth at '" + path + "'.");
+        }
+        if (value is string text) {
+            writer.WriteElementString("string", text);
+        } else if (value is bool boolean) {
+            writer.WriteStartElement(boolean ? "true" : "false");
+            writer.WriteEndElement();
+        } else if (value is long integer) {
+            writer.WriteElementString("integer", integer.ToString(CultureInfo.InvariantCulture));
+        } else if (value is double real) {
+            writer.WriteElementString("real", real.ToString("R", CultureInfo.InvariantCulture));
+        } else if (value is DateTimeOffset date) {
+            writer.WriteElementString("date", date.ToUniversalTime().ToString(
+                "yyyy-MM-dd'T'HH:mm:ss.FFFFFFF'Z'", CultureInfo.InvariantCulture));
+        } else if (value is byte[] data) {
+            writer.WriteElementString("data", Convert.ToBase64String(data));
+        } else if (value is IReadOnlyDictionary<string, object?> dictionary) {
+            writer.WriteStartElement("dict");
+            var keys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (KeyValuePair<string, object?> pair in dictionary.OrderBy(
+                pair => pair.Key, StringComparer.Ordinal)) {
+                if (!keys.Add(pair.Key)) {
+                    throw new InvalidDataException(
+                        "Retained EMLX metadata contains duplicate nested plist keys at '" + path + "'.");
+                }
+                WriteMetadataKey(writer, pair.Key, ref metadataPropertyCount, maxMetadataProperties);
+                WritePlistValue(writer, pair.Value, path + "." + pair.Key, depth + 1,
+                    maxMetadataDepth, ref metadataPropertyCount, maxMetadataProperties);
+            }
+            writer.WriteEndElement();
+        } else if (value is object?[] array) {
+            writer.WriteStartElement("array");
+            for (int index = 0; index < array.Length; index++) {
+                IncrementMetadataPropertyCount(ref metadataPropertyCount, maxMetadataProperties);
+                WritePlistValue(writer, array[index], path + "[" +
+                    index.ToString(CultureInfo.InvariantCulture) + "]", depth + 1,
+                    maxMetadataDepth, ref metadataPropertyCount, maxMetadataProperties);
+            }
+            writer.WriteEndElement();
+        } else {
+            throw new InvalidDataException("The retained EMLX metadata value at '" + path +
+                "' has unsupported type '" + (value?.GetType().FullName ?? "null") + "'.");
+        }
+    }
+
+    private static long CreateFlags(EmailDocument document) {
+        long flags = 0;
+        if (document.MessageMetadata.IsRead == true) flags |= 1L << 0;
+        if (PropertyFlag(document, "Emlx:Flag:Deleted")) flags |= 1L << 1;
+        if (PropertyFlag(document, "Emlx:Flag:Answered")) flags |= 1L << 2;
+        if (PropertyFlag(document, "Emlx:Flag:Encrypted")) flags |= 1L << 3;
+        if (PropertyFlag(document, "Emlx:Flag:Flagged")) flags |= 1L << 4;
+        if (PropertyFlag(document, "Emlx:Flag:Recent")) flags |= 1L << 5;
+        if (document.MessageMetadata.IsDraft) flags |= 1L << 6;
+        if (PropertyFlag(document, "Emlx:Flag:Initial")) flags |= 1L << 7;
+        if (PropertyFlag(document, "Emlx:Flag:Forwarded")) flags |= 1L << 8;
+        if (PropertyFlag(document, "Emlx:Flag:Redirected")) flags |= 1L << 9;
+        int attachmentCount = PropertyFlag(document, "Emlx:IsPartial") &&
+            TryGetIntegerProperty(document, "Emlx:Flag:AttachmentCount", out int storedAttachmentCount)
+            ? storedAttachmentCount
+            : document.Attachments.Count;
+        flags |= (long)Math.Max(0, Math.Min(attachmentCount, 63)) << 10;
+        if (TryGetIntegerProperty(document, "Emlx:Flag:PriorityLevel", out int priorityLevel))
+            flags |= (long)Math.Max(0, Math.Min(priorityLevel, 127)) << 16;
+        if (PropertyFlag(document, "Emlx:Flag:Signed")) flags |= 1L << 23;
+        if (PropertyFlag(document, "Emlx:Flag:IsJunk")) flags |= 1L << 24;
+        if (PropertyFlag(document, "Emlx:Flag:IsNotJunk")) flags |= 1L << 25;
+        return flags;
+    }
+
+    private static bool PropertyFlag(EmailDocument document, string name) =>
+        document.Properties.TryGetValue(name, out object? value) && value is bool enabled && enabled;
+
+    private static bool TryGetIntegerProperty(EmailDocument document, string name, out int result) {
+        if (document.Properties.TryGetValue(name, out object? value)) {
+            if (value is int number) { result = number; return true; }
+            if (value is short shortNumber) { result = shortNumber; return true; }
+            if (value is byte byteNumber) { result = byteNumber; return true; }
+        }
+        result = 0;
+        return false;
+    }
+
+    private static void WriteInteger(XmlWriter writer, string key, long value,
+        ref int metadataPropertyCount, int maxMetadataProperties) {
+        WriteMetadataKey(writer, key, ref metadataPropertyCount, maxMetadataProperties);
+        writer.WriteElementString("integer", value.ToString(CultureInfo.InvariantCulture));
+    }
+
+    private static void WriteDate(XmlWriter writer, string key, DateTimeOffset? value,
+        ref int metadataPropertyCount, int maxMetadataProperties) {
+        if (!value.HasValue) return;
+        long seconds = (long)(value.Value.ToUniversalTime() -
+            new DateTimeOffset(1970, 1, 1, 0, 0, 0, TimeSpan.Zero)).TotalSeconds;
+        WriteInteger(writer, key, seconds, ref metadataPropertyCount, maxMetadataProperties);
+    }
+
+    private static void WriteString(XmlWriter writer, string key, string? value,
+        ref int metadataPropertyCount, int maxMetadataProperties) {
+        if (string.IsNullOrWhiteSpace(value)) return;
+        WriteMetadataKey(writer, key, ref metadataPropertyCount, maxMetadataProperties);
+        writer.WriteElementString("string", value);
+    }
+
+    private static void WriteMetadataKey(XmlWriter writer, string key,
+        ref int metadataPropertyCount, int maxMetadataProperties) {
+        IncrementMetadataPropertyCount(ref metadataPropertyCount, maxMetadataProperties);
+        writer.WriteElementString("key", key);
+    }
+
+    private static void IncrementMetadataPropertyCount(ref int metadataPropertyCount,
+        int maxMetadataProperties) {
+        metadataPropertyCount++;
+        if (metadataPropertyCount > maxMetadataProperties) {
+            throw new EmailStoreLimitExceededException(
+                nameof(EmailStoreEmlxWriterOptions.MaxMetadataProperties),
+                metadataPropertyCount, maxMetadataProperties);
+        }
+    }
+}

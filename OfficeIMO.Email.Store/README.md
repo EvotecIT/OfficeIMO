@@ -1,6 +1,10 @@
 # OfficeIMO.Email.Store
 
-`OfficeIMO.Email.Store` is the fully managed mailbox-store package for PST, OST, OLM, EMLX, Apple Mail, and Maildir sources. Source stores remain read-only. Selected items project into the common `OfficeIMO.Email.EmailDocument` model, and applications can create, verify, resume, or merge a separate Unicode PST without Outlook, native libraries, or third-party parser packages.
+`OfficeIMO.Email.Store` is the fully managed mailbox-store package for PST, OST, OLM, EMLX, Mbox, Apple Mail,
+and Maildir sources. Read sessions never modify their source. Selected items project into the common
+`OfficeIMO.Email.EmailDocument` model, and applications can create, verify, resume, or merge a separate Unicode PST
+or explicitly mutate an existing Unicode PST through a verified atomic-rewrite transaction without Outlook, native
+libraries, or third-party parser packages.
 
 ## Install
 
@@ -144,7 +148,8 @@ EmailStoreReadResult result = new EmailStoreReader().Read("export.olm");
 | PST | ANSI and Unicode NDB stores, folders, contents tables, ordinary and associated items, named properties, attachments, and embedded messages. |
 | OST | The supported PST-compatible NDB paths plus compressed blocks used by supported OST variants. Server-only or unmaterialized content cannot be recovered from an offline file. |
 | OLM | Bounded Outlook for Mac ZIP/XML archives, folders, messages and typed items, and safe in-archive attachments. |
-| EMLX | One Apple Mail EMLX item, including its RFC 5322/MIME message and supported XML property-list metadata. Partial files report that external Apple Mail content may be absent. |
+| EMLX | One Apple Mail EMLX item, including its RFC 5322/MIME message and supported XML property-list metadata. Partial files report that external Apple Mail content may be absent. Standalone and directory writers produce length-prefixed EML plus optional Apple property-list metadata. |
+| Mbox | Mboxo and mboxrd archives exposed through the common store session, folder, item, query, validation, and export contracts. Opening builds a bounded offset/summary index while retaining at most one decoded message; selected items are decoded on demand. |
 | Mailbox directory | Lazy Apple Mail `.mbox/.../Messages/*.emlx`, Maildir `cur/new`, and EML/MIME directory trees. Reparse points are not followed. |
 
 PST and OST MAPI properties use the same projections as MSG and OFT, so messages, appointments, contacts, tasks, journals, notes, recipients, attachments, and named properties do not acquire a second public model.
@@ -155,9 +160,10 @@ matching is an explicit fallback. Selected items expose `ContentAvailability`, s
 available, unavailable, or indeterminate. This matters for OST headers and other content that was never cached locally, and
 for partial EMLX artifacts whose sibling content is absent.
 
-PST/OST and mailbox-directory sessions are lazy. Single EMLX input contains one item. OLM currently validates and
-materializes its bounded ZIP/XML archive when the session opens; query, validation, and export then use the same
-session contracts.
+PST/OST and mailbox-directory sessions are lazy. Mbox opening streams the aggregate once to build item offsets and
+summaries, enforces the cross-item attachment budget, and does not retain decoded messages; selected entries are
+decoded again on demand. Single EMLX input contains one item. OLM currently validates and materializes its bounded
+ZIP/XML archive when the session opens; query, validation, and export then use the same session contracts.
 
 ## Inspect, validate, and recover
 
@@ -205,10 +211,25 @@ EmailStoreExportReport files = session.ExportToDirectory(
 EmailStoreMboxExportReport mailbox = session.ExportToMbox(
     "exported-mail/archive.mbox",
     new EmailStoreMboxExportOptions(maxItems: 50_000));
+
+EmailStoreExportReport maildir = session.ExportToNativeDirectory(
+    "exported-mail/maildir",
+    new EmailStoreNativeDirectoryExportOptions(
+        EmailStoreNativeDirectoryFormat.Maildir,
+        maxItems: 50_000));
+
+EmailStoreExportReport appleMail = session.ExportToNativeDirectory(
+    "exported-mail/apple-mail",
+    new EmailStoreNativeDirectoryExportOptions(
+        EmailStoreNativeDirectoryFormat.Emlx,
+        maxItems: 50_000));
 ```
 
 Output conversion uses `OfficeIMO.Email` and its explicit semantic-loss policy. Existing destinations are not
-replaced by default. Per-item failures and fidelity warnings remain visible in the export report.
+replaced by default. Per-item failures and fidelity warnings remain visible in the export report. Maildir export
+creates `tmp`, `new`, and `cur`; when the destination file system cannot represent the `:2,` flag suffix, flags remain
+in the preservation manifest and the report contains a warning. `EmailStoreEmlxWriter` is also public for writing
+one EMLX artifact directly.
 
 ## Create a Unicode PST
 
@@ -235,7 +256,9 @@ EmailStorePstWriteReport report = writer.Complete();
 The writer owns Unicode NDB allocation and indexes, Heap-on-Node property and table contexts, folders, ordinary
 and associated items, recipients, attachments, embedded messages, named properties, and fixed or variable
 multi-valued MAPI properties. It reuses `OfficeIMO.Email` item projection so appointments, contacts, tasks,
-journals, notes, and messages do not acquire a PST-only property model.
+journals, notes, and messages do not acquire a PST-only property model. `AddFolder` can assign supported standard
+roles such as Inbox, Sent Items, Outbox, Calendar, Contacts, Tasks, Drafts, and view folders; the writer emits their
+store/default-folder EntryID properties so readers and Outlook do not have to guess from localized display names.
 
 Set `failOnDataLoss: true` when a warning should prevent the final commit. Examples include an attachment whose
 payload was not retained, structured-storage metadata without its original compound payload, or a named property
@@ -264,6 +287,51 @@ using EmailStorePstWriter resumed = EmailStorePstWriter.Resume(checkpoint);
 Resume truncates writer-owned working files to the last committed checkpoint before accepting more items. Normal
 completion removes the checkpoint and temporary journals. `Abandon` or `DeleteCheckpoint` removes only the exact
 writer-owned artifacts associated with that checkpoint.
+
+## Mutate an existing Unicode PST
+
+`EmailStorePstMutationTransaction` is a separate, explicit API for changing an existing Unicode PST. It locks the
+source, stages folder and item operations, builds a replacement through the same managed writer, reopens and
+verifies the complete folder set and item semantics, optionally commits a byte-for-byte backup, and only then
+atomically replaces the source:
+
+```csharp
+using EmailStorePstMutationTransaction mutation =
+    EmailStorePstMutationTransaction.Open(
+        "archive.pst",
+        new EmailStorePstMutationOptions(
+            backupPath: "archive.before-mutation.pst"));
+
+string projectFolder = mutation.CreateFolder("Project", mutation.RootFolderId);
+string newItem = mutation.AddItem(projectFolder, new EmailDocument {
+    Subject = "Added through a verified rewrite",
+    MessageClass = "IPM.Note"
+});
+
+EmailStoreItemReference existing = mutation.EnumerateItems().First();
+mutation.MoveItem(existing.Id, projectFolder);
+
+EmailStorePstMutationReport mutationReport = mutation.Commit();
+string rewrittenItemId = mutationReport.ItemIdMap[newItem];
+```
+
+The transaction can create, rename, move, and recursively delete non-mandatory folders; add, replace, move, and
+delete items; and move items between normal and associated contents. Disposing without `Commit()` leaves the source
+byte-for-byte unchanged. A no-op commit does not rewrite it. The transaction also detects source length or timestamp
+changes before replacement. It holds both the source read lock and an adjacent, path-scoped cross-process OfficeIMO
+mutation lock through staging and replacement. The final replacement remains an atomic filesystem operation;
+software that does not participate in the OfficeIMO lock must coordinate its own simultaneous replacement of the
+same path.
+
+This is a verified semantic rewrite, not in-place NDB allocation-map editing. PST folder and item identifiers change,
+so the report returns old/transaction-local to rewritten ID mappings. ANSI PST and OST inputs are rejected. Mandatory
+folders cannot be renamed, moved, or deleted. Dynamic search-folder definitions cannot be regenerated; unsupported
+search or writer fidelity is a blocking diagnostic while `failOnDataLoss` remains at its safe default. Applications
+may opt into a known lossy static projection with `failOnDataLoss: false`, but verification of the resulting semantic
+contents remains enabled unless explicitly disabled. Standard source-identified default-folder roles are rewritten
+and verified as EntryID-backed roles, not merely as matching names. Items cannot be added or moved into the
+writer-owned search folder because its contents are computed rather than authored as ordinary rows. Verification also
+rejects any writer-seeded folder that was not mapped from the intended source and transaction state.
 
 ## Convert OST or another store to a new PST
 
@@ -336,14 +404,14 @@ For the materializing `EmailStoreReader`, `retainAttachmentContent: false` omits
 model never contains a deferred source whose session has already closed. Use `EmailStoreSession.ReadItem` with
 `preferStreamingAttachmentContent: true` when the caller wants on-demand payload streams.
 
-Set `PstPassword` only when a protected PST requires checksum validation. Passwords are not logged or copied into results. Caller-owned streams must be readable and seekable; reads restore the original stream position and leave the stream open.
+Set `PstPassword` only when a protected PST requires checksum validation. Passwords are not logged or copied into results. Protected PSTs remain readable after validation, but mutation rejects them because the managed writer cannot preserve the protection. Caller-owned streams must be readable and seekable; reads restore the original stream position and leave the stream open.
 
 ## Boundaries
 
-- This package owns store/container traversal, bounded selection, validation/recovery discovery, new Unicode PST creation, verified conversion, and multi-store merge orchestration.
-- `OfficeIMO.Email` owns EML/MIME, MSG/OFT, TNEF, mbox, MAPI models, and item serialization.
+- This package owns store/container traversal, bounded selection, validation/recovery discovery, Mbox session projection, EMLX/Maildir output, new Unicode PST creation, verified conversion/merge, and verified atomic rewrite mutation of existing Unicode PST files.
+- `OfficeIMO.Email` owns EML/MIME, MSG/OFT, TNEF, aggregate mbox, iCalendar, vCard, MAPI models, and item serialization.
 - `OfficeIMO.Reader.EmailStore` owns optional Reader registration and rich-result projection.
-- Existing PST/OST mutation, append, compaction, repair, password/encryption authoring, Outlook profiles, Exchange synchronization, cloud download, and server-side recovery remain outside this package.
+- ANSI PST mutation, OST mutation/writing, in-place PST append/editing, compaction, repair, password/encryption authoring, OLM authoring, Outlook profiles, Exchange synchronization, cloud download, and server-side recovery remain outside this package.
 - The writer currently emits Unicode PST files. It does not emit ANSI PST or OST files, and one data tree is limited to 4 GiB.
 - Synthetic always-on gates cover deterministic round trips, malformed MIME/TNEF/compound input, memory budgets,
   checkpoints, merge/deduplication, and scale. libpff and classic Outlook mount/read/remove gates are opt-in so

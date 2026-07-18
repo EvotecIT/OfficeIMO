@@ -4,6 +4,7 @@ namespace OfficeIMO.Email.Store;
 
 internal sealed class MailboxDirectoryStoreSessionBackend : IEmailStoreSessionBackend {
     private readonly string _root;
+    private readonly StringComparison _rootComparison;
     private readonly EmailStoreReaderOptions _options;
     private readonly List<EmailStoreDiagnostic> _diagnostics = new List<EmailStoreDiagnostic>();
     private readonly List<EmailStoreFolderInfo> _folders = new List<EmailStoreFolderInfo>();
@@ -17,6 +18,9 @@ internal sealed class MailboxDirectoryStoreSessionBackend : IEmailStoreSessionBa
     internal MailboxDirectoryStoreSessionBackend(string path, EmailStoreReaderOptions options,
         CancellationToken cancellationToken) {
         _root = AppendSeparator(Path.GetFullPath(path));
+        string rootWithoutSeparator = _root.TrimEnd(Path.DirectorySeparatorChar);
+        string? rootParent = Path.GetDirectoryName(rootWithoutSeparator);
+        _rootComparison = EmailStorePathIdentity.GetComparison(rootParent ?? rootWithoutSeparator);
         _options = options;
         DisplayName = new DirectoryInfo(path).Name;
         Index(cancellationToken);
@@ -27,6 +31,7 @@ internal sealed class MailboxDirectoryStoreSessionBackend : IEmailStoreSessionBa
     public long SourceLength => _sourceLength;
     public IReadOnlyList<EmailStoreFolderInfo> Folders => _folders;
     public IReadOnlyList<EmailStoreDiagnostic> Diagnostics => _diagnostics;
+    internal string RootPath => _root;
 
     public IEnumerable<EmailStoreItemReference> EnumerateItems(
         EmailStoreEnumerationOptions options, CancellationToken cancellationToken) {
@@ -42,7 +47,8 @@ internal sealed class MailboxDirectoryStoreSessionBackend : IEmailStoreSessionBa
 
     public EmailStoreItemSummary ReadSummary(EmailStoreItemReference reference,
         CancellationToken cancellationToken) =>
-        EmailStoreItemSummary.FromItem(ReadItem(reference, EmailStoreItemReadOptions.Default, cancellationToken));
+        EmailStoreItemSummary.FromItem(ReadItem(reference,
+            new EmailStoreItemReadOptions(EmailStoreItemReadParts.Metadata), cancellationToken));
 
     public EmailStoreItem ReadItem(EmailStoreItemReference reference, EmailStoreItemReadOptions options,
         CancellationToken cancellationToken) {
@@ -53,16 +59,18 @@ internal sealed class MailboxDirectoryStoreSessionBackend : IEmailStoreSessionBa
             throw new KeyNotFoundException(
                 "The item reference does not belong to this mailbox-directory session.");
         }
+        bool includeAttachmentContent = options.Includes(EmailStoreItemReadParts.AttachmentContent);
         using (var stream = new FileStream(
             file.Path, FileMode.Open, FileAccess.Read, FileShare.Read, 64 * 1024, FileOptions.SequentialScan)) {
             EmailDocument document;
             if (file.IsEmlx) {
-                EmailStoreReadResult result = new EmlxStoreReader(_options)
+                EmailStoreReadResult result = new EmlxStoreReader(_options, includeAttachmentContent)
                     .Read(stream, Path.GetFileName(file.Path), cancellationToken);
                 foreach (EmailStoreDiagnostic diagnostic in result.Diagnostics) _diagnostics.Add(diagnostic);
                 document = result.Store.Folders.SelectMany(folder => folder.Items).Single().Document;
             } else {
-                EmailReadResult result = EmailStoreMessageReader.Read(stream, _options, cancellationToken);
+                EmailReadResult result = EmailStoreMessageReader.Read(stream, _options, cancellationToken,
+                    includeAttachmentContent);
                 CopyDiagnostics(result.Diagnostics, file.RelativePath);
                 document = result.Document;
             }
@@ -70,8 +78,11 @@ internal sealed class MailboxDirectoryStoreSessionBackend : IEmailStoreSessionBa
             document.Properties["EmailStore:ItemId"] = file.Id;
             document.Properties["EmailStore:FolderId"] = file.FolderId;
             document.Properties["EmailStore:RelativePath"] = file.RelativePath;
-            return new EmailStoreItem(
-                file.Id, file.FolderId, document, format: EmailStoreFormat.MailboxDirectory);
+            ApplyMaildirFlags(document, file.MaildirFlags);
+            EmailStoreItemReadParts loadedParts = EmailStoreItemReadParts.All;
+            if (!includeAttachmentContent) loadedParts &= ~EmailStoreItemReadParts.AttachmentContent;
+            return new EmailStoreItem(file.Id, file.FolderId, document,
+                loadedParts: loadedParts, format: EmailStoreFormat.MailboxDirectory);
         }
     }
 
@@ -97,7 +108,8 @@ internal sealed class MailboxDirectoryStoreSessionBackend : IEmailStoreSessionBa
                 continue;
             }
 
-            foreach (FileSystemInfo entry in entries.OrderBy(item => item.Name, StringComparer.OrdinalIgnoreCase)) {
+            StringComparer entryComparer = EmailStorePathIdentity.GetComparer(current.Path);
+            foreach (FileSystemInfo entry in entries.OrderBy(item => item.Name, entryComparer)) {
                 cancellationToken.ThrowIfCancellationRequested();
                 if ((entry.Attributes & FileAttributes.ReparsePoint) != 0) {
                     _diagnostics.Add(new EmailStoreDiagnostic(
@@ -128,23 +140,25 @@ internal sealed class MailboxDirectoryStoreSessionBackend : IEmailStoreSessionBa
                 candidates.Add(new MailboxCandidate(
                     file.FullName,
                     ToRelativePath(file.FullName),
-                    IsEmlx(file.Name),
-                    GetLogicalFolderPath(ToRelativePath(file.DirectoryName ?? _root))));
+                    IsEmlx(file),
+                    GetLogicalFolderPath(ToRelativePath(file.DirectoryName ?? _root)),
+                    ParseMaildirFlags(file.Name, file.Directory?.Name)));
             }
         }
 
         var folderCounts = candidates
-            .GroupBy(candidate => candidate.FolderPath, StringComparer.OrdinalIgnoreCase)
-            .ToDictionary(group => group.Key, group => group.Count(), StringComparer.OrdinalIgnoreCase);
-        foreach (string path in folderCounts.Keys.OrderBy(item => item, StringComparer.OrdinalIgnoreCase)) {
+            .GroupBy(candidate => candidate.FolderPath, StringComparer.Ordinal)
+            .ToDictionary(group => group.Key, group => group.Count(), StringComparer.Ordinal);
+        foreach (string path in folderCounts.Keys.OrderBy(item => item, StringComparer.Ordinal)) {
             EnsureFolder(path, folderCounts);
         }
         foreach (MailboxCandidate candidate in candidates.OrderBy(
-            item => item.RelativePath, StringComparer.OrdinalIgnoreCase)) {
+            item => item.RelativePath, StringComparer.Ordinal)) {
             string folderId = GetFolderId(candidate.FolderPath);
             string id = string.Concat("directory:item:", candidate.RelativePath.Replace('\\', '/'));
             var file = new MailboxFile(
-                id, folderId, candidate.Path, candidate.RelativePath, candidate.IsEmlx);
+                id, folderId, candidate.Path, candidate.RelativePath, candidate.IsEmlx,
+                candidate.MaildirFlags);
             _files.Add(file);
             _filesById.Add(id, file);
         }
@@ -204,11 +218,11 @@ internal sealed class MailboxDirectoryStoreSessionBackend : IEmailStoreSessionBa
 
     private string ToRelativePath(string fullPath) {
         string normalized = Path.GetFullPath(fullPath);
-        if (normalized.StartsWith(_root, StringComparison.OrdinalIgnoreCase)) {
+        if (normalized.StartsWith(_root, _rootComparison)) {
             return normalized.Substring(_root.Length).Replace('\\', '/');
         }
         string rootWithoutSeparator = _root.TrimEnd(Path.DirectorySeparatorChar);
-        return string.Equals(normalized, rootWithoutSeparator, StringComparison.OrdinalIgnoreCase)
+        return string.Equals(normalized, rootWithoutSeparator, _rootComparison)
             ? string.Empty
             : normalized;
     }
@@ -249,8 +263,45 @@ internal sealed class MailboxDirectoryStoreSessionBackend : IEmailStoreSessionBa
         }
     }
 
-    private static bool IsEmlx(string name) =>
-        name.EndsWith(".emlx", StringComparison.OrdinalIgnoreCase);
+    private static bool IsEmlx(FileInfo file) {
+        if (!file.Name.EndsWith(".emlx", StringComparison.OrdinalIgnoreCase)) return false;
+        string? parent = file.Directory?.Name;
+        if (!string.Equals(parent, "cur", StringComparison.OrdinalIgnoreCase) &&
+            !string.Equals(parent, "new", StringComparison.OrdinalIgnoreCase)) return true;
+        try {
+            using (var stream = new FileStream(
+                file.FullName, FileMode.Open, FileAccess.Read, FileShare.Read, 4 * 1024,
+                FileOptions.SequentialScan)) {
+                return EmlxStoreReader.HasEnvelopePrefix(stream);
+            }
+        } catch (Exception exception) when (exception is IOException || exception is UnauthorizedAccessException) {
+            return false;
+        }
+    }
+
+    internal static string? ParseMaildirFlags(string name, string? parentDirectoryName) {
+        if (name == null) throw new ArgumentNullException(nameof(name));
+        if (!string.Equals(parentDirectoryName, "cur", StringComparison.OrdinalIgnoreCase)) return null;
+        int marker = name.LastIndexOf(":2,", StringComparison.Ordinal);
+        if (marker <= 0) return null;
+        string flags = name.Substring(marker + 3);
+        for (int index = 0; index < flags.Length; index++) {
+            char value = flags[index];
+            if (value < 'A' || value > 'Z') return null;
+        }
+        return flags;
+    }
+
+    internal static void ApplyMaildirFlags(EmailDocument document, string? flags) {
+        if (document == null) throw new ArgumentNullException(nameof(document));
+        if (flags == null) return;
+        document.MessageMetadata.IsDraft = flags.IndexOf('D') >= 0;
+        document.MessageMetadata.IsRead = flags.IndexOf('S') >= 0;
+        document.Properties["Emlx:Flag:Flagged"] = flags.IndexOf('F') >= 0;
+        document.Properties["Emlx:Flag:Forwarded"] = flags.IndexOf('P') >= 0;
+        document.Properties["Emlx:Flag:Answered"] = flags.IndexOf('R') >= 0;
+        document.Properties["Emlx:Flag:Deleted"] = flags.IndexOf('T') >= 0;
+    }
 
     private static string GetFolderId(string path) =>
         string.Concat("directory:folder:", path);
@@ -278,30 +329,36 @@ internal sealed class MailboxDirectoryStoreSessionBackend : IEmailStoreSessionBa
     }
 
     private sealed class MailboxCandidate {
-        internal MailboxCandidate(string path, string relativePath, bool isEmlx, string folderPath) {
+        internal MailboxCandidate(string path, string relativePath, bool isEmlx, string folderPath,
+            string? maildirFlags) {
             Path = path;
             RelativePath = relativePath;
             IsEmlx = isEmlx;
             FolderPath = folderPath;
+            MaildirFlags = maildirFlags;
         }
         internal string Path { get; }
         internal string RelativePath { get; }
         internal bool IsEmlx { get; }
         internal string FolderPath { get; }
+        internal string? MaildirFlags { get; }
     }
 
     private sealed class MailboxFile {
-        internal MailboxFile(string id, string folderId, string path, string relativePath, bool isEmlx) {
+        internal MailboxFile(string id, string folderId, string path, string relativePath, bool isEmlx,
+            string? maildirFlags) {
             Id = id;
             FolderId = folderId;
             Path = path;
             RelativePath = relativePath;
             IsEmlx = isEmlx;
+            MaildirFlags = maildirFlags;
         }
         internal string Id { get; }
         internal string FolderId { get; }
         internal string Path { get; }
         internal string RelativePath { get; }
         internal bool IsEmlx { get; }
+        internal string? MaildirFlags { get; }
     }
 }

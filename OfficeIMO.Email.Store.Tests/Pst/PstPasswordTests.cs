@@ -37,6 +37,15 @@ public sealed class PstPasswordTests {
     }
 
     [Fact]
+    public void ProtectionDetectionDistinguishesNonzeroChecksum() {
+        Assert.False(PstPassword.IsProtected(Array.Empty<MapiProperty>()));
+        Assert.False(PstPassword.IsProtected(
+            new[] { new MapiProperty(0x67FF, MapiPropertyType.Integer32, 0) }));
+        Assert.True(PstPassword.IsProtected(
+            new[] { new MapiProperty(0x67FF, MapiPropertyType.Integer32, 1) }));
+    }
+
+    [Fact]
     public void OstOpenDoesNotApplyTheLegacyPstPasswordGate() {
         using var stream = new MemoryStream(PstTestFileBuilder.Create(
             ost: true, storePasswordChecksum: 0x12345678));

@@ -267,6 +267,7 @@ _Dependency footprint:_ BCL compatibility packages only; no third-party CSV pars
 - [x] Read, create, edit, and write MIME/EML messages
 - [x] Native Outlook MSG/OFT/MAPI model with messages, templates, contacts, appointments, tasks, attachments, recipients, properties, and named properties
 - [x] TNEF/`winmail.dat` and mbox reading/writing with nested and embedded items
+- [x] Standalone iCalendar/ICS and vCard/VCF read, write, mutation, validation, lossless extensions, recurrence, temporal, contact-group, and legacy syntax support
 - [x] RTF and compressed-RTF body handling, MIME compatibility, safety limits, diagnostics, and package inspection
 
 _Dependency footprint:_ `System.Text.Encoding.CodePages` plus first-party OfficeIMO Drawing and RTF; no MailKit, MimeKit, or Outlook interop.
@@ -274,12 +275,13 @@ _Dependency footprint:_ `System.Text.Encoding.CodePages` plus first-party Office
 #### [OfficeIMO.Email.Store](OfficeIMO.Email.Store/README.md)
 
 - [x] Fully managed, lazy PST and OST sessions with bounded page caches, selective summaries, queries, and explicit item reads
-- [x] Bounded Outlook for Mac OLM, individual EMLX, lazy Apple Mail trees, Maildir, and EML/MIME directory ingestion
+- [x] Bounded Outlook for Mac OLM, individual EMLX, unified Mbox, lazy Apple Mail trees, Maildir, and EML/MIME directory ingestion
 - [x] Common `OfficeIMO.Email.EmailDocument` projection instead of a second message or Outlook-item model
 - [x] Resumable semantic content search, special-folder roles, offline-content availability, and deferred attachment streams
-- [x] Inspection, bounded PST/OST structural validation, orphan discovery, EML/MSG/OFT/TNEF directory export, and streaming mbox export
+- [x] Inspection, bounded PST/OST structural validation, orphan discovery, EML/MSG/OFT/TNEF directory export, streaming mbox export, and native Maildir/EMLX output
 - [x] Managed Unicode PST creation with folders, typed items, recipients, attachments, embedded messages, named properties, and multi-valued MAPI properties
-- [x] Read-only OST/PST/OLM/EMLX/mailbox-directory conversion into a separate new PST with explicit fidelity diagnostics
+- [x] Read-only OST/PST/OLM/EMLX/Mbox/mailbox-directory conversion into a separate new PST with explicit fidelity diagnostics
+- [x] Existing Unicode PST folder/item mutation through a locked, verified, optionally backed-up atomic rewrite transaction
 - [x] Configurable source, cache, tree, item, attachment, archive, XML, directory, and recursion limits with structured diagnostics
 
 _Dependency footprint:_ first-party `OfficeIMO.Email` and `OfficeIMO.Rtf`; no Outlook installation, native library, or third-party store parser.

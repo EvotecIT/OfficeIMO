@@ -15,6 +15,8 @@ internal sealed class PstStoreSessionBackend : IEmailStoreSessionBackend {
     public long SourceLength => _reader.SourceLength;
     public IReadOnlyList<EmailStoreFolderInfo> Folders => _reader.Folders;
     public IReadOnlyList<EmailStoreDiagnostic> Diagnostics => _reader.Diagnostics;
+    internal bool IsPasswordProtected => _reader.IsPasswordProtected;
+    internal bool IsOfficeImoWriterStore => _reader.IsOfficeImoWriterStore;
 
     public IEnumerable<EmailStoreItemReference> EnumerateItems(
         EmailStoreEnumerationOptions options, CancellationToken cancellationToken) =>

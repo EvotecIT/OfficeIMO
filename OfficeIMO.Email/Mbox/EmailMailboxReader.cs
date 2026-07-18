@@ -160,8 +160,15 @@ public sealed class EmailMailboxReader {
         int separator = remainder.IndexOf(' ');
         sender = separator < 0 ? remainder : remainder.Substring(0, separator);
         string dateText = separator < 0 ? string.Empty : remainder.Substring(separator + 1).Trim();
-        date = DateTimeOffset.TryParse(dateText, CultureInfo.InvariantCulture,
-            DateTimeStyles.AllowWhiteSpaces | DateTimeStyles.AssumeUniversal, out DateTimeOffset parsed) ? parsed : (DateTimeOffset?)null;
+        const DateTimeStyles dateStyles = DateTimeStyles.AllowWhiteSpaces | DateTimeStyles.AssumeUniversal;
+        DateTimeOffset parsed;
+        if (DateTimeOffset.TryParseExact(dateText, "ddd MMM dd HH:mm:ss yyyy",
+                CultureInfo.InvariantCulture, dateStyles, out parsed) ||
+            DateTimeOffset.TryParse(dateText, CultureInfo.InvariantCulture, dateStyles, out parsed)) {
+            date = parsed;
+        } else {
+            date = null;
+        }
     }
 
     internal static MboxVariant DetectVariant(byte[] message, CancellationToken cancellationToken) {

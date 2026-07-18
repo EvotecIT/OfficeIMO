@@ -201,7 +201,7 @@ Render through `OfficeIMO.Markdown` for portable document output. Use direct HTM
 
 ### Chunks
 
-Keep `ReaderChunk` as the ingestion contract. Token-aware hierarchy is an opt-in sidecar around those leaves, so stable v5 transport does not need another chunk model or breaking fields. Continue improving source maps and optional block/table/image/form/diagram references in owning adapters.
+Keep `ReaderChunk` as the ingestion contract. Token-aware hierarchy is an opt-in sidecar around those leaves, so the stable versioned transport does not need another chunk model or breaking fields. Continue improving source maps and optional block/table/image/form/diagram references in owning adapters.
 
 ### Assets
 
@@ -223,7 +223,7 @@ Goal: make the roadmap OfficeIMO-owned, current, and easy to hand off.
 
 Goal: one result envelope for all output forms.
 
-- `OfficeDocumentReadResult` schema version 5 is the stable envelope for chunks, metadata, assets, diagnostics, pages, blocks, tables, links, forms, visuals, OCR candidates, and source references.
+- `OfficeDocumentReadResult` schema version 5 is the first stable envelope; current version 6 adds calendar and vCard kinds while preserving version 5 compatibility for chunks, metadata, assets, diagnostics, pages, blocks, tables, links, forms, visuals, OCR candidates, and source references.
 - Capability manifests describe chunk, rich-result, stream, and native async support for static and isolated readers.
 - Word, Excel, PowerPoint, Markdown, PDF, HTML, EPUB, RTF, Visio, and other modular adapters project into the shared result while their format packages retain parser ownership.
 - `ReadDocument(...)`, JSON transport, Markdown/HTML fields, table/asset/visual projections, processors, structured extraction, and hierarchical chunking provide host-facing convenience surfaces over the same result.
@@ -356,7 +356,7 @@ Goal: prove document intelligence with tests users can trust.
 2. Evolve the stable `OfficeDocumentReadResult` model additively; use a new schema version for breaking transport changes.
 3. Deepen PDF logical-document read-result coverage for richer image/form metadata, compliance diagnostics, destinations, outlines, and catalog evidence.
 4. Align read-result Markdown through existing PDF logical Markdown and `OfficeIMO.Markdown`.
-5. Keep deterministic schema version 5 JSON stable and expand nested schema detail as shared models mature.
+5. Keep deterministic version 5 JSON stable, evolve the current versioned schema explicitly, and expand nested schema detail as shared models mature.
 6. Extend asset manifests to richer PDF form/widget assets, HTML/EPUB referenced media, and Office drawing anchors.
 7. Expand table-only extraction examples and adapter coverage beyond the initial Reader/PDF/Visio facades.
 8. Extend scan/OCR-needed diagnostics beyond image-only PDF pages into richer image-region and Office-document heuristics without adding an OCR provider dependency to the core package.

@@ -140,11 +140,7 @@ public sealed class EmailMailboxWriter {
         }
         if (messageResult.HasErrors && eml.Length == 0) return Array.Empty<byte>();
 
-        string sender = entry.EnvelopeSender ?? entry.Document.From?.Address ?? "MAILER-DAEMON";
-        DateTimeOffset date = entry.EnvelopeDate ?? entry.Document.Date ??
-            new DateTimeOffset(1970, 1, 1, 0, 0, 0, TimeSpan.Zero);
-        byte[] fromBytes = Encoding.ASCII.GetBytes(string.Concat("From ", SanitizeSender(sender), " ",
-            date.UtcDateTime.ToString("ddd MMM dd HH:mm:ss yyyy", CultureInfo.InvariantCulture), "\n"));
+        byte[] fromBytes = CreateEnvelopeLine(entry, index, diagnostics);
         byte[] escaped = Escape(NormalizeLineEndings(eml), _options.Variant);
         using (var output = new MemoryStream(checked(fromBytes.Length + escaped.Length + 1))) {
             output.Write(fromBytes, 0, fromBytes.Length);
@@ -189,6 +185,33 @@ public sealed class EmailMailboxWriter {
     private static bool StartsWith(byte[] data, int offset, string value) {
         if (offset < 0 || offset + value.Length > data.Length) return false;
         for (int index = 0; index < value.Length; index++) if (data[offset + index] != value[index]) return false;
+        return true;
+    }
+
+    private static byte[] CreateEnvelopeLine(EmailMailboxEntry entry, int index,
+        ICollection<EmailDiagnostic> diagnostics) {
+        if (entry.RawFromLine != null) {
+            if (IsSafeEnvelopeLine(entry.RawFromLine)) {
+                return Encoding.ASCII.GetBytes(string.Concat(entry.RawFromLine, "\n"));
+            }
+            diagnostics.Add(new EmailDiagnostic("EMAIL_MBOX_RAW_ENVELOPE_INVALID",
+                "The retained mbox separator was unsafe or not ASCII and was regenerated from structured metadata.",
+                EmailDiagnosticSeverity.Warning,
+                string.Concat("message[", index.ToString(CultureInfo.InvariantCulture), "]/envelope")));
+        }
+
+        string sender = entry.EnvelopeSender ?? entry.Document.From?.Address ?? "MAILER-DAEMON";
+        DateTimeOffset date = entry.EnvelopeDate ?? entry.Document.Date ??
+            new DateTimeOffset(1970, 1, 1, 0, 0, 0, TimeSpan.Zero);
+        return Encoding.ASCII.GetBytes(string.Concat("From ", SanitizeSender(sender), " ",
+            date.UtcDateTime.ToString("ddd MMM dd HH:mm:ss yyyy", CultureInfo.InvariantCulture), "\n"));
+    }
+
+    private static bool IsSafeEnvelopeLine(string value) {
+        if (!value.StartsWith("From ", StringComparison.Ordinal)) return false;
+        foreach (char character in value) {
+            if (character >= 0x7F || (character < 0x20 && character != '\t')) return false;
+        }
         return true;
     }
 

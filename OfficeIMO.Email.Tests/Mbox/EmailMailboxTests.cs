@@ -5,6 +5,51 @@ namespace OfficeIMO.Email.Tests;
 
 public sealed class EmailMailboxTests {
     [Fact]
+    public void ReadWritePreservesAnUnparseableRawEnvelopeLine() {
+        const string rawFromLine = "From vendor@example.test Vendor-Date-Token";
+        byte[] source = Encoding.ASCII.GetBytes(rawFromLine +
+            "\nDate: Fri, 17 Jul 2026 09:00:00 +0000\nSubject: Vendor envelope\n\nBody\n");
+
+        EmailMailbox mailbox = EmailMailbox.Load(source);
+        EmailMailboxEntry entry = Assert.Single(mailbox.Messages);
+        byte[] serialized = mailbox.ToBytes();
+        EmailMailboxEntry reparsed = Assert.Single(EmailMailbox.Load(serialized).Messages);
+
+        Assert.Equal(rawFromLine, entry.RawFromLine);
+        Assert.Null(entry.EnvelopeDate);
+        Assert.StartsWith(rawFromLine + "\n", Encoding.ASCII.GetString(serialized),
+            StringComparison.Ordinal);
+        Assert.Equal(rawFromLine, reparsed.RawFromLine);
+        Assert.Null(reparsed.EnvelopeDate);
+    }
+
+    [Theory]
+    [InlineData("From attacker@example.test\nFrom injected@example.test")]
+    [InlineData("From attacker@example.test\u007Ftrailer")]
+    public void WriterRegeneratesAnUnsafeRawEnvelopeLineWithoutInjectingASeparator(
+        string unsafeRawFromLine) {
+        var mailbox = new EmailMailbox();
+        mailbox.Messages.Add(new EmailMailboxEntry(new EmailDocument {
+            From = new EmailAddress("sender@example.test"),
+            Date = new DateTimeOffset(2026, 7, 17, 9, 0, 0, TimeSpan.Zero),
+            Subject = "Safe envelope"
+        }) {
+            RawFromLine = unsafeRawFromLine
+        });
+        using var output = new MemoryStream();
+
+        EmailWriteResult result = new EmailMailboxWriter().Write(mailbox, output);
+        string serialized = Encoding.ASCII.GetString(output.ToArray());
+
+        Assert.Contains(result.Diagnostics, diagnostic =>
+            diagnostic.Code == "EMAIL_MBOX_RAW_ENVELOPE_INVALID" &&
+            diagnostic.Severity == EmailDiagnosticSeverity.Warning);
+        Assert.StartsWith("From sender@example.test Fri Jul 17 09:00:00 2026\n",
+            serialized, StringComparison.Ordinal);
+        Assert.DoesNotContain(unsafeRawFromLine, serialized, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void MailboxToStreamMatchesToBytesAndStartsAtBeginning() {
         var mailbox = new EmailMailbox();
 

@@ -5,6 +5,22 @@ using Xunit;
 namespace OfficeIMO.Email.Tests;
 
 public sealed class EmailCalendarProjectionEdgeTests {
+    [Fact]
+    public void LegacyCalendarMimeProjectionPreservesLiteralCaretParameters() {
+        byte[] eml = Encoding.ASCII.GetBytes(
+            "Content-Type: text/calendar; charset=utf-8\r\n\r\n" +
+            "BEGIN:VCALENDAR\r\nVERSION:1.0\r\nPRODID:-//Legacy//EN\r\n" +
+            "BEGIN:VEVENT\r\nUID:legacy@example.com\r\nDTSTART:20260801T100000Z\r\n" +
+            "ATTENDEE;CN=alpha^nbeta:mailto:attendee@example.com\r\n" +
+            "END:VEVENT\r\nEND:VCALENDAR\r\n");
+
+        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+        EmailRecipient recipient = Assert.Single(document.Recipients);
+
+        Assert.Equal("alpha^nbeta", recipient.Address.DisplayName);
+        Assert.DoesNotContain("\n", recipient.Address.DisplayName!, StringComparison.Ordinal);
+    }
+
     [Theory]
     [InlineData("text/calendar", OutlookItemKind.Appointment,
         "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:inline@example.com\r\n" +
@@ -603,7 +619,7 @@ public sealed class EmailCalendarProjectionEdgeTests {
     }
 
     [Fact]
-    public void UnescapesQuotedCalendarParameters() {
+    public void PreservesQuotedCalendarParameterBackslashes() {
         const string parameterName = "Alice \\\"A\\\" \\\\ Team";
         byte[] eml = Calendar(
             "BEGIN:VEVENT\r\nUID:parameter@example.com\r\nDTSTART:20260801T100000Z\r\n" +
@@ -614,8 +630,8 @@ public sealed class EmailCalendarProjectionEdgeTests {
         EmailDocument roundTrip = new EmailDocumentReader().Read(
             new EmailDocumentWriter().ToBytes(document, EmailFileFormat.OutlookMsg)).Document;
 
-        Assert.Equal("Alice \"A\" \\ Team", Assert.Single(document.Recipients).Address.DisplayName);
-        Assert.Equal("Alice \"A\" \\ Team", Assert.Single(roundTrip.Recipients).Address.DisplayName);
+        Assert.Equal("Alice \"A\" \\\\ Team", Assert.Single(document.Recipients).Address.DisplayName);
+        Assert.Equal("Alice \"A\" \\\\ Team", Assert.Single(roundTrip.Recipients).Address.DisplayName);
     }
 
     [Fact]

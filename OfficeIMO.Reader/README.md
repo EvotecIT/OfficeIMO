@@ -5,6 +5,10 @@
 
 `OfficeIMO.Reader` is a read-only facade for deterministic document extraction. It normalizes supported source files into `ReaderChunk` objects for search, indexing, chat, RAG, migration, and review workflows.
 
+Built-in email-family handling includes EML, MSG, OFT, TNEF, Mbox, standalone iCalendar (`.ics`/`.vcs`), and
+standalone vCard (`.vcf`/`.vcard`). Calendar and contact extraction delegates to the public lossless engines in
+`OfficeIMO.Email`; optional PST, OST, OLM, and EMLX stores remain in `OfficeIMO.Reader.EmailStore`.
+
 ## Install
 
 ```powershell
@@ -280,23 +284,23 @@ The result records the selected token counter, original/output/overlap/context t
 
 The dependency-free default uses the existing four-characters-per-token heuristic. Supply a deterministic, thread-safe `IReaderTokenCounter` when the embedding model needs its exact tokenizer. A hierarchy represents one source document and rejects mixed-source chunk collections. Context and input/output/depth bounds emit structured diagnostics; invalid token budgets or counters fail explicitly.
 
-This is an opt-in projection with its own schema id/version. It does not add fields to `ReaderChunk`, change normal reads, or alter the stable `OfficeDocumentReadResult` v5 transport. Static and instance sync/async file, stream, and byte overloads are available; instance reads apply configured processors before chunking.
+This is an opt-in projection with its own schema id/version. It does not add fields to `ReaderChunk` or change normal reads. Static and instance sync/async file, stream, and byte overloads are available; instance reads apply configured processors before chunking.
 
 ## Stable document transport
 
-`OfficeDocumentReadResult` schema version 5 is the first stable JSON transport contract. Versions 1 through 4 were experimental and are deliberately rejected when reading transport payloads.
+`OfficeDocumentReadResult` schema version 5 is the first stable JSON transport contract. Version 6 adds the `Calendar` and `VCard` kinds without changing the closed version 5 enum; versions 1 through 4 remain deliberately unsupported.
 
 ```csharp
 OfficeDocumentReadResult document = reader.ReadDocument(@"C:\Docs\Policy.docx");
 string json = OfficeDocumentReadResultJson.Serialize(document, indented: true);
 
 OfficeDocumentReadResult restored = OfficeDocumentReadResultJson.Deserialize(json);
-Console.WriteLine(restored.SchemaVersion); // 5
+Console.WriteLine(restored.SchemaVersion); // 6
 
 string jsonSchema = OfficeDocumentReadResultSchema.GetJsonSchema();
 ```
 
-The package embeds the versioned JSON Schema and also ships it as `schemas/officeimo.document.read-result.v5.schema.json`. Deserialization accepts only the current schema id/version, rejects unknown top-level members and incomplete envelopes, and returns a typed `OfficeDocumentReadResultSchemaException` for incompatible versions. Published core and modular Reader packages run NuGet package validation against their current public versions, so accidental API breaks fail packaging. A brand-new package opts out only until its first public baseline exists.
+The package embeds and ships both `schemas/officeimo.document.read-result.v5.schema.json` and `schemas/officeimo.document.read-result.v6.schema.json`. Deserialization accepts stable versions 5 and 6, normalizes accepted payloads to the current model, rejects unknown top-level members and incomplete envelopes, and returns a typed `OfficeDocumentReadResultSchemaException` for incompatible versions. `GetJsonSchema()` returns the current schema; `GetJsonSchema(version)` returns a supported historical artifact. Published core and modular Reader packages run NuGet package validation against their current public versions, so accidental API breaks fail packaging.
 
 ## Content detection and structured diagnostics
 
@@ -369,7 +373,7 @@ OfficeDocumentOcrExecutionResult execution = await source.ApplyOcrAsync(
 
 To run the same frozen configuration automatically for every rich read, register `new OfficeDocumentOcrProcessor(engine, executionOptions)` with `OfficeDocumentReaderBuilder.AddProcessor(...)`. Engines that do not advertise concurrent-request support are serialized per engine instance even when several reader operations run concurrently.
 
-`execution.Document` contains merged `ocr-text` blocks/chunks while unresolved candidates and diagnostics remain intact. `execution.Recognitions` carries optional line, word, and character spans with confidence, language, bounding boxes, and coordinate units. Detailed provider spans intentionally stay outside the stable v5 transport; the merged text and trace metadata use the existing schema.
+`execution.Document` contains merged `ocr-text` blocks/chunks while unresolved candidates and diagnostics remain intact. `execution.Recognitions` carries optional line, word, and character spans with confidence, language, bounding boxes, and coordinate units. Detailed provider spans intentionally stay outside the stable versioned transport; the merged text and trace metadata use the existing schema.
 
 Use `OfficeIMO.Reader.Ocr.Process` for a versioned local executable/service bridge or `OfficeIMO.Reader.Ocr.Tesseract` for an installed Tesseract CLI. Neither package is pulled transitively by `OfficeIMO.Reader`.
 
@@ -443,7 +447,7 @@ Rich handlers return `OfficeDocumentReadResult` directly and can populate the co
 - `SupportsAsyncPath` and `SupportsAsyncStream` identify handlers with native asynchronous delegates; false means the async facade uses the bounded synchronous fallback.
 - `OfficeDocumentReader.Detect(...)` / `DetectAsync(...)` expose bounded extension/content evidence, confidence, media type, and mismatch state.
 - `OfficeDocumentDiagnostic` carries stable categories, codes, sources, recoverability, and attributes so hosts do not need to parse warning text.
-- `OfficeDocumentReadResultJson` reads and writes stable schema version 5 envelopes; `OfficeDocumentReadResultSchema.GetJsonSchema()` exposes the packaged schema artifact.
+- `OfficeDocumentReadResultJson` reads stable schema versions 5 and 6 and writes version 6 by default; `OfficeDocumentReadResultSchema.GetJsonSchema()` exposes the packaged current schema artifact.
 - `OfficeDocumentProcessorPipeline` freezes ordered processors and reports each completed, failed, or skipped step.
 - `OfficeDocumentStructuredExtractor` produces bounded non-generic records, sections, named tables, forms, and diagnostics without AI dependencies.
 - `ReaderHierarchicalChunker` produces token-bounded `ReaderChunk` leaves, exact overlap spans, and document/container/heading hierarchy nodes.
@@ -494,6 +498,6 @@ The benchmark corpus is generated deterministically before measurement. Benchmar
 ## Dependency footprint
 
 - **External:** `System.Text.Json` for schema/result serialization.
-- **OfficeIMO:** Native Word, Excel, PowerPoint, email, Markdown, PDF, and Drawing engines are reused directly; optional formats stay in adapter packages.
+- **OfficeIMO:** Native Word, Excel, PowerPoint, email/iCalendar/vCard, Markdown, PDF, and Drawing engines are reused directly; optional formats stay in adapter packages.
 
 See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

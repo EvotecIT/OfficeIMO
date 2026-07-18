@@ -82,5 +82,25 @@ namespace OfficeIMO.Shared.Tests {
                 if (File.Exists(asyncPath)) File.Delete(asyncPath);
             }
         }
+
+        [Fact]
+        public void CommitTemporaryFileAtomically_ReplacesAnExistingDestination() {
+            string root = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+            string destination = Path.Combine(root, "artifact.bin");
+            string temporary = Path.Combine(root, "artifact.staged.bin");
+            Directory.CreateDirectory(root);
+            File.WriteAllBytes(destination, new byte[] { 1, 2, 3, 4 });
+            File.WriteAllBytes(temporary, new byte[] { 9, 8, 7 });
+
+            try {
+                OfficeFileCommit.CommitTemporaryFileAtomically(temporary, destination);
+
+                Assert.Equal(new byte[] { 9, 8, 7 }, File.ReadAllBytes(destination));
+                Assert.False(File.Exists(temporary));
+                Assert.Empty(Directory.GetFiles(root, "*.bak"));
+            } finally {
+                if (Directory.Exists(root)) Directory.Delete(root, recursive: true);
+            }
+        }
     }
 }

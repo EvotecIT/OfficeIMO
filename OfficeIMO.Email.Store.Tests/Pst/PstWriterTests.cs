@@ -1,5 +1,6 @@
 using OfficeIMO.Email;
 using System.Globalization;
+using System.Security.Cryptography;
 
 namespace OfficeIMO.Email.Store.Tests;
 
@@ -38,6 +39,55 @@ public sealed class PstWriterTests {
         } finally {
             TryDelete(path);
         }
+    }
+
+    [Fact]
+    public void StandardSpecialFolderRolesRoundTripAsSourceIdentifiers() {
+        string path = TemporaryPstPath();
+        try {
+            Assert.True(EmailStorePstWriter.CanAssignSpecialFolderKind(EmailStoreSpecialFolderKind.Inbox));
+            Assert.False(EmailStorePstWriter.CanAssignSpecialFolderKind(EmailStoreSpecialFolderKind.JunkEmail));
+            var roles = new[] {
+                EmailStoreSpecialFolderKind.Inbox,
+                EmailStoreSpecialFolderKind.Outbox,
+                EmailStoreSpecialFolderKind.SentItems,
+                EmailStoreSpecialFolderKind.Drafts,
+                EmailStoreSpecialFolderKind.Calendar,
+                EmailStoreSpecialFolderKind.Contacts,
+                EmailStoreSpecialFolderKind.Tasks,
+                EmailStoreSpecialFolderKind.Notes,
+                EmailStoreSpecialFolderKind.Journal,
+                EmailStoreSpecialFolderKind.CommonViews,
+                EmailStoreSpecialFolderKind.PersonalViews
+            };
+            using (EmailStorePstWriter writer = EmailStorePstWriter.Create(path)) {
+                foreach (EmailStoreSpecialFolderKind role in roles) {
+                    string name = role == EmailStoreSpecialFolderKind.Inbox
+                        ? "Skrzynka odbiorcza"
+                        : role + " custom name";
+                    writer.AddFolder(name, role, containerClass: "IPF.Note");
+                }
+                Assert.Throws<InvalidOperationException>(() => writer.AddFolder(
+                    "Second Inbox", EmailStoreSpecialFolderKind.Inbox));
+                writer.Complete();
+            }
+
+            using EmailStoreSession session = EmailStoreSession.Open(path);
+            foreach (EmailStoreSpecialFolderKind role in roles) {
+                EmailStoreFolderInfo folder = Assert.Single(session.Folders,
+                    candidate => candidate.SpecialFolderKind == role);
+                Assert.Equal(EmailStoreFolderClassificationSource.SourceIdentifier,
+                    folder.ClassificationSource);
+            }
+        } finally {
+            TryDelete(path);
+        }
+    }
+
+    [Fact]
+    public void AddFolderRetainsTheOriginalThreeParameterClrOverload() {
+        Assert.NotNull(typeof(EmailStorePstWriter).GetMethod(nameof(EmailStorePstWriter.AddFolder),
+            new[] { typeof(string), typeof(string), typeof(string) }));
     }
 
     [Fact]
@@ -340,7 +390,7 @@ public sealed class PstWriterTests {
             using (EmailStorePstWriter writer = EmailStorePstWriter.Create(path,
                 new EmailStorePstWriterOptions(checkpointPath: checkpoint,
                     checkpointIntervalItems: 1, progress: progress))) {
-                folderId = writer.AddFolder("Inbox");
+                folderId = writer.AddFolder("Inbox", EmailStoreSpecialFolderKind.Inbox);
                 writer.AddItem(folderId, new EmailDocument { Subject = "first" });
                 Assert.True(File.Exists(checkpoint));
             }
@@ -357,12 +407,50 @@ public sealed class PstWriterTests {
             Assert.DoesNotContain(Directory.EnumerateFiles(directory), file =>
                 !string.Equals(file, path, StringComparison.OrdinalIgnoreCase));
             using EmailStoreSession session = EmailStoreSession.Open(path);
+            Assert.Equal(EmailStoreFolderClassificationSource.SourceIdentifier,
+                Assert.Single(session.Folders,
+                    folder => folder.SpecialFolderKind == EmailStoreSpecialFolderKind.Inbox)
+                    .ClassificationSource);
             string[] subjects = session.EnumerateItems()
                 .Select(reference => session.ReadItem(reference).Document.Subject ?? string.Empty)
                 .OrderBy(value => value, StringComparer.Ordinal).ToArray();
             Assert.Equal(new[] { "first", "second" }, subjects);
             Assert.Contains(EmailStorePstWriteStage.Checkpointing, stages);
             Assert.Contains(EmailStorePstWriteStage.Completed, stages);
+        } finally {
+            try { if (Directory.Exists(directory)) Directory.Delete(directory, recursive: true); }
+            catch (IOException) { }
+            catch (UnauthorizedAccessException) { }
+        }
+    }
+
+    [Fact]
+    public void VersionOneCheckpointResumesAndMigratesToCurrentWriterState() {
+        string directory = Path.Combine(Path.GetTempPath(),
+            "officeimo-pst-v1-checkpoint-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        string path = Path.Combine(directory, "legacy-resumed.pst");
+        string checkpoint = Path.Combine(directory, "legacy.checkpoint");
+        string folderId;
+        try {
+            using (EmailStorePstWriter writer = EmailStorePstWriter.Create(path,
+                new EmailStorePstWriterOptions(checkpointPath: checkpoint,
+                    checkpointIntervalItems: 1))) {
+                folderId = writer.AddFolder("Legacy folder");
+                writer.AddItem(folderId, new EmailDocument { Subject = "before upgrade" });
+            }
+            DowngradeCheckpointToVersionOne(checkpoint);
+
+            using (EmailStorePstWriter resumed = EmailStorePstWriter.Resume(checkpoint)) {
+                resumed.AddItem(folderId, new EmailDocument { Subject = "after upgrade" });
+                resumed.Complete();
+            }
+
+            using EmailStoreSession session = EmailStoreSession.Open(path);
+            Assert.True(session.IsOfficeImoWriterStore);
+            Assert.Equal(new[] { "after upgrade", "before upgrade" }, session.EnumerateItems()
+                .Select(reference => session.ReadSummary(reference).Subject)
+                .OrderBy(value => value, StringComparer.Ordinal).ToArray());
         } finally {
             try { if (Directory.Exists(directory)) Directory.Delete(directory, recursive: true); }
             catch (IOException) { }
@@ -479,6 +567,53 @@ public sealed class PstWriterTests {
         }
     }
 
+#if NET8_0_OR_GREATER
+    [Fact]
+    public void Verification_manifest_physical_alias_cannot_replace_destination() {
+        string container = Path.Combine(Path.GetTempPath(),
+            string.Concat("officeimo-pst-manifest-alias-", Guid.NewGuid().ToString("N")));
+        string destinationDirectory = Path.Combine(container, "destination");
+        string aliasDirectory = Path.Combine(container, "alias");
+        string sourcePath = Path.Combine(container, "source.pst");
+        string destinationPath = Path.Combine(destinationDirectory, "converted.pst");
+        string manifestAlias = Path.Combine(aliasDirectory, "converted.pst");
+        bool aliasCreated = false;
+        try {
+            Directory.CreateDirectory(destinationDirectory);
+            using (EmailStorePstWriter writer = EmailStorePstWriter.Create(sourcePath)) {
+                string folder = writer.AddFolder("Inbox");
+                writer.AddItem(folder, new EmailDocument { Subject = "alias preflight" });
+                writer.Complete();
+            }
+            try {
+                Directory.CreateSymbolicLink(aliasDirectory, destinationDirectory);
+                aliasCreated = true;
+            } catch (UnauthorizedAccessException) when (
+                System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(
+                    System.Runtime.InteropServices.OSPlatform.Windows)) {
+                return;
+            } catch (IOException) when (
+                System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(
+                    System.Runtime.InteropServices.OSPlatform.Windows)) {
+                return;
+            }
+
+            InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
+                EmailStoreConverter.ConvertToPst(sourcePath, destinationPath,
+                    conversionOptions: new EmailStorePstConversionOptions(
+                        overwriteExisting: true,
+                        verificationManifestPath: manifestAlias)));
+
+            Assert.Contains("different paths", exception.Message,
+                StringComparison.OrdinalIgnoreCase);
+            Assert.False(File.Exists(destinationPath));
+        } finally {
+            if (aliasCreated && Directory.Exists(aliasDirectory)) Directory.Delete(aliasDirectory);
+            if (Directory.Exists(container)) Directory.Delete(container, recursive: true);
+        }
+    }
+#endif
+
     [Fact]
     public void Verification_manifest_requires_post_write_verification() {
         ArgumentException exception = Assert.Throws<ArgumentException>(() =>
@@ -549,6 +684,191 @@ public sealed class PstWriterTests {
 
     private static string TemporaryPstPath() => Path.Combine(Path.GetTempPath(),
         string.Concat("officeimo-email-store-", Guid.NewGuid().ToString("N"), ".pst"));
+
+    private static void DowngradeCheckpointToVersionOne(string checkpointPath) {
+        byte[] checkpoint = File.ReadAllBytes(checkpointPath);
+        byte[] payload;
+        byte[] magic;
+        using (var input = new MemoryStream(checkpoint, writable: false))
+        using (var reader = new BinaryReader(input, Encoding.UTF8, leaveOpen: false)) {
+            magic = reader.ReadBytes(8);
+            Assert.Equal(2, reader.ReadInt32());
+            long length = reader.ReadInt64();
+            payload = reader.ReadBytes(checked((int)length));
+            Assert.Equal(32, reader.ReadBytes(32).Length);
+            Assert.Equal(input.Length, input.Position);
+        }
+
+        byte[] legacyPayload;
+        using (var input = new MemoryStream(payload, writable: false))
+        using (var reader = new BinaryReader(input, Encoding.UTF8, leaveOpen: false))
+        using (var output = new MemoryStream())
+        using (var writer = new BinaryWriter(output, Encoding.UTF8, leaveOpen: true)) {
+            for (int index = 0; index < 3; index++) writer.Write(reader.ReadString());
+            for (int index = 0; index < 2; index++) writer.Write(reader.ReadBoolean());
+            for (int index = 0; index < 5; index++) writer.Write(reader.ReadInt32());
+            writer.Write(reader.ReadBoolean());
+            writer.Write(reader.ReadInt32());
+            writer.Write(reader.ReadBytes(16));
+            for (int index = 0; index < 2; index++) writer.Write(reader.ReadUInt32());
+            for (int index = 0; index < 2; index++) writer.Write(reader.ReadInt32());
+            for (int index = 0; index < 2; index++) writer.Write(reader.ReadInt64());
+            for (int index = 0; index < 2; index++) writer.Write(reader.ReadUInt64());
+            for (int index = 0; index < 4; index++) writer.Write(reader.ReadInt64());
+            writer.Write(reader.ReadBoolean());
+
+            int namedPropertyCount = reader.ReadInt32();
+            writer.Write(namedPropertyCount);
+            for (int index = 0; index < namedPropertyCount; index++) {
+                writer.Write(reader.ReadBytes(16));
+                bool stringNamed = reader.ReadBoolean();
+                writer.Write(stringNamed);
+                if (stringNamed) writer.Write(reader.ReadString());
+                else writer.Write(reader.ReadUInt32());
+            }
+
+            int folderCount = reader.ReadInt32();
+            writer.Write(folderCount);
+            for (int index = 0; index < folderCount; index++) {
+                writer.Write(reader.ReadUInt32());
+                writer.Write(reader.ReadUInt32());
+                writer.Write(reader.ReadString());
+                CopyNullableString(reader, writer);
+                writer.Write(reader.ReadBoolean());
+                reader.ReadInt32(); // v2 special-folder role is absent from the v1 contract.
+                for (int countIndex = 0; countIndex < 3; countIndex++)
+                    writer.Write(reader.ReadInt32());
+            }
+
+            int diagnosticCount = reader.ReadInt32();
+            writer.Write(diagnosticCount);
+            for (int index = 0; index < diagnosticCount; index++) {
+                writer.Write(reader.ReadString());
+                writer.Write(reader.ReadString());
+                writer.Write(reader.ReadInt32());
+                CopyNullableString(reader, writer);
+            }
+            Assert.Equal(input.Length, input.Position);
+            writer.Flush();
+            legacyPayload = output.ToArray();
+        }
+
+        byte[] digest;
+        using (SHA256 sha = SHA256.Create()) digest = sha.ComputeHash(legacyPayload);
+        using (var output = new MemoryStream())
+        using (var writer = new BinaryWriter(output, Encoding.UTF8, leaveOpen: true)) {
+            writer.Write(magic);
+            writer.Write(1);
+            writer.Write((long)legacyPayload.Length);
+            writer.Write(legacyPayload);
+            writer.Write(digest);
+            writer.Flush();
+            File.WriteAllBytes(checkpointPath, output.ToArray());
+        }
+    }
+
+    [Fact]
+    public void CaseDistinctCheckpointAndDestinationPathsAreAllowedOnCaseSensitiveFileSystems() {
+        string root = Path.Combine(Path.GetTempPath(),
+            "officeimo-pst-checkpoint-case-" + Guid.NewGuid().ToString("N"));
+        string upper = Path.Combine(root, "CaseDir");
+        string lower = Path.Combine(root, "casedir");
+        try {
+            Directory.CreateDirectory(upper);
+            Directory.CreateDirectory(lower);
+            if (EmailStorePathIdentity.IsCaseInsensitiveFileSystem(root)) return;
+            string destination = Path.Combine(upper, "archive.pst");
+            string checkpoint = Path.Combine(lower, "archive.pst");
+
+            using (EmailStorePstWriter writer = EmailStorePstWriter.Create(destination,
+                       new EmailStorePstWriterOptions(checkpointPath: checkpoint))) {
+                writer.Checkpoint();
+            }
+
+            Assert.True(File.Exists(checkpoint));
+            EmailStorePstWriter.DeleteCheckpoint(checkpoint);
+            Assert.False(File.Exists(checkpoint));
+        } finally {
+            if (Directory.Exists(root)) Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void CaseDistinctTamperedCheckpointCannotResumeOrDeleteAnotherDirectorysWorkingFiles() {
+        string root = Path.Combine(Path.GetTempPath(),
+            "officeimo-pst-checkpoint-ownership-" + Guid.NewGuid().ToString("N"));
+        string upper = Path.Combine(root, "CaseDir");
+        string lower = Path.Combine(root, "casedir");
+        try {
+            Directory.CreateDirectory(upper);
+            Directory.CreateDirectory(lower);
+            if (EmailStorePathIdentity.IsCaseInsensitiveFileSystem(root)) return;
+            string destination = Path.Combine(upper, "archive.pst");
+            string checkpoint = Path.Combine(root, "archive.checkpoint");
+            using (EmailStorePstWriter writer = EmailStorePstWriter.Create(destination,
+                       new EmailStorePstWriterOptions(checkpointPath: checkpoint))) {
+                writer.Checkpoint();
+            }
+            string workingFile = Assert.Single(Directory.EnumerateFiles(upper), file =>
+                Path.GetFileName(file).EndsWith(".tmp", StringComparison.Ordinal));
+            RewriteCheckpointDestination(checkpoint, Path.Combine(lower, "archive.pst"));
+
+            Assert.Throws<InvalidDataException>(() => EmailStorePstWriter.Resume(checkpoint));
+            Assert.Throws<InvalidDataException>(() => EmailStorePstWriter.DeleteCheckpoint(checkpoint));
+            Assert.True(File.Exists(workingFile));
+            Assert.True(File.Exists(checkpoint));
+        } finally {
+            if (Directory.Exists(root)) Directory.Delete(root, recursive: true);
+        }
+    }
+
+    private static void RewriteCheckpointDestination(string checkpointPath, string destinationPath) {
+        byte[] checkpoint = File.ReadAllBytes(checkpointPath);
+        byte[] magic;
+        int version;
+        byte[] payload;
+        using (var input = new MemoryStream(checkpoint, writable: false))
+        using (var reader = new BinaryReader(input, Encoding.UTF8, leaveOpen: false)) {
+            magic = reader.ReadBytes(8);
+            version = reader.ReadInt32();
+            long length = reader.ReadInt64();
+            payload = reader.ReadBytes(checked((int)length));
+            Assert.Equal(32, reader.ReadBytes(32).Length);
+            Assert.Equal(input.Length, input.Position);
+        }
+
+        byte[] rewrittenPayload;
+        using (var input = new MemoryStream(payload, writable: false))
+        using (var reader = new BinaryReader(input, Encoding.UTF8, leaveOpen: true))
+        using (var output = new MemoryStream())
+        using (var writer = new BinaryWriter(output, Encoding.UTF8, leaveOpen: true)) {
+            reader.ReadString();
+            int remainingOffset = checked((int)input.Position);
+            writer.Write(Path.GetFullPath(destinationPath));
+            writer.Write(payload, remainingOffset, payload.Length - remainingOffset);
+            writer.Flush();
+            rewrittenPayload = output.ToArray();
+        }
+
+        byte[] digest;
+        using (SHA256 sha = SHA256.Create()) digest = sha.ComputeHash(rewrittenPayload);
+        using (var output = new MemoryStream())
+        using (var writer = new BinaryWriter(output, Encoding.UTF8, leaveOpen: true)) {
+            writer.Write(magic);
+            writer.Write(version);
+            writer.Write((long)rewrittenPayload.Length);
+            writer.Write(rewrittenPayload);
+            writer.Write(digest);
+            writer.Flush();
+            File.WriteAllBytes(checkpointPath, output.ToArray());
+        }
+    }
+
+    private static void CopyNullableString(BinaryReader reader, BinaryWriter writer) {
+        bool hasValue = reader.ReadBoolean();
+        writer.Write(hasValue);
+        if (hasValue) writer.Write(reader.ReadString());
+    }
 
     private static void AssertMaterializedNameToIdStreams(string path) {
         using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);

@@ -11,7 +11,7 @@ public static class EmailStoreConverter {
         if (string.IsNullOrWhiteSpace(destinationPath)) throw new ArgumentException("A destination path is required.", nameof(destinationPath));
         string source = Path.GetFullPath(sourcePath);
         string destination = Path.GetFullPath(destinationPath);
-        if (string.Equals(source, destination, StringComparison.OrdinalIgnoreCase)) {
+        if (EmailStorePathIdentity.AreEquivalent(source, destination)) {
             throw new InvalidOperationException("Store conversion always writes a different destination file; in-place PST/OST mutation is not supported.");
         }
         using EmailStoreSession session = EmailStoreSession.Open(source,

@@ -7,11 +7,22 @@ internal static partial class IcsCalendarCodec {
     internal static bool TryProject(string text, EmailDocument document, IList<EmailDiagnostic> diagnostics,
         string location, string? mimeMethod = null) {
         int projectionDiagnosticStart = diagnostics.Count;
-        List<IcsProperty> properties = ParseProperties(text.TrimStart('\uFEFF'));
+        List<IcsProperty> properties;
+        try {
+            properties = ParseProperties(text.TrimStart('\uFEFF'));
+        } catch (InvalidDataException exception) {
+            diagnostics.Add(new EmailDiagnostic("EMAIL_ICALENDAR_PARSE_INVALID", exception.Message,
+                EmailDiagnosticSeverity.Warning, location));
+            document.MimeSemanticProjectionIsIncomplete = true;
+            return false;
+        }
         IcsProperty? activeComponent = properties.FirstOrDefault(property => property.Name == "BEGIN" &&
             (property.Value.Equals("VEVENT", StringComparison.OrdinalIgnoreCase) ||
              property.Value.Equals("VTODO", StringComparison.OrdinalIgnoreCase)));
-        if (activeComponent == null) return false;
+        if (activeComponent == null) {
+            document.MimeSemanticProjectionIsIncomplete = true;
+            return false;
+        }
         bool isEvent = activeComponent.Value.Equals("VEVENT", StringComparison.OrdinalIgnoreCase);
 
         IReadOnlyList<IcsProperty> activeProperties = SelectActiveComponentProperties(
@@ -724,8 +735,8 @@ internal static partial class IcsCalendarCodec {
         ? null
         : Unescape(value);
 
-    private static string EscapeParameter(string value) => value.Replace("\\", "\\\\").Replace("\"", "\\\"")
-        .Replace("\r", string.Empty).Replace("\n", " ");
+    private static string EscapeParameter(string value) => value.Replace("^", "^^")
+        .Replace("\r\n", "^n").Replace("\r", "^n").Replace("\n", "^n").Replace("\"", "^'");
 
     private static string EscapeUriValue(string value) => value.Replace("\r", string.Empty).Replace("\n", string.Empty)
         .Replace("%", "%25").Replace(";", "%3B").Replace(",", "%2C");

@@ -183,6 +183,76 @@ public sealed class PstReaderTests {
     }
 
     [Fact]
+    public void StreamingAttachmentEnforcesActualAggregateBytesWhenDeclaredSizeUnderreports() {
+        byte[] content = Enumerable.Range(0, 60_000).Select(index => (byte)(index % 251)).ToArray();
+        var options = new EmailStoreReaderOptions(
+            maxAttachmentBytes: 100_000,
+            maxTotalAttachmentBytes: 50_000,
+            retainAttachmentContent: false);
+        using var stream = new MemoryStream(PstTestFileBuilder.Create(
+            attachmentContent: content, attachmentDeclaredLength: 1));
+        using EmailStoreSession session = EmailStoreSession.Open(stream, "mailbox.pst", options);
+        EmailStoreItemReference reference = Assert.Single(session.EnumerateItems());
+        EmailStoreItem item = session.ReadItem(reference, new EmailStoreItemReadOptions(
+            EmailStoreItemReadParts.Metadata |
+            EmailStoreItemReadParts.AttachmentMetadata |
+            EmailStoreItemReadParts.AttachmentContent,
+            preferStreamingAttachmentContent: true));
+        EmailAttachment attachment = Assert.Single(item.Document.Attachments);
+
+        using Stream payload = attachment.OpenContentStream();
+        EmailStoreLimitExceededException exception = Assert.Throws<EmailStoreLimitExceededException>(
+            () => payload.CopyTo(Stream.Null));
+
+        Assert.Equal(nameof(EmailStoreReaderOptions.MaxTotalAttachmentBytes), exception.LimitName);
+        Assert.True(exception.Actual > exception.Maximum);
+    }
+
+    [Fact]
+    public void ReopeningStreamingAttachmentDoesNotChargeItsActualBytesTwice() {
+        byte[] content = Enumerable.Range(0, 60_000).Select(index => (byte)(index % 251)).ToArray();
+        var options = new EmailStoreReaderOptions(
+            maxAttachmentBytes: 100_000,
+            maxTotalAttachmentBytes: 70_000,
+            retainAttachmentContent: false);
+        using var stream = new MemoryStream(PstTestFileBuilder.Create(
+            attachmentContent: content, attachmentDeclaredLength: 1));
+        using EmailStoreSession session = EmailStoreSession.Open(stream, "mailbox.pst", options);
+        EmailStoreItemReference reference = Assert.Single(session.EnumerateItems());
+        EmailStoreItem item = session.ReadItem(reference, new EmailStoreItemReadOptions(
+            EmailStoreItemReadParts.Metadata |
+            EmailStoreItemReadParts.AttachmentMetadata |
+            EmailStoreItemReadParts.AttachmentContent,
+            preferStreamingAttachmentContent: true));
+        EmailAttachment attachment = Assert.Single(item.Document.Attachments);
+
+        for (int index = 0; index < 2; index++) {
+            using Stream payload = attachment.OpenContentStream();
+            using var copy = new MemoryStream();
+            payload.CopyTo(copy);
+            Assert.Equal(content, copy.ToArray());
+        }
+    }
+
+    [Fact]
+    public void RetainedAttachmentEnforcesActualAggregateBytesWhenDeclaredSizeUnderreports() {
+        byte[] content = Enumerable.Range(0, 60_000).Select(index => (byte)(index % 251)).ToArray();
+        var options = new EmailStoreReaderOptions(
+            maxAttachmentBytes: 100_000,
+            maxTotalAttachmentBytes: 50_000);
+        using var stream = new MemoryStream(PstTestFileBuilder.Create(
+            attachmentContent: content, attachmentDeclaredLength: 1));
+        using EmailStoreSession session = EmailStoreSession.Open(stream, "mailbox.pst", options);
+        EmailStoreItemReference reference = Assert.Single(session.EnumerateItems());
+
+        EmailStoreLimitExceededException exception = Assert.Throws<EmailStoreLimitExceededException>(
+            () => session.ReadItem(reference));
+
+        Assert.Equal(nameof(EmailStoreReaderOptions.MaxTotalAttachmentBytes), exception.LimitName);
+        Assert.Equal(content.LongLength, exception.Actual);
+    }
+
+    [Fact]
     public void Materialized_reader_does_not_return_expired_attachment_sources() {
         var options = new EmailStoreReaderOptions(retainAttachmentContent: false);
         using var stream = new MemoryStream(PstTestFileBuilder.Create(

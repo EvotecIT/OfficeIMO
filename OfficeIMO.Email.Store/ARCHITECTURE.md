@@ -6,8 +6,8 @@ The finished package boundary is intentionally small:
 
 | NuGet | Owns |
 | --- | --- |
-| `OfficeIMO.Email` | `EmailDocument`, MIME/EML, MSG, OFT, TNEF, mbox, MAPI projection, and item writers. |
-| `OfficeIMO.Email.Store` | PST/OST/OLM/EMLX and mailbox-directory traversal, sessions, selection, validation, recovery discovery, and export orchestration. |
+| `OfficeIMO.Email` | `EmailDocument`, MIME/EML, MSG, OFT, TNEF, aggregate mbox, standalone iCalendar/vCard, shared content lines, MAPI projection, and item writers. |
+| `OfficeIMO.Email.Store` | PST/OST/OLM/EMLX/Mbox and mailbox-directory traversal, sessions, selection, validation, recovery discovery, native export, and verified Unicode PST rewrite mutation. |
 | `OfficeIMO.Email.AddressBook` | OAB component discovery, v4 directory entries and distribution lists, bounded search, raw properties, and integrity validation. |
 | `OfficeIMO.Reader.EmailStore` | Optional Reader registration and bounded projection into Reader chunks, metadata, assets, and diagnostics. |
 | `OfficeIMO.Reader.EmailAddressBook` | Optional typed OAB entry projection into Reader chunks, metadata, and diagnostics. |
@@ -48,9 +48,10 @@ This design keeps memory related to the active parser structures and selected it
 size. It does not promise that one unbounded message or attachment can fit in memory; those operations remain
 guarded by the configured per-item limits.
 
-Mailbox-directory sessions index bounded file metadata and open only selected EML/EMLX files. Reparse points are
-skipped. OLM is bounded but currently materialized during open because one XML archive entry can contain multiple
-logical items; making OLM item payloads lazy would require a durable XML item-location index.
+Mailbox-directory sessions index bounded file metadata and open only selected EML/EMLX files. Mbox sessions stream
+the owning `OfficeIMO.Email` aggregate model through the common store surface. Reparse points are skipped. OLM is
+bounded but currently materialized during open because one XML archive entry can contain multiple logical items;
+making OLM item payloads lazy would require a durable XML item-location index.
 
 ## Managed PST writer and conversion
 
@@ -89,6 +90,22 @@ and mailbox-directory sources. It owns folder mapping policy, a bounded on-disk 
 retries, aggregate progress, and conflict diagnostics. It never retries or skips after an uncertain destination
 mutation: writer/index failures abort the atomic output.
 
+## Existing Unicode PST mutation
+
+`EmailStorePstMutationTransaction` deliberately does not add a second in-place NDB editor. It opens and locks an
+existing Unicode PST, stages an explicit set of folder and item operations, and feeds the resulting hierarchy and
+semantic `EmailDocument` items through `EmailStorePstWriter`. The staging PST is reopened and its complete folder set,
+every intended metadata field, and every item projection are verified before the source can be atomically replaced;
+writer-seeded folders absent from the source are treated as a verification failure. A caller may request a byte-for-byte
+backup, and source length/timestamp drift aborts replacement.
+
+The rewrite design reuses the mature writer, item projection, fidelity diagnostics, and atomic commit boundary. Its
+visible tradeoff is that NIDs and BIDs change, so commit returns folder and item ID mappings. Mandatory folders remain
+protected. Search folders cannot accept normal descendants and dynamic query definitions cannot be regenerated; the
+safe default blocks those and all other known-loss diagnostics. Password-protected PSTs are rejected for mutation
+because the writer cannot preserve their protection. ANSI PST and OST files remain read-only inputs.
+Disposing an uncommitted transaction or committing a no-op never rewrites the source.
+
 Current validation covers:
 
 - reopen and structural CRC/signature validation through the OfficeIMO reader;
@@ -103,16 +120,18 @@ Current validation covers:
 
 This is a projection conversion, not an Exchange recovery service. Search results are materialized as static
 folders; a source Name-to-ID entry that is unavailable receives a diagnostic placeholder mapping; and attachment
-or OST content absent from the local source is reported rather than fabricated. The writer does not append to,
-repair, compact, password-protect, encrypt, or otherwise mutate existing PST/OST files. ANSI PST and OST output are
-also outside the current contract.
+or OST content absent from the local source is reported rather than fabricated. The writer does not append in place,
+repair, compact, password-protect, or encrypt an existing PST. Existing OST files and ANSI PST files are never
+mutated, and ANSI PST and OST output are outside the current contract.
 
 ## Source and output safety
 
 - Store sessions are read-only and not thread-safe.
+- Existing-PST mutation requires a separate one-shot transaction and replaces only after a complete staged rewrite
+  and optional semantic verification; disposal before commit preserves the source bytes.
 - Caller-owned streams stay open and return to their original position when a session is disposed.
 - Recovery APIs discover indexed orphans; they do not rewrite source indexes.
-- Directory exports use sanitized, stable-ID-suffixed paths and do not overwrite by default.
+- Directory, EMLX, and Maildir exports use sanitized, stable-ID-suffixed paths and do not overwrite by default.
 - Mbox export is streamed to a same-directory temporary file before commit.
 - All parsing and writing uses BCL and first-party OfficeIMO code; no native Outlook or third-party email-store parser
   is introduced.

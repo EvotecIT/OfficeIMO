@@ -4,30 +4,33 @@ namespace OfficeIMO.Email.Store;
 
 internal static class EmailStoreMessageReader {
     internal static EmailReadResult Read(byte[] bytes, EmailStoreReaderOptions options,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken, bool? includeAttachmentContent = null) {
         try {
-            return new EmailDocumentReader(CreateOptions(options)).Read(bytes, cancellationToken);
+            return new EmailDocumentReader(CreateOptions(options, includeAttachmentContent))
+                .Read(bytes, cancellationToken);
         } catch (EmailLimitExceededException exception) {
             throw ConvertLimit(exception);
         }
     }
 
     internal static EmailReadResult Read(Stream stream, EmailStoreReaderOptions options,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken, bool? includeAttachmentContent = null) {
         try {
-            return new EmailDocumentReader(CreateOptions(options)).Read(stream, cancellationToken);
+            return new EmailDocumentReader(CreateOptions(options, includeAttachmentContent))
+                .Read(stream, cancellationToken);
         } catch (EmailLimitExceededException exception) {
             throw ConvertLimit(exception);
         }
     }
 
-    private static EmailReaderOptions CreateOptions(EmailStoreReaderOptions options) =>
+    internal static EmailReaderOptions CreateOptions(EmailStoreReaderOptions options,
+        bool? includeAttachmentContent = null) =>
         new EmailReaderOptions(
             maxInputBytes: options.MaxMessageBytes,
             maxAttachmentBytes: options.MaxAttachmentBytes,
             maxTotalAttachmentBytes: options.MaxTotalAttachmentBytes,
             maxNestedMessageDepth: options.MaxNestedMessageDepth,
-            includeAttachmentContent: options.RetainAttachmentContent,
+            includeAttachmentContent: includeAttachmentContent ?? options.RetainAttachmentContent,
             maxMapiPropertyCount: options.MaxPropertiesPerItem,
             maxDecodedPropertyBytes: options.MaxDecodedPropertyBytesPerItem);
 

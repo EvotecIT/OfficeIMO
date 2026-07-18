@@ -40,6 +40,20 @@ public sealed partial class EmailStoreSession : IDisposable {
         get { ThrowIfDisposed(); return _backend.Diagnostics; }
     }
 
+    internal bool IsPstPasswordProtected {
+        get {
+            ThrowIfDisposed();
+            return _backend is PstStoreSessionBackend pst && pst.IsPasswordProtected;
+        }
+    }
+
+    internal bool IsOfficeImoWriterStore {
+        get {
+            ThrowIfDisposed();
+            return _backend is PstStoreSessionBackend pst && pst.IsOfficeImoWriterStore;
+        }
+    }
+
     /// <summary>Opens a file with random-access sharing suitable for large PST/OST sources.</summary>
     public static EmailStoreSession Open(string path, EmailStoreReaderOptions? options = null,
         CancellationToken cancellationToken = default) {
@@ -174,7 +188,7 @@ public sealed partial class EmailStoreSession : IDisposable {
             }
             EmailStoreItem item = ReadItem(reference, materializationOptions, cancellationToken);
             if (_options.RetainAttachmentContent) {
-                totalAttachmentBytes = CountAttachmentBytes(
+                totalAttachmentBytes = EmailStoreAttachmentBudget.AddDocument(
                     item.Document, totalAttachmentBytes, _options.MaxTotalAttachmentBytes);
             }
             EmailStoreFolder folder = folders[reference.FolderId];
@@ -220,6 +234,10 @@ public sealed partial class EmailStoreSession : IDisposable {
                     backend = new MaterializedEmailStoreSessionBackend(
                         new EmlxStoreReader(options).Read(stream, sourceName, cancellationToken));
                     break;
+                case EmailStoreFormat.Mbox:
+                    backend = new MboxStoreSessionBackend(
+                        stream, sourceName, options, cancellationToken);
+                    break;
                 default:
                     throw new InvalidDataException("The source is not a supported email-store artifact.");
             }
@@ -259,25 +277,4 @@ public sealed partial class EmailStoreSession : IDisposable {
     private static bool Contains(string? text, string value) =>
         text != null && text.IndexOf(value, StringComparison.OrdinalIgnoreCase) >= 0;
 
-    private static long CountAttachmentBytes(OfficeIMO.Email.EmailDocument document,
-        long current, long maximum) {
-        foreach (OfficeIMO.Email.EmailAttachment attachment in document.Attachments) {
-            long length = attachment.Content != null
-                ? attachment.Content.LongLength
-                : attachment.ContentSource?.Length ?? attachment.Length;
-            if (length < 0) length = 0;
-            if (length > maximum || current > maximum - length) {
-                long actual = length > long.MaxValue - current
-                    ? long.MaxValue
-                    : current + length;
-                throw new EmailStoreLimitExceededException(
-                    nameof(EmailStoreReaderOptions.MaxTotalAttachmentBytes), actual, maximum);
-            }
-            current += length;
-            if (attachment.EmbeddedDocument != null) {
-                current = CountAttachmentBytes(attachment.EmbeddedDocument, current, maximum);
-            }
-        }
-        return current;
-    }
 }

@@ -4,7 +4,15 @@ internal static partial class VCardCodec {
     internal static bool TryProject(string text, EmailDocument document, IList<EmailDiagnostic> diagnostics,
         string location) {
         int projectionDiagnosticStart = diagnostics.Count;
-        List<VCardProperty> properties = Parse(text.TrimStart('\uFEFF'), diagnostics, location);
+        List<VCardProperty> properties;
+        try {
+            properties = Parse(text.TrimStart('\uFEFF'), diagnostics, location);
+        } catch (InvalidDataException exception) {
+            diagnostics.Add(new EmailDiagnostic("EMAIL_VCARD_PARSE_INVALID", exception.Message,
+                EmailDiagnosticSeverity.Warning, location));
+            document.MimeSemanticProjectionIsIncomplete = true;
+            return false;
+        }
         if (!properties.Any(property => property.Name == "BEGIN" &&
             property.Value.Equals("VCARD", StringComparison.OrdinalIgnoreCase))) return false;
         document.MimeSemanticProjectionIsIncomplete |= diagnostics.Skip(projectionDiagnosticStart).Any(diagnostic =>
@@ -405,64 +413,26 @@ internal static partial class VCardCodec {
         .All(string.IsNullOrWhiteSpace);
 
     private static List<VCardProperty> Parse(string text, IList<EmailDiagnostic> diagnostics, string location) {
-        string normalized = text.Replace("\r\n", "\n").Replace('\r', '\n');
-        var unfolded = new List<string>();
-        foreach (string line in normalized.Split('\n')) {
-            if (unfolded.Count > 0 && unfolded[unfolded.Count - 1].EndsWith("=", StringComparison.Ordinal) &&
-                IsQuotedPrintableProperty(unfolded[unfolded.Count - 1])) {
-                string continuation = line.Length > 0 && (line[0] == ' ' || line[0] == '\t')
-                    ? line.Substring(1)
-                    : line;
-                unfolded[unfolded.Count - 1] += string.Concat("\r\n", continuation);
-            } else if (line.Length > 0 && (line[0] == ' ' || line[0] == '\t') && unfolded.Count > 0) {
-                unfolded[unfolded.Count - 1] += line.Substring(1);
-            } else unfolded.Add(line);
-        }
         var result = new List<VCardProperty>();
-        foreach (string line in unfolded) {
-            int colon = FindUnquotedSeparator(line, ':');
-            if (colon <= 0) continue;
-            IReadOnlyList<string> tokens = SplitUnquoted(line.Substring(0, colon), ';');
-            string name = tokens[0];
-            int dot = name.LastIndexOf('.');
-            string? group = dot >= 0 ? name.Substring(0, dot) : null;
-            if (group != null) name = name.Substring(dot + 1);
-            var property = new VCardProperty(name.Trim().ToUpperInvariant(), line.Substring(colon + 1), group);
-            for (int index = 1; index < tokens.Count; index++) {
-                int equals = FindUnquotedSeparator(tokens[index], '=');
-                if (equals > 0) {
-                    string parameterName = tokens[index].Substring(0, equals).Trim();
-                    string parameterValue = DecodeParameterValue(tokens[index].Substring(equals + 1));
-                    if (parameterName.Equals("TYPE", StringComparison.OrdinalIgnoreCase) &&
-                        property.Parameters.TryGetValue(parameterName, out string? priorType)) {
-                        property.Parameters[parameterName] = string.Concat(priorType, ",", parameterValue);
-                    } else {
-                        property.Parameters[parameterName] = parameterValue;
-                    }
+        foreach (ContentLineComponent root in VCardDocument.Parse(text).Cards) {
+            result.Add(new VCardProperty("BEGIN", root.Name, null));
+            foreach (ContentLineProperty source in root.Properties) {
+                var property = new VCardProperty(source.Name.ToUpperInvariant(), source.Value, source.Group);
+                foreach (ContentLineParameter parameter in source.Parameters) {
+                    string parameterName = parameter.Values.Count == 0 ? "TYPE" : parameter.Name;
+                    string parameterValue = parameter.Values.Count == 0
+                        ? parameter.Name
+                        : string.Join(",", parameter.Values);
+                    if (property.Parameters.TryGetValue(parameterName, out string? prior))
+                        property.Parameters[parameterName] = string.Concat(prior, ",", parameterValue);
+                    else property.Parameters[parameterName] = parameterValue;
                 }
-                else property.Parameters["TYPE"] = property.Parameters.TryGetValue("TYPE", out string? prior)
-                    ? string.Concat(prior, ",", tokens[index]) : tokens[index];
+                DecodePropertyValue(property, diagnostics, location);
+                result.Add(property);
             }
-            DecodePropertyValue(property, diagnostics, location);
-            result.Add(property);
+            result.Add(new VCardProperty("END", root.Name, null));
         }
         return result;
-    }
-
-    private static bool IsQuotedPrintableProperty(string line) =>
-        line.IndexOf("ENCODING=QUOTED-PRINTABLE", StringComparison.OrdinalIgnoreCase) >= 0 ||
-        line.IndexOf("ENCODING=QP", StringComparison.OrdinalIgnoreCase) >= 0;
-
-    private static string DecodeParameterValue(string value) {
-        string trimmed = value.Trim();
-        if (trimmed.Length < 2 || trimmed[0] != '"' || trimmed[trimmed.Length - 1] != '"') return trimmed;
-        var result = new StringBuilder(trimmed.Length - 2);
-        for (int index = 1; index < trimmed.Length - 1; index++) {
-            char character = trimmed[index];
-            if (character == '\\' && index + 1 < trimmed.Length - 1) result.Append(trimmed[++index]);
-            else result.Append(character);
-        }
-        return result.ToString();
     }
 
     private static void DecodePropertyValue(VCardProperty property, IList<EmailDiagnostic> diagnostics,
@@ -475,34 +445,6 @@ internal static partial class VCardCodec {
         property.Parameters.TryGetValue("CHARSET", out string? charset);
         property.Value = MimeTextCodec.DecodeText(decoded, charset, diagnostics,
             string.Concat(location, "/", property.Name));
-    }
-
-    private static int FindUnquotedSeparator(string value, char separator) {
-        bool quoted = false;
-        bool escaped = false;
-        for (int index = 0; index < value.Length; index++) {
-            char character = value[index];
-            if (escaped) escaped = false;
-            else if (character == '\\') escaped = true;
-            else if (character == '"') quoted = !quoted;
-            else if (!quoted && character == separator) return index;
-        }
-        return -1;
-    }
-
-    private static IReadOnlyList<string> SplitUnquoted(string value, char separator) {
-        var result = new List<string>();
-        int start = 0;
-        while (start <= value.Length) {
-            int relative = FindUnquotedSeparator(value.Substring(start), separator);
-            if (relative < 0) {
-                result.Add(value.Substring(start));
-                break;
-            }
-            result.Add(value.Substring(start, relative));
-            start += relative + 1;
-        }
-        return result;
     }
 
     private static string? GetValue(IEnumerable<VCardProperty> properties, string name) =>

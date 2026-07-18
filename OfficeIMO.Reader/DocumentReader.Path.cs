@@ -91,6 +91,8 @@ internal static partial class DocumentReaderEngine {
             ReaderInputKind.Markdown => ReadMarkdown(path, opt, cancellationToken),
             ReaderInputKind.Pdf => ReadPdf(path, opt, cancellationToken),
             ReaderInputKind.Email => ReadEmail(path, opt, cancellationToken),
+            ReaderInputKind.Calendar => ReadCalendar(path, opt, cancellationToken),
+            ReaderInputKind.VCard => ReadVCard(path, opt, cancellationToken),
             ReaderInputKind.Text => ReadText(path, opt, cancellationToken),
             _ => ReadUnknown(path, opt, cancellationToken)
         };

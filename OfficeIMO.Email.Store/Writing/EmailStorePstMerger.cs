@@ -30,10 +30,11 @@ internal sealed class EmailStorePstMerger {
         _options = options;
         _cancellationToken = cancellationToken;
         foreach (EmailStoreMergeSource source in _sources) {
-            if (string.Equals(source.Path, _destination, StringComparison.OrdinalIgnoreCase)) {
+            if (EmailStorePathIdentity.AreEquivalent(source.Path, _destination)) {
                 throw new InvalidOperationException("A merge source cannot also be the destination PST.");
             }
-            if (Directory.Exists(source.Path) && IsWithinDirectory(_destination, source.Path)) {
+            if (Directory.Exists(source.Path) &&
+                EmailStorePathIdentity.IsSameOrDescendant(_destination, source.Path)) {
                 throw new InvalidOperationException(
                     "The destination PST cannot be created inside a mailbox-directory source.");
             }
@@ -333,14 +334,6 @@ internal sealed class EmailStorePstMerger {
         string trimmed = path.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
         string name = Path.GetFileNameWithoutExtension(trimmed);
         return string.IsNullOrWhiteSpace(name) ? Path.GetFileName(trimmed) : name;
-    }
-
-    private static bool IsWithinDirectory(string candidatePath, string directoryPath) {
-        string directory = Path.GetFullPath(directoryPath).TrimEnd(
-            Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
-        string prefix = string.Concat(directory, Path.DirectorySeparatorChar);
-        return Path.GetFullPath(candidatePath).StartsWith(prefix,
-            StringComparison.OrdinalIgnoreCase);
     }
 
     private sealed class DestinationFolder {

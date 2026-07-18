@@ -55,26 +55,43 @@ internal sealed partial class PstStoreWriterCore {
         WriteTemplateTable(0x692, RecipientColumns, "template/recipients");
         WriteTemplateTable(0x671, AttachmentColumns, "template/attachments");
 
+        Dictionary<uint, FolderState[]> childrenByParent = _folders.Values
+            .Where(item => item.ParentNid != item.Nid)
+            .GroupBy(item => item.ParentNid)
+            .ToDictionary(group => group.Key, group => group.OrderBy(item => item.Nid).ToArray());
+        bool hasInbox = _folders.Values.Any(item =>
+            item.SpecialFolderKind == EmailStoreSpecialFolderKind.Inbox);
         foreach (FolderState folder in _folders.Values.OrderBy(item => item.Nid)) {
             cancellationToken.ThrowIfCancellationRequested();
-            WriteFolder(folder, items);
+            WriteFolder(folder, items, childrenByParent, hasInbox);
         }
 
+        IReadOnlyList<MapiProperty> writerProvenance = _namedProperties.Map(new[] {
+            new MapiProperty(0, MapiPropertyType.Unicode, PstWriterProvenance.PropertyValue,
+                name: new MapiNamedProperty(PstWriterProvenance.PropertySet,
+                    PstWriterProvenance.PropertyName))
+        }, null, "store");
         PstWriterContextResult nameMap = PstPropertyContextWriter.Write(_file,
             _namedProperties.BuildProperties(), 65001, null, null, null,
             Report, "named-properties");
         _nodes.Add(new PstWriterNode(0x61, 0, nameMap.DataBid, nameMap.SubnodeBid));
 
         byte[] uid = _providerUid.ToByteArray();
-        IReadOnlyList<MapiProperty> storeProperties = new[] {
+        var storeProperties = new List<MapiProperty> {
             new MapiProperty(0x0FF9, MapiPropertyType.Binary, uid),
             new MapiProperty(0x3001, MapiPropertyType.Unicode, _options.DisplayName),
             new MapiProperty(0x35DF, MapiPropertyType.Integer32, 0x89),
-            new MapiProperty(0x35E0, MapiPropertyType.Binary, CreateEntryId(IpmSubtreeNid)),
-            new MapiProperty(0x35E3, MapiPropertyType.Binary, CreateEntryId(DeletedItemsNid)),
-            new MapiProperty(0x35E7, MapiPropertyType.Binary, CreateEntryId(SearchRootNid)),
             new MapiProperty(0x67FF, MapiPropertyType.Integer32, 0)
         };
+        storeProperties.AddRange(writerProvenance);
+        AddSpecialFolderEntryId(storeProperties, 0x35E0, EmailStoreSpecialFolderKind.IpmSubtree);
+        AddSpecialFolderEntryId(storeProperties, 0x35E1, EmailStoreSpecialFolderKind.Inbox);
+        AddSpecialFolderEntryId(storeProperties, 0x35E2, EmailStoreSpecialFolderKind.Outbox);
+        AddSpecialFolderEntryId(storeProperties, 0x35E3, EmailStoreSpecialFolderKind.DeletedItems);
+        AddSpecialFolderEntryId(storeProperties, 0x35E4, EmailStoreSpecialFolderKind.SentItems);
+        AddSpecialFolderEntryId(storeProperties, 0x35E5, EmailStoreSpecialFolderKind.PersonalViews);
+        AddSpecialFolderEntryId(storeProperties, 0x35E6, EmailStoreSpecialFolderKind.CommonViews);
+        AddSpecialFolderEntryId(storeProperties, 0x35E7, EmailStoreSpecialFolderKind.SearchRoot);
         PstWriterContextResult store = PstPropertyContextWriter.Write(_file,
             storeProperties, 65001, null, null, null, Report, "store");
         _nodes.Add(new PstWriterNode(0x21, 0, store.DataBid, store.SubnodeBid));
@@ -85,9 +102,12 @@ internal sealed partial class PstStoreWriterCore {
     }
 
     private void WriteFolder(FolderState folder,
-        PstWriterItemJournal.PstWriterItemSortedReader items) {
-        FolderState[] children = _folders.Values.Where(item => item.ParentNid == folder.Nid &&
-            item.Nid != folder.Nid).OrderBy(item => item.Nid).ToArray();
+        PstWriterItemJournal.PstWriterItemSortedReader items,
+        IReadOnlyDictionary<uint, FolderState[]> childrenByParent,
+        bool hasInbox) {
+        FolderState[] children = childrenByParent.TryGetValue(folder.Nid, out FolderState[]? nested)
+            ? nested
+            : Array.Empty<FolderState>();
         var folderProperties = new List<MapiProperty> {
             new MapiProperty(0x0FF9, MapiPropertyType.Binary, CreateEntryId(folder.Nid)),
             new MapiProperty(0x3001, MapiPropertyType.Unicode, folder.Name),
@@ -98,6 +118,15 @@ internal sealed partial class PstStoreWriterCore {
         };
         if (!string.IsNullOrWhiteSpace(folder.ContainerClass)) {
             folderProperties.Add(new MapiProperty(0x3613, MapiPropertyType.Unicode, folder.ContainerClass));
+        }
+        if (folder.SpecialFolderKind == EmailStoreSpecialFolderKind.Inbox ||
+            (folder.SpecialFolderKind == EmailStoreSpecialFolderKind.Root && !hasInbox)) {
+            AddSpecialFolderEntryId(folderProperties, 0x36D0, EmailStoreSpecialFolderKind.Calendar);
+            AddSpecialFolderEntryId(folderProperties, 0x36D1, EmailStoreSpecialFolderKind.Contacts);
+            AddSpecialFolderEntryId(folderProperties, 0x36D2, EmailStoreSpecialFolderKind.Journal);
+            AddSpecialFolderEntryId(folderProperties, 0x36D3, EmailStoreSpecialFolderKind.Notes);
+            AddSpecialFolderEntryId(folderProperties, 0x36D4, EmailStoreSpecialFolderKind.Tasks);
+            AddSpecialFolderEntryId(folderProperties, 0x36D7, EmailStoreSpecialFolderKind.Drafts);
         }
         PstWriterContextResult pc = PstPropertyContextWriter.Write(_file,
             folderProperties, 65001, null, null, null, Report,
@@ -123,7 +152,7 @@ internal sealed partial class PstStoreWriterCore {
                 new MapiProperty(0x3602, MapiPropertyType.Integer32, child.NormalItemCount),
                 new MapiProperty(0x3603, MapiPropertyType.Integer32, child.UnreadItemCount),
                 new MapiProperty(0x360A, MapiPropertyType.Boolean,
-                    _folders.Values.Any(item => item.ParentNid == child.Nid && item.Nid != child.Nid)),
+                    childrenByParent.ContainsKey(child.Nid)),
                 new MapiProperty(0x3613, MapiPropertyType.Unicode, child.ContainerClass)
             })).ToArray();
         WriteFolderTable((folder.Nid & ~0x1FU) | 0x0D, folder.Nid,
@@ -172,4 +201,13 @@ internal sealed partial class PstStoreWriterCore {
 
     private static MapiProperty Column(ushort id, MapiPropertyType type) =>
         new MapiProperty(id, type, null);
+
+    private void AddSpecialFolderEntryId(ICollection<MapiProperty> properties, ushort propertyId,
+        EmailStoreSpecialFolderKind kind) {
+        FolderState? folder = _folders.Values.FirstOrDefault(item => item.SpecialFolderKind == kind);
+        if (folder != null) {
+            properties.Add(new MapiProperty(propertyId, MapiPropertyType.Binary,
+                CreateEntryId(folder.Nid)));
+        }
+    }
 }

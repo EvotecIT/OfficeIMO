@@ -2,42 +2,25 @@ namespace OfficeIMO.Email;
 
 internal static partial class IcsCalendarCodec {
     private static List<IcsProperty> ParseProperties(string text) {
-        string normalized = text.Replace("\r\n", "\n").Replace('\r', '\n');
-        var unfolded = new List<string>();
-        foreach (string line in normalized.Split('\n')) {
-            if (line.Length > 0 && (line[0] == ' ' || line[0] == '\t') && unfolded.Count > 0) {
-                unfolded[unfolded.Count - 1] += line.Substring(1);
-            } else {
-                unfolded.Add(line);
-            }
-        }
-
         var result = new List<IcsProperty>();
-        foreach (string line in unfolded) {
-            int colon = FindUnquotedSeparator(line, ':');
-            if (colon <= 0) continue;
-            IReadOnlyList<string> tokens = SplitUnquoted(line.Substring(0, colon), ';');
-            var property = new IcsProperty(tokens[0].Trim().ToUpperInvariant(), line.Substring(colon + 1));
-            for (int index = 1; index < tokens.Count; index++) {
-                int equals = FindUnquotedSeparator(tokens[index], '=');
-                if (equals > 0) property.Parameters[tokens[index].Substring(0, equals).Trim()] =
-                    DecodeParameterValue(tokens[index].Substring(equals + 1));
-            }
-            result.Add(property);
-        }
+        foreach (ContentLineComponent root in IcsDocument.Parse(text).Calendars)
+            FlattenComponent(root, result);
         return result;
     }
 
-    private static string DecodeParameterValue(string value) {
-        string trimmed = value.Trim();
-        if (trimmed.Length < 2 || trimmed[0] != '"' || trimmed[trimmed.Length - 1] != '"') return trimmed;
-        var result = new StringBuilder(trimmed.Length - 2);
-        for (int index = 1; index < trimmed.Length - 1; index++) {
-            char character = trimmed[index];
-            if (character == '\\' && index + 1 < trimmed.Length - 1) result.Append(trimmed[++index]);
-            else result.Append(character);
+    private static void FlattenComponent(ContentLineComponent component, ICollection<IcsProperty> result) {
+        result.Add(new IcsProperty("BEGIN", component.Name));
+        foreach (ContentLineProperty source in component.Properties) {
+            string name = source.Group == null ? source.Name : string.Concat(source.Group, ".", source.Name);
+            var property = new IcsProperty(name.ToUpperInvariant(), source.Value);
+            foreach (ContentLineParameter parameter in source.Parameters) {
+                if (parameter.Values.Count > 0)
+                    property.Parameters[parameter.Name] = string.Join(",", parameter.Values);
+            }
+            result.Add(property);
         }
-        return result.ToString();
+        foreach (ContentLineComponent child in component.Components) FlattenComponent(child, result);
+        result.Add(new IcsProperty("END", component.Name));
     }
 
     private static IReadOnlyList<IcsProperty> SelectActiveComponentProperties(
@@ -103,34 +86,6 @@ internal static partial class IcsCalendarCodec {
             if (activeAlarmDepth > 0 && components.Count == activeAlarmDepth) selected.Add(property);
         }
         return selected;
-    }
-
-    private static int FindUnquotedSeparator(string value, char separator) {
-        bool quoted = false;
-        bool escaped = false;
-        for (int index = 0; index < value.Length; index++) {
-            char character = value[index];
-            if (escaped) escaped = false;
-            else if (character == '\\') escaped = true;
-            else if (character == '"') quoted = !quoted;
-            else if (!quoted && character == separator) return index;
-        }
-        return -1;
-    }
-
-    private static IReadOnlyList<string> SplitUnquoted(string value, char separator) {
-        var result = new List<string>();
-        int start = 0;
-        while (start <= value.Length) {
-            int relative = FindUnquotedSeparator(value.Substring(start), separator);
-            if (relative < 0) {
-                result.Add(value.Substring(start));
-                break;
-            }
-            result.Add(value.Substring(start, relative));
-            start += relative + 1;
-        }
-        return result;
     }
 
     private static DateTimeOffset? ParseDate(IcsProperty? property, IList<EmailDiagnostic> diagnostics,

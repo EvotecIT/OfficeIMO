@@ -33,13 +33,16 @@ internal sealed partial class PstStoreReader {
     private EmailStoreFormat _format;
     private string? _displayName;
     private long _sourceLength;
-    private long _totalAttachmentBytes;
+    private PstAttachmentAggregateBudget _attachmentBudget;
     private bool _completeIndexesLoaded;
+    private bool _isPasswordProtected;
+    private bool _isOfficeImoWriterStore;
 
     internal PstStoreReader(EmailStoreReaderOptions options,
         EmailStoreSessionLifetime? lifetime = null) {
         _options = options;
         _lifetime = lifetime ?? new EmailStoreSessionLifetime();
+        _attachmentBudget = new PstAttachmentAggregateBudget(options.MaxTotalAttachmentBytes);
     }
 
     internal EmailStoreFormat Format => _format;
@@ -47,6 +50,8 @@ internal sealed partial class PstStoreReader {
     internal long SourceLength => _sourceLength;
     internal IReadOnlyList<EmailStoreFolderInfo> Folders => _folderInfos;
     internal IReadOnlyList<EmailStoreDiagnostic> Diagnostics => _diagnostics;
+    internal bool IsPasswordProtected => _isPasswordProtected;
+    internal bool IsOfficeImoWriterStore => _isOfficeImoWriterStore;
 
     internal EmailStoreStructuralValidationResult ValidateStructure(
         EmailStoreValidationOptions options, CancellationToken cancellationToken) =>
@@ -75,7 +80,7 @@ internal sealed partial class PstStoreReader {
                 selections.Count, _options.MaxItemCount);
         }
 
-        _totalAttachmentBytes = 0;
+        ResetAttachmentBudget();
         foreach (ItemSelection selection in selections) {
             _cancellationToken.ThrowIfCancellationRequested();
             EmailStoreFolder folder = folders[selection.FolderNid];
@@ -94,13 +99,15 @@ internal sealed partial class PstStoreReader {
         _format = format;
         _sourceLength = stream.Length;
         _displayName = null;
-        _totalAttachmentBytes = 0;
+        ResetAttachmentBudget();
         _completeIndexesLoaded = loadCompleteIndexes;
         _diagnostics.Clear();
         _folderNodes.Clear();
         _folderInfos.Clear();
         _namedProperties = PstNamedPropertyMap.Empty;
         _headerItemPropertyId = null;
+        _isPasswordProtected = false;
+        _isOfficeImoWriterStore = false;
 
         PstHeader header = PstHeader.Read(stream, format);
         _ndb = new PstNdbReader(stream, header, _options, cancellationToken);
@@ -124,8 +131,15 @@ internal sealed partial class PstStoreReader {
             // PidTagPstPassword is a personal-store protection contract. Cached OSTs can reuse
             // the tag for unrelated provider state and are opened through the Outlook profile,
             // not with the legacy PST password checksum.
-            if (format == EmailStoreFormat.Pst) PstPassword.Validate(storeProperties, _options);
+            if (format == EmailStoreFormat.Pst) {
+                PstPassword.Validate(storeProperties, _options);
+                _isPasswordProtected = PstPassword.IsProtected(storeProperties);
+            }
             _displayName = GetString(storeProperties, 0x3001);
+            _isOfficeImoWriterStore = string.Equals(
+                storeProperties.GetMapiValue<string>(PstWriterProvenance.PropertySet,
+                    PstWriterProvenance.PropertyName),
+                PstWriterProvenance.PropertyValue, StringComparison.Ordinal);
         }
 
         List<PstNodeReference> folderNodes = EnumerateNodes()
@@ -159,8 +173,16 @@ internal sealed partial class PstStoreReader {
         }
 
         PstFolderDescriptor? root = descriptors.FirstOrDefault(item => item.Node.Nid == 0x122);
-        PstFolderDescriptor? inbox = descriptors.FirstOrDefault(item =>
-            EmailStoreSpecialFolderClassifier.FromDisplayName(item.Name) == EmailStoreSpecialFolderKind.Inbox);
+        PstFolderDescriptor? inbox = null;
+        if (PstSpecialFolderResolver.TryGetStoreFolderNid(
+            storeProperties, 0x35E1, out uint inboxNid)) {
+            inbox = descriptors.FirstOrDefault(item => item.Node.Nid == inboxNid);
+        }
+        if (inbox == null) {
+            inbox = descriptors.FirstOrDefault(item =>
+                EmailStoreSpecialFolderClassifier.FromDisplayName(item.Name) ==
+                    EmailStoreSpecialFolderKind.Inbox);
+        }
         var specialFolders = new PstSpecialFolderResolver(
             storeProperties, root?.Properties, inbox?.Properties, folderIds);
         foreach (PstFolderDescriptor descriptor in descriptors) {
@@ -205,7 +227,7 @@ internal sealed partial class PstStoreReader {
         if (options == null) throw new ArgumentNullException(nameof(options));
         _cancellationToken = cancellationToken;
         PstNodeReference node = ResolveReferencedNode(reference);
-        _totalAttachmentBytes = 0;
+        ResetAttachmentBudget();
         return ReadItem(node, reference.FolderId, _format,
             reference.IsAssociated, reference.IsOrphaned, options, reference.Summary);
     }

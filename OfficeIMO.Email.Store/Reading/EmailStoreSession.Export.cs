@@ -1,3 +1,4 @@
+using OfficeIMO.Drawing.Internal;
 using OfficeIMO.Email;
 
 namespace OfficeIMO.Email.Store;
@@ -14,6 +15,7 @@ public sealed partial class EmailStoreSession {
         ThrowIfDisposed();
         EmailStoreMboxExportOptions effective = options ?? new EmailStoreMboxExportOptions();
         string destination = Path.GetFullPath(destinationPath);
+        ThrowIfStoreSourceDestination(destination, "Mbox export");
         string directory = Path.GetDirectoryName(destination) ?? Path.GetFullPath(".");
         Directory.CreateDirectory(directory);
         var reportDiagnostics = new List<EmailStoreDiagnostic>();
@@ -112,6 +114,7 @@ public sealed partial class EmailStoreSession {
         ThrowIfDisposed();
         EmailStoreExportOptions effective = options ?? new EmailStoreExportOptions();
         string root = Path.GetFullPath(destinationDirectory);
+        ThrowIfStoreSourceDestination(root, "Directory export");
         Directory.CreateDirectory(root);
         var writer = new EmailDocumentWriter(effective.WriterOptions);
         var entries = new List<EmailStoreExportEntry>();
@@ -151,7 +154,7 @@ public sealed partial class EmailStoreSession {
                     candidate));
             } else {
                 try {
-                    WriteExportManifest(candidate, root, entries);
+                    WriteExportManifest(candidate, root, entries, effective.OverwriteExisting);
                     manifestPath = candidate;
                 } catch (Exception exception) when (
                     exception is IOException || exception is UnauthorizedAccessException) {
@@ -172,12 +175,26 @@ public sealed partial class EmailStoreSession {
             Diagnostics.Concat(exportDiagnostics).ToArray());
     }
 
+    private void ThrowIfStoreSourceDestination(string destinationPath, string operation) {
+        if (_backend is MailboxDirectoryStoreSessionBackend sourceDirectory &&
+            EmailStorePathIdentity.IsSameOrDescendant(destinationPath, sourceDirectory.RootPath)) {
+            throw new InvalidOperationException(string.Concat(
+                operation, " cannot write into its mailbox-directory source tree."));
+        }
+        if (_stream is FileStream sourceFile &&
+            EmailStorePathIdentity.IsSameOrDescendant(destinationPath, sourceFile.Name)) {
+            throw new InvalidOperationException(string.Concat(
+                operation, " cannot replace its read-only source store."));
+        }
+    }
+
     private EmailStoreExportEntry ExportItem(EmailStoreItemReference reference,
         EmailStoreExportOptions options, EmailDocumentWriter writer,
         EmailStoreExportPathBuilder paths, CancellationToken cancellationToken) {
         var diagnostics = new List<EmailStoreDiagnostic>();
         string? destinationPath = null;
         long bytesWritten = 0;
+        string? temporaryPath = null;
         try {
             EmailStoreItem item = ReadItem(reference, cancellationToken);
             string path = paths.GetItemPath(reference, item.Document.Subject, options.Format);
@@ -191,17 +208,26 @@ public sealed partial class EmailStoreSession {
                 return new EmailStoreExportEntry(reference, null, 0, diagnostics);
             }
 
-            EmailWriteResult result = writer.Write(item.Document, path, options.Format);
+            temporaryPath = OfficeFileCommit.CreateStagingPath(path);
+            EmailWriteResult result;
+            using (var stream = new FileStream(temporaryPath, FileMode.CreateNew, FileAccess.Write, FileShare.None)) {
+                result = writer.Write(item.Document, stream, options.Format);
+                stream.Flush();
+            }
             foreach (EmailDiagnostic diagnostic in result.Diagnostics) {
                 diagnostics.Add(ConvertDiagnostic(diagnostic, reference.Id));
             }
-            if (result.HasErrors) {
-                if (File.Exists(path)) File.Delete(path);
-            } else {
+            if (!result.HasErrors) {
+                OfficeFileCommit.CommitTemporaryFile(temporaryPath, path,
+                    options.OverwriteExisting ? OfficeFileCommit.ConflictPolicy.Replace :
+                        OfficeFileCommit.ConflictPolicy.FailIfExists);
+                temporaryPath = null;
                 destinationPath = path;
                 bytesWritten = result.BytesWritten;
             }
-        } catch (EmailStoreLimitExceededException exception) {
+        } catch (Exception exception) when (
+            exception is EmailStoreLimitExceededException ||
+            exception is EmailLimitExceededException) {
             diagnostics.Add(new EmailStoreDiagnostic(
                 "EMAIL_STORE_EXPORT_ITEM_LIMIT",
                 exception.Message,
@@ -217,6 +243,8 @@ public sealed partial class EmailStoreSession {
                 exception.Message,
                 EmailStoreDiagnosticSeverity.Error,
                 string.Concat("item/", reference.Id)));
+        } finally {
+            OfficeFileCommit.DeleteIfExists(temporaryPath);
         }
         return new EmailStoreExportEntry(reference, destinationPath, bytesWritten, diagnostics);
     }
@@ -229,8 +257,9 @@ public sealed partial class EmailStoreSession {
         try {
             EmailStoreItem item = ReadItem(reference, cancellationToken);
             var mailboxEntry = new EmailMailboxEntry(item.Document) {
-                EnvelopeSender = item.Document.From?.Address,
-                EnvelopeDate = item.Document.Date
+                EnvelopeSender = GetMboxEnvelopeSender(item.Document),
+                EnvelopeDate = GetMboxEnvelopeDate(item.Document),
+                RawFromLine = GetMboxRawFromLine(item.Document)
             };
             EmailWriteResult result = writer.WriteEntries(
                 new[] { mailboxEntry }, output, cancellationToken);
@@ -242,7 +271,9 @@ public sealed partial class EmailStoreSession {
             } else {
                 RollBackMboxEntry(output, initialLength);
             }
-        } catch (EmailStoreLimitExceededException exception) {
+        } catch (Exception exception) when (
+            exception is EmailStoreLimitExceededException ||
+            exception is EmailLimitExceededException) {
             RollBackMboxEntry(output, initialLength);
             diagnostics.Add(new EmailStoreDiagnostic(
                 "EMAIL_STORE_EXPORT_ITEM_LIMIT",
@@ -252,7 +283,8 @@ public sealed partial class EmailStoreSession {
         } catch (Exception exception) when (
             exception is InvalidDataException ||
             exception is NotSupportedException ||
-            exception is IOException) {
+            exception is IOException ||
+            exception is UnauthorizedAccessException) {
             RollBackMboxEntry(output, initialLength);
             diagnostics.Add(new EmailStoreDiagnostic(
                 "EMAIL_STORE_EXPORT_ITEM_FAILED",
@@ -261,6 +293,30 @@ public sealed partial class EmailStoreSession {
                 string.Concat("item/", reference.Id)));
         }
         return new EmailStoreMboxExportEntry(reference, bytesWritten, diagnostics);
+    }
+
+    private static string? GetMboxEnvelopeSender(EmailDocument document) {
+        if (document.Properties.TryGetValue("Mbox:EnvelopeSender", out object? value) &&
+            value is string sender && !string.IsNullOrWhiteSpace(sender)) {
+            return sender;
+        }
+        return document.From?.Address;
+    }
+
+    private static DateTimeOffset? GetMboxEnvelopeDate(EmailDocument document) {
+        if (document.Properties.TryGetValue("Mbox:EnvelopeDate", out object? value) &&
+            value is DateTimeOffset date) {
+            return date;
+        }
+        return document.Date;
+    }
+
+    private static string? GetMboxRawFromLine(EmailDocument document) {
+        if (document.Properties.TryGetValue("Mbox:RawFromLine", out object? value) &&
+            value is string rawFromLine) {
+            return rawFromLine;
+        }
+        return null;
     }
 
     private static void RollBackMboxEntry(Stream output, long initialLength) {
@@ -294,31 +350,45 @@ public sealed partial class EmailStoreSession {
                 : string.Concat("item/", itemId, "/", diagnostic.Location));
 
     private static void WriteExportManifest(string path, string root,
-        IEnumerable<EmailStoreExportEntry> entries) {
-        using (var stream = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.Read))
-        using (var writer = new StreamWriter(stream, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false))) {
-            writer.WriteLine("ItemId\tFolderId\tAssociated\tRecovered\tSucceeded\tBytes\tRelativePath\tDiagnosticCodes");
-            foreach (EmailStoreExportEntry entry in entries) {
-                string relativePath = entry.DestinationPath == null
-                    ? string.Empty
-                    : GetRelativePath(root, entry.DestinationPath);
-                writer.Write(EscapeManifest(entry.Reference.Id));
-                writer.Write('\t');
-                writer.Write(EscapeManifest(entry.Reference.FolderId));
-                writer.Write('\t');
-                writer.Write(entry.Reference.IsAssociated ? "true" : "false");
-                writer.Write('\t');
-                writer.Write(entry.Reference.IsOrphaned ? "true" : "false");
-                writer.Write('\t');
-                writer.Write(entry.Succeeded ? "true" : "false");
-                writer.Write('\t');
-                writer.Write(entry.BytesWritten.ToString(CultureInfo.InvariantCulture));
-                writer.Write('\t');
-                writer.Write(EscapeManifest(relativePath));
-                writer.Write('\t');
-                writer.Write(EscapeManifest(string.Join(",", entry.Diagnostics.Select(item => item.Code))));
-                writer.WriteLine();
+        IEnumerable<EmailStoreExportEntry> entries, bool overwriteExisting) {
+        string temporaryPath = OfficeFileCommit.CreateStagingPath(path);
+        try {
+            OfficeFileCommit.EnsureTargetDirectory(path);
+            using (var stream = new FileStream(
+                temporaryPath, FileMode.CreateNew, FileAccess.Write, FileShare.Read))
+            using (var writer = new StreamWriter(stream,
+                new UTF8Encoding(encoderShouldEmitUTF8Identifier: false))) {
+                writer.WriteLine("ItemId\tFolderId\tAssociated\tRecovered\tSucceeded\tBytes\tRelativePath\tMaildirFlags\tDiagnosticCount");
+                foreach (EmailStoreExportEntry entry in entries) {
+                    string relativePath = entry.DestinationPath == null
+                        ? string.Empty
+                        : GetRelativePath(root, entry.DestinationPath);
+                    writer.Write(EscapeManifest(entry.Reference.Id));
+                    writer.Write('\t');
+                    writer.Write(EscapeManifest(entry.Reference.FolderId));
+                    writer.Write('\t');
+                    writer.Write(entry.Reference.IsAssociated ? "true" : "false");
+                    writer.Write('\t');
+                    writer.Write(entry.Reference.IsOrphaned ? "true" : "false");
+                    writer.Write('\t');
+                    writer.Write(entry.Succeeded ? "true" : "false");
+                    writer.Write('\t');
+                    writer.Write(entry.BytesWritten.ToString(CultureInfo.InvariantCulture));
+                    writer.Write('\t');
+                    writer.Write(EscapeManifest(relativePath));
+                    writer.Write('\t');
+                    writer.Write(EscapeManifest(entry.MaildirFlags ?? string.Empty));
+                    writer.Write('\t');
+                    writer.Write(entry.Diagnostics.Count.ToString(CultureInfo.InvariantCulture));
+                    writer.WriteLine();
+                }
             }
+            OfficeFileCommit.CommitTemporaryFile(temporaryPath, path,
+                overwriteExisting ? OfficeFileCommit.ConflictPolicy.Replace :
+                    OfficeFileCommit.ConflictPolicy.FailIfExists);
+            temporaryPath = string.Empty;
+        } finally {
+            OfficeFileCommit.DeleteIfExists(temporaryPath);
         }
     }
 

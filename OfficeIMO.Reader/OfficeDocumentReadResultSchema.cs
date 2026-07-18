@@ -17,19 +17,17 @@ public static partial class OfficeDocumentReadResultSchema {
     /// <summary>
     /// Current schema version emitted and accepted by this package.
     /// </summary>
-    public const int CurrentVersion = 5;
+    public const int CurrentVersion = 6;
 
     /// <summary>
-    /// Stable JSON Schema identifier for version 5 payloads.
+    /// Stable JSON Schema identifier for current version 6 payloads.
     /// </summary>
-    public const string JsonSchemaId = "urn:officeimo:schema:document-read-result:5";
+    public const string JsonSchemaId = "urn:officeimo:schema:document-read-result:6";
 
     /// <summary>
-    /// File name used for the packaged version 5 JSON Schema artifact.
+    /// File name used for the packaged current JSON Schema artifact.
     /// </summary>
-    public const string JsonSchemaFileName = "officeimo.document.read-result.v5.schema.json";
-
-    private const string JsonSchemaResourceName = "OfficeIMO.Reader.Schemas." + JsonSchemaFileName;
+    public const string JsonSchemaFileName = "officeimo.document.read-result.v6.schema.json";
 
     /// <summary>
     /// Returns true when a schema header can be consumed by this package.
@@ -51,11 +49,19 @@ public static partial class OfficeDocumentReadResultSchema {
     /// <summary>
     /// Loads the JSON Schema artifact embedded in the assembly and included in the NuGet package.
     /// </summary>
-    public static string GetJsonSchema() {
+    public static string GetJsonSchema() => GetJsonSchema(CurrentVersion);
+
+    /// <summary>
+    /// Loads one supported versioned JSON Schema artifact embedded in the assembly and included in the NuGet package.
+    /// </summary>
+    public static string GetJsonSchema(int schemaVersion) {
+        EnsureSupported(Id, schemaVersion);
+        string fileName = $"officeimo.document.read-result.v{schemaVersion}.schema.json";
+        string resourceName = "OfficeIMO.Reader.Schemas." + fileName;
         Assembly assembly = typeof(OfficeDocumentReadResultSchema).Assembly;
-        using Stream? stream = assembly.GetManifestResourceStream(JsonSchemaResourceName);
+        using Stream? stream = assembly.GetManifestResourceStream(resourceName);
         if (stream == null) {
-            throw new InvalidOperationException($"Embedded JSON Schema resource '{JsonSchemaResourceName}' was not found.");
+            throw new InvalidOperationException($"Embedded JSON Schema resource '{resourceName}' was not found.");
         }
         using var reader = new StreamReader(stream);
         return reader.ReadToEnd();

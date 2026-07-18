@@ -13,5 +13,7 @@ public enum EmailStoreFormat {
     /// <summary>Apple Mail EMLX item.</summary>
     Emlx = 4,
     /// <summary>Apple Mail, Maildir, or RFC message directory tree.</summary>
-    MailboxDirectory = 5
+    MailboxDirectory = 5,
+    /// <summary>Unix mbox mailbox archive.</summary>
+    Mbox = 6
 }

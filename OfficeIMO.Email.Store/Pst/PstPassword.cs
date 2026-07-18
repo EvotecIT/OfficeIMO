@@ -1,6 +1,11 @@
 namespace OfficeIMO.Email.Store;
 
 internal static class PstPassword {
+    internal static bool IsProtected(IEnumerable<OfficeIMO.Email.MapiProperty> storeProperties) {
+        object? raw = storeProperties.FirstOrDefault(property => property.PropertyId == 0x67FF)?.Value;
+        return raw is int signedValue && unchecked((uint)signedValue) != 0;
+    }
+
     internal static void Validate(IEnumerable<OfficeIMO.Email.MapiProperty> storeProperties,
         EmailStoreReaderOptions options) {
         object? raw = storeProperties.FirstOrDefault(property => property.PropertyId == 0x67FF)?.Value;

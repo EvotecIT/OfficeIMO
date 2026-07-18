@@ -5,7 +5,8 @@ namespace OfficeIMO.Email.Store;
 
 internal sealed partial class PstStoreWriterCore {
     private static readonly byte[] CheckpointMagic = Encoding.ASCII.GetBytes("OIMOPSTC");
-    private const int CheckpointVersion = 1;
+    private const int MinimumCheckpointVersion = 1;
+    private const int CheckpointVersion = 2;
     private const long MaxCheckpointPayloadBytes = 128L * 1024 * 1024;
 
     internal string? CheckpointPath => _options.CheckpointPath;
@@ -135,6 +136,7 @@ internal sealed partial class PstStoreWriterCore {
             writer.Write(folder.Name);
             WriteNullableString(writer, folder.ContainerClass);
             writer.Write(folder.IsSearchFolder);
+            writer.Write((int)folder.SpecialFolderKind);
             writer.Write(folder.NormalItemCount);
             writer.Write(folder.AssociatedItemCount);
             writer.Write(folder.UnreadItemCount);
@@ -158,7 +160,7 @@ internal sealed partial class PstStoreWriterCore {
                 throw new InvalidDataException("The file is not an OfficeIMO PST writer checkpoint.");
             }
             int version = reader.ReadInt32();
-            if (version != CheckpointVersion) {
+            if (version < MinimumCheckpointVersion || version > CheckpointVersion) {
                 throw new NotSupportedException("The PST writer checkpoint version is not supported.");
             }
             long payloadLength = reader.ReadInt64();
@@ -178,7 +180,7 @@ internal sealed partial class PstStoreWriterCore {
             try {
                 using (var payloadStream = new MemoryStream(payload, writable: false))
                 using (var payloadReader = new BinaryReader(payloadStream, Encoding.UTF8, leaveOpen: false)) {
-                    WriterCheckpointState state = ReadCheckpointPayload(payloadReader);
+                    WriterCheckpointState state = ReadCheckpointPayload(payloadReader, version);
                     if (payloadStream.Position != payloadStream.Length) {
                         throw new InvalidDataException("The PST writer checkpoint contains trailing state.");
                     }
@@ -209,7 +211,7 @@ internal sealed partial class PstStoreWriterCore {
         }
     }
 
-    private static WriterCheckpointState ReadCheckpointPayload(BinaryReader reader) {
+    private static WriterCheckpointState ReadCheckpointPayload(BinaryReader reader, int version) {
         var state = new WriterCheckpointState {
             DestinationPath = Path.GetFullPath(reader.ReadString()),
             TemporaryPath = Path.GetFullPath(reader.ReadString()),
@@ -244,8 +246,16 @@ internal sealed partial class PstStoreWriterCore {
             throw new InvalidDataException("The PST writer checkpoint folder count is invalid.");
         }
         for (int index = 0; index < folderCount; index++) {
-            var folder = new FolderState(reader.ReadUInt32(), reader.ReadUInt32(),
-                reader.ReadString(), ReadNullableString(reader), reader.ReadBoolean()) {
+            uint nid = reader.ReadUInt32();
+            uint parentNid = reader.ReadUInt32();
+            string name = reader.ReadString();
+            string? containerClass = ReadNullableString(reader);
+            bool isSearchFolder = reader.ReadBoolean();
+            EmailStoreSpecialFolderKind specialFolderKind = version >= 2
+                ? ReadSpecialFolderKind(reader)
+                : InferLegacySpecialFolderKind(nid);
+            var folder = new FolderState(nid, parentNid, name, containerClass,
+                isSearchFolder, specialFolderKind) {
                 NormalItemCount = reader.ReadInt32(),
                 AssociatedItemCount = reader.ReadInt32(),
                 UnreadItemCount = reader.ReadInt32()
@@ -262,6 +272,22 @@ internal sealed partial class PstStoreWriterCore {
         }
         state.Validate();
         return state;
+    }
+
+    private static EmailStoreSpecialFolderKind InferLegacySpecialFolderKind(uint nid) {
+        if (nid == RootFolderNid) return EmailStoreSpecialFolderKind.Root;
+        if (nid == IpmSubtreeNid) return EmailStoreSpecialFolderKind.IpmSubtree;
+        if (nid == SearchRootNid) return EmailStoreSpecialFolderKind.SearchRoot;
+        if (nid == DeletedItemsNid) return EmailStoreSpecialFolderKind.DeletedItems;
+        return EmailStoreSpecialFolderKind.Unknown;
+    }
+
+    private static EmailStoreSpecialFolderKind ReadSpecialFolderKind(BinaryReader reader) {
+        int value = reader.ReadInt32();
+        if (!Enum.IsDefined(typeof(EmailStoreSpecialFolderKind), value)) {
+            throw new InvalidDataException("The PST writer checkpoint contains an invalid special-folder role.");
+        }
+        return (EmailStoreSpecialFolderKind)value;
     }
 
     private void ReportProgress(EmailStorePstWriteStage stage) {
@@ -294,7 +320,8 @@ internal sealed partial class PstStoreWriterCore {
         string temporary = Path.GetFullPath(temporaryPath);
         string? destinationDirectory = Path.GetDirectoryName(destination);
         string? temporaryDirectory = Path.GetDirectoryName(temporary);
-        if (!string.Equals(destinationDirectory, temporaryDirectory, StringComparison.OrdinalIgnoreCase)) {
+        if (destinationDirectory == null || temporaryDirectory == null ||
+            !EmailStorePathIdentity.AreEquivalent(destinationDirectory, temporaryDirectory)) {
             throw new InvalidDataException("The PST checkpoint working path is outside the destination directory.");
         }
         string expectedPrefix = string.Concat(".", Path.GetFileName(destination), ".");
@@ -431,8 +458,8 @@ internal sealed partial class PstStoreWriterCore {
 
         internal void ValidateOwnership(string checkpointPath) {
             string fullCheckpointPath = Path.GetFullPath(checkpointPath);
-            if (string.Equals(fullCheckpointPath, DestinationPath, StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(fullCheckpointPath, TemporaryPath, StringComparison.OrdinalIgnoreCase)) {
+            if (EmailStorePathIdentity.AreEquivalent(fullCheckpointPath, DestinationPath) ||
+                EmailStorePathIdentity.AreEquivalent(fullCheckpointPath, TemporaryPath)) {
                 throw new InvalidDataException(
                     "The PST checkpoint path collides with a destination or working file.");
             }

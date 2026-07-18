@@ -1,0 +1,216 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:officeimo:schema:document-read-result:6",
+  "title": "OfficeIMO document read result",
+  "description": "Stable OfficeIMO.Reader transport envelope, schema version 6.",
+  "type": "object",
+  "required": [
+    "schemaId",
+    "schemaVersion",
+    "kind",
+    "source",
+    "capabilitiesUsed",
+    "chunks",
+    "metadata",
+    "pages",
+    "blocks",
+    "tables",
+    "assets",
+    "links",
+    "forms",
+    "ocrCandidates",
+    "visuals",
+    "diagnostics"
+  ],
+  "properties": {
+    "schemaId": {
+      "const": "officeimo.document.read-result"
+    },
+    "schemaVersion": {
+      "const": 6
+    },
+    "kind": {
+      "enum": [
+        "Unknown",
+        "Word",
+        "Excel",
+        "PowerPoint",
+        "Markdown",
+        "Text",
+        "Pdf",
+        "Csv",
+        "Json",
+        "Xml",
+        "Html",
+        "Zip",
+        "Epub",
+        "Visio",
+        "Yaml",
+        "Rtf",
+        "OpenDocument",
+        "AsciiDoc",
+        "Latex",
+        "Email",
+        "OneNote",
+        "Calendar",
+        "VCard"
+      ]
+    },
+    "source": {
+      "$ref": "#/$defs/source"
+    },
+    "capabilitiesUsed": {
+      "$ref": "#/$defs/stringArray"
+    },
+    "markdown": {
+      "type": "string"
+    },
+    "html": {
+      "type": "string"
+    },
+    "json": {
+      "type": "string"
+    },
+    "chunks": {
+      "$ref": "#/$defs/objectArray"
+    },
+    "metadata": {
+      "$ref": "#/$defs/objectArray"
+    },
+    "pages": {
+      "$ref": "#/$defs/objectArray"
+    },
+    "blocks": {
+      "$ref": "#/$defs/objectArray"
+    },
+    "tables": {
+      "$ref": "#/$defs/objectArray"
+    },
+    "assets": {
+      "$ref": "#/$defs/objectArray"
+    },
+    "links": {
+      "$ref": "#/$defs/objectArray"
+    },
+    "forms": {
+      "$ref": "#/$defs/objectArray"
+    },
+    "ocrCandidates": {
+      "$ref": "#/$defs/objectArray"
+    },
+    "visuals": {
+      "$ref": "#/$defs/objectArray"
+    },
+    "diagnostics": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/diagnostic"
+      }
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "stringArray": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "objectArray": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "source": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string"
+        },
+        "sourceId": {
+          "type": "string"
+        },
+        "sourceHash": {
+          "type": "string"
+        },
+        "lastWriteUtc": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "lengthBytes": {
+          "type": "integer"
+        },
+        "title": {
+          "type": "string"
+        },
+        "author": {
+          "type": "string"
+        },
+        "subject": {
+          "type": "string"
+        },
+        "keywords": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "diagnostic": {
+      "type": "object",
+      "required": [
+        "severity",
+        "category",
+        "code",
+        "message",
+        "attributes"
+      ],
+      "properties": {
+        "severity": {
+          "enum": [
+            "Information",
+            "Warning",
+            "Error"
+          ]
+        },
+        "category": {
+          "enum": [
+            "General",
+            "Detection",
+            "Input",
+            "Parsing",
+            "Content",
+            "Security",
+            "Ocr",
+            "Limit",
+            "Adapter"
+          ]
+        },
+        "code": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "\\S"
+        },
+        "message": {
+          "type": "string"
+        },
+        "source": {
+          "type": "string"
+        },
+        "isRecoverable": {
+          "type": "boolean"
+        },
+        "location": {
+          "type": "object"
+        },
+        "attributes": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}
