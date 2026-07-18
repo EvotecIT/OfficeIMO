@@ -21,13 +21,18 @@ namespace OfficeIMO.Word {
         /// </summary>
         public int? PageCount { get; set; }
 
-        internal WordImageExportOptions Clone() => new WordImageExportOptions {
-            Scale = Scale,
-            BackgroundColor = BackgroundColor,
-            RasterEncoding = RasterEncoding?.Clone() ?? new OfficeRasterEncodingOptions(),
-            IncludeDocumentContent = IncludeDocumentContent,
-            PageIndex = PageIndex,
-            PageCount = PageCount
-        };
+        internal WordImageExportOptions Clone() {
+            WordImageExportOptions clone = CopyImageExportOptionsTo(new WordImageExportOptions());
+            clone.IncludeDocumentContent = IncludeDocumentContent;
+            clone.PageIndex = PageIndex;
+            clone.PageCount = PageCount;
+            return clone;
+        }
+
+        internal void Validate() {
+            ValidateImageExportOptions();
+            if (PageIndex < 0) throw new ArgumentOutOfRangeException(nameof(PageIndex));
+            if (PageCount.HasValue && PageCount.Value < 1) throw new ArgumentOutOfRangeException(nameof(PageCount));
+        }
     }
 }

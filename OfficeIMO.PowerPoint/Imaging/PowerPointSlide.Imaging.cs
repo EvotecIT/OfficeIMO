@@ -89,7 +89,7 @@ namespace OfficeIMO.PowerPoint {
 
         private static PowerPointImageExportOptions NormalizeImageExportOptions(PowerPointImageExportOptions? options) {
             PowerPointImageExportOptions resolved = options?.Clone() ?? new PowerPointImageExportOptions();
-            OfficeImageExportOptions.ValidateScale(resolved.Scale, nameof(options));
+            resolved.Validate();
             return resolved;
         }
 

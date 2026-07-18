@@ -20,7 +20,7 @@
       "goal": "Own shared raster, PNG/JPEG/TIFF/SVG/WebP encoding, paths, strokes, fills, text layout, image projection, chart primitives, diagnostics, and visual-quality helpers.",
       "nextSlices": [
         "Promote reusable geometry, text, image, and chart behavior from document adapters when more than one package needs it.",
-        "Add dependency-free decoders only when a document adapter has a current visual contract that needs them.",
+        "Keep baseline TIFF and OfficeIMO literal-lossless WebP decoding bounded, fail-closed, and explicit about unsupported variants.",
         "Keep rendering diagnostics reusable without knowing document-specific source semantics."
       ]
     },
@@ -68,7 +68,7 @@
       "goal": "Keep continuous and paged HTML image output format-correct, resource-aware, bounded, and aligned with the shared five-format API.",
       "nextSlices": [
         "Add representative continuous and paged visual galleries with embedded, data-URI, and policy-resolved images.",
-        "Propagate rendering cancellation through the shared fluent builder contract instead of only direct async APIs.",
+        "Keep resource-aware asynchronous rendering wired through the shared fluent builder contract.",
         "Keep HTML layout semantics in Html and reusable raster/SVG encoding in Drawing."
       ]
     },
@@ -80,7 +80,7 @@
       "goal": "Expand representative OneNote image-export evidence across pages, sections, notebooks, ink, math, images, and selection.",
       "nextSlices": [
         "Add reviewable real-world page galleries without committing heavy transient comparison artifacts.",
-        "Align bounded raster diagnostics and naming behavior with the shared converter contract.",
+        "Keep bounded raster diagnostics and naming behavior on the shared converter contract.",
         "Keep OneNote package semantics separate from Drawing-owned pixels, vectors, and encoders."
       ]
     },
@@ -100,12 +100,12 @@
       "id": "pdf-page-image",
       "owner": "OfficeIMO.Pdf",
       "runtimeDependencyPolicy": "first-party-only",
-      "status": "planned",
-      "goal": "Design PDF page-to-image as a first-party renderer over OfficeIMO PDF content/logical models.",
+      "status": "active",
+      "goal": "Extend first-party PDF page-to-Drawing coverage while keeping five-format image export, selection, safety, and diagnostics on shared contracts.",
       "nextSlices": [
-        "Inventory current PDF writer/readback content primitives and classify which can be replayed into Drawing.",
-        "Start with OfficeIMO-generated PDFs before attempting arbitrary PDF content streams.",
-        "Expose page-image APIs only after diagnostics can explain unsupported operators, fonts, images, transparency, forms, or annotations."
+        "Burn down the generated PDF render capability manifest with focused operator, font, image, transparency, form, and annotation fixtures.",
+        "Keep OfficeIMO-generated PDFs as the strong contract while expanding conservative arbitrary-producer coverage.",
+        "Route paged source adapters through PdfDocumentConversionResult so source conversion warnings remain attached to image results."
       ]
     },
     {

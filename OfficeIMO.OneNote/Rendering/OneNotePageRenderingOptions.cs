@@ -22,12 +22,6 @@ public class OneNotePageRenderingOptions : OfficeImageExportOptions {
     /// <summary>Maximum bytes materialized from any single lazy image payload.</summary>
     public long MaxImageBytes { get; set; } = 64L * 1024L * 1024L;
 
-    /// <summary>Maximum decoded pixels allocated by one raster page export.</summary>
-    public long MaximumRasterPixels { get; set; } = 100_000_000L;
-
-    /// <summary>Optional decoder for source image formats not handled by the dependency-free Drawing core.</summary>
-    public IOfficeRasterImageCodec? ImageCodec { get; set; }
-
     /// <summary>Minimum width used for automatically sized pages, in points.</summary>
     public double AutomaticPageWidthPoints { get; set; } = 612D;
 
@@ -47,30 +41,28 @@ public class OneNotePageRenderingOptions : OfficeImageExportOptions {
     public OfficeMathRenderOptions Math { get; set; } = new OfficeMathRenderOptions();
 
     /// <summary>Creates a detached copy.</summary>
-    public OneNotePageRenderingOptions Clone() => new OneNotePageRenderingOptions {
-        Scale = Scale,
-        BackgroundColor = BackgroundColor,
-        RasterEncoding = RasterEncoding?.Clone() ?? new OfficeRasterEncodingOptions(),
-        IncludeTitle = IncludeTitle,
-        IncludeImages = IncludeImages,
-        IncludeInk = IncludeInk,
-        IncludeMath = IncludeMath,
-        IncludeAttachmentPlaceholders = IncludeAttachmentPlaceholders,
-        MaxImageBytes = MaxImageBytes,
-        MaximumRasterPixels = MaximumRasterPixels,
-        ImageCodec = ImageCodec,
-        AutomaticPageWidthPoints = AutomaticPageWidthPoints,
-        AutomaticPageHeightPoints = AutomaticPageHeightPoints,
-        AutomaticPagePaddingPoints = AutomaticPagePaddingPoints,
-        DefaultFont = DefaultFont,
-        Ink = Ink?.Clone() ?? new OfficeInkRenderOptions(),
-        Math = Math?.Clone() ?? new OfficeMathRenderOptions()
-    };
+    public OneNotePageRenderingOptions Clone() => CopyTo(new OneNotePageRenderingOptions());
+
+    internal T CopyTo<T>(T clone) where T : OneNotePageRenderingOptions {
+        CopyImageExportOptionsTo(clone);
+        clone.IncludeTitle = IncludeTitle;
+        clone.IncludeImages = IncludeImages;
+        clone.IncludeInk = IncludeInk;
+        clone.IncludeMath = IncludeMath;
+        clone.IncludeAttachmentPlaceholders = IncludeAttachmentPlaceholders;
+        clone.MaxImageBytes = MaxImageBytes;
+        clone.AutomaticPageWidthPoints = AutomaticPageWidthPoints;
+        clone.AutomaticPageHeightPoints = AutomaticPageHeightPoints;
+        clone.AutomaticPagePaddingPoints = AutomaticPagePaddingPoints;
+        clone.DefaultFont = DefaultFont;
+        clone.Ink = Ink?.Clone() ?? new OfficeInkRenderOptions();
+        clone.Math = Math?.Clone() ?? new OfficeMathRenderOptions();
+        return clone;
+    }
 
     internal void Validate() {
-        ValidateScale(Scale);
+        ValidateImageExportOptions();
         if (MaxImageBytes < 1) throw new ArgumentOutOfRangeException(nameof(MaxImageBytes));
-        if (MaximumRasterPixels < 1L) throw new ArgumentOutOfRangeException(nameof(MaximumRasterPixels));
         ValidatePositive(AutomaticPageWidthPoints, nameof(AutomaticPageWidthPoints));
         ValidatePositive(AutomaticPageHeightPoints, nameof(AutomaticPageHeightPoints));
         if (double.IsNaN(AutomaticPagePaddingPoints) || double.IsInfinity(AutomaticPagePaddingPoints) || AutomaticPagePaddingPoints < 0D) {

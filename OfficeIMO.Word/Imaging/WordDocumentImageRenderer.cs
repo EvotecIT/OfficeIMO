@@ -35,16 +35,30 @@ namespace OfficeIMO.Word {
             if (format == OfficeImageExportFormat.Svg) {
                 List<OfficeImageExportDiagnostic> diagnostics = new List<OfficeImageExportDiagnostic>(snapshot.Diagnostics);
                 AddSvgImageDiagnostics(drawing, diagnostics);
-                byte[] svg = OfficeDrawingSvgExporter.ToSvgBytes(drawing, options.Scale);
+                var fallbackCodec = new OfficeRasterImageFallbackCodec(options.ImageCodec, diagnostics, "Word document");
+                byte[] svg = OfficeDrawingSvgExporter.ToSvgBytes(drawing, options.Scale, OfficeSvgSizeUnit.Pixel, fallbackCodec);
                 return new OfficeImageExportResult(format, ScaledWidth(drawing, options), ScaledHeight(drawing, options), svg, "Page " + (options.PageIndex + 1), "Word document", diagnostics);
             }
 
             if (format.IsRaster()) {
                 List<OfficeImageExportDiagnostic> diagnostics = new List<OfficeImageExportDiagnostic>(snapshot.Diagnostics);
                 AddRasterImageDiagnostics(drawing, diagnostics);
-                OfficeRasterImage image = OfficeDrawingRasterRenderer.Render(drawing, options.Scale);
+                const string source = "Word document";
+                OfficeRasterExportPlan plan = OfficeRasterExportPlanner.Resolve(
+                    drawing.Width,
+                    drawing.Height,
+                    format,
+                    options,
+                    source);
+                if (plan.Diagnostic != null) diagnostics.Add(plan.Diagnostic);
+                var fallbackCodec = new OfficeRasterImageFallbackCodec(options.ImageCodec, diagnostics, source);
+                OfficeRasterImage image = OfficeDrawingRasterRenderer.Render(drawing, new OfficeDrawingRasterRenderOptions {
+                    Scale = plan.Limit.Scale,
+                    Background = options.BackgroundColor,
+                    ImageCodec = fallbackCodec
+                });
                 byte[] bytes = OfficeRasterImageEncoder.Encode(image, format, options.RasterEncoding);
-                return new OfficeImageExportResult(format, image.Width, image.Height, bytes, "Page " + (options.PageIndex + 1), "Word document", diagnostics);
+                return new OfficeImageExportResult(format, image.Width, image.Height, bytes, "Page " + (options.PageIndex + 1), source, diagnostics);
             }
 
             throw new ArgumentOutOfRangeException(nameof(format), format, "Unsupported image export format.");

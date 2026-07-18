@@ -3987,7 +3987,10 @@ public partial class DrawingTests {
                 format,
                 (int)Math.Ceiling(100D * current.Scale),
                 (int)Math.Ceiling(50D * current.Scale),
-                CreateTestImageBytes(format),
+                CreateTestImageBytes(
+                    format,
+                    (int)Math.Ceiling(100D * current.Scale),
+                    (int)Math.Ceiling(50D * current.Scale)),
                 "test",
                 current.BackgroundColor.ToString())) {
         }
@@ -4000,20 +4003,25 @@ public partial class DrawingTests {
                     format,
                     (int)Math.Ceiling(100D * current.Scale),
                     (int)Math.Ceiling(50D * current.Scale),
-                    CreateTestImageBytes(format),
+                    CreateTestImageBytes(
+                        format,
+                        (int)Math.Ceiling(100D * current.Scale),
+                        (int)Math.Ceiling(50D * current.Scale)),
                     name,
                     current.BackgroundColor.ToString()))
                 .ToArray()) {
         }
     }
 
-    private static byte[] CreateTestImageBytes(OfficeImageExportFormat format) {
+    private static byte[] CreateTestImageBytes(OfficeImageExportFormat format, int width, int height) {
         if (format == OfficeImageExportFormat.Svg) {
-            return Encoding.UTF8.GetBytes("<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"1\" height=\"1\"></svg>");
+            return Encoding.UTF8.GetBytes(
+                "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"" + width +
+                "\" height=\"" + height + "\"></svg>");
         }
 
         return OfficeRasterImageEncoder.Encode(
-            new OfficeRasterImage(1, 1, OfficeColor.CornflowerBlue),
+            new OfficeRasterImage(width, height, OfficeColor.CornflowerBlue),
             format);
     }
 

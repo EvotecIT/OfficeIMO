@@ -15,6 +15,7 @@ public abstract class OfficeImageExportBuilder<TBuilder, TOptions>
     where TBuilder : OfficeImageExportBuilder<TBuilder, TOptions>
     where TOptions : OfficeImageExportOptions {
     private readonly Func<OfficeImageExportFormat, TOptions, OfficeImageExportResult> _export;
+    private readonly Func<OfficeImageExportFormat, TOptions, CancellationToken, Task<OfficeImageExportResult>>? _exportAsync;
     private OfficeImageExportFormat _format = OfficeImageExportFormat.Png;
 
     /// <summary>
@@ -23,6 +24,17 @@ public abstract class OfficeImageExportBuilder<TBuilder, TOptions>
     protected OfficeImageExportBuilder(TOptions options, Func<OfficeImageExportFormat, TOptions, OfficeImageExportResult> export) {
         Options = options ?? throw new ArgumentNullException(nameof(options));
         _export = export ?? throw new ArgumentNullException(nameof(export));
+    }
+
+    /// <summary>
+    /// Creates a fluent export builder with a genuine asynchronous renderer for resource-aware document models.
+    /// </summary>
+    protected OfficeImageExportBuilder(
+        TOptions options,
+        Func<OfficeImageExportFormat, TOptions, OfficeImageExportResult> export,
+        Func<OfficeImageExportFormat, TOptions, CancellationToken, Task<OfficeImageExportResult>> exportAsync)
+        : this(options, export) {
+        _exportAsync = exportAsync ?? throw new ArgumentNullException(nameof(exportAsync));
     }
 
     /// <summary>Document-specific options being configured by this builder.</summary>
@@ -93,6 +105,28 @@ public abstract class OfficeImageExportBuilder<TBuilder, TOptions>
         return This;
     }
 
+    /// <summary>Sets the maximum pixel allocation for one raster result.</summary>
+    public TBuilder WithMaximumRasterPixels(long maximumPixels) {
+        if (maximumPixels < 1L) throw new ArgumentOutOfRangeException(nameof(maximumPixels));
+        Options.MaximumRasterPixels = maximumPixels;
+        return This;
+    }
+
+    /// <summary>Sets the policy applied when requested raster dimensions exceed a safety limit.</summary>
+    public TBuilder OnRasterOverflow(OfficeRasterOverflowBehavior behavior) {
+        if (!Enum.IsDefined(typeof(OfficeRasterOverflowBehavior), behavior)) {
+            throw new ArgumentOutOfRangeException(nameof(behavior));
+        }
+        Options.RasterOverflowBehavior = behavior;
+        return This;
+    }
+
+    /// <summary>Sets the optional decoder used for embedded source-image formats outside Drawing's built-in set.</summary>
+    public TBuilder WithImageCodec(IOfficeRasterImageCodec imageCodec) {
+        Options.ImageCodec = imageCodec ?? throw new ArgumentNullException(nameof(imageCodec));
+        return This;
+    }
+
     /// <summary>Configures a standard preview profile: PNG, 1x scale, white background.</summary>
     public TBuilder ForPreview() {
         _format = OfficeImageExportFormat.Png;
@@ -142,7 +176,7 @@ public abstract class OfficeImageExportBuilder<TBuilder, TOptions>
         }
 
         cancellationToken.ThrowIfCancellationRequested();
-        OfficeImageExportResult result = Export();
+        OfficeImageExportResult result = await ExportForSaveAsync(cancellationToken).ConfigureAwait(false);
         await OfficeFileCommit.WriteAllBytesAsync(path, result.Bytes, cancellationToken: cancellationToken).ConfigureAwait(false);
         return result;
     }
@@ -152,8 +186,18 @@ public abstract class OfficeImageExportBuilder<TBuilder, TOptions>
         Stream stream,
         CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-        OfficeImageExportResult result = Export();
+        OfficeImageExportResult result = await ExportForSaveAsync(cancellationToken).ConfigureAwait(false);
         await OfficeStreamWriter.WriteAllBytesAsync(stream, result.Bytes, cancellationToken).ConfigureAwait(false);
+        return result;
+    }
+
+    private async Task<OfficeImageExportResult> ExportForSaveAsync(CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (_exportAsync != null) {
+            return await _exportAsync(_format, Options, cancellationToken).ConfigureAwait(false);
+        }
+        OfficeImageExportResult result = _export(_format, Options);
+        cancellationToken.ThrowIfCancellationRequested();
         return result;
     }
 

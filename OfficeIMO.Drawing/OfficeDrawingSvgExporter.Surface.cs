@@ -42,6 +42,10 @@ public static partial class OfficeDrawingSvgExporter {
 
         double width = drawing.Width * scale;
         double height = drawing.Height * scale;
+        if (sizeUnit == OfficeSvgSizeUnit.Pixel) {
+            width = Math.Ceiling(width);
+            height = Math.Ceiling(height);
+        }
         string unit = sizeUnit == OfficeSvgSizeUnit.Pixel ? "px" : "pt";
         var builder = new StringBuilder();
         builder.Append("<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"")

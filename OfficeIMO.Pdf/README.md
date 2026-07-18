@@ -122,6 +122,42 @@ The target-framework support remains `netstandard2.0`, `net8.0`, and
 
 ## Examples
 
+### Export PDF pages as images
+
+```csharp
+using OfficeIMO.Drawing;
+using OfficeIMO.Pdf;
+
+PdfReadDocument pdf = PdfReadDocument.Load("input.pdf");
+
+pdf.Pages[0]
+    .ToImage()
+    .WithDpi(144)
+    .AsThumbnail(800)
+    .AsPng()
+    .Save("preview.png");
+
+pdf.ToImages()
+    .Pages("1-3,last")
+    .WithMaximumRasterPixels(20_000_000)
+    .AsWebp()
+    .Save("page-images");
+```
+
+PNG, JPEG, TIFF, SVG, and WebP use the same `OfficeImageExportResult` contract and Drawing-owned encoders. Allocation limits are resolved before a raster buffer is created. Unsupported or simplified PDF operators and resources remain visible as typed image diagnostics.
+
+Any adapter that returns `PdfDocumentConversionResult` can use the same paged-image bridge without adding another renderer:
+
+```csharp
+IReadOnlyList<OfficeImageExportResult> pages = markdown
+    .ToPdfDocumentResult()
+    .ToImages()
+    .AsPng()
+    .Export();
+```
+
+Source conversion warnings are copied into every page result. Use `PdfPageImageRenderer.RenderPage(...)` only when an intermediate `OfficeDrawing` is needed.
+
 ### Write a generated PDF
 
 ```csharp

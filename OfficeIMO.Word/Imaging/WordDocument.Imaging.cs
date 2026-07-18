@@ -142,14 +142,7 @@ namespace OfficeIMO.Word {
 
         private static WordImageExportOptions NormalizeImageExportOptions(WordImageExportOptions? options) {
             WordImageExportOptions resolved = options?.Clone() ?? new WordImageExportOptions();
-            OfficeImageExportOptions.ValidateScale(resolved.Scale, nameof(options));
-            if (resolved.PageIndex < 0) {
-                throw new ArgumentOutOfRangeException(nameof(options), "Page index cannot be negative.");
-            }
-            if (resolved.PageCount.HasValue && resolved.PageCount.Value < 1) {
-                throw new ArgumentOutOfRangeException(nameof(options), "Page count must be positive when specified.");
-            }
-
+            resolved.Validate();
             return resolved;
         }
     }

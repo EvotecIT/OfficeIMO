@@ -130,9 +130,7 @@ public class HtmlRenderOptions : OfficeImageExportOptions {
 
     /// <summary>Copies shared layout and resource settings into a target-specific options instance.</summary>
     protected internal T CopyTo<T>(T target) where T : HtmlRenderOptions {
-        target.Scale = Scale;
-        target.BackgroundColor = BackgroundColor;
-        target.RasterEncoding = RasterEncoding?.Clone() ?? new OfficeRasterEncodingOptions();
+        CopyImageExportOptionsTo(target);
         target.Mode = Mode;
         target.ViewportWidth = ViewportWidth;
         target.ViewportHeight = ViewportHeight;
@@ -170,7 +168,7 @@ public class HtmlRenderOptions : OfficeImageExportOptions {
         ResourceUrlPolicy ?? UrlPolicy ?? HtmlUrlPolicy.CreateOfficeIMOProfile();
 
     internal void Validate() {
-        OfficeImageExportOptions.ValidateScale(Scale, nameof(Scale));
+        ValidateImageExportOptions();
         ValidatePositive(ViewportWidth, nameof(ViewportWidth));
         if (ViewportHeight.HasValue) {
             ValidatePositive(ViewportHeight.Value, nameof(ViewportHeight));

@@ -37,29 +37,24 @@ public sealed class VisioImageExportOptions : OfficeImageExportOptions {
     /// <summary>Whether SVG output includes an XML declaration.</summary>
     public bool IncludeSvgXmlDeclaration { get; set; }
 
-    /// <summary>Maximum number of pixels in a resolved raster result before scale is reduced.</summary>
-    public long MaximumRasterPixels { get; set; } = 50_000_000L;
-
-    internal VisioImageExportOptions Clone() => new VisioImageExportOptions {
-        Scale = Scale,
-        BackgroundColor = BackgroundColor,
-        RasterEncoding = RasterEncoding?.Clone() ?? new OfficeRasterEncodingOptions(),
-        PageIndex = PageIndex,
-        PageCount = PageCount,
-        RenderText = RenderText,
-        FontFilePath = FontFilePath,
-        FontFaceName = FontFaceName,
-        FontCollectionIndex = FontCollectionIndex,
-        RenderStencilArtwork = RenderStencilArtwork,
-        RenderConnectorLabels = RenderConnectorLabels,
-        ResolveConnectorLabelOverlaps = ResolveConnectorLabelOverlaps,
-        Supersampling = Supersampling,
-        IncludeSvgXmlDeclaration = IncludeSvgXmlDeclaration,
-        MaximumRasterPixels = MaximumRasterPixels
-    };
+    internal VisioImageExportOptions Clone() {
+        VisioImageExportOptions clone = CopyImageExportOptionsTo(new VisioImageExportOptions());
+        clone.PageIndex = PageIndex;
+        clone.PageCount = PageCount;
+        clone.RenderText = RenderText;
+        clone.FontFilePath = FontFilePath;
+        clone.FontFaceName = FontFaceName;
+        clone.FontCollectionIndex = FontCollectionIndex;
+        clone.RenderStencilArtwork = RenderStencilArtwork;
+        clone.RenderConnectorLabels = RenderConnectorLabels;
+        clone.ResolveConnectorLabelOverlaps = ResolveConnectorLabelOverlaps;
+        clone.Supersampling = Supersampling;
+        clone.IncludeSvgXmlDeclaration = IncludeSvgXmlDeclaration;
+        return clone;
+    }
 
     internal void Validate() {
-        OfficeImageExportOptions.ValidateScale(Scale, nameof(Scale));
+        ValidateImageExportOptions();
         if (PageIndex < 0) throw new ArgumentOutOfRangeException(nameof(PageIndex));
         if (PageCount.HasValue && PageCount.Value < 1) throw new ArgumentOutOfRangeException(nameof(PageCount));
         if (Supersampling < 1 || Supersampling > 4) {
@@ -68,6 +63,5 @@ public sealed class VisioImageExportOptions : OfficeImageExportOptions {
         if (FontCollectionIndex.HasValue && FontCollectionIndex.Value < 0) {
             throw new ArgumentOutOfRangeException(nameof(FontCollectionIndex));
         }
-        if (MaximumRasterPixels < 1L) throw new ArgumentOutOfRangeException(nameof(MaximumRasterPixels));
     }
 }

@@ -206,7 +206,7 @@ public sealed class ConverterTests {
     }
 
     [Fact]
-    public void VisualHtmlSurfacesAndEmbedsFallbackForNonEmbeddableSourceImages() {
+    public void VisualHtmlDecodesAndEmbedsTiffSourceImagesWithoutFallback() {
         byte[] sourceTiff = OfficeRasterImageEncoder.Encode(
             new OfficeRasterImage(8, 4, OfficeColor.CornflowerBlue),
             OfficeImageExportFormat.Tiff);
@@ -222,7 +222,7 @@ public sealed class ConverterTests {
 
         string html = section.ToVisualHtmlDocument(new OneNoteVisualHtmlOptions { DiagnosticSink = diagnostics });
 
-        Assert.Contains(diagnostics, diagnostic => diagnostic.Code == "DRAWING_RASTER_IMAGE_UNSUPPORTED");
+        Assert.DoesNotContain(diagnostics, diagnostic => diagnostic.Code == OfficeImageExportDiagnosticCodes.SourceImageDecodeFallback);
         Assert.Contains("data:image/png;base64,", html, StringComparison.Ordinal);
         Assert.Contains("<image", html, StringComparison.Ordinal);
     }

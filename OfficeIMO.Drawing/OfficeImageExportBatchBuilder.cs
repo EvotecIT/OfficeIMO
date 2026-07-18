@@ -20,6 +20,7 @@ public abstract class OfficeImageExportBatchBuilder<TBuilder, TOptions>
     private const string PortableInvalidFileNameCharacters = "<>:\"/\\|?*";
     private static readonly char[] PlatformInvalidFileNameCharacters = Path.GetInvalidFileNameChars();
     private readonly Func<OfficeImageExportFormat, TOptions, IReadOnlyList<OfficeImageExportResult>> _export;
+    private readonly Func<OfficeImageExportFormat, TOptions, CancellationToken, Task<IReadOnlyList<OfficeImageExportResult>>>? _exportAsync;
     private OfficeImageExportFormat _format = OfficeImageExportFormat.Png;
 
     /// <summary>
@@ -28,6 +29,17 @@ public abstract class OfficeImageExportBatchBuilder<TBuilder, TOptions>
     protected OfficeImageExportBatchBuilder(TOptions options, Func<OfficeImageExportFormat, TOptions, IReadOnlyList<OfficeImageExportResult>> export) {
         Options = options ?? throw new ArgumentNullException(nameof(options));
         _export = export ?? throw new ArgumentNullException(nameof(export));
+    }
+
+    /// <summary>
+    /// Creates a fluent batch builder with a genuine asynchronous renderer for resource-aware document models.
+    /// </summary>
+    protected OfficeImageExportBatchBuilder(
+        TOptions options,
+        Func<OfficeImageExportFormat, TOptions, IReadOnlyList<OfficeImageExportResult>> export,
+        Func<OfficeImageExportFormat, TOptions, CancellationToken, Task<IReadOnlyList<OfficeImageExportResult>>> exportAsync)
+        : this(options, export) {
+        _exportAsync = exportAsync ?? throw new ArgumentNullException(nameof(exportAsync));
     }
 
     /// <summary>Document-specific options being configured by this builder.</summary>
@@ -98,6 +110,28 @@ public abstract class OfficeImageExportBatchBuilder<TBuilder, TOptions>
         return This;
     }
 
+    /// <summary>Sets the maximum pixel allocation for each raster result.</summary>
+    public TBuilder WithMaximumRasterPixels(long maximumPixels) {
+        if (maximumPixels < 1L) throw new ArgumentOutOfRangeException(nameof(maximumPixels));
+        Options.MaximumRasterPixels = maximumPixels;
+        return This;
+    }
+
+    /// <summary>Sets the policy applied when requested raster dimensions exceed a safety limit.</summary>
+    public TBuilder OnRasterOverflow(OfficeRasterOverflowBehavior behavior) {
+        if (!Enum.IsDefined(typeof(OfficeRasterOverflowBehavior), behavior)) {
+            throw new ArgumentOutOfRangeException(nameof(behavior));
+        }
+        Options.RasterOverflowBehavior = behavior;
+        return This;
+    }
+
+    /// <summary>Sets the optional decoder used for embedded source-image formats outside Drawing's built-in set.</summary>
+    public TBuilder WithImageCodec(IOfficeRasterImageCodec imageCodec) {
+        Options.ImageCodec = imageCodec ?? throw new ArgumentNullException(nameof(imageCodec));
+        return This;
+    }
+
     /// <summary>Configures a standard preview profile: PNG, 1x scale, white background.</summary>
     public TBuilder ForPreview() {
         _format = OfficeImageExportFormat.Png;
@@ -140,6 +174,16 @@ public abstract class OfficeImageExportBatchBuilder<TBuilder, TOptions>
         return results;
     }
 
+    private async Task<IReadOnlyList<OfficeImageExportResult>> ExportForSaveAsync(CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (_exportAsync != null) {
+            return await _exportAsync(_format, Options, cancellationToken).ConfigureAwait(false);
+        }
+        IReadOnlyList<OfficeImageExportResult> results = _export(_format, Options);
+        cancellationToken.ThrowIfCancellationRequested();
+        return results;
+    }
+
     /// <summary>Asynchronously saves all selected images to a folder.</summary>
     public async Task<IReadOnlyList<OfficeImageExportResult>> SaveAsync(
         string folderPath,
@@ -151,7 +195,7 @@ public abstract class OfficeImageExportBatchBuilder<TBuilder, TOptions>
         cancellationToken.ThrowIfCancellationRequested();
         string fullFolder = Path.GetFullPath(folderPath);
         Directory.CreateDirectory(fullFolder);
-        IReadOnlyList<OfficeImageExportResult> results = Export();
+        IReadOnlyList<OfficeImageExportResult> results = await ExportForSaveAsync(cancellationToken).ConfigureAwait(false);
         string extension = _format.GetFileExtension();
         var usedFileNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         for (int i = 0; i < results.Count; i++) {

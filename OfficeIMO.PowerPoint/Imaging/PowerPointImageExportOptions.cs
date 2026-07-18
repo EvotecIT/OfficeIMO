@@ -37,19 +37,23 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public bool IncludeHiddenShapes { get; set; }
 
-        internal PowerPointImageExportOptions Clone() => new PowerPointImageExportOptions {
-            Scale = Scale,
-            BackgroundColor = BackgroundColor,
-            RasterEncoding = RasterEncoding?.Clone() ?? new OfficeRasterEncodingOptions(),
-            IncludeSlideBackground = IncludeSlideBackground,
-            IncludeSlideContent = IncludeSlideContent,
-            IncludePictures = IncludePictures,
-            IncludeAutoShapes = IncludeAutoShapes,
-            IncludeTextBoxes = IncludeTextBoxes,
-            IncludeTables = IncludeTables,
-            IncludeCharts = IncludeCharts,
-            IncludeHiddenShapes = IncludeHiddenShapes
-        };
+        internal PowerPointImageExportOptions Clone() =>
+            CopyPowerPointOptionsTo(new PowerPointImageExportOptions());
+
+        internal T CopyPowerPointOptionsTo<T>(T target) where T : PowerPointImageExportOptions {
+            CopyImageExportOptionsTo(target);
+            target.IncludeSlideBackground = IncludeSlideBackground;
+            target.IncludeSlideContent = IncludeSlideContent;
+            target.IncludePictures = IncludePictures;
+            target.IncludeAutoShapes = IncludeAutoShapes;
+            target.IncludeTextBoxes = IncludeTextBoxes;
+            target.IncludeTables = IncludeTables;
+            target.IncludeCharts = IncludeCharts;
+            target.IncludeHiddenShapes = IncludeHiddenShapes;
+            return target;
+        }
+
+        internal void Validate() => ValidateImageExportOptions();
     }
 
     /// <summary>
@@ -66,20 +70,12 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public IReadOnlyList<int>? SlideNumbers { get; set; }
 
-        internal PowerPointPresentationImageExportOptions ClonePresentation() => new PowerPointPresentationImageExportOptions {
-            Scale = Scale,
-            BackgroundColor = BackgroundColor,
-            RasterEncoding = RasterEncoding?.Clone() ?? new OfficeRasterEncodingOptions(),
-            IncludeSlideBackground = IncludeSlideBackground,
-            IncludeSlideContent = IncludeSlideContent,
-            IncludePictures = IncludePictures,
-            IncludeAutoShapes = IncludeAutoShapes,
-            IncludeTextBoxes = IncludeTextBoxes,
-            IncludeTables = IncludeTables,
-            IncludeCharts = IncludeCharts,
-            IncludeHiddenShapes = IncludeHiddenShapes,
-            IncludeHiddenSlides = IncludeHiddenSlides,
-            SlideNumbers = SlideNumbers?.ToArray()
-        };
+        internal PowerPointPresentationImageExportOptions ClonePresentation() {
+            PowerPointPresentationImageExportOptions clone =
+                CopyPowerPointOptionsTo(new PowerPointPresentationImageExportOptions());
+            clone.IncludeHiddenSlides = IncludeHiddenSlides;
+            clone.SlideNumbers = SlideNumbers?.ToArray();
+            return clone;
+        }
     }
 }

@@ -11,9 +11,19 @@ namespace OfficeIMO.Excel {
                 return new OfficeImageExportResult(format, ScaledWidth(snapshot, options), ScaledHeight(snapshot, options), Encoding.UTF8.GetBytes(svg), snapshot.SheetName, snapshot.SheetName + "!" + snapshot.Range, diagnostics.AsReadOnly());
             }
 
-            OfficeRasterImage image = RenderRaster(snapshot, options, diagnostics);
+            string source = snapshot.SheetName + "!" + snapshot.Range;
+            OfficeRasterExportPlan plan = OfficeRasterExportPlanner.Resolve(
+                snapshot.Width,
+                snapshot.Height,
+                format,
+                options,
+                source);
+            if (plan.Diagnostic != null) diagnostics.Add(plan.Diagnostic);
+            ExcelImageExportOptions renderOptions = options.Clone();
+            renderOptions.Scale = plan.Limit.Scale;
+            OfficeRasterImage image = RenderRaster(snapshot, renderOptions, diagnostics);
             byte[] bytes = OfficeRasterImageEncoder.Encode(image, format, options.RasterEncoding);
-            return new OfficeImageExportResult(format, image.Width, image.Height, bytes, snapshot.SheetName, snapshot.SheetName + "!" + snapshot.Range, diagnostics.AsReadOnly());
+            return new OfficeImageExportResult(format, image.Width, image.Height, bytes, snapshot.SheetName, source, diagnostics.AsReadOnly());
         }
 
         internal static OfficeRasterImage RenderRaster(ExcelRangeVisualSnapshot snapshot, ExcelImageExportOptions options, List<OfficeImageExportDiagnostic>? diagnostics = null) {
@@ -171,18 +181,6 @@ namespace OfficeIMO.Excel {
             return resolved;
         }
 
-        private static void RenderRasterCharts(OfficeRasterCanvas canvas, ExcelRangeVisualSnapshot snapshot, ExcelImageExportOptions options, List<OfficeImageExportDiagnostic>? diagnostics) {
-            foreach (ExcelVisualChart chart in snapshot.Charts) {
-                RenderRasterChart(canvas, snapshot, chart, options, diagnostics);
-            }
-        }
-
-        private static void AppendSvgCharts(StringBuilder builder, ExcelRangeVisualSnapshot snapshot, ExcelImageExportOptions options, List<OfficeImageExportDiagnostic>? diagnostics) {
-            foreach (ExcelVisualChart chart in snapshot.Charts) {
-                AppendSvgChart(builder, snapshot, chart, options, diagnostics);
-            }
-        }
-
         private static void RenderRasterChart(OfficeRasterCanvas canvas, ExcelRangeVisualSnapshot snapshot, ExcelVisualChart chart, ExcelImageExportOptions options, List<OfficeImageExportDiagnostic>? diagnostics) {
             double scale = options.Scale;
             if (!TryCreateOfficeChartSnapshot(chart.Snapshot, chart.Width, chart.Height, diagnostics, snapshot.SheetName, out OfficeChartSnapshot? officeSnapshot) || officeSnapshot == null) {
@@ -191,7 +189,14 @@ namespace OfficeIMO.Excel {
 
             OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(officeSnapshot);
             OfficeColor chartBackground = officeSnapshot.Style?.ShowBackground == false ? OfficeColor.Transparent : OfficeColor.White;
-            OfficeRasterImage chartImage = OfficeDrawingRasterRenderer.Render(drawing, scale, chartBackground);
+            OfficeRasterExportPlan plan = OfficeRasterExportPlanner.Resolve(
+                drawing.Width,
+                drawing.Height,
+                OfficeImageExportFormat.Png,
+                options,
+                snapshot.SheetName + "!" + chart.Snapshot.Name);
+            if (plan.Diagnostic != null) diagnostics?.Add(plan.Diagnostic);
+            OfficeRasterImage chartImage = OfficeDrawingRasterRenderer.Render(drawing, plan.Limit.Scale, chartBackground);
             canvas.DrawImage(chartImage, chart.X * scale, chart.Y * scale, chart.Width * scale, chart.Height * scale);
         }
 

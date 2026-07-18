@@ -202,6 +202,10 @@ namespace OfficeIMO.Excel {
         /// Starts a fluent image export for this range.
         /// </summary>
         public ExcelRangeImageExportBuilder ToImage() => new ExcelRangeImageExportBuilder(this);
+
+        /// <summary>Starts a fluent image export using a cloned options snapshot.</summary>
+        public ExcelRangeImageExportBuilder ToImage(ExcelImageExportOptions options) =>
+            new ExcelRangeImageExportBuilder(this, options ?? throw new ArgumentNullException(nameof(options)));
     }
 
     public partial class ExcelSheet {
@@ -209,6 +213,10 @@ namespace OfficeIMO.Excel {
         /// Starts a fluent image export for this worksheet.
         /// </summary>
         public ExcelWorksheetImageExportBuilder ToImage() => new ExcelWorksheetImageExportBuilder(this);
+
+        /// <summary>Starts a fluent image export using a cloned options snapshot.</summary>
+        public ExcelWorksheetImageExportBuilder ToImage(ExcelWorksheetImageExportOptions options) =>
+            new ExcelWorksheetImageExportBuilder(this, options ?? throw new ArgumentNullException(nameof(options)));
     }
 
     public partial class ExcelDocument {
@@ -216,5 +224,9 @@ namespace OfficeIMO.Excel {
         /// Starts a fluent image export for selected worksheets in this workbook.
         /// </summary>
         public ExcelWorkbookImageExportBuilder ToImages() => new ExcelWorkbookImageExportBuilder(this);
+
+        /// <summary>Starts a fluent batch export using a cloned options snapshot.</summary>
+        public ExcelWorkbookImageExportBuilder ToImages(ExcelWorkbookImageExportOptions options) =>
+            new ExcelWorkbookImageExportBuilder(this, options ?? throw new ArgumentNullException(nameof(options)));
     }
 }

@@ -90,6 +90,33 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public async Task HtmlFluentSaveAsyncUsesTheResourceAwareRenderer() {
+        bool resolverCalled = false;
+        HtmlConversionDocument document = HtmlConversionDocument.Parse(
+            "<link rel='stylesheet' href='https://assets.example.test/site.css'><p class='marker'>Async builder</p>");
+        var options = new HtmlRenderOptions {
+            ResourceResolver = (request, cancellationToken) => {
+                cancellationToken.ThrowIfCancellationRequested();
+                resolverCalled = true;
+                return Task.FromResult<HtmlResolvedResource?>(
+                    new HtmlResolvedResource(
+                        System.Text.Encoding.UTF8.GetBytes(".marker{color:#336699}"),
+                        "text/css"));
+            }
+        };
+        using var output = new MemoryStream();
+
+        OfficeImageExportResult result = await document
+            .ToImage(options)
+            .AsPng()
+            .SaveAsync(output);
+
+        Assert.True(resolverCalled);
+        Assert.Equal(OfficeImageExportFormat.Png, result.Format);
+        Assert.Equal(result.Bytes, output.ToArray());
+    }
+
+    [Fact]
     public void HtmlImageExport_RejectsOverflowingScaleBeforeEncoding() {
         HtmlConversionDocument document = HtmlConversionDocument.Parse("<p>Overflow guard</p>");
         var options = new HtmlRenderOptions { Scale = double.MaxValue };

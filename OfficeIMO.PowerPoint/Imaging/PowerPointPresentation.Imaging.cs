@@ -81,7 +81,7 @@ namespace OfficeIMO.PowerPoint {
 
         private static PowerPointPresentationImageExportOptions NormalizePresentationImageExportOptions(PowerPointPresentationImageExportOptions? options) {
             PowerPointPresentationImageExportOptions resolved = options?.ClonePresentation() ?? new PowerPointPresentationImageExportOptions();
-            OfficeImageExportOptions.ValidateScale(resolved.Scale, nameof(options));
+            resolved.Validate();
             if (resolved.SlideNumbers != null && resolved.SlideNumbers.Any(slideNumber => slideNumber <= 0)) {
                 throw new ArgumentOutOfRangeException(nameof(options), "Slide numbers must be 1-based positive values.");
             }
@@ -102,18 +102,7 @@ namespace OfficeIMO.PowerPoint {
             return new HashSet<int>(options.SlideNumbers);
         }
 
-        private static PowerPointImageExportOptions CreateSlideImageExportOptions(PowerPointPresentationImageExportOptions options) => new PowerPointImageExportOptions {
-            Scale = options.Scale,
-            BackgroundColor = options.BackgroundColor,
-            RasterEncoding = options.RasterEncoding?.Clone() ?? new OfficeRasterEncodingOptions(),
-            IncludeSlideBackground = options.IncludeSlideBackground,
-            IncludeSlideContent = options.IncludeSlideContent,
-            IncludePictures = options.IncludePictures,
-            IncludeAutoShapes = options.IncludeAutoShapes,
-            IncludeTextBoxes = options.IncludeTextBoxes,
-            IncludeTables = options.IncludeTables,
-            IncludeCharts = options.IncludeCharts,
-            IncludeHiddenShapes = options.IncludeHiddenShapes
-        };
+        private static PowerPointImageExportOptions CreateSlideImageExportOptions(
+            PowerPointPresentationImageExportOptions options) => options.Clone();
     }
 }

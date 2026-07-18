@@ -93,7 +93,7 @@ RTF bridges use `RtfConversionResult<T>`. PDF save attempts expose their report,
 
 ## Image export
 
-Word, Excel, PowerPoint, Visio, HTML, and OneNote image export use `OfficeImageExportResult` and `OfficeImageExportFormat` from `OfficeIMO.Drawing`.
+Word, Excel, PowerPoint, Visio, HTML, OneNote, and PDF image export use `OfficeImageExportResult` and `OfficeImageExportFormat` from `OfficeIMO.Drawing`.
 
 ```csharp
 HtmlConversionDocument source = HtmlConversionDocument.Parse(html);
@@ -102,6 +102,33 @@ OfficeImageExportResult saved = source.SaveAsPng("preview.png", options);
 ```
 
 `ToPng()`, `ToJpeg()`, `ToTiff()`, and `ToWebp()` return encoded bytes; `ToSvg()` returns SVG text. `ExportImage()` and `ExportImages()` return encoded output, dimensions, format, source metadata, and diagnostics. Format-specific save methods and the fluent `As...().Save(...)` surface write to a path or stream and return the same structured evidence. The redundant `ToPngResult`, `ToSvgResult`, and plural result aliases were removed.
+
+Every result now validates that its encoded bytes and dimensions match the declared format and dimensions. Shared options also own `MaximumRasterPixels`, `RasterOverflowBehavior`, `ImageCodec`, and `RasterEncoding`; document-specific option types inherit and clone those settings instead of redeclaring them. The shared default is 50 million output pixels per raster. The default overflow policy reduces scale before allocating a pixel buffer and emits `IMAGE_RASTER_SCALE_REDUCED`. Set `RasterOverflowBehavior = OfficeRasterOverflowBehavior.Throw` to receive an `OfficeImageExportLimitException` with requested and allowed dimensions.
+
+Format-neutral SVG image export now uses whole-pixel `px` root dimensions so its encoded dimensions match `OfficeImageExportResult.Width` and `Height`. The lower-level `OfficeDrawingSvgExporter.ToSvg(drawing, scale)` overload retains its point-based legacy surface; choose `OfficeSvgSizeUnit.Point` explicitly when a non-image Drawing workflow needs points.
+
+PDF exposes the same canonical surface:
+
+```csharp
+PdfReadDocument loaded = PdfReadDocument.Load(pdfBytes);
+loaded.ToImages()
+    .Pages("2,1")
+    .WithDpi(144)
+    .AsWebp()
+    .Save("pages");
+```
+
+`PdfDocumentConversionResult` is the one paged-image adapter for any source that already converts to the first-party PDF model. It keeps Markdown, AsciiDoc, LaTeX, RTF, OneNote, Word, Excel, PowerPoint, or HTML conversion warnings on every exported page:
+
+```csharp
+IReadOnlyList<OfficeImageExportResult> pages = markdown
+    .ToPdfDocumentResult()
+    .ToImages()
+    .AsPng()
+    .Export();
+```
+
+Use `PdfPageImageRenderer.RenderPage(...)` when a caller needs the intermediate `OfficeDrawing` scene. The older `PdfPageRenderResult` batch remains a low-level inspection/OCR/verification contract because it carries per-page elapsed time, continue-on-error state, and typed PDF capability diagnostics; it is not the general five-format export API.
 
 ## HTML source ownership
 

@@ -11,26 +11,32 @@ public enum PdfPageRenderFormat {
 }
 
 /// <summary>Options for bounded page-range and thumbnail rendering.</summary>
-public sealed class PdfPageRenderOptions {
+public sealed class PdfPageRenderOptions : OfficeImageExportOptions {
+    /// <summary>Creates legacy page-render options with fail-fast pixel-limit behavior.</summary>
+    public PdfPageRenderOptions() {
+        RasterOverflowBehavior = OfficeRasterOverflowBehavior.Throw;
+    }
+
     /// <summary>Batch output format.</summary>
     public PdfPageRenderFormat Format { get; set; } = PdfPageRenderFormat.Png;
-    /// <summary>Direct output scale. Ignored when <see cref="Dpi"/> is supplied.</summary>
-    public double Scale { get; set; } = 1D;
     /// <summary>Optional target DPI, converted from PDF's 72 points per inch.</summary>
     public double? Dpi { get; set; }
     /// <summary>PNG background color.</summary>
-    public OfficeColor Background { get; set; } = OfficeColor.White;
+    public OfficeColor Background {
+        get => BackgroundColor;
+        set => BackgroundColor = value;
+    }
     /// <summary>Optional maximum thumbnail width or height in pixels.</summary>
     public int? ThumbnailMaxDimension { get; set; }
     /// <summary>Maximum pages rendered by one call.</summary>
     public int MaxPages { get; set; } = 100;
     /// <summary>Maximum output pixels for one page.</summary>
-    public long MaxPixelsPerPage { get; set; } = 100_000_000L;
+    public long MaxPixelsPerPage {
+        get => MaximumRasterPixels;
+        set => MaximumRasterPixels = value;
+    }
     /// <summary>Continues a batch and returns a failed per-page report when rendering fails.</summary>
     public bool ContinueOnError { get; set; } = true;
-    /// <summary>Optional shared raster codec for JPEG 2000 and other formats outside the managed raster engine.</summary>
-    public IOfficeRasterImageCodec? ImageCodec { get; set; }
-
     internal double GetScale(OfficeDrawing drawing) {
         double scale = Dpi.HasValue ? Dpi.Value / 72D : Scale;
         if (ThumbnailMaxDimension.HasValue) {
@@ -42,12 +48,11 @@ public sealed class PdfPageRenderOptions {
     }
 
     internal void Validate() {
+        ValidateImageExportOptions();
         if (Format < PdfPageRenderFormat.Png || Format > PdfPageRenderFormat.Svg) throw new ArgumentOutOfRangeException(nameof(Format));
-        if (!IsPositiveFinite(Scale)) throw new ArgumentOutOfRangeException(nameof(Scale), Scale, "Scale must be positive and finite.");
         if (Dpi.HasValue && !IsPositiveFinite(Dpi.Value)) throw new ArgumentOutOfRangeException(nameof(Dpi), Dpi, "DPI must be positive and finite.");
         if (ThumbnailMaxDimension.HasValue && ThumbnailMaxDimension.Value <= 0) throw new ArgumentOutOfRangeException(nameof(ThumbnailMaxDimension));
         if (MaxPages <= 0) throw new ArgumentOutOfRangeException(nameof(MaxPages));
-        if (MaxPixelsPerPage <= 0) throw new ArgumentOutOfRangeException(nameof(MaxPixelsPerPage));
     }
 
     private static bool IsPositiveFinite(double value) => value > 0D && !double.IsNaN(value) && !double.IsInfinity(value);

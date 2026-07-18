@@ -1,6 +1,6 @@
 # OfficeIMO Image Export Goal
 
-This track keeps image export first-party and consistent across Drawing, Excel, Word, PowerPoint, HTML, OneNote, Visio, and future PDF page rendering.
+This track keeps image export first-party and consistent across Drawing, Excel, Word, PowerPoint, HTML, OneNote, Visio, PDF, and source formats that already project into PDF.
 
 ## Non-Negotiable Dependency Rule
 
@@ -20,17 +20,18 @@ No product image export path may depend on external rendering products, Office a
 - HTML renders continuous or paged surfaces through a shared Drawing scene, including synchronous and resource-aware asynchronous APIs.
 - OneNote renders pages, sections, and notebooks with ink, math, image placeholders, batch selection, and bounded raster output.
 - Visio keeps its established native SVG/raster geometry renderer and exposes format-neutral page and document batch export.
-- PDF owns PDF stream/page/writer behavior and uses Drawing for shared image and visual helpers, but first-party PDF page-to-image rendering still needs an internal content rendering plan.
-- `OfficeIMO.Drawing` is the shared engine. Document packages should project source semantics into Drawing primitives, not grow private renderers.
+- PDF projects loaded pages into Drawing and exposes the same five-format single/batch contract, DPI/thumbnail controls, page selection, raster limits, and diagnostics as the Office document packages.
+- `PdfDocumentConversionResult` is the single paged-image bridge for Markdown, AsciiDoc, LaTeX, RTF, OneNote, Word, Excel, PowerPoint, and HTML PDF adapters. Source conversion warnings flow into every image result.
+- `OfficeIMO.Drawing` is the shared engine. Document packages project source semantics into Drawing primitives and reuse its result, options, safety, encoder, decoder, and diagnostic contracts.
 
 ## Execution Order
 
-1. Enforce a format-conformance contract: every result's declared format must match its encoded bytes.
-2. Standardize raster pixel budgets and encoder-dimension handling across document packages.
-3. Add TIFF and WebP source decoding in Drawing when test fixtures justify the implementation.
-4. Expand representative visual baselines for PowerPoint, Word, HTML, and OneNote without copying renderer logic.
-5. Design PDF page-to-image as a first-party renderer over the PDF logical/content model, not a wrapper around PDFium, Poppler, browser screenshots, or Office automation.
-6. Add thin direct adapters for formats such as Markdown and RTF only where an existing native model or HTML projection preserves useful diagnostics.
+1. Keep result identity structural: `OfficeImageExportResult` rejects mismatched encoded formats or dimensions, and every converter uses it.
+2. Keep raster limits pre-allocation: the Drawing planner combines caller, renderer, and encoder limits and applies one overflow policy.
+3. Keep source decoding honest: bounded baseline TIFF and OfficeIMO's literal-lossless WebP subset are first-party; broader variants use a caller codec.
+4. Expand representative visual baselines for PowerPoint, Word, HTML, OneNote, PDF, and adapters without copying renderer logic.
+5. Extend PDF operator/font/form/transparency coverage in the existing first-party page-to-Drawing projection.
+6. Add a source-specific direct image API only when it offers a visual contract that the shared `PdfDocumentConversionResult.ToImages()` bridge cannot represent.
 
 ## Done Shape
 
@@ -42,6 +43,8 @@ presentation.ToImages().ForSlideRange(1, 3).AsSvg().Save("slides");
 document.ToImage().FirstPage().AsPng().Save("preview.png");
 html.ToImages().Paged().AsWebp().Save("pages");
 visio.ToImages().AllPages().AsTiff().Save("diagram-pages");
+PdfReadDocument.Load(pdfBytes).ToImages().Pages("1-3,last").AsWebp().Save("pdf-pages");
+markdown.ToPdfDocumentResult().ToImages().AsPng().Save("markdown-pages");
 ```
 
-Future PDF page image APIs should follow the same builder/result/diagnostic model once the first-party renderer exists.
+All of these APIs return the same validated result shape, use portable batch filenames, and apply the same pre-allocation raster policy.

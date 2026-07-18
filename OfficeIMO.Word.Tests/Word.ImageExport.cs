@@ -50,10 +50,10 @@ namespace OfficeIMO.Tests {
             Assert.Equal(OfficeColor.White, image.GetPixel(2, 2));
 
             string svgText = Encoding.UTF8.GetString(svg.Bytes);
-            Assert.Contains("width=\"595.3pt\"", svgText, StringComparison.Ordinal);
+            Assert.Contains("width=\"596px\"", svgText, StringComparison.Ordinal);
             Assert.Contains("Shared Word renderer", svgText, StringComparison.Ordinal);
             string scaledSvgText = Encoding.UTF8.GetString(scaledSvg.Bytes);
-            Assert.Contains("width=\"1190.6pt\"", scaledSvgText, StringComparison.Ordinal);
+            Assert.Contains("width=\"1191px\"", scaledSvgText, StringComparison.Ordinal);
         }
 
         [Fact]
@@ -4270,7 +4270,7 @@ namespace OfficeIMO.Tests {
             Assert.DoesNotContain(snapshot.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-page-index");
 
             string svgText = Encoding.UTF8.GetString(svg.Bytes);
-            Assert.Contains("width=\"419.55pt\"", svgText, StringComparison.Ordinal);
+            Assert.Contains("width=\"420px\"", svgText, StringComparison.Ordinal);
             Assert.Contains("Section two first header", svgText, StringComparison.Ordinal);
             Assert.Contains("Section two first footer", svgText, StringComparison.Ordinal);
             Assert.Contains("Section two first page body", svgText, StringComparison.Ordinal);
@@ -4311,7 +4311,7 @@ namespace OfficeIMO.Tests {
             Assert.DoesNotContain(snapshot.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-page-index");
 
             string svgText = Encoding.UTF8.GetString(svg.Bytes);
-            Assert.Contains("width=\"419.55pt\"", svgText, StringComparison.Ordinal);
+            Assert.Contains("width=\"420px\"", svgText, StringComparison.Ordinal);
             Assert.Contains("Section two header", svgText, StringComparison.Ordinal);
             Assert.Contains("Section two footer", svgText, StringComparison.Ordinal);
             Assert.Contains("Section two body", svgText, StringComparison.Ordinal);

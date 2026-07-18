@@ -106,29 +106,10 @@ namespace OfficeIMO.Excel {
             new ExcelWorksheetImageExportBuilder(this, options).AsSvg().SaveAsync(stream, cancellationToken);
 
         private static ExcelWorksheetImageExportOptions NormalizeWorksheetOptions(ExcelWorksheetImageExportOptions? options) {
-            ExcelWorksheetImageExportOptions source = options ?? new ExcelWorksheetImageExportOptions();
-            ExcelWorksheetImageExportOptions resolved = new ExcelWorksheetImageExportOptions {
-                Scale = source.Scale,
-                BackgroundColor = source.BackgroundColor,
-                RasterEncoding = source.RasterEncoding?.Clone() ?? new OfficeRasterEncodingOptions(),
-                GridlineColor = source.GridlineColor,
-                ShowGridlines = source.ShowGridlines,
-                IncludeHidden = source.IncludeHidden,
-                IncludeImages = source.IncludeImages,
-                IncludeCharts = source.IncludeCharts,
-                IncludeDrawingObjects = source.IncludeDrawingObjects,
-                IncludeConditionalFormatting = source.IncludeConditionalFormatting,
-                ConditionalFormattingDate = source.ConditionalFormattingDate ?? DateTime.Today,
-                ShowHyperlinkHints = source.ShowHyperlinkHints,
-                ShowCommentBodies = source.ShowCommentBodies,
-                DefaultColumnWidthPixels = source.DefaultColumnWidthPixels,
-                DefaultRowHeightPixels = source.DefaultRowHeightPixels,
-                Range = source.Range,
-                HeaderFooterDateTime = source.HeaderFooterDateTime ?? DateTime.Now,
-                UsePrintArea = source.UsePrintArea,
-                SplitByManualPageBreaks = source.SplitByManualPageBreaks
-            };
-            OfficeImageExportOptions.ValidateScale(resolved.Scale, nameof(options));
+            ExcelWorksheetImageExportOptions resolved = options?.CloneWorksheet() ?? new ExcelWorksheetImageExportOptions();
+            resolved.ConditionalFormattingDate ??= DateTime.Today;
+            resolved.HeaderFooterDateTime ??= DateTime.Now;
+            resolved.Validate();
 
             return resolved;
         }

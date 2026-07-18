@@ -14,7 +14,7 @@ public sealed class HtmlPageImageExportBuilder : OfficeImageExportBuilder<HtmlPa
         HtmlConversionDocument document,
         HtmlRenderOptions options,
         PageSelection selection)
-        : base(options, CreateExporter(document, selection)) {
+        : base(options, CreateExporter(document, selection), CreateAsyncExporter(document, selection)) {
         _selection = selection;
     }
 
@@ -45,6 +45,14 @@ public sealed class HtmlPageImageExportBuilder : OfficeImageExportBuilder<HtmlPa
         return (format, options) => document.ExportImage(format, options, selection.PageIndex);
     }
 
+    private static Func<OfficeImageExportFormat, HtmlRenderOptions, CancellationToken, Task<OfficeImageExportResult>> CreateAsyncExporter(
+        HtmlConversionDocument document,
+        PageSelection selection) {
+        if (document == null) throw new ArgumentNullException(nameof(document));
+        return (format, options, cancellationToken) =>
+            document.ExportImageAsync(format, options, selection.PageIndex, cancellationToken);
+    }
+
     private sealed class PageSelection {
         internal int PageIndex { get; set; }
     }
@@ -53,7 +61,7 @@ public sealed class HtmlPageImageExportBuilder : OfficeImageExportBuilder<HtmlPa
 /// <summary>Fluent batch image export for all rendered HTML pages.</summary>
 public sealed class HtmlPageImageBatchExportBuilder : OfficeImageExportBatchBuilder<HtmlPageImageBatchExportBuilder, HtmlRenderOptions> {
     internal HtmlPageImageBatchExportBuilder(HtmlConversionDocument document, HtmlRenderOptions? options = null)
-        : base(options?.Clone() ?? new HtmlRenderOptions(), CreateExporter(document)) {
+        : base(options?.Clone() ?? new HtmlRenderOptions(), CreateExporter(document), CreateAsyncExporter(document)) {
     }
 
     /// <summary>Uses continuous layout, which produces one rendered surface.</summary>
@@ -72,6 +80,12 @@ public sealed class HtmlPageImageBatchExportBuilder : OfficeImageExportBatchBuil
         HtmlConversionDocument document) {
         if (document == null) throw new ArgumentNullException(nameof(document));
         return document.ExportImages;
+    }
+
+    private static Func<OfficeImageExportFormat, HtmlRenderOptions, CancellationToken, Task<IReadOnlyList<OfficeImageExportResult>>> CreateAsyncExporter(
+        HtmlConversionDocument document) {
+        if (document == null) throw new ArgumentNullException(nameof(document));
+        return document.ExportImagesAsync;
     }
 }
 

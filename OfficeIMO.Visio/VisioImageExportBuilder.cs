@@ -112,9 +112,21 @@ public static class VisioImageExportFluentExtensions {
     /// <summary>Starts fluent image export for this Visio page.</summary>
     public static VisioPageImageExportBuilder ToImage(this VisioPage page) => new VisioPageImageExportBuilder(page);
 
+    /// <summary>Starts fluent image export using a cloned options snapshot.</summary>
+    public static VisioPageImageExportBuilder ToImage(this VisioPage page, VisioImageExportOptions options) =>
+        new VisioPageImageExportBuilder(page, options ?? throw new ArgumentNullException(nameof(options)));
+
     /// <summary>Starts fluent image export for one selected page in this Visio document.</summary>
     public static VisioDocumentImageExportBuilder ToImage(this VisioDocument document) => new VisioDocumentImageExportBuilder(document);
 
+    /// <summary>Starts fluent selected-page export using a cloned options snapshot.</summary>
+    public static VisioDocumentImageExportBuilder ToImage(this VisioDocument document, VisioImageExportOptions options) =>
+        new VisioDocumentImageExportBuilder(document, options ?? throw new ArgumentNullException(nameof(options)));
+
     /// <summary>Starts fluent batch image export for pages in this Visio document.</summary>
     public static VisioDocumentImageBatchExportBuilder ToImages(this VisioDocument document) => new VisioDocumentImageBatchExportBuilder(document);
+
+    /// <summary>Starts fluent page-batch export using a cloned options snapshot.</summary>
+    public static VisioDocumentImageBatchExportBuilder ToImages(this VisioDocument document, VisioImageExportOptions options) =>
+        new VisioDocumentImageBatchExportBuilder(document, options ?? throw new ArgumentNullException(nameof(options)));
 }

@@ -1,4 +1,3 @@
-using System.Globalization;
 using System.Text;
 using OfficeIMO.Drawing;
 
@@ -40,25 +39,18 @@ internal static class VisioImageExportEngine {
 
         var diagnostics = new List<OfficeImageExportDiagnostic>();
         long workingPixelLimit = Math.Max(1L, MaximumSupersampledPixels / ((long)options.Supersampling * options.Supersampling));
-        long maximumPixels = Math.Min(
-            Math.Min(options.MaximumRasterPixels, workingPixelLimit),
-            OfficeRasterImageEncoder.GetMaximumPixelCount(format));
-        OfficeRasterScaleLimit limit = OfficeRasterScaleLimiter.Resolve(
-            Math.Max(page.Width, 0.01D),
-            Math.Max(page.Height, 0.01D),
-            pixelsPerInch,
-            maximumPixels,
-            OfficeRasterImageEncoder.GetMaximumDimension(format));
-        if (limit.WasLimited) {
-            diagnostics.Add(new OfficeImageExportDiagnostic(
-                OfficeImageExportDiagnosticSeverity.Warning,
-                "VISIO_IMAGE_RASTER_SCALE_LIMITED",
-                "The raster resolution was reduced from " + Format(pixelsPerInch) + " to " + Format(limit.Scale) +
-                " pixels per inch to stay within the configured raster limits.",
-                resultSource));
-        }
+        OfficeRasterExportPlan plan = OfficeRasterExportPlanner.Resolve(
+            Math.Max(page.Width * DefaultPixelsPerInch, 0.01D),
+            Math.Max(page.Height * DefaultPixelsPerInch, 0.01D),
+            format,
+            options,
+            workingPixelLimit,
+            resultSource);
+        if (plan.Diagnostic != null) diagnostics.Add(plan.Diagnostic);
 
-        OfficeRasterImage image = VisioPngRenderer.RenderRaster(page, CreatePngOptions(options, limit.Scale));
+        OfficeRasterImage image = VisioPngRenderer.RenderRaster(
+            page,
+            CreatePngOptions(options, ResolvePixelsPerInch(plan.Limit.Scale)));
         byte[] encoded = OfficeRasterImageEncoder.Encode(image, format, options.RasterEncoding);
         return new OfficeImageExportResult(
             format,
@@ -110,6 +102,4 @@ internal static class VisioImageExportEngine {
         }
         return pixelsPerInch;
     }
-
-    private static string Format(double value) => value.ToString("0.########", CultureInfo.InvariantCulture);
 }

@@ -27,13 +27,17 @@ public sealed class OfficeRasterImageFallbackCodec : IOfficeRasterImageCodec {
     public bool TryDecode(byte[] encodedBytes, string? contentType, out OfficeRasterImage? image) {
         if (_innerCodec != null) {
             try {
-                if (_innerCodec.TryDecode((byte[])encodedBytes.Clone(), contentType, out image) && image != null) return true;
+                if (_innerCodec.TryDecode((byte[])encodedBytes.Clone(), contentType, out image) && image != null) {
+                    AddCallerCodecDiagnostic(contentType);
+                    return true;
+                }
             } catch (Exception exception) when (
                 exception is ArgumentException ||
                 exception is FormatException ||
                 exception is InvalidOperationException ||
                 exception is IOException ||
-                exception is NotSupportedException) {
+                exception is NotSupportedException ||
+                exception is OverflowException) {
                 AddDiagnostic(contentType, exception.Message);
                 image = CreatePlaceholder();
                 return true;
@@ -45,13 +49,22 @@ public sealed class OfficeRasterImageFallbackCodec : IOfficeRasterImageCodec {
         return true;
     }
 
+    private void AddCallerCodecDiagnostic(string? contentType) {
+        string format = string.IsNullOrWhiteSpace(contentType) ? "unknown image data" : contentType!;
+        _diagnostics?.Add(new OfficeImageExportDiagnostic(
+            OfficeImageExportDiagnosticSeverity.Info,
+            OfficeImageExportDiagnosticCodes.SourceImageDecodedByCallerCodec,
+            "The caller-supplied codec decoded " + format + ".",
+            _source));
+    }
+
     private void AddDiagnostic(string? contentType, string? detail) {
         string format = string.IsNullOrWhiteSpace(contentType) ? "unknown image data" : contentType!;
         string message = "Drawing could not decode " + format + "; a visible placeholder was rendered.";
         if (!string.IsNullOrWhiteSpace(detail)) message += " " + detail;
         _diagnostics?.Add(new OfficeImageExportDiagnostic(
             OfficeImageExportDiagnosticSeverity.Warning,
-            "DRAWING_RASTER_IMAGE_UNSUPPORTED",
+            OfficeImageExportDiagnosticCodes.SourceImageDecodeFallback,
             message,
             _source));
     }

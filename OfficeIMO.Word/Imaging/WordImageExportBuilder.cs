@@ -72,7 +72,15 @@ namespace OfficeIMO.Word {
         /// </summary>
         public WordDocumentImageExportBuilder ToImage() => new WordDocumentImageExportBuilder(this);
 
+        /// <summary>Starts a fluent image export using a cloned options snapshot.</summary>
+        public WordDocumentImageExportBuilder ToImage(WordImageExportOptions options) =>
+            new WordDocumentImageExportBuilder(this, options ?? throw new ArgumentNullException(nameof(options)));
+
         /// <summary>Starts a fluent batch image export for document pages.</summary>
         public WordDocumentPageImageExportBuilder ToImages() => new WordDocumentPageImageExportBuilder(this);
+
+        /// <summary>Starts a fluent page batch export using a cloned options snapshot.</summary>
+        public WordDocumentPageImageExportBuilder ToImages(WordImageExportOptions options) =>
+            new WordDocumentPageImageExportBuilder(this, options ?? throw new ArgumentNullException(nameof(options)));
     }
 }

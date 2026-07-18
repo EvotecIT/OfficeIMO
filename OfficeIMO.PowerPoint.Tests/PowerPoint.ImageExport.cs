@@ -38,7 +38,7 @@ namespace OfficeIMO.Tests {
             Assert.Empty(png.Diagnostics);
 
             string svgText = Encoding.UTF8.GetString(svg.Bytes);
-            Assert.Contains("width=\"480pt\"", svgText, StringComparison.Ordinal);
+            Assert.Contains("width=\"480px\"", svgText, StringComparison.Ordinal);
             Assert.Contains("#112233", svgText, StringComparison.OrdinalIgnoreCase);
             Assert.Empty(svg.Diagnostics);
         }

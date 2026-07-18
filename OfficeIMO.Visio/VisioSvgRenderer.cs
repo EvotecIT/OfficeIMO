@@ -18,8 +18,10 @@ namespace OfficeIMO.Visio {
             }
 
             double scale = options.PixelsPerInch;
-            double width = Math.Max(page.Width, 0.01D) * scale;
-            double height = Math.Max(page.Height, 0.01D) * scale;
+            double logicalWidth = Math.Max(page.Width, 0.01D) * scale;
+            double logicalHeight = Math.Max(page.Height, 0.01D) * scale;
+            double surfaceWidth = Math.Ceiling(logicalWidth);
+            double surfaceHeight = Math.Ceiling(logicalHeight);
 
             StringBuilder builder = new();
             XmlWriterSettings settings = new() {
@@ -27,12 +29,12 @@ namespace OfficeIMO.Visio {
                 Indent = true
             };
 
-            using (XmlWriter writer = XmlWriter.Create(new StringWriter(builder, CultureInfo.InvariantCulture), settings)) {
+            using (XmlWriter writer = XmlWriter.Create(new Utf8StringWriter(builder), settings)) {
                 writer.WriteStartDocument();
                 writer.WriteStartElement("svg", SvgNamespace);
-                writer.WriteNumberAttribute("width", width);
-                writer.WriteNumberAttribute("height", height);
-                writer.WriteViewBoxAttribute(0D, 0D, width, height);
+                writer.WriteNumberAttribute("width", surfaceWidth);
+                writer.WriteNumberAttribute("height", surfaceHeight);
+                writer.WriteViewBoxAttribute(0D, 0D, logicalWidth, logicalHeight);
                 writer.WriteAttributeString("role", "img");
                 writer.WriteAttributeString("aria-label", string.IsNullOrWhiteSpace(page.Name) ? "OfficeIMO Visio page" : page.Name);
 
@@ -40,8 +42,8 @@ namespace OfficeIMO.Visio {
                     writer.WriteStartElement("rect", SvgNamespace);
                     writer.WriteNumberAttribute("x", 0D);
                     writer.WriteNumberAttribute("y", 0D);
-                    writer.WriteNumberAttribute("width", width);
-                    writer.WriteNumberAttribute("height", height);
+                    writer.WriteNumberAttribute("width", logicalWidth);
+                    writer.WriteNumberAttribute("height", logicalHeight);
                     OfficeSvgFormatting.WriteColorAttribute(writer, "fill", options.BackgroundColor.Value);
                     writer.WriteEndElement();
                 }
@@ -66,6 +68,13 @@ namespace OfficeIMO.Visio {
             }
 
             return builder.ToString();
+        }
+
+        private sealed class Utf8StringWriter : StringWriter {
+            internal Utf8StringWriter(StringBuilder builder) : base(builder, CultureInfo.InvariantCulture) {
+            }
+
+            public override Encoding Encoding => Encoding.UTF8;
         }
 
         private static void WriteShape(XmlWriter writer, VisioPage page, VisioShape shape, VisioSvgSaveOptions options, double scale) {

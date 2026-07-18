@@ -5,25 +5,22 @@ using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Excel {
     internal static partial class ExcelRangeImageRenderer {
-        private static void RenderRasterDrawingObjects(OfficeRasterCanvas canvas, ExcelRangeVisualSnapshot snapshot, ExcelImageExportOptions options) {
-            foreach (ExcelVisualDrawingObject drawingObject in snapshot.DrawingObjects) {
-                RenderRasterDrawingObject(canvas, drawingObject, options, diagnostics: null);
-            }
-        }
-
-        private static void AppendSvgDrawingObjects(StringBuilder builder, ExcelRangeVisualSnapshot snapshot, ExcelImageExportOptions options) {
-            foreach (ExcelVisualDrawingObject drawingObject in snapshot.DrawingObjects) {
-                AppendSvgDrawingObject(builder, drawingObject, options, diagnostics: null);
-            }
-        }
-
         private static void RenderRasterDrawingObject(OfficeRasterCanvas canvas, ExcelVisualDrawingObject drawingObject, ExcelImageExportOptions options, List<OfficeImageExportDiagnostic>? diagnostics) {
             AddRotatedTextApproximationDiagnostic(drawingObject, diagnostics);
             AddTextAutoFitUnsupportedDiagnostic(drawingObject, diagnostics);
             AddTextVerticalOrientationUnsupportedDiagnostic(drawingObject, diagnostics);
             double scale = options.Scale;
             DrawingObjectScene scene = CreateOfficeDrawing(drawingObject, scale);
-            OfficeRasterImage drawingImage = OfficeDrawingRasterRenderer.Render(scene.Drawing);
+            ExcelImageExportOptions nestedOptions = options.Clone();
+            nestedOptions.Scale = 1D;
+            OfficeRasterExportPlan plan = OfficeRasterExportPlanner.Resolve(
+                scene.Drawing.Width,
+                scene.Drawing.Height,
+                OfficeImageExportFormat.Png,
+                nestedOptions,
+                drawingObject.Source);
+            if (plan.Diagnostic != null) diagnostics?.Add(plan.Diagnostic);
+            OfficeRasterImage drawingImage = OfficeDrawingRasterRenderer.Render(scene.Drawing, plan.Limit.Scale);
             canvas.DrawImage(
                 drawingImage,
                 (drawingObject.X * scale) - scene.OffsetX,

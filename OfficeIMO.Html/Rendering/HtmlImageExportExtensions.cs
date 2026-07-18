@@ -43,15 +43,29 @@ public static partial class HtmlImageExportExtensions {
     private static OfficeImageExportResult RenderPage(HtmlRenderPage page, OfficeImageExportFormat format, HtmlRenderOptions options, HtmlDiagnosticReport diagnostics, CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         OfficeDrawing drawing = page.CreateDrawing(cancellationToken);
+        var exportDiagnostics = new List<OfficeImageExportDiagnostic>(MapDiagnostics(diagnostics));
+        string source = "HTML render page " + page.PageNumber.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        var fallbackCodec = new OfficeRasterImageFallbackCodec(options.ImageCodec, exportDiagnostics, source);
         byte[] bytes;
         int width;
         int height;
         if (format == OfficeImageExportFormat.Svg) {
-            bytes = OfficeDrawingSvgExporter.ToSvgBytes(drawing, options.Scale, OfficeSvgSizeUnit.Pixel);
+            bytes = OfficeDrawingSvgExporter.ToSvgBytes(drawing, options.Scale, OfficeSvgSizeUnit.Pixel, fallbackCodec);
             width = Math.Max(1, (int)Math.Ceiling(page.Width * options.Scale));
             height = Math.Max(1, (int)Math.Ceiling(page.Height * options.Scale));
         } else if (format.IsRaster()) {
-            OfficeRasterImage image = OfficeDrawingRasterRenderer.Render(drawing, options.Scale, options.BackgroundColor);
+            OfficeRasterExportPlan plan = OfficeRasterExportPlanner.Resolve(
+                drawing.Width,
+                drawing.Height,
+                format,
+                options,
+                source);
+            if (plan.Diagnostic != null) exportDiagnostics.Add(plan.Diagnostic);
+            OfficeRasterImage image = OfficeDrawingRasterRenderer.Render(drawing, new OfficeDrawingRasterRenderOptions {
+                Scale = plan.Limit.Scale,
+                Background = options.BackgroundColor,
+                ImageCodec = fallbackCodec
+            });
             bytes = OfficeRasterImageEncoder.Encode(image, format, options.RasterEncoding);
             width = image.Width;
             height = image.Height;
@@ -65,8 +79,8 @@ public static partial class HtmlImageExportExtensions {
             height,
             bytes,
             "Page " + page.PageNumber.ToString(System.Globalization.CultureInfo.InvariantCulture),
-            "HTML render page " + page.PageNumber.ToString(System.Globalization.CultureInfo.InvariantCulture),
-            MapDiagnostics(diagnostics));
+            source,
+            exportDiagnostics);
     }
 
     private static IReadOnlyList<OfficeImageExportDiagnostic> MapDiagnostics(HtmlDiagnosticReport report) {

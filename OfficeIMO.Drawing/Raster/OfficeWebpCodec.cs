@@ -66,6 +66,70 @@ public static class OfficeWebpCodec {
         return output;
     }
 
+    /// <summary>
+    /// Attempts to decode the deterministic literal-only VP8L subset emitted by <see cref="Encode"/>.
+    /// General VP8/VP8L features remain the responsibility of an optional caller codec.
+    /// </summary>
+    public static bool TryDecode(byte[]? encodedBytes, out OfficeRasterImage? image) {
+        image = null;
+        if (!IsWebp(encodedBytes) || encodedBytes == null ||
+            encodedBytes.Length < 22 ||
+            encodedBytes.Length > OfficeRasterGuards.MaximumEncodedBytes ||
+            !HasAscii(encodedBytes, 12, "VP8L")) {
+            return false;
+        }
+
+        try {
+            int riffLength = ReadUInt32(encodedBytes, 4);
+            int payloadLength = ReadUInt32(encodedBytes, 16);
+            int expectedFileLength = checked(20 + payloadLength + (payloadLength & 1));
+            if (riffLength != encodedBytes.Length - 8 ||
+                expectedFileLength != encodedBytes.Length ||
+                payloadLength < 5 ||
+                encodedBytes[20] != 0x2F) {
+                return false;
+            }
+
+            var reader = new LsbBitReader(encodedBytes, 21, payloadLength - 1);
+            int width = checked((int)reader.ReadBits(14) + 1);
+            int height = checked((int)reader.ReadBits(14) + 1);
+            reader.ReadBits(1); // alpha hint
+            if (reader.ReadBits(3) != 0 ||
+                reader.ReadBits(1) != 0 || // no transforms
+                reader.ReadBits(1) != 0 || // no color cache
+                reader.ReadBits(1) != 0) { // one Huffman group
+                return false;
+            }
+            if (!OfficeRasterGuards.TryEnsurePixelCount(width, height, out int pixels) ||
+                !TryReadLiteralTree(reader, 280) ||
+                !TryReadLiteralTree(reader, 256) ||
+                !TryReadLiteralTree(reader, 256) ||
+                !TryReadLiteralTree(reader, 256) ||
+                !TryReadSingleSymbolTree(reader)) {
+                return false;
+            }
+
+            byte[] rgba = OfficeRasterGuards.AllocateRgba32(width, height, "WebP decoded pixels exceed the managed limit.");
+            for (int pixel = 0; pixel < pixels; pixel++) {
+                int offset = pixel * 4;
+                rgba[offset + 1] = (byte)ReverseByte((byte)reader.ReadBits(8));
+                rgba[offset] = (byte)ReverseByte((byte)reader.ReadBits(8));
+                rgba[offset + 2] = (byte)ReverseByte((byte)reader.ReadBits(8));
+                rgba[offset + 3] = (byte)ReverseByte((byte)reader.ReadBits(8));
+            }
+            if (!reader.HasOnlyZeroPadding() ||
+                (payloadLength & 1) != 0 && encodedBytes[encodedBytes.Length - 1] != 0) {
+                return false;
+            }
+            image = OfficeRasterImage.FromRgba32(width, height, rgba);
+            return true;
+        } catch (FormatException) {
+            return false;
+        } catch (OverflowException) {
+            return false;
+        }
+    }
+
     private static void WriteLiteralTree(LsbBitWriter writer, int alphabetSize) {
         writer.WriteBits(0, 1); // normal Huffman tree
         writer.WriteBits(8, 4); // store 12 code-length-code entries
@@ -92,6 +156,26 @@ public static class OfficeWebpCodec {
         writer.WriteBits(0, 1); // symbol uses one bit
         writer.WriteBits(0, 1); // symbol zero
     }
+
+    private static bool TryReadLiteralTree(LsbBitReader reader, int alphabetSize) {
+        if (reader.ReadBits(1) != 0 || reader.ReadBits(4) != 8) return false;
+        int[] codeLengthDepths = { 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 };
+        for (int index = 0; index < codeLengthDepths.Length; index++) {
+            if (reader.ReadBits(3) != (uint)codeLengthDepths[index]) return false;
+        }
+        if (reader.ReadBits(1) != 0) return false;
+        for (int index = 0; index < 256; index++) {
+            if (reader.ReadBits(1) != 0) return false;
+        }
+        return alphabetSize != 280 ||
+               reader.ReadBits(1) == 1 && reader.ReadBits(7) == 13;
+    }
+
+    private static bool TryReadSingleSymbolTree(LsbBitReader reader) =>
+        reader.ReadBits(1) == 1 &&
+        reader.ReadBits(1) == 0 &&
+        reader.ReadBits(1) == 0 &&
+        reader.ReadBits(1) == 0;
 
     private static uint ReverseByte(byte value) {
         uint reversed = value;
@@ -128,6 +212,16 @@ public static class OfficeWebpCodec {
         output[offset + 3] = (byte)(value >> 24);
     }
 
+    private static int ReadUInt32(byte[] input, int offset) {
+        if (offset < 0 || offset > input.Length - 4) throw new FormatException("WebP integer field is truncated.");
+        uint value = (uint)(input[offset] |
+                            input[offset + 1] << 8 |
+                            input[offset + 2] << 16 |
+                            input[offset + 3] << 24);
+        if (value > int.MaxValue) throw new FormatException("WebP length exceeds supported integer bounds.");
+        return (int)value;
+    }
+
     private sealed class LsbBitWriter {
         private readonly Stream _stream;
         private ulong _buffer;
@@ -155,6 +249,48 @@ public static class OfficeWebpCodec {
                 _buffer = 0;
                 _bitCount = 0;
             }
+        }
+    }
+
+    private sealed class LsbBitReader {
+        private readonly byte[] _input;
+        private readonly int _end;
+        private int _offset;
+        private ulong _buffer;
+        private int _bitCount;
+
+        internal LsbBitReader(byte[] input, int offset, int count) {
+            _input = input;
+            _offset = offset;
+            _end = checked(offset + count);
+            if (offset < 0 || count < 0 || _end > input.Length) {
+                throw new FormatException("WebP bitstream is truncated.");
+            }
+        }
+
+        internal uint ReadBits(int count) {
+            if (count < 0 || count > 32) throw new FormatException("WebP bit count is invalid.");
+            while (_bitCount < count) {
+                if (_offset >= _end) throw new FormatException("WebP bitstream is truncated.");
+                _buffer |= (ulong)_input[_offset++] << _bitCount;
+                _bitCount += 8;
+            }
+            ulong mask = count == 32 ? uint.MaxValue : (1UL << count) - 1UL;
+            uint value = (uint)(_buffer & mask);
+            _buffer >>= count;
+            _bitCount -= count;
+            return value;
+        }
+
+        internal bool HasOnlyZeroPadding() {
+            if (_bitCount > 0) {
+                ulong mask = (1UL << _bitCount) - 1UL;
+                if ((_buffer & mask) != 0UL) return false;
+            }
+            while (_offset < _end) {
+                if (_input[_offset++] != 0) return false;
+            }
+            return true;
         }
     }
 }

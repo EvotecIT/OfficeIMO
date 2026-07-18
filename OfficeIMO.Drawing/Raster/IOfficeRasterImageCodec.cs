@@ -12,6 +12,6 @@ public sealed class OfficeDrawingRasterRenderOptions {
     public double Scale { get; set; } = 1D;
     /// <summary>Optional canvas background.</summary>
     public OfficeColor? Background { get; set; }
-    /// <summary>Optional decoder for JPEG or other formats not handled by the dependency-free core.</summary>
+    /// <summary>Optional decoder for formats not handled by the dependency-free core.</summary>
     public IOfficeRasterImageCodec? ImageCodec { get; set; }
 }

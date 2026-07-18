@@ -24,6 +24,9 @@ public sealed class DrawingRasterEncodingTests {
         Assert.Equal(2, info.Height);
         Assert.Equal(144D, info.DpiX, precision: 3);
         Assert.Equal(120D, info.DpiY, precision: 3);
+        Assert.True(OfficeTiffCodec.TryDecode(encoded, out OfficeRasterImage? decoded));
+        Assert.NotNull(decoded);
+        Assert.Equal(image.GetPixels(), decoded!.GetPixels());
     }
 
     [Fact]
@@ -39,6 +42,73 @@ public sealed class DrawingRasterEncodingTests {
         Assert.Equal(OfficeImageFormat.Webp, info.Format);
         Assert.Equal(3, info.Width);
         Assert.Equal(2, info.Height);
+        Assert.True(OfficeWebpCodec.TryDecode(encoded, out OfficeRasterImage? decoded));
+        Assert.NotNull(decoded);
+        Assert.Equal(image.GetPixels(), decoded!.GetPixels());
+    }
+
+    [Theory]
+    [InlineData(OfficeTiffCompression.None)]
+    [InlineData(OfficeTiffCompression.PackBits)]
+    public void SharedRasterDecoderRepaintsEncodedTiff(OfficeTiffCompression compression) {
+        OfficeRasterImage expected = CreateSampleImage();
+        byte[] encoded = OfficeTiffCodec.Encode(expected, new OfficeTiffEncodeOptions { Compression = compression });
+
+        Assert.True(OfficeRasterImageDecoder.TryDecode(encoded, out OfficeRasterImage? decoded));
+        Assert.NotNull(decoded);
+        Assert.Equal(expected.GetPixels(), decoded!.GetPixels());
+    }
+
+    [Fact]
+    public void SharedRasterDecoderRepaintsOfficeImoLiteralLosslessWebp() {
+        OfficeRasterImage expected = CreateSampleImage();
+        byte[] encoded = OfficeWebpCodec.Encode(expected);
+
+        Assert.True(OfficeRasterImageDecoder.TryDecode(encoded, out OfficeRasterImage? decoded));
+        Assert.NotNull(decoded);
+        Assert.Equal(expected.GetPixels(), decoded!.GetPixels());
+    }
+
+    [Fact]
+    public void NewSourceDecodersRejectTruncatedPayloadsWithoutAllocating() {
+        byte[] tiff = OfficeTiffCodec.Encode(CreateSampleImage());
+        byte[] webp = OfficeWebpCodec.Encode(CreateSampleImage());
+
+        Assert.False(OfficeTiffCodec.TryDecode(tiff.Take(tiff.Length - 2).ToArray(), out _));
+        Assert.False(OfficeWebpCodec.TryDecode(webp.Take(webp.Length - 2).ToArray(), out _));
+    }
+
+    [Fact]
+    public void OfficeImoWebpDecoderRejectsBytesOutsideItsExactContainer() {
+        byte[] webp = OfficeWebpCodec.Encode(CreateSampleImage());
+
+        Assert.False(OfficeWebpCodec.TryDecode(webp.Concat(new byte[] { 0, 0 }).ToArray(), out _));
+    }
+
+    [Fact]
+    public void OfficeImoWebpDecoderRejectsNonPaddingDataInsideItsDeclaredPayload() {
+        byte[] webp = OfficeWebpCodec.Encode(CreateSampleImage());
+        int payloadLength = ReadLittleEndian(webp, 16);
+        int expandedPayloadLength = payloadLength + 2;
+        byte[] expanded = new byte[20 + expandedPayloadLength + (expandedPayloadLength & 1)];
+        Buffer.BlockCopy(webp, 0, expanded, 0, 20 + payloadLength);
+        expanded[20 + payloadLength] = 1;
+        WriteLittleEndian(expanded, 4, expanded.Length - 8);
+        WriteLittleEndian(expanded, 16, expandedPayloadLength);
+
+        Assert.False(OfficeWebpCodec.TryDecode(expanded, out _));
+    }
+
+    [Fact]
+    public void OfficeTiffDecoderRejectsExtraUncompressedStripData() {
+        byte[] tiff = OfficeTiffCodec.Encode(
+            CreateSampleImage(),
+            new OfficeTiffEncodeOptions { Compression = OfficeTiffCompression.None });
+        Array.Resize(ref tiff, tiff.Length + 1);
+        const int stripByteCountValueOffset = 126;
+        WriteLittleEndian(tiff, stripByteCountValueOffset, 25);
+
+        Assert.False(OfficeTiffCodec.TryDecode(tiff, out _));
     }
 
     [Theory]
@@ -97,5 +167,18 @@ public sealed class DrawingRasterEncodingTests {
         image.SetPixel(1, 1, OfficeColor.FromRgba(78, 90, 123, 200));
         image.SetPixel(2, 1, OfficeColor.FromRgba(210, 220, 230, 255));
         return image;
+    }
+
+    private static int ReadLittleEndian(byte[] bytes, int offset) =>
+        bytes[offset] |
+        bytes[offset + 1] << 8 |
+        bytes[offset + 2] << 16 |
+        bytes[offset + 3] << 24;
+
+    private static void WriteLittleEndian(byte[] bytes, int offset, int value) {
+        bytes[offset] = (byte)value;
+        bytes[offset + 1] = (byte)(value >> 8);
+        bytes[offset + 2] = (byte)(value >> 16);
+        bytes[offset + 3] = (byte)(value >> 24);
     }
 }

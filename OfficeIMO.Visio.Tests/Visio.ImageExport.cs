@@ -89,7 +89,7 @@ public class VisioImageExport {
         OfficeImageExportResult result = page.ExportImage(OfficeImageExportFormat.Png, options);
 
         Assert.True((long)result.Width * result.Height <= options.MaximumRasterPixels);
-        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "VISIO_IMAGE_RASTER_SCALE_LIMITED");
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == OfficeImageExportDiagnosticCodes.RasterScaleReduced);
     }
 
     [Fact]

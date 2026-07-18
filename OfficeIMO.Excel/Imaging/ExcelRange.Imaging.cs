@@ -88,7 +88,7 @@ namespace OfficeIMO.Excel {
         private static ExcelImageExportOptions NormalizeOptions(ExcelImageExportOptions? options) {
             ExcelImageExportOptions resolved = options?.Clone() ?? new ExcelImageExportOptions();
             resolved.ConditionalFormattingDate ??= System.DateTime.Today;
-            OfficeImageExportOptions.ValidateScale(resolved.Scale, nameof(options));
+            resolved.Validate();
 
             return resolved;
         }
