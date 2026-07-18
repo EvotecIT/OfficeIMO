@@ -116,6 +116,9 @@ public sealed partial class IcsDocument {
                 }
             }
 
+            if (name == "VEVENT" || name == "VTODO" || name == "VJOURNAL" || name == "VFREEBUSY")
+                ValidateUniqueIdentifierValues(component, issues);
+
             if (name == "VEVENT" || name == "VTODO" || name == "VJOURNAL" ||
                 name == "STANDARD" || name == "DAYLIGHT")
                 ValidateSingle(component, "RRULE", required: false, issues);
@@ -657,6 +660,15 @@ public sealed partial class IcsDocument {
         if (properties.Length > 1)
             issues.Add(Issue("ICAL_PROPERTY_CARDINALITY", propertyName + " must not occur more than once.",
                 ContentLineValidationSeverity.Error, component, properties[1]));
+    }
+
+    private static void ValidateUniqueIdentifierValues(ContentLineComponent component,
+        ICollection<ContentLineValidationIssue> issues) {
+        foreach (ContentLineProperty identifier in component.GetProperties("UID")) {
+            if (!string.IsNullOrWhiteSpace(identifier.Value)) continue;
+            issues.Add(Issue("ICAL_UID_INVALID", "UID must contain a non-empty globally unique identifier.",
+                ContentLineValidationSeverity.Error, component, identifier));
+        }
     }
 
     private static void ValidatePropertyGroups(ContentLineComponent component,

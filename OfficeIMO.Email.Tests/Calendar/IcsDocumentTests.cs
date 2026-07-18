@@ -527,6 +527,26 @@ public sealed class IcsDocumentTests {
             issue.ComponentName == "VFREEBUSY" && issue.PropertyName == missingProperty);
     }
 
+    [Theory]
+    [InlineData("VEVENT", "")]
+    [InlineData("VEVENT", "   ")]
+    [InlineData("VTODO", "")]
+    [InlineData("VTODO", "   ")]
+    [InlineData("VJOURNAL", "")]
+    [InlineData("VJOURNAL", "   ")]
+    [InlineData("VFREEBUSY", "")]
+    [InlineData("VFREEBUSY", "   ")]
+    public void ValidationRejectsBlankRequiredComponentIdentifiers(string componentName, string identifier) {
+        var document = new IcsDocument();
+        ContentLineComponent component = document.Calendars.Single().AddComponent(componentName);
+        component.AddProperty("UID", identifier);
+        component.AddProperty("DTSTAMP", "20260718T090000Z");
+        if (componentName == "VEVENT") component.AddProperty("DTSTART", "20260718T100000Z");
+
+        Assert.Contains(document.Validate(), issue => issue.Code == "ICAL_UID_INVALID" &&
+            issue.ComponentName == componentName && issue.PropertyName == "UID");
+    }
+
     [Fact]
     public void ValidationAcceptsFreeBusyIdentityPropertiesExactlyOnce() {
         var document = new IcsDocument();
