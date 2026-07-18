@@ -122,8 +122,8 @@ internal static class OfficeJpegWriter {
     private static void WriteRgbaCore(Stream stream, int width, int height, byte[] rgba, int stride, int rowOffset, int rowStride, OfficeJpegEncodeOptions options, string bufferName, string bufferMessage) {
         if (width <= 0) throw new ArgumentOutOfRangeException(nameof(width));
         if (height <= 0) throw new ArgumentOutOfRangeException(nameof(height));
-        if (width > ushort.MaxValue) throw new ArgumentOutOfRangeException(nameof(width), "JPEG width cannot exceed 65535 pixels.");
-        if (height > ushort.MaxValue) throw new ArgumentOutOfRangeException(nameof(height), "JPEG height cannot exceed 65535 pixels.");
+        if (width > OfficeRasterImageEncoder.JpegMaximumDimension) throw new ArgumentOutOfRangeException(nameof(width), "JPEG width cannot exceed 65535 pixels.");
+        if (height > OfficeRasterImageEncoder.JpegMaximumDimension) throw new ArgumentOutOfRangeException(nameof(height), "JPEG height cannot exceed 65535 pixels.");
         _ = OfficeRasterGuards.EnsureOutputPixels(width, height, JpegOutputLimitMessage);
         _ = OfficeRasterGuards.EnsureOutputBytes((long)width * height * 4, JpegOutputLimitMessage);
         if (rgba is null) throw new ArgumentNullException(bufferName);
