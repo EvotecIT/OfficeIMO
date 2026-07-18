@@ -121,7 +121,8 @@ namespace OfficeIMO.Visio {
         }
 
         private static bool IsImageRelationship(VisioAssets.MasterRelationshipContent relationship) {
-            return OfficeSvgImageRenderer.TryResolveEmbeddableContentType(
+            return relationship.Type.EndsWith("/image", StringComparison.OrdinalIgnoreCase) ||
+                   OfficeSvgImageRenderer.TryResolveEmbeddableContentType(
                        relationship.ContentType,
                        relationship.Data,
                        GetRelationshipImageName(relationship),

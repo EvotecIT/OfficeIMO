@@ -153,7 +153,7 @@ public class VisioImageExport {
             Id = "rIdImage",
             Type = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/image",
             Target = "../media/preview.custom",
-            ContentType = "image/x-officeimo-test",
+            ContentType = "application/octet-stream",
             Extension = ".custom",
             Data = new byte[] { 1, 2, 3, 4 }
         });
