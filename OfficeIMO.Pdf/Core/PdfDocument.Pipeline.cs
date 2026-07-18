@@ -61,6 +61,7 @@ public sealed partial class PdfDocument {
             case "Append":
             case "Prepend":
             case "Insert":
+            case "Import":
             case "ImportPages":
             case "MergeWith":
                 return PdfMutationOperation.MergeDocuments;
@@ -72,6 +73,7 @@ public sealed partial class PdfDocument {
             case "Crop":
             case "Resize":
             case "SetPageBox":
+            case "CropAndTranslate":
             case "DestructiveCrop":
                 return PdfMutationOperation.ModifyPageTree;
             case "Text":

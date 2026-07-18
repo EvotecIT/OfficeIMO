@@ -246,13 +246,24 @@ public sealed partial class PdfDocument {
     /// <summary>
     /// Adopts an internal operation result while carrying the source document's read contract forward.
     /// </summary>
+    internal PdfDocument ApplyMutation(
+        Func<byte[], byte[]> mutation,
+        PdfReadOptions? readOptions = null,
+        [System.Runtime.CompilerServices.CallerMemberName] string operationName = "") {
+        Guard.NotNull(mutation, nameof(mutation));
+        byte[] inputBytes = GetBytesForOperation();
+        byte[] outputBytes = mutation(inputBytes);
+        return WithBytes(inputBytes, outputBytes, readOptions, operationName);
+    }
+
     internal PdfDocument WithBytes(
+        byte[] inputBytes,
         byte[] pdf,
         PdfReadOptions? readOptions = null,
         [System.Runtime.CompilerServices.CallerMemberName] string operationName = "") {
+        Guard.NotNull(inputBytes, nameof(inputBytes));
         Guard.NotNull(pdf, nameof(pdf));
         PdfReadOptions effectiveReadOptions = readOptions ?? ReadOptions;
-        byte[] inputBytes = GetBytesForOperation();
         PdfArtifactSnapshot input = _pipeline.Output ?? PdfArtifactSnapshot.Capture(inputBytes, ReadOptions);
         PdfArtifactSnapshot output = PdfArtifactSnapshot.Capture(pdf, effectiveReadOptions);
         PdfMutationOperation? mutationOperation = ResolveMutationOperation(operationName);

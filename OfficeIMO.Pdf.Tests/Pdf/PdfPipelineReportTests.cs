@@ -112,6 +112,62 @@ public sealed class PdfPipelineReportTests {
         Assert.NotEmpty(output.Diagnostics);
     }
 
+    [Fact]
+    public void AdapterFailureFactory_ReportsFailedOutputPipeline() {
+        var exception = new InvalidOperationException("Adapter conversion failed.");
+
+        PdfSaveResult result = PdfSaveResult.FromFailure("failed.pdf", exception);
+
+        Assert.False(result.Succeeded);
+        Assert.True(result.Pipeline.HasFailures);
+        PdfPipelineStep output = Assert.Single(result.Pipeline.Steps);
+        Assert.Equal(PdfPipelineStepKind.Output, output.Kind);
+        Assert.Equal("Save", output.Operation);
+        Assert.False(output.Succeeded);
+        Assert.Contains(output.Diagnostics, diagnostic => diagnostic.Contains("Adapter conversion failed.", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void GeneratedAppendMutation_ReportsTheExactConsumedInputArtifact() {
+        PdfDocument updated = PdfDocument.Create()
+            .Paragraph(paragraph => paragraph.Text("Generated mutation input"))
+            .AppendMetadataRevision(title: "After");
+
+        PdfPipelineStep mutation = Assert.Single(
+            updated.Pipeline.Steps,
+            step => step.Kind == PdfPipelineStepKind.Mutation);
+        byte[] output = updated.ToBytes();
+        Assert.NotNull(mutation.Input);
+        Assert.Equal(PdfMutationExecutionMode.AppendOnly, mutation.ExecutionMode);
+        Assert.True(output.LongLength > mutation.Input!.ByteCount);
+
+        byte[] consumedInput = output
+            .Take(checked((int)mutation.Input.ByteCount))
+            .ToArray();
+        Assert.Equal(Sha256(consumedInput), mutation.Input.Sha256);
+    }
+
+    [Fact]
+    public void PageImportAndCropMutations_PreserveOperationClassification() {
+        byte[] importedPage = PdfDocument.Create()
+            .Paragraph(paragraph => paragraph.Text("Imported"))
+            .ToBytes();
+        PdfDocument appended = PdfDocument.Create()
+            .Paragraph(paragraph => paragraph.Text("Target"))
+            .Pages.Append(importedPage);
+        PdfDocument cropped = appended.Pages.CropAndTranslate(0, 0, 300, 300, 1);
+
+        PdfPipelineStep append = Assert.Single(
+            appended.Pipeline.Steps,
+            step => step.Kind == PdfPipelineStepKind.Mutation);
+        PdfPipelineStep crop = cropped.Pipeline.Steps.Last(
+            step => step.Kind == PdfPipelineStepKind.Mutation);
+        Assert.Equal("Append", append.Operation);
+        Assert.Equal(PdfMutationOperation.MergeDocuments, append.MutationOperation);
+        Assert.Equal("CropAndTranslate", crop.Operation);
+        Assert.Equal(PdfMutationOperation.ModifyPageTree, crop.MutationOperation);
+    }
+
     private static string Sha256(byte[] bytes) =>
         Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();
 }

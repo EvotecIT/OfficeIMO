@@ -132,11 +132,11 @@ public sealed partial class PdfDocument {
     /// Creates a new PDF with matching text objects and annotations removed from the supplied redaction areas.
     /// </summary>
     public PdfDocument ApplyRedactions(IEnumerable<PdfRedactionArea> areas, PdfRedactionApplyOptions? applyOptions = null, PdfTextLayoutOptions? layoutOptions = null, PdfReadOptions? options = null) {
-        return WithBytes(PdfRedactionApplier.Apply(GetBytesForOperation(), areas, applyOptions, layoutOptions, options ?? ReadOptions), options);
+        return ApplyMutation(input => PdfRedactionApplier.Apply(input, areas, applyOptions, layoutOptions, options ?? ReadOptions), options);
     }
 
     /// <summary>Applies a reviewed redaction plan, including exact field removal for field-derived areas.</summary>
-    public PdfDocument ApplyRedactions(PdfRedactionPlan plan, PdfRedactionApplyOptions? applyOptions = null, PdfTextLayoutOptions? layoutOptions = null, PdfReadOptions? options = null) => WithBytes(PdfRedactionApplier.Apply(GetBytesForOperation(), plan, applyOptions, layoutOptions, options ?? ReadOptions), options);
+    public PdfDocument ApplyRedactions(PdfRedactionPlan plan, PdfRedactionApplyOptions? applyOptions = null, PdfTextLayoutOptions? layoutOptions = null, PdfReadOptions? options = null) => ApplyMutation(input => PdfRedactionApplier.Apply(input, plan, applyOptions, layoutOptions, options ?? ReadOptions), options);
 
     /// <summary>
     /// Attempts to apply rectangle-based redactions, returning diagnostics when blocked or failed.
@@ -216,7 +216,7 @@ public sealed partial class PdfDocument {
     /// </summary>
     public PdfDocument MergeWith(PdfDocument document) {
         Guard.NotNull(document, nameof(document));
-        return WithBytes(PdfMerger.Merge(GetBytesForOperation(), document.GetBytesForOperation()));
+        return ApplyMutation(input => PdfMerger.Merge(input, document.GetBytesForOperation()));
     }
 
     /// <summary>
@@ -232,7 +232,7 @@ public sealed partial class PdfDocument {
     /// </summary>
     public PdfDocument MergeWith(byte[] pdf) {
         Guard.NotNull(pdf, nameof(pdf));
-        return WithBytes(PdfMerger.Merge(GetBytesForOperation(), pdf));
+        return ApplyMutation(input => PdfMerger.Merge(input, pdf));
     }
 
     /// <summary>
@@ -285,7 +285,7 @@ public sealed partial class PdfDocument {
     /// Creates a new PDF with visual annotation appearance streams painted into page content where supported.
     /// </summary>
     public PdfDocument FlattenVisualAnnotations() {
-        return WithBytes(PdfAnnotationFlattener.FlattenVisualAnnotations(GetBytesForOperation(), options: null, readOptions: ReadOptions));
+        return ApplyMutation(input => PdfAnnotationFlattener.FlattenVisualAnnotations(input, options: null, readOptions: ReadOptions));
     }
 
     /// <summary>
@@ -333,8 +333,16 @@ public sealed partial class PdfDocument {
         string? keywords,
         PdfReadOptions? readOptions,
         bool createXmpMetadata = false) {
-        byte[] updated = PdfIncrementalUpdater.UpdateMetadata(GetBytesForOperation(), title, author, subject, keywords, readOptions, createXmpMetadata);
-        return WithBytes(updated, readOptions);
+        return ApplyMutation(
+            input => PdfIncrementalUpdater.UpdateMetadata(
+                input,
+                title,
+                author,
+                subject,
+                keywords,
+                readOptions,
+                createXmpMetadata),
+            readOptions);
     }
 
     /// <summary>
@@ -368,7 +376,7 @@ public sealed partial class PdfDocument {
     /// Creates a new PDF with updated metadata. Null values preserve existing fields; empty strings clear fields.
     /// </summary>
     public PdfDocument UpdateMetadata(string? title = null, string? author = null, string? subject = null, string? keywords = null) {
-        return WithBytes(PdfMetadataEditor.UpdateMetadata(GetBytesForOperation(), title, author, subject, keywords));
+        return ApplyMutation(input => PdfMetadataEditor.UpdateMetadata(input, title, author, subject, keywords));
     }
 
     /// <summary>
@@ -381,8 +389,8 @@ public sealed partial class PdfDocument {
         string? subject = null,
         string? keywords = null,
         bool createXmpMetadata = true) {
-        return WithBytes(PdfMetadataEditor.SynchronizeMetadata(
-            GetBytesForOperation(), title, author, subject, keywords, createXmpMetadata));
+        return ApplyMutation(input => PdfMetadataEditor.SynchronizeMetadata(
+            input, title, author, subject, keywords, createXmpMetadata));
     }
 
     /// <summary>Attempts a full-rewrite Info/XMP synchronization and returns planner diagnostics when blocked.</summary>
@@ -426,7 +434,7 @@ public sealed partial class PdfDocument {
     /// </summary>
     public PdfDocument ReplaceMetadata(PdfMetadata metadata) {
         Guard.NotNull(metadata, nameof(metadata));
-        return WithBytes(PdfMetadataEditor.ReplaceMetadata(GetBytesForOperation(), metadata));
+        return ApplyMutation(input => PdfMetadataEditor.ReplaceMetadata(input, metadata));
     }
 
     /// <summary>

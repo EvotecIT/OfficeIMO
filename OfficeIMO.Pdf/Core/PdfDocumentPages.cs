@@ -14,14 +14,14 @@ public sealed partial class PdfDocumentPages {
     /// Creates a new PDF containing selected pages in caller order.
     /// </summary>
     public PdfDocument Extract(params int[] pageNumbers) {
-        return _document.WithBytes(PdfPageExtractor.ExtractPages(_document.GetBytesForOperation(), _document.ReadOptions, pageNumbers));
+        return _document.ApplyMutation(input => PdfPageExtractor.ExtractPages(input, _document.ReadOptions, pageNumbers));
     }
 
     /// <summary>
     /// Creates a new PDF containing one inclusive one-based page range.
     /// </summary>
     public PdfDocument Extract(PdfPageRange pageRange) {
-        return _document.WithBytes(PdfPageExtractor.ExtractPages(_document.GetBytesForOperation(), pageRange.ToPageNumbers(), _document.ReadOptions));
+        return _document.ApplyMutation(input => PdfPageExtractor.ExtractPages(input, pageRange.ToPageNumbers(), _document.ReadOptions));
     }
 
     /// <summary>
@@ -34,7 +34,7 @@ public sealed partial class PdfDocumentPages {
 
     private PdfDocument Extract(PdfPageSelection selection, PdfReadOptions? options) {
         Guard.NotNull(selection, nameof(selection));
-        return _document.WithBytes(PdfPageExtractor.ExtractPageRanges(_document.GetBytesForOperation(), selection.ToRanges(), options));
+        return _document.ApplyMutation(input => PdfPageExtractor.ExtractPageRanges(input, selection.ToRanges(), options));
     }
 
     /// <summary>
@@ -264,14 +264,14 @@ public sealed partial class PdfDocumentPages {
     /// Creates a new PDF with selected pages deleted.
     /// </summary>
     public PdfDocument Delete(params int[] pageNumbers) {
-        return _document.WithBytes(PdfPageEditor.DeletePages(_document.GetBytesForOperation(), pageNumbers));
+        return _document.ApplyMutation(input => PdfPageEditor.DeletePages(input, pageNumbers));
     }
 
     /// <summary>
     /// Creates a new PDF with one inclusive page range deleted.
     /// </summary>
     public PdfDocument Delete(PdfPageRange pageRange) {
-        return _document.WithBytes(PdfPageEditor.DeletePageRange(_document.GetBytesForOperation(), pageRange));
+        return _document.ApplyMutation(input => PdfPageEditor.DeletePageRange(input, pageRange));
     }
 
     /// <summary>
@@ -279,7 +279,7 @@ public sealed partial class PdfDocumentPages {
     /// </summary>
     public PdfDocument Delete(PdfPageSelection selection) {
         Guard.NotNull(selection, nameof(selection));
-        return _document.WithBytes(PdfPageEditor.DeletePageRanges(_document.GetBytesForOperation(), selection.ToRanges()));
+        return _document.ApplyMutation(input => PdfPageEditor.DeletePageRanges(input, selection.ToRanges()));
     }
 
     /// <summary>
@@ -308,7 +308,7 @@ public sealed partial class PdfDocumentPages {
     /// Creates a new PDF with every page copied in the specified one-based order.
     /// </summary>
     public PdfDocument Reorder(params int[] pageNumbers) {
-        return _document.WithBytes(PdfPageEditor.ReorderPages(_document.GetBytesForOperation(), pageNumbers));
+        return _document.ApplyMutation(input => PdfPageEditor.ReorderPages(input, pageNumbers));
     }
 
     /// <summary>
@@ -323,7 +323,7 @@ public sealed partial class PdfDocumentPages {
     /// </summary>
     public PdfDocument Reorder(PdfPageSelection selection) {
         Guard.NotNull(selection, nameof(selection));
-        return _document.WithBytes(PdfPageEditor.ReorderPageRanges(_document.GetBytesForOperation(), selection.ToRanges()));
+        return _document.ApplyMutation(input => PdfPageEditor.ReorderPageRanges(input, selection.ToRanges()));
     }
 
     /// <summary>
@@ -345,14 +345,14 @@ public sealed partial class PdfDocumentPages {
     /// Creates a new PDF with selected pages duplicated immediately after each source page.
     /// </summary>
     public PdfDocument Duplicate(params int[] pageNumbers) {
-        return _document.WithBytes(PdfPageEditor.DuplicatePages(_document.GetBytesForOperation(), pageNumbers));
+        return _document.ApplyMutation(input => PdfPageEditor.DuplicatePages(input, pageNumbers));
     }
 
     /// <summary>
     /// Creates a new PDF with one inclusive page range duplicated.
     /// </summary>
     public PdfDocument Duplicate(PdfPageRange pageRange) {
-        return _document.WithBytes(PdfPageEditor.DuplicatePageRange(_document.GetBytesForOperation(), pageRange));
+        return _document.ApplyMutation(input => PdfPageEditor.DuplicatePageRange(input, pageRange));
     }
 
     /// <summary>
@@ -360,7 +360,7 @@ public sealed partial class PdfDocumentPages {
     /// </summary>
     public PdfDocument Duplicate(PdfPageSelection selection) {
         Guard.NotNull(selection, nameof(selection));
-        return _document.WithBytes(PdfPageEditor.DuplicatePageRanges(_document.GetBytesForOperation(), selection.ToRanges()));
+        return _document.ApplyMutation(input => PdfPageEditor.DuplicatePageRanges(input, selection.ToRanges()));
     }
 
     /// <summary>
@@ -390,7 +390,7 @@ public sealed partial class PdfDocumentPages {
     /// Use page count + 1 to move pages to the end.
     /// </summary>
     public PdfDocument Move(int insertBeforePageNumber, params int[] pageNumbers) {
-        return _document.WithBytes(PdfPageEditor.MovePages(_document.GetBytesForOperation(), insertBeforePageNumber, pageNumbers));
+        return _document.ApplyMutation(input => PdfPageEditor.MovePages(input, insertBeforePageNumber, pageNumbers));
     }
 
     /// <summary>
@@ -398,7 +398,7 @@ public sealed partial class PdfDocumentPages {
     /// Use page count + 1 to move pages to the end.
     /// </summary>
     public PdfDocument Move(int insertBeforePageNumber, PdfPageRange pageRange) {
-        return _document.WithBytes(PdfPageEditor.MovePageRange(_document.GetBytesForOperation(), insertBeforePageNumber, pageRange));
+        return _document.ApplyMutation(input => PdfPageEditor.MovePageRange(input, insertBeforePageNumber, pageRange));
     }
 
     /// <summary>
@@ -407,7 +407,7 @@ public sealed partial class PdfDocumentPages {
     /// </summary>
     public PdfDocument Move(int insertBeforePageNumber, PdfPageSelection selection) {
         Guard.NotNull(selection, nameof(selection));
-        return _document.WithBytes(PdfPageEditor.MovePageRanges(_document.GetBytesForOperation(), insertBeforePageNumber, selection.ToRanges()));
+        return _document.ApplyMutation(input => PdfPageEditor.MovePageRanges(input, insertBeforePageNumber, selection.ToRanges()));
     }
 
     /// <summary>
@@ -437,14 +437,14 @@ public sealed partial class PdfDocumentPages {
     /// Creates a new PDF with selected pages rotated. Supplying no page numbers rotates every page.
     /// </summary>
     public PdfDocument Rotate(int rotationDegrees, params int[] pageNumbers) {
-        return _document.WithBytes(PdfPageEditor.RotatePages(_document.GetBytesForOperation(), rotationDegrees, pageNumbers));
+        return _document.ApplyMutation(input => PdfPageEditor.RotatePages(input, rotationDegrees, pageNumbers));
     }
 
     /// <summary>
     /// Creates a new PDF with one inclusive page range rotated.
     /// </summary>
     public PdfDocument Rotate(int rotationDegrees, PdfPageRange pageRange) {
-        return _document.WithBytes(PdfPageEditor.RotatePageRange(_document.GetBytesForOperation(), rotationDegrees, pageRange));
+        return _document.ApplyMutation(input => PdfPageEditor.RotatePageRange(input, rotationDegrees, pageRange));
     }
 
     /// <summary>
@@ -452,7 +452,7 @@ public sealed partial class PdfDocumentPages {
     /// </summary>
     public PdfDocument Rotate(int rotationDegrees, PdfPageSelection selection) {
         Guard.NotNull(selection, nameof(selection));
-        return _document.WithBytes(PdfPageEditor.RotatePageRanges(_document.GetBytesForOperation(), rotationDegrees, selection.ToRanges()));
+        return _document.ApplyMutation(input => PdfPageEditor.RotatePageRanges(input, rotationDegrees, selection.ToRanges()));
     }
 
     /// <summary>
@@ -479,7 +479,7 @@ public sealed partial class PdfDocumentPages {
 
     /// <summary>Sets a typed boundary box for selected pages, or every page when no page numbers are supplied.</summary>
     public PdfDocument SetPageBox(PdfPageBoundaryBox box, double left, double bottom, double right, double top, params int[] pageNumbers) {
-        return _document.WithBytes(PdfPageEditor.SetPageBox(_document.GetBytesForOperation(), box, left, bottom, right, top, pageNumbers));
+        return _document.ApplyMutation(input => PdfPageEditor.SetPageBox(input, box, left, bottom, right, top, pageNumbers));
     }
 
     /// <summary>Sets the media box for selected pages.</summary>
@@ -495,8 +495,8 @@ public sealed partial class PdfDocumentPages {
     /// Content outside the rectangle remains in source streams but is clipped from display.
     /// </summary>
     public PdfDocument CropAndTranslate(double left, double bottom, double right, double top, params int[] pageNumbers) =>
-        _document.WithBytes(PdfPageEditor.CropAndTranslatePages(
-            _document.GetBytesForOperation(), left, bottom, right, top, pageNumbers));
+        _document.ApplyMutation(input => PdfPageEditor.CropAndTranslatePages(
+            input, left, bottom, right, top, pageNumbers));
 
     /// <summary>Destructively crops selected pages by replacing the retained visual rectangle with a validated opaque raster page.</summary>
     public PdfDestructiveCropResult DestructiveCrop(double left, double bottom, double right, double top, PdfDestructiveCropOptions? options = null, params int[] pageNumbers) =>

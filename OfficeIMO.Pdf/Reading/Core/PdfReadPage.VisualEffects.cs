@@ -124,7 +124,8 @@ public sealed partial class PdfReadPage {
                      initialStrokeDashStyle,
                      initialStrokeLineCap,
                      initialStrokeLineJoin,
-                     _limits.MaxContentOperations)) {
+                     _limits.MaxContentOperations,
+                     _limits.MaxContentNestingDepth)) {
             if (!TryGetFormStream(resources, invocation.Name, out PdfStream formStream) || !activeForms.Add(formStream)) continue;
             PdfPageDrawingEffect inherited = ResolveDrawingEffect(local, invocation.PaintOrder, initialEffect);
             try {

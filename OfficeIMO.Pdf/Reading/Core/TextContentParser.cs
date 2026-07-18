@@ -129,7 +129,8 @@ internal static class TextContentParser {
         int initialTextRenderingMode = 0,
         PdfPageClipPath? initialClipPath = null,
         bool useLogicalTextFilters = true,
-        int maxOperations = PdfReadLimits.DefaultMaxContentOperations) {
+        int maxOperations = PdfReadLimits.DefaultMaxContentOperations,
+        int maxNestingDepth = PdfReadLimits.DefaultMaxContentNestingDepth) {
         var spans = new List<PdfTextSpan>();
         // Text state
         bool inText = false;
@@ -424,7 +425,7 @@ internal static class TextContentParser {
                     break;
                 default: args.Clear(); break;
             }
-        });
+        }, maxNestingDepth: maxNestingDepth);
         return spans;
 
         // Helpers
@@ -873,7 +874,8 @@ internal static class TextContentParser {
         double? initialStrokeOpacity = null,
         int initialTextRenderingMode = 0,
         PdfPageClipPath? initialClipPath = null,
-        int maxOperations = PdfReadLimits.DefaultMaxContentOperations) {
+        int maxOperations = PdfReadLimits.DefaultMaxContentOperations,
+        int maxNestingDepth = PdfReadLimits.DefaultMaxContentNestingDepth) {
         var invocations = new List<FormInvocation>();
         Matrix2D ctm = Matrix2D.Identity;
         OfficeColor fillColor = initialFillColor ?? OfficeColor.Black;
@@ -1153,7 +1155,7 @@ internal static class TextContentParser {
                     args.Clear();
                     break;
             }
-        });
+        }, maxNestingDepth: maxNestingDepth);
 
         return invocations;
 

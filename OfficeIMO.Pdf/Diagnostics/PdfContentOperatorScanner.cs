@@ -1,7 +1,12 @@
 namespace OfficeIMO.Pdf;
 
 internal static class PdfContentOperatorScanner {
-    internal static void AppendOperators(string content, List<string> destination, int maximum, ref bool truncated) {
+    internal static void AppendOperators(
+        string content,
+        List<string> destination,
+        int maximum,
+        ref bool truncated,
+        int maxNestingDepth = PdfReadLimits.DefaultMaxContentNestingDepth) {
         if (destination.Count >= maximum) {
             truncated = true;
             return;
@@ -15,13 +20,24 @@ internal static class PdfContentOperatorScanner {
                     return true;
                 }
 
-                if (destination.Count >= maximum) {
-                    return false;
+                if (!Append(operation.Name)) return false;
+                if (string.Equals(operation.Name, "BI", StringComparison.Ordinal) &&
+                    operation.InlineImage is not null) {
+                    if (!Append("ID")) return false;
+                    if (!Append("EI")) return false;
                 }
-
-                destination.Add(operation.Name);
                 return true;
-            });
+
+                bool Append(string name) {
+                    if (destination.Count >= maximum) {
+                        return false;
+                    }
+
+                    destination.Add(name);
+                    return true;
+                }
+            },
+            maxNestingDepth: maxNestingDepth);
         if (!complete) {
             truncated = true;
         }

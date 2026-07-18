@@ -72,7 +72,12 @@ public sealed class PdfSaveResult {
     public static PdfSaveResult FromFailure(string? outputPath, Exception exception) {
         Guard.NotNull(exception, nameof(exception));
         IReadOnlyList<string> diagnostics = PdfOutputDiagnostics.BuildExceptionDiagnostics(exception);
-        return new PdfSaveResult(outputPath, 0, diagnostics, exception);
+        return new PdfSaveResult(
+            outputPath,
+            0,
+            diagnostics,
+            exception,
+            pipeline: PdfPipelineReport.FailedOutput("Save", exception));
     }
 
     internal static PdfSaveResult Success(

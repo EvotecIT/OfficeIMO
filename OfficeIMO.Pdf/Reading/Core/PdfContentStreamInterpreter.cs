@@ -12,10 +12,11 @@ internal static class PdfContentStreamInterpreter {
         string content,
         int maxOperations,
         Action<PdfContentOperation> visit,
-        Func<string, int>? inlineImageComponentCount = null) {
+        Func<string, int>? inlineImageComponentCount = null,
+        int maxNestingDepth = PdfReadLimits.DefaultMaxContentNestingDepth) {
         Guard.NotNull(content, nameof(content));
         Guard.NotNull(visit, nameof(visit));
-        var reader = new Reader(content, maxOperations, inlineImageComponentCount);
+        var reader = new Reader(content, maxOperations, maxNestingDepth, inlineImageComponentCount);
         reader.InterpretUntil(operation => {
             visit(operation);
             return true;
@@ -26,16 +27,18 @@ internal static class PdfContentStreamInterpreter {
         string content,
         int maxOperations,
         Func<PdfContentOperation, bool> visit,
-        Func<string, int>? inlineImageComponentCount = null) {
+        Func<string, int>? inlineImageComponentCount = null,
+        int maxNestingDepth = PdfReadLimits.DefaultMaxContentNestingDepth) {
         Guard.NotNull(content, nameof(content));
         Guard.NotNull(visit, nameof(visit));
-        var reader = new Reader(content, maxOperations, inlineImageComponentCount);
+        var reader = new Reader(content, maxOperations, maxNestingDepth, inlineImageComponentCount);
         return reader.InterpretUntil(visit);
     }
 
     private sealed class Reader {
         private readonly string _content;
         private readonly int _maxOperations;
+        private readonly int _maxNestingDepth;
         private readonly Func<string, int>? _inlineImageComponentCount;
         private readonly List<object> _operands = new List<object>(8);
         private int _index;
@@ -44,9 +47,11 @@ internal static class PdfContentStreamInterpreter {
         internal Reader(
             string content,
             int maxOperations,
+            int maxNestingDepth,
             Func<string, int>? inlineImageComponentCount) {
             _content = content;
             _maxOperations = maxOperations;
+            _maxNestingDepth = maxNestingDepth;
             _inlineImageComponentCount = inlineImageComponentCount;
         }
 
@@ -63,7 +68,7 @@ internal static class PdfContentStreamInterpreter {
                     continue;
                 }
 
-                if (TryReadValue(out object? value)) {
+                if (TryReadValue(0, out object? value)) {
                     if (value is not null) {
                         _operands.Add(value);
                     }
@@ -102,7 +107,7 @@ internal static class PdfContentStreamInterpreter {
             return true;
         }
 
-        private bool TryReadValue(out object? value) {
+        private bool TryReadValue(int nestingDepth, out object? value) {
             value = null;
             if (_index >= _content.Length) {
                 return false;
@@ -120,14 +125,17 @@ internal static class PdfContentStreamInterpreter {
             }
 
             if (current == '<') {
-                value = _index + 1 < _content.Length && _content[_index + 1] == '<'
-                    ? ReadDictionary()
-                    : ReadHexStringBytes();
+                if (_index + 1 < _content.Length && _content[_index + 1] == '<') {
+                    int childDepth = EnsureNestingBudget(nestingDepth);
+                    value = ReadDictionary(childDepth);
+                } else {
+                    value = ReadHexStringBytes();
+                }
                 return true;
             }
 
             if (current == '[') {
-                value = ReadArray();
+                value = ReadArray(EnsureNestingBudget(nestingDepth));
                 return true;
             }
 
@@ -220,7 +228,7 @@ internal static class PdfContentStreamInterpreter {
             return PdfTextString.DecodeHexBytes(hex);
         }
 
-        private object ReadArray() {
+        private object ReadArray(int nestingDepth) {
             _index++;
             var values = new List<object>();
             while (_index < _content.Length) {
@@ -234,7 +242,7 @@ internal static class PdfContentStreamInterpreter {
                     break;
                 }
 
-                if (TryReadValue(out object? value)) {
+                if (TryReadValue(nestingDepth, out object? value)) {
                     if (value is not null) {
                         values.Add(value);
                     }
@@ -257,7 +265,7 @@ internal static class PdfContentStreamInterpreter {
             return values;
         }
 
-        private PdfContentDictionary ReadDictionary() {
+        private PdfContentDictionary ReadDictionary(int nestingDepth) {
             int dictionaryStart = _index;
             _index += 2;
             var dictionary = new PdfContentDictionary();
@@ -273,13 +281,13 @@ internal static class PdfContentStreamInterpreter {
                 }
 
                 if (_content[_index] != '/') {
-                    SkipOneValue();
+                    SkipOneValue(nestingDepth);
                     continue;
                 }
 
                 string key = ReadName();
                 SkipWhitespaceAndComments();
-                if (TryReadValue(out object? value) && value is not null) {
+                if (TryReadValue(nestingDepth, out object? value) && value is not null) {
                     dictionary.Items[key] = value;
                 } else {
                     string token = ReadOperator();
@@ -298,8 +306,8 @@ internal static class PdfContentStreamInterpreter {
             return dictionary;
         }
 
-        private void SkipOneValue() {
-            if (TryReadValue(out _)) {
+        private void SkipOneValue(int nestingDepth = 0) {
+            if (TryReadValue(nestingDepth, out _)) {
                 return;
             }
 
@@ -393,7 +401,7 @@ internal static class PdfContentStreamInterpreter {
             }
 
             if (current == '[') {
-                object arrayValue = ReadArray();
+                object arrayValue = ReadArray(EnsureNestingBudget(0));
                 var array = new PdfArray();
                 IEnumerable<object> items = arrayValue is double[] numbers
                     ? numbers.Cast<object>()
@@ -411,7 +419,7 @@ internal static class PdfContentStreamInterpreter {
 
             if (current == '<') {
                 if (_index + 1 < _content.Length && _content[_index + 1] == '<') {
-                    PdfContentDictionary contentDictionary = ReadDictionary();
+                    PdfContentDictionary contentDictionary = ReadDictionary(EnsureNestingBudget(0));
                     value = ConvertDictionary(contentDictionary);
                 } else {
                     value = new PdfStringObj(ReadHexStringBytes());
@@ -432,6 +440,18 @@ internal static class PdfContentStreamInterpreter {
             }
 
             return false;
+        }
+
+        private int EnsureNestingBudget(int currentDepth) {
+            int observedDepth = currentDepth + 1;
+            if (observedDepth > _maxNestingDepth) {
+                throw PdfReadLimitException.Create(
+                    PdfReadLimitKind.ContentNestingDepth,
+                    _maxNestingDepth,
+                    observedDepth);
+            }
+
+            return observedDepth;
         }
 
         private static PdfDictionary ConvertDictionary(PdfContentDictionary contentDictionary) {

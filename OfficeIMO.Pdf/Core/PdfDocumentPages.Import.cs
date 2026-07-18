@@ -409,7 +409,10 @@ public sealed partial class PdfDocumentPages {
             _ => throw new ArgumentOutOfRangeException(nameof(placement), placement, "Unsupported page import placement.")
         };
 
-        return _document.WithBytes(imported);
+        return _document.WithBytes(
+            targetPdf,
+            imported,
+            operationName: placement.ToString());
     }
 
     private static int[] GetSelectedSourcePages(byte[] sourcePdf, PdfPageSelection sourceSelection) {

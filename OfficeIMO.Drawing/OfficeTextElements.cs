@@ -120,10 +120,13 @@ public static class OfficeTextElements {
         IsInRange(scalar, 0x0750, 0x077F) ||
         IsInRange(scalar, 0x0780, 0x07BF) ||
         IsInRange(scalar, 0x07C0, 0x07FF) ||
+        IsInRange(scalar, 0x0800, 0x083F) ||
         IsInRange(scalar, 0x0840, 0x085F) ||
         IsInRange(scalar, 0x08A0, 0x08FF) ||
         IsInRange(scalar, 0xFB1D, 0xFDFF) ||
         IsInRange(scalar, 0xFE70, 0xFEFF) ||
+        IsInRange(scalar, 0x10800, 0x10FFF) ||
+        IsInRange(scalar, 0x1E800, 0x1E8DF) ||
         IsInRange(scalar, 0x1E900, 0x1E95F) ||
         IsInRange(scalar, 0x1EE00, 0x1EEFF);
 

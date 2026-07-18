@@ -4,6 +4,7 @@ namespace OfficeIMO.Pdf;
 public sealed class PdfReadLimits {
     internal const int DefaultMaxDecodedStreamBytes = 256 * 1024 * 1024;
     internal const int DefaultMaxContentOperations = 1_000_000;
+    internal const int DefaultMaxContentNestingDepth = 128;
 
     /// <summary>Default immutable parser budgets.</summary>
     public static PdfReadLimits Default { get; } = new PdfReadLimits();
@@ -57,7 +58,7 @@ public sealed class PdfReadLimits {
     public int MaxContentOperations { get; init; } = DefaultMaxContentOperations;
 
     /// <summary>Maximum nested form XObject depth while parsing page content. Default: 128.</summary>
-    public int MaxContentNestingDepth { get; init; } = 128;
+    public int MaxContentNestingDepth { get; init; } = DefaultMaxContentNestingDepth;
 
     internal void Validate() {
         if (MaxInputBytes <= 0) {

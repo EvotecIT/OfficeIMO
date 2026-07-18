@@ -9,8 +9,9 @@ internal static class PdfDebugger {
         Guard.NotNull(pdf, nameof(pdf));
         PdfDebuggerOptions effectiveOptions = options ?? new PdfDebuggerOptions();
         effectiveOptions.Validate();
-        PdfReadDocument document = PdfReadDocument.Open(pdf, readOptions);
-        var (objects, _) = PdfSyntax.ParseObjects(pdf, readOptions);
+        PdfReadOptions effectiveReadOptions = PdfReadOptions.Resolve(readOptions);
+        PdfReadDocument document = PdfReadDocument.Open(pdf, effectiveReadOptions);
+        var (objects, _) = PdfSyntax.ParseObjects(pdf, effectiveReadOptions);
         HashSet<int> reachable = GetReachableObjectNumbers(objects, document.Security);
         var objectReports = objects.Values
             .OrderBy(static item => item.ObjectNumber)
@@ -18,7 +19,12 @@ internal static class PdfDebugger {
             .ToArray();
         var pages = new List<PdfDebugPage>(document.Pages.Count);
         for (int i = 0; i < document.Pages.Count; i++) {
-            pages.Add(BuildPage(i + 1, document.Pages[i].ObjectNumber, objects, effectiveOptions));
+            pages.Add(BuildPage(
+                i + 1,
+                document.Pages[i].ObjectNumber,
+                objects,
+                effectiveOptions,
+                effectiveReadOptions.Limits.MaxContentNestingDepth));
         }
 
         return new PdfDebuggerReport(objectReports, document.Security.Revisions, pages.AsReadOnly(), document.RepairReport);
@@ -71,7 +77,12 @@ internal static class PdfDebugger {
             preview);
     }
 
-    private static PdfDebugPage BuildPage(int pageNumber, int objectNumber, Dictionary<int, PdfIndirectObject> objects, PdfDebuggerOptions options) {
+    private static PdfDebugPage BuildPage(
+        int pageNumber,
+        int objectNumber,
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfDebuggerOptions options,
+        int maxContentNestingDepth) {
         if (!objects.TryGetValue(objectNumber, out PdfIndirectObject? indirect) || indirect.Value is not PdfDictionary page) {
             return new PdfDebugPage(pageNumber, objectNumber, Array.Empty<string>(), Array.Empty<int>(), Array.Empty<string>(), false);
         }
@@ -88,7 +99,12 @@ internal static class PdfDebugger {
 
                 if (Resolve(content, objects) is PdfStream contentStream && operators.Count < options.MaxContentOperatorsPerPage) {
                     byte[] decoded = StreamDecoder.Decode(contentStream.Dictionary, contentStream.Data, objects, options.MaxDecodedStreamPreviewBytes * 256);
-                    PdfContentOperatorScanner.AppendOperators(PdfEncoding.Latin1GetString(decoded), operators, options.MaxContentOperatorsPerPage, ref truncated);
+                    PdfContentOperatorScanner.AppendOperators(
+                        PdfEncoding.Latin1GetString(decoded),
+                        operators,
+                        options.MaxContentOperatorsPerPage,
+                        ref truncated,
+                        maxContentNestingDepth);
                 }
             }
         }

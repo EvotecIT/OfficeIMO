@@ -50,6 +50,20 @@ public sealed class PdfContentStreamInterpreterTests {
     }
 
     [Fact]
+    public void Interpreter_StopsNestedOperandsBeforeRecursiveDescentExceedsBudget() {
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
+            PdfContentStreamInterpreter.Interpret(
+                "[[ [1] ]] TJ",
+                10,
+                _ => { },
+                maxNestingDepth: 2));
+
+        Assert.Equal(PdfReadLimitKind.ContentNestingDepth, exception.Kind);
+        Assert.Equal(2, exception.Limit);
+        Assert.Equal(3, exception.Actual);
+    }
+
+    [Fact]
     public void Interpreter_PreservesQuoteCharactersInNamesAndRecognizesQuoteOperators() {
         const string content = "/Owner's MP /A\"B MP (x) ' 1 2 (y) \"";
         var operations = new List<PdfContentOperation>();
@@ -59,5 +73,17 @@ public sealed class PdfContentStreamInterpreterTests {
         Assert.Equal(new[] { "MP", "MP", "'", "\"" }, operations.Select(operation => operation.Name));
         Assert.Equal("Owner's", Assert.IsType<string>(operations[0].Operands[0]));
         Assert.Equal("A\"B", Assert.IsType<string>(operations[1].Operands[0]));
+    }
+
+    [Fact]
+    public void OperatorScanner_PreservesInlineImageFramingOperators() {
+        const string content = "q BI /W 1 /H 1 /BPC 8 /CS /G ID A EI Q";
+        var operators = new List<string>();
+        bool truncated = false;
+
+        PdfContentOperatorScanner.AppendOperators(content, operators, 10, ref truncated);
+
+        Assert.Equal(new[] { "q", "BI", "ID", "EI", "Q" }, operators);
+        Assert.False(truncated);
     }
 }

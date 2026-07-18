@@ -70,6 +70,22 @@ public sealed class PdfPipelineReport {
 
     internal static PdfPipelineReport Empty() => new PdfPipelineReport(Array.Empty<PdfPipelineStep>());
 
+    internal static PdfPipelineReport FailedOutput(string operation, Exception exception) {
+        Guard.NotNull(exception, nameof(exception));
+        return new PdfPipelineReport(new[] {
+            new PdfPipelineStep(
+                PdfPipelineStepKind.Output,
+                operation,
+                succeeded: false,
+                input: null,
+                output: null,
+                duration: null,
+                mutationOperation: null,
+                executionMode: null,
+                PdfOutputDiagnostics.BuildExceptionDiagnostics(exception))
+        });
+    }
+
     internal static PdfPipelineReport Opened(byte[] bytes, PdfReadOptions? readOptions) {
         PdfArtifactSnapshot artifact = PdfArtifactSnapshot.Capture(bytes, readOptions);
         return new PdfPipelineReport(new[] {
