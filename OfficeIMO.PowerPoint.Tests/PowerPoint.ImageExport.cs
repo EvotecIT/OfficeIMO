@@ -205,6 +205,339 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PowerPointSlide_ExportsShapeGradientThroughDrawingGradient() {
+            using var stream = new MemoryStream();
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            presentation.SlideSize.SetSizePoints(120, 80);
+            PowerPointSlide slide = presentation.AddSlide();
+            PowerPointTextBox textBox = slide.AddTextBoxPoints(string.Empty, 10, 10, 100, 60);
+            Shape shape = Assert.IsType<Shape>(textBox.Element);
+            shape.ShapeProperties!.Append(new A.GradientFill(
+                new A.GradientStopList(
+                    new A.GradientStop(new A.RgbColorModelHex { Val = "112233" }) {
+                        Position = 0
+                    },
+                    new A.GradientStop(new A.RgbColorModelHex { Val = "445566" }) {
+                        Position = 100000
+                    }),
+                new A.LinearGradientFill { Angle = 45 * 60000 }));
+
+            OfficeImageExportResult result = slide.ExportImage(
+                OfficeImageExportFormat.Svg,
+                new PowerPointImageExportOptions { IncludeSlideBackground = false });
+            PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot(
+                new PowerPointImageExportOptions { IncludeSlideBackground = false });
+            string svgText = Encoding.UTF8.GetString(result.Bytes);
+
+            OfficeDrawingShape rendered = Assert.Single(snapshot.Drawing.Elements
+                .OfType<OfficeDrawingShape>(), item => item.Shape.FillGradient != null);
+            Assert.Equal("#112233", rendered.Shape.FillGradient!.Stops[0].Color.ToString());
+            Assert.Equal("#445566", rendered.Shape.FillGradient.Stops[1].Color.ToString());
+            Assert.Contains("<linearGradient", svgText, StringComparison.Ordinal);
+            Assert.Contains("#112233", svgText, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("#445566", svgText, StringComparison.OrdinalIgnoreCase);
+            Assert.Empty(result.Diagnostics);
+            Assert.Empty(snapshot.Diagnostics);
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void PowerPointSlide_ResolvesThemeOverrideShapeGradientWithPlaceholderColor(
+            bool useSlideOverride) {
+            using var stream = new MemoryStream();
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            presentation.SlideSize.SetSizePoints(120, 80);
+            PowerPointSlide slide = presentation.AddSlide();
+            PowerPointAutoShape source = slide.AddShapePoints(A.ShapeTypeValues.Rectangle,
+                10, 10, 100, 60);
+            Shape shape = Assert.IsType<Shape>(source.Element);
+            A.ThemeElements masterElements = slide.SlidePart.SlideLayoutPart!
+                .SlideMasterPart!.ThemePart!.Theme!.ThemeElements!;
+            A.ColorScheme colors = (A.ColorScheme)masterElements.ColorScheme!
+                .CloneNode(true);
+            A.Accent1Color accent1 = colors.GetFirstChild<A.Accent1Color>()!;
+            accent1.RemoveAllChildren();
+            accent1.Append(new A.RgbColorModelHex { Val = "112233" });
+            A.FormatScheme format = (A.FormatScheme)masterElements.FormatScheme!
+                .CloneNode(true);
+            A.FillStyleList fillStyles = format.GetFirstChild<A.FillStyleList>()!;
+            fillStyles.RemoveAllChildren();
+            fillStyles.Append(new A.GradientFill(
+                new A.GradientStopList(
+                    new A.GradientStop(new A.SchemeColor {
+                        Val = A.SchemeColorValues.PhColor
+                    }) { Position = 0 },
+                    new A.GradientStop(new A.RgbColorModelHex { Val = "445566" }) {
+                        Position = 100000
+                    }),
+                new A.LinearGradientFill { Angle = 0 }));
+            DocumentFormat.OpenXml.Packaging.ThemeOverridePart overridePart =
+                useSlideOverride
+                ? slide.SlidePart.AddNewPart<DocumentFormat.OpenXml.Packaging.ThemeOverridePart>()
+                : slide.SlidePart.SlideLayoutPart!
+                    .AddNewPart<DocumentFormat.OpenXml.Packaging.ThemeOverridePart>();
+            overridePart.ThemeOverride = new A.ThemeOverride(
+                colors,
+                masterElements.FontScheme!.CloneNode(true),
+                format);
+            shape.ShapeStyle = new ShapeStyle(
+                new A.LineReference(new A.SchemeColor {
+                    Val = A.SchemeColorValues.Accent1
+                }) { Index = 1U },
+                new A.FillReference(new A.SchemeColor {
+                    Val = A.SchemeColorValues.Accent1
+                }) { Index = 1U },
+                new A.EffectReference(new A.SchemeColor {
+                    Val = A.SchemeColorValues.Accent1
+                }) { Index = 0U },
+                new A.FontReference(new A.SchemeColor {
+                    Val = A.SchemeColorValues.Dark1
+                }) { Index = A.FontCollectionIndexValues.Minor });
+
+            PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot(
+                new PowerPointImageExportOptions { IncludeSlideBackground = false });
+
+            OfficeDrawingShape rendered = Assert.Single(snapshot.Drawing.Elements
+                .OfType<OfficeDrawingShape>(), item => item.Shape.FillGradient != null);
+            Assert.Equal("#112233", rendered.Shape.FillGradient!.Stops[0].Color.ToString());
+            Assert.Equal("#445566", rendered.Shape.FillGradient.Stops[1].Color.ToString());
+            Assert.Empty(snapshot.Diagnostics);
+        }
+
+        [Fact]
+        public void PowerPointSlide_BoundsOutOfRangeThemeFillIndex() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            PowerPointAutoShape source = slide.AddShapePoints(
+                A.ShapeTypeValues.Rectangle, 10, 10, 100, 60);
+            Shape shape = Assert.IsType<Shape>(source.Element);
+            shape.ShapeProperties!.RemoveAllChildren<A.SolidFill>();
+            shape.ShapeStyle = new ShapeStyle(
+                new A.LineReference { Index = 1U },
+                new A.FillReference { Index = uint.MaxValue },
+                new A.EffectReference { Index = 0U },
+                new A.FontReference {
+                    Index = A.FontCollectionIndexValues.Minor
+                });
+
+            PowerPointSlideVisualSnapshot snapshot =
+                slide.CreateVisualSnapshot(new PowerPointImageExportOptions {
+                    IncludeSlideBackground = false
+                });
+
+            Assert.NotNull(snapshot.Drawing);
+        }
+
+        [Fact]
+        public void PowerPointSlide_ReportsUnsupportedPathGradientWithoutApproximatingIt() {
+            using var stream = new MemoryStream();
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            presentation.SlideSize.SetSizePoints(240, 80);
+            PowerPointSlide slide = presentation.AddSlide();
+            PowerPointAutoShape circle = slide.AddShapePoints(A.ShapeTypeValues.Rectangle,
+                10, 10, 100, 60);
+            PowerPointAutoShape shapePath = slide.AddShapePoints(A.ShapeTypeValues.Rectangle,
+                130, 10, 100, 60);
+            AddShapePathGradient(Assert.IsType<Shape>(circle.Element),
+                A.PathShadeValues.Circle);
+            AddShapePathGradient(Assert.IsType<Shape>(shapePath.Element),
+                A.PathShadeValues.Shape);
+
+            PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot(
+                new PowerPointImageExportOptions { IncludeSlideBackground = false });
+
+            OfficeDrawingShape[] rendered = snapshot.Drawing.Elements
+                .OfType<OfficeDrawingShape>()
+                .ToArray();
+            Assert.Single(rendered, item => item.Shape.FillRadialGradient != null);
+            Assert.Single(snapshot.Diagnostics, diagnostic =>
+                diagnostic.Code == "unsupported-powerpoint-shape"
+                && diagnostic.Message.Contains("gradient", StringComparison.OrdinalIgnoreCase));
+        }
+
+        [Fact]
+        public void PowerPointSlide_ReportsUnsupportedTextBearingPresetFrame() {
+            using var stream = new MemoryStream();
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            presentation.SlideSize.SetSizePoints(160, 90);
+            PowerPointSlide slide = presentation.AddSlide();
+            PowerPointTextBox textBox = slide.AddTextBoxPoints("Keep this text", 20, 20,
+                120, 50);
+            Shape shape = Assert.IsType<Shape>(textBox.Element);
+            shape.ShapeProperties!.GetFirstChild<A.PresetGeometry>()!.Preset =
+                A.ShapeTypeValues.Funnel;
+
+            PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot(
+                new PowerPointImageExportOptions { IncludeSlideBackground = false });
+
+            Assert.Contains(snapshot.Diagnostics, diagnostic =>
+                diagnostic.Code == "unsupported-powerpoint-shape"
+                && diagnostic.Message.Contains("frame geometry",
+                    StringComparison.OrdinalIgnoreCase));
+            Assert.Contains(snapshot.Drawing.Elements,
+                element => element is OfficeDrawingText or OfficeDrawingRichText);
+        }
+
+        [Fact]
+        public void PowerPointSlide_HonorsGradientRotateWithShapeInSnapshotAndRaster() {
+            using var stream = new MemoryStream();
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            presentation.SlideSize.SetSizePoints(240, 120);
+            PowerPointSlide slide = presentation.AddSlide();
+            PowerPointAutoShape rotating = slide.AddShapePoints(A.ShapeTypeValues.Rectangle,
+                20, 30, 80, 40);
+            PowerPointAutoShape fixedToSlide = slide.AddShapePoints(A.ShapeTypeValues.Rectangle,
+                140, 30, 80, 40);
+            rotating.Rotation = 90D;
+            fixedToSlide.Rotation = 90D;
+            AddShapeLinearGradient(Assert.IsType<Shape>(rotating.Element),
+                rotateWithShape: true);
+            AddShapeLinearGradient(Assert.IsType<Shape>(fixedToSlide.Element),
+                rotateWithShape: false);
+
+            PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot(
+                new PowerPointImageExportOptions { IncludeSlideBackground = false });
+            OfficeDrawingShape[] rendered = snapshot.Drawing.Elements
+                .OfType<OfficeDrawingShape>()
+                .Where(item => item.Shape.FillGradient != null)
+                .ToArray();
+
+            Assert.Equal(2, rendered.Length);
+            Assert.Equal(rendered[0].Shape.FillGradient!.StartY,
+                rendered[0].Shape.FillGradient.EndY, 6);
+            Assert.Equal(rendered[1].Shape.FillGradient!.StartX,
+                rendered[1].Shape.FillGradient.EndX, 6);
+            Assert.Empty(snapshot.Diagnostics);
+
+            OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png,
+                new PowerPointImageExportOptions { IncludeSlideBackground = false });
+            Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? image));
+            Assert.True(image!.GetPixel(60, 18).R > image.GetPixel(60, 82).R);
+            Assert.True(image.GetPixel(164, 50).R > image.GetPixel(196, 50).R);
+            Assert.Empty(png.Diagnostics);
+        }
+
+        [Fact]
+        public void PowerPointSlide_PreservesSlideFixedGradientAngleOnRotatedNonSquareShape() {
+            using var stream = new MemoryStream();
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            presentation.SlideSize.SetSizePoints(180, 100);
+            PowerPointSlide slide = presentation.AddSlide();
+            PowerPointAutoShape source = slide.AddShapePoints(A.ShapeTypeValues.Rectangle,
+                30, 25, 100, 40);
+            source.Rotation = 31D;
+            AddShapeLinearGradient(Assert.IsType<Shape>(source.Element),
+                rotateWithShape: false, angleDegrees: 37D);
+
+            PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot(
+                new PowerPointImageExportOptions { IncludeSlideBackground = false });
+            OfficeDrawingShape rendered = Assert.Single(snapshot.Drawing.Elements
+                .OfType<OfficeDrawingShape>(), item => item.Shape.FillGradient != null);
+            OfficeLinearGradient gradient = rendered.Shape.FillGradient!;
+            OfficeTransform transform = rendered.Shape.Transform!.Value;
+            OfficePoint start = transform.TransformPoint(new OfficePoint(
+                gradient.StartX * rendered.Shape.Width,
+                gradient.StartY * rendered.Shape.Height));
+            OfficePoint end = transform.TransformPoint(new OfficePoint(
+                gradient.EndX * rendered.Shape.Width,
+                gradient.EndY * rendered.Shape.Height));
+            double actual = Math.Atan2(end.Y - start.Y, end.X - start.X)
+                * 180D / Math.PI;
+            if (actual < 0D) actual += 360D;
+
+            Assert.InRange(actual, 36.999D, 37.001D);
+            Assert.Empty(snapshot.Diagnostics);
+        }
+
+        [Fact]
+        public void PowerPointSlide_ReportsUnrepresentableRotatedSlideFixedRadialGradient() {
+            using var stream = new MemoryStream();
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            presentation.SlideSize.SetSizePoints(180, 100);
+            PowerPointSlide slide = presentation.AddSlide();
+            PowerPointAutoShape source = slide.AddShapePoints(A.ShapeTypeValues.Rectangle,
+                30, 25, 100, 40);
+            source.Rotation = 37D;
+            AddShapePathGradient(Assert.IsType<Shape>(source.Element),
+                A.PathShadeValues.Circle, rotateWithShape: false);
+
+            PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot(
+                new PowerPointImageExportOptions { IncludeSlideBackground = false });
+
+            Assert.DoesNotContain(snapshot.Drawing.Elements.OfType<OfficeDrawingShape>(),
+                item => item.Shape.FillRadialGradient != null);
+            Assert.Contains(snapshot.Diagnostics, diagnostic =>
+                diagnostic.Code == "unsupported-powerpoint-shape"
+                && diagnostic.Message.Contains("gradient",
+                    StringComparison.OrdinalIgnoreCase));
+        }
+
+        [Fact]
+        public void PowerPointSlide_ReportsSlideFixedGradientInsideTransformedGroup() {
+            using var stream = new MemoryStream();
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            presentation.SlideSize.SetSizePoints(180, 100);
+            PowerPointSlide slide = presentation.AddSlide();
+            PowerPointAutoShape source = slide.AddShapePoints(A.ShapeTypeValues.Rectangle,
+                30, 25, 80, 30);
+            PowerPointAutoShape anchor = slide.AddShapePoints(A.ShapeTypeValues.Rectangle,
+                120, 25, 10, 10);
+            anchor.FillColor = "E5E7EB";
+            AddShapeLinearGradient(Assert.IsType<Shape>(source.Element),
+                rotateWithShape: false, angleDegrees: 37D);
+            slide.GroupShapes(new PowerPointShape[] { source, anchor },
+                "Rotated gradient group");
+            GroupShape group = slide.SlidePart.Slide.CommonSlideData!.ShapeTree!
+                .Elements<GroupShape>()
+                .Single();
+            group.GroupShapeProperties!.TransformGroup!.Rotation = 23 * 60000;
+
+            PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot(
+                new PowerPointImageExportOptions { IncludeSlideBackground = false });
+
+            Assert.Contains(snapshot.Diagnostics, diagnostic =>
+                diagnostic.Code == "unsupported-powerpoint-shape"
+                && diagnostic.Message.Contains("gradient",
+                    StringComparison.OrdinalIgnoreCase));
+        }
+
+        private static void AddShapeLinearGradient(Shape shape, bool rotateWithShape,
+            double angleDegrees = 0D) {
+            shape.ShapeProperties!.Append(new A.GradientFill(
+                new A.GradientStopList(
+                    new A.GradientStop(new A.RgbColorModelHex { Val = "FF0000" }) {
+                        Position = 0
+                    },
+                    new A.GradientStop(new A.RgbColorModelHex { Val = "0000FF" }) {
+                        Position = 100000
+                    }),
+                new A.LinearGradientFill {
+                    Angle = checked((int)Math.Round(angleDegrees * 60000D,
+                        MidpointRounding.AwayFromZero))
+                }) {
+                RotateWithShape = rotateWithShape
+            });
+        }
+
+        private static void AddShapePathGradient(Shape shape, A.PathShadeValues path,
+            bool? rotateWithShape = null) {
+            var gradient = new A.GradientFill(
+                new A.GradientStopList(
+                    new A.GradientStop(new A.RgbColorModelHex { Val = "112233" }) {
+                        Position = 0
+                    },
+                    new A.GradientStop(new A.RgbColorModelHex { Val = "445566" }) {
+                        Position = 100000
+                    }),
+                new A.PathGradientFill { Path = path }) {
+                RotateWithShape = rotateWithShape
+            };
+            shape.ShapeProperties!.Append(gradient);
+        }
+
+        [Fact]
         public void PowerPointSlide_ExportsInheritedThemeGradientBackgroundStyleThroughDrawingGradient() {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);

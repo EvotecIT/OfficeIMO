@@ -7,6 +7,19 @@ namespace OfficeIMO.Word.Pdf {
     public static partial class WordPdfConverterExtensions {
         private sealed class NativeFontMap {
             private readonly Dictionary<string, PdfCore.PdfStandardFont> _fontSlots = new(StringComparer.OrdinalIgnoreCase);
+            private readonly HashSet<string> _reportedSlotExhaustion = new(StringComparer.OrdinalIgnoreCase);
+            private readonly PdfCore.PdfConversionReport? _report;
+
+            public NativeFontMap() : this(null) { }
+
+            public NativeFontMap(PdfCore.PdfConversionReport? report) {
+                _report = report;
+            }
+
+            public bool UsePdfDefaultForDocumentDefaultFont { get; private set; }
+
+            public void PreferPdfDefaultForDocumentDefaultFont() =>
+                UsePdfDefaultForDocumentDefaultFont = true;
 
             public void Register(string familyName, PdfCore.PdfStandardFont fontSlot) {
                 if (string.IsNullOrWhiteSpace(familyName)) {
@@ -20,6 +33,25 @@ namespace OfficeIMO.Word.Pdf {
                 fontSlot = PdfCore.PdfStandardFont.Helvetica;
                 return !string.IsNullOrWhiteSpace(familyName) &&
                     _fontSlots.TryGetValue(NormalizeNativeFontFamily(familyName!), out fontSlot);
+            }
+
+            public void ReportSlotExhaustion(string familyName, PdfCore.PdfStandardFont fallbackSlot, string occupyingFontFamily) {
+                string normalizedFamily = NormalizeNativeFontFamily(familyName);
+                if (_report == null || !_reportedSlotExhaustion.Add(normalizedFamily)) {
+                    return;
+                }
+
+                PdfCore.PdfStandardFont normalizedSlot = PdfCore.PdfStandardFontMapper.GetFontFamily(fallbackSlot);
+                _report.Add(new PdfCore.PdfConversionWarning(
+                    "OfficeIMO.Word.Pdf",
+                    "NativeFontFamilySlotExhausted",
+                    "word:font[" + familyName + "]",
+                    "The installed font family could not receive a distinct embedded PDF family slot because all standard-family slots are occupied; runs use the occupying embedded family '" + occupyingFontFamily + "' in the logical " + normalizedSlot + " slot.",
+                    details: new Dictionary<string, string> {
+                        ["fontFamily"] = familyName,
+                        ["fallbackSlot"] = normalizedSlot.ToString(),
+                        ["occupyingFontFamily"] = occupyingFontFamily
+                    }));
             }
         }
 
@@ -141,7 +173,7 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static string NormalizeNativeFontFamily(string familyName) {
-            return familyName.Trim().Replace(" ", string.Empty).Replace("-", string.Empty);
+            return PdfCore.PdfOptions.NormalizeOfficeFontFamilyKey(familyName);
         }
     }
 }

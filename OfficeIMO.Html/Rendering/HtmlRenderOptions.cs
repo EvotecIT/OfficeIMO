@@ -55,6 +55,10 @@ public class HtmlRenderOptions : OfficeImageExportOptions {
     /// <summary>URL policy applied before links or resources enter the rendered result.</summary>
     public HtmlUrlPolicy UrlPolicy { get; set; } = HtmlUrlPolicy.CreateOfficeIMOProfile();
 
+    // Package-backed adapters can authorize an archive resource origin without authorizing the
+    // same URI scheme for hyperlinks emitted by the rendered document.
+    internal HtmlUrlPolicy? ResourceUrlPolicy { get; set; }
+
     /// <summary>Optional application-supplied asynchronous resolver for policy-approved external resources.</summary>
     public HtmlRenderResourceResolver? ResourceResolver { get; set; }
 
@@ -139,6 +143,7 @@ public class HtmlRenderOptions : OfficeImageExportOptions {
         target.DefaultLineHeight = DefaultLineHeight;
         target.BaseUri = BaseUri;
         target.UrlPolicy = (UrlPolicy ?? HtmlUrlPolicy.CreateOfficeIMOProfile()).Clone();
+        target.ResourceUrlPolicy = ResourceUrlPolicy?.Clone();
         target.ResourceResolver = ResourceResolver;
         target.ResourceTimeout = ResourceTimeout;
         target.MaxResourceBytes = MaxResourceBytes;
@@ -159,6 +164,9 @@ public class HtmlRenderOptions : OfficeImageExportOptions {
         target.MaxColumnCount = MaxColumnCount;
         return target;
     }
+
+    internal HtmlUrlPolicy GetResourceUrlPolicy() =>
+        ResourceUrlPolicy ?? UrlPolicy ?? HtmlUrlPolicy.CreateOfficeIMOProfile();
 
     internal void Validate() {
         OfficeImageExportOptions.ValidateScale(Scale, nameof(Scale));

@@ -450,7 +450,8 @@ internal static partial class DocumentReaderEngine {
         ReaderOptions? options,
         CancellationToken cancellationToken) {
         var opt = NormalizeOptions(options);
-        var source = BuildSourceInfoFromPath(path, computeHash: false);
+        var source = BuildSourceInfoFromPath(path, computeHash: false,
+            cancellationToken);
 
         List<ReaderChunk>? chunks = null;
         string? warning = null;
@@ -458,7 +459,8 @@ internal static partial class DocumentReaderEngine {
             EnforceFileSize(path, ResolveInitialMaxInputBytes(path, opt));
             chunks = ReadPathCore(path, opt, source, cancellationToken).ToList();
             if (opt.ComputeHashes) {
-                source.SourceHash = TryComputeFileSha256(path);
+                source.SourceHash = TryComputeFileSha256(path,
+                    cancellationToken);
                 if (!string.IsNullOrWhiteSpace(source.SourceHash)) {
                     for (int i = 0; i < chunks.Count; i++) {
                         chunks[i].SourceHash ??= source.SourceHash;
@@ -633,7 +635,9 @@ internal static partial class DocumentReaderEngine {
         return ComputeSha256Hex(data);
     }
 
-    private static SourceInfo BuildSourceInfoFromPath(string path, bool computeHash) {
+    private static SourceInfo BuildSourceInfoFromPath(string path,
+        bool computeHash, CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         string normalizedPath = NormalizePathForId(path);
         string sourceId = BuildSourceId(normalizedPath);
 
@@ -651,7 +655,7 @@ internal static partial class DocumentReaderEngine {
 
         string? sourceHash = null;
         if (computeHash) {
-            sourceHash = TryComputeFileSha256(path);
+            sourceHash = TryComputeFileSha256(path, cancellationToken);
         }
 
         return new SourceInfo {
@@ -663,7 +667,10 @@ internal static partial class DocumentReaderEngine {
         };
     }
 
-    private static SourceInfo BuildSourceInfoFromStream(Stream stream, string? sourceName, bool computeHash) {
+    private static SourceInfo BuildSourceInfoFromStream(Stream stream,
+        string? sourceName, bool computeHash,
+        CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         string logicalName = "memory";
         if (!string.IsNullOrWhiteSpace(sourceName)) {
             logicalName = sourceName!.Trim();
@@ -681,7 +688,7 @@ internal static partial class DocumentReaderEngine {
 
         string? sourceHash = null;
         if (computeHash) {
-            sourceHash = TryComputeStreamSha256(stream);
+            sourceHash = TryComputeStreamSha256(stream, cancellationToken);
         }
 
         return new SourceInfo {
@@ -693,16 +700,20 @@ internal static partial class DocumentReaderEngine {
         };
     }
 
-    private static string? TryComputeFileSha256(string path) {
+    private static string? TryComputeFileSha256(string path,
+        CancellationToken cancellationToken = default) {
         try {
             using var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
-            return ComputeSha256Hex(fs);
+            return ComputeSha256Hex(fs, cancellationToken);
+        } catch (OperationCanceledException) {
+            throw;
         } catch {
             return null;
         }
     }
 
-    private static string? TryComputeStreamSha256(Stream stream) {
+    private static string? TryComputeStreamSha256(Stream stream,
+        CancellationToken cancellationToken = default) {
         if (stream == null || !stream.CanSeek) return null;
         long position;
         try {
@@ -712,10 +723,18 @@ internal static partial class DocumentReaderEngine {
         }
 
         try {
+            cancellationToken.ThrowIfCancellationRequested();
             stream.Position = 0;
-            var hash = ComputeSha256Hex(stream);
+            var hash = ComputeSha256Hex(stream, cancellationToken);
             stream.Position = position;
             return hash;
+        } catch (OperationCanceledException) {
+            try {
+                stream.Position = position;
+            } catch {
+                // ignore
+            }
+            throw;
         } catch {
             try {
                 stream.Position = position;
@@ -733,10 +752,19 @@ internal static partial class DocumentReaderEngine {
         return ConvertToHexLower(hash);
     }
 
-    private static string ComputeSha256Hex(Stream stream) {
+    private static string ComputeSha256Hex(Stream stream,
+        CancellationToken cancellationToken = default) {
         using var sha = SHA256.Create();
-        var hash = sha.ComputeHash(stream);
-        return ConvertToHexLower(hash);
+        var buffer = new byte[81920];
+        while (true) {
+            cancellationToken.ThrowIfCancellationRequested();
+            int read = stream.Read(buffer, 0, buffer.Length);
+            if (read == 0) break;
+            sha.TransformBlock(buffer, 0, read, buffer, 0);
+        }
+        cancellationToken.ThrowIfCancellationRequested();
+        sha.TransformFinalBlock(Array.Empty<byte>(), 0, 0);
+        return ConvertToHexLower(sha.Hash!);
     }
 
     private static string ConvertToHexLower(byte[] bytes) {

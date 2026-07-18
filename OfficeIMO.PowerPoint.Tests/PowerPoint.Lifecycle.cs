@@ -120,5 +120,65 @@ namespace OfficeIMO.Tests {
                 if (File.Exists(path)) File.Delete(path);
             }
         }
+
+        [Fact]
+        public void Load_Stream_HonorsCancellationDuringInputCopy() {
+            byte[] bytes;
+            using (PowerPointPresentation source = PowerPointPresentation.Create()) {
+                source.AddSlide().AddTitle("Cancellation boundary");
+                bytes = source.ToBytes();
+            }
+
+            using var cancellation = new CancellationTokenSource();
+            using var stream = new CancelOnBulkReadStream(bytes,
+                cancellation.Cancel);
+
+            Assert.ThrowsAny<OperationCanceledException>(() =>
+                PowerPointPresentation.Load(stream,
+                    new PowerPointLoadOptions(), cancellation.Token));
+            Assert.True(stream.BulkReadObserved);
+        }
+
+        private sealed class CancelOnBulkReadStream : Stream {
+            private readonly MemoryStream _inner;
+            private readonly Action _cancel;
+
+            internal CancelOnBulkReadStream(byte[] bytes, Action cancel) {
+                _inner = new MemoryStream(bytes, writable: false);
+                _cancel = cancel;
+            }
+
+            internal bool BulkReadObserved { get; private set; }
+            public override bool CanRead => true;
+            public override bool CanSeek => true;
+            public override bool CanWrite => false;
+            public override long Length => _inner.Length;
+            public override long Position {
+                get => _inner.Position;
+                set => _inner.Position = value;
+            }
+
+            public override int Read(byte[] buffer, int offset, int count) {
+                int read = _inner.Read(buffer, offset, count);
+                if (!BulkReadObserved && count >= 81920) {
+                    BulkReadObserved = true;
+                    _cancel();
+                }
+                return read;
+            }
+
+            public override void Flush() { }
+            public override long Seek(long offset, SeekOrigin origin) =>
+                _inner.Seek(offset, origin);
+            public override void SetLength(long value) =>
+                throw new NotSupportedException();
+            public override void Write(byte[] buffer, int offset, int count) =>
+                throw new NotSupportedException();
+
+            protected override void Dispose(bool disposing) {
+                if (disposing) _inner.Dispose();
+                base.Dispose(disposing);
+            }
+        }
     }
 }

@@ -21,7 +21,7 @@ dotnet add package OfficeIMO.Reader.Html
 dotnet add package OfficeIMO.Reader.Epub
 ```
 
-The core package reads Word, Excel, PowerPoint, and Markdown. Adapter packages add PDF, CSV/TSV, EPUB, HTML, JSON, XML, YAML, RTF, Visio, ZIP, and structured text support.
+The core package reads Word (`.docx`, `.docm`, `.doc`), Excel (`.xlsx`, `.xlsm`, `.xls`), PowerPoint (`.pptx`, `.pptm`, `.ppt`, `.pot`, `.pps`), and Markdown. Legacy formats route through their owning OfficeIMO engines, including PowerPoint import diagnostics, rich slide mapping, image assets, and `ReaderOptions.OpenPassword`. Adapter packages add PDF, CSV/TSV, EPUB, HTML, JSON, XML, YAML, RTF, Visio, ZIP, and structured text support.
 
 ## Choose the result you need
 

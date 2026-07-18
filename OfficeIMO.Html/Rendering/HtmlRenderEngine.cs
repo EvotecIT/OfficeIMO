@@ -46,7 +46,7 @@ public static class HtmlRenderEngine {
         if (initialDiagnostics != null) diagnostics.AddRange(initialDiagnostics);
         var resourceOptions = new HtmlResourcePipelineOptions {
             BaseUri = resolved.BaseUri,
-            UrlPolicy = (resolved.UrlPolicy ?? HtmlUrlPolicy.CreateOfficeIMOProfile()).Clone(),
+            UrlPolicy = resolved.GetResourceUrlPolicy().Clone(),
             MediaContext = resolved.MediaContext,
             MediaWidth = resolved.Mode == HtmlRenderMode.Paged ? resolved.PageWidth : resolved.ViewportWidth,
             MediaHeight = resolved.Mode == HtmlRenderMode.Paged ? resolved.PageHeight : resolved.ViewportHeight ?? 1056D
@@ -106,7 +106,7 @@ public static class HtmlRenderEngine {
         if (initialDiagnostics != null) diagnostics.AddRange(initialDiagnostics);
         var resourceOptions = new HtmlResourcePipelineOptions {
             BaseUri = resolved.BaseUri,
-            UrlPolicy = (resolved.UrlPolicy ?? HtmlUrlPolicy.CreateOfficeIMOProfile()).Clone(),
+            UrlPolicy = resolved.GetResourceUrlPolicy().Clone(),
             MediaContext = resolved.MediaContext,
             MediaWidth = resolved.Mode == HtmlRenderMode.Paged ? resolved.PageWidth : resolved.ViewportWidth,
             MediaHeight = resolved.Mode == HtmlRenderMode.Paged ? resolved.PageHeight : resolved.ViewportHeight ?? 1056D

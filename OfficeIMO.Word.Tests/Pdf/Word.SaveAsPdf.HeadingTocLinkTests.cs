@@ -448,7 +448,7 @@ namespace OfficeIMO.Tests {
                 BindingFlags.NonPublic | BindingFlags.Static)!;
 
             var saveOptions = new PdfSaveOptions {
-                AllowSystemFontEmbedding = true,
+                ResourcePolicy = PdfResourcePolicy.CreateTrustedHost(),
                 TextFallbacks = PdfTextFallbackFeatures.Default
             };
             PdfOptions pdfOptions = Assert.IsType<PdfOptions>(createOptions.Invoke(null, new object[] {

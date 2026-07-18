@@ -310,6 +310,45 @@ jobs:
           OFFICEIMO_ODF_INTEROP_INPUT: ${{ runner.temp }}/officeimo-odf-libreoffice
         run: dotnet test OfficeIMO.OpenDocument.Tests/OfficeIMO.OpenDocument.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework net8.0 --no-build --filter Category=OpenDocumentLibreOfficeArtifact
 
+  binary-powerpoint-libreoffice:
+    name: 'Binary PowerPoint and LibreOffice'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Install LibreOffice Impress
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends libreoffice-core libreoffice-impress
+
+      - name: Build binary PowerPoint interoperability probe
+        run: |
+          dotnet restore OfficeIMO.PowerPoint.Tests/OfficeIMO.PowerPoint.Tests.csproj
+          dotnet build OfficeIMO.PowerPoint.Tests/OfficeIMO.PowerPoint.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework net8.0 --no-restore
+
+      - name: Emit representative PPT, POT, and PPS files
+        env:
+          OFFICEIMO_LEGACY_PPT_INTEROP_OUTPUT: ${{ runner.temp }}/officeimo-binary-powerpoint
+        run: dotnet test OfficeIMO.PowerPoint.Tests/OfficeIMO.PowerPoint.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework net8.0 --no-build --filter Category=LegacyPptLibreOfficeArtifact
+
+      - name: Report LibreOffice test-oracle version
+        run: soffice --version
+
+      - name: Open, render, and resave generated files with LibreOffice
+        run: bash Build/validate-powerpoint-binary-libreoffice.sh "${{ runner.temp }}/officeimo-binary-powerpoint" "${{ runner.temp }}/officeimo-binary-powerpoint-libreoffice"
+
+      - name: Reopen LibreOffice outputs and verify semantics
+        env:
+          OFFICEIMO_LEGACY_PPT_INTEROP_INPUT: ${{ runner.temp }}/officeimo-binary-powerpoint-libreoffice/roundtrip
+        run: dotnet test OfficeIMO.PowerPoint.Tests/OfficeIMO.PowerPoint.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework net8.0 --no-build --filter Category=LegacyPptLibreOfficeReopen
+
   test-windows:
     name: '.NET Framework 4.7.2 / ${{ matrix.name }}'
     runs-on: windows-latest
@@ -950,6 +989,7 @@ jobs:
       - test-ubuntu-matrix
       - excel-image-visual-gate
       - office-interoperability-gate
+      - binary-powerpoint-libreoffice
     if: always()
     steps:
       - name: Check Ubuntu test matrix
@@ -964,6 +1004,10 @@ jobs:
           fi
           if [ "${{ needs.office-interoperability-gate.result }}" != "success" ]; then
             echo "Word and Excel interoperability gate result: ${{ needs.office-interoperability-gate.result }}"
+            exit 1
+          fi
+          if [ "${{ needs.binary-powerpoint-libreoffice.result }}" != "success" ]; then
+            echo "Binary PowerPoint LibreOffice gate result: ${{ needs.binary-powerpoint-libreoffice.result }}"
             exit 1
           fi
           echo "Ubuntu test matrix passed."

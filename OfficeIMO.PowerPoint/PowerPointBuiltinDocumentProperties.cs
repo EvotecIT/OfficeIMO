@@ -7,6 +7,10 @@ namespace OfficeIMO.PowerPoint {
     /// </summary>
     public sealed class PowerPointBuiltinDocumentProperties {
         private readonly PresentationDocument _presentationDocument;
+        private bool _hasReadOnlyLegacyDateOverrides;
+        private DateTime? _readOnlyLegacyCreated;
+        private DateTime? _readOnlyLegacyModified;
+        private DateTime? _readOnlyLegacyLastPrinted;
 
         internal PowerPointBuiltinDocumentProperties(PresentationDocument presentationDocument) {
             _presentationDocument = presentationDocument ?? throw new ArgumentNullException(nameof(presentationDocument));
@@ -88,7 +92,9 @@ namespace OfficeIMO.PowerPoint {
         ///     Gets or sets the creation date.
         /// </summary>
         public DateTime? Created {
-            get => _presentationDocument.PackageProperties.Created;
+            get => _hasReadOnlyLegacyDateOverrides
+                ? _readOnlyLegacyCreated
+                : _presentationDocument.PackageProperties.Created;
             set => _presentationDocument.PackageProperties.Created = value;
         }
 
@@ -96,7 +102,9 @@ namespace OfficeIMO.PowerPoint {
         ///     Gets or sets the last modification date.
         /// </summary>
         public DateTime? Modified {
-            get => _presentationDocument.PackageProperties.Modified;
+            get => _hasReadOnlyLegacyDateOverrides
+                ? _readOnlyLegacyModified
+                : _presentationDocument.PackageProperties.Modified;
             set => _presentationDocument.PackageProperties.Modified = value;
         }
 
@@ -104,8 +112,22 @@ namespace OfficeIMO.PowerPoint {
         ///     Gets or sets the last print date.
         /// </summary>
         public DateTime? LastPrinted {
-            get => _presentationDocument.PackageProperties.LastPrinted;
+            get => _hasReadOnlyLegacyDateOverrides
+                ? _readOnlyLegacyLastPrinted
+                : _presentationDocument.PackageProperties.LastPrinted;
             set => _presentationDocument.PackageProperties.LastPrinted = value;
         }
+
+        internal void SetReadOnlyLegacyDateOverrides(DateTime? created,
+            DateTime? modified, DateTime? lastPrinted) {
+            _hasReadOnlyLegacyDateOverrides = true;
+            _readOnlyLegacyCreated = AsUtc(created);
+            _readOnlyLegacyModified = AsUtc(modified);
+            _readOnlyLegacyLastPrinted = AsUtc(lastPrinted);
+        }
+
+        private static DateTime? AsUtc(DateTime? value) => value.HasValue
+            ? value.Value.ToUniversalTime()
+            : null;
     }
 }

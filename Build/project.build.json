@@ -5,6 +5,7 @@
   "ExpectedVersionMap": {
     "OfficeIMO.AsciiDoc": "2.0.X",
     "OfficeIMO.AsciiDoc.Markdown": "2.0.X",
+    "OfficeIMO.AsciiDoc.Pdf": "2.0.X",
     "OfficeIMO.CSV": "2.0.X",
     "OfficeIMO.Drawing": "2.0.X",
     "OfficeIMO.Drawing.CodeGlyphX": "2.0.X",
@@ -25,6 +26,7 @@
     "OfficeIMO.Html.Pdf": "2.0.X",
     "OfficeIMO.Latex": "2.0.X",
     "OfficeIMO.Latex.Markdown": "2.0.X",
+    "OfficeIMO.Latex.Pdf": "2.0.X",
     "OfficeIMO.Markdown": "2.0.X",
     "OfficeIMO.Markdown.Html": "2.0.X",
     "OfficeIMO.Markdown.Pdf": "2.0.X",

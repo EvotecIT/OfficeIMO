@@ -24,6 +24,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\OfficeIMO.Latex.Markdown\OfficeIMO.Latex.Markdown.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Latex.Pdf\OfficeIMO.Latex.Pdf.csproj" />
     <ProjectReference Include="..\OfficeIMO.Markdown.Pdf\OfficeIMO.Markdown.Pdf.csproj" />
     <ProjectReference Include="..\OfficeIMO.Word.Markdown\OfficeIMO.Word.Markdown.csproj" />
   </ItemGroup>
@@ -34,6 +35,7 @@
     <Using Include="System.Text" />
     <Using Include="OfficeIMO.Latex" />
     <Using Include="OfficeIMO.Latex.Markdown" />
+    <Using Include="OfficeIMO.Latex.Pdf" />
     <Using Include="OfficeIMO.Markdown" />
     <Using Include="OfficeIMO.Markdown.Pdf" />
     <Using Include="OfficeIMO.Word.Markdown" />

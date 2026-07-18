@@ -26,7 +26,53 @@ internal static class HtmlPdfRenderedConverter {
     private static HtmlRenderOptions ResolveRenderOptions(HtmlPdfSaveOptions options) {
         HtmlRenderOptions renderOptions = options.ClonePdf();
         renderOptions.Mode = HtmlRenderMode.Paged;
+        HtmlRenderResourceResolver? embeddedPackageResolver = options.EmbeddedPackageResourceResolver;
+        HtmlUrlPolicy hostResourceUrlPolicy = (options.EmbeddedPackageHostResourceUrlPolicy ?? renderOptions.GetResourceUrlPolicy()).Clone();
+        ApplyResourceAccessPolicy(
+            hostResourceUrlPolicy,
+            allowDataUrls: options.ResourcePolicy.AllowDataUris,
+            allowFileUrls: options.ResourcePolicy.AllowLocalFileAccess);
+        renderOptions.ResourceUrlPolicy = renderOptions.GetResourceUrlPolicy().Clone();
+        ApplyResourceAccessPolicy(
+            renderOptions.ResourceUrlPolicy,
+            allowDataUrls: options.ResourcePolicy.AllowDataUris,
+            allowFileUrls: options.ResourcePolicy.AllowLocalFileAccess ||
+                embeddedPackageResolver != null && options.ResourcePolicy.AllowEmbeddedPackageResources);
+        HtmlRenderResourceResolver? hostResolver = renderOptions.ResourceResolver;
+        if (embeddedPackageResolver != null || hostResolver != null) {
+            renderOptions.ResourceResolver = async (request, cancellationToken) => {
+                if (embeddedPackageResolver != null && options.ResourcePolicy.AllowEmbeddedPackageResources) {
+                    HtmlResolvedResource? embedded = await embeddedPackageResolver(request, cancellationToken).ConfigureAwait(false);
+                    if (embedded != null) return embedded;
+                }
+
+                if (hostResolver == null) return null;
+                bool hostResourceAllowed = request.Uri.IsFile
+                    ? options.ResourcePolicy.AllowLocalFileAccess
+                    : options.ResourcePolicy.AllowRemoteResourceResolution;
+                hostResourceAllowed = hostResourceAllowed
+                    && HtmlUrlPolicyEvaluator.IsAllowed(request.Uri.AbsoluteUri, hostResourceUrlPolicy);
+                return hostResourceAllowed
+                    ? await hostResolver(request, cancellationToken).ConfigureAwait(false)
+                    : null;
+            };
+        }
         return renderOptions;
+    }
+
+    private static void ApplyResourceAccessPolicy(HtmlUrlPolicy policy, bool allowDataUrls, bool allowFileUrls) {
+        policy.AllowDataUrls = allowDataUrls;
+        policy.DisallowFileUrls = !allowFileUrls;
+        SetAllowedScheme(policy, "data", allowDataUrls);
+        SetAllowedScheme(policy, Uri.UriSchemeFile, allowFileUrls);
+    }
+
+    private static void SetAllowedScheme(HtmlUrlPolicy policy, string scheme, bool allowed) {
+        if (allowed) {
+            policy.AllowedUrlSchemes.Add(scheme);
+        } else {
+            policy.AllowedUrlSchemes.Remove(scheme);
+        }
     }
 
     private static HtmlPdfRenderResult CreatePdf(HtmlRenderDocument rendered, HtmlPdfSaveOptions options, CancellationToken cancellationToken) {
@@ -55,7 +101,7 @@ internal static class HtmlPdfRenderedConverter {
             rendered.Fonts.Faces.Select(face => face.FamilyName),
             StringComparer.OrdinalIgnoreCase);
         PdfCore.PdfTextFallbackFeatures activeTextFallbacks = ResolveTextFallbackFeatures(rendered, options.TextFallbacks);
-        if (activeTextFallbacks != PdfCore.PdfTextFallbackFeatures.None) {
+        if (activeTextFallbacks != PdfCore.PdfTextFallbackFeatures.None && options.ResourcePolicy.AllowSystemFontEmbedding) {
             RegisterUsedSystemFontFamilies(pdf, rendered, activeWebFontFamilies, reservedFontSlots);
         }
         ReserveUsedStandardFontSlots(rendered, activeWebFontFamilies, reservedFontSlots);
@@ -69,7 +115,7 @@ internal static class HtmlPdfRenderedConverter {
             reservedFontSlots.Add(PdfCore.PdfStandardFontMapper.GetFontFamily(slot));
         }
         if (activeTextFallbacks != PdfCore.PdfTextFallbackFeatures.None) {
-            pdf.Options.UseTextFallbacks(activeTextFallbacks, reservedFontSlots, allowSystemFontEmbedding: true);
+            pdf.Options.UseTextFallbacks(activeTextFallbacks, reservedFontSlots, options.ResourcePolicy.AllowSystemFontEmbedding);
         }
         pdf.UseTextShaping(options.TextShapingMode, options.TextShapingProvider);
         ILookup<int, HtmlRenderHeading> headingsByPage = rendered.Headings.ToLookup(heading => heading.PageNumber);

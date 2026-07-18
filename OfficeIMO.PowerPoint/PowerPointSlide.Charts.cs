@@ -806,6 +806,7 @@ namespace OfficeIMO.PowerPoint {
 
         private PowerPointChart AddChartInternal(byte[] workbookBytes, Action<ChartPart, string> populateChart,
             long left, long top, long width, long height) {
+            uint shapeId = AllocateShapeId();
             string chartPartUri = PowerPointPartFactory.GetIndexedPartUri(
                 _slidePart.OpenXmlPackage,
                 "ppt/charts",
@@ -862,7 +863,7 @@ namespace OfficeIMO.PowerPoint {
             string name = GenerateUniqueName("Chart");
             GraphicFrame frame = new(
                 new NonVisualGraphicFrameProperties(
-                    new NonVisualDrawingProperties { Id = _nextShapeId++, Name = name },
+                    new NonVisualDrawingProperties { Id = shapeId, Name = name },
                     new NonVisualGraphicFrameDrawingProperties(),
                     new ApplicationNonVisualDrawingProperties()
                 ),

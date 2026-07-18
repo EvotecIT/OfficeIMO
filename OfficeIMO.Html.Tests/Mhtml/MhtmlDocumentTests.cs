@@ -36,6 +36,42 @@ public sealed class MhtmlDocumentTests {
     }
 
     [Fact]
+    public async Task ConfigureRenderOptionsAllowsPackageResourcesWithoutRelaxingHyperlinksOrFallbacks() {
+        int fallbackCalls = 0;
+        var document = new MhtmlDocument(
+            "<a href='cid:logo'>link</a><img src='cid:logo'>",
+            new[] { new MhtmlResource(new byte[] { 1, 2, 3 }, "image/png", contentId: "logo") },
+            "file:///snapshot/page.html");
+        var options = new HtmlRenderOptions {
+            UrlPolicy = HtmlUrlPolicy.CreateWebOnlyProfile(),
+            ResourceResolver = (request, cancellationToken) => {
+                fallbackCalls++;
+                return Task.FromResult<HtmlResolvedResource?>(new HtmlResolvedResource(new byte[] { 4, 5, 6 }, "image/png"));
+            }
+        };
+
+        document.ConfigureRenderOptions(options);
+
+        Assert.DoesNotContain("cid", options.UrlPolicy.AllowedUrlSchemes);
+        Assert.DoesNotContain(Uri.UriSchemeFile, options.UrlPolicy.AllowedUrlSchemes);
+        Assert.True(options.UrlPolicy.DisallowFileUrls);
+        Assert.NotNull(options.ResourceUrlPolicy);
+        Assert.Contains("cid", options.ResourceUrlPolicy!.AllowedUrlSchemes);
+        Assert.Contains(Uri.UriSchemeFile, options.ResourceUrlPolicy.AllowedUrlSchemes);
+        Assert.False(options.ResourceUrlPolicy.DisallowFileUrls);
+        Assert.NotNull(options.ResourceResolver);
+        HtmlResolvedResource? embedded = await options.ResourceResolver!(
+            new HtmlRenderResourceRequest(new Uri("cid:logo"), "cid:logo", HtmlResourceKind.Image),
+            CancellationToken.None);
+        HtmlResolvedResource? missingFile = await options.ResourceResolver(
+            new HtmlRenderResourceRequest(new Uri("file:///outside/secret.png"), "file:///outside/secret.png", HtmlResourceKind.Image),
+            CancellationToken.None);
+        Assert.NotNull(embedded);
+        Assert.Null(missingFile);
+        Assert.Equal(0, fallbackCalls);
+    }
+
+    [Fact]
     public void ConstructedArchiveRoundTripsUnreferencedRelatedResource() {
         var resource = new MhtmlResource(Encoding.UTF8.GetBytes("body { color: black; }"),
             "text/css", contentLocation: "styles/site.css", fileName: "site.css");

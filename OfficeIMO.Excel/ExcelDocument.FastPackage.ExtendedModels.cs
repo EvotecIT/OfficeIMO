@@ -302,6 +302,9 @@ namespace OfficeIMO.Excel {
         internal static void MarkPivotCacheRecordsPartAsRawWritten(PivotTableCacheRecordsPart part)
             => RawPivotCacheRecordsParts.GetValue(part, static _ => new RawPivotCacheRecordsPartMarker());
 
+        internal static void MarkPivotCacheRecordsPartAsModelWritten(PivotTableCacheRecordsPart part)
+            => RawPivotCacheRecordsParts.Remove(part);
+
         private static bool IsRawPivotCacheRecordsPart(OpenXmlPart part)
             => part is PivotTableCacheRecordsPart cacheRecordsPart
                && RawPivotCacheRecordsParts.TryGetValue(cacheRecordsPart, out _);

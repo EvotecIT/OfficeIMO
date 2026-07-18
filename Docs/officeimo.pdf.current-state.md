@@ -22,10 +22,37 @@ explicit:
 - `OfficeIMO.Pdf` should not gain a runtime dependency on another PDF engine,
   browser, JavaScript runtime, or native renderer.
 
-Word, Excel, PowerPoint, Markdown, HTML, RTF, and Reader packages remain thin
-adapters. Shared PDF parsing, writing, layout, rendering, security, signatures,
-forms, annotations, and manipulation belong in `OfficeIMO.Pdf`. Reusable vector
-and raster primitives belong in `OfficeIMO.Drawing`.
+Word, Excel, PowerPoint, Markdown, HTML, RTF, OneNote, AsciiDoc, and LaTeX
+packages remain thin adapters. AsciiDoc and LaTeX reuse their existing
+loss-aware Markdown projections and the Markdown PDF renderer; they do not add
+format-specific layout engines. Shared PDF parsing, writing, layout, rendering,
+security, signatures, forms, annotations, resource trust, and manipulation belong in `OfficeIMO.Pdf`.
+Reusable vector and raster primitives belong in `OfficeIMO.Drawing`. The
+machine-readable direct-adapter and composition-route inventory is
+[`pdf-conversion-scenarios.json`](pdf-conversion-scenarios.json); it is the
+source of truth for supported routes and visual proof ownership.
+
+Direct conversion uses one balanced resource default: installed fonts plus
+bounded data URI and embedded-package resources are available for Unicode and
+self-contained-document fidelity, while arbitrary local-file reads and remote
+resolver calls remain disabled. Reproducible or untrusted pipelines can choose
+`PdfResourcePolicy.CreatePortableDeterministic()`; applications that intentionally
+resolve local or remote resources can choose `CreateTrustedHost()`. Profiles
+control fidelity and content selection; they do not silently change trust. Zero-options and faithful Word or
+Excel output also do not inject page numbers or worksheet-name headings that
+were absent from the source.
+
+Word conversion embeds distinct mapped document and run fonts while a PDF
+family slot is available. The current writer has three such standard-family
+slots; documents needing more receive a `NativeFontFamilySlotExhausted` loss
+warning with the exact font and substitution instead of a silent alias.
+
+OneNote conversion is deliberately named as a semantic-document projection.
+It preserves hierarchy and reading-order content, reports canvas flattening and
+asset placeholders, and does not claim to reproduce the free-form OneNote
+canvas. PowerPoint has one stable native PDF shape renderer for full-slide
+output; the shared visual snapshot remains the owner for PNG, SVG, HTML review,
+and slide thumbnails, where its raster/vector scene contract is appropriate.
 
 ## Workflow Coverage
 
@@ -57,7 +84,7 @@ PDF primitive exists somewhere in the codebase.
 | Serialize generated PDFs | Bounded payload streaming | `PdfOptions.PageContentMemoryLimitBytes` bounds completed page/effect content retained during layout, and `PdfOptions.ObjectBufferMemoryLimitBytes` bounds completed indirect-object bytes during serialization. Both stores spill excess payloads to indexed temporary files; large stream objects are spooled without a duplicate combined buffer, and final stream assembly copies spilled objects in bounded chunks for plain and encrypted saves. Spill files are removed on disposal. | Per-page metadata and the authored block model remain proportional to document size, the active page is materialized while it is processed, and `ToBytes()` necessarily buffers the final artifact. Fully forward-only layout/output needs a deeper writer contract and representative memory gates. |
 | Text and layout extraction | Broad, strategy-driven | The fast heuristic remains the default. A pluggable six-stage understanding pipeline provides confidence/evidence and stable JSON, Markdown, ALTO, hOCR, and PAGE XML. The built-in advanced profile adds rotation/arbitrary-baseline grouping, spatial and non-rectangular regions, multi-column/spanning-band order, tables, captions, headers/footers, and footnotes. | Refine advanced heuristics from real mixed-layout corpora and use provider stages for domain-specific reconstruction rather than hard-coding every document family. |
 | PDF to Office/HTML/data | Partial by design | PDF-to-HTML review output, table export, Reader chunks, and limited PowerPoint table import use the shared logical model. | Improve the logical model and confidence/proof first. Do not promise general editable reconstruction from a presentation format. |
-| Office/HTML/Markdown/RTF to PDF | Broad but evolving | Thin adapters use the shared PDF and Drawing engines. HTML uses the shared render scene introduced by the HTML/PDF/image work. | Continue converter-specific fidelity only when the missing primitive is truly source-specific; otherwise improve the shared PDF, Drawing, or HTML owner. |
+| Office/HTML/Markdown/RTF/OneNote/AsciiDoc/LaTeX to PDF | Broad but evolving | Thin adapters use the shared PDF and Drawing engines. HTML uses the shared render scene; OneNote, AsciiDoc, and LaTeX use explicit loss-aware semantic projections with combined diagnostics. | Continue converter-specific fidelity only when the missing primitive is truly source-specific; otherwise improve the shared PDF, Drawing, HTML, or semantic-projection owner. |
 | PDF/A, PDF/UA, and e-invoices | Groundwork only | Output intents, tagging, XMP identification, associated files, Factur-X/ZUGFeRD groundwork, and compliance proof reports exist. | Pass an external validator for one narrow profile before making a conformance claim, then expand profile by profile. |
 
 ## Current Architecture To Keep
@@ -278,9 +305,13 @@ any repair is explicit, reproducible, and validated before save.
 
 ### P3 - Deepen Creation And Conversion
 
-- [ ] Complete OpenType/CFF charstring subsetting and provider-backed shaping,
-  bidirectional layout, mark positioning, font fallback, Unicode line breaking,
-  and dictionary-driven hyphenation behind the existing glyph-run seam.
+- [x] Complete dependency-free OpenType/CFF charstring subsetting for generated
+  and supported appearance-font output.
+- [ ] Supply or build an optional implementation of the existing
+  `IPdfTextShapingProvider` seam for full bidirectional layout, contextual
+  shaping, mark positioning, and script-specific substitution. Keep it outside
+  the dependency-free core; the built-in engine continues to provide Unicode
+  scalar and Latin-ligature modes with explicit diagnostics.
 - [x] Add shared block-aware multi-column flow, styled one-page containers,
   conditional/replayable flow constraints, position capture, semantic sections,
   generated TOCs, and optional-content layers before adapter-specific variants.
@@ -299,9 +330,18 @@ any repair is explicit, reproducible, and validated before save.
 - [ ] Expand generated annotations, form fields, signature appearances,
   attachments, layers, navigation, tagged structure, and accessible names
   through the same primitives used by existing-document editing.
-- [ ] Continue Word, Excel, PowerPoint, Markdown, HTML, RTF, and Reader fidelity
-  through shared primitives first, with conversion warnings and proof snapshots
-  preserved through post-processing.
+- [ ] Continue Word, Excel, PowerPoint, Markdown, HTML, RTF, OneNote, AsciiDoc,
+  and LaTeX fidelity through shared primitives or their established semantic
+  projections first, with conversion warnings and proof snapshots preserved
+  through post-processing.
+- [x] Promote AsciiDoc and LaTeX compositions to direct adapters whose native
+  parser and semantic-projection diagnostics flow automatically into the final
+  `PdfDocumentConversionResult` while reusing `OfficeIMO.Markdown.Pdf`.
+- [ ] Promote OpenDocument text, spreadsheet, and presentation compositions to
+  direct adapters only when their existing `OdfConversionResult` diagnostics
+  flow automatically into the final PDF result. Do not advertise email, EPUB,
+  or Visio as direct PDF conversion until body/asset/book/vector-page policies
+  are explicit and visually proven.
 
 Exit criterion: new fidelity work improves the shared engine or has a documented
 source-format reason to remain in a thin adapter.

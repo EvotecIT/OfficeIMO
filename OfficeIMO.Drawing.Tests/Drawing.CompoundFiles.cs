@@ -1,4 +1,5 @@
 using OfficeIMO.Drawing.Internal;
+using System.Threading;
 using Xunit;
 
 namespace OfficeIMO.Tests;
@@ -59,6 +60,68 @@ public sealed class DrawingCompoundFileTests {
         Assert.Contains(roundTrip.Entries, entry => entry.Path == "EmptyStorage" && entry.StateBits == 9);
     }
 
+    [Fact]
+    public void DocumentDetectionHonorsCancellationDuringDirectoryInspection() {
+        byte[] compound = CreateVersion4RootOnlyCompoundFile();
+        using var cancellation = new CancellationTokenSource();
+        using var stream = new CancelAfterReadStream(compound, 2,
+            cancellation.Cancel);
+
+        void Detect() => OfficeCompoundDocumentDetector.Detect(stream,
+            compound.LongLength, 65536, cancellation.Token, out _);
+        Assert.Throws<OperationCanceledException>(Detect);
+
+        Assert.Equal(2, stream.ReadCount);
+        Assert.Equal(0, stream.Position);
+    }
+
+    [Fact]
+    public void DocumentDetectionIgnoresNestedFallbackStreamAliases() {
+        var streams = new Dictionary<string, byte[]>(
+            StringComparer.OrdinalIgnoreCase) {
+            ["Nested/EncryptionInfo"] = new byte[] { 1 },
+            ["Nested/EncryptedPackage"] = new byte[] { 2 }
+        };
+        var source = new OfficeCompoundFile(streams, new[] {
+            new OfficeCompoundFileEntry("Nested", "Nested", 1, 0),
+            new OfficeCompoundFileEntry("EncryptionInfo",
+                "Nested/EncryptionInfo", 2, 1),
+            new OfficeCompoundFileEntry("EncryptedPackage",
+                "Nested/EncryptedPackage", 2, 1)
+        }, new OfficeCompoundFileEntry("Root Entry", "Root Entry", 5, 0));
+        byte[] compound = OfficeCompoundFileWriter.Rewrite(source,
+            new Dictionary<string, byte[]>());
+
+        OfficeCompoundDocumentDetector.DocumentKind kind =
+            OfficeCompoundDocumentDetector.Detect(compound, out _);
+
+        Assert.Equal(OfficeCompoundDocumentDetector.DocumentKind
+            .UnknownCompound, kind);
+    }
+
+    [Fact]
+    public void DocumentDetectionRecognizesActualRootEncryptedPackageStreams() {
+        var streams = new Dictionary<string, byte[]>(
+            StringComparer.OrdinalIgnoreCase) {
+            ["EncryptionInfo"] = new byte[] { 1 },
+            ["EncryptedPackage"] = new byte[] { 2 }
+        };
+        var source = new OfficeCompoundFile(streams, new[] {
+            new OfficeCompoundFileEntry("EncryptionInfo",
+                "EncryptionInfo", 2, 1),
+            new OfficeCompoundFileEntry("EncryptedPackage",
+                "EncryptedPackage", 2, 1)
+        }, new OfficeCompoundFileEntry("Root Entry", "Root Entry", 5, 0));
+        byte[] compound = OfficeCompoundFileWriter.Rewrite(source,
+            new Dictionary<string, byte[]>());
+
+        OfficeCompoundDocumentDetector.DocumentKind kind =
+            OfficeCompoundDocumentDetector.Detect(compound, out _);
+
+        Assert.Equal(OfficeCompoundDocumentDetector.DocumentKind
+            .EncryptedOpenXmlPackage, kind);
+    }
+
     private static byte[] CreateVersion4RootOnlyCompoundFile() {
         byte[] compound = new byte[SectorSize * 3];
         byte[] signature = { 0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1 };
@@ -109,5 +172,25 @@ public sealed class DrawingCompoundFileTests {
         bytes[offset + 1] = (byte)(value >> 8);
         bytes[offset + 2] = (byte)(value >> 16);
         bytes[offset + 3] = (byte)(value >> 24);
+    }
+
+    private sealed class CancelAfterReadStream : MemoryStream {
+        private readonly int _cancelAfterRead;
+        private readonly Action _cancel;
+
+        public CancelAfterReadStream(byte[] bytes, int cancelAfterRead,
+            Action cancel) : base(bytes, writable: false) {
+            _cancelAfterRead = cancelAfterRead;
+            _cancel = cancel;
+        }
+
+        public int ReadCount { get; private set; }
+
+        public override int Read(byte[] buffer, int offset, int count) {
+            int read = base.Read(buffer, offset, count);
+            ReadCount++;
+            if (ReadCount == _cancelAfterRead) _cancel();
+            return read;
+        }
     }
 }

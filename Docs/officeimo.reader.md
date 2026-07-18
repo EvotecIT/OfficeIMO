@@ -3,7 +3,7 @@
 `OfficeIMO.Reader` is a read-only facade that normalizes extraction across:
 - Word (`.docx`, `.docm`, `.doc`) -> Markdown chunks
 - Excel (`.xlsx`, `.xlsm`, `.xls`) -> row/table chunks (+ optional Markdown previews)
-- PowerPoint (`.pptx`, `.pptm`) -> slide-aligned Markdown chunks (optionally including notes)
+- PowerPoint (`.pptx`, `.pptm`, `.ppt`, `.pot`, `.pps`) -> slide-aligned Markdown chunks (optionally including notes)
 - Markdown (`.md`, `.markdown`) -> heading-aware chunks
 - PDF (`.pdf`) -> page-aware text chunks
 - Email (`.eml`, `.msg`, `.oft`, `.tnef`, `.mbox`/`.mbx`), iCalendar (`.ics`, `.vcs`), and vCard (`.vcf`, `.vcard`) -> semantic text/Markdown chunks and metadata
@@ -163,6 +163,7 @@ using OfficeIMO.Reader;
 var options = new ReaderOptions {
     MaxChars = 8_000,
     MaxTableRows = 200,
+    OpenPassword = "open-password",
     IncludeWordFootnotes = true,
     IncludePowerPointNotes = true,
     ExcelHeadersInFirstRow = true,
@@ -220,7 +221,7 @@ Keep raw BenchmarkDotNet artifacts local. When a result is used as a release bas
 
 ## Notes / Limitations
 
-- Legacy binary Word and Excel files (`.doc`, `.xls`) route through the OfficeIMO.Word and OfficeIMO.Excel legacy import engines. Unsupported or preserve-only legacy content is reported as reader warnings/diagnostics. Legacy binary PowerPoint (`.ppt`) is not supported.
+- Legacy binary Word, Excel, and PowerPoint files (`.doc`, `.xls`, `.ppt`, `.pot`, `.pps`) route through their owning OfficeIMO import engines. Unsupported or preserve-only content is reported as reader warnings/diagnostics; projected PowerPoint images use the same asset contract as PPTX images.
 - Folder ingestion is best-effort: unreadable/corrupt/oversized files emit warning chunks and processing continues.
 - `ReadFolderDocuments(...)` yields per-source payloads (`ReaderSourceDocument`) for straightforward source/chunk table upserts.
 - `ReadFolderDetailed(...)` provides aggregate counts and per-file status with optional progress callbacks.

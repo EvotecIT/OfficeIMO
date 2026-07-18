@@ -37,8 +37,10 @@ internal static partial class DocumentReaderEngine {
             var slideBlocks = new List<OfficeDocumentBlock>();
             var slideTables = new List<ReaderTable>();
             var slideLinks = new List<OfficeDocumentLink>();
-            for (int shapeIndex = 0; shapeIndex < slide.Shapes.Count; shapeIndex++) {
-                PowerPointShape shape = slide.Shapes[shapeIndex];
+            PowerPointShape[] slideShapes = slide.EnumerateShapesDeep(
+                slide.Shapes, includeHidden: true).ToArray();
+            for (int shapeIndex = 0; shapeIndex < slideShapes.Length; shapeIndex++) {
+                PowerPointShape shape = slideShapes[shapeIndex];
                 shapeCount++;
                 string shapeAnchor = "powerpoint-slide-" + slideNumber.ToString("D4", CultureInfo.InvariantCulture)
                     + "-shape-" + (shape.Id?.ToString(CultureInfo.InvariantCulture) ?? shapeIndex.ToString(CultureInfo.InvariantCulture));
@@ -159,9 +161,35 @@ internal static partial class DocumentReaderEngine {
         }
 
         bool isTitle = textBox.ShapePlaceholderType == PlaceholderValues.Title || textBox.ShapePlaceholderType == PlaceholderValues.CenteredTitle;
+        var numberingState = new Dictionary<int, int>();
         for (int paragraphIndex = 0; paragraphIndex < paragraphs.Count; paragraphIndex++) {
             PowerPointParagraph paragraph = paragraphs[paragraphIndex];
             bool isList = paragraph.BulletCharacter != null || paragraph.IsNumbered;
+            int level = paragraph.Level ?? 0;
+            string? marker = paragraph.BulletCharacter;
+            if (isTitle) {
+                marker = null;
+                numberingState.Clear();
+            } else if (!isList) {
+                numberingState.Clear();
+            } else if (paragraph.IsNumbered) {
+                foreach (int nestedLevel in numberingState.Keys
+                             .Where(candidate => candidate > level)
+                             .ToArray()) {
+                    numberingState.Remove(nestedLevel);
+                }
+                int number = paragraph.NumberingStartAt
+                    ?? (numberingState.TryGetValue(level, out int previous) ? previous + 1 : 1);
+                numberingState[level] = number;
+                marker = PowerPointNumberingFormatter.FormatMarker(number,
+                    paragraph.NumberingScheme);
+            } else {
+                foreach (int resetLevel in numberingState.Keys
+                             .Where(candidate => candidate >= level)
+                             .ToArray()) {
+                    numberingState.Remove(resetLevel);
+                }
+            }
             string kind = isTitle ? "heading" : isList ? "list-item" : "paragraph";
             ReaderLocation location = BuildPowerPointLocation(
                 shapeLocation.Path,
@@ -174,7 +202,7 @@ internal static partial class DocumentReaderEngine {
                 Kind = kind,
                 Text = paragraph.Text,
                 Level = isTitle ? 1 : paragraph.Level,
-                Marker = paragraph.IsNumbered ? "1." : paragraph.BulletCharacter,
+                Marker = marker,
                 Location = location,
                 Region = region
             });

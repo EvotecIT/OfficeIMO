@@ -11,7 +11,7 @@ namespace OfficeIMO.Excel.Pdf {
             preserveConfiguredFontSlots = options.PdfOptions != null;
 
             if (!string.IsNullOrWhiteSpace(options.FontFamily) &&
-                TryApplyPdfFontFamily(options.FontFamily, pdfOptions, options.AllowSystemFontEmbedding)) {
+                TryApplyPdfFontFamily(options.FontFamily, pdfOptions, options.ResourcePolicy.AllowSystemFontEmbedding)) {
                 preserveConfiguredFontSlots = true;
             }
 
@@ -31,7 +31,7 @@ namespace OfficeIMO.Excel.Pdf {
             ExcelPdfSaveOptions options,
             bool preserveConfiguredFontSlots,
             IEnumerable<PdfCore.PdfStandardFont> reservedFontSlots) {
-            if (!options.AllowSystemFontEmbedding ||
+            if (!options.ResourcePolicy.AllowSystemFontEmbedding ||
                 options.TextFallbacks == PdfCore.PdfTextFallbackFeatures.None) {
                 return;
             }
@@ -41,7 +41,7 @@ namespace OfficeIMO.Excel.Pdf {
                 fallbackFeatures &= ~PdfCore.PdfTextFallbackFeatures.DocumentFont;
             }
 
-            pdfOptions.UseTextFallbacks(fallbackFeatures, reservedFontSlots, options.AllowSystemFontEmbedding);
+            pdfOptions.UseTextFallbacks(fallbackFeatures, reservedFontSlots, options.ResourcePolicy.AllowSystemFontEmbedding);
         }
 
         private static bool TryApplyPdfFontFamily(string? familyName, PdfCore.PdfOptions pdfOptions, bool embedSystemFont, bool requireEmbeddedFont = false) {
@@ -65,7 +65,7 @@ namespace OfficeIMO.Excel.Pdf {
                     int columns = styles.GetLength(1);
                     for (int row = 0; row < rows; row++) {
                         for (int column = 0; column < columns; column++) {
-                            RegisterWorksheetFontCandidate(styles[row, column]?.FontName, pdfOptions, registeredFamilies, registeredFontSlots, options.AllowSystemFontEmbedding);
+                            RegisterWorksheetFontCandidate(styles[row, column]?.FontName, pdfOptions, registeredFamilies, registeredFontSlots, options.ResourcePolicy.AllowSystemFontEmbedding);
                         }
                     }
                 }
@@ -91,7 +91,7 @@ namespace OfficeIMO.Excel.Pdf {
                 }
 
                 foreach (string? text in EnumerateHeaderFooterTextZones(headerFooter)) {
-                    RegisterWorksheetHeaderFooterFontCandidate(text, pdfOptions, registeredFamilies, registeredFontSlots, options.AllowSystemFontEmbedding);
+                    RegisterWorksheetHeaderFooterFontCandidate(text, pdfOptions, registeredFamilies, registeredFontSlots, options.ResourcePolicy.AllowSystemFontEmbedding);
                 }
             }
         }

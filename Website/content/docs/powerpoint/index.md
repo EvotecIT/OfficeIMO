@@ -1,12 +1,12 @@
 ---
 title: PowerPoint Presentations
-description: Overview of the OfficeIMO.PowerPoint package for generating .pptx decks with slides, text, tables, charts, and notes.
+description: Overview of OfficeIMO.PowerPoint for creating and editing PPTX and PowerPoint 97-2003 decks.
 order: 30
 ---
 
 # PowerPoint Presentations
 
-`OfficeIMO.PowerPoint` lets you build `.pptx` presentations from a higher-level object model instead of stitching raw Open XML parts together yourself. It is designed for generated decks, reporting pipelines, demo content, and repeatable presentation output that needs to stay readable in source control.
+`OfficeIMO.PowerPoint` lets you build and edit `.pptx`, `.ppt`, `.pot`, and `.pps` presentations from one higher-level object model. It is designed for generated decks, reporting pipelines, legacy presentation maintenance, demo content, and repeatable presentation output.
 
 ## Good fit scenarios
 
@@ -115,6 +115,30 @@ presentation.Save();
 5. Save the file and ship it as a build artifact, report attachment, or generated deliverable.
 
 For report-sized content, use `AddTableSlides(...)` or semantic composition's continuation policy so source rows and semantic items continue instead of being clipped or dropped. Call `InspectPreflight()` before publishing to produce a deterministic layout report or fail at a selected severity.
+
+## PowerPoint 97-2003 files
+
+Normal `Load(...)` routing detects binary `.ppt`, `.pot`, and `.pps` files and projects supported content into
+the same editable model. Saving back to a binary extension uses native or preservation-aware writing and
+blocks known loss by default:
+
+```csharp
+using OfficeIMO.PowerPoint.LegacyPpt;
+
+using var presentation = PowerPointPresentation.Load("legacy-deck.ppt");
+presentation.ReplaceText("Draft", "Approved");
+
+LegacyPptWritePreflightReport report = presentation.AnalyzeLegacyPptWrite();
+if (!report.CanWrite) {
+    throw new InvalidOperationException(string.Join(
+        Environment.NewLine, report.Findings));
+}
+presentation.SaveCopy("approved.ppt");
+```
+
+Use `LegacyPptCapabilityCatalog` for the versioned import, authoring, round-trip, and PPTX-conversion contract.
+Tables, charts, and SmartArt require explicit acceptance when converted to static binary visuals; other unsafe
+conversions are blocked. Password-protected binary files use RC4 CryptoAPI for legacy compatibility.
 
 ## Layout and content model
 

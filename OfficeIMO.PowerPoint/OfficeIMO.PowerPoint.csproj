@@ -1,8 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <Description>An Open Source cross-platform .NET library providing an easy way to create
-            Microsoft PowerPoint (PPTX) presentations.</Description>
+        <Description>An Open Source cross-platform .NET library for creating, reading, editing,
+            and writing Microsoft PowerPoint PPTX/PPTM and PPT/POT/PPS presentations.</Description>
         <AssemblyName>OfficeIMO.PowerPoint</AssemblyName>
         <AssemblyTitle>OfficeIMO.PowerPoint</AssemblyTitle>
 
@@ -17,7 +17,7 @@
 
         <PackageId>OfficeIMO.PowerPoint</PackageId>
         <PackageTags>
-            pptx;powerpoint;office;openxml;net472;net50;netstandard;netstandard2.0,netstandard2.1;net70
+            pptx;pptm;ppt;pot;pps;powerpoint;office;openxml;net472;net50;netstandard;netstandard2.0,netstandard2.1;net70
         </PackageTags>
         <PackageProjectUrl>https://github.com/EvotecIT/OfficeIMO</PackageProjectUrl>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
@@ -103,6 +103,8 @@
     <EmbeddedResource Include="Resources\chart-colors-10.xml" />
     <EmbeddedResource Include="Resources\theme1.xml" />
     <EmbeddedResource Include="Resources\tableStyles.xml" />
+    <!-- Blank PowerPoint 97-2003 stream scaffold; live document/slide/persist records are rebuilt by LegacyPptWriter. -->
+    <EmbeddedResource Include="Resources\legacy-ppt-base-document.bin" />
     <!-- Chart styles are embedded; chart data is generated without templates. -->
   </ItemGroup>
 

@@ -44,3 +44,22 @@ presentation.Save();
 The preflight report is the same contract returned by designer generation and `OfficeIMO.Markup.PowerPoint`. Stable finding codes are intended for CI policy; human messages are supporting context.
 
 For imported presentations, combine layout preflight with `InspectFeatures()` so the pipeline sees both generated-content risks and package features outside the editable surface.
+
+## PowerPoint 97-2003 capability contract
+
+Binary `.ppt`, `.pot`, and `.pps` support has four independently reported directions: import into the editable
+model, new binary authoring, binary round-trip, and PPTX-to-binary conversion. Query the versioned catalog
+instead of inferring support from a successful open:
+
+```csharp
+using OfficeIMO.PowerPoint.LegacyPpt.Capabilities;
+
+LegacyPptCapability capability = LegacyPptCapabilityCatalog.Get(
+    LegacyPptFeature.RasterPictures);
+string json = LegacyPptCapabilityCatalog.ToJson();
+```
+
+Each direction is `Native`, `Preserved`, `Converted`, or `Blocked`. There are no provisional catalog rows.
+Saving blocks known loss by default. Imported files preserve unrelated compound-file records and streams;
+tables, charts, and SmartArt can convert to static PNG visuals only with explicit loss acceptance; features
+without a safe mapping remain blocked.

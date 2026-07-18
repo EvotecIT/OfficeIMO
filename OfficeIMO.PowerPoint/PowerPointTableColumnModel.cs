@@ -76,7 +76,9 @@ namespace OfficeIMO.PowerPoint {
                 }
 
                 return _table.TableElement.Elements<A.TableRow>()
-                    .Select(row => new PowerPointTableCell(row.Elements<A.TableCell>().ElementAt(index)))
+                    .Select(row => new PowerPointTableCell(
+                        row.Elements<A.TableCell>().ElementAt(index),
+                        _table.SlidePart))
                     .ToList();
             }
         }
@@ -96,7 +98,7 @@ namespace OfficeIMO.PowerPoint {
 
             A.TableRow row = _table.TableElement.Elements<A.TableRow>().ElementAt(rowIndex);
             A.TableCell cell = row.Elements<A.TableCell>().ElementAt(index);
-            return new PowerPointTableCell(cell);
+            return new PowerPointTableCell(cell, _table.SlidePart);
         }
 
         /// <summary>

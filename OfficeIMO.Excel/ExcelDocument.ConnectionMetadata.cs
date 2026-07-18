@@ -13,10 +13,16 @@ namespace OfficeIMO.Excel {
         private const string WorksheetQueryTableContentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.queryTable+xml";
         private const string SpreadsheetMainNamespace = "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
         private const string OfficeDocumentRelationshipsNamespace = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
-        private const string WorkbookSlicerCacheRelationshipType = "http://schemas.microsoft.com/office/2007/relationships/slicerCache";
-        private const string WorkbookSlicerCacheContentType = "application/vnd.ms-excel.slicerCache+xml";
-        private const string WorkbookTimelineCacheRelationshipType = "http://schemas.microsoft.com/office/2011/relationships/timelineCache";
-        private const string WorkbookTimelineCacheContentType = "application/vnd.ms-excel.timelineCache+xml";
+        private const string MicrosoftWorkbookSlicerCacheRelationshipType = "http://schemas.microsoft.com/office/2007/relationships/slicerCache";
+        private const string MicrosoftWorkbookSlicerCacheContentType = "application/vnd.ms-excel.slicerCache+xml";
+        private const string MicrosoftWorkbookSlicerCacheNamespace = "http://schemas.microsoft.com/office/spreadsheetml/2009/9/main";
+        private const string MicrosoftWorkbookTimelineCacheRelationshipType = "http://schemas.microsoft.com/office/2011/relationships/timelineCache";
+        private const string MicrosoftWorkbookTimelineCacheContentType = "application/vnd.ms-excel.timelineCache+xml";
+        private const string MicrosoftWorkbookTimelineCacheNamespace = "http://schemas.microsoft.com/office/spreadsheetml/2011/1/main";
+        private const string WorkbookSlicerCacheRelationshipType = "https://schemas.evotec.xyz/officeimo/excel/relationships/slicerCacheMetadata";
+        private const string WorkbookSlicerCacheContentType = "application/vnd.officeimo.excel.slicerCache-metadata+xml";
+        private const string WorkbookTimelineCacheRelationshipType = "https://schemas.evotec.xyz/officeimo/excel/relationships/timelineCacheMetadata";
+        private const string WorkbookTimelineCacheContentType = "application/vnd.officeimo.excel.timelineCache-metadata+xml";
 
         /// <summary>
         /// Adds caller-supplied workbook connection metadata XML as a workbook package part.
@@ -59,7 +65,8 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
-        /// Adds workbook-level slicer cache metadata. This authors package metadata for slicer workflows; Excel may still be required to materialize full UI slicer shapes and bindings.
+        /// Adds OfficeIMO-owned workbook-level slicer binding metadata. This does not impersonate a native Excel slicer-cache part;
+        /// native cache structures and UI shapes must be materialized separately.
         /// </summary>
         /// <param name="options">Slicer cache metadata options.</param>
         /// <returns>The added package part.</returns>
@@ -72,7 +79,8 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
-        /// Adds workbook-level timeline cache metadata. This authors package metadata for timeline workflows; Excel may still be required to materialize full UI timeline shapes and bindings.
+        /// Adds OfficeIMO-owned workbook-level timeline binding metadata. This does not impersonate a native Excel timeline-cache part;
+        /// native cache structures and UI shapes must be materialized separately.
         /// </summary>
         /// <param name="options">Timeline cache metadata options.</param>
         /// <returns>The added package part.</returns>

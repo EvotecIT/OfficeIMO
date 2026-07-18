@@ -3,6 +3,8 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
 using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel;
+using OfficeIMO.PowerPoint;
+using OfficeIMO.Word;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -22,6 +24,21 @@ internal static partial class DocumentReaderEngine {
             return Array.Empty<OfficeDocumentAsset>();
         }
 
+        if (kind == ReaderInputKind.PowerPoint
+            && (!string.IsNullOrEmpty(opt.OpenPassword)
+                || IsLegacyPowerPointExtension(path))) {
+            using PowerPointPresentation presentation =
+                LoadPowerPointForReader(path, opt);
+            return CollectProjectedPowerPointImageAssets(presentation, path,
+                opt, cancellationToken);
+        }
+        if (kind == ReaderInputKind.Word
+            && !string.IsNullOrEmpty(opt.OpenPassword)
+            && !IsLegacyBinaryOfficeExtension(path)) {
+            using WordDocument document = LoadWordForReader(path, opt);
+            return CollectProjectedWordImageAssets(document, path, opt,
+                cancellationToken);
+        }
         if (IsLegacyBinaryOfficeExtension(path)) {
             return Array.Empty<OfficeDocumentAsset>();
         }
@@ -35,6 +52,23 @@ internal static partial class DocumentReaderEngine {
             return Array.Empty<OfficeDocumentAsset>();
         }
 
+        if (kind == ReaderInputKind.PowerPoint
+            && (!string.IsNullOrEmpty(opt.OpenPassword)
+                || IsLegacyPowerPointExtension(sourceName)
+                || IsLegacyPowerPointCompound(stream, opt,
+                    cancellationToken))) {
+            using PowerPointPresentation presentation =
+                LoadPowerPointForReader(stream, opt);
+            return CollectProjectedPowerPointImageAssets(presentation,
+                sourceName, opt, cancellationToken);
+        }
+        if (kind == ReaderInputKind.Word
+            && !string.IsNullOrEmpty(opt.OpenPassword)
+            && !IsLegacyBinaryOfficeExtension(sourceName)) {
+            using WordDocument document = LoadWordForReader(stream, opt);
+            return CollectProjectedWordImageAssets(document, sourceName,
+                opt, cancellationToken);
+        }
         if (IsLegacyBinaryOfficeExtension(sourceName)) {
             return Array.Empty<OfficeDocumentAsset>();
         }
@@ -70,6 +104,56 @@ internal static partial class DocumentReaderEngine {
         }
 
         return assets.Count == 0 ? Array.Empty<OfficeDocumentAsset>() : assets;
+    }
+
+    private static bool IsLegacyPowerPointCompound(Stream stream,
+        ReaderOptions options,
+        CancellationToken cancellationToken) {
+        if (!stream.CanSeek) return false;
+        long position = stream.Position;
+        try {
+            DetectionCandidate candidate = InspectOfficeCompound(stream,
+                position, options.DetectionMaxContainerEntries,
+                cancellationToken);
+            return candidate.Kind == ReaderInputKind.PowerPoint
+                && string.Equals(candidate.MediaType,
+                    "application/vnd.ms-powerpoint",
+                    StringComparison.OrdinalIgnoreCase);
+        } finally {
+            stream.Position = position;
+        }
+    }
+
+    private static IReadOnlyList<OfficeDocumentAsset>
+        CollectProjectedWordImageAssets(
+            WordDocument document, string sourceName,
+            ReaderOptions options, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        var assets = new List<OfficeDocumentAsset>();
+        var payloadCache = new Dictionary<Uri, OpenXmlImagePayload>();
+        long totalPayloadBytes = 0;
+        CollectWordImageAssets(document.OpenXmlDocument, sourceName,
+            options, assets, payloadCache, ref totalPayloadBytes,
+            cancellationToken);
+        return assets.Count == 0
+            ? Array.Empty<OfficeDocumentAsset>()
+            : assets;
+    }
+
+    private static IReadOnlyList<OfficeDocumentAsset>
+        CollectProjectedPowerPointImageAssets(
+            PowerPointPresentation presentation, string sourceName,
+            ReaderOptions options, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        var assets = new List<OfficeDocumentAsset>();
+        var payloadCache = new Dictionary<Uri, OpenXmlImagePayload>();
+        long totalPayloadBytes = 0;
+        CollectPowerPointImageAssets(presentation.OpenXmlDocument,
+            sourceName, options, assets, payloadCache,
+            ref totalPayloadBytes, cancellationToken);
+        return assets.Count == 0
+            ? Array.Empty<OfficeDocumentAsset>()
+            : assets;
     }
 
     private static bool ShouldSkipExcelImageAssetsAfterPasswordedOpenFailure(Exception exception, ReaderOptions opt) {

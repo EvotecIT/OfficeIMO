@@ -153,17 +153,33 @@ public static partial class MarkdownPdfConverterExtensions {
         warningCode = "UnsupportedImage";
         warningMessage = "Only resolvable local Markdown images or supported base64 data URI images are embedded in the Markdown PDF adapter.";
 
+        if (!options.IncludeImages) {
+            warningCode = "ImagesDisabled";
+            warningMessage = "Markdown images are disabled by the selected PDF export profile.";
+            return false;
+        }
+
         if (IsDataUri(path)) {
+            if (!options.ResourcePolicy.AllowDataUris) {
+                warningCode = "DataUriImageDisabled";
+                warningMessage = "Data URI images are disabled by the PDF resource policy.";
+                return false;
+            }
             return TryReadDataUriImageBytes(path, options, out bytes, out sourceName, out warningCode, out warningMessage);
         }
 
         if (TryCreateRemoteImageUri(path, out Uri? remoteUri)) {
+            if (!options.ResourcePolicy.AllowRemoteResourceResolution) {
+                warningCode = "RemoteImageDisabled";
+                warningMessage = "Remote Markdown images are disabled by the PDF resource policy.";
+                return false;
+            }
             return TryReadRemoteImageBytes(remoteUri!, options, out bytes, out sourceName, out warningCode, out warningMessage);
         }
 
-        if (!options.IncludeLocalImages) {
+        if (!options.ResourcePolicy.AllowLocalFileAccess) {
             warningCode = "LocalImageDisabled";
-            warningMessage = "Local Markdown images are disabled by default. Set MarkdownPdfSaveOptions.IncludeLocalImages to true for trusted documents.";
+            warningMessage = "Local Markdown images are disabled by the PDF resource policy.";
             return false;
         }
 
@@ -204,6 +220,10 @@ public static partial class MarkdownPdfConverterExtensions {
             return false;
         }
 
+        if (!File.Exists(fullPath)) {
+            return false;
+        }
+
         if (options.RestrictLocalImagesToBaseDirectory &&
             !string.IsNullOrWhiteSpace(options.BaseDirectory)) {
             try {
@@ -212,13 +232,11 @@ public static partial class MarkdownPdfConverterExtensions {
                     warningMessage = "Local Markdown image paths must resolve inside MarkdownPdfSaveOptions.BaseDirectory.";
                     return false;
                 }
-            } catch (Exception ex) when (ex is ArgumentException || ex is NotSupportedException || ex is PathTooLongException) {
+            } catch (Exception ex) when (ex is ArgumentException || ex is IOException || ex is NotSupportedException || ex is PathTooLongException || ex is UnauthorizedAccessException) {
+                warningCode = "LocalImageOutsideBaseDirectory";
+                warningMessage = "Local Markdown image paths must resolve safely inside MarkdownPdfSaveOptions.BaseDirectory.";
                 return false;
             }
-        }
-
-        if (!File.Exists(fullPath)) {
-            return false;
         }
 
         resolvedPath = fullPath;
@@ -226,9 +244,38 @@ public static partial class MarkdownPdfConverterExtensions {
     }
 
     private static bool IsPathInsideDirectory(string fullPath, string baseDirectory) {
-        string normalizedBase = EnsureTrailingDirectorySeparator(Path.GetFullPath(baseDirectory));
-        string normalizedPath = Path.GetFullPath(fullPath);
+        string normalizedBase = EnsureTrailingDirectorySeparator(ResolvePhysicalPath(Path.GetFullPath(baseDirectory)));
+        string normalizedPath = ResolvePhysicalPath(Path.GetFullPath(fullPath));
         return normalizedPath.StartsWith(normalizedBase, GetPathComparison());
+    }
+
+    private static string ResolvePhysicalPath(string fullPath) {
+        string normalized = Path.GetFullPath(fullPath);
+        string root = Path.GetPathRoot(normalized) ?? string.Empty;
+        if (root.Length == 0) throw new ArgumentException("A rooted resource path is required.", nameof(fullPath));
+
+        string current = root;
+        string[] segments = normalized.Substring(root.Length)
+            .Split(new[] { Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar }, StringSplitOptions.RemoveEmptyEntries);
+        for (int index = 0; index < segments.Length; index++) {
+            string candidate = Path.Combine(current, segments[index]);
+            bool isDirectory = Directory.Exists(candidate);
+            bool isFile = File.Exists(candidate);
+            if (!isDirectory && !isFile) throw new FileNotFoundException("A local PDF resource path component does not exist.", candidate);
+
+#if NET8_0_OR_GREATER
+            FileSystemInfo info = isDirectory ? (FileSystemInfo)new DirectoryInfo(candidate) : new FileInfo(candidate);
+            FileSystemInfo? target = info.ResolveLinkTarget(returnFinalTarget: true);
+            current = target == null ? candidate : target.FullName;
+#else
+            if ((File.GetAttributes(candidate) & FileAttributes.ReparsePoint) != 0) {
+                throw new IOException("Symbolic links and reparse points are not accepted for restricted local PDF resources on this target framework.");
+            }
+            current = candidate;
+#endif
+        }
+
+        return Path.GetFullPath(current);
     }
 
     private static string EnsureTrailingDirectorySeparator(string path) {
@@ -282,11 +329,6 @@ public static partial class MarkdownPdfConverterExtensions {
         sourceName = string.Empty;
         warningCode = "UnsupportedImage";
         warningMessage = "The Markdown data URI image is not a supported base64 PNG or JPEG image.";
-
-        if (!options.IncludeDataUriImages) {
-            warningMessage = "Data URI images are disabled for this Markdown PDF export.";
-            return false;
-        }
 
         int commaIndex = path.IndexOf(',');
         if (commaIndex < 0) {

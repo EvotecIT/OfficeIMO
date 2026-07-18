@@ -138,7 +138,7 @@ internal static partial class RtfPdfConverter {
         PdfCore.PdfColor? foreground = RtfPdfMapping.ToPdfColor(document, run.ForegroundColorIndex);
         PdfCore.PdfColor? background = RtfPdfMapping.ToPdfColor(document, run.HighlightColorIndex)
             ?? RtfPdfMapping.ToPdfColor(document, run.CharacterBackgroundColorIndex);
-        PdfCore.PdfStandardFont? font = RtfPdfMapping.ToPdfFont(document, run.FontId, run.Bold, run.Italic);
+        PdfCore.PdfStandardFont? font = state.ResolveFont(run.FontId, run.Bold, run.Italic);
         string? linkUri = run.Hyperlink?.ToString() ?? inheritedLinkUri;
         string? linkDestinationName = run.Hyperlink == null && linkUri == null ? inheritedLinkDestinationName : null;
         string? linkContents = (linkUri != null || linkDestinationName != null) && run.Hyperlink == null ? inheritedLinkContents : null;

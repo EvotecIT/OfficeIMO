@@ -2,6 +2,7 @@ using OfficeIMO.Excel;
 using OfficeIMO.Markdown;
 using OfficeIMO.Pdf;
 using OfficeIMO.PowerPoint;
+using OfficeIMO.PowerPoint.LegacyPpt;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Markdown;
 using DocumentFormat.OpenXml.Packaging;
@@ -30,7 +31,7 @@ internal static partial class DocumentReaderEngine {
     private static readonly string[] DefaultFolderExtensions = {
         ".docx", ".docm", ".doc",
         ".xlsx", ".xlsm", ".xls",
-        ".pptx", ".pptm",
+        ".pptx", ".pptm", ".ppt", ".pot", ".pps",
         ".md", ".markdown",
         ".pdf",
         ".eml", ".msg", ".oft", ".mbox", ".mbx", ".tnef",
@@ -62,12 +63,24 @@ internal static partial class DocumentReaderEngine {
         new ReaderHandlerCapability {
             Id = "officeimo.reader.powerpoint",
             DisplayName = "PowerPoint Reader",
-            Description = "Built-in PowerPoint (.pptx/.pptm) slide extractor.",
+            Description = "Built-in Open XML PowerPoint (.pptx/.pptm) slide extractor.",
             Kind = ReaderInputKind.PowerPoint,
             Extensions = new[] { ".pptx", ".pptm" },
             IsBuiltIn = true,
             SupportsPath = true,
             SupportsStream = true
+        },
+        new ReaderHandlerCapability {
+            Id = "officeimo.reader.powerpoint.binary",
+            DisplayName = "Binary PowerPoint Reader",
+            Description = "Built-in PowerPoint 97-2003 (.ppt/.pot/.pps) slide extractor.",
+            Kind = ReaderInputKind.PowerPoint,
+            Extensions = new[] { ".ppt", ".pot", ".pps" },
+            IsBuiltIn = true,
+            SupportsPath = true,
+            SupportsStream = true,
+            DefaultMaxInputBytes =
+                LegacyPptImportOptions.DefaultMaxInputBytes
         },
         new ReaderHandlerCapability {
             Id = "officeimo.reader.markdown",
@@ -157,8 +170,14 @@ internal static partial class DocumentReaderEngine {
         return string.Equals(NormalizeExtension(TryGetExtension(path ?? string.Empty)), ".xls", StringComparison.OrdinalIgnoreCase);
     }
 
+    private static bool IsLegacyPowerPointExtension(string? path) {
+        string extension = NormalizeExtension(TryGetExtension(path ?? string.Empty));
+        return extension is ".ppt" or ".pot" or ".pps";
+    }
+
     private static bool IsLegacyBinaryOfficeExtension(string? path) {
-        return IsLegacyWordExtension(path) || IsLegacyExcelExtension(path);
+        return IsLegacyWordExtension(path) || IsLegacyExcelExtension(path)
+            || IsLegacyPowerPointExtension(path);
     }
 
     /// <summary>
@@ -285,14 +304,13 @@ internal static partial class DocumentReaderEngine {
         return extLower switch {
             ".docx" or ".docm" or ".doc" => ReaderInputKind.Word,
             ".xlsx" or ".xlsm" or ".xls" => ReaderInputKind.Excel,
-            ".pptx" or ".pptm" => ReaderInputKind.PowerPoint,
+            ".pptx" or ".pptm" or ".ppt" or ".pot" or ".pps" => ReaderInputKind.PowerPoint,
             ".md" or ".markdown" => ReaderInputKind.Markdown,
             ".pdf" => ReaderInputKind.Pdf,
             ".eml" or ".msg" or ".oft" or ".mbox" or ".mbx" or ".tnef" => ReaderInputKind.Email,
             ".ics" or ".vcs" => ReaderInputKind.Calendar,
             ".vcf" or ".vcard" => ReaderInputKind.VCard,
             ".txt" or ".log" or ".csv" or ".tsv" or ".json" or ".xml" or ".yml" or ".yaml" => ReaderInputKind.Text,
-            ".ppt" => ReaderInputKind.Unknown, // Legacy binary PowerPoint is not supported.
             _ => ReaderInputKind.Unknown
         };
     }

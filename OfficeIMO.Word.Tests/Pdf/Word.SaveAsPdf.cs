@@ -305,7 +305,7 @@ public partial class Word {
     }
 
     [Fact]
-    public void Test_WordDocument_SaveAsPdf_Preserves_Default_Font_Slot_During_Font_Prepass() {
+    public void Test_WordDocument_SaveAsPdf_Preserves_Default_And_Distinct_Run_Fonts_During_Font_Prepass() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfDefaultFontSlotPrepass.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfDefaultFontSlotPrepass.pdf");
 
@@ -318,7 +318,11 @@ public partial class Word {
 
         Assert.True(File.Exists(pdfPath));
         AssertPdfUsesFont(pdfPath, "Times");
-        AssertPdfDoesNotUseFont(pdfPath, "Georgia");
+        if (PdfCore.PdfEmbeddedFontFamily.TryFromSystem("Georgia", out _)) {
+            AssertPdfUsesFont(pdfPath, "Georgia");
+        } else {
+            AssertPdfDoesNotUseFont(pdfPath, "Georgia");
+        }
     }
 
     [Theory]

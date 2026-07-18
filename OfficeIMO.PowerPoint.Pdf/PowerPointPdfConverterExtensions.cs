@@ -118,21 +118,25 @@ public static partial class PowerPointPdfConverterExtensions {
         }
     }
 
-    /// <summary>Asynchronously saves a PowerPoint presentation as PDF at the specified path.</summary>
+    /// <summary>Converts synchronously, then asynchronously saves a PowerPoint presentation PDF at the specified path.</summary>
     public static Task<PdfCore.PdfDocumentConversionResult> SaveAsPdfAsync(
         this PptCore.PowerPointPresentation presentation,
         string path,
         PowerPointPdfSaveOptions? options = null,
-        CancellationToken cancellationToken = default) =>
-        presentation.ToPdfDocumentResult(options).SaveAsync(path, cancellationToken);
+        CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
+        return presentation.ToPdfDocumentResult(options).SaveAsync(path, cancellationToken);
+    }
 
-    /// <summary>Asynchronously saves a PowerPoint presentation as PDF to a caller-owned stream.</summary>
+    /// <summary>Converts synchronously, then asynchronously saves a PowerPoint presentation PDF to a caller-owned stream.</summary>
     public static Task<PdfCore.PdfDocumentConversionResult> SaveAsPdfAsync(
         this PptCore.PowerPointPresentation presentation,
         Stream stream,
         PowerPointPdfSaveOptions? options = null,
-        CancellationToken cancellationToken = default) =>
-        presentation.ToPdfDocumentResult(options).SaveAsync(stream, cancellationToken);
+        CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
+        return presentation.ToPdfDocumentResult(options).SaveAsync(stream, cancellationToken);
+    }
 
     /// <summary>Attempts to asynchronously save a PowerPoint presentation as PDF at the specified path.</summary>
     public static async Task<PdfCore.PdfSaveResult> TrySaveAsPdfAsync(
@@ -140,6 +144,7 @@ public static partial class PowerPointPdfConverterExtensions {
         string path,
         PowerPointPdfSaveOptions? options = null,
         CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         try {
             return await presentation.ToPdfDocumentResult(options)
                 .TrySaveAsync(path, cancellationToken)
@@ -157,6 +162,7 @@ public static partial class PowerPointPdfConverterExtensions {
         Stream stream,
         PowerPointPdfSaveOptions? options = null,
         CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         try {
             return await presentation.ToPdfDocumentResult(options)
                 .TrySaveAsync(stream, cancellationToken)
@@ -170,22 +176,6 @@ public static partial class PowerPointPdfConverterExtensions {
 
     private static void RenderSlide(PdfCore.PdfDocument pdf, PptCore.PowerPointSlide slide, int slideNumber, double pageWidth, double pageHeight, PowerPointPdfSaveOptions options) {
         pdf.Canvas(canvas => {
-            if (options.UseSharedVisualSnapshot && CanUseSharedVisualSnapshot(slide, options)) {
-                PptCore.PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot(
-                    new PptCore.PowerPointImageExportOptions {
-                        IncludeSlideBackground = options.IncludeSlideBackgrounds,
-                        IncludeSlideContent = true
-                    });
-                canvas.Drawing(snapshot.Drawing, 0D, 0D, pageWidth, pageHeight);
-                foreach (OfficeImageExportDiagnostic diagnostic in snapshot.Diagnostics) {
-                    AddWarning(options, slideNumber, "snapshot-" + diagnostic.Code, diagnostic.Message);
-                }
-                return;
-            }
-            if (options.UseSharedVisualSnapshot) {
-                AddWarning(options, slideNumber, "snapshot-selective-fallback",
-                    "Used the per-shape PDF renderer because the selected content filters or style overrides cannot be represented by a complete shared slide snapshot.");
-            }
             RenderSlideBackground(canvas, slide, slideNumber, pageWidth, pageHeight, options);
 
             RenderShapes(canvas, slide.GetInheritedShapesForExport(), slideNumber, pageWidth, pageHeight, options, warnInvalidBounds: false, groupDepth: 0);
@@ -334,35 +324,6 @@ public static partial class PowerPointPdfConverterExtensions {
             case 9: return (3, 3);
             default: return (1, 3);
         }
-    }
-
-    private static bool CanUseSharedVisualSnapshot(PptCore.PowerPointSlide slide,
-        PowerPointPdfSaveOptions options) =>
-        options.IncludePictures && options.IncludeAutoShapes && options.IncludeTextBoxes &&
-        options.IncludeTables && options.IncludeCharts && options.PictureFit == OfficeImageFit.Stretch &&
-        options.ChartStyle == null && options.ChartLayout == null && options.MaxGroupShapeDepth == 32 &&
-        !options.WarnOnPictureAspectRatioDistortion &&
-        !ContainsHyperlinks(slide);
-
-    private static bool ContainsHyperlinks(PptCore.PowerPointSlide slide) {
-        var slideRoot = slide.SlidePart.Slide;
-        if (slideRoot != null &&
-            (slideRoot.Descendants<A.HyperlinkOnClick>().Any() ||
-             slideRoot.Descendants<A.HyperlinkOnHover>().Any())) {
-            return true;
-        }
-
-        var layoutPart = slide.SlidePart.SlideLayoutPart;
-        if (layoutPart?.SlideLayout != null &&
-            (layoutPart.SlideLayout.Descendants<A.HyperlinkOnClick>().Any() ||
-             layoutPart.SlideLayout.Descendants<A.HyperlinkOnHover>().Any())) {
-            return true;
-        }
-
-        var master = layoutPart?.SlideMasterPart?.SlideMaster;
-        return master != null &&
-               (master.Descendants<A.HyperlinkOnClick>().Any() ||
-                master.Descendants<A.HyperlinkOnHover>().Any());
     }
 
     private static void RenderShapes(PdfCore.PdfPageCanvas canvas, IReadOnlyList<PptCore.PowerPointShape> shapes, int slideNumber, double pageWidth, double pageHeight, PowerPointPdfSaveOptions options, bool warnInvalidBounds, int groupDepth) {

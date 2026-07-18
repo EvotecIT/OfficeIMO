@@ -33,12 +33,6 @@ public sealed class PowerPointHtmlSaveOptions {
     /// <summary>When true, emits slide-aligned extraction markdown as proof text.</summary>
     public bool IncludeExtractionProof { get; set; } = true;
 
-    /// <summary>
-    /// When true, the visual-review lane renders the same shared slide snapshot used by PNG/SVG export.
-    /// Positioned shape metadata remains available in a hidden review block for inspection and compatibility.
-    /// </summary>
-    public bool UseSharedVisualSnapshot { get; set; } = true;
-
     /// <summary>Creates a reusable copy of these conversion settings.</summary>
     public PowerPointHtmlSaveOptions Clone() => new PowerPointHtmlSaveOptions {
         Profile = Profile,
@@ -49,7 +43,6 @@ public sealed class PowerPointHtmlSaveOptions {
         IncludeNotes = IncludeNotes,
         IncludeTables = IncludeTables,
         IncludeHiddenShapes = IncludeHiddenShapes,
-        IncludeExtractionProof = IncludeExtractionProof,
-        UseSharedVisualSnapshot = UseSharedVisualSnapshot
+        IncludeExtractionProof = IncludeExtractionProof
     };
 }

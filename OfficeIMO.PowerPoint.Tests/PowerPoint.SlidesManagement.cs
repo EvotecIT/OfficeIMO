@@ -38,6 +38,39 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void RemoveSlide_CleansInboundInternalHyperlinks() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            PowerPointSlide source = presentation.AddSlide();
+            PowerPointTextRun run = source.AddTextBox("Open target")
+                .Paragraphs.Single().Runs.Single();
+            PowerPointSlide target = presentation.AddSlide();
+            target.AddTextBox("Removed target content");
+            run.SetHyperlink(target, "Target slide");
+            Assert.Contains(source.SlidePart.Parts, pair =>
+                ReferenceEquals(pair.OpenXmlPart, target.SlidePart));
+
+            presentation.RemoveSlide(1);
+
+            Assert.Single(presentation.Slides);
+            Assert.DoesNotContain(source.SlidePart.Parts, pair =>
+                ReferenceEquals(pair.OpenXmlPart, target.SlidePart));
+            Assert.Empty(source.SlidePart.Slide
+                .Descendants<A.HyperlinkOnClick>());
+            Assert.Empty(presentation.ValidateDocument());
+            byte[] bytes = presentation.ToBytes();
+            using var stream = new MemoryStream(bytes, writable: false);
+            using PresentationDocument document =
+                PresentationDocument.Open(stream, false);
+            SlidePart remaining = Assert.Single(document.PresentationPart!
+                .SlideParts);
+            Assert.DoesNotContain(remaining.Parts,
+                pair => pair.OpenXmlPart is SlidePart);
+            Assert.Empty(remaining.Slide
+                .Descendants<A.HyperlinkOnClick>());
+        }
+
+        [Fact]
         public void RemovingSlidesDownToOneKeepsPresentationValid() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
 

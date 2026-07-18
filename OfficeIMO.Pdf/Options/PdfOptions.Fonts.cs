@@ -125,6 +125,45 @@ public sealed partial class PdfOptions {
         return registeredFamilies.Add(key);
     }
 
+    internal static string NormalizeOfficeFontFamilyKey(string familyName) =>
+        familyName.Trim().Replace(" ", string.Empty).Replace("-", string.Empty);
+
+    internal bool EmbeddedFontFamilySlotMatches(PdfStandardFont slot, string familyName) {
+        string? embeddedFamilyName = GetEmbeddedFontFamilyName(slot);
+        if (embeddedFamilyName == null) {
+            return false;
+        }
+
+        return string.Equals(
+            NormalizeOfficeFontFamilyKey(embeddedFamilyName),
+            NormalizeOfficeFontFamilyKey(familyName),
+            StringComparison.OrdinalIgnoreCase);
+    }
+
+    internal string? GetEmbeddedFontFamilyName(PdfStandardFont slot) {
+        PdfStandardFont normalizedSlot = PdfStandardFontMapper.GetFontFamily(slot);
+        if (_embeddedFonts == null ||
+            !_embeddedFonts.TryGetValue(normalizedSlot, out PdfEmbeddedFont? embedded) ||
+            string.IsNullOrWhiteSpace(embedded.FontName)) {
+            return null;
+        }
+
+        string embeddedFamilyName = embedded.FontName!;
+        const string regularSuffix = "-Regular";
+        if (embeddedFamilyName.EndsWith(regularSuffix, StringComparison.OrdinalIgnoreCase)) {
+            embeddedFamilyName = embeddedFamilyName.Substring(0, embeddedFamilyName.Length - regularSuffix.Length);
+        }
+
+        return embeddedFamilyName;
+    }
+
+    internal void ApplyInheritedFontFamily(PdfStandardFont slot) {
+        PdfStandardFont normalizedSlot = PdfStandardFontMapper.GetFontFamily(slot);
+        if (!_hasExplicitDefaultFont) _defaultFont = normalizedSlot;
+        if (!_hasExplicitHeaderFont) _headerFont = normalizedSlot;
+        if (!_hasExplicitFooterFont) _footerFont = normalizedSlot;
+    }
+
     internal bool TryRegisterMappedOfficeFontFamily(
         string familyName,
         HashSet<PdfStandardFont> registeredFontSlots,

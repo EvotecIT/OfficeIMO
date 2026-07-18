@@ -24,7 +24,7 @@ public static partial class PowerPointPdfConverterExtensions {
         pdfOptions.Margins = PdfCore.PageMargins.Uniform(0);
         bool preserveConfiguredFontSlots = options.PdfOptions != null;
         if (!string.IsNullOrWhiteSpace(options.FontFamily) &&
-            TryApplyPdfFontFamily(options.FontFamily, pdfOptions, options.AllowSystemFontEmbedding)) {
+            TryApplyPdfFontFamily(options.FontFamily, pdfOptions, options.ResourcePolicy.AllowSystemFontEmbedding)) {
             preserveConfiguredFontSlots = true;
         }
 
@@ -38,7 +38,7 @@ public static partial class PowerPointPdfConverterExtensions {
         PowerPointPdfSaveOptions options,
         bool preserveConfiguredFontSlots,
         IEnumerable<PdfCore.PdfStandardFont> reservedFontSlots) {
-        if (!options.AllowSystemFontEmbedding ||
+        if (!options.ResourcePolicy.AllowSystemFontEmbedding ||
             options.TextFallbacks == PdfCore.PdfTextFallbackFeatures.None) {
             return;
         }
@@ -48,7 +48,7 @@ public static partial class PowerPointPdfConverterExtensions {
             fallbackFeatures &= ~PdfCore.PdfTextFallbackFeatures.DocumentFont;
         }
 
-        pdfOptions.UseTextFallbacks(fallbackFeatures, reservedFontSlots, options.AllowSystemFontEmbedding);
+        pdfOptions.UseTextFallbacks(fallbackFeatures, reservedFontSlots, options.ResourcePolicy.AllowSystemFontEmbedding);
     }
 
     private static bool TryApplyPdfFontFamily(string? familyName, PdfCore.PdfOptions pdfOptions, bool embedSystemFont, bool requireEmbeddedFont = false) {
@@ -92,14 +92,14 @@ public static partial class PowerPointPdfConverterExtensions {
 
         if (shape is PptCore.PowerPointTextBox textBox) {
             if (options.IncludeTextBoxes) {
-                RegisterPresentationTextBoxFonts(textBox, pdfOptions, registeredFamilies, registeredFontSlots, options.AllowSystemFontEmbedding);
+                RegisterPresentationTextBoxFonts(textBox, pdfOptions, registeredFamilies, registeredFontSlots, options.ResourcePolicy.AllowSystemFontEmbedding);
             }
             return;
         }
 
         if (shape is PptCore.PowerPointTable table) {
             if (options.IncludeTables) {
-                RegisterPresentationTableFonts(table, pdfOptions, registeredFamilies, registeredFontSlots, options.AllowSystemFontEmbedding);
+                RegisterPresentationTableFonts(table, pdfOptions, registeredFamilies, registeredFontSlots, options.ResourcePolicy.AllowSystemFontEmbedding);
             }
             return;
         }

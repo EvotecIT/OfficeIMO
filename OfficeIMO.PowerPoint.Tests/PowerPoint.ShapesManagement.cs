@@ -1,10 +1,44 @@
 using System;
 using System.IO;
+using System.Linq;
+using DocumentFormat.OpenXml.Presentation;
 using OfficeIMO.PowerPoint;
 using Xunit;
 
 namespace OfficeIMO.Tests {
     public class PowerPointShapesManagement {
+        [Fact]
+        public void ShapeAllocationStopsWhenDescendantIdsAreExhausted() {
+            byte[] bytes;
+            using (PowerPointPresentation presentation =
+                   PowerPointPresentation.Create()) {
+                PowerPointSlide slide = presentation.AddSlide();
+                PowerPointAutoShape first = slide.AddRectangle(
+                    1000, 1000, 2000, 1000);
+                PowerPointAutoShape second = slide.AddRectangle(
+                    4000, 1000, 2000, 1000);
+                PowerPointGroupShape group = slide.GroupShapes(
+                    new PowerPointShape[] { first, second });
+                NonVisualDrawingProperties descendant = group.GroupShape
+                    .Descendants<NonVisualDrawingProperties>().Last();
+                descendant.Id = uint.MaxValue - 1U;
+                bytes = presentation.ToBytes();
+            }
+
+            using var stream = new MemoryStream(bytes, writable: false);
+            using PowerPointPresentation loaded =
+                PowerPointPresentation.Load(stream);
+            PowerPointSlide loadedSlide = Assert.Single(loaded.Slides);
+            PowerPointAutoShape finalShape = loadedSlide.AddRectangle(
+                7000, 1000, 2000, 1000);
+            Assert.Equal(uint.MaxValue, finalShape.Id);
+            InvalidOperationException exception = Assert.Throws<
+                InvalidOperationException>(() => loadedSlide.AddRectangle(
+                    10000, 1000, 2000, 1000));
+            Assert.Contains("identifier space is exhausted",
+                exception.Message, StringComparison.OrdinalIgnoreCase);
+        }
+
         [Fact]
         public void CanGetAndRemoveShapes() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");

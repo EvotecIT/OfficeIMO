@@ -11,7 +11,7 @@
     <Company>Evotec</Company>
     <Authors>Przemyslaw Klys</Authors>
     <PackageId>OfficeIMO.Reader</PackageId>
-    <PackageTags>reader;ingestion;rag;docx;doc;xlsx;xls;pptx;markdown;pdf;eml;msg;oft;mbox;tnef;ics;icalendar;vcf;vcard;officeimo</PackageTags>
+    <PackageTags>reader;ingestion;rag;docx;doc;xlsx;xls;pptx;pptm;ppt;pot;pps;markdown;pdf;eml;msg;oft;mbox;tnef;ics;icalendar;vcf;vcard;officeimo</PackageTags>
     <PackageProjectUrl>https://github.com/EvotecIT/OfficeIMO</PackageProjectUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <RepositoryUrl>https://github.com/EvotecIT/OfficeIMO</RepositoryUrl>

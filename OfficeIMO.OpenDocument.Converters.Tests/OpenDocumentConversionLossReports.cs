@@ -10,10 +10,138 @@ using OfficeIMO.PowerPoint.OpenDocument;
 using OfficeIMO.Word;
 using OfficeIMO.Word.OpenDocument;
 using Xunit;
+using OpenXmlCell = DocumentFormat.OpenXml.Spreadsheet.Cell;
+using OpenXmlCellFormula = DocumentFormat.OpenXml.Spreadsheet.CellFormula;
+using OpenXmlCellFormulaValues = DocumentFormat.OpenXml.Spreadsheet.CellFormulaValues;
+using OpenXmlDrawing = DocumentFormat.OpenXml.Spreadsheet.Drawing;
+using OpenXmlDrawingsPart = DocumentFormat.OpenXml.Packaging.DrawingsPart;
+using OpenXmlExtendedChartPart = DocumentFormat.OpenXml.Packaging.ExtendedChartPart;
+using OpenXmlExtendedChartSpace = DocumentFormat.OpenXml.Office2016.Drawing.ChartDrawing.ChartSpace;
+using OpenXmlSpreadsheetDocument = DocumentFormat.OpenXml.Packaging.SpreadsheetDocument;
+using OpenXmlWorksheet = DocumentFormat.OpenXml.Spreadsheet.Worksheet;
+using OpenXmlWorksheetDrawing = DocumentFormat.OpenXml.Drawing.Spreadsheet.WorksheetDrawing;
 
 namespace OfficeIMO.OpenDocument.Converters.Tests;
 
 public sealed class OpenDocumentConversionLossReportTests {
+    [Fact]
+    public void ExcelToOdsReportsNativeChartExParts() {
+        string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xlsx");
+        try {
+            using (ExcelDocument created = ExcelDocument.Create(filePath)) {
+                created.AddWorksheet("Data").CellValue(1, 1, 1d);
+                created.Save();
+            }
+
+            using (OpenXmlSpreadsheetDocument spreadsheet = OpenXmlSpreadsheetDocument.Open(filePath, true)) {
+                var worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.Single();
+                OpenXmlDrawingsPart drawingsPart = worksheetPart.AddNewPart<OpenXmlDrawingsPart>();
+                drawingsPart.WorksheetDrawing = new OpenXmlWorksheetDrawing();
+                worksheetPart.Worksheet!.Append(new OpenXmlDrawing {
+                    Id = worksheetPart.GetIdOfPart(drawingsPart)
+                });
+                worksheetPart.Worksheet.Save();
+
+                OpenXmlExtendedChartPart chartPart = drawingsPart.AddNewPart<OpenXmlExtendedChartPart>();
+                chartPart.ChartSpace = new OpenXmlExtendedChartSpace();
+                chartPart.ChartSpace.Save();
+            }
+
+            using ExcelDocument source = ExcelDocument.Load(filePath);
+            ExcelWorkbookSnapshot snapshot = source.CreateInspectionSnapshot();
+            OdfConversionResult<OdsDocument> conversion = source.ToOpenDocumentResult();
+
+            Assert.Equal(1, snapshot.ChartPartCount);
+            Assert.True(snapshot.HasCharts);
+            Assert.Contains(conversion.Report.Mappings, mapping =>
+                mapping.Feature == "charts"
+                && mapping.Status == OdfConversionMappingStatus.Unsupported
+                && mapping.Count == 1);
+        } finally {
+            if (File.Exists(filePath)) {
+                File.Delete(filePath);
+            }
+        }
+    }
+
+    [Fact]
+    public void ExcelToOdsReportsOfficeImoPivotBindingMetadataLoss() {
+        using ExcelDocument source = ExcelDocument.Create();
+        ExcelSheet data = source.AddWorksheet("Data");
+        data.CellValue(1, 1, "Region");
+        data.CellValue(1, 2, "OrderDate");
+        data.CellValue(1, 3, "Sales");
+        data.CellValue(2, 1, "East");
+        data.CellValue(2, 2, new DateTime(2026, 1, 2));
+        data.CellValue(2, 3, 10d);
+        data.AddPivotTable(
+            sourceRange: "A1:C2",
+            destinationCell: "E2",
+            name: "SalesPivot",
+            rowFields: new[] { "Region" });
+        data.AddChart(
+            new ExcelChartData(
+                new[] { "East" },
+                new[] { new ExcelChartSeries("Sales", new[] { 10d }) }),
+            row: 8,
+            column: 1,
+            widthPixels: 500,
+            heightPixels: 300,
+            type: ExcelChartType.ColumnClustered,
+            title: "Sales");
+        source.AddWorkbookSlicerCache(new ExcelSlicerCacheOptions {
+            Name = "RegionSlicer",
+            SourceName = "Region"
+        });
+        source.AddWorkbookTimelineCache(new ExcelTimelineCacheOptions {
+            Name = "OrderTimeline",
+            SourceName = "OrderDate"
+        });
+
+        OdfConversionResult<OdsDocument> conversion = source.ToOpenDocumentResult();
+
+        ExcelWorkbookSnapshot snapshot = source.CreateInspectionSnapshot();
+        Assert.Equal(1, snapshot.ChartPartCount);
+        Assert.Equal(1, snapshot.PivotTablePartCount);
+        Assert.True(snapshot.HasCharts);
+        Assert.True(snapshot.HasPivotTables);
+
+        Assert.Contains(conversion.Report.Mappings, mapping =>
+            mapping.Feature == "slicer-binding-metadata"
+            && mapping.Status == OdfConversionMappingStatus.Unsupported
+            && mapping.Count == 1);
+        Assert.Contains(conversion.Report.Mappings, mapping =>
+            mapping.Feature == "timeline-binding-metadata"
+            && mapping.Status == OdfConversionMappingStatus.Unsupported
+            && mapping.Count == 1);
+        Assert.Contains(conversion.Report.Mappings, mapping =>
+            mapping.Feature == "charts"
+            && mapping.Status == OdfConversionMappingStatus.Unsupported
+            && mapping.Count == 1);
+        Assert.Contains(conversion.Report.Mappings, mapping =>
+            mapping.Feature == "pivot-tables"
+            && mapping.Status == OdfConversionMappingStatus.Unsupported
+            && mapping.Count == 1);
+    }
+
+    [Theory]
+    [InlineData(ExcelFileFormat.Xlsx, "XLSX")]
+    [InlineData(ExcelFileFormat.Xls, "XLS")]
+    [InlineData(ExcelFileFormat.Xlsb, "XLSB")]
+    public void ExcelToOdsReportUsesActualSourceFormat(ExcelFileFormat format, string expectedLabel) {
+        byte[] bytes;
+        using (ExcelDocument created = ExcelDocument.Create()) {
+            created.AddWorksheet("Data").CellValue(1, 1, 1d);
+            bytes = created.ToBytes(format);
+        }
+
+        using ExcelDocument source = ExcelDocument.Load(new MemoryStream(bytes, writable: false));
+        OdfConversionResult<OdsDocument> conversion = source.ToOpenDocumentResult();
+
+        Assert.Equal(format, source.SourceFormat);
+        Assert.Equal(expectedLabel, conversion.Report.SourceFormat);
+    }
+
     [Fact]
     public void ExcelFormulaConversionDoesNotRewriteQuotedCellLikeText() {
         using ExcelDocument source = ExcelDocument.Create(new MemoryStream());
@@ -51,6 +179,46 @@ public sealed class OpenDocumentConversionLossReportTests {
         using ExcelDocument roundTrip = reverse.Value;
         ExcelCellSnapshot formula = roundTrip.CreateInspectionSnapshot().Worksheets.Single(sheet => sheet.Name == "Data").Cells.Single();
         Assert.Equal("SUM('Other'!A1,'Other Sheet'!B2:C3)", formula.Formula);
+    }
+
+    [Fact]
+    public void ExcelToOdsExpandsSharedFormulaFollowers() {
+        string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xlsx");
+        try {
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorksheet("Data");
+                sheet.CellValue(1, 1, 1d);
+                sheet.CellValue(2, 1, 2d);
+                sheet.CellFormula(1, 2, "A1+1");
+                sheet.CellFormula(2, 2, "A2+1");
+                document.Save();
+            }
+
+            using (OpenXmlSpreadsheetDocument spreadsheet = OpenXmlSpreadsheetDocument.Open(filePath, true)) {
+                OpenXmlWorksheet worksheet = spreadsheet.WorkbookPart!.WorksheetParts.Single().Worksheet
+                    ?? throw new InvalidDataException("Worksheet is missing.");
+                OpenXmlCell master = Assert.Single(worksheet.Descendants<OpenXmlCell>(), cell => cell.CellReference?.Value == "B1")!;
+                OpenXmlCell follower = Assert.Single(worksheet.Descendants<OpenXmlCell>(), cell => cell.CellReference?.Value == "B2")!;
+                master.CellFormula = new OpenXmlCellFormula("A1+1") {
+                    FormulaType = OpenXmlCellFormulaValues.Shared,
+                    SharedIndex = 0U,
+                    Reference = "B1:B2"
+                };
+                follower.CellFormula = new OpenXmlCellFormula {
+                    FormulaType = OpenXmlCellFormulaValues.Shared,
+                    SharedIndex = 0U
+                };
+                worksheet.Save();
+            }
+
+            using ExcelDocument source = ExcelDocument.Load(filePath);
+            OdsDocument converted = source.ToOpenDocument();
+            Assert.Equal("of:=[.A2]+1", converted.GetSheet("Data")!.Cell(1, 1).Formula);
+        } finally {
+            if (File.Exists(filePath)) {
+                File.Delete(filePath);
+            }
+        }
     }
 
     [Fact]

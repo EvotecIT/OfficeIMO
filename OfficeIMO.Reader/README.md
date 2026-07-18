@@ -65,10 +65,27 @@ Built-in and modular adapters can extract:
 
 - Word (`.docx`, `.docm`, `.doc`) as Markdown chunks.
 - Excel (`.xlsx`, `.xlsm`, `.xls`) as table chunks and optional Markdown previews.
-- PowerPoint (`.pptx`, `.pptm`) as slide-aligned chunks, optionally including notes.
+- PowerPoint (`.pptx`, `.pptm`, `.ppt`, `.pot`, `.pps`) as slide-aligned chunks, optionally including notes. Binary files use the OfficeIMO.PowerPoint projection model and expose import diagnostics as warnings.
 - Markdown (`.md`, `.markdown`) as parser-aware heading chunks.
 - EML/MIME, Outlook MSG/MAPI, TNEF/`winmail.dat`, and mbox as message, body, attachment, and embedded-item chunks. Rich results include attachment assets and typed Outlook metadata.
 - OpenDocument (`.odt`, `.ods`, `.odp`), PDF, RTF, Visio, HTML, CSV/TSV, JSON, XML, YAML, EPUB, ZIP, standalone images, Jupyter notebooks, SRT/WebVTT subtitles, and structured text through modular adapter packages.
+
+Use `OpenPassword` for password-protected Open XML or legacy binary Office input. Binary PowerPoint images
+are returned through the same rich-result asset contract as PPTX images:
+
+```csharp
+OfficeDocumentReadResult deck = DocumentReader.ReadDocument(
+    "protected.ppt",
+    new ReaderOptions {
+        OpenPassword = "open-password",
+        IncludePowerPointNotes = true
+    });
+
+Console.WriteLine($"{deck.Pages.Count} slides, {deck.Assets.Count} assets");
+foreach (OfficeDocumentDiagnostic diagnostic in deck.Diagnostics) {
+    Console.WriteLine($"{diagnostic.Code}: {diagnostic.Message}");
+}
+```
 
 ## Modular adapters
 
@@ -423,7 +440,7 @@ Rich handlers return `OfficeDocumentReadResult` directly and can populate the co
 
 ## Host contracts
 
-- `ReaderOptions` controls chunk size, table row limits, footnotes/notes, Excel ranges, Markdown heading chunking, hashes, and input budgets.
+- `ReaderOptions` controls chunk size, table row limits, footnotes/notes, passwords, Excel ranges, Markdown heading chunking, hashes, and input budgets.
 - `ReaderFolderOptions` controls recursion, file limits, byte limits, reparse-point handling, and deterministic folder order.
 - `OfficeDocumentReader.GetCapabilities()` and `GetCapabilityManifestJson()` expose the frozen configuration of that reader instance.
 - Capability records distinguish basic path/stream support from native rich-result support through `SupportsDocumentPath` and `SupportsDocumentStream`.

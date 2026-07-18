@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using OfficeIMO.PowerPoint;
 using Xunit;
+using A = DocumentFormat.OpenXml.Drawing;
 
 namespace OfficeIMO.Tests {
     public class PowerPointExportTests {
@@ -36,6 +37,31 @@ namespace OfficeIMO.Tests {
                     File.Delete(exportedPath);
                 }
             }
+        }
+
+        [Fact]
+        public void ExportSlide_OmitsInternallyLinkedTargetSlides() {
+            using PowerPointPresentation source =
+                PowerPointPresentation.Create();
+            PowerPointSlide exportedSource = source.AddSlide();
+            PowerPointTextRun run = exportedSource.AddTextBox("Target")
+                .Paragraphs.Single().Runs.Single();
+            PowerPointSlide linkedTarget = source.AddSlide();
+            linkedTarget.AddTitle("Do not export");
+            run.SetHyperlink(linkedTarget);
+            using var destination = new MemoryStream();
+
+            source.ExportSlide(0, destination);
+
+            destination.Position = 0;
+            using PowerPointPresentation exported =
+                PowerPointPresentation.Load(destination);
+            Assert.Single(exported.Slides);
+            Assert.Empty(exported.Slides[0].SlidePart.Slide!
+                .Descendants<A.HyperlinkOnClick>());
+            Assert.Single(exported.OpenXmlDocument.PresentationPart!
+                .SlideParts);
+            Assert.Empty(exported.ValidateDocument());
         }
     }
 }

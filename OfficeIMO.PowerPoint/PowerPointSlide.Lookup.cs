@@ -156,6 +156,16 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
+        ///     Retrieves an embedded OLE object by its shape name.
+        /// </summary>
+        public PowerPointOleObject? GetOleObject(string name) {
+            if (name == null) {
+                throw new ArgumentNullException(nameof(name));
+            }
+            return OleObjects.FirstOrDefault(ole => ole.Name == name);
+        }
+
+        /// <summary>
         ///     Removes the specified shape from the slide.
         /// </summary>
         public void RemoveShape(PowerPointShape shape) {
@@ -164,9 +174,98 @@ namespace OfficeIMO.PowerPoint {
             }
 
             EnsureShapeOnSlide(shape);
+            var knownRelationshipIds = new HashSet<string>(
+                _slidePart.Parts.Select(pair => pair.RelationshipId)
+                    .Concat(_slidePart.DataPartReferenceRelationships
+                        .Select(relationship => relationship.Id))
+                    .Concat(_slidePart.ExternalRelationships.Select(
+                        relationship => relationship.Id))
+                    .Concat(_slidePart.HyperlinkRelationships.Select(
+                        relationship => relationship.Id)),
+                StringComparer.Ordinal);
+            string[] relationshipIds = new[] { shape.Element }
+                .Concat(shape.Element.Descendants())
+                .SelectMany(element => element.GetAttributes())
+                .Where(IsRelationshipAttribute)
+                .Select(attribute => attribute.Value)
+                .Where(value => value != null
+                    && knownRelationshipIds.Contains(value))
+                .Cast<string>()
+                .Distinct(StringComparer.Ordinal)
+                .ToArray();
+            var removedShapeIds = new HashSet<uint>(shape.Element
+                .Descendants<NonVisualDrawingProperties>()
+                .Select(properties => properties.Id?.Value)
+                .Where(id => id.HasValue)
+                .Select(id => id!.Value));
+            if (shape.Id.HasValue) removedShapeIds.Add(shape.Id.Value);
+            PowerPointClassicAnimation[] remainingAnimations =
+                ReadClassicAnimations().Where(animation =>
+                    !removedShapeIds.Contains(animation.ShapeId)).ToArray();
+            if (remainingAnimations.Length != ClassicAnimations.Count) {
+                SetClassicAnimations(remainingAnimations);
+            }
             shape.Element.Remove();
             _shapes.Remove(shape);
+            foreach (string relationshipId in relationshipIds) {
+                RemoveSlideRelationshipIfUnused(relationshipId);
+            }
         }
+
+        private void RemoveSlideRelationshipIfUnused(
+            string relationshipId) {
+            if (SlideRoot.GetAttributes().Any(attribute =>
+                    IsRelationshipAttribute(attribute)
+                    && string.Equals(attribute.Value, relationshipId,
+                        StringComparison.Ordinal))
+                || SlideRoot.Descendants().Any(element =>
+                    element.GetAttributes().Any(attribute =>
+                        IsRelationshipAttribute(attribute)
+                        && string.Equals(attribute.Value, relationshipId,
+                            StringComparison.Ordinal)))) {
+                return;
+            }
+            DataPartReferenceRelationship? dataRelationship = _slidePart
+                .DataPartReferenceRelationships.FirstOrDefault(
+                    relationship => string.Equals(relationship.Id,
+                        relationshipId, StringComparison.Ordinal));
+            if (dataRelationship != null) {
+                DataPart dataPart = dataRelationship.DataPart;
+                _slidePart.DeleteReferenceRelationship(dataRelationship);
+                if (!dataPart.GetDataPartReferenceRelationships().Any()
+                    && _slidePart.OpenXmlPackage is PresentationDocument
+                        document) {
+                    document.DeletePart(dataPart);
+                }
+                return;
+            }
+            ExternalRelationship? external = _slidePart
+                .ExternalRelationships.FirstOrDefault(relationship =>
+                    string.Equals(relationship.Id, relationshipId,
+                        StringComparison.Ordinal));
+            if (external != null) {
+                _slidePart.DeleteReferenceRelationship(external);
+                return;
+            }
+            HyperlinkRelationship? hyperlink = _slidePart
+                .HyperlinkRelationships.FirstOrDefault(relationship =>
+                    string.Equals(relationship.Id, relationshipId,
+                        StringComparison.Ordinal));
+            if (hyperlink != null) {
+                _slidePart.DeleteReferenceRelationship(hyperlink);
+                return;
+            }
+            if (_slidePart.TryGetPartById(relationshipId,
+                    out _)) {
+                _slidePart.DeletePart(relationshipId);
+            }
+        }
+
+        private static bool IsRelationshipAttribute(
+            OpenXmlAttribute attribute) => string.Equals(
+            attribute.NamespaceUri,
+            "http://schemas.openxmlformats.org/officeDocument/2006/relationships",
+            StringComparison.Ordinal);
 
         private static int CountOccurrences(string value, string oldValue) {
             int count = 0;

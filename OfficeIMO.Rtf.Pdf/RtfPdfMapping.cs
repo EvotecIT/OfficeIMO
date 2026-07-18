@@ -43,21 +43,6 @@ internal static class RtfPdfMapping {
         return PdfCore.PdfColor.FromRgb(color.Red, color.Green, color.Blue);
     }
 
-    internal static PdfCore.PdfStandardFont? ToPdfFont(RtfDocument document, int? fontId, bool bold, bool italic) {
-        if (!fontId.HasValue) {
-            return null;
-        }
-
-        RtfFont? font = document.Fonts.FirstOrDefault(item => item.Id == fontId.Value);
-        if (font == null) {
-            return null;
-        }
-
-        return PdfCore.PdfStandardFontMapper.TryMapFontFamily(font.Name, bold, italic, out PdfCore.PdfStandardFont mapped)
-            ? mapped
-            : (PdfCore.PdfStandardFont?)null;
-    }
-
     internal static PdfCore.PdfPageNumberStyle ToPdfPageNumberStyle(RtfPageNumberFormat format) {
         switch (format) {
             case RtfPageNumberFormat.UpperRoman:

@@ -93,15 +93,17 @@ public sealed class AsciiDocToMarkdownContractTests {
     }
 
     [Fact]
-    public void TypedMarkdownProjection_UsesExistingPdfBridge() {
-        const string source = "= Guide\n\n== Start\nParagraph text\n\n|===\n|Name |Value\n|===\n";
-        AsciiDocToMarkdownResult conversion = AsciiDocDocument.Parse(source).Document.ToMarkdownDocumentResult();
-
-        var pdf = conversion.Value.ToPdfDocument();
-        byte[] bytes = pdf.ToBytes();
+    public void DirectPdfAdapter_PreservesProjectionDiagnosticsAndProducesPdf() {
+        const string source = "= Guide\n\n== Start\nParagraph with stem:[x^2].\n\n|===\n|Name |Value\n|===\n";
+        var result = AsciiDocDocument.Parse(source).Document.ToPdfDocumentResult();
+        byte[] bytes = result.ToBytes();
 
         Assert.True(bytes.Length > 100);
         Assert.Equal("%PDF-", Encoding.ASCII.GetString(bytes, 0, 5));
+        Assert.Contains(result.Warnings, warning =>
+            warning.Converter == "OfficeIMO.AsciiDoc.Pdf" &&
+            warning.Code == "ADOCMD103" &&
+            warning.Details["stage"] == "semantic-projection");
     }
 
     [Fact]

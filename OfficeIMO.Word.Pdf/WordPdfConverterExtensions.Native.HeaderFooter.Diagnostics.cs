@@ -154,7 +154,7 @@ namespace OfficeIMO.Word.Pdf {
                 });
             }
 
-            bool includePageNumbers = options?.IncludePageNumbers ?? true;
+            bool includePageNumbers = options?.IncludePageNumbers ?? false;
             if (!includePageNumbers && defaultFooter == null && !hasFirstFooterVariant && !hasEvenFooterVariant &&
                 defaultFooterImages.Count == 0 && firstFooterImages.Count == 0 && evenFooterImages.Count == 0 &&
                 defaultFooterShapes.Count == 0 && firstFooterShapes.Count == 0 && evenFooterShapes.Count == 0) {

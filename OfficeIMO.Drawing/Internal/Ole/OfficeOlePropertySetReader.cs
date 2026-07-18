@@ -35,14 +35,20 @@ namespace OfficeIMO.Drawing.Internal {
             var sections = new List<OfficeOlePropertySection>(checked((int)sectionCount));
             for (int i = 0; i < sectionCount; i++) {
                 int entryOffset = sectionListOffset + i * 20;
+                var formatIdBytes = new byte[16];
+                Buffer.BlockCopy(bytes, entryOffset, formatIdBytes, 0,
+                    formatIdBytes.Length);
+                var formatId = new Guid(formatIdBytes);
                 uint sectionOffset = ReadUInt32(bytes, entryOffset + 16);
-                sections.Add(ReadSection(bytes, checked((int)sectionOffset)));
+                sections.Add(ReadSection(bytes, checked((int)sectionOffset),
+                    formatId));
             }
 
             return sections;
         }
 
-        private static OfficeOlePropertySection ReadSection(byte[] bytes, int sectionOffset) {
+        private static OfficeOlePropertySection ReadSection(byte[] bytes,
+            int sectionOffset, Guid formatId) {
             if (sectionOffset < 0 || sectionOffset + 8 > bytes.Length) {
                 throw new InvalidDataException("The OLE property section is outside the stream.");
             }
@@ -89,7 +95,8 @@ namespace OfficeIMO.Drawing.Internal {
                 properties[offset.Key] = ReadPropertyValue(bytes, offset.Value, codePage);
             }
 
-            return new OfficeOlePropertySection(properties, dictionary);
+            return new OfficeOlePropertySection(formatId, properties,
+                dictionary);
         }
 
         private static Dictionary<uint, string> ReadDictionary(byte[] bytes, int offset, int codePage) {

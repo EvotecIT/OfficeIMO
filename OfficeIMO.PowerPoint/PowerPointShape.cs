@@ -70,18 +70,16 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
-        ///     External click hyperlink assigned to the shape, when present.
+        ///     Click hyperlink assigned to the shape, when present. Internal slide links are
+        ///     returned as stable Markdown-compatible fragments such as <c>#slide-2</c>.
         /// </summary>
         public Uri? Hyperlink {
             get {
                 if (OwnerSlide == null) return null;
-                string? relationshipId = GetNonVisualDrawingProperties(create: false)?
-                    .GetFirstChild<A.HyperlinkOnClick>()?
-                    .Id;
-                if (string.IsNullOrWhiteSpace(relationshipId)) return null;
-                return OwnerSlide.SlidePart.HyperlinkRelationships
-                    .FirstOrDefault(relationship => string.Equals(relationship.Id, relationshipId, StringComparison.Ordinal))?
-                    .Uri;
+                return PowerPointHyperlinkResolver.Resolve(
+                    OwnerSlide.SlidePart, OwnerSlide.SlidePart,
+                    GetNonVisualDrawingProperties(create: false)?
+                        .GetFirstChild<A.HyperlinkOnClick>());
             }
         }
 
@@ -96,6 +94,17 @@ namespace OfficeIMO.PowerPoint {
         public uint? ShapePlaceholderIndex => GetPlaceholderShape()?.Index?.Value;
 
         /// <summary>
+        ///     Preferred placeholder size associated with the shape, if any.
+        /// </summary>
+        public PlaceholderSizeValues? ShapePlaceholderSize => GetPlaceholderShape()?.Size?.Value;
+
+        /// <summary>
+        ///     Placeholder orientation associated with the shape, if any.
+        /// </summary>
+        public DirectionValues? ShapePlaceholderOrientation =>
+            GetPlaceholderShape()?.Orientation?.Value;
+
+        /// <summary>
         ///     Primary content type represented by this shape wrapper.
         /// </summary>
         public PowerPointShapeContentType ShapeContentType => Element switch {
@@ -105,6 +114,7 @@ namespace OfficeIMO.PowerPoint {
             GraphicFrame g when g.Graphic?.GraphicData?.GetFirstChild<A.Table>() != null => PowerPointShapeContentType.Table,
             GraphicFrame g when g.Graphic?.GraphicData?.GetFirstChild<C.ChartReference>() != null => PowerPointShapeContentType.Chart,
             GraphicFrame g when g.Graphic?.GraphicData?.GetFirstChild<Dgm.RelationshipIds>() != null => PowerPointShapeContentType.SmartArt,
+            GraphicFrame g when g.Graphic?.GraphicData?.GetFirstChild<OleObject>() != null => PowerPointShapeContentType.OleObject,
             ConnectionShape => PowerPointShapeContentType.Connector,
             Shape s when s.TextBody != null => PowerPointShapeContentType.TextBox,
             Shape => PowerPointShapeContentType.AutoShape,
@@ -183,6 +193,6 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static bool IsDrawingElement(OpenXmlElement element) =>
-            element is Shape or Picture or GraphicFrame or GroupShape;
+            element is Shape or ConnectionShape or Picture or GraphicFrame or GroupShape;
     }
 }

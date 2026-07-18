@@ -38,18 +38,37 @@ namespace OfficeIMO.Drawing.Internal {
 
         /// <summary>Rewrites selected streams while retaining the source directory hierarchy and metadata.</summary>
         internal static byte[] Rewrite(OfficeCompoundFile source,
-            IReadOnlyDictionary<string, byte[]> replacementStreams) {
+            IReadOnlyDictionary<string, byte[]> replacementStreams,
+            IReadOnlyCollection<string>? removedPaths = null) {
             if (source == null) throw new ArgumentNullException(nameof(source));
             if (replacementStreams == null) throw new ArgumentNullException(nameof(replacementStreams));
+            var removals = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            if (removedPaths != null) {
+                foreach (string path in removedPaths) {
+                    if (path == null) throw new ArgumentException("Removed compound paths cannot be null.", nameof(removedPaths));
+                    string normalized = NormalizePath(path);
+                    if (normalized.Length == 0) {
+                        throw new ArgumentException("The compound root cannot be removed.", nameof(removedPaths));
+                    }
+                    removals.Add(normalized);
+                }
+            }
             var replacements = new Dictionary<string, byte[]>(StringComparer.OrdinalIgnoreCase);
             foreach (KeyValuePair<string, byte[]> replacement in replacementStreams) {
-                replacements[replacement.Key.Replace('\\', '/').Trim('/')] = replacement.Value
+                string normalized = NormalizePath(replacement.Key);
+                if (IsRemoved(normalized, removals)) {
+                    throw new ArgumentException(
+                        $"Replacement stream '{normalized}' is inside a removed compound path.",
+                        nameof(replacementStreams));
+                }
+                replacements[normalized] = replacement.Value
                     ?? throw new ArgumentException("Replacement stream bytes cannot be null.", nameof(replacementStreams));
             }
 
             var streams = new List<OfficeCompoundStream>();
             var retainedPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach (OfficeCompoundFileEntry entry in source.Entries.Where(entry => entry.IsStream && !entry.IsFallback)) {
+                if (IsRemoved(entry.Path, removals)) continue;
                 byte[] bytes = replacements.TryGetValue(entry.Path, out byte[]? replacement)
                     ? replacement
                     : source.Streams[entry.Path];
@@ -65,14 +84,29 @@ namespace OfficeIMO.Drawing.Internal {
                 throw new ArgumentException("At least one compound stream is required.", nameof(source));
             }
             using (var output = new MemoryStream()) {
-                Write(output, OfficeCompoundWriterLayout.Create(streams, source),
-                    source.RootEntry.ClassId == Guid.Empty ? null : source.RootEntry.ClassId);
+                Write(output, OfficeCompoundWriterLayout.Create(streams,
+                        source, removals),
+                    source.RootEntry.ClassId == Guid.Empty
+                        ? null
+                        : source.RootEntry.ClassId);
                 return output.ToArray();
             }
         }
 
-        private static void Write(Stream output, OfficeCompoundWriterLayout directoryLayout, Guid? rootClassId) {
+        private static string NormalizePath(string path) =>
+            path.Replace('\\', '/').Trim('/');
 
+        private static bool IsRemoved(string path, IReadOnlyCollection<string> removals) {
+            foreach (string removal in removals) {
+                if (string.Equals(path, removal, StringComparison.OrdinalIgnoreCase)
+                    || path.StartsWith(removal + "/", StringComparison.OrdinalIgnoreCase)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        private static void Write(Stream output, OfficeCompoundWriterLayout directoryLayout, Guid? rootClassId) {
             PaddedStream[] paddedStreams = directoryLayout.Streams
                 .Select(PadStream)
                 .OrderBy(stream => stream.Entry.Path, StringComparer.OrdinalIgnoreCase)

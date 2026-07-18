@@ -19,7 +19,7 @@ namespace OfficeIMO.PowerPoint {
             string shapeName = name ?? GenerateUniqueName(shapeType.ToString());
             Shape shape = new(
                 new NonVisualShapeProperties(
-                    new NonVisualDrawingProperties { Id = _nextShapeId++, Name = shapeName },
+                    new NonVisualDrawingProperties { Id = AllocateShapeId(), Name = shapeName },
                     new NonVisualShapeDrawingProperties(new A.ShapeLocks { NoGrouping = true }),
                     new ApplicationNonVisualDrawingProperties()),
                 new ShapeProperties(

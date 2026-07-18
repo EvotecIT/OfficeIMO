@@ -48,7 +48,7 @@ PdfDocument.Create(new PdfOptions {
 - Provides reusable conversion proof snapshots for generated PDFs, artifact hashes, required page counts, page sizes, document metadata, outline titles, URI links, form fields, named destinations, page labels, attachments, output intents, optional-content/layer metadata, catalog/viewer metadata, XMP/tagged metadata, text markers, logical readback signals, expected and accepted warning contracts, and post-processing hand-off. Compliance proof records bind external validator name, version, profile, result, warnings, SHA-256, byte length, and validation time to the exact artifact.
 - Provides reusable rewrite-preservation proof for page geometry, metadata, navigation, catalog/viewer/action state, optional content, tagged content, security signatures, document versions, and source-structure markers such as incremental updates, xref streams, and object streams.
 - Provides a reusable rewrite-preservation matrix for classifying named manipulation scenarios as rewrite-safe, preservation-failed, blocked by safety checks, or operation-failed, including optional-content/layer drift, targeted form-fill preservation, form/tagged/active-content/signature blockers, and fluent `PdfDocument` helpers for normal document rewrite operations.
-- Serves as the shared engine for Word, Excel, Markdown, HTML, and PowerPoint PDF adapters.
+- Serves as the shared engine for Word, Excel, PowerPoint, Markdown, HTML, RTF, OneNote, AsciiDoc, and LaTeX PDF adapters.
 
 ## Existing PDF workflows
 
@@ -346,7 +346,7 @@ using var document = WordDocument.Load("proposal.docx");
 
 var options = new PdfSaveOptions {
     TextFallbacks = PdfTextFallbackFeatures.Default,
-    AllowSystemFontEmbedding = true
+    ResourcePolicy = PdfResourcePolicy.CreateTrustedHost()
 }.UseProfile(PdfExportProfile.PrintReady);
 
 var result = document.ToPdfDocumentResult(options);
@@ -354,7 +354,9 @@ result.Report.RequireNoErrorWarnings();
 result.Save("proposal.pdf");
 ```
 
-The Markdown, Word, Excel, PowerPoint, and OneNote PDF adapters expose the same `TextFallbacks` enum. `PdfTextFallbackFeatures.Default` enables document, monospace, symbol, and emoji groups. Add `PdfTextFallbackFeatures.MultilingualFonts` for installed CJK, Arabic, and other non-Latin families; OneNote adds that flag automatically unless fallbacks are set to `None`. Use `PdfTextFallbackFeatures.None` when strict standard-font output is preferred, or `AllowSystemFontEmbedding = true` when the converter may embed installed host fonts.
+The Word, Excel, PowerPoint, Markdown, HTML, RTF, OneNote, AsciiDoc, and LaTeX PDF adapters use one `PdfResourcePolicy`; semantic-projection adapters expose it through their nested Markdown PDF options. The balanced default enables installed fonts and bounded data URI/package resources for document fidelity while denying arbitrary local files and remote resolver calls. Use `PdfResourcePolicy.CreatePortableDeterministic()` for reproducible or untrusted conversion, and `CreateTrustedHost()` only when both source and host are trusted. Profiles never grant resource access.
+
+The text-capable adapters also expose `TextFallbacks`. `PdfTextFallbackFeatures.Default` enables document, monospace, symbol, and emoji groups. Add `PdfTextFallbackFeatures.MultilingualFonts` for CJK, Arabic, and other non-Latin family candidates; OneNote adds that candidate group unless fallbacks are `None`. Candidate selection does not read installed fonts unless the resource policy allows it.
 
 ### Generate a formal e-invoice carrier
 
@@ -464,6 +466,12 @@ PdfHtmlConverterExtensions.SaveAsHtml(
 | [OfficeIMO.Markdown.Pdf](../OfficeIMO.Markdown.Pdf/README.md) | Maps Markdown documents into PDF primitives. |
 | [OfficeIMO.PowerPoint.Pdf](../OfficeIMO.PowerPoint.Pdf/README.md) | Maps PowerPoint slides into PDF primitives. |
 | [OfficeIMO.Html.Pdf](../OfficeIMO.Html.Pdf/README.md) | Bridges HTML to PDF and PDF to HTML. |
+| [OfficeIMO.Rtf.Pdf](../OfficeIMO.Rtf.Pdf/README.md) | Maps semantic RTF into PDF and logical PDF content back to RTF. |
+| [OfficeIMO.OneNote.Pdf](../OfficeIMO.OneNote.Pdf/README.md) | Explicitly projects offline OneNote hierarchy into a semantic PDF document with loss diagnostics. |
+| [OfficeIMO.AsciiDoc.Pdf](../OfficeIMO.AsciiDoc.Pdf/README.md) | Projects native AsciiDoc through the loss-aware Markdown bridge and combines parser, projection, and PDF diagnostics. |
+| [OfficeIMO.Latex.Pdf](../OfficeIMO.Latex.Pdf/README.md) | Projects the bounded LaTeX profile through the loss-aware Markdown bridge without executing TeX. |
+
+The canonical catalog records OpenDocument as manual loss-aware composition and formats that are intentionally not advertised as direct conversion yet: email, EPUB, and Visio. See [`Docs/pdf-conversion-scenarios.json`](../Docs/pdf-conversion-scenarios.json).
 
 ## Boundaries
 

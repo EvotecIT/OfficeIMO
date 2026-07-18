@@ -94,7 +94,7 @@ var options = new PowerPointPdfSaveOptions {
 }.UseProfile(PdfExportProfile.Faithful);
 
 options.TextFallbacks = PdfTextFallbackFeatures.Default;
-options.AllowSystemFontEmbedding = true;
+options.ResourcePolicy = PdfResourcePolicy.CreateTrustedHost();
 
 var result = presentation.TrySaveAsPdf("complex-deck.pdf", options);
 if (!result.Succeeded) {
@@ -116,8 +116,9 @@ result.Report.RequireNoErrorWarnings();
 - Slide backgrounds, text boxes, supported pictures, supported tables, supported charts, and basic auto-shapes.
 - Text box fill, outline, margins, font defaults, alignment, vertical anchoring, rich runs, and hyperlinks.
 - Supported JPEG/PNG pictures through the shared PDF image pipeline.
-- Faithful and print-ready profiles consume the same shared visual snapshot as PNG/SVG and visual-review HTML. Selective profiles retain the per-shape path.
-- Profile presets through `PowerPointPdfSaveOptions.UseProfile(...)`, plus shared `TextFallbacks` and `AllowSystemFontEmbedding` controls for Unicode, symbols, and emoji.
+- Full-slide PDF output always uses the native per-shape PDF renderer, including hyperlinks and rich text. Conversion no longer chooses a different renderer from document content or an option toggle.
+- PNG, SVG, visual-review HTML, and notes/handout thumbnails use the shared visual snapshot; those surfaces have a different scene/raster contract and do not select the PDF engine at runtime.
+- Profile presets through `PowerPointPdfSaveOptions.UseProfile(...)`, plus shared `TextFallbacks` and `ResourcePolicy` controls. The balanced default uses installed fonts while denying arbitrary local and remote reads; portable deterministic mode is explicit.
 - Per-operation conversion warnings through `PdfDocumentConversionResult.Report` or `PdfSaveResult.Report`.
 
 ## PDF table import

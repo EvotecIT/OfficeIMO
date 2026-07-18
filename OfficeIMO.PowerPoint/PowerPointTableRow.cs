@@ -69,7 +69,8 @@ namespace OfficeIMO.PowerPoint {
         ///     Row cells.
         /// </summary>
         public IReadOnlyList<PowerPointTableCell> Cells =>
-            Row.Elements<A.TableCell>().Select(cell => new PowerPointTableCell(cell)).ToList();
+            Row.Elements<A.TableCell>().Select(cell =>
+                new PowerPointTableCell(cell, _table.SlidePart)).ToList();
 
         /// <summary>
         ///     Retrieves a cell at the specified column index.
@@ -80,14 +81,14 @@ namespace OfficeIMO.PowerPoint {
             }
 
             A.TableCell cell = Row.Elements<A.TableCell>().ElementAt(columnIndex);
-            return new PowerPointTableCell(cell);
+            return new PowerPointTableCell(cell, _table.SlidePart);
         }
 
         /// <summary>
         ///     Removes this row from the table.
         /// </summary>
         public void Remove() {
-            Row.Remove();
+            _table.RemoveRow(Row);
         }
     }
 }

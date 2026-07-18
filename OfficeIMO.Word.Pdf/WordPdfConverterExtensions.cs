@@ -170,6 +170,7 @@ namespace OfficeIMO.Word.Pdf {
         /// Attempts to save the specified <see cref="WordDocument"/> as a PDF file asynchronously and returns output diagnostics instead of throwing.
         /// </summary>
         public static async Task<PdfCore.PdfSaveResult> TrySaveAsPdfAsync(this WordDocument document, string path, PdfSaveOptions? options = null, CancellationToken cancellationToken = default) {
+            cancellationToken.ThrowIfCancellationRequested();
             try {
                 if (document == null) {
                     throw new ArgumentNullException(nameof(document));
@@ -217,6 +218,7 @@ namespace OfficeIMO.Word.Pdf {
         /// Attempts to write the specified <see cref="WordDocument"/> as a PDF to a stream asynchronously and returns output diagnostics instead of throwing.
         /// </summary>
         public static async Task<PdfCore.PdfSaveResult> TrySaveAsPdfAsync(this WordDocument document, Stream stream, PdfSaveOptions? options = null, CancellationToken cancellationToken = default) {
+            cancellationToken.ThrowIfCancellationRequested();
             try {
                 if (document == null) {
                     throw new ArgumentNullException(nameof(document));

@@ -220,6 +220,7 @@ public class MarkdownSaveAsPdfVisualTests {
             .Create()
             .Add(new ParagraphBlock(new InlineSequence().Image("Remote badge", imageUrl, "Remote badge caption")));
         var options = CreateVisualOptions();
+        options.ResourcePolicy = PdfCore.PdfResourcePolicy.CreateTrustedHost();
         options.RemoteImageResolver = _ => CreateGifBytes();
 
         PdfCore.PdfDocumentConversionResult result = document.ToPdfDocumentResult(options);

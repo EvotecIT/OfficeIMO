@@ -71,6 +71,7 @@
     <InternalsVisibleTo Include="OfficeIMO.Word.Pdf" />
     <InternalsVisibleTo Include="OfficeIMO.Excel.Pdf" />
     <InternalsVisibleTo Include="OfficeIMO.PowerPoint.Pdf" />
+    <InternalsVisibleTo Include="OfficeIMO.Rtf.Pdf" />
   </ItemGroup>
 
 </Project>

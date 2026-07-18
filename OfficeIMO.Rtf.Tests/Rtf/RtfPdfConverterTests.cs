@@ -9,6 +9,104 @@ namespace OfficeIMO.Tests.Rtf;
 
 public class RtfPdfConverterTests {
     [Fact]
+    public void RtfDocument_ToPdfDocument_ResourcePolicyControlsSystemFontEmbedding() {
+        string? installedFamily = new[] { "Arial", "Calibri", "Liberation Sans", "DejaVu Sans" }
+            .FirstOrDefault(candidate => PdfCore.PdfEmbeddedFontFamily.TryFromSystem(candidate, out _));
+        if (installedFamily == null) return;
+
+        RtfDocument document = RtfDocument.Create();
+        int fontId = document.AddFont(installedFamily);
+        document.Settings.SetDefaultFont(fontId);
+        RtfRun run = document.AddParagraph().AddText("RTF font policy marker");
+        run.FontId = fontId;
+
+        PdfCore.PdfDocument portable = document.ToPdfDocument(new RtfPdfSaveOptions {
+            ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic()
+        });
+        PdfCore.PdfDocument balanced = document.ToPdfDocument();
+
+        Assert.Empty(portable.Options.EmbeddedFonts);
+        Assert.NotEmpty(balanced.Options.EmbeddedFonts);
+        Assert.Contains("RTF font policy marker", PdfCore.PdfReadDocument.Load(portable.ToBytes()).ExtractText(), StringComparison.Ordinal);
+        Assert.Contains("RTF font policy marker", PdfCore.PdfReadDocument.Load(balanced.ToBytes()).ExtractText(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void RtfDocument_ToPdfDocument_UnrelatedPdfOptionsPreserveRtfDefaultFont() {
+        string? installedFamily = new[] { "Arial", "Calibri", "Liberation Sans", "DejaVu Sans" }
+            .FirstOrDefault(candidate => PdfCore.PdfEmbeddedFontFamily.TryFromSystem(candidate, out _));
+        if (installedFamily == null) return;
+
+        RtfDocument document = RtfDocument.Create();
+        int fontId = document.AddFont(installedFamily);
+        document.Settings.SetDefaultFont(fontId);
+        document.AddParagraph("RTF configured default marker");
+        var callerPdfOptions = new PdfCore.PdfOptions {
+            CompressContentStreams = false
+        };
+
+        PdfCore.PdfDocumentConversionResult result = document.ToPdfDocumentResult(new RtfPdfSaveOptions {
+            PdfOptions = callerPdfOptions
+        });
+
+        Assert.False(callerPdfOptions.HasExplicitDefaultFont);
+        Assert.Empty(callerPdfOptions.EmbeddedFonts);
+        Assert.True(result.Value.Options.EmbeddedFontFamilySlotMatches(result.Value.Options.DefaultFont, installedFamily));
+        Assert.Equal(result.Value.Options.DefaultFont, result.Value.Options.HeaderFont);
+        Assert.Equal(result.Value.Options.DefaultFont, result.Value.Options.FooterFont);
+        Assert.False(result.Value.Options.HasExplicitDefaultFont);
+        Assert.False(result.Value.Options.HasExplicitHeaderFont);
+        Assert.False(result.Value.Options.HasExplicitFooterFont);
+    }
+
+    [Fact]
+    public void RtfDocument_ToPdfDocument_ExplicitPdfDefaultFontOverridesRtfDefaultFont() {
+        RtfDocument document = RtfDocument.Create();
+        document.Settings.SetDefaultFont(0);
+        document.AddParagraph("RTF explicit PDF default marker");
+        var callerPdfOptions = new PdfCore.PdfOptions {
+            DefaultFont = PdfCore.PdfStandardFont.Courier,
+            HeaderFont = PdfCore.PdfStandardFont.TimesRoman
+        };
+
+        PdfCore.PdfDocumentConversionResult result = document.ToPdfDocumentResult(new RtfPdfSaveOptions {
+            PdfOptions = callerPdfOptions,
+            ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic()
+        });
+
+        Assert.True(callerPdfOptions.HasExplicitDefaultFont);
+        Assert.Equal(PdfCore.PdfStandardFont.Courier, result.Value.Options.DefaultFont);
+        Assert.Equal(PdfCore.PdfStandardFont.TimesRoman, result.Value.Options.HeaderFont);
+        Assert.Equal(PdfCore.PdfStandardFont.Courier, result.Value.Options.FooterFont);
+        Assert.True(result.Value.Options.HasExplicitHeaderFont);
+        Assert.False(result.Value.Options.HasExplicitFooterFont);
+    }
+
+    [Fact]
+    public void RtfDocument_ToPdfDocument_ReportsFontSlotExhaustionAndUsesDefaultRunSlot() {
+        var pdfOptions = new PdfCore.PdfOptions();
+        pdfOptions.RegisterFontFamily(PdfCore.PdfStandardFont.Helvetica, new PdfCore.PdfEmbeddedFontFamily("Caller Sans", new byte[] { 1 }));
+        pdfOptions.RegisterFontFamily(PdfCore.PdfStandardFont.TimesRoman, new PdfCore.PdfEmbeddedFontFamily("Caller Serif", new byte[] { 2 }));
+        pdfOptions.RegisterFontFamily(PdfCore.PdfStandardFont.Courier, new PdfCore.PdfEmbeddedFontFamily("Caller Mono", new byte[] { 3 }));
+
+        RtfDocument document = RtfDocument.Create();
+        document.Settings.SetDefaultFont(0);
+        int runFontId = document.AddFont("Arial");
+        RtfRun run = document.AddParagraph().AddText("RTF exhausted font marker");
+        run.FontId = runFontId;
+
+        PdfCore.PdfDocumentConversionResult result = document.ToPdfDocumentResult(new RtfPdfSaveOptions {
+            PdfOptions = pdfOptions,
+            ResourcePolicy = PdfCore.PdfResourcePolicy.CreateTrustedHost()
+        });
+
+        PdfCore.PdfConversionWarning warning = Assert.Single(result.Warnings, item => item.Code == "FontFamilySlotExhausted");
+        Assert.Equal("Arial", warning.Details["fontFamily"]);
+        PdfCore.RichParagraphBlock paragraph = Assert.IsType<PdfCore.RichParagraphBlock>(Assert.Single(result.Value.Blocks));
+        Assert.Null(Assert.Single(paragraph.Runs).Font);
+    }
+
+    [Fact]
     public void RtfDocument_ToPdfDocument_Renders_Paragraphs_Runs_And_PageSetup() {
         RtfDocument document = RtfDocument.Create();
         document.Info.Title = "RTF PDF";
@@ -451,9 +549,9 @@ public class RtfPdfConverterTests {
 
         Assert.True(amount.Left > label.Right, $"Expected tabbed amount to render after label. LabelRight={label.Right}; AmountLeft={amount.Left}.");
         Assert.InRange(amount.Right, expectedRight - 10D, expectedRight + 10D);
-
-        string content = ExtractPdfContentStreams(pdf);
-        Assert.Contains("2E2E2E", content, StringComparison.Ordinal);
+        Assert.True(
+            letters.Count(letter => letter.Value == "." && letter.StartBaseLine.X > label.Right && letter.EndBaseLine.X < amount.Left) >= 3,
+            "Expected at least three visible dot-leader glyphs between the label and amount.");
 
         static (double Left, double Right) FindTextBounds(IReadOnlyList<UglyToad.PdfPig.Content.Letter> letters, string text) {
             for (int index = 0; index <= letters.Count - text.Length; index++) {
