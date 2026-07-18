@@ -17,6 +17,7 @@ using System.Runtime.CompilerServices;
 [assembly: InternalsVisibleTo("OfficeIMO.OpenDocument")]
 [assembly: InternalsVisibleTo("OfficeIMO.Pdf")]
 [assembly: InternalsVisibleTo("OfficeIMO.PowerPoint")]
+[assembly: InternalsVisibleTo("OfficeIMO.PowerPoint.Tests")]
 [assembly: InternalsVisibleTo("OfficeIMO.Rtf")]
 [assembly: InternalsVisibleTo("OfficeIMO.Rtf.Markdown")]
 [assembly: InternalsVisibleTo("OfficeIMO.Reader")]

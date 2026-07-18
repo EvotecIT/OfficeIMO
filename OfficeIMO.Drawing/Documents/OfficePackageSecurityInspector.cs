@@ -143,7 +143,9 @@ namespace OfficeIMO.Drawing {
             var relationshipParts = new List<ZipXmlPart>();
             ZipXmlPart? contentTypesPart = null;
 
-            ZipCentralDirectoryScanResult centralDirectory = ScanZipCentralDirectory(bytes, options.MaxPartCount);
+            OfficeArchiveSafety.ZipCentralDirectoryScanResult centralDirectory =
+                OfficeArchiveSafety.ScanZipCentralDirectory(bytes,
+                    options.MaxPartCount);
             if (!centralDirectory.IsValid) {
                 findings.Add(Error(OfficePackageSecurityRule.MalformedPackage,
                     centralDirectory.Error ?? "The ZIP central directory is malformed."));

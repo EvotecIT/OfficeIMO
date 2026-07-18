@@ -17,161 +17,128 @@ namespace OfficeIMO.PowerPoint {
         public SlideTransition Transition {
             get {
                 Transition? t = GetTransitionElement();
-                if (t == null) {
-                    return SlideTransition.None;
-                }
-
-                if (t.GetFirstChild<FadeTransition>() != null) {
-                    return SlideTransition.Fade;
-                }
-
-                if (t.GetFirstChild<WipeTransition>() != null) {
-                    return SlideTransition.Wipe;
-                }
-
-                BlindsTransition? blinds = t.GetFirstChild<BlindsTransition>();
-                if (blinds != null) {
-                    return blinds.Direction?.Value == DirectionValues.Vertical
-                        ? SlideTransition.BlindsVertical
-                        : SlideTransition.BlindsHorizontal;
-                }
-
-                CombTransition? comb = t.GetFirstChild<CombTransition>();
-                if (comb != null) {
-                    return comb.Direction?.Value == DirectionValues.Vertical
-                        ? SlideTransition.CombVertical
-                        : SlideTransition.CombHorizontal;
-                }
-
-                PushTransition? push = t.GetFirstChild<PushTransition>();
-                if (push != null) {
-                    TransitionSlideDirectionValues? direction = push.Direction?.Value;
-                    if (direction == TransitionSlideDirectionValues.Up) {
-                        return SlideTransition.PushUp;
-                    }
-
-                    if (direction == TransitionSlideDirectionValues.Down) {
-                        return SlideTransition.PushDown;
-                    }
-
-                    if (direction == TransitionSlideDirectionValues.Right) {
-                        return SlideTransition.PushRight;
-                    }
-
-                    return SlideTransition.PushLeft;
-                }
-
-                if (t.GetFirstChild<CutTransition>() != null) {
-                    return SlideTransition.Cut;
-                }
-
-                if (t.GetFirstChild<P14.FlashTransition>() != null) {
-                    return SlideTransition.Flash;
-                }
-
-                P14.WarpTransition? warp = t.GetFirstChild<P14.WarpTransition>();
-                if (warp != null) {
-                    return warp.Direction?.Value == TransitionInOutDirectionValues.Out
-                        ? SlideTransition.WarpOut
-                        : SlideTransition.WarpIn;
-                }
-
-                if (t.GetFirstChild<P14.PrismTransition>() != null) {
-                    return SlideTransition.Prism;
-                }
-
-                P14.FerrisTransition? ferris = t.GetFirstChild<P14.FerrisTransition>();
-                if (ferris != null) {
-                    return ferris.Direction?.Value == P14.TransitionLeftRightDirectionTypeValues.Right
-                        ? SlideTransition.FerrisRight
-                        : SlideTransition.FerrisLeft;
-                }
-
-                if (HasMorphTransition(t)) {
-                    return SlideTransition.Morph;
-                }
-
-                return SlideTransition.None;
+                return t == null ? SlideTransition.None
+                    : GetTransitionValue(t);
             }
             set {
                 SlideTransitionSpeed? speed = TransitionSpeed;
                 double? durationSeconds = TransitionDurationSeconds;
                 bool? advanceOnClick = TransitionAdvanceOnClick;
                 double? advanceAfterSeconds = TransitionAdvanceAfterSeconds;
+                SoundAction? soundAction = GetTransitionElement()?
+                    .GetFirstChild<SoundAction>()?.CloneNode(true) as SoundAction;
+                string[] soundRelationshipIds =
+                    GetTransitionSoundRelationshipIds();
 
                 RemoveTransitionMarkup();
                 if (value == SlideTransition.None) {
+                    RemoveUnusedTransitionSounds(soundRelationshipIds);
                     return;
                 }
 
                 if (value == SlideTransition.Morph) {
                     SetMorphTransition();
+                    foreach (Transition morphTransition in
+                             GetTransitionElements()) {
+                        if (soundAction != null) {
+                            morphTransition.Append(soundAction.CloneNode(true));
+                        }
+                        ApplyTransitionSettings(morphTransition, speed,
+                            durationSeconds, advanceOnClick,
+                            advanceAfterSeconds);
+                    }
+                    RemoveUnusedTransitionSounds(soundRelationshipIds);
                     return;
                 }
 
                 Transition transition = new();
-                switch (value) {
-                    case SlideTransition.Fade:
-                        transition.Append(new FadeTransition());
-                        break;
-                    case SlideTransition.Wipe:
-                        transition.Append(new WipeTransition());
-                        break;
-                    case SlideTransition.BlindsVertical:
-                        transition.Append(new BlindsTransition { Direction = DirectionValues.Vertical });
-                        break;
-                    case SlideTransition.BlindsHorizontal:
-                        transition.Append(new BlindsTransition { Direction = DirectionValues.Horizontal });
-                        break;
-                    case SlideTransition.CombHorizontal:
-                        transition.Append(new CombTransition { Direction = DirectionValues.Horizontal });
-                        break;
-                    case SlideTransition.CombVertical:
-                        transition.Append(new CombTransition { Direction = DirectionValues.Vertical });
-                        break;
-                    case SlideTransition.PushUp:
-                        transition.Append(new PushTransition { Direction = TransitionSlideDirectionValues.Up });
-                        break;
-                    case SlideTransition.PushDown:
-                        transition.Append(new PushTransition { Direction = TransitionSlideDirectionValues.Down });
-                        break;
-                    case SlideTransition.PushLeft:
-                        transition.Append(new PushTransition { Direction = TransitionSlideDirectionValues.Left });
-                        break;
-                    case SlideTransition.PushRight:
-                        transition.Append(new PushTransition { Direction = TransitionSlideDirectionValues.Right });
-                        break;
-                    case SlideTransition.Cut:
-                        transition.Append(new CutTransition());
-                        break;
-                    case SlideTransition.Flash:
-                        transition.AddNamespaceDeclaration("p14", P14Namespace);
-                        transition.Append(new P14.FlashTransition());
-                        break;
-                    case SlideTransition.WarpIn:
-                        transition.AddNamespaceDeclaration("p14", P14Namespace);
-                        transition.Append(new P14.WarpTransition { Direction = TransitionInOutDirectionValues.In });
-                        break;
-                    case SlideTransition.WarpOut:
-                        transition.AddNamespaceDeclaration("p14", P14Namespace);
-                        transition.Append(new P14.WarpTransition { Direction = TransitionInOutDirectionValues.Out });
-                        break;
-                    case SlideTransition.Prism:
-                        transition.AddNamespaceDeclaration("p14", P14Namespace);
-                        transition.Append(new P14.PrismTransition { IsContent = true });
-                        break;
-                    case SlideTransition.FerrisLeft:
-                        transition.AddNamespaceDeclaration("p14", P14Namespace);
-                        transition.Append(new P14.FerrisTransition { Direction = P14.TransitionLeftRightDirectionTypeValues.Left });
-                        break;
-                    case SlideTransition.FerrisRight:
-                        transition.AddNamespaceDeclaration("p14", P14Namespace);
-                        transition.Append(new P14.FerrisTransition { Direction = P14.TransitionLeftRightDirectionTypeValues.Right });
-                        break;
+                OpenXmlElement? classicTransition = CreateClassicTransition(value);
+                if (classicTransition != null) {
+                    transition.Append(classicTransition);
+                } else {
+                    switch (value) {
+                        case SlideTransition.Flash:
+                            transition.AddNamespaceDeclaration("p14", P14Namespace);
+                            transition.Append(new P14.FlashTransition());
+                            break;
+                        case SlideTransition.WarpIn:
+                            transition.AddNamespaceDeclaration("p14", P14Namespace);
+                            transition.Append(new P14.WarpTransition { Direction = TransitionInOutDirectionValues.In });
+                            break;
+                        case SlideTransition.WarpOut:
+                            transition.AddNamespaceDeclaration("p14", P14Namespace);
+                            transition.Append(new P14.WarpTransition { Direction = TransitionInOutDirectionValues.Out });
+                            break;
+                        case SlideTransition.Prism:
+                            transition.AddNamespaceDeclaration("p14", P14Namespace);
+                            transition.Append(new P14.PrismTransition { IsContent = true });
+                            break;
+                        case SlideTransition.FerrisLeft:
+                            transition.AddNamespaceDeclaration("p14", P14Namespace);
+                            transition.Append(new P14.FerrisTransition { Direction = P14.TransitionLeftRightDirectionTypeValues.Left });
+                            break;
+                        case SlideTransition.FerrisRight:
+                            transition.AddNamespaceDeclaration("p14", P14Namespace);
+                            transition.Append(new P14.FerrisTransition { Direction = P14.TransitionLeftRightDirectionTypeValues.Right });
+                            break;
+                    }
                 }
 
                 SlideRoot.Transition = transition;
+                if (soundAction != null) transition.Append(soundAction);
                 ApplyTransitionSettings(GetTransitionElement(), speed, durationSeconds, advanceOnClick, advanceAfterSeconds);
+                RemoveUnusedTransitionSounds(soundRelationshipIds);
+            }
+        }
+
+        internal static SlideTransition GetTransitionValue(
+            Transition transition) {
+            if (transition == null) {
+                throw new ArgumentNullException(nameof(transition));
+            }
+
+            SlideTransition? classicTransition = GetClassicTransition(
+                transition);
+            if (classicTransition.HasValue) {
+                return classicTransition.Value;
+            }
+
+            if (transition.GetFirstChild<P14.FlashTransition>() != null) {
+                return SlideTransition.Flash;
+            }
+
+            P14.WarpTransition? warp = transition
+                .GetFirstChild<P14.WarpTransition>();
+            if (warp != null) {
+                return warp.Direction?.Value == TransitionInOutDirectionValues.Out
+                    ? SlideTransition.WarpOut
+                    : SlideTransition.WarpIn;
+            }
+
+            if (transition.GetFirstChild<P14.PrismTransition>() != null) {
+                return SlideTransition.Prism;
+            }
+
+            P14.FerrisTransition? ferris = transition
+                .GetFirstChild<P14.FerrisTransition>();
+            if (ferris != null) {
+                return ferris.Direction?.Value == P14.TransitionLeftRightDirectionTypeValues.Right
+                    ? SlideTransition.FerrisRight
+                    : SlideTransition.FerrisLeft;
+            }
+
+            if (HasMorphTransition(transition)) {
+                return SlideTransition.Morph;
+            }
+
+            return SlideTransition.None;
+        }
+
+        private void RemoveUnusedTransitionSounds(
+            IEnumerable<string> relationshipIds) {
+            foreach (string relationshipId in relationshipIds) {
+                PowerPointEmbeddedSound.RemoveIfUnused(_slidePart,
+                    relationshipId);
             }
         }
 
@@ -197,17 +164,17 @@ namespace OfficeIMO.PowerPoint {
                 return SlideTransitionSpeed.Medium;
             }
             set {
-                Transition? transition = GetTransitionElement();
-                if (transition == null) {
-                    return;
+                foreach (Transition transition in GetTransitionElements()) {
+                    transition.Speed = value switch {
+                        SlideTransitionSpeed.Slow =>
+                            TransitionSpeedValues.Slow,
+                        SlideTransitionSpeed.Fast =>
+                            TransitionSpeedValues.Fast,
+                        SlideTransitionSpeed.Medium =>
+                            TransitionSpeedValues.Medium,
+                        _ => null
+                    };
                 }
-
-                transition.Speed = value switch {
-                    SlideTransitionSpeed.Slow => TransitionSpeedValues.Slow,
-                    SlideTransitionSpeed.Fast => TransitionSpeedValues.Fast,
-                    SlideTransitionSpeed.Medium => TransitionSpeedValues.Medium,
-                    _ => null
-                };
             }
         }
 
@@ -224,16 +191,15 @@ namespace OfficeIMO.PowerPoint {
                 return milliseconds.Value / 1000.0;
             }
             set {
-                Transition? transition = GetTransitionElement();
-                if (transition == null) {
-                    return;
-                }
-
-                if (value.HasValue) {
-                    EnsureTransitionCompatibilityNamespace(transition, "p14", P14Namespace);
-                    transition.Duration = ToMillisecondsString(value);
-                } else {
-                    RemoveTransitionAttribute(transition, "dur", P14Namespace);
+                foreach (Transition transition in GetTransitionElements()) {
+                    if (value.HasValue) {
+                        EnsureTransitionCompatibilityNamespace(transition,
+                            "p14", P14Namespace);
+                        transition.Duration = ToMillisecondsString(value);
+                    } else {
+                        RemoveTransitionAttribute(transition, "dur",
+                            P14Namespace);
+                    }
                 }
             }
         }
@@ -246,15 +212,13 @@ namespace OfficeIMO.PowerPoint {
                 return GetTransitionElement()?.AdvanceOnClick?.Value;
             }
             set {
-                Transition? transition = GetTransitionElement();
-                if (transition == null) {
-                    return;
-                }
-
-                if (value.HasValue) {
-                    transition.AdvanceOnClick = value;
-                } else {
-                    RemoveTransitionAttribute(transition, "advClick", string.Empty);
+                foreach (Transition transition in GetTransitionElements()) {
+                    if (value.HasValue) {
+                        transition.AdvanceOnClick = value;
+                    } else {
+                        RemoveTransitionAttribute(transition, "advClick",
+                            string.Empty);
+                    }
                 }
             }
         }
@@ -272,15 +236,14 @@ namespace OfficeIMO.PowerPoint {
                 return milliseconds.Value / 1000.0;
             }
             set {
-                Transition? transition = GetTransitionElement();
-                if (transition == null) {
-                    return;
-                }
-
-                if (value.HasValue) {
-                    transition.AdvanceAfterTime = ToMillisecondsString(value);
-                } else {
-                    RemoveTransitionAttribute(transition, "advTm", string.Empty);
+                foreach (Transition transition in GetTransitionElements()) {
+                    if (value.HasValue) {
+                        transition.AdvanceAfterTime =
+                            ToMillisecondsString(value);
+                    } else {
+                        RemoveTransitionAttribute(transition, "advTm",
+                            string.Empty);
+                    }
                 }
             }
         }
@@ -392,24 +355,34 @@ namespace OfficeIMO.PowerPoint {
         }
 
         internal Transition? GetTransitionElement() {
-            Transition? transition = SlideRoot.Transition;
-            if (transition != null) {
-                return transition;
-            }
+            return GetTransitionElements().FirstOrDefault();
+        }
 
+        internal IReadOnlyList<Transition> GetTransitionElements() {
+            return GetTransitionBranches()
+                .Where(candidate => candidate != null)
+                .Cast<Transition>()
+                .ToArray();
+        }
+
+        internal IReadOnlyList<Transition?> GetTransitionBranches() {
+            if (SlideRoot.Transition is Transition transition) {
+                return new Transition?[] { transition };
+            }
             AlternateContent? alternateContent = GetTransitionAlternateContent();
             if (alternateContent == null) {
-                return null;
+                return Array.Empty<Transition?>();
             }
-
-            foreach (AlternateContentChoice choice in alternateContent.Elements<AlternateContentChoice>()) {
-                Transition? choiceTransition = choice.GetFirstChild<Transition>();
-                if (choiceTransition != null) {
-                    return choiceTransition;
-                }
+            List<Transition?> branches = alternateContent
+                .Elements<AlternateContentChoice>()
+                .Select(choice => choice.GetFirstChild<Transition>())
+                .ToList();
+            AlternateContentFallback? fallback = alternateContent
+                .GetFirstChild<AlternateContentFallback>();
+            if (fallback != null) {
+                branches.Add(fallback.GetFirstChild<Transition>());
             }
-
-            return alternateContent.GetFirstChild<AlternateContentFallback>()?.GetFirstChild<Transition>();
+            return branches;
         }
 
         private AlternateContent? GetTransitionAlternateContent() {
@@ -426,8 +399,15 @@ namespace OfficeIMO.PowerPoint {
 
         private void SetMorphTransition() {
             Slide slide = SlideRoot;
-            slide.AddNamespaceDeclaration("mc", MarkupCompatibilityNamespace);
-            slide.AddNamespaceDeclaration("p159", P159Namespace);
+            if (!string.Equals(slide.LookupNamespace("mc"),
+                    MarkupCompatibilityNamespace, StringComparison.Ordinal)) {
+                slide.AddNamespaceDeclaration("mc",
+                    MarkupCompatibilityNamespace);
+            }
+            if (!string.Equals(slide.LookupNamespace("p159"),
+                    P159Namespace, StringComparison.Ordinal)) {
+                slide.AddNamespaceDeclaration("p159", P159Namespace);
+            }
             slide.MCAttributes = MergeIgnorableNamespace(slide.MCAttributes, "p159");
 
             Transition morphTransition = new();

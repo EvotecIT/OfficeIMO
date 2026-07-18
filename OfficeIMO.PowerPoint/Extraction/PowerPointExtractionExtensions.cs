@@ -1,7 +1,11 @@
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Threading;
+using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml.Presentation;
+using A = DocumentFormat.OpenXml.Drawing;
 
 namespace OfficeIMO.PowerPoint;
 
@@ -54,18 +58,16 @@ public static class PowerPointExtractionExtensions {
             md.Append("## Slide ").AppendLine(slideNumber.ToString(System.Globalization.CultureInfo.InvariantCulture));
             md.AppendLine();
 
-            // TextBoxes in shape order.
-            foreach (var tb in slide.TextBoxes) {
+            int tableIndex = 0;
+            foreach (PowerPointShape shape in slide.EnumerateShapesDeep(
+                         slide.Shapes, extract.IncludeHiddenShapes)) {
                 cancellationToken.ThrowIfCancellationRequested();
-                if (!extract.IncludeHiddenShapes && tb.Hidden) continue;
-                var text = (tb.Text ?? string.Empty).Trim();
-                if (text.Length == 0) continue;
-                md.AppendLine(text);
-                md.AppendLine();
-            }
 
-            if (extract.IncludeTables) {
-                AppendTablesMarkdown(md, slide, extract);
+                if (shape is PowerPointTextBox textBox) {
+                    AppendTextBoxMarkdown(md, textBox);
+                } else if (extract.IncludeTables && shape is PowerPointTable table) {
+                    AppendTableMarkdown(md, table, ref tableIndex);
+                }
             }
 
             if (extract.IncludeNotes) {
@@ -77,9 +79,16 @@ public static class PowerPointExtractionExtensions {
                 }
             }
 
-            var markdown = md.ToString().TrimEnd();
+            var markdown = NormalizeLineEndings(md.ToString()).TrimEnd();
             if (markdown.Length > chunking.MaxChars) {
-                markdown = markdown.Substring(0, chunking.MaxChars) + "\n\n<!-- truncated -->";
+                int truncationLength = chunking.MaxChars;
+                if (truncationLength > 0
+                    && char.IsHighSurrogate(markdown[truncationLength - 1])
+                    && char.IsLowSurrogate(markdown[truncationLength])) {
+                    truncationLength--;
+                }
+                markdown = markdown.Substring(0, truncationLength)
+                    + "\n\n<!-- truncated -->";
                 warnings = new List<string> { "Markdown truncated to MaxChars." };
             }
 
@@ -98,29 +107,218 @@ public static class PowerPointExtractionExtensions {
         }
     }
 
-    private static void AppendTablesMarkdown(StringBuilder markdown, PowerPointSlide slide, PowerPointExtractOptions extract) {
-        int tableIndex = 0;
-        foreach (var table in slide.Tables) {
-            if (!extract.IncludeHiddenShapes && table.Hidden) continue;
-            tableIndex++;
-            List<IReadOnlyList<string>> rows = table.RowItems
-                .Select(row => (IReadOnlyList<string>)row.Cells.Select(cell => NormalizeText(cell.Text)).ToList())
-                .ToList();
+    private static string NormalizeLineEndings(string value) =>
+        value.Replace("\r\n", "\n").Replace('\r', '\n');
 
-            if (rows.Count == 0 || rows.All(row => row.All(string.IsNullOrWhiteSpace))) {
+    private static void AppendTextBoxMarkdown(StringBuilder markdown, PowerPointTextBox textBox) {
+        bool isTitle = textBox.ShapePlaceholderType == PlaceholderValues.Title
+            || textBox.ShapePlaceholderType == PlaceholderValues.CenteredTitle;
+        var numberingState = new Dictionary<int, int>();
+        var listContentIndents = new Dictionary<int, int>();
+        bool appended = false;
+        ParagraphMarkdownKind? previousKind = null;
+        foreach (PowerPointParagraph paragraph in textBox.Paragraphs) {
+            string text = RenderParagraphText(paragraph).Trim();
+            if (text.Length == 0) {
+                numberingState.Clear();
+                listContentIndents.Clear();
+                if (appended) previousKind = ParagraphMarkdownKind.Plain;
                 continue;
             }
 
-            int columnCount = rows.Max(row => row.Count);
-            if (columnCount == 0) {
-                continue;
+            ParagraphMarkdownKind kind = isTitle
+                ? ParagraphMarkdownKind.Heading
+                : paragraph.IsNumbered
+                    ? ParagraphMarkdownKind.NumberedList
+                    : !string.IsNullOrEmpty(paragraph.BulletCharacter)
+                        ? ParagraphMarkdownKind.BulletList
+                        : ParagraphMarkdownKind.Plain;
+            if (appended && previousKind.HasValue
+                && (!IsListKind(previousKind.Value) || !IsListKind(kind))) {
+                markdown.AppendLine();
             }
 
-            markdown.Append("### Table ").AppendLine(tableIndex.ToString(System.Globalization.CultureInfo.InvariantCulture));
-            markdown.AppendLine();
-            AppendMarkdownTable(markdown, rows, columnCount);
+            if (kind == ParagraphMarkdownKind.Heading) {
+                numberingState.Clear();
+                listContentIndents.Clear();
+                markdown.Append("### ").AppendLine(text);
+            } else {
+                int level = Math.Max(0, paragraph.Level ?? 0);
+                if (kind == ParagraphMarkdownKind.NumberedList) {
+                    RemoveListState(numberingState, level,
+                        includeLevel: false);
+                    RemoveListState(listContentIndents, level,
+                        includeLevel: false);
+                } else if (kind == ParagraphMarkdownKind.BulletList) {
+                    RemoveListState(numberingState, level,
+                        includeLevel: true);
+                    RemoveListState(listContentIndents, level,
+                        includeLevel: false);
+                } else {
+                    numberingState.Clear();
+                    listContentIndents.Clear();
+                }
+                int indent = ResolveListIndent(level, listContentIndents);
+                if (kind == ParagraphMarkdownKind.NumberedList) {
+                    int number = ResolveNumberingValue(paragraph, level, numberingState);
+                    string markdownMarker = number.ToString(CultureInfo.InvariantCulture) + ".";
+                    string powerPointMarker = PowerPointNumberingFormatter.FormatMarker(
+                        number, paragraph.NumberingScheme);
+                    markdown.Append(' ', indent);
+                    markdown.Append(markdownMarker).Append(' ');
+                    // CommonMark only recognizes decimal ordered-list markers.
+                    // Retain the displayed PowerPoint marker as visible text.
+                    if (!string.Equals(markdownMarker, powerPointMarker, StringComparison.Ordinal)) {
+                        markdown.Append(powerPointMarker).Append(' ');
+                    }
+                    markdown.AppendLine(text);
+                    UpdateListContentIndent(listContentIndents, level,
+                        checked(indent + markdownMarker.Length + 1));
+                } else if (kind == ParagraphMarkdownKind.BulletList) {
+                    char markdownMarker = ResolveBulletMarker(
+                        paragraph.BulletCharacter);
+                    markdown.Append(' ', indent);
+                    markdown.Append(markdownMarker).Append(' ');
+                    if (!string.Equals(markdownMarker.ToString(),
+                            paragraph.BulletCharacter,
+                            StringComparison.Ordinal)) {
+                        markdown.Append(paragraph.BulletCharacter)
+                            .Append(' ');
+                    }
+                    markdown.AppendLine(text);
+                    UpdateListContentIndent(listContentIndents, level,
+                        checked(indent + 2));
+                } else {
+                    markdown.AppendLine(text);
+                }
+            }
+            appended = true;
+            previousKind = kind;
+        }
+
+        if (appended) {
             markdown.AppendLine();
         }
+    }
+
+    private static int ResolveNumberingValue(PowerPointParagraph paragraph, int level,
+        IDictionary<int, int> numberingState) {
+        int number = paragraph.NumberingStartAt
+            ?? (numberingState.TryGetValue(level, out int previous) ? previous + 1 : 1);
+        numberingState[level] = number;
+        return number;
+    }
+
+    private static void RemoveListState(IDictionary<int, int> state,
+        int level, bool includeLevel) {
+        foreach (int key in state.Keys.Where(key => includeLevel
+                     ? key >= level
+                     : key > level).ToArray()) {
+            state.Remove(key);
+        }
+    }
+
+    private static bool IsListKind(ParagraphMarkdownKind kind) =>
+        kind == ParagraphMarkdownKind.BulletList || kind == ParagraphMarkdownKind.NumberedList;
+
+    private static string RenderParagraphText(PowerPointParagraph paragraph) {
+        IReadOnlyList<PowerPointTextRun> runs = paragraph.Runs;
+        int runIndex = 0;
+        var text = new StringBuilder();
+        foreach (OpenXmlElement child in paragraph.Paragraph.ChildElements) {
+            if (child is A.Run) {
+                PowerPointTextRun? run = runIndex < runs.Count ? runs[runIndex] : null;
+                runIndex++;
+                string runText = run?.Text ?? child.InnerText ?? string.Empty;
+                if (run?.Hyperlink != null && runText.Length > 0) {
+                    text.Append('[').Append(EscapeMarkdownLinkLabel(runText)).Append("](<")
+                        .Append(EscapeMarkdownLinkDestination(run.Hyperlink.ToString())).Append(">)");
+                } else {
+                    text.Append(runText);
+                }
+            } else if (child is A.Break) {
+                text.Append("<br />");
+            } else if (child is A.Field field) {
+                text.Append(field.Text?.Text ?? field.InnerText ?? string.Empty);
+            }
+        }
+
+        return text.Length == 0 ? paragraph.Text : text.ToString();
+    }
+
+    private static char ResolveBulletMarker(string? bulletCharacter) {
+        return bulletCharacter is "*" or "+" or "-" ? bulletCharacter[0] : '-';
+    }
+
+    private static int ResolveListIndent(int level,
+        IReadOnlyDictionary<int, int> listContentIndents) {
+        if (level <= 0) return 0;
+        int conventionalIndent = checked(level * 4);
+        return listContentIndents.TryGetValue(level - 1,
+                out int parentContentIndent)
+            ? Math.Max(conventionalIndent, parentContentIndent)
+            : conventionalIndent;
+    }
+
+    private static void UpdateListContentIndent(
+        IDictionary<int, int> listContentIndents, int level,
+        int contentIndent) {
+        foreach (int deeperLevel in listContentIndents.Keys
+                     .Where(existingLevel => existingLevel > level)
+                     .ToArray()) {
+            listContentIndents.Remove(deeperLevel);
+        }
+        listContentIndents[level] = contentIndent;
+    }
+
+    private static string EscapeMarkdownLinkLabel(string value) {
+        return value.Replace("\\", "\\\\")
+            .Replace("[", "\\[")
+            .Replace("]", "\\]");
+    }
+
+    private static string EscapeMarkdownLinkDestination(string value) {
+        var escaped = new StringBuilder(value.Length);
+        foreach (char character in value) {
+            if (char.IsWhiteSpace(character) || char.IsControl(character)
+                || character is '<' or '>' or '\\') {
+                escaped.Append(Uri.EscapeDataString(character.ToString()));
+            } else {
+                escaped.Append(character);
+            }
+        }
+        return escaped.ToString();
+    }
+
+    private static void AppendTableMarkdown(StringBuilder markdown, PowerPointTable table, ref int tableIndex) {
+        List<IReadOnlyList<string>> rows = table.RowItems
+            .Select(row => (IReadOnlyList<string>)row.Cells.Select(RenderTableCellText).ToList())
+            .ToList();
+
+        if (rows.Count == 0 || rows.All(row => row.All(string.IsNullOrWhiteSpace))) {
+            return;
+        }
+
+        int columnCount = rows.Max(row => row.Count);
+        if (columnCount == 0) {
+            return;
+        }
+
+        tableIndex++;
+        markdown.Append("### Table ").AppendLine(tableIndex.ToString(CultureInfo.InvariantCulture));
+        markdown.AppendLine();
+        AppendMarkdownTable(markdown, rows, columnCount);
+        markdown.AppendLine();
+    }
+
+    private static string RenderTableCellText(PowerPointTableCell cell) {
+        string[] paragraphs = cell.Paragraphs
+            .Select(paragraph => RenderParagraphText(paragraph).Trim())
+            .Where(text => text.Length > 0)
+            .ToArray();
+        return paragraphs.Length == 0
+            ? NormalizeText(cell.Text)
+            : string.Join("<br />", paragraphs);
     }
 
     private static void AppendMarkdownTable(StringBuilder markdown, IReadOnlyList<IReadOnlyList<string>> rows, int columnCount) {
@@ -170,5 +368,12 @@ public static class PowerPointExtractionExtensions {
     private static string BuildStableId(string kind, string? path, int slideNumber) {
         var safe = string.IsNullOrWhiteSpace(path) ? "memory" : System.IO.Path.GetFileName(path!.Trim());
         return $"{kind}:{safe}:s{slideNumber}";
+    }
+
+    private enum ParagraphMarkdownKind {
+        Plain,
+        Heading,
+        BulletList,
+        NumberedList
     }
 }

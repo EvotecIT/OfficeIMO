@@ -27,6 +27,7 @@ internal static partial class DocumentReaderEngine {
         bool hasCustomPathHandler = TryResolvePathHandler(
             path,
             opt,
+            cancellationToken,
             out ReaderHandlerDescriptor customPathHandler,
             out ReaderDetectionResult detection);
         ReaderInputKind kind = detection.Kind;
@@ -72,7 +73,8 @@ internal static partial class DocumentReaderEngine {
         string logicalSourceName = NormalizeLogicalSourceName(sourceName, "memory");
         Stream readStream = ReaderInputLimits.EnsureSeekableReadStream(
             stream,
-            ResolveInitialMaxInputBytes(logicalSourceName, opt),
+            ResolveStreamMaxInputBytes(logicalSourceName, opt,
+                stream.CanSeek),
             cancellationToken,
             out bool ownsReadStream);
         try {
@@ -80,6 +82,7 @@ internal static partial class DocumentReaderEngine {
                 readStream,
                 logicalSourceName,
                 opt,
+                cancellationToken,
                 out ReaderHandlerDescriptor customStreamHandler,
                 out ReaderDetectionResult detection);
             ReaderInputKind kind = detection.Kind;

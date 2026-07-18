@@ -533,6 +533,12 @@ namespace OfficeIMO.Excel {
             }
         }
 
+        internal bool IsPivotDateSourceValue(int row, int column) {
+            ExcelCellData snapshot = GetCellValueSnapshot(row, column);
+            return snapshot.Value is double serial
+                && TryGetPivotDateValueFromStyle(row, column, serial, out _);
+        }
+
         private PivotFieldValue GetPivotFieldValue(object? value) {
             if (value == null || value == DBNull.Value) {
                 return PivotFieldValue.Blank();

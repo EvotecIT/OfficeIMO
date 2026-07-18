@@ -288,7 +288,8 @@ public sealed class EmailDocumentReader {
             try {
                 bool read = OfficeCompoundFileReader.TryReadSelective(stream,
                     EmailCompoundReadPolicy.Create(_options), IsExternalMsgAttachment,
-                    workspace.OpenExternalDestination, out compound, out error);
+                    workspace.OpenExternalDestination, cancellationToken,
+                    out compound, out error);
                 if (!read || compound == null) {
                     diagnostics.Add(new EmailDiagnostic("EMAIL_MSG_COMPOUND_INVALID",
                         error ?? "The MSG compound file is invalid.", EmailDiagnosticSeverity.Error));

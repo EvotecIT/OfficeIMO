@@ -93,16 +93,15 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void Load_WhenInputIsLegacyPowerPoint_ReportsFormatMismatch() {
-            byte[] compound = OfficeCompoundFileWriter.Write(new[] {
-                new OfficeCompoundStream("PowerPoint Document", new byte[] { 1, 2, 3 }),
-                new OfficeCompoundStream("Current User", new byte[] { 4, 5, 6 })
-            });
+            string path = Path.Combine(
+                AppContext.BaseDirectory,
+                "Documents",
+                "LegacyPptCorpus",
+                "BasicPowerPoint.ppt");
 
-            InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
-                ExcelDocument.Load(new MemoryStream(compound)));
+            InvalidDataException exception = Assert.Throws<InvalidDataException>(() => ExcelDocument.Load(path));
 
-            Assert.Contains("legacy PowerPoint presentation", exception.Message,
-                StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("legacy PowerPoint presentation", exception.Message, StringComparison.OrdinalIgnoreCase);
         }
 
         [Fact]

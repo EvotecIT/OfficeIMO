@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
+using System.Threading;
 using System.Xml.Linq;
 
 namespace OfficeIMO.Drawing.Internal {
@@ -152,23 +153,67 @@ namespace OfficeIMO.Drawing.Internal {
         /// <summary>
         /// Decrypts an encrypted Office package and returns the inner Open XML package bytes.
         /// </summary>
-        public static byte[] DecryptPackage(byte[] encryptedPackageBytes, string password) {
+        public static byte[] DecryptPackage(byte[] encryptedPackageBytes,
+            string password) => DecryptPackage(encryptedPackageBytes,
+            password, CancellationToken.None);
+
+        /// <summary>
+        /// Decrypts an encrypted Office package and observes cancellation while deriving keys and decrypting payload segments.
+        /// </summary>
+        public static byte[] DecryptPackage(byte[] encryptedPackageBytes,
+            string password, CancellationToken cancellationToken) {
+            return DecryptPackage(encryptedPackageBytes, password,
+                cancellationToken, maximumDecryptedPackageBytes: null);
+        }
+
+        internal static byte[] DecryptPackage(byte[] encryptedPackageBytes,
+            string password, CancellationToken cancellationToken,
+            long? maximumDecryptedPackageBytes) {
             if (encryptedPackageBytes == null) throw new ArgumentNullException(nameof(encryptedPackageBytes));
             if (password == null) throw new ArgumentNullException(nameof(password));
+            if (maximumDecryptedPackageBytes.HasValue
+                && maximumDecryptedPackageBytes.Value < 1) {
+                throw new ArgumentOutOfRangeException(
+                    nameof(maximumDecryptedPackageBytes));
+            }
+            cancellationToken.ThrowIfCancellationRequested();
 
-            if (!CompoundFile.TryRead(encryptedPackageBytes, out var streams) ||
-                !streams.TryGetValue("EncryptionInfo", out var encryptionInfoBytes) ||
-                !streams.TryGetValue("EncryptedPackage", out var encryptedPackage)) {
-                throw new InvalidDataException("The document is not an encrypted Office package.");
+            long compoundByteLimit = Math.Max(1L,
+                encryptedPackageBytes.LongLength);
+            int directoryEntryLimit = Math.Max(4, Math.Min(65536,
+                checked((int)Math.Min(int.MaxValue,
+                    compoundByteLimit / 128L + 1L))));
+            var compoundOptions = new OfficeCompoundReadOptions(
+                maxDirectoryEntries: directoryEntryLimit,
+                maxStreamCount: Math.Max(2, Math.Min(32768,
+                    directoryEntryLimit)),
+                maxStreamBytes: compoundByteLimit,
+                maxTotalStreamBytes: compoundByteLimit);
+            if (!OfficeCompoundFileReader.TryRead(encryptedPackageBytes,
+                    compoundOptions, out OfficeCompoundFile? compound,
+                    out string? compoundError)
+                || compound == null
+                || !compound.Streams.TryGetValue("EncryptionInfo",
+                    out byte[]? encryptionInfoBytes)
+                || !compound.Streams.TryGetValue("EncryptedPackage",
+                    out byte[]? encryptedPackage)) {
+                throw new InvalidDataException(compoundError
+                    ?? "The document is not an encrypted Office package.");
             }
 
+            cancellationToken.ThrowIfCancellationRequested();
             var descriptor = AgileDescriptor.Parse(encryptionInfoBytes);
             byte[]? secretKey = null;
 
             try {
-                secretKey = DecryptSecretKey(descriptor, password);
-                VerifyIntegrity(descriptor, encryptedPackage, secretKey);
-                return DecryptPackagePayload(encryptedPackage, secretKey, descriptor.KeyDataSaltValue, descriptor.KeyDataHashAlgorithm);
+                secretKey = DecryptSecretKey(descriptor, password,
+                    cancellationToken);
+                VerifyIntegrity(descriptor, encryptedPackage, secretKey,
+                    cancellationToken);
+                return DecryptPackagePayload(encryptedPackage, secretKey,
+                    descriptor.KeyDataSaltValue,
+                    descriptor.KeyDataHashAlgorithm, cancellationToken,
+                    maximumDecryptedPackageBytes);
             } finally {
                 Clear(secretKey);
             }
@@ -190,7 +235,8 @@ namespace OfficeIMO.Drawing.Internal {
             }
         }
 
-        private static byte[] DecryptSecretKey(AgileDescriptor descriptor, string password) {
+        private static byte[] DecryptSecretKey(AgileDescriptor descriptor,
+            string password, CancellationToken cancellationToken) {
             byte[]? verifierKey = null;
             byte[]? verifierIv = null;
             byte[]? paddedVerifier = null;
@@ -210,7 +256,7 @@ namespace OfficeIMO.Drawing.Internal {
                     descriptor.SpinCount,
                     descriptor.PasswordHashAlgorithm,
                     descriptor.PasswordKeyBits,
-                    VerifierHashInputBlockKey);
+                    VerifierHashInputBlockKey, cancellationToken);
 
                 verifierIv = GenerateIv(descriptor.PasswordSaltValue, null, descriptor.PasswordHashAlgorithm);
                 verifier = DecryptAes(descriptor.EncryptedVerifierHashInput, verifierKey, verifierIv);
@@ -221,7 +267,7 @@ namespace OfficeIMO.Drawing.Internal {
                     descriptor.SpinCount,
                     descriptor.PasswordHashAlgorithm,
                     descriptor.PasswordKeyBits,
-                    VerifierHashValueBlockKey);
+                    VerifierHashValueBlockKey, cancellationToken);
 
                 verifierHashIv = GenerateIv(descriptor.PasswordSaltValue, null, descriptor.PasswordHashAlgorithm);
                 decryptedVerifierHash = DecryptAes(descriptor.EncryptedVerifierHashValue, verifierHashKey, verifierHashIv);
@@ -237,7 +283,7 @@ namespace OfficeIMO.Drawing.Internal {
                     descriptor.SpinCount,
                     descriptor.PasswordHashAlgorithm,
                     descriptor.PasswordKeyBits,
-                    EncryptedKeyValueBlockKey);
+                    EncryptedKeyValueBlockKey, cancellationToken);
 
                 keyIv = GenerateIv(descriptor.PasswordSaltValue, null, descriptor.PasswordHashAlgorithm);
                 decryptedKey = DecryptAes(descriptor.EncryptedKeyValue, keyKey, keyIv);
@@ -249,7 +295,9 @@ namespace OfficeIMO.Drawing.Internal {
             }
         }
 
-        private static void VerifyIntegrity(AgileDescriptor descriptor, byte[] encryptedPackage, byte[] secretKey) {
+        private static void VerifyIntegrity(AgileDescriptor descriptor,
+            byte[] encryptedPackage, byte[] secretKey,
+            CancellationToken cancellationToken) {
             byte[]? hmacKeyIv = null;
             byte[]? hmacKey = null;
             byte[]? hmacKeyTrimmed = null;
@@ -258,6 +306,7 @@ namespace OfficeIMO.Drawing.Internal {
             byte[]? expectedHmac = null;
 
             try {
+                cancellationToken.ThrowIfCancellationRequested();
                 hmacKeyIv = GenerateIv(descriptor.KeyDataSaltValue, HmacKeyBlockKey, descriptor.KeyDataHashAlgorithm);
                 hmacKey = DecryptAes(
                     descriptor.EncryptedHmacKey,
@@ -266,6 +315,7 @@ namespace OfficeIMO.Drawing.Internal {
 
                 hmacKeyTrimmed = hmacKey.Take(descriptor.KeyDataSaltSize).ToArray();
                 actualHmac = ComputeHmac(encryptedPackage, hmacKeyTrimmed, descriptor.KeyDataHashAlgorithm);
+                cancellationToken.ThrowIfCancellationRequested();
                 expectedHmacIv = GenerateIv(descriptor.KeyDataSaltValue, HmacValueBlockKey, descriptor.KeyDataHashAlgorithm);
                 expectedHmac = DecryptAes(
                     descriptor.EncryptedHmacValue,
@@ -321,12 +371,22 @@ namespace OfficeIMO.Drawing.Internal {
             return output.ToArray();
         }
 
-        private static byte[] DecryptPackagePayload(byte[] encryptedPackage, byte[] secretKey, byte[] keyDataSalt, string hashName) {
+        private static byte[] DecryptPackagePayload(byte[] encryptedPackage,
+            byte[] secretKey, byte[] keyDataSalt, string hashName,
+            CancellationToken cancellationToken,
+            long? maximumDecryptedPackageBytes) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (encryptedPackage.Length < 8) {
                 throw new InvalidDataException("EncryptedPackage stream is too small.");
             }
 
             ulong packageSize = ReadUInt64(encryptedPackage, 0);
+            if (maximumDecryptedPackageBytes.HasValue
+                && packageSize > unchecked((ulong)
+                    maximumDecryptedPackageBytes.Value)) {
+                throw new InvalidDataException(
+                    $"The decrypted Office package declares {packageSize} bytes, exceeding the configured maximum of {maximumDecryptedPackageBytes.Value} bytes.");
+            }
             if (packageSize > int.MaxValue) {
                 throw new NotSupportedException("Encrypted packages larger than 2 GB are not supported by this API.");
             }
@@ -337,6 +397,7 @@ namespace OfficeIMO.Drawing.Internal {
             int segment = 0;
 
             while (plainOffset < packageBytes.Length) {
+                cancellationToken.ThrowIfCancellationRequested();
                 int remainingPlain = packageBytes.Length - plainOffset;
                 int plainCount = Math.Min(SegmentSize, remainingPlain);
                 int encryptedCount = RoundUp(plainCount, BlockSize);
@@ -426,7 +487,9 @@ namespace OfficeIMO.Drawing.Internal {
             return output.ToArray();
         }
 
-        private static byte[] DeriveKey(string password, byte[] salt, int spinCount, string hashName, int keyBits, byte[] blockKey) {
+        private static byte[] DeriveKey(string password, byte[] salt,
+            int spinCount, string hashName, int keyBits, byte[] blockKey,
+            CancellationToken cancellationToken = default) {
             byte[]? passwordBytes = null;
             byte[]? initialInput = null;
             byte[]? hash = null;
@@ -440,6 +503,9 @@ namespace OfficeIMO.Drawing.Internal {
                 hash = Hash(initialInput, hashName);
 
                 for (uint i = 0; i < spinCount; i++) {
+                    if ((i & 1023U) == 0U) {
+                        cancellationToken.ThrowIfCancellationRequested();
+                    }
                     iterationInput = Concat(UInt32Bytes(i), hash);
                     byte[] nextHash = Hash(iterationInput, hashName);
                     Clear(iterationInput, hash);
@@ -447,6 +513,7 @@ namespace OfficeIMO.Drawing.Internal {
                     hash = nextHash;
                 }
 
+                cancellationToken.ThrowIfCancellationRequested();
                 finalInput = Concat(hash, blockKey);
                 finalHash = Hash(finalInput, hashName);
                 int keyBytes = keyBits / 8;

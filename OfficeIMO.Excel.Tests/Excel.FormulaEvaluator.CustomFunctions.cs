@@ -50,10 +50,10 @@ namespace OfficeIMO.Tests {
 
                     ExcelFormulaInspection before = sheet.InspectFormulas();
                     Assert.Equal(4, before.TotalFormulas);
-                    Assert.Equal(3, before.SupportedFormulas);
+                    Assert.Equal(4, before.SupportedFormulas);
                     Assert.Contains(before.Formulas, formula =>
                         formula.CellReference == "B3"
-                        && !formula.IsSupportedByOfficeIMO
+                        && formula.IsSupportedByOfficeIMO
                         && formula.HasDependencyIssues);
                     Assert.Equal(new[] { "CUSTOMERROR", "GROSSMARGIN", "LABEL", "RANGESUM" }, document.Calculation.CustomFunctionNames);
 

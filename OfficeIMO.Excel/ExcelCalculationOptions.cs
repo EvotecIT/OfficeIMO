@@ -23,8 +23,26 @@ namespace OfficeIMO.Excel {
     /// Controls how formula cells are treated before a workbook is saved.
     /// </summary>
     public sealed class ExcelCalculationOptions {
+        private int _maximumDependencyDepth = 256;
         private readonly object _customFunctionLock = new object();
         private readonly Dictionary<string, ExcelCustomFormulaFunction> _customFunctions = new(StringComparer.OrdinalIgnoreCase);
+
+        /// <summary>
+        /// Gets or sets the maximum number of nested formula cells OfficeIMO evaluates in one dependency chain.
+        /// </summary>
+        /// <remarks>
+        /// The default is 256. Formulas beyond the limit remain intact and are left for Excel-compatible applications to recalculate.
+        /// </remarks>
+        public int MaximumDependencyDepth {
+            get => _maximumDependencyDepth;
+            set {
+                if (value < 1) {
+                    throw new ArgumentOutOfRangeException(nameof(value), "Formula dependency depth must be at least 1.");
+                }
+
+                _maximumDependencyDepth = value;
+            }
+        }
 
         /// <summary>
         /// When true, OfficeIMO evaluates supported formulas and writes cached values before saving.

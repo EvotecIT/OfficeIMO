@@ -27,7 +27,8 @@ internal static partial class DocumentReaderEngine {
         if (resolution.Handler?.ReadDocumentPathAsync != null) {
             ReaderHandlerDescriptor handler = resolution.Handler;
             cancellationToken.ThrowIfCancellationRequested();
-            SourceInfo source = BuildSourceInfoFromPath(path, opt.ComputeHashes);
+            SourceInfo source = BuildSourceInfoFromPath(path,
+                opt.ComputeHashes, cancellationToken);
             OfficeDocumentReadResult result = await ValidateDocumentTaskAsync(
                 handler.ReadDocumentPathAsync(path, opt, cancellationToken),
                 handler.Id).ConfigureAwait(false);
@@ -58,7 +59,8 @@ internal static partial class DocumentReaderEngine {
         cancellationToken.ThrowIfCancellationRequested();
         Stream readStream = await ReaderInputLimits.EnsureSeekableReadStreamAsync(
             stream,
-            ResolveInitialMaxInputBytes(logicalSourceName, opt),
+            ResolveStreamMaxInputBytes(logicalSourceName, opt,
+                stream.CanSeek),
             cancellationToken).ConfigureAwait(false);
         bool ownsReadStream = !ReferenceEquals(readStream, stream);
         try {
@@ -69,7 +71,8 @@ internal static partial class DocumentReaderEngine {
                 cancellationToken).ConfigureAwait(false);
             if (resolution.Handler?.ReadDocumentStreamAsync != null) {
                 ReaderHandlerDescriptor handler = resolution.Handler;
-                SourceInfo source = BuildSourceInfoFromStream(readStream, logicalSourceName, opt.ComputeHashes);
+                SourceInfo source = BuildSourceInfoFromStream(readStream,
+                    logicalSourceName, opt.ComputeHashes, cancellationToken);
                 OfficeDocumentReadResult result = await ValidateDocumentTaskAsync(
                     handler.ReadDocumentStreamAsync(readStream, logicalSourceName, opt, cancellationToken),
                     handler.Id).ConfigureAwait(false);
@@ -142,7 +145,8 @@ internal static partial class DocumentReaderEngine {
         cancellationToken.ThrowIfCancellationRequested();
         Stream readStream = await ReaderInputLimits.EnsureSeekableReadStreamAsync(
             stream,
-            ResolveInitialMaxInputBytes(logicalSourceName, opt),
+            ResolveStreamMaxInputBytes(logicalSourceName, opt,
+                stream.CanSeek),
             cancellationToken).ConfigureAwait(false);
         bool ownsReadStream = !ReferenceEquals(readStream, stream);
         try {

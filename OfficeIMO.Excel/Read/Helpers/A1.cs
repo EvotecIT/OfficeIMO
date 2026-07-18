@@ -48,6 +48,69 @@ namespace OfficeIMO.Excel {
             return true;
         }
 
+        internal static bool TryParseWholeColumnRange(string reference, out int c1, out int c2) {
+            c1 = c2 = 0;
+            if (!TrySplitWholeRange(reference, out string start, out string end)
+                || !IsAsciiColumnName(start)
+                || !IsAsciiColumnName(end)) {
+                return false;
+            }
+
+            c1 = ColumnLettersToIndex(start);
+            c2 = ColumnLettersToIndex(end);
+            if (c1 <= 0 || c1 > MaxColumns || c2 <= 0 || c2 > MaxColumns) {
+                c1 = c2 = 0;
+                return false;
+            }
+
+            if (c1 > c2) (c1, c2) = (c2, c1);
+            return true;
+        }
+
+        internal static bool TryParseWholeRowRange(string reference, out int r1, out int r2) {
+            r1 = r2 = 0;
+            if (!TrySplitWholeRange(reference, out string start, out string end)
+                || !int.TryParse(start, out r1)
+                || !int.TryParse(end, out r2)
+                || r1 <= 0
+                || r1 > MaxRows
+                || r2 <= 0
+                || r2 > MaxRows) {
+                r1 = r2 = 0;
+                return false;
+            }
+
+            if (r1 > r2) (r1, r2) = (r2, r1);
+            return true;
+        }
+
+        private static bool TrySplitWholeRange(string reference, out string start, out string end) {
+            start = end = string.Empty;
+            if (string.IsNullOrWhiteSpace(reference)) return false;
+
+            string normalized = reference.Replace("$", string.Empty).Trim();
+            int separator = normalized.IndexOf(':');
+            if (separator <= 0
+                || separator != normalized.LastIndexOf(':')
+                || separator == normalized.Length - 1) {
+                return false;
+            }
+
+            start = normalized.Substring(0, separator).Trim();
+            end = normalized.Substring(separator + 1).Trim();
+            return start.Length > 0 && end.Length > 0;
+        }
+
+        private static bool IsAsciiColumnName(string value) {
+            if (value.Length == 0 || value.Length > 3) return false;
+            foreach (char character in value) {
+                char upper = ToUpperAscii(character);
+                if (upper < 'A' || upper > 'Z') return false;
+            }
+
+            return true;
+        }
+
         internal static bool TryParseStrictRange(string a1Range, out int r1, out int c1, out int r2, out int c2) {
             r1 = c1 = r2 = c2 = 0;
             if (string.IsNullOrWhiteSpace(a1Range)) return false;

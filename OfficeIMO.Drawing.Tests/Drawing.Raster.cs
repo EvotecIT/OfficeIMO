@@ -1488,6 +1488,55 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void OfficeDrawingRasterRenderer_RotatesLocalGradientWithShapeTransform() {
+            OfficeDrawing drawing = new OfficeDrawing(100, 80);
+            OfficeShape shape = OfficeShape.Rectangle(40, 20);
+            shape.FillGradient = OfficeLinearGradient.Horizontal(OfficeColor.Red,
+                OfficeColor.Blue);
+            shape.Transform = OfficeTransform.RotateDegrees(90D, 20D, 10D);
+            drawing.AddShape(shape, 30, 20);
+
+            OfficeRasterImage image = OfficeDrawingRasterRenderer.Render(drawing);
+
+            OfficeColor top = image.GetPixel(50, 12);
+            OfficeColor bottom = image.GetPixel(50, 48);
+            Assert.True(top.R > top.B,
+                $"Expected the transformed local gradient to start at the rotated top edge, got {top}.");
+            Assert.True(bottom.B > bottom.R,
+                $"Expected the transformed local gradient to end at the rotated bottom edge, got {bottom}.");
+        }
+
+        [Fact]
+        public void OfficeLinearGradient_FromTransformedAnglePreservesArbitraryDestinationDirection() {
+            const double expectedDegrees = 37D;
+            const double width = 100D;
+            const double height = 40D;
+            var frame = new OfficeImageFrameTransform(31D, width / 2D,
+                height / 2D);
+            OfficeTransform transform = frame.CreateDestinationTransform();
+            OfficeLinearGradient gradient = OfficeLinearGradient.FromTransformedAngle(
+                new[] {
+                    new OfficeGradientStop(0D, OfficeColor.Red),
+                    new OfficeGradientStop(1D, OfficeColor.Blue)
+                },
+                expectedDegrees,
+                width,
+                height,
+                transform);
+
+            OfficePoint start = transform.TransformPoint(new OfficePoint(
+                gradient.StartX * width, gradient.StartY * height));
+            OfficePoint end = transform.TransformPoint(new OfficePoint(
+                gradient.EndX * width, gradient.EndY * height));
+            double actualDegrees = Math.Atan2(end.Y - start.Y, end.X - start.X)
+                * 180D / Math.PI;
+            if (actualDegrees < 0D) actualDegrees += 360D;
+
+            Assert.InRange(actualDegrees, expectedDegrees - 0.001D,
+                expectedDegrees + 0.001D);
+        }
+
+        [Fact]
         public void OfficeDrawingRasterRenderer_RendersRoundedRectanglesAndShapeShadows() {
             OfficeDrawing drawing = new OfficeDrawing(48, 36);
             OfficeShape shape = OfficeShape.RoundedRectangle(24, 16, 6);

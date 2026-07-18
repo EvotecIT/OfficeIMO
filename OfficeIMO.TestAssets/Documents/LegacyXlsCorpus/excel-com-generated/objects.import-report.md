@@ -2803,13 +2803,13 @@ Warnings: 0
 | lineWidth | 2 |
 | pib | 1 |
 | PropertyId:0x0080 | 4 |
-| PropertyId:0x0085 | 2 |
 | PropertyId:0x008B | 4 |
 | PropertyId:0x017F | 1 |
 | ProtectionBooleanProperties | 10 |
 | ShadowStyleBooleanProperties | 1 |
 | ShapeBooleanProperties | 1 |
 | TextBooleanProperties | 10 |
+| WrapText | 2 |
 | wzName | 4 |
 
 ## Drawing Shape Properties By Group

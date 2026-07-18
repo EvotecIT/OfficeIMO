@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading;
 
 namespace OfficeIMO.Drawing.Internal {
     internal static partial class OfficeCompoundFileReader {
@@ -9,6 +10,16 @@ namespace OfficeIMO.Drawing.Internal {
         internal static bool TryReadSelective(Stream stream, OfficeCompoundReadOptions options,
             Func<string, long, bool> externalize,
             Func<string, long, Stream> openExternalDestination,
+            out OfficeCompoundFile? compoundFile, out string? error) =>
+            TryReadSelective(stream, options, externalize,
+                openExternalDestination, CancellationToken.None,
+                out compoundFile, out error);
+
+        internal static bool TryReadSelective(Stream stream,
+            OfficeCompoundReadOptions options,
+            Func<string, long, bool> externalize,
+            Func<string, long, Stream> openExternalDestination,
+            CancellationToken cancellationToken,
             out OfficeCompoundFile? compoundFile, out string? error) {
             compoundFile = null;
             error = null;
@@ -23,13 +34,15 @@ namespace OfficeIMO.Drawing.Internal {
 
             long originalPosition = stream.Position;
             try {
+                cancellationToken.ThrowIfCancellationRequested();
                 long basePosition = originalPosition;
                 long remainingBytes = checked(stream.Length - basePosition);
                 if (remainingBytes < HeaderSize) {
                     error = "The compound file is shorter than its header.";
                     return false;
                 }
-                byte[] header = ReadAt(stream, basePosition, HeaderSize);
+                byte[] header = ReadAt(stream, basePosition, HeaderSize,
+                    cancellationToken);
                 if (!HasSignature(header)) {
                     error = "The file does not start with the OLE compound document signature.";
                     return false;
@@ -62,18 +75,21 @@ namespace OfficeIMO.Drawing.Internal {
                 }
 
                 List<uint> fatSectorIds = ReadFatSectorIds(stream, basePosition, header, sectorSize,
-                    physicalSectorCount, firstDifat, difatSectorCount, fatSectorCount);
+                    physicalSectorCount, firstDifat, difatSectorCount,
+                    fatSectorCount, cancellationToken);
                 byte[] directoryBytes = ReadDirectoryStream(stream, basePosition, directoryStart, sectorSize,
-                    physicalSectorCount, fatSectorIds, options.MaxDirectoryEntries);
+                    physicalSectorCount, fatSectorIds,
+                    options.MaxDirectoryEntries, cancellationToken);
                 List<DirectoryEntry> entries = ReadDirectoryEntries(directoryBytes, majorVersion,
-                    options.MaxDirectoryEntries);
+                    options.MaxDirectoryEntries, cancellationToken);
                 DirectoryEntry? root = entries.FirstOrDefault(entry => entry.ObjectType == 5);
                 if (root == null) throw new InvalidDataException("Compound file root directory entry is missing.");
                 if (root.Size < 0 || root.Size > options.MaxTotalStreamBytes || root.Size > remainingBytes) {
                     throw new InvalidDataException("Compound file mini stream exceeds configured or physical bounds.");
                 }
 
-                IReadOnlyDictionary<int, string> streamPaths = BuildCompoundEntryPaths(entries);
+                IReadOnlyDictionary<int, string> streamPaths =
+                    BuildCompoundEntryPaths(entries, cancellationToken);
                 DirectoryEntry[] streamEntries = entries.Where(entry => entry.ObjectType == 2).ToArray();
                 if (streamEntries.Length > options.MaxStreamCount) {
                     throw new InvalidDataException($"Compound stream count {streamEntries.Length} exceeds {options.MaxStreamCount}.");
@@ -81,8 +97,10 @@ namespace OfficeIMO.Drawing.Internal {
                 long totalStreamBytes = 0;
                 var externalStreams = new HashSet<int>();
                 foreach (DirectoryEntry entry in streamEntries) {
+                    cancellationToken.ThrowIfCancellationRequested();
                     string path = streamPaths.TryGetValue(entry.Index, out string? entryPath) ? entryPath : entry.Name;
                     bool isExternal = externalize(path, entry.Size);
+                    cancellationToken.ThrowIfCancellationRequested();
                     if (isExternal) externalStreams.Add(entry.Index);
                     if (entry.Size < 0 || entry.Size > options.MaxStreamBytes ||
                         (!isExternal && entry.Size > int.MaxValue)) {
@@ -100,29 +118,35 @@ namespace OfficeIMO.Drawing.Internal {
                     ? Array.Empty<uint>()
                     : BytesToUInt32Array(ReadRegularChain(stream, basePosition, miniFatStart,
                         checked((long)miniFatSectorCount * sectorSize), sectorSize, physicalSectorCount,
-                        fatSectorIds, fatCache));
+                        fatSectorIds, fatCache, cancellationToken),
+                        cancellationToken);
                 List<uint> rootChain = root.StartSector == EndOfChain || root.Size == 0
                     ? new List<uint>()
                     : GetRegularSectorChain(stream, basePosition, root.StartSector, root.Size, sectorSize,
-                        physicalSectorCount, fatSectorIds, fatCache);
+                        physicalSectorCount, fatSectorIds, fatCache,
+                        cancellationToken);
 
                 var streams = new Dictionary<string, byte[]>(StringComparer.OrdinalIgnoreCase);
                 foreach (DirectoryEntry entry in streamEntries) {
+                    cancellationToken.ThrowIfCancellationRequested();
                     string path = streamPaths.TryGetValue(entry.Index, out string? entryPath) ? entryPath : entry.Name;
                     if (externalStreams.Contains(entry.Index)) {
                         using (Stream destination = openExternalDestination(path, entry.Size)) {
+                            cancellationToken.ThrowIfCancellationRequested();
                             if (destination == null || !destination.CanWrite) {
                                 throw new InvalidDataException("The external compound destination is not writable.");
                             }
                             CopyEntry(stream, destination, entry, miniCutoff, miniFat, rootChain, basePosition,
-                                sectorSize, physicalSectorCount, fatSectorIds, fatCache);
+                                sectorSize, physicalSectorCount, fatSectorIds,
+                                fatCache, cancellationToken);
                         }
                         // Retain the property path so higher-level parsers can recognize an externally-backed value.
                         streams[path] = Array.Empty<byte>();
                     } else {
                         using (var destination = new MemoryStream(checked((int)entry.Size))) {
                             CopyEntry(stream, destination, entry, miniCutoff, miniFat, rootChain, basePosition,
-                                sectorSize, physicalSectorCount, fatSectorIds, fatCache);
+                                sectorSize, physicalSectorCount, fatSectorIds,
+                                fatCache, cancellationToken);
                             streams[path] = destination.ToArray();
                         }
                     }
@@ -131,8 +155,11 @@ namespace OfficeIMO.Drawing.Internal {
                     }
                 }
 
-                compoundFile = new OfficeCompoundFile(streams, BuildCompoundEntries(entries),
+                cancellationToken.ThrowIfCancellationRequested();
+                compoundFile = new OfficeCompoundFile(streams,
+                    BuildCompoundEntries(entries, cancellationToken),
                     CreateCompoundEntry(root, "Root Entry"));
+                cancellationToken.ThrowIfCancellationRequested();
                 return true;
             } catch (Exception exception) when (exception is IOException || exception is ArgumentException ||
                 exception is InvalidDataException || exception is OverflowException ||
@@ -147,30 +174,37 @@ namespace OfficeIMO.Drawing.Internal {
 
         private static void CopyEntry(Stream input, Stream output, DirectoryEntry entry, uint miniCutoff,
             IReadOnlyList<uint> miniFat, IReadOnlyList<uint> rootChain, long basePosition, int sectorSize,
-            int physicalSectorCount, IReadOnlyList<uint> fatSectorIds, IDictionary<uint, byte[]> fatCache) {
+            int physicalSectorCount, IReadOnlyList<uint> fatSectorIds,
+            IDictionary<uint, byte[]> fatCache,
+            CancellationToken cancellationToken) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (entry.Size == 0) return;
             if (entry.Size < miniCutoff) {
                 CopyMiniChain(input, output, entry.StartSector, entry.Size, miniFat, rootChain,
-                    basePosition, sectorSize);
+                    basePosition, sectorSize, cancellationToken);
                 return;
             }
             CopyRegularChain(input, output, entry.StartSector, entry.Size, basePosition, sectorSize,
-                physicalSectorCount, fatSectorIds, fatCache);
+                physicalSectorCount, fatSectorIds, fatCache,
+                cancellationToken);
         }
 
         private static byte[] ReadRegularChain(Stream input, long basePosition, uint startSector, long size,
             int sectorSize, int physicalSectorCount, IReadOnlyList<uint> fatSectorIds,
-            IDictionary<uint, byte[]> fatCache) {
+            IDictionary<uint, byte[]> fatCache,
+            CancellationToken cancellationToken) {
             using (var output = new MemoryStream(checked((int)size))) {
                 CopyRegularChain(input, output, startSector, size, basePosition, sectorSize,
-                    physicalSectorCount, fatSectorIds, fatCache);
+                    physicalSectorCount, fatSectorIds, fatCache,
+                    cancellationToken);
                 return output.ToArray();
             }
         }
 
         private static void CopyRegularChain(Stream input, Stream output, uint startSector, long size,
             long basePosition, int sectorSize, int physicalSectorCount, IReadOnlyList<uint> fatSectorIds,
-            IDictionary<uint, byte[]> fatCache) {
+            IDictionary<uint, byte[]> fatCache,
+            CancellationToken cancellationToken) {
             uint sector = startSector;
             long remaining = size;
             var visited = new HashSet<uint>();
@@ -179,18 +213,20 @@ namespace OfficeIMO.Drawing.Internal {
                     !visited.Add(sector)) {
                     throw new InvalidDataException("Compound sector chain is shorter than its declared stream size.");
                 }
-                byte[] bytes = ReadSector(input, basePosition, sector, sectorSize, physicalSectorCount);
+                byte[] bytes = ReadSector(input, basePosition, sector,
+                    sectorSize, physicalSectorCount, cancellationToken);
                 int write = (int)Math.Min(bytes.Length, remaining);
                 output.Write(bytes, 0, write);
                 remaining -= write;
                 sector = ReadFatEntry(input, basePosition, sector, sectorSize, physicalSectorCount,
-                    fatSectorIds, fatCache);
+                    fatSectorIds, fatCache, cancellationToken);
             }
         }
 
         private static List<uint> GetRegularSectorChain(Stream input, long basePosition, uint startSector,
             long size, int sectorSize, int physicalSectorCount, IReadOnlyList<uint> fatSectorIds,
-            IDictionary<uint, byte[]> fatCache) {
+            IDictionary<uint, byte[]> fatCache,
+            CancellationToken cancellationToken) {
             int required = checked((int)((size + sectorSize - 1) / sectorSize));
             var result = new List<uint>(required);
             var visited = new HashSet<uint>();
@@ -202,13 +238,15 @@ namespace OfficeIMO.Drawing.Internal {
                 }
                 result.Add(sector);
                 sector = ReadFatEntry(input, basePosition, sector, sectorSize, physicalSectorCount,
-                    fatSectorIds, fatCache);
+                    fatSectorIds, fatCache, cancellationToken);
             }
             return result;
         }
 
         private static void CopyMiniChain(Stream input, Stream output, uint startSector, long size,
-            IReadOnlyList<uint> miniFat, IReadOnlyList<uint> rootChain, long basePosition, int sectorSize) {
+            IReadOnlyList<uint> miniFat, IReadOnlyList<uint> rootChain,
+            long basePosition, int sectorSize,
+            CancellationToken cancellationToken) {
             uint miniSector = startSector;
             long remaining = size;
             var visited = new HashSet<uint>();
@@ -225,7 +263,8 @@ namespace OfficeIMO.Drawing.Internal {
                 }
                 long physicalOffset = checked(basePosition + ((long)rootChain[rootSectorIndex] + 1) * sectorSize +
                     offsetWithinSector);
-                byte[] bytes = ReadAt(input, physicalOffset, MiniSectorSize);
+                byte[] bytes = ReadAt(input, physicalOffset,
+                    MiniSectorSize, cancellationToken);
                 int write = (int)Math.Min(bytes.Length, remaining);
                 output.Write(bytes, 0, write);
                 remaining -= write;

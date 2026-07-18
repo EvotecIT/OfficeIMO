@@ -34,6 +34,7 @@ namespace OfficeIMO.PowerPoint {
                 "image",
                 imageExtension,
                 allowBaseWithoutIndex: false);
+            uint shapeId = AllocateShapeId();
             ImagePart imagePart = PowerPointPartFactory.CreatePart<ImagePart>(
                 _slidePart,
                 partTypeInfo.ContentType,
@@ -45,7 +46,7 @@ namespace OfficeIMO.PowerPoint {
             string name = GenerateUniqueName("Picture");
             DocumentFormat.OpenXml.Presentation.Picture picture = new(
                 new NonVisualPictureProperties(
-                    new NonVisualDrawingProperties { Id = _nextShapeId++, Name = name },
+                    new NonVisualDrawingProperties { Id = shapeId, Name = name },
                     new NonVisualPictureDrawingProperties(new A.PictureLocks { NoChangeAspect = true }),
                     new ApplicationNonVisualDrawingProperties()
                 ),
@@ -98,6 +99,7 @@ namespace OfficeIMO.PowerPoint {
                 "image",
                 imageExtension,
                 allowBaseWithoutIndex: false);
+            uint shapeId = AllocateShapeId();
             ImagePart imagePart = PowerPointPartFactory.CreatePart<ImagePart>(
                 _slidePart,
                 partTypeInfo.ContentType,
@@ -111,7 +113,7 @@ namespace OfficeIMO.PowerPoint {
             string name = GenerateUniqueName("Picture");
             DocumentFormat.OpenXml.Presentation.Picture picture = new(
                 new NonVisualPictureProperties(
-                    new NonVisualDrawingProperties { Id = _nextShapeId++, Name = name },
+                    new NonVisualDrawingProperties { Id = shapeId, Name = name },
                     new NonVisualPictureDrawingProperties(new A.PictureLocks { NoChangeAspect = true }),
                     new ApplicationNonVisualDrawingProperties()
                 ),

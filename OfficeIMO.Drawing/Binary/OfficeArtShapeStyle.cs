@@ -44,6 +44,12 @@ public sealed class OfficeArtShapeStyle {
         ShadowOffsetYEmus = GetInt32(0x0206);
         ShadowSoftnessEmus = GetInt32(0x021C);
         ShadowEnabled = GetBoolean(0x023F, 0x00020000U, 0x00000002U);
+        PreferRelativeResize = GetBoolean(0x033F,
+            1U << 11, 1U << 27);
+        LockShapeType = GetBoolean(0x033F,
+            1U << 12, 1U << 28);
+        Hidden = GetBoolean(0x03BF,
+            1U << 14, 1U << 30);
     }
 
     /// <summary>Decodes a shape style from OfficeArt properties.</summary>
@@ -152,6 +158,26 @@ public sealed class OfficeArtShapeStyle {
     /// <summary>Gets explicit shadow visibility, or null when the property inherits its default.</summary>
     public bool? ShadowEnabled { get; }
 
+    /// <summary>
+    /// Gets whether the resizing user interface explicitly prefers values
+    /// relative to the original shape size.
+    /// </summary>
+    public bool? PreferRelativeResize { get; }
+
+    /// <summary>Gets whether changing the shape type is explicitly locked.</summary>
+    public bool? LockShapeType { get; }
+
+    /// <summary>Gets whether the shape is explicitly hidden from display.</summary>
+    public bool? Hidden { get; }
+
+    /// <summary>
+    /// Gets whether the hidden-state bits can be rewritten while preserving
+    /// every unrelated Group Shape Boolean property.
+    /// </summary>
+    public bool CanRewriteHiddenState => Properties
+        .Where(property => property.PropertyId == 0x03BF)
+        .All(property => !property.IsComplex && !property.IsBlipId);
+
     /// <summary>Gets whether this style includes fill or line values that can be projected directly.</summary>
     public bool HasProjectableStyle => FillEnabled.HasValue || FillColor.HasValue || FillOpacity.HasValue
         || FillBackColor.HasValue || FillBackOpacity.HasValue || FillBlipStoreIndex.HasValue
@@ -169,6 +195,30 @@ public sealed class OfficeArtShapeStyle {
         || LineEnabled != false && (LineType.GetValueOrDefault() > 0 || LineStyle.GetValueOrDefault() > 0)
         || LineEnabled != false && Properties.Any(property => property.PropertyId == 0x01CF)
         || ShadowEnabled == true && ShadowType.GetValueOrDefault() != 0;
+
+    /// <summary>
+    /// Gets whether every source fill, line, and shadow property is owned by
+    /// the editable solid-style projection and can therefore be rewritten
+    /// without discarding an opaque visual property.
+    /// </summary>
+    public bool CanRewriteProjectedVisualStyle =>
+        !HasUnprojectedVisualStyle
+        && Properties.All(IsRewritableVisualProperty);
+
+    private static bool IsRewritableVisualProperty(
+        OfficeArtProperty property) {
+        if (property.PropertyId is not (>= 0x0180 and <= 0x023F)) {
+            return true;
+        }
+        if (property.IsComplex || property.IsBlipId) return false;
+        return property.PropertyId is 0x0180 or 0x0181 or 0x0182
+            or 0x01BF
+            or 0x01C0 or 0x01C1 or 0x01CB or 0x01CE
+            or >= 0x01D0 and <= 0x01D7
+            or 0x01FF
+            or 0x0200 or 0x0201 or 0x0204 or 0x0205 or 0x0206
+            or 0x021C or 0x023F;
+    }
 
     private OfficeArtProperty? GetProperty(ushort propertyId) =>
         Properties.LastOrDefault(property => property.PropertyId == propertyId && !property.IsComplex);
