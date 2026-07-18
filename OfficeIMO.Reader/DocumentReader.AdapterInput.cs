@@ -48,7 +48,8 @@ internal static partial class DocumentReaderEngine {
             logicalName,
             options,
             cancellationToken,
-            ResolveInitialMaxInputBytes(logicalName, options));
+            ResolveStreamMaxInputBytes(logicalName, options,
+                stream.CanSeek));
     }
 
     private static ReaderAdapterInputSnapshot ReadAdapterInput(

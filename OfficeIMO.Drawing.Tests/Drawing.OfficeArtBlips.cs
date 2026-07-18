@@ -78,7 +78,8 @@ public sealed class DrawingOfficeArtBlipTests {
         Assert.Equal(png, embedded.ImageBytes);
         Assert.True(embedded.HasImportableImage);
 
-        byte[] delayedFbse = BuildFbse(Array.Empty<byte>(), 0);
+        byte[] delayedFbse = BuildFbse(Array.Empty<byte>(), 0,
+            unchecked((uint)blip.Length));
         Assert.True(OfficeArtBlipStoreEntryReader.TryRead(delayedFbse, 0,
             delayedFbse.Length, 0x0006, blip, out OfficeArtBlipStoreEntry? delayed));
         Assert.NotNull(delayed);
@@ -86,6 +87,115 @@ public sealed class DrawingOfficeArtBlipTests {
         Assert.Equal(png, delayed.ImageBytes);
         Assert.Equal(25, delayed.BlipPayloadAvailableLength);
         Assert.False(delayed.IsPayloadTruncated);
+    }
+
+    [Fact]
+    public void ReaderRejectsImageBeforeAllocatingPastDecodedLimit() {
+        byte[] png = {
+            0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A
+        };
+        byte[] blip = BuildBlipRecord(0x06E0, 0xF01E, png);
+
+        Assert.True(OfficeArtBlipStoreEntryReader.TryRead(
+            BuildFbse(blip, uint.MaxValue), 0x0006,
+            out OfficeArtBlipStoreEntry? entry,
+            maximumDecodedImageBytes: png.Length - 1));
+
+        Assert.NotNull(entry);
+        Assert.Empty(entry!.ImageBytes);
+        Assert.True(entry.WasImageRejectedBySizeLimit);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void ReaderRetainsMetadataButRejectsTruncatedRasterPayload(
+        bool embedded) {
+        byte[] png = {
+            0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A
+        };
+        byte[] blip = BuildBlipRecord(0x06E0, 0xF01E, png);
+        WriteUInt32(blip, 4, unchecked((uint)(blip.Length + 32)));
+        byte[] fbse = BuildFbse(
+            embedded ? blip : Array.Empty<byte>(),
+            embedded ? uint.MaxValue : 0U,
+            unchecked((uint)blip.Length));
+
+        Assert.True(OfficeArtBlipStoreEntryReader.TryRead(fbse, 0,
+            fbse.Length, 0x0006, embedded ? null : blip,
+            out OfficeArtBlipStoreEntry? entry));
+
+        Assert.NotNull(entry);
+        Assert.Equal(
+            embedded
+                ? OfficeArtBlipStorage.Embedded
+                : OfficeArtBlipStorage.Delayed,
+            entry!.Storage);
+        Assert.True(entry.IsPayloadTruncated);
+        Assert.Equal(unchecked((uint)(blip.Length + 32)),
+            entry.BlipPayloadLength);
+        Assert.Equal(blip.Length - 8,
+            entry.BlipPayloadAvailableLength);
+        Assert.NotNull(entry.BlipPayloadSha256);
+        Assert.Empty(entry.ImageBytes);
+        Assert.False(entry.HasImportableImage);
+    }
+
+    [Fact]
+    public void ReaderBoundsDelayedBlipBeforeAdjacentRecord() {
+        byte[] png = {
+            0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A
+        };
+        byte[] blip = BuildBlipRecord(0x06E0, 0xF01E, png);
+        byte[] adjacent = BuildBlipRecord(0x06E0, 0xF01E, png);
+        uint declaredPayloadLength = checked(
+            (uint)(blip.Length - 8 + adjacent.Length));
+        WriteUInt32(blip, 4, declaredPayloadLength);
+        byte[] delayStream = blip.Concat(adjacent).ToArray();
+        byte[] fbse = BuildFbse(Array.Empty<byte>(), 0,
+            unchecked((uint)blip.Length));
+
+        Assert.True(OfficeArtBlipStoreEntryReader.TryRead(fbse, 0,
+            fbse.Length, 0x0006, delayStream,
+            out OfficeArtBlipStoreEntry? entry));
+
+        Assert.NotNull(entry);
+        Assert.Equal(OfficeArtBlipStorage.Delayed, entry!.Storage);
+        Assert.Equal(declaredPayloadLength, entry.BlipPayloadLength);
+        Assert.Equal(blip.Length - 8,
+            entry.BlipPayloadAvailableLength);
+        Assert.True(entry.IsPayloadTruncated);
+        Assert.Empty(entry.ImageBytes);
+        Assert.False(entry.HasImportableImage);
+    }
+
+    [Fact]
+    public void ReaderHashesSharedDelayedPayloadRangeOnlyOnce() {
+        byte[] png = {
+            0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A
+        };
+        byte[] blip = BuildBlipRecord(0x06E0, 0xF01E, png);
+        byte[] fbse = BuildFbse(Array.Empty<byte>(), 0,
+            unchecked((uint)blip.Length));
+        var hashCache = new OfficeArtBlipStoreEntryReader
+            .DelayedBlipPayloadHashCache(blip);
+
+        Assert.True(OfficeArtBlipStoreEntryReader.TryRead(fbse, 0,
+            fbse.Length, 0x0006, blip,
+            out OfficeArtBlipStoreEntry? first,
+            maximumDecodedImageBytes: png.Length,
+            delayedPayloadHashCache: hashCache));
+        Assert.True(OfficeArtBlipStoreEntryReader.TryRead(fbse, 0,
+            fbse.Length, 0x0006, blip,
+            out OfficeArtBlipStoreEntry? second,
+            maximumDecodedImageBytes: png.Length,
+            delayedPayloadHashCache: hashCache));
+
+        Assert.NotNull(first);
+        Assert.NotNull(second);
+        Assert.Equal(first!.BlipPayloadSha256,
+            second!.BlipPayloadSha256);
+        Assert.Equal(1, hashCache.UniqueRangeCount);
     }
 
     [Fact]
@@ -129,6 +239,33 @@ public sealed class DrawingOfficeArtBlipTests {
         Assert.NotNull(entry);
         Assert.Equal("image/x-emf", entry!.ContentType);
         Assert.Equal(metafile, entry.ImageBytes);
+    }
+
+    [Theory]
+    [InlineData(0xF01A, 0x03D4, 0x0002)]
+    [InlineData(0xF01B, 0x0216, 0x0003)]
+    public void ReaderRejectsTruncatedMetafileStoredBody(
+        ushort recordType, ushort recordInstance,
+        ushort fbseInstance) {
+        byte[] metafile = { 0x01, 0x02, 0x03, 0x04 };
+        byte[] header = new byte[34];
+        WriteUInt32(header, 0, unchecked((uint)metafile.Length));
+        WriteUInt32(header, 28,
+            unchecked((uint)(metafile.Length + 1)));
+        header[32] = 0xFE;
+        header[33] = 0xFE;
+        byte[] blip = BuildBlipRecord(recordInstance, recordType,
+            header.Concat(metafile).ToArray(), includeTag: false);
+
+        Assert.True(OfficeArtBlipStoreEntryReader.TryRead(
+            BuildFbse(blip, uint.MaxValue), fbseInstance,
+            out OfficeArtBlipStoreEntry? entry));
+
+        Assert.NotNull(entry);
+        Assert.True(entry!.IsPayloadTruncated);
+        Assert.NotNull(entry.BlipPayloadSha256);
+        Assert.Empty(entry.ImageBytes);
+        Assert.False(entry.HasImportableImage);
     }
 
     [Theory]
@@ -258,14 +395,16 @@ public sealed class DrawingOfficeArtBlipTests {
                 new byte[] { (byte)'G', (byte)'I', (byte)'F' }, "image/gif"));
     }
 
-    private static byte[] BuildFbse(byte[] embeddedBlip, uint delayedOffset) {
+    private static byte[] BuildFbse(byte[] embeddedBlip,
+        uint delayedOffset, uint? sizeBytes = null) {
         byte[] payload = new byte[36 + embeddedBlip.Length];
         payload[0] = 0x06;
         payload[1] = 0x06;
         for (int index = 0; index < 16; index++) {
             payload[2 + index] = unchecked((byte)index);
         }
-        WriteUInt32(payload, 20, unchecked((uint)embeddedBlip.Length));
+        WriteUInt32(payload, 20,
+            sizeBytes ?? unchecked((uint)embeddedBlip.Length));
         WriteUInt32(payload, 24, 1);
         WriteUInt32(payload, 28, delayedOffset);
         Buffer.BlockCopy(embeddedBlip, 0, payload, 36, embeddedBlip.Length);

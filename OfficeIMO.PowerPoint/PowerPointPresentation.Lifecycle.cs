@@ -4,13 +4,12 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Runtime.ExceptionServices;
-using System.Security.Cryptography;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Drawing;
+using OfficeIMO.PowerPoint.LegacyPpt;
 
 namespace OfficeIMO.PowerPoint {
     public sealed partial class PowerPointPresentation {
@@ -52,6 +51,7 @@ namespace OfficeIMO.PowerPoint {
                 _packageStream = null;
                 _sourceStream = null;
                 _signedPackageOpenFingerprint = null;
+                ClearLegacyPptPackageState();
                 _discardChangesOnDispose = false;
                 _disposed = true;
                 GC.SuppressFinalize(this);
@@ -100,6 +100,7 @@ namespace OfficeIMO.PowerPoint {
                 _packageStream = null;
                 _sourceStream = null;
                 _signedPackageOpenFingerprint = null;
+                ClearLegacyPptPackageState();
                 _discardChangesOnDispose = false;
                 _disposed = true;
                 GC.SuppressFinalize(this);
@@ -162,24 +163,40 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>Loads an existing presentation into detached memory.</summary>
-        public static PowerPointPresentation Load(string filePath, PowerPointLoadOptions? options = null) {
+        public static PowerPointPresentation Load(string filePath,
+            PowerPointLoadOptions? options = null) => Load(filePath, options,
+                CancellationToken.None);
+
+        /// <summary>Loads an existing presentation into detached memory with cancellation.</summary>
+        public static PowerPointPresentation Load(string filePath,
+            PowerPointLoadOptions? options,
+            CancellationToken cancellationToken) {
             if (filePath == null) throw new ArgumentNullException(nameof(filePath));
             if (!File.Exists(filePath)) {
                 throw new FileNotFoundException($"File '{filePath}' doesn't exist.", filePath);
             }
 
+            PowerPointLoadOptions resolved = options
+                ?? new PowerPointLoadOptions();
             byte[] bytes;
             using (var source = new FileStream(filePath, FileMode.Open, FileAccess.Read,
                        FileShare.ReadWrite | FileShare.Delete)) {
-                using var buffer = new MemoryStream();
-                source.CopyTo(buffer);
-                bytes = buffer.ToArray();
+                bytes = ReadPresentationInputBytes(source, resolved,
+                    cancellationToken, filePath);
             }
-            return LoadPackage(bytes, filePath, sourceStream: null, options ?? new PowerPointLoadOptions());
+            return LoadDocument(bytes, filePath, sourceStream: null,
+                resolved, cancellationToken);
         }
 
         /// <summary>Loads a presentation from a caller-owned stream into memory. Editable writable seekable sources become the associated destination; other sources remain detached.</summary>
-        public static PowerPointPresentation Load(Stream stream, PowerPointLoadOptions? options = null) {
+        public static PowerPointPresentation Load(Stream stream,
+            PowerPointLoadOptions? options = null) => Load(stream, options,
+                CancellationToken.None);
+
+        /// <summary>Loads a presentation from a caller-owned stream into memory with cancellation.</summary>
+        public static PowerPointPresentation Load(Stream stream,
+            PowerPointLoadOptions? options,
+            CancellationToken cancellationToken) {
             if (stream == null) throw new ArgumentNullException(nameof(stream));
             if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
 
@@ -187,7 +204,9 @@ namespace OfficeIMO.PowerPoint {
             OfficeDocumentLifecycle.Validate(resolved.AccessMode, resolved.PersistenceMode, "presentation");
             OfficeDocumentLifecycle.EnsureSaveOnDisposeDestination(stream, resolved.PersistenceMode, nameof(stream));
 
-            return LoadPackage(ReadAllBytes(stream), filePath: null, stream, resolved);
+            return LoadDocument(ReadPresentationInputBytes(stream, resolved,
+                    cancellationToken),
+                filePath: null, stream, resolved, cancellationToken);
         }
 
         /// <summary>Asynchronously loads an existing presentation into detached memory.</summary>
@@ -201,6 +220,8 @@ namespace OfficeIMO.PowerPoint {
                 throw new FileNotFoundException($"File '{fullPath}' doesn't exist.", fullPath);
             }
 
+            PowerPointLoadOptions resolved = options
+                ?? new PowerPointLoadOptions();
             using var source = new FileStream(
                 fullPath,
                 FileMode.Open,
@@ -208,8 +229,11 @@ namespace OfficeIMO.PowerPoint {
                 FileShare.ReadWrite | FileShare.Delete,
                 81920,
                 useAsync: true);
-            byte[] bytes = await OfficeStreamReader.ReadAllBytesAsync(source, cancellationToken).ConfigureAwait(false);
-            return LoadPackage(bytes, fullPath, sourceStream: null, options ?? new PowerPointLoadOptions());
+            byte[] bytes = await ReadPresentationInputBytesAsync(source,
+                resolved, cancellationToken, fullPath)
+                .ConfigureAwait(false);
+            return LoadDocument(bytes, fullPath, sourceStream: null,
+                resolved, cancellationToken);
         }
 
         /// <summary>Asynchronously loads a presentation from a caller-owned stream.</summary>
@@ -222,15 +246,26 @@ namespace OfficeIMO.PowerPoint {
             PowerPointLoadOptions resolved = options ?? new PowerPointLoadOptions();
             OfficeDocumentLifecycle.Validate(resolved.AccessMode, resolved.PersistenceMode, "presentation");
             OfficeDocumentLifecycle.EnsureSaveOnDisposeDestination(stream, resolved.PersistenceMode, nameof(stream));
-            byte[] bytes = await OfficeStreamReader.ReadAllBytesAsync(stream, cancellationToken).ConfigureAwait(false);
-            return LoadPackage(bytes, filePath: null, stream, resolved);
+            byte[] bytes = await ReadPresentationInputBytesAsync(stream,
+                resolved, cancellationToken)
+                .ConfigureAwait(false);
+            return LoadDocument(bytes, filePath: null, stream, resolved,
+                cancellationToken);
         }
 
         /// <summary>Loads a password-encrypted presentation into detached memory.</summary>
         public static PowerPointPresentation LoadEncrypted(
             string filePath,
             string password,
-            PowerPointLoadOptions? options = null) {
+            PowerPointLoadOptions? options = null) => LoadEncrypted(filePath,
+                password, options, CancellationToken.None);
+
+        /// <summary>Loads a password-encrypted presentation into detached memory with cancellation.</summary>
+        public static PowerPointPresentation LoadEncrypted(
+            string filePath,
+            string password,
+            PowerPointLoadOptions? options,
+            CancellationToken cancellationToken) {
             if (filePath == null) throw new ArgumentNullException(nameof(filePath));
             if (password == null) throw new ArgumentNullException(nameof(password));
             if (!File.Exists(filePath)) {
@@ -239,7 +274,26 @@ namespace OfficeIMO.PowerPoint {
 
             PowerPointLoadOptions resolved = options ?? new PowerPointLoadOptions();
             EnsureEncryptedLoadUsesExplicitPersistence(resolved);
-            byte[] packageBytes = OfficeEncryption.DecryptPackage(File.ReadAllBytes(filePath), password);
+            using var source = new FileStream(filePath, FileMode.Open,
+                FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+            byte[] encryptedBytes = ReadPresentationInputBytes(source,
+                resolved, cancellationToken, filePath);
+            ValidatePackageSecurity(encryptedBytes, resolved);
+            LegacyBinaryEncryptionKind legacyEncryption =
+                PowerPointPresentationLoadRouting
+                    .GetLegacyBinaryEncryptionKind(encryptedBytes,
+                        resolved.LegacyPptImportOptions);
+            if (legacyEncryption == LegacyBinaryEncryptionKind.Encrypted) {
+                return LoadEncryptedLegacyPptFromNormalFlow(encryptedBytes,
+                    password, PowerPointPresentationLoadRouting.GetFormat(
+                        filePath, legacyDefault: true), resolved,
+                    cancellationToken);
+            }
+            ThrowIfUnencryptedLegacyBinary(legacyEncryption);
+            byte[] packageBytes = OfficeEncryption.DecryptPackage(
+                encryptedBytes, password, cancellationToken,
+                ResolvePackageInputLimit(resolved));
+            cancellationToken.ThrowIfCancellationRequested();
             return LoadPackage(packageBytes, filePath: null, sourceStream: null, resolved);
         }
 
@@ -264,8 +318,25 @@ namespace OfficeIMO.PowerPoint {
                 FileShare.ReadWrite | FileShare.Delete,
                 81920,
                 useAsync: true);
-            byte[] encryptedBytes = await OfficeStreamReader.ReadAllBytesAsync(source, cancellationToken).ConfigureAwait(false);
-            byte[] packageBytes = OfficeEncryption.DecryptPackage(encryptedBytes, password);
+            byte[] encryptedBytes = await ReadPresentationInputBytesAsync(
+                source, resolved, cancellationToken, fullPath)
+                .ConfigureAwait(false);
+            ValidatePackageSecurity(encryptedBytes, resolved);
+            LegacyBinaryEncryptionKind legacyEncryption =
+                PowerPointPresentationLoadRouting
+                    .GetLegacyBinaryEncryptionKind(encryptedBytes,
+                        resolved.LegacyPptImportOptions);
+            if (legacyEncryption == LegacyBinaryEncryptionKind.Encrypted) {
+                return LoadEncryptedLegacyPptFromNormalFlow(encryptedBytes,
+                    password, PowerPointPresentationLoadRouting.GetFormat(
+                        fullPath, legacyDefault: true), resolved,
+                    cancellationToken);
+            }
+            ThrowIfUnencryptedLegacyBinary(legacyEncryption);
+            byte[] packageBytes = OfficeEncryption.DecryptPackage(
+                encryptedBytes, password, cancellationToken,
+                ResolvePackageInputLimit(resolved));
+            cancellationToken.ThrowIfCancellationRequested();
             return LoadPackage(packageBytes, filePath: null, sourceStream: null, resolved);
         }
 
@@ -280,8 +351,24 @@ namespace OfficeIMO.PowerPoint {
             if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
             PowerPointLoadOptions resolved = options ?? new PowerPointLoadOptions();
             EnsureEncryptedLoadUsesExplicitPersistence(resolved);
-            byte[] encryptedBytes = await OfficeStreamReader.ReadAllBytesAsync(stream, cancellationToken).ConfigureAwait(false);
-            byte[] packageBytes = OfficeEncryption.DecryptPackage(encryptedBytes, password);
+            byte[] encryptedBytes = await ReadPresentationInputBytesAsync(
+                stream, resolved, cancellationToken)
+                .ConfigureAwait(false);
+            ValidatePackageSecurity(encryptedBytes, resolved);
+            LegacyBinaryEncryptionKind legacyEncryption =
+                PowerPointPresentationLoadRouting
+                    .GetLegacyBinaryEncryptionKind(encryptedBytes,
+                        resolved.LegacyPptImportOptions);
+            if (legacyEncryption == LegacyBinaryEncryptionKind.Encrypted) {
+                return LoadEncryptedLegacyPptFromNormalFlow(encryptedBytes,
+                    password, PowerPointFileFormat.Ppt, resolved,
+                    cancellationToken);
+            }
+            ThrowIfUnencryptedLegacyBinary(legacyEncryption);
+            byte[] packageBytes = OfficeEncryption.DecryptPackage(
+                encryptedBytes, password, cancellationToken,
+                ResolvePackageInputLimit(resolved));
+            cancellationToken.ThrowIfCancellationRequested();
             return LoadPackage(packageBytes, filePath: null, sourceStream: null, resolved);
         }
 
@@ -289,15 +376,47 @@ namespace OfficeIMO.PowerPoint {
         public static PowerPointPresentation LoadEncrypted(
             Stream stream,
             string password,
-            PowerPointLoadOptions? options = null) {
+            PowerPointLoadOptions? options = null) => LoadEncrypted(stream,
+                password, options, CancellationToken.None);
+
+        /// <summary>Loads a password-encrypted presentation stream into detached memory with cancellation.</summary>
+        public static PowerPointPresentation LoadEncrypted(
+            Stream stream,
+            string password,
+            PowerPointLoadOptions? options,
+            CancellationToken cancellationToken) {
             if (stream == null) throw new ArgumentNullException(nameof(stream));
             if (password == null) throw new ArgumentNullException(nameof(password));
             if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
 
             PowerPointLoadOptions resolved = options ?? new PowerPointLoadOptions();
             EnsureEncryptedLoadUsesExplicitPersistence(resolved);
-            byte[] packageBytes = OfficeEncryption.DecryptPackage(ReadAllBytes(stream), password);
+            byte[] encryptedBytes = ReadPresentationInputBytes(stream,
+                resolved, cancellationToken);
+            ValidatePackageSecurity(encryptedBytes, resolved);
+            LegacyBinaryEncryptionKind legacyEncryption =
+                PowerPointPresentationLoadRouting
+                    .GetLegacyBinaryEncryptionKind(encryptedBytes,
+                        resolved.LegacyPptImportOptions);
+            if (legacyEncryption == LegacyBinaryEncryptionKind.Encrypted) {
+                return LoadEncryptedLegacyPptFromNormalFlow(encryptedBytes,
+                    password, PowerPointFileFormat.Ppt, resolved,
+                    cancellationToken);
+            }
+            ThrowIfUnencryptedLegacyBinary(legacyEncryption);
+            byte[] packageBytes = OfficeEncryption.DecryptPackage(
+                encryptedBytes, password, cancellationToken,
+                ResolvePackageInputLimit(resolved));
+            cancellationToken.ThrowIfCancellationRequested();
             return LoadPackage(packageBytes, filePath: null, sourceStream: null, resolved);
+        }
+
+        private static void ThrowIfUnencryptedLegacyBinary(
+            LegacyBinaryEncryptionKind encryptionKind) {
+            if (encryptionKind == LegacyBinaryEncryptionKind.Unencrypted) {
+                throw new InvalidDataException(
+                    "The binary PowerPoint presentation is not password-encrypted. Use PowerPointPresentation.Load instead.");
+            }
         }
 
         private static PowerPointPresentation LoadPackage(
@@ -305,6 +424,7 @@ namespace OfficeIMO.PowerPoint {
             string? filePath,
             Stream? sourceStream,
             PowerPointLoadOptions options) {
+            ValidatePackageSecurity(bytes, options);
             OfficeDocumentLifecycle.Validate(options.AccessMode, options.PersistenceMode, "presentation");
             bool editable = options.AccessMode == DocumentAccessMode.ReadWrite;
             Stream? associatedStream = OfficeDocumentLifecycle.ResolveAssociatedDestination(
@@ -326,11 +446,28 @@ namespace OfficeIMO.PowerPoint {
                     document.ExtendedFilePropertiesPart?.Properties?.DigitalSignature != null) {
                     presentation._signedPackageOpenFingerprint = CreatePackageFingerprint(document);
                 }
+                presentation.MarkLoadedFromOpenXml();
                 return presentation;
             } catch {
                 packageStream.Dispose();
                 throw;
             }
+        }
+
+        private static PowerPointPresentation LoadDocument(
+            byte[] bytes,
+            string? filePath,
+            Stream? sourceStream,
+            PowerPointLoadOptions options,
+            CancellationToken cancellationToken = default) {
+            if (PowerPointPresentationLoadRouting.IsLegacyBinary(bytes,
+                    filePath)) {
+                ValidatePackageSecurity(bytes, options);
+                return LoadLegacyPptFromNormalFlow(bytes, filePath,
+                    sourceStream, options, cancellationToken);
+            }
+            cancellationToken.ThrowIfCancellationRequested();
+            return LoadPackage(bytes, filePath, sourceStream, options);
         }
 
         private static OpenSettings CreateOpenSettings(OpenSettings? openSettings) {
@@ -352,38 +489,7 @@ namespace OfficeIMO.PowerPoint {
             }
         }
 
-        private static string CreatePackageFingerprint(PresentationDocument document) {
-            var parts = new HashSet<OpenXmlPart>();
-            foreach (IdPartPair pair in document.Parts) CollectPackageParts(pair.OpenXmlPart, parts);
-
-            var content = new StringBuilder();
-            foreach (OpenXmlPart part in parts.OrderBy(item => item.Uri.ToString(), StringComparer.Ordinal)) {
-                content.Append(part.Uri).Append('|').Append(part.ContentType).Append('|');
-                try {
-                    OpenXmlPartRootElement? root = part.RootElement;
-                    if (root != null) {
-                        content.Append(root.OuterXml);
-                    } else {
-                        using Stream stream = part.GetStream(FileMode.Open, FileAccess.Read);
-                        using var memory = new MemoryStream();
-                        stream.CopyTo(memory);
-                        content.Append(Convert.ToBase64String(memory.ToArray()));
-                    }
-                } catch (InvalidDataException) {
-                    content.Append("unreadable");
-                }
-                foreach (IdPartPair relationship in part.Parts.OrderBy(item => item.RelationshipId, StringComparer.Ordinal)) {
-                    content.Append('|').Append(relationship.RelationshipId).Append('=').Append(relationship.OpenXmlPart.Uri);
-                }
-            }
-
-            using SHA256 sha = SHA256.Create();
-            return Convert.ToBase64String(sha.ComputeHash(Encoding.UTF8.GetBytes(content.ToString())));
-        }
-
-        private static void CollectPackageParts(OpenXmlPart part, ISet<OpenXmlPart> parts) {
-            if (!parts.Add(part)) return;
-            foreach (IdPartPair child in part.Parts) CollectPackageParts(child.OpenXmlPart, parts);
-        }
+        private static string CreatePackageFingerprint(PresentationDocument document) =>
+            PowerPointPackageFingerprint.Create(document);
     }
 }

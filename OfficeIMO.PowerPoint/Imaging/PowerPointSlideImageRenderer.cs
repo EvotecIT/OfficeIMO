@@ -98,7 +98,18 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static A.ColorScheme? GetSlideColorScheme(PowerPointSlide slide) =>
-            slide.SlidePart.SlideLayoutPart?.SlideMasterPart?.ThemePart?.Theme?.ThemeElements?.ColorScheme;
+            slide.SlidePart.ThemeOverridePart?.ThemeOverride?.ColorScheme
+            ?? slide.SlidePart.SlideLayoutPart?.ThemeOverridePart?.ThemeOverride?
+                .ColorScheme
+            ?? slide.SlidePart.SlideLayoutPart?.SlideMasterPart?.ThemePart?.Theme?
+                .ThemeElements?.ColorScheme;
+
+        private static A.FormatScheme? GetSlideFormatScheme(PowerPointSlide slide) =>
+            slide.SlidePart.ThemeOverridePart?.ThemeOverride?.FormatScheme
+            ?? slide.SlidePart.SlideLayoutPart?.ThemeOverridePart?.ThemeOverride?
+                .FormatScheme
+            ?? slide.SlidePart.SlideLayoutPart?.SlideMasterPart?.ThemePart?.Theme?
+                .ThemeElements?.FormatScheme;
 
         private static void AddGroupShape(OfficeDrawing drawing, PowerPointGroupShape groupShape,
             List<OfficeImageExportDiagnostic> diagnostics, PowerPointShapeBoundsMapping mapping,
@@ -240,7 +251,7 @@ namespace OfficeIMO.PowerPoint {
                 return;
             }
 
-            ApplyShapeStyle(drawingShape, shape, colorScheme, mapping);
+            ApplyShapeStyle(drawingShape, shape, colorScheme, mapping, diagnostics);
             ApplyShapeTransform(drawingShape, shape, width, height);
             drawing.AddShape(drawingShape, left, top);
         }
@@ -260,8 +271,8 @@ namespace OfficeIMO.PowerPoint {
                 return;
             }
 
-            OfficeShape frame = OfficeShape.Rectangle(width, height);
-            ApplyShapeStyle(frame, textBox, colorScheme, mapping);
+            OfficeShape frame = CreateTextBoxFrame(textBox, width, height, diagnostics);
+            ApplyShapeStyle(frame, textBox, colorScheme, mapping, diagnostics);
             ApplyShapeTransform(frame, textBox, width, height);
             if (hasVisibleFrame) {
                 drawing.AddShape(frame, left, top);
@@ -354,14 +365,47 @@ namespace OfficeIMO.PowerPoint {
                 paragraphIndent: paragraphIndent);
         }
 
+        private static OfficeShape CreateTextBoxFrame(
+            PowerPointTextBox textBox,
+            double width,
+            double height,
+            List<OfficeImageExportDiagnostic> diagnostics) {
+            string? presetName = GetAutoShapePresetName(textBox);
+            if (string.IsNullOrEmpty(presetName)
+                || string.Equals(presetName, "rect", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(presetName, "rectangle", StringComparison.OrdinalIgnoreCase)) {
+                return OfficeShape.Rectangle(width, height);
+            }
+            if (OfficeShapePresets.TryCreate(presetName, width, height,
+                    out OfficeShape? preset) && preset != null) {
+                return preset;
+            }
+
+            AddUnsupportedShapeDiagnostic(diagnostics, textBox,
+                "Rendered the PowerPoint text content inside a rectangular frame because its preset frame geometry is not yet projected through OfficeIMO.Drawing.");
+            return OfficeShape.Rectangle(width, height);
+        }
+
         private static bool HasVisibleFrame(PowerPointShape source, A.ColorScheme? colorScheme) {
-            return (source.FillTransparency != 100 && TryResolveShapeFillColor(source, colorScheme, out _)) ||
+            return (source.FillTransparency != 100
+                    && (HasShapeFillGradient(source)
+                        || TryResolveShapeFillColor(source, colorScheme, out _))) ||
                 TryResolveShapeOutlineColor(source, colorScheme, out _);
         }
 
-        private static void ApplyShapeStyle(OfficeShape target, PowerPointShape source, A.ColorScheme? colorScheme, PowerPointShapeBoundsMapping mapping) {
-            if (source.FillTransparency != 100 && TryResolveShapeFillColor(source, colorScheme, out OfficeColor fill)) {
-                target.FillColor = fill;
+        private static void ApplyShapeStyle(OfficeShape target, PowerPointShape source,
+            A.ColorScheme? colorScheme, PowerPointShapeBoundsMapping mapping,
+            List<OfficeImageExportDiagnostic> diagnostics) {
+            if (source.FillTransparency != 100) {
+                ShapeFillGradientProjection gradientProjection = ApplyShapeFillGradient(
+                    target, source, colorScheme, mapping.HasTransformedAncestor);
+                if (gradientProjection == ShapeFillGradientProjection.Unsupported) {
+                    AddUnsupportedShapeDiagnostic(diagnostics, source,
+                        "Skipped a PowerPoint shape gradient that cannot be represented faithfully by the shared Drawing renderer.");
+                } else if (gradientProjection == ShapeFillGradientProjection.None
+                    && TryResolveShapeFillColor(source, colorScheme, out OfficeColor fill)) {
+                    target.FillColor = fill;
+                }
             }
 
             if (TryResolveShapeOutlineColor(source, colorScheme, out OfficeColor stroke)) {
@@ -628,155 +672,8 @@ namespace OfficeIMO.PowerPoint {
 
             int current = numbered.StartAt?.Value ?? (numberingState.TryGetValue(level, out int previous) ? previous + 1 : 1);
             numberingState[level] = current;
-            return FormatNumberMarker(current, numbered.Type?.Value);
-        }
-
-        private static string FormatNumberMarker(int number, A.TextAutoNumberSchemeValues? scheme) {
-            string value = FormatNumberValue(number, scheme);
-            if (IsParenthesizedOnBothSides(scheme)) {
-                return "(" + value + ") ";
-            }
-
-            if (IsParenthesizedOnRight(scheme)) {
-                return value + ") ";
-            }
-
-            if (IsPlainNumbering(scheme)) {
-                return value + " ";
-            }
-
-            if (IsMinusNumbering(scheme)) {
-                return value + "- ";
-            }
-
-            return value + ". ";
-        }
-
-        private static string FormatNumberValue(int number, A.TextAutoNumberSchemeValues? scheme) {
-            if (IsLowerAlphaNumbering(scheme)) {
-                return FormatAlphabeticNumber(number);
-            }
-
-            if (IsUpperAlphaNumbering(scheme)) {
-                string alpha = FormatAlphabeticNumber(number);
-                return alpha.ToUpperInvariant();
-            }
-
-            if (IsLowerRomanNumbering(scheme)) {
-                string roman = FormatRomanNumber(number);
-                return roman.ToLowerInvariant();
-            }
-
-            if (IsUpperRomanNumbering(scheme)) {
-                return FormatRomanNumber(number);
-            }
-
-            return number.ToString(CultureInfo.InvariantCulture);
-        }
-
-        private static bool IsLowerAlphaNumbering(A.TextAutoNumberSchemeValues? scheme) =>
-            IsScheme(scheme, A.TextAutoNumberSchemeValues.AlphaLowerCharacterParenBoth) ||
-            IsScheme(scheme, A.TextAutoNumberSchemeValues.AlphaLowerCharacterParenR) ||
-            IsScheme(scheme, A.TextAutoNumberSchemeValues.AlphaLowerCharacterPeriod);
-
-        private static bool IsUpperAlphaNumbering(A.TextAutoNumberSchemeValues? scheme) =>
-            IsScheme(scheme, A.TextAutoNumberSchemeValues.AlphaUpperCharacterParenBoth) ||
-            IsScheme(scheme, A.TextAutoNumberSchemeValues.AlphaUpperCharacterParenR) ||
-            IsScheme(scheme, A.TextAutoNumberSchemeValues.AlphaUpperCharacterPeriod);
-
-        private static bool IsLowerRomanNumbering(A.TextAutoNumberSchemeValues? scheme) =>
-            IsScheme(scheme, A.TextAutoNumberSchemeValues.RomanLowerCharacterParenBoth) ||
-            IsScheme(scheme, A.TextAutoNumberSchemeValues.RomanLowerCharacterParenR) ||
-            IsScheme(scheme, A.TextAutoNumberSchemeValues.RomanLowerCharacterPeriod);
-
-        private static bool IsUpperRomanNumbering(A.TextAutoNumberSchemeValues? scheme) =>
-            IsScheme(scheme, A.TextAutoNumberSchemeValues.RomanUpperCharacterParenBoth) ||
-            IsScheme(scheme, A.TextAutoNumberSchemeValues.RomanUpperCharacterParenR) ||
-            IsScheme(scheme, A.TextAutoNumberSchemeValues.RomanUpperCharacterPeriod);
-
-        private static bool IsParenthesizedOnBothSides(A.TextAutoNumberSchemeValues? scheme) =>
-            IsScheme(scheme, A.TextAutoNumberSchemeValues.AlphaLowerCharacterParenBoth) ||
-            IsScheme(scheme, A.TextAutoNumberSchemeValues.AlphaUpperCharacterParenBoth) ||
-            IsScheme(scheme, A.TextAutoNumberSchemeValues.ArabicParenBoth) ||
-            IsScheme(scheme, A.TextAutoNumberSchemeValues.RomanLowerCharacterParenBoth) ||
-            IsScheme(scheme, A.TextAutoNumberSchemeValues.RomanUpperCharacterParenBoth) ||
-            IsScheme(scheme, A.TextAutoNumberSchemeValues.ThaiAlphaParenthesisBoth) ||
-            IsScheme(scheme, A.TextAutoNumberSchemeValues.ThaiNumberParenthesisBoth);
-
-        private static bool IsParenthesizedOnRight(A.TextAutoNumberSchemeValues? scheme) =>
-            IsScheme(scheme, A.TextAutoNumberSchemeValues.AlphaLowerCharacterParenR) ||
-            IsScheme(scheme, A.TextAutoNumberSchemeValues.AlphaUpperCharacterParenR) ||
-            IsScheme(scheme, A.TextAutoNumberSchemeValues.ArabicParenR) ||
-            IsScheme(scheme, A.TextAutoNumberSchemeValues.RomanLowerCharacterParenR) ||
-            IsScheme(scheme, A.TextAutoNumberSchemeValues.RomanUpperCharacterParenR) ||
-            IsScheme(scheme, A.TextAutoNumberSchemeValues.ThaiAlphaParenthesisRight) ||
-            IsScheme(scheme, A.TextAutoNumberSchemeValues.ThaiNumberParenthesisRight) ||
-            IsScheme(scheme, A.TextAutoNumberSchemeValues.HindiNumberParenthesisRight);
-
-        private static bool IsPlainNumbering(A.TextAutoNumberSchemeValues? scheme) =>
-            IsScheme(scheme, A.TextAutoNumberSchemeValues.ArabicPlain) ||
-            IsScheme(scheme, A.TextAutoNumberSchemeValues.ArabicDoubleBytePlain) ||
-            IsScheme(scheme, A.TextAutoNumberSchemeValues.CircleNumberDoubleBytePlain) ||
-            IsScheme(scheme, A.TextAutoNumberSchemeValues.CircleNumberWingdingsBlackPlain) ||
-            IsScheme(scheme, A.TextAutoNumberSchemeValues.CircleNumberWingdingsWhitePlain) ||
-            IsScheme(scheme, A.TextAutoNumberSchemeValues.EastAsianSimplifiedChinesePlain) ||
-            IsScheme(scheme, A.TextAutoNumberSchemeValues.EastAsianTraditionalChinesePlain) ||
-            IsScheme(scheme, A.TextAutoNumberSchemeValues.EastAsianJapaneseKoreanPlain);
-
-        private static bool IsMinusNumbering(A.TextAutoNumberSchemeValues? scheme) =>
-            IsScheme(scheme, A.TextAutoNumberSchemeValues.Arabic1Minus) ||
-            IsScheme(scheme, A.TextAutoNumberSchemeValues.Arabic2Minus) ||
-            IsScheme(scheme, A.TextAutoNumberSchemeValues.Hebrew2Minus);
-
-        private static bool IsScheme(A.TextAutoNumberSchemeValues? scheme, A.TextAutoNumberSchemeValues value) =>
-            scheme.HasValue && scheme.Value.Equals(value);
-
-        private static string FormatAlphabeticNumber(int number) {
-            if (number <= 0) {
-                return number.ToString(CultureInfo.InvariantCulture);
-            }
-
-            var chars = new Stack<char>();
-            int value = number;
-            while (value > 0) {
-                value--;
-                chars.Push((char)('a' + (value % 26)));
-                value /= 26;
-            }
-
-            return new string(chars.ToArray());
-        }
-
-        private static string FormatRomanNumber(int number) {
-            if (number <= 0 || number > 3999) {
-                return number.ToString(CultureInfo.InvariantCulture);
-            }
-
-            (int Value, string Text)[] numerals = {
-                (1000, "M"),
-                (900, "CM"),
-                (500, "D"),
-                (400, "CD"),
-                (100, "C"),
-                (90, "XC"),
-                (50, "L"),
-                (40, "XL"),
-                (10, "X"),
-                (9, "IX"),
-                (5, "V"),
-                (4, "IV"),
-                (1, "I")
-            };
-            var builder = new StringBuilder();
-            int remaining = number;
-            for (int i = 0; i < numerals.Length; i++) {
-                while (remaining >= numerals[i].Value) {
-                    builder.Append(numerals[i].Text);
-                    remaining -= numerals[i].Value;
-                }
-            }
-
-            return builder.ToString();
+            return PowerPointNumberingFormatter.FormatMarker(current,
+                numbered.Type?.Value) + " ";
         }
 
         private static OfficeRichTextRun CreateRichTextRun(string text, PowerPointTextRun? run, PowerPointTextBox textBox, PowerPointParagraph? paragraph, A.ColorScheme? colorScheme, PowerPointShapeBoundsMapping mapping, bool markerRun = false) {
@@ -930,6 +827,8 @@ namespace OfficeIMO.PowerPoint {
 
         private static PowerPointShapeBoundsMapping CreateGroupLocalChildMapping(PowerPointGroupShape groupShape, PowerPointShapeBoundsMapping parentMapping) {
             A.TransformGroup? transform = groupShape.GroupShape.GroupShapeProperties?.TransformGroup;
+            bool hasTransformedAncestor = parentMapping.HasTransformedAncestor
+                || CreateGroupFrameTransform(groupShape, 0D, 0D, 0D, 0D).HasTransform;
             long? groupWidthEmu = transform?.Extents?.Cx?.Value;
             long? groupHeightEmu = transform?.Extents?.Cy?.Value;
             long? childXEmu = transform?.ChildOffset?.X?.Value;
@@ -939,7 +838,7 @@ namespace OfficeIMO.PowerPoint {
             if (!groupWidthEmu.HasValue || !groupHeightEmu.HasValue ||
                 !childXEmu.HasValue || !childYEmu.HasValue || !childWidthEmu.HasValue || !childHeightEmu.HasValue ||
                 childWidthEmu.Value == 0L || childHeightEmu.Value == 0L) {
-                return parentMapping;
+                return parentMapping.WithTransformedAncestor(hasTransformedAncestor);
             }
 
             double childX = PowerPointUnits.ToPoints(childXEmu.Value);
@@ -950,7 +849,8 @@ namespace OfficeIMO.PowerPoint {
                 -parentMapping.MapWidth(childX * scaleX),
                 -parentMapping.MapHeight(childY * scaleY),
                 parentMapping.MapWidth(scaleX),
-                parentMapping.MapHeight(scaleY));
+                parentMapping.MapHeight(scaleY),
+                hasTransformedAncestor);
         }
 
         private static OfficeImageFrameTransform CreateGroupFrameTransform(PowerPointGroupShape groupShape, double left, double top, double width, double height) {
@@ -1188,13 +1088,19 @@ namespace OfficeIMO.PowerPoint {
             private readonly double _offsetY;
             private readonly double _scaleX;
             private readonly double _scaleY;
+            private readonly bool _hasTransformedAncestor;
 
-            internal PowerPointShapeBoundsMapping(double offsetX, double offsetY, double scaleX, double scaleY) {
+            internal PowerPointShapeBoundsMapping(double offsetX, double offsetY,
+                double scaleX, double scaleY,
+                bool hasTransformedAncestor = false) {
                 _offsetX = offsetX;
                 _offsetY = offsetY;
                 _scaleX = scaleX;
                 _scaleY = scaleY;
+                _hasTransformedAncestor = hasTransformedAncestor;
             }
+
+            internal bool HasTransformedAncestor => _hasTransformedAncestor;
 
             internal double MapX(double value) => _offsetX + (value * _scaleX);
 
@@ -1212,12 +1118,17 @@ namespace OfficeIMO.PowerPoint {
 
             internal double MapStrokeWidth(double value) => value * Math.Sqrt(Math.Abs(_scaleX * _scaleY));
 
+            internal PowerPointShapeBoundsMapping WithTransformedAncestor(bool value) =>
+                new PowerPointShapeBoundsMapping(_offsetX, _offsetY, _scaleX,
+                    _scaleY, _hasTransformedAncestor || value);
+
             internal PowerPointShapeBoundsMapping Compose(PowerPointShapeBoundsMapping child) =>
                 new PowerPointShapeBoundsMapping(
                     _offsetX + (child._offsetX * _scaleX),
                     _offsetY + (child._offsetY * _scaleY),
                     _scaleX * child._scaleX,
-                    _scaleY * child._scaleY);
+                    _scaleY * child._scaleY,
+                    _hasTransformedAncestor || child._hasTransformedAncestor);
         }
     }
 }

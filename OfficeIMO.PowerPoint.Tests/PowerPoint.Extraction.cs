@@ -91,6 +91,127 @@ namespace OfficeIMO.Tests {
             }
         }
 
+        [Fact]
+        public void ExtractMarkdownChunks_DoesNotSplitSurrogatePairAtLimit() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            const string Emoji = "\U0001F600";
+            slide.AddTextBox(new string('A', 400) + Emoji + " after");
+            string complete = presentation.ExtractMarkdownChunks()
+                .Single().Markdown;
+            int emojiOffset = complete.IndexOf(Emoji,
+                StringComparison.Ordinal);
+            Assert.True(emojiOffset >= 0);
+
+            string truncated = presentation.ExtractMarkdownChunks(
+                chunking: new PowerPointExtractChunkingOptions {
+                    MaxChars = emojiOffset + 1
+                }).Single().Markdown;
+
+            Assert.DoesNotContain("\uD83D", truncated,
+                StringComparison.Ordinal);
+            Assert.DoesNotContain("\uDE00", truncated,
+                StringComparison.Ordinal);
+            Assert.Contains("<!-- truncated -->", truncated,
+                StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void ExtractMarkdownChunks_PreservesParagraphSemanticsLinksAndShapeOrder() {
+            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            slide.AddTitle("Extraction contract");
+
+            PowerPointTextBox list = slide.AddTextBox(string.Empty);
+            list.SetBullets(new[] { "Parent bullet" });
+            list.AddBullets(new[] { "Nested bullet" }, level: 1);
+            list.AddNumberedList(new[] { "Third item", "Fourth item" },
+                A.TextAutoNumberSchemeValues.AlphaLowerCharacterParenR,
+                startAt: 3);
+            PowerPointParagraph closing = list.AddParagraph("Closing paragraph");
+            closing.ClearBullet();
+
+            PowerPointTextBox prose = slide.AddTextBox(string.Empty);
+            prose.SetParagraphs(new[] { "First paragraph", "Second paragraph" });
+
+            PowerPointTextBox wideNumber = slide.AddTextBox(string.Empty);
+            wideNumber.SetNumberedList(new[] { "Hundredth item" },
+                A.TextAutoNumberSchemeValues.ArabicPeriod, startAt: 100);
+            wideNumber.AddBullets(new[] { "Arrow child" }, level: 1,
+                bulletChar: '\u2192');
+
+            PowerPointTable table = slide.AddTable(2, 2);
+            table.GetCell(0, 0).Text = "Region";
+            table.GetCell(0, 1).Text = "Revenue";
+            table.GetCell(1, 0).Text = "North";
+            table.GetCell(1, 1).Text = "120";
+
+            PowerPointTextBox afterTable = slide.AddTextBox("Read ");
+            afterTable.Paragraphs[0].AddRun("the guide")
+                .SetHyperlink("https://example.test/guide");
+            afterTable.Paragraphs[0].AddRun(" and ");
+            afterTable.Paragraphs[0].AddRun("roadmap")
+                .SetHyperlink("Quarter 1.pptx");
+            slide.Notes.Text = "Speaker reminder";
+
+            string markdown = presentation.ExtractMarkdownChunks().Single().Markdown;
+
+            Assert.DoesNotContain("\r", markdown, StringComparison.Ordinal);
+            Assert.Contains("### Extraction contract", markdown, StringComparison.Ordinal);
+            Assert.Contains("- • Parent bullet", markdown, StringComparison.Ordinal);
+            Assert.Contains("    - • Nested bullet", markdown, StringComparison.Ordinal);
+            Assert.Contains("3. c) Third item", markdown, StringComparison.Ordinal);
+            Assert.Contains("4. d) Fourth item", markdown, StringComparison.Ordinal);
+            Assert.Contains("4. d) Fourth item\n\nClosing paragraph", markdown, StringComparison.Ordinal);
+            Assert.Contains("First paragraph\n\nSecond paragraph", markdown, StringComparison.Ordinal);
+            Assert.Contains("100. Hundredth item\n     - → Arrow child",
+                markdown, StringComparison.Ordinal);
+            Assert.Contains("| Region | Revenue |", markdown, StringComparison.Ordinal);
+            Assert.Contains("Read [the guide](<https://example.test/guide>)", markdown, StringComparison.Ordinal);
+            Assert.Contains("[roadmap](<Quarter%201.pptx>)", markdown, StringComparison.Ordinal);
+            Assert.Contains("### Notes", markdown, StringComparison.Ordinal);
+            Assert.Contains("Speaker reminder", markdown, StringComparison.Ordinal);
+
+            int listPosition = markdown.IndexOf("- • Parent bullet", StringComparison.Ordinal);
+            int tablePosition = markdown.IndexOf("### Table 1", StringComparison.Ordinal);
+            int afterTablePosition = markdown.IndexOf("Read [the guide]", StringComparison.Ordinal);
+            Assert.True(listPosition >= 0 && listPosition < tablePosition,
+                "The list textbox should be emitted before the table.");
+            Assert.True(tablePosition < afterTablePosition,
+                "The table should be emitted before the following textbox.");
+        }
+
+        [Fact]
+        public void ExtractMarkdownChunks_RestartsNumberingAtListBoundaries() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            PowerPointTextBox text = slide.AddTextBox(string.Empty);
+            text.SetNumberedList(new[] { "Before one", "Before two" });
+            text.AddParagraph("Plain boundary").ClearBullet();
+            PowerPointParagraph restarted = text.AddParagraph("After one");
+            restarted.SetNumbered(A.TextAutoNumberSchemeValues.ArabicPeriod);
+            PowerPointParagraph parentOne = text.AddParagraph("Parent one");
+            parentOne.SetNumbered(A.TextAutoNumberSchemeValues.ArabicPeriod);
+            PowerPointParagraph childOne = text.AddParagraph("Child one");
+            childOne.SetNumbered(A.TextAutoNumberSchemeValues.ArabicPeriod);
+            childOne.Level = 1;
+            PowerPointParagraph parentTwo = text.AddParagraph("Parent two");
+            parentTwo.SetNumbered(A.TextAutoNumberSchemeValues.ArabicPeriod);
+            PowerPointParagraph childTwo = text.AddParagraph("Child restart");
+            childTwo.SetNumbered(A.TextAutoNumberSchemeValues.ArabicPeriod);
+            childTwo.Level = 1;
+
+            string markdown = presentation.ExtractMarkdownChunks()
+                .Single().Markdown;
+
+            Assert.Contains("2. Before two\n\nPlain boundary\n\n1. After one",
+                markdown, StringComparison.Ordinal);
+            Assert.Contains("2. Parent one\n    1. Child one\n3. Parent two\n    1. Child restart",
+                markdown, StringComparison.Ordinal);
+        }
+
         private static void AppendNotesParagraph(string filePath, string text) {
             using PresentationDocument document = PresentationDocument.Open(filePath, true);
             NotesSlidePart notesPart = document.PresentationPart!.SlideParts.First().NotesSlidePart!;

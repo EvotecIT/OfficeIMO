@@ -28,6 +28,8 @@ namespace OfficeIMO.PowerPoint {
         public string Text {
             get => Paragraph.InnerText ?? string.Empty;
             set {
+                string[] discardedSoundIds = PowerPointEmbeddedSound
+                    .GetRelationshipIds(Paragraph);
                 A.EndParagraphRunProperties? endProps = Paragraph.GetFirstChild<A.EndParagraphRunProperties>();
                 endProps?.Remove();
                 Paragraph.RemoveAllChildren<A.Run>();
@@ -36,6 +38,8 @@ namespace OfficeIMO.PowerPoint {
                 if (endProps != null) {
                     Paragraph.Append(endProps);
                 }
+                PowerPointEmbeddedSound.RemoveIfUnused(_slidePart,
+                    discardedSoundIds);
             }
         }
 
@@ -166,6 +170,12 @@ namespace OfficeIMO.PowerPoint {
         /// Gets whether the paragraph uses PowerPoint auto-numbering.
         /// </summary>
         public bool IsNumbered => Paragraph.ParagraphProperties?.GetFirstChild<A.AutoNumberedBullet>() != null;
+
+        /// <summary>
+        /// Gets the PowerPoint automatic-numbering scheme assigned to this paragraph, when present.
+        /// </summary>
+        public A.TextAutoNumberSchemeValues? NumberingScheme =>
+            Paragraph.ParagraphProperties?.GetFirstChild<A.AutoNumberedBullet>()?.Type?.Value;
 
         /// <summary>
         /// Gets the explicit PowerPoint numbering start value, when present.
@@ -628,11 +638,13 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static int? ToTextCoordinate(double? points) {
-            return points != null ? (int)Math.Round(points.Value * 100) : null;
+            return points != null
+                ? checked((int)Math.Round(points.Value * PowerPointUnits.EmusPerPoint))
+                : null;
         }
 
         private static double? FromTextCoordinate(int? value) {
-            return value != null ? value.Value / 100d : null;
+            return value != null ? value.Value / PowerPointUnits.EmusPerPoint : null;
         }
 
         private static int ToSpacingPoints(double points) {

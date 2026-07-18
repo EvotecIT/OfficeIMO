@@ -16,7 +16,7 @@ namespace OfficeIMO.PowerPoint {
             string name = GenerateUniqueName("Title");
             Shape shape = new(
                 new NonVisualShapeProperties(
-                    new NonVisualDrawingProperties { Id = _nextShapeId++, Name = name },
+                    new NonVisualDrawingProperties { Id = AllocateShapeId(), Name = name },
                     new NonVisualShapeDrawingProperties(new A.ShapeLocks { NoGrouping = true }),
                     new ApplicationNonVisualDrawingProperties(new PlaceholderShape { Type = PlaceholderValues.Title })
                 ),
@@ -92,7 +92,7 @@ namespace OfficeIMO.PowerPoint {
             string name = GenerateUniqueName("TextBox");
             Shape shape = new(
                 new NonVisualShapeProperties(
-                    new NonVisualDrawingProperties { Id = _nextShapeId++, Name = name },
+                    new NonVisualDrawingProperties { Id = AllocateShapeId(), Name = name },
                     new NonVisualShapeDrawingProperties(new A.ShapeLocks { NoGrouping = true }),
                     new ApplicationNonVisualDrawingProperties(new PlaceholderShape())
                 ),

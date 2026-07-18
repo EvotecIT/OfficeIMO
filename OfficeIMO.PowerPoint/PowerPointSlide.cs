@@ -18,6 +18,7 @@ namespace OfficeIMO.PowerPoint {
         private readonly SlidePart _slidePart;
         private PowerPointNotes? _notes;
         private uint _nextShapeId = 2;
+        private bool _shapeIdsExhausted;
         private const string P14Namespace = "http://schemas.microsoft.com/office/powerpoint/2010/main";
         private const string P159Namespace = "http://schemas.microsoft.com/office/powerpoint/2015/09/main";
         private const string MarkupCompatibilityNamespace = "http://schemas.openxmlformats.org/markup-compatibility/2006";
@@ -63,6 +64,12 @@ namespace OfficeIMO.PowerPoint {
         ///     Enumerates all SmartArt diagrams on the slide.
         /// </summary>
         public IEnumerable<PowerPointSmartArt> SmartArts => _shapes.OfType<PowerPointSmartArt>();
+
+        /// <summary>
+        ///     Enumerates all embedded OLE compound objects on the slide.
+        /// </summary>
+        public IEnumerable<PowerPointOleObject> OleObjects =>
+            _shapes.OfType<PowerPointOleObject>();
 
         /// <summary>
         ///     Retrieves shapes that are within or intersect the provided bounds.
@@ -119,6 +126,32 @@ namespace OfficeIMO.PowerPoint {
             return shape;
         }
 
+        internal void ReserveShapeIdsThrough(uint nextShapeId) {
+            if (_shapeIdsExhausted) return;
+            if (nextShapeId > _nextShapeId) _nextShapeId = nextShapeId;
+        }
+
+        private uint AllocateShapeId() => AllocateShapeIds(1);
+
+        private uint AllocateShapeIds(int count) {
+            if (count <= 0) {
+                throw new ArgumentOutOfRangeException(nameof(count));
+            }
+            ulong lastShapeId = (ulong)_nextShapeId
+                + unchecked((uint)count) - 1UL;
+            if (_shapeIdsExhausted || lastShapeId > uint.MaxValue) {
+                throw new InvalidOperationException(
+                    "The slide shape identifier space is exhausted.");
+            }
+            uint firstShapeId = _nextShapeId;
+            if (lastShapeId == uint.MaxValue) {
+                _shapeIdsExhausted = true;
+            } else {
+                _nextShapeId = unchecked((uint)lastShapeId + 1U);
+            }
+            return firstShapeId;
+        }
+
         private void InsertTrackedShape(int index, PowerPointShape shape) {
             shape.AttachTo(this);
             _shapes.Insert(index, shape);
@@ -171,7 +204,19 @@ namespace OfficeIMO.PowerPoint {
                 }
             }
 
-            _nextShapeId = maxId + 1;
+            uint descendantMaxId = tree
+                .Descendants<NonVisualDrawingProperties>()
+                .Select(properties => properties.Id?.Value ?? 0U)
+                .DefaultIfEmpty(maxId)
+                .Max();
+            if (descendantMaxId > maxId) maxId = descendantMaxId;
+
+            if (maxId == uint.MaxValue) {
+                _nextShapeId = uint.MaxValue;
+                _shapeIdsExhausted = true;
+            } else {
+                _nextShapeId = maxId + 1U;
+            }
 
             if (_slidePart.NotesSlidePart != null) {
                 _notes = new PowerPointNotes(_slidePart);

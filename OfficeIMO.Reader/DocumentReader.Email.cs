@@ -23,7 +23,8 @@ internal static partial class DocumentReaderEngine {
         EnforceFileSize(path, GetEffectiveEmailMaxInputBytes(opt));
         using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
         EmailExtraction extraction = ExtractEmail(stream, path, opt, cancellationToken);
-        SourceInfo source = BuildSourceInfoFromPath(path, opt.ComputeHashes);
+        SourceInfo source = BuildSourceInfoFromPath(path, opt.ComputeHashes,
+            cancellationToken);
         EnrichEmailChunks(extraction.Chunks, source, opt.ComputeHashes);
         return BuildEmailDocumentResult(extraction, path, BuildPathDocumentSource(path, extraction.Chunks));
     }
@@ -37,7 +38,8 @@ internal static partial class DocumentReaderEngine {
         snapshot.Position = 0;
         EmailExtraction extraction = ExtractEmail(snapshot.ToArray(), sourceName, opt, cancellationToken);
         snapshot.Position = 0;
-        SourceInfo source = BuildSourceInfoFromStream(snapshot, sourceName, opt.ComputeHashes);
+        SourceInfo source = BuildSourceInfoFromStream(snapshot, sourceName,
+            opt.ComputeHashes, cancellationToken);
         EnrichEmailChunks(extraction.Chunks, source, opt.ComputeHashes);
         return BuildEmailDocumentResult(extraction, sourceName, BuildStreamDocumentSource(snapshot, sourceName, extraction.Chunks));
     }

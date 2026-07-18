@@ -1,6 +1,6 @@
 ---
 title: "OfficeIMO.PowerPoint"
-description: "Generate PowerPoint presentations with slides, charts, and shapes. No PowerPoint installation required."
+description: "Create and edit PPTX and PowerPoint 97-2003 presentations without PowerPoint automation."
 layout: product
 product_color: "#dc2626"
 install: "dotnet add package OfficeIMO.PowerPoint"
@@ -12,7 +12,7 @@ preview_id: "powerpoint"
 
 ## Why OfficeIMO.PowerPoint?
 
-OfficeIMO.PowerPoint lets you create polished `.pptx` presentations from code. Automate slide decks for reporting pipelines, generate training materials, or build dynamic dashboards -- all without PowerPoint installed on your machine.
+OfficeIMO.PowerPoint lets you create and edit `.pptx`, `.ppt`, `.pot`, and `.pps` presentations from code. Automate slide decks for reporting pipelines, update legacy decks, or build dynamic dashboards -- all without PowerPoint installed on your machine.
 
 ## Features
 
@@ -29,6 +29,8 @@ OfficeIMO.PowerPoint lets you create polished `.pptx` presentations from code. A
 - **Deck rhythm checks** -- flag repetitive layouts, dense streaks, long sections, and missing closing actions before rendering
 - **Speaker notes** -- attach presenter notes to any slide
 - **Slide copying & importing** -- copy slides within a presentation or import from another `.pptx` file
+- **PowerPoint 97-2003 compatibility** -- import into the normal editable model, author native binary files, preserve unrelated records during supported edits, and preflight PPTX-to-binary conversion loss
+- **Password and signature policy** -- open and save protected binary presentations, inspect legacy signatures, and block signature-invalidating saves by default
 
 ## Common deck patterns
 
@@ -93,7 +95,7 @@ Before publishing a generated deck, call `Preflight()` to measure text fit, chec
 | .NET Standard 2.0 | Yes       |
 | .NET Framework 4.7.2 | Yes   |
 
-OfficeIMO.PowerPoint runs on Windows, Linux, and macOS. It generates standard `.pptx` files intended for PowerPoint and other OOXML-capable presentation tools.
+OfficeIMO.PowerPoint runs on Windows, Linux, and macOS. It generates standard `.pptx` files and PowerPoint 97-2003 `.ppt`, `.pot`, and `.pps` compound files. Binary password protection uses legacy RC4 CryptoAPI for interoperability and should not be treated as modern cryptography.
 
 ## Related guides
 

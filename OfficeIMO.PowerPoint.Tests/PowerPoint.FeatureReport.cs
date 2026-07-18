@@ -1600,7 +1600,7 @@ namespace OfficeIMO.Tests {
 
                 using (PresentationDocument document = PresentationDocument.Open(filePath, true)) {
                     WipeTransition wipe = new();
-                    wipe.SetAttribute(new OpenXmlAttribute("dir", string.Empty, "u"));
+                    wipe.SetAttribute(new OpenXmlAttribute("unsupported", string.Empty, "value"));
                     SlidePart slidePart = document.PresentationPart!.SlideParts.Single();
                     slidePart.Slide.Transition = new Transition(wipe);
                     slidePart.Slide.Save();
@@ -1612,7 +1612,7 @@ namespace OfficeIMO.Tests {
 
                     Assert.Equal(PowerPointFeatureSupportLevel.Preserved, unsupported.SupportLevel);
                     Assert.Equal(1, unsupported.Count);
-                    Assert.Contains(unsupported.Details, detail => detail.Contains("dir", StringComparison.OrdinalIgnoreCase));
+                    Assert.Contains(unsupported.Details, detail => detail.Contains("unsupported", StringComparison.OrdinalIgnoreCase));
                     Assert.Throws<InvalidOperationException>(() => report.EnsureNoAdvancedFeatures());
                 }
             } finally {

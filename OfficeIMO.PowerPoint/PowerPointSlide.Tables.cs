@@ -73,7 +73,7 @@ namespace OfficeIMO.PowerPoint {
             string name = GenerateUniqueName("Table");
             GraphicFrame frame = new(
                 new NonVisualGraphicFrameProperties(
-                    new NonVisualDrawingProperties { Id = _nextShapeId++, Name = name },
+                    new NonVisualDrawingProperties { Id = AllocateShapeId(), Name = name },
                     new NonVisualGraphicFrameDrawingProperties(),
                     new ApplicationNonVisualDrawingProperties()
                 ),

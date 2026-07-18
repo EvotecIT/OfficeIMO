@@ -36,7 +36,8 @@ internal static partial class DocumentReaderEngine {
 
         var opt = NormalizeOptions(options);
         EnforceFileSize(path, ResolveInitialMaxInputBytes(path, opt));
-        var source = BuildSourceInfoFromPath(path, opt.ComputeHashes);
+        var source = BuildSourceInfoFromPath(path, opt.ComputeHashes,
+            cancellationToken);
         foreach (var chunk in ReadPathCore(path, opt, source, cancellationToken)) {
             yield return chunk;
         }
@@ -51,6 +52,7 @@ internal static partial class DocumentReaderEngine {
         bool hasCustomPathHandler = TryResolvePathHandler(
             path,
             opt,
+            cancellationToken,
             out ReaderHandlerDescriptor customPathHandler,
             out ReaderDetectionResult detection);
         if (hasCustomPathHandler) {
@@ -140,7 +142,8 @@ internal static partial class DocumentReaderEngine {
             if (state.FilesScanned >= fo.MaxFiles) break;
 
             state.FilesScanned++;
-            var source = BuildSourceInfoFromPath(file, computeHash: false);
+            var source = BuildSourceInfoFromPath(file, computeHash: false,
+                cancellationToken);
             NotifyProgress(onProgress, ReaderProgressEventKind.FileStarted, state, source, null, fileChunkCount: null);
 
             string? statWarning = null;
@@ -193,7 +196,8 @@ internal static partial class DocumentReaderEngine {
             }
 
             if (opt.ComputeHashes && string.IsNullOrWhiteSpace(source.SourceHash)) {
-                source.SourceHash = TryComputeFileSha256(file);
+                source.SourceHash = TryComputeFileSha256(file,
+                    cancellationToken);
             }
 
             List<ReaderChunk>? fileChunks = null;
@@ -270,7 +274,8 @@ internal static partial class DocumentReaderEngine {
             if (state.FilesScanned >= fo.MaxFiles) break;
 
             state.FilesScanned++;
-            var source = BuildSourceInfoFromPath(file, computeHash: false);
+            var source = BuildSourceInfoFromPath(file, computeHash: false,
+                cancellationToken);
             NotifyProgress(onProgress, ReaderProgressEventKind.FileStarted, state, source, null, fileChunkCount: null);
 
             var length = source.LengthBytes;
@@ -302,7 +307,8 @@ internal static partial class DocumentReaderEngine {
             }
 
             if (opt.ComputeHashes && string.IsNullOrWhiteSpace(source.SourceHash)) {
-                source.SourceHash = TryComputeFileSha256(file);
+                source.SourceHash = TryComputeFileSha256(file,
+                    cancellationToken);
             }
 
             List<ReaderChunk>? fileChunks = null;

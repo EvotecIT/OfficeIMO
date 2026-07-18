@@ -22,7 +22,7 @@ namespace OfficeIMO.Excel {
                 return Xml!;
             }
 
-            return "<slicerCacheDefinition xmlns=\"http://schemas.microsoft.com/office/spreadsheetml/2009/9/main\"" +
+            return "<pivotSlicerBinding xmlns=\"https://schemas.evotec.xyz/officeimo/excel\"" +
                 $" name=\"{Escape(Name)}\"" +
                 OptionalAttribute("sourceName", SourceName) +
                 OptionalAttribute("pivotTableName", PivotTableName) +
@@ -56,7 +56,7 @@ namespace OfficeIMO.Excel {
                 return Xml!;
             }
 
-            return "<timelineCacheDefinition xmlns=\"http://schemas.microsoft.com/office/spreadsheetml/2011/1/main\"" +
+            return "<pivotTimelineBinding xmlns=\"https://schemas.evotec.xyz/officeimo/excel\"" +
                 $" name=\"{Escape(Name)}\"" +
                 OptionalAttribute("sourceName", SourceName) +
                 OptionalAttribute("pivotTableName", PivotTableName) +

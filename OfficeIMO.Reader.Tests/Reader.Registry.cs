@@ -1,5 +1,6 @@
 using OfficeIMO.Reader;
 using OfficeIMO.Reader.Json;
+using OfficeIMO.PowerPoint.LegacyPpt;
 using System.Text;
 using Xunit;
 
@@ -22,6 +23,48 @@ public sealed partial class ReaderRegistryTests {
         Assert.Contains(capabilities, capability => capability.Id == "officeimo.reader.markdown");
         Assert.Contains(capabilities, capability => capability.Id == "officeimo.reader.pdf");
         Assert.Contains(capabilities, capability => capability.Id == "officeimo.reader.text");
+    }
+
+    [Fact]
+    public void DocumentReader_PowerPointCapabilityIncludesBinaryVariants() {
+        ReaderHandlerCapability openXml = Assert.Single(
+            OfficeDocumentReader.Default.GetCapabilities(), item =>
+                item.Id == "officeimo.reader.powerpoint");
+        ReaderHandlerCapability binary = Assert.Single(
+            OfficeDocumentReader.Default.GetCapabilities(), item =>
+                item.Id == "officeimo.reader.powerpoint.binary");
+
+        Assert.Equal(ReaderInputKind.PowerPoint, openXml.Kind);
+        Assert.Equal(new[] { ".pptx", ".pptm" }, openXml.Extensions);
+        Assert.True(openXml.SupportsPath);
+        Assert.True(openXml.SupportsStream);
+        Assert.Null(openXml.DefaultMaxInputBytes);
+        Assert.Equal(ReaderInputKind.PowerPoint, binary.Kind);
+        Assert.Equal(new[] { ".ppt", ".pot", ".pps" },
+            binary.Extensions);
+        Assert.True(binary.SupportsPath);
+        Assert.True(binary.SupportsStream);
+        Assert.Equal(LegacyPptImportOptions.DefaultMaxInputBytes,
+            binary.DefaultMaxInputBytes);
+        Assert.Null(OfficeDocumentReader.Default
+            .GetHandlerDefaultMaxInputBytes("deck.pptx"));
+        Assert.Equal(LegacyPptImportOptions.DefaultMaxInputBytes,
+            OfficeDocumentReader.Default.GetHandlerDefaultMaxInputBytes(
+                "deck.ppt"));
+    }
+
+    [Fact]
+    public void DocumentReader_BoundsUnidentifiedStreamsBeforeDetection() {
+        Assert.Equal(LegacyPptImportOptions.DefaultMaxInputBytes,
+            DocumentReaderEngine.ResolveStreamMaxInputBytes(null,
+                new ReaderOptions(), streamCanSeek: false));
+        Assert.Equal(LegacyPptImportOptions.DefaultMaxInputBytes,
+            DocumentReaderEngine.ResolveStreamMaxInputBytes("content.bin",
+                new ReaderOptions(), streamCanSeek: false));
+        Assert.Null(DocumentReaderEngine.ResolveStreamMaxInputBytes(
+            "content.bin", new ReaderOptions(), streamCanSeek: true));
+        Assert.Null(DocumentReaderEngine.ResolveStreamMaxInputBytes(
+            "document.docx", new ReaderOptions(), streamCanSeek: false));
     }
 
     [Fact]

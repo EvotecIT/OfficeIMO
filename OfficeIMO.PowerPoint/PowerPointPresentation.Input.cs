@@ -1,0 +1,447 @@
+using OfficeIMO.Drawing;
+using OfficeIMO.Drawing.Internal;
+using OfficeIMO.PowerPoint.LegacyPpt;
+using Microsoft.Win32.SafeHandles;
+using System;
+using System.IO;
+using System.Runtime.InteropServices;
+using System.Threading;
+using System.Threading.Tasks;
+
+namespace OfficeIMO.PowerPoint {
+    public sealed partial class PowerPointPresentation {
+        private const int CompoundDetectionDirectoryLimit = 65536;
+        private const int InputCopyBufferSize = 81920;
+        private const long DefaultMaxCompoundTemporaryBytes =
+            512L * 1024L * 1024L;
+
+        internal static byte[] ReadPresentationInputBytes(
+            Stream source,
+            PowerPointLoadOptions options,
+            CancellationToken cancellationToken = default,
+            string? sourceName = null) {
+            if (source == null) throw new ArgumentNullException(nameof(source));
+            if (options == null) throw new ArgumentNullException(nameof(options));
+            if (!source.CanRead) {
+                throw new ArgumentException("Stream must be readable.",
+                    nameof(source));
+            }
+
+            if (source.CanSeek) {
+                long originalPosition = source.Position;
+                try {
+                    source.Position = 0;
+                    ValidateSeekablePackageSize(source, options);
+                    long detectionLimit = ResolveCompoundDetectionLimit(
+                        options);
+                    EnsureSeekableInputWithinDetectionLimit(source,
+                        detectionLimit, cancellationToken);
+                    OfficeCompoundDocumentDetector.DocumentKind kind =
+                        OfficeCompoundDocumentDetector.Detect(source,
+                            detectionLimit,
+                            CompoundDetectionDirectoryLimit,
+                            cancellationToken, out _);
+                    long? maxInputBytes = ResolveInputLimit(kind, options,
+                        PowerPointPresentationLoadRouting
+                            .HasLegacyBinaryExtension(sourceName));
+                    return OfficeStreamReader.ReadAllBytes(source,
+                        cancellationToken, maxInputBytes);
+                } finally {
+                    source.Position = originalPosition;
+                }
+            }
+
+            byte[] prefix = ReadPrefix(source, cancellationToken);
+            if (!OfficeCompoundDocumentDetector.HasCompoundSignature(prefix)) {
+                long? inputLimit = ResolveInputLimit(
+                    OfficeCompoundDocumentDetector.DocumentKind.NotCompound,
+                    options, PowerPointPresentationLoadRouting
+                        .HasLegacyBinaryExtension(sourceName));
+                return ReadRemainderToMemory(source, prefix,
+                    cancellationToken, inputLimit,
+                    ResolveBindingPackageSecurity(inputLimit, options));
+            }
+            return ReadCompoundInputThroughTemporaryStorage(source, prefix,
+                options, cancellationToken);
+        }
+
+        internal static async Task<byte[]> ReadPresentationInputBytesAsync(
+            Stream source,
+            PowerPointLoadOptions options,
+            CancellationToken cancellationToken = default,
+            string? sourceName = null) {
+            if (source == null) throw new ArgumentNullException(nameof(source));
+            if (options == null) throw new ArgumentNullException(nameof(options));
+            if (!source.CanRead) {
+                throw new ArgumentException("Stream must be readable.",
+                    nameof(source));
+            }
+
+            long originalPosition = source.CanSeek ? source.Position : 0L;
+            try {
+                if (source.CanSeek) {
+                    source.Position = 0;
+                    ValidateSeekablePackageSize(source, options);
+                    long detectionLimit = ResolveCompoundDetectionLimit(
+                        options);
+                    EnsureSeekableInputWithinDetectionLimit(source,
+                        detectionLimit, cancellationToken);
+                    OfficeCompoundDocumentDetector.DocumentKind kind =
+                        OfficeCompoundDocumentDetector.Detect(source,
+                            detectionLimit,
+                            CompoundDetectionDirectoryLimit,
+                            cancellationToken, out _);
+                    return await OfficeStreamReader.ReadAllBytesAsync(source,
+                        cancellationToken, ResolveInputLimit(kind, options,
+                            PowerPointPresentationLoadRouting
+                                .HasLegacyBinaryExtension(sourceName)))
+                        .ConfigureAwait(false);
+                }
+                byte[] prefix = await ReadPrefixAsync(source,
+                    cancellationToken).ConfigureAwait(false);
+                if (!OfficeCompoundDocumentDetector
+                        .HasCompoundSignature(prefix)) {
+                    long? inputLimit = ResolveInputLimit(
+                        OfficeCompoundDocumentDetector.DocumentKind
+                            .NotCompound, options,
+                        PowerPointPresentationLoadRouting
+                            .HasLegacyBinaryExtension(sourceName));
+                    return await ReadRemainderToMemoryAsync(source, prefix,
+                        cancellationToken, inputLimit,
+                        ResolveBindingPackageSecurity(inputLimit, options))
+                        .ConfigureAwait(false);
+                }
+                return await ReadCompoundInputThroughTemporaryStorageAsync(
+                    source, prefix, options, cancellationToken)
+                    .ConfigureAwait(false);
+            } finally {
+                if (source.CanSeek) source.Position = originalPosition;
+            }
+        }
+
+        private static byte[] ReadCompoundInputThroughTemporaryStorage(
+            Stream source,
+            byte[] prefix,
+            PowerPointLoadOptions options,
+            CancellationToken cancellationToken) {
+            using FileStream temporary = CreateTemporaryInputStream(
+                useAsync: false);
+            temporary.Write(prefix, 0, prefix.Length);
+            CopyTo(source, temporary, cancellationToken,
+                ResolveCompoundTemporaryLimit(options), prefix.Length,
+                options.PackageSecurity);
+            temporary.Position = 0;
+            OfficeCompoundDocumentDetector.DocumentKind kind =
+                OfficeCompoundDocumentDetector.Detect(temporary,
+                    ResolveCompoundDetectionLimit(options),
+                    CompoundDetectionDirectoryLimit,
+                    cancellationToken, out _);
+            long? maxInputBytes = ResolveInputLimit(kind, options);
+            return OfficeStreamReader.ReadAllBytes(temporary,
+                cancellationToken, maxInputBytes);
+        }
+
+        private static async Task<byte[]>
+            ReadCompoundInputThroughTemporaryStorageAsync(
+                Stream source,
+                byte[] prefix,
+                PowerPointLoadOptions options,
+                CancellationToken cancellationToken) {
+            using FileStream temporary = CreateTemporaryInputStream(
+                useAsync: true);
+            await temporary.WriteAsync(prefix, 0, prefix.Length,
+                cancellationToken).ConfigureAwait(false);
+            await CopyToAsync(source, temporary, cancellationToken,
+                    ResolveCompoundTemporaryLimit(options), prefix.Length,
+                    options.PackageSecurity)
+                .ConfigureAwait(false);
+            await temporary.FlushAsync(cancellationToken)
+                .ConfigureAwait(false);
+            temporary.Position = 0;
+            OfficeCompoundDocumentDetector.DocumentKind kind =
+                OfficeCompoundDocumentDetector.Detect(temporary,
+                    ResolveCompoundDetectionLimit(options),
+                    CompoundDetectionDirectoryLimit,
+                    cancellationToken, out _);
+            long? maxInputBytes = ResolveInputLimit(kind, options);
+            return await OfficeStreamReader.ReadAllBytesAsync(temporary,
+                cancellationToken, maxInputBytes).ConfigureAwait(false);
+        }
+
+        private static long? ResolveInputLimit(
+            OfficeCompoundDocumentDetector.DocumentKind kind,
+            PowerPointLoadOptions options,
+            bool expectedLegacyBinary = false) {
+            long? packageLimit = ResolvePackageInputLimit(options);
+            if (kind == OfficeCompoundDocumentDetector.DocumentKind
+                    .EncryptedOpenXmlPackage
+                || (kind == OfficeCompoundDocumentDetector.DocumentKind
+                    .NotCompound && !expectedLegacyBinary)) {
+                return packageLimit;
+            }
+            long legacyLimit = ResolveLegacyInputLimit(options);
+            return packageLimit.HasValue
+                ? Math.Min(packageLimit.Value, legacyLimit)
+                : legacyLimit;
+        }
+
+        private static long ResolveCompoundTemporaryLimit(
+            PowerPointLoadOptions options) {
+            long? packageLimit = ResolvePackageInputLimit(options);
+            if (packageLimit.HasValue) return packageLimit.Value;
+            return Math.Max(DefaultMaxCompoundTemporaryBytes,
+                ResolveLegacyInputLimit(options));
+        }
+
+        private static long ResolveCompoundDetectionLimit(
+            PowerPointLoadOptions options) =>
+            ResolvePackageInputLimit(options)
+            ?? ResolveCompoundTemporaryLimit(options);
+
+        private static void ValidateSeekablePackageSize(Stream source,
+            PowerPointLoadOptions options) {
+            if (options.PackageSecurity != null) {
+                OfficePackageSecurityInspector.ValidateSourceSize(
+                    source.Length, options.PackageSecurity);
+            }
+        }
+
+        private static OfficePackageSecurityOptions?
+            ResolveBindingPackageSecurity(long? effectiveLimit,
+                PowerPointLoadOptions options) =>
+            options.PackageSecurity != null
+            && effectiveLimit == options.PackageSecurity.MaxPackageBytes
+                ? options.PackageSecurity
+                : null;
+
+        private static void EnsureSeekableInputWithinDetectionLimit(
+            Stream source, long detectionLimit,
+            CancellationToken cancellationToken) {
+            long remaining = checked(source.Length - source.Position);
+            if (remaining <= detectionLimit) return;
+            long originalPosition = source.Position;
+            var signature = new byte[8];
+            int total = 0;
+            while (total < signature.Length) {
+                cancellationToken.ThrowIfCancellationRequested();
+                int read = source.Read(signature, total,
+                    signature.Length - total);
+                if (read == 0) break;
+                total += read;
+            }
+            source.Position = originalPosition;
+            if (OfficeCompoundDocumentDetector.HasCompoundSignature(
+                    signature)) {
+                throw new InvalidDataException(
+                    $"Stream exceeds the configured maximum size ({detectionLimit} bytes).");
+            }
+        }
+
+        private static long? ResolvePackageInputLimit(
+            PowerPointLoadOptions options) {
+            if (options.PackageSecurity == null) return null;
+            long configured = options.PackageSecurity.MaxPackageBytes;
+            if (configured < 1) {
+                throw new ArgumentOutOfRangeException(
+                    nameof(OfficePackageSecurityOptions.MaxPackageBytes));
+            }
+            return configured;
+        }
+
+        private static int ResolveLegacyInputLimit(
+            PowerPointLoadOptions options) {
+            int limit = options.LegacyPptImportOptions?.MaxInputBytes
+                ?? LegacyPptImportOptions.DefaultMaxInputBytes;
+            if (limit < 1) {
+                throw new ArgumentOutOfRangeException(
+                    nameof(LegacyPptImportOptions.MaxInputBytes));
+            }
+            return limit;
+        }
+
+        private static byte[] ReadPrefix(Stream source,
+            CancellationToken cancellationToken) {
+            var prefix = new byte[8];
+            int total = 0;
+            while (total < prefix.Length) {
+                cancellationToken.ThrowIfCancellationRequested();
+                int read = source.Read(prefix, total, prefix.Length - total);
+                if (read == 0) break;
+                total += read;
+            }
+            if (total == prefix.Length) return prefix;
+            Array.Resize(ref prefix, total);
+            return prefix;
+        }
+
+        private static async Task<byte[]> ReadPrefixAsync(Stream source,
+            CancellationToken cancellationToken) {
+            var prefix = new byte[8];
+            int total = 0;
+            while (total < prefix.Length) {
+                int read = await source.ReadAsync(prefix, total,
+                    prefix.Length - total, cancellationToken)
+                    .ConfigureAwait(false);
+                if (read == 0) break;
+                total += read;
+            }
+            if (total == prefix.Length) return prefix;
+            Array.Resize(ref prefix, total);
+            return prefix;
+        }
+
+        private static byte[] ReadRemainderToMemory(Stream source,
+            byte[] prefix, CancellationToken cancellationToken,
+            long? maxBytes = null,
+            OfficePackageSecurityOptions? packageSecurity = null) {
+            using var output = new MemoryStream();
+            output.Write(prefix, 0, prefix.Length);
+            CopyTo(source, output, cancellationToken, maxBytes,
+                prefix.Length, packageSecurity);
+            return output.ToArray();
+        }
+
+        private static async Task<byte[]> ReadRemainderToMemoryAsync(
+            Stream source, byte[] prefix,
+            CancellationToken cancellationToken,
+            long? maxBytes = null,
+            OfficePackageSecurityOptions? packageSecurity = null) {
+            using var output = new MemoryStream();
+            await output.WriteAsync(prefix, 0, prefix.Length,
+                cancellationToken).ConfigureAwait(false);
+            await CopyToAsync(source, output, cancellationToken, maxBytes,
+                    prefix.Length, packageSecurity)
+                .ConfigureAwait(false);
+            return output.ToArray();
+        }
+
+        private static void CopyTo(Stream source, Stream destination,
+            CancellationToken cancellationToken,
+            long? maxBytes = null,
+            long initialBytes = 0,
+            OfficePackageSecurityOptions? packageSecurity = null) {
+            var buffer = new byte[InputCopyBufferSize];
+            long total = initialBytes;
+            while (true) {
+                cancellationToken.ThrowIfCancellationRequested();
+                int requested = ResolveCopyReadSize(buffer.Length, total,
+                    maxBytes, packageSecurity);
+                int read = source.Read(buffer, 0, requested);
+                if (read == 0) break;
+                EnsureCanAddToCopyTotal(total, read, maxBytes,
+                    packageSecurity);
+                total = checked(total + read);
+                destination.Write(buffer, 0, read);
+            }
+            cancellationToken.ThrowIfCancellationRequested();
+        }
+
+        private static async Task CopyToAsync(Stream source,
+            Stream destination, CancellationToken cancellationToken,
+            long? maxBytes = null,
+            long initialBytes = 0,
+            OfficePackageSecurityOptions? packageSecurity = null) {
+            var buffer = new byte[InputCopyBufferSize];
+            long total = initialBytes;
+            while (true) {
+                int requested = ResolveCopyReadSize(buffer.Length, total,
+                    maxBytes, packageSecurity);
+                int read = await source.ReadAsync(buffer, 0, requested,
+                    cancellationToken).ConfigureAwait(false);
+                if (read == 0) break;
+                EnsureCanAddToCopyTotal(total, read, maxBytes,
+                    packageSecurity);
+                total = checked(total + read);
+                await destination.WriteAsync(buffer, 0, read,
+                    cancellationToken).ConfigureAwait(false);
+            }
+            cancellationToken.ThrowIfCancellationRequested();
+        }
+
+        private static int ResolveCopyReadSize(int bufferLength, long total,
+            long? maxBytes,
+            OfficePackageSecurityOptions? packageSecurity) {
+            if (!maxBytes.HasValue) return bufferLength;
+            EnsureWithinCopyLimit(total, maxBytes, packageSecurity);
+            long remaining = maxBytes.Value - total;
+            return remaining < bufferLength
+                ? checked((int)remaining + 1)
+                : bufferLength;
+        }
+
+        private static void EnsureWithinCopyLimit(long total,
+            long? maxBytes,
+            OfficePackageSecurityOptions? packageSecurity) {
+            if (maxBytes.HasValue && total > maxBytes.Value) {
+                ThrowInputLimitExceeded(maxBytes.Value, packageSecurity);
+            }
+        }
+
+        private static void EnsureCanAddToCopyTotal(long total, int read,
+            long? maxBytes,
+            OfficePackageSecurityOptions? packageSecurity) {
+            if (maxBytes.HasValue && total > maxBytes.Value - read) {
+                ThrowInputLimitExceeded(maxBytes.Value, packageSecurity);
+            }
+        }
+
+        private static void ThrowInputLimitExceeded(long maximumBytes,
+            OfficePackageSecurityOptions? packageSecurity) {
+            if (packageSecurity != null) {
+                OfficePackageSecurityInspector.ValidateSourceSize(
+                    maximumBytes == long.MaxValue
+                        ? maximumBytes
+                        : maximumBytes + 1,
+                    packageSecurity);
+            }
+            throw new InvalidDataException(
+                $"Stream exceeds the configured maximum size ({maximumBytes} bytes)."
+            );
+        }
+
+        internal static FileStream CreateTemporaryInputStream(bool useAsync) {
+            bool isWindows = RuntimeInformation.IsOSPlatform(
+                OSPlatform.Windows);
+            if (!isWindows) {
+                return CreateSecureUnixTemporaryStream();
+            }
+            string path = Path.Combine(Path.GetTempPath(),
+                "officeimo-powerpoint-" + Guid.NewGuid().ToString("N")
+                + ".tmp");
+            FileOptions options = FileOptions.DeleteOnClose;
+            if (useAsync) options |= FileOptions.Asynchronous;
+            return new FileStream(path, FileMode.CreateNew,
+                FileAccess.ReadWrite, FileShare.None,
+                InputCopyBufferSize, options);
+        }
+
+        private static FileStream CreateSecureUnixTemporaryStream() {
+            var template = new StringBuilder(Path.Combine(
+                Path.GetTempPath(), "officeimo-powerpoint-"
+                + Guid.NewGuid().ToString("N") + "-XXXXXX"));
+            int descriptor = CreateSecureTemporaryFile(template);
+            if (descriptor < 0) {
+                int error = Marshal.GetLastWin32Error();
+                throw new IOException(
+                    $"Unable to create a secure temporary presentation file (error {error}).");
+            }
+            var handle = new SafeFileHandle(
+                new IntPtr(descriptor), ownsHandle: true);
+            string path = template.ToString();
+            try {
+                File.Delete(path);
+                return new FileStream(handle, FileAccess.ReadWrite,
+                    InputCopyBufferSize, isAsync: false);
+            } catch {
+                handle.Dispose();
+                if (File.Exists(path)) File.Delete(path);
+                throw;
+            }
+        }
+
+        [DllImport("libc", EntryPoint = "mkstemp", SetLastError = true,
+            CharSet = CharSet.Ansi)]
+        private static extern int CreateSecureTemporaryFile(
+            StringBuilder template);
+    }
+}

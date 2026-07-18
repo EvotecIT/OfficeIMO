@@ -20,6 +20,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private GraphicFrame Frame => (GraphicFrame)Element;
+        internal SlidePart? SlidePart => _slidePart;
         internal A.Table TableElement => Frame.Graphic!.GraphicData!.GetFirstChild<A.Table>()!;
 
         /// <summary>

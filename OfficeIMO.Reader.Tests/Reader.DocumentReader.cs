@@ -212,6 +212,336 @@ public sealed class ReaderDocumentReaderTests {
         }
     }
 
+    [Theory]
+    [InlineData("ppt")]
+    [InlineData("pot")]
+    [InlineData("pps")]
+    public void DocumentReader_CanReadLegacyPowerPointVariants(
+        string extension) {
+        string source = GetRepositoryPath("OfficeIMO.TestAssets",
+            "Documents", "LegacyPptCorpus", "BasicPowerPoint.ppt");
+        string path = Path.Combine(Path.GetTempPath(),
+            Guid.NewGuid().ToString("N") + "." + extension);
+        try {
+            File.Copy(source, path);
+
+            IReadOnlyList<ReaderChunk> pathChunks =
+                OfficeDocumentReader.Default.Read(path).ToArray();
+            using var stream = File.OpenRead(path);
+            IReadOnlyList<ReaderChunk> streamChunks =
+                OfficeDocumentReader.Default.Read(stream,
+                    "binary-deck." + extension).ToArray();
+            OfficeDocumentReadResult result =
+                OfficeDocumentReader.Default.ReadDocument(path);
+            ReaderDetectionResult detection =
+                OfficeDocumentReader.Default.Detect(path,
+                    new ReaderDetectionOptions {
+                        Mode = ReaderDetectionMode.ExtensionOnly
+                    });
+
+            AssertLegacyPowerPointChunks(pathChunks);
+            AssertLegacyPowerPointChunks(streamChunks);
+            Assert.Equal(ReaderInputKind.PowerPoint, result.Kind);
+            Assert.NotEmpty(result.Pages);
+            Assert.Contains("officeimo.powerpoint.shape-model",
+                result.CapabilitiesUsed);
+            Assert.Equal(ReaderInputKind.PowerPoint, detection.Kind);
+            Assert.Equal("application/vnd.ms-powerpoint",
+                detection.MediaType);
+        } finally {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void DocumentReader_CanReadEncryptedLegacyPowerPointWithOpenPassword() {
+        const string password = "reader-pass";
+        string path = Path.Combine(Path.GetTempPath(),
+            Guid.NewGuid().ToString("N") + ".ppt");
+        try {
+            using (PowerPointPresentation source =
+                   PowerPointPresentation.Create()) {
+                source.AddSlide().AddTextBox("Reader encrypted PPT");
+                source.SaveEncrypted(path, password);
+            }
+            var options = new ReaderOptions { OpenPassword = password };
+
+            IReadOnlyList<ReaderChunk> pathChunks =
+                OfficeDocumentReader.Default.Read(path, options).ToArray();
+            using var stream = File.OpenRead(path);
+            OfficeDocumentReadResult streamResult =
+                OfficeDocumentReader.Default.ReadDocument(stream,
+                    "encrypted.ppt", options);
+
+            Assert.Contains(pathChunks, chunk =>
+                (chunk.Markdown ?? chunk.Text).Contains(
+                    "Reader encrypted PPT", StringComparison.Ordinal));
+            Assert.Contains(streamResult.Chunks, chunk =>
+                (chunk.Markdown ?? chunk.Text).Contains(
+                    "Reader encrypted PPT", StringComparison.Ordinal));
+            Assert.Contains(pathChunks.SelectMany(chunk =>
+                    chunk.Warnings ?? Array.Empty<string>()), warning =>
+                warning.Contains("PPT-ENCRYPTION-DECRYPTED",
+                    StringComparison.Ordinal));
+        } finally {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void DocumentReader_CanReadEncryptedOpenXmlPowerPointWithOpenPassword() {
+        const string password = "reader-openxml-pass";
+        string path = Path.Combine(Path.GetTempPath(),
+            Guid.NewGuid().ToString("N") + ".pptx");
+        try {
+            using (PowerPointPresentation source =
+                   PowerPointPresentation.Create()) {
+                source.AddSlide().AddTextBox("Reader encrypted PPTX");
+                source.SaveEncrypted(path, password);
+            }
+            var options = new ReaderOptions { OpenPassword = password };
+
+            IReadOnlyList<ReaderChunk> pathChunks =
+                OfficeDocumentReader.Default.Read(path, options).ToArray();
+            using var chunkStream = File.OpenRead(path);
+            IReadOnlyList<ReaderChunk> streamChunks = OfficeDocumentReader
+                .Default.Read(chunkStream, "encrypted.pptx", options)
+                .ToArray();
+            OfficeDocumentReadResult pathResult = OfficeDocumentReader
+                .Default.ReadDocument(path, options);
+            using var resultStream = File.OpenRead(path);
+            OfficeDocumentReadResult streamResult = OfficeDocumentReader
+                .Default.ReadDocument(resultStream, "encrypted.pptx",
+                    options);
+
+            AssertEncryptedPowerPointChunks(pathChunks);
+            AssertEncryptedPowerPointChunks(streamChunks);
+            AssertEncryptedPowerPointChunks(pathResult.Chunks);
+            AssertEncryptedPowerPointChunks(streamResult.Chunks);
+        } finally {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void DocumentReader_PreservesWrongPasswordErrorsForEncryptedOpenXmlPowerPoint() {
+        const string password = "reader-correct-pass";
+        string path = Path.Combine(Path.GetTempPath(),
+            Guid.NewGuid().ToString("N") + ".pptx");
+        try {
+            using (PowerPointPresentation source =
+                   PowerPointPresentation.Create()) {
+                source.AddSlide().AddTextBox("Reader encrypted PPTX");
+                source.SaveEncrypted(path, password);
+            }
+            var options = new ReaderOptions {
+                OpenPassword = "reader-wrong-pass"
+            };
+
+            CryptographicException pathException = Assert.Throws<
+                CryptographicException>(() => OfficeDocumentReader.Default
+                .Read(path, options).ToArray());
+            using var stream = File.OpenRead(path);
+            CryptographicException streamException = Assert.Throws<
+                CryptographicException>(() => OfficeDocumentReader.Default
+                .Read(stream, "encrypted.pptx", options).ToArray());
+
+            Assert.Contains("password is incorrect", pathException.Message,
+                StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("password is incorrect", streamException.Message,
+                StringComparison.OrdinalIgnoreCase);
+        } finally {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void DocumentReader_BoundsEncryptedOpenXmlCompoundExpansion() {
+        const string password = "reader-compound-budget";
+        byte[] encrypted;
+        var randomBytes = new byte[32 * 1024];
+        new Random(42).NextBytes(randomBytes);
+        using (PowerPointPresentation source =
+               PowerPointPresentation.Create()) {
+            source.AddSlide().AddTextBox(
+                Convert.ToBase64String(randomBytes));
+            encrypted = source.ToEncryptedBytes(password);
+        }
+        int encryptionInfoEntry = FindReaderCompoundDirectoryEntry(encrypted,
+            "EncryptionInfo");
+        int encryptedPackageEntry = FindReaderCompoundDirectoryEntry(encrypted,
+            "EncryptedPackage");
+        uint packageStart = ReadReaderCompoundUInt32(encrypted,
+            encryptedPackageEntry + 116);
+        ulong packageSize = ReadReaderCompoundUInt64(encrypted,
+            encryptedPackageEntry + 120);
+        Assert.True(packageSize > 4096);
+        WriteReaderCompoundUInt32(encrypted, encryptionInfoEntry + 116,
+            packageStart);
+        WriteReaderCompoundUInt64(encrypted, encryptionInfoEntry + 120,
+            packageSize);
+        Assert.True(packageSize * 2UL > unchecked((ulong)encrypted.Length));
+        var options = new ReaderOptions {
+            OpenPassword = password,
+            MaxInputBytes = encrypted.Length,
+            DetectionMode = ReaderDetectionMode.PreferContent
+        };
+
+        using var stream = new MemoryStream(encrypted, writable: false);
+        ReaderDetectionResult detection = OfficeDocumentReader.Default.Detect(
+            stream, "encrypted.pptx");
+        Assert.True(detection.Evidence.Contains(
+                "container:ole-encrypted-openxml-package",
+                StringComparer.Ordinal),
+            string.Join(" | ", detection.Evidence));
+        stream.Position = 0;
+        InvalidDataException exception = Assert.Throws<InvalidDataException>(
+            () => OfficeDocumentReader.Default.Read(stream,
+                "encrypted.pptx", options).ToArray());
+
+        Assert.Contains("Compound stream bytes exceed", exception.Message,
+            StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void DocumentReader_DetectsExtensionlessEncryptedOpenXmlPowerPointWithOpenPassword() {
+        const string password = "reader-extensionless-pass";
+        string path = Path.Combine(Path.GetTempPath(),
+            Guid.NewGuid().ToString("N"));
+        try {
+            byte[] encrypted;
+            using (PowerPointPresentation source =
+                   PowerPointPresentation.Create()) {
+                source.AddSlide().AddTextBox("Reader encrypted PPTX");
+                encrypted = source.ToEncryptedBytes(password);
+            }
+            File.WriteAllBytes(path, encrypted);
+            var options = new ReaderOptions { OpenPassword = password };
+
+            IReadOnlyList<ReaderChunk> pathChunks = OfficeDocumentReader
+                .Default.Read(path, options).ToArray();
+            using var chunkStream = new MemoryStream(encrypted,
+                writable: false);
+            IReadOnlyList<ReaderChunk> streamChunks = OfficeDocumentReader
+                .Default.Read(chunkStream, sourceName: null, options)
+                .ToArray();
+            OfficeDocumentReadResult pathResult = OfficeDocumentReader
+                .Default.ReadDocument(path, options);
+            using var stream = new MemoryStream(encrypted,
+                writable: false);
+            OfficeDocumentReadResult streamResult = OfficeDocumentReader
+                .Default.ReadDocument(stream, sourceName: null, options);
+
+            Assert.Equal(ReaderInputKind.PowerPoint, pathResult.Kind);
+            Assert.Equal(ReaderInputKind.PowerPoint, streamResult.Kind);
+            AssertEncryptedPowerPointChunks(pathChunks);
+            AssertEncryptedPowerPointChunks(streamChunks);
+            AssertEncryptedPowerPointChunks(pathResult.Chunks);
+            AssertEncryptedPowerPointChunks(streamResult.Chunks);
+            OfficeDocumentDiagnostic detectionDiagnostic = Assert.Single(
+                pathResult.Diagnostics, diagnostic =>
+                    diagnostic.Code == "input-kind-detected");
+            Assert.True(detectionDiagnostic.Attributes.TryGetValue(
+                "evidence", out string? evidence));
+            Assert.NotNull(evidence);
+            Assert.Contains("container:ole-encrypted-openxml-package",
+                evidence!, StringComparison.Ordinal);
+            Assert.Contains("decryption:open-password", evidence!,
+                StringComparison.Ordinal);
+        } finally {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void DocumentReader_DetectsExtensionlessEncryptedOpenXmlWordWithOpenPassword() {
+        const string password = "reader-extensionless-word-pass";
+        string path = Path.Combine(Path.GetTempPath(),
+            Guid.NewGuid().ToString("N"));
+        try {
+            byte[] encrypted;
+            using (WordDocument source = WordDocument.Create()) {
+                source.AddParagraph("Reader encrypted Word");
+                using var output = new MemoryStream();
+                source.SaveEncrypted(output, password);
+                encrypted = output.ToArray();
+            }
+            File.WriteAllBytes(path, encrypted);
+            var options = new ReaderOptions { OpenPassword = password };
+
+            OfficeDocumentReadResult pathResult = OfficeDocumentReader
+                .Default.ReadDocument(path, options);
+            using var stream = new MemoryStream(encrypted,
+                writable: false);
+            OfficeDocumentReadResult streamResult = OfficeDocumentReader
+                .Default.ReadDocument(stream, sourceName: null, options);
+
+            foreach (OfficeDocumentReadResult result in new[] {
+                         pathResult, streamResult
+                     }) {
+                Assert.Equal(ReaderInputKind.Word, result.Kind);
+                Assert.Contains("Reader encrypted Word",
+                    result.Markdown ?? string.Empty,
+                    StringComparison.Ordinal);
+            }
+        } finally {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void DocumentReader_LegacyPowerPointWarningsExposeImportDiagnostics() {
+        string path = GetRepositoryPath("OfficeIMO.TestAssets", "Documents",
+            "LegacyPptCorpus", "AccessibilityPowerPoint.ppt");
+
+        IReadOnlyList<ReaderChunk> chunks =
+            OfficeDocumentReader.Default.Read(path).ToArray();
+
+        Assert.Contains(chunks.SelectMany(chunk =>
+                chunk.Warnings ?? Array.Empty<string>()), warning =>
+            warning.Contains("Legacy PPT import diagnostic",
+                StringComparison.Ordinal)
+            && warning.Contains("PPT-SHAPE-STYLE-PARTIAL",
+                StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void DocumentReader_LegacyPowerPointProjectsImageAssets() {
+        string path = GetRepositoryPath("OfficeIMO.TestAssets", "Documents",
+            "LegacyPptCorpus", "PicturePowerPoint.ppt");
+
+        OfficeDocumentReadResult pathResult =
+            OfficeDocumentReader.Default.ReadDocument(path);
+        using var stream = File.OpenRead(path);
+        OfficeDocumentReadResult streamResult =
+            OfficeDocumentReader.Default.ReadDocument(stream,
+                "pictures.ppt");
+
+        Assert.NotEmpty(pathResult.Assets);
+        Assert.NotEmpty(streamResult.Assets);
+        Assert.All(pathResult.Assets, asset => {
+            Assert.Equal("image", asset.Kind);
+            Assert.NotNull(asset.Location.Slide);
+            Assert.True(asset.PayloadHashMatches(out _));
+        });
+        Assert.Equal(pathResult.Assets.Count, streamResult.Assets.Count);
+        Assert.Contains(pathResult.Metadata, entry =>
+            entry.Category == "reader.summary"
+            && entry.Name == "AssetCount"
+            && entry.Value == pathResult.Assets.Count.ToString(
+                CultureInfo.InvariantCulture));
+    }
+
+    private static void AssertLegacyPowerPointChunks(
+        IReadOnlyList<ReaderChunk> chunks) {
+        Assert.NotEmpty(chunks);
+        Assert.All(chunks, chunk =>
+            Assert.Equal(ReaderInputKind.PowerPoint, chunk.Kind));
+        Assert.Contains(chunks, chunk =>
+            (chunk.Markdown ?? chunk.Text).Contains(
+                "OfficeIMO PowerPoint Basics", StringComparison.Ordinal));
+    }
+
     private static void AssertEncryptedLegacyXlsChunks(IReadOnlyList<ReaderChunk> chunks) {
         Assert.NotEmpty(chunks);
         Assert.All(chunks, chunk => Assert.Equal(ReaderInputKind.Excel, chunk.Kind));
@@ -238,6 +568,14 @@ public sealed class ReaderDocumentReaderTests {
         Assert.Equal(new[] { "Name", "Value" }, chunk.Tables![0].Columns);
         Assert.Equal("Token", chunk.Tables[0].Rows[0][0]);
         Assert.Equal("7", chunk.Tables[0].Rows[0][1]);
+    }
+
+    private static void AssertEncryptedPowerPointChunks(
+        IReadOnlyList<ReaderChunk> chunks) {
+        Assert.Contains(chunks, chunk => chunk.Kind
+            == ReaderInputKind.PowerPoint
+            && (chunk.Markdown ?? chunk.Text).Contains(
+                "Reader encrypted PPTX", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -1630,5 +1968,42 @@ public sealed class ReaderDocumentReaderTests {
 
     private static string NormalizeWhitespace(string text) {
         return new string(text.Where(ch => !char.IsWhiteSpace(ch)).ToArray());
+    }
+
+    private static int FindReaderCompoundDirectoryEntry(byte[] bytes,
+        string name) {
+        byte[] encoded = Encoding.Unicode.GetBytes(name + '\0');
+        for (int offset = 512; offset <= bytes.Length - encoded.Length;
+             offset += 128) {
+            if (bytes.AsSpan(offset, encoded.Length)
+                .SequenceEqual(encoded)) return offset;
+        }
+        throw new InvalidDataException(
+            $"The compound directory entry '{name}' was not found.");
+    }
+
+    private static uint ReadReaderCompoundUInt32(byte[] bytes, int offset) =>
+        unchecked((uint)(bytes[offset]
+            | bytes[offset + 1] << 8
+            | bytes[offset + 2] << 16
+            | bytes[offset + 3] << 24));
+
+    private static ulong ReadReaderCompoundUInt64(byte[] bytes, int offset) =>
+        ReadReaderCompoundUInt32(bytes, offset)
+        | unchecked((ulong)ReadReaderCompoundUInt32(bytes, offset + 4) << 32);
+
+    private static void WriteReaderCompoundUInt32(byte[] bytes, int offset,
+        uint value) {
+        bytes[offset] = unchecked((byte)value);
+        bytes[offset + 1] = unchecked((byte)(value >> 8));
+        bytes[offset + 2] = unchecked((byte)(value >> 16));
+        bytes[offset + 3] = unchecked((byte)(value >> 24));
+    }
+
+    private static void WriteReaderCompoundUInt64(byte[] bytes, int offset,
+        ulong value) {
+        WriteReaderCompoundUInt32(bytes, offset, unchecked((uint)value));
+        WriteReaderCompoundUInt32(bytes, offset + 4,
+            unchecked((uint)(value >> 32)));
     }
 }

@@ -344,6 +344,11 @@ namespace OfficeIMO.PowerPoint {
             Add(features, "Media", "Audio and video", PowerPointFeatureSupportLevel.PartiallyEditable, Slides.Sum(CountSlideMedia), null,
                 "Embedded audio and video can be authored with poster frames and playback timing; rich media editing remains partial.",
                 DescribePartsByUriOrContentType(allParts, "media"));
+            Add(features, "Media", "Legacy media metadata",
+                PowerPointFeatureSupportLevel.Preserved,
+                LegacyPptMediaDetails.Count, null,
+                "Linked, device-based, or legacy-only playback metadata from binary PowerPoint remains available for exact binary preservation but is not editable in the Open XML media surface.",
+                LegacyPptMediaDetails);
             Add(features, "Visualization", "SmartArt", PowerPointFeatureSupportLevel.PartiallyEditable, Math.Max(Slides.Sum(CountSlideSmartArt), diagramDetails.Count), null,
                 "SmartArt diagrams can be generated and discovered; rich diagram editing remains partial.",
                 diagramDetails);
@@ -354,14 +359,25 @@ namespace OfficeIMO.PowerPoint {
                 "Notes-page drawings beyond speaker text are detected as preserve-only presentation content.",
                 richNotesDetails);
             Add(features, "Presentation", "Slide transitions", PowerPointFeatureSupportLevel.Editable, Slides.Count(HasTransitionMarkup), null,
-                "Common transitions, Morph fallback markup, speed, duration, and advance timing can be authored and round-tripped.");
+                "Common transitions, Morph fallback markup, speed, duration, advance timing, and transition sound actions can be authored and round-tripped.");
+            Add(features, "Media", "Transition and action sounds",
+                PowerPointFeatureSupportLevel.Editable,
+                Slides.Sum(CountTransitionAndActionSounds), null,
+                "Embedded sounds referenced by slide transitions and shape or text actions are detected and round-tripped.");
             var unsupportedTransitionDetails = DescribeUnsupportedTransitionMarkup();
             Add(features, "Presentation", "Unsupported transition markup", PowerPointFeatureSupportLevel.Preserved, unsupportedTransitionDetails.Count, null,
                 "Transition markup not mapped by OfficeIMO is detected as preserve-only slide metadata.",
                 unsupportedTransitionDetails);
+            int classicAnimationCount = Slides
+                .Where(slide => slide.HasOnlyClassicAnimationTiming())
+                .Sum(slide => slide.ClassicAnimations.Count);
+            Add(features, "Presentation", "Classic animations",
+                PowerPointFeatureSupportLevel.Editable,
+                classicAnimationCount, null,
+                "Classic shape and text entrance effects, paragraph builds, order, automatic advance, after-effects, and sounds can be authored, inspected, and round-tripped.");
             var advancedTimingDetails = DescribeAdvancedTimingMarkup();
             Add(features, "Presentation", "Animations and timing", PowerPointFeatureSupportLevel.Preserved, advancedTimingDetails.Count, null,
-                "Timing trees beyond OfficeIMO's media playback helpers are detected as preserve-only advanced animation metadata.",
+                "Timing trees beyond OfficeIMO's classic-animation and media-playback helpers are detected as preserve-only advanced animation metadata.",
                 advancedTimingDetails);
             Add(features, "Content", "External relationships", PowerPointFeatureSupportLevel.PartiallyEditable, externalHyperlinkDetails.Count, null,
                 "External hyperlinks can be authored and inspected.",
@@ -372,8 +388,19 @@ namespace OfficeIMO.PowerPoint {
 
             var commentDetails = DescribeCommentParts(allParts);
             var customXmlDetails = DescribePartsByUri(allParts, "/customXml/");
-            var embeddedPackageDetails = DescribeNonChartEmbeddedPackageParts(allParts);
-            var activeXControlDetails = DescribeActiveXControlParts(allParts);
+            PowerPointOleObject[] editableOleObjects = Slides
+                .SelectMany(slide => slide.OleObjects).ToArray();
+            var editableOleParts = new HashSet<OpenXmlPart>(
+                editableOleObjects.Select(ole =>
+                    (OpenXmlPart)ole.EmbeddedPart));
+            var embeddedPackageDetails = DescribeNonChartEmbeddedPackageParts(
+                allParts, editableOleParts);
+            var linkedOleDetails = LegacyPptLinkedOleDetails.ToList();
+            var activeXControlDetails = DescribeActiveXControlParts(allParts)
+                .Concat(LegacyPptActiveXDetails)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(detail => detail, StringComparer.OrdinalIgnoreCase)
+                .ToList();
             var vbaDetails = DescribeVbaProjectParts(allParts);
             var webExtensionDetails = DescribeWebExtensionParts(allParts);
             var signatureDetails = DescribeDigitalSignatureParts(allParts);
@@ -387,11 +414,22 @@ namespace OfficeIMO.PowerPoint {
             Add(features, "Compatibility", "Custom XML parts", PowerPointFeatureSupportLevel.Preserved, customXmlDetails.Count, null,
                 "Custom XML parts are preserve-only package metadata.",
                 customXmlDetails);
+            Add(features, "Compatibility", "Embedded OLE objects",
+                PowerPointFeatureSupportLevel.Editable,
+                editableOleObjects.Length, null,
+                "Embedded OLE compound objects expose their ProgID, display mode, color-follow setting, exact storage bytes, geometry, duplication, and removal through the normal slide model.",
+                editableOleObjects.Select(ole =>
+                    $"{ole.Name ?? "OLE object"}: {ole.ProgId ?? "Package"}, {ole.ContentType}").ToList());
             Add(features, "Compatibility", "Embedded packages", PowerPointFeatureSupportLevel.Preserved, embeddedPackageDetails.Count, null,
-                "Embedded package parts and OLE payloads are advanced package content and should be treated as preserve-only.",
+                "Unreferenced or unrecognized embedded package parts remain preserve-only package content.",
                 embeddedPackageDetails);
+            Add(features, "Compatibility", "Linked OLE objects",
+                PowerPointFeatureSupportLevel.Preserved,
+                linkedOleDetails.Count, null,
+                "Binary linked OLE metadata and cached compound storage are typed and retained exactly, but are not projected to an editable Open XML object.",
+                linkedOleDetails);
             Add(features, "Compatibility", "ActiveX controls", PowerPointFeatureSupportLevel.Preserved, activeXControlDetails.Count, null,
-                "ActiveX control package metadata is detected as preserve-only advanced presentation content.",
+                "ActiveX metadata and native control storage are detected and retained as preserve-only advanced presentation content.",
                 activeXControlDetails);
             Add(features, "Compatibility", "VBA macros", PowerPointFeatureSupportLevel.Preserved, vbaDetails.Count, null,
                 "VBA project parts are detected as preserve-only macro content; OfficeIMO does not edit or sign VBA modules.",
@@ -505,8 +543,15 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static bool HasTransitionMarkup(PowerPointSlide slide) {
-            return slide.Transition != SlideTransition.None;
+            return slide.Transition != SlideTransition.None
+                || slide.SlidePart.Slide?.Transition != null;
         }
+
+        private static int CountTransitionAndActionSounds(PowerPointSlide slide) =>
+            (slide.SlidePart.Slide?.Transition?
+                .Descendants<DocumentFormat.OpenXml.Presentation.Sound>().Count() ?? 0)
+            + (slide.SlidePart.Slide?
+                .Descendants<A.HyperlinkSound>().Count() ?? 0);
 
         private static int CountSlideTextBoxes(PowerPointSlide slide) {
             int slideTextBoxes = slide.SlidePart.Slide?.Descendants<Shape>().Count(shape => shape.TextBody != null) ?? 0;
@@ -663,12 +708,26 @@ namespace OfficeIMO.PowerPoint {
                 return false;
             }
 
-            return !transition.ChildElements.Any(IsMappedTransitionEffectElement)
-                || transition.ChildElements.Any(element => !IsMappedTransitionEffectElement(element))
+            return transition.ChildElements.Any(element =>
+                    !IsMappedTransitionEffectElement(element)
+                    && element is not SoundAction)
+                || transition.Elements<SoundAction>().Any(
+                    sound => !IsSupportedTransitionSoundAction(sound))
                 || transition.GetAttributes().Any(IsUnsupportedTransitionAttribute)
                 || transition.ChildElements
                     .Where(IsMappedTransitionEffectElement)
                     .Any(element => element.GetAttributes().Any(attribute => IsUnsupportedTransitionEffectAttribute(element, attribute)));
+        }
+
+        private static bool IsSupportedTransitionSoundAction(SoundAction sound) {
+            StartSoundAction[] starts = sound.Elements<StartSoundAction>().ToArray();
+            EndSoundAction[] ends = sound.Elements<EndSoundAction>().ToArray();
+            if (sound.ChildElements.Count != 1
+                || starts.Length + ends.Length != 1) return false;
+            if (ends.Length == 1) return true;
+            return starts[0].ChildElements.Count == 1
+                && starts[0].Elements<DocumentFormat.OpenXml.Presentation.Sound>()
+                    .Count() == 1;
         }
 
         private static bool IsMappedTransitionEffectElement(OpenXmlElement element) {
@@ -679,16 +738,31 @@ namespace OfficeIMO.PowerPoint {
 
             var supportedNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase) {
                 "blinds",
+                "checker",
+                "circle",
                 "comb",
+                "cover",
                 "cut",
+                "diamond",
+                "dissolve",
                 "fade",
                 "ferris",
                 "flash",
                 "morph",
+                "newsflash",
+                "plus",
                 "prism",
+                "pull",
                 "push",
+                "random",
+                "randomBar",
+                "split",
+                "strips",
+                "wedge",
+                "wheel",
                 "warp",
-                "wipe"
+                "wipe",
+                "zoom"
             };
 
             return supportedNames.Contains(element.LocalName);
@@ -721,11 +795,25 @@ namespace OfficeIMO.PowerPoint {
         private static HashSet<string> GetSupportedTransitionEffectAttributes(OpenXmlElement element) {
             switch (element.LocalName) {
                 case "blinds":
+                case "checker":
                 case "comb":
+                case "cover":
                 case "ferris":
+                case "pull":
                 case "push":
+                case "randomBar":
+                case "strips":
                 case "warp":
+                case "wipe":
+                case "zoom":
                     return new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "dir" };
+                case "split":
+                    return new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "dir", "orient" };
+                case "cut":
+                case "fade":
+                    return new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "thruBlk" };
+                case "wheel":
+                    return new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "spokes" };
                 case "prism":
                     return new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "isContent" };
                 case "morph":
@@ -744,7 +832,10 @@ namespace OfficeIMO.PowerPoint {
 
         private List<string> DescribeAdvancedTimingMarkup() {
             return Slides
-                .SelectMany((slide, index) => EnumerateSlideTimingMarkup(slide, index + 1))
+                .SelectMany((slide, index) => EnumerateSlideTimingMarkup(
+                        slide, index + 1)
+                    .Where(item => item.Scope != "slide"
+                        || !slide.HasOnlyClassicAnimationTiming()))
                 .Where(item => !ContainsOnlyMediaPlaybackTiming(item.Timing, item.MediaShapeIds))
                 .Select(item => $"slide {item.Index} {item.Scope}: {item.Timing.Descendants().Count()} timing descendant(s)")
                 .ToList();
@@ -1006,13 +1097,16 @@ namespace OfficeIMO.PowerPoint {
                 .ToList();
         }
 
-        private static List<string> DescribeNonChartEmbeddedPackageParts(IEnumerable<OpenXmlPart> parts) {
+        private static List<string> DescribeNonChartEmbeddedPackageParts(
+            IEnumerable<OpenXmlPart> parts,
+            ISet<OpenXmlPart> editableOleParts) {
             var chartWorkbooks = new HashSet<OpenXmlPart>(
                 parts.OfType<ChartPart>().SelectMany(chartPart => chartPart.GetPartsOfType<EmbeddedPackagePart>()));
 
             return parts
                 .Where(part => part is EmbeddedPackagePart || part is EmbeddedObjectPart)
                 .Where(part => !chartWorkbooks.Contains(part))
+                .Where(part => !editableOleParts.Contains(part))
                 .Select(DescribePart)
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .OrderBy(detail => detail, StringComparer.OrdinalIgnoreCase)

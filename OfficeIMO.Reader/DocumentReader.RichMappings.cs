@@ -19,10 +19,8 @@ internal static partial class DocumentReaderEngine {
         cancellationToken.ThrowIfCancellationRequested();
         switch (kind) {
             case ReaderInputKind.Word:
-                using (WordDocument document = WordDocument.Load(path, new WordLoadOptions {
-                    AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly,
-                    OpenSettings = CreateOpenSettings(options)
-                })) {
+                using (WordDocument document = LoadWordForReader(path,
+                           options)) {
                     return ApplyWordRichMapping(document.CreateInspectionSnapshot(), options, result);
                 }
             case ReaderInputKind.Excel:
@@ -30,7 +28,8 @@ internal static partial class DocumentReaderEngine {
                     return ApplyExcelRichMapping(document.CreateInspectionSnapshot(), options, result);
                 }
             case ReaderInputKind.PowerPoint:
-                using (PowerPointPresentation presentation = PowerPointPresentation.Load(path, new PowerPointLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
+                using (PowerPointPresentation presentation =
+                       LoadPowerPointForReader(path, options)) {
                     return ApplyPowerPointRichMapping(presentation, options, result, cancellationToken);
                 }
             default:
@@ -48,11 +47,8 @@ internal static partial class DocumentReaderEngine {
         cancellationToken.ThrowIfCancellationRequested();
         switch (kind) {
             case ReaderInputKind.Word:
-                stream.Position = 0;
-                using (WordDocument document = WordDocument.Load(stream, new WordLoadOptions {
-                    AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly,
-                    OpenSettings = CreateOpenSettings(options)
-                })) {
+                using (WordDocument document = LoadWordForReader(stream,
+                           options)) {
                     return ApplyWordRichMapping(document.CreateInspectionSnapshot(), options, result);
                 }
             case ReaderInputKind.Excel:
@@ -62,7 +58,8 @@ internal static partial class DocumentReaderEngine {
                 }
             case ReaderInputKind.PowerPoint:
                 stream.Position = 0;
-                using (PowerPointPresentation presentation = PowerPointPresentation.Load(stream, new PowerPointLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
+                using (PowerPointPresentation presentation =
+                       LoadPowerPointForReader(stream, options)) {
                     return ApplyPowerPointRichMapping(presentation, options, result, cancellationToken);
                 }
             default:

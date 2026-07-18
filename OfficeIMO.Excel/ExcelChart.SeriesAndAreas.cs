@@ -14,6 +14,30 @@ namespace OfficeIMO.Excel {
     /// </summary>
     public sealed partial class ExcelChart {
         /// <summary>
+        /// Removes the fill from a chart series and optionally removes its outline.
+        /// </summary>
+        public ExcelChart SetSeriesNoFill(int seriesIndex, bool noLine = true) {
+            if (seriesIndex < 0) {
+                throw new ArgumentOutOfRangeException(nameof(seriesIndex));
+            }
+
+            bool applied = ApplySeriesByIndex(seriesIndex, series => {
+                C.ChartShapeProperties props = EnsureChartShapeProperties(series);
+                ApplyNoFill(props);
+                if (noLine) {
+                    ApplyNoLine(props);
+                }
+            });
+
+            if (!applied) {
+                throw new InvalidOperationException($"Series index {seriesIndex} was not found.");
+            }
+
+            Save();
+            return this;
+        }
+
+        /// <summary>
         /// Sets the fill color for a chart series by index.
         /// </summary>
         public ExcelChart SetSeriesFillColor(int seriesIndex, string color) {

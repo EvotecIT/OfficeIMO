@@ -6,6 +6,19 @@ Branch/worktree: `codex/powerpoint-competitive-gap-20260710` at `C:\Support\GitH
 
 Baseline: `origin/master` at `28384ffa8ad626cf086475a96d88f0ba11d45e5e`
 
+## Binary PowerPoint update (2026-07-16)
+
+The original review below is a dated PPTX-focused snapshot. The current `feature/binary-powerpoint` work adds
+first-party `.ppt`, `.pot`, and `.pps` lifecycle support through the normal editable model: dependency-free
+compound-file and record parsing, fresh native writing, preservation-aware incremental edits, explicit
+PPTX-to-binary conversion gates, RC4 CryptoAPI password compatibility, and signature mutation policy.
+
+`LegacyPptCapabilityCatalog` is the current source of truth. Every feature reports import, new-binary,
+binary-round-trip, and PPTX-to-binary states as native, preserved, converted, or blocked; no row remains
+provisional. This does not imply that the PowerPoint 97-2003 format can represent every PPTX feature. Unsafe
+or non-representable conversion remains blocked unless the catalog defines and preflight reports an explicit
+conversion.
+
 ## Executive Verdict
 
 OfficeIMO.PowerPoint is already a serious editable-PPTX engine. It is well beyond a basic Open XML wrapper: the current package has a broad slide object model, layout and arrangement helpers, data-bound tables and charts, media, sections, transitions, notes, theme editing, slide import and duplication, feature preflight, designer composition, semantic deck plans, first-party image/HTML/PDF paths, and markup-to-PowerPoint generation.

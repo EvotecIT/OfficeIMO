@@ -117,20 +117,34 @@ internal static partial class DocumentReaderEngine {
         return await DetectAsync(stream, sourceName, options, cancellationToken).ConfigureAwait(false);
     }
 
-    private static ReaderDetectionResult DetectForRead(string path, ReaderOptions options) {
-        return Detect(path, CreateDetectionOptions(options));
+    private static ReaderDetectionResult DetectForRead(string path,
+        ReaderOptions options, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        ReaderDetectionResult detection = Detect(path,
+            CreateDetectionOptions(options));
+        cancellationToken.ThrowIfCancellationRequested();
+        return ResolveEncryptedOpenXmlDetection(path, options, detection,
+            cancellationToken);
     }
 
-    private static ReaderDetectionResult DetectForRead(Stream stream, string? sourceName, ReaderOptions options) {
-        return Detect(stream, sourceName, CreateDetectionOptions(options));
+    private static ReaderDetectionResult DetectForRead(Stream stream,
+        string? sourceName, ReaderOptions options,
+        CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        ReaderDetectionResult detection = Detect(stream, sourceName,
+            CreateDetectionOptions(options));
+        cancellationToken.ThrowIfCancellationRequested();
+        return ResolveEncryptedOpenXmlDetection(stream, sourceName,
+            options, detection, cancellationToken);
     }
 
     private static bool TryResolvePathHandler(
         string path,
         ReaderOptions options,
+        CancellationToken cancellationToken,
         out ReaderHandlerDescriptor handler,
         out ReaderDetectionResult detection) {
-        detection = DetectForRead(path, options);
+        detection = DetectForRead(path, options, cancellationToken);
         return TrySelectPathHandler(path, options, detection, out handler);
     }
 
@@ -157,9 +171,11 @@ internal static partial class DocumentReaderEngine {
         Stream stream,
         string? sourceName,
         ReaderOptions options,
+        CancellationToken cancellationToken,
         out ReaderHandlerDescriptor handler,
         out ReaderDetectionResult detection) {
-        detection = DetectForRead(stream, sourceName, options);
+        detection = DetectForRead(stream, sourceName, options,
+            cancellationToken);
         return TrySelectStreamHandler(sourceName, options, detection, out handler);
     }
 
@@ -209,6 +225,8 @@ internal static partial class DocumentReaderEngine {
             path,
             CreateDetectionOptions(options),
             cancellationToken).ConfigureAwait(false);
+        detection = ResolveEncryptedOpenXmlDetection(path, options,
+            detection, cancellationToken);
         bool hasHandler = TrySelectPathHandler(path, options, detection, out ReaderHandlerDescriptor handler);
         return new HandlerDetectionResolution(hasHandler ? handler : null, detection);
     }
@@ -223,6 +241,8 @@ internal static partial class DocumentReaderEngine {
             sourceName,
             CreateDetectionOptions(options),
             cancellationToken).ConfigureAwait(false);
+        detection = ResolveEncryptedOpenXmlDetection(stream, sourceName,
+            options, detection, cancellationToken);
         bool hasHandler = TrySelectStreamHandler(sourceName, options, detection, out ReaderHandlerDescriptor handler);
         return new HandlerDetectionResolution(hasHandler ? handler : null, detection);
     }
@@ -263,8 +283,9 @@ internal static partial class DocumentReaderEngine {
                 }
             } else if (IsOleCompound(prefix) && options.InspectContainers) {
                 candidate = restorePosition
-                    ? InspectEmailCompound(stream, originalPosition, options.MaxContainerEntries)
-                    : InspectEmailCompound(prefix);
+                    ? InspectOfficeCompound(stream, originalPosition,
+                        options.MaxContainerEntries)
+                    : InspectOfficeCompound(prefix);
                 containerInspected = true;
             } else if (IsCabinet(prefix) && options.InspectContainers) {
                 candidate = restorePosition
@@ -310,8 +331,9 @@ internal static partial class DocumentReaderEngine {
                 if (containerCandidate.Kind != ReaderInputKind.Unknown) candidate = containerCandidate;
             } else if (IsOleCompound(prefix) && options.InspectContainers) {
                 candidate = restorePosition
-                    ? InspectEmailCompound(stream, originalPosition, options.MaxContainerEntries)
-                    : InspectEmailCompound(prefix);
+                    ? InspectOfficeCompound(stream, originalPosition,
+                        options.MaxContainerEntries, cancellationToken)
+                    : InspectOfficeCompound(prefix);
                 containerInspected = true;
             } else if (IsCabinet(prefix) && options.InspectContainers) {
                 candidate = restorePosition
@@ -684,6 +706,7 @@ internal static partial class DocumentReaderEngine {
             ".xlsm" => "application/vnd.ms-excel.sheet.macroEnabled.12",
             ".xls" => "application/vnd.ms-excel",
             ".pptm" => "application/vnd.ms-powerpoint.presentation.macroEnabled.12",
+            ".ppt" or ".pot" or ".pps" => "application/vnd.ms-powerpoint",
             ".eml" => "message/rfc822",
             ".msg" => "application/vnd.ms-outlook",
             ".oft" => "application/vnd.ms-outlook",

@@ -125,6 +125,43 @@ public sealed class OfficeLinearGradient {
             stops);
     }
 
+    /// <summary>
+    /// Creates a local-coordinate gradient whose vector follows the supplied angle after an affine shape transform.
+    /// </summary>
+    /// <param name="stops">Gradient stops. The first stop must use offset 0 and the last stop offset 1.</param>
+    /// <param name="destinationDegrees">Clockwise gradient angle in destination coordinates.</param>
+    /// <param name="localWidth">Width of the shape's local coordinate box.</param>
+    /// <param name="localHeight">Height of the shape's local coordinate box.</param>
+    /// <param name="localToDestination">Affine transform applied to the shape after its local gradient is evaluated.</param>
+    /// <returns>A local normalized gradient that preserves the requested destination-space direction.</returns>
+    public static OfficeLinearGradient FromTransformedAngle(
+        IReadOnlyList<OfficeGradientStop> stops,
+        double destinationDegrees,
+        double localWidth,
+        double localHeight,
+        OfficeTransform localToDestination) {
+        if (double.IsNaN(destinationDegrees) || double.IsInfinity(destinationDegrees)) {
+            throw new ArgumentOutOfRangeException(nameof(destinationDegrees),
+                "Linear gradient angle must be finite.");
+        }
+        ValidatePositiveDimension(localWidth, nameof(localWidth));
+        ValidatePositiveDimension(localHeight, nameof(localHeight));
+        if (!localToDestination.TryInvert(out OfficeTransform destinationToLocal)) {
+            throw new ArgumentException("The local-to-destination transform must be invertible.",
+                nameof(localToDestination));
+        }
+
+        double radians = OfficeGeometry.DegreesToRadians(
+            NormalizeDegrees(destinationDegrees));
+        OfficePoint localOrigin = destinationToLocal.TransformPoint(default);
+        OfficePoint localDirection = destinationToLocal.TransformPoint(new OfficePoint(
+            Math.Cos(radians), Math.Sin(radians)));
+        double normalizedX = (localDirection.X - localOrigin.X) / localWidth;
+        double normalizedY = (localDirection.Y - localOrigin.Y) / localHeight;
+        double localDegrees = Math.Atan2(normalizedY, normalizedX) * 180D / Math.PI;
+        return FromAngle(stops, localDegrees);
+    }
+
     /// <summary>Creates a detached copy.</summary>
     public OfficeLinearGradient Clone() => new OfficeLinearGradient(StartX, StartY, EndX, EndY, Stops, allowOutsideUnit: true);
 
@@ -162,6 +199,13 @@ public sealed class OfficeLinearGradient {
     }
 
     private static double ClampUnit(double value) => value < 0D ? 0D : value > 1D ? 1D : value;
+
+    private static void ValidatePositiveDimension(double value, string paramName) {
+        if (double.IsNaN(value) || double.IsInfinity(value) || value <= 0D) {
+            throw new ArgumentOutOfRangeException(paramName,
+                "Linear gradient dimensions must be finite positive values.");
+        }
+    }
 
     private static void ValidateCoordinate(double value, string paramName, bool allowOutsideUnit) {
         if (double.IsNaN(value) || double.IsInfinity(value) || !allowOutsideUnit && (value < 0D || value > 1D)) {

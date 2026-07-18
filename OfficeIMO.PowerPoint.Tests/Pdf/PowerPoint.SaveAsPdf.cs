@@ -681,7 +681,7 @@ public class PowerPointSaveAsPdfTests {
         using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
         presentation.SlideSize.SetSizePoints(240, 160);
         PowerPointSlide slide = presentation.AddSlide();
-        slide.SlidePart.Slide.CommonSlideData!.SetAttribute(new OpenXmlAttribute("showMasterSp", string.Empty, "0"));
+        slide.SlidePart.Slide.ShowMasterShapes = false;
         SlideLayoutPart layoutPart = slide.SlidePart.SlideLayoutPart!;
         ShapeTree tree = layoutPart.SlideLayout.CommonSlideData!.ShapeTree!;
         tree.AppendChild(new DocumentFormat.OpenXml.Presentation.Shape(

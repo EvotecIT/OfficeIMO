@@ -34,6 +34,10 @@ namespace OfficeIMO.PowerPoint {
             if (shape is PowerPointChart && clone is GraphicFrame duplicatedChartFrame) {
                 RebindDuplicatedChart(duplicatedChartFrame);
             }
+            if (shape is PowerPointOleObject
+                && clone is GraphicFrame duplicatedOleFrame) {
+                RebindDuplicatedOleObject(duplicatedOleFrame);
+            }
 
             PowerPointShape? duplicate = CreateShapeFromElement(clone);
             if (duplicate == null) {
@@ -220,7 +224,7 @@ namespace OfficeIMO.PowerPoint {
         private void ApplyUniqueNonVisualDrawingProperties(OpenXmlElement element, string baseName) {
             string resolvedBaseName = string.IsNullOrWhiteSpace(baseName) ? "Shape" : baseName;
             string name = GenerateUniqueName(resolvedBaseName);
-            uint id = _nextShapeId++;
+            uint id = AllocateShapeId();
 
             switch (element) {
                 case Shape s: {
@@ -312,9 +316,12 @@ namespace OfficeIMO.PowerPoint {
                 case ConnectionShape c:
                     return new PowerPointConnectionShape(c);
                 case Picture p:
-                    return ownerPart is SlidePart slidePart && PowerPointMedia.TryGetMediaKind(p, out PowerPointMediaKind kind)
-                        ? new PowerPointMedia(p, slidePart, kind)
-                        : new PowerPointPicture(p, ownerPart);
+                    if (ownerPart is SlidePart slidePart) {
+                        return PowerPointMedia.TryGetMediaKind(p, out PowerPointMediaKind kind)
+                            ? new PowerPointMedia(p, slidePart, kind)
+                            : new PowerPointPicture(p, slidePart);
+                    }
+                    return new PowerPointPicture(p, ownerPart);
                 case GroupShape g:
                     return new PowerPointGroupShape(g, ownerPart);
                 case GraphicFrame g when g.Graphic?.GraphicData?.GetFirstChild<A.Table>() != null:
@@ -323,6 +330,9 @@ namespace OfficeIMO.PowerPoint {
                     return new PowerPointChart(g, ownerPart);
                 case GraphicFrame g when g.Graphic?.GraphicData?.GetFirstChild<Dgm.RelationshipIds>() != null && ownerPart is SlidePart smartArtSlidePart:
                     return new PowerPointSmartArt(g, smartArtSlidePart);
+                case GraphicFrame g when g.Graphic?.GraphicData?.GetFirstChild<OleObject>() != null
+                                         && ownerPart is SlidePart oleSlidePart:
+                    return new PowerPointOleObject(g, oleSlidePart);
                 default:
                     return null;
             }
@@ -334,6 +344,33 @@ namespace OfficeIMO.PowerPoint {
                 ?? throw new InvalidOperationException("Chart reference not found for duplicated shape.");
             ChartPart sourceChartPart = (ChartPart)_slidePart.GetPartById(originalRelationshipId);
             chartReference!.Id = CloneChartPart(sourceChartPart);
+        }
+
+        private void RebindDuplicatedOleObject(GraphicFrame frame) {
+            OleObject ole = frame.Graphic?.GraphicData?
+                .GetFirstChild<OleObject>()
+                ?? throw new InvalidOperationException(
+                    "OLE object definition not found for duplicated shape.");
+            string sourceRelationshipId = ole.Id?.Value
+                ?? throw new InvalidOperationException(
+                    "OLE object relationship not found for duplicated shape.");
+            EmbeddedObjectPart sourcePart = _slidePart.GetPartById(
+                sourceRelationshipId) as EmbeddedObjectPart
+                ?? throw new InvalidOperationException(
+                    "The OLE relationship does not target an embedded-object part.");
+            EmbeddedObjectPart targetPart = _slidePart
+                .AddEmbeddedObjectPart(sourcePart.ContentType);
+            CopyPartData(sourcePart, targetPart);
+            ole.Id = _slidePart.GetIdOfPart(targetPart);
+            uint frameId = frame.NonVisualGraphicFrameProperties?
+                .NonVisualDrawingProperties?.Id?.Value
+                ?? throw new InvalidOperationException(
+                    "The duplicated OLE frame has no shape identifier.");
+            ole.ShapeId = "_x0000_s" + frameId;
+            Picture? preview = ole.GetFirstChild<Picture>();
+            if (preview != null) {
+                UpdateDescendantNonVisualDrawingProperties(preview);
+            }
         }
 
         private string CloneChartPart(ChartPart sourceChartPart) {

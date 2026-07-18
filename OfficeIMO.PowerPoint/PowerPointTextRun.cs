@@ -144,7 +144,8 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
-        /// Gets or sets the hyperlink target for this run.
+        /// Gets or sets the hyperlink target for this run. Internal slide links are returned as
+        /// stable Markdown-compatible fragments such as <c>#slide-2</c>.
         /// </summary>
         public Uri? Hyperlink {
             get {
@@ -152,14 +153,9 @@ namespace OfficeIMO.PowerPoint {
                     return null;
                 }
 
-                string? relId = Run.RunProperties?.GetFirstChild<A.HyperlinkOnClick>()?.Id;
-                if (string.IsNullOrWhiteSpace(relId)) {
-                    return null;
-                }
-
-                HyperlinkRelationship? rel = _ownerPart.HyperlinkRelationships
-                    .FirstOrDefault(r => string.Equals(r.Id, relId, StringComparison.Ordinal));
-                return rel?.Uri;
+                return PowerPointHyperlinkResolver.Resolve(_ownerPart,
+                    _slidePart, Run.RunProperties?
+                        .GetFirstChild<A.HyperlinkOnClick>());
             }
             set {
                 if (value == null) {
@@ -194,12 +190,51 @@ namespace OfficeIMO.PowerPoint {
 
             HyperlinkRelationship rel = _slidePart.AddHyperlinkRelationship(uri, true);
             A.RunProperties props = EnsureRunProperties();
-            props.RemoveAllChildren<A.HyperlinkOnClick>();
             var hyperlink = new A.HyperlinkOnClick { Id = rel.Id };
             if (!string.IsNullOrWhiteSpace(tooltip)) {
                 hyperlink.Tooltip = tooltip;
             }
-            props.Append(hyperlink);
+            ReplaceClickHyperlink(props, hyperlink);
+        }
+
+        /// <summary>
+        /// Sets an internal hyperlink from this run to another slide in the same presentation.
+        /// </summary>
+        public void SetHyperlink(PowerPointSlide targetSlide,
+            string? tooltip = null) {
+            if (targetSlide == null) {
+                throw new ArgumentNullException(nameof(targetSlide));
+            }
+            if (_slidePart == null) {
+                throw new InvalidOperationException(
+                    "Hyperlinks require a slide context.");
+            }
+
+            PresentationPart? sourcePresentation = _slidePart.GetParentParts()
+                .OfType<PresentationPart>().FirstOrDefault();
+            PresentationPart? targetPresentation = targetSlide.SlidePart
+                .GetParentParts().OfType<PresentationPart>().FirstOrDefault();
+            if (sourcePresentation == null
+                || !ReferenceEquals(sourcePresentation, targetPresentation)) {
+                throw new ArgumentException(
+                    "The hyperlink target must belong to the same presentation.",
+                    nameof(targetSlide));
+            }
+
+            if (!_slidePart.Parts.Any(pair => ReferenceEquals(
+                    pair.OpenXmlPart, targetSlide.SlidePart))) {
+                _slidePart.AddPart(targetSlide.SlidePart);
+            }
+
+            A.RunProperties props = EnsureRunProperties();
+            var hyperlink = new A.HyperlinkOnClick {
+                Id = _slidePart.GetIdOfPart(targetSlide.SlidePart),
+                Action = "ppaction://hlinksldjump"
+            };
+            if (!string.IsNullOrWhiteSpace(tooltip)) {
+                hyperlink.Tooltip = tooltip;
+            }
+            ReplaceClickHyperlink(props, hyperlink);
         }
 
         /// <summary>
@@ -207,8 +242,91 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public void ClearHyperlink() {
             A.RunProperties? props = Run.RunProperties;
-            props?.RemoveAllChildren<A.HyperlinkOnClick>();
+            if (props != null) ReplaceClickHyperlink(props, replacement: null);
         }
+
+        private void ReplaceClickHyperlink(A.RunProperties properties,
+            A.HyperlinkOnClick? replacement) {
+            A.HyperlinkOnClick[] previous = properties
+                .Elements<A.HyperlinkOnClick>().ToArray();
+            if (replacement != null) {
+                A.HyperlinkSound? preservedSound = previous
+                    .SelectMany(link => link.Elements<A.HyperlinkSound>())
+                    .FirstOrDefault();
+                if (preservedSound != null) {
+                    replacement.Append((A.HyperlinkSound)preservedSound
+                        .CloneNode(true));
+                }
+                bool? preservedEndSound = previous
+                    .Select(link => link.EndSound?.Value)
+                    .FirstOrDefault(value => value.HasValue);
+                if (preservedEndSound.HasValue) {
+                    replacement.EndSound = preservedEndSound.Value;
+                }
+            }
+            string[] relationshipIds = previous
+                .Select(link => link.Id?.Value)
+                .Where(id => !string.IsNullOrEmpty(id))
+                .Cast<string>()
+                .Distinct(StringComparer.Ordinal)
+                .ToArray();
+            string[] soundRelationshipIds = previous
+                .SelectMany(link => link.Elements<A.HyperlinkSound>())
+                .Select(sound => sound.Embed?.Value)
+                .Where(id => !string.IsNullOrEmpty(id))
+                .Cast<string>()
+                .Distinct(StringComparer.Ordinal)
+                .ToArray();
+            foreach (A.HyperlinkOnClick hyperlink in previous) {
+                hyperlink.Remove();
+            }
+            if (replacement != null) properties.Append(replacement);
+            if (_slidePart == null) return;
+            foreach (string relationshipId in relationshipIds) {
+                RemoveHyperlinkRelationshipIfUnused(_slidePart,
+                    relationshipId);
+            }
+            foreach (string soundRelationshipId in soundRelationshipIds) {
+                PowerPointEmbeddedSound.RemoveIfUnused(_slidePart,
+                    soundRelationshipId);
+            }
+        }
+
+        private static void RemoveHyperlinkRelationshipIfUnused(
+            SlidePart slidePart, string relationshipId) {
+            if (ReferencesRelationship(slidePart.RootElement,
+                    relationshipId)) return;
+            HyperlinkRelationship? external = slidePart
+                .HyperlinkRelationships.FirstOrDefault(relationship =>
+                    string.Equals(relationship.Id, relationshipId,
+                        StringComparison.Ordinal));
+            if (external != null) {
+                slidePart.DeleteReferenceRelationship(external);
+                return;
+            }
+            if (slidePart.Parts.Any(pair => string.Equals(
+                    pair.RelationshipId, relationshipId,
+                    StringComparison.Ordinal))) {
+                slidePart.DeletePart(relationshipId);
+            }
+        }
+
+        private static bool ReferencesRelationship(
+            OpenXmlPartRootElement? root,
+            string relationshipId) => root != null
+            && (root.GetAttributes().Any(attribute => string.Equals(
+                    attribute.NamespaceUri,
+                    PowerPointUtils.RelationshipIdNamespace,
+                    StringComparison.Ordinal)
+                && string.Equals(attribute.Value, relationshipId,
+                    StringComparison.Ordinal))
+                || root.Descendants().Any(element => element
+                    .GetAttributes().Any(attribute => string.Equals(
+                            attribute.NamespaceUri,
+                            PowerPointUtils.RelationshipIdNamespace,
+                            StringComparison.Ordinal)
+                        && string.Equals(attribute.Value, relationshipId,
+                            StringComparison.Ordinal))));
 
         private A.RunProperties EnsureRunProperties() {
             return Run.RunProperties ??= new A.RunProperties();

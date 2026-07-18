@@ -14,9 +14,15 @@ namespace OfficeIMO.PowerPoint {
             }
 
             TextBody textBody = EnsureTextBody();
+            string[] discardedSoundIds = PowerPointEmbeddedSound
+                .GetRelationshipIds(textBody);
             A.Paragraph? templateParagraph = textBody.Elements<A.Paragraph>().FirstOrDefault();
             textBody.RemoveAllChildren<A.Paragraph>();
-            return AppendMarkdown(markdown, templateParagraph);
+            IReadOnlyList<PowerPointParagraph> paragraphs = AppendMarkdown(
+                markdown, templateParagraph);
+            PowerPointEmbeddedSound.RemoveIfUnused(_slidePart,
+                discardedSoundIds);
+            return paragraphs;
         }
 
         /// <summary>

@@ -10,7 +10,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         internal IReadOnlyList<PowerPointShape> GetInheritedShapesForExport() {
             var shapes = new List<PowerPointShape>();
-            if (!ShowsMasterShapes(SlideRoot.CommonSlideData)) {
+            if (!ShowsMasterShapes(SlideRoot)) {
                 return shapes;
             }
 
@@ -19,9 +19,12 @@ namespace OfficeIMO.PowerPoint {
             List<PowerPointShape> layoutShapes = CreateInheritedShapes(layoutPart?.SlideLayout?.CommonSlideData?.ShapeTree, layoutPart);
             IReadOnlyList<PowerPointShape> slideShapes = Shapes;
 
-            if (ShowsMasterShapes(layoutPart?.SlideLayout?.CommonSlideData)) {
+            if (ShowsMasterShapes(layoutPart?.SlideLayout)) {
+                // Master placeholders define geometry and styles for concrete slide/layout
+                // placeholders. Their editing prompts are not inherited slide content.
                 foreach (PowerPointShape masterShape in CreateInheritedShapes(masterPart?.SlideMaster?.CommonSlideData?.ShapeTree, masterPart)) {
-                    if (!IsPlaceholderOverridden(masterShape, layoutShapes) &&
+                    if (!IsStructuralPlaceholder(masterShape) &&
+                        !IsPlaceholderOverridden(masterShape, layoutShapes) &&
                         !IsPlaceholderOverridden(masterShape, slideShapes)) {
                         shapes.Add(masterShape);
                     }
@@ -37,23 +40,11 @@ namespace OfficeIMO.PowerPoint {
             return shapes;
         }
 
-        private static bool ShowsMasterShapes(CommonSlideData? commonSlideData) {
-            if (commonSlideData == null) {
-                return true;
-            }
+        private static bool ShowsMasterShapes(Slide? slide) =>
+            slide?.ShowMasterShapes?.Value != false;
 
-            string? value = null;
-            foreach (OpenXmlAttribute attribute in commonSlideData.GetAttributes()) {
-                if (attribute.LocalName == "showMasterSp") {
-                    value = attribute.Value;
-                    break;
-                }
-            }
-
-            return string.IsNullOrWhiteSpace(value) ||
-                value == "1" ||
-                value?.Equals("true", System.StringComparison.OrdinalIgnoreCase) == true;
-        }
+        private static bool ShowsMasterShapes(SlideLayout? layout) =>
+            layout?.ShowMasterShapes?.Value != false;
 
         private List<PowerPointShape> CreateInheritedShapes(ShapeTree? tree, OpenXmlPartContainer? ownerPart) {
             var shapes = new List<PowerPointShape>();
@@ -70,6 +61,9 @@ namespace OfficeIMO.PowerPoint {
 
             return shapes;
         }
+
+        private static bool IsStructuralPlaceholder(PowerPointShape shape) =>
+            TryGetPlaceholderSignature(shape, out _, out _);
 
         private static bool IsPlaceholderOverridden(PowerPointShape inheritedShape, IReadOnlyList<PowerPointShape> overridingShapes) {
             if (!TryGetPlaceholderSignature(inheritedShape, out PlaceholderValues? inheritedType, out uint? inheritedIndex)) {

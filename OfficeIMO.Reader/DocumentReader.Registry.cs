@@ -2,6 +2,7 @@ using OfficeIMO.Excel;
 using OfficeIMO.Markdown;
 using OfficeIMO.Pdf;
 using OfficeIMO.PowerPoint;
+using OfficeIMO.PowerPoint.LegacyPpt;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Markdown;
 using DocumentFormat.OpenXml.Packaging;
@@ -155,12 +156,40 @@ internal static partial class DocumentReaderEngine {
         return GetActiveHandlerRegistry().TryResolve(ext, out handler);
     }
 
-    private static long? ResolveInitialMaxInputBytes(string? sourceName, ReaderOptions options) {
+    internal static long? ResolveInitialMaxInputBytes(string? sourceName,
+        ReaderOptions options) {
         if (options.MaxInputBytes.HasValue) {
             return options.MaxInputBytes;
         }
 
         return ResolveHandlerDefaultMaxInputBytes(sourceName);
+    }
+
+    internal static long? ResolveStreamMaxInputBytes(string? sourceName,
+        ReaderOptions options, bool streamCanSeek) {
+        long? resolved = ResolveInitialMaxInputBytes(sourceName, options);
+        if (resolved.HasValue || streamCanSeek) return resolved;
+
+        if (TryResolveCustomHandlerBySourceName(sourceName,
+                out ReaderHandlerDescriptor customHandler)
+            && customHandler.SupportsStreamInput) {
+            return null;
+        }
+
+        string extension = NormalizeExtension(
+            TryGetExtension(sourceName ?? string.Empty));
+        for (int i = 0; i < BuiltInCapabilities.Length; i++) {
+            ReaderHandlerCapability capability = BuiltInCapabilities[i];
+            if (capability.SupportsStream
+                && capability.Extensions.Contains(extension,
+                    StringComparer.OrdinalIgnoreCase)) {
+                return null;
+            }
+        }
+
+        // Detection needs a seekable snapshot. Keep unidentified streams
+        // bounded before their content has established a concrete handler.
+        return LegacyPptImportOptions.DefaultMaxInputBytes;
     }
 
     internal static long? ResolveHandlerDefaultMaxInputBytes(string? sourceName) {

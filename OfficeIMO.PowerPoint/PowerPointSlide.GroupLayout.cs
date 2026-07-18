@@ -34,8 +34,11 @@ namespace OfficeIMO.PowerPoint {
         ///     Enumerates a shape tree in drawing order, including nested group children while preserving
         ///     inherited hidden state.
         /// </summary>
-        internal IEnumerable<PowerPointShape> EnumerateShapesDeep(IEnumerable<PowerPointShape> shapes,
+        public IEnumerable<PowerPointShape> EnumerateShapesDeep(IEnumerable<PowerPointShape> shapes,
             bool includeHidden = false) {
+            if (shapes == null) {
+                throw new ArgumentNullException(nameof(shapes));
+            }
             foreach (PowerPointShape shape in shapes) {
                 if (!includeHidden && shape.Hidden) continue;
                 yield return shape;
