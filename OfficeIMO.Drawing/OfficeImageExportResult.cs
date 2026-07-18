@@ -121,11 +121,7 @@ public sealed class OfficeImageExportResult {
             throw new System.ArgumentException("Output path cannot be null or whitespace.", nameof(path));
         }
 
-        string resolvedPath = OfficeImageExportPath.ResolveFile(path, Format, conflictPolicy);
-        OfficeFileCommit.WriteAllBytes(
-            resolvedPath,
-            _bytes,
-            OfficeImageExportPath.ToCommitPolicy(conflictPolicy));
+        string resolvedPath = OfficeImageExportPath.WriteAllBytes(path, Format, _bytes, conflictPolicy);
         return WithSavedPath(resolvedPath);
     }
 
@@ -147,11 +143,11 @@ public sealed class OfficeImageExportResult {
         }
 
         cancellationToken.ThrowIfCancellationRequested();
-        string resolvedPath = OfficeImageExportPath.ResolveFile(path, Format, conflictPolicy);
-        await OfficeFileCommit.WriteAllBytesAsync(
-            resolvedPath,
+        string resolvedPath = await OfficeImageExportPath.WriteAllBytesAsync(
+            path,
+            Format,
             _bytes,
-            OfficeImageExportPath.ToCommitPolicy(conflictPolicy),
+            conflictPolicy,
             cancellationToken).ConfigureAwait(false);
         return WithSavedPath(resolvedPath);
     }

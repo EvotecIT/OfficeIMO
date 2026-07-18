@@ -50,6 +50,33 @@ namespace OfficeIMO.Drawing.Internal {
             Write(targetPath, stream => stream.Write(bytes, 0, bytes.Length), conflictPolicy);
         }
 
+        /// <summary>
+        /// Atomically writes a completed byte array only when the destination can be claimed.
+        /// </summary>
+        /// <returns><c>false</c> when another writer already claimed the destination.</returns>
+        public static bool TryWriteAllBytes(string targetPath, byte[] bytes) {
+#if NET6_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(bytes);
+#else
+            if (bytes == null) throw new ArgumentNullException(nameof(bytes));
+#endif
+            EnsureTargetDirectory(targetPath);
+            string fullTargetPath = GetFullTargetPath(targetPath);
+            string temporaryPath = CreateTemporaryPath(fullTargetPath);
+            try {
+                using (var stream = new FileStream(temporaryPath, FileMode.CreateNew, FileAccess.ReadWrite, FileShare.None)) {
+                    stream.Write(bytes, 0, bytes.Length);
+                    stream.Flush();
+                }
+
+                if (!TryMoveIfAbsent(temporaryPath, fullTargetPath)) return false;
+                temporaryPath = string.Empty;
+                return true;
+            } finally {
+                DeleteIfExists(temporaryPath);
+            }
+        }
+
         /// <summary>Asynchronously writes a completed byte array and atomically commits it.</summary>
         public static async Task WriteAllBytesAsync(
             string targetPath,
@@ -77,6 +104,42 @@ namespace OfficeIMO.Drawing.Internal {
                 cancellationToken.ThrowIfCancellationRequested();
                 CommitTemporaryFile(temporaryPath, targetPath, conflictPolicy);
                 temporaryPath = string.Empty;
+            } finally {
+                DeleteIfExists(temporaryPath);
+            }
+        }
+
+        /// <summary>
+        /// Asynchronously writes a completed byte array only when the destination can be claimed.
+        /// </summary>
+        /// <returns><c>false</c> when another writer already claimed the destination.</returns>
+        public static async Task<bool> TryWriteAllBytesAsync(
+            string targetPath,
+            byte[] bytes,
+            CancellationToken cancellationToken = default) {
+#if NET6_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(bytes);
+#else
+            if (bytes == null) throw new ArgumentNullException(nameof(bytes));
+#endif
+            cancellationToken.ThrowIfCancellationRequested();
+            EnsureTargetDirectory(targetPath);
+            string fullTargetPath = GetFullTargetPath(targetPath);
+            string temporaryPath = CreateTemporaryPath(fullTargetPath);
+            try {
+                using (var stream = new FileStream(temporaryPath, FileMode.CreateNew, FileAccess.ReadWrite, FileShare.None, 8192, FileOptions.Asynchronous)) {
+#if NET6_0_OR_GREATER
+                    await stream.WriteAsync(bytes.AsMemory(), cancellationToken).ConfigureAwait(false);
+#else
+                    await stream.WriteAsync(bytes, 0, bytes.Length, cancellationToken).ConfigureAwait(false);
+#endif
+                    await stream.FlushAsync(cancellationToken).ConfigureAwait(false);
+                }
+
+                cancellationToken.ThrowIfCancellationRequested();
+                if (!TryMoveIfAbsent(temporaryPath, fullTargetPath)) return false;
+                temporaryPath = string.Empty;
+                return true;
             } finally {
                 DeleteIfExists(temporaryPath);
             }
@@ -194,19 +257,20 @@ namespace OfficeIMO.Drawing.Internal {
 
             string fullTargetPath = GetFullTargetPath(targetPath);
             if (conflictPolicy == ConflictPolicy.FailIfExists) {
-                ExecuteWithRetry(() => File.Move(temporaryPath, fullTargetPath));
+                if (!TryMoveIfAbsent(temporaryPath, fullTargetPath)) {
+                    throw new IOException($"Destination file '{fullTargetPath}' already exists.");
+                }
                 return;
             }
 
             EnsureDestinationWritable(fullTargetPath);
 
             if (!File.Exists(fullTargetPath)) {
-                try {
-                    ExecuteWithRetry(() => File.Move(temporaryPath, fullTargetPath));
+                if (TryMoveIfAbsent(temporaryPath, fullTargetPath, waitForClaim: true)) {
                     return;
-                } catch (IOException) when (File.Exists(fullTargetPath)) {
-                    // The destination appeared after the existence check. Replace it below.
                 }
+
+                // The destination appeared after the existence check. Replace it below.
             }
 
             try {
@@ -298,6 +362,49 @@ namespace OfficeIMO.Drawing.Internal {
                     Thread.Sleep(Math.Min(50 * (attempt + 1), 500));
                 }
             }
+        }
+
+        private static bool TryMoveIfAbsent(
+            string sourcePath,
+            string targetPath,
+            bool waitForClaim = false) {
+            string claimPath = CreateClaimPath(targetPath);
+            FileStream? claim = null;
+            for (int attempt = 0; ; attempt++) {
+                try {
+                    claim = new FileStream(
+                        claimPath,
+                        FileMode.CreateNew,
+                        FileAccess.ReadWrite,
+                        FileShare.None);
+                    break;
+                } catch (IOException) when (File.Exists(claimPath) && !waitForClaim) {
+                    return false;
+                } catch (IOException) when (attempt < 9) {
+                    Thread.Sleep(Math.Min(50 * (attempt + 1), 500));
+                }
+            }
+
+            try {
+                if (File.Exists(targetPath)) return false;
+                try {
+                    ExecuteWithRetry(() => File.Move(sourcePath, targetPath));
+                    return true;
+                } catch (IOException) when (File.Exists(targetPath)) {
+                    return false;
+                }
+            } finally {
+                claim.Dispose();
+                DeleteIfExists(claimPath);
+            }
+        }
+
+        private static string CreateClaimPath(string targetPath) {
+            string? directory = Path.GetDirectoryName(targetPath);
+            if (string.IsNullOrEmpty(directory)) directory = Directory.GetCurrentDirectory();
+            return Path.Combine(
+                directory,
+                $".{Path.GetFileName(targetPath)}.officeimo-commit");
         }
     }
 }

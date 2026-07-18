@@ -335,8 +335,8 @@ public abstract class OfficeImageExportBatchBuilder<TBuilder, TOptions>
         ExportEach(result => {
             string path = ResolveBatchPath(fullFolder, result, index++, usedFileNames);
             Options.Progress?.Report(new OfficeImageExportProgress(OfficeImageExportProgressStage.Saving, index - 1, name: result.Name, destinationPath: path));
-            OfficeFileCommit.WriteAllBytes(path, result.Bytes, OfficeImageExportPath.ToCommitPolicy(_conflictPolicy));
-            saved.Add(result.WithSavedPath(path));
+            string savedPath = OfficeImageExportPath.WriteAllBytes(path, _format, result.Bytes, _conflictPolicy);
+            saved.Add(result.WithSavedPath(savedPath));
         });
         return saved.AsReadOnly();
     }
@@ -352,8 +352,8 @@ public abstract class OfficeImageExportBatchBuilder<TBuilder, TOptions>
         ExportEach(result => {
             string path = ResolveBatchPath(fullFolder, result, index++, usedFileNames);
             Options.Progress?.Report(new OfficeImageExportProgress(OfficeImageExportProgressStage.Saving, index - 1, name: result.Name, destinationPath: path));
-            OfficeFileCommit.WriteAllBytes(path, result.Bytes, OfficeImageExportPath.ToCommitPolicy(_conflictPolicy));
-            files.Add(new OfficeImageExportSavedFile(result, path));
+            string savedPath = OfficeImageExportPath.WriteAllBytes(path, _format, result.Bytes, _conflictPolicy);
+            files.Add(new OfficeImageExportSavedFile(result, savedPath));
         });
         return new OfficeImageExportBatchSaveResult(files);
     }
@@ -369,12 +369,13 @@ public abstract class OfficeImageExportBatchBuilder<TBuilder, TOptions>
         await ExportEachAsync(async (result, token) => {
             string path = ResolveBatchPath(fullFolder, result, index++, usedFileNames);
             Options.Progress?.Report(new OfficeImageExportProgress(OfficeImageExportProgressStage.Saving, index - 1, name: result.Name, destinationPath: path));
-            await OfficeFileCommit.WriteAllBytesAsync(
+            string savedPath = await OfficeImageExportPath.WriteAllBytesAsync(
                 path,
+                _format,
                 result.Bytes,
-                OfficeImageExportPath.ToCommitPolicy(_conflictPolicy),
+                _conflictPolicy,
                 token).ConfigureAwait(false);
-            saved.Add(result.WithSavedPath(path));
+            saved.Add(result.WithSavedPath(savedPath));
         }, cancellationToken).ConfigureAwait(false);
         return saved.AsReadOnly();
     }
@@ -390,12 +391,13 @@ public abstract class OfficeImageExportBatchBuilder<TBuilder, TOptions>
         await ExportEachAsync(async (result, token) => {
             string path = ResolveBatchPath(fullFolder, result, index++, usedFileNames);
             Options.Progress?.Report(new OfficeImageExportProgress(OfficeImageExportProgressStage.Saving, index - 1, name: result.Name, destinationPath: path));
-            await OfficeFileCommit.WriteAllBytesAsync(
+            string savedPath = await OfficeImageExportPath.WriteAllBytesAsync(
                 path,
+                _format,
                 result.Bytes,
-                OfficeImageExportPath.ToCommitPolicy(_conflictPolicy),
+                _conflictPolicy,
                 token).ConfigureAwait(false);
-            files.Add(new OfficeImageExportSavedFile(result, path));
+            files.Add(new OfficeImageExportSavedFile(result, savedPath));
         }, cancellationToken).ConfigureAwait(false);
         return new OfficeImageExportBatchSaveResult(files);
     }
@@ -409,7 +411,7 @@ public abstract class OfficeImageExportBatchBuilder<TBuilder, TOptions>
             ? "image-" + (index + 1).ToString(CultureInfo.InvariantCulture)
             : result.Name!;
         string fileName = GetUniqueFileName(SanitizeFileName(name), _format.GetFileExtension(), usedFileNames);
-        return OfficeImageExportPath.ResolveFile(Path.Combine(folder, fileName), _format, _conflictPolicy);
+        return OfficeImageExportPath.NormalizeFile(Path.Combine(folder, fileName), _format);
     }
 
     private static string PrepareFolder(string folderPath) {

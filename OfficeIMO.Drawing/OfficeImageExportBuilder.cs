@@ -221,11 +221,11 @@ public abstract class OfficeImageExportBuilder<TBuilder, TOptions>
             throw new ArgumentException("Output path cannot be null or whitespace.", nameof(path));
         }
 
-        string resolvedPath = OfficeImageExportPath.ResolveFile(path, _format, _conflictPolicy);
+        string resolvedPath = OfficeImageExportPath.NormalizeFile(path, _format);
         OfficeImageExportResult result = Render(CancellationToken.None);
         Options.Progress?.Report(new OfficeImageExportProgress(OfficeImageExportProgressStage.Saving, 0, 1, result.Name, resolvedPath));
-        OfficeImageExportResult saved = result.Save(resolvedPath, _conflictPolicy);
-        Options.Progress?.Report(new OfficeImageExportProgress(OfficeImageExportProgressStage.Completed, 1, 1, result.Name, resolvedPath));
+        OfficeImageExportResult saved = result.Save(path, _conflictPolicy);
+        Options.Progress?.Report(new OfficeImageExportProgress(OfficeImageExportProgressStage.Completed, 1, 1, result.Name, saved.SavedPath));
         return saved;
     }
 
@@ -247,14 +247,14 @@ public abstract class OfficeImageExportBuilder<TBuilder, TOptions>
         }
 
         cancellationToken.ThrowIfCancellationRequested();
-        string resolvedPath = OfficeImageExportPath.ResolveFile(path, _format, _conflictPolicy);
+        string resolvedPath = OfficeImageExportPath.NormalizeFile(path, _format);
         OfficeImageExportResult result = await RenderAsync(cancellationToken).ConfigureAwait(false);
         Options.Progress?.Report(new OfficeImageExportProgress(OfficeImageExportProgressStage.Saving, 0, 1, result.Name, resolvedPath));
         OfficeImageExportResult saved = await result.SaveAsync(
-            resolvedPath,
+            path,
             _conflictPolicy,
             cancellationToken).ConfigureAwait(false);
-        Options.Progress?.Report(new OfficeImageExportProgress(OfficeImageExportProgressStage.Completed, 1, 1, result.Name, resolvedPath));
+        Options.Progress?.Report(new OfficeImageExportProgress(OfficeImageExportProgressStage.Completed, 1, 1, result.Name, saved.SavedPath));
         return saved;
     }
 

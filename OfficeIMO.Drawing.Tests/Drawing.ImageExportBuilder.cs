@@ -251,6 +251,55 @@ public partial class DrawingTests {
     }
 
     [Fact]
+    public async Task CreateUniqueAtomicallyClaimsPathsAcrossConcurrentWriters() {
+        string folder = Path.Combine(Path.GetTempPath(), "OfficeIMO-" + Guid.NewGuid().ToString("N"));
+        string path = Path.Combine(folder, "preview.png");
+        try {
+            var result = new OfficeImageExportResult(
+                OfficeImageExportFormat.Png,
+                1,
+                1,
+                OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.White)));
+
+            Task<OfficeImageExportResult>[] saves = Enumerable.Range(0, 12)
+                .Select(_ => Task.Run(() =>
+                    result.Save(path, OfficeImageExportFileConflictPolicy.CreateUnique)))
+                .ToArray();
+            OfficeImageExportResult[] saved = await Task.WhenAll(saves);
+
+            Assert.Equal(saved.Length, saved.Select(item => item.SavedPath).Distinct(StringComparer.OrdinalIgnoreCase).Count());
+            Assert.All(saved, item => Assert.True(File.Exists(item.SavedPath)));
+            Assert.Contains(saved, item => item.SavedPath == Path.GetFullPath(path));
+        } finally {
+            if (Directory.Exists(folder)) Directory.Delete(folder, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task CreateUniqueAsyncAtomicallyClaimsPathsAcrossConcurrentWriters() {
+        string folder = Path.Combine(Path.GetTempPath(), "OfficeIMO-" + Guid.NewGuid().ToString("N"));
+        string path = Path.Combine(folder, "preview.png");
+        try {
+            var result = new OfficeImageExportResult(
+                OfficeImageExportFormat.Png,
+                1,
+                1,
+                OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.White)));
+
+            Task<OfficeImageExportResult>[] saves = Enumerable.Range(0, 12)
+                .Select(_ => result.SaveAsync(path, OfficeImageExportFileConflictPolicy.CreateUnique))
+                .ToArray();
+            OfficeImageExportResult[] saved = await Task.WhenAll(saves);
+
+            Assert.Equal(saved.Length, saved.Select(item => item.SavedPath).Distinct(StringComparer.OrdinalIgnoreCase).Count());
+            Assert.All(saved, item => Assert.True(File.Exists(item.SavedPath)));
+            Assert.Contains(saved, item => item.SavedPath == Path.GetFullPath(path));
+        } finally {
+            if (Directory.Exists(folder)) Directory.Delete(folder, recursive: true);
+        }
+    }
+
+    [Fact]
     public void BatchSaveFilesReturnsPathsAndMetadataWithoutPayloadContract() {
         string folder = Path.Combine(Path.GetTempPath(), "OfficeIMO-" + Guid.NewGuid().ToString("N"));
         try {
@@ -428,6 +477,7 @@ public partial class DrawingTests {
     [InlineData(OfficeImageExportFormat.Png)]
     [InlineData(OfficeImageExportFormat.Jpeg)]
     [InlineData(OfficeImageExportFormat.Tiff)]
+    [InlineData(OfficeImageExportFormat.Webp)]
     public void SharedRasterEncodingWritesConsistentPhysicalResolution(OfficeImageExportFormat format) {
         var encoding = new OfficeRasterEncodingOptions {
             DpiX = 144D,

@@ -47,6 +47,32 @@ public sealed class DrawingRasterEncodingTests {
         Assert.Equal(image.GetPixels(), decoded!.GetPixels());
     }
 
+    [Fact]
+    public void SharedWebpEncodingPreservesPhysicalResolutionInStandardExifMetadata() {
+        OfficeRasterImage image = CreateSampleImage();
+        var options = new OfficeRasterEncodingOptions {
+            DpiX = 144D,
+            DpiY = 120D
+        };
+
+        byte[] encoded = OfficeRasterImageEncoder.Encode(
+            image,
+            OfficeImageExportFormat.Webp,
+            options);
+
+        Assert.Equal("VP8X", System.Text.Encoding.ASCII.GetString(encoded, 12, 4));
+        Assert.Contains(
+            "EXIF",
+            System.Text.Encoding.ASCII.GetString(encoded),
+            StringComparison.Ordinal);
+        OfficeImageInfo info = OfficeImageReader.Identify(encoded);
+        Assert.Equal(144D, info.DpiX, precision: 3);
+        Assert.Equal(120D, info.DpiY, precision: 3);
+        Assert.True(OfficeWebpCodec.TryDecode(encoded, out OfficeRasterImage? decoded));
+        Assert.NotNull(decoded);
+        Assert.Equal(image.GetPixels(), decoded!.GetPixels());
+    }
+
     [Theory]
     [InlineData(OfficeTiffCompression.None)]
     [InlineData(OfficeTiffCompression.PackBits)]
