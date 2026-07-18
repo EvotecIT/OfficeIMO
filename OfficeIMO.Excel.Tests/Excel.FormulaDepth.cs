@@ -109,11 +109,34 @@ namespace OfficeIMO.Tests {
             ExcelSheet quotedShapeName = document.AddWorksheet("ROW(A1)");
             quotedShapeName.CellFormula(1, 2, "1+1");
             sheet.CellFormula(1, 12, "'ROW(A1)'!B1");
+            sheet.CellFormula(1, 13, "ROWS(M:M)");
+            sheet.CellFormula(1, 14, "COLUMNS(1:1)");
+            sheet.CellFormula(1, 15, "ROWS('Reference Shapes'!O:O)");
+            sheet.CellFormula(1, 16, "COLUMNS('Reference Shapes'!1:1)");
 
-            Assert.Equal(13, document.Calculate());
+            int calculated = document.Calculate();
+            Assert.True(sheet.TryGetCachedFormulaValue(1, 13, out string? directWholeColumnRows));
+            Assert.Equal(A1.MaxRows.ToString(), directWholeColumnRows);
+            Assert.True(sheet.TryGetCachedFormulaValue(1, 14, out string? directWholeRowColumns));
+            Assert.Equal(A1.MaxColumns.ToString(), directWholeRowColumns);
+            Assert.True(sheet.TryGetCachedFormulaValue(1, 15, out string? qualifiedWholeColumnRows));
+            Assert.Equal(A1.MaxRows.ToString(), qualifiedWholeColumnRows);
+            Assert.True(sheet.TryGetCachedFormulaValue(1, 16, out string? qualifiedWholeRowColumns));
+            Assert.Equal(A1.MaxColumns.ToString(), qualifiedWholeRowColumns);
             ExcelFormulaInspection inspection = document.InspectFormulas();
+            string[] unsupported = inspection.Formulas
+                .Where(formula => !formula.IsSupportedByOfficeIMO)
+                .Select(formula => $"{formula.SheetName}!{formula.CellReference}: {formula.UnsupportedReason}")
+                .ToArray();
+            Assert.True(unsupported.Length == 0, string.Join(Environment.NewLine, unsupported));
+            string[] missingCaches = inspection.Formulas
+                .Where(formula => !formula.HasCachedValue)
+                .Select(formula => $"{formula.SheetName}!{formula.CellReference}: {formula.Formula}")
+                .ToArray();
+            Assert.True(missingCaches.Length == 0, string.Join(Environment.NewLine, missingCaches));
+            Assert.Equal(17, calculated);
             ExcelFormulaDependencyGraph graph = inspection.DependencyGraph;
-            foreach (string reference in new[] { "A1", "B1", "C1", "D1", "G1", "H1" }) {
+            foreach (string reference in new[] { "A1", "B1", "C1", "D1", "G1", "H1", "M1", "N1", "O1", "P1" }) {
                 ExcelFormulaDependencyNode node = Assert.IsType<ExcelFormulaDependencyNode>(
                     graph.FindNode("Reference Shapes", reference));
                 Assert.Empty(node.Dependencies);

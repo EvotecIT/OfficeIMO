@@ -222,7 +222,22 @@ namespace OfficeIMO.Excel {
                 return true;
             }
 
-            if (!TryResolveFormulaRangeReference(tokens[0], out _, out int r1, out int c1, out int r2, out int c2)) {
+            if (!TryResolveFormulaRangeReference(
+                    tokens[0],
+                    out _,
+                    out int r1,
+                    out int c1,
+                    out int r2,
+                    out int c2)
+                && !TryParseQualifiedFormulaWholeRange(
+                    tokens[0],
+                    null,
+                    out _,
+                    out r1,
+                    out c1,
+                    out r2,
+                    out c2,
+                    out _)) {
                 return false;
             }
 

@@ -185,9 +185,10 @@ namespace OfficeIMO.Excel {
 
                 FormulaArgumentSpan argument = arguments[0];
                 string reference = formula.Substring(argument.Start, argument.End - argument.Start).Trim();
-                bool resolved = TryResolveFormulaRangeReference(
+                bool resolved = TryResolveFormulaDependencyReference(
                     reference,
                     sourceRow,
+                    out _,
                     out _,
                     out _,
                     out _,
