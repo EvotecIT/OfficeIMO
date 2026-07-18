@@ -250,6 +250,72 @@ public partial class DrawingTests {
         }
     }
 
+    [Theory]
+    [InlineData(OfficeImageExportFileConflictPolicy.FailIfExists)]
+    [InlineData(OfficeImageExportFileConflictPolicy.Replace)]
+    [InlineData(OfficeImageExportFileConflictPolicy.CreateUnique)]
+    public void StaleLegacyCommitClaimDoesNotBlockRequestedDestination(
+        OfficeImageExportFileConflictPolicy conflictPolicy) {
+        string folder = Path.Combine(Path.GetTempPath(), "OfficeIMO-" + Guid.NewGuid().ToString("N"));
+        string path = Path.Combine(folder, "preview.png");
+        string staleClaimPath = Path.Combine(folder, ".preview.png.officeimo-commit");
+        try {
+            Directory.CreateDirectory(folder);
+            File.WriteAllText(staleClaimPath, "orphaned");
+            var result = new OfficeImageExportResult(
+                OfficeImageExportFormat.Png,
+                1,
+                1,
+                OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.White)));
+
+            OfficeImageExportResult saved = result.Save(path, conflictPolicy);
+
+            Assert.Equal(Path.GetFullPath(path), saved.SavedPath);
+            Assert.True(File.Exists(path));
+            Assert.False(File.Exists(staleClaimPath));
+        } finally {
+            if (Directory.Exists(folder)) Directory.Delete(folder, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void LiveCommitClaimIsNotReclaimedByAnotherWriter() {
+        string folder = Path.Combine(Path.GetTempPath(), "OfficeIMO-" + Guid.NewGuid().ToString("N"));
+        string path = Path.Combine(folder, "preview.png");
+        string claimPath = Path.Combine(folder, ".preview.png.officeimo-commit");
+        try {
+            Directory.CreateDirectory(folder);
+            var result = new OfficeImageExportResult(
+                OfficeImageExportFormat.Png,
+                1,
+                1,
+                OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.White)));
+
+            using (var liveClaim = new FileStream(
+                       claimPath,
+                       FileMode.CreateNew,
+                       FileAccess.ReadWrite,
+                       FileShare.None)) {
+                OfficeImageExportResult unique = result.Save(
+                    path,
+                    OfficeImageExportFileConflictPolicy.CreateUnique);
+
+                Assert.Equal(
+                    Path.GetFullPath(Path.Combine(folder, "preview-2.png")),
+                    unique.SavedPath);
+                Assert.True(File.Exists(claimPath));
+                Assert.False(File.Exists(path));
+            }
+
+            OfficeImageExportResult recovered = result.Save(path);
+            Assert.Equal(Path.GetFullPath(path), recovered.SavedPath);
+            Assert.True(File.Exists(path));
+            Assert.False(File.Exists(claimPath));
+        } finally {
+            if (Directory.Exists(folder)) Directory.Delete(folder, recursive: true);
+        }
+    }
+
     [Fact]
     public async Task CreateUniqueAtomicallyClaimsPathsAcrossConcurrentWriters() {
         string folder = Path.Combine(Path.GetTempPath(), "OfficeIMO-" + Guid.NewGuid().ToString("N"));

@@ -385,8 +385,13 @@ namespace OfficeIMO.Drawing.Internal {
                         FileAccess.ReadWrite,
                         FileShare.None);
                     break;
-                } catch (IOException) when (File.Exists(claimPath) && !waitForClaim) {
-                    return false;
+                } catch (IOException) when (File.Exists(claimPath)) {
+                    if (TryDeleteAbandonedClaim(claimPath)) {
+                        continue;
+                    }
+                    if (!waitForClaim) return false;
+                    if (attempt >= 9) throw;
+                    Thread.Sleep(Math.Min(50 * (attempt + 1), 500));
                 } catch (IOException) when (attempt < 9) {
                     Thread.Sleep(Math.Min(50 * (attempt + 1), 500));
                 }
@@ -403,6 +408,27 @@ namespace OfficeIMO.Drawing.Internal {
             } finally {
                 claim.Dispose();
                 DeleteIfExists(claimPath);
+            }
+        }
+
+        private static bool TryDeleteAbandonedClaim(string claimPath) {
+            try {
+                // A live committer holds the claim with FileShare.None, so this open
+                // succeeds only after that owner exits or crashes.
+                using (var abandonedClaim = new FileStream(
+                           claimPath,
+                           FileMode.Open,
+                           FileAccess.Read,
+                           FileShare.Delete)) {
+                    File.Delete(claimPath);
+                }
+                return true;
+            } catch (FileNotFoundException) {
+                return true;
+            } catch (DirectoryNotFoundException) {
+                return true;
+            } catch (IOException) {
+                return false;
             }
         }
 
