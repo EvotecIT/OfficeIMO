@@ -107,8 +107,30 @@ public sealed class ReaderContentLineTests {
     public void ContentDetectionRequiresAnExactContentLineRoot(
         string content, ReaderInputKind falsePositiveKind) {
         ReaderDetectionResult detection = OfficeDocumentReader.Default.Detect(
-            Encoding.ASCII.GetBytes(content), "renamed.bin");
+            Encoding.UTF8.GetBytes(content), "renamed.bin");
 
         Assert.NotEqual(falsePositiveKind, detection.Kind);
+    }
+
+    [Theory]
+    [InlineData(" BEGIN:VCALENDAR\r\nVERSION:2.0\r\nEND:VCALENDAR\r\n", ReaderInputKind.Calendar)]
+    [InlineData("\tBEGIN:VCARD\r\nVERSION:4.0\r\nEND:VCARD\r\n", ReaderInputKind.VCard)]
+    [InlineData("\r\n BEGIN:VCARD\r\nVERSION:4.0\r\nEND:VCARD\r\n", ReaderInputKind.VCard)]
+    [InlineData("\r\n\uFEFFBEGIN:VCARD\r\nVERSION:4.0\r\nEND:VCARD\r\n", ReaderInputKind.VCard)]
+    public void ContentDetectionRejectsIndentedContentLineRoots(
+        string content, ReaderInputKind falsePositiveKind) {
+        ReaderDetectionResult detection = OfficeDocumentReader.Default.Detect(
+            Encoding.UTF8.GetBytes(content), "renamed.bin");
+
+        Assert.NotEqual(falsePositiveKind, detection.Kind);
+    }
+
+    [Fact]
+    public void ContentDetectionAllowsEmptyPhysicalLinesBeforeAContentLineRoot() {
+        ReaderDetectionResult detection = OfficeDocumentReader.Default.Detect(
+            Encoding.ASCII.GetBytes("\r\n\nBEGIN:VCARD\r\nVERSION:4.0\r\nEND:VCARD\r\n"),
+            "renamed.bin");
+
+        Assert.Equal(ReaderInputKind.VCard, detection.Kind);
     }
 }

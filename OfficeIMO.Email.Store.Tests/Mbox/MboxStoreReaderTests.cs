@@ -151,6 +151,29 @@ public sealed class MboxStoreReaderTests {
     }
 
     [Fact]
+    public void MboxStoreExportPreservesAnUnparseableRawEnvelopeLine() {
+        const string rawFromLine = "From vendor@example.test Vendor-Date-Token";
+        byte[] source = Encoding.ASCII.GetBytes(rawFromLine +
+            "\nDate: Fri, 17 Jul 2026 09:00:00 +0000\nSubject: Vendor envelope\n\nBody\n");
+        string destination = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".mbox");
+        try {
+            using var stream = new MemoryStream(source);
+            using EmailStoreSession session = EmailStoreSession.Open(stream, "source.mbox");
+
+            EmailStoreMboxExportReport report = session.ExportToMbox(destination);
+            EmailMailboxEntry exported = Assert.Single(EmailMailbox.Load(destination).Messages);
+
+            Assert.Equal(1, report.SucceededCount);
+            Assert.StartsWith(rawFromLine + "\n", File.ReadAllText(destination),
+                StringComparison.Ordinal);
+            Assert.Equal(rawFromLine, exported.RawFromLine);
+            Assert.Null(exported.EnvelopeDate);
+        } finally {
+            if (File.Exists(destination)) File.Delete(destination);
+        }
+    }
+
+    [Fact]
     public void MboxStoreCannotExportOverItsOwnFileBackedSource() {
         string source = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".mbox");
         byte[] original = CreateMailboxBytes();

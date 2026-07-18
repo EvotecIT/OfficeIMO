@@ -29,6 +29,7 @@ public sealed partial class IcsDocument {
             ValidateSingle(calendar, "CALSCALE", required: false, issues);
             ValidateSingle(calendar, "METHOD", required: false, issues);
             ValidateMethodValues(calendar, issues);
+            ValidateUniquePrimaryComponentIdentifiers(calendar, issues);
             ContentLineProperty? version = calendar.GetFirstProperty("VERSION");
             if (version != null && !string.Equals(version.Value, "2.0", StringComparison.Ordinal)) {
                 issues.Add(Issue("ICAL_VERSION_UNSUPPORTED", "VCALENDAR VERSION must be 2.0.",
@@ -36,12 +37,13 @@ public sealed partial class IcsDocument {
             }
             foreach (ContentLineComponent timeZone in calendar.Components.Where(component =>
                 string.Equals(component.Name, "VTIMEZONE", StringComparison.OrdinalIgnoreCase))) {
-                ContentLineProperty? timeZoneId = timeZone.GetFirstProperty("TZID");
-                if (timeZoneId != null && !string.IsNullOrWhiteSpace(timeZoneId.Value) &&
-                    !definedTimeZones.Add(timeZoneId.Value)) {
-                    issues.Add(Issue("ICAL_TIMEZONE_ID_DUPLICATE",
-                        "VTIMEZONE TZID must be unique within one VCALENDAR.",
-                        ContentLineValidationSeverity.Error, timeZone, timeZoneId));
+                foreach (ContentLineProperty timeZoneId in timeZone.GetProperties("TZID")) {
+                    if (!string.IsNullOrWhiteSpace(timeZoneId.Value) &&
+                        !definedTimeZones.Add(timeZoneId.Value)) {
+                        issues.Add(Issue("ICAL_TIMEZONE_ID_DUPLICATE",
+                            "VTIMEZONE TZID must be unique within one VCALENDAR.",
+                            ContentLineValidationSeverity.Error, timeZone, timeZoneId));
+                    }
                 }
             }
             var active = new HashSet<ContentLineComponent> { calendar };
@@ -81,6 +83,13 @@ public sealed partial class IcsDocument {
                 ValidateSequenceValues(component, issues);
             } else if (name == "VTIMEZONE") {
                 ValidateSingle(component, "TZID", required: true, issues);
+                foreach (ContentLineProperty timeZoneId in component.GetProperties("TZID")) {
+                    if (string.IsNullOrWhiteSpace(timeZoneId.Value)) {
+                        issues.Add(Issue("ICAL_TIMEZONE_ID_INVALID",
+                            "VTIMEZONE TZID must contain a non-empty identifier.",
+                            ContentLineValidationSeverity.Error, component, timeZoneId));
+                    }
+                }
                 if (!component.Components.Any(child =>
                     string.Equals(child.Name, "STANDARD", StringComparison.OrdinalIgnoreCase) ||
                     string.Equals(child.Name, "DAYLIGHT", StringComparison.OrdinalIgnoreCase))) {
@@ -182,6 +191,23 @@ public sealed partial class IcsDocument {
                 ValidateComponent(child, component, issues, active, depth + 1);
         } finally {
             active.Remove(component);
+        }
+    }
+
+    private static void ValidateUniquePrimaryComponentIdentifiers(ContentLineComponent calendar,
+        ICollection<ContentLineValidationIssue> issues) {
+        var identifiers = new HashSet<string>(StringComparer.Ordinal);
+        foreach (ContentLineComponent component in calendar.Components) {
+            string name = component.Name.ToUpperInvariant();
+            if (name != "VEVENT" && name != "VTODO" && name != "VJOURNAL" && name != "VFREEBUSY")
+                continue;
+            if (component.GetFirstProperty("RECURRENCE-ID") != null) continue;
+            ContentLineProperty? identifier = component.GetFirstProperty("UID");
+            if (identifier == null || string.IsNullOrWhiteSpace(identifier.Value)) continue;
+            if (identifiers.Add(identifier.Value)) continue;
+            issues.Add(Issue("ICAL_COMPONENT_UID_DUPLICATE",
+                "Primary calendar components without RECURRENCE-ID must not reuse a UID within one VCALENDAR.",
+                ContentLineValidationSeverity.Error, component, identifier));
         }
     }
 

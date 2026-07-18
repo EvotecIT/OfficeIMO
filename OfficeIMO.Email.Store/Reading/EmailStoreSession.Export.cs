@@ -258,7 +258,8 @@ public sealed partial class EmailStoreSession {
             EmailStoreItem item = ReadItem(reference, cancellationToken);
             var mailboxEntry = new EmailMailboxEntry(item.Document) {
                 EnvelopeSender = GetMboxEnvelopeSender(item.Document),
-                EnvelopeDate = GetMboxEnvelopeDate(item.Document)
+                EnvelopeDate = GetMboxEnvelopeDate(item.Document),
+                RawFromLine = GetMboxRawFromLine(item.Document)
             };
             EmailWriteResult result = writer.WriteEntries(
                 new[] { mailboxEntry }, output, cancellationToken);
@@ -308,6 +309,14 @@ public sealed partial class EmailStoreSession {
             return date;
         }
         return document.Date;
+    }
+
+    private static string? GetMboxRawFromLine(EmailDocument document) {
+        if (document.Properties.TryGetValue("Mbox:RawFromLine", out object? value) &&
+            value is string rawFromLine) {
+            return rawFromLine;
+        }
+        return null;
     }
 
     private static void RollBackMboxEntry(Stream output, long initialLength) {

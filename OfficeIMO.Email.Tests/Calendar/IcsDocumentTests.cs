@@ -541,6 +541,57 @@ public sealed class IcsDocumentTests {
     }
 
     [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void ValidationRejectsEmptyTimeZoneIdentifiers(string identifier) {
+        var document = new IcsDocument();
+        ContentLineComponent timeZone = document.Calendars.Single().AddComponent("VTIMEZONE");
+        timeZone.AddProperty("TZID", identifier);
+        ContentLineComponent standard = timeZone.AddComponent("STANDARD");
+        standard.AddProperty("DTSTART", "20261025T030000");
+        standard.AddProperty("TZOFFSETFROM", "+0200");
+        standard.AddProperty("TZOFFSETTO", "+0100");
+
+        Assert.Contains(document.Validate(), issue =>
+            issue.Code == "ICAL_TIMEZONE_ID_INVALID" &&
+            issue.ComponentName == "VTIMEZONE" && issue.PropertyName == "TZID");
+    }
+
+    [Theory]
+    [InlineData("VEVENT")]
+    [InlineData("VTODO")]
+    [InlineData("VJOURNAL")]
+    public void ValidationRejectsDuplicatePrimaryComponentIdentifiers(string componentName) {
+        var document = new IcsDocument();
+        ContentLineComponent calendar = document.Calendars.Single();
+        foreach (int occurrence in new[] { 1, 2 }) {
+            ContentLineComponent component = calendar.AddComponent(componentName);
+            component.AddProperty("UID", "duplicate@example.test");
+            component.AddProperty("DTSTART", "202607" + (17 + occurrence).ToString("00") + "T090000Z");
+        }
+
+        Assert.Contains(document.Validate(), issue =>
+            issue.Code == "ICAL_COMPONENT_UID_DUPLICATE" &&
+            issue.ComponentName == componentName && issue.PropertyName == "UID");
+    }
+
+    [Fact]
+    public void ValidationAllowsMasterAndDetachedInstanceToShareAnIdentifier() {
+        var document = new IcsDocument();
+        ContentLineComponent calendar = document.Calendars.Single();
+        ContentLineComponent master = calendar.AddComponent("VEVENT");
+        master.AddProperty("UID", "series@example.test");
+        master.AddProperty("DTSTART", "20260718T090000Z");
+        ContentLineComponent exception = calendar.AddComponent("VEVENT");
+        exception.AddProperty("UID", "series@example.test");
+        exception.AddProperty("DTSTART", "20260725T100000Z");
+        exception.AddProperty("RECURRENCE-ID", "20260725T090000Z");
+
+        Assert.DoesNotContain(document.Validate(), issue =>
+            issue.Code == "ICAL_COMPONENT_UID_DUPLICATE");
+    }
+
+    [Theory]
     [InlineData("TZOFFSETFROM", "not-an-offset")]
     [InlineData("TZOFFSETTO", "+9999")]
     [InlineData("TZOFFSETFROM", "+0160")]

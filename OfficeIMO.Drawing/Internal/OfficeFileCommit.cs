@@ -169,6 +169,27 @@ namespace OfficeIMO.Drawing.Internal {
             string temporaryPath,
             string targetPath,
             ConflictPolicy conflictPolicy = ConflictPolicy.Replace) {
+            CommitTemporaryFileCore(temporaryPath, targetPath, conflictPolicy,
+                allowNonAtomicReplacementFallback: true);
+        }
+
+        /// <summary>
+        /// Commits a completed temporary file without falling back to a replacement sequence that
+        /// temporarily removes an existing destination pathname.
+        /// </summary>
+        public static void CommitTemporaryFileAtomically(
+            string temporaryPath,
+            string targetPath,
+            ConflictPolicy conflictPolicy = ConflictPolicy.Replace) {
+            CommitTemporaryFileCore(temporaryPath, targetPath, conflictPolicy,
+                allowNonAtomicReplacementFallback: false);
+        }
+
+        private static void CommitTemporaryFileCore(
+            string temporaryPath,
+            string targetPath,
+            ConflictPolicy conflictPolicy,
+            bool allowNonAtomicReplacementFallback) {
             if (string.IsNullOrWhiteSpace(temporaryPath)) throw new ArgumentException("Temporary path cannot be empty.", nameof(temporaryPath));
 
             string fullTargetPath = GetFullTargetPath(targetPath);
@@ -191,9 +212,9 @@ namespace OfficeIMO.Drawing.Internal {
             try {
                 ExecuteWithRetry(() => File.Replace(temporaryPath, fullTargetPath, destinationBackupFileName: null));
                 return;
-            } catch (PlatformNotSupportedException) {
+            } catch (PlatformNotSupportedException) when (allowNonAtomicReplacementFallback) {
                 // Fall back to a backup-and-move commit on file systems without File.Replace.
-            } catch (IOException) {
+            } catch (IOException) when (allowNonAtomicReplacementFallback) {
                 // Some file systems reject File.Replace even though moves are supported.
             }
 

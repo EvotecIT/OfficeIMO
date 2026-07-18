@@ -23,7 +23,7 @@ public sealed class EmailMailboxEntry {
     public string? EnvelopeSender { get; set; }
     /// <summary>Envelope timestamp when parseable.</summary>
     public DateTimeOffset? EnvelopeDate { get; set; }
-    /// <summary>Original separator line without its line ending.</summary>
+    /// <summary>Original separator line without its line ending; a safe ASCII value is preserved on write.</summary>
     public string? RawFromLine { get; set; }
 }
 

@@ -84,7 +84,7 @@ public sealed partial class EmailStorePstMutationTransaction {
                 OfficeFileCommit.EnsureTargetDirectory(_options.BackupPath);
                 File.Copy(_sourcePath, backupStagingPath, overwrite: false);
                 cancellationToken.ThrowIfCancellationRequested();
-                OfficeFileCommit.CommitTemporaryFile(backupStagingPath, _options.BackupPath,
+                OfficeFileCommit.CommitTemporaryFileAtomically(backupStagingPath, _options.BackupPath,
                     _options.OverwriteBackup
                         ? OfficeFileCommit.ConflictPolicy.Replace
                         : OfficeFileCommit.ConflictPolicy.FailIfExists);
@@ -101,7 +101,7 @@ public sealed partial class EmailStorePstMutationTransaction {
                 // FileShare.Delete is required for the atomic replacement itself. The adjacent
                 // OfficeIMO lock owns pathname coordination; uncooperative replacers remain an
                 // explicitly documented filesystem boundary rather than being silently assumed safe.
-                OfficeFileCommit.CommitTemporaryFile(stagingPath, _sourcePath,
+                OfficeFileCommit.CommitTemporaryFileAtomically(stagingPath, _sourcePath,
                     OfficeFileCommit.ConflictPolicy.Replace);
             }
             stagingPath = string.Empty;
