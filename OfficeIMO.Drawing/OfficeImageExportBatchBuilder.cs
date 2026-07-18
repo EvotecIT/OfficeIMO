@@ -235,29 +235,29 @@ public abstract class OfficeImageExportBatchBuilder<TBuilder, TOptions>
     public void ExportEach(OfficeImageExportConsumer consumer, CancellationToken cancellationToken = default) {
         if (consumer == null) throw new ArgumentNullException(nameof(consumer));
         cancellationToken.ThrowIfCancellationRequested();
-        Options.ValidateImageExportOptions();
-        var tracker = new OfficeImageExportBatchTracker(Options);
+        TOptions effective = Options.CreateEffectiveImageExportOptions<TOptions>();
+        var tracker = new OfficeImageExportBatchTracker(effective);
         int completed = 0;
-        Options.Progress?.Report(new OfficeImageExportProgress(OfficeImageExportProgressStage.Rendering, 0));
+        effective.Progress?.Report(new OfficeImageExportProgress(OfficeImageExportProgressStage.Rendering, 0));
 
         void Accept(OfficeImageExportResult result) {
             cancellationToken.ThrowIfCancellationRequested();
-            result.Require(Options.Policy);
+            result.Require(effective.Policy);
             tracker.Add(result);
             consumer(result);
             completed++;
-            Options.Progress?.Report(new OfficeImageExportProgress(
+            effective.Progress?.Report(new OfficeImageExportProgress(
                 OfficeImageExportProgressStage.Completed,
                 completed,
                 name: result.Name));
         }
 
         if (_exportEach != null) {
-            _exportEach(_format, Options, Accept, cancellationToken);
+            _exportEach(_format, effective, Accept, cancellationToken);
             return;
         }
 
-        foreach (OfficeImageExportResult result in _export(_format, Options)) Accept(result);
+        foreach (OfficeImageExportResult result in _export(_format, effective)) Accept(result);
     }
 
     /// <summary>Streams results asynchronously when the adapter owns a genuine asynchronous path.</summary>
@@ -266,31 +266,31 @@ public abstract class OfficeImageExportBatchBuilder<TBuilder, TOptions>
         CancellationToken cancellationToken = default) {
         if (consumer == null) throw new ArgumentNullException(nameof(consumer));
         cancellationToken.ThrowIfCancellationRequested();
-        Options.ValidateImageExportOptions();
-        var tracker = new OfficeImageExportBatchTracker(Options);
+        TOptions effective = Options.CreateEffectiveImageExportOptions<TOptions>();
+        var tracker = new OfficeImageExportBatchTracker(effective);
         int completed = 0;
-        Options.Progress?.Report(new OfficeImageExportProgress(OfficeImageExportProgressStage.Rendering, 0));
+        effective.Progress?.Report(new OfficeImageExportProgress(OfficeImageExportProgressStage.Rendering, 0));
 
         async Task AcceptAsync(OfficeImageExportResult result, CancellationToken token) {
             token.ThrowIfCancellationRequested();
-            result.Require(Options.Policy);
+            result.Require(effective.Policy);
             tracker.Add(result);
             await consumer(result, token).ConfigureAwait(false);
             completed++;
-            Options.Progress?.Report(new OfficeImageExportProgress(
+            effective.Progress?.Report(new OfficeImageExportProgress(
                 OfficeImageExportProgressStage.Completed,
                 completed,
                 name: result.Name));
         }
 
         if (_exportEachAsync != null) {
-            await _exportEachAsync(_format, Options, AcceptAsync, cancellationToken).ConfigureAwait(false);
+            await _exportEachAsync(_format, effective, AcceptAsync, cancellationToken).ConfigureAwait(false);
             return;
         }
 
         if (_exportAsync != null) {
             IReadOnlyList<OfficeImageExportResult> asyncResults =
-                await _exportAsync(_format, Options, cancellationToken).ConfigureAwait(false);
+                await _exportAsync(_format, effective, cancellationToken).ConfigureAwait(false);
             foreach (OfficeImageExportResult result in asyncResults) await AcceptAsync(result, cancellationToken).ConfigureAwait(false);
             return;
         }
@@ -302,7 +302,7 @@ public abstract class OfficeImageExportBatchBuilder<TBuilder, TOptions>
                 try {
                     _exportEach(
                         _format,
-                        Options,
+                        effective,
                         result => buffer.Add(result, linkedCancellation.Token),
                         linkedCancellation.Token);
                     buffer.Complete();
@@ -321,7 +321,7 @@ public abstract class OfficeImageExportBatchBuilder<TBuilder, TOptions>
             return;
         }
 
-        foreach (OfficeImageExportResult result in _export(_format, Options)) {
+        foreach (OfficeImageExportResult result in _export(_format, effective)) {
             await AcceptAsync(result, cancellationToken).ConfigureAwait(false);
         }
     }

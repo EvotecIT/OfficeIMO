@@ -272,24 +272,24 @@ public abstract class OfficeImageExportBuilder<TBuilder, TOptions>
 
     private OfficeImageExportResult Render(CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
-        Options.ValidateImageExportOptions();
-        Options.Progress?.Report(new OfficeImageExportProgress(OfficeImageExportProgressStage.Rendering, 0, 1));
+        TOptions effective = Options.CreateEffectiveImageExportOptions<TOptions>();
+        effective.Progress?.Report(new OfficeImageExportProgress(OfficeImageExportProgressStage.Rendering, 0, 1));
         OfficeImageExportResult result = _exportWithCancellation != null
-            ? _exportWithCancellation(_format, Options, cancellationToken)
-            : _export(_format, Options);
+            ? _exportWithCancellation(_format, effective, cancellationToken)
+            : _export(_format, effective);
         cancellationToken.ThrowIfCancellationRequested();
-        result.Require(Options.Policy);
+        result.Require(effective.Policy);
         return result;
     }
 
     private async Task<OfficeImageExportResult> RenderAsync(CancellationToken cancellationToken) {
         if (_exportAsync == null) return Render(cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
-        Options.ValidateImageExportOptions();
-        Options.Progress?.Report(new OfficeImageExportProgress(OfficeImageExportProgressStage.Rendering, 0, 1));
-        OfficeImageExportResult result = await _exportAsync(_format, Options, cancellationToken).ConfigureAwait(false);
+        TOptions effective = Options.CreateEffectiveImageExportOptions<TOptions>();
+        effective.Progress?.Report(new OfficeImageExportProgress(OfficeImageExportProgressStage.Rendering, 0, 1));
+        OfficeImageExportResult result = await _exportAsync(_format, effective, cancellationToken).ConfigureAwait(false);
         cancellationToken.ThrowIfCancellationRequested();
-        result.Require(Options.Policy);
+        result.Require(effective.Policy);
         return result;
     }
 

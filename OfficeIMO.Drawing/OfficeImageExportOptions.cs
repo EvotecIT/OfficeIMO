@@ -125,6 +125,19 @@ public class OfficeImageExportOptions {
         return target;
     }
 
+    /// <summary>
+    /// Creates the detached, validated snapshot consumed by one fluent export operation.
+    /// Target-DPI-derived scale and density are intentionally resolved only on the snapshot.
+    /// </summary>
+    internal T CreateEffectiveImageExportOptions<T>() where T : OfficeImageExportOptions {
+        var effective = (T)MemberwiseClone();
+        effective.RasterEncoding = RasterEncoding?.Clone()!;
+        effective.Fonts = Fonts?.Clone()!;
+        effective.Policy = Policy?.Clone()!;
+        effective.ValidateImageExportOptions();
+        return effective;
+    }
+
     /// <summary>Validates the shared image-export settings.</summary>
     protected internal void ValidateImageExportOptions() {
         ValidateScale(Scale, nameof(Scale));

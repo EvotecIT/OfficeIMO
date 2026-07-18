@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 using OfficeIMO.Drawing;
 using Xunit;
 
@@ -85,7 +86,8 @@ public partial class DrawingTests {
         OfficeImageExportResult result = Assert.Single(results);
         Assert.Equal(OfficeImageExportFormat.Svg, result.Format);
         Assert.Equal(200, result.Width);
-        Assert.Equal(2D, options.Scale);
+        Assert.Equal(1D, options.Scale);
+        Assert.Equal(192D, options.TargetDpi);
         Assert.Equal(OfficeColor.White, options.BackgroundColor);
     }
 
@@ -4015,16 +4017,13 @@ public partial class DrawingTests {
 
     private sealed class TestImageExportBuilder : OfficeImageExportBuilder<TestImageExportBuilder, TestImageExportOptions> {
         internal TestImageExportBuilder(TestImageExportOptions options)
-            : base(options, (format, current) => new OfficeImageExportResult(
-                format,
-                (int)Math.Ceiling(100D * current.Scale),
-                (int)Math.Ceiling(50D * current.Scale),
-                CreateTestImageBytes(
-                    format,
-                    (int)Math.Ceiling(100D * current.Scale),
-                    (int)Math.Ceiling(50D * current.Scale)),
-                "test",
-                current.BackgroundColor.ToString())) {
+            : base(
+                options,
+                CreateTestImageExportResult,
+                (format, current, cancellationToken) => {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    return Task.FromResult(CreateTestImageExportResult(format, current));
+                }) {
         }
     }
 
@@ -4062,12 +4061,32 @@ public partial class DrawingTests {
                 CreateTestImageBytes(
                     format,
                     (int)Math.Ceiling(100D * current.Scale),
-                    (int)Math.Ceiling(50D * current.Scale)),
+                    (int)Math.Ceiling(50D * current.Scale),
+                    current.RasterEncoding),
                 name,
                 current.BackgroundColor.ToString()))
             .ToArray();
 
-    private static byte[] CreateTestImageBytes(OfficeImageExportFormat format, int width, int height) {
+    private static OfficeImageExportResult CreateTestImageExportResult(
+        OfficeImageExportFormat format,
+        TestImageExportOptions current) =>
+        new OfficeImageExportResult(
+            format,
+            (int)Math.Ceiling(100D * current.Scale),
+            (int)Math.Ceiling(50D * current.Scale),
+            CreateTestImageBytes(
+                format,
+                (int)Math.Ceiling(100D * current.Scale),
+                (int)Math.Ceiling(50D * current.Scale),
+                current.RasterEncoding),
+            "test",
+            current.BackgroundColor.ToString());
+
+    private static byte[] CreateTestImageBytes(
+        OfficeImageExportFormat format,
+        int width,
+        int height,
+        OfficeRasterEncodingOptions encodingOptions) {
         if (format == OfficeImageExportFormat.Svg) {
             return Encoding.UTF8.GetBytes(
                 "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"" + width +
@@ -4076,7 +4095,8 @@ public partial class DrawingTests {
 
         return OfficeRasterImageEncoder.Encode(
             new OfficeRasterImage(width, height, OfficeColor.CornflowerBlue),
-            format);
+            format,
+            encodingOptions);
     }
 
     [Fact]

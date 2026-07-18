@@ -570,11 +570,83 @@ public partial class DrawingTests {
             .Export();
 
         Assert.Equal(300D, options.TargetDpi);
-        Assert.Equal(300D / 96D, options.Scale, precision: 8);
+        Assert.Equal(1D, options.Scale);
         Assert.DoesNotContain(
             typeof(TestImageExportBuilder).GetMethods(),
             method => method.Name == "ForHighResolution");
         Assert.True(result.Width > 300);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task SingleBuilderKeepsTargetDpiTransientAcrossReusableProfiles(bool asynchronous) {
+        var options = new TestImageExportOptions {
+            RasterEncoding = new OfficeRasterEncodingOptions {
+                DpiX = 144D,
+                DpiY = 120D
+            }
+        };
+        var builder = new TestImageExportBuilder(options);
+
+        builder.ForPrint(300D);
+        OfficeImageExportResult print = asynchronous
+            ? await builder.ExportAsync()
+            : builder.Export();
+        Assert.Equal(1D, options.Scale);
+        Assert.Equal(300D, options.TargetDpi);
+        Assert.Equal(144D, options.RasterEncoding.DpiX);
+        Assert.Equal(120D, options.RasterEncoding.DpiY);
+
+        builder.WithScale(1D);
+        OfficeImageExportResult scaled = asynchronous
+            ? await builder.ExportAsync()
+            : builder.Export();
+
+        Assert.InRange(print.DpiX, 299.98D, 300.02D);
+        Assert.InRange(print.DpiY, 299.98D, 300.02D);
+        Assert.InRange(scaled.DpiX, 143.98D, 144.02D);
+        Assert.InRange(scaled.DpiY, 119.98D, 120.02D);
+        Assert.Equal(100, scaled.Width);
+        Assert.Equal(1D, options.Scale);
+        Assert.Null(options.TargetDpi);
+        Assert.Equal(144D, options.RasterEncoding.DpiX);
+        Assert.Equal(120D, options.RasterEncoding.DpiY);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task BatchBuilderKeepsTargetDpiTransientAcrossReusableProfiles(bool asynchronous) {
+        var options = new TestImageExportOptions {
+            RasterEncoding = new OfficeRasterEncodingOptions {
+                DpiX = 144D,
+                DpiY = 120D
+            }
+        };
+        var builder = new TestImageExportBatchBuilder(options);
+
+        builder.ForPrint(300D);
+        OfficeImageExportResult print = Assert.Single(
+            asynchronous ? await builder.ExportAsync() : builder.Export());
+        Assert.Equal(1D, options.Scale);
+        Assert.Equal(300D, options.TargetDpi);
+        Assert.Equal(144D, options.RasterEncoding.DpiX);
+        Assert.Equal(120D, options.RasterEncoding.DpiY);
+
+        builder.ForPreview();
+        OfficeImageExportResult preview = Assert.Single(
+            asynchronous ? await builder.ExportAsync() : builder.Export());
+
+        Assert.InRange(print.DpiX, 299.98D, 300.02D);
+        Assert.InRange(print.DpiY, 299.98D, 300.02D);
+        Assert.InRange(preview.DpiX, 143.98D, 144.02D);
+        Assert.InRange(preview.DpiY, 119.98D, 120.02D);
+        Assert.Equal(100, preview.Width);
+        Assert.Equal(1D, options.Scale);
+        Assert.Null(options.TargetDpi);
+        Assert.Equal(144D, options.RasterEncoding.DpiX);
+        Assert.Equal(120D, options.RasterEncoding.DpiY);
     }
 
     private sealed class InlineProgress<T> : IProgress<T> {
