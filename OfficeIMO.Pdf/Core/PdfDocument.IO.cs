@@ -81,7 +81,7 @@ public sealed partial class PdfDocument {
         PdfComplianceReadinessReport readiness = AssessCompliance(profile);
         return _source is null
             ? PdfComplianceAnalyzer.AssessProof(readiness, externalValidations)
-            : PdfComplianceAnalyzer.AssessProof(readiness, GetBytesForOperation(), externalValidations);
+            : PdfComplianceAnalyzer.AssessProof(readiness, _source.Bytes, externalValidations, ReadOptions);
     }
 
     /// <summary>

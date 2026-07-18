@@ -153,6 +153,22 @@ public partial class PdfComplianceAnalyzerTests {
     }
 
     [Fact]
+    public void OpenedEncryptedDocumentProofReusesItsAuthenticatedReadOptions() {
+        byte[] encryptedBytes = PdfDocument.Create(new PdfOptions().SetEncryption("open", "owner"))
+            .Paragraph(paragraph => paragraph.Text("Authenticated compliance readback."))
+            .ToBytes();
+        PdfDocument opened = PdfDocument.Open(
+            encryptedBytes,
+            new PdfReadOptions { Password = "open" });
+
+        PdfComplianceProofReport proof = opened.AssessComplianceProof(PdfComplianceProfile.PdfA3B);
+
+        Assert.Equal(PdfArtifactFingerprint.ComputeSha256(encryptedBytes), proof.ArtifactSha256);
+        Assert.Equal(encryptedBytes.LongLength, proof.ArtifactSizeBytes);
+        Assert.False(proof.CanClaimConformance);
+    }
+
+    [Fact]
     public void ArtifactReadbackFailureWinsWhenReadinessRowsShareAnId() {
         var optimisticReadiness = new PdfComplianceReadinessReport(
             PdfComplianceProfile.PdfA3B,
