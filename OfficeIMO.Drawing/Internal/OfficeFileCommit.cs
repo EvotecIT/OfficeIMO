@@ -385,7 +385,7 @@ namespace OfficeIMO.Drawing.Internal {
                         FileAccess.ReadWrite,
                         FileShare.None);
                     break;
-                } catch (IOException) when (File.Exists(claimPath)) {
+                } catch (Exception exception) when (IsExistingClaimContention(exception, claimPath)) {
                     if (TryDeleteAbandonedClaim(claimPath)) {
                         continue;
                     }
@@ -411,6 +411,10 @@ namespace OfficeIMO.Drawing.Internal {
             }
         }
 
+        private static bool IsExistingClaimContention(Exception exception, string claimPath) =>
+            (exception is IOException || exception is UnauthorizedAccessException) &&
+            File.Exists(claimPath);
+
         private static bool TryDeleteAbandonedClaim(string claimPath) {
             try {
                 // A live committer holds the claim with FileShare.None, so this open
@@ -427,6 +431,8 @@ namespace OfficeIMO.Drawing.Internal {
                 return true;
             } catch (DirectoryNotFoundException) {
                 return true;
+            } catch (UnauthorizedAccessException) {
+                return false;
             } catch (IOException) {
                 return false;
             }
