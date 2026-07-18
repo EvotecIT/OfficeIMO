@@ -189,8 +189,8 @@ public static partial class OfficeImageReader {
 
             string type = GetAscii(data, offset + 4, 4);
             if (type == "pHYs" && length >= 9) {
-                int xPpm = ReadInt32BigEndian(data, offset + 8);
-                int yPpm = ReadInt32BigEndian(data, offset + 12);
+                uint xPpm = ReadUInt32BigEndian(data, offset + 8);
+                uint yPpm = ReadUInt32BigEndian(data, offset + 12);
                 byte unit = data[offset + 16];
                 if (unit == 1 && xPpm > 0 && yPpm > 0) {
                     dpiX = xPpm * 0.0254;
@@ -539,6 +539,14 @@ public static partial class OfficeImageReader {
         offset + 4 <= data.Length
             ? (data[offset] << 24) | (data[offset + 1] << 16) | (data[offset + 2] << 8) | data[offset + 3]
             : 0;
+
+    private static uint ReadUInt32BigEndian(byte[] data, int offset) =>
+        offset + 4 <= data.Length
+            ? ((uint)data[offset] << 24) |
+              ((uint)data[offset + 1] << 16) |
+              ((uint)data[offset + 2] << 8) |
+              data[offset + 3]
+            : 0U;
 
     private static int ReadUInt16LittleEndian(byte[] data, int offset) =>
         offset + 2 <= data.Length ? data[offset] | (data[offset + 1] << 8) : 0;

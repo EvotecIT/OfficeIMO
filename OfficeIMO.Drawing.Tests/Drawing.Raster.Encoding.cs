@@ -45,6 +45,23 @@ public sealed class DrawingRasterEncodingTests {
         Assert.Equal(120D, info.DpiY, precision: 3);
     }
 
+    [Fact]
+    public void PngReaderPreservesTheUnsignedPhysicalResolutionRange() {
+        const double dpi = 60_000_000D;
+        byte[] encoded = OfficePngWriter.Encode(
+            CreateSampleImage(),
+            new OfficePngEncodeOptions {
+                DpiX = dpi,
+                DpiY = dpi
+            });
+
+        OfficeImageInfo info = OfficeImageReader.Identify(encoded);
+
+        Assert.Equal(OfficeImageFormat.Png, info.Format);
+        Assert.InRange(info.DpiX, dpi - 0.02D, dpi + 0.02D);
+        Assert.InRange(info.DpiY, dpi - 0.02D, dpi + 0.02D);
+    }
+
     private static OfficeRasterEncodingOptions CreateSubMinimumDensityOptions(
         OfficeImageExportFormat format) {
         var options = new OfficeRasterEncodingOptions();
