@@ -7,24 +7,70 @@ internal static partial class PdfSyntax {
             int streamIdx = IndexOfKeywordOutsideLiteralString(text, "stream", searchFrom, text.Length);
             int endObjIdx = IndexOfKeywordOutsideLiteralString(text, "endobj", searchFrom, text.Length);
 
-            if (endObjIdx < 0) {
-                return -1;
+            if (streamIdx < 0) {
+                return endObjIdx < 0 ? -1 : endObjIdx + 6;
             }
 
-            if (streamIdx < 0 || endObjIdx < streamIdx) {
+            if (endObjIdx >= 0 && endObjIdx < streamIdx) {
                 return endObjIdx + 6;
             }
 
             int afterStream = SkipEOL(text, streamIdx + 6, text.Length);
-            int endStreamIdx = IndexOfKeyword(text, "endstream", afterStream, text.Length);
-            if (endStreamIdx < 0) {
-                return -1;
-            }
+            int endStreamSearchFrom = afterStream;
+            while (endStreamSearchFrom < text.Length) {
+                int endStreamIdx = IndexOfKeyword(text, "endstream", endStreamSearchFrom, text.Length);
+                if (endStreamIdx < 0) {
+                    return -1;
+                }
 
-            searchFrom = endStreamIdx + 9;
+                int nextToken = SkipWhitespaceAndComments(text, endStreamIdx + 9, text.Length);
+                if (IsKeywordAt(text, "endobj", nextToken, text.Length)) {
+                    return nextToken + 6;
+                }
+
+                // Once a complete indirect-object header begins, this stream's endobj
+                // boundary was genuinely absent. Do not consume a later object's endobj.
+                if (IsIndirectObjectHeaderAt(text, nextToken)) {
+                    return -1;
+                }
+
+                // Binary stream data may contain the bytes "endstream". Only the
+                // delimiter immediately followed by endobj is structural.
+                endStreamSearchFrom = endStreamIdx + 9;
+            }
         }
 
         return -1;
+    }
+
+    private static int SkipWhitespaceAndComments(string text, int index, int limit) {
+        while (index < limit) {
+            while (index < limit && char.IsWhiteSpace(text[index])) {
+                index++;
+            }
+
+            if (index >= limit || text[index] != '%') {
+                return index;
+            }
+
+            while (index < limit && text[index] != '\r' && text[index] != '\n') {
+                index++;
+            }
+        }
+
+        return index;
+    }
+
+    private static bool IsKeywordAt(string text, string keyword, int index, int limit) =>
+        index >= 0 &&
+        index + keyword.Length <= limit &&
+        string.CompareOrdinal(text, index, keyword, 0, keyword.Length) == 0 &&
+        HasKeywordBoundary(text, index - 1, 0, limit) &&
+        HasKeywordBoundary(text, index + keyword.Length, 0, limit);
+
+    private static bool IsIndirectObjectHeaderAt(string text, int index) {
+        var match = ObjRegex.Match(text, index);
+        return match.Success && match.Index == index;
     }
 
     private static int IndexOfKeywordOutsideLiteralString(string text, string keyword, int start, int limit) {

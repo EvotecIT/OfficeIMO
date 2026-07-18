@@ -33,34 +33,34 @@ public static class OneNoteVisualPdfExtensions {
         notebook.ToVisualPdfDocument(options).ToBytes();
 
     /// <summary>Saves a section as a visual PDF and returns conversion diagnostics.</summary>
-    public static PdfCore.PdfDocumentConversionResult SaveAsVisualPdf(this OneNoteSection section, string path, OneNoteVisualPdfOptions? options = null) =>
+    public static PdfCore.PdfSaveResult SaveAsVisualPdf(this OneNoteSection section, string path, OneNoteVisualPdfOptions? options = null) =>
         section.ToVisualPdfDocumentResult(options).Save(path);
 
     /// <summary>Saves a notebook as a visual PDF and returns conversion diagnostics.</summary>
-    public static PdfCore.PdfDocumentConversionResult SaveAsVisualPdf(this OneNoteNotebook notebook, string path, OneNoteVisualPdfOptions? options = null) =>
+    public static PdfCore.PdfSaveResult SaveAsVisualPdf(this OneNoteNotebook notebook, string path, OneNoteVisualPdfOptions? options = null) =>
         notebook.ToVisualPdfDocumentResult(options).Save(path);
 
     /// <summary>Writes a section as a visual PDF to a caller-owned stream.</summary>
-    public static PdfCore.PdfDocumentConversionResult SaveAsVisualPdf(this OneNoteSection section, Stream stream, OneNoteVisualPdfOptions? options = null) =>
+    public static PdfCore.PdfSaveResult SaveAsVisualPdf(this OneNoteSection section, Stream stream, OneNoteVisualPdfOptions? options = null) =>
         section.ToVisualPdfDocumentResult(options).Save(stream);
 
     /// <summary>Writes a notebook as a visual PDF to a caller-owned stream.</summary>
-    public static PdfCore.PdfDocumentConversionResult SaveAsVisualPdf(this OneNoteNotebook notebook, Stream stream, OneNoteVisualPdfOptions? options = null) =>
+    public static PdfCore.PdfSaveResult SaveAsVisualPdf(this OneNoteNotebook notebook, Stream stream, OneNoteVisualPdfOptions? options = null) =>
         notebook.ToVisualPdfDocumentResult(options).Save(stream);
 
     /// <summary>Asynchronously saves a section as a visual PDF.</summary>
-    public static Task<PdfCore.PdfDocumentConversionResult> SaveAsVisualPdfAsync(this OneNoteSection section, string path, OneNoteVisualPdfOptions? options = null, CancellationToken cancellationToken = default) =>
+    public static Task<PdfCore.PdfSaveResult> SaveAsVisualPdfAsync(this OneNoteSection section, string path, OneNoteVisualPdfOptions? options = null, CancellationToken cancellationToken = default) =>
         section.ToVisualPdfDocumentResult(options).SaveAsync(path, cancellationToken);
 
     /// <summary>Asynchronously saves a notebook as a visual PDF.</summary>
-    public static Task<PdfCore.PdfDocumentConversionResult> SaveAsVisualPdfAsync(this OneNoteNotebook notebook, string path, OneNoteVisualPdfOptions? options = null, CancellationToken cancellationToken = default) =>
+    public static Task<PdfCore.PdfSaveResult> SaveAsVisualPdfAsync(this OneNoteNotebook notebook, string path, OneNoteVisualPdfOptions? options = null, CancellationToken cancellationToken = default) =>
         notebook.ToVisualPdfDocumentResult(options).SaveAsync(path, cancellationToken);
 
     /// <summary>Asynchronously writes a section as a visual PDF to a caller-owned stream.</summary>
-    public static Task<PdfCore.PdfDocumentConversionResult> SaveAsVisualPdfAsync(this OneNoteSection section, Stream stream, OneNoteVisualPdfOptions? options = null, CancellationToken cancellationToken = default) =>
+    public static Task<PdfCore.PdfSaveResult> SaveAsVisualPdfAsync(this OneNoteSection section, Stream stream, OneNoteVisualPdfOptions? options = null, CancellationToken cancellationToken = default) =>
         section.ToVisualPdfDocumentResult(options).SaveAsync(stream, cancellationToken);
 
     /// <summary>Asynchronously writes a notebook as a visual PDF to a caller-owned stream.</summary>
-    public static Task<PdfCore.PdfDocumentConversionResult> SaveAsVisualPdfAsync(this OneNoteNotebook notebook, Stream stream, OneNoteVisualPdfOptions? options = null, CancellationToken cancellationToken = default) =>
+    public static Task<PdfCore.PdfSaveResult> SaveAsVisualPdfAsync(this OneNoteNotebook notebook, Stream stream, OneNoteVisualPdfOptions? options = null, CancellationToken cancellationToken = default) =>
         notebook.ToVisualPdfDocumentResult(options).SaveAsync(stream, cancellationToken);
 }

@@ -357,7 +357,7 @@
       }
     ],
     "knownLimits": [
-      "complex-script shaping beyond built-in scalar and Latin-ligature handling requires a caller-supplied IPdfTextShapingProvider",
+      "complex-script shaping beyond built-in scalar and Latin-ligature handling requires a caller-supplied IOfficeTextShapingProvider from OfficeIMO.Drawing",
       "Word documents that require more than three simultaneously distinct mapped embedded font families report NativeFontFamilySlotExhausted with the requested family, occupying embedded family, and logical PDF slot",
       "OneNote PDF is an explicit semantic-document projection and reports free-form canvas flattening and unresolved binary assets",
       "formal PDF/A, PDF/UA, Factur-X, and ZUGFeRD claims require the external validator workflow for the exact artifact"
@@ -1164,7 +1164,7 @@
         ],
         "visualPages": 1,
         "validatorEvidence": [
-          "IPdfTextShapingProvider",
+          "IOfficeTextShapingProvider",
           "PdfReadDocument",
           "PdfConversionReport",
           "ToUnicode CMap"

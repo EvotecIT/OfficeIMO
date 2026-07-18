@@ -372,7 +372,7 @@ public sealed partial class PdfDocument {
     }
 
     /// <summary>Sets or clears the generated text line-break callback used for long unspaced tokens.</summary>
-    public PdfDocument TextLineBreaks(PdfTextLineBreakCallback? callback) {
+    public PdfDocument TextLineBreaks(Func<string, IReadOnlyList<int>>? callback) {
         _options.SetTextLineBreaks(callback);
         return this;
     }
@@ -609,7 +609,7 @@ public sealed partial class PdfDocument {
     }
 
     /// <summary>Configures dependency-free generated-text shaping and an optional host-provided shaping seam.</summary>
-    public PdfDocument UseTextShaping(PdfTextShapingMode mode, IPdfTextShapingProvider? provider = null) {
+    public PdfDocument UseTextShaping(PdfTextShapingMode mode, IOfficeTextShapingProvider? provider = null) {
         _options.SetTextShapingMode(mode);
         _options.SetTextShapingProvider(provider);
         return this;

@@ -19,14 +19,20 @@ public sealed partial class PdfReadPage {
         HashSet<PdfStream> activeForms,
         int depth) {
         EnsureContentNestingBudget(depth);
-        foreach (string op in PdfRenderOperatorScanner.ReadOperators(content, _limits.MaxContentOperations)) {
-            string? capabilityId = GetOperatorCapabilityId(op);
-            if (capabilityId != null) AddRenderDiagnostic(diagnostics, seen, capabilityId, op);
-        }
+        HashSet<string> unsupportedColorSpaces = GetUnsupportedColorSpaceResourceNames(resources);
+        PdfContentStreamInterpreter.Interpret(content, _limits.MaxContentOperations, operation => {
+            string? capabilityId = GetOperatorCapabilityId(operation.Name);
+            if (capabilityId != null) AddRenderDiagnostic(diagnostics, seen, capabilityId, operation.Name);
+            if ((operation.Name == "cs" || operation.Name == "CS") &&
+                operation.Operands.Count > 0 &&
+                operation.Operands[operation.Operands.Count - 1] is string colorSpaceName &&
+                unsupportedColorSpaces.Contains(colorSpaceName)) {
+                AddRenderDiagnostic(diagnostics, seen, PdfRenderCapabilities.ColorSpaceId, colorSpaceName);
+            }
+        });
 
         if (resources == null) return;
         CollectFontCapabilityDiagnostics(resources, diagnostics, seen);
-        CollectColorSpaceCapabilityDiagnostics(resources, diagnostics, seen);
         CollectPatternCapabilityDiagnostics(resources, diagnostics, seen);
         CollectGraphicsStateCapabilityDiagnostics(resources, diagnostics, seen);
         CollectXObjectCapabilityDiagnostics(resources, diagnostics, seen, activeForms, depth);
@@ -41,7 +47,7 @@ public sealed partial class PdfReadPage {
             case "DP": return PdfRenderCapabilities.MarkedPointId;
             case "d0":
             case "d1": return PdfRenderCapabilities.Type3MetricsId;
-            default: return PdfRenderOperatorScanner.IsKnownManagedOperator(op) ? null : PdfRenderCapabilities.UnknownOperatorId;
+            default: return PdfContentOperators.IsStandard(op) ? null : PdfRenderCapabilities.UnknownOperatorId;
         }
     }
 
@@ -51,12 +57,18 @@ public sealed partial class PdfReadPage {
         }
     }
 
-    private void CollectColorSpaceCapabilityDiagnostics(PdfDictionary resources, List<PdfRenderCapabilityDiagnostic> diagnostics, HashSet<string> seen) {
+    private HashSet<string> GetUnsupportedColorSpaceResourceNames(PdfDictionary? resources) {
+        var unsupported = new HashSet<string>(StringComparer.Ordinal);
+        if (resources == null) return unsupported;
         PdfDictionary? colorSpaces = ResolveDictionary(resources.Items.TryGetValue("ColorSpace", out PdfObject? value) ? value : null);
-        if (colorSpaces == null) return;
+        if (colorSpaces == null) return unsupported;
         foreach (KeyValuePair<string, PdfObject> entry in colorSpaces.Items) {
-            if (!TryReadColorSpaceResource(entry.Value, out _)) AddRenderDiagnostic(diagnostics, seen, PdfRenderCapabilities.ColorSpaceId, entry.Key);
+            if (!TryReadColorSpaceResource(entry.Value, out _)) {
+                unsupported.Add(entry.Key);
+            }
         }
+
+        return unsupported;
     }
 
     private void CollectPatternCapabilityDiagnostics(PdfDictionary resources, List<PdfRenderCapabilityDiagnostic> diagnostics, HashSet<string> seen) {
@@ -170,110 +182,4 @@ public sealed partial class PdfReadPage {
         string key = capabilityId + "\n" + subject;
         if (seen.Add(key)) diagnostics.Add(new PdfRenderCapabilityDiagnostic(PdfRenderCapabilities.Get(capabilityId), subject));
     }
-}
-
-internal static class PdfRenderOperatorScanner {
-    private static readonly HashSet<string> KnownOperators = new HashSet<string>(StringComparer.Ordinal) {
-        "q", "Q", "cm", "w", "J", "j", "d", "gs", "CS", "cs", "SC", "SCN", "sc", "scn", "G", "g", "RG", "rg", "K", "k",
-        "m", "l", "c", "v", "y", "h", "re", "S", "s", "f", "F", "f*", "B", "B*", "b", "b*", "n", "W", "W*", "sh",
-        "BT", "ET", "Tc", "Tw", "Tz", "TL", "Tf", "Tr", "Ts", "Td", "TD", "Tm", "T*", "Tj", "TJ", "'", "\"",
-        "Do", "BI", "ID", "EI", "BMC", "BDC", "EMC", "BX", "EX", "M", "ri", "i", "MP", "DP", "d0", "d1"
-    };
-
-    public static bool IsKnownManagedOperator(string op) => KnownOperators.Contains(op);
-
-    public static IReadOnlyList<string> ReadOperators(string content, int maxOperations) {
-        if (string.IsNullOrEmpty(content)) return Array.Empty<string>();
-        var result = new List<string>();
-        int index = 0;
-        while (index < content.Length) {
-            SkipWhiteSpaceAndComments(content, ref index);
-            if (index >= content.Length) break;
-            char current = content[index];
-            if (current == '/') { SkipName(content, ref index); continue; }
-            if (current == '(') { SkipLiteralString(content, ref index); continue; }
-            if (current == '<') { SkipAngleObject(content, ref index); continue; }
-            if (current == '[') { SkipBalanced(content, ref index, '[', ']'); continue; }
-            if (IsNumberStart(current)) { SkipToken(content, ref index); continue; }
-            string token = ReadToken(content, ref index);
-            if (token.Length == 0 || token == "true" || token == "false" || token == "null") continue;
-            if (result.Count >= maxOperations) throw PdfReadLimitException.Create(PdfReadLimitKind.ContentOperations, maxOperations, result.Count + 1);
-            result.Add(token);
-            if (token == "BI") SkipInlineImage(content, ref index);
-        }
-
-        return result;
-    }
-
-    private static void SkipInlineImage(string content, ref int index) {
-        int id = FindDelimitedToken(content, index, "ID");
-        if (id < 0) { index = content.Length; return; }
-        int dataStart = id + 2;
-        if (dataStart < content.Length && char.IsWhiteSpace(content[dataStart])) dataStart++;
-        int end = FindDelimitedToken(content, dataStart, "EI");
-        index = end < 0 ? content.Length : end + 2;
-    }
-
-    private static int FindDelimitedToken(string content, int start, string token) {
-        int index = start;
-        while ((index = content.IndexOf(token, index, StringComparison.Ordinal)) >= 0) {
-            bool before = index == 0 || IsDelimiter(content[index - 1]);
-            int afterIndex = index + token.Length;
-            bool after = afterIndex >= content.Length || IsDelimiter(content[afterIndex]);
-            if (before && after) return index;
-            index++;
-        }
-        return -1;
-    }
-
-    private static void SkipWhiteSpaceAndComments(string content, ref int index) {
-        while (index < content.Length) {
-            if (char.IsWhiteSpace(content[index]) || content[index] == '\0') { index++; continue; }
-            if (content[index] != '%') return;
-            while (index < content.Length && content[index] != '\r' && content[index] != '\n') index++;
-        }
-    }
-
-    private static void SkipName(string content, ref int index) { index++; SkipToken(content, ref index); }
-
-    private static void SkipToken(string content, ref int index) {
-        while (index < content.Length && !IsDelimiter(content[index])) index++;
-    }
-
-    private static string ReadToken(string content, ref int index) {
-        int start = index;
-        SkipToken(content, ref index);
-        return index == start ? content[index++].ToString() : content.Substring(start, index - start);
-    }
-
-    private static void SkipLiteralString(string content, ref int index) {
-        int depth = 0;
-        while (index < content.Length) {
-            char current = content[index++];
-            if (current == '\\' && index < content.Length) { index++; continue; }
-            if (current == '(') depth++;
-            else if (current == ')' && --depth <= 0) return;
-        }
-    }
-
-    private static void SkipAngleObject(string content, ref int index) {
-        if (index + 1 < content.Length && content[index + 1] == '<') SkipBalanced(content, ref index, '<', '>');
-        else {
-            index++;
-            while (index < content.Length && content[index++] != '>') { }
-        }
-    }
-
-    private static void SkipBalanced(string content, ref int index, char open, char close) {
-        int depth = 0;
-        while (index < content.Length) {
-            char current = content[index++];
-            if (current == '(') { index--; SkipLiteralString(content, ref index); continue; }
-            if (current == open) depth++;
-            else if (current == close && --depth <= 0) return;
-        }
-    }
-
-    private static bool IsNumberStart(char value) => value == '+' || value == '-' || value == '.' || (value >= '0' && value <= '9');
-    private static bool IsDelimiter(char value) => char.IsWhiteSpace(value) || value == '\0' || value == '(' || value == ')' || value == '<' || value == '>' || value == '[' || value == ']' || value == '{' || value == '}' || value == '/' || value == '%';
 }

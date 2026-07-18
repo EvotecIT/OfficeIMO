@@ -82,6 +82,36 @@ public static class OfficeTextElements {
         return false;
     }
 
+    /// <summary>Resolves base direction from the first strong Unicode character.</summary>
+    public static OfficeTextDirection ResolveBaseDirection(string? value) {
+        if (string.IsNullOrEmpty(value)) {
+            return OfficeTextDirection.Auto;
+        }
+
+        for (int index = 0; index < value!.Length;) {
+            int scalarIndex = index;
+            int scalar = ReadScalar(value, ref index);
+            if (scalar == 0x061C || scalar == 0x200F) {
+                return OfficeTextDirection.RightToLeft;
+            }
+
+            UnicodeCategory category = CharUnicodeInfo.GetUnicodeCategory(value, scalarIndex);
+            if (IsRightToLeftScalar(scalar) && IsLetterCategory(category)) {
+                return OfficeTextDirection.RightToLeft;
+            }
+
+            if (scalar == 0x200E) {
+                return OfficeTextDirection.LeftToRight;
+            }
+
+            if (IsStrongLeftToRightCategory(category)) {
+                return OfficeTextDirection.LeftToRight;
+            }
+        }
+
+        return OfficeTextDirection.Auto;
+    }
+
     /// <summary>Determines whether a Unicode scalar belongs to a right-to-left script range.</summary>
     public static bool IsRightToLeftScalar(int scalar) =>
         IsInRange(scalar, 0x0590, 0x05FF) ||
@@ -102,6 +132,25 @@ public static class OfficeTextElements {
         || IsInRange(scalar, 0xFB50, 0xFDFF)
         || IsInRange(scalar, 0xFE70, 0xFEFF)
         || IsInRange(scalar, 0x1EE00, 0x1EEFF);
+
+    private static bool IsStrongLeftToRightCategory(UnicodeCategory category) =>
+        IsLetterCategory(category);
+
+    private static bool IsLetterCategory(UnicodeCategory category) =>
+        category == UnicodeCategory.UppercaseLetter ||
+        category == UnicodeCategory.LowercaseLetter ||
+        category == UnicodeCategory.TitlecaseLetter ||
+        category == UnicodeCategory.ModifierLetter ||
+        category == UnicodeCategory.OtherLetter;
+
+    private static int ReadScalar(string text, ref int index) {
+        char first = text[index++];
+        return char.IsHighSurrogate(first) &&
+            index < text.Length &&
+            char.IsLowSurrogate(text[index])
+            ? char.ConvertToUtf32(first, text[index++])
+            : first;
+    }
 
     private static bool IsInRange(int value, int minimum, int maximum) => value >= minimum && value <= maximum;
 }

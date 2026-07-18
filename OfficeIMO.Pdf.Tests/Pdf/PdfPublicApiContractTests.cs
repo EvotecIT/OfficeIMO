@@ -1,4 +1,6 @@
 using System.Reflection;
+using System.Threading.Tasks;
+using OfficeIMO.Drawing;
 using OfficeIMO.Pdf;
 using Xunit;
 
@@ -74,6 +76,30 @@ public sealed class PdfPublicApiContractTests {
         Assert.Equal(typeof(PdfDocumentReader), typeof(PdfDocument).GetProperty(nameof(PdfDocument.Read))?.PropertyType);
         Assert.Equal(typeof(PdfDocumentPages), typeof(PdfDocument).GetProperty(nameof(PdfDocument.Pages))?.PropertyType);
         Assert.Equal(typeof(PdfDocumentForms), typeof(PdfDocument).GetProperty(nameof(PdfDocument.Forms))?.PropertyType);
+        Assert.Equal(typeof(PdfPipelineReport), typeof(PdfDocument).GetProperty(nameof(PdfDocument.Pipeline))?.PropertyType);
+        Assert.Equal(typeof(IOfficeTextShapingProvider), typeof(PdfOptions).GetProperty(nameof(PdfOptions.TextShapingProvider))?.PropertyType);
+        Assert.Equal(typeof(Func<string, IReadOnlyList<int>>), typeof(PdfOptions).GetProperty(nameof(PdfOptions.TextLineBreakCallback))?.PropertyType);
+
+        Assert.Equal(
+            2,
+            methods.Count(method =>
+                method.Name == nameof(PdfDocument.Save) &&
+                method.ReturnType == typeof(PdfSaveResult)));
+        Assert.Equal(
+            2,
+            methods.Count(method =>
+                method.Name == nameof(PdfDocument.TrySave) &&
+                method.ReturnType == typeof(PdfSaveResult)));
+        Assert.Equal(
+            2,
+            methods.Count(method =>
+                method.Name == nameof(PdfDocument.SaveAsync) &&
+                method.ReturnType == typeof(Task<PdfSaveResult>)));
+        Assert.Equal(
+            2,
+            methods.Count(method =>
+                method.Name == nameof(PdfDocument.TrySaveAsync) &&
+                method.ReturnType == typeof(Task<PdfSaveResult>)));
     }
 
     [Fact]
@@ -84,6 +110,11 @@ public sealed class PdfPublicApiContractTests {
             .ToHashSet(StringComparer.Ordinal);
 
         Assert.All(InternalEngineTypeNames, name => Assert.DoesNotContain(name, exportedNames));
+        Assert.Null(assembly.GetType("OfficeIMO.Pdf.IPdfTextShapingProvider"));
+        Assert.Null(assembly.GetType("OfficeIMO.Pdf.PdfTextShapingRequest"));
+        Assert.Null(assembly.GetType("OfficeIMO.Pdf.PdfTextShapingResult"));
+        Assert.Null(assembly.GetType("OfficeIMO.Pdf.PdfShapedGlyph"));
+        Assert.Null(assembly.GetType("OfficeIMO.Pdf.PdfTextDirection"));
     }
 
     [Fact]
@@ -98,7 +129,7 @@ public sealed class PdfPublicApiContractTests {
                 BindingFlags.DeclaredOnly).Length);
 
         Assert.InRange(exportedTypes.Length, 1, 480);
-        Assert.InRange(publicMemberCount, 1, 9400);
+        Assert.InRange(publicMemberCount, 1, 9500);
 
         string[] officeReferences = assembly.GetReferencedAssemblies()
             .Select(reference => reference.Name)

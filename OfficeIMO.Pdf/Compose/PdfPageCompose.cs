@@ -1,3 +1,5 @@
+using OfficeIMO.Drawing;
+
 namespace OfficeIMO.Pdf;
 
 /// <summary>
@@ -282,7 +284,7 @@ public class PdfPageCompose {
     /// <summary>Uses caller-supplied TrueType font files for this composed page or section.</summary>
     public PdfPageCompose UseFontFamily(string familyName, string regularPath, string? boldPath = null, string? italicPath = null, string? boldItalicPath = null) { Options.UseFontFamily(familyName, regularPath, boldPath, italicPath, boldItalicPath); return this; }
     /// <summary>Sets or clears the page-scoped generated text line-break callback used for long unspaced tokens.</summary>
-    public PdfPageCompose TextLineBreaks(PdfTextLineBreakCallback? callback) { Options.SetTextLineBreaks(callback); return this; }
+    public PdfPageCompose TextLineBreaks(Func<string, IReadOnlyList<int>>? callback) { Options.SetTextLineBreaks(callback); return this; }
     /// <summary>Sets or clears the page-scoped generated text hyphenation callback used for long unspaced tokens.</summary>
     public PdfPageCompose TextHyphenation(PdfTextHyphenationCallback? callback) { Options.SetTextHyphenation(callback); return this; }
     /// <summary>Uses or clears an immutable first-party word hyphenation dictionary.</summary>
@@ -320,4 +322,3 @@ public class PdfPageCompose {
     /// <summary>Defines the footer layout and content.</summary>
     public PdfPageCompose Footer(System.Action<PdfFooterCompose> build) { Guard.NotNull(build, nameof(build)); var f = new PdfFooterCompose(Options); build(f); return this; }
 }
-

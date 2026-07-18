@@ -87,7 +87,7 @@ public static partial class PowerPointPdfConverterExtensions {
     /// <summary>
     /// Saves a PowerPoint presentation as a PDF file.
     /// </summary>
-    public static PdfCore.PdfDocumentConversionResult SaveAsPdf(this PptCore.PowerPointPresentation presentation, string path, PowerPointPdfSaveOptions? options = null) =>
+    public static PdfCore.PdfSaveResult SaveAsPdf(this PptCore.PowerPointPresentation presentation, string path, PowerPointPdfSaveOptions? options = null) =>
         presentation.ToPdfDocumentResult(options).Save(path);
 
     /// <summary>
@@ -104,7 +104,7 @@ public static partial class PowerPointPdfConverterExtensions {
     /// <summary>
     /// Writes a PowerPoint presentation as PDF to a stream.
     /// </summary>
-    public static PdfCore.PdfDocumentConversionResult SaveAsPdf(this PptCore.PowerPointPresentation presentation, Stream stream, PowerPointPdfSaveOptions? options = null) =>
+    public static PdfCore.PdfSaveResult SaveAsPdf(this PptCore.PowerPointPresentation presentation, Stream stream, PowerPointPdfSaveOptions? options = null) =>
         presentation.ToPdfDocumentResult(options).Save(stream);
 
     /// <summary>
@@ -119,7 +119,7 @@ public static partial class PowerPointPdfConverterExtensions {
     }
 
     /// <summary>Converts synchronously, then asynchronously saves a PowerPoint presentation PDF at the specified path.</summary>
-    public static Task<PdfCore.PdfDocumentConversionResult> SaveAsPdfAsync(
+    public static Task<PdfCore.PdfSaveResult> SaveAsPdfAsync(
         this PptCore.PowerPointPresentation presentation,
         string path,
         PowerPointPdfSaveOptions? options = null,
@@ -129,7 +129,7 @@ public static partial class PowerPointPdfConverterExtensions {
     }
 
     /// <summary>Converts synchronously, then asynchronously saves a PowerPoint presentation PDF to a caller-owned stream.</summary>
-    public static Task<PdfCore.PdfDocumentConversionResult> SaveAsPdfAsync(
+    public static Task<PdfCore.PdfSaveResult> SaveAsPdfAsync(
         this PptCore.PowerPointPresentation presentation,
         Stream stream,
         PowerPointPdfSaveOptions? options = null,

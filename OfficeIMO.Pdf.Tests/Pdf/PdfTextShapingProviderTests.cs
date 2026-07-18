@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Text;
+using OfficeIMO.Drawing;
 using OfficeIMO.Pdf;
 using Xunit;
 
@@ -41,7 +42,7 @@ public class PdfTextShapingProviderTests {
 
         Assert.True(provider.CallCount >= 1);
         Assert.NotNull(provider.LastRequest);
-        Assert.Equal(PdfTextDirection.RightToLeft, provider.LastRequest!.Direction);
+        Assert.Equal(OfficeTextDirection.RightToLeft, provider.LastRequest!.Direction);
         Assert.Equal("ar-SA", provider.LastRequest.Language);
         Assert.Equal(fontProgram.UnitsPerEm, provider.LastRequest.UnitsPerEm);
         Assert.Contains(text, extracted, StringComparison.Ordinal);
@@ -176,10 +177,10 @@ public class PdfTextShapingProviderTests {
             "office",
             isOpenTypeCff: true,
             new[] {
-                new PdfShapedGlyph(oGlyphId, "o", 0),
-                new PdfShapedGlyph(ffiGlyphId, "ffi", 1),
-                new PdfShapedGlyph(cGlyphId, "c", 4),
-                new PdfShapedGlyph(eGlyphId, "e", 5)
+                new OfficeShapedGlyph(oGlyphId, "o", 0),
+                new OfficeShapedGlyph(ffiGlyphId, "ffi", 1),
+                new OfficeShapedGlyph(cGlyphId, "c", 4),
+                new OfficeShapedGlyph(eGlyphId, "e", 5)
             });
         var options = new PdfOptions {
                 CompressContentStreams = false,
@@ -218,8 +219,8 @@ public class PdfTextShapingProviderTests {
             "AB",
             isOpenTypeCff: false,
             new[] {
-                new PdfShapedGlyph(aGlyphId, "A", 0, halfEm),
-                new PdfShapedGlyph(bGlyphId, "B", 1, halfEm, offsetX, offsetY)
+                new OfficeShapedGlyph(aGlyphId, "A", 0, halfEm),
+                new OfficeShapedGlyph(bGlyphId, "B", 1, halfEm, offsetX, offsetY)
             });
         var options = new PdfOptions {
                 CompressContentStreams = false
@@ -242,7 +243,7 @@ public class PdfTextShapingProviderTests {
         Assert.Contains(" Ts", raw, StringComparison.Ordinal);
         Assert.Contains("/ActualText", raw, StringComparison.Ordinal);
         Assert.NotNull(provider.LastRequest);
-        Assert.Equal(PdfTextDirection.LeftToRight, provider.LastRequest!.Direction);
+        Assert.Equal(OfficeTextDirection.LeftToRight, provider.LastRequest!.Direction);
         Assert.Equal("en-US", provider.LastRequest.Language);
         Assert.Equal(fontProgram.UnitsPerEm, provider.LastRequest.UnitsPerEm);
     }
@@ -261,8 +262,8 @@ public class PdfTextShapingProviderTests {
             "AB",
             isOpenTypeCff: true,
             new[] {
-                new PdfShapedGlyph(aGlyphId, "A", 0, fontProgram.UnitsPerEm),
-                new PdfShapedGlyph(bGlyphId, "B", 1, fontProgram.UnitsPerEm, 0, offsetY)
+                new OfficeShapedGlyph(aGlyphId, "A", 0, fontProgram.UnitsPerEm),
+                new OfficeShapedGlyph(bGlyphId, "B", 1, fontProgram.UnitsPerEm, 0, offsetY)
             });
         var options = new PdfOptions {
                 CompressContentStreams = false,
@@ -291,13 +292,13 @@ public class PdfTextShapingProviderTests {
         Assert.True(normalRiseIndex > restoredBaseRiseIndex, "Expected normal text to reset the restored superscript rise.");
     }
 
-    private static IReadOnlyList<PdfShapedGlyph> CreateGlyphMap(string text, PdfTrueTypeFontProgram fontProgram) {
-        var glyphs = new List<PdfShapedGlyph>();
+    private static IReadOnlyList<OfficeShapedGlyph> CreateGlyphMap(string text, PdfTrueTypeFontProgram fontProgram) {
+        var glyphs = new List<OfficeShapedGlyph>();
         for (int index = 0; index < text.Length;) {
             int scalarStart = index;
             int scalar = ReadScalar(text, ref index);
             Assert.True(fontProgram.TryGetGlyphId(scalar, out int glyphId));
-            glyphs.Add(new PdfShapedGlyph(glyphId, char.ConvertFromUtf32(scalar), scalarStart));
+            glyphs.Add(new OfficeShapedGlyph(glyphId, char.ConvertFromUtf32(scalar), scalarStart));
         }
 
         return glyphs;
@@ -312,12 +313,12 @@ public class PdfTextShapingProviderTests {
         return ch;
     }
 
-    private sealed class MappingTextShapingProvider : IPdfTextShapingProvider {
+    private sealed class MappingTextShapingProvider : IOfficeTextShapingProvider {
         private readonly string _text;
         private readonly bool _isOpenTypeCff;
-        private readonly IReadOnlyList<PdfShapedGlyph> _glyphs;
+        private readonly IReadOnlyList<OfficeShapedGlyph> _glyphs;
 
-        public MappingTextShapingProvider(string text, bool isOpenTypeCff, IReadOnlyList<PdfShapedGlyph> glyphs) {
+        public MappingTextShapingProvider(string text, bool isOpenTypeCff, IReadOnlyList<OfficeShapedGlyph> glyphs) {
             _text = text;
             _isOpenTypeCff = isOpenTypeCff;
             _glyphs = glyphs;
@@ -325,9 +326,9 @@ public class PdfTextShapingProviderTests {
 
         public int CallCount { get; private set; }
 
-        public PdfTextShapingRequest? LastRequest { get; private set; }
+        public OfficeTextShapingRequest? LastRequest { get; private set; }
 
-        public PdfTextShapingResult? ShapeText(PdfTextShapingRequest request) {
+        public OfficeTextShapingResult? ShapeText(OfficeTextShapingRequest request) {
             if (!string.Equals(request.Text, _text, StringComparison.Ordinal)) {
                 return null;
             }
@@ -337,14 +338,14 @@ public class PdfTextShapingProviderTests {
             Assert.False(string.IsNullOrWhiteSpace(request.FontName));
             CallCount++;
             LastRequest = request;
-            return new PdfTextShapingResult(_glyphs);
+            return new OfficeTextShapingResult(_glyphs);
         }
     }
 
-    private sealed class DecliningTextShapingProvider : IPdfTextShapingProvider {
+    private sealed class DecliningTextShapingProvider : IOfficeTextShapingProvider {
         public int CallCount { get; private set; }
 
-        public PdfTextShapingResult? ShapeText(PdfTextShapingRequest request) {
+        public OfficeTextShapingResult? ShapeText(OfficeTextShapingRequest request) {
             CallCount++;
             return null;
         }

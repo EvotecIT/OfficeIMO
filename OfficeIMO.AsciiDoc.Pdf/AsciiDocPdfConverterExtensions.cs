@@ -22,11 +22,11 @@ public static class AsciiDocPdfConverterExtensions {
         document.ToPdfDocumentResult(options).ToBytes();
 
     /// <summary>Saves an AsciiDoc document as PDF and returns combined conversion diagnostics.</summary>
-    public static PdfCore.PdfDocumentConversionResult SaveAsPdf(this AsciiDocDocument document, string path, AsciiDocPdfSaveOptions? options = null) =>
+    public static PdfCore.PdfSaveResult SaveAsPdf(this AsciiDocDocument document, string path, AsciiDocPdfSaveOptions? options = null) =>
         document.ToPdfDocumentResult(options).Save(path);
 
     /// <summary>Writes an AsciiDoc document as PDF to a caller-owned stream.</summary>
-    public static PdfCore.PdfDocumentConversionResult SaveAsPdf(this AsciiDocDocument document, Stream stream, AsciiDocPdfSaveOptions? options = null) =>
+    public static PdfCore.PdfSaveResult SaveAsPdf(this AsciiDocDocument document, Stream stream, AsciiDocPdfSaveOptions? options = null) =>
         document.ToPdfDocumentResult(options).Save(stream);
 
     /// <summary>Attempts to save an AsciiDoc PDF and returns structured failure evidence.</summary>
@@ -42,13 +42,13 @@ public static class AsciiDocPdfConverterExtensions {
     }
 
     /// <summary>Converts synchronously, then asynchronously writes an AsciiDoc PDF to a path.</summary>
-    public static Task<PdfCore.PdfDocumentConversionResult> SaveAsPdfAsync(this AsciiDocDocument document, string path, AsciiDocPdfSaveOptions? options = null, CancellationToken cancellationToken = default) {
+    public static Task<PdfCore.PdfSaveResult> SaveAsPdfAsync(this AsciiDocDocument document, string path, AsciiDocPdfSaveOptions? options = null, CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         return document.ToPdfDocumentResult(options).SaveAsync(path, cancellationToken);
     }
 
     /// <summary>Converts synchronously, then asynchronously writes an AsciiDoc PDF to a caller-owned stream.</summary>
-    public static Task<PdfCore.PdfDocumentConversionResult> SaveAsPdfAsync(this AsciiDocDocument document, Stream stream, AsciiDocPdfSaveOptions? options = null, CancellationToken cancellationToken = default) {
+    public static Task<PdfCore.PdfSaveResult> SaveAsPdfAsync(this AsciiDocDocument document, Stream stream, AsciiDocPdfSaveOptions? options = null, CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         return document.ToPdfDocumentResult(options).SaveAsync(stream, cancellationToken);
     }

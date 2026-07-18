@@ -53,6 +53,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Include="Pdf\Fixtures\Interoperability\**\*" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
     <None Include="..\OfficeIMO.TestAssets\Images\**" Link="Images\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 

@@ -82,10 +82,9 @@ internal static class PdfPageXObjectInvocationParser {
         private Matrix2D _textMatrix = Matrix2D.Identity;
         private Matrix2D _lineMatrix = Matrix2D.Identity;
         private int _currentSubpathStartIndex = -1;
-        private int _index;
         private int _inlineImageIndex;
+        private PdfContentInlineImage? _currentInlineImage;
         private readonly int _maxOperations;
-        private int _operationCount;
 
         public Parser(
             string content,
@@ -124,42 +123,16 @@ internal static class PdfPageXObjectInvocationParser {
         }
 
         public IReadOnlyList<PdfPageXObjectInvocation> Parse() {
-            while (_index < _content.Length) {
-                SkipWhitespace();
-                if (_index >= _content.Length) {
-                    break;
-                }
-
-                char current = _content[_index];
-                if (current == '%') {
-                    SkipComment();
-                } else if (current == '/') {
-                    _args.Add(ReadName());
-                } else if (current == '(') {
-                    _args.Add(ReadLiteralStringBytes());
-                } else if (current == '<') {
-                    if (_index + 1 < _content.Length && _content[_index + 1] == '<') {
-                        _args.Add(PdfInlineOptionalContentReferenceParser.Read(_content, ref _index));
-                    } else {
-                        _args.Add(ReadHexStringBytes());
-                    }
-                } else if (current == '[') {
-                    _args.Add(ReadArray());
-                } else if (IsNumberStart(current)) {
-                    _args.Add(ReadNumber());
-                } else {
-                    double paintOrder = GetPaintOrder(_index);
-                    string op = ReadOperator();
-                    if (op.Length == 0) {
-                        _index++;
-                    } else {
-                        if (++_operationCount > _maxOperations) {
-                            throw PdfReadLimitException.Create(PdfReadLimitKind.ContentOperations, _maxOperations, _operationCount);
-                        }
-                        ApplyOperator(op, paintOrder);
-                    }
-                }
-            }
+            PdfContentStreamInterpreter.Interpret(
+                _content,
+                _maxOperations,
+                operation => {
+                    _args.AddRange(operation.Operands);
+                    _currentInlineImage = operation.InlineImage;
+                    ApplyOperator(operation.Name, GetPaintOrder(operation.OperatorOffset));
+                    _currentInlineImage = null;
+                },
+                ResolveInlineImageComponentCount);
 
             return _invocations.Count == 0 ? Array.Empty<PdfPageXObjectInvocation>() : _invocations.AsReadOnly();
         }
@@ -576,7 +549,11 @@ internal static class PdfPageXObjectInvocationParser {
 
                     break;
                 case "BI":
-                    if (TryReadInlineImage(out PdfPageInlineImage? inlineImage) && inlineImage != null && !HasHiddenContent()) {
+                    if (_currentInlineImage is not null && !HasHiddenContent()) {
+                        var stream = new PdfStream(_currentInlineImage.Dictionary, _currentInlineImage.Data);
+                        var inlineImage = new PdfPageInlineImage(
+                            "__inline" + (++_inlineImageIndex).ToString(CultureInfo.InvariantCulture),
+                            stream);
                         _invocations.Add(new PdfPageXObjectInvocation(inlineImage, _state.Transform, _state.ClipPath, _state.FillColor, _state.FillColorSpace, _state.FillOpacity, _state.StrokeColor, _state.StrokeColorSpace, _state.StrokeOpacity, _state.StrokeWidth, _state.StrokeDashStyle, _state.StrokeLineCap, _state.StrokeLineJoin, paintOrder));
                     }
 
@@ -761,235 +738,18 @@ internal static class PdfPageXObjectInvocationParser {
             ((property is string propertyName &&
                 _optionalContentVisibility?.IsHidden(propertyName) == true) ||
              (property is PdfInlineOptionalContentReferences references &&
-                _optionalContentVisibility?.IsHidden(references) == true));
+                _optionalContentVisibility?.IsHidden(references) == true) ||
+             (property is PdfContentDictionary dictionary &&
+                dictionary.OptionalContentReferences is not null &&
+                _optionalContentVisibility?.IsHidden(dictionary.OptionalContentReferences) == true));
 
-        private bool TryReadInlineImage(out PdfPageInlineImage? inlineImage) {
-            inlineImage = null;
-            var dictionary = new PdfDictionary();
-            while (_index < _content.Length) {
-                SkipWhitespace();
-                if (_index >= _content.Length) {
-                    return false;
-                }
-
-                if (IsOperatorAt("ID")) {
-                    _index += 2;
-                    break;
-                }
-
-                if (_content[_index] != '/') {
-                    ReadOperator();
-                    continue;
-                }
-
-                string key = NormalizeInlineImageKey(ReadName());
-                SkipWhitespace();
-                if (_index >= _content.Length) {
-                    return false;
-                }
-
-                if (!TryReadInlineImageValue(out PdfObject? value) || value == null) {
-                    continue;
-                }
-
-                dictionary.Items[key] = value;
+        private int ResolveInlineImageComponentCount(string colorSpaceName) {
+            if (_colorSpaces != null &&
+                _colorSpaces.TryGetValue(colorSpaceName, out PdfPageColorSpace colorSpace)) {
+                return GetComponentCount(colorSpace);
             }
 
-            if (_index < _content.Length && char.IsWhiteSpace(_content[_index])) {
-                _index++;
-            }
-
-            int dataStart = _index;
-            int dataLength = TryGetRawInlineImageLength(dictionary, out int rawLength)
-                ? rawLength
-                : PdfInlineImageDataScanner.FindLength(_content, dataStart);
-            if (dataLength < 0 || dataStart + dataLength > _content.Length) {
-                return false;
-            }
-
-            byte[] data = ReadBytes(dataStart, dataLength);
-            _index = dataStart + dataLength;
-            SkipWhitespace();
-            if (IsOperatorAt("EI")) {
-                _index += 2;
-            }
-
-            var stream = new PdfStream(dictionary, data);
-            inlineImage = new PdfPageInlineImage("__inline" + (++_inlineImageIndex).ToString(CultureInfo.InvariantCulture), stream);
-            return true;
-        }
-
-        private bool TryReadInlineImageValue(out PdfObject? value) {
-            value = null;
-            char current = _content[_index];
-            if (current == '/') {
-                value = new PdfName(NormalizeInlineImageName(ReadName()));
-                return true;
-            }
-
-            if (IsNumberStart(current)) {
-                value = new PdfNumber(ReadNumber());
-                return true;
-            }
-
-            if (current == '[') {
-                value = ReadInlineImageArray();
-                return true;
-            }
-
-            if (current == '<') {
-                value = ReadInlineImageAngleObject();
-                return true;
-            }
-
-            int start = _index;
-            string token = ReadOperator();
-            if (string.Equals(token, "true", StringComparison.Ordinal)) {
-                value = new PdfBoolean(true);
-                return true;
-            }
-
-            if (string.Equals(token, "false", StringComparison.Ordinal)) {
-                value = new PdfBoolean(false);
-                return true;
-            }
-
-            if (_index == start && _index < _content.Length) {
-                _index++;
-            }
-
-            return false;
-        }
-
-        private PdfObject ReadInlineImageAngleObject() {
-            if (_index + 1 < _content.Length && _content[_index + 1] == '<') {
-                return ReadInlineImageDictionary();
-            }
-
-            _index++;
-            int start = _index;
-            while (_index < _content.Length && _content[_index] != '>') {
-                _index++;
-            }
-
-            string hex = _content.Substring(start, _index - start);
-            if (_index < _content.Length) {
-                _index++;
-            }
-
-            return new PdfStringObj(PdfTextString.DecodeHexBytes(hex));
-        }
-
-        private PdfDictionary ReadInlineImageDictionary() {
-            var dictionary = new PdfDictionary();
-            _index += 2;
-            while (_index < _content.Length) {
-                SkipWhitespace();
-                if (_index + 1 < _content.Length && _content[_index] == '>' && _content[_index + 1] == '>') {
-                    _index += 2;
-                    break;
-                }
-
-                if (_index >= _content.Length) {
-                    break;
-                }
-
-                if (_content[_index] != '/') {
-                    if (!TryReadInlineImageValue(out _)) {
-                        _index++;
-                    }
-
-                    continue;
-                }
-
-                string key = ReadName();
-                SkipWhitespace();
-                if (_index >= _content.Length) {
-                    break;
-                }
-
-                if (TryReadInlineImageValue(out PdfObject? value) && value != null) {
-                    dictionary.Items[key] = value;
-                }
-            }
-
-            return dictionary;
-        }
-
-        private PdfArray ReadInlineImageArray() {
-            var array = new PdfArray();
-            _index++;
-            while (_index < _content.Length) {
-                SkipWhitespace();
-                if (_index >= _content.Length) {
-                    break;
-                }
-
-                if (_content[_index] == ']') {
-                    _index++;
-                    break;
-                }
-
-                if (TryReadInlineImageValue(out PdfObject? value) && value != null) {
-                    array.Items.Add(value);
-                } else {
-                    _index++;
-                }
-            }
-
-            return array;
-        }
-
-        private bool TryGetRawInlineImageLength(PdfDictionary dictionary, out int length) {
-            length = 0;
-            if (dictionary.Items.ContainsKey("Filter")) {
-                return false;
-            }
-
-            int width = ReadPositiveInteger(dictionary, "Width");
-            int height = ReadPositiveInteger(dictionary, "Height");
-            if (width <= 0 || height <= 0) {
-                return false;
-            }
-
-            int bitsPerComponent = ReadPositiveInteger(dictionary, "BitsPerComponent");
-            bool isImageMask = dictionary.Items.TryGetValue("ImageMask", out PdfObject? imageMaskObject) &&
-                imageMaskObject is PdfBoolean imageMask &&
-                imageMask.Value;
-            if (isImageMask && bitsPerComponent == 0) {
-                bitsPerComponent = 1;
-            }
-
-            int components = isImageMask ? 1 : GetInlineImageComponentCount(dictionary);
-            if (bitsPerComponent <= 0 || components <= 0) {
-                return false;
-            }
-
-            long rowBitCount = (long)width * components * bitsPerComponent;
-            long rowByteCount = (rowBitCount + 7L) / 8L;
-            long byteCount = rowByteCount * height;
-            if (byteCount <= 0L || byteCount > int.MaxValue) {
-                return false;
-            }
-
-            length = (int)byteCount;
-            return true;
-        }
-
-        private int GetInlineImageComponentCount(PdfDictionary dictionary) {
-            string colorSpace = dictionary.Items.TryGetValue("ColorSpace", out PdfObject? colorSpaceObject) && colorSpaceObject is PdfName colorSpaceName
-                ? colorSpaceName.Name
-                : "DeviceGray";
-            switch (colorSpace) {
-                case "DeviceRGB":
-                    return 3;
-                case "DeviceCMYK":
-                    return 4;
-                default:
-                    return _colorSpaces != null && _colorSpaces.TryGetValue(colorSpace, out PdfPageColorSpace resolved)
-                        ? GetComponentCount(resolved)
-                        : 1;
-            }
+            return 1;
         }
 
         private static int GetComponentCount(PdfPageColorSpace colorSpace) {
@@ -1001,56 +761,6 @@ internal static class PdfPageXObjectInvocationParser {
                     return 4;
                 default:
                     return 1;
-            }
-        }
-
-        private static int ReadPositiveInteger(PdfDictionary dictionary, string key) =>
-            dictionary.Items.TryGetValue(key, out PdfObject? value) &&
-            value is PdfNumber number &&
-            number.Value > 0D &&
-            number.Value <= int.MaxValue
-                ? (int)number.Value
-                : 0;
-
-        private byte[] ReadBytes(int start, int length) {
-            var data = new byte[length];
-            for (int i = 0; i < length; i++) {
-                data[i] = (byte)_content[start + i];
-            }
-
-            return data;
-        }
-
-        private bool IsOperatorAt(string op) =>
-            _index + op.Length <= _content.Length &&
-            string.CompareOrdinal(_content, _index, op, 0, op.Length) == 0 &&
-            (_index + op.Length >= _content.Length || IsDelimiter(_content[_index + op.Length]));
-
-        private static string NormalizeInlineImageKey(string key) {
-            switch (key) {
-                case "W": return "Width";
-                case "H": return "Height";
-                case "BPC": return "BitsPerComponent";
-                case "CS": return "ColorSpace";
-                case "F": return "Filter";
-                case "D": return "Decode";
-                case "DP": return "DecodeParms";
-                case "IM": return "ImageMask";
-                default: return key;
-            }
-        }
-
-        private static string NormalizeInlineImageName(string name) {
-            switch (name) {
-                case "G": return "DeviceGray";
-                case "RGB": return "DeviceRGB";
-                case "CMYK": return "DeviceCMYK";
-                case "I": return "Indexed";
-                case "Fl": return "FlateDecode";
-                case "AHx": return "ASCIIHexDecode";
-                case "A85": return "ASCII85Decode";
-                case "RL": return "RunLengthDecode";
-                default: return name;
             }
         }
 
@@ -1199,228 +909,6 @@ internal static class PdfPageXObjectInvocationParser {
             return value > 1D ? 1D : value;
         }
 
-        private void SkipWhitespace() {
-            while (_index < _content.Length && char.IsWhiteSpace(_content[_index])) {
-                _index++;
-            }
-        }
-
-        private void SkipComment() {
-            while (_index < _content.Length && _content[_index] != '\r' && _content[_index] != '\n') {
-                _index++;
-            }
-        }
-
-        private string ReadName() {
-            _index++;
-            int start = _index;
-            while (_index < _content.Length && !IsDelimiter(_content[_index])) {
-                _index++;
-            }
-
-            return PdfSyntax.DecodeName(_content.Substring(start, _index - start));
-        }
-
-        private double ReadNumber() {
-            int start = _index;
-            _index++;
-            while (_index < _content.Length) {
-                char ch = _content[_index];
-                if (!(char.IsDigit(ch) || ch == '.' || ch == '-' || ch == '+' || ch == 'e' || ch == 'E')) {
-                    break;
-                }
-
-                _index++;
-            }
-
-#pragma warning disable CA1846 // Keep netstandard2.0-safe parsing instead of requiring span overloads.
-            return double.TryParse(_content.Substring(start, _index - start), NumberStyles.Float, CultureInfo.InvariantCulture, out double value)
-#pragma warning restore CA1846
-                ? value
-                : 0D;
-        }
-
-        private string ReadOperator() {
-            int start = _index;
-            while (_index < _content.Length && !IsDelimiter(_content[_index])) {
-                _index++;
-            }
-
-            return _content.Substring(start, _index - start);
-        }
-
-        private void SkipLiteralString() {
-            int depth = 1;
-            bool escaped = false;
-            _index++;
-            while (_index < _content.Length && depth > 0) {
-                char ch = _content[_index++];
-                if (escaped) {
-                    escaped = false;
-                } else if (ch == '\\') {
-                    escaped = true;
-                } else if (ch == '(') {
-                    depth++;
-                } else if (ch == ')') {
-                    depth--;
-                }
-            }
-        }
-
-        private byte[] ReadLiteralStringBytes() {
-            _index++;
-            int depth = 1;
-            bool escaped = false;
-            var builder = new System.Text.StringBuilder();
-            while (_index < _content.Length && depth > 0) {
-                char ch = _content[_index++];
-                if (escaped) {
-                    builder.Append('\\');
-                    builder.Append(ch);
-                    escaped = false;
-                } else if (ch == '\\') {
-                    escaped = true;
-                } else if (ch == '(') {
-                    depth++;
-                    builder.Append(ch);
-                } else if (ch == ')') {
-                    depth--;
-                    if (depth > 0) {
-                        builder.Append(ch);
-                    }
-                } else {
-                    builder.Append(ch);
-                }
-            }
-
-            return PdfStringParser.ParseLiteralToBytes(builder.ToString());
-        }
-
-        private byte[] ReadHexStringBytes() {
-            _index++;
-            int start = _index;
-            while (_index < _content.Length && _content[_index] != '>') {
-                _index++;
-            }
-
-            string hex = _content.Substring(start, _index - start);
-            if (_index < _content.Length) {
-                _index++;
-            }
-
-            var builder = new System.Text.StringBuilder(hex.Length);
-            for (int i = 0; i < hex.Length; i++) {
-                if (!char.IsWhiteSpace(hex[i])) {
-                    builder.Append(hex[i]);
-                }
-            }
-
-            hex = builder.ToString();
-            if ((hex.Length & 1) == 1) {
-                hex += "0";
-            }
-
-            var bytes = new byte[hex.Length / 2];
-            for (int i = 0; i < bytes.Length; i++) {
-                bytes[i] = (byte)((HexNibble(hex[i * 2]) << 4) | HexNibble(hex[(i * 2) + 1]));
-            }
-
-            return bytes;
-
-            static int HexNibble(char ch) {
-                if (ch >= '0' && ch <= '9') return ch - '0';
-                if (ch >= 'a' && ch <= 'f') return 10 + (ch - 'a');
-                if (ch >= 'A' && ch <= 'F') return 10 + (ch - 'A');
-                return 0;
-            }
-        }
-
-        private void SkipAngleObject() {
-            if (_index + 1 < _content.Length && _content[_index + 1] == '<') {
-                _index += 2;
-                int depth = 1;
-                while (_index < _content.Length && depth > 0) {
-                    if (_index + 1 < _content.Length && _content[_index] == '<' && _content[_index + 1] == '<') {
-                        depth++;
-                        _index += 2;
-                    } else if (_index + 1 < _content.Length && _content[_index] == '>' && _content[_index + 1] == '>') {
-                        depth--;
-                        _index += 2;
-                    } else {
-                        _index++;
-                    }
-                }
-                return;
-            }
-
-            _index++;
-            while (_index < _content.Length && _content[_index] != '>') {
-                _index++;
-            }
-
-            if (_index < _content.Length) {
-                _index++;
-            }
-        }
-
-        private List<object> ReadArray() {
-            var items = new List<object>();
-            _index++;
-            while (_index < _content.Length) {
-                SkipWhitespace();
-                if (_index >= _content.Length) {
-                    break;
-                }
-
-                char current = _content[_index];
-                if (current == ']') {
-                    _index++;
-                    break;
-                }
-
-                if (current == '(') {
-                    items.Add(ReadLiteralStringBytes());
-                } else if (current == '<') {
-                    if (_index + 1 < _content.Length && _content[_index + 1] == '<') {
-                        SkipAngleObject();
-                    } else {
-                        items.Add(ReadHexStringBytes());
-                    }
-                } else if (IsNumberStart(current)) {
-                    items.Add(ReadNumber());
-                } else if (current == '/') {
-                    items.Add(ReadName());
-                } else if (current == '[') {
-                    SkipArray();
-                } else {
-                    ReadOperator();
-                }
-            }
-
-            return items;
-        }
-
-        private void SkipArray() {
-            int depth = 1;
-            _index++;
-            while (_index < _content.Length && depth > 0) {
-                char current = _content[_index];
-                if (current == '(') {
-                    SkipLiteralString();
-                } else if (current == '<') {
-                    SkipAngleObject();
-                } else if (current == '[') {
-                    depth++;
-                    _index++;
-                } else if (current == ']') {
-                    depth--;
-                    _index++;
-                } else {
-                    _index++;
-                }
-            }
-        }
-
         private static bool TryGetNumberArray(object value, out double[] numbers) {
             if (value is double[] direct) {
                 numbers = direct;
@@ -1445,11 +933,6 @@ internal static class PdfPageXObjectInvocationParser {
             numbers = Array.Empty<double>();
             return false;
         }
-
-        private static bool IsNumberStart(char ch) => ch == '-' || ch == '+' || ch == '.' || char.IsDigit(ch);
-
-        private static bool IsDelimiter(char ch) =>
-            char.IsWhiteSpace(ch) || ch == '/' || ch == '[' || ch == ']' || ch == '(' || ch == ')' || ch == '<' || ch == '>' || ch == '%';
 
         private static int ReadTextRenderingMode(double value) {
             int mode = (int)Math.Round(value);

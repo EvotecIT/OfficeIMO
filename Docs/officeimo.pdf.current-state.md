@@ -61,7 +61,7 @@ PDF primitive exists somewhere in the codebase.
 
 | Workflow | Status | Current contract | Work still needed |
 | --- | --- | --- | --- |
-| Create PDFs | Ready for common business documents | Fluent flow and canvas APIs cover text, links, lists, tables, mixed inline text/images/boxes, drawings, grouped header/footer text and images, watermarks, metadata, sections, generated TOCs, conditional/replayable flow, position capture, styled one-page containers, block-aware multi-column flow, generated optional-content layers, portfolios, form fields, tagging groundwork, and viewer settings. | Complex-script shaping, line-level column balancing, widow/orphan and keep-with-next rules, multipage decorated containers, and deeper forms/annotations. |
+| Create PDFs | Ready for common business documents | Fluent flow and canvas APIs cover text, links, lists, tables, mixed inline text/images/boxes, drawings, grouped header/footer text and images, watermarks, metadata, sections, generated TOCs, conditional/replayable flow, position capture, styled multipage containers, line-balanced multi-column flow, paragraph splitting with configurable widow/orphan counts, keep-with-next across block types, table tail-row control, generated optional-content layers, portfolios, form fields, tagging groundwork, and viewer settings. Shared Drawing contracts provide Unicode-safe line breaking, Latin ligatures, text direction, and host-provided shaping. | Built-in full complex-script shaping and deeper forms/annotations remain; continue unusual pagination and producer-specific visual fixtures as real failures are found. |
 | Read and inspect | Ready for common born-digital PDFs | `PdfDocument.Open(...)` provides one bounded byte/path/stream source and reuses one canonical parse for text, geometry, images, attachments, portfolio metadata, outlines, links, annotations, forms, actions, metadata, XMP, tagged content, layers, output intents, security, revisions, signatures, diagnostics, and optional compliance readback. `Analyze(...)` returns the consolidated health and capability report. `PdfReadOptions.Limits` bounds input bytes before buffering plus indirect objects, object characters/tokens/nesting, raw and decoded streams, content operations, page counts, and page-tree depth/nodes. Strict mode rejects structural defects; lenient mode records explicit repairs. | Continue adding producer-specific repair fixtures; never auto-repair a defect whose semantic intent is ambiguous. |
 | Merge PDFs | Ready for rewrite-safe inputs | `PdfDocument.MergeWith(...)` merges files, streams, bytes, or another opened document through the shared import/rewrite engine; pages can be normalized and supported visual annotations flattened. | Broader complex-file and producer interoperability proof. |
 | Split and extract pages | Ready for rewrite-safe inputs | Single pages, page ranges, range expressions, fixed-size groups, and bookmark-derived ranges are supported. | Better preservation policy reporting for structures whose targets fall outside the selected pages. |
@@ -105,7 +105,8 @@ PDF primitive exists somewhere in the codebase.
   the matching writer/readback readiness in one immutable snapshot. External
   validators consume those bytes, and the snapshot reconciles their results
   without rerendering or accepting evidence for another artifact.
-- `OfficeIMO.Drawing` is the shared managed scene, SVG, and raster owner.
+- `OfficeIMO.Drawing` is the shared managed scene, SVG, raster, Unicode
+  line-breaking, Latin-ligature, text-direction, and host-shaping-contract owner.
 - `OfficeIMO.Html` owns HTML/CSS parsing, resource policy, layout, pagination,
   and its backend-neutral render scene.
 - `OfficeIMO.Html.Pdf` only maps that render scene to PDF primitives.
@@ -130,7 +131,10 @@ security proof.
   xref streams, object streams, hybrid references, incremental revisions,
   unusual generations, linearized files, signed/certified files, encrypted
   files, tagged PDFs, optional-content layers, attachments, name trees,
-  output intents, active content, and complex forms.
+  output intents, active content, and complex forms. Keep a small authoritative
+  external gate hash-pinned to exact Open Preservation Foundation and veraPDF
+  commits, with source paths, licenses, byte lengths, and focused expected
+  behavior.
 - [x] Run every rewrite scenario through `PdfRewritePreservationMatrix` and
   retain the original blocker or preservation report. Expected blockers must be
   distinguishable from regressions.
@@ -318,17 +322,18 @@ any repair is explicit, reproducible, and validated before save.
 
 - [x] Complete dependency-free OpenType/CFF charstring subsetting for generated
   and supported appearance-font output.
-- [ ] Supply or build an optional implementation of the existing
-  `IPdfTextShapingProvider` seam for full bidirectional layout, contextual
-  shaping, mark positioning, and script-specific substitution. Keep it outside
-  the dependency-free core; the built-in engine continues to provide Unicode
-  scalar and Latin-ligature modes with explicit diagnostics.
+- [x] Move text direction, shaped-run models, and the
+  `IOfficeTextShapingProvider` seam into `OfficeIMO.Drawing` so PDF and future
+  renderers share one host-integration contract. The dependency-free PDF engine
+  continues to provide Unicode-scalar and Latin-ligature modes with explicit
+  diagnostics; a host can adapt its chosen shaping engine without adding a
+  dependency to the core packages.
 - [x] Add shared block-aware multi-column flow, styled one-page containers,
   conditional/replayable flow constraints, position capture, semantic sections,
   generated TOCs, and optional-content layers before adapter-specific variants.
-- [ ] Continue with line-level column balancing,
-  keep-with-next, widow/orphan, absolute-layout, multipage decorated containers,
-  drawing, and deeper pagination behavior.
+- [x] Add line-balanced columns, configurable paragraph widow/orphan counts,
+  keep-with-next across block types, table tail-row control, and multipage
+  decorated containers through the shared block-flow engine.
 - [ ] Keep HTML/CSS fidelity work in the canonical HTML/PDF/image plan. The PDF
   package should only add missing PDF-native primitives or writer support.
 - [ ] Add reusable typed report components and recipes only after repeated real
@@ -377,9 +382,11 @@ external validator both pass the exact generated artifact.
 - [x] Route byte, stream, path, sync, async, and fluent opening through one
   bounded immutable source and one canonical parser without multiplying
   independent implementations.
-- [ ] Preserve input/output diagnostics through chained operations and expose a
-  final pipeline report with mutation decisions, warnings, preservation proof,
-  hashes, page counts, and timings.
+- [x] Preserve source/output warnings through chained operations and expose
+  exact artifact hashes, byte and page counts, operation names, observed
+  mutation execution modes, timings, and failures. `Save(...)`,
+  `SaveAsync(...)`, `TrySave(...)`, and typed adapter `SaveAsPdf(...)` routes
+  return the same `PdfSaveResult` shape with a shared immutable pipeline report.
 - [x] Bound completed page/effect content and serialized-object retention for
   stream saves with independent memory thresholds, indexed temporary-file
   spillover, direct large-stream spooling, and chunked final assembly, including
@@ -389,10 +396,11 @@ external validator both pass the exact generated artifact.
   proportional to document size, while `ToBytes()` buffers the final artifact.
 - [ ] Generate the public support matrix and README examples from tested
   capability records so documentation cannot drift from the implementation.
-- [x] Keep a public-surface/dependency contract plus a dependency-free
-  cold-versus-cached performance budget in CI; keep bounded hostile-input,
-  cross-platform, deterministic-output, and visual contracts in the focused
-  suites.
+- [x] Keep a public-surface/dependency contract plus dependency-free mixed
+  60-page cold/cached analysis, SVG, and PNG performance budgets in CI; verify
+  output integrity as well as time and allocation ceilings, and keep bounded
+  hostile-input, cross-platform, deterministic-output, and visual contracts in
+  the focused suites.
 - [x] Isolate optional dependencies in narrow adapter packages. The core
   exposes provider contracts for cryptography, OCR, advanced shaping, or codecs
   only where the BCL and current OfficeIMO projects cannot supply the behavior.

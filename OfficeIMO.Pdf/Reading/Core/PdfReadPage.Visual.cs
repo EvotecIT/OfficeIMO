@@ -1538,7 +1538,14 @@ public sealed partial class PdfReadPage {
                 NearlyEqual(visibleTop, imageY) &&
                 NearlyEqual(pageVisibleWidth, placement.Width) &&
                 NearlyEqual(pageVisibleHeight, placement.Height)) {
-                projection = new OfficeImageProjection(new OfficeImagePlacement(imageX, imageY, placement.Width, placement.Height));
+                // Normalize sub-point producer rounding at the page boundary. Keeping
+                // the original near-equal coordinates can place a valid full-page
+                // image microscopically outside the Drawing contract.
+                projection = new OfficeImageProjection(new OfficeImagePlacement(
+                    visibleLeft,
+                    visibleTop,
+                    pageVisibleWidth,
+                    pageVisibleHeight));
                 return true;
             }
 

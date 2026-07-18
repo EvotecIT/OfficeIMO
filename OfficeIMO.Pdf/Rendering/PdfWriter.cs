@@ -6,7 +6,7 @@ namespace OfficeIMO.Pdf;
 
 internal static partial class PdfWriter {
     public static byte[] Write(PdfDocument doc, IEnumerable<IPdfBlock> blocks, PdfOptions opts, string? title, string? author, string? subject, string? keywords) =>
-        WriteCore(doc, blocks, opts, title, author, subject, keywords, outputStream: null, out _, out _)!;
+        WriteCore(doc, blocks, opts, title, author, subject, keywords, outputStream: null, out _, out _, out _)!;
 
     internal static (byte[] Bytes, PdfGeneratedDocumentComplianceEvidence ComplianceEvidence) WriteComplianceArtifact(
         PdfDocument doc,
@@ -26,13 +26,27 @@ internal static partial class PdfWriter {
             keywords,
             outputStream: null,
             out _,
-            out PdfGeneratedDocumentComplianceEvidence complianceEvidence)!;
+            out PdfGeneratedDocumentComplianceEvidence complianceEvidence,
+            out _)!;
         return (bytes, complianceEvidence);
     }
 
     public static long Write(Stream destination, PdfDocument doc, IEnumerable<IPdfBlock> blocks, PdfOptions opts, string? title, string? author, string? subject, string? keywords) {
+        return Write(destination, doc, blocks, opts, title, author, subject, keywords, out _);
+    }
+
+    internal static long Write(
+        Stream destination,
+        PdfDocument doc,
+        IEnumerable<IPdfBlock> blocks,
+        PdfOptions opts,
+        string? title,
+        string? author,
+        string? subject,
+        string? keywords,
+        out int pageCount) {
         Guard.NotNull(destination, nameof(destination));
-        WriteCore(doc, blocks, opts, title, author, subject, keywords, destination, out long bytesWritten, out _);
+        WriteCore(doc, blocks, opts, title, author, subject, keywords, destination, out long bytesWritten, out _, out pageCount);
         return bytesWritten;
     }
 
@@ -46,13 +60,15 @@ internal static partial class PdfWriter {
         string? keywords,
         Stream? outputStream,
         out long bytesWritten,
-        out PdfGeneratedDocumentComplianceEvidence complianceEvidence) {
+        out PdfGeneratedDocumentComplianceEvidence complianceEvidence,
+        out int pageCount) {
         PdfComplianceValidator.ValidateGenerationOptions(opts);
         opts.ResetEmbeddedFontProgramUsage();
 
         // Layout blocks into pages and create per-page content streams.
         using var generatedSectionLayout = doc.BeginGeneratedSectionLayout();
         using var layout = LayoutBlocks(blocks, opts);
+        pageCount = layout.Pages.Count;
         ValidateNamedDestinationLinks(layout.Pages);
         ValidateUriActionLinks(layout.Pages, opts);
         ValidateGeneratedFormFieldNames(layout.Pages);
@@ -151,7 +167,7 @@ internal static partial class PdfWriter {
             cffFontProgram != null);
 
         // Create content streams and page objects
-        int totalPages = layout.Pages.Count;
+        int totalPages = pageCount;
         var pageNumberInfos = BuildPageNumberInfos(layout.Pages);
         int nextStructParentIndex = 0;
         var imageXObjectIds = new Dictionary<string, int>(StringComparer.Ordinal);

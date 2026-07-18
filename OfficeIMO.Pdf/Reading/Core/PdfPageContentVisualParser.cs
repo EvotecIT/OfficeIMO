@@ -1,4 +1,3 @@
-using System.Globalization;
 using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Pdf;
@@ -96,9 +95,7 @@ internal static class PdfPageContentVisualParser {
         private PdfPageColorSpace? _strokePatternBaseColorSpace;
         private int _currentSubpathStartIndex = -1;
         private bool _currentSubpathHasDraw;
-        private int _index;
         private readonly int _maxOperations;
-        private int _operationCount;
 
         public Parser(
             string content,
@@ -178,42 +175,13 @@ internal static class PdfPageContentVisualParser {
         }
 
         public IReadOnlyList<PdfPageVisualPrimitive> Parse() {
-            while (_index < _content.Length) {
-                SkipWhitespace();
-                if (_index >= _content.Length) {
-                    break;
-                }
-
-                char current = _content[_index];
-                if (current == '%') {
-                    SkipComment();
-                } else if (current == '/') {
-                    _args.Add(ReadName());
-                } else if (current == '(') {
-                    SkipLiteralString();
-                } else if (current == '<') {
-                    if (_index + 1 < _content.Length && _content[_index + 1] == '<') {
-                        _args.Add(PdfInlineOptionalContentReferenceParser.Read(_content, ref _index));
-                    } else {
-                        SkipAngleObject();
-                    }
-                } else if (current == '[') {
-                    _args.Add(ReadNumberArray());
-                } else if (IsNumberStart(current)) {
-                    _args.Add(ReadNumber());
-                } else {
-                    double paintOrder = GetPaintOrder(_index);
-                    string op = ReadOperator();
-                    if (op.Length == 0) {
-                        _index++;
-                    } else {
-                        if (++_operationCount > _maxOperations) {
-                            throw PdfReadLimitException.Create(PdfReadLimitKind.ContentOperations, _maxOperations, _operationCount);
-                        }
-                        ApplyOperator(op, paintOrder);
-                    }
-                }
-            }
+            PdfContentStreamInterpreter.Interpret(
+                _content,
+                _maxOperations,
+                operation => {
+                    _args.AddRange(operation.Operands);
+                    ApplyOperator(operation.Name, GetPaintOrder(operation.OperatorOffset));
+                });
 
             return _primitives.Count == 0 ? Array.Empty<PdfPageVisualPrimitive>() : _primitives.AsReadOnly();
         }
@@ -512,7 +480,6 @@ internal static class PdfPageContentVisualParser {
                     ClearPath();
                     break;
                 case "BI":
-                    SkipInlineImage();
                     break;
                 case "BDC":
                     _hiddenContentStack.Push(IsHiddenOptionalContent(_args.Count > 1 ? _args[_args.Count - 2] : null, _args.Count > 0 ? _args[_args.Count - 1] : null));
@@ -1126,7 +1093,10 @@ internal static class PdfPageContentVisualParser {
             ((property is string propertyName &&
                 _optionalContentVisibility?.IsHidden(propertyName) == true) ||
              (property is PdfInlineOptionalContentReferences references &&
-                _optionalContentVisibility?.IsHidden(references) == true));
+                _optionalContentVisibility?.IsHidden(references) == true) ||
+             (property is PdfContentDictionary dictionary &&
+                dictionary.OptionalContentReferences is not null &&
+                _optionalContentVisibility?.IsHidden(dictionary.OptionalContentReferences) == true));
 
         private void MoveTo(double x, double y) {
             DiscardCurrentSubpathIfEmpty();
@@ -1426,178 +1396,6 @@ internal static class PdfPageContentVisualParser {
         }
 
         private static double Clamp01(double value) => value < 0D ? 0D : value > 1D ? 1D : value;
-
-        private void SkipWhitespace() {
-            while (_index < _content.Length && char.IsWhiteSpace(_content[_index])) {
-                _index++;
-            }
-        }
-
-        private void SkipComment() {
-            while (_index < _content.Length && _content[_index] != '\r' && _content[_index] != '\n') {
-                _index++;
-            }
-        }
-
-        private string ReadName() {
-            _index++;
-            int start = _index;
-            while (_index < _content.Length && !IsDelimiter(_content[_index])) {
-                _index++;
-            }
-
-            return PdfSyntax.DecodeName(_content.Substring(start, _index - start));
-        }
-
-        private double ReadNumber() {
-            int start = _index;
-            _index++;
-            while (_index < _content.Length) {
-                char ch = _content[_index];
-                if (!(char.IsDigit(ch) || ch == '.' || ch == '-' || ch == '+' || ch == 'e' || ch == 'E')) {
-                    break;
-                }
-
-                _index++;
-            }
-
-#pragma warning disable CA1846 // Keep netstandard2.0-safe parsing instead of requiring span overloads.
-            return double.TryParse(_content.Substring(start, _index - start), NumberStyles.Float, CultureInfo.InvariantCulture, out double value)
-#pragma warning restore CA1846
-                ? value
-                : 0D;
-        }
-
-        private string ReadOperator() {
-            int start = _index;
-            while (_index < _content.Length && !IsDelimiter(_content[_index])) {
-                _index++;
-            }
-
-            return _content.Substring(start, _index - start);
-        }
-
-        private void SkipInlineImage() {
-            while (_index < _content.Length) {
-                SkipWhitespace();
-                if (_index >= _content.Length) {
-                    return;
-                }
-
-                if (IsOperatorAt("ID")) {
-                    _index += 2;
-                    if (_index < _content.Length && char.IsWhiteSpace(_content[_index])) {
-                        _index++;
-                    }
-
-                    int dataLength = PdfInlineImageDataScanner.FindLength(_content, _index);
-                    if (dataLength < 0) {
-                        _index = _content.Length;
-                        return;
-                    }
-
-                    _index += dataLength;
-                    SkipWhitespace();
-                    if (IsOperatorAt("EI")) {
-                        _index += 2;
-                    }
-
-                    return;
-                }
-
-                if (IsOperatorAt("EI")) {
-                    _index += 2;
-                    return;
-                }
-
-                string token = ReadOperator();
-                if (token.Length == 0) {
-                    _index++;
-                }
-            }
-        }
-
-        private bool IsOperatorAt(string op) =>
-            _index + op.Length <= _content.Length &&
-            string.CompareOrdinal(_content, _index, op, 0, op.Length) == 0 &&
-            (_index + op.Length >= _content.Length || IsDelimiter(_content[_index + op.Length]));
-
-        private void SkipLiteralString() {
-            int depth = 1;
-            bool escaped = false;
-            _index++;
-            while (_index < _content.Length && depth > 0) {
-                char ch = _content[_index++];
-                if (escaped) {
-                    escaped = false;
-                } else if (ch == '\\') {
-                    escaped = true;
-                } else if (ch == '(') {
-                    depth++;
-                } else if (ch == ')') {
-                    depth--;
-                }
-            }
-        }
-
-        private void SkipAngleObject() {
-            if (_index + 1 < _content.Length && _content[_index + 1] == '<') {
-                _index += 2;
-                int depth = 1;
-                while (_index < _content.Length && depth > 0) {
-                    if (_index + 1 < _content.Length && _content[_index] == '<' && _content[_index + 1] == '<') {
-                        depth++;
-                        _index += 2;
-                    } else if (_index + 1 < _content.Length && _content[_index] == '>' && _content[_index + 1] == '>') {
-                        depth--;
-                        _index += 2;
-                    } else {
-                        _index++;
-                    }
-                }
-                return;
-            }
-
-            _index++;
-            while (_index < _content.Length && _content[_index] != '>') {
-                _index++;
-            }
-
-            if (_index < _content.Length) {
-                _index++;
-            }
-        }
-
-        private double[] ReadNumberArray() {
-            var numbers = new List<double>();
-            int depth = 1;
-            _index++;
-            while (_index < _content.Length && depth > 0) {
-                char ch = _content[_index];
-                if (ch == '(') {
-                    SkipLiteralString();
-                } else if (ch == '<') {
-                    SkipAngleObject();
-                } else if (IsNumberStart(ch)) {
-                    numbers.Add(ReadNumber());
-                } else {
-                    if (ch == '[') {
-                        depth++;
-                    } else if (ch == ']') {
-                        depth--;
-                    }
-
-                    _index++;
-                }
-            }
-
-            return numbers.ToArray();
-        }
-
-        private static bool IsNumberStart(char ch) => ch == '-' || ch == '+' || ch == '.' || char.IsDigit(ch);
-
-        private static bool IsDelimiter(char ch) =>
-            char.IsWhiteSpace(ch) || ch == '/' || ch == '[' || ch == ']' || ch == '(' || ch == ')' || ch == '<' || ch == '>' || ch == '%';
 
         private static bool NearlyEqual(double left, double right) => Math.Abs(left - right) <= 0.001D;
     }

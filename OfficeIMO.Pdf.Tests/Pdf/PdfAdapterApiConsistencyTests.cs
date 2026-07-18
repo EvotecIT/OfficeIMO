@@ -1,9 +1,11 @@
 using System.Reflection;
+using System.Threading.Tasks;
 using OfficeIMO.AsciiDoc.Pdf;
 using OfficeIMO.Excel.Pdf;
 using OfficeIMO.Html.Pdf;
 using OfficeIMO.Latex.Pdf;
 using OfficeIMO.Markdown.Pdf;
+using OfficeIMO.Pdf;
 using OfficeIMO.PowerPoint.Pdf;
 using OfficeIMO.Rtf.Pdf;
 using OfficeIMO.Word.Pdf;
@@ -42,10 +44,18 @@ public sealed class PdfAdapterApiConsistencyTests {
             Assert.Single(sourceMethods, method => method.Name == "ToPdf");
             Assert.Single(sourceMethods, method => method.Name == "ToPdfDocument");
             Assert.Single(sourceMethods, method => method.Name == "ToPdfDocumentResult");
-            Assert.Equal(2, sourceMethods.Count(method => method.Name == "SaveAsPdf"));
-            Assert.Equal(2, sourceMethods.Count(method => method.Name == "TrySaveAsPdf"));
-            Assert.Equal(2, sourceMethods.Count(method => method.Name == "SaveAsPdfAsync"));
-            Assert.Equal(2, sourceMethods.Count(method => method.Name == "TrySaveAsPdfAsync"));
+            Assert.Equal(2, sourceMethods.Count(method =>
+                method.Name == "SaveAsPdf" &&
+                method.ReturnType == typeof(PdfSaveResult)));
+            Assert.Equal(2, sourceMethods.Count(method =>
+                method.Name == "TrySaveAsPdf" &&
+                method.ReturnType == typeof(PdfSaveResult)));
+            Assert.Equal(2, sourceMethods.Count(method =>
+                method.Name == "SaveAsPdfAsync" &&
+                method.ReturnType == typeof(Task<PdfSaveResult>)));
+            Assert.Equal(2, sourceMethods.Count(method =>
+                method.Name == "TrySaveAsPdfAsync" &&
+                method.ReturnType == typeof(Task<PdfSaveResult>)));
 
             string[] asynchronousConversionMethods = ["ToPdfAsync", "ToPdfDocumentAsync", "ToPdfDocumentResultAsync"];
             int asynchronousConversionMethodCount = sourceMethods.Count(method => asynchronousConversionMethods.Contains(method.Name));

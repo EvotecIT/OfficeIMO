@@ -6,15 +6,15 @@ namespace OfficeIMO.Html.Pdf;
 
 public static partial class HtmlPdfConverterExtensions {
     /// <summary>Converts a parsed HTML document and saves it as a PDF file.</summary>
-    public static PdfCore.PdfDocumentConversionResult SaveAsPdf(this HtmlConversionDocument document, string path, HtmlPdfSaveOptions? options = null) =>
+    public static PdfCore.PdfSaveResult SaveAsPdf(this HtmlConversionDocument document, string path, HtmlPdfSaveOptions? options = null) =>
         document.ToPdfDocumentResult(options).Save(path);
 
     /// <summary>Converts a parsed HTML document and writes it as PDF to a caller-owned stream.</summary>
-    public static PdfCore.PdfDocumentConversionResult SaveAsPdf(this HtmlConversionDocument document, Stream pdfStream, HtmlPdfSaveOptions? options = null) =>
+    public static PdfCore.PdfSaveResult SaveAsPdf(this HtmlConversionDocument document, Stream pdfStream, HtmlPdfSaveOptions? options = null) =>
         document.ToPdfDocumentResult(options).Save(pdfStream);
 
     /// <summary>Asynchronously converts a parsed HTML document and saves it as a PDF file.</summary>
-    public static async Task<PdfCore.PdfDocumentConversionResult> SaveAsPdfAsync(
+    public static async Task<PdfCore.PdfSaveResult> SaveAsPdfAsync(
         this HtmlConversionDocument document,
         string path,
         HtmlPdfSaveOptions? options = null,
@@ -23,7 +23,7 @@ public static partial class HtmlPdfConverterExtensions {
             .SaveAsync(path, cancellationToken).ConfigureAwait(false);
 
     /// <summary>Asynchronously converts a parsed HTML document and writes it as PDF to a caller-owned stream.</summary>
-    public static async Task<PdfCore.PdfDocumentConversionResult> SaveAsPdfAsync(
+    public static async Task<PdfCore.PdfSaveResult> SaveAsPdfAsync(
         this HtmlConversionDocument document,
         Stream pdfStream,
         HtmlPdfSaveOptions? options = null,

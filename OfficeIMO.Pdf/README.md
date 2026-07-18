@@ -41,7 +41,7 @@ PdfDocument.Create(new PdfOptions {
 - Creates PDFs with page setup, headings, paragraphs, rich text, links, lists, mixed inline images and boxes, dictionary-driven hyphenation, styled multipage containers, balanced block-flow columns, conditional/replayable flow, position capture, sections, generated TOCs, optional-content layers, tables, images, vector drawing, headers, footers, watermarks, metadata, portfolios, and form primitives.
 - Reads and inspects PDFs through text extraction, logical document objects, page metadata, links, images, attachments, portfolios, outlines, forms, bounded immutable raw-structure views, active-content diagnostics, and security/revision markers.
 - Manipulates existing PDFs with page extraction, split, merge, delete, duplicate, move, rotate, metadata editing, stamps, watermarks, and complete-page overlay/underlay while preserving source PDF header versions on shared rewrite paths.
-- Renders supported embedded TrueType and OpenType/CFF fonts with stable-glyph subsetting. Built-in shaping remains dependency-free, while `IPdfTextShapingProvider` can supply positioned glyph advances and offsets for scripts that need a host-owned shaping engine.
+- Renders supported embedded TrueType and OpenType/CFF fonts with stable-glyph subsetting. Built-in shaping remains dependency-free, while the shared `OfficeIMO.Drawing.IOfficeTextShapingProvider` contract can supply positioned glyph advances and offsets for scripts that need a host-owned shaping engine.
 - Shares managed CMYK, Lab, XYZ, calibrated-color conversion, vector tiling fills, standard blend modes, and alpha/luminosity soft masks with `OfficeIMO.Drawing`.
 - Bounds completed page/effect content and serialized-object retention with separate memory limits, temporary-file spillover, direct large-stream spooling, and chunked final assembly during stream saves. Per-page metadata and the authored block model remain proportional to document size, and `ToBytes()` buffers the final artifact.
 - Provides conversion reports, grouped warning summaries, and diagnostics so adapters can expose unsupported or simplified source content honestly.
@@ -87,10 +87,10 @@ foreach (PdfDiagnosticFinding finding in analysis.Diagnostics.Findings) {
 }
 ```
 
-## Migrating to 3.0
+## Migrating to the unified API
 
-Version 3.0 intentionally narrows the public API around the fluent `PdfDocument`
-facade:
+The unified API intentionally narrows the public surface around the fluent
+`PdfDocument` facade:
 
 - Replace `PdfDocument.Load(...)` and `PdfReadDocument.Load(...)` with
   `PdfDocument.Open(...)` or `PdfReadDocument.Open(...)`.
@@ -111,8 +111,13 @@ facade:
   `Stamp`, `Security`, and metadata operations instead of the former public
   static engine classes. Those implementation engines are now internal so there
   is one supported route for each operation.
+- `Save(...)`, `SaveAsync(...)`, and every typed adapter `SaveAsPdf(...)` now
+  return `PdfSaveResult`. It carries output path/length, conversion warnings,
+  and an immutable `Pipeline` with create/open, mutation, hash, page-count,
+  execution-mode, timing, and final-output evidence. `TrySave(...)` keeps the
+  same result shape while capturing exceptions instead of throwing.
 
-The package remains source-compatible across `netstandard2.0`, `net8.0`, and
+The target-framework support remains `netstandard2.0`, `net8.0`, and
 `net10.0`; the API cleanup itself is a deliberate source-breaking change.
 
 ## Examples
@@ -539,9 +544,15 @@ separate gates:
 dotnet test OfficeIMO.Pdf.Tests/OfficeIMO.Pdf.Tests.csproj -c Release -f net8.0
 dotnet test OfficeIMO.Pdf.Tests/OfficeIMO.Pdf.Tests.csproj -c Release -f net10.0
 dotnet run --project OfficeIMO.Pdf.Benchmarks/OfficeIMO.Pdf.Benchmarks.csproj -c Release -f net8.0 -- --verify-budgets
+dotnet run --project OfficeIMO.Pdf.Benchmarks/OfficeIMO.Pdf.Benchmarks.csproj -c Release -f net10.0 -- --verify-budgets
 Build/Export-PdfComplianceProof.ps1 -Configuration Release -Framework net8.0
 Build/Export-PdfVisualReviewGallery.ps1 -Configuration Release -Framework net8.0
 ```
+
+The checked-in interoperability gate uses hash-pinned Open Preservation
+Foundation and veraPDF fixtures with explicit provenance. The performance gate
+uses a deterministic 60-page mixed corpus and checks cold and cached analysis,
+SVG rendering, PNG rendering, output integrity, and allocation/time budgets.
 
 Pixel baselines are strict when the installed Poppler major/minor version
 matches the recorded renderer. A different renderer version still runs semantic
@@ -551,7 +562,7 @@ into a cross-version comparison.
 
 ## Current state
 
-The PDF engine is useful and broad, but it is still evolving. It has strong first-party coverage for common generated business documents, conservative read/manipulation workflows, password security, optional first-party certificate signing/validation, standards-compliant Fast Web View output, and bounded-payload stream saves. Advanced typography, difficult producer-specific preservation, broader transparency/pattern edge cases, and fully forward-only layout remain deeper roadmap areas.
+The PDF engine is useful and broad, but it is still evolving. It has strong first-party coverage for common generated business documents, reusable Unicode line breaking and Latin ligatures, host-provided complex-script shaping, conservative read/manipulation workflows, password security, optional first-party certificate signing/validation, standards-compliant Fast Web View output, and bounded-payload stream saves. Built-in full complex-script shaping, difficult producer-specific preservation, broader transparency/pattern edge cases, and fully forward-only layout remain deeper roadmap areas.
 
 For the full capability inventory and roadmap, read [Docs/officeimo.pdf.current-state.md](../Docs/officeimo.pdf.current-state.md).
 

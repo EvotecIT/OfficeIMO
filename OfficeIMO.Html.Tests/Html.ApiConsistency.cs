@@ -181,7 +181,7 @@ public sealed class HtmlApiConsistencyTests {
         Assert.DoesNotContain("OfficeIMO.Word.Pdf", references);
     }
 
-    private sealed class NullShapingProvider : PdfCore.IPdfTextShapingProvider {
-        public PdfCore.PdfTextShapingResult? ShapeText(PdfCore.PdfTextShapingRequest request) => null;
+    private sealed class NullShapingProvider : OfficeIMO.Drawing.IOfficeTextShapingProvider {
+        public OfficeIMO.Drawing.OfficeTextShapingResult? ShapeText(OfficeIMO.Drawing.OfficeTextShapingRequest request) => null;
     }
 }

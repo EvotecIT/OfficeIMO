@@ -195,7 +195,7 @@ The image surface belongs to `OfficeIMO.Html`; the PDF extension surface remains
 - Kerning, ligatures, combining marks, bidirectional text, complex scripts, vertical alignment, decorations, and letter/word spacing.
 - Searchable PDF text and correct extraction order, not rasterized paragraphs.
 
-Text shaping must be implemented with first-party managed code and existing OfficeIMO font primitives. The existing `IPdfTextShapingProvider` seam can remain useful, but this plan must not require a new HarfBuzz, Skia, or native-assets package.
+Text shaping must be implemented with first-party managed code and existing OfficeIMO font primitives. The shared `OfficeIMO.Drawing.IOfficeTextShapingProvider` seam can remain useful, but this plan must not require a new HarfBuzz, Skia, or native-assets package.
 
 ### Layout
 

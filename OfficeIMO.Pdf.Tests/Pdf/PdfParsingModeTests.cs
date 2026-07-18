@@ -41,6 +41,18 @@ public class PdfParsingModeTests {
     }
 
     [Fact]
+    public void BinaryEndStreamBytesDoNotCreateFalseMissingEndObjectRepair() {
+        const string streamData = "prefix endstream binary-like suffix";
+        byte[] pdf = BuildStreamPdf("/Length " + streamData.Length, streamData);
+
+        PdfReadDocument document = PdfReadDocument.Open(pdf);
+
+        Assert.DoesNotContain(
+            document.RepairReport.Diagnostics,
+            diagnostic => diagnostic.Code == "MissingEndObject");
+    }
+
+    [Fact]
     public void MissingEndObjectIsReportedOrRejectedByPolicy() {
         byte[] pdf = Encoding.ASCII.GetBytes(
             "%PDF-1.7\n1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n" +
@@ -150,14 +162,14 @@ public class PdfParsingModeTests {
         Assert.True(duplicate.WasRecovered);
     }
 
-    private static byte[] BuildStreamPdf(string lengthEntry) {
+    private static byte[] BuildStreamPdf(string lengthEntry, string streamData = "BT (Recovered stream text) Tj ET") {
         string dictionary = string.IsNullOrEmpty(lengthEntry) ? "<< >>" : "<< " + lengthEntry + " >>";
         return Encoding.ASCII.GetBytes(
             "%PDF-1.7\n" +
             "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n" +
             "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] >>\nendobj\n" +
             "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Contents 4 0 R >>\nendobj\n" +
-            "4 0 obj\n" + dictionary + "\nstream\nBT (Recovered stream text) Tj ET\nendstream\nendobj\n" +
+            "4 0 obj\n" + dictionary + "\nstream\n" + streamData + "\nendstream\nendobj\n" +
             "trailer\n<< /Root 1 0 R /Size 5 >>\nstartxref\n0\n%%EOF\n");
     }
 

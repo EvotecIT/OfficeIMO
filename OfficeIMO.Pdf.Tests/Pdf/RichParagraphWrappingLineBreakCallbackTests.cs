@@ -10,7 +10,7 @@ namespace OfficeIMO.Tests.Pdf {
     public partial class RichParagraphWrappingTests {
         [Fact]
         public void PdfOptions_ClonePreservesTextLineBreakCallback() {
-            PdfTextLineBreakCallback callback = token => token == "alphaomega"
+            Func<string, IReadOnlyList<int>> callback = token => token == "alphaomega"
                 ? new[] { 5 }
                 : Array.Empty<int>();
 
@@ -61,7 +61,7 @@ namespace OfficeIMO.Tests.Pdf {
         [Fact]
         public void GeneratedText_UsesTextLineBreakCallbackForLongUnspacedTokens() {
             int callbackCalls = 0;
-            PdfTextLineBreakCallback callback = token => {
+            Func<string, IReadOnlyList<int>> callback = token => {
                 callbackCalls++;
                 return token == "alphaomega"
                     ? new[] { 5 }

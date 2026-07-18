@@ -1,3 +1,5 @@
+using OfficeIMO.Drawing;
+
 namespace OfficeIMO.Pdf;
 
 internal static class PdfExternalTextShaper {
@@ -10,14 +12,13 @@ internal static class PdfExternalTextShaper {
             return false;
         }
 
-        PdfTextShapingResult? result = options.ShapingProvider.ShapeText(new PdfTextShapingRequest(
+        OfficeTextShapingResult? result = options.ShapingProvider.ShapeText(new OfficeTextShapingRequest(
             text,
             font.FontName,
             font.FontDataSnapshot,
             isOpenTypeCff: false,
-            options.ShapingMode,
             font.UnitsPerEm,
-            PdfTextDirectionResolver.Resolve(text),
+            OfficeTextElements.ResolveBaseDirection(text),
             options.Language));
 
         if (result == null) {
@@ -39,14 +40,13 @@ internal static class PdfExternalTextShaper {
             return false;
         }
 
-        PdfTextShapingResult? result = options.ShapingProvider.ShapeText(new PdfTextShapingRequest(
+        OfficeTextShapingResult? result = options.ShapingProvider.ShapeText(new OfficeTextShapingRequest(
             text,
             font.FontName,
             font.FontDataSnapshot,
             isOpenTypeCff: true,
-            options.ShapingMode,
             font.UnitsPerEm,
-            PdfTextDirectionResolver.Resolve(text),
+            OfficeTextElements.ResolveBaseDirection(text),
             options.Language));
 
         if (result == null) {
@@ -61,7 +61,7 @@ internal static class PdfExternalTextShaper {
 
     private static PdfGlyphRun BuildGlyphRun(
         string text,
-        PdfTextShapingResult result,
+        OfficeTextShapingResult result,
         int glyphCount,
         int unitsPerEm,
         Func<int, int> getGlyphWidth1000,
@@ -71,7 +71,7 @@ internal static class PdfExternalTextShaper {
         }
 
         var glyphs = new List<PdfGlyphInfo>(result.Glyphs.Count);
-        foreach (PdfShapedGlyph shapedGlyph in result.Glyphs) {
+        foreach (OfficeShapedGlyph shapedGlyph in result.Glyphs) {
             if (shapedGlyph.GlyphId <= 0 || shapedGlyph.GlyphId >= glyphCount) {
                 throw new ArgumentException("PDF text shaping provider returned glyph id " + shapedGlyph.GlyphId.ToString(System.Globalization.CultureInfo.InvariantCulture) + ", which is outside the embedded font glyph range.", nameof(result));
             }
@@ -106,43 +106,4 @@ internal static class PdfExternalTextShaper {
 
     private static int ScaleToPdfUnits(int value, int unitsPerEm) =>
         checked((int)Math.Round(value * 1000D / unitsPerEm, MidpointRounding.AwayFromZero));
-}
-
-internal static class PdfTextDirectionResolver {
-    internal static PdfTextDirection Resolve(string text) {
-        for (int index = 0; index < text.Length;) {
-            int scalar = ReadScalar(text, ref index);
-            if (IsRightToLeft(scalar)) {
-                return PdfTextDirection.RightToLeft;
-            }
-
-            if (IsLeftToRight(scalar)) {
-                return PdfTextDirection.LeftToRight;
-            }
-        }
-
-        return PdfTextDirection.Auto;
-    }
-
-    private static bool IsRightToLeft(int scalar) =>
-        (scalar >= 0x0590 && scalar <= 0x08FF) ||
-        (scalar >= 0xFB1D && scalar <= 0xFDFF) ||
-        (scalar >= 0xFE70 && scalar <= 0xFEFF) ||
-        (scalar >= 0x10800 && scalar <= 0x10FFF) ||
-        (scalar >= 0x1E800 && scalar <= 0x1EEFF);
-
-    private static bool IsLeftToRight(int scalar) =>
-        (scalar >= 'A' && scalar <= 'Z') ||
-        (scalar >= 'a' && scalar <= 'z') ||
-        (scalar >= 0x00C0 && scalar <= 0x058F) ||
-        (scalar >= 0x0900 && scalar <= 0x1FFF) ||
-        (scalar >= 0x2C00 && scalar <= 0xA7FF) ||
-        (scalar >= 0x10000 && scalar <= 0x107FF);
-
-    private static int ReadScalar(string text, ref int index) {
-        char first = text[index++];
-        return char.IsHighSurrogate(first) && index < text.Length && char.IsLowSurrogate(text[index])
-            ? char.ConvertToUtf32(first, text[index++])
-            : first;
-    }
 }

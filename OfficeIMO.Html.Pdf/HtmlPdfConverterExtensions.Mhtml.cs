@@ -52,15 +52,15 @@ public static partial class HtmlPdfConverterExtensions {
     }
 
     /// <summary>Converts an MHTML archive and saves it as a PDF file.</summary>
-    public static PdfCore.PdfDocumentConversionResult SaveAsPdf(this MhtmlDocument document, string path, HtmlPdfSaveOptions? options = null) =>
+    public static PdfCore.PdfSaveResult SaveAsPdf(this MhtmlDocument document, string path, HtmlPdfSaveOptions? options = null) =>
         document.ToPdfDocumentResult(options).Save(path);
 
     /// <summary>Converts an MHTML archive and writes it as PDF to a caller-owned stream.</summary>
-    public static PdfCore.PdfDocumentConversionResult SaveAsPdf(this MhtmlDocument document, Stream stream, HtmlPdfSaveOptions? options = null) =>
+    public static PdfCore.PdfSaveResult SaveAsPdf(this MhtmlDocument document, Stream stream, HtmlPdfSaveOptions? options = null) =>
         document.ToPdfDocumentResult(options).Save(stream);
 
     /// <summary>Asynchronously converts an MHTML archive and saves it as a PDF file.</summary>
-    public static async Task<PdfCore.PdfDocumentConversionResult> SaveAsPdfAsync(
+    public static async Task<PdfCore.PdfSaveResult> SaveAsPdfAsync(
         this MhtmlDocument document,
         string path,
         HtmlPdfSaveOptions? options = null,
@@ -69,7 +69,7 @@ public static partial class HtmlPdfConverterExtensions {
             .SaveAsync(path, cancellationToken).ConfigureAwait(false);
 
     /// <summary>Asynchronously converts an MHTML archive and writes it as PDF to a caller-owned stream.</summary>
-    public static async Task<PdfCore.PdfDocumentConversionResult> SaveAsPdfAsync(
+    public static async Task<PdfCore.PdfSaveResult> SaveAsPdfAsync(
         this MhtmlDocument document,
         Stream stream,
         HtmlPdfSaveOptions? options = null,

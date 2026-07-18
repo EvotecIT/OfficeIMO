@@ -1003,7 +1003,10 @@ public class PdfFontFamilyTests {
         Assert.Equal("sample-warning", Assert.Single(saveResult.Warnings).Code);
         Assert.True(saveResult.HasWarnings);
         Assert.True(output.Length > 0);
-        Assert.Same(processed, processed.Save(new MemoryStream()));
+        PdfSaveResult throwingSaveResult = processed.Save(new MemoryStream());
+        Assert.True(throwingSaveResult.Succeeded);
+        Assert.Equal("sample-warning", Assert.Single(throwingSaveResult.Warnings).Code);
+        Assert.True(throwingSaveResult.Pipeline.Succeeded);
     }
 
     [Fact]
@@ -1054,8 +1057,10 @@ public class PdfFontFamilyTests {
         Assert.Equal("async-sample-warning", Assert.Single(result.Warnings).Code);
 
         using var chainedStream = new MemoryStream();
-        PdfDocumentConversionResult chained = await result.SaveAsync(chainedStream);
-        Assert.Same(result, chained);
+        PdfSaveResult asyncSaveResult = await result.SaveAsync(chainedStream);
+        Assert.True(asyncSaveResult.Succeeded);
+        Assert.Equal("async-sample-warning", Assert.Single(asyncSaveResult.Warnings).Code);
+        Assert.True(asyncSaveResult.Pipeline.Succeeded);
         Assert.True(chainedStream.Length > 0);
 
         string directory = Path.Combine(Path.GetTempPath(), "OfficeIMO.Pdf.ConversionResult.Async", Guid.NewGuid().ToString("N"));
@@ -1065,16 +1070,17 @@ public class PdfFontFamilyTests {
             string savePath = Path.Combine(directory, "save.pdf");
 
             PdfSaveResult pathResult = await result.TrySaveAsync(tryPath);
-            PdfDocumentConversionResult pathChained = await result.SaveAsync(savePath);
+            PdfSaveResult pathSaveResult = await result.SaveAsync(savePath);
 
             Assert.True(pathResult.Succeeded);
             Assert.Equal("async-sample-warning", Assert.Single(pathResult.Warnings).Code);
             Assert.True(File.Exists(tryPath));
             Assert.True(new FileInfo(tryPath).Length > 0);
-            Assert.Same(result, pathChained);
+            Assert.True(pathSaveResult.Succeeded);
             Assert.True(File.Exists(savePath));
             Assert.True(new FileInfo(savePath).Length > 0);
-            Assert.Equal("async-sample-warning", Assert.Single(pathChained.Warnings).Code);
+            Assert.Equal("async-sample-warning", Assert.Single(pathSaveResult.Warnings).Code);
+            Assert.True(pathSaveResult.Pipeline.Succeeded);
         } finally {
             Directory.Delete(directory, recursive: true);
         }

@@ -12,6 +12,7 @@ public sealed partial class PdfDocument {
     private readonly PdfOptions _options;
     private readonly System.Collections.Generic.Stack<System.Action<IPdfBlock>> _blockScopes;
     private readonly PdfDocumentSource? _source;
+    private readonly PdfPipelineReport _pipeline;
 
     // Metadata
     private string? _title;
@@ -21,6 +22,7 @@ public sealed partial class PdfDocument {
 
     private PdfDocument(PdfOptions? options = null) {
         _options = options?.Clone() ?? new PdfOptions();
+        _pipeline = PdfPipelineReport.Created();
         _blockScopes = new System.Collections.Generic.Stack<System.Action<IPdfBlock>>();
         _blockScopes.Push(_blocks.Add);
         Pages = new PdfDocumentPages(this);
@@ -34,6 +36,12 @@ public sealed partial class PdfDocument {
 
     private PdfDocument(PdfDocumentSource source) : this() {
         _source = source;
+        _pipeline = PdfPipelineReport.Opened(source.Bytes, source.Options);
+    }
+
+    private PdfDocument(PdfDocumentSource source, PdfPipelineReport pipeline) : this() {
+        _source = source;
+        _pipeline = pipeline;
     }
 
     /// <summary>
@@ -108,6 +116,12 @@ public sealed partial class PdfDocument {
 
     /// <summary>Existing-document annotation editing operations.</summary>
     public PdfDocumentAnnotations Annotations { get; }
+
+    /// <summary>
+    /// Immutable create/open and mutation history accumulated by this document.
+    /// Save and byte-generation results append their own exact output stage.
+    /// </summary>
+    public PdfPipelineReport Pipeline => _pipeline;
 
     /// <summary>
     /// Text and image stamping operations for this PDF.
@@ -232,8 +246,31 @@ public sealed partial class PdfDocument {
     /// <summary>
     /// Adopts an internal operation result while carrying the source document's read contract forward.
     /// </summary>
-    internal PdfDocument WithBytes(byte[] pdf, PdfReadOptions? readOptions = null) =>
-        FromBytes(pdf, readOptions ?? ReadOptions);
+    internal PdfDocument WithBytes(
+        byte[] pdf,
+        PdfReadOptions? readOptions = null,
+        [System.Runtime.CompilerServices.CallerMemberName] string operationName = "") {
+        Guard.NotNull(pdf, nameof(pdf));
+        PdfReadOptions effectiveReadOptions = readOptions ?? ReadOptions;
+        byte[] inputBytes = GetBytesForOperation();
+        PdfArtifactSnapshot input = _pipeline.Output ?? PdfArtifactSnapshot.Capture(inputBytes, ReadOptions);
+        PdfArtifactSnapshot output = PdfArtifactSnapshot.Capture(pdf, effectiveReadOptions);
+        PdfMutationOperation? mutationOperation = ResolveMutationOperation(operationName);
+        PdfMutationExecutionMode executionMode = IsAppendOnly(inputBytes, pdf)
+            ? PdfMutationExecutionMode.AppendOnly
+            : PdfMutationExecutionMode.FullRewrite;
+        var step = new PdfPipelineStep(
+            PdfPipelineStepKind.Mutation,
+            NormalizeOperationName(operationName),
+            succeeded: true,
+            input,
+            output,
+            duration: null,
+            mutationOperation,
+            executionMode);
+        var source = PdfDocumentSource.FromOwnedBytes(pdf, effectiveReadOptions);
+        return new PdfDocument(source, _pipeline.Append(step));
+    }
 
     private sealed class Scope : System.IDisposable {
         private readonly PdfDocument _doc;
