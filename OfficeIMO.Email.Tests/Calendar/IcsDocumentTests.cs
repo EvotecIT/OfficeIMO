@@ -446,6 +446,87 @@ public sealed class IcsDocumentTests {
     }
 
     [Theory]
+    [InlineData("20261025T030000Z", null)]
+    [InlineData("20261025T030000", "Europe/Warsaw")]
+    [InlineData("20261025", "DATE")]
+    public void ValidationRejectsNonFloatingTimeZoneObservanceStarts(
+        string value, string? parameterValue) {
+        var document = new IcsDocument();
+        ContentLineComponent timeZone = document.Calendars.Single().AddComponent("VTIMEZONE");
+        timeZone.AddProperty("TZID", "Europe/Warsaw");
+        ContentLineComponent standard = timeZone.AddComponent("STANDARD");
+        ContentLineProperty start = standard.AddProperty("DTSTART", value);
+        if (string.Equals(parameterValue, "DATE", StringComparison.Ordinal))
+            start.SetParameter("VALUE", parameterValue!);
+        else if (parameterValue != null)
+            start.SetParameter("TZID", parameterValue);
+        standard.AddProperty("TZOFFSETFROM", "+0200");
+        standard.AddProperty("TZOFFSETTO", "+0100");
+
+        Assert.Contains(document.Validate(), issue =>
+            issue.Code == "ICAL_TIMEZONE_OBSERVANCE_START_INVALID" &&
+            issue.ComponentName == "STANDARD" && issue.PropertyName == "DTSTART");
+    }
+
+    [Theory]
+    [InlineData("20260718T090000", "20260718T100000Z", "DTSTART",
+        "ICAL_TEMPORAL_VALUE_UTC_REQUIRED")]
+    [InlineData("20260718T090000Z", "20260718T100000", "DTEND",
+        "ICAL_TEMPORAL_VALUE_UTC_REQUIRED")]
+    [InlineData("20260718T100000Z", "20260718T090000Z", "DTEND",
+        "ICAL_TEMPORAL_ENDPOINT_ORDER_INVALID")]
+    public void ValidationRejectsInvalidFreeBusyWindows(string start, string end,
+        string propertyName, string expectedCode) {
+        var document = new IcsDocument();
+        ContentLineComponent freeBusy = document.Calendars.Single().AddComponent("VFREEBUSY");
+        freeBusy.AddProperty("DTSTART", start);
+        freeBusy.AddProperty("DTEND", end);
+
+        Assert.Contains(document.Validate(), issue => issue.Code == expectedCode &&
+            issue.ComponentName == "VFREEBUSY" && issue.PropertyName == propertyName);
+    }
+
+    [Theory]
+    [InlineData("20260718", "20260718T090000Z", "ICAL_RECURRENCE_ID_TYPE_MISMATCH")]
+    [InlineData("20260718T090000Z", "20260718", "ICAL_RECURRENCE_ID_TYPE_MISMATCH")]
+    [InlineData("20260718T090000", "20260718T090000Z",
+        "ICAL_RECURRENCE_ID_REPRESENTATION_MISMATCH")]
+    [InlineData("20260718T090000Z", "20260718T090000",
+        "ICAL_RECURRENCE_ID_REPRESENTATION_MISMATCH")]
+    public void ValidationMatchesRecurrenceIdToDtStart(string startValue,
+        string recurrenceValue, string expectedCode) {
+        var document = new IcsDocument();
+        ContentLineComponent appointment = document.Calendars.Single().AddComponent("VEVENT");
+        ContentLineProperty start = appointment.AddProperty("DTSTART", startValue);
+        ContentLineProperty recurrence = appointment.AddProperty("RECURRENCE-ID", recurrenceValue);
+        if (startValue.Length == 8) start.SetParameter("VALUE", "DATE");
+        if (recurrenceValue.Length == 8) recurrence.SetParameter("VALUE", "DATE");
+
+        Assert.Contains(document.Validate(), issue => issue.Code == expectedCode &&
+            issue.ComponentName == "VEVENT" && issue.PropertyName == "RECURRENCE-ID");
+    }
+
+    [Theory]
+    [InlineData("20260718", "20260719", true)]
+    [InlineData("20260718T090000Z", "20260719T090000Z", false)]
+    [InlineData("20260718T090000", "20260719T090000", false)]
+    public void ValidationAcceptsMatchingRecurrenceIdValueForms(
+        string startValue, string recurrenceValue, bool isDate) {
+        var document = new IcsDocument();
+        ContentLineComponent appointment = document.Calendars.Single().AddComponent("VEVENT");
+        ContentLineProperty start = appointment.AddProperty("DTSTART", startValue);
+        ContentLineProperty recurrence = appointment.AddProperty("RECURRENCE-ID", recurrenceValue);
+        if (isDate) {
+            start.SetParameter("VALUE", "DATE");
+            recurrence.SetParameter("VALUE", "DATE");
+        }
+
+        Assert.DoesNotContain(document.Validate(), issue =>
+            issue.Code == "ICAL_RECURRENCE_ID_TYPE_MISMATCH" ||
+            issue.Code == "ICAL_RECURRENCE_ID_REPRESENTATION_MISMATCH");
+    }
+
+    [Theory]
     [InlineData("VEVENT", "DTEND")]
     [InlineData("VTODO", "DUE")]
     public void ValidationRejectsEndpointValueTypesThatDoNotMatchDtStart(

@@ -33,7 +33,7 @@ internal sealed partial class PstStoreReader {
     private EmailStoreFormat _format;
     private string? _displayName;
     private long _sourceLength;
-    private long _totalAttachmentBytes;
+    private PstAttachmentAggregateBudget _attachmentBudget;
     private bool _completeIndexesLoaded;
     private bool _isPasswordProtected;
     private bool _isOfficeImoWriterStore;
@@ -42,6 +42,7 @@ internal sealed partial class PstStoreReader {
         EmailStoreSessionLifetime? lifetime = null) {
         _options = options;
         _lifetime = lifetime ?? new EmailStoreSessionLifetime();
+        _attachmentBudget = new PstAttachmentAggregateBudget(options.MaxTotalAttachmentBytes);
     }
 
     internal EmailStoreFormat Format => _format;
@@ -79,7 +80,7 @@ internal sealed partial class PstStoreReader {
                 selections.Count, _options.MaxItemCount);
         }
 
-        _totalAttachmentBytes = 0;
+        ResetAttachmentBudget();
         foreach (ItemSelection selection in selections) {
             _cancellationToken.ThrowIfCancellationRequested();
             EmailStoreFolder folder = folders[selection.FolderNid];
@@ -98,7 +99,7 @@ internal sealed partial class PstStoreReader {
         _format = format;
         _sourceLength = stream.Length;
         _displayName = null;
-        _totalAttachmentBytes = 0;
+        ResetAttachmentBudget();
         _completeIndexesLoaded = loadCompleteIndexes;
         _diagnostics.Clear();
         _folderNodes.Clear();
@@ -226,7 +227,7 @@ internal sealed partial class PstStoreReader {
         if (options == null) throw new ArgumentNullException(nameof(options));
         _cancellationToken = cancellationToken;
         PstNodeReference node = ResolveReferencedNode(reference);
-        _totalAttachmentBytes = 0;
+        ResetAttachmentBudget();
         return ReadItem(node, reference.FolderId, _format,
             reference.IsAssociated, reference.IsOrphaned, options, reference.Summary);
     }

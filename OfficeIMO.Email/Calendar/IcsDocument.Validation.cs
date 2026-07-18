@@ -136,7 +136,13 @@ public sealed partial class IcsDocument {
             if (name == "VEVENT" || name == "VTODO") {
                 ValidateDurations(component, issues);
                 ValidateTemporalEndpoint(component, name == "VEVENT" ? "DTEND" : "DUE", issues);
+            } else if (name == "VFREEBUSY") {
+                ValidateFreeBusyWindow(component, issues);
             }
+            if (name == "VEVENT" || name == "VTODO" || name == "VJOURNAL")
+                ValidateRecurrenceIdentifier(component, issues);
+            if (name == "STANDARD" || name == "DAYLIGHT")
+                ValidateTimeZoneObservanceStart(component, issues);
 
             foreach (string temporalName in new[] { "DTSTART", "DTEND", "DUE", "RECURRENCE-ID",
                          "RDATE", "EXDATE", "DTSTAMP", "CREATED", "LAST-MODIFIED", "COMPLETED" }) {
@@ -165,6 +171,66 @@ public sealed partial class IcsDocument {
                 ValidateComponent(child, component, issues, active, depth + 1);
         } finally {
             active.Remove(component);
+        }
+    }
+
+    private static void ValidateFreeBusyWindow(ContentLineComponent component,
+        ICollection<ContentLineValidationIssue> issues) {
+        ContentLineProperty? startProperty = component.GetFirstProperty("DTSTART");
+        ContentLineProperty? endProperty = component.GetFirstProperty("DTEND");
+        bool validStart = IcsTemporalValue.TryParse(startProperty, out IcsTemporalValue start);
+        bool validEnd = IcsTemporalValue.TryParse(endProperty, out IcsTemporalValue end);
+        if (validStart && start.Kind != IcsTemporalValueKind.UtcDateTime) {
+            issues.Add(Issue("ICAL_TEMPORAL_VALUE_UTC_REQUIRED",
+                "VFREEBUSY DTSTART must contain a UTC DATE-TIME value.",
+                ContentLineValidationSeverity.Error, component, startProperty));
+        }
+        if (validEnd && end.Kind != IcsTemporalValueKind.UtcDateTime) {
+            issues.Add(Issue("ICAL_TEMPORAL_VALUE_UTC_REQUIRED",
+                "VFREEBUSY DTEND must contain a UTC DATE-TIME value.",
+                ContentLineValidationSeverity.Error, component, endProperty));
+        }
+        if (validStart && validEnd && start.Kind == IcsTemporalValueKind.UtcDateTime &&
+            end.Kind == IcsTemporalValueKind.UtcDateTime && end.Value <= start.Value) {
+            issues.Add(Issue("ICAL_TEMPORAL_ENDPOINT_ORDER_INVALID",
+                "VFREEBUSY DTEND must be later than DTSTART.",
+                ContentLineValidationSeverity.Error, component, endProperty));
+        }
+    }
+
+    private static void ValidateRecurrenceIdentifier(ContentLineComponent component,
+        ICollection<ContentLineValidationIssue> issues) {
+        ContentLineProperty? startProperty = component.GetFirstProperty("DTSTART");
+        ContentLineProperty? recurrenceProperty = component.GetFirstProperty("RECURRENCE-ID");
+        if (!IcsTemporalValue.TryParse(startProperty, out IcsTemporalValue start) ||
+            !IcsTemporalValue.TryParse(recurrenceProperty, out IcsTemporalValue recurrence)) return;
+        bool startIsDate = start.Kind == IcsTemporalValueKind.Date;
+        bool recurrenceIsDate = recurrence.Kind == IcsTemporalValueKind.Date;
+        if (startIsDate != recurrenceIsDate) {
+            issues.Add(Issue("ICAL_RECURRENCE_ID_TYPE_MISMATCH",
+                "RECURRENCE-ID must use the same DATE or DATE-TIME value type as DTSTART.",
+                ContentLineValidationSeverity.Error, component, recurrenceProperty));
+            return;
+        }
+        bool startIsLocal = start.Kind == IcsTemporalValueKind.FloatingDateTime ||
+                            start.Kind == IcsTemporalValueKind.ZonedDateTime;
+        bool recurrenceIsLocal = recurrence.Kind == IcsTemporalValueKind.FloatingDateTime ||
+                                 recurrence.Kind == IcsTemporalValueKind.ZonedDateTime;
+        if (startIsLocal != recurrenceIsLocal) {
+            issues.Add(Issue("ICAL_RECURRENCE_ID_REPRESENTATION_MISMATCH",
+                "RECURRENCE-ID must use local time if and only if DTSTART uses local time.",
+                ContentLineValidationSeverity.Error, component, recurrenceProperty));
+        }
+    }
+
+    private static void ValidateTimeZoneObservanceStart(ContentLineComponent component,
+        ICollection<ContentLineValidationIssue> issues) {
+        ContentLineProperty? startProperty = component.GetFirstProperty("DTSTART");
+        if (IcsTemporalValue.TryParse(startProperty, out IcsTemporalValue start) &&
+            start.Kind != IcsTemporalValueKind.FloatingDateTime) {
+            issues.Add(Issue("ICAL_TIMEZONE_OBSERVANCE_START_INVALID",
+                "STANDARD and DAYLIGHT DTSTART must contain a floating local DATE-TIME value.",
+                ContentLineValidationSeverity.Error, component, startProperty));
         }
     }
 

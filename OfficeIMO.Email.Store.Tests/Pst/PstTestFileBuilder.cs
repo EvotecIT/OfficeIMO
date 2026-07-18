@@ -8,7 +8,8 @@ internal static class PstTestFileBuilder {
         bool fourK = false, bool compressBlocks = false, bool includeEmbeddedMessage = false,
         byte[]? attachmentContent = null, uint? storePasswordChecksum = null,
         bool corruptPageCrc = false, bool corruptBlockCrc = false,
-        bool includeFixedNidSearchFolder = false, uint? inboxParentNid = null) {
+        bool includeFixedNidSearchFolder = false, uint? inboxParentNid = null,
+        long? attachmentDeclaredLength = null) {
         if (fourK && (!ost || ansi)) throw new ArgumentException("4K test stores must use the Unicode OST variant.");
         if (compressBlocks && !fourK) throw new ArgumentException("Only 4K test blocks can be compressed.");
         if (compressBlocks && cryptMethod != 0) throw new ArgumentException("The fixture does not combine compression and encoding.");
@@ -35,7 +36,10 @@ internal static class PstTestFileBuilder {
 
         var blocks = nodes.Select(node => node.DataBlock).ToList();
         if (includeEmbeddedMessage) AddEmbeddedMessageBlocks(nodes[3], blocks, ansi);
-        if (attachmentContent != null) AddByValueAttachmentBlocks(nodes[3], blocks, attachmentContent, ansi);
+        if (attachmentContent != null) {
+            AddByValueAttachmentBlocks(nodes[3], blocks, attachmentContent, ansi,
+                attachmentDeclaredLength ?? attachmentContent.LongLength);
+        }
 
         int bbtOffset = fourK ? 4096 : BbtOffset;
         int nbtOffset = fourK ? 8192 : NbtOffset;
@@ -270,11 +274,11 @@ internal static class PstTestFileBuilder {
     }
 
     private static void AddByValueAttachmentBlocks(TestNode messageNode,
-        ICollection<TestBlock> blocks, byte[] content, bool ansi) {
+        ICollection<TestBlock> blocks, byte[] content, bool ansi, long declaredLength) {
         const uint attachmentNid = 0x205;
         const uint contentNid = 0x321;
         var attachment = new TestBlock(0x110,
-            CreateByValueAttachmentPropertyContext(contentNid, content.LongLength));
+            CreateByValueAttachmentPropertyContext(contentNid, declaredLength));
         var contentBlock = new TestBlock(0x114, content.ToArray());
         var attachmentSubnodes = new TestBlock(0x11A,
             CreateSubnodeBlock(contentNid, contentBlock.Bid, 0, ansi));

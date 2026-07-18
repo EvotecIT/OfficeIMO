@@ -138,7 +138,14 @@ internal sealed partial class PstStoreReader {
 
         if (_options.RetainAttachmentContent && !preferStreaming) {
             byte[] content = heap.ResolveHnid(contentHnid, _options.MaxAttachmentBytes);
-            if (declaredLength == 0) CountAttachmentBytes(content.LongLength);
+            if (content.LongLength > _options.MaxAttachmentBytes) {
+                throw new EmailStoreLimitExceededException(
+                    nameof(EmailStoreReaderOptions.MaxAttachmentBytes),
+                    content.LongLength, _options.MaxAttachmentBytes);
+            }
+            if (content.LongLength > declaredLength) {
+                CountAttachmentBytes(content.LongLength - declaredLength);
+            }
             attachment.Content = content;
             attachment.Length = content.LongLength;
             MapiProperty? contentProperty = properties.FirstOrDefault(property => property.PropertyId == 0x3701);
@@ -151,15 +158,15 @@ internal sealed partial class PstStoreReader {
 
         attachment.ContentSource = new PstAttachmentContentSource(
             heap, contentHnid, declaredLength > 0 ? (long?)declaredLength : null,
-            _options.MaxAttachmentBytes, _lifetime);
+            _options.MaxAttachmentBytes, _attachmentBudget, _lifetime);
     }
 
     private void CountAttachmentBytes(long length) {
-        _totalAttachmentBytes = checked(_totalAttachmentBytes + length);
-        if (_totalAttachmentBytes > _options.MaxTotalAttachmentBytes) {
-            throw new EmailStoreLimitExceededException(nameof(EmailStoreReaderOptions.MaxTotalAttachmentBytes),
-                _totalAttachmentBytes, _options.MaxTotalAttachmentBytes);
-        }
+        _attachmentBudget.Add(length);
+    }
+
+    private void ResetAttachmentBudget() {
+        _attachmentBudget = new PstAttachmentAggregateBudget(_options.MaxTotalAttachmentBytes);
     }
 
     private void TryReadEmbeddedMessage(EmailAttachment attachment,
