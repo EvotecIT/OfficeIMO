@@ -475,12 +475,16 @@ public sealed class VCardDocumentTests {
     }
 
     [Theory]
-    [InlineData("3.0")]
-    [InlineData("4.0")]
-    public void ValidationRejectsBareCompatibilityParametersAfterVCard21(string version) {
+    [InlineData("3.0", "HOME")]
+    [InlineData("3.0", "TYPE=")]
+    [InlineData("3.0", "TYPE=\"   \"")]
+    [InlineData("4.0", "HOME")]
+    [InlineData("4.0", "TYPE=")]
+    [InlineData("4.0", "TYPE=\"   \"")]
+    public void ValidationRejectsBareOrEmptyParametersAfterVCard21(string version, string parameter) {
         VCardDocument document = VCardDocument.Parse(
             "BEGIN:VCARD\r\nVERSION:" + version + "\r\nFN:Contact\r\nN:Contact;;;;\r\n" +
-            "TEL;HOME:+12025550123\r\nEND:VCARD\r\n");
+            "TEL;" + parameter + ":+12025550123\r\nEND:VCARD\r\n");
 
         Assert.Contains(document.Validate(), issue =>
             issue.Code == "VCARD_PARAMETER_VALUE_REQUIRED" && issue.PropertyName == "TEL");

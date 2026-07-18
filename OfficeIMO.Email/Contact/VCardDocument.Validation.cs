@@ -71,7 +71,8 @@ public sealed partial class VCardDocument {
             foreach (ContentLineProperty property in card.Properties) {
                 if (version != VCardVersion.V2_1) {
                     foreach (ContentLineParameter parameter in property.Parameters.Where(parameter =>
-                                 parameter.Values.Count == 0)) {
+                                 parameter.Values.Count == 0 ||
+                                 parameter.Values.Any(string.IsNullOrWhiteSpace))) {
                         issues.Add(Issue("VCARD_PARAMETER_VALUE_REQUIRED",
                             "The " + parameter.Name + " parameter must use a named value in vCard 3.0 and 4.0.",
                             ContentLineValidationSeverity.Error, card, property.Name));
