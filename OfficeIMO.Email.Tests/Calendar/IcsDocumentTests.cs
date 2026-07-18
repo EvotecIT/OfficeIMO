@@ -348,6 +348,31 @@ public sealed class IcsDocumentTests {
         Assert.Contains(text, document.Serialize(), StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void ValidationOrdersLeapSecondsBeforeTheFollowingNormalizedInstant() {
+        var document = new IcsDocument();
+        ContentLineComponent calendar = document.Calendars.Single();
+        ContentLineComponent appointment = calendar.AddComponent("VEVENT");
+        appointment.AddProperty("UID", "leap-second@example.test");
+        appointment.AddProperty("DTSTAMP", "20170101T000000Z");
+        appointment.AddProperty("DTSTART", "20161231T235960Z");
+        appointment.AddProperty("DTEND", "20170101T000000Z");
+        appointment.AddProperty("RDATE", "20161231T235960Z/20170101T000000Z")
+            .SetParameter("VALUE", "PERIOD");
+        ContentLineComponent freeBusy = calendar.AddComponent("VFREEBUSY");
+        freeBusy.AddProperty("UID", "leap-freebusy@example.test");
+        freeBusy.AddProperty("DTSTAMP", "20170101T000000Z");
+        freeBusy.AddProperty("DTSTART", "20161231T235960Z");
+        freeBusy.AddProperty("DTEND", "20170101T000000Z");
+        freeBusy.AddProperty("FREEBUSY", "20161231T235960Z/20170101T000000Z");
+
+        ContentLineValidationIssue[] issues = document.Validate().ToArray();
+        Assert.DoesNotContain(issues, issue => issue.Code == "ICAL_TEMPORAL_ENDPOINT_ORDER_INVALID");
+        Assert.DoesNotContain(issues, issue => issue.Code == "ICAL_TEMPORAL_VALUE_INVALID" &&
+            issue.PropertyName == "RDATE");
+        Assert.DoesNotContain(issues, issue => issue.Code == "ICAL_FREEBUSY_PERIOD_INVALID");
+    }
+
     [Theory]
     [InlineData(" 20260717T090000Z")]
     [InlineData("20260717T090000Z ")]
@@ -738,6 +763,56 @@ public sealed class IcsDocumentTests {
         Assert.DoesNotContain(document.Validate(), issue => issue.Code == "ICAL_FREEBUSY_PERIOD_INVALID");
     }
 
+    [Theory]
+    [InlineData("")]
+    [InlineData("THISANDPRIOR")]
+    [InlineData("not a range")]
+    public void ValidationRejectsInvalidRecurrenceIdRangeValuesWithoutAMaster(string range) {
+        var document = new IcsDocument();
+        ContentLineComponent exception = document.Calendars.Single().AddComponent("VEVENT");
+        exception.AddProperty("UID", "range-invalid@example.test");
+        exception.AddProperty("DTSTAMP", "20260718T090000Z");
+        exception.AddProperty("RECURRENCE-ID", "20260719T090000Z").SetParameter("RANGE", range);
+
+        Assert.Contains(document.Validate(), issue =>
+            issue.Code == "ICAL_RECURRENCE_ID_RANGE_INVALID" &&
+            issue.ComponentName == "VEVENT" && issue.PropertyName == "RECURRENCE-ID");
+    }
+
+    [Fact]
+    public void ValidationRejectsRepeatedRecurrenceIdRangeParametersAndValues() {
+        var document = new IcsDocument();
+        ContentLineComponent calendar = document.Calendars.Single();
+        ContentLineComponent repeatedValues = calendar.AddComponent("VEVENT");
+        repeatedValues.AddProperty("UID", "range-values@example.test");
+        repeatedValues.AddProperty("DTSTAMP", "20260718T090000Z");
+        repeatedValues.AddProperty("RECURRENCE-ID", "20260719T090000Z")
+            .SetParameter("RANGE", "THISANDFUTURE", "THISANDFUTURE");
+        ContentLineComponent repeatedParameters = calendar.AddComponent("VEVENT");
+        repeatedParameters.AddProperty("UID", "range-parameters@example.test");
+        repeatedParameters.AddProperty("DTSTAMP", "20260718T090000Z");
+        ContentLineProperty recurrence = repeatedParameters.AddProperty(
+            "RECURRENCE-ID", "20260719T090000Z");
+        recurrence.Parameters.Add(new ContentLineParameter("RANGE", "THISANDFUTURE"));
+        recurrence.Parameters.Add(new ContentLineParameter("RANGE", "THISANDFUTURE"));
+
+        Assert.Equal(2, document.Validate().Count(issue =>
+            issue.Code == "ICAL_RECURRENCE_ID_RANGE_INVALID"));
+    }
+
+    [Fact]
+    public void ValidationAcceptsThisAndFutureRecurrenceIdRangeWithoutAMaster() {
+        var document = new IcsDocument();
+        ContentLineComponent exception = document.Calendars.Single().AddComponent("VEVENT");
+        exception.AddProperty("UID", "range-valid@example.test");
+        exception.AddProperty("DTSTAMP", "20260718T090000Z");
+        exception.AddProperty("RECURRENCE-ID", "20260719T090000Z")
+            .SetParameter("RANGE", "THISANDFUTURE");
+
+        Assert.DoesNotContain(document.Validate(), issue =>
+            issue.Code == "ICAL_RECURRENCE_ID_RANGE_INVALID");
+    }
+
     [Fact]
     public void ValidationRejectsValueParametersOnFixedTypeFreeBusyProperties() {
         var document = new IcsDocument();
@@ -1120,6 +1195,28 @@ public sealed class IcsDocumentTests {
             issue.PropertyName == "METHOD");
         Assert.Contains(issues, issue => issue.Code == "ICAL_PROPERTY_REQUIRED" &&
             issue.PropertyName == "DTSTART");
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("not a scale")]
+    [InlineData("GREGORIAN!")]
+    public void ValidationRejectsInvalidCalendarScales(string value) {
+        var document = new IcsDocument();
+        document.Calendars.Single().AddProperty("CALSCALE", value);
+
+        Assert.Contains(document.Validate(), issue => issue.Code == "ICAL_CALSCALE_INVALID" &&
+            issue.PropertyName == "CALSCALE");
+    }
+
+    [Theory]
+    [InlineData("GREGORIAN")]
+    [InlineData("OTHER-SCALE")]
+    public void ValidationAcceptsCalendarScaleTokens(string value) {
+        var document = new IcsDocument();
+        document.Calendars.Single().AddProperty("CALSCALE", value);
+
+        Assert.DoesNotContain(document.Validate(), issue => issue.Code == "ICAL_CALSCALE_INVALID");
     }
 
     [Theory]

@@ -1,6 +1,16 @@
 namespace OfficeIMO.Email;
 
 public sealed partial class IcsDocument {
+    private static void ValidateCalendarScaleValues(ContentLineComponent calendar,
+        ICollection<ContentLineValidationIssue> issues) {
+        foreach (ContentLineProperty calendarScale in calendar.GetProperties("CALSCALE")) {
+            if (IsValidTokenValue(calendarScale)) continue;
+            issues.Add(Issue("ICAL_CALSCALE_INVALID",
+                "CALSCALE must contain a non-empty iana-token value.",
+                ContentLineValidationSeverity.Error, calendar, calendarScale));
+        }
+    }
+
     private static void ValidateMethodValues(ContentLineComponent calendar,
         ICollection<ContentLineValidationIssue> issues) {
         foreach (ContentLineProperty method in calendar.GetProperties("METHOD")) {
@@ -88,7 +98,7 @@ public sealed partial class IcsDocument {
                 ContentLineValidationSeverity.Error, component, endProperty));
         }
         if (validStart && validEnd && start.Kind == IcsTemporalValueKind.UtcDateTime &&
-            end.Kind == IcsTemporalValueKind.UtcDateTime && end.Value <= start.Value) {
+            end.Kind == IcsTemporalValueKind.UtcDateTime && end.CompareClockTo(start) <= 0) {
             issues.Add(Issue("ICAL_TEMPORAL_ENDPOINT_ORDER_INVALID",
                 "VFREEBUSY DTEND must be later than DTSTART.",
                 ContentLineValidationSeverity.Error, component, endProperty));
@@ -123,14 +133,16 @@ public sealed partial class IcsDocument {
             return ValidatePositiveDuration(endText);
         var endProperty = CreatePeriodDateTimeProperty(property, endText);
         return IcsTemporalValue.TryParse(endProperty, out IcsTemporalValue end) &&
-            end.Kind == IcsTemporalValueKind.UtcDateTime && end.Value > start.Value;
+            end.Kind == IcsTemporalValueKind.UtcDateTime && end.CompareClockTo(start) > 0;
     }
 
     private static void ValidateRecurrenceIdentifier(ContentLineComponent component, ContentLineComponent parent,
         ICollection<ContentLineValidationIssue> issues) {
         ContentLineProperty? recurrenceProperty = component.GetFirstProperty("RECURRENCE-ID");
+        if (recurrenceProperty == null) return;
+        ValidateRecurrenceIdentifierRange(component, recurrenceProperty, issues);
         ContentLineProperty? uidProperty = component.GetFirstProperty("UID");
-        if (recurrenceProperty == null || uidProperty == null || string.IsNullOrWhiteSpace(uidProperty.Value)) return;
+        if (uidProperty == null || string.IsNullOrWhiteSpace(uidProperty.Value)) return;
         ContentLineComponent? master = parent.Components.FirstOrDefault(candidate =>
             !ReferenceEquals(candidate, component) &&
             string.Equals(candidate.Name, component.Name, StringComparison.OrdinalIgnoreCase) &&
@@ -159,6 +171,19 @@ public sealed partial class IcsDocument {
                 "A zoned RECURRENCE-ID must use the same TZID as DTSTART.",
                 ContentLineValidationSeverity.Error, component, recurrenceProperty));
         }
+    }
+
+    private static void ValidateRecurrenceIdentifierRange(ContentLineComponent component,
+        ContentLineProperty recurrenceProperty, ICollection<ContentLineValidationIssue> issues) {
+        ContentLineParameter[] rangeParameters = recurrenceProperty.Parameters.Where(parameter =>
+            string.Equals(parameter.Name, "RANGE", StringComparison.OrdinalIgnoreCase)).ToArray();
+        if (rangeParameters.Length == 0) return;
+        if (rangeParameters.Length == 1 && rangeParameters[0].Values.Count == 1 &&
+            string.Equals(rangeParameters[0].Values[0], "THISANDFUTURE", StringComparison.OrdinalIgnoreCase))
+            return;
+        issues.Add(Issue("ICAL_RECURRENCE_ID_RANGE_INVALID",
+            "RECURRENCE-ID RANGE must occur at most once with the value THISANDFUTURE.",
+            ContentLineValidationSeverity.Error, component, recurrenceProperty));
     }
 
     private static void ValidateTimeZoneObservanceTimes(ContentLineComponent component,

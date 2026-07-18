@@ -28,6 +28,7 @@ public sealed partial class IcsDocument {
             ValidateSingle(calendar, "PRODID", required: true, issues);
             ValidateSingle(calendar, "CALSCALE", required: false, issues);
             ValidateSingle(calendar, "METHOD", required: false, issues);
+            ValidateCalendarScaleValues(calendar, issues);
             ValidateMethodValues(calendar, issues);
             ValidateUniquePrimaryComponentIdentifiers(calendar, issues);
             ContentLineProperty? version = calendar.GetFirstProperty("VERSION");
@@ -324,7 +325,7 @@ public sealed partial class IcsDocument {
         bool comparable = start.Kind == endpoint.Kind &&
             (start.Kind != IcsTemporalValueKind.ZonedDateTime ||
              string.Equals(start.TimeZoneId, endpoint.TimeZoneId, StringComparison.Ordinal));
-        if (comparable && endpoint.Value <= start.Value) {
+        if (comparable && endpoint.CompareClockTo(start) <= 0) {
             issues.Add(Issue("ICAL_TEMPORAL_ENDPOINT_ORDER_INVALID",
                 endpointName + " must be later than DTSTART.",
                 ContentLineValidationSeverity.Error, component, endpointProperty));
@@ -582,7 +583,7 @@ public sealed partial class IcsDocument {
         return IcsTemporalValue.TryParse(endProperty, out IcsTemporalValue end) &&
             end.Kind != IcsTemporalValueKind.Date && end.Kind == start.Kind &&
             string.Equals(end.TimeZoneId, start.TimeZoneId, StringComparison.Ordinal) &&
-            end.Value > start.Value;
+            end.CompareClockTo(start) > 0;
     }
 
     private static ContentLineProperty CreatePeriodDateTimeProperty(

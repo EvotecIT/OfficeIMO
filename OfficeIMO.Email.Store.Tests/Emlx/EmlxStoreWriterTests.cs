@@ -150,6 +150,35 @@ public sealed class EmlxStoreWriterTests {
         Assert.Contains("nesting depth", exception.Message, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void DefaultWriterMetadataPropertyLimitMatchesTheDefaultReaderLimit() {
+        Assert.Equal(EmailStoreReaderOptions.Default.MaxPropertiesPerItem,
+            EmailStoreEmlxWriterOptions.Default.MaxMetadataProperties);
+    }
+
+    [Fact]
+    public void WriterMetadataPropertyLimitMatchesReaderCountingAtTheBoundary() {
+        var document = new EmailDocument();
+        document.Properties["Emlx:Metadata:items"] = new object?[] { "one", "two", "three" };
+        var boundaryWriter = new EmailStoreEmlxWriter(new EmailStoreEmlxWriterOptions(
+            maxMetadataProperties: 5));
+
+        byte[] bytes = boundaryWriter.ToBytes(document);
+        using (var stream = new MemoryStream(bytes)) {
+            EmailStoreReadResult result = new EmailStoreReader(new EmailStoreReaderOptions(
+                maxPropertiesPerItem: 5)).Read(stream, "bounded-properties.emlx");
+            Assert.Single(result.Store.Folders.Single().Items);
+        }
+
+        var overflowingWriter = new EmailStoreEmlxWriter(new EmailStoreEmlxWriterOptions(
+            maxMetadataProperties: 4));
+        EmailStoreLimitExceededException exception = Assert.Throws<EmailStoreLimitExceededException>(() =>
+            overflowingWriter.ToBytes(document));
+        Assert.Equal(nameof(EmailStoreEmlxWriterOptions.MaxMetadataProperties), exception.LimitName);
+        Assert.Equal(5, exception.Actual);
+        Assert.Equal(4, exception.Maximum);
+    }
+
     private static object CreateNestedMetadata(int dictionaryDepth) {
         object value = "leaf";
         for (int index = 0; index < dictionaryDepth; index++) {

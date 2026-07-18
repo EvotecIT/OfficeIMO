@@ -79,7 +79,8 @@ public sealed class EmailStoreEmlxWriter {
     private byte[] Create(EmailDocument document, out EmailWriteResult result) {
         if (document == null) throw new ArgumentNullException(nameof(document));
         byte[] metadata = _options.IncludeMetadata
-            ? CreateMetadata(document, _options.MaxOutputBytes, _options.MaxMetadataDepth)
+            ? CreateMetadata(document, _options.MaxOutputBytes, _options.MaxMetadataDepth,
+                _options.MaxMetadataProperties)
             : Array.Empty<byte>();
         long fixedBytes = checked(metadata.LongLength + (metadata.Length > 0 ? 1L : 0L) + 2L);
         if (fixedBytes >= _options.MaxOutputBytes) {
@@ -130,9 +131,10 @@ public sealed class EmailStoreEmlxWriter {
     }
 
     private static byte[] CreateMetadata(EmailDocument document, long maxOutputBytes,
-        int maxMetadataDepth) {
+        int maxMetadataDepth, int maxMetadataProperties) {
         try {
             using (var output = new EmailBoundedMemoryStream(maxOutputBytes)) {
+                int metadataPropertyCount = 0;
                 var settings = new XmlWriterSettings {
                     Encoding = new UTF8Encoding(false),
                     Indent = true,
@@ -148,14 +150,20 @@ public sealed class EmailStoreEmlxWriter {
                     writer.WriteAttributeString("version", "1.0");
                     writer.WriteStartElement("dict");
                     foreach (KeyValuePair<string, object?> pair in GetRetainedMetadata(document)) {
-                        writer.WriteElementString("key", pair.Key);
-                        WritePlistValue(writer, pair.Value, pair.Key, depth: 1, maxMetadataDepth);
+                        WriteMetadataKey(writer, pair.Key, ref metadataPropertyCount, maxMetadataProperties);
+                        WritePlistValue(writer, pair.Value, pair.Key, depth: 1, maxMetadataDepth,
+                            ref metadataPropertyCount, maxMetadataProperties);
                     }
-                    WriteInteger(writer, "flags", CreateFlags(document));
-                    WriteDate(writer, "date-received", document.ReceivedDate);
-                    WriteDate(writer, "date-sent", document.Date);
-                    WriteString(writer, "subject", document.Subject);
-                    WriteString(writer, "message-id", document.MessageId);
+                    WriteInteger(writer, "flags", CreateFlags(document),
+                        ref metadataPropertyCount, maxMetadataProperties);
+                    WriteDate(writer, "date-received", document.ReceivedDate,
+                        ref metadataPropertyCount, maxMetadataProperties);
+                    WriteDate(writer, "date-sent", document.Date,
+                        ref metadataPropertyCount, maxMetadataProperties);
+                    WriteString(writer, "subject", document.Subject,
+                        ref metadataPropertyCount, maxMetadataProperties);
+                    WriteString(writer, "message-id", document.MessageId,
+                        ref metadataPropertyCount, maxMetadataProperties);
                     writer.WriteEndElement();
                     writer.WriteEndElement();
                     writer.WriteEndDocument();
@@ -190,7 +198,7 @@ public sealed class EmailStoreEmlxWriter {
     }
 
     private static void WritePlistValue(XmlWriter writer, object? value, string path, int depth,
-        int maxMetadataDepth) {
+        int maxMetadataDepth, ref int metadataPropertyCount, int maxMetadataProperties) {
         if (depth > maxMetadataDepth) {
             throw new InvalidDataException(
                 "Retained EMLX metadata exceeds the supported plist nesting depth at '" + path + "'.");
@@ -218,17 +226,18 @@ public sealed class EmailStoreEmlxWriter {
                     throw new InvalidDataException(
                         "Retained EMLX metadata contains duplicate nested plist keys at '" + path + "'.");
                 }
-                writer.WriteElementString("key", pair.Key);
+                WriteMetadataKey(writer, pair.Key, ref metadataPropertyCount, maxMetadataProperties);
                 WritePlistValue(writer, pair.Value, path + "." + pair.Key, depth + 1,
-                    maxMetadataDepth);
+                    maxMetadataDepth, ref metadataPropertyCount, maxMetadataProperties);
             }
             writer.WriteEndElement();
         } else if (value is object?[] array) {
             writer.WriteStartElement("array");
             for (int index = 0; index < array.Length; index++) {
+                IncrementMetadataPropertyCount(ref metadataPropertyCount, maxMetadataProperties);
                 WritePlistValue(writer, array[index], path + "[" +
                     index.ToString(CultureInfo.InvariantCulture) + "]", depth + 1,
-                    maxMetadataDepth);
+                    maxMetadataDepth, ref metadataPropertyCount, maxMetadataProperties);
             }
             writer.WriteEndElement();
         } else {
@@ -275,21 +284,40 @@ public sealed class EmailStoreEmlxWriter {
         return false;
     }
 
-    private static void WriteInteger(XmlWriter writer, string key, long value) {
-        writer.WriteElementString("key", key);
+    private static void WriteInteger(XmlWriter writer, string key, long value,
+        ref int metadataPropertyCount, int maxMetadataProperties) {
+        WriteMetadataKey(writer, key, ref metadataPropertyCount, maxMetadataProperties);
         writer.WriteElementString("integer", value.ToString(CultureInfo.InvariantCulture));
     }
 
-    private static void WriteDate(XmlWriter writer, string key, DateTimeOffset? value) {
+    private static void WriteDate(XmlWriter writer, string key, DateTimeOffset? value,
+        ref int metadataPropertyCount, int maxMetadataProperties) {
         if (!value.HasValue) return;
         long seconds = (long)(value.Value.ToUniversalTime() -
             new DateTimeOffset(1970, 1, 1, 0, 0, 0, TimeSpan.Zero)).TotalSeconds;
-        WriteInteger(writer, key, seconds);
+        WriteInteger(writer, key, seconds, ref metadataPropertyCount, maxMetadataProperties);
     }
 
-    private static void WriteString(XmlWriter writer, string key, string? value) {
+    private static void WriteString(XmlWriter writer, string key, string? value,
+        ref int metadataPropertyCount, int maxMetadataProperties) {
         if (string.IsNullOrWhiteSpace(value)) return;
-        writer.WriteElementString("key", key);
+        WriteMetadataKey(writer, key, ref metadataPropertyCount, maxMetadataProperties);
         writer.WriteElementString("string", value);
+    }
+
+    private static void WriteMetadataKey(XmlWriter writer, string key,
+        ref int metadataPropertyCount, int maxMetadataProperties) {
+        IncrementMetadataPropertyCount(ref metadataPropertyCount, maxMetadataProperties);
+        writer.WriteElementString("key", key);
+    }
+
+    private static void IncrementMetadataPropertyCount(ref int metadataPropertyCount,
+        int maxMetadataProperties) {
+        metadataPropertyCount++;
+        if (metadataPropertyCount > maxMetadataProperties) {
+            throw new EmailStoreLimitExceededException(
+                nameof(EmailStoreEmlxWriterOptions.MaxMetadataProperties),
+                metadataPropertyCount, maxMetadataProperties);
+        }
     }
 }

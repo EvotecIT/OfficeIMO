@@ -34,6 +34,13 @@ public readonly struct IcsTemporalValue : IEquatable<IcsTemporalValue> {
     /// </summary>
     public bool IsLeapSecond { get; }
 
+    /// <summary>Compares equal-kind clock values while retaining leap-second ordering.</summary>
+    internal int CompareClockTo(IcsTemporalValue other) {
+        int comparison = Value.CompareTo(other.Value);
+        if (comparison != 0 || IsLeapSecond == other.IsLeapSecond) return comparison;
+        return IsLeapSecond ? -1 : 1;
+    }
+
     /// <summary>Creates a DATE value.</summary>
     public static IcsTemporalValue Date(DateTime value) => new IcsTemporalValue(value.Date,
         IcsTemporalValueKind.Date, null);

@@ -10,13 +10,15 @@ public sealed class EmailStoreEmlxWriterOptions {
     /// <summary>Creates an EMLX writer policy.</summary>
     public EmailStoreEmlxWriterOptions(EmailWriterOptions? messageOptions = null,
         bool includeMetadata = true, long maxOutputBytes = 512L * 1024L * 1024L,
-        int maxMetadataDepth = 32) {
+        int maxMetadataDepth = 32, int maxMetadataProperties = 16_384) {
         if (maxOutputBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maxOutputBytes));
         if (maxMetadataDepth <= 0) throw new ArgumentOutOfRangeException(nameof(maxMetadataDepth));
+        if (maxMetadataProperties <= 0) throw new ArgumentOutOfRangeException(nameof(maxMetadataProperties));
         MessageOptions = messageOptions ?? EmailWriterOptions.Default;
         IncludeMetadata = includeMetadata;
         MaxOutputBytes = maxOutputBytes;
         MaxMetadataDepth = maxMetadataDepth;
+        MaxMetadataProperties = maxMetadataProperties;
     }
 
     /// <summary>EML serialization policy.</summary>
@@ -30,4 +32,9 @@ public sealed class EmailStoreEmlxWriterOptions {
     /// The default matches <see cref="EmailStoreReaderOptions.MaxBTreeDepth"/>.
     /// </summary>
     public int MaxMetadataDepth { get; }
+    /// <summary>
+    /// Maximum dictionary entries and array elements emitted in the property-list metadata trailer.
+    /// The default matches <see cref="EmailStoreReaderOptions.MaxPropertiesPerItem"/>.
+    /// </summary>
+    public int MaxMetadataProperties { get; }
 }
