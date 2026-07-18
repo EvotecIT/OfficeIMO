@@ -6,6 +6,11 @@ namespace OfficeIMO.Email.Store;
 
 /// <summary>Writes Apple Mail EMLX envelopes over the OfficeIMO.Email EML engine.</summary>
 public sealed class EmailStoreEmlxWriter {
+    private const string MetadataPropertyPrefix = "Emlx:Metadata:";
+    private const int MaximumRetainedMetadataDepth = 64;
+    private static readonly HashSet<string> DerivedMetadataKeys = new HashSet<string>(
+        new[] { "flags", "date-received", "date-sent", "subject", "message-id" },
+        StringComparer.OrdinalIgnoreCase);
     private readonly EmailStoreEmlxWriterOptions _options;
 
     /// <summary>Creates a writer with the default policy.</summary>
@@ -142,6 +147,10 @@ public sealed class EmailStoreEmlxWriter {
                     writer.WriteStartElement("plist");
                     writer.WriteAttributeString("version", "1.0");
                     writer.WriteStartElement("dict");
+                    foreach (KeyValuePair<string, object?> pair in GetRetainedMetadata(document)) {
+                        writer.WriteElementString("key", pair.Key);
+                        WritePlistValue(writer, pair.Value, pair.Key, depth: 0);
+                    }
                     WriteInteger(writer, "flags", CreateFlags(document));
                     WriteDate(writer, "date-received", document.ReceivedDate);
                     WriteDate(writer, "date-sent", document.Date);
@@ -160,6 +169,68 @@ public sealed class EmailStoreEmlxWriter {
         } catch (Exception exception) when (exception is ArgumentException || exception is XmlException) {
             throw new InvalidDataException(
                 "The EMLX property-list metadata contains text that XML cannot represent.", exception);
+        }
+    }
+
+    private static IEnumerable<KeyValuePair<string, object?>> GetRetainedMetadata(EmailDocument document) {
+        var retained = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
+        foreach (KeyValuePair<string, object?> pair in document.Properties) {
+            if (!pair.Key.StartsWith(MetadataPropertyPrefix, StringComparison.OrdinalIgnoreCase)) continue;
+            string key = pair.Key.Substring(MetadataPropertyPrefix.Length);
+            if (key.Length == 0)
+                throw new InvalidDataException("A retained EMLX metadata property has an empty plist key.");
+            if (DerivedMetadataKeys.Contains(key)) continue;
+            if (retained.ContainsKey(key)) {
+                throw new InvalidDataException(
+                    "Retained EMLX metadata contains duplicate plist keys that differ only by case.");
+            }
+            retained.Add(key, pair.Value);
+        }
+        return retained.OrderBy(pair => pair.Key, StringComparer.Ordinal);
+    }
+
+    private static void WritePlistValue(XmlWriter writer, object? value, string path, int depth) {
+        if (depth > MaximumRetainedMetadataDepth) {
+            throw new InvalidDataException(
+                "Retained EMLX metadata exceeds the supported plist nesting depth at '" + path + "'.");
+        }
+        if (value is string text) {
+            writer.WriteElementString("string", text);
+        } else if (value is bool boolean) {
+            writer.WriteStartElement(boolean ? "true" : "false");
+            writer.WriteEndElement();
+        } else if (value is long integer) {
+            writer.WriteElementString("integer", integer.ToString(CultureInfo.InvariantCulture));
+        } else if (value is double real) {
+            writer.WriteElementString("real", real.ToString("R", CultureInfo.InvariantCulture));
+        } else if (value is DateTimeOffset date) {
+            writer.WriteElementString("date", date.ToUniversalTime().ToString(
+                "yyyy-MM-dd'T'HH:mm:ss.FFFFFFF'Z'", CultureInfo.InvariantCulture));
+        } else if (value is byte[] data) {
+            writer.WriteElementString("data", Convert.ToBase64String(data));
+        } else if (value is IReadOnlyDictionary<string, object?> dictionary) {
+            writer.WriteStartElement("dict");
+            var keys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (KeyValuePair<string, object?> pair in dictionary.OrderBy(
+                pair => pair.Key, StringComparer.Ordinal)) {
+                if (!keys.Add(pair.Key)) {
+                    throw new InvalidDataException(
+                        "Retained EMLX metadata contains duplicate nested plist keys at '" + path + "'.");
+                }
+                writer.WriteElementString("key", pair.Key);
+                WritePlistValue(writer, pair.Value, path + "." + pair.Key, depth + 1);
+            }
+            writer.WriteEndElement();
+        } else if (value is object?[] array) {
+            writer.WriteStartElement("array");
+            for (int index = 0; index < array.Length; index++) {
+                WritePlistValue(writer, array[index], path + "[" +
+                    index.ToString(CultureInfo.InvariantCulture) + "]", depth + 1);
+            }
+            writer.WriteEndElement();
+        } else {
+            throw new InvalidDataException("The retained EMLX metadata value at '" + path +
+                "' has unsupported type '" + (value?.GetType().FullName ?? "null") + "'.");
         }
     }
 

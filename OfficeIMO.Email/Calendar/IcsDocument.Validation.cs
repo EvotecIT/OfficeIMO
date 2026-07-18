@@ -220,7 +220,32 @@ public sealed partial class IcsDocument {
             ValidateSingle(component, "DTSTART", required: true, issues);
             ValidateSingle(component, "TZOFFSETFROM", required: true, issues);
             ValidateSingle(component, "TZOFFSETTO", required: true, issues);
+            ValidateUtcOffset(component, "TZOFFSETFROM", issues);
+            ValidateUtcOffset(component, "TZOFFSETTO", issues);
         }
+    }
+
+    private static void ValidateUtcOffset(ContentLineComponent component, string propertyName,
+        ICollection<ContentLineValidationIssue> issues) {
+        foreach (ContentLineProperty property in component.GetProperties(propertyName)) {
+            if (IsValidUtcOffset(property.Value)) continue;
+            issues.Add(Issue("ICAL_TIMEZONE_OFFSET_INVALID",
+                propertyName + " must contain an RFC 5545 UTC-OFFSET value.",
+                ContentLineValidationSeverity.Error, component, property));
+        }
+    }
+
+    private static bool IsValidUtcOffset(string value) {
+        if (value == null || (value.Length != 5 && value.Length != 7) ||
+            (value[0] != '+' && value[0] != '-')) return false;
+        for (int index = 1; index < value.Length; index++) {
+            if (value[index] < '0' || value[index] > '9') return false;
+        }
+        int hours = (value[1] - '0') * 10 + value[2] - '0';
+        int minutes = (value[3] - '0') * 10 + value[4] - '0';
+        int seconds = value.Length == 7 ? (value[5] - '0') * 10 + value[6] - '0' : 0;
+        if (hours > 23 || minutes > 59 || seconds > 59) return false;
+        return value[0] != '-' || hours != 0 || minutes != 0 || seconds != 0;
     }
 
     private static void ValidateTemporalEndpoint(ContentLineComponent component, string endpointName,

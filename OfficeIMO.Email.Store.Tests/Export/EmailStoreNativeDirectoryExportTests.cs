@@ -35,6 +35,12 @@ public sealed class EmailStoreNativeDirectoryExportTests {
                 Assert.Contains("\tS\t", manifest);
                 Assert.Contains("\tDiagnosticCount", manifest);
                 Assert.DoesNotContain("DiagnosticCodes", manifest, StringComparison.Ordinal);
+                if (Array.IndexOf(Path.GetInvalidFileNameChars(), ':') >= 0) {
+                    Assert.All(report.Entries, entry => Assert.Equal(
+                        "new", Path.GetFileName(Path.GetDirectoryName(entry.DestinationPath!))));
+                    Assert.Contains(report.Diagnostics, diagnostic =>
+                        diagnostic.Code == "EMAIL_STORE_MAILDIR_FLAGS_MANIFEST_ONLY");
+                }
             }
         } finally {
             if (Directory.Exists(root)) Directory.Delete(root, recursive: true);
@@ -59,6 +65,28 @@ public sealed class EmailStoreNativeDirectoryExportTests {
             Assert.EndsWith(":2,", Path.GetFileName(unread.DestinationPath!), StringComparison.Ordinal);
             Assert.All(report.Entries, entry => Assert.Equal(
                 "cur", Path.GetFileName(Path.GetDirectoryName(entry.DestinationPath!))));
+        } finally {
+            if (Directory.Exists(root)) Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void MaildirSuffixProbeHonorsDestinationFileSystemRejection() {
+        string root = Path.Combine(Path.GetTempPath(),
+            "officeimo-maildir-probe-" + Guid.NewGuid().ToString("N"));
+        try {
+            Directory.CreateDirectory(root);
+            string? attemptedPath = null;
+
+            bool supported = EmailStoreSession.ProbeMaildirInfoSuffixSupport(root, path => {
+                attemptedPath = path;
+                throw new IOException("The destination volume rejects the Maildir info suffix.");
+            });
+
+            Assert.False(supported);
+            Assert.NotNull(attemptedPath);
+            Assert.EndsWith(":2,", attemptedPath, StringComparison.Ordinal);
+            Assert.Empty(Directory.EnumerateFiles(root));
         } finally {
             if (Directory.Exists(root)) Directory.Delete(root, recursive: true);
         }

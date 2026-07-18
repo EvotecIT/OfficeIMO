@@ -405,6 +405,47 @@ public sealed class IcsDocumentTests {
     }
 
     [Theory]
+    [InlineData("TZOFFSETFROM", "not-an-offset")]
+    [InlineData("TZOFFSETTO", "+9999")]
+    [InlineData("TZOFFSETFROM", "+0160")]
+    [InlineData("TZOFFSETTO", "+010060")]
+    [InlineData("TZOFFSETFROM", "-0000")]
+    [InlineData("TZOFFSETTO", "-000000")]
+    [InlineData("TZOFFSETFROM", "0100")]
+    public void ValidationRejectsInvalidTimeZoneOffsets(string propertyName, string value) {
+        var document = new IcsDocument();
+        ContentLineComponent timeZone = document.Calendars.Single().AddComponent("VTIMEZONE");
+        timeZone.AddProperty("TZID", "Custom/Invalid");
+        ContentLineComponent standard = timeZone.AddComponent("STANDARD");
+        standard.AddProperty("DTSTART", "20261025T030000");
+        standard.AddProperty("TZOFFSETFROM", "+0200");
+        standard.AddProperty("TZOFFSETTO", "+0100");
+        standard.GetFirstProperty(propertyName)!.Value = value;
+
+        Assert.Contains(document.Validate(), issue =>
+            issue.Code == "ICAL_TIMEZONE_OFFSET_INVALID" && issue.ComponentName == "STANDARD" &&
+            issue.PropertyName == propertyName);
+    }
+
+    [Theory]
+    [InlineData("+0000")]
+    [InlineData("+124530")]
+    [InlineData("-0330")]
+    [InlineData("-235959")]
+    public void ValidationAcceptsValidTimeZoneOffsets(string value) {
+        var document = new IcsDocument();
+        ContentLineComponent timeZone = document.Calendars.Single().AddComponent("VTIMEZONE");
+        timeZone.AddProperty("TZID", "Custom/Valid");
+        ContentLineComponent standard = timeZone.AddComponent("STANDARD");
+        standard.AddProperty("DTSTART", "20261025T030000");
+        standard.AddProperty("TZOFFSETFROM", value);
+        standard.AddProperty("TZOFFSETTO", "+0100");
+
+        Assert.DoesNotContain(document.Validate(), issue =>
+            issue.Code == "ICAL_TIMEZONE_OFFSET_INVALID");
+    }
+
+    [Theory]
     [InlineData("VEVENT", "DTEND")]
     [InlineData("VTODO", "DUE")]
     public void ValidationRejectsEndpointValueTypesThatDoNotMatchDtStart(

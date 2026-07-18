@@ -17,6 +17,18 @@ public sealed class EmlxStoreWriterTests {
         document.MessageMetadata.IsDraft = true;
         document.Properties["Emlx:Flag:Flagged"] = true;
         document.Properties["Emlx:Flag:PriorityLevel"] = 73;
+        var retainedDate = new DateTimeOffset(2026, 7, 17, 8, 32, 1, TimeSpan.Zero);
+        byte[] retainedData = { 1, 2, 3, 4 };
+        document.Properties["Emlx:Metadata:conversation-id"] = 123456789L;
+        document.Properties["Emlx:Metadata:remote-id"] = "remote-42";
+        document.Properties["Emlx:Metadata:attributes"] = new object?[] { "important", true, 7L };
+        document.Properties["Emlx:Metadata:server"] = new Dictionary<string, object?> {
+            ["source"] = "imap.example.com",
+            ["uid"] = 42L
+        };
+        document.Properties["Emlx:Metadata:last-synced"] = retainedDate;
+        document.Properties["Emlx:Metadata:opaque"] = retainedData;
+        document.Properties["Emlx:Metadata:subject"] = "stale subject";
 
         byte[] bytes = new EmailStoreEmlxWriter().ToBytes(document);
         using var stream = new MemoryStream(bytes);
@@ -31,6 +43,17 @@ public sealed class EmlxStoreWriterTests {
         Assert.True(loaded.MessageMetadata.IsDraft);
         Assert.Equal(true, loaded.Properties["Emlx:Flag:Flagged"]);
         Assert.Equal(73, loaded.Properties["Emlx:Flag:PriorityLevel"]);
+        Assert.Equal(123456789L, loaded.Properties["Emlx:Metadata:conversation-id"]);
+        Assert.Equal("remote-42", loaded.Properties["Emlx:Metadata:remote-id"]);
+        Assert.Equal(new object?[] { "important", true, 7L },
+            Assert.IsType<object?[]>(loaded.Properties["Emlx:Metadata:attributes"]));
+        IReadOnlyDictionary<string, object?> server = Assert.IsAssignableFrom<
+            IReadOnlyDictionary<string, object?>>(loaded.Properties["Emlx:Metadata:server"]);
+        Assert.Equal("imap.example.com", server["source"]);
+        Assert.Equal(42L, server["uid"]);
+        Assert.Equal(retainedDate, loaded.Properties["Emlx:Metadata:last-synced"]);
+        Assert.Equal(retainedData, Assert.IsType<byte[]>(loaded.Properties["Emlx:Metadata:opaque"]));
+        Assert.Equal("EMLX write test", loaded.Properties["Emlx:Metadata:subject"]);
     }
 
     [Fact]

@@ -23,14 +23,15 @@ public sealed partial class EmailStoreSession {
             options.MaxItems == int.MaxValue ? int.MaxValue : options.MaxItems + 1);
         bool truncated = false;
         bool maildirFlagsCouldNotBeWritten = false;
+        var maildirInfoSuffixSupport = new Dictionary<string, bool>(StringComparer.Ordinal);
         int attempted = 0;
         foreach (EmailStoreItemReference reference in EnumerateItems(enumeration, cancellationToken)) {
             cancellationToken.ThrowIfCancellationRequested();
             if (attempted >= options.MaxItems) { truncated = true; break; }
             attempted++;
             EmailStoreExportEntry entry = options.Format == EmailStoreNativeDirectoryFormat.Maildir
-                ? ExportMaildirItem(reference, options, messageWriter, paths, ref maildirFlagsCouldNotBeWritten,
-                    cancellationToken)
+                ? ExportMaildirItem(reference, options, messageWriter, paths, maildirInfoSuffixSupport,
+                    ref maildirFlagsCouldNotBeWritten, cancellationToken)
                 : ExportEmlxItem(reference, options, emlxWriter, paths, cancellationToken);
             entries.Add(entry);
             if (!entry.Succeeded && !options.ContinueOnError) break;
@@ -67,7 +68,8 @@ public sealed partial class EmailStoreSession {
 
     private EmailStoreExportEntry ExportMaildirItem(EmailStoreItemReference reference,
         EmailStoreNativeDirectoryExportOptions options, EmailDocumentWriter writer,
-        EmailStoreExportPathBuilder paths, ref bool flagsCouldNotBeWritten,
+        EmailStoreExportPathBuilder paths, IDictionary<string, bool> infoSuffixSupport,
+        ref bool flagsCouldNotBeWritten,
         CancellationToken cancellationToken) {
         var diagnostics = new List<EmailStoreDiagnostic>();
         string? destinationPath = null;
@@ -86,9 +88,9 @@ public sealed partial class EmailStoreSession {
 
             string flags = GetMaildirFlags(item.Document);
             maildirFlags = flags;
-            bool supportsInfoSuffix = Array.IndexOf(Path.GetInvalidFileNameChars(), ':') < 0;
+            bool supportsInfoSuffix = GetMaildirInfoSuffixSupport(temporaryDirectory, infoSuffixSupport) &&
+                                      GetMaildirInfoSuffixSupport(currentDirectory, infoSuffixSupport);
             bool useCurrent = supportsInfoSuffix;
-            if (flags.Length > 0 && !supportsInfoSuffix) flagsCouldNotBeWritten = true;
             string fileName = BuildMaildirFileName(reference.Id, useCurrent ? flags : null);
             string finalDirectory = useCurrent ? currentDirectory : newDirectory;
             string candidate = Path.Combine(finalDirectory, fileName);
@@ -96,7 +98,11 @@ public sealed partial class EmailStoreSession {
                 throw new IOException("The Maildir destination item already exists.");
 
             temporaryPath = Path.Combine(temporaryDirectory, fileName + "." + Guid.NewGuid().ToString("N") + ".tmp");
-            EmailWriteResult result = writer.Write(item.Document, temporaryPath, EmailFileFormat.Eml);
+            EmailWriteResult result;
+            using (var stream = new FileStream(temporaryPath, FileMode.CreateNew, FileAccess.Write, FileShare.None)) {
+                result = writer.Write(item.Document, stream, EmailFileFormat.Eml);
+                stream.Flush();
+            }
             foreach (EmailDiagnostic diagnostic in result.Diagnostics)
                 diagnostics.Add(ConvertDiagnostic(diagnostic, reference.Id));
             if (!result.HasErrors) {
@@ -106,6 +112,7 @@ public sealed partial class EmailStoreSession {
                 temporaryPath = null;
                 destinationPath = candidate;
                 bytesWritten = result.BytesWritten;
+                if (flags.Length > 0 && !supportsInfoSuffix) flagsCouldNotBeWritten = true;
             }
         } catch (Exception exception) when (exception is InvalidDataException || exception is NotSupportedException ||
                                              exception is IOException || exception is UnauthorizedAccessException ||
@@ -117,6 +124,37 @@ public sealed partial class EmailStoreSession {
             if (temporaryPath != null) OfficeFileCommit.DeleteIfExists(temporaryPath);
         }
         return new EmailStoreExportEntry(reference, destinationPath, bytesWritten, diagnostics, maildirFlags);
+    }
+
+    private static bool GetMaildirInfoSuffixSupport(string directory,
+        IDictionary<string, bool> supportByDirectory) {
+        if (supportByDirectory.TryGetValue(directory, out bool supported)) return supported;
+        supported = SupportsMaildirInfoSuffix(directory);
+        supportByDirectory.Add(directory, supported);
+        return supported;
+    }
+
+    private static bool SupportsMaildirInfoSuffix(string directory) {
+        if (Array.IndexOf(Path.GetInvalidFileNameChars(), ':') >= 0) return false;
+        return ProbeMaildirInfoSuffixSupport(directory, path => {
+            using (new FileStream(path, FileMode.CreateNew, FileAccess.Write, FileShare.None)) { }
+        });
+    }
+
+    internal static bool ProbeMaildirInfoSuffixSupport(string directory, Action<string> createProbe) {
+        if (directory == null) throw new ArgumentNullException(nameof(directory));
+        if (createProbe == null) throw new ArgumentNullException(nameof(createProbe));
+        string probePath = Path.Combine(directory,
+            ".officeimo-maildir-suffix-probe-" + Guid.NewGuid().ToString("N") + ":2,");
+        try {
+            createProbe(probePath);
+        } catch (Exception exception) when (exception is IOException || exception is UnauthorizedAccessException ||
+                                             exception is NotSupportedException || exception is ArgumentException) {
+            if (File.Exists(probePath)) File.Delete(probePath);
+            return false;
+        }
+        File.Delete(probePath);
+        return true;
     }
 
     private EmailStoreExportEntry ExportEmlxItem(EmailStoreItemReference reference,
