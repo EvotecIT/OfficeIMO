@@ -460,7 +460,7 @@ public sealed class PstMutationTransactionTests {
     }
 
     [Fact]
-    public void PhysicalFileAliasPlacesMutationLockBesideResolvedSource() {
+    public void PhysicalFileAliasPlacesLockAndCommitsAgainstResolvedSource() {
         string container = Path.Combine(Path.GetTempPath(),
             "officeimo-pst-file-alias-" + Guid.NewGuid().ToString("N"));
         string sourceDirectory = Path.Combine(container, "source");
@@ -483,10 +483,23 @@ public sealed class PstMutationTransactionTests {
                 return;
             }
 
-            using (PstMutationTransactionLock.Acquire(aliasPath)) {
+            EmailStorePstMutationReport report;
+            using (EmailStorePstMutationTransaction transaction =
+                   EmailStorePstMutationTransaction.Open(aliasPath)) {
+                Assert.Equal(EmailStorePathIdentity.ResolvePhysicalPath(sourcePath),
+                    transaction.SourcePath);
                 Assert.Single(Directory.GetFiles(sourceDirectory, ".officeimo-pst-*.lock"));
                 Assert.Empty(Directory.GetFiles(aliasDirectory, ".officeimo-pst-*.lock"));
+                transaction.CreateFolder("Committed through alias");
+                report = transaction.Commit();
             }
+
+            FileSystemInfo? linkTarget = File.ResolveLinkTarget(aliasPath, returnFinalTarget: true);
+            Assert.NotNull(linkTarget);
+            Assert.True(EmailStorePathIdentity.AreEquivalent(sourcePath, linkTarget!.FullName));
+            Assert.Equal(EmailStorePathIdentity.ResolvePhysicalPath(sourcePath), report.SourcePath);
+            using EmailStoreSession session = EmailStoreSession.Open(sourcePath);
+            Assert.Contains(session.Folders, folder => folder.Name == "Committed through alias");
         } finally {
             if (Directory.Exists(container)) Directory.Delete(container, recursive: true);
         }

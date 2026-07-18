@@ -293,7 +293,27 @@ public sealed partial class IcsDocument {
 
     private static void ValidateDurations(ContentLineComponent component,
         ICollection<ContentLineValidationIssue> issues) {
-        foreach (ContentLineProperty duration in component.GetProperties("DURATION")) {
+        ContentLineProperty[] durations = component.GetProperties("DURATION").ToArray();
+        if (durations.Length > 1) {
+            issues.Add(Issue("ICAL_PROPERTY_CARDINALITY", "DURATION must not occur more than once.",
+                ContentLineValidationSeverity.Error, component, durations[1]));
+        }
+        if (durations.Length > 0) {
+            string componentName = component.Name.ToUpperInvariant();
+            if ((componentName == "VEVENT" && component.GetFirstProperty("DTEND") != null) ||
+                (componentName == "VTODO" && component.GetFirstProperty("DUE") != null)) {
+                issues.Add(Issue("ICAL_DURATION_END_CONFLICT",
+                    component.Name + " cannot contain both DURATION and " +
+                    (componentName == "VEVENT" ? "DTEND." : "DUE."),
+                    ContentLineValidationSeverity.Error, component, durations[0]));
+            }
+            if (componentName == "VTODO" && component.GetFirstProperty("DTSTART") == null) {
+                issues.Add(Issue("ICAL_DURATION_START_REQUIRED",
+                    "VTODO DURATION requires DTSTART.",
+                    ContentLineValidationSeverity.Error, component, durations[0]));
+            }
+        }
+        foreach (ContentLineProperty duration in durations) {
             ContentLineParameter[] valueParameters = duration.Parameters.Where(parameter =>
                 string.Equals(parameter.Name, "VALUE", StringComparison.OrdinalIgnoreCase)).ToArray();
             bool validParameters = valueParameters.Length <= 1 &&

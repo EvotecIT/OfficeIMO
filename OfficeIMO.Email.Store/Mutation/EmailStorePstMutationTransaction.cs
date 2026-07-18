@@ -41,7 +41,7 @@ public sealed partial class EmailStorePstMutationTransaction : IDisposable {
         if (string.IsNullOrWhiteSpace(path)) {
             throw new ArgumentException("An existing PST path is required.", nameof(path));
         }
-        string sourcePath = Path.GetFullPath(path);
+        string sourcePath = EmailStorePathIdentity.ResolvePhysicalPath(path);
         if (!File.Exists(sourcePath)) throw new FileNotFoundException("The PST does not exist.", sourcePath);
         var effective = options ?? new EmailStorePstMutationOptions();
         if (effective.BackupPath != null && EmailStorePathIdentity.AreEquivalent(

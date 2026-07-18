@@ -415,9 +415,47 @@ public sealed class IcsDocumentTests {
     public void ValidationAcceptsPositiveEventAndTaskDurations(string componentName, string value) {
         var document = new IcsDocument();
         ContentLineComponent component = document.Calendars.Single().AddComponent(componentName);
+        component.AddProperty("DTSTART", "20260717T090000Z");
         component.AddProperty("DURATION", value).SetParameter("VALUE", "DURATION");
 
         Assert.DoesNotContain(document.Validate(), issue => issue.Code == "ICAL_DURATION_INVALID");
+        Assert.DoesNotContain(document.Validate(), issue => issue.Code == "ICAL_DURATION_END_CONFLICT");
+        Assert.DoesNotContain(document.Validate(), issue => issue.Code == "ICAL_DURATION_START_REQUIRED");
+    }
+
+    [Fact]
+    public void ValidationRejectsDuplicateEventDurations() {
+        var document = new IcsDocument();
+        ContentLineComponent appointment = document.Calendars.Single().AddComponent("VEVENT");
+        appointment.AddProperty("DURATION", "PT1H");
+        appointment.AddProperty("DURATION", "PT2H");
+
+        Assert.Contains(document.Validate(), issue =>
+            issue.Code == "ICAL_PROPERTY_CARDINALITY" && issue.PropertyName == "DURATION");
+    }
+
+    [Theory]
+    [InlineData("VEVENT", "DTEND")]
+    [InlineData("VTODO", "DUE")]
+    public void ValidationRejectsDurationTogetherWithAnExplicitEnd(
+        string componentName, string endPropertyName) {
+        var document = new IcsDocument();
+        ContentLineComponent component = document.Calendars.Single().AddComponent(componentName);
+        component.AddProperty("DTSTART", "20260717T090000Z");
+        component.AddProperty(endPropertyName, "20260717T100000Z");
+        component.AddProperty("DURATION", "PT1H");
+
+        Assert.Contains(document.Validate(), issue =>
+            issue.Code == "ICAL_DURATION_END_CONFLICT" && issue.PropertyName == "DURATION");
+    }
+
+    [Fact]
+    public void ValidationRequiresTaskStartWhenDurationIsPresent() {
+        var document = new IcsDocument();
+        document.Calendars.Single().AddComponent("VTODO").AddProperty("DURATION", "PT1H");
+
+        Assert.Contains(document.Validate(), issue =>
+            issue.Code == "ICAL_DURATION_START_REQUIRED" && issue.PropertyName == "DURATION");
     }
 
     [Fact]
