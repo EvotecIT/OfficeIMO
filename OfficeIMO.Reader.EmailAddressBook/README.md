@@ -1,6 +1,6 @@
 # OfficeIMO.Reader.EmailAddressBook
 
-`OfficeIMO.Reader.EmailAddressBook` adds Outlook `.oab` Full Details files to an isolated `OfficeDocumentReader`. Parsing stays in `OfficeIMO.Email.AddressBook`; this package only selects entries and projects typed directory fields into deterministic Reader chunks and document results.
+`OfficeIMO.Reader.EmailAddressBook` is a thin Outlook `.oab` Full Details adapter package for `OfficeIMO.Reader`. Parsing stays in the `OfficeIMO.Email.AddressBook` API; this adapter only selects entries and projects typed directory fields into deterministic Reader chunks and document results.
 
 ## Install and register
 
@@ -58,8 +58,8 @@ Complete source hashing is also disabled by default so selective ingestion does 
 
 - `OfficeIMO.Email.AddressBook` owns OAB discovery, schema decoding, search, validation, and typed entries.
 - `OfficeIMO.Reader.EmailAddressBook` owns registration, selection bounds, safe chunk text, logical paths, hashes, and Reader diagnostics.
-- The adapter reads uncompressed v4 Full Details files. Legacy/template components remain inspection-only in the core package.
+- The adapter reads uncompressed v4 Full Details files. Legacy/template components remain inspection-only in `OfficeIMO.Email`.
 
 Targets: `netstandard2.0`, `net8.0`, `net10.0`; `net472` is included when building on Windows.
 
-Direct NuGet dependencies: `OfficeIMO.Reader` and `OfficeIMO.Email.AddressBook`. No parser, native runtime, Outlook automation, or third-party dependency is added by this adapter.
+The adapter depends on `OfficeIMO.Reader` and the unified `OfficeIMO.Email` package. No parser, native runtime, Outlook automation, or third-party dependency is added by this adapter.

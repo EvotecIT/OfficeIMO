@@ -2,10 +2,14 @@
 
 `OfficeIMO.Reader.All` is a thin composition package for applications that want OfficeIMO's local format handlers without registering every adapter separately.
 
+The project is packable but is not currently published on NuGet. Until publication is enabled deliberately, use the
+individual `OfficeIMO.Reader.*` packages or a source project reference. The modular package roadmap requires
+`Reader.All` to become a tested, explicit meta package or be removed rather than remain ambiguous.
+
 ## Install
 
 ```powershell
-dotnet add package OfficeIMO.Reader.All
+dotnet add package OfficeIMO.Reader.All # available after deliberate publication
 ```
 
 ## Use the preset

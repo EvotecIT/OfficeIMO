@@ -91,14 +91,12 @@ jobs:
           $configDirectory = Join-Path $env:RUNNER_TEMP 'officeimo-email-nuget'
           $configPath = Join-Path $configDirectory 'nuget.config'
           New-Item -ItemType Directory -Force -Path $feed | Out-Null
-          dotnet restore OfficeIMO.Email.Store/OfficeIMO.Email.Store.csproj --no-http-cache
+          dotnet restore OfficeIMO.Email/OfficeIMO.Email.csproj --no-http-cache
           dotnet restore OfficeIMO.Reader.EmailStore/OfficeIMO.Reader.EmailStore.csproj --no-http-cache
           dotnet restore OfficeIMO.Reader.EmailAddressBook/OfficeIMO.Reader.EmailAddressBook.csproj --no-http-cache
           dotnet pack OfficeIMO.Drawing/OfficeIMO.Drawing.csproj --configuration $env:BUILD_CONFIGURATION --no-restore --output $feed
           dotnet pack OfficeIMO.Rtf/OfficeIMO.Rtf.csproj --configuration $env:BUILD_CONFIGURATION --no-restore --output $feed
           dotnet pack OfficeIMO.Email/OfficeIMO.Email.csproj --configuration $env:BUILD_CONFIGURATION --no-restore --output $feed
-          dotnet pack OfficeIMO.Email.AddressBook/OfficeIMO.Email.AddressBook.csproj --configuration $env:BUILD_CONFIGURATION --no-restore --output $feed
-          dotnet pack OfficeIMO.Email.Store/OfficeIMO.Email.Store.csproj --configuration $env:BUILD_CONFIGURATION --no-restore --output $feed
           dotnet pack OfficeIMO.Reader/OfficeIMO.Reader.csproj --configuration $env:BUILD_CONFIGURATION --no-restore --output $feed
           dotnet pack OfficeIMO.Reader.EmailAddressBook/OfficeIMO.Reader.EmailAddressBook.csproj --configuration $env:BUILD_CONFIGURATION --no-restore --output $feed
           dotnet pack OfficeIMO.Reader.EmailStore/OfficeIMO.Reader.EmailStore.csproj --configuration $env:BUILD_CONFIGURATION --no-restore --output $feed
@@ -112,8 +110,6 @@ jobs:
             return $packages[0].BaseName.Substring($id.Length + 1)
           }
           $emailVersion = Get-PackedPackageVersion 'OfficeIMO.Email'
-          $emailAddressBookVersion = Get-PackedPackageVersion 'OfficeIMO.Email.AddressBook'
-          $emailStoreVersion = Get-PackedPackageVersion 'OfficeIMO.Email.Store'
           $readerVersion = Get-PackedPackageVersion 'OfficeIMO.Reader'
           $readerEmailAddressBookVersion = Get-PackedPackageVersion 'OfficeIMO.Reader.EmailAddressBook'
           $readerEmailStoreVersion = Get-PackedPackageVersion 'OfficeIMO.Reader.EmailStore'
@@ -122,8 +118,6 @@ jobs:
           $smokeProperties = @(
             '--property:EnableOfficeIMOEmailPackageSmoke=true',
             "--property:OfficeIMOEmailPackageVersion=$emailVersion",
-            "--property:OfficeIMOEmailAddressBookPackageVersion=$emailAddressBookVersion",
-            "--property:OfficeIMOEmailStorePackageVersion=$emailStoreVersion",
             "--property:OfficeIMOReaderPackageVersion=$readerVersion",
             "--property:OfficeIMOReaderEmailAddressBookPackageVersion=$readerEmailAddressBookVersion",
             "--property:OfficeIMOReaderEmailStorePackageVersion=$readerEmailStoreVersion"
@@ -134,8 +128,6 @@ jobs:
           $expectedFeed = (Resolve-Path $feed).Path.TrimEnd('\', '/')
           foreach ($package in @(
             @{ Id = 'officeimo.email'; Version = $emailVersion },
-            @{ Id = 'officeimo.email.addressbook'; Version = $emailAddressBookVersion },
-            @{ Id = 'officeimo.email.store'; Version = $emailStoreVersion },
             @{ Id = 'officeimo.reader'; Version = $readerVersion },
             @{ Id = 'officeimo.reader.emailaddressbook'; Version = $readerEmailAddressBookVersion },
             @{ Id = 'officeimo.reader.emailstore'; Version = $readerEmailStoreVersion },

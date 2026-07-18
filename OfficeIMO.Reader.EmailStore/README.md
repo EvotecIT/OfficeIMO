@@ -1,7 +1,7 @@
 # OfficeIMO.Reader.EmailStore
 
-`OfficeIMO.Reader.EmailStore` adds PST, OST, OLM, and EMLX inputs to an isolated
-`OfficeDocumentReader`. Parsing remains owned by `OfficeIMO.Email.Store`; this package only
+`OfficeIMO.Reader.EmailStore` is a thin PST, OST, OLM, and EMLX adapter package for
+`OfficeIMO.Reader`. Parsing remains owned by the `OfficeIMO.Email.Store` API; this adapter only
 registers the formats and projects parsed `EmailDocument` items through Reader's existing
 email chunks, metadata, diagnostics, attachments, hashes, and rich result envelope.
 
@@ -11,7 +11,7 @@ email chunks, metadata, diagnostics, attachments, hashes, and rich result envelo
 dotnet add package OfficeIMO.Reader.EmailStore
 ```
 
-Install `OfficeIMO.Email.Store` directly instead when the application wants folder and item models without the Reader projection. Applications that want every local Reader adapter can install `OfficeIMO.Reader.All` and call `AddAllOfficeIMOHandlers()`.
+Install `OfficeIMO.Email` directly instead when the application wants folder and item models without the Reader projection. Applications that want every local Reader adapter can install `OfficeIMO.Reader.All` and call `AddAllOfficeIMOHandlers()`.
 
 ```csharp
 using OfficeIMO.Reader;
@@ -90,9 +90,9 @@ The implementation is fully managed and does not add a native or third-party ema
 
 - `OfficeIMO.Email.Store` owns PST/OST/OLM/EMLX parsing, mailbox-directory sessions, and the store model.
 - `OfficeIMO.Reader.EmailStore` owns registration, stable logical paths, Reader limits, and result projection only.
-- `OfficeIMO.Reader` continues to handle individual EML, MSG, OFT, TNEF, and mbox artifacts without this package.
+- `OfficeIMO.Reader` handles individual EML, MSG, OFT, TNEF, and mbox artifacts without an explicit Store registration.
 
 Targets: `netstandard2.0`, `net8.0`, `net10.0`; `net472` is included when building on Windows.
 
-Direct NuGet dependencies are `OfficeIMO.Reader` and `OfficeIMO.Email.Store`. The adapter adds no parser, native
-runtime, Outlook automation, or third-party email-store dependency of its own.
+The adapter depends on `OfficeIMO.Reader` and the unified `OfficeIMO.Email` package. It adds no parser, native runtime,
+Outlook automation, or third-party email-store dependency of its own.

@@ -31,7 +31,7 @@ using (var stream = new MemoryStream(emlx, writable: false)) {
     EmailDocument storeDocument = storeResult.Store.Folders.Single().Items.Single().Document;
     if (!string.Equals(storeDocument.Subject, "Packed EMLX", StringComparison.Ordinal) ||
         !string.Equals(storeDocument.Body.Text?.Trim(), "Store body", StringComparison.Ordinal)) {
-        throw new InvalidOperationException("The packed OfficeIMO.Email.Store dependency graph could not project EMLX through OfficeIMO.Email.");
+        throw new InvalidOperationException("The packed OfficeIMO.Email dependency graph could not project EMLX through the Store API.");
     }
 }
 
@@ -62,7 +62,7 @@ using (OfflineAddressBookSession session = OfflineAddressBookSession.Open(stream
     if (!string.Equals(entry.SmtpAddress, "package@example.test", StringComparison.Ordinal) ||
         !session.Validate().IsValid) {
         throw new InvalidOperationException(
-            "The packed OfficeIMO.Email.AddressBook dependency graph could not decode and validate OAB v4.");
+            "The packed OfficeIMO.Email dependency graph could not decode and validate OAB v4 through the AddressBook API.");
     }
 }
 
@@ -80,7 +80,7 @@ using (var stream = new MemoryStream(oab, writable: false)) {
     }
 }
 
-Console.WriteLine($"OfficeIMO Email, email-store, address-book, and Reader adapter package smoke passed on {System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription}.");
+Console.WriteLine($"Unified OfficeIMO Email and both Reader adapter package smokes passed on {System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription}.");
 
 static byte[] CreateAddressBook() {
     using var stream = new MemoryStream();

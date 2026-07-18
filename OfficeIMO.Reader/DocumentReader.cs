@@ -22,7 +22,8 @@ namespace OfficeIMO.Reader;
 /// Unified, read-only document extraction facade intended for AI ingestion.
 /// </summary>
 /// <remarks>
-/// This facade is intentionally dependency-free and deterministic.
+/// This facade is deterministic. Its current convenience package includes the built-in OfficeIMO format engines;
+/// use the modular package roadmap when selecting a future dependency-minimal Reader surface.
 /// It normalizes extraction into <see cref="ReaderChunk"/> instances with stable IDs and location metadata.
 /// Read operations are thread-safe. Use <see cref="OfficeDocumentReaderBuilder"/> when modular handlers
 /// or a processing pipeline are required.

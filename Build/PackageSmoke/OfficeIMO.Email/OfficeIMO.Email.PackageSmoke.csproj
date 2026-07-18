@@ -5,8 +5,6 @@
     <TargetFrameworks Condition="$([MSBuild]::IsOsPlatform('Windows'))">$(TargetFrameworks);net472</TargetFrameworks>
     <EnableOfficeIMOEmailPackageSmoke Condition="'$(EnableOfficeIMOEmailPackageSmoke)' == ''">false</EnableOfficeIMOEmailPackageSmoke>
     <OfficeIMOEmailPackageVersion Condition="'$(OfficeIMOEmailPackageVersion)' == ''">0.1.0</OfficeIMOEmailPackageVersion>
-    <OfficeIMOEmailAddressBookPackageVersion Condition="'$(OfficeIMOEmailAddressBookPackageVersion)' == ''">0.1.0</OfficeIMOEmailAddressBookPackageVersion>
-    <OfficeIMOEmailStorePackageVersion Condition="'$(OfficeIMOEmailStorePackageVersion)' == ''">0.1.0</OfficeIMOEmailStorePackageVersion>
     <OfficeIMOReaderPackageVersion Condition="'$(OfficeIMOReaderPackageVersion)' == ''">0.1.0</OfficeIMOReaderPackageVersion>
     <OfficeIMOReaderEmailAddressBookPackageVersion Condition="'$(OfficeIMOReaderEmailAddressBookPackageVersion)' == ''">0.1.0</OfficeIMOReaderEmailAddressBookPackageVersion>
     <OfficeIMOReaderEmailStorePackageVersion Condition="'$(OfficeIMOReaderEmailStorePackageVersion)' == ''">0.1.0</OfficeIMOReaderEmailStorePackageVersion>
@@ -18,8 +16,6 @@
 
   <ItemGroup Condition="'$(EnableOfficeIMOEmailPackageSmoke)' == 'true'">
     <PackageReference Include="OfficeIMO.Email" Version="[$(OfficeIMOEmailPackageVersion)]" />
-    <PackageReference Include="OfficeIMO.Email.AddressBook" Version="[$(OfficeIMOEmailAddressBookPackageVersion)]" />
-    <PackageReference Include="OfficeIMO.Email.Store" Version="[$(OfficeIMOEmailStorePackageVersion)]" />
     <PackageReference Include="OfficeIMO.Reader" Version="[$(OfficeIMOReaderPackageVersion)]" />
     <PackageReference Include="OfficeIMO.Reader.EmailAddressBook" Version="[$(OfficeIMOReaderEmailAddressBookPackageVersion)]" />
     <PackageReference Include="OfficeIMO.Reader.EmailStore" Version="[$(OfficeIMOReaderEmailStorePackageVersion)]" />
@@ -27,6 +23,6 @@
 
   <Target Name="RequirePackageSmokeOptIn" BeforeTargets="CoreCompile"
           Condition="'$(EnableOfficeIMOEmailPackageSmoke)' != 'true'">
-    <Error Text="Set EnableOfficeIMOEmailPackageSmoke=true and restore from a feed containing the packed OfficeIMO.Email, OfficeIMO.Email.AddressBook, OfficeIMO.Email.Store, OfficeIMO.Reader, OfficeIMO.Reader.EmailAddressBook, and OfficeIMO.Reader.EmailStore packages." />
+    <Error Text="Set EnableOfficeIMOEmailPackageSmoke=true and restore from a feed containing the packed OfficeIMO.Email, OfficeIMO.Reader, OfficeIMO.Reader.EmailAddressBook, and OfficeIMO.Reader.EmailStore packages." />
   </Target>
 </Project>

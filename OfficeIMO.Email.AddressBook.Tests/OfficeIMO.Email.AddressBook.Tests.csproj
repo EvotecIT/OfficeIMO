@@ -22,7 +22,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\OfficeIMO.Email.AddressBook\OfficeIMO.Email.AddressBook.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Email\OfficeIMO.Email.csproj" />
     <ProjectReference Include="..\OfficeIMO.Reader.EmailAddressBook\OfficeIMO.Reader.EmailAddressBook.csproj" />
   </ItemGroup>
 

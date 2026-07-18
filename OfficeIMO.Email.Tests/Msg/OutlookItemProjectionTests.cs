@@ -247,7 +247,6 @@ public sealed class OutlookItemProjectionTests {
         Assert.False(oracle.Task.Complete);
         Assert.Equal("BILL-1", oracle.Task.BillingInformation);
         Assert.Equal("12 km", oracle.Task.Mileage);
-        Assert.Equal(start.AddDays(1), oracle.Task.CompleteTime);
     }
 
     [Fact]

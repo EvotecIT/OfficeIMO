@@ -4,17 +4,17 @@ namespace OfficeIMO.Email;
 internal static class MsgAddressProjection {
     internal static EmailAddress? ReadAddress(
         IEnumerable<MapiProperty> properties,
-        ushort displayNameId,
-        ushort smtpAddressId,
-        ushort emailAddressId,
-        ushort addressTypeId,
-        ushort? originalAddressId = null) {
-        string? displayName = Clean(MsgProjection.GetString(properties, displayNameId));
-        string? addressType = Clean(MsgProjection.GetString(properties, addressTypeId));
-        string? smtp = Clean(MsgProjection.GetString(properties, smtpAddressId));
-        string? native = Clean(MsgProjection.GetString(properties, emailAddressId));
-        string? original = originalAddressId.HasValue
-            ? Clean(MsgProjection.GetString(properties, originalAddressId.Value))
+        MapiPropertyKey<string> displayNameKey,
+        MapiPropertyKey<string> smtpAddressKey,
+        MapiPropertyKey<string> emailAddressKey,
+        MapiPropertyKey<string> addressTypeKey,
+        MapiPropertyKey<string>? originalAddressKey = null) {
+        string? displayName = Clean(properties.GetMapiValueOrDefault(displayNameKey));
+        string? addressType = Clean(properties.GetMapiValueOrDefault(addressTypeKey));
+        string? smtp = Clean(properties.GetMapiValueOrDefault(smtpAddressKey));
+        string? native = Clean(properties.GetMapiValueOrDefault(emailAddressKey));
+        string? original = originalAddressKey != null
+            ? Clean(properties.GetMapiValueOrDefault(originalAddressKey))
             : null;
 
         string? address = string.Equals(addressType, "EX", StringComparison.OrdinalIgnoreCase)
@@ -39,10 +39,10 @@ internal static class MsgAddressProjection {
     }
 
     internal static EmailRecipientKind ReadRecipientKind(IEnumerable<MapiProperty> properties) {
-        int displayTypeEx = MsgProjection.GetInt(properties, 0x3905) ?? -1;
+        int displayTypeEx = properties.GetNullableMapiValue(MapiKnownProperties.PidTag.DisplayTypeEx) ?? -1;
         if ((displayTypeEx & 0xFF) == 7) return EmailRecipientKind.Room;
 
-        return (MsgProjection.GetInt(properties, 0x0C15) ?? 0) switch {
+        return (properties.GetNullableMapiValue(MapiKnownProperties.PidTag.RecipientType) ?? 0) switch {
             1 => EmailRecipientKind.To,
             2 => EmailRecipientKind.Cc,
             3 => EmailRecipientKind.Bcc,

@@ -3,9 +3,10 @@ namespace OfficeIMO.Email;
 internal sealed partial class EmailSemanticSnapshotBuilder {
     private async Task AddAttachments(EmailDocument document, string prefix, int depth,
         bool useAsync, CancellationToken cancellationToken) {
-        for (int index = 0; index < document.Attachments.Count; index++) {
+        EmailAttachment[] attachments = OutlookTaskCommunicationAttachmentProjection.GetWritableAttachments(document);
+        for (int index = 0; index < attachments.Length; index++) {
             cancellationToken.ThrowIfCancellationRequested();
-            EmailAttachment attachment = document.Attachments[index];
+            EmailAttachment attachment = attachments[index];
             _attachmentCount++;
             string path = string.Concat(prefix, "/attachments/",
                 index.ToString("D8", CultureInfo.InvariantCulture));

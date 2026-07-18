@@ -49,7 +49,7 @@ internal static class TnefMapiCodec {
             bool variable = IsVariableValue(type) || multiple;
             if (!variable) {
                 int fixedSize = GetFixedSize(type);
-                if (propertyId != 0x3701) decodedPropertyBytes = checked(decodedPropertyBytes + fixedSize);
+                if (!IsAttachmentPayload(propertyId)) decodedPropertyBytes = checked(decodedPropertyBytes + fixedSize);
                 cursor.Skip(fixedSize);
                 cursor.Align4();
                 continue;
@@ -63,11 +63,11 @@ internal static class TnefMapiCodec {
             MapiPropertyType itemType = multiple ? MsgValueWriter.GetMultipleItemType(type) : type;
             for (uint valueIndex = 0; valueIndex < valueCount; valueIndex++) {
                 long itemLength = IsVariableValue(itemType) ? cursor.ReadUInt32() : GetFixedSize(itemType);
-                if (propertyId == 0x3701) {
+                if (IsAttachmentPayload(propertyId)) {
                     attachmentPayloadLength = checked(attachmentPayloadLength + itemLength);
                 }
                 if (itemLength > int.MaxValue) throw new InvalidDataException("TNEF MAPI value is too large.");
-                if (propertyId != 0x3701) decodedPropertyBytes = checked(decodedPropertyBytes + itemLength);
+                if (!IsAttachmentPayload(propertyId)) decodedPropertyBytes = checked(decodedPropertyBytes + itemLength);
                 cursor.Skip((int)itemLength);
                 cursor.Align4();
             }
@@ -185,7 +185,7 @@ internal static class TnefMapiCodec {
                             if (IsVariableValue(itemType)) {
                                 uint rawLength = cursor.ReadUInt32();
                                 if (rawLength > int.MaxValue) throw new InvalidDataException("TNEF MAPI value is too large.");
-                                if (propertyId != 0x3701) {
+                                if (!IsAttachmentPayload(propertyId)) {
                                     state.EnsureDecodedPropertyBytesWithinLimits(
                                         checked(rawValues.Length + rawLength));
                                 }
@@ -193,7 +193,7 @@ internal static class TnefMapiCodec {
                                 cursor.Align4();
                             } else {
                                 int size = GetFixedSize(itemType);
-                                if (propertyId != 0x3701) {
+                                if (!IsAttachmentPayload(propertyId)) {
                                     state.EnsureDecodedPropertyBytesWithinLimits(
                                         checked(rawValues.Length + size));
                                 }
@@ -208,12 +208,12 @@ internal static class TnefMapiCodec {
                     value = multiple ? decoded : decoded.FirstOrDefault();
                 } else {
                     int size = GetFixedSize(type);
-                    if (propertyId != 0x3701) state.EnsureDecodedPropertyBytesWithinLimits(size);
+                    if (!IsAttachmentPayload(propertyId)) state.EnsureDecodedPropertyBytesWithinLimits(size);
                     raw = cursor.ReadBytes(size);
                     cursor.Align4();
                     value = DecodeValue(type, raw, codePage, state.Diagnostics, location);
                 }
-                state.CountProperty(propertyId == 0x3701 ? 0 : raw?.Length ?? 0);
+                state.CountProperty(IsAttachmentPayload(propertyId) ? 0 : raw?.Length ?? 0);
                 properties.Add(new MapiProperty(propertyId, type, value, name: name) { RawData = raw });
             } catch (Exception ex) when (ex is InvalidDataException || ex is ArgumentOutOfRangeException ||
                 ex is OverflowException) {
@@ -224,6 +224,9 @@ internal static class TnefMapiCodec {
         }
         return properties;
     }
+
+    private static bool IsAttachmentPayload(ushort propertyId) =>
+        MapiKnownProperties.PidTag.AttachData.MatchesIdentity(propertyId);
 
     private static void ReportTruncated(MsgParserState state, string location) {
         state.Diagnostics.Add(new EmailDiagnostic("EMAIL_TNEF_MAPI_TRUNCATED",

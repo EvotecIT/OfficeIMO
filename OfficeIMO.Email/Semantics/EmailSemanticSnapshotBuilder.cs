@@ -1,27 +1,39 @@
 namespace OfficeIMO.Email;
 
 internal sealed partial class EmailSemanticSnapshotBuilder {
-    private static readonly HashSet<ushort> PortableExcludedPropertyIds = new HashSet<ushort> {
-        0x0039, // submit-time projection is normalized through creation/modified timestamps
-        0x0E08, // computed message size
-        0x0E09, // parent entry id
-        0x0E17, // PST writer materializes a default message-status bitmask
-        0x0E21, // attachment ordinal
-        0x0FF4, 0x0FF5, 0x0FF6, 0x0FF7, 0x0FF8, 0x0FF9, 0x0FFA, 0x0FFB,
-        0x0FFE, 0x0FFF,
-        0x3000, 0x300B,
-        0x3701, // attachment payload is hashed through the reopenable content abstraction
-        0x65E0, 0x65E1, 0x65E2, 0x65E3,
-        0x67A4
+    private static readonly IReadOnlyList<MapiPropertyKey> PortableExcludedProperties = new MapiPropertyKey[] {
+        MapiKnownProperties.PidTag.ClientSubmitTime,
+        MapiKnownProperties.PidTag.MessageSize,
+        MapiKnownProperties.PidTag.ParentEntryId,
+        MapiKnownProperties.PidTag.MessageStatus,
+        MapiKnownProperties.PidTag.AttachNumber,
+        MapiKnownProperties.PidTag.Access,
+        MapiKnownProperties.PidTag.RowType,
+        MapiKnownProperties.PidTag.InstanceKey,
+        MapiKnownProperties.PidTag.AccessLevel,
+        MapiKnownProperties.PidTag.MappingSignature,
+        MapiKnownProperties.PidTag.RecordKey,
+        MapiKnownProperties.PidTag.StoreRecordKey,
+        MapiKnownProperties.PidTag.StoreEntryId,
+        MapiKnownProperties.PidTag.ObjectType,
+        MapiKnownProperties.PidTag.EntryId,
+        MapiKnownProperties.PidTag.RowId,
+        MapiKnownProperties.PidTag.SearchKey,
+        MapiKnownProperties.PidTag.AttachData,
+        MapiKnownProperties.PidTag.SourceKey,
+        MapiKnownProperties.PidTag.ParentSourceKey,
+        MapiKnownProperties.PidTag.ChangeKey,
+        MapiKnownProperties.PidTag.PredecessorChangeList,
+        MapiKnownProperties.PidTag.ChangeNumber
     };
 
-    private static readonly HashSet<ushort> DeduplicationExcludedPropertyIds =
-        new HashSet<ushort>(PortableExcludedPropertyIds) {
-            0x007D, // transport-header serialization
-            0x0E06, // received timestamp
-            0x3007, // creation timestamp
-            0x3008  // modification timestamp
-        };
+    private static readonly IReadOnlyList<MapiPropertyKey> DeduplicationExcludedProperties =
+        PortableExcludedProperties.Concat(new MapiPropertyKey[] {
+            MapiKnownProperties.PidTag.TransportMessageHeaders,
+            MapiKnownProperties.PidTag.MessageDeliveryTime,
+            MapiKnownProperties.PidTag.CreationTime,
+            MapiKnownProperties.PidTag.LastModificationTime
+        }).ToArray();
 
     private readonly EmailSemanticComparisonOptions _options;
     private readonly byte[]? _key;
@@ -150,10 +162,10 @@ internal sealed partial class EmailSemanticSnapshotBuilder {
 
     private bool ShouldInclude(MapiProperty property) {
         if (_options.Profile == EmailSemanticComparisonProfile.Strict || property.Name != null) return true;
-        HashSet<ushort> excluded = _options.Profile == EmailSemanticComparisonProfile.Deduplication
-            ? DeduplicationExcludedPropertyIds
-            : PortableExcludedPropertyIds;
-        return !excluded.Contains(property.PropertyId);
+        IReadOnlyList<MapiPropertyKey> excluded = _options.Profile == EmailSemanticComparisonProfile.Deduplication
+            ? DeduplicationExcludedProperties
+            : PortableExcludedProperties;
+        return !excluded.Any(key => key.MatchesIdentity(property));
     }
 
     private string Describe(MapiProperty property) {

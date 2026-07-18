@@ -4,66 +4,6 @@ internal static partial class IcsCalendarCodec {
     private static readonly DateTimeOffset DeterministicEpoch =
         new DateTimeOffset(1970, 1, 1, 0, 0, 0, TimeSpan.Zero);
 
-    internal static bool TryProject(string text, EmailDocument document, IList<EmailDiagnostic> diagnostics,
-        string location, string? mimeMethod = null) {
-        int projectionDiagnosticStart = diagnostics.Count;
-        List<IcsProperty> properties;
-        try {
-            properties = ParseProperties(text.TrimStart('\uFEFF'));
-        } catch (InvalidDataException exception) {
-            diagnostics.Add(new EmailDiagnostic("EMAIL_ICALENDAR_PARSE_INVALID", exception.Message,
-                EmailDiagnosticSeverity.Warning, location));
-            document.MimeSemanticProjectionIsIncomplete = true;
-            return false;
-        }
-        IcsProperty? activeComponent = properties.FirstOrDefault(property => property.Name == "BEGIN" &&
-            (property.Value.Equals("VEVENT", StringComparison.OrdinalIgnoreCase) ||
-             property.Value.Equals("VTODO", StringComparison.OrdinalIgnoreCase)));
-        if (activeComponent == null) {
-            document.MimeSemanticProjectionIsIncomplete = true;
-            return false;
-        }
-        bool isEvent = activeComponent.Value.Equals("VEVENT", StringComparison.OrdinalIgnoreCase);
-
-        IReadOnlyList<IcsProperty> activeProperties = SelectActiveComponentProperties(
-            properties, activeComponent.Value);
-        IReadOnlyList<IcsProperty> alarmProperties = SelectActiveAlarmProperties(
-            properties, activeComponent.Value);
-        document.MimeSemanticProjectionIsIncomplete |= HasIncompleteStoreProjection(
-            properties, activeProperties, alarmProperties, isEvent, document.Subject, document.From);
-        string? calendarMethod = GetValue(activeProperties, "METHOD");
-        string? effectiveMethod = calendarMethod ?? mimeMethod;
-        bool hasMethodConflict = !string.IsNullOrWhiteSpace(calendarMethod) &&
-            !string.IsNullOrWhiteSpace(mimeMethod) &&
-            !string.Equals(calendarMethod, mimeMethod, StringComparison.OrdinalIgnoreCase);
-        bool hasTransportRecipients = HasCalendarRecipients(document);
-        bool hasCalendarAttendees = activeProperties.Any(property => property.Name == "ATTENDEE");
-        bool hasCalendarRecipients = hasTransportRecipients || hasCalendarAttendees;
-        bool requestWouldSynthesizeAttendees =
-            string.Equals(effectiveMethod, "REQUEST", StringComparison.OrdinalIgnoreCase) &&
-            hasTransportRecipients && !hasCalendarAttendees;
-        bool methodWouldChange =
-            string.IsNullOrWhiteSpace(effectiveMethod) && hasCalendarRecipients ||
-            string.Equals(effectiveMethod, "PUBLISH", StringComparison.OrdinalIgnoreCase) &&
-            hasCalendarRecipients || !isEvent &&
-            string.Equals(effectiveMethod, "REQUEST", StringComparison.OrdinalIgnoreCase) &&
-            !hasCalendarRecipients;
-        if (hasMethodConflict || requestWouldSynthesizeAttendees ||
-            isEvent && !IsStoreProjectableMethod(effectiveMethod) ||
-            !isEvent && !IsStoreProjectableTaskMethod(effectiveMethod) || methodWouldChange) {
-            document.MimeSemanticProjectionIsIncomplete = true;
-        }
-        if (isEvent) ProjectEvent(activeProperties, document, diagnostics, location, effectiveMethod);
-        else ProjectTask(activeProperties, document, diagnostics, location);
-        document.MimeSemanticProjectionIsIncomplete |= HasIncompleteTimestampProjection(
-            activeProperties, document, isEvent, diagnostics, location);
-        document.MimeSemanticProjectionIsIncomplete |= diagnostics.Skip(projectionDiagnosticStart).Any(diagnostic =>
-            diagnostic.Code == "EMAIL_ICALENDAR_TIMEZONE_UNRESOLVED" ||
-            diagnostic.Code == "EMAIL_ICALENDAR_FLOATING_TIME" ||
-            diagnostic.Code == "EMAIL_ICALENDAR_DATE_INVALID");
-        return true;
-    }
-
     internal static EmailAttachment? FindSemanticAttachment(EmailDocument document) {
         if (document.OutlookItemKind != OutlookItemKind.Appointment &&
             document.OutlookItemKind != OutlookItemKind.Task) return null;
@@ -105,6 +45,12 @@ internal static partial class IcsCalendarCodec {
         AppendLine(output, "PRODID:-//Evotec//OfficeIMO.Email//EN");
         AppendLine(output, "VERSION:2.0");
         AppendLine(output, string.Concat("METHOD:", GetMethod(document)));
+        if (document.OutlookItemKind == OutlookItemKind.Appointment &&
+            document.Appointment?.Recurrence?.StateDecoded == true &&
+            document.Appointment.RecurrenceTimeZone?.StateDecoded == true) {
+            WriteTimeZone(output, document.Appointment.RecurrenceTimeZone,
+                document.Appointment.Recurrence.Start.Year);
+        }
         if (document.OutlookItemKind == OutlookItemKind.Task) WriteTask(output, document);
         else WriteEvent(output, document);
         AppendLine(output, "END:VCALENDAR");
@@ -112,180 +58,46 @@ internal static partial class IcsCalendarCodec {
     }
 
     internal static bool HasOpaqueAppointmentState(OutlookAppointment appointment) {
-        return appointment.RecurrenceState != null || appointment.TimeZoneStructure != null ||
-            appointment.StartTimeZoneDefinition != null || appointment.EndTimeZoneDefinition != null ||
-            appointment.RecurrenceTimeZoneDefinition != null || appointment.IsRecurring == true ||
-            appointment.RecurrenceType.HasValue || !string.IsNullOrWhiteSpace(appointment.RecurrencePattern);
-    }
-
-    private static void ProjectEvent(IReadOnlyList<IcsProperty> properties, EmailDocument document,
-        IList<EmailDiagnostic> diagnostics, string location, string? method) {
-        var appointment = document.Appointment ?? new OutlookAppointment();
-        document.OutlookItemKind = OutlookItemKind.Appointment;
-        document.MessageClass = MessageClassForMethod(method, properties);
-        document.Appointment = appointment;
-        ApplyCommon(properties, document);
-
-        appointment.Start = ParseDate(GetProperty(properties, "DTSTART"), diagnostics, location, out bool allDay);
-        appointment.End = ParseDate(GetProperty(properties, "DTEND"), diagnostics, location, out _);
-        appointment.IsAllDay = allDay;
-        appointment.Location = Unescape(GetValue(properties, "LOCATION"));
-        appointment.Sequence = ParseInt(GetValue(properties, "SEQUENCE"));
-        appointment.IsRecurring = GetProperty(properties, "RRULE") != null;
-        appointment.RecurrencePattern = GetValue(properties, "RRULE");
-        TimeSpan? duration = IcsDurationCodec.Parse(GetValue(properties, "DURATION"));
-        bool incompleteDuration = false;
-        TimeSpan? effectiveDuration = appointment.Start.HasValue && appointment.End.HasValue
-            ? appointment.End.Value - appointment.Start.Value
-            : duration;
-        appointment.DurationMinutes = effectiveDuration.HasValue
-            ? IcsDurationCodec.ToWholeMinutes(effectiveDuration.Value, diagnostics, location, ref incompleteDuration)
-            : null;
-        if (!appointment.End.HasValue && appointment.Start.HasValue && duration.HasValue) {
-            try {
-                appointment.End = appointment.Start.Value.Add(duration.Value);
-            } catch (ArgumentOutOfRangeException) {
-                IcsDurationCodec.ReportOutOfRange(diagnostics, location);
-                incompleteDuration = true;
-            }
+        if (appointment.RecurrenceState != null && appointment.Recurrence?.StateDecoded != true) return true;
+        if (appointment.TimeZoneStructure != null && appointment.LegacyTimeZone?.StateDecoded != true) return true;
+        if (appointment.StartTimeZoneDefinition != null && appointment.StartTimeZone?.StateDecoded != true) return true;
+        if (appointment.EndTimeZoneDefinition != null && appointment.EndTimeZone?.StateDecoded != true) return true;
+        if (appointment.RecurrenceTimeZoneDefinition != null &&
+            appointment.RecurrenceTimeZone?.StateDecoded != true) return true;
+        if (appointment.Recurrence != null) {
+            OutlookRecurrenceIcsExportResult result = OutlookRecurrenceIcsConverter.Export(appointment.Recurrence,
+                new OutlookRecurrenceIcsExportOptions {
+                    TimeZone = appointment.RecurrenceTimeZone,
+                    DateOnly = appointment.IsAllDay == true
+                });
+            return !result.Report.IsLossless;
         }
-        string? busy = GetValue(properties, "X-MICROSOFT-CDO-BUSYSTATUS");
-        appointment.BusyStatus = ParseBusyStatus(busy) ?? ParseTransparency(GetValue(properties, "TRANSP"));
-        appointment.NotAllowPropose = ParseBoolean(GetValue(properties, "X-MICROSOFT-DISALLOW-COUNTER"));
-        appointment.MeetingStatus = ParseInt(GetValue(properties, "X-OFFICEIMO-MEETING-STATUS"));
-        appointment.ResponseStatus = ParseInt(GetValue(properties, "X-OFFICEIMO-RESPONSE-STATUS"));
-        appointment.ClientIntentFlags = ParseInt(GetValue(properties, "X-OFFICEIMO-CLIENT-INTENT"));
-        appointment.TimeZoneDescription = UnescapeOrNull(GetValue(properties, "X-OFFICEIMO-TIMEZONE-DESCRIPTION"));
-        incompleteDuration |= ApplyReminder(properties, appointment, diagnostics, location);
-        document.MimeSemanticProjectionIsIncomplete |= incompleteDuration;
-
-        string[] required = GetAttendees(properties, optional: false).ToArray();
-        string[] optional = GetAttendees(properties, optional: true).ToArray();
-        appointment.RequiredAttendees = required.Length == 0 ? null : string.Join("; ", required);
-        appointment.OptionalAttendees = optional.Length == 0 ? null : string.Join("; ", optional);
-        appointment.AllAttendees = required.Concat(optional).Any()
-            ? string.Join("; ", required.Concat(optional))
-            : null;
-        AddAttendeeRecipients(properties, document);
-    }
-
-    private static void ProjectTask(IReadOnlyList<IcsProperty> properties, EmailDocument document,
-        IList<EmailDiagnostic> diagnostics, string location) {
-        var task = document.Task ?? new OutlookTask();
-        document.OutlookItemKind = OutlookItemKind.Task;
-        document.MessageClass = "IPM.Task";
-        document.Task = task;
-        ApplyCommon(properties, document);
-        task.Start = ParseDate(GetProperty(properties, "DTSTART"), diagnostics, location, out _);
-        task.Due = ParseDate(GetProperty(properties, "DUE"), diagnostics, location, out _);
-        task.CompletedAt = ParseDate(GetProperty(properties, "COMPLETED"), diagnostics, location, out _);
-        if (double.TryParse(GetValue(properties, "PERCENT-COMPLETE"), NumberStyles.Float,
-            CultureInfo.InvariantCulture, out double percent)) task.PercentComplete = percent / 100d;
-        string? status = GetValue(properties, "STATUS");
-        task.IsComplete = string.Equals(status, "COMPLETED", StringComparison.OrdinalIgnoreCase);
-        task.Status = ParseTaskStatus(status);
-        task.Owner = UnescapeOrNull(GetValue(properties, "X-OFFICEIMO-TASK-OWNER")) ?? GetOrganizer(properties);
-        task.IsRecurring = GetProperty(properties, "RRULE") != null;
-        TimeSpan? standardDuration = IcsDurationCodec.Parse(GetValue(properties, "DURATION"));
-        task.EstimatedEffort = IcsDurationCodec.Parse(GetValue(properties, "X-OFFICEIMO-ESTIMATED-EFFORT"));
-        task.ActualEffort = IcsDurationCodec.Parse(GetValue(properties, "X-OFFICEIMO-ACTUAL-EFFORT"));
-        bool incompleteEffort = false;
-        if (task.EstimatedEffort.HasValue) IcsDurationCodec.ToWholeMinutes(task.EstimatedEffort.Value,
-            diagnostics, location, ref incompleteEffort);
-        if (task.ActualEffort.HasValue) IcsDurationCodec.ToWholeMinutes(task.ActualEffort.Value,
-            diagnostics, location, ref incompleteEffort);
-        if (!task.Due.HasValue && standardDuration.HasValue) {
-            if (task.Start.HasValue) {
-                try {
-                    task.Due = task.Start.Value.Add(standardDuration.Value);
-                } catch (ArgumentOutOfRangeException) {
-                    IcsDurationCodec.ReportOutOfRange(diagnostics, location);
-                    incompleteEffort = true;
-                }
-            } else {
-                diagnostics.Add(new EmailDiagnostic("EMAIL_ICALENDAR_TASK_DURATION_START_REQUIRED",
-                    "A VTODO duration cannot be projected to a due date without DTSTART.",
-                    EmailDiagnosticSeverity.Warning, location));
-                incompleteEffort = true;
-            }
-        }
-        task.SendUpdates = ParseBoolean(GetValue(properties, "X-OFFICEIMO-SEND-UPDATES"));
-        task.SendStatusOnComplete = ParseBoolean(GetValue(properties, "X-OFFICEIMO-SEND-STATUS-ON-COMPLETE"));
-        task.Ownership = ParseInt(GetValue(properties, "X-OFFICEIMO-OWNERSHIP"));
-        task.AcceptanceState = ParseInt(GetValue(properties, "X-OFFICEIMO-ACCEPTANCE-STATE"));
-        task.Version = ParseInt(GetValue(properties, "X-OFFICEIMO-TASK-VERSION"));
-        task.State = ParseInt(GetValue(properties, "X-OFFICEIMO-TASK-STATE"));
-        task.Assigner = UnescapeOrNull(GetValue(properties, "X-OFFICEIMO-ASSIGNER"));
-        task.IsTeamTask = ParseBoolean(GetValue(properties, "X-OFFICEIMO-TEAM-TASK"));
-        task.Ordinal = ParseInt(GetValue(properties, "X-OFFICEIMO-ORDINAL"));
-        task.CommonStart = ParseDate(GetProperty(properties, "X-OFFICEIMO-COMMON-START"), diagnostics, location, out _);
-        task.CommonEnd = ParseDate(GetProperty(properties, "X-OFFICEIMO-COMMON-END"), diagnostics, location, out _);
-        task.Mode = ParseInt(GetValue(properties, "X-OFFICEIMO-TASK-MODE"));
-        task.ToDoOrdinalDate = ParseDate(GetProperty(properties, "X-OFFICEIMO-TODO-ORDINAL-DATE"),
-            diagnostics, location, out _);
-        task.ToDoSubOrdinal = UnescapeOrNull(GetValue(properties, "X-OFFICEIMO-TODO-SUBORDINAL"));
-        task.BillingInformation = UnescapeOrNull(GetValue(properties, "X-OFFICEIMO-BILLING-INFORMATION"));
-        task.Mileage = UnescapeOrNull(GetValue(properties, "X-OFFICEIMO-MILEAGE"));
-        foreach (IcsProperty property in properties.Where(property => property.Name == "CONTACT")) {
-            task.Contacts.Add(Unescape(property.Value));
-        }
-        foreach (IcsProperty property in properties.Where(property => property.Name == "X-OFFICEIMO-COMPANY")) {
-            task.Companies.Add(Unescape(property.Value));
-        }
-        AddAttendeeRecipients(properties, document);
-        document.MimeSemanticProjectionIsIncomplete |= incompleteEffort |
-            ApplyReminder(properties, task, diagnostics, location);
-    }
-
-    private static void ApplyCommon(IReadOnlyList<IcsProperty> properties, EmailDocument document) {
-        string? summary = Unescape(GetValue(properties, "SUMMARY"));
-        string? description = Unescape(GetValue(properties, "DESCRIPTION"));
-        string? uid = Unescape(GetValue(properties, "UID"));
-        document.MimeSemanticSourceHasTextBody |= !string.IsNullOrWhiteSpace(description);
-        if (!string.IsNullOrWhiteSpace(summary)) document.Subject = summary;
-        if (!string.IsNullOrWhiteSpace(description)) {
-            if (document.Body.Text == null) document.Body.Text = description;
-            else if (!string.Equals(document.Body.Text, description, StringComparison.Ordinal)) {
-                document.MimeSemanticProjectionIsIncomplete = true;
-            }
-        }
-        if (!string.IsNullOrWhiteSpace(uid)) {
-            if (document.MessageId == null) document.MessageId = uid;
-            else if (!string.Equals(document.MessageId.Trim().Trim('<', '>'), uid,
-                         StringComparison.Ordinal)) document.MimeSemanticProjectionIsIncomplete = true;
-        }
-        int? calendarSensitivity = ParseCalendarSensitivity(GetValue(properties, "CLASS"));
-        if (calendarSensitivity.HasValue) document.MessageMetadata.Sensitivity = calendarSensitivity;
-        foreach (IcsProperty property in properties.Where(property => property.Name == "CATEGORIES")) {
-            foreach (string category in SplitEscapedValues(property.Value, ',')) {
-                if (!string.IsNullOrWhiteSpace(category) && !document.MessageMetadata.Categories.Any(existing =>
-                    string.Equals(existing, category, StringComparison.OrdinalIgnoreCase))) {
-                    document.MessageMetadata.Categories.Add(category);
-                }
-            }
-        }
-        string? organizer = GetOrganizer(properties);
-        if (!string.IsNullOrWhiteSpace(organizer)) {
-            IcsProperty? organizerProperty = GetProperty(properties, "ORGANIZER");
-            string? organizerName = null;
-            organizerProperty?.Parameters.TryGetValue("CN", out organizerName);
-            if (document.From == null) document.From = new EmailAddress(organizer!, organizerName);
-            else if (!string.Equals(document.From.Address, organizer, StringComparison.OrdinalIgnoreCase)) {
-                document.MimeSemanticProjectionIsIncomplete = true;
-            } else if (string.IsNullOrWhiteSpace(document.From.DisplayName)) {
-                document.From.DisplayName = organizerName;
-            } else if (!string.IsNullOrWhiteSpace(organizerName) &&
-                       !string.Equals(document.From.DisplayName, organizerName, StringComparison.Ordinal)) {
-                document.MimeSemanticProjectionIsIncomplete = true;
-            }
-        }
+        return appointment.IsRecurring == true || appointment.RecurrenceType.HasValue ||
+            !string.IsNullOrWhiteSpace(appointment.RecurrencePattern) || appointment.TimeZoneStructure != null;
     }
 
     private static void WriteEvent(StringBuilder output, EmailDocument document) {
         OutlookAppointment appointment = document.Appointment ?? new OutlookAppointment();
+        OutlookRecurrence? recurrence = appointment.Recurrence?.StateDecoded == true
+            ? appointment.Recurrence
+            : null;
+        OutlookTimeZoneDefinition? recurrenceTimeZone = appointment.RecurrenceTimeZone?.StateDecoded == true
+            ? appointment.RecurrenceTimeZone
+            : null;
+        OutlookRecurrenceIcsExportResult? recurrenceExport = recurrence == null ? null :
+            OutlookRecurrenceIcsConverter.Export(recurrence, new OutlookRecurrenceIcsExportOptions {
+                TimeZone = recurrenceTimeZone,
+                DateOnly = appointment.IsAllDay == true
+            });
         AppendLine(output, "BEGIN:VEVENT");
         WriteCommon(output, document, appointment.Start);
-        if (appointment.Start.HasValue) {
+        if (recurrence != null) {
+            string? timeZoneId = recurrence.TimeZoneId ?? recurrenceTimeZone?.KeyName;
+            AppendTemporal(output, "DTSTART", ToRecurrenceTemporal(recurrence.Start, timeZoneId,
+                appointment.IsAllDay == true));
+            AppendTemporal(output, "DTEND", ToRecurrenceTemporal(recurrence.Start.Add(recurrence.Duration),
+                timeZoneId, appointment.IsAllDay == true));
+        } else if (appointment.Start.HasValue) {
             if (appointment.IsAllDay == true) {
                 AppendLine(output, string.Concat("DTSTART;VALUE=DATE:", FormatDate(appointment.Start.Value)));
                 DateTimeOffset end = appointment.End ?? appointment.Start.Value.AddDays(1);
@@ -297,6 +109,11 @@ internal static partial class IcsCalendarCodec {
                     string.Concat("DURATION:", IcsDurationCodec.Format(
                         TimeSpan.FromMinutes(appointment.DurationMinutes.Value))));
             }
+        }
+        if (recurrenceExport?.Rule != null) {
+            AppendLine(output, string.Concat("RRULE:", recurrenceExport.Rule.ToString()));
+            foreach (IcsTemporalValue excluded in recurrenceExport.ExcludedDates)
+                AppendTemporal(output, "EXDATE", excluded);
         }
         AppendText(output, "LOCATION", appointment.Location);
         if (appointment.Sequence.HasValue) AppendLine(output, string.Concat("SEQUENCE:",
@@ -317,14 +134,30 @@ internal static partial class IcsCalendarCodec {
         WriteAlarm(output, appointment.ReminderIsSet, appointment.ReminderDeltaMinutes,
             appointment.ReminderSignalTime ?? appointment.ReminderTime, document.Subject);
         AppendLine(output, "END:VEVENT");
+        if (recurrenceExport != null)
+            WriteExceptionEvents(output, document, appointment, recurrenceExport.Exceptions);
     }
 
     private static void WriteTask(StringBuilder output, EmailDocument document) {
         OutlookTask task = document.Task ?? new OutlookTask();
+        OutlookRecurrence? recurrence = task.Recurrence?.StateDecoded == true ? task.Recurrence : null;
+        OutlookRecurrenceIcsExportResult? recurrenceExport = recurrence == null ? null :
+            OutlookRecurrenceIcsConverter.Export(recurrence);
         AppendLine(output, "BEGIN:VTODO");
         WriteCommon(output, document, task.Start ?? task.Due);
-        if (task.Start.HasValue) AppendLine(output, string.Concat("DTSTART:", FormatUtc(task.Start.Value)));
-        if (task.Due.HasValue) AppendLine(output, string.Concat("DUE:", FormatUtc(task.Due.Value)));
+        if (recurrence != null) {
+            AppendTemporal(output, "DTSTART", ToRecurrenceTemporal(recurrence.Start, recurrence.TimeZoneId, false));
+            AppendTemporal(output, "DUE", ToRecurrenceTemporal(recurrence.Start.Add(recurrence.Duration),
+                recurrence.TimeZoneId, false));
+        } else {
+            if (task.Start.HasValue) AppendLine(output, string.Concat("DTSTART:", FormatUtc(task.Start.Value)));
+            if (task.Due.HasValue) AppendLine(output, string.Concat("DUE:", FormatUtc(task.Due.Value)));
+        }
+        if (recurrenceExport?.Rule != null) {
+            AppendLine(output, string.Concat("RRULE:", recurrenceExport.Rule.ToString()));
+            foreach (IcsTemporalValue excluded in recurrenceExport.ExcludedDates)
+                AppendTemporal(output, "EXDATE", excluded);
+        }
         if (task.CompletedAt.HasValue) AppendLine(output, string.Concat("COMPLETED:", FormatUtc(task.CompletedAt.Value)));
         if (task.PercentComplete.HasValue) AppendLine(output, string.Concat("PERCENT-COMPLETE:",
             Math.Max(0, Math.Min(100, (int)Math.Round(task.PercentComplete.Value * 100d))).ToString(CultureInfo.InvariantCulture)));
@@ -369,10 +202,121 @@ internal static partial class IcsCalendarCodec {
         AppendLine(output, "END:VTODO");
     }
 
+    private static void WriteExceptionEvents(StringBuilder output, EmailDocument document,
+        OutlookAppointment appointment, IReadOnlyList<OutlookRecurrenceIcsException> exceptions) {
+        if (exceptions.Count == 0) return;
+        string uid = GetUid(document, appointment.Start);
+        foreach (OutlookRecurrenceIcsException exception in exceptions) {
+            AppendLine(output, "BEGIN:VEVENT");
+            AppendText(output, "UID", uid);
+            AppendLine(output, string.Concat("DTSTAMP:", FormatUtc(document.Date ?? appointment.Start ??
+                DeterministicEpoch)));
+            AppendTemporal(output, "RECURRENCE-ID", exception.OriginalStart);
+            AppendTemporal(output, "DTSTART", exception.Start);
+            AppendTemporal(output, "DTEND", exception.End);
+            AppendText(output, "SUMMARY", exception.Subject ?? document.Subject);
+            AppendText(output, "DESCRIPTION", document.Body.Text);
+            AppendText(output, "LOCATION", exception.Location ?? appointment.Location);
+            if (appointment.Sequence.HasValue) AppendLine(output, string.Concat("SEQUENCE:",
+                appointment.Sequence.Value.ToString(CultureInfo.InvariantCulture)));
+            int? busy = exception.BusyStatus ?? appointment.BusyStatus;
+            if (busy.HasValue) {
+                AppendLine(output, string.Concat("X-MICROSOFT-CDO-BUSYSTATUS:", FormatBusyStatus(busy.Value)));
+                AppendLine(output, busy.Value == 0 ? "TRANSP:TRANSPARENT" : "TRANSP:OPAQUE");
+            }
+            WriteOrganizerAndAttendees(output, document);
+            WriteAlarm(output, exception.ReminderIsSet ?? appointment.ReminderIsSet,
+                exception.ReminderDeltaMinutes ?? appointment.ReminderDeltaMinutes,
+                absoluteTime: null, exception.Subject ?? document.Subject);
+            AppendLine(output, "END:VEVENT");
+        }
+    }
+
+    private static void WriteTimeZone(StringBuilder output, OutlookTimeZoneDefinition definition,
+        int seriesStartYear) {
+        if (string.IsNullOrWhiteSpace(definition.KeyName) || definition.Rules.Count == 0) return;
+        OutlookTimeZoneRule initial = definition.GetRule(seriesStartYear);
+        OutlookTimeZoneRule[] rules = new[] { initial }.Concat(definition.Rules.Where(rule =>
+                rule.EffectiveYear > seriesStartYear))
+            .Distinct().OrderBy(rule => rule.EffectiveYear).ToArray();
+        AppendLine(output, "BEGIN:VTIMEZONE");
+        AppendText(output, "TZID", definition.KeyName);
+        for (int index = 0; index < rules.Length; index++) {
+            OutlookTimeZoneRule rule = rules[index];
+            int ruleYear = index == 0 ? seriesStartYear : Math.Max(1, (int)rule.EffectiveYear);
+            int? nextYear = index + 1 < rules.Length ? (int?)rules[index + 1].EffectiveYear : null;
+            if (!rule.HasDaylightSaving) {
+                WriteObservance(output, "STANDARD", new DateTime(ruleYear, 1, 1), rule.StandardUtcOffset,
+                    rule.StandardUtcOffset, null, nextYear, rule);
+                continue;
+            }
+            DateTime? daylight = rule.DaylightTransition.GetDateTime(ruleYear);
+            DateTime? standard = rule.StandardTransition.GetDateTime(ruleYear);
+            if (daylight.HasValue) WriteObservance(output, "DAYLIGHT", daylight.Value,
+                rule.StandardUtcOffset, rule.DaylightUtcOffset, rule.DaylightTransition, nextYear, rule);
+            if (standard.HasValue) WriteObservance(output, "STANDARD", standard.Value,
+                rule.DaylightUtcOffset, rule.StandardUtcOffset, rule.StandardTransition, nextYear, rule);
+        }
+        AppendLine(output, "END:VTIMEZONE");
+    }
+
+    private static void WriteObservance(StringBuilder output, string name, DateTime start,
+        TimeSpan offsetFrom, TimeSpan offsetTo, OutlookTimeZoneTransition? transition, int? nextRuleYear,
+        OutlookTimeZoneRule rule) {
+        AppendLine(output, string.Concat("BEGIN:", name));
+        AppendLine(output, string.Concat("DTSTART:", start.ToString("yyyyMMdd'T'HHmmss",
+            CultureInfo.InvariantCulture)));
+        AppendLine(output, string.Concat("TZOFFSETFROM:", FormatUtcOffset(offsetFrom)));
+        AppendLine(output, string.Concat("TZOFFSETTO:", FormatUtcOffset(offsetTo)));
+        if (transition != null && transition.Year == 0) {
+            string recurrence = string.Concat("FREQ=YEARLY;BYMONTH=",
+                transition.Month.ToString(CultureInfo.InvariantCulture), ";BYDAY=",
+                transition.Day == 5 ? "-1" : transition.Day.ToString(CultureInfo.InvariantCulture),
+                DayTokensForCalendar[(int)transition.DayOfWeek]);
+            if (nextRuleYear.HasValue && nextRuleYear.Value > 1) {
+                DateTime cutoff = new DateTime(nextRuleYear.Value, 1, 1).AddSeconds(-1);
+                DateTimeOffset resolved = OutlookTimeZoneResolver.Resolve(rule, cutoff).Resolve();
+                recurrence += string.Concat(";UNTIL=", resolved.UtcDateTime.ToString("yyyyMMdd'T'HHmmss'Z'",
+                    CultureInfo.InvariantCulture));
+            }
+            AppendLine(output, string.Concat("RRULE:", recurrence));
+        }
+        AppendLine(output, string.Concat("END:", name));
+    }
+
+    private static readonly string[] DayTokensForCalendar = { "SU", "MO", "TU", "WE", "TH", "FR", "SA" };
+
+    private static string FormatUtcOffset(TimeSpan value) {
+        string sign = value < TimeSpan.Zero ? "-" : "+";
+        TimeSpan magnitude = value.Duration();
+        return string.Concat(sign, ((int)magnitude.TotalHours).ToString("00", CultureInfo.InvariantCulture),
+            magnitude.Minutes.ToString("00", CultureInfo.InvariantCulture));
+    }
+
+    private static IcsTemporalValue ToRecurrenceTemporal(DateTime local, string? timeZoneId, bool dateOnly) {
+        if (dateOnly) return IcsTemporalValue.Date(local);
+        return string.IsNullOrWhiteSpace(timeZoneId) ? IcsTemporalValue.Floating(local) :
+            IcsTemporalValue.Zoned(local, timeZoneId!);
+    }
+
+    private static void AppendTemporal(StringBuilder output, string propertyName, IcsTemporalValue value) {
+        string name = propertyName;
+        string formatted;
+        if (value.Kind == IcsTemporalValueKind.Date) {
+            name += ";VALUE=DATE";
+            formatted = value.Value.ToString("yyyyMMdd", CultureInfo.InvariantCulture);
+        } else if (value.Kind == IcsTemporalValueKind.UtcDateTime) {
+            formatted = value.Value.ToUniversalTime().ToString("yyyyMMdd'T'HHmmss'Z'", CultureInfo.InvariantCulture);
+        } else {
+            if (value.Kind == IcsTemporalValueKind.ZonedDateTime)
+                name += string.Concat(";TZID=\"", EscapeParameter(value.TimeZoneId!), "\"");
+            formatted = value.Value.ToString("yyyyMMdd'T'HHmmss", CultureInfo.InvariantCulture);
+        }
+        AppendLine(output, string.Concat(name, ":", formatted));
+    }
+
     private static void WriteCommon(StringBuilder output, EmailDocument document, DateTimeOffset? fallbackDate) {
-        string uid = string.IsNullOrWhiteSpace(document.MessageId)
-            ? CreateDeterministicUid(document, fallbackDate)
-            : document.MessageId!.Trim().Trim('<', '>');
+        string uid = GetUid(document, fallbackDate);
         AppendText(output, "UID", uid);
         AppendLine(output, string.Concat("DTSTAMP:", FormatUtc(document.Date ?? fallbackDate ?? DeterministicEpoch)));
         AppendText(output, "SUMMARY", document.Subject);
@@ -419,6 +363,11 @@ internal static partial class IcsCalendarCodec {
             AppendLine(output, string.Concat(attendee, ":mailto:", EscapeUriValue(recipient.Address.Address!)));
         }
     }
+
+    private static string GetUid(EmailDocument document, DateTimeOffset? fallbackDate) =>
+        string.IsNullOrWhiteSpace(document.MessageId)
+            ? CreateDeterministicUid(document, fallbackDate)
+            : document.MessageId!.Trim().Trim('<', '>');
 
     private static IcsProperty? GetProperty(IEnumerable<IcsProperty> properties, string name) =>
         properties.FirstOrDefault(property => property.Name == name);

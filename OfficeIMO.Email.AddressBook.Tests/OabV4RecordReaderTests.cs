@@ -4,6 +4,14 @@ namespace OfficeIMO.Email.AddressBook.Tests;
 
 public sealed class OabV4RecordReaderTests {
     [Fact]
+    public void SchemaDefinitionExposesSharedKnownProperty() {
+        var definition = new OfflineAddressBookPropertyDefinition(
+            ((uint)OabPropertyTags.DisplayName << 16) | (ushort)MapiPropertyType.Unicode, 0);
+
+        Assert.Same(MapiKnownProperties.PidTag.DisplayName, definition.KnownProperty);
+    }
+
+    [Fact]
     public void RejectsNonCanonicalCompactIntegers() {
         var definition = new OfflineAddressBookPropertyDefinition(
             ((uint)OabPropertyTags.ObjectType << 16) | (ushort)MapiPropertyType.Integer32, 0);

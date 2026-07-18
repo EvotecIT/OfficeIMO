@@ -2,6 +2,10 @@ namespace OfficeIMO.Email;
 
 internal static class MimeMessageMetadataProjection {
     internal static void Apply(EmailDocument document, IReadOnlyList<EmailHeader> headers) {
+        document.MessageMetadata.InternetReferences =
+            MimeHeaderParser.GetValue(headers, "References");
+        document.MessageMetadata.InReplyToId =
+            MimeHeaderParser.GetValue(headers, "In-Reply-To");
         string? importance = MimeHeaderParser.GetValue(headers, "Importance");
         document.MessageMetadata.Importance = ParseImportance(importance) ??
             ParseXPriority(MimeHeaderParser.GetValue(headers, "X-Priority"));

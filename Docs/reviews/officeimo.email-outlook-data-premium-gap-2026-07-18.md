@@ -24,13 +24,15 @@ OfficeIMO should not clone the Outlook COM object model. It should provide safer
 
 ## Current baseline
 
-The exact PR head contains these owning surfaces:
+The roadmap branch consolidates these owning surfaces into one production `OfficeIMO.Email` package while keeping
+their namespaces and semantic responsibilities distinct:
 
 | Surface | Current size | Role |
 | --- | ---: | --- |
-| `OfficeIMO.Email` | 120 C# files | Format-neutral message/item model; MIME, MSG/OFT, TNEF, Mbox, ICS, VCF; MAPI retention; conversion-loss and semantic comparison. |
-| `OfficeIMO.Email.Store` | 137 C# files | PST/OST/OLM/EMLX/Mbox/mailbox-directory sessions, search, validation, recovery discovery, export, PST write/convert/merge, and verified PST mutation. |
-| `OfficeIMO.Email.AddressBook` | 39 C# files | Bounded OAB discovery, v4 schema/record decoding, search, validation, raw properties, contacts, and distribution-list data. |
+| `OfficeIMO.Email` package | 391 C# files | One assembly and NuGet for format-neutral messages/items, stores, OAB data, and mixed-artifact discovery. |
+| `OfficeIMO.Email.Store` API | 187 C# files | PST/OST/OLM/EMLX/Mbox/mailbox-directory sessions, search, validation, recovery discovery, export, PST write/convert/merge, and verified PST mutation. |
+| `OfficeIMO.Email.AddressBook` API | 42 C# files | Bounded OAB discovery, v4 schema/record decoding, search, validation, raw properties, contacts, and distribution-list data. |
+| `OfficeIMO.Email.Data` API | 4 C# files | Thin mixed-artifact detection and dispatch to the existing individual, store, and address-book owners. |
 | `OfficeIMO.Reader` and email adapters | Thin consumers | Built-in individual artifact ingestion plus optional store and address-book chunk projection. |
 
 PR #2105 adds the current ICS/VCF, indexed Mbox, native EMLX/Maildir output, special-folder provenance, and existing-Unicode-PST mutation baseline. Its exact-head email package and packed-consumer CI lanes passed on the relevant frameworks. This audit is not a separate merge-readiness decision for that PR.
@@ -223,17 +225,46 @@ Build a bounded graph over `Message-ID`, `References`, `In-Reply-To`, normalized
 
 The result should identify why two items were connected and distinguish authoritative from heuristic edges. It should support duplicate-aware archive views, root/children traversal, orphaned replies, cross-folder conversations, and merge/export without inventing missing messages.
 
-### 8. Offer first-party protected-content data access
+### 8. Defer the protected-content boundary to a final dependency gate
 
 The current handoff correctly detects S/MIME and retains `.p7m`/`.p7s` payloads, but a user who requires only OfficeIMO packages still needs another library to verify or decrypt the data. If the no-third-party promise includes protected-message content, the old host-handoff boundary is no longer sufficient.
 
-This needs an explicit product-boundary decision. OfficeIMO already has managed CMS, DER, RFC 3161, and X.509 validation code under `OfficeIMO.Pdf.Cryptography.Pkcs`. Do not build an independent email trust engine beside it. If first-party S/MIME is adopted, first extract neutral CMS/DER/X.509 primitives and policy/result contracts into one shared cryptography owner. Keep both PDF and an optional `OfficeIMO.Email.Security` package as thin format-specific adapters. Otherwise retain the current host-provider handoff.
+This needs an explicit product-boundary decision after the Outlook-data roadmap is complete. Do not change or extract the
+current PDF cryptography code in advance: separate PDF work may have changed or merged by then. At the final gate,
+exercise real Outlook-authored signed and encrypted fixtures, inspect the packed transitive dependency graph, and compare
+the then-current PDF implementation against the selected Bouncy Castle CMS implementation. Defer S/MIME if the real
+fixtures do not produce a sufficiently small, coherent, and interoperable contract.
+
+Gate evidence on 18 July 2026:
+
+- the repository has S/MIME wrapper detection and raw pass-through coverage, but no genuine `.p7m`, `.p7s`, certificate,
+  or Outlook-authored cryptographic fixture; the existing signed MIME samples contain placeholder signature bytes;
+- a controlled `System.Security.Cryptography.Pkcs` probe created and consumed opaque signed-data, detached signatures,
+  and enveloped-data on `net472`, `net8.0`, and `net10.0`, and compiled the same operations for `netstandard2.0`;
+- OpenSSL 3.0 independently verified and decrypted the Microsoft-generated artifacts, while all three runnable .NET
+  targets verified and decrypted OpenSSL-generated artifacts;
+- Microsoft PKCS 10.0.10 is dependency-free for `net10.0`, adds two Microsoft dependencies for `net8.0`, and expands to
+  a compatibility graph for `net472` and `netstandard2.0`; Microsoft PKCS 8.0.1 is dependency-free for `net472`,
+  `net8.0`, and `net10.0`, while `netstandard2.0` still requires Microsoft compatibility packages;
+- the current `OfficeIMO.Pdf.Cryptography.Pkcs` project is a PDF-dependent custom DER/CMS signing and validation adapter.
+  It does not own enveloped-data decryption and must not become an Email dependency.
+
+The current direction is one neutral `OfficeIMO.Security` package backed by Bouncy Castle. It owns CMS/DER/X.509
+operations and vendor-neutral result/policy models; Email and PDF own only their format orchestration. The final gate
+must choose the smallest honest consumption shape after the PDF work settles: either the Email and PDF core packages
+depend directly on `OfficeIMO.Security`, accepting one common dependency for the simplest user graph, or one thin
+format adapter remains where opt-in security materially reduces ordinary installs. Do not create a chain such as
+`OfficeIMO.Pdf` -> `OfficeIMO.Pdf.Cryptography` -> `OfficeIMO.Security` plus another algorithm package.
+
+An Email-to-PDF reference, a Security package that pulls both Email and PDF, and copying CMS implementations into each
+format are rejected. Public format APIs must not expose Bouncy Castle types. Target-framework support and any legacy
+compatibility dependencies remain acceptance evidence, not assumptions.
 
 The email adapter contract would include:
 
 - opaque and clear-signed S/MIME verification;
 - enveloped-message decryption using caller-supplied certificates/keys;
-- shared trust-policy callbacks and structured certificate/signature results from the neutral cryptography owner;
+- shared trust-policy callbacks and structured certificate/signature results from `OfficeIMO.Security`;
 - no implicit certificate-store search by default;
 - preservation of the original protected artifact and a separate decrypted `EmailDocument` result;
 - format-neutral support for MIME and MSG wrappers.
@@ -256,7 +287,7 @@ Aspose separately documents [corruption-tolerant item discovery](https://docs.as
 
 ### 10. Compose offline identity resolution
 
-`OfficeIMO.Email.AddressBook` already owns OAB entries and membership, while store items retain EX/X500 addresses and Entry IDs. Add a thin workflow package or adapter that:
+`OfficeIMO.Email.AddressBook` already owns OAB entries and membership, while store items retain EX/X500 addresses and Entry IDs. Add a thin workflow API that:
 
 - resolves a recipient against one or more OAB lists with exact and normalized evidence;
 - maps EX/X500/proxy values to SMTP where the offline snapshot proves it;
@@ -264,7 +295,9 @@ Aspose separately documents [corruption-tolerant item discovery](https://docs.as
 - expands distribution lists only when requested and within depth/member limits;
 - never implies live Exchange resolution or freshness.
 
-Keep the resolver outside `OfficeIMO.Email` so the artifact model does not depend on address-book storage.
+Keep the resolver in the AddressBook/identity workflow area rather than the root artifact model. It can ship in the
+same dependency-free `OfficeIMO.Email` package without making ordinary `EmailDocument` behavior depend on an OAB
+session.
 
 ## P2: premium breadth after the foundations
 
@@ -272,11 +305,14 @@ Keep the resolver outside `OfficeIMO.Email` so the artifact model does not depen
 
 Keep three existing boundaries distinct:
 
-- `OfficeIMO.Email.Profile`, if justified by real consumers, can own Outlook autocomplete caches (`.nk2` and supported modern Stream_Autocomplete data) with discovery, validation, search, merge, and deduplication.
+- An `OfficeIMO.Email.Profile` API area, if justified by real consumers, can own Outlook autocomplete caches (`.nk2` and supported modern Stream_Autocomplete data) with discovery, validation, search, merge, and deduplication. It should become a separate package only if a real dependency or platform boundary requires one.
 - `OfficeIMO.Email.Store`, using reusable semantic codecs from `OfficeIMO.Email`, owns store-resident master category data, views, search-folder criteria, reminders, folder user-property definitions, rules, and other folder-associated information. Store already exposes associated items; do not parse them again in Profile. Microsoft stores the master category list in a Calendar-folder associated message in the [Category List specification](https://learn.microsoft.com/en-us/openspecs/exchange_server_protocols/ms-oxocfg/eb7cac90-6200-4ac3-8f3c-6c808c681c8b), and views are part of [folder-associated information tables](https://learn.microsoft.com/en-us/office/client-developer/outlook/mapi/folder-associated-information-tables).
 - `OfficeIMO.Email.AddressBook` owns OAB manifests, LZX-compressed downloads, differential patches, and older v2/v3 components.
 
-Do not create a general Profile package until an actual profile/cache format needs a durable owner. Store and AddressBook extensions should stay with their current parsers and models.
+Decision: defer a general Profile API and package. No current OfficeIMO or Mailozaurr consumer establishes enough `.nk2` or
+modern `Stream_Autocomplete` demand to justify another public contract. Store and AddressBook extensions
+stay with their current parsers and models; revisit Profile only with a concrete autocomplete consumer and real fixture
+set.
 
 ### Additional archive formats and maintenance
 
@@ -299,13 +335,15 @@ Do not make Store depend on every OfficeIMO document format.
 
 ### Unified artifact discovery
 
-Consider a thin facade after the individual owners are stable:
+The stable owners now have a thin `OfficeIMO.Email.Data` facade inside the unified package:
 
 ```csharp
 EmailDataOpenResult result = EmailDataArtifact.Open(path, options);
 ```
 
-It can detect and return a typed `EmailDocument`, `IcsDocument`, `VCardDocument`, `EmailStoreSession`, or `OfflineAddressBookSession`. The facade must dispatch to the existing owners and must not grow alternate parsers, models, or mutation logic.
+It detects and returns a typed `EmailDocument`, `IcsDocument`, `VCardDocument`, `EmailStoreSession`, or
+`OfflineAddressBookSession`. The facade dispatches to the existing owners and contains no alternate parsers, models,
+or mutation logic. An explicit expected kind resolves ambiguous or extension-free sources.
 
 ## API consistency rules
 
@@ -321,7 +359,7 @@ Every new public workflow should follow these rules:
 8. **Do not expose magic numbers as the happy path.** Raw values remain available, but normal code uses discoverable descriptors and enums.
 9. **Use typed identifiers.** Folder, item, source, destination, and mutation-local IDs should not all be interchangeable strings.
 10. **Plan before expensive writes.** Large exports, splits, merges, and mutations expose dry-run estimates and conflict policy.
-11. **Keep package boundaries honest.** Store owns containers and store-resident associated data; Email owns message/item semantics; AddressBook owns OAB; a neutral cryptography owner owns CMS/DER/X.509; Email.Security owns only S/MIME orchestration; Profile owns only true profile/cache formats; Reader owns extraction.
+11. **Keep package boundaries honest.** Store owns containers and store-resident associated data; Email owns message/item semantics; AddressBook owns OAB; Profile owns only true profile/cache formats; Reader owns extraction. If S/MIME is accepted at the final gate, one neutral `OfficeIMO.Security` owner uses the selected CMS dependency without exposing vendor types; Email and PDF keep only format orchestration.
 12. **Validate the consumed artifact.** Reopen output with OfficeIMO and independent or native oracles where available; unit tests of internal helpers are not enough.
 
 ## Dependency promise
@@ -330,23 +368,38 @@ The public promise should be:
 
 > Offline email and Outlook data processing without Outlook, COM automation, native mail-store libraries, or third-party email parsers.
 
-That is stronger and more accurate than claiming a literal single-assembly dependency. Consumers can reference only OfficeIMO packages; OfficeIMO may use framework or Microsoft runtime compatibility packages where the target framework requires them. Optional capabilities such as Security or Reader-based attachment extraction should remain separate first-party packages so a basic MSG/PST consumer does not pull the entire product family.
+That is stronger and more accurate than claiming a literal single-assembly dependency. Consumers can reference only the
+OfficeIMO packages that own the artifacts they process; OfficeIMO may use framework, Microsoft, or one deliberately
+selected implementation dependency where the capability requires it. Avoid chains of OfficeIMO adapter packages and
+unrelated transitive libraries. Reader-based attachment extraction remains optional; a future S/MIME capability should
+use the one neutral Security owner so a Store consumer never needs PDF or multiple cryptography packages.
 
 ## Recommended implementation order
 
-- [ ] Publish the typed MAPI property vocabulary and property-bag API, initially covering every property OfficeIMO already reads or writes.
-- [ ] Route MSG, TNEF, PST, OAB, typed Outlook projections, and semantic comparison through that single vocabulary.
-- [ ] Add first-class user properties, categories, follow-up/reminder, and voting semantics on the property foundation.
-- [ ] Implement Outlook appointment/task recurrence, exceptions, time zones, bounded expansion, and ICS conversion reports.
-- [ ] Introduce typed store IDs, folder navigation helpers, query AST, table projections, sorting, stable paging, and async enumeration.
-- [ ] Add missing typed Outlook item families, starting with distribution lists and meeting/task lifecycle items.
-- [ ] Add batch mutation plans, copy operations, property/attachment patches, dry runs, and async verified commit.
-- [ ] Add conversation graphs and offline OAB-backed identity resolution.
-- [ ] Decide the S/MIME boundary; if first-party support is accepted, extract one neutral CMS/DER/X.509 owner and add thin Email.Security verification/decryption orchestration.
-- [ ] Add corruption-tolerant recovery export, verified compaction, and query/size-based PST split.
-- [ ] Add Store-owned category, view, search-folder, reminder, rule, and folder user-property semantics over associated data.
-- [ ] Decide Profile/cache scope separately from real autocomplete consumer demand.
-- [ ] Add a thin all-artifact facade only after the underlying contracts are stable.
+- [x] Publish the typed MAPI property vocabulary and property-bag API, initially covering every property OfficeIMO already reads or writes.
+- [x] Route MSG, TNEF, PST, OAB, typed Outlook projections, and semantic comparison through that single vocabulary.
+- [x] Add first-class user properties, categories, follow-up/reminder, and voting semantics on the property foundation.
+- [x] Implement Outlook appointment/task recurrence, exceptions, time zones, bounded expansion, and ICS conversion reports.
+- [x] Introduce typed store IDs, folder navigation helpers, query AST, table projections, sorting, stable paging, and async enumeration.
+- [x] Add missing typed Outlook item families, starting with distribution lists and meeting/task lifecycle items.
+- [x] Add batch mutation plans, copy operations, property/attachment patches, dry runs, and async verified commit.
+- [x] Add conversation graphs and offline OAB-backed identity resolution.
+- [x] Add corruption-tolerant recovery export, verified compaction, and query/size-based PST split.
+- [x] Add Store-owned category, view, search-folder, reminder, rule, and folder user-property semantics over associated data.
+- [x] Decide Profile/cache scope separately from real autocomplete consumer demand: deferred until a real autocomplete consumer exists.
+- [x] Add a thin all-artifact facade only after the underlying contracts are stable: the included `OfficeIMO.Email.Data` API delegates to the three existing owners.
+- [ ] LAST: obtain real Outlook S/MIME fixtures and reassess the merged PDF signing work before freezing the boundary. The current direction is one neutral `OfficeIMO.Security` package backed by Bouncy Castle, with thin Email verification/decryption and PDF signing/verification consumers only where the proven contracts overlap. Do not create format-specific cryptography package chains.
+
+## Current branch evidence
+
+- The complete 121-project Release solution builds on Windows with zero warnings and zero errors.
+- `OfficeIMO.Email.Tests` passes 893 tests on `net8.0` and `net10.0`, and 889 on `net472`.
+- `OfficeIMO.Email.Store.Tests` passes 238 tests on `net8.0` and `net10.0`, and 227 on `net472`; four explicitly opt-in Outlook/libpff/private-corpus checks remain skipped on each target.
+- `OfficeIMO.Email.AddressBook.Tests` passes 28 tests per runnable target; `OfficeIMO.Email.Data.Tests` passes three per runnable target.
+- `OfficeIMO.Reader.Tests` passes 807 tests on `net8.0` and `net10.0`, and 762 on `net472`.
+- SDK packing succeeds for the unified Email package and both current Reader adapters with matching `netstandard2.0`, `net472`, `net8.0`, and `net10.0` assemblies.
+- A clean isolated-cache consumer restores the locally packed Email, Reader, Reader.EmailStore, and Reader.EmailAddressBook artifacts from the intended feed and exercises message, Store, OAB, and Reader projections on `net472`, `net8.0`, and `net10.0`.
+- On modern .NET, `OfficeIMO.Email` depends only on first-party Drawing and RTF. Legacy targets add Microsoft's text-encoding compatibility package. The current Reader adapters add only Reader and Email; no MIME engine, cryptography package, native store parser, or third-party image library enters the Email graph.
 
 ## Acceptance evidence for premium claims
 

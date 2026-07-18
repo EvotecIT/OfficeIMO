@@ -42,7 +42,7 @@ internal static class TnefWriter {
             MsgBinary.WriteUInt32(codePageBytes, 0, unchecked((uint)codePage));
             WriteAttribute(output, TnefAttributeLevel.Message, TnefConstants.OemCodePage, codePageBytes);
             WriteStringAttribute(output, TnefAttributeLevel.Message, TnefConstants.MessageClass, codePage,
-                document.MessageClass ?? DefaultMessageClass(document.OutlookItemKind), diagnostics, "tnef/message-class");
+                MsgWriter.ResolveMessageClass(document), diagnostics, "tnef/message-class");
             WriteStringAttribute(output, TnefAttributeLevel.Message, TnefConstants.Subject, codePage, document.Subject,
                 diagnostics, "tnef/subject");
             WriteStringAttribute(output, TnefAttributeLevel.Message, TnefConstants.Body, codePage, document.Body.Text,
@@ -71,8 +71,8 @@ internal static class TnefWriter {
                 WriteAttribute(output, TnefAttributeLevel.Message, attribute.Tag, attribute.Data);
             }
 
-            EmailAttachment[] writableAttachments = document.Attachments.Where(attachment =>
-                !attachment.IsProjectedSemanticContent).ToArray();
+            EmailAttachment[] writableAttachments = OutlookTaskCommunicationAttachmentProjection
+                .GetWritableAttachments(document);
             for (int index = 0; index < writableAttachments.Length; index++) {
                 WriteAttachment(output, writableAttachments[index], index, codePage, options, diagnostics, depth);
             }
@@ -105,30 +105,29 @@ internal static class TnefWriter {
             attachmentLocation, attachment.EmbeddedDocument != null || hasContent, content);
         var properties = builder.Properties.Where(property => !IsAttachmentAttributeProperty(property.PropertyId)).
             Select(Clone).ToList();
+        var mapi = new MapiPropertyBag(properties);
         if (method == 5 && attachment.EmbeddedDocument != null) {
             byte[] nested = WriteMessageToBytes(attachment.EmbeddedDocument, options, diagnostics, depth + 1);
-            properties.RemoveAll(property => property.PropertyId == 0x3701);
-            properties.Add(new MapiProperty(0x3701, MapiPropertyType.Object, Combine(IidMessage.ToByteArray(), nested)));
+            mapi.SetValue(MapiKnownProperties.PidTag.AttachData,
+                Combine(IidMessage.ToByteArray(), nested), MapiPropertyType.Object);
         } else if (method == 5 && content != null) {
             byte[] opaque = content.Length >= 16 &&
                 new Guid(MsgBinary.Slice(content, 0, 16)) == IidMessage
                     ? (byte[])content.Clone()
                     : Combine(IidMessage.ToByteArray(), content);
-            properties.RemoveAll(property => property.PropertyId == 0x3701);
-            properties.Add(new MapiProperty(0x3701, MapiPropertyType.Object, opaque));
+            mapi.SetValue(MapiKnownProperties.PidTag.AttachData, opaque, MapiPropertyType.Object);
         } else if (method == 6 && attachment.StructuredStorageStreams.Count > 0) {
             OfficeCompoundStream[] compoundStreams = attachment.StructuredStorageStreams
                 .Select(stream => new OfficeCompoundStream(stream.Key, stream.Value)).ToArray();
             byte[] compound = OfficeCompoundFileWriter.Write(compoundStreams);
-            properties.RemoveAll(property => property.PropertyId == 0x3701);
-            properties.Add(new MapiProperty(0x3701, MapiPropertyType.Object, Combine(IidStorage.ToByteArray(), compound)));
+            mapi.SetValue(MapiKnownProperties.PidTag.AttachData,
+                Combine(IidStorage.ToByteArray(), compound), MapiPropertyType.Object);
         } else if (method == 6 && content != null) {
             byte[] opaque = content.Length >= 16 &&
                 new Guid(MsgBinary.Slice(content, 0, 16)) == IidStorage
                     ? (byte[])content.Clone()
                     : Combine(IidStorage.ToByteArray(), content);
-            properties.RemoveAll(property => property.PropertyId == 0x3701);
-            properties.Add(new MapiProperty(0x3701, MapiPropertyType.Object, opaque));
+            mapi.SetValue(MapiKnownProperties.PidTag.AttachData, opaque, MapiPropertyType.Object);
         }
         if (properties.Count > 0) {
             WriteAttribute(output, TnefAttributeLevel.Attachment, TnefConstants.AttachmentProperties,
@@ -141,11 +140,17 @@ internal static class TnefWriter {
     }
 
     private static bool IsMessageAttributeProperty(ushort id) {
-        return id == 0x001A || id == 0x0037 || id == 0x1000 || id == 0x0039 || id == 0x0E06;
+        return MapiKnownProperties.PidTag.MessageClass.MatchesIdentity(id) ||
+            MapiKnownProperties.PidTag.Subject.MatchesIdentity(id) ||
+            MapiKnownProperties.PidTag.Body.MatchesIdentity(id) ||
+            MapiKnownProperties.PidTag.ClientSubmitTime.MatchesIdentity(id) ||
+            MapiKnownProperties.PidTag.MessageDeliveryTime.MatchesIdentity(id);
     }
 
     private static bool IsAttachmentAttributeProperty(ushort id) {
-        return id == 0x3701 || id == 0x3704 || id == 0x3707;
+        return MapiKnownProperties.PidTag.AttachData.MatchesIdentity(id) ||
+            MapiKnownProperties.PidTag.AttachFilename.MatchesIdentity(id) ||
+            MapiKnownProperties.PidTag.AttachLongFilename.MatchesIdentity(id);
     }
 
     private static MapiProperty Clone(MapiProperty property) {
@@ -312,6 +317,7 @@ internal static class TnefWriter {
             case OutlookItemKind.Task: return "IPM.Task";
             case OutlookItemKind.Journal: return "IPM.Activity";
             case OutlookItemKind.Note: return "IPM.StickyNote";
+            case OutlookItemKind.DistributionList: return "IPM.DistList";
             default: return "IPM.Note";
         }
     }

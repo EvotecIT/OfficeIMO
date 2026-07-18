@@ -26,11 +26,11 @@ public sealed class PstSpecialFolderResolverTests {
         var malformed = new[] { BinaryProperty(0x35E0, new byte[23]) };
 
         Assert.False(PstSpecialFolderResolver.TryGetFolderNid(
-            foreign, 0x35E0, providerUid, out _));
+            foreign, MapiKnownProperties.PidTag.IpmSubTreeEntryId, providerUid, out _));
         Assert.False(PstSpecialFolderResolver.TryGetFolderNid(
-            nonFolder, 0x35E0, providerUid, out _));
+            nonFolder, MapiKnownProperties.PidTag.IpmSubTreeEntryId, providerUid, out _));
         Assert.False(PstSpecialFolderResolver.TryGetFolderNid(
-            malformed, 0x35E0, providerUid, out _));
+            malformed, MapiKnownProperties.PidTag.IpmSubTreeEntryId, providerUid, out _));
     }
 
     private static MapiProperty BinaryProperty(ushort id, byte[] value) =>

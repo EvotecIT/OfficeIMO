@@ -31,7 +31,9 @@ public enum OutlookItemKind {
     /// <summary>Journal item.</summary>
     Journal = 5,
     /// <summary>Sticky note.</summary>
-    Note = 6
+    Note = 6,
+    /// <summary>Personal Outlook distribution list.</summary>
+    DistributionList = 7
 }
 
 /// <summary>Classifies an address on a message or Outlook item.</summary>

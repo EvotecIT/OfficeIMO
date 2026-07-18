@@ -65,6 +65,23 @@ public sealed class EmailReaderContractTests {
     }
 
     [Fact]
+    public void PublicMapiProjectionUsesTheLastCanonicalPropertyValue() {
+        var document = new EmailDocument();
+        document.MapiProperties.Add(new MapiProperty(0x001A, MapiPropertyType.Unicode, "IPM.Appointment"));
+        document.MapiProperties.Add(new MapiProperty(0x0037, MapiPropertyType.Unicode, "old subject"));
+        document.MapiProperties.Add(new MapiProperty(0x0037, MapiPropertyType.String8, "current subject"));
+        document.MapiProperties.Add(new MapiProperty(0x8200, MapiPropertyType.Unicode, "old room",
+            name: new MapiNamedProperty(MapiPropertySets.Appointment, 0x8208)));
+        document.MapiProperties.Add(new MapiProperty(0x8201, MapiPropertyType.Unicode, "current room",
+            name: new MapiNamedProperty(MapiPropertySets.Appointment, 0x8208)));
+
+        EmailMapiProjection.Project(document);
+
+        Assert.Equal("current subject", document.Subject);
+        Assert.Equal("current room", document.Appointment?.Location);
+    }
+
+    [Fact]
     public void DetectsTnefAndRequiresMsgDirectoryContractForCompoundFiles() {
         Assert.Equal(EmailFileFormat.Tnef, EmailDocumentReader.DetectFormat(new byte[] { 0x78, 0x9F, 0x3E, 0x22 }));
         Assert.Equal(EmailFileFormat.Unknown, EmailDocumentReader.DetectFormat(

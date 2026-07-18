@@ -68,11 +68,11 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="OfficeIMO.Reader.Tests" />
+    <InternalsVisibleTo Include="OfficeIMO.Reader.EmailAddressBook" />
+    <InternalsVisibleTo Include="OfficeIMO.Reader.EmailStore" />
     <InternalsVisibleTo Include="OfficeIMO.Reader.AsciiDoc" />
     <InternalsVisibleTo Include="OfficeIMO.Reader.Csv" />
     <InternalsVisibleTo Include="OfficeIMO.Reader.Epub" />
-    <InternalsVisibleTo Include="OfficeIMO.Reader.EmailStore" />
-    <InternalsVisibleTo Include="OfficeIMO.Reader.EmailAddressBook" />
     <InternalsVisibleTo Include="OfficeIMO.Reader.Html" />
     <InternalsVisibleTo Include="OfficeIMO.Reader.Image" />
     <InternalsVisibleTo Include="OfficeIMO.Reader.Json" />

@@ -51,8 +51,26 @@ internal static class EmailConversionAnalyzer {
                         "The appointment organizer does not have a portable SMTP address from which a valid iCalendar ORGANIZER value can be created.",
                         "appointment/organizer"));
                 }
+                if (HasNonPortableMeetingLifecycle(document.MeetingCommunication) &&
+                    !HasUnchangedMimeSemanticSource(document)) {
+                    hasPotentialDataLoss = true;
+                    diagnostics.Add(CreateLossDiagnostic(options.ConversionLossPolicy,
+                        "EMAIL_ICALENDAR_MEETING_LIFECYCLE_EXTENSION_LOSS",
+                        "The meeting communication contains Outlook lifecycle or counter-proposal properties that the current iCalendar projection cannot represent completely.",
+                        "appointment/meeting-communication"));
+                }
             } else if (document.OutlookItemKind == OutlookItemKind.Task) {
-                if (document.Task?.IsRecurring == true && !HasUnchangedMimeSemanticSource(document)) {
+                if (document.TaskCommunication != null &&
+                    document.TaskCommunication.Kind != OutlookTaskCommunicationKind.None &&
+                    !HasUnchangedMimeSemanticSource(document)) {
+                    hasPotentialDataLoss = true;
+                    diagnostics.Add(CreateLossDiagnostic(options.ConversionLossPolicy,
+                        "EMAIL_ICALENDAR_TASK_COMMUNICATION_UNSUPPORTED",
+                        "The current iCalendar projection does not represent an Outlook task request, acceptance, rejection, or update envelope with its embedded task.",
+                        "task/communication"));
+                }
+                if (document.Task?.IsRecurring == true && document.Task.Recurrence?.StateDecoded != true &&
+                    !HasUnchangedMimeSemanticSource(document)) {
                     hasPotentialDataLoss = true;
                     diagnostics.Add(CreateLossDiagnostic(options.ConversionLossPolicy,
                         "EMAIL_ICALENDAR_OPAQUE_TASK_RECURRENCE",
@@ -74,9 +92,7 @@ internal static class EmailConversionAnalyzer {
                         "The task owner does not have a portable SMTP address from which a valid iCalendar ORGANIZER value can be created.",
                         "task/organizer"));
                 }
-            } else if (document.OutlookItemKind == OutlookItemKind.Contact &&
-                document.MessageClass != null &&
-                document.MessageClass.StartsWith("IPM.DistList", StringComparison.OrdinalIgnoreCase)) {
+            } else if (IsDistributionList(document)) {
                 hasPotentialDataLoss = true;
                 diagnostics.Add(CreateLossDiagnostic(options.ConversionLossPolicy,
                     "EMAIL_VCARD_DISTRIBUTION_LIST_UNSUPPORTED",
@@ -161,9 +177,23 @@ internal static class EmailConversionAnalyzer {
             metadata.OwnerReactionHistory != null || metadata.IconIndex.HasValue || metadata.EditorFormat.HasValue;
     }
 
+    private static bool IsDistributionList(EmailDocument document) =>
+        document.OutlookItemKind == OutlookItemKind.DistributionList ||
+        document.DistributionList != null ||
+        string.Equals(document.MessageClass, "IPM.DistList", StringComparison.OrdinalIgnoreCase) ||
+        document.MessageClass?.StartsWith("IPM.DistList.", StringComparison.OrdinalIgnoreCase) == true;
+
     private static bool HasUnchangedMimeSemanticSource(EmailDocument document) =>
         document.Format == EmailFileFormat.Eml && document.MimeSemanticSourceModelFingerprint != null &&
         EmailDocumentStateFingerprint.Matches(document, document.MimeSemanticSourceModelFingerprint);
+
+    private static bool HasNonPortableMeetingLifecycle(OutlookMeetingCommunication? communication) =>
+        communication != null && (communication.RequestTypeValue.HasValue ||
+            communication.OwnerCriticalChange.HasValue || communication.AttendeeCriticalChange.HasValue ||
+            communication.IsSilent.HasValue || communication.IsCounterProposal == true ||
+            communication.ProposedStart.HasValue || communication.ProposedEnd.HasValue ||
+            communication.ProposedDurationMinutes.HasValue || communication.ReplyAt.HasValue ||
+            communication.ReplyName != null);
 
     private static bool HasAddresslessAttendeeDisplayState(EmailDocument document) {
         OutlookAppointment appointment = document.Appointment!;

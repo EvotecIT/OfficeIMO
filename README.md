@@ -270,10 +270,9 @@ _Dependency footprint:_ BCL compatibility packages only; no third-party CSV pars
 - [x] TNEF/`winmail.dat` and mbox reading/writing with nested and embedded items
 - [x] Standalone iCalendar/ICS and vCard/VCF read, write, mutation, validation, lossless extensions, recurrence, temporal, contact-group, and legacy syntax support
 - [x] RTF and compressed-RTF body handling, MIME compatibility, safety limits, diagnostics, and package inspection
+- [x] One mixed-artifact discovery API across individual messages, calendars, contacts, stores, and Offline Address Books
 
-_Dependency footprint:_ `System.Text.Encoding.CodePages` plus first-party OfficeIMO Drawing and RTF; no MailKit, MimeKit, or Outlook interop.
-
-#### [OfficeIMO.Email.Store](OfficeIMO.Email.Store/README.md)
+##### [Store API](OfficeIMO.Email/Store/README.md)
 
 - [x] Fully managed, lazy PST and OST sessions with bounded page caches, selective summaries, queries, and explicit item reads
 - [x] Bounded Outlook for Mac OLM, individual EMLX, unified Mbox, lazy Apple Mail trees, Maildir, and EML/MIME directory ingestion
@@ -285,9 +284,7 @@ _Dependency footprint:_ `System.Text.Encoding.CodePages` plus first-party Office
 - [x] Existing Unicode PST folder/item mutation through a locked, verified, optionally backed-up atomic rewrite transaction
 - [x] Configurable source, cache, tree, item, attachment, archive, XML, directory, and recursion limits with structured diagnostics
 
-_Dependency footprint:_ first-party `OfficeIMO.Email` and `OfficeIMO.Rtf`; no Outlook installation, native library, or third-party store parser.
-
-#### [OfficeIMO.Email.AddressBook](OfficeIMO.Email.AddressBook/README.md)
+##### [AddressBook API](OfficeIMO.Email/AddressBook/README.md)
 
 - [x] Bounded Outlook OAB component discovery with v4, display-template, and legacy v2/v3 role inspection
 - [x] Lazy v4 Full Details entry and distribution-list enumeration with dynamic schemas and retained raw properties
@@ -295,7 +292,7 @@ _Dependency footprint:_ first-party `OfficeIMO.Email` and `OfficeIMO.Rtf`; no Ou
 - [x] Seeded CRC, record-framing, and full-schema validation with progress, cancellation, and explicit limits
 - [x] Shared `EmailAddress`, `OutlookContact`, `MapiProperty`, and diagnostics models instead of duplicate directory primitives
 
-_Dependency footprint:_ only first-party `OfficeIMO.Email`; no Outlook installation, native library, or third-party OAB parser.
+_Dependency footprint:_ `System.Text.Encoding.CodePages` plus first-party OfficeIMO Drawing and RTF; no MailKit, MimeKit, Outlook installation, native library, or third-party message/store/OAB parser.
 
 #### [OfficeIMO.OneNote](OfficeIMO.OneNote/README.md)
 
@@ -584,17 +581,18 @@ _Dependency footprint:_ only OfficeIMO Latex.Markdown and Markdown.Pdf; no addit
 #### [OfficeIMO.Reader](OfficeIMO.Reader/README.md)
 
 - [x] Immutable builder/facade for path, stream, folder, and batch document ingestion
-- [x] Built-in Word, Excel, PowerPoint, Markdown, email, and structured-text extraction
+- [x] Built-in Word, Excel, PowerPoint, Markdown, PDF, email, and structured-text extraction
 - [x] Normalized Markdown/text chunks, tables, visuals, assets, locations, hashes, metadata, diagnostics, and schema-versioned rich results
 - [x] Input, chunk, table, folder, recursion, concurrency, and OCR-candidate limits
 
-_Dependency footprint:_ OfficeIMO native engines plus `System.Text.Json`; optional formats remain separate packages.
+_Dependency footprint:_ the current convenience package directly includes OfficeIMO Drawing, Word, Word.Markdown, Excel, Email, PowerPoint, Markdown, and PDF, plus `System.Text.Json` on legacy targets. A dependency-minimal `Reader.Core` split is planned.
 
 #### [OfficeIMO.Reader.All](OfficeIMO.Reader.All/README.md)
 
 - [x] One composition-only `AddAllOfficeIMOHandlers()` preset for local optional Reader formats
 - [x] Per-adapter options without duplicating parsers, providers, models, or global registration state
 - [x] Explicit exclusion of OCR engines and other host-selected external processes
+- [ ] Publish deliberately as the explicit full managed graph, or remove the package-shaped project
 
 _Dependency footprint:_ the existing OfficeIMO Reader adapter packages; this preset adds no parser or native runtime of its own.
 
@@ -616,22 +614,22 @@ _Dependency footprint:_ only OfficeIMO Reader and CSV.
 
 #### [OfficeIMO.Reader.EmailStore](OfficeIMO.Reader.EmailStore/README.md)
 
-- [x] PST, OST, OLM, and EMLX registration backed by `OfficeIMO.Email.Store`
+- [x] PST, OST, OLM, and EMLX registration backed by the `OfficeIMO.Email.Store` API
 - [x] Stable store/folder/item logical paths, email chunks, metadata, attachments, hashes, and rich results
 - [x] Selective summary queries, a bounded 1,000-item default, visible truncation, and opt-in complete-store hashing
 - [x] Item-at-a-time ingestion with semantic HTML/RTF bodies, modular attachment extraction, and separate store/item diagnostics
 - [x] Reader input limits that can narrow but never widen the store parser limits
 
-_Dependency footprint:_ only OfficeIMO Reader and Email.Store; no parser is duplicated in the adapter.
+_Dependency footprint:_ OfficeIMO Reader and the unified OfficeIMO Email package; no parser is duplicated in the adapter.
 
 #### [OfficeIMO.Reader.EmailAddressBook](OfficeIMO.Reader.EmailAddressBook/README.md)
 
-- [x] `.oab` v4 Full Details registration backed by `OfficeIMO.Email.AddressBook`
+- [x] `.oab` v4 Full Details registration backed by the `OfficeIMO.Email.AddressBook` API
 - [x] Item-at-a-time and selective-query ingestion with one deterministic typed chunk per entry
 - [x] Safe projections that omit arbitrary raw properties and keep distribution-list membership opt-in
 - [x] Reader limits, chunk hashes, opt-in complete-source hashing, and separate session/entry diagnostics
 
-_Dependency footprint:_ only OfficeIMO Reader and Email.AddressBook; no parser is duplicated in the adapter.
+_Dependency footprint:_ OfficeIMO Reader and the unified OfficeIMO Email package; no parser is duplicated in the adapter.
 
 #### [OfficeIMO.Reader.Epub](OfficeIMO.Reader.Epub/README.md)
 

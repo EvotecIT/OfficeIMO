@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <Description>Thin, selective PST, OST, OLM, and EMLX adapter for OfficeIMO.Reader using OfficeIMO.Email.Store.</Description>
+    <Description>Thin, selective PST, OST, OLM, and EMLX adapter for OfficeIMO.Reader using OfficeIMO.Email.</Description>
     <AssemblyName>OfficeIMO.Reader.EmailStore</AssemblyName>
     <AssemblyTitle>OfficeIMO.Reader.EmailStore</AssemblyTitle>
     <VersionPrefix>2.0.1</VersionPrefix>
@@ -27,7 +27,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\OfficeIMO.Reader\OfficeIMO.Reader.csproj" />
-    <ProjectReference Include="..\OfficeIMO.Email.Store\OfficeIMO.Email.Store.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Email\OfficeIMO.Email.csproj" />
   </ItemGroup>
 
   <ItemGroup>

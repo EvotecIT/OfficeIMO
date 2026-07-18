@@ -1,6 +1,169 @@
 {
   "version": 1,
   "dependencies": {
+    ".NETFramework,Version=v4.7.2": {
+      "Microsoft.Web.WebView2": {
+        "type": "Direct",
+        "requested": "[1.0.3912.50, )",
+        "resolved": "1.0.3912.50",
+        "contentHash": "mEIKZDSmb6CxGWKoxaxTSJ0yi0DD2zp29TA7kJY2GdanuH3c5aYruwfqsm3OsYn/h2hUhybQZvfbxyZe4O+X4Q=="
+      },
+      "AngleSharp": {
+        "type": "Transitive",
+        "resolved": "1.5.2",
+        "contentHash": "LVZ7rrr6GHbhERhTgVDarVygl1e6KwE96pronA90LBOMacDhxR4lB+xYLjn/vlnUu+xbOB2RM9fuCPEx5bdyWA==",
+        "dependencies": {
+          "System.Text.Encoding.CodePages": "8.0.0"
+        }
+      },
+      "AngleSharp.Css": {
+        "type": "Transitive",
+        "resolved": "1.0.0-beta.216",
+        "contentHash": "RVt/B1pp7HREgerDw8BVZSDC+Uqh+yeL/OGtu57mLLhBBPIQ1oSYrPKOYgdt0EZEK34l7BNCjx4BaQRNRN/ZIw==",
+        "dependencies": {
+          "AngleSharp": "[1.0.0, 2.0.0)"
+        }
+      },
+      "Microsoft.Bcl.AsyncInterfaces": {
+        "type": "Transitive",
+        "resolved": "10.0.7",
+        "contentHash": "g0Xp9A+B8jCf5pNIIhFOQXPJkte3D87shfTLY+ylwfSh22U5oQH6tvvmcUuqJvt/wtwKk0WdNp2OGEczHJlJdg==",
+        "dependencies": {
+          "System.Threading.Tasks.Extensions": "4.6.3"
+        }
+      },
+      "System.Buffers": {
+        "type": "Transitive",
+        "resolved": "4.6.1",
+        "contentHash": "N8GXpmiLMtljq7gwvyS+1QvKT/W2J8sNAvx+HVg4NGmsG/H+2k/y9QI23auLJRterrzCiDH+IWAw4V/GPwsMlw=="
+      },
+      "System.IO.Pipelines": {
+        "type": "Transitive",
+        "resolved": "10.0.7",
+        "contentHash": "LTxXYYKmRhPKWveYmfzuRTUnzsfY7CN+WOq6aTRgYE9vJ8BUvIWPCaSx4HxqBwXViTPSjR9cHDOVuVPuZGRR/Q==",
+        "dependencies": {
+          "System.Buffers": "4.6.1",
+          "System.Memory": "4.6.3",
+          "System.Threading.Tasks.Extensions": "4.6.3"
+        }
+      },
+      "System.Memory": {
+        "type": "Transitive",
+        "resolved": "4.6.3",
+        "contentHash": "qdcDOgnFZY40+Q9876JUHnlHu7bosOHX8XISRoH94fwk6hgaeQGSgfZd8srWRZNt5bV9ZW2TljcegDNxsf+96A==",
+        "dependencies": {
+          "System.Buffers": "4.6.1",
+          "System.Numerics.Vectors": "4.6.1",
+          "System.Runtime.CompilerServices.Unsafe": "6.1.2"
+        }
+      },
+      "System.Numerics.Vectors": {
+        "type": "Transitive",
+        "resolved": "4.6.1",
+        "contentHash": "sQxefTnhagrhoq2ReR0D/6K0zJcr9Hrd6kikeXsA1I8kOCboTavcUC4r7TSfpKFeE163uMuxZcyfO1mGO3EN8Q=="
+      },
+      "System.Runtime.CompilerServices.Unsafe": {
+        "type": "Transitive",
+        "resolved": "6.1.2",
+        "contentHash": "2hBr6zdbIBTDE3EhK7NSVNdX58uTK6iHW/P/Axmm9sl1xoGSLqDvMtpecn226TNwHByFokYwJmt/aQQNlO5CRw=="
+      },
+      "System.Text.Encoding.CodePages": {
+        "type": "Transitive",
+        "resolved": "8.0.0",
+        "contentHash": "OZIsVplFGaVY90G2SbpgU7EnCoOO5pw1t4ic21dBF3/1omrJFpAGoNAVpPyMVOC90/hvgkGG3VFqR13YgZMQfg==",
+        "dependencies": {
+          "System.Memory": "4.5.5",
+          "System.Runtime.CompilerServices.Unsafe": "6.0.0"
+        }
+      },
+      "System.Text.Encodings.Web": {
+        "type": "Transitive",
+        "resolved": "10.0.7",
+        "contentHash": "WUH+viO8VDG8NpFKvOBwpeyKUiPOMz3kQpA6AKCD4b2NG1pBhyC4AwTb357iZmTxZDnkM4IsFnvzN8W8OKmsHg==",
+        "dependencies": {
+          "System.Buffers": "4.6.1",
+          "System.Memory": "4.6.3",
+          "System.Runtime.CompilerServices.Unsafe": "6.1.2"
+        }
+      },
+      "System.Text.Json": {
+        "type": "Transitive",
+        "resolved": "10.0.7",
+        "contentHash": "F8Pu2QLUMeniVbtiyk7n7LCfFYxlcJ8ASaSwglJyq6dxa34iCQrikQszsgJClIJWuSWjcyhKkV7daAzYJqeVwA==",
+        "dependencies": {
+          "Microsoft.Bcl.AsyncInterfaces": "10.0.7",
+          "System.Buffers": "4.6.1",
+          "System.IO.Pipelines": "10.0.7",
+          "System.Memory": "4.6.3",
+          "System.Runtime.CompilerServices.Unsafe": "6.1.2",
+          "System.Text.Encodings.Web": "10.0.7",
+          "System.Threading.Tasks.Extensions": "4.6.3",
+          "System.ValueTuple": "4.6.2"
+        }
+      },
+      "System.Threading.Tasks.Extensions": {
+        "type": "Transitive",
+        "resolved": "4.6.3",
+        "contentHash": "7sCiwilJLYbTZELaKnc7RecBBXWXA+xMLQWZKWawBxYjp6DBlSE3v9/UcvKBvr1vv2tTOhipiogM8rRmxlhrVA==",
+        "dependencies": {
+          "System.Runtime.CompilerServices.Unsafe": "6.1.2"
+        }
+      },
+      "System.ValueTuple": {
+        "type": "Transitive",
+        "resolved": "4.6.2",
+        "contentHash": "yQgmjfFximrNm9LIV3mL6T5MzjeC+epeE5rl4hXxAlYmxby7RM1dPSkIKXk9HNkl6G54h2JHOmLD46+Pey+IRg=="
+      },
+      "officeimo.drawing": {
+        "type": "Project"
+      },
+      "officeimo.email": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Drawing": "[2.0.1, )",
+          "OfficeIMO.Rtf": "[2.0.1, )",
+          "System.Text.Encoding.CodePages": "[8.0.0, )"
+        }
+      },
+      "officeimo.html": {
+        "type": "Project",
+        "dependencies": {
+          "AngleSharp": "[1.5.2, )",
+          "AngleSharp.Css": "[1.0.0-beta.216, )",
+          "OfficeIMO.Drawing": "[2.0.1, )",
+          "OfficeIMO.Email": "[2.0.1, )",
+          "OfficeIMO.Rtf": "[2.0.1, )"
+        }
+      },
+      "officeimo.markdown": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Drawing": "[2.0.1, )"
+        }
+      },
+      "officeimo.markdown.html": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Html": "[2.0.1, )",
+          "OfficeIMO.Markdown": "[2.0.1, )"
+        }
+      },
+      "officeimo.markdownrenderer": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Markdown": "[2.0.1, )",
+          "OfficeIMO.Markdown.Html": "[2.0.1, )",
+          "System.Text.Json": "[10.0.7, 11.0.0)"
+        }
+      },
+      "officeimo.rtf": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Drawing": "[2.0.1, )",
+          "System.Text.Encoding.CodePages": "[8.0.0, )"
+        }
+      }
+    },
     "net10.0": {
       "AngleSharp": {
         "type": "Transitive",
@@ -18,39 +181,114 @@
       "officeimo.drawing": {
         "type": "Project"
       },
+      "officeimo.email": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Drawing": "[2.0.1, )",
+          "OfficeIMO.Rtf": "[2.0.1, )"
+        }
+      },
       "officeimo.html": {
         "type": "Project",
         "dependencies": {
           "AngleSharp": "[1.5.2, )",
           "AngleSharp.Css": "[1.0.0-beta.216, )",
-          "OfficeIMO.Drawing": "[1.0.30, )",
-          "OfficeIMO.Rtf": "[0.1.10, )"
+          "OfficeIMO.Drawing": "[2.0.1, )",
+          "OfficeIMO.Email": "[2.0.1, )",
+          "OfficeIMO.Rtf": "[2.0.1, )"
         }
       },
       "officeimo.markdown": {
         "type": "Project",
         "dependencies": {
-          "OfficeIMO.Drawing": "[1.0.30, )"
+          "OfficeIMO.Drawing": "[2.0.1, )"
         }
       },
       "officeimo.markdown.html": {
         "type": "Project",
         "dependencies": {
-          "OfficeIMO.Html": "[0.1.11, )",
-          "OfficeIMO.Markdown": "[0.6.42, )"
+          "OfficeIMO.Html": "[2.0.1, )",
+          "OfficeIMO.Markdown": "[2.0.1, )"
         }
       },
       "officeimo.markdownrenderer": {
         "type": "Project",
         "dependencies": {
-          "OfficeIMO.Markdown": "[0.6.42, )",
-          "OfficeIMO.Markdown.Html": "[0.1.42, )"
+          "OfficeIMO.Markdown": "[2.0.1, )",
+          "OfficeIMO.Markdown.Html": "[2.0.1, )"
         }
       },
       "officeimo.rtf": {
         "type": "Project",
         "dependencies": {
-          "OfficeIMO.Drawing": "[1.0.30, )"
+          "OfficeIMO.Drawing": "[2.0.1, )"
+        }
+      }
+    },
+    "net10.0-windows7.0": {
+      "Microsoft.Web.WebView2": {
+        "type": "Direct",
+        "requested": "[1.0.3912.50, )",
+        "resolved": "1.0.3912.50",
+        "contentHash": "mEIKZDSmb6CxGWKoxaxTSJ0yi0DD2zp29TA7kJY2GdanuH3c5aYruwfqsm3OsYn/h2hUhybQZvfbxyZe4O+X4Q=="
+      },
+      "AngleSharp": {
+        "type": "Transitive",
+        "resolved": "1.5.2",
+        "contentHash": "LVZ7rrr6GHbhERhTgVDarVygl1e6KwE96pronA90LBOMacDhxR4lB+xYLjn/vlnUu+xbOB2RM9fuCPEx5bdyWA=="
+      },
+      "AngleSharp.Css": {
+        "type": "Transitive",
+        "resolved": "1.0.0-beta.216",
+        "contentHash": "RVt/B1pp7HREgerDw8BVZSDC+Uqh+yeL/OGtu57mLLhBBPIQ1oSYrPKOYgdt0EZEK34l7BNCjx4BaQRNRN/ZIw==",
+        "dependencies": {
+          "AngleSharp": "[1.0.0, 2.0.0)"
+        }
+      },
+      "officeimo.drawing": {
+        "type": "Project"
+      },
+      "officeimo.email": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Drawing": "[2.0.1, )",
+          "OfficeIMO.Rtf": "[2.0.1, )"
+        }
+      },
+      "officeimo.html": {
+        "type": "Project",
+        "dependencies": {
+          "AngleSharp": "[1.5.2, )",
+          "AngleSharp.Css": "[1.0.0-beta.216, )",
+          "OfficeIMO.Drawing": "[2.0.1, )",
+          "OfficeIMO.Email": "[2.0.1, )",
+          "OfficeIMO.Rtf": "[2.0.1, )"
+        }
+      },
+      "officeimo.markdown": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Drawing": "[2.0.1, )"
+        }
+      },
+      "officeimo.markdown.html": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Html": "[2.0.1, )",
+          "OfficeIMO.Markdown": "[2.0.1, )"
+        }
+      },
+      "officeimo.markdownrenderer": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Markdown": "[2.0.1, )",
+          "OfficeIMO.Markdown.Html": "[2.0.1, )"
+        }
+      },
+      "officeimo.rtf": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Drawing": "[2.0.1, )"
         }
       }
     },
@@ -71,39 +309,114 @@
       "officeimo.drawing": {
         "type": "Project"
       },
+      "officeimo.email": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Drawing": "[2.0.1, )",
+          "OfficeIMO.Rtf": "[2.0.1, )"
+        }
+      },
       "officeimo.html": {
         "type": "Project",
         "dependencies": {
           "AngleSharp": "[1.5.2, )",
           "AngleSharp.Css": "[1.0.0-beta.216, )",
-          "OfficeIMO.Drawing": "[1.0.30, )",
-          "OfficeIMO.Rtf": "[0.1.10, )"
+          "OfficeIMO.Drawing": "[2.0.1, )",
+          "OfficeIMO.Email": "[2.0.1, )",
+          "OfficeIMO.Rtf": "[2.0.1, )"
         }
       },
       "officeimo.markdown": {
         "type": "Project",
         "dependencies": {
-          "OfficeIMO.Drawing": "[1.0.30, )"
+          "OfficeIMO.Drawing": "[2.0.1, )"
         }
       },
       "officeimo.markdown.html": {
         "type": "Project",
         "dependencies": {
-          "OfficeIMO.Html": "[0.1.11, )",
-          "OfficeIMO.Markdown": "[0.6.42, )"
+          "OfficeIMO.Html": "[2.0.1, )",
+          "OfficeIMO.Markdown": "[2.0.1, )"
         }
       },
       "officeimo.markdownrenderer": {
         "type": "Project",
         "dependencies": {
-          "OfficeIMO.Markdown": "[0.6.42, )",
-          "OfficeIMO.Markdown.Html": "[0.1.42, )"
+          "OfficeIMO.Markdown": "[2.0.1, )",
+          "OfficeIMO.Markdown.Html": "[2.0.1, )"
         }
       },
       "officeimo.rtf": {
         "type": "Project",
         "dependencies": {
-          "OfficeIMO.Drawing": "[1.0.30, )"
+          "OfficeIMO.Drawing": "[2.0.1, )"
+        }
+      }
+    },
+    "net8.0-windows7.0": {
+      "Microsoft.Web.WebView2": {
+        "type": "Direct",
+        "requested": "[1.0.3912.50, )",
+        "resolved": "1.0.3912.50",
+        "contentHash": "mEIKZDSmb6CxGWKoxaxTSJ0yi0DD2zp29TA7kJY2GdanuH3c5aYruwfqsm3OsYn/h2hUhybQZvfbxyZe4O+X4Q=="
+      },
+      "AngleSharp": {
+        "type": "Transitive",
+        "resolved": "1.5.2",
+        "contentHash": "LVZ7rrr6GHbhERhTgVDarVygl1e6KwE96pronA90LBOMacDhxR4lB+xYLjn/vlnUu+xbOB2RM9fuCPEx5bdyWA=="
+      },
+      "AngleSharp.Css": {
+        "type": "Transitive",
+        "resolved": "1.0.0-beta.216",
+        "contentHash": "RVt/B1pp7HREgerDw8BVZSDC+Uqh+yeL/OGtu57mLLhBBPIQ1oSYrPKOYgdt0EZEK34l7BNCjx4BaQRNRN/ZIw==",
+        "dependencies": {
+          "AngleSharp": "[1.0.0, 2.0.0)"
+        }
+      },
+      "officeimo.drawing": {
+        "type": "Project"
+      },
+      "officeimo.email": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Drawing": "[2.0.1, )",
+          "OfficeIMO.Rtf": "[2.0.1, )"
+        }
+      },
+      "officeimo.html": {
+        "type": "Project",
+        "dependencies": {
+          "AngleSharp": "[1.5.2, )",
+          "AngleSharp.Css": "[1.0.0-beta.216, )",
+          "OfficeIMO.Drawing": "[2.0.1, )",
+          "OfficeIMO.Email": "[2.0.1, )",
+          "OfficeIMO.Rtf": "[2.0.1, )"
+        }
+      },
+      "officeimo.markdown": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Drawing": "[2.0.1, )"
+        }
+      },
+      "officeimo.markdown.html": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Html": "[2.0.1, )",
+          "OfficeIMO.Markdown": "[2.0.1, )"
+        }
+      },
+      "officeimo.markdownrenderer": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Markdown": "[2.0.1, )",
+          "OfficeIMO.Markdown.Html": "[2.0.1, )"
+        }
+      },
+      "officeimo.rtf": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Drawing": "[2.0.1, )"
         }
       }
     }

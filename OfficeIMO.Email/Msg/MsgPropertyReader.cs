@@ -77,7 +77,7 @@ internal static class MsgPropertyReader {
                     EmailDiagnosticSeverity.Warning, valuePath));
             }
 
-            bool attachmentPayload = propertyId == 0x3701 &&
+            bool attachmentPayload = MapiKnownProperties.PidTag.AttachData.MatchesIdentity(propertyId) &&
                 prefix.IndexOf("__attach_version1.0_#", StringComparison.OrdinalIgnoreCase) >= 0;
             state.CountProperty(attachmentPayload ? 0 : raw?.Length ?? 0);
             result.Add(new MapiProperty(propertyId, type, value, flags, names.Get(propertyId)) { RawData = raw });

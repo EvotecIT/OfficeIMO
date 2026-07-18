@@ -5,6 +5,10 @@
 
 `OfficeIMO.Reader.Pdf` provides a PDF adapter for `OfficeIMO.Reader` using the `OfficeIMO.Pdf` logical read model.
 
+The current `OfficeIMO.Reader` convenience package already includes `OfficeIMO.Pdf` and a built-in PDF handler, so
+this adapter is presently an explicit registration/replacement surface rather than a smaller dependency choice. The
+planned `OfficeIMO.Reader.Core` split will make this package the selective `Reader.Core + OfficeIMO.Pdf` path.
+
 ## Install
 
 ```powershell

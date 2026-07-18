@@ -43,6 +43,22 @@ public sealed class PstPropertyContextReaderTests {
     }
 
     [Fact]
+    public void EncodesAndDecodesCurrencyUsingMapiTenThousandths() {
+        var scalar = new MapiProperty(0x8000, MapiPropertyType.Currency, 12.3456m);
+        var multiple = new MapiProperty(0x8001, MapiPropertyType.MultipleCurrency,
+            new[] { 12.3456m, -7.5m });
+
+        byte[] scalarBytes = PstPropertyValueWriter.EncodeVariable(scalar, 1252);
+        byte[] multipleBytes = PstPropertyValueWriter.EncodeVariable(multiple, 1252);
+
+        Assert.Equal(123456L, BitConverter.ToInt64(scalarBytes, 0));
+        Assert.Equal(12.3456m, Assert.IsType<decimal>(PstPropertyContextReader.DecodeVariable(
+            MapiPropertyType.Currency, scalarBytes)));
+        Assert.Equal(new[] { 12.3456m, -7.5m }, Assert.IsType<decimal[]>(
+            PstPropertyContextReader.DecodeVariable(MapiPropertyType.MultipleCurrency, multipleBytes)));
+    }
+
+    [Fact]
     public void RejectsMalformedMultiValuedPropertyLayouts() {
         Assert.Throws<InvalidDataException>(() => PstPropertyContextReader.DecodeVariable(
             MapiPropertyType.MultipleInteger32, new byte[] { 1, 2, 3 }));

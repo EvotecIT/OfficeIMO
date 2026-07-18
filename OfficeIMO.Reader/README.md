@@ -15,6 +15,12 @@ standalone vCard (`.vcf`/`.vcard`). Calendar and contact extraction delegates to
 dotnet add package OfficeIMO.Reader
 ```
 
+`OfficeIMO.Reader` is currently the convenience install, not a dependency-minimal core. The packed package includes
+Drawing, Word, Word.Markdown, Excel, Email, PowerPoint, Markdown, and PDF so its built-in handlers work immediately.
+Install a `Reader.*` adapter today to add or replace a handler, not to remove those built-in dependencies. The
+[modular package roadmap](../Docs/officeimo.reader.modular-roadmap.md) records the planned `Reader.Core` split and the
+future `Reader.Email` boundary.
+
 ## Quick start
 
 ```csharp
@@ -68,7 +74,8 @@ Built-in and modular adapters can extract:
 - PowerPoint (`.pptx`, `.pptm`, `.ppt`, `.pot`, `.pps`) as slide-aligned chunks, optionally including notes. Binary files use the OfficeIMO.PowerPoint projection model and expose import diagnostics as warnings.
 - Markdown (`.md`, `.markdown`) as parser-aware heading chunks.
 - EML/MIME, Outlook MSG/MAPI, TNEF/`winmail.dat`, and mbox as message, body, attachment, and embedded-item chunks. Rich results include attachment assets and typed Outlook metadata.
-- OpenDocument (`.odt`, `.ods`, `.odp`), PDF, RTF, Visio, HTML, CSV/TSV, JSON, XML, YAML, EPUB, ZIP, standalone images, Jupyter notebooks, SRT/WebVTT subtitles, and structured text through modular adapter packages.
+- PDF through the built-in logical page model; the current `OfficeIMO.Reader.Pdf` adapter can explicitly replace that handler and will become dependency-selective after the Core split.
+- OpenDocument (`.odt`, `.ods`, `.odp`), RTF, Visio, HTML, CSV/TSV, JSON, XML, YAML, EPUB, ZIP, standalone images, Jupyter notebooks, SRT/WebVTT subtitles, and structured text through modular adapter packages.
 
 Use `OpenPassword` for password-protected Open XML or legacy binary Office input. Binary PowerPoint images
 are returned through the same rich-result asset contract as PPTX images:

@@ -29,11 +29,11 @@ internal sealed class MapiStringEncodingContext {
         int headerLength,
         MapiStringEncodingContext? inherited) {
         var candidates = new List<int>();
-        AddPropertyCodePage(candidates, propertyStream, headerLength, 0x3FDE); // PidTagInternetCodepage
-        AddPropertyCodePage(candidates, propertyStream, headerLength, 0x3FFC); // ANSI/message String8 code page
-        AddPropertyCodePage(candidates, propertyStream, headerLength, 0x3FFD); // PidTagMessageCodepage
+        AddPropertyCodePage(candidates, propertyStream, headerLength, MapiKnownProperties.PidTag.InternetCodepage);
+        AddPropertyCodePage(candidates, propertyStream, headerLength, MapiKnownProperties.PidTag.CodePageId);
+        AddPropertyCodePage(candidates, propertyStream, headerLength, MapiKnownProperties.PidTag.MessageCodepage);
 
-        int? localeId = ReadInt32Property(propertyStream, headerLength, 0x3FF1);
+        int? localeId = ReadInt32Property(propertyStream, headerLength, MapiKnownProperties.PidTag.MessageLocaleId);
         if (localeId > 0) {
             try {
                 candidates.Add(CultureInfo.GetCultureInfo(localeId.Value).TextInfo.ANSICodePage);
@@ -90,17 +90,18 @@ internal sealed class MapiStringEncodingContext {
         return best ?? DecodeWithReplacement(1252, bytes);
     }
 
-    private static void AddPropertyCodePage(List<int> candidates, byte[] stream, int headerLength, ushort propertyId) {
-        int? value = ReadInt32Property(stream, headerLength, propertyId);
+    private static void AddPropertyCodePage(List<int> candidates, byte[] stream, int headerLength,
+        MapiPropertyKey<int> key) {
+        int? value = ReadInt32Property(stream, headerLength, key);
         if (value.HasValue) candidates.Add(value.Value);
     }
 
-    private static int? ReadInt32Property(byte[] stream, int headerLength, ushort propertyId) {
+    private static int? ReadInt32Property(byte[] stream, int headerLength, MapiPropertyKey<int> key) {
         int count = Math.Max(0, stream.Length - headerLength) / 16;
         for (int index = 0; index < count; index++) {
             int offset = headerLength + index * 16;
             uint tag = MsgBinary.ReadUInt32(stream, offset);
-            if ((ushort)(tag >> 16) == propertyId && (ushort)tag == (ushort)MapiPropertyType.Integer32) {
+            if (key.MatchesIdentity((ushort)(tag >> 16)) && key.Accepts((MapiPropertyType)(ushort)tag)) {
                 return MsgBinary.ReadInt32(stream, offset + 8);
             }
         }

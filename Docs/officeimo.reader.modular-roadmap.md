@@ -1,73 +1,125 @@
 # OfficeIMO Reader Package Ownership
 
-This document records the current Reader package boundaries and the remaining modular follow-up work.
+This document records the current Reader dependency problem and the target package boundary. The extraction should be
+implemented as a dedicated change stacked after the unified `OfficeIMO.Email` package work; moving Reader contracts
+while the Email production projects are also being consolidated would make both migrations harder to review.
 
 ## Current package shape
 
-| Owner | Responsibility |
-| --- | --- |
-| `OfficeIMO.Reader` | Shared chunks and rich result, built-in default instance, isolated reader instances, bounded sync/async execution, detection, diagnostics, processors, structured extraction, hierarchical chunking, and OCR execution contracts. |
-| Format packages | Parse and inspect their own formats. Reader must not duplicate Word, Excel, PowerPoint, Markdown, PDF, RTF, HTML, EPUB, Visio, CSV, ZIP, or other format logic. Small transport formats without an owning package may use a narrow, isolated adapter. |
-| `OfficeIMO.Reader.*` adapters | Register path/stream handlers and project owning format models into the shared Reader contracts. |
-| `OfficeIMO.Reader.Web` | Explicit caller-injected HTTP transport that bounds retrieval and routes bytes through an existing Reader instance. |
-| `OfficeIMO.Reader.Ocr.Process` | Optional versioned external-process OCR bridge. |
-| `OfficeIMO.Reader.Ocr.Tesseract` | Optional Tesseract CLI provider with line and word geometry. |
+`OfficeIMO.Reader` is currently both the orchestration contract and a convenience bundle. Its packed `2.0.1` NuGet
+declares these dependencies on every target:
 
-The modular adapters are working packages in the publishing pipeline, not placeholders:
+```text
+OfficeIMO.Reader
+├── OfficeIMO.Drawing
+├── OfficeIMO.Email
+├── OfficeIMO.Excel
+├── OfficeIMO.Markdown
+├── OfficeIMO.Pdf
+├── OfficeIMO.PowerPoint
+├── OfficeIMO.Word.Markdown
+└── OfficeIMO.Word
+```
 
-- `OfficeIMO.Reader.Csv`
-- `OfficeIMO.Reader.Epub`
-- `OfficeIMO.Reader.Html`
-- `OfficeIMO.Reader.Image`
-- `OfficeIMO.Reader.Json`
-- `OfficeIMO.Reader.Notebook`
-- `OfficeIMO.Reader.Pdf`
-- `OfficeIMO.Reader.Rtf`
-- `OfficeIMO.Reader.Subtitles`
-- `OfficeIMO.Reader.Visio`
-- `OfficeIMO.Reader.Web`
-- `OfficeIMO.Reader.Xml`
-- `OfficeIMO.Reader.Yaml`
-- `OfficeIMO.Reader.Zip`
-- `OfficeIMO.Reader.Ocr.Process`
-- `OfficeIMO.Reader.Ocr.Tesseract`
+`System.Text.Json` is added for `netstandard2.0` and `net472`. This means a host cannot currently buy only the Reader
+contracts plus one format. `OfficeIMO.Reader.Pdf`, for example, depends on `OfficeIMO.Reader` and `OfficeIMO.Pdf`, even
+though the former already brings PDF into the graph.
+
+Some apparent overlap is intentional. The CSV, JSON, XML, and YAML adapters replace the dependency-free plain-text
+fallback with structured projection. The PDF overlap is different: it is a packaging artifact caused by the root
+Reader also owning a built-in PDF handler.
+
+`OfficeIMO.Reader.All` is a packable composition project that references all managed local adapters, but it is not
+currently published on NuGet. Several adapters are published individually; the Email Store and AddressBook adapters
+are not. Package names, source projects, and publication state therefore do not currently communicate one consistent
+selection model.
+
+## Target package shape
+
+```text
+OfficeIMO.Reader.Core
+├── contracts, schemas, results, diagnostics, limits
+├── registry, detection, orchestration, processors
+└── no OfficeIMO format-engine dependency
+
+OfficeIMO.Reader.Email      -> Reader.Core + OfficeIMO.Email
+OfficeIMO.Reader.Pdf        -> Reader.Core + OfficeIMO.Pdf
+OfficeIMO.Reader.Word       -> Reader.Core + owning Word/Markdown projection
+OfficeIMO.Reader.Excel      -> Reader.Core + OfficeIMO.Excel
+OfficeIMO.Reader.PowerPoint -> Reader.Core + OfficeIMO.PowerPoint
+OfficeIMO.Reader.Markdown   -> Reader.Core + OfficeIMO.Markdown
+OfficeIMO.Reader.*          -> Reader.Core + the one owning engine or deliberate provider
+
+OfficeIMO.Reader            -> convenience/meta package for the documented common set
+OfficeIMO.Reader.All        -> every managed local adapter, deliberately large graph
+```
+
+The public namespaces can remain `OfficeIMO.Reader`; the new Core name describes package and assembly ownership, not
+a namespace migration.
+
+### Email decision
+
+Create one `OfficeIMO.Reader.Email` adapter over `OfficeIMO.Reader.Core` and the unified `OfficeIMO.Email` package. It
+should register individual artifacts, calendars/cards, PST/OST/OLM/EMLX stores, and OAB data through the one Email
+owner. Do not publish new `Reader.EmailStore` and `Reader.EmailAddressBook` packages; their source can move into
+`Reader.Email` because they add no separate dependency or runtime boundary.
+
+Until Core exists, the current two adapter projects remain honest thin packages over `OfficeIMO.Reader` and
+`OfficeIMO.Email`. Making `Reader.Email` depend on today's heavy `OfficeIMO.Reader` would only add another package name
+without reducing a single dependency.
+
+### Convenience and All
+
+- `OfficeIMO.Reader.Core` is the selection point for hosts that want the contracts and one or two adapters.
+- `OfficeIMO.Reader` preserves the easy existing install and default common-format experience. Its intentionally broad
+  dependency graph must be documented as a convenience choice.
+- `OfficeIMO.Reader.All` is an explicit opt-in to every managed local adapter. It must be published and tested as a
+  real meta package or removed; keeping an unpublished package-shaped project is misleading.
+- OCR engines, external processes, network transports, and host-selected providers remain outside `Reader.All`.
 
 ## Completed modularization contracts
 
-- `OfficeDocumentReader.Default` remains the built-in-only convenience instance; modular registration stays instance-scoped.
-- `OfficeDocumentReaderBuilder` freezes handlers, options, concurrency, and processors into an isolated `OfficeDocumentReader`.
-- Adapters expose matching builder extensions such as `AddPdfHandler()` and capture defensive option snapshots during registration.
-- Registrations can provide chunk delegates, native rich-result delegates, and native asynchronous path/stream delegates.
-- Path, stream, byte, and non-seekable input paths share the same bounded input behavior.
+- `OfficeDocumentReader.Default` remains the convenience instance; modular registration stays instance-scoped.
+- `OfficeDocumentReaderBuilder` freezes handlers, options, concurrency, and processors into an isolated reader.
+- Adapters expose matching builder extensions such as `AddPdfHandler()` and capture defensive option snapshots.
+- Registrations can provide chunk, native rich-result, and native asynchronous path/stream delegates.
+- Path, stream, byte, and non-seekable inputs share the same bounded behavior.
 - Capability manifests distinguish chunk, rich-result, and native async support.
-- The stable rich transport starts at `OfficeDocumentReadResult` schema version 5; current version 6 adds calendar and vCard kinds while the Reader continues to accept version 5 payloads.
-- Ordered processors, bounded structured extraction, token-aware hierarchical chunking, and optional OCR build on the shared result instead of adding format-specific host pipelines.
-- OCR providers remain opt-in and do not change the core package dependency graph.
-- Web retrieval remains opt-in, uses a caller-owned `HttpClient`, and is not composed by `OfficeIMO.Reader.All` or the global tool.
+- Ordered processors, bounded structured extraction, token-aware hierarchical chunking, and optional OCR build on the
+  shared result instead of adding format-specific host pipelines.
+- Web retrieval remains opt-in, uses a caller-owned `HttpClient`, and is not composed by `Reader.All`.
 
-## Ownership rules for new adapters
+## Extraction order
+
+- [ ] Freeze the public Reader contract and adapter registration surface with contract-focused tests.
+- [ ] Create `OfficeIMO.Reader.Core` and move only contracts, schemas, orchestration, limits, processors, and neutral
+  detection into it.
+- [ ] Move each built-in format projection into a `Reader.*` adapter with exactly one owning engine dependency.
+- [ ] Combine individual Email, Store, and OAB projection into `OfficeIMO.Reader.Email`; remove the unpublished split
+  Email adapter projects.
+- [ ] Convert `OfficeIMO.Reader` into the documented convenience/meta package without duplicating implementations.
+- [ ] Make `OfficeIMO.Reader.All` the complete managed composition package and decide publication explicitly.
+- [ ] Validate minimal and convenience dependency graphs from packed artifacts on all target frameworks.
+- [ ] Add migration notes covering package selection, default registration, and any assembly-name compatibility impact.
+
+## Ownership rules for adapters
 
 1. Put reusable parsing and inspection behavior in the owning format package.
 2. Keep the Reader adapter to registration, option translation, source mapping, and shared-model projection.
 3. Use `ReaderInputLimits` for file, byte, and stream bounds.
-4. Preserve caller-owned stream lifetime and position where the contract promises it.
+4. Preserve caller-owned stream lifetime and position where promised.
 5. Emit stable structured diagnostics for limits, unsupported content, and recoverable failures.
-6. Add instance-builder registration alongside any static compatibility registration.
-7. Keep optional native, platform, cloud, or process dependencies outside `OfficeIMO.Reader`.
+6. Add instance-builder registration alongside any retained static compatibility registration.
+7. Keep optional native, platform, cloud, or process dependencies outside Core and convenience packages unless the
+   package name explicitly promises that provider.
 
 ## Release gates
 
-Before publishing a new or changed adapter:
+Before publishing the new graph:
 
-- cover path, stream, byte, async, cancellation, limits, malformed input, and deterministic output where those surfaces apply;
-- validate source IDs, chunk IDs/hashes, locations, and rich-result relationships;
-- build every supported target framework and pack the affected public packages;
-- verify that optional dependencies are intentional and do not leak into the core package;
-- update the adapter README, the core Reader README, and the website Reader page when the public workflow changes.
-
-## Follow-up candidates
-
-- Continue increasing format fidelity in the owning packages and project that evidence through the adapters.
-- Add optional providers only when their dependency and runtime boundaries are clear.
-- Keep audio, video, and transcription ingestion in separate packages if downstream products require them; URL retrieval remains isolated in `OfficeIMO.Reader.Web`.
-- Keep email and attachment ingestion in the existing Mailozaurr owner; it is outside the current OfficeIMO Reader stack.
+- cover path, stream, byte, async, cancellation, limits, malformed input, and deterministic output where applicable;
+- validate source IDs, chunk IDs and hashes, locations, and rich-result relationships;
+- build every supported target and inspect the actual packed `.nuspec` dependency groups;
+- prove a clean consumer can install `Reader.Core` plus one adapter without unrelated format engines;
+- prove `Reader` and `Reader.All` composition behavior from packed artifacts;
+- update adapter, root Reader, package-map, and migration documentation together.

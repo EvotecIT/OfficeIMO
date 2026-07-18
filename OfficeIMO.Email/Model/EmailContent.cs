@@ -33,6 +33,7 @@ public sealed class EmailBody {
 /// <summary>Represents a file, inline resource, or embedded item attachment.</summary>
 public sealed class EmailAttachment {
     private readonly List<MapiProperty> _mapiProperties = new List<MapiProperty>();
+    private MapiPropertyBag? _mapi;
     private readonly Dictionary<string, string> _contentTypeParameters = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, byte[]> _structuredStorageStreams = new Dictionary<string, byte[]>(StringComparer.OrdinalIgnoreCase);
     private readonly List<TnefAttribute> _tnefAttributes = new List<TnefAttribute>();
@@ -130,6 +131,9 @@ public sealed class EmailAttachment {
 
     /// <summary>Attachment-level MAPI properties.</summary>
     public IList<MapiProperty> MapiProperties => _mapiProperties;
+
+    /// <summary>Typed MAPI access backed by the exact <see cref="MapiProperties"/> collection.</summary>
+    public MapiPropertyBag Mapi => _mapi ?? (_mapi = new MapiPropertyBag(_mapiProperties));
 
     /// <summary>Relative CFB streams retained for an OLE, embedded MSG, or custom-storage attachment.</summary>
     public IDictionary<string, byte[]> StructuredStorageStreams => _structuredStorageStreams;
