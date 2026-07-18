@@ -14,7 +14,7 @@ concurrency:
 
 jobs:
   sponsors:
-    uses: EvotecIT/PSPublishModule/.github/workflows/powerforge-github-content.yml@c7ffdd4e947b3c0d6736fe2f5cc47d34f309d68e
+    uses: EvotecIT/PSPublishModule/.github/workflows/powerforge-github-content.yml@459a49d8215c6f5ed8b8097ed8b029b251aa7ae1
     with:
       config_path: .powerforge/github-content.json
     secrets:
