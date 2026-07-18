@@ -152,6 +152,8 @@ public sealed class VCardDocumentTests {
     [InlineData(VCardVersion.V3_0, "BDAY", "2026-07-18T09:00:00,Z", "date-time")]
     [InlineData(VCardVersion.V3_0, "BDAY", "2026-07-18T09:00:00.5Z", "date-time")]
     [InlineData(VCardVersion.V4_0, "BDAY", "not-a-date", null)]
+    [InlineData(VCardVersion.V4_0, "BDAY", "1996-04-15", null)]
+    [InlineData(VCardVersion.V4_0, "BDAY", "--04-15", null)]
     [InlineData(VCardVersion.V4_0, "BDAY", "20230229", null)]
     [InlineData(VCardVersion.V4_0, "BDAY", "1985-13", null)]
     [InlineData(VCardVersion.V4_0, "BDAY", "--0230", null)]

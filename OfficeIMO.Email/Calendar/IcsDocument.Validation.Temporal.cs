@@ -1,6 +1,73 @@
 namespace OfficeIMO.Email;
 
 public sealed partial class IcsDocument {
+    private static void ValidateMethodValues(ContentLineComponent calendar,
+        ICollection<ContentLineValidationIssue> issues) {
+        foreach (ContentLineProperty method in calendar.GetProperties("METHOD")) {
+            if (IsValidMethodValue(method)) continue;
+            issues.Add(Issue("ICAL_METHOD_INVALID",
+                "METHOD must contain a non-empty iana-token or x-name value.",
+                ContentLineValidationSeverity.Error, calendar, method));
+        }
+    }
+
+    private static bool IsValidMethodValue(ContentLineProperty method) {
+        if (method.Value.Length == 0) return false;
+        foreach (char character in method.Value) {
+            bool valid = character >= 'A' && character <= 'Z' ||
+                character >= 'a' && character <= 'z' ||
+                character >= '0' && character <= '9' || character == '-';
+            if (!valid) return false;
+        }
+        return true;
+    }
+
+    private static void ValidateSequenceValues(ContentLineComponent component,
+        ICollection<ContentLineValidationIssue> issues) {
+        foreach (ContentLineProperty sequence in component.GetProperties("SEQUENCE")) {
+            bool hasForbiddenValueParameter = sequence.Parameters.Any(parameter =>
+                string.Equals(parameter.Name, "VALUE", StringComparison.OrdinalIgnoreCase));
+            bool validInteger = int.TryParse(sequence.Value,
+                System.Globalization.NumberStyles.AllowLeadingSign,
+                System.Globalization.CultureInfo.InvariantCulture, out int value) && value >= 0;
+            if (!hasForbiddenValueParameter && validInteger) continue;
+            issues.Add(Issue("ICAL_SEQUENCE_INVALID",
+                "SEQUENCE must contain a non-negative integer and cannot declare VALUE.",
+                ContentLineValidationSeverity.Error, component, sequence));
+        }
+    }
+
+    private static void ValidateExceptionDateRepresentation(ContentLineComponent component,
+        ContentLineProperty property, ICollection<ContentLineValidationIssue> issues) {
+        ContentLineProperty? startProperty = component.GetFirstProperty("DTSTART");
+        if (!IcsTemporalValue.TryParse(startProperty, out IcsTemporalValue start)) return;
+
+        foreach (string value in property.Value.Split(',')) {
+            var candidate = new ContentLineProperty(property.Name, value);
+            foreach (ContentLineParameter parameter in property.Parameters) candidate.Parameters.Add(parameter);
+            if (!IcsTemporalValue.TryParse(candidate, out IcsTemporalValue exception)) continue;
+
+            bool startIsDate = start.Kind == IcsTemporalValueKind.Date;
+            bool exceptionIsDate = exception.Kind == IcsTemporalValueKind.Date;
+            if (startIsDate != exceptionIsDate) {
+                issues.Add(Issue("ICAL_EXDATE_TYPE_MISMATCH",
+                    "EXDATE must use the same DATE or DATE-TIME value type as DTSTART.",
+                    ContentLineValidationSeverity.Error, component, property));
+                return;
+            }
+            if (startIsDate) continue;
+
+            bool startIsFloating = start.Kind == IcsTemporalValueKind.FloatingDateTime;
+            bool exceptionIsFloating = exception.Kind == IcsTemporalValueKind.FloatingDateTime;
+            if (startIsFloating != exceptionIsFloating) {
+                issues.Add(Issue("ICAL_EXDATE_REPRESENTATION_MISMATCH",
+                    "EXDATE must use floating local time if and only if DTSTART uses floating local time.",
+                    ContentLineValidationSeverity.Error, component, property));
+                return;
+            }
+        }
+    }
+
     private static void ValidateFreeBusyWindow(ContentLineComponent component,
         ICollection<ContentLineValidationIssue> issues) {
         ContentLineProperty? startProperty = component.GetFirstProperty("DTSTART");

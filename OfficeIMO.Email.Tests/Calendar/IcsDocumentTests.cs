@@ -175,6 +175,65 @@ public sealed class IcsDocumentTests {
             finding.Code == "ICAL_TEMPORAL_VALUE_INVALID");
     }
 
+    [Theory]
+    [InlineData("20260718", "DATE", "20260719T090000Z", null, "ICAL_EXDATE_TYPE_MISMATCH")]
+    [InlineData("20260718T090000Z", null, "20260719", "DATE", "ICAL_EXDATE_TYPE_MISMATCH")]
+    [InlineData("20260718T090000Z", null, "20260719T090000", null,
+        "ICAL_EXDATE_REPRESENTATION_MISMATCH")]
+    [InlineData("20260718T090000", null, "20260719T090000Z", null,
+        "ICAL_EXDATE_REPRESENTATION_MISMATCH")]
+    public void ValidationMatchesExceptionDatesToStartRepresentation(string start, string? startType,
+        string exception, string? exceptionType, string expectedCode) {
+        var document = new IcsDocument();
+        ContentLineComponent appointment = document.Calendars.Single().AddComponent("VEVENT");
+        ContentLineProperty startProperty = appointment.AddProperty("DTSTART", start);
+        if (startType != null) startProperty.SetParameter("VALUE", startType);
+        ContentLineProperty exceptionProperty = appointment.AddProperty("EXDATE", exception);
+        if (exceptionType != null) exceptionProperty.SetParameter("VALUE", exceptionType);
+
+        Assert.Contains(document.Validate(), issue => issue.Code == expectedCode &&
+            issue.PropertyName == "EXDATE");
+    }
+
+    [Fact]
+    public void ValidationAcceptsMatchingExceptionDateListRepresentation() {
+        var document = new IcsDocument();
+        ContentLineComponent appointment = document.Calendars.Single().AddComponent("VEVENT");
+        appointment.AddProperty("DTSTART", "20260718T090000").SetParameter("TZID", "Europe/Warsaw");
+        appointment.AddProperty("EXDATE", "20260719T090000,20260720T090000")
+            .SetParameter("TZID", "Europe/Warsaw");
+
+        Assert.DoesNotContain(document.Validate(), issue =>
+            issue.Code.StartsWith("ICAL_EXDATE_", StringComparison.Ordinal));
+    }
+
+    [Theory]
+    [InlineData(null, "Europe/Warsaw")]
+    [InlineData("Europe/Warsaw", null)]
+    public void ValidationDistinguishesFloatingAndZonedExceptionDates(
+        string? startTimeZone, string? exceptionTimeZone) {
+        var document = new IcsDocument();
+        ContentLineComponent appointment = document.Calendars.Single().AddComponent("VEVENT");
+        ContentLineProperty start = appointment.AddProperty("DTSTART", "20260718T090000");
+        if (startTimeZone != null) start.SetParameter("TZID", startTimeZone);
+        ContentLineProperty exception = appointment.AddProperty("EXDATE", "20260719T090000");
+        if (exceptionTimeZone != null) exception.SetParameter("TZID", exceptionTimeZone);
+
+        Assert.Contains(document.Validate(), issue =>
+            issue.Code == "ICAL_EXDATE_REPRESENTATION_MISMATCH" && issue.PropertyName == "EXDATE");
+    }
+
+    [Fact]
+    public void ValidationAcceptsZonedStartWithUtcExceptionDate() {
+        var document = new IcsDocument();
+        ContentLineComponent appointment = document.Calendars.Single().AddComponent("VEVENT");
+        appointment.AddProperty("DTSTART", "20260718T090000").SetParameter("TZID", "Europe/Warsaw");
+        appointment.AddProperty("EXDATE", "20260719T070000Z");
+
+        Assert.DoesNotContain(document.Validate(), issue =>
+            issue.Code == "ICAL_EXDATE_REPRESENTATION_MISMATCH");
+    }
+
     [Fact]
     public void TemporalParserRejectsConflictingValueAndTimeZoneParameters() {
         var date = new ContentLineProperty("DTSTART", "20260717");
@@ -907,6 +966,94 @@ public sealed class IcsDocumentTests {
 
         Assert.Contains(document.Validate(), issue =>
             issue.Code == "ICAL_DURATION_START_REQUIRED" && issue.PropertyName == "DURATION");
+    }
+
+    [Fact]
+    public void ValidationRequiresStartForMethodlessEvent() {
+        var document = new IcsDocument();
+        document.Calendars.Single().AddComponent("VEVENT");
+
+        Assert.Contains(document.Validate(), issue =>
+            issue.Code == "ICAL_PROPERTY_REQUIRED" && issue.PropertyName == "DTSTART");
+    }
+
+    [Fact]
+    public void ValidationAllowsMissingEventStartWhenMethodIsPresent() {
+        var document = new IcsDocument();
+        ContentLineComponent calendar = document.Calendars.Single();
+        calendar.AddProperty("METHOD", "REQUEST");
+        calendar.AddComponent("VEVENT");
+
+        Assert.DoesNotContain(document.Validate(), issue =>
+            issue.Code == "ICAL_PROPERTY_REQUIRED" && issue.PropertyName == "DTSTART");
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("bad method")]
+    [InlineData("PUBLISH!")]
+    public void ValidationRejectsInvalidMethodsAndStillRequiresEventStart(string value) {
+        var document = new IcsDocument();
+        ContentLineComponent calendar = document.Calendars.Single();
+        calendar.AddProperty("METHOD", value);
+        calendar.AddComponent("VEVENT");
+
+        IReadOnlyList<ContentLineValidationIssue> issues = document.Validate();
+        Assert.Contains(issues, issue => issue.Code == "ICAL_METHOD_INVALID" &&
+            issue.PropertyName == "METHOD");
+        Assert.Contains(issues, issue => issue.Code == "ICAL_PROPERTY_REQUIRED" &&
+            issue.PropertyName == "DTSTART");
+    }
+
+    [Theory]
+    [InlineData("VEVENT")]
+    [InlineData("VTODO")]
+    [InlineData("VJOURNAL")]
+    public void ValidationRequiresStartForRecurringComponents(string componentName) {
+        var document = new IcsDocument();
+        ContentLineComponent calendar = document.Calendars.Single();
+        calendar.AddProperty("METHOD", "PUBLISH");
+        calendar.AddComponent(componentName).AddProperty("RRULE", "FREQ=DAILY;COUNT=2");
+
+        Assert.Contains(document.Validate(), issue =>
+            issue.Code == "ICAL_PROPERTY_REQUIRED" && issue.PropertyName == "DTSTART");
+    }
+
+    [Theory]
+    [InlineData("not-an-integer")]
+    [InlineData("-1")]
+    [InlineData("2147483648")]
+    public void ValidationRejectsInvalidSequenceValues(string value) {
+        var document = new IcsDocument();
+        ContentLineComponent calendar = document.Calendars.Single();
+        calendar.AddProperty("METHOD", "PUBLISH");
+        ContentLineComponent appointment = calendar.AddComponent("VEVENT");
+        appointment.AddProperty("SEQUENCE", value);
+
+        Assert.Contains(document.Validate(), issue =>
+            issue.Code == "ICAL_SEQUENCE_INVALID" && issue.PropertyName == "SEQUENCE");
+    }
+
+    [Theory]
+    [InlineData("0")]
+    [InlineData("+3")]
+    public void ValidationAcceptsNonNegativeSequenceValues(string value) {
+        var document = new IcsDocument();
+        ContentLineComponent calendar = document.Calendars.Single();
+        calendar.AddProperty("METHOD", "PUBLISH");
+        calendar.AddComponent("VEVENT").AddProperty("SEQUENCE", value);
+
+        Assert.DoesNotContain(document.Validate(), issue => issue.Code == "ICAL_SEQUENCE_INVALID");
+    }
+
+    [Fact]
+    public void ValidationRejectsValueParameterOnSequence() {
+        var document = new IcsDocument();
+        ContentLineComponent calendar = document.Calendars.Single();
+        calendar.AddProperty("METHOD", "PUBLISH");
+        calendar.AddComponent("VEVENT").AddProperty("SEQUENCE", "3").SetParameter("VALUE", "INTEGER");
+
+        Assert.Contains(document.Validate(), issue => issue.Code == "ICAL_SEQUENCE_INVALID");
     }
 
     [Fact]

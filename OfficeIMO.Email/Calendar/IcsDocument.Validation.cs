@@ -27,6 +27,7 @@ public sealed partial class IcsDocument {
             ValidateSingle(calendar, "PRODID", required: true, issues);
             ValidateSingle(calendar, "CALSCALE", required: false, issues);
             ValidateSingle(calendar, "METHOD", required: false, issues);
+            ValidateMethodValues(calendar, issues);
             ContentLineProperty? version = calendar.GetFirstProperty("VERSION");
             if (version != null && !string.Equals(version.Value, "2.0", StringComparison.Ordinal)) {
                 issues.Add(Issue("ICAL_VERSION_UNSUPPORTED", "VCALENDAR VERSION must be 2.0.",
@@ -68,13 +69,14 @@ public sealed partial class IcsDocument {
         try {
             string name = component.Name.ToUpperInvariant();
             ValidateKnownComponentParent(component, parent, name, issues);
-            ValidateTemporalCardinality(component, name, issues);
+            ValidateTemporalCardinality(component, parent, name, issues);
             if (name == "VEVENT" || name == "VTODO" || name == "VJOURNAL") {
                 WarnWhenMissing(component, "UID", issues);
                 WarnWhenMissing(component, "DTSTAMP", issues);
                 ValidateSingle(component, "UID", required: false, issues);
                 ValidateSingle(component, "DTSTAMP", required: false, issues);
                 ValidateSingle(component, "SEQUENCE", required: false, issues);
+                ValidateSequenceValues(component, issues);
             } else if (name == "VTIMEZONE") {
                 ValidateSingle(component, "TZID", required: true, issues);
                 if (!component.Components.Any(child =>
@@ -162,6 +164,8 @@ public sealed partial class IcsDocument {
                     if (!valid) {
                         issues.Add(Issue("ICAL_TEMPORAL_VALUE_INVALID", "The temporal property value is invalid.",
                             ContentLineValidationSeverity.Error, component, property));
+                    } else if (temporalName == "EXDATE") {
+                        ValidateExceptionDateRepresentation(component, property, issues);
                     } else if (UtcTimestampPropertyNames.Contains(temporalName) &&
                                temporalValue.Kind != IcsTemporalValueKind.UtcDateTime) {
                         issues.Add(Issue("ICAL_TEMPORAL_VALUE_UTC_REQUIRED",
@@ -200,23 +204,26 @@ public sealed partial class IcsDocument {
         }
     }
 
-    private static void ValidateTemporalCardinality(ContentLineComponent component, string name,
+    private static void ValidateTemporalCardinality(ContentLineComponent component,
+        ContentLineComponent parent, string name,
         ICollection<ContentLineValidationIssue> issues) {
         if (name == "VEVENT") {
-            ValidateSingle(component, "DTSTART", required: false, issues);
+            bool requiresStart = !parent.GetProperties("METHOD").Any(IsValidMethodValue) ||
+                component.GetFirstProperty("RRULE") != null;
+            ValidateSingle(component, "DTSTART", required: requiresStart, issues);
             ValidateSingle(component, "DTEND", required: false, issues);
             ValidateSingle(component, "RECURRENCE-ID", required: false, issues);
             ValidateSingle(component, "CREATED", required: false, issues);
             ValidateSingle(component, "LAST-MODIFIED", required: false, issues);
         } else if (name == "VTODO") {
-            ValidateSingle(component, "DTSTART", required: false, issues);
+            ValidateSingle(component, "DTSTART", required: component.GetFirstProperty("RRULE") != null, issues);
             ValidateSingle(component, "DUE", required: false, issues);
             ValidateSingle(component, "RECURRENCE-ID", required: false, issues);
             ValidateSingle(component, "COMPLETED", required: false, issues);
             ValidateSingle(component, "CREATED", required: false, issues);
             ValidateSingle(component, "LAST-MODIFIED", required: false, issues);
         } else if (name == "VJOURNAL") {
-            ValidateSingle(component, "DTSTART", required: false, issues);
+            ValidateSingle(component, "DTSTART", required: component.GetFirstProperty("RRULE") != null, issues);
             ValidateSingle(component, "RECURRENCE-ID", required: false, issues);
             ValidateSingle(component, "CREATED", required: false, issues);
             ValidateSingle(component, "LAST-MODIFIED", required: false, issues);
