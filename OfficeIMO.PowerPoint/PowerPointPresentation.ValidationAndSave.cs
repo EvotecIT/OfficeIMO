@@ -316,6 +316,10 @@ namespace OfficeIMO.PowerPoint {
                     StringComparison.OrdinalIgnoreCase)) {
                 return PresentationDocumentType.MacroEnabledSlideshow;
             }
+            if (string.Equals(extension, ".ppam",
+                    StringComparison.OrdinalIgnoreCase)) {
+                return PresentationDocumentType.AddIn;
+            }
             return PresentationDocumentType.Presentation;
         }
 

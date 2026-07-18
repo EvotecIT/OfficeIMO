@@ -299,7 +299,8 @@ public partial class DrawingTests {
         Assert.Equal(png, embedded.ImageBytes);
         Assert.True(embedded.HasImportableImage);
 
-        byte[] delayedFbse = BuildFbse(Array.Empty<byte>(), 0);
+        byte[] delayedFbse = BuildFbse(Array.Empty<byte>(), 0,
+            unchecked((uint)blip.Length));
         Assert.True(OfficeArtBlipStoreEntryReader.TryRead(delayedFbse, 0,
             delayedFbse.Length, 0x0006, blip, out OfficeArtBlipStoreEntry? delayed));
         Assert.NotNull(delayed);
@@ -491,12 +492,14 @@ public partial class DrawingTests {
                 "image/gif"));
     }
 
-    private static byte[] BuildFbse(byte[] embeddedBlip, uint delayedOffset) {
+    private static byte[] BuildFbse(byte[] embeddedBlip,
+        uint delayedOffset, uint? sizeBytes = null) {
         byte[] payload = new byte[36 + embeddedBlip.Length];
         payload[0] = 0x06;
         payload[1] = 0x06;
         for (int index = 0; index < 16; index++) payload[2 + index] = unchecked((byte)index);
-        WriteOfficeArtUInt32(payload, 20, unchecked((uint)embeddedBlip.Length));
+        WriteOfficeArtUInt32(payload, 20,
+            sizeBytes ?? unchecked((uint)embeddedBlip.Length));
         WriteOfficeArtUInt32(payload, 24, 1);
         WriteOfficeArtUInt32(payload, 28, delayedOffset);
         Buffer.BlockCopy(embeddedBlip, 0, payload, 36, embeddedBlip.Length);

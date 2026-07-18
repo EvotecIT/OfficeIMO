@@ -13,13 +13,15 @@ namespace OfficeIMO.Tests {
             true)]
         [InlineData(".ppsm",
             PresentationDocumentType.MacroEnabledSlideshow, true)]
-        public void PathSaveAndCopyPreserveOpenXmlPackageTypeAndVba(
+        [InlineData(".ppam", PresentationDocumentType.AddIn, true)]
+        public void PathSaveCopyAndEncryptionPreserveOpenXmlPackageTypeAndVba(
             string extension,
             PresentationDocumentType expectedType,
             bool hasVba) {
             string seedPath = GetTempPath(".pptx");
             string sourcePath = GetTempPath(extension);
             string copyPath = GetTempPath(extension);
+            string encryptedPath = GetTempPath(extension);
             byte[] vbaBytes = { 1, 3, 3, 7 };
             try {
                 using (PowerPointPresentation seed =
@@ -47,12 +49,27 @@ namespace OfficeIMO.Tests {
                         "Saved package type";
                     presentation.Save();
                     presentation.SaveCopy(copyPath);
+                    presentation.SaveEncrypted(encryptedPath,
+                        "OfficeIMO-path-pass");
                 }
 
                 AssertPackage(sourcePath, expectedType, hasVba, vbaBytes);
                 AssertPackage(copyPath, expectedType, hasVba, vbaBytes);
+                using PowerPointPresentation decrypted =
+                    PowerPointPresentation.LoadEncrypted(encryptedPath,
+                        "OfficeIMO-path-pass");
+                Assert.Equal(expectedType,
+                    decrypted.OpenXmlDocument.DocumentType);
+                VbaProjectPart? encryptedVbaPart =
+                    decrypted.OpenXmlDocument.PresentationPart!
+                        .VbaProjectPart;
+                Assert.Equal(hasVba, encryptedVbaPart != null);
+                if (hasVba) {
+                    Assert.Equal(vbaBytes,
+                        ReadVbaBytes(encryptedVbaPart));
+                }
             } finally {
-                Delete(seedPath, sourcePath, copyPath);
+                Delete(seedPath, sourcePath, copyPath, encryptedPath);
             }
         }
 

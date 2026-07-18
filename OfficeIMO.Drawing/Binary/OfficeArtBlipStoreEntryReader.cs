@@ -40,15 +40,25 @@ public static class OfficeArtBlipStoreEntryReader {
         BlipReadResult blip = default;
         int embeddedOffset = checked(offset + FixedFbseLength + nameByteCount);
         if (embeddedOffset <= endOffset - 8) {
-            blip = ReadBlip(payload, embeddedOffset, endOffset, OfficeArtBlipStorage.Embedded,
-                maximumDecodedImageBytes);
+            int embeddedBoundary = GetBlipBoundary(
+                embeddedOffset, endOffset, sizeBytes);
+            if (embeddedOffset <= embeddedBoundary - 8) {
+                blip = ReadBlip(payload, embeddedOffset,
+                    embeddedBoundary, OfficeArtBlipStorage.Embedded,
+                    maximumDecodedImageBytes);
+            }
         }
         if (!blip.HasRecord && delayStream != null && delayedStreamOffset != uint.MaxValue
             && delayedStreamOffset <= int.MaxValue) {
             int delayedOffset = unchecked((int)delayedStreamOffset);
             if (delayedOffset <= delayStream.Length - 8) {
-                blip = ReadBlip(delayStream, delayedOffset, delayStream.Length,
-                    OfficeArtBlipStorage.Delayed, maximumDecodedImageBytes);
+                int delayedBoundary = GetBlipBoundary(
+                    delayedOffset, delayStream.Length, sizeBytes);
+                if (delayedOffset <= delayedBoundary - 8) {
+                    blip = ReadBlip(delayStream, delayedOffset,
+                        delayedBoundary, OfficeArtBlipStorage.Delayed,
+                        maximumDecodedImageBytes);
+                }
             }
         }
 
@@ -143,6 +153,14 @@ public static class OfficeArtBlipStoreEntryReader {
         return true;
     }
 
+    private static int GetBlipBoundary(int recordOffset,
+        int sourceBoundary, uint sizeBytes) {
+        long declaredBoundary = (long)recordOffset + sizeBytes;
+        return declaredBoundary < sourceBoundary
+            ? unchecked((int)declaredBoundary)
+            : sourceBoundary;
+    }
+
     private static BlipReadResult ReadBlip(byte[] source, int recordOffset, int boundary,
         OfficeArtBlipStorage storage, int maximumDecodedImageBytes) {
         ushort versionAndInstance = ReadUInt16(source, recordOffset);
@@ -156,11 +174,13 @@ public static class OfficeArtBlipStoreEntryReader {
         int availableLength = payloadLength > int.MaxValue
             ? Math.Max(0, boundary - payloadOffset)
             : Math.Min(Math.Max(0, boundary - payloadOffset), unchecked((int)payloadLength));
+        bool isPayloadTruncated =
+            payloadLength > unchecked((uint)availableLength);
         string? payloadSha256 = availableLength == 0
             ? null
             : ComputeSha256(source, payloadOffset, availableLength);
         bool wasImageRejectedBySizeLimit = false;
-        byte[] imageBytes = availableLength == 0
+        byte[] imageBytes = availableLength == 0 || isPayloadTruncated
             ? Array.Empty<byte>()
             : ExtractImageBytes(source, payloadOffset, availableLength,
                 recordType, recordInstance, maximumDecodedImageBytes,
