@@ -22,36 +22,29 @@ namespace OfficeIMO.PowerPoint {
                     OfficePackageSecurityRule.Macros,
                     "The binary PowerPoint presentation contains a VBA project while macro content is rejected.");
             }
-            int embeddedObjectCount = checked(
-                (legacy.HasEmbeddedOleContent ? 1 : 0)
-                + (legacy.HasLinkedOleContent ? 1 : 0));
             if (security.EmbeddedPayloads ==
                     OfficePackageContentPolicy.Reject
-                && embeddedObjectCount > 0) {
+                && (legacy.HasEmbeddedOleContent
+                    || legacy.HasLinkedOleContent)) {
                 throw new OfficePackageSecurityException(
                     OfficePackageSecurityRule.EmbeddedPayloads,
-                    $"The binary PowerPoint presentation contains {embeddedObjectCount} embedded or cached OLE payload(s) while embedded content is rejected.",
-                    embeddedObjectCount, 0);
+                    "The binary PowerPoint presentation contains embedded or cached OLE content while embedded payloads are rejected.");
             }
             if (security.ActiveX == OfficePackageContentPolicy.Reject
                 && legacy.HasActiveXContent) {
                 throw new OfficePackageSecurityException(
                     OfficePackageSecurityRule.ActiveX,
-                    "The binary PowerPoint presentation contains ActiveX content while ActiveX content is rejected.",
-                    1, 0);
+                    "The binary PowerPoint presentation contains ActiveX content while ActiveX content is rejected.");
             }
-            int externalTargetCount =
-                (legacy.HasExternalHyperlinkContent ? 1 : 0)
-                + (legacy.HasLinkedOleContent ? 1 : 0)
-                + (legacy.HasExternalMediaContent ? 1 : 0)
-                + (legacy.HasRunProgramContent ? 1 : 0);
             if (security.ExternalRelationships ==
                     OfficePackageContentPolicy.Reject
-                && externalTargetCount > 0) {
+                && (legacy.HasExternalHyperlinkContent
+                    || legacy.HasLinkedOleContent
+                    || legacy.HasExternalMediaContent
+                    || legacy.HasRunProgramContent)) {
                 throw new OfficePackageSecurityException(
                     OfficePackageSecurityRule.ExternalRelationships,
-                    $"The binary PowerPoint presentation contains {externalTargetCount} external target(s) while external relationships are rejected.",
-                    externalTargetCount, 0);
+                    "The binary PowerPoint presentation contains external content while external relationships are rejected.");
             }
         }
 

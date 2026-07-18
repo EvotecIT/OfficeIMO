@@ -18,10 +18,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             LegacyPptRecord? atom = vbaInfo?.Children.FirstOrDefault(
                 child => child.Type == RecordVbaInfoAtom);
             if (vbaInfo == null) return;
-            HasVbaContent = true;
             if (vbaInfo.Version != 0x0F || vbaInfo.Instance != 1
                 || atom == null || atom.Version != 2 || atom.Instance != 0
                 || atom.PayloadLength != 12) {
+                HasVbaContent = true;
                 AddDiagnostic("PPT-VBA-INFO-MALFORMED",
                     LegacyPptDiagnosticSeverity.Warning,
                     "The VBA information container is malformed and remains preserve-only.",
@@ -33,9 +33,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             uint hasMacros = atom.ReadUInt32(4);
             uint version = atom.ReadUInt32(8);
             if (hasMacros == 0) {
-                HasVbaContent = false;
                 return;
             }
+            HasVbaContent = true;
             if (hasMacros != 1 || version != 2
                 || !package.PersistObjects.TryGetValue(persistId,
                     out LegacyPptPersistObject? persistObject)

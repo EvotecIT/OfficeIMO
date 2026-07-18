@@ -89,23 +89,27 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
         }
 
         private static bool HasReadableExternalHyperlinkTarget(
-            LegacyPptRecord container) {
-            LegacyPptRecord[] strings = container.Children.Where(record =>
-                record.Type == RecordCString
-                && (record.Instance == 1 || record.Instance == 3)
-                && record.Version == 0
-                && (record.PayloadLength & 1) == 0).ToArray();
-            foreach (LegacyPptRecord targetRecord in strings.Where(record =>
-                         record.Instance == 1)) {
-                if (!string.IsNullOrEmpty(targetRecord.ReadUtf16Text()
-                        .TrimEnd('\0'))) return true;
-            }
-            foreach (LegacyPptRecord locationRecord in strings.Where(record =>
-                         record.Instance == 3)) {
-                string location = locationRecord.ReadUtf16Text().TrimEnd('\0');
-                if (string.IsNullOrEmpty(location)) continue;
+            LegacyPptRecord container) => HasReadableExternalHyperlinkTarget(
+            container, ReadRawChildHeaders(container));
+
+        private static bool HasReadableExternalHyperlinkTarget(
+            LegacyPptRecord source, RawRecordHeader container) =>
+            HasReadableExternalHyperlinkTarget(source,
+                ReadRawChildHeaders(source, container));
+
+        private static bool HasReadableExternalHyperlinkTarget(
+            LegacyPptRecord source,
+            IEnumerable<RawRecordHeader> strings) {
+            foreach (RawRecordHeader record in strings) {
+                if (record.Type != RecordCString || record.Version != 0
+                    || (record.Instance != 1 && record.Instance != 3)
+                    || (record.PayloadLength & 1) != 0) continue;
+                string value = source.ReadUtf16Text(record.PayloadOffset,
+                    record.PayloadLength).TrimEnd('\0');
+                if (string.IsNullOrEmpty(value)) continue;
+                if (record.Instance == 1) return true;
                 var hyperlink = new LegacyPptHyperlink(1,
-                    friendlyName: null, target: null, location);
+                    friendlyName: null, target: null, location: value);
                 if (!hyperlink.IsInternalSlideTarget) return true;
             }
             return false;
@@ -167,6 +171,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             var interactions = new List<LegacyPptInteraction>();
             foreach (LegacyPptRecord clientData in shapeContainer.Children.Where(record =>
                          record.Type == OfficeArtClientData)) {
+                if (HasRunProgramActionInOwner(clientData)) {
+                    HasRunProgramContent = true;
+                }
                 foreach (LegacyPptRecord record in clientData.Children.Where(record =>
                              record.Type == RecordInteractiveInfo)) {
                     LegacyPptInteraction? interaction = TryReadInteraction(record, options);
@@ -181,6 +188,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             LegacyPptRecord? textbox, int exposedTextLength,
             LegacyPptImportOptions options) {
             if (textbox == null) return Array.Empty<LegacyPptTextInteraction>();
+            if (HasRunProgramActionInOwner(textbox)) {
+                HasRunProgramContent = true;
+            }
             var interactions = new List<LegacyPptTextInteraction>();
             IReadOnlyList<LegacyPptRecord> children = textbox.Children;
             for (int index = 0; index < children.Count; index++) {
@@ -306,26 +316,21 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
         }
 
         private static bool HasRunProgramActionAtom(
-            LegacyPptRecord container) {
-            int position = 0;
-            while (position <= container.PayloadLength - 8) {
-                uint declaredLength = container.ReadUInt32(position + 4);
-                if (declaredLength > int.MaxValue) return false;
-                int payloadLength = unchecked((int)declaredLength);
-                if (payloadLength > container.PayloadLength - position - 8) {
-                    return false;
-                }
-                if (container.ReadUInt16(position + 2) ==
-                        RecordInteractiveInfoAtom
-                    && payloadLength >= 9
-                    && container.ReadByte(position + 16) ==
-                    (byte)LegacyPptInteractionAction.RunProgram) {
-                    return true;
-                }
-                position = checked(position + 8 + payloadLength);
-            }
-            return false;
-        }
+            LegacyPptRecord container) => HasRunProgramActionAtom(container,
+            ReadRawChildHeaders(container));
+
+        private static bool HasRunProgramActionAtom(LegacyPptRecord source,
+            IEnumerable<RawRecordHeader> records) => records.Any(record =>
+            record.Type == RecordInteractiveInfoAtom
+            && record.PayloadLength >= 9
+            && source.ReadByte(record.PayloadOffset + 8) ==
+            (byte)LegacyPptInteractionAction.RunProgram);
+
+        private static bool HasRunProgramActionInOwner(
+            LegacyPptRecord owner) => ReadRawChildHeaders(owner).Any(record =>
+            record.Type == RecordInteractiveInfo
+            && HasRunProgramActionAtom(owner,
+                ReadRawChildHeaders(owner, record)));
 
         private void ReportDuplicateTriggers(IReadOnlyList<LegacyPptInteraction> interactions,
             long offset, string owner) {

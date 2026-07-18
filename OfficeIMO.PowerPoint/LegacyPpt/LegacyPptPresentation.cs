@@ -214,6 +214,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             ParseOleObjects(document, package, options);
             ValidateExternalObjectIdSeed(document, options);
             ParseVbaProject(document, package, options);
+            CaptureRawContentSecurityEvidence(document);
 
             cancellationToken.ThrowIfCancellationRequested();
             ParseSpecialMasters(documentAtom, documentStream, persistOffsets, options);
