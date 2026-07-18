@@ -169,10 +169,37 @@ namespace OfficeIMO.Excel {
                 string valueDependencyFormula = MaskFormulaReferenceShapeArguments(
                     searchableFormula,
                     sourceRow,
+                    sourceColumn,
+                    aliases,
+                    tables);
+                List<FormulaDependencyReferenceMatch> dependencyMatches = GetFormulaDependencyReferenceMatches(
+                    searchableFormula,
+                    valueDependencyFormula,
+                    aliases,
+                    tables,
+                    sourceRow,
                     sourceColumn);
-                string localReferenceFormula = MaskFormulaNonLocalReferenceSegments(valueDependencyFormula);
-                string directReferenceFormula = MaskFormulaStructuredReferenceSegments(localReferenceFormula);
-                List<FormulaDependencyReferenceMatch> dependencyMatches = FormulaReferenceRegex.Matches(directReferenceFormula)
+                var dependencies = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                AddFormulaDependencies(searchableFormula, dependencyMatches, sourceRow, dependencies);
+
+                return dependencies
+                    .OrderBy(reference => reference, StringComparer.OrdinalIgnoreCase)
+                    .ToList();
+            } catch (RegexMatchTimeoutException) {
+                return Array.Empty<string>();
+            }
+        }
+
+        private List<FormulaDependencyReferenceMatch> GetFormulaDependencyReferenceMatches(
+            string searchableFormula,
+            string valueDependencyFormula,
+            FormulaDependencyAliasCatalog aliases,
+            FormulaDependencyTableCatalog tables,
+            int? sourceRow,
+            int? sourceColumn) {
+            string localReferenceFormula = MaskFormulaNonLocalReferenceSegments(valueDependencyFormula);
+            string directReferenceFormula = MaskFormulaStructuredReferenceSegments(localReferenceFormula);
+            List<FormulaDependencyReferenceMatch> dependencyMatches = FormulaReferenceRegex.Matches(directReferenceFormula)
                     .Cast<Match>()
                     .Where(match => IsLocalFormulaReferenceMatch(searchableFormula, match))
                     .Where(match => !IsFormulaDependencyFunctionToken(searchableFormula, match))
@@ -182,27 +209,20 @@ namespace OfficeIMO.Excel {
                         match.Length,
                         match.Groups["reference"].Value))
                     .ToList();
-                var dependencies = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-                IReadOnlyList<FormulaLexicalBinding> lexicalBindings = GetFormulaLexicalBindings(searchableFormula);
-                foreach (FormulaDependencyAliasMatch match in aliases.FindMatches(valueDependencyFormula)) {
-                    AddFormulaAliasDependencyMatch(valueDependencyFormula, match, lexicalBindings, sourceRow, dependencyMatches);
-                }
-                if (hasSourceCell) {
-                    AddUnqualifiedCurrentRowDependencyMatches(
-                        localReferenceFormula,
-                        parsedSourceRow,
-                        parsedSourceColumn,
-                        tables,
-                        dependencyMatches);
-                }
-                AddFormulaDependencies(searchableFormula, dependencyMatches, sourceRow, dependencies);
-
-                return dependencies
-                    .OrderBy(reference => reference, StringComparer.OrdinalIgnoreCase)
-                    .ToList();
-            } catch (RegexMatchTimeoutException) {
-                return Array.Empty<string>();
+            IReadOnlyList<FormulaLexicalBinding> lexicalBindings = GetFormulaLexicalBindings(searchableFormula);
+            foreach (FormulaDependencyAliasMatch match in aliases.FindMatches(valueDependencyFormula)) {
+                AddFormulaAliasDependencyMatch(valueDependencyFormula, match, lexicalBindings, sourceRow, dependencyMatches);
             }
+            if (sourceRow.HasValue && sourceColumn.HasValue) {
+                AddUnqualifiedCurrentRowDependencyMatches(
+                    localReferenceFormula,
+                    sourceRow.Value,
+                    sourceColumn.Value,
+                    tables,
+                    dependencyMatches);
+            }
+
+            return dependencyMatches;
         }
 
         private FormulaDependencyAliasCatalog GetFormulaDependencyAliases() {

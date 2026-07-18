@@ -144,7 +144,12 @@ namespace OfficeIMO.Excel {
             return false;
         }
 
-        private string MaskFormulaReferenceShapeArguments(string formula, int? sourceRow, int? sourceColumn) {
+        private string MaskFormulaReferenceShapeArguments(
+            string formula,
+            int? sourceRow,
+            int? sourceColumn,
+            FormulaDependencyAliasCatalog aliases,
+            FormulaDependencyTableCatalog tables) {
             char[]? maskedFormula = null;
             int structuredReferenceDepth = 0;
             bool inQuotedQualifier = false;
@@ -185,27 +190,12 @@ namespace OfficeIMO.Excel {
 
                 FormulaArgumentSpan argument = arguments[0];
                 string reference = formula.Substring(argument.Start, argument.End - argument.Start).Trim();
-                bool resolved = TryResolveFormulaDependencyReference(
-                    reference,
-                    sourceRow,
-                    out _,
-                    out _,
-                    out _,
-                    out _,
-                    out _,
-                    out _);
-                if (!resolved && sourceColumn.HasValue) {
-                    resolved = TryResolveUnqualifiedCurrentRowTableReferenceRange(
+                if (!IsPureFormulaReferenceExpression(
                         reference,
                         sourceRow,
                         sourceColumn,
-                        out _,
-                        out _,
-                        out _,
-                        out _,
-                        out _);
-                }
-                if (!resolved) {
+                        aliases,
+                        tables)) {
                     continue;
                 }
 
@@ -218,6 +208,128 @@ namespace OfficeIMO.Excel {
             }
 
             return maskedFormula == null ? formula : new string(maskedFormula);
+        }
+
+        private bool IsPureFormulaReferenceExpression(
+            string formula,
+            int? sourceRow,
+            int? sourceColumn,
+            FormulaDependencyAliasCatalog aliases,
+            FormulaDependencyTableCatalog tables) {
+            if (TryResolveFormulaDependencyReference(
+                    formula,
+                    sourceRow,
+                    out _,
+                    out _,
+                    out _,
+                    out _,
+                    out _,
+                    out _)
+                || sourceColumn.HasValue
+                && TryResolveUnqualifiedCurrentRowTableReferenceRange(
+                    formula,
+                    sourceRow,
+                    sourceColumn,
+                    out _,
+                    out _,
+                    out _,
+                    out _,
+                    out _)) {
+                return true;
+            }
+
+            List<FormulaDependencyReferenceMatch> matches = GetFormulaDependencyReferenceMatches(
+                formula,
+                formula,
+                aliases,
+                tables,
+                sourceRow,
+                sourceColumn);
+            List<FormulaDependencyReferenceMatch> orderedMatches = GetNonOverlappingFormulaDependencyMatches(matches);
+            int[] groupingDepths = BuildOpenGroupingParenthesisDepths(formula);
+            orderedMatches = CombineFormulaRangeDependencyMatches(formula, orderedMatches, groupingDepths, sourceRow);
+            if (orderedMatches.Count == 0 || !HasBalancedFormulaReferenceGrouping(formula)) {
+                return false;
+            }
+
+            var covered = new bool[formula.Length];
+            for (int index = 0; index < orderedMatches.Count; index++) {
+                FormulaDependencyReferenceMatch match = orderedMatches[index];
+                if (!TryResolveFormulaDependencyReference(
+                        match.Reference,
+                        sourceRow,
+                        out _,
+                        out _,
+                        out _,
+                        out _,
+                        out _,
+                        out _)) {
+                    return false;
+                }
+
+                int end = Math.Min(formula.Length, match.Index + match.Length);
+                for (int position = Math.Max(0, match.Index); position < end; position++) {
+                    covered[position] = true;
+                }
+
+                if (index > 0
+                    && !IsFormulaIntersectionSeparator(
+                        formula,
+                        orderedMatches[index - 1],
+                        match,
+                        groupingDepths[orderedMatches[index - 1].Index + orderedMatches[index - 1].Length])) {
+                    return false;
+                }
+            }
+
+            for (int index = 0; index < formula.Length; index++) {
+                if (!covered[index]
+                    && !char.IsWhiteSpace(formula[index])
+                    && formula[index] != '('
+                    && formula[index] != ')') {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        private static bool HasBalancedFormulaReferenceGrouping(string formula) {
+            int groupingDepth = 0;
+            int structuredReferenceDepth = 0;
+            bool inQuotedQualifier = false;
+            for (int index = 0; index < formula.Length; index++) {
+                char character = formula[index];
+                if (character == '\'') {
+                    if (inQuotedQualifier && index + 1 < formula.Length && formula[index + 1] == '\'') {
+                        index++;
+                    } else {
+                        inQuotedQualifier = !inQuotedQualifier;
+                    }
+                    continue;
+                }
+                if (inQuotedQualifier) {
+                    continue;
+                }
+                if (character == '[') {
+                    structuredReferenceDepth++;
+                    continue;
+                }
+                if (character == ']' && structuredReferenceDepth > 0) {
+                    structuredReferenceDepth--;
+                    continue;
+                }
+                if (structuredReferenceDepth > 0) {
+                    continue;
+                }
+                if (character == '(') {
+                    groupingDepth++;
+                } else if (character == ')' && groupingDepth-- == 0) {
+                    return false;
+                }
+            }
+
+            return groupingDepth == 0 && !inQuotedQualifier && structuredReferenceDepth == 0;
         }
 
         private static bool TryGetFormulaReferenceShapeFunctionCall(

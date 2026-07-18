@@ -179,6 +179,8 @@ namespace OfficeIMO.Tests {
             sheet.CellFormula(4, 4, "SUM((A1:B2) B2:C3)");
             sheet.CellFormula(5, 4, "SUM((A1:B2) (B2:C3))");
             sheet.CellFormula(6, 4, "SUM((A1:B2 B2:C3) B2:D2)");
+            sheet.CellFormula(2, 5, "ROWS(D1:E2 E2:F3)");
+            sheet.CellFormula(3, 5, "SUM(ROWS((D1:E2 E2:F3)),D1)");
             document.SetNamedRange("Data", "Intersections!A1:B2", save: false);
 
             ExcelSheet structuredSheet = document.AddWorksheet("Structured Intersections");
@@ -218,11 +220,21 @@ namespace OfficeIMO.Tests {
                 graph.FindNode("Intersections", "D6"));
             Assert.Equal(new[] { "Intersections!B2" }, compositeParenthesizedIntersection.Dependencies);
             Assert.Equal(new[] { "Intersections!B2" }, compositeParenthesizedIntersection.FormulaDependencies);
+            ExcelFormulaDependencyNode shapeIntersection = Assert.IsType<ExcelFormulaDependencyNode>(
+                graph.FindNode("Intersections", "E2"));
+            Assert.Empty(shapeIntersection.Dependencies);
+            Assert.Empty(shapeIntersection.FormulaDependencies);
+            Assert.False(shapeIntersection.IsCircular);
+            ExcelFormulaDependencyNode groupedShapeIntersection = Assert.IsType<ExcelFormulaDependencyNode>(
+                graph.FindNode("Intersections", "E3"));
+            Assert.Equal(new[] { "Intersections!D1" }, groupedShapeIntersection.Dependencies);
+            Assert.Equal(new[] { "Intersections!D1" }, groupedShapeIntersection.FormulaDependencies);
+            Assert.False(groupedShapeIntersection.IsCircular);
             ExcelFormulaDependencyNode structuredIntersection = Assert.IsType<ExcelFormulaDependencyNode>(
                 graph.FindNode("Structured Intersections", "D1"));
             Assert.Equal(new[] { "Structured Intersections!A2" }, structuredIntersection.Dependencies);
             Assert.Equal(new[] { "Structured Intersections!A2" }, structuredIntersection.FormulaDependencies);
-            Assert.Equal(9, graph.EdgeCount);
+            Assert.Equal(10, graph.EdgeCount);
             Assert.False(graph.HasCircularReferences);
         }
 
