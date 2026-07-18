@@ -65,6 +65,36 @@ public sealed class EmailStoreNativeDirectoryExportTests {
     }
 
     [Fact]
+    public void MaildirExportBoundsUnicodeFileNamesByUtf8Bytes() {
+        string sourceRoot = Path.Combine(Path.GetTempPath(),
+            "oims-utf8-" + Guid.NewGuid().ToString("N").Substring(0, 8));
+        string destinationRoot = Path.Combine(Path.GetTempPath(),
+            "oimd-utf8-" + Guid.NewGuid().ToString("N").Substring(0, 8));
+        try {
+            Directory.CreateDirectory(sourceRoot);
+            File.WriteAllText(Path.Combine(sourceRoot, new string('\u754c', 80) + ".eml"),
+                "Subject: Unicode Maildir name\r\n\r\nBody\r\n");
+            using EmailStoreSession session = EmailStoreSession.Open(sourceRoot);
+
+            EmailStoreExportReport report = session.ExportToNativeDirectory(destinationRoot,
+                new EmailStoreNativeDirectoryExportOptions(
+                    EmailStoreNativeDirectoryFormat.Maildir,
+                    preserveFolderHierarchy: false));
+
+            EmailStoreExportEntry entry = Assert.Single(report.Entries);
+            Assert.True(entry.Succeeded, string.Join(Environment.NewLine,
+                entry.Diagnostics.Select(diagnostic => diagnostic.Code + ": " + diagnostic.Message)));
+            string fileName = Path.GetFileName(entry.DestinationPath!);
+            int encodedBytes = Encoding.UTF8.GetByteCount(fileName);
+            Assert.True(encodedBytes + 37 <= 255,
+                "The Maildir filename must leave room for its atomic temporary suffix.");
+        } finally {
+            if (Directory.Exists(sourceRoot)) Directory.Delete(sourceRoot, recursive: true);
+            if (Directory.Exists(destinationRoot)) Directory.Delete(destinationRoot, recursive: true);
+        }
+    }
+
+    [Fact]
     public void FlatMaildirExportDoesNotRecreateSourceFolderHierarchy() {
         string sourceRoot = Path.Combine(Path.GetTempPath(),
             "oims-flat-source-" + Guid.NewGuid().ToString("N").Substring(0, 12));
@@ -123,6 +153,42 @@ public sealed class EmailStoreNativeDirectoryExportTests {
                 candidate => candidate.EndsWith(".tmp", StringComparison.OrdinalIgnoreCase));
         } finally {
             if (Directory.Exists(root)) Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void EmlxExportPreservesPartialFileNameAndAttachmentMetadata() {
+        string sourceRoot = Path.Combine(Path.GetTempPath(),
+            "oims-partial-" + Guid.NewGuid().ToString("N").Substring(0, 8));
+        string destinationRoot = Path.Combine(Path.GetTempPath(),
+            "oimd-partial-" + Guid.NewGuid().ToString("N").Substring(0, 8));
+        try {
+            Directory.CreateDirectory(sourceRoot);
+            var sourceDocument = new EmailDocument { Subject = "Partial export" };
+            sourceDocument.Properties["Emlx:IsPartial"] = true;
+            sourceDocument.Properties["Emlx:Flag:AttachmentCount"] = 37;
+            string sourcePath = Path.Combine(sourceRoot, "source.partial.emlx");
+            EmailWriteResult sourceWrite = new EmailStoreEmlxWriter().Write(sourceDocument, sourcePath);
+            Assert.False(sourceWrite.HasErrors);
+            using EmailStoreSession session = EmailStoreSession.Open(sourceRoot);
+
+            EmailStoreExportReport report = session.ExportToNativeDirectory(destinationRoot,
+                new EmailStoreNativeDirectoryExportOptions(
+                    EmailStoreNativeDirectoryFormat.Emlx,
+                    preserveFolderHierarchy: false));
+
+            EmailStoreExportEntry entry = Assert.Single(report.Entries);
+            Assert.True(entry.Succeeded, string.Join(Environment.NewLine,
+                entry.Diagnostics.Select(diagnostic => diagnostic.Code + ": " + diagnostic.Message)));
+            Assert.EndsWith(".partial.emlx", entry.DestinationPath!, StringComparison.OrdinalIgnoreCase);
+            using var stream = File.OpenRead(entry.DestinationPath!);
+            EmailDocument reopened = new EmailStoreReader().Read(stream, Path.GetFileName(entry.DestinationPath))
+                .Store.Folders.Single().Items.Single().Document;
+            Assert.Equal(true, reopened.Properties["Emlx:IsPartial"]);
+            Assert.Equal(37, reopened.Properties["Emlx:Flag:AttachmentCount"]);
+        } finally {
+            if (Directory.Exists(sourceRoot)) Directory.Delete(sourceRoot, recursive: true);
+            if (Directory.Exists(destinationRoot)) Directory.Delete(destinationRoot, recursive: true);
         }
     }
 

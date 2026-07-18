@@ -259,10 +259,19 @@ internal sealed class MailboxDirectoryStoreSessionBackend : IEmailStoreSessionBa
     }
 
     private static bool IsEmlx(FileInfo file) {
+        if (!file.Name.EndsWith(".emlx", StringComparison.OrdinalIgnoreCase)) return false;
         string? parent = file.Directory?.Name;
-        if (string.Equals(parent, "cur", StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(parent, "new", StringComparison.OrdinalIgnoreCase)) return false;
-        return file.Name.EndsWith(".emlx", StringComparison.OrdinalIgnoreCase);
+        if (!string.Equals(parent, "cur", StringComparison.OrdinalIgnoreCase) &&
+            !string.Equals(parent, "new", StringComparison.OrdinalIgnoreCase)) return true;
+        try {
+            using (var stream = new FileStream(
+                file.FullName, FileMode.Open, FileAccess.Read, FileShare.Read, 4 * 1024,
+                FileOptions.SequentialScan)) {
+                return EmlxStoreReader.HasEnvelopePrefix(stream);
+            }
+        } catch (Exception exception) when (exception is IOException || exception is UnauthorizedAccessException) {
+            return false;
+        }
     }
 
     internal static string? ParseMaildirFlags(string name, string? parentDirectoryName) {

@@ -89,8 +89,7 @@ public sealed partial class EmailStoreSession {
             bool supportsInfoSuffix = Array.IndexOf(Path.GetInvalidFileNameChars(), ':') < 0;
             bool useCurrent = supportsInfoSuffix;
             if (flags.Length > 0 && !supportsInfoSuffix) flagsCouldNotBeWritten = true;
-            string fileName = BuildMaildirFileName(reference.Id);
-            if (useCurrent) fileName += ":2," + flags;
+            string fileName = BuildMaildirFileName(reference.Id, useCurrent ? flags : null);
             string finalDirectory = useCurrent ? currentDirectory : newDirectory;
             string candidate = Path.Combine(finalDirectory, fileName);
             if (File.Exists(candidate) && !options.OverwriteExisting)
@@ -129,7 +128,8 @@ public sealed partial class EmailStoreSession {
         string? temporaryPath = null;
         try {
             EmailStoreItem item = ReadItem(reference, cancellationToken);
-            string path = paths.GetItemPath(reference, item.Document.Subject, ".emlx");
+            string extension = PropertyFlag(item.Document, "Emlx:IsPartial") ? ".partial.emlx" : ".emlx";
+            string path = paths.GetItemPath(reference, item.Document.Subject, extension);
             Directory.CreateDirectory(Path.GetDirectoryName(path)!);
             if (File.Exists(path) && !options.OverwriteExisting)
                 throw new IOException("The EMLX destination item already exists.");
@@ -161,9 +161,17 @@ public sealed partial class EmailStoreSession {
         return new EmailStoreExportEntry(reference, destinationPath, bytesWritten, diagnostics);
     }
 
-    private static string BuildMaildirFileName(string itemId) {
-        string stable = EmailStoreExportPathBuilder.SanitizeSegment(itemId, 96, "item");
-        return stable + "." + EmailStoreExportPathBuilder.GetStableHash(itemId) + ".officeimo";
+    private static string BuildMaildirFileName(string itemId, string? flags) {
+        const int maximumComponentBytes = 255;
+        const int temporarySuffixBytes = 37;
+        string infoSuffix = flags == null ? string.Empty : ":2," + flags;
+        string fixedSuffix = "." + EmailStoreExportPathBuilder.GetStableHash(itemId) +
+            ".officeimo" + infoSuffix;
+        int stableBytes = maximumComponentBytes - temporarySuffixBytes -
+            Encoding.UTF8.GetByteCount(fixedSuffix);
+        string stable = EmailStoreExportPathBuilder.SanitizeSegmentByUtf8Bytes(
+            itemId, 96, stableBytes, "item");
+        return stable + fixedSuffix;
     }
 
     private static string GetMaildirFlags(EmailDocument document) {

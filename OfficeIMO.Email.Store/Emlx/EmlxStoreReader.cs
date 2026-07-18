@@ -13,6 +13,22 @@ internal sealed class EmlxStoreReader {
         _options = options ?? throw new ArgumentNullException(nameof(options));
     }
 
+    internal static bool HasEnvelopePrefix(Stream stream) {
+        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        if (!stream.CanRead || !stream.CanSeek) return false;
+        long originalPosition = stream.Position;
+        try {
+            stream.Position = 0;
+            long declaredMessageBytes = ReadLengthPrefix(stream, CancellationToken.None);
+            return declaredMessageBytes <= stream.Length - stream.Position;
+        } catch (Exception exception) when (exception is InvalidDataException || exception is IOException ||
+                                             exception is NotSupportedException) {
+            return false;
+        } finally {
+            stream.Position = originalPosition;
+        }
+    }
+
     internal EmailStoreReadResult Read(Stream stream, string? sourceName, CancellationToken cancellationToken) {
         stream.Position = 0;
         long declaredMessageBytes = ReadLengthPrefix(stream, cancellationToken);

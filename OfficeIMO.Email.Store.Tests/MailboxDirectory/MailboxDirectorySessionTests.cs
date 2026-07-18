@@ -140,6 +140,28 @@ public sealed class MailboxDirectorySessionTests {
     }
 
     [Fact]
+    public void MailboxDirectoryDetectsEmlxContentInsideMaildirNamedFolders() {
+        string root = Path.Combine(Path.GetTempPath(),
+            "officeimo-maildir-real-emlx-" + Guid.NewGuid().ToString("N"));
+        try {
+            string directory = Path.Combine(root, "new");
+            Directory.CreateDirectory(directory);
+            byte[] message = Encoding.ASCII.GetBytes(
+                "From: sender@example.test\r\nSubject: Real EMLX in new\r\n\r\nBody\r\n");
+            File.WriteAllBytes(Path.Combine(directory, "123.emlx"), CreateEmlx(message));
+
+            using EmailStoreSession session = EmailStoreSession.Open(root);
+            EmailStoreItemReference reference = Assert.Single(session.EnumerateItems());
+            EmailStoreItem item = session.ReadItem(reference);
+
+            Assert.Equal("Real EMLX in new", item.Document.Subject);
+            Assert.Equal((long)message.Length, item.Document.Properties["Emlx:DeclaredMessageBytes"]);
+        } finally {
+            if (Directory.Exists(root)) Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
     public void CaseDistinctFoldersRemainDistinctOnCaseSensitiveFileSystems() {
         string root = Path.Combine(Path.GetTempPath(),
             "officeimo-mailbox-directory-case-" + Guid.NewGuid().ToString("N"));

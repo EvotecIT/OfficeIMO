@@ -67,6 +67,8 @@ public sealed partial class IcsDocument {
         }
         try {
             string name = component.Name.ToUpperInvariant();
+            ValidateKnownComponentParent(component, parent, name, issues);
+            ValidateTemporalCardinality(component, name, issues);
             if (name == "VEVENT" || name == "VTODO" || name == "VJOURNAL") {
                 WarnWhenMissing(component, "UID", issues);
                 WarnWhenMissing(component, "DTSTAMP", issues);
@@ -76,11 +78,6 @@ public sealed partial class IcsDocument {
             } else if (name == "VTIMEZONE") {
                 ValidateSingle(component, "TZID", required: true, issues);
             } else if (name == "VALARM") {
-                if (!string.Equals(parent.Name, "VEVENT", StringComparison.OrdinalIgnoreCase) &&
-                    !string.Equals(parent.Name, "VTODO", StringComparison.OrdinalIgnoreCase)) {
-                    issues.Add(Issue("ICAL_ALARM_PARENT_INVALID", "VALARM must be nested in VEVENT or VTODO.",
-                        ContentLineValidationSeverity.Error, component));
-                }
                 ValidateSingle(component, "ACTION", required: true, issues);
                 ValidateSingle(component, "TRIGGER", required: true, issues);
                 ValidateAlarmTriggers(component, parent, issues);
@@ -121,6 +118,7 @@ public sealed partial class IcsDocument {
                     if (rule.GetValue("INTERVAL") != null && !rule.Interval.HasValue)
                         issues.Add(Issue("ICAL_RRULE_INTERVAL_INVALID", "RRULE INTERVAL must be a positive integer.",
                             ContentLineValidationSeverity.Error, component, ruleProperty));
+                    ValidateRegisteredRecurrenceParts(component, ruleProperty, rule, issues);
                     ValidateRecurrenceUntil(component, ruleProperty, rule, issues);
                 } catch (FormatException exception) {
                     issues.Add(Issue("ICAL_RRULE_INVALID", exception.Message, ContentLineValidationSeverity.Error,
@@ -159,6 +157,59 @@ public sealed partial class IcsDocument {
                 ValidateComponent(child, component, issues, active, depth + 1);
         } finally {
             active.Remove(component);
+        }
+    }
+
+    private static void ValidateKnownComponentParent(ContentLineComponent component,
+        ContentLineComponent parent, string name, ICollection<ContentLineValidationIssue> issues) {
+        string parentName = parent.Name.ToUpperInvariant();
+        bool valid = name == "VEVENT" || name == "VTODO" || name == "VJOURNAL" ||
+                     name == "VFREEBUSY" || name == "VTIMEZONE"
+            ? parentName == "VCALENDAR"
+            : name == "STANDARD" || name == "DAYLIGHT"
+                ? parentName == "VTIMEZONE"
+                : name == "VALARM"
+                    ? parentName == "VEVENT" || parentName == "VTODO"
+                    : name != "VCALENDAR";
+        if (!valid) {
+            string code = name == "VALARM"
+                ? "ICAL_ALARM_PARENT_INVALID"
+                : "ICAL_COMPONENT_PARENT_INVALID";
+            string message = name == "VALARM"
+                ? "VALARM must be nested in VEVENT or VTODO."
+                : name + " is nested under an invalid parent component.";
+            issues.Add(Issue(code, message, ContentLineValidationSeverity.Error, component));
+        }
+    }
+
+    private static void ValidateTemporalCardinality(ContentLineComponent component, string name,
+        ICollection<ContentLineValidationIssue> issues) {
+        if (name == "VEVENT") {
+            ValidateSingle(component, "DTSTART", required: false, issues);
+            ValidateSingle(component, "DTEND", required: false, issues);
+            ValidateSingle(component, "RECURRENCE-ID", required: false, issues);
+            ValidateSingle(component, "CREATED", required: false, issues);
+            ValidateSingle(component, "LAST-MODIFIED", required: false, issues);
+        } else if (name == "VTODO") {
+            ValidateSingle(component, "DTSTART", required: false, issues);
+            ValidateSingle(component, "DUE", required: false, issues);
+            ValidateSingle(component, "RECURRENCE-ID", required: false, issues);
+            ValidateSingle(component, "COMPLETED", required: false, issues);
+            ValidateSingle(component, "CREATED", required: false, issues);
+            ValidateSingle(component, "LAST-MODIFIED", required: false, issues);
+        } else if (name == "VJOURNAL") {
+            ValidateSingle(component, "DTSTART", required: false, issues);
+            ValidateSingle(component, "RECURRENCE-ID", required: false, issues);
+            ValidateSingle(component, "CREATED", required: false, issues);
+            ValidateSingle(component, "LAST-MODIFIED", required: false, issues);
+        } else if (name == "VFREEBUSY") {
+            ValidateSingle(component, "DTSTART", required: false, issues);
+            ValidateSingle(component, "DTEND", required: false, issues);
+            ValidateSingle(component, "DTSTAMP", required: false, issues);
+        } else if (name == "VTIMEZONE") {
+            ValidateSingle(component, "LAST-MODIFIED", required: false, issues);
+        } else if (name == "STANDARD" || name == "DAYLIGHT") {
+            ValidateSingle(component, "DTSTART", required: false, issues);
         }
     }
 

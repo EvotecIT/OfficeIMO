@@ -91,6 +91,34 @@ internal sealed class EmailStoreExportPathBuilder {
         return string.IsNullOrEmpty(result) ? fallback : result;
     }
 
+    internal static string SanitizeSegmentByUtf8Bytes(string? value, int maximumLength,
+        int maximumBytes, string fallback) {
+        if (maximumBytes < 1) throw new ArgumentOutOfRangeException(nameof(maximumBytes));
+        if (string.IsNullOrWhiteSpace(value)) return fallback;
+        var builder = new StringBuilder(Math.Min(value!.Length, maximumLength));
+        int bytes = 0;
+        bool previousReplacement = false;
+        for (int index = 0; index < value.Length && builder.Length < maximumLength; index++) {
+            char character = value[index];
+            bool allowed = char.IsLetterOrDigit(character) || character == '-' || character == '_' || character == '.';
+            char output;
+            if (allowed) {
+                output = character;
+                previousReplacement = false;
+            } else {
+                if (previousReplacement) continue;
+                output = '_';
+                previousReplacement = true;
+            }
+            int encodedBytes = output <= 0x7F ? 1 : output <= 0x7FF ? 2 : 3;
+            if (bytes > maximumBytes - encodedBytes) break;
+            builder.Append(output);
+            bytes += encodedBytes;
+        }
+        string result = builder.ToString().Trim(' ', '.');
+        return string.IsNullOrEmpty(result) ? fallback : result;
+    }
+
     internal static string GetStableHash(string value) {
         if (value == null) throw new ArgumentNullException(nameof(value));
         ulong hash = 14695981039346656037UL;

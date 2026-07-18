@@ -286,6 +286,124 @@ public sealed class IcsDocumentTests {
     }
 
     [Theory]
+    [InlineData("BYSECOND=61")]
+    [InlineData("BYMINUTE=-1")]
+    [InlineData("BYHOUR=24")]
+    [InlineData("BYDAY=0MO")]
+    [InlineData("BYDAY=54TU")]
+    [InlineData("BYDAY=XX")]
+    [InlineData("BYMONTHDAY=0")]
+    [InlineData("BYYEARDAY=367")]
+    [InlineData("BYWEEKNO=-54")]
+    [InlineData("BYMONTH=13")]
+    [InlineData("BYSETPOS=0")]
+    [InlineData("WKST=MO,TU")]
+    public void ValidationRejectsInvalidRegisteredRecurrenceSelectors(string selector) {
+        var document = new IcsDocument();
+        ContentLineComponent appointment = document.Calendars.Single().AddComponent("VEVENT");
+        appointment.AddProperty("RRULE", "FREQ=YEARLY;" + selector);
+
+        Assert.Contains(document.Validate(), issue =>
+            issue.Code == "ICAL_RRULE_PART_VALUE_INVALID" && issue.PropertyName == "RRULE");
+    }
+
+    [Fact]
+    public void ValidationAcceptsRegisteredRecurrenceSelectorBoundariesAndExtensions() {
+        var document = new IcsDocument();
+        ContentLineComponent appointment = document.Calendars.Single().AddComponent("VEVENT");
+        appointment.AddProperty("RRULE", "FREQ=YEARLY;BYSECOND=0,60;BYMINUTE=0,59;" +
+            "BYHOUR=0,23;BYDAY=MO,SU,FR;BYMONTHDAY=-31,31;BYYEARDAY=-366,366;" +
+            "BYWEEKNO=-53,53;BYMONTH=1,12;BYSETPOS=-366,366;WKST=SU;X-SELECTOR=opaque");
+
+        Assert.DoesNotContain(document.Validate(), issue =>
+            issue.Code == "ICAL_RRULE_PART_VALUE_INVALID");
+    }
+
+    [Theory]
+    [InlineData("DAILY", "BYWEEKNO=1")]
+    [InlineData("WEEKLY", "BYMONTHDAY=1")]
+    [InlineData("DAILY", "BYYEARDAY=1")]
+    [InlineData("DAILY", "BYDAY=1MO")]
+    [InlineData("YEARLY", "BYWEEKNO=1;BYDAY=1MO")]
+    [InlineData("MONTHLY", "BYSETPOS=1")]
+    public void ValidationRejectsInvalidRecurrenceSelectorRelationships(
+        string frequency, string selectors) {
+        var document = new IcsDocument();
+        ContentLineComponent appointment = document.Calendars.Single().AddComponent("VEVENT");
+        appointment.AddProperty("RRULE", "FREQ=" + frequency + ";" + selectors);
+
+        Assert.Contains(document.Validate(), issue =>
+            issue.Code == "ICAL_RRULE_PART_RELATION_INVALID" && issue.PropertyName == "RRULE");
+    }
+
+    [Fact]
+    public void ValidationRejectsTimeSelectorsForDateRecurrences() {
+        var document = new IcsDocument();
+        ContentLineComponent appointment = document.Calendars.Single().AddComponent("VEVENT");
+        appointment.AddProperty("DTSTART", "20260717").SetParameter("VALUE", "DATE");
+        appointment.AddProperty("RRULE", "FREQ=DAILY;BYHOUR=9");
+
+        Assert.Contains(document.Validate(), issue =>
+            issue.Code == "ICAL_RRULE_PART_RELATION_INVALID" && issue.PropertyName == "RRULE");
+    }
+
+    [Theory]
+    [InlineData("FREQ=MONTHLY;BYDAY=-5MO,+5FR;BYSETPOS=1")]
+    [InlineData("FREQ=YEARLY;BYDAY=-53MO,+53FR")]
+    public void ValidationAcceptsValidRecurrenceSelectorRelationships(string rule) {
+        var document = new IcsDocument();
+        document.Calendars.Single().AddComponent("VEVENT").AddProperty("RRULE", rule);
+
+        Assert.DoesNotContain(document.Validate(), issue =>
+            issue.Code == "ICAL_RRULE_PART_RELATION_INVALID");
+    }
+
+    [Theory]
+    [InlineData("VEVENT", "DTSTART")]
+    [InlineData("VEVENT", "DTEND")]
+    [InlineData("VEVENT", "RECURRENCE-ID")]
+    [InlineData("VEVENT", "CREATED")]
+    [InlineData("VTODO", "COMPLETED")]
+    [InlineData("VTODO", "DUE")]
+    [InlineData("VJOURNAL", "LAST-MODIFIED")]
+    [InlineData("VFREEBUSY", "DTSTAMP")]
+    [InlineData("VTIMEZONE", "LAST-MODIFIED")]
+    public void ValidationRejectsDuplicateSingletonTemporalProperties(
+        string componentName, string propertyName) {
+        var document = new IcsDocument();
+        ContentLineComponent component = document.Calendars.Single().AddComponent(componentName);
+        component.AddProperty(propertyName, "20260717T090000Z");
+        component.AddProperty(propertyName, "20260718T090000Z");
+
+        Assert.Contains(document.Validate(), issue =>
+            issue.Code == "ICAL_PROPERTY_CARDINALITY" && issue.PropertyName == propertyName);
+    }
+
+    [Theory]
+    [InlineData("VEVENT", "VEVENT")]
+    [InlineData("VCALENDAR", "STANDARD")]
+    [InlineData("VEVENT", "DAYLIGHT")]
+    public void ValidationRejectsKnownComponentsUnderInvalidParents(
+        string parentName, string childName) {
+        var document = new IcsDocument();
+        ContentLineComponent parent = parentName == "VCALENDAR"
+            ? document.Calendars.Single()
+            : document.Calendars.Single().AddComponent(parentName);
+        parent.AddComponent(childName);
+
+        Assert.Contains(document.Validate(), issue =>
+            issue.Code == "ICAL_COMPONENT_PARENT_INVALID" && issue.ComponentName == childName);
+    }
+
+    [Fact]
+    public void ValidationAllowsExtensionComponentsUnderKnownComponents() {
+        var document = new IcsDocument();
+        document.Calendars.Single().AddComponent("VEVENT").AddComponent("X-VENDOR-COMPONENT");
+
+        Assert.DoesNotContain(document.Validate(), issue => issue.Code == "ICAL_COMPONENT_PARENT_INVALID");
+    }
+
+    [Theory]
     [InlineData("DTSTAMP", "not-a-timestamp", "ICAL_TEMPORAL_VALUE_INVALID")]
     [InlineData("CREATED", "20260717T250000Z", "ICAL_TEMPORAL_VALUE_INVALID")]
     [InlineData("LAST-MODIFIED", "20260717T090000", "ICAL_TEMPORAL_VALUE_UTC_REQUIRED")]
