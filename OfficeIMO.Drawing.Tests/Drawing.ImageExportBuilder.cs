@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using OfficeIMO.Drawing;
 using Xunit;
 
@@ -43,6 +45,31 @@ public partial class DrawingTests {
         Assert.Equal(OfficeImageExportFormat.Svg, svgResult.Format);
         Assert.Equal(new byte[] { 0x89, 0x50, 0x4E, 0x47 }, png.ToArray().Take(4).ToArray());
         Assert.Contains("<svg", System.Text.Encoding.UTF8.GetString(svg.ToArray()), StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task SingleImageSaveReportsOneOrderedTerminalProgression(bool asynchronous) {
+        var stages = new List<OfficeImageExportProgressStage>();
+        var builder = new TestImageExportBuilder(new TestImageExportOptions())
+            .WithProgress(new InlineProgress<OfficeImageExportProgress>(
+                progress => stages.Add(progress.Stage)));
+        using var stream = new MemoryStream();
+
+        if (asynchronous) {
+            await builder.SaveAsync(stream);
+        } else {
+            builder.Save(stream);
+        }
+
+        Assert.Equal(
+            new[] {
+                OfficeImageExportProgressStage.Rendering,
+                OfficeImageExportProgressStage.Saving,
+                OfficeImageExportProgressStage.Completed
+            },
+            stages);
     }
 
     [Theory]
@@ -249,6 +276,35 @@ public partial class DrawingTests {
     }
 
     [Fact]
+    public async Task BatchSaveFilesAsyncBackpressuresSynchronousStreamingRenderers() {
+        string folder = Path.Combine(Path.GetTempPath(), "OfficeIMO-" + Guid.NewGuid().ToString("N"));
+        int produced = 0;
+        int producedWhenSavingStarted = int.MaxValue;
+        var names = Enumerable.Range(1, 8).Select(index => "item-" + index).ToArray();
+        var options = new TestImageExportOptions {
+            Progress = new InlineProgress<OfficeImageExportProgress>(progress => {
+                if (progress.Stage == OfficeImageExportProgressStage.Saving) {
+                    Interlocked.CompareExchange(
+                        ref producedWhenSavingStarted,
+                        Volatile.Read(ref produced),
+                        int.MaxValue);
+                }
+            })
+        };
+        try {
+            var builder = new TestImageExportBatchBuilder(options, () => Interlocked.Increment(ref produced), names);
+
+            OfficeImageExportBatchSaveResult saved = await builder.SaveFilesAsync(folder);
+
+            Assert.Equal(names.Length, saved.Files.Count);
+            Assert.InRange(producedWhenSavingStarted, 1, 3);
+            Assert.True(producedWhenSavingStarted < names.Length);
+        } finally {
+            if (Directory.Exists(folder)) Directory.Delete(folder, recursive: true);
+        }
+    }
+
+    [Fact]
     public void BatchBudgetsStopStreamingBeforeUnboundedOutput() {
         var options = new TestImageExportOptions {
             MaximumOutputCount = 1
@@ -372,5 +428,15 @@ public partial class DrawingTests {
             typeof(TestImageExportBuilder).GetMethods(),
             method => method.Name == "ForHighResolution");
         Assert.True(result.Width > 300);
+    }
+
+    private sealed class InlineProgress<T> : IProgress<T> {
+        private readonly Action<T> _report;
+
+        internal InlineProgress(Action<T> report) {
+            _report = report;
+        }
+
+        public void Report(T value) => _report(value);
     }
 }

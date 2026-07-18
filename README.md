@@ -38,10 +38,10 @@ OfficeIMO keeps document engines first-party and optional integrations isolated.
 
 | Surface | Current repository coverage |
 | --- | ---: |
-| Coordinated `2.0.x` release packages | 66 |
-| Documented package, tool, and example projects below | 74 |
+| Coordinated `2.0.x` release packages | 67 |
+| Documented package, tool, and example projects below | 75 |
 | Native format, foundation, and shared-service packages | 21 |
-| Conversion and cloud bridge packages | 23 |
+| Conversion and cloud bridge packages | 24 |
 | Unified Reader packages | 19 |
 | Markdown renderer and OfficeIMO Markup surfaces | 11 |
 | Runnable example projects | 1 |
@@ -315,6 +315,14 @@ _Dependency footprint:_ only first-party `OfficeIMO.Drawing`; zero third-party r
 - [x] Bounded resource payload access with warnings and per-resource/total limits
 
 _Dependency footprint:_ only `OfficeIMO.Drawing`; no third-party EPUB engine.
+
+#### [OfficeIMO.Epub.Html](OfficeIMO.Epub.Html/README.md)
+
+- [x] Direct chapter-to-image export through the shared HTML rendering scene
+- [x] Retained EPUB resources, chapter selection, continuous or paged output, cancellation, batch budgets, and fidelity policy
+- [x] PNG, JPEG, TIFF, lossless WebP, and SVG through the same result, diagnostics, save, and progress contracts as other document families
+
+_Dependency footprint:_ only first-party OfficeIMO EPUB, HTML, and Drawing packages; no browser or second EPUB engine.
 
 #### [OfficeIMO.Zip](OfficeIMO.Zip/README.md)
 
@@ -908,6 +916,9 @@ dotnet add package OfficeIMO.Word.Pdf
 
 dotnet add package OfficeIMO.Excel
 dotnet add package OfficeIMO.Excel.Html
+
+dotnet add package OfficeIMO.Epub
+dotnet add package OfficeIMO.Epub.Html
 
 dotnet add package OfficeIMO.Reader
 dotnet add package OfficeIMO.Reader.Pdf

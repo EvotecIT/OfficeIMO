@@ -66,6 +66,31 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void RetainedPngApiUsesTheSharedRasterSafetyPlanner() {
+            using MemoryStream packageStream = new();
+            VisioDocument document = VisioDocument.Create(packageStream);
+            VisioPage page = document.AddPage("Bounded").Size(100, 100);
+            page.AddRectangle(50, 50, 80, 80, "Bounded");
+            using var output = new MemoryStream();
+
+            OfficeImageExportResult result = page.SaveAsPng(
+                output,
+                new VisioPngSaveOptions {
+                    PixelsPerInch = 96D,
+                    Supersampling = 1,
+                    MaximumRasterPixels = 10_000L
+                });
+
+            Assert.True((long)result.Width * result.Height <= 10_000L);
+            Assert.Contains(
+                result.Diagnostics,
+                diagnostic => diagnostic.Code ==
+                              OfficeImageExportDiagnosticCodes.RasterScaleReduced);
+            Assert.InRange(result.DpiX, 0.9D, 1.1D);
+            Assert.Equal(result.Bytes, output.ToArray());
+        }
+
+        [Fact]
         public void PngRendererDrawsStyledShapeTextBackgrounds() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);

@@ -97,7 +97,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 "CSS background-image layers beyond the configured per-element limit were omitted.",
                 source,
                 "layers=" + style.BackgroundImageLayerCount.ToString(CultureInfo.InvariantCulture)
-                    + ";limit=" + _options.MaxBackgroundImageLayers.ToString(CultureInfo.InvariantCulture));
+                    + ";limit=" + _options.MaxBackgroundImageLayers.ToString(CultureInfo.InvariantCulture),
+                HtmlConversionLossKind.Omission);
         }
 
         if (style.UnsupportedBackgroundImageLayerCount > 0) {
@@ -105,7 +106,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 HtmlRenderDiagnosticCodes.BackgroundImageValueUnsupported,
                 "Unsupported or invalid CSS background image functions were omitted.",
                 source,
-                "layers=" + style.UnsupportedBackgroundImageLayerCount.ToString(CultureInfo.InvariantCulture));
+                "layers=" + style.UnsupportedBackgroundImageLayerCount.ToString(CultureInfo.InvariantCulture),
+                HtmlConversionLossKind.Omission);
         }
 
         if (style.GradientStopLimitExceededCount > 0) {
@@ -116,7 +118,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 HtmlDiagnosticSeverity.Error,
                 diagnosticSourceDescription,
                 "gradients=" + style.GradientStopLimitExceededCount.ToString(CultureInfo.InvariantCulture)
-                    + ";limit=" + _options.MaxGradientStops.ToString(CultureInfo.InvariantCulture));
+                    + ";limit=" + _options.MaxGradientStops.ToString(CultureInfo.InvariantCulture),
+                HtmlConversionLossKind.Omission);
         }
 
         for (int layerIndex = style.BackgroundImageLayers.Count - 1; layerIndex >= 0; layerIndex--) {
@@ -303,7 +306,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             AddUnsupported(
                 HtmlRenderDiagnosticCodes.BackgroundImageValueUnsupported,
                 "A CSS linear gradient could not be resolved against its paint area and was omitted.",
-                source);
+                source,
+                lossKind: HtmlConversionLossKind.Omission);
             return;
         }
         fill.FillGradient = linearGradient;
@@ -313,7 +317,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             AddUnsupported(
                 HtmlRenderDiagnosticCodes.BackgroundImageValueUnsupported,
                 "A CSS radial gradient could not be resolved against its paint area and was omitted.",
-                source);
+                source,
+                lossKind: HtmlConversionLossKind.Omission);
             return;
         }
 

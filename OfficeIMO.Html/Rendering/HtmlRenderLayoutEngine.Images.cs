@@ -115,7 +115,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     "Unsupported SVG content was omitted while supported vector content remained active.",
                     HtmlDiagnosticSeverity.Warning,
                     sourceDescription,
-                    "features=" + unsupportedFeatures);
+                    "features=" + unsupportedFeatures,
+                    HtmlConversionLossKind.Omission);
             }
             return true;
         }
@@ -126,7 +127,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             "The SVG image could not be interpreted as a bounded shared vector scene.",
             HtmlDiagnosticSeverity.Warning,
             sourceDescription,
-            "image/svg+xml");
+            "image/svg+xml",
+            HtmlConversionLossKind.Omission);
         return false;
     }
 

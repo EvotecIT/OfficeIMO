@@ -91,7 +91,17 @@ public static partial class HtmlImageExportExtensions {
             OfficeImageExportDiagnosticSeverity severity = diagnostic.Severity == HtmlDiagnosticSeverity.Error
                 ? OfficeImageExportDiagnosticSeverity.Error
                 : diagnostic.Severity == HtmlDiagnosticSeverity.Warning ? OfficeImageExportDiagnosticSeverity.Warning : OfficeImageExportDiagnosticSeverity.Info;
-            diagnostics.Add(new OfficeImageExportDiagnostic(severity, diagnostic.Code, diagnostic.Message, diagnostic.Source));
+            diagnostics.Add(new OfficeImageExportDiagnostic(
+                severity,
+                diagnostic.Code,
+                diagnostic.Message,
+                diagnostic.Source,
+                diagnostic.LossKind switch {
+                    HtmlConversionLossKind.Approximation => OfficeImageExportLossKind.Approximation,
+                    HtmlConversionLossKind.Omission => OfficeImageExportLossKind.Omission,
+                    HtmlConversionLossKind.Failure => OfficeImageExportLossKind.Failure,
+                    _ => OfficeImageExportLossKind.None
+                }));
         }
         return diagnostics.AsReadOnly();
     }

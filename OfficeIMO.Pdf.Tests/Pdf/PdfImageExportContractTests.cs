@@ -1,5 +1,6 @@
 using OfficeIMO.Drawing;
 using OfficeIMO.Pdf;
+using System.Text;
 using Xunit;
 
 namespace OfficeIMO.Tests.Pdf;
@@ -102,10 +103,43 @@ public sealed class PdfImageExportContractTests {
         Assert.Equal("table 1", diagnostic.Source);
     }
 
+    [Fact]
+    public void PdfImageExport_StrictOmissionPolicyRejectsUnsupportedOperators() {
+        PdfReadDocument document = PdfReadDocument.Load(
+            BuildSinglePagePdf("1 2 FuturePaint"));
+        var options = new PdfImageExportOptions {
+            Policy = new OfficeImageExportPolicy {
+                RequireNoOmissions = true
+            }
+        };
+
+        OfficeImageExportPolicyException exception = Assert.Throws<OfficeImageExportPolicyException>(
+            () => document.Pages[0].ExportImage(OfficeImageExportFormat.Png, options));
+
+        Assert.Contains(
+            exception.Diagnostics,
+            diagnostic =>
+                diagnostic.Code == "render.operator.unsupported" &&
+                diagnostic.LossKind == OfficeImageExportLossKind.Omission);
+    }
+
     private static PdfReadDocument LoadTwoPageDocument() =>
         PdfReadDocument.Load(PdfDocument.Create()
             .Paragraph(paragraph => paragraph.Text("Page one"))
             .PageBreak()
             .Paragraph(paragraph => paragraph.Text("Page two"))
             .ToBytes());
+
+    private static byte[] BuildSinglePagePdf(string content) {
+        int length = Encoding.ASCII.GetByteCount(content);
+        return Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.4",
+            "1 0 obj", "<< /Type /Catalog /Pages 2 0 R >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Resources << >> /Contents 4 0 R >>", "endobj",
+            "4 0 obj", "<< /Length " + length.ToString(System.Globalization.CultureInfo.InvariantCulture) + " >>", "stream",
+            content, "endstream", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 5 >>", "%%EOF"
+        }));
+    }
 }

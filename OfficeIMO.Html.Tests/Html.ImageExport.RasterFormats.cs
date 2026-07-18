@@ -126,6 +126,26 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlImageExport_StrictOmissionPolicyRejectsDroppedGeneratedContent() {
+        HtmlConversionDocument document = HtmlConversionDocument.Parse(
+            "<style>.marker::before{content:url('data:image/png;base64,AA==')}</style><p class='marker'>Body</p>");
+        var options = new HtmlRenderOptions {
+            Policy = new OfficeImageExportPolicy {
+                RequireNoOmissions = true
+            }
+        };
+
+        OfficeImageExportPolicyException exception = Assert.Throws<OfficeImageExportPolicyException>(
+            () => document.ExportImage(OfficeImageExportFormat.Png, options));
+
+        Assert.Contains(
+            exception.Diagnostics,
+            diagnostic =>
+                diagnostic.Code == HtmlRenderDiagnosticCodes.GeneratedContentUnsupported &&
+                diagnostic.LossKind == OfficeImageExportLossKind.Omission);
+    }
+
+    [Fact]
     public void HtmlImageExport_FluentBatchPreservesCallerRenderOptionsWhenSaving() {
         HtmlConversionDocument document = HtmlConversionDocument.Parse("<p>Configured batch</p>");
         var options = new HtmlRenderOptions {

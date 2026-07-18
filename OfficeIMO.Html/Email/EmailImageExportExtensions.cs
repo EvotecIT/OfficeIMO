@@ -261,8 +261,9 @@ public static class EmailImageExportExtensions {
         EmailDocument source,
         EmailImageExportOptions options) {
         if (!options.IncludeInlineResources) return;
-        HtmlUrlPolicy resourcePolicy =
+        HtmlUrlPolicy fallbackResourceUrlPolicy =
             (options.ResourceUrlPolicy ?? options.UrlPolicy).Clone();
+        HtmlUrlPolicy resourcePolicy = fallbackResourceUrlPolicy.Clone();
         if (resourcePolicy.RestrictUrlSchemes) {
             resourcePolicy.AllowedUrlSchemes.Add("cid");
             resourcePolicy.AllowedUrlSchemes.Add(
@@ -287,9 +288,14 @@ public static class EmailImageExportExtensions {
                         attachment.ContentType ?? "application/octet-stream");
                 }
             }
-            return fallback == null
-                ? null
-                : await fallback(request, cancellationToken).ConfigureAwait(false);
+            if (fallback == null ||
+                !HtmlUrlPolicyEvaluator.IsAllowed(
+                    request.Uri.AbsoluteUri,
+                    fallbackResourceUrlPolicy)) {
+                return null;
+            }
+            return await fallback(request, cancellationToken)
+                .ConfigureAwait(false);
         };
     }
 

@@ -612,7 +612,19 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
     }
 
-    private void AddUnsupported(string code, string message, IElement element, string? detail = null) {
-        _diagnostics.Add(ComponentName, code, message, HtmlDiagnosticSeverity.Warning, HtmlRenderStyleResolver.DescribeSource(element), detail);
+    private void AddUnsupported(
+        string code,
+        string message,
+        IElement element,
+        string? detail = null,
+        HtmlConversionLossKind lossKind = HtmlConversionLossKind.Approximation) {
+        _diagnostics.Add(
+            ComponentName,
+            code,
+            message,
+            HtmlDiagnosticSeverity.Warning,
+            HtmlRenderStyleResolver.DescribeSource(element),
+            detail,
+            lossKind);
     }
 }

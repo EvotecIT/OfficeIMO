@@ -4030,12 +4030,20 @@ public partial class DrawingTests {
 
     private sealed class TestImageExportBatchBuilder : OfficeImageExportBatchBuilder<TestImageExportBatchBuilder, TestImageExportOptions> {
         internal TestImageExportBatchBuilder(TestImageExportOptions options, params string[] names)
+            : this(options, null, names) {
+        }
+
+        internal TestImageExportBatchBuilder(
+            TestImageExportOptions options,
+            Action? onProduced,
+            params string[] names)
             : base(
                 options,
                 (format, current) => CreateTestBatchResults(format, current, names),
                 (format, current, consumer, cancellationToken) => {
                     foreach (OfficeImageExportResult result in CreateTestBatchResults(format, current, names)) {
                         cancellationToken.ThrowIfCancellationRequested();
+                        onProduced?.Invoke();
                         consumer(result);
                     }
                 }) {

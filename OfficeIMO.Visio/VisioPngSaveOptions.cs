@@ -68,6 +68,15 @@ namespace OfficeIMO.Visio {
         /// </summary>
         public int Supersampling { get; set; } = 3;
 
+        /// <summary>
+        /// Maximum output pixels allocated by the retained PNG API.
+        /// Oversized requests are reduced or rejected according to <see cref="RasterOverflowBehavior"/>.
+        /// </summary>
+        public long MaximumRasterPixels { get; set; } = OfficeImageExportOptions.DefaultMaximumRasterPixels;
+
+        /// <summary>Controls whether an oversized PNG request is safely reduced or rejected.</summary>
+        public OfficeRasterOverflowBehavior RasterOverflowBehavior { get; set; } = OfficeRasterOverflowBehavior.ReduceScale;
+
         internal IOfficeRasterImageCodec? ImageCodec { get; set; }
 
         internal ICollection<OfficeImageExportDiagnostic>? ImageDiagnostics { get; set; }

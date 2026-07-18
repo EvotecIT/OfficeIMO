@@ -151,7 +151,12 @@ internal static class PdfImageExportEngine {
                 severity,
                 diagnostic.Code,
                 diagnostic.Message,
-                diagnosticSource));
+                diagnosticSource,
+                diagnostic.SupportLevel switch {
+                    PdfRenderSupportLevel.Simplified => OfficeImageExportLossKind.Approximation,
+                    PdfRenderSupportLevel.Unsupported => OfficeImageExportLossKind.Omission,
+                    _ => OfficeImageExportLossKind.None
+                }));
         }
         return diagnostics;
     }

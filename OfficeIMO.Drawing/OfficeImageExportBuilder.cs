@@ -200,21 +200,17 @@ public abstract class OfficeImageExportBuilder<TBuilder, TOptions>
 
     /// <summary>Exports using the currently configured format and observes cancellation during supported render stages.</summary>
     public OfficeImageExportResult Export(CancellationToken cancellationToken) {
-        cancellationToken.ThrowIfCancellationRequested();
-        Options.ValidateImageExportOptions();
-        Options.Progress?.Report(new OfficeImageExportProgress(OfficeImageExportProgressStage.Rendering, 0, 1));
-        OfficeImageExportResult result = _exportWithCancellation != null
-            ? _exportWithCancellation(_format, Options, cancellationToken)
-            : _export(_format, Options);
-        cancellationToken.ThrowIfCancellationRequested();
-        result.Require(Options.Policy);
+        OfficeImageExportResult result = Render(cancellationToken);
         Options.Progress?.Report(new OfficeImageExportProgress(OfficeImageExportProgressStage.Completed, 1, 1, result.Name));
         return result;
     }
 
     /// <summary>Exports asynchronously when the adapter owns a genuine asynchronous render path.</summary>
-    public Task<OfficeImageExportResult> ExportAsync(CancellationToken cancellationToken = default) =>
-        ExportForSaveAsync(cancellationToken);
+    public async Task<OfficeImageExportResult> ExportAsync(CancellationToken cancellationToken = default) {
+        OfficeImageExportResult result = await RenderAsync(cancellationToken).ConfigureAwait(false);
+        Options.Progress?.Report(new OfficeImageExportProgress(OfficeImageExportProgressStage.Completed, 1, 1, result.Name));
+        return result;
+    }
 
     /// <summary>Exports and returns the encoded image bytes.</summary>
     public byte[] ToBytes() => Export().Bytes;
@@ -226,7 +222,7 @@ public abstract class OfficeImageExportBuilder<TBuilder, TOptions>
         }
 
         string resolvedPath = OfficeImageExportPath.ResolveFile(path, _format, _conflictPolicy);
-        OfficeImageExportResult result = Export();
+        OfficeImageExportResult result = Render(CancellationToken.None);
         Options.Progress?.Report(new OfficeImageExportProgress(OfficeImageExportProgressStage.Saving, 0, 1, result.Name, resolvedPath));
         OfficeImageExportResult saved = result.Save(resolvedPath, _conflictPolicy);
         Options.Progress?.Report(new OfficeImageExportProgress(OfficeImageExportProgressStage.Completed, 1, 1, result.Name, resolvedPath));
@@ -235,8 +231,11 @@ public abstract class OfficeImageExportBuilder<TBuilder, TOptions>
 
     /// <summary>Writes the exported image to a stream.</summary>
     public OfficeImageExportResult Save(Stream stream) {
-        OfficeImageExportResult result = Export();
-        return result.Save(stream);
+        OfficeImageExportResult result = Render(CancellationToken.None);
+        Options.Progress?.Report(new OfficeImageExportProgress(OfficeImageExportProgressStage.Saving, 0, 1, result.Name));
+        OfficeImageExportResult saved = result.Save(stream);
+        Options.Progress?.Report(new OfficeImageExportProgress(OfficeImageExportProgressStage.Completed, 1, 1, result.Name));
+        return saved;
     }
 
     /// <summary>Asynchronously saves the exported image to a file path.</summary>
@@ -249,7 +248,7 @@ public abstract class OfficeImageExportBuilder<TBuilder, TOptions>
 
         cancellationToken.ThrowIfCancellationRequested();
         string resolvedPath = OfficeImageExportPath.ResolveFile(path, _format, _conflictPolicy);
-        OfficeImageExportResult result = await ExportForSaveAsync(cancellationToken).ConfigureAwait(false);
+        OfficeImageExportResult result = await RenderAsync(cancellationToken).ConfigureAwait(false);
         Options.Progress?.Report(new OfficeImageExportProgress(OfficeImageExportProgressStage.Saving, 0, 1, result.Name, resolvedPath));
         OfficeImageExportResult saved = await result.SaveAsync(
             resolvedPath,
@@ -264,22 +263,34 @@ public abstract class OfficeImageExportBuilder<TBuilder, TOptions>
         Stream stream,
         CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-        OfficeImageExportResult result = await ExportForSaveAsync(cancellationToken).ConfigureAwait(false);
-        return await result.SaveAsync(stream, cancellationToken).ConfigureAwait(false);
+        OfficeImageExportResult result = await RenderAsync(cancellationToken).ConfigureAwait(false);
+        Options.Progress?.Report(new OfficeImageExportProgress(OfficeImageExportProgressStage.Saving, 0, 1, result.Name));
+        OfficeImageExportResult saved = await result.SaveAsync(stream, cancellationToken).ConfigureAwait(false);
+        Options.Progress?.Report(new OfficeImageExportProgress(OfficeImageExportProgressStage.Completed, 1, 1, result.Name));
+        return saved;
     }
 
-    private async Task<OfficeImageExportResult> ExportForSaveAsync(CancellationToken cancellationToken) {
+    private OfficeImageExportResult Render(CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
-        if (_exportAsync != null) {
-            Options.ValidateImageExportOptions();
-            Options.Progress?.Report(new OfficeImageExportProgress(OfficeImageExportProgressStage.Rendering, 0, 1));
-            OfficeImageExportResult asyncResult = await _exportAsync(_format, Options, cancellationToken).ConfigureAwait(false);
-            cancellationToken.ThrowIfCancellationRequested();
-            asyncResult.Require(Options.Policy);
-            Options.Progress?.Report(new OfficeImageExportProgress(OfficeImageExportProgressStage.Completed, 1, 1, asyncResult.Name));
-            return asyncResult;
-        }
-        return Export(cancellationToken);
+        Options.ValidateImageExportOptions();
+        Options.Progress?.Report(new OfficeImageExportProgress(OfficeImageExportProgressStage.Rendering, 0, 1));
+        OfficeImageExportResult result = _exportWithCancellation != null
+            ? _exportWithCancellation(_format, Options, cancellationToken)
+            : _export(_format, Options);
+        cancellationToken.ThrowIfCancellationRequested();
+        result.Require(Options.Policy);
+        return result;
+    }
+
+    private async Task<OfficeImageExportResult> RenderAsync(CancellationToken cancellationToken) {
+        if (_exportAsync == null) return Render(cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
+        Options.ValidateImageExportOptions();
+        Options.Progress?.Report(new OfficeImageExportProgress(OfficeImageExportProgressStage.Rendering, 0, 1));
+        OfficeImageExportResult result = await _exportAsync(_format, Options, cancellationToken).ConfigureAwait(false);
+        cancellationToken.ThrowIfCancellationRequested();
+        result.Require(Options.Policy);
+        return result;
     }
 
     private TBuilder This => (TBuilder)this;

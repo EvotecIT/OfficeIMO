@@ -296,9 +296,28 @@ public abstract class OfficeImageExportBatchBuilder<TBuilder, TOptions>
         }
 
         if (_exportEach != null) {
-            var pending = new List<OfficeImageExportResult>();
-            _exportEach(_format, Options, pending.Add, cancellationToken);
-            foreach (OfficeImageExportResult result in pending) await AcceptAsync(result, cancellationToken).ConfigureAwait(false);
+            using var linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            using var buffer = new OfficeImageExportAsyncBuffer();
+            Task producer = Task.Run(() => {
+                try {
+                    _exportEach(
+                        _format,
+                        Options,
+                        result => buffer.Add(result, linkedCancellation.Token),
+                        linkedCancellation.Token);
+                    buffer.Complete();
+                } catch (Exception exception) {
+                    buffer.Complete(exception);
+                }
+            });
+            try {
+                while (await buffer.ReadAsync(cancellationToken).ConfigureAwait(false) is { } result) {
+                    await AcceptAsync(result, cancellationToken).ConfigureAwait(false);
+                }
+            } finally {
+                linkedCancellation.Cancel();
+                await producer.ConfigureAwait(false);
+            }
             return;
         }
 

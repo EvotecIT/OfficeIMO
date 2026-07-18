@@ -120,14 +120,14 @@ internal static class HtmlRenderResourceLoader {
             if (reference.ResolvedSource.StartsWith("data:", StringComparison.OrdinalIgnoreCase)) continue;
             if (!seen.Add(reference.ResolvedSource)) continue;
             if (resourceCount >= options.MaxResourceCount) {
-                diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.ResourceCountLimitExceeded, "Resolved resources exceeded the configured operation-wide count limit.", HtmlDiagnosticSeverity.Error, reference.Source, "limit=" + options.MaxResourceCount);
+                diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.ResourceCountLimitExceeded, "Resolved resources exceeded the configured operation-wide count limit.", HtmlDiagnosticSeverity.Error, reference.Source, "limit=" + options.MaxResourceCount, HtmlConversionLossKind.Omission);
                 break;
             }
 
             result.MarkAttempted(reference);
 
             if (!Uri.TryCreate(reference.ResolvedSource, UriKind.Absolute, out Uri? uri)) {
-                diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.ResourceUriInvalid, "A policy-approved resource could not be represented as an absolute URI.", HtmlDiagnosticSeverity.Warning, reference.Source, reference.ResolvedSource);
+                diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.ResourceUriInvalid, "A policy-approved resource could not be represented as an absolute URI.", HtmlDiagnosticSeverity.Warning, reference.Source, reference.ResolvedSource, HtmlConversionLossKind.Omission);
                 continue;
             }
 
@@ -137,23 +137,23 @@ internal static class HtmlRenderResourceLoader {
                 var request = new HtmlRenderResourceRequest(uri, reference.Source, reference.Kind);
                 HtmlResolvedResource? resource = await options.ResourceResolver(request, timeout.Token).ConfigureAwait(false);
                 if (resource == null) {
-                    diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.ResourceUnavailable, "The configured resource resolver did not return content.", HtmlDiagnosticSeverity.Warning, reference.Source, reference.ResolvedSource);
+                    diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.ResourceUnavailable, "The configured resource resolver did not return content.", HtmlDiagnosticSeverity.Warning, reference.Source, reference.ResolvedSource, HtmlConversionLossKind.Omission);
                     continue;
                 }
 
                 long length = resource.Bytes.LongLength;
                 if (length > options.MaxResourceBytes) {
-                    diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.ResourceByteLimitExceeded, "A resolved resource exceeded the configured per-resource byte limit.", HtmlDiagnosticSeverity.Warning, reference.Source, "bytes=" + length);
+                    diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.ResourceByteLimitExceeded, "A resolved resource exceeded the configured per-resource byte limit.", HtmlDiagnosticSeverity.Warning, reference.Source, "bytes=" + length, HtmlConversionLossKind.Omission);
                     continue;
                 }
 
                 if (totalBytes + length > options.MaxTotalResourceBytes) {
-                    diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.TotalResourceByteLimitExceeded, "Resolved resources exceeded the configured total byte limit.", HtmlDiagnosticSeverity.Error, reference.Source, "bytes=" + (totalBytes + length));
+                    diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.TotalResourceByteLimitExceeded, "Resolved resources exceeded the configured total byte limit.", HtmlDiagnosticSeverity.Error, reference.Source, "bytes=" + (totalBytes + length), HtmlConversionLossKind.Omission);
                     break;
                 }
 
                 if (!IsAcceptedContentType(reference.Kind, resource.ContentType)) {
-                    diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.ResourceContentTypeRejected, "A resolver returned an incompatible media type for the requested resource kind.", HtmlDiagnosticSeverity.Warning, reference.Source, reference.Kind + ":" + resource.ContentType);
+                    diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.ResourceContentTypeRejected, "A resolver returned an incompatible media type for the requested resource kind.", HtmlDiagnosticSeverity.Warning, reference.Source, reference.Kind + ":" + resource.ContentType, HtmlConversionLossKind.Omission);
                     continue;
                 }
 
@@ -172,9 +172,9 @@ internal static class HtmlRenderResourceLoader {
                         diagnostics);
                 }
             } catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested) {
-                diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.ResourceTimeout, "Resource resolution exceeded the configured timeout.", HtmlDiagnosticSeverity.Warning, reference.Source, reference.ResolvedSource);
+                diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.ResourceTimeout, "Resource resolution exceeded the configured timeout.", HtmlDiagnosticSeverity.Warning, reference.Source, reference.ResolvedSource, HtmlConversionLossKind.Omission);
             } catch (Exception exception) {
-                diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.ResourceLoadFailed, "The configured resource resolver failed to load a resource.", HtmlDiagnosticSeverity.Warning, reference.Source, exception.GetType().Name);
+                diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.ResourceLoadFailed, "The configured resource resolver failed to load a resource.", HtmlDiagnosticSeverity.Warning, reference.Source, exception.GetType().Name, HtmlConversionLossKind.Omission);
             }
         }
 

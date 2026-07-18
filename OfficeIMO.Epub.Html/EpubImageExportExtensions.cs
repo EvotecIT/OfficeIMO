@@ -265,9 +265,12 @@ public static class EpubImageExportExtensions {
                     diagnostic.Path,
                     severity == OfficeImageExportDiagnosticSeverity.Error
                         ? OfficeImageExportLossKind.Failure
-                        : severity == OfficeImageExportDiagnosticSeverity.Warning
-                            ? OfficeImageExportLossKind.Approximation
-                            : OfficeImageExportLossKind.None));
+                        : severity == OfficeImageExportDiagnosticSeverity.Warning &&
+                          IsPackageOmissionDiagnostic(diagnostic.Code)
+                            ? OfficeImageExportLossKind.Omission
+                            : severity == OfficeImageExportDiagnosticSeverity.Warning
+                                ? OfficeImageExportLossKind.Approximation
+                                : OfficeImageExportLossKind.None));
             }
         }
         diagnostics.AddRange(chapterDiagnostics);
@@ -286,6 +289,22 @@ public static class EpubImageExportExtensions {
             name,
             chapter.Path,
             diagnostics));
+    }
+
+    private static bool IsPackageOmissionDiagnostic(string code) {
+        if (string.IsNullOrWhiteSpace(code)) return false;
+        return code.StartsWith("epub.chapter.", StringComparison.Ordinal) ||
+               code.StartsWith("epub.spine.", StringComparison.Ordinal) ||
+               code.StartsWith("epub.resource.", StringComparison.Ordinal) ||
+               code.StartsWith("epub.archive.", StringComparison.Ordinal) ||
+               code.StartsWith("epub.encryption.", StringComparison.Ordinal) ||
+               code.StartsWith("epub.navigation.", StringComparison.Ordinal) ||
+               code.StartsWith("epub.ncx.", StringComparison.Ordinal) ||
+               code.StartsWith("epub.guide.", StringComparison.Ordinal) ||
+               code.StartsWith("epub.metadata.", StringComparison.Ordinal) ||
+               code.StartsWith("epub.manifest.", StringComparison.Ordinal) ||
+               code.StartsWith("epub.container.", StringComparison.Ordinal) ||
+               code.StartsWith("epub.package.", StringComparison.Ordinal);
     }
 
     private static string CreatePlainTextChapter(

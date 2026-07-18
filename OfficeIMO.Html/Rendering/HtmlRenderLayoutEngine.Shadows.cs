@@ -98,7 +98,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     "A CSS box shadow was omitted.",
                     HtmlDiagnosticSeverity.Warning,
                     HtmlRenderStyleResolver.DescribeSource(source),
-                    "box-shadow=" + style.UnsupportedBoxShadow);
+                    "box-shadow=" + style.UnsupportedBoxShadow,
+                    HtmlConversionLossKind.Omission);
             }
             return false;
         }
@@ -112,7 +113,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 HtmlDiagnosticSeverity.Warning,
                 HtmlRenderStyleResolver.DescribeSource(source),
                 "layers=" + style.BoxShadowLayerCount.ToString(CultureInfo.InvariantCulture)
-                    + ";limit=" + _options.MaxBoxShadowLayers.ToString(CultureInfo.InvariantCulture));
+                    + ";limit=" + _options.MaxBoxShadowLayers.ToString(CultureInfo.InvariantCulture),
+                HtmlConversionLossKind.Omission);
         }
         return style.BoxShadows.Count > 0;
     }

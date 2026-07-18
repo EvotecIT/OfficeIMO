@@ -60,7 +60,7 @@ namespace OfficeIMO.Visio {
             VisioPngSaveOptions? options = null,
             CancellationToken cancellationToken = default) {
             cancellationToken.ThrowIfCancellationRequested();
-            OfficeImageExportResult result = CreateResult(document, options);
+            OfficeImageExportResult result = CreateResult(document, options, cancellationToken);
             return await result.SaveAsync(path, cancellationToken: cancellationToken).ConfigureAwait(false);
         }
 
@@ -73,7 +73,7 @@ namespace OfficeIMO.Visio {
             VisioPngSaveOptions? options = null,
             CancellationToken cancellationToken = default) {
             cancellationToken.ThrowIfCancellationRequested();
-            OfficeImageExportResult result = CreateResult(page, options);
+            OfficeImageExportResult result = CreateResult(page, options, cancellationToken);
             return await result.SaveAsync(path, cancellationToken: cancellationToken).ConfigureAwait(false);
         }
 
@@ -86,7 +86,7 @@ namespace OfficeIMO.Visio {
             VisioPngSaveOptions? options = null,
             CancellationToken cancellationToken = default) {
             cancellationToken.ThrowIfCancellationRequested();
-            OfficeImageExportResult result = CreateResult(document, options);
+            OfficeImageExportResult result = CreateResult(document, options, cancellationToken);
             return await result.SaveAsync(stream, cancellationToken).ConfigureAwait(false);
         }
 
@@ -99,11 +99,14 @@ namespace OfficeIMO.Visio {
             VisioPngSaveOptions? options = null,
             CancellationToken cancellationToken = default) {
             cancellationToken.ThrowIfCancellationRequested();
-            OfficeImageExportResult result = CreateResult(page, options);
+            OfficeImageExportResult result = CreateResult(page, options, cancellationToken);
             return await result.SaveAsync(stream, cancellationToken).ConfigureAwait(false);
         }
 
-        private static OfficeImageExportResult CreateResult(VisioDocument document, VisioPngSaveOptions? options) {
+        private static OfficeImageExportResult CreateResult(
+            VisioDocument document,
+            VisioPngSaveOptions? options,
+            CancellationToken cancellationToken = default) {
             if (document == null) throw new ArgumentNullException(nameof(document));
             VisioPngSaveOptions resolved = options ?? new VisioPngSaveOptions();
             if (document.Pages.Count == 0) {
@@ -114,27 +117,42 @@ namespace OfficeIMO.Visio {
                 throw new ArgumentOutOfRangeException(nameof(options), "PageIndex is outside the document page collection.");
             }
 
-            return CreateResult(document.Pages[resolved.PageIndex], resolved);
+            return CreateResult(document.Pages[resolved.PageIndex], resolved, cancellationToken);
         }
 
-        private static OfficeImageExportResult CreateResult(VisioPage page, VisioPngSaveOptions? options) {
+        private static OfficeImageExportResult CreateResult(
+            VisioPage page,
+            VisioPngSaveOptions? options,
+            CancellationToken cancellationToken = default) {
             if (page == null) throw new ArgumentNullException(nameof(page));
             VisioPngSaveOptions resolved = options ?? new VisioPngSaveOptions();
-            var diagnostics = new List<OfficeImageExportDiagnostic>();
-            if (string.IsNullOrWhiteSpace(resolved.FontFilePath)) {
-                VisioImageExportFontDiagnostics.Append(page, resolved.Fonts, diagnostics, "Visio page");
-            }
-            resolved.ImageDiagnostics = diagnostics;
-            resolved.ImageDiagnosticSource = "Visio page";
-            byte[] bytes = VisioPngRenderer.Render(page, resolved);
-            return new OfficeImageExportResult(
+            using CancellationTokenSource linkedCancellation =
+                CancellationTokenSource.CreateLinkedTokenSource(
+                    resolved.CancellationToken,
+                    cancellationToken);
+            var canonical = new VisioImageExportOptions {
+                TargetDpi = resolved.PixelsPerInch,
+                BackgroundColor = resolved.BackgroundColor ?? OfficeColor.Transparent,
+                RenderText = resolved.RenderText,
+                FontFilePath = resolved.FontFilePath,
+                FontFaceName = resolved.FontFaceName,
+                FontCollectionIndex = resolved.FontCollectionIndex,
+                Fonts = resolved.Fonts.Clone(),
+                RenderStencilArtwork = resolved.RenderStencilArtwork,
+                RenderConnectorLabels = resolved.RenderConnectorLabels,
+                ResolveConnectorLabelOverlaps = resolved.ResolveConnectorLabelOverlaps,
+                Supersampling = resolved.Supersampling,
+                MaximumRasterPixels = resolved.MaximumRasterPixels,
+                RasterOverflowBehavior = resolved.RasterOverflowBehavior,
+                ImageCodec = resolved.ImageCodec
+            };
+            return VisioImageExportEngine.Render(
+                page,
                 OfficeImageExportFormat.Png,
-                Math.Max(1, (int)Math.Ceiling(Math.Max(page.Width, 0.01D) * resolved.PixelsPerInch)),
-                Math.Max(1, (int)Math.Ceiling(Math.Max(page.Height, 0.01D) * resolved.PixelsPerInch)),
-                bytes,
+                canonical,
                 page.Name,
                 "Visio page",
-                diagnostics);
+                linkedCancellation.Token);
         }
     }
 }

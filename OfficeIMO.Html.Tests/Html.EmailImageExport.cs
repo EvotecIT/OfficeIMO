@@ -80,12 +80,35 @@ public sealed class HtmlEmailImageExportTests {
     }
 
     [Fact]
-        public async Task FluentEmailBatchSaveStreamsPagesAndReturnsPayloadFreeMetadata() {
-            var email = new EmailDocument { Subject = "Paged message" };
-            email.Body.Html =
-                "<h1>Message</h1><p>First page</p>" +
-                "<section style=\"break-before:page\"><h2>Continued</h2>" +
-                "<p>Second page</p></section>";
+    public async Task EmailInlineResolverDoesNotWeakenFallbackUrlPolicy() {
+        var email = new EmailDocument { Subject = "Policy boundary" };
+        email.Body.Html = "<img src=\"file:///private/secret.png\" alt=\"blocked\">";
+        int fallbackCalls = 0;
+        var options = new EmailImageExportOptions {
+            UrlPolicy = new HtmlUrlPolicy {
+                RestrictUrlSchemes = false,
+                DisallowFileUrls = true
+            },
+            ResourceResolver = (request, cancellationToken) => {
+                cancellationToken.ThrowIfCancellationRequested();
+                fallbackCalls++;
+                return Task.FromResult<HtmlResolvedResource?>(
+                    new HtmlResolvedResource(PixelPng, "image/png"));
+            }
+        };
+
+        await email.ExportImageAsync(OfficeImageExportFormat.Png, options);
+
+        Assert.Equal(0, fallbackCalls);
+    }
+
+    [Fact]
+    public async Task FluentEmailBatchSaveStreamsPagesAndReturnsPayloadFreeMetadata() {
+        var email = new EmailDocument { Subject = "Paged message" };
+        email.Body.Html =
+            "<h1>Message</h1><p>First page</p>" +
+            "<section style=\"break-before:page\"><h2>Continued</h2>" +
+            "<p>Second page</p></section>";
         string folder = Path.Combine(
             Path.GetTempPath(),
             "OfficeIMO.EmailImages",

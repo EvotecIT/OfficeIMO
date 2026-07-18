@@ -74,7 +74,30 @@ public sealed class HtmlEpubImageExportTests {
                 options));
     }
 
-    private static byte[] CreateEpub() {
+    [Fact]
+    public void EpubPackageOmissionsParticipateInNoOmissionsPolicy() {
+        using var package = new MemoryStream(CreateEpub(includeImage: false));
+        EpubDocument book = EpubDocument.Load(
+            package,
+            new EpubReadOptions {
+                IncludeRawHtml = true,
+                IncludeResourceData = true
+            });
+        var options = new EpubImageExportOptions {
+            Policy = new OfficeImageExportPolicy { RequireNoOmissions = true }
+        };
+
+        OfficeImageExportPolicyException exception = Assert.Throws<OfficeImageExportPolicyException>(() =>
+            book.ExportImages(OfficeImageExportFormat.Png, options));
+
+        Assert.Contains(
+            exception.Diagnostics,
+            diagnostic =>
+                diagnostic.Code == "EPUB_IMAGE_EPUB_RESOURCE_MISSING" &&
+                diagnostic.LossKind == OfficeImageExportLossKind.Omission);
+    }
+
+    private static byte[] CreateEpub(bool includeImage = true) {
         using var output = new MemoryStream();
         using (var archive = new ZipArchive(
                    output,
@@ -97,10 +120,12 @@ public sealed class HtmlEpubImageExportTests {
                 archive,
                 "OEBPS/chapter.xhtml",
                 "<?xml version=\"1.0\"?><html xmlns=\"http://www.w3.org/1999/xhtml\"><head><title>Chapter One</title></head><body><h1>Chapter One</h1><p>Rendered EPUB content</p><img src=\"images/pixel.png\" alt=\"pixel\"/></body></html>");
-            ZipArchiveEntry image = archive.CreateEntry(
-                "OEBPS/images/pixel.png");
-            using Stream stream = image.Open();
-            stream.Write(PixelPng, 0, PixelPng.Length);
+            if (includeImage) {
+                ZipArchiveEntry image = archive.CreateEntry(
+                    "OEBPS/images/pixel.png");
+                using Stream stream = image.Open();
+                stream.Write(PixelPng, 0, PixelPng.Length);
+            }
         }
         return output.ToArray();
     }
