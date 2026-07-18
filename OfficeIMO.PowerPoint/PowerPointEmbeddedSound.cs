@@ -128,6 +128,59 @@ namespace OfficeIMO.PowerPoint {
             }
         }
 
+        /// <summary>
+        /// Collects package-level media data referenced by an Open XML part
+        /// subtree so callers can clean payloads whose owning parts are deleted.
+        /// </summary>
+        internal static MediaDataPart[] GetReferencedMediaDataParts(
+            OpenXmlPart rootPart) {
+            if (rootPart == null) {
+                throw new ArgumentNullException(nameof(rootPart));
+            }
+            var mediaParts = new HashSet<MediaDataPart>();
+            var visited = new HashSet<OpenXmlPart>();
+            var pending = new Stack<OpenXmlPart>();
+            pending.Push(rootPart);
+            while (pending.Count > 0) {
+                OpenXmlPart part = pending.Pop();
+                if (!visited.Add(part)) continue;
+                foreach (IdPartPair child in part.Parts) {
+                    pending.Push(child.OpenXmlPart);
+                }
+                foreach (MediaDataPart mediaPart in part
+                             .DataPartReferenceRelationships
+                             .Select(relationship => relationship.DataPart)
+                             .OfType<MediaDataPart>()) {
+                    mediaParts.Add(mediaPart);
+                }
+            }
+            return mediaParts.ToArray();
+        }
+
+        /// <summary>
+        /// Deletes collected media payloads after their final package
+        /// reference has been removed.
+        /// </summary>
+        internal static void RemoveUnreferencedMediaDataParts(
+            PresentationDocument document,
+            IEnumerable<MediaDataPart> mediaParts) {
+            if (document == null) {
+                throw new ArgumentNullException(nameof(document));
+            }
+            if (mediaParts == null) {
+                throw new ArgumentNullException(nameof(mediaParts));
+            }
+            foreach (MediaDataPart mediaPart in mediaParts.Distinct()) {
+                if (mediaPart.GetDataPartReferenceRelationships().Any()) {
+                    continue;
+                }
+                if (document.DataParts.Any(part =>
+                        ReferenceEquals(part, mediaPart))) {
+                    document.DeletePart(mediaPart);
+                }
+            }
+        }
+
         private static bool ReferencesRelationship(
             OpenXmlPartRootElement? root, string relationshipId) =>
             root != null && (root.GetAttributes().Any(attribute =>

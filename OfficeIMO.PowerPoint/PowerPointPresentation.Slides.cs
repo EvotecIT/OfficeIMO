@@ -148,7 +148,11 @@ namespace OfficeIMO.PowerPoint {
                 if (part is SlidePart targetSlidePart) {
                     RemoveInboundSlideLinks(targetSlidePart);
                 }
+                MediaDataPart[] referencedMedia =
+                    PowerPointEmbeddedSound.GetReferencedMediaDataParts(part);
                 _presentationPart.DeletePart(part);
+                PowerPointEmbeddedSound.RemoveUnreferencedMediaDataParts(
+                    _document!, referencedMedia);
             }
 
             SyncSectionsWithSlides();
@@ -372,6 +376,8 @@ namespace OfficeIMO.PowerPoint {
             if (sourceIndex < 0 || sourceIndex >= sourceSlides.Count) {
                 throw new ArgumentOutOfRangeException(nameof(sourceIndex));
             }
+            var sourceByPart = sourceSlides.ToDictionary(slide =>
+                slide.SlidePart);
 
             int targetIndex = insertAt ?? _slides.Count;
             if (targetIndex < 0 || targetIndex > _slides.Count) {
@@ -379,11 +385,9 @@ namespace OfficeIMO.PowerPoint {
             }
 
             PowerPointSlide requestedSource = sourceSlides[sourceIndex];
-            IReadOnlyList<PowerPointSlide> importSources =
-                includeLinkedSlides
-                    ? CollectSlideImportClosure(sourcePresentation,
-                        requestedSource)
-                    : new[] { requestedSource };
+            SlideImportPlan importPlan = CollectSlideImportPlan(
+                sourcePresentation, requestedSource, includeLinkedSlides);
+            IReadOnlyList<PowerPointSlide> importSources = importPlan.Slides;
             ValidateSlideImportSources(importSources);
             Presentation originalPresentation = (Presentation)
                 PresentationRoot.CloneNode(true);
@@ -394,6 +398,7 @@ namespace OfficeIMO.PowerPoint {
             try {
                 SlideIdList slideIdList = PresentationRoot.SlideIdList ??= new SlideIdList();
                 var importedSlides = new Dictionary<SlidePart, PowerPointSlide>();
+                var importedPartRoots = new List<ImportedPartRoot>();
                 var mediaPartMap = new Dictionary<DataPart, MediaDataPart>();
                 for (int offset = 0; offset < importSources.Count; offset++) {
                     PowerPointSlide sourceSlide = importSources[offset];
@@ -412,6 +417,8 @@ namespace OfficeIMO.PowerPoint {
                     InsertSlideId(slideIdList, slideId, insertionIndex);
                     _slides.Insert(insertionIndex, imported);
                     importedSlides.Add(sourceSlide.SlidePart, imported);
+                    importedPartRoots.Add(new ImportedPartRoot(
+                        sourceSlide.SlidePart, targetPart));
                     imported.Hidden = sourceSlide.Hidden;
                     AssignSlideToNearestSection(slideId.Id?.Value
                             ?? throw new InvalidOperationException(
@@ -424,6 +431,11 @@ namespace OfficeIMO.PowerPoint {
                         out PowerPointSlide? imported)
                         ? imported.SlidePart
                         : null;
+                bool ShouldSkipPartRelationship(OpenXmlPart ownerPart,
+                    string relationshipId) =>
+                    ShouldDiscardCustomShowPartRelationship(
+                        sourcePresentation, sourceByPart, ownerPart,
+                        relationshipId);
 
                 foreach (PowerPointSlide sourceSlide in importSources) {
                     SlidePart targetPart = importedSlides[sourceSlide.SlidePart]
@@ -444,7 +456,10 @@ namespace OfficeIMO.PowerPoint {
                             layoutMap,
                             ResolveImportedSlide,
                             skipUnresolvedSlideTargets: !includeLinkedSlides,
-                            dataPartMap: mediaPartMap);
+                            dataPartMap: mediaPartMap,
+                            importedPartRoots: importedPartRoots,
+                            shouldSkipPartRelationship:
+                                ShouldSkipPartRelationship);
                         if (!layoutMap.TryGetValue(sourceLayoutPart,
                                 out targetLayoutPart)) {
                             throw new InvalidOperationException(
@@ -469,14 +484,24 @@ namespace OfficeIMO.PowerPoint {
                             || part is NotesSlidePart,
                         dataPartMap: mediaPartMap,
                         slideResolver: ResolveImportedSlide,
-                        skipUnresolvedSlideTargets: !includeLinkedSlides);
+                        skipUnresolvedSlideTargets: !includeLinkedSlides,
+                        importedPartRoots: importedPartRoots,
+                        shouldSkipPartRelationship:
+                            ShouldSkipPartRelationship);
                     if (sourceSlide.SlidePart.NotesSlidePart != null) {
                         CloneImportedNotesSlidePart(sourceSlide.SlidePart,
                             targetPart, mediaPartMap, ResolveImportedSlide,
                             skipUnresolvedSlideTargets:
-                                !includeLinkedSlides);
+                                !includeLinkedSlides,
+                            importedPartRoots: importedPartRoots,
+                            shouldSkipPartRelationship:
+                                ShouldSkipPartRelationship);
                     }
                 }
+
+                ImportReferencedCustomShows(sourcePresentation,
+                    importPlan.CustomShows, importedSlides,
+                    importedPartRoots);
 
                 if (!includeLinkedSlides) {
                     RemoveUnreferencedAudioRelationships(
@@ -556,55 +581,6 @@ namespace OfficeIMO.PowerPoint {
                              .ToArray()) {
                     PowerPointEmbeddedSound.RemoveIfUnused(part,
                         relationship.Id);
-                }
-            }
-        }
-
-        private static IReadOnlyList<PowerPointSlide>
-            CollectSlideImportClosure(
-                PowerPointPresentation sourcePresentation,
-                PowerPointSlide requestedSource) {
-            IReadOnlyList<PowerPointSlide> sourceSlides =
-                sourcePresentation.Slides;
-            var sourceByPart = sourceSlides.ToDictionary(slide =>
-                slide.SlidePart);
-            var selected = new HashSet<SlidePart>();
-            var pending = new Queue<SlidePart>();
-            pending.Enqueue(requestedSource.SlidePart);
-            while (pending.Count > 0) {
-                SlidePart sourcePart = pending.Dequeue();
-                if (!selected.Add(sourcePart)) continue;
-                foreach (SlidePart target in EnumerateInternalSlideTargets(
-                             sourcePart)) {
-                    if (!sourceByPart.ContainsKey(target)) {
-                        throw new InvalidDataException(
-                            "The source presentation contains an internal link to an unlisted slide.");
-                    }
-                    if (!selected.Contains(target)) pending.Enqueue(target);
-                }
-            }
-
-            return new[] { requestedSource }
-                .Concat(sourceSlides.Where(slide =>
-                    !ReferenceEquals(slide, requestedSource)
-                    && selected.Contains(slide.SlidePart)))
-                .ToArray();
-        }
-
-        private static IEnumerable<SlidePart> EnumerateInternalSlideTargets(
-            SlidePart sourcePart) {
-            var visited = new HashSet<OpenXmlPart>();
-            var pending = new Stack<OpenXmlPart>();
-            pending.Push(sourcePart);
-            while (pending.Count > 0) {
-                OpenXmlPart part = pending.Pop();
-                if (!visited.Add(part)) continue;
-                foreach (IdPartPair child in part.Parts) {
-                    if (child.OpenXmlPart is SlidePart slidePart) {
-                        yield return slidePart;
-                    } else {
-                        pending.Push(child.OpenXmlPart);
-                    }
                 }
             }
         }

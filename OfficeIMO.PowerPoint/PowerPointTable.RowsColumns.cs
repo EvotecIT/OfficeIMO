@@ -94,7 +94,11 @@ namespace OfficeIMO.PowerPoint {
         public void RemoveRow(int index) {
             A.Table table = Frame.Graphic!.GraphicData!.GetFirstChild<A.Table>()!;
             A.TableRow row = table.Elements<A.TableRow>().ElementAt(index);
+            string[] discardedSoundIds = PowerPointEmbeddedSound
+                .GetRelationshipIds(row);
             row.Remove();
+            PowerPointEmbeddedSound.RemoveIfUnused(_slidePart,
+                discardedSoundIds);
         }
 
         /// <summary>
@@ -177,10 +181,19 @@ namespace OfficeIMO.PowerPoint {
         public void RemoveColumn(int index) {
             A.Table table = Frame.Graphic!.GraphicData!.GetFirstChild<A.Table>()!;
             A.TableGrid grid = table.TableGrid!;
+            A.TableCell[] discardedCells = table.Elements<A.TableRow>()
+                .Select(row => row.Elements<A.TableCell>().ElementAt(index))
+                .ToArray();
+            string[] discardedSoundIds = discardedCells
+                .SelectMany(PowerPointEmbeddedSound.GetRelationshipIds)
+                .Distinct(StringComparer.Ordinal)
+                .ToArray();
             grid.Elements<A.GridColumn>().ElementAt(index).Remove();
-            foreach (A.TableRow row in table.Elements<A.TableRow>()) {
-                row.Elements<A.TableCell>().ElementAt(index).Remove();
+            foreach (A.TableCell cell in discardedCells) {
+                cell.Remove();
             }
+            PowerPointEmbeddedSound.RemoveIfUnused(_slidePart,
+                discardedSoundIds);
         }
     }
 }
