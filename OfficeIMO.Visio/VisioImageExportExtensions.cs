@@ -10,14 +10,16 @@ public static class VisioImageExportExtensions {
     public static OfficeImageExportResult ExportImage(
         this VisioPage page,
         OfficeImageExportFormat format,
-        VisioImageExportOptions? options = null) =>
-        VisioImageExportEngine.Render(page, format, Normalize(options));
+        VisioImageExportOptions? options = null,
+        CancellationToken cancellationToken = default) =>
+        VisioImageExportEngine.Render(page, format, Normalize(options), cancellationToken: cancellationToken);
 
     /// <summary>Exports the selected document page to a supported raster format or SVG.</summary>
     public static OfficeImageExportResult ExportImage(
         this VisioDocument document,
         OfficeImageExportFormat format,
-        VisioImageExportOptions? options = null) {
+        VisioImageExportOptions? options = null,
+        CancellationToken cancellationToken = default) {
         if (document == null) throw new ArgumentNullException(nameof(document));
         VisioImageExportOptions resolved = Normalize(options);
         if (document.Pages.Count == 0) throw new InvalidOperationException("The document does not contain any pages to export.");
@@ -31,7 +33,8 @@ public static class VisioImageExportExtensions {
             format,
             resolved,
             ResolvePageName(page, pageNumber),
-            "Visio page " + pageNumber);
+            "Visio page " + pageNumber,
+            cancellationToken);
     }
 
     /// <summary>Exports a selected range of document pages to a supported raster format or SVG.</summary>
@@ -39,7 +42,20 @@ public static class VisioImageExportExtensions {
         this VisioDocument document,
         OfficeImageExportFormat format,
         VisioImageExportOptions? options = null) {
+        var results = new List<OfficeImageExportResult>();
+        document.ExportImages(format, results.Add, options);
+        return results.AsReadOnly();
+    }
+
+    /// <summary>Streams selected document page images without retaining earlier payloads.</summary>
+    public static void ExportImages(
+        this VisioDocument document,
+        OfficeImageExportFormat format,
+        OfficeImageExportConsumer consumer,
+        VisioImageExportOptions? options = null,
+        CancellationToken cancellationToken = default) {
         if (document == null) throw new ArgumentNullException(nameof(document));
+        if (consumer == null) throw new ArgumentNullException(nameof(consumer));
         VisioImageExportOptions resolved = Normalize(options);
         if (document.Pages.Count == 0) throw new InvalidOperationException("The document does not contain any pages to export.");
         if (resolved.PageIndex >= document.Pages.Count) {
@@ -48,19 +64,24 @@ public static class VisioImageExportExtensions {
 
         int available = document.Pages.Count - resolved.PageIndex;
         int count = resolved.PageCount.HasValue ? Math.Min(resolved.PageCount.Value, available) : available;
-        var results = new List<OfficeImageExportResult>(count);
-        for (int index = 0; index < count; index++) {
-            int pageIndex = resolved.PageIndex + index;
-            int pageNumber = pageIndex + 1;
-            VisioPage page = document.Pages[pageIndex];
-            results.Add(VisioImageExportEngine.Render(
-                page,
-                format,
-                resolved,
-                ResolvePageName(page, pageNumber),
-                "Visio page " + pageNumber));
-        }
-        return results.AsReadOnly();
+        int[] pageIndexes = Enumerable.Range(resolved.PageIndex, count).ToArray();
+        OfficeImageExportBatchProcessor.ForEachOrdered(
+            pageIndexes,
+            resolved.MaximumDegreeOfParallelism,
+            (pageIndex, _, token) => {
+                int pageNumber = pageIndex + 1;
+                VisioPage page = document.Pages[pageIndex];
+                return VisioImageExportEngine.Render(
+                    page,
+                    format,
+                    resolved,
+                    ResolvePageName(page, pageNumber),
+                    "Visio page " + pageNumber,
+                    token);
+            },
+            consumer,
+            cancellationToken,
+            resolved);
     }
 
     /// <summary>Renders a Visio page to JPEG bytes.</summary>

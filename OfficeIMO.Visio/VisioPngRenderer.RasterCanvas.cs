@@ -14,11 +14,17 @@ namespace OfficeIMO.Visio {
             private readonly OfficeRasterRenderTarget _target;
             private readonly OfficeRasterCanvas _canvas;
 
-            internal RasterCanvas(int width, int height, int supersampling, Color? background, OfficeTrueTypeFont? outlineFont) {
+            internal RasterCanvas(
+                int width,
+                int height,
+                int supersampling,
+                Color? background,
+                OfficeTrueTypeFont? outlineFont,
+                OfficeFontFaceCollection? fonts) {
                 Supersampling = supersampling;
                 Scale = supersampling;
                 _target = new OfficeRasterRenderTarget(width, height, supersampling, background);
-                _canvas = new OfficeRasterCanvas(_target, outlineFont);
+                _canvas = new OfficeRasterCanvas(_target, outlineFont, fonts);
             }
 
             internal double Scale { get; set; }
@@ -59,8 +65,12 @@ namespace OfficeIMO.Visio {
                 _canvas.DrawImage(image, projection);
             }
 
-            internal double MeasureText(string? text, double height) =>
-                _canvas.MeasureText(text, height);
+            internal double MeasureText(
+                string? text,
+                double height,
+                string? fontFamily,
+                OfficeFontStyle style) =>
+                _canvas.MeasureText(text, height, fontFamily, style);
 
             internal void DrawTextLine(string text, double anchorX, double top, double height, Color color, bool bold, bool italic, OfficeTextAlignment alignment, double rotationRadians, double rotationCenterX, double rotationCenterY) {
                 _canvas.DrawTextLine(text, anchorX, top, height, color, bold, italic, alignment, RadiansToCanvasDegrees(rotationRadians), rotationCenterX, rotationCenterY);
@@ -72,6 +82,7 @@ namespace OfficeIMO.Visio {
                 bool bold,
                 bool italic,
                 bool underline,
+                string? fontFamily,
                 double rotationRadians,
                 double rotationCenterX,
                 double rotationCenterY,
@@ -92,7 +103,8 @@ namespace OfficeIMO.Visio {
                     backgroundPaddingX: backgroundPaddingX,
                     backgroundPaddingY: backgroundPaddingY,
                     centerLineInLineHeight: false,
-                    underlineOffsetFactor: 0.92D);
+                    underlineOffsetFactor: 0.92D,
+                    fontFamily: fontFamily);
             }
 
             internal byte[] Resolve() {

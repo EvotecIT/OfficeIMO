@@ -15,10 +15,13 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Exports this range as a supported raster format or SVG.
         /// </summary>
-        public OfficeImageExportResult ExportImage(OfficeImageExportFormat format, ExcelImageExportOptions? options = null) {
+        public OfficeImageExportResult ExportImage(
+            OfficeImageExportFormat format,
+            ExcelImageExportOptions? options = null,
+            CancellationToken cancellationToken = default) {
             ExcelImageExportOptions resolved = NormalizeOptions(options);
             ExcelRangeVisualSnapshot snapshot = ExcelRangeVisualSnapshotBuilder.Build(Sheet, Address, resolved);
-            return ExcelRangeImageRenderer.Render(snapshot, format, resolved);
+            return ExcelRangeImageRenderer.Render(snapshot, format, resolved, cancellationToken);
         }
 
         /// <summary>

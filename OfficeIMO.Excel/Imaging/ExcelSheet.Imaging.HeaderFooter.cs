@@ -34,7 +34,11 @@ namespace OfficeIMO.Excel {
             }
 
             AddHeaderFooterImageDiagnostics(chrome, headerFooterSource, combinedDiagnostics);
-            AddHeaderFooterFontFamilyFallbackDiagnostics(chrome, headerFooterSource, combinedDiagnostics);
+            AddHeaderFooterFontDiagnostics(
+                chrome,
+                headerFooterSource,
+                options.Fonts,
+                combinedDiagnostics);
             var fallbackCodec = new OfficeRasterImageFallbackCodec(options.ImageCodec, combinedDiagnostics, headerFooterSource);
             IReadOnlyList<OfficeImageExportDiagnostic> diagnostics = combinedDiagnostics.Count == content.Diagnostics.Count
                 ? content.Diagnostics
@@ -148,32 +152,40 @@ namespace OfficeIMO.Excel {
             return true;
         }
 
-        private static void AddHeaderFooterFontFamilyFallbackDiagnostics(HeaderFooterTextChrome chrome, string source, List<OfficeImageExportDiagnostic> diagnostics) {
-            var reported = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            AddHeaderFooterFontFamilyFallbackDiagnostics(chrome.HeaderLeft, source, diagnostics, reported);
-            AddHeaderFooterFontFamilyFallbackDiagnostics(chrome.HeaderCenter, source, diagnostics, reported);
-            AddHeaderFooterFontFamilyFallbackDiagnostics(chrome.HeaderRight, source, diagnostics, reported);
-            AddHeaderFooterFontFamilyFallbackDiagnostics(chrome.FooterLeft, source, diagnostics, reported);
-            AddHeaderFooterFontFamilyFallbackDiagnostics(chrome.FooterCenter, source, diagnostics, reported);
-            AddHeaderFooterFontFamilyFallbackDiagnostics(chrome.FooterRight, source, diagnostics, reported);
+        private static void AddHeaderFooterFontDiagnostics(
+            HeaderFooterTextChrome chrome,
+            string source,
+            OfficeFontFaceCollection fonts,
+            List<OfficeImageExportDiagnostic> diagnostics) {
+            var reported = new HashSet<string>(StringComparer.Ordinal);
+            AddHeaderFooterFontDiagnostics(chrome.HeaderLeft, source, fonts, diagnostics, reported);
+            AddHeaderFooterFontDiagnostics(chrome.HeaderCenter, source, fonts, diagnostics, reported);
+            AddHeaderFooterFontDiagnostics(chrome.HeaderRight, source, fonts, diagnostics, reported);
+            AddHeaderFooterFontDiagnostics(chrome.FooterLeft, source, fonts, diagnostics, reported);
+            AddHeaderFooterFontDiagnostics(chrome.FooterCenter, source, fonts, diagnostics, reported);
+            AddHeaderFooterFontDiagnostics(chrome.FooterRight, source, fonts, diagnostics, reported);
         }
 
-        private static void AddHeaderFooterFontFamilyFallbackDiagnostics(
+        private static void AddHeaderFooterFontDiagnostics(
             HeaderFooterTextSection section,
             string source,
+            OfficeFontFaceCollection fonts,
             List<OfficeImageExportDiagnostic> diagnostics,
             HashSet<string> reported) {
             for (int index = 0; index < section.Runs.Count; index++) {
-                string? fontFamily = section.Runs[index].FontFamily;
-                if (string.IsNullOrWhiteSpace(fontFamily) || !reported.Add(fontFamily!) || OfficeTrueTypeFont.TryLoadFontFamily(fontFamily, out _) != null) {
-                    continue;
+                HeaderFooterTextRun run = section.Runs[index];
+                OfficeFontStyle style =
+                    (run.Bold ? OfficeFontStyle.Bold : OfficeFontStyle.Regular) |
+                    (run.Italic ? OfficeFontStyle.Italic : OfficeFontStyle.Regular);
+                OfficeImageExportDiagnostic? diagnostic =
+                    fonts.CreateSubstitutionDiagnostic(
+                        run.Text,
+                        run.FontFamily,
+                        style,
+                        source);
+                if (diagnostic != null && reported.Add(diagnostic.Message)) {
+                    diagnostics.Add(diagnostic);
                 }
-
-                diagnostics.Add(new OfficeImageExportDiagnostic(
-                    OfficeImageExportDiagnosticSeverity.Warning,
-                    ExcelImageExportDiagnosticCodes.HeaderFooterFontFamilyFallback,
-                    "Worksheet header/footer font family '" + fontFamily + "' could not be loaded exactly by the dependency-free image exporter; raster text metrics and image output used the shared fallback font path.",
-                    source));
             }
         }
 

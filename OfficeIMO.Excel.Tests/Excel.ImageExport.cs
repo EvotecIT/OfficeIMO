@@ -134,10 +134,53 @@ namespace OfficeIMO.Tests {
 
             OfficeImageExportResult png = sheet.Range("A1:A1").ExportImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions { ShowGridlines = false });
 
-            OfficeImageExportDiagnostic diagnostic = Assert.Single(png.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.CellFontFamilyFallback);
+            OfficeImageExportDiagnostic diagnostic = Assert.Single(png.Diagnostics, item => item.Code == OfficeImageExportDiagnosticCodes.FontSubstituted);
             Assert.Equal(OfficeImageExportDiagnosticSeverity.Warning, diagnostic.Severity);
             Assert.Equal("Fonts!A1", diagnostic.Source);
             Assert.Contains("OfficeIMO Missing Cell Font", diagnostic.Message);
+        }
+
+        [Fact]
+        public void ExcelRange_ImageExportHonorsCallerScopedFontBeforePlatformFallback() {
+            OfficeTrueTypeFont? font = OfficeTrueTypeFont.TryLoadDefault(out string? fontPath);
+            if (font == null || string.IsNullOrWhiteSpace(fontPath)) return;
+
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorksheet("ScopedFont");
+            sheet.CellValue(1, 1, "Scoped font");
+            sheet.CellAt(1, 1).SetFontName("OfficeIMO Scoped Cell Font");
+            sheet.SetColumnWidth(1, 18);
+            var options = new ExcelImageExportOptions { ShowGridlines = false };
+            options.Fonts.Add("OfficeIMO Scoped Cell Font", File.ReadAllBytes(fontPath));
+
+            OfficeImageExportResult png = sheet.Range("A1:A1").ExportImage(OfficeImageExportFormat.Png, options);
+
+            Assert.DoesNotContain(
+                png.Diagnostics,
+                diagnostic => diagnostic.Code == OfficeImageExportDiagnosticCodes.FontSubstituted);
+        }
+
+        [Fact]
+        public void WorkbookDirectStreamingEnforcesOneAggregateBudgetAcrossSheets() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            document.AddWorksheet("One").CellValue(1, 1, "One");
+            document.AddWorksheet("Two").CellValue(1, 1, "Two");
+            var options = new ExcelWorkbookImageExportOptions {
+                MaximumOutputCount = 1
+            };
+            int consumed = 0;
+
+            OfficeImageExportBatchLimitException exception =
+                Assert.Throws<OfficeImageExportBatchLimitException>(
+                    () => document.ExportImages(
+                        OfficeImageExportFormat.Png,
+                        _ => consumed++,
+                        options));
+
+            Assert.Equal(1, consumed);
+            Assert.Equal(nameof(OfficeImageExportOptions.MaximumOutputCount), exception.LimitName);
         }
 
         [Fact]

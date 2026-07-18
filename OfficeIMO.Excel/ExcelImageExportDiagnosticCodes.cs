@@ -27,9 +27,6 @@ public static class ExcelImageExportDiagnosticCodes {
     /// <summary>Rich text fell back to an approximate or plain-text layout path.</summary>
     public const string CellRichTextLayoutApproximation = "ExcelCellRichTextLayoutApproximation";
 
-    /// <summary>Requested cell font family could not be loaded exactly by the dependency-free exporter.</summary>
-    public const string CellFontFamilyFallback = "ExcelCellFontFamilyFallback";
-
     /// <summary>Excel gradient fills are not rendered by the dependency-free exporter yet.</summary>
     public const string FillGradientUnsupported = "ExcelFillGradientUnsupported";
 
@@ -168,9 +165,6 @@ public static class ExcelImageExportDiagnosticCodes {
     /// <summary>Chart text styling is approximate.</summary>
     public const string ChartTextStyleApproximation = "ExcelChartTextStyleApproximation";
 
-    /// <summary>Requested chart text font family could not be loaded exactly by the dependency-free exporter.</summary>
-    public const string ChartFontFamilyFallback = "ExcelChartFontFamilyFallback";
-
     /// <summary>Chart series styling is approximate.</summary>
     public const string ChartSeriesStyleApproximation = "ExcelChartSeriesStyleApproximation";
 
@@ -209,9 +203,6 @@ public static class ExcelImageExportDiagnosticCodes {
 
     /// <summary>Worksheet header/footer text formatting is rendered through an approximate image-export path.</summary>
     public const string HeaderFooterFormattingApproximation = "ExcelHeaderFooterFormattingApproximation";
-
-    /// <summary>Requested worksheet header/footer font family could not be loaded exactly by the dependency-free exporter.</summary>
-    public const string HeaderFooterFontFamilyFallback = "ExcelHeaderFooterFontFamilyFallback";
 
     /// <summary>Worksheet header/footer image was rendered through an approximate image-export path.</summary>
     public const string HeaderFooterImageApproximation = "ExcelHeaderFooterImageApproximation";

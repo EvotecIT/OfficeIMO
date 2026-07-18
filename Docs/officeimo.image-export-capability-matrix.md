@@ -6,22 +6,27 @@ This matrix tracks dependency-free image export across OfficeIMO document packag
 
 | Layer | Owns | Must not own |
 | --- | --- | --- |
-| `OfficeIMO.Drawing` | PNG/JPEG/TIFF/SVG/WebP encoding, validated image export result/options/builders, pre-allocation raster planning, PNG/JPEG/baseline TIFF/uncompressed BMP/first-frame GIF/OfficeIMO-WebP decoding, SVG formatting, image projection, frame transforms, text layout primitives, reusable border boxes, charts, nested drawing composition, and shared diagnostic codes | Document-specific selection, pagination, or source semantics |
+| `OfficeIMO.Drawing` | PNG/JPEG/TIFF/SVG/WebP encoding, validated result/options/builders, target DPI and density metadata, deterministic fonts, diagnostic policy, streaming/batch budgets, save conflicts, pre-allocation raster planning, bounded source decoding, SVG formatting, image projection, frame transforms, text layout primitives, reusable border boxes, charts, nested drawing composition, and shared diagnostic codes | Document-specific selection, pagination, or source semantics |
 | `OfficeIMO.Excel` | Worksheet/range selection, cell style and value semantics, conditional formatting evaluation, anchors, page/print policy | Private image encoders or duplicate text/chart/image renderers |
 | `OfficeIMO.PowerPoint` | Slide size, backgrounds, master/layout inheritance, shapes, text boxes, tables, chart snapshots, picture relationships | Duplicate chart renderer, duplicate transform engine, private image encoder |
 | `OfficeIMO.Word` | Section/page policy, estimated pagination, body/header/footer traversal, paragraph/table/image flow, Word-specific diagnostics | Duplicate drawing renderer or claims of Microsoft Word-exact pagination |
 | `OfficeIMO.Html` | CSS layout, resource policy, continuous/paged surfaces, async resource resolution, HTML diagnostics | Private image encoders or duplicate Drawing primitives |
+| `OfficeIMO.Html` email bridge | Email body selection, message chrome, and MIME/CID resource mapping into HTML | Another email layout or image engine |
+| `OfficeIMO.Epub.Html` | EPUB chapter selection and retained package-resource mapping into HTML | Another EPUB parser, CSS layout engine, or image encoder |
 | `OfficeIMO.OneNote` | Page hierarchy, positioned content, ink/math/image projection, page selection | Private image encoders |
 | `OfficeIMO.Visio` | Page geometry, shapes, connectors, stencil artwork, labels, native Visio text/layout decisions, and the richer Visio embedded-SVG interpreter needed for linked images, clipping, nested opacity, and CSS | Private output encoders or duplicate shared format mechanics |
 | `OfficeIMO.Pdf` | PDF parsing/content semantics, page-to-Drawing projection, page selection, PDF render capability diagnostics, and source-to-PDF diagnostic bridging | Private raster encoders, allocation policy, or source-adapter-specific image APIs |
+| OpenDocument adapters | Attach ODT/ODS/ODP conversion evidence while delegating visuals to Word/Excel/PowerPoint | Another ODF parser or renderer |
 
 ## Shared Drawing Foundation
 
 | Capability | Status | Evidence | Next owner action |
 | --- | --- | --- | --- |
-| Shared export result/options | Supported and content-validated | `OfficeImageExportResult` rejects bytes whose identified format or encoded dimensions do not match the declared result; options own scale, background, pixel budget, overflow policy, caller codec, and raster encoding | Keep new format-neutral options here |
-| Five-format drawing output | Supported | `OfficeDrawingRasterRenderer`, `OfficeRasterImageEncoder`, `OfficeDrawingSvgExporter` | Keep format encoding and metadata policy here |
-| Image projection/crop/flip/rotation | Supported for PNG, baseline/progressive JPEG, baseline chunky RGB/RGBA TIFF with uncompressed or PackBits strips, uncompressed top-down/bottom-up 24-bit plus 32-bit-alpha BMP, first-frame GIF, and the literal-lossless WebP subset emitted by OfficeIMO; SVG embeds direct-safe content and transcodes decodable bytes when required | `OfficeDrawingImage`, `OfficeImageProjection`, `OfficeRasterImageDecoder`, bounded malformed-input and alpha round-trip tests | Use `ImageCodec` for intentionally unsupported TIFF/WebP variants or other formats; do not claim a general TIFF/WebP decoder |
+| Shared export result/options | Supported and content-validated | `OfficeImageExportResult` rejects bytes whose format or dimensions disagree with the declaration and exposes encoded length, DPI, physical size, normalized saved path, report, and diagnostics | Keep new format-neutral metadata and policy here |
+| Five-format drawing output | Supported | `OfficeDrawingRasterRenderer`, `OfficeRasterImageEncoder`, `OfficeDrawingSvgExporter`; PNG/JPEG/TIFF density metadata tests | Keep format encoding and metadata policy here |
+| Image projection/crop/flip/rotation | Supported for PNG, baseline/progressive JPEG, baseline chunky RGB/RGBA TIFF with uncompressed or PackBits strips, uncompressed top-down/bottom-up 24-bit plus 32-bit-alpha BMP, first-frame GIF, the literal-lossless WebP subset emitted by OfficeIMO, and Drawing's bounded SVG subset | `OfficeDrawingImage`, `OfficeImageProjection`, `OfficeRasterImageDecoder`, bounded SVG reader/raster tests, malformed-input and alpha round-trip tests | Use `ImageCodec` for intentionally unsupported TIFF/WebP/SVG variants or other formats; do not claim general-purpose decoders |
+| Deterministic typography | Supported with explicit evidence | Caller `OfficeFontFaceCollection` is used before platform fallback; unresolved requested families emit `IMAGE_FONT_SUBSTITUTED`; Visio SVG can embed supplied faces | Supply intended TrueType faces for cross-machine fidelity |
+| Diagnostic acceptance | Supported for direct and fluent export | `OfficeImageExportLossKind`, `OfficeImageExportPolicy`, `OfficeImageExportReport`, and `OfficeImageExportPolicyException` cover approximation, omission, and failure | Keep stable reusable codes in Drawing and source-specific codes in adapters |
 | Stroke styling | Supported for dash styles, line caps, line joins, and open-line/path markers | `OfficeShape`, `OfficeSvgFormatting`, Drawing stroke/cap/join/marker tests, PowerPoint connector marker and auto-shape outline cap/join tests | Add additional compound stroke semantics here when multiple document packages need them |
 | Line markers / arrowheads | Supported for open Drawing lines and paths | `OfficeLineMarker`, Drawing SVG/raster marker tests, PowerPoint connector line-end tests | Add more marker families in Drawing when document packages need them |
 | DrawingML preset geometry | Supported for common basic, polygon/star, arrow, additional arrow, arrow-callout, multi-direction arrow, flowchart, callout, symbol, bracket/brace, and path-based presets | `OfficeShapePresets`, Drawing preset tests, PowerPoint basic, expanded polygon/star, additional arrow, arrow-callout, multi-direction arrow, expanded flowchart, callout, symbol, bracket, and brace auto-shape projection tests | Add additional preset families here when document packages need them |
@@ -29,8 +34,10 @@ This matrix tracks dependency-free image export across OfficeIMO document packag
 | Text layout, rich text, tabs, padding, paragraph indentation, rich-run backgrounds, plain/rich-text justification, and text-frame mirroring | Supported for current text primitives and reusable rich text runs | `OfficeDrawingText`, `OfficeDrawingRichText`, `OfficeTextPadding`, `OfficeTextParagraphIndent`, `OfficeTextAlignment.Justify`, `OfficeTextLayoutEngine`, `OfficeTextBlockRenderer`, flipped PowerPoint text/table/chart/rich-text tests, Drawing rich-run background tests, PowerPoint marker/tab/padding/indent/justify/strikethrough/theme-text/highlight/highlight-alpha projection tests, Word rich-run/table-cell/header-footer/tab/indent/justify/highlight tests | Improve complex paragraph layout here when reused |
 | Nested drawing composition | Supported with placement, frame transforms, rectangular clipped composition, and transformed clipped composition | `OfficeDrawing.AddDrawing(...)`, `OfficeDrawing.AddClippedDrawing(...)`, transformed chart, PowerPoint group, clipped PowerPoint group, and transformed clipped Drawing/PowerPoint group tests | Use for chart, group, and embedded scene composition |
 | Chart rendering | Partial shared renderer | PowerPoint and Excel chart export route through `OfficeChartDrawingRenderer` | Improve chart fidelity in Drawing, not per document |
-| Fluent export mechanics | Supported | `OfficeImageExportBuilder<TBuilder,TOptions>`, `OfficeImageExportBatchBuilder<TBuilder,TOptions>`, five-format selector, true async-render delegate support, preview/high-resolution/background/raster settings, portable batch filenames, and document `ToImage()` / `ToImages()` adapters | Keep save/export mechanics shared; keep document knobs in adapters |
+| Fluent export mechanics | Supported | Shared builders own five-format selection, `AtDpi`, preview/print profiles, fonts, policy, progress, conflicts, cancellation, portable filenames, and genuine async delegates | Keep save/export mechanics shared; keep document knobs in adapters |
+| Large-batch operation | Supported | Streaming `ExportEach`, payload-free `SaveFiles`, deterministic order, bounded concurrency, maximum output count, total pixels, total bytes, progress, and cancellation | Prefer streaming for production document batches |
 | Raster safety | Supported before allocation | `OfficeRasterExportPlanner` combines caller, renderer, encoder-dimension, and encoder-pixel limits and either reduces scale with `IMAGE_RASTER_SCALE_REDUCED` or throws `OfficeImageExportLimitException` | Route every new raster surface through the planner before creating a pixel buffer |
+| Save correctness | Supported | Canonical extension resolution, atomic commit, default `FailIfExists`, explicit replace/unique policy, and normalized `SavedPath` | Never bypass the shared commit/path contract |
 
 ## Excel
 
@@ -79,9 +86,11 @@ This matrix tracks dependency-free image export across OfficeIMO document packag
 
 | Surface | Status | Evidence | Key gaps |
 | --- | --- | --- | --- |
-| Continuous and paged surfaces | Five-format single and batch export supported | `HtmlConversionDocument.ExportImage(s)`, `ToImage()`, `ToImages()`, raster-format signature tests | Visual galleries and shared raster-budget policy |
+| Continuous and paged surfaces | Five-format single and batch export supported | `HtmlConversionDocument.ExportImage(s)`, `ToImage()`, `ToImages()`, raster-format signature tests | Expand representative visual galleries |
 | Async rendering | Resource-aware direct and fluent async APIs supported | `ExportImageAsync`, `ExportImagesAsync`, async save/cancellation tests, and an HTML fluent test proving the resource-aware renderer is invoked | CPU-only document projection remains synchronous; async is reserved for resource resolution and file/stream I/O |
 | Friendly API | Direct PNG/JPEG/TIFF/SVG/WebP helpers and fluent builders | Format-specific byte/save helpers plus `ToImage(options)` / `ToImages(options)` cloned configuration | Keep future adapters on `HtmlConversionDocument`, not raw string reparsing |
+| Email | Five-format single/batch bridge supported | HTML/RTF/text selection, message chrome, CID/content-location attachment resolution, direct and fluent sync/async tests | Fidelity follows retained email body and HTML support |
+| EPUB | Five-format selected chapter/page batch bridge supported | `OfficeIMO.Epub.Html`, retained raw HTML/resource mapping, fluent chapter selection, diagnosed text fallback | Encrypted/incomplete packages remain diagnostic-driven |
 
 ## OneNote
 
@@ -107,6 +116,14 @@ This matrix tracks dependency-free image export across OfficeIMO document packag
 | Loaded PDF document | Selected batch supported | `PdfReadDocument.ExportImages`, `ToImages().Pages("2,1")`, shared pixel budget and cancellation | Continue extending PDF operator/font/form/transparency fidelity in the existing page projection |
 | Source-to-PDF conversion result | Shared paged-image bridge | `PdfDocumentConversionResult.ExportImages` / `ToImages()` retain source conversion diagnostics for Markdown, AsciiDoc, LaTeX, RTF, OneNote, Word, Excel, PowerPoint, and HTML adapters | A source package should add a direct image API only when PDF pagination is not the right visual contract |
 
+## OpenDocument Bridges
+
+| Surface | Status | Evidence | Key gaps |
+| --- | --- | --- | --- |
+| ODT | Single and selected estimated-page batch supported | `WordOpenDocumentImageExportExtensions`; ODF report mapped into image diagnostics | Inherits ODT-to-Word and Word estimated-pagination limits |
+| ODS | Selected worksheet batch supported | `ExcelOpenDocumentImageExportExtensions`; ODF report mapped into image diagnostics | Inherits ODS-to-Excel and Excel page/range limits |
+| ODP | Selected slide batch supported | `PowerPointOpenDocumentImageExportExtensions`; ODF report mapped into image diagnostics | Inherits ODP-to-PowerPoint projection limits |
+
 ## Diagnostic Gaps To Burn Down
 
 | Diagnostic | Current meaning | Preferred next move |
@@ -129,5 +146,5 @@ This matrix tracks dependency-free image export across OfficeIMO document packag
 2. Push PowerPoint next because fixed-size slides map naturally to Drawing.
 3. Improve shared Drawing geometry and chart fidelity whenever PowerPoint/Excel need the same concept. Common and expanded DrawingML polygon/star, flowchart, callout, arrow-callout, symbol, bracket/brace, multi-direction arrow, and additional arrow presets now live in `OfficeShapePresets`, keeping fixed-slide diagram support reusable.
 4. Keep improving Word's estimated pagination by content family: row splitting, complex nested tables, floating-object interaction, and exact tight/through wrap geometry. Do not describe it as Microsoft Word-exact pagination.
-5. Expand fluent APIs only as thin adapters over proven export paths. Common format selection, preview/high-resolution profiles, raster settings, `Export()`, and `Save(...)` live on the Drawing builders so document packages inherit the same grammar.
+5. Add source convenience only as a thin adapter over a proven visual owner. Common format selection, preview/print profiles, DPI, policy, fonts, batch limits, streaming, and save mechanics live on the Drawing builders.
 6. Extend the existing first-party PDF page-to-Drawing projection by capability-manifest evidence; all five output formats, shared raster safety, and source-to-PDF adapter bridging are now in place.

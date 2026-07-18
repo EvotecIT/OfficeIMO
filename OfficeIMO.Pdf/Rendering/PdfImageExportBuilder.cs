@@ -8,16 +8,8 @@ public sealed class PdfPageImageExportBuilder : OfficeImageExportBuilder<PdfPage
     internal PdfPageImageExportBuilder(PdfReadPage page, PdfImageExportOptions? options = null)
         : base(
             options?.Clone() ?? new PdfImageExportOptions(),
-            (format, effective) => PdfImageExportEngine.Export(page, format, effective)) {
-    }
-
-    /// <summary>Sets output resolution in dots per inch; PDF user units use 72 points per inch.</summary>
-    public PdfPageImageExportBuilder WithDpi(double dpi) {
-        if (dpi <= 0D || double.IsNaN(dpi) || double.IsInfinity(dpi)) {
-            throw new ArgumentOutOfRangeException(nameof(dpi));
-        }
-        Options.Dpi = dpi;
-        return this;
+            (format, effective, cancellationToken) =>
+                PdfImageExportEngine.Export(page, format, effective, cancellationToken: cancellationToken)) {
     }
 
     /// <summary>Fits the output within the requested maximum pixel width or height.</summary>
@@ -55,7 +47,15 @@ public sealed class PdfDocumentImageExportBuilder : OfficeImageExportBatchBuilde
                 format,
                 effective,
                 selection.Selection,
-                initialDiagnostics)) {
+                initialDiagnostics),
+            (format, effective, consumer, cancellationToken) => PdfImageExportEngine.ExportEach(
+                document,
+                format,
+                effective,
+                selection.Selection,
+                consumer,
+                initialDiagnostics,
+                cancellationToken)) {
         _selection = selection;
     }
 
@@ -75,15 +75,6 @@ public sealed class PdfDocumentImageExportBuilder : OfficeImageExportBatchBuilde
     /// <summary>Exports all document pages in source order.</summary>
     public PdfDocumentImageExportBuilder AllPages() {
         _selection.Selection = null;
-        return this;
-    }
-
-    /// <summary>Sets output resolution in dots per inch; PDF user units use 72 points per inch.</summary>
-    public PdfDocumentImageExportBuilder WithDpi(double dpi) {
-        if (dpi <= 0D || double.IsNaN(dpi) || double.IsInfinity(dpi)) {
-            throw new ArgumentOutOfRangeException(nameof(dpi));
-        }
-        Options.Dpi = dpi;
         return this;
     }
 

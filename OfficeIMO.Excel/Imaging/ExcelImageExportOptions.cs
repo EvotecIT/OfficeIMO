@@ -66,7 +66,8 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public double DefaultRowHeightPixels { get; set; } = 20D;
 
-        internal ExcelImageExportOptions Clone() => CopyExcelOptionsTo(new ExcelImageExportOptions());
+        /// <summary>Creates an independent options snapshot.</summary>
+        public ExcelImageExportOptions Clone() => CopyExcelOptionsTo(new ExcelImageExportOptions());
 
         internal T CopyExcelOptionsTo<T>(T target) where T : ExcelImageExportOptions {
             CopyImageExportOptionsTo(target);
@@ -114,7 +115,8 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public bool SplitByManualPageBreaks { get; set; }
 
-        internal ExcelWorksheetImageExportOptions CloneWorksheet() {
+        /// <summary>Creates an independent worksheet options snapshot.</summary>
+        public ExcelWorksheetImageExportOptions CloneWorksheet() {
             ExcelWorksheetImageExportOptions clone = CopyExcelOptionsTo(new ExcelWorksheetImageExportOptions());
             clone.Range = Range;
             clone.HeaderFooterDateTime = HeaderFooterDateTime;
@@ -155,7 +157,8 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public bool SplitWorksheetsByManualPageBreaks { get; set; }
 
-        internal ExcelWorkbookImageExportOptions CloneWorkbook() {
+        /// <summary>Creates an independent workbook options snapshot.</summary>
+        public ExcelWorkbookImageExportOptions CloneWorkbook() {
             ExcelWorkbookImageExportOptions clone = CopyExcelOptionsTo(new ExcelWorkbookImageExportOptions());
             clone.SheetNames = SheetNames;
             clone.IncludeHiddenSheets = IncludeHiddenSheets;

@@ -1,4 +1,5 @@
 using OfficeIMO.Drawing;
+using System.Threading;
 
 namespace OfficeIMO.OneNote;
 
@@ -8,10 +9,13 @@ internal static class OneNotePageImageRenderer {
         OfficeImageExportFormat format,
         OneNotePageRenderingOptions options,
         string? name = null,
-        string? source = null) {
+        string? source = null,
+        CancellationToken cancellationToken = default) {
         if (page == null) throw new ArgumentNullException(nameof(page));
         if (options == null) throw new ArgumentNullException(nameof(options));
+        cancellationToken.ThrowIfCancellationRequested();
         OneNotePageVisualSnapshot snapshot = OneNotePageRenderer.CreateSnapshot(page, options);
+        cancellationToken.ThrowIfCancellationRequested();
         if (format == OfficeImageExportFormat.Svg) {
             var diagnostics = new List<OfficeImageExportDiagnostic>(snapshot.Diagnostics);
             var fallbackCodec = new OfficeRasterImageFallbackCodec(options.ImageCodec, diagnostics, source ?? "OneNote page");
@@ -20,14 +24,14 @@ internal static class OneNotePageImageRenderer {
                 options.Scale,
                 OfficeSvgSizeUnit.Pixel,
                 fallbackCodec);
-            return new OfficeImageExportResult(
+            return options.EnsureAccepted(new OfficeImageExportResult(
                 format,
                 Scaled(snapshot.Drawing.Width, options.Scale),
                 Scaled(snapshot.Drawing.Height, options.Scale),
                 bytes,
                 name ?? page.Title,
                 source ?? "OneNote page",
-                diagnostics);
+                diagnostics));
         }
         if (format == OfficeImageExportFormat.Png || format == OfficeImageExportFormat.Jpeg ||
             format == OfficeImageExportFormat.Tiff || format == OfficeImageExportFormat.Webp) {
@@ -43,17 +47,19 @@ internal static class OneNotePageImageRenderer {
             OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(snapshot.Drawing, new OfficeDrawingRasterRenderOptions {
                 Scale = plan.Limit.Scale,
                 Background = options.BackgroundColor,
-                ImageCodec = fallbackCodec
+                ImageCodec = fallbackCodec,
+                CancellationToken = cancellationToken
             });
             byte[] bytes = OfficeRasterImageEncoder.Encode(raster, format, options.RasterEncoding);
-            return new OfficeImageExportResult(
+            cancellationToken.ThrowIfCancellationRequested();
+            return options.EnsureAccepted(new OfficeImageExportResult(
                 format,
                 raster.Width,
                 raster.Height,
                 bytes,
                 name ?? page.Title,
                 source ?? "OneNote page",
-                diagnostics);
+                diagnostics));
         }
         throw new ArgumentOutOfRangeException(nameof(format));
     }

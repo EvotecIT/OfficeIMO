@@ -80,9 +80,9 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
             OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
 
-            Assert.Empty(snapshot.Diagnostics);
-            Assert.Empty(png.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
             Assert.True(snapshot.Drawing.Elements.Count >= baseline.ExpectedMinimumDrawingElements, baseline.Name + " lost Drawing snapshot coverage.");
             Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? image), baseline.Name + " PNG output is not decodable by OfficeIMO.Drawing.");
             Assert.Equal((int)Math.Round(snapshot.Width), image!.Width);

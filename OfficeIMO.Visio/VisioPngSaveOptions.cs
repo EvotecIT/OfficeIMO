@@ -42,6 +42,12 @@ namespace OfficeIMO.Visio {
         /// </summary>
         public int? FontCollectionIndex { get; set; }
 
+        /// <summary>Caller-supplied deterministic TrueType faces used before platform fallback.</summary>
+        public OfficeFontFaceCollection Fonts { get; set; } = new OfficeFontFaceCollection();
+
+        /// <summary>Cancellation observed between shapes and connectors.</summary>
+        public System.Threading.CancellationToken CancellationToken { get; set; }
+
         /// <summary>
         /// Gets or sets whether built-in OfficeIMO stencil metadata is projected as dependency-free vector artwork.
         /// </summary>

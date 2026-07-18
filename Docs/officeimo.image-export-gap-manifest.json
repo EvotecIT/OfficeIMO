@@ -17,11 +17,12 @@
       "owner": "OfficeIMO.Drawing",
       "runtimeDependencyPolicy": "first-party-only",
       "status": "active",
-      "goal": "Own shared raster, PNG/JPEG/TIFF/SVG/WebP encoding, paths, strokes, fills, text layout, image projection, chart primitives, diagnostics, and visual-quality helpers.",
+      "goal": "Own shared encoding, density metadata, paths, fonts, policies, save behavior, production batch controls, raster safety, image projection, chart primitives, diagnostics, and visual-quality helpers.",
       "nextSlices": [
         "Promote reusable geometry, text, image, and chart behavior from document adapters when more than one package needs it.",
         "Keep baseline TIFF and OfficeIMO literal-lossless WebP decoding bounded, fail-closed, and explicit about unsupported variants.",
-        "Keep rendering diagnostics reusable without knowing document-specific source semantics."
+        "Keep rendering diagnostics reusable without knowing document-specific source semantics.",
+        "Keep streaming, cancellation, progress, conflict, and aggregate-budget behavior consistent across every existing family."
       ]
     },
     {
@@ -41,7 +42,7 @@
       "owner": "OfficeIMO.PowerPoint",
       "runtimeDependencyPolicy": "first-party-only",
       "status": "active",
-      "goal": "Turn fixed-size slide PNG/SVG export into a polished renderer with real-world fixture confidence.",
+      "goal": "Keep fixed-size slide export, including binary PowerPoint import, protected by authored and external-reference visual evidence.",
       "nextSlices": [
         "Expand approved PNG/SVG fixture gates beyond the dashboard and process-diagram baselines.",
         "Expand placeholder, master/layout inheritance, grouped object, connector, chart, and table-style fidelity in focused slices.",
@@ -65,7 +66,7 @@
       "owner": "OfficeIMO.Html",
       "runtimeDependencyPolicy": "first-party-only",
       "status": "active",
-      "goal": "Keep continuous and paged HTML image output format-correct, resource-aware, bounded, and aligned with the shared five-format API.",
+      "goal": "Keep continuous and paged HTML, email, and EPUB image output format-correct, resource-aware, bounded, and aligned with the shared five-format API.",
       "nextSlices": [
         "Add representative continuous and paged visual galleries with embedded, data-URI, and policy-resolved images.",
         "Keep resource-aware asynchronous rendering wired through the shared fluent builder contract.",
@@ -115,7 +116,7 @@
       "status": "active",
       "goal": "Keep visual proof shared and reviewable without making external comparison tools part of product rendering.",
       "nextSlices": [
-        "Use Drawing-backed PNG decode/encode/diff helpers for approved baselines.",
+        "Use Drawing-backed PNG decode/encode/diff helpers with changed-area, MAE, RMSE, and luminance bounds for approved baselines.",
         "Keep optional desktop, Poppler, or other comparison tools out of product packages and clearly scoped to tests/manual review.",
         "Require renderable/nonblank proof and stable diagnostics for every premium rendering slice."
       ]

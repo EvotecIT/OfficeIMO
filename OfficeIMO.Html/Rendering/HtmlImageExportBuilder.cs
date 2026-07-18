@@ -61,7 +61,11 @@ public sealed class HtmlPageImageExportBuilder : OfficeImageExportBuilder<HtmlPa
 /// <summary>Fluent batch image export for all rendered HTML pages.</summary>
 public sealed class HtmlPageImageBatchExportBuilder : OfficeImageExportBatchBuilder<HtmlPageImageBatchExportBuilder, HtmlRenderOptions> {
     internal HtmlPageImageBatchExportBuilder(HtmlConversionDocument document, HtmlRenderOptions? options = null)
-        : base(options?.Clone() ?? new HtmlRenderOptions(), CreateExporter(document), CreateAsyncExporter(document)) {
+        : base(
+            options?.Clone() ?? new HtmlRenderOptions(),
+            CreateExporter(document),
+            CreateStreamingExporter(document),
+            CreateAsyncStreamingExporter(document)) {
     }
 
     /// <summary>Uses continuous layout, which produces one rendered surface.</summary>
@@ -82,10 +86,18 @@ public sealed class HtmlPageImageBatchExportBuilder : OfficeImageExportBatchBuil
         return document.ExportImages;
     }
 
-    private static Func<OfficeImageExportFormat, HtmlRenderOptions, CancellationToken, Task<IReadOnlyList<OfficeImageExportResult>>> CreateAsyncExporter(
+    private static Action<OfficeImageExportFormat, HtmlRenderOptions, OfficeImageExportConsumer, CancellationToken> CreateStreamingExporter(
         HtmlConversionDocument document) {
         if (document == null) throw new ArgumentNullException(nameof(document));
-        return document.ExportImagesAsync;
+        return (format, options, consumer, cancellationToken) =>
+            document.ExportImages(format, consumer, options, cancellationToken);
+    }
+
+    private static Func<OfficeImageExportFormat, HtmlRenderOptions, OfficeImageExportAsyncConsumer, CancellationToken, Task> CreateAsyncStreamingExporter(
+        HtmlConversionDocument document) {
+        if (document == null) throw new ArgumentNullException(nameof(document));
+        return (format, options, consumer, cancellationToken) =>
+            document.ExportImagesAsync(format, consumer, options, cancellationToken);
     }
 }
 

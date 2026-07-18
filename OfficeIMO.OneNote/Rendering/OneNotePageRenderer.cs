@@ -15,7 +15,7 @@ public static partial class OneNotePageRenderer {
         var diagnostics = new List<OfficeImageExportDiagnostic>();
         var imageCache = new Dictionary<OneNoteImage, ImageRenderData>();
         (double width, double height) = ResolveCanvasSize(page, effective, imageCache);
-        var drawing = new OfficeDrawing(width, height);
+        var drawing = new OfficeDrawing(width, height).ApplyImageExportOptions(effective);
         OfficeShape background = OfficeShape.Rectangle(width, height);
         background.FillColor = effective.BackgroundColor;
         background.StrokeWidth = 0D;
@@ -74,6 +74,7 @@ public static partial class OneNotePageRenderer {
             }
         }
 
+        drawing.AppendFontDiagnostics(diagnostics, "OneNote page");
         return new OneNotePageVisualSnapshot(drawing, diagnostics.AsReadOnly());
     }
 
@@ -109,7 +110,7 @@ public static partial class OneNotePageRenderer {
         double canvasWidth,
         IDictionary<OneNoteImage, ImageRenderData> imageCache) {
         var estimator = new RenderContext(
-            new OfficeDrawing(Math.Max(1D, canvasWidth), 1D),
+            new OfficeDrawing(Math.Max(1D, canvasWidth), 1D).ApplyImageExportOptions(options),
             options,
             new List<OfficeImageExportDiagnostic>(),
             page.RightToLeft == true,

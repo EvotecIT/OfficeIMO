@@ -11,9 +11,16 @@ namespace OfficeIMO.Visio {
     internal static partial class VisioPngRenderer {
 
         public static byte[] Render(VisioPage page, VisioPngSaveOptions options) =>
-            OfficePngWriter.Encode(RenderRaster(page, options));
+            OfficeRasterImageEncoder.Encode(
+                RenderRaster(page, options),
+                OfficeImageExportFormat.Png,
+                new OfficeRasterEncodingOptions {
+                    DpiX = options.PixelsPerInch,
+                    DpiY = options.PixelsPerInch
+                });
 
         internal static OfficeRasterImage RenderRaster(VisioPage page, VisioPngSaveOptions options) {
+            options.CancellationToken.ThrowIfCancellationRequested();
             if (options.PixelsPerInch <= 0D || double.IsNaN(options.PixelsPerInch) || double.IsInfinity(options.PixelsPerInch)) {
                 throw new ArgumentOutOfRangeException(nameof(options), "PixelsPerInch must be a finite positive number.");
             }
@@ -24,10 +31,11 @@ namespace OfficeIMO.Visio {
 
             int width = Math.Max(1, (int)Math.Ceiling(Math.Max(page.Width, 0.01D) * options.PixelsPerInch));
             int height = Math.Max(1, (int)Math.Ceiling(Math.Max(page.Height, 0.01D) * options.PixelsPerInch));
-            RasterCanvas canvas = new(width, height, options.Supersampling, options.BackgroundColor, ResolveTextFont(options));
+            RasterCanvas canvas = new(width, height, options.Supersampling, options.BackgroundColor, ResolveTextFont(options), options.Fonts);
             canvas.Scale = options.PixelsPerInch * options.Supersampling;
 
             foreach (VisioShape shape in page.Shapes) {
+                options.CancellationToken.ThrowIfCancellationRequested();
                 DrawShape(canvas, page, shape, options);
             }
 
@@ -35,6 +43,7 @@ namespace OfficeIMO.Visio {
                 ? VisioRenderLabelLayout.Create(page)
                 : null;
             foreach (VisioConnector connector in page.Connectors) {
+                options.CancellationToken.ThrowIfCancellationRequested();
                 DrawConnector(canvas, page, connector, options, labelLayout);
             }
 

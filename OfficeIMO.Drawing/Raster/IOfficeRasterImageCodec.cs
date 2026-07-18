@@ -14,4 +14,6 @@ public sealed class OfficeDrawingRasterRenderOptions {
     public OfficeColor? Background { get; set; }
     /// <summary>Optional decoder for formats not handled by the dependency-free core.</summary>
     public IOfficeRasterImageCodec? ImageCodec { get; set; }
+    /// <summary>Cancellation observed between drawing elements and nested render stages.</summary>
+    public System.Threading.CancellationToken CancellationToken { get; set; }
 }

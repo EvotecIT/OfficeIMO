@@ -7,11 +7,17 @@ public sealed class OfficeImageExportDiagnostic {
     /// <summary>
     /// Creates a new image export diagnostic.
     /// </summary>
-    public OfficeImageExportDiagnostic(OfficeImageExportDiagnosticSeverity severity, string code, string message, string? source = null) {
+    public OfficeImageExportDiagnostic(
+        OfficeImageExportDiagnosticSeverity severity,
+        string code,
+        string message,
+        string? source = null,
+        OfficeImageExportLossKind? lossKind = null) {
         Severity = severity;
         Code = string.IsNullOrWhiteSpace(code) ? "ImageExportDiagnostic" : code;
         Message = message ?? string.Empty;
         Source = source;
+        LossKind = lossKind ?? InferLossKind(severity);
     }
 
     /// <summary>Diagnostic severity.</summary>
@@ -25,4 +31,13 @@ public sealed class OfficeImageExportDiagnostic {
 
     /// <summary>Optional source reference such as a cell range or sheet name.</summary>
     public string? Source { get; }
+
+    /// <summary>Fidelity-loss classification used by aggregate reports and acceptance policies.</summary>
+    public OfficeImageExportLossKind LossKind { get; }
+
+    private static OfficeImageExportLossKind InferLossKind(OfficeImageExportDiagnosticSeverity severity) => severity switch {
+        OfficeImageExportDiagnosticSeverity.Warning => OfficeImageExportLossKind.Approximation,
+        OfficeImageExportDiagnosticSeverity.Error => OfficeImageExportLossKind.Failure,
+        _ => OfficeImageExportLossKind.None
+    };
 }

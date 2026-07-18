@@ -37,6 +37,15 @@ public static class OfficePngWriter {
         return EncodeRgba(image.Width, image.Height, image.GetPixels(), compression);
     }
 
+    /// <summary>Encodes an RGBA image with explicit compression and physical-resolution metadata.</summary>
+    public static byte[] Encode(OfficeRasterImage image, OfficePngEncodeOptions options) {
+        if (image == null) throw new ArgumentNullException(nameof(image));
+        if (options == null) throw new ArgumentNullException(nameof(options));
+        ValidateDpi(options.DpiX, nameof(options.DpiX));
+        ValidateDpi(options.DpiY, nameof(options.DpiY));
+        return EncodeRgba(image.Width, image.Height, image.GetPixels(), options);
+    }
+
     /// <summary>
     /// Encodes raw RGBA pixels as PNG bytes.
     /// </summary>
@@ -68,6 +77,29 @@ public static class OfficePngWriter {
         }
 
         return EncodeScanlines(width, height, 8, 6, scanlines, compression);
+    }
+
+    /// <summary>Encodes raw RGBA pixels with explicit compression and physical-resolution metadata.</summary>
+    public static byte[] EncodeRgba(int width, int height, byte[] rgba, OfficePngEncodeOptions options) {
+        if (options == null) throw new ArgumentNullException(nameof(options));
+        ValidateDpi(options.DpiX, nameof(options.DpiX));
+        ValidateDpi(options.DpiY, nameof(options.DpiY));
+        ValidateRgba(width, height, rgba);
+
+        byte[] scanlines = CreateRgbaScanlines(width, height, rgba);
+        byte[] compressed = options.Compression switch {
+            OfficePngCompression.Optimal => DeflateZlib(scanlines),
+            OfficePngCompression.Stored => DeflateZlibStored(scanlines),
+            _ => throw new ArgumentOutOfRangeException(nameof(options.Compression))
+        };
+        return CreateFromCompressedScanlines(
+            width,
+            height,
+            8,
+            6,
+            compressed,
+            options.DpiX,
+            options.DpiY);
     }
 
     /// <summary>
@@ -112,7 +144,17 @@ public static class OfficePngWriter {
         int height,
         int bitDepth,
         int colorType,
-        byte[] compressedScanlines) {
+        byte[] compressedScanlines) =>
+        CreateFromCompressedScanlines(width, height, bitDepth, colorType, compressedScanlines, null, null);
+
+    private static byte[] CreateFromCompressedScanlines(
+        int width,
+        int height,
+        int bitDepth,
+        int colorType,
+        byte[] compressedScanlines,
+        double? dpiX,
+        double? dpiY) {
         ValidatePngHeader(width, height, bitDepth, colorType);
         if (compressedScanlines == null) {
             throw new ArgumentNullException(nameof(compressedScanlines));
@@ -121,9 +163,50 @@ public static class OfficePngWriter {
         using MemoryStream stream = new MemoryStream();
         stream.Write(PngSignature, 0, PngSignature.Length);
         WriteChunk(stream, "IHDR", BuildIhdr(width, height, bitDepth, colorType));
+        if (dpiX.HasValue && dpiY.HasValue) WriteChunk(stream, "pHYs", BuildPhysicalResolution(dpiX.Value, dpiY.Value));
         WriteChunk(stream, "IDAT", compressedScanlines);
         WriteChunk(stream, "IEND", Array.Empty<byte>());
         return stream.ToArray();
+    }
+
+    private static void ValidateRgba(int width, int height, byte[] rgba) {
+        if (width <= 0) throw new ArgumentOutOfRangeException(nameof(width));
+        if (height <= 0) throw new ArgumentOutOfRangeException(nameof(height));
+        if (rgba == null) throw new ArgumentNullException(nameof(rgba));
+        if (rgba.Length != checked(width * height * 4)) {
+            throw new ArgumentException("RGBA buffer length does not match image dimensions.", nameof(rgba));
+        }
+    }
+
+    private static byte[] CreateRgbaScanlines(int width, int height, byte[] rgba) {
+        byte[] scanlines = new byte[height * (1 + width * 4)];
+        int source = 0;
+        int target = 0;
+        for (int y = 0; y < height; y++) {
+            scanlines[target++] = 0;
+            Buffer.BlockCopy(rgba, source, scanlines, target, width * 4);
+            source += width * 4;
+            target += width * 4;
+        }
+        return scanlines;
+    }
+
+    private static byte[] BuildPhysicalResolution(double dpiX, double dpiY) {
+        ValidateDpi(dpiX, nameof(dpiX));
+        ValidateDpi(dpiY, nameof(dpiY));
+        uint pixelsPerMeterX = checked((uint)Math.Round(dpiX / 0.0254D, MidpointRounding.AwayFromZero));
+        uint pixelsPerMeterY = checked((uint)Math.Round(dpiY / 0.0254D, MidpointRounding.AwayFromZero));
+        byte[] data = new byte[9];
+        WriteBigEndianInt32(data, 0, unchecked((int)pixelsPerMeterX));
+        WriteBigEndianInt32(data, 4, unchecked((int)pixelsPerMeterY));
+        data[8] = 1;
+        return data;
+    }
+
+    private static void ValidateDpi(double dpi, string paramName) {
+        if (dpi <= 0D || double.IsNaN(dpi) || double.IsInfinity(dpi) || dpi > uint.MaxValue * 0.0254D) {
+            throw new ArgumentOutOfRangeException(paramName, "PNG DPI must be finite, positive, and encodable.");
+        }
     }
 
     private static void ValidatePngHeader(int width, int height, int bitDepth, int colorType) {

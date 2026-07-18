@@ -11,35 +11,44 @@ namespace OfficeIMO.PowerPoint {
         /// Exports presentation slides as supported raster formats or SVG images.
         /// </summary>
         public IReadOnlyList<OfficeImageExportResult> ExportImages(OfficeImageExportFormat format, PowerPointPresentationImageExportOptions? options = null) {
+            var results = new List<OfficeImageExportResult>();
+            ExportImages(format, results.Add, options);
+            return results.AsReadOnly();
+        }
+
+        /// <summary>Streams selected slide images to a consumer without retaining earlier payloads.</summary>
+        public void ExportImages(
+            OfficeImageExportFormat format,
+            OfficeImageExportConsumer consumer,
+            PowerPointPresentationImageExportOptions? options = null,
+            CancellationToken cancellationToken = default) {
+            if (consumer == null) throw new ArgumentNullException(nameof(consumer));
             ThrowIfDisposed();
             PowerPointPresentationImageExportOptions resolved = NormalizePresentationImageExportOptions(options);
             PowerPointImageExportOptions slideOptions = CreateSlideImageExportOptions(resolved);
             HashSet<int>? selectedSlideNumbers = CreateSelectedSlideNumberSet(resolved, Slides.Count);
-            var results = new List<OfficeImageExportResult>();
-
-            for (int i = 0; i < Slides.Count; i++) {
-                int slideNumber = i + 1;
-                if (selectedSlideNumbers != null && !selectedSlideNumbers.Contains(slideNumber)) {
-                    continue;
-                }
-
-                PowerPointSlide slide = Slides[i];
-                if (!resolved.IncludeHiddenSlides && slide.Hidden) {
-                    continue;
-                }
-
-                OfficeImageExportResult result = slide.ExportImage(format, slideOptions);
-                results.Add(new OfficeImageExportResult(
-                    result.Format,
-                    result.Width,
-                    result.Height,
-                    result.Bytes,
-                    "Slide " + slideNumber.ToString(System.Globalization.CultureInfo.InvariantCulture),
-                    "PowerPoint slide " + slideNumber.ToString(System.Globalization.CultureInfo.InvariantCulture),
-                    result.Diagnostics));
-            }
-
-            return results.AsReadOnly();
+            int[] slideIndexes = Enumerable.Range(0, Slides.Count)
+                .Where(index => selectedSlideNumbers == null || selectedSlideNumbers.Contains(index + 1))
+                .Where(index => resolved.IncludeHiddenSlides || !Slides[index].Hidden)
+                .ToArray();
+            OfficeImageExportBatchProcessor.ForEachOrdered(
+                slideIndexes,
+                resolved.MaximumDegreeOfParallelism,
+                (slideIndex, _, token) => {
+                    int slideNumber = slideIndex + 1;
+                    OfficeImageExportResult result = Slides[slideIndex].ExportImage(format, slideOptions, token);
+                    return new OfficeImageExportResult(
+                        result.Format,
+                        result.Width,
+                        result.Height,
+                        result.Bytes,
+                        "Slide " + slideNumber.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                        "PowerPoint slide " + slideNumber.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                        result.Diagnostics);
+                },
+                consumer,
+                cancellationToken,
+                resolved);
         }
 
         /// <summary>

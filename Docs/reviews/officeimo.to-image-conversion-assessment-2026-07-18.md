@@ -4,63 +4,80 @@ Date: 2026-07-18
 
 ## Outcome
 
-OfficeIMO now has one dependency-free image-export contract across Drawing, Excel, Word, PowerPoint, HTML, OneNote, Visio, and PDF. `OfficeIMO.Drawing` owns encoded format and dimension identity, options, fluent mechanics, allocation safety, raster/SVG encoding, bounded source decoding, caller-codec fallback, filenames, and shared diagnostic codes. Format packages keep only their source semantics, selection, layout, and projection.
+OfficeIMO now has one dependency-free image-export contract across Drawing, Excel, Word, PowerPoint, HTML, OneNote, Visio, PDF, OpenDocument, EPUB, and email. `OfficeIMO.Drawing` owns format identity, raster/SVG encoding, density metadata, deterministic fonts, source-image decoding, diagnostic policy, batch budgets, cancellation, progress, save conflicts, paths, and shared renderer primitives. Each document package owns only its source semantics, selection, layout, and projection.
 
-This work fixed a mislabeled-format correctness bug, removed duplicated option and raster-limit state, made raster limits pre-allocation across every main converter, added first-party PDF PNG/JPEG/TIFF/SVG/WebP export, added bounded TIFF and OfficeIMO-WebP source decoding, made HTML fluent async rendering real, and introduced one paged-image bridge for all source-to-PDF adapters. It adds no runtime dependency.
+The work did not add an output format or a runtime dependency. It concentrated on correctness and production use: encoded bytes must match their declared format and dimensions, saves return the path actually committed, large batches can stream without retaining every payload, aggregate limits stop runaway work, and fidelity loss can be accepted or rejected through structured policy.
 
 ## Conversion Matrix
 
-| Source | Single image | Batch images | Output formats | Contract and limits |
+| Source | Single image | Batch images | Visual owner | Important contract |
 | --- | --- | --- | --- | --- |
-| `OfficeDrawing` | Yes | Adapter-owned | PNG, JPEG, TIFF, SVG, WebP | Shared encoder, validated result/options/builders, raster planner, source decoders |
-| Excel range | Yes | No | PNG, JPEG, TIFF, SVG, WebP | Mature range coverage and visual baselines |
-| Excel worksheet/workbook | Yes | Yes | PNG, JPEG, TIFF, SVG, WebP | Used range, explicit range, print area, manual-page-break slices |
-| PowerPoint slide/presentation | Yes | Yes | PNG, JPEG, TIFF, SVG, WebP | Fixed-layout projection; representative authored fixture coverage |
-| Word document page/range | Yes | Yes | PNG, JPEG, TIFF, SVG, WebP | OfficeIMO-estimated pagination, not Microsoft Word pagination |
-| HTML continuous/paged render | Yes | Yes | PNG, JPEG, TIFF, SVG, WebP | Resource-aware direct and fluent async paths |
-| OneNote page/section/notebook | Yes | Yes | PNG, JPEG, TIFF, SVG, WebP | Ink, math, pictures, selection, and shared raster safety |
-| Visio page/document | Yes | Yes | PNG, JPEG, TIFF, SVG, WebP | Native Visio projection with shared results, encoders, safety, and batch filenames |
-| Loaded PDF page/document | Yes | Yes | PNG, JPEG, TIFF, SVG, WebP | First-party page-to-Drawing projection, DPI/thumbnails, ordered page selection, capability diagnostics |
-| Markdown, RTF, AsciiDoc, LaTeX, and other source-to-PDF adapters | Through PDF result | Yes | PNG, JPEG, TIFF, SVG, WebP | `PdfDocumentConversionResult.ToImages()` is the single paged adapter and preserves source warnings |
-| OpenDocument, EPUB, email | No direct visual adapter | No | None directly | A direct adapter needs a deliberate visual contract; a format-label wrapper would be misleading |
+| `OfficeDrawing` | Yes | Adapter-owned | Drawing | Shared encoding, validation, DPI metadata, fonts, policies, and raster limits |
+| Excel range | Yes | No | Excel → Drawing | Range selection, worksheet semantics, decoded-pixel and approved visual baselines |
+| Excel worksheet/workbook | Yes | Yes | Excel → Drawing | Used/explicit range, print areas, manual-page-break slices, workbook-wide budgets |
+| PowerPoint slide/presentation, including binary `.ppt` import | Yes | Yes | PowerPoint → Drawing | Fixed-layout projection, authored fixtures, and LibreOffice raster references |
+| Word document page/range | Yes | Yes | Word → Drawing | OfficeIMO-estimated pagination; it does not claim Microsoft Word pagination |
+| HTML continuous/paged render | Yes | Yes | HTML → Drawing | Resource-aware sync/async rendering with HTML safety limits |
+| Email body/pages | Yes | Yes | Email → HTML → Drawing | HTML, RTF, or text body selection; inline MIME/CID resources; message chrome |
+| EPUB chapters/pages | No single-chapter shortcut | Yes | EPUB → HTML → Drawing | Retained chapter HTML/resources, selection, diagnosed text fallback |
+| OneNote page/section/notebook | Yes | Yes | OneNote → Drawing | Ink, math, pictures, hierarchy selection, and shared raster safety |
+| Visio page/document | Yes | Yes | Visio geometry → Drawing encoding | Native Visio projection, deterministic fonts, shared result/save/batch contracts |
+| Loaded PDF page/document | Yes | Yes | PDF → Drawing | Page selection, thumbnails, target DPI, capability diagnostics |
+| ODT | Yes | Yes | ODT → Word → Drawing | ODF conversion diagnostics are attached to every image |
+| ODS | Through selected worksheets | Yes | ODS → Excel → Drawing | ODF conversion diagnostics and workbook-wide export budgets |
+| ODP | Through selected slides | Yes | ODP → PowerPoint → Drawing | ODF conversion diagnostics and ordered presentation export |
+| Markdown, RTF, AsciiDoc, LaTeX, and existing PDF adapters | Through PDF result | Yes | Source → PDF → Drawing | `PdfDocumentConversionResult.ToImages()` preserves source warnings |
 
-## Issues Found And Addressed
+All rows produce the existing PNG, JPEG, TIFF, SVG, or WebP formats where their visual owner supports image export. The OpenDocument, EPUB, and email packages are thin adapters; they do not contain another layout or encoding engine.
 
-1. **Declared HTML formats did not match their bytes.** JPEG, TIFF, and WebP requests returned PNG payloads with another label. HTML now encodes the requested format, and `OfficeImageExportResult` rejects any future declared-format or encoded-dimension mismatch.
-2. **Raster safety was fragmented and often late.** OneNote and Visio had private limit policies, HTML used dimension caps, and Excel, Word, and PowerPoint could allocate before encoder rejection. `OfficeRasterExportPlanner` now combines caller, renderer, and encoder limits before allocation. It either emits `IMAGE_RASTER_SCALE_REDUCED` or throws typed `OfficeImageExportLimitException`.
-3. **Shared options were incompletely cloned or redeclared.** Each package now inherits and snapshots the Drawing-owned scale, background, pixel budget, overflow policy, caller codec, and raster encoding. Duplicate OneNote and Visio option properties were removed.
-4. **PDF was documented as missing even though a substantial first-party page painter already existed.** The existing `PdfReadPage.ToDrawing()` projection is now exposed through the canonical five-format result/builder contract, with ordered batch selection, DPI, thumbnails, cancellation, source-image fallback, and shared safety.
-5. **Source decode breadth lagged output breadth.** Drawing now reads bounded baseline chunky RGB/RGBA TIFF strips using no compression or PackBits and the literal-lossless VP8L subset emitted by OfficeIMO. It does not pretend to be a general TIFF or WebP decoder; unsupported variants use `ImageCodec` or a visible fallback diagnostic.
-6. **Generic async builders always rendered synchronously.** The shared builder can now accept a true asynchronous render delegate. HTML uses it for resource-aware scene construction; CPU-only in-memory projection remains synchronous and only file/stream commit is asynchronous.
-7. **Source adapters risked multiplying APIs and option models.** Markdown, AsciiDoc, LaTeX, RTF, OneNote, Word, Excel, PowerPoint, and HTML already converge on `PdfDocumentConversionResult`. Its `ExportImages()` / `ToImages()` bridge now retains source conversion warnings on each page image.
-8. **Visio and Drawing both contain SVG readers.** They are not interchangeable duplicate brains. Visio's embedded-SVG path supports linked images, clipping, nested opacity, and CSS needed by stencil artwork; deleting it would regress fidelity. Visio still delegates final encoding, allocation policy, results, and filenames to Drawing.
-9. **Batch filenames varied by host operating system.** Shared batch export now emits bounded, unique, Windows-portable names on every host and protects reserved device names.
+## Product Problems Addressed
+
+1. **Format labels could disagree with payload bytes.** Results now identify and validate their encoded content and dimensions at construction.
+2. **Density was ambiguous.** `AtDpi(...)` / `TargetDpi` map document units to output pixels. PNG, JPEG, and TIFF carry encoded density, and results expose DPI plus physical dimensions.
+3. **Save results did not prove where data landed.** Direct and fluent saves normalize extensions, use explicit conflict policy, and return `SavedPath`. Batch `SaveFiles()` returns payload-free file metadata for large jobs.
+4. **Existing files could be replaced accidentally.** The default is `FailIfExists`; callers must select `Replace` or `CreateUnique`.
+5. **Batch APIs encouraged full materialization.** Every main paged/document family has streaming consumer paths, async streaming where real async work exists, deterministic order, cancellation, and optional bounded concurrency.
+6. **Per-image pixel limits did not bound a whole job.** Shared defaults now cap output count, aggregate raster pixels, and aggregate encoded bytes. Violations throw `OfficeImageExportBatchLimitException`.
+7. **Diagnostics were strings without a consistent loss model.** Diagnostics classify approximation, omission, failure, or no loss. `OfficeImageExportPolicy` can reject all loss, omissions, failures, or selected stable codes before data is returned or saved.
+8. **Font behavior varied by package.** Caller-supplied TrueType faces are resolved first across the shared pipeline. A missing requested family emits `IMAGE_FONT_SUBSTITUTED` instead of silently changing typography.
+9. **Excel and Visio retained typography-specific branches.** Excel uses the shared font diagnostic and caller-font collection. Visio raster and SVG text now honor the requested family; SVG can embed supplied faces.
+10. **Supported SVG pictures could disappear from raster output.** Drawing now parses and rasterizes the bounded SVG subset it owns. Unsupported SVG features continue through the caller codec or a visible fallback with `IMAGE_SOURCE_DECODE_FALLBACK`.
+11. **Raster safety was fragmented and sometimes late.** `OfficeRasterExportPlanner` combines caller, renderer, and encoder limits before allocation and either reduces scale or throws a typed limit exception.
+12. **HTML format requests once returned mislabeled PNG bytes.** HTML now uses the shared encoder for the selected format.
+13. **Generic async builders could run synchronous render delegates.** Resource-aware HTML, email, and EPUB paths have real asynchronous resolution; in-memory projection remains synchronous.
+14. **OpenDocument, EPUB, and email had no direct visual bridge.** ODT/ODS/ODP reuse their existing Office conversion owners, while EPUB and email reuse HTML. Conversion and fallback diagnostics remain attached to the image result.
+15. **Batch filenames varied by operating system.** Shared batch export emits bounded, unique, Windows-portable names and protects reserved device names on every host.
+16. **Visual tolerances could hide a severe small-area regression.** Shared comparisons now report and gate mean absolute, root-mean-square, and luminance error in addition to changed pixels. Binary PowerPoint fixtures compare against LibreOffice output.
 
 ## Intentionally Retained Low-Level APIs
 
-`PdfPageImageRenderer.RenderPage(...)` remains valuable as the PDF-to-`OfficeDrawing` projection used by inspection and visual comparison. The older `PdfPageRenderResult` batch also carries elapsed time, continue-on-error state, and typed PDF capability diagnostics used by OCR, destructive-crop verification, and redaction verification. It is therefore retained as a low-level operational contract, while `PdfReadPage.ToImage()` and `PdfReadDocument.ToImages()` are the canonical general export APIs.
+`PdfPageImageRenderer.RenderPage(...)` remains the PDF-to-`OfficeDrawing` projection used by inspection and visual comparison. `PdfPageRenderResult` also carries elapsed time, continue-on-error state, and typed PDF capability diagnostics needed by OCR, destructive-crop verification, and redaction verification. `PdfReadPage.ToImage()` and `PdfReadDocument.ToImages()` remain the general export surface.
+
+Visio also retains its embedded-SVG interpreter. Stencil artwork needs linked images, clipping, nested opacity, and CSS that are outside Drawing's deliberately bounded general SVG reader. Visio still delegates output encoding, result validation, fonts, save policy, and batch mechanics to Drawing.
 
 ## Remaining Product Limits
 
-- Word output remains an OfficeIMO pagination estimate. Exact Microsoft Word pagination requires Word's layout engine and is not claimed.
-- Arbitrary PDFs can contain operators, fonts, transparency, forms, annotations, and producer-specific constructs outside the current first-party page projection. The generated capability manifest and per-page diagnostics are the coverage contract.
-- TIFF support is baseline chunky RGB/RGBA strips, not BigTIFF, tiled, planar, palette, CMYK, or arbitrary compression. WebP source decoding is limited to OfficeIMO's literal-lossless encoder output.
-- GIF decoding uses the first frame; animation timing and multi-frame TIFF are not part of the static image result contract.
-- Color-profile, ICC, EXIF-preservation, and explicit cross-format DPI metadata are separate product decisions. The current result contract guarantees encoded format, pixels/CSS dimensions, MIME type, extension, source metadata, and diagnostics.
-- Representative visual evidence remains strongest for Excel and Visio. PowerPoint, Word, HTML, OneNote, and PDF need continued authored-fixture growth as new fidelity slices are implemented.
+- Word output is an OfficeIMO pagination estimate. Exact Microsoft Word pagination requires Word's layout engine.
+- Arbitrary PDFs can contain operators, fonts, transparency, forms, annotations, and producer-specific constructs outside the first-party projection. Per-page diagnostics and the capability manifest remain the coverage contract.
+- TIFF input support is bounded to chunky RGB/RGBA strips with no compression or PackBits. WebP input support is limited to the literal-lossless form OfficeIMO emits.
+- GIF input uses the first frame. Animated output and multi-frame TIFF are outside the static-image contract.
+- ICC conversion, color-management parity, EXIF preservation, and CMYK workflows are not implemented.
+- SVG raster input accepts the bounded Drawing subset. Complex filters, scripts, external documents, and unsupported SVG features require a caller codec or produce a diagnosed visible fallback.
+- EPUB fidelity depends on loading with raw chapter HTML and resource bytes retained. Encrypted or incomplete packages remain diagnostic-driven.
+- ODT/ODS/ODP visuals inherit the fidelity of both the OpenDocument conversion and the target Word/Excel/PowerPoint renderer. The combined diagnostics make that explicit.
+- Font parity requires callers to provide the intended TrueType faces when platform fonts are not deterministic.
 
-## Premium Converter Gates
+## Release Gate
 
-The implemented contract now requires:
+An image converter change is complete only when:
 
-- encoded bytes match the declared format and dimensions;
-- PNG/JPEG/TIFF/SVG/WebP share one result/options/builder model;
-- raster bounds are enforced before allocation;
-- names are deterministic and portable;
-- unsupported source images are decoded by an explicit caller codec or rendered visibly with a stable diagnostic;
-- async claims correspond to real resource or destination I/O;
-- adapter diagnostics survive the image bridge;
-- document-specific semantics remain in their owning package and reusable mechanics remain in Drawing;
-- no new runtime dependencies are introduced.
-
-Future fidelity work should add evidence to these contracts, not create parallel renderers or package-local copies of export mechanics.
+- declared format, dimensions, MIME type, extension, and encoded bytes agree;
+- raster density metadata and result physical dimensions agree;
+- all allocations are bounded before the pixel buffer is created;
+- direct and batch paths apply the same diagnostic policy and aggregate budgets;
+- save APIs use explicit conflict behavior and report normalized committed paths;
+- callers can stream large batches, cancel work, and observe progress;
+- unsupported source content remains visible when possible and always produces stable diagnostics;
+- document-specific semantics stay in their owner and reusable behavior stays in Drawing;
+- approved visual or decoded-pixel evidence protects the changed fidelity slice;
+- no new runtime dependency is introduced.

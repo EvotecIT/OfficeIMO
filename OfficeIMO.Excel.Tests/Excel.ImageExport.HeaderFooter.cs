@@ -222,12 +222,50 @@ namespace OfficeIMO.Tests {
                 ShowGridlines = false
             });
 
-            OfficeImageExportDiagnostic diagnostic = Assert.Single(results[1].Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.HeaderFooterFontFamilyFallback);
+            OfficeImageExportDiagnostic diagnostic = Assert.Single(results[1].Diagnostics, item => item.Code == OfficeImageExportDiagnosticCodes.FontSubstituted);
             Assert.Equal(OfficeImageExportDiagnosticSeverity.Warning, diagnostic.Severity);
             Assert.Equal("Report!headerFooter", diagnostic.Source);
             Assert.Contains("OfficeIMO Missing Header Font", diagnostic.Message);
             Assert.Contains(results[1].Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.HeaderFooterFormattingApproximation);
             Assert.Contains("font-family=\"OfficeIMO Missing Header Font\"", Encoding.UTF8.GetString(results[1].Bytes));
+        }
+
+        [Fact]
+        public void ExcelWorksheet_PageSlicedSvgExportUsesCallerScopedHeaderFooterFont() {
+            OfficeTrueTypeFont? font = OfficeTrueTypeFont.TryLoadDefault(out string? fontPath);
+            if (font == null || string.IsNullOrWhiteSpace(fontPath)) return;
+
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorksheet("Report");
+            FillPageBreakGrid(sheet);
+            sheet.SetHeaderFooter(
+                headerCenter:
+                    "&\"OfficeIMO Scoped Header Font,Regular\"Font Header");
+            sheet.AddManualRowPageBreak(2, save: false);
+            var options = new ExcelWorksheetImageExportOptions {
+                Range = "A1:D4",
+                SplitByManualPageBreaks = true,
+                ShowGridlines = false
+            };
+            options.Fonts.Add(
+                "OfficeIMO Scoped Header Font",
+                File.ReadAllBytes(fontPath));
+
+            IReadOnlyList<OfficeImageExportResult> results =
+                sheet.ExportImages(OfficeImageExportFormat.Svg, options);
+
+            Assert.DoesNotContain(
+                results[1].Diagnostics,
+                item => item.Code ==
+                        OfficeImageExportDiagnosticCodes.FontSubstituted &&
+                        item.Source == "Report!headerFooter" &&
+                        item.Message.Contains(
+                            "OfficeIMO Scoped Header Font",
+                            StringComparison.Ordinal));
+            Assert.Contains(
+                "OfficeIMO Scoped Header Font",
+                Encoding.UTF8.GetString(results[1].Bytes));
         }
 
         [Fact]

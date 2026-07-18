@@ -203,7 +203,7 @@ document.SaveAsPng("pipeline.png", new VisioPngSaveOptions {
 
 OfficeImageExportResult webp = document
     .ToImage()
-    .WithDpi(144)
+    .AtDpi(144)
     .AsWebp()
     .Save("pipeline.webp");
 

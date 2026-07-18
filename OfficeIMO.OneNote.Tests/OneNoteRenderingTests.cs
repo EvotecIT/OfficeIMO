@@ -190,7 +190,7 @@ public sealed class OneNoteRenderingTests {
     }
 
     [Fact]
-    public void RasterExportReportsAndPaintsUnsupportedSourceImagesInsteadOfDroppingThem() {
+    public void RasterExportPaintsSupportedSvgSourceImagesWithoutFallback() {
         var page = new OneNotePage { PageSize = OneNotePageSize.IndexCard };
         page.DirectContent.Add(new OneNoteImage {
             FileName = "vector.svg",
@@ -200,7 +200,7 @@ public sealed class OneNoteRenderingTests {
         });
 
         OfficeImageExportResult result = page.ToImage().WithScale(0.25D).AsPng().Export();
-        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == OfficeImageExportDiagnosticCodes.SourceImageDecodeFallback);
+        Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Code == OfficeImageExportDiagnosticCodes.SourceImageDecodeFallback);
         Assert.True(OfficeRasterImageDecoder.TryDecode(result.Bytes, out OfficeRasterImage? raster));
         Assert.NotNull(raster);
         Assert.Contains(raster!.GetPixels(), value => value != byte.MaxValue);

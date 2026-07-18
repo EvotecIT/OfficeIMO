@@ -8,9 +8,6 @@ public sealed class VisioPageImageExportBuilder : OfficeImageExportBuilder<Visio
         : base(options?.Clone() ?? new VisioImageExportOptions(), CreateExporter(page)) {
     }
 
-    /// <summary>Uses a raster or SVG resolution expressed in dots per Visio inch.</summary>
-    public VisioPageImageExportBuilder WithDpi(double pixelsPerInch) => WithScale(DpiScale(pixelsPerInch));
-
     /// <summary>Includes or excludes shape and connector text.</summary>
     public VisioPageImageExportBuilder IncludeText(bool include = true) { Options.RenderText = include; return this; }
 
@@ -20,16 +17,9 @@ public sealed class VisioPageImageExportBuilder : OfficeImageExportBuilder<Visio
     /// <summary>Includes or excludes connector labels.</summary>
     public VisioPageImageExportBuilder IncludeConnectorLabels(bool include = true) { Options.RenderConnectorLabels = include; return this; }
 
-    private static Func<OfficeImageExportFormat, VisioImageExportOptions, OfficeImageExportResult> CreateExporter(VisioPage page) {
+    private static Func<OfficeImageExportFormat, VisioImageExportOptions, System.Threading.CancellationToken, OfficeImageExportResult> CreateExporter(VisioPage page) {
         if (page == null) throw new ArgumentNullException(nameof(page));
-        return (format, options) => page.ExportImage(format, options);
-    }
-
-    private static double DpiScale(double pixelsPerInch) {
-        if (pixelsPerInch <= 0D || double.IsNaN(pixelsPerInch) || double.IsInfinity(pixelsPerInch)) {
-            throw new ArgumentOutOfRangeException(nameof(pixelsPerInch));
-        }
-        return pixelsPerInch / 96D;
+        return (format, options, cancellationToken) => page.ExportImage(format, options, cancellationToken);
     }
 }
 
@@ -46,27 +36,22 @@ public sealed class VisioDocumentImageExportBuilder : OfficeImageExportBuilder<V
         return this;
     }
 
-    /// <summary>Uses a raster or SVG resolution expressed in dots per Visio inch.</summary>
-    public VisioDocumentImageExportBuilder WithDpi(double pixelsPerInch) {
-        if (pixelsPerInch <= 0D || double.IsNaN(pixelsPerInch) || double.IsInfinity(pixelsPerInch)) {
-            throw new ArgumentOutOfRangeException(nameof(pixelsPerInch));
-        }
-        return WithScale(pixelsPerInch / 96D);
-    }
-
     /// <summary>Includes or excludes shape and connector text.</summary>
     public VisioDocumentImageExportBuilder IncludeText(bool include = true) { Options.RenderText = include; return this; }
 
-    private static Func<OfficeImageExportFormat, VisioImageExportOptions, OfficeImageExportResult> CreateExporter(VisioDocument document) {
+    private static Func<OfficeImageExportFormat, VisioImageExportOptions, System.Threading.CancellationToken, OfficeImageExportResult> CreateExporter(VisioDocument document) {
         if (document == null) throw new ArgumentNullException(nameof(document));
-        return (format, options) => document.ExportImage(format, options);
+        return (format, options, cancellationToken) => document.ExportImage(format, options, cancellationToken);
     }
 }
 
 /// <summary>Fluent batch image export for Visio document pages.</summary>
 public sealed class VisioDocumentImageBatchExportBuilder : OfficeImageExportBatchBuilder<VisioDocumentImageBatchExportBuilder, VisioImageExportOptions> {
     internal VisioDocumentImageBatchExportBuilder(VisioDocument document, VisioImageExportOptions? options = null)
-        : base(options?.Clone() ?? new VisioImageExportOptions(), CreateExporter(document)) {
+        : base(
+            options?.Clone() ?? new VisioImageExportOptions(),
+            CreateExporter(document),
+            CreateStreamingExporter(document)) {
     }
 
     /// <summary>Exports from the specified zero-based page index.</summary>
@@ -90,20 +75,18 @@ public sealed class VisioDocumentImageBatchExportBuilder : OfficeImageExportBatc
         return this;
     }
 
-    /// <summary>Uses a raster or SVG resolution expressed in dots per Visio inch.</summary>
-    public VisioDocumentImageBatchExportBuilder WithDpi(double pixelsPerInch) {
-        if (pixelsPerInch <= 0D || double.IsNaN(pixelsPerInch) || double.IsInfinity(pixelsPerInch)) {
-            throw new ArgumentOutOfRangeException(nameof(pixelsPerInch));
-        }
-        return WithScale(pixelsPerInch / 96D);
-    }
-
     /// <summary>Includes or excludes shape and connector text.</summary>
     public VisioDocumentImageBatchExportBuilder IncludeText(bool include = true) { Options.RenderText = include; return this; }
 
     private static Func<OfficeImageExportFormat, VisioImageExportOptions, IReadOnlyList<OfficeImageExportResult>> CreateExporter(VisioDocument document) {
         if (document == null) throw new ArgumentNullException(nameof(document));
         return (format, options) => document.ExportImages(format, options);
+    }
+
+    private static Action<OfficeImageExportFormat, VisioImageExportOptions, OfficeImageExportConsumer, System.Threading.CancellationToken> CreateStreamingExporter(VisioDocument document) {
+        if (document == null) throw new ArgumentNullException(nameof(document));
+        return (format, options, consumer, cancellationToken) =>
+            document.ExportImages(format, consumer, options, cancellationToken);
     }
 }
 

@@ -1,4 +1,3 @@
-using OfficeIMO.Drawing.Internal;
 using OfficeIMO.Drawing;
 using System;
 using System.IO;
@@ -28,38 +27,28 @@ namespace OfficeIMO.Visio {
         /// Saves the selected document page as PNG without requiring Microsoft Visio desktop automation.
         /// </summary>
         public static OfficeImageExportResult SaveAsPng(this VisioDocument document, string path, VisioPngSaveOptions? options = null) {
-            if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("PNG path cannot be null or whitespace.", nameof(path));
-            OfficeImageExportResult result = CreateResult(document, options);
-            OfficeFileCommit.WriteAllBytes(path, result.Bytes);
-            return result;
+            return CreateResult(document, options).Save(path);
         }
 
         /// <summary>
         /// Saves a page as PNG without requiring Microsoft Visio desktop automation.
         /// </summary>
         public static OfficeImageExportResult SaveAsPng(this VisioPage page, string path, VisioPngSaveOptions? options = null) {
-            if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("PNG path cannot be null or whitespace.", nameof(path));
-            OfficeImageExportResult result = CreateResult(page, options);
-            OfficeFileCommit.WriteAllBytes(path, result.Bytes);
-            return result;
+            return CreateResult(page, options).Save(path);
         }
 
         /// <summary>
         /// Writes the selected document page as PNG to a stream without requiring Microsoft Visio desktop automation.
         /// </summary>
         public static OfficeImageExportResult SaveAsPng(this VisioDocument document, Stream stream, VisioPngSaveOptions? options = null) {
-            OfficeImageExportResult result = CreateResult(document, options);
-            OfficeStreamWriter.WriteAllBytes(stream, result.Bytes);
-            return result;
+            return CreateResult(document, options).Save(stream);
         }
 
         /// <summary>
         /// Writes a page as PNG to a stream without requiring Microsoft Visio desktop automation.
         /// </summary>
         public static OfficeImageExportResult SaveAsPng(this VisioPage page, Stream stream, VisioPngSaveOptions? options = null) {
-            OfficeImageExportResult result = CreateResult(page, options);
-            OfficeStreamWriter.WriteAllBytes(stream, result.Bytes);
-            return result;
+            return CreateResult(page, options).Save(stream);
         }
 
         /// <summary>
@@ -70,11 +59,9 @@ namespace OfficeIMO.Visio {
             string path,
             VisioPngSaveOptions? options = null,
             CancellationToken cancellationToken = default) {
-            if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("PNG path cannot be null or whitespace.", nameof(path));
             cancellationToken.ThrowIfCancellationRequested();
             OfficeImageExportResult result = CreateResult(document, options);
-            await OfficeFileCommit.WriteAllBytesAsync(path, result.Bytes, cancellationToken: cancellationToken).ConfigureAwait(false);
-            return result;
+            return await result.SaveAsync(path, cancellationToken: cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -85,11 +72,9 @@ namespace OfficeIMO.Visio {
             string path,
             VisioPngSaveOptions? options = null,
             CancellationToken cancellationToken = default) {
-            if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("PNG path cannot be null or whitespace.", nameof(path));
             cancellationToken.ThrowIfCancellationRequested();
             OfficeImageExportResult result = CreateResult(page, options);
-            await OfficeFileCommit.WriteAllBytesAsync(path, result.Bytes, cancellationToken: cancellationToken).ConfigureAwait(false);
-            return result;
+            return await result.SaveAsync(path, cancellationToken: cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -102,8 +87,7 @@ namespace OfficeIMO.Visio {
             CancellationToken cancellationToken = default) {
             cancellationToken.ThrowIfCancellationRequested();
             OfficeImageExportResult result = CreateResult(document, options);
-            await OfficeStreamWriter.WriteAllBytesAsync(stream, result.Bytes, cancellationToken).ConfigureAwait(false);
-            return result;
+            return await result.SaveAsync(stream, cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -116,8 +100,7 @@ namespace OfficeIMO.Visio {
             CancellationToken cancellationToken = default) {
             cancellationToken.ThrowIfCancellationRequested();
             OfficeImageExportResult result = CreateResult(page, options);
-            await OfficeStreamWriter.WriteAllBytesAsync(stream, result.Bytes, cancellationToken).ConfigureAwait(false);
-            return result;
+            return await result.SaveAsync(stream, cancellationToken).ConfigureAwait(false);
         }
 
         private static OfficeImageExportResult CreateResult(VisioDocument document, VisioPngSaveOptions? options) {
@@ -137,13 +120,21 @@ namespace OfficeIMO.Visio {
         private static OfficeImageExportResult CreateResult(VisioPage page, VisioPngSaveOptions? options) {
             if (page == null) throw new ArgumentNullException(nameof(page));
             VisioPngSaveOptions resolved = options ?? new VisioPngSaveOptions();
+            var diagnostics = new List<OfficeImageExportDiagnostic>();
+            if (string.IsNullOrWhiteSpace(resolved.FontFilePath)) {
+                VisioImageExportFontDiagnostics.Append(page, resolved.Fonts, diagnostics, "Visio page");
+            }
+            resolved.ImageDiagnostics = diagnostics;
+            resolved.ImageDiagnosticSource = "Visio page";
             byte[] bytes = VisioPngRenderer.Render(page, resolved);
             return new OfficeImageExportResult(
                 OfficeImageExportFormat.Png,
                 Math.Max(1, (int)Math.Ceiling(Math.Max(page.Width, 0.01D) * resolved.PixelsPerInch)),
                 Math.Max(1, (int)Math.Ceiling(Math.Max(page.Height, 0.01D) * resolved.PixelsPerInch)),
                 bytes,
-                page.Name);
+                page.Name,
+                "Visio page",
+                diagnostics);
         }
     }
 }

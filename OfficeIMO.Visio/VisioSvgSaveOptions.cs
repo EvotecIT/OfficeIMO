@@ -27,6 +27,9 @@ namespace OfficeIMO.Visio {
         /// </summary>
         public bool RenderText { get; set; } = true;
 
+        /// <summary>Caller-supplied deterministic TrueType faces embedded in SVG output.</summary>
+        public OfficeFontFaceCollection Fonts { get; set; } = new OfficeFontFaceCollection();
+
         /// <summary>
         /// Gets or sets whether built-in OfficeIMO stencil metadata is projected as dependency-free vector artwork.
         /// </summary>

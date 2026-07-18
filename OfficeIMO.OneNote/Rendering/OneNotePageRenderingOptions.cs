@@ -4,6 +4,9 @@ namespace OfficeIMO.OneNote;
 
 /// <summary>Controls dependency-free OneNote page layout, rendering, and image export.</summary>
 public class OneNotePageRenderingOptions : OfficeImageExportOptions {
+    /// <inheritdoc />
+    public override double LogicalUnitsPerInch => 72D;
+
     /// <summary>Whether the page title is rendered.</summary>
     public bool IncludeTitle { get; set; } = true;
 

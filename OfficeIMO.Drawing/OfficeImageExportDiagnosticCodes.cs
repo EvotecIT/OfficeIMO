@@ -10,4 +10,7 @@ public static class OfficeImageExportDiagnosticCodes {
 
     /// <summary>An embedded image could not be decoded and was represented by a visible fallback.</summary>
     public const string SourceImageDecodeFallback = "IMAGE_SOURCE_DECODE_FALLBACK";
+
+    /// <summary>A requested font face was unavailable and a deterministic fallback was selected.</summary>
+    public const string FontSubstituted = "IMAGE_FONT_SUBSTITUTED";
 }

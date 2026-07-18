@@ -3,7 +3,6 @@ using System.IO;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using OfficeIMO.Drawing.Internal;
 using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Visio {
@@ -29,38 +28,28 @@ namespace OfficeIMO.Visio {
         /// Saves the selected document page as SVG without requiring Microsoft Visio desktop automation.
         /// </summary>
         public static OfficeImageExportResult SaveAsSvg(this VisioDocument document, string path, VisioSvgSaveOptions? options = null) {
-            if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("SVG path cannot be null or whitespace.", nameof(path));
-            OfficeImageExportResult result = CreateResult(document, options);
-            OfficeFileCommit.WriteAllBytes(path, result.Bytes);
-            return result;
+            return CreateResult(document, options).Save(path);
         }
 
         /// <summary>
         /// Saves a page as SVG without requiring Microsoft Visio desktop automation.
         /// </summary>
         public static OfficeImageExportResult SaveAsSvg(this VisioPage page, string path, VisioSvgSaveOptions? options = null) {
-            if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("SVG path cannot be null or whitespace.", nameof(path));
-            OfficeImageExportResult result = CreateResult(page, options);
-            OfficeFileCommit.WriteAllBytes(path, result.Bytes);
-            return result;
+            return CreateResult(page, options).Save(path);
         }
 
         /// <summary>
         /// Writes the selected document page as SVG to a stream without requiring Microsoft Visio desktop automation.
         /// </summary>
         public static OfficeImageExportResult SaveAsSvg(this VisioDocument document, Stream stream, VisioSvgSaveOptions? options = null) {
-            OfficeImageExportResult result = CreateResult(document, options);
-            OfficeStreamWriter.WriteAllBytes(stream, result.Bytes);
-            return result;
+            return CreateResult(document, options).Save(stream);
         }
 
         /// <summary>
         /// Writes a page as SVG to a stream without requiring Microsoft Visio desktop automation.
         /// </summary>
         public static OfficeImageExportResult SaveAsSvg(this VisioPage page, Stream stream, VisioSvgSaveOptions? options = null) {
-            OfficeImageExportResult result = CreateResult(page, options);
-            OfficeStreamWriter.WriteAllBytes(stream, result.Bytes);
-            return result;
+            return CreateResult(page, options).Save(stream);
         }
 
         /// <summary>
@@ -71,11 +60,9 @@ namespace OfficeIMO.Visio {
             string path,
             VisioSvgSaveOptions? options = null,
             CancellationToken cancellationToken = default) {
-            if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("SVG path cannot be null or whitespace.", nameof(path));
             cancellationToken.ThrowIfCancellationRequested();
             OfficeImageExportResult result = CreateResult(document, options);
-            await OfficeFileCommit.WriteAllBytesAsync(path, result.Bytes, cancellationToken: cancellationToken).ConfigureAwait(false);
-            return result;
+            return await result.SaveAsync(path, cancellationToken: cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -86,11 +73,9 @@ namespace OfficeIMO.Visio {
             string path,
             VisioSvgSaveOptions? options = null,
             CancellationToken cancellationToken = default) {
-            if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("SVG path cannot be null or whitespace.", nameof(path));
             cancellationToken.ThrowIfCancellationRequested();
             OfficeImageExportResult result = CreateResult(page, options);
-            await OfficeFileCommit.WriteAllBytesAsync(path, result.Bytes, cancellationToken: cancellationToken).ConfigureAwait(false);
-            return result;
+            return await result.SaveAsync(path, cancellationToken: cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -103,8 +88,7 @@ namespace OfficeIMO.Visio {
             CancellationToken cancellationToken = default) {
             cancellationToken.ThrowIfCancellationRequested();
             OfficeImageExportResult result = CreateResult(document, options);
-            await OfficeStreamWriter.WriteAllBytesAsync(stream, result.Bytes, cancellationToken).ConfigureAwait(false);
-            return result;
+            return await result.SaveAsync(stream, cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -117,8 +101,7 @@ namespace OfficeIMO.Visio {
             CancellationToken cancellationToken = default) {
             cancellationToken.ThrowIfCancellationRequested();
             OfficeImageExportResult result = CreateResult(page, options);
-            await OfficeStreamWriter.WriteAllBytesAsync(stream, result.Bytes, cancellationToken).ConfigureAwait(false);
-            return result;
+            return await result.SaveAsync(stream, cancellationToken).ConfigureAwait(false);
         }
 
         private static OfficeImageExportResult CreateResult(VisioDocument document, VisioSvgSaveOptions? options) {
@@ -138,13 +121,19 @@ namespace OfficeIMO.Visio {
         private static OfficeImageExportResult CreateResult(VisioPage page, VisioSvgSaveOptions? options) {
             if (page == null) throw new ArgumentNullException(nameof(page));
             VisioSvgSaveOptions resolved = options ?? new VisioSvgSaveOptions();
+            var diagnostics = new List<OfficeImageExportDiagnostic>();
+            VisioImageExportFontDiagnostics.Append(page, resolved.Fonts, diagnostics, "Visio page");
+            resolved.ImageDiagnostics = diagnostics;
+            resolved.ImageDiagnosticSource = "Visio page";
             byte[] bytes = Encoding.UTF8.GetBytes(VisioSvgRenderer.Render(page, resolved));
             return new OfficeImageExportResult(
                 OfficeImageExportFormat.Svg,
                 Math.Max(1, (int)Math.Ceiling(Math.Max(page.Width, 0.01D) * resolved.PixelsPerInch)),
                 Math.Max(1, (int)Math.Ceiling(Math.Max(page.Height, 0.01D) * resolved.PixelsPerInch)),
                 bytes,
-                page.Name);
+                page.Name,
+                "Visio page",
+                diagnostics);
         }
     }
 }

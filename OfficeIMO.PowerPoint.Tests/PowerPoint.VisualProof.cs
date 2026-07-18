@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Text;
+using OfficeIMO.Drawing;
 using OfficeIMO.Html;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.Html;
@@ -30,7 +31,10 @@ namespace OfficeIMO.Tests {
             secondPresentation.AddSlide().AddTextBoxPoints("Clean snapshot", 20, 20, 120, 30);
             PowerPointToHtmlResult second = secondPresentation.ToHtmlResult(options);
 
-            Assert.Empty(second.ImageDiagnostics);
+            Assert.DoesNotContain(
+                second.ImageDiagnostics,
+                diagnostic =>
+                    diagnostic.Code != OfficeImageExportDiagnosticCodes.FontSubstituted);
             Assert.Contains(first.ImageDiagnostics, diagnostic => diagnostic.Code == "unsupported-powerpoint-shape");
         }
 

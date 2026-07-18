@@ -5,6 +5,9 @@ namespace OfficeIMO.Word {
     /// Options controlling dependency-free Word document image export.
     /// </summary>
     public sealed class WordImageExportOptions : OfficeImageExportOptions {
+        /// <inheritdoc />
+        public override double LogicalUnitsPerInch => 72D;
+
         /// <summary>
         /// Gets or sets a value indicating whether document body content should be rendered when supported.
         /// </summary>
@@ -21,7 +24,8 @@ namespace OfficeIMO.Word {
         /// </summary>
         public int? PageCount { get; set; }
 
-        internal WordImageExportOptions Clone() {
+        /// <summary>Creates an independent options snapshot.</summary>
+        public WordImageExportOptions Clone() {
             WordImageExportOptions clone = CopyImageExportOptionsTo(new WordImageExportOptions());
             clone.IncludeDocumentContent = IncludeDocumentContent;
             clone.PageIndex = PageIndex;

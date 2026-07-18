@@ -3,6 +3,7 @@ using DocumentFormat.OpenXml.Office2010.Excel;
 using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Drawing;
 using OfficeIMO.Excel;
+using System.Globalization;
 using System.Runtime.InteropServices;
 using A = DocumentFormat.OpenXml.Drawing;
 using X = DocumentFormat.OpenXml.Spreadsheet;
@@ -1903,7 +1904,17 @@ namespace OfficeIMO.Tests {
 
             int channelTolerance = VisualBaselineTestSupport.ReadNonNegativeInt("OFFICEIMO_EXCEL_IMAGE_BASELINE_PIXEL_TOLERANCE", 0);
             int allowedDifferentPixels = VisualBaselineTestSupport.ReadNonNegativeInt("OFFICEIMO_EXCEL_IMAGE_BASELINE_ALLOWED_DIFF_PIXELS", 0);
-            VisualRasterComparison comparison = VisualBaselineTestSupport.CompareRasterImages(File.ReadAllBytes(expectedPath), actualPng, channelTolerance, allowedDifferentPixels);
+            double maximumMeanAbsoluteError = VisualBaselineTestSupport.ReadNonNegativeDouble("OFFICEIMO_EXCEL_IMAGE_BASELINE_MAX_MAE", 0D);
+            double maximumRootMeanSquareError = VisualBaselineTestSupport.ReadNonNegativeDouble("OFFICEIMO_EXCEL_IMAGE_BASELINE_MAX_RMSE", 0D);
+            double maximumMeanLuminanceError = VisualBaselineTestSupport.ReadNonNegativeDouble("OFFICEIMO_EXCEL_IMAGE_BASELINE_MAX_LUMINANCE_MAE", 0D);
+            VisualRasterComparison comparison = VisualBaselineTestSupport.CompareRasterImages(
+                File.ReadAllBytes(expectedPath),
+                actualPng,
+                channelTolerance,
+                allowedDifferentPixels,
+                maximumMeanAbsoluteError,
+                maximumRootMeanSquareError,
+                maximumMeanLuminanceError);
             if (comparison.Passed) {
                 return;
             }
@@ -1917,7 +1928,13 @@ namespace OfficeIMO.Tests {
                 "Different pixels: " + comparison.DifferentPixels + "/" + comparison.TotalPixels + "; " +
                 "max channel delta: " + comparison.MaxChannelDelta + "; " +
                 "allowed different pixels: " + comparison.AllowedDifferentPixels + "; " +
-                "channel tolerance: " + comparison.ChannelTolerance + ". " +
+                "channel tolerance: " + comparison.ChannelTolerance + "; " +
+                "MAE: " + comparison.MeanAbsoluteError.ToString("0.###", CultureInfo.InvariantCulture) + "/" +
+                    comparison.MaximumMeanAbsoluteError.ToString("0.###", CultureInfo.InvariantCulture) + "; " +
+                "RMSE: " + comparison.RootMeanSquareError.ToString("0.###", CultureInfo.InvariantCulture) + "/" +
+                    comparison.MaximumRootMeanSquareError.ToString("0.###", CultureInfo.InvariantCulture) + "; " +
+                "luminance MAE: " + comparison.MeanLuminanceError.ToString("0.###", CultureInfo.InvariantCulture) + "/" +
+                    comparison.MaximumMeanLuminanceError.ToString("0.###", CultureInfo.InvariantCulture) + ". " +
                 "Artifacts: " + artifactDirectory + ".");
         }
 

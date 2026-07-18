@@ -1,5 +1,6 @@
 using System.Text;
 using OfficeIMO.Drawing;
+using System.Threading;
 
 namespace OfficeIMO.Visio;
 
@@ -12,27 +13,33 @@ internal static class VisioImageExportEngine {
         OfficeImageExportFormat format,
         VisioImageExportOptions options,
         string? name = null,
-        string? source = null) {
+        string? source = null,
+        CancellationToken cancellationToken = default) {
         if (page == null) throw new ArgumentNullException(nameof(page));
         if (options == null) throw new ArgumentNullException(nameof(options));
         options.Validate();
+        cancellationToken.ThrowIfCancellationRequested();
 
         double pixelsPerInch = ResolvePixelsPerInch(options.Scale);
         string resultName = string.IsNullOrWhiteSpace(name) ? page.Name : name!;
         string resultSource = string.IsNullOrWhiteSpace(source) ? "Visio page" : source!;
         var diagnostics = new List<OfficeImageExportDiagnostic>();
+        if (format == OfficeImageExportFormat.Svg || string.IsNullOrWhiteSpace(options.FontFilePath)) {
+            VisioImageExportFontDiagnostics.Append(page, options.Fonts, diagnostics, resultSource);
+        }
         if (format == OfficeImageExportFormat.Svg) {
             int width = Scaled(page.Width, pixelsPerInch);
             int height = Scaled(page.Height, pixelsPerInch);
             byte[] bytes = Encoding.UTF8.GetBytes(VisioSvgRenderer.Render(page, CreateSvgOptions(options, pixelsPerInch, diagnostics, resultSource)));
-            return new OfficeImageExportResult(
+            cancellationToken.ThrowIfCancellationRequested();
+            return options.EnsureAccepted(new OfficeImageExportResult(
                 format,
                 width,
                 height,
                 bytes,
                 resultName,
                 resultSource,
-                diagnostics);
+                diagnostics));
         }
 
         if (!format.IsRaster()) {
@@ -51,23 +58,25 @@ internal static class VisioImageExportEngine {
 
         OfficeRasterImage image = VisioPngRenderer.RenderRaster(
             page,
-            CreatePngOptions(options, ResolvePixelsPerInch(plan.Limit.Scale), diagnostics, resultSource));
+            CreatePngOptions(options, ResolvePixelsPerInch(plan.Limit.Scale), diagnostics, resultSource, cancellationToken));
         byte[] encoded = OfficeRasterImageEncoder.Encode(image, format, options.RasterEncoding);
-        return new OfficeImageExportResult(
+        cancellationToken.ThrowIfCancellationRequested();
+        return options.EnsureAccepted(new OfficeImageExportResult(
             format,
             image.Width,
             image.Height,
             encoded,
             resultName,
             resultSource,
-            diagnostics);
+            diagnostics));
     }
 
     private static VisioPngSaveOptions CreatePngOptions(
         VisioImageExportOptions options,
         double pixelsPerInch,
         ICollection<OfficeImageExportDiagnostic> diagnostics,
-        string source) =>
+        string source,
+        CancellationToken cancellationToken) =>
         new VisioPngSaveOptions {
             PixelsPerInch = pixelsPerInch,
             BackgroundColor = options.BackgroundColor,
@@ -75,6 +84,8 @@ internal static class VisioImageExportEngine {
             FontFilePath = options.FontFilePath,
             FontFaceName = options.FontFaceName,
             FontCollectionIndex = options.FontCollectionIndex,
+            Fonts = options.Fonts.Clone(),
+            CancellationToken = cancellationToken,
             RenderStencilArtwork = options.RenderStencilArtwork,
             RenderConnectorLabels = options.RenderConnectorLabels,
             ResolveConnectorLabelOverlaps = options.ResolveConnectorLabelOverlaps,
@@ -93,6 +104,7 @@ internal static class VisioImageExportEngine {
             PixelsPerInch = pixelsPerInch,
             BackgroundColor = options.BackgroundColor,
             RenderText = options.RenderText,
+            Fonts = options.Fonts.Clone(),
             RenderStencilArtwork = options.RenderStencilArtwork,
             RenderConnectorLabels = options.RenderConnectorLabels,
             ResolveConnectorLabelOverlaps = options.ResolveConnectorLabelOverlaps,

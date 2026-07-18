@@ -1,8 +1,22 @@
 namespace OfficeIMO.Drawing;
 
 public static partial class OfficeDrawingRasterRenderer {
-    private static void RenderImagePattern(OfficeRasterCanvas canvas, OfficeDrawingImagePattern pattern, double scale, IOfficeRasterImageCodec? imageCodec) {
-        if (!TryDecodeImage(pattern.EncodedBytes, pattern.ContentType, imageCodec, out OfficeRasterImage? image) || image == null) {
+    private static void RenderImagePattern(
+        OfficeRasterCanvas canvas,
+        OfficeDrawingImagePattern pattern,
+        double scale,
+        IOfficeRasterImageCodec? imageCodec,
+        System.Threading.CancellationToken cancellationToken) {
+        OfficeImagePatternLayout layout = pattern.Layout.Scale(scale);
+        if (!TryDecodeImage(
+                pattern.EncodedBytes,
+                pattern.ContentType,
+                layout.Tile.Width,
+                layout.Tile.Height,
+                imageCodec,
+                cancellationToken,
+                out OfficeRasterImage? image) ||
+            image == null) {
             return;
         }
 
@@ -10,7 +24,6 @@ public static partial class OfficeDrawingRasterRenderer {
             image = ApplyImageOpacity(image, pattern.Opacity);
         }
 
-        OfficeImagePatternLayout layout = pattern.Layout.Scale(scale);
         OfficeImagePlacement area = layout.Area;
         using (canvas.PushClipRectangle(area.X, area.Y, area.Width, area.Height)) {
             foreach (OfficeImagePlacement tile in layout.GetTilePlacements(pattern.MaximumTileCount)) {

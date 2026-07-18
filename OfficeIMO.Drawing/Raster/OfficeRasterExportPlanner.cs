@@ -86,7 +86,8 @@ public static class OfficeRasterExportPlanner {
             "The raster scale was reduced from " + Format(options.Scale) + " to " + Format(limit.Scale) +
             " to satisfy the effective limit of " + maximumPixels.ToString(CultureInfo.InvariantCulture) +
             " pixels and " + maximumDimension.ToString(CultureInfo.InvariantCulture) + " pixels per dimension.",
-            source);
+            source,
+            OfficeImageExportLossKind.Approximation);
         return new OfficeRasterExportPlan(limit, maximumPixels, maximumDimension, diagnostic);
     }
 

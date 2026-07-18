@@ -35,9 +35,11 @@ public static class OfficeRasterImageEncoder {
         OfficeImageExportFormat format,
         OfficeRasterEncodingOptions? options = null) {
         if (image == null) throw new ArgumentNullException(nameof(image));
-        OfficeRasterEncodingOptions effective = options ?? new OfficeRasterEncodingOptions();
+        OfficeRasterEncodingOptions effective = (options ?? new OfficeRasterEncodingOptions()).Clone();
         return format switch {
-            OfficeImageExportFormat.Png => OfficePngWriter.Encode(image),
+            OfficeImageExportFormat.Png => OfficePngWriter.Encode(
+                image,
+                effective.Png ?? throw new InvalidOperationException("PNG encoding options cannot be null.")),
             OfficeImageExportFormat.Jpeg => OfficeJpegCodec.Encode(
                 image,
                 effective.Jpeg ?? throw new InvalidOperationException("JPEG encoding options cannot be null.")),

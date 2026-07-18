@@ -839,12 +839,77 @@ namespace OfficeIMO.Tests {
 
             OfficeImageExportResult png = sheet.Range("A1:H9").ExportImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions { ShowGridlines = false, Scale = 2D });
 
-            OfficeImageExportDiagnostic diagnostic = Assert.Single(png.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.ChartFontFamilyFallback);
+            OfficeImageExportDiagnostic diagnostic = Assert.Single(
+                png.Diagnostics,
+                item => item.Code ==
+                        OfficeImageExportDiagnosticCodes.FontSubstituted &&
+                        item.Source == "ChartFont!" + chart.Name &&
+                        item.Message.Contains(
+                            "OfficeIMO Missing Chart Font",
+                            StringComparison.Ordinal));
             Assert.Equal(OfficeImageExportDiagnosticSeverity.Warning, diagnostic.Severity);
             Assert.Equal("ChartFont!" + chart.Name, diagnostic.Source);
             Assert.Contains("OfficeIMO Missing Chart Font", diagnostic.Message);
             Assert.DoesNotContain(png.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.ChartTextStyleApproximation);
             Assert.DoesNotContain(png.Diagnostics, item => item.Severity == OfficeImageExportDiagnosticSeverity.Error);
+        }
+
+        [Fact]
+        public void ExcelRange_ImageExportUsesCallerScopedChartFont() {
+            OfficeTrueTypeFont? font = OfficeTrueTypeFont.TryLoadDefault(out string? fontPath);
+            if (font == null || string.IsNullOrWhiteSpace(fontPath)) return;
+
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorksheet("ChartFont");
+            sheet.CellValue(1, 1, "Month");
+            sheet.CellValue(1, 2, "Actual");
+            sheet.CellValue(2, 1, "Jan");
+            sheet.CellValue(2, 2, 120);
+            ExcelChart chart = sheet.AddChartFromRange(
+                "A1:B2",
+                row: 1,
+                column: 4,
+                widthPixels: 265,
+                heightPixels: 170,
+                type: ExcelChartType.ColumnClustered,
+                title: "Scoped Font");
+            chart.SetTitleTextStyle(
+                fontName: "OfficeIMO Scoped Chart Font",
+                color: "BE123C");
+            var options = new ExcelImageExportOptions {
+                ShowGridlines = false
+            };
+            options.Fonts.Add(
+                "OfficeIMO Scoped Chart Font",
+                File.ReadAllBytes(fontPath));
+            options.Fonts.Add(
+                "OfficeIMO Scoped Chart Font",
+                File.ReadAllBytes(fontPath),
+                OfficeFontStyle.Bold);
+            options.Fonts.Add(
+                "OfficeIMO Scoped Chart Font",
+                File.ReadAllBytes(fontPath),
+                OfficeFontStyle.Italic);
+            options.Fonts.Add(
+                "OfficeIMO Scoped Chart Font",
+                File.ReadAllBytes(fontPath),
+                OfficeFontStyle.Bold | OfficeFontStyle.Italic);
+
+            OfficeImageExportResult svg = sheet.Range("A1:H9")
+                .ExportImage(OfficeImageExportFormat.Svg, options);
+
+            Assert.DoesNotContain(
+                svg.Diagnostics,
+                item => item.Code ==
+                        OfficeImageExportDiagnosticCodes.FontSubstituted &&
+                        item.Source == "ChartFont!" + chart.Name &&
+                        item.Message.Contains(
+                            "OfficeIMO Scoped Chart Font",
+                            StringComparison.Ordinal));
+            Assert.Contains(
+                "OfficeIMO Scoped Chart Font",
+                Encoding.UTF8.GetString(svg.Bytes));
         }
 
         [Fact]

@@ -81,9 +81,10 @@ public static partial class HtmlImageExportExtensions {
         OfficeImageExportFormat format,
         HtmlRenderOptions? options,
         int pageIndex) {
-        OfficeImageExportResult result = document.ExportImage(format, options, pageIndex);
-        WriteFile(path, result.Bytes);
-        return result;
+        return new HtmlPageImageExportBuilder(document, options)
+            .Page(pageIndex)
+            .As(format)
+            .Save(path);
     }
 
     private static OfficeImageExportResult SaveRaster(
@@ -92,9 +93,10 @@ public static partial class HtmlImageExportExtensions {
         OfficeImageExportFormat format,
         HtmlRenderOptions? options,
         int pageIndex) {
-        OfficeImageExportResult result = document.ExportImage(format, options, pageIndex);
-        WriteStream(stream, result.Bytes);
-        return result;
+        return new HtmlPageImageExportBuilder(document, options)
+            .Page(pageIndex)
+            .As(format)
+            .Save(stream);
     }
 
     private static async Task<OfficeImageExportResult> SaveRasterAsync(
@@ -104,9 +106,11 @@ public static partial class HtmlImageExportExtensions {
         HtmlRenderOptions? options,
         int pageIndex,
         CancellationToken cancellationToken) {
-        OfficeImageExportResult result = await document.ExportImageAsync(format, options, pageIndex, cancellationToken).ConfigureAwait(false);
-        await WriteFileAsync(path, result.Bytes, cancellationToken).ConfigureAwait(false);
-        return result;
+        return await new HtmlPageImageExportBuilder(document, options)
+            .Page(pageIndex)
+            .As(format)
+            .SaveAsync(path, cancellationToken)
+            .ConfigureAwait(false);
     }
 
     private static async Task<OfficeImageExportResult> SaveRasterAsync(
@@ -116,8 +120,10 @@ public static partial class HtmlImageExportExtensions {
         HtmlRenderOptions? options,
         int pageIndex,
         CancellationToken cancellationToken) {
-        OfficeImageExportResult result = await document.ExportImageAsync(format, options, pageIndex, cancellationToken).ConfigureAwait(false);
-        await WriteStreamAsync(stream, result.Bytes, cancellationToken).ConfigureAwait(false);
-        return result;
+        return await new HtmlPageImageExportBuilder(document, options)
+            .Page(pageIndex)
+            .As(format)
+            .SaveAsync(stream, cancellationToken)
+            .ConfigureAwait(false);
     }
 }

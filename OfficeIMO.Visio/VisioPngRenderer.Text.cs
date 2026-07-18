@@ -19,6 +19,12 @@ namespace OfficeIMO.Visio {
             double pointSize = style?.Size ?? defaultSize;
             double pixelHeight = Math.Max(canvas.Supersampling * 7D, pointSize * canvas.Scale / 72D);
             Color color = style?.Color ?? Color.FromRgb(17, 24, 39);
+            string fontFamily = string.IsNullOrWhiteSpace(style?.FontFamily)
+                ? "Aptos, Calibri, Arial, sans-serif"
+                : style!.FontFamily!;
+            OfficeFontStyle fontStyle =
+                (style?.Bold == true ? OfficeFontStyle.Bold : OfficeFontStyle.Regular) |
+                (style?.Italic == true ? OfficeFontStyle.Italic : OfficeFontStyle.Regular);
             OfficeTextAlignment alignment = VisioDrawingTextAlignment.ToOfficeTextAlignment(style?.HorizontalAlignment);
             OfficeTextVerticalAlignment verticalAlignment = VisioDrawingTextAlignment.ToOfficeTextVerticalAlignment(style?.VerticalAlignment);
             OfficeTextBlockRenderPlan plan = OfficeTextBlockRenderPlan.CreateFittedFromCenter(
@@ -28,7 +34,7 @@ namespace OfficeIMO.Visio {
                 centerY,
                 maxWidth,
                 maxHeight,
-                canvas.MeasureText,
+                (value, size) => canvas.MeasureText(value, size, fontFamily, fontStyle),
                 alignment,
                 verticalAlignment,
                 lineHeightFactor: 1.25D,
@@ -45,6 +51,7 @@ namespace OfficeIMO.Visio {
                 style?.Bold == true,
                 style?.Italic == true,
                 style?.Underline == true,
+                fontFamily,
                 rotateRadians,
                 centerX,
                 centerY,

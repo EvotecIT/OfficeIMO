@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -142,6 +143,9 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, comparison.DifferentPixels);
             Assert.Equal(2, comparison.TotalPixels);
             Assert.Equal(255, comparison.MaxChannelDelta);
+            Assert.Equal(39.875D, comparison.MeanAbsoluteError, 3);
+            Assert.InRange(comparison.RootMeanSquareError, 92.9D, 93D);
+            Assert.InRange(comparison.MeanLuminanceError, 32D, 32.2D);
             Assert.True(comparison.DiffPng.Length > 0);
             Assert.Equal(2, VisualBaselineTestSupport.DecodePng(comparison.DiffPng, "Visio diff PNG is not a supported PNG file.").Width);
         }
@@ -300,7 +304,13 @@ namespace OfficeIMO.Tests {
                 : "Different pixels: " + comparison.DifferentPixels + "/" + comparison.TotalPixels + "; " +
                   "max channel delta: " + comparison.MaxChannelDelta + "; " +
                   "allowed different pixels: " + comparison.AllowedDifferentPixels + "; " +
-                  "channel tolerance: " + comparison.ChannelTolerance + ". ";
+                  "channel tolerance: " + comparison.ChannelTolerance + "; " +
+                  "MAE: " + comparison.MeanAbsoluteError.ToString("0.###", CultureInfo.InvariantCulture) + "/" +
+                    comparison.MaximumMeanAbsoluteError.ToString("0.###", CultureInfo.InvariantCulture) + "; " +
+                  "RMSE: " + comparison.RootMeanSquareError.ToString("0.###", CultureInfo.InvariantCulture) + "/" +
+                    comparison.MaximumRootMeanSquareError.ToString("0.###", CultureInfo.InvariantCulture) + "; " +
+                  "luminance MAE: " + comparison.MeanLuminanceError.ToString("0.###", CultureInfo.InvariantCulture) + "/" +
+                    comparison.MaximumMeanLuminanceError.ToString("0.###", CultureInfo.InvariantCulture) + ". ";
             throw new Xunit.Sdk.XunitException(
                 "Premium Visio visual baseline changed for '" + baselineName + "'. " +
                 "Expected bytes: " + expectedInfo.Length + "; actual bytes: " + actualInfo.Length + ". " +
@@ -408,7 +418,17 @@ namespace OfficeIMO.Tests {
                 allowedDifferentPixels = VisualBaselineTestSupport.ReadNonNegativeInt("OFFICEIMO_VISIO_PREMIUM_NATIVE_BASELINE_ALLOWED_DIFF_PIXELS", defaultAllowedDifferentPixels);
             }
 
-            return VisualBaselineTestSupport.CompareRasterImages(expected, actual, channelTolerance, allowedDifferentPixels);
+            double defaultMaximumMeanAbsoluteError = allowNativeVariance ? 2.5D : 0D;
+            double defaultMaximumRootMeanSquareError = allowNativeVariance ? 18D : 0D;
+            double defaultMaximumMeanLuminanceError = allowNativeVariance ? 3.5D : 0D;
+            return VisualBaselineTestSupport.CompareRasterImages(
+                expected,
+                actual,
+                channelTolerance,
+                allowedDifferentPixels,
+                VisualBaselineTestSupport.ReadNonNegativeDouble("OFFICEIMO_VISIO_PREMIUM_BASELINE_MAX_MAE", defaultMaximumMeanAbsoluteError),
+                VisualBaselineTestSupport.ReadNonNegativeDouble("OFFICEIMO_VISIO_PREMIUM_BASELINE_MAX_RMSE", defaultMaximumRootMeanSquareError),
+                VisualBaselineTestSupport.ReadNonNegativeDouble("OFFICEIMO_VISIO_PREMIUM_BASELINE_MAX_LUMINANCE_MAE", defaultMaximumMeanLuminanceError));
         }
 
         private static VisualRasterComparison CompareRasterImages(byte[] expectedPng, byte[] actualPng, int channelTolerance, int allowedDifferentPixels) =>

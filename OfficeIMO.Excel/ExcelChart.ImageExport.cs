@@ -786,14 +786,6 @@ namespace OfficeIMO.Excel {
                     source));
             }
 
-            foreach (string fontFamily in GetUnresolvedImageExportTextFontFamilies(chartSpace)) {
-                diagnostics.Add(new OfficeImageExportDiagnostic(
-                    OfficeImageExportDiagnosticSeverity.Warning,
-                    ExcelImageExportDiagnosticCodes.ChartFontFamilyFallback,
-                    "Worksheet chart font family '" + fontFamily + "' could not be loaded exactly by the dependency-free image exporter; raster text metrics and image output used the shared fallback font path.",
-                    source));
-            }
-
             if (HasUnsupportedImageExportChartAreaStyle(chartSpace, workbookPart)) {
                 diagnostics.Add(new OfficeImageExportDiagnostic(
                     OfficeImageExportDiagnosticSeverity.Warning,

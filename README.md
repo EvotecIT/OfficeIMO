@@ -945,7 +945,7 @@ reopened.SaveAsHtml("Planning.html");
 reopened.SaveAsPdf("Planning.pdf");
 reopened.SaveAsVisualHtml("Planning-visual.html");
 reopened.SaveAsVisualPdf("Planning-visual.pdf");
-reopened.Pages[0].ToImage().WithDpi(144).AsPng().Save("Planning-page-1.png");
+reopened.Pages[0].ToImage().AtDpi(144).AsPng().Save("Planning-page-1.png");
 ```
 
 ### Create a Word document with page variants

@@ -34,9 +34,9 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
             OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
 
-            Assert.Empty(snapshot.Diagnostics);
-            Assert.Empty(png.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
             Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? image));
             Assert.Equal(220, image!.Width);
 
@@ -73,9 +73,9 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
             OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
 
-            Assert.Empty(snapshot.Diagnostics);
-            Assert.Empty(png.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
             Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? image));
             Assert.Equal(140, image!.Height);
 
@@ -109,8 +109,8 @@ namespace OfficeIMO.Tests {
             PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot();
             OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
 
-            Assert.Empty(snapshot.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
             Assert.Equal(2, snapshot.Drawing.Elements.OfType<OfficeDrawingText>().Count(text => text.Text.StartsWith("Cell ", StringComparison.Ordinal)));
             Assert.NotNull(SingleText(snapshot, "Cell first"));
             Assert.NotNull(SingleText(snapshot, "Cell second"));
@@ -153,9 +153,9 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
             OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
 
-            Assert.Empty(snapshot.Diagnostics);
-            Assert.Empty(png.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
             OfficeDrawingText text = SingleText(snapshot, "Grouped");
             Assert.Equal(20D, text.Font.Size, 6);
             Assert.Equal(6D, text.Padding.Left, 6);
@@ -188,9 +188,9 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
             OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
 
-            Assert.Empty(snapshot.Diagnostics);
-            Assert.Empty(png.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
             Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? image));
             Assert.Equal(260, image!.Width);
 
@@ -235,9 +235,9 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
             OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
 
-            Assert.Empty(snapshot.Diagnostics);
-            Assert.Empty(png.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
             OfficeDrawingRichText richText = Assert.Single(snapshot.Drawing.Elements.OfType<OfficeDrawingRichText>());
             Assert.Contains(richText.Runs, run => run.Text == "\u2022 ");
             Assert.Contains("Only bullet", richText.PlainText, StringComparison.Ordinal);

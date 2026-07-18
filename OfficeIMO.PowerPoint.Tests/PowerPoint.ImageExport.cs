@@ -35,12 +35,12 @@ namespace OfficeIMO.Tests {
             Assert.Equal(480, image!.Width);
             Assert.Equal(320, image.Height);
             Assert.Equal(OfficeColor.FromRgb(17, 34, 51), image.GetPixel(8, 8));
-            Assert.Empty(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
 
             string svgText = Encoding.UTF8.GetString(svg.Bytes);
             Assert.Contains("width=\"480px\"", svgText, StringComparison.Ordinal);
             Assert.Contains("#112233", svgText, StringComparison.OrdinalIgnoreCase);
-            Assert.Empty(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
         }
 
         [Fact]
@@ -63,7 +63,7 @@ namespace OfficeIMO.Tests {
             string svgText = Encoding.UTF8.GetString(output.ToArray());
             Assert.Contains("#112233", svgText, StringComparison.OrdinalIgnoreCase);
             Assert.DoesNotContain("Hidden by fluent content toggle", svgText, StringComparison.Ordinal);
-            Assert.Empty(result.Diagnostics);
+            AssertNoUnexpectedDiagnostics(result.Diagnostics);
         }
 
         [Fact]
@@ -201,7 +201,7 @@ namespace OfficeIMO.Tests {
             Assert.Contains("<linearGradient", svgText, StringComparison.Ordinal);
             Assert.Contains("#112233", svgText, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("#445566", svgText, StringComparison.OrdinalIgnoreCase);
-            Assert.Empty(result.Diagnostics);
+            AssertNoUnexpectedDiagnostics(result.Diagnostics);
         }
 
         [Fact]
@@ -236,8 +236,8 @@ namespace OfficeIMO.Tests {
             Assert.Contains("<linearGradient", svgText, StringComparison.Ordinal);
             Assert.Contains("#112233", svgText, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("#445566", svgText, StringComparison.OrdinalIgnoreCase);
-            Assert.Empty(result.Diagnostics);
-            Assert.Empty(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(result.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
         }
 
         [Theory]
@@ -302,7 +302,7 @@ namespace OfficeIMO.Tests {
                 .OfType<OfficeDrawingShape>(), item => item.Shape.FillGradient != null);
             Assert.Equal("#112233", rendered.Shape.FillGradient!.Stops[0].Color.ToString());
             Assert.Equal("#445566", rendered.Shape.FillGradient.Stops[1].Color.ToString());
-            Assert.Empty(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
         }
 
         [Fact]
@@ -409,14 +409,14 @@ namespace OfficeIMO.Tests {
                 rendered[0].Shape.FillGradient.EndY, 6);
             Assert.Equal(rendered[1].Shape.FillGradient!.StartX,
                 rendered[1].Shape.FillGradient.EndX, 6);
-            Assert.Empty(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
 
             OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png,
                 new PowerPointImageExportOptions { IncludeSlideBackground = false });
             Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? image));
             Assert.True(image!.GetPixel(60, 18).R > image.GetPixel(60, 82).R);
             Assert.True(image.GetPixel(164, 50).R > image.GetPixel(196, 50).R);
-            Assert.Empty(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
         }
 
         [Fact]
@@ -448,7 +448,7 @@ namespace OfficeIMO.Tests {
             if (actual < 0D) actual += 360D;
 
             Assert.InRange(actual, 36.999D, 37.001D);
-            Assert.Empty(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
         }
 
         [Fact]
@@ -563,8 +563,8 @@ namespace OfficeIMO.Tests {
             Assert.Equal(PowerPointSlideBackgroundKind.LinearGradient, background.Kind);
             Assert.Equal("112233", background.GradientStartColor);
             Assert.Equal("445566", background.GradientEndColor);
-            Assert.Empty(svg.Diagnostics);
-            Assert.Empty(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
             Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? image));
             Assert.Equal(120, image!.Width);
             Assert.Equal(80, image.Height);
@@ -598,8 +598,8 @@ namespace OfficeIMO.Tests {
 
             Assert.Equal("11223380", background.GradientStartColor);
             Assert.Equal("44556640", background.GradientEndColor);
-            Assert.Empty(svg.Diagnostics);
-            Assert.Empty(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
 
             string svgText = Encoding.UTF8.GetString(svg.Bytes);
             Assert.Contains("stop-color=\"#112233\"", svgText, StringComparison.OrdinalIgnoreCase);
@@ -633,8 +633,8 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png, new PowerPointImageExportOptions { IncludeSlideContent = false });
 
             Assert.Equal("33669980", background.GradientStartColor);
-            Assert.Empty(svg.Diagnostics);
-            Assert.Empty(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
 
             string svgText = Encoding.UTF8.GetString(svg.Bytes);
             Assert.Contains("stop-color=\"#336699\"", svgText, StringComparison.OrdinalIgnoreCase);
@@ -659,8 +659,8 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult result = slide.ExportImage(OfficeImageExportFormat.Png);
             PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot();
 
-            Assert.Empty(result.Diagnostics);
-            Assert.Empty(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(result.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
             Assert.True(OfficePngReader.TryDecode(result.Bytes, out OfficeRasterImage? image));
             Assert.Equal(OfficeColor.FromRgb(34, 170, 102), image!.GetPixel(30, 30));
             Assert.Contains(snapshot.Drawing.Elements, element => element is OfficeDrawingText);
@@ -697,9 +697,9 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
             OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
 
-            Assert.Empty(snapshot.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
-            Assert.Empty(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
             OfficeDrawingShape rendered = Assert.Single(snapshot.Drawing.Elements.OfType<OfficeDrawingShape>(), drawingShape =>
                 Math.Abs(drawingShape.X - 20D) < 0.000001D &&
                 Math.Abs(drawingShape.Y - 20D) < 0.000001D);
@@ -743,8 +743,8 @@ namespace OfficeIMO.Tests {
             Assert.Equal(OfficeColor.FromRgba(51, 102, 153, 128), rendered.Shape.FillColor);
             string svgText = Encoding.UTF8.GetString(svg.Bytes);
             Assert.Contains("fill=\"#336699\" fill-opacity=\"0.502\"", svgText, StringComparison.OrdinalIgnoreCase);
-            Assert.Empty(snapshot.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
         }
 
         [Fact]
@@ -776,9 +776,9 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
             OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
 
-            Assert.Empty(snapshot.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
-            Assert.Empty(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
             OfficeDrawingShape rendered = Assert.Single(snapshot.Drawing.Elements.OfType<OfficeDrawingShape>(), drawingShape =>
                 Math.Abs(drawingShape.X - 20D) < 0.000001D &&
                 Math.Abs(drawingShape.Y - 20D) < 0.000001D);
@@ -819,9 +819,9 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
             PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot();
 
-            Assert.Empty(png.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
-            Assert.Empty(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
             OfficeDrawingShape drawingShape = Assert.Single(snapshot.Drawing.Elements.OfType<OfficeDrawingShape>(), element =>
                 Math.Abs(element.X - 24D) < 0.000001D &&
                 Math.Abs(element.Y - 24D) < 0.000001D);
@@ -868,9 +868,9 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
             OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
 
-            Assert.Empty(snapshot.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
-            Assert.Empty(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
             OfficeDrawingShape rendered = Assert.Single(snapshot.Drawing.Elements.OfType<OfficeDrawingShape>(), drawingShape =>
                 Math.Abs(drawingShape.X - 20D) < 0.000001D &&
                 Math.Abs(drawingShape.Y - 20D) < 0.000001D);
@@ -899,7 +899,7 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
             string svgText = Encoding.UTF8.GetString(svg.Bytes);
 
-            Assert.Empty(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
             Assert.DoesNotContain("\t", svgText, StringComparison.Ordinal);
             Assert.Contains("xml:space=\"preserve\"", svgText, StringComparison.Ordinal);
             Assert.Contains("A   B", svgText, StringComparison.Ordinal);
@@ -919,8 +919,8 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
             PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot();
 
-            Assert.Empty(svg.Diagnostics);
-            Assert.Empty(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
             OfficeDrawingText drawingText = Assert.Single(snapshot.Drawing.Elements.OfType<OfficeDrawingText>());
             Assert.Equal(20D, drawingText.X);
             Assert.Equal(18D, drawingText.Y);
@@ -951,8 +951,8 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
             PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot();
 
-            Assert.Empty(svg.Diagnostics);
-            Assert.Empty(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
             OfficeDrawingText drawingText = Assert.Single(snapshot.Drawing.Elements.OfType<OfficeDrawingText>());
             Assert.True(drawingText.HasParagraphIndent);
             Assert.Equal(0D, drawingText.ParagraphIndent.FirstLineOffset);
@@ -976,7 +976,7 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
             PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot();
 
-            Assert.Empty(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
             OfficeDrawingText text = snapshot.Drawing.Elements.OfType<OfficeDrawingText>().Single(element => element.Text.StartsWith("Justified PowerPoint", StringComparison.Ordinal));
             Assert.Equal(OfficeTextAlignment.Justify, text.Alignment);
 
@@ -1008,9 +1008,9 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
             OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
 
-            Assert.Empty(snapshot.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
-            Assert.Empty(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
             OfficeDrawingText text = Assert.Single(snapshot.Drawing.Elements.OfType<OfficeDrawingText>(), drawingText => drawingText.Text == "Theme text");
             Assert.Equal(OfficeColor.FromRgb(16, 32, 48), text.Color);
 
@@ -1048,9 +1048,9 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
             PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot();
 
-            Assert.Empty(png.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
-            Assert.Empty(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
             Assert.Equal(3, snapshot.Drawing.Elements.OfType<OfficeDrawingShape>().Count(shape => shape.Shape.Kind == OfficeShapeKind.Polygon));
             Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? image));
             Assert.Equal(220, image!.Width);
@@ -1098,9 +1098,9 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
             PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot();
 
-            Assert.Empty(png.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
-            Assert.Empty(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
             List<OfficeDrawingShape> shapes = snapshot.Drawing.Elements.OfType<OfficeDrawingShape>().ToList();
             Assert.True(shapes.Count >= 6);
             Assert.True(shapes.Count(shape => shape.Shape.Kind == OfficeShapeKind.Polygon) >= 6);
@@ -1141,9 +1141,9 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
             PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot();
 
-            Assert.Empty(png.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
-            Assert.Empty(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
             List<OfficeDrawingShape> shapes = snapshot.Drawing.Elements.OfType<OfficeDrawingShape>().ToList();
             Assert.Equal(2, shapes.Count(shape => shape.Shape.Kind == OfficeShapeKind.Polygon));
             Assert.Contains(shapes, shape => shape.Shape.Points.Count == 10);
@@ -1185,9 +1185,9 @@ namespace OfficeIMO.Tests {
         OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
         PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot();
 
-        Assert.Empty(png.Diagnostics);
-        Assert.Empty(svg.Diagnostics);
-        Assert.Empty(snapshot.Diagnostics);
+        AssertNoUnexpectedDiagnostics(png.Diagnostics);
+        AssertNoUnexpectedDiagnostics(svg.Diagnostics);
+        AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
         List<OfficeDrawingShape> shapes = snapshot.Drawing.Elements.OfType<OfficeDrawingShape>().ToList();
         Assert.Equal(4, shapes.Count(shape => shape.Shape.Kind == OfficeShapeKind.Polygon));
         Assert.Contains(shapes, shape => shape.Shape.Points.Count == 17);
@@ -1231,9 +1231,9 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
             PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot();
 
-            Assert.Empty(png.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
-            Assert.Empty(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
             List<OfficeDrawingShape> shapes = snapshot.Drawing.Elements.OfType<OfficeDrawingShape>().ToList();
             Assert.Equal(4, shapes.Count(shape => shape.Shape.Kind == OfficeShapeKind.Polygon));
             Assert.Contains(shapes, shape => shape.Shape.Points.Count == 7);
@@ -1282,9 +1282,9 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
             PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot();
 
-            Assert.Empty(png.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
-            Assert.Empty(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
             List<OfficeDrawingShape> shapes = snapshot.Drawing.Elements.OfType<OfficeDrawingShape>().ToList();
             Assert.Contains(shapes, shape => shape.Shape.Kind == OfficeShapeKind.Rectangle);
             Assert.Contains(shapes, shape => shape.Shape.Kind == OfficeShapeKind.RoundedRectangle);
@@ -1344,9 +1344,9 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
             PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot();
 
-            Assert.Empty(png.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
-            Assert.Empty(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
             List<OfficeDrawingShape> shapes = snapshot.Drawing.Elements.OfType<OfficeDrawingShape>().ToList();
             Assert.True(shapes.Count >= 7);
             Assert.True(shapes.Count(shape => shape.Shape.Kind == OfficeShapeKind.Polygon) >= 4);
@@ -1398,9 +1398,9 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
             PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot();
 
-            Assert.Empty(png.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
-            Assert.Empty(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
             List<OfficeDrawingShape> shapes = snapshot.Drawing.Elements.OfType<OfficeDrawingShape>().ToList();
             Assert.True(shapes.Count >= 5);
             Assert.Contains(shapes, shape => shape.Shape.Kind == OfficeShapeKind.Polygon);
@@ -1438,9 +1438,9 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
             PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot();
 
-            Assert.Empty(png.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
-            Assert.Empty(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
             List<OfficeDrawingShape> pathShapes = snapshot.Drawing.Elements.OfType<OfficeDrawingShape>()
                 .Where(shape => shape.Shape.Kind == OfficeShapeKind.Path)
                 .ToList();
@@ -1488,9 +1488,9 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
             PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot();
 
-            Assert.Empty(png.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
-            Assert.Empty(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
             OfficeDrawingShape red = Assert.Single(snapshot.Drawing.Elements.OfType<OfficeDrawingShape>(), element => element.Shape.FillColor == OfficeColor.FromRgb(255, 0, 0));
             OfficeDrawingShape green = Assert.Single(snapshot.Drawing.Elements.OfType<OfficeDrawingShape>(), element => element.Shape.FillColor == OfficeColor.FromRgb(0, 170, 0));
             Assert.Equal(20D, red.X, 6);
@@ -1566,9 +1566,9 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
             PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot();
 
-            Assert.Empty(png.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
-            Assert.Empty(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
             OfficeDrawingShape red = Assert.Single(snapshot.Drawing.Elements.OfType<OfficeDrawingShape>(), element => element.Shape.FillColor == OfficeColor.FromRgb(255, 0, 0));
             OfficeDrawingShape green = Assert.Single(snapshot.Drawing.Elements.OfType<OfficeDrawingShape>(), element => element.Shape.FillColor == OfficeColor.FromRgb(0, 170, 0));
             Assert.True(red.Shape.Transform.HasValue);
@@ -1616,8 +1616,8 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
             PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot();
 
-            Assert.Empty(png.Diagnostics);
-            Assert.Empty(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
             OfficeDrawingImage drawingImage = Assert.Single(snapshot.Drawing.Elements.OfType<OfficeDrawingImage>());
             Assert.True(drawingImage.Projection.HasTransform);
             Assert.Equal(45D, drawingImage.Projection.RotationDegrees, 6);
@@ -1653,9 +1653,9 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
             PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot();
 
-            Assert.Empty(png.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
-            Assert.Empty(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
             OfficeDrawingGroup drawingGroup = Assert.Single(snapshot.Drawing.Elements.OfType<OfficeDrawingGroup>());
             Assert.Equal(20D, drawingGroup.X, 6);
             Assert.Equal(20D, drawingGroup.Y, 6);
@@ -1702,9 +1702,9 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
             PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot();
 
-            Assert.Empty(png.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
-            Assert.Empty(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
             OfficeDrawingGroup drawingGroup = Assert.Single(snapshot.Drawing.Elements.OfType<OfficeDrawingGroup>());
             Assert.True(drawingGroup.FrameTransform.HasValue);
             Assert.True(drawingGroup.FrameTransform.Value.FlipHorizontal);
@@ -1763,9 +1763,9 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
             PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot();
 
-            Assert.Empty(png.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
-            Assert.Empty(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
             OfficeDrawingRichText richText = Assert.Single(snapshot.Drawing.Elements.OfType<OfficeDrawingRichText>());
             Assert.Equal("Base Red", richText.PlainText);
             Assert.Equal(20D, richText.X, 6);
@@ -1806,9 +1806,9 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
             PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot();
 
-            Assert.Empty(png.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
-            Assert.Empty(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
             Assert.Equal(2, snapshot.Drawing.Elements.OfType<OfficeDrawingShape>().Count(element => element.Shape.Kind == OfficeShapeKind.Line));
             Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? image));
             Assert.Equal(180, image!.Width);
@@ -1841,9 +1841,9 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
             PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot();
 
-            Assert.Empty(png.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
-            Assert.Empty(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
             IReadOnlyList<OfficeDrawingShape> lines = snapshot.Drawing.Elements
                 .OfType<OfficeDrawingShape>()
                 .Where(element => element.Shape.Kind == OfficeShapeKind.Line)
@@ -1882,9 +1882,9 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
             PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot();
 
-            Assert.Empty(png.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
-            Assert.Empty(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
             OfficeDrawingShape connectorPath = Assert.Single(
                 snapshot.Drawing.Elements.OfType<OfficeDrawingShape>(),
                 element => element.Shape.Kind == OfficeShapeKind.Path);
@@ -1926,9 +1926,9 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
             PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot();
 
-            Assert.Empty(png.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
-            Assert.Empty(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
             IReadOnlyList<OfficeDrawingShape> connectorPaths = snapshot.Drawing.Elements
                 .OfType<OfficeDrawingShape>()
                 .Where(element => element.Shape.Kind == OfficeShapeKind.Path)
@@ -1988,9 +1988,9 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
             PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot();
 
-            Assert.Empty(png.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
-            Assert.Empty(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
             IReadOnlyList<OfficeDrawingShape> connectorPaths = snapshot.Drawing.Elements
                 .OfType<OfficeDrawingShape>()
                 .Where(element => element.Shape.Kind == OfficeShapeKind.Path)
@@ -2046,9 +2046,9 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult png = loadedSlide.ExportImage(OfficeImageExportFormat.Png);
             OfficeImageExportResult svg = loadedSlide.ExportImage(OfficeImageExportFormat.Svg);
 
-            Assert.Empty(snapshot.Diagnostics);
-            Assert.Empty(png.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
             OfficeDrawingShape connectorPath = Assert.Single(
                 snapshot.Drawing.Elements.OfType<OfficeDrawingShape>(),
                 element => element.Shape.Kind == OfficeShapeKind.Path &&
@@ -2084,8 +2084,8 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult svgResult = slide.ExportImage(OfficeImageExportFormat.Svg);
             PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot();
 
-            Assert.Empty(pngResult.Diagnostics);
-            Assert.Empty(svgResult.Diagnostics);
+            AssertNoUnexpectedDiagnostics(pngResult.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svgResult.Diagnostics);
             Assert.Single(snapshot.Drawing.Images);
             Assert.True(OfficePngReader.TryDecode(pngResult.Bytes, out OfficeRasterImage? image));
             Assert.Equal(OfficeColor.CornflowerBlue, image!.GetPixel(25, 25));
@@ -2093,6 +2093,33 @@ namespace OfficeIMO.Tests {
             string svgText = Encoding.UTF8.GetString(svgResult.Bytes);
             Assert.Contains("<image", svgText, StringComparison.Ordinal);
             Assert.Contains("data:image/png;base64,", svgText, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void PowerPointSlide_RasterizesExistingSvgPictureWithoutAPlaceholder() {
+            using var stream = new MemoryStream();
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            presentation.SlideSize.SetSizePoints(160, 100);
+            PowerPointSlide slide = presentation.AddSlide();
+            byte[] svg = Encoding.UTF8.GetBytes(
+                "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 10 10\">" +
+                "<rect x=\"0\" y=\"0\" width=\"10\" height=\"10\" fill=\"#D7263D\"/>" +
+                "</svg>");
+            slide.AddPicture(
+                new MemoryStream(svg),
+                ImagePartType.Svg,
+                PowerPointUnits.FromPoints(20),
+                PowerPointUnits.FromPoints(20),
+                PowerPointUnits.FromPoints(40),
+                PowerPointUnits.FromPoints(30));
+
+            OfficeImageExportResult result = slide.ExportImage(OfficeImageExportFormat.Png);
+
+            Assert.DoesNotContain(
+                result.Diagnostics,
+                diagnostic => diagnostic.Code == OfficeImageExportDiagnosticCodes.SourceImageDecodeFallback);
+            Assert.True(OfficePngReader.TryDecode(result.Bytes, out OfficeRasterImage? image));
+            Assert.Equal(OfficeColor.FromRgb(0xD7, 0x26, 0x3D), image!.GetPixel(40, 35));
         }
 
         [Fact]
@@ -2115,8 +2142,8 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
             PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot();
 
-            Assert.Empty(png.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
             OfficeDrawingImage poster = Assert.Single(snapshot.Drawing.Images);
             Assert.Equal("image/png", poster.ContentType);
             Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? rendered));
@@ -2150,8 +2177,8 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
             PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot();
 
-            Assert.Empty(png.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
             OfficeDrawingImage drawingImage = Assert.Single(snapshot.Drawing.Images);
             Assert.Equal("image/bmp", drawingImage.ContentType);
             Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? rendered));
@@ -2182,8 +2209,8 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
             PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot();
 
-            Assert.Empty(png.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
             Assert.Equal("image/bmp", Assert.Single(snapshot.Drawing.Images).ContentType);
             Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? rendered));
             Assert.Equal(OfficeColor.FromRgb(24, 96, 144), rendered!.GetPixel(30, 28));
@@ -2213,8 +2240,8 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg, new PowerPointImageExportOptions { BackgroundColor = OfficeColor.White });
             PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot();
 
-            Assert.Empty(png.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
             OfficeDrawingImage drawingImage = Assert.Single(snapshot.Drawing.Images);
             Assert.Equal("image/bmp", drawingImage.ContentType);
             Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? rendered));
@@ -2246,8 +2273,8 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
             PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot();
 
-            Assert.Empty(png.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
             OfficeDrawingImage drawingImage = Assert.Single(snapshot.Drawing.Images);
             Assert.Equal("image/gif", drawingImage.ContentType);
             Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? rendered));
@@ -2287,9 +2314,9 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult svgResult = slide.ExportImage(OfficeImageExportFormat.Svg);
             PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot();
 
-            Assert.Empty(pngResult.Diagnostics);
-            Assert.Empty(svgResult.Diagnostics);
-            Assert.Empty(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(pngResult.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svgResult.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
 
             OfficeDrawingImage image = Assert.Single(snapshot.Drawing.Images);
             OfficeImageProjection projection = image.Projection;
@@ -2341,7 +2368,7 @@ namespace OfficeIMO.Tests {
                 OfficeImageExportResult result = slide.ExportImage(OfficeImageExportFormat.Png, new PowerPointImageExportOptions { IncludeSlideContent = false });
                 PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot(new PowerPointImageExportOptions { IncludeSlideContent = false });
 
-                Assert.Empty(result.Diagnostics);
+                AssertNoUnexpectedDiagnostics(result.Diagnostics);
                 Assert.Single(snapshot.Drawing.Images);
                 Assert.True(OfficePngReader.TryDecode(result.Bytes, out OfficeRasterImage? image));
                 Assert.Equal(backgroundImageColor, image!.GetPixel(5, 5));
@@ -2385,9 +2412,9 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
             PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot();
 
-            Assert.Empty(png.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
-            Assert.Empty(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
             Assert.True(snapshot.Drawing.Elements.OfType<OfficeDrawingShape>().Count() >= 3);
             Assert.Contains(snapshot.Drawing.Elements.OfType<OfficeDrawingShape>(), shape =>
                 shape.Shape.FillColor == OfficeColor.FromRgb(34, 170, 102));
@@ -2425,9 +2452,9 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
             OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
 
-            Assert.Empty(snapshot.Diagnostics);
-            Assert.Empty(png.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
             List<OfficeDrawingShape> rectangles = snapshot.Drawing.Elements
                 .OfType<OfficeDrawingShape>()
                 .Where(shape => shape.Shape.Kind == OfficeShapeKind.Rectangle)
@@ -2468,9 +2495,9 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
             OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
 
-            Assert.Empty(snapshot.Diagnostics);
-            Assert.Empty(png.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
             List<OfficeDrawingShape> borderLines = snapshot.Drawing.Elements
                 .OfType<OfficeDrawingShape>()
                 .Where(shape => shape.Shape.Kind == OfficeShapeKind.Line)
@@ -2511,9 +2538,9 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
             OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
 
-            Assert.Empty(snapshot.Diagnostics);
-            Assert.Empty(png.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
             List<OfficeDrawingShape> borderLines = snapshot.Drawing.Elements
                 .OfType<OfficeDrawingShape>()
                 .Where(shape => shape.Shape.Kind == OfficeShapeKind.Line)
@@ -2553,9 +2580,9 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
             OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
 
-            Assert.Empty(snapshot.Diagnostics);
-            Assert.Empty(png.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
             Assert.Contains(snapshot.Drawing.Elements.OfType<OfficeDrawingShape>(), shape =>
                 shape.Shape.Kind == OfficeShapeKind.Rectangle &&
                 shape.Shape.FillColor == OfficeColor.FromRgba(56, 189, 248, 128));
@@ -2590,9 +2617,9 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
             OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
 
-            Assert.Empty(snapshot.Diagnostics);
-            Assert.Empty(png.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
             List<OfficeDrawingShape> borderLines = snapshot.Drawing.Elements
                 .OfType<OfficeDrawingShape>()
                 .Where(shape => shape.Shape.Kind == OfficeShapeKind.Line)
@@ -2636,9 +2663,9 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
             OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
 
-            Assert.Empty(snapshot.Diagnostics);
-            Assert.Empty(png.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
             Assert.Contains(snapshot.Drawing.Elements.OfType<OfficeDrawingShape>(), shape =>
                 shape.Shape.FillColor == OfficeColor.FromRgb(153, 178, 204) &&
                 Math.Abs(shape.X - 20D) < 0.000001D &&
@@ -2671,9 +2698,9 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
             OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
 
-            Assert.Empty(snapshot.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
-            Assert.Empty(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
             OfficeDrawingText text = Assert.Single(snapshot.Drawing.Elements.OfType<OfficeDrawingText>(), drawingText => drawingText.Text == "Theme cell");
             Assert.Equal(OfficeColor.FromRgb(68, 34, 17), text.Color);
 
@@ -2704,9 +2731,9 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
             OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
 
-            Assert.Empty(snapshot.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
-            Assert.Empty(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
             OfficeDrawingText text = Assert.Single(snapshot.Drawing.Elements.OfType<OfficeDrawingText>(), drawingText => drawingText.Text == "Alpha text");
             Assert.Equal(OfficeColor.FromRgba(17, 24, 39, 128), text.Color);
 
@@ -2735,8 +2762,8 @@ namespace OfficeIMO.Tests {
             PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot();
             OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
 
-            Assert.Empty(snapshot.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
 
             OfficeDrawingText text = snapshot.Drawing.Elements.OfType<OfficeDrawingText>().Single(drawingText => drawingText.Text == "Padded table cell");
             Assert.Equal(20D, text.X);
@@ -2784,9 +2811,9 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
             PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot();
 
-            Assert.Empty(png.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
-            Assert.Empty(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
             OfficeDrawingRichText richText = Assert.Single(snapshot.Drawing.Elements.OfType<OfficeDrawingRichText>());
             Assert.Equal("Plain Red blue", richText.PlainText);
             Assert.Equal(3, richText.Runs.Count);
@@ -2833,9 +2860,9 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
             PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot();
 
-            Assert.Empty(png.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
-            Assert.Empty(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
             OfficeDrawingRichText richText = Assert.Single(snapshot.Drawing.Elements.OfType<OfficeDrawingRichText>());
             OfficeRichTextRun run = Assert.Single(richText.Runs);
             Assert.Equal("Marked", run.Text);
@@ -2872,9 +2899,9 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
             PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot();
 
-            Assert.Empty(png.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
-            Assert.Empty(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
             OfficeDrawingRichText richText = Assert.Single(snapshot.Drawing.Elements.OfType<OfficeDrawingRichText>());
             OfficeRichTextRun richRun = Assert.Single(richText.Runs);
             Assert.Equal("Marked", richRun.Text);
@@ -2917,9 +2944,9 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
             PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot();
 
-            Assert.Empty(svg.Diagnostics);
-            Assert.Empty(png.Diagnostics);
-            Assert.Empty(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
             Assert.Contains(snapshot.Drawing.Elements, element => element is OfficeDrawingShape drawingShape && drawingShape.Shape.Transform.HasValue);
             Assert.Contains(snapshot.Drawing.Elements, element => element is OfficeDrawingText drawingText && drawingText.Text == "Mirrored" && drawingText.FlipHorizontal && !drawingText.FlipVertical);
             Assert.Contains(snapshot.Drawing.Elements, element => element is OfficeDrawingText drawingText && drawingText.Text == "Shared table renderer" && drawingText.FlipHorizontal && !drawingText.FlipVertical);
@@ -2951,9 +2978,9 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
             PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot();
 
-            Assert.Empty(png.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
-            Assert.Empty(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
             Assert.Contains(snapshot.Drawing.Elements, element => element is OfficeDrawingText drawingText && drawingText.Text == "Revenue Trend");
             Assert.Contains(snapshot.Drawing.Elements, element => element is OfficeDrawingText drawingText && drawingText.Text == "Revenue");
             Assert.True(snapshot.Drawing.Elements.OfType<OfficeDrawingShape>().Count() > 5);
@@ -2992,8 +3019,8 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
             OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
 
-            Assert.Empty(png.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
             Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? image));
             Assert.Equal(360, image!.Width);
             Assert.Equal(240, image.Height);
@@ -3062,8 +3089,8 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
             OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
 
-            Assert.Empty(svg.Diagnostics);
-            Assert.Empty(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
             Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? image));
             Assert.Equal(360, image!.Width);
             Assert.Equal(240, image.Height);
@@ -3094,9 +3121,9 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
             PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot();
 
-            Assert.Empty(svg.Diagnostics);
-            Assert.Empty(png.Diagnostics);
-            Assert.Empty(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
             Assert.Contains(snapshot.Drawing.Elements, element => element is OfficeDrawingShape drawingShape && drawingShape.Shape.Transform.HasValue);
             Assert.Contains(snapshot.Drawing.Elements, element => element is OfficeDrawingText drawingText && drawingText.Text == "Revenue Trend" && drawingText.FlipHorizontal);
 
@@ -3139,8 +3166,8 @@ namespace OfficeIMO.Tests {
             PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot();
             OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
 
-            Assert.Empty(snapshot.Diagnostics);
-            Assert.Empty(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
             OfficeDrawingGroup chartGroup = Assert.Single(snapshot.Drawing.Elements.OfType<OfficeDrawingGroup>());
             Assert.Equal(40D, chartGroup.X, 1);
             Assert.Equal(30D, chartGroup.Y, 1);
@@ -3169,8 +3196,8 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult result = slide.ExportImage(OfficeImageExportFormat.Svg);
             PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot();
 
-            Assert.Empty(result.Diagnostics);
-            Assert.Empty(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(result.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
             Assert.Contains(snapshot.Drawing.Elements, element => element is OfficeDrawingShape drawingShape && drawingShape.Shape.Transform.HasValue);
             Assert.Contains(snapshot.Drawing.Elements, element => element is OfficeDrawingText drawingText && Math.Abs(drawingText.RotationDegrees - 10D) < 0.000001D);
 
@@ -3195,9 +3222,9 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
             PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot();
 
-            Assert.Empty(svg.Diagnostics);
-            Assert.Empty(png.Diagnostics);
-            Assert.Empty(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
             OfficeDrawingText drawingText = Assert.Single(snapshot.Drawing.Elements.OfType<OfficeDrawingText>());
             Assert.True(drawingText.FlipHorizontal);
             Assert.False(drawingText.FlipVertical);
@@ -3236,9 +3263,9 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
             PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot();
 
-            Assert.Empty(png.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
-            Assert.Empty(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
             OfficeDrawingRichText richText = Assert.Single(snapshot.Drawing.Elements.OfType<OfficeDrawingRichText>());
             Assert.Equal("Plain Red blue", richText.PlainText);
             Assert.Equal(3, richText.Runs.Count);
@@ -3290,9 +3317,9 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
             PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot();
 
-            Assert.Empty(png.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
-            Assert.Empty(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
             OfficeDrawingRichText richText = Assert.Single(snapshot.Drawing.Elements.OfType<OfficeDrawingRichText>());
             Assert.Equal("Plain Red blue", richText.PlainText);
             Assert.Equal(OfficeColor.FromRgba(255, 0, 0, 128), richText.Runs[1].Color);
@@ -3321,9 +3348,9 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
             PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot();
 
-            Assert.Empty(png.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
-            Assert.Empty(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
             OfficeDrawingRichText richText = Assert.Single(snapshot.Drawing.Elements.OfType<OfficeDrawingRichText>());
             OfficeRichTextRun run = Assert.Single(richText.Runs);
             Assert.Equal("Marked", run.Text);
@@ -3361,9 +3388,9 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
             PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot();
 
-            Assert.Empty(png.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
-            Assert.Empty(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
             OfficeDrawingRichText richText = Assert.Single(snapshot.Drawing.Elements.OfType<OfficeDrawingRichText>());
             OfficeRichTextRun richRun = Assert.Single(richText.Runs);
             Assert.Equal("Marked", richRun.Text);
@@ -3399,8 +3426,8 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
             PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot();
 
-            Assert.Empty(svg.Diagnostics);
-            Assert.Empty(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
             OfficeDrawingRichText richText = Assert.Single(snapshot.Drawing.Elements.OfType<OfficeDrawingRichText>());
             OfficeRichTextRun run = Assert.Single(richText.Runs);
             Assert.Equal("Theme mark", run.Text);
@@ -3436,9 +3463,9 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
             PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot();
 
-            Assert.Empty(png.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
-            Assert.Empty(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
             OfficeDrawingRichText richText = Assert.Single(snapshot.Drawing.Elements.OfType<OfficeDrawingRichText>());
             OfficeRichTextRun theme = Assert.Single(richText.Runs, run => run.Text == "Theme");
             Assert.Equal(OfficeColor.FromRgb(18, 52, 86), theme.Color);
@@ -3465,9 +3492,9 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
             PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot();
 
-            Assert.Empty(png.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
-            Assert.Empty(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
             OfficeDrawingRichText richText = Assert.Single(snapshot.Drawing.Elements.OfType<OfficeDrawingRichText>());
             Assert.DoesNotContain(snapshot.Drawing.Elements.OfType<OfficeDrawingText>(), text => text.Text == "Deprecated");
             Assert.Equal("Deprecated", richText.PlainText);
@@ -3496,9 +3523,9 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
             PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot();
 
-            Assert.Empty(png.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
-            Assert.Empty(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
             OfficeDrawingRichText richText = Assert.Single(snapshot.Drawing.Elements.OfType<OfficeDrawingRichText>());
             Assert.Equal("Keep obsolete current", richText.PlainText);
             Assert.Equal(3, richText.Runs.Count);
@@ -3528,9 +3555,9 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
             PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot();
 
-            Assert.Empty(svg.Diagnostics);
-            Assert.Empty(png.Diagnostics);
-            Assert.Empty(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
             OfficeDrawingRichText[] richTexts = snapshot.Drawing.Elements.OfType<OfficeDrawingRichText>().ToArray();
             Assert.Equal(5, richTexts.Length);
             Assert.Contains(richTexts[0].Runs, run => run.Text == "\u2022 ");
@@ -3576,9 +3603,9 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
             PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot();
 
-            Assert.Empty(svg.Diagnostics);
-            Assert.Empty(png.Diagnostics);
-            Assert.Empty(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
             OfficeDrawingRichText[] richTexts = snapshot.Drawing.Elements.OfType<OfficeDrawingRichText>().ToArray();
             Assert.Equal(4, richTexts.Length);
             Assert.Contains(richTexts[0].Runs, run => run.Text == "b. ");
@@ -3618,9 +3645,9 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
             PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot();
 
-            Assert.Empty(png.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
-            Assert.Empty(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
             OfficeDrawingRichText richText = Assert.Single(snapshot.Drawing.Elements.OfType<OfficeDrawingRichText>());
             Assert.True(richText.FlipHorizontal);
             Assert.False(richText.FlipVertical);
@@ -3660,8 +3687,8 @@ namespace OfficeIMO.Tests {
             PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot();
 
             Assert.Empty(slide.Shapes);
-            Assert.Empty(result.Diagnostics);
-            Assert.Empty(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(result.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
             Assert.Contains(snapshot.Drawing.Elements, element => element is OfficeDrawingText text && text.Text == "Inherited layout title");
             Assert.True(OfficePngReader.TryDecode(result.Bytes, out OfficeRasterImage? image));
             Assert.Equal(240, image!.Width);
@@ -3694,9 +3721,9 @@ namespace OfficeIMO.Tests {
             PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot();
 
             Assert.Single(slide.Shapes);
-            Assert.Empty(png.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
-            Assert.Empty(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
             Assert.Contains(snapshot.Drawing.Elements, element => element is OfficeDrawingText text && text.Text == "Slide local title");
             Assert.DoesNotContain(snapshot.Drawing.Elements, element => element is OfficeDrawingText text && text.Text == "Inherited layout title");
             Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? image));
@@ -3986,6 +4013,14 @@ namespace OfficeIMO.Tests {
                         }) {
                         Width = 25400
                     }));
+        }
+
+        private static void AssertNoUnexpectedDiagnostics(IEnumerable<OfficeImageExportDiagnostic> diagnostics) {
+            OfficeImageExportDiagnostic[] unexpected = diagnostics
+                .Where(diagnostic =>
+                    diagnostic.Code != OfficeImageExportDiagnosticCodes.FontSubstituted)
+                .ToArray();
+            Assert.Empty(unexpected);
         }
     }
 }

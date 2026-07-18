@@ -46,7 +46,7 @@ public class VisioImageExport {
             IReadOnlyList<OfficeImageExportResult> results = document.ToImages()
                 .FromPage(1)
                 .TakePages(1)
-                .WithDpi(48D)
+                .AtDpi(48D)
                 .AsWebp()
                 .Save(folder);
 
@@ -71,7 +71,7 @@ public class VisioImageExport {
         Assert.Equal("image/jpeg", OfficeImageReader.Identify(page.ToJpeg(options)).MimeType);
         Assert.Equal("image/tiff", OfficeImageReader.Identify(document.ToTiff(options)).MimeType);
         Assert.Equal("image/webp", OfficeImageReader.Identify(page.ToWebp(options)).MimeType);
-        Assert.Equal(OfficeImageExportFormat.Svg, document.ToImage().WithDpi(48D).AsSvg().Export().Format);
+        Assert.Equal(OfficeImageExportFormat.Svg, document.ToImage().AtDpi(48D).AsSvg().Export().Format);
     }
 
     [Fact]
@@ -116,6 +116,53 @@ public class VisioImageExport {
 
         Assert.Throws<ArgumentOutOfRangeException>(() =>
             page.ExportImage(OfficeImageExportFormat.Svg, options));
+    }
+
+    [Fact]
+    public void SharedFontsDriveVisioRasterAndAreEmbeddedInSvgWithoutSubstitution() {
+        OfficeTrueTypeFont? font = OfficeTrueTypeFont.TryLoadDefault(out string? fontPath);
+        if (font == null || string.IsNullOrWhiteSpace(fontPath)) return;
+
+        using MemoryStream package = new();
+        VisioDocument document = VisioDocument.Create(package);
+        VisioPage page = document.AddPage("Typography").Size(3, 1.5);
+        VisioShape shape = page.AddRectangle(1.5, 0.75, 2.4, 0.7, "Scoped Visio text");
+        shape.TextStyle = new VisioTextStyle {
+            FontFamily = "Scoped Visio",
+            Size = 18D
+        };
+        var options = new VisioImageExportOptions {
+            Supersampling = 1
+        };
+        options.Fonts.Add("Scoped Visio", File.ReadAllBytes(fontPath));
+
+        OfficeImageExportResult png = page.ExportImage(OfficeImageExportFormat.Png, options);
+        OfficeImageExportResult svg = page.ExportImage(OfficeImageExportFormat.Svg, options);
+        string svgText = Encoding.UTF8.GetString(svg.Bytes);
+
+        Assert.DoesNotContain(png.Diagnostics, diagnostic => diagnostic.Code == OfficeImageExportDiagnosticCodes.FontSubstituted);
+        Assert.DoesNotContain(svg.Diagnostics, diagnostic => diagnostic.Code == OfficeImageExportDiagnosticCodes.FontSubstituted);
+        Assert.Contains("@font-face", svgText, StringComparison.Ordinal);
+        Assert.Contains("Scoped Visio", svgText, StringComparison.Ordinal);
+        Assert.Contains(Convert.ToBase64String(File.ReadAllBytes(fontPath)), svgText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void DirectVisioExportAppliesFontLossPolicyBeforeReturning() {
+        using MemoryStream package = new();
+        VisioDocument document = VisioDocument.Create(package);
+        VisioPage page = document.AddPage("Policy").Size(2, 1);
+        VisioShape shape = page.AddRectangle(1, 0.5, 1.5, 0.6, "Policy");
+        shape.TextStyle = new VisioTextStyle { FontFamily = "OfficeIMO Definitely Missing" };
+        var options = new VisioImageExportOptions {
+            Supersampling = 1,
+            Policy = new OfficeImageExportPolicy { RequireNoLoss = true }
+        };
+
+        OfficeImageExportPolicyException exception = Assert.Throws<OfficeImageExportPolicyException>(
+            () => page.ExportImage(OfficeImageExportFormat.Png, options));
+
+        Assert.Contains(exception.Diagnostics, diagnostic => diagnostic.Code == OfficeImageExportDiagnosticCodes.FontSubstituted);
     }
 
     [Theory]

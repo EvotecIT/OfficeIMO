@@ -161,13 +161,13 @@ using OfficeIMO.Drawing;
 OfficeDrawing canvas = page.ToDrawing();
 
 page.ToImage()
-    .WithDpi(144)
+    .AtDpi(144)
     .AsPng()
     .Save("page.png");
 
 notebook.ToImages()
     .AllPages()
-    .WithDpi(144)
+    .AtDpi(144)
     .AsTiff()
     .Save("Notebook pages");
 ```

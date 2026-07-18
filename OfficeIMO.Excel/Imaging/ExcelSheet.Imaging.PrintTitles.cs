@@ -1,4 +1,5 @@
 using OfficeIMO.Drawing;
+using System.Threading;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
@@ -7,7 +8,9 @@ namespace OfficeIMO.Excel {
             WorksheetImageRangeResolution range,
             ExcelWorksheetImageExportOptions options,
             int pageNumber,
-            int pageCount) {
+            int pageCount,
+            CancellationToken cancellationToken = default) {
+            cancellationToken.ThrowIfCancellationRequested();
             OfficeImageExportFormat workingFormat = format == OfficeImageExportFormat.Svg
                 ? OfficeImageExportFormat.Svg
                 : OfficeImageExportFormat.Png;
@@ -17,7 +20,7 @@ namespace OfficeIMO.Excel {
                 result = RenderPrintTitleLayout(workingFormat, range, options, layout);
             } else {
                 ExcelRangeVisualSnapshot snapshot = ExcelRangeVisualSnapshotBuilder.Build(this, range.Range, options, range.Diagnostics);
-                result = ExcelRangeImageRenderer.Render(snapshot, workingFormat, options);
+                result = ExcelRangeImageRenderer.Render(snapshot, workingFormat, options, cancellationToken);
             }
 
             if (options.SplitByManualPageBreaks) {
@@ -26,6 +29,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (format == workingFormat) return result;
+            cancellationToken.ThrowIfCancellationRequested();
             if (!OfficeRasterImageDecoder.TryDecode(result.Bytes, out OfficeRasterImage? image) || image == null) {
                 throw new InvalidOperationException("The worksheet raster composition could not be decoded for final image encoding.");
             }

@@ -1,50 +1,100 @@
-# OfficeIMO Image Export Goal
+# OfficeIMO Image Export
 
-This track keeps image export first-party and consistent across Drawing, Excel, Word, PowerPoint, HTML, OneNote, Visio, PDF, and source formats that already project into PDF.
+OfficeIMO image export is a first-party, dependency-free pipeline shared by Drawing, Excel, Word, PowerPoint, HTML, email, EPUB, OneNote, Visio, PDF, and OpenDocument adapters.
 
-## Non-Negotiable Dependency Rule
+## Ownership
 
-Product rendering paths stay dependency-free beyond the libraries OfficeIMO already owns for document semantics:
+`OfficeIMO.Drawing` owns the reusable contract:
 
-- OpenXML SDK for Office package structure.
-- AngleSharp where HTML parsing/rendering adapters already use it.
-- `OfficeIMO.Drawing` for shared pixels, PNG/JPEG/TIFF/SVG/WebP encoding, paths, text layout, image projection, charts, diagnostics, and visual-quality helpers.
+- PNG, JPEG, TIFF, SVG, and WebP encoding;
+- validated `OfficeImageExportResult` metadata;
+- target DPI and raster density metadata;
+- caller-supplied TrueType fonts and shared substitution diagnostics;
+- source-image decoding and caller-codec fallback;
+- per-image and aggregate safety limits;
+- diagnostic acceptance policy;
+- streaming batches, cancellation, progress, bounded concurrency, filenames, and save conflicts.
 
-No product image export path may depend on external rendering products, Office automation, browser screenshots, native PDF rasterizers, Skia/ImageSharp/System.Drawing, or commercial document converters. External tools may exist only in tests, benchmarks, or manual comparison gates where they are explicitly not shipped product rendering.
+Document packages own selection, pagination, layout, and source semantics. ODT/ODS/ODP reuse Word/Excel/PowerPoint; EPUB and email reuse HTML; paged text adapters reuse PDF. An adapter must not introduce another encoder, font resolver, batch engine, or visual layout brain.
 
-## Current State
+## Dependency Rule
 
-- Excel has the strongest visual baseline path: ranges, worksheets, manual-page-break slices, workbook batches, diagnostics, and all five shared output formats.
-- PowerPoint has a fixed-layout slide renderer with shape, picture, text, table, chart, presentation batch coverage, and representative fixture gates.
-- Word has estimated multi-page rendering, page-range batch export, section-aware headers and footers, and all five shared output formats. It remains an OfficeIMO layout estimate rather than Microsoft Word's application-owned pagination.
-- HTML renders continuous or paged surfaces through a shared Drawing scene, including synchronous and resource-aware asynchronous APIs.
-- OneNote renders pages, sections, and notebooks with ink, math, image placeholders, batch selection, and bounded raster output.
-- Visio keeps its established native SVG/raster geometry renderer and exposes format-neutral page and document batch export.
-- PDF projects loaded pages into Drawing and exposes the same five-format single/batch contract, DPI/thumbnail controls, page selection, raster limits, and diagnostics as the Office document packages.
-- `PdfDocumentConversionResult` is the single paged-image bridge for Markdown, AsciiDoc, LaTeX, RTF, OneNote, Word, Excel, PowerPoint, and HTML PDF adapters. Source conversion warnings flow into every image result.
-- `OfficeIMO.Drawing` is the shared engine. Document packages project source semantics into Drawing primitives and reuse its result, options, safety, encoder, decoder, and diagnostic contracts.
+Product rendering paths may use the libraries already owned by their document package and `OfficeIMO.Drawing`. They must not add Office automation, browser screenshots, native PDF rasterizers, System.Drawing, Skia, ImageSharp, commercial renderers, or another output encoder.
 
-## Execution Order
+External renderers are allowed only as optional test references. They are not part of product output.
 
-1. Keep result identity structural: `OfficeImageExportResult` rejects mismatched encoded formats or dimensions, and every converter uses it.
-2. Keep raster limits pre-allocation: the Drawing planner combines caller, renderer, and encoder limits and applies one overflow policy.
-3. Keep source decoding honest: bounded baseline TIFF and OfficeIMO's literal-lossless WebP subset are first-party; broader variants use a caller codec.
-4. Expand representative visual baselines for PowerPoint, Word, HTML, OneNote, PDF, and adapters without copying renderer logic.
-5. Extend PDF operator/font/form/transparency coverage in the existing first-party page-to-Drawing projection.
-6. Add a source-specific direct image API only when it offers a visual contract that the shared `PdfDocumentConversionResult.ToImages()` bridge cannot represent.
-
-## Done Shape
-
-The public surface should feel consistent:
+## Typical Use
 
 ```csharp
-sheet.Range("A1:D12").SaveAsPng("range.png");
-presentation.ToImages().ForSlideRange(1, 3).AsSvg().Save("slides");
-document.ToImage().FirstPage().AsPng().Save("preview.png");
-html.ToImages().Paged().AsWebp().Save("pages");
-visio.ToImages().AllPages().AsTiff().Save("diagram-pages");
-PdfReadDocument.Load(pdfBytes).ToImages().Pages("1-3,last").AsWebp().Save("pdf-pages");
-markdown.ToPdfDocumentResult().ToImages().AsPng().Save("markdown-pages");
+OfficeImageExportResult preview = presentation.Slides[0]
+    .ToImage()
+    .AtDpi(144)
+    .WithPolicy(policy => policy.RequireNoOmissions = true)
+    .OnFileConflict(OfficeImageExportFileConflictPolicy.CreateUnique)
+    .AsPng()
+    .Save("preview");
+
+Console.WriteLine(preview.SavedPath);
+Console.WriteLine($"{preview.Width}x{preview.Height} at {preview.DpiX:0.#} DPI");
 ```
 
-All of these APIs return the same validated result shape, use portable batch filenames, and apply the same pre-allocation raster policy.
+For a production batch, stream or save payload-free metadata instead of retaining every encoded image:
+
+```csharp
+using var cancellation = new CancellationTokenSource();
+
+OfficeImageExportBatchSaveResult saved = await document
+    .ToImages()
+    .ForPrint(300)
+    .WithBatchLimits(
+        maximumOutputCount: 500,
+        maximumTotalRasterPixels: 250_000_000,
+        maximumTotalEncodedBytes: 512L * 1024 * 1024)
+    .WithMaximumConcurrency(4)
+    .WithProgress(new Progress<OfficeImageExportProgress>(progress =>
+        Console.WriteLine($"{progress.Stage}: {progress.CompletedCount}")))
+    .OnFileConflict(OfficeImageExportFileConflictPolicy.FailIfExists)
+    .SaveFilesAsync("pages", cancellation.Token);
+
+saved.Report.Require(new OfficeImageExportPolicy {
+    RequireNoFailures = true,
+    RequireNoOmissions = true
+});
+```
+
+Use `WithFont(...)` or `WithFonts(...)` when typography must not depend on the machine's installed fonts. A missing requested face produces `IMAGE_FONT_SUBSTITUTED`; it can be promoted to a hard failure through `FailOnDiagnosticCodes`.
+
+## Source Bridges
+
+The direct bridges retain the source conversion evidence:
+
+```csharp
+IReadOnlyList<OfficeImageExportResult> slides =
+    odp.ExportImages(OfficeImageExportFormat.Png);
+
+OfficeImageExportBatchSaveResult chapters = await epub
+    .ToImages()
+    .Paged()
+    .AtDpi(144)
+    .AsPng()
+    .SaveFilesAsync("chapters");
+
+OfficeImageExportResult message = await email
+    .ToImage()
+    .Continuous()
+    .AsPng()
+    .ExportAsync();
+```
+
+Load EPUB with `IncludeRawHtml = true` and `IncludeResourceData = true` for the best result. Email resolves allowed CID/content-location MIME resources through the HTML resource pipeline. ODT/ODS/ODP diagnostics are attached to the resulting Word/Excel/PowerPoint image diagnostics.
+
+## Current Limits
+
+- Word pagination is estimated rather than Microsoft Word-exact.
+- PDF rendering is strongest for OfficeIMO-generated PDFs; arbitrary producer features remain capability-diagnosed.
+- Static image export does not preserve animation or multi-frame input.
+- Complex TIFF/WebP/SVG input variants use a caller codec or a diagnosed visible fallback.
+- Exact cross-machine typography requires caller-supplied font data.
+- ICC workflows, EXIF preservation, and CMYK color conversion are not part of the current contract.
+
+Further work should improve fidelity and proof for these existing surfaces. It should not add more output formats or package-local copies of the shared engine.

@@ -45,6 +45,7 @@ public static partial class HtmlImageExportExtensions {
         OfficeDrawing drawing = page.CreateDrawing(cancellationToken);
         var exportDiagnostics = new List<OfficeImageExportDiagnostic>(MapDiagnostics(diagnostics));
         string source = "HTML render page " + page.PageNumber.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        drawing.AppendFontDiagnostics(exportDiagnostics, source);
         var fallbackCodec = new OfficeRasterImageFallbackCodec(options.ImageCodec, exportDiagnostics, source);
         byte[] bytes;
         int width;
@@ -64,7 +65,8 @@ public static partial class HtmlImageExportExtensions {
             OfficeRasterImage image = OfficeDrawingRasterRenderer.Render(drawing, new OfficeDrawingRasterRenderOptions {
                 Scale = plan.Limit.Scale,
                 Background = options.BackgroundColor,
-                ImageCodec = fallbackCodec
+                ImageCodec = fallbackCodec,
+                CancellationToken = cancellationToken
             });
             bytes = OfficeRasterImageEncoder.Encode(image, format, options.RasterEncoding);
             width = image.Width;
@@ -73,14 +75,14 @@ public static partial class HtmlImageExportExtensions {
             throw new ArgumentOutOfRangeException(nameof(format), format, "Unsupported image export format.");
         }
         cancellationToken.ThrowIfCancellationRequested();
-        return new OfficeImageExportResult(
+        return options.EnsureAccepted(new OfficeImageExportResult(
             format,
             width,
             height,
             bytes,
             "Page " + page.PageNumber.ToString(System.Globalization.CultureInfo.InvariantCulture),
             source,
-            exportDiagnostics);
+            exportDiagnostics));
     }
 
     private static IReadOnlyList<OfficeImageExportDiagnostic> MapDiagnostics(HtmlDiagnosticReport report) {
@@ -101,18 +103,4 @@ public static partial class HtmlImageExportExtensions {
         return resolved;
     }
 
-    private static void WriteFile(string path, byte[] bytes) {
-        if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("An output path is required.", nameof(path));
-        OfficeFileCommit.WriteAllBytes(path, bytes);
-    }
-
-    private static void WriteStream(Stream stream, byte[] bytes) => OfficeStreamWriter.WriteAllBytes(stream, bytes);
-
-    private static Task WriteFileAsync(string path, byte[] bytes, CancellationToken cancellationToken) {
-        if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("An output path is required.", nameof(path));
-        return OfficeFileCommit.WriteAllBytesAsync(path, bytes, cancellationToken: cancellationToken);
-    }
-
-    private static Task WriteStreamAsync(Stream stream, byte[] bytes, CancellationToken cancellationToken) =>
-        OfficeStreamWriter.WriteAllBytesAsync(stream, bytes, cancellationToken);
 }

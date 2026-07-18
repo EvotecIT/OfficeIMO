@@ -132,7 +132,7 @@ PdfReadDocument pdf = PdfReadDocument.Load("input.pdf");
 
 pdf.Pages[0]
     .ToImage()
-    .WithDpi(144)
+    .AtDpi(144)
     .AsThumbnail(800)
     .AsPng()
     .Save("preview.png");

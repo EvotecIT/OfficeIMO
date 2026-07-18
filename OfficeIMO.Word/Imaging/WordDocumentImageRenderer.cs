@@ -4,6 +4,7 @@ using System.Globalization;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Drawing;
+using System.Threading;
 
 namespace OfficeIMO.Word {
     internal static partial class WordDocumentImageRenderer {
@@ -15,7 +16,11 @@ namespace OfficeIMO.Word {
         private const double DefaultCellMarginPoints = 5.4D;
         private const double MinimumTableRowHeightPoints = 22D;
 
-        internal static OfficeImageExportResult Render(WordDocument document, OfficeImageExportFormat format, WordImageExportOptions options) {
+        internal static OfficeImageExportResult Render(
+            WordDocument document,
+            OfficeImageExportFormat format,
+            WordImageExportOptions options,
+            CancellationToken cancellationToken = default) {
             if (document == null) {
                 throw new ArgumentNullException(nameof(document));
             }
@@ -24,19 +29,21 @@ namespace OfficeIMO.Word {
                 throw new ArgumentNullException(nameof(options));
             }
 
+            cancellationToken.ThrowIfCancellationRequested();
             WordDocumentVisualSnapshot snapshot = CreateSnapshot(document, options);
-            return RenderSnapshot(snapshot, format, options);
+            cancellationToken.ThrowIfCancellationRequested();
+            return RenderSnapshot(snapshot, format, options, cancellationToken);
         }
 
         private static OfficeImageExportResult RenderSnapshot(WordDocumentVisualSnapshot snapshot,
-            OfficeImageExportFormat format, WordImageExportOptions options) {
+            OfficeImageExportFormat format, WordImageExportOptions options, CancellationToken cancellationToken = default) {
             OfficeDrawing drawing = snapshot.Drawing;
 
             if (format == OfficeImageExportFormat.Svg) {
                 List<OfficeImageExportDiagnostic> diagnostics = new List<OfficeImageExportDiagnostic>(snapshot.Diagnostics);
                 var fallbackCodec = new OfficeRasterImageFallbackCodec(options.ImageCodec, diagnostics, "Word document");
                 byte[] svg = OfficeDrawingSvgExporter.ToSvgBytes(drawing, options.Scale, OfficeSvgSizeUnit.Pixel, fallbackCodec);
-                return new OfficeImageExportResult(format, ScaledWidth(drawing, options), ScaledHeight(drawing, options), svg, "Page " + (options.PageIndex + 1), "Word document", diagnostics);
+                return options.EnsureAccepted(new OfficeImageExportResult(format, ScaledWidth(drawing, options), ScaledHeight(drawing, options), svg, "Page " + (options.PageIndex + 1), "Word document", diagnostics));
             }
 
             if (format.IsRaster()) {
@@ -53,10 +60,12 @@ namespace OfficeIMO.Word {
                 OfficeRasterImage image = OfficeDrawingRasterRenderer.Render(drawing, new OfficeDrawingRasterRenderOptions {
                     Scale = plan.Limit.Scale,
                     Background = options.BackgroundColor,
-                    ImageCodec = fallbackCodec
+                    ImageCodec = fallbackCodec,
+                    CancellationToken = cancellationToken
                 });
                 byte[] bytes = OfficeRasterImageEncoder.Encode(image, format, options.RasterEncoding);
-                return new OfficeImageExportResult(format, image.Width, image.Height, bytes, "Page " + (options.PageIndex + 1), source, diagnostics);
+                cancellationToken.ThrowIfCancellationRequested();
+                return options.EnsureAccepted(new OfficeImageExportResult(format, image.Width, image.Height, bytes, "Page " + (options.PageIndex + 1), source, diagnostics));
             }
 
             throw new ArgumentOutOfRangeException(nameof(format), format, "Unsupported image export format.");
@@ -78,6 +87,7 @@ namespace OfficeIMO.Word {
             WordImageExportOptions options, IReadOnlyList<int> sectionPageCounts) {
             List<OfficeImageExportDiagnostic> diagnostics = new List<OfficeImageExportDiagnostic>();
             OfficeDrawing drawing = CreateDrawing(document, options, diagnostics, sectionPageCounts);
+            drawing.AppendFontDiagnostics(diagnostics, "Word document");
             return new WordDocumentVisualSnapshot(drawing, options.PageIndex, diagnostics.AsReadOnly());
         }
 
@@ -86,7 +96,7 @@ namespace OfficeIMO.Word {
             IReadOnlyList<int> sectionPageNumberStarts = ResolveSectionPageNumberStarts(document, sectionPageCounts);
             WordImagePageContext pageContext = ResolvePageContext(document, options.PageIndex, sectionPageCounts);
             (double width, double height) = GetPageSizePoints(pageContext.Section);
-            OfficeDrawing drawing = new OfficeDrawing(width, height);
+            OfficeDrawing drawing = new OfficeDrawing(width, height).ApplyImageExportOptions(options);
             AddBackgroundRectangle(drawing, options.BackgroundColor);
 
             if (options.IncludeDocumentContent) {

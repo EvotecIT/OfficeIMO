@@ -261,7 +261,10 @@ public sealed class ConverterTests {
         await section.SaveAsVisualPdfAsync(stream, options);
         OfficeIMO.Pdf.PdfDocumentInfo info = OfficeIMO.Pdf.PdfDocument.Open(bytes).Read.DocumentInfo();
 
-        Assert.False(result.HasLoss);
+        Assert.DoesNotContain(
+            result.Warnings,
+            warning => warning.Code !=
+                       OfficeImageExportDiagnosticCodes.FontSubstituted);
         Assert.Equal("%PDF", Encoding.ASCII.GetString(bytes, 0, 4));
         Assert.Equal(1, info.PageCount);
         Assert.InRange(info.Pages[0].Width, 215.9D, 216.1D);

@@ -6,7 +6,9 @@ namespace OfficeIMO.Word {
     /// </summary>
     public sealed class WordDocumentImageExportBuilder : OfficeImageExportBuilder<WordDocumentImageExportBuilder, WordImageExportOptions> {
         internal WordDocumentImageExportBuilder(WordDocument document, WordImageExportOptions? options = null)
-            : base(options?.Clone() ?? new WordImageExportOptions(), document.ExportImage) {
+            : base(
+                options?.Clone() ?? new WordImageExportOptions(),
+                (format, effective, cancellationToken) => document.ExportImage(format, effective, cancellationToken)) {
         }
 
         /// <summary>Exports the first page preview.</summary>
@@ -35,7 +37,11 @@ namespace OfficeIMO.Word {
     /// <summary>Fluent batch image export for Word document pages.</summary>
     public sealed class WordDocumentPageImageExportBuilder : OfficeImageExportBatchBuilder<WordDocumentPageImageExportBuilder, WordImageExportOptions> {
         internal WordDocumentPageImageExportBuilder(WordDocument document, WordImageExportOptions? options = null)
-            : base(options?.Clone() ?? new WordImageExportOptions(), document.ExportImages) {
+            : base(
+                options?.Clone() ?? new WordImageExportOptions(),
+                document.ExportImages,
+                (format, effective, consumer, cancellationToken) =>
+                    document.ExportImages(format, consumer, effective, cancellationToken)) {
         }
 
         /// <summary>Exports from the specified zero-based page index.</summary>

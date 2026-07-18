@@ -25,17 +25,24 @@ namespace OfficeIMO.Tests {
                 .CreateVisualSnapshot(options);
             Assert.True(snapshot.Drawing.Elements.OfType<OfficeDrawingShape>()
                 .Count(shape => shape.Shape.FillGradient != null) >= 7);
-            Assert.Empty(snapshot.Diagnostics);
+            Assert.DoesNotContain(snapshot.Diagnostics, diagnostic =>
+                diagnostic.Code != OfficeImageExportDiagnosticCodes.FontSubstituted);
 
             byte[] actual = presentation.Slides[0].ToPng(options);
             VisualRasterComparison comparison = VisualBaselineTestSupport.CompareRasterImages(
                 File.ReadAllBytes(ShapeVisualBaselinePath), actual,
-                channelTolerance: 16, allowedDifferentPixels: 20000);
+                channelTolerance: 16,
+                allowedDifferentPixels: 20000,
+                maximumMeanAbsoluteError: 8D,
+                maximumRootMeanSquareError: 30D,
+                maximumMeanLuminanceError: 10D);
 
             Assert.True(comparison.Passed,
                 $"Binary shape rendering differs from the LibreOffice reference at " +
                 $"{comparison.DifferentPixels} of {comparison.TotalPixels} pixels " +
-                $"(maximum channel delta {comparison.MaxChannelDelta}).");
+                $"(maximum channel delta {comparison.MaxChannelDelta}, " +
+                $"MAE {comparison.MeanAbsoluteError:F3}, RMSE {comparison.RootMeanSquareError:F3}, " +
+                $"luminance MAE {comparison.MeanLuminanceError:F3}).");
         }
 
         [Fact]
@@ -51,17 +58,24 @@ namespace OfficeIMO.Tests {
                 .CreateVisualSnapshot(options);
             Assert.DoesNotContain(snapshot.Drawing.Elements.OfType<OfficeDrawingText>(), text =>
                 text.Text.Contains("Click to edit", StringComparison.Ordinal));
-            Assert.Empty(snapshot.Diagnostics);
+            Assert.DoesNotContain(snapshot.Diagnostics, diagnostic =>
+                diagnostic.Code != OfficeImageExportDiagnosticCodes.FontSubstituted);
 
             byte[] actual = presentation.Slides[0].ToPng(options);
             VisualRasterComparison comparison = VisualBaselineTestSupport.CompareRasterImages(
                 File.ReadAllBytes(AccessibilityVisualBaselinePath), actual,
-                channelTolerance: 16, allowedDifferentPixels: 8000);
+                channelTolerance: 16,
+                allowedDifferentPixels: 8000,
+                maximumMeanAbsoluteError: 4D,
+                maximumRootMeanSquareError: 22D,
+                maximumMeanLuminanceError: 6D);
 
             Assert.True(comparison.Passed,
                 $"Microsoft-authored binary rendering differs from the LibreOffice reference at " +
                 $"{comparison.DifferentPixels} of {comparison.TotalPixels} pixels " +
-                $"(maximum channel delta {comparison.MaxChannelDelta}).");
+                $"(maximum channel delta {comparison.MaxChannelDelta}, " +
+                $"MAE {comparison.MeanAbsoluteError:F3}, RMSE {comparison.RootMeanSquareError:F3}, " +
+                $"luminance MAE {comparison.MeanLuminanceError:F3}).");
         }
     }
 }

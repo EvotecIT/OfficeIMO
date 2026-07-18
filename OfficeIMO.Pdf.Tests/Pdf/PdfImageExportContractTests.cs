@@ -51,7 +51,7 @@ public sealed class PdfImageExportContractTests {
 
         OfficeImageExportResult result = page
             .ToImage()
-            .WithDpi(288D)
+            .AtDpi(288D)
             .AsThumbnail(96)
             .WithRasterEncoding(encoding => encoding.Jpeg.Quality = 70)
             .AsJpeg()
@@ -59,6 +59,8 @@ public sealed class PdfImageExportContractTests {
 
         Assert.Equal(OfficeImageExportFormat.Jpeg, result.Format);
         Assert.True(Math.Max(result.Width, result.Height) <= 96);
+        Assert.InRange(result.DpiX, 1D, 287D);
+        Assert.Equal(result.DpiX, result.DpiY);
         Assert.Equal("image/jpeg", OfficeImageReader.Identify(result.Bytes).MimeType);
     }
 

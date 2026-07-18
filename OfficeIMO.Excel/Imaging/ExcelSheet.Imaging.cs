@@ -20,25 +20,43 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Exports a worksheet range or used range as a supported raster format or SVG.
         /// </summary>
-        public OfficeImageExportResult ExportImage(OfficeImageExportFormat format, ExcelWorksheetImageExportOptions? options = null) {
+        public OfficeImageExportResult ExportImage(
+            OfficeImageExportFormat format,
+            ExcelWorksheetImageExportOptions? options = null,
+            CancellationToken cancellationToken = default) {
             ExcelWorksheetImageExportOptions resolved = NormalizeWorksheetOptions(options);
             WorksheetImageRangeResolution range = ResolveWorksheetImageRanges(resolved, allowMultipleResults: false)[0];
             ExcelRangeVisualSnapshot snapshot = ExcelRangeVisualSnapshotBuilder.Build(this, range.Range, resolved, range.Diagnostics);
-            return ExcelRangeImageRenderer.Render(snapshot, format, resolved);
+            return ExcelRangeImageRenderer.Render(snapshot, format, resolved, cancellationToken);
         }
 
         /// <summary>
         /// Exports one or more worksheet image results. Multi-area print areas and manual page-break splits are returned as separate images when requested.
         /// </summary>
         public IReadOnlyList<OfficeImageExportResult> ExportImages(OfficeImageExportFormat format, ExcelWorksheetImageExportOptions? options = null) {
+            var results = new List<OfficeImageExportResult>();
+            ExportImages(format, results.Add, options);
+            return results.AsReadOnly();
+        }
+
+        /// <summary>Streams worksheet image parts to a consumer without retaining earlier payloads.</summary>
+        public void ExportImages(
+            OfficeImageExportFormat format,
+            OfficeImageExportConsumer consumer,
+            ExcelWorksheetImageExportOptions? options = null,
+            CancellationToken cancellationToken = default) {
+            if (consumer == null) throw new ArgumentNullException(nameof(consumer));
             ExcelWorksheetImageExportOptions resolved = NormalizeWorksheetOptions(options);
             IReadOnlyList<WorksheetImageRangeResolution> ranges = ResolveWorksheetImageRanges(resolved, allowMultipleResults: true);
-            var results = new List<OfficeImageExportResult>(ranges.Count);
+            OfficeImageExportConsumer accept =
+                OfficeImageExportBatchProcessor.CreateGuardedConsumer(
+                    resolved,
+                    consumer,
+                    cancellationToken);
             for (int index = 0; index < ranges.Count; index++) {
-                results.Add(RenderWorksheetImageResult(format, ranges[index], resolved, index + 1, ranges.Count));
+                cancellationToken.ThrowIfCancellationRequested();
+                accept(RenderWorksheetImageResult(format, ranges[index], resolved, index + 1, ranges.Count, cancellationToken));
             }
-
-            return results.AsReadOnly();
         }
 
         /// <summary>

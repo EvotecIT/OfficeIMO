@@ -37,6 +37,7 @@ namespace OfficeIMO.Visio {
                 writer.WriteViewBoxAttribute(0D, 0D, logicalWidth, logicalHeight);
                 writer.WriteAttributeString("role", "img");
                 writer.WriteAttributeString("aria-label", string.IsNullOrWhiteSpace(page.Name) ? "OfficeIMO Visio page" : page.Name);
+                WriteEmbeddedFonts(writer, options.Fonts);
 
                 if (options.BackgroundColor.HasValue && options.BackgroundColor.Value.A > 0) {
                     writer.WriteStartElement("rect", SvgNamespace);
@@ -69,6 +70,32 @@ namespace OfficeIMO.Visio {
 
             return builder.ToString();
         }
+
+        private static void WriteEmbeddedFonts(XmlWriter writer, OfficeFontFaceCollection fonts) {
+            if (fonts == null || fonts.Faces.Count == 0) return;
+            var css = new StringBuilder();
+            foreach (OfficeFontFace face in fonts.Faces) {
+                css.Append("@font-face{font-family:\"")
+                    .Append(EscapeCssString(face.FamilyName))
+                    .Append("\";src:url(data:font/ttf;base64,")
+                    .Append(Convert.ToBase64String(face.Data))
+                    .Append(") format(\"truetype\");font-weight:")
+                    .Append((face.Style & OfficeFontStyle.Bold) == OfficeFontStyle.Bold ? "700" : "400")
+                    .Append(";font-style:")
+                    .Append((face.Style & OfficeFontStyle.Italic) == OfficeFontStyle.Italic ? "italic" : "normal")
+                    .Append(";}");
+            }
+
+            writer.WriteStartElement("defs", SvgNamespace);
+            writer.WriteStartElement("style", SvgNamespace);
+            writer.WriteAttributeString("type", "text/css");
+            writer.WriteString(css.ToString());
+            writer.WriteEndElement();
+            writer.WriteEndElement();
+        }
+
+        private static string EscapeCssString(string value) =>
+            value.Replace("\\", "\\\\").Replace("\"", "\\\"");
 
         private sealed class Utf8StringWriter : StringWriter {
             internal Utf8StringWriter(StringBuilder builder) : base(builder, CultureInfo.InvariantCulture) {

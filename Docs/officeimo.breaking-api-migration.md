@@ -93,7 +93,7 @@ RTF bridges use `RtfConversionResult<T>`. PDF save attempts expose their report,
 
 ## Image export
 
-Word, Excel, PowerPoint, Visio, HTML, OneNote, and PDF image export use `OfficeImageExportResult` and `OfficeImageExportFormat` from `OfficeIMO.Drawing`.
+Word, Excel, PowerPoint, Visio, HTML, email, EPUB, OneNote, PDF, and the ODT/ODS/ODP bridges use `OfficeImageExportResult` and `OfficeImageExportFormat` from `OfficeIMO.Drawing`.
 
 ```csharp
 HtmlConversionDocument source = HtmlConversionDocument.Parse(html);
@@ -101,9 +101,31 @@ OfficeImageExportResult png = source.ExportImage(OfficeImageExportFormat.Png, op
 OfficeImageExportResult saved = source.SaveAsPng("preview.png", options);
 ```
 
-`ToPng()`, `ToJpeg()`, `ToTiff()`, and `ToWebp()` return encoded bytes; `ToSvg()` returns SVG text. `ExportImage()` and `ExportImages()` return encoded output, dimensions, format, source metadata, and diagnostics. Format-specific save methods and the fluent `As...().Save(...)` surface write to a path or stream and return the same structured evidence. The redundant `ToPngResult`, `ToSvgResult`, and plural result aliases were removed.
+`ToPng()`, `ToJpeg()`, `ToTiff()`, and `ToWebp()` return encoded bytes; `ToSvg()` returns SVG text. `ExportImage()` and `ExportImages()` return encoded output, dimensions, format, density, source metadata, and diagnostics. Format-specific save methods and the fluent `As...().Save(...)` surface write to a path or stream and return the same structured evidence. The redundant `ToPngResult`, `ToSvgResult`, and plural result aliases were removed.
 
-Every result now validates that its encoded bytes and dimensions match the declared format and dimensions. Shared options also own `MaximumRasterPixels`, `RasterOverflowBehavior`, `ImageCodec`, and `RasterEncoding`; document-specific option types inherit and clone those settings instead of redeclaring them. The shared default is 50 million output pixels per raster. The default overflow policy reduces scale before allocating a pixel buffer and emits `IMAGE_RASTER_SCALE_REDUCED`. Set `RasterOverflowBehavior = OfficeRasterOverflowBehavior.Throw` to receive an `OfficeImageExportLimitException` with requested and allowed dimensions.
+Every result validates that its encoded bytes and dimensions match the declared format and dimensions. `DpiX`, `DpiY`, `PhysicalWidthInches`, `PhysicalHeightInches`, and `EncodedLength` are derived from the encoded payload. PNG, JPEG, and TIFF write density metadata through the shared encoder.
+
+Shared options own `MaximumRasterPixels`, `RasterOverflowBehavior`, `ImageCodec`, `RasterEncoding`, `TargetDpi`, `Fonts`, `Policy`, `Progress`, aggregate batch limits, and maximum concurrency. Document-specific option types inherit and clone those settings instead of redeclaring them. The shared default is 50 million output pixels per raster. The default overflow policy reduces scale before allocating a pixel buffer and emits `IMAGE_RASTER_SCALE_REDUCED`. Set `RasterOverflowBehavior = OfficeRasterOverflowBehavior.Throw` to receive an `OfficeImageExportLimitException` with requested and allowed dimensions.
+
+Use `AtDpi(...)` for physical output density and `ForPrint(...)` for the print profile. `WithDpi(...)` and `ForHighResolution(...)` were removed because they used inconsistent scaling rules across packages. `WithScale(...)` remains for callers that intentionally work in renderer-relative scale.
+
+File saves now fail when the destination already exists. Select `Replace` or `CreateUnique` explicitly:
+
+```csharp
+OfficeImageExportResult saved = document
+    .ToImage()
+    .AsPng()
+    .OnFileConflict(OfficeImageExportFileConflictPolicy.CreateUnique)
+    .Save("preview");
+
+Console.WriteLine(saved.SavedPath);
+```
+
+The returned path is absolute and includes any appended canonical extension or unique suffix. Direct result saves use the same `OfficeImageExportFileConflictPolicy`.
+
+Batch builders now support `ExportEach(...)` / `ExportEachAsync(...)`, cancellation, progress, deterministic bounded concurrency, and aggregate limits for count, raster pixels, and encoded bytes. Use `SaveFiles(...)` / `SaveFilesAsync(...)` to return path/metadata/diagnostics without retaining every encoded payload.
+
+Image diagnostics now include `OfficeImageExportLossKind`. `OfficeImageExportPolicy` can reject all loss, omissions, failures, or selected codes before a direct or fluent export is returned or saved. Missing requested fonts use the shared `IMAGE_FONT_SUBSTITUTED` code. Supply intended TrueType faces through `WithFont(...)`, `WithFonts(...)`, or `OfficeImageExportOptions.Fonts`.
 
 Format-neutral SVG image export now uses whole-pixel `px` root dimensions so its encoded dimensions match `OfficeImageExportResult.Width` and `Height`. The lower-level `OfficeDrawingSvgExporter.ToSvg(drawing, scale)` overload retains its point-based legacy surface; choose `OfficeSvgSizeUnit.Point` explicitly when a non-image Drawing workflow needs points.
 
@@ -113,7 +135,7 @@ PDF exposes the same canonical surface:
 PdfReadDocument loaded = PdfReadDocument.Load(pdfBytes);
 loaded.ToImages()
     .Pages("2,1")
-    .WithDpi(144)
+    .AtDpi(144)
     .AsWebp()
     .Save("pages");
 ```
@@ -129,6 +151,8 @@ IReadOnlyList<OfficeImageExportResult> pages = markdown
 ```
 
 Use `PdfPageImageRenderer.RenderPage(...)` when a caller needs the intermediate `OfficeDrawing` scene. The older `PdfPageRenderResult` batch remains a low-level inspection/OCR/verification contract because it carries per-page elapsed time, continue-on-error state, and typed PDF capability diagnostics; it is not the general five-format export API.
+
+ODT, ODS, and ODP direct image extensions live in their existing Word/Excel/PowerPoint OpenDocument adapter packages and attach ODF conversion diagnostics to every image. `OfficeIMO.Epub.Html` projects retained EPUB chapter HTML/resources through the HTML renderer. The email bridge selects HTML, RTF, or text bodies and resolves allowed inline MIME resources through the same HTML resource pipeline.
 
 ## HTML source ownership
 
@@ -197,8 +221,11 @@ Use the shared result diagnostics instead:
 | `unsupported-word-image-raster` / `unsupported-word-image-svg` | `IMAGE_SOURCE_DECODE_FALLBACK` |
 | `unsupported-powerpoint-image-raster` / `unsupported-powerpoint-image-svg` | `IMAGE_SOURCE_DECODE_FALLBACK` |
 | `HtmlRenderRasterDecoderUnavailable` | `IMAGE_SOURCE_DECODE_FALLBACK` on the final image export result |
+| `ExcelCellFontFamilyFallback` | `IMAGE_FONT_SUBSTITUTED` |
+| `ExcelChartFontFamilyFallback` | `IMAGE_FONT_SUBSTITUTED` |
+| `ExcelHeaderFooterFontFamilyFallback` | `IMAGE_FONT_SUBSTITUTED` |
 
-`IMAGE_SOURCE_DECODED_BY_CALLER_CODEC` is informational proof that `ImageCodec` handled the source. When no codec succeeds, the renderer keeps the content visible with a placeholder or a documented family-specific artwork fallback; it no longer emits a warning that says content was omitted when it was not.
+`IMAGE_SOURCE_DECODED_BY_CALLER_CODEC` is informational proof that `ImageCodec` handled the source. When no codec succeeds, the renderer keeps the content visible with a placeholder or a documented family-specific artwork fallback; it no longer emits a warning that says content was omitted when it was not. Drawing can rasterize its bounded SVG subset directly; unsupported SVG features continue through the caller codec or the diagnosed fallback.
 
 ## Canonical member names
 
@@ -270,4 +297,8 @@ Word `IncludePageNumbers` and Excel `IncludeSheetHeadings` now default to `false
 - Parse HTML into `HtmlConversionDocument` before projecting it to another format.
 - Build Reader instances with explicit typed handlers.
 - Import shared colors, fonts, images, lifecycle options, and export results from `OfficeIMO.Drawing`.
+- Replace image `WithDpi(...)` / `ForHighResolution(...)` with `AtDpi(...)` / `ForPrint(...)`.
+- Choose an explicit image file-conflict policy when replacement or unique naming is intended.
+- Replace Excel-specific font fallback codes with `OfficeImageExportDiagnosticCodes.FontSubstituted`.
+- Use streaming/payload-free batch APIs for production-size page, slide, sheet, chapter, or message exports.
 - Treat this as one coordinated package upgrade because old and new surface names are not supported side by side.
