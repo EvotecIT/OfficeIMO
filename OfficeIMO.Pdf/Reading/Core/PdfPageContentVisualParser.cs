@@ -48,12 +48,13 @@ internal static class PdfPageContentVisualParser {
         OfficeStrokeLineJoin? initialStrokeLineJoin = null,
         int maxOperations = PdfReadLimits.DefaultMaxContentOperations,
         IReadOnlyDictionary<string, PdfPageColorSpace>? patternBaseColorSpaces = null,
-        int maxNestingDepth = PdfReadLimits.DefaultMaxContentNestingDepth) {
+        int maxNestingDepth = PdfReadLimits.DefaultMaxContentNestingDepth,
+        int maxOperands = PdfReadLimits.DefaultMaxContentOperands) {
         if (string.IsNullOrEmpty(content)) {
             return Array.Empty<PdfPageVisualPrimitive>();
         }
 
-        var parser = new Parser(content, pageWidth, pageHeight, graphicsStates, colorSpaces, shadings, shadingPatterns, tilingPatterns, optionalContentVisibility, paintOrderBase, paintOrderScale, paintOrderOffset, initialClipPath, initialFillColor, initialFillColorSpace, initialFillOpacity, initialStrokeColor, initialStrokeColorSpace, initialStrokeOpacity, initialStrokeWidth, initialStrokeDashStyle, initialStrokeLineCap, initialStrokeLineJoin, maxOperations, patternBaseColorSpaces, maxNestingDepth);
+        var parser = new Parser(content, pageWidth, pageHeight, graphicsStates, colorSpaces, shadings, shadingPatterns, tilingPatterns, optionalContentVisibility, paintOrderBase, paintOrderScale, paintOrderOffset, initialClipPath, initialFillColor, initialFillColorSpace, initialFillOpacity, initialStrokeColor, initialStrokeColorSpace, initialStrokeOpacity, initialStrokeWidth, initialStrokeDashStyle, initialStrokeLineCap, initialStrokeLineJoin, maxOperations, patternBaseColorSpaces, maxNestingDepth, maxOperands);
         return parser.Parse();
     }
 
@@ -98,6 +99,7 @@ internal static class PdfPageContentVisualParser {
         private bool _currentSubpathHasDraw;
         private readonly int _maxOperations;
         private readonly int _maxNestingDepth;
+        private readonly int _maxOperands;
 
         public Parser(
             string content,
@@ -125,7 +127,8 @@ internal static class PdfPageContentVisualParser {
             OfficeStrokeLineJoin? initialStrokeLineJoin,
             int maxOperations,
             IReadOnlyDictionary<string, PdfPageColorSpace>? patternBaseColorSpaces,
-            int maxNestingDepth) {
+            int maxNestingDepth,
+            int maxOperands) {
             _content = content;
             _pageWidth = pageWidth;
             _pageHeight = pageHeight;
@@ -141,6 +144,7 @@ internal static class PdfPageContentVisualParser {
             _paintOrderOffset = paintOrderOffset;
             _maxOperations = maxOperations;
             _maxNestingDepth = maxNestingDepth;
+            _maxOperands = maxOperands;
             GraphicsState initialState = initialFillColor.HasValue
                 ? GraphicsState.Default.WithFillColor(initialFillColor.Value, initialFillColorSpace)
                 : GraphicsState.Default;
@@ -186,7 +190,8 @@ internal static class PdfPageContentVisualParser {
                     _args.AddRange(operation.Operands);
                     ApplyOperator(operation.Name, GetPaintOrder(operation.OperatorOffset));
                 },
-                maxNestingDepth: _maxNestingDepth);
+                maxNestingDepth: _maxNestingDepth,
+                maxOperands: _maxOperands);
 
             return _primitives.Count == 0 ? Array.Empty<PdfPageVisualPrimitive>() : _primitives.AsReadOnly();
         }

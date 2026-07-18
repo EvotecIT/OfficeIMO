@@ -389,7 +389,8 @@ public sealed partial class PdfReadPage {
             initialStrokeLineJoin,
             maxOperations: _limits.MaxContentOperations,
             patternBaseColorSpaces: GetPatternBaseColorSpaceResources(resources),
-            maxNestingDepth: _limits.MaxContentNestingDepth));
+            maxNestingDepth: _limits.MaxContentNestingDepth,
+            maxOperands: _limits.MaxContentOperands));
 
         foreach (PdfPageXObjectInvocation invocation in PdfPageXObjectInvocationParser.Parse(
                      content,
@@ -413,7 +414,8 @@ public sealed partial class PdfReadPage {
                       initialStrokeLineCap: initialStrokeLineCap,
                       initialStrokeLineJoin: initialStrokeLineJoin,
                       maxOperations: _limits.MaxContentOperations,
-                      maxNestingDepth: _limits.MaxContentNestingDepth)) {
+                      maxNestingDepth: _limits.MaxContentNestingDepth,
+                      maxOperands: _limits.MaxContentOperands)) {
             if (!TryGetFormStream(resources, invocation.Name, out PdfStream formStream)) {
                 continue;
             }

@@ -400,7 +400,8 @@ public sealed partial class PdfReadPage {
         foreach (var invocation in TextContentParser.ExtractFormInvocations(
                      content,
                      maxOperations: _limits.MaxContentOperations,
-                     maxNestingDepth: _limits.MaxContentNestingDepth)) {
+                     maxNestingDepth: _limits.MaxContentNestingDepth,
+                     maxOperands: _limits.MaxContentOperands)) {
             if (!TryGetFormStream(resources, invocation.Name, out var formStream)) {
                 continue;
             }
@@ -489,7 +490,8 @@ public sealed partial class PdfReadPage {
             initialClipPath: initialClipPath,
             useLogicalTextFilters: useLogicalTextFilters,
             maxOperations: _limits.MaxContentOperations,
-            maxNestingDepth: _limits.MaxContentNestingDepth));
+            maxNestingDepth: _limits.MaxContentNestingDepth,
+            maxOperands: _limits.MaxContentOperands));
 
         foreach (var invocation in TextContentParser.ExtractFormInvocations(
                      content,
@@ -509,7 +511,8 @@ public sealed partial class PdfReadPage {
                      initialTextRenderingMode,
                      initialClipPath,
                      maxOperations: _limits.MaxContentOperations,
-                     maxNestingDepth: _limits.MaxContentNestingDepth)) {
+                     maxNestingDepth: _limits.MaxContentNestingDepth,
+                     maxOperands: _limits.MaxContentOperands)) {
             if (!TryGetFormStream(resources, invocation.Name, out var formStream)) {
                 continue;
             }
@@ -587,7 +590,8 @@ public sealed partial class PdfReadPage {
                       paintOrderOffset,
                       initialClipPath,
                       maxOperations: _limits.MaxContentOperations,
-                      maxNestingDepth: _limits.MaxContentNestingDepth)) {
+                      maxNestingDepth: _limits.MaxContentNestingDepth,
+                      maxOperands: _limits.MaxContentOperands)) {
             Matrix2D invocationTransform = invocation.Transform;
             if (invocation.InlineImage != null) {
                 placements.Add(BuildImagePlacement(

@@ -12,6 +12,7 @@ public class DrawingTextTypographyTests {
         Assert.Equal(OfficeTextDirection.LeftToRight, OfficeTextElements.ResolveBaseDirection("\u0661\u0662 Office"));
         Assert.Equal(OfficeTextDirection.RightToLeft, OfficeTextElements.ResolveBaseDirection("\u200F123"));
         Assert.Equal(OfficeTextDirection.RightToLeft, OfficeTextElements.ResolveBaseDirection("\u0800"));
+        Assert.Equal(OfficeTextDirection.RightToLeft, OfficeTextElements.ResolveBaseDirection("\u0870"));
         Assert.Equal(OfficeTextDirection.RightToLeft, OfficeTextElements.ResolveBaseDirection("\U00010900"));
     }
 

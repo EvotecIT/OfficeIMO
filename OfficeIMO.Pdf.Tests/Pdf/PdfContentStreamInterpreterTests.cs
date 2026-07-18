@@ -64,6 +64,20 @@ public sealed class PdfContentStreamInterpreterTests {
     }
 
     [Fact]
+    public void Interpreter_StopsFlatOperandAmplificationBeforeAnOperator() {
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
+            PdfContentStreamInterpreter.Interpret(
+                "1 2 3 4 5 6 7 8 9 10 cm",
+                10,
+                _ => { },
+                maxOperands: 4));
+
+        Assert.Equal(PdfReadLimitKind.ContentOperands, exception.Kind);
+        Assert.Equal(4, exception.Limit);
+        Assert.Equal(5, exception.Actual);
+    }
+
+    [Fact]
     public void Interpreter_PreservesQuoteCharactersInNamesAndRecognizesQuoteOperators() {
         const string content = "/Owner's MP /A\"B MP (x) ' 1 2 (y) \"";
         var operations = new List<PdfContentOperation>();

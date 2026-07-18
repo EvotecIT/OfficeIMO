@@ -4,6 +4,7 @@ namespace OfficeIMO.Pdf;
 public sealed class PdfReadLimits {
     internal const int DefaultMaxDecodedStreamBytes = 256 * 1024 * 1024;
     internal const int DefaultMaxContentOperations = 1_000_000;
+    internal const int DefaultMaxContentOperands = 1_000_000;
     internal const int DefaultMaxContentNestingDepth = 128;
 
     /// <summary>Default immutable parser budgets.</summary>
@@ -57,7 +58,10 @@ public sealed class PdfReadLimits {
     /// <summary>Maximum operators parsed from one page or form content stream. Default: 1,000,000.</summary>
     public int MaxContentOperations { get; init; } = DefaultMaxContentOperations;
 
-    /// <summary>Maximum nested form XObject depth while parsing page content. Default: 128.</summary>
+    /// <summary>Maximum operand values and dictionary keys parsed from one page or form content stream. Default: 1,000,000.</summary>
+    public int MaxContentOperands { get; init; } = DefaultMaxContentOperands;
+
+    /// <summary>Maximum nested lexical arrays/dictionaries or form XObjects while parsing page content. Default: 128.</summary>
     public int MaxContentNestingDepth { get; init; } = DefaultMaxContentNestingDepth;
 
     internal void Validate() {
@@ -101,6 +105,7 @@ public sealed class PdfReadLimits {
         ValidatePositive(MaxFormFieldDepth, nameof(MaxFormFieldDepth), "Maximum form-field depth must be positive.");
         ValidatePositive(MaxAnnotationsPerPage, nameof(MaxAnnotationsPerPage), "Maximum annotations per page must be positive.");
         ValidatePositive(MaxContentOperations, nameof(MaxContentOperations), "Maximum content operations must be positive.");
+        ValidatePositive(MaxContentOperands, nameof(MaxContentOperands), "Maximum content operands must be positive.");
         ValidatePositive(MaxContentNestingDepth, nameof(MaxContentNestingDepth), "Maximum content nesting depth must be positive.");
     }
 

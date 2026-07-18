@@ -29,7 +29,9 @@ public sealed partial class PdfReadPage {
                 unsupportedColorSpaces.Contains(colorSpaceName)) {
                 AddRenderDiagnostic(diagnostics, seen, PdfRenderCapabilities.ColorSpaceId, colorSpaceName);
             }
-        }, maxNestingDepth: _limits.MaxContentNestingDepth);
+        },
+        maxNestingDepth: _limits.MaxContentNestingDepth,
+        maxOperands: _limits.MaxContentOperands);
 
         if (resources == null) return;
         CollectFontCapabilityDiagnostics(resources, diagnostics, seen);

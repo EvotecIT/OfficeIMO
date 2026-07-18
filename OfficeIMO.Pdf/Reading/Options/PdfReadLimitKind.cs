@@ -50,7 +50,10 @@ public enum PdfReadLimitKind {
     /// <summary>Operators parsed from one page or form content stream.</summary>
     ContentOperations,
 
-    /// <summary>Nested form XObjects traversed while parsing page content.</summary>
+    /// <summary>Operand values and dictionary keys parsed from one page or form content stream.</summary>
+    ContentOperands,
+
+    /// <summary>Nested lexical arrays/dictionaries or form XObjects traversed while parsing page content.</summary>
     ContentNestingDepth,
 
     /// <summary>Pages requested in one managed render batch.</summary>

@@ -351,14 +351,21 @@ public class PdfReadLimitTests {
         PdfReadDocument contentDocument = PdfReadDocument.Open(
             content,
             new PdfReadOptions { Limits = new PdfReadLimits { MaxContentOperations = 1 } });
+        PdfReadDocument operandDocument = PdfReadDocument.Open(
+            content,
+            new PdfReadOptions { Limits = new PdfReadLimits { MaxContentOperands = 1 } });
 
         PdfReadLimitException annotationException = Assert.Throws<PdfReadLimitException>(() => annotationDocument.Pages[0].GetAnnotations());
         PdfReadLimitException contentException = Assert.Throws<PdfReadLimitException>(() => contentDocument.Pages[0].ExtractText());
         PdfReadLimitException drawingException = Assert.Throws<PdfReadLimitException>(() => contentDocument.Pages[0].ToDrawing());
+        PdfReadLimitException operandException = Assert.Throws<PdfReadLimitException>(() => operandDocument.Pages[0].ExtractText());
+        PdfReadLimitException drawingOperandException = Assert.Throws<PdfReadLimitException>(() => operandDocument.Pages[0].ToDrawing());
 
         Assert.Equal(PdfReadLimitKind.AnnotationsPerPage, annotationException.Kind);
         Assert.Equal(PdfReadLimitKind.ContentOperations, contentException.Kind);
         Assert.Equal(PdfReadLimitKind.ContentOperations, drawingException.Kind);
+        Assert.Equal(PdfReadLimitKind.ContentOperands, operandException.Kind);
+        Assert.Equal(PdfReadLimitKind.ContentOperands, drawingOperandException.Kind);
     }
 
     [Fact]
@@ -404,6 +411,7 @@ public class PdfReadLimitTests {
                 MaxFormFieldDepth = 32,
                 MaxAnnotationsPerPage = 128,
                 MaxContentOperations = 2_000,
+                MaxContentOperands = 4_000,
                 MaxContentNestingDepth = 16
             }
         };

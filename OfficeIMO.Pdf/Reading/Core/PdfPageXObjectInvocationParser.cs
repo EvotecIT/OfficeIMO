@@ -44,12 +44,13 @@ internal static class PdfPageXObjectInvocationParser {
         OfficeStrokeLineCap? initialStrokeLineCap = null,
         OfficeStrokeLineJoin? initialStrokeLineJoin = null,
         int maxOperations = PdfReadLimits.DefaultMaxContentOperations,
-        int maxNestingDepth = PdfReadLimits.DefaultMaxContentNestingDepth) {
+        int maxNestingDepth = PdfReadLimits.DefaultMaxContentNestingDepth,
+        int maxOperands = PdfReadLimits.DefaultMaxContentOperands) {
         if (string.IsNullOrEmpty(content)) {
             return Array.Empty<PdfPageXObjectInvocation>();
         }
 
-        var parser = new Parser(content, baseTransform, pageHeight, graphicsStates, colorSpaces, optionalContentVisibility, initialFillColor, initialFillColorSpace, initialFillOpacity, paintOrderBase, paintOrderScale, paintOrderOffset, initialClipPath, initialStrokeColor, initialStrokeColorSpace, initialStrokeOpacity, initialStrokeWidth, initialStrokeDashStyle, initialStrokeLineCap, initialStrokeLineJoin, maxOperations, maxNestingDepth);
+        var parser = new Parser(content, baseTransform, pageHeight, graphicsStates, colorSpaces, optionalContentVisibility, initialFillColor, initialFillColorSpace, initialFillOpacity, paintOrderBase, paintOrderScale, paintOrderOffset, initialClipPath, initialStrokeColor, initialStrokeColorSpace, initialStrokeOpacity, initialStrokeWidth, initialStrokeDashStyle, initialStrokeLineCap, initialStrokeLineJoin, maxOperations, maxNestingDepth, maxOperands);
         return parser.Parse();
     }
 
@@ -87,6 +88,7 @@ internal static class PdfPageXObjectInvocationParser {
         private PdfContentInlineImage? _currentInlineImage;
         private readonly int _maxOperations;
         private readonly int _maxNestingDepth;
+        private readonly int _maxOperands;
 
         public Parser(
             string content,
@@ -110,7 +112,8 @@ internal static class PdfPageXObjectInvocationParser {
             OfficeStrokeLineCap? initialStrokeLineCap,
             OfficeStrokeLineJoin? initialStrokeLineJoin,
             int maxOperations,
-            int maxNestingDepth) {
+            int maxNestingDepth,
+            int maxOperands) {
             _content = content;
             _baseTransform = baseTransform;
             _graphicsStates = graphicsStates;
@@ -124,6 +127,7 @@ internal static class PdfPageXObjectInvocationParser {
             _paintOrderOffset = paintOrderOffset;
             _maxOperations = maxOperations;
             _maxNestingDepth = maxNestingDepth;
+            _maxOperands = maxOperands;
         }
 
         public IReadOnlyList<PdfPageXObjectInvocation> Parse() {
@@ -137,7 +141,8 @@ internal static class PdfPageXObjectInvocationParser {
                     _currentInlineImage = null;
                 },
                 ResolveInlineImageComponentCount,
-                _maxNestingDepth);
+                _maxNestingDepth,
+                _maxOperands);
 
             return _invocations.Count == 0 ? Array.Empty<PdfPageXObjectInvocation>() : _invocations.AsReadOnly();
         }
