@@ -93,7 +93,7 @@ RTF bridges use `RtfConversionResult<T>`. PDF save attempts expose their report,
 
 ## Image export
 
-Word, Excel, PowerPoint, Visio, and HTML image export use `OfficeImageExportResult` and `OfficeImageExportFormat` from `OfficeIMO.Drawing`.
+Word, Excel, PowerPoint, Visio, HTML, and OneNote image export use `OfficeImageExportResult` and `OfficeImageExportFormat` from `OfficeIMO.Drawing`.
 
 ```csharp
 HtmlConversionDocument source = HtmlConversionDocument.Parse(html);
@@ -101,7 +101,7 @@ OfficeImageExportResult png = source.ExportImage(OfficeImageExportFormat.Png, op
 OfficeImageExportResult saved = source.SaveAsPng("preview.png", options);
 ```
 
-`ToPng()` returns PNG bytes and `ToSvg()` returns SVG text. `ExportImage()` and `ExportImages()` return encoded output, dimensions, format, source metadata, and diagnostics. `SaveAsPng()` and `SaveAsSvg()` write to a path or stream and return the same structured evidence. The redundant `ToPngResult`, `ToSvgResult`, and plural result aliases were removed.
+`ToPng()`, `ToJpeg()`, `ToTiff()`, and `ToWebp()` return encoded bytes; `ToSvg()` returns SVG text. `ExportImage()` and `ExportImages()` return encoded output, dimensions, format, source metadata, and diagnostics. Format-specific save methods and the fluent `As...().Save(...)` surface write to a path or stream and return the same structured evidence. The redundant `ToPngResult`, `ToSvgResult`, and plural result aliases were removed.
 
 ## HTML source ownership
 

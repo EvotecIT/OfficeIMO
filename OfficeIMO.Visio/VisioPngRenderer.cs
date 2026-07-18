@@ -10,7 +10,10 @@ using Color = OfficeIMO.Drawing.OfficeColor;
 namespace OfficeIMO.Visio {
     internal static partial class VisioPngRenderer {
 
-        public static byte[] Render(VisioPage page, VisioPngSaveOptions options) {
+        public static byte[] Render(VisioPage page, VisioPngSaveOptions options) =>
+            OfficePngWriter.Encode(RenderRaster(page, options));
+
+        internal static OfficeRasterImage RenderRaster(VisioPage page, VisioPngSaveOptions options) {
             if (options.PixelsPerInch <= 0D || double.IsNaN(options.PixelsPerInch) || double.IsInfinity(options.PixelsPerInch)) {
                 throw new ArgumentOutOfRangeException(nameof(options), "PixelsPerInch must be a finite positive number.");
             }
@@ -35,7 +38,7 @@ namespace OfficeIMO.Visio {
                 DrawConnector(canvas, page, connector, options, labelLayout);
             }
 
-            return OfficePngWriter.EncodeRgba(width, height, canvas.Resolve());
+            return OfficeRasterImage.FromRgba32(width, height, canvas.Resolve());
         }
 
         private static OfficeTrueTypeFont? ResolveTextFont(VisioPngSaveOptions options) {

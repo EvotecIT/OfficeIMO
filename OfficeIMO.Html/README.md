@@ -1,6 +1,6 @@
 # OfficeIMO.Html
 
-`OfficeIMO.Html` contains the shared HTML and MHTML parser, resource policy, layout scene, and direct PNG/SVG rendering APIs used by OfficeIMO converters.
+`OfficeIMO.Html` contains the shared HTML and MHTML parser, resource policy, layout scene, and direct PNG/JPEG/TIFF/SVG/WebP rendering APIs used by OfficeIMO converters.
 
 It owns the reusable parts that should behave consistently across HTML-to-Markdown, HTML-to-Word, HTML-to/from-RTF, and HTML-backed PDF workflows:
 
@@ -12,7 +12,7 @@ It owns the reusable parts that should behave consistently across HTML-to-Markdo
 - MHTML/MHT web-archive loading, deterministic saving, root-part selection, and CID/Content-Location resource resolution
 - deterministic accessible-name, ARIA heading, EPUB structural-semantic, and logical quote/code/footnote projection
 - dependency-free HTML layout for continuous and paged output
-- direct PNG and SVG export over `OfficeIMO.Drawing`
+- direct PNG, JPEG, TIFF, SVG, and lossless WebP export over `OfficeIMO.Drawing`
 - semantic HTML to/from RTF conversion over the dependency-free `OfficeIMO.Rtf` model
 
 Markdown, Word, Excel, PowerPoint, RTF, and PDF models remain in their owning packages. Those projections are explicit: for example, HTML becomes a `WordDocument` through `ToWordDocument()` and a `MarkdownDoc` through `ToMarkdownDocument()`.
@@ -32,10 +32,17 @@ var options = new HtmlRenderOptions {
 };
 
 byte[] png = source.ToPng(options);
+byte[] jpeg = source.ToJpeg(options);
+byte[] tiff = source.ToTiff(options);
 string svg = source.ToSvg(options);
+byte[] webp = source.ToWebp(options);
 
 OfficeImageExportResult pngSave = source.SaveAsPng("status.png", options);
-OfficeImageExportResult svgSave = source.SaveAsSvg("status.svg", options);
+IReadOnlyList<OfficeImageExportResult> webpPages = source
+    .ToImages(options)
+    .Paged()
+    .AsWebp()
+    .Save("status-pages");
 ```
 
 ## MHTML web archives
@@ -64,9 +71,9 @@ archive.Save("copy.mht");
 
 See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.
 
-`ToPng()` and `ToSvg()` return in-memory output. `ExportImage()` and `ExportImages()` return encoded output plus dimensions and diagnostics. `SaveAsPng()` and `SaveAsSvg()` write to a file or stream and return the same structured evidence.
+`ToPng()`, `ToJpeg()`, `ToTiff()`, `ToSvg()`, and `ToWebp()` return in-memory output. `ExportImage()` and `ExportImages()` return encoded output plus dimensions and diagnostics. Format-specific save methods and the shared `ToImage()` / `ToImages()` fluent builders write to files or caller-owned streams and return the same structured evidence.
 
-Add `OfficeIMO.Html.Pdf` for direct PDF output. `HtmlPdfSaveOptions` derives from `HtmlRenderOptions`, so the same configured instance can be used for PDF, PNG, and SVG.
+Add `OfficeIMO.Html.Pdf` for direct PDF output. `HtmlPdfSaveOptions` derives from `HtmlRenderOptions`, so the same configured instance can be used for PDF and all five image formats.
 
 ```csharp
 using OfficeIMO.Html.Pdf;
@@ -160,7 +167,7 @@ var styles = conversion.StyleSummary;
 
 `HtmlConversionDocument` is the shared conversion contract for OfficeIMO HTML workflows. It parses once and keeps the source DOM, policy-normalized adapter DOM, logical document model, computed-style summary, resource manifest, resource dependency plan, normalized HTML, profile contract, and caller-assigned trust boundary.
 
-Target packages accept this shared document while keeping target-specific conversion in their owning packages. The prepared DOM can be sent to Word, Markdown, RTF, PDF, PNG, and SVG without reparsing it for every adapter. Excel and PowerPoint accept prepared documents when the HTML contains their semantic sheet or slide envelopes.
+Target packages accept this shared document while keeping target-specific conversion in their owning packages. The prepared DOM can be sent to Word, Markdown, RTF, PDF, PNG, JPEG, TIFF, SVG, and WebP without reparsing it for every adapter. Excel and PowerPoint accept prepared documents when the HTML contains their semantic sheet or slide envelopes.
 
 Conversion profile and trust are separate decisions. A `Document` or `HighFidelityPrint` profile does not make external resources trusted. Leave `Trust` as `Untrusted` for user-supplied HTML; set it to `Trusted` only when the caller controls the document and resource locations.
 

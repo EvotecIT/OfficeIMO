@@ -6,6 +6,9 @@
     "OfficeIMO.Excel",
     "OfficeIMO.Word",
     "OfficeIMO.PowerPoint",
+    "OfficeIMO.Html",
+    "OfficeIMO.OneNote",
+    "OfficeIMO.Visio",
     "OfficeIMO.Pdf"
   ],
   "workstreams": [
@@ -14,7 +17,7 @@
       "owner": "OfficeIMO.Drawing",
       "runtimeDependencyPolicy": "first-party-only",
       "status": "active",
-      "goal": "Own shared raster, SVG, PNG, paths, strokes, fills, text layout, image projection, chart primitives, diagnostics, and visual-quality helpers.",
+      "goal": "Own shared raster, PNG/JPEG/TIFF/SVG/WebP encoding, paths, strokes, fills, text layout, image projection, chart primitives, diagnostics, and visual-quality helpers.",
       "nextSlices": [
         "Promote reusable geometry, text, image, and chart behavior from document adapters when more than one package needs it.",
         "Add dependency-free decoders only when a document adapter has a current visual contract that needs them.",
@@ -49,12 +52,48 @@
       "id": "word-pagination",
       "owner": "OfficeIMO.Word",
       "runtimeDependencyPolicy": "first-party-only",
-      "status": "planned",
-      "goal": "Move Word image export beyond first-page preview through a deliberate first-party pagination model.",
+      "status": "active",
+      "goal": "Harden Word's estimated multi-page image export while keeping the distinction from Microsoft Word application-owned pagination explicit.",
       "nextSlices": [
-        "Separate page layout decisions from drawing emission so paragraphs, tables, headers, footers, and floating objects can produce page snapshots.",
-        "Add multi-page batch export only after page boundaries and overflow diagnostics are stable.",
+        "Expand representative page-range fixtures for paragraphs, tables, headers, footers, and floating objects.",
+        "Make overflow, fallback, and estimated-pagination diagnostics stable public contracts.",
         "Keep Word-owned wrapping, sections, fields, and object anchoring separate from Drawing-owned pixels and vector primitives."
+      ]
+    },
+    {
+      "id": "html-format-conformance",
+      "owner": "OfficeIMO.Html",
+      "runtimeDependencyPolicy": "first-party-only",
+      "status": "active",
+      "goal": "Keep continuous and paged HTML image output format-correct, resource-aware, bounded, and aligned with the shared five-format API.",
+      "nextSlices": [
+        "Add representative continuous and paged visual galleries with embedded, data-URI, and policy-resolved images.",
+        "Propagate rendering cancellation through the shared fluent builder contract instead of only direct async APIs.",
+        "Keep HTML layout semantics in Html and reusable raster/SVG encoding in Drawing."
+      ]
+    },
+    {
+      "id": "onenote-visual-baselines",
+      "owner": "OfficeIMO.OneNote",
+      "runtimeDependencyPolicy": "first-party-only",
+      "status": "active",
+      "goal": "Expand representative OneNote image-export evidence across pages, sections, notebooks, ink, math, images, and selection.",
+      "nextSlices": [
+        "Add reviewable real-world page galleries without committing heavy transient comparison artifacts.",
+        "Align bounded raster diagnostics and naming behavior with the shared converter contract.",
+        "Keep OneNote package semantics separate from Drawing-owned pixels, vectors, and encoders."
+      ]
+    },
+    {
+      "id": "visio-five-format-export",
+      "owner": "OfficeIMO.Visio",
+      "runtimeDependencyPolicy": "first-party-only",
+      "status": "active",
+      "goal": "Keep Visio page and document batch export consistent across PNG, JPEG, TIFF, SVG, and WebP while preserving the native Visio geometry renderer.",
+      "nextSlices": [
+        "Expand loaded-document baselines for stencil artwork, connectors, text, themes, and unsupported-shape diagnostics.",
+        "Keep raster allocation bounded before supersampled working surfaces are created.",
+        "Route reusable encoding and result contracts through Drawing without duplicating Visio geometry."
       ]
     },
     {

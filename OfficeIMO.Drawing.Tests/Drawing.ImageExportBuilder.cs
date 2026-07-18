@@ -122,6 +122,34 @@ public partial class DrawingTests {
     }
 
     [Fact]
+    public void OfficeImageExportBatchBuilder_UsesPortableUniqueFileNames() {
+        string folder = Path.Combine(Path.GetTempPath(), "OfficeIMO-" + Guid.NewGuid().ToString("N"));
+        try {
+            var builder = new TestImageExportBatchBuilder(
+                new TestImageExportOptions(),
+                "Quarter:1",
+                "Quarter?1",
+                "CON",
+                "COM¹",
+                "LPT³.log",
+                " trailing. ",
+                "A/B");
+
+            builder.Save(folder);
+
+            Assert.True(File.Exists(Path.Combine(folder, "Quarter_1.png")));
+            Assert.True(File.Exists(Path.Combine(folder, "Quarter_1-2.png")));
+            Assert.True(File.Exists(Path.Combine(folder, "_CON.png")));
+            Assert.True(File.Exists(Path.Combine(folder, "_COM¹.png")));
+            Assert.True(File.Exists(Path.Combine(folder, "_LPT³.log.png")));
+            Assert.True(File.Exists(Path.Combine(folder, "trailing.png")));
+            Assert.True(File.Exists(Path.Combine(folder, "A_B.png")));
+        } finally {
+            if (Directory.Exists(folder)) Directory.Delete(folder, recursive: true);
+        }
+    }
+
+    [Fact]
     public void OfficeImageExportBuilders_DoNotExposeDuplicateTerminalAliases() {
         string[] removedNames = {
             "AtScale", "OnBackground", "Preview", "HighResolution",

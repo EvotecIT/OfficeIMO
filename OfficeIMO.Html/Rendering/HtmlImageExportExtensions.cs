@@ -4,7 +4,7 @@ using OfficeIMO.Drawing.Internal;
 
 namespace OfficeIMO.Html;
 
-/// <summary>Direct HTML-to-PNG and HTML-to-SVG helpers backed by the shared HTML render scene.</summary>
+/// <summary>Direct HTML image-export helpers backed by the shared HTML render scene.</summary>
 public static partial class HtmlImageExportExtensions {
     internal static OfficeImageExportResult ExportImage(this IHtmlDocument document, OfficeImageExportFormat format, HtmlRenderOptions? options = null, int pageIndex = 0) {
         HtmlRenderOptions resolved = Normalize(options, pageIndex);
@@ -43,14 +43,26 @@ public static partial class HtmlImageExportExtensions {
     private static OfficeImageExportResult RenderPage(HtmlRenderPage page, OfficeImageExportFormat format, HtmlRenderOptions options, HtmlDiagnosticReport diagnostics, CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         OfficeDrawing drawing = page.CreateDrawing(cancellationToken);
-        byte[] bytes = format == OfficeImageExportFormat.Svg
-            ? OfficeDrawingSvgExporter.ToSvgBytes(drawing, options.Scale, OfficeSvgSizeUnit.Pixel)
-            : OfficeDrawingRasterRenderer.ToPng(drawing, options.Scale, options.BackgroundColor);
+        byte[] bytes;
+        int width;
+        int height;
+        if (format == OfficeImageExportFormat.Svg) {
+            bytes = OfficeDrawingSvgExporter.ToSvgBytes(drawing, options.Scale, OfficeSvgSizeUnit.Pixel);
+            width = Math.Max(1, (int)Math.Ceiling(page.Width * options.Scale));
+            height = Math.Max(1, (int)Math.Ceiling(page.Height * options.Scale));
+        } else if (format.IsRaster()) {
+            OfficeRasterImage image = OfficeDrawingRasterRenderer.Render(drawing, options.Scale, options.BackgroundColor);
+            bytes = OfficeRasterImageEncoder.Encode(image, format, options.RasterEncoding);
+            width = image.Width;
+            height = image.Height;
+        } else {
+            throw new ArgumentOutOfRangeException(nameof(format), format, "Unsupported image export format.");
+        }
         cancellationToken.ThrowIfCancellationRequested();
         return new OfficeImageExportResult(
             format,
-            Math.Max(1, (int)Math.Ceiling(page.Width * options.Scale)),
-            Math.Max(1, (int)Math.Ceiling(page.Height * options.Scale)),
+            width,
+            height,
             bytes,
             "Page " + page.PageNumber.ToString(System.Globalization.CultureInfo.InvariantCulture),
             "HTML render page " + page.PageNumber.ToString(System.Globalization.CultureInfo.InvariantCulture),

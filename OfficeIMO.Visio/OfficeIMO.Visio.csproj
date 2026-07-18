@@ -16,7 +16,7 @@
 
         <PackageId>OfficeIMO.Visio</PackageId>
         <PackageTags>
-            vsdx;visio;office;openxml;stencils;diagram;svg;png;net472;netstandard2.0;net8.0;net10.0</PackageTags>
+            vsdx;visio;office;openxml;stencils;diagram;image-export;png;jpeg;tiff;svg;webp;net472;netstandard2.0;net8.0;net10.0</PackageTags>
         <PackageProjectUrl>https://github.com/EvotecIT/OfficeIMO</PackageProjectUrl>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
         <DelaySign>False</DelaySign>

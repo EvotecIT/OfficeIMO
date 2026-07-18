@@ -3994,16 +3994,16 @@ public partial class DrawingTests {
     }
 
     private sealed class TestImageExportBatchBuilder : OfficeImageExportBatchBuilder<TestImageExportBatchBuilder, TestImageExportOptions> {
-        internal TestImageExportBatchBuilder(TestImageExportOptions options)
-            : base(options, (format, current) => new[] {
-                new OfficeImageExportResult(
+        internal TestImageExportBatchBuilder(TestImageExportOptions options, params string[] names)
+            : base(options, (format, current) => (names.Length == 0 ? new[] { "batch" } : names)
+                .Select(name => new OfficeImageExportResult(
                     format,
                     (int)Math.Ceiling(100D * current.Scale),
                     (int)Math.Ceiling(50D * current.Scale),
                     CreateTestImageBytes(format),
-                    "batch",
-                    current.BackgroundColor.ToString())
-            }) {
+                    name,
+                    current.BackgroundColor.ToString()))
+                .ToArray()) {
         }
     }
 

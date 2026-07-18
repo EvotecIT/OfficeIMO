@@ -24,9 +24,9 @@ OfficeIMO keeps document engines first-party and optional integrations isolated.
 | --- | --- | --- |
 | Drawing, OneNote, PDF, Markdown, RTF, OpenDocument, AsciiDoc, LaTeX, CSV, EPUB, ZIP | No third-party document engine | Parsing, object models, writing, rendering primitives, safety limits, and diagnostics |
 | Word, Excel, PowerPoint | [Open XML SDK](https://github.com/dotnet/Open-XML-SDK) | Fluent/editable object models, lifecycle, validation, conversions, managed image export, and first-party `.doc`/`.xls`/`.ppt` support |
-| HTML and MHTML | [AngleSharp](https://github.com/AngleSharp/AngleSharp) and AngleSharp.Css | Resource policy, web-archive projection, media filtering, layout scene, Office/RTF mappings, and PDF/PNG/SVG output |
+| HTML and MHTML | [AngleSharp](https://github.com/AngleSharp/AngleSharp) and AngleSharp.Css | Resource policy, web-archive projection, media filtering, layout scene, Office/RTF mappings, and PDF/PNG/JPEG/TIFF/SVG/WebP output |
 | Email, email stores, and address books | No third-party email engine | EML/MIME, MSG/OFT, TNEF, mbox, PST/OST, OLM, EMLX, Outlook OAB, MAPI projection, limits, and diagnostics |
-| Visio | `System.IO.Packaging` | VSDX model, diagram builders, editing, validation, topology, and SVG/PNG export |
+| Visio | `System.IO.Packaging` | VSDX model, diagram builders, editing, validation, topology, and PNG/JPEG/TIFF/SVG/WebP export |
 | Reader.Yaml | [YamlDotNet](https://github.com/aaubry/YamlDotNet) | Reader projection, chunking, limits, locations, and diagnostics |
 | MarkdownRenderer.Wpf | Microsoft WebView2 | Rendering shell, presets, plug-in model, and WPF host contract |
 | Pdf.Cryptography.Pkcs | No external runtime package | Managed detached CMS signing and validation, X.509 chain policy, RFC 3161 parsing, and the PDF signature/revision model |
@@ -48,7 +48,7 @@ OfficeIMO keeps document engines first-party and optional integrations isolated.
 | Modern Office authoring/editing | `.docx`, `.xlsx`, `.pptx`, `.vsdx` |
 | First-party legacy binary support | Word 97–2003 `.doc`, Excel BIFF8 `.xls`, PowerPoint 97–2003 `.ppt`/`.pot`/`.pps` |
 | First-party offline OneNote support | Desktop/FSSHTTP `.one`, `.onetoc2`, `.onepkg` |
-| Managed PNG/JPEG/TIFF/WebP/SVG-capable document surfaces | Word, Excel, and PowerPoint; other surfaces retain their documented PNG/SVG contracts |
+| Managed PNG/JPEG/TIFF/WebP/SVG-capable document surfaces | Drawing, Word, Excel, PowerPoint, HTML, OneNote, and Visio |
 
 The checkboxes describe the exact level of support: authoring, editing, reading, preserving, inspecting, converting, or exporting. A checked inspection or preservation item is not presented as full authoring support.
 
@@ -155,7 +155,7 @@ _Dependency footprint:_ Open XML SDK plus `OfficeIMO.Drawing`; legacy binary sup
 - [x] Built-in and learned masters, stencil profiles, master editing, replacement, and migration plans/artifacts
 - [x] Flowchart, block, architecture, network, topology, swimlane, org-chart, sequence, timeline, dependency, and graph builders
 - [x] Loaded-diagram editing, layout, selection, validation, package checks, desktop compatibility proof, and visual-quality analysis
-- [x] Headless SVG and managed PNG export for complete documents or individual pages
+- [x] Headless PNG, JPEG, TIFF, lossless WebP, and SVG export for individual pages plus document-wide batch export
 
 _Dependency footprint:_ `System.IO.Packaging` plus `OfficeIMO.Drawing`; the VSDX model and renderers are first-party.
 
@@ -222,8 +222,8 @@ _Dependency footprint:_ only `OfficeIMO.Drawing`; no Markdig or other Markdown p
 
 - [x] Canonical `HtmlConversionDocument` with DOM, base-URI, media, resource, and URL-policy ownership
 - [x] MHTML/MHT loading and deterministic saving with HTML root selection plus CID/Content-Location resource resolution
-- [x] CSS-aware layout scene shared by PNG, SVG, PDF, and Office adapters
-- [x] Direct PNG and SVG output with structured diagnostics and bounded local/remote resource loading; `OfficeIMO.Html.Pdf` adds PDF
+- [x] CSS-aware layout scene shared by PNG, JPEG, TIFF, SVG, WebP, PDF, and Office adapters
+- [x] Direct PNG, JPEG, TIFF, SVG, and lossless WebP output with structured diagnostics and bounded local/remote resource loading; `OfficeIMO.Html.Pdf` adds PDF
 - [x] Semantic HTML/RTF conversion and shared mappings for Word, Excel, PowerPoint, and Markdown
 
 _Dependency footprint:_ AngleSharp and AngleSharp.Css for DOM/CSS parsing, plus first-party OfficeIMO drawing, email, and RTF engines.
@@ -516,7 +516,7 @@ _Dependency footprint:_ OfficeIMO OneNote.Markdown, Markdown.Pdf, PDF, and Drawi
 
 #### [OfficeIMO.Html.Pdf](OfficeIMO.Html.Pdf/README.md)
 
-- [x] Direct HTML-to-PDF, PNG, and SVG rendering from `HtmlConversionDocument`
+- [x] Direct HTML-to-PDF plus shared PNG, JPEG, TIFF, SVG, and WebP rendering from `HtmlConversionDocument`
 - [x] CSS-aware page layout, media queries, local/remote resource policy, font fallback, links, tables, images, and vector content
 - [x] PDF-to-HTML logical projection and result-bearing diagnostics
 

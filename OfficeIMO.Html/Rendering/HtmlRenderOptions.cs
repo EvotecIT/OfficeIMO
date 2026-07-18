@@ -132,6 +132,7 @@ public class HtmlRenderOptions : OfficeImageExportOptions {
     protected internal T CopyTo<T>(T target) where T : HtmlRenderOptions {
         target.Scale = Scale;
         target.BackgroundColor = BackgroundColor;
+        target.RasterEncoding = RasterEncoding?.Clone() ?? new OfficeRasterEncodingOptions();
         target.Mode = Mode;
         target.ViewportWidth = ViewportWidth;
         target.ViewportHeight = ViewportHeight;

@@ -172,7 +172,9 @@ public class DrawingArchitectureTests {
         Assert.Contains("OfficeRasterRenderTarget", rasterAdapter, StringComparison.Ordinal);
         Assert.Contains("OfficeRasterCanvas", rasterAdapter, StringComparison.Ordinal);
         Assert.Contains("OfficeTextBlockRenderer.DrawRasterTextBox", rasterAdapter, StringComparison.Ordinal);
-        Assert.Contains("OfficePngWriter.EncodeRgba", renderer, StringComparison.Ordinal);
+        Assert.Contains("OfficeRasterImage RenderRaster", renderer, StringComparison.Ordinal);
+        Assert.Contains("OfficeRasterImage.FromRgba32", renderer, StringComparison.Ordinal);
+        Assert.Contains("OfficePngWriter.Encode(RenderRaster", renderer, StringComparison.Ordinal);
     }
 
     [Fact]
