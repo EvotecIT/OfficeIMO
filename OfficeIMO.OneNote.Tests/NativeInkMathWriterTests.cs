@@ -207,6 +207,27 @@ public sealed class NativeInkMathWriterTests {
     }
 
     [Fact]
+    public void DropsOpaqueInkReferencesWhenUnknownDataPreservationIsDisabled() {
+        var section = new OneNoteSection { Name = "Canonical ink" };
+        var page = new OneNotePage { Title = "Ink" };
+        var ink = new OneNoteInk { PreservedInkBoundingBox = InkBounds(-10, -20, 30, 40) };
+        var preservedStrokeId = new OneNoteExtendedGuid(Guid.NewGuid(), 7, 17);
+        ink.PreservedStrokeObjectIds.Add(preservedStrokeId);
+        ink.Ink.Add(new OfficeInkStroke().AddPoint(0.1D, 0.2D).AddPoint(0.3D, 0.4D));
+        page.DirectContent.Add(ink);
+        section.Pages.Add(page);
+
+        OneNoteWriteObjectSpace pageSpace = new OneNoteWriteGraphBuilder(preserveUnknownData: false).BuildSection(section).ObjectSpaces[1];
+        OneNoteWriteObject inkData = Assert.Single(pageSpace.Objects, item => item.Jcid == OneNoteSchema.JcidInkDataNode);
+        OneNoteWriteProperty strokes = Assert.Single(inkData.Properties, property =>
+            (property.RawId & 0x7FFFFFFFU) == OneNoteSchema.InkStrokes);
+
+        OneNoteExtendedGuid authoredStrokeId = Assert.Single(strokes.References);
+        Assert.NotEqual(preservedStrokeId, authoredStrokeId);
+        Assert.Contains(pageSpace.Objects, item => item.Id.Equals(authoredStrokeId) && item.Jcid == OneNoteSchema.JcidInkStrokeNode);
+    }
+
+    [Fact]
     public void PreservesRecognitionTreeForOpaqueStrokeDuringUnrelatedEdit() {
         var section = new OneNoteSection { Name = "Opaque recognition" };
         var page = new OneNotePage { Title = "Before" };
@@ -559,6 +580,7 @@ public sealed class NativeInkMathWriterTests {
             OfficeMath.LeftSubSuperscript(OfficeMath.Identifier("T"), OfficeMath.Identifier("i"), OfficeMath.Identifier("j")),
             OfficeMath.LowerLimit(OfficeMath.Identifier("lim"), OfficeMath.Identifier("x")),
             OfficeMath.UpperLimit(OfficeMath.Identifier("max"), OfficeMath.Identifier("n")),
+            OfficeMath.Nary("∑", OfficeMath.Identifier("x"), upper: OfficeMath.Identifier("n")),
             OfficeMath.SlashedFraction(OfficeMath.Identifier("a"), OfficeMath.Identifier("b")),
             OfficeMath.Stack(OfficeMath.Identifier("a"), OfficeMath.Identifier("b")),
             OfficeMath.StretchStack(OfficeMath.Identifier("x"), OfficeMath.Identifier("y")),

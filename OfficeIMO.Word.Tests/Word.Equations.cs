@@ -188,6 +188,7 @@ namespace OfficeIMO.Tests {
                 SharedMath.LeftSubSuperscript(SharedMath.Identifier("T"), SharedMath.Identifier("i"), SharedMath.Identifier("j")),
                 SharedMath.LowerLimit(SharedMath.Identifier("lim"), SharedMath.Identifier("x")),
                 SharedMath.UpperLimit(SharedMath.Identifier("max"), SharedMath.Identifier("n")),
+                SharedMath.Nary("∑", SharedMath.Identifier("x"), upper: SharedMath.Identifier("n")),
                 SharedMath.SlashedFraction(SharedMath.Identifier("a"), SharedMath.Identifier("b")),
                 SharedMath.DelimiterList("[", "]", ";", SharedMath.Identifier("a"), SharedMath.Identifier("b"))
             };

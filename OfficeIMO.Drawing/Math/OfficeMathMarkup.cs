@@ -149,10 +149,12 @@ public static class OfficeMathMarkup {
     private static XElement NaryMathMl(OfficeMathExpression expression) {
         XElement symbol = Element("mo", expression.Character ?? "∑");
         XElement withLimits = symbol;
-        if (expression.Children.Count == 2) {
-            withLimits = Element("munder", symbol, ToMathMlElement(expression.Children[1]));
-        } else if (expression.Children.Count == 3) {
-            withLimits = Element("munderover", symbol, ToMathMlElement(expression.Children[1]), ToMathMlElement(expression.Children[2]));
+        if (expression.NaryLowerLimit != null && expression.NaryUpperLimit != null) {
+            withLimits = Element("munderover", symbol, ToMathMlElement(expression.NaryLowerLimit), ToMathMlElement(expression.NaryUpperLimit));
+        } else if (expression.NaryLowerLimit != null) {
+            withLimits = Element("munder", symbol, ToMathMlElement(expression.NaryLowerLimit));
+        } else if (expression.NaryUpperLimit != null) {
+            withLimits = Element("mover", symbol, ToMathMlElement(expression.NaryUpperLimit));
         }
         return Element("mrow", withLimits, ToMathMlElement(expression.Children[0]));
     }
@@ -257,9 +259,7 @@ public static class OfficeMathMarkup {
             return true;
         }
         if (head.Kind != OfficeMathKind.Nary || head.Children.Count == 0 || head.Children[0].ToPlainText().Length != 0) return false;
-        OfficeMathExpression? lower = head.Children.Count > 1 ? head.Children[1] : null;
-        OfficeMathExpression? upper = head.Children.Count > 2 ? head.Children[2] : null;
-        expression = OfficeMath.Nary(head.Character ?? "∑", content, lower, upper);
+        expression = OfficeMath.Nary(head.Character ?? "∑", content, head.NaryLowerLimit, head.NaryUpperLimit);
         return true;
     }
 
@@ -286,10 +286,15 @@ public static class OfficeMathMarkup {
         }
         if (marker < 0) {
             if (children.Count != 3) throw new FormatException("MathML element '" + owner + "' has invalid postscripts.");
-            return OfficeMath.SubSuperscript(
-                ParseMathMlElement(children[0]),
-                ParseMathMlElement(children[1]),
-                ParseMathMlElement(children[2]));
+            OfficeMathExpression basis = ParseMathMlElement(children[0]);
+            bool hasSubscript = children[1].Name.LocalName != "none";
+            bool hasSuperscript = children[2].Name.LocalName != "none";
+            if (hasSubscript && hasSuperscript) {
+                return OfficeMath.SubSuperscript(basis, ParseMathMlElement(children[1]), ParseMathMlElement(children[2]));
+            }
+            if (hasSubscript) return OfficeMath.Subscript(basis, ParseMathMlElement(children[1]));
+            if (hasSuperscript) return OfficeMath.Superscript(basis, ParseMathMlElement(children[2]));
+            return basis;
         }
         if (marker < 1 || marker + 2 >= children.Count) throw new FormatException("MathML element '" + owner + "' has invalid prescripts.");
         return OfficeMath.LeftSubSuperscript(
@@ -400,8 +405,8 @@ public static class OfficeMathMarkup {
                 break;
             case OfficeMathKind.Nary:
                 builder.Append(SymbolToLatex(expression.Character));
-                if (expression.Children.Count > 1) { builder.Append("_{"); AppendLatex(builder, expression.Children[1]); builder.Append('}'); }
-                if (expression.Children.Count > 2) { builder.Append("^{"); AppendLatex(builder, expression.Children[2]); builder.Append('}'); }
+                if (expression.NaryLowerLimit != null) { builder.Append("_{"); AppendLatex(builder, expression.NaryLowerLimit); builder.Append('}'); }
+                if (expression.NaryUpperLimit != null) { builder.Append("^{"); AppendLatex(builder, expression.NaryUpperLimit); builder.Append('}'); }
                 builder.Append(" {"); AppendLatex(builder, expression.Children[0]); builder.Append('}'); break;
             case OfficeMathKind.Matrix:
             case OfficeMathKind.EquationArray:

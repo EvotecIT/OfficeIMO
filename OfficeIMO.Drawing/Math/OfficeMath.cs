@@ -67,11 +67,8 @@ public static class OfficeMath {
         if (string.IsNullOrEmpty(character)) throw new ArgumentException("An n-ary operator character is required.", nameof(character));
         var children = new List<OfficeMathExpression> { content ?? throw new ArgumentNullException(nameof(content)) };
         if (lower != null) children.Add(lower);
-        if (upper != null) {
-            if (lower == null) children.Add(Text(string.Empty));
-            children.Add(upper);
-        }
-        return Create(OfficeMathKind.Nary, character: character, children: children);
+        if (upper != null) children.Add(upper);
+        return Create(OfficeMathKind.Nary, character: character, children: children, naryUpperOnly: lower == null && upper != null);
     }
 
     /// <summary>Creates delimited content.</summary>
@@ -142,6 +139,7 @@ public static class OfficeMath {
         string? secondaryCharacter = null,
         int rowCount = 0,
         int columnCount = 0,
-        string? separatorCharacter = null) =>
-        new OfficeMathExpression(kind, text, children, character, secondaryCharacter, rowCount, columnCount, separatorCharacter);
+        string? separatorCharacter = null,
+        bool naryUpperOnly = false) =>
+        new OfficeMathExpression(kind, text, children, character, secondaryCharacter, rowCount, columnCount, separatorCharacter, naryUpperOnly);
 }

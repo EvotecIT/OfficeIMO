@@ -331,8 +331,8 @@ public static class OfficeMathRenderer {
 
         private LayoutBox Nary(OfficeMathExpression expression, double scale) {
             LayoutBox symbol = Text(expression.Character ?? "∑", scale * 1.35D);
-            LayoutBox? lower = expression.Children.Count > 1 ? Layout(expression.Children[1], scale * _options.ScriptScale) : null;
-            LayoutBox? upper = expression.Children.Count > 2 ? Layout(expression.Children[2], scale * _options.ScriptScale) : null;
+            LayoutBox? lower = expression.NaryLowerLimit != null ? Layout(expression.NaryLowerLimit, scale * _options.ScriptScale) : null;
+            LayoutBox? upper = expression.NaryUpperLimit != null ? Layout(expression.NaryUpperLimit, scale * _options.ScriptScale) : null;
             double operatorWidth = Math.Max(symbol.Width, Math.Max(lower?.Width ?? 0D, upper?.Width ?? 0D));
             double upperHeight = upper?.Height ?? 0D;
             double operatorHeight = upperHeight + symbol.Height + (lower?.Height ?? 0D);

@@ -67,6 +67,36 @@ public class DrawingMathTests {
         Assert.Equal("j", expression.Children[2].Text);
     }
 
+    [Theory]
+    [InlineData("<none/><mn>2</mn>", OfficeMathKind.Superscript, "x^(2)")]
+    [InlineData("<mi>i</mi><none/>", OfficeMathKind.Subscript, "x_(i)")]
+    [InlineData("<none/><none/>", OfficeMathKind.Identifier, "x")]
+    public void MathMlMultiScriptsTreatsNoneAsAnOmittedPostscript(string scripts, OfficeMathKind kind, string plainText) {
+        string mathMl = "<math xmlns=\"http://www.w3.org/1998/Math/MathML\"><mmultiscripts><mi>x</mi>" + scripts + "</mmultiscripts></math>";
+
+        OfficeMathExpression expression = OfficeMathMarkup.FromMathMl(mathMl);
+
+        Assert.Equal(kind, expression.Kind);
+        Assert.Equal(plainText, expression.ToPlainText());
+    }
+
+    [Fact]
+    public void UpperOnlyNaryRetainsItsLimitAcrossPortableMarkup() {
+        OfficeMathExpression expression = OfficeMath.Nary("∑", OfficeMath.Identifier("x"), upper: OfficeMath.Identifier("n"));
+
+        string mathMl = OfficeMathMarkup.ToMathMl(expression);
+        string latex = OfficeMathMarkup.ToLatex(expression);
+
+        Assert.Null(expression.NaryLowerLimit);
+        Assert.Equal(OfficeMath.Identifier("n"), expression.NaryUpperLimit);
+        Assert.Equal("∑^(n)x", expression.ToPlainText());
+        Assert.Contains("<mover>", mathMl, StringComparison.Ordinal);
+        Assert.DoesNotContain("<munderover>", mathMl, StringComparison.Ordinal);
+        Assert.Equal(@"\sum^{n} {x}", latex);
+        Assert.Equal(expression, OfficeMathMarkup.FromMathMl(mathMl));
+        Assert.Equal(expression, OfficeMathMarkup.FromLatex(latex));
+    }
+
     [Fact]
     public void MathMlSemanticsIgnoresAnnotationPayloads() {
         const string mathMl = "<math xmlns=\"http://www.w3.org/1998/Math/MathML\"><semantics>" +

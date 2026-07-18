@@ -163,8 +163,11 @@ internal static class OneNoteMathNativeCodec {
         }
         if (expression.Kind == OfficeMathKind.Nary) {
             var values = new List<OfficeMathExpression>();
-            if (expression.Children.Count > 1) values.Add(expression.Children[1]);
-            if (expression.Children.Count > 2) values.Add(expression.Children[2]);
+            if (expression.NaryLowerLimit != null) values.Add(expression.NaryLowerLimit);
+            if (expression.NaryUpperLimit != null) {
+                if (expression.NaryLowerLimit == null) values.Add(OfficeMath.Text(string.Empty));
+                values.Add(expression.NaryUpperLimit);
+            }
             values.Add(expression.Children[0]);
             return values;
         }
@@ -292,7 +295,15 @@ internal static class OneNoteMathNativeCodec {
                 case 29: return OfficeMath.Subscript(Child(0), Child(1));
                 case 20: return Matrix(OfficeMathKind.Matrix, descriptor, children);
                 case 21:
-                    if (children.Count >= 3) return OfficeMath.Nary(string.IsNullOrEmpty(character) ? "∑" : character, Child(2), Child(0), Child(1));
+                    if (children.Count >= 3) {
+                        OfficeMathExpression lower = Child(0);
+                        OfficeMathExpression upper = Child(1);
+                        return OfficeMath.Nary(
+                            string.IsNullOrEmpty(character) ? "∑" : character,
+                            Child(2),
+                            lower.ToPlainText().Length == 0 ? null : lower,
+                            upper.ToPlainText().Length == 0 ? null : upper);
+                    }
                     if (children.Count == 2) return OfficeMath.Nary(string.IsNullOrEmpty(character) ? "∑" : character, Child(1), Child(0));
                     return OfficeMath.Nary(string.IsNullOrEmpty(character) ? "∑" : character, Child(0));
                 case 22: return OfficeMath.Operator(string.IsNullOrEmpty(character) ? Child(0).ToPlainText() : character);

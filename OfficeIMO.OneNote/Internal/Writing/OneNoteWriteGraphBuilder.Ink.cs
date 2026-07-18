@@ -5,7 +5,7 @@ namespace OfficeIMO.OneNote;
 internal sealed partial class OneNoteWriteGraphBuilder {
     private OneNoteExtendedGuid BuildInk(OneNoteWriteObjectSpace space, OneNoteInk ink, uint lastModifiedTime) {
         foreach (OfficeInkStroke stroke in ink.Strokes) ValidateInkPathValueCount(stroke);
-        if (CanPreserveNestedInkContainer(ink, out IReadOnlyList<OfficeInkStroke>? authoredStrokes)) {
+        if (_preserveUnknownData && CanPreserveNestedInkContainer(ink, out IReadOnlyList<OfficeInkStroke>? authoredStrokes)) {
             var retainedChildren = new List<OneNoteExtendedGuid>(ink.PreservedChildContainerIds);
             if (authoredStrokes.Count > 0) {
                 var authoredInk = new OneNoteInk();
@@ -26,16 +26,19 @@ internal sealed partial class OneNoteWriteGraphBuilder {
             return retainedContainerId;
         }
 
-        if (ink.PreservedChildContainerIds.Count > 0 && ink.PreservedStrokeObjectIds.Count > 0) {
+        if (_preserveUnknownData && ink.PreservedChildContainerIds.Count > 0 && ink.PreservedStrokeObjectIds.Count > 0) {
             throw new OneNoteFormatException(
                 "ONENOTE_WRITE_OPAQUE_NESTED_INK_EDIT",
                 "Nested ink containing undecodable native strokes cannot be flattened after an existing stroke is edited.");
         }
 
-        bool retainsNativeStrokes = ink.PreservedStrokeObjectIds.Count > 0 || ink.Strokes.Any(stroke => CanReuseNativeStroke(ink, stroke));
+        bool retainsNativeStrokes = _preserveUnknownData &&
+            (ink.PreservedStrokeObjectIds.Count > 0 || ink.Strokes.Any(stroke => CanReuseNativeStroke(ink, stroke)));
         double scaleX = retainsNativeStrokes ? ValidInkScale(ink.PreservedInkScaleX) : 1D;
         double scaleY = retainsNativeStrokes ? ValidInkScale(ink.PreservedInkScaleY) : 1D;
-        var strokeIds = new List<OneNoteExtendedGuid>(ink.PreservedStrokeObjectIds);
+        var strokeIds = _preserveUnknownData
+            ? new List<OneNoteExtendedGuid>(ink.PreservedStrokeObjectIds)
+            : new List<OneNoteExtendedGuid>();
         var nativePoints = new List<OfficePoint>();
         foreach (OfficeInkStroke stroke in ink.Strokes) {
             if (stroke.Points.Count == 0) continue;
@@ -52,7 +55,7 @@ internal sealed partial class OneNoteWriteGraphBuilder {
         ink.InkDataObjectId = dataId;
         var dataProperties = new List<OneNoteWriteProperty>();
         if (strokeIds.Count > 0) dataProperties.Add(ObjectReferences(OneNoteSchema.InkStrokes, strokeIds));
-        byte[]? boundingBox = InkBoundingBox(ink, nativePoints, retainsNativeStrokes);
+        byte[]? boundingBox = InkBoundingBox(ink, nativePoints, retainsNativeStrokes, _preserveUnknownData);
         if (boundingBox != null) dataProperties.Add(Data(OneNoteSchema.InkBoundingBox, boundingBox));
         space.Objects.Add(new OneNoteWriteObject(dataId, OneNoteSchema.JcidInkDataNode, dataProperties));
 
@@ -377,11 +380,15 @@ internal sealed partial class OneNoteWriteGraphBuilder {
         }
     }
 
-    private static byte[]? InkBoundingBox(OneNoteInk ink, IReadOnlyList<OfficePoint> points, bool retainsNativeStrokes) {
-        byte[]? source = ink.PreservedInkBoundingBox;
+    private static byte[]? InkBoundingBox(
+        OneNoteInk ink,
+        IReadOnlyList<OfficePoint> points,
+        bool retainsNativeStrokes,
+        bool preserveUnknownData) {
+        byte[]? source = preserveUnknownData ? ink.PreservedInkBoundingBox : null;
         bool sourceBoundsAreValid = TryReadInkBoundingBox(source, out int left, out int top, out int right, out int bottom);
         bool hasSourceBounds = retainsNativeStrokes && sourceBoundsAreValid;
-        if (ink.PreservedStrokeObjectIds.Count > 0 && !hasSourceBounds) {
+        if (preserveUnknownData && ink.PreservedStrokeObjectIds.Count > 0 && !hasSourceBounds) {
             throw new OneNoteFormatException(
                 "ONENOTE_WRITE_OPAQUE_INK_BOUNDS",
                 "Ink containing undecodable native strokes cannot be written without its complete native bounding box.");

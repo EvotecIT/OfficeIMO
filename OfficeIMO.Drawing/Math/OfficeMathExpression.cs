@@ -67,6 +67,7 @@ public enum OfficeMathKind {
 /// <summary>An immutable node in a reusable mathematical expression tree.</summary>
 public sealed class OfficeMathExpression : IEquatable<OfficeMathExpression> {
     private readonly ReadOnlyCollection<OfficeMathExpression> _children;
+    private readonly bool _naryUpperOnly;
 
     internal OfficeMathExpression(
         OfficeMathKind kind,
@@ -76,7 +77,8 @@ public sealed class OfficeMathExpression : IEquatable<OfficeMathExpression> {
         string? secondaryCharacter,
         int rowCount,
         int columnCount,
-        string? separatorCharacter) {
+        string? separatorCharacter,
+        bool naryUpperOnly) {
         Kind = kind;
         Text = text;
         Character = character;
@@ -84,6 +86,7 @@ public sealed class OfficeMathExpression : IEquatable<OfficeMathExpression> {
         RowCount = rowCount;
         ColumnCount = columnCount;
         SeparatorCharacter = separatorCharacter;
+        _naryUpperOnly = naryUpperOnly;
         _children = new ReadOnlyCollection<OfficeMathExpression>(children?.ToList() ?? new List<OfficeMathExpression>());
         Validate();
     }
@@ -105,6 +108,14 @@ public sealed class OfficeMathExpression : IEquatable<OfficeMathExpression> {
 
     /// <summary>Child expressions in semantic order.</summary>
     public IReadOnlyList<OfficeMathExpression> Children => _children;
+
+    /// <summary>Lower limit for an n-ary expression, or <see langword="null"/> when omitted.</summary>
+    public OfficeMathExpression? NaryLowerLimit =>
+        Kind == OfficeMathKind.Nary && !_naryUpperOnly && _children.Count > 1 ? _children[1] : null;
+
+    /// <summary>Upper limit for an n-ary expression, or <see langword="null"/> when omitted.</summary>
+    public OfficeMathExpression? NaryUpperLimit =>
+        Kind != OfficeMathKind.Nary ? null : _naryUpperOnly ? _children[1] : _children.Count > 2 ? _children[2] : null;
 
     /// <summary>Row count for matrix-like structures.</summary>
     public int RowCount { get; }
@@ -178,7 +189,7 @@ public sealed class OfficeMathExpression : IEquatable<OfficeMathExpression> {
     public bool Equals(OfficeMathExpression? other) {
         if (other == null || Kind != other.Kind || Text != other.Text || Character != other.Character ||
             SecondaryCharacter != other.SecondaryCharacter || SeparatorCharacter != other.SeparatorCharacter || RowCount != other.RowCount ||
-            ColumnCount != other.ColumnCount || _children.Count != other._children.Count) return false;
+            ColumnCount != other.ColumnCount || _naryUpperOnly != other._naryUpperOnly || _children.Count != other._children.Count) return false;
         for (int index = 0; index < _children.Count; index++) {
             if (!_children[index].Equals(other._children[index])) return false;
         }
@@ -198,6 +209,7 @@ public sealed class OfficeMathExpression : IEquatable<OfficeMathExpression> {
             hash = (hash * 397) ^ (SeparatorCharacter?.GetHashCode() ?? 0);
             hash = (hash * 397) ^ RowCount;
             hash = (hash * 397) ^ ColumnCount;
+            hash = (hash * 397) ^ _naryUpperOnly.GetHashCode();
             for (int index = 0; index < _children.Count; index++) hash = (hash * 397) ^ _children[index].GetHashCode();
             return hash;
         }
@@ -205,8 +217,8 @@ public sealed class OfficeMathExpression : IEquatable<OfficeMathExpression> {
 
     private string LimitsPlainText() {
         var builder = new StringBuilder();
-        if (_children.Count > 1) builder.Append("_(").Append(_children[1].ToPlainText()).Append(')');
-        if (_children.Count > 2) builder.Append("^(").Append(_children[2].ToPlainText()).Append(')');
+        if (NaryLowerLimit != null) builder.Append("_(").Append(NaryLowerLimit.ToPlainText()).Append(')');
+        if (NaryUpperLimit != null) builder.Append("^(").Append(NaryUpperLimit.ToPlainText()).Append(')');
         return builder.ToString();
     }
 
@@ -244,6 +256,7 @@ public sealed class OfficeMathExpression : IEquatable<OfficeMathExpression> {
                 break;
             case OfficeMathKind.Nary:
                 if (count < 1 || count > 3) throw new ArgumentException("An n-ary expression requires content and optional lower and upper limits.");
+                if (_naryUpperOnly && count != 2) throw new ArgumentException("An upper-only n-ary expression requires content and one upper limit.");
                 break;
             case OfficeMathKind.Delimited:
             case OfficeMathKind.Function:
@@ -264,6 +277,9 @@ public sealed class OfficeMathExpression : IEquatable<OfficeMathExpression> {
                     throw new ArgumentException("Matrix dimensions must match the number of cells.");
                 }
                 break;
+        }
+        if (_naryUpperOnly && Kind != OfficeMathKind.Nary) {
+            throw new ArgumentException("Only n-ary expressions can declare an upper-only limit.");
         }
     }
 

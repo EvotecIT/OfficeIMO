@@ -180,8 +180,8 @@ namespace OfficeIMO.Word {
             var nary = Composite("nary", properties);
             var subscript = new XElement(OmmlNamespace + "sub");
             var superscript = new XElement(OmmlNamespace + "sup");
-            if (expression.Children.Count > 1) AppendOmml(subscript, expression.Children[1]);
-            if (expression.Children.Count > 2) AppendOmml(superscript, expression.Children[2]);
+            if (expression.NaryLowerLimit != null) AppendOmml(subscript, expression.NaryLowerLimit);
+            if (expression.NaryUpperLimit != null) AppendOmml(superscript, expression.NaryUpperLimit);
             nary.Add(subscript, superscript, Container("e", expression.Children[0]));
             parent.Add(nary);
         }
