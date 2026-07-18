@@ -59,6 +59,10 @@ public sealed partial class VCardDocument {
                     "ANNIVERSARY is a vCard 4.0 property; use VERSION:4.0 or an explicitly named extension.",
                     ContentLineValidationSeverity.Error, card, "ANNIVERSARY"));
             string? kind = card.GetFirstProperty("KIND")?.Value;
+            if (version == VCardVersion.V4_0 && kind != null && !ContentLineSyntax.IsToken(kind))
+                issues.Add(Issue("VCARD4_KIND_INVALID",
+                    "KIND must contain a non-empty iana-token or x-name value.",
+                    ContentLineValidationSeverity.Error, card, "KIND"));
             if (string.Equals(kind, "group", StringComparison.OrdinalIgnoreCase) &&
                 !card.GetProperties("MEMBER").Any())
                 issues.Add(Issue("VCARD_GROUP_MEMBER_REQUIRED", "A group card should contain MEMBER properties.",

@@ -73,6 +73,34 @@ public sealed class ReaderContentLineTests {
             chunk.Text.Contains("Legacy contact", StringComparison.Ordinal));
     }
 
+    [Fact]
+    public void CalendarVCardAndUnknownChunksUseDistinctStableIdNamespaces() {
+        byte[] calendarBytes = Encoding.UTF8.GetBytes("BEGIN:VCALENDAR\r\nVERSION:2.0\r\n" +
+            "PRODID:-//Reader//EN\r\nEND:VCALENDAR\r\n");
+        byte[] vcardBytes = Encoding.UTF8.GetBytes("BEGIN:VCARD\r\nVERSION:4.0\r\n" +
+            "FN:Reader contact\r\nEND:VCARD\r\n");
+        byte[] unknownBytes = { 0, 1, 2, 3, 4, 5, 6, 7 };
+
+        ReaderChunk calendar = Assert.Single(OfficeDocumentReader.Default.Read(
+            calendarBytes, "shared.bin"));
+        ReaderChunk vcard = Assert.Single(OfficeDocumentReader.Default.Read(
+            vcardBytes, "shared.bin"));
+        ReaderChunk unknown = Assert.Single(OfficeDocumentReader.Default.Read(
+            unknownBytes, "shared.bin"));
+
+        Assert.Equal(ReaderInputKind.Calendar, calendar.Kind);
+        Assert.Equal(ReaderInputKind.VCard, vcard.Kind);
+        Assert.Equal(ReaderInputKind.Unknown, unknown.Kind);
+        Assert.StartsWith("calendar:", calendar.Id, StringComparison.Ordinal);
+        Assert.StartsWith("vcard:", vcard.Id, StringComparison.Ordinal);
+        Assert.StartsWith("unknown:", unknown.Id, StringComparison.Ordinal);
+        Assert.Equal(3, new[] { calendar.Id, vcard.Id, unknown.Id }.Distinct().Count());
+        Assert.Equal(calendar.Id, Assert.Single(OfficeDocumentReader.Default.Read(
+            calendarBytes, "shared.bin")).Id);
+        Assert.Equal(vcard.Id, Assert.Single(OfficeDocumentReader.Default.Read(
+            vcardBytes, "shared.bin")).Id);
+    }
+
     [Theory]
     [InlineData("BEGIN:VCALENDARJUNK\r\nplain text\r\n", ReaderInputKind.Calendar)]
     [InlineData("BEGIN:VCARDINAL\r\nplain text\r\n", ReaderInputKind.VCard)]

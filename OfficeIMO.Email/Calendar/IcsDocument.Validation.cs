@@ -23,6 +23,7 @@ public sealed partial class IcsDocument {
                     ContentLineValidationSeverity.Error, calendar.Name));
             }
             var definedTimeZones = new HashSet<string>(StringComparer.Ordinal);
+            ValidatePropertyGroups(calendar, issues);
             ValidateSingle(calendar, "VERSION", required: true, issues);
             ValidateSingle(calendar, "PRODID", required: true, issues);
             ValidateSingle(calendar, "CALSCALE", required: false, issues);
@@ -68,6 +69,7 @@ public sealed partial class IcsDocument {
         }
         try {
             string name = component.Name.ToUpperInvariant();
+            ValidatePropertyGroups(component, issues);
             ValidateKnownComponentParent(component, parent, name, issues);
             ValidateTemporalCardinality(component, parent, name, issues);
             if (name == "VEVENT" || name == "VTODO" || name == "VJOURNAL") {
@@ -628,6 +630,16 @@ public sealed partial class IcsDocument {
         if (properties.Length > 1)
             issues.Add(Issue("ICAL_PROPERTY_CARDINALITY", propertyName + " must not occur more than once.",
                 ContentLineValidationSeverity.Error, component, properties[1]));
+    }
+
+    private static void ValidatePropertyGroups(ContentLineComponent component,
+        ICollection<ContentLineValidationIssue> issues) {
+        foreach (ContentLineProperty property in component.Properties) {
+            if (string.IsNullOrEmpty(property.Group)) continue;
+            issues.Add(Issue("ICAL_PROPERTY_GROUP_FORBIDDEN",
+                "iCalendar properties cannot use vCard-style group prefixes.",
+                ContentLineValidationSeverity.Error, component, property));
+        }
     }
 
     private static void WarnWhenMissing(ContentLineComponent component, string propertyName,

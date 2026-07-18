@@ -516,15 +516,23 @@ internal static class ContentLineCodec {
 }
 
 internal static class ContentLineSyntax {
-    internal static string RequireToken(string value, string parameterName) {
-        if (string.IsNullOrWhiteSpace(value)) throw new ArgumentException("A content-line token cannot be empty.", parameterName);
+    internal static bool IsToken(string? value) {
+        if (value == null || value.Length == 0) return false;
         foreach (char character in value) {
             if (character >= 'A' && character <= 'Z' ||
                 character >= 'a' && character <= 'z' ||
                 character >= '0' && character <= '9' ||
                 character == '-') continue;
-            throw new ArgumentException("A content-line token contains an invalid character.", parameterName);
+            return false;
         }
+        return true;
+    }
+
+    internal static string RequireToken(string value, string parameterName) {
+        if (string.IsNullOrWhiteSpace(value))
+            throw new ArgumentException("A content-line token cannot be empty.", parameterName);
+        if (!IsToken(value))
+            throw new ArgumentException("A content-line token contains an invalid character.", parameterName);
         return value;
     }
 }

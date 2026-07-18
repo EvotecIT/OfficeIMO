@@ -22,14 +22,7 @@ public sealed partial class IcsDocument {
     }
 
     private static bool IsValidTokenValue(ContentLineProperty property) {
-        if (property.Value.Length == 0) return false;
-        foreach (char character in property.Value) {
-            bool valid = character >= 'A' && character <= 'Z' ||
-                character >= 'a' && character <= 'z' ||
-                character >= '0' && character <= '9' || character == '-';
-            if (!valid) return false;
-        }
-        return true;
+        return ContentLineSyntax.IsToken(property.Value);
     }
 
     private static void ValidateSequenceValues(ContentLineComponent component,

@@ -52,6 +52,30 @@ public sealed class IcsDocumentTests {
     }
 
     [Fact]
+    public void ValidationRejectsPropertyGroupsWithoutMutatingRetainedContent() {
+        var document = new IcsDocument();
+        ContentLineComponent calendar = document.Calendars.Single();
+        ContentLineProperty version = calendar.GetFirstProperty("VERSION")!;
+        ContentLineProperty productId = calendar.GetFirstProperty("PRODID")!;
+        ContentLineComponent appointment = calendar.AddComponent("VEVENT");
+        ContentLineProperty summary = appointment.AddProperty("SUMMARY", "Grouped content");
+        version.Group = "X";
+        productId.Group = "X";
+        summary.Group = "X";
+
+        ContentLineValidationIssue[] issues = document.Validate().Where(issue =>
+            issue.Code == "ICAL_PROPERTY_GROUP_FORBIDDEN").ToArray();
+
+        Assert.Equal(3, issues.Length);
+        Assert.Contains(issues, issue => issue.PropertyName == "VERSION");
+        Assert.Contains(issues, issue => issue.PropertyName == "PRODID");
+        Assert.Contains(issues, issue => issue.PropertyName == "SUMMARY");
+        Assert.Equal("X", version.Group);
+        Assert.Equal("X", productId.Group);
+        Assert.Equal("X", summary.Group);
+    }
+
+    [Fact]
     public void TemporalHelpersPreserveDateFloatingUtcAndTzidForms() {
         var document = new IcsDocument();
         ContentLineComponent calendar = document.Calendars.Single();

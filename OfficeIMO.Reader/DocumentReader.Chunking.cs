@@ -341,7 +341,7 @@ internal static partial class DocumentReaderEngine {
         string text,
         List<string> warnings,
         bool treatAsMarkdown) {
-        var id = BuildStableId(kind == ReaderInputKind.Text ? "text" : "unknown", fileName, chunkIndex, firstLine);
+        var id = BuildStableId(GetTextChunkIdNamespace(kind), fileName, chunkIndex, firstLine);
         return new ReaderChunk {
             Id = id,
             Kind = kind,
@@ -354,6 +354,19 @@ internal static partial class DocumentReaderEngine {
             Markdown = treatAsMarkdown ? text : null,
             Warnings = warnings.Count > 0 ? warnings.ToArray() : null
         };
+    }
+
+    private static string GetTextChunkIdNamespace(ReaderInputKind kind) {
+        switch (kind) {
+            case ReaderInputKind.Text:
+                return "text";
+            case ReaderInputKind.Calendar:
+                return "calendar";
+            case ReaderInputKind.VCard:
+                return "vcard";
+            default:
+                return "unknown";
+        }
     }
 
     private static ReaderChunk BuildPdfChunk(

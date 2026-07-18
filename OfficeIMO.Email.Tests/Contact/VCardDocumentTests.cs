@@ -129,6 +129,40 @@ public sealed class VCardDocumentTests {
             issue.Code == "VCARD4_ENCODING_FORBIDDEN" && issue.PropertyName == "PHOTO");
     }
 
+    [Theory]
+    [InlineData("")]
+    [InlineData("not a token")]
+    [InlineData("group!")]
+    [InlineData("grüp")]
+    public void ValidationRejectsInvalidV4KindTokens(string kind) {
+        var document = new VCardDocument();
+        ContentLineComponent card = document.Cards.Single();
+        card.AddProperty("FN", "Version four");
+        card.AddProperty("N", "Four;Version;;;");
+        card.AddProperty("KIND", kind);
+
+        Assert.Contains(document.Validate(), issue =>
+            issue.Code == "VCARD4_KIND_INVALID" && issue.PropertyName == "KIND");
+    }
+
+    [Theory]
+    [InlineData("individual")]
+    [InlineData("group")]
+    [InlineData("org")]
+    [InlineData("location")]
+    [InlineData("X-CUSTOM")]
+    [InlineData("vendor-kind")]
+    public void ValidationAcceptsRegisteredAndExtensionV4KindTokens(string kind) {
+        var document = new VCardDocument();
+        ContentLineComponent card = document.Cards.Single();
+        card.AddProperty("FN", "Version four");
+        card.AddProperty("N", "Four;Version;;;");
+        card.AddProperty("KIND", kind);
+
+        Assert.DoesNotContain(document.Validate(), issue =>
+            issue.Code == "VCARD4_KIND_INVALID" && issue.PropertyName == "KIND");
+    }
+
     [Fact]
     public void ValidationRejectsNestedCardComponentsWithoutRemovingThem() {
         var document = new VCardDocument();
