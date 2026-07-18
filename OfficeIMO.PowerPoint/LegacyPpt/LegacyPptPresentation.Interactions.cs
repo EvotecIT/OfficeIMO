@@ -88,16 +88,16 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             }
         }
 
-        private static bool HasReadableExternalHyperlinkTarget(
+        private bool HasReadableExternalHyperlinkTarget(
             LegacyPptRecord container) => HasReadableExternalHyperlinkTarget(
             container, ReadRawChildHeaders(container));
 
-        private static bool HasReadableExternalHyperlinkTarget(
+        private bool HasReadableExternalHyperlinkTarget(
             LegacyPptRecord source, RawRecordHeader container) =>
             HasReadableExternalHyperlinkTarget(source,
                 ReadRawChildHeaders(source, container));
 
-        private static bool HasReadableExternalHyperlinkTarget(
+        private bool HasReadableExternalHyperlinkTarget(
             LegacyPptRecord source,
             IEnumerable<RawRecordHeader> strings) {
             foreach (RawRecordHeader record in strings) {
@@ -315,22 +315,51 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             return interaction;
         }
 
-        private static bool HasRunProgramActionAtom(
+        private bool HasRunProgramActionAtom(
             LegacyPptRecord container) => HasRunProgramActionAtom(container,
             ReadRawChildHeaders(container));
 
-        private static bool HasRunProgramActionAtom(LegacyPptRecord source,
+        private bool HasRunProgramActionAtom(LegacyPptRecord source,
             IEnumerable<RawRecordHeader> records) => records.Any(record =>
             record.Type == RecordInteractiveInfoAtom
             && record.PayloadLength >= 9
             && source.ReadByte(record.PayloadOffset + 8) ==
             (byte)LegacyPptInteractionAction.RunProgram);
 
-        private static bool HasRunProgramActionInOwner(
+        private bool HasRunProgramActionInOwner(
             LegacyPptRecord owner) => ReadRawChildHeaders(owner).Any(record =>
             record.Type == RecordInteractiveInfo
             && HasRunProgramActionAtom(owner,
                 ReadRawChildHeaders(owner, record)));
+
+        private bool HasRunProgramActionInOwner(LegacyPptRecord source,
+            RawRecordHeader owner) => ReadRawChildHeaders(source, owner)
+            .Any(record => record.Type == RecordInteractiveInfo
+                && HasRunProgramActionAtom(source,
+                    ReadRawChildHeaders(source, record)));
+
+        private void CaptureRawInteractionSecurityEvidence(
+            LegacyPptRecord drawing) {
+            var pending = new Stack<RawRecordHeader>(
+                ReadRawChildHeaders(drawing).Reverse());
+            while (pending.Count > 0) {
+                RawRecordHeader record = pending.Pop();
+                if (record.Type == OfficeArtClientData
+                    || record.Type == OfficeArtClientTextbox) {
+                    if (HasRunProgramActionInOwner(drawing, record)) {
+                        HasRunProgramContent = true;
+                    }
+                    continue;
+                }
+                if (record.Type is 0xF002 or OfficeArtSpgrContainer
+                    or OfficeArtSpContainer) {
+                    foreach (RawRecordHeader child in ReadRawChildHeaders(
+                                 drawing, record).Reverse()) {
+                        pending.Push(child);
+                    }
+                }
+            }
+        }
 
         private void ReportDuplicateTriggers(IReadOnlyList<LegacyPptInteraction> interactions,
             long offset, string owner) {

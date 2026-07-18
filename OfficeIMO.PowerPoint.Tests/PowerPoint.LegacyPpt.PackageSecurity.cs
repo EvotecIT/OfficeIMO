@@ -292,8 +292,11 @@ namespace OfficeIMO.Tests {
                 exception.Rule);
         }
 
-        [Fact]
-        public void PresentationFacade_RejectsPreserveOnlyLegacyRunProgramActions() {
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void PresentationFacade_RejectsPreserveOnlyLegacyRunProgramActions(
+            bool corruptActionOwner) {
             byte[] binary;
             using (PowerPointPresentation source =
                    PowerPointPresentation.Create()) {
@@ -310,7 +313,7 @@ namespace OfficeIMO.Tests {
                 binary = source.ToBytes(PowerPointFileFormat.Ppt);
             }
             byte[] malformed = RewriteLegacyDocumentRecord(binary,
-                record => record.Type == 0xF011
+                record => record.Type == 0xF004
                     && record.DescendantsAndSelf().Any(child =>
                         child.Type == 0x0FF3
                         && child.PayloadLength == 16
@@ -321,9 +324,20 @@ namespace OfficeIMO.Tests {
                         .Single(child => child.Type == 0x0FF3);
                     document[checked(baseOffset + atom.PayloadOffset + 8)] =
                         (byte)LegacyPptInteractionAction.RunProgram;
-                    WriteUInt16(document,
-                        checked(baseOffset + record.Offset),
-                        unchecked((ushort)((record.Instance << 4) | 0x0E)));
+                    LegacyPptRecord malformedRecord = corruptActionOwner
+                        ? record.DescendantsAndSelf().Single(child =>
+                            child.Type == 0xF011)
+                        : record.Children.Single(child =>
+                            child.Type is 0xF00F or 0xF010);
+                    int malformedOffset = checked(baseOffset
+                        + malformedRecord.Offset);
+                    if (corruptActionOwner) {
+                        WriteUInt16(document, malformedOffset,
+                            unchecked((ushort)((malformedRecord.Instance
+                                << 4) | 0x0E)));
+                    } else {
+                        WriteUInt16(document, malformedOffset + 2, 0xF012);
+                    }
                 });
             LegacyPptPresentation neutral = LegacyPptPresentation.Load(
                 malformed);
@@ -342,6 +356,47 @@ namespace OfficeIMO.Tests {
 
             Assert.Equal(OfficePackageSecurityRule.ExternalRelationships,
                 exception.Rule);
+        }
+
+        [Fact]
+        public void RawSecurityEvidenceScan_EnforcesRecordCountBudget() {
+            var externalUri = new Uri("https://example.test/"
+                + new string('a', 8192));
+            byte[] binary;
+            using (PowerPointPresentation source =
+                   PowerPointPresentation.Create()) {
+                PowerPointSlide slide = source.AddSlide(
+                    P.SlideLayoutValues.Blank);
+                PowerPointAutoShape shape = slide.AddRectangle(
+                    100000, 100000, 1000000, 500000);
+                HyperlinkRelationship relationship = slide.SlidePart
+                    .AddHyperlinkRelationship(externalUri, true);
+                ((P.Shape)shape.Element).NonVisualShapeProperties!
+                    .NonVisualDrawingProperties!
+                    .Append(new A.HyperlinkOnClick {
+                        Id = relationship.Id
+                    });
+                binary = source.ToBytes(PowerPointFileFormat.Ppt);
+            }
+            byte[] malformed = RewriteLegacyDocumentRecord(binary,
+                record => record.Type == 0x0409,
+                (document, baseOffset, record) => {
+                    WriteUInt16(document,
+                        checked(baseOffset + record.Offset),
+                        unchecked((ushort)((record.Instance << 4) | 0x0E)));
+                    Array.Clear(document,
+                        checked(baseOffset + record.PayloadOffset),
+                        record.PayloadLength);
+                });
+
+            InvalidDataException exception = Assert.Throws<
+                InvalidDataException>(() => LegacyPptPresentation.Load(
+                malformed, new LegacyPptImportOptions {
+                    MaxRecordCount = 1000
+                }));
+
+            Assert.Contains("record count", exception.Message,
+                StringComparison.OrdinalIgnoreCase);
         }
 
         [Fact]

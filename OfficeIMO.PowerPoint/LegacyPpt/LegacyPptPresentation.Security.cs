@@ -9,6 +9,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
         internal bool HasExternalHyperlinkContent { get; private set; }
         internal bool HasExternalMediaContent { get; private set; }
         internal bool HasRunProgramContent { get; private set; }
+        private LegacyPptRecordTraversalBudget _securityRecordBudget = null!;
+        private readonly HashSet<int> _securityRecordOffsets = new();
 
         private void CaptureRawContentSecurityEvidence(
             LegacyPptRecord document) {
@@ -62,7 +64,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             }
         }
 
-        private static bool HasMacroEvidence(LegacyPptRecord document,
+        private bool HasMacroEvidence(LegacyPptRecord document,
             RawRecordHeader vbaInfo) {
             if (vbaInfo.Version != 0x0F || vbaInfo.Instance != 1) return true;
             RawRecordHeader atom = default;
@@ -78,16 +80,16 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             return document.ReadUInt32(atom.PayloadOffset + 4) != 0;
         }
 
-        private static IEnumerable<RawRecordHeader> ReadRawChildHeaders(
+        private IEnumerable<RawRecordHeader> ReadRawChildHeaders(
             LegacyPptRecord container) => ReadRawChildHeaders(container,
             payloadOffset: 0, container.PayloadLength);
 
-        private static IEnumerable<RawRecordHeader> ReadRawChildHeaders(
+        private IEnumerable<RawRecordHeader> ReadRawChildHeaders(
             LegacyPptRecord container, RawRecordHeader parent) =>
             ReadRawChildHeaders(container, parent.PayloadOffset,
                 parent.PayloadLength);
 
-        private static IEnumerable<RawRecordHeader> ReadRawChildHeaders(
+        private IEnumerable<RawRecordHeader> ReadRawChildHeaders(
             LegacyPptRecord container, int payloadOffset,
             int payloadLength) {
             if (payloadOffset < 0 || payloadLength < 0
@@ -103,6 +105,11 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 int childLength = unchecked((int)declaredLength);
                 int childPayloadOffset = position + 8;
                 if (childLength > endOffset - childPayloadOffset) yield break;
+                int recordOffset = checked(container.PayloadOffset
+                    + position);
+                if (_securityRecordOffsets.Add(recordOffset)) {
+                    _securityRecordBudget.Consume();
+                }
                 yield return new RawRecordHeader(
                     unchecked((byte)(versionAndInstance & 0x000F)),
                     unchecked((ushort)(versionAndInstance >> 4)),

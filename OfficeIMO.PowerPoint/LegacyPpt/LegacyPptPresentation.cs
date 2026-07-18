@@ -164,7 +164,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             var presentation = new LegacyPptPresentation {
                 Package = package,
                 _recordBudget = recordBudget,
-                _decodedStorageBudget = decodedStorageBudget
+                _decodedStorageBudget = decodedStorageBudget,
+                _securityRecordBudget = new LegacyPptRecordTraversalBudget(
+                    options.MaxRecordCount)
             };
             if (package.WasEncryptedSource) {
                 presentation.AddDiagnostic("PPT-ENCRYPTION-DECRYPTED",
@@ -398,6 +400,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             Action<LegacyPptConnectorRule>? addConnectorRule = null) {
             LegacyPptRecord? drawing = ownerRecord.Children.FirstOrDefault(record => record.Type == RecordDrawing);
             if (drawing == null) return;
+            CaptureRawInteractionSecurityEvidence(drawing);
 
             LegacyPptRecord? primaryShapeGroup = drawing.DescendantsAndSelf()
                 .FirstOrDefault(record => record.Type == OfficeArtSpgrContainer);
