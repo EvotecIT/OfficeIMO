@@ -88,7 +88,7 @@ public sealed class PdfDocumentImageExportBuilder : OfficeImageExportBatchBuilde
     /// <summary>Limits the number of selected pages accepted by one export.</summary>
     public PdfDocumentImageExportBuilder WithMaximumPages(int maximumPages) {
         Guard.PositiveInteger(maximumPages, nameof(maximumPages));
-        Options.MaxPages = maximumPages;
+        Options.MaximumOutputCount = maximumPages;
         return this;
     }
 
@@ -139,7 +139,7 @@ public static class PdfImageExportExtensions {
         CancellationToken cancellationToken = default) {
         Guard.NotNull(conversion, nameof(conversion));
         return PdfImageExportEngine.Export(
-            PdfReadDocument.Load(conversion.ToBytes()),
+            PdfReadDocument.Open(conversion.ToBytes()),
             format,
             options?.Clone() ?? new PdfImageExportOptions(),
             selection,
@@ -187,7 +187,7 @@ public static class PdfImageExportExtensions {
         PdfImageExportOptions? options) {
         Guard.NotNull(conversion, nameof(conversion));
         return new PdfDocumentImageExportBuilder(
-            PdfReadDocument.Load(conversion.ToBytes()),
+            PdfReadDocument.Open(conversion.ToBytes()),
             options,
             PdfImageExportEngine.MapConversionDiagnostics(conversion));
     }

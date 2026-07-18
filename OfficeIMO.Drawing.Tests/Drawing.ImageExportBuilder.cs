@@ -341,6 +341,37 @@ public partial class DrawingTests {
     }
 
     [Fact]
+    public void OrderedBatchProcessorRejectsKnownCountBeforeRendering() {
+        var options = new TestImageExportOptions {
+            MaximumOutputCount = 1
+        };
+        int rendered = 0;
+        int consumed = 0;
+
+        OfficeImageExportBatchLimitException exception =
+            Assert.Throws<OfficeImageExportBatchLimitException>(() =>
+                OfficeImageExportBatchProcessor.ForEachOrdered(
+                    new[] { "one", "two" },
+                    maximumDegreeOfParallelism: 2,
+                    (_, _, _) => {
+                        rendered++;
+                        return new OfficeImageExportResult(
+                            OfficeImageExportFormat.Png,
+                            1,
+                            1,
+                            OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.White)));
+                    },
+                    _ => consumed++,
+                    options: options));
+
+        Assert.Equal(0, rendered);
+        Assert.Equal(0, consumed);
+        Assert.Equal(nameof(OfficeImageExportOptions.MaximumOutputCount), exception.LimitName);
+        Assert.Equal(2, exception.Actual);
+        Assert.Equal(1, exception.Maximum);
+    }
+
+    [Fact]
     public void DiagnosticPolicyAggregatesLossAndRejectsConfiguredCodes() {
         byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.White));
         var diagnostics = new[] {

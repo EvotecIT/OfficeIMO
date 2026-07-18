@@ -132,7 +132,7 @@ Format-neutral SVG image export now uses whole-pixel `px` root dimensions so its
 PDF exposes the same canonical surface:
 
 ```csharp
-PdfReadDocument loaded = PdfReadDocument.Load(pdfBytes);
+PdfReadDocument loaded = PdfReadDocument.Open(pdfBytes);
 loaded.ToImages()
     .Pages("2,1")
     .AtDpi(144)
@@ -150,7 +150,9 @@ IReadOnlyList<OfficeImageExportResult> pages = markdown
     .Export();
 ```
 
-Use `PdfPageImageRenderer.RenderPage(...)` when a caller needs the intermediate `OfficeDrawing` scene. The older `PdfPageRenderResult` batch remains a low-level inspection/OCR/verification contract because it carries per-page elapsed time, continue-on-error state, and typed PDF capability diagnostics; it is not the general five-format export API.
+`PdfImageExportOptions.MaxPages` was removed because it duplicated the Drawing-owned batch budget. Set `MaximumOutputCount` directly or use `ToImages().WithMaximumPages(...)`; both now enforce the same limit before any selected page is rendered.
+
+Use `PdfReadPage.ToDrawing()` when a caller needs the intermediate `OfficeDrawing` scene. The older `PdfPageRenderResult` batch remains a low-level inspection/OCR/verification contract behind the fluent reader facade because it carries per-page elapsed time, continue-on-error state, and typed PDF capability diagnostics; it is not the general five-format export API.
 
 ODT, ODS, and ODP direct image extensions live in their existing Word/Excel/PowerPoint OpenDocument adapter packages and attach ODF conversion diagnostics to every image. `OfficeIMO.Epub.Html` projects retained EPUB chapter HTML/resources through the HTML renderer. The email bridge selects HTML, RTF, or text bodies and resolves allowed inline MIME resources through the same HTML resource pipeline.
 

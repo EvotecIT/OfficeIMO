@@ -63,6 +63,16 @@ public static class OfficeImageExportBatchProcessor {
         if (render == null) throw new ArgumentNullException(nameof(render));
         if (consumer == null) throw new ArgumentNullException(nameof(consumer));
         if (maximumDegreeOfParallelism < 1) throw new ArgumentOutOfRangeException(nameof(maximumDegreeOfParallelism));
+        cancellationToken.ThrowIfCancellationRequested();
+        if (options != null) {
+            options.ValidateImageExportOptions();
+            if (items.Count > options.MaximumOutputCount) {
+                throw new OfficeImageExportBatchLimitException(
+                    nameof(OfficeImageExportOptions.MaximumOutputCount),
+                    items.Count,
+                    options.MaximumOutputCount);
+            }
+        }
         OfficeImageExportConsumer accept = options == null
             ? consumer
             : CreateGuardedConsumer(options, consumer, cancellationToken);

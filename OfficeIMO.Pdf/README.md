@@ -128,7 +128,7 @@ The target-framework support remains `netstandard2.0`, `net8.0`, and
 using OfficeIMO.Drawing;
 using OfficeIMO.Pdf;
 
-PdfReadDocument pdf = PdfReadDocument.Load("input.pdf");
+PdfReadDocument pdf = PdfReadDocument.Open("input.pdf");
 
 pdf.Pages[0]
     .ToImage()
@@ -156,7 +156,7 @@ IReadOnlyList<OfficeImageExportResult> pages = markdown
     .Export();
 ```
 
-Source conversion warnings are copied into every page result. Use `PdfPageImageRenderer.RenderPage(...)` only when an intermediate `OfficeDrawing` is needed.
+Source conversion warnings are copied into every page result. Use `PdfReadPage.ToDrawing()` only when an intermediate `OfficeDrawing` is needed.
 
 ### Write a generated PDF
 

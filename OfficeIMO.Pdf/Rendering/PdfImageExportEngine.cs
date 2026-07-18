@@ -113,13 +113,6 @@ internal static class PdfImageExportEngine {
         options.Validate();
         int[] pages = selection?.ToPageNumbers(document.Pages.Count, nameof(selection))
             ?? Enumerable.Range(1, document.Pages.Count).ToArray();
-        if (pages.Length > options.MaxPages) {
-            throw new PdfReadLimitException(
-                PdfReadLimitKind.RenderPages,
-                options.MaxPages,
-                pages.Length,
-                "PDF image-export page count exceeded the configured limit.");
-        }
 
         OfficeImageExportBatchProcessor.ForEachOrdered(
             pages,

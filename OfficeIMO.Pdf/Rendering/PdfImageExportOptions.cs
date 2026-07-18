@@ -4,19 +4,20 @@ namespace OfficeIMO.Pdf;
 
 /// <summary>Format-neutral options for dependency-free PDF page image export.</summary>
 public sealed class PdfImageExportOptions : OfficeImageExportOptions {
+    /// <summary>Creates PDF image-export options with a conservative 100-page batch limit.</summary>
+    public PdfImageExportOptions() {
+        MaximumOutputCount = 100;
+    }
+
     /// <inheritdoc />
     public override double LogicalUnitsPerInch => 72D;
 
     /// <summary>Optional maximum output width or height in pixels.</summary>
     public int? ThumbnailMaxDimension { get; set; }
 
-    /// <summary>Maximum number of pages returned by one batch export.</summary>
-    public int MaxPages { get; set; } = 100;
-
     internal PdfImageExportOptions Clone() {
         PdfImageExportOptions clone = CopyImageExportOptionsTo(new PdfImageExportOptions());
         clone.ThumbnailMaxDimension = ThumbnailMaxDimension;
-        clone.MaxPages = MaxPages;
         return clone;
     }
 
@@ -34,6 +35,5 @@ public sealed class PdfImageExportOptions : OfficeImageExportOptions {
         if (ThumbnailMaxDimension.HasValue && ThumbnailMaxDimension.Value < 1) {
             throw new ArgumentOutOfRangeException(nameof(ThumbnailMaxDimension));
         }
-        if (MaxPages < 1) throw new ArgumentOutOfRangeException(nameof(MaxPages));
     }
 }

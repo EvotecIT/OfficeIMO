@@ -47,6 +47,23 @@ public sealed class PdfImageExportContractTests {
     }
 
     [Fact]
+    public void PdfBatchBuilderUsesTheSharedOutputCountBudget() {
+        PdfReadDocument document = LoadTwoPageDocument();
+
+        OfficeImageExportBatchLimitException exception =
+            Assert.Throws<OfficeImageExportBatchLimitException>(() =>
+                document
+                    .ToImages()
+                    .WithMaximumPages(1)
+                    .AsPng()
+                    .Export());
+
+        Assert.Equal(nameof(OfficeImageExportOptions.MaximumOutputCount), exception.LimitName);
+        Assert.Equal(2, exception.Actual);
+        Assert.Equal(1, exception.Maximum);
+    }
+
+    [Fact]
     public void PdfPageBuilderSupportsDpiThumbnailAndConfiguredEncoding() {
         PdfReadPage page = LoadTwoPageDocument().Pages[0];
 
@@ -105,7 +122,7 @@ public sealed class PdfImageExportContractTests {
 
     [Fact]
     public void PdfImageExport_StrictOmissionPolicyRejectsUnsupportedOperators() {
-        PdfReadDocument document = PdfReadDocument.Load(
+        PdfReadDocument document = PdfReadDocument.Open(
             BuildSinglePagePdf("1 2 FuturePaint"));
         var options = new PdfImageExportOptions {
             Policy = new OfficeImageExportPolicy {
@@ -124,7 +141,7 @@ public sealed class PdfImageExportContractTests {
     }
 
     private static PdfReadDocument LoadTwoPageDocument() =>
-        PdfReadDocument.Load(PdfDocument.Create()
+        PdfReadDocument.Open(PdfDocument.Create()
             .Paragraph(paragraph => paragraph.Text("Page one"))
             .PageBreak()
             .Paragraph(paragraph => paragraph.Text("Page two"))

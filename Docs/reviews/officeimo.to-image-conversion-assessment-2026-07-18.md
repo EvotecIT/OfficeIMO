@@ -51,7 +51,7 @@ All rows produce the existing PNG, JPEG, TIFF, SVG, or WebP formats where their 
 
 ## Intentionally Retained Low-Level APIs
 
-`PdfPageImageRenderer.RenderPage(...)` remains the PDF-to-`OfficeDrawing` projection used by inspection and visual comparison. `PdfPageRenderResult` also carries elapsed time, continue-on-error state, and typed PDF capability diagnostics needed by OCR, destructive-crop verification, and redaction verification. `PdfReadPage.ToImage()` and `PdfReadDocument.ToImages()` remain the general export surface.
+`PdfReadPage.ToDrawing()` is the public PDF-to-`OfficeDrawing` projection; the internal page renderer continues to serve inspection and visual comparison. `PdfPageRenderResult` also carries elapsed time, continue-on-error state, and typed PDF capability diagnostics needed by OCR, destructive-crop verification, and redaction verification. `PdfReadPage.ToImage()` and `PdfReadDocument.ToImages()` remain the general export surface.
 
 Visio also retains its embedded-SVG interpreter. Stencil artwork needs linked images, clipping, nested opacity, and CSS that are outside Drawing's deliberately bounded general SVG reader. Visio still delegates output encoding, result validation, fonts, save policy, and batch mechanics to Drawing.
 
