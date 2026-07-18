@@ -38,6 +38,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 ?? new Dictionary<(int Row, int Column), XlsbCell>();
             var visitedSourceCells = new HashSet<(int Row, int Column)>();
             var result = new List<XlsbWriteCell>();
+            IReadOnlyDictionary<string, string> resolvedFormulaTexts = sheet.BuildResolvedFormulaTextMap();
             SheetData? sheetData = sheet.WorksheetPart.Worksheet?.GetFirstChild<SheetData>();
             if (sheetData == null) return result;
 
@@ -59,13 +60,21 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                         cellRow,
                         cellColumn,
                         allowNewStyles: sourceSheet == null);
-                    if (sourceCell != null && CellMatchesSource(sheet, cell, sourceCell)) {
+                    if (sourceCell != null && CellMatchesSource(sheet, cell, sourceCell, resolvedFormulaTexts)) {
                         result.Add(XlsbWriteCell.PreserveSource(sourceCell));
                         sequentialColumn = cellColumn + 1;
                         continue;
                     }
 
-                    XlsbWriteCell? writeCell = ConvertCell(document, sheet, cell, sourceCell, cellRow, cellColumn, styleIndex);
+                    XlsbWriteCell? writeCell = ConvertCell(
+                        document,
+                        sheet,
+                        cell,
+                        sourceCell,
+                        cellRow,
+                        cellColumn,
+                        styleIndex,
+                        resolvedFormulaTexts);
                     if (writeCell != null) result.Add(writeCell);
                     sequentialColumn = cellColumn + 1;
                 }
@@ -139,9 +148,10 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             XlsbCell? sourceCell,
             int row,
             int column,
-            uint styleIndex) {
+            uint styleIndex,
+            IReadOnlyDictionary<string, string> resolvedFormulaTexts) {
             if (cell.CellFormula != null) {
-                return ConvertFormulaCell(document, sheet, cell, sourceCell, row, column, styleIndex);
+                return ConvertFormulaCell(document, sheet, cell, sourceCell, row, column, styleIndex, resolvedFormulaTexts);
             }
 
             if (sourceCell?.FormulaBytes != null) {
@@ -192,8 +202,9 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             XlsbCell? sourceCell,
             int row,
             int column,
-            uint styleIndex) {
-            string formulaText = cell.CellFormula?.Text ?? string.Empty;
+            uint styleIndex,
+            IReadOnlyDictionary<string, string> resolvedFormulaTexts) {
+            string formulaText = GetResolvedFormulaText(cell, resolvedFormulaTexts);
             byte[] formulaPayload;
             if (sourceCell?.FormulaBytes != null
                 && !string.IsNullOrWhiteSpace(sourceCell.FormulaText)
@@ -232,8 +243,23 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             return new XlsbWriteCell(row, column, styleIndex, XlsbWriteCellKind.FormulaNumber, 0D, formulaPayload);
         }
 
-        private static bool CellMatchesSource(ExcelSheet sheet, Cell cell, XlsbCell sourceCell) {
-            string? currentFormula = cell.CellFormula?.Text;
+        private static string GetResolvedFormulaText(
+            Cell cell,
+            IReadOnlyDictionary<string, string> resolvedFormulaTexts) {
+            string? reference = cell.CellReference?.Value;
+            return reference != null && resolvedFormulaTexts.TryGetValue(reference, out string? formulaText)
+                ? formulaText
+                : cell.CellFormula?.Text ?? string.Empty;
+        }
+
+        private static bool CellMatchesSource(
+            ExcelSheet sheet,
+            Cell cell,
+            XlsbCell sourceCell,
+            IReadOnlyDictionary<string, string> resolvedFormulaTexts) {
+            string? currentFormula = cell.CellFormula == null
+                ? null
+                : GetResolvedFormulaText(cell, resolvedFormulaTexts);
             if (sourceCell.FormulaBytes != null) {
                 if (sourceCell.FormulaText == null) {
                     if (currentFormula != null) return false;

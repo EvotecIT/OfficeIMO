@@ -155,7 +155,7 @@ namespace OfficeIMO.Excel {
         public ExcelChart AddChart(ExcelChartData data, int row, int column, int widthPixels = 640, int heightPixels = 360,
             ExcelChartType type = ExcelChartType.ColumnClustered, string? title = null) {
             if (data == null) throw new ArgumentNullException(nameof(data));
-            if (row <= 0 || column <= 0) throw new ArgumentOutOfRangeException(nameof(row));
+            ValidateChartPlacement(row, column, widthPixels, heightPixels);
 
             using var preserveFastSaveState = _excelDocument.PreserveDirectDataSetFastSaveStateDuringDirtyMarks();
             Stopwatch? stageWatch = EffectiveExecution.OnTiming == null ? null : Stopwatch.StartNew();
@@ -192,8 +192,7 @@ namespace OfficeIMO.Excel {
         public ExcelChart AddChart(ExcelChartDataRange dataRange, int row, int column, int widthPixels = 640, int heightPixels = 360,
             ExcelChartType type = ExcelChartType.ColumnClustered, ExcelChartData? cachedData = null, string? title = null) {
             if (dataRange == null) throw new ArgumentNullException(nameof(dataRange));
-            if (row <= 0 || column <= 0) throw new ArgumentOutOfRangeException(nameof(row));
-            if (widthPixels <= 0 || heightPixels <= 0) throw new ArgumentOutOfRangeException(nameof(widthPixels));
+            ValidateChartPlacement(row, column, widthPixels, heightPixels);
 
             return AddChartInternal(dataRange, row, column, widthPixels, heightPixels, type, cachedData, title);
         }
@@ -274,8 +273,7 @@ namespace OfficeIMO.Excel {
         private ExcelChart AddChartFromSeriesRanges(IEnumerable<ExcelChartSeriesRange> seriesRanges, int row, int column, int widthPixels,
             int heightPixels, ExcelChartType type, string? title) {
             if (seriesRanges == null) throw new ArgumentNullException(nameof(seriesRanges));
-            if (row <= 0 || column <= 0) throw new ArgumentOutOfRangeException(nameof(row));
-            if (widthPixels <= 0 || heightPixels <= 0) throw new ArgumentOutOfRangeException(nameof(widthPixels));
+            ValidateChartPlacement(row, column, widthPixels, heightPixels);
 
             var ranges = seriesRanges as IReadOnlyList<ExcelChartSeriesRange> ?? seriesRanges.ToList();
             if (ranges.Count == 0) {
@@ -361,6 +359,7 @@ namespace OfficeIMO.Excel {
 
         private ExcelChart AddChartInternal(ExcelChartDataRange range, int row, int column, int widthPixels, int heightPixels,
             ExcelChartType type, ExcelChartData? data, string? title, bool preserveDeferredDataSetCandidate = false) {
+            ValidateChartPlacement(row, column, widthPixels, heightPixels);
             if (data != null && !preserveDeferredDataSetCandidate) {
                 MaterializeDeferredDataSetImportIfNeeded();
             }
@@ -451,6 +450,13 @@ namespace OfficeIMO.Excel {
             }
 
             return new ExcelChart(frame!, drawingPart!, this, range);
+        }
+
+        private static void ValidateChartPlacement(int row, int column, int widthPixels, int heightPixels) {
+            if (row <= 0 || row > A1.MaxRows) throw new ArgumentOutOfRangeException(nameof(row));
+            if (column <= 0 || column > A1.MaxColumns) throw new ArgumentOutOfRangeException(nameof(column));
+            if (widthPixels <= 0) throw new ArgumentOutOfRangeException(nameof(widthPixels));
+            if (heightPixels <= 0) throw new ArgumentOutOfRangeException(nameof(heightPixels));
         }
 
         private void ReportChartTiming(Stopwatch? stopwatch, string operation) {

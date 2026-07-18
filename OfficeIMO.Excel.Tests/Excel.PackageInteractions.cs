@@ -39,6 +39,87 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(1, snapshot.TimelinePartCount);
                 Assert.True(snapshot.HasSlicers);
                 Assert.True(snapshot.HasTimelines);
+                Assert.False(snapshot.HasSlicerBindingMetadata);
+                Assert.False(snapshot.HasTimelineBindingMetadata);
+                Assert.Empty(document.GetWorkbookSlicerCaches());
+                Assert.Empty(document.GetWorkbookTimelineCaches());
+            }
+        }
+
+        [Fact]
+        public void Test_LegacyOfficeImoPivotInteractionMetadata_IsRecognizedWithoutMaskingNativeCaches() {
+            string filePath = Path.Combine(_directoryWithFiles, "PackageInteractions.LegacyOfficeImoMetadata.xlsx");
+            using (var document = ExcelDocument.Create(filePath)) {
+                document.AddWorksheet("Data").CellValue(1, 1, "Value");
+                document.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, true)) {
+                WorkbookPart workbookPart = spreadsheet.WorkbookPart!;
+                WriteExtendedPart(
+                    workbookPart.AddExtendedPart(
+                        "http://schemas.microsoft.com/office/2007/relationships/slicerCache",
+                        "application/vnd.ms-excel.slicerCache+xml",
+                        "xml"),
+                    "<slicerCacheDefinition xmlns=\"http://schemas.microsoft.com/office/spreadsheetml/2009/9/main\" name=\"LegacyRegion\" sourceName=\"Region\" pivotTableName=\"SalesPivot\"/>");
+                WriteExtendedPart(
+                    workbookPart.AddExtendedPart(
+                        "http://schemas.microsoft.com/office/2007/relationships/slicerCache",
+                        "application/vnd.ms-excel.slicerCache+xml",
+                        "xml"),
+                    "<slicerCacheDefinition xmlns=\"http://schemas.microsoft.com/office/spreadsheetml/2009/9/main\" name=\"LegacyRegionNoPivot\" sourceName=\"RegionNoPivot\"/>");
+                WriteExtendedPart(
+                    workbookPart.AddExtendedPart(
+                        "http://schemas.microsoft.com/office/2007/relationships/slicerCache",
+                        "application/vnd.ms-excel.slicerCache+xml",
+                        "xml"),
+                    "<slicerCacheDefinition xmlns=\"http://schemas.microsoft.com/office/spreadsheetml/2009/9/main\" name=\"NativeRegion\" sourceName=\"NativeRegionSource\"><data/></slicerCacheDefinition>");
+                WriteExtendedPart(
+                    workbookPart.AddExtendedPart(
+                        "http://schemas.microsoft.com/office/2011/relationships/timelineCache",
+                        "application/vnd.ms-excel.timelineCache+xml",
+                        "xml"),
+                    "<timelineCacheDefinition xmlns=\"http://schemas.microsoft.com/office/spreadsheetml/2011/1/main\" name=\"LegacyOrderDate\" sourceName=\"OrderDate\" pivotTableName=\"SalesPivot\"/>");
+                WriteExtendedPart(
+                    workbookPart.AddExtendedPart(
+                        "http://schemas.microsoft.com/office/2011/relationships/timelineCache",
+                        "application/vnd.ms-excel.timelineCache+xml",
+                        "xml"),
+                    "<timelineCacheDefinition xmlns=\"http://schemas.microsoft.com/office/spreadsheetml/2011/1/main\" name=\"LegacyOrderDateNoPivot\" sourceName=\"OrderDateNoPivot\"/>");
+                WriteExtendedPart(
+                    workbookPart.AddExtendedPart(
+                        "http://schemas.microsoft.com/office/2011/relationships/timelineCache",
+                        "application/vnd.ms-excel.timelineCache+xml",
+                        "xml"),
+                    "<timelineCacheDefinition xmlns=\"http://schemas.microsoft.com/office/spreadsheetml/2011/1/main\" name=\"NativeOrderDate\" sourceName=\"NativeOrderDateSource\"><state/></timelineCacheDefinition>");
+            }
+
+            using (var document = ExcelDocument.Load(filePath, new ExcelLoadOptions { AccessMode = DocumentAccessMode.ReadOnly })) {
+                IReadOnlyList<ExcelPivotInteractionCacheInfo> slicers = document.GetWorkbookSlicerCaches();
+                Assert.Equal(2, slicers.Count);
+                ExcelPivotInteractionCacheInfo slicer = Assert.Single(slicers, cache => cache.Name == "LegacyRegion");
+                Assert.Equal("LegacyRegion", slicer.Name);
+                Assert.Equal("Region", slicer.SourceName);
+                Assert.Equal("SalesPivot", slicer.PivotTableName);
+                ExcelPivotInteractionCacheInfo slicerWithoutPivot = Assert.Single(slicers, cache => cache.Name == "LegacyRegionNoPivot");
+                Assert.Equal("RegionNoPivot", slicerWithoutPivot.SourceName);
+                Assert.Null(slicerWithoutPivot.PivotTableName);
+
+                IReadOnlyList<ExcelPivotInteractionCacheInfo> timelines = document.GetWorkbookTimelineCaches();
+                Assert.Equal(2, timelines.Count);
+                ExcelPivotInteractionCacheInfo timeline = Assert.Single(timelines, cache => cache.Name == "LegacyOrderDate");
+                Assert.Equal("LegacyOrderDate", timeline.Name);
+                Assert.Equal("OrderDate", timeline.SourceName);
+                Assert.Equal("SalesPivot", timeline.PivotTableName);
+                ExcelPivotInteractionCacheInfo timelineWithoutPivot = Assert.Single(timelines, cache => cache.Name == "LegacyOrderDateNoPivot");
+                Assert.Equal("OrderDateNoPivot", timelineWithoutPivot.SourceName);
+                Assert.Null(timelineWithoutPivot.PivotTableName);
+
+                ExcelWorkbookSnapshot snapshot = document.CreateInspectionSnapshot();
+                Assert.Equal(1, snapshot.SlicerPartCount);
+                Assert.Equal(1, snapshot.TimelinePartCount);
+                Assert.Equal(2, snapshot.SlicerBindingMetadataPartCount);
+                Assert.Equal(2, snapshot.TimelineBindingMetadataPartCount);
             }
         }
 
@@ -219,14 +300,20 @@ namespace OfficeIMO.Tests {
 
             using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 ExcelWorkbookSnapshot snapshot = document.CreateInspectionSnapshot();
-                Assert.Equal(1, snapshot.SlicerPartCount);
-                Assert.Equal(1, snapshot.TimelinePartCount);
-                Assert.True(snapshot.HasSlicers);
-                Assert.True(snapshot.HasTimelines);
+                Assert.Equal(0, snapshot.SlicerPartCount);
+                Assert.Equal(0, snapshot.TimelinePartCount);
+                Assert.False(snapshot.HasSlicers);
+                Assert.False(snapshot.HasTimelines);
+                Assert.Equal(1, snapshot.SlicerBindingMetadataPartCount);
+                Assert.Equal(1, snapshot.TimelineBindingMetadataPartCount);
+                Assert.True(snapshot.HasSlicerBindingMetadata);
+                Assert.True(snapshot.HasTimelineBindingMetadata);
 
                 ExcelFeatureReport report = document.InspectFeatures();
-                Assert.Equal(ExcelFeatureSupportLevel.PartiallyEditable, report.FindFeatures("Slicers").Single().SupportLevel);
-                Assert.Equal(ExcelFeatureSupportLevel.PartiallyEditable, report.FindFeatures("Timelines").Single().SupportLevel);
+                Assert.Empty(report.FindFeatures("Slicers"));
+                Assert.Empty(report.FindFeatures("Timelines"));
+                Assert.Equal(ExcelFeatureSupportLevel.Editable, report.FindFeatures("Slicer binding metadata").Single().SupportLevel);
+                Assert.Equal(ExcelFeatureSupportLevel.Editable, report.FindFeatures("Timeline binding metadata").Single().SupportLevel);
             }
 
             using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {

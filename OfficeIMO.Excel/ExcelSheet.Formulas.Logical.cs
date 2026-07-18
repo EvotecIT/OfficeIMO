@@ -172,7 +172,9 @@ namespace OfficeIMO.Excel {
                 return true;
             }
 
-            if (tokens.Count != 1 || !TryResolveInfoArgument(tokens[0], out FormulaArgumentValue value)) {
+            if (tokens.Count != 1
+                || !TryResolveInfoArgument(tokens[0], out FormulaArgumentValue value)
+                || value.IsUnresolvedFormula) {
                 return false;
             }
 
@@ -220,7 +222,22 @@ namespace OfficeIMO.Excel {
                 return true;
             }
 
-            if (!TryResolveFormulaRangeReference(tokens[0], out _, out int r1, out int c1, out int r2, out int c2)) {
+            if (!TryResolveFormulaRangeReference(
+                    tokens[0],
+                    out _,
+                    out int r1,
+                    out int c1,
+                    out int r2,
+                    out int c2)
+                && !TryParseQualifiedFormulaWholeRange(
+                    tokens[0],
+                    null,
+                    out _,
+                    out r1,
+                    out c1,
+                    out r2,
+                    out c2,
+                    out _)) {
                 return false;
             }
 
@@ -236,7 +253,15 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            formulaText = referenceSheet.TryGetExistingCell(row, column)?.CellFormula?.Text ?? string.Empty;
+            Cell? cell = referenceSheet.TryGetExistingCell(row, column);
+            formulaText = cell?.CellFormula == null
+                ? string.Empty
+                : referenceSheet.ResolveCellFormulaText(
+                    cell,
+                    cell.CellFormula.FormulaType?.Value == CellFormulaValues.Shared
+                        && string.IsNullOrEmpty(cell.CellFormula.Text)
+                        ? GetFormulaEvaluationSharedDefinitions(referenceSheet)
+                        : null);
             return formulaText.Length > 0;
         }
 
