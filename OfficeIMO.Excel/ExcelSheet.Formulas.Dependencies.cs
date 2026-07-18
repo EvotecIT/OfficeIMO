@@ -165,7 +165,11 @@ namespace OfficeIMO.Excel {
                     out int parsedSourceColumn);
                 int? sourceRow = hasSourceCell ? parsedSourceRow : (int?)null;
                 string searchableFormula = MaskFormulaStringLiterals(formula);
-                string valueDependencyFormula = MaskFormulaReferenceShapeArguments(searchableFormula, sourceRow);
+                int? sourceColumn = hasSourceCell ? parsedSourceColumn : (int?)null;
+                string valueDependencyFormula = MaskFormulaReferenceShapeArguments(
+                    searchableFormula,
+                    sourceRow,
+                    sourceColumn);
                 string localReferenceFormula = MaskFormulaNonLocalReferenceSegments(valueDependencyFormula);
                 string directReferenceFormula = MaskFormulaStructuredReferenceSegments(localReferenceFormula);
                 List<FormulaDependencyReferenceMatch> dependencyMatches = FormulaReferenceRegex.Matches(directReferenceFormula)

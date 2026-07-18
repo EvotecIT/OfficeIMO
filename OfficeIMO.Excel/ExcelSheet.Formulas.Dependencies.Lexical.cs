@@ -144,10 +144,33 @@ namespace OfficeIMO.Excel {
             return false;
         }
 
-        private string MaskFormulaReferenceShapeArguments(string formula, int? sourceRow) {
+        private string MaskFormulaReferenceShapeArguments(string formula, int? sourceRow, int? sourceColumn) {
             char[]? maskedFormula = null;
+            int structuredReferenceDepth = 0;
+            bool inQuotedQualifier = false;
             for (int index = 0; index < formula.Length; index++) {
-                if (!TryGetFormulaReferenceShapeFunctionCall(formula, index, out int openingParenthesis)
+                char character = formula[index];
+                if (character == '\'') {
+                    if (inQuotedQualifier && index + 1 < formula.Length && formula[index + 1] == '\'') {
+                        index++;
+                    } else {
+                        inQuotedQualifier = !inQuotedQualifier;
+                    }
+                    continue;
+                }
+                if (inQuotedQualifier) {
+                    continue;
+                }
+                if (character == '[') {
+                    structuredReferenceDepth++;
+                    continue;
+                }
+                if (character == ']' && structuredReferenceDepth > 0) {
+                    structuredReferenceDepth--;
+                    continue;
+                }
+                if (structuredReferenceDepth > 0
+                    || !TryGetFormulaReferenceShapeFunctionCall(formula, index, out int openingParenthesis)
                     || !TryFindClosingFormulaParenthesis(formula, openingParenthesis, out int closingParenthesis)) {
                     continue;
                 }
@@ -162,14 +185,26 @@ namespace OfficeIMO.Excel {
 
                 FormulaArgumentSpan argument = arguments[0];
                 string reference = formula.Substring(argument.Start, argument.End - argument.Start).Trim();
-                if (!TryResolveFormulaRangeReference(
+                bool resolved = TryResolveFormulaRangeReference(
                     reference,
                     sourceRow,
                     out _,
                     out _,
                     out _,
                     out _,
-                    out _)) {
+                    out _);
+                if (!resolved && sourceColumn.HasValue) {
+                    resolved = TryResolveUnqualifiedCurrentRowTableReferenceRange(
+                        reference,
+                        sourceRow,
+                        sourceColumn,
+                        out _,
+                        out _,
+                        out _,
+                        out _,
+                        out _);
+                }
+                if (!resolved) {
                     continue;
                 }
 

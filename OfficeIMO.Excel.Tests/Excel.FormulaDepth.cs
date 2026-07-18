@@ -97,15 +97,20 @@ namespace OfficeIMO.Tests {
             sheet.CellFormula(1, 5, "SUM(ROW(E1),F1)");
             sheet.CellFormula(1, 6, "1+1");
             sheet.CellFormula(1, 7, "ROWS(ShapeRows)");
-            sheet.CellFormula(1, 8, "COLUMNS(ShapeTable[[A]:[B]])");
-            sheet.CellValue(1, 10, "A");
+            sheet.CellFormula(1, 8, "COLUMNS(ShapeTable[[ROW(A1)]:[B]])");
+            sheet.CellFormula(1, 9, "SUM(ShapeTable[ROW(A1)])");
+            sheet.CellValue(1, 10, "ROW(A1)");
             sheet.CellValue(1, 11, "B");
             sheet.CellFormula(2, 10, "1+1");
-            sheet.CellValue(2, 11, 3d);
+            sheet.CellFormula(2, 11, "ROWS([@B])");
             sheet.AddTable("J1:K2", hasHeader: true, name: "ShapeTable", style: TableStyle.TableStyleMedium2);
             document.SetNamedRange("ShapeRows", "'Reference Shapes'!C1:C3", save: false);
 
-            Assert.Equal(9, document.Calculate());
+            ExcelSheet quotedShapeName = document.AddWorksheet("ROW(A1)");
+            quotedShapeName.CellFormula(1, 2, "1+1");
+            sheet.CellFormula(1, 12, "'ROW(A1)'!B1");
+
+            Assert.Equal(13, document.Calculate());
             ExcelFormulaInspection inspection = document.InspectFormulas();
             ExcelFormulaDependencyGraph graph = inspection.DependencyGraph;
             foreach (string reference in new[] { "A1", "B1", "C1", "D1", "G1", "H1" }) {
@@ -120,7 +125,20 @@ namespace OfficeIMO.Tests {
                 graph.FindNode("Reference Shapes", "E1"));
             Assert.Equal(new[] { "Reference Shapes!F1" }, mixed.Dependencies);
             Assert.Equal(new[] { "Reference Shapes!F1" }, mixed.FormulaDependencies);
-            Assert.Equal(1, graph.EdgeCount);
+            ExcelFormulaDependencyNode structuredHeader = Assert.IsType<ExcelFormulaDependencyNode>(
+                graph.FindNode("Reference Shapes", "I1"));
+            Assert.Equal(new[] { "Reference Shapes!J2" }, structuredHeader.Dependencies);
+            Assert.Equal(new[] { "Reference Shapes!J2" }, structuredHeader.FormulaDependencies);
+            ExcelFormulaDependencyNode unqualifiedShape = Assert.IsType<ExcelFormulaDependencyNode>(
+                graph.FindNode("Reference Shapes", "K2"));
+            Assert.Empty(unqualifiedShape.Dependencies);
+            Assert.Empty(unqualifiedShape.FormulaDependencies);
+            Assert.False(unqualifiedShape.IsCircular);
+            ExcelFormulaDependencyNode quotedQualifier = Assert.IsType<ExcelFormulaDependencyNode>(
+                graph.FindNode("Reference Shapes", "L1"));
+            Assert.Equal(new[] { "ROW(A1)!B1" }, quotedQualifier.Dependencies);
+            Assert.Equal(new[] { "ROW(A1)!B1" }, quotedQualifier.FormulaDependencies);
+            Assert.Equal(3, graph.EdgeCount);
             Assert.False(graph.HasCircularReferences);
             inspection.EnsureNoDependencyIssues();
         }

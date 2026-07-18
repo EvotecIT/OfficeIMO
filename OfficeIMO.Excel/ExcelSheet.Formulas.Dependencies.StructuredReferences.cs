@@ -203,9 +203,39 @@ namespace OfficeIMO.Excel {
             if (!currentRow.HasValue
                 || _formulaEvaluationCellReference == null
                 || !TryParseCellReference(_formulaEvaluationCellReference, out int evaluationRow, out int evaluationColumn)
-                || evaluationRow != currentRow.Value
+                || evaluationRow != currentRow.Value) {
+                return false;
+            }
+
+            return TryResolveUnqualifiedCurrentRowTableReferenceRange(
+                token,
+                currentRow,
+                evaluationColumn,
+                out sheet,
+                out firstRow,
+                out firstColumn,
+                out lastRow,
+                out lastColumn);
+        }
+
+        private bool TryResolveUnqualifiedCurrentRowTableReferenceRange(
+            string token,
+            int? currentRow,
+            int? currentColumn,
+            out ExcelSheet sheet,
+            out int firstRow,
+            out int firstColumn,
+            out int lastRow,
+            out int lastColumn) {
+            sheet = this;
+            firstRow = 0;
+            firstColumn = 0;
+            lastRow = 0;
+            lastColumn = 0;
+            if (!currentRow.HasValue
+                || !currentColumn.HasValue
                 || !TryGetUnqualifiedCurrentRowReference(token, out FormulaStructuredTableReference structuredReference)
-                || !TryGetContainingFormulaTable(evaluationRow, evaluationColumn, out Table table)) {
+                || !TryGetContainingFormulaTable(currentRow.Value, currentColumn.Value, out Table table)) {
                 return false;
             }
 
