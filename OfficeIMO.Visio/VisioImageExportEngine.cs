@@ -20,24 +20,25 @@ internal static class VisioImageExportEngine {
         double pixelsPerInch = ResolvePixelsPerInch(options.Scale);
         string resultName = string.IsNullOrWhiteSpace(name) ? page.Name : name!;
         string resultSource = string.IsNullOrWhiteSpace(source) ? "Visio page" : source!;
+        var diagnostics = new List<OfficeImageExportDiagnostic>();
         if (format == OfficeImageExportFormat.Svg) {
             int width = Scaled(page.Width, pixelsPerInch);
             int height = Scaled(page.Height, pixelsPerInch);
-            byte[] bytes = Encoding.UTF8.GetBytes(VisioSvgRenderer.Render(page, CreateSvgOptions(options, pixelsPerInch)));
+            byte[] bytes = Encoding.UTF8.GetBytes(VisioSvgRenderer.Render(page, CreateSvgOptions(options, pixelsPerInch, diagnostics, resultSource)));
             return new OfficeImageExportResult(
                 format,
                 width,
                 height,
                 bytes,
                 resultName,
-                resultSource);
+                resultSource,
+                diagnostics);
         }
 
         if (!format.IsRaster()) {
             throw new ArgumentOutOfRangeException(nameof(format), format, "Unsupported image export format.");
         }
 
-        var diagnostics = new List<OfficeImageExportDiagnostic>();
         long workingPixelLimit = Math.Max(1L, MaximumSupersampledPixels / ((long)options.Supersampling * options.Supersampling));
         OfficeRasterExportPlan plan = OfficeRasterExportPlanner.Resolve(
             Math.Max(page.Width * DefaultPixelsPerInch, 0.01D),
@@ -50,7 +51,7 @@ internal static class VisioImageExportEngine {
 
         OfficeRasterImage image = VisioPngRenderer.RenderRaster(
             page,
-            CreatePngOptions(options, ResolvePixelsPerInch(plan.Limit.Scale)));
+            CreatePngOptions(options, ResolvePixelsPerInch(plan.Limit.Scale), diagnostics, resultSource));
         byte[] encoded = OfficeRasterImageEncoder.Encode(image, format, options.RasterEncoding);
         return new OfficeImageExportResult(
             format,
@@ -62,7 +63,11 @@ internal static class VisioImageExportEngine {
             diagnostics);
     }
 
-    private static VisioPngSaveOptions CreatePngOptions(VisioImageExportOptions options, double pixelsPerInch) =>
+    private static VisioPngSaveOptions CreatePngOptions(
+        VisioImageExportOptions options,
+        double pixelsPerInch,
+        ICollection<OfficeImageExportDiagnostic> diagnostics,
+        string source) =>
         new VisioPngSaveOptions {
             PixelsPerInch = pixelsPerInch,
             BackgroundColor = options.BackgroundColor,
@@ -73,10 +78,17 @@ internal static class VisioImageExportEngine {
             RenderStencilArtwork = options.RenderStencilArtwork,
             RenderConnectorLabels = options.RenderConnectorLabels,
             ResolveConnectorLabelOverlaps = options.ResolveConnectorLabelOverlaps,
-            Supersampling = options.Supersampling
+            Supersampling = options.Supersampling,
+            ImageCodec = options.ImageCodec,
+            ImageDiagnostics = diagnostics,
+            ImageDiagnosticSource = source
         };
 
-    private static VisioSvgSaveOptions CreateSvgOptions(VisioImageExportOptions options, double pixelsPerInch) =>
+    private static VisioSvgSaveOptions CreateSvgOptions(
+        VisioImageExportOptions options,
+        double pixelsPerInch,
+        ICollection<OfficeImageExportDiagnostic> diagnostics,
+        string source) =>
         new VisioSvgSaveOptions {
             PixelsPerInch = pixelsPerInch,
             BackgroundColor = options.BackgroundColor,
@@ -84,7 +96,10 @@ internal static class VisioImageExportEngine {
             RenderStencilArtwork = options.RenderStencilArtwork,
             RenderConnectorLabels = options.RenderConnectorLabels,
             ResolveConnectorLabelOverlaps = options.ResolveConnectorLabelOverlaps,
-            IncludeXmlDeclaration = options.IncludeSvgXmlDeclaration
+            IncludeXmlDeclaration = options.IncludeSvgXmlDeclaration,
+            ImageCodec = options.ImageCodec,
+            ImageDiagnostics = diagnostics,
+            ImageDiagnosticSource = source
         };
 
     private static int Scaled(double inches, double pixelsPerInch) {

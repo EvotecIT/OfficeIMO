@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using OfficeIMO.Drawing;
 using Color = OfficeIMO.Drawing.OfficeColor;
 
 namespace OfficeIMO.Visio {
@@ -44,5 +46,11 @@ namespace OfficeIMO.Visio {
         /// Gets or sets whether an XML declaration should be included.
         /// </summary>
         public bool IncludeXmlDeclaration { get; set; }
+
+        internal IOfficeRasterImageCodec? ImageCodec { get; set; }
+
+        internal ICollection<OfficeImageExportDiagnostic>? ImageDiagnostics { get; set; }
+
+        internal string? ImageDiagnosticSource { get; set; }
     }
 }

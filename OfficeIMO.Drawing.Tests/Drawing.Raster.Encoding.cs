@@ -100,6 +100,16 @@ public sealed class DrawingRasterEncodingTests {
     }
 
     [Fact]
+    public void OfficeImoWebpDecoderRejectsInflatedDimensionsBeforeAllocatingPixels() {
+        byte[] webp = OfficeWebpCodec.Encode(CreateSampleImage());
+        const int bitstreamOffset = 21;
+        WriteLsbBits(webp, bitstreamOffset, 0, 14, 4095);
+        WriteLsbBits(webp, bitstreamOffset, 14, 14, 4095);
+
+        Assert.False(OfficeWebpCodec.TryDecode(webp, out _));
+    }
+
+    [Fact]
     public void OfficeTiffDecoderRejectsExtraUncompressedStripData() {
         byte[] tiff = OfficeTiffCodec.Encode(
             CreateSampleImage(),
@@ -107,6 +117,15 @@ public sealed class DrawingRasterEncodingTests {
         Array.Resize(ref tiff, tiff.Length + 1);
         const int stripByteCountValueOffset = 126;
         WriteLittleEndian(tiff, stripByteCountValueOffset, 25);
+
+        Assert.False(OfficeTiffCodec.TryDecode(tiff, out _));
+    }
+
+    [Fact]
+    public void OfficeTiffDecoderRejectsUnexpectedArrayCardinalityBeforeReadingValues() {
+        byte[] tiff = OfficeTiffCodec.Encode(CreateSampleImage());
+        const int bitsPerSampleCountOffset = 38;
+        WriteLittleEndian(tiff, bitsPerSampleCountOffset, 3);
 
         Assert.False(OfficeTiffCodec.TryDecode(tiff, out _));
     }
@@ -180,5 +199,18 @@ public sealed class DrawingRasterEncodingTests {
         bytes[offset + 1] = (byte)(value >> 8);
         bytes[offset + 2] = (byte)(value >> 16);
         bytes[offset + 3] = (byte)(value >> 24);
+    }
+
+    private static void WriteLsbBits(byte[] bytes, int byteOffset, int bitOffset, int bitCount, uint value) {
+        for (int bit = 0; bit < bitCount; bit++) {
+            int absoluteBit = bitOffset + bit;
+            int index = byteOffset + absoluteBit / 8;
+            int mask = 1 << (absoluteBit % 8);
+            if ((value & (1U << bit)) != 0) {
+                bytes[index] = (byte)(bytes[index] | mask);
+            } else {
+                bytes[index] = (byte)(bytes[index] & ~mask);
+            }
+        }
     }
 }

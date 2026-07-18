@@ -43,7 +43,7 @@ This matrix tracks dependency-free image export across OfficeIMO document packag
 | Comment indicators and bodies | Partial to broad | Indicator/body export tests, visible-range filtering, obstacle-aware callout placement, and rich legacy comment runs rendered through shared Drawing rich text | Exact Excel popover chrome and threaded-comment rich run semantics remain diagnostic-driven |
 | Conditional formatting | Broad support | Color scales, data bars, icon sets including arrows/traffic lights/ratings/quarters/flags, differential styles tests | Unsupported rule shapes remain diagnostic-driven |
 | Images/charts/drawing objects | Partial to broad, including the shared PNG/JPEG/baseline-TIFF/uncompressed-BMP/first-frame-GIF/OfficeIMO-WebP source set plus direct-safe/transcoded SVG data URI embedding | Shared Drawing image/chart/object paths and source-format tests | Unsupported object geometry and broader source codecs remain explicit caller-codec cases |
-| Header/footer/page chrome | Partial | Text chrome support exists; page-level diagnostics cover gaps | Header/footer images and full print-title pagination need follow-up |
+| Header/footer/page chrome | Partial to broad | Page-sliced text and image chrome use shared composition, Drawing/caller image decode, visible fallback diagnostics, and approved PNG/SVG baselines | Excel-exact image placement, scaling-with-document semantics, and full automatic fit pagination remain open |
 | Friendly API | Useful first slices | `ToPng`, `ToSvg`, `SaveAs...`, `ToImage()` for range/worksheet, `ToImages()` for workbook batch export, and inherited shared fluent presets/export/save/`ToPng()`/`ToSvg()` aliases | Example polish can build on the fluent adapters |
 
 ## PowerPoint
@@ -111,9 +111,8 @@ This matrix tracks dependency-free image export across OfficeIMO document packag
 
 | Diagnostic | Current meaning | Preferred next move |
 | --- | --- | --- |
+| `IMAGE_SOURCE_DECODE_FALLBACK` | Drawing and the optional caller codec could not decode a source image, so the output contains a visible placeholder or a documented family-specific artwork fallback | Add a bounded Drawing decoder only for a justified format subset, or supply `ImageCodec`; do not reintroduce family-specific “skipped image” warnings |
 | `unsupported-powerpoint-shape` | Shape type, geometry, transform bounds, text-margin case, or unsupported custom geometry command/formula case cannot be projected | Split by reason as fidelity grows; add Drawing geometry primitives where reusable |
-| `unsupported-powerpoint-image-raster` | Raster output cannot decode a source outside the bounded shared decoder set and no caller codec handled it | Use an application codec or add a bounded reusable decoder only when current contracts justify it |
-| `unsupported-powerpoint-image-svg` | SVG output cannot embed or transcode image bytes through the shared Drawing image policy | Keep in Drawing image policy |
 | `unsupported-slide-background` | Background fallback used | Expand PowerPoint background projection, reuse Drawing fills/images |
 | `unsupported-word-page-index` | A requested page is beyond the renderer's estimated content | Improve page estimation for the triggering content family |
 | `unsupported-word-body-element` | Body element has no Drawing projection | Add Word-owned traversal plus Drawing primitive mapping |
@@ -122,8 +121,6 @@ This matrix tracks dependency-free image export across OfficeIMO document packag
 | `unsupported-word-textbox` | Text box size, anchor, or frame cannot be projected through shared Drawing | Expand Word-owned text-box layout/effects while continuing to use Drawing text/shape primitives |
 | `unsupported-word-floating-image` | An unresolved anchor or page-outside anchor needs Word layout beyond the current floating-object slices | Expand the Word-owned floating layout model, then project resolved placement through Drawing images |
 | `limited-word-floating-image-wrap` | Tight/through wrapped image rendered with a rectangular exclusion instead of true polygon or transparent-region wrapping | Add Word-owned polygon/transparent-region wrapping and remove this fallback warning when fidelity is real |
-| `unsupported-word-image-raster` | Raster output cannot decode a source outside the bounded shared decoder set and no caller codec handled it | Use an application codec or add a bounded reusable decoder only when current contracts justify it |
-| `unsupported-word-image-svg` | SVG output cannot embed or transcode image bytes through the shared Drawing image policy | Keep in Drawing image policy |
 | `unsupported-word-pagination` | A content family cannot yet advance through the renderer's estimated pagination model | Fix that Word-owned layout path without claiming Word-exact pagination |
 
 ## Near-Term Fidelity Order

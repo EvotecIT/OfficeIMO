@@ -1514,7 +1514,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void PowerPointSlide_ReportsUnsupportedGroupedPicturesThroughSharedRasterDiagnostics() {
+        public void PowerPointSlide_UsesVisibleFallbackForUndecodableGroupedPictures() {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(160, 100);
@@ -1532,7 +1532,9 @@ namespace OfficeIMO.Tests {
 
             OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
 
-            OfficeImageExportDiagnostic diagnostic = Assert.Single(png.Diagnostics, item => item.Code == "unsupported-powerpoint-image-raster");
+            OfficeImageExportDiagnostic diagnostic = Assert.Single(
+                png.Diagnostics,
+                item => item.Code == OfficeImageExportDiagnosticCodes.SourceImageDecodeFallback);
             Assert.Equal(OfficeImageExportDiagnosticSeverity.Warning, diagnostic.Severity);
         }
 

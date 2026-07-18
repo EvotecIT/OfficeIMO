@@ -274,16 +274,6 @@ internal sealed partial class HtmlRenderLayoutEngine {
             innerRadii,
             layerVisualSource + ":clip");
 
-        if (!OfficeRasterImageDecoder.TryDecode(bytes, out _)
-            && !string.Equals(contentType, "image/svg+xml", StringComparison.OrdinalIgnoreCase)) {
-            _diagnostics.Add(
-                ComponentName,
-                HtmlRenderDiagnosticCodes.RasterDecoderUnavailable,
-                "The background image can be retained for SVG/PDF but the dependency-free PNG backend cannot decode it.",
-                HtmlDiagnosticSeverity.Warning,
-                diagnosticSourceDescription,
-                contentType);
-        }
     }
 
     private void AddGradientBackground(

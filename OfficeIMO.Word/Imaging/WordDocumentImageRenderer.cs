@@ -34,7 +34,6 @@ namespace OfficeIMO.Word {
 
             if (format == OfficeImageExportFormat.Svg) {
                 List<OfficeImageExportDiagnostic> diagnostics = new List<OfficeImageExportDiagnostic>(snapshot.Diagnostics);
-                AddSvgImageDiagnostics(drawing, diagnostics);
                 var fallbackCodec = new OfficeRasterImageFallbackCodec(options.ImageCodec, diagnostics, "Word document");
                 byte[] svg = OfficeDrawingSvgExporter.ToSvgBytes(drawing, options.Scale, OfficeSvgSizeUnit.Pixel, fallbackCodec);
                 return new OfficeImageExportResult(format, ScaledWidth(drawing, options), ScaledHeight(drawing, options), svg, "Page " + (options.PageIndex + 1), "Word document", diagnostics);
@@ -42,7 +41,6 @@ namespace OfficeIMO.Word {
 
             if (format.IsRaster()) {
                 List<OfficeImageExportDiagnostic> diagnostics = new List<OfficeImageExportDiagnostic>(snapshot.Diagnostics);
-                AddRasterImageDiagnostics(drawing, diagnostics);
                 const string source = "Word document";
                 OfficeRasterExportPlan plan = OfficeRasterExportPlanner.Resolve(
                     drawing.Width,

@@ -182,6 +182,24 @@ Visio separates two different concepts:
 
 Layout settings remain layout options and are not duplicated as themes. Office colors and hexadecimal formatting are owned by `OfficeIMO.Drawing`; Word and Excel no longer carry duplicate color helpers.
 
+## Image export diagnostics
+
+Source-image decode policy now belongs to `OfficeIMO.Drawing` across Word, Excel, PowerPoint, HTML, OneNote, Visio, and PDF image export. Family-specific preflight warnings that claimed an image was skipped have been removed because the final renderer may decode it through Drawing, a caller-supplied `ImageCodec`, or a visible fallback.
+
+Use the shared result diagnostics instead:
+
+| Removed diagnostic | Replacement |
+| --- | --- |
+| `ExcelImageRasterFormatUnsupported` | `IMAGE_SOURCE_DECODE_FALLBACK` |
+| `ExcelImageSvgFormatUnsupported` | `IMAGE_SOURCE_DECODE_FALLBACK` |
+| `ExcelImagePngDecodeUnavailable` | `IMAGE_SOURCE_DECODE_FALLBACK` |
+| `ExcelHeaderFooterImageUnsupported` | `IMAGE_SOURCE_DECODE_FALLBACK` |
+| `unsupported-word-image-raster` / `unsupported-word-image-svg` | `IMAGE_SOURCE_DECODE_FALLBACK` |
+| `unsupported-powerpoint-image-raster` / `unsupported-powerpoint-image-svg` | `IMAGE_SOURCE_DECODE_FALLBACK` |
+| `HtmlRenderRasterDecoderUnavailable` | `IMAGE_SOURCE_DECODE_FALLBACK` on the final image export result |
+
+`IMAGE_SOURCE_DECODED_BY_CALLER_CODEC` is informational proof that `ImageCodec` handled the source. When no codec succeeds, the renderer keeps the content visible with a placeholder or a documented family-specific artwork fallback; it no longer emits a warning that says content was omitted when it was not.
+
 ## Canonical member names
 
 | Removed member | Replacement |

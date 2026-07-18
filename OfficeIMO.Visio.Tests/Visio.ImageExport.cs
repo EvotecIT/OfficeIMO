@@ -117,4 +117,66 @@ public class VisioImageExport {
         Assert.Throws<ArgumentOutOfRangeException>(() =>
             page.ExportImage(OfficeImageExportFormat.Svg, options));
     }
+
+    [Theory]
+    [InlineData(OfficeImageExportFormat.Png)]
+    [InlineData(OfficeImageExportFormat.Svg)]
+    public void PackagePreview_UsesCallerCodecThroughCanonicalExport(OfficeImageExportFormat format) {
+        using MemoryStream package = new();
+        VisioDocument document = VisioDocument.Create(package);
+        VisioPage page = document.AddPage("CallerCodec").Size(2, 1);
+        AddCustomPreviewShape(page);
+        var codec = new SolidImageCodec(OfficeColor.FromRgb(12, 90, 180));
+        var options = new VisioImageExportOptions {
+            Scale = 0.5D,
+            Supersampling = 1,
+            ImageCodec = codec
+        };
+
+        OfficeImageExportResult result = page.ExportImage(format, options);
+
+        Assert.Equal(1, codec.DecodeCalls);
+        Assert.Contains(
+            result.Diagnostics,
+            diagnostic => diagnostic.Code == OfficeImageExportDiagnosticCodes.SourceImageDecodedByCallerCodec);
+        Assert.DoesNotContain(
+            result.Diagnostics,
+            diagnostic => diagnostic.Code == OfficeImageExportDiagnosticCodes.SourceImageDecodeFallback);
+        if (format == OfficeImageExportFormat.Svg) {
+            Assert.Contains("data:image/png;base64,", Encoding.UTF8.GetString(result.Bytes), StringComparison.Ordinal);
+        }
+    }
+
+    private static void AddCustomPreviewShape(VisioPage page) {
+        VisioMaster master = new("custom-preview", "CustomPreview", new VisioShape("master-shape", 0, 0, 1, 1, string.Empty));
+        master.RawMasterRelationships.Add(new VisioAssets.MasterRelationshipContent {
+            Id = "rIdImage",
+            Type = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/image",
+            Target = "../media/preview.custom",
+            ContentType = "image/x-officeimo-test",
+            Extension = ".custom",
+            Data = new byte[] { 1, 2, 3, 4 }
+        });
+        VisioShape shape = page.AddRectangle(1, 0.5, 1, 0.7, string.Empty);
+        shape.Master = master;
+        shape.NameU = master.NameU;
+        shape.SetUserCell("OfficeIMO.StencilPreviewImageRelationshipId", "rIdImage", "STR");
+        shape.SetUserCell("OfficeIMO.StencilPreviewImageTarget", "../media/preview.custom", "STR");
+    }
+
+    private sealed class SolidImageCodec : IOfficeRasterImageCodec {
+        private readonly OfficeColor _color;
+
+        internal SolidImageCodec(OfficeColor color) {
+            _color = color;
+        }
+
+        internal int DecodeCalls { get; private set; }
+
+        public bool TryDecode(byte[] encodedBytes, string? contentType, out OfficeRasterImage? image) {
+            DecodeCalls++;
+            image = new OfficeRasterImage(2, 2, _color);
+            return true;
+        }
+    }
 }

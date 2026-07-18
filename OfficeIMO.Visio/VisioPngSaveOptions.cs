@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using OfficeIMO.Drawing;
 using Color = OfficeIMO.Drawing.OfficeColor;
 
 namespace OfficeIMO.Visio {
@@ -59,5 +61,11 @@ namespace OfficeIMO.Visio {
         /// Supersampling factor used for smoother native raster output. Defaults to 3.
         /// </summary>
         public int Supersampling { get; set; } = 3;
+
+        internal IOfficeRasterImageCodec? ImageCodec { get; set; }
+
+        internal ICollection<OfficeImageExportDiagnostic>? ImageDiagnostics { get; set; }
+
+        internal string? ImageDiagnosticSource { get; set; }
     }
 }

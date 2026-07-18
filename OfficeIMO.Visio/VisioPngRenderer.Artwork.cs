@@ -104,8 +104,14 @@ namespace OfficeIMO.Visio {
             }
         }
 
-        private static bool DrawPackagePreviewArtwork(RasterCanvas canvas, VisioPage page, VisioShape shape) {
-            if (!VisioPackagePreviewArtwork.TryGetRasterImage(shape, out OfficeRasterImage? raster) || raster == null) {
+        private static bool DrawPackagePreviewArtwork(RasterCanvas canvas, VisioPage page, VisioShape shape, VisioPngSaveOptions options) {
+            if (!VisioPackagePreviewArtwork.TryGetRasterImage(
+                    shape,
+                    options.ImageCodec,
+                    options.ImageDiagnostics,
+                    options.ImageDiagnosticSource,
+                    out OfficeRasterImage? raster) ||
+                raster == null) {
                 return false;
             }
 

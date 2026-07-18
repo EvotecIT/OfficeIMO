@@ -21,7 +21,6 @@ namespace OfficeIMO.PowerPoint {
 
             if (format == OfficeImageExportFormat.Svg) {
                 List<OfficeImageExportDiagnostic> diagnostics = new List<OfficeImageExportDiagnostic>(snapshot.Diagnostics);
-                AddSvgImageDiagnostics(drawing, diagnostics);
                 var fallbackCodec = new OfficeRasterImageFallbackCodec(options.ImageCodec, diagnostics, "PowerPoint slide");
                 byte[] svg = OfficeDrawingSvgExporter.ToSvgBytes(drawing, options.Scale, OfficeSvgSizeUnit.Pixel, fallbackCodec);
                 return new OfficeImageExportResult(format, ScaledWidth(drawing, options), ScaledHeight(drawing, options), svg, "Slide", "PowerPoint slide", diagnostics);
@@ -29,7 +28,6 @@ namespace OfficeIMO.PowerPoint {
 
             if (format.IsRaster()) {
                 List<OfficeImageExportDiagnostic> diagnostics = new List<OfficeImageExportDiagnostic>(snapshot.Diagnostics);
-                AddRasterImageDiagnostics(drawing, diagnostics);
                 const string source = "PowerPoint slide";
                 OfficeRasterExportPlan plan = OfficeRasterExportPlanner.Resolve(
                     drawing.Width,
@@ -1030,51 +1028,6 @@ namespace OfficeIMO.PowerPoint {
 
         private static int UnscaledHeight(OfficeDrawing drawing) =>
             Math.Max(1, (int)Math.Ceiling(drawing.Height));
-
-        private static void AddSvgImageDiagnostics(OfficeDrawing drawing, List<OfficeImageExportDiagnostic> diagnostics) {
-            foreach (OfficeDrawingImage image in EnumerateDrawingImages(drawing)) {
-                byte[] bytes = image.Bytes;
-                if (!OfficeSvgImageRenderer.TryCreateDataUri(image.ContentType, bytes, null, out _)) {
-                    AddImageDiagnostic(
-                        diagnostics,
-                        "unsupported-powerpoint-image-svg",
-                        "Skipped a PowerPoint image in SVG output because its content type is not embeddable as an SVG image element.",
-                        image);
-                }
-            }
-        }
-
-        private static void AddRasterImageDiagnostics(OfficeDrawing drawing, List<OfficeImageExportDiagnostic> diagnostics) {
-            foreach (OfficeDrawingImage image in EnumerateDrawingImages(drawing)) {
-                if (!OfficeRasterImageDecoder.TryDecode(image.Bytes, out _)) {
-                    AddImageDiagnostic(
-                        diagnostics,
-                        "unsupported-powerpoint-image-raster",
-                        "Skipped a PowerPoint image in raster output because dependency-free rendering currently decodes " + OfficeRasterImageDecoder.SupportedFormatDescription + " only.",
-                        image);
-                }
-            }
-        }
-
-        private static IEnumerable<OfficeDrawingImage> EnumerateDrawingImages(OfficeDrawing drawing) {
-            foreach (OfficeDrawingElement element in drawing.Elements) {
-                if (element is OfficeDrawingImage image) {
-                    yield return image;
-                } else if (element is OfficeDrawingGroup group) {
-                    foreach (OfficeDrawingImage nested in EnumerateDrawingImages(group.Drawing)) {
-                        yield return nested;
-                    }
-                }
-            }
-        }
-
-        private static void AddImageDiagnostic(List<OfficeImageExportDiagnostic> diagnostics, string code, string message, OfficeDrawingImage image) {
-            diagnostics.Add(new OfficeImageExportDiagnostic(
-                OfficeImageExportDiagnosticSeverity.Warning,
-                code,
-                message,
-                string.IsNullOrWhiteSpace(image.AlternativeText) ? "PowerPoint image" : image.AlternativeText));
-        }
 
         private static void AddDiagnostic(List<OfficeImageExportDiagnostic> diagnostics, string code, string message) {
             diagnostics.Add(new OfficeImageExportDiagnostic(

@@ -106,8 +106,6 @@ public static class HtmlRenderDiagnosticCodes {
     public const string PageMarginPositionUnsupported = "HtmlRenderPageMarginPositionUnsupported";
     /// <summary>An <c>@page</c> size declaration was unsupported.</summary>
     public const string PageSizeUnsupported = "HtmlRenderPageSizeUnsupported";
-    /// <summary>The dependency-free PNG backend could not decode a retained raster format.</summary>
-    public const string RasterDecoderUnavailable = "HtmlRenderRasterDecoderUnavailable";
     /// <summary>SVG content could not be represented by the bounded shared vector scene.</summary>
     public const string SvgContentUnsupported = "HtmlRenderSvgContentUnsupported";
     /// <summary>A resource exceeded the configured per-resource byte limit.</summary>
@@ -195,7 +193,6 @@ public static class HtmlRenderDiagnosticCodes {
         PagePseudoGeometryPending,
         PageSelectorPending,
         PageSizeUnsupported,
-        RasterDecoderUnavailable,
         SvgContentUnsupported,
         ResourceByteLimitExceeded,
         ResourceCountLimitExceeded,

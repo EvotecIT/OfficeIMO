@@ -13,7 +13,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public ExcelRangeVisualSnapshot CreateVisualSnapshot(ExcelWorksheetImageExportOptions? options = null) {
             ExcelWorksheetImageExportOptions resolved = NormalizeWorksheetOptions(options);
-            WorksheetImageRangeResolution range = ResolveWorksheetImageRanges(resolved, allowMultipleResults: false, format: null)[0];
+            WorksheetImageRangeResolution range = ResolveWorksheetImageRanges(resolved, allowMultipleResults: false)[0];
             return ExcelRangeVisualSnapshotBuilder.Build(this, range.Range, resolved, range.Diagnostics);
         }
 
@@ -22,7 +22,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public OfficeImageExportResult ExportImage(OfficeImageExportFormat format, ExcelWorksheetImageExportOptions? options = null) {
             ExcelWorksheetImageExportOptions resolved = NormalizeWorksheetOptions(options);
-            WorksheetImageRangeResolution range = ResolveWorksheetImageRanges(resolved, allowMultipleResults: false, format)[0];
+            WorksheetImageRangeResolution range = ResolveWorksheetImageRanges(resolved, allowMultipleResults: false)[0];
             ExcelRangeVisualSnapshot snapshot = ExcelRangeVisualSnapshotBuilder.Build(this, range.Range, resolved, range.Diagnostics);
             return ExcelRangeImageRenderer.Render(snapshot, format, resolved);
         }
@@ -32,7 +32,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public IReadOnlyList<OfficeImageExportResult> ExportImages(OfficeImageExportFormat format, ExcelWorksheetImageExportOptions? options = null) {
             ExcelWorksheetImageExportOptions resolved = NormalizeWorksheetOptions(options);
-            IReadOnlyList<WorksheetImageRangeResolution> ranges = ResolveWorksheetImageRanges(resolved, allowMultipleResults: true, format);
+            IReadOnlyList<WorksheetImageRangeResolution> ranges = ResolveWorksheetImageRanges(resolved, allowMultipleResults: true);
             var results = new List<OfficeImageExportResult>(ranges.Count);
             for (int index = 0; index < ranges.Count; index++) {
                 results.Add(RenderWorksheetImageResult(format, ranges[index], resolved, index + 1, ranges.Count));
@@ -114,7 +114,7 @@ namespace OfficeIMO.Excel {
             return resolved;
         }
 
-        private IReadOnlyList<WorksheetImageRangeResolution> ResolveWorksheetImageRanges(ExcelWorksheetImageExportOptions options, bool allowMultipleResults, OfficeImageExportFormat? format) {
+        private IReadOnlyList<WorksheetImageRangeResolution> ResolveWorksheetImageRanges(ExcelWorksheetImageExportOptions options, bool allowMultipleResults) {
             if (!string.IsNullOrWhiteSpace(options.Range)) {
                 if (TryNormalizeWorksheetImageRange(options.Range!, out string? normalizedRange)) {
                     return ApplyManualPageBreakSplits(
@@ -174,7 +174,7 @@ namespace OfficeIMO.Excel {
                 }
             }
 
-            return ApplyManualPageBreakSplits(SingleImageRange(ResolveWorksheetUsedImageRange(options, format), diagnostics), options, allowMultipleResults);
+            return ApplyManualPageBreakSplits(SingleImageRange(ResolveWorksheetUsedImageRange(options), diagnostics), options, allowMultipleResults);
         }
 
         private static IReadOnlyList<WorksheetImageRangeResolution> SingleImageRange(string range, IReadOnlyList<OfficeImageExportDiagnostic> diagnostics) =>
@@ -335,7 +335,7 @@ namespace OfficeIMO.Excel {
             return normalized.Count > 0;
         }
 
-        private string ResolveWorksheetUsedImageRange(ExcelWorksheetImageExportOptions options, OfficeImageExportFormat? format) {
+        private string ResolveWorksheetUsedImageRange(ExcelWorksheetImageExportOptions options) {
             string range = GetUsedRangeA1();
             if (!A1.TryParseRange(range, out int firstRow, out int firstColumn, out int lastRow, out int lastColumn)) {
                 return range;
@@ -346,10 +346,6 @@ namespace OfficeIMO.Excel {
             bool defaultRowsHidden = DefaultRowsHidden;
             if (options.IncludeImages) {
                 foreach (ExcelImage image in Images) {
-                    if (!CanExpandWorksheetImageRange(format, image)) {
-                        continue;
-                    }
-
                     if (image.TryGetAbsoluteAnchorBounds(out int absoluteX, out int absoluteY, out int absoluteWidth, out int absoluteHeight)) {
                         ExpandAbsoluteVisualAnchor(absoluteX, absoluteY, absoluteWidth, absoluteHeight, columns, rows, options, ref firstRow, ref firstColumn, ref lastRow, ref lastColumn);
                     } else if (options.IncludeHidden || !IsHiddenAnchor(image.RowIndex, image.ColumnIndex, rows, defaultRowsHidden, columns)) {
@@ -415,21 +411,6 @@ namespace OfficeIMO.Excel {
             }
 
             return A1.CellReference(firstRow, firstColumn) + ":" + A1.CellReference(lastRow, lastColumn);
-        }
-
-        private static bool CanExpandWorksheetImageRange(OfficeImageExportFormat? format, ExcelImage image) {
-            if (format != OfficeImageExportFormat.Png && format != OfficeImageExportFormat.Jpeg &&
-                format != OfficeImageExportFormat.Tiff && format != OfficeImageExportFormat.Webp) {
-                return true;
-            }
-
-            byte[] bytes = image.ToBytes();
-            if (OfficeRasterImageDecoder.TryDecode(bytes, out _)) {
-                return true;
-            }
-
-            return OfficeImageReader.TryIdentify(bytes, image.Name, out OfficeImageInfo info)
-                && info.Format == OfficeImageFormat.Png;
         }
 
         private static bool TryNormalizeWorksheetImageRange(string range, out string? normalizedRange) {

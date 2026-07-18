@@ -21,7 +21,7 @@ namespace OfficeIMO.Excel {
         public bool IncludeHidden { get; set; }
 
         /// <summary>
-        /// Whether worksheet images should be included when supported.
+        /// Whether worksheet images should be included.
         /// </summary>
         public bool IncludeImages { get; set; } = true;
 

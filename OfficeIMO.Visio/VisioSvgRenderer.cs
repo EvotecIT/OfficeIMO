@@ -87,7 +87,7 @@ namespace OfficeIMO.Visio {
             WriteShapeGeometry(writer, page, shape, scale);
 
             if (options.RenderStencilArtwork) {
-                if (!WritePackagePreviewArtwork(writer, page, shape, scale)) {
+                if (!WritePackagePreviewArtwork(writer, page, shape, options, scale)) {
                     WriteStencilArtwork(writer, page, shape, scale);
                 }
             }

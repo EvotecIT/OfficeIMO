@@ -87,6 +87,5 @@ public sealed partial class HtmlRenderingTests {
 
         Assert.True(visuals.OfType<HtmlRenderDrawing>().Count() >= 2);
         Assert.Empty(visuals.OfType<HtmlRenderImage>());
-        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.RasterDecoderUnavailable);
     }
 }

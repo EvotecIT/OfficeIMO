@@ -143,21 +143,17 @@ public static class OfficeTiffCodec {
                 return false;
             }
 
-            if (!TryReadValues(encodedBytes, entries, 258, littleEndian, out int[] bitsPerSample) ||
-                bitsPerSample.Length != samples ||
+            int expectedStripCount = checked((height + rowsPerStrip - 1) / rowsPerStrip);
+            if (!TryReadValues(encodedBytes, entries, 258, littleEndian, samples, out int[] bitsPerSample) ||
                 Array.Exists(bitsPerSample, value => value != 8) ||
-                !TryReadValues(encodedBytes, entries, 273, littleEndian, out int[] stripOffsets) ||
-                !TryReadValues(encodedBytes, entries, 279, littleEndian, out int[] stripByteCounts) ||
-                stripOffsets.Length == 0 ||
-                stripOffsets.Length != stripByteCounts.Length ||
-                stripOffsets.Length != checked((height + rowsPerStrip - 1) / rowsPerStrip)) {
+                !TryReadValues(encodedBytes, entries, 273, littleEndian, expectedStripCount, out int[] stripOffsets) ||
+                !TryReadValues(encodedBytes, entries, 279, littleEndian, expectedStripCount, out int[] stripByteCounts)) {
                 return false;
             }
 
             int alphaKind = 2;
             if (samples == 4) {
-                if (!TryReadValues(encodedBytes, entries, 338, littleEndian, out int[] extraSamples) ||
-                    extraSamples.Length != 1 ||
+                if (!TryReadValues(encodedBytes, entries, 338, littleEndian, 1, out int[] extraSamples) ||
                     (extraSamples[0] != 1 && extraSamples[0] != 2)) {
                     return false;
                 }
@@ -327,8 +323,7 @@ public static class OfficeTiffCodec {
         bool littleEndian,
         out int value) {
         value = 0;
-        return TryReadValues(data, entries, tag, littleEndian, out int[] values) &&
-               values.Length == 1 &&
+        return TryReadValues(data, entries, tag, littleEndian, 1, out int[] values) &&
                (value = values[0]) >= 0;
     }
 
@@ -351,10 +346,12 @@ public static class OfficeTiffCodec {
         System.Collections.Generic.IReadOnlyDictionary<int, TiffEntry> entries,
         int tag,
         bool littleEndian,
+        int expectedCount,
         out int[] values) {
         values = Array.Empty<int>();
         if (!entries.TryGetValue(tag, out TiffEntry entry) ||
-            (entry.Type != 3 && entry.Type != 4)) {
+            (entry.Type != 3 && entry.Type != 4) ||
+            entry.Count != expectedCount) {
             return false;
         }
         int itemSize = entry.Type == 3 ? 2 : 4;

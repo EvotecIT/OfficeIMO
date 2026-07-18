@@ -72,15 +72,6 @@ public static class ExcelImageExportDiagnosticCodes {
     /// <summary>Unsupported conditional formatting differential-format feature.</summary>
     public const string ConditionalDifferentialFormatUnsupported = "ExcelConditionalDifferentialFormatUnsupported";
 
-    /// <summary>Unsupported raster image format for PNG export.</summary>
-    public const string ImageRasterFormatUnsupported = "ExcelImageRasterFormatUnsupported";
-
-    /// <summary>Unsupported image format for SVG embedding.</summary>
-    public const string ImageSvgFormatUnsupported = "ExcelImageSvgFormatUnsupported";
-
-    /// <summary>PNG image bytes could not be decoded by the dependency-free exporter.</summary>
-    public const string ImagePngDecodeUnavailable = "ExcelImagePngDecodeUnavailable";
-
     /// <summary>Worksheet image bytes could not be read.</summary>
     public const string ImageBytesMissing = "ExcelImageBytesMissing";
 
@@ -224,9 +215,6 @@ public static class ExcelImageExportDiagnosticCodes {
 
     /// <summary>Worksheet header/footer image was rendered through an approximate image-export path.</summary>
     public const string HeaderFooterImageApproximation = "ExcelHeaderFooterImageApproximation";
-
-    /// <summary>Worksheet header/footer image could not be rendered by the requested image export format.</summary>
-    public const string HeaderFooterImageUnsupported = "ExcelHeaderFooterImageUnsupported";
 
     /// <summary>Sparkline kind is not rendered by the image exporter yet.</summary>
     public const string SparklineKindUnsupported = "ExcelSparklineKindUnsupported";

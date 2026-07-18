@@ -109,6 +109,10 @@ public static class OfficeWebpCodec {
                 return false;
             }
 
+            if (!reader.HasBits((long)pixels * 32L)) {
+                return false;
+            }
+
             byte[] rgba = OfficeRasterGuards.AllocateRgba32(width, height, "WebP decoded pixels exceed the managed limit.");
             for (int pixel = 0; pixel < pixels; pixel++) {
                 int offset = pixel * 4;
@@ -281,6 +285,10 @@ public static class OfficeWebpCodec {
             _bitCount -= count;
             return value;
         }
+
+        internal bool HasBits(long count) =>
+            count >= 0L &&
+            count <= _bitCount + ((long)_end - _offset) * 8L;
 
         internal bool HasOnlyZeroPadding() {
             if (_bitCount > 0) {

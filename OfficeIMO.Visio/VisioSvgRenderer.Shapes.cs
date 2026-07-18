@@ -201,8 +201,13 @@ namespace OfficeIMO.Visio {
             writer.WriteEndElement();
         }
 
-        private static bool WritePackagePreviewArtwork(XmlWriter writer, VisioPage page, VisioShape shape, double scale) {
-            if (!VisioPackagePreviewArtwork.TryGetBrowserImage(shape, out VisioPreviewImage image)) {
+        private static bool WritePackagePreviewArtwork(XmlWriter writer, VisioPage page, VisioShape shape, VisioSvgSaveOptions options, double scale) {
+            if (!VisioPackagePreviewArtwork.TryGetBrowserImage(
+                    shape,
+                    options.ImageCodec,
+                    options.ImageDiagnostics,
+                    options.ImageDiagnosticSource,
+                    out VisioPreviewImage image)) {
                 return false;
             }
 

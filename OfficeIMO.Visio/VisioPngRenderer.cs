@@ -125,7 +125,7 @@ namespace OfficeIMO.Visio {
             }
 
             if (options.RenderStencilArtwork) {
-                if (!DrawPackagePreviewArtwork(canvas, page, shape)) {
+                if (!DrawPackagePreviewArtwork(canvas, page, shape, options)) {
                     DrawStencilArtwork(canvas, page, shape);
                 }
             }

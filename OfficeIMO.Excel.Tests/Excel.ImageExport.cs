@@ -1983,7 +1983,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void ExcelRange_ImageExportEmbedsJpegInSvgAndReportsPngRasterLimitation() {
+        public void ExcelRange_ImageExportEmbedsJpegInSvgAndUsesVisibleRasterFallback() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddWorksheet("Jpeg");
@@ -1999,8 +1999,8 @@ namespace OfficeIMO.Tests {
             ExcelVisualImage image = Assert.Single(snapshot.Images);
             Assert.Equal(OfficeImageFormat.Jpeg, image.DetectedFormat);
             Assert.Contains("data:image/jpeg;base64,", svgText, StringComparison.Ordinal);
-            Assert.DoesNotContain(svg.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.ImageSvgFormatUnsupported);
-            OfficeImageExportDiagnostic diagnostic = Assert.Single(png.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.ImageRasterFormatUnsupported);
+            Assert.DoesNotContain(svg.Diagnostics, diagnostic => diagnostic.Code == OfficeImageExportDiagnosticCodes.SourceImageDecodeFallback);
+            OfficeImageExportDiagnostic diagnostic = Assert.Single(png.Diagnostics, item => item.Code == OfficeImageExportDiagnosticCodes.SourceImageDecodeFallback);
             Assert.Equal(OfficeImageExportDiagnosticSeverity.Warning, diagnostic.Severity);
             Assert.Equal("Jpeg!PhotoJpeg", diagnostic.Source);
         }
@@ -2022,9 +2022,8 @@ namespace OfficeIMO.Tests {
             ExcelVisualImage image = Assert.Single(snapshot.Images);
             Assert.Equal(OfficeImageFormat.Bmp, image.DetectedFormat);
             Assert.Equal("image/bmp", image.ContentType);
-            Assert.DoesNotContain(png.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.ImageRasterFormatUnsupported);
-            Assert.DoesNotContain(png.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.ImagePngDecodeUnavailable);
-            Assert.DoesNotContain(svg.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.ImageSvgFormatUnsupported);
+            Assert.DoesNotContain(png.Diagnostics, diagnostic => diagnostic.Code == OfficeImageExportDiagnosticCodes.SourceImageDecodeFallback);
+            Assert.DoesNotContain(svg.Diagnostics, diagnostic => diagnostic.Code == OfficeImageExportDiagnosticCodes.SourceImageDecodeFallback);
             string svgText = System.Text.Encoding.UTF8.GetString(svg.Bytes);
             Assert.Contains("data:image/png;base64,", svgText, StringComparison.Ordinal);
 
@@ -2050,8 +2049,8 @@ namespace OfficeIMO.Tests {
 
             ExcelVisualImage image = Assert.Single(snapshot.Images);
             Assert.Equal(OfficeImageFormat.Bmp, image.DetectedFormat);
-            Assert.DoesNotContain(png.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.ImageRasterFormatUnsupported);
-            Assert.DoesNotContain(svg.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.ImageSvgFormatUnsupported);
+            Assert.DoesNotContain(png.Diagnostics, diagnostic => diagnostic.Code == OfficeImageExportDiagnosticCodes.SourceImageDecodeFallback);
+            Assert.DoesNotContain(svg.Diagnostics, diagnostic => diagnostic.Code == OfficeImageExportDiagnosticCodes.SourceImageDecodeFallback);
             Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? rendered));
             Assert.True(
                 ContainsPixelNear(rendered!, image.X, image.Y, image.X + image.Width, image.Y + image.Height, color, tolerance: 8),
@@ -2078,9 +2077,8 @@ namespace OfficeIMO.Tests {
             ExcelVisualImage image = Assert.Single(snapshot.Images);
             Assert.Equal(OfficeImageFormat.Bmp, image.DetectedFormat);
             Assert.Equal("image/bmp", image.ContentType);
-            Assert.DoesNotContain(png.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.ImageRasterFormatUnsupported);
-            Assert.DoesNotContain(png.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.ImagePngDecodeUnavailable);
-            Assert.DoesNotContain(svg.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.ImageSvgFormatUnsupported);
+            Assert.DoesNotContain(png.Diagnostics, diagnostic => diagnostic.Code == OfficeImageExportDiagnosticCodes.SourceImageDecodeFallback);
+            Assert.DoesNotContain(svg.Diagnostics, diagnostic => diagnostic.Code == OfficeImageExportDiagnosticCodes.SourceImageDecodeFallback);
             string svgText = System.Text.Encoding.UTF8.GetString(svg.Bytes);
             Assert.Contains("data:image/png;base64,", svgText, StringComparison.Ordinal);
 
@@ -2106,9 +2104,8 @@ namespace OfficeIMO.Tests {
             ExcelVisualImage image = Assert.Single(snapshot.Images);
             Assert.Equal(OfficeImageFormat.Gif, image.DetectedFormat);
             Assert.Equal("image/gif", image.ContentType);
-            Assert.DoesNotContain(png.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.ImageRasterFormatUnsupported);
-            Assert.DoesNotContain(png.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.ImagePngDecodeUnavailable);
-            Assert.DoesNotContain(svg.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.ImageSvgFormatUnsupported);
+            Assert.DoesNotContain(png.Diagnostics, diagnostic => diagnostic.Code == OfficeImageExportDiagnosticCodes.SourceImageDecodeFallback);
+            Assert.DoesNotContain(svg.Diagnostics, diagnostic => diagnostic.Code == OfficeImageExportDiagnosticCodes.SourceImageDecodeFallback);
             string svgText = System.Text.Encoding.UTF8.GetString(svg.Bytes);
             Assert.Contains("data:image/gif;base64,", svgText, StringComparison.Ordinal);
 
@@ -2130,7 +2127,7 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult png = sheet.ExportImage(OfficeImageExportFormat.Png, new ExcelWorksheetImageExportOptions { ShowGridlines = false });
 
             Assert.Equal("WorksheetBitmap!A1:E10", png.Source);
-            Assert.DoesNotContain(png.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.ImageRasterFormatUnsupported);
+            Assert.DoesNotContain(png.Diagnostics, diagnostic => diagnostic.Code == OfficeImageExportDiagnosticCodes.SourceImageDecodeFallback);
             Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? rendered));
             Assert.NotNull(rendered);
             Assert.True(ContainsPixelNear(rendered!, 0D, 0D, rendered.Width, rendered.Height, color, tolerance: 8));
@@ -2147,7 +2144,7 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult png = sheet.ExportImage(OfficeImageExportFormat.Png, new ExcelWorksheetImageExportOptions { ShowGridlines = false });
 
             Assert.Equal("WorksheetPng!A1:E10", png.Source);
-            OfficeImageExportDiagnostic diagnostic = Assert.Single(png.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.ImagePngDecodeUnavailable);
+            OfficeImageExportDiagnostic diagnostic = Assert.Single(png.Diagnostics, item => item.Code == OfficeImageExportDiagnosticCodes.SourceImageDecodeFallback);
             Assert.Equal("WorksheetPng!TruncatedPngOutsideUsedCell", diagnostic.Source);
         }
 
@@ -2172,13 +2169,51 @@ namespace OfficeIMO.Tests {
             Assert.Equal("UnknownImage!MysteryBitmap", snapshotDiagnostic.Source);
             Assert.Contains("image/bmp", snapshotDiagnostic.Message, StringComparison.Ordinal);
 
-            OfficeImageExportDiagnostic pngDiagnostic = Assert.Single(png.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.ImageRasterFormatUnsupported);
+            OfficeImageExportDiagnostic pngDiagnostic = Assert.Single(png.Diagnostics, item => item.Code == OfficeImageExportDiagnosticCodes.SourceImageDecodeFallback);
             Assert.Equal("UnknownImage!MysteryBitmap", pngDiagnostic.Source);
-            Assert.Contains("declared content type 'image/bmp'", pngDiagnostic.Message, StringComparison.Ordinal);
+            Assert.Contains("image/bmp", pngDiagnostic.Message, StringComparison.Ordinal);
 
-            OfficeImageExportDiagnostic svgDiagnostic = Assert.Single(svg.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.ImageSvgFormatUnsupported);
+            OfficeImageExportDiagnostic svgDiagnostic = Assert.Single(svg.Diagnostics, item => item.Code == OfficeImageExportDiagnosticCodes.SourceImageDecodeFallback);
             Assert.Equal("UnknownImage!MysteryBitmap", svgDiagnostic.Source);
-            Assert.Contains("detected format 'Unknown'", svgDiagnostic.Message, StringComparison.Ordinal);
+            Assert.Contains("image/bmp", svgDiagnostic.Message, StringComparison.Ordinal);
+        }
+
+        [Theory]
+        [InlineData(OfficeImageExportFormat.Png)]
+        [InlineData(OfficeImageExportFormat.Svg)]
+        public void ExcelWorksheet_ImageExportUsesCallerCodecAndExpandsImageRange(OfficeImageExportFormat format) {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorksheet("CallerCodec");
+            sheet.CellValue(1, 1, "Used cell");
+            sheet.AddImage(
+                10,
+                5,
+                new byte[] { 1, 2, 3, 4 },
+                "image/tiff",
+                widthPixels: 24,
+                heightPixels: 18,
+                name: "CustomOutsideUsedCell");
+            var codec = new SolidImageCodec(OfficeColor.FromRgb(18, 86, 140));
+            var options = new ExcelWorksheetImageExportOptions {
+                ShowGridlines = false,
+                ImageCodec = codec
+            };
+
+            OfficeImageExportResult result = sheet.ExportImage(format, options);
+
+            Assert.Equal("CallerCodec!A1:E10", result.Source);
+            Assert.Equal(1, codec.DecodeCalls);
+            Assert.Contains(
+                result.Diagnostics,
+                diagnostic => diagnostic.Code == OfficeImageExportDiagnosticCodes.SourceImageDecodedByCallerCodec &&
+                              diagnostic.Source == "CallerCodec!CustomOutsideUsedCell");
+            Assert.DoesNotContain(
+                result.Diagnostics,
+                diagnostic => diagnostic.Code == OfficeImageExportDiagnosticCodes.SourceImageDecodeFallback);
+            if (format == OfficeImageExportFormat.Svg) {
+                Assert.Contains("data:image/png;base64,", System.Text.Encoding.UTF8.GetString(result.Bytes), StringComparison.Ordinal);
+            }
         }
 
         [Fact]
@@ -4761,6 +4796,22 @@ namespace OfficeIMO.Tests {
             int valueEnd = svg.IndexOf('"', valueStart);
             Assert.True(valueEnd > valueStart, "SVG element " + attributeName + " attribute was malformed.");
             return double.Parse(svg.Substring(valueStart, valueEnd - valueStart), System.Globalization.CultureInfo.InvariantCulture);
+        }
+
+        private sealed class SolidImageCodec : IOfficeRasterImageCodec {
+            private readonly OfficeColor _color;
+
+            internal SolidImageCodec(OfficeColor color) {
+                _color = color;
+            }
+
+            internal int DecodeCalls { get; private set; }
+
+            public bool TryDecode(byte[] encodedBytes, string? contentType, out OfficeRasterImage? image) {
+                DecodeCalls++;
+                image = new OfficeRasterImage(2, 2, _color);
+                return true;
+            }
         }
     }
 }

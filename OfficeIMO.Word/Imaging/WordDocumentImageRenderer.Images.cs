@@ -458,39 +458,6 @@ namespace OfficeIMO.Word {
         private static bool IsFinite(double value) =>
             !double.IsNaN(value) && !double.IsInfinity(value);
 
-        private static void AddSvgImageDiagnostics(OfficeDrawing drawing, List<OfficeImageExportDiagnostic> diagnostics) {
-            foreach (OfficeDrawingImage image in drawing.Images) {
-                byte[] bytes = image.Bytes;
-                if (!OfficeSvgImageRenderer.TryCreateDataUri(image.ContentType, bytes, null, out _)) {
-                    AddImageDiagnostic(
-                        diagnostics,
-                        "unsupported-word-image-svg",
-                        "Skipped a Word image in SVG output because its content type is not embeddable as an SVG image element.",
-                        image);
-                }
-            }
-        }
-
-        private static void AddRasterImageDiagnostics(OfficeDrawing drawing, List<OfficeImageExportDiagnostic> diagnostics) {
-            foreach (OfficeDrawingImage image in drawing.Images) {
-                if (!OfficeRasterImageDecoder.TryDecode(image.Bytes, out _)) {
-                    AddImageDiagnostic(
-                        diagnostics,
-                        "unsupported-word-image-raster",
-                        "Skipped a Word image in raster output because dependency-free rendering currently decodes " + OfficeRasterImageDecoder.SupportedFormatDescription + " only.",
-                        image);
-                }
-            }
-        }
-
-        private static void AddImageDiagnostic(List<OfficeImageExportDiagnostic> diagnostics, string code, string message, OfficeDrawingImage image) {
-            diagnostics.Add(new OfficeImageExportDiagnostic(
-                OfficeImageExportDiagnosticSeverity.Warning,
-                code,
-                message,
-                string.IsNullOrWhiteSpace(image.AlternativeText) ? "Word image" : image.AlternativeText));
-        }
-
         private static string DescribeImage(WordImage image) {
             if (!string.IsNullOrWhiteSpace(image.Description)) {
                 return image.Description!;
