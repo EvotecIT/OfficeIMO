@@ -44,7 +44,7 @@ namespace OfficeIMO.PowerPoint {
                 (legacy.HasExternalHyperlinkContent ? 1 : 0)
                 + (legacy.HasLinkedOleContent ? 1 : 0)
                 + (legacy.HasExternalMediaContent ? 1 : 0)
-                + CountRunProgramInteractions(legacy);
+                + (legacy.HasRunProgramContent ? 1 : 0);
             if (security.ExternalRelationships ==
                     OfficePackageContentPolicy.Reject
                 && externalTargetCount > 0) {
@@ -61,54 +61,5 @@ namespace OfficeIMO.PowerPoint {
             && (!string.IsNullOrWhiteSpace(hyperlink.Target)
                 || !string.IsNullOrWhiteSpace(hyperlink.Location));
 
-        private static int CountRunProgramInteractions(
-            LegacyPptPresentation legacy) => EnumerateLegacyShapes(legacy)
-            .Sum(shape => shape.Interactions.Count(interaction =>
-                    interaction.Action == LegacyPpt.Model
-                        .LegacyPptInteractionAction.RunProgram)
-                + shape.TextBody.Interactions.Count(textInteraction =>
-                    textInteraction.Interaction.Action == LegacyPpt.Model
-                        .LegacyPptInteractionAction.RunProgram));
-
-        private static IEnumerable<LegacyPpt.Model.LegacyPptShape>
-            EnumerateLegacyShapes(LegacyPptPresentation legacy) {
-            foreach (LegacyPpt.Model.LegacyPptShape shape in legacy.Slides
-                         .SelectMany(slide => slide.Shapes)) {
-                foreach (LegacyPpt.Model.LegacyPptShape nested in
-                         EnumerateLegacyShapes(shape)) yield return nested;
-            }
-            foreach (LegacyPpt.Model.LegacyPptShape shape in legacy.Slides
-                         .Where(slide => slide.NotesPage != null)
-                         .SelectMany(slide => slide.NotesPage!.Shapes)) {
-                foreach (LegacyPpt.Model.LegacyPptShape nested in
-                         EnumerateLegacyShapes(shape)) yield return nested;
-            }
-            foreach (LegacyPpt.Model.LegacyPptShape shape in legacy.Masters
-                         .SelectMany(master => master.Shapes)) {
-                foreach (LegacyPpt.Model.LegacyPptShape nested in
-                         EnumerateLegacyShapes(shape)) yield return nested;
-            }
-            foreach (LegacyPpt.Model.LegacyPptShape shape in legacy
-                         .NotesMaster?.Shapes
-                     ?? Array.Empty<LegacyPpt.Model.LegacyPptShape>()) {
-                foreach (LegacyPpt.Model.LegacyPptShape nested in
-                         EnumerateLegacyShapes(shape)) yield return nested;
-            }
-            foreach (LegacyPpt.Model.LegacyPptShape shape in legacy
-                         .HandoutMaster?.Shapes
-                     ?? Array.Empty<LegacyPpt.Model.LegacyPptShape>()) {
-                foreach (LegacyPpt.Model.LegacyPptShape nested in
-                         EnumerateLegacyShapes(shape)) yield return nested;
-            }
-        }
-
-        private static IEnumerable<LegacyPpt.Model.LegacyPptShape>
-            EnumerateLegacyShapes(LegacyPpt.Model.LegacyPptShape shape) {
-            yield return shape;
-            foreach (LegacyPpt.Model.LegacyPptShape child in shape.Children) {
-                foreach (LegacyPpt.Model.LegacyPptShape nested in
-                         EnumerateLegacyShapes(child)) yield return nested;
-            }
-        }
     }
 }

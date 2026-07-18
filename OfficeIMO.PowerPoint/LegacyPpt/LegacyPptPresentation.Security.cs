@@ -6,5 +6,6 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
         internal bool HasActiveXContent { get; private set; }
         internal bool HasExternalHyperlinkContent { get; private set; }
         internal bool HasExternalMediaContent { get; private set; }
+        internal bool HasRunProgramContent { get; private set; }
     }
 }

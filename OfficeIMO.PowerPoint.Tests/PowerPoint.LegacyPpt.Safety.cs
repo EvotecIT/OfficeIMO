@@ -845,6 +845,110 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PresentationFacade_RejectsPreserveOnlyLegacyRunProgramActions() {
+            byte[] binary;
+            using (PowerPointPresentation source =
+                   PowerPointPresentation.Create()) {
+                PowerPointAutoShape shape = source.AddSlide(
+                        P.SlideLayoutValues.Blank)
+                    .AddRectangle(100000, 100000, 1000000, 500000);
+                P.NonVisualDrawingProperties properties =
+                    ((P.Shape)shape.Element).NonVisualShapeProperties!
+                    .NonVisualDrawingProperties!;
+                properties.Append(new A.HyperlinkOnClick {
+                    Id = string.Empty,
+                    Action = "ppaction://macro?name=Module1.RunReport"
+                });
+                binary = source.ToBytes(PowerPointFileFormat.Ppt);
+            }
+            byte[] malformed = RewriteLegacyDocumentRecord(binary,
+                record => record.Type == 0x0FF2
+                    && record.Children.Any(child => child.Type == 0x0FF3
+                        && child.PayloadLength == 16
+                        && child.ReadByte(8) == (byte)
+                            LegacyPptInteractionAction.Macro),
+                (document, baseOffset, record) => {
+                    LegacyPptRecord atom = record.Children.Single(child =>
+                        child.Type == 0x0FF3);
+                    document[checked(baseOffset + atom.PayloadOffset + 8)] =
+                        (byte)LegacyPptInteractionAction.RunProgram;
+                    WriteUInt16(document,
+                        checked(baseOffset + record.Offset),
+                        unchecked((ushort)((record.Instance << 4) | 0x0E)));
+                });
+            LegacyPptPresentation neutral = LegacyPptPresentation.Load(
+                malformed);
+            Assert.True(neutral.HasRunProgramContent);
+            Assert.Empty(neutral.Slides[0].Shapes.SelectMany(shape =>
+                shape.Interactions));
+            Assert.Contains(neutral.Diagnostics, diagnostic =>
+                diagnostic.Code == "PPT-ACTION-CONTAINER");
+            var security = OfficePackageSecurityOptions.SecureDefaults;
+            security.ExternalRelationships =
+                OfficePackageContentPolicy.Reject;
+
+            using var input = new MemoryStream(malformed, writable: false);
+            OfficePackageSecurityException exception = Assert.Throws<
+                OfficePackageSecurityException>(() =>
+                PowerPointPresentation.Load(input,
+                    new PowerPointLoadOptions { PackageSecurity = security }));
+
+            Assert.Equal(OfficePackageSecurityRule.ExternalRelationships,
+                exception.Rule);
+        }
+
+        [Fact]
+        public void PresentationFacade_RejectsDuplicateLegacyExternalHyperlinkTargets() {
+            var externalUri = new Uri("https://example.test/preserve-only");
+            byte[] binary;
+            using (PowerPointPresentation source =
+                   PowerPointPresentation.Create()) {
+                PowerPointSlide slide = source.AddSlide(
+                    P.SlideLayoutValues.Blank);
+                PowerPointAutoShape shape = slide.AddRectangle(
+                    100000, 100000, 1000000, 500000);
+                HyperlinkRelationship relationship = slide.SlidePart
+                    .AddHyperlinkRelationship(externalUri, true);
+                ((P.Shape)shape.Element).NonVisualShapeProperties!
+                    .NonVisualDrawingProperties!
+                    .Append(new A.HyperlinkOnClick {
+                        Id = relationship.Id
+                    });
+                binary = source.ToBytes(PowerPointFileFormat.Ppt);
+            }
+            byte[] malformed = RewriteLegacyDocumentRecord(binary,
+                record => record.Type == 0x0FD7
+                    && record.Children.Any(child => child.Type == 0x0FD3)
+                    && record.Children.Any(child => child.Type == 0x0FBA
+                        && child.Instance == 1),
+                (document, baseOffset, record) => {
+                    LegacyPptRecord atom = record.Children.Single(child =>
+                        child.Type == 0x0FD3);
+                    int atomOffset = checked(baseOffset + atom.Offset);
+                    WriteUInt16(document, atomOffset, 0x0010);
+                    WriteUInt16(document, atomOffset + 2, 0x0FBA);
+                });
+            LegacyPptPresentation neutral = LegacyPptPresentation.Load(
+                malformed);
+            Assert.True(neutral.HasExternalHyperlinkContent);
+            Assert.Empty(neutral.Hyperlinks);
+            Assert.Contains(neutral.Diagnostics, diagnostic =>
+                diagnostic.Code == "PPT-HYPERLINK-ATOM");
+            var security = OfficePackageSecurityOptions.SecureDefaults;
+            security.ExternalRelationships =
+                OfficePackageContentPolicy.Reject;
+
+            using var input = new MemoryStream(malformed, writable: false);
+            OfficePackageSecurityException exception = Assert.Throws<
+                OfficePackageSecurityException>(() =>
+                PowerPointPresentation.Load(input,
+                    new PowerPointLoadOptions { PackageSecurity = security }));
+
+            Assert.Equal(OfficePackageSecurityRule.ExternalRelationships,
+                exception.Rule);
+        }
+
+        [Fact]
         public void EncryptedLegacyLoad_ValidatesOuterSourceBeforePasswordProcessing() {
             const string password = "source-policy-pass";
             byte[] encrypted;
@@ -1138,6 +1242,31 @@ namespace OfficeIMO.Tests {
             presentation.AddSlide().AddTextBox("Safety fixture");
             presentation.AddSlide().AddTextBox("Second safety slide");
             return presentation.ToBytes(PowerPointFileFormat.Ppt);
+        }
+
+        private static byte[] RewriteLegacyDocumentRecord(byte[] bytes,
+            Func<LegacyPptRecord, bool> predicate,
+            Action<byte[], int, LegacyPptRecord> rewrite) {
+            LegacyPptPresentation source = LegacyPptPresentation.Load(bytes);
+            byte[] document = (byte[])source.Package.DocumentStream.Clone();
+            foreach (LegacyPptPersistObject persistObject in source.Package
+                         .PersistObjects.Values) {
+                LegacyPptRecord root = LegacyPptRecordReader.ReadSingle(
+                    persistObject.RecordBytes, 0,
+                    new LegacyPptImportOptions());
+                LegacyPptRecord? record = root.DescendantsAndSelf()
+                    .FirstOrDefault(predicate);
+                if (record == null) continue;
+                rewrite(document, checked((int)persistObject.StreamOffset),
+                    record);
+                return source.Package.RewriteCompoundStreams(
+                    new Dictionary<string, byte[]>(
+                        StringComparer.OrdinalIgnoreCase) {
+                        ["PowerPoint Document"] = document
+                    });
+            }
+            throw new InvalidDataException(
+                "The requested legacy PowerPoint record was not found.");
         }
 
         private static byte[] CreateRecord(byte version, byte[] payload) {

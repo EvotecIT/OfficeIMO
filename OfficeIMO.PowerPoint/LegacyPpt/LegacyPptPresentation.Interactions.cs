@@ -90,14 +90,25 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
 
         private static bool HasReadableExternalHyperlinkTarget(
             LegacyPptRecord container) {
-            if (!TryReadHyperlinkString(container, 1, out string? target)
-                || !TryReadHyperlinkString(container, 3,
-                    out string? location)
-                || string.IsNullOrEmpty(target)
-                && string.IsNullOrEmpty(location)) return false;
-            var hyperlink = new LegacyPptHyperlink(1,
-                friendlyName: null, target, location);
-            return !hyperlink.IsInternalSlideTarget;
+            LegacyPptRecord[] strings = container.Children.Where(record =>
+                record.Type == RecordCString
+                && (record.Instance == 1 || record.Instance == 3)
+                && record.Version == 0
+                && (record.PayloadLength & 1) == 0).ToArray();
+            foreach (LegacyPptRecord targetRecord in strings.Where(record =>
+                         record.Instance == 1)) {
+                if (!string.IsNullOrEmpty(targetRecord.ReadUtf16Text()
+                        .TrimEnd('\0'))) return true;
+            }
+            foreach (LegacyPptRecord locationRecord in strings.Where(record =>
+                         record.Instance == 3)) {
+                string location = locationRecord.ReadUtf16Text().TrimEnd('\0');
+                if (string.IsNullOrEmpty(location)) continue;
+                var hyperlink = new LegacyPptHyperlink(1,
+                    friendlyName: null, target: null, location);
+                if (!hyperlink.IsInternalSlideTarget) return true;
+            }
+            return false;
         }
 
         private LegacyPptHyperlink? TryReadHyperlink(LegacyPptRecord container) {
@@ -175,6 +186,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             for (int index = 0; index < children.Count; index++) {
                 LegacyPptRecord actionRecord = children[index];
                 if (actionRecord.Type != RecordInteractiveInfo) continue;
+                if (HasRunProgramActionAtom(actionRecord)) {
+                    HasRunProgramContent = true;
+                }
                 if (index + 1 >= children.Count
                     || children[index + 1].Type != RecordTextInteractiveInfoAtom) {
                     AddDiagnostic("PPT-TEXT-ACTION-RANGE-MISSING",
@@ -212,6 +226,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
 
         private LegacyPptInteraction? TryReadInteraction(LegacyPptRecord container,
             LegacyPptImportOptions options) {
+            if (HasRunProgramActionAtom(container)) {
+                HasRunProgramContent = true;
+            }
             if (container.Version != 0x0F || container.Instance > 1) {
                 AddDiagnostic("PPT-ACTION-CONTAINER", LegacyPptDiagnosticSeverity.Warning,
                     "An InteractiveInfoContainer has an invalid trigger or record header and remains preserve-only.",
@@ -286,6 +303,28 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                     container.Offset);
             }
             return interaction;
+        }
+
+        private static bool HasRunProgramActionAtom(
+            LegacyPptRecord container) {
+            int position = 0;
+            while (position <= container.PayloadLength - 8) {
+                uint declaredLength = container.ReadUInt32(position + 4);
+                if (declaredLength > int.MaxValue) return false;
+                int payloadLength = unchecked((int)declaredLength);
+                if (payloadLength > container.PayloadLength - position - 8) {
+                    return false;
+                }
+                if (container.ReadUInt16(position + 2) ==
+                        RecordInteractiveInfoAtom
+                    && payloadLength >= 9
+                    && container.ReadByte(position + 16) ==
+                    (byte)LegacyPptInteractionAction.RunProgram) {
+                    return true;
+                }
+                position = checked(position + 8 + payloadLength);
+            }
+            return false;
         }
 
         private void ReportDuplicateTriggers(IReadOnlyList<LegacyPptInteraction> interactions,
