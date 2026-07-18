@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
@@ -12,6 +13,9 @@ using Xunit;
 
 namespace OfficeIMO.Tests {
     public class VisioPremiumVisualBaselineTests {
+        private const string PrintAuditTrailNativePngBaseline = "officeimo-visio-premium-print-audit-trail-native-page1.png";
+        private const string LinuxPrintAuditTrailNativePngBaseline = "officeimo-visio-premium-print-audit-trail-native-page1.linux.png";
+
         private static readonly IReadOnlyDictionary<string, string> BaselinePrefixes = new Dictionary<string, string>(StringComparer.Ordinal) {
             ["Premium Cloud Architecture"] = "officeimo-visio-premium-cloud-architecture",
             ["Premium Network Segmentation"] = "officeimo-visio-premium-network-segmentation",
@@ -124,6 +128,10 @@ namespace OfficeIMO.Tests {
                 AssertNativeSvgBaselineIsRenderable(svgPath);
                 AssertNativePngBaselineIsNonBlank(pngPath);
             }
+
+            string linuxPngPath = Path.Combine(baselineDirectory, LinuxPrintAuditTrailNativePngBaseline);
+            Assert.True(File.Exists(linuxPngPath), "Missing approved Linux native PNG baseline: " + linuxPngPath);
+            AssertNativePngBaselineIsNonBlank(linuxPngPath);
         }
 
         [Fact]
@@ -190,7 +198,8 @@ namespace OfficeIMO.Tests {
         }
 
         private static void AssertBaseline(string baselineName, string actualPath, VisioPremiumBaselineContext context) {
-            string expectedPath = Path.Combine(VisualBaselineTestSupport.GetTestsProjectRoot(), "Visio", "VisualBaselines", baselineName);
+            string expectedBaselineName = ResolveExpectedBaselineName(baselineName);
+            string expectedPath = Path.Combine(VisualBaselineTestSupport.GetTestsProjectRoot(), "Visio", "VisualBaselines", expectedBaselineName);
             if (IsBaselineUpdateRequested()) {
                 Directory.CreateDirectory(Path.GetDirectoryName(expectedPath)!);
                 File.Copy(actualPath, expectedPath, overwrite: true);
@@ -221,7 +230,10 @@ namespace OfficeIMO.Tests {
                 return;
             }
 
-            VisualRasterComparison comparison = CompareRasterImages(File.ReadAllBytes(expectedPath), File.ReadAllBytes(actualPath), IsNativePngBaseline(baselineName));
+            bool allowNativeVariance =
+                string.Equals(expectedBaselineName, baselineName, StringComparison.OrdinalIgnoreCase) &&
+                IsNativePngBaseline(baselineName);
+            VisualRasterComparison comparison = CompareRasterImages(File.ReadAllBytes(expectedPath), File.ReadAllBytes(actualPath), allowNativeVariance);
             if (comparison.Passed) {
                 return;
             }
@@ -405,6 +417,12 @@ namespace OfficeIMO.Tests {
         private static bool IsNativePngBaseline(string baselineName) =>
             baselineName.IndexOf("-native-", StringComparison.OrdinalIgnoreCase) >= 0 &&
             baselineName.EndsWith(".png", StringComparison.OrdinalIgnoreCase);
+
+        private static string ResolveExpectedBaselineName(string baselineName) =>
+            RuntimeInformation.IsOSPlatform(OSPlatform.Linux) &&
+            string.Equals(baselineName, PrintAuditTrailNativePngBaseline, StringComparison.OrdinalIgnoreCase)
+                ? LinuxPrintAuditTrailNativePngBaseline
+                : baselineName;
 
         private static VisualRasterComparison CompareRasterImages(byte[] expectedPng, byte[] actualPng, bool allowNativeVariance = false) {
             int channelTolerance = VisualBaselineTestSupport.ReadNonNegativeInt("OFFICEIMO_VISIO_PREMIUM_BASELINE_PIXEL_TOLERANCE", 0);
