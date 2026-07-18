@@ -133,14 +133,14 @@ public static class PowerPointNumberingFormatter {
         }
 
         if (IsScheme(scheme,
-                A.TextAutoNumberSchemeValues.CircleNumberDoubleBytePlain)
-            || IsScheme(scheme,
                 A.TextAutoNumberSchemeValues
                     .CircleNumberWingdingsBlackPlain)) {
             return FormatCircledNumber(number, black: true);
         }
 
         if (IsScheme(scheme,
+                A.TextAutoNumberSchemeValues.CircleNumberDoubleBytePlain)
+            || IsScheme(scheme,
                 A.TextAutoNumberSchemeValues
                     .CircleNumberWingdingsWhitePlain)) {
             return FormatCircledNumber(number, black: false);

@@ -19,6 +19,9 @@ namespace OfficeIMO.Tests {
             Assert.Equal("❸", PowerPointNumberingFormatter.FormatMarker(3,
                 A.TextAutoNumberSchemeValues
                     .CircleNumberWingdingsBlackPlain));
+            Assert.Equal("③", PowerPointNumberingFormatter.FormatMarker(3,
+                A.TextAutoNumberSchemeValues
+                    .CircleNumberDoubleBytePlain));
             Assert.Equal("ג-", PowerPointNumberingFormatter.FormatMarker(3,
                 A.TextAutoNumberSchemeValues.Hebrew2Minus));
         }
