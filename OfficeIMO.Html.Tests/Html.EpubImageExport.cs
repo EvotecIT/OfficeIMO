@@ -121,6 +121,30 @@ public sealed class HtmlEpubImageExportTests {
                 diagnostic.LossKind == OfficeImageExportLossKind.Approximation);
     }
 
+    [Fact]
+    public void EpubRawHtmlLimitFallbackParticipatesInNoOmissionsPolicy() {
+        using var package = new MemoryStream(CreateEpub());
+        EpubDocument book = EpubDocument.Load(
+            package,
+            new EpubReadOptions {
+                IncludeRawHtml = true,
+                IncludeResourceData = true,
+                MaxTotalRawHtmlBytes = 1
+            });
+        var options = new EpubImageExportOptions {
+            Policy = new OfficeImageExportPolicy { RequireNoOmissions = true }
+        };
+
+        OfficeImageExportPolicyException exception = Assert.Throws<OfficeImageExportPolicyException>(() =>
+            book.ExportImages(OfficeImageExportFormat.Png, options));
+
+        Assert.Contains(
+            exception.Diagnostics,
+            diagnostic =>
+                diagnostic.Code == "EPUB_IMAGE_EPUB_CHAPTER_RAW_HTML_TOTAL_LIMIT" &&
+                diagnostic.LossKind == OfficeImageExportLossKind.Omission);
+    }
+
     private static byte[] CreateEpub(
         bool includeImage = true,
         bool includePackageVersion = true) {

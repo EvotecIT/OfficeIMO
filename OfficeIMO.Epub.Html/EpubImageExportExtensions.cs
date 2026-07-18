@@ -11,6 +11,7 @@ public static class EpubImageExportExtensions {
             "epub.archive.unsafe-path",
             "epub.chapter.encrypted",
             "epub.chapter.invalid-xhtml",
+            "epub.chapter.raw-html-total-limit",
             "epub.chapter.size-limit",
             "epub.encryption.resource-missing",
             "epub.encryption.unsupported",
