@@ -67,9 +67,8 @@ public sealed partial class PdfDocumentPages {
     }
 
     private PdfDocument[] Split(PdfReadOptions? options) {
-        return PdfPageExtractor.SplitPages(_document.GetBytesForOperation(), options)
-            .Select(PdfDocument.FromBytes)
-            .ToArray();
+        byte[] input = _document.GetBytesForOperation();
+        return AdoptSplitOutputs(input, PdfPageExtractor.SplitPages(input, options), options);
     }
 
     /// <summary>
@@ -115,13 +114,14 @@ public sealed partial class PdfDocumentPages {
     }
 
     private PdfDocument[] Split(PdfPageSelection[] selections, PdfReadOptions? options) {
-        var documents = new PdfDocument[selections.Length];
+        byte[] input = _document.GetBytesForOperation();
+        var outputs = new byte[selections.Length][];
         for (int i = 0; i < selections.Length; i++) {
             Guard.NotNull(selections[i], nameof(selections));
-            documents[i] = Extract(selections[i], options);
+            outputs[i] = PdfPageExtractor.ExtractPageRanges(input, selections[i].ToRanges(), options);
         }
 
-        return documents;
+        return AdoptSplitOutputs(input, outputs, options);
     }
 
     /// <summary>
@@ -144,8 +144,18 @@ public sealed partial class PdfDocumentPages {
             throw new ArgumentException("At least one page range must be specified.", nameof(pageRanges));
         }
 
-        return PdfPageExtractor.SplitPageRanges(_document.GetBytesForOperation(), ranges, options)
-            .Select(PdfDocument.FromBytes)
+        byte[] input = _document.GetBytesForOperation();
+        return AdoptSplitOutputs(input, PdfPageExtractor.SplitPageRanges(input, ranges, options), options);
+    }
+
+    private PdfDocument[] AdoptSplitOutputs(
+        byte[] input,
+        IEnumerable<byte[]> outputs,
+        PdfReadOptions? options) {
+        PdfArtifactSnapshot inputArtifact = _document.Pipeline.Output ??
+            PdfArtifactSnapshot.Capture(input, _document.ReadOptions);
+        return outputs
+            .Select(output => _document.WithBytes(input, inputArtifact, output, options, "Split"))
             .ToArray();
     }
 

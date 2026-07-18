@@ -3,6 +3,33 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Pdf;
 
 internal static partial class ResourceResolver {
+    /// <summary>Determines whether the managed image projection can normalize an authored image color space.</summary>
+    internal static bool CanProjectImageColorSpace(
+        PdfDictionary image,
+        PdfDictionary? resources,
+        Dictionary<int, PdfIndirectObject> objects) {
+        if (image.Items.TryGetValue("ImageMask", out PdfObject? imageMaskObject) &&
+            ResolveObject(imageMaskObject, objects) is PdfBoolean { Value: true }) {
+            return true;
+        }
+
+        PdfObject? authoredColorSpace = image.Items.TryGetValue("ColorSpace", out PdfObject? colorSpaceObject)
+            ? colorSpaceObject
+            : null;
+        PdfObject? effectiveColorSpace = ResolveColorSpaceResource(authoredColorSpace, resources, objects);
+        int bitsPerComponent = (int)(image.Get<PdfNumber>("BitsPerComponent")?.Value ?? 0);
+        if (PdfIndexedImageNormalizer.CanNormalizeColorSpace(effectiveColorSpace, bitsPerComponent, objects)) {
+            return true;
+        }
+
+        string colorSpaceName = GetNameOrEmpty(effectiveColorSpace, objects);
+        return PdfImageColorSpaceNormalization.TryResolve(
+            effectiveColorSpace,
+            colorSpaceName,
+            objects,
+            out _);
+    }
+
     private static bool TryBuildExtractedImageMaskPng(
         PdfStream stream,
         int width,

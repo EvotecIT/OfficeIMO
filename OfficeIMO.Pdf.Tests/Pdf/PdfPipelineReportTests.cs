@@ -1,4 +1,3 @@
-using System.Security.Cryptography;
 using OfficeIMO.Pdf;
 using Xunit;
 
@@ -45,6 +44,19 @@ public sealed class PdfPipelineReportTests {
         Assert.Equal(stream.Length, result.Pipeline.Output?.ByteCount);
         Assert.Equal(Sha256(stream.ToArray()), result.Pipeline.Output?.Sha256);
         Assert.Null(result.Pipeline.Input);
+    }
+
+    [Fact]
+    public void GeneratedEncryptedBytes_ReportReadablePageCountWithWriterCredentials() {
+        PdfBytesResult result = PdfDocument.Create(new PdfOptions().SetEncryption("open", "owner"))
+            .Paragraph(paragraph => paragraph.Text("Encrypted pipeline evidence"))
+            .TryToBytes();
+
+        Assert.True(result.Succeeded, string.Join(" ", result.Diagnostics));
+        Assert.Equal(1, result.Pipeline.Output?.PageCount);
+        Assert.Equal(
+            1,
+            PdfInspector.Inspect(result.Bytes, new PdfReadOptions { Password = "open" }).PageCount);
     }
 
     [Fact]
@@ -168,6 +180,56 @@ public sealed class PdfPipelineReportTests {
         Assert.Equal(PdfMutationOperation.ModifyPageTree, crop.MutationOperation);
     }
 
-    private static string Sha256(byte[] bytes) =>
-        Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();
+    [Fact]
+    public void PageSplitOutputs_PreserveSourceLineageAndExtractionClassification() {
+        byte[] source = PdfDocument.Create()
+            .Paragraph(paragraph => paragraph.Text("First"))
+            .PageBreak()
+            .Paragraph(paragraph => paragraph.Text("Second"))
+            .PageBreak()
+            .Paragraph(paragraph => paragraph.Text("Third"))
+            .ToBytes();
+        PdfDocument opened = PdfDocument.Open(source);
+
+        IReadOnlyList<PdfDocument> pages = opened.Pages.Split();
+        PdfDocument range = Assert.Single(opened.Pages.Split(new[] { PdfPageRange.From(1, 2) }));
+
+        Assert.All(pages, part => AssertSplitLineage(part, source, expectedPageCount: 1));
+        AssertSplitLineage(range, source, expectedPageCount: 2);
+    }
+
+    [Fact]
+    public void GeneratedPageSplitOutputs_ReuseOneCapturedInputArtifact() {
+        PdfDocument generated = PdfDocument.Create()
+            .Paragraph(paragraph => paragraph.Text("First"))
+            .PageBreak()
+            .Paragraph(paragraph => paragraph.Text("Second"))
+            .PageBreak()
+            .Paragraph(paragraph => paragraph.Text("Third"));
+
+        IReadOnlyList<PdfDocument> pages = generated.Pages.Split();
+
+        PdfArtifactSnapshot input = Assert.IsType<PdfArtifactSnapshot>(pages[0].Pipeline.Steps[1].Input);
+        Assert.All(
+            pages,
+            page => Assert.Same(input, page.Pipeline.Steps[1].Input));
+    }
+
+    private static void AssertSplitLineage(PdfDocument document, byte[] source, int expectedPageCount) {
+        Assert.Collection(
+            document.Pipeline.Steps,
+            open => {
+                Assert.Equal(PdfPipelineStepKind.Open, open.Kind);
+                Assert.Equal(Sha256(source), open.Input?.Sha256);
+            },
+            mutation => {
+                Assert.Equal(PdfPipelineStepKind.Mutation, mutation.Kind);
+                Assert.Equal("Split", mutation.Operation);
+                Assert.Equal(PdfMutationOperation.ExtractPages, mutation.MutationOperation);
+                Assert.Equal(Sha256(source), mutation.Input?.Sha256);
+                Assert.Equal(expectedPageCount, mutation.Output?.PageCount);
+            });
+    }
+
+    private static string Sha256(byte[] bytes) => PdfArtifactFingerprint.ComputeSha256(bytes);
 }

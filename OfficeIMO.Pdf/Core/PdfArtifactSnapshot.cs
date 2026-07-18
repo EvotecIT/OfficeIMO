@@ -29,6 +29,12 @@ public sealed class PdfArtifactSnapshot {
             // Artifact identity remains useful even when a failed pipeline step produced unreadable bytes.
         }
 
+        return CaptureKnownPageCount(bytes, pageCount);
+    }
+
+    /// <summary>Captures artifact identity when the owning operation already has canonical page-count evidence.</summary>
+    internal static PdfArtifactSnapshot CaptureKnownPageCount(byte[] bytes, int? pageCount) {
+        Guard.NotNull(bytes, nameof(bytes));
         return new PdfArtifactSnapshot(bytes.LongLength, ComputeSha256Hex(bytes), pageCount);
     }
 

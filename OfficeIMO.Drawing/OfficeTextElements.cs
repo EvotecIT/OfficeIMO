@@ -96,7 +96,8 @@ public static class OfficeTextElements {
             }
 
             UnicodeCategory category = CharUnicodeInfo.GetUnicodeCategory(value, scalarIndex);
-            if (IsRightToLeftScalar(scalar) && IsLetterCategory(category)) {
+            if (IsRightToLeftScalar(scalar) &&
+                (IsLetterCategory(category) || category == UnicodeCategory.OtherNotAssigned)) {
                 return OfficeTextDirection.RightToLeft;
             }
 

@@ -20,14 +20,28 @@ public sealed partial class PdfReadPage {
         int depth) {
         EnsureContentNestingBudget(depth);
         HashSet<string> unsupportedColorSpaces = GetUnsupportedColorSpaceResourceNames(resources);
+        var invokedXObjects = new HashSet<string>(StringComparer.Ordinal);
         PdfContentStreamInterpreter.Interpret(content, _limits.MaxContentOperations, operation => {
             string? capabilityId = GetOperatorCapabilityId(operation.Name);
             if (capabilityId != null) AddRenderDiagnostic(diagnostics, seen, capabilityId, operation.Name);
+            if (operation.Name == "Do" &&
+                operation.Operands.Count > 0 &&
+                operation.Operands[operation.Operands.Count - 1] is string xObjectName) {
+                invokedXObjects.Add(xObjectName);
+            }
             if ((operation.Name == "cs" || operation.Name == "CS") &&
                 operation.Operands.Count > 0 &&
                 operation.Operands[operation.Operands.Count - 1] is string colorSpaceName &&
                 unsupportedColorSpaces.Contains(colorSpaceName)) {
                 AddRenderDiagnostic(diagnostics, seen, PdfRenderCapabilities.ColorSpaceId, colorSpaceName);
+            }
+            if (operation.InlineImage is PdfContentInlineImage inlineImage) {
+                CollectImageColorSpaceCapabilityDiagnostic(
+                    inlineImage.Dictionary,
+                    resources,
+                    diagnostics,
+                    seen,
+                    "inline-image");
             }
         },
         maxNestingDepth: _limits.MaxContentNestingDepth,
@@ -37,7 +51,7 @@ public sealed partial class PdfReadPage {
         CollectFontCapabilityDiagnostics(resources, diagnostics, seen);
         CollectPatternCapabilityDiagnostics(resources, diagnostics, seen);
         CollectGraphicsStateCapabilityDiagnostics(resources, diagnostics, seen);
-        CollectXObjectCapabilityDiagnostics(resources, diagnostics, seen, activeForms, depth);
+        CollectXObjectCapabilityDiagnostics(resources, invokedXObjects, diagnostics, seen, activeForms, depth);
     }
 
     private static string? GetOperatorCapabilityId(string op) {
@@ -128,13 +142,20 @@ public sealed partial class PdfReadPage {
 
     private void CollectXObjectCapabilityDiagnostics(
         PdfDictionary resources,
+        HashSet<string> invokedXObjects,
         List<PdfRenderCapabilityDiagnostic> diagnostics,
         HashSet<string> seen,
         HashSet<PdfStream> activeForms,
         int depth) {
         PdfDictionary? xObjects = ResolveDictionary(resources.Items.TryGetValue("XObject", out PdfObject? value) ? value : null);
         if (xObjects == null) return;
-        foreach (KeyValuePair<string, PdfObject> entry in xObjects.Items) {
+        foreach (string invokedName in invokedXObjects) {
+            if (!xObjects.Items.TryGetValue(invokedName, out PdfObject? xObject)) {
+                AddRenderDiagnostic(diagnostics, seen, PdfRenderCapabilities.XObjectId, invokedName);
+                continue;
+            }
+
+            var entry = new KeyValuePair<string, PdfObject>(invokedName, xObject);
             if (ResolveObject(entry.Value) is not PdfStream stream) {
                 AddRenderDiagnostic(diagnostics, seen, PdfRenderCapabilities.XObjectId, entry.Key);
                 continue;
@@ -142,6 +163,12 @@ public sealed partial class PdfReadPage {
 
             string? subtype = stream.Dictionary.Get<PdfName>("Subtype")?.Name;
             if (string.Equals(subtype, "Image", StringComparison.Ordinal)) {
+                CollectImageColorSpaceCapabilityDiagnostic(
+                    stream.Dictionary,
+                    resources,
+                    diagnostics,
+                    seen,
+                    entry.Key);
                 if (RequiresOptionalImageCodec(stream.Dictionary.Items.TryGetValue("Filter", out PdfObject? filterObject) ? filterObject : null)) AddRenderDiagnostic(diagnostics, seen, PdfRenderCapabilities.OptionalImageCodecId, entry.Key);
                 continue;
             }
@@ -158,6 +185,29 @@ public sealed partial class PdfReadPage {
                 activeForms.Remove(stream);
             }
         }
+    }
+
+    private void CollectImageColorSpaceCapabilityDiagnostic(
+        PdfDictionary image,
+        PdfDictionary? resources,
+        List<PdfRenderCapabilityDiagnostic> diagnostics,
+        HashSet<string> seen,
+        string imageName) {
+        if (!image.Items.TryGetValue("ColorSpace", out PdfObject? colorSpaceObject)) {
+            return;
+        }
+
+        if (ResourceResolver.CanProjectImageColorSpace(image, resources, _objects)) {
+            return;
+        }
+
+        PdfObject? resolved = ResolveObject(colorSpaceObject);
+        string subject = imageName;
+        if (resolved is PdfName name) {
+            subject = name.Name;
+        }
+
+        AddRenderDiagnostic(diagnostics, seen, PdfRenderCapabilities.ColorSpaceId, subject);
     }
 
     private bool RequiresOptionalImageCodec(PdfObject? value) {

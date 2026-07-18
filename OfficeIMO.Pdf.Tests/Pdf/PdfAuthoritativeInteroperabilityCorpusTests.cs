@@ -1,4 +1,3 @@
-using System.Security.Cryptography;
 using System.Text.Json;
 using OfficeIMO.Pdf;
 using Xunit;
@@ -42,7 +41,7 @@ public sealed class PdfAuthoritativeInteroperabilityCorpusTests {
             Assert.Equal(item.GetProperty("byteLength").GetInt64(), bytes.LongLength);
             Assert.Equal(
                 RequireString(item, "sha256"),
-                Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant());
+                PdfArtifactFingerprint.ComputeSha256(bytes));
         }
 
         string[] actualFiles = Directory.GetFiles(FixtureRoot, "*.pdf")
@@ -94,7 +93,9 @@ public sealed class PdfAuthoritativeInteroperabilityCorpusTests {
                 ReadStringArray(item, "expectedRenderDiagnosticCodes"),
                 render.CapabilityDiagnostics.Select(diagnostic => diagnostic.Code).Distinct(StringComparer.Ordinal).ToArray());
             Assert.Equal(
-                Enum.Parse<PdfMutationExecutionMode>(RequireString(item, "expectedMutationMode")),
+                (PdfMutationExecutionMode)Enum.Parse(
+                    typeof(PdfMutationExecutionMode),
+                    RequireString(item, "expectedMutationMode")),
                 plan.ExecutionMode);
         }
     }

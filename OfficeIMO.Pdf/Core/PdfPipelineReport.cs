@@ -86,8 +86,9 @@ public sealed class PdfPipelineReport {
         });
     }
 
-    internal static PdfPipelineReport Opened(byte[] bytes, PdfReadOptions? readOptions) {
-        PdfArtifactSnapshot artifact = PdfArtifactSnapshot.Capture(bytes, readOptions);
+    internal static PdfPipelineReport Opened(PdfDocumentSource source) {
+        Guard.NotNull(source, nameof(source));
+        PdfArtifactSnapshot artifact = source.CaptureArtifact();
         return new PdfPipelineReport(new[] {
             new PdfPipelineStep(
                 PdfPipelineStepKind.Open,

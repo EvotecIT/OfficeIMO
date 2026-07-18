@@ -3,6 +3,12 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Pdf;
 
 internal static class PdfIndexedImageNormalizer {
+    internal static bool CanNormalizeColorSpace(
+        PdfObject? colorSpaceObj,
+        int bitsPerComponent,
+        Dictionary<int, PdfIndirectObject> objects) =>
+        TryResolveIndexedPalette(colorSpaceObj, bitsPerComponent, objects, out _);
+
     internal static bool TryBuildPngFile(
         PdfObject? colorSpaceObj,
         int width,

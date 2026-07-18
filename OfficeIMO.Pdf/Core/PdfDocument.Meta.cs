@@ -36,7 +36,7 @@ public sealed partial class PdfDocument {
 
     private PdfDocument(PdfDocumentSource source) : this() {
         _source = source;
-        _pipeline = PdfPipelineReport.Opened(source.Bytes, source.Options);
+        _pipeline = PdfPipelineReport.Opened(source);
     }
 
     private PdfDocument(PdfDocumentSource source, PdfPipelineReport pipeline) : this() {
@@ -231,7 +231,18 @@ public sealed partial class PdfDocument {
         return (bytes, PdfReadDocument.Open(bytes, effectiveOptions), effectiveOptions);
     }
 
-    internal PdfReadOptions ReadOptions => _source?.Options ?? PdfReadOptions.Default;
+    internal PdfReadOptions ReadOptions {
+        get {
+            if (_source is not null) {
+                return _source.Options;
+            }
+
+            PdfStandardEncryptionOptions? encryption = _options.EncryptionSnapshot;
+            return encryption is null
+                ? PdfReadOptions.Default
+                : new PdfReadOptions { Password = encryption.UserPassword };
+        }
+    }
 
     internal static PdfDocument FromBytes(byte[] pdf) {
         Guard.NotNull(pdf, nameof(pdf));
@@ -262,9 +273,20 @@ public sealed partial class PdfDocument {
         PdfReadOptions? readOptions = null,
         [System.Runtime.CompilerServices.CallerMemberName] string operationName = "") {
         Guard.NotNull(inputBytes, nameof(inputBytes));
+        PdfArtifactSnapshot input = _pipeline.Output ?? PdfArtifactSnapshot.Capture(inputBytes, ReadOptions);
+        return WithBytes(inputBytes, input, pdf, readOptions, operationName);
+    }
+
+    internal PdfDocument WithBytes(
+        byte[] inputBytes,
+        PdfArtifactSnapshot input,
+        byte[] pdf,
+        PdfReadOptions? readOptions = null,
+        [System.Runtime.CompilerServices.CallerMemberName] string operationName = "") {
+        Guard.NotNull(inputBytes, nameof(inputBytes));
+        Guard.NotNull(input, nameof(input));
         Guard.NotNull(pdf, nameof(pdf));
         PdfReadOptions effectiveReadOptions = readOptions ?? ReadOptions;
-        PdfArtifactSnapshot input = _pipeline.Output ?? PdfArtifactSnapshot.Capture(inputBytes, ReadOptions);
         PdfArtifactSnapshot output = PdfArtifactSnapshot.Capture(pdf, effectiveReadOptions);
         PdfMutationOperation? mutationOperation = ResolveMutationOperation(operationName);
         PdfMutationExecutionMode executionMode = IsAppendOnly(inputBytes, pdf)

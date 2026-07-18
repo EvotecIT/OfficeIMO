@@ -110,6 +110,21 @@ internal sealed class PdfDocumentSource {
         return PdfReadDocument.Open(_bytes, options);
     }
 
+    /// <summary>
+    /// Captures the opened artifact while priming and reusing the source's canonical parse.
+    /// Invalid input still produces hash and size evidence and caches the parse failure.
+    /// </summary>
+    internal PdfArtifactSnapshot CaptureArtifact() {
+        int? pageCount = null;
+        try {
+            pageCount = Read().Pages.Count;
+        } catch {
+            // Artifact identity remains useful even when the canonical parse fails.
+        }
+
+        return PdfArtifactSnapshot.CaptureKnownPageCount(_bytes, pageCount);
+    }
+
     private static PdfDocumentSource FromBoundedStream(Stream stream, PdfReadOptions options) {
         Guard.NotNull(stream, nameof(stream));
         long limit = options.Limits.MaxInputBytes;

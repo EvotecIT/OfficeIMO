@@ -473,7 +473,7 @@ jobs:
 
   test-ubuntu-matrix:
     name: 'Ubuntu ${{ matrix.framework }} / ${{ matrix.partition }}'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     strategy:
       fail-fast: false
@@ -542,6 +542,78 @@ jobs:
         uses: actions/setup-dotnet@v5
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Cache pinned PDF rasterizer
+        id: poppler-cache
+        if: matrix.partition == 'pdf-visual-inspector'
+        uses: actions/cache@v5
+        with:
+          path: ${{ runner.temp }}/officeimo-poppler-26.05.0
+          key: poppler-26.05.0-ubuntu-24.04-${{ runner.arch }}
+
+      - name: Build pinned PDF rasterizer
+        if: matrix.partition == 'pdf-visual-inspector' && steps.poppler-cache.outputs.cache-hit != 'true'
+        env:
+          POPPLER_VERSION: 26.05.0
+          POPPLER_SHA256: 6fef27ff04f37db43054c86bcdff6128c9fb1f6af4ef3c8b369a7e9abd68d0bb
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends \
+            build-essential \
+            cmake \
+            libfontconfig1-dev \
+            libfreetype-dev \
+            libjpeg-dev \
+            liblcms2-dev \
+            libpng-dev \
+            ninja-build \
+            pkg-config \
+            zlib1g-dev
+
+          install_root="${RUNNER_TEMP}/officeimo-poppler-${POPPLER_VERSION}"
+          source_archive="${RUNNER_TEMP}/poppler-${POPPLER_VERSION}.tar.xz"
+          source_root="${RUNNER_TEMP}/poppler-${POPPLER_VERSION}-source"
+          build_root="${RUNNER_TEMP}/poppler-${POPPLER_VERSION}-build"
+          curl --fail --location --retry 3 --silent --show-error \
+            "https://poppler.freedesktop.org/poppler-${POPPLER_VERSION}.tar.xz" \
+            --output "${source_archive}"
+          echo "${POPPLER_SHA256}  ${source_archive}" | sha256sum --check -
+          mkdir -p "${source_root}" "${build_root}" "${install_root}"
+          tar --extract --file "${source_archive}" --directory "${source_root}" --strip-components=1
+          cmake \
+            -S "${source_root}" \
+            -B "${build_root}" \
+            -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_DISABLE_FIND_PACKAGE_Cairo=TRUE \
+            -DCMAKE_INSTALL_PREFIX="${install_root}" \
+            -DBUILD_CPP_TESTS=OFF \
+            -DBUILD_GTK_TESTS=OFF \
+            -DBUILD_MANUAL_TESTS=OFF \
+            -DBUILD_QT5_TESTS=OFF \
+            -DBUILD_QT6_TESTS=OFF \
+            -DBUILD_SHARED_LIBS=OFF \
+            -DENABLE_BOOST=OFF \
+            -DENABLE_CPP=OFF \
+            -DENABLE_GLIB=OFF \
+            -DENABLE_GPGME=OFF \
+            -DENABLE_LIBCURL=OFF \
+            -DENABLE_LIBOPENJPEG=none \
+            -DENABLE_LIBTIFF=OFF \
+            -DENABLE_NSS3=OFF \
+            -DENABLE_QT5=OFF \
+            -DENABLE_QT6=OFF
+          cmake --build "${build_root}" --target pdftoppm --parallel 2
+          cp "${build_root}/utils/pdftoppm" "${install_root}/pdftoppm"
+
+      - name: Configure pinned PDF rasterizer
+        if: matrix.partition == 'pdf-visual-inspector'
+        run: |
+          rasterizer="${RUNNER_TEMP}/officeimo-poppler-26.05.0/pdftoppm"
+          test -x "${rasterizer}"
+          version="$("${rasterizer}" -v 2>&1 | head -n 1)"
+          test "${version}" = "pdftoppm version 26.05.0"
+          echo "OFFICEIMO_PDF_RASTERIZER=${rasterizer}" >> "${GITHUB_ENV}"
 
       - name: Cache NuGet packages
         uses: actions/cache@v5
