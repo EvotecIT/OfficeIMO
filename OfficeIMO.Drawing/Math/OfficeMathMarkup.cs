@@ -286,21 +286,31 @@ public static class OfficeMathMarkup {
         }
         if (marker < 0) {
             if (children.Count != 3) throw new FormatException("MathML element '" + owner + "' has invalid postscripts.");
-            OfficeMathExpression basis = ParseMathMlElement(children[0]);
-            bool hasSubscript = children[1].Name.LocalName != "none";
-            bool hasSuperscript = children[2].Name.LocalName != "none";
-            if (hasSubscript && hasSuperscript) {
-                return OfficeMath.SubSuperscript(basis, ParseMathMlElement(children[1]), ParseMathMlElement(children[2]));
-            }
-            if (hasSubscript) return OfficeMath.Subscript(basis, ParseMathMlElement(children[1]));
-            if (hasSuperscript) return OfficeMath.Superscript(basis, ParseMathMlElement(children[2]));
-            return basis;
+            return ApplyPostScripts(ParseMathMlElement(children[0]), children[1], children[2]);
         }
-        if (marker < 1 || marker + 2 >= children.Count) throw new FormatException("MathML element '" + owner + "' has invalid prescripts.");
+        if ((marker != 1 && marker != 3) || marker + 3 != children.Count) {
+            throw new FormatException("MathML element '" + owner + "' has invalid script pairs.");
+        }
+        OfficeMathExpression basis = ParseMathMlElement(children[0]);
+        if (marker == 3) basis = ApplyPostScripts(basis, children[1], children[2]);
         return OfficeMath.LeftSubSuperscript(
-            ParseMathMlElement(children[0]),
+            basis,
             ParseMathMlElement(children[marker + 1]),
             ParseMathMlElement(children[marker + 2]));
+    }
+
+    private static OfficeMathExpression ApplyPostScripts(
+        OfficeMathExpression basis,
+        XElement subscript,
+        XElement superscript) {
+        bool hasSubscript = subscript.Name.LocalName != "none";
+        bool hasSuperscript = superscript.Name.LocalName != "none";
+        if (hasSubscript && hasSuperscript) {
+            return OfficeMath.SubSuperscript(basis, ParseMathMlElement(subscript), ParseMathMlElement(superscript));
+        }
+        if (hasSubscript) return OfficeMath.Subscript(basis, ParseMathMlElement(subscript));
+        if (hasSuperscript) return OfficeMath.Superscript(basis, ParseMathMlElement(superscript));
+        return basis;
     }
 
     private static OfficeMathExpression ParseMathMlTable(XElement table) {

@@ -21,6 +21,16 @@ public static partial class OfficeDrawingSvgExporter {
         double scale,
         OfficeSvgSizeUnit sizeUnit,
         IOfficeRasterImageCodec? imageCodec) {
+        return ToSvg(drawing, scale, sizeUnit, imageCodec, null);
+    }
+
+    /// <summary>Converts a drawing to SVG and prefixes every generated resource identifier for safe inline composition.</summary>
+    public static string ToSvg(
+        OfficeDrawing drawing,
+        double scale,
+        OfficeSvgSizeUnit sizeUnit,
+        IOfficeRasterImageCodec? imageCodec,
+        string? resourceIdPrefix) {
         if (drawing == null) throw new ArgumentNullException(nameof(drawing));
         if (double.IsNaN(scale) || double.IsInfinity(scale) || scale <= 0D) {
             throw new ArgumentOutOfRangeException(nameof(scale), "Scale must be a positive finite value.");
@@ -28,6 +38,7 @@ public static partial class OfficeDrawingSvgExporter {
         if (!Enum.IsDefined(typeof(OfficeSvgSizeUnit), sizeUnit)) {
             throw new ArgumentOutOfRangeException(nameof(sizeUnit));
         }
+        string idPrefix = ValidateResourceIdPrefix(resourceIdPrefix);
 
         double width = drawing.Width * scale;
         double height = drawing.Height * scale;
@@ -48,7 +59,7 @@ public static partial class OfficeDrawingSvgExporter {
         AppendEmbeddedFonts(builder, drawing.Fonts);
         int gradientId = 0;
         int clipPathId = 0;
-        AppendElements(builder, drawing.Elements, imageCodec, ref gradientId, ref clipPathId);
+        AppendElements(builder, drawing.Elements, imageCodec, idPrefix, ref gradientId, ref clipPathId);
         builder.Append("</svg>");
         return builder.ToString();
     }
@@ -64,4 +75,26 @@ public static partial class OfficeDrawingSvgExporter {
         OfficeSvgSizeUnit sizeUnit,
         IOfficeRasterImageCodec? imageCodec) =>
         Encoding.UTF8.GetBytes(ToSvg(drawing, scale, sizeUnit, imageCodec));
+
+    /// <summary>Converts a drawing to UTF-8 SVG bytes and prefixes generated resource identifiers for safe inline composition.</summary>
+    public static byte[] ToSvgBytes(
+        OfficeDrawing drawing,
+        double scale,
+        OfficeSvgSizeUnit sizeUnit,
+        IOfficeRasterImageCodec? imageCodec,
+        string? resourceIdPrefix) =>
+        Encoding.UTF8.GetBytes(ToSvg(drawing, scale, sizeUnit, imageCodec, resourceIdPrefix));
+
+    private static string ValidateResourceIdPrefix(string? value) {
+        if (string.IsNullOrEmpty(value)) return string.Empty;
+        for (int index = 0; index < value!.Length; index++) {
+            char character = value[index];
+            if ((character >= 'a' && character <= 'z') ||
+                (character >= 'A' && character <= 'Z') ||
+                (character >= '0' && character <= '9') ||
+                character == '-' || character == '_' || character == '.' || character == ':') continue;
+            throw new ArgumentException("An SVG resource identifier prefix can contain only ASCII letters, digits, '-', '_', '.', and ':'.", nameof(value));
+        }
+        return value;
+    }
 }

@@ -17,10 +17,10 @@ namespace OfficeIMO.Word {
     public class WordEquation : WordElement {
         private readonly WordDocument _document;
         private readonly Paragraph _paragraph;
-        private readonly DocumentFormat.OpenXml.Math.OfficeMath? _officeMath;
+        private DocumentFormat.OpenXml.Math.OfficeMath? _officeMath;
         private readonly DocumentFormat.OpenXml.Math.Paragraph? _mathParagraph;
-        private readonly SimpleField? _simpleField;
-        private readonly List<Run>? _runs;
+        private SimpleField? _simpleField;
+        private List<Run>? _runs;
 
         /// <summary>Initializes an equation backed by an Office Math element.</summary>
         public WordEquation(WordDocument document, Paragraph paragraph, DocumentFormat.OpenXml.Math.OfficeMath officeMath) {
@@ -135,7 +135,10 @@ namespace OfficeIMO.Word {
             insertionParent.InsertBefore(replacement, insertionAnchor);
             _simpleField?.Remove();
             if (_runs != null) foreach (Run run in _runs.ToList()) run.Remove();
-            return new WordEquation(_document, _paragraph, replacement);
+            _officeMath = replacement;
+            _simpleField = null;
+            _runs = null;
+            return this;
         }
 
         private static void CopyCompatibilityMetadata(OpenXmlElement source, OpenXmlElement target) {

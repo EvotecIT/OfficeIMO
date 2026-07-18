@@ -13,14 +13,15 @@ public static partial class OneNotePageRenderer {
         OneNotePageRenderingOptions effective = options?.Clone() ?? new OneNotePageRenderingOptions();
         effective.Validate();
         var diagnostics = new List<OfficeImageExportDiagnostic>();
-        (double width, double height) = ResolveCanvasSize(page, effective);
+        var imageCache = new Dictionary<OneNoteImage, ImageRenderData>();
+        (double width, double height) = ResolveCanvasSize(page, effective, imageCache);
         var drawing = new OfficeDrawing(width, height);
         OfficeShape background = OfficeShape.Rectangle(width, height);
         background.FillColor = effective.BackgroundColor;
         background.StrokeWidth = 0D;
         drawing.AddShape(background, 0D, 0D);
 
-        var context = new RenderContext(drawing, effective, diagnostics, page.RightToLeft == true);
+        var context = new RenderContext(drawing, effective, diagnostics, page.RightToLeft == true, imageCache);
         foreach (OneNoteElement element in page.DirectContent) {
             if (element is OneNoteImage image && image.IsBackground == true) {
                 context.RenderElement(element, 0D, 0D, width, 0D, forcePageBounds: true);
@@ -80,7 +81,10 @@ public static partial class OneNotePageRenderer {
     public static OfficeDrawing Render(OneNotePage page, OneNotePageRenderingOptions? options = null) =>
         CreateSnapshot(page, options).Drawing;
 
-    private static (double Width, double Height) ResolveCanvasSize(OneNotePage page, OneNotePageRenderingOptions options) {
+    private static (double Width, double Height) ResolveCanvasSize(
+        OneNotePage page,
+        OneNotePageRenderingOptions options,
+        IDictionary<OneNoteImage, ImageRenderData> imageCache) {
         (double namedWidth, double namedHeight) = page.PageSize.HasValue &&
             page.PageSize != OneNotePageSize.Automatic && page.PageSize != OneNotePageSize.Custom
             ? OneNotePageGeometry.GetNamedSizePoints(page.PageSize.Value, page.Orientation)
@@ -90,9 +94,9 @@ public static partial class OneNotePageRenderer {
         bool automatic = page.PageSize == null || page.PageSize == OneNotePageSize.Automatic;
         if (automatic) {
             width = Math.Max(width, options.AutomaticPageWidthPoints);
-            (double preliminaryRight, _) = EstimateContentBounds(page, options, width);
+            (double preliminaryRight, _) = EstimateContentBounds(page, options, width, imageCache);
             width = Math.Max(width, preliminaryRight + options.AutomaticPagePaddingPoints);
-            (double contentRight, double contentBottom) = EstimateContentBounds(page, options, width);
+            (double contentRight, double contentBottom) = EstimateContentBounds(page, options, width, imageCache);
             width = Math.Max(width, Math.Max(options.AutomaticPageWidthPoints, contentRight + options.AutomaticPagePaddingPoints));
             height = Math.Max(height, Math.Max(options.AutomaticPageHeightPoints, contentBottom + options.AutomaticPagePaddingPoints));
         }
@@ -102,12 +106,14 @@ public static partial class OneNotePageRenderer {
     private static (double Right, double Bottom) EstimateContentBounds(
         OneNotePage page,
         OneNotePageRenderingOptions options,
-        double canvasWidth) {
+        double canvasWidth,
+        IDictionary<OneNoteImage, ImageRenderData> imageCache) {
         var estimator = new RenderContext(
             new OfficeDrawing(Math.Max(1D, canvasWidth), 1D),
             options,
             new List<OfficeImageExportDiagnostic>(),
-            page.RightToLeft == true);
+            page.RightToLeft == true,
+            imageCache);
         double marginLeft = ResolveMargin(page.Margins.OriginX, page.Margins.Left, 1D) * PointsPerHalfInch;
         double marginTop = ResolveMargin(page.Margins.OriginY, page.Margins.Top, 0.5D) * PointsPerHalfInch;
         double marginRight = Math.Max(0D, (page.Margins.Right ?? 1D) * PointsPerHalfInch);

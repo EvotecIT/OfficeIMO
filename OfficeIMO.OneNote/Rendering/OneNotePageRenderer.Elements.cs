@@ -3,11 +3,28 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.OneNote;
 
 public static partial class OneNotePageRenderer {
+    private sealed class ImageRenderData {
+        internal ImageRenderData(OfficeImageInfo? info) {
+            Info = info;
+        }
+
+        internal ImageRenderData(string diagnosticCode, string diagnosticMessage) {
+            DiagnosticCode = diagnosticCode;
+            DiagnosticMessage = diagnosticMessage;
+        }
+
+        internal OfficeImageInfo? Info { get; }
+        internal string? DiagnosticCode { get; }
+        internal string? DiagnosticMessage { get; }
+        internal bool IsAvailable => DiagnosticCode == null;
+    }
+
     private sealed partial class RenderContext {
         private const double DefaultParagraphHeight = 20D;
         private readonly OfficeDrawing _drawing;
         private readonly OneNotePageRenderingOptions _options;
         private readonly IList<OfficeImageExportDiagnostic> _diagnostics;
+        private readonly IDictionary<OneNoteImage, ImageRenderData> _imageCache;
         private readonly OfficeTextMeasurer _measurer;
         private readonly bool _pageRightToLeft;
 
@@ -15,10 +32,12 @@ public static partial class OneNotePageRenderer {
             OfficeDrawing drawing,
             OneNotePageRenderingOptions options,
             IList<OfficeImageExportDiagnostic> diagnostics,
-            bool pageRightToLeft) {
+            bool pageRightToLeft,
+            IDictionary<OneNoteImage, ImageRenderData> imageCache) {
             _drawing = drawing;
             _options = options;
             _diagnostics = diagnostics;
+            _imageCache = imageCache;
             _measurer = OfficeTextMeasurer.Create(options.DefaultFont);
             _pageRightToLeft = pageRightToLeft;
         }
@@ -230,7 +249,12 @@ public static partial class OneNotePageRenderer {
             if (element is OneNoteOutline outline) return MeasureElementsBounds(outline.Children, width).Bottom;
             if (element is OneNoteTable table) return MeasureTableHeight(table, width);
             if (element is OneNoteImage image) {
+                if (!_options.IncludeImages) return 0D;
                 if (image.HeightHalfInches.HasValue) return Math.Max(1D, image.HeightHalfInches.Value * PointsPerHalfInch);
+                if (TryIdentifyImage(image, out OfficeImageInfo? info)) {
+                    double renderWidth = ResolveImageWidth(image, info, width);
+                    return Math.Max(1D, ResolveImageHeight(image, info, renderWidth));
+                }
                 return Math.Max(80D, Math.Min(240D, width) * 0.6D);
             }
             if (element is OneNoteInk ink) {
@@ -508,18 +532,9 @@ public static partial class OneNotePageRenderer {
 
         private double RenderImage(OneNoteImage image, double x, double y, double width, double height, bool forcePageBounds) {
             if (!_options.IncludeImages) return 0D;
-            if (image.Payload == null) {
-                AddDiagnostic("ONENOTE_RENDER_IMAGE_PAYLOAD_MISSING", "A OneNote image could not be rendered because its payload is unresolved.", image.FileName);
+            if (!TryLoadImage(image, reportFailure: true, out byte[] bytes, out OfficeImageInfo? info)) {
                 return RenderImagePlaceholder(image, x, y, width);
             }
-            byte[] bytes;
-            try {
-                bytes = image.Payload.ToArray(_options.MaxImageBytes);
-            } catch (Exception exception) when (exception is IOException || exception is InvalidOperationException) {
-                AddDiagnostic("ONENOTE_RENDER_IMAGE_PAYLOAD_FAILED", exception.Message, image.FileName);
-                return RenderImagePlaceholder(image, x, y, width);
-            }
-            OfficeImageInfo? info = OfficeImageReader.TryIdentifyByContent(bytes, image.FileName, out OfficeImageInfo identified) ? identified : null;
             double renderWidth = forcePageBounds ? _drawing.Width : ResolveImageWidth(image, info, width);
             double renderHeight = forcePageBounds ? _drawing.Height : ResolveImageHeight(image, info, renderWidth);
             if (height > 0D) renderHeight = Math.Min(renderHeight, height);
@@ -534,6 +549,62 @@ public static partial class OneNotePageRenderer {
                 return RenderImagePlaceholder(image, x, y, renderWidth);
             }
             return renderHeight;
+        }
+
+        private bool TryLoadImage(
+            OneNoteImage image,
+            bool reportFailure,
+            out byte[] bytes,
+            out OfficeImageInfo? info) {
+            if (!TryMaterializeImagePayload(image, reportFailure, out bytes)) {
+                info = null;
+                return false;
+            }
+            if (_imageCache.TryGetValue(image, out ImageRenderData? cached)) {
+                info = cached.Info;
+            } else {
+                info = OfficeImageReader.TryIdentifyByContent(bytes, image.FileName, out OfficeImageInfo identified) ? identified : null;
+                _imageCache.Add(image, new ImageRenderData(info));
+            }
+            return true;
+        }
+
+        private bool TryIdentifyImage(OneNoteImage image, out OfficeImageInfo? info) {
+            if (_imageCache.TryGetValue(image, out ImageRenderData? cached)) {
+                info = cached.Info;
+                return cached.IsAvailable;
+            }
+            if (!TryMaterializeImagePayload(image, reportFailure: false, out byte[] bytes)) {
+                info = null;
+                return false;
+            }
+            info = OfficeImageReader.TryIdentifyByContent(bytes, image.FileName, out OfficeImageInfo identified) ? identified : null;
+            _imageCache.Add(image, new ImageRenderData(info));
+            return true;
+        }
+
+        private bool TryMaterializeImagePayload(OneNoteImage image, bool reportFailure, out byte[] bytes) {
+            bytes = Array.Empty<byte>();
+            if (_imageCache.TryGetValue(image, out ImageRenderData? cached) && !cached.IsAvailable) {
+                if (reportFailure) AddDiagnostic(cached.DiagnosticCode!, cached.DiagnosticMessage!, image.FileName);
+                return false;
+            }
+            ImageRenderData? failure = null;
+            if (image.Payload == null) {
+                failure = new ImageRenderData(
+                    "ONENOTE_RENDER_IMAGE_PAYLOAD_MISSING",
+                    "A OneNote image could not be rendered because its payload is unresolved.");
+            } else {
+                try {
+                    bytes = image.Payload.ToArray(_options.MaxImageBytes);
+                } catch (Exception exception) when (exception is IOException || exception is InvalidOperationException) {
+                    failure = new ImageRenderData("ONENOTE_RENDER_IMAGE_PAYLOAD_FAILED", exception.Message);
+                }
+            }
+            if (failure == null) return true;
+            _imageCache[image] = failure;
+            if (reportFailure) AddDiagnostic(failure.DiagnosticCode!, failure.DiagnosticMessage!, image.FileName);
+            return false;
         }
 
         private double RenderInk(OneNoteInk ink, double x, double y, double width, double height) {

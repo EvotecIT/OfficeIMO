@@ -4,7 +4,7 @@ using System.Text;
 namespace OfficeIMO.Drawing;
 
 public static partial class OfficeDrawingSvgExporter {
-    private static void AppendImagePattern(StringBuilder sb, OfficeDrawingImagePattern imagePattern, IOfficeRasterImageCodec? imageCodec, ref int elementId) {
+    private static void AppendImagePattern(StringBuilder sb, OfficeDrawingImagePattern imagePattern, IOfficeRasterImageCodec? imageCodec, string idPrefix, ref int elementId) {
         if (!OfficeSvgImageRenderer.TryCreateDataUri(imagePattern.ContentType, imagePattern.EncodedBytes, null, imageCodec, out string dataUri)) {
             return;
         }
@@ -16,7 +16,7 @@ public static partial class OfficeDrawingSvgExporter {
         double patternY = layout.RepeatY ? tile.Y : area.Y;
         double patternWidth = layout.RepeatX ? layout.HorizontalStep : area.Width;
         double patternHeight = layout.RepeatY ? layout.VerticalStep : area.Height;
-        string patternId = "officeimo-image-pattern-" + (++elementId).ToString(CultureInfo.InvariantCulture);
+        string patternId = idPrefix + "officeimo-image-pattern-" + (++elementId).ToString(CultureInfo.InvariantCulture);
         sb.Append("<defs><pattern")
             .AppendAttribute("id", patternId)
             .AppendAttribute("patternUnits", "userSpaceOnUse")

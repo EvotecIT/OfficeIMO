@@ -135,7 +135,8 @@ namespace OfficeIMO.Tests {
             }
             paragraph._paragraph.Append(new Run(new Text(" after") { Space = SpaceProcessingModeValues.Preserve }));
 
-            Assert.Single(document.Equations).SetExpression(SharedMath.Identifier("x"));
+            WordEquation equation = Assert.Single(document.Equations);
+            WordEquation returned = equation.SetExpression(SharedMath.Identifier("x"));
 
             OpenXmlElement[] children = paragraph._paragraph.ChildElements.ToArray();
             int before = Array.FindIndex(children, child => child.Descendants<Text>().Any(text => text.Text == "before "));
@@ -145,6 +146,10 @@ namespace OfficeIMO.Tests {
             Assert.Equal("before x after", string.Concat(paragraph._paragraph.Descendants()
                 .Where(descendant => descendant.LocalName == "t")
                 .Select(descendant => descendant.InnerText)));
+            Assert.Same(equation, returned);
+            Assert.Equal(WordEquationRepresentation.Omml, equation.Representation);
+            Assert.Equal(SharedMath.Identifier("x"), equation.ToExpression());
+            Assert.Null(equation.FieldInstruction);
             Assert.Empty(document.ValidateDocument());
         }
 

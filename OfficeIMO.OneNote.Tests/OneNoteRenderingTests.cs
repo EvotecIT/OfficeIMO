@@ -554,6 +554,66 @@ public sealed class OneNoteRenderingTests {
         Assert.True(text.Y + text.Height + 24D <= drawing.Height + 0.001D);
     }
 
+    [Fact]
+    public void AutomaticCanvasUsesIntrinsicHeightForTallImagesWithoutStoredDimensions() {
+        var page = new OneNotePage { PageSize = OneNotePageSize.Automatic };
+        page.DirectContent.Add(new OneNoteImage {
+            FileName = "tall.png",
+            MediaType = "image/png",
+            Payload = OneNoteBinaryPayload.FromBytes(OfficePngWriter.Encode(
+                new OfficeRasterImage(10, 1600, OfficeColor.CornflowerBlue)))
+        });
+        var options = new OneNotePageRenderingOptions {
+            AutomaticPageWidthPoints = 180D,
+            AutomaticPageHeightPoints = 120D,
+            AutomaticPagePaddingPoints = 24D,
+            IncludeTitle = false
+        };
+
+        OfficeDrawing drawing = page.ToDrawing(options);
+        OfficeDrawingImage image = Assert.Single(drawing.Elements.OfType<OfficeDrawingImage>());
+
+        Assert.InRange(image.Projection.Height, 1199D, 1201D);
+        Assert.True(image.Projection.Y + image.Projection.Height + options.AutomaticPagePaddingPoints <= drawing.Height + 0.001D);
+    }
+
+    [Fact]
+    public void AutomaticCanvasDoesNotRematerializeImagesBetweenMeasurementPasses() {
+        byte[] payload = OfficePngWriter.Encode(new OfficeRasterImage(10, 1600, OfficeColor.CornflowerBlue));
+        int opens = 0;
+        var page = new OneNotePage { PageSize = OneNotePageSize.Automatic };
+        page.DirectContent.Add(new OneNoteImage {
+            FileName = "lazy-tall.png",
+            Payload = OneNoteBinaryPayload.FromStreamFactory(() => {
+                opens++;
+                return new MemoryStream(payload, writable: false);
+            }, payload.Length)
+        });
+
+        OfficeDrawing drawing = page.ToDrawing(new OneNotePageRenderingOptions { IncludeTitle = false });
+
+        Assert.Equal(2, opens);
+        Assert.Single(drawing.Elements.OfType<OfficeDrawingImage>());
+    }
+
+    [Fact]
+    public void ExcludedImagesDoNotOpenLazyPayloadsDuringAutomaticMeasurement() {
+        int opens = 0;
+        var page = new OneNotePage { PageSize = OneNotePageSize.Automatic };
+        page.DirectContent.Add(new OneNoteImage {
+            FileName = "excluded.png",
+            Payload = OneNoteBinaryPayload.FromStreamFactory(() => {
+                opens++;
+                return new MemoryStream(new byte[] { 1 }, writable: false);
+            }, 1)
+        });
+
+        OfficeDrawing drawing = page.ToDrawing(new OneNotePageRenderingOptions { IncludeImages = false, IncludeTitle = false });
+
+        Assert.Equal(0, opens);
+        Assert.Empty(drawing.Elements.OfType<OfficeDrawingImage>());
+    }
+
     private static OneNoteTableCell CellWithText(string text) {
         var cell = new OneNoteTableCell();
         var paragraph = new OneNoteParagraph();

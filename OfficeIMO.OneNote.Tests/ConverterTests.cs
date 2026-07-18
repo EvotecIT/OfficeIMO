@@ -166,6 +166,26 @@ public sealed class ConverterTests {
     }
 
     [Fact]
+    public void VisualHtmlNamespacesGeneratedSvgResourcesPerEmbeddedPage() {
+        var section = new OneNoteSection { Name = "Inline SVG" };
+        for (int index = 0; index < 2; index++) {
+            var page = new OneNotePage { Title = "Page " + index, PageSize = OneNotePageSize.IndexCard };
+            var paragraph = new OneNoteParagraph { Layout = new OneNoteLayout { X = -0.1D, Y = 0D, Width = 1D } };
+            paragraph.Runs.Add(new OneNoteTextRun { Text = "Clipped" });
+            page.DirectContent.Add(paragraph);
+            section.Pages.Add(page);
+        }
+
+        string html = section.ToVisualHtmlFragment();
+
+        Assert.Contains("id=\"officeimo-onenote-page-0-officeimo-group-clip-1\"", html, StringComparison.Ordinal);
+        Assert.Contains("url(#officeimo-onenote-page-0-officeimo-group-clip-1)", html, StringComparison.Ordinal);
+        Assert.Contains("id=\"officeimo-onenote-page-1-officeimo-group-clip-1\"", html, StringComparison.Ordinal);
+        Assert.Contains("url(#officeimo-onenote-page-1-officeimo-group-clip-1)", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("id=\"officeimo-group-clip-1\"", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task VisualPdfPreservesPageGeometryAndLeavesCallerOwnedStreamOpen() {
         OneNoteSection section = CreateNotebook().SectionGroups[0].Sections[0];
         section.Pages[0].PageSize = OneNotePageSize.IndexCard;

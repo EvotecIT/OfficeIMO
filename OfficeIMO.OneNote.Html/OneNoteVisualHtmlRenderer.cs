@@ -38,7 +38,8 @@ internal static class OneNoteVisualHtmlRenderer {
                 snapshot.Drawing,
                 options.PageRendering.Scale,
                 OfficeSvgSizeUnit.Pixel,
-                fallbackCodec);
+                fallbackCodec,
+                id + "-");
             if (options.DiagnosticSink != null) {
                 foreach (OfficeImageExportDiagnostic diagnostic in diagnostics) options.DiagnosticSink.Add(diagnostic);
             }

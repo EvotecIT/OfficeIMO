@@ -81,6 +81,19 @@ public class DrawingMathTests {
     }
 
     [Fact]
+    public void MathMlMultiScriptsPreservesPostscriptAndPrescriptPairs() {
+        const string mathMl = "<math xmlns=\"http://www.w3.org/1998/Math/MathML\"><mmultiscripts><mi>x</mi>" +
+            "<mi>i</mi><mi>j</mi><mprescripts/><mi>k</mi><mi>l</mi></mmultiscripts></math>";
+
+        OfficeMathExpression expression = OfficeMathMarkup.FromMathMl(mathMl);
+
+        Assert.Equal(OfficeMathKind.LeftSubSuperscript, expression.Kind);
+        Assert.Equal(OfficeMathKind.SubSuperscript, expression.Children[0].Kind);
+        Assert.Equal("_(k)^(l)x_(i)^(j)", expression.ToPlainText());
+        Assert.Equal(expression, OfficeMathMarkup.FromMathMl(OfficeMathMarkup.ToMathMl(expression)));
+    }
+
+    [Fact]
     public void UpperOnlyNaryRetainsItsLimitAcrossPortableMarkup() {
         OfficeMathExpression expression = OfficeMath.Nary("∑", OfficeMath.Identifier("x"), upper: OfficeMath.Identifier("n"));
 

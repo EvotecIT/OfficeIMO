@@ -20,7 +20,7 @@ public static partial class OneNotePageRenderer {
             double localWidth = Math.Max(contentWidth, _drawing.Width - x);
             double localHeight = Math.Max(contentHeight, _drawing.Height - y);
             var localDrawing = new OfficeDrawing(localWidth, localHeight);
-            var localContext = new RenderContext(localDrawing, _options, _diagnostics, _pageRightToLeft);
+            var localContext = new RenderContext(localDrawing, _options, _diagnostics, _pageRightToLeft, _imageCache);
             double used = localContext.RenderElement(
                 element,
                 0D,
