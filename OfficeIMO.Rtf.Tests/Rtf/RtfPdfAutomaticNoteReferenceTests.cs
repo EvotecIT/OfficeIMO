@@ -14,7 +14,7 @@ public class RtfPdfAutomaticNoteReferenceTests {
         note.AddParagraph("Footnote body");
         paragraph.AddNoteReference(note, "1");
 
-        string text = PdfReadDocument.Load(document.ToPdf()).ExtractText();
+        string text = PdfReadDocument.Open(document.ToPdf()).ExtractText();
 
         Assert.Contains("Body1", text, StringComparison.Ordinal);
         Assert.Contains("Footnote 1:", text, StringComparison.Ordinal);

@@ -3,15 +3,18 @@ namespace OfficeIMO.Pdf;
 /// <summary>
 /// Zero-dependency helpers for inspecting PDF document metadata and page geometry.
 /// </summary>
-public static class PdfInspector {
+internal static class PdfInspector {
     /// <summary>
     /// Inspects a PDF from a byte array.
     /// </summary>
     public static PdfDocumentInfo Inspect(byte[] pdf, PdfReadOptions? options = null) {
         PdfDocumentProbe probe = Probe(pdf, options);
-        var document = PdfReadDocument.Load(pdf, options);
+        var document = PdfReadDocument.Open(pdf, options);
         return FromReadDocument(document, probe);
     }
+
+    internal static PdfDocumentInfo Inspect(byte[] pdf, PdfReadDocument document) =>
+        FromReadDocument(document, Probe(pdf, document));
 
     /// <summary>
     /// Inspects selected source page ranges from a PDF byte array, preserving caller order and overlaps.
@@ -26,7 +29,7 @@ public static class PdfInspector {
     public static PdfDocumentInfo InspectPageRanges(byte[] pdf, PdfReadOptions? options, params PdfPageRange[] pageRanges) {
         Guard.NotNull(pdf, nameof(pdf));
         PdfDocumentProbe probe = Probe(pdf, options);
-        var document = PdfReadDocument.Load(pdf, options);
+        var document = PdfReadDocument.Open(pdf, options);
         int[] pageNumbers = PdfPageRange.ExpandMany(pageRanges, document.Pages.Count, nameof(pageRanges));
         return FromReadDocument(document, probe, pageNumbers);
     }
@@ -89,6 +92,21 @@ public static class PdfInspector {
     /// Reports whether OfficeIMO.Pdf can read or safely rewrite a PDF from a byte array.
     /// </summary>
     public static PdfDocumentPreflight Preflight(byte[] pdf, PdfReadOptions? options = null) {
+        return PreflightCore(pdf, options, readDocumentFactory: null);
+    }
+
+    internal static PdfDocumentPreflight Preflight(
+        byte[] pdf,
+        PdfReadOptions options,
+        Func<PdfReadDocument> readDocumentFactory) {
+        Guard.NotNull(readDocumentFactory, nameof(readDocumentFactory));
+        return PreflightCore(pdf, options, readDocumentFactory);
+    }
+
+    private static PdfDocumentPreflight PreflightCore(
+        byte[] pdf,
+        PdfReadOptions? options,
+        Func<PdfReadDocument>? readDocumentFactory) {
         PdfDocumentProbe probe = Probe(pdf, options);
         var diagnostics = new List<string>();
         var readBlockers = new List<PdfReadBlocker>();
@@ -107,7 +125,8 @@ public static class PdfInspector {
         bool canRead = readBlockers.Count == 0;
         if (canRead) {
             try {
-                readDocument = PdfReadDocument.Load(pdf, options);
+                readDocument = readDocumentFactory?.Invoke() ?? PdfReadDocument.Open(pdf, options);
+                probe = Probe(pdf, readDocument);
                 info = FromReadDocument(readDocument, probe);
                 if (info.PageCount == 0) {
                     AddReadBlocker(PdfReadBlockerKind.NoPages, "No PDF pages were discovered.");
@@ -138,7 +157,7 @@ public static class PdfInspector {
 
         if (canRead && readDocument is not null && !probe.HasEncryption) {
             try {
-                ValidateRewriteObjectGraph(pdf, readDocument);
+                ValidateRewriteObjectGraph(readDocument);
             } catch (Exception ex) when (ex is InvalidOperationException || ex is NotSupportedException || ex is ArgumentException) {
                 AddRewriteBlocker(PdfRewriteBlockerKind.InvalidObjectReferences, "PDF object graph is not safe for rewriting by OfficeIMO.Pdf yet: " + ex.Message);
             }
@@ -224,8 +243,9 @@ public static class PdfInspector {
         }
     }
 
-    private static void ValidateRewriteObjectGraph(byte[] pdf, PdfReadDocument document) {
-        var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf);
+    private static void ValidateRewriteObjectGraph(PdfReadDocument document) {
+        Dictionary<int, PdfIndirectObject> objects = document.Objects;
+        string trailerRaw = document.TrailerRaw;
         var catalogState = PdfPageExtractor.ExtractCatalogRewriteState(objects, trailerRaw);
         var collector = new PdfPageExtractor.ObjectCollector(objects);
 
@@ -294,7 +314,61 @@ public static class PdfInspector {
         Guard.NotNull(pdf, nameof(pdf));
 
         PdfDocumentSecurityInfo security = PdfSyntax.ReadDocumentSecurityInfo(pdf, options);
+        try {
+            var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf, options);
+            return Probe(pdf, security, objects, trailerRaw);
+        } catch (Exception ex) when (
+            ex is not PdfEncryptionException &&
+            ex is not OutOfMemoryException &&
+            ex is not StackOverflowException) {
+            return ProbeFromRawBytes(pdf, security, options);
+        } catch (PdfEncryptionException) when (options?.Password is null) {
+            return ProbeFromRawBytes(pdf, security, options);
+        }
+    }
+
+    internal static PdfDocumentProbe Probe(byte[] pdf, PdfReadDocument document) =>
+        Probe(pdf, document.Security, document.Objects, document.TrailerRaw);
+
+    private static PdfDocumentProbe Probe(
+        byte[] pdf,
+        PdfDocumentSecurityInfo security,
+        Dictionary<int, PdfIndirectObject> objects,
+        string trailerRaw) {
+        string text = PdfEncoding.Latin1GetString(pdf);
+        PdfDictionary? catalog = PdfSyntax.FindCatalog(objects, trailerRaw);
+        bool Has(params string[] names) =>
+            PdfSyntax.ContainsAnyPdfName(text, names) ||
+            PdfSyntax.ContainsAnyParsedPdfName(objects, names);
+
         return new PdfDocumentProbe(
+            PdfSyntax.GetHeaderVersion(pdf),
+            security.HasEncryption,
+            Has("ByteRange", "SigFlags", "Sig"),
+            Has("AcroForm", "Fields", "FT", "XFA"),
+            Has("Annots", "Annot"),
+            Has("Outlines", "UseOutlines"),
+            Has("PageMode", "PageLayout"),
+            Has("PageLabels"),
+            Has("Names"),
+            Has("Dests"),
+            Has("OpenAction"),
+            Has("ViewerPreferences"),
+            Has("MarkInfo", "StructTreeRoot", "ParentTree", "StructElem"),
+            Has("Metadata"),
+            catalog?.Items.ContainsKey("URI") == true,
+            Has("OutputIntents", "OutputIntent"),
+            Has("EmbeddedFiles", "Filespec", "EmbeddedFile", "AF"),
+            Has("OCProperties", "OCGs", "OCG", "OCMD"),
+            Has("JavaScript", "JS", "AA", "Launch", "SubmitForm", "RichMedia"),
+            security);
+    }
+
+    private static PdfDocumentProbe ProbeFromRawBytes(
+        byte[] pdf,
+        PdfDocumentSecurityInfo security,
+        PdfReadOptions? options) =>
+        new PdfDocumentProbe(
             PdfSyntax.GetHeaderVersion(pdf),
             security.HasEncryption,
             PdfSyntax.HasSignatureMarkers(pdf),
@@ -315,7 +389,6 @@ public static class PdfInspector {
             PdfSyntax.HasOptionalContentMarkers(pdf),
             PdfSyntax.HasActiveContentMarkers(pdf),
             security);
-    }
 
     /// <summary>
     /// Reads lightweight PDF markers from a file path without full document parsing.

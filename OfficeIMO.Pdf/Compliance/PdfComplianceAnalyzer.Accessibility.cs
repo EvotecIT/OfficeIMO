@@ -1,6 +1,6 @@
 namespace OfficeIMO.Pdf;
 
-public static partial class PdfComplianceAnalyzer {
+internal static partial class PdfComplianceAnalyzer {
 
     private static void AddAccessibilityRequirements(List<PdfComplianceRequirement> requirements, PdfComplianceProfile profile, PdfOptions options, string? documentTitle, bool hasDocumentMetadataEvidence, PdfGeneratedImageAccessibilityEvidence[]? generatedImages, PdfGeneratedDrawingAccessibilityEvidence[]? generatedDrawings, PdfGeneratedFormAccessibilityEvidence[]? generatedForms) {
         if (profile == PdfComplianceProfile.PdfUa1 || profile == PdfComplianceProfile.PdfUa2) {

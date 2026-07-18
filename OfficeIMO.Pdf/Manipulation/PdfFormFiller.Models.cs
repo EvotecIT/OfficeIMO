@@ -1,6 +1,6 @@
 namespace OfficeIMO.Pdf;
 
-public static partial class PdfFormFiller {
+internal static partial class PdfFormFiller {
     private sealed class FlattenWidgetState {
         internal FlattenWidgetState(int widgetObjectNumber, double x, double y, double width, double height, int appearanceObjectNumber) {
             WidgetObjectNumber = widgetObjectNumber;

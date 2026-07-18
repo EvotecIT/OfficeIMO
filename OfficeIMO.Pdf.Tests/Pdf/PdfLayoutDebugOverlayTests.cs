@@ -13,7 +13,7 @@ public class PdfLayoutDebugOverlayTests {
             .Paragraph(paragraph => paragraph.Text("Second paragraph proves reading order."))
             .ToBytes();
 
-        OfficeDrawing drawing = PdfDocument.Load(source).Read.LayoutDebugOverlay(1);
+        OfficeDrawing drawing = PdfDocument.Open(source).Read.LayoutDebugOverlay(1);
         string svg = PdfLayoutDebugOverlay.ToSvg(source, 1);
         byte[] png = PdfLayoutDebugOverlay.ToPng(source, 1, scale: 0.5D);
 

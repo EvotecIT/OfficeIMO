@@ -8,11 +8,17 @@ public sealed partial class PdfDocument {
     public PdfComplianceReadinessReport AssessCompliance() => AssessCompliance(_options.ComplianceProfile);
 
     /// <summary>
-    /// Analyzes this generated document against a formal compliance profile using generated font-usage evidence from layout.
+    /// Analyzes this document against a formal compliance profile.
+    /// Generated documents use layout evidence; opened documents use artifact readback evidence.
     /// </summary>
     /// <param name="profile">Compliance profile to assess without enabling formal profile generation.</param>
     public PdfComplianceReadinessReport AssessCompliance(PdfComplianceProfile profile) {
-        EnsureGeneratedDocument();
+        if (_source is not null) {
+            var snapshot = GetReadSnapshot();
+            PdfDocumentInfo info = PdfInspector.Inspect(snapshot.Bytes, snapshot.Document);
+            return PdfComplianceAnalyzer.AssessReadback(profile, snapshot.Document, info);
+        }
+
         PdfGeneratedDocumentComplianceEvidence evidence = PdfWriter.CollectGeneratedComplianceEvidence(this, _blocks, _options);
         return PdfComplianceAnalyzer.AssessDocument(profile, _options, evidence.StandardFonts, evidence.FontUsages, _title, evidence.Images, evidence.Drawings, evidence.Forms);
     }
@@ -36,7 +42,9 @@ public sealed partial class PdfDocument {
     /// <param name="externalValidations">Optional external validator results to combine with OfficeIMO.Pdf readiness evidence.</param>
     public PdfComplianceProofReport AssessComplianceProof(PdfComplianceProfile profile, IEnumerable<PdfExternalValidationResult>? externalValidations = null) {
         PdfComplianceReadinessReport readiness = AssessCompliance(profile);
-        return PdfComplianceAnalyzer.AssessProof(readiness, externalValidations);
+        return _source is null
+            ? PdfComplianceAnalyzer.AssessProof(readiness, externalValidations)
+            : PdfComplianceAnalyzer.AssessProof(readiness, GetBytesForOperation(), externalValidations);
     }
 
     /// <summary>
@@ -54,8 +62,8 @@ public sealed partial class PdfDocument {
     /// Renders the document into a PDF byte array in memory.
     /// </summary>
     public byte[] ToBytes() {
-        if (_loadedPdf is not null) {
-            return (byte[])_loadedPdf.Clone();
+        if (_source is not null) {
+            return _source.CopyBytes();
         }
 
         ThrowIfTextEncodingPreflightFails();
@@ -204,8 +212,8 @@ public sealed partial class PdfDocument {
     }
 
     private byte[] RenderBytesCore() {
-        if (_loadedPdf is not null) {
-            return (byte[])_loadedPdf.Clone();
+        if (_source is not null) {
+            return _source.CopyBytes();
         }
 
         return PdfWriter.Write(this, _blocks, _options, _title, _author, _subject, _keywords);
@@ -227,9 +235,9 @@ public sealed partial class PdfDocument {
     }
 
     private long WritePdfCore(Stream stream) {
-        if (_loadedPdf is not null) {
-            stream.Write(_loadedPdf, 0, _loadedPdf.Length);
-            return _loadedPdf.LongLength;
+        if (_source is not null) {
+            stream.Write(_source.Bytes, 0, _source.Bytes.Length);
+            return _source.Bytes.LongLength;
         }
 
         return PdfWriter.Write(stream, this, _blocks, _options, _title, _author, _subject, _keywords);

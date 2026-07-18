@@ -37,7 +37,7 @@ public class RichParagraphWrappingHyphenationTests {
             .Paragraph(paragraph => paragraph.Text("typographymilestone"))
             .ToBytes();
 
-        string extracted = PdfReadDocument.Load(bytes).ExtractText();
+        string extracted = PdfReadDocument.Open(bytes).ExtractText();
         Assert.Contains("typographymile-", extracted, StringComparison.Ordinal);
         Assert.Contains("stone", extracted, StringComparison.Ordinal);
     }
@@ -79,7 +79,7 @@ public class RichParagraphWrappingHyphenationTests {
             .ToBytes();
 
         string raw = Encoding.ASCII.GetString(bytes);
-        string extracted = PdfReadDocument.Load(bytes).ExtractText();
+        string extracted = PdfReadDocument.Open(bytes).ExtractText();
 
         Assert.True(callbackCalls > 0);
         Assert.Contains("7479706F6772617068792D", raw, StringComparison.Ordinal);
@@ -107,7 +107,7 @@ public class RichParagraphWrappingHyphenationTests {
             .Paragraph(paragraph => paragraph.Text("typographymilestone"))
             .ToBytes();
 
-        string extracted = PdfReadDocument.Load(bytes).ExtractText();
+        string extracted = PdfReadDocument.Open(bytes).ExtractText();
 
         Assert.DoesNotContain("t-", extracted, StringComparison.Ordinal);
         Assert.Equal(1, CountOccurrences(extracted, "typography"));
@@ -127,7 +127,7 @@ public class RichParagraphWrappingHyphenationTests {
             .Paragraph(paragraph => paragraph.Text("CASE-REVIEW-LINE-001"))
             .ToBytes();
 
-        string extracted = PdfReadDocument.Load(bytes).ExtractText();
+        string extracted = PdfReadDocument.Open(bytes).ExtractText();
 
         Assert.Contains("CASE-REVIEW-", extracted, StringComparison.Ordinal);
         Assert.Contains("LINE-001", extracted, StringComparison.Ordinal);
@@ -148,7 +148,7 @@ public class RichParagraphWrappingHyphenationTests {
             .Paragraph(paragraph => paragraph.Text("INV-DNS-LOCATOR-001"))
             .ToBytes();
 
-        string extracted = PdfReadDocument.Load(bytes).ExtractText();
+        string extracted = PdfReadDocument.Open(bytes).ExtractText();
         string[] lines = extracted
             .Split(new[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries);
 
@@ -177,7 +177,7 @@ public class RichParagraphWrappingHyphenationTests {
             .Paragraph(paragraph => paragraph.Text(@"ACME\Service_2026AlphaIdentifier"))
             .ToBytes();
 
-        string extracted = PdfReadDocument.Load(bytes).ExtractText();
+        string extracted = PdfReadDocument.Open(bytes).ExtractText();
         string[] lines = extracted
             .Split(new[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries);
 
@@ -199,7 +199,7 @@ public class RichParagraphWrappingHyphenationTests {
             .Paragraph(paragraph => paragraph.Text("CASE-RECORD-STATIC-001"))
             .ToBytes();
 
-        string extracted = PdfReadDocument.Load(bytes).ExtractText();
+        string extracted = PdfReadDocument.Open(bytes).ExtractText();
         string[] lines = extracted
             .Split(new[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries);
 
@@ -233,7 +233,7 @@ public class RichParagraphWrappingHyphenationTests {
             }, style: style)
             .ToBytes();
 
-        string extracted = PdfReadDocument.Load(bytes).ExtractText();
+        string extracted = PdfReadDocument.Open(bytes).ExtractText();
         string[] lines = extracted
             .Split(new[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries);
 

@@ -108,7 +108,7 @@ public sealed partial class PdfDocumentConversionResult {
                 }
 
                 if (shouldReadGeneratedPdf) {
-                    PdfReadDocument readDocument = PdfReadDocument.Load(pdfBytes);
+                    PdfReadDocument readDocument = PdfReadDocument.Open(pdfBytes);
                     extractedText = readDocument.ExtractText();
                     documentInfo = PdfInspector.Inspect(pdfBytes);
                     if (options.RequiredLogicalSignals.Count > 0) {

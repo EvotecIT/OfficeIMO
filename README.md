@@ -1003,15 +1003,21 @@ foreach (var warning in result.Warnings) {
 ```csharp
 using OfficeIMO.Pdf;
 
-PdfDocument source = PdfDocument.Load("packet.pdf");
+PdfDocument source = PdfDocument.Open("packet.pdf");
 string firstPageText = source.Read.Text("1");
 source.Pages.Extract("1-3").Save("packet-summary.pdf");
 
-PdfDocument.Load("packet.pdf")
+PdfDocument.Open("packet.pdf")
     .MergeWith("appendix.pdf")
     .Pages.Delete("2")
     .Stamp.Text("Reviewed")
     .Save("packet-final.pdf");
+
+PdfAnalysisReport health = PdfDocument
+    .Open("packet-final.pdf")
+    .Analyze();
+
+Console.WriteLine($"Readable: {health.CanRead}; rewrite safe: {health.CanRewrite}");
 ```
 
 ### Extract normalized content for indexing or RAG

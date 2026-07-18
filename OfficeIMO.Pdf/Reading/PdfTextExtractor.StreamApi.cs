@@ -2,7 +2,7 @@ using System.Text.RegularExpressions;
 
 namespace OfficeIMO.Pdf;
 
-public static partial class PdfTextExtractor {
+internal static partial class PdfTextExtractor {
     /// <summary>Extracts plain text from all pages from the current stream position, concatenated with blank lines between pages.</summary>
     public static string ExtractAllText(Stream stream) {
         return ExtractAllText(ReadAllBytes(stream));
@@ -14,7 +14,7 @@ public static partial class PdfTextExtractor {
             return ExtractAllText(stream);
         }
     
-        return PdfReadDocument.Load(stream).ExtractTextWithColumns(options);
+        return PdfReadDocument.Open(stream).ExtractTextWithColumns(options);
     }
     
     /// <summary>Extracts plain text from all pages from the current position of a readable stream and writes UTF-8 text to <paramref name="outputStream"/>.</summary>
@@ -41,22 +41,22 @@ public static partial class PdfTextExtractor {
     
     /// <summary>Extracts plain text from each page from the current position of a readable stream.</summary>
     public static IReadOnlyList<string> ExtractTextByPage(Stream stream) {
-        return ExtractTextByPage(PdfReadDocument.Load(stream));
+        return ExtractTextByPage(PdfReadDocument.Open(stream));
     }
     
     /// <summary>Extracts plain text from the supplied inclusive one-based page ranges from the current position of a readable stream.</summary>
     public static IReadOnlyList<string> ExtractTextByPageRanges(Stream stream, params PdfPageRange[] pageRanges) {
-        return ExtractTextByPageRanges(PdfReadDocument.Load(stream), pageRanges);
+        return ExtractTextByPageRanges(PdfReadDocument.Open(stream), pageRanges);
     }
     
     /// <summary>Extracts plain text from the supplied inclusive one-based page ranges from the current position of a readable stream and concatenates selected pages with blank lines.</summary>
     public static string ExtractAllTextByPageRanges(Stream stream, params PdfPageRange[] pageRanges) {
-        return ExtractAllTextByPageRanges(PdfReadDocument.Load(stream), null, pageRanges);
+        return ExtractAllTextByPageRanges(PdfReadDocument.Open(stream), null, pageRanges);
     }
     
     /// <summary>Extracts plain text from the supplied inclusive one-based page ranges from the current position of a readable stream with layout options and concatenates selected pages with blank lines.</summary>
     public static string ExtractAllTextByPageRanges(Stream stream, PdfTextLayoutOptions? options, params PdfPageRange[] pageRanges) {
-        return ExtractAllTextByPageRanges(PdfReadDocument.Load(stream), options, pageRanges);
+        return ExtractAllTextByPageRanges(PdfReadDocument.Open(stream), options, pageRanges);
     }
     
     /// <summary>Extracts plain text from the supplied inclusive one-based page ranges from the current position of a readable stream and writes one UTF-8 text result to <paramref name="outputStream"/>.</summary>
@@ -137,7 +137,7 @@ public static partial class PdfTextExtractor {
         Guard.NotNull(outputDirectory, nameof(outputDirectory));
     
         string fullOutputDirectory = ValidateOutputDirectory(outputDirectory);
-        var pages = ExtractSelectedTextPages(PdfReadDocument.Load(stream), pageRanges);
+        var pages = ExtractSelectedTextPages(PdfReadDocument.Open(stream), pageRanges);
         return WriteTextPages(baseName, fullOutputDirectory, pages);
     }
     
@@ -146,7 +146,7 @@ public static partial class PdfTextExtractor {
         Guard.NotNull(outputDirectory, nameof(outputDirectory));
     
         string fullOutputDirectory = ValidateOutputDirectory(outputDirectory);
-        var pages = ExtractSelectedTextPages(PdfReadDocument.Load(stream), options, pageRanges);
+        var pages = ExtractSelectedTextPages(PdfReadDocument.Open(stream), options, pageRanges);
         return WriteTextPages(baseName, fullOutputDirectory, pages);
     }
     
@@ -189,7 +189,7 @@ public static partial class PdfTextExtractor {
         Guard.NotNull(outputDirectory, nameof(outputDirectory));
     
         string fullOutputDirectory = ValidateOutputDirectory(outputDirectory);
-        var pages = ExtractSelectedTextPages(PdfReadDocument.Load(pdf), pageRanges);
+        var pages = ExtractSelectedTextPages(PdfReadDocument.Open(pdf), pageRanges);
         return WriteTextPages(baseName, fullOutputDirectory, pages);
     }
     
@@ -199,13 +199,13 @@ public static partial class PdfTextExtractor {
         Guard.NotNull(outputDirectory, nameof(outputDirectory));
     
         string fullOutputDirectory = ValidateOutputDirectory(outputDirectory);
-        var pages = ExtractSelectedTextPages(PdfReadDocument.Load(pdf), options, pageRanges);
+        var pages = ExtractSelectedTextPages(PdfReadDocument.Open(pdf), options, pageRanges);
         return WriteTextPages(baseName, fullOutputDirectory, pages);
     }
     
     /// <summary>Extracts structured content for each page from the current stream position.</summary>
     public static IReadOnlyList<StructuredPage> ExtractStructuredByPage(Stream stream, PdfTextLayoutOptions? options = null) {
-        return PdfReadDocument.Load(stream).ExtractStructuredPages(options);
+        return PdfReadDocument.Open(stream).ExtractStructuredPages(options);
     }
     
     /// <summary>Extracts structured content from the supplied inclusive one-based page ranges from the current stream position.</summary>
@@ -215,12 +215,12 @@ public static partial class PdfTextExtractor {
     
     /// <summary>Extracts structured content from the supplied inclusive one-based page ranges from the current stream position.</summary>
     public static IReadOnlyList<StructuredPage> ExtractStructuredByPageRanges(Stream stream, PdfTextLayoutOptions? options, params PdfPageRange[] pageRanges) {
-        return ExtractStructuredByPageRanges(PdfReadDocument.Load(stream), options, pageRanges);
+        return ExtractStructuredByPageRanges(PdfReadDocument.Open(stream), options, pageRanges);
     }
     
     /// <summary>Extracts detected paragraphs grouped by page from the current stream position.</summary>
     public static IReadOnlyList<StructuredParagraphPage> ExtractParagraphsByPage(Stream stream, PdfTextLayoutOptions? options = null) {
-        return PdfReadDocument.Load(stream).ExtractParagraphsByPage(options);
+        return PdfReadDocument.Open(stream).ExtractParagraphsByPage(options);
     }
     
     /// <summary>Extracts detected paragraphs from the supplied inclusive one-based page ranges from the current stream position.</summary>
@@ -230,12 +230,12 @@ public static partial class PdfTextExtractor {
     
     /// <summary>Extracts detected paragraphs from the supplied inclusive one-based page ranges from the current stream position.</summary>
     public static IReadOnlyList<StructuredParagraphPage> ExtractParagraphsByPageRanges(Stream stream, PdfTextLayoutOptions? options, params PdfPageRange[] pageRanges) {
-        return ExtractParagraphsByPageRanges(PdfReadDocument.Load(stream), options, pageRanges);
+        return ExtractParagraphsByPageRanges(PdfReadDocument.Open(stream), options, pageRanges);
     }
     
     /// <summary>Extracts detected headings grouped by page from the current stream position.</summary>
     public static IReadOnlyList<StructuredHeadingPage> ExtractHeadingsByPage(Stream stream, PdfTextLayoutOptions? options = null) {
-        return PdfReadDocument.Load(stream).ExtractHeadingsByPage(options);
+        return PdfReadDocument.Open(stream).ExtractHeadingsByPage(options);
     }
     
     /// <summary>Extracts detected headings from the supplied inclusive one-based page ranges from the current stream position.</summary>
@@ -245,12 +245,12 @@ public static partial class PdfTextExtractor {
     
     /// <summary>Extracts detected headings from the supplied inclusive one-based page ranges from the current stream position.</summary>
     public static IReadOnlyList<StructuredHeadingPage> ExtractHeadingsByPageRanges(Stream stream, PdfTextLayoutOptions? options, params PdfPageRange[] pageRanges) {
-        return ExtractHeadingsByPageRanges(PdfReadDocument.Load(stream), options, pageRanges);
+        return ExtractHeadingsByPageRanges(PdfReadDocument.Open(stream), options, pageRanges);
     }
     
     /// <summary>Extracts detected list items grouped by page from the current stream position.</summary>
     public static IReadOnlyList<StructuredListItemPage> ExtractListItemsByPage(Stream stream, PdfTextLayoutOptions? options = null) {
-        return PdfReadDocument.Load(stream).ExtractListItemsByPage(options);
+        return PdfReadDocument.Open(stream).ExtractListItemsByPage(options);
     }
     
     /// <summary>Extracts detected list items from the supplied inclusive one-based page ranges from the current stream position.</summary>
@@ -260,12 +260,12 @@ public static partial class PdfTextExtractor {
     
     /// <summary>Extracts detected list items from the supplied inclusive one-based page ranges from the current stream position.</summary>
     public static IReadOnlyList<StructuredListItemPage> ExtractListItemsByPageRanges(Stream stream, PdfTextLayoutOptions? options, params PdfPageRange[] pageRanges) {
-        return ExtractListItemsByPageRanges(PdfReadDocument.Load(stream), options, pageRanges);
+        return ExtractListItemsByPageRanges(PdfReadDocument.Open(stream), options, pageRanges);
     }
     
     /// <summary>Extracts detected tables grouped by page from the current stream position.</summary>
     public static IReadOnlyList<StructuredTablePage> ExtractTablesByPage(Stream stream, PdfTextLayoutOptions? options = null) {
-        return PdfReadDocument.Load(stream).ExtractTablesByPage(options);
+        return PdfReadDocument.Open(stream).ExtractTablesByPage(options);
     }
     
     /// <summary>Extracts detected tables from the supplied inclusive one-based page ranges from the current stream position.</summary>
@@ -275,7 +275,7 @@ public static partial class PdfTextExtractor {
     
     /// <summary>Extracts detected tables from the supplied inclusive one-based page ranges from the current stream position.</summary>
     public static IReadOnlyList<StructuredTablePage> ExtractTablesByPageRanges(Stream stream, PdfTextLayoutOptions? options, params PdfPageRange[] pageRanges) {
-        return ExtractTablesByPageRanges(PdfReadDocument.Load(stream), options, pageRanges);
+        return ExtractTablesByPageRanges(PdfReadDocument.Open(stream), options, pageRanges);
     }
     
     /// <summary>Extracts plain text from each page from the current stream position using layout options such as column detection and header/footer trimming.</summary>
@@ -284,6 +284,6 @@ public static partial class PdfTextExtractor {
             return ExtractTextByPage(stream);
         }
     
-        return ExtractTextByPage(PdfReadDocument.Load(stream), options);
+        return ExtractTextByPage(PdfReadDocument.Open(stream), options);
     }
 }

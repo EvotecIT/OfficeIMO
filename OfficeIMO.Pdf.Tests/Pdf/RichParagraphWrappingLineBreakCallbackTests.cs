@@ -82,7 +82,7 @@ namespace OfficeIMO.Tests.Pdf {
                 .Paragraph(paragraph => paragraph.Text("alphaomega"))
                 .ToBytes();
 
-            string extracted = PdfReadDocument.Load(bytes).ExtractText();
+            string extracted = PdfReadDocument.Open(bytes).ExtractText();
             string[] lines = extracted
                 .Split(new[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries);
 
@@ -118,7 +118,7 @@ namespace OfficeIMO.Tests.Pdf {
                 .Paragraph(paragraph => paragraph.Text(text))
                 .ToBytes();
 
-            string extracted = PdfReadDocument.Load(bytes).ExtractText();
+            string extracted = PdfReadDocument.Open(bytes).ExtractText();
 
             Assert.Contains(text, extracted, StringComparison.Ordinal);
             Assert.DoesNotContain(report.Warnings, warning => warning.Code == "unsupported-script-specific-line-breaking");

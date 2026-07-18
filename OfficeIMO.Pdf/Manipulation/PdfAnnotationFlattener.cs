@@ -4,7 +4,7 @@ namespace OfficeIMO.Pdf;
 /// <summary>
 /// Flattens supported visual PDF annotations into regular page content.
 /// </summary>
-public static partial class PdfAnnotationFlattener {
+internal static partial class PdfAnnotationFlattener {
     private const string UnsupportedVisualAnnotationMessage = "Only FreeText, text markup, shape, line, ink, path, stamp, and caret annotations with a normal appearance stream or supported synthesis data can be visually flattened by OfficeIMO.Pdf.";
 
     /// <summary>
@@ -31,7 +31,7 @@ public static partial class PdfAnnotationFlattener {
         }
 
         int nextObjectNumber = objects.Keys.Count == 0 ? 1 : objects.Keys.Max() + 1;
-        PdfReadDocument read = PdfReadDocument.Load(pdf, readOptions);
+        PdfReadDocument read = PdfReadDocument.Open(pdf, readOptions);
         var pageNumbers = new Dictionary<int, int>();
         for (int i = 0; i < read.Pages.Count; i++) pageNumbers[read.Pages[i].ObjectNumber] = i + 1;
         int flattenedCount = FlattenPageVisualAnnotations(objects, ref nextObjectNumber, options, pageNumbers);

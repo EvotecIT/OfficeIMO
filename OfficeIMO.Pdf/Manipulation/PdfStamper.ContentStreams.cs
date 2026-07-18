@@ -3,7 +3,7 @@ using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Pdf;
 
-public static partial class PdfStamper {
+internal static partial class PdfStamper {
     private static PdfStream BuildStampStream(
         string text,
         string fontResourceName,

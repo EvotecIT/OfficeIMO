@@ -1,12 +1,12 @@
 namespace OfficeIMO.Pdf;
 
 /// <summary>Creates and transactionally edits AcroForm fields in existing PDFs.</summary>
-public static partial class PdfAcroFormEditor {
+internal static partial class PdfAcroFormEditor {
     /// <summary>Applies field-tree, widget, calculation-order, tab-order, and selective-flatten edits as one validated full rewrite.</summary>
     public static PdfAcroFormEditResult Edit(byte[] pdf, Action<PdfAcroFormEditSession> edit, PdfReadOptions? readOptions = null) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(edit, nameof(edit));
-        PdfReadDocument source = PdfReadDocument.Load(pdf, readOptions);
+        PdfReadDocument source = PdfReadDocument.Open(pdf, readOptions);
         if (source.AcroFormXfa is not null) throw new NotSupportedException("Transactional AcroForm editing does not modify XFA packets. Remove or convert XFA before editing the AcroForm field tree.");
 
         var session = new PdfAcroFormEditSession();

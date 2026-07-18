@@ -8,7 +8,7 @@ namespace OfficeIMO.Examples.Pdf {
             if (!File.Exists(path)) {
                 BasicPdf.Example_Pdf_HelloWorld(folderPath, false);
             }
-            var doc = PdfReadDocument.Load(path);
+            var doc = PdfReadDocument.Open(path);
             var outPath = Path.Combine(folderPath, "HelloWorld.OfficeIMO.Pdf.spans.txt");
             using var sw = new StreamWriter(outPath);
             for (int i = 0; i < doc.Pages.Count; i++) {

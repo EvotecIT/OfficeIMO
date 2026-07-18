@@ -22,7 +22,7 @@ public partial class PdfDocumentVisualQualityTests {
             .ToBytes();
 
         string raw = Encoding.ASCII.GetString(bytes);
-        string text = PdfReadDocument.Load(bytes).ExtractText();
+        string text = PdfReadDocument.Open(bytes).ExtractText();
 
         Assert.Contains("Watermark proof", text);
         Assert.Contains("DRAFT", text);
@@ -46,7 +46,7 @@ public partial class PdfDocumentVisualQualityTests {
             })
             .ToBytes();
 
-        string text = PdfReadDocument.Load(bytes).ExtractText();
+        string text = PdfReadDocument.Open(bytes).ExtractText();
 
         Assert.Contains("SECTION", text);
         Assert.DoesNotContain("GLOBAL", text);
@@ -166,7 +166,7 @@ public partial class PdfDocumentVisualQualityTests {
             .Paragraph(p => p.Text("Second page body."))
             .ToBytes();
 
-        string text = PdfReadDocument.Load(bytes).ExtractText();
+        string text = PdfReadDocument.Open(bytes).ExtractText();
 
         Assert.Contains("FIRST", text);
         Assert.Equal(2, Regex.Matches(text, "DEFAULT HEADER").Count);
@@ -195,7 +195,7 @@ public partial class PdfDocumentVisualQualityTests {
             .Paragraph(p => p.Text("Page three body."))
             .ToBytes();
 
-        string text = PdfReadDocument.Load(bytes).ExtractText();
+        string text = PdfReadDocument.Open(bytes).ExtractText();
         string firstPageStream = Assert.Single(GetPageContentStreams(bytes, pageNumber: 1));
         string secondPageStream = Assert.Single(GetPageContentStreams(bytes, pageNumber: 2));
         string thirdPageStream = Assert.Single(GetPageContentStreams(bytes, pageNumber: 3));
@@ -222,7 +222,7 @@ public partial class PdfDocumentVisualQualityTests {
             })
             .ToBytes();
 
-        PdfReadDocument readDocument = PdfReadDocument.Load(bytes);
+        PdfReadDocument readDocument = PdfReadDocument.Open(bytes);
         string firstPageText = readDocument.Pages[0].ExtractText();
         string secondPageText = readDocument.Pages[1].ExtractText();
         string firstPageStream = Assert.Single(GetPageContentStreams(bytes, pageNumber: 1));
@@ -256,7 +256,7 @@ public partial class PdfDocumentVisualQualityTests {
             })
             .ToBytes();
 
-        PdfReadDocument readDocument = PdfReadDocument.Load(bytes);
+        PdfReadDocument readDocument = PdfReadDocument.Open(bytes);
         string text = readDocument.ExtractText();
         string firstPageText = readDocument.Pages[0].ExtractText();
 

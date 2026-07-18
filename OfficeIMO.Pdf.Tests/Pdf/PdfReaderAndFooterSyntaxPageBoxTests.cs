@@ -45,7 +45,7 @@ public partial class PdfReaderAndFooterRegressionTests {
     public void PdfReadPage_GetPageSize_InheritsMediaBoxFromPagesNode() {
         byte[] pdfBytes = BuildPdfWithInheritedMediaBox(500, 700);
 
-        var doc = PdfReadDocument.Load(pdfBytes);
+        var doc = PdfReadDocument.Open(pdfBytes);
 
         Assert.Single(doc.Pages);
         var (width, height) = doc.Pages[0].GetPageSize();
@@ -57,7 +57,7 @@ public partial class PdfReaderAndFooterRegressionTests {
     public void PdfReadPage_GetPageSize_PrefersCropBoxOverMediaBox() {
         byte[] pdfBytes = BuildPdfWithMediaAndCropBoxes(500, 700, 300, 400);
 
-        var doc = PdfReadDocument.Load(pdfBytes);
+        var doc = PdfReadDocument.Open(pdfBytes);
 
         Assert.Single(doc.Pages);
         var (width, height) = doc.Pages[0].GetPageSize();
@@ -69,7 +69,7 @@ public partial class PdfReaderAndFooterRegressionTests {
     public void PdfReadPage_GetPageSize_ReadsInheritedIndirectMediaBoxArrays() {
         byte[] pdfBytes = BuildPdfWithInheritedIndirectMediaBox(520, 710);
 
-        var doc = PdfReadDocument.Load(pdfBytes);
+        var doc = PdfReadDocument.Open(pdfBytes);
 
         Assert.Single(doc.Pages);
         var (width, height) = doc.Pages[0].GetPageSize();
@@ -81,7 +81,7 @@ public partial class PdfReaderAndFooterRegressionTests {
     public void PdfReadPage_GetPageSize_PrefersInheritedIndirectCropBoxArrays() {
         byte[] pdfBytes = BuildPdfWithInheritedIndirectCropBox(520, 710, 320, 410);
 
-        var doc = PdfReadDocument.Load(pdfBytes);
+        var doc = PdfReadDocument.Open(pdfBytes);
 
         Assert.Single(doc.Pages);
         var (width, height) = doc.Pages[0].GetPageSize();

@@ -578,7 +578,7 @@ public partial class Word {
     }
 
     private static string ReadPdfPageContent(byte[] bytes, int pageNumber = 1) {
-        var document = PdfCore.PdfReadDocument.Load(bytes);
+        var document = PdfCore.PdfReadDocument.Open(bytes);
         var (objects, _) = PdfCore.PdfSyntax.ParseObjects(bytes);
         int pageObjectNumber = document.Pages[pageNumber - 1].ObjectNumber;
         if (!objects.TryGetValue(pageObjectNumber, out PdfCore.PdfIndirectObject pageObject) ||

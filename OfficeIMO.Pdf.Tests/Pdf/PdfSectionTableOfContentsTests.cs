@@ -30,8 +30,8 @@ public class PdfSectionTableOfContentsTests {
             .ToBytes();
 
         PdfDocumentInfo info = PdfInspector.Inspect(bytes);
-        PdfLogicalDocument logical = PdfDocument.Load(bytes).Read.Logical();
-        IReadOnlyList<string> textByPage = PdfDocument.Load(bytes).Read.TextByPage();
+        PdfLogicalDocument logical = PdfDocument.Open(bytes).Read.Logical();
+        IReadOnlyList<string> textByPage = PdfDocument.Open(bytes).Read.TextByPage();
 
         Assert.Equal(3, info.PageCount);
         Assert.Equal(2, introduction.PageNumber);
@@ -61,7 +61,7 @@ public class PdfSectionTableOfContentsTests {
             .Section("Included", _ => { }, new PdfSectionOptions { Level = 2, StartOnNewPage = true })
             .ToBytes();
 
-        string firstPage = PdfDocument.Load(bytes).Read.TextByPage()[0];
+        string firstPage = PdfDocument.Open(bytes).Read.TextByPage()[0];
 
         Assert.DoesNotContain("Excluded", firstPage, StringComparison.Ordinal);
         Assert.Contains("Included", firstPage, StringComparison.Ordinal);
@@ -79,8 +79,8 @@ public class PdfSectionTableOfContentsTests {
             .ToBytes();
 
         PdfDocumentInfo info = PdfInspector.Inspect(bytes);
-        PdfLogicalDocument logical = PdfDocument.Load(bytes).Read.Logical();
-        IReadOnlyList<string> textByPage = PdfDocument.Load(bytes).Read.TextByPage();
+        PdfLogicalDocument logical = PdfDocument.Open(bytes).Read.Logical();
+        IReadOnlyList<string> textByPage = PdfDocument.Open(bytes).Read.TextByPage();
         string destination = Assert.Single(info.NamedDestinationNames);
 
         Assert.Equal(2, info.PageCount);
@@ -106,6 +106,6 @@ public class PdfSectionTableOfContentsTests {
         string secondDestination = Assert.Single(PdfInspector.Inspect(second).NamedDestinationNames);
         Assert.Equal("section-1", firstDestination);
         Assert.Equal(firstDestination, secondDestination);
-        Assert.NotEmpty(PdfDocument.Load(second).Read.Logical().GetLinksByDestinationName(secondDestination));
+        Assert.NotEmpty(PdfDocument.Open(second).Read.Logical().GetLinksByDestinationName(secondDestination));
     }
 }

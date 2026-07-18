@@ -1,7 +1,7 @@
 namespace OfficeIMO.Pdf;
 
 /// <summary>Dependency-free PDF diagnostics and optimization analysis.</summary>
-public static class PdfDiagnostics {
+internal static class PdfDiagnostics {
     private const long LargeStreamThresholdBytes = 1024L * 1024L;
     private const long UncompressedStreamThresholdBytes = 16L * 1024L;
 
@@ -12,83 +12,31 @@ public static class PdfDiagnostics {
         PdfDocumentProbe probe = PdfInspector.Probe(pdf);
         PdfDocumentPreflight preflight = PdfInspector.Preflight(pdf, options);
         PdfDocumentInfo? info = preflight.DocumentInfo;
-        var findings = new List<PdfDiagnosticFinding>();
-
-        AddPreflightFindings(preflight, findings);
-
-        var objectTypeCounts = new Dictionary<string, int>(StringComparer.Ordinal);
-        var streamTypeCounts = new Dictionary<string, int>(StringComparer.Ordinal);
-        var fonts = new List<PdfFontDiagnostic>();
-        var streams = new List<PdfStreamDiagnostic>();
-        bool objectGraphParsed = false;
-        string? objectGraphError = null;
 
         try {
             var (objects, _) = PdfSyntax.ParseObjects(pdf, options);
-            objectGraphParsed = true;
-            foreach (PdfIndirectObject indirect in objects.Values.OrderBy(item => item.ObjectNumber)) {
-                string objectKind = GetObjectKind(indirect.Value);
-                Increment(objectTypeCounts, objectKind);
-
-                if (indirect.Value is PdfStream stream) {
-                    PdfStreamDiagnostic streamDiagnostic = BuildStreamDiagnostic(indirect, stream);
-                    streams.Add(streamDiagnostic);
-                    Increment(streamTypeCounts, streamDiagnostic.Kind);
-                    AddStreamFindings(streamDiagnostic, findings);
-                } else if (indirect.Value is PdfDictionary dictionary &&
-                    string.Equals(dictionary.Get<PdfName>("Type")?.Name, "Font", StringComparison.Ordinal)) {
-                    PdfFontDiagnostic font = BuildFontDiagnostic(indirect, dictionary, objects);
-                    fonts.Add(font);
-                    if (font.RequiresEmbeddingReview) {
-                        findings.Add(new PdfDiagnosticFinding(
-                            PdfDiagnosticSeverity.Warning,
-                            "FontEmbeddingReview",
-                            "Font dictionary does not expose an embedded font file.",
-                            indirect.ObjectNumber));
-                    }
-
-                    if (font.RequiresToUnicodeReview) {
-                        findings.Add(new PdfDiagnosticFinding(
-                            PdfDiagnosticSeverity.Warning,
-                            "FontToUnicodeReview",
-                            "Composite or identity-encoded font dictionary does not expose a /ToUnicode CMap.",
-                            indirect.ObjectNumber));
-                    }
-                }
-            }
+            return BuildReport(probe, preflight, info, objects, objectGraphError: null);
         } catch (Exception ex) when (ex is not OutOfMemoryException && ex is not StackOverflowException) {
-            objectGraphError = ex.Message;
-            findings.Add(new PdfDiagnosticFinding(
-                preflight.ReadBlockers.Count > 0 ? PdfDiagnosticSeverity.Warning : PdfDiagnosticSeverity.Error,
-                "ObjectGraphParseFailed",
-                "PDF indirect objects could not be fully parsed: " + ex.Message));
+            return BuildReport(probe, preflight, info, objects: null, ex.Message);
         }
+    }
 
-        if (probe.HasEncryption) {
-            findings.Add(new PdfDiagnosticFinding(
-                PdfDiagnosticSeverity.Warning,
-                "EncryptionDetected",
-                "Encryption markers were detected. OfficeIMO.Pdf can read Standard password-encrypted PDFs with a valid password; general rewrites remain blocked while the dedicated owner-authorized security editor supports unsigned decrypt/re-encrypt workflows."));
-        }
+    internal static PdfDiagnosticReport Analyze(
+        byte[] pdf,
+        PdfReadDocument document,
+        PdfDocumentInfo info,
+        PdfDocumentPreflight preflight) {
+        Guard.NotNull(pdf, nameof(pdf));
+        Guard.NotNull(document, nameof(document));
+        Guard.NotNull(info, nameof(info));
+        Guard.NotNull(preflight, nameof(preflight));
 
-        if (probe.HasActiveContent) {
-            findings.Add(new PdfDiagnosticFinding(
-                PdfDiagnosticSeverity.Warning,
-                "ActiveContentDetected",
-                "Active content markers were detected. Review JavaScript, launch actions, and catalog actions before automated processing."));
-        }
-
-        return new PdfDiagnosticReport(
-            probe,
+        return BuildReport(
+            PdfInspector.Probe(pdf, document),
             preflight,
             info,
-            new SortedDictionary<string, int>(objectTypeCounts, StringComparer.Ordinal),
-            new SortedDictionary<string, int>(streamTypeCounts, StringComparer.Ordinal),
-            fonts.AsReadOnly(),
-            streams.AsReadOnly(),
-            findings.AsReadOnly(),
-            objectGraphParsed,
-            objectGraphError);
+            document.Objects,
+            objectGraphError: null);
     }
 
     /// <summary>Analyzes a PDF file.</summary>
@@ -203,6 +151,85 @@ public static class PdfDiagnostics {
                 "RewriteBlocker." + blocker.Kind,
                 blocker.Message));
         }
+    }
+
+    private static PdfDiagnosticReport BuildReport(
+        PdfDocumentProbe probe,
+        PdfDocumentPreflight preflight,
+        PdfDocumentInfo? info,
+        Dictionary<int, PdfIndirectObject>? objects,
+        string? objectGraphError) {
+        var findings = new List<PdfDiagnosticFinding>();
+        AddPreflightFindings(preflight, findings);
+
+        var objectTypeCounts = new Dictionary<string, int>(StringComparer.Ordinal);
+        var streamTypeCounts = new Dictionary<string, int>(StringComparer.Ordinal);
+        var fonts = new List<PdfFontDiagnostic>();
+        var streams = new List<PdfStreamDiagnostic>();
+        bool objectGraphParsed = objects != null;
+        if (objects != null) {
+            foreach (PdfIndirectObject indirect in objects.Values.OrderBy(item => item.ObjectNumber)) {
+                string objectKind = GetObjectKind(indirect.Value);
+                Increment(objectTypeCounts, objectKind);
+
+                if (indirect.Value is PdfStream stream) {
+                    PdfStreamDiagnostic streamDiagnostic = BuildStreamDiagnostic(indirect, stream);
+                    streams.Add(streamDiagnostic);
+                    Increment(streamTypeCounts, streamDiagnostic.Kind);
+                    AddStreamFindings(streamDiagnostic, findings);
+                } else if (indirect.Value is PdfDictionary dictionary &&
+                    string.Equals(dictionary.Get<PdfName>("Type")?.Name, "Font", StringComparison.Ordinal)) {
+                    PdfFontDiagnostic font = BuildFontDiagnostic(indirect, dictionary, objects);
+                    fonts.Add(font);
+                    if (font.RequiresEmbeddingReview) {
+                        findings.Add(new PdfDiagnosticFinding(
+                            PdfDiagnosticSeverity.Warning,
+                            "FontEmbeddingReview",
+                            "Font dictionary does not expose an embedded font file.",
+                            indirect.ObjectNumber));
+                    }
+
+                    if (font.RequiresToUnicodeReview) {
+                        findings.Add(new PdfDiagnosticFinding(
+                            PdfDiagnosticSeverity.Warning,
+                            "FontToUnicodeReview",
+                            "Composite or identity-encoded font dictionary does not expose a /ToUnicode CMap.",
+                            indirect.ObjectNumber));
+                    }
+                }
+            }
+        } else {
+            findings.Add(new PdfDiagnosticFinding(
+                preflight.ReadBlockers.Count > 0 ? PdfDiagnosticSeverity.Warning : PdfDiagnosticSeverity.Error,
+                "ObjectGraphParseFailed",
+                "PDF indirect objects could not be fully parsed: " + objectGraphError));
+        }
+
+        if (probe.HasEncryption) {
+            findings.Add(new PdfDiagnosticFinding(
+                PdfDiagnosticSeverity.Warning,
+                "EncryptionDetected",
+                "Encryption markers were detected. OfficeIMO.Pdf can read Standard password-encrypted PDFs with a valid password; general rewrites remain blocked while the dedicated owner-authorized security editor supports unsigned decrypt/re-encrypt workflows."));
+        }
+
+        if (probe.HasActiveContent) {
+            findings.Add(new PdfDiagnosticFinding(
+                PdfDiagnosticSeverity.Warning,
+                "ActiveContentDetected",
+                "Active content markers were detected. Review JavaScript, launch actions, and catalog actions before automated processing."));
+        }
+
+        return new PdfDiagnosticReport(
+            probe,
+            preflight,
+            info,
+            new SortedDictionary<string, int>(objectTypeCounts, StringComparer.Ordinal),
+            new SortedDictionary<string, int>(streamTypeCounts, StringComparer.Ordinal),
+            fonts.AsReadOnly(),
+            streams.AsReadOnly(),
+            findings.AsReadOnly(),
+            objectGraphParsed,
+            objectGraphError);
     }
 
     private static void AddStreamFindings(PdfStreamDiagnostic stream, List<PdfDiagnosticFinding> findings) {

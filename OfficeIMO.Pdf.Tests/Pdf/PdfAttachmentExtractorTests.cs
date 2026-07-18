@@ -20,7 +20,7 @@ public class PdfAttachmentExtractorTests {
             .ToBytes();
 
         IReadOnlyList<PdfExtractedAttachment> attachments = PdfAttachmentExtractor.ExtractAttachments(pdf);
-        IReadOnlyList<PdfExtractedAttachment> documentAttachments = PdfReadDocument.Load(pdf).ExtractAttachments();
+        IReadOnlyList<PdfExtractedAttachment> documentAttachments = PdfReadDocument.Open(pdf).ExtractAttachments();
 
         Assert.Equal(2, attachments.Count);
         Assert.Equal(2, documentAttachments.Count);

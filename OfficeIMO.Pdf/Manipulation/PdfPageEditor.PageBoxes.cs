@@ -1,6 +1,6 @@
 namespace OfficeIMO.Pdf;
 
-public static partial class PdfPageEditor {
+internal static partial class PdfPageEditor {
     /// <summary>Creates a new PDF with the selected pages updated to the supplied typed boundary box.</summary>
     public static byte[] SetPageBox(byte[] pdf, PdfPageBoundaryBox box, double left, double bottom, double right, double top, params int[] pageNumbers) {
         return SetPageBox(pdf, GetPageBoxName(box), left, bottom, right, top, pageNumbers);
@@ -37,7 +37,7 @@ public static partial class PdfPageEditor {
         _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.ModifyPageTree);
 
         var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf);
-        var document = PdfReadDocument.Load(pdf);
+        var document = PdfReadDocument.Open(pdf);
         var selectedPages = pageNumbers.Length == 0
             ? Enumerable.Range(1, document.Pages.Count).ToArray()
             : pageNumbers;

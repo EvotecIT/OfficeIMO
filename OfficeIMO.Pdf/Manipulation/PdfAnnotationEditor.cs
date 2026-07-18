@@ -2,7 +2,7 @@ using OfficeIMO.Drawing.Internal;
 namespace OfficeIMO.Pdf;
 
 /// <summary>Edits or removes PDF annotations without third-party dependencies.</summary>
-public static partial class PdfAnnotationEditor {
+internal static partial class PdfAnnotationEditor {
     private static readonly HashSet<string> KnownAnnotationSubtypes = new HashSet<string>(StringComparer.OrdinalIgnoreCase) {
         "Text",
         "Link",
@@ -120,7 +120,7 @@ public static partial class PdfAnnotationEditor {
         }
 
         PdfObjectGraphPruner.PruneUnreachableObjects(objects, catalogObjectNumber);
-        byte[] rewritten = RewriteAllObjects(objects, catalogObjectNumber, PdfReadDocument.Load(pdf, readOptions).Metadata, pdf);
+        byte[] rewritten = RewriteAllObjects(objects, catalogObjectNumber, PdfReadDocument.Open(pdf, readOptions).Metadata, pdf);
         return CreateFullRewriteResult(pdf, rewritten, Math.Max(removed.Count, 1), mutationPlan, annotationsChanged: true);
     }
 
@@ -159,7 +159,7 @@ public static partial class PdfAnnotationEditor {
 
         IReadOnlyList<int> changedObjects = ApplyUpdates(objects, annotation, options);
         PdfObjectGraphPruner.PruneUnreachableObjects(objects, catalogObjectNumber);
-        byte[] rewritten = RewriteAllObjects(objects, catalogObjectNumber, PdfReadDocument.Load(pdf, readOptions).Metadata, pdf);
+        byte[] rewritten = RewriteAllObjects(objects, catalogObjectNumber, PdfReadDocument.Open(pdf, readOptions).Metadata, pdf);
         return CreateFullRewriteResult(pdf, rewritten, 1, mutationPlan, annotationsChanged: false);
     }
 

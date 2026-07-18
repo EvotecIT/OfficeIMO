@@ -1,6 +1,6 @@
 namespace OfficeIMO.Pdf;
 
-public static partial class PdfFormFiller {
+internal static partial class PdfFormFiller {
     private static void SetWidgetAppearanceStates(Dictionary<int, PdfIndirectObject> objects, PdfDictionary field, string name, bool isRadioButtonGroup, HashSet<int> visited, ref int nextObjectNumber) {
         if (IsWidget(field)) {
             string appearanceState = isRadioButtonGroup && !HasButtonNormalAppearanceState(objects, field, name) ? "Off" : name;

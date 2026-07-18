@@ -23,7 +23,7 @@ public partial class PdfPageEditorTests {
         Assert.Equal(90, info.Pages[1].RotationDegrees);
         Assert.Equal(0, info.Pages[2].RotationDegrees);
 
-        string text = NormalizeExtractedText(PdfReadDocument.Load(edited).ExtractText());
+        string text = NormalizeExtractedText(PdfReadDocument.Open(edited).ExtractText());
         Assert.Contains("Firstpagemarker", text);
         Assert.Contains("Secondpagemarker", text);
         Assert.Contains("Thirdpagemarker", text);
@@ -52,7 +52,7 @@ public partial class PdfPageEditorTests {
         Assert.Equal(180, info.Pages[1].RotationDegrees);
         Assert.Equal(180, info.Pages[2].RotationDegrees);
 
-        string text = NormalizeExtractedText(PdfReadDocument.Load(edited).ExtractText());
+        string text = NormalizeExtractedText(PdfReadDocument.Open(edited).ExtractText());
         Assert.Contains("Firstpagemarker", text);
         Assert.Contains("Secondpagemarker", text);
         Assert.Contains("Thirdpagemarker", text);
@@ -69,7 +69,7 @@ public partial class PdfPageEditorTests {
         Assert.Equal(90, info.Pages[1].RotationDegrees);
         Assert.Equal(0, info.Pages[2].RotationDegrees);
 
-        string text = NormalizeExtractedText(PdfReadDocument.Load(edited).ExtractText());
+        string text = NormalizeExtractedText(PdfReadDocument.Open(edited).ExtractText());
         Assert.Contains("Firstpagemarker", text);
         Assert.Contains("Secondpagemarker", text);
         Assert.Contains("Thirdpagemarker", text);

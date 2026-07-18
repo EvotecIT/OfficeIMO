@@ -11,7 +11,7 @@ public class PdfFormDataTests {
             .MultiSelectChoiceField("Regions", new[] { "EU", "US", "APAC" }, new[] { "EU", "APAC" })
             .ToBytes();
 
-        string xfdf = PdfDocument.Load(source).Forms.ExportXfdf();
+        string xfdf = PdfDocument.Open(source).Forms.ExportXfdf();
         PdfFormDataSet parsed = PdfFormDataSet.ParseXfdf(xfdf);
 
         Assert.Equal(2, parsed.Fields.Count);
@@ -25,7 +25,7 @@ public class PdfFormDataTests {
         byte[] source = PdfDocument.Create().TextField("Customer.Name", value: "Before").ToBytes();
         var data = new PdfFormDataSet(new[] { new PdfFormDataField("Customer.Name", new[] { "After" }) });
 
-        PdfDocument updated = PdfDocument.Load(source).Forms.ImportXfdf(data.ToXfdf());
+        PdfDocument updated = PdfDocument.Open(source).Forms.ImportXfdf(data.ToXfdf());
         PdfFormField field = Assert.Single(updated.Read.DocumentInfo().FormFields);
 
         Assert.Equal("After", field.Value);

@@ -9,7 +9,7 @@ public class PdfAnnotationCreationTests {
     public void AddAnnotation_CreatesLineGeometryAppearanceAndPopupOnExistingPage() {
         byte[] source = PdfDocument.Create().Paragraph(p => p.Text("Existing page")).ToBytes();
 
-        PdfAnnotationEditResult result = PdfDocument.Load(source).Annotations.Add(new PdfAnnotationCreateOptions {
+        PdfAnnotationEditResult result = PdfDocument.Open(source).Annotations.Add(new PdfAnnotationCreateOptions {
             Subtype = "Line",
             Rectangle = new[] { 40D, 50D, 180D, 100D },
             Line = new[] { 40D, 50D, 180D, 100D },
@@ -82,15 +82,15 @@ public class PdfAnnotationCreationTests {
             .ToBytes();
         var readOptions = new PdfReadOptions { Password = "owner" };
 
-        PdfAnnotationEditResult added = PdfDocument.Load(source, readOptions).Annotations.Add(new PdfAnnotationCreateOptions {
+        PdfAnnotationEditResult added = PdfDocument.Open(source, readOptions).Annotations.Add(new PdfAnnotationCreateOptions {
             Subtype = "Text",
             Contents = "Encrypted note"
         });
         PdfAnnotation annotation = Assert.Single(PdfInspector.Inspect(added.Bytes, readOptions).GetAnnotationsBySubtype("Text"));
-        PdfAnnotationEditResult updated = PdfDocument.Load(added.Bytes, readOptions).Annotations.Update(
+        PdfAnnotationEditResult updated = PdfDocument.Open(added.Bytes, readOptions).Annotations.Update(
             annotation.ObjectNumber!.Value,
             new PdfAnnotationUpdateOptions { Contents = "Updated encrypted note" });
-        PdfAnnotationEditResult removed = PdfDocument.Load(updated.Bytes, readOptions).Annotations.Remove(
+        PdfAnnotationEditResult removed = PdfDocument.Open(updated.Bytes, readOptions).Annotations.Remove(
             new PdfAnnotationRemovalOptions { ObjectNumber = annotation.ObjectNumber });
 
         Assert.Equal(PdfMutationExecutionMode.AppendOnly, added.MutationPlan.ExecutionMode);
@@ -107,7 +107,7 @@ public class PdfAnnotationCreationTests {
             .ToBytes();
 
         PdfMutationBlockedException exception = Assert.Throws<PdfMutationBlockedException>(() =>
-            PdfDocument.Load(source, new PdfReadOptions { Password = "owner" }).Annotations.Flatten());
+            PdfDocument.Open(source, new PdfReadOptions { Password = "owner" }).Annotations.Flatten());
 
         Assert.True(exception.Plan.Preflight.CanRead);
         Assert.True(exception.Plan.Preflight.Probe.Security.HasOwnerAuthorization);
@@ -123,7 +123,7 @@ public class PdfAnnotationCreationTests {
             .ToBytes();
         int freeTextObject = Assert.Single(PdfInspector.Inspect(source).GetAnnotationsBySubtype("FreeText")).ObjectNumber!.Value;
 
-        PdfAnnotationEditResult result = PdfDocument.Load(source).Annotations.Flatten(new PdfAnnotationFlattenOptions { ObjectNumber = freeTextObject });
+        PdfAnnotationEditResult result = PdfDocument.Open(source).Annotations.Flatten(new PdfAnnotationFlattenOptions { ObjectNumber = freeTextObject });
         PdfDocumentInfo info = PdfInspector.Inspect(result.Bytes);
 
         Assert.Equal(1, result.AffectedAnnotationCount);

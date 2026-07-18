@@ -1,6 +1,6 @@
 namespace OfficeIMO.Pdf;
 
-public static partial class PdfFormFiller {
+internal static partial class PdfFormFiller {
     private static byte[] RewriteAllObjects(Dictionary<int, PdfIndirectObject> objects, int catalogObjectNumber, PdfMetadata metadata, byte[] sourcePdf) {
         var sourceIds = objects.Keys.OrderBy(id => id).ToArray();
         var numberMap = new Dictionary<int, int>(sourceIds.Length);

@@ -158,6 +158,8 @@ internal static class TextContentParser {
         int operationCount = 0;
         // Kerning state between text runs in TJ arrays (points) and rolling output buffer for gap checks
         double pendingGapPt = 0;
+        int pendingLineBreaks = 0;
+        bool emittedTextInTextObject = false;
         var sbOutGlobal = new StringBuilder();
         var markedContentStack = new Stack<MarkedContentState>();
         while (i < n) {
@@ -185,8 +187,8 @@ internal static class TextContentParser {
             }
 
             switch (op) {
-                case "BT": inText = true; textMatrix = Matrix2D.Identity; lineMatrix = Matrix2D.Identity; pendingGapPt = 0; args.Clear(); break;
-                case "ET": inText = false; pendingGapPt = 0; args.Clear(); break;
+                case "BT": inText = true; textMatrix = Matrix2D.Identity; lineMatrix = Matrix2D.Identity; pendingGapPt = 0; pendingLineBreaks = 0; emittedTextInTextObject = false; args.Clear(); break;
+                case "ET": inText = false; pendingGapPt = 0; pendingLineBreaks = 0; emittedTextInTextObject = false; args.Clear(); break;
                 case "Tf": if (args.Count >= 2) { size = ToDouble(args[args.Count - 1]); font = ToName(args[args.Count - 2]); args.Clear(); } break;
                 case "Tm": if (args.Count >= 6) { SetTextMatrix(args); args.Clear(); } break;
                 case "Td": if (args.Count >= 2) { MoveTextLine(ToDouble(args[args.Count - 2]), ToDouble(args[args.Count - 1])); args.Clear(); } break;
@@ -464,18 +466,25 @@ internal static class TextContentParser {
                 ToDouble(operands[operands.Count - 1]));
             textMatrix = lineMatrix;
             pendingGapPt = 0;
+            pendingLineBreaks = 0;
         }
 
         void MoveTextLine(double tx, double ty) {
             lineMatrix = Matrix2D.Multiply(lineMatrix, Matrix2D.Translation(tx, ty));
             textMatrix = lineMatrix;
             pendingGapPt = 0;
+            if (emittedTextInTextObject && Math.Abs(ty) > 0.000001D) {
+                pendingLineBreaks++;
+            }
         }
 
         void MoveToNextTextLine() {
             lineMatrix = Matrix2D.Multiply(lineMatrix, Matrix2D.Translation(0, -leading));
             textMatrix = lineMatrix;
             pendingGapPt = 0;
+            if (emittedTextInTextObject) {
+                pendingLineBreaks++;
+            }
         }
 
         double GetPaintOrder(int operatorIndex) => paintOrderBase + ((operatorIndex + paintOrderOffset) * paintOrderScale);
@@ -545,7 +554,7 @@ internal static class TextContentParser {
             bool isHidden = HasActiveHiddenContent();
             bool isVisibleText = IsTextRenderingModeVisible(textRenderingMode);
             if (sbOut.Length == 0 && actualTextState is null && !isArtifact && !isHidden) return;
-            string textOut = NormalizeShatteredSpan(sbOut.ToString());
+            string textOut = sbOut.ToString();
             var textOrigin = textMatrix.Transform(0, textRise);
             var (dx, dy) = ctm.Transform(textOrigin.X, textOrigin.Y);
             var textEnd = textMatrix.Transform(advTotal, textRise);
@@ -563,12 +572,10 @@ internal static class TextContentParser {
                 textOut = actualTextState.ActualText;
                 actualTextState.ActualTextEmitted = true;
                 if (textOut.Length > 0) {
-                    spans.Add(new PdfTextSpan(textOut, font, size, dx, dy, transformedAdvance, visibleColor, isVisibleText, rotationDegrees, baseFontForResource?.Invoke(font), spanClipPath, paintOrder, drawingFontFamilyForResource?.Invoke(font)));
-                    sbOutGlobal.Append(textOut);
+                    AddTextSpan(textOut);
                 }
             } else if (actualTextState is null && textOut.Length > 0) {
-                spans.Add(new PdfTextSpan(textOut, font, size, dx, dy, transformedAdvance, visibleColor, isVisibleText, rotationDegrees, baseFontForResource?.Invoke(font), spanClipPath, paintOrder, drawingFontFamilyForResource?.Invoke(font)));
-                sbOutGlobal.Append(textOut);
+                AddTextSpan(textOut);
             }
 
             if (!isHidden) {
@@ -576,6 +583,36 @@ internal static class TextContentParser {
             }
 
             textMatrix = Matrix2D.Multiply(textMatrix, Matrix2D.Translation(advTotal, 0));
+
+            void AddTextSpan(string rawText) {
+                bool logicalLeadingSpace = char.IsWhiteSpace(rawText[0]);
+                bool logicalTrailingSpace = char.IsWhiteSpace(rawText[rawText.Length - 1]);
+                string normalizedText = NormalizeShatteredSpan(rawText);
+                if (normalizedText.Length == 0) {
+                    return;
+                }
+
+                spans.Add(new PdfTextSpan(
+                    normalizedText,
+                    font,
+                    size,
+                    dx,
+                    dy,
+                    transformedAdvance,
+                    visibleColor,
+                    isVisibleText,
+                    rotationDegrees,
+                    baseFontForResource?.Invoke(font),
+                    spanClipPath,
+                    paintOrder,
+                    drawingFontFamilyForResource?.Invoke(font),
+                    pendingLineBreaks,
+                    logicalLeadingSpace,
+                    logicalTrailingSpace));
+                sbOutGlobal.Append(normalizedText);
+                emittedTextInTextObject = true;
+                pendingLineBreaks = 0;
+            }
         }
 
         void ApplyTextClippingPath(double advance) {

@@ -32,7 +32,7 @@ public sealed partial class HtmlRenderingTests {
         };
         byte[] pdf = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(pdfOptions);
         string rawPdf = Encoding.ASCII.GetString(pdf);
-        string pdfText = string.Concat(PdfCore.PdfReadDocument.Load(pdf).ExtractText().Where(character => !char.IsWhiteSpace(character)));
+        string pdfText = string.Concat(PdfCore.PdfReadDocument.Open(pdf).ExtractText().Where(character => !char.IsWhiteSpace(character)));
 
         Assert.NotNull(carrier.Shape.Shadow);
         Assert.Equal(4D, carrier.Shape.Shadow!.BlurRadius, 3);

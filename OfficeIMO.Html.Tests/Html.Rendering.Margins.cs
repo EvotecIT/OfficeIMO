@@ -102,7 +102,7 @@ public sealed partial class HtmlRenderingTests {
             BackgroundColor = OfficeColor.Transparent
         };
         byte[] pdf = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(pdfOptions);
-        string pdfText = string.Concat(PdfCore.PdfReadDocument.Load(pdf).ExtractText().Where(character => !char.IsWhiteSpace(character)));
+        string pdfText = string.Concat(PdfCore.PdfReadDocument.Open(pdf).ExtractText().Where(character => !char.IsWhiteSpace(character)));
 
         Assert.Equal(0D, first.Y, 3);
         Assert.Equal(25D, second.Y, 3);
@@ -111,7 +111,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.True(raster.GetPixel(5, 25).B > raster.GetPixel(5, 25).R);
         Assert.Contains("y=\"25\"", svg, StringComparison.Ordinal);
         Assert.Contains("GapPdf", pdfText, StringComparison.Ordinal);
-        Assert.Single(PdfCore.PdfReadDocument.Load(pdf).Pages);
+        Assert.Single(PdfCore.PdfReadDocument.Open(pdf).Pages);
         Assert.DoesNotContain(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfDocumentResult(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
     }
 }

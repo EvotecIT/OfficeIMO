@@ -32,7 +32,7 @@ public sealed partial class HtmlRenderingTests {
             Margins = HtmlRenderMargins.All(0D),
             BackgroundColor = OfficeColor.Transparent
         };
-        string pdfText = string.Concat(PdfCore.PdfReadDocument.Load(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(pdfOptions)).ExtractText().Where(character => !char.IsWhiteSpace(character)));
+        string pdfText = string.Concat(PdfCore.PdfReadDocument.Open(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(pdfOptions)).ExtractText().Where(character => !char.IsWhiteSpace(character)));
 
         Assert.Equal(OfficeStrokeDashStyle.Dash, border.Shape.StrokeDashStyle);
         Assert.Equal(OfficeColor.Red, border.Shape.StrokeColor);
@@ -145,7 +145,7 @@ public sealed partial class HtmlRenderingTests {
             Margins = HtmlRenderMargins.All(0D),
             BackgroundColor = OfficeColor.Transparent
         };
-        string pdfText = string.Concat(PdfCore.PdfReadDocument.Load(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(pdfOptions)).ExtractText().Where(character => !char.IsWhiteSpace(character)));
+        string pdfText = string.Concat(PdfCore.PdfReadDocument.Open(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(pdfOptions)).ExtractText().Where(character => !char.IsWhiteSpace(character)));
         HtmlDiagnostic borderDiagnostic = Assert.Single(rendered.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.BorderPaintValueUnsupported);
         HtmlDiagnostic outlineDiagnostic = Assert.Single(rendered.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.OutlinePaintValueUnsupported);
 
@@ -211,7 +211,7 @@ public sealed partial class HtmlRenderingTests {
             BackgroundColor = OfficeColor.Transparent
         };
         byte[] pdf = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(pdfOptions);
-        string pdfText = string.Concat(PdfCore.PdfReadDocument.Load(pdf).ExtractText().Where(character => !char.IsWhiteSpace(character)));
+        string pdfText = string.Concat(PdfCore.PdfReadDocument.Open(pdf).ExtractText().Where(character => !char.IsWhiteSpace(character)));
 
         Assert.Equal(2, shapes.Count);
         Assert.All(shapes, shape => {
@@ -250,7 +250,7 @@ public sealed partial class HtmlRenderingTests {
             Margins = HtmlRenderMargins.All(0D),
             BackgroundColor = OfficeColor.Transparent
         };
-        string pdfText = string.Concat(PdfCore.PdfReadDocument.Load(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(pdfOptions)).ExtractText().Where(character => !char.IsWhiteSpace(character)));
+        string pdfText = string.Concat(PdfCore.PdfReadDocument.Open(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(pdfOptions)).ExtractText().Where(character => !char.IsWhiteSpace(character)));
 
         Assert.True(shapes.Count >= 5);
         Assert.All(shapes, shape => Assert.Equal(OfficeShapeKind.Path, shape.Shape.Kind));

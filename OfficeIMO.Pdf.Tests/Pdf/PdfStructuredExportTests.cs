@@ -62,7 +62,7 @@ public class PdfStructuredExportTests {
             .Paragraph(paragraph => paragraph.Text("Fluent structured output"))
             .ToBytes();
 
-        string json = PdfDocument.Load(source).Read.ExportStructured(PdfStructuredExportFormat.Json);
+        string json = PdfDocument.Open(source).Read.ExportStructured(PdfStructuredExportFormat.Json);
 
         Assert.Contains("Fluent structured output", json, StringComparison.Ordinal);
     }
@@ -74,7 +74,7 @@ public class PdfStructuredExportTests {
             .ToBytes();
         var readOptions = new PdfReadOptions { Password = "owner" };
 
-        string json = PdfDocument.Load(source, readOptions).Read.ExportStructured(PdfStructuredExportFormat.Json);
+        string json = PdfDocument.Open(source, readOptions).Read.ExportStructured(PdfStructuredExportFormat.Json);
 
         Assert.Contains("Encrypted structured output", json, StringComparison.Ordinal);
     }

@@ -1,6 +1,6 @@
 namespace OfficeIMO.Pdf;
 
-public static partial class PdfComplianceAnalyzer {
+internal static partial class PdfComplianceAnalyzer {
     private static readonly string[] ElectronicInvoiceTaxCategoryCodes = {
         "AE",
         "E",

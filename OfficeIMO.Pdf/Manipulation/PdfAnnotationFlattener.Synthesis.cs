@@ -1,6 +1,6 @@
 namespace OfficeIMO.Pdf;
 
-public static partial class PdfAnnotationFlattener {
+internal static partial class PdfAnnotationFlattener {
     internal static int RegenerateNormalAppearance(Dictionary<int, PdfIndirectObject> objects, PdfDictionary annotation) {
         string subtype = TryReadName(objects, annotation, "Subtype") ?? throw new NotSupportedException(UnsupportedVisualAnnotationMessage);
         if (!IsSupportedVisualAnnotation(subtype) || !TryReadRectCoordinates(objects, annotation, out double x, out double y, out double width, out double height)) {

@@ -1,6 +1,6 @@
 namespace OfficeIMO.Pdf;
 
-public static partial class PdfMerger {
+internal static partial class PdfMerger {
     private static byte[] ApplyNamedDestinationPolicy(
         byte[] merged,
         IReadOnlyList<ImportedSource> sources,
@@ -190,7 +190,7 @@ public static partial class PdfMerger {
         byte[] merged,
         IReadOnlyList<MergedNamedDestination>? destinations,
         IReadOnlyList<MergedPageLabel>? labels) {
-        PdfReadDocument document = PdfReadDocument.Load(merged);
+        PdfReadDocument document = PdfReadDocument.Open(merged);
         return PdfDocumentObjectGraphRewriter.Rewrite(merged, null, null, (objects, security) => {
             PdfDictionary catalog = RequireCatalog(objects, security);
             if (destinations is not null) RewriteNamedDestinationCatalog(objects, catalog, document, destinations);
@@ -205,7 +205,7 @@ public static partial class PdfMerger {
         Dictionary<int, Dictionary<string, string>>? renamesByPage,
         Dictionary<int, HashSet<string>>? droppedByPage,
         bool removeNamedDestinationLinks) {
-        PdfReadDocument document = PdfReadDocument.Load(merged);
+        PdfReadDocument document = PdfReadDocument.Open(merged);
         return PdfDocumentObjectGraphRewriter.Rewrite(merged, null, null, (objects, security) => {
             PdfDictionary catalog = RequireCatalog(objects, security);
             RewriteNamedDestinationCatalog(objects, catalog, document, destinations);
@@ -216,7 +216,7 @@ public static partial class PdfMerger {
 
     private static byte[] RewriteNamedDestinationLinksOnly(byte[] merged, HashSet<int> removeAllOnPages) {
         if (removeAllOnPages.Count == 0) return merged;
-        PdfReadDocument document = PdfReadDocument.Load(merged);
+        PdfReadDocument document = PdfReadDocument.Open(merged);
         return PdfDocumentObjectGraphRewriter.Rewrite(merged, null, null, (objects, security) => {
             RewriteNamedDestinationLinks(objects, document, null, null, removeAll: false, removeAllOnPages: removeAllOnPages);
             return security.InfoObjectNumber.HasValue && objects.ContainsKey(security.InfoObjectNumber.Value) ? security.InfoObjectNumber : null;
@@ -362,7 +362,7 @@ public static partial class PdfMerger {
     private static PdfDictionary? ResolveDictionary(Dictionary<int, PdfIndirectObject> objects, PdfObject? value) => ResolveObject(objects, value) as PdfDictionary;
 
     private static void ValidateNamedDestinations(byte[] merged, IReadOnlyList<MergedNamedDestination> expected) {
-        IReadOnlyList<PdfNamedDestination> actual = PdfReadDocument.Load(merged).NamedDestinations;
+        IReadOnlyList<PdfNamedDestination> actual = PdfReadDocument.Open(merged).NamedDestinations;
         if (actual.Count != expected.Count) throw new InvalidOperationException("PDF named-destination merge validation failed; the artifact was not returned.");
         foreach (MergedNamedDestination destination in expected) {
             PdfNamedDestination? found = actual.SingleOrDefault(item => string.Equals(item.Name, destination.Name, StringComparison.Ordinal));
@@ -371,7 +371,7 @@ public static partial class PdfMerger {
     }
 
     private static void ValidatePageLabels(byte[] merged, IReadOnlyList<MergedPageLabel> expected) {
-        IReadOnlyList<PdfPageLabel> actual = PdfReadDocument.Load(merged).PageLabels;
+        IReadOnlyList<PdfPageLabel> actual = PdfReadDocument.Open(merged).PageLabels;
         if (actual.Count != expected.Count) throw new InvalidOperationException("PDF page-label merge validation failed; the artifact was not returned.");
         for (int i = 0; i < expected.Count; i++) {
             if (actual[i].StartPageIndex != expected[i].StartPageIndex || actual[i].Style != expected[i].Style || actual[i].Prefix != expected[i].Prefix || actual[i].StartNumber != expected[i].StartNumber) {

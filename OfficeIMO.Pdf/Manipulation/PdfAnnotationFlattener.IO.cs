@@ -1,6 +1,6 @@
 namespace OfficeIMO.Pdf;
 
-public static partial class PdfAnnotationFlattener {
+internal static partial class PdfAnnotationFlattener {
     private static byte[] ReadStream(Stream stream, string paramName) {
         Guard.NotNull(stream, paramName);
         if (!stream.CanRead) {

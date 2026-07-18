@@ -7,7 +7,7 @@ namespace OfficeIMO.Pdf;
 /// <summary>
 /// Extracts embedded file attachments from PDFs that can be parsed by OfficeIMO.Pdf.
 /// </summary>
-public static class PdfAttachmentExtractor {
+internal static class PdfAttachmentExtractor {
     /// <summary>Extracts only attachments accepted by the caller predicate.</summary>
     public static IReadOnlyList<PdfExtractedAttachment> ExtractAttachments(byte[] pdf, Func<PdfExtractedAttachment, bool> predicate) {
         Guard.NotNull(predicate, nameof(predicate));

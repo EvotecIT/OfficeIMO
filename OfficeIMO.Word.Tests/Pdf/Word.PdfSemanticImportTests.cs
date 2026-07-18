@@ -162,7 +162,7 @@ public partial class Word {
             .H1("Loaded Second Page Marker")
             .Paragraph(paragraph => paragraph.Text("Loaded selected page body."))
             .ToBytes();
-        PdfCore.PdfReadDocument readDocument = PdfCore.PdfReadDocument.Load(pdf);
+        PdfCore.PdfReadDocument readDocument = PdfCore.PdfReadDocument.Open(pdf);
         PdfCore.PdfLogicalDocument logical = PdfCore.PdfLogicalDocument.FromPageRanges(
             readDocument,
             CreateSemanticLayoutOptions(),

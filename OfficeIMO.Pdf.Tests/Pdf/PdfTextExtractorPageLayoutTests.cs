@@ -42,7 +42,7 @@ public partial class PdfTextExtractorPageTests {
             .ToBytes();
 
         PdfTextSpan span = Assert.Single(
-            PdfReadDocument.Load(pdf)
+            PdfReadDocument.Open(pdf)
                 .Pages[0]
                 .GetTextSpans(),
             item => item.Text == "WWWW");
@@ -61,7 +61,7 @@ public partial class PdfTextExtractorPageTests {
             .ToBytes();
 
         PdfTextSpan span = Assert.Single(
-            PdfReadDocument.Load(pdf)
+            PdfReadDocument.Open(pdf)
                 .Pages[0]
                 .GetTextSpans(),
             item => item.Text == text);
@@ -80,7 +80,7 @@ public partial class PdfTextExtractorPageTests {
             .ToBytes();
 
         PdfTextSpan span = Assert.Single(
-            PdfReadDocument.Load(pdf)
+            PdfReadDocument.Open(pdf)
                 .Pages[0]
                 .GetTextSpans(),
             item => item.Text == text);

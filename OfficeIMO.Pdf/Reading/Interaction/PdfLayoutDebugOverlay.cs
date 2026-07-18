@@ -3,7 +3,7 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Pdf;
 
 /// <summary>Creates dependency-free word, line, region, and reading-order overlays through OfficeIMO.Drawing.</summary>
-public static class PdfLayoutDebugOverlay {
+internal static class PdfLayoutDebugOverlay {
     /// <summary>Builds a transparent vector overlay for one page in rendered top-left coordinates.</summary>
     public static OfficeDrawing CreateDrawing(
         byte[] pdf,
@@ -17,7 +17,7 @@ public static class PdfLayoutDebugOverlay {
             throw new ArgumentOutOfRangeException(nameof(options), "Maximum overlay elements must be positive.");
         }
 
-        PdfReadDocument document = PdfReadDocument.Load(pdf, readOptions);
+        PdfReadDocument document = PdfReadDocument.Open(pdf, readOptions);
         if (pageNumber <= 0 || pageNumber > document.Pages.Count) {
             throw new ArgumentOutOfRangeException(nameof(pageNumber), "Page number is outside the PDF page count.");
         }

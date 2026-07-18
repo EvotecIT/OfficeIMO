@@ -1,6 +1,6 @@
 namespace OfficeIMO.Pdf;
 
-public static partial class PdfComplianceAnalyzer {
+internal static partial class PdfComplianceAnalyzer {
     private static readonly string[] ElectronicInvoiceCountryCodes = {
         "AD", "AE", "AF", "AG", "AI", "AL", "AM", "AO", "AQ", "AR",
         "AS", "AT", "AU", "AW", "AX", "AZ", "BA", "BB", "BD", "BE",

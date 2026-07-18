@@ -1,0 +1,6 @@
+{
+  "maxElapsedMilliseconds": 5000,
+  "maxAllocatedBytes": 536870912,
+  "minimumCachedSpeedup": 1.2,
+  "minimumCachedAllocationReduction": 1.2
+}

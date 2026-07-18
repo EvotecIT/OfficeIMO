@@ -2,7 +2,7 @@ using System.Globalization;
 
 namespace OfficeIMO.Pdf;
 
-public static partial class PdfPageExtractor {
+internal static partial class PdfPageExtractor {
     internal sealed class SerializationContext {
         public SerializationContext(
             Dictionary<int, int> numberMap,

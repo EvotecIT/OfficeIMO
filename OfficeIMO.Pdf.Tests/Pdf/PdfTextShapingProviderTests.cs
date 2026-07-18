@@ -37,7 +37,7 @@ public class PdfTextShapingProviderTests {
             .Paragraph(paragraph => paragraph.Text(text))
             .ToBytes();
 
-        string extracted = PdfReadDocument.Load(bytes).ExtractText();
+        string extracted = PdfReadDocument.Open(bytes).ExtractText();
 
         Assert.True(provider.CallCount >= 1);
         Assert.NotNull(provider.LastRequest);
@@ -76,7 +76,7 @@ public class PdfTextShapingProviderTests {
             .Paragraph(paragraph => paragraph.Text(text))
             .ToBytes();
 
-        string extracted = PdfReadDocument.Load(bytes).ExtractText();
+        string extracted = PdfReadDocument.Open(bytes).ExtractText();
 
         Assert.True(provider.CallCount >= 1);
         Assert.Contains(text, extracted, StringComparison.Ordinal);
@@ -114,7 +114,7 @@ public class PdfTextShapingProviderTests {
             .Paragraph(paragraph => paragraph.Text(text))
             .ToBytes();
 
-        string extracted = PdfReadDocument.Load(bytes).ExtractText();
+        string extracted = PdfReadDocument.Open(bytes).ExtractText();
 
         Assert.True(provider.CallCount >= 1);
         Assert.Contains(text, extracted, StringComparison.Ordinal);
@@ -152,7 +152,7 @@ public class PdfTextShapingProviderTests {
             .Paragraph(paragraph => paragraph.Text(text))
             .ToBytes();
 
-        string extracted = PdfReadDocument.Load(bytes).ExtractText();
+        string extracted = PdfReadDocument.Open(bytes).ExtractText();
 
         Assert.True(provider.CallCount >= 1);
         Assert.Contains(text, extracted, StringComparison.Ordinal);
@@ -193,7 +193,7 @@ public class PdfTextShapingProviderTests {
             .ToBytes();
 
         string raw = Encoding.ASCII.GetString(bytes);
-        string extracted = PdfReadDocument.Load(bytes).ExtractText();
+        string extracted = PdfReadDocument.Open(bytes).ExtractText();
 
         Assert.True(provider.CallCount >= 1);
         Assert.Contains("office", extracted, StringComparison.Ordinal);
@@ -233,7 +233,7 @@ public class PdfTextShapingProviderTests {
             .ToBytes();
 
         string raw = Encoding.ASCII.GetString(bytes);
-        string extracted = PdfReadDocument.Load(bytes).ExtractText();
+        string extracted = PdfReadDocument.Open(bytes).ExtractText();
         double measured = fontProgram.MeasureTextWidth("AB", 12D, shapingProvider: provider, language: "en-US");
 
         Assert.Equal(12D * (halfEm + halfEm) / fontProgram.UnitsPerEm, measured, precision: 6);

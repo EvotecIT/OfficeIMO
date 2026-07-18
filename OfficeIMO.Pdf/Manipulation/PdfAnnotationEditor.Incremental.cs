@@ -1,6 +1,6 @@
 namespace OfficeIMO.Pdf;
 
-public static partial class PdfAnnotationEditor {
+internal static partial class PdfAnnotationEditor {
     private static PdfAnnotationEditResult UpdateAnnotationIncrementally(
         byte[] pdf,
         int objectNumber,

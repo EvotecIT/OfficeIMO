@@ -1,6 +1,6 @@
 namespace OfficeIMO.Pdf;
 
-public static partial class PdfAnnotationFlattener {
+internal static partial class PdfAnnotationFlattener {
     private static int FlattenPageVisualAnnotations(Dictionary<int, PdfIndirectObject> objects, ref int nextObjectNumber, PdfAnnotationFlattenOptions? options, Dictionary<int, int> pageNumbers) {
         int flattenedCount = 0;
         foreach (var entry in objects.OrderBy(pair => pair.Key).ToArray()) {

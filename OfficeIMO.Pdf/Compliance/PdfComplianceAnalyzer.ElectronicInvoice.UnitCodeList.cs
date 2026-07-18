@@ -1,6 +1,6 @@
 namespace OfficeIMO.Pdf;
 
-public static partial class PdfComplianceAnalyzer {
+internal static partial class PdfComplianceAnalyzer {
     // Generated from Peppol BIS Billing 3.0 2025-Q4 UNECERec20 code list.
     private static readonly string[] ElectronicInvoiceUnitCodeChunks = {
         " 10 11 13 14 15 1I 20 21 22 23 24 25 27 28 2A 2B 2C 2G 2H 2I 2J 2K 2L 2M 2N 2P 2Q 2R 2U 2X 2Y 2Z 33 34 35 37 38 3B 3C 40 41 4C 4G 4H 4K 4L 4M 4N 4O 4P 4Q 4R 4T 4U 4W 4X 56 57 58 59 5A 5B 5E 5J 60 61 74 77 80 81 85 87 89 91 A10 A11 A12 A13 A14 A15 ",

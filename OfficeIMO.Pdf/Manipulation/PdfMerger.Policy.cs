@@ -1,6 +1,6 @@
 namespace OfficeIMO.Pdf;
 
-public static partial class PdfMerger {
+internal static partial class PdfMerger {
     private static PdfMergeResult ApplyMergePolicy(
         byte[] merged,
         IReadOnlyList<ImportedSource> sources,
@@ -32,7 +32,7 @@ public static partial class PdfMerger {
         merged = ApplyAttachmentPolicy(merged, sources, primarySourceIndex, policy.Attachments, policy.AttachmentCollisions, decisions);
         merged = ApplyViewerPolicy(merged, sources, primarySourceIndex, policy.ViewerPreferences, decisions);
 
-        PdfReadDocument readback = PdfReadDocument.Load(merged);
+        PdfReadDocument readback = PdfReadDocument.Open(merged);
         int expectedPageCount = sources.Sum(static source => source.PageObjectNumbers.Length);
         if (readback.Pages.Count != expectedPageCount) {
             throw new InvalidOperationException("PDF merge post-save validation failed: output page count did not match the imported page count.");

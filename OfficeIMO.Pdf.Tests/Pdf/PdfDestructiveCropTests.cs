@@ -14,13 +14,13 @@ public class PdfDestructiveCropTests {
             .AttachFile("proof.txt", Encoding.UTF8.GetBytes("attachment proof"), "text/plain")
             .ToBytes();
 
-        PdfDestructiveCropResult result = PdfDocument.Load(source).Pages.DestructiveCrop(
+        PdfDestructiveCropResult result = PdfDocument.Open(source).Pages.DestructiveCrop(
             0, 350, 612, 792,
             new PdfDestructiveCropOptions { Dpi = 96 },
             1);
 
         byte[] output = result.ToBytes();
-        PdfReadDocument read = PdfReadDocument.Load(output);
+        PdfReadDocument read = PdfReadDocument.Open(output);
         Assert.Equal(PdfMutationExecutionMode.FullRewrite, result.PageTreePlan.ExecutionMode);
         Assert.Equal(PdfMutationExecutionMode.FullRewrite, result.ContentPlan.ExecutionMode);
         Assert.True(result.PreservationReport.IsPreserved, string.Join(" ", result.PreservationReport.Issues.Select(static issue => issue.Message)));

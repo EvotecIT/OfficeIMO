@@ -2,8 +2,8 @@ using System.Text.RegularExpressions;
 
 namespace OfficeIMO.Pdf;
 
-public static partial class PdfTextExtractor {
-    private static System.Collections.ObjectModel.ReadOnlyCollection<string> ExtractTextByPage(PdfReadDocument document) {
+internal static partial class PdfTextExtractor {
+    internal static System.Collections.ObjectModel.ReadOnlyCollection<string> ExtractTextByPage(PdfReadDocument document) {
         var pages = new List<string>(document.Pages.Count);
         for (int i = 0; i < document.Pages.Count; i++) {
             pages.Add(document.Pages[i].ExtractText());
@@ -12,7 +12,7 @@ public static partial class PdfTextExtractor {
         return pages.AsReadOnly();
     }
     
-    private static System.Collections.ObjectModel.ReadOnlyCollection<string> ExtractTextByPageRanges(PdfReadDocument document, PdfPageRange[] pageRanges) {
+    internal static System.Collections.ObjectModel.ReadOnlyCollection<string> ExtractTextByPageRanges(PdfReadDocument document, PdfPageRange[] pageRanges) {
         var selected = ExtractSelectedTextPages(document, pageRanges);
         var pages = new List<string>(selected.Count);
         for (int i = 0; i < selected.Count; i++) {
@@ -22,7 +22,7 @@ public static partial class PdfTextExtractor {
         return pages.AsReadOnly();
     }
     
-    private static string ExtractAllTextByPageRanges(PdfReadDocument document, PdfTextLayoutOptions? options, PdfPageRange[] pageRanges) {
+    internal static string ExtractAllTextByPageRanges(PdfReadDocument document, PdfTextLayoutOptions? options, PdfPageRange[] pageRanges) {
         var selected = ExtractSelectedTextPages(document, options, pageRanges);
         var sb = new StringBuilder();
         for (int i = 0; i < selected.Count; i++) {
@@ -147,7 +147,7 @@ public static partial class PdfTextExtractor {
         internal string Text { get; }
     }
     
-    private static System.Collections.ObjectModel.ReadOnlyCollection<string> ExtractTextByPage(PdfReadDocument document, PdfTextLayoutOptions options) {
+    internal static System.Collections.ObjectModel.ReadOnlyCollection<string> ExtractTextByPage(PdfReadDocument document, PdfTextLayoutOptions options) {
         var pages = new List<string>(document.Pages.Count);
         for (int i = 0; i < document.Pages.Count; i++) {
             pages.Add(document.Pages[i].ExtractTextWithColumns(options));

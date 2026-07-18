@@ -18,7 +18,7 @@ public partial class PdfPageEditorTests {
         using var pdf = PdfPigDocument.Open(new MemoryStream(edited));
         Assert.Equal(3, pdf.NumberOfPages);
 
-        string text = NormalizeExtractedText(PdfReadDocument.Load(edited).ExtractText());
+        string text = NormalizeExtractedText(PdfReadDocument.Open(edited).ExtractText());
         Assert.Contains("Thirdpagemarker", text);
         Assert.Contains("Firstpagemarker", text);
         Assert.Contains("Secondpagemarker", text);
@@ -42,7 +42,7 @@ public partial class PdfPageEditorTests {
 
         byte[] edited = PdfPageEditor.ReorderPageRanges(source, new PdfPageRange(3, 3), new PdfPageRange(1, 2));
 
-        var read = PdfReadDocument.Load(edited);
+        var read = PdfReadDocument.Open(edited);
         Assert.Equal(3, read.Pages.Count);
         Assert.Equal("Thirdpagemarker", NormalizeExtractedText(read.Pages[0].ExtractText()));
         Assert.Equal("Firstpagemarker", NormalizeExtractedText(read.Pages[1].ExtractText()));
@@ -66,7 +66,7 @@ public partial class PdfPageEditorTests {
 
         byte[] edited = PdfPageEditor.ReorderPageRanges(source, ranges);
 
-        var read = PdfReadDocument.Load(edited);
+        var read = PdfReadDocument.Open(edited);
         Assert.Equal("Thirdpagemarker", NormalizeExtractedText(read.Pages[0].ExtractText()));
         Assert.Equal("Firstpagemarker", NormalizeExtractedText(read.Pages[1].ExtractText()));
         Assert.Equal("Secondpagemarker", NormalizeExtractedText(read.Pages[2].ExtractText()));
@@ -85,7 +85,7 @@ public partial class PdfPageEditorTests {
             PdfPageEditor.ReorderPages(inputPath, outputPath, 2, 3, 1);
 
             Assert.True(File.Exists(outputPath));
-            string text = NormalizeExtractedText(PdfReadDocument.Load(outputPath).ExtractText());
+            string text = NormalizeExtractedText(PdfReadDocument.Open(outputPath).ExtractText());
             Assert.True(text.IndexOf("Secondpagemarker", StringComparison.Ordinal) < text.IndexOf("Thirdpagemarker", StringComparison.Ordinal));
             Assert.True(text.IndexOf("Thirdpagemarker", StringComparison.Ordinal) < text.IndexOf("Firstpagemarker", StringComparison.Ordinal));
         } finally {
@@ -102,7 +102,7 @@ public partial class PdfPageEditorTests {
 
         byte[] edited = PdfPageEditor.ReorderPages(stream, 2, 3, 1);
 
-        string text = NormalizeExtractedText(PdfReadDocument.Load(edited).ExtractText());
+        string text = NormalizeExtractedText(PdfReadDocument.Open(edited).ExtractText());
         Assert.True(text.IndexOf("Secondpagemarker", StringComparison.Ordinal) < text.IndexOf("Thirdpagemarker", StringComparison.Ordinal));
         Assert.True(text.IndexOf("Thirdpagemarker", StringComparison.Ordinal) < text.IndexOf("Firstpagemarker", StringComparison.Ordinal));
     }
@@ -119,7 +119,7 @@ public partial class PdfPageEditorTests {
         byte[] edited = output.ToArray().Skip(prefix.Length).ToArray();
         Assert.Equal(prefix, output.ToArray().Take(prefix.Length).ToArray());
 
-        string text = NormalizeExtractedText(PdfReadDocument.Load(edited).ExtractText());
+        string text = NormalizeExtractedText(PdfReadDocument.Open(edited).ExtractText());
         Assert.True(text.IndexOf("Thirdpagemarker", StringComparison.Ordinal) < text.IndexOf("Firstpagemarker", StringComparison.Ordinal));
         Assert.True(text.IndexOf("Firstpagemarker", StringComparison.Ordinal) < text.IndexOf("Secondpagemarker", StringComparison.Ordinal));
     }
@@ -131,7 +131,7 @@ public partial class PdfPageEditorTests {
 
         PdfPageEditor.ReorderPages(input, output, 2, 3, 1);
 
-        string text = NormalizeExtractedText(PdfReadDocument.Load(output.ToArray()).ExtractText());
+        string text = NormalizeExtractedText(PdfReadDocument.Open(output.ToArray()).ExtractText());
         Assert.True(text.IndexOf("Secondpagemarker", StringComparison.Ordinal) < text.IndexOf("Thirdpagemarker", StringComparison.Ordinal));
         Assert.True(text.IndexOf("Thirdpagemarker", StringComparison.Ordinal) < text.IndexOf("Firstpagemarker", StringComparison.Ordinal));
     }

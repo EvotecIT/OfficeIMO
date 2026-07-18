@@ -18,7 +18,7 @@ public partial class PdfPageEditorTests {
         using var pdf = PdfPigDocument.Open(new MemoryStream(edited));
         Assert.Equal(3, pdf.NumberOfPages);
 
-        var read = PdfReadDocument.Load(edited);
+        var read = PdfReadDocument.Open(edited);
         Assert.Equal("Thirdpagemarker", NormalizeExtractedText(read.Pages[0].ExtractText()));
         Assert.Equal("Firstpagemarker", NormalizeExtractedText(read.Pages[1].ExtractText()));
         Assert.Equal("Secondpagemarker", NormalizeExtractedText(read.Pages[2].ExtractText()));
@@ -40,7 +40,7 @@ public partial class PdfPageEditorTests {
 
         byte[] edited = PdfPageEditor.MovePages(source, 4, 1, 2);
 
-        var read = PdfReadDocument.Load(edited);
+        var read = PdfReadDocument.Open(edited);
         Assert.Equal(3, read.Pages.Count);
         Assert.Equal("Thirdpagemarker", NormalizeExtractedText(read.Pages[0].ExtractText()));
         Assert.Equal("Firstpagemarker", NormalizeExtractedText(read.Pages[1].ExtractText()));
@@ -56,7 +56,7 @@ public partial class PdfPageEditorTests {
         using var pdf = PdfPigDocument.Open(new MemoryStream(edited));
         Assert.Equal(3, pdf.NumberOfPages);
 
-        var read = PdfReadDocument.Load(edited);
+        var read = PdfReadDocument.Open(edited);
         Assert.Equal("Secondpagemarker", NormalizeExtractedText(read.Pages[0].ExtractText()));
         Assert.Equal("Thirdpagemarker", NormalizeExtractedText(read.Pages[1].ExtractText()));
         Assert.Equal("Firstpagemarker", NormalizeExtractedText(read.Pages[2].ExtractText()));
@@ -78,7 +78,7 @@ public partial class PdfPageEditorTests {
 
         byte[] edited = PdfPageEditor.MovePageRanges(source, 4, PdfPageRange.ParseMany("1-2,2"));
 
-        var read = PdfReadDocument.Load(edited);
+        var read = PdfReadDocument.Open(edited);
         Assert.Equal(3, read.Pages.Count);
         Assert.Equal("Thirdpagemarker", NormalizeExtractedText(read.Pages[0].ExtractText()));
         Assert.Equal("Firstpagemarker", NormalizeExtractedText(read.Pages[1].ExtractText()));
@@ -108,7 +108,7 @@ public partial class PdfPageEditorTests {
             PdfPageEditor.MovePages(inputPath, outputPath, 1, 2);
 
             Assert.True(File.Exists(outputPath));
-            var read = PdfReadDocument.Load(outputPath);
+            var read = PdfReadDocument.Open(outputPath);
             Assert.Equal("Secondpagemarker", NormalizeExtractedText(read.Pages[0].ExtractText()));
             Assert.Equal("Firstpagemarker", NormalizeExtractedText(read.Pages[1].ExtractText()));
             Assert.Equal("Thirdpagemarker", NormalizeExtractedText(read.Pages[2].ExtractText()));
@@ -132,7 +132,7 @@ public partial class PdfPageEditorTests {
             PdfPageEditor.MovePageRange(inputPath, outputPath, 4, 1, 2);
 
             Assert.True(File.Exists(outputPath));
-            var read = PdfReadDocument.Load(outputPath);
+            var read = PdfReadDocument.Open(outputPath);
             Assert.Equal("Thirdpagemarker", NormalizeExtractedText(read.Pages[0].ExtractText()));
             Assert.Equal("Firstpagemarker", NormalizeExtractedText(read.Pages[1].ExtractText()));
             Assert.Equal("Secondpagemarker", NormalizeExtractedText(read.Pages[2].ExtractText()));
@@ -149,7 +149,7 @@ public partial class PdfPageEditorTests {
 
         byte[] edited = PdfPageEditor.MovePages(stream, 1, 2);
 
-        var read = PdfReadDocument.Load(edited);
+        var read = PdfReadDocument.Open(edited);
         Assert.Equal("Secondpagemarker", NormalizeExtractedText(read.Pages[0].ExtractText()));
         Assert.Equal("Firstpagemarker", NormalizeExtractedText(read.Pages[1].ExtractText()));
         Assert.Equal("Thirdpagemarker", NormalizeExtractedText(read.Pages[2].ExtractText()));
@@ -161,7 +161,7 @@ public partial class PdfPageEditorTests {
 
         byte[] edited = PdfPageEditor.MovePageRange(stream, 1, 2, 3);
 
-        var read = PdfReadDocument.Load(edited);
+        var read = PdfReadDocument.Open(edited);
         Assert.Equal("Secondpagemarker", NormalizeExtractedText(read.Pages[0].ExtractText()));
         Assert.Equal("Thirdpagemarker", NormalizeExtractedText(read.Pages[1].ExtractText()));
         Assert.Equal("Firstpagemarker", NormalizeExtractedText(read.Pages[2].ExtractText()));
@@ -173,7 +173,7 @@ public partial class PdfPageEditorTests {
 
         byte[] edited = PdfPageEditor.MovePageRanges(stream, 1, PdfPageRange.ParseMany("2-3,3"));
 
-        var read = PdfReadDocument.Load(edited);
+        var read = PdfReadDocument.Open(edited);
         Assert.Equal("Secondpagemarker", NormalizeExtractedText(read.Pages[0].ExtractText()));
         Assert.Equal("Thirdpagemarker", NormalizeExtractedText(read.Pages[1].ExtractText()));
         Assert.Equal("Firstpagemarker", NormalizeExtractedText(read.Pages[2].ExtractText()));
@@ -191,7 +191,7 @@ public partial class PdfPageEditorTests {
         byte[] edited = output.ToArray().Skip(prefix.Length).ToArray();
         Assert.Equal(prefix, output.ToArray().Take(prefix.Length).ToArray());
 
-        var read = PdfReadDocument.Load(edited);
+        var read = PdfReadDocument.Open(edited);
         Assert.Equal("Secondpagemarker", NormalizeExtractedText(read.Pages[0].ExtractText()));
         Assert.Equal("Thirdpagemarker", NormalizeExtractedText(read.Pages[1].ExtractText()));
         Assert.Equal("Firstpagemarker", NormalizeExtractedText(read.Pages[2].ExtractText()));
@@ -209,7 +209,7 @@ public partial class PdfPageEditorTests {
         byte[] edited = output.ToArray().Skip(prefix.Length).ToArray();
         Assert.Equal(prefix, output.ToArray().Take(prefix.Length).ToArray());
 
-        var read = PdfReadDocument.Load(edited);
+        var read = PdfReadDocument.Open(edited);
         Assert.Equal("Thirdpagemarker", NormalizeExtractedText(read.Pages[0].ExtractText()));
         Assert.Equal("Firstpagemarker", NormalizeExtractedText(read.Pages[1].ExtractText()));
         Assert.Equal("Secondpagemarker", NormalizeExtractedText(read.Pages[2].ExtractText()));
@@ -227,7 +227,7 @@ public partial class PdfPageEditorTests {
         byte[] edited = output.ToArray().Skip(prefix.Length).ToArray();
         Assert.Equal(prefix, output.ToArray().Take(prefix.Length).ToArray());
 
-        var read = PdfReadDocument.Load(edited);
+        var read = PdfReadDocument.Open(edited);
         Assert.Equal("Thirdpagemarker", NormalizeExtractedText(read.Pages[0].ExtractText()));
         Assert.Equal("Firstpagemarker", NormalizeExtractedText(read.Pages[1].ExtractText()));
         Assert.Equal("Secondpagemarker", NormalizeExtractedText(read.Pages[2].ExtractText()));
@@ -240,7 +240,7 @@ public partial class PdfPageEditorTests {
 
         PdfPageEditor.MovePages(input, output, 4, 2);
 
-        var read = PdfReadDocument.Load(output.ToArray());
+        var read = PdfReadDocument.Open(output.ToArray());
         Assert.Equal("Firstpagemarker", NormalizeExtractedText(read.Pages[0].ExtractText()));
         Assert.Equal("Thirdpagemarker", NormalizeExtractedText(read.Pages[1].ExtractText()));
         Assert.Equal("Secondpagemarker", NormalizeExtractedText(read.Pages[2].ExtractText()));
@@ -253,7 +253,7 @@ public partial class PdfPageEditorTests {
 
         PdfPageEditor.MovePageRange(input, output, 1, 2, 3);
 
-        var read = PdfReadDocument.Load(output.ToArray());
+        var read = PdfReadDocument.Open(output.ToArray());
         Assert.Equal("Secondpagemarker", NormalizeExtractedText(read.Pages[0].ExtractText()));
         Assert.Equal("Thirdpagemarker", NormalizeExtractedText(read.Pages[1].ExtractText()));
         Assert.Equal("Firstpagemarker", NormalizeExtractedText(read.Pages[2].ExtractText()));

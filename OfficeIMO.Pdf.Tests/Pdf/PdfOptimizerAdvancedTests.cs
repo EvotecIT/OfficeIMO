@@ -134,7 +134,7 @@ public class PdfOptimizerAdvancedTests {
         PdfOptimizationActionResult result = PdfOptimizer.Optimize(source, options);
 
         Assert.Contains(result.Actions, static action => action.Kind == "DeduplicateImage");
-        Assert.Single(PdfReadDocument.Load(result.Bytes).Pages[0].GetImagePlacements().Select(static placement => placement.ObjectNumber).Distinct());
+        Assert.Single(PdfReadDocument.Open(result.Bytes).Pages[0].GetImagePlacements().Select(static placement => placement.ObjectNumber).Distinct());
         Assert.True(result.PreservationReport.IsPreserved);
     }
 }

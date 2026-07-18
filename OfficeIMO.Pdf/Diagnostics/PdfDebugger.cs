@@ -3,13 +3,13 @@ using OfficeIMO.Pdf.Filters;
 namespace OfficeIMO.Pdf;
 
 /// <summary>Creates bounded, read-only debugger projections without exposing a mutable PDF object model.</summary>
-public static class PdfDebugger {
+internal static class PdfDebugger {
     /// <summary>Dumps a PDF byte array into typed debugger records.</summary>
     public static PdfDebuggerReport Dump(byte[] pdf, PdfDebuggerOptions? options = null, PdfReadOptions? readOptions = null) {
         Guard.NotNull(pdf, nameof(pdf));
         PdfDebuggerOptions effectiveOptions = options ?? new PdfDebuggerOptions();
         effectiveOptions.Validate();
-        PdfReadDocument document = PdfReadDocument.Load(pdf, readOptions);
+        PdfReadDocument document = PdfReadDocument.Open(pdf, readOptions);
         var (objects, _) = PdfSyntax.ParseObjects(pdf, readOptions);
         HashSet<int> reachable = GetReachableObjectNumbers(objects, document.Security);
         var objectReports = objects.Values

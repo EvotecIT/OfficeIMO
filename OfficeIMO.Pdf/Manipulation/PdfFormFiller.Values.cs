@@ -1,6 +1,6 @@
 namespace OfficeIMO.Pdf;
 
-public static partial class PdfFormFiller {
+internal static partial class PdfFormFiller {
     private readonly struct ChoiceFillValue {
         public string ExportValue { get; }
         public string DisplayValue { get; }

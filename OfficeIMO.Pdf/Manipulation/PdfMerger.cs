@@ -6,7 +6,7 @@ namespace OfficeIMO.Pdf;
 /// <summary>
 /// Provides first-party PDF merge helpers for PDFs that can be parsed by OfficeIMO.Pdf.
 /// </summary>
-public static partial class PdfMerger {
+internal static partial class PdfMerger {
     /// <summary>
     /// Merges all pages from the supplied PDFs into one new PDF.
     /// </summary>
@@ -65,7 +65,7 @@ public static partial class PdfMerger {
         _ = PdfMutationPlanner.RequireFullRewrite(primaryPdf, PdfMutationOperation.ModifyPageTree);
         _ = PdfMutationPlanner.RequireFullRewrite(insertedPdf, PdfMutationOperation.ExtractPages);
 
-        var primaryDocument = PdfReadDocument.Load(primaryPdf);
+        var primaryDocument = PdfReadDocument.Open(primaryPdf);
         if (primaryDocument.Pages.Count == 0) {
             throw new ArgumentException("Primary PDF does not contain any pages.", nameof(primaryPdf));
         }
@@ -74,7 +74,7 @@ public static partial class PdfMerger {
             throw new ArgumentOutOfRangeException(nameof(insertBeforePageNumber), "Insert-before page must be in the primary document page range.");
         }
 
-        var insertedDocument = PdfReadDocument.Load(insertedPdf);
+        var insertedDocument = PdfReadDocument.Open(insertedPdf);
         if (insertedDocument.Pages.Count == 0) {
             throw new ArgumentException("Inserted PDF does not contain any pages.", nameof(insertedPdf));
         }
@@ -405,7 +405,7 @@ public static partial class PdfMerger {
         _ = PdfMutationPlanner.RequireFullRewrite(source, mutationOperation);
 
         var (objects, trailerRaw) = PdfSyntax.ParseObjects(source);
-        var document = PdfReadDocument.Load(source);
+        var document = PdfReadDocument.Open(source);
         if (document.Pages.Count == 0) {
             throw new ArgumentException("PDF input " + sourceIndex.ToString(CultureInfo.InvariantCulture) + " does not contain any pages.", nameof(source));
         }

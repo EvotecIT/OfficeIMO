@@ -119,7 +119,7 @@ public sealed class PdfConversionReportTests {
         Assert.Equal(1, summary.ConverterCounts["OfficeIMO.Html.Pdf"]);
         Assert.Equal(1, summary.CodeCounts["StylesheetResourceRejectedByPolicy"]);
         Assert.False(summary.CodeCounts.ContainsKey("LaterWarning"));
-        Assert.Contains("Summary snapshot proof", PdfReadDocument.Load(result.ToBytes()).ExtractText(), StringComparison.Ordinal);
+        Assert.Contains("Summary snapshot proof", PdfReadDocument.Open(result.ToBytes()).ExtractText(), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -528,7 +528,7 @@ public sealed class PdfConversionReportTests {
 
     [Fact]
     public void PdfDocumentConversionResult_AssessProofCapturesOptionalContentLayers() {
-        PdfDocument document = PdfDocument.Load(PdfOptionalContentSupport.BuildOptionalContentMetadataPdf());
+        PdfDocument document = PdfDocument.Open(PdfOptionalContentSupport.BuildOptionalContentMetadataPdf());
         var result = new PdfDocumentConversionResult(document, new PdfConversionReport());
 
         PdfConversionProofReport proof = result.AssessProof(new PdfConversionProofOptions()

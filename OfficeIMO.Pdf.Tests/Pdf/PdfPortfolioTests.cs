@@ -20,7 +20,7 @@ public class PdfPortfolioTests {
         document.Paragraph(paragraph => paragraph.Text("Portfolio"));
 
         byte[] pdf = document.ToBytes();
-        PdfReadDocument read = PdfReadDocument.Load(pdf);
+        PdfReadDocument read = PdfReadDocument.Open(pdf);
 
         Assert.StartsWith("%PDF-1.7", PdfEncoding.Latin1GetString(pdf), StringComparison.Ordinal);
         Assert.NotNull(read.Portfolio);

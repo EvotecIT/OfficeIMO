@@ -854,25 +854,25 @@ public sealed partial class PdfLogicalDocument {
     /// <summary>Loads a PDF from bytes and returns the logical read model.</summary>
     public static PdfLogicalDocument Load(byte[] pdf, PdfTextLayoutOptions? options = null) {
         Guard.NotNull(pdf, nameof(pdf));
-        return From(PdfReadDocument.Load(pdf), options);
+        return From(PdfReadDocument.Open(pdf), options);
     }
 
     /// <summary>Loads a PDF from bytes with explicit read limits or credentials and returns the logical read model.</summary>
     public static PdfLogicalDocument Load(byte[] pdf, PdfTextLayoutOptions? options, PdfReadOptions? readOptions) {
         Guard.NotNull(pdf, nameof(pdf));
-        return From(PdfReadDocument.Load(pdf, readOptions), options);
+        return From(PdfReadDocument.Open(pdf, readOptions), options);
     }
 
     /// <summary>Loads a PDF from a file path and returns the logical read model.</summary>
     public static PdfLogicalDocument Load(string path, PdfTextLayoutOptions? options = null) {
         Guard.NotNullOrWhiteSpace(path, nameof(path));
-        return From(PdfReadDocument.Load(path), options);
+        return From(PdfReadDocument.Open(path), options);
     }
 
     /// <summary>Loads a PDF from the current position of a readable stream and returns the logical read model.</summary>
     public static PdfLogicalDocument Load(Stream stream, PdfTextLayoutOptions? options = null) {
         Guard.NotNull(stream, nameof(stream));
-        return From(PdfReadDocument.Load(stream), options);
+        return From(PdfReadDocument.Open(stream), options);
     }
 
     /// <summary>Loads selected source page ranges from PDF bytes into the logical read model, preserving caller order and overlaps.</summary>
@@ -883,7 +883,7 @@ public sealed partial class PdfLogicalDocument {
     /// <summary>Loads selected source page ranges from PDF bytes into the logical read model, preserving caller order and overlaps.</summary>
     public static PdfLogicalDocument LoadPageRanges(byte[] pdf, PdfTextLayoutOptions? options, params PdfPageRange[] pageRanges) {
         Guard.NotNull(pdf, nameof(pdf));
-        return FromPageRanges(PdfReadDocument.Load(pdf), options, pageRanges);
+        return FromPageRanges(PdfReadDocument.Open(pdf), options, pageRanges);
     }
 
     /// <summary>Loads selected source page ranges from a file path into the logical read model, preserving caller order and overlaps.</summary>
@@ -894,7 +894,7 @@ public sealed partial class PdfLogicalDocument {
     /// <summary>Loads selected source page ranges from a file path into the logical read model, preserving caller order and overlaps.</summary>
     public static PdfLogicalDocument LoadPageRanges(string path, PdfTextLayoutOptions? options, params PdfPageRange[] pageRanges) {
         Guard.NotNullOrWhiteSpace(path, nameof(path));
-        return FromPageRanges(PdfReadDocument.Load(path), options, pageRanges);
+        return FromPageRanges(PdfReadDocument.Open(path), options, pageRanges);
     }
 
     /// <summary>Loads selected source page ranges from the current position of a readable stream into the logical read model, preserving caller order and overlaps.</summary>
@@ -905,7 +905,7 @@ public sealed partial class PdfLogicalDocument {
     /// <summary>Loads selected source page ranges from the current position of a readable stream into the logical read model, preserving caller order and overlaps.</summary>
     public static PdfLogicalDocument LoadPageRanges(Stream stream, PdfTextLayoutOptions? options, params PdfPageRange[] pageRanges) {
         Guard.NotNull(stream, nameof(stream));
-        return FromPageRanges(PdfReadDocument.Load(stream), options, pageRanges);
+        return FromPageRanges(PdfReadDocument.Open(stream), options, pageRanges);
     }
 
     /// <summary>Builds the logical read model from an already parsed PDF document.</summary>

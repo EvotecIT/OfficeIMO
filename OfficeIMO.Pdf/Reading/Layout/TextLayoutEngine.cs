@@ -44,8 +44,10 @@ internal static class TextLayoutEngine {
         public double XEnd { get; }
         public string Text { get; }
         public IReadOnlyList<PdfTextSpan> Spans { get; }
+        public int LogicalLineBreaksBefore { get; }
         public TextLine(double y, double xs, double xe, string text, List<PdfTextSpan> spans) {
             Y = y; XStart = xs; XEnd = xe; Text = text; Spans = spans;
+            LogicalLineBreaksBefore = spans.Count == 0 ? 0 : spans.Max(span => span.LogicalLineBreaksBefore);
         }
     }
 
@@ -179,12 +181,12 @@ internal static class TextLayoutEngine {
             var left = lines.Where(l => l.XStart >= columns.Left.From && l.XStart <= columns.Left.To).OrderByDescending(l => l.Y);
             var right = lines.Where(l => l.XStart >= columns.Right.From && l.XStart <= columns.Right.To).OrderByDescending(l => l.Y);
             bool first = true;
-            foreach (var ln in left) { if (!first) sb.Append('\n'); sb.Append(ln.Text); first = false; }
-            foreach (var ln in right) { if (!first) sb.Append('\n'); sb.Append(ln.Text); first = false; }
+            foreach (var ln in left) { AppendLine(sb, ln, ref first); }
+            foreach (var ln in right) { AppendLine(sb, ln, ref first); }
         } else {
+            bool first = true;
             foreach (var ln in lines.OrderByDescending(l => l.Y)) {
-                if (sb.Length > 0) sb.Append('\n');
-                sb.Append(ln.Text);
+                AppendLine(sb, ln, ref first);
             }
         }
         string text = sb.ToString();
@@ -192,6 +194,16 @@ internal static class TextLayoutEngine {
             text = JoinHyphenation(text);
         }
         return text;
+    }
+
+    private static void AppendLine(StringBuilder builder, TextLine line, ref bool first) {
+        if (!first) {
+            int lineBreaks = Math.Max(1, line.LogicalLineBreaksBefore);
+            builder.Append('\n', lineBreaks);
+        }
+
+        builder.Append(line.Text);
+        first = false;
     }
 
     private static string JoinHyphenation(string text) {
@@ -240,7 +252,10 @@ internal static class TextLayoutEngine {
     private static TextLine BuildLine(List<PdfTextSpan> spans, Options? options) {
         // X sort within the line
         spans.Sort((a, b) => a.X.CompareTo(b.X));
-        bool hasExplicitWhitespace = spans.Any(span => ContainsWhitespace(span.Text));
+        bool hasExplicitWhitespace = spans.Any(span =>
+            ContainsWhitespace(span.Text) ||
+            span.LogicalLeadingSpace ||
+            span.LogicalTrailingSpace);
         double xs = spans[0].X;
         var last = spans[spans.Count - 1];
         double xe = last.X + Math.Max(0, last.Advance);
@@ -248,8 +263,14 @@ internal static class TextLayoutEngine {
         for (int i = 0; i < spans.Count; i++) {
             var s = spans[i];
             if (i > 0) {
+                var previous = spans[i - 1];
+                bool explicitBoundarySpace = previous.LogicalTrailingSpace || s.LogicalLeadingSpace;
+                if (explicitBoundarySpace && text.Length > 0 && text[text.Length - 1] != ' ') {
+                    text.Append(' ');
+                }
+
                 // Add a space heuristically if large X gap between spans
-                var prev = spans[i - 1];
+                var prev = previous;
                 double prevEnd = prev.X + Math.Max(0, prev.Advance);
                 double gap = s.X - prevEnd;
                 // dynamic threshold based on previous span's average glyph advance
@@ -261,7 +282,7 @@ internal static class TextLayoutEngine {
                 double threshold = Math.Max(emThreshold, glyphThreshold);
                 bool isLeader = IsLeaderRun(s.Text);
                 // Tight word-join rule: letters adjacent use stricter threshold (slightly more permissive)
-                if (IsWordJoin(prev.Text, s.Text)) {
+                if (!explicitBoundarySpace && IsWordJoin(prev.Text, s.Text)) {
                     // be less aggressive: add space whenever gap exceeds ~0.65x glyph-advance or 0.30em
                     double tight = System.Math.Max(1.0, System.Math.Min(3.0, System.Math.Min(prevAvg * 0.65, s.FontSize * 0.30)));
                     if (gap > tight) text.Append(' ');
@@ -270,14 +291,14 @@ internal static class TextLayoutEngine {
                         bool bothAlphaLong = AllWordish(prev.Text) && AllWordish(s.Text) && prev.Text.Length >= 2 && s.Text.Length >= 2;
                         if ((bothAlphaLong || ShouldRespectVisibleGap(prev.Text, s.Text)) && IsVisibleWordGap(gap, s.FontSize) && (text.Length > 0 && text[text.Length - 1] != ' ')) text.Append(' ');
                     }
-                } else if (!isLeader) {
+                } else if (!explicitBoundarySpace && !isLeader) {
                     // Guard: if both chunks look like full words (>=2 letters) and there is any visible gap, emit a space
                     bool bothAlphaLong = AllWordish(prev.Text) && AllWordish(s.Text) && prev.Text.Length >= 2 && s.Text.Length >= 2;
                     if ((bothAlphaLong || ShouldRespectVisibleGap(prev.Text, s.Text)) && IsVisibleWordGap(gap, s.FontSize) && (text.Length > 0 && text[text.Length - 1] != ' ')) {
                         text.Append(' ');
                     }
                     if (gap > threshold) text.Append(' ');
-                } else {
+                } else if (!explicitBoundarySpace) {
                     if (gap > 0 && text.Length > 0 && text[text.Length - 1] != ' ') text.Append(' '); // one space before leader
                 }
             }

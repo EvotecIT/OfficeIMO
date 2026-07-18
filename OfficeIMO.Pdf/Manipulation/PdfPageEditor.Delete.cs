@@ -1,6 +1,6 @@
 namespace OfficeIMO.Pdf;
 
-public static partial class PdfPageEditor {
+internal static partial class PdfPageEditor {
     /// <summary>
     /// Creates a new PDF with the specified one-based pages removed.
     /// </summary>
@@ -14,7 +14,7 @@ public static partial class PdfPageEditor {
         }
 
         var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf);
-        var document = PdfReadDocument.Load(pdf);
+        var document = PdfReadDocument.Open(pdf);
         ValidatePageNumbers(pageNumbers, document.Pages.Count, nameof(pageNumbers));
 
         var deleted = new HashSet<int>(pageNumbers);

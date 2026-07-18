@@ -1,6 +1,6 @@
 namespace OfficeIMO.Pdf;
 
-public static partial class PdfMerger {
+internal static partial class PdfMerger {
     private static readonly char[] ViewerPreferenceSeparators = { ' ' };
     private static byte[] ApplyViewerPolicy(byte[] merged, IReadOnlyList<ImportedSource> sources, int primarySourceIndex, PdfMergeStructureMode mode, List<PdfMergeDecision> decisions) {
         int incoming = sources.Where((source, index) => index != primarySourceIndex && HasViewerState(source.Document)).Count();
@@ -28,7 +28,7 @@ public static partial class PdfMerger {
                 if (values != null && values.Count > 0) catalog.Items["ViewerPreferences"] = BuildViewerPreferences(values);
                 if (pageMode != null) catalog.Items["PageMode"] = new PdfName(pageMode);
                 if (pageLayout != null) catalog.Items["PageLayout"] = new PdfName(pageLayout);
-                if (openAction != null) catalog.Items["OpenAction"] = BuildDestinationArray(PdfReadDocument.Load(merged), openAction);
+                if (openAction != null) catalog.Items["OpenAction"] = BuildDestinationArray(PdfReadDocument.Open(merged), openAction);
             }
             return security.InfoObjectNumber.HasValue && objects.ContainsKey(security.InfoObjectNumber.Value) ? security.InfoObjectNumber : null;
         });

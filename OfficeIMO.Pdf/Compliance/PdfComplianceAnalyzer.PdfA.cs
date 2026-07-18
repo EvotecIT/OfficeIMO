@@ -1,6 +1,6 @@
 namespace OfficeIMO.Pdf;
 
-public static partial class PdfComplianceAnalyzer {
+internal static partial class PdfComplianceAnalyzer {
 
     private static void AddPdfARequirements(List<PdfComplianceRequirement> requirements, PdfComplianceProfile profile, PdfOptions options, PdfStandardFont[]? generatedStandardFonts, PdfGeneratedFontComplianceEvidence[]? generatedFontUsages) {
         PdfAIdentification? identification = options.PdfAIdentification;

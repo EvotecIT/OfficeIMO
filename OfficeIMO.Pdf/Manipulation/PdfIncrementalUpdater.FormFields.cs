@@ -3,7 +3,7 @@ using System.Globalization;
 
 namespace OfficeIMO.Pdf;
 
-public static partial class PdfIncrementalUpdater {
+internal static partial class PdfIncrementalUpdater {
     private const string IncrementalDefaultAppearanceFontName = "Helv";
     private const int IncrementalRadioButtonFlag = 1 << 15;
     private const int IncrementalMultilineFlag = 1 << 12;

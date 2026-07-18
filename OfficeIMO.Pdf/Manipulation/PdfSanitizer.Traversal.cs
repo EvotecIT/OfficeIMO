@@ -1,6 +1,6 @@
 namespace OfficeIMO.Pdf;
 
-public static partial class PdfSanitizer {
+internal static partial class PdfSanitizer {
     private static readonly HashSet<string> UnsafeActionTypes = new HashSet<string>(StringComparer.Ordinal) {
         "JavaScript", "Launch", "GoToR", "SubmitForm", "ImportData", "Movie", "Rendition", "RichMedia"
     };

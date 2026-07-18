@@ -2,7 +2,7 @@ using System.Globalization;
 
 namespace OfficeIMO.Pdf;
 
-public static partial class PdfPageExtractor {
+internal static partial class PdfPageExtractor {
     internal static string BuildCatalogDictionary(int pagesId, CatalogRewriteState? catalogState, SerializationContext? context = null) {
         var sb = new StringBuilder();
         PdfCatalogDictionaryBuilder.AppendCatalogStart(sb, pagesId);

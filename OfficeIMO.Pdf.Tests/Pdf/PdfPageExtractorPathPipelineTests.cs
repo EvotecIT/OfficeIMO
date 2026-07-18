@@ -25,7 +25,7 @@ public partial class PdfPageExtractorTests {
             PdfDocumentInfo info = PdfInspector.Inspect(outputPath);
             Assert.Equal(2, info.PageCount);
 
-            string text = NormalizeExtractedText(PdfReadDocument.Load(outputPath).ExtractText());
+            string text = NormalizeExtractedText(PdfReadDocument.Open(outputPath).ExtractText());
             Assert.Contains("Firstpagemarker", text);
             Assert.Contains("Secondpagemarker", text);
             Assert.DoesNotContain("Thirdpagemarker", text);
@@ -36,7 +36,7 @@ public partial class PdfPageExtractorTests {
             PdfDocumentInfo rangesInfo = PdfInspector.Inspect(rangesOutputPath);
             Assert.Equal(2, rangesInfo.PageCount);
 
-            string rangesText = NormalizeExtractedText(PdfReadDocument.Load(rangesOutputPath).ExtractText());
+            string rangesText = NormalizeExtractedText(PdfReadDocument.Open(rangesOutputPath).ExtractText());
             AssertContainsInOrder(rangesText, "Thirdpagemarker", "Firstpagemarker");
             Assert.DoesNotContain("Secondpagemarker", rangesText);
         } finally {
@@ -56,32 +56,32 @@ public partial class PdfPageExtractorTests {
             File.WriteAllBytes(inputPath, BuildThreePagePdf());
 
             byte[] selected = PdfPageExtractor.ExtractPages(inputPath, 3, 1);
-            string selectedText = NormalizeExtractedText(PdfReadDocument.Load(selected).ExtractText());
+            string selectedText = NormalizeExtractedText(PdfReadDocument.Open(selected).ExtractText());
             Assert.Contains("Thirdpagemarker", selectedText);
             Assert.Contains("Firstpagemarker", selectedText);
             Assert.DoesNotContain("Secondpagemarker", selectedText);
 
             byte[] range = PdfPageExtractor.ExtractPageRange(inputPath, 2, 3);
-            string rangeText = NormalizeExtractedText(PdfReadDocument.Load(range).ExtractText());
+            string rangeText = NormalizeExtractedText(PdfReadDocument.Open(range).ExtractText());
             Assert.DoesNotContain("Firstpagemarker", rangeText);
             Assert.Contains("Secondpagemarker", rangeText);
             Assert.Contains("Thirdpagemarker", rangeText);
 
             byte[] ranges = PdfPageExtractor.ExtractPageRanges(inputPath, PdfPageRange.From(3, 3), PdfPageRange.From(1, 1));
-            string rangesText = NormalizeExtractedText(PdfReadDocument.Load(ranges).ExtractText());
+            string rangesText = NormalizeExtractedText(PdfReadDocument.Open(ranges).ExtractText());
             AssertContainsInOrder(rangesText, "Thirdpagemarker", "Firstpagemarker");
             Assert.DoesNotContain("Secondpagemarker", rangesText);
 
             IReadOnlyList<byte[]> split = PdfPageExtractor.SplitPages(inputPath);
             Assert.Equal(3, split.Count);
             for (int i = 0; i < split.Count; i++) {
-                string splitText = NormalizeExtractedText(PdfReadDocument.Load(split[i]).ExtractText());
+                string splitText = NormalizeExtractedText(PdfReadDocument.Open(split[i]).ExtractText());
                 Assert.Contains(NormalizeExtractedText(PageMarker(i + 1)), splitText);
             }
 
             IReadOnlyList<byte[]> rangeSplit = PdfPageExtractor.SplitPageRanges(inputPath, PdfPageRange.From(1, 2), PdfPageRange.From(3, 3));
             Assert.Equal(2, rangeSplit.Count);
-            string rangeSplitText = NormalizeExtractedText(PdfReadDocument.Load(rangeSplit[0]).ExtractText());
+            string rangeSplitText = NormalizeExtractedText(PdfReadDocument.Open(rangeSplit[0]).ExtractText());
             Assert.Contains("Firstpagemarker", rangeSplitText);
             Assert.Contains("Secondpagemarker", rangeSplitText);
             Assert.DoesNotContain("Thirdpagemarker", rangeSplitText);
@@ -107,7 +107,7 @@ public partial class PdfPageExtractorTests {
             PdfPageExtractor.ExtractPages(inputPath, selectedOutput, 3, 1);
             byte[] selected = selectedOutput.ToArray().Skip(prefix.Length).ToArray();
             Assert.Equal(prefix, selectedOutput.ToArray().Take(prefix.Length).ToArray());
-            string selectedText = NormalizeExtractedText(PdfReadDocument.Load(selected).ExtractText());
+            string selectedText = NormalizeExtractedText(PdfReadDocument.Open(selected).ExtractText());
             AssertContainsInOrder(selectedText, "Thirdpagemarker", "Firstpagemarker");
             Assert.DoesNotContain("Secondpagemarker", selectedText);
 
@@ -116,7 +116,7 @@ public partial class PdfPageExtractorTests {
             PdfPageExtractor.ExtractPageRange(inputPath, rangeOutput, 2, 3);
             byte[] range = rangeOutput.ToArray().Skip(prefix.Length).ToArray();
             Assert.Equal(prefix, rangeOutput.ToArray().Take(prefix.Length).ToArray());
-            string rangeText = NormalizeExtractedText(PdfReadDocument.Load(range).ExtractText());
+            string rangeText = NormalizeExtractedText(PdfReadDocument.Open(range).ExtractText());
             Assert.DoesNotContain("Firstpagemarker", rangeText);
             Assert.Contains("Secondpagemarker", rangeText);
             Assert.Contains("Thirdpagemarker", rangeText);
@@ -126,7 +126,7 @@ public partial class PdfPageExtractorTests {
             PdfPageExtractor.ExtractPageRange(inputPath, rangeObjectOutput, PdfPageRange.From(1, 2));
             byte[] rangeObject = rangeObjectOutput.ToArray().Skip(prefix.Length).ToArray();
             Assert.Equal(prefix, rangeObjectOutput.ToArray().Take(prefix.Length).ToArray());
-            string rangeObjectText = NormalizeExtractedText(PdfReadDocument.Load(rangeObject).ExtractText());
+            string rangeObjectText = NormalizeExtractedText(PdfReadDocument.Open(rangeObject).ExtractText());
             Assert.Contains("Firstpagemarker", rangeObjectText);
             Assert.Contains("Secondpagemarker", rangeObjectText);
             Assert.DoesNotContain("Thirdpagemarker", rangeObjectText);
@@ -136,7 +136,7 @@ public partial class PdfPageExtractorTests {
             PdfPageExtractor.ExtractPageRanges(inputPath, rangesOutput, PdfPageRange.From(3, 3), PdfPageRange.From(1, 1));
             byte[] ranges = rangesOutput.ToArray().Skip(prefix.Length).ToArray();
             Assert.Equal(prefix, rangesOutput.ToArray().Take(prefix.Length).ToArray());
-            string rangesText = NormalizeExtractedText(PdfReadDocument.Load(ranges).ExtractText());
+            string rangesText = NormalizeExtractedText(PdfReadDocument.Open(ranges).ExtractText());
             AssertContainsInOrder(rangesText, "Thirdpagemarker", "Firstpagemarker");
             Assert.DoesNotContain("Secondpagemarker", rangesText);
         } finally {

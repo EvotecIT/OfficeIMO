@@ -3,7 +3,7 @@ using System.Globalization;
 
 namespace OfficeIMO.Pdf;
 
-public static partial class PdfIncrementalUpdater {
+internal static partial class PdfIncrementalUpdater {
     private const string SignatureByteRangePlaceholder =
         "00000000000000000000 00000000000000000000 00000000000000000000 00000000000000000000";
 

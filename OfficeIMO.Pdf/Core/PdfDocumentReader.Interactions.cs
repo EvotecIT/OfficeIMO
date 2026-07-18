@@ -7,7 +7,7 @@ public sealed partial class PdfDocumentReader {
         PdfPageInteractionOptions? interactionOptions = null,
         PdfReadOptions? readOptions = null) {
         return PdfPageInteractionMap.Create(
-            _document.Snapshot(),
+            _document.GetBytesForOperation(),
             pageNumber,
             interactionOptions,
             ResolveReadOptions(readOptions));
@@ -20,7 +20,7 @@ public sealed partial class PdfDocumentReader {
         PdfTextLayoutOptions? layoutOptions = null,
         PdfReadOptions? readOptions = null) {
         return PdfLayoutDebugOverlay.CreateDrawing(
-            _document.Snapshot(),
+            _document.GetBytesForOperation(),
             pageNumber,
             overlayOptions,
             layoutOptions,
@@ -38,6 +38,6 @@ public sealed partial class PdfDocumentReader {
         PdfStructuredExportFormat format,
         PdfTextLayoutOptions? layoutOptions,
         PdfReadOptions? readOptions) {
-        return PdfStructuredExportEngine.Export(_document.Snapshot(), format, layoutOptions, ResolveReadOptions(readOptions));
+        return PdfStructuredExportEngine.Export(_document.GetBytesForOperation(), format, layoutOptions, ResolveReadOptions(readOptions));
     }
 }

@@ -21,7 +21,8 @@ internal static partial class PdfReaderAdapter {
         ReaderInputLimits.EnforceFileSize(pdfPath, effectiveReaderOptions.MaxInputBytes);
         var source = BuildSourceMetadataFromPath(pdfPath, effectiveReaderOptions.ComputeHashes);
 
-        PdfLogicalDocument document = LoadDocument(pdfPath, effectivePdfOptions);
+        PdfDocument pdf = PdfDocument.Open(pdfPath, CreatePdfReadOptions(effectiveReaderOptions));
+        PdfLogicalDocument document = LoadDocument(pdf, effectivePdfOptions);
         foreach (var chunk in Read(document, source, effectiveReaderOptions, effectivePdfOptions, applyPageRanges: false, cancellationToken)) {
             yield return chunk;
         }
@@ -58,7 +59,8 @@ internal static partial class PdfReaderAdapter {
                 parseStream.Position = parseStartPosition;
             }
 
-            PdfLogicalDocument document = LoadDocument(parseStream, effectivePdfOptions);
+            PdfDocument pdf = PdfDocument.Open(parseStream, CreatePdfReadOptions(effectiveReaderOptions));
+            PdfLogicalDocument document = LoadDocument(pdf, effectivePdfOptions);
             foreach (var chunk in Read(document, source, effectiveReaderOptions, effectivePdfOptions, applyPageRanges: false, cancellationToken)) {
                 yield return chunk;
             }
@@ -904,18 +906,22 @@ internal static partial class PdfReaderAdapter {
         }
     }
 
-    private static PdfLogicalDocument LoadDocument(string path, ReaderPdfOptions options) {
+    private static PdfLogicalDocument LoadDocument(PdfDocument document, ReaderPdfOptions options) {
+        if (document is null) throw new ArgumentNullException(nameof(document));
         var ranges = options.PageRanges?.ToArray();
         return ranges is { Length: > 0 }
-            ? PdfLogicalDocument.LoadPageRanges(path, options.LayoutOptions, ranges)
-            : PdfLogicalDocument.Load(path, options.LayoutOptions);
+            ? document.Read.Logical(PdfPageSelection.FromRanges(ranges), options.LayoutOptions)
+            : document.Read.Logical(options.LayoutOptions);
     }
 
-    private static PdfLogicalDocument LoadDocument(Stream stream, ReaderPdfOptions options) {
-        var ranges = options.PageRanges?.ToArray();
-        return ranges is { Length: > 0 }
-            ? PdfLogicalDocument.LoadPageRanges(stream, options.LayoutOptions, ranges)
-            : PdfLogicalDocument.Load(stream, options.LayoutOptions);
+    private static PdfReadOptions? CreatePdfReadOptions(ReaderOptions options) {
+        return options.MaxInputBytes.HasValue
+            ? new PdfReadOptions {
+                Limits = new PdfReadLimits {
+                    MaxInputBytes = options.MaxInputBytes.Value
+                }
+            }
+            : null;
     }
 
     private static ReaderChunk EnrichChunk(ReaderChunk chunk, SourceMetadata source, bool computeHashes) {

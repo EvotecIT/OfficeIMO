@@ -1,6 +1,6 @@
 namespace OfficeIMO.Pdf;
 
-public static partial class PdfPageEditor {
+internal static partial class PdfPageEditor {
     /// <summary>
     /// Creates a new PDF with every page copied in the specified one-based order.
     /// </summary>
@@ -10,7 +10,7 @@ public static partial class PdfPageEditor {
         _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.ModifyPageTree);
 
         var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf);
-        var document = PdfReadDocument.Load(pdf);
+        var document = PdfReadDocument.Open(pdf);
         ValidateReorderPageNumbers(pageNumbers, document.Pages.Count, nameof(pageNumbers));
 
         var ordered = new int[pageNumbers.Length];

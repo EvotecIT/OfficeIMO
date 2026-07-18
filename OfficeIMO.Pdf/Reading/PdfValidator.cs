@@ -3,7 +3,7 @@ namespace OfficeIMO.Pdf;
 /// <summary>
 /// Wrapper-friendly PDF validation helpers backed by the OfficeIMO.Pdf preflight engine.
 /// </summary>
-public static class PdfValidator {
+internal static class PdfValidator {
     /// <summary>
     /// Validates a PDF from a byte array without throwing for malformed PDF content.
     /// </summary>

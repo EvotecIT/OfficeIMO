@@ -25,7 +25,7 @@ public sealed class OneNotePdfVisualScenarioTests {
 
         PdfCore.PdfDocumentConversionResult result = section.ToPdfDocumentResult();
         byte[] pdf = result.ToBytes();
-        string text = PdfCore.PdfReadDocument.Load(pdf).ExtractText();
+        string text = PdfCore.PdfReadDocument.Open(pdf).ExtractText();
 
         Assert.Contains("OneNote semantic PDF proof", text);
         Assert.Contains("Positioned note body", text);

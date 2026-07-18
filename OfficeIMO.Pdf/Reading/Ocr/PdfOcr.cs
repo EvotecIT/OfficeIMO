@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 namespace OfficeIMO.Pdf;
 
 /// <summary>Engine-owned OCR rendering and merge orchestration over an external provider.</summary>
-public static class PdfOcr {
+internal static class PdfOcr {
     /// <summary>Renders selected pages, invokes the provider, and merges normalized OCR words with native text evidence.</summary>
     public static async Task<PdfOcrMergeResult> RecognizeAndMergeAsync(
         byte[] pdf,
@@ -16,7 +16,7 @@ public static class PdfOcr {
         Guard.NotNull(provider, nameof(provider));
         PdfOcrMergeOptions effectiveOptions = options ?? new PdfOcrMergeOptions();
         effectiveOptions.Validate();
-        PdfReadDocument readDocument = PdfReadDocument.Load(pdf, readOptions);
+        PdfReadDocument readDocument = PdfReadDocument.Open(pdf, readOptions);
         PdfLogicalDocument logical = PdfLogicalDocument.From(readDocument);
         var renderOptions = new PdfPageRenderOptions {
             Format = PdfPageRenderFormat.Png,

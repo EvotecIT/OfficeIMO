@@ -74,7 +74,7 @@ public class PdfPageCompositionTests {
         return document.ToBytes();
     }
 
-    private static string[] ReadPageText(byte[] pdf) => PdfReadDocument.Load(pdf)
+    private static string[] ReadPageText(byte[] pdf) => PdfReadDocument.Open(pdf)
         .Pages
         .Select(static page => page.ExtractText().Trim())
         .ToArray();

@@ -116,7 +116,7 @@ public sealed partial class HtmlRenderingTests {
             BackgroundColor = OfficeColor.Transparent
         };
         byte[] pdf = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(pdfOptions);
-        string pdfText = string.Concat(PdfCore.PdfReadDocument.Load(pdf).ExtractText().Where(character => !char.IsWhiteSpace(character)));
+        string pdfText = string.Concat(PdfCore.PdfReadDocument.Open(pdf).ExtractText().Where(character => !char.IsWhiteSpace(character)));
         PdfCore.PdfLogicalLinkAnnotation pdfLink = Assert.Single(PdfCore.PdfLogicalDocument.Load(pdf).GetLinksByUri(link));
 
         Assert.Equal(OfficeColor.Transparent, raster.GetPixel(5, 5));
@@ -152,7 +152,7 @@ public sealed partial class HtmlRenderingTests {
         pdfOptions = new HtmlPdfSaveOptions(renderOptions);
         byte[] pdf = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(pdfOptions);
         string rawPdf = Encoding.ASCII.GetString(pdf);
-        string pdfText = string.Concat(PdfCore.PdfReadDocument.Load(pdf).ExtractText().Where(character => !char.IsWhiteSpace(character)));
+        string pdfText = string.Concat(PdfCore.PdfReadDocument.Open(pdf).ExtractText().Where(character => !char.IsWhiteSpace(character)));
 
         Assert.Equal(0.5D, outer.Opacity, 3);
         Assert.Equal(0.5D, inner.Opacity, 3);

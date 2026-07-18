@@ -3,7 +3,7 @@ namespace OfficeIMO.Pdf;
 public sealed partial class PdfDocumentReader {
     /// <summary>Builds a safe, immutable, bounded projection of the active raw object graph.</summary>
     public PdfRawDocumentView RawStructure(PdfRawStructureOptions? structureOptions = null, PdfReadOptions? readOptions = null) {
-        return PdfReadDocument.Load(_document.Snapshot(), ResolveReadOptions(readOptions)).RawStructure(structureOptions);
+        return ReadDocument(readOptions).RawStructure(structureOptions);
     }
 
     /// <summary>Attempts to build a bounded raw object view with preflight diagnostics.</summary>

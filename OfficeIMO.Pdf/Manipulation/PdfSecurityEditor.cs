@@ -2,7 +2,7 @@ using OfficeIMO.Drawing.Internal;
 namespace OfficeIMO.Pdf;
 
 /// <summary>Adds, removes, or replaces Standard password security on supported existing PDFs.</summary>
-public static class PdfSecurityEditor {
+internal static class PdfSecurityEditor {
     /// <summary>Encrypts an unencrypted PDF using modern Standard security by default.</summary>
     public static PdfSecurityMutationResult Encrypt(byte[] pdf, PdfStandardEncryptionOptions encryption) {
         Guard.NotNull(pdf, nameof(pdf));

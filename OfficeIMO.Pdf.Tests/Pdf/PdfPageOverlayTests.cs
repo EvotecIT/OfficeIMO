@@ -28,7 +28,7 @@ public class PdfPageOverlayTests {
             Opacity = 0.5
         });
 
-        PdfReadDocument read = PdfReadDocument.Load(result);
+        PdfReadDocument read = PdfReadDocument.Open(result);
         Assert.DoesNotContain("Source page two", read.Pages[0].ExtractText(), StringComparison.Ordinal);
         Assert.Contains("Target two", read.Pages[1].ExtractText(), StringComparison.Ordinal);
         Assert.Contains("Source page two", read.Pages[1].ExtractText(), StringComparison.Ordinal);
@@ -53,7 +53,7 @@ public class PdfPageOverlayTests {
 
         byte[] result = PdfStamper.StampPage(target, source, new PdfPageOverlayOptions { BehindContent = behindContent });
         var (objects, _) = PdfSyntax.ParseObjects(result);
-        PdfReadPage readPage = PdfReadDocument.Load(result).Pages[0];
+        PdfReadPage readPage = PdfReadDocument.Open(result).Pages[0];
         PdfDictionary page = Assert.IsType<PdfDictionary>(objects[readPage.ObjectNumber].Value);
         PdfArray contents = Assert.IsType<PdfArray>(page.Items["Contents"]);
 
@@ -73,14 +73,14 @@ public class PdfPageOverlayTests {
         byte[] source = PdfDocument.Create()
             .Paragraph(paragraph => paragraph.Text("Rotated source"))
             .ToBytes();
-        source = PdfDocument.Load(source).Pages.Rotate(90, "1").ToBytes();
+        source = PdfDocument.Open(source).Pages.Rotate(90, "1").ToBytes();
         byte[] target = PdfDocument.Create()
             .Paragraph(paragraph => paragraph.Text("Target"))
             .ToBytes();
 
         byte[] result = PdfStamper.UnderlayPage(target, source);
 
-        string extracted = PdfReadDocument.Load(result).Pages[0].ExtractText();
+        string extracted = PdfReadDocument.Open(result).Pages[0].ExtractText();
         Assert.Contains("Rotated", extracted, StringComparison.Ordinal);
         Assert.Contains("source", extracted, StringComparison.Ordinal);
         var (objects, _) = PdfSyntax.ParseObjects(result);
@@ -109,7 +109,7 @@ public class PdfPageOverlayTests {
         string content = PdfEncoding.Latin1GetString(stamp.Data);
 
         Assert.Contains("0 -1 1 0 10 780 cm", content, StringComparison.Ordinal);
-        string extracted = PdfReadDocument.Load(result).Pages[0].ExtractText();
+        string extracted = PdfReadDocument.Open(result).Pages[0].ExtractText();
         Assert.Contains("Imported", extracted, StringComparison.Ordinal);
         Assert.Contains("geometry", extracted, StringComparison.Ordinal);
     }
@@ -121,9 +121,9 @@ public class PdfPageOverlayTests {
         string sourcePath = Path.Combine(Path.GetTempPath(), "officeimo-overlay-" + Guid.NewGuid().ToString("N") + ".pdf");
         File.WriteAllBytes(sourcePath, source);
         try {
-            PdfDocument fromPath = PdfDocument.Load(target).Stamp.OverlayPage(sourcePath);
+            PdfDocument fromPath = PdfDocument.Open(target).Stamp.OverlayPage(sourcePath);
             using var sourceStream = new MemoryStream(source, writable: false);
-            PdfOperationResult<PdfDocument> fromStream = PdfDocument.Load(target).Stamp.TryUnderlayPage(sourceStream);
+            PdfOperationResult<PdfDocument> fromStream = PdfDocument.Open(target).Stamp.TryUnderlayPage(sourceStream);
 
             Assert.Contains("Reusable overlay", fromPath.Read.Text(), StringComparison.Ordinal);
             Assert.True(fromStream.Succeeded, string.Join(Environment.NewLine, fromStream.Diagnostics));

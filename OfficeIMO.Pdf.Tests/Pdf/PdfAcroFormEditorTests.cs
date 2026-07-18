@@ -86,7 +86,7 @@ public class PdfAcroFormEditorTests {
     public void Edit_CreatesAcroFormInDocumentWithoutFields() {
         byte[] source = PdfDocument.Create().Paragraph(p => p.Text("No form yet")).ToBytes();
 
-        PdfAcroFormEditResult result = PdfDocument.Load(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
+        PdfAcroFormEditResult result = PdfDocument.Open(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
             Name = "Created.Name",
             Value = "Ada",
             X = 72,

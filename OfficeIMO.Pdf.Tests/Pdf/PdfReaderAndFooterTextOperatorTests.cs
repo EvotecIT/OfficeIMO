@@ -44,7 +44,7 @@ public partial class PdfReaderAndFooterRegressionTests {
     public void PdfReadDocument_ExtractText_TreatsDoubleQuoteOperatorAsLineAdvance() {
         byte[] bytes = BuildPdfWithDoubleQuoteLineAdvanceOperator();
 
-        string text = PdfReadDocument.Load(bytes).ExtractText();
+        string text = PdfReadDocument.Open(bytes).ExtractText();
 
         Assert.Matches("First\\r?\\nSecond", text);
         Assert.DoesNotContain("FirstSecond", text, StringComparison.Ordinal);
@@ -76,7 +76,7 @@ public partial class PdfReaderAndFooterRegressionTests {
     public void PdfReadPage_ExtractStructured_HonorsHeaderFooterIgnoreBands() {
         byte[] bytes = BuildSingleStreamPdf("BT\n/F1 12 Tf\n1 0 0 1 72 760 Tm\n(Header line) Tj\n1 0 0 1 72 400 Tm\n(Body line) Tj\n1 0 0 1 72 30 Tm\n(Footer line) Tj\nET\n");
 
-        var page = PdfReadDocument.Load(bytes).Pages[0].ExtractStructured(new PdfTextLayoutOptions {
+        var page = PdfReadDocument.Open(bytes).Pages[0].ExtractStructured(new PdfTextLayoutOptions {
             IgnoreHeaderHeight = 60,
             IgnoreFooterHeight = 60,
             ForceSingleColumn = true
@@ -134,7 +134,7 @@ public partial class PdfReaderAndFooterRegressionTests {
     public void PdfReadDocument_Metadata_ReadsHexUtf16InfoStrings() {
         byte[] bytes = BuildPdfWithHexMetadata("Hello metadata", "OfficeIMO");
 
-        var document = PdfReadDocument.Load(bytes);
+        var document = PdfReadDocument.Open(bytes);
 
         Assert.Equal("Hello metadata", document.Metadata.Title);
         Assert.Equal("OfficeIMO", document.Metadata.Author);
@@ -162,7 +162,7 @@ public partial class PdfReaderAndFooterRegressionTests {
     public void PdfReadPage_GetTextSpans_ReadsEscapedLiteralStrings() {
         byte[] bytes = BuildSingleStreamPdf("BT\n/F1 12 Tf\n72 720 Td\n(Hello\\040octal\\041) Tj\n( Line\\nbreak) Tj\nET\n");
 
-        var spans = PdfReadDocument.Load(bytes).Pages[0].GetTextSpans();
+        var spans = PdfReadDocument.Open(bytes).Pages[0].GetTextSpans();
 
         Assert.Contains(spans, span => span.Text == "Hello octal!");
         Assert.Contains(spans, span => span.Text == "Line break");
@@ -182,7 +182,7 @@ public partial class PdfReaderAndFooterRegressionTests {
     public void PdfReadDocument_Metadata_ReadsOctalEscapedLiteralInfoStrings() {
         byte[] bytes = BuildPdfWithLiteralMetadata("(Hello\\040meta\\041)", "(OfficeIMO\\\r\nTeam)");
 
-        var document = PdfReadDocument.Load(bytes);
+        var document = PdfReadDocument.Open(bytes);
 
         Assert.Equal("Hello meta!", document.Metadata.Title);
         Assert.Equal("OfficeIMOTeam", document.Metadata.Author);
@@ -192,7 +192,7 @@ public partial class PdfReaderAndFooterRegressionTests {
     public void PdfReadDocument_Metadata_ReadsLiteralStringsContainingStreamSubstrings() {
         byte[] bytes = BuildPdfWithLiteralMetadata("(mainstream title)", "(upstream author)");
 
-        var document = PdfReadDocument.Load(bytes);
+        var document = PdfReadDocument.Open(bytes);
 
         Assert.Equal("mainstream title", document.Metadata.Title);
         Assert.Equal("upstream author", document.Metadata.Author);
@@ -202,7 +202,7 @@ public partial class PdfReaderAndFooterRegressionTests {
     public void PdfReadDocument_Metadata_ReadsLiteralStringsContainingStandaloneParserKeywords() {
         byte[] bytes = BuildPdfWithLiteralMetadata("(stream title)", "(endobj author)");
 
-        var document = PdfReadDocument.Load(bytes);
+        var document = PdfReadDocument.Open(bytes);
 
         Assert.Equal("stream title", document.Metadata.Title);
         Assert.Equal("endobj author", document.Metadata.Author);

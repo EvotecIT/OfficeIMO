@@ -278,6 +278,10 @@ public partial class PdfDocumentRasterVisualBaselineTests {
             return;
         }
 
+        if (!CanAssertRasterBaseline(rasterizerPath)) {
+            return;
+        }
+
         string workDir = Path.Combine(Path.GetTempPath(), "OfficeIMO.PdfRaster", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(workDir);
         string pdfPath = Path.Combine(workDir, scenarioName + ".pdf");

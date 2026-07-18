@@ -1,6 +1,6 @@
 namespace OfficeIMO.Pdf;
 
-public static partial class PdfPageEditor {
+internal static partial class PdfPageEditor {
     /// <summary>
     /// Creates a new PDF with the specified one-based pages moved before <paramref name="insertBeforePageNumber"/>.
     /// The moved pages keep their original relative order. Use page count + 1 to move pages to the end.
@@ -15,7 +15,7 @@ public static partial class PdfPageEditor {
         }
 
         var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf);
-        var document = PdfReadDocument.Load(pdf);
+        var document = PdfReadDocument.Open(pdf);
         ValidateMoveInsertBeforePageNumber(insertBeforePageNumber, document.Pages.Count);
         ValidatePageNumbers(pageNumbers, document.Pages.Count, nameof(pageNumbers));
 

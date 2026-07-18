@@ -49,6 +49,12 @@ public partial class PdfComplianceAnalyzerTests {
         Assert.True(proof.CanClaimConformance);
         Assert.Empty(proof.MissingExternalValidators);
         Assert.Empty(proof.FailedExternalValidations);
+        Assert.Empty(proof.MissingRequirements);
+        Assert.Empty(proof.UnsupportedRequirements);
+        Assert.Empty(proof.BlockingRequirements);
+        Assert.Equal(
+            proof.Readiness.Requirements.Count,
+            proof.Readiness.Requirements.Select(static requirement => requirement.Id).Distinct(StringComparer.Ordinal).Count());
     }
 
     [Fact]

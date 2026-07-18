@@ -63,7 +63,7 @@ public class PdfOpenTypeCffCompactEmbeddingTests {
             .ToBytes();
 
         string raw = Encoding.ASCII.GetString(bytes);
-        string extracted = PdfReadDocument.Load(bytes).ExtractText();
+        string extracted = PdfReadDocument.Open(bytes).ExtractText();
         int embeddedLength = Assert.Single(ExtractLength1Values(raw));
 
         Assert.Contains("Compact CFF Łódź", extracted, StringComparison.Ordinal);

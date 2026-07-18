@@ -18,7 +18,7 @@ public class PdfOcrTests {
             new PdfOcrWord("Outside", request.PixelWidth, 0, 20, 20, 0.99)
         }, new[] { "provider-proof" }));
 
-        PdfOcrMergeResult result = await PdfDocument.Load(pdf).Read.OcrAsync(provider);
+        PdfOcrMergeResult result = await PdfDocument.Open(pdf).Read.OcrAsync(provider);
         PdfOcrPageMergeResult page = Assert.Single(result.Pages);
         PdfRecognizedWord word = Assert.Single(page.Words);
 

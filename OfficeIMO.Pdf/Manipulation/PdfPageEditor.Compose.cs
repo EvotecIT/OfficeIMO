@@ -1,6 +1,6 @@
 namespace OfficeIMO.Pdf;
 
-public static partial class PdfPageEditor {
+internal static partial class PdfPageEditor {
     /// <summary>Creates a PDF from selected one-based pages in caller order, allowing omissions and repetitions.</summary>
     public static byte[] ComposePages(byte[] pdf, params int[] pageNumbers) {
         Guard.NotNull(pdf, nameof(pdf));
@@ -12,7 +12,7 @@ public static partial class PdfPageEditor {
         _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.ModifyPageTree);
 
         var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf);
-        PdfReadDocument document = PdfReadDocument.Load(pdf);
+        PdfReadDocument document = PdfReadDocument.Open(pdf);
         ValidatePageNumbers(pageNumbers, document.Pages.Count, nameof(pageNumbers), allowDuplicates: true);
         var orderedObjectNumbers = new int[pageNumbers.Length];
         for (int i = 0; i < pageNumbers.Length; i++) {
@@ -35,14 +35,14 @@ public static partial class PdfPageEditor {
     /// <summary>Creates a PDF from selected inclusive page ranges in caller order, allowing omissions and repetitions.</summary>
     public static byte[] ComposePageRanges(byte[] pdf, params PdfPageRange[] pageRanges) {
         Guard.NotNull(pdf, nameof(pdf));
-        int pageCount = PdfReadDocument.Load(pdf).Pages.Count;
+        int pageCount = PdfReadDocument.Open(pdf).Pages.Count;
         return ComposePages(pdf, PdfPageRange.ExpandMany(pageRanges, pageCount, nameof(pageRanges)));
     }
 
     /// <summary>Creates a PDF whose pages are in reverse document order.</summary>
     public static byte[] ReversePages(byte[] pdf) {
         Guard.NotNull(pdf, nameof(pdf));
-        int pageCount = PdfReadDocument.Load(pdf).Pages.Count;
+        int pageCount = PdfReadDocument.Open(pdf).Pages.Count;
         if (pageCount == 0) {
             throw new ArgumentException("PDF must contain at least one page.", nameof(pdf));
         }
@@ -67,7 +67,7 @@ public static partial class PdfPageEditor {
             throw new ArgumentOutOfRangeException(nameof(repetitions), repetitions, "Repetitions must be at least one.");
         }
 
-        int pageCount = PdfReadDocument.Load(pdf).Pages.Count;
+        int pageCount = PdfReadDocument.Open(pdf).Pages.Count;
         ValidatePageNumbers(pageNumbers, pageCount, nameof(pageNumbers), allowDuplicates: true);
         var composed = new int[checked(pageNumbers.Length * repetitions)];
         for (int repetition = 0; repetition < repetitions; repetition++) {
@@ -84,7 +84,7 @@ public static partial class PdfPageEditor {
     /// <summary>Repeats the selected inclusive page ranges in caller order.</summary>
     public static byte[] RepeatPageRanges(byte[] pdf, int repetitions, params PdfPageRange[] pageRanges) {
         Guard.NotNull(pdf, nameof(pdf));
-        int pageCount = PdfReadDocument.Load(pdf).Pages.Count;
+        int pageCount = PdfReadDocument.Open(pdf).Pages.Count;
         int[] pageNumbers = PdfPageRange.ExpandMany(pageRanges, pageCount, nameof(pageRanges));
         return RepeatPages(pdf, repetitions, pageNumbers);
     }
@@ -104,7 +104,7 @@ public static partial class PdfPageEditor {
             throw new ArgumentException("At least two page ranges are required for interleaving.", nameof(pageRanges));
         }
 
-        int pageCount = PdfReadDocument.Load(pdf).Pages.Count;
+        int pageCount = PdfReadDocument.Open(pdf).Pages.Count;
         _ = PdfPageRange.ExpandMany(pageRanges, pageCount, nameof(pageRanges));
         int[][] ranges = pageRanges.Select(static range => range.ToPageNumbers()).ToArray();
         int maximumLength = ranges.Max(static range => range.Length);

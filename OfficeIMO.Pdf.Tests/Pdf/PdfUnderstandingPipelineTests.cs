@@ -14,7 +14,7 @@ public class PdfUnderstandingPipelineTests {
             .ToBytes();
 
         PdfUnderstandingResult result = new PdfUnderstandingPipeline().Run(
-            PdfReadDocument.Load(pdf),
+            PdfReadDocument.Open(pdf),
             PdfPageSelection.From(2, 1));
 
         Assert.Equal(new[] { 2, 1 }, result.Pages.Select(static page => page.PageNumber));
@@ -44,7 +44,7 @@ public class PdfUnderstandingPipelineTests {
         var custom = new ReverseReadingOrderStage();
         var options = new PdfUnderstandingPipelineOptions { ReadingOrder = custom };
 
-        PdfUnderstandingPageResult page = Assert.Single(PdfDocument.Load(pdf).Read.Understand(options).Pages);
+        PdfUnderstandingPageResult page = Assert.Single(PdfDocument.Open(pdf).Read.Understand(options).Pages);
 
         Assert.Equal(typeof(ReverseReadingOrderStage), Assert.Single(page.Trace, static trace => trace.Stage == "reading-order").ProviderType);
         Assert.Equal(page.Regions.Reverse().Select(static region => region.Text), page.ReadingOrder.Select(static region => region.Text));
@@ -64,7 +64,7 @@ public class PdfUnderstandingPipelineTests {
         PdfUnderstandingPipelineOptions options = PdfUnderstandingPipelineOptions.Advanced();
         options.GlyphDecoding = glyphs;
 
-        PdfUnderstandingPageResult page = Assert.Single(new PdfUnderstandingPipeline(options).Run(PdfReadDocument.Load(pdf)).Pages);
+        PdfUnderstandingPageResult page = Assert.Single(new PdfUnderstandingPipeline(options).Run(PdfReadDocument.Open(pdf)).Pages);
 
         Assert.Contains(page.Lines, line => Math.Abs(line.RotationDegrees - 90D) < 0.1D && line.Text.Contains("Vertical one Vertical two", StringComparison.Ordinal));
         string[] horizontalOrder = page.ReadingOrder.Select(region => region.Text).Where(text => text.StartsWith("Left", StringComparison.Ordinal) || text.StartsWith("Right", StringComparison.Ordinal)).ToArray();
@@ -85,7 +85,7 @@ public class PdfUnderstandingPipelineTests {
         PdfUnderstandingPipelineOptions options = PdfUnderstandingPipelineOptions.Advanced();
         options.GlyphDecoding = glyphs;
 
-        PdfUnderstandingPageResult page = Assert.Single(new PdfUnderstandingPipeline(options).Run(PdfReadDocument.Load(pdf)).Pages);
+        PdfUnderstandingPageResult page = Assert.Single(new PdfUnderstandingPipeline(options).Run(PdfReadDocument.Open(pdf)).Pages);
 
         Assert.Contains(page.Elements, element => element.Kind == PdfUnderstandingSemanticKind.Header);
         Assert.Contains(page.Elements, element => element.Kind == PdfUnderstandingSemanticKind.Table);

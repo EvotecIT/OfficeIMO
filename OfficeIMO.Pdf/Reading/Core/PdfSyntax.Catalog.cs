@@ -451,7 +451,7 @@ internal static partial class PdfSyntax {
         return false;
     }
 
-    private static bool ContainsAnyPdfName(string text, params string[] names) {
+    internal static bool ContainsAnyPdfName(string text, params string[] names) {
         for (int i = 0; i < names.Length; i++) {
             if (ContainsPdfName(text, names[i])) {
                 return true;
@@ -476,6 +476,19 @@ internal static partial class PdfSyntax {
             }
         } catch (Exception ex) when (ShouldSuppressParsedPdfNameException(ex, options)) {
             return false;
+        }
+
+        return false;
+    }
+
+    internal static bool ContainsAnyParsedPdfName(
+        IReadOnlyDictionary<int, PdfIndirectObject> objects,
+        params string[] names) {
+        var nameSet = new HashSet<string>(names, StringComparer.Ordinal);
+        foreach (PdfIndirectObject indirectObject in objects.Values) {
+            if (ContainsAnyParsedPdfName(indirectObject.Value, nameSet)) {
+                return true;
+            }
         }
 
         return false;

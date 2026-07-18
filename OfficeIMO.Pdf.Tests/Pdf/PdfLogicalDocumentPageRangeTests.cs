@@ -27,7 +27,7 @@ public partial class PdfLogicalDocumentTests {
         Assert.Equal(2, logical.TextBlocks.Count(block => block.PageNumber == 3 && block.Text.Contains("Third logical page", StringComparison.Ordinal)));
         Assert.Equal(2, logical.GetElements(3).OfType<PdfLogicalTextBlock>().Count(block => block.Text.Contains("Third logical page", StringComparison.Ordinal)));
 
-        PdfReadDocument document = PdfReadDocument.Load(pdf);
+        PdfReadDocument document = PdfReadDocument.Open(pdf);
         PdfLogicalDocument fromDocument = PdfLogicalDocument.FromPageRanges(document, PdfPageRange.From(2, 2));
 
         PdfLogicalPage selected = Assert.Single(fromDocument.Pages);

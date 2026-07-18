@@ -89,7 +89,7 @@ public sealed partial class PdfDocumentReader {
         PdfReadOptions? readOptions = null,
         CancellationToken cancellationToken = default) {
         Guard.NotNull(selector, nameof(selector));
-        PdfReadDocument document = PdfReadDocument.Load(_document.Snapshot(), ResolveReadOptions(readOptions));
+        PdfReadDocument document = ReadDocument(readOptions);
         return new PdfUnderstandingPipeline(options).Run(document, selector, cancellationToken);
     }
 

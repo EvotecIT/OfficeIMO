@@ -21,7 +21,7 @@ public class PdfDocumentCanvasTests {
                 .Text("C", 20D, 10D, 10D, 20D)))
             .ToBytes();
 
-        Assert.Contains("ABC", PdfReadDocument.Load(bytes).ExtractText(), StringComparison.Ordinal);
+        Assert.Contains("ABC", PdfReadDocument.Open(bytes).ExtractText(), StringComparison.Ordinal);
         Assert.Contains("/ActualText", Encoding.ASCII.GetString(bytes), StringComparison.Ordinal);
     }
 

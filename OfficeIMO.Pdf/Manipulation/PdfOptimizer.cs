@@ -4,7 +4,7 @@ using System.IO.Compression;
 namespace OfficeIMO.Pdf;
 
 /// <summary>Applies dependency-free, lossless PDF optimization actions.</summary>
-public static partial class PdfOptimizer {
+internal static partial class PdfOptimizer {
     /// <summary>Optimizes a PDF byte array with lossless actions.</summary>
     public static PdfOptimizationActionResult Optimize(byte[] pdf, PdfOptimizationOptions? options = null) {
         Guard.NotNull(pdf, nameof(pdf));
@@ -36,7 +36,7 @@ public static partial class PdfOptimizer {
         var actions = new List<PdfOptimizationAction>();
         var skippedActions = new List<PdfOptimizationSkippedAction>();
         var optimizedObjects = new Dictionary<int, PdfIndirectObject>(objects);
-        PdfMetadata metadata = PdfReadDocument.Load(pdf).Metadata;
+        PdfMetadata metadata = PdfReadDocument.Open(pdf).Metadata;
         if (effectiveOptions.CompressUnfilteredStreams) {
             CompressUnfilteredStreams(optimizedObjects, effectiveOptions, actions, skippedActions);
         }
@@ -56,7 +56,7 @@ public static partial class PdfOptimizer {
         byte[] candidate = RewriteAllObjects(
             optimizedObjects,
             catalogObjectNumber,
-            PdfReadDocument.Load(pdf).Metadata,
+            PdfReadDocument.Open(pdf).Metadata,
             pdf,
             PdfIncrementalObjectWriter.ReadTrailerIdEntry(trailerRaw),
             effectiveOptions);

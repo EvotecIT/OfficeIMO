@@ -1,6 +1,6 @@
 namespace OfficeIMO.Pdf;
 
-public static partial class PdfAnnotationEditor {
+internal static partial class PdfAnnotationEditor {
     /// <summary>Flattens selected supported visual annotations through a proven full rewrite.</summary>
     public static PdfAnnotationEditResult FlattenAnnotations(byte[] pdf, PdfAnnotationFlattenOptions? options = null) =>
         FlattenAnnotations(pdf, options, readOptions: null);

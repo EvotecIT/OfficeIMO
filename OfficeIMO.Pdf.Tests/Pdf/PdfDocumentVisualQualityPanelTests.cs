@@ -244,7 +244,7 @@ public partial class PdfDocumentVisualQualityTests {
             .ToBytes();
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
-        string text = PdfReadDocument.Load(bytes).ExtractText();
+        string text = PdfReadDocument.Open(bytes).ExtractText();
 
         Assert.Equal(2, pdf.NumberOfPages);
         Assert.Contains("FirstSegment", text, StringComparison.Ordinal);
@@ -280,7 +280,7 @@ public partial class PdfDocumentVisualQualityTests {
             .ToBytes();
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
-        string text = PdfReadDocument.Load(bytes).ExtractText();
+        string text = PdfReadDocument.Open(bytes).ExtractText();
 
         Assert.True(pdf.NumberOfPages > 1);
         Assert.Contains("PanelLine1", text, StringComparison.Ordinal);
@@ -388,7 +388,7 @@ public partial class PdfDocumentVisualQualityTests {
                 })
             .ToBytes();
 
-        string text = PdfReadDocument.Load(pdf).ExtractText();
+        string text = PdfReadDocument.Open(pdf).ExtractText();
 
         Assert.Contains("Panel Snapshot", text);
         Assert.Contains("reusable panel", text, StringComparison.OrdinalIgnoreCase);
@@ -419,7 +419,7 @@ public partial class PdfDocumentVisualQualityTests {
             }, style: checklistStyle))
             .ToBytes();
 
-        string text = PdfReadDocument.Load(pdf).ExtractText();
+        string text = PdfReadDocument.Open(pdf).ExtractText();
 
         Assert.Contains("Done: Ship polished Markdown checklist visuals", text, StringComparison.Ordinal);
         Assert.Contains("Open: Keep literal task markers out of the PDF text", text, StringComparison.Ordinal);
@@ -446,7 +446,7 @@ public partial class PdfDocumentVisualQualityTests {
                                     }))))))
             .ToBytes();
 
-        string text = PdfReadDocument.Load(pdf).ExtractText();
+        string text = PdfReadDocument.Open(pdf).ExtractText();
 
         Assert.Contains("Element Panel", text, StringComparison.Ordinal);
         Assert.Contains("Nested element groups can use composed panels.", text, StringComparison.Ordinal);
@@ -475,7 +475,7 @@ public partial class PdfDocumentVisualQualityTests {
                                 .PanelParagraph(p => p.Bold("Element note").Text(": composed in a grouped flow.")))))))
             .ToBytes();
 
-        string text = PdfReadDocument.Load(pdf).ExtractText();
+        string text = PdfReadDocument.Open(pdf).ExtractText();
 
         Assert.Contains("Rich bullet", text, StringComparison.Ordinal);
         Assert.Contains("Numbered element item", text, StringComparison.Ordinal);

@@ -20,7 +20,7 @@ public sealed partial class PdfReadLayoutSmokeTests {
 
             pdf.Save(path);
 
-            var doc = PdfReadDocument.Load(path);
+            var doc = PdfReadDocument.Open(path);
             Assert.NotNull(doc);
             Assert.NotEmpty(doc.Pages);
 
@@ -47,7 +47,7 @@ public sealed partial class PdfReadLayoutSmokeTests {
                 .Paragraph(p => p.Text("Page extension api smoke."));
             pdf.Save(path);
 
-            var doc = PdfReadDocument.Load(path);
+            var doc = PdfReadDocument.Open(path);
             Assert.NotEmpty(doc.Pages);
 
             var page = doc.Pages[0];

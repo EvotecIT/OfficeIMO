@@ -85,7 +85,7 @@ public class PdfIncrementalUpdaterTests {
             .Paragraph(paragraph => paragraph.Text("Create XMP append"))
             .ToBytes();
 
-        PdfDocument updated = PdfDocument.Load(original)
+        PdfDocument updated = PdfDocument.Open(original)
             .AppendMetadataRevision(title: "Created XMP", keywords: "one;two", createXmpMetadata: true);
         PdfDocumentInfo info = updated.Inspect();
 
@@ -102,7 +102,7 @@ public class PdfIncrementalUpdaterTests {
             .ToBytes();
         var ownerOptions = new PdfReadOptions { Password = "owner" };
 
-        PdfDocument updated = PdfDocument.Load(original, ownerOptions)
+        PdfDocument updated = PdfDocument.Open(original, ownerOptions)
             .AppendMetadataRevision(title: "After fluent append");
 
         Assert.Equal("After fluent append", updated.Read.Metadata().Title);

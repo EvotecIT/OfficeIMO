@@ -3,7 +3,7 @@ using System.Globalization;
 
 namespace OfficeIMO.Pdf;
 
-public static partial class PdfRedactionApplier {
+internal static partial class PdfRedactionApplier {
     private const double ImageRedactionTolerance = 0.01D;
 
     private static ImageRedactionMutation RemoveMatchedImageObjects(

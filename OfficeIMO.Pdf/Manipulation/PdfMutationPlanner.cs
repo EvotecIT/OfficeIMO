@@ -1,7 +1,7 @@
 namespace OfficeIMO.Pdf;
 
 /// <summary>Chooses a proven full-rewrite, append-only, or blocked path for existing-document mutations.</summary>
-public static class PdfMutationPlanner {
+internal static class PdfMutationPlanner {
     /// <summary>Plans a mutation and throws a typed exception carrying the plan when no proven path exists.</summary>
     public static PdfMutationPlan Require(
         byte[] pdf,

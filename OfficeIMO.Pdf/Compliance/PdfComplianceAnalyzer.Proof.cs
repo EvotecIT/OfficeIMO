@@ -1,6 +1,6 @@
 namespace OfficeIMO.Pdf;
 
-public static partial class PdfComplianceAnalyzer {
+internal static partial class PdfComplianceAnalyzer {
     /// <summary>
     /// Combines readiness diagnostics for the profile requested by the supplied options with external validator evidence.
     /// </summary>
@@ -69,9 +69,19 @@ public static partial class PdfComplianceAnalyzer {
         }
 
         var requirements = new List<PdfComplianceRequirement>(generated.Requirements.Count + artifact.Requirements.Count);
-        requirements.AddRange(generated.Requirements);
-        requirements.AddRange(artifact.Requirements);
+        var requirementIds = new HashSet<string>(StringComparer.Ordinal);
+        AddDistinct(generated.Requirements);
+        AddDistinct(artifact.Requirements);
         return new PdfComplianceReadinessReport(generated.Profile, generated.DisplayName, requirements.AsReadOnly());
+
+        void AddDistinct(IReadOnlyList<PdfComplianceRequirement> source) {
+            for (int i = 0; i < source.Count; i++) {
+                PdfComplianceRequirement requirement = source[i];
+                if (requirementIds.Add(requirement.Id)) {
+                    requirements.Add(requirement);
+                }
+            }
+        }
     }
 
     private static PdfExternalValidationResult[] SnapshotExternalValidations(IEnumerable<PdfExternalValidationResult>? externalValidations) {

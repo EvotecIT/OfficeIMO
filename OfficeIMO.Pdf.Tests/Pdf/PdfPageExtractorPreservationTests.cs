@@ -28,7 +28,7 @@ public partial class PdfPageExtractorTests {
         Assert.Contains("/Filter /FlateDecode", pdfText);
         Assert.Contains("/Width 1", pdfText);
         Assert.Contains("/Height 1", pdfText);
-        string extractedText = NormalizeExtractedText(PdfReadDocument.Load(extracted).ExtractText());
+        string extractedText = NormalizeExtractedText(PdfReadDocument.Open(extracted).ExtractText());
         Assert.Contains("Imagepagemarker", extractedText);
         Assert.DoesNotContain("Coverpage", extractedText);
     }
@@ -51,7 +51,7 @@ public partial class PdfPageExtractorTests {
         Assert.Contains("/Subtype /Link", pdfText, StringComparison.Ordinal);
         Assert.Contains("/URI (https://evotec.xyz)", pdfText, StringComparison.Ordinal);
 
-        string extractedText = NormalizeExtractedText(PdfReadDocument.Load(extracted).ExtractText());
+        string extractedText = NormalizeExtractedText(PdfReadDocument.Open(extracted).ExtractText());
         Assert.Contains("OfficeIMOlink", extractedText);
         Assert.DoesNotContain("Coverpage", extractedText);
     }
@@ -66,7 +66,7 @@ public partial class PdfPageExtractorTests {
 
         byte[] extracted = PdfPageExtractor.ExtractPages(source, 2, 2);
 
-        var document = PdfReadDocument.Load(extracted);
+        var document = PdfReadDocument.Open(extracted);
         var (objects, _) = PdfSyntax.ParseObjects(extracted);
         var annotationObjectNumbers = new HashSet<int>();
 
@@ -97,10 +97,10 @@ public partial class PdfPageExtractorTests {
 
         byte[] extracted = PdfPageExtractor.ExtractPages(source, 1);
 
-        string extractedText = NormalizeExtractedText(PdfReadDocument.Load(extracted).ExtractText());
+        string extractedText = NormalizeExtractedText(PdfReadDocument.Open(extracted).ExtractText());
         Assert.Contains("Generationonecontent", extractedText);
 
-        var document = PdfReadDocument.Load(extracted);
+        var document = PdfReadDocument.Open(extracted);
         var (objects, _) = PdfSyntax.ParseObjects(extracted);
         int pageObjectNumber = Assert.Single(document.Pages).ObjectNumber;
         var page = Assert.IsType<PdfDictionary>(objects[pageObjectNumber].Value);
@@ -115,7 +115,7 @@ public partial class PdfPageExtractorTests {
 
         byte[] extracted = PdfPageExtractor.ExtractPages(source, 1, 1);
 
-        var document = PdfReadDocument.Load(extracted);
+        var document = PdfReadDocument.Open(extracted);
         var (objects, _) = PdfSyntax.ParseObjects(extracted);
         Assert.Equal(2, document.Pages.Count);
 

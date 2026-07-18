@@ -16,8 +16,8 @@ public static class PdfVisualComparer {
         Guard.NotNull(actualPdf, nameof(actualPdf));
         PdfVisualComparisonOptions effectiveOptions = options ?? new PdfVisualComparisonOptions();
         effectiveOptions.Validate();
-        PdfReadDocument expected = PdfReadDocument.Load(expectedPdf, expectedReadOptions);
-        PdfReadDocument actual = PdfReadDocument.Load(actualPdf, actualReadOptions);
+        PdfReadDocument expected = PdfReadDocument.Open(expectedPdf, expectedReadOptions);
+        PdfReadDocument actual = PdfReadDocument.Open(actualPdf, actualReadOptions);
         var structural = new List<string>();
         if (expected.Pages.Count != actual.Pages.Count) {
             structural.Add("PageCount: expected " + expected.Pages.Count + ", actual " + actual.Pages.Count + ".");

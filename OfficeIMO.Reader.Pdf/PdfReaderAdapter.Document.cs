@@ -103,8 +103,9 @@ internal static partial class PdfReaderAdapter {
         var effectivePdfOptions = ReaderPdfOptionsCloner.CloneOrDefault(pdfOptions);
         ReaderInputLimits.EnforceFileSize(pdfPath, effectiveReaderOptions.MaxInputBytes);
         var source = BuildSourceMetadataFromPath(pdfPath, effectiveReaderOptions.ComputeHashes);
-        PdfDocumentPreflight preflight = PdfInspector.Preflight(pdfPath);
-        PdfLogicalDocument document = LoadDocument(pdfPath, effectivePdfOptions);
+        PdfDocument pdf = PdfDocument.Open(pdfPath, CreatePdfReadOptions(effectiveReaderOptions));
+        PdfDocumentPreflight preflight = pdf.Preflight();
+        PdfLogicalDocument document = LoadDocument(pdf, effectivePdfOptions);
         return BuildDocumentResult(document, source, effectiveReaderOptions, effectivePdfOptions, preflight, applyPageRanges: false, cancellationToken);
     }
 
@@ -139,12 +140,9 @@ internal static partial class PdfReaderAdapter {
                 parseStream.Position = parseStartPosition;
             }
 
-            PdfDocumentPreflight preflight = PdfInspector.Preflight(parseStream);
-            if (parseStream.CanSeek) {
-                parseStream.Position = parseStartPosition;
-            }
-
-            PdfLogicalDocument document = LoadDocument(parseStream, effectivePdfOptions);
+            PdfDocument pdf = PdfDocument.Open(parseStream, CreatePdfReadOptions(effectiveReaderOptions));
+            PdfDocumentPreflight preflight = pdf.Preflight();
+            PdfLogicalDocument document = LoadDocument(pdf, effectivePdfOptions);
             return BuildDocumentResult(document, source, effectiveReaderOptions, effectivePdfOptions, preflight, applyPageRanges: false, cancellationToken);
         } finally {
             if (ownsParseStream) {

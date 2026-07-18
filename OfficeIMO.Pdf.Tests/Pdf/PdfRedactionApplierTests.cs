@@ -32,7 +32,7 @@ public class PdfRedactionApplierTests {
     public void ApplyRedactions_FacadeReturnsRedactedDocumentAndTryResult() {
         byte[] source = BuildRedactionSource();
         PdfRedactionArea area = FindAreaForText(source, "Secret account 123-45");
-        PdfDocument document = PdfDocument.Load(source);
+        PdfDocument document = PdfDocument.Open(source);
 
         PdfDocument redacted = document.ApplyRedactions(new[] { area });
         PdfOperationResult<PdfDocument> result = document.TryApplyRedactions(new[] { area });

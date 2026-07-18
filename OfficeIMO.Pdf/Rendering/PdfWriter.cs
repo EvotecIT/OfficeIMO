@@ -275,7 +275,13 @@ internal static partial class PdfWriter {
             }
 
             // Content stream (append image draw commands at end)
-            AddHeaderFooterImages(page, pageOpts, headerFooterVariantPageNumber);
+            AddHeaderFooterImages(
+                page,
+                pageOpts,
+                headerFooterVariantPageNumber,
+                headerFooterPageNumber,
+                headerFooterTotalPages,
+                totalPages);
             if (markInfo) {
                 AssignFigureMarkedContentIds(page);
                 AssignStructParentIndex(page, ref nextStructParentIndex);
@@ -1507,4 +1513,3 @@ internal static partial class PdfWriter {
         node.Children.Count > 0 && node.Level <= outlineExpansionLevel;
 
 }
-

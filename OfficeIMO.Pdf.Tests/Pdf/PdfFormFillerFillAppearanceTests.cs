@@ -350,7 +350,7 @@ public partial class PdfFormFillerTests {
         }, options);
 
         string output = Encoding.ASCII.GetString(flattened);
-        string extracted = PdfReadDocument.Load(flattened).ExtractText();
+        string extracted = PdfReadDocument.Open(flattened).ExtractText();
 
         Assert.DoesNotContain("/AcroForm", output, StringComparison.Ordinal);
         Assert.Contains("/FontFile3", output, StringComparison.Ordinal);
@@ -514,7 +514,7 @@ public partial class PdfFormFillerTests {
         }, options);
 
         string output = Encoding.ASCII.GetString(flattened);
-        string extracted = PdfReadDocument.Load(flattened).ExtractText();
+        string extracted = PdfReadDocument.Open(flattened).ExtractText();
 
         Assert.DoesNotContain("/AcroForm", output, StringComparison.Ordinal);
         Assert.Contains("/FontFile3", output, StringComparison.Ordinal);
@@ -542,7 +542,7 @@ public partial class PdfFormFillerTests {
         }, options);
 
         string output = Encoding.ASCII.GetString(flattened);
-        string extracted = PdfReadDocument.Load(flattened).ExtractText();
+        string extracted = PdfReadDocument.Open(flattened).ExtractText();
 
         Assert.DoesNotContain("/AcroForm", output, StringComparison.Ordinal);
         Assert.Contains("/Helv0", output, StringComparison.Ordinal);
@@ -622,7 +622,7 @@ public partial class PdfFormFillerTests {
         }, options);
 
         string output = Encoding.ASCII.GetString(flattened);
-        string extracted = PdfReadDocument.Load(flattened).ExtractText();
+        string extracted = PdfReadDocument.Open(flattened).ExtractText();
 
         Assert.DoesNotContain("/AcroForm", output, StringComparison.Ordinal);
         Assert.Contains("/Subtype /Type0", output, StringComparison.Ordinal);
@@ -643,7 +643,7 @@ public partial class PdfFormFillerTests {
             .UseAppearanceFontFile("OfficeIMO Fill Font", fontPath);
 
         byte[] filled = PdfDocument
-            .Load(BuildTextWidgetFormPdf())
+            .Open(BuildTextWidgetFormPdf())
             .Forms
             .Fill(new Dictionary<string, string> {
                 ["Name"] = "Łódź"
@@ -738,7 +738,7 @@ public partial class PdfFormFillerTests {
         });
 
         string output = Encoding.ASCII.GetString(flattened);
-        string extracted = PdfReadDocument.Load(flattened).ExtractText();
+        string extracted = PdfReadDocument.Open(flattened).ExtractText();
 
         Assert.DoesNotContain("/AcroForm", output, StringComparison.Ordinal);
         Assert.DoesNotContain("/Subtype /Type1 /BaseFont /Helvetica", output, StringComparison.Ordinal);
@@ -757,7 +757,7 @@ public partial class PdfFormFillerTests {
         });
 
         string output = Encoding.ASCII.GetString(flattened);
-        string extracted = PdfReadDocument.Load(flattened).ExtractText();
+        string extracted = PdfReadDocument.Open(flattened).ExtractText();
 
         Assert.DoesNotContain("/AcroForm", output, StringComparison.Ordinal);
         Assert.DoesNotContain("/Subtype /Type1 /BaseFont /Helvetica", output, StringComparison.Ordinal);
@@ -776,7 +776,7 @@ public partial class PdfFormFillerTests {
         });
 
         string output = Encoding.ASCII.GetString(flattened);
-        string extracted = PdfReadDocument.Load(flattened).ExtractText();
+        string extracted = PdfReadDocument.Open(flattened).ExtractText();
 
         Assert.DoesNotContain("/AcroForm", output, StringComparison.Ordinal);
         Assert.Contains("/Funi", output, StringComparison.Ordinal);
@@ -800,7 +800,7 @@ public partial class PdfFormFillerTests {
         });
 
         string output = Encoding.ASCII.GetString(flattened);
-        string extracted = PdfReadDocument.Load(flattened).ExtractText();
+        string extracted = PdfReadDocument.Open(flattened).ExtractText();
 
         Assert.DoesNotContain("/AcroForm", output, StringComparison.Ordinal);
         Assert.DoesNotContain("/Subtype /Type1 /BaseFont /Helvetica", output, StringComparison.Ordinal);

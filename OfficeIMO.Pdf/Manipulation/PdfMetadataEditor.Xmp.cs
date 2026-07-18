@@ -1,6 +1,6 @@
 namespace OfficeIMO.Pdf;
 
-public static partial class PdfMetadataEditor {
+internal static partial class PdfMetadataEditor {
     /// <summary>
     /// Creates a normalized full-rewrite PDF whose Info dictionary and XMP packet share the supplied common fields.
     /// Null values preserve the existing Info/XMP value and empty strings clear it. Existing custom XMP schemas are preserved.

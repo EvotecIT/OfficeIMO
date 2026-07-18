@@ -28,7 +28,7 @@ public class PdfPageCropTranslateTests {
                 Contents = "Outside crop"
             }).Bytes;
 
-        PdfDocument cropped = PdfDocument.Load(source)
+        PdfDocument cropped = PdfDocument.Open(source)
             .Pages.CropAndTranslate(50, 50, 400, 700);
         byte[] output = cropped.ToBytes();
         PdfDocumentInfo info = cropped.Inspect();

@@ -46,7 +46,7 @@ public partial class PdfReaderAndFooterRegressionTests {
     }
 
     private static void AssertSecondLineStartsAtFirstLineX(byte[] bytes) {
-        var spans = PdfReadDocument.Load(bytes).Pages[0].GetTextSpans().ToArray();
+        var spans = PdfReadDocument.Open(bytes).Pages[0].GetTextSpans().ToArray();
         PdfTextSpan first = Assert.Single(spans, span => span.Text == "First");
         PdfTextSpan second = Assert.Single(spans, span => span.Text == "Second");
 

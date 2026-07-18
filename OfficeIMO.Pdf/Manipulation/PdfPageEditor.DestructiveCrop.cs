@@ -2,7 +2,7 @@ using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Pdf;
 
-public static partial class PdfPageEditor {
+internal static partial class PdfPageEditor {
     /// <summary>
     /// Destructively crops selected pages by replacing the retained visual rectangle with an opaque raster page.
     /// Original selected-page content streams, resources, and annotations are not retained in the rewritten object graph.
@@ -14,7 +14,7 @@ public static partial class PdfPageEditor {
         if (effective.MaxPixelsPerPage <= 0) throw new ArgumentOutOfRangeException(nameof(options), "Maximum pixels per page must be positive.");
         PdfMutationPlan pageTreePlan = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.ModifyPageTree);
         PdfMutationPlan contentPlan = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.ModifyPageContent);
-        PdfReadDocument source = PdfReadDocument.Load(pdf);
+        PdfReadDocument source = PdfReadDocument.Open(pdf);
         int[] selected = pageNumbers.Length == 0 ? Enumerable.Range(1, source.Pages.Count).ToArray() : pageNumbers;
         ValidatePageNumbers(selected, source.Pages.Count, nameof(pageNumbers));
         EnsureNoSelectedFormWidgets(source, selected);
@@ -23,7 +23,7 @@ public static partial class PdfPageEditor {
         var renderOptions = new PdfPageRenderOptions { Format = PdfPageRenderFormat.Png, Dpi = effective.Dpi, Background = effective.Background, MaxPages = selected.Length, MaxPixelsPerPage = effective.MaxPixelsPerPage, ContinueOnError = false };
         IReadOnlyList<PdfPageRenderResult> renders = PdfPageImageRenderer.RenderPages(translated, PdfPageSelection.From(selected), renderOptions);
         ValidateDestructiveCropRenders(renders, effective);
-        PdfReadDocument translatedDocument = PdfReadDocument.Load(translated);
+        PdfReadDocument translatedDocument = PdfReadDocument.Open(translated);
         var renderByPage = renders.ToDictionary(static render => render.PageNumber);
         var selectedSet = new HashSet<int>(selected);
 
@@ -52,7 +52,7 @@ public static partial class PdfPageEditor {
             return security.InfoObjectNumber.HasValue && objects.ContainsKey(security.InfoObjectNumber.Value) ? security.InfoObjectNumber : null;
         });
 
-        PdfReadDocument verified = PdfReadDocument.Load(output);
+        PdfReadDocument verified = PdfReadDocument.Open(output);
         foreach (int pageNumber in selected) {
             if (!string.IsNullOrWhiteSpace(verified.Pages[pageNumber - 1].ExtractText())) throw new InvalidOperationException("Destructive crop validation found extractable text on a replaced page.");
             if (verified.Pages[pageNumber - 1].GetAnnotations().Count != 0) throw new InvalidOperationException("Destructive crop validation found a live annotation on a replaced page.");

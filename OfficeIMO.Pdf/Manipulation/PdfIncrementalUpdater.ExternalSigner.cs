@@ -1,7 +1,7 @@
 using OfficeIMO.Drawing.Internal;
 namespace OfficeIMO.Pdf;
 
-public static partial class PdfIncrementalUpdater {
+internal static partial class PdfIncrementalUpdater {
     /// <summary>Prepares byte ranges, calls caller-owned key infrastructure, and applies its signature container.</summary>
     public static PdfExternalSignatureCompletion SignExternal(
         byte[] pdf,

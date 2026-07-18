@@ -1,7 +1,7 @@
 using OfficeIMO.Drawing.Internal;
 namespace OfficeIMO.Pdf;
 
-public static partial class PdfFormFiller {
+internal static partial class PdfFormFiller {
     /// <summary>
     /// Returns a new PDF with simple AcroForm field values updated by fully qualified field name.
     /// </summary>
@@ -64,7 +64,7 @@ public static partial class PdfFormFiller {
         }
 
         acroForm.Items["NeedAppearances"] = new PdfBoolean(options?.KeepNeedAppearances == true);
-        return RewriteAllObjects(objects, catalogObjectNumber, PdfReadDocument.Load(pdf).Metadata, pdf);
+        return RewriteAllObjects(objects, catalogObjectNumber, PdfReadDocument.Open(pdf).Metadata, pdf);
     }
 
     /// <summary>
@@ -307,7 +307,7 @@ public static partial class PdfFormFiller {
             objects.Remove(objectNumber);
         }
 
-        return RewriteAllObjects(objects, catalogObjectNumber, PdfReadDocument.Load(pdf).Metadata, pdf);
+        return RewriteAllObjects(objects, catalogObjectNumber, PdfReadDocument.Open(pdf).Metadata, pdf);
     }
 
     /// <summary>
@@ -380,7 +380,7 @@ public static partial class PdfFormFiller {
         }
 
         foreach (int objectNumber in removableObjects) objects.Remove(objectNumber);
-        return RewriteAllObjects(objects, catalogObjectNumber, PdfReadDocument.Load(pdf).Metadata, pdf);
+        return RewriteAllObjects(objects, catalogObjectNumber, PdfReadDocument.Open(pdf).Metadata, pdf);
     }
 
     /// <summary>

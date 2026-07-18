@@ -70,9 +70,12 @@ This is important for document intelligence because visual content needs a share
 `OfficeIMO.Pdf` is now a serious first-party document engine, with `Docs/officeimo.pdf.current-state.md` as the canonical state file:
 
 - Fluent PDF creation with headings, paragraphs, rich text, lists, panels, rows/columns, tables, images, drawing primitives, links, bookmarks, headers, footers, page setup, themes, standard-font measurement, viewer/catalog options, and visual baselines.
-- PDF reading with `PdfReadDocument`, `PdfInspector`, `PdfValidator`, `PdfTextExtractor`, `PdfLogicalDocument`, and logical Markdown options.
+- PDF reading through `PdfDocument.Open(...).Read`, inspection/preflight through
+  the same facade, and advanced logical work through `PdfReadDocument` and
+  `PdfLogicalDocument`.
 - Logical readback for pages, text blocks, headings, paragraphs, list items, tables, images, links, form widgets, metadata, outlines, page labels, named destinations, open actions, viewer preferences, and simple AcroForm fields.
-- Markdown extraction through `PdfTextExtractor.ExtractMarkdown(...)`, page/range variants, output stream/path helpers, and `PdfLogicalDocument.ToMarkdown(...)`.
+- Markdown extraction through `PdfDocument.Read.Markdown(...)`, page/range
+  variants, and `PdfLogicalDocument.ToMarkdown(...)`.
 - Text, structured text, table, and image extraction with page-range support and deterministic output-file naming.
 - Page manipulation: split, extract, merge, import, duplicate, move, delete, reorder, rotate, stamp, watermark, and metadata editing.
 - Forms: inspect simple fields, create simple fields, fill simple values, and flatten supported text/choice/button widgets.
@@ -265,7 +268,10 @@ Goal: use first-party PDF export as both product feature and verification path.
 - Continue Excel-to-PDF coverage for print layout, charts, images, links, merged cells, styles, headers/footers, and diagnostics.
 - Continue PowerPoint-to-PDF coverage for slide layout, shape/text/image/table/chart fidelity, grouped transforms, backgrounds, and diagnostics.
 - Keep Markdown-to-PDF and HTML-to-PDF aligned with portable document profiles.
-- After each export, use `PdfLogicalDocument`, `PdfInspector`, conversion scenarios, compliance proof packs, and raster/visual baselines to verify that generated output is readable and visually stable.
+- After each export, use `PdfDocument.Analyze(...)`, `PdfLogicalDocument`,
+  conversion scenarios, compliance proof packs, and version-pinned
+  raster/visual baselines to verify that generated output is readable and
+  visually stable.
 
 ### P6 - Visio Reader And Diagram Intelligence Adapter
 

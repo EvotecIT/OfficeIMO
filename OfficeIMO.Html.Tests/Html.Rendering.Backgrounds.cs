@@ -134,7 +134,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(20D, background.Height, 3);
         Assert.Equal(new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 }, png.Bytes.Take(8));
         Assert.Contains("data:image/png;base64", Encoding.UTF8.GetString(svg.Bytes), StringComparison.Ordinal);
-        string pdfText = PdfCore.PdfReadDocument.Load(pdf).ExtractText().Replace("\r", string.Empty).Replace("\n", string.Empty);
+        string pdfText = PdfCore.PdfReadDocument.Open(pdf).ExtractText().Replace("\r", string.Empty).Replace("\n", string.Empty);
         Assert.Contains("BackgroundOutputMarker", pdfText, StringComparison.Ordinal);
         Assert.Contains(PdfCore.PdfImageExtractor.ExtractImages(pdf), image => image.IsImageFile && image.MimeType == "image/png");
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BackgroundImageRepeatUnsupported);
@@ -165,7 +165,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlPdfSaveOptions pdfOptions = new HtmlPdfSaveOptions();
         pdfOptions = new HtmlPdfSaveOptions(options);
         byte[] pdf = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(pdfOptions);
-        string pdfText = string.Concat(PdfCore.PdfReadDocument.Load(pdf).ExtractText().Where(character => !char.IsWhiteSpace(character)));
+        string pdfText = string.Concat(PdfCore.PdfReadDocument.Open(pdf).ExtractText().Where(character => !char.IsWhiteSpace(character)));
 
         Assert.Equal(8, pattern.Visuals.OfType<HtmlRenderDrawing>().Count());
         Assert.Equal(OfficeColor.Red, raster.GetPixel(9, 9));

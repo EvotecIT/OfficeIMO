@@ -58,7 +58,7 @@ public sealed partial class HtmlRenderingTests {
             BackgroundColor = OfficeColor.Transparent
         };
         byte[] pdf = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(pdfOptions);
-        string pdfText = string.Concat(PdfCore.PdfReadDocument.Load(pdf).ExtractText().Where(character => !char.IsWhiteSpace(character)));
+        string pdfText = string.Concat(PdfCore.PdfReadDocument.Open(pdf).ExtractText().Where(character => !char.IsWhiteSpace(character)));
 
         Assert.Equal(3, vector.Drawing.Shapes.Count);
         string[] svgTextRuns = vector.Drawing.Elements.OfType<OfficeDrawingEffectGroup>()
@@ -110,7 +110,7 @@ public sealed partial class HtmlRenderingTests {
             BackgroundColor = OfficeColor.Transparent
         };
         byte[] pdf = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(pdfOptions);
-        string pdfText = string.Concat(PdfCore.PdfReadDocument.Load(pdf).ExtractText().Where(character => !char.IsWhiteSpace(character)));
+        string pdfText = string.Concat(PdfCore.PdfReadDocument.Open(pdf).ExtractText().Where(character => !char.IsWhiteSpace(character)));
 
         OfficeLinearGradient first = Assert.IsType<OfficeLinearGradient>(visual.Drawing.Shapes[0].Shape.FillGradient);
         OfficeLinearGradient second = Assert.IsType<OfficeLinearGradient>(visual.Drawing.Shapes[1].Shape.FillGradient);
@@ -182,7 +182,7 @@ public sealed partial class HtmlRenderingTests {
             BackgroundColor = OfficeColor.Transparent
         };
         byte[] pdf = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(pdfOptions);
-        string pdfText = string.Concat(PdfCore.PdfReadDocument.Load(pdf).ExtractText().Where(character => !char.IsWhiteSpace(character)));
+        string pdfText = string.Concat(PdfCore.PdfReadDocument.Open(pdf).ExtractText().Where(character => !char.IsWhiteSpace(character)));
 
         Assert.Equal(0D, image.X, 3);
         Assert.Equal(20D, image.Y, 3);
@@ -365,7 +365,7 @@ public sealed partial class HtmlRenderingTests {
             BackgroundColor = OfficeColor.Transparent
         };
         byte[] pdf = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(pdfOptions);
-        string pdfText = string.Concat(PdfCore.PdfReadDocument.Load(pdf).ExtractText().Where(character => !char.IsWhiteSpace(character)));
+        string pdfText = string.Concat(PdfCore.PdfReadDocument.Open(pdf).ExtractText().Where(character => !char.IsWhiteSpace(character)));
 
         Assert.Equal(18D, clip.Width, 3);
         Assert.Equal(14D, clip.Height, 3);

@@ -5,7 +5,7 @@ namespace OfficeIMO.Pdf;
 /// <summary>
 /// Provides first-party page extraction and simple splitting for PDFs that can be parsed by OfficeIMO.Pdf.
 /// </summary>
-public static partial class PdfPageExtractor {
+internal static partial class PdfPageExtractor {
     /// <summary>
     /// Creates a new PDF containing the selected one-based page numbers in the requested order.
     /// </summary>
@@ -48,7 +48,7 @@ public static partial class PdfPageExtractor {
         }
 
         var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf, options);
-        var document = PdfReadDocument.Load(pdf, options);
+        var document = PdfReadDocument.Open(pdf, options);
         ValidatePageNumbers(selected, document.Pages.Count, nameof(pageNumbers));
 
         var pageObjectNumbers = selected.Select(pageNumber => document.Pages[pageNumber - 1].ObjectNumber).ToArray();
@@ -235,7 +235,7 @@ public static partial class PdfPageExtractor {
         }
 
         var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf, options);
-        var document = PdfReadDocument.Load(pdf, options);
+        var document = PdfReadDocument.Open(pdf, options);
         ValidatePageRanges(ranges, document.Pages.Count, nameof(pageRanges));
 
         var pageObjectNumbers = new List<int>(ranges.Sum(range => range.PageCount));
@@ -324,7 +324,7 @@ public static partial class PdfPageExtractor {
         _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.ExtractPages, options);
 
         var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf, options);
-        var document = PdfReadDocument.Load(pdf, options);
+        var document = PdfReadDocument.Open(pdf, options);
         var catalogState = ExtractCatalogRewriteState(objects, trailerRaw);
         PdfFileVersion fileVersion = GetSourceFileVersion(pdf);
         var result = new List<byte[]>(document.Pages.Count);
@@ -378,7 +378,7 @@ public static partial class PdfPageExtractor {
         }
 
         var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf, options);
-        var document = PdfReadDocument.Load(pdf, options);
+        var document = PdfReadDocument.Open(pdf, options);
         ValidatePageRanges(ranges, document.Pages.Count, nameof(pageRanges));
         var catalogState = ExtractCatalogRewriteState(objects, trailerRaw);
         PdfFileVersion fileVersion = GetSourceFileVersion(pdf);

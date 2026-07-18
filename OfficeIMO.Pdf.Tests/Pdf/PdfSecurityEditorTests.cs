@@ -39,7 +39,7 @@ public class PdfSecurityEditorTests {
             encrypted,
             PdfMutationOperation.ChangeEncryption,
             new PdfReadOptions { Password = "open" });
-        PdfOperationResult<PdfSecurityMutationResult> refused = PdfDocument.Load(encrypted).TryDecrypt("open");
+        PdfOperationResult<PdfSecurityMutationResult> refused = PdfDocument.Open(encrypted).TryDecrypt("open");
         PdfSecurityMutationResult result = PdfSecurityEditor.Decrypt(encrypted, "owner");
 
         Assert.Equal(PdfPasswordAuthenticationRole.User, userPlan.Preflight.Probe.Security.PasswordAuthenticationRole);
@@ -64,7 +64,7 @@ public class PdfSecurityEditorTests {
             AllowedPermissions = PdfStandardPermissions.FillForms
         };
 
-        PdfSecurityMutationResult result = PdfDocument.Load(encrypted).Reencrypt("old-owner", replacement);
+        PdfSecurityMutationResult result = PdfDocument.Open(encrypted).Reencrypt("old-owner", replacement);
         PdfDocumentInfo userInfo = PdfInspector.Inspect(result.Pdf, new PdfReadOptions { Password = "new-open" });
         PdfDocumentInfo ownerInfo = PdfInspector.Inspect(result.Pdf, new PdfReadOptions { Password = "new-owner" });
 

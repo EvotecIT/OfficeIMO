@@ -2,7 +2,7 @@ using System.Globalization;
 
 namespace OfficeIMO.Pdf;
 
-public static partial class PdfPageExtractor {
+internal static partial class PdfPageExtractor {
     private static PdfDictionary? BuildNamedDestinationNameTree(
         Dictionary<int, PdfIndirectObject> sourceObjects,
         PdfObject? names) {

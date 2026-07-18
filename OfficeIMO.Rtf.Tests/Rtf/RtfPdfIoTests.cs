@@ -88,6 +88,6 @@ public class RtfPdfIoTests {
 
     private static void AssertPdfContains(byte[] pdf, string expectedText) {
         Assert.Equal("%PDF-", Encoding.ASCII.GetString(pdf, 0, 5));
-        Assert.Contains(expectedText, PdfCore.PdfReadDocument.Load(pdf).ExtractText(), StringComparison.Ordinal);
+        Assert.Contains(expectedText, PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
     }
 }

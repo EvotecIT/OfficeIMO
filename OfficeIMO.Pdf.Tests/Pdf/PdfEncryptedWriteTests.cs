@@ -99,8 +99,8 @@ public class PdfEncryptedWriteTests {
         Assert.True(PdfInspector.Probe(pdf).HasEncryption);
         Assert.False(preflight.CanRead);
         Assert.Contains(preflight.ReadBlockers, blocker => blocker.Kind == PdfReadBlockerKind.Encryption);
-        Assert.Throws<PdfPasswordRequiredException>(() => PdfReadDocument.Load(pdf));
-        Assert.Throws<PdfInvalidPasswordException>(() => PdfReadDocument.Load(pdf, new PdfReadOptions { Password = "wrong" }));
+        Assert.Throws<PdfPasswordRequiredException>(() => PdfReadDocument.Open(pdf));
+        Assert.Throws<PdfInvalidPasswordException>(() => PdfReadDocument.Open(pdf, new PdfReadOptions { Password = "wrong" }));
     }
 
     [Fact]
@@ -112,7 +112,7 @@ public class PdfEncryptedWriteTests {
         var readOptions = new PdfReadOptions { Password = "open" };
         PdfDocumentPreflight preflight = PdfInspector.Preflight(pdf, readOptions);
         string text = PdfTextExtractor.ExtractAllText(pdf, (PdfTextLayoutOptions?)null, readOptions);
-        PdfDocument opened = PdfDocument.Load(pdf, readOptions);
+        PdfDocument opened = PdfDocument.Open(pdf, readOptions);
         string fluentText = opened.Read.Text();
         PdfOperationResult<string> tryText = opened.Read.TryText();
 

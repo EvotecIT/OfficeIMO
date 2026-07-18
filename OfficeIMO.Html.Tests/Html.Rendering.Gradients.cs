@@ -37,7 +37,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains("<linearGradient", svg, StringComparison.Ordinal);
         Assert.Equal(3, CountBackgroundOccurrences(svg, "<stop "));
         Assert.Contains("/FunctionType 3", Encoding.ASCII.GetString(pdf), StringComparison.Ordinal);
-        Assert.Contains("GradientMarker", PdfCore.PdfReadDocument.Load(pdf).ExtractText(), StringComparison.Ordinal);
+        Assert.Contains("GradientMarker", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BackgroundImageValueUnsupported);
         Assert.DoesNotContain(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfDocumentResult(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
     }
@@ -66,7 +66,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(OfficeColor.Blue, raster.GetPixel(61, 15));
         Assert.Equal(2, CountBackgroundOccurrences(svg, "offset=\"50%\""));
         Assert.Contains("/Bounds [0.4999999 0.5000001]", pdfSource, StringComparison.Ordinal);
-        Assert.Contains("HardStopPdf", PdfCore.PdfReadDocument.Load(pdf).ExtractText(), StringComparison.Ordinal);
+        Assert.Contains("HardStopPdf", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BackgroundImageValueUnsupported);
         Assert.DoesNotContain(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfDocumentResult(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
     }
@@ -91,7 +91,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(new[] { 0D, 0.25D, 1D }, gradient.Stops.Select(stop => stop.Offset));
         Assert.Contains("offset=\"25%\"", svg, StringComparison.Ordinal);
         Assert.Contains("/Bounds [0.25]", Encoding.ASCII.GetString(pdf), StringComparison.Ordinal);
-        Assert.Contains("LengthStopPdf", PdfCore.PdfReadDocument.Load(pdf).ExtractText(), StringComparison.Ordinal);
+        Assert.Contains("LengthStopPdf", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BackgroundImageValueUnsupported);
     }
 
@@ -140,7 +140,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(3, CountBackgroundOccurrences(svg, "<stop "));
         Assert.Contains("/ShadingType 3", pdfSource, StringComparison.Ordinal);
         Assert.Contains("/Coords [0.5 0.5 0 0.5 0.5 0.707]", pdfSource, StringComparison.Ordinal);
-        Assert.Contains("RadialMarker", PdfCore.PdfReadDocument.Load(pdf).ExtractText(), StringComparison.Ordinal);
+        Assert.Contains("RadialMarker", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BackgroundImageValueUnsupported);
         Assert.DoesNotContain(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfDocumentResult(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
     }
@@ -174,7 +174,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains("gradientTransform=\"matrix(0.75 0 0 0.5 0.25 0.5)\"", svg, StringComparison.Ordinal);
         Assert.Contains("/ShadingType 3", pdfSource, StringComparison.Ordinal);
         Assert.Contains("/Coords [0 0 0 0 0 1]", pdfSource, StringComparison.Ordinal);
-        Assert.Contains("EllipseMarker", PdfCore.PdfReadDocument.Load(pdf).ExtractText(), StringComparison.Ordinal);
+        Assert.Contains("EllipseMarker", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BackgroundImageValueUnsupported);
         Assert.DoesNotContain(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfDocumentResult(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
     }
@@ -204,7 +204,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.True(raster.GetPixel(78, 38).B > raster.GetPixel(78, 38).R);
         Assert.Contains("gradientTransform=\"matrix(0.188 0 0 0.5 0.25 0.5)\"", svg, StringComparison.Ordinal);
         Assert.Contains("/ShadingType 3", Encoding.ASCII.GetString(pdf), StringComparison.Ordinal);
-        Assert.Contains("CircleMarker", PdfCore.PdfReadDocument.Load(pdf).ExtractText(), StringComparison.Ordinal);
+        Assert.Contains("CircleMarker", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BackgroundImageValueUnsupported);
         Assert.DoesNotContain(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfDocumentResult(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
     }

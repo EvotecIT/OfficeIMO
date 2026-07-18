@@ -4,7 +4,7 @@ using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Pdf;
 
-public static partial class PdfPageImageRenderer {
+internal static partial class PdfPageImageRenderer {
     /// <summary>Renders all pages or a caller-ordered page selection with bounded per-page reports.</summary>
     public static IReadOnlyList<PdfPageRenderResult> RenderPages(
         byte[] pdf,
@@ -15,7 +15,7 @@ public static partial class PdfPageImageRenderer {
         Guard.NotNull(pdf, nameof(pdf));
         PdfPageRenderOptions effectiveOptions = options ?? new PdfPageRenderOptions();
         effectiveOptions.Validate();
-        PdfReadDocument document = PdfReadDocument.Load(pdf, readOptions);
+        PdfReadDocument document = PdfReadDocument.Open(pdf, readOptions);
         int[] pages = selection?.ToPageNumbers(document.Pages.Count, nameof(selection)) ?? Enumerable.Range(1, document.Pages.Count).ToArray();
         if (pages.Length > effectiveOptions.MaxPages) {
             throw new PdfReadLimitException(PdfReadLimitKind.RenderPages, effectiveOptions.MaxPages, pages.Length, "PDF render page count exceeded the configured limit.");
@@ -39,7 +39,7 @@ public static partial class PdfPageImageRenderer {
         CancellationToken cancellationToken = default) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(pageRanges, nameof(pageRanges));
-        PdfReadDocument document = PdfReadDocument.Load(pdf, readOptions);
+        PdfReadDocument document = PdfReadDocument.Open(pdf, readOptions);
         return RenderPages(pdf, PdfPageSelector.Parse(pageRanges).ResolveSelection(document.Pages.Count), options, readOptions, cancellationToken);
     }
 
@@ -52,7 +52,7 @@ public static partial class PdfPageImageRenderer {
         CancellationToken cancellationToken = default) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(selector, nameof(selector));
-        PdfReadDocument document = PdfReadDocument.Load(pdf, readOptions);
+        PdfReadDocument document = PdfReadDocument.Open(pdf, readOptions);
         return RenderPages(pdf, selector.ResolveSelection(document.Pages.Count), options, readOptions, cancellationToken);
     }
 

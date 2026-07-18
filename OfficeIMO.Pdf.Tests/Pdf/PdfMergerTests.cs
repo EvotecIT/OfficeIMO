@@ -24,7 +24,7 @@ public class PdfMergerTests {
         using var pdf = PdfPigDocument.Open(new MemoryStream(merged));
         Assert.Equal(4, pdf.NumberOfPages);
 
-        var read = PdfReadDocument.Load(merged);
+        var read = PdfReadDocument.Open(merged);
         string text = NormalizeExtractedText(read.ExtractText());
         AssertContainsInOrder(text, "Firstpage", "Firstsecondpage", "Seconddocumentpage", "Secondsecondpage");
 
@@ -62,7 +62,7 @@ public class PdfMergerTests {
         Assert.Contains("/Width 1", pdfText);
         Assert.Contains("/Height 1", pdfText);
 
-        string text = NormalizeExtractedText(PdfReadDocument.Load(merged).ExtractText());
+        string text = NormalizeExtractedText(PdfReadDocument.Open(merged).ExtractText());
         AssertContainsInOrder(text, "Imagesourcepage", "Textonlypage");
     }
 
@@ -90,7 +90,7 @@ public class PdfMergerTests {
         Assert.Contains("BT\n/Helv", pdf, StringComparison.Ordinal);
         Assert.Contains("1 0.9 0.1 rg 0 0 120 14 re f", pdf, StringComparison.Ordinal);
 
-        string text = NormalizeExtractedText(PdfReadDocument.Load(merged).ExtractText());
+        string text = NormalizeExtractedText(PdfReadDocument.Open(merged).ExtractText());
         AssertContainsInOrder(text, "Annotatedmergesource", "Plainmergepage");
     }
 
@@ -124,7 +124,7 @@ public class PdfMergerTests {
 
         string pdf = Encoding.ASCII.GetString(merged);
         Assert.Contains(" cm", pdf, StringComparison.Ordinal);
-        string text = NormalizeExtractedText(PdfReadDocument.Load(merged).ExtractText());
+        string text = NormalizeExtractedText(PdfReadDocument.Open(merged).ExtractText());
         AssertContainsInOrder(text, "Lettersourcepage", "Smallsourcepage", "Landscapesourcepage", "A4sourcepage");
     }
 
@@ -139,7 +139,7 @@ public class PdfMergerTests {
         Assert.Equal(2, info.PageCount);
         Assert.Equal("First stream", info.Metadata.Title);
 
-        string text = NormalizeExtractedText(PdfReadDocument.Load(merged).ExtractText());
+        string text = NormalizeExtractedText(PdfReadDocument.Open(merged).ExtractText());
         AssertContainsInOrder(text, "Firststreampage", "Secondstreampage");
     }
 
@@ -153,7 +153,7 @@ public class PdfMergerTests {
         PdfDocumentInfo info = PdfInspector.Inspect(merged);
         Assert.Equal(2, info.PageCount);
 
-        string text = NormalizeExtractedText(PdfReadDocument.Load(merged).ExtractText());
+        string text = NormalizeExtractedText(PdfReadDocument.Open(merged).ExtractText());
         AssertContainsInOrder(text, "Firstenumerablepage", "Secondenumerablepage");
     }
 
@@ -170,7 +170,7 @@ public class PdfMergerTests {
         Assert.Equal(2, info.PageCount);
         Assert.Equal("First output", info.Metadata.Title);
 
-        string text = NormalizeExtractedText(PdfReadDocument.Load(merged).ExtractText());
+        string text = NormalizeExtractedText(PdfReadDocument.Open(merged).ExtractText());
         AssertContainsInOrder(text, "Firstoutputpage", "Secondoutputpage");
     }
 
@@ -187,7 +187,7 @@ public class PdfMergerTests {
         Assert.Equal(2, info.PageCount);
         Assert.Equal("First stream output", info.Metadata.Title);
 
-        string text = NormalizeExtractedText(PdfReadDocument.Load(merged).ExtractText());
+        string text = NormalizeExtractedText(PdfReadDocument.Open(merged).ExtractText());
         AssertContainsInOrder(text, "Firststreamoutputpage", "Secondstreamoutputpage");
     }
 
@@ -208,7 +208,7 @@ public class PdfMergerTests {
             Assert.True(File.Exists(outputPath));
             var info = PdfInspector.Inspect(outputPath);
             Assert.Equal(2, info.PageCount);
-            string text = NormalizeExtractedText(PdfReadDocument.Load(outputPath).ExtractText());
+            string text = NormalizeExtractedText(PdfReadDocument.Open(outputPath).ExtractText());
             AssertContainsInOrder(text, "Filefirst", "Filesecond");
         } finally {
             if (Directory.Exists(directory)) {
@@ -235,7 +235,7 @@ public class PdfMergerTests {
             var info = PdfInspector.Inspect(outputPath);
             Assert.Equal(2, info.PageCount);
             Assert.Equal("First enumerable path", info.Metadata.Title);
-            string text = NormalizeExtractedText(PdfReadDocument.Load(outputPath).ExtractText());
+            string text = NormalizeExtractedText(PdfReadDocument.Open(outputPath).ExtractText());
             AssertContainsInOrder(text, "Filefirstenumerable", "Filesecondenumerable");
         } finally {
             if (Directory.Exists(directory)) {
@@ -262,7 +262,7 @@ public class PdfMergerTests {
             PdfDocumentInfo info = PdfInspector.Inspect(merged);
             Assert.Equal(2, info.PageCount);
             Assert.Equal("First file stream", info.Metadata.Title);
-            string text = NormalizeExtractedText(PdfReadDocument.Load(merged).ExtractText());
+            string text = NormalizeExtractedText(PdfReadDocument.Open(merged).ExtractText());
             AssertContainsInOrder(text, "Filefirststream", "Filesecondstream");
         } finally {
             if (Directory.Exists(directory)) {
@@ -286,13 +286,13 @@ public class PdfMergerTests {
             PdfDocumentInfo paramsInfo = PdfInspector.Inspect(mergedFromParams);
             Assert.Equal(2, paramsInfo.PageCount);
             Assert.Equal("First bytes", paramsInfo.Metadata.Title);
-            string paramsText = NormalizeExtractedText(PdfReadDocument.Load(mergedFromParams).ExtractText());
+            string paramsText = NormalizeExtractedText(PdfReadDocument.Open(mergedFromParams).ExtractText());
             AssertContainsInOrder(paramsText, "Filefirstbytes", "Filesecondbytes");
 
             byte[] mergedFromEnumerable = PdfMerger.MergeFilesToBytes((IEnumerable<string>)new[] { firstPath, secondPath });
             PdfDocumentInfo enumerableInfo = PdfInspector.Inspect(mergedFromEnumerable);
             Assert.Equal(2, enumerableInfo.PageCount);
-            string enumerableText = NormalizeExtractedText(PdfReadDocument.Load(mergedFromEnumerable).ExtractText());
+            string enumerableText = NormalizeExtractedText(PdfReadDocument.Open(mergedFromEnumerable).ExtractText());
             AssertContainsInOrder(enumerableText, "Filefirstbytes", "Filesecondbytes");
         } finally {
             if (Directory.Exists(directory)) {

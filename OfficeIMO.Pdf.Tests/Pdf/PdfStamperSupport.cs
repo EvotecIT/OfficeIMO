@@ -122,7 +122,7 @@ public partial class PdfStamperTests {
     }
 
     private static IReadOnlyList<string> GetPageContentStreams(byte[] pdf, int pageNumber) {
-        var document = PdfReadDocument.Load(pdf);
+        var document = PdfReadDocument.Open(pdf);
         var (objects, _) = PdfSyntax.ParseObjects(pdf);
         int pageObjectNumber = document.Pages[pageNumber - 1].ObjectNumber;
         if (!objects.TryGetValue(pageObjectNumber, out var pageObject) || pageObject.Value is not PdfDictionary pageDictionary) {

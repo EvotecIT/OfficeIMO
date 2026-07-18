@@ -285,7 +285,7 @@ public sealed partial class HtmlRenderingTests {
         OfficeImageExportResult png = HtmlConversionDocument.Parse(html).ExportImage(OfficeImageExportFormat.Png, options);
         string svg = Encoding.UTF8.GetString(HtmlConversionDocument.Parse(html).ExportImage(OfficeImageExportFormat.Svg, options).Bytes);
         HtmlPdfSaveOptions pdfOptions = new HtmlPdfSaveOptions();
-        string pdfText = string.Concat(PdfCore.PdfReadDocument.Load(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(pdfOptions)).ExtractText().Where(character => !char.IsWhiteSpace(character)));
+        string pdfText = string.Concat(PdfCore.PdfReadDocument.Open(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(pdfOptions)).ExtractText().Where(character => !char.IsWhiteSpace(character)));
 
         Assert.Equal(OfficeColor.Red, raster.GetPixel(10, 10));
         Assert.Equal(OfficeColor.Blue, raster.GetPixel(40, 10));

@@ -1,6 +1,6 @@
 namespace OfficeIMO.Pdf;
 
-public static partial class PdfAnnotationFlattener {
+internal static partial class PdfAnnotationFlattener {
     private static PdfDictionary EnsurePageXObjects(Dictionary<int, PdfIndirectObject> objects, PdfDictionary page) {
         return PdfPageResourceHelper.EnsurePageXObjects(objects, page, "visual annotation flattening");
     }

@@ -1,7 +1,7 @@
 namespace OfficeIMO.Pdf;
 
 /// <summary>Compares signature coverage, revision state, and structural permissions before and after a PDF mutation.</summary>
-public static class PdfSignatureMutationAnalyzer {
+internal static class PdfSignatureMutationAnalyzer {
     /// <summary>Builds a before/after signature preservation report for a requested mutation.</summary>
     public static PdfSignatureMutationReport Analyze(
         byte[] before,

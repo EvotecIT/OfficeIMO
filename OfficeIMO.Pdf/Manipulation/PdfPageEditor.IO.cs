@@ -1,7 +1,7 @@
 using OfficeIMO.Drawing.Internal;
 namespace OfficeIMO.Pdf;
 
-public static partial class PdfPageEditor {
+internal static partial class PdfPageEditor {
     private static byte[] ReadStream(Stream stream, string paramName) {
         Guard.NotNull(stream, paramName);
         if (!stream.CanRead) {

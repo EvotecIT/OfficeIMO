@@ -186,7 +186,7 @@ public class RtfNestedTableTests {
 
         PdfCore.PdfDocumentConversionResult result = CreateNestedDocument().ToPdfDocumentResult(options);
         byte[] pdf = result.ToBytes();
-        string text = PdfCore.PdfReadDocument.Load(pdf).ExtractText();
+        string text = PdfCore.PdfReadDocument.Open(pdf).ExtractText();
 
         Assert.Contains("Outer before", text, StringComparison.Ordinal);
         Assert.Contains("Inner A", text, StringComparison.Ordinal);

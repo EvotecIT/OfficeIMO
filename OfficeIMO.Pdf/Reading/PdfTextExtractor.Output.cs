@@ -3,7 +3,7 @@ using OfficeIMO.Drawing.Internal;
 
 namespace OfficeIMO.Pdf;
 
-public static partial class PdfTextExtractor {
+internal static partial class PdfTextExtractor {
     private static List<string> WriteTextPages(string baseName, string fullOutputDirectory, IReadOnlyList<string> pages) {
         string safeBaseName = GetSafeBaseName(baseName, "page");
     
@@ -228,25 +228,4 @@ public static partial class PdfTextExtractor {
         return buffer.ToArray();
     }
     
-    private static Dictionary<int, string> BuildObjectMap(byte[] pdf, out string trailer) {
-        string text = PdfEncoding.Latin1GetString(pdf);
-        var dict = new Dictionary<int, string>();
-        var matches = ObjRegex.Matches(text);
-        for (int i = 0; i < matches.Count; i++) {
-            int id = int.Parse(matches[i].Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture);
-            int start = matches[i].Index;
-            int end = (i + 1 < matches.Count) ? matches[i + 1].Index : text.Length;
-            string body = text.Substring(start, end - start);
-            // trim header to just 'obj .. endobj'
-            int objStart = body.IndexOf("obj", StringComparison.Ordinal);
-            int objEnd = body.IndexOf("endobj", StringComparison.Ordinal);
-            if (objStart >= 0 && objEnd > objStart) {
-                dict[id] = body.Substring(objStart + 3, objEnd - (objStart + 3));
-            }
-        }
-        int trailerIdx = text.LastIndexOf("trailer", StringComparison.OrdinalIgnoreCase);
-        trailer = trailerIdx >= 0 ? text.Substring(trailerIdx) : string.Empty;
-        PdfSyntax.ThrowIfEncrypted(trailer);
-        return dict;
-    }
 }

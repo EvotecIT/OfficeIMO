@@ -4,6 +4,8 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfWriter {
+    private const double HeaderFooterInlineGap = 4D;
+
     private static PageImage CreatePageImage(ImageBlock block, PdfImageStyle style, double targetX, double targetBottomY) =>
         CreatePageImage(block, style, targetX, targetBottomY, block.Width, block.Height);
 
@@ -57,28 +59,74 @@ internal static partial class PdfWriter {
         y2 = targetBottomY + targetHeight;
     }
 
-    private static void AddHeaderFooterImages(LayoutResult.Page page, PdfOptions options, int variantPageNumber) {
-        foreach (PdfHeaderFooterImage image in options.GetHeaderImagesForPage(variantPageNumber)) {
-            AddHeaderFooterImage(page, options, image, isHeader: true);
-        }
+    private static void AddHeaderFooterImages(
+        LayoutResult.Page page,
+        PdfOptions options,
+        int variantPageNumber,
+        int pageNumber,
+        int totalPages,
+        int documentPages) {
+        AddHeaderFooterImages(
+            page,
+            options,
+            options.GetHeaderImagesForPage(variantPageNumber),
+            variantPageNumber,
+            pageNumber,
+            totalPages,
+            documentPages,
+            isHeader: true);
+        AddHeaderFooterImages(
+            page,
+            options,
+            options.GetFooterImagesForPage(variantPageNumber),
+            variantPageNumber,
+            pageNumber,
+            totalPages,
+            documentPages,
+            isHeader: false);
+    }
 
-        foreach (PdfHeaderFooterImage image in options.GetFooterImagesForPage(variantPageNumber)) {
-            AddHeaderFooterImage(page, options, image, isHeader: false);
+    private static void AddHeaderFooterImages(
+        LayoutResult.Page page,
+        PdfOptions options,
+        System.Collections.Generic.IReadOnlyList<PdfHeaderFooterImage> images,
+        int variantPageNumber,
+        int pageNumber,
+        int totalPages,
+        int documentPages,
+        bool isHeader) {
+        var consumedWidths = new System.Collections.Generic.Dictionary<PdfAlign, double>();
+        foreach (PdfHeaderFooterImage image in images) {
+            double textWidth = MeasureHeaderFooterTextWidth(
+                options,
+                variantPageNumber,
+                pageNumber,
+                totalPages,
+                documentPages,
+                image.Align,
+                isHeader);
+            double imagesWidth = MeasureHeaderFooterImagesWidth(images, image.Align);
+            double groupWidth = CombineHeaderFooterInlineWidths(textWidth, imagesWidth);
+            double groupX = AlignHeaderFooterGroup(options, groupWidth, image.Align);
+            double consumedWidth = consumedWidths.TryGetValue(image.Align, out double value) ? value : 0D;
+            double imageX = groupX +
+                (textWidth > 0D ? textWidth + HeaderFooterInlineGap : 0D) +
+                consumedWidth;
+
+            AddHeaderFooterImage(page, options, image, imageX, isHeader);
+            consumedWidths[image.Align] = consumedWidth + image.Width + HeaderFooterInlineGap;
         }
     }
 
-    private static void AddHeaderFooterImage(LayoutResult.Page page, PdfOptions options, PdfHeaderFooterImage image, bool isHeader) {
+    private static void AddHeaderFooterImage(LayoutResult.Page page, PdfOptions options, PdfHeaderFooterImage image, double x, bool isHeader) {
         double contentLeft = options.MarginLeft;
         double contentWidth = options.PageWidth - options.MarginLeft - options.MarginRight;
         if (image.Width > contentWidth + 0.001D) {
             throw new ArgumentException("PDF " + (isHeader ? "header" : "footer") + " image must fit inside the page content width.");
         }
 
-        double x = contentLeft;
-        if (image.Align == PdfAlign.Center) {
-            x = contentLeft + Math.Max(0D, (contentWidth - image.Width) / 2D);
-        } else if (image.Align == PdfAlign.Right) {
-            x = contentLeft + Math.Max(0D, contentWidth - image.Width);
+        if (x < contentLeft - 0.001D || x + image.Width > contentLeft + contentWidth + 0.001D) {
+            throw new ArgumentException("Combined PDF " + (isHeader ? "header" : "footer") + " text and images must fit inside the page content width.");
         }
 
         double y = isHeader
@@ -92,6 +140,43 @@ internal static partial class PdfWriter {
         PageImage pageImage = CreatePageImage(block, block.Style ?? new PdfImageStyle(), x, y);
         pageImage.IsBackgroundDecoration = string.IsNullOrWhiteSpace(pageImage.AlternativeText);
         page.Images.Add(pageImage);
+    }
+
+    private static double MeasureHeaderFooterImagesWidth(System.Collections.Generic.IReadOnlyList<PdfHeaderFooterImage> images, PdfAlign align) {
+        double width = 0D;
+        int count = 0;
+        foreach (PdfHeaderFooterImage image in images) {
+            if (image.Align != align) {
+                continue;
+            }
+
+            width += image.Width;
+            count++;
+        }
+
+        return width + Math.Max(0, count - 1) * HeaderFooterInlineGap;
+    }
+
+    private static double CombineHeaderFooterInlineWidths(double textWidth, double imagesWidth) {
+        if (textWidth <= 0D) {
+            return imagesWidth;
+        }
+
+        if (imagesWidth <= 0D) {
+            return textWidth;
+        }
+
+        return textWidth + HeaderFooterInlineGap + imagesWidth;
+    }
+
+    private static double AlignHeaderFooterGroup(PdfOptions options, double groupWidth, PdfAlign align) {
+        double contentLeft = options.MarginLeft;
+        double contentWidth = options.PageWidth - options.MarginLeft - options.MarginRight;
+        if (groupWidth > contentWidth + 0.001D) {
+            throw new ArgumentException("Combined PDF header/footer content must fit inside the page content width.");
+        }
+
+        return GetHeaderFooterAlignedObjectX(contentLeft, contentWidth, groupWidth, align);
     }
 
     private static string BuildHeaderFooterShapes(LayoutResult.Page page, PdfOptions options, int variantPageNumber) {

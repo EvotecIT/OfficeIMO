@@ -14,7 +14,7 @@ public class PdfDocumentIOTests {
         using var stream = new MemoryStream(bytes);
         stream.Position = Math.Min(10, stream.Length);
 
-        PdfDocument document = await PdfDocument.LoadAsync(stream);
+        PdfDocument document = await PdfDocument.OpenAsync(stream);
 
         Assert.Equal(Math.Min(10, stream.Length), stream.Position);
         Assert.Equal(1, PdfInspector.Inspect(document.ToBytes()).PageCount);
@@ -29,7 +29,7 @@ public class PdfDocumentIOTests {
         cancellation.Cancel();
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
-            PdfDocument.LoadAsync(stream, cancellationToken: cancellation.Token));
+            PdfDocument.OpenAsync(stream, cancellationToken: cancellation.Token));
 
         Assert.Equal(7, stream.Position);
     }

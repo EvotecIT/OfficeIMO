@@ -6,7 +6,7 @@ namespace OfficeIMO.Pdf;
 /// <summary>
 /// Provides reusable text preflight helpers for generated PDF output.
 /// </summary>
-public static class PdfTextDiagnostics {
+internal static class PdfTextDiagnostics {
     private const string WinAnsiEncodingDescription = "PDF WinAnsiEncoding";
     private const string WinAnsiGlyphRemediation = "Embedded Unicode fonts are required for this text.";
     private const string ControlCharacterEncodingDescription = "PDF text output";

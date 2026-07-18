@@ -532,6 +532,9 @@ jobs:
           fi
           if [[ "${{ matrix.partition }}" == pdf-* ]]; then
             dotnet restore OfficeIMO.Pdf.Tests/OfficeIMO.Pdf.Tests.csproj
+            if [ "${{ matrix.partition }}" = "pdf-core" ] && [ "${{ matrix.framework }}" = "net8.0" ]; then
+              dotnet restore OfficeIMO.Pdf.Benchmarks/OfficeIMO.Pdf.Benchmarks.csproj
+            fi
           fi
           if [ "${{ matrix.partition }}" = "other-projects" ]; then
             dotnet restore OfficeIMO.Drawing.Tests/OfficeIMO.Drawing.Tests.csproj
@@ -573,6 +576,9 @@ jobs:
           fi
           if [[ "${{ matrix.partition }}" == pdf-* ]]; then
             dotnet build OfficeIMO.Pdf.Tests/OfficeIMO.Pdf.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore
+            if [ "${{ matrix.partition }}" = "pdf-core" ] && [ "${{ matrix.framework }}" = "net8.0" ]; then
+              dotnet build OfficeIMO.Pdf.Benchmarks/OfficeIMO.Pdf.Benchmarks.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework net8.0 --no-restore
+            fi
           fi
           if [ "${{ matrix.partition }}" = "other-projects" ]; then
             dotnet build OfficeIMO.Drawing.Tests/OfficeIMO.Drawing.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore
@@ -773,6 +779,9 @@ jobs:
               ;;
             pdf-core)
               run_pdf_tests "pdf-core" '(FullyQualifiedName~OfficeIMO.Tests.Pdf.&FullyQualifiedName!~OfficeIMO.Tests.Pdf.PdfDocumentVisualQualityTests&FullyQualifiedName!~OfficeIMO.Tests.Pdf.PdfInspectorTests&FullyQualifiedName!~OfficeIMO.Tests.Pdf.PdfReaderAndFooterRegressionTests&FullyQualifiedName!~OfficeIMO.Tests.Pdf.MarkdownSaveAsPdfVisualTests&FullyQualifiedName!~OfficeIMO.Tests.Pdf.PdfDocumentRasterVisualBaselineTests)|FullyQualifiedName~OfficeIMO.Tests.MarkdownPdfTests|FullyQualifiedName~OfficeIMO.Tests.PdfReadLayoutSmokeTests'
+              if [ "${{ matrix.framework }}" = "net8.0" ]; then
+                dotnet run --project OfficeIMO.Pdf.Benchmarks/OfficeIMO.Pdf.Benchmarks.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework net8.0 --no-build --no-restore -- --verify-budgets
+              fi
               ;;
             excel-image-charts)
               run_excel_tests "excel-image" 'FullyQualifiedName~OfficeIMO.Tests.ExcelImageExport'

@@ -5,7 +5,7 @@ namespace OfficeIMO.Pdf;
 /// <summary>
 /// Managed PDF page image renderer for the OfficeIMO-generated visual subset.
 /// </summary>
-public static partial class PdfPageImageRenderer {
+internal static partial class PdfPageImageRenderer {
     /// <summary>Returns the generated manifest shared with per-page skipped and simplified feature diagnostics.</summary>
     public static PdfRenderCapabilityManifest GetCapabilityManifest() => PdfRenderCapabilities.Current;
 
@@ -14,7 +14,7 @@ public static partial class PdfPageImageRenderer {
     /// </summary>
     public static OfficeDrawing RenderPage(byte[] pdf, int pageNumber = 1) {
         Guard.NotNull(pdf, nameof(pdf));
-        return RenderPage(PdfReadDocument.Load(pdf), pageNumber);
+        return RenderPage(PdfReadDocument.Open(pdf), pageNumber);
     }
 
     /// <summary>

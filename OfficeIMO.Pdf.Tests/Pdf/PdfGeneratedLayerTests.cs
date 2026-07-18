@@ -19,7 +19,7 @@ public class PdfGeneratedLayerTests {
             })
             .ToBytes();
 
-        PdfReadDocument read = PdfReadDocument.Load(bytes);
+        PdfReadDocument read = PdfReadDocument.Open(bytes);
         PdfOptionalContentGroup group = Assert.Single(read.OptionalContent!.Groups);
         Assert.Equal("Review notes", group.Name);
         Assert.False(group.IsInitiallyVisible);
@@ -40,7 +40,7 @@ public class PdfGeneratedLayerTests {
                 .Layer("Inner", inner => inner.Paragraph(paragraph => paragraph.Text("Nested"))))
             .ToBytes();
 
-        PdfOptionalContentProperties optionalContent = PdfReadDocument.Load(bytes).OptionalContent!;
+        PdfOptionalContentProperties optionalContent = PdfReadDocument.Open(bytes).OptionalContent!;
         Assert.Equal(new[] { "Outer", "Inner" }, optionalContent.Groups.Select(group => group.Name));
     }
 }

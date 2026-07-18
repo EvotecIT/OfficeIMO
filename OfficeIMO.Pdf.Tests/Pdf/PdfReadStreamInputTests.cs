@@ -12,7 +12,7 @@ public partial class PdfReadStreamTests {
         using var stream = BuildPrefixedStream(pdf);
         stream.Position = 5;
 
-        PdfReadDocument document = PdfReadDocument.Load(stream);
+        PdfReadDocument document = PdfReadDocument.Open(stream);
 
         Assert.Single(document.Pages);
         Assert.Equal("Stream read", document.Metadata.Title);
@@ -56,21 +56,21 @@ public partial class PdfReadStreamTests {
 
     [Fact]
     public void ReadStreamApis_RejectNullAndUnreadableStreams() {
-        Assert.Throws<ArgumentNullException>(() => PdfReadDocument.Load((Stream)null!));
+        Assert.Throws<ArgumentNullException>(() => PdfReadDocument.Open((Stream)null!));
         Assert.Throws<ArgumentNullException>(() => PdfTextExtractor.ExtractAllText((Stream)null!));
         Assert.Throws<ArgumentNullException>(() => PdfTextExtractor.GetMetadata((Stream)null!));
 
         using var unreadable = new WriteOnlyStream();
 
-        Assert.Throws<ArgumentException>(() => PdfReadDocument.Load(unreadable));
+        Assert.Throws<ArgumentException>(() => PdfReadDocument.Open(unreadable));
         Assert.Throws<ArgumentException>(() => PdfTextExtractor.ExtractAllText(unreadable));
         Assert.Throws<ArgumentException>(() => PdfTextExtractor.GetMetadata(unreadable));
     }
 
     [Fact]
     public void ReadPathApis_RejectNullAndWhitespacePaths() {
-        Assert.Throws<ArgumentNullException>(() => PdfReadDocument.Load((string)null!));
-        Assert.Throws<ArgumentException>(() => PdfReadDocument.Load(" "));
+        Assert.Throws<ArgumentNullException>(() => PdfReadDocument.Open((string)null!));
+        Assert.Throws<ArgumentException>(() => PdfReadDocument.Open(" "));
 
         Assert.Throws<ArgumentNullException>(() => PdfTextExtractor.ExtractAllText((string)null!));
         Assert.Throws<ArgumentException>(() => PdfTextExtractor.ExtractAllText(" "));
@@ -89,7 +89,7 @@ public partial class PdfReadStreamTests {
     public void ReadApis_RejectEncryptedPdfsWithClearUnsupportedDiagnostic() {
         byte[] encrypted = BuildEncryptedPdfMarker();
 
-        AssertPreciseEncryptedReadFailure(() => PdfReadDocument.Load(encrypted));
+        AssertPreciseEncryptedReadFailure(() => PdfReadDocument.Open(encrypted));
         AssertPreciseEncryptedReadFailure(() => PdfTextExtractor.ExtractAllText(encrypted));
         AssertEncrypted(() => PdfTextExtractor.GetMetadata(encrypted));
         AssertPreciseEncryptedReadFailure(() => PdfImageExtractor.ExtractImages(encrypted));

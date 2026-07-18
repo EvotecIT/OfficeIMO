@@ -2,7 +2,7 @@ using System.Globalization;
 
 namespace OfficeIMO.Pdf;
 
-public static partial class PdfPageExtractor {
+internal static partial class PdfPageExtractor {
     internal static CatalogRewriteState ExtractCatalogRewriteState(Dictionary<int, PdfIndirectObject> sourceObjects, string? trailerRaw = null) {
         PdfDictionary? dictionary = PdfSyntax.FindCatalog(sourceObjects, trailerRaw);
         if (dictionary is not null) {

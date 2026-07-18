@@ -4,7 +4,7 @@ using System.Text.RegularExpressions;
 
 namespace OfficeIMO.Pdf;
 
-public static partial class PdfRedactionApplier {
+internal static partial class PdfRedactionApplier {
     private const double RedactionFallbackTextHeight = 18D;
 
     private static bool RemoveMatchedTextObjects(

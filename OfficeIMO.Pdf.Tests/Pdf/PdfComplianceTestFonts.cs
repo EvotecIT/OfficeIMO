@@ -25,7 +25,9 @@ internal static class PdfComplianceTestFonts {
         string[] candidates = {
             "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
             "/usr/share/fonts/truetype/liberation2/LiberationSans-Regular.ttf",
-            "/Library/Fonts/Arial.ttf"
+            "/Library/Fonts/Arial.ttf",
+            "/System/Library/Fonts/Supplemental/Arial Unicode.ttf",
+            "/System/Library/Fonts/Supplemental/Arial.ttf"
         };
 
         foreach (string candidate in candidates) {

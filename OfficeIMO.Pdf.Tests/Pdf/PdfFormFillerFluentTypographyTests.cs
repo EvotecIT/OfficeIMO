@@ -16,7 +16,7 @@ public partial class PdfFormFillerTests {
             .ReportDiagnosticsTo(report, "OfficeIMO.Tests");
 
         byte[] flattened = PdfDocument
-            .Load(BuildTextWidgetFormPdf())
+            .Open(BuildTextWidgetFormPdf())
             .Forms
             .FillAndFlatten(new Dictionary<string, string> {
                 ["Name"] = "office cafe\u0301"
@@ -24,7 +24,7 @@ public partial class PdfFormFillerTests {
             .ToBytes();
 
         string output = Encoding.ASCII.GetString(flattened);
-        string extracted = PdfReadDocument.Load(flattened).ExtractText();
+        string extracted = PdfReadDocument.Open(flattened).ExtractText();
 
         Assert.DoesNotContain("/AcroForm", output, StringComparison.Ordinal);
         Assert.Contains("/FontFile3", output, StringComparison.Ordinal);
@@ -43,7 +43,7 @@ public partial class PdfFormFillerTests {
             .ReportDiagnosticsTo(report, "OfficeIMO.Tests");
 
         PdfOperationResult<PdfDocument> result = PdfDocument
-            .Load(BuildTextWidgetFormPdf())
+            .Open(BuildTextWidgetFormPdf())
             .Forms
             .TryFillAndFlatten(new Dictionary<string, string> {
                 ["Name"] = "office cafe\u0301"
@@ -54,7 +54,7 @@ public partial class PdfFormFillerTests {
 
         byte[] flattened = result.RequireValue().ToBytes();
         string output = Encoding.ASCII.GetString(flattened);
-        string extracted = PdfReadDocument.Load(flattened).ExtractText();
+        string extracted = PdfReadDocument.Open(flattened).ExtractText();
 
         Assert.DoesNotContain("/AcroForm", output, StringComparison.Ordinal);
         Assert.Contains("/FontFile3", output, StringComparison.Ordinal);
@@ -78,7 +78,7 @@ public partial class PdfFormFillerTests {
             .ReportDiagnosticsTo(report, "OfficeIMO.Tests");
 
         byte[] flattened = PdfDocument
-            .Load(BuildTextWidgetFormPdf())
+            .Open(BuildTextWidgetFormPdf())
             .Forms
             .FillAndFlatten(new Dictionary<string, string> {
                 ["Name"] = "office cafe\u0301"
@@ -86,7 +86,7 @@ public partial class PdfFormFillerTests {
             .ToBytes();
 
         string output = Encoding.ASCII.GetString(flattened);
-        string extracted = PdfReadDocument.Load(flattened).ExtractText();
+        string extracted = PdfReadDocument.Open(flattened).ExtractText();
 
         Assert.DoesNotContain("/AcroForm", output, StringComparison.Ordinal);
         Assert.Contains("/FontFile3", output, StringComparison.Ordinal);
@@ -115,7 +115,7 @@ public partial class PdfFormFillerTests {
 
             byte[] flattened = SliceAfterPrefix(output, 1);
             string pdfText = Encoding.ASCII.GetString(flattened);
-            string extracted = PdfReadDocument.Load(flattened).ExtractText();
+            string extracted = PdfReadDocument.Open(flattened).ExtractText();
 
             Assert.DoesNotContain("/AcroForm", pdfText, StringComparison.Ordinal);
             Assert.Contains("/FontFile3", pdfText, StringComparison.Ordinal);

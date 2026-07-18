@@ -60,7 +60,7 @@ namespace OfficeIMO.Tests.Pdf {
                             .Item(item => item.Paragraph(paragraph => paragraph.Text("ColumnComposeBottom")))))))
                 .ToBytes();
 
-            string text = PdfReadDocument.Load(pdfBytes).ExtractText();
+            string text = PdfReadDocument.Open(pdfBytes).ExtractText();
             Assert.Contains("DirectComposeTitle", text, StringComparison.Ordinal);
             Assert.Contains("DirectComposeLead", text, StringComparison.Ordinal);
             Assert.Contains("ColumnComposeTop", text, StringComparison.Ordinal);

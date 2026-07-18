@@ -573,8 +573,8 @@ public class PdfComplianceGateTests {
                 ValidatedAtUtc = row.ValidatedAtUtc,
                 Warnings = row.Warnings.ToArray()
             }).ToArray(),
-            MissingRequirementIds = proof.Readiness.MissingRequirements.Select(requirement => requirement.Id).ToArray(),
-            UnsupportedRequirementIds = proof.Readiness.UnsupportedRequirements.Select(requirement => requirement.Id).ToArray()
+            MissingRequirementIds = proof.MissingRequirements.Select(requirement => requirement.Id).ToArray(),
+            UnsupportedRequirementIds = proof.UnsupportedRequirements.Select(requirement => requirement.Id).ToArray()
         };
     }
 

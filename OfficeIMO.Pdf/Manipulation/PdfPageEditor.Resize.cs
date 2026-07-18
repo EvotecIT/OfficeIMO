@@ -2,7 +2,7 @@ using System.Globalization;
 
 namespace OfficeIMO.Pdf;
 
-public static partial class PdfPageEditor {
+internal static partial class PdfPageEditor {
     /// <summary>
     /// Creates a new PDF with selected pages scaled into the supplied target page size.
     /// If no page numbers are supplied, all pages are resized.
@@ -23,7 +23,7 @@ public static partial class PdfPageEditor {
         _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.ModifyPageTree);
 
         var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf);
-        var document = PdfReadDocument.Load(pdf);
+        var document = PdfReadDocument.Open(pdf);
         var selectedPages = pageNumbers.Length == 0
             ? Enumerable.Range(1, document.Pages.Count).ToArray()
             : pageNumbers;

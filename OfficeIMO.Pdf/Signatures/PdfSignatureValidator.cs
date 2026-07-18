@@ -1,10 +1,10 @@
 namespace OfficeIMO.Pdf;
 
 /// <summary>Dependency-free PDF signature structure validator.</summary>
-public static class PdfSignatureValidator {
+internal static class PdfSignatureValidator {
     /// <summary>Validates signature structure, byte ranges, and preservation markers in a PDF byte array.</summary>
     public static PdfSignatureValidationReport Validate(byte[] pdf, PdfReadOptions? options = null) {
-        return ValidateCore(pdf, cryptographyProvider: null, options);
+        return ValidateCore(pdf, cryptographyProvider: null, options, security: null);
     }
 
     /// <summary>Validates PDF signature structure and delegates CMS, trust, timestamp, and revocation policy to an optional provider.</summary>
@@ -13,24 +13,31 @@ public static class PdfSignatureValidator {
         IPdfSignatureCryptographyProvider cryptographyProvider,
         PdfReadOptions? options = null) {
         Guard.NotNull(cryptographyProvider, nameof(cryptographyProvider));
-        return ValidateCore(pdf, cryptographyProvider, options);
+        return ValidateCore(pdf, cryptographyProvider, options, security: null);
+    }
+
+    internal static PdfSignatureValidationReport Validate(byte[] pdf, PdfDocumentSecurityInfo security) {
+        Guard.NotNull(security, nameof(security));
+        return ValidateCore(pdf, cryptographyProvider: null, options: null, security);
     }
 
     private static PdfSignatureValidationReport ValidateCore(
         byte[] pdf,
         IPdfSignatureCryptographyProvider? cryptographyProvider,
-        PdfReadOptions? options) {
+        PdfReadOptions? options,
+        PdfDocumentSecurityInfo? security) {
         Guard.NotNull(pdf, nameof(pdf));
 
-        PdfDocumentSecurityInfo security;
         bool objectGraphParsed = true;
         string? objectGraphError = null;
-        try {
-            security = PdfInspector.Inspect(pdf, options).Security;
-        } catch (Exception ex) when (ex is not OutOfMemoryException && ex is not StackOverflowException) {
-            objectGraphParsed = false;
-            objectGraphError = ex.Message;
-            security = PdfInspector.Probe(pdf).Security;
+        if (security == null) {
+            try {
+                security = PdfInspector.Inspect(pdf, options).Security;
+            } catch (Exception ex) when (ex is not OutOfMemoryException && ex is not StackOverflowException) {
+                objectGraphParsed = false;
+                objectGraphError = ex.Message;
+                security = PdfInspector.Probe(pdf).Security;
+            }
         }
 
         var findings = new List<PdfSignatureValidationFinding>();

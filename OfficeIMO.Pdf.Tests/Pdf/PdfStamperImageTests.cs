@@ -30,7 +30,7 @@ public partial class PdfStamperTests {
         Assert.Contains("/OIMOStampIm", pdfContent);
         Assert.Contains(" Do", pdfContent);
 
-        string text = Normalize(PdfReadDocument.Load(stamped).ExtractText());
+        string text = Normalize(PdfReadDocument.Open(stamped).ExtractText());
         Assert.Contains("Firstpagebody", text);
         Assert.Contains("Secondpagebody", text);
     }

@@ -4,7 +4,7 @@ namespace OfficeIMO.Pdf;
 /// <summary>
 /// Provides first-party PDF metadata editing helpers for PDFs that can be parsed by OfficeIMO.Pdf.
 /// </summary>
-public static partial class PdfMetadataEditor {
+internal static partial class PdfMetadataEditor {
     /// <summary>
     /// Creates a new PDF with updated document metadata. Null values preserve existing fields; empty strings clear fields.
     /// </summary>
@@ -17,7 +17,7 @@ public static partial class PdfMetadataEditor {
         Guard.NotNull(pdf, nameof(pdf));
         _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.UpdateMetadata);
 
-        var document = PdfReadDocument.Load(pdf);
+        var document = PdfReadDocument.Open(pdf);
         var metadata = new PdfMetadata {
             Title = title ?? document.Metadata.Title,
             Author = author ?? document.Metadata.Author,
@@ -183,7 +183,7 @@ public static partial class PdfMetadataEditor {
 
     private static byte[] RewriteWithMetadata(byte[] pdf, PdfMetadata metadata) {
         var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf);
-        var document = PdfReadDocument.Load(pdf);
+        var document = PdfReadDocument.Open(pdf);
         if (document.Pages.Count == 0) {
             throw new ArgumentException("PDF does not contain any pages.", nameof(pdf));
         }

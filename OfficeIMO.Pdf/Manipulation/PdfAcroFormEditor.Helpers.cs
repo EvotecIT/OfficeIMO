@@ -1,6 +1,6 @@
 namespace OfficeIMO.Pdf;
 
-public static partial class PdfAcroFormEditor {
+internal static partial class PdfAcroFormEditor {
     private sealed class EditableField {
         internal EditableField(string fullName, string? fieldType, PdfDictionary dictionary, PdfArray owner, PdfObject reference, IReadOnlyList<int> widgetObjectNumbers, IReadOnlyList<int> objectNumbers) {
             FullName = fullName; FieldType = fieldType; Dictionary = dictionary; Owner = owner; Reference = reference; WidgetObjectNumbers = widgetObjectNumbers; ObjectNumbers = objectNumbers;
