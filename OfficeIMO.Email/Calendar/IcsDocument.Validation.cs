@@ -77,6 +77,13 @@ public sealed partial class IcsDocument {
                 ValidateSingle(component, "SEQUENCE", required: false, issues);
             } else if (name == "VTIMEZONE") {
                 ValidateSingle(component, "TZID", required: true, issues);
+                if (!component.Components.Any(child =>
+                    string.Equals(child.Name, "STANDARD", StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(child.Name, "DAYLIGHT", StringComparison.OrdinalIgnoreCase))) {
+                    issues.Add(Issue("ICAL_TIMEZONE_OBSERVANCE_REQUIRED",
+                        "VTIMEZONE requires at least one STANDARD or DAYLIGHT observance.",
+                        ContentLineValidationSeverity.Error, component));
+                }
             } else if (name == "VALARM") {
                 ValidateSingle(component, "ACTION", required: true, issues);
                 ValidateSingle(component, "TRIGGER", required: true, issues);
@@ -128,6 +135,7 @@ public sealed partial class IcsDocument {
 
             if (name == "VEVENT" || name == "VTODO") {
                 ValidateDurations(component, issues);
+                ValidateTemporalEndpoint(component, name == "VEVENT" ? "DTEND" : "DUE", issues);
             }
 
             foreach (string temporalName in new[] { "DTSTART", "DTEND", "DUE", "RECURRENCE-ID",
@@ -209,7 +217,45 @@ public sealed partial class IcsDocument {
         } else if (name == "VTIMEZONE") {
             ValidateSingle(component, "LAST-MODIFIED", required: false, issues);
         } else if (name == "STANDARD" || name == "DAYLIGHT") {
-            ValidateSingle(component, "DTSTART", required: false, issues);
+            ValidateSingle(component, "DTSTART", required: true, issues);
+            ValidateSingle(component, "TZOFFSETFROM", required: true, issues);
+            ValidateSingle(component, "TZOFFSETTO", required: true, issues);
+        }
+    }
+
+    private static void ValidateTemporalEndpoint(ContentLineComponent component, string endpointName,
+        ICollection<ContentLineValidationIssue> issues) {
+        ContentLineProperty? startProperty = component.GetFirstProperty("DTSTART");
+        ContentLineProperty? endpointProperty = component.GetFirstProperty(endpointName);
+        if (startProperty == null || endpointProperty == null ||
+            !IcsTemporalValue.TryParse(startProperty, out IcsTemporalValue start) ||
+            !IcsTemporalValue.TryParse(endpointProperty, out IcsTemporalValue endpoint)) return;
+
+        bool startIsDate = start.Kind == IcsTemporalValueKind.Date;
+        bool endpointIsDate = endpoint.Kind == IcsTemporalValueKind.Date;
+        if (startIsDate != endpointIsDate) {
+            issues.Add(Issue("ICAL_TEMPORAL_ENDPOINT_TYPE_MISMATCH",
+                endpointName + " must use the same DATE or DATE-TIME value type as DTSTART.",
+                ContentLineValidationSeverity.Error, component, endpointProperty));
+            return;
+        }
+
+        bool startIsUtc = start.Kind == IcsTemporalValueKind.UtcDateTime;
+        bool endpointIsUtc = endpoint.Kind == IcsTemporalValueKind.UtcDateTime;
+        if (startIsUtc != endpointIsUtc) {
+            issues.Add(Issue("ICAL_TEMPORAL_ENDPOINT_REPRESENTATION_MISMATCH",
+                endpointName + " must use UTC if and only if DTSTART uses UTC.",
+                ContentLineValidationSeverity.Error, component, endpointProperty));
+            return;
+        }
+
+        bool comparable = start.Kind == endpoint.Kind &&
+            (start.Kind != IcsTemporalValueKind.ZonedDateTime ||
+             string.Equals(start.TimeZoneId, endpoint.TimeZoneId, StringComparison.Ordinal));
+        if (comparable && endpoint.Value <= start.Value) {
+            issues.Add(Issue("ICAL_TEMPORAL_ENDPOINT_ORDER_INVALID",
+                endpointName + " must be later than DTSTART.",
+                ContentLineValidationSeverity.Error, component, endpointProperty));
         }
     }
 

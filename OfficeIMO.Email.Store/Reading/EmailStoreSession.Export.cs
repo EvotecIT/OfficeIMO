@@ -282,7 +282,8 @@ public sealed partial class EmailStoreSession {
         } catch (Exception exception) when (
             exception is InvalidDataException ||
             exception is NotSupportedException ||
-            exception is IOException) {
+            exception is IOException ||
+            exception is UnauthorizedAccessException) {
             RollBackMboxEntry(output, initialLength);
             diagnostics.Add(new EmailStoreDiagnostic(
                 "EMAIL_STORE_EXPORT_ITEM_FAILED",

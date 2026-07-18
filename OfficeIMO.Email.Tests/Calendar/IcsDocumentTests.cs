@@ -379,6 +379,74 @@ public sealed class IcsDocumentTests {
             issue.Code == "ICAL_PROPERTY_CARDINALITY" && issue.PropertyName == propertyName);
     }
 
+    [Fact]
+    public void ValidationRequiresAtLeastOneTimeZoneObservance() {
+        var document = new IcsDocument();
+        ContentLineComponent timeZone = document.Calendars.Single().AddComponent("VTIMEZONE");
+        timeZone.AddProperty("TZID", "Europe/Warsaw");
+
+        Assert.Contains(document.Validate(), issue =>
+            issue.Code == "ICAL_TIMEZONE_OBSERVANCE_REQUIRED" &&
+            issue.ComponentName == "VTIMEZONE");
+
+        ContentLineComponent standard = timeZone.AddComponent("STANDARD");
+
+        Assert.Contains(document.Validate(), issue =>
+            issue.Code == "ICAL_PROPERTY_REQUIRED" && issue.ComponentName == "STANDARD" &&
+            issue.PropertyName == "DTSTART");
+
+        standard.AddProperty("DTSTART", "20261025T030000");
+        standard.AddProperty("TZOFFSETFROM", "+0200");
+        standard.AddProperty("TZOFFSETTO", "+0100");
+
+        Assert.DoesNotContain(document.Validate(), issue =>
+            issue.Code == "ICAL_TIMEZONE_OBSERVANCE_REQUIRED" ||
+            issue.Code == "ICAL_PROPERTY_REQUIRED" && issue.ComponentName == "STANDARD");
+    }
+
+    [Theory]
+    [InlineData("VEVENT", "DTEND")]
+    [InlineData("VTODO", "DUE")]
+    public void ValidationRejectsEndpointValueTypesThatDoNotMatchDtStart(
+        string componentName, string endpointName) {
+        var document = new IcsDocument();
+        ContentLineComponent component = document.Calendars.Single().AddComponent(componentName);
+        component.AddProperty("DTSTART", "20260717").SetParameter("VALUE", "DATE");
+        component.AddProperty(endpointName, "20260718T090000Z");
+
+        Assert.Contains(document.Validate(), issue =>
+            issue.Code == "ICAL_TEMPORAL_ENDPOINT_TYPE_MISMATCH" &&
+            issue.PropertyName == endpointName);
+    }
+
+    [Theory]
+    [InlineData("VEVENT", "DTEND", "20260717T090000Z")]
+    [InlineData("VTODO", "DUE", "20260717T085959Z")]
+    public void ValidationRejectsEndpointsThatAreNotLaterThanDtStart(
+        string componentName, string endpointName, string endpointValue) {
+        var document = new IcsDocument();
+        ContentLineComponent component = document.Calendars.Single().AddComponent(componentName);
+        component.AddProperty("DTSTART", "20260717T090000Z");
+        component.AddProperty(endpointName, endpointValue);
+
+        Assert.Contains(document.Validate(), issue =>
+            issue.Code == "ICAL_TEMPORAL_ENDPOINT_ORDER_INVALID" &&
+            issue.PropertyName == endpointName);
+    }
+
+    [Fact]
+    public void ValidationRejectsUtcAndLocalEndpointRepresentationMismatch() {
+        var document = new IcsDocument();
+        ContentLineComponent appointment = document.Calendars.Single().AddComponent("VEVENT");
+        appointment.AddProperty("DTSTART", "20260717T100000")
+            .SetParameter("TZID", "Europe/Warsaw");
+        appointment.AddProperty("DTEND", "20260717T090000Z");
+
+        Assert.Contains(document.Validate(), issue =>
+            issue.Code == "ICAL_TEMPORAL_ENDPOINT_REPRESENTATION_MISMATCH" &&
+            issue.PropertyName == "DTEND");
+    }
+
     [Theory]
     [InlineData("VEVENT", "VEVENT")]
     [InlineData("VCALENDAR", "STANDARD")]

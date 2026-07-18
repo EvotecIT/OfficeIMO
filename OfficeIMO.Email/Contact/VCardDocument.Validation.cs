@@ -19,6 +19,11 @@ public sealed partial class VCardDocument {
                     "Every vCard document root must be VCARD.",
                     ContentLineValidationSeverity.Error, card.Name));
             }
+            foreach (ContentLineComponent nested in card.Components) {
+                issues.Add(new ContentLineValidationIssue("VCARD_COMPONENT_NESTING_INVALID",
+                    "VCARD cannot contain nested components.",
+                    ContentLineValidationSeverity.Error, nested.Name));
+            }
             VCardVersion version;
             try { version = GetVersion(card); }
             catch (InvalidDataException exception) {
@@ -62,15 +67,11 @@ public sealed partial class VCardDocument {
                     issues.Add(Issue("VCARD4_CHARSET_FORBIDDEN",
                         "vCard 4.0 is UTF-8 and does not use the CHARSET parameter.",
                         ContentLineValidationSeverity.Error, card, property.Name));
-                bool hasLegacyEncoding = property.Parameters.Where(parameter => string.Equals(
-                        parameter.Name, "ENCODING", StringComparison.OrdinalIgnoreCase))
-                    .SelectMany(parameter => parameter.Values)
-                    .Any(encoding => string.Equals(encoding, "QUOTED-PRINTABLE",
-                                         StringComparison.OrdinalIgnoreCase) ||
-                                     string.Equals(encoding, "QP", StringComparison.OrdinalIgnoreCase));
-                if (version == VCardVersion.V4_0 && hasLegacyEncoding)
+                bool hasEncodingParameter = property.Parameters.Any(parameter => string.Equals(
+                    parameter.Name, "ENCODING", StringComparison.OrdinalIgnoreCase));
+                if (version == VCardVersion.V4_0 && hasEncodingParameter)
                     issues.Add(Issue("VCARD4_ENCODING_FORBIDDEN",
-                        "vCard 4.0 does not use quoted-printable property encoding.",
+                        "vCard 4.0 does not use the ENCODING parameter.",
                         ContentLineValidationSeverity.Error, card, property.Name));
                 if (version == VCardVersion.V4_0) ValidatePreference(card, property, issues);
             }

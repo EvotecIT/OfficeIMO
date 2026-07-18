@@ -162,12 +162,11 @@ public sealed partial class EmailStoreSession {
     }
 
     private static string BuildMaildirFileName(string itemId, string? flags) {
-        const int maximumComponentBytes = 255;
-        const int temporarySuffixBytes = 37;
         string infoSuffix = flags == null ? string.Empty : ":2," + flags;
         string fixedSuffix = "." + EmailStoreExportPathBuilder.GetStableHash(itemId) +
             ".officeimo" + infoSuffix;
-        int stableBytes = maximumComponentBytes - temporarySuffixBytes -
+        int stableBytes = EmailStoreExportPathBuilder.MaximumPortableComponentBytes -
+            EmailStoreExportPathBuilder.AtomicTemporarySuffixBytes -
             Encoding.UTF8.GetByteCount(fixedSuffix);
         string stable = EmailStoreExportPathBuilder.SanitizeSegmentByUtf8Bytes(
             itemId, 96, stableBytes, "item");

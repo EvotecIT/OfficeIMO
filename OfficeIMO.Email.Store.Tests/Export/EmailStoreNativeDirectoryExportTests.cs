@@ -94,6 +94,27 @@ public sealed class EmailStoreNativeDirectoryExportTests {
         }
     }
 
+    [Theory]
+    [InlineData(".eml")]
+    [InlineData(".partial.emlx")]
+    public void SharedExportPathsBoundUnicodeComponentsByUtf8Bytes(string extension) {
+        string root = Path.Combine(Path.GetTempPath(), "officeimo-export-paths");
+        string unicode = new string('\u754c', 80);
+        var folder = new EmailStoreFolderInfo("folder-id", null, unicode);
+        var reference = new EmailStoreItemReference(unicode, folder.Id, false, false);
+        var paths = new EmailStoreExportPathBuilder(root, new[] { folder }, preserveHierarchy: true);
+
+        string path = paths.GetItemPath(reference, unicode, extension);
+        string fileName = Path.GetFileName(path);
+        string folderName = Path.GetFileName(paths.GetFolderPath(folder.Id));
+
+        Assert.True(Encoding.UTF8.GetByteCount(fileName) +
+            EmailStoreExportPathBuilder.AtomicTemporarySuffixBytes <=
+            EmailStoreExportPathBuilder.MaximumPortableComponentBytes);
+        Assert.True(Encoding.UTF8.GetByteCount(folderName) <=
+            EmailStoreExportPathBuilder.MaximumPortableComponentBytes);
+    }
+
     [Fact]
     public void FlatMaildirExportDoesNotRecreateSourceFolderHierarchy() {
         string sourceRoot = Path.Combine(Path.GetTempPath(),

@@ -3,6 +3,9 @@ using OfficeIMO.Email;
 namespace OfficeIMO.Email.Store;
 
 internal sealed class EmailStoreExportPathBuilder {
+    internal const int MaximumPortableComponentBytes = 255;
+    internal const int AtomicTemporarySuffixBytes = 37;
+
     private readonly string _root;
     private readonly IReadOnlyDictionary<string, EmailStoreFolderInfo> _folders;
     private readonly bool _preserveHierarchy;
@@ -21,10 +24,15 @@ internal sealed class EmailStoreExportPathBuilder {
 
     internal string GetItemPath(EmailStoreItemReference reference, string? subject, string extension) {
         string directory = GetItemDirectory(reference);
-        string baseName = SanitizeSegment(subject, 96, "item");
-        string stableId = SanitizeSegment(reference.Id, 48, "id");
+        string fixedSuffix = string.Concat(".", GetStableHash(reference.Id), extension);
+        int availableBytes = MaximumPortableComponentBytes - AtomicTemporarySuffixBytes -
+            Encoding.UTF8.GetByteCount("__") - Encoding.UTF8.GetByteCount(fixedSuffix);
+        int stableIdBytes = Math.Min(96, availableBytes - Encoding.UTF8.GetByteCount("item"));
+        string stableId = SanitizeSegmentByUtf8Bytes(reference.Id, 48, stableIdBytes, "id");
+        int baseNameBytes = availableBytes - Encoding.UTF8.GetByteCount(stableId);
+        string baseName = SanitizeSegmentByUtf8Bytes(subject, 96, baseNameBytes, "item");
         return Path.Combine(directory,
-            string.Concat(baseName, "__", stableId, ".", GetStableHash(reference.Id), extension));
+            string.Concat(baseName, "__", stableId, fixedSuffix));
     }
 
     internal string GetItemDirectory(EmailStoreItemReference reference) {
@@ -55,10 +63,11 @@ internal sealed class EmailStoreExportPathBuilder {
                 basePath = _root;
                 break;
             }
+            string fixedSuffix = string.Concat("__", GetStableHash(folder.Id));
+            int nameBytes = MaximumPortableComponentBytes - Encoding.UTF8.GetByteCount(fixedSuffix);
             segments.Push(string.Concat(
-                SanitizeSegment(folder.Name, 80, "folder"),
-                "__",
-                GetStableHash(folder.Id)));
+                SanitizeSegmentByUtf8Bytes(folder.Name, 80, nameBytes, "folder"),
+                fixedSuffix));
             currentId = folder.ParentId;
         }
         while (segments.Count > 0) basePath = Path.Combine(basePath, segments.Pop());

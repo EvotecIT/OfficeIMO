@@ -114,6 +114,37 @@ public sealed class VCardDocumentTests {
             issue.PropertyName == "EMAIL");
     }
 
+    [Theory]
+    [InlineData("8BIT")]
+    [InlineData("b")]
+    [InlineData("BASE64")]
+    public void ValidationRejectsEveryV4EncodingParameter(string encoding) {
+        var document = new VCardDocument();
+        ContentLineComponent card = document.Cards.Single();
+        card.AddProperty("FN", "Version four");
+        card.AddProperty("N", "Four;Version;;;");
+        card.AddProperty("PHOTO", "legacy-photo").SetParameter("ENCODING", encoding);
+
+        Assert.Contains(document.Validate(), issue =>
+            issue.Code == "VCARD4_ENCODING_FORBIDDEN" && issue.PropertyName == "PHOTO");
+    }
+
+    [Fact]
+    public void ValidationRejectsNestedCardComponentsWithoutRemovingThem() {
+        var document = new VCardDocument();
+        ContentLineComponent card = document.Cards.Single();
+        card.AddProperty("FN", "Nested card");
+        card.AddProperty("N", "Card;Nested;;;");
+        ContentLineComponent nested = card.AddComponent("X-VENDOR-COMPONENT");
+        nested.AddProperty("X-VALUE", "retained");
+
+        Assert.Contains(document.Validate(), issue =>
+            issue.Code == "VCARD_COMPONENT_NESTING_INVALID" &&
+            issue.ComponentName == "X-VENDOR-COMPONENT");
+        Assert.Same(nested, Assert.Single(card.Components));
+        Assert.Contains("BEGIN:X-VENDOR-COMPONENT", document.Serialize(), StringComparison.Ordinal);
+    }
+
     [Fact]
     public void GroupAndTextHelpersCreateInteroperableV4Card() {
         var document = new VCardDocument();

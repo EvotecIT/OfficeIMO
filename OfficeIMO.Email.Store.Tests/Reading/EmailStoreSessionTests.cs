@@ -1,4 +1,6 @@
 using OfficeIMO.Email;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace OfficeIMO.Email.Store.Tests;
 
@@ -336,6 +338,104 @@ public sealed class EmailStoreSessionTests {
         } finally {
             if (Directory.Exists(directory)) Directory.Delete(directory, recursive: true);
         }
+    }
+
+    [Fact]
+    public void Mbox_export_continues_after_attachment_content_access_is_denied() {
+        string destination = Path.Combine(Path.GetTempPath(),
+            "officeimo-store-denied-" + Guid.NewGuid().ToString("N") + ".mbox");
+        try {
+            using EmailStoreSession session = CreateSession(new AttachmentAccessDeniedBackend());
+
+            EmailStoreMboxExportReport report = session.ExportToMbox(destination,
+                new EmailStoreMboxExportOptions(continueOnError: true));
+
+            Assert.Equal(2, report.Entries.Count);
+            Assert.Equal(1, report.SucceededCount);
+            Assert.Contains(report.Entries, entry => entry.Diagnostics.Any(diagnostic =>
+                diagnostic.Code == "EMAIL_STORE_EXPORT_ITEM_FAILED" &&
+                diagnostic.Message.Contains("denied", StringComparison.OrdinalIgnoreCase)));
+            Assert.Equal("Valid", Assert.Single(EmailMailbox.Load(destination).Messages).Document.Subject);
+        } finally {
+            if (File.Exists(destination)) File.Delete(destination);
+        }
+    }
+
+    private static EmailStoreSession CreateSession(IEmailStoreSessionBackend backend) {
+        System.Reflection.ConstructorInfo? constructor = typeof(EmailStoreSession).GetConstructor(
+            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic,
+            binder: null,
+            new[] {
+                typeof(Stream), typeof(bool), typeof(long), typeof(EmailStoreReaderOptions),
+                typeof(IEmailStoreSessionBackend)
+            },
+            modifiers: null);
+        Assert.NotNull(constructor);
+        return (EmailStoreSession)constructor!.Invoke(new object[] {
+            Stream.Null, true, 0L, EmailStoreReaderOptions.Default, backend
+        });
+    }
+
+    private sealed class AttachmentAccessDeniedBackend : IEmailStoreSessionBackend {
+        private const string FolderId = "folder";
+        private readonly EmailStoreItemReference[] _references = {
+            new EmailStoreItemReference("denied", FolderId, false, false),
+            new EmailStoreItemReference("valid", FolderId, false, false)
+        };
+        private readonly EmailStoreFolderInfo[] _folders = {
+            new EmailStoreFolderInfo(FolderId, null, "Inbox")
+        };
+
+        public EmailStoreFormat Format => EmailStoreFormat.Mbox;
+        public string? DisplayName => "Test";
+        public long SourceLength => 0;
+        public IReadOnlyList<EmailStoreFolderInfo> Folders => _folders;
+        public IReadOnlyList<EmailStoreDiagnostic> Diagnostics => Array.Empty<EmailStoreDiagnostic>();
+
+        public IEnumerable<EmailStoreItemReference> EnumerateItems(
+            EmailStoreEnumerationOptions options, CancellationToken cancellationToken) {
+            foreach (EmailStoreItemReference reference in _references.Take(options.MaxItems)) {
+                cancellationToken.ThrowIfCancellationRequested();
+                yield return reference;
+            }
+        }
+
+        public EmailStoreItemSummary ReadSummary(EmailStoreItemReference reference,
+            CancellationToken cancellationToken) =>
+            EmailStoreItemSummary.FromItem(ReadItem(
+                reference, EmailStoreItemReadOptions.Default, cancellationToken));
+
+        public EmailStoreItem ReadItem(EmailStoreItemReference reference,
+            EmailStoreItemReadOptions options, CancellationToken cancellationToken) {
+            cancellationToken.ThrowIfCancellationRequested();
+            var document = new EmailDocument {
+                Subject = reference.Id == "denied" ? "Denied" : "Valid",
+                Body = { Text = "Body" }
+            };
+            if (reference.Id == "denied") {
+                document.Attachments.Add(new EmailAttachment {
+                    FileName = "denied.bin",
+                    ContentType = "application/octet-stream",
+                    Length = 1,
+                    ContentSource = new DeniedContentSource()
+                });
+            }
+            return new EmailStoreItem(reference.Id, reference.FolderId, document,
+                format: EmailStoreFormat.Mbox);
+        }
+
+        public void Dispose() { }
+    }
+
+    private sealed class DeniedContentSource : IEmailContentSource {
+        public long? Length => 1;
+
+        public Stream OpenRead() =>
+            throw new UnauthorizedAccessException("Attachment content access was denied.");
+
+        public Task<Stream> OpenReadAsync(CancellationToken cancellationToken = default) =>
+            Task.FromException<Stream>(
+                new UnauthorizedAccessException("Attachment content access was denied."));
     }
 
     private sealed class VirtualLengthStream : Stream {
