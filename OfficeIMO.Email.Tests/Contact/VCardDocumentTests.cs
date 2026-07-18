@@ -213,6 +213,59 @@ public sealed class VCardDocumentTests {
             issue.PropertyName == propertyName);
     }
 
+    [Theory]
+    [InlineData(VCardVersion.V3_0, "not-a-timestamp", null)]
+    [InlineData(VCardVersion.V3_0, "2026-07-18", null)]
+    [InlineData(VCardVersion.V3_0, "2026-02-30T09:00:00Z", null)]
+    [InlineData(VCardVersion.V3_0, "2026-07-18T24:00:00Z", null)]
+    [InlineData(VCardVersion.V3_0, "2026-07-18T09:00:00Z", "timestamp")]
+    [InlineData(VCardVersion.V4_0, "2026-07-18T09:00:00Z", null)]
+    [InlineData(VCardVersion.V4_0, "20260718T0900Z", null)]
+    [InlineData(VCardVersion.V4_0, "20260230T090000Z", null)]
+    [InlineData(VCardVersion.V4_0, "20260718T240000Z", null)]
+    [InlineData(VCardVersion.V4_0, "20260718T090000+2400", null)]
+    [InlineData(VCardVersion.V4_0, "20260718T090000Z", "date-time")]
+    public void ValidationRejectsInvalidVersionSpecificRevisionValues(VCardVersion version,
+        string value, string? valueType) {
+        var document = new VCardDocument();
+        ContentLineComponent card = document.Cards.Single();
+        VCardDocument.SetVersion(card, version);
+        card.AddProperty("FN", "Versioned contact");
+        card.AddProperty("N", "Contact;Versioned;;;");
+        ContentLineProperty revision = card.AddProperty("REV", value);
+        if (valueType != null) revision.SetParameter("VALUE", valueType);
+
+        Assert.Contains(document.Validate(), issue => issue.Code == "VCARD_REV_VALUE_INVALID" &&
+            issue.PropertyName == "REV");
+    }
+
+    [Theory]
+    [InlineData(VCardVersion.V2_1, "2026-07-18T09:00:00Z", null)]
+    [InlineData(VCardVersion.V3_0, "2026-07-18T09:00:00Z", null)]
+    [InlineData(VCardVersion.V3_0, "19951031T22:27:10Z", null)]
+    [InlineData(VCardVersion.V3_0, "1995-10-31T222710Z", null)]
+    [InlineData(VCardVersion.V3_0, "1995-1031T22:2710Z", null)]
+    [InlineData(VCardVersion.V3_0, "199510-31T2227:10Z", null)]
+    [InlineData(VCardVersion.V3_0, "20260718T090000-0500", "date-time")]
+    [InlineData(VCardVersion.V3_0, "2026-07-18", "date")]
+    [InlineData(VCardVersion.V4_0, "20260718T090000", null)]
+    [InlineData(VCardVersion.V4_0, "20260718T090000Z", "timestamp")]
+    [InlineData(VCardVersion.V4_0, "20260718T090000-05", null)]
+    [InlineData(VCardVersion.V4_0, "20260718T090000-0500", null)]
+    public void ValidationAcceptsVersionSpecificRevisionValues(VCardVersion version,
+        string value, string? valueType) {
+        var document = new VCardDocument();
+        ContentLineComponent card = document.Cards.Single();
+        VCardDocument.SetVersion(card, version);
+        card.AddProperty("FN", "Versioned contact");
+        card.AddProperty("N", "Contact;Versioned;;;");
+        ContentLineProperty revision = card.AddProperty("REV", value);
+        if (valueType != null) revision.SetParameter("VALUE", valueType);
+
+        Assert.DoesNotContain(document.Validate(), issue => issue.Code == "VCARD_REV_VALUE_INVALID" &&
+            issue.PropertyName == "REV");
+    }
+
     [Fact]
     public void GroupAndTextHelpersCreateInteroperableV4Card() {
         var document = new VCardDocument();

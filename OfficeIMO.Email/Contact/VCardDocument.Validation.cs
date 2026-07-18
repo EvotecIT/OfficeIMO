@@ -53,6 +53,7 @@ public sealed partial class VCardDocument {
                         card, propertyName));
             }
             ValidateDateProperties(card, version, issues);
+            ValidateRevisionProperties(card, version, issues);
             if (version != VCardVersion.V4_0 && card.GetFirstProperty("ANNIVERSARY") != null)
                 issues.Add(Issue("VCARD_PROPERTY_VERSION_MISMATCH",
                     "ANNIVERSARY is a vCard 4.0 property; use VERSION:4.0 or an explicitly named extension.",

@@ -19,6 +19,41 @@ public sealed partial class VCardDocument {
             ContentLineValidationSeverity.Error, card, property.Name));
     }
 
+    private static void ValidateRevisionProperties(ContentLineComponent card, VCardVersion version,
+        ICollection<ContentLineValidationIssue> issues) {
+        foreach (ContentLineProperty revision in card.GetProperties("REV")) {
+            if (IsValidRevisionProperty(revision, version)) continue;
+            issues.Add(Issue("VCARD_REV_VALUE_INVALID",
+                "REV does not contain a timestamp allowed by this vCard version.",
+                ContentLineValidationSeverity.Error, card, revision.Name));
+        }
+    }
+
+    private static bool IsValidRevisionProperty(ContentLineProperty property, VCardVersion version) {
+        ContentLineParameter[] valueParameters = property.Parameters.Where(parameter =>
+            string.Equals(parameter.Name, "VALUE", StringComparison.OrdinalIgnoreCase)).ToArray();
+        if (valueParameters.Length > 1 || valueParameters.Any(parameter =>
+            parameter.Values.Count != 1 || string.IsNullOrWhiteSpace(parameter.Values[0]))) return false;
+        string? valueType = valueParameters.FirstOrDefault()?.Values[0];
+        if (version == VCardVersion.V4_0) {
+            if (valueType != null && !string.Equals(valueType, "timestamp",
+                StringComparison.OrdinalIgnoreCase)) return false;
+            return IsV4Timestamp(property.Value);
+        }
+
+        if (valueType == null || string.Equals(valueType, "date-time", StringComparison.OrdinalIgnoreCase))
+            return IsLegacyDateTime(property.Value);
+        return string.Equals(valueType, "date", StringComparison.OrdinalIgnoreCase) &&
+            IsLegacyDate(property.Value);
+    }
+
+    private static bool IsV4Timestamp(string value) {
+        if (value.Length < 15 || value[8] != 'T' || !IsDigits(value, 0, 8) ||
+            !IsCalendarDate(value, 0, 4, 6) || !IsLegacyBasicTime(value, 9)) return false;
+        string zone = value.Substring(15);
+        return zone.Length == 0 || string.Equals(zone, "Z", StringComparison.Ordinal) || IsV4UtcOffset(zone);
+    }
+
     private static bool IsValidDateProperty(ContentLineProperty property, VCardVersion version) {
         ContentLineParameter[] valueParameters = property.Parameters.Where(parameter =>
             string.Equals(parameter.Name, "VALUE", StringComparison.OrdinalIgnoreCase)).ToArray();
@@ -111,21 +146,43 @@ public sealed partial class VCardDocument {
     }
 
     private static bool IsLegacyDate(string value) {
-        if (value.Length == 8 && IsDigits(value, 0, 8)) return IsCalendarDate(value, 0, 4, 6);
-        return value.Length == 10 && value[4] == '-' && value[7] == '-' &&
-            IsDigits(value, 0, 4) && IsDigits(value, 5, 2) && IsDigits(value, 8, 2) &&
-            IsCalendarDate(value, 0, 5, 8);
+        return TryReadLegacyDate(value, offset: 0, out int endOffset) && endOffset == value.Length;
     }
 
     private static bool IsLegacyDateTime(string value) {
-        if (value.Length >= 15 && value[8] == 'T' && IsDigits(value, 0, 8) &&
-            IsCalendarDate(value, 0, 4, 6) && IsLegacyBasicTime(value, 9))
-            return IsLegacyFractionAndZone(value.Substring(15));
-        if (value.Length >= 19 && value[4] == '-' && value[7] == '-' && value[10] == 'T' &&
-            value[13] == ':' && value[16] == ':' && IsDigits(value, 0, 4) && IsDigits(value, 5, 2) &&
-            IsDigits(value, 8, 2) && IsCalendarDate(value, 0, 5, 8) &&
-            IsLegacyExtendedTime(value, 11)) return IsLegacyFractionAndZone(value.Substring(19));
-        return false;
+        if (!TryReadLegacyDate(value, offset: 0, out int dateEnd) ||
+            dateEnd >= value.Length || value[dateEnd] != 'T' ||
+            !TryReadLegacyTime(value, dateEnd + 1, out int timeEnd)) return false;
+        return IsLegacyFractionAndZone(value.Substring(timeEnd));
+    }
+
+    private static bool TryReadLegacyDate(string value, int offset, out int endOffset) {
+        endOffset = offset;
+        if (!TryReadNumber(value, offset, 4, out int year)) return false;
+        int index = offset + 4;
+        if (index < value.Length && value[index] == '-') index++;
+        int monthOffset = index;
+        if (!IsDigits(value, index, 2)) return false;
+        index += 2;
+        if (index < value.Length && value[index] == '-') index++;
+        int dayOffset = index;
+        if (!IsDigits(value, index, 2) ||
+            !IsCalendarDateWithYear(value, year, monthOffset, dayOffset)) return false;
+        endOffset = index + 2;
+        return true;
+    }
+
+    private static bool TryReadLegacyTime(string value, int offset, out int endOffset) {
+        endOffset = offset;
+        if (!TryReadNumber(value, offset, 2, out int hour) || hour > 23) return false;
+        int index = offset + 2;
+        if (index < value.Length && value[index] == ':') index++;
+        if (!TryReadNumber(value, index, 2, out int minute) || minute > 59) return false;
+        index += 2;
+        if (index < value.Length && value[index] == ':') index++;
+        if (!TryReadNumber(value, index, 2, out int second) || second > 60) return false;
+        endOffset = index + 2;
+        return true;
     }
 
     private static bool IsLegacyFractionAndZone(string value) {
@@ -139,11 +196,6 @@ public sealed partial class VCardDocument {
         IsDigits(value, offset, 6) && TryReadNumber(value, offset, 2, out int hour) && hour <= 23 &&
         TryReadNumber(value, offset + 2, 2, out int minute) && minute <= 59 &&
         TryReadNumber(value, offset + 4, 2, out int second) && second <= 60;
-
-    private static bool IsLegacyExtendedTime(string value, int offset) =>
-        TryReadNumber(value, offset, 2, out int hour) && hour <= 23 &&
-        TryReadNumber(value, offset + 3, 2, out int minute) && minute <= 59 &&
-        TryReadNumber(value, offset + 6, 2, out int second) && second <= 60;
 
     private static bool IsLegacyZone(string value) {
         if (value.Length == 0 || string.Equals(value, "Z", StringComparison.Ordinal)) return true;

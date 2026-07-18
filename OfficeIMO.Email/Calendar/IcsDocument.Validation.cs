@@ -88,6 +88,7 @@ public sealed partial class IcsDocument {
                 }
             } else if (name == "VALARM") {
                 ValidateSingle(component, "ACTION", required: true, issues);
+                ValidateAlarmActions(component, issues);
                 ValidateSingle(component, "TRIGGER", required: true, issues);
                 ValidateAlarmTriggers(component, parent, issues);
                 ValidateAlarmRepetition(component, issues);
@@ -208,7 +209,7 @@ public sealed partial class IcsDocument {
         ContentLineComponent parent, string name,
         ICollection<ContentLineValidationIssue> issues) {
         if (name == "VEVENT") {
-            bool requiresStart = !parent.GetProperties("METHOD").Any(IsValidMethodValue) ||
+            bool requiresStart = !parent.GetProperties("METHOD").Any(IsValidTokenValue) ||
                 component.GetFirstProperty("RRULE") != null;
             ValidateSingle(component, "DTSTART", required: requiresStart, issues);
             ValidateSingle(component, "DTEND", required: false, issues);
@@ -230,7 +231,8 @@ public sealed partial class IcsDocument {
         } else if (name == "VFREEBUSY") {
             ValidateSingle(component, "DTSTART", required: false, issues);
             ValidateSingle(component, "DTEND", required: false, issues);
-            ValidateSingle(component, "DTSTAMP", required: false, issues);
+            ValidateSingle(component, "DTSTAMP", required: true, issues);
+            ValidateSingle(component, "UID", required: true, issues);
         } else if (name == "VTIMEZONE") {
             ValidateSingle(component, "LAST-MODIFIED", required: false, issues);
         } else if (name == "STANDARD" || name == "DAYLIGHT") {

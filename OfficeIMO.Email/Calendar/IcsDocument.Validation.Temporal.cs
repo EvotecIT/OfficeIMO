@@ -4,16 +4,26 @@ public sealed partial class IcsDocument {
     private static void ValidateMethodValues(ContentLineComponent calendar,
         ICollection<ContentLineValidationIssue> issues) {
         foreach (ContentLineProperty method in calendar.GetProperties("METHOD")) {
-            if (IsValidMethodValue(method)) continue;
+            if (IsValidTokenValue(method)) continue;
             issues.Add(Issue("ICAL_METHOD_INVALID",
                 "METHOD must contain a non-empty iana-token or x-name value.",
                 ContentLineValidationSeverity.Error, calendar, method));
         }
     }
 
-    private static bool IsValidMethodValue(ContentLineProperty method) {
-        if (method.Value.Length == 0) return false;
-        foreach (char character in method.Value) {
+    private static void ValidateAlarmActions(ContentLineComponent alarm,
+        ICollection<ContentLineValidationIssue> issues) {
+        foreach (ContentLineProperty action in alarm.GetProperties("ACTION")) {
+            if (IsValidTokenValue(action)) continue;
+            issues.Add(Issue("ICAL_ALARM_ACTION_INVALID",
+                "ACTION must contain a non-empty iana-token or x-name value.",
+                ContentLineValidationSeverity.Error, alarm, action));
+        }
+    }
+
+    private static bool IsValidTokenValue(ContentLineProperty property) {
+        if (property.Value.Length == 0) return false;
+        foreach (char character in property.Value) {
             bool valid = character >= 'A' && character <= 'Z' ||
                 character >= 'a' && character <= 'z' ||
                 character >= '0' && character <= '9' || character == '-';

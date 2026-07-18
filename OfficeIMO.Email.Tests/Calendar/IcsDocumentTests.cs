@@ -176,6 +176,22 @@ public sealed class IcsDocumentTests {
     }
 
     [Theory]
+    [InlineData("20260718", "DATE", "20260719T090000Z", null)]
+    [InlineData("20260718T090000Z", null, "20260719", "DATE")]
+    public void ValidationAllowsRecurrenceDatesWithATypeDifferentFromStart(
+        string start, string? startType, string recurrence, string? recurrenceType) {
+        var document = new IcsDocument();
+        ContentLineComponent appointment = document.Calendars.Single().AddComponent("VEVENT");
+        ContentLineProperty startProperty = appointment.AddProperty("DTSTART", start);
+        if (startType != null) startProperty.SetParameter("VALUE", startType);
+        ContentLineProperty recurrenceProperty = appointment.AddProperty("RDATE", recurrence);
+        if (recurrenceType != null) recurrenceProperty.SetParameter("VALUE", recurrenceType);
+
+        Assert.DoesNotContain(document.Validate(), issue => issue.PropertyName == "RDATE" &&
+            issue.Severity == ContentLineValidationSeverity.Error);
+    }
+
+    [Theory]
     [InlineData("20260718", "DATE", "20260719T090000Z", null, "ICAL_EXDATE_TYPE_MISMATCH")]
     [InlineData("20260718T090000Z", null, "20260719", "DATE", "ICAL_EXDATE_TYPE_MISMATCH")]
     [InlineData("20260718T090000Z", null, "20260719T090000", null,
@@ -447,6 +463,32 @@ public sealed class IcsDocumentTests {
 
         Assert.Contains(document.Validate(), issue =>
             issue.Code == "ICAL_PROPERTY_CARDINALITY" && issue.PropertyName == propertyName);
+    }
+
+    [Theory]
+    [InlineData("UID")]
+    [InlineData("DTSTAMP")]
+    public void ValidationRequiresFreeBusyIdentityProperties(string missingProperty) {
+        var document = new IcsDocument();
+        ContentLineComponent freeBusy = document.Calendars.Single().AddComponent("VFREEBUSY");
+        if (missingProperty != "UID") freeBusy.AddProperty("UID", "freebusy@example.test");
+        if (missingProperty != "DTSTAMP") freeBusy.AddProperty("DTSTAMP", "20260718T090000Z");
+
+        Assert.Contains(document.Validate(), issue => issue.Code == "ICAL_PROPERTY_REQUIRED" &&
+            issue.ComponentName == "VFREEBUSY" && issue.PropertyName == missingProperty);
+    }
+
+    [Fact]
+    public void ValidationAcceptsFreeBusyIdentityPropertiesExactlyOnce() {
+        var document = new IcsDocument();
+        ContentLineComponent freeBusy = document.Calendars.Single().AddComponent("VFREEBUSY");
+        freeBusy.AddProperty("UID", "freebusy@example.test");
+        freeBusy.AddProperty("DTSTAMP", "20260718T090000Z");
+
+        Assert.DoesNotContain(document.Validate(), issue =>
+            (issue.Code == "ICAL_PROPERTY_REQUIRED" || issue.Code == "ICAL_PROPERTY_CARDINALITY") &&
+            issue.ComponentName == "VFREEBUSY" &&
+            (issue.PropertyName == "UID" || issue.PropertyName == "DTSTAMP"));
     }
 
     [Fact]
@@ -1129,6 +1171,26 @@ public sealed class IcsDocumentTests {
             propertyName == "DURATION" ? "DURATION" : "INTEGER");
 
         Assert.Contains(document.Validate(), issue => issue.Code == expectedCode);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("BAD ACTION")]
+    [InlineData("DISPLAY!")]
+    public void ValidationRejectsInvalidAlarmActionTokens(string action) {
+        ContentLineComponent alarm = CreateValidAlarm(out IcsDocument document);
+        alarm.GetFirstProperty("ACTION")!.Value = action;
+
+        Assert.Contains(document.Validate(), issue => issue.Code == "ICAL_ALARM_ACTION_INVALID" &&
+            issue.ComponentName == "VALARM" && issue.PropertyName == "ACTION");
+    }
+
+    [Fact]
+    public void ValidationAcceptsExtensionAlarmActionTokens() {
+        ContentLineComponent alarm = CreateValidAlarm(out IcsDocument document);
+        alarm.GetFirstProperty("ACTION")!.Value = "X-CUSTOM";
+
+        Assert.DoesNotContain(document.Validate(), issue => issue.Code == "ICAL_ALARM_ACTION_INVALID");
     }
 
     [Theory]
