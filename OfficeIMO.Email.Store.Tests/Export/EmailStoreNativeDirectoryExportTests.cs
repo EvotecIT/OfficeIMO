@@ -472,6 +472,56 @@ public sealed class EmailStoreNativeDirectoryExportTests {
                 (EmailStoreNativeDirectoryFormat)value));
     }
 
+    [Theory]
+    [InlineData(EmailStoreNativeDirectoryFormat.Maildir, false)]
+    [InlineData(EmailStoreNativeDirectoryFormat.Maildir, true)]
+    [InlineData(EmailStoreNativeDirectoryFormat.Emlx, false)]
+    [InlineData(EmailStoreNativeDirectoryFormat.Emlx, true)]
+    public void NativeDirectoryExportMaterializesAttachmentsWhenSessionRetentionIsDisabled(
+        EmailStoreNativeDirectoryFormat format, bool sourceIsEmlx) {
+        string sourceRoot = Path.Combine(Path.GetTempPath(),
+            "oims-attachments-" + Guid.NewGuid().ToString("N").Substring(0, 12));
+        string destinationRoot = Path.Combine(Path.GetTempPath(),
+            "oimd-attachments-" + Guid.NewGuid().ToString("N").Substring(0, 12));
+        try {
+            Directory.CreateDirectory(sourceRoot);
+            var sourceDocument = new EmailDocument { Subject = "Attachment" };
+            sourceDocument.Body.Text = "Body";
+            sourceDocument.Attachments.Add(new EmailAttachment {
+                FileName = "payload.bin",
+                ContentType = "application/octet-stream",
+                Content = new byte[] { 1, 2, 3, 4 },
+                Length = 4
+            });
+            string sourcePath = Path.Combine(sourceRoot, sourceIsEmlx ? "source.emlx" : "source.eml");
+            if (sourceIsEmlx) {
+                Assert.False(new EmailStoreEmlxWriter().Write(sourceDocument, sourcePath).HasErrors);
+            } else {
+                Assert.False(new EmailDocumentWriter().Write(
+                    sourceDocument, sourcePath, EmailFileFormat.Eml).HasErrors);
+            }
+            using EmailStoreSession session = EmailStoreSession.Open(sourceRoot,
+                new EmailStoreReaderOptions(retainAttachmentContent: false));
+            EmailStoreItemReference sourceReference = Assert.Single(session.EnumerateItems());
+            EmailStoreItem metadataOnly = session.ReadItem(sourceReference,
+                new EmailStoreItemReadOptions(EmailStoreItemReadParts.AttachmentMetadata));
+            Assert.Null(Assert.Single(metadataOnly.Document.Attachments).Content);
+
+            EmailStoreExportReport report = session.ExportToNativeDirectory(destinationRoot,
+                new EmailStoreNativeDirectoryExportOptions(format, preserveFolderHierarchy: false));
+
+            Assert.False(report.HasErrors, string.Join(Environment.NewLine,
+                report.Diagnostics.Select(diagnostic => diagnostic.Code + ": " + diagnostic.Message)));
+            Assert.True(Assert.Single(report.Entries).Succeeded);
+            using EmailStoreSession reopened = EmailStoreSession.Open(destinationRoot);
+            EmailStoreItem exported = reopened.ReadItem(Assert.Single(reopened.EnumerateItems()));
+            Assert.Equal(new byte[] { 1, 2, 3, 4 }, Assert.Single(exported.Document.Attachments).Content);
+        } finally {
+            if (Directory.Exists(sourceRoot)) Directory.Delete(sourceRoot, recursive: true);
+            if (Directory.Exists(destinationRoot)) Directory.Delete(destinationRoot, recursive: true);
+        }
+    }
+
     private static byte[] CreateMailboxBytes() {
         var mailbox = new EmailMailbox();
         var first = new EmailDocument { Subject = "Native first" };

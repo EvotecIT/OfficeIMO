@@ -295,9 +295,13 @@ internal static class ContentLineCodec {
         }
         yield return ":";
         string value = property.Value ?? string.Empty;
-        if (value.IndexOf('\r') >= 0 || value.IndexOf('\n') >= 0)
-            throw new InvalidDataException(
-                "A content-line property value cannot contain a literal CR or LF; use the format escape instead.");
+        foreach (char character in value) {
+            if (character < '\u0020' && character != '\t' || character == '\u007F') {
+                throw new InvalidDataException(
+                    "A content-line property value cannot contain an ASCII control character other than HTAB; " +
+                    "use the format escape for textual line breaks.");
+            }
+        }
         yield return value;
     }
 

@@ -75,10 +75,8 @@ public sealed partial class IcsDocument {
             ValidateKnownComponentParent(component, parent, name, issues);
             ValidateTemporalCardinality(component, parent, name, issues);
             if (name == "VEVENT" || name == "VTODO" || name == "VJOURNAL") {
-                WarnWhenMissing(component, "UID", issues);
-                WarnWhenMissing(component, "DTSTAMP", issues);
-                ValidateSingle(component, "UID", required: false, issues);
-                ValidateSingle(component, "DTSTAMP", required: false, issues);
+                ValidateSingle(component, "UID", required: true, issues);
+                ValidateSingle(component, "DTSTAMP", required: true, issues);
                 ValidateSingle(component, "SEQUENCE", required: false, issues);
                 ValidateSequenceValues(component, issues);
             } else if (name == "VTIMEZONE") {
@@ -104,6 +102,8 @@ public sealed partial class IcsDocument {
                 ValidateAlarmTriggers(component, parent, issues);
                 ValidateAlarmRepetition(component, issues);
                 string? action = component.GetFirstProperty("ACTION")?.Value;
+                if (string.Equals(action, "AUDIO", StringComparison.OrdinalIgnoreCase))
+                    ValidateSingle(component, "ATTACH", required: false, issues);
                 if (string.Equals(action, "DISPLAY", StringComparison.OrdinalIgnoreCase))
                     ValidateSingle(component, "DESCRIPTION", required: true, issues);
                 if (string.Equals(action, "EMAIL", StringComparison.OrdinalIgnoreCase)) {
@@ -666,14 +666,6 @@ public sealed partial class IcsDocument {
                 "iCalendar properties cannot use vCard-style group prefixes.",
                 ContentLineValidationSeverity.Error, component, property));
         }
-    }
-
-    private static void WarnWhenMissing(ContentLineComponent component, string propertyName,
-        ICollection<ContentLineValidationIssue> issues) {
-        if (component.GetFirstProperty(propertyName) == null)
-            issues.Add(Issue("ICAL_INTEROPERABILITY_PROPERTY_MISSING",
-                propertyName + " is normally required for interoperable scheduling and storage.",
-                ContentLineValidationSeverity.Warning, component, propertyName: propertyName));
     }
 
     private static ContentLineValidationIssue Issue(string code, string message,

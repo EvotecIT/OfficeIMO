@@ -474,6 +474,29 @@ public sealed class VCardDocumentTests {
         Assert.Throws<InvalidDataException>(() => document.Serialize());
     }
 
+    [Theory]
+    [InlineData("3.0")]
+    [InlineData("4.0")]
+    public void ValidationRejectsBareCompatibilityParametersAfterVCard21(string version) {
+        VCardDocument document = VCardDocument.Parse(
+            "BEGIN:VCARD\r\nVERSION:" + version + "\r\nFN:Contact\r\nN:Contact;;;;\r\n" +
+            "TEL;HOME:+12025550123\r\nEND:VCARD\r\n");
+
+        Assert.Contains(document.Validate(), issue =>
+            issue.Code == "VCARD_PARAMETER_VALUE_REQUIRED" && issue.PropertyName == "TEL");
+    }
+
+    [Fact]
+    public void ValidationRetainsBareTypeParametersForVCard21Compatibility() {
+        VCardDocument document = VCardDocument.Parse(
+            "BEGIN:VCARD\r\nVERSION:2.1\r\nFN:Legacy\r\nN:Legacy;;;;\r\n" +
+            "TEL;HOME:12345\r\nEND:VCARD\r\n");
+
+        Assert.DoesNotContain(document.Validate(), issue =>
+            issue.Code == "VCARD_PARAMETER_VALUE_REQUIRED");
+        Assert.Contains("TEL;HOME:12345", document.Serialize(), StringComparison.Ordinal);
+    }
+
     [Fact]
     public void ValidationAndSerializationRejectMissingOrMutatedCardRoots() {
         var empty = new VCardDocument();

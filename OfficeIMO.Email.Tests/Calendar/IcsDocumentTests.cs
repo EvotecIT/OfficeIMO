@@ -1343,6 +1343,81 @@ public sealed class IcsDocumentTests {
         Assert.Throws<InvalidDataException>(() => document.Serialize());
     }
 
+    [Theory]
+    [InlineData("\0")]
+    [InlineData("\b")]
+    [InlineData("\u001F")]
+    [InlineData("\u007F")]
+    public void SerializationRejectsProhibitedAsciiControlsInRawPropertyValues(string control) {
+        var document = new IcsDocument();
+        document.Calendars.Single().AddProperty("X-CONTROL", "left" + control + "right");
+
+        Assert.Throws<InvalidDataException>(() => document.Serialize());
+    }
+
+    [Fact]
+    public void SerializationAllowsHorizontalTabsInRawPropertyValues() {
+        var document = new IcsDocument();
+        document.Calendars.Single().AddProperty("X-TAB", "left\tright");
+
+        Assert.Contains("X-TAB:left\tright", document.Serialize(), StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("VEVENT", "UID")]
+    [InlineData("VEVENT", "DTSTAMP")]
+    [InlineData("VTODO", "UID")]
+    [InlineData("VTODO", "DTSTAMP")]
+    [InlineData("VJOURNAL", "UID")]
+    [InlineData("VJOURNAL", "DTSTAMP")]
+    public void ValidationRequiresUidAndDtstampForPrimaryComponents(
+        string componentName, string missingProperty) {
+        var document = new IcsDocument();
+        ContentLineComponent component = document.Calendars.Single().AddComponent(componentName);
+        if (missingProperty != "UID") component.AddProperty("UID", "required@example.test");
+        if (missingProperty != "DTSTAMP") component.AddProperty("DTSTAMP", "20260718T090000Z");
+
+        ContentLineValidationIssue issue = Assert.Single(document.Validate(), finding =>
+            finding.Code == "ICAL_PROPERTY_REQUIRED" &&
+            finding.ComponentName == componentName && finding.PropertyName == missingProperty);
+        Assert.Equal(ContentLineValidationSeverity.Error, issue.Severity);
+    }
+
+    [Fact]
+    public void ValidationRejectsMultipleAudioAlarmAttachments() {
+        var document = new IcsDocument();
+        ContentLineComponent appointment = document.Calendars.Single().AddComponent("VEVENT");
+        appointment.AddProperty("UID", "audio@example.test");
+        appointment.AddProperty("DTSTAMP", "20260718T090000Z");
+        appointment.AddProperty("DTSTART", "20260718T100000Z");
+        ContentLineComponent alarm = appointment.AddComponent("VALARM");
+        alarm.AddProperty("ACTION", "AUDIO");
+        alarm.AddProperty("TRIGGER", "-PT15M");
+        alarm.AddProperty("ATTACH", "https://example.test/first.wav");
+        alarm.AddProperty("ATTACH", "https://example.test/second.wav");
+
+        Assert.Contains(document.Validate(), issue =>
+            issue.Code == "ICAL_PROPERTY_CARDINALITY" && issue.ComponentName == "VALARM" &&
+            issue.PropertyName == "ATTACH");
+    }
+
+    [Fact]
+    public void ValidationAcceptsOneAudioAlarmAttachment() {
+        var document = new IcsDocument();
+        ContentLineComponent appointment = document.Calendars.Single().AddComponent("VEVENT");
+        appointment.AddProperty("UID", "audio@example.test");
+        appointment.AddProperty("DTSTAMP", "20260718T090000Z");
+        appointment.AddProperty("DTSTART", "20260718T100000Z");
+        ContentLineComponent alarm = appointment.AddComponent("VALARM");
+        alarm.AddProperty("ACTION", "AUDIO");
+        alarm.AddProperty("TRIGGER", "-PT15M");
+        alarm.AddProperty("ATTACH", "https://example.test/sound.wav");
+
+        Assert.DoesNotContain(document.Validate(), issue =>
+            issue.Code == "ICAL_PROPERTY_CARDINALITY" && issue.ComponentName == "VALARM" &&
+            issue.PropertyName == "ATTACH");
+    }
+
     [Fact]
     public void LegacyVcalendarParametersPreserveLiteralCaretSequences() {
         const string source = "BEGIN:VCALENDAR\r\nVERSION:1.0\r\nPRODID:-//Legacy//EN\r\n" +

@@ -7,7 +7,6 @@ namespace OfficeIMO.Email.Store;
 /// <summary>Writes Apple Mail EMLX envelopes over the OfficeIMO.Email EML engine.</summary>
 public sealed class EmailStoreEmlxWriter {
     private const string MetadataPropertyPrefix = "Emlx:Metadata:";
-    private const int MaximumRetainedMetadataDepth = 64;
     private static readonly HashSet<string> DerivedMetadataKeys = new HashSet<string>(
         new[] { "flags", "date-received", "date-sent", "subject", "message-id" },
         StringComparer.OrdinalIgnoreCase);
@@ -80,7 +79,7 @@ public sealed class EmailStoreEmlxWriter {
     private byte[] Create(EmailDocument document, out EmailWriteResult result) {
         if (document == null) throw new ArgumentNullException(nameof(document));
         byte[] metadata = _options.IncludeMetadata
-            ? CreateMetadata(document, _options.MaxOutputBytes)
+            ? CreateMetadata(document, _options.MaxOutputBytes, _options.MaxMetadataDepth)
             : Array.Empty<byte>();
         long fixedBytes = checked(metadata.LongLength + (metadata.Length > 0 ? 1L : 0L) + 2L);
         if (fixedBytes >= _options.MaxOutputBytes) {
@@ -130,7 +129,8 @@ public sealed class EmailStoreEmlxWriter {
         return output;
     }
 
-    private static byte[] CreateMetadata(EmailDocument document, long maxOutputBytes) {
+    private static byte[] CreateMetadata(EmailDocument document, long maxOutputBytes,
+        int maxMetadataDepth) {
         try {
             using (var output = new EmailBoundedMemoryStream(maxOutputBytes)) {
                 var settings = new XmlWriterSettings {
@@ -149,7 +149,7 @@ public sealed class EmailStoreEmlxWriter {
                     writer.WriteStartElement("dict");
                     foreach (KeyValuePair<string, object?> pair in GetRetainedMetadata(document)) {
                         writer.WriteElementString("key", pair.Key);
-                        WritePlistValue(writer, pair.Value, pair.Key, depth: 0);
+                        WritePlistValue(writer, pair.Value, pair.Key, depth: 1, maxMetadataDepth);
                     }
                     WriteInteger(writer, "flags", CreateFlags(document));
                     WriteDate(writer, "date-received", document.ReceivedDate);
@@ -189,8 +189,9 @@ public sealed class EmailStoreEmlxWriter {
         return retained.OrderBy(pair => pair.Key, StringComparer.Ordinal);
     }
 
-    private static void WritePlistValue(XmlWriter writer, object? value, string path, int depth) {
-        if (depth > MaximumRetainedMetadataDepth) {
+    private static void WritePlistValue(XmlWriter writer, object? value, string path, int depth,
+        int maxMetadataDepth) {
+        if (depth > maxMetadataDepth) {
             throw new InvalidDataException(
                 "Retained EMLX metadata exceeds the supported plist nesting depth at '" + path + "'.");
         }
@@ -218,14 +219,16 @@ public sealed class EmailStoreEmlxWriter {
                         "Retained EMLX metadata contains duplicate nested plist keys at '" + path + "'.");
                 }
                 writer.WriteElementString("key", pair.Key);
-                WritePlistValue(writer, pair.Value, path + "." + pair.Key, depth + 1);
+                WritePlistValue(writer, pair.Value, path + "." + pair.Key, depth + 1,
+                    maxMetadataDepth);
             }
             writer.WriteEndElement();
         } else if (value is object?[] array) {
             writer.WriteStartElement("array");
             for (int index = 0; index < array.Length; index++) {
                 WritePlistValue(writer, array[index], path + "[" +
-                    index.ToString(CultureInfo.InvariantCulture) + "]", depth + 1);
+                    index.ToString(CultureInfo.InvariantCulture) + "]", depth + 1,
+                    maxMetadataDepth);
             }
             writer.WriteEndElement();
         } else {

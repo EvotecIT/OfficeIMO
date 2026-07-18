@@ -69,6 +69,14 @@ public sealed partial class VCardDocument {
                     ContentLineValidationSeverity.Warning, card, "MEMBER"));
 
             foreach (ContentLineProperty property in card.Properties) {
+                if (version != VCardVersion.V2_1) {
+                    foreach (ContentLineParameter parameter in property.Parameters.Where(parameter =>
+                                 parameter.Values.Count == 0)) {
+                        issues.Add(Issue("VCARD_PARAMETER_VALUE_REQUIRED",
+                            "The " + parameter.Name + " parameter must use a named value in vCard 3.0 and 4.0.",
+                            ContentLineValidationSeverity.Error, card, property.Name));
+                    }
+                }
                 if (version == VCardVersion.V4_0 && property.GetParameter("CHARSET") != null)
                     issues.Add(Issue("VCARD4_CHARSET_FORBIDDEN",
                         "vCard 4.0 is UTF-8 and does not use the CHARSET parameter.",

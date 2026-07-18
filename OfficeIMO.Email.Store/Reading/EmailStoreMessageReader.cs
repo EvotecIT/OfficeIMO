@@ -4,18 +4,20 @@ namespace OfficeIMO.Email.Store;
 
 internal static class EmailStoreMessageReader {
     internal static EmailReadResult Read(byte[] bytes, EmailStoreReaderOptions options,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken, bool? includeAttachmentContent = null) {
         try {
-            return new EmailDocumentReader(CreateOptions(options)).Read(bytes, cancellationToken);
+            return new EmailDocumentReader(CreateOptions(options, includeAttachmentContent))
+                .Read(bytes, cancellationToken);
         } catch (EmailLimitExceededException exception) {
             throw ConvertLimit(exception);
         }
     }
 
     internal static EmailReadResult Read(Stream stream, EmailStoreReaderOptions options,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken, bool? includeAttachmentContent = null) {
         try {
-            return new EmailDocumentReader(CreateOptions(options)).Read(stream, cancellationToken);
+            return new EmailDocumentReader(CreateOptions(options, includeAttachmentContent))
+                .Read(stream, cancellationToken);
         } catch (EmailLimitExceededException exception) {
             throw ConvertLimit(exception);
         }

@@ -77,7 +77,7 @@ public sealed partial class EmailStoreSession {
         string? temporaryPath = null;
         string? maildirFlags = null;
         try {
-            EmailStoreItem item = ReadItem(reference, cancellationToken);
+            EmailStoreItem item = ReadItem(reference, EmailStoreItemReadOptions.Default, cancellationToken);
             string folder = paths.GetItemDirectory(reference);
             string currentDirectory = Path.Combine(folder, "cur");
             string newDirectory = Path.Combine(folder, "new");
@@ -165,7 +165,7 @@ public sealed partial class EmailStoreSession {
         long bytesWritten = 0;
         string? temporaryPath = null;
         try {
-            EmailStoreItem item = ReadItem(reference, cancellationToken);
+            EmailStoreItem item = ReadItem(reference, EmailStoreItemReadOptions.Default, cancellationToken);
             string extension = PropertyFlag(item.Document, "Emlx:IsPartial") ? ".partial.emlx" : ".emlx";
             string path = paths.GetItemPath(reference, item.Document.Subject, extension);
             Directory.CreateDirectory(Path.GetDirectoryName(path)!);

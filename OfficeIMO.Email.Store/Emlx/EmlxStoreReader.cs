@@ -7,10 +7,12 @@ internal sealed class EmlxStoreReader {
     private const int MaxLengthPrefixBytes = 64;
     private const string FolderId = "emlx:folder:apple-mail";
     private readonly EmailStoreReaderOptions _options;
+    private readonly bool? _includeAttachmentContent;
     private readonly List<EmailStoreDiagnostic> _diagnostics = new List<EmailStoreDiagnostic>();
 
-    internal EmlxStoreReader(EmailStoreReaderOptions options) {
+    internal EmlxStoreReader(EmailStoreReaderOptions options, bool? includeAttachmentContent = null) {
         _options = options ?? throw new ArgumentNullException(nameof(options));
+        _includeAttachmentContent = includeAttachmentContent;
     }
 
     internal static bool HasEnvelopePrefix(Stream stream) {
@@ -76,13 +78,17 @@ internal sealed class EmlxStoreReader {
                 itemName));
         }
 
+        EmailStoreItemReadParts loadedParts = EmailStoreItemReadParts.All;
+        if (!(_includeAttachmentContent ?? _options.RetainAttachmentContent))
+            loadedParts &= ~EmailStoreItemReadParts.AttachmentContent;
         folder.MutableItems.Add(new EmailStoreItem(
-            itemId, FolderId, document, format: EmailStoreFormat.Emlx));
+            itemId, FolderId, document, loadedParts: loadedParts, format: EmailStoreFormat.Emlx));
         return new EmailStoreReadResult(store, _diagnostics.AsReadOnly(), stream.Length);
     }
 
     private EmailReadResult ReadMessage(byte[] messageBytes, CancellationToken cancellationToken) {
-        return EmailStoreMessageReader.Read(messageBytes, _options, cancellationToken);
+        return EmailStoreMessageReader.Read(messageBytes, _options, cancellationToken,
+            _includeAttachmentContent);
     }
 
     private void ReadMetadata(Stream stream, EmailDocument document, string itemName,

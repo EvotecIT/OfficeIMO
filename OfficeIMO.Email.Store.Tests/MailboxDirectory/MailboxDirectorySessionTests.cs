@@ -89,6 +89,33 @@ public sealed class MailboxDirectorySessionTests {
         }
     }
 
+    [Fact]
+    public void SummaryReadsDoNotMaterializeMailboxDirectoryAttachments() {
+        string root = Path.Combine(Path.GetTempPath(),
+            "officeimo-mailbox-summary-" + Guid.NewGuid().ToString("N"));
+        try {
+            Directory.CreateDirectory(root);
+            File.WriteAllText(Path.Combine(root, "message.eml"),
+                CreateMessageWithAttachment("Bounded summary").Replace("MTIzNDU2", "%%%"));
+            var options = new EmailStoreReaderOptions(
+                maxAttachmentBytes: 10,
+                maxTotalAttachmentBytes: 10,
+                retainAttachmentContent: false);
+            using EmailStoreSession session = EmailStoreSession.Open(root, options);
+            EmailStoreItemReference reference = Assert.Single(session.EnumerateItems());
+
+            EmailStoreItemSummary summary = session.ReadSummary(reference);
+
+            Assert.Equal("Bounded summary", summary.Subject);
+            Assert.True(summary.HasAttachments);
+            EmailStoreDiagnostic diagnostic = Assert.Single(session.Diagnostics,
+                item => item.Code == "EMAIL_MIME_BASE64_INVALID");
+            Assert.Equal("The invalid Base64 payload was preserved without decoding.", diagnostic.Message);
+        } finally {
+            if (Directory.Exists(root)) Directory.Delete(root, recursive: true);
+        }
+    }
+
     [Theory]
     [InlineData("cur")]
     [InlineData("Cur")]

@@ -47,7 +47,8 @@ internal sealed class MailboxDirectoryStoreSessionBackend : IEmailStoreSessionBa
 
     public EmailStoreItemSummary ReadSummary(EmailStoreItemReference reference,
         CancellationToken cancellationToken) =>
-        EmailStoreItemSummary.FromItem(ReadItem(reference, EmailStoreItemReadOptions.Default, cancellationToken));
+        EmailStoreItemSummary.FromItem(ReadItem(reference,
+            new EmailStoreItemReadOptions(EmailStoreItemReadParts.Metadata), cancellationToken));
 
     public EmailStoreItem ReadItem(EmailStoreItemReference reference, EmailStoreItemReadOptions options,
         CancellationToken cancellationToken) {
@@ -58,16 +59,18 @@ internal sealed class MailboxDirectoryStoreSessionBackend : IEmailStoreSessionBa
             throw new KeyNotFoundException(
                 "The item reference does not belong to this mailbox-directory session.");
         }
+        bool includeAttachmentContent = options.Includes(EmailStoreItemReadParts.AttachmentContent);
         using (var stream = new FileStream(
             file.Path, FileMode.Open, FileAccess.Read, FileShare.Read, 64 * 1024, FileOptions.SequentialScan)) {
             EmailDocument document;
             if (file.IsEmlx) {
-                EmailStoreReadResult result = new EmlxStoreReader(_options)
+                EmailStoreReadResult result = new EmlxStoreReader(_options, includeAttachmentContent)
                     .Read(stream, Path.GetFileName(file.Path), cancellationToken);
                 foreach (EmailStoreDiagnostic diagnostic in result.Diagnostics) _diagnostics.Add(diagnostic);
                 document = result.Store.Folders.SelectMany(folder => folder.Items).Single().Document;
             } else {
-                EmailReadResult result = EmailStoreMessageReader.Read(stream, _options, cancellationToken);
+                EmailReadResult result = EmailStoreMessageReader.Read(stream, _options, cancellationToken,
+                    includeAttachmentContent);
                 CopyDiagnostics(result.Diagnostics, file.RelativePath);
                 document = result.Document;
             }
@@ -76,8 +79,10 @@ internal sealed class MailboxDirectoryStoreSessionBackend : IEmailStoreSessionBa
             document.Properties["EmailStore:FolderId"] = file.FolderId;
             document.Properties["EmailStore:RelativePath"] = file.RelativePath;
             ApplyMaildirFlags(document, file.MaildirFlags);
-            return new EmailStoreItem(
-                file.Id, file.FolderId, document, format: EmailStoreFormat.MailboxDirectory);
+            EmailStoreItemReadParts loadedParts = EmailStoreItemReadParts.All;
+            if (!includeAttachmentContent) loadedParts &= ~EmailStoreItemReadParts.AttachmentContent;
+            return new EmailStoreItem(file.Id, file.FolderId, document,
+                loadedParts: loadedParts, format: EmailStoreFormat.MailboxDirectory);
         }
     }
 

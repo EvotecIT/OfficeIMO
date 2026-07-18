@@ -125,4 +125,36 @@ public sealed class EmlxStoreWriterTests {
 
         Assert.Contains("XML cannot represent", exception.Message, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void DefaultWriterMetadataDepthRoundTripsAtTheDefaultReaderLimit() {
+        var document = new EmailDocument { Subject = "Bounded metadata" };
+        document.Properties["Emlx:Metadata:nested"] = CreateNestedMetadata(dictionaryDepth: 31);
+
+        byte[] bytes = new EmailStoreEmlxWriter().ToBytes(document);
+        using var stream = new MemoryStream(bytes);
+        EmailDocument reopened = new EmailStoreReader().Read(stream, "bounded.emlx")
+            .Store.Folders.Single().Items.Single().Document;
+
+        Assert.True(reopened.Properties.ContainsKey("Emlx:Metadata:nested"));
+    }
+
+    [Fact]
+    public void DefaultWriterRejectsMetadataBeyondTheDefaultReaderLimit() {
+        var document = new EmailDocument { Subject = "Too-deep metadata" };
+        document.Properties["Emlx:Metadata:nested"] = CreateNestedMetadata(dictionaryDepth: 32);
+
+        InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+            new EmailStoreEmlxWriter().ToBytes(document));
+
+        Assert.Contains("nesting depth", exception.Message, StringComparison.Ordinal);
+    }
+
+    private static object CreateNestedMetadata(int dictionaryDepth) {
+        object value = "leaf";
+        for (int index = 0; index < dictionaryDepth; index++) {
+            value = new Dictionary<string, object?> { ["next"] = value };
+        }
+        return value;
+    }
 }
