@@ -22,7 +22,10 @@ public static class EmailImageExportExtensions {
             format,
             preparation.Options,
             pageIndex);
-        return AttachDiagnostics(result, preparation.Diagnostics, preparation.Options);
+        return AttachDiagnostics(
+            result,
+            preparation.Diagnostics,
+            preparation.ResultOptions);
     }
 
     /// <summary>Asynchronously exports one email surface and resolves inline MIME resources.</summary>
@@ -38,7 +41,10 @@ public static class EmailImageExportExtensions {
             preparation.Options,
             pageIndex,
             cancellationToken).ConfigureAwait(false);
-        return AttachDiagnostics(result, preparation.Diagnostics, preparation.Options);
+        return AttachDiagnostics(
+            result,
+            preparation.Diagnostics,
+            preparation.ResultOptions);
     }
 
     /// <summary>Exports every rendered email page.</summary>
@@ -65,7 +71,7 @@ public static class EmailImageExportExtensions {
             result => consumer(AttachDiagnostics(
                 result,
                 preparation.Diagnostics,
-                preparation.Options)),
+                preparation.ResultOptions)),
             preparation.Options,
             cancellationToken);
     }
@@ -103,7 +109,7 @@ public static class EmailImageExportExtensions {
                 AttachDiagnostics(
                     result,
                     preparation.Diagnostics,
-                    preparation.Options),
+                    preparation.ResultOptions),
                 token).ConfigureAwait(false),
             preparation.Options,
             cancellationToken).ConfigureAwait(false);
@@ -119,7 +125,9 @@ public static class EmailImageExportExtensions {
         string body = CreateBodyHtml(source, effective, diagnostics);
         string html = CreateDocumentHtml(source, body, effective);
         effective.BaseUri ??= ResolveBaseUri(source.Body.HtmlContentLocation);
-        ConfigureInlineResources(source, effective);
+        EmailImageExportOptions renderOptions = effective.CloneEmail();
+        renderOptions.Policy = new OfficeImageExportPolicy();
+        ConfigureInlineResources(source, renderOptions);
         HtmlConversionDocument document = HtmlConversionDocument.Parse(
             html,
             new HtmlConversionDocumentOptions {
@@ -128,6 +136,7 @@ public static class EmailImageExportExtensions {
             });
         return new EmailRenderPreparation(
             document,
+            renderOptions,
             effective,
             diagnostics.AsReadOnly());
     }
@@ -271,6 +280,48 @@ public static class EmailImageExportExtensions {
         }
         resourcePolicy.DisallowFileUrls = false;
         options.ResourceUrlPolicy = resourcePolicy;
+        HtmlRenderSynchronousResourceResolver? synchronousFallback =
+            options.SynchronousResourceResolver;
+        options.SynchronousResourceResolver = (
+            HtmlRenderResourceRequest request,
+            CancellationToken cancellationToken,
+            out HtmlResolvedResource? resource) => {
+            cancellationToken.ThrowIfCancellationRequested();
+            EmailAttachment? attachment = FindAttachment(
+                source,
+                request,
+                options.BaseUri ?? FallbackBaseUri);
+            if (attachment != null) {
+                byte[]? bytes = ReadAttachment(
+                    attachment,
+                    options.MaxResourceBytes,
+                    cancellationToken);
+                resource = bytes is { Length: > 0 }
+                    ? new HtmlResolvedResource(
+                        bytes,
+                        attachment.ContentType ?? "application/octet-stream")
+                    : null;
+                return true;
+            }
+            if (request.Uri.Scheme.Equals(
+                    "cid",
+                    StringComparison.OrdinalIgnoreCase)) {
+                resource = null;
+                return true;
+            }
+            if (synchronousFallback != null &&
+                HtmlUrlPolicyEvaluator.IsAllowed(
+                    request.Uri.AbsoluteUri,
+                    fallbackResourceUrlPolicy) &&
+                synchronousFallback(
+                    request,
+                    cancellationToken,
+                    out resource)) {
+                return true;
+            }
+            resource = null;
+            return false;
+        };
         HtmlRenderResourceResolver? fallback = options.ResourceResolver;
         options.ResourceResolver = async (request, cancellationToken) => {
             EmailAttachment? attachment = FindAttachment(
@@ -346,15 +397,52 @@ public static class EmailImageExportExtensions {
         return null;
     }
 
+    private static byte[]? ReadAttachment(
+        EmailAttachment attachment,
+        long maximumBytes,
+        CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (attachment.Length > maximumBytes) {
+            throw new HtmlRenderResourceByteLimitException(
+                attachment.Length);
+        }
+        if (attachment.Content is { Length: > 0 } retained) {
+            if (retained.LongLength > maximumBytes) {
+                throw new HtmlRenderResourceByteLimitException(
+                    retained.LongLength);
+            }
+            return (byte[])retained.Clone();
+        }
+        using Stream stream = attachment.OpenContentStream();
+        using var output = new MemoryStream();
+        byte[] buffer = new byte[81920];
+        while (true) {
+            cancellationToken.ThrowIfCancellationRequested();
+            int read = stream.Read(buffer, 0, buffer.Length);
+            if (read == 0) break;
+            if (output.Length + read > maximumBytes) {
+                throw new HtmlRenderResourceByteLimitException(
+                    checked(output.Length + read));
+            }
+            output.Write(buffer, 0, read);
+        }
+        return output.ToArray();
+    }
+
     private static async Task<byte[]?> ReadAttachmentAsync(
         EmailAttachment attachment,
         long maximumBytes,
         CancellationToken cancellationToken) {
-        if (attachment.Length > maximumBytes) return null;
+        if (attachment.Length > maximumBytes) {
+            throw new HtmlRenderResourceByteLimitException(
+                attachment.Length);
+        }
         if (attachment.Content is { Length: > 0 } retained) {
-            return retained.LongLength <= maximumBytes
-                ? (byte[])retained.Clone()
-                : null;
+            if (retained.LongLength > maximumBytes) {
+                throw new HtmlRenderResourceByteLimitException(
+                    retained.LongLength);
+            }
+            return (byte[])retained.Clone();
         }
         using Stream stream =
             await attachment.OpenContentStreamAsync(cancellationToken)
@@ -368,7 +456,10 @@ public static class EmailImageExportExtensions {
                 buffer.Length,
                 cancellationToken).ConfigureAwait(false);
             if (read == 0) break;
-            if (output.Length + read > maximumBytes) return null;
+            if (output.Length + read > maximumBytes) {
+                throw new HtmlRenderResourceByteLimitException(
+                    checked(output.Length + read));
+            }
             output.Write(buffer, 0, read);
         }
         return output.ToArray();
@@ -388,7 +479,7 @@ public static class EmailImageExportExtensions {
         OfficeImageExportResult result,
         IReadOnlyList<OfficeImageExportDiagnostic> diagnostics,
         EmailImageExportOptions options) {
-        if (diagnostics.Count == 0) return result;
+        if (diagnostics.Count == 0) return options.EnsureAccepted(result);
         var combined = new List<OfficeImageExportDiagnostic>(
             diagnostics.Count + result.Diagnostics.Count);
         combined.AddRange(diagnostics);
@@ -408,14 +499,17 @@ public static class EmailImageExportExtensions {
         internal EmailRenderPreparation(
             HtmlConversionDocument document,
             EmailImageExportOptions options,
+            EmailImageExportOptions resultOptions,
             IReadOnlyList<OfficeImageExportDiagnostic> diagnostics) {
             Document = document;
             Options = options;
+            ResultOptions = resultOptions;
             Diagnostics = diagnostics;
         }
 
         internal HtmlConversionDocument Document { get; }
         internal EmailImageExportOptions Options { get; }
+        internal EmailImageExportOptions ResultOptions { get; }
         internal IReadOnlyList<OfficeImageExportDiagnostic> Diagnostics { get; }
     }
 }

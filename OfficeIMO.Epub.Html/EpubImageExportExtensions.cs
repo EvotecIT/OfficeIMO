@@ -172,6 +172,7 @@ public static class EpubImageExportExtensions {
         EpubChapter chapter,
         EpubImageExportOptions options) {
         EpubImageExportOptions effective = options.CloneEpub();
+        effective.Policy = new OfficeImageExportPolicy();
         Uri baseUri = CreateChapterUri(chapter);
         effective.BaseUri = baseUri;
         ConfigureResources(source, effective, baseUri);
@@ -212,12 +213,56 @@ public static class EpubImageExportExtensions {
         EpubDocument source,
         EpubImageExportOptions options,
         Uri baseUri) {
-        HtmlUrlPolicy policy =
-            (options.UrlPolicy ?? HtmlUrlPolicy.CreateOfficeIMOProfile())
+        HtmlUrlPolicy fallbackResourceUrlPolicy =
+            (options.ResourceUrlPolicy ??
+             options.UrlPolicy ??
+             HtmlUrlPolicy.CreateOfficeIMOProfile())
             .Clone();
-        policy.RestrictUrlSchemes = true;
-        policy.AllowedUrlSchemes.Add("epub");
-        options.UrlPolicy = policy;
+        HtmlUrlPolicy resourcePolicy = fallbackResourceUrlPolicy.Clone();
+        resourcePolicy.RestrictUrlSchemes = true;
+        resourcePolicy.AllowedUrlSchemes.Add("epub");
+        options.ResourceUrlPolicy = resourcePolicy;
+        HtmlRenderSynchronousResourceResolver? synchronousFallback =
+            options.SynchronousResourceResolver;
+        options.SynchronousResourceResolver = (
+            HtmlRenderResourceRequest request,
+            CancellationToken cancellationToken,
+            out HtmlResolvedResource? resolved) => {
+            cancellationToken.ThrowIfCancellationRequested();
+            EpubResource? resource = FindResource(
+                source,
+                request,
+                baseUri);
+            byte[]? data = resource?.Data;
+            if (data is { Length: > 0 }) {
+                if (data.LongLength > options.MaxResourceBytes) {
+                    throw new HtmlRenderResourceByteLimitException(
+                        data.LongLength);
+                }
+                resolved = new HtmlResolvedResource(
+                    data,
+                    resource!.MediaType ?? "application/octet-stream");
+                return true;
+            }
+            if (resource != null ||
+                request.Uri.Scheme.Equals(
+                    "epub",
+                    StringComparison.OrdinalIgnoreCase)) {
+                resolved = null;
+                return true;
+            }
+            if (synchronousFallback != null &&
+                HtmlUrlPolicyEvaluator.IsAllowed(
+                    request.Uri.AbsoluteUri,
+                    fallbackResourceUrlPolicy)) {
+                return synchronousFallback(
+                    request,
+                    cancellationToken,
+                    out resolved);
+            }
+            resolved = null;
+            return false;
+        };
         HtmlRenderResourceResolver? fallback = options.ResourceResolver;
         options.ResourceResolver = async (request, cancellationToken) => {
             cancellationToken.ThrowIfCancellationRequested();
@@ -226,16 +271,27 @@ public static class EpubImageExportExtensions {
                 request,
                 baseUri);
             byte[]? data = resource?.Data;
-            if (data is { Length: > 0 } &&
-                data.LongLength <= options.MaxResourceBytes) {
+            if (data is { Length: > 0 }) {
+                if (data.LongLength > options.MaxResourceBytes) {
+                    throw new HtmlRenderResourceByteLimitException(
+                        data.LongLength);
+                }
                 return new HtmlResolvedResource(
                     data,
                     resource!.MediaType ?? "application/octet-stream");
             }
-            return fallback == null
-                ? null
-                : await fallback(request, cancellationToken)
-                    .ConfigureAwait(false);
+            if (resource != null ||
+                request.Uri.Scheme.Equals(
+                    "epub",
+                    StringComparison.OrdinalIgnoreCase) ||
+                fallback == null ||
+                !HtmlUrlPolicyEvaluator.IsAllowed(
+                    request.Uri.AbsoluteUri,
+                    fallbackResourceUrlPolicy)) {
+                return null;
+            }
+            return await fallback(request, cancellationToken)
+                .ConfigureAwait(false);
         };
     }
 

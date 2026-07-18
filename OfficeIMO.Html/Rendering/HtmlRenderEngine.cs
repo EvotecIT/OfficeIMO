@@ -15,14 +15,28 @@ public static class HtmlRenderEngine {
     /// <summary>
     /// Renders a parsed HTML source into a backend-neutral continuous or paged visual document.
     /// </summary>
-    public static HtmlRenderDocument Render(HtmlConversionDocument document, HtmlRenderOptions? options = null) {
+    public static HtmlRenderDocument Render(
+        HtmlConversionDocument document,
+        HtmlRenderOptions? options = null) =>
+        Render(document, options, CancellationToken.None);
+
+    internal static HtmlRenderDocument Render(
+        HtmlConversionDocument document,
+        HtmlRenderOptions? options,
+        CancellationToken cancellationToken) {
         if (document == null) throw new ArgumentNullException(nameof(document));
+        cancellationToken.ThrowIfCancellationRequested();
         HtmlRenderOptions resolved = options?.Clone() ?? new HtmlRenderOptions();
         resolved.BaseUri ??= document.BaseUri;
         resolved.Validate();
         HtmlRenderInputGuard.ValidateSource(document.SourceHtml, resolved);
+        cancellationToken.ThrowIfCancellationRequested();
         IHtmlDocument renderDocument = document.CreateDocumentForRendering();
-        return RenderDocument(renderDocument, resolved, document.ResourceManifest.Diagnostics);
+        return RenderDocument(
+            renderDocument,
+            resolved,
+            document.ResourceManifest.Diagnostics,
+            cancellationToken);
     }
 
     /// <summary>
@@ -34,14 +48,19 @@ public static class HtmlRenderEngine {
         resolved.Validate();
         IHtmlDocument renderDocument = HtmlDocumentParser.CloneDocument(document);
         HtmlRenderInputGuard.ValidateSource(renderDocument.DocumentElement?.OuterHtml ?? string.Empty, resolved);
-        return RenderDocument(renderDocument, resolved, initialDiagnostics: null);
+        return RenderDocument(
+            renderDocument,
+            resolved,
+            initialDiagnostics: null,
+            CancellationToken.None);
     }
 
     private static HtmlRenderDocument RenderDocument(
         IHtmlDocument document,
         HtmlRenderOptions resolved,
-        IEnumerable<HtmlDiagnostic>? initialDiagnostics) {
-        HtmlRenderInputGuard.ValidateDocument(document, resolved, CancellationToken.None);
+        IEnumerable<HtmlDiagnostic>? initialDiagnostics,
+        CancellationToken cancellationToken) {
+        HtmlRenderInputGuard.ValidateDocument(document, resolved, cancellationToken);
         var diagnostics = new HtmlDiagnosticReport();
         if (initialDiagnostics != null) diagnostics.AddRange(initialDiagnostics);
         var resourceOptions = new HtmlResourcePipelineOptions {
@@ -52,15 +71,31 @@ public static class HtmlRenderEngine {
             MediaHeight = resolved.Mode == HtmlRenderMode.Paged ? resolved.PageHeight : resolved.ViewportHeight ?? 1056D
         };
         HtmlResourceManifest manifest = HtmlResourcePipeline.BuildManifest(document, resourceOptions);
+        cancellationToken.ThrowIfCancellationRequested();
         diagnostics.AddRange(manifest.Diagnostics);
-        var resources = new HtmlRenderResourceSet();
+        HtmlRenderResourceSet resources = HtmlRenderResourceLoader.Load(
+            manifest,
+            resolved,
+            diagnostics,
+            cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
+        HtmlRenderStylesheetApplier.Apply(document, resources, resolved, diagnostics);
         AddPendingStylesheetDiagnostics(manifest, resources, diagnostics);
         OfficeIMO.Drawing.OfficeFontFaceCollection fonts = HtmlRenderFontFaceLoader.Load(document, resources, resolved, diagnostics);
         fonts.AddRange(resolved.Fonts);
         HtmlCssPageRuleSet pageRules = HtmlCssPageSettingsResolver.Apply(document, resolved, diagnostics);
         resolved.Validate();
         HtmlComputedStyleSet styles = HtmlComputedStyleEngine.ComputeForRendering(document, resolved);
-        return new HtmlRenderLayoutEngine(document, styles, resolved, diagnostics, resources, pageRules, fonts).Render();
+        cancellationToken.ThrowIfCancellationRequested();
+        return new HtmlRenderLayoutEngine(
+            document,
+            styles,
+            resolved,
+            diagnostics,
+            resources,
+            pageRules,
+            fonts,
+            cancellationToken).Render();
     }
 
     /// <summary>

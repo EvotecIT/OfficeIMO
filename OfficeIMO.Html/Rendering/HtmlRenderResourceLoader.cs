@@ -85,6 +85,20 @@ internal sealed class HtmlRenderResourceSet {
 internal static class HtmlRenderResourceLoader {
     private const string ComponentName = "OfficeIMO.Html.Renderer";
 
+    private readonly struct ResourceResolution {
+        internal ResourceResolution(bool isHandled, HtmlResolvedResource? resource) {
+            IsHandled = isHandled;
+            Resource = resource;
+        }
+
+        internal bool IsHandled { get; }
+        internal HtmlResolvedResource? Resource { get; }
+    }
+
+    private delegate Task<ResourceResolution> ResourceResolver(
+        HtmlRenderResourceRequest request,
+        CancellationToken cancellationToken);
+
     private readonly struct PendingResource {
         internal PendingResource(HtmlResourceReference reference, int importDepth) {
             Reference = reference;
@@ -95,9 +109,60 @@ internal static class HtmlRenderResourceLoader {
         internal int ImportDepth { get; }
     }
 
-    internal static async Task<HtmlRenderResourceSet> LoadAsync(HtmlResourceManifest manifest, HtmlRenderOptions options, HtmlDiagnosticReport diagnostics, CancellationToken cancellationToken) {
+    internal static HtmlRenderResourceSet Load(
+        HtmlResourceManifest manifest,
+        HtmlRenderOptions options,
+        HtmlDiagnosticReport diagnostics,
+        CancellationToken cancellationToken) {
+        HtmlRenderSynchronousResourceResolver? resolver =
+            options.SynchronousResourceResolver;
+        if (resolver == null) return new HtmlRenderResourceSet();
+        return LoadCoreAsync(
+                manifest,
+                options,
+                diagnostics,
+                cancellationToken,
+                markAttemptedBeforeResolve: false,
+                resolver: (request, token) => {
+                    bool isHandled = resolver(
+                        request,
+                        token,
+                        out HtmlResolvedResource? resource);
+                    return Task.FromResult(
+                        new ResourceResolution(isHandled, resource));
+                })
+            .GetAwaiter()
+            .GetResult();
+    }
+
+    internal static Task<HtmlRenderResourceSet> LoadAsync(
+        HtmlResourceManifest manifest,
+        HtmlRenderOptions options,
+        HtmlDiagnosticReport diagnostics,
+        CancellationToken cancellationToken) {
+        HtmlRenderResourceResolver? resolver = options.ResourceResolver;
+        if (resolver == null) {
+            return Task.FromResult(new HtmlRenderResourceSet());
+        }
+        return LoadCoreAsync(
+            manifest,
+            options,
+            diagnostics,
+            cancellationToken,
+            markAttemptedBeforeResolve: true,
+            resolver: async (request, token) => new ResourceResolution(
+                true,
+                await resolver(request, token).ConfigureAwait(false)));
+    }
+
+    private static async Task<HtmlRenderResourceSet> LoadCoreAsync(
+        HtmlResourceManifest manifest,
+        HtmlRenderOptions options,
+        HtmlDiagnosticReport diagnostics,
+        CancellationToken cancellationToken,
+        bool markAttemptedBeforeResolve,
+        ResourceResolver resolver) {
         var result = new HtmlRenderResourceSet();
-        if (options.ResourceResolver == null) return result;
         long totalBytes = 0L;
         int resourceCount = 0;
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -124,8 +189,6 @@ internal static class HtmlRenderResourceLoader {
                 break;
             }
 
-            result.MarkAttempted(reference);
-
             if (!Uri.TryCreate(reference.ResolvedSource, UriKind.Absolute, out Uri? uri)) {
                 diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.ResourceUriInvalid, "A policy-approved resource could not be represented as an absolute URI.", HtmlDiagnosticSeverity.Warning, reference.Source, reference.ResolvedSource, HtmlConversionLossKind.Omission);
                 continue;
@@ -135,7 +198,20 @@ internal static class HtmlRenderResourceLoader {
             timeout.CancelAfter(options.ResourceTimeout);
             try {
                 var request = new HtmlRenderResourceRequest(uri, reference.Source, reference.Kind);
-                HtmlResolvedResource? resource = await options.ResourceResolver(request, timeout.Token).ConfigureAwait(false);
+                if (markAttemptedBeforeResolve) {
+                    result.MarkAttempted(reference);
+                }
+                ResourceResolution resolution = await resolver(
+                    request,
+                    timeout.Token).ConfigureAwait(false);
+                if (!resolution.IsHandled) {
+                    continue;
+                }
+
+                if (!markAttemptedBeforeResolve) {
+                    result.MarkAttempted(reference);
+                }
+                HtmlResolvedResource? resource = resolution.Resource;
                 if (resource == null) {
                     diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.ResourceUnavailable, "The configured resource resolver did not return content.", HtmlDiagnosticSeverity.Warning, reference.Source, reference.ResolvedSource, HtmlConversionLossKind.Omission);
                     continue;
@@ -171,6 +247,16 @@ internal static class HtmlRenderResourceLoader {
                         options,
                         diagnostics);
                 }
+            } catch (HtmlRenderResourceByteLimitException exception) {
+                result.MarkAttempted(reference);
+                diagnostics.Add(
+                    ComponentName,
+                    HtmlRenderDiagnosticCodes.ResourceByteLimitExceeded,
+                    "A resolved resource exceeded the configured per-resource byte limit.",
+                    HtmlDiagnosticSeverity.Warning,
+                    reference.Source,
+                    "bytes=" + exception.ActualBytes,
+                    HtmlConversionLossKind.Omission);
             } catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested) {
                 diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.ResourceTimeout, "Resource resolution exceeded the configured timeout.", HtmlDiagnosticSeverity.Warning, reference.Source, reference.ResolvedSource, HtmlConversionLossKind.Omission);
             } catch (Exception exception) {

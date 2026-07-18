@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 using OfficeIMO.Drawing;
 using OfficeIMO.Email;
@@ -58,6 +59,90 @@ public sealed class HtmlEmailImageExportTests {
             diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.ExternalImagePending ||
                           diagnostic.Code == HtmlRenderDiagnosticCodes.ResourceUnavailable ||
                           diagnostic.Code == OfficeImageExportDiagnosticCodes.SourceImageDecodeFallback);
+    }
+
+    [Fact]
+    public void HtmlEmailResolvesRetainedInlineContentIdImagesSynchronously() {
+        var email = new EmailDocument { Subject = "Inline image" };
+        email.Body.Html = "<p>Logo</p><img src=\"cid:logo@example\" alt=\"Logo\">";
+        email.Attachments.Add(new EmailAttachment {
+            FileName = "logo.png",
+            ContentType = "image/png",
+            ContentId = "logo@example",
+            IsInline = true,
+            Content = PixelPng,
+            Length = PixelPng.Length
+        });
+
+        OfficeImageExportResult result = email.ExportImage(
+            OfficeImageExportFormat.Png);
+
+        Assert.Equal(OfficeImageExportFormat.Png, result.Format);
+        Assert.DoesNotContain(
+            result.Diagnostics,
+            diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.ExternalImagePending ||
+                          diagnostic.Code == HtmlRenderDiagnosticCodes.ResourceUnavailable ||
+                          diagnostic.Code == OfficeImageExportDiagnosticCodes.SourceImageDecodeFallback);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task EmailRetainedResourceByteLimitHasPreciseDiagnostic(
+        bool asynchronous) {
+        var email = new EmailDocument { Subject = "Oversized inline image" };
+        email.Body.Html = "<img src=\"cid:logo@example\" alt=\"Logo\">";
+        email.Attachments.Add(new EmailAttachment {
+            FileName = "logo.png",
+            ContentType = "image/png",
+            ContentId = "logo@example",
+            IsInline = true,
+            Content = PixelPng,
+            Length = PixelPng.Length
+        });
+        var options = new EmailImageExportOptions {
+            MaxResourceBytes = PixelPng.Length - 1L
+        };
+
+        OfficeImageExportResult result = asynchronous
+            ? await email.ExportImageAsync(
+                OfficeImageExportFormat.Png,
+                options)
+            : email.ExportImage(
+                OfficeImageExportFormat.Png,
+                options);
+
+        Assert.Contains(
+            result.Diagnostics,
+            diagnostic => diagnostic.Code ==
+                          HtmlRenderDiagnosticCodes.ResourceByteLimitExceeded);
+        Assert.DoesNotContain(
+            result.Diagnostics,
+            diagnostic => diagnostic.Code ==
+                          HtmlRenderDiagnosticCodes.ResourceUnavailable);
+    }
+
+    [Fact]
+    public void EmailSyncBatchCancellationReachesRetainedResourceRead() {
+        using var cancellation = new CancellationTokenSource();
+        var email = new EmailDocument { Subject = "Cancelable inline image" };
+        email.Body.Html = "<img src=\"cid:logo@example\" alt=\"Logo\">";
+        email.Attachments.Add(new EmailAttachment {
+            FileName = "logo.png",
+            ContentType = "image/png",
+            ContentId = "logo@example",
+            IsInline = true,
+            ContentSource = new CancelOnReadContentSource(
+                PixelPng,
+                cancellation),
+            Length = PixelPng.Length
+        });
+
+        Assert.ThrowsAny<OperationCanceledException>(() =>
+            email.ExportImages(
+                OfficeImageExportFormat.Png,
+                _ => { },
+                cancellationToken: cancellation.Token));
     }
 
     [Fact]
@@ -135,6 +220,76 @@ public sealed class HtmlEmailImageExportTests {
             if (Directory.Exists(folder)) {
                 Directory.Delete(folder, recursive: true);
             }
+        }
+    }
+
+    private sealed class CancelOnReadContentSource : IEmailContentSource {
+        private readonly byte[] _bytes;
+        private readonly CancellationTokenSource _cancellation;
+
+        internal CancelOnReadContentSource(
+            byte[] bytes,
+            CancellationTokenSource cancellation) {
+            _bytes = (byte[])bytes.Clone();
+            _cancellation = cancellation;
+        }
+
+        public long? Length => _bytes.LongLength;
+
+        public Stream OpenRead() =>
+            new CancelOnReadStream(_bytes, _cancellation);
+
+        public Task<Stream> OpenReadAsync(
+            CancellationToken cancellationToken = default) {
+            cancellationToken.ThrowIfCancellationRequested();
+            return Task.FromResult(OpenRead());
+        }
+    }
+
+    private sealed class CancelOnReadStream : Stream {
+        private readonly MemoryStream _inner;
+        private readonly CancellationTokenSource _cancellation;
+
+        internal CancelOnReadStream(
+            byte[] bytes,
+            CancellationTokenSource cancellation) {
+            _inner = new MemoryStream(bytes, writable: false);
+            _cancellation = cancellation;
+        }
+
+        public override bool CanRead => true;
+        public override bool CanSeek => false;
+        public override bool CanWrite => false;
+        public override long Length => _inner.Length;
+        public override long Position {
+            get => _inner.Position;
+            set => throw new NotSupportedException();
+        }
+
+        public override int Read(byte[] buffer, int offset, int count) {
+            int read = _inner.Read(buffer, offset, count);
+            if (read > 0) _cancellation.Cancel();
+            return read;
+        }
+
+        public override void Flush() {
+        }
+
+        public override long Seek(long offset, SeekOrigin origin) =>
+            throw new NotSupportedException();
+
+        public override void SetLength(long value) =>
+            throw new NotSupportedException();
+
+        public override void Write(
+            byte[] buffer,
+            int offset,
+            int count) =>
+            throw new NotSupportedException();
+
+        protected override void Dispose(bool disposing) {
+            if (disposing) _inner.Dispose();
+            base.Dispose(disposing);
         }
     }
 }

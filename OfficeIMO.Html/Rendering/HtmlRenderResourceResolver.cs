@@ -8,6 +8,19 @@ namespace OfficeIMO.Html;
 /// <returns>Resolved bytes and media type, or null when the caller cannot provide the resource.</returns>
 public delegate Task<HtmlResolvedResource?> HtmlRenderResourceResolver(HtmlRenderResourceRequest request, CancellationToken cancellationToken);
 
+internal delegate bool HtmlRenderSynchronousResourceResolver(
+    HtmlRenderResourceRequest request,
+    CancellationToken cancellationToken,
+    out HtmlResolvedResource? resource);
+
+internal sealed class HtmlRenderResourceByteLimitException : Exception {
+    internal HtmlRenderResourceByteLimitException(long actualBytes) {
+        ActualBytes = actualBytes;
+    }
+
+    internal long ActualBytes { get; }
+}
+
 /// <summary>
 /// Policy-approved resource request passed to an application-supplied resolver.
 /// </summary>

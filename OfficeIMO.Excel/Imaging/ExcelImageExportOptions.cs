@@ -160,7 +160,7 @@ namespace OfficeIMO.Excel {
         /// <summary>Creates an independent workbook options snapshot.</summary>
         public ExcelWorkbookImageExportOptions CloneWorkbook() {
             ExcelWorkbookImageExportOptions clone = CopyExcelOptionsTo(new ExcelWorkbookImageExportOptions());
-            clone.SheetNames = SheetNames;
+            clone.SheetNames = SheetNames?.ToArray();
             clone.IncludeHiddenSheets = IncludeHiddenSheets;
             clone.HeaderFooterDateTime = HeaderFooterDateTime;
             clone.UseWorksheetPrintAreas = UseWorksheetPrintAreas;

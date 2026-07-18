@@ -3707,6 +3707,31 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ExcelDocument_ToImagesSnapshotsCallerOwnedSheetNames() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            document.AddWorksheet("First").CellValue(1, 1, "One");
+            document.AddWorksheet("Second").CellValue(1, 1, "Two");
+            var selectedSheets = new List<string> { "First" };
+            var options = new ExcelWorkbookImageExportOptions {
+                SheetNames = selectedSheets
+            };
+            ExcelWorkbookImageExportBuilder builder = document.ToImages(options);
+
+            selectedSheets[0] = "Second";
+            IReadOnlyList<OfficeImageExportResult> results = builder
+                .As(OfficeImageExportFormat.Svg)
+                .Export();
+
+            OfficeImageExportResult result = Assert.Single(results);
+            Assert.Equal("First", result.Name);
+            Assert.Contains(
+                "One",
+                System.Text.Encoding.UTF8.GetString(result.Bytes),
+                StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void ExcelDocument_ImageExportRejectsMissingRequestedSheetNames() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             string folder = Path.Combine(Path.GetTempPath(), "OfficeIMO-Excel-Missing-Sheet-" + Guid.NewGuid().ToString("N"));

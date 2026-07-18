@@ -28,7 +28,10 @@ public static partial class HtmlImageExportExtensions {
         if (consumer == null) throw new ArgumentNullException(nameof(consumer));
         cancellationToken.ThrowIfCancellationRequested();
         HtmlRenderOptions resolved = Normalize(options, 0);
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(document, resolved);
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(
+            document,
+            resolved,
+            cancellationToken);
         OfficeImageExportBatchProcessor.ForEachOrdered(
             rendered.Pages,
             resolved.MaximumDegreeOfParallelism,
