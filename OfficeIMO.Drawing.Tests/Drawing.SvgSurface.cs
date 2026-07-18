@@ -35,4 +35,26 @@ public partial class DrawingTests {
         Assert.Contains("textLength=\"54\" lengthAdjust=\"spacingAndGlyphs\"", svg, StringComparison.Ordinal);
         Assert.Contains(">One model.</text>", svg, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void OfficeDrawingSvgExporter_PrefixesGeneratedResourceIdentifiersAndReferences() {
+        var drawing = new OfficeDrawing(120D, 80D);
+        var shape = OfficeShape.Rectangle(80D, 40D);
+        shape.FillGradient = OfficeLinearGradient.Horizontal(OfficeColor.Red, OfficeColor.Blue);
+        shape.ClipPath = OfficeClipPath.Rectangle(60D, 30D);
+        drawing.AddShape(shape, 10D, 10D);
+
+        string svg = OfficeDrawingSvgExporter.ToSvg(
+            drawing,
+            1D,
+            OfficeSvgSizeUnit.Pixel,
+            imageCodec: null,
+            resourceIdPrefix: "page-2-");
+
+        Assert.Contains("id=\"page-2-officeimo-gradient-1\"", svg, StringComparison.Ordinal);
+        Assert.Contains("url(#page-2-officeimo-gradient-1)", svg, StringComparison.Ordinal);
+        Assert.Contains("id=\"page-2-officeimo-clip-1\"", svg, StringComparison.Ordinal);
+        Assert.Contains("url(#page-2-officeimo-clip-1)", svg, StringComparison.Ordinal);
+        Assert.DoesNotContain("id=\"officeimo-", svg, StringComparison.Ordinal);
+    }
 }

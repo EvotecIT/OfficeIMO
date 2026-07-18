@@ -1,5 +1,6 @@
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Word {
     /// <summary>Identifies the native representation that backs a Word equation.</summary>
@@ -16,10 +17,10 @@ namespace OfficeIMO.Word {
     public class WordEquation : WordElement {
         private readonly WordDocument _document;
         private readonly Paragraph _paragraph;
-        private readonly DocumentFormat.OpenXml.Math.OfficeMath? _officeMath;
+        private DocumentFormat.OpenXml.Math.OfficeMath? _officeMath;
         private readonly DocumentFormat.OpenXml.Math.Paragraph? _mathParagraph;
-        private readonly SimpleField? _simpleField;
-        private readonly List<Run>? _runs;
+        private SimpleField? _simpleField;
+        private List<Run>? _runs;
 
         /// <summary>Initializes an equation backed by an Office Math element.</summary>
         public WordEquation(WordDocument document, Paragraph paragraph, DocumentFormat.OpenXml.Math.OfficeMath officeMath) {
@@ -93,6 +94,83 @@ namespace OfficeIMO.Word {
         public string ToMathMl() => MathElement != null
             ? WordMath.ToMathMl(MathElement)
             : $"<math xmlns=\"http://www.w3.org/1998/Math/MathML\"><mtext>{EscapeXml(Text)}</mtext></math>";
+
+        /// <summary>Projects this equation into the reusable OfficeIMO math expression tree.</summary>
+        public OfficeMathExpression ToExpression() => MathElement != null
+            ? WordMath.ToExpression(MathElement)
+            : OfficeIMO.Drawing.OfficeMath.Text(Text);
+
+        /// <summary>Renders this equation through the shared dependency-free math renderer.</summary>
+        public OfficeDrawing ToDrawing(OfficeMathRenderOptions? options = null) => OfficeMathRenderer.Render(ToExpression(), options);
+
+        /// <summary>Replaces this equation with an editable OMML representation of a shared expression.</summary>
+        public WordEquation SetExpression(OfficeMathExpression expression) {
+            if (expression == null) throw new ArgumentNullException(nameof(expression));
+            var replacement = new DocumentFormat.OpenXml.Math.OfficeMath(WordMathMarkup.ToOmml(expression));
+            if (_officeMath != null) {
+                _officeMath.RemoveAllChildren();
+                foreach (OpenXmlElement child in replacement.ChildElements.ToList()) _officeMath.Append(child.CloneNode(true));
+                CopyCompatibilityMetadata(replacement, _officeMath);
+                return this;
+            }
+            if (_mathParagraph != null) {
+                OpenXmlElement[] existingEquations = _mathParagraph.ChildElements
+                    .Where(child => child.LocalName == "oMath")
+                    .ToArray();
+                if (existingEquations.Length > 0) {
+                    _mathParagraph.InsertBefore(replacement, existingEquations[0]);
+                    foreach (OpenXmlElement existing in existingEquations) existing.Remove();
+                } else {
+                    OpenXmlElement? paragraphProperties = _mathParagraph.ChildElements
+                        .FirstOrDefault(child => child.LocalName == "oMathParaPr");
+                    if (paragraphProperties != null) _mathParagraph.InsertAfter(replacement, paragraphProperties);
+                    else _mathParagraph.Append(replacement);
+                }
+                return this;
+            }
+
+            OpenXmlElement? firstBacking = (OpenXmlElement?)_simpleField ?? _runs?.FirstOrDefault();
+            OpenXmlCompositeElement insertionParent = ResolveReplacementParent(firstBacking);
+            OpenXmlElement insertionAnchor = ResolveReplacementAnchor(insertionParent, firstBacking);
+            insertionParent.InsertBefore(replacement, insertionAnchor);
+            _simpleField?.Remove();
+            if (_runs != null) foreach (Run run in _runs.ToList()) run.Remove();
+            _officeMath = replacement;
+            _simpleField = null;
+            _runs = null;
+            return this;
+        }
+
+        private static void CopyCompatibilityMetadata(OpenXmlElement source, OpenXmlElement target) {
+            foreach (KeyValuePair<string, string> declaration in source.NamespaceDeclarations) {
+                if (target.NamespaceDeclarations.Any(existing => existing.Key == declaration.Key)) {
+                    target.RemoveNamespaceDeclaration(declaration.Key);
+                }
+                target.AddNamespaceDeclaration(declaration.Key, declaration.Value);
+            }
+            string? sourceIgnorable = source.MCAttributes?.Ignorable?.Value;
+            if (string.IsNullOrWhiteSpace(sourceIgnorable)) return;
+            MarkupCompatibilityAttributes attributes = target.MCAttributes ?? new MarkupCompatibilityAttributes();
+            attributes.Ignorable = string.Join(" ",
+                ((attributes.Ignorable?.Value ?? string.Empty) + " " + sourceIgnorable)
+                    .Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries)
+                    .Distinct(StringComparer.Ordinal));
+            target.MCAttributes = attributes;
+        }
+
+        private OpenXmlCompositeElement ResolveReplacementParent(OpenXmlElement? firstBacking) {
+            if (firstBacking?.Parent is OpenXmlCompositeElement directParent &&
+                (_runs == null || _runs.All(run => ReferenceEquals(run.Parent, directParent)))) {
+                return directParent;
+            }
+            return _paragraph;
+        }
+
+        private OpenXmlElement ResolveReplacementAnchor(OpenXmlCompositeElement parent, OpenXmlElement? firstBacking) {
+            OpenXmlElement? anchor = firstBacking;
+            while (anchor != null && !ReferenceEquals(anchor.Parent, parent)) anchor = anchor.Parent;
+            return anchor ?? throw new InvalidOperationException("The EQ field is detached from its paragraph.");
+        }
 
         /// <summary>Projects OMML to a legacy Word EQ instruction, or returns the existing EQ instruction.</summary>
         public string ToEquationFieldInstruction() => MathElement != null

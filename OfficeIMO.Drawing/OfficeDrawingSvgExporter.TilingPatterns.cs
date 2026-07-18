@@ -4,8 +4,8 @@ using System.Text;
 namespace OfficeIMO.Drawing;
 
 public static partial class OfficeDrawingSvgExporter {
-    private static void AppendTilingPattern(StringBuilder sb, OfficeDrawingTilingPattern pattern, ref int gradientId, ref int clipPathId) {
-        string clipId = "officeimo-pattern-clip-" + (++clipPathId).ToString(CultureInfo.InvariantCulture);
+    private static void AppendTilingPattern(StringBuilder sb, OfficeDrawingTilingPattern pattern, IOfficeRasterImageCodec? imageCodec, string idPrefix, ref int gradientId, ref int clipPathId) {
+        string clipId = idPrefix + "officeimo-pattern-clip-" + (++clipPathId).ToString(CultureInfo.InvariantCulture);
         OfficeImagePlacement area = pattern.Area;
         sb.Append("<defs><clipPath id=\"").Append(clipId).Append("\"><rect x=\"")
             .Append(Format(area.X)).Append("\" y=\"").Append(Format(area.Y))
@@ -16,7 +16,7 @@ public static partial class OfficeDrawingSvgExporter {
         sb.Append('>');
         foreach (OfficeTransform transform in pattern.GetTileTransforms(pattern.MaximumTileCount)) {
             sb.Append("<g").Append(BuildMatrixTransformAttribute(transform, 0D, 0D)).Append('>');
-            AppendElements(sb, pattern.InnerTile.Elements, ref gradientId, ref clipPathId);
+            AppendElements(sb, pattern.InnerTile.Elements, imageCodec, idPrefix, ref gradientId, ref clipPathId);
             sb.Append("</g>");
         }
         sb.Append("</g>");

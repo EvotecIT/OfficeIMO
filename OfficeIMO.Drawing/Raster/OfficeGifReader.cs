@@ -17,6 +17,7 @@ public static class OfficeGifReader {
                 bytes[0] != (byte)'G' || bytes[1] != (byte)'I' || bytes[2] != (byte)'F') {
                 return false;
             }
+            OfficeRasterGuards.EnsurePayloadWithinLimits(bytes.Length, "GIF payload exceeds size limits.");
 
             string signature = GetAscii(bytes, 0, 6);
             if (signature != "GIF87a" && signature != "GIF89a") {
@@ -28,6 +29,7 @@ public static class OfficeGifReader {
             if (width <= 0 || height <= 0) {
                 return false;
             }
+            if (!OfficeRasterGuards.TryEnsurePixelCount(width, height, out _)) return false;
 
             int offset = 13;
             OfficeColor[]? globalColorTable = null;
@@ -94,6 +96,7 @@ public static class OfficeGifReader {
             left + width > canvasWidth || top + height > canvasHeight) {
             return false;
         }
+        if (!OfficeRasterGuards.TryEnsurePixelCount(width, height, out int framePixels)) return false;
 
         OfficeColor[]? colorTable = globalColorTable;
         if ((packed & 0x80) != 0) {
@@ -113,7 +116,7 @@ public static class OfficeGifReader {
         }
 
         if (!TryReadSubBlockBytes(bytes, ref offset, out byte[] lzwBytes) ||
-            !TryDecodeLzw(lzwBytes, minimumCodeSize, checked(width * height), out byte[] indices)) {
+            !TryDecodeLzw(lzwBytes, minimumCodeSize, framePixels, out byte[] indices)) {
             return false;
         }
 

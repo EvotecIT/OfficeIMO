@@ -118,7 +118,7 @@ public sealed class IdentityStabilityTests {
         page.DirectContent.Add(listed);
 
         var table = new OneNoteTable { BordersVisible = true };
-        table.ColumnWidths.Add(180);
+        table.ColumnWidths.Add(3);
         var row = new OneNoteTableRow();
         var cell = new OneNoteTableCell { ShadingColorArgb = 0xFFF0F0F0U };
         cell.Content.Add(Paragraph("Cell"));
@@ -237,6 +237,8 @@ public sealed class IdentityStabilityTests {
                     foreach (OneNoteElement child in cell.Content) AssertElementIdentitiesAssigned(child);
                 }
             }
+        } else if (element is OneNoteMath math) {
+            Assert.NotNull(math.ContentObjectId);
         }
         if (element is OneNoteBinaryElement binary) {
             Assert.NotNull(binary.PayloadObjectId);
@@ -347,6 +349,8 @@ public sealed class IdentityStabilityTests {
                     }
                 }
             }
+        } else if (element is OneNoteMath math) {
+            Add(result, path + "/content", math.ContentObjectId);
         }
         if (element is OneNoteBinaryElement binary) {
             Add(result, path + "/payload-object", binary.PayloadObjectId);

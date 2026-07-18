@@ -13,7 +13,10 @@ internal sealed partial class OneNoteWriteGraphBuilder {
     /// </summary>
     /// <param name="page">Page whose direct content is moved into a native root outline.</param>
     private static void NormalizeDirectContent(OneNotePage page) {
-        if (page.DirectContent.Count == 0) return;
+        OneNoteElement[] movable = page.DirectContent
+            .Where(element => !(element is OneNoteImage image && image.IsBackground == true))
+            .ToArray();
+        if (movable.Length == 0) return;
 
         var outline = new OneNoteOutline {
             Layout = new OneNoteLayout {
@@ -21,8 +24,12 @@ internal sealed partial class OneNoteWriteGraphBuilder {
                 Y = DefaultBodyOutlineVerticalOffset
             }
         };
-        foreach (OneNoteElement child in page.DirectContent) outline.Children.Add(child);
-        page.DirectContent.Clear();
+        foreach (OneNoteElement child in movable) {
+            if (child.Layout?.X.HasValue == true) child.Layout.X -= DefaultBodyOutlineHorizontalOffset;
+            if (child.Layout?.Y.HasValue == true) child.Layout.Y -= DefaultBodyOutlineVerticalOffset;
+            outline.Children.Add(child);
+            page.DirectContent.Remove(child);
+        }
         page.Outlines.Add(outline);
     }
 
@@ -85,15 +92,14 @@ internal sealed partial class OneNoteWriteGraphBuilder {
         if (element is OneNoteMedia media) return BuildEmbeddedFile(space, media, lastModifiedTime);
         if (element is OneNoteEmbeddedFile embedded) return BuildEmbeddedFile(space, embedded, lastModifiedTime);
         if (element is OneNoteMath math) return BuildMath(space, math, lastModifiedTime);
-        if (element is OneNoteInk) {
-            throw new OneNoteFormatException("ONENOTE_WRITE_UNSUPPORTED_INK", "OneNote ink cannot yet be regenerated safely; source ink remains preserved during unrelated edits.");
-        }
+        if (element is OneNoteInk ink) return BuildInk(space, ink, lastModifiedTime);
         throw new OneNoteFormatException("ONENOTE_WRITE_UNSUPPORTED_CONTENT", "The initial OneNote writer cannot yet serialize " + element.Kind + " content.");
     }
 
     private OneNoteExtendedGuid BuildParagraph(OneNoteWriteObjectSpace space, OneNoteParagraph paragraph, uint lastModifiedTime) {
-        string text = string.Concat(paragraph.Runs.Select(run => run.Text ?? string.Empty));
-        uint languageId = paragraph.Runs
+        IReadOnlyList<OneNoteTextRun> serializedRuns = ExpandMathRuns(paragraph.Runs);
+        string text = string.Concat(serializedRuns.Select(run => run.Text ?? string.Empty));
+        uint languageId = serializedRuns
             .Where(run => run.Style.LanguageId.HasValue)
             .Select(run => run.Style.LanguageId!.Value)
             .DefaultIfEmpty(0x0409U)
@@ -103,20 +109,28 @@ internal sealed partial class OneNoteWriteGraphBuilder {
             Scalar(OneNoteSchema.RichEditTextLanguageId, Math.Min(ushort.MaxValue, languageId)),
             Data(OneNoteSchema.RichEditTextUnicode, Unicode(text))
         };
-        bool writeRunFormatting = paragraph.Runs.Count > 1 ||
-            (paragraph.Runs.Count == 1 && HasExplicitTextStyle(paragraph.Runs[0]));
+        bool writeRunFormatting = serializedRuns.Count > 1 ||
+            (serializedRuns.Count == 1 && HasExplicitTextStyle(serializedRuns[0]));
         if (writeRunFormatting) {
             var styleIds = new List<OneNoteExtendedGuid>();
             var boundaries = new List<uint>();
             int length = 0;
-            for (int index = 0; index < paragraph.Runs.Count; index++) {
-                OneNoteTextRun run = paragraph.Runs[index];
+            for (int index = 0; index < serializedRuns.Count; index++) {
+                OneNoteTextRun run = serializedRuns[index];
                 length += (run.Text ?? string.Empty).Length;
-                if (index < paragraph.Runs.Count - 1) boundaries.Add((uint)length);
+                if (index < serializedRuns.Count - 1) boundaries.Add((uint)length);
                 styleIds.Add(BuildTextStyle(space, run));
             }
             if (boundaries.Count > 0) richTextProperties.Add(Data(OneNoteSchema.TextRunIndex, UInt32Array(boundaries)));
             richTextProperties.Add(ObjectReferences(OneNoteSchema.TextRunFormatting, styleIds));
+        }
+        if (serializedRuns.Any(run => run.MathDescriptor != null)) {
+            var childSets = new List<IReadOnlyList<OneNoteWriteProperty>>(serializedRuns.Count);
+            foreach (OneNoteTextRun run in serializedRuns) childSets.Add(MathDescriptorProperties(run.MathDescriptor));
+            richTextProperties.Add(new OneNoteWriteProperty(
+                OneNoteSchema.MathInlineObjects,
+                childPropertySets: childSets,
+                childPropertyId: OneNoteSchema.MathInlineObjectElement));
         }
         OneNoteExtendedGuid richTextId = IdOrNew(paragraph.ContentObjectId);
         paragraph.ContentObjectId = richTextId;
@@ -145,7 +159,6 @@ internal sealed partial class OneNoteWriteGraphBuilder {
     }
 
     private OneNoteExtendedGuid BuildTable(OneNoteWriteObjectSpace space, OneNoteTable table, uint lastModifiedTime) {
-        if (table.ColumnWidths.Count > byte.MaxValue) throw new OneNoteFormatException("ONENOTE_WRITE_TABLE_COLUMNS", "A OneNote table cannot contain more than 255 serialized column widths.");
         var rowIds = new List<OneNoteExtendedGuid>();
         foreach (OneNoteTableRow row in table.Rows) {
             var cellIds = new List<OneNoteExtendedGuid>();
@@ -170,7 +183,7 @@ internal sealed partial class OneNoteWriteGraphBuilder {
         var properties = LayoutProperties(table.Layout);
         properties.Insert(0, Scalar(OneNoteSchema.LastModifiedTime, lastModifiedTime));
         properties.Add(Boolean(OneNoteSchema.TableBordersVisible, table.BordersVisible));
-        if (table.ColumnWidths.Count > 0) properties.Add(Data(OneNoteSchema.TableColumnWidths, TableWidths(table.ColumnWidths)));
+        properties.Add(Data(OneNoteSchema.TableColumnWidths, TableWidths(table.ColumnWidths)));
         if (rowIds.Count > 0) properties.Add(ObjectReferences(OneNoteSchema.ElementChildNodes, rowIds));
         AddTags(space, properties, table.Tags);
         OneNoteExtendedGuid id = IdOrNew(table.Id);
@@ -187,6 +200,12 @@ internal sealed partial class OneNoteWriteGraphBuilder {
         AddString(properties, OneNoteSchema.ImageAltText, image.AltText);
         AddString(properties, OneNoteSchema.SourceFilePath, image.SourcePath);
         AddString(properties, OneNoteSchema.HyperlinkUrl, image.Hyperlink);
+        AddString(properties, OneNoteSchema.RichEditTextUnicode, image.OcrText);
+        if (image.OcrLanguageId.HasValue) properties.Add(Scalar(OneNoteSchema.LanguageId, Math.Min(ushort.MaxValue, image.OcrLanguageId.Value)));
+        if (image.DisplayedPageNumber.HasValue) properties.Add(Scalar(OneNoteSchema.DisplayedPageNumber, image.DisplayedPageNumber.Value));
+        AddBoolean(properties, OneNoteSchema.IsBackground, image.IsBackground);
+        AddBoolean(properties, OneNoteSchema.IsLayoutSizeSetByUser, image.SizeSetByUser);
+        if (image.UploadState.HasValue) properties.Add(Scalar(OneNoteSchema.ImageUploadState, image.UploadState.Value));
         if (image.WidthHalfInches.HasValue) properties.Add(Float(OneNoteSchema.PictureWidth, image.WidthHalfInches.Value));
         if (image.HeightHalfInches.HasValue) properties.Add(Float(OneNoteSchema.PictureHeight, image.HeightHalfInches.Value));
         AddTags(space, properties, image.Tags);
@@ -231,8 +250,19 @@ internal sealed partial class OneNoteWriteGraphBuilder {
         AddString(properties, OneNoteSchema.EmbeddedFileName, element.FileName);
         string? sourcePath = element is OneNoteMedia media ? media.SourcePath : ((OneNoteEmbeddedFile)element).SourcePath;
         AddString(properties, OneNoteSchema.SourceFilePath, sourcePath);
-        if (element is OneNoteMedia recording && recording.RecordingKind != OneNoteMediaKind.Unknown) {
-            properties.Add(Scalar(OneNoteSchema.RecordMedia, recording.RecordingKind == OneNoteMediaKind.Audio ? 1U : 2U));
+        if (element is OneNoteMedia recording) {
+            OneNoteMediaKind kind = ResolveRecordingKind(recording);
+            if (kind != OneNoteMediaKind.Unknown) {
+                recording.RecordingKind = kind;
+                recording.RecordingId ??= Guid.NewGuid();
+                properties.Add(Scalar(OneNoteSchema.RecordMedia, kind == OneNoteMediaKind.Audio ? 1U : 2U));
+                properties.Add(Data(OneNoteSchema.AudioRecordingGuid, recording.RecordingId.Value.ToByteArray()));
+                if (recording.Duration.HasValue) {
+                    properties.Add(Scalar(
+                        OneNoteSchema.AudioRecordingDuration,
+                        checked((uint)Math.Round(recording.Duration.Value.TotalMilliseconds, MidpointRounding.AwayFromZero))));
+                }
+            }
         }
         AddTags(space, properties, element.Tags);
         OneNoteExtendedGuid id = IdOrNew(element.Id);
@@ -288,17 +318,96 @@ internal sealed partial class OneNoteWriteGraphBuilder {
     }
 
     private OneNoteExtendedGuid BuildMath(OneNoteWriteObjectSpace space, OneNoteMath math, uint lastModifiedTime) {
-        if (math.RawPayload != null || !string.IsNullOrEmpty(math.MathMl) || !string.IsNullOrEmpty(math.Latex)) {
-            throw new OneNoteFormatException("ONENOTE_WRITE_UNSUPPORTED_MATH", "Raw, MathML, and LaTeX mathematical payloads cannot yet be emitted losslessly.");
-        }
-        var paragraph = new OneNoteParagraph { Id = math.Id, Layout = math.Layout, Author = math.Author };
+        if (math.RawPayload != null) throw new OneNoteFormatException("ONENOTE_WRITE_UNSUPPORTED_MATH_PAYLOAD", "An opaque mathematical payload cannot be regenerated without a structured expression.");
+        OfficeIMO.Drawing.OfficeMathExpression expression = OneNoteMathNativeCodec.CanonicalizeLosslessly(math.GetExpression());
+        var paragraph = new OneNoteParagraph {
+            Id = math.Id,
+            ContentObjectId = math.ContentObjectId,
+            Layout = math.Layout,
+            Author = math.Author
+        };
         foreach (OneNoteTag tag in math.Tags) paragraph.Tags.Add(tag);
-        var run = new OneNoteTextRun { Text = math.Text ?? string.Empty };
-        run.Style.IsMath = true;
-        paragraph.Runs.Add(run);
+        paragraph.AddMath(expression);
         OneNoteExtendedGuid id = BuildParagraph(space, paragraph, lastModifiedTime);
         math.Id = id;
+        math.ContentObjectId = paragraph.ContentObjectId;
         return id;
+    }
+
+    private static OneNoteMediaKind ResolveRecordingKind(OneNoteMedia recording) {
+        if (recording.RecordingKind != OneNoteMediaKind.Unknown) return recording.RecordingKind;
+        switch (Path.GetExtension(recording.FileName ?? recording.SourcePath ?? string.Empty).ToLowerInvariant()) {
+            case ".wma":
+            case ".mp3":
+            case ".wav": return OneNoteMediaKind.Audio;
+            case ".wmv":
+            case ".avi":
+            case ".mpg":
+            case ".mpeg":
+            case ".mp4": return OneNoteMediaKind.Video;
+            default: return OneNoteMediaKind.Unknown;
+        }
+    }
+
+    internal static IReadOnlyList<OneNoteTextRun> ExpandMathRuns(IList<OneNoteTextRun> semanticRuns) {
+        if (!semanticRuns.Any(run => run.MathExpression != null)) return semanticRuns.ToArray();
+        var output = new List<OneNoteTextRun>();
+        foreach (OneNoteTextRun semantic in semanticRuns) {
+            if (semantic.MathExpression == null) {
+                output.Add(semantic);
+                continue;
+            }
+            if (OneNoteMathRunPreservation.CanReuse(semantic)) {
+                foreach (OneNoteTextRun native in OneNoteMathRunPreservation.CloneForWrite(semantic)) output.Add(native);
+                continue;
+            }
+            OfficeIMO.Drawing.OfficeMathExpression expression = OneNoteMathNativeCodec.CanonicalizeLosslessly(semantic.MathExpression);
+            bool first = true;
+            foreach (OneNoteMathNativeCodec.EncodedRun encoded in OneNoteMathNativeCodec.Encode(expression)) {
+                var native = new OneNoteTextRun {
+                    Text = encoded.Text,
+                    MathDescriptor = encoded.Descriptor,
+                    Hyperlink = semantic.Hyperlink,
+                    HyperlinkProtected = semantic.HyperlinkProtected,
+                    StyleObjectId = semantic.StyleObjectId
+                };
+                CopyTextStyleForWrite(semantic.Style, native.Style);
+                native.Style.IsMath = true;
+                if (first) {
+                    foreach (OneNoteOpaqueProperty property in semantic.UnknownProperties) native.UnknownProperties.Add(property);
+                    first = false;
+                }
+                output.Add(native);
+            }
+        }
+        return output;
+    }
+
+    private static void CopyTextStyleForWrite(OneNoteTextStyle source, OneNoteTextStyle destination) {
+        destination.FontFamily = source.FontFamily;
+        destination.FontSize = source.FontSize;
+        destination.ColorArgb = source.ColorArgb;
+        destination.HighlightColorArgb = source.HighlightColorArgb;
+        destination.Bold = source.Bold;
+        destination.Italic = source.Italic;
+        destination.Underline = source.Underline;
+        destination.Strikethrough = source.Strikethrough;
+        destination.Superscript = source.Superscript;
+        destination.Subscript = source.Subscript;
+        destination.LanguageId = source.LanguageId;
+        destination.IsMath = source.IsMath;
+    }
+
+    private static IReadOnlyList<OneNoteWriteProperty> MathDescriptorProperties(OneNoteMathInlineDescriptor? descriptor) {
+        if (descriptor == null) return Array.Empty<OneNoteWriteProperty>();
+        var properties = new List<OneNoteWriteProperty> { Scalar(OneNoteSchema.MathInlineObjectType, descriptor.Type) };
+        if (descriptor.Count.HasValue) properties.Add(Scalar(OneNoteSchema.MathInlineObjectCount, descriptor.Count.Value));
+        if (descriptor.Column.HasValue) properties.Add(Scalar(OneNoteSchema.MathInlineObjectColumn, descriptor.Column.Value));
+        if (descriptor.Alignment.HasValue) properties.Add(Scalar(OneNoteSchema.MathInlineObjectAlignment, descriptor.Alignment.Value));
+        if (descriptor.Character.HasValue) properties.Add(Scalar(OneNoteSchema.MathInlineObjectCharacter, descriptor.Character.Value));
+        if (descriptor.Character1.HasValue) properties.Add(Scalar(OneNoteSchema.MathInlineObjectCharacter1, descriptor.Character1.Value));
+        if (descriptor.Character2.HasValue) properties.Add(Scalar(OneNoteSchema.MathInlineObjectCharacter2, descriptor.Character2.Value));
+        return properties;
     }
 
     private OneNoteExtendedGuid BuildList(OneNoteWriteObjectSpace space, OneNoteListInfo list, uint lastModifiedTime) {
@@ -440,8 +549,8 @@ internal sealed partial class OneNoteWriteGraphBuilder {
                 if (actionItemType < 100 || actionItemType > 105) {
                     throw new OneNoteFormatException("ONENOTE_WRITE_TASK_TAG_TYPE", "A task tag ActionItemType must be from 100 through 105.");
                 }
-            } else if (actionItemType > 99) {
-                throw new OneNoteFormatException("ONENOTE_WRITE_TAG_TYPE", "A normal note tag ActionItemType must be from 0 through 99.");
+            } else if (actionItemType >= 100 && actionItemType <= 105) {
+                throw new OneNoteFormatException("ONENOTE_WRITE_TAG_TYPE", "ActionItemType values from 100 through 105 require IsTask to be true.");
             }
             if (!actionItemTypes.Add(actionItemType)) {
                 throw new OneNoteFormatException("ONENOTE_WRITE_DUPLICATE_TAG_TYPE", "Note-tag ActionItemType values must be unique on a content object.");
@@ -531,6 +640,11 @@ internal sealed partial class OneNoteWriteGraphBuilder {
         if (layout.Height.HasValue) properties.Add(Float(OneNoteSchema.LayoutMaxHeight, layout.Height.Value));
         AddBoolean(properties, OneNoteSchema.LayoutTightLayout, layout.Tight);
         AddBoolean(properties, OneNoteSchema.OutlineElementRtl, layout.RightToLeft);
+        if (layout.MinimumWidth.HasValue) properties.Add(Float(OneNoteSchema.LayoutMinimumOutlineWidth, layout.MinimumWidth.Value));
+        if (layout.AlignmentInParent.HasValue) properties.Add(Scalar(OneNoteSchema.LayoutAlignmentInParent, layout.AlignmentInParent.Value));
+        if (layout.AlignmentSelf.HasValue) properties.Add(Scalar(OneNoteSchema.LayoutAlignmentSelf, layout.AlignmentSelf.Value));
+        if (layout.CollisionPriority.HasValue) properties.Add(Scalar(OneNoteSchema.LayoutCollisionPriority, layout.CollisionPriority.Value));
+        AddBoolean(properties, OneNoteSchema.LayoutTightAlignment, layout.TightAlignment);
         return properties;
     }
 

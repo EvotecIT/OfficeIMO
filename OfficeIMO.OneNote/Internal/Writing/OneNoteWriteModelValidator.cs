@@ -1,4 +1,5 @@
 using System.Runtime.CompilerServices;
+using OfficeIMO.Drawing;
 
 namespace OfficeIMO.OneNote;
 
@@ -30,6 +31,38 @@ internal static class OneNoteWriteModelValidator {
             validateSectionContent);
         foreach (OneNoteSection section in notebook.Sections) state.ValidateSection(section);
         foreach (OneNoteSectionGroup group in notebook.SectionGroups) state.ValidateGroup(group, 1);
+    }
+
+    internal static void NormalizeTableForWrite(OneNoteTable table) {
+        if (table.Rows.Count == 0) {
+            throw new OneNoteFormatException("ONENOTE_WRITE_TABLE_ROWS", "A native OneNote table requires at least one row.");
+        }
+        int columns = table.Rows[0].Cells.Count;
+        if (columns == 0 || columns > byte.MaxValue) {
+            throw new OneNoteFormatException(
+                "ONENOTE_WRITE_TABLE_COLUMNS",
+                "A native OneNote table requires from 1 through 255 columns.");
+        }
+        if (table.Rows.Any(row => row.Cells.Count != columns)) {
+            throw new OneNoteFormatException(
+                "ONENOTE_WRITE_TABLE_TOPOLOGY",
+                "Every native OneNote table row must contain the same number of cells.");
+        }
+        if (table.ColumnWidths.Count == 0) {
+            for (int index = 0; index < columns; index++) table.ColumnWidths.Add(1D);
+        }
+        if (table.ColumnWidths.Count != columns) {
+            throw new OneNoteFormatException(
+                "ONENOTE_WRITE_TABLE_WIDTHS",
+                "Native OneNote table column widths must contain exactly one value per column.");
+        }
+        foreach (double width in table.ColumnWidths) {
+            if (double.IsNaN(width) || double.IsInfinity(width) || width < 1D) {
+                throw new OneNoteFormatException(
+                    "ONENOTE_WRITE_TABLE_WIDTH",
+                    "Every native OneNote table column width must be a finite value of at least one half-inch unit.");
+            }
+        }
     }
 
     private sealed class ValidationState {
@@ -113,6 +146,22 @@ internal static class OneNoteWriteModelValidator {
                     "A OneNote page instance can appear in only one section or related-page location.");
             }
 
+            if (page.PageSize.HasValue && ((int)page.PageSize.Value < 0 || (int)page.PageSize.Value > (int)OneNotePageSize.Custom)) {
+                throw new OneNoteFormatException("ONENOTE_WRITE_PAGE_SIZE", "The native OneNote page-size value is not supported.");
+            }
+            OneNotePageGeometry.NormalizeForWrite(page);
+            ValidatePositive(page.Width, "page width");
+            ValidatePositive(page.Height, "page height");
+            ValidateNonNegative(page.Margins.Left, "left page margin");
+            ValidateNonNegative(page.Margins.Right, "right page margin");
+            ValidateNonNegative(page.Margins.Top, "top page margin");
+            ValidateNonNegative(page.Margins.Bottom, "bottom page margin");
+            ValidateFinite(page.Margins.OriginX, "horizontal page-margin origin");
+            ValidateFinite(page.Margins.OriginY, "vertical page-margin origin");
+            if (page.Orientation.HasValue && page.Orientation != OneNotePageOrientation.Portrait && page.Orientation != OneNotePageOrientation.Landscape) {
+                throw new OneNoteFormatException("ONENOTE_WRITE_PAGE_ORIENTATION", "The native OneNote page orientation is not supported.");
+            }
+
             _activePages.Add(page);
             try {
                 foreach (OneNoteElement element in page.DirectContent) ValidateElement(element, 2);
@@ -144,6 +193,8 @@ internal static class OneNoteWriteModelValidator {
                     "A OneNote content element instance can appear in only one location.");
             }
 
+            ValidateLayout(element.Layout);
+
             _activeElements.Add(element);
             try {
                 if (element is OneNoteParagraph paragraph) {
@@ -152,8 +203,13 @@ internal static class OneNoteWriteModelValidator {
                         if (run == null) {
                             throw new OneNoteFormatException("ONENOTE_WRITE_NULL_TEXT_RUN", "A OneNote paragraph cannot contain a null text run.");
                         }
+                        if (run.MathExpression != null) ValidateMathExpression(run.MathExpression);
                     }
                     foreach (OneNoteElement child in paragraph.Children) ValidateElement(child, depth + 1);
+                } else if (element is OneNoteMath math) {
+                    ValidateMathExpression(math.GetExpression());
+                } else if (element is OneNoteMedia media) {
+                    ValidateMedia(media);
                 } else if (element is OneNoteOutline outline) {
                     ValidateList(outline.WrapperList);
                     foreach (OneNoteElement child in outline.Children) ValidateElement(child, depth + 1);
@@ -179,6 +235,7 @@ internal static class OneNoteWriteModelValidator {
                             foreach (OneNoteElement child in cell.Content) ValidateElement(child, depth + 1);
                         }
                     }
+                    NormalizeTableForWrite(table);
                 }
             } finally {
                 _activeElements.Remove(element);
@@ -190,6 +247,100 @@ internal static class OneNoteWriteModelValidator {
                 throw new OneNoteFormatException(
                     "ONENOTE_WRITE_LIST_LEVEL",
                     "A native OneNote list level must be from 0 through " + OneNoteListInfo.MaxLevel + ".");
+            }
+        }
+
+        private static void ValidateMedia(OneNoteMedia media) {
+            if (media.RecordingKind != OneNoteMediaKind.Unknown &&
+                media.RecordingKind != OneNoteMediaKind.Audio &&
+                media.RecordingKind != OneNoteMediaKind.Video) {
+                throw new OneNoteFormatException("ONENOTE_WRITE_MEDIA_KIND", "The OneNote recording kind is not supported.");
+            }
+            if (media.RecordingId == Guid.Empty) {
+                throw new OneNoteFormatException("ONENOTE_WRITE_MEDIA_ID", "A OneNote recording identifier cannot be the empty GUID.");
+            }
+            if (media.Duration.HasValue &&
+                (media.Duration.Value < TimeSpan.Zero || media.Duration.Value.TotalMilliseconds > uint.MaxValue)) {
+                throw new OneNoteFormatException(
+                    "ONENOTE_WRITE_MEDIA_DURATION",
+                    "A OneNote recording duration must fit the native unsigned millisecond value.");
+            }
+
+            string extension = Path.GetExtension(media.FileName ?? media.SourcePath ?? string.Empty).ToLowerInvariant();
+            OneNoteMediaKind extensionKind;
+            switch (extension) {
+                case ".wma":
+                case ".mp3":
+                case ".wav": extensionKind = OneNoteMediaKind.Audio; break;
+                case ".wmv":
+                case ".avi":
+                case ".mpg":
+                case ".mpeg":
+                case ".mp4": extensionKind = OneNoteMediaKind.Video; break;
+                default: extensionKind = OneNoteMediaKind.Unknown; break;
+            }
+            if (extensionKind == OneNoteMediaKind.Unknown) {
+                throw new OneNoteFormatException(
+                    "ONENOTE_WRITE_MEDIA_EXTENSION",
+                    "A OneNote media element requires a .wma, .mp3, .wav, .wmv, .avi, .mpg, .mpeg, or .mp4 file name.");
+            }
+            if (media.RecordingKind != OneNoteMediaKind.Unknown && media.RecordingKind != extensionKind) {
+                throw new OneNoteFormatException(
+                    "ONENOTE_WRITE_MEDIA_EXTENSION",
+                    "The OneNote recording kind does not match its supported file extension.");
+            }
+        }
+
+        private static void ValidateMathExpression(OfficeMathExpression root) {
+            var stack = new Stack<KeyValuePair<OfficeMathExpression, int>>();
+            stack.Push(new KeyValuePair<OfficeMathExpression, int>(root, 1));
+            while (stack.Count > 0) {
+                KeyValuePair<OfficeMathExpression, int> current = stack.Pop();
+                if (current.Value > OfficeMathMarkup.DefaultMaximumParseDepth) {
+                    throw new OneNoteFormatException(
+                        "ONENOTE_WRITE_MATH_DEPTH",
+                        "The native OneNote math nesting depth limit was exceeded.");
+                }
+                OfficeMathExpression expression = current.Key;
+                OneNoteMathNativeCodec.ValidateNativeCharacters(expression);
+                if ((expression.Kind == OfficeMathKind.Matrix || expression.Kind == OfficeMathKind.EquationArray) &&
+                    expression.ColumnCount > byte.MaxValue) {
+                    throw new OneNoteFormatException(
+                        "ONENOTE_WRITE_MATH_COLUMNS",
+                        "A native OneNote matrix or equation array cannot exceed 255 columns.");
+                }
+                for (int index = expression.Children.Count - 1; index >= 0; index--) {
+                    stack.Push(new KeyValuePair<OfficeMathExpression, int>(expression.Children[index], current.Value + 1));
+                }
+            }
+        }
+
+        private static void ValidateLayout(OneNoteLayout? layout) {
+            if (layout == null) return;
+            ValidateFinite(layout.X, "layout X offset");
+            ValidateFinite(layout.Y, "layout Y offset");
+            ValidateNonNegative(layout.Width, "layout width");
+            ValidateNonNegative(layout.Height, "layout height");
+            ValidateNonNegative(layout.MinimumWidth, "minimum outline width");
+        }
+
+        private static void ValidatePositive(double? value, string name) {
+            ValidateFinite(value, name);
+            if (value.HasValue && value.Value <= 0D) {
+                throw new OneNoteFormatException("ONENOTE_WRITE_LAYOUT_VALUE", "A OneNote " + name + " must be greater than zero.");
+            }
+        }
+
+        private static void ValidateNonNegative(double? value, string name) {
+            ValidateFinite(value, name);
+            if (value.HasValue && value.Value < 0D) {
+                throw new OneNoteFormatException("ONENOTE_WRITE_LAYOUT_VALUE", "A OneNote " + name + " cannot be negative.");
+            }
+        }
+
+        private static void ValidateFinite(double? value, string name) {
+            if (value.HasValue && (double.IsNaN(value.Value) || double.IsInfinity(value.Value))) {
+                throw new OneNoteFormatException("ONENOTE_WRITE_LAYOUT_VALUE", "A OneNote " + name + " must be finite.");
             }
         }
     }

@@ -46,7 +46,7 @@ document.Save();
 - Exports estimated document page ranges as dependency-free PNG or SVG previews through `ExportImages(...)`, `SaveAsImages(...)`, and `ToImages()`.
 - Keeps Office automation out of the runtime path, making it suitable for services, scheduled jobs, CI, desktop apps, and automation hosts.
 - Provides fluent helpers for common authoring flows while keeping the lower-level Word object model available.
-- Uses `OfficeIMO.Drawing` for shared color and image metadata support.
+- Uses `OfficeIMO.Drawing` for shared colors, image metadata, page rendering, and the reusable math expression tree.
 
 For untrusted files, capability preflight, binary DOC/XLS/XLSB loss policies,
 macro and embedded-payload handling, and the executable compatibility corpus,
@@ -227,6 +227,21 @@ document.Settings.ProtectionPassword = "owner-password";
 document.Settings.ProtectionType = DocumentProtectionValues.ReadOnly;
 ```
 
+### Editable equations from the shared math model
+
+```csharp
+using OfficeIMO.Drawing;
+
+OfficeMathExpression equation = OfficeMath.Fraction(
+    OfficeMath.Superscript(OfficeMath.Identifier("x"), OfficeMath.Number("2")),
+    OfficeMath.Number("2"));
+
+WordParagraph paragraph = document.AddEquation(equation);
+paragraph.AddText(" is editable Word math.");
+```
+
+`WordDocument.AddEquation(...)` and `WordParagraph.AddEquation(...)` map the shared expression directly to native OMML. Existing equations expose `ToExpression()`, `SetExpression(...)`, and `ToDrawing(...)`; `WordMathMarkup` converts between OMML and `OfficeMathExpression`. The adapter covers matrices and multi-column equation arrays, left/right scripts, centered limits, skewed fractions, delimiter lists, n-ary operators, and decorations. Display-equation replacement retains `oMathParaPr` presentation metadata. Shared `Stack` and `StretchStack` nodes fail closed because OMML has no lossless equivalent; use `OfficeMath.EquationArray(...)` explicitly if that alternate layout is acceptable. The reusable AST stays in `OfficeIMO.Drawing`, while Word owns only the OMML adapter.
+
 ### Convert with adjacent packages
 
 ```csharp
@@ -285,6 +300,6 @@ Runnable samples live under [OfficeIMO.Examples/Word](../OfficeIMO.Examples/Word
 ## Dependency footprint
 
 - **External:** Open XML SDK for `.docx` package mechanics. Microsoft BCL compatibility packages are used on older targets.
-- **OfficeIMO:** `OfficeIMO.Drawing`. The fluent model, legacy `.doc` reader/writer, lifecycle, validation, and PNG/JPEG/TIFF/WebP/SVG export are first-party.
+- **OfficeIMO:** `OfficeIMO.Drawing`. The fluent model, native OMML adapter, legacy `.doc` reader/writer, lifecycle, validation, and PNG/JPEG/TIFF/WebP/SVG export are first-party.
 
 See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

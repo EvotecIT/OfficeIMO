@@ -34,6 +34,9 @@ public sealed class OneNoteReaderOptions {
     /// <summary>Maximum nesting depth across conflict and version-history page relationships.</summary>
     public const int DefaultMaxPageRelationshipDepth = 128;
 
+    /// <summary>Maximum decoded coordinate and pressure values retained for one native ink path.</summary>
+    public const int DefaultMaxInkPathValues = 1_000_000;
+
     /// <summary>Maximum bytes retained for one embedded asset.</summary>
     public const long DefaultMaxAssetBytes = 64L * 1024L * 1024L;
 
@@ -79,6 +82,9 @@ public sealed class OneNoteReaderOptions {
     /// <summary>Maximum nesting depth across conflict and version-history page relationships.</summary>
     public int MaxPageRelationshipDepth { get; set; } = DefaultMaxPageRelationshipDepth;
 
+    /// <summary>Maximum decoded coordinate and pressure values retained for one native ink path.</summary>
+    public int MaxInkPathValues { get; set; } = DefaultMaxInkPathValues;
+
     /// <summary>Maximum bytes materialized for one image or embedded file.</summary>
     public long MaxAssetBytes { get; set; } = DefaultMaxAssetBytes;
 
@@ -121,6 +127,7 @@ public sealed class OneNoteReaderOptions {
         if (MaxPropertySetDepth < 1) throw new ArgumentOutOfRangeException(nameof(MaxPropertySetDepth));
         if (MaxPageGraphNodes < 1) throw new ArgumentOutOfRangeException(nameof(MaxPageGraphNodes));
         if (MaxPageRelationshipDepth < 1) throw new ArgumentOutOfRangeException(nameof(MaxPageRelationshipDepth));
+        if (MaxInkPathValues < 1) throw new ArgumentOutOfRangeException(nameof(MaxInkPathValues));
         if (MaxAssetBytes < 1) throw new ArgumentOutOfRangeException(nameof(MaxAssetBytes));
         if (MaxTotalAssetBytes < MaxAssetBytes) {
             throw new ArgumentOutOfRangeException(nameof(MaxTotalAssetBytes), "MaxTotalAssetBytes must be at least MaxAssetBytes.");
