@@ -147,6 +147,11 @@ public partial class PdfDocumentRasterVisualBaselineTests {
         IsRequired() ||
         string.Equals(Environment.GetEnvironmentVariable("OFFICEIMO_REQUIRE_PDF_RASTER_BASELINE_MATCH"), "1", StringComparison.Ordinal);
 
+    private static bool IsRasterSmokeOnly() =>
+        string.Equals(Environment.GetEnvironmentVariable("OFFICEIMO_PDF_RASTER_SMOKE_ONLY"), "1", StringComparison.Ordinal) &&
+        !string.Equals(Environment.GetEnvironmentVariable("OFFICEIMO_REQUIRE_PDF_RASTER_BASELINE_MATCH"), "1", StringComparison.Ordinal) &&
+        !string.Equals(Environment.GetEnvironmentVariable("OFFICEIMO_UPDATE_PDF_RASTER_BASELINE"), "1", StringComparison.Ordinal);
+
     private static bool CanAssertRasterBaseline(string rasterizerPath) {
         string currentVersion = ReadPdftoppmVersion(rasterizerPath);
         string versionPath = Path.Combine(GetPdfTestsProjectRoot(), "Pdf", "VisualBaselines", "poppler-version.txt");

@@ -278,7 +278,8 @@ public partial class PdfDocumentRasterVisualBaselineTests {
             return;
         }
 
-        if (!CanAssertRasterBaseline(rasterizerPath)) {
+        bool rasterSmokeOnly = IsRasterSmokeOnly();
+        if (!rasterSmokeOnly && !CanAssertRasterBaseline(rasterizerPath)) {
             return;
         }
 
@@ -299,7 +300,9 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                     throw new FileNotFoundException("Poppler did not produce the expected PNG page snapshot.", actualPng);
                 }
 
-                AssertRasterBaseline("officeimo-pdf-" + scenarioName + ".page" + pageText + ".poppler.png", actualPng);
+                if (!rasterSmokeOnly) {
+                    AssertRasterBaseline("officeimo-pdf-" + scenarioName + ".page" + pageText + ".poppler.png", actualPng);
+                }
             }
         } finally {
             TryDeleteDirectory(workDir);

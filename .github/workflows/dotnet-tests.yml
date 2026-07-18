@@ -887,7 +887,10 @@ jobs:
               ;;
             pdf-visual-inspector)
               export OFFICEIMO_REQUIRE_PDF_RASTERIZER=1
-              export OFFICEIMO_REQUIRE_PDF_RASTER_BASELINE_MATCH=1
+              # The committed pixel baselines are authoring-platform evidence.
+              # Ubuntu still renders every scenario with the pinned Poppler build,
+              # but host font substitution makes cross-platform pixel identity invalid.
+              export OFFICEIMO_PDF_RASTER_SMOKE_ONLY=1
               run_pdf_tests "pdf-visual-inspector" 'FullyQualifiedName~OfficeIMO.Tests.Pdf.PdfDocumentVisualQualityTests|FullyQualifiedName~OfficeIMO.Tests.Pdf.PdfInspectorTests|FullyQualifiedName~OfficeIMO.Tests.Pdf.PdfReaderAndFooterRegressionTests|FullyQualifiedName~OfficeIMO.Tests.Pdf.MarkdownSaveAsPdfVisualTests|FullyQualifiedName~OfficeIMO.Tests.Pdf.PdfDocumentRasterVisualBaselineTests'
               ;;
             pdf-core)
