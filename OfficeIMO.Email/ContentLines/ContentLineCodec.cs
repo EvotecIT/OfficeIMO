@@ -501,6 +501,14 @@ internal static class ContentLineCodec {
     }
 
     private static string EncodeParameter(string value, ContentLineParameterEncoding parameterEncoding) {
+        foreach (char character in value) {
+            if (character < '\u0020' && character != '\t' && character != '\r' && character != '\n' ||
+                character == '\u007F') {
+                throw new InvalidDataException(
+                    "A content-line parameter value cannot contain an ASCII control character other than HTAB " +
+                    "or a line break representable by RFC 6868.");
+            }
+        }
         if (parameterEncoding == ContentLineParameterEncoding.Legacy) {
             if (value.IndexOfAny(new[] { '\r', '\n' }) >= 0) {
                 throw new InvalidDataException(

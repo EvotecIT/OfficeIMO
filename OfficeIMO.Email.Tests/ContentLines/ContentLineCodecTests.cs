@@ -145,6 +145,38 @@ public sealed class ContentLineCodecTests {
         Assert.Equal(attendee.GetParameter("MEMBER")!.Values, reparsedAttendee.GetParameter("MEMBER")!.Values);
     }
 
+    [Theory]
+    [InlineData("\0")]
+    [InlineData("\b")]
+    [InlineData("\u001F")]
+    [InlineData("\u007F")]
+    public void WritersRejectProhibitedAsciiControlsInMutableParameterValues(string control) {
+        var calendar = new IcsDocument();
+        calendar.Calendars.Single().AddProperty("X-CONTROL", "value")
+            .SetParameter("X-PARAM", "left" + control + "right");
+        var contact = new VCardDocument();
+        contact.Cards.Single().GetFirstProperty("VERSION")!.Value = "3.0";
+        contact.Cards.Single().AddProperty("FN", "Control test")
+            .SetParameter("X-PARAM", "left" + control + "right");
+
+        Assert.Throws<InvalidDataException>(() => calendar.Serialize());
+        Assert.Throws<InvalidDataException>(() => contact.Serialize());
+    }
+
+    [Fact]
+    public void WritersAllowHorizontalTabsInMutableParameterValues() {
+        var calendar = new IcsDocument();
+        calendar.Calendars.Single().AddProperty("X-TAB", "value")
+            .SetParameter("X-PARAM", "left\tright");
+        var contact = new VCardDocument();
+        contact.Cards.Single().GetFirstProperty("VERSION")!.Value = "3.0";
+        contact.Cards.Single().AddProperty("FN", "Tab test")
+            .SetParameter("X-PARAM", "left\tright");
+
+        Assert.Contains("X-PARAM=left\tright", calendar.Serialize(), StringComparison.Ordinal);
+        Assert.Contains("X-PARAM=left\tright", contact.Serialize(), StringComparison.Ordinal);
+    }
+
     [Fact]
     public void Writer_FoldsUnicodeAtUtf8OctetBoundary() {
         var document = new IcsDocument();
