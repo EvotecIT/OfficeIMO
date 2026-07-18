@@ -1,4 +1,3 @@
-using OfficeIMO.Drawing.Internal;
 using System;
 using System.IO;
 using System.Threading;
@@ -15,7 +14,10 @@ public abstract class OfficeImageExportBuilder<TBuilder, TOptions>
     where TBuilder : OfficeImageExportBuilder<TBuilder, TOptions>
     where TOptions : OfficeImageExportOptions {
     private readonly Func<OfficeImageExportFormat, TOptions, OfficeImageExportResult> _export;
+    private readonly Func<OfficeImageExportFormat, TOptions, CancellationToken, OfficeImageExportResult>? _exportWithCancellation;
+    private readonly Func<OfficeImageExportFormat, TOptions, CancellationToken, Task<OfficeImageExportResult>>? _exportAsync;
     private OfficeImageExportFormat _format = OfficeImageExportFormat.Png;
+    private OfficeImageExportFileConflictPolicy _conflictPolicy = OfficeImageExportFileConflictPolicy.FailIfExists;
 
     /// <summary>
     /// Creates a fluent export builder over an existing document-specific export function.
@@ -23,6 +25,26 @@ public abstract class OfficeImageExportBuilder<TBuilder, TOptions>
     protected OfficeImageExportBuilder(TOptions options, Func<OfficeImageExportFormat, TOptions, OfficeImageExportResult> export) {
         Options = options ?? throw new ArgumentNullException(nameof(options));
         _export = export ?? throw new ArgumentNullException(nameof(export));
+    }
+
+    /// <summary>Creates a builder over a cancellation-aware synchronous renderer.</summary>
+    protected OfficeImageExportBuilder(
+        TOptions options,
+        Func<OfficeImageExportFormat, TOptions, CancellationToken, OfficeImageExportResult> export) {
+        Options = options ?? throw new ArgumentNullException(nameof(options));
+        _exportWithCancellation = export ?? throw new ArgumentNullException(nameof(export));
+        _export = (format, effective) => _exportWithCancellation(format, effective, CancellationToken.None);
+    }
+
+    /// <summary>
+    /// Creates a fluent export builder with a genuine asynchronous renderer for resource-aware document models.
+    /// </summary>
+    protected OfficeImageExportBuilder(
+        TOptions options,
+        Func<OfficeImageExportFormat, TOptions, OfficeImageExportResult> export,
+        Func<OfficeImageExportFormat, TOptions, CancellationToken, Task<OfficeImageExportResult>> exportAsync)
+        : this(options, export) {
+        _exportAsync = exportAsync ?? throw new ArgumentNullException(nameof(exportAsync));
     }
 
     /// <summary>Document-specific options being configured by this builder.</summary>
@@ -72,6 +94,7 @@ public abstract class OfficeImageExportBuilder<TBuilder, TOptions>
     public TBuilder WithScale(double scale) {
         OfficeImageExportOptions.ValidateScale(scale);
         Options.Scale = scale;
+        Options.TargetDpi = null;
         return This;
     }
 
@@ -93,24 +116,101 @@ public abstract class OfficeImageExportBuilder<TBuilder, TOptions>
         return This;
     }
 
+    /// <summary>Sets the maximum pixel allocation for one raster result.</summary>
+    public TBuilder WithMaximumRasterPixels(long maximumPixels) {
+        if (maximumPixels < 1L) throw new ArgumentOutOfRangeException(nameof(maximumPixels));
+        Options.MaximumRasterPixels = maximumPixels;
+        return This;
+    }
+
+    /// <summary>Sets the policy applied when requested raster dimensions exceed a safety limit.</summary>
+    public TBuilder OnRasterOverflow(OfficeRasterOverflowBehavior behavior) {
+        if (!Enum.IsDefined(typeof(OfficeRasterOverflowBehavior), behavior)) {
+            throw new ArgumentOutOfRangeException(nameof(behavior));
+        }
+        Options.RasterOverflowBehavior = behavior;
+        return This;
+    }
+
+    /// <summary>Sets the optional decoder used for embedded source-image formats outside Drawing's built-in set.</summary>
+    public TBuilder WithImageCodec(IOfficeRasterImageCodec imageCodec) {
+        Options.ImageCodec = imageCodec ?? throw new ArgumentNullException(nameof(imageCodec));
+        return This;
+    }
+
+    /// <summary>Sets a target output density and lets the document adapter resolve its logical-unit scale.</summary>
+    public TBuilder AtDpi(double dpi) {
+        if (dpi <= 0D || double.IsNaN(dpi) || double.IsInfinity(dpi)) throw new ArgumentOutOfRangeException(nameof(dpi));
+        Options.TargetDpi = dpi;
+        return This;
+    }
+
+    /// <summary>Adds a deterministic caller-supplied TrueType face.</summary>
+    public TBuilder WithFont(string familyName, byte[] data, OfficeFontStyle style = OfficeFontStyle.Regular) {
+        Options.Fonts.Add(familyName, data, style);
+        return This;
+    }
+
+    /// <summary>Adds deterministic caller-supplied TrueType faces.</summary>
+    public TBuilder WithFonts(OfficeFontFaceCollection fonts) {
+        Options.Fonts.AddRange(fonts ?? throw new ArgumentNullException(nameof(fonts)));
+        return This;
+    }
+
+    /// <summary>Configures diagnostic acceptance before results are returned or committed.</summary>
+    public TBuilder WithPolicy(Action<OfficeImageExportPolicy> configure) {
+        if (configure == null) throw new ArgumentNullException(nameof(configure));
+        configure(Options.Policy);
+        return This;
+    }
+
+    /// <summary>Sets a progress observer for render and save stages.</summary>
+    public TBuilder WithProgress(IProgress<OfficeImageExportProgress> progress) {
+        Options.Progress = progress ?? throw new ArgumentNullException(nameof(progress));
+        return This;
+    }
+
+    /// <summary>Sets how file saves handle an existing destination.</summary>
+    public TBuilder OnFileConflict(OfficeImageExportFileConflictPolicy policy) {
+        if (!Enum.IsDefined(typeof(OfficeImageExportFileConflictPolicy), policy)) throw new ArgumentOutOfRangeException(nameof(policy));
+        _conflictPolicy = policy;
+        return This;
+    }
+
     /// <summary>Configures a standard preview profile: PNG, 1x scale, white background.</summary>
     public TBuilder ForPreview() {
         _format = OfficeImageExportFormat.Png;
         Options.Scale = 1D;
+        Options.TargetDpi = null;
         Options.BackgroundColor = OfficeColor.White;
         return This;
     }
 
-    /// <summary>Configures a high-resolution profile: PNG, 2x scale, white background.</summary>
-    public TBuilder ForHighResolution() {
+    /// <summary>Configures a print profile with an explicit target DPI.</summary>
+    public TBuilder ForPrint(double dpi = 300D) {
+        if (dpi <= 0D || double.IsNaN(dpi) || double.IsInfinity(dpi)) throw new ArgumentOutOfRangeException(nameof(dpi));
         _format = OfficeImageExportFormat.Png;
-        Options.Scale = 2D;
+        Options.TargetDpi = dpi;
         Options.BackgroundColor = OfficeColor.White;
         return This;
     }
 
     /// <summary>Exports using the currently configured format and options.</summary>
-    public OfficeImageExportResult Export() => _export(_format, Options);
+    public OfficeImageExportResult Export() => Export(CancellationToken.None);
+
+    /// <summary>Exports using the currently configured format and observes cancellation during supported render stages.</summary>
+    public OfficeImageExportResult Export(CancellationToken cancellationToken) {
+        OfficeImageExportResult result = Render(cancellationToken);
+        Options.Progress?.Report(new OfficeImageExportProgress(OfficeImageExportProgressStage.Completed, 1, 1, result.Name));
+        return result;
+    }
+
+    /// <summary>Exports asynchronously when the adapter owns a genuine asynchronous render path.</summary>
+    public async Task<OfficeImageExportResult> ExportAsync(CancellationToken cancellationToken = default) {
+        OfficeImageExportResult result = await RenderAsync(cancellationToken).ConfigureAwait(false);
+        Options.Progress?.Report(new OfficeImageExportProgress(OfficeImageExportProgressStage.Completed, 1, 1, result.Name));
+        return result;
+    }
 
     /// <summary>Exports and returns the encoded image bytes.</summary>
     public byte[] ToBytes() => Export().Bytes;
@@ -121,16 +221,21 @@ public abstract class OfficeImageExportBuilder<TBuilder, TOptions>
             throw new ArgumentException("Output path cannot be null or whitespace.", nameof(path));
         }
 
-        OfficeImageExportResult result = Export();
-        OfficeFileCommit.WriteAllBytes(path, result.Bytes);
-        return result;
+        string resolvedPath = OfficeImageExportPath.NormalizeFile(path, _format);
+        OfficeImageExportResult result = Render(CancellationToken.None);
+        Options.Progress?.Report(new OfficeImageExportProgress(OfficeImageExportProgressStage.Saving, 0, 1, result.Name, resolvedPath));
+        OfficeImageExportResult saved = result.Save(path, _conflictPolicy);
+        Options.Progress?.Report(new OfficeImageExportProgress(OfficeImageExportProgressStage.Completed, 1, 1, result.Name, saved.SavedPath));
+        return saved;
     }
 
     /// <summary>Writes the exported image to a stream.</summary>
     public OfficeImageExportResult Save(Stream stream) {
-        OfficeImageExportResult result = Export();
-        OfficeStreamWriter.WriteAllBytes(stream, result.Bytes);
-        return result;
+        OfficeImageExportResult result = Render(CancellationToken.None);
+        Options.Progress?.Report(new OfficeImageExportProgress(OfficeImageExportProgressStage.Saving, 0, 1, result.Name));
+        OfficeImageExportResult saved = result.Save(stream);
+        Options.Progress?.Report(new OfficeImageExportProgress(OfficeImageExportProgressStage.Completed, 1, 1, result.Name));
+        return saved;
     }
 
     /// <summary>Asynchronously saves the exported image to a file path.</summary>
@@ -142,9 +247,15 @@ public abstract class OfficeImageExportBuilder<TBuilder, TOptions>
         }
 
         cancellationToken.ThrowIfCancellationRequested();
-        OfficeImageExportResult result = Export();
-        await OfficeFileCommit.WriteAllBytesAsync(path, result.Bytes, cancellationToken: cancellationToken).ConfigureAwait(false);
-        return result;
+        string resolvedPath = OfficeImageExportPath.NormalizeFile(path, _format);
+        OfficeImageExportResult result = await RenderAsync(cancellationToken).ConfigureAwait(false);
+        Options.Progress?.Report(new OfficeImageExportProgress(OfficeImageExportProgressStage.Saving, 0, 1, result.Name, resolvedPath));
+        OfficeImageExportResult saved = await result.SaveAsync(
+            path,
+            _conflictPolicy,
+            cancellationToken).ConfigureAwait(false);
+        Options.Progress?.Report(new OfficeImageExportProgress(OfficeImageExportProgressStage.Completed, 1, 1, result.Name, saved.SavedPath));
+        return saved;
     }
 
     /// <summary>Asynchronously writes the exported image to a stream.</summary>
@@ -152,8 +263,33 @@ public abstract class OfficeImageExportBuilder<TBuilder, TOptions>
         Stream stream,
         CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-        OfficeImageExportResult result = Export();
-        await OfficeStreamWriter.WriteAllBytesAsync(stream, result.Bytes, cancellationToken).ConfigureAwait(false);
+        OfficeImageExportResult result = await RenderAsync(cancellationToken).ConfigureAwait(false);
+        Options.Progress?.Report(new OfficeImageExportProgress(OfficeImageExportProgressStage.Saving, 0, 1, result.Name));
+        OfficeImageExportResult saved = await result.SaveAsync(stream, cancellationToken).ConfigureAwait(false);
+        Options.Progress?.Report(new OfficeImageExportProgress(OfficeImageExportProgressStage.Completed, 1, 1, result.Name));
+        return saved;
+    }
+
+    private OfficeImageExportResult Render(CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        TOptions effective = Options.CreateEffectiveImageExportOptions<TOptions>();
+        effective.Progress?.Report(new OfficeImageExportProgress(OfficeImageExportProgressStage.Rendering, 0, 1));
+        OfficeImageExportResult result = _exportWithCancellation != null
+            ? _exportWithCancellation(_format, effective, cancellationToken)
+            : _export(_format, effective);
+        cancellationToken.ThrowIfCancellationRequested();
+        result.Require(effective.Policy);
+        return result;
+    }
+
+    private async Task<OfficeImageExportResult> RenderAsync(CancellationToken cancellationToken) {
+        if (_exportAsync == null) return Render(cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
+        TOptions effective = Options.CreateEffectiveImageExportOptions<TOptions>();
+        effective.Progress?.Report(new OfficeImageExportProgress(OfficeImageExportProgressStage.Rendering, 0, 1));
+        OfficeImageExportResult result = await _exportAsync(_format, effective, cancellationToken).ConfigureAwait(false);
+        cancellationToken.ThrowIfCancellationRequested();
+        result.Require(effective.Policy);
         return result;
     }
 

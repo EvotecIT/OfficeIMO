@@ -67,6 +67,16 @@ public sealed class OneNoteRenderingTests {
     }
 
     [Fact]
+    public void DirectBatchExportValidatesSelectionBeforeEnumeratingPages() {
+        var section = new OneNoteSection { Name = "Empty" };
+
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            section.ExportImages(
+                OfficeImageExportFormat.Png,
+                new OneNotePageBatchRenderingOptions { PageIndex = -1 }));
+    }
+
+    [Fact]
     public void AutomaticCanvasExpandsPastStoredDimensionsToIncludeAbsoluteInk() {
         var page = new OneNotePage { Width = 8D, Height = 8D, PageSize = OneNotePageSize.Automatic };
         var ink = new OneNoteInk { Layout = new OneNoteLayout { X = 0D, Y = 0D } };
@@ -114,7 +124,56 @@ public sealed class OneNoteRenderingTests {
 
         Assert.Equal(100, result.Width);
         Assert.Equal(100, result.Height);
-        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "ONENOTE_IMAGE_RASTER_SCALE_LIMITED");
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == OfficeImageExportDiagnosticCodes.RasterScaleReduced);
+    }
+
+    [Fact]
+    public void DirectSvgExportAppliesTargetDpiBeforeConstructingTheResult() {
+        var page = new OneNotePage {
+            PageSize = OneNotePageSize.Custom,
+            Width = 2D,
+            Height = 2D
+        };
+        var options = new OneNotePageRenderingOptions {
+            IncludeTitle = false,
+            TargetDpi = 144D
+        };
+
+        OfficeImageExportResult result = page.ExportImage(
+            OfficeImageExportFormat.Svg,
+            options);
+
+        Assert.Equal(144, result.Width);
+        Assert.Equal(144, result.Height);
+        Assert.Equal(1D, options.Scale);
+        Assert.Equal(144D, options.TargetDpi);
+    }
+
+    [Fact]
+    public void RasterLimitReducesEncodedDensityWithTheRenderedOneNoteScale() {
+        var page = new OneNotePage {
+            PageSize = OneNotePageSize.Custom,
+            Width = 100D / OneNotePageRenderer.PointsPerHalfInch,
+            Height = 100D / OneNotePageRenderer.PointsPerHalfInch
+        };
+        var options = new OneNotePageRenderingOptions {
+            IncludeTitle = false,
+            TargetDpi = 144D,
+            MaximumRasterPixels = 2_500L
+        };
+
+        OfficeImageExportResult result = page.ExportImage(
+            OfficeImageExportFormat.Png,
+            options);
+
+        Assert.Equal(50, result.Width);
+        Assert.Equal(50, result.Height);
+        Assert.InRange(result.DpiX, 35.95D, 36.05D);
+        Assert.InRange(result.DpiY, 35.95D, 36.05D);
+        Assert.InRange(result.PhysicalWidthInches, 1.387D, 1.390D);
+        Assert.Contains(
+            result.Diagnostics,
+            diagnostic => diagnostic.Code == OfficeImageExportDiagnosticCodes.RasterScaleReduced);
     }
 
     [Fact]
@@ -136,7 +195,7 @@ public sealed class OneNoteRenderingTests {
         Assert.Equal(maximumDimension, result.Width);
         Assert.True(result.Height <= maximumDimension);
         Assert.True(OfficeWebpCodec.IsWebp(result.Bytes));
-        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "ONENOTE_IMAGE_RASTER_SCALE_LIMITED");
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == OfficeImageExportDiagnosticCodes.RasterScaleReduced);
     }
 
     [Fact]
@@ -157,7 +216,7 @@ public sealed class OneNoteRenderingTests {
         Assert.Equal(OfficeRasterImageEncoder.GetMaximumDimension(OfficeImageExportFormat.Jpeg), result.Width);
         Assert.Equal(1, result.Height);
         Assert.Equal(new byte[] { 0xFF, 0xD8 }, result.Bytes.Take(2));
-        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "ONENOTE_IMAGE_RASTER_SCALE_LIMITED");
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == OfficeImageExportDiagnosticCodes.RasterScaleReduced);
     }
 
     [Fact]
@@ -180,7 +239,7 @@ public sealed class OneNoteRenderingTests {
     }
 
     [Fact]
-    public void RasterExportReportsAndPaintsUnsupportedSourceImagesInsteadOfDroppingThem() {
+    public void RasterExportPaintsSupportedSvgSourceImagesWithoutFallback() {
         var page = new OneNotePage { PageSize = OneNotePageSize.IndexCard };
         page.DirectContent.Add(new OneNoteImage {
             FileName = "vector.svg",
@@ -190,14 +249,14 @@ public sealed class OneNoteRenderingTests {
         });
 
         OfficeImageExportResult result = page.ToImage().WithScale(0.25D).AsPng().Export();
-        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "DRAWING_RASTER_IMAGE_UNSUPPORTED");
+        Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Code == OfficeImageExportDiagnosticCodes.SourceImageDecodeFallback);
         Assert.True(OfficeRasterImageDecoder.TryDecode(result.Bytes, out OfficeRasterImage? raster));
         Assert.NotNull(raster);
         Assert.Contains(raster!.GetPixels(), value => value != byte.MaxValue);
     }
 
     [Fact]
-    public void SvgExportReportsAndEmbedsAVisibleFallbackForTiffSourceImages() {
+    public void SvgExportDecodesAndEmbedsTiffSourceImagesWithoutFallback() {
         byte[] sourceTiff = OfficeRasterImageEncoder.Encode(
             new OfficeRasterImage(8, 4, OfficeColor.CornflowerBlue),
             OfficeImageExportFormat.Tiff);
@@ -212,7 +271,7 @@ public sealed class OneNoteRenderingTests {
         OfficeImageExportResult result = page.ToImage().WithScale(0.25D).AsSvg().Export();
         string svg = Encoding.UTF8.GetString(result.Bytes);
 
-        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "DRAWING_RASTER_IMAGE_UNSUPPORTED");
+        Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Code == OfficeImageExportDiagnosticCodes.SourceImageDecodeFallback);
         Assert.Contains("data:image/png;base64,", svg, StringComparison.Ordinal);
         Assert.Contains("<image", svg, StringComparison.Ordinal);
     }

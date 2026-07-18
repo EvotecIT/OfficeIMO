@@ -42,7 +42,7 @@ public sealed class DrawingRasterLimitTests {
         Assert.NotNull(image);
         Assert.NotEqual(OfficeColor.White, image!.GetPixel(0, 0));
         OfficeImageExportDiagnostic diagnostic = Assert.Single(diagnostics);
-        Assert.Equal("DRAWING_RASTER_IMAGE_UNSUPPORTED", diagnostic.Code);
+        Assert.Equal(OfficeImageExportDiagnosticCodes.SourceImageDecodeFallback, diagnostic.Code);
         Assert.Equal("sample.svg", diagnostic.Source);
     }
 
@@ -82,8 +82,137 @@ public sealed class DrawingRasterLimitTests {
         Assert.True(codec.TryDecode(new byte[] { 1 }, "image/custom", out OfficeRasterImage? image));
         Assert.NotNull(image);
         OfficeImageExportDiagnostic diagnostic = Assert.Single(diagnostics);
-        Assert.Equal("DRAWING_RASTER_IMAGE_UNSUPPORTED", diagnostic.Code);
+        Assert.Equal(OfficeImageExportDiagnosticCodes.SourceImageDecodeFallback, diagnostic.Code);
         Assert.Contains(failure.Message, diagnostic.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void FallbackCodecReportsSuccessfulCallerCodecUse() {
+        var diagnostics = new List<OfficeImageExportDiagnostic>();
+        var codec = new OfficeRasterImageFallbackCodec(new SolidCodec(), diagnostics, "external.img");
+
+        Assert.True(codec.TryDecode(new byte[] { 1 }, "image/custom", out OfficeRasterImage? image));
+        Assert.NotNull(image);
+        OfficeImageExportDiagnostic diagnostic = Assert.Single(diagnostics);
+        Assert.Equal(OfficeImageExportDiagnosticCodes.SourceImageDecodedByCallerCodec, diagnostic.Code);
+        Assert.Equal(OfficeImageExportDiagnosticSeverity.Info, diagnostic.Severity);
+        Assert.Equal("external.img", diagnostic.Source);
+    }
+
+    [Fact]
+    public void FallbackCodecHandlesOverflowFromApplicationCodec() {
+        var diagnostics = new List<OfficeImageExportDiagnostic>();
+        var codec = new OfficeRasterImageFallbackCodec(
+            new ThrowingCodec(new OverflowException("External dimensions overflowed.")),
+            diagnostics,
+            "external.img");
+
+        Assert.True(codec.TryDecode(new byte[] { 1 }, "image/custom", out OfficeRasterImage? image));
+        Assert.NotNull(image);
+        OfficeImageExportDiagnostic diagnostic = Assert.Single(diagnostics);
+        Assert.Equal(OfficeImageExportDiagnosticCodes.SourceImageDecodeFallback, diagnostic.Code);
+        Assert.Contains("overflowed", diagnostic.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void RasterExportPlannerCombinesCallerAndEncoderLimitsBeforeAllocation() {
+        var options = new OfficeImageExportOptions {
+            Scale = 10D,
+            MaximumRasterPixels = 1_000L
+        };
+
+        OfficeRasterExportPlan plan = OfficeRasterExportPlanner.Resolve(
+            100D,
+            100D,
+            OfficeImageExportFormat.Webp,
+            options,
+            "test surface");
+
+        Assert.True(plan.Limit.WasLimited);
+        Assert.True(plan.Limit.PixelCount <= 1_000L);
+        Assert.NotNull(plan.Diagnostic);
+        Assert.Equal(OfficeImageExportDiagnosticCodes.RasterScaleReduced, plan.Diagnostic!.Code);
+        Assert.Equal("test surface", plan.Diagnostic.Source);
+    }
+
+    [Theory]
+    [InlineData(OfficeImageExportFormat.Png)]
+    [InlineData(OfficeImageExportFormat.Jpeg)]
+    [InlineData(OfficeImageExportFormat.Tiff)]
+    [InlineData(OfficeImageExportFormat.Webp)]
+    public void RasterExportPlannerPreservesPhysicalSizeWhenReducingTargetDpi(
+        OfficeImageExportFormat format) {
+        var options = new OfficeImageExportOptions {
+            TargetDpi = 192D,
+            MaximumRasterPixels = 2_500L
+        };
+
+        OfficeRasterExportPlan plan = OfficeRasterExportPlanner.Resolve(
+            100D,
+            100D,
+            format,
+            options);
+        var image = new OfficeRasterImage(
+            plan.Limit.PixelWidth,
+            plan.Limit.PixelHeight,
+            OfficeColor.White);
+        byte[] encoded = OfficeRasterImageEncoder.Encode(
+            image,
+            format,
+            plan.CreateEncodingOptions());
+        OfficeImageInfo info = OfficeImageReader.Identify(encoded);
+        double expectedDpi = plan.Limit.Scale * options.LogicalUnitsPerInch;
+
+        Assert.True(plan.Limit.WasLimited);
+        Assert.InRange(info.DpiX, expectedDpi - 0.05D, expectedDpi + 0.05D);
+        Assert.InRange(info.DpiY, expectedDpi - 0.05D, expectedDpi + 0.05D);
+        Assert.InRange(
+            image.Width / info.DpiX,
+            100D / options.LogicalUnitsPerInch - 0.002D,
+            100D / options.LogicalUnitsPerInch + 0.002D);
+    }
+
+    [Theory]
+    [InlineData(OfficeImageExportFormat.Png, 10_000D)]
+    [InlineData(OfficeImageExportFormat.Jpeg, 1_000D)]
+    [InlineData(OfficeImageExportFormat.Tiff, 100_000D)]
+    [InlineData(OfficeImageExportFormat.Webp, 1_000_000D)]
+    public void RasterExportPlannerRejectsSafetyScaleWhoseDensityCannotBeEncoded(
+        OfficeImageExportFormat format,
+        double logicalSize) {
+        var options = new OfficeImageExportOptions {
+            MaximumRasterPixels = 1L
+        };
+
+        OfficeImageExportLimitException exception = Assert.Throws<OfficeImageExportLimitException>(() =>
+            OfficeRasterExportPlanner.Resolve(
+                logicalSize,
+                logicalSize,
+                format,
+                options));
+
+        Assert.Contains(format.ToString(), exception.Message, StringComparison.Ordinal);
+        Assert.Contains("minimum representable", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void RasterExportPlannerCanRejectOversizedRequestsWithTypedEvidence() {
+        var options = new OfficeImageExportOptions {
+            Scale = 10D,
+            MaximumRasterPixels = 1_000L,
+            RasterOverflowBehavior = OfficeRasterOverflowBehavior.Throw
+        };
+
+        OfficeImageExportLimitException exception = Assert.Throws<OfficeImageExportLimitException>(() =>
+            OfficeRasterExportPlanner.Resolve(
+                100D,
+                100D,
+                OfficeImageExportFormat.Png,
+                options));
+
+        Assert.Equal(10D, exception.RequestedScale);
+        Assert.Equal(1_000_000L, exception.RequestedPixels);
+        Assert.Equal(1_000L, exception.MaximumPixels);
     }
 
     private static void WriteBigEndian(byte[] bytes, int offset, int value) {
@@ -101,6 +230,13 @@ public sealed class DrawingRasterLimitTests {
         public bool TryDecode(byte[] encodedBytes, string? contentType, out OfficeRasterImage? image) {
             image = null;
             throw _exception;
+        }
+    }
+
+    private sealed class SolidCodec : IOfficeRasterImageCodec {
+        public bool TryDecode(byte[] encodedBytes, string? contentType, out OfficeRasterImage? image) {
+            image = new OfficeRasterImage(1, 1, OfficeColor.Black);
+            return true;
         }
     }
 }

@@ -8,7 +8,9 @@ namespace OfficeIMO.Excel {
     /// </summary>
     public sealed class ExcelRangeImageExportBuilder : OfficeImageExportBuilder<ExcelRangeImageExportBuilder, ExcelImageExportOptions> {
         internal ExcelRangeImageExportBuilder(ExcelRange range, ExcelImageExportOptions? options = null)
-            : base(options?.Clone() ?? new ExcelImageExportOptions(), range.ExportImage) {
+            : base(
+                options?.Clone() ?? new ExcelImageExportOptions(),
+                (format, effective, cancellationToken) => range.ExportImage(format, effective, cancellationToken)) {
         }
 
         /// <summary>Enables or disables worksheet gridline rendering.</summary>
@@ -68,7 +70,9 @@ namespace OfficeIMO.Excel {
     /// </summary>
     public sealed class ExcelWorksheetImageExportBuilder : OfficeImageExportBuilder<ExcelWorksheetImageExportBuilder, ExcelWorksheetImageExportOptions> {
         internal ExcelWorksheetImageExportBuilder(ExcelSheet sheet, ExcelWorksheetImageExportOptions? options = null)
-            : base(options?.CloneWorksheet() ?? new ExcelWorksheetImageExportOptions(), sheet.ExportImage) {
+            : base(
+                options?.CloneWorksheet() ?? new ExcelWorksheetImageExportOptions(),
+                (format, effective, cancellationToken) => sheet.ExportImage(format, effective, cancellationToken)) {
         }
 
         /// <summary>Exports an explicit A1 range instead of the worksheet used range.</summary>
@@ -102,7 +106,11 @@ namespace OfficeIMO.Excel {
     /// </summary>
     public sealed class ExcelWorkbookImageExportBuilder : OfficeImageExportBatchBuilder<ExcelWorkbookImageExportBuilder, ExcelWorkbookImageExportOptions> {
         internal ExcelWorkbookImageExportBuilder(ExcelDocument workbook, ExcelWorkbookImageExportOptions? options = null)
-            : base(options?.CloneWorkbook() ?? new ExcelWorkbookImageExportOptions(), workbook.ExportImages) {
+            : base(
+                options?.CloneWorkbook() ?? new ExcelWorkbookImageExportOptions(),
+                workbook.ExportImages,
+                (format, effective, consumer, cancellationToken) =>
+                    workbook.ExportImages(format, consumer, effective, cancellationToken)) {
         }
 
         /// <summary>Exports only the named worksheets.</summary>
@@ -202,6 +210,10 @@ namespace OfficeIMO.Excel {
         /// Starts a fluent image export for this range.
         /// </summary>
         public ExcelRangeImageExportBuilder ToImage() => new ExcelRangeImageExportBuilder(this);
+
+        /// <summary>Starts a fluent image export using a cloned options snapshot.</summary>
+        public ExcelRangeImageExportBuilder ToImage(ExcelImageExportOptions options) =>
+            new ExcelRangeImageExportBuilder(this, options ?? throw new ArgumentNullException(nameof(options)));
     }
 
     public partial class ExcelSheet {
@@ -209,6 +221,10 @@ namespace OfficeIMO.Excel {
         /// Starts a fluent image export for this worksheet.
         /// </summary>
         public ExcelWorksheetImageExportBuilder ToImage() => new ExcelWorksheetImageExportBuilder(this);
+
+        /// <summary>Starts a fluent image export using a cloned options snapshot.</summary>
+        public ExcelWorksheetImageExportBuilder ToImage(ExcelWorksheetImageExportOptions options) =>
+            new ExcelWorksheetImageExportBuilder(this, options ?? throw new ArgumentNullException(nameof(options)));
     }
 
     public partial class ExcelDocument {
@@ -216,5 +232,9 @@ namespace OfficeIMO.Excel {
         /// Starts a fluent image export for selected worksheets in this workbook.
         /// </summary>
         public ExcelWorkbookImageExportBuilder ToImages() => new ExcelWorkbookImageExportBuilder(this);
+
+        /// <summary>Starts a fluent batch export using a cloned options snapshot.</summary>
+        public ExcelWorkbookImageExportBuilder ToImages(ExcelWorkbookImageExportOptions options) =>
+            new ExcelWorkbookImageExportBuilder(this, options ?? throw new ArgumentNullException(nameof(options)));
     }
 }

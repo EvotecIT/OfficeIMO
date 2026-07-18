@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using OfficeIMO.Drawing;
 using Color = OfficeIMO.Drawing.OfficeColor;
 
 namespace OfficeIMO.Visio {
@@ -40,6 +42,12 @@ namespace OfficeIMO.Visio {
         /// </summary>
         public int? FontCollectionIndex { get; set; }
 
+        /// <summary>Caller-supplied deterministic TrueType faces used before platform fallback.</summary>
+        public OfficeFontFaceCollection Fonts { get; set; } = new OfficeFontFaceCollection();
+
+        /// <summary>Cancellation observed between shapes and connectors.</summary>
+        public System.Threading.CancellationToken CancellationToken { get; set; }
+
         /// <summary>
         /// Gets or sets whether built-in OfficeIMO stencil metadata is projected as dependency-free vector artwork.
         /// </summary>
@@ -59,5 +67,20 @@ namespace OfficeIMO.Visio {
         /// Supersampling factor used for smoother native raster output. Defaults to 3.
         /// </summary>
         public int Supersampling { get; set; } = 3;
+
+        /// <summary>
+        /// Maximum output pixels allocated by the retained PNG API.
+        /// Oversized requests are reduced or rejected according to <see cref="RasterOverflowBehavior"/>.
+        /// </summary>
+        public long MaximumRasterPixels { get; set; } = OfficeImageExportOptions.DefaultMaximumRasterPixels;
+
+        /// <summary>Controls whether an oversized PNG request is safely reduced or rejected.</summary>
+        public OfficeRasterOverflowBehavior RasterOverflowBehavior { get; set; } = OfficeRasterOverflowBehavior.ReduceScale;
+
+        internal IOfficeRasterImageCodec? ImageCodec { get; set; }
+
+        internal ICollection<OfficeImageExportDiagnostic>? ImageDiagnostics { get; set; }
+
+        internal string? ImageDiagnosticSource { get; set; }
     }
 }

@@ -32,9 +32,9 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult png = document.ExportImage(OfficeImageExportFormat.Png, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
             OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
 
-            Assert.Empty(snapshot.Diagnostics);
-            Assert.Empty(png.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
             Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? image));
             Assert.Equal(png.Width, image!.Width);
 
@@ -89,9 +89,9 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult png = document.ExportImage(OfficeImageExportFormat.Png, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
             OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
 
-            Assert.Empty(snapshot.Diagnostics);
-            Assert.Empty(png.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
             Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? image));
             Assert.Equal(png.Height, image!.Height);
 
@@ -126,9 +126,9 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult png = document.ExportImage(OfficeImageExportFormat.Png, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
             OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
 
-            Assert.Empty(snapshot.Diagnostics);
-            Assert.Empty(png.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
             Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? image));
             Assert.Equal(png.Width, image!.Width);
 

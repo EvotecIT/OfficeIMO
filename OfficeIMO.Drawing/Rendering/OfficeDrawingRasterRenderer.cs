@@ -21,6 +21,7 @@ public static partial class OfficeDrawingRasterRenderer {
         }
 
         if (options == null) throw new ArgumentNullException(nameof(options));
+        options.CancellationToken.ThrowIfCancellationRequested();
         double scale = options.Scale;
 
         if (scale <= 0D || double.IsNaN(scale) || double.IsInfinity(scale)) {
@@ -31,13 +32,19 @@ public static partial class OfficeDrawingRasterRenderer {
         int height = Math.Max(1, (int)Math.Ceiling(drawing.Height * scale));
         OfficeRasterImage image = new OfficeRasterImage(width, height, options.Background);
         OfficeRasterCanvas canvas = new OfficeRasterCanvas(image, fonts: drawing.Fonts);
-        RenderElements(canvas, drawing.Elements, scale, options.ImageCodec);
+        RenderElements(canvas, drawing.Elements, scale, options.ImageCodec, options.CancellationToken);
 
         return image;
     }
 
-    private static void RenderElements(OfficeRasterCanvas canvas, IEnumerable<OfficeDrawingElement> elements, double scale, IOfficeRasterImageCodec? imageCodec) {
+    private static void RenderElements(
+        OfficeRasterCanvas canvas,
+        IEnumerable<OfficeDrawingElement> elements,
+        double scale,
+        IOfficeRasterImageCodec? imageCodec,
+        System.Threading.CancellationToken cancellationToken) {
         foreach (OfficeDrawingElement element in elements) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (element is OfficeDrawingShape shape) {
                 RenderShape(canvas, shape, scale);
             } else if (element is OfficeDrawingText text) {
@@ -45,15 +52,15 @@ public static partial class OfficeDrawingRasterRenderer {
             } else if (element is OfficeDrawingRichText richText) {
                 RenderRichText(canvas, richText, scale);
             } else if (element is OfficeDrawingImage drawingImage) {
-                RenderImage(canvas, drawingImage, scale, imageCodec);
+                RenderImage(canvas, drawingImage, scale, imageCodec, cancellationToken);
             } else if (element is OfficeDrawingImagePattern imagePattern) {
-                RenderImagePattern(canvas, imagePattern, scale, imageCodec);
+                RenderImagePattern(canvas, imagePattern, scale, imageCodec, cancellationToken);
             } else if (element is OfficeDrawingTilingPattern tilingPattern) {
-                RenderTilingPattern(canvas, tilingPattern, scale, imageCodec);
+                RenderTilingPattern(canvas, tilingPattern, scale, imageCodec, cancellationToken);
             } else if (element is OfficeDrawingGroup drawingGroup) {
-                RenderGroup(canvas, drawingGroup, scale, imageCodec);
+                RenderGroup(canvas, drawingGroup, scale, imageCodec, cancellationToken);
             } else if (element is OfficeDrawingEffectGroup effectGroup) {
-                RenderEffectGroup(canvas, effectGroup, scale, imageCodec);
+                RenderEffectGroup(canvas, effectGroup, scale, imageCodec, cancellationToken);
             }
         }
     }
@@ -67,7 +74,12 @@ public static partial class OfficeDrawingRasterRenderer {
     /// <summary>Renders a drawing to PNG bytes with an optional external image codec.</summary>
     public static byte[] ToPng(OfficeDrawing drawing, OfficeDrawingRasterRenderOptions options) => OfficePngWriter.Encode(Render(drawing, options));
 
-    private static void RenderGroup(OfficeRasterCanvas canvas, OfficeDrawingGroup drawingGroup, double scale, IOfficeRasterImageCodec? imageCodec) {
+    private static void RenderGroup(
+        OfficeRasterCanvas canvas,
+        OfficeDrawingGroup drawingGroup,
+        double scale,
+        IOfficeRasterImageCodec? imageCodec,
+        System.Threading.CancellationToken cancellationToken) {
         using (PushGroupClip(canvas, drawingGroup, scale)) {
             var translated = new OfficeDrawing(
                 Math.Max(1D, canvas.Width / scale),
@@ -80,7 +92,7 @@ public static partial class OfficeDrawingRasterRenderer {
                 translated.AddDrawingForClippedRendering(drawingGroup.InnerDrawing, contentX, contentY, null);
             }
 
-            RenderElements(canvas, translated.Elements, scale, imageCodec);
+            RenderElements(canvas, translated.Elements, scale, imageCodec, cancellationToken);
         }
     }
 
@@ -391,8 +403,21 @@ public static partial class OfficeDrawingRasterRenderer {
         return scaled;
     }
 
-    private static void RenderImage(OfficeRasterCanvas canvas, OfficeDrawingImage drawingImage, double scale, IOfficeRasterImageCodec? imageCodec) {
-        if (TryDecodeImage(drawingImage.EncodedBytes, drawingImage.ContentType, imageCodec, out OfficeRasterImage? image) && image != null) {
+    private static void RenderImage(
+        OfficeRasterCanvas canvas,
+        OfficeDrawingImage drawingImage,
+        double scale,
+        IOfficeRasterImageCodec? imageCodec,
+        System.Threading.CancellationToken cancellationToken) {
+        if (TryDecodeImage(
+                drawingImage.EncodedBytes,
+                drawingImage.ContentType,
+                drawingImage.Projection.Width * scale,
+                drawingImage.Projection.Height * scale,
+                imageCodec,
+                cancellationToken,
+                out OfficeRasterImage? image) &&
+            image != null) {
             if (drawingImage.Opacity < 1D) {
                 image = ApplyImageOpacity(image, drawingImage.Opacity);
             }
@@ -401,9 +426,49 @@ public static partial class OfficeDrawingRasterRenderer {
         }
     }
 
-    private static bool TryDecodeImage(byte[] bytes, string? contentType, IOfficeRasterImageCodec? imageCodec, out OfficeRasterImage? image) {
+    private static bool TryDecodeImage(
+        byte[] bytes,
+        string? contentType,
+        double targetWidth,
+        double targetHeight,
+        IOfficeRasterImageCodec? imageCodec,
+        System.Threading.CancellationToken cancellationToken,
+        out OfficeRasterImage? image) {
         if (OfficeRasterImageDecoder.TryDecode(bytes, out image) && image != null) return true;
+        if (IsSvg(bytes, contentType) &&
+            OfficeSvgDrawingReader.TryRead(bytes, out OfficeDrawing? vector, out int unsupportedFeatureCount) &&
+            vector != null &&
+            unsupportedFeatureCount == 0) {
+            cancellationToken.ThrowIfCancellationRequested();
+            double scale = ResolveNestedVectorScale(vector, targetWidth, targetHeight);
+            image = Render(vector, new OfficeDrawingRasterRenderOptions {
+                Scale = scale,
+                Background = OfficeColor.Transparent,
+                ImageCodec = imageCodec,
+                CancellationToken = cancellationToken
+            });
+            return true;
+        }
         return imageCodec != null && imageCodec.TryDecode((byte[])bytes.Clone(), contentType, out image) && image != null;
+    }
+
+    private static bool IsSvg(byte[] bytes, string? contentType) =>
+        OfficeImageInfo.FromMimeType(contentType) == OfficeImageFormat.Svg ||
+        (OfficeImageReader.TryIdentifyByContent(bytes, null, out OfficeImageInfo info) &&
+         info.Format == OfficeImageFormat.Svg);
+
+    private static double ResolveNestedVectorScale(
+        OfficeDrawing drawing,
+        double targetWidth,
+        double targetHeight) {
+        const long maximumNestedVectorPixels = 16_000_000L;
+        double desired = Math.Max(
+            Math.Max(1D, targetWidth) / drawing.Width,
+            Math.Max(1D, targetHeight) / drawing.Height);
+        double safe = Math.Sqrt(
+            maximumNestedVectorPixels /
+            Math.Max(1D, drawing.Width * drawing.Height));
+        return Math.Max(0.000001D, Math.Min(desired, safe));
     }
 
     private static OfficeRasterImage ApplyImageOpacity(OfficeRasterImage image, double opacity) {

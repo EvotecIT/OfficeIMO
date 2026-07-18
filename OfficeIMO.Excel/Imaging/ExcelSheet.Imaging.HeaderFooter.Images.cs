@@ -17,58 +17,21 @@ namespace OfficeIMO.Excel {
         }
 
         private static void AddHeaderFooterImageDiagnostics(
-            OfficeImageExportFormat format,
             HeaderFooterTextChrome chrome,
             string source,
             List<OfficeImageExportDiagnostic> diagnostics) {
-            int imageCount = 0;
-            int unsupportedCount = 0;
-            AddHeaderFooterImageDiagnostics(format, chrome.HeaderLeftImage, source, "header left", diagnostics, ref imageCount, ref unsupportedCount);
-            AddHeaderFooterImageDiagnostics(format, chrome.HeaderCenterImage, source, "header center", diagnostics, ref imageCount, ref unsupportedCount);
-            AddHeaderFooterImageDiagnostics(format, chrome.HeaderRightImage, source, "header right", diagnostics, ref imageCount, ref unsupportedCount);
-            AddHeaderFooterImageDiagnostics(format, chrome.FooterLeftImage, source, "footer left", diagnostics, ref imageCount, ref unsupportedCount);
-            AddHeaderFooterImageDiagnostics(format, chrome.FooterCenterImage, source, "footer center", diagnostics, ref imageCount, ref unsupportedCount);
-            AddHeaderFooterImageDiagnostics(format, chrome.FooterRightImage, source, "footer right", diagnostics, ref imageCount, ref unsupportedCount);
-            if (imageCount > unsupportedCount) {
+            if (chrome.HeaderLeftImage != null ||
+                chrome.HeaderCenterImage != null ||
+                chrome.HeaderRightImage != null ||
+                chrome.FooterLeftImage != null ||
+                chrome.FooterCenterImage != null ||
+                chrome.FooterRightImage != null) {
                 diagnostics.Add(new OfficeImageExportDiagnostic(
                     OfficeImageExportDiagnosticSeverity.Info,
                     ExcelImageExportDiagnosticCodes.HeaderFooterImageApproximation,
                     "Worksheet header/footer images were rendered through the dependency-free image approximation path.",
                     source));
             }
-        }
-
-        private static void AddHeaderFooterImageDiagnostics(
-            OfficeImageExportFormat format,
-            HeaderFooterImageSnapshot? image,
-            string source,
-            string location,
-            List<OfficeImageExportDiagnostic> diagnostics,
-            ref int imageCount,
-            ref int unsupportedCount) {
-            if (image == null) {
-                return;
-            }
-
-            imageCount++;
-            if (CanRenderHeaderFooterImage(format, image)) {
-                return;
-            }
-
-            unsupportedCount++;
-            diagnostics.Add(new OfficeImageExportDiagnostic(
-                OfficeImageExportDiagnosticSeverity.Warning,
-                ExcelImageExportDiagnosticCodes.HeaderFooterImageUnsupported,
-                "Worksheet " + location + " image with content type '" + image.ContentType + "' cannot be rendered by " + format + " header/footer image export yet.",
-                source));
-        }
-
-        private static bool CanRenderHeaderFooterImage(OfficeImageExportFormat format, HeaderFooterImageSnapshot image) {
-            if (format == OfficeImageExportFormat.Svg) {
-                return OfficeSvgImageRenderer.TryCreateDataUri(image.ContentType, image.Bytes, null, out _);
-            }
-
-            return OfficeRasterImageDecoder.TryDecode(image.Bytes, out _);
         }
 
         private static void DrawHeaderFooterRasterImages(
@@ -78,10 +41,11 @@ namespace OfficeIMO.Excel {
             double bandTop,
             double bandHeight,
             OfficeTextZoneLayout zones,
-            double scale) {
-            DrawHeaderFooterRasterImage(canvas, isHeader ? chrome.HeaderLeftImage : chrome.FooterLeftImage, zones.Left, bandTop, bandHeight, scale, OfficeTextAlignment.Left);
-            DrawHeaderFooterRasterImage(canvas, isHeader ? chrome.HeaderCenterImage : chrome.FooterCenterImage, zones.Center, bandTop, bandHeight, scale, OfficeTextAlignment.Center);
-            DrawHeaderFooterRasterImage(canvas, isHeader ? chrome.HeaderRightImage : chrome.FooterRightImage, zones.Right, bandTop, bandHeight, scale, OfficeTextAlignment.Right);
+            double scale,
+            IOfficeRasterImageCodec imageCodec) {
+            DrawHeaderFooterRasterImage(canvas, isHeader ? chrome.HeaderLeftImage : chrome.FooterLeftImage, zones.Left, bandTop, bandHeight, scale, OfficeTextAlignment.Left, imageCodec);
+            DrawHeaderFooterRasterImage(canvas, isHeader ? chrome.HeaderCenterImage : chrome.FooterCenterImage, zones.Center, bandTop, bandHeight, scale, OfficeTextAlignment.Center, imageCodec);
+            DrawHeaderFooterRasterImage(canvas, isHeader ? chrome.HeaderRightImage : chrome.FooterRightImage, zones.Right, bandTop, bandHeight, scale, OfficeTextAlignment.Right, imageCodec);
         }
 
         private static void DrawHeaderFooterRasterImage(
@@ -91,10 +55,15 @@ namespace OfficeIMO.Excel {
             double bandTop,
             double bandHeight,
             double scale,
-            OfficeTextAlignment alignment) {
-            if (image == null || !OfficeRasterImageDecoder.TryDecode(image.Bytes, out OfficeRasterImage? raster) || raster == null) {
+            OfficeTextAlignment alignment,
+            IOfficeRasterImageCodec imageCodec) {
+            if (image == null) {
                 return;
             }
+            if (!OfficeRasterImageDecoder.TryDecode(image.Bytes, out OfficeRasterImage? raster) || raster == null) {
+                imageCodec.TryDecode(image.Bytes, image.ContentType, out raster);
+            }
+            if (raster == null) return;
 
             (double x, double y, double width, double height) = ResolveHeaderFooterImageBox(image, zone, bandTop, bandHeight, scale, alignment);
             using (canvas.PushClipRectangle(zone.X, bandTop, zone.Width, bandHeight)) {
@@ -109,10 +78,11 @@ namespace OfficeIMO.Excel {
             double bandTop,
             double bandHeight,
             OfficeTextZoneLayout zones,
-            double scale) {
-            AppendHeaderFooterSvgImage(builder, isHeader ? chrome.HeaderLeftImage : chrome.FooterLeftImage, zones.Left, bandTop, bandHeight, scale, OfficeTextAlignment.Left, isHeader ? "header-left-image" : "footer-left-image");
-            AppendHeaderFooterSvgImage(builder, isHeader ? chrome.HeaderCenterImage : chrome.FooterCenterImage, zones.Center, bandTop, bandHeight, scale, OfficeTextAlignment.Center, isHeader ? "header-center-image" : "footer-center-image");
-            AppendHeaderFooterSvgImage(builder, isHeader ? chrome.HeaderRightImage : chrome.FooterRightImage, zones.Right, bandTop, bandHeight, scale, OfficeTextAlignment.Right, isHeader ? "header-right-image" : "footer-right-image");
+            double scale,
+            IOfficeRasterImageCodec imageCodec) {
+            AppendHeaderFooterSvgImage(builder, isHeader ? chrome.HeaderLeftImage : chrome.FooterLeftImage, zones.Left, bandTop, bandHeight, scale, OfficeTextAlignment.Left, isHeader ? "header-left-image" : "footer-left-image", imageCodec);
+            AppendHeaderFooterSvgImage(builder, isHeader ? chrome.HeaderCenterImage : chrome.FooterCenterImage, zones.Center, bandTop, bandHeight, scale, OfficeTextAlignment.Center, isHeader ? "header-center-image" : "footer-center-image", imageCodec);
+            AppendHeaderFooterSvgImage(builder, isHeader ? chrome.HeaderRightImage : chrome.FooterRightImage, zones.Right, bandTop, bandHeight, scale, OfficeTextAlignment.Right, isHeader ? "header-right-image" : "footer-right-image", imageCodec);
         }
 
         private static void AppendHeaderFooterSvgImage(
@@ -123,8 +93,9 @@ namespace OfficeIMO.Excel {
             double bandHeight,
             double scale,
             OfficeTextAlignment alignment,
-            string clipSuffix) {
-            if (image == null || !OfficeSvgImageRenderer.TryCreateDataUri(image.ContentType, image.Bytes, null, out string dataUri)) {
+            string clipSuffix,
+            IOfficeRasterImageCodec imageCodec) {
+            if (image == null || !OfficeSvgImageRenderer.TryCreateDataUri(image.ContentType, image.Bytes, null, imageCodec, out string dataUri)) {
                 return;
             }
 

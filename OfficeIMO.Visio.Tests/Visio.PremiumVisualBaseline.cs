@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
@@ -11,6 +13,9 @@ using Xunit;
 
 namespace OfficeIMO.Tests {
     public class VisioPremiumVisualBaselineTests {
+        private const string PrintAuditTrailNativePngBaseline = "officeimo-visio-premium-print-audit-trail-native-page1.png";
+        private const string LinuxPrintAuditTrailNativePngBaseline = "officeimo-visio-premium-print-audit-trail-native-page1.linux.png";
+
         private static readonly IReadOnlyDictionary<string, string> BaselinePrefixes = new Dictionary<string, string>(StringComparer.Ordinal) {
             ["Premium Cloud Architecture"] = "officeimo-visio-premium-cloud-architecture",
             ["Premium Network Segmentation"] = "officeimo-visio-premium-network-segmentation",
@@ -123,6 +128,10 @@ namespace OfficeIMO.Tests {
                 AssertNativeSvgBaselineIsRenderable(svgPath);
                 AssertNativePngBaselineIsNonBlank(pngPath);
             }
+
+            string linuxPngPath = Path.Combine(baselineDirectory, LinuxPrintAuditTrailNativePngBaseline);
+            Assert.True(File.Exists(linuxPngPath), "Missing approved Linux native PNG baseline: " + linuxPngPath);
+            AssertNativePngBaselineIsNonBlank(linuxPngPath);
         }
 
         [Fact]
@@ -142,6 +151,9 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, comparison.DifferentPixels);
             Assert.Equal(2, comparison.TotalPixels);
             Assert.Equal(255, comparison.MaxChannelDelta);
+            Assert.Equal(39.875D, comparison.MeanAbsoluteError, 3);
+            Assert.InRange(comparison.RootMeanSquareError, 92.9D, 93D);
+            Assert.InRange(comparison.MeanLuminanceError, 32D, 32.2D);
             Assert.True(comparison.DiffPng.Length > 0);
             Assert.Equal(2, VisualBaselineTestSupport.DecodePng(comparison.DiffPng, "Visio diff PNG is not a supported PNG file.").Width);
         }
@@ -186,7 +198,8 @@ namespace OfficeIMO.Tests {
         }
 
         private static void AssertBaseline(string baselineName, string actualPath, VisioPremiumBaselineContext context) {
-            string expectedPath = Path.Combine(VisualBaselineTestSupport.GetTestsProjectRoot(), "Visio", "VisualBaselines", baselineName);
+            string expectedBaselineName = ResolveExpectedBaselineName(baselineName);
+            string expectedPath = Path.Combine(VisualBaselineTestSupport.GetTestsProjectRoot(), "Visio", "VisualBaselines", expectedBaselineName);
             if (IsBaselineUpdateRequested()) {
                 Directory.CreateDirectory(Path.GetDirectoryName(expectedPath)!);
                 File.Copy(actualPath, expectedPath, overwrite: true);
@@ -217,7 +230,10 @@ namespace OfficeIMO.Tests {
                 return;
             }
 
-            VisualRasterComparison comparison = CompareRasterImages(File.ReadAllBytes(expectedPath), File.ReadAllBytes(actualPath), IsNativePngBaseline(baselineName));
+            bool allowNativeVariance =
+                string.Equals(expectedBaselineName, baselineName, StringComparison.OrdinalIgnoreCase) &&
+                IsNativePngBaseline(baselineName);
+            VisualRasterComparison comparison = CompareRasterImages(File.ReadAllBytes(expectedPath), File.ReadAllBytes(actualPath), allowNativeVariance);
             if (comparison.Passed) {
                 return;
             }
@@ -300,7 +316,13 @@ namespace OfficeIMO.Tests {
                 : "Different pixels: " + comparison.DifferentPixels + "/" + comparison.TotalPixels + "; " +
                   "max channel delta: " + comparison.MaxChannelDelta + "; " +
                   "allowed different pixels: " + comparison.AllowedDifferentPixels + "; " +
-                  "channel tolerance: " + comparison.ChannelTolerance + ". ";
+                  "channel tolerance: " + comparison.ChannelTolerance + "; " +
+                  "MAE: " + comparison.MeanAbsoluteError.ToString("0.###", CultureInfo.InvariantCulture) + "/" +
+                    comparison.MaximumMeanAbsoluteError.ToString("0.###", CultureInfo.InvariantCulture) + "; " +
+                  "RMSE: " + comparison.RootMeanSquareError.ToString("0.###", CultureInfo.InvariantCulture) + "/" +
+                    comparison.MaximumRootMeanSquareError.ToString("0.###", CultureInfo.InvariantCulture) + "; " +
+                  "luminance MAE: " + comparison.MeanLuminanceError.ToString("0.###", CultureInfo.InvariantCulture) + "/" +
+                    comparison.MaximumMeanLuminanceError.ToString("0.###", CultureInfo.InvariantCulture) + ". ";
             throw new Xunit.Sdk.XunitException(
                 "Premium Visio visual baseline changed for '" + baselineName + "'. " +
                 "Expected bytes: " + expectedInfo.Length + "; actual bytes: " + actualInfo.Length + ". " +
@@ -396,6 +418,12 @@ namespace OfficeIMO.Tests {
             baselineName.IndexOf("-native-", StringComparison.OrdinalIgnoreCase) >= 0 &&
             baselineName.EndsWith(".png", StringComparison.OrdinalIgnoreCase);
 
+        private static string ResolveExpectedBaselineName(string baselineName) =>
+            RuntimeInformation.IsOSPlatform(OSPlatform.Linux) &&
+            string.Equals(baselineName, PrintAuditTrailNativePngBaseline, StringComparison.OrdinalIgnoreCase)
+                ? LinuxPrintAuditTrailNativePngBaseline
+                : baselineName;
+
         private static VisualRasterComparison CompareRasterImages(byte[] expectedPng, byte[] actualPng, bool allowNativeVariance = false) {
             int channelTolerance = VisualBaselineTestSupport.ReadNonNegativeInt("OFFICEIMO_VISIO_PREMIUM_BASELINE_PIXEL_TOLERANCE", 0);
             int allowedDifferentPixels = VisualBaselineTestSupport.ReadNonNegativeInt("OFFICEIMO_VISIO_PREMIUM_BASELINE_ALLOWED_DIFF_PIXELS", 1);
@@ -408,7 +436,17 @@ namespace OfficeIMO.Tests {
                 allowedDifferentPixels = VisualBaselineTestSupport.ReadNonNegativeInt("OFFICEIMO_VISIO_PREMIUM_NATIVE_BASELINE_ALLOWED_DIFF_PIXELS", defaultAllowedDifferentPixels);
             }
 
-            return VisualBaselineTestSupport.CompareRasterImages(expected, actual, channelTolerance, allowedDifferentPixels);
+            double defaultMaximumMeanAbsoluteError = allowNativeVariance ? 2.5D : 0D;
+            double defaultMaximumRootMeanSquareError = allowNativeVariance ? 18D : 0D;
+            double defaultMaximumMeanLuminanceError = allowNativeVariance ? 3.5D : 0D;
+            return VisualBaselineTestSupport.CompareRasterImages(
+                expected,
+                actual,
+                channelTolerance,
+                allowedDifferentPixels,
+                VisualBaselineTestSupport.ReadNonNegativeDouble("OFFICEIMO_VISIO_PREMIUM_BASELINE_MAX_MAE", defaultMaximumMeanAbsoluteError),
+                VisualBaselineTestSupport.ReadNonNegativeDouble("OFFICEIMO_VISIO_PREMIUM_BASELINE_MAX_RMSE", defaultMaximumRootMeanSquareError),
+                VisualBaselineTestSupport.ReadNonNegativeDouble("OFFICEIMO_VISIO_PREMIUM_BASELINE_MAX_LUMINANCE_MAE", defaultMaximumMeanLuminanceError));
         }
 
         private static VisualRasterComparison CompareRasterImages(byte[] expectedPng, byte[] actualPng, int channelTolerance, int allowedDifferentPixels) =>

@@ -39,8 +39,8 @@ namespace OfficeIMO.Tests {
             Assert.Equal((int)Math.Ceiling(snapshot.Height * 2D), png.Height);
             Assert.Equal((int)Math.Ceiling(snapshot.Width * 2D), scaledSvg.Width);
             Assert.Equal((int)Math.Ceiling(snapshot.Height * 2D), scaledSvg.Height);
-            Assert.Empty(png.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
             Assert.Contains(snapshot.Drawing.Elements, element => element is OfficeDrawingText drawingText && drawingText.Text == "Shared Word renderer" && drawingText.Alignment == OfficeTextAlignment.Center);
             Assert.Contains(snapshot.Drawing.Elements, element => element is OfficeDrawingText drawingText && drawingText.Text.StartsWith("This body paragraph", StringComparison.Ordinal));
 
@@ -50,10 +50,10 @@ namespace OfficeIMO.Tests {
             Assert.Equal(OfficeColor.White, image.GetPixel(2, 2));
 
             string svgText = Encoding.UTF8.GetString(svg.Bytes);
-            Assert.Contains("width=\"595.3pt\"", svgText, StringComparison.Ordinal);
+            Assert.Contains("width=\"596px\"", svgText, StringComparison.Ordinal);
             Assert.Contains("Shared Word renderer", svgText, StringComparison.Ordinal);
             string scaledSvgText = Encoding.UTF8.GetString(scaledSvg.Bytes);
-            Assert.Contains("width=\"1190.6pt\"", scaledSvgText, StringComparison.Ordinal);
+            Assert.Contains("width=\"1191px\"", scaledSvgText, StringComparison.Ordinal);
         }
 
         [Fact]
@@ -66,7 +66,7 @@ namespace OfficeIMO.Tests {
 
             OfficeImageExportResult png = document.ToImage()
                 .FirstPage()
-                .ForHighResolution()
+                .ForPrint(192D)
                 .AsPng()
                 .Export();
 
@@ -74,7 +74,7 @@ namespace OfficeIMO.Tests {
             Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? image));
             Assert.Equal(png.Width, image!.Width);
             Assert.Equal(png.Height, image.Height);
-            Assert.Empty(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
         }
 
         [Fact]
@@ -152,9 +152,9 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult png = document.ExportImage(OfficeImageExportFormat.Png, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
             OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
 
-            Assert.Empty(snapshot.Diagnostics);
-            Assert.Empty(png.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
             OfficeDrawingShape arrow = snapshot.Drawing.Elements
                 .OfType<OfficeDrawingShape>()
                 .First(shape => shape.Shape.FillColor == OfficeColor.FromRgb(14, 165, 233));
@@ -192,9 +192,9 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult png = document.ExportImage(OfficeImageExportFormat.Png, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
             OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
 
-            Assert.Empty(snapshot.Diagnostics);
-            Assert.Empty(png.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
             OfficeDrawingShape arrow = snapshot.Drawing.Elements
                 .OfType<OfficeDrawingShape>()
                 .First(shape => shape.Shape.FillColor == OfficeColor.FromRgb(34, 197, 94));
@@ -236,9 +236,9 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult png = document.ExportImage(OfficeImageExportFormat.Png, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
             OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
 
-            Assert.Empty(snapshot.Diagnostics);
-            Assert.Empty(png.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
             OfficeDrawingShape arrow = snapshot.Drawing.Elements
                 .OfType<OfficeDrawingShape>()
                 .First(shape => shape.Shape.FillColor == OfficeColor.FromRgb(14, 165, 233));
@@ -319,9 +319,9 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult png = document.ExportImage(OfficeImageExportFormat.Png, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
             OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
 
-            Assert.Empty(snapshot.Diagnostics);
-            Assert.Empty(png.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
             OfficeDrawingShape arrow = snapshot.Drawing.Elements
                 .OfType<OfficeDrawingShape>()
                 .First(shape => shape.Shape.FillColor == OfficeColor.FromRgb(245, 158, 11));
@@ -358,7 +358,7 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult png = document.ExportImage(OfficeImageExportFormat.Png, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
             OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
 
-            Assert.Empty(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
             List<OfficeDrawingElement> elements = snapshot.Drawing.Elements.ToList();
             int shapeIndex = elements.FindIndex(element =>
                 element is OfficeDrawingShape shape && shape.Shape.FillColor == OfficeColor.FromRgb(59, 130, 246));
@@ -405,9 +405,9 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult png = document.ExportImage(OfficeImageExportFormat.Png, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
             OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
 
-            Assert.Empty(snapshot.Diagnostics);
-            Assert.Empty(png.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
             OfficeDrawingShape transformedDrawingShape = snapshot.Drawing.Elements
                 .OfType<OfficeDrawingShape>()
                 .Single(shape => shape.Shape.FillColor == OfficeColor.FromRgb(99, 102, 241));
@@ -450,9 +450,9 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult png = document.ExportImage(OfficeImageExportFormat.Png, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
             OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
 
-            Assert.Empty(snapshot.Diagnostics);
-            Assert.Empty(png.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
             IReadOnlyList<OfficeDrawingShape> shapes = snapshot.Drawing.Elements.OfType<OfficeDrawingShape>().ToList();
             Assert.Contains(shapes, shape => shape.Shape.Kind == OfficeShapeKind.Rectangle && shape.Shape.FillColor == OfficeColor.FromRgb(248, 113, 113));
             Assert.Contains(shapes, shape => shape.Shape.Kind == OfficeShapeKind.Ellipse && shape.Shape.FillColor == OfficeColor.FromRgb(96, 165, 250));
@@ -493,9 +493,9 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult png = document.ExportImage(OfficeImageExportFormat.Png, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
             OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
 
-            Assert.Empty(snapshot.Diagnostics);
-            Assert.Empty(png.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
             IReadOnlyList<OfficeDrawingText> texts = snapshot.Drawing.Elements.OfType<OfficeDrawingText>().ToList();
             Assert.Contains(texts, text => text.Text.Contains("DrawingML text box content", StringComparison.Ordinal));
             Assert.Contains(texts, text => text.Text.Contains("Legacy VML text box content", StringComparison.Ordinal));
@@ -561,9 +561,9 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult png = document.ExportImage(OfficeImageExportFormat.Png, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
             OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
 
-            Assert.Empty(snapshot.Diagnostics);
-            Assert.Empty(png.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
             OfficeDrawingText textBoxText = snapshot.Drawing.Elements
                 .OfType<OfficeDrawingText>()
                 .Single(text => text.Text == "Top-bottom floating text box");
@@ -593,7 +593,7 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult png = document.ExportImage(OfficeImageExportFormat.Png, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
             OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
 
-            Assert.Empty(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
             int behindTextIndex = snapshot.Drawing.Elements.ToList().FindIndex(element =>
                 element is OfficeDrawingText text && text.Text == "Behind box");
             int foregroundTextIndex = snapshot.Drawing.Elements.ToList().FindIndex(element =>
@@ -628,7 +628,7 @@ namespace OfficeIMO.Tests {
             WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot();
 
             Assert.Equal(WrapTextImage.BehindText, textBox.WrapText);
-            Assert.Empty(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
             List<OfficeDrawingElement> elements = snapshot.Drawing.Elements.ToList();
             int behindTextIndex = elements.FindIndex(element =>
                 element is OfficeDrawingText text && text.Text == "Changed behind box");
@@ -659,9 +659,9 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult png = document.ExportImage(OfficeImageExportFormat.Png, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
             OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
 
-            Assert.Empty(snapshot.Diagnostics);
-            Assert.Empty(png.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
             OfficeDrawingText drawingText = snapshot.Drawing.Elements
                 .OfType<OfficeDrawingText>()
                 .Single(item => item.Text.Contains("DrawingML bottom", StringComparison.Ordinal));
@@ -711,9 +711,9 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult png = document.ExportImage(OfficeImageExportFormat.Png, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
             OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
 
-            Assert.Empty(snapshot.Diagnostics);
-            Assert.Empty(png.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
             List<OfficeDrawingRichText> richTexts = snapshot.Drawing.Elements.OfType<OfficeDrawingRichText>().ToList();
             OfficeDrawingRichText drawingRichText = richTexts.Single(item => item.PlainText == "Box Red blue");
             OfficeDrawingRichText vmlRichText = richTexts.Single(item => item.PlainText == "Legacy Green");
@@ -770,9 +770,9 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult png = document.ExportImage(OfficeImageExportFormat.Png, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
             OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
 
-            Assert.Empty(snapshot.Diagnostics);
-            Assert.Empty(png.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
 
             OfficeDrawingText drawingText = snapshot.Drawing.Elements
                 .OfType<OfficeDrawingText>()
@@ -828,9 +828,9 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult png = document.ExportImage(OfficeImageExportFormat.Png, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
             OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
 
-            Assert.Empty(snapshot.Diagnostics);
-            Assert.Empty(png.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
             OfficeDrawingText text = snapshot.Drawing.Elements
                 .OfType<OfficeDrawingText>()
                 .Single(item => item.Text.Contains("Fit VML text box content", StringComparison.Ordinal));
@@ -955,9 +955,9 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult png = document.ExportImage(OfficeImageExportFormat.Png, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
             OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
 
-            Assert.Empty(snapshot.Diagnostics);
-            Assert.Empty(png.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
             List<OfficeDrawingShape> borderLines = snapshot.Drawing.Elements
                 .OfType<OfficeDrawingShape>()
                 .Where(shape => shape.Shape.Kind == OfficeShapeKind.Line)
@@ -998,9 +998,9 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult png = document.ExportImage(OfficeImageExportFormat.Png, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
             OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
 
-            Assert.Empty(snapshot.Diagnostics);
-            Assert.Empty(png.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
             List<OfficeDrawingShape> redBorderLines = snapshot.Drawing.Elements
                 .OfType<OfficeDrawingShape>()
                 .Where(shape => shape.Shape.Kind == OfficeShapeKind.Line && shape.Shape.StrokeColor == OfficeColor.FromRgb(220, 38, 38))
@@ -1038,9 +1038,9 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult png = document.ExportImage(OfficeImageExportFormat.Png, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
             OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
 
-            Assert.Empty(snapshot.Diagnostics);
-            Assert.Empty(png.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
             List<OfficeDrawingShape> diagonalLines = snapshot.Drawing.Elements
                 .OfType<OfficeDrawingShape>()
                 .Where(shape => shape.Shape.Kind == OfficeShapeKind.Line &&
@@ -1089,9 +1089,9 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult png = document.ExportImage(OfficeImageExportFormat.Png, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
             OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
 
-            Assert.Empty(snapshot.Diagnostics);
-            Assert.Empty(png.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
             Assert.Contains(snapshot.Drawing.Elements, element => element is OfficeDrawingShape shape && shape.Shape.FillColor == OfficeColor.FromRgb(18, 52, 86));
             List<OfficeDrawingShape> themeLines = snapshot.Drawing.Elements
                 .OfType<OfficeDrawingShape>()
@@ -1131,8 +1131,8 @@ namespace OfficeIMO.Tests {
             WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot();
             OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
 
-            Assert.Empty(snapshot.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
             OfficeDrawingText text = snapshot.Drawing.Elements
                 .OfType<OfficeDrawingText>()
                 .Single(element => element.Text == "Theme table text");
@@ -1185,8 +1185,8 @@ namespace OfficeIMO.Tests {
             WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot();
             OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
 
-            Assert.Empty(snapshot.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
             Assert.Contains(snapshot.Drawing.Elements, element =>
                 element is OfficeDrawingShape shape &&
                 shape.Shape.FillColor == OfficeColor.FromRgb(224, 242, 254));
@@ -1262,8 +1262,8 @@ namespace OfficeIMO.Tests {
             WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot();
             OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
 
-            Assert.Empty(snapshot.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
             Assert.Contains(snapshot.Drawing.Elements, element =>
                 element is OfficeDrawingShape shape &&
                 shape.Shape.FillColor == OfficeColor.FromRgb(18, 52, 86));
@@ -1336,8 +1336,8 @@ namespace OfficeIMO.Tests {
             WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot();
             OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
 
-            Assert.Empty(snapshot.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
             Assert.Contains(snapshot.Drawing.Elements, element =>
                 element is OfficeDrawingShape shape &&
                 shape.Shape.FillColor == OfficeColor.FromRgb(224, 242, 254));
@@ -1401,8 +1401,8 @@ namespace OfficeIMO.Tests {
             WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot();
             OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
 
-            Assert.Empty(snapshot.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
             Assert.Contains(snapshot.Drawing.Elements, element =>
                 element is OfficeDrawingShape shape &&
                 shape.Shape.FillColor == OfficeColor.FromRgb(254, 243, 199));
@@ -1439,8 +1439,8 @@ namespace OfficeIMO.Tests {
             WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot();
             OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
 
-            Assert.Empty(snapshot.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
 
             OfficeDrawingShape cellFrame = snapshot.Drawing.Elements
                 .OfType<OfficeDrawingShape>()
@@ -1482,9 +1482,9 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
             WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot();
 
-            Assert.Empty(png.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
-            Assert.Empty(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
             OfficeDrawingRichText richText = Assert.Single(snapshot.Drawing.Elements.OfType<OfficeDrawingRichText>());
             Assert.Equal("Plain Red italic", richText.PlainText);
             Assert.Equal(3, richText.Runs.Count);
@@ -1526,9 +1526,9 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult png = document.ExportImage(OfficeImageExportFormat.Png, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
             OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
 
-            Assert.Empty(snapshot.Diagnostics);
-            Assert.Empty(png.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
             OfficeDrawingRichText richText = Assert.Single(snapshot.Drawing.Elements.OfType<OfficeDrawingRichText>());
             OfficeRichTextRun run = Assert.Single(richText.Runs);
             Assert.Equal("Marked cell", run.Text);
@@ -1570,9 +1570,9 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
             WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot();
 
-            Assert.Empty(snapshot.Diagnostics);
-            Assert.Empty(png.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
             Assert.Contains(snapshot.Drawing.Elements, element => element is OfficeDrawingText text && text.Text == "Inner A");
             Assert.Contains(snapshot.Drawing.Elements, element => element is OfficeDrawingText text && text.Text == "Inner B");
             Assert.Contains(snapshot.Drawing.Elements, element => element is OfficeDrawingText text && text.Text == "After nested");
@@ -1622,8 +1622,8 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
             WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot();
 
-            Assert.Empty(svg.Diagnostics);
-            Assert.Empty(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
             Assert.Contains(snapshot.Drawing.Elements, element => element is OfficeDrawingText text && text.Text == "1.");
 
             OfficeDrawingText bulletBody = snapshot.Drawing.Elements.OfType<OfficeDrawingText>().Single(text => text.Text == "Bullet item");
@@ -1657,8 +1657,8 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
             WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot();
 
-            Assert.Empty(svg.Diagnostics);
-            Assert.Empty(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
             OfficeDrawingText firstParent = snapshot.Drawing.Elements.OfType<OfficeDrawingText>().Single(text => text.Text == "First parent");
             OfficeDrawingText firstChild = snapshot.Drawing.Elements.OfType<OfficeDrawingText>().Single(text => text.Text == "First child");
             OfficeDrawingText secondParent = snapshot.Drawing.Elements.OfType<OfficeDrawingText>().Single(text => text.Text == "Second parent");
@@ -1688,9 +1688,9 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
             WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot();
 
-            Assert.Empty(png.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
-            Assert.Empty(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
             OfficeDrawingRichText richText = Assert.Single(snapshot.Drawing.Elements.OfType<OfficeDrawingRichText>());
             Assert.Equal("Plain Red italic", richText.PlainText);
             Assert.Equal(3, richText.Runs.Count);
@@ -1729,8 +1729,8 @@ namespace OfficeIMO.Tests {
             WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot();
             OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
 
-            Assert.Empty(snapshot.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
             OfficeDrawingText bodyText = snapshot.Drawing.Elements
                 .OfType<OfficeDrawingText>()
                 .Single(text => text.Text == "Theme body");
@@ -1761,9 +1761,9 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult png = document.ExportImage(OfficeImageExportFormat.Png, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
             OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
 
-            Assert.Empty(snapshot.Diagnostics);
-            Assert.Empty(png.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
             OfficeDrawingRichText richText = Assert.Single(snapshot.Drawing.Elements.OfType<OfficeDrawingRichText>());
             OfficeRichTextRun run = Assert.Single(richText.Runs);
             Assert.Equal("Marked", run.Text);
@@ -1829,9 +1829,9 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult png = document.ExportImage(OfficeImageExportFormat.Png, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
             OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
 
-            Assert.Empty(snapshot.Diagnostics);
-            Assert.Empty(png.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
             List<OfficeDrawingRichText> richTexts = snapshot.Drawing.Elements.OfType<OfficeDrawingRichText>().ToList();
             OfficeRichTextRun characterRun = Assert.Single(richTexts.Single(text => text.PlainText == "Character style marked").Runs);
             OfficeRichTextRun paragraphRun = Assert.Single(richTexts.Single(text => text.PlainText == "Paragraph style marked").Runs);
@@ -1868,8 +1868,8 @@ namespace OfficeIMO.Tests {
             WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot();
             OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
 
-            Assert.Empty(snapshot.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
             OfficeDrawingText text = snapshot.Drawing.Elements
                 .OfType<OfficeDrawingText>()
                 .Single(element => element.Text == "Framed paragraph");
@@ -1930,8 +1930,8 @@ namespace OfficeIMO.Tests {
             WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot();
             OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
 
-            Assert.Empty(snapshot.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
             OfficeDrawingText text = snapshot.Drawing.Elements
                 .OfType<OfficeDrawingText>()
                 .Single(element => element.Text == "Style framed paragraph");
@@ -1968,8 +1968,8 @@ namespace OfficeIMO.Tests {
             WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot();
             OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
 
-            Assert.Empty(snapshot.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
             OfficeDrawingText text = snapshot.Drawing.Elements
                 .OfType<OfficeDrawingText>()
                 .Single(element => element.Text == "Opaque Word paragraph");
@@ -2004,8 +2004,8 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
             WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot();
 
-            Assert.Empty(svg.Diagnostics);
-            Assert.Empty(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
 
             OfficeDrawingText plainText = snapshot.Drawing.Elements.OfType<OfficeDrawingText>().Single(text => text.Text == "Plain indented");
             Assert.True(plainText.HasPadding);
@@ -2040,8 +2040,8 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
             WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot();
 
-            Assert.Empty(svg.Diagnostics);
-            Assert.Empty(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
 
             OfficeDrawingText hangingText = snapshot.Drawing.Elements.OfType<OfficeDrawingText>().Single(text => text.Text.StartsWith("Hanging", StringComparison.Ordinal));
             Assert.Equal(12D, hangingText.Padding.Left);
@@ -2071,7 +2071,7 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
             WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot();
 
-            Assert.Empty(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
             OfficeDrawingText text = snapshot.Drawing.Elements.OfType<OfficeDrawingText>().Single(element => element.Text.StartsWith("Justified Word", StringComparison.Ordinal));
             Assert.Equal(OfficeTextAlignment.Justify, text.Alignment);
 
@@ -2091,7 +2091,7 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
             string svgText = Encoding.UTF8.GetString(svg.Bytes);
 
-            Assert.Empty(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
             Assert.DoesNotContain("\t", svgText, StringComparison.Ordinal);
             Assert.Contains("xml:space=\"preserve\"", svgText, StringComparison.Ordinal);
             Assert.Contains("A   B", svgText, StringComparison.Ordinal);
@@ -2110,8 +2110,8 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
             WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot();
 
-            Assert.Empty(png.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
             OfficeDrawingImage drawingImage = Assert.Single(snapshot.Drawing.Images);
             Assert.Equal("Inline blue marker", drawingImage.AlternativeText);
 
@@ -2141,8 +2141,8 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
             WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot();
 
-            Assert.Empty(png.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
             OfficeDrawingImage drawingImage = Assert.Single(snapshot.Drawing.Images);
             Assert.Equal("Inline BMP marker", drawingImage.AlternativeText);
             Assert.Equal("image/bmp", drawingImage.ContentType);
@@ -2170,8 +2170,8 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
             WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot();
 
-            Assert.Empty(png.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
             OfficeDrawingImage drawingImage = Assert.Single(snapshot.Drawing.Images);
             Assert.Equal("Inline top-down BMP marker", drawingImage.AlternativeText);
             Assert.Equal("image/bmp", drawingImage.ContentType);
@@ -2199,8 +2199,8 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
             WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot();
 
-            Assert.Empty(png.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
             OfficeDrawingImage drawingImage = Assert.Single(snapshot.Drawing.Images);
             Assert.Equal("Inline BMP32 alpha marker", drawingImage.AlternativeText);
             Assert.Equal("image/bmp", drawingImage.ContentType);
@@ -2226,8 +2226,8 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, new WordImageExportOptions { BackgroundColor = OfficeColor.Black });
             WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot();
 
-            Assert.Empty(png.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
             OfficeDrawingImage drawingImage = Assert.Single(snapshot.Drawing.Images);
             Assert.Equal("Inline GIF marker", drawingImage.AlternativeText);
             Assert.Equal("image/gif", drawingImage.ContentType);
@@ -2253,8 +2253,8 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
             WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot();
 
-            Assert.Empty(png.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
             OfficeDrawingImage drawingImage = Assert.Single(snapshot.Drawing.Images);
             Assert.Equal(0.5D, drawingImage.Projection.SourceLeft, 3);
             Assert.Equal(0.5D, drawingImage.Projection.SourceWidth, 3);
@@ -2522,7 +2522,7 @@ namespace OfficeIMO.Tests {
             WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot();
             OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
 
-            Assert.Empty(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
             OfficeDrawingRichText richText = Assert.Single(snapshot.Drawing.Elements.OfType<OfficeDrawingRichText>());
             Assert.Equal("Page 1 of 1", richText.PlainText);
             string svgText = Encoding.UTF8.GetString(svg.Bytes);
@@ -2560,7 +2560,7 @@ namespace OfficeIMO.Tests {
                 WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot();
                 OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
 
-                Assert.Empty(snapshot.Diagnostics);
+                AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
                 Assert.Contains(snapshot.Drawing.Elements.OfType<OfficeDrawingRichText>(), text => text.PlainText == expected);
                 string svgText = Encoding.UTF8.GetString(svg.Bytes);
                 Assert.Contains("Premium Author", svgText, StringComparison.Ordinal);
@@ -2602,7 +2602,7 @@ namespace OfficeIMO.Tests {
             WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot(options);
             OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, options);
 
-            Assert.Empty(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
             Assert.Contains(snapshot.Drawing.Elements.OfType<OfficeDrawingRichText>(), text => text.PlainText == "Body page 2 of 2");
             Assert.DoesNotContain(snapshot.Drawing.Elements.OfType<OfficeDrawingRichText>(), text => text.PlainText == "Body page 9 of 9");
             string svgText = Encoding.UTF8.GetString(svg.Bytes);
@@ -2637,7 +2637,7 @@ namespace OfficeIMO.Tests {
             WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot(options);
             OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, options);
 
-            Assert.Empty(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
             Assert.Contains(snapshot.Drawing.Elements.OfType<OfficeDrawingRichText>(), text => text.PlainText == "Cell page 2 of 2");
             Assert.DoesNotContain(snapshot.Drawing.Elements.OfType<OfficeDrawingRichText>(), text => text.PlainText == "Cell page 9 of 9");
             string svgText = Encoding.UTF8.GetString(svg.Bytes);
@@ -2673,7 +2673,7 @@ namespace OfficeIMO.Tests {
             WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot(options);
             OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, options);
 
-            Assert.Empty(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
             Assert.Contains(snapshot.Drawing.Elements.OfType<OfficeDrawingRichText>(), text => text.PlainText == "Text box page 2 of 2");
             Assert.DoesNotContain(snapshot.Drawing.Elements.OfType<OfficeDrawingRichText>(), text => text.PlainText == "Text box page 9 of 9");
             string svgText = Encoding.UTF8.GetString(svg.Bytes);
@@ -2707,7 +2707,7 @@ namespace OfficeIMO.Tests {
             WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot(options);
             OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, options);
 
-            Assert.Empty(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
             Assert.Contains(snapshot.Drawing.Elements.OfType<OfficeDrawingRichText>(), text => text.PlainText == "Page 2 of 2");
             Assert.DoesNotContain(snapshot.Drawing.Elements.OfType<OfficeDrawingRichText>(), text => text.PlainText == "Page 1 of 1");
             string svgText = Encoding.UTF8.GetString(svg.Bytes);
@@ -2745,7 +2745,7 @@ namespace OfficeIMO.Tests {
             WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot(options);
             OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, options);
 
-            Assert.Empty(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
             Assert.Contains(snapshot.Drawing.Elements.OfType<OfficeDrawingRichText>(), text => text.PlainText == "Section page iii of 2");
             Assert.DoesNotContain(snapshot.Drawing.Elements.OfType<OfficeDrawingRichText>(), text => text.PlainText == "Section page 1 of 1");
             string svgText = Encoding.UTF8.GetString(svg.Bytes);
@@ -2778,7 +2778,7 @@ namespace OfficeIMO.Tests {
             WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot(options);
             OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, options);
 
-            Assert.Empty(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
             Assert.Contains(snapshot.Drawing.Elements.OfType<OfficeDrawingRichText>(), text => text.PlainText == "Page b of ii");
             Assert.DoesNotContain(snapshot.Drawing.Elements.OfType<OfficeDrawingRichText>(), text => text.PlainText == "Page 9 of 9");
             string svgText = Encoding.UTF8.GetString(svg.Bytes);
@@ -2811,7 +2811,7 @@ namespace OfficeIMO.Tests {
             WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot(options);
             OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, options);
 
-            Assert.Empty(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
             Assert.Contains(snapshot.Drawing.Elements.OfType<OfficeDrawingRichText>(), text => text.PlainText == "Section pages II");
             Assert.DoesNotContain(snapshot.Drawing.Elements.OfType<OfficeDrawingRichText>(), text => text.PlainText == "Section pages 9");
             string svgText = Encoding.UTF8.GetString(svg.Bytes);
@@ -2843,7 +2843,7 @@ namespace OfficeIMO.Tests {
             WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot(options);
             OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, options);
 
-            Assert.Empty(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
             Assert.Contains(snapshot.Drawing.Elements.OfType<OfficeDrawingRichText>(), text => text.PlainText == "Section 02 page 2");
             Assert.DoesNotContain(snapshot.Drawing.Elements.OfType<OfficeDrawingRichText>(), text => text.PlainText == "Section 9 page 9");
             string svgText = Encoding.UTF8.GetString(svg.Bytes);
@@ -2935,7 +2935,7 @@ namespace OfficeIMO.Tests {
             WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot();
             OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
 
-            Assert.Empty(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
             OfficeDrawingText equationText = Assert.Single(snapshot.Drawing.Elements.OfType<OfficeDrawingText>());
             Assert.Equal("x+y=1", equationText.Text);
             string svgText = Encoding.UTF8.GetString(svg.Bytes);
@@ -2974,8 +2974,8 @@ namespace OfficeIMO.Tests {
             const string expected = "[hat(x)]+matrix(a,b;c,d)";
             OfficeDrawingText equationText = Assert.Single(snapshot.Drawing.Elements.OfType<OfficeDrawingText>());
             Assert.Equal(expected, equationText.Text);
-            Assert.Empty(snapshot.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
             string svgText = Encoding.UTF8.GetString(svg.Bytes);
             Assert.Contains(expected, svgText, StringComparison.Ordinal);
         }
@@ -2994,8 +2994,8 @@ namespace OfficeIMO.Tests {
             const string expected = "^(14)_(6)C+^(1)_(1)H";
             OfficeDrawingText equationText = Assert.Single(snapshot.Drawing.Elements.OfType<OfficeDrawingText>());
             Assert.Equal(expected, equationText.Text);
-            Assert.Empty(snapshot.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
             string svgText = Encoding.UTF8.GetString(svg.Bytes);
             Assert.Contains(expected, svgText, StringComparison.Ordinal);
         }
@@ -3028,7 +3028,7 @@ namespace OfficeIMO.Tests {
             WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot();
             OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
 
-            Assert.Empty(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
             OfficeDrawingRichText revisionText = Assert.Single(snapshot.Drawing.Elements.OfType<OfficeDrawingRichText>());
             Assert.Equal("Before accepted after", revisionText.PlainText);
             string svgText = Encoding.UTF8.GetString(svg.Bytes);
@@ -3092,7 +3092,7 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
 
             Assert.DoesNotContain(snapshot.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-body-element");
-            Assert.Empty(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
             IReadOnlyList<string> renderedText = snapshot.Drawing.Elements.OfType<OfficeDrawingText>().Select(text => text.Text).ToArray();
             Assert.Contains("Inserted paragraph", renderedText);
             Assert.Contains("Moved-to paragraph", renderedText);
@@ -3265,7 +3265,7 @@ namespace OfficeIMO.Tests {
             WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot();
             OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
 
-            Assert.Empty(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
             Assert.Contains(snapshot.Drawing.Elements.OfType<OfficeDrawingText>(), text => text.Text == "Comment target");
             Assert.DoesNotContain(snapshot.Drawing.Elements.OfType<OfficeDrawingRichText>(), text => text.PlainText.Contains(commentMarker, StringComparison.Ordinal));
             string svgText = Encoding.UTF8.GetString(svg.Bytes);
@@ -3288,7 +3288,7 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
             WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot();
 
-            Assert.Empty(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
             OfficeDrawingText header = snapshot.Drawing.Elements.OfType<OfficeDrawingText>().Single(text => text.Text == "First page header");
             OfficeDrawingText footer = snapshot.Drawing.Elements.OfType<OfficeDrawingText>().Single(text => text.Text == "First page footer");
             OfficeDrawingText body = snapshot.Drawing.Elements.OfType<OfficeDrawingText>().Single(text => text.Text == "Body starts below header");
@@ -3344,7 +3344,7 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
             WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot();
 
-            Assert.Empty(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
             Assert.DoesNotContain(snapshot.Drawing.Elements.OfType<OfficeDrawingText>(), text => text.Text == "Default header");
             Assert.DoesNotContain(snapshot.Drawing.Elements.OfType<OfficeDrawingText>(), text => text.Text == "Default footer");
             Assert.Contains(snapshot.Drawing.Elements.OfType<OfficeDrawingText>(), text => text.Text == "First page body");
@@ -3373,8 +3373,8 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
             WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot();
 
-            Assert.Empty(svg.Diagnostics);
-            Assert.Empty(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
             var richTexts = snapshot.Drawing.Elements.OfType<OfficeDrawingRichText>().ToList();
             OfficeDrawingRichText headerRichText = richTexts.Single(text => text.PlainText == "Head Red blue");
             OfficeDrawingRichText footerRichText = richTexts.Single(text => text.PlainText == "Foot Green");
@@ -3460,9 +3460,9 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
             WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot();
 
-            Assert.Empty(snapshot.Diagnostics);
-            Assert.Empty(png.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
             Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? image));
             Assert.Equal(png.Width, image!.Width);
 
@@ -3515,9 +3515,9 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
             WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot();
 
-            Assert.Empty(snapshot.Diagnostics);
-            Assert.Empty(png.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
             IReadOnlyList<OfficeDrawingImage> images = snapshot.Drawing.Images;
             OfficeDrawingImage headerImage = images.Single(image => image.AlternativeText == "Header red marker");
             OfficeDrawingImage footerImage = images.Single(image => image.AlternativeText == "Footer green marker");
@@ -3570,9 +3570,9 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
             WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot();
 
-            Assert.Empty(snapshot.Diagnostics);
-            Assert.Empty(png.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
             OfficeDrawingImage renderedHeaderImage = snapshot.Drawing.Images.Single(image => image.AlternativeText == "Header floating red marker");
             OfficeDrawingImage renderedFooterImage = snapshot.Drawing.Images.Single(image => image.AlternativeText == "Footer floating green marker");
             OfficeDrawingText headerText = snapshot.Drawing.Elements
@@ -3631,9 +3631,9 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
             WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot();
 
-            Assert.Empty(snapshot.Diagnostics);
-            Assert.Empty(png.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
             OfficeDrawingShape renderedHeaderShape = snapshot.Drawing.Elements
                 .OfType<OfficeDrawingShape>()
                 .Single(shape => shape.Shape.FillColor == OfficeColor.FromRgb(248, 113, 113));
@@ -3703,9 +3703,9 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
             WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot();
 
-            Assert.Empty(snapshot.Diagnostics);
-            Assert.Empty(png.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
             OfficeDrawingText headerBoxText = snapshot.Drawing.Elements
                 .OfType<OfficeDrawingText>()
                 .Single(text => text.Text.Contains("Header floating", StringComparison.Ordinal));
@@ -3768,9 +3768,9 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
             WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot();
 
-            Assert.Empty(snapshot.Diagnostics);
-            Assert.Empty(png.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
             OfficeDrawingText headerText = snapshot.Drawing.Elements
                 .OfType<OfficeDrawingText>()
                 .Single(text => text.Text == "Header table cell");
@@ -3907,9 +3907,9 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult png = document.ExportImage(OfficeImageExportFormat.Png, options);
             OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, options);
 
-            Assert.Empty(snapshot.Diagnostics);
-            Assert.Empty(png.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
             OfficeDrawingText left = snapshot.Drawing.Elements
                 .OfType<OfficeDrawingText>()
                 .Single(text => text.Text == "ImageLeftColumnMarker starts in the first Word image export column.");
@@ -3943,8 +3943,8 @@ namespace OfficeIMO.Tests {
             WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot(options);
             OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, options);
 
-            Assert.Empty(snapshot.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
             OfficeDrawingText firstColumn = snapshot.Drawing.Elements
                 .OfType<OfficeDrawingText>()
                 .Single(textBlock => textBlock.Text.Contains("AutoColumnWord001", StringComparison.Ordinal));
@@ -3985,8 +3985,8 @@ namespace OfficeIMO.Tests {
             WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot(options);
             OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, options);
 
-            Assert.Empty(snapshot.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
             OfficeDrawingText firstColumn = snapshot.Drawing.Elements
                 .OfType<OfficeDrawingText>()
                 .Single(text => text.Text == "Column table row 01");
@@ -4270,7 +4270,7 @@ namespace OfficeIMO.Tests {
             Assert.DoesNotContain(snapshot.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-page-index");
 
             string svgText = Encoding.UTF8.GetString(svg.Bytes);
-            Assert.Contains("width=\"419.55pt\"", svgText, StringComparison.Ordinal);
+            Assert.Contains("width=\"420px\"", svgText, StringComparison.Ordinal);
             Assert.Contains("Section two first header", svgText, StringComparison.Ordinal);
             Assert.Contains("Section two first footer", svgText, StringComparison.Ordinal);
             Assert.Contains("Section two first page body", svgText, StringComparison.Ordinal);
@@ -4311,7 +4311,7 @@ namespace OfficeIMO.Tests {
             Assert.DoesNotContain(snapshot.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-page-index");
 
             string svgText = Encoding.UTF8.GetString(svg.Bytes);
-            Assert.Contains("width=\"419.55pt\"", svgText, StringComparison.Ordinal);
+            Assert.Contains("width=\"420px\"", svgText, StringComparison.Ordinal);
             Assert.Contains("Section two header", svgText, StringComparison.Ordinal);
             Assert.Contains("Section two footer", svgText, StringComparison.Ordinal);
             Assert.Contains("Section two body", svgText, StringComparison.Ordinal);
@@ -4336,9 +4336,9 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult png = document.ExportImage(OfficeImageExportFormat.Png, options);
             OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, options);
 
-            Assert.Empty(snapshot.Diagnostics);
-            Assert.Empty(png.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
             List<string> texts = snapshot.Drawing.Elements.OfType<OfficeDrawingText>().Select(text => text.Text).ToList();
             Assert.Contains("Continuous image section before", texts);
             Assert.Contains("Continuous image section after", texts);
@@ -4422,9 +4422,9 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult png = document.ExportImage(OfficeImageExportFormat.Png, options);
             OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, options);
 
-            Assert.Empty(snapshot.Diagnostics);
-            Assert.Empty(png.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
             OfficeDrawingText before = snapshot.Drawing.Elements
                 .OfType<OfficeDrawingText>()
                 .Single(text => text.Text == "Next-column section before");
@@ -5604,9 +5604,9 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
             WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot();
 
-            Assert.Empty(snapshot.Diagnostics);
-            Assert.Empty(png.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
             OfficeDrawingImage drawingImage = Assert.Single(snapshot.Drawing.Images);
             Assert.Equal("Square blue marker", drawingImage.AlternativeText);
             Assert.Equal(36D, drawingImage.Projection.Width, 1);
@@ -5648,9 +5648,9 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
             WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot();
 
-            Assert.Empty(snapshot.Diagnostics);
-            Assert.Empty(png.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
             OfficeDrawingImage drawingImage = Assert.Single(snapshot.Drawing.Images);
             OfficeDrawingText afterText = snapshot.Drawing.Elements
                 .OfType<OfficeDrawingText>()
@@ -5690,9 +5690,9 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
             WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot();
 
-            Assert.Empty(snapshot.Diagnostics);
-            Assert.Empty(png.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
             OfficeDrawingImage drawingImage = Assert.Single(snapshot.Drawing.Images);
             OfficeDrawingText afterText = snapshot.Drawing.Elements
                 .OfType<OfficeDrawingText>()
@@ -5732,9 +5732,9 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
             WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot();
 
-            Assert.Empty(snapshot.Diagnostics);
-            Assert.Empty(png.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
             OfficeDrawingImage drawingImage = Assert.Single(snapshot.Drawing.Images);
             OfficeDrawingText afterText = snapshot.Drawing.Elements
                 .OfType<OfficeDrawingText>()
@@ -5782,9 +5782,9 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
             WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot();
 
-            Assert.Empty(snapshot.Diagnostics);
-            Assert.Empty(png.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
             OfficeDrawingImage drawingImage = Assert.Single(snapshot.Drawing.Images);
             OfficeDrawingText afterText = snapshot.Drawing.Elements
                 .OfType<OfficeDrawingText>()
@@ -5829,9 +5829,9 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
             WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot();
 
-            Assert.Empty(snapshot.Diagnostics);
-            Assert.Empty(png.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
             OfficeDrawingImage renderedLeft = snapshot.Drawing.Images.Single(image => image.AlternativeText == "Left square marker");
             OfficeDrawingImage renderedRight = snapshot.Drawing.Images.Single(image => image.AlternativeText == "Right square marker");
             OfficeDrawingText afterText = snapshot.Drawing.Elements
@@ -5874,9 +5874,9 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
             WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot();
 
-            Assert.Empty(snapshot.Diagnostics);
-            Assert.Empty(png.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
             OfficeDrawingImage drawingImage = Assert.Single(snapshot.Drawing.Images);
             OfficeDrawingText afterText = snapshot.Drawing.Elements
                 .OfType<OfficeDrawingText>()
@@ -5919,9 +5919,9 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
             WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot();
 
-            Assert.Empty(snapshot.Diagnostics);
-            Assert.Empty(png.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
             OfficeDrawingImage drawingImage = Assert.Single(snapshot.Drawing.Images);
             Assert.Equal("Top bottom blue marker", drawingImage.AlternativeText);
             Assert.Equal(144D, drawingImage.Projection.X, 1);
@@ -5961,9 +5961,9 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
             WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot();
 
-            Assert.Empty(snapshot.Diagnostics);
-            Assert.Empty(png.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
             OfficeDrawingImage drawingImage = Assert.Single(snapshot.Drawing.Images);
             OfficeDrawingText afterText = snapshot.Drawing.Elements.OfType<OfficeDrawingText>().Single(text => text.Text == afterTextValue);
             Assert.True(afterText.Y >= drawingImage.Projection.Y + drawingImage.Projection.Height + 23D);
@@ -5998,9 +5998,9 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
             WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot();
 
-            Assert.Empty(snapshot.Diagnostics);
-            Assert.Empty(png.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
             OfficeDrawingImage drawingImage = Assert.Single(snapshot.Drawing.Images);
             Assert.Equal("Behind blue marker", drawingImage.AlternativeText);
             Assert.Equal(126D, drawingImage.Projection.X, 1);
@@ -6074,9 +6074,9 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
             WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot();
 
-            Assert.Empty(snapshot.Diagnostics);
-            Assert.Empty(png.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
             OfficeDrawingImage drawingImage = Assert.Single(snapshot.Drawing.Images);
             Assert.Equal("Side margin relative marker", drawingImage.AlternativeText);
             Assert.Equal(276D, drawingImage.Projection.X, 1);
@@ -6117,9 +6117,9 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, options);
             WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot(options);
 
-            Assert.Empty(snapshot.Diagnostics);
-            Assert.Empty(png.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
             OfficeDrawingImage drawingImage = Assert.Single(snapshot.Drawing.Images);
             Assert.Equal("Inside margin relative marker", drawingImage.AlternativeText);
             Assert.Equal(228D, drawingImage.Projection.X, 1);
@@ -6150,8 +6150,8 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
             WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot();
 
-            Assert.Empty(png.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
             Assert.DoesNotContain(snapshot.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-table-image");
             OfficeDrawingImage drawingImage = Assert.Single(snapshot.Drawing.Images);
             Assert.Equal("Cell red marker", drawingImage.AlternativeText);
@@ -6447,6 +6447,14 @@ namespace OfficeIMO.Tests {
             };
             existing?.InsertAfterSelf(replacement);
             existing?.Remove();
+        }
+
+        private static void AssertNoUnexpectedDiagnostics(IEnumerable<OfficeImageExportDiagnostic> diagnostics) {
+            OfficeImageExportDiagnostic[] unexpected = diagnostics
+                .Where(diagnostic =>
+                    diagnostic.Code != OfficeImageExportDiagnosticCodes.FontSubstituted)
+                .ToArray();
+            Assert.Empty(unexpected);
         }
 
     }

@@ -8,6 +8,18 @@ namespace OfficeIMO.Excel {
         /// Exports workbook sheets as supported raster formats or SVG images.
         /// </summary>
         public IReadOnlyList<OfficeImageExportResult> ExportImages(OfficeImageExportFormat format, ExcelWorkbookImageExportOptions? options = null) {
+            var results = new List<OfficeImageExportResult>();
+            ExportImages(format, results.Add, options);
+            return results.AsReadOnly();
+        }
+
+        /// <summary>Streams workbook images to a consumer without retaining earlier payloads.</summary>
+        public void ExportImages(
+            OfficeImageExportFormat format,
+            OfficeImageExportConsumer consumer,
+            ExcelWorkbookImageExportOptions? options = null,
+            CancellationToken cancellationToken = default) {
+            if (consumer == null) throw new ArgumentNullException(nameof(consumer));
             ExcelWorkbookImageExportOptions resolved = NormalizeWorkbookOptions(options);
             HashSet<string>? selected = resolved.SheetNames == null
                 ? null
@@ -15,9 +27,14 @@ namespace OfficeIMO.Excel {
             if (resolved.SheetNames != null) {
                 ValidateRequestedSheetNames(resolved.SheetNames);
             }
+            OfficeImageExportConsumer accept =
+                OfficeImageExportBatchProcessor.CreateGuardedConsumer(
+                    resolved,
+                    consumer,
+                    cancellationToken);
 
-            var results = new List<OfficeImageExportResult>();
             foreach (ExcelSheet sheet in Sheets) {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (selected != null && !selected.Contains(sheet.Name)) {
                     continue;
                 }
@@ -26,30 +43,13 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
-                var sheetOptions = new ExcelWorksheetImageExportOptions {
-                    Scale = resolved.Scale,
-                    BackgroundColor = resolved.BackgroundColor,
-                    RasterEncoding = resolved.RasterEncoding?.Clone() ?? new OfficeRasterEncodingOptions(),
-                    GridlineColor = resolved.GridlineColor,
-                    ShowGridlines = resolved.ShowGridlines,
-                    IncludeHidden = resolved.IncludeHidden,
-                    IncludeImages = resolved.IncludeImages,
-                    IncludeCharts = resolved.IncludeCharts,
-                    IncludeDrawingObjects = resolved.IncludeDrawingObjects,
-                    IncludeConditionalFormatting = resolved.IncludeConditionalFormatting,
-                    ConditionalFormattingDate = resolved.ConditionalFormattingDate,
-                    ShowHyperlinkHints = resolved.ShowHyperlinkHints,
-                    ShowCommentBodies = resolved.ShowCommentBodies,
-                    DefaultColumnWidthPixels = resolved.DefaultColumnWidthPixels,
-                    DefaultRowHeightPixels = resolved.DefaultRowHeightPixels,
-                    HeaderFooterDateTime = resolved.HeaderFooterDateTime,
-                    UsePrintArea = resolved.UseWorksheetPrintAreas,
-                    SplitByManualPageBreaks = resolved.SplitWorksheetsByManualPageBreaks
-                };
-                results.AddRange(sheet.ExportImages(format, sheetOptions));
+                ExcelWorksheetImageExportOptions sheetOptions =
+                    resolved.CopyExcelOptionsTo(new ExcelWorksheetImageExportOptions());
+                sheetOptions.HeaderFooterDateTime = resolved.HeaderFooterDateTime;
+                sheetOptions.UsePrintArea = resolved.UseWorksheetPrintAreas;
+                sheetOptions.SplitByManualPageBreaks = resolved.SplitWorksheetsByManualPageBreaks;
+                sheet.ExportImages(format, accept, sheetOptions, cancellationToken);
             }
-
-            return results.AsReadOnly();
         }
 
         /// <summary>
@@ -90,30 +90,10 @@ namespace OfficeIMO.Excel {
         }
 
         private static ExcelWorkbookImageExportOptions NormalizeWorkbookOptions(ExcelWorkbookImageExportOptions? options) {
-            ExcelWorkbookImageExportOptions source = options ?? new ExcelWorkbookImageExportOptions();
-            ExcelWorkbookImageExportOptions resolved = new ExcelWorkbookImageExportOptions {
-                Scale = source.Scale,
-                BackgroundColor = source.BackgroundColor,
-                RasterEncoding = source.RasterEncoding?.Clone() ?? new OfficeRasterEncodingOptions(),
-                GridlineColor = source.GridlineColor,
-                ShowGridlines = source.ShowGridlines,
-                IncludeHidden = source.IncludeHidden,
-                IncludeImages = source.IncludeImages,
-                IncludeCharts = source.IncludeCharts,
-                IncludeDrawingObjects = source.IncludeDrawingObjects,
-                IncludeConditionalFormatting = source.IncludeConditionalFormatting,
-                ConditionalFormattingDate = source.ConditionalFormattingDate ?? DateTime.Today,
-                ShowHyperlinkHints = source.ShowHyperlinkHints,
-                ShowCommentBodies = source.ShowCommentBodies,
-                DefaultColumnWidthPixels = source.DefaultColumnWidthPixels,
-                DefaultRowHeightPixels = source.DefaultRowHeightPixels,
-                SheetNames = source.SheetNames,
-                IncludeHiddenSheets = source.IncludeHiddenSheets,
-                HeaderFooterDateTime = source.HeaderFooterDateTime ?? DateTime.Now,
-                UseWorksheetPrintAreas = source.UseWorksheetPrintAreas,
-                SplitWorksheetsByManualPageBreaks = source.SplitWorksheetsByManualPageBreaks
-            };
-            OfficeImageExportOptions.ValidateScale(resolved.Scale, nameof(options));
+            ExcelWorkbookImageExportOptions resolved = options?.CloneWorkbook() ?? new ExcelWorkbookImageExportOptions();
+            resolved.ConditionalFormattingDate ??= DateTime.Today;
+            resolved.HeaderFooterDateTime ??= DateTime.Now;
+            resolved.Validate();
 
             return resolved;
         }

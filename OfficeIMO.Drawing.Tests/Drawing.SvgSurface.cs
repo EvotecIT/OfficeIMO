@@ -16,6 +16,18 @@ public partial class DrawingTests {
     }
 
     [Fact]
+    public void OfficeDrawingSvgExporter_UsesWholePixelSurfaceDimensions() {
+        var drawing = new OfficeDrawing(10.2D, 8.1D);
+
+        byte[] svg = OfficeDrawingSvgExporter.ToSvgBytes(drawing, 1D, OfficeSvgSizeUnit.Pixel);
+        OfficeImageInfo info = OfficeImageReader.Identify(svg);
+
+        Assert.Equal(11, info.Width);
+        Assert.Equal(9, info.Height);
+        Assert.Contains("width=\"11px\" height=\"9px\" viewBox=\"0 0 10.2 8.1\"", System.Text.Encoding.UTF8.GetString(svg), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void OfficeDrawingText_RetainsResolvedAdvanceAndOverflowAcrossCloneAndSvg() {
         var drawing = new OfficeDrawing(120D, 40D).AddPositionedText(
             "One model.",

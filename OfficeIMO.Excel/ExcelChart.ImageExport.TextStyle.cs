@@ -592,24 +592,6 @@ namespace OfficeIMO.Excel {
             return false;
         }
 
-        private static IReadOnlyList<string> GetUnresolvedImageExportTextFontFamilies(C.ChartSpace chartSpace) {
-            var fontFamilies = new List<string>();
-            var reported = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            foreach (A.LatinFont font in chartSpace.Descendants<A.LatinFont>()) {
-                string? fontFamily = font.Typeface?.Value;
-                if (string.IsNullOrWhiteSpace(fontFamily) ||
-                    IsThemeFontFamilyPlaceholder(fontFamily!) ||
-                    !reported.Add(fontFamily!) ||
-                    OfficeTrueTypeFont.TryLoadFontFamily(fontFamily, out _) != null) {
-                    continue;
-                }
-
-                fontFamilies.Add(fontFamily!);
-            }
-
-            return fontFamilies.AsReadOnly();
-        }
-
         private static bool IsThemeFontFamilyPlaceholder(string fontFamily) =>
             fontFamily.Length > 0 && fontFamily[0] == '+';
 

@@ -4,7 +4,7 @@ using OfficeIMO.Drawing.Internal;
 
 namespace OfficeIMO.Html;
 
-/// <summary>Direct HTML-to-PNG and HTML-to-SVG helpers backed by the shared HTML render scene.</summary>
+/// <summary>Direct HTML image-export helpers backed by the shared HTML render scene.</summary>
 public static partial class HtmlImageExportExtensions {
     internal static OfficeImageExportResult ExportImage(this IHtmlDocument document, OfficeImageExportFormat format, HtmlRenderOptions? options = null, int pageIndex = 0) {
         HtmlRenderOptions resolved = Normalize(options, pageIndex);
@@ -43,18 +43,49 @@ public static partial class HtmlImageExportExtensions {
     private static OfficeImageExportResult RenderPage(HtmlRenderPage page, OfficeImageExportFormat format, HtmlRenderOptions options, HtmlDiagnosticReport diagnostics, CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         OfficeDrawing drawing = page.CreateDrawing(cancellationToken);
-        byte[] bytes = format == OfficeImageExportFormat.Svg
-            ? OfficeDrawingSvgExporter.ToSvgBytes(drawing, options.Scale, OfficeSvgSizeUnit.Pixel)
-            : OfficeDrawingRasterRenderer.ToPng(drawing, options.Scale, options.BackgroundColor);
+        var exportDiagnostics = new List<OfficeImageExportDiagnostic>(MapDiagnostics(diagnostics));
+        string source = "HTML render page " + page.PageNumber.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        drawing.AppendFontDiagnostics(exportDiagnostics, source);
+        var fallbackCodec = new OfficeRasterImageFallbackCodec(options.ImageCodec, exportDiagnostics, source);
+        byte[] bytes;
+        int width;
+        int height;
+        if (format == OfficeImageExportFormat.Svg) {
+            bytes = OfficeDrawingSvgExporter.ToSvgBytes(drawing, options.Scale, OfficeSvgSizeUnit.Pixel, fallbackCodec);
+            width = Math.Max(1, (int)Math.Ceiling(page.Width * options.Scale));
+            height = Math.Max(1, (int)Math.Ceiling(page.Height * options.Scale));
+        } else if (format.IsRaster()) {
+            OfficeRasterExportPlan plan = OfficeRasterExportPlanner.Resolve(
+                drawing.Width,
+                drawing.Height,
+                format,
+                options,
+                source);
+            if (plan.Diagnostic != null) exportDiagnostics.Add(plan.Diagnostic);
+            OfficeRasterImage image = OfficeDrawingRasterRenderer.Render(drawing, new OfficeDrawingRasterRenderOptions {
+                Scale = plan.Limit.Scale,
+                Background = options.BackgroundColor,
+                ImageCodec = fallbackCodec,
+                CancellationToken = cancellationToken
+            });
+            bytes = OfficeRasterImageEncoder.Encode(
+                image,
+                format,
+                plan.CreateEncodingOptions());
+            width = image.Width;
+            height = image.Height;
+        } else {
+            throw new ArgumentOutOfRangeException(nameof(format), format, "Unsupported image export format.");
+        }
         cancellationToken.ThrowIfCancellationRequested();
-        return new OfficeImageExportResult(
+        return options.EnsureAccepted(new OfficeImageExportResult(
             format,
-            Math.Max(1, (int)Math.Ceiling(page.Width * options.Scale)),
-            Math.Max(1, (int)Math.Ceiling(page.Height * options.Scale)),
+            width,
+            height,
             bytes,
             "Page " + page.PageNumber.ToString(System.Globalization.CultureInfo.InvariantCulture),
-            "HTML render page " + page.PageNumber.ToString(System.Globalization.CultureInfo.InvariantCulture),
-            MapDiagnostics(diagnostics));
+            source,
+            exportDiagnostics));
     }
 
     private static IReadOnlyList<OfficeImageExportDiagnostic> MapDiagnostics(HtmlDiagnosticReport report) {
@@ -63,7 +94,17 @@ public static partial class HtmlImageExportExtensions {
             OfficeImageExportDiagnosticSeverity severity = diagnostic.Severity == HtmlDiagnosticSeverity.Error
                 ? OfficeImageExportDiagnosticSeverity.Error
                 : diagnostic.Severity == HtmlDiagnosticSeverity.Warning ? OfficeImageExportDiagnosticSeverity.Warning : OfficeImageExportDiagnosticSeverity.Info;
-            diagnostics.Add(new OfficeImageExportDiagnostic(severity, diagnostic.Code, diagnostic.Message, diagnostic.Source));
+            diagnostics.Add(new OfficeImageExportDiagnostic(
+                severity,
+                diagnostic.Code,
+                diagnostic.Message,
+                diagnostic.Source,
+                diagnostic.LossKind switch {
+                    HtmlConversionLossKind.Approximation => OfficeImageExportLossKind.Approximation,
+                    HtmlConversionLossKind.Omission => OfficeImageExportLossKind.Omission,
+                    HtmlConversionLossKind.Failure => OfficeImageExportLossKind.Failure,
+                    _ => OfficeImageExportLossKind.None
+                }));
         }
         return diagnostics.AsReadOnly();
     }
@@ -75,18 +116,4 @@ public static partial class HtmlImageExportExtensions {
         return resolved;
     }
 
-    private static void WriteFile(string path, byte[] bytes) {
-        if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("An output path is required.", nameof(path));
-        OfficeFileCommit.WriteAllBytes(path, bytes);
-    }
-
-    private static void WriteStream(Stream stream, byte[] bytes) => OfficeStreamWriter.WriteAllBytes(stream, bytes);
-
-    private static Task WriteFileAsync(string path, byte[] bytes, CancellationToken cancellationToken) {
-        if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("An output path is required.", nameof(path));
-        return OfficeFileCommit.WriteAllBytesAsync(path, bytes, cancellationToken: cancellationToken);
-    }
-
-    private static Task WriteStreamAsync(Stream stream, byte[] bytes, CancellationToken cancellationToken) =>
-        OfficeStreamWriter.WriteAllBytesAsync(stream, bytes, cancellationToken);
 }

@@ -42,7 +42,13 @@ public sealed class PublicApiPersistenceContracts {
         AssertImageSaveContract(typeof(PowerPointSlide), "SaveAsPng", "SaveAsSvg");
         AssertImageSaveContract(typeof(VisioPngExportExtensions), "SaveAsPng");
         AssertImageSaveContract(typeof(VisioSvgExportExtensions), "SaveAsSvg");
-        AssertImageSaveContract(typeof(OfficeIMO.Html.HtmlImageExportExtensions), "SaveAsPng", "SaveAsSvg");
+        AssertImageSaveContract(
+            typeof(OfficeIMO.Html.HtmlImageExportExtensions),
+            "SaveAsPng",
+            "SaveAsJpeg",
+            "SaveAsTiff",
+            "SaveAsSvg",
+            "SaveAsWebp");
     }
 
     [Fact]

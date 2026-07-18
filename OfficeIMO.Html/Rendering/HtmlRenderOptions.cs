@@ -62,6 +62,11 @@ public class HtmlRenderOptions : OfficeImageExportOptions {
     /// <summary>Optional application-supplied asynchronous resolver for policy-approved external resources.</summary>
     public HtmlRenderResourceResolver? ResourceResolver { get; set; }
 
+    // Package-backed adapters use this path for resources that are already retained locally.
+    // External application resolvers remain asynchronous and are intentionally not blocked on
+    // by the synchronous rendering API.
+    internal HtmlRenderSynchronousResourceResolver? SynchronousResourceResolver { get; set; }
+
     /// <summary>Maximum time allowed for one resolver invocation.</summary>
     public TimeSpan ResourceTimeout { get; set; } = TimeSpan.FromSeconds(30D);
 
@@ -130,8 +135,7 @@ public class HtmlRenderOptions : OfficeImageExportOptions {
 
     /// <summary>Copies shared layout and resource settings into a target-specific options instance.</summary>
     protected internal T CopyTo<T>(T target) where T : HtmlRenderOptions {
-        target.Scale = Scale;
-        target.BackgroundColor = BackgroundColor;
+        CopyImageExportOptionsTo(target);
         target.Mode = Mode;
         target.ViewportWidth = ViewportWidth;
         target.ViewportHeight = ViewportHeight;
@@ -145,6 +149,7 @@ public class HtmlRenderOptions : OfficeImageExportOptions {
         target.UrlPolicy = (UrlPolicy ?? HtmlUrlPolicy.CreateOfficeIMOProfile()).Clone();
         target.ResourceUrlPolicy = ResourceUrlPolicy?.Clone();
         target.ResourceResolver = ResourceResolver;
+        target.SynchronousResourceResolver = SynchronousResourceResolver;
         target.ResourceTimeout = ResourceTimeout;
         target.MaxResourceBytes = MaxResourceBytes;
         target.MaxTotalResourceBytes = MaxTotalResourceBytes;
@@ -169,7 +174,7 @@ public class HtmlRenderOptions : OfficeImageExportOptions {
         ResourceUrlPolicy ?? UrlPolicy ?? HtmlUrlPolicy.CreateOfficeIMOProfile();
 
     internal void Validate() {
-        OfficeImageExportOptions.ValidateScale(Scale, nameof(Scale));
+        ValidateImageExportOptions();
         ValidatePositive(ViewportWidth, nameof(ViewportWidth));
         if (ViewportHeight.HasValue) {
             ValidatePositive(ViewportHeight.Value, nameof(ViewportHeight));

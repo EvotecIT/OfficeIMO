@@ -64,12 +64,6 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     sourceDescription,
                     placement.SourceCrop));
                 addedObject = true;
-                if (!OfficeRasterImageDecoder.TryDecode(bytes, out _)) {
-                    string message = imageInfo?.Format == OfficeImageFormat.Jpeg
-                        ? "The dependency-free PNG backend cannot decode this JPEG image; SVG and PDF can retain the encoded payload."
-                        : "The image cannot be decoded by the dependency-free raster backend and may be omitted from PNG or PDF output.";
-                    _diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.RasterDecoderUnavailable, message, HtmlDiagnosticSeverity.Warning, sourceDescription, contentType);
-                }
             }
         }
         if (!addedObject && placement.IsVisible) {
@@ -121,7 +115,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     "Unsupported SVG content was omitted while supported vector content remained active.",
                     HtmlDiagnosticSeverity.Warning,
                     sourceDescription,
-                    "features=" + unsupportedFeatures);
+                    "features=" + unsupportedFeatures,
+                    HtmlConversionLossKind.Omission);
             }
             return true;
         }
@@ -132,7 +127,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             "The SVG image could not be interpreted as a bounded shared vector scene.",
             HtmlDiagnosticSeverity.Warning,
             sourceDescription,
-            "image/svg+xml");
+            "image/svg+xml",
+            HtmlConversionLossKind.Omission);
         return false;
     }
 

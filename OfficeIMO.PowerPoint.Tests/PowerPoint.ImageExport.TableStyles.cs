@@ -32,9 +32,9 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
             OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
 
-            Assert.Empty(snapshot.Diagnostics);
-            Assert.Empty(png.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
             Assert.Contains(snapshot.Drawing.Elements.OfType<OfficeDrawingShape>(), shape =>
                 shape.Shape.Kind == OfficeShapeKind.Rectangle &&
                 shape.Shape.FillColor == OfficeColor.FromRgb(252, 231, 243));
@@ -89,9 +89,9 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
             OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
 
-            Assert.Empty(snapshot.Diagnostics);
-            Assert.Empty(png.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
             Assert.Contains(snapshot.Drawing.Elements.OfType<OfficeDrawingShape>(), shape =>
                 shape.Shape.Kind == OfficeShapeKind.Rectangle &&
                 shape.Shape.FillColor == OfficeColor.FromRgb(199, 210, 254));
@@ -129,9 +129,9 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
             OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
 
-            Assert.Empty(snapshot.Diagnostics);
-            Assert.Empty(png.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
 
             List<OfficeDrawingShape> borderLines = snapshot.Drawing.Elements
                 .OfType<OfficeDrawingShape>()

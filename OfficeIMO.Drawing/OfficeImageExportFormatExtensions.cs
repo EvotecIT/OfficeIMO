@@ -26,6 +26,22 @@ public static class OfficeImageExportFormatExtensions {
         _ => throw new ArgumentOutOfRangeException(nameof(format))
     };
 
+    /// <summary>Returns whether a path extension is conventional for this output format.</summary>
+    public static bool HasFileExtension(this OfficeImageExportFormat format, string? extension) {
+        if (string.IsNullOrWhiteSpace(extension)) return false;
+        string normalized = extension![0] == '.' ? extension : "." + extension;
+        return format switch {
+            OfficeImageExportFormat.Png => normalized.Equals(".png", StringComparison.OrdinalIgnoreCase),
+            OfficeImageExportFormat.Svg => normalized.Equals(".svg", StringComparison.OrdinalIgnoreCase),
+            OfficeImageExportFormat.Jpeg => normalized.Equals(".jpg", StringComparison.OrdinalIgnoreCase) ||
+                                            normalized.Equals(".jpeg", StringComparison.OrdinalIgnoreCase),
+            OfficeImageExportFormat.Tiff => normalized.Equals(".tif", StringComparison.OrdinalIgnoreCase) ||
+                                            normalized.Equals(".tiff", StringComparison.OrdinalIgnoreCase),
+            OfficeImageExportFormat.Webp => normalized.Equals(".webp", StringComparison.OrdinalIgnoreCase),
+            _ => throw new ArgumentOutOfRangeException(nameof(format))
+        };
+    }
+
     /// <summary>Returns whether the format is backed by raster pixels.</summary>
     public static bool IsRaster(this OfficeImageExportFormat format) => format switch {
         OfficeImageExportFormat.Png => true,

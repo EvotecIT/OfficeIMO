@@ -50,6 +50,29 @@ namespace OfficeIMO.Drawing.Internal {
             Write(targetPath, stream => stream.Write(bytes, 0, bytes.Length), conflictPolicy);
         }
 
+        /// <summary>Writes completed bytes to a same-directory staging file for a later atomic commit.</summary>
+        public static string StageAllBytes(string targetPath, byte[] bytes) {
+#if NET6_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(bytes);
+#else
+            if (bytes == null) throw new ArgumentNullException(nameof(bytes));
+#endif
+            EnsureTargetDirectory(targetPath);
+            string fullTargetPath = GetFullTargetPath(targetPath);
+            string temporaryPath = CreateTemporaryPath(fullTargetPath);
+            try {
+                using (var stream = new FileStream(temporaryPath, FileMode.CreateNew, FileAccess.ReadWrite, FileShare.None)) {
+                    stream.Write(bytes, 0, bytes.Length);
+                    stream.Flush();
+                }
+
+                return temporaryPath;
+            } catch {
+                DeleteIfExists(temporaryPath);
+                throw;
+            }
+        }
+
         /// <summary>Asynchronously writes a completed byte array and atomically commits it.</summary>
         public static async Task WriteAllBytesAsync(
             string targetPath,
@@ -79,6 +102,38 @@ namespace OfficeIMO.Drawing.Internal {
                 temporaryPath = string.Empty;
             } finally {
                 DeleteIfExists(temporaryPath);
+            }
+        }
+
+        /// <summary>Asynchronously writes completed bytes to a same-directory staging file.</summary>
+        public static async Task<string> StageAllBytesAsync(
+            string targetPath,
+            byte[] bytes,
+            CancellationToken cancellationToken = default) {
+#if NET6_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(bytes);
+#else
+            if (bytes == null) throw new ArgumentNullException(nameof(bytes));
+#endif
+            cancellationToken.ThrowIfCancellationRequested();
+            EnsureTargetDirectory(targetPath);
+            string fullTargetPath = GetFullTargetPath(targetPath);
+            string temporaryPath = CreateTemporaryPath(fullTargetPath);
+            try {
+                using (var stream = new FileStream(temporaryPath, FileMode.CreateNew, FileAccess.ReadWrite, FileShare.None, 8192, FileOptions.Asynchronous)) {
+#if NET6_0_OR_GREATER
+                    await stream.WriteAsync(bytes.AsMemory(), cancellationToken).ConfigureAwait(false);
+#else
+                    await stream.WriteAsync(bytes, 0, bytes.Length, cancellationToken).ConfigureAwait(false);
+#endif
+                    await stream.FlushAsync(cancellationToken).ConfigureAwait(false);
+                }
+
+                cancellationToken.ThrowIfCancellationRequested();
+                return temporaryPath;
+            } catch {
+                DeleteIfExists(temporaryPath);
+                throw;
             }
         }
 
@@ -194,19 +249,20 @@ namespace OfficeIMO.Drawing.Internal {
 
             string fullTargetPath = GetFullTargetPath(targetPath);
             if (conflictPolicy == ConflictPolicy.FailIfExists) {
-                ExecuteWithRetry(() => File.Move(temporaryPath, fullTargetPath));
+                if (!TryMoveIfAbsent(temporaryPath, fullTargetPath)) {
+                    throw new IOException($"Destination file '{fullTargetPath}' already exists.");
+                }
                 return;
             }
 
             EnsureDestinationWritable(fullTargetPath);
 
             if (!File.Exists(fullTargetPath)) {
-                try {
-                    ExecuteWithRetry(() => File.Move(temporaryPath, fullTargetPath));
+                if (TryMoveIfAbsent(temporaryPath, fullTargetPath, waitForClaim: true)) {
                     return;
-                } catch (IOException) when (File.Exists(fullTargetPath)) {
-                    // The destination appeared after the existence check. Replace it below.
                 }
+
+                // The destination appeared after the existence check. Replace it below.
             }
 
             try {
@@ -219,6 +275,21 @@ namespace OfficeIMO.Drawing.Internal {
             }
 
             ReplaceUsingBackup(temporaryPath, fullTargetPath);
+        }
+
+        /// <summary>
+        /// Atomically commits an existing staging file only when the destination can be claimed.
+        /// </summary>
+        /// <returns><c>false</c> when another writer already claimed the destination.</returns>
+        public static bool TryCommitTemporaryFileIfAbsent(
+            string temporaryPath,
+            string targetPath) {
+            if (string.IsNullOrWhiteSpace(temporaryPath)) {
+                throw new ArgumentException("Temporary path cannot be empty.", nameof(temporaryPath));
+            }
+
+            EnsureTargetDirectory(targetPath);
+            return TryMoveIfAbsent(temporaryPath, GetFullTargetPath(targetPath));
         }
 
         private static void EnsureDestinationWritable(string targetPath) {
@@ -298,6 +369,81 @@ namespace OfficeIMO.Drawing.Internal {
                     Thread.Sleep(Math.Min(50 * (attempt + 1), 500));
                 }
             }
+        }
+
+        private static bool TryMoveIfAbsent(
+            string sourcePath,
+            string targetPath,
+            bool waitForClaim = false) {
+            string claimPath = CreateClaimPath(targetPath);
+            FileStream? claim = null;
+            for (int attempt = 0; ; attempt++) {
+                try {
+                    claim = new FileStream(
+                        claimPath,
+                        FileMode.CreateNew,
+                        FileAccess.ReadWrite,
+                        FileShare.None);
+                    break;
+                } catch (Exception exception) when (IsExistingClaimContention(exception, claimPath)) {
+                    if (TryDeleteAbandonedClaim(claimPath)) {
+                        continue;
+                    }
+                    if (!waitForClaim) return false;
+                    if (attempt >= 9) throw;
+                    Thread.Sleep(Math.Min(50 * (attempt + 1), 500));
+                } catch (IOException) when (attempt < 9) {
+                    Thread.Sleep(Math.Min(50 * (attempt + 1), 500));
+                }
+            }
+
+            try {
+                if (File.Exists(targetPath)) return false;
+                try {
+                    ExecuteWithRetry(() => File.Move(sourcePath, targetPath));
+                    return true;
+                } catch (IOException) when (File.Exists(targetPath)) {
+                    return false;
+                }
+            } finally {
+                claim.Dispose();
+                DeleteIfExists(claimPath);
+            }
+        }
+
+        private static bool IsExistingClaimContention(Exception exception, string claimPath) =>
+            (exception is IOException || exception is UnauthorizedAccessException) &&
+            File.Exists(claimPath);
+
+        private static bool TryDeleteAbandonedClaim(string claimPath) {
+            try {
+                // A live committer holds the claim with FileShare.None, so this open
+                // succeeds only after that owner exits or crashes.
+                using (var abandonedClaim = new FileStream(
+                           claimPath,
+                           FileMode.Open,
+                           FileAccess.Read,
+                           FileShare.Delete)) {
+                    File.Delete(claimPath);
+                }
+                return true;
+            } catch (FileNotFoundException) {
+                return true;
+            } catch (DirectoryNotFoundException) {
+                return true;
+            } catch (UnauthorizedAccessException) {
+                return false;
+            } catch (IOException) {
+                return false;
+            }
+        }
+
+        private static string CreateClaimPath(string targetPath) {
+            string? directory = Path.GetDirectoryName(targetPath);
+            if (string.IsNullOrEmpty(directory)) directory = Directory.GetCurrentDirectory();
+            return Path.Combine(
+                directory,
+                $".{Path.GetFileName(targetPath)}.officeimo-commit");
         }
     }
 }

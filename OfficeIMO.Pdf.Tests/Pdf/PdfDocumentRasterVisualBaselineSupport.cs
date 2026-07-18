@@ -1,6 +1,7 @@
 using System;
 using System.Diagnostics;
 using System.IO;
+using OfficeIMO.Drawing;
 using OfficeIMO.Pdf;
 using OfficeIMO.Tests;
 
@@ -56,15 +57,36 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 "Different pixels: " + comparison.DifferentPixels + "/" + comparison.TotalPixels + "; " +
                 "max channel delta: " + comparison.MaxChannelDelta + "; " +
                 "allowed different pixels: " + comparison.AllowedDifferentPixels + "; " +
-                "channel tolerance: " + comparison.ChannelTolerance + ". " +
+                "channel tolerance: " + comparison.ChannelTolerance + "; " +
+                "MAE: " + comparison.MeanAbsoluteError.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture) + "/" +
+                    comparison.MaximumMeanAbsoluteError.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture) + "; " +
+                "RMSE: " + comparison.RootMeanSquareError.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture) + "/" +
+                    comparison.MaximumRootMeanSquareError.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture) + "; " +
+                "luminance MAE: " + comparison.MeanLuminanceError.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture) + "/" +
+                    comparison.MaximumMeanLuminanceError.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture) + ". " +
                 "Artifacts: " + artifactDirectory + ".");
         }
     }
 
     private static VisualRasterComparison CompareRasterImages(byte[] expectedPng, byte[] actualPng) {
         int channelTolerance = VisualBaselineTestSupport.ReadNonNegativeInt("OFFICEIMO_PDF_RASTER_PIXEL_TOLERANCE", 0);
-        int allowedDifferentPixels = VisualBaselineTestSupport.ReadNonNegativeInt("OFFICEIMO_PDF_RASTER_ALLOWED_DIFF_PIXELS", DefaultAllowedRasterNoisePixels);
-        return CompareRasterImages(expectedPng, actualPng, channelTolerance, allowedDifferentPixels);
+        OfficeRasterImage expected = VisualBaselineTestSupport.DecodePng(expectedPng, "Expected PDF raster baseline is not a supported PNG file.");
+        // Poppler's font rasterization and antialiasing vary by platform and installed font stack.
+        // Bound both the affected area and perceptual error so this remains a useful layout/fidelity
+        // gate without treating platform-specific glyph edge pixels as a product regression.
+        int defaultAllowedDifferentPixels = Math.Max(DefaultAllowedRasterNoisePixels, expected.Width * expected.Height / 10);
+        int allowedDifferentPixels = VisualBaselineTestSupport.ReadNonNegativeInt("OFFICEIMO_PDF_RASTER_ALLOWED_DIFF_PIXELS", defaultAllowedDifferentPixels);
+        double maximumMeanAbsoluteError = VisualBaselineTestSupport.ReadNonNegativeDouble("OFFICEIMO_PDF_RASTER_MAX_MAE", 6D);
+        double maximumRootMeanSquareError = VisualBaselineTestSupport.ReadNonNegativeDouble("OFFICEIMO_PDF_RASTER_MAX_RMSE", 28D);
+        double maximumMeanLuminanceError = VisualBaselineTestSupport.ReadNonNegativeDouble("OFFICEIMO_PDF_RASTER_MAX_LUMINANCE_MAE", 8D);
+        return VisualBaselineTestSupport.CompareRasterImages(
+            expectedPng,
+            actualPng,
+            channelTolerance,
+            allowedDifferentPixels,
+            maximumMeanAbsoluteError,
+            maximumRootMeanSquareError,
+            maximumMeanLuminanceError);
     }
 
     private static VisualRasterComparison CompareRasterImages(byte[] expectedPng, byte[] actualPng, int channelTolerance, int allowedDifferentPixels) =>

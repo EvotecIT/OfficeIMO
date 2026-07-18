@@ -180,7 +180,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void ExcelWorksheet_DefaultPngExportDoesNotExpandRangeForUnsupportedImages() {
+        public void ExcelWorksheet_DefaultPngExportExpandsRangeForVisibleImageFallbacks() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddWorksheet("UnsupportedImage");
@@ -190,8 +190,11 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult png = sheet.ExportImage(OfficeImageExportFormat.Png, new ExcelWorksheetImageExportOptions { ShowGridlines = false });
             ExcelRangeVisualSnapshot snapshot = sheet.CreateVisualSnapshot(new ExcelWorksheetImageExportOptions { ShowGridlines = false });
 
-            Assert.Equal("UnsupportedImage!A1:A1", png.Source);
-            Assert.NotEqual("A1:A1", snapshot.Range);
+            Assert.Equal("UnsupportedImage!A1:H13", png.Source);
+            Assert.Equal("A1:H13", snapshot.Range);
+            Assert.Contains(
+                png.Diagnostics,
+                diagnostic => diagnostic.Code == OfficeImageExportDiagnosticCodes.SourceImageDecodeFallback);
             Assert.Contains(snapshot.Images, image => image.Name == "JpegOutside" && image.DetectedFormat == OfficeImageFormat.Jpeg);
         }
 

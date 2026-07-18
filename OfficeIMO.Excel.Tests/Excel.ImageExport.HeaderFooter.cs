@@ -222,12 +222,50 @@ namespace OfficeIMO.Tests {
                 ShowGridlines = false
             });
 
-            OfficeImageExportDiagnostic diagnostic = Assert.Single(results[1].Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.HeaderFooterFontFamilyFallback);
+            OfficeImageExportDiagnostic diagnostic = Assert.Single(results[1].Diagnostics, item => item.Code == OfficeImageExportDiagnosticCodes.FontSubstituted);
             Assert.Equal(OfficeImageExportDiagnosticSeverity.Warning, diagnostic.Severity);
             Assert.Equal("Report!headerFooter", diagnostic.Source);
             Assert.Contains("OfficeIMO Missing Header Font", diagnostic.Message);
             Assert.Contains(results[1].Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.HeaderFooterFormattingApproximation);
             Assert.Contains("font-family=\"OfficeIMO Missing Header Font\"", Encoding.UTF8.GetString(results[1].Bytes));
+        }
+
+        [Fact]
+        public void ExcelWorksheet_PageSlicedSvgExportUsesCallerScopedHeaderFooterFont() {
+            OfficeTrueTypeFont? font = OfficeTrueTypeFont.TryLoadDefault(out string? fontPath);
+            if (font == null || string.IsNullOrWhiteSpace(fontPath)) return;
+
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorksheet("Report");
+            FillPageBreakGrid(sheet);
+            sheet.SetHeaderFooter(
+                headerCenter:
+                    "&\"OfficeIMO Scoped Header Font,Regular\"Font Header");
+            sheet.AddManualRowPageBreak(2, save: false);
+            var options = new ExcelWorksheetImageExportOptions {
+                Range = "A1:D4",
+                SplitByManualPageBreaks = true,
+                ShowGridlines = false
+            };
+            options.Fonts.Add(
+                "OfficeIMO Scoped Header Font",
+                File.ReadAllBytes(fontPath));
+
+            IReadOnlyList<OfficeImageExportResult> results =
+                sheet.ExportImages(OfficeImageExportFormat.Svg, options);
+
+            Assert.DoesNotContain(
+                results[1].Diagnostics,
+                item => item.Code ==
+                        OfficeImageExportDiagnosticCodes.FontSubstituted &&
+                        item.Source == "Report!headerFooter" &&
+                        item.Message.Contains(
+                            "OfficeIMO Scoped Header Font",
+                            StringComparison.Ordinal));
+            Assert.Contains(
+                "OfficeIMO Scoped Header Font",
+                Encoding.UTF8.GetString(results[1].Bytes));
         }
 
         [Fact]
@@ -342,6 +380,52 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ExcelWorksheet_SafetyReducedHeaderFooterBandsDoNotOverlapContent() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorksheet("Report");
+            FillPageBreakGrid(sheet);
+            for (int row = 3; row <= 4; row++) {
+                for (int column = 1; column <= 4; column++) {
+                    sheet.CellBackground(row, column, "#00FF00");
+                }
+            }
+            sheet.SetHeaderFooter(headerLeft: "Prepared", footerRight: "Internal");
+            sheet.AddManualRowPageBreak(2, save: false);
+
+            OfficeImageExportResult result = sheet.ExportImages(
+                OfficeImageExportFormat.Png,
+                new ExcelWorksheetImageExportOptions {
+                    Range = "A1:D4",
+                    SplitByManualPageBreaks = true,
+                    ShowGridlines = false,
+                    MaximumRasterPixels = 1_000L
+                })[1];
+
+            Assert.True((long)result.Width * result.Height <= 1_000L);
+            Assert.Contains(
+                result.Diagnostics,
+                diagnostic => diagnostic.Code == OfficeImageExportDiagnosticCodes.RasterScaleReduced &&
+                    diagnostic.Source == "Report!headerFooter");
+            Assert.True(OfficePngReader.TryDecode(result.Bytes, out OfficeRasterImage? image));
+            Assert.NotNull(image);
+            int footerHeight = Math.Max(
+                1,
+                (int)Math.Ceiling(28D * result.DpiY / 96D));
+            int footerTop = result.Height - footerHeight;
+            OfficeColor lastContentPixel = image!.GetPixel(1, footerTop - 1);
+            OfficeColor firstFooterPixel = image.GetPixel(1, footerTop);
+            Assert.True(
+                lastContentPixel.G > 180 &&
+                lastContentPixel.R < 80 &&
+                lastContentPixel.B < 80);
+            Assert.False(
+                firstFooterPixel.G > 180 &&
+                firstFooterPixel.R < 80 &&
+                firstFooterPixel.B < 80);
+        }
+
+        [Fact]
         public void ExcelWorksheet_PageSlicedImageExportKeepsHeaderFooterInsidePageSetupCanvas() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
@@ -403,8 +487,8 @@ namespace OfficeIMO.Tests {
 
             Assert.DoesNotContain(png.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.HeaderFooterUnsupported);
             Assert.DoesNotContain(svg.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.HeaderFooterUnsupported);
-            Assert.DoesNotContain(png.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.HeaderFooterImageUnsupported);
-            Assert.DoesNotContain(svg.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.HeaderFooterImageUnsupported);
+            Assert.DoesNotContain(png.Diagnostics, item => item.Code == OfficeImageExportDiagnosticCodes.SourceImageDecodeFallback);
+            Assert.DoesNotContain(svg.Diagnostics, item => item.Code == OfficeImageExportDiagnosticCodes.SourceImageDecodeFallback);
             Assert.Contains(png.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.HeaderFooterImageApproximation);
             Assert.Contains(svg.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.HeaderFooterImageApproximation);
             Assert.Contains("<image", svgText);
@@ -435,9 +519,9 @@ namespace OfficeIMO.Tests {
             string svgText = Encoding.UTF8.GetString(svg.Bytes);
 
             Assert.DoesNotContain(png.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.HeaderFooterUnsupported);
-            Assert.DoesNotContain(png.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.HeaderFooterImageUnsupported);
+            Assert.DoesNotContain(png.Diagnostics, item => item.Code == OfficeImageExportDiagnosticCodes.SourceImageDecodeFallback);
             Assert.DoesNotContain(svg.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.HeaderFooterUnsupported);
-            Assert.DoesNotContain(svg.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.HeaderFooterImageUnsupported);
+            Assert.DoesNotContain(svg.Diagnostics, item => item.Code == OfficeImageExportDiagnosticCodes.SourceImageDecodeFallback);
             Assert.Contains(png.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.HeaderFooterImageApproximation);
             Assert.Contains(svg.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.HeaderFooterImageApproximation);
             Assert.Contains("data:image/png;base64,", svgText);
@@ -447,7 +531,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void ExcelWorksheet_PageSlicedPngExportDiagnosesUnsupportedHeaderFooterImageFormat() {
+        public void ExcelWorksheet_PageSlicedPngExportUsesVisibleHeaderFooterImageFallback() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddWorksheet("Report");
@@ -461,11 +545,42 @@ namespace OfficeIMO.Tests {
                 ShowGridlines = false
             })[1];
 
-            OfficeImageExportDiagnostic diagnostic = Assert.Single(result.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.HeaderFooterImageUnsupported);
+            OfficeImageExportDiagnostic diagnostic = Assert.Single(result.Diagnostics, item => item.Code == OfficeImageExportDiagnosticCodes.SourceImageDecodeFallback);
             Assert.Equal(OfficeImageExportDiagnosticSeverity.Warning, diagnostic.Severity);
             Assert.Equal("Report!headerFooter", diagnostic.Source);
             Assert.DoesNotContain(result.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.HeaderFooterUnsupported);
             Assert.True(OfficeImageReader.Identify(result.Bytes).Width > 0);
+        }
+
+        [Fact]
+        public void ExcelWorksheet_PageSlicedPngExportUsesCallerCodecForHeaderImage() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorksheet("Report");
+            FillPageBreakGrid(sheet);
+            sheet.SetHeaderImage(
+                HeaderFooterPosition.Center,
+                new byte[] { 0x47, 0x49, 0x46, 0x38, 0x39, 0x61 },
+                "image/gif",
+                widthPoints: 36D,
+                heightPoints: 16D);
+            sheet.AddManualRowPageBreak(2, save: false);
+            var codec = new HeaderImageCodec();
+
+            OfficeImageExportResult result = sheet.ExportImages(OfficeImageExportFormat.Png, new ExcelWorksheetImageExportOptions {
+                Range = "A1:D4",
+                SplitByManualPageBreaks = true,
+                ShowGridlines = false,
+                ImageCodec = codec
+            })[1];
+
+            Assert.Equal(2, codec.DecodeCalls);
+            Assert.Contains(
+                result.Diagnostics,
+                diagnostic => diagnostic.Code == OfficeImageExportDiagnosticCodes.SourceImageDecodedByCallerCodec);
+            Assert.DoesNotContain(
+                result.Diagnostics,
+                diagnostic => diagnostic.Code == OfficeImageExportDiagnosticCodes.SourceImageDecodeFallback);
         }
 
         private static void FillPageBreakGrid(ExcelSheet sheet, int rows = 4) {
@@ -473,6 +588,16 @@ namespace OfficeIMO.Tests {
                 for (int column = 1; column <= 4; column++) {
                     sheet.CellValue(row, column, A1.CellReference(row, column));
                 }
+            }
+        }
+
+        private sealed class HeaderImageCodec : IOfficeRasterImageCodec {
+            internal int DecodeCalls { get; private set; }
+
+            public bool TryDecode(byte[] encodedBytes, string? contentType, out OfficeRasterImage? image) {
+                DecodeCalls++;
+                image = new OfficeRasterImage(4, 2, OfficeColor.FromRgb(220, 30, 30));
+                return true;
             }
         }
 

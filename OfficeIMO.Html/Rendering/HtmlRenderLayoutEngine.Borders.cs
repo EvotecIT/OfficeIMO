@@ -21,7 +21,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 "A CSS border paint declaration used no-border fallback.",
                 style.UnsupportedBorderPaint,
                 source,
-                sourceDescription);
+                sourceDescription,
+                HtmlConversionLossKind.Omission);
             return;
         }
         if (!style.Borders.HasPaint) return;
@@ -61,7 +62,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 "A CSS outline paint declaration was omitted.",
                 style.UnsupportedOutlinePaint,
                 source,
-                sourceDescription);
+                sourceDescription,
+                HtmlConversionLossKind.Omission);
             return;
         }
         if (style.OutlineWidth <= 0D || style.OutlineStyle == "none" || style.OutlineStyle == "hidden") return;
@@ -91,9 +93,17 @@ internal sealed partial class HtmlRenderLayoutEngine {
         string message,
         string detail,
         IElement source,
-        string sourceDescription) {
+        string sourceDescription,
+        HtmlConversionLossKind lossKind) {
         if (!reported.Add(sourceDescription)) return;
-        _diagnostics.Add(ComponentName, code, message, HtmlDiagnosticSeverity.Warning, HtmlRenderStyleResolver.DescribeSource(source), detail);
+        _diagnostics.Add(
+            ComponentName,
+            code,
+            message,
+            HtmlDiagnosticSeverity.Warning,
+            HtmlRenderStyleResolver.DescribeSource(source),
+            detail,
+            lossKind);
     }
 
     private static void AddStrokeVisual(

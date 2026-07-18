@@ -7,7 +7,7 @@ namespace OfficeIMO.Tests;
 public sealed class DrawingPublicContractSnapshotTests {
     [Fact]
     public void ImageExportResultSnapshotsCallerOwnedBuffersAndDiagnostics() {
-        byte[] source = { 1, 2, 3 };
+        byte[] source = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.CornflowerBlue));
         var diagnostics = new List<OfficeImageExportDiagnostic> {
             new(OfficeImageExportDiagnosticSeverity.Warning, "Sample", "Sample diagnostic")
         };
@@ -18,13 +18,16 @@ public sealed class DrawingPublicContractSnapshotTests {
             bytes: source,
             diagnostics: diagnostics);
 
+        byte[] expected = (byte[])source.Clone();
         source[0] = 9;
         diagnostics.Clear();
         byte[] returned = result.Bytes;
         returned[1] = 9;
 
-        Assert.Equal(new byte[] { 1, 2, 3 }, result.Bytes);
+        Assert.Equal(expected, result.Bytes);
         Assert.Single(result.Diagnostics);
+        Assert.Equal("image/png", result.MimeType);
+        Assert.Equal(".png", result.FileExtension);
     }
 
     [Fact]

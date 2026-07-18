@@ -19,34 +19,19 @@ namespace OfficeIMO.Excel {
         private static void RenderRasterImage(OfficeRasterCanvas canvas, ExcelVisualImage image, ExcelImageExportOptions options, List<OfficeImageExportDiagnostic>? diagnostics) {
             double scale = options.Scale;
             if (!OfficeRasterImageDecoder.TryDecode(image.Bytes, out OfficeRasterImage? raster) || raster == null) {
-                if (image.DetectedFormat == OfficeImageFormat.Png) {
-                    diagnostics?.Add(new OfficeImageExportDiagnostic(
-                        OfficeImageExportDiagnosticSeverity.Warning,
-                        ExcelImageExportDiagnosticCodes.ImagePngDecodeUnavailable,
-                        "Worksheet image bytes could not be decoded for raster output.",
-                        image.Source));
-                    return;
-                }
-
-                diagnostics?.Add(new OfficeImageExportDiagnostic(
-                    OfficeImageExportDiagnosticSeverity.Warning,
-                    ExcelImageExportDiagnosticCodes.ImageRasterFormatUnsupported,
-                    "Worksheet image " + DescribeImageFormat(image) + " cannot be rasterized to PNG by the dependency-free image renderer yet.",
-                    image.Source));
-                return;
+                var fallbackCodec = new OfficeRasterImageFallbackCodec(options.ImageCodec, diagnostics, image.Source);
+                fallbackCodec.TryDecode(image.Bytes, image.ContentType, out raster);
             }
 
-            canvas.DrawImage(raster, CreateImageProjection(image, scale));
+            if (raster != null) {
+                canvas.DrawImage(raster, CreateImageProjection(image, scale));
+            }
         }
 
         private static void AppendSvgImage(StringBuilder builder, ExcelRangeVisualSnapshot snapshot, ExcelVisualImage image, ExcelImageExportOptions options, List<OfficeImageExportDiagnostic>? diagnostics, ref int index) {
             double scale = options.Scale;
-            if (!OfficeSvgImageRenderer.TryCreateDataUri(image.ContentType, image.Bytes, null, out string dataUri)) {
-                diagnostics?.Add(new OfficeImageExportDiagnostic(
-                    OfficeImageExportDiagnosticSeverity.Warning,
-                    ExcelImageExportDiagnosticCodes.ImageSvgFormatUnsupported,
-                    "Worksheet image " + DescribeImageFormat(image) + " cannot be embedded reliably in SVG output by the dependency-free image renderer yet.",
-                    image.Source));
+            var fallbackCodec = new OfficeRasterImageFallbackCodec(options.ImageCodec, diagnostics, image.Source);
+            if (!OfficeSvgImageRenderer.TryCreateDataUri(image.ContentType, image.Bytes, image.Name, fallbackCodec, out string dataUri)) {
                 return;
             }
 
@@ -74,9 +59,5 @@ namespace OfficeIMO.Excel {
                 flipHorizontal: image.FlipHorizontal,
                 flipVertical: image.FlipVertical).Scale(scale);
 
-        private static string DescribeImageFormat(ExcelVisualImage image) {
-            string contentType = string.IsNullOrWhiteSpace(image.ContentType) ? "none" : image.ContentType;
-            return "detected format '" + image.DetectedFormat + "' with declared content type '" + contentType + "'";
-        }
     }
 }

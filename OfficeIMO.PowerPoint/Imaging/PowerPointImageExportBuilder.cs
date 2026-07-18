@@ -9,7 +9,9 @@ namespace OfficeIMO.PowerPoint {
     /// </summary>
     public sealed class PowerPointSlideImageExportBuilder : OfficeImageExportBuilder<PowerPointSlideImageExportBuilder, PowerPointImageExportOptions> {
         internal PowerPointSlideImageExportBuilder(PowerPointSlide slide, PowerPointImageExportOptions? options = null)
-            : base(options?.Clone() ?? new PowerPointImageExportOptions(), slide.ExportImage) {
+            : base(
+                options?.Clone() ?? new PowerPointImageExportOptions(),
+                (format, effective, cancellationToken) => slide.ExportImage(format, effective, cancellationToken)) {
         }
 
         /// <summary>Includes or excludes the resolved slide background.</summary>
@@ -36,7 +38,11 @@ namespace OfficeIMO.PowerPoint {
     /// </summary>
     public sealed class PowerPointPresentationImageExportBuilder : OfficeImageExportBatchBuilder<PowerPointPresentationImageExportBuilder, PowerPointPresentationImageExportOptions> {
         internal PowerPointPresentationImageExportBuilder(PowerPointPresentation presentation, PowerPointPresentationImageExportOptions? options = null)
-            : base(options?.ClonePresentation() ?? new PowerPointPresentationImageExportOptions(), presentation.ExportImages) {
+            : base(
+                options?.ClonePresentation() ?? new PowerPointPresentationImageExportOptions(),
+                presentation.ExportImages,
+                (format, effective, consumer, cancellationToken) =>
+                    presentation.ExportImages(format, consumer, effective, cancellationToken)) {
         }
 
         /// <summary>Includes or excludes resolved slide backgrounds.</summary>
@@ -104,6 +110,10 @@ namespace OfficeIMO.PowerPoint {
         /// Starts a fluent image export for this slide.
         /// </summary>
         public PowerPointSlideImageExportBuilder ToImage() => new PowerPointSlideImageExportBuilder(this);
+
+        /// <summary>Starts a fluent image export using a cloned options snapshot.</summary>
+        public PowerPointSlideImageExportBuilder ToImage(PowerPointImageExportOptions options) =>
+            new PowerPointSlideImageExportBuilder(this, options ?? throw new ArgumentNullException(nameof(options)));
     }
 
     public sealed partial class PowerPointPresentation {
@@ -111,5 +121,9 @@ namespace OfficeIMO.PowerPoint {
         /// Starts a fluent image export for selected slides in this presentation.
         /// </summary>
         public PowerPointPresentationImageExportBuilder ToImages() => new PowerPointPresentationImageExportBuilder(this);
+
+        /// <summary>Starts a fluent batch export using a cloned options snapshot.</summary>
+        public PowerPointPresentationImageExportBuilder ToImages(PowerPointPresentationImageExportOptions options) =>
+            new PowerPointPresentationImageExportBuilder(this, options ?? throw new ArgumentNullException(nameof(options)));
     }
 }

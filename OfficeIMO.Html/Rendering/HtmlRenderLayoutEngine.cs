@@ -603,14 +603,28 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     private void ValidateSurface(double width, double height) {
-        long pixelWidth = (long)Math.Ceiling(width * _options.Scale);
-        long pixelHeight = (long)Math.Ceiling(height * _options.Scale);
-        if (pixelWidth > _options.MaxSurfaceWidth || pixelHeight > _options.MaxSurfaceHeight) {
+        double pixelWidth = Math.Ceiling(width * _options.Scale);
+        double pixelHeight = Math.Ceiling(height * _options.Scale);
+        if (double.IsNaN(pixelWidth) || double.IsInfinity(pixelWidth) ||
+            double.IsNaN(pixelHeight) || double.IsInfinity(pixelHeight) ||
+            pixelWidth > _options.MaxSurfaceWidth || pixelHeight > _options.MaxSurfaceHeight) {
             throw new InvalidOperationException("HTML rendering exceeded the configured maximum image surface dimensions.");
         }
     }
 
-    private void AddUnsupported(string code, string message, IElement element, string? detail = null) {
-        _diagnostics.Add(ComponentName, code, message, HtmlDiagnosticSeverity.Warning, HtmlRenderStyleResolver.DescribeSource(element), detail);
+    private void AddUnsupported(
+        string code,
+        string message,
+        IElement element,
+        string? detail = null,
+        HtmlConversionLossKind lossKind = HtmlConversionLossKind.Approximation) {
+        _diagnostics.Add(
+            ComponentName,
+            code,
+            message,
+            HtmlDiagnosticSeverity.Warning,
+            HtmlRenderStyleResolver.DescribeSource(element),
+            detail,
+            lossKind);
     }
 }

@@ -40,12 +40,13 @@ document.Save();
 - Creates and edits Visio pages, shapes, connectors, text, styles, Shape Data, layers, hyperlinks, containers, comments, and metadata.
 - Provides fluent diagram builders for common flowchart, block, dependency, architecture, network, topology, swimlane, org chart, sequence, timeline, and generic graph scenarios.
 - Supports loaded-diagram editing, shape selection, topology queries, stencil replacement/migration planning, and container maintenance.
-- Exports headless SVG and managed PNG previews for proof and review workflows.
+- Exports headless PNG, JPEG, TIFF, SVG, and lossless WebP previews for proof and review workflows.
 - Includes validation and quality analysis for generated and loaded diagrams.
 
 ## Editing existing diagrams
 
 ```csharp
+using OfficeIMO.Drawing;
 using OfficeIMO.Visio;
 using OfficeIMO.Visio.Fluent;
 using Color = OfficeIMO.Drawing.OfficeColor;
@@ -178,7 +179,7 @@ page.SelectWithShapeData("Owner", "Platform")
 document.Save();
 ```
 
-### Headless SVG and PNG export
+### Headless image export
 
 ```csharp
 using OfficeIMO.Visio;
@@ -199,6 +200,18 @@ document.SaveAsPng("pipeline.png", new VisioPngSaveOptions {
     PixelsPerInch = 144,
     Supersampling = 3
 });
+
+OfficeImageExportResult webp = document
+    .ToImage()
+    .AtDpi(144)
+    .AsWebp()
+    .Save("pipeline.webp");
+
+IReadOnlyList<OfficeImageExportResult> pages = document
+    .ToImages()
+    .AllPages()
+    .AsJpeg()
+    .Save("pipeline-pages");
 ```
 
 ## Boundaries
@@ -224,6 +237,6 @@ document.SaveAsPng("pipeline.png", new VisioPngSaveOptions {
 ## Dependency footprint
 
 - **External:** `System.IO.Packaging`; Microsoft BCL compatibility packages are used on older targets.
-- **OfficeIMO:** `OfficeIMO.Drawing`. The VSDX model, builders, editing, topology, validation, and PNG/SVG renderers are first-party.
+- **OfficeIMO:** `OfficeIMO.Drawing`. The VSDX model, builders, editing, topology, validation, and PNG/JPEG/TIFF/SVG/WebP renderers are first-party.
 
 See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

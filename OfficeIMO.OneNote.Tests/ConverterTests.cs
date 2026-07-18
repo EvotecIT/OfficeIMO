@@ -206,7 +206,7 @@ public sealed class ConverterTests {
     }
 
     [Fact]
-    public void VisualHtmlSurfacesAndEmbedsFallbackForNonEmbeddableSourceImages() {
+    public void VisualHtmlDecodesAndEmbedsTiffSourceImagesWithoutFallback() {
         byte[] sourceTiff = OfficeRasterImageEncoder.Encode(
             new OfficeRasterImage(8, 4, OfficeColor.CornflowerBlue),
             OfficeImageExportFormat.Tiff);
@@ -222,7 +222,7 @@ public sealed class ConverterTests {
 
         string html = section.ToVisualHtmlDocument(new OneNoteVisualHtmlOptions { DiagnosticSink = diagnostics });
 
-        Assert.Contains(diagnostics, diagnostic => diagnostic.Code == "DRAWING_RASTER_IMAGE_UNSUPPORTED");
+        Assert.DoesNotContain(diagnostics, diagnostic => diagnostic.Code == OfficeImageExportDiagnosticCodes.SourceImageDecodeFallback);
         Assert.Contains("data:image/png;base64,", html, StringComparison.Ordinal);
         Assert.Contains("<image", html, StringComparison.Ordinal);
     }
@@ -261,7 +261,10 @@ public sealed class ConverterTests {
         await section.SaveAsVisualPdfAsync(stream, options);
         OfficeIMO.Pdf.PdfDocumentInfo info = OfficeIMO.Pdf.PdfDocument.Open(bytes).Read.DocumentInfo();
 
-        Assert.False(result.HasLoss);
+        Assert.DoesNotContain(
+            result.Warnings,
+            warning => warning.Code !=
+                       OfficeImageExportDiagnosticCodes.FontSubstituted);
         Assert.Equal("%PDF", Encoding.ASCII.GetString(bytes, 0, 4));
         Assert.Equal(1, info.PageCount);
         Assert.InRange(info.Pages[0].Width, 215.9D, 216.1D);

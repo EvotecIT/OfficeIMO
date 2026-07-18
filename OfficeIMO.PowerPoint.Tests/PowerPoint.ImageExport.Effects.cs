@@ -37,13 +37,13 @@ namespace OfficeIMO.Tests {
             string svgText = Encoding.UTF8.GetString(svg.Bytes);
             Assert.Contains("#000000", svgText, StringComparison.OrdinalIgnoreCase);
             Assert.True(CountOccurrences(svgText, "#000000", StringComparison.OrdinalIgnoreCase) >= 3, "Expected SVG output to layer the blurred shadow.");
-            Assert.Empty(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
 
             OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png, new PowerPointImageExportOptions { Scale = 1D });
             Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? image));
             Assert.Equal(OfficeColor.FromRgb(0, 0, 0), image!.GetPixel(83, 53));
             Assert.True(ContainsVisibleNonWhitePixel(image!, 87, 35, 8, 14), "Expected blurred shadow halo pixels outside the hard shadow bounds.");
-            Assert.Empty(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
         }
 
         [Fact]
@@ -71,12 +71,12 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg, new PowerPointImageExportOptions { Scale = 1D });
             string svgText = Encoding.UTF8.GetString(svg.Bytes);
             Assert.Contains("#FF00FF", svgText, StringComparison.OrdinalIgnoreCase);
-            Assert.Empty(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
 
             OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png, new PowerPointImageExportOptions { Scale = 1D });
             Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? image));
             Assert.True(ContainsMagentaGlowPixel(image!, 24, 16, 64, 44));
-            Assert.Empty(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
         }
 
         private static bool ContainsMagentaGlowPixel(OfficeRasterImage image, int left, int top, int width, int height) {

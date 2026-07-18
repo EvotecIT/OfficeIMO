@@ -160,7 +160,7 @@ internal static class OfficeJpegWriter {
 
         WriteMarker(stream, 0xFFD8);
         if (options.WriteJfifHeader) {
-            WriteApp0(stream);
+            WriteApp0(stream, options.DpiX, options.DpiY);
         }
         WriteMetadata(stream, options.Metadata);
         WriteDqt(stream, 0, qY);
@@ -742,7 +742,19 @@ internal static class OfficeJpegWriter {
         return outTable;
     }
 
-    private static void WriteApp0(Stream s) {
+    private static void WriteApp0(Stream s, double dpiX, double dpiY) {
+        if (dpiX < OfficeRasterImageEncoder.JpegMinimumDpi ||
+            double.IsNaN(dpiX) ||
+            double.IsInfinity(dpiX) ||
+            dpiX > ushort.MaxValue) {
+            throw new ArgumentOutOfRangeException(nameof(dpiX));
+        }
+        if (dpiY < OfficeRasterImageEncoder.JpegMinimumDpi ||
+            double.IsNaN(dpiY) ||
+            double.IsInfinity(dpiY) ||
+            dpiY > ushort.MaxValue) {
+            throw new ArgumentOutOfRangeException(nameof(dpiY));
+        }
         WriteMarker(s, 0xFFE0);
         WriteUInt16(s, 16);
         s.WriteByte((byte)'J');
@@ -752,9 +764,9 @@ internal static class OfficeJpegWriter {
         s.WriteByte(0);
         s.WriteByte(1);
         s.WriteByte(1);
-        s.WriteByte(0);
-        WriteUInt16(s, 1);
-        WriteUInt16(s, 1);
+        s.WriteByte(1);
+        WriteUInt16(s, checked((ushort)Math.Round(dpiX, MidpointRounding.AwayFromZero)));
+        WriteUInt16(s, checked((ushort)Math.Round(dpiY, MidpointRounding.AwayFromZero)));
         s.WriteByte(0);
         s.WriteByte(0);
     }

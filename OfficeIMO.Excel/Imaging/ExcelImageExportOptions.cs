@@ -21,7 +21,7 @@ namespace OfficeIMO.Excel {
         public bool IncludeHidden { get; set; }
 
         /// <summary>
-        /// Whether worksheet images should be included when supported.
+        /// Whether worksheet images should be included.
         /// </summary>
         public bool IncludeImages { get; set; } = true;
 
@@ -66,23 +66,27 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public double DefaultRowHeightPixels { get; set; } = 20D;
 
-        internal ExcelImageExportOptions Clone() => new ExcelImageExportOptions {
-            Scale = Scale,
-            BackgroundColor = BackgroundColor,
-            RasterEncoding = RasterEncoding?.Clone() ?? new OfficeRasterEncodingOptions(),
-            GridlineColor = GridlineColor,
-            ShowGridlines = ShowGridlines,
-            IncludeHidden = IncludeHidden,
-            IncludeImages = IncludeImages,
-            IncludeCharts = IncludeCharts,
-            IncludeDrawingObjects = IncludeDrawingObjects,
-            IncludeConditionalFormatting = IncludeConditionalFormatting,
-            ConditionalFormattingDate = ConditionalFormattingDate,
-            ShowHyperlinkHints = ShowHyperlinkHints,
-            ShowCommentBodies = ShowCommentBodies,
-            DefaultColumnWidthPixels = DefaultColumnWidthPixels,
-            DefaultRowHeightPixels = DefaultRowHeightPixels
-        };
+        /// <summary>Creates an independent options snapshot.</summary>
+        public ExcelImageExportOptions Clone() => CopyExcelOptionsTo(new ExcelImageExportOptions());
+
+        internal T CopyExcelOptionsTo<T>(T target) where T : ExcelImageExportOptions {
+            CopyImageExportOptionsTo(target);
+            target.GridlineColor = GridlineColor;
+            target.ShowGridlines = ShowGridlines;
+            target.IncludeHidden = IncludeHidden;
+            target.IncludeImages = IncludeImages;
+            target.IncludeCharts = IncludeCharts;
+            target.IncludeDrawingObjects = IncludeDrawingObjects;
+            target.IncludeConditionalFormatting = IncludeConditionalFormatting;
+            target.ConditionalFormattingDate = ConditionalFormattingDate;
+            target.ShowHyperlinkHints = ShowHyperlinkHints;
+            target.ShowCommentBodies = ShowCommentBodies;
+            target.DefaultColumnWidthPixels = DefaultColumnWidthPixels;
+            target.DefaultRowHeightPixels = DefaultRowHeightPixels;
+            return target;
+        }
+
+        internal void Validate() => ValidateImageExportOptions();
     }
 
     /// <summary>
@@ -111,27 +115,15 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public bool SplitByManualPageBreaks { get; set; }
 
-        internal ExcelWorksheetImageExportOptions CloneWorksheet() => new ExcelWorksheetImageExportOptions {
-            Scale = Scale,
-            BackgroundColor = BackgroundColor,
-            RasterEncoding = RasterEncoding?.Clone() ?? new OfficeRasterEncodingOptions(),
-            GridlineColor = GridlineColor,
-            ShowGridlines = ShowGridlines,
-            IncludeHidden = IncludeHidden,
-            IncludeImages = IncludeImages,
-            IncludeCharts = IncludeCharts,
-            IncludeDrawingObjects = IncludeDrawingObjects,
-            IncludeConditionalFormatting = IncludeConditionalFormatting,
-            ConditionalFormattingDate = ConditionalFormattingDate,
-            ShowHyperlinkHints = ShowHyperlinkHints,
-            ShowCommentBodies = ShowCommentBodies,
-            DefaultColumnWidthPixels = DefaultColumnWidthPixels,
-            DefaultRowHeightPixels = DefaultRowHeightPixels,
-            Range = Range,
-            HeaderFooterDateTime = HeaderFooterDateTime,
-            UsePrintArea = UsePrintArea,
-            SplitByManualPageBreaks = SplitByManualPageBreaks
-        };
+        /// <summary>Creates an independent worksheet options snapshot.</summary>
+        public ExcelWorksheetImageExportOptions CloneWorksheet() {
+            ExcelWorksheetImageExportOptions clone = CopyExcelOptionsTo(new ExcelWorksheetImageExportOptions());
+            clone.Range = Range;
+            clone.HeaderFooterDateTime = HeaderFooterDateTime;
+            clone.UsePrintArea = UsePrintArea;
+            clone.SplitByManualPageBreaks = SplitByManualPageBreaks;
+            return clone;
+        }
     }
 
     /// <summary>
@@ -165,27 +157,15 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public bool SplitWorksheetsByManualPageBreaks { get; set; }
 
-        internal ExcelWorkbookImageExportOptions CloneWorkbook() => new ExcelWorkbookImageExportOptions {
-            Scale = Scale,
-            BackgroundColor = BackgroundColor,
-            RasterEncoding = RasterEncoding?.Clone() ?? new OfficeRasterEncodingOptions(),
-            GridlineColor = GridlineColor,
-            ShowGridlines = ShowGridlines,
-            IncludeHidden = IncludeHidden,
-            IncludeImages = IncludeImages,
-            IncludeCharts = IncludeCharts,
-            IncludeDrawingObjects = IncludeDrawingObjects,
-            IncludeConditionalFormatting = IncludeConditionalFormatting,
-            ConditionalFormattingDate = ConditionalFormattingDate,
-            ShowHyperlinkHints = ShowHyperlinkHints,
-            ShowCommentBodies = ShowCommentBodies,
-            DefaultColumnWidthPixels = DefaultColumnWidthPixels,
-            DefaultRowHeightPixels = DefaultRowHeightPixels,
-            SheetNames = SheetNames,
-            IncludeHiddenSheets = IncludeHiddenSheets,
-            HeaderFooterDateTime = HeaderFooterDateTime,
-            UseWorksheetPrintAreas = UseWorksheetPrintAreas,
-            SplitWorksheetsByManualPageBreaks = SplitWorksheetsByManualPageBreaks
-        };
+        /// <summary>Creates an independent workbook options snapshot.</summary>
+        public ExcelWorkbookImageExportOptions CloneWorkbook() {
+            ExcelWorkbookImageExportOptions clone = CopyExcelOptionsTo(new ExcelWorkbookImageExportOptions());
+            clone.SheetNames = SheetNames?.ToArray();
+            clone.IncludeHiddenSheets = IncludeHiddenSheets;
+            clone.HeaderFooterDateTime = HeaderFooterDateTime;
+            clone.UseWorksheetPrintAreas = UseWorksheetPrintAreas;
+            clone.SplitWorksheetsByManualPageBreaks = SplitWorksheetsByManualPageBreaks;
+            return clone;
+        }
     }
 }

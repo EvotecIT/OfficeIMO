@@ -47,6 +47,59 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ExcelWorksheet_CompositionUsesRequestedFormatDensityInsteadOfWorkingPngDensity() {
+            string path = Path.Combine(Path.GetTempPath(), System.Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(path);
+            ExcelSheet sheet = document.AddWorksheet("Data");
+            sheet.CellValue(1, 1, "Format-specific density");
+            sheet.SetPageSetup(scale: 100, paperSize: ExcelPaperSize.Letter);
+
+            OfficeImageExportResult result = Assert.Single(sheet.ExportImages(
+                OfficeImageExportFormat.Jpeg,
+                new ExcelWorksheetImageExportOptions {
+                    SplitByManualPageBreaks = true,
+                    RasterEncoding = new OfficeRasterEncodingOptions {
+                        Png = new OfficePngEncodeOptions {
+                            DpiX = 96D,
+                            DpiY = 96D
+                        },
+                        Jpeg = new OfficeJpegEncodeOptions {
+                            DpiX = 300D,
+                            DpiY = 240D
+                        }
+                    }
+                }));
+
+            Assert.Equal(300D, result.DpiX);
+            Assert.Equal(240D, result.DpiY);
+        }
+
+        [Fact]
+        public void ExcelWorksheet_PageCompositionPlansSafetyReductionBeforeAllocatingFinalCanvas() {
+            string path = Path.Combine(Path.GetTempPath(), System.Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(path);
+            ExcelSheet sheet = document.AddWorksheet("Data");
+            sheet.CellValue(1, 1, "Safety-limited page");
+            sheet.SetPageSetup(scale: 100, paperSize: ExcelPaperSize.Letter);
+
+            OfficeImageExportResult result = Assert.Single(sheet.ExportImages(
+                OfficeImageExportFormat.Png,
+                new ExcelWorksheetImageExportOptions {
+                    SplitByManualPageBreaks = true,
+                    TargetDpi = 192D,
+                    MaximumRasterPixels = 100_000L
+                }));
+
+            Assert.True((long)result.Width * result.Height <= 100_000L);
+            Assert.Contains(
+                result.Diagnostics,
+                diagnostic => diagnostic.Code == OfficeImageExportDiagnosticCodes.RasterScaleReduced &&
+                    diagnostic.Source == "Data!pageSetup");
+            Assert.InRange(result.PhysicalWidthInches, 8.4D, 8.6D);
+            Assert.InRange(result.PhysicalHeightInches, 10.9D, 11.1D);
+        }
+
+        [Fact]
         public void ExcelWorkbook_BatchSaveUsesTiffExtension() {
             string path = Path.Combine(Path.GetTempPath(), System.Guid.NewGuid() + ".xlsx");
             string folder = Path.Combine(Path.GetTempPath(), "OfficeIMO-" + System.Guid.NewGuid().ToString("N"));

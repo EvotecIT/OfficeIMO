@@ -1,26 +1,56 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Visio {
     internal static class VisioPackagePreviewArtwork {
-        internal static bool TryGetBrowserImage(VisioShape shape, out VisioPreviewImage image) {
+        internal static bool TryGetBrowserImage(
+            VisioShape shape,
+            IOfficeRasterImageCodec? imageCodec,
+            ICollection<OfficeImageExportDiagnostic>? diagnostics,
+            string? diagnosticSource,
+            out VisioPreviewImage image) {
             image = default;
             if (!TryGetPreviewRelationship(shape, out VisioAssets.MasterRelationshipContent? relationship) || relationship == null) {
                 return false;
             }
 
             string contentType = ResolveContentType(relationship);
-            if (!IsBrowserRenderable(contentType, relationship.Extension)) {
-                return false;
+            if (IsBrowserRenderable(contentType, relationship.Extension)) {
+                image = new VisioPreviewImage(contentType, relationship.Data!);
+                return true;
             }
 
-            image = new VisioPreviewImage(contentType, relationship.Data!);
-            return true;
+            if (OfficeRasterImageDecoder.TryDecode(relationship.Data, out OfficeRasterImage? builtInRaster) &&
+                builtInRaster != null) {
+                image = new VisioPreviewImage("image/png", OfficePngWriter.Encode(builtInRaster));
+                return true;
+            }
+
+            if (TryDecodeCaller(
+                    relationship.Data!,
+                    relationship.ContentType,
+                    imageCodec,
+                    diagnostics,
+                    ResolveDiagnosticSource(shape, diagnosticSource),
+                    out OfficeRasterImage? raster) &&
+                raster != null) {
+                image = new VisioPreviewImage("image/png", OfficePngWriter.Encode(raster));
+                return true;
+            }
+
+            AddDecodeFallbackDiagnostic(shape, relationship, diagnostics, diagnosticSource);
+            return false;
         }
 
-        internal static bool TryGetRasterImage(VisioShape shape, out OfficeRasterImage? image) {
+        internal static bool TryGetRasterImage(
+            VisioShape shape,
+            IOfficeRasterImageCodec? imageCodec,
+            ICollection<OfficeImageExportDiagnostic>? diagnostics,
+            string? diagnosticSource,
+            out OfficeRasterImage? image) {
             image = null;
             if (!TryGetPreviewRelationship(shape, out VisioAssets.MasterRelationshipContent? relationship) || relationship == null) {
                 return false;
@@ -38,6 +68,17 @@ namespace OfficeIMO.Visio {
                 return true;
             }
 
+            if (TryDecodeCaller(
+                    relationship.Data!,
+                    relationship.ContentType,
+                    imageCodec,
+                    diagnostics,
+                    ResolveDiagnosticSource(shape, diagnosticSource),
+                    out image)) {
+                return true;
+            }
+
+            AddDecodeFallbackDiagnostic(shape, relationship, diagnostics, diagnosticSource);
             return false;
         }
 
@@ -80,13 +121,62 @@ namespace OfficeIMO.Visio {
         }
 
         private static bool IsImageRelationship(VisioAssets.MasterRelationshipContent relationship) {
-            return OfficeSvgImageRenderer.TryResolveEmbeddableContentType(
+            return relationship.Type.EndsWith("/image", StringComparison.OrdinalIgnoreCase) ||
+                   OfficeSvgImageRenderer.TryResolveEmbeddableContentType(
                        relationship.ContentType,
                        relationship.Data,
                        GetRelationshipImageName(relationship),
                        out _) ||
+                   (!string.IsNullOrWhiteSpace(relationship.ContentType) &&
+                    relationship.ContentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase)) ||
                    OfficeImageInfo.IsBrowserPreviewSafeExtension(Path.GetExtension(relationship.Target)) ||
                    OfficeRasterImageDecoder.TryDecode(relationship.Data, out _);
+        }
+
+        private static bool TryDecodeCaller(
+            byte[] bytes,
+            string? contentType,
+            IOfficeRasterImageCodec? imageCodec,
+            ICollection<OfficeImageExportDiagnostic>? diagnostics,
+            string source,
+            out OfficeRasterImage? image) {
+            image = null;
+            if (imageCodec == null) return false;
+            var attemptDiagnostics = new List<OfficeImageExportDiagnostic>(1);
+            var codec = new OfficeRasterImageFallbackCodec(imageCodec, attemptDiagnostics, source);
+            codec.TryDecode(bytes, contentType, out image);
+            OfficeImageExportDiagnostic? success = attemptDiagnostics.FirstOrDefault(
+                diagnostic => diagnostic.Code == OfficeImageExportDiagnosticCodes.SourceImageDecodedByCallerCodec);
+            if (success == null || image == null) {
+                image = null;
+                return false;
+            }
+
+            diagnostics?.Add(success);
+            return true;
+        }
+
+        private static void AddDecodeFallbackDiagnostic(
+            VisioShape shape,
+            VisioAssets.MasterRelationshipContent relationship,
+            ICollection<OfficeImageExportDiagnostic>? diagnostics,
+            string? diagnosticSource) {
+            string contentType = string.IsNullOrWhiteSpace(relationship.ContentType)
+                ? "unknown image data"
+                : relationship.ContentType;
+            diagnostics?.Add(new OfficeImageExportDiagnostic(
+                OfficeImageExportDiagnosticSeverity.Warning,
+                OfficeImageExportDiagnosticCodes.SourceImageDecodeFallback,
+                "Visio could not decode " + contentType + "; the stencil artwork fallback was rendered.",
+                ResolveDiagnosticSource(shape, diagnosticSource)));
+        }
+
+        private static string ResolveDiagnosticSource(VisioShape shape, string? source) {
+            string prefix = string.IsNullOrWhiteSpace(source) ? "Visio page" : source!;
+            string identifier = !string.IsNullOrWhiteSpace(shape.NameU)
+                ? shape.NameU!
+                : !string.IsNullOrWhiteSpace(shape.Id) ? shape.Id : "shape";
+            return prefix + " / " + identifier;
         }
 
         private static string ResolveContentType(VisioAssets.MasterRelationshipContent relationship) {

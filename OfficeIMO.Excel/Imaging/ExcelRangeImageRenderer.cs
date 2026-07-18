@@ -1,31 +1,94 @@
 using System.Globalization;
 using System.Text;
+using System.Threading;
 using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Excel {
-    internal static partial class ExcelRangeImageRenderer {
-        internal static OfficeImageExportResult Render(ExcelRangeVisualSnapshot snapshot, OfficeImageExportFormat format, ExcelImageExportOptions options) {
-            List<OfficeImageExportDiagnostic> diagnostics = new List<OfficeImageExportDiagnostic>(snapshot.Diagnostics);
-            if (format == OfficeImageExportFormat.Svg) {
-                string svg = RenderSvg(snapshot, options, diagnostics);
-                return new OfficeImageExportResult(format, ScaledWidth(snapshot, options), ScaledHeight(snapshot, options), Encoding.UTF8.GetBytes(svg), snapshot.SheetName, snapshot.SheetName + "!" + snapshot.Range, diagnostics.AsReadOnly());
-            }
-
-            OfficeRasterImage image = RenderRaster(snapshot, options, diagnostics);
-            byte[] bytes = OfficeRasterImageEncoder.Encode(image, format, options.RasterEncoding);
-            return new OfficeImageExportResult(format, image.Width, image.Height, bytes, snapshot.SheetName, snapshot.SheetName + "!" + snapshot.Range, diagnostics.AsReadOnly());
+    internal readonly struct ExcelRasterRenderState {
+        internal ExcelRasterRenderState(
+            double scale,
+            OfficeRasterEncodingOptions encodingOptions) {
+            Scale = scale;
+            EncodingOptions = encodingOptions?.Clone() ??
+                throw new ArgumentNullException(nameof(encodingOptions));
         }
 
-        internal static OfficeRasterImage RenderRaster(ExcelRangeVisualSnapshot snapshot, ExcelImageExportOptions options, List<OfficeImageExportDiagnostic>? diagnostics = null) {
+        internal double Scale { get; }
+        internal OfficeRasterEncodingOptions EncodingOptions { get; }
+
+        internal static ExcelRasterRenderState FromPlan(OfficeRasterExportPlan plan) =>
+            new ExcelRasterRenderState(plan.Limit.Scale, plan.CreateEncodingOptions());
+    }
+
+    internal static partial class ExcelRangeImageRenderer {
+        internal static OfficeImageExportResult Render(
+            ExcelRangeVisualSnapshot snapshot,
+            OfficeImageExportFormat format,
+            ExcelImageExportOptions options,
+            CancellationToken cancellationToken = default) =>
+            Render(
+                snapshot,
+                format,
+                options,
+                format,
+                out _,
+                cancellationToken);
+
+        internal static OfficeImageExportResult Render(
+            ExcelRangeVisualSnapshot snapshot,
+            OfficeImageExportFormat format,
+            ExcelImageExportOptions options,
+            OfficeImageExportFormat rasterPlanningFormat,
+            out ExcelRasterRenderState rasterState,
+            CancellationToken cancellationToken = default) {
+            cancellationToken.ThrowIfCancellationRequested();
+            List<OfficeImageExportDiagnostic> diagnostics = new List<OfficeImageExportDiagnostic>(snapshot.Diagnostics);
+            if (format == OfficeImageExportFormat.Svg) {
+                rasterState = new ExcelRasterRenderState(options.Scale, options.RasterEncoding);
+                string svg = RenderSvg(snapshot, options, diagnostics);
+                cancellationToken.ThrowIfCancellationRequested();
+                return options.EnsureAccepted(new OfficeImageExportResult(format, ScaledWidth(snapshot, options), ScaledHeight(snapshot, options), Encoding.UTF8.GetBytes(svg), snapshot.SheetName, snapshot.SheetName + "!" + snapshot.Range, diagnostics.AsReadOnly()));
+            }
+            if (!rasterPlanningFormat.IsRaster()) {
+                throw new ArgumentException("A raster planning format is required.", nameof(rasterPlanningFormat));
+            }
+
+            string source = snapshot.SheetName + "!" + snapshot.Range;
+            OfficeRasterExportPlan plan = OfficeRasterExportPlanner.Resolve(
+                snapshot.Width,
+                snapshot.Height,
+                rasterPlanningFormat,
+                options,
+                source);
+            rasterState = ExcelRasterRenderState.FromPlan(plan);
+            if (plan.Diagnostic != null) diagnostics.Add(plan.Diagnostic);
+            ExcelImageExportOptions renderOptions = options.Clone();
+            renderOptions.Scale = rasterState.Scale;
+            renderOptions.TargetDpi = null;
+            OfficeRasterImage image = RenderRaster(snapshot, renderOptions, diagnostics, cancellationToken);
+            byte[] bytes = OfficeRasterImageEncoder.Encode(
+                image,
+                format,
+                rasterState.EncodingOptions);
+            cancellationToken.ThrowIfCancellationRequested();
+            return options.EnsureAccepted(new OfficeImageExportResult(format, image.Width, image.Height, bytes, snapshot.SheetName, source, diagnostics.AsReadOnly()));
+        }
+
+        internal static OfficeRasterImage RenderRaster(
+            ExcelRangeVisualSnapshot snapshot,
+            ExcelImageExportOptions options,
+            List<OfficeImageExportDiagnostic>? diagnostics = null,
+            CancellationToken cancellationToken = default) {
             int width = ScaledWidth(snapshot, options);
             int height = ScaledHeight(snapshot, options);
             OfficeRasterImage image = new OfficeRasterImage(width, height, options.BackgroundColor);
-            OfficeRasterCanvas canvas = new OfficeRasterCanvas(image);
+            OfficeRasterCanvas canvas = new OfficeRasterCanvas(image, fonts: options.Fonts);
             double scale = options.Scale;
             Dictionary<string, ExcelVisualConditionalDataBar> dataBars = BuildDataBarMap(snapshot.ConditionalDataBars);
             Dictionary<string, ExcelVisualCell> cellsByAddress = BuildCellMap(snapshot.Cells);
 
             foreach (ExcelVisualCell cell in snapshot.Cells) {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (cell.CoveredByMerge) {
                     continue;
                 }
@@ -47,6 +110,7 @@ namespace OfficeIMO.Excel {
             }
 
             foreach (ExcelVisualCell cell in snapshot.Cells) {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (cell.CoveredByMerge) {
                     continue;
                 }
@@ -171,18 +235,6 @@ namespace OfficeIMO.Excel {
             return resolved;
         }
 
-        private static void RenderRasterCharts(OfficeRasterCanvas canvas, ExcelRangeVisualSnapshot snapshot, ExcelImageExportOptions options, List<OfficeImageExportDiagnostic>? diagnostics) {
-            foreach (ExcelVisualChart chart in snapshot.Charts) {
-                RenderRasterChart(canvas, snapshot, chart, options, diagnostics);
-            }
-        }
-
-        private static void AppendSvgCharts(StringBuilder builder, ExcelRangeVisualSnapshot snapshot, ExcelImageExportOptions options, List<OfficeImageExportDiagnostic>? diagnostics) {
-            foreach (ExcelVisualChart chart in snapshot.Charts) {
-                AppendSvgChart(builder, snapshot, chart, options, diagnostics);
-            }
-        }
-
         private static void RenderRasterChart(OfficeRasterCanvas canvas, ExcelRangeVisualSnapshot snapshot, ExcelVisualChart chart, ExcelImageExportOptions options, List<OfficeImageExportDiagnostic>? diagnostics) {
             double scale = options.Scale;
             if (!TryCreateOfficeChartSnapshot(chart.Snapshot, chart.Width, chart.Height, diagnostics, snapshot.SheetName, out OfficeChartSnapshot? officeSnapshot) || officeSnapshot == null) {
@@ -190,8 +242,19 @@ namespace OfficeIMO.Excel {
             }
 
             OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(officeSnapshot);
+            drawing.Fonts.AddRange(options.Fonts);
+            drawing.AppendFontDiagnostics(
+                diagnostics ?? new List<OfficeImageExportDiagnostic>(),
+                snapshot.SheetName + "!" + chart.Snapshot.Name);
             OfficeColor chartBackground = officeSnapshot.Style?.ShowBackground == false ? OfficeColor.Transparent : OfficeColor.White;
-            OfficeRasterImage chartImage = OfficeDrawingRasterRenderer.Render(drawing, scale, chartBackground);
+            OfficeRasterExportPlan plan = OfficeRasterExportPlanner.Resolve(
+                drawing.Width,
+                drawing.Height,
+                OfficeImageExportFormat.Png,
+                options,
+                snapshot.SheetName + "!" + chart.Snapshot.Name);
+            if (plan.Diagnostic != null) diagnostics?.Add(plan.Diagnostic);
+            OfficeRasterImage chartImage = OfficeDrawingRasterRenderer.Render(drawing, plan.Limit.Scale, chartBackground);
             canvas.DrawImage(chartImage, chart.X * scale, chart.Y * scale, chart.Width * scale, chart.Height * scale);
         }
 
@@ -202,6 +265,10 @@ namespace OfficeIMO.Excel {
             }
 
             OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(officeSnapshot);
+            drawing.Fonts.AddRange(options.Fonts);
+            drawing.AppendFontDiagnostics(
+                diagnostics ?? new List<OfficeImageExportDiagnostic>(),
+                snapshot.SheetName + "!" + chart.Snapshot.Name);
             string chartSvg = OfficeDrawingSvgExporter.ToSvg(drawing);
             builder.AppendNestedSvg(
                 chart.X * scale,

@@ -27,9 +27,12 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Exports the requested document page as a supported raster format or SVG.
         /// </summary>
-        public OfficeImageExportResult ExportImage(OfficeImageExportFormat format, WordImageExportOptions? options = null) {
+        public OfficeImageExportResult ExportImage(
+            OfficeImageExportFormat format,
+            WordImageExportOptions? options = null,
+            CancellationToken cancellationToken = default) {
             WordImageExportOptions resolved = NormalizeImageExportOptions(options);
-            return WordDocumentImageRenderer.Render(this, format, resolved);
+            return WordDocumentImageRenderer.Render(this, format, resolved, cancellationToken);
         }
 
         /// <summary>Exports a page range or the complete document as PNG or SVG images.</summary>
@@ -37,6 +40,16 @@ namespace OfficeIMO.Word {
             WordImageExportOptions? options = null) {
             WordImageExportOptions resolved = NormalizeImageExportOptions(options);
             return WordDocumentImageRenderer.RenderPages(this, format, resolved);
+        }
+
+        /// <summary>Streams selected page images to a consumer without retaining earlier payloads.</summary>
+        public void ExportImages(
+            OfficeImageExportFormat format,
+            OfficeImageExportConsumer consumer,
+            WordImageExportOptions? options = null,
+            CancellationToken cancellationToken = default) {
+            WordImageExportOptions resolved = NormalizeImageExportOptions(options);
+            WordDocumentImageRenderer.RenderPages(this, format, resolved, consumer, cancellationToken);
         }
 
         /// <summary>Saves every selected document page as a PNG file in a folder.</summary>
@@ -142,14 +155,7 @@ namespace OfficeIMO.Word {
 
         private static WordImageExportOptions NormalizeImageExportOptions(WordImageExportOptions? options) {
             WordImageExportOptions resolved = options?.Clone() ?? new WordImageExportOptions();
-            OfficeImageExportOptions.ValidateScale(resolved.Scale, nameof(options));
-            if (resolved.PageIndex < 0) {
-                throw new ArgumentOutOfRangeException(nameof(options), "Page index cannot be negative.");
-            }
-            if (resolved.PageCount.HasValue && resolved.PageCount.Value < 1) {
-                throw new ArgumentOutOfRangeException(nameof(options), "Page count must be positive when specified.");
-            }
-
+            resolved.Validate();
             return resolved;
         }
     }

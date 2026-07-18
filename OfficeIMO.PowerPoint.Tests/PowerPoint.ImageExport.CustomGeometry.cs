@@ -31,9 +31,9 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
             OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
 
-            Assert.Empty(snapshot.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
-            Assert.Empty(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
             OfficeDrawingShape rendered = Assert.Single(snapshot.Drawing.Elements.OfType<OfficeDrawingShape>(), element =>
                 Math.Abs(element.X - 30D) < 0.000001D &&
                 Math.Abs(element.Y - 24D) < 0.000001D);
@@ -72,9 +72,9 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
             OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
 
-            Assert.Empty(snapshot.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
-            Assert.Empty(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
             OfficeDrawingShape rendered = Assert.Single(snapshot.Drawing.Elements.OfType<OfficeDrawingShape>(), element =>
                 Math.Abs(element.X - 20D) < 0.000001D &&
                 Math.Abs(element.Y - 30D) < 0.000001D);
@@ -116,9 +116,9 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
             OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
 
-            Assert.Empty(snapshot.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
-            Assert.Empty(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
             OfficeDrawingShape rendered = Assert.Single(snapshot.Drawing.Elements.OfType<OfficeDrawingShape>(), element =>
                 Math.Abs(element.X - 32D) < 0.000001D &&
                 Math.Abs(element.Y - 28D) < 0.000001D);
@@ -163,9 +163,9 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
             OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
 
-            Assert.Empty(snapshot.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
-            Assert.Empty(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
             OfficeDrawingShape rendered = Assert.Single(snapshot.Drawing.Elements.OfType<OfficeDrawingShape>(), element =>
                 Math.Abs(element.X - 36D) < 0.000001D &&
                 Math.Abs(element.Y - 30D) < 0.000001D);
@@ -207,9 +207,9 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
             OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
 
-            Assert.Empty(snapshot.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
-            Assert.Empty(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
             OfficeDrawingShape rendered = Assert.Single(snapshot.Drawing.Elements.OfType<OfficeDrawingShape>(), element =>
                 Math.Abs(element.X - 34D) < 0.000001D &&
                 Math.Abs(element.Y - 26D) < 0.000001D);
@@ -251,9 +251,9 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
             OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
 
-            Assert.Empty(snapshot.Diagnostics);
-            Assert.Empty(svg.Diagnostics);
-            Assert.Empty(png.Diagnostics);
+            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
+            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
+            AssertNoUnexpectedDiagnostics(png.Diagnostics);
             OfficeDrawingShape rendered = Assert.Single(snapshot.Drawing.Elements.OfType<OfficeDrawingShape>(), element =>
                 Math.Abs(element.X - 30D) < 0.000001D &&
                 Math.Abs(element.Y - 22D) < 0.000001D);

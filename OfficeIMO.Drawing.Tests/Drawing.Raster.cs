@@ -162,6 +162,61 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void OfficeDrawingRasterRenderer_RasterizesSupportedSvgImagesAtDestinationResolution() {
+            byte[] svg = System.Text.Encoding.UTF8.GetBytes(
+                "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 10 10\">" +
+                "<rect x=\"0\" y=\"0\" width=\"10\" height=\"10\" fill=\"#D7263D\"/>" +
+                "</svg>");
+            var diagnostics = new List<OfficeImageExportDiagnostic>();
+            var fallback = new OfficeRasterImageFallbackCodec(
+                diagnostics: diagnostics,
+                source: "SVG media");
+            var drawing = new OfficeDrawing(80, 60);
+            drawing.AddImage(
+                svg,
+                "image/svg+xml",
+                new OfficeImageProjection(new OfficeImagePlacement(10, 10, 40, 30)),
+                "SVG marker");
+
+            OfficeRasterImage rendered = OfficeDrawingRasterRenderer.Render(
+                drawing,
+                new OfficeDrawingRasterRenderOptions {
+                    ImageCodec = fallback
+                });
+
+            Assert.Equal(OfficeColor.FromRgb(0xD7, 0x26, 0x3D), rendered.GetPixel(30, 25));
+            Assert.Empty(diagnostics);
+        }
+
+        [Fact]
+        public void OfficeDrawingRasterRenderer_KeepsUnsupportedSvgMediaOnTheVisibleFallbackPath() {
+            byte[] svg = System.Text.Encoding.UTF8.GetBytes(
+                "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 10 10\">" +
+                "<foreignObject x=\"0\" y=\"0\" width=\"10\" height=\"10\"/>" +
+                "</svg>");
+            var diagnostics = new List<OfficeImageExportDiagnostic>();
+            var fallback = new OfficeRasterImageFallbackCodec(
+                diagnostics: diagnostics,
+                source: "SVG media");
+            var drawing = new OfficeDrawing(40, 40);
+            drawing.AddImage(
+                svg,
+                "image/svg+xml",
+                new OfficeImageProjection(new OfficeImagePlacement(4, 4, 32, 32)),
+                "Unsupported SVG marker");
+
+            OfficeDrawingRasterRenderer.Render(
+                drawing,
+                new OfficeDrawingRasterRenderOptions {
+                    ImageCodec = fallback
+                });
+
+            OfficeImageExportDiagnostic diagnostic = Assert.Single(diagnostics);
+            Assert.Equal(OfficeImageExportDiagnosticCodes.SourceImageDecodeFallback, diagnostic.Code);
+            Assert.Equal(OfficeImageExportLossKind.Omission, diagnostic.LossKind);
+        }
+
+        [Fact]
         public void OfficeSvgImageRenderer_CreatesPngDataUriForDecodedBmpImages() {
             byte[] bmp = CreateBmp24(1, 1, new[] { OfficeColor.FromRgb(18, 52, 86) });
 

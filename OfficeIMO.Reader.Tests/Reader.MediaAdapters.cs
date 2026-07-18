@@ -258,10 +258,10 @@ public sealed partial class ReaderMediaAdapterTests {
     }
 
     [Fact]
-    public void ImageAdapter_IdentifiesWebpFromItsHeader() {
+    public void ImageAdapter_IdentifiesWebpWithAnImageChunk() {
         OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddImageHandler().Build();
 
-        OfficeDocumentReadResult result = reader.ReadDocument(CreateWebpExtendedHeader(3, 2), "image.webp");
+        OfficeDocumentReadResult result = reader.ReadDocument(CreateWebpExtendedContainer(3, 2), "image.webp");
 
         OfficeDocumentAsset asset = Assert.Single(result.Assets);
         Assert.Equal("image/webp", asset.MediaType);
@@ -270,8 +270,26 @@ public sealed partial class ReaderMediaAdapterTests {
     }
 
     [Fact]
+    public void ImageAdapter_RejectsWebpWithoutAnImageChunk() {
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddImageHandler().Build();
+
+        Assert.Throws<NotSupportedException>(() =>
+            reader.ReadDocument(CreateWebpExtendedHeaderOnly(3, 2), "header-only.webp"));
+    }
+
+    [Fact]
+    public void ImageAdapter_RejectsWebpWhenCanvasAndImageDimensionsDiffer() {
+        byte[] malformedWebp = CreateWebpExtendedContainer(3, 2);
+        WriteUInt24LittleEndian(malformedWebp, 24, 3);
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddImageHandler().Build();
+
+        Assert.Throws<NotSupportedException>(() =>
+            reader.ReadDocument(malformedWebp, "mismatched-canvas.webp"));
+    }
+
+    [Fact]
     public void ImageAdapter_RejectsWebpWithAnInvalidContainerLength() {
-        byte[] malformedWebp = CreateWebpExtendedHeader(3, 2);
+        byte[] malformedWebp = CreateWebpExtendedContainer(3, 2);
         WriteUInt32LittleEndian(malformedWebp, 4, 0);
         OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddImageHandler().Build();
 
@@ -958,7 +976,14 @@ public sealed partial class ReaderMediaAdapterTests {
         }
     }
 
-    private static byte[] CreateWebpExtendedHeader(int width, int height) {
+    private static byte[] CreateWebpExtendedContainer(int width, int height) {
+        return OfficeWebpCodec.Encode(
+            new OfficeRasterImage(width, height, OfficeColor.FromRgb(32, 64, 128)),
+            dpiX: 96D,
+            dpiY: 96D);
+    }
+
+    private static byte[] CreateWebpExtendedHeaderOnly(int width, int height) {
         var bytes = new byte[30];
         Encoding.ASCII.GetBytes("RIFF").CopyTo(bytes, 0);
         WriteUInt32LittleEndian(bytes, 4, 22);

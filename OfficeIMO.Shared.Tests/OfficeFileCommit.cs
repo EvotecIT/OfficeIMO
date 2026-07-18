@@ -58,6 +58,30 @@ namespace OfficeIMO.Shared.Tests {
         }
 
         [Fact]
+        public void StagedBytesCanRetryAfterDestinationCollisionWithoutBeingRewritten() {
+            string root = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+            string occupiedPath = Path.Combine(root, "artifact.bin");
+            string availablePath = Path.Combine(root, "artifact-2.bin");
+            byte[] payload = { 9, 8, 7, 6 };
+
+            try {
+                Directory.CreateDirectory(root);
+                File.WriteAllBytes(occupiedPath, new byte[] { 1 });
+                string stagingPath = OfficeFileCommit.StageAllBytes(occupiedPath, payload);
+
+                Assert.False(OfficeFileCommit.TryCommitTemporaryFileIfAbsent(stagingPath, occupiedPath));
+                Assert.True(File.Exists(stagingPath));
+                Assert.Equal(payload, File.ReadAllBytes(stagingPath));
+
+                Assert.True(OfficeFileCommit.TryCommitTemporaryFileIfAbsent(stagingPath, availablePath));
+                Assert.False(File.Exists(stagingPath));
+                Assert.Equal(payload, File.ReadAllBytes(availablePath));
+            } finally {
+                if (Directory.Exists(root)) Directory.Delete(root, recursive: true);
+            }
+        }
+
+        [Fact]
         public async Task WriteAllBytes_SyncAndAsync_PreserveReadOnlyDestinations() {
             string syncPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".bin");
             string asyncPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".bin");

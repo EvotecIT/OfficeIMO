@@ -6,6 +6,10 @@ namespace OfficeIMO.Drawing;
 /// Shared dependency-free encoder for raster export formats.
 /// </summary>
 public static class OfficeRasterImageEncoder {
+    internal const double PngMinimumDpi = 0.0127D;
+    internal const double JpegMinimumDpi = 0.5D;
+    internal const double TiffMinimumDpi = 0.001D;
+    internal const double WebpMinimumDpi = 0.0001D;
     internal const int JpegMaximumDimension = ushort.MaxValue;
     internal const int WebpMaximumDimension = 16384;
 
@@ -29,22 +33,34 @@ public static class OfficeRasterImageEncoder {
         _ => throw new ArgumentOutOfRangeException(nameof(format))
     };
 
+    internal static double GetMinimumDpi(OfficeImageExportFormat format) => format switch {
+        OfficeImageExportFormat.Png => PngMinimumDpi,
+        OfficeImageExportFormat.Jpeg => JpegMinimumDpi,
+        OfficeImageExportFormat.Tiff => TiffMinimumDpi,
+        OfficeImageExportFormat.Webp => WebpMinimumDpi,
+        OfficeImageExportFormat.Svg => throw new ArgumentException("SVG output does not encode raster density.", nameof(format)),
+        _ => throw new ArgumentOutOfRangeException(nameof(format))
+    };
+
     /// <summary>Encodes an RGBA image using the requested raster format.</summary>
     public static byte[] Encode(
         OfficeRasterImage image,
         OfficeImageExportFormat format,
         OfficeRasterEncodingOptions? options = null) {
         if (image == null) throw new ArgumentNullException(nameof(image));
-        OfficeRasterEncodingOptions effective = options ?? new OfficeRasterEncodingOptions();
+        OfficeRasterEncodingOptions effective =
+            (options ?? new OfficeRasterEncodingOptions()).Resolve(format);
         return format switch {
-            OfficeImageExportFormat.Png => OfficePngWriter.Encode(image),
+            OfficeImageExportFormat.Png => OfficePngWriter.Encode(
+                image,
+                effective.Png ?? throw new InvalidOperationException("PNG encoding options cannot be null.")),
             OfficeImageExportFormat.Jpeg => OfficeJpegCodec.Encode(
                 image,
                 effective.Jpeg ?? throw new InvalidOperationException("JPEG encoding options cannot be null.")),
             OfficeImageExportFormat.Tiff => OfficeTiffCodec.Encode(
                 image,
                 effective.Tiff ?? throw new InvalidOperationException("TIFF encoding options cannot be null.")),
-            OfficeImageExportFormat.Webp => OfficeWebpCodec.Encode(image),
+            OfficeImageExportFormat.Webp => OfficeWebpCodec.Encode(image, effective.DpiX, effective.DpiY),
             OfficeImageExportFormat.Svg => throw new ArgumentException("SVG output requires a vector renderer.", nameof(format)),
             _ => throw new ArgumentOutOfRangeException(nameof(format))
         };

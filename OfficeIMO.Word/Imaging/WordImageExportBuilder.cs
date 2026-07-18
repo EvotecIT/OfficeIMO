@@ -6,7 +6,9 @@ namespace OfficeIMO.Word {
     /// </summary>
     public sealed class WordDocumentImageExportBuilder : OfficeImageExportBuilder<WordDocumentImageExportBuilder, WordImageExportOptions> {
         internal WordDocumentImageExportBuilder(WordDocument document, WordImageExportOptions? options = null)
-            : base(options?.Clone() ?? new WordImageExportOptions(), document.ExportImage) {
+            : base(
+                options?.Clone() ?? new WordImageExportOptions(),
+                (format, effective, cancellationToken) => document.ExportImage(format, effective, cancellationToken)) {
         }
 
         /// <summary>Exports the first page preview.</summary>
@@ -35,7 +37,11 @@ namespace OfficeIMO.Word {
     /// <summary>Fluent batch image export for Word document pages.</summary>
     public sealed class WordDocumentPageImageExportBuilder : OfficeImageExportBatchBuilder<WordDocumentPageImageExportBuilder, WordImageExportOptions> {
         internal WordDocumentPageImageExportBuilder(WordDocument document, WordImageExportOptions? options = null)
-            : base(options?.Clone() ?? new WordImageExportOptions(), document.ExportImages) {
+            : base(
+                options?.Clone() ?? new WordImageExportOptions(),
+                document.ExportImages,
+                (format, effective, consumer, cancellationToken) =>
+                    document.ExportImages(format, consumer, effective, cancellationToken)) {
         }
 
         /// <summary>Exports from the specified zero-based page index.</summary>
@@ -72,7 +78,15 @@ namespace OfficeIMO.Word {
         /// </summary>
         public WordDocumentImageExportBuilder ToImage() => new WordDocumentImageExportBuilder(this);
 
+        /// <summary>Starts a fluent image export using a cloned options snapshot.</summary>
+        public WordDocumentImageExportBuilder ToImage(WordImageExportOptions options) =>
+            new WordDocumentImageExportBuilder(this, options ?? throw new ArgumentNullException(nameof(options)));
+
         /// <summary>Starts a fluent batch image export for document pages.</summary>
         public WordDocumentPageImageExportBuilder ToImages() => new WordDocumentPageImageExportBuilder(this);
+
+        /// <summary>Starts a fluent page batch export using a cloned options snapshot.</summary>
+        public WordDocumentPageImageExportBuilder ToImages(WordImageExportOptions options) =>
+            new WordDocumentPageImageExportBuilder(this, options ?? throw new ArgumentNullException(nameof(options)));
     }
 }

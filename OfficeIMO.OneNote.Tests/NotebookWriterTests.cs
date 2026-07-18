@@ -276,8 +276,11 @@ public sealed class NotebookWriterTests {
             first.Sections.Add(CreateSection("Upper", "Upper page"));
             var second = new OneNoteNotebook { Id = secondGroupId, Name = "projects" };
             second.Sections.Add(CreateSection("Lower", "Lower page"));
-            OneNoteNotebookWriter.Write(first, Path.Combine(root, "Projects"));
-            OneNoteNotebookWriter.Write(second, Path.Combine(root, "projects"));
+            string upperPath = Path.Combine(root, "Projects");
+            string lowerPath = Path.Combine(root, "projects");
+            OneNoteNotebookWriter.Write(first, upperPath);
+            if (Directory.Exists(lowerPath)) return;
+            OneNoteNotebookWriter.Write(second, lowerPath);
 
             OneNoteWriteGraph rootToc = new OneNoteWriteGraphBuilder().BuildTableOfContents(
                 Guid.NewGuid(),

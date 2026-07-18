@@ -92,7 +92,7 @@ public sealed class HtmlRenderPage {
         CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         if (visual is HtmlRenderShape shape) {
-            drawing.AddShape(shape.Shape.Clone(), shape.X, shape.Y);
+            AddShape(drawing, shape, surfaceWidth, surfaceHeight, fonts);
         } else if (visual is HtmlRenderText text && text.Text.Length > 0) {
             if (text.TextAdvanceWidth.HasValue) {
                 drawing.AddPositionedText(
@@ -135,6 +135,55 @@ public sealed class HtmlRenderPage {
         } else if (visual is HtmlRenderLogicalTextGroup logicalTextGroup) {
             foreach (HtmlRenderVisual child in logicalTextGroup.Visuals) AddVisual(drawing, child, surfaceWidth, surfaceHeight, fonts, cancellationToken);
         }
+    }
+
+    private static void AddShape(
+        OfficeDrawing drawing,
+        HtmlRenderShape visual,
+        double surfaceWidth,
+        double surfaceHeight,
+        OfficeFontFaceCollection fonts) {
+        OfficeShape shape = visual.Shape.Clone();
+        if (visual.X >= 0D &&
+            visual.Y >= 0D &&
+            visual.X + shape.Width <= surfaceWidth &&
+            visual.Y + shape.Height <= surfaceHeight) {
+            drawing.AddShape(shape, visual.X, visual.Y);
+            return;
+        }
+
+        double right = visual.X + shape.Width;
+        double bottom = visual.Y + shape.Height;
+        if (right <= 0D ||
+            bottom <= 0D ||
+            visual.X >= surfaceWidth ||
+            visual.Y >= surfaceHeight) {
+            return;
+        }
+
+        double minimumLeft = Math.Min(0D, visual.X);
+        double minimumTop = Math.Min(0D, visual.Y);
+        double shiftX = -minimumLeft;
+        double shiftY = -minimumTop;
+        double nestedWidth =
+            Math.Max(surfaceWidth, right) - minimumLeft;
+        double nestedHeight =
+            Math.Max(surfaceHeight, bottom) - minimumTop;
+        var nested = new OfficeDrawing(
+            Math.Max(0.01D, nestedWidth),
+            Math.Max(0.01D, nestedHeight));
+        nested.Fonts.AddRange(fonts);
+        nested.AddShape(
+            shape,
+            visual.X + shiftX,
+            visual.Y + shiftY);
+        drawing.AddClippedDrawing(
+            nested,
+            0D,
+            0D,
+            OfficeClipPath.Rectangle(surfaceWidth, surfaceHeight),
+            -shiftX,
+            -shiftY);
     }
 
     private static void AddEffectGroup(

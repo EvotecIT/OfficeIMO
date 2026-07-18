@@ -2,12 +2,17 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
+using System.Threading;
 using OfficeIMO.Drawing;
 using A = DocumentFormat.OpenXml.Drawing;
 
 namespace OfficeIMO.PowerPoint {
     internal static partial class PowerPointSlideImageRenderer {
-        internal static OfficeImageExportResult Render(PowerPointSlide slide, OfficeImageExportFormat format, PowerPointImageExportOptions options) {
+        internal static OfficeImageExportResult Render(
+            PowerPointSlide slide,
+            OfficeImageExportFormat format,
+            PowerPointImageExportOptions options,
+            CancellationToken cancellationToken = default) {
             if (slide == null) {
                 throw new ArgumentNullException(nameof(slide));
             }
@@ -16,22 +21,41 @@ namespace OfficeIMO.PowerPoint {
                 throw new ArgumentNullException(nameof(options));
             }
 
+            cancellationToken.ThrowIfCancellationRequested();
             PowerPointSlideVisualSnapshot snapshot = CreateSnapshot(slide, options);
+            cancellationToken.ThrowIfCancellationRequested();
             OfficeDrawing drawing = snapshot.Drawing;
 
             if (format == OfficeImageExportFormat.Svg) {
                 List<OfficeImageExportDiagnostic> diagnostics = new List<OfficeImageExportDiagnostic>(snapshot.Diagnostics);
-                AddSvgImageDiagnostics(drawing, diagnostics);
-                byte[] svg = OfficeDrawingSvgExporter.ToSvgBytes(drawing, options.Scale);
-                return new OfficeImageExportResult(format, ScaledWidth(drawing, options), ScaledHeight(drawing, options), svg, "Slide", "PowerPoint slide", diagnostics);
+                var fallbackCodec = new OfficeRasterImageFallbackCodec(options.ImageCodec, diagnostics, "PowerPoint slide");
+                byte[] svg = OfficeDrawingSvgExporter.ToSvgBytes(drawing, options.Scale, OfficeSvgSizeUnit.Pixel, fallbackCodec);
+                return options.EnsureAccepted(new OfficeImageExportResult(format, ScaledWidth(drawing, options), ScaledHeight(drawing, options), svg, "Slide", "PowerPoint slide", diagnostics));
             }
 
             if (format.IsRaster()) {
                 List<OfficeImageExportDiagnostic> diagnostics = new List<OfficeImageExportDiagnostic>(snapshot.Diagnostics);
-                AddRasterImageDiagnostics(drawing, diagnostics);
-                OfficeRasterImage image = OfficeDrawingRasterRenderer.Render(drawing, options.Scale);
-                byte[] bytes = OfficeRasterImageEncoder.Encode(image, format, options.RasterEncoding);
-                return new OfficeImageExportResult(format, image.Width, image.Height, bytes, "Slide", "PowerPoint slide", diagnostics);
+                const string source = "PowerPoint slide";
+                OfficeRasterExportPlan plan = OfficeRasterExportPlanner.Resolve(
+                    drawing.Width,
+                    drawing.Height,
+                    format,
+                    options,
+                    source);
+                if (plan.Diagnostic != null) diagnostics.Add(plan.Diagnostic);
+                var fallbackCodec = new OfficeRasterImageFallbackCodec(options.ImageCodec, diagnostics, source);
+                OfficeRasterImage image = OfficeDrawingRasterRenderer.Render(drawing, new OfficeDrawingRasterRenderOptions {
+                    Scale = plan.Limit.Scale,
+                    Background = options.BackgroundColor,
+                    ImageCodec = fallbackCodec,
+                    CancellationToken = cancellationToken
+                });
+                byte[] bytes = OfficeRasterImageEncoder.Encode(
+                    image,
+                    format,
+                    plan.CreateEncodingOptions());
+                cancellationToken.ThrowIfCancellationRequested();
+                return options.EnsureAccepted(new OfficeImageExportResult(format, image.Width, image.Height, bytes, "Slide", source, diagnostics));
             }
 
             throw new ArgumentOutOfRangeException(nameof(format), format, "Unsupported image export format.");
@@ -40,12 +64,13 @@ namespace OfficeIMO.PowerPoint {
         internal static PowerPointSlideVisualSnapshot CreateSnapshot(PowerPointSlide slide, PowerPointImageExportOptions options) {
             List<OfficeImageExportDiagnostic> diagnostics = new List<OfficeImageExportDiagnostic>();
             OfficeDrawing drawing = CreateDrawing(slide, options, diagnostics);
+            drawing.AppendFontDiagnostics(diagnostics, "PowerPoint slide");
             return new PowerPointSlideVisualSnapshot(drawing, diagnostics.AsReadOnly());
         }
 
         private static OfficeDrawing CreateDrawing(PowerPointSlide slide, PowerPointImageExportOptions options, List<OfficeImageExportDiagnostic> diagnostics) {
             (double width, double height) = GetSlideSizePoints(slide);
-            OfficeDrawing drawing = new OfficeDrawing(width, height);
+            OfficeDrawing drawing = new OfficeDrawing(width, height).ApplyImageExportOptions(options);
             AddBackgroundRectangle(drawing, options.BackgroundColor, fillGradient: null);
 
             if (options.IncludeSlideBackground) {
@@ -126,6 +151,7 @@ namespace OfficeIMO.PowerPoint {
                 }
 
                 var groupDrawing = new OfficeDrawing(Math.Max(1D, drawing.Width - left), Math.Max(1D, drawing.Height - top));
+                groupDrawing.Fonts.AddRange(drawing.Fonts);
                 PowerPointShapeBoundsMapping localChildMapping = CreateGroupLocalChildMapping(groupShape, mapping);
                 AddSlideContent(groupShape.OwnerSlide.GetGroupChildren(groupShape), groupDrawing, diagnostics,
                     localChildMapping, colorScheme, options);
@@ -147,6 +173,7 @@ namespace OfficeIMO.PowerPoint {
             PowerPointShapeBoundsMapping childMapping = CreateGroupChildMapping(groupShape, mapping);
             if (TryGetBounds(groupShape, drawing, diagnostics, mapping, out double clipLeft, out double clipTop, out double clipWidth, out double clipHeight)) {
                 var groupDrawing = new OfficeDrawing(Math.Max(1D, drawing.Width - clipLeft), Math.Max(1D, drawing.Height - clipTop));
+                groupDrawing.Fonts.AddRange(drawing.Fonts);
                 PowerPointShapeBoundsMapping localChildMapping = CreateGroupLocalChildMapping(groupShape, mapping);
                 AddSlideContent(groupShape.OwnerSlide.GetGroupChildren(groupShape), groupDrawing, diagnostics,
                     localChildMapping, colorScheme, options);
@@ -1016,51 +1043,6 @@ namespace OfficeIMO.PowerPoint {
 
         private static int UnscaledHeight(OfficeDrawing drawing) =>
             Math.Max(1, (int)Math.Ceiling(drawing.Height));
-
-        private static void AddSvgImageDiagnostics(OfficeDrawing drawing, List<OfficeImageExportDiagnostic> diagnostics) {
-            foreach (OfficeDrawingImage image in EnumerateDrawingImages(drawing)) {
-                byte[] bytes = image.Bytes;
-                if (!OfficeSvgImageRenderer.TryCreateDataUri(image.ContentType, bytes, null, out _)) {
-                    AddImageDiagnostic(
-                        diagnostics,
-                        "unsupported-powerpoint-image-svg",
-                        "Skipped a PowerPoint image in SVG output because its content type is not embeddable as an SVG image element.",
-                        image);
-                }
-            }
-        }
-
-        private static void AddRasterImageDiagnostics(OfficeDrawing drawing, List<OfficeImageExportDiagnostic> diagnostics) {
-            foreach (OfficeDrawingImage image in EnumerateDrawingImages(drawing)) {
-                if (!OfficeRasterImageDecoder.TryDecode(image.Bytes, out _)) {
-                    AddImageDiagnostic(
-                        diagnostics,
-                        "unsupported-powerpoint-image-raster",
-                        "Skipped a PowerPoint image in raster output because dependency-free rendering currently decodes " + OfficeRasterImageDecoder.SupportedFormatDescription + " only.",
-                        image);
-                }
-            }
-        }
-
-        private static IEnumerable<OfficeDrawingImage> EnumerateDrawingImages(OfficeDrawing drawing) {
-            foreach (OfficeDrawingElement element in drawing.Elements) {
-                if (element is OfficeDrawingImage image) {
-                    yield return image;
-                } else if (element is OfficeDrawingGroup group) {
-                    foreach (OfficeDrawingImage nested in EnumerateDrawingImages(group.Drawing)) {
-                        yield return nested;
-                    }
-                }
-            }
-        }
-
-        private static void AddImageDiagnostic(List<OfficeImageExportDiagnostic> diagnostics, string code, string message, OfficeDrawingImage image) {
-            diagnostics.Add(new OfficeImageExportDiagnostic(
-                OfficeImageExportDiagnosticSeverity.Warning,
-                code,
-                message,
-                string.IsNullOrWhiteSpace(image.AlternativeText) ? "PowerPoint image" : image.AlternativeText));
-        }
 
         private static void AddDiagnostic(List<OfficeImageExportDiagnostic> diagnostics, string code, string message) {
             diagnostics.Add(new OfficeImageExportDiagnostic(

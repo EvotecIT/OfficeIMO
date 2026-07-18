@@ -36,4 +36,10 @@ public sealed class OfficeJpegEncodeOptions {
 
     /// <summary>Background used when flattening transparent RGBA pixels into JPEG.</summary>
     public OfficeColor Background { get; set; } = OfficeColor.White;
+
+    /// <summary>Horizontal resolution written to the JFIF header.</summary>
+    public double DpiX { get; set; } = 96D;
+
+    /// <summary>Vertical resolution written to the JFIF header.</summary>
+    public double DpiY { get; set; } = 96D;
 }

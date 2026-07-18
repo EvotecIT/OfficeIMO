@@ -1,4 +1,5 @@
 using OfficeIMO.Drawing;
+using System.Threading;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
@@ -7,50 +8,108 @@ namespace OfficeIMO.Excel {
             WorksheetImageRangeResolution range,
             ExcelWorksheetImageExportOptions options,
             int pageNumber,
-            int pageCount) {
+            int pageCount,
+            CancellationToken cancellationToken = default) {
+            cancellationToken.ThrowIfCancellationRequested();
             OfficeImageExportFormat workingFormat = format == OfficeImageExportFormat.Svg
                 ? OfficeImageExportFormat.Svg
                 : OfficeImageExportFormat.Png;
             OfficeImageExportResult result;
+            ExcelRasterRenderState rasterState;
             if (options.SplitByManualPageBreaks &&
                 TryCreatePrintTitleLayout(range.Range, out PrintTitleLayout layout)) {
-                result = RenderPrintTitleLayout(workingFormat, range, options, layout);
+                result = RenderPrintTitleLayout(
+                    workingFormat,
+                    format,
+                    range,
+                    options,
+                    layout,
+                    out rasterState);
             } else {
                 ExcelRangeVisualSnapshot snapshot = ExcelRangeVisualSnapshotBuilder.Build(this, range.Range, options, range.Diagnostics);
-                result = ExcelRangeImageRenderer.Render(snapshot, workingFormat, options);
+                result = ExcelRangeImageRenderer.Render(
+                    snapshot,
+                    workingFormat,
+                    options,
+                    format,
+                    out rasterState,
+                    cancellationToken);
             }
 
             if (options.SplitByManualPageBreaks) {
-                result = ApplyPageSetupCanvas(workingFormat, result, options);
-                result = ApplyHeaderFooterTextChrome(workingFormat, result, options, pageNumber, pageCount);
+                result = ApplyPageSetupCanvas(
+                    workingFormat,
+                    format,
+                    result,
+                    options,
+                    ref rasterState);
+                result = ApplyHeaderFooterTextChrome(
+                    workingFormat,
+                    format,
+                    result,
+                    options,
+                    pageNumber,
+                    pageCount,
+                    ref rasterState);
             }
 
             if (format == workingFormat) return result;
+            cancellationToken.ThrowIfCancellationRequested();
             if (!OfficeRasterImageDecoder.TryDecode(result.Bytes, out OfficeRasterImage? image) || image == null) {
                 throw new InvalidOperationException("The worksheet raster composition could not be decoded for final image encoding.");
             }
 
-            return new OfficeImageExportResult(
+            return options.EnsureAccepted(new OfficeImageExportResult(
                 format,
                 result.Width,
                 result.Height,
-                OfficeRasterImageEncoder.Encode(image, format, options.RasterEncoding),
+                OfficeRasterImageEncoder.Encode(image, format, rasterState.EncodingOptions),
                 result.Name,
                 result.Source,
-                result.Diagnostics);
+                result.Diagnostics));
         }
 
         private OfficeImageExportResult RenderPrintTitleLayout(
             OfficeImageExportFormat format,
+            OfficeImageExportFormat rasterPlanningFormat,
             WorksheetImageRangeResolution range,
             ExcelWorksheetImageExportOptions options,
-            PrintTitleLayout layout) {
+            PrintTitleLayout layout,
+            out ExcelRasterRenderState rasterState) {
             var diagnostics = new List<OfficeImageExportDiagnostic>(range.Diagnostics);
-            List<PrintTitleComponent> components = CreatePrintTitleComponents(layout, format, options, diagnostics);
-            double width = components.Count == 0 ? 0D : components.Max(component => component.X + component.Width);
-            double height = components.Count == 0 ? 0D : components.Max(component => component.Y + component.Height);
-            int outputWidth = Math.Max(1, (int)Math.Ceiling(width));
-            int outputHeight = Math.Max(1, (int)Math.Ceiling(height));
+            List<PrintTitleVisualComponent> visuals = CreatePrintTitleVisualComponents(layout, options, diagnostics);
+            double logicalWidth = visuals.Count == 0 ? 0D : visuals.Max(component => component.X + component.Snapshot.Width);
+            double logicalHeight = visuals.Count == 0 ? 0D : visuals.Max(component => component.Y + component.Snapshot.Height);
+            double renderScale = options.Scale;
+            OfficeRasterExportPlan? rasterPlan = null;
+            if (format == OfficeImageExportFormat.Svg) {
+                rasterState = new ExcelRasterRenderState(renderScale, options.RasterEncoding);
+            } else {
+                rasterPlan = OfficeRasterExportPlanner.Resolve(
+                    logicalWidth,
+                    logicalHeight,
+                    rasterPlanningFormat,
+                    options,
+                    Name + "!" + range.Range);
+                rasterState = ExcelRasterRenderState.FromPlan(rasterPlan.Value);
+                renderScale = rasterState.Scale;
+                if (rasterPlan.Value.Diagnostic != null) {
+                    diagnostics.Add(rasterPlan.Value.Diagnostic);
+                }
+            }
+
+            List<PrintTitleComponent> components = RenderPrintTitleComponents(
+                visuals,
+                format,
+                options,
+                renderScale,
+                diagnostics);
+            int outputWidth = format == OfficeImageExportFormat.Svg
+                ? Math.Max(1, (int)Math.Ceiling(components.Max(component => component.X + component.Width)))
+                : rasterPlan!.Value.Limit.PixelWidth;
+            int outputHeight = format == OfficeImageExportFormat.Svg
+                ? Math.Max(1, (int)Math.Ceiling(components.Max(component => component.Y + component.Height)))
+                : rasterPlan!.Value.Limit.PixelHeight;
 
             if (format == OfficeImageExportFormat.Svg) {
                 return new OfficeImageExportResult(
@@ -67,40 +126,39 @@ namespace OfficeIMO.Excel {
                     diagnostics.AsReadOnly());
             }
 
+            OfficeRasterImage image = OfficeImageComposer.ComposeRaster(
+                outputWidth,
+                outputHeight,
+                options.BackgroundColor,
+                components.Select(component => component.ToLayer()));
             return new OfficeImageExportResult(
                 format,
                 outputWidth,
                 outputHeight,
-                OfficeImageComposer.ComposePng(
-                    outputWidth,
-                    outputHeight,
-                    options.BackgroundColor,
-                    components.Select(component => component.ToLayer())),
+                OfficeRasterImageEncoder.Encode(image, format, rasterState.EncodingOptions),
                 Name,
                 Name + "!" + range.Range,
                 diagnostics.AsReadOnly());
         }
 
-        private List<PrintTitleComponent> CreatePrintTitleComponents(
+        private List<PrintTitleVisualComponent> CreatePrintTitleVisualComponents(
             PrintTitleLayout layout,
-            OfficeImageExportFormat format,
             ExcelWorksheetImageExportOptions options,
             List<OfficeImageExportDiagnostic> diagnostics) {
-            var components = new List<PrintTitleComponent>();
-            PrintTitleComponent? corner = layout.CornerRange == null
+            var components = new List<PrintTitleVisualComponent>();
+            PrintTitleVisualComponent? corner = layout.CornerRange == null
                 ? null
-                : RenderPrintTitleComponent(layout.CornerRange, 0D, 0D, format, options, diagnostics);
-            PrintTitleComponent? rowTitles = layout.RowTitleRange == null
+                : CreatePrintTitleVisualComponent(layout.CornerRange, 0D, 0D, options, diagnostics);
+            PrintTitleVisualComponent? rowTitles = layout.RowTitleRange == null
                 ? null
-                : RenderPrintTitleComponent(layout.RowTitleRange, corner?.Width ?? 0D, 0D, format, options, diagnostics);
-            PrintTitleComponent? columnTitles = layout.ColumnTitleRange == null
+                : CreatePrintTitleVisualComponent(layout.RowTitleRange, corner?.Snapshot.Width ?? 0D, 0D, options, diagnostics);
+            PrintTitleVisualComponent? columnTitles = layout.ColumnTitleRange == null
                 ? null
-                : RenderPrintTitleComponent(layout.ColumnTitleRange, 0D, rowTitles?.Height ?? 0D, format, options, diagnostics);
-            PrintTitleComponent body = RenderPrintTitleComponent(
+                : CreatePrintTitleVisualComponent(layout.ColumnTitleRange, 0D, rowTitles?.Snapshot.Height ?? 0D, options, diagnostics);
+            PrintTitleVisualComponent body = CreatePrintTitleVisualComponent(
                 layout.BodyRange,
-                columnTitles?.Width ?? 0D,
-                rowTitles?.Height ?? 0D,
-                format,
+                columnTitles?.Snapshot.Width ?? 0D,
+                rowTitles?.Snapshot.Height ?? 0D,
                 options,
                 diagnostics);
 
@@ -120,11 +178,10 @@ namespace OfficeIMO.Excel {
             return components;
         }
 
-        private PrintTitleComponent RenderPrintTitleComponent(
+        private PrintTitleVisualComponent CreatePrintTitleVisualComponent(
             string range,
             double x,
             double y,
-            OfficeImageExportFormat format,
             ExcelWorksheetImageExportOptions options,
             List<OfficeImageExportDiagnostic> diagnostics) {
             if (options == null) {
@@ -140,26 +197,62 @@ namespace OfficeIMO.Excel {
                 diagnostics.AddRange(snapshot.Diagnostics);
             }
 
+            return new PrintTitleVisualComponent(range, x, y, snapshot);
+        }
+
+        private static List<PrintTitleComponent> RenderPrintTitleComponents(
+            IReadOnlyList<PrintTitleVisualComponent> visuals,
+            OfficeImageExportFormat format,
+            ExcelWorksheetImageExportOptions options,
+            double renderScale,
+            List<OfficeImageExportDiagnostic> diagnostics) {
+            ExcelWorksheetImageExportOptions renderOptions = options.CloneWorksheet();
+            renderOptions.TargetDpi = null;
+            renderOptions.Scale = renderScale;
+            var components = new List<PrintTitleComponent>(visuals.Count);
+            foreach (PrintTitleVisualComponent visual in visuals) {
+                components.Add(RenderPrintTitleComponent(
+                    visual,
+                    format,
+                    renderOptions,
+                    diagnostics));
+            }
+
+            return components;
+        }
+
+        private static PrintTitleComponent RenderPrintTitleComponent(
+            PrintTitleVisualComponent visual,
+            OfficeImageExportFormat format,
+            ExcelWorksheetImageExportOptions renderOptions,
+            List<OfficeImageExportDiagnostic> diagnostics) {
             var componentDiagnostics = new List<OfficeImageExportDiagnostic>();
             OfficeRasterImage? raster = null;
             string svgInner = string.Empty;
-            int width = Math.Max(1, (int)Math.Ceiling(snapshot.Width * options.Scale));
-            int height = Math.Max(1, (int)Math.Ceiling(snapshot.Height * options.Scale));
             if (format == OfficeImageExportFormat.Svg) {
-                string svg = ExcelRangeImageRenderer.RenderSvg(snapshot, options, componentDiagnostics);
+                string svg = ExcelRangeImageRenderer.RenderSvg(visual.Snapshot, renderOptions, componentDiagnostics);
                 svgInner = OfficeSvgFormatting.ExtractSvgInner(svg);
             } else {
-                raster = ExcelRangeImageRenderer.RenderRaster(snapshot, options, componentDiagnostics);
-                width = raster.Width;
-                height = raster.Height;
+                raster = ExcelRangeImageRenderer.RenderRaster(visual.Snapshot, renderOptions, componentDiagnostics);
             }
 
             if (componentDiagnostics.Count > 0) {
                 diagnostics.AddRange(componentDiagnostics);
             }
 
+            double x = visual.X * renderOptions.Scale;
+            double y = visual.Y * renderOptions.Scale;
+            double width = visual.Snapshot.Width * renderOptions.Scale;
+            double height = visual.Snapshot.Height * renderOptions.Scale;
+            if (format == OfficeImageExportFormat.Svg) {
+                x = Math.Ceiling(x);
+                y = Math.Ceiling(y);
+                width = Math.Ceiling(width);
+                height = Math.Ceiling(height);
+            }
+
             return new PrintTitleComponent(
-                range,
+                visual.Range,
                 x,
                 y,
                 width,
@@ -213,6 +306,24 @@ namespace OfficeIMO.Excel {
             internal string? RowTitleRange { get; }
             internal string? ColumnTitleRange { get; }
             internal string? CornerRange { get; }
+        }
+
+        private sealed class PrintTitleVisualComponent {
+            internal PrintTitleVisualComponent(
+                string range,
+                double x,
+                double y,
+                ExcelRangeVisualSnapshot snapshot) {
+                Range = range;
+                X = x;
+                Y = y;
+                Snapshot = snapshot;
+            }
+
+            internal string Range { get; }
+            internal double X { get; }
+            internal double Y { get; }
+            internal ExcelRangeVisualSnapshot Snapshot { get; }
         }
 
         private sealed class PrintTitleComponent {

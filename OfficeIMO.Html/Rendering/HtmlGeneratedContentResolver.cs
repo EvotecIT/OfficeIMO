@@ -92,7 +92,8 @@ internal static class HtmlGeneratedContentResolver {
                 "A generated-content expression could not be represented and was omitted.",
                 HtmlDiagnosticSeverity.Warning,
                 pseudoSource,
-                detail.Length > 0 ? detail : expression);
+                detail.Length > 0 ? detail : expression,
+                HtmlConversionLossKind.Omission);
             return;
         }
 
@@ -132,7 +133,8 @@ internal static class HtmlGeneratedContentResolver {
                 "A CSS counter declaration could not be represented and was ignored.",
                 HtmlDiagnosticSeverity.Warning,
                 source,
-                property + "=" + value);
+                property + "=" + value,
+                HtmlConversionLossKind.Omission);
             return;
         }
 
