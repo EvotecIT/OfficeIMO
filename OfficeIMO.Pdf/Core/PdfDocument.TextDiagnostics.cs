@@ -11,7 +11,7 @@ public sealed partial class PdfDocument {
     /// Opened byte-backed PDFs do not have generated OfficeIMO blocks to inspect and return an empty result.
     /// </remarks>
     public IReadOnlyList<PdfTextEncodingDiagnostic> AnalyzeTextEncoding() {
-        if (_loadedPdf is not null) {
+        if (_source is not null) {
             return Array.Empty<PdfTextEncodingDiagnostic>();
         }
 

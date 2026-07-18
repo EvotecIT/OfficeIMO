@@ -19,6 +19,7 @@ using OfficeIMO.Reader.Pdf;
 using OfficeIMO.Rtf;
 using OfficeIMO.Rtf.Pdf;
 using OfficeIMO.Word.Pdf;
+using DrawingCore = OfficeIMO.Drawing;
 using PdfCore = OfficeIMO.Pdf;
 using TransformGroup = DocumentFormat.OpenXml.Drawing.TransformGroup;
 using Xunit;
@@ -89,7 +90,7 @@ public sealed class PdfConversionScenarioManifestTests {
 
         PdfCore.PdfDocumentConversionResult result = AsciiDocDocument.Parse(source).Document.ToPdfDocumentResult();
         byte[] pdf = result.ToBytes();
-        string text = PdfCore.PdfReadDocument.Load(pdf).ExtractText();
+        string text = PdfCore.PdfReadDocument.Open(pdf).ExtractText();
 
         Assert.Contains("AsciiDoc direct PDF proof", text, StringComparison.Ordinal);
         Assert.Contains("Semantic route marker", text, StringComparison.Ordinal);
@@ -113,7 +114,7 @@ public sealed class PdfConversionScenarioManifestTests {
 
         PdfCore.PdfDocumentConversionResult result = LatexDocument.Parse(source).Document.ToPdfDocumentResult();
         byte[] pdf = result.ToBytes();
-        string text = PdfCore.PdfReadDocument.Load(pdf).ExtractText();
+        string text = PdfCore.PdfReadDocument.Open(pdf).ExtractText();
 
         Assert.Contains("LaTeX direct PDF proof", text, StringComparison.Ordinal);
         Assert.Contains("Semantic route marker", text, StringComparison.Ordinal);
@@ -256,7 +257,7 @@ public sealed class PdfConversionScenarioManifestTests {
             return;
         }
 
-        string text = PdfCore.PdfReadDocument.Load(pdf).ExtractText();
+        string text = PdfCore.PdfReadDocument.Open(pdf).ExtractText();
 
         Assert.Contains("Q2 multilingual revenue report", text, StringComparison.Ordinal);
         Assert.Contains("Zażółć gęślą jaźń", text, StringComparison.Ordinal);
@@ -277,7 +278,7 @@ public sealed class PdfConversionScenarioManifestTests {
         PdfCore.PdfLogicalDocument logical = PdfCore.PdfLogicalDocument.Load(pdf, new PdfCore.PdfTextLayoutOptions {
             ForceSingleColumn = true
         });
-        string text = PdfCore.PdfReadDocument.Load(pdf).ExtractText();
+        string text = PdfCore.PdfReadDocument.Open(pdf).ExtractText();
 
         Assert.True(pdf.Length > 0);
         Assert.True(logical.PageCount >= 1);
@@ -298,7 +299,7 @@ public sealed class PdfConversionScenarioManifestTests {
         PdfCore.PdfTextLayoutOptions layoutOptions = new PdfCore.PdfTextLayoutOptions {
             ForceSingleColumn = true
         };
-        PdfCore.PdfReadDocument read = PdfCore.PdfReadDocument.Load(pdf);
+        PdfCore.PdfReadDocument read = PdfCore.PdfReadDocument.Open(pdf);
         PdfCore.PdfLogicalDocument logical = PdfCore.PdfLogicalDocument.Load(pdf, layoutOptions);
         RtfDocument imported = logical.ToRtfDocument(new PdfRtfReadOptions());
         string importedRtf = imported.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
@@ -637,6 +638,8 @@ public sealed class PdfConversionScenarioManifestTests {
         string? trueTypePath = PdfComplianceTestFonts.FindLocalTrueTypeFont();
         string? cffPath = PdfComplianceTestFonts.FindBundledOpenTypeCffFont();
         if (trueTypePath == null || cffPath == null) {
+            AssertReviewArtifactPrerequisite(
+                "The provider-shaped-text review proof requires a local TrueType font and the bundled OpenType/CFF fixture.");
             return;
         }
 
@@ -646,7 +649,9 @@ public sealed class PdfConversionScenarioManifestTests {
         PdfCore.PdfTrueTypeFontProgram trueTypeFont = PdfCore.PdfTrueTypeFontProgram.Parse(trueTypeBytes, "OfficeIMO Provider TrueType");
         PdfCore.PdfOpenTypeCffFontProgram cffFont = PdfCore.PdfOpenTypeCffFontProgram.Parse(cffBytes, "OfficeIMO Provider CFF");
         if (PdfCore.PdfTextDiagnostics.AnalyzeEmbeddedFontText(complexText, trueTypeFont).Count > 0 ||
-            !TryCreateCffOfficeLigatureGlyphs(cffFont, out IReadOnlyList<PdfCore.PdfShapedGlyph>? officeGlyphs)) {
+            !TryCreateCffOfficeLigatureGlyphs(cffFont, out IReadOnlyList<DrawingCore.OfficeShapedGlyph>? officeGlyphs)) {
+            AssertReviewArtifactPrerequisite(
+                "The provider-shaped-text review proof requires TrueType Arabic coverage and the bundled OpenType/CFF office ligature.");
             return;
         }
 
@@ -672,7 +677,7 @@ public sealed class PdfConversionScenarioManifestTests {
             .ToBytes();
 
         string raw = Encoding.ASCII.GetString(pdf);
-        string extracted = PdfCore.PdfReadDocument.Load(pdf).ExtractText();
+        string extracted = PdfCore.PdfReadDocument.Open(pdf).ExtractText();
 
         Assert.True(provider.TrueTypeCalls >= 1);
         Assert.True(provider.OpenTypeCffCalls >= 1);
@@ -729,7 +734,7 @@ public sealed class PdfConversionScenarioManifestTests {
         PdfCore.PdfLogicalDocument logical = PdfCore.PdfLogicalDocument.Load(pdf, new PdfCore.PdfTextLayoutOptions {
             ForceSingleColumn = true
         });
-        string text = PdfCore.PdfReadDocument.Load(pdf).ExtractText();
+        string text = PdfCore.PdfReadDocument.Open(pdf).ExtractText();
 
         Assert.True(pdf.Length > 0);
         Assert.Contains("Excel Dashboard PDF Gate", text, StringComparison.Ordinal);
@@ -744,7 +749,7 @@ public sealed class PdfConversionScenarioManifestTests {
     [Fact]
     public void PowerPointLayoutThemeGroups_ProducesManifestedReviewProof() {
         byte[] pdf = CreatePowerPointLayoutThemeGroupsPdf();
-        string text = PdfCore.PdfReadDocument.Load(pdf).ExtractText();
+        string text = PdfCore.PdfReadDocument.Open(pdf).ExtractText();
         string raw = Encoding.ASCII.GetString(pdf);
 
         Assert.True(pdf.Length > 0);
@@ -1647,7 +1652,7 @@ public sealed class PdfConversionScenarioManifestTests {
 
         PdfCore.PdfDocumentConversionResult result = HtmlConversionDocument.Parse(CreateCssResourcePolicyHtml(stylesheetUri)).ToPdfDocumentResult(options);
         byte[] pdf = result.ToBytes();
-        string text = PdfCore.PdfReadDocument.Load(pdf).ExtractText();
+        string text = PdfCore.PdfReadDocument.Open(pdf).ExtractText();
         HtmlPdfResourcePolicySummary policy = options.GetResourcePolicySummary();
 
         Assert.True(policy.HasResourceResolver);
@@ -1705,15 +1710,15 @@ public sealed class PdfConversionScenarioManifestTests {
         PdfCore.PdfDocumentPreflight readablePreflight = PdfCore.PdfInspector.Preflight(encrypted, readOptions);
         PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(encrypted, readOptions);
         string text = PdfCore.PdfTextExtractor.ExtractAllText(encrypted, (PdfCore.PdfTextLayoutOptions?)null, readOptions);
-        PdfCore.PdfDocument opened = PdfCore.PdfDocument.Load(encrypted, readOptions);
+        PdfCore.PdfDocument opened = PdfCore.PdfDocument.Open(encrypted, readOptions);
         IReadOnlyList<PdfCore.PdfDocument> splitPages = opened.Pages.Split();
         byte[] extractedPage = Assert.Single(splitPages).ToBytes();
 
         Assert.True(PdfCore.PdfInspector.Probe(encrypted).HasEncryption);
         Assert.False(blockedPreflight.CanRead);
         Assert.Contains(blockedPreflight.ReadBlockers, blocker => blocker.Kind == PdfCore.PdfReadBlockerKind.Encryption);
-        Assert.Throws<PdfCore.PdfPasswordRequiredException>(() => PdfCore.PdfReadDocument.Load(encrypted));
-        Assert.Throws<PdfCore.PdfInvalidPasswordException>(() => PdfCore.PdfReadDocument.Load(encrypted, new PdfCore.PdfReadOptions { Password = "wrong" }));
+        Assert.Throws<PdfCore.PdfPasswordRequiredException>(() => PdfCore.PdfReadDocument.Open(encrypted));
+        Assert.Throws<PdfCore.PdfInvalidPasswordException>(() => PdfCore.PdfReadDocument.Open(encrypted, new PdfCore.PdfReadOptions { Password = "wrong" }));
         Assert.True(readablePreflight.CanRead);
         Assert.False(readablePreflight.CanRewrite);
         Assert.True(info.Security.HasEncryption);
@@ -2012,7 +2017,7 @@ public sealed class PdfConversionScenarioManifestTests {
         Assert.Contains("pdf-provider-shaped-text", scenarioIds);
 
         IReadOnlyList<string> knownLimits = ReadStringArray(qualityContract, "knownLimits");
-        Assert.Contains(knownLimits, item => item.Contains("IPdfTextShapingProvider", StringComparison.Ordinal));
+        Assert.Contains(knownLimits, item => item.Contains("IOfficeTextShapingProvider", StringComparison.Ordinal));
         Assert.Contains(knownLimits, item => item.Contains("NativeFontFamilySlotExhausted", StringComparison.Ordinal));
         Assert.Contains(knownLimits, item => item.Contains("OneNote", StringComparison.Ordinal));
         Assert.Contains(knownLimits, item => item.Contains("external validator", StringComparison.OrdinalIgnoreCase));
@@ -2816,8 +2821,8 @@ Thank you for reviewing the OfficeIMO PDF conversion statement.
 """;
     }
 
-    private static IReadOnlyList<PdfCore.PdfShapedGlyph> CreateTrueTypeGlyphMap(string text, PdfCore.PdfTrueTypeFontProgram fontProgram) {
-        var glyphs = new List<PdfCore.PdfShapedGlyph>();
+    private static IReadOnlyList<DrawingCore.OfficeShapedGlyph> CreateTrueTypeGlyphMap(string text, PdfCore.PdfTrueTypeFontProgram fontProgram) {
+        var glyphs = new List<DrawingCore.OfficeShapedGlyph>();
         for (int index = 0; index < text.Length;) {
             int scalarStart = index;
             int scalar = ReadScalar(text, ref index);
@@ -2825,13 +2830,13 @@ Thank you for reviewing the OfficeIMO PDF conversion statement.
                 throw new InvalidOperationException("The selected TrueType font does not cover " + scalar.ToString("X", System.Globalization.CultureInfo.InvariantCulture) + ".");
             }
 
-            glyphs.Add(new PdfCore.PdfShapedGlyph(glyphId, char.ConvertFromUtf32(scalar), scalarStart));
+            glyphs.Add(new DrawingCore.OfficeShapedGlyph(glyphId, char.ConvertFromUtf32(scalar), scalarStart));
         }
 
         return glyphs;
     }
 
-    private static bool TryCreateCffOfficeLigatureGlyphs(PdfCore.PdfOpenTypeCffFontProgram fontProgram, out IReadOnlyList<PdfCore.PdfShapedGlyph>? glyphs) {
+    private static bool TryCreateCffOfficeLigatureGlyphs(PdfCore.PdfOpenTypeCffFontProgram fontProgram, out IReadOnlyList<DrawingCore.OfficeShapedGlyph>? glyphs) {
         glyphs = null;
         if (!fontProgram.TryGetGlyphId('o', out int oGlyphId) ||
             !fontProgram.TryGetGlyphId(0xFB03, out int ffiGlyphId) ||
@@ -2841,10 +2846,10 @@ Thank you for reviewing the OfficeIMO PDF conversion statement.
         }
 
         glyphs = new[] {
-            new PdfCore.PdfShapedGlyph(oGlyphId, "o", 0),
-            new PdfCore.PdfShapedGlyph(ffiGlyphId, "ffi", 1),
-            new PdfCore.PdfShapedGlyph(cGlyphId, "c", 4),
-            new PdfCore.PdfShapedGlyph(eGlyphId, "e", 5)
+            new DrawingCore.OfficeShapedGlyph(oGlyphId, "o", 0),
+            new DrawingCore.OfficeShapedGlyph(ffiGlyphId, "ffi", 1),
+            new DrawingCore.OfficeShapedGlyph(cGlyphId, "c", 4),
+            new DrawingCore.OfficeShapedGlyph(eGlyphId, "e", 5)
         };
         return true;
     }
@@ -2858,17 +2863,17 @@ Thank you for reviewing the OfficeIMO PDF conversion statement.
         return ch;
     }
 
-    private sealed class ManifestTextShapingProvider : PdfCore.IPdfTextShapingProvider {
+    private sealed class ManifestTextShapingProvider : DrawingCore.IOfficeTextShapingProvider {
         private readonly string _trueTypeText;
-        private readonly IReadOnlyList<PdfCore.PdfShapedGlyph> _trueTypeGlyphs;
+        private readonly IReadOnlyList<DrawingCore.OfficeShapedGlyph> _trueTypeGlyphs;
         private readonly string _cffText;
-        private readonly IReadOnlyList<PdfCore.PdfShapedGlyph> _cffGlyphs;
+        private readonly IReadOnlyList<DrawingCore.OfficeShapedGlyph> _cffGlyphs;
 
         public ManifestTextShapingProvider(
             string trueTypeText,
-            IReadOnlyList<PdfCore.PdfShapedGlyph> trueTypeGlyphs,
+            IReadOnlyList<DrawingCore.OfficeShapedGlyph> trueTypeGlyphs,
             string cffText,
-            IReadOnlyList<PdfCore.PdfShapedGlyph> cffGlyphs) {
+            IReadOnlyList<DrawingCore.OfficeShapedGlyph> cffGlyphs) {
             _trueTypeText = trueTypeText;
             _trueTypeGlyphs = trueTypeGlyphs;
             _cffText = cffText;
@@ -2879,16 +2884,16 @@ Thank you for reviewing the OfficeIMO PDF conversion statement.
         public int TrueTypeCalls { get; private set; }
         public int OpenTypeCffCalls { get; private set; }
 
-        public PdfCore.PdfTextShapingResult? ShapeText(PdfCore.PdfTextShapingRequest request) {
+        public DrawingCore.OfficeTextShapingResult? ShapeText(DrawingCore.OfficeTextShapingRequest request) {
             CallCount++;
             if (!request.IsOpenTypeCff && string.Equals(request.Text, _trueTypeText, StringComparison.Ordinal)) {
                 TrueTypeCalls++;
-                return new PdfCore.PdfTextShapingResult(_trueTypeGlyphs);
+                return new DrawingCore.OfficeTextShapingResult(_trueTypeGlyphs);
             }
 
             if (request.IsOpenTypeCff && string.Equals(request.Text, _cffText, StringComparison.Ordinal)) {
                 OpenTypeCffCalls++;
-                return new PdfCore.PdfTextShapingResult(_cffGlyphs);
+                return new DrawingCore.OfficeTextShapingResult(_cffGlyphs);
             }
 
             return null;
@@ -2909,6 +2914,12 @@ Thank you for reviewing the OfficeIMO PDF conversion statement.
 
         Directory.CreateDirectory(outputDirectory);
         File.WriteAllBytes(Path.Combine(outputDirectory, fileName), bytes);
+    }
+
+    private static void AssertReviewArtifactPrerequisite(string message) {
+        if (!string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("OFFICEIMO_PDF_VISUAL_REVIEW_OUTPUT"))) {
+            Assert.Fail(message);
+        }
     }
 
     private static string GetManifestPath() {

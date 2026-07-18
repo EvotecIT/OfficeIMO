@@ -1,6 +1,6 @@
 namespace OfficeIMO.Pdf;
 
-public static partial class PdfRedactionApplier {
+internal static partial class PdfRedactionApplier {
     private static bool ApplyCleanupPolicy(Dictionary<int, PdfIndirectObject> objects, int catalogObjectNumber, PdfRedactionCleanupScope scope) {
         if (scope == PdfRedactionCleanupScope.None || !objects.TryGetValue(catalogObjectNumber, out PdfIndirectObject? catalogObject) || catalogObject.Value is not PdfDictionary catalog) return false;
         bool changed = false;

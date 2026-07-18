@@ -16,7 +16,7 @@ public sealed partial class HtmlRenderingTests {
 
         byte[] pdf = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(new HtmlPdfSaveOptions());
 
-        Assert.Contains("AfterEmptyMarkup", PdfCore.PdfReadDocument.Load(pdf).ExtractText(), StringComparison.Ordinal);
+        Assert.Contains("AfterEmptyMarkup", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
     }
 
     [Fact]

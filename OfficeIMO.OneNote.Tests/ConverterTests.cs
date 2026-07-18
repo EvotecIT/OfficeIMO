@@ -259,7 +259,7 @@ public sealed class ConverterTests {
         byte[] bytes = result.Value.ToBytes();
         using var stream = new MemoryStream();
         await section.SaveAsVisualPdfAsync(stream, options);
-        OfficeIMO.Pdf.PdfDocumentInfo info = OfficeIMO.Pdf.PdfDocument.Load(bytes).Read.DocumentInfo();
+        OfficeIMO.Pdf.PdfDocumentInfo info = OfficeIMO.Pdf.PdfDocument.Open(bytes).Read.DocumentInfo();
 
         Assert.False(result.HasLoss);
         Assert.Equal("%PDF", Encoding.ASCII.GetString(bytes, 0, 4));

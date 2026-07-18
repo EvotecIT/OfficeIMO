@@ -9,7 +9,7 @@ public class PdfVisualComparerTests {
         byte[] expected = BuildPdf("Expected visual text");
         byte[] actual = BuildPdf("Changed visual text");
 
-        PdfVisualComparisonReport exact = PdfDocument.Load(expected).CompareVisual(actual);
+        PdfVisualComparisonReport exact = PdfDocument.Open(expected).CompareVisual(actual);
         PdfVisualPageComparison page = Assert.Single(exact.Pages);
         var ignoredOptions = new PdfVisualComparisonOptions();
         ignoredOptions.IgnoredRegions.Add(new PdfPixelRegion(0, 0, page.Width, page.Height));

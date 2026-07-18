@@ -43,11 +43,6 @@ internal static class TextContentParser {
         }
     }
 
-    private sealed class InlineDictionary {
-        public Dictionary<string, object> Items { get; } = new(StringComparer.Ordinal);
-        public PdfInlineOptionalContentReferences? OptionalContentReferences { get; set; }
-    }
-
     private readonly struct ActualTextValue {
         public string Text { get; }
 
@@ -134,7 +129,9 @@ internal static class TextContentParser {
         int initialTextRenderingMode = 0,
         PdfPageClipPath? initialClipPath = null,
         bool useLogicalTextFilters = true,
-        int maxOperations = PdfReadLimits.DefaultMaxContentOperations) {
+        int maxOperations = PdfReadLimits.DefaultMaxContentOperations,
+        int maxNestingDepth = PdfReadLimits.DefaultMaxContentNestingDepth,
+        int maxOperands = PdfReadLimits.DefaultMaxContentOperands) {
         var spans = new List<PdfTextSpan>();
         // Text state
         bool inText = false;
@@ -154,39 +151,19 @@ internal static class TextContentParser {
         Matrix2D ctm = Matrix2D.Identity; var gstack = new System.Collections.Generic.Stack<TextGraphicsState>();
         // Operand buffer (tokens collected since last operator)
         var args = new List<object>(8);
-        int i = 0; int n = content.Length;
-        int operationCount = 0;
         // Kerning state between text runs in TJ arrays (points) and rolling output buffer for gap checks
         double pendingGapPt = 0;
+        int pendingLineBreaks = 0;
+        bool emittedTextInTextObject = false;
         var sbOutGlobal = new StringBuilder();
         var markedContentStack = new Stack<MarkedContentState>();
-        while (i < n) {
-            SkipWs(); if (i >= n) break;
-            char c = content[i];
-            if (c == '%') { // comment till end of line
-                while (i < n && content[i] != '\n' && content[i] != '\r') i++;
-                continue;
-            }
-            if (c == '/') { args.Add(ReadName()); continue; }
-            if (c == '(') { args.Add(ReadLiteralStringBytes()); continue; }
-            if (c == '<') {
-                if (i + 1 < n && content[i + 1] == '<') { args.Add(ReadInlineDictionary()); continue; }
-                args.Add(ReadHexStringBytes()); continue;
-            }
-            if (c == '[') { args.Add(ReadArray()); continue; }
-            if (c == ']' || c == '>') { i++; continue; }
-            if (IsNumberStart(c)) { args.Add(ReadNumber()); continue; }
-            // operator (BT, ET, Tf, Tm, Td, TD, T*, TL, Tc, Tw, Tz, Ts, cm, q, Q, Tj, TJ, ', ")
-            double paintOrder = GetPaintOrder(i);
-            string op = ReadOperator();
-            if (op.Length == 0) { i++; continue; }
-            if (++operationCount > maxOperations) {
-                throw PdfReadLimitException.Create(PdfReadLimitKind.ContentOperations, maxOperations, operationCount);
-            }
-
+        PdfContentStreamInterpreter.Interpret(content, maxOperations, operation => {
+            args.AddRange(operation.Operands);
+            double paintOrder = GetPaintOrder(operation.OperatorOffset);
+            string op = operation.Name;
             switch (op) {
-                case "BT": inText = true; textMatrix = Matrix2D.Identity; lineMatrix = Matrix2D.Identity; pendingGapPt = 0; args.Clear(); break;
-                case "ET": inText = false; pendingGapPt = 0; args.Clear(); break;
+                case "BT": inText = true; textMatrix = Matrix2D.Identity; lineMatrix = Matrix2D.Identity; pendingGapPt = 0; pendingLineBreaks = 0; emittedTextInTextObject = false; args.Clear(); break;
+                case "ET": inText = false; pendingGapPt = 0; pendingLineBreaks = 0; emittedTextInTextObject = false; args.Clear(); break;
                 case "Tf": if (args.Count >= 2) { size = ToDouble(args[args.Count - 1]); font = ToName(args[args.Count - 2]); args.Clear(); } break;
                 case "Tm": if (args.Count >= 6) { SetTextMatrix(args); args.Clear(); } break;
                 case "Td": if (args.Count >= 2) { MoveTextLine(ToDouble(args[args.Count - 2]), ToDouble(args[args.Count - 1])); args.Clear(); } break;
@@ -417,7 +394,6 @@ internal static class TextContentParser {
                     args.Clear();
                     break;
                 case "BI":
-                    SkipInlineImageBody();
                     args.Clear();
                     break;
                 case "'": // move to next line and show text
@@ -450,7 +426,7 @@ internal static class TextContentParser {
                     break;
                 default: args.Clear(); break;
             }
-        }
+        }, maxNestingDepth: maxNestingDepth, maxOperands: maxOperands);
         return spans;
 
         // Helpers
@@ -464,18 +440,25 @@ internal static class TextContentParser {
                 ToDouble(operands[operands.Count - 1]));
             textMatrix = lineMatrix;
             pendingGapPt = 0;
+            pendingLineBreaks = 0;
         }
 
         void MoveTextLine(double tx, double ty) {
             lineMatrix = Matrix2D.Multiply(lineMatrix, Matrix2D.Translation(tx, ty));
             textMatrix = lineMatrix;
             pendingGapPt = 0;
+            if (emittedTextInTextObject && Math.Abs(ty) > 0.000001D) {
+                pendingLineBreaks++;
+            }
         }
 
         void MoveToNextTextLine() {
             lineMatrix = Matrix2D.Multiply(lineMatrix, Matrix2D.Translation(0, -leading));
             textMatrix = lineMatrix;
             pendingGapPt = 0;
+            if (emittedTextInTextObject) {
+                pendingLineBreaks++;
+            }
         }
 
         double GetPaintOrder(int operatorIndex) => paintOrderBase + ((operatorIndex + paintOrderOffset) * paintOrderScale);
@@ -545,7 +528,7 @@ internal static class TextContentParser {
             bool isHidden = HasActiveHiddenContent();
             bool isVisibleText = IsTextRenderingModeVisible(textRenderingMode);
             if (sbOut.Length == 0 && actualTextState is null && !isArtifact && !isHidden) return;
-            string textOut = NormalizeShatteredSpan(sbOut.ToString());
+            string textOut = sbOut.ToString();
             var textOrigin = textMatrix.Transform(0, textRise);
             var (dx, dy) = ctm.Transform(textOrigin.X, textOrigin.Y);
             var textEnd = textMatrix.Transform(advTotal, textRise);
@@ -563,12 +546,10 @@ internal static class TextContentParser {
                 textOut = actualTextState.ActualText;
                 actualTextState.ActualTextEmitted = true;
                 if (textOut.Length > 0) {
-                    spans.Add(new PdfTextSpan(textOut, font, size, dx, dy, transformedAdvance, visibleColor, isVisibleText, rotationDegrees, baseFontForResource?.Invoke(font), spanClipPath, paintOrder, drawingFontFamilyForResource?.Invoke(font)));
-                    sbOutGlobal.Append(textOut);
+                    AddTextSpan(textOut);
                 }
             } else if (actualTextState is null && textOut.Length > 0) {
-                spans.Add(new PdfTextSpan(textOut, font, size, dx, dy, transformedAdvance, visibleColor, isVisibleText, rotationDegrees, baseFontForResource?.Invoke(font), spanClipPath, paintOrder, drawingFontFamilyForResource?.Invoke(font)));
-                sbOutGlobal.Append(textOut);
+                AddTextSpan(textOut);
             }
 
             if (!isHidden) {
@@ -576,6 +557,36 @@ internal static class TextContentParser {
             }
 
             textMatrix = Matrix2D.Multiply(textMatrix, Matrix2D.Translation(advTotal, 0));
+
+            void AddTextSpan(string rawText) {
+                bool logicalLeadingSpace = char.IsWhiteSpace(rawText[0]);
+                bool logicalTrailingSpace = char.IsWhiteSpace(rawText[rawText.Length - 1]);
+                string normalizedText = NormalizeShatteredSpan(rawText);
+                if (normalizedText.Length == 0) {
+                    return;
+                }
+
+                spans.Add(new PdfTextSpan(
+                    normalizedText,
+                    font,
+                    size,
+                    dx,
+                    dy,
+                    transformedAdvance,
+                    visibleColor,
+                    isVisibleText,
+                    rotationDegrees,
+                    baseFontForResource?.Invoke(font),
+                    spanClipPath,
+                    paintOrder,
+                    drawingFontFamilyForResource?.Invoke(font),
+                    pendingLineBreaks,
+                    logicalLeadingSpace,
+                    logicalTrailingSpace));
+                sbOutGlobal.Append(normalizedText);
+                emittedTextInTextObject = true;
+                pendingLineBreaks = 0;
+            }
         }
 
         void ApplyTextClippingPath(double advance) {
@@ -631,7 +642,7 @@ internal static class TextContentParser {
                 return text is null ? (ActualTextValue?)null : new ActualTextValue(text);
             }
 
-            if (propertyObject is InlineDictionary dictionary &&
+            if (propertyObject is PdfContentDictionary dictionary &&
                 dictionary.Items.TryGetValue("ActualText", out var value) &&
                 value is byte[] bytes) {
                 return new ActualTextValue(PdfTextString.Decode(bytes));
@@ -648,7 +659,7 @@ internal static class TextContentParser {
             string.Equals(tagName, "OC", StringComparison.Ordinal) &&
             ((property is string propertyName &&
                 optionalContentVisibility?.IsHidden(propertyName) == true) ||
-             (property is InlineDictionary dictionary &&
+             (property is PdfContentDictionary dictionary &&
                 dictionary.OptionalContentReferences != null &&
                 optionalContentVisibility?.IsHidden(dictionary.OptionalContentReferences) == true));
 
@@ -667,230 +678,6 @@ internal static class TextContentParser {
                 }
             }
         }
-
-        void SkipWs() { while (i < n && char.IsWhiteSpace(content[i])) i++; }
-        static bool IsDigit(char ch) => ch >= '0' && ch <= '9';
-        bool IsNumberStart(char ch) => ch == '-' || ch == '+' || ch == '.' || IsDigit(ch);
-
-        double ReadNumber() {
-            int start = i; i++;
-            while (i < n) { char ch = content[i]; if (!(IsDigit(ch) || ch == '.' || ch == 'E' || ch == 'e' || ch == '-' || ch == '+')) break; i++; }
-            var s = content.Substring(start, i - start);
-            if (!double.TryParse(s, NumberStyles.Any, CultureInfo.InvariantCulture, out var v)) v = 0;
-            return v;
-        }
-
-        string ReadName() {
-            i++; int start = i;
-            while (i < n) { char ch = content[i]; if (char.IsWhiteSpace(ch) || ch == '%' || ch == '/' || ch == '[' || ch == ']' || ch == '(' || ch == ')' || ch == '<' || ch == '>') break; i++; }
-            return PdfSyntax.DecodeName(content.Substring(start, i - start));
-        }
-
-        byte[] ReadLiteralStringBytes() {
-            int start = ++i; int depth = 1; bool esc = false; var sb = new StringBuilder();
-            while (i < n && depth > 0) {
-                char ch = content[i++];
-                if (esc) { sb.Append('\\'); sb.Append(ch); esc = false; }
-                else if (ch == '\\') esc = true;
-                else if (ch == '(') { depth++; sb.Append(ch); }
-                else if (ch == ')') { depth--; if (depth > 0) sb.Append(ch); }
-                else sb.Append(ch);
-            }
-            return PdfStringParser.ParseLiteralToBytes(sb.ToString());
-        }
-
-        byte[] ReadHexStringBytes() {
-            i++; int start = i; while (i < n && content[i] != '>') i++; int end = i; if (i < n && content[i] == '>') i++;
-            string hex = content.Substring(start, end - start);
-            var sb = new StringBuilder(hex.Length);
-            for (int k = 0; k < hex.Length; k++) { char ch = hex[k]; if (!char.IsWhiteSpace(ch)) sb.Append(ch); }
-            hex = sb.ToString();
-            if (hex.Length % 2 == 1) hex += "0";
-            var bytes = new byte[hex.Length / 2];
-            for (int k = 0; k < bytes.Length; k++) {
-                var hi = HexNibble(hex[k * 2]);
-                var lo = HexNibble(hex[k * 2 + 1]);
-                bytes[k] = (byte)((hi << 4) | lo);
-            }
-            return bytes;
-
-            static int HexNibble(char c) {
-                if (c >= '0' && c <= '9') return c - '0';
-                if (c >= 'a' && c <= 'f') return 10 + (c - 'a');
-                if (c >= 'A' && c <= 'F') return 10 + (c - 'A');
-                throw new FormatException($"Invalid hex character '{c}'.");
-            }
-        }
-
-        InlineDictionary ReadInlineDictionary() {
-            int start = i;
-            i += 2;
-            var dictionary = new InlineDictionary();
-            while (i < n) {
-                SkipWs();
-                if (i + 1 < n && content[i] == '>' && content[i + 1] == '>') {
-                    i += 2;
-                    break;
-                }
-
-                if (i >= n) {
-                    break;
-                }
-
-                if (content[i] != '/') {
-                    SkipInlineDictionaryValue();
-                    continue;
-                }
-
-                string key = ReadName();
-                SkipWs();
-                if (i >= n) {
-                    break;
-                }
-
-                if (content[i] == '(') {
-                    dictionary.Items[key] = ReadLiteralStringBytes();
-                } else if (content[i] == '<' && i + 1 < n && content[i + 1] != '<') {
-                    dictionary.Items[key] = ReadHexStringBytes();
-                } else {
-                    SkipInlineDictionaryValue();
-                }
-            }
-
-            dictionary.OptionalContentReferences = PdfInlineOptionalContentReferenceParser.Parse(content, start, Math.Max(0, i - start));
-            return dictionary;
-        }
-
-        void SkipInlineDictionaryValue() {
-            if (i >= n) {
-                return;
-            }
-
-            char ch = content[i];
-            if (ch == '(') {
-                ReadLiteralStringBytes();
-                return;
-            }
-
-            if (ch == '<') {
-                if (i + 1 < n && content[i + 1] == '<') {
-                    ReadInlineDictionary();
-                } else {
-                    ReadHexStringBytes();
-                }
-
-                return;
-            }
-
-            if (ch == '[') {
-                ReadArray();
-                return;
-            }
-
-            if (ch == '/') {
-                ReadName();
-                return;
-            }
-
-            if (IsNumberStart(ch)) {
-                ReadNumber();
-                return;
-            }
-
-            ReadOperator();
-        }
-
-        List<object> ReadArray() {
-            var list = new List<object>();
-            i++; // skip [
-            while (i < n) {
-                SkipWs(); if (i >= n) break; char ch = content[i]; if (ch == ']') { i++; break; }
-                if (ch == '(') { list.Add(ReadLiteralStringBytes()); continue; }
-                if (ch == '<') { if (i + 1 < n && content[i + 1] == '<') { i += 2; continue; } list.Add(ReadHexStringBytes()); continue; }
-                if (IsNumberStart(ch)) { list.Add(ReadNumber()); continue; }
-                if (ch == '/') { list.Add(ReadName()); continue; }
-                if (ch == '[') { i++; continue; } // ignore nested
-                // unknown token inside array -> treat as operator and skip
-                ReadOperator();
-            }
-            return list;
-        }
-
-        string ReadOperator() {
-            int start = i; char ch = content[i++];
-            if (ch == '\'' || ch == '"') return ch.ToString();
-            while (i < n) {
-                char c2 = content[i];
-                if (char.IsWhiteSpace(c2) || c2 == '%' || c2 == '(' || c2 == '[' || c2 == '/' || c2 == '<' || c2 == '>') break;
-                i++;
-            }
-            return content.Substring(start, i - start);
-        }
-
-        void SkipInlineImageBody() {
-            while (i < n) {
-                SkipWs();
-                if (IsOperatorAt("ID")) {
-                    i += 2;
-                    break;
-                }
-
-                if (i >= n) {
-                    return;
-                }
-
-                if (content[i] == '(') {
-                    ReadLiteralStringBytes();
-                } else if (content[i] == '<') {
-                    if (i + 1 < n && content[i + 1] == '<') {
-                        ReadInlineDictionary();
-                    } else {
-                        ReadHexStringBytes();
-                    }
-                } else if (content[i] == '[') {
-                    ReadArray();
-                } else if (content[i] == '/') {
-                    ReadName();
-                } else if (IsNumberStart(content[i])) {
-                    ReadNumber();
-                } else {
-                    ReadOperator();
-                }
-            }
-
-            if (i < n && char.IsWhiteSpace(content[i])) {
-                i++;
-            }
-
-            while (i + 1 < n) {
-                if (PdfInlineImageDataScanner.IsTerminatorAt(content, i)) {
-                    i += 2;
-                    return;
-                }
-
-                i++;
-            }
-
-            i = n;
-        }
-
-        bool IsOperatorAt(string value) {
-            if (i + value.Length > n) {
-                return false;
-            }
-
-            for (int j = 0; j < value.Length; j++) {
-                if (content[i + j] != value[j]) {
-                    return false;
-                }
-            }
-
-            return (i == 0 || IsInlineImageBoundary(content[i - 1])) &&
-                   (i + value.Length >= n || IsInlineImageBoundary(content[i + value.Length]));
-        }
-
-        static bool IsInlineImageBoundary(char ch) =>
-            char.IsWhiteSpace(ch) || ch == '/' || ch == '[' || ch == ']' || ch == '(' || ch == ')' || ch == '<' || ch == '>' || ch == '%';
 
         static double ToDouble(object o) { return o is double d ? d : 0.0; }
         static string ToName(object o) { return o as string ?? string.Empty; }
@@ -1088,7 +875,9 @@ internal static class TextContentParser {
         double? initialStrokeOpacity = null,
         int initialTextRenderingMode = 0,
         PdfPageClipPath? initialClipPath = null,
-        int maxOperations = PdfReadLimits.DefaultMaxContentOperations) {
+        int maxOperations = PdfReadLimits.DefaultMaxContentOperations,
+        int maxNestingDepth = PdfReadLimits.DefaultMaxContentNestingDepth,
+        int maxOperands = PdfReadLimits.DefaultMaxContentOperands) {
         var invocations = new List<FormInvocation>();
         Matrix2D ctm = Matrix2D.Identity;
         OfficeColor fillColor = initialFillColor ?? OfficeColor.Black;
@@ -1103,42 +892,11 @@ internal static class TextContentParser {
         var gstack = new Stack<TextGraphicsState>();
         var hiddenContentStack = new Stack<bool>();
         var args = new List<object>(8);
-        int i = 0;
-        int n = content.Length;
-        int operationCount = 0;
 
-        while (i < n) {
-            SkipWs();
-            if (i >= n) break;
-
-            char c = content[i];
-            if (c == '%') {
-                while (i < n && content[i] != '\n' && content[i] != '\r') i++;
-                continue;
-            }
-
-            if (c == '/') { args.Add(ReadName()); continue; }
-            if (c == '(') { ReadLiteralStringBytes(); continue; }
-            if (c == '<') {
-                if (i + 1 < n && content[i + 1] == '<') {
-                    args.Add(PdfInlineOptionalContentReferenceParser.Read(content, ref i));
-                    continue;
-                }
-
-                ReadHexStringBytes();
-                continue;
-            }
-            if (c == '[') { ReadArray(); continue; }
-            if (c == ']' || c == '>') { i++; continue; }
-            if (IsNumberStart(c)) { args.Add(ReadNumber()); continue; }
-
-            double paintOrder = GetPaintOrder(i);
-            string op = ReadOperator();
-            if (op.Length == 0) { i++; continue; }
-            if (++operationCount > maxOperations) {
-                throw PdfReadLimitException.Create(PdfReadLimitKind.ContentOperations, maxOperations, operationCount);
-            }
-
+        PdfContentStreamInterpreter.Interpret(content, maxOperations, operation => {
+            args.AddRange(operation.Operands);
+            double paintOrder = GetPaintOrder(operation.OperatorOffset);
+            string op = operation.Name;
             switch (op) {
                 case "q":
                     gstack.Push(new TextGraphicsState(ctm, string.Empty, 0D, 0D, 0D, 0D, 1D, 0D, fillColor, fillColorSpace, strokeColor, strokeColorSpace, fillOpacity, strokeOpacity, textRenderingMode, clipPath));
@@ -1399,7 +1157,7 @@ internal static class TextContentParser {
                     args.Clear();
                     break;
             }
-        }
+        }, maxNestingDepth: maxNestingDepth, maxOperands: maxOperands);
 
         return invocations;
 
@@ -1421,86 +1179,10 @@ internal static class TextContentParser {
             ((property is string propertyName &&
                 optionalContentVisibility?.IsHidden(propertyName) == true) ||
              (property is PdfInlineOptionalContentReferences references &&
-                optionalContentVisibility?.IsHidden(references) == true));
-
-        void SkipWs() { while (i < n && char.IsWhiteSpace(content[i])) i++; }
-        static bool IsDigit(char ch) => ch >= '0' && ch <= '9';
-        bool IsNumberStart(char ch) => ch == '-' || ch == '+' || ch == '.' || IsDigit(ch);
-
-        double ReadNumber() {
-            int start = i;
-            i++;
-            while (i < n) {
-                char ch = content[i];
-                if (!(IsDigit(ch) || ch == '.' || ch == 'E' || ch == 'e' || ch == '-' || ch == '+')) break;
-                i++;
-            }
-            var s = content.Substring(start, i - start);
-            if (!double.TryParse(s, NumberStyles.Any, CultureInfo.InvariantCulture, out var v)) v = 0;
-            return v;
-        }
-
-        string ReadName() {
-            i++;
-            int start = i;
-            while (i < n) {
-                char ch = content[i];
-                if (char.IsWhiteSpace(ch) || ch == '%' || ch == '/' || ch == '[' || ch == ']' || ch == '(' || ch == ')' || ch == '<' || ch == '>') break;
-                i++;
-            }
-            return PdfSyntax.DecodeName(content.Substring(start, i - start));
-        }
-
-        void ReadLiteralStringBytes() {
-            i++;
-            int depth = 1;
-            bool esc = false;
-            while (i < n && depth > 0) {
-                char ch = content[i++];
-                if (esc) esc = false;
-                else if (ch == '\\') esc = true;
-                else if (ch == '(') depth++;
-                else if (ch == ')') depth--;
-            }
-        }
-
-        void ReadHexStringBytes() {
-            i++;
-            while (i < n && content[i] != '>') i++;
-            if (i < n && content[i] == '>') i++;
-        }
-
-        void ReadArray() {
-            i++;
-            while (i < n) {
-                SkipWs();
-                if (i >= n) break;
-                char ch = content[i];
-                if (ch == ']') { i++; break; }
-                if (ch == '(') { ReadLiteralStringBytes(); continue; }
-                if (ch == '<') {
-                    if (i + 1 < n && content[i + 1] == '<') { i += 2; continue; }
-                    ReadHexStringBytes();
-                    continue;
-                }
-                if (IsNumberStart(ch)) { ReadNumber(); continue; }
-                if (ch == '/') { ReadName(); continue; }
-                if (ch == '[') { i++; continue; }
-                ReadOperator();
-            }
-        }
-
-        string ReadOperator() {
-            int start = i;
-            char ch = content[i++];
-            if (ch == '\'' || ch == '"') return ch.ToString();
-            while (i < n) {
-                char c2 = content[i];
-                if (char.IsWhiteSpace(c2) || c2 == '%' || c2 == '(' || c2 == '[' || c2 == '/' || c2 == '<' || c2 == '>') break;
-                i++;
-            }
-            return content.Substring(start, i - start);
-        }
+                optionalContentVisibility?.IsHidden(references) == true) ||
+             (property is PdfContentDictionary dictionary &&
+                dictionary.OptionalContentReferences is not null &&
+                optionalContentVisibility?.IsHidden(dictionary.OptionalContentReferences) == true));
 
         double NumberAt(int index) => args[index] is double value ? value : 0D;
         void ApplyGraphicsStateResource(string name) {

@@ -9,9 +9,9 @@ public class PdfEncryptedReadTests {
     public void StandardPasswordEncryptedPdf_RequiresValidPassword() {
         byte[] pdf = EncryptedPdfFixture.CreateRevision2("open", "owner", "Secret PDF Text");
 
-        Assert.Throws<PdfPasswordRequiredException>(() => PdfReadDocument.Load(pdf));
+        Assert.Throws<PdfPasswordRequiredException>(() => PdfReadDocument.Open(pdf));
         Assert.Throws<PdfPasswordRequiredException>(() => PdfTextExtractor.ExtractAllText(pdf));
-        Assert.Throws<PdfInvalidPasswordException>(() => PdfReadDocument.Load(pdf, new PdfReadOptions { Password = "wrong" }));
+        Assert.Throws<PdfInvalidPasswordException>(() => PdfReadDocument.Open(pdf, new PdfReadOptions { Password = "wrong" }));
         Assert.Throws<PdfInvalidPasswordException>(() => PdfTextExtractor.ExtractAllText(pdf, (PdfTextLayoutOptions?)null, new PdfReadOptions { Password = "wrong" }));
     }
 
@@ -23,7 +23,7 @@ public class PdfEncryptedReadTests {
         PdfDocumentPreflight preflight = PdfInspector.Preflight(pdf, options);
         string text = PdfTextExtractor.ExtractAllText(pdf, (PdfTextLayoutOptions?)null, options);
         PdfDiagnosticReport diagnostics = PdfDiagnostics.Analyze(pdf, options);
-        string fluentText = PdfDocument.Load(pdf, options).Read.Text();
+        string fluentText = PdfDocument.Open(pdf, options).Read.Text();
 
         Assert.True(preflight.CanRead);
         Assert.False(preflight.CanRewrite);
@@ -67,8 +67,8 @@ public class PdfEncryptedReadTests {
         byte[] pdf = EncryptedPdfFixture.CreateRevision2(string.Empty, "owner", "Empty user password text");
 
         byte[] extracted = PdfPageExtractor.ExtractPages(pdf, 1);
-        IReadOnlyList<PdfDocument> splitPages = PdfDocument.Load(pdf).Pages.Split();
-        PdfOperationResult<IReadOnlyList<PdfDocument>> trySplit = PdfDocument.Load(pdf).Pages.TrySplit();
+        IReadOnlyList<PdfDocument> splitPages = PdfDocument.Open(pdf).Pages.Split();
+        PdfOperationResult<IReadOnlyList<PdfDocument>> trySplit = PdfDocument.Open(pdf).Pages.TrySplit();
 
         Assert.False(PdfInspector.Probe(extracted).HasEncryption);
         Assert.Contains("Empty user password text", PdfTextExtractor.ExtractAllText(extracted), StringComparison.Ordinal);
@@ -83,7 +83,7 @@ public class PdfEncryptedReadTests {
         byte[] pdf = EncryptedPdfFixture.CreateRevision2("open", "owner", "Secret PDF Text");
         var options = new PdfReadOptions { Password = "open" };
 
-        IReadOnlyList<byte[]> pages = PdfDocument.Load(pdf, options).Pages.Split()
+        IReadOnlyList<byte[]> pages = PdfDocument.Open(pdf, options).Pages.Split()
             .Select(page => page.ToBytes())
             .ToArray();
 
@@ -96,7 +96,7 @@ public class PdfEncryptedReadTests {
     public void StandardPasswordEncryptedPdf_TrySplitSucceedsWhenOpenedWithPassword() {
         byte[] pdf = EncryptedPdfFixture.CreateRevision2("open", "owner", "Secret PDF Text");
 
-        PdfOperationResult<IReadOnlyList<PdfDocument>> result = PdfDocument.Load(pdf, new PdfReadOptions { Password = "open" }).Pages.TrySplit();
+        PdfOperationResult<IReadOnlyList<PdfDocument>> result = PdfDocument.Open(pdf, new PdfReadOptions { Password = "open" }).Pages.TrySplit();
 
         Assert.True(result.CanAttempt);
         Assert.True(result.Succeeded);
@@ -108,7 +108,7 @@ public class PdfEncryptedReadTests {
     public void StandardPasswordEncryptedPdf_TrySplitUsesSuppliedPassword() {
         byte[] pdf = EncryptedPdfFixture.CreateRevision2("open", "owner", "Secret PDF Text");
 
-        PdfOperationResult<IReadOnlyList<PdfDocument>> result = PdfDocument.Load(pdf).Pages.TrySplit(new PdfReadOptions { Password = "open" });
+        PdfOperationResult<IReadOnlyList<PdfDocument>> result = PdfDocument.Open(pdf).Pages.TrySplit(new PdfReadOptions { Password = "open" });
 
         Assert.True(result.CanAttempt);
         Assert.True(result.Succeeded);

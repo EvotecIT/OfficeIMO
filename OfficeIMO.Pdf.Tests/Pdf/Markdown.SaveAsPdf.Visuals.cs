@@ -20,7 +20,7 @@ public class MarkdownSaveAsPdfVisualTests {
             .Caption("Figure 1. Operational badge");
 
         byte[] bytes = document.ToPdfDocument(CreateVisualOptions()).ToBytes();
-        string text = PdfCore.PdfReadDocument.Load(bytes).ExtractText();
+        string text = PdfCore.PdfReadDocument.Open(bytes).ExtractText();
 
         Assert.Contains("Figure 1. Operational badge", text, StringComparison.Ordinal);
         Assert.Contains(PdfCore.PdfImageExtractor.ExtractImages(bytes), image => image.IsImageFile && image.MimeType == "image/png");
@@ -34,7 +34,7 @@ public class MarkdownSaveAsPdfVisualTests {
             .Add(new ParagraphBlock(new InlineSequence().Image("Inline badge", dataUri, "Inline badge caption")));
 
         byte[] bytes = document.ToPdfDocument(CreateVisualOptions()).ToBytes();
-        string text = PdfCore.PdfReadDocument.Load(bytes).ExtractText();
+        string text = PdfCore.PdfReadDocument.Open(bytes).ExtractText();
 
         Assert.Contains(PdfCore.PdfImageExtractor.ExtractImages(bytes), image => image.IsImageFile && image.MimeType == "image/png");
         Assert.DoesNotContain("Inline badge caption", text, StringComparison.Ordinal);
@@ -51,7 +51,7 @@ public class MarkdownSaveAsPdfVisualTests {
             .Add(quote);
 
         byte[] bytes = document.ToPdfDocument(CreateVisualOptions()).ToBytes();
-        string text = PdfCore.PdfReadDocument.Load(bytes).ExtractText();
+        string text = PdfCore.PdfReadDocument.Open(bytes).ExtractText();
 
         Assert.Contains(PdfCore.PdfImageExtractor.ExtractImages(bytes), image => image.IsImageFile && image.MimeType == "image/png");
         Assert.DoesNotContain("Inline badge caption", text, StringComparison.Ordinal);
@@ -73,7 +73,7 @@ public class MarkdownSaveAsPdfVisualTests {
             .Add(quote);
 
         byte[] bytes = document.ToPdfDocument(CreateVisualOptions()).ToBytes();
-        string text = PdfCore.PdfReadDocument.Load(bytes).ExtractText();
+        string text = PdfCore.PdfReadDocument.Open(bytes).ExtractText();
 
         Assert.Contains(PdfCore.PdfImageExtractor.ExtractImages(bytes), image => image.IsImageFile && image.MimeType == "image/png");
         Assert.DoesNotContain("Inline badge caption", text, StringComparison.Ordinal);
@@ -140,7 +140,7 @@ public class MarkdownSaveAsPdfVisualTests {
 
         byte[] bytes = OfficeIMO.Markdown.MarkdownReader.Parse("#### Lower heading").ToPdfDocument(options).ToBytes();
         string raw = Encoding.ASCII.GetString(bytes);
-        string text = PdfCore.PdfReadDocument.Load(bytes).ExtractText();
+        string text = PdfCore.PdfReadDocument.Open(bytes).ExtractText();
 
         Assert.Contains("Lower heading", text, StringComparison.Ordinal);
         Assert.Contains("1 0 0 rg", raw, StringComparison.Ordinal);
@@ -191,7 +191,7 @@ public class MarkdownSaveAsPdfVisualTests {
 
         byte[] bytes = OfficeIMO.Markdown.MarkdownReader.Parse(markdown).ToPdfDocument(options).ToBytes();
         string raw = Encoding.ASCII.GetString(bytes);
-        string text = PdfCore.PdfReadDocument.Load(bytes).ExtractText();
+        string text = PdfCore.PdfReadDocument.Open(bytes).ExtractText();
 
         Assert.Contains("Intro text.", text, StringComparison.Ordinal);
         Assert.Contains("Outro text.", text, StringComparison.Ordinal);
@@ -225,7 +225,7 @@ public class MarkdownSaveAsPdfVisualTests {
 
         PdfCore.PdfDocumentConversionResult result = document.ToPdfDocumentResult(options);
         byte[] bytes = result.ToBytes();
-        string text = PdfCore.PdfReadDocument.Load(bytes).ExtractText();
+        string text = PdfCore.PdfReadDocument.Open(bytes).ExtractText();
 
         Assert.Contains(result.Warnings, warning => warning.Code == "UnsupportedImage" && warning.Source == imageUrl);
         Assert.Contains("[Image unavailable: Remote badge]", text, StringComparison.Ordinal);
@@ -266,7 +266,7 @@ _Figure 2. Revenue chart_
         var options = CreateVisualOptions();
         PdfCore.PdfDocumentConversionResult result = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, MarkdownPdfSemanticBlocks.CreateReaderOptions()).ToPdfDocumentResult(options);
         byte[] bytes = result.ToBytes();
-        string text = PdfCore.PdfReadDocument.Load(bytes).ExtractText();
+        string text = PdfCore.PdfReadDocument.Open(bytes).ExtractText();
 
         Assert.DoesNotContain(options.Warnings, warning => warning.Code == "UnsupportedChartFence");
         Assert.Contains("Quarter revenue", text, StringComparison.Ordinal);
@@ -298,7 +298,7 @@ _Figure 2. Revenue chart_
 
         var options = CreateVisualOptions();
         byte[] bytes = document.ToPdfDocument(options).ToBytes();
-        string text = PdfCore.PdfReadDocument.Load(bytes).ExtractText();
+        string text = PdfCore.PdfReadDocument.Open(bytes).ExtractText();
 
         Assert.DoesNotContain(options.Warnings, warning => warning.Code == "UnsupportedChartFence");
         Assert.Contains("Visual", text, StringComparison.Ordinal);
@@ -2354,7 +2354,7 @@ _Figure 2. Revenue chart_
         var options = CreateVisualOptions();
         MarkdownReaderOptions readerOptions = MarkdownReaderOptions.CreateOfficeIMOProfile();
         byte[] bytes = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, readerOptions).ToPdfDocument(options).ToBytes();
-        string text = PdfCore.PdfReadDocument.Load(bytes).ExtractText();
+        string text = PdfCore.PdfReadDocument.Open(bytes).ExtractText();
 
         Assert.DoesNotContain(options.Warnings, warning => warning.Code == "UnsupportedChartFence");
         Assert.Contains("\"datasets\"", text, StringComparison.Ordinal);
@@ -2391,7 +2391,7 @@ _Figure 2. Revenue chart_
         options.Style = theme;
 
         byte[] bytes = OfficeIMO.Markdown.MarkdownReader.Parse(markdown).ToPdfDocument(options).ToBytes();
-        string text = PdfCore.PdfReadDocument.Load(bytes).ExtractText();
+        string text = PdfCore.PdfReadDocument.Open(bytes).ExtractText();
 
         Assert.DoesNotContain(options.Warnings, warning => warning.Code == "UnsupportedChartFence");
         Assert.Contains("Decorative source style", text, StringComparison.Ordinal);
@@ -2408,7 +2408,7 @@ _Figure 2. Revenue chart_
         var options = CreateVisualOptions();
         PdfCore.PdfDocumentConversionResult result = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, MarkdownPdfSemanticBlocks.CreateReaderOptions()).ToPdfDocumentResult(options);
         byte[] bytes = result.ToBytes();
-        string text = PdfCore.PdfReadDocument.Load(bytes).ExtractText();
+        string text = PdfCore.PdfReadDocument.Open(bytes).ExtractText();
 
         Assert.Contains(result.Warnings, warning => warning.Code == "UnsupportedChartFence");
         Assert.Contains("{ invalid json", text, StringComparison.Ordinal);
@@ -2427,7 +2427,7 @@ _Figure 3. Flow fallback_
         var options = CreateVisualOptions();
         PdfCore.PdfDocumentConversionResult result = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, MarkdownPdfSemanticBlocks.CreateReaderOptions()).ToPdfDocumentResult(options);
         byte[] bytes = result.ToBytes();
-        string text = PdfCore.PdfReadDocument.Load(bytes).ExtractText();
+        string text = PdfCore.PdfReadDocument.Open(bytes).ExtractText();
 
         Assert.Contains(result.Warnings, warning => warning.Code == "UnsupportedSemanticFence" && warning.Source == MarkdownSemanticKinds.Mermaid);
         Assert.Contains("mermaid", text, StringComparison.OrdinalIgnoreCase);

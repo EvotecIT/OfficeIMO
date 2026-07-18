@@ -10,7 +10,7 @@ namespace OfficeIMO.Tests.Pdf {
     public partial class RichParagraphWrappingTests {
         [Fact]
         public void PdfOptions_ClonePreservesTextLineBreakCallback() {
-            PdfTextLineBreakCallback callback = token => token == "alphaomega"
+            Func<string, IReadOnlyList<int>> callback = token => token == "alphaomega"
                 ? new[] { 5 }
                 : Array.Empty<int>();
 
@@ -61,7 +61,7 @@ namespace OfficeIMO.Tests.Pdf {
         [Fact]
         public void GeneratedText_UsesTextLineBreakCallbackForLongUnspacedTokens() {
             int callbackCalls = 0;
-            PdfTextLineBreakCallback callback = token => {
+            Func<string, IReadOnlyList<int>> callback = token => {
                 callbackCalls++;
                 return token == "alphaomega"
                     ? new[] { 5 }
@@ -82,7 +82,7 @@ namespace OfficeIMO.Tests.Pdf {
                 .Paragraph(paragraph => paragraph.Text("alphaomega"))
                 .ToBytes();
 
-            string extracted = PdfReadDocument.Load(bytes).ExtractText();
+            string extracted = PdfReadDocument.Open(bytes).ExtractText();
             string[] lines = extracted
                 .Split(new[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries);
 
@@ -118,7 +118,7 @@ namespace OfficeIMO.Tests.Pdf {
                 .Paragraph(paragraph => paragraph.Text(text))
                 .ToBytes();
 
-            string extracted = PdfReadDocument.Load(bytes).ExtractText();
+            string extracted = PdfReadDocument.Open(bytes).ExtractText();
 
             Assert.Contains(text, extracted, StringComparison.Ordinal);
             Assert.DoesNotContain(report.Warnings, warning => warning.Code == "unsupported-script-specific-line-breaking");

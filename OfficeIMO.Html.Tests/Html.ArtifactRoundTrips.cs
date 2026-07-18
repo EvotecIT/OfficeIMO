@@ -37,7 +37,7 @@ public class HtmlArtifactRoundTrips {
         Assert.NotEmpty(reopenedWord.Find(Marker, StringComparison.Ordinal));
         Assert.Contains(Marker, string.Join("\n", reopenedRtf.Document.Paragraphs.Select(paragraph => paragraph.ToPlainText())), StringComparison.Ordinal);
         Assert.Contains(Marker, markdown, StringComparison.Ordinal);
-        Assert.Contains(Marker, PdfCore.PdfReadDocument.Load(pdf).ExtractText(), StringComparison.Ordinal);
+        Assert.Contains(Marker, PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
         Assert.Contains(Marker, svg, StringComparison.Ordinal);
         Assert.True(pdf.Length > 100);
         Assert.StartsWith("{\\rtf", rtf, StringComparison.Ordinal);

@@ -37,7 +37,7 @@ public class PdfPageImageRendererBatchTests {
     public void RenderPages_RendersCallerOrderedSvgRangeWithPerPageReports() {
         byte[] pdf = BuildTwoPagePdf();
 
-        IReadOnlyList<PdfPageRenderResult> results = PdfDocument.Load(pdf).Read.RenderPages(
+        IReadOnlyList<PdfPageRenderResult> results = PdfDocument.Open(pdf).Read.RenderPages(
             PdfPageSelection.From(2, 1),
             new PdfPageRenderOptions { Format = PdfPageRenderFormat.Svg, Scale = 2D });
 

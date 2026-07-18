@@ -1,6 +1,6 @@
 namespace OfficeIMO.Pdf;
 
-public static partial class PdfFormFiller {
+internal static partial class PdfFormFiller {
     private static bool TryCreateFallbackTextAppearanceFontPlan(
         PdfFormFillerOptions? options,
         string displayValue,

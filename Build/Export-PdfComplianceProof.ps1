@@ -485,6 +485,35 @@ function Update-ProductProofContractWithDiagnostics {
         }
         $profile.missingExternalValidators = @($missingExternalValidators)
         $profile.failedExternalValidationCount = $failedExternalValidationCount
+
+        $satisfiedRequirementIds = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::Ordinal)
+        foreach ($validatorProof in @($profile.externalValidatorProofs)) {
+            if (-not $validatorProof.isSatisfied) {
+                continue
+            }
+
+            switch ([string] $validatorProof.validatorKind) {
+                'VeraPdf' { [void] $satisfiedRequirementIds.Add('verapdf-validation') }
+                'PdfUaValidator' { [void] $satisfiedRequirementIds.Add('pdfua-validation') }
+                'Mustang' { [void] $satisfiedRequirementIds.Add('mustang-validation') }
+            }
+        }
+
+        $profile.missingRequirementIds = @(
+            @($profile.missingRequirementIds) |
+                Where-Object { -not $satisfiedRequirementIds.Contains([string] $_) } |
+                Select-Object -Unique
+        )
+        $profile.unsupportedRequirementIds = @(
+            @($profile.unsupportedRequirementIds) |
+                Where-Object { -not $satisfiedRequirementIds.Contains([string] $_) } |
+                Select-Object -Unique
+        )
+        if ($profile.canClaimConformance -and
+            (@($profile.missingRequirementIds).Count -ne 0 -or
+             @($profile.unsupportedRequirementIds).Count -ne 0)) {
+            throw "Claimable proof '$($profile.profile)' still contains blocking requirement identifiers."
+        }
     }
 }
 

@@ -57,7 +57,7 @@ public sealed partial class HtmlRenderingTests {
         pdfOptions = new HtmlPdfSaveOptions(options);
         byte[] pdf = OfficeIMO.Html.HtmlConversionDocument.Parse(scenario.Html).ToPdf(pdfOptions);
         PdfCore.PdfDocumentInfo pdfInfo = PdfCore.PdfInspector.Inspect(pdf);
-        string pdfText = PdfCore.PdfReadDocument.Load(pdf).ExtractText();
+        string pdfText = PdfCore.PdfReadDocument.Open(pdf).ExtractText();
 
         Assert.Equal(scenario.ExpectedPageCount, pdfInfo.PageCount);
         string normalizedPdfText = NormalizeCorpusWhitespace(pdfText);

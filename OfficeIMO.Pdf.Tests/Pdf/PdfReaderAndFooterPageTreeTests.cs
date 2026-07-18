@@ -26,7 +26,7 @@ public partial class PdfReaderAndFooterRegressionTests {
     public void PdfReadPage_GetTextSpans_PreservesTextStateAcrossContentStreamArrays() {
         byte[] bytes = BuildPdfWithSplitTextStateContentStreamArray();
 
-        var spans = PdfReadDocument.Load(bytes).Pages[0].GetTextSpans();
+        var spans = PdfReadDocument.Open(bytes).Pages[0].GetTextSpans();
 
         var span = Assert.Single(spans, item => item.Text == "Split state");
         Assert.Equal(72, span.X, 3);
@@ -46,7 +46,7 @@ public partial class PdfReaderAndFooterRegressionTests {
     public void PdfReadDocument_Load_PreservesPagesWithDirectContentStreams() {
         byte[] bytes = BuildPdfWithTwoDirectContentPages();
 
-        var document = PdfReadDocument.Load(bytes);
+        var document = PdfReadDocument.Open(bytes);
 
         Assert.Equal(2, document.Pages.Count);
         Assert.NotEqual(document.Pages[0].ObjectNumber, document.Pages[1].ObjectNumber);
@@ -56,7 +56,7 @@ public partial class PdfReaderAndFooterRegressionTests {
     public void PdfReadDocument_Load_PreservesPagesWithDistinctReferencedContentArrays() {
         byte[] bytes = BuildPdfWithDistinctReferencedContentArrays();
 
-        var document = PdfReadDocument.Load(bytes);
+        var document = PdfReadDocument.Open(bytes);
 
         Assert.Equal(2, document.Pages.Count);
         Assert.Contains("Shared stream page", document.Pages[0].ExtractText(), StringComparison.Ordinal);
@@ -82,22 +82,6 @@ public partial class PdfReaderAndFooterRegressionTests {
     }
 
     [Fact]
-    public void PdfTextExtractor_InternalExtractor_IgnoresDirectFormCycles() {
-        var state = BuildDirectFormCycleState();
-        var method = typeof(PdfTextExtractor).GetMethod("ExtractTextFromContentStream", BindingFlags.NonPublic | BindingFlags.Static);
-
-        string text = Assert.IsType<string>(method!.Invoke(null, new object?[] {
-            "/Fx Do",
-            state.Resources,
-            state.Objects,
-            new Dictionary<int, string>(),
-            new HashSet<PdfStream>()
-        }));
-
-        Assert.Equal(string.Empty, text);
-    }
-
-    [Fact]
     public void PdfTextExtractor_ExtractAllText_ReadsPagesWithIndirectContentArrayObjects() {
         byte[] bytes = BuildPdfWithIndirectContentArrayObject();
 
@@ -111,7 +95,7 @@ public partial class PdfReaderAndFooterRegressionTests {
     public void PdfReadDocument_CollectPages_ReadsIndirectKidsArrayObjects() {
         byte[] bytes = BuildPdfWithIndirectKidsArrayObject();
 
-        var doc = PdfReadDocument.Load(bytes);
+        var doc = PdfReadDocument.Open(bytes);
 
         Assert.Single(doc.Pages);
         Assert.Contains("Hello indirect kids", doc.Pages[0].ExtractText(), StringComparison.Ordinal);
@@ -121,7 +105,7 @@ public partial class PdfReaderAndFooterRegressionTests {
     public void PdfReadPage_GetTextSpans_ReadsIndirectContentArrayObjects() {
         byte[] bytes = BuildPdfWithIndirectContentArrayObject();
 
-        var doc = PdfReadDocument.Load(bytes);
+        var doc = PdfReadDocument.Open(bytes);
 
         Assert.Single(doc.Pages);
         string joinedText = string.Concat(doc.Pages[0].GetTextSpans().Select(s => s.Text));
@@ -142,7 +126,7 @@ public partial class PdfReaderAndFooterRegressionTests {
     public void PdfReadPage_GetTextSpans_ReadsPageDictionariesWithInlineComments() {
         byte[] bytes = BuildPdfWithCommentedPageDictionary();
 
-        var doc = PdfReadDocument.Load(bytes);
+        var doc = PdfReadDocument.Open(bytes);
 
         Assert.Single(doc.Pages);
         var span = Assert.Single(doc.Pages[0].GetTextSpans());

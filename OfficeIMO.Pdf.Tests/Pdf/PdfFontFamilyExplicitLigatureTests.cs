@@ -35,7 +35,7 @@ public class PdfFontFamilyExplicitLigatureTests {
             .ToBytes();
 
         string raw = Encoding.ASCII.GetString(bytes);
-        string extracted = PdfReadDocument.Load(bytes).ExtractText();
+        string extracted = PdfReadDocument.Open(bytes).ExtractText();
 
         Assert.Contains("/FontFile3", raw, StringComparison.Ordinal);
         Assert.Contains("/ToUnicode", raw, StringComparison.Ordinal);
@@ -73,7 +73,7 @@ public class PdfFontFamilyExplicitLigatureTests {
             .ToBytes();
 
         string raw = Encoding.ASCII.GetString(bytes);
-        string extracted = PdfReadDocument.Load(bytes).ExtractText();
+        string extracted = PdfReadDocument.Open(bytes).ExtractText();
 
         Assert.Contains("/FontFile3", raw, StringComparison.Ordinal);
         Assert.Contains("/ToUnicode", raw, StringComparison.Ordinal);
@@ -127,7 +127,7 @@ public class PdfFontFamilyExplicitLigatureTests {
             .ToBytes();
 
         string raw = Encoding.ASCII.GetString(bytes);
-        string extracted = PdfReadDocument.Load(bytes).ExtractText();
+        string extracted = PdfReadDocument.Open(bytes).ExtractText();
 
         Assert.Contains(ffiGlyphId.ToString("X4", CultureInfo.InvariantCulture), raw, StringComparison.Ordinal);
         Assert.Contains("office" + fallbackText, extracted, StringComparison.Ordinal);

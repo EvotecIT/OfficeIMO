@@ -44,7 +44,7 @@ public class PdfRedactionSearchCleanupTests {
     public void Search_LogicalKindProducesReviewablePlanWithoutApplyingIt() {
         byte[] source = PdfDocument.Create().H1("Confidential heading").Paragraph(p => p.Text("Retained paragraph")).ToBytes();
 
-        PdfRedactionPlan plan = PdfDocument.Load(source).SearchRedactions(new PdfRedactionSearchOptions().AddLogicalKind(PdfLogicalElementKind.Heading));
+        PdfRedactionPlan plan = PdfDocument.Open(source).SearchRedactions(new PdfRedactionSearchOptions().AddLogicalKind(PdfLogicalElementKind.Heading));
 
         Assert.True(plan.IsSearchDriven);
         Assert.Single(plan.SearchCriteria);

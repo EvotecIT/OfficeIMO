@@ -20,7 +20,7 @@ public partial class PdfStamperTests {
             FontSize = 14
         });
 
-        var read = PdfReadDocument.Load(stamped);
+        var read = PdfReadDocument.Open(stamped);
         Assert.Contains("STREAM-STAMP", Normalize(read.Pages[0].ExtractText()));
         Assert.DoesNotContain("STREAM-STAMP", Normalize(read.Pages[1].ExtractText()));
     }
@@ -31,7 +31,7 @@ public partial class PdfStamperTests {
 
         byte[] stamped = PdfStamper.WatermarkText(stream, "STREAM-DRAFT");
 
-        string text = Normalize(PdfReadDocument.Load(stamped).ExtractText());
+        string text = Normalize(PdfReadDocument.Open(stamped).ExtractText());
         Assert.Contains("STREAM-DRAFT", text);
         Assert.Contains("Firstpagebody", text);
         Assert.Contains("Secondpagebody", text);
@@ -55,7 +55,7 @@ public partial class PdfStamperTests {
             });
 
             Assert.True(File.Exists(outputPath));
-            string text = Normalize(PdfReadDocument.Load(outputPath).ExtractText());
+            string text = Normalize(PdfReadDocument.Open(outputPath).ExtractText());
             Assert.Contains("PATH-STAMP", text);
             Assert.Contains("Firstpagebody", text);
             Assert.Contains("Secondpagebody", text);
@@ -82,12 +82,12 @@ public partial class PdfStamperTests {
                 FontSize = 14
             });
 
-            var stampedRead = PdfReadDocument.Load(textStamped);
+            var stampedRead = PdfReadDocument.Open(textStamped);
             Assert.Contains("PATH-BYTES-STAMP", Normalize(stampedRead.Pages[0].ExtractText()));
             Assert.DoesNotContain("PATH-BYTES-STAMP", Normalize(stampedRead.Pages[1].ExtractText()));
 
             byte[] textWatermarked = PdfStamper.WatermarkTextToBytes(inputPath, "PATH-BYTES-DRAFT");
-            Assert.Contains("PATH-BYTES-DRAFT", Normalize(PdfReadDocument.Load(textWatermarked).ExtractText()));
+            Assert.Contains("PATH-BYTES-DRAFT", Normalize(PdfReadDocument.Open(textWatermarked).ExtractText()));
 
             byte[] imageStamped = PdfStamper.StampImageToBytes(inputPath, CreateMinimalRgbPng(), new PdfImageStampOptions {
                 PageNumbers = new[] { 2 },
@@ -136,7 +136,7 @@ public partial class PdfStamperTests {
             });
 
             byte[] textStamped = GetOutputPayload(textOutput, textPrefixLength);
-            var stampedRead = PdfReadDocument.Load(textStamped);
+            var stampedRead = PdfReadDocument.Open(textStamped);
             Assert.Contains("PATH-STREAM-STAMP", Normalize(stampedRead.Pages[0].ExtractText()));
             Assert.DoesNotContain("PATH-STREAM-STAMP", Normalize(stampedRead.Pages[1].ExtractText()));
 
@@ -144,7 +144,7 @@ public partial class PdfStamperTests {
             PdfStamper.WatermarkText(inputPath, watermarkOutput, "PATH-STREAM-DRAFT");
 
             byte[] textWatermarked = GetOutputPayload(watermarkOutput, watermarkPrefixLength);
-            Assert.Contains("PATH-STREAM-DRAFT", Normalize(PdfReadDocument.Load(textWatermarked).ExtractText()));
+            Assert.Contains("PATH-STREAM-DRAFT", Normalize(PdfReadDocument.Open(textWatermarked).ExtractText()));
 
             using var imageOutput = CreateOutputStream(out int imagePrefixLength);
             PdfStamper.StampImage(inputPath, imageOutput, CreateMinimalRgbPng(), new PdfImageStampOptions {
@@ -193,7 +193,7 @@ public partial class PdfStamperTests {
             });
 
             Assert.True(File.Exists(outputPath));
-            var read = PdfReadDocument.Load(outputPath);
+            var read = PdfReadDocument.Open(outputPath);
             Assert.DoesNotContain("STREAM-PATH-STAMP", Normalize(read.Pages[0].ExtractText()));
             Assert.Contains("STREAM-PATH-STAMP", Normalize(read.Pages[1].ExtractText()));
         } finally {
@@ -216,7 +216,7 @@ public partial class PdfStamperTests {
         });
 
         byte[] stamped = GetOutputPayload(output, prefixLength);
-        var read = PdfReadDocument.Load(stamped);
+        var read = PdfReadDocument.Open(stamped);
         Assert.Contains("OUTPUT-STAMP", Normalize(read.Pages[0].ExtractText()));
         Assert.DoesNotContain("OUTPUT-STAMP", Normalize(read.Pages[1].ExtractText()));
     }
@@ -229,7 +229,7 @@ public partial class PdfStamperTests {
         PdfStamper.WatermarkText(stream, output, "OUTPUT-DRAFT");
 
         byte[] stamped = GetOutputPayload(output, prefixLength);
-        string text = Normalize(PdfReadDocument.Load(stamped).ExtractText());
+        string text = Normalize(PdfReadDocument.Open(stamped).ExtractText());
         Assert.Contains("OUTPUT-DRAFT", text);
         Assert.Contains("Firstpagebody", text);
         Assert.Contains("Secondpagebody", text);
@@ -246,7 +246,7 @@ public partial class PdfStamperTests {
             PdfStamper.WatermarkText(stream, outputPath, "STREAM-PATH-DRAFT");
 
             Assert.True(File.Exists(outputPath));
-            string text = Normalize(PdfReadDocument.Load(outputPath).ExtractText());
+            string text = Normalize(PdfReadDocument.Open(outputPath).ExtractText());
             Assert.Contains("STREAM-PATH-DRAFT", text);
             Assert.Contains("Firstpagebody", text);
             Assert.Contains("Secondpagebody", text);

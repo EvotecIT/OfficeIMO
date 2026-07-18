@@ -1,30 +1,456 @@
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfSyntax {
-    private static int FindObjectEnd(string text, int start) {
+    private static int FindObjectEnd(
+        string text,
+        int start,
+        IReadOnlyDictionary<(int ObjectNumber, int Generation), int>? declaredLengthValues = null) {
         int searchFrom = start;
         while (searchFrom >= 0 && searchFrom < text.Length) {
             int streamIdx = IndexOfKeywordOutsideLiteralString(text, "stream", searchFrom, text.Length);
             int endObjIdx = IndexOfKeywordOutsideLiteralString(text, "endobj", searchFrom, text.Length);
 
-            if (endObjIdx < 0) {
-                return -1;
+            if (streamIdx < 0) {
+                return endObjIdx < 0 ? -1 : endObjIdx + 6;
             }
 
-            if (streamIdx < 0 || endObjIdx < streamIdx) {
+            if (endObjIdx >= 0 && endObjIdx < streamIdx) {
                 return endObjIdx + 6;
             }
 
             int afterStream = SkipEOL(text, streamIdx + 6, text.Length);
-            int endStreamIdx = IndexOfKeyword(text, "endstream", afterStream, text.Length);
-            if (endStreamIdx < 0) {
-                return -1;
+            if (TryFindDeclaredStreamObjectEnd(
+                    text,
+                    start,
+                    streamIdx,
+                    afterStream,
+                    declaredLengthValues,
+                    out int declaredObjectEnd)) {
+                return declaredObjectEnd;
             }
 
-            searchFrom = endStreamIdx + 9;
+            int endStreamSearchFrom = afterStream;
+            while (endStreamSearchFrom < text.Length) {
+                int endStreamIdx = IndexOfKeyword(text, "endstream", endStreamSearchFrom, text.Length);
+                if (endStreamIdx < 0) {
+                    return -1;
+                }
+
+                // Without a trustworthy inline /Length, a later object header is the
+                // safest recovery boundary. Otherwise a malformed stream can consume a
+                // complete following object through that object's endstream/endobj pair.
+                if (ContainsIndirectObjectHeader(text, endStreamSearchFrom, endStreamIdx)) {
+                    return -1;
+                }
+
+                int nextToken = SkipWhitespaceAndComments(text, endStreamIdx + 9, text.Length);
+                if (IsKeywordAt(text, "endobj", nextToken, text.Length)) {
+                    return nextToken + 6;
+                }
+
+                if (IsIndirectObjectHeaderAt(text, nextToken)) {
+                    return -1;
+                }
+
+                // Binary stream data may contain the bytes "endstream". Only a
+                // structurally bounded delimiter is accepted.
+                endStreamSearchFrom = endStreamIdx + 9;
+            }
         }
 
         return -1;
+    }
+
+    private static int SkipWhitespaceAndComments(string text, int index, int limit) {
+        while (index < limit) {
+            while (index < limit && char.IsWhiteSpace(text[index])) {
+                index++;
+            }
+
+            if (index >= limit || text[index] != '%') {
+                return index;
+            }
+
+            while (index < limit && text[index] != '\r' && text[index] != '\n') {
+                index++;
+            }
+        }
+
+        return index;
+    }
+
+    private static bool IsKeywordAt(string text, string keyword, int index, int limit) =>
+        index >= 0 &&
+        index + keyword.Length <= limit &&
+        string.CompareOrdinal(text, index, keyword, 0, keyword.Length) == 0 &&
+        HasKeywordBoundary(text, index - 1, 0, limit) &&
+        HasKeywordBoundary(text, index + keyword.Length, 0, limit);
+
+    private static bool TryFindDeclaredStreamObjectEnd(
+        string text,
+        int objectStart,
+        int streamIndex,
+        int dataStart,
+        IReadOnlyDictionary<(int ObjectNumber, int Generation), int>? declaredLengthValues,
+        out int objectEnd) {
+        objectEnd = -1;
+        int dictionaryStart = text.IndexOf("<<", objectStart, streamIndex - objectStart, StringComparison.Ordinal);
+        if (dictionaryStart < 0) {
+            return false;
+        }
+
+        int dictionaryEnd = FindDictEnd(text, dictionaryStart, streamIndex);
+        if (dictionaryEnd < 0) {
+            return false;
+        }
+
+        PdfDictionary? dictionary;
+        try {
+            dictionary = ParseDictionary(text.Substring(dictionaryStart + 2, dictionaryEnd - dictionaryStart - 2));
+        } catch (Exception exception) when (exception is not OutOfMemoryException) {
+            return false;
+        }
+
+        if (!TryResolveDeclaredStreamLength(dictionary, declaredLengthValues, out int byteLength)) {
+            return false;
+        }
+
+        if (!TryGetDeclaredEndStreamIndex(text, dataStart, byteLength, text.Length, out int endStream)) {
+            return false;
+        }
+
+        int endObject = SkipWhitespaceAndComments(text, endStream + 9, text.Length);
+        if (!IsKeywordAt(text, "endobj", endObject, text.Length)) {
+            return false;
+        }
+
+        objectEnd = endObject + 6;
+        return true;
+    }
+
+    private static bool TryResolveDeclaredStreamLength(
+        PdfDictionary dictionary,
+        IReadOnlyDictionary<(int ObjectNumber, int Generation), int>? declaredLengthValues,
+        out int byteLength) {
+        byteLength = -1;
+        if (dictionary.Get<PdfNumber>("Length") is PdfNumber directLength) {
+            return TryNormalizeStreamLength(directLength.Value, out byteLength);
+        }
+
+        if (dictionary.Get<PdfReference>("Length") is not PdfReference lengthReference ||
+            declaredLengthValues == null ||
+            !declaredLengthValues.TryGetValue(
+                (lengthReference.ObjectNumber, lengthReference.Generation),
+                out byteLength)) {
+            return false;
+        }
+
+        return byteLength >= 0;
+    }
+
+    private static Dictionary<(int ObjectNumber, int Generation), int> BuildDeclaredLengthValueIndex(
+        string text,
+        System.Text.RegularExpressions.MatchCollection objectMatches,
+        System.Diagnostics.Stopwatch parseTimer,
+        PdfReadLimits limits) {
+        var streamRanges = new List<(int Start, int End)>();
+        var knownStreamRanges = new HashSet<(int Start, int End)>();
+        DiscoverDeclaredStreamRanges(
+            text,
+            objectMatches,
+            streamRanges,
+            knownStreamRanges,
+            declaredLengthValues: null,
+            parseTimer,
+            limits);
+        Dictionary<(int ObjectNumber, int Generation), int> values =
+            BuildScalarObjectIndex(text, objectMatches, streamRanges, parseTimer, limits);
+
+        // A later indirect-length stream can hide scalar-looking bytes that initially
+        // appear to be objects. Iterate to a timed fixed point: every successful pass
+        // expands the covered stream ranges, whose identities are bounded by the
+        // already-enforced indirect-object budget.
+        while (true) {
+            ThrowIfParsingTimeExceeded(parseTimer, limits);
+            bool coverageChanged = DiscoverDeclaredStreamRanges(
+                text,
+                objectMatches,
+                streamRanges,
+                knownStreamRanges,
+                values,
+                parseTimer,
+                limits);
+            if (!coverageChanged) {
+                return values;
+            }
+
+            values = BuildScalarObjectIndex(
+                text,
+                objectMatches,
+                streamRanges,
+                parseTimer,
+                limits);
+        }
+    }
+
+    private static bool DiscoverDeclaredStreamRanges(
+        string text,
+        System.Text.RegularExpressions.MatchCollection objectMatches,
+        List<(int Start, int End)> streamRanges,
+        HashSet<(int Start, int End)> knownStreamRanges,
+        IReadOnlyDictionary<(int ObjectNumber, int Generation), int>? declaredLengthValues,
+        System.Diagnostics.Stopwatch parseTimer,
+        PdfReadLimits limits) {
+        var discoveredRanges = new List<(int Start, int End)>();
+        for (int i = 0; i < objectMatches.Count; i++) {
+            if ((i & 127) == 0) {
+                ThrowIfParsingTimeExceeded(parseTimer, limits);
+            }
+
+            var match = objectMatches[i];
+            if (IsInsideStreamRange(match.Index, streamRanges) ||
+                IsInsideStreamRange(match.Index, discoveredRanges) ||
+                !TryReadDeclaredStreamRange(
+                    text,
+                    match.Index + match.Length,
+                    declaredLengthValues,
+                    limits,
+                    out (int Start, int End) streamRange) ||
+                !knownStreamRanges.Add(streamRange)) {
+                continue;
+            }
+
+            AddOrderedStreamRange(discoveredRanges, streamRange);
+        }
+
+        return MergeStreamRanges(streamRanges, discoveredRanges);
+    }
+
+    private static bool TryReadDeclaredStreamRange(
+        string text,
+        int bodyStart,
+        IReadOnlyDictionary<(int ObjectNumber, int Generation), int>? declaredLengthValues,
+        PdfReadLimits limits,
+        out (int Start, int End) streamRange) {
+        streamRange = default;
+        int dictionaryStart = SkipWhitespaceAndComments(text, bodyStart, text.Length);
+        if (dictionaryStart + 1 >= text.Length ||
+            text[dictionaryStart] != '<' ||
+            text[dictionaryStart + 1] != '<') {
+            return false;
+        }
+
+        int dictionaryEnd = FindDictEnd(text, dictionaryStart, text.Length);
+        if (dictionaryEnd < 0 ||
+            dictionaryEnd - dictionaryStart - 2 > limits.MaxObjectCharacters) {
+            return false;
+        }
+
+        PdfDictionary? dictionary;
+        try {
+            dictionary = ParseDictionary(text.Substring(
+                dictionaryStart + 2,
+                dictionaryEnd - dictionaryStart - 2), limits);
+        } catch (Exception exception) when (exception is not OutOfMemoryException) {
+            return false;
+        }
+
+        int streamIndex = SkipWhitespaceAndComments(text, dictionaryEnd, text.Length);
+        if (!IsKeywordAt(text, "stream", streamIndex, text.Length) ||
+            !TryResolveDeclaredStreamLength(dictionary, declaredLengthValues, out int byteLength)) {
+            return false;
+        }
+
+        int dataStart = SkipEOL(text, streamIndex + 6, text.Length);
+        if (!TryGetDeclaredEndStreamIndex(
+                text,
+                dataStart,
+                byteLength,
+                text.Length,
+                out int endStream)) {
+            return false;
+        }
+
+        int endObject = SkipWhitespaceAndComments(text, endStream + 9, text.Length);
+        if (!IsKeywordAt(text, "endobj", endObject, text.Length)) {
+            return false;
+        }
+
+        streamRange = (dataStart, endStream);
+        return true;
+    }
+
+    private static Dictionary<(int ObjectNumber, int Generation), int> BuildScalarObjectIndex(
+        string text,
+        System.Text.RegularExpressions.MatchCollection objectMatches,
+        List<(int Start, int End)> streamRanges,
+        System.Diagnostics.Stopwatch parseTimer,
+        PdfReadLimits limits) {
+        var values = new Dictionary<(int ObjectNumber, int Generation), int>();
+        for (int i = 0; i < objectMatches.Count; i++) {
+            if ((i & 127) == 0) {
+                ThrowIfParsingTimeExceeded(parseTimer, limits);
+            }
+
+            var match = objectMatches[i];
+            if (IsInsideStreamRange(match.Index, streamRanges) ||
+                !int.TryParse(
+                    match.Groups[1].Value,
+                    System.Globalization.NumberStyles.None,
+                    System.Globalization.CultureInfo.InvariantCulture,
+                    out int objectNumber) ||
+                !int.TryParse(
+                    match.Groups[2].Value,
+                    System.Globalization.NumberStyles.None,
+                    System.Globalization.CultureInfo.InvariantCulture,
+                    out int generation)) {
+                continue;
+            }
+
+            int bodyStart = match.Index + match.Length;
+            int objectLimit = i + 1 < objectMatches.Count
+                ? objectMatches[i + 1].Index
+                : text.Length;
+            int endObject = IndexOfKeywordOutsideLiteralString(text, "endobj", bodyStart, objectLimit);
+            int bodyLength = endObject - bodyStart;
+            if (endObject < 0 || bodyLength < 0 || bodyLength > 256) {
+                continue;
+            }
+
+            List<string> tokens;
+            try {
+                tokens = Tokenize(text.Substring(bodyStart, bodyLength));
+            } catch (Exception exception) when (exception is not OutOfMemoryException) {
+                continue;
+            }
+
+            if (tokens.Count == 1 &&
+                double.TryParse(
+                    tokens[0],
+                    System.Globalization.NumberStyles.Float,
+                    System.Globalization.CultureInfo.InvariantCulture,
+                    out double value) &&
+                TryNormalizeStreamLength(value, out int byteLength)) {
+                values[(objectNumber, generation)] = byteLength;
+            }
+        }
+
+        return values;
+    }
+
+    private static void AddOrderedStreamRange(
+        List<(int Start, int End)> ranges,
+        (int Start, int End) candidate) {
+        if (ranges.Count == 0 || candidate.Start > ranges[ranges.Count - 1].End) {
+            ranges.Add(candidate);
+            return;
+        }
+
+        (int Start, int End) last = ranges[ranges.Count - 1];
+        if (candidate.End > last.End) {
+            ranges[ranges.Count - 1] = (last.Start, candidate.End);
+        }
+    }
+
+    private static bool MergeStreamRanges(
+        List<(int Start, int End)> ranges,
+        List<(int Start, int End)> additions) {
+        if (additions.Count == 0) {
+            return false;
+        }
+
+        var merged = new List<(int Start, int End)>(ranges.Count + additions.Count);
+        int existingIndex = 0;
+        int additionIndex = 0;
+        while (existingIndex < ranges.Count || additionIndex < additions.Count) {
+            (int Start, int End) candidate;
+            if (additionIndex >= additions.Count ||
+                (existingIndex < ranges.Count &&
+                 ranges[existingIndex].Start <= additions[additionIndex].Start)) {
+                candidate = ranges[existingIndex++];
+            } else {
+                candidate = additions[additionIndex++];
+            }
+
+            AddOrderedStreamRange(merged, candidate);
+        }
+
+        bool changed = merged.Count != ranges.Count;
+        if (!changed) {
+            for (int i = 0; i < merged.Count; i++) {
+                if (merged[i] != ranges[i]) {
+                    changed = true;
+                    break;
+                }
+            }
+        }
+
+        if (changed) {
+            ranges.Clear();
+            ranges.AddRange(merged);
+        }
+
+        return changed;
+    }
+
+    private static bool IsInsideStreamRange(int offset, List<(int Start, int End)> streamRanges) {
+        int low = 0;
+        int high = streamRanges.Count - 1;
+        while (low <= high) {
+            int middle = low + ((high - low) / 2);
+            (int Start, int End) range = streamRanges[middle];
+            if (offset < range.Start) {
+                high = middle - 1;
+            } else if (offset >= range.End) {
+                low = middle + 1;
+            } else {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool TryNormalizeStreamLength(double value, out int byteLength) {
+        byteLength = -1;
+        if (double.IsNaN(value) || double.IsInfinity(value)) {
+            return false;
+        }
+
+        byteLength = (int)Math.Max(0D, Math.Min(int.MaxValue, value));
+        return true;
+    }
+
+    private static bool TryGetDeclaredEndStreamIndex(
+        string text,
+        int dataStart,
+        int byteLength,
+        int limit,
+        out int endStream) {
+        endStream = -1;
+        if (byteLength < 0 || dataStart < 0 || dataStart > limit - byteLength) {
+            return false;
+        }
+
+        int candidate = dataStart + byteLength;
+        if (candidate < limit && text[candidate] == '\r') candidate++;
+        if (candidate < limit && text[candidate] == '\n') candidate++;
+        if (!IsKeywordAt(text, "endstream", candidate, limit)) {
+            return false;
+        }
+
+        endStream = candidate;
+        return true;
+    }
+
+    private static bool ContainsIndirectObjectHeader(string text, int start, int limit) {
+        var match = ObjRegex.Match(text, start);
+        return match.Success && match.Index < limit;
+    }
+
+    private static bool IsIndirectObjectHeaderAt(string text, int index) {
+        var match = ObjRegex.Match(text, index);
+        return match.Success && match.Index == index;
     }
 
     private static int IndexOfKeywordOutsideLiteralString(string text, string keyword, int start, int limit) {

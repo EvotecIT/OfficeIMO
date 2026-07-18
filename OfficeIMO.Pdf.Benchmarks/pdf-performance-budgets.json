@@ -1,0 +1,22 @@
+{
+  "workloads": {
+    "analysis-cold": {
+      "maxElapsedMilliseconds": 5000,
+      "maxAllocatedBytes": 805306368
+    },
+    "analysis-cached": {
+      "maxElapsedMilliseconds": 5000,
+      "maxAllocatedBytes": 536870912
+    },
+    "render-svg-12": {
+      "maxElapsedMilliseconds": 5000,
+      "maxAllocatedBytes": 805306368
+    },
+    "render-png-4": {
+      "maxElapsedMilliseconds": 10000,
+      "maxAllocatedBytes": 1073741824
+    }
+  },
+  "minimumCachedSpeedup": 1.2,
+  "minimumCachedAllocationReduction": 1.2
+}

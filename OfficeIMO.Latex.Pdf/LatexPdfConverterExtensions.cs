@@ -22,11 +22,11 @@ public static class LatexPdfConverterExtensions {
         document.ToPdfDocumentResult(options).ToBytes();
 
     /// <summary>Saves a LaTeX document as PDF and returns combined conversion diagnostics.</summary>
-    public static PdfCore.PdfDocumentConversionResult SaveAsPdf(this LatexDocument document, string path, LatexPdfSaveOptions? options = null) =>
+    public static PdfCore.PdfSaveResult SaveAsPdf(this LatexDocument document, string path, LatexPdfSaveOptions? options = null) =>
         document.ToPdfDocumentResult(options).Save(path);
 
     /// <summary>Writes a LaTeX document as PDF to a caller-owned stream.</summary>
-    public static PdfCore.PdfDocumentConversionResult SaveAsPdf(this LatexDocument document, Stream stream, LatexPdfSaveOptions? options = null) =>
+    public static PdfCore.PdfSaveResult SaveAsPdf(this LatexDocument document, Stream stream, LatexPdfSaveOptions? options = null) =>
         document.ToPdfDocumentResult(options).Save(stream);
 
     /// <summary>Attempts to save a LaTeX PDF and returns structured failure evidence.</summary>
@@ -42,13 +42,13 @@ public static class LatexPdfConverterExtensions {
     }
 
     /// <summary>Converts synchronously, then asynchronously writes a LaTeX PDF to a path.</summary>
-    public static Task<PdfCore.PdfDocumentConversionResult> SaveAsPdfAsync(this LatexDocument document, string path, LatexPdfSaveOptions? options = null, CancellationToken cancellationToken = default) {
+    public static Task<PdfCore.PdfSaveResult> SaveAsPdfAsync(this LatexDocument document, string path, LatexPdfSaveOptions? options = null, CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         return document.ToPdfDocumentResult(options).SaveAsync(path, cancellationToken);
     }
 
     /// <summary>Converts synchronously, then asynchronously writes a LaTeX PDF to a caller-owned stream.</summary>
-    public static Task<PdfCore.PdfDocumentConversionResult> SaveAsPdfAsync(this LatexDocument document, Stream stream, LatexPdfSaveOptions? options = null, CancellationToken cancellationToken = default) {
+    public static Task<PdfCore.PdfSaveResult> SaveAsPdfAsync(this LatexDocument document, Stream stream, LatexPdfSaveOptions? options = null, CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         return document.ToPdfDocumentResult(options).SaveAsync(stream, cancellationToken);
     }

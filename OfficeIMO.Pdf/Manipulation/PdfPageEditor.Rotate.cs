@@ -1,6 +1,6 @@
 namespace OfficeIMO.Pdf;
 
-public static partial class PdfPageEditor {
+internal static partial class PdfPageEditor {
     /// <summary>
     /// Creates a new PDF with the selected pages rotated to the specified degrees. If no page numbers are supplied, all pages are rotated.
     /// </summary>
@@ -11,7 +11,7 @@ public static partial class PdfPageEditor {
 
         int normalizedRotation = NormalizeRotation(rotationDegrees);
         var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf);
-        var document = PdfReadDocument.Load(pdf);
+        var document = PdfReadDocument.Open(pdf);
         var selectedPages = pageNumbers.Length == 0
             ? Enumerable.Range(1, document.Pages.Count).ToArray()
             : pageNumbers;

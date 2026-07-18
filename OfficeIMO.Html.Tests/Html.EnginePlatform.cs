@@ -496,7 +496,7 @@ public partial class Html {
 
         byte[] printPdf = print.ToPdf();
         Assert.NotEmpty(printPdf);
-        string retargetedPdfText = OfficeIMO.Pdf.PdfReadDocument.Load(screen.ToPdf()).ExtractText();
+        string retargetedPdfText = OfficeIMO.Pdf.PdfReadDocument.Open(screen.ToPdf()).ExtractText();
         Assert.Contains("Print target retained", retargetedPdfText, StringComparison.Ordinal);
     }
 

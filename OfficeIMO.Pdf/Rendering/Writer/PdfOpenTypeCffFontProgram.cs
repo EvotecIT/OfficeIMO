@@ -1,4 +1,5 @@
 using System.Globalization;
+using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Pdf;
 
@@ -161,7 +162,7 @@ internal sealed partial class PdfOpenTypeCffFontProgram {
         return ScaleMetric(_advanceWidths[glyphId], UnitsPerEm);
     }
 
-    public double MeasureTextWidth(string? text, double fontSize, PdfTextShapingMode shapingMode = PdfTextShapingMode.UnicodeScalar, IPdfTextShapingProvider? shapingProvider = null, string? language = null) {
+    public double MeasureTextWidth(string? text, double fontSize, PdfTextShapingMode shapingMode = PdfTextShapingMode.UnicodeScalar, IOfficeTextShapingProvider? shapingProvider = null, string? language = null) {
         if (string.IsNullOrEmpty(text)) {
             return 0D;
         }
@@ -169,12 +170,12 @@ internal sealed partial class PdfOpenTypeCffFontProgram {
         return ShapeText(text!, PdfTextShapingOptions.ForRendering(FontName, shapingMode, shapingProvider, language: language)).TotalAdvanceWidth1000 * fontSize / 1000D;
     }
 
-    public string EncodeTextAsGlyphHex(string text, PdfTextShapingMode shapingMode = PdfTextShapingMode.UnicodeScalar, IPdfTextShapingProvider? shapingProvider = null) {
+    public string EncodeTextAsGlyphHex(string text, PdfTextShapingMode shapingMode = PdfTextShapingMode.UnicodeScalar, IOfficeTextShapingProvider? shapingProvider = null) {
         Guard.NotNull(text, nameof(text));
         return ShapeText(text, PdfTextShapingOptions.ForRendering(FontName, shapingMode, shapingProvider)).ToGlyphHex();
     }
 
-    internal string EncodeTextAsGlyphHex(string text, PdfTextShapingMode shapingMode, IPdfTextShapingProvider? shapingProvider, Action<string, string, bool>? providerShapedTextRecorder, string? language = null) {
+    internal string EncodeTextAsGlyphHex(string text, PdfTextShapingMode shapingMode, IOfficeTextShapingProvider? shapingProvider, Action<string, string, bool>? providerShapedTextRecorder, string? language = null) {
         Guard.NotNull(text, nameof(text));
         return ShapeText(text, PdfTextShapingOptions.ForRendering(FontName, shapingMode, shapingProvider, providerShapedTextRecorder, language)).ToGlyphHex();
     }
@@ -189,7 +190,7 @@ internal sealed partial class PdfOpenTypeCffFontProgram {
         for (int index = 0; index < text.Length;) {
             int scalarStart = index;
             if (options.ShapingMode == PdfTextShapingMode.LatinLigatures &&
-                PdfLatinLigatureSubstitution.TryGetPresentationLigature(text, scalarStart, out int ligatureScalar, out int ligatureLength) &&
+                OfficeTextLigatures.TryGetLatinPresentationForm(text, scalarStart, out int ligatureScalar, out int ligatureLength) &&
                 TryGetGlyphId(ligatureScalar, out int ligatureGlyphId) &&
                 ligatureGlyphId > 0) {
                 string unicodeText = text.Substring(scalarStart, ligatureLength);

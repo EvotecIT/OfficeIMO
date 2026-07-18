@@ -4,7 +4,7 @@ namespace OfficeIMO.Pdf;
 /// <summary>
 /// Append-only PDF update helpers for changes that can be represented as a new incremental revision.
 /// </summary>
-public static partial class PdfIncrementalUpdater {
+internal static partial class PdfIncrementalUpdater {
     /// <summary>
     /// Analyzes append-only mutation support for a PDF byte array.
     /// </summary>

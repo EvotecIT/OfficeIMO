@@ -12,7 +12,7 @@ public class PdfDebuggerTests {
             .ToBytes();
         byte[] updated = PdfIncrementalUpdater.UpdateMetadata(source, title: "Debugger updated");
 
-        PdfDebuggerReport report = PdfDocument.Load(updated).Debug(new PdfDebuggerOptions {
+        PdfDebuggerReport report = PdfDocument.Open(updated).Debug(new PdfDebuggerOptions {
             IncludeDecodedStreamPreviews = true
         });
         PdfDebugPage page = Assert.Single(report.Pages);

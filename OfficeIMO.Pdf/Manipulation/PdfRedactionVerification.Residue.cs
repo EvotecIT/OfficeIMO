@@ -2,7 +2,7 @@ using OfficeIMO.Pdf.Filters;
 
 namespace OfficeIMO.Pdf;
 
-public static partial class PdfRedactionVerification {
+internal static partial class PdfRedactionVerification {
     private const int MaxDecodedRedactionVerificationStreamBytes = 16 * 1024 * 1024;
 
     private static bool ContainsEncodedPdfMarker(byte[] pdf, string marker) {

@@ -3,7 +3,7 @@ namespace OfficeIMO.Pdf;
 /// <summary>
 /// Analyzes generated-PDF options against the requirements of planned formal compliance profiles.
 /// </summary>
-public static partial class PdfComplianceAnalyzer {
+internal static partial class PdfComplianceAnalyzer {
     /// <summary>Analyzes the compliance profile requested by the supplied options.</summary>
     public static PdfComplianceReadinessReport Assess(PdfOptions options) {
         Guard.NotNull(options, nameof(options));

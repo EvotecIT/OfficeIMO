@@ -29,7 +29,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
         try {
             using (WordDocument document = WordDocument.Create(docPath)) {
                 document.AddHeadersAndFooters();
-                WordParagraph headerLogo = document.Sections[0].Header.Default!.AddParagraph();
+                WordParagraph headerLogo = document.Sections[0].Header.Default!.AddParagraph("OfficeIMO");
                 headerLogo.ParagraphAlignment = W.JustificationValues.Right;
                 headerLogo.AddImage(logoPath, 48, 24);
 

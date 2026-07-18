@@ -1,6 +1,6 @@
 namespace OfficeIMO.Pdf;
 
-public static partial class PdfFormFiller {
+internal static partial class PdfFormFiller {
     private static void ValidateFlattenFieldNames(IReadOnlyCollection<string> fieldNames) {
         Guard.NotNull(fieldNames, nameof(fieldNames));
         if (fieldNames.Count == 0) throw new ArgumentException("At least one form field name is required.", nameof(fieldNames));

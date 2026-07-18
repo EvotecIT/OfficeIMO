@@ -2,7 +2,7 @@ using System.Globalization;
 
 namespace OfficeIMO.Pdf;
 
-public static partial class PdfPageEditor {
+internal static partial class PdfPageEditor {
     private static void ValidatePageNumbers(int[] pageNumbers, int pageCount, string paramName, bool allowDuplicates = false) {
         var seen = new HashSet<int>();
         for (int i = 0; i < pageNumbers.Length; i++) {

@@ -20,7 +20,7 @@ public class PdfMergerPolicyTests {
 
         PdfMergeResult result = PdfMerger.MergeWithReport(options, first, second);
         byte[] merged = result.ToBytes();
-        PdfReadDocument readback = PdfReadDocument.Load(merged);
+        PdfReadDocument readback = PdfReadDocument.Open(merged);
         IReadOnlyList<PdfExtractedAttachment> attachments = PdfAttachmentExtractor.ExtractAttachments(readback);
 
         Assert.Equal(2, readback.Pages.Count);
@@ -143,7 +143,7 @@ public class PdfMergerPolicyTests {
         };
 
         PdfMergeResult result = PdfMerger.MergeWithReport(options, first, second);
-        PdfReadDocument readback = PdfReadDocument.Load(result.ToBytes());
+        PdfReadDocument readback = PdfReadDocument.Open(result.ToBytes());
 
         Assert.Collection(readback.FormFields.OrderBy(static field => field.Name, StringComparer.Ordinal),
             field => { Assert.Equal("Shared", field.Name); Assert.Equal("first", field.Value); Assert.Equal(new[] { 1 }, field.PageNumbers); },
@@ -162,7 +162,7 @@ public class PdfMergerPolicyTests {
         };
 
         PdfMergeResult result = PdfMerger.MergeWithReport(options, first, second);
-        IReadOnlyList<PdfFormField> fields = PdfReadDocument.Load(result.ToBytes()).FormFields;
+        IReadOnlyList<PdfFormField> fields = PdfReadDocument.Open(result.ToBytes()).FormFields;
 
         Assert.Equal(6, fields.Count);
         Assert.Contains(fields, static field => field.Name == "Approved" && field.Kind == PdfFormFieldKind.Button);
@@ -179,7 +179,7 @@ public class PdfMergerPolicyTests {
         byte[] second = PdfDocument.Create().TextField("Incoming", value: "second").ToBytes();
 
         byte[] merged = PdfMerger.Merge(first, second);
-        PdfReadDocument readback = PdfReadDocument.Load(merged);
+        PdfReadDocument readback = PdfReadDocument.Open(merged);
 
         PdfFormField field = Assert.Single(readback.FormFields);
         Assert.Equal("Primary", field.Name);
@@ -192,7 +192,7 @@ public class PdfMergerPolicyTests {
         byte[] primary = BuildHiddenFormFieldPdf();
         byte[] incoming = PdfDocument.Create().TextField("Incoming", value: "second").ToBytes();
 
-        PdfReadDocument readback = PdfReadDocument.Load(PdfMerger.Merge(primary, incoming));
+        PdfReadDocument readback = PdfReadDocument.Open(PdfMerger.Merge(primary, incoming));
 
         PdfFormField field = Assert.Single(readback.FormFields);
         Assert.Equal("Hidden", field.Name);
@@ -204,7 +204,7 @@ public class PdfMergerPolicyTests {
     public void Merge_PreservesSiblingFieldsUnderHierarchicalAcroFormRoot() {
         byte[] source = BuildHierarchicalSiblingFormPdf();
 
-        IReadOnlyList<PdfFormField> fields = PdfReadDocument.Load(PdfMerger.Merge(source)).FormFields;
+        IReadOnlyList<PdfFormField> fields = PdfReadDocument.Open(PdfMerger.Merge(source)).FormFields;
 
         Assert.Collection(fields.OrderBy(static field => field.Name, StringComparer.Ordinal),
             field => { Assert.Equal("Parent.First", field.Name); Assert.Equal("one", field.Value); },
@@ -239,7 +239,7 @@ public class PdfMergerPolicyTests {
             Policy = new PdfMergePolicy { Outlines = PdfMergeStructureMode.Combine }
         };
 
-        PdfReadDocument readback = PdfReadDocument.Load(PdfMerger.MergeWithReport(options, source).ToBytes());
+        PdfReadDocument readback = PdfReadDocument.Open(PdfMerger.MergeWithReport(options, source).ToBytes());
 
         PdfOutlineItem outline = Assert.Single(readback.Outlines);
         Assert.Equal("Child", outline.Title);
@@ -260,7 +260,7 @@ public class PdfMergerPolicyTests {
             .ToBytes();
         var options = new PdfMergeOptions { Policy = new PdfMergePolicy { ViewerPreferences = PdfMergeStructureMode.Combine } };
 
-        PdfReadDocument readback = PdfReadDocument.Load(PdfMerger.MergeWithReport(options, first, second).ToBytes());
+        PdfReadDocument readback = PdfReadDocument.Open(PdfMerger.MergeWithReport(options, first, second).ToBytes());
 
         Assert.Equal("UseThumbs", readback.CatalogPageMode);
         Assert.Equal("OneColumn", readback.CatalogPageLayout);

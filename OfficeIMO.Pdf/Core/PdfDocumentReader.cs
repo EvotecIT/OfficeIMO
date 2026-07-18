@@ -10,15 +10,19 @@ public sealed partial class PdfDocumentReader {
         _document = document;
     }
 
-    private PdfReadOptions? ResolveReadOptions(PdfReadOptions? readOptions) {
+    private PdfReadOptions ResolveReadOptions(PdfReadOptions? readOptions) {
         return readOptions ?? _document.ReadOptions;
     }
+
+    private PdfReadDocument ReadDocument(PdfReadOptions? readOptions = null) =>
+        _document.GetReadDocument(ResolveReadOptions(readOptions));
 
     /// <summary>
     /// Extracts plain text from all pages.
     /// </summary>
     public string Text(PdfTextLayoutOptions? options = null, PdfReadOptions? readOptions = null) {
-        return PdfTextExtractor.ExtractAllText(_document.Snapshot(), options, ResolveReadOptions(readOptions));
+        PdfReadDocument document = ReadDocument(readOptions);
+        return options is null ? document.ExtractText() : document.ExtractTextWithColumns(options);
     }
 
     /// <summary>
@@ -33,7 +37,7 @@ public sealed partial class PdfDocumentReader {
     /// </summary>
     public string Text(PdfPageSelection selection, PdfTextLayoutOptions? options = null, PdfReadOptions? readOptions = null) {
         Guard.NotNull(selection, nameof(selection));
-        return PdfTextExtractor.ExtractAllTextByPageRanges(_document.Snapshot(), options, ResolveReadOptions(readOptions), selection.ToRanges());
+        return PdfTextExtractor.ExtractAllTextByPageRanges(ReadDocument(readOptions), options, selection.ToRanges());
     }
 
     /// <summary>
@@ -62,7 +66,10 @@ public sealed partial class PdfDocumentReader {
     /// Extracts plain text for each page.
     /// </summary>
     public IReadOnlyList<string> TextByPage(PdfTextLayoutOptions? options = null, PdfReadOptions? readOptions = null) {
-        return PdfTextExtractor.ExtractTextByPage(_document.Snapshot(), options, ResolveReadOptions(readOptions));
+        PdfReadDocument document = ReadDocument(readOptions);
+        return options is null
+            ? PdfTextExtractor.ExtractTextByPage(document)
+            : PdfTextExtractor.ExtractTextByPage(document, options);
     }
 
     /// <summary>
@@ -77,7 +84,7 @@ public sealed partial class PdfDocumentReader {
     /// </summary>
     public IReadOnlyList<string> TextByPage(PdfPageSelection selection, PdfReadOptions? readOptions = null) {
         Guard.NotNull(selection, nameof(selection));
-        return PdfTextExtractor.ExtractTextByPageRanges(_document.Snapshot(), selection.ToRanges(), ResolveReadOptions(readOptions));
+        return PdfTextExtractor.ExtractTextByPageRanges(ReadDocument(readOptions), selection.ToRanges());
     }
 
     /// <summary>
@@ -106,7 +113,7 @@ public sealed partial class PdfDocumentReader {
     /// Extracts Markdown from the logical readback model.
     /// </summary>
     public string Markdown(PdfTextLayoutOptions? options = null, PdfLogicalMarkdownOptions? markdownOptions = null, PdfReadOptions? readOptions = null) {
-        return PdfTextExtractor.ExtractMarkdown(_document.Snapshot(), options, markdownOptions, ResolveReadOptions(readOptions));
+        return PdfLogicalDocument.From(ReadDocument(readOptions), options).ToMarkdown(markdownOptions);
     }
 
     /// <summary>
@@ -121,7 +128,9 @@ public sealed partial class PdfDocumentReader {
     /// </summary>
     public string Markdown(PdfPageSelection selection, PdfTextLayoutOptions? options = null, PdfLogicalMarkdownOptions? markdownOptions = null, PdfReadOptions? readOptions = null) {
         Guard.NotNull(selection, nameof(selection));
-        return PdfTextExtractor.ExtractMarkdownByPageRangesAsDocument(_document.Snapshot(), options, markdownOptions, ResolveReadOptions(readOptions), selection.ToRanges());
+        return PdfLogicalDocument
+            .FromPageRanges(ReadDocument(readOptions), options, selection.ToRanges())
+            .ToMarkdown(markdownOptions);
     }
 
     /// <summary>
@@ -150,7 +159,7 @@ public sealed partial class PdfDocumentReader {
     /// Builds the logical document model.
     /// </summary>
     public PdfLogicalDocument Logical(PdfTextLayoutOptions? options = null, PdfReadOptions? readOptions = null) {
-        return PdfLogicalDocument.From(PdfReadDocument.Load(_document.Snapshot(), ResolveReadOptions(readOptions)), options);
+        return PdfLogicalDocument.From(ReadDocument(readOptions), options);
     }
 
     /// <summary>
@@ -165,7 +174,7 @@ public sealed partial class PdfDocumentReader {
     /// </summary>
     public PdfLogicalDocument Logical(PdfPageSelection selection, PdfTextLayoutOptions? options = null, PdfReadOptions? readOptions = null) {
         Guard.NotNull(selection, nameof(selection));
-        return PdfLogicalDocument.FromPageRanges(PdfReadDocument.Load(_document.Snapshot(), ResolveReadOptions(readOptions)), options, selection.ToRanges());
+        return PdfLogicalDocument.FromPageRanges(ReadDocument(readOptions), options, selection.ToRanges());
     }
 
     /// <summary>
@@ -559,7 +568,7 @@ public sealed partial class PdfDocumentReader {
     /// Extracts image XObjects.
     /// </summary>
     public IReadOnlyList<PdfExtractedImage> Images(PdfReadOptions? readOptions = null) {
-        return PdfReadDocument.Load(_document.Snapshot(), ResolveReadOptions(readOptions)).ExtractImages();
+        return ReadDocument(readOptions).ExtractImages();
     }
 
     /// <summary>
@@ -574,7 +583,7 @@ public sealed partial class PdfDocumentReader {
     /// </summary>
     public IReadOnlyList<PdfExtractedImage> Images(PdfPageSelection selection, PdfReadOptions? readOptions = null) {
         Guard.NotNull(selection, nameof(selection));
-        return PdfImageExtractor.ExtractImagesByPageRanges(PdfReadDocument.Load(_document.Snapshot(), ResolveReadOptions(readOptions)), selection.ToRanges());
+        return PdfImageExtractor.ExtractImagesByPageRanges(ReadDocument(readOptions), selection.ToRanges());
     }
 
     /// <summary>
@@ -603,7 +612,7 @@ public sealed partial class PdfDocumentReader {
     /// Extracts image XObject placement invocations with page geometry.
     /// </summary>
     public IReadOnlyList<PdfImagePlacement> ImagePlacements(PdfReadOptions? readOptions = null) {
-        return PdfImageExtractor.ExtractImagePlacements(PdfReadDocument.Load(_document.Snapshot(), ResolveReadOptions(readOptions)));
+        return PdfImageExtractor.ExtractImagePlacements(ReadDocument(readOptions));
     }
 
     /// <summary>
@@ -618,7 +627,7 @@ public sealed partial class PdfDocumentReader {
     /// </summary>
     public IReadOnlyList<PdfImagePlacement> ImagePlacements(PdfPageSelection selection, PdfReadOptions? readOptions = null) {
         Guard.NotNull(selection, nameof(selection));
-        return PdfImageExtractor.ExtractImagePlacementsByPageRanges(PdfReadDocument.Load(_document.Snapshot(), ResolveReadOptions(readOptions)), selection.ToRanges());
+        return PdfImageExtractor.ExtractImagePlacementsByPageRanges(ReadDocument(readOptions), selection.ToRanges());
     }
 
     /// <summary>
@@ -647,7 +656,7 @@ public sealed partial class PdfDocumentReader {
     /// Extracts embedded-file attachments.
     /// </summary>
     public IReadOnlyList<PdfExtractedAttachment> Attachments(PdfReadOptions? readOptions = null) {
-        return PdfReadDocument.Load(_document.Snapshot(), ResolveReadOptions(readOptions)).ExtractAttachments();
+        return ReadDocument(readOptions).ExtractAttachments();
     }
 
     /// <summary>

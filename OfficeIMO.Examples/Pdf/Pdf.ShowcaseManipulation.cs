@@ -14,7 +14,7 @@ namespace OfficeIMO.Examples.Pdf {
             PdfDocument.Create(StandardOptions("OfficeIMO.Pdf manipulation source A"))
                 .Meta(title: "OfficeIMO.Pdf Manipulation Source A", author: "OfficeIMO")
                 .H1("Source A", PdfAlign.Left, PdfColor.FromRgb(15, 23, 42))
-                .Paragraph(p => p.Text("This page is created first, then merged with Source B using the first-party PdfMerger helper."))
+                .Paragraph(p => p.Text("This page is created first, then merged with Source B through the fluent PdfDocument API."))
                 .Table(new[] {
                     new[] { "Capability", "Status", "Notes" },
                     new[] { "Create", "Ready", "Dependency-free writer surface" },
@@ -45,18 +45,19 @@ namespace OfficeIMO.Examples.Pdf {
                 })
                 .Table(new[] {
                     new[] { "Operation", "Output" },
-                    new[] { "MergeFiles", Path.GetFileName(mergedPath) },
-                    new[] { "ExtractPageRange", Path.GetFileName(extractedPath) },
-                    new[] { "StampText", Path.GetFileName(stampedPath) },
-                    new[] { "ExtractAllText", Path.GetFileName(extractedTextPath) }
+                    new[] { "MergeWith", Path.GetFileName(mergedPath) },
+                    new[] { "Pages.Extract", Path.GetFileName(extractedPath) },
+                    new[] { "Stamp.Text", Path.GetFileName(stampedPath) },
+                    new[] { "Read.Text", Path.GetFileName(extractedTextPath) }
                 }, style: UtilityTableStyle())
                 .Save(sourceBPath);
 
-            PdfMerger.MergeFiles(new[] { sourceAPath, sourceBPath }, mergedPath);
-            PdfPageExtractor.ExtractPageRange(mergedPath, extractedPath, 2, 2);
-            PdfStamper.StampText(
-                mergedPath,
-                stampedPath,
+            PdfDocument merged = PdfDocument.Open(sourceAPath)
+                .MergeWith(sourceBPath);
+            merged.Save(mergedPath);
+            merged.Pages.Extract(PdfPageRange.From(2, 2))
+                .Save(extractedPath);
+            PdfDocument stamped = merged.Stamp.Text(
                 "OfficeIMO.Pdf",
                 new PdfTextStampOptions {
                     X = 386,
@@ -65,7 +66,8 @@ namespace OfficeIMO.Examples.Pdf {
                     FontSize = 11,
                     Color = PdfColor.FromRgb(14, 116, 144)
                 });
-            PdfTextExtractor.ExtractAllText(stampedPath, extractedTextPath);
+            stamped.Save(stampedPath);
+            File.WriteAllText(extractedTextPath, stamped.Read.Text());
 
             if (open) {
                 System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo { FileName = stampedPath, UseShellExecute = true });

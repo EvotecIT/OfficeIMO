@@ -8,11 +8,17 @@ public sealed partial class PdfDocument {
     public PdfComplianceReadinessReport AssessCompliance() => AssessCompliance(_options.ComplianceProfile);
 
     /// <summary>
-    /// Analyzes this generated document against a formal compliance profile using generated font-usage evidence from layout.
+    /// Analyzes this document against a formal compliance profile.
+    /// Generated documents use layout evidence; opened documents use artifact readback evidence.
     /// </summary>
     /// <param name="profile">Compliance profile to assess without enabling formal profile generation.</param>
     public PdfComplianceReadinessReport AssessCompliance(PdfComplianceProfile profile) {
-        EnsureGeneratedDocument();
+        if (_source is not null) {
+            var snapshot = GetReadSnapshot();
+            PdfDocumentInfo info = PdfInspector.Inspect(snapshot.Bytes, snapshot.Document);
+            return PdfComplianceAnalyzer.AssessReadback(profile, snapshot.Document, info);
+        }
+
         PdfGeneratedDocumentComplianceEvidence evidence = PdfWriter.CollectGeneratedComplianceEvidence(this, _blocks, _options);
         return PdfComplianceAnalyzer.AssessDocument(profile, _options, evidence.StandardFonts, evidence.FontUsages, _title, evidence.Images, evidence.Drawings, evidence.Forms);
     }
@@ -24,10 +30,47 @@ public sealed partial class PdfDocument {
         AssessComplianceProof(_options.ComplianceProfile, externalValidations);
 
     /// <summary>
-    /// Combines generated-document readiness with external validator evidence bound to the exact supplied PDF bytes.
+    /// Atomically renders or snapshots this document with readiness evidence for its configured compliance profile.
     /// </summary>
-    public PdfComplianceProofReport AssessComplianceProof(byte[] artifact, IEnumerable<PdfExternalValidationResult>? externalValidations = null) =>
-        AssessComplianceProof(_options.ComplianceProfile, artifact, externalValidations);
+    public PdfComplianceArtifact CreateComplianceArtifact() =>
+        CreateComplianceArtifact(_options.ComplianceProfile);
+
+    /// <summary>
+    /// Atomically renders or snapshots this document with readiness evidence for <paramref name="profile"/>.
+    /// Use the returned artifact's bytes for external validation, then call its
+    /// <see cref="PdfComplianceArtifact.AssessProof"/> method with those validator results.
+    /// </summary>
+    public PdfComplianceArtifact CreateComplianceArtifact(PdfComplianceProfile profile) {
+        Guard.ComplianceProfile(profile, nameof(profile));
+        if (_source is not null) {
+            PdfComplianceReadinessReport openedReadiness = AssessCompliance(profile);
+            return new PdfComplianceArtifact(_source.CopyBytes(), openedReadiness, ReadOptions);
+        }
+
+        ThrowIfTextEncodingPreflightFails();
+        (byte[] bytes, PdfGeneratedDocumentComplianceEvidence evidence) = PdfWriter.WriteComplianceArtifact(
+            this,
+            _blocks,
+            _options,
+            _title,
+            _author,
+            _subject,
+            _keywords);
+        PdfComplianceReadinessReport generatedReadiness = PdfComplianceAnalyzer.AssessDocument(
+            profile,
+            _options,
+            evidence.StandardFonts,
+            evidence.FontUsages,
+            _title,
+            evidence.Images,
+            evidence.Drawings,
+            evidence.Forms);
+        PdfStandardEncryptionOptions? encryption = _options.EncryptionSnapshot;
+        PdfReadOptions? readOptions = encryption == null
+            ? null
+            : new PdfReadOptions { Password = encryption.UserPassword };
+        return new PdfComplianceArtifact(bytes, generatedReadiness, readOptions);
+    }
 
     /// <summary>
     /// Combines generated-document compliance readiness for a formal profile with external validator evidence.
@@ -36,26 +79,17 @@ public sealed partial class PdfDocument {
     /// <param name="externalValidations">Optional external validator results to combine with OfficeIMO.Pdf readiness evidence.</param>
     public PdfComplianceProofReport AssessComplianceProof(PdfComplianceProfile profile, IEnumerable<PdfExternalValidationResult>? externalValidations = null) {
         PdfComplianceReadinessReport readiness = AssessCompliance(profile);
-        return PdfComplianceAnalyzer.AssessProof(readiness, externalValidations);
-    }
-
-    /// <summary>
-    /// Combines generated-document readiness with external validator evidence bound to the exact supplied PDF bytes.
-    /// </summary>
-    /// <param name="profile">Compliance profile to assess without enabling formal profile generation.</param>
-    /// <param name="artifact">The exact PDF bytes supplied to each external validator.</param>
-    /// <param name="externalValidations">External validator results for the same exact artifact.</param>
-    public PdfComplianceProofReport AssessComplianceProof(PdfComplianceProfile profile, byte[] artifact, IEnumerable<PdfExternalValidationResult>? externalValidations = null) {
-        PdfComplianceReadinessReport readiness = AssessCompliance(profile);
-        return PdfComplianceAnalyzer.AssessProof(readiness, artifact, externalValidations);
+        return _source is null
+            ? PdfComplianceAnalyzer.AssessProof(readiness, externalValidations)
+            : PdfComplianceAnalyzer.AssessProof(readiness, _source.Bytes, externalValidations, ReadOptions);
     }
 
     /// <summary>
     /// Renders the document into a PDF byte array in memory.
     /// </summary>
     public byte[] ToBytes() {
-        if (_loadedPdf is not null) {
-            return (byte[])_loadedPdf.Clone();
+        if (_source is not null) {
+            return _source.CopyBytes();
         }
 
         ThrowIfTextEncodingPreflightFails();
@@ -69,14 +103,23 @@ public sealed partial class PdfDocument {
     /// Attempts to render the document into a PDF byte array and returns diagnostics instead of throwing.
     /// </summary>
     public PdfBytesResult TryToBytes() {
+        var timer = System.Diagnostics.Stopwatch.StartNew();
         try {
             if (TryCreateTextEncodingPreflightException(out PdfTextEncodingPreflightException? preflightException)) {
-                return PdfBytesResult.Failed(preflightException!);
+                timer.Stop();
+                PdfPipelineReport failedPipeline = AppendOutputStep("ToBytes", output: null, timer.Elapsed, preflightException);
+                return PdfBytesResult.Failed(preflightException!, failedPipeline);
             }
 
-            return PdfBytesResult.Success(RenderBytesCore());
+            byte[] bytes = RenderBytesCore();
+            timer.Stop();
+            PdfArtifactSnapshot output = PdfArtifactSnapshot.Capture(bytes, ReadOptions);
+            PdfPipelineReport pipeline = AppendOutputStep("ToBytes", output, timer.Elapsed);
+            return PdfBytesResult.Success(bytes, pipeline);
         } catch (Exception ex) {
-            return PdfBytesResult.Failed(ex);
+            timer.Stop();
+            PdfPipelineReport pipeline = AppendOutputStep("ToBytes", output: null, timer.Elapsed, ex);
+            return PdfBytesResult.Failed(ex, pipeline);
         }
     }
 
@@ -84,24 +127,26 @@ public sealed partial class PdfDocument {
     /// Writes the complete document to <paramref name="stream"/>. Seekable streams are overwritten and rewound.
     /// </summary>
     /// <param name="stream">Writable destination stream.</param>
-    public void Save(Stream stream) {
+    public PdfSaveResult Save(Stream stream) {
+        var timer = System.Diagnostics.Stopwatch.StartNew();
         ThrowIfTextEncodingPreflightFails();
-        RenderToStreamCore(stream);
+        (long bytesWritten, PdfArtifactSnapshot output) = RenderToStreamWithEvidence(stream);
+        timer.Stop();
+        PdfPipelineReport pipeline = AppendOutputStep("Save", output, timer.Elapsed);
+        return PdfSaveResult.Success(outputPath: null, bytesWritten, pipeline);
     }
 
     /// <summary>
     /// Attempts to write the document to <paramref name="stream"/> and returns output diagnostics instead of throwing.
     /// </summary>
     public PdfSaveResult TrySave(Stream stream) {
+        var timer = System.Diagnostics.Stopwatch.StartNew();
         try {
-            if (TryCreateTextEncodingPreflightException(out PdfTextEncodingPreflightException? preflightException)) {
-                return PdfSaveResult.Failed(outputPath: null, preflightException!);
-            }
-
-            long bytesWritten = RenderToStreamCore(stream);
-            return PdfSaveResult.Success(outputPath: null, bytesWritten);
+            return Save(stream);
         } catch (Exception ex) {
-            return PdfSaveResult.Failed(outputPath: null, ex);
+            timer.Stop();
+            PdfPipelineReport pipeline = AppendOutputStep("Save", output: null, timer.Elapsed, ex);
+            return PdfSaveResult.Failed(outputPath: null, ex, pipeline);
         }
     }
 
@@ -109,12 +154,22 @@ public sealed partial class PdfDocument {
     /// Saves the document to <paramref name="path"/>. Creates the directory if needed.
     /// </summary>
     /// <param name="path">Destination file path, e.g. "C:\\Docs\\Report.pdf".</param>
-    public void Save(string path) {
+    public PdfSaveResult Save(string path) {
+        var timer = System.Diagnostics.Stopwatch.StartNew();
         string fullPath = ValidateOutputPath(path);
         EnsureOutputDirectory(fullPath);
 
         ThrowIfTextEncodingPreflightFails();
-        OfficeFileCommit.Write(fullPath, stream => WritePdfCore(stream));
+        PdfArtifactSnapshot? output = null;
+        long bytesWritten = 0L;
+        OfficeFileCommit.Write(fullPath, stream => {
+            using var hashingStream = new PdfPipelineHashingStream(stream);
+            (bytesWritten, int? pageCount) = WritePdfCore(hashingStream);
+            output = hashingStream.Complete(pageCount);
+        });
+        timer.Stop();
+        PdfPipelineReport pipeline = AppendOutputStep("Save", output, timer.Elapsed);
+        return PdfSaveResult.Success(fullPath, bytesWritten, pipeline);
     }
 
     /// <summary>
@@ -122,61 +177,69 @@ public sealed partial class PdfDocument {
     /// </summary>
     public PdfSaveResult TrySave(string path) {
         string? fullPath = null;
+        var timer = System.Diagnostics.Stopwatch.StartNew();
         try {
             fullPath = ValidateOutputPath(path);
-            EnsureOutputDirectory(fullPath);
-
-            if (TryCreateTextEncodingPreflightException(out PdfTextEncodingPreflightException? preflightException)) {
-                return PdfSaveResult.Failed(fullPath, preflightException!);
-            }
-
-            long bytesWritten = 0L;
-            OfficeFileCommit.Write(fullPath, stream => bytesWritten = WritePdfCore(stream));
-            return PdfSaveResult.Success(fullPath, bytesWritten);
+            return Save(fullPath);
         } catch (Exception ex) {
-            return PdfSaveResult.Failed(fullPath ?? path, ex);
+            timer.Stop();
+            PdfPipelineReport pipeline = AppendOutputStep("Save", output: null, timer.Elapsed, ex);
+            return PdfSaveResult.Failed(fullPath ?? path, ex, pipeline);
         }
     }
 
     /// <summary>
     /// Asynchronously writes the complete document to <paramref name="stream"/>. Seekable streams are overwritten and rewound.
     /// </summary>
-    public async System.Threading.Tasks.Task SaveAsync(Stream stream, System.Threading.CancellationToken cancellationToken = default) {
+    public async System.Threading.Tasks.Task<PdfSaveResult> SaveAsync(Stream stream, System.Threading.CancellationToken cancellationToken = default) {
+        var timer = System.Diagnostics.Stopwatch.StartNew();
         cancellationToken.ThrowIfCancellationRequested();
         ThrowIfTextEncodingPreflightFails();
-        await RenderToStreamCoreAsync(stream, cancellationToken).ConfigureAwait(false);
+        (long bytesWritten, PdfArtifactSnapshot output) = await RenderToStreamWithEvidenceAsync(stream, cancellationToken).ConfigureAwait(false);
+        timer.Stop();
+        PdfPipelineReport pipeline = AppendOutputStep("Save", output, timer.Elapsed);
+        return PdfSaveResult.Success(outputPath: null, bytesWritten, pipeline);
     }
 
     /// <summary>
     /// Attempts to asynchronously write the document to <paramref name="stream"/> and returns output diagnostics instead of throwing.
     /// </summary>
     public async System.Threading.Tasks.Task<PdfSaveResult> TrySaveAsync(Stream stream, System.Threading.CancellationToken cancellationToken = default) {
+        var timer = System.Diagnostics.Stopwatch.StartNew();
         try {
-            cancellationToken.ThrowIfCancellationRequested();
-
-            if (TryCreateTextEncodingPreflightException(out PdfTextEncodingPreflightException? preflightException)) {
-                return PdfSaveResult.Failed(outputPath: null, preflightException!);
-            }
-
-            long bytesWritten = await RenderToStreamCoreAsync(stream, cancellationToken).ConfigureAwait(false);
-            return PdfSaveResult.Success(outputPath: null, bytesWritten);
+            return await SaveAsync(stream, cancellationToken).ConfigureAwait(false);
         } catch (System.OperationCanceledException) {
             throw;
         } catch (Exception ex) {
-            return PdfSaveResult.Failed(outputPath: null, ex);
+            timer.Stop();
+            PdfPipelineReport pipeline = AppendOutputStep("Save", output: null, timer.Elapsed, ex);
+            return PdfSaveResult.Failed(outputPath: null, ex, pipeline);
         }
     }
 
     /// <summary>
     /// Asynchronously saves the document to <paramref name="path"/>.
     /// </summary>
-    public async System.Threading.Tasks.Task SaveAsync(string path, System.Threading.CancellationToken cancellationToken = default) {
+    public async System.Threading.Tasks.Task<PdfSaveResult> SaveAsync(string path, System.Threading.CancellationToken cancellationToken = default) {
+        var timer = System.Diagnostics.Stopwatch.StartNew();
         string fullPath = ValidateOutputPath(path);
         cancellationToken.ThrowIfCancellationRequested();
         EnsureOutputDirectory(fullPath);
 
         ThrowIfTextEncodingPreflightFails();
-        await OfficeFileCommit.WriteAsync(fullPath, stream => WritePdfCore(stream), cancellationToken: cancellationToken).ConfigureAwait(false);
+        PdfArtifactSnapshot? output = null;
+        long bytesWritten = 0L;
+        await OfficeFileCommit.WriteAsync(
+            fullPath,
+            stream => {
+                using var hashingStream = new PdfPipelineHashingStream(stream);
+                (bytesWritten, int? pageCount) = WritePdfCore(hashingStream);
+                output = hashingStream.Complete(pageCount);
+            },
+            cancellationToken: cancellationToken).ConfigureAwait(false);
+        timer.Stop();
+        PdfPipelineReport pipeline = AppendOutputStep("Save", output, timer.Elapsed);
+        return PdfSaveResult.Success(fullPath, bytesWritten, pipeline);
     }
 
     /// <summary>
@@ -184,55 +247,77 @@ public sealed partial class PdfDocument {
     /// </summary>
     public async System.Threading.Tasks.Task<PdfSaveResult> TrySaveAsync(string path, System.Threading.CancellationToken cancellationToken = default) {
         string? fullPath = null;
+        var timer = System.Diagnostics.Stopwatch.StartNew();
         try {
             fullPath = ValidateOutputPath(path);
-            cancellationToken.ThrowIfCancellationRequested();
-            EnsureOutputDirectory(fullPath);
-
-            if (TryCreateTextEncodingPreflightException(out PdfTextEncodingPreflightException? preflightException)) {
-                return PdfSaveResult.Failed(fullPath ?? path, preflightException!);
-            }
-
-            long bytesWritten = 0L;
-            await OfficeFileCommit.WriteAsync(fullPath, stream => bytesWritten = WritePdfCore(stream), cancellationToken: cancellationToken).ConfigureAwait(false);
-            return PdfSaveResult.Success(fullPath, bytesWritten);
+            return await SaveAsync(fullPath, cancellationToken).ConfigureAwait(false);
         } catch (System.OperationCanceledException) {
             throw;
         } catch (Exception ex) {
-            return PdfSaveResult.Failed(fullPath ?? path, ex);
+            timer.Stop();
+            PdfPipelineReport pipeline = AppendOutputStep("Save", output: null, timer.Elapsed, ex);
+            return PdfSaveResult.Failed(fullPath ?? path, ex, pipeline);
         }
     }
 
     private byte[] RenderBytesCore() {
-        if (_loadedPdf is not null) {
-            return (byte[])_loadedPdf.Clone();
+        if (_source is not null) {
+            return _source.CopyBytes();
         }
 
         return PdfWriter.Write(this, _blocks, _options, _title, _author, _subject, _keywords);
     }
 
-    private long RenderToStreamCore(Stream stream) {
-        long bytesWritten = 0L;
-        OfficeStreamWriter.Write(stream, destination => bytesWritten = WritePdfCore(destination));
-        return bytesWritten;
+    private (long BytesWritten, int? PageCount) RenderToStreamCore(Stream stream) {
+        (long BytesWritten, int? PageCount) output = default;
+        OfficeStreamWriter.Write(stream, destination => output = WritePdfCore(destination));
+        return output;
     }
 
-    private async System.Threading.Tasks.Task<long> RenderToStreamCoreAsync(Stream stream, System.Threading.CancellationToken cancellationToken) {
-        long bytesWritten = 0L;
+    private async System.Threading.Tasks.Task<(long BytesWritten, int? PageCount)> RenderToStreamCoreAsync(
+        Stream stream,
+        System.Threading.CancellationToken cancellationToken) {
+        (long BytesWritten, int? PageCount) output = default;
         await OfficeStreamWriter.WriteAsync(
             stream,
-            destination => bytesWritten = WritePdfCore(destination),
+            destination => output = WritePdfCore(destination),
             cancellationToken).ConfigureAwait(false);
-        return bytesWritten;
+        return output;
     }
 
-    private long WritePdfCore(Stream stream) {
-        if (_loadedPdf is not null) {
-            stream.Write(_loadedPdf, 0, _loadedPdf.Length);
-            return _loadedPdf.LongLength;
+    private (long BytesWritten, PdfArtifactSnapshot Output) RenderToStreamWithEvidence(Stream stream) {
+        using var hashingStream = new PdfPipelineHashingStream(stream);
+        (long bytesWritten, int? pageCount) = RenderToStreamCore(hashingStream);
+        PdfArtifactSnapshot output = hashingStream.Complete(pageCount);
+        return (bytesWritten, output);
+    }
+
+    private async System.Threading.Tasks.Task<(long BytesWritten, PdfArtifactSnapshot Output)> RenderToStreamWithEvidenceAsync(
+        Stream stream,
+        System.Threading.CancellationToken cancellationToken) {
+        using var hashingStream = new PdfPipelineHashingStream(stream);
+        (long bytesWritten, int? pageCount) = await RenderToStreamCoreAsync(hashingStream, cancellationToken).ConfigureAwait(false);
+        PdfArtifactSnapshot output = hashingStream.Complete(pageCount);
+        return (bytesWritten, output);
+    }
+
+    private (long BytesWritten, int? PageCount) WritePdfCore(Stream stream) {
+        if (_source is not null) {
+            stream.Write(_source.Bytes, 0, _source.Bytes.Length);
+            return (_source.Bytes.LongLength, _pipeline.Output?.PageCount);
         }
 
-        return PdfWriter.Write(stream, this, _blocks, _options, _title, _author, _subject, _keywords);
+        long bytesWritten = PdfWriter.Write(
+            stream,
+            this,
+            _blocks,
+            _options,
+            _title,
+            _author,
+            _subject,
+            _keywords,
+            out int pageCount);
+        return (bytesWritten, pageCount);
     }
 
     private void ThrowIfTextEncodingPreflightFails() {

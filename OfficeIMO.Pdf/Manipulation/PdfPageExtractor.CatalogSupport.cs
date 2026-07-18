@@ -2,7 +2,7 @@ using System.Globalization;
 
 namespace OfficeIMO.Pdf;
 
-public static partial class PdfPageExtractor {
+internal static partial class PdfPageExtractor {
     private static bool IsSimpleCatalogDictionary(PdfDictionary dictionary) {
         foreach (var value in dictionary.Items.Values) {
             if (!IsSimpleCatalogValue(value)) {

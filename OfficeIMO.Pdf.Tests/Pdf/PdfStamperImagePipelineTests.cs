@@ -25,7 +25,7 @@ public partial class PdfStamperTests {
         Assert.Contains("/Subtype /Image", pdfContent);
         Assert.Contains("/OIMOStampIm", pdfContent);
 
-        string text = Normalize(PdfReadDocument.Load(stamped).ExtractText());
+        string text = Normalize(PdfReadDocument.Open(stamped).ExtractText());
         Assert.Contains("Firstpagebody", text);
         Assert.Contains("Secondpagebody", text);
     }
@@ -65,7 +65,7 @@ public partial class PdfStamperTests {
         Assert.Contains("/Subtype /Image", pdfContent);
         Assert.Contains("/OIMOStampIm", pdfContent);
 
-        string text = Normalize(PdfReadDocument.Load(stamped).ExtractText());
+        string text = Normalize(PdfReadDocument.Open(stamped).ExtractText());
         Assert.Contains("Firstpagebody", text);
         Assert.Contains("Secondpagebody", text);
     }
@@ -120,7 +120,7 @@ public partial class PdfStamperTests {
         Assert.Contains("/Subtype /Image", pdfContent);
         Assert.Contains("/OIMOStampIm", pdfContent);
 
-        string text = Normalize(PdfReadDocument.Load(stamped).ExtractText());
+        string text = Normalize(PdfReadDocument.Open(stamped).ExtractText());
         Assert.Contains("Firstpagebody", text);
         Assert.Contains("Secondpagebody", text);
     }

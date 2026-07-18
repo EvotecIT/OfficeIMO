@@ -3,7 +3,7 @@ using System.Globalization;
 
 namespace OfficeIMO.Pdf;
 
-public static partial class PdfStamper {
+internal static partial class PdfStamper {
     /// <summary>Imports one source PDF page as a Form XObject above selected target pages.</summary>
     public static byte[] OverlayPage(byte[] targetPdf, byte[] sourcePdf, PdfPageOverlayOptions? options = null) {
         return StampPageCore(targetPdf, sourcePdf, (options ?? new PdfPageOverlayOptions()).Clone(behindContent: false));
@@ -43,8 +43,8 @@ public static partial class PdfStamper {
 
         var (targetObjects, targetTrailer) = PdfSyntax.ParseObjects(targetPdf);
         var (sourceObjects, _) = PdfSyntax.ParseObjects(sourcePdf);
-        PdfReadDocument target = PdfReadDocument.Load(targetPdf);
-        PdfReadDocument source = PdfReadDocument.Load(sourcePdf);
+        PdfReadDocument target = PdfReadDocument.Open(targetPdf);
+        PdfReadDocument source = PdfReadDocument.Open(sourcePdf);
         if (target.Pages.Count == 0) throw new ArgumentException("Target PDF does not contain any pages.", nameof(targetPdf));
         if (options.SourcePageNumber > source.Pages.Count) throw new ArgumentOutOfRangeException(nameof(options), options.SourcePageNumber, "Source page number exceeds the source PDF page count.");
 

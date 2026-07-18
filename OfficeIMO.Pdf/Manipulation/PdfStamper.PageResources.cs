@@ -2,7 +2,7 @@ using System.Globalization;
 
 namespace OfficeIMO.Pdf;
 
-public static partial class PdfStamper {
+internal static partial class PdfStamper {
     private static Dictionary<string, PdfObject> BuildPageOverrides(
         Dictionary<int, PdfIndirectObject> objects,
         int pageObjectNumber,

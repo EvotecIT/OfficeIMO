@@ -31,6 +31,9 @@ public sealed partial class PdfDocumentConversionResult {
     /// <summary>The generated PDF document, ready for fluent OfficeIMO.Pdf processing.</summary>
     public PdfDocument Value { get; }
 
+    /// <summary>Create/open and post-processing evidence accumulated by the generated PDF document.</summary>
+    public PdfPipelineReport Pipeline => Value.Pipeline;
+
     /// <summary>Snapshot of conversion warnings captured when the result was created and refreshed after save-time diagnostics run.</summary>
     public PdfConversionReport Report { get; }
 
@@ -108,7 +111,7 @@ public sealed partial class PdfDocumentConversionResult {
                 }
 
                 if (shouldReadGeneratedPdf) {
-                    PdfReadDocument readDocument = PdfReadDocument.Load(pdfBytes);
+                    PdfReadDocument readDocument = PdfReadDocument.Open(pdfBytes);
                     extractedText = readDocument.ExtractText();
                     documentInfo = PdfInspector.Inspect(pdfBytes);
                     if (options.RequiredLogicalSignals.Count > 0) {
@@ -230,27 +233,29 @@ public sealed partial class PdfDocumentConversionResult {
     }
 
     /// <summary>
-    /// Writes the generated PDF document to the supplied stream and returns this conversion result for chaining.
+    /// Writes the generated PDF document to the supplied stream and returns conversion plus output evidence.
     /// </summary>
-    public PdfDocumentConversionResult Save(Stream stream) {
+    public PdfSaveResult Save(Stream stream) {
+        PdfSaveResult result;
         try {
-            Value.Save(stream);
-            return this;
+            result = Value.Save(stream);
         } finally {
             RefreshConversionReport();
         }
+        return result.WithReport(Report);
     }
 
     /// <summary>
-    /// Writes the generated PDF document to the supplied file path and returns this conversion result for chaining.
+    /// Writes the generated PDF document to the supplied file path and returns conversion plus output evidence.
     /// </summary>
-    public PdfDocumentConversionResult Save(string path) {
+    public PdfSaveResult Save(string path) {
+        PdfSaveResult result;
         try {
-            Value.Save(path);
-            return this;
+            result = Value.Save(path);
         } finally {
             RefreshConversionReport();
         }
+        return result.WithReport(Report);
     }
 
     /// <summary>
@@ -280,27 +285,29 @@ public sealed partial class PdfDocumentConversionResult {
     }
 
     /// <summary>
-    /// Asynchronously writes the generated PDF document to the supplied stream and returns this conversion result for chaining.
+    /// Asynchronously writes the generated PDF document to the supplied stream and returns conversion plus output evidence.
     /// </summary>
-    public async System.Threading.Tasks.Task<PdfDocumentConversionResult> SaveAsync(Stream stream, System.Threading.CancellationToken cancellationToken = default) {
+    public async System.Threading.Tasks.Task<PdfSaveResult> SaveAsync(Stream stream, System.Threading.CancellationToken cancellationToken = default) {
+        PdfSaveResult result;
         try {
-            await Value.SaveAsync(stream, cancellationToken).ConfigureAwait(false);
-            return this;
+            result = await Value.SaveAsync(stream, cancellationToken).ConfigureAwait(false);
         } finally {
             RefreshConversionReport();
         }
+        return result.WithReport(Report);
     }
 
     /// <summary>
-    /// Asynchronously writes the generated PDF document to the supplied file path and returns this conversion result for chaining.
+    /// Asynchronously writes the generated PDF document to the supplied file path and returns conversion plus output evidence.
     /// </summary>
-    public async System.Threading.Tasks.Task<PdfDocumentConversionResult> SaveAsync(string path, System.Threading.CancellationToken cancellationToken = default) {
+    public async System.Threading.Tasks.Task<PdfSaveResult> SaveAsync(string path, System.Threading.CancellationToken cancellationToken = default) {
+        PdfSaveResult result;
         try {
-            await Value.SaveAsync(path, cancellationToken).ConfigureAwait(false);
-            return this;
+            result = await Value.SaveAsync(path, cancellationToken).ConfigureAwait(false);
         } finally {
             RefreshConversionReport();
         }
+        return result.WithReport(Report);
     }
 
     /// <summary>

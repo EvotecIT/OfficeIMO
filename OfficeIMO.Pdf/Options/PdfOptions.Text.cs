@@ -1,3 +1,5 @@
+using OfficeIMO.Drawing;
+
 namespace OfficeIMO.Pdf;
 
 /// <summary>
@@ -29,7 +31,7 @@ public sealed partial class PdfOptions {
     /// <summary>
     /// Optional host-provided shaping engine for embedded-font text runs that need script shaping, bidirectional layout, or glyph substitution beyond the built-in dependency-free modes.
     /// </summary>
-    public IPdfTextShapingProvider? TextShapingProvider {
+    public IOfficeTextShapingProvider? TextShapingProvider {
         get => _textShapingProvider;
         set => _textShapingProvider = value;
     }
@@ -45,15 +47,15 @@ public sealed partial class PdfOptions {
     /// <summary>
     /// Optional callback used to provide preferred non-hyphenating break positions for long unspaced tokens during generated text wrapping.
     /// </summary>
-    public PdfTextLineBreakCallback? TextLineBreakCallback {
+    public Func<string, IReadOnlyList<int>>? TextLineBreakCallback {
         get => _textLineBreakCallback;
         set => _textLineBreakCallback = value;
     }
 
-    internal PdfTextLineBreakCallback? TextLineBreakCallbackSnapshot => _textLineBreakCallback;
+    internal Func<string, IReadOnlyList<int>>? TextLineBreakCallbackSnapshot => _textLineBreakCallback;
     internal PdfTextHyphenationCallback? TextHyphenationCallbackSnapshot => _textHyphenationCallback;
     internal PdfTextShapingMode TextShapingModeSnapshot => _textShapingMode;
-    internal IPdfTextShapingProvider? TextShapingProviderSnapshot => _textShapingProvider;
+    internal IOfficeTextShapingProvider? TextShapingProviderSnapshot => _textShapingProvider;
 
     internal bool HasDiagnosticsReport => _diagnosticsReport != null;
 
@@ -135,7 +137,7 @@ public sealed partial class PdfOptions {
     /// Sets or clears the callback used to provide preferred non-hyphenating break positions for long unspaced tokens.
     /// </summary>
     /// <param name="callback">Callback returning UTF-16 break indexes for a token, or null to disable the hook.</param>
-    public PdfOptions SetTextLineBreaks(PdfTextLineBreakCallback? callback) {
+    public PdfOptions SetTextLineBreaks(Func<string, IReadOnlyList<int>>? callback) {
         _textLineBreakCallback = callback;
         return this;
     }
@@ -162,7 +164,7 @@ public sealed partial class PdfOptions {
     /// </summary>
     /// <param name="provider">Provider that returns shaped glyph runs, or <c>null</c> to use only built-in shaping.</param>
     /// <returns>The current options instance for fluent configuration.</returns>
-    public PdfOptions SetTextShapingProvider(IPdfTextShapingProvider? provider) {
+    public PdfOptions SetTextShapingProvider(IOfficeTextShapingProvider? provider) {
         TextShapingProvider = provider;
         return this;
     }

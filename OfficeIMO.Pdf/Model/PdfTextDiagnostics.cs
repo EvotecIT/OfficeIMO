@@ -6,7 +6,7 @@ namespace OfficeIMO.Pdf;
 /// <summary>
 /// Provides reusable text preflight helpers for generated PDF output.
 /// </summary>
-public static class PdfTextDiagnostics {
+internal static class PdfTextDiagnostics {
     private const string WinAnsiEncodingDescription = "PDF WinAnsiEncoding";
     private const string WinAnsiGlyphRemediation = "Embedded Unicode fonts are required for this text.";
     private const string ControlCharacterEncodingDescription = "PDF text output";
@@ -688,7 +688,7 @@ public static class PdfTextDiagnostics {
     private static bool TrySkipCoveredLatinLigature(string text, int index, PdfTextShapingMode shapingMode, PdfTrueTypeFontProgram fontProgram, out int ligatureLength) {
         ligatureLength = 0;
         if (shapingMode != PdfTextShapingMode.LatinLigatures ||
-            !PdfLatinLigatureSubstitution.TryGetPresentationLigature(text, index, out int ligatureScalar, out ligatureLength) ||
+            !OfficeTextLigatures.TryGetLatinPresentationForm(text, index, out int ligatureScalar, out ligatureLength) ||
             !fontProgram.TryGetGlyphId(ligatureScalar, out int glyphId) ||
             glyphId <= 0) {
             ligatureLength = 0;
@@ -701,7 +701,7 @@ public static class PdfTextDiagnostics {
     private static bool TrySkipCoveredLatinLigature(string text, int index, PdfTextShapingMode shapingMode, PdfOpenTypeCffFontProgram fontProgram, out int ligatureLength) {
         ligatureLength = 0;
         if (shapingMode != PdfTextShapingMode.LatinLigatures ||
-            !PdfLatinLigatureSubstitution.TryGetPresentationLigature(text, index, out int ligatureScalar, out ligatureLength) ||
+            !OfficeTextLigatures.TryGetLatinPresentationForm(text, index, out int ligatureScalar, out ligatureLength) ||
             !fontProgram.TryGetGlyphId(ligatureScalar, out int glyphId) ||
             glyphId <= 0) {
             ligatureLength = 0;
@@ -745,7 +745,7 @@ public static class PdfTextDiagnostics {
     private static int FindCoveringFont(IReadOnlyList<EmbeddedFontFallbackProgram> fonts, string text, int textIndex, PdfTextShapingMode shapingMode, out int coveredLength) {
         coveredLength = 0;
         if (shapingMode == PdfTextShapingMode.LatinLigatures &&
-            PdfLatinLigatureSubstitution.TryGetPresentationLigature(text, textIndex, out int ligatureScalar, out int ligatureLength)) {
+            OfficeTextLigatures.TryGetLatinPresentationForm(text, textIndex, out int ligatureScalar, out int ligatureLength)) {
             int ligatureFontIndex = FindCoveringFont(fonts, ligatureScalar);
             if (ligatureFontIndex >= 0) {
                 coveredLength = ligatureLength;
@@ -859,7 +859,7 @@ public static class PdfTextDiagnostics {
                 int sourceIndex = ligatureIndex + indexOffset;
                 int scalar = char.ConvertToUtf32(text, ligatureIndex);
                 bool isCoveredByBuiltInShaping =
-                    PdfLatinLigatureSubstitution.TryGetPresentationLigature(text, ligatureIndex, out int ligatureScalar, out _) &&
+                    OfficeTextLigatures.TryGetLatinPresentationForm(text, ligatureIndex, out int ligatureScalar, out _) &&
                     info.ContainsUnicodeScalar(ligatureScalar);
                 AddDiagnostic(
                     diagnostics,

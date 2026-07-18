@@ -4,7 +4,7 @@ public sealed partial class PdfDocument {
     /// <summary>Encrypts this unencrypted PDF and returns the rewritten document with preservation proof.</summary>
     public PdfSecurityMutationResult Encrypt(PdfStandardEncryptionOptions encryption) {
         Guard.NotNull(encryption, nameof(encryption));
-        return PdfSecurityEditor.Encrypt(Snapshot(), encryption);
+        return PdfSecurityEditor.Encrypt(GetBytesForOperation(), encryption);
     }
 
     /// <summary>Attempts to encrypt this unencrypted PDF through the shared mutation planner.</summary>
@@ -22,7 +22,7 @@ public sealed partial class PdfDocument {
     /// <summary>Removes Standard password security using the current owner password and returns preservation proof.</summary>
     public PdfSecurityMutationResult Decrypt(string ownerPassword) {
         Guard.NotNull(ownerPassword, nameof(ownerPassword));
-        return PdfSecurityEditor.Decrypt(Snapshot(), ownerPassword);
+        return PdfSecurityEditor.Decrypt(GetBytesForOperation(), ownerPassword);
     }
 
     /// <summary>Attempts to remove Standard password security using the current owner password.</summary>
@@ -44,7 +44,7 @@ public sealed partial class PdfDocument {
         PdfStandardEncryptionOptions newEncryption) {
         Guard.NotNull(currentOwnerPassword, nameof(currentOwnerPassword));
         Guard.NotNull(newEncryption, nameof(newEncryption));
-        return PdfSecurityEditor.Reencrypt(Snapshot(), currentOwnerPassword, newEncryption);
+        return PdfSecurityEditor.Reencrypt(GetBytesForOperation(), currentOwnerPassword, newEncryption);
     }
 
     /// <summary>Attempts to replace Standard password security using the current owner password.</summary>

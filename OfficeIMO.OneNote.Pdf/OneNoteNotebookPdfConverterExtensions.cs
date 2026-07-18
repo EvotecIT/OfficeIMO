@@ -17,11 +17,11 @@ public static class OneNoteNotebookPdfConverterExtensions {
         notebook.ToPdfDocumentResult(options).ToBytes();
 
     /// <summary>Saves a notebook as PDF and returns conversion diagnostics.</summary>
-    public static PdfCore.PdfDocumentConversionResult SaveAsPdf(this OneNoteNotebook notebook, string path, OneNotePdfSaveOptions? options = null) =>
+    public static PdfCore.PdfSaveResult SaveAsPdf(this OneNoteNotebook notebook, string path, OneNotePdfSaveOptions? options = null) =>
         notebook.ToPdfDocumentResult(options).Save(path);
 
     /// <summary>Writes a notebook as PDF to a caller-owned stream.</summary>
-    public static PdfCore.PdfDocumentConversionResult SaveAsPdf(this OneNoteNotebook notebook, Stream stream, OneNotePdfSaveOptions? options = null) =>
+    public static PdfCore.PdfSaveResult SaveAsPdf(this OneNoteNotebook notebook, Stream stream, OneNotePdfSaveOptions? options = null) =>
         notebook.ToPdfDocumentResult(options).Save(stream);
 
     /// <summary>Attempts to save a notebook as PDF and returns structured failure evidence.</summary>
@@ -37,13 +37,13 @@ public static class OneNoteNotebookPdfConverterExtensions {
     }
 
     /// <summary>Converts synchronously, then asynchronously writes a notebook PDF to a path.</summary>
-    public static Task<PdfCore.PdfDocumentConversionResult> SaveAsPdfAsync(this OneNoteNotebook notebook, string path, OneNotePdfSaveOptions? options = null, CancellationToken cancellationToken = default) {
+    public static Task<PdfCore.PdfSaveResult> SaveAsPdfAsync(this OneNoteNotebook notebook, string path, OneNotePdfSaveOptions? options = null, CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         return notebook.ToPdfDocumentResult(options).SaveAsync(path, cancellationToken);
     }
 
     /// <summary>Converts synchronously, then asynchronously writes a notebook PDF to a caller-owned stream.</summary>
-    public static Task<PdfCore.PdfDocumentConversionResult> SaveAsPdfAsync(this OneNoteNotebook notebook, Stream stream, OneNotePdfSaveOptions? options = null, CancellationToken cancellationToken = default) {
+    public static Task<PdfCore.PdfSaveResult> SaveAsPdfAsync(this OneNoteNotebook notebook, Stream stream, OneNotePdfSaveOptions? options = null, CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         return notebook.ToPdfDocumentResult(options).SaveAsync(stream, cancellationToken);
     }

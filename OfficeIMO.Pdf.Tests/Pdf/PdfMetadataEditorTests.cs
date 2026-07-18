@@ -31,7 +31,7 @@ public class PdfMetadataEditorTests {
         Assert.Equal(300, info.Pages[1].Width);
         Assert.Equal(500, info.Pages[1].Height);
 
-        string text = NormalizeExtractedText(PdfReadDocument.Load(edited).ExtractText());
+        string text = NormalizeExtractedText(PdfReadDocument.Open(edited).ExtractText());
         Assert.Contains("Firstpage", text);
         Assert.Contains("Secondpage", text);
     }
@@ -128,7 +128,7 @@ public class PdfMetadataEditorTests {
         Assert.Null(info.Metadata.Keywords);
         Assert.Equal(2, info.PageCount);
 
-        string text = NormalizeExtractedText(PdfReadDocument.Load(edited).ExtractText());
+        string text = NormalizeExtractedText(PdfReadDocument.Open(edited).ExtractText());
         Assert.Contains("Firstpage", text);
         Assert.Contains("Secondpage", text);
     }

@@ -14,7 +14,7 @@ public sealed class PdfDocumentStamper {
     /// Creates a new PDF with text stamped above existing content unless options request otherwise.
     /// </summary>
     public PdfDocument Text(string text, PdfTextStampOptions? options = null) {
-        return PdfDocument.FromBytes(PdfStamper.StampText(_document.Snapshot(), text, options));
+        return _document.ApplyMutation(input => PdfStamper.StampText(input, text, options));
     }
 
     /// <summary>
@@ -28,7 +28,7 @@ public sealed class PdfDocumentStamper {
     /// Creates a new PDF with text watermarked behind existing content.
     /// </summary>
     public PdfDocument TextWatermark(string text, PdfTextStampOptions? options = null) {
-        return PdfDocument.FromBytes(PdfStamper.WatermarkText(_document.Snapshot(), text, options));
+        return _document.ApplyMutation(input => PdfStamper.WatermarkText(input, text, options));
     }
 
     /// <summary>
@@ -43,7 +43,7 @@ public sealed class PdfDocumentStamper {
     /// </summary>
     public PdfDocument Image(byte[] imageBytes, PdfImageStampOptions? options = null) {
         Guard.NotNull(imageBytes, nameof(imageBytes));
-        return PdfDocument.FromBytes(PdfStamper.StampImage(_document.Snapshot(), imageBytes, options));
+        return _document.ApplyMutation(input => PdfStamper.StampImage(input, imageBytes, options));
     }
 
     /// <summary>
@@ -59,7 +59,7 @@ public sealed class PdfDocumentStamper {
     /// </summary>
     public PdfDocument Image(Stream imageStream, PdfImageStampOptions? options = null) {
         Guard.NotNull(imageStream, nameof(imageStream));
-        return PdfDocument.FromBytes(PdfStamper.StampImage(_document.Snapshot(), imageStream, options));
+        return _document.ApplyMutation(input => PdfStamper.StampImage(input, imageStream, options));
     }
 
     /// <summary>
@@ -75,7 +75,7 @@ public sealed class PdfDocumentStamper {
     /// </summary>
     public PdfDocument ImageWatermark(byte[] imageBytes, PdfImageStampOptions? options = null) {
         Guard.NotNull(imageBytes, nameof(imageBytes));
-        return PdfDocument.FromBytes(PdfStamper.WatermarkImage(_document.Snapshot(), imageBytes, options));
+        return _document.ApplyMutation(input => PdfStamper.WatermarkImage(input, imageBytes, options));
     }
 
     /// <summary>
@@ -91,7 +91,7 @@ public sealed class PdfDocumentStamper {
     /// </summary>
     public PdfDocument ImageWatermark(Stream imageStream, PdfImageStampOptions? options = null) {
         Guard.NotNull(imageStream, nameof(imageStream));
-        return PdfDocument.FromBytes(PdfStamper.WatermarkImage(_document.Snapshot(), imageStream, options));
+        return _document.ApplyMutation(input => PdfStamper.WatermarkImage(input, imageStream, options));
     }
 
     /// <summary>
@@ -105,14 +105,16 @@ public sealed class PdfDocumentStamper {
     /// <summary>Imports one page from another PDF above selected pages.</summary>
     public PdfDocument OverlayPage(byte[] sourcePdf, PdfPageOverlayOptions? options = null) {
         Guard.NotNull(sourcePdf, nameof(sourcePdf));
-        return PdfDocument.FromBytes(PdfStamper.OverlayPage(_document.Snapshot(), sourcePdf, options));
+        return _document.ApplyMutation(input => PdfStamper.OverlayPage(input, sourcePdf, options));
     }
 
     /// <summary>Imports one page from a readable PDF stream above selected pages.</summary>
     public PdfDocument OverlayPage(Stream sourceStream, PdfPageOverlayOptions? options = null) {
         Guard.NotNull(sourceStream, nameof(sourceStream));
-        using var targetStream = new MemoryStream(_document.Snapshot(), writable: false);
-        return PdfDocument.FromBytes(PdfStamper.OverlayPage(targetStream, sourceStream, options));
+        return _document.ApplyMutation(input => {
+            using var targetStream = new MemoryStream(input, writable: false);
+            return PdfStamper.OverlayPage(targetStream, sourceStream, options);
+        });
     }
 
     /// <summary>Imports one page from a PDF file above selected pages.</summary>
@@ -142,14 +144,16 @@ public sealed class PdfDocumentStamper {
     /// <summary>Imports one page from another PDF below selected pages.</summary>
     public PdfDocument UnderlayPage(byte[] sourcePdf, PdfPageOverlayOptions? options = null) {
         Guard.NotNull(sourcePdf, nameof(sourcePdf));
-        return PdfDocument.FromBytes(PdfStamper.UnderlayPage(_document.Snapshot(), sourcePdf, options));
+        return _document.ApplyMutation(input => PdfStamper.UnderlayPage(input, sourcePdf, options));
     }
 
     /// <summary>Imports one page from a readable PDF stream below selected pages.</summary>
     public PdfDocument UnderlayPage(Stream sourceStream, PdfPageOverlayOptions? options = null) {
         Guard.NotNull(sourceStream, nameof(sourceStream));
-        using var targetStream = new MemoryStream(_document.Snapshot(), writable: false);
-        return PdfDocument.FromBytes(PdfStamper.UnderlayPage(targetStream, sourceStream, options));
+        return _document.ApplyMutation(input => {
+            using var targetStream = new MemoryStream(input, writable: false);
+            return PdfStamper.UnderlayPage(targetStream, sourceStream, options);
+        });
     }
 
     /// <summary>Imports one page from a PDF file below selected pages.</summary>

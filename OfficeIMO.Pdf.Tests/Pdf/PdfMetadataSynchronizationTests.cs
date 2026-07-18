@@ -54,7 +54,7 @@ public class PdfMetadataSynchronizationTests {
             .Paragraph(paragraph => paragraph.Text("Create synchronized XMP"))
             .ToBytes();
 
-        PdfDocument updated = PdfDocument.Load(source)
+        PdfDocument updated = PdfDocument.Open(source)
             .SynchronizeMetadata(title: "Created XMP", keywords: "one; two");
         PdfDocumentInfo info = updated.Inspect();
 

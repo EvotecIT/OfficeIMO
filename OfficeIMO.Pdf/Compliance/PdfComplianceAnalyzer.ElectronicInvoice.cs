@@ -1,6 +1,6 @@
 namespace OfficeIMO.Pdf;
 
-public static partial class PdfComplianceAnalyzer {
+internal static partial class PdfComplianceAnalyzer {
     private static void AddElectronicInvoiceRequirements(List<PdfComplianceRequirement> requirements, PdfOptions options) {
         requirements.Add(BuildElectronicInvoiceXmlAttachmentRequirement(options));
         requirements.Add(BuildElectronicInvoiceXmlProfileContextRequirement(options));

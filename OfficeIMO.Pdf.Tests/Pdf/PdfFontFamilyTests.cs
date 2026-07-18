@@ -53,7 +53,7 @@ public class PdfFontFamilyTests {
             .ToBytes();
 
         string raw = Encoding.ASCII.GetString(bytes);
-        string text = PdfReadDocument.Load(bytes).ExtractText();
+        string text = PdfReadDocument.Open(bytes).ExtractText();
 
         Assert.NotEmpty(family.Regular);
         Assert.True(family.Bold != null || family.Italic != null || family.BoldItalic != null);
@@ -176,7 +176,7 @@ public class PdfFontFamilyTests {
             .ToBytes();
 
         string raw = Encoding.ASCII.GetString(bytes);
-        string text = PdfReadDocument.Load(bytes).ExtractText();
+        string text = PdfReadDocument.Open(bytes).ExtractText();
 
         Assert.True(options.HasEmbeddedStandardFontFamily(options.DefaultFont));
         Assert.Contains("/Subtype /Type0", raw, StringComparison.Ordinal);
@@ -355,7 +355,7 @@ public class PdfFontFamilyTests {
             .ToBytes();
 
         string raw = Encoding.ASCII.GetString(bytes);
-        string text = PdfReadDocument.Load(bytes).ExtractText();
+        string text = PdfReadDocument.Open(bytes).ExtractText();
 
         Assert.Equal(PdfStandardFont.Helvetica, options.DefaultFont);
         Assert.Equal(PdfStandardFont.Helvetica, options.HeaderFont);
@@ -587,7 +587,7 @@ public class PdfFontFamilyTests {
             .ToBytes();
 
         string raw = Encoding.ASCII.GetString(bytes);
-        string text = PdfReadDocument.Load(bytes).ExtractText();
+        string text = PdfReadDocument.Open(bytes).ExtractText();
 
         Assert.Contains("/Subtype /Type0", raw, StringComparison.Ordinal);
         Assert.Contains("/Subtype /CIDFontType2", raw, StringComparison.Ordinal);
@@ -731,7 +731,7 @@ public class PdfFontFamilyTests {
             .ToBytes();
 
         string raw = Encoding.ASCII.GetString(bytes);
-        string text = PdfReadDocument.Load(bytes).ExtractText();
+        string text = PdfReadDocument.Open(bytes).ExtractText();
 
         Assert.Contains("/BaseFont /OfficeIMOPageFont-Regular", raw, StringComparison.Ordinal);
         Assert.Contains("Before page font", text, StringComparison.Ordinal);
@@ -782,7 +782,7 @@ public class PdfFontFamilyTests {
             .ToBytes();
 
         string raw = Encoding.ASCII.GetString(bytes);
-        string text = PdfReadDocument.Load(bytes).ExtractText();
+        string text = PdfReadDocument.Open(bytes).ExtractText();
 
         Assert.Contains("/BaseFont /OfficeIMOStyleFont-Regular", raw, StringComparison.Ordinal);
         Assert.Contains("/BaseFont /Times-Roman", raw, StringComparison.Ordinal);
@@ -813,7 +813,7 @@ public class PdfFontFamilyTests {
             .ToBytes();
 
         string raw = Encoding.ASCII.GetString(bytes);
-        string text = PdfReadDocument.Load(bytes).ExtractText();
+        string text = PdfReadDocument.Open(bytes).ExtractText();
 
         Assert.Contains("/Subtype /Type0", raw, StringComparison.Ordinal);
         Assert.Contains("/Encoding /Identity-H", raw, StringComparison.Ordinal);
@@ -937,7 +937,7 @@ public class PdfFontFamilyTests {
         byte[] first = CreateMultilingualBusinessReport(fontPath);
         byte[] second = CreateMultilingualBusinessReport(fontPath);
         string raw = Encoding.ASCII.GetString(first);
-        string text = PdfReadDocument.Load(first).ExtractText();
+        string text = PdfReadDocument.Open(first).ExtractText();
 
         Assert.Equal(first, second);
         Assert.Contains("/Subtype /Type0", raw, StringComparison.Ordinal);
@@ -986,14 +986,14 @@ public class PdfFontFamilyTests {
         Assert.True(result.HasWarnings);
         Assert.False(report.HasWarnings);
         Assert.Equal("sample-warning", warning.Code);
-        Assert.Contains("Conversion result", PdfReadDocument.Load(result.ToBytes()).ExtractText(), StringComparison.Ordinal);
+        Assert.Contains("Conversion result", PdfReadDocument.Open(result.ToBytes()).ExtractText(), StringComparison.Ordinal);
 
         PdfDocumentConversionResult processed = result.Process(document => document.UpdateMetadata(title: "Processed conversion result"));
 
         PdfConversionWarning processedWarning = Assert.Single(processed.Warnings);
         Assert.Equal("sample-warning", processedWarning.Code);
         Assert.Equal("Processed conversion result", processed.Value.Inspect().Metadata.Title);
-        Assert.Contains("Conversion result", PdfReadDocument.Load(processed.ToBytes()).ExtractText(), StringComparison.Ordinal);
+        Assert.Contains("Conversion result", PdfReadDocument.Open(processed.ToBytes()).ExtractText(), StringComparison.Ordinal);
 
         using var output = new MemoryStream();
         PdfSaveResult saveResult = processed.TrySave(output);
@@ -1003,7 +1003,10 @@ public class PdfFontFamilyTests {
         Assert.Equal("sample-warning", Assert.Single(saveResult.Warnings).Code);
         Assert.True(saveResult.HasWarnings);
         Assert.True(output.Length > 0);
-        Assert.Same(processed, processed.Save(new MemoryStream()));
+        PdfSaveResult throwingSaveResult = processed.Save(new MemoryStream());
+        Assert.True(throwingSaveResult.Succeeded);
+        Assert.Equal("sample-warning", Assert.Single(throwingSaveResult.Warnings).Code);
+        Assert.True(throwingSaveResult.Pipeline.Succeeded);
     }
 
     [Fact]
@@ -1054,8 +1057,10 @@ public class PdfFontFamilyTests {
         Assert.Equal("async-sample-warning", Assert.Single(result.Warnings).Code);
 
         using var chainedStream = new MemoryStream();
-        PdfDocumentConversionResult chained = await result.SaveAsync(chainedStream);
-        Assert.Same(result, chained);
+        PdfSaveResult asyncSaveResult = await result.SaveAsync(chainedStream);
+        Assert.True(asyncSaveResult.Succeeded);
+        Assert.Equal("async-sample-warning", Assert.Single(asyncSaveResult.Warnings).Code);
+        Assert.True(asyncSaveResult.Pipeline.Succeeded);
         Assert.True(chainedStream.Length > 0);
 
         string directory = Path.Combine(Path.GetTempPath(), "OfficeIMO.Pdf.ConversionResult.Async", Guid.NewGuid().ToString("N"));
@@ -1065,16 +1070,17 @@ public class PdfFontFamilyTests {
             string savePath = Path.Combine(directory, "save.pdf");
 
             PdfSaveResult pathResult = await result.TrySaveAsync(tryPath);
-            PdfDocumentConversionResult pathChained = await result.SaveAsync(savePath);
+            PdfSaveResult pathSaveResult = await result.SaveAsync(savePath);
 
             Assert.True(pathResult.Succeeded);
             Assert.Equal("async-sample-warning", Assert.Single(pathResult.Warnings).Code);
             Assert.True(File.Exists(tryPath));
             Assert.True(new FileInfo(tryPath).Length > 0);
-            Assert.Same(result, pathChained);
+            Assert.True(pathSaveResult.Succeeded);
             Assert.True(File.Exists(savePath));
             Assert.True(new FileInfo(savePath).Length > 0);
-            Assert.Equal("async-sample-warning", Assert.Single(pathChained.Warnings).Code);
+            Assert.Equal("async-sample-warning", Assert.Single(pathSaveResult.Warnings).Code);
+            Assert.True(pathSaveResult.Pipeline.Succeeded);
         } finally {
             Directory.Delete(directory, recursive: true);
         }
@@ -1351,7 +1357,7 @@ public class PdfFontFamilyTests {
             .ToBytes();
 
         string raw = Encoding.ASCII.GetString(bytes);
-        string extracted = PdfReadDocument.Load(bytes).ExtractText();
+        string extracted = PdfReadDocument.Open(bytes).ExtractText();
 
         Assert.StartsWith("%PDF-1.6", raw, StringComparison.Ordinal);
         Assert.Contains("/FontFile3", raw, StringComparison.Ordinal);
@@ -1435,7 +1441,7 @@ public class PdfFontFamilyTests {
             .ToBytes();
 
         string raw = Encoding.ASCII.GetString(bytes);
-        string extracted = PdfReadDocument.Load(bytes).ExtractText();
+        string extracted = PdfReadDocument.Open(bytes).ExtractText();
 
         Assert.StartsWith("%PDF-1.6", raw, StringComparison.Ordinal);
         Assert.Contains("/FontFile3", raw, StringComparison.Ordinal);
@@ -1465,7 +1471,7 @@ public class PdfFontFamilyTests {
             .ToBytes();
 
         string raw = Encoding.ASCII.GetString(bytes);
-        string extracted = PdfReadDocument.Load(bytes).ExtractText();
+        string extracted = PdfReadDocument.Open(bytes).ExtractText();
 
         Assert.Contains(PdfStandardFont.TimesRoman, options.EmbeddedFonts.Keys);
         Assert.Contains("/FontFile3", raw, StringComparison.Ordinal);
@@ -1799,7 +1805,7 @@ public class PdfFontFamilyTests {
             .ToBytes();
 
         string raw = Encoding.ASCII.GetString(bytes);
-        string extracted = PdfReadDocument.Load(bytes).ExtractText();
+        string extracted = PdfReadDocument.Open(bytes).ExtractText();
 
         TextRun run = Assert.Single(runs);
         Assert.True(run.Bold);
@@ -1938,7 +1944,7 @@ public class PdfFontFamilyTests {
             .ToBytes();
 
         string raw = Encoding.ASCII.GetString(bytes);
-        string extracted = PdfReadDocument.Load(bytes).ExtractText();
+        string extracted = PdfReadDocument.Open(bytes).ExtractText();
 
         Assert.Contains("/BaseFont /Primary-BoldItalic", raw, StringComparison.Ordinal);
         Assert.Contains("13 Tf", raw, StringComparison.Ordinal);
@@ -1966,7 +1972,7 @@ public class PdfFontFamilyTests {
             .ToBytes();
 
         string raw = Encoding.ASCII.GetString(bytes);
-        string extracted = PdfReadDocument.Load(bytes).ExtractText();
+        string extracted = PdfReadDocument.Open(bytes).ExtractText();
 
         Assert.Contains("/BaseFont /Primary-Bold", raw, StringComparison.Ordinal);
         Assert.Contains("Zażółć gęślą jaźń", extracted, StringComparison.Ordinal);
@@ -1998,8 +2004,8 @@ public class PdfFontFamilyTests {
 
         string topLevelRaw = Encoding.ASCII.GetString(topLevelBytes);
         string rowColumnRaw = Encoding.ASCII.GetString(rowColumnBytes);
-        string topLevelText = PdfReadDocument.Load(topLevelBytes).ExtractText();
-        string rowColumnText = PdfReadDocument.Load(rowColumnBytes).ExtractText();
+        string topLevelText = PdfReadDocument.Open(topLevelBytes).ExtractText();
+        string rowColumnText = PdfReadDocument.Open(rowColumnBytes).ExtractText();
 
         Assert.Contains("/BaseFont /Primary-Bold", topLevelRaw, StringComparison.Ordinal);
         Assert.Contains("/BaseFont /Primary-Bold", rowColumnRaw, StringComparison.Ordinal);
@@ -2028,7 +2034,7 @@ public class PdfFontFamilyTests {
             .ToBytes();
 
         string raw = Encoding.ASCII.GetString(bytes);
-        string extracted = PdfReadDocument.Load(bytes).ExtractText();
+        string extracted = PdfReadDocument.Open(bytes).ExtractText();
 
         Assert.Contains("/BaseFont /Primary", raw, StringComparison.Ordinal);
         Assert.Contains("Body", extracted, StringComparison.Ordinal);
@@ -2076,8 +2082,8 @@ public class PdfFontFamilyTests {
 
         string topLevelRaw = Encoding.ASCII.GetString(topLevelBytes);
         string rowColumnRaw = Encoding.ASCII.GetString(rowColumnBytes);
-        string topLevelText = PdfReadDocument.Load(topLevelBytes).ExtractText();
-        string rowColumnText = PdfReadDocument.Load(rowColumnBytes).ExtractText();
+        string topLevelText = PdfReadDocument.Open(topLevelBytes).ExtractText();
+        string rowColumnText = PdfReadDocument.Open(rowColumnBytes).ExtractText();
 
         Assert.Contains("/BaseFont /Primary", topLevelRaw, StringComparison.Ordinal);
         Assert.Contains("/BaseFont /Primary", rowColumnRaw, StringComparison.Ordinal);
@@ -2112,7 +2118,7 @@ public class PdfFontFamilyTests {
             .ToBytes();
 
         string raw = Encoding.ASCII.GetString(bytes);
-        string extracted = PdfReadDocument.Load(bytes).ExtractText();
+        string extracted = PdfReadDocument.Open(bytes).ExtractText();
 
         Assert.Contains("/BaseFont /Primary", raw, StringComparison.Ordinal);
         Assert.Contains("Canvas Łódź", extracted, StringComparison.Ordinal);
@@ -2139,7 +2145,7 @@ public class PdfFontFamilyTests {
             .Canvas(canvas => canvas.Text(marker, 18, 16, 180, 28, fontSize: 12))
             .ToBytes();
 
-        PdfReadDocument read = PdfReadDocument.Load(bytes);
+        PdfReadDocument read = PdfReadDocument.Open(bytes);
 
         Assert.Contains(read.Pages[0].GetTextSpans(), span => span.Text == " ");
         Assert.Contains(marker, read.ExtractText(), StringComparison.Ordinal);
@@ -2431,7 +2437,7 @@ public class PdfFontFamilyTests {
             }
 
             string raw = Encoding.ASCII.GetString(bytes);
-            string extracted = PdfReadDocument.Load(bytes).ExtractText();
+            string extracted = PdfReadDocument.Open(bytes).ExtractText();
 
             Assert.Contains("/BaseFont /OfficeIMOPrimaryFallback", raw, StringComparison.Ordinal);
             Assert.Contains("/BaseFont /OfficeIMOEmojiFallback", raw, StringComparison.Ordinal);
@@ -2510,7 +2516,7 @@ public class PdfFontFamilyTests {
             }
 
             string raw = Encoding.ASCII.GetString(bytes);
-            string extracted = PdfReadDocument.Load(bytes).ExtractText();
+            string extracted = PdfReadDocument.Open(bytes).ExtractText();
 
             Assert.Contains("/BaseFont /OfficeIMOPrimary", raw, StringComparison.Ordinal);
             Assert.Contains("/BaseFont /EmojiFallback", raw, StringComparison.Ordinal);
@@ -2556,7 +2562,7 @@ public class PdfFontFamilyTests {
             }
 
             string raw = Encoding.ASCII.GetString(bytes);
-            string extracted = PdfReadDocument.Load(bytes).ExtractText();
+            string extracted = PdfReadDocument.Open(bytes).ExtractText();
 
             Assert.Contains("/BaseFont /OfficeIMOPrimary", raw, StringComparison.Ordinal);
             Assert.Contains("/BaseFont /EmojiFallback", raw, StringComparison.Ordinal);
@@ -2615,7 +2621,7 @@ public class PdfFontFamilyTests {
             }
 
             string raw = Encoding.ASCII.GetString(bytes);
-            string extracted = PdfReadDocument.Load(bytes).ExtractText();
+            string extracted = PdfReadDocument.Open(bytes).ExtractText();
 
             Assert.Contains("/BaseFont /OfficeIMOPrimary", raw, StringComparison.Ordinal);
             Assert.Contains("/BaseFont /EmojiFallback", raw, StringComparison.Ordinal);
@@ -2669,7 +2675,7 @@ public class PdfFontFamilyTests {
             }
 
             string raw = Encoding.ASCII.GetString(bytes);
-            string extracted = PdfReadDocument.Load(bytes).ExtractText();
+            string extracted = PdfReadDocument.Open(bytes).ExtractText();
 
             Assert.Contains("/BaseFont /OfficeIMODefault", raw, StringComparison.Ordinal);
             Assert.Contains("/BaseFont /OfficeIMOPrimary", raw, StringComparison.Ordinal);
@@ -2717,7 +2723,7 @@ public class PdfFontFamilyTests {
             }
 
             string raw = Encoding.ASCII.GetString(bytes);
-            string extracted = PdfReadDocument.Load(bytes).ExtractText();
+            string extracted = PdfReadDocument.Open(bytes).ExtractText();
 
             Assert.Contains("/BaseFont /OfficeIMOPrimary-Bold", raw, StringComparison.Ordinal);
             Assert.Contains("/BaseFont /Issue2035Fallback-Bold", raw, StringComparison.Ordinal);
@@ -2784,7 +2790,7 @@ public class PdfFontFamilyTests {
             }
 
             string raw = Encoding.ASCII.GetString(bytes);
-            string extracted = PdfReadDocument.Load(bytes).ExtractText();
+            string extracted = PdfReadDocument.Open(bytes).ExtractText();
 
             Assert.Contains("/BaseFont /Issue2035PolishFallback", raw, StringComparison.Ordinal);
             Assert.Contains("/BaseFont /Issue2035EmojiFallback", raw, StringComparison.Ordinal);
@@ -2836,7 +2842,7 @@ public class PdfFontFamilyTests {
             .ToBytes();
 
         string raw = Encoding.ASCII.GetString(pdf);
-        string extracted = PdfReadDocument.Load(pdf).ExtractText();
+        string extracted = PdfReadDocument.Open(pdf).ExtractText();
 
         Assert.Contains("/BaseFont /Primary-Bold", raw, StringComparison.Ordinal);
         Assert.Contains("DRAFT Łódź", extracted, StringComparison.Ordinal);

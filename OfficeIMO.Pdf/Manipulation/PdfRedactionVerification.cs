@@ -3,7 +3,7 @@ namespace OfficeIMO.Pdf;
 /// <summary>
 /// Provides reusable post-redaction checks for removed and retained PDF text markers.
 /// </summary>
-public static partial class PdfRedactionVerification {
+internal static partial class PdfRedactionVerification {
     /// <summary>
     /// Verifies a redacted PDF using the supplied redaction verification profile.
     /// </summary>
@@ -11,7 +11,7 @@ public static partial class PdfRedactionVerification {
         Guard.NotNull(redactedPdf, nameof(redactedPdf));
         Guard.NotNull(options, nameof(options));
 
-        string extractedText = PdfReadDocument.Load(redactedPdf).ExtractText();
+        string extractedText = PdfReadDocument.Open(redactedPdf).ExtractText();
         string rawPdf = options.CheckRawPdfBytes ? PdfEncoding.Latin1GetString(redactedPdf) : string.Empty;
         var issues = new List<PdfRedactionVerificationIssue>();
         var externalResults = new List<PdfRedactionExternalValidationResult>();

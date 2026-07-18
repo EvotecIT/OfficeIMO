@@ -1,4 +1,3 @@
-using OfficeIMO.Drawing.Internal;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -12,8 +11,8 @@ public sealed partial class PdfDocument {
     private readonly System.Collections.Generic.List<IPdfBlock> _blocks = new();
     private readonly PdfOptions _options;
     private readonly System.Collections.Generic.Stack<System.Action<IPdfBlock>> _blockScopes;
-    private readonly byte[]? _loadedPdf;
-    private readonly PdfReadOptions? _readOptions;
+    private readonly PdfDocumentSource? _source;
+    private readonly PdfPipelineReport _pipeline;
 
     // Metadata
     private string? _title;
@@ -23,6 +22,7 @@ public sealed partial class PdfDocument {
 
     private PdfDocument(PdfOptions? options = null) {
         _options = options?.Clone() ?? new PdfOptions();
+        _pipeline = PdfPipelineReport.Created();
         _blockScopes = new System.Collections.Generic.Stack<System.Action<IPdfBlock>>();
         _blockScopes.Push(_blocks.Add);
         Pages = new PdfDocumentPages(this);
@@ -34,9 +34,14 @@ public sealed partial class PdfDocument {
         Annotations = new PdfDocumentAnnotations(this);
     }
 
-    private PdfDocument(byte[] pdf, PdfReadOptions? readOptions = null) : this() {
-        _loadedPdf = (byte[])pdf.Clone();
-        _readOptions = readOptions;
+    private PdfDocument(PdfDocumentSource source) : this() {
+        _source = source;
+        _pipeline = PdfPipelineReport.Opened(source);
+    }
+
+    private PdfDocument(PdfDocumentSource source, PdfPipelineReport pipeline) : this() {
+        _source = source;
+        _pipeline = pipeline;
     }
 
     /// <summary>
@@ -47,70 +52,50 @@ public sealed partial class PdfDocument {
     public static PdfDocument Create(PdfOptions? options = null) => new PdfDocument(options);
 
     /// <summary>
-    /// Loads an existing PDF from bytes and snapshots the input.
+    /// Opens an existing PDF from bytes and snapshots the caller-owned input once.
     /// </summary>
-    public static PdfDocument Load(byte[] pdf) {
-        Guard.NotNull(pdf, nameof(pdf));
-        return new PdfDocument(pdf);
-    }
+    public static PdfDocument Open(byte[] pdf, PdfReadOptions? readOptions = null) =>
+        new PdfDocument(PdfDocumentSource.FromCallerBytes(pdf, readOptions));
 
     /// <summary>
-    /// Loads an existing PDF from bytes and snapshots the input.
+    /// Opens a byte buffer owned by a trusted OfficeIMO adapter without making another snapshot.
+    /// The adapter must never mutate the buffer after this call.
     /// </summary>
-    public static PdfDocument Load(byte[] pdf, PdfReadOptions? readOptions) {
-        Guard.NotNull(pdf, nameof(pdf));
-        return new PdfDocument(pdf, readOptions);
-    }
+    internal static PdfDocument OpenOwned(byte[] pdf, PdfReadOptions? readOptions = null) =>
+        new PdfDocument(PdfDocumentSource.FromOwnedBytes(pdf, readOptions));
 
     /// <summary>
-    /// Loads an existing PDF from a file path.
+    /// Opens an existing PDF from a bounded file snapshot.
     /// </summary>
-    public static PdfDocument Load(string path) {
-        Guard.NotNullOrWhiteSpace(path, nameof(path));
-        return Load(File.ReadAllBytes(path));
-    }
+    public static PdfDocument Open(string path, PdfReadOptions? readOptions = null) =>
+        new PdfDocument(PdfDocumentSource.FromPath(path, readOptions));
 
     /// <summary>
-    /// Loads an existing PDF from a file path.
+    /// Opens a complete PDF from a readable stream. Seekable streams are read from the beginning and restored.
     /// </summary>
-    public static PdfDocument Load(string path, PdfReadOptions? readOptions) {
-        Guard.NotNullOrWhiteSpace(path, nameof(path));
-        return Load(File.ReadAllBytes(path), readOptions);
-    }
+    public static PdfDocument Open(Stream stream, PdfReadOptions? readOptions = null) =>
+        new PdfDocument(PdfDocumentSource.FromStream(stream, readOptions));
 
-    /// <summary>
-    /// Loads a complete PDF from a readable stream. Seekable streams are read from the beginning and restored.
-    /// </summary>
-    public static PdfDocument Load(Stream stream) {
-        return Load(OfficeStreamReader.ReadAllBytes(stream));
-    }
-
-    /// <summary>
-    /// Loads a complete PDF from a readable stream. Seekable streams are read from the beginning and restored.
-    /// </summary>
-    public static PdfDocument Load(Stream stream, PdfReadOptions? readOptions) {
-        return Load(OfficeStreamReader.ReadAllBytes(stream), readOptions);
-    }
-
-    /// <summary>Asynchronously loads an existing PDF from a file path.</summary>
-    public static async Task<PdfDocument> LoadAsync(
+    /// <summary>Asynchronously opens an existing PDF from a bounded file snapshot.</summary>
+    public static async Task<PdfDocument> OpenAsync(
         string path,
         PdfReadOptions? readOptions = null,
         CancellationToken cancellationToken = default) {
-        Guard.NotNullOrWhiteSpace(path, nameof(path));
-        string fullPath = System.IO.Path.GetFullPath(path);
-        using var stream = new FileStream(fullPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete, 81920, useAsync: true);
-        byte[] bytes = await OfficeStreamReader.ReadAllBytesAsync(stream, cancellationToken).ConfigureAwait(false);
-        return Load(bytes, readOptions);
+        PdfDocumentSource source = await PdfDocumentSource
+            .FromPathAsync(path, readOptions, cancellationToken)
+            .ConfigureAwait(false);
+        return new PdfDocument(source);
     }
 
-    /// <summary>Asynchronously loads a complete PDF from a readable caller-owned stream.</summary>
-    public static async Task<PdfDocument> LoadAsync(
+    /// <summary>Asynchronously opens a complete PDF from a readable caller-owned stream.</summary>
+    public static async Task<PdfDocument> OpenAsync(
         Stream stream,
         PdfReadOptions? readOptions = null,
         CancellationToken cancellationToken = default) {
-        byte[] bytes = await OfficeStreamReader.ReadAllBytesAsync(stream, cancellationToken).ConfigureAwait(false);
-        return Load(bytes, readOptions);
+        PdfDocumentSource source = await PdfDocumentSource
+            .FromStreamAsync(stream, readOptions, cancellationToken)
+            .ConfigureAwait(false);
+        return new PdfDocument(source);
     }
 
     /// <summary>
@@ -131,6 +116,12 @@ public sealed partial class PdfDocument {
 
     /// <summary>Existing-document annotation editing operations.</summary>
     public PdfDocumentAnnotations Annotations { get; }
+
+    /// <summary>
+    /// Immutable create/open and mutation history accumulated by this document.
+    /// Save and byte-generation results append their own exact output stage.
+    /// </summary>
+    public PdfPipelineReport Pipeline => _pipeline;
 
     /// <summary>
     /// Text and image stamping operations for this PDF.
@@ -210,25 +201,108 @@ public sealed partial class PdfDocument {
     private void PopScope() { if (_blockScopes.Count > 1) _blockScopes.Pop(); }
 
     private void EnsureGeneratedDocument() {
-        if (_loadedPdf is not null) {
+        if (_source is not null) {
             throw new InvalidOperationException("This PDF was opened from existing bytes and cannot accept generated document content. Use Pages, Stamp, Forms, metadata operations, or create a new PdfDocument.");
         }
     }
 
-    internal byte[] Snapshot() {
-        return ToBytes();
+    internal byte[] GetBytesForOperation() => _source?.Bytes ?? RenderBytesCore();
+
+    internal PdfReadDocument GetReadDocument(PdfReadOptions? options = null) {
+        if (_source is not null) {
+            return _source.Read(options);
+        }
+
+        return PdfReadDocument.Open(RenderBytesCore(), options);
     }
 
-    internal PdfReadOptions? ReadOptions => _readOptions;
+    /// <summary>
+    /// Captures one byte snapshot and its canonical parse for a compound read operation.
+    /// Generated documents are rendered once for the complete operation.
+    /// </summary>
+    internal (byte[] Bytes, PdfReadDocument Document, PdfReadOptions Options) GetReadSnapshot(
+        PdfReadOptions? options = null) {
+        PdfReadOptions effectiveOptions = PdfReadOptions.Resolve(options ?? ReadOptions);
+        if (_source is not null) {
+            return (_source.Bytes, _source.Read(effectiveOptions), effectiveOptions);
+        }
+
+        byte[] bytes = RenderBytesCore();
+        return (bytes, PdfReadDocument.Open(bytes, effectiveOptions), effectiveOptions);
+    }
+
+    internal PdfReadOptions ReadOptions {
+        get {
+            if (_source is not null) {
+                return _source.Options;
+            }
+
+            PdfStandardEncryptionOptions? encryption = _options.EncryptionSnapshot;
+            return encryption is null
+                ? PdfReadOptions.Default
+                : new PdfReadOptions { Password = encryption.UserPassword };
+        }
+    }
 
     internal static PdfDocument FromBytes(byte[] pdf) {
         Guard.NotNull(pdf, nameof(pdf));
-        return new PdfDocument(pdf);
+        return new PdfDocument(PdfDocumentSource.FromOwnedBytes(pdf, null));
     }
 
     internal static PdfDocument FromBytes(byte[] pdf, PdfReadOptions? readOptions) {
         Guard.NotNull(pdf, nameof(pdf));
-        return new PdfDocument(pdf, readOptions);
+        return new PdfDocument(PdfDocumentSource.FromOwnedBytes(pdf, readOptions));
+    }
+
+    /// <summary>
+    /// Adopts an internal operation result while carrying the source document's read contract forward.
+    /// </summary>
+    internal PdfDocument ApplyMutation(
+        Func<byte[], byte[]> mutation,
+        PdfReadOptions? readOptions = null,
+        [System.Runtime.CompilerServices.CallerMemberName] string operationName = "") {
+        Guard.NotNull(mutation, nameof(mutation));
+        byte[] inputBytes = GetBytesForOperation();
+        byte[] outputBytes = mutation(inputBytes);
+        return WithBytes(inputBytes, outputBytes, readOptions, operationName);
+    }
+
+    internal PdfDocument WithBytes(
+        byte[] inputBytes,
+        byte[] pdf,
+        PdfReadOptions? readOptions = null,
+        [System.Runtime.CompilerServices.CallerMemberName] string operationName = "") {
+        Guard.NotNull(inputBytes, nameof(inputBytes));
+        PdfArtifactSnapshot input = _pipeline.Output ?? PdfArtifactSnapshot.Capture(inputBytes, ReadOptions);
+        return WithBytes(inputBytes, input, pdf, readOptions, operationName);
+    }
+
+    internal PdfDocument WithBytes(
+        byte[] inputBytes,
+        PdfArtifactSnapshot input,
+        byte[] pdf,
+        PdfReadOptions? readOptions = null,
+        [System.Runtime.CompilerServices.CallerMemberName] string operationName = "") {
+        Guard.NotNull(inputBytes, nameof(inputBytes));
+        Guard.NotNull(input, nameof(input));
+        Guard.NotNull(pdf, nameof(pdf));
+        PdfReadOptions effectiveReadOptions = readOptions ?? ReadOptions;
+        PdfArtifactSnapshot output = PdfArtifactSnapshot.Capture(pdf, effectiveReadOptions);
+        PdfMutationOperation? mutationOperation = ResolveMutationOperation(operationName);
+        PdfMutationExecutionMode executionMode = IsAppendOnly(inputBytes, pdf)
+            ? PdfMutationExecutionMode.AppendOnly
+            : PdfMutationExecutionMode.FullRewrite;
+        var step = new PdfPipelineStep(
+            PdfPipelineStepKind.Mutation,
+            NormalizeOperationName(operationName),
+            succeeded: true,
+            input,
+            output,
+            duration: null,
+            mutationOperation,
+            executionMode);
+        var source = PdfDocumentSource.FromOwnedBytes(pdf, effectiveReadOptions);
+        return new PdfDocument(source, _pipeline.Append(step));
     }
 
     private sealed class Scope : System.IDisposable {

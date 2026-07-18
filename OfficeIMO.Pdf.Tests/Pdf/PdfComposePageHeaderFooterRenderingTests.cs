@@ -445,7 +445,7 @@ namespace OfficeIMO.Tests.Pdf {
                     .Paragraph(p => p.Text("Header zone overlap body."))
                     .ToBytes());
 
-            Assert.Contains("PDF header zone text", headerException.Message, StringComparison.Ordinal);
+            Assert.Contains("PDF header zone content", headerException.Message, StringComparison.Ordinal);
 
             var footerException = Assert.Throws<ArgumentException>(() =>
                 PdfDocument.Create(new PdfOptions {
@@ -461,7 +461,7 @@ namespace OfficeIMO.Tests.Pdf {
                     .Paragraph(p => p.Text("Footer zone overlap body."))
                     .ToBytes());
 
-            Assert.Contains("PDF footer zone text", footerException.Message, StringComparison.Ordinal);
+            Assert.Contains("PDF footer zone content", footerException.Message, StringComparison.Ordinal);
         }
 
         [Fact]
@@ -533,19 +533,57 @@ namespace OfficeIMO.Tests.Pdf {
                     DefaultFontSize = 10
                 })
                 .Header(header => header.Image(png, 24, 12, PdfAlign.Left).Text("HeaderImageText"))
-                .Footer(footer => footer.Image(png, 30, 10, PdfAlign.Right))
+                .Footer(footer => footer.Image(png, 30, 10, PdfAlign.Center))
                 .Paragraph(paragraph => paragraph.Text("Header footer image body"));
 
             byte[] bytes = doc.ToBytes();
             string rawPdf = Encoding.ASCII.GetString(bytes);
 
             Assert.Contains("24 0 0 12 30 166 cm", rawPdf);
-            Assert.Contains("30 0 0 10 240 22 cm", rawPdf);
+            Assert.Contains("30 0 0 10 135 22 cm", rawPdf);
             using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
             string text = pdf.GetPage(1).Text;
             Assert.Contains("HeaderImageText", text);
             Assert.Contains("Header footer image body", text);
             Assert.DoesNotContain("Page 1", text, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void HeaderFooterImages_SharingAnAlignmentFormOneNonOverlappingGroupWithText() {
+            byte[] png = CreateMinimalRgbPng();
+            var doc = PdfDocument.Create(new PdfOptions {
+                    PageWidth = 300,
+                    PageHeight = 200,
+                    MarginLeft = 30,
+                    MarginRight = 30,
+                    MarginTop = 40,
+                    MarginBottom = 40,
+                    HeaderFontSize = 9
+                })
+                .Header(header => header
+                    .Zones(null, "Centered header", null)
+                    .Image(png, 24, 12, PdfAlign.Center))
+                .Paragraph(paragraph => paragraph.Text("Body"));
+
+            byte[] bytes = doc.ToBytes();
+            string rawPdf = Encoding.ASCII.GetString(bytes);
+            System.Text.RegularExpressions.Match imagePlacement = System.Text.RegularExpressions.Regex.Match(
+                rawPdf,
+                @"24 0 0 12 (?<x>-?\d+(?:\.\d+)?) 166 cm",
+                System.Text.RegularExpressions.RegexOptions.CultureInvariant);
+            Assert.True(imagePlacement.Success, "Expected a centered 24-by-12 header image placement.");
+            double imageX = double.Parse(imagePlacement.Groups["x"].Value, System.Globalization.CultureInfo.InvariantCulture);
+
+            using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
+            var headerLetters = pdf.GetPage(1).Letters
+                .Where(letter => letter.StartBaseLine.Y > 170D)
+                .ToList();
+            Assert.NotEmpty(headerLetters);
+
+            double textLeft = headerLetters.Min(letter => letter.StartBaseLine.X);
+            double textRight = headerLetters.Max(letter => letter.EndBaseLine.X);
+            Assert.True(imageX >= textRight + 3.9D, "Aligned header text and images must not overlap.");
+            Assert.InRange(Math.Abs((textLeft + imageX + 24D) / 2D - 150D), 0D, 0.1D);
         }
 
         [Fact]
@@ -582,10 +620,44 @@ namespace OfficeIMO.Tests.Pdf {
             Assert.Contains("0 0.502 0 RG", rawPdf);
             Assert.Contains(" re B", rawPdf);
             using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
-            string text = pdf.GetPage(1).Text;
+            var page = pdf.GetPage(1);
+            string text = page.Text;
             Assert.Contains("HeaderShapeText", text);
             Assert.Contains("Header footer shape body", text);
             Assert.DoesNotContain("Page 1", text, StringComparison.Ordinal);
+
+            var letters = page.Letters.ToList();
+            string letterText = string.Concat(letters.Select(letter => letter.Value));
+            int headerStart = letterText.IndexOf("HeaderShapeText", StringComparison.Ordinal);
+            Assert.True(headerStart >= 0);
+            var headerLetters = letters
+                .Skip(headerStart)
+                .Take("HeaderShapeText".Length)
+                .ToList();
+            double textLeft = headerLetters.Min(letter => letter.StartBaseLine.X);
+            double textRight = headerLetters.Max(letter => letter.EndBaseLine.X);
+
+            System.Text.RegularExpressions.Match headerPlacement = System.Text.RegularExpressions.Regex.Match(
+                rawPdf,
+                @"(?<x>-?\d+(?:\.\d+)?) (?<y>-?\d+(?:\.\d+)?) 20 10 re B",
+                System.Text.RegularExpressions.RegexOptions.CultureInvariant);
+            Assert.True(headerPlacement.Success, "Expected the 20-by-10 header rectangle placement.");
+            double headerShapeX = double.Parse(
+                headerPlacement.Groups["x"].Value,
+                System.Globalization.CultureInfo.InvariantCulture);
+
+            Assert.True(headerShapeX >= textRight + 3.9D, "Aligned header text and shapes must not overlap.");
+            Assert.InRange(Math.Abs((textLeft + headerShapeX + 20D) / 2D - 150D), 0D, 0.1D);
+
+            System.Text.RegularExpressions.Match footerPlacement = System.Text.RegularExpressions.Regex.Match(
+                rawPdf,
+                @"(?<x>-?\d+(?:\.\d+)?) (?<y>-?\d+(?:\.\d+)?) 22 8 re B",
+                System.Text.RegularExpressions.RegexOptions.CultureInvariant);
+            Assert.True(footerPlacement.Success, "Expected the 22-by-8 footer rectangle placement.");
+            double footerShapeX = double.Parse(
+                footerPlacement.Groups["x"].Value,
+                System.Globalization.CultureInfo.InvariantCulture);
+            Assert.InRange(footerShapeX, 247.99D, 248.01D);
         }
 
     }

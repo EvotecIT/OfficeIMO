@@ -1,4 +1,5 @@
 using System.Globalization;
+using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Pdf;
 
@@ -1363,7 +1364,7 @@ internal static partial class PdfWriter {
         while (index < text.Length) {
             int scalarStart = index;
             if (shapingMode == PdfTextShapingMode.LatinLigatures &&
-                PdfLatinLigatureSubstitution.TryGetPresentationLigature(text, scalarStart, out int ligatureScalar, out int ligatureLength) &&
+                OfficeTextLigatures.TryGetLatinPresentationForm(text, scalarStart, out int ligatureScalar, out int ligatureLength) &&
                 fontProgram.TryGetGlyphId(ligatureScalar, out int ligatureGlyphId) &&
                 ligatureGlyphId > 0) {
                 index += ligatureLength;
@@ -1389,7 +1390,7 @@ internal static partial class PdfWriter {
 
     private static bool TryGetCoveredTextLength(string text, int index, PdfTrueTypeFontProgram fontProgram, PdfTextShapingMode shapingMode, out int length) {
         if (shapingMode == PdfTextShapingMode.LatinLigatures &&
-            PdfLatinLigatureSubstitution.TryGetPresentationLigature(text, index, out int ligatureScalar, out length) &&
+            OfficeTextLigatures.TryGetLatinPresentationForm(text, index, out int ligatureScalar, out length) &&
             fontProgram.TryGetGlyphId(ligatureScalar, out int ligatureGlyphId) &&
             ligatureGlyphId > 0) {
             return true;
@@ -1406,7 +1407,7 @@ internal static partial class PdfWriter {
         while (index < text.Length) {
             int scalarStart = index;
             if (shapingMode == PdfTextShapingMode.LatinLigatures &&
-                PdfLatinLigatureSubstitution.TryGetPresentationLigature(text, scalarStart, out int ligatureScalar, out int ligatureLength) &&
+                OfficeTextLigatures.TryGetLatinPresentationForm(text, scalarStart, out int ligatureScalar, out int ligatureLength) &&
                 fontProgram.TryGetGlyphId(ligatureScalar, out int ligatureGlyphId) &&
                 ligatureGlyphId > 0) {
                 index += ligatureLength;
@@ -1432,7 +1433,7 @@ internal static partial class PdfWriter {
 
     private static bool TryGetCoveredTextLength(string text, int index, PdfOpenTypeCffFontProgram fontProgram, PdfTextShapingMode shapingMode, out int length) {
         if (shapingMode == PdfTextShapingMode.LatinLigatures &&
-            PdfLatinLigatureSubstitution.TryGetPresentationLigature(text, index, out int ligatureScalar, out length) &&
+            OfficeTextLigatures.TryGetLatinPresentationForm(text, index, out int ligatureScalar, out length) &&
             fontProgram.TryGetGlyphId(ligatureScalar, out int ligatureGlyphId) &&
             ligatureGlyphId > 0) {
             return true;

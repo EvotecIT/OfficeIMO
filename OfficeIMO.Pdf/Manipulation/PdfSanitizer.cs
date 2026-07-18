@@ -1,7 +1,7 @@
 namespace OfficeIMO.Pdf;
 
 /// <summary>Removes or quarantines active content and embedded payloads through a proven full rewrite.</summary>
-public static partial class PdfSanitizer {
+internal static partial class PdfSanitizer {
     /// <summary>Returns the forbidden-content inventory that the supplied policy would remove.</summary>
     public static IReadOnlyList<PdfSanitizationFinding> Analyze(byte[] pdf, PdfSanitizationOptions? options = null) {
         Guard.NotNull(pdf, nameof(pdf));

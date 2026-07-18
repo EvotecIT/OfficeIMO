@@ -3,7 +3,7 @@ using System.Globalization;
 
 namespace OfficeIMO.Pdf;
 
-public static partial class PdfPageExtractor {
+internal static partial class PdfPageExtractor {
     private static void WriteOutput(Stream outputStream, byte[] bytes) {
         ValidateWritableOutputStream(outputStream);
     

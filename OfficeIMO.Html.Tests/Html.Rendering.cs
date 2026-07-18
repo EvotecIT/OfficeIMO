@@ -264,7 +264,7 @@ public sealed partial class HtmlRenderingTests {
         PdfCore.PdfDocumentConversionResult result = await OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfDocumentResultAsync(options);
         byte[] pdf = result.ToBytes();
 
-        Assert.Contains("AsyncPdfMarker", PdfCore.PdfReadDocument.Load(pdf).ExtractText(), StringComparison.Ordinal);
+        Assert.Contains("AsyncPdfMarker", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
         Assert.Contains(PdfCore.PdfImageExtractor.ExtractImages(pdf), image => image.IsImageFile && image.MimeType == "image/png");
         Assert.DoesNotContain(result.Report.Warnings, warning => warning.Code == HtmlRenderDiagnosticCodes.ExternalImagePending);
     }
@@ -282,7 +282,7 @@ public sealed partial class HtmlRenderingTests {
 
         PdfCore.PdfDocumentConversionResult result = await OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfDocumentResultAsync(options);
         byte[] pdf = result.ToBytes();
-        PdfCore.PdfReadDocument read = PdfCore.PdfReadDocument.Load(pdf);
+        PdfCore.PdfReadDocument read = PdfCore.PdfReadDocument.Open(pdf);
         (double width, double height) = read.Pages[0].GetPageSize();
 
         Assert.Equal(288D, width, 2);
@@ -472,7 +472,7 @@ public sealed partial class HtmlRenderingTests {
         PdfCore.PdfDocumentConversionResult result = await archive.ToPdfDocumentResultAsync();
         byte[] pdf = result.ToBytes();
 
-        string text = PdfCore.PdfReadDocument.Load(pdf).ExtractText().Replace("\r", string.Empty).Replace("\n", string.Empty);
+        string text = PdfCore.PdfReadDocument.Open(pdf).ExtractText().Replace("\r", string.Empty).Replace("\n", string.Empty);
         Assert.Contains("MhtmlPdfMarker", text, StringComparison.Ordinal);
         Assert.Contains(PdfCore.PdfImageExtractor.ExtractImages(pdf), image => image.IsImageFile && image.MimeType == "image/png");
         Assert.DoesNotContain(result.Warnings, warning => warning.Code == HtmlRenderDiagnosticCodes.ResourceUnavailable);
@@ -775,7 +775,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlPdfSaveOptions pdfOptions = new HtmlPdfSaveOptions();
         pdfOptions = new HtmlPdfSaveOptions(renderOptions);
         byte[] pdf = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(pdfOptions);
-        string pdfText = PdfCore.PdfReadDocument.Load(pdf).ExtractText();
+        string pdfText = PdfCore.PdfReadDocument.Open(pdf).ExtractText();
         Assert.Contains("word089", pdfText, StringComparison.Ordinal);
         Assert.Contains("Row17", pdfText, StringComparison.Ordinal);
         Assert.Equal(rendered.Pages.Count, PdfCore.PdfInspector.Inspect(pdf).PageCount);
@@ -831,7 +831,7 @@ public sealed partial class HtmlRenderingTests {
 
         HtmlPdfSaveOptions pdfOptions = new HtmlPdfSaveOptions();
         pdfOptions = new HtmlPdfSaveOptions(renderOptions);
-        string pdfText = PdfCore.PdfReadDocument.Load(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(pdfOptions)).ExtractText();
+        string pdfText = PdfCore.PdfReadDocument.Open(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(pdfOptions)).ExtractText();
         int repeatedHeaderCount = pdfText.Split(new[] { "HeaderMarker" }, StringSplitOptions.None).Length - 1;
         Assert.Equal(rendered.Pages.Count, repeatedHeaderCount);
     }
@@ -867,7 +867,7 @@ public sealed partial class HtmlRenderingTests {
 
         HtmlPdfSaveOptions pdfOptions = new HtmlPdfSaveOptions();
         pdfOptions = new HtmlPdfSaveOptions(renderOptions);
-        string pdfText = PdfCore.PdfReadDocument.Load(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(pdfOptions)).ExtractText();
+        string pdfText = PdfCore.PdfReadDocument.Open(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(pdfOptions)).ExtractText();
         int repeatedFooterCount = pdfText.Split(new[] { "FooterMarker" }, StringSplitOptions.None).Length - 1;
         Assert.Equal(rendered.Pages.Count, repeatedFooterCount);
 
@@ -911,7 +911,7 @@ public sealed partial class HtmlRenderingTests {
 
         HtmlPdfSaveOptions pdfOptions = new HtmlPdfSaveOptions();
         pdfOptions = new HtmlPdfSaveOptions(options);
-        string pdfText = PdfCore.PdfReadDocument.Load(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(pdfOptions)).ExtractText();
+        string pdfText = PdfCore.PdfReadDocument.Open(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(pdfOptions)).ExtractText();
         Assert.Contains("Group00", pdfText, StringComparison.Ordinal);
         Assert.Contains("Group09", pdfText, StringComparison.Ordinal);
         Assert.Contains("ZeroMarker", pdfText, StringComparison.Ordinal);
@@ -959,7 +959,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlPdfSaveOptions pdfOptions = new HtmlPdfSaveOptions();
         pdfOptions = new HtmlPdfSaveOptions(options);
         byte[] pdf = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(pdfOptions);
-        string pdfText = PdfCore.PdfReadDocument.Load(pdf).ExtractText();
+        string pdfText = PdfCore.PdfReadDocument.Open(pdf).ExtractText();
         Assert.Equal(rendered.Pages.Count, PdfCore.PdfInspector.Inspect(pdf).PageCount);
         Assert.Contains("FirstPage", pdfText, StringComparison.Ordinal);
         Assert.Contains("Page 2 of " + rendered.Pages.Count, pdfText, StringComparison.Ordinal);
@@ -1034,7 +1034,7 @@ public sealed partial class HtmlRenderingTests {
 
         HtmlPdfSaveOptions pdfOptions = new HtmlPdfSaveOptions();
         pdfOptions = new HtmlPdfSaveOptions(options);
-        string pdfText = PdfCore.PdfReadDocument.Load(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(pdfOptions)).ExtractText();
+        string pdfText = PdfCore.PdfReadDocument.Open(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(pdfOptions)).ExtractText();
         Assert.Contains("Invoice", pdfText, StringComparison.Ordinal);
         Assert.Contains("IL", pdfText, StringComparison.Ordinal);
         Assert.Contains("Report", pdfText, StringComparison.Ordinal);
@@ -1080,7 +1080,7 @@ public sealed partial class HtmlRenderingTests {
 
         HtmlPdfSaveOptions pdfOptions = new HtmlPdfSaveOptions();
         pdfOptions = new HtmlPdfSaveOptions(options);
-        string pdfText = PdfCore.PdfReadDocument.Load(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(pdfOptions)).ExtractText();
+        string pdfText = PdfCore.PdfReadDocument.Open(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(pdfOptions)).ExtractText();
         foreach (string marker in markers) Assert.Contains(marker, pdfText, StringComparison.Ordinal);
     }
 
@@ -1113,7 +1113,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlPdfSaveOptions pdfOptions = new HtmlPdfSaveOptions();
         pdfOptions = new HtmlPdfSaveOptions(options);
         byte[] pdf = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(pdfOptions);
-        string pdfText = PdfCore.PdfReadDocument.Load(pdf).ExtractText();
+        string pdfText = PdfCore.PdfReadDocument.Open(pdf).ExtractText();
         Assert.Equal(3, PdfCore.PdfInspector.Inspect(pdf).PageCount);
         Assert.Contains("FirstBody", pdfText, StringComparison.Ordinal);
         Assert.Contains("L2", pdfText, StringComparison.Ordinal);
@@ -1179,7 +1179,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(firstPng, secondPng);
         Assert.Equal(firstSvg, secondSvg);
         Assert.Equal(firstPdf, secondPdf);
-        Assert.Contains("StableMarker", PdfCore.PdfReadDocument.Load(firstPdf).ExtractText(), StringComparison.Ordinal);
+        Assert.Contains("StableMarker", PdfCore.PdfReadDocument.Open(firstPdf).ExtractText(), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -1244,7 +1244,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal("Semantic heading", outline.Title);
         Assert.Equal(1, outline.Level);
         Assert.Equal("Nested detail", Assert.Single(outline.Children).Title);
-        Assert.Contains("Semantic heading", PdfCore.PdfReadDocument.Load(pdf).ExtractText(), StringComparison.Ordinal);
+        Assert.Contains("Semantic heading", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -1263,7 +1263,7 @@ public sealed partial class HtmlRenderingTests {
         PdfCore.PdfDocumentConversionResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfDocumentResult(options);
         byte[] pdf = result.ToBytes();
         PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(pdf);
-        string text = PdfCore.PdfReadDocument.Load(pdf).ExtractText();
+        string text = PdfCore.PdfReadDocument.Open(pdf).ExtractText();
 
         Assert.Equal(2, info.PageCount);
         Assert.Contains("RenderedPdfMarker", text, StringComparison.Ordinal);
@@ -1280,7 +1280,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlPdfSaveOptions options = new HtmlPdfSaveOptions();
 
         byte[] pdf = OfficeIMO.Html.HtmlConversionDocument.Parse("<p>" + marker + "</p>").ToPdf(options);
-        string extracted = PdfCore.PdfReadDocument.Load(pdf).ExtractText();
+        string extracted = PdfCore.PdfReadDocument.Open(pdf).ExtractText();
 
         Assert.Equal(PdfCore.PdfTextFallbackFeatures.Default, options.TextFallbacks);
         Assert.Equal(PdfCore.PdfTextShapingMode.LatinLigatures, options.TextShapingMode);
@@ -1297,7 +1297,7 @@ public sealed partial class HtmlRenderingTests {
 
         byte[] pdf = OfficeIMO.Html.HtmlConversionDocument.Parse("<h1>" + marker + "</h1>").ToPdf(new HtmlPdfSaveOptions());
 
-        Assert.Contains(marker, PdfCore.PdfReadDocument.Load(pdf).ExtractText(), StringComparison.Ordinal);
+        Assert.Contains(marker, PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -1310,7 +1310,7 @@ public sealed partial class HtmlRenderingTests {
         byte[] pdf = OfficeIMO.Html.HtmlConversionDocument.Parse("<h1>" + marker + "</h1>").ToPdf(options);
         PdfCore.PdfDiagnosticReport report = PdfCore.PdfDiagnostics.Analyze(pdf);
 
-        Assert.Contains(marker, PdfCore.PdfReadDocument.Load(pdf).ExtractText(), StringComparison.Ordinal);
+        Assert.Contains(marker, PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
         Assert.Contains(report.Fonts, font => font.BaseFont?.Contains("CallerUnicode", StringComparison.Ordinal) == true);
     }
 
@@ -1468,8 +1468,8 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(2, tagged.StructureElements.Count(element => element.StructureType == "Lbl"));
         Assert.Equal(2, tagged.StructureElements.Count(element => element.StructureType == "LBody"));
         Assert.All(pdfItems, item => Assert.Contains(item.ObjectNumber, list.ChildElementObjectNumbers));
-        Assert.Contains("1. First item", PdfCore.PdfReadDocument.Load(pdf).ExtractText(), StringComparison.Ordinal);
-        Assert.Contains("2. Second item", PdfCore.PdfReadDocument.Load(pdf).ExtractText(), StringComparison.Ordinal);
+        Assert.Contains("1. First item", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
+        Assert.Contains("2. Second item", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -1497,7 +1497,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains("/Scope /Row", raw, StringComparison.Ordinal);
         Assert.Contains("/ColSpan 2", raw, StringComparison.Ordinal);
         Assert.Contains("/RowSpan 2", raw, StringComparison.Ordinal);
-        Assert.Contains("Quarterly status", PdfCore.PdfReadDocument.Load(pdf).ExtractText(), StringComparison.Ordinal);
+        Assert.Contains("Quarterly status", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
     }
 
     [Fact]

@@ -103,8 +103,9 @@ internal static partial class PdfReaderAdapter {
         var effectivePdfOptions = ReaderPdfOptionsCloner.CloneOrDefault(pdfOptions);
         ReaderInputLimits.EnforceFileSize(pdfPath, effectiveReaderOptions.MaxInputBytes);
         var source = BuildSourceMetadataFromPath(pdfPath, effectiveReaderOptions.ComputeHashes);
-        PdfDocumentPreflight preflight = PdfInspector.Preflight(pdfPath);
-        PdfLogicalDocument document = LoadDocument(pdfPath, effectivePdfOptions);
+        PdfDocument pdf = PdfDocument.Open(pdfPath, CreatePdfReadOptions(effectiveReaderOptions));
+        PdfDocumentPreflight preflight = pdf.Preflight();
+        PdfLogicalDocument document = LoadDocument(pdf, effectivePdfOptions);
         return BuildDocumentResult(document, source, effectiveReaderOptions, effectivePdfOptions, preflight, applyPageRanges: false, cancellationToken);
     }
 
@@ -123,34 +124,12 @@ internal static partial class PdfReaderAdapter {
             SourceId = BuildSourceId(logicalSourceName)
         };
 
-        Stream parseStream;
-        bool ownsParseStream;
-        if (pdfStream.CanSeek) {
-            ReaderInputLimits.EnforceSeekableStreamSize(pdfStream, effectiveReaderOptions.MaxInputBytes);
-            parseStream = ReaderInputLimits.EnsureSeekableReadStream(pdfStream, null, cancellationToken, out ownsParseStream);
-        } else {
-            parseStream = ReaderInputLimits.EnsureSeekableReadStream(pdfStream, effectiveReaderOptions.MaxInputBytes, cancellationToken, out ownsParseStream);
-        }
-
-        try {
-            long parseStartPosition = parseStream.CanSeek ? parseStream.Position : 0L;
-            UpdateSourceMetadataFromSeekableStream(source, parseStream, effectiveReaderOptions.ComputeHashes, parseStartPosition);
-            if (parseStream.CanSeek) {
-                parseStream.Position = parseStartPosition;
-            }
-
-            PdfDocumentPreflight preflight = PdfInspector.Preflight(parseStream);
-            if (parseStream.CanSeek) {
-                parseStream.Position = parseStartPosition;
-            }
-
-            PdfLogicalDocument document = LoadDocument(parseStream, effectivePdfOptions);
-            return BuildDocumentResult(document, source, effectiveReaderOptions, effectivePdfOptions, preflight, applyPageRanges: false, cancellationToken);
-        } finally {
-            if (ownsParseStream) {
-                parseStream.Dispose();
-            }
-        }
+        cancellationToken.ThrowIfCancellationRequested();
+        PdfDocument pdf = OpenReaderPdf(pdfStream, effectiveReaderOptions);
+        UpdateSourceMetadataFromPdfDocument(source, pdf, effectiveReaderOptions.ComputeHashes);
+        PdfDocumentPreflight preflight = pdf.Preflight();
+        PdfLogicalDocument document = LoadDocument(pdf, effectivePdfOptions);
+        return BuildDocumentResult(document, source, effectiveReaderOptions, effectivePdfOptions, preflight, applyPageRanges: false, cancellationToken);
     }
 
     /// <summary>

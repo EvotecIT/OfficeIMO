@@ -27,7 +27,7 @@ public partial class PdfLogicalDocumentTests {
         Assert.Equal(2, logical.TextBlocks.Count(block => block.PageNumber == 3 && block.Text.Contains("Third logical page", StringComparison.Ordinal)));
         Assert.Equal(2, logical.GetElements(3).OfType<PdfLogicalTextBlock>().Count(block => block.Text.Contains("Third logical page", StringComparison.Ordinal)));
 
-        PdfReadDocument document = PdfReadDocument.Load(pdf);
+        PdfReadDocument document = PdfReadDocument.Open(pdf);
         PdfLogicalDocument fromDocument = PdfLogicalDocument.FromPageRanges(document, PdfPageRange.From(2, 2));
 
         PdfLogicalPage selected = Assert.Single(fromDocument.Pages);
@@ -147,23 +147,24 @@ public partial class PdfLogicalDocumentTests {
     }
 
     [Fact]
-    public void LoadPageRanges_ReadsPathAndStreamFromCurrentPosition() {
+    public void LoadPageRanges_ReadsCompleteSeekableStreamAndRestoresPosition() {
         byte[] pdf = BuildThreePageLogicalPdf();
         string path = Path.Combine(Path.GetTempPath(), "officeimo-pdf-logical-ranges-" + Guid.NewGuid().ToString("N") + ".pdf");
-        byte[] prefix = Encoding.ASCII.GetBytes("prefix");
 
         try {
             File.WriteAllBytes(path, pdf);
 
             PdfLogicalDocument fromPath = PdfLogicalDocument.LoadPageRanges(path, PdfPageRange.From(2, 2));
-            using var stream = new MemoryStream(prefix.Concat(pdf).ToArray());
-            stream.Position = prefix.Length;
+            using var stream = new MemoryStream(pdf);
+            stream.Position = pdf.Length / 2;
+            long originalPosition = stream.Position;
             PdfLogicalDocument fromStream = PdfLogicalDocument.LoadPageRanges(stream, PdfPageRange.From(1, 1));
 
             Assert.Equal(2, Assert.Single(fromPath.Pages).PageNumber);
             Assert.Contains(fromPath.TextBlocks, block => block.Text.Contains("Second logical page", StringComparison.Ordinal));
             Assert.Equal(1, Assert.Single(fromStream.Pages).PageNumber);
             Assert.Contains(fromStream.TextBlocks, block => block.Text.Contains("First logical page", StringComparison.Ordinal));
+            Assert.Equal(originalPosition, stream.Position);
         } finally {
             if (File.Exists(path)) {
                 File.Delete(path);

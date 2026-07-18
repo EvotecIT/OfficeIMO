@@ -22,14 +22,14 @@ public sealed class PdfBookmarkEditResult {
     /// <summary>Returns edited PDF bytes.</summary>
     public byte[] ToBytes() => (byte[])_pdf.Clone();
     /// <summary>Opens the edited artifact.</summary>
-    public PdfDocument ToDocument() => PdfDocument.Load(_pdf);
+    public PdfDocument ToDocument() => PdfDocument.Open(_pdf);
 }
 
 /// <summary>Adds, removes, renames, moves, nests, retargets, and rebuilds existing-document bookmarks.</summary>
-public static class PdfBookmarkEditor {
+internal static class PdfBookmarkEditor {
     /// <summary>Reports bookmarks whose destinations cannot be resolved to a current page.</summary>
     public static IReadOnlyList<PdfBookmarkValidationIssue> Validate(byte[] pdf, PdfReadOptions? readOptions = null) {
-        Guard.NotNull(pdf, nameof(pdf)); PdfReadDocument document = PdfReadDocument.Load(pdf, readOptions); var issues = new List<PdfBookmarkValidationIssue>(); CollectIssues(document.Outlines, document.Pages.Count, issues); return issues.AsReadOnly();
+        Guard.NotNull(pdf, nameof(pdf)); PdfReadDocument document = PdfReadDocument.Open(pdf, readOptions); var issues = new List<PdfBookmarkValidationIssue>(); CollectIssues(document.Outlines, document.Pages.Count, issues); return issues.AsReadOnly();
     }
 
     /// <summary>Applies a transactional bookmark edit and validates exact title, hierarchy, and target readback.</summary>
@@ -44,12 +44,12 @@ public static class PdfBookmarkEditor {
     private static PdfBookmarkEditResult EditCore(byte[] pdf, Action<PdfBookmarkEditSession> edit, PdfReadOptions? readOptions, bool allowBrokenSourceDestinations) {
         Guard.NotNull(pdf, nameof(pdf)); Guard.NotNull(edit, nameof(edit));
         PdfMutationPlan plan = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.ModifyCatalog, readOptions);
-        PdfReadDocument read = PdfReadDocument.Load(pdf, readOptions); PdfLogicalDocument logical = PdfLogicalDocument.From(read);
+        PdfReadDocument read = PdfReadDocument.Open(pdf, readOptions); PdfLogicalDocument logical = PdfLogicalDocument.From(read);
         IReadOnlyList<PdfBookmarkValidationIssue> sourceIssues = Validate(pdf, readOptions);
         if (!allowBrokenSourceDestinations && sourceIssues.Count > 0) throw new InvalidOperationException("PDF bookmark editing requires broken destinations to be repaired or removed first: " + string.Join(" ", sourceIssues.Select(static issue => issue.Message)));
         var session = new PdfBookmarkEditSession(logical); edit(session); IReadOnlyList<PdfBookmarkNode> target = session.Snapshot();
         byte[] output = PdfDocumentObjectGraphRewriter.Rewrite(pdf, readOptions, null, (objects, security) => { RewriteOutlines(objects, security, read, target); return security.InfoObjectNumber.HasValue && objects.ContainsKey(security.InfoObjectNumber.Value) ? security.InfoObjectNumber : null; });
-        IReadOnlyList<PdfOutlineItem> actual = PdfReadDocument.Load(output).Outlines;
+        IReadOnlyList<PdfOutlineItem> actual = PdfReadDocument.Open(output).Outlines;
         if (!Matches(target, actual)) throw new InvalidOperationException("PDF bookmark post-save validation failed; the artifact was not returned.");
         return new PdfBookmarkEditResult(output, plan, actual);
     }

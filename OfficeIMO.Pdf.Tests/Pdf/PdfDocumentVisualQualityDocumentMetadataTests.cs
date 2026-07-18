@@ -30,7 +30,7 @@ public partial class PdfDocumentVisualQualityTests {
         byte[] uncompressed = CreateCompressionProbe(compressContentStreams: false);
         byte[] compressed = CreateCompressionProbe(compressContentStreams: true);
         string rawCompressed = Encoding.ASCII.GetString(compressed);
-        string text = PdfReadDocument.Load(compressed).ExtractText();
+        string text = PdfReadDocument.Open(compressed).ExtractText();
         PdfOptions options = new PdfOptions {
             CompressContentStreams = true
         };
@@ -52,7 +52,7 @@ public partial class PdfDocumentVisualQualityTests {
             .Paragraph(p => p.Text("Cafe é and Euro €"))
             .ToBytes();
         string raw = Encoding.ASCII.GetString(bytes);
-        string text = PdfReadDocument.Load(bytes).ExtractText();
+        string text = PdfReadDocument.Open(bytes).ExtractText();
         PdfOptions clone = new PdfOptions {
             IncludeStandardFontToUnicodeMaps = true
         }.Clone();
@@ -689,7 +689,7 @@ public partial class PdfDocumentVisualQualityTests {
             .ToBytes();
         string raw = Encoding.ASCII.GetString(bytes);
         string rawUncompressed = Encoding.ASCII.GetString(uncompressed);
-        string text = PdfReadDocument.Load(bytes).ExtractText();
+        string text = PdfReadDocument.Open(bytes).ExtractText();
 
         Assert.True(bytes.Length < uncompressed.Length, $"Expected compressed embedded font PDF to be smaller. Compressed: {bytes.Length}, uncompressed: {uncompressed.Length}.");
         Assert.Contains("/Subtype /Type0", raw, StringComparison.Ordinal);
@@ -731,7 +731,7 @@ public partial class PdfDocumentVisualQualityTests {
             .ToBytes();
 
         string raw = Encoding.ASCII.GetString(bytes);
-        string text = PdfReadDocument.Load(bytes).ExtractText();
+        string text = PdfReadDocument.Open(bytes).ExtractText();
 
         Assert.Contains("/Subtype /Type0", raw, StringComparison.Ordinal);
         Assert.Contains("/Subtype /CIDFontType2", raw, StringComparison.Ordinal);

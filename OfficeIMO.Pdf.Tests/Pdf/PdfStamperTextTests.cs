@@ -24,7 +24,7 @@ public partial class PdfStamperTests {
         using var pdf = PdfPigDocument.Open(new MemoryStream(stamped));
         Assert.Equal(2, pdf.NumberOfPages);
 
-        var read = PdfReadDocument.Load(stamped);
+        var read = PdfReadDocument.Open(stamped);
         string firstPage = Normalize(read.Pages[0].ExtractText());
         string secondPage = Normalize(read.Pages[1].ExtractText());
 
@@ -41,7 +41,7 @@ public partial class PdfStamperTests {
         byte[] stamped = PdfStamper.StampText(source, "RANGE-STAMP", new PdfTextStampOptions()
             .UsePageRange(2, 2));
 
-        var read = PdfReadDocument.Load(stamped);
+        var read = PdfReadDocument.Open(stamped);
         Assert.DoesNotContain("RANGE-STAMP", Normalize(read.Pages[0].ExtractText()));
         Assert.Contains("RANGE-STAMP", Normalize(read.Pages[1].ExtractText()));
     }
@@ -53,7 +53,7 @@ public partial class PdfStamperTests {
         byte[] stamped = PdfStamper.StampText(source, "RANGE-LIST-STAMP", new PdfTextStampOptions()
             .UsePageRanges(PdfPageRange.ParseMany("1-2,2")));
 
-        var read = PdfReadDocument.Load(stamped);
+        var read = PdfReadDocument.Open(stamped);
         string firstPage = Normalize(read.Pages[0].ExtractText());
         string secondPage = Normalize(read.Pages[1].ExtractText());
 
@@ -71,7 +71,7 @@ public partial class PdfStamperTests {
             FontSize = 10
         });
 
-        var document = PdfReadDocument.Load(stamped);
+        var document = PdfReadDocument.Open(stamped);
         var (objects, _) = PdfSyntax.ParseObjects(stamped);
         int pageObjectNumber = document.Pages[0].ObjectNumber;
         var page = Assert.IsType<PdfDictionary>(objects[pageObjectNumber].Value);
@@ -93,7 +93,7 @@ public partial class PdfStamperTests {
         using var pdf = PdfPigDocument.Open(new MemoryStream(stamped));
         Assert.Equal(2, pdf.NumberOfPages);
 
-        var read = PdfReadDocument.Load(stamped);
+        var read = PdfReadDocument.Open(stamped);
         Assert.Contains("DRAFT", Normalize(read.Pages[0].ExtractText()));
         Assert.Contains("DRAFT", Normalize(read.Pages[1].ExtractText()));
     }

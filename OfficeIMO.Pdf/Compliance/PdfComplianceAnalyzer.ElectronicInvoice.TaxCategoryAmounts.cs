@@ -1,6 +1,6 @@
 namespace OfficeIMO.Pdf;
 
-public static partial class PdfComplianceAnalyzer {
+internal static partial class PdfComplianceAnalyzer {
     private static PdfComplianceRequirement BuildElectronicInvoiceXmlTaxCategoryAmountRequirement(PdfOptions options) {
         IReadOnlyList<PdfEmbeddedFile> embeddedFiles = options.EmbeddedFiles;
         var diagnostics = new List<string>();

@@ -1,6 +1,6 @@
 namespace OfficeIMO.Pdf;
 
-public static partial class PdfAcroFormEditor {
+internal static partial class PdfAcroFormEditor {
     private static void ValidateReadback(PdfDocumentInfo saved, IReadOnlyList<string> calculationOrder, IReadOnlyList<PdfAcroFormEditSession.EditCommand> commands) {
         var byName = saved.FormFields.Where(static field => !string.IsNullOrEmpty(field.Name)).ToDictionary(static field => field.Name!, StringComparer.Ordinal);
         for (int i = 0; i < commands.Count; i++) {

@@ -4,7 +4,7 @@ using OfficeIMO.Pdf.Filters;
 
 namespace OfficeIMO.Pdf;
 
-public static partial class PdfOptimizer {
+internal static partial class PdfOptimizer {
     private static void DeduplicateImages(Dictionary<int, PdfIndirectObject> objects, PdfOptimizationOptions options, List<PdfOptimizationAction> actions, List<PdfOptimizationSkippedAction> skippedActions) {
         var groups = new Dictionary<string, List<int>>(StringComparer.Ordinal);
         foreach (KeyValuePair<int, PdfIndirectObject> entry in objects.OrderBy(static item => item.Key)) {

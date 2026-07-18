@@ -1,6 +1,6 @@
 namespace OfficeIMO.Pdf;
 
-public static partial class PdfFormFiller {
+internal static partial class PdfFormFiller {
     private static Dictionary<string, PdfFormFieldValue> ToFormFieldValues(IReadOnlyDictionary<string, string> fieldValues) {
         Guard.NotNull(fieldValues, nameof(fieldValues));
 

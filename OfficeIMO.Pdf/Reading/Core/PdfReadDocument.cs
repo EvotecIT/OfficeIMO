@@ -11,6 +11,10 @@ public sealed partial class PdfReadDocument {
     private readonly Dictionary<string, PdfNamedDestination> _nameDestinations = new(StringComparer.Ordinal);
     private readonly Dictionary<string, PdfNamedDestination> _stringDestinations = new(StringComparer.Ordinal);
 
+    internal Dictionary<int, PdfIndirectObject> Objects => _objects;
+    internal string TrailerRaw => _trailerRaw;
+    internal PdfReadOptions ReadOptions => _options;
+
     private PdfReadDocument(
         Dictionary<int, PdfIndirectObject> objects,
         string trailerRaw,

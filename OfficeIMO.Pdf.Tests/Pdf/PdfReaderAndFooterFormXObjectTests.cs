@@ -44,7 +44,7 @@ public partial class PdfReaderAndFooterRegressionTests {
     public void PdfReadPage_GetTextSpans_UsesInheritedResourcesForFormXObjects() {
         byte[] bytes = BuildPdfWithInheritedFormResources();
 
-        var doc = PdfReadDocument.Load(bytes);
+        var doc = PdfReadDocument.Open(bytes);
 
         Assert.Single(doc.Pages);
         var span = Assert.Single(doc.Pages[0].GetTextSpans(), s => s.Text == "Form hello");
@@ -56,7 +56,7 @@ public partial class PdfReaderAndFooterRegressionTests {
     public void PdfReadPage_GetTextSpans_TracksRepeatedFormInvocations() {
         byte[] bytes = BuildPdfWithRepeatedFormInvocations();
 
-        var doc = PdfReadDocument.Load(bytes);
+        var doc = PdfReadDocument.Open(bytes);
 
         Assert.Single(doc.Pages);
         var spans = doc.Pages[0].GetTextSpans().Where(s => s.Text == "Repeated form").OrderBy(s => s.X).ToList();
@@ -71,7 +71,7 @@ public partial class PdfReaderAndFooterRegressionTests {
     public void PdfReadPage_GetTextSpans_TracksNestedFormInvocations() {
         byte[] bytes = BuildPdfWithNestedFormInvocations();
 
-        var doc = PdfReadDocument.Load(bytes);
+        var doc = PdfReadDocument.Open(bytes);
 
         Assert.Single(doc.Pages);
         var span = Assert.Single(doc.Pages[0].GetTextSpans(), s => s.Text == "Nested form");
@@ -162,7 +162,7 @@ public partial class PdfReaderAndFooterRegressionTests {
     public void PdfReadPage_GetTextSpans_AppliesScaledFormTransformsInOrder() {
         byte[] bytes = BuildPdfWithScaledFormMatrix();
 
-        var doc = PdfReadDocument.Load(bytes);
+        var doc = PdfReadDocument.Open(bytes);
 
         Assert.Single(doc.Pages);
         var span = Assert.Single(doc.Pages[0].GetTextSpans(), s => s.Text == "Scaled form");
@@ -194,7 +194,7 @@ public partial class PdfReaderAndFooterRegressionTests {
     public void PdfReadPage_GetTextSpans_ReadsInlineNestedFormResourceDictionaries() {
         byte[] bytes = BuildPdfWithInlineNestedFormResources();
 
-        var doc = PdfReadDocument.Load(bytes);
+        var doc = PdfReadDocument.Open(bytes);
 
         Assert.Single(doc.Pages);
         var span = Assert.Single(doc.Pages[0].GetTextSpans(), s => s.Text == "Inline form");
@@ -225,7 +225,7 @@ public partial class PdfReaderAndFooterRegressionTests {
     public void PdfReadPage_GetTextSpans_ReadsFormResourcesWithEscapedNames() {
         byte[] bytes = BuildPdfWithFormResourceNameEscapes(dictionaryUsesEscapedName: true, contentUsesEscapedName: false);
 
-        var doc = PdfReadDocument.Load(bytes);
+        var doc = PdfReadDocument.Open(bytes);
 
         Assert.Single(doc.Pages);
         var span = Assert.Single(doc.Pages[0].GetTextSpans(), s => s.Text == "Escaped form");
@@ -237,7 +237,7 @@ public partial class PdfReaderAndFooterRegressionTests {
     public void PdfReadPage_GetTextSpans_ReadsFormInvocationsWithEscapedNames() {
         byte[] bytes = BuildPdfWithFormResourceNameEscapes(dictionaryUsesEscapedName: false, contentUsesEscapedName: true);
 
-        var doc = PdfReadDocument.Load(bytes);
+        var doc = PdfReadDocument.Open(bytes);
 
         Assert.Single(doc.Pages);
         var span = Assert.Single(doc.Pages[0].GetTextSpans(), s => s.Text == "Escaped form");

@@ -39,7 +39,7 @@ Console.WriteLine("OfficeIMO");
         byte[] pdf = OfficeIMO.Markdown.MarkdownReader.Parse(markdown).ToPdf(options);
 
         PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(pdf);
-        string text = PdfCore.PdfReadDocument.Load(pdf).ExtractText();
+        string text = PdfCore.PdfReadDocument.Open(pdf).ExtractText();
 
         Assert.True(pdf.Length > 0);
         Assert.True(info.PageCount >= 1);
@@ -59,7 +59,7 @@ Console.WriteLine("OfficeIMO");
 """;
 
         byte[] pdf = OfficeIMO.Markdown.MarkdownReader.Parse(markdown).ToPdf(new MarkdownPdfSaveOptions());
-        string text = PdfCore.PdfReadDocument.Load(pdf).ExtractText();
+        string text = PdfCore.PdfReadDocument.Open(pdf).ExtractText();
 
         Assert.Equal(1, CountOccurrences(text, "Alpha"));
         Assert.Equal(1, CountOccurrences(text, "Beta"));
@@ -84,7 +84,7 @@ Console.WriteLine("OfficeIMO");
         byte[] pdfBytes = OfficeIMO.Markdown.MarkdownReader.Parse(markdown).ToPdf(options);
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(pdfBytes));
-        string text = PdfCore.PdfReadDocument.Load(pdfBytes).ExtractText();
+        string text = PdfCore.PdfReadDocument.Open(pdfBytes).ExtractText();
 
         Assert.True(pdf.NumberOfPages > 1);
         Assert.Contains("QuoteLine1", text, StringComparison.Ordinal);
@@ -107,7 +107,7 @@ Console.WriteLine("OfficeIMO");
 
         PdfCore.PdfDocumentConversionResult result = OfficeIMO.Markdown.MarkdownReader.Parse(markdown).ToPdfDocumentResult(options);
         byte[] pdf = result.ToBytes();
-        string text = PdfCore.PdfReadDocument.Load(pdf).ExtractText();
+        string text = PdfCore.PdfReadDocument.Open(pdf).ExtractText();
 
         Assert.Contains("Status", text, StringComparison.Ordinal);
         Assert.Contains("marker", text, StringComparison.Ordinal);
@@ -148,7 +148,7 @@ Console.WriteLine("OfficeIMO");
             .Text("Beta")));
 
         byte[] pdf = markdown.ToPdf(new MarkdownPdfSaveOptions());
-        string text = PdfCore.PdfReadDocument.Load(pdf).ExtractText();
+        string text = PdfCore.PdfReadDocument.Open(pdf).ExtractText();
 
         Assert.Contains("Alpha Beta", text, StringComparison.Ordinal);
         Assert.DoesNotContain("Alpha\nBeta", text, StringComparison.Ordinal);
@@ -231,7 +231,7 @@ Console.WriteLine("OfficeIMO");
 
         PdfCore.PdfDocumentConversionResult result = OfficeIMO.Markdown.MarkdownReader.Parse(markdown).ToPdfDocumentResult(options);
         byte[] pdf = result.ToBytes();
-        string text = PdfCore.PdfReadDocument.Load(pdf).ExtractText();
+        string text = PdfCore.PdfReadDocument.Open(pdf).ExtractText();
 
         Assert.True(pdf.Length > 0);
         PdfCore.PdfConversionWarning warning = Assert.Single(result.Warnings, item => item.Code == "RemoteImageDisabled");
@@ -273,7 +273,7 @@ Console.WriteLine("OfficeIMO");
 
             PdfCore.PdfDocumentConversionResult result = OfficeIMO.Markdown.MarkdownReader.Parse(markdown).ToPdfDocumentResult(options);
             byte[] pdf = result.ToBytes();
-            string text = PdfCore.PdfReadDocument.Load(pdf).ExtractText();
+            string text = PdfCore.PdfReadDocument.Open(pdf).ExtractText();
             IReadOnlyList<PdfCore.PdfExtractedImage> images = PdfCore.PdfImageExtractor.ExtractImages(pdf);
 
             PdfCore.PdfConversionWarning warning = Assert.Single(result.Warnings);
@@ -305,7 +305,7 @@ Console.WriteLine("OfficeIMO");
 
         PdfCore.PdfDocumentConversionResult result = OfficeIMO.Markdown.MarkdownReader.Parse(markdown).ToPdfDocumentResult(options);
         byte[] pdf = result.ToBytes();
-        string text = PdfCore.PdfReadDocument.Load(pdf).ExtractText();
+        string text = PdfCore.PdfReadDocument.Open(pdf).ExtractText();
         IReadOnlyList<PdfCore.PdfExtractedImage> images = PdfCore.PdfImageExtractor.ExtractImages(pdf);
 
         Assert.Equal(new Uri("https://example.com/logo.png"), requestedUri);
@@ -331,7 +331,7 @@ Console.WriteLine("OfficeIMO");
 
         PdfCore.PdfDocumentConversionResult result = OfficeIMO.Markdown.MarkdownReader.Parse(markdown).ToPdfDocumentResult(options);
         byte[] pdf = result.ToBytes();
-        string text = PdfCore.PdfReadDocument.Load(pdf).ExtractText();
+        string text = PdfCore.PdfReadDocument.Open(pdf).ExtractText();
 
         PdfCore.PdfConversionWarning warning = Assert.Single(result.Warnings, item => item.Code == "ImageTooLarge");
         Assert.Equal("ImageTooLarge", warning.Code);
@@ -364,7 +364,7 @@ _Figure 1. Embedded from a relative Markdown path._
             result.Save(pdfPath);
 
             byte[] pdf = File.ReadAllBytes(pdfPath);
-            string text = PdfCore.PdfReadDocument.Load(pdf).ExtractText();
+            string text = PdfCore.PdfReadDocument.Open(pdf).ExtractText();
             IReadOnlyList<PdfCore.PdfExtractedImage> images = PdfCore.PdfImageExtractor.ExtractImages(pdf);
 
             Assert.True(pdf.Length > 0);
@@ -407,7 +407,7 @@ _Figure 1. Embedded from a relative Markdown path._
             result.Save(pdfPath);
 
             byte[] pdf = File.ReadAllBytes(pdfPath);
-            string text = PdfCore.PdfReadDocument.Load(pdf).ExtractText();
+            string text = PdfCore.PdfReadDocument.Open(pdf).ExtractText();
             IReadOnlyList<PdfCore.PdfExtractedImage> images = PdfCore.PdfImageExtractor.ExtractImages(pdf);
 
             PdfCore.PdfConversionWarning warning = Assert.Single(result.Warnings);
@@ -534,7 +534,7 @@ _Figure 1. Embedded from a relative Markdown path._
             "![Inline pixel](" + CreateMinimalRgbPngDataUri() + "){width=24 height=24}\n";
 
         byte[] pdf = OfficeIMO.Markdown.MarkdownReader.Parse(markdown).ToPdf(options);
-        string text = PdfCore.PdfReadDocument.Load(pdf).ExtractText();
+        string text = PdfCore.PdfReadDocument.Open(pdf).ExtractText();
         IReadOnlyList<PdfCore.PdfExtractedImage> images = PdfCore.PdfImageExtractor.ExtractImages(pdf);
 
         Assert.True(pdf.Length > 0);
@@ -559,7 +559,7 @@ _Figure 1. Embedded from a relative Markdown path._
 """;
 
         byte[] pdf = OfficeIMO.Markdown.MarkdownReader.Parse(markdown).ToPdf(options);
-        string text = PdfCore.PdfReadDocument.Load(pdf).ExtractText();
+        string text = PdfCore.PdfReadDocument.Open(pdf).ExtractText();
         PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(pdf);
         string rawPdf = System.Text.Encoding.ASCII.GetString(pdf);
 
@@ -657,7 +657,7 @@ Markdown PDF should accept the same visual theme object as HTML and Word.
         };
 
         byte[] pdf = OfficeIMO.Markdown.MarkdownReader.Parse(markdown).ToPdf(options);
-        string text = PdfCore.PdfReadDocument.Load(pdf).ExtractText();
+        string text = PdfCore.PdfReadDocument.Open(pdf).ExtractText();
 
         Assert.True(pdf.Length > 0);
         Assert.Empty(options.Warnings);
@@ -686,7 +686,7 @@ Paragraph [paragraph link](https://example.com/paragraph).
 """;
 
         byte[] pdf = OfficeIMO.Markdown.MarkdownReader.Parse(markdown).ToPdf(options);
-        string text = PdfCore.PdfReadDocument.Load(pdf).ExtractText();
+        string text = PdfCore.PdfReadDocument.Open(pdf).ExtractText();
         string rawPdf = System.Text.Encoding.ASCII.GetString(pdf);
         PdfCore.PdfLogicalDocument logical = PdfCore.PdfLogicalDocument.Load(pdf);
 
@@ -743,7 +743,7 @@ Content.
             Style = MarkdownPdfStyle.TechnicalDocument()
         };
         byte[] pdf = OfficeIMO.Markdown.MarkdownReader.Parse(markdown).ToPdf(options);
-        string text = PdfCore.PdfReadDocument.Load(pdf).ExtractText();
+        string text = PdfCore.PdfReadDocument.Open(pdf).ExtractText();
         string rawPdf = System.Text.Encoding.ASCII.GetString(pdf);
 
         Assert.Empty(options.Warnings);
@@ -772,7 +772,7 @@ author: OfficeIMO
             FrontMatterRenderMode = MarkdownPdfFrontMatterRenderMode.Table
         };
         byte[] pdf = OfficeIMO.Markdown.MarkdownReader.Parse(markdown).ToPdf(options);
-        string text = PdfCore.PdfReadDocument.Load(pdf).ExtractText();
+        string text = PdfCore.PdfReadDocument.Open(pdf).ExtractText();
 
         Assert.Empty(options.Warnings);
         Assert.Contains("Key", text);
@@ -805,7 +805,7 @@ author: OfficeIMO
         var options = new MarkdownPdfSaveOptions();
         PdfCore.PdfDocumentConversionResult result = document.ToPdfDocumentResult(options);
         byte[] pdf = result.ToBytes();
-        string text = PdfCore.PdfReadDocument.Load(pdf).ExtractText();
+        string text = PdfCore.PdfReadDocument.Open(pdf).ExtractText();
 
         Assert.True(pdf.Length > 0);
         Assert.Contains(result.Warnings, warning => warning.Code == "UnsupportedSemanticFence" && warning.Source == "diagram");
@@ -845,7 +845,7 @@ author: OfficeIMO
         };
 
         byte[] pdf = document.ToPdf(options);
-        string text = PdfCore.PdfReadDocument.Load(pdf).ExtractText();
+        string text = PdfCore.PdfReadDocument.Open(pdf).ExtractText();
         PdfCore.PdfLogicalDocument logical = PdfCore.PdfLogicalDocument.Load(pdf);
 
         Assert.Empty(options.Warnings);
@@ -906,7 +906,7 @@ Validation notes.
         };
 
         byte[] pdf = OfficeIMO.Markdown.MarkdownReader.Parse(markdown).ToPdf(options);
-        string text = PdfCore.PdfReadDocument.Load(pdf).ExtractText();
+        string text = PdfCore.PdfReadDocument.Open(pdf).ExtractText();
         string rawPdf = System.Text.Encoding.ASCII.GetString(pdf);
 
         Assert.Empty(options.Warnings);
@@ -979,7 +979,7 @@ Use `OfficeIMO.Pdf` inside normal prose.
         };
 
         byte[] pdf = OfficeIMO.Markdown.MarkdownReader.Parse(markdown).ToPdf(options);
-        string text = PdfCore.PdfReadDocument.Load(pdf).ExtractText();
+        string text = PdfCore.PdfReadDocument.Open(pdf).ExtractText();
         string rawPdf = System.Text.Encoding.ASCII.GetString(pdf);
 
         Assert.Empty(options.Warnings);
@@ -1053,7 +1053,7 @@ Console.WriteLine("OfficeIMO");
         };
 
         byte[] pdf = OfficeIMO.Markdown.MarkdownReader.Parse(markdown).ToPdf(options);
-        string text = PdfCore.PdfReadDocument.Load(pdf).ExtractText();
+        string text = PdfCore.PdfReadDocument.Open(pdf).ExtractText();
         string rawPdf = System.Text.Encoding.ASCII.GetString(pdf);
 
         Assert.Empty(options.Warnings);
@@ -1089,7 +1089,7 @@ Console.WriteLine("OfficeIMO");
         };
 
         byte[] pdf = OfficeIMO.Markdown.MarkdownReader.Parse(markdown).ToPdf(options);
-        string text = PdfCore.PdfReadDocument.Load(pdf).ExtractText();
+        string text = PdfCore.PdfReadDocument.Open(pdf).ExtractText();
         string rawPdf = System.Text.Encoding.ASCII.GetString(pdf);
 
         Assert.Empty(options.Warnings);
@@ -1128,7 +1128,7 @@ Console.WriteLine("OfficeIMO");
         };
 
         byte[] pdf = OfficeIMO.Markdown.MarkdownReader.Parse(markdown).ToPdf(options);
-        string text = PdfCore.PdfReadDocument.Load(pdf).ExtractText();
+        string text = PdfCore.PdfReadDocument.Open(pdf).ExtractText();
 
         Assert.Empty(options.Warnings);
         Assert.DoesNotContain("Quote", text, StringComparison.Ordinal);
@@ -1178,7 +1178,7 @@ The report profile should feel intentionally designed without the Markdown sourc
         var options = new MarkdownPdfSaveOptions();
         byte[] pdf = OfficeIMO.Markdown.MarkdownReader.Parse(markdown).ToPdf(options);
         string rawPdf = System.Text.Encoding.ASCII.GetString(pdf);
-        string text = PdfCore.PdfReadDocument.Load(pdf).ExtractText();
+        string text = PdfCore.PdfReadDocument.Open(pdf).ExtractText();
 
         Assert.Empty(options.Warnings);
         Assert.Contains("Quarterly Readiness", text);
@@ -1325,7 +1325,7 @@ Content.
         var options = new MarkdownPdfSaveOptions();
         PdfCore.PdfDocumentConversionResult result = OfficeIMO.Markdown.MarkdownReader.Parse(markdown).ToPdfDocumentResult(options);
         byte[] pdf = result.ToBytes();
-        string text = PdfCore.PdfReadDocument.Load(pdf).ExtractText();
+        string text = PdfCore.PdfReadDocument.Open(pdf).ExtractText();
 
         PdfCore.PdfConversionWarning warning = Assert.Single(result.Warnings);
         Assert.Equal("UnsupportedVisualTheme", warning.Code);

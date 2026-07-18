@@ -1,6 +1,6 @@
 namespace OfficeIMO.Pdf;
 
-public static partial class PdfAnnotationFlattener {
+internal static partial class PdfAnnotationFlattener {
     private static byte[] RewriteAllObjects(Dictionary<int, PdfIndirectObject> objects, int catalogObjectNumber, PdfMetadata metadata) {
         var sourceIds = objects.Keys.OrderBy(id => id).ToArray();
         var numberMap = new Dictionary<int, int>(sourceIds.Length);

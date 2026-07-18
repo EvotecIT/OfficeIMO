@@ -91,7 +91,7 @@ internal static partial class PdfSyntax {
         }
 
         try {
-            PdfReadDocument.Load(pdf, new PdfReadOptions { Password = string.Empty });
+            PdfReadDocument.Open(pdf, new PdfReadOptions { Password = string.Empty });
             return true;
         } catch (PdfEncryptionException) {
             return false;

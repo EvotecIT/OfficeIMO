@@ -6,13 +6,18 @@ namespace OfficeIMO.Pdf;
 public sealed class PdfBytesResult {
     private readonly byte[] _bytes;
 
-    private PdfBytesResult(byte[] bytes, IReadOnlyList<string> diagnostics, Exception? exception) {
+    private PdfBytesResult(
+        byte[] bytes,
+        IReadOnlyList<string> diagnostics,
+        Exception? exception,
+        PdfPipelineReport? pipeline = null) {
         _bytes = (byte[])bytes.Clone();
         Diagnostics = diagnostics;
         Exception = exception;
         TextEncodingDiagnostics = PdfOutputDiagnostics.ExtractTextEncodingDiagnostics(exception);
         Report = new PdfConversionReport();
         Report.AddRange(PdfOutputDiagnostics.ToConversionWarnings(TextEncodingDiagnostics));
+        Pipeline = pipeline ?? PdfPipelineReport.Empty();
     }
 
     /// <summary>True when byte generation completed.</summary>
@@ -35,6 +40,9 @@ public sealed class PdfBytesResult {
 
     /// <summary>Structured PDF output warnings captured for this byte-generation attempt.</summary>
     public PdfConversionReport Report { get; }
+
+    /// <summary>End-to-end create/open, mutation, and byte-generation evidence.</summary>
+    public PdfPipelineReport Pipeline { get; }
 
     /// <summary>Structured PDF output warnings captured for this byte-generation attempt.</summary>
     public IReadOnlyList<PdfConversionWarning> Warnings => Report.Warnings;
@@ -67,11 +75,14 @@ public sealed class PdfBytesResult {
         return new PdfBytesResult(Array.Empty<byte>(), diagnostics, exception);
     }
 
-    internal static PdfBytesResult Success(byte[] bytes) {
-        return FromSuccess(bytes);
+    internal static PdfBytesResult Success(byte[] bytes, PdfPipelineReport? pipeline = null) {
+        Guard.NotNull(bytes, nameof(bytes));
+        return new PdfBytesResult(bytes, Array.Empty<string>(), null, pipeline);
     }
 
-    internal static PdfBytesResult Failed(Exception exception) {
-        return FromFailure(exception);
+    internal static PdfBytesResult Failed(Exception exception, PdfPipelineReport? pipeline = null) {
+        Guard.NotNull(exception, nameof(exception));
+        IReadOnlyList<string> diagnostics = PdfOutputDiagnostics.BuildExceptionDiagnostics(exception);
+        return new PdfBytesResult(Array.Empty<byte>(), diagnostics, exception, pipeline);
     }
 }

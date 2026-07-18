@@ -20,7 +20,7 @@ public class PdfPageInteractionMapTests {
                 Contents = "Review stamp"
             }).Bytes;
 
-        PdfPageInteractionMap map = PdfDocument.Load(source).Read.Interactions(1);
+        PdfPageInteractionMap map = PdfDocument.Open(source).Read.Interactions(1);
 
         Assert.Contains(map.Regions, region => region.Kind == PdfInteractionKind.Text && region.Text == "S");
         PdfPageInteractionRegion link = Assert.Single(map.Regions, region => region.Kind == PdfInteractionKind.Link);

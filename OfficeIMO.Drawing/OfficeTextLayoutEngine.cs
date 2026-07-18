@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Text;
 
 namespace OfficeIMO.Drawing;
@@ -535,23 +536,77 @@ public static partial class OfficeTextLayoutEngine {
     }
 
     private static IEnumerable<OfficeTextLine> BreakWord(string word, double fontSize, double maxWidth, Func<string?, double, double> measure, OfficeTextParagraphIndent paragraphIndent, bool firstVisualLine) {
-        string part = string.Empty;
-        foreach (string textElement in OfficeTextElements.Enumerate(word)) {
-            string candidate = part + textElement;
+        int[] elementStarts = StringInfo.ParseCombiningCharacters(word);
+        IReadOnlyList<int> preferredBreaks = OfficeTextLineBreaks.GetBreakPositions(word);
+        int position = 0;
+        while (position < word.Length) {
             double offset = ResolveLineOffset(paragraphIndent, firstVisualLine);
             double width = Math.Max(0D, maxWidth - offset);
-            if (part.Length > 0 && Measure(candidate, fontSize, measure) > width) {
-                yield return new OfficeTextLine(part, Measure(part, fontSize, measure), offset);
-                part = string.Empty;
-                firstVisualLine = false;
+            int fittingPreferred = -1;
+            int fittingFallback = -1;
+            int firstBoundary = -1;
+
+            foreach (int boundary in EnumerateTextElementEnds(elementStarts, word.Length, position)) {
+                if (firstBoundary < 0) {
+                    firstBoundary = boundary;
+                }
+
+                string candidate = word.Substring(position, boundary - position);
+                if (Measure(candidate, fontSize, measure) > width) {
+                    if (fittingFallback < 0) {
+                        fittingFallback = boundary;
+                    }
+                    break;
+                }
+
+                fittingFallback = boundary;
+                if (ContainsBreakPosition(preferredBreaks, boundary)) {
+                    fittingPreferred = boundary;
+                }
+
+                if (boundary == word.Length) {
+                    fittingPreferred = boundary;
+                    break;
+                }
             }
 
-            part += textElement;
+            int selected = fittingPreferred > position
+                ? fittingPreferred
+                : fittingFallback > position
+                    ? fittingFallback
+                    : firstBoundary;
+            if (selected <= position) {
+                break;
+            }
+
+            string part = word.Substring(position, selected - position);
+            yield return new OfficeTextLine(part, Measure(part, fontSize, measure), offset);
+            position = selected;
+            firstVisualLine = false;
+        }
+    }
+
+    private static IEnumerable<int> EnumerateTextElementEnds(int[] starts, int textLength, int position) {
+        for (int index = 0; index < starts.Length; index++) {
+            if (starts[index] > position) {
+                yield return starts[index];
+            }
         }
 
-        if (part.Length > 0) {
-            yield return new OfficeTextLine(part, Measure(part, fontSize, measure), ResolveLineOffset(paragraphIndent, firstVisualLine));
+        yield return textLength;
+    }
+
+    private static bool ContainsBreakPosition(IReadOnlyList<int> positions, int value) {
+        for (int index = 0; index < positions.Count; index++) {
+            if (positions[index] == value) {
+                return true;
+            }
+            if (positions[index] > value) {
+                return false;
+            }
         }
+
+        return false;
     }
 
     private static OfficeTextLine ResolveOverflowLine(

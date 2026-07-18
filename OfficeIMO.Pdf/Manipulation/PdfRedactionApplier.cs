@@ -8,7 +8,7 @@ namespace OfficeIMO.Pdf;
 /// <summary>
 /// Applies rectangle-based redactions by removing matched text objects and annotations, then painting redaction marks.
 /// </summary>
-public static partial class PdfRedactionApplier {
+internal static partial class PdfRedactionApplier {
     private static readonly TimeSpan RegexTimeout = TimeSpan.FromSeconds(2);
     private static readonly Regex FontSelectionRegex = new Regex(@"/([^\s/]+)\s+[-+]?(?:\d+(?:\.\d+)?|\.\d+)\s+Tf\b", RegexOptions.Compiled, RegexTimeout);
 
@@ -19,7 +19,7 @@ public static partial class PdfRedactionApplier {
         string[] fieldNames = plan.Areas.Select(static area => area.Label).Where(static label => label?.StartsWith("field:", StringComparison.Ordinal) == true).Select(static label => label!.Substring("field:".Length)).Distinct(StringComparer.Ordinal).ToArray();
         byte[] working = pdf;
         if (fieldNames.Length > 0) {
-            var existing = new HashSet<string>(PdfReadDocument.Load(pdf, readOptions).FormFields.Where(static field => field.Name is not null).Select(static field => field.Name!), StringComparer.Ordinal);
+            var existing = new HashSet<string>(PdfReadDocument.Open(pdf, readOptions).FormFields.Where(static field => field.Name is not null).Select(static field => field.Name!), StringComparer.Ordinal);
             string[] removable = fieldNames.Where(existing.Contains).ToArray();
             if (removable.Length > 0) working = PdfAcroFormEditor.Edit(pdf, edit => { for (int i = 0; i < removable.Length; i++) edit.Remove(removable[i]); }, readOptions).ToBytes();
         }
@@ -57,7 +57,7 @@ public static partial class PdfRedactionApplier {
             throw new ArgumentException("PDF does not contain a readable catalog.", nameof(pdf));
         }
 
-        PdfReadDocument document = PdfReadDocument.Load(pdf, readOptions);
+        PdfReadDocument document = PdfReadDocument.Open(pdf, readOptions);
         ValidateRedactionAreas(areaArray, document.Pages.Count);
         int maximumDecodedStreamBytes = readOptions?.Limits.MaxDecodedStreamBytes ?? PdfReadLimits.DefaultMaxDecodedStreamBytes;
         RedactionMutation mutation = ApplyToObjects(objects, document, plan, areaArray, effectiveOptions, maximumDecodedStreamBytes);

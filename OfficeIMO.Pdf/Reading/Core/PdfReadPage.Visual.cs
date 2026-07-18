@@ -388,7 +388,9 @@ public sealed partial class PdfReadPage {
             initialStrokeLineCap,
             initialStrokeLineJoin,
             maxOperations: _limits.MaxContentOperations,
-            patternBaseColorSpaces: GetPatternBaseColorSpaceResources(resources)));
+            patternBaseColorSpaces: GetPatternBaseColorSpaceResources(resources),
+            maxNestingDepth: _limits.MaxContentNestingDepth,
+            maxOperands: _limits.MaxContentOperands));
 
         foreach (PdfPageXObjectInvocation invocation in PdfPageXObjectInvocationParser.Parse(
                      content,
@@ -411,7 +413,9 @@ public sealed partial class PdfReadPage {
                       initialStrokeDashStyle: initialStrokeDashStyle,
                       initialStrokeLineCap: initialStrokeLineCap,
                       initialStrokeLineJoin: initialStrokeLineJoin,
-                      maxOperations: _limits.MaxContentOperations)) {
+                      maxOperations: _limits.MaxContentOperations,
+                      maxNestingDepth: _limits.MaxContentNestingDepth,
+                      maxOperands: _limits.MaxContentOperands)) {
             if (!TryGetFormStream(resources, invocation.Name, out PdfStream formStream)) {
                 continue;
             }
@@ -1538,7 +1542,14 @@ public sealed partial class PdfReadPage {
                 NearlyEqual(visibleTop, imageY) &&
                 NearlyEqual(pageVisibleWidth, placement.Width) &&
                 NearlyEqual(pageVisibleHeight, placement.Height)) {
-                projection = new OfficeImageProjection(new OfficeImagePlacement(imageX, imageY, placement.Width, placement.Height));
+                // Normalize sub-point producer rounding at the page boundary. Keeping
+                // the original near-equal coordinates can place a valid full-page
+                // image microscopically outside the Drawing contract.
+                projection = new OfficeImageProjection(new OfficeImagePlacement(
+                    visibleLeft,
+                    visibleTop,
+                    pageVisibleWidth,
+                    pageVisibleHeight));
                 return true;
             }
 

@@ -50,7 +50,7 @@ public class PdfSanitizerTests {
             EmbeddedFiles = PdfEmbeddedFileSanitizationMode.Quarantine
         };
 
-        PdfSanitizationResult result = PdfDocument.Load(source).Sanitize(policy);
+        PdfSanitizationResult result = PdfDocument.Open(source).Sanitize(policy);
         PdfDocumentInfo info = result.ToDocument().Inspect();
 
         PdfExtractedAttachment attachment = Assert.Single(result.QuarantinedAttachments);

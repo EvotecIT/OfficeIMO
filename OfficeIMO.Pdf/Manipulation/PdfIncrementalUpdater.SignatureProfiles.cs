@@ -2,7 +2,7 @@ using System.Globalization;
 
 namespace OfficeIMO.Pdf;
 
-public static partial class PdfIncrementalUpdater {
+internal static partial class PdfIncrementalUpdater {
     private static PdfSignatureProfile ResolveSignatureProfile(PdfExternalSignatureOptions options) {
         if (options.SubFilter == PdfExternalSignatureSubFilter.DocumentTimestamp) {
             if (options.Profile == PdfSignatureProfile.Certification) {
@@ -106,7 +106,7 @@ public static partial class PdfIncrementalUpdater {
         ref int nextObjectNumber,
         HashSet<int> changedObjects) {
         ValidateVisibleAppearance(options);
-        PdfReadDocument document = PdfReadDocument.Load(sourcePdf);
+        PdfReadDocument document = PdfReadDocument.Open(sourcePdf);
         if (options.PageNumber > document.Pages.Count) {
             throw new ArgumentOutOfRangeException(nameof(options), "Visible signature page exceeds the document page count.");
         }

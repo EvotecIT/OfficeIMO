@@ -56,7 +56,7 @@ public partial class PdfInspectorTests {
             Assert.InRange(link.Y2, 0, info.Pages[0].Height);
         }
 
-        PdfReadDocument document = PdfReadDocument.Load(bytes);
+        PdfReadDocument document = PdfReadDocument.Open(bytes);
         var pageLinks = document.Pages[0].GetLinkAnnotations();
         Assert.Equal(info.Pages[0].LinkAnnotations.Count, pageLinks.Count);
         Assert.Equal(info.Pages[0].LinkAnnotations[0].Uri, pageLinks[0].Uri);
@@ -347,7 +347,7 @@ public partial class PdfInspectorTests {
         Assert.Equal("Next page action", link.Contents);
         Assert.Equal(1, link.PageNumber);
 
-        PdfReadDocument document = PdfReadDocument.Load(bytes);
+        PdfReadDocument document = PdfReadDocument.Open(bytes);
         PdfLinkAnnotation pageLink = Assert.Single(document.Pages[0].GetLinkAnnotations());
         Assert.True(pageLink.IsNamedActionLink);
         Assert.Equal("NextPage", pageLink.NamedAction);
@@ -392,7 +392,7 @@ public partial class PdfInspectorTests {
         Assert.Equal("Remote report link", link.Contents);
         Assert.Equal(1, link.PageNumber);
 
-        PdfReadDocument document = PdfReadDocument.Load(bytes);
+        PdfReadDocument document = PdfReadDocument.Open(bytes);
         PdfLinkAnnotation pageLink = Assert.Single(document.Pages[0].GetLinkAnnotations());
         Assert.True(pageLink.IsRemoteGoToLink);
         Assert.Equal("remote-report.pdf", pageLink.RemoteFile);

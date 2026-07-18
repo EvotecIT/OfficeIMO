@@ -16,7 +16,7 @@ public class PdfBookmarkEditorTests {
             .Paragraph(p => p.Text("Page two"))
             .ToBytes();
 
-        PdfBookmarkEditResult edited = PdfDocument.Load(source).Bookmarks.Edit(session => {
+        PdfBookmarkEditResult edited = PdfDocument.Open(source).Bookmarks.Edit(session => {
             PdfBookmarkNode first = session.Roots[0];
             PdfBookmarkNode second = session.Roots[1];
             session.Rename(first.Id, "Renamed first");

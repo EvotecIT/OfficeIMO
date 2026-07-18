@@ -6,7 +6,7 @@ namespace OfficeIMO.Pdf;
 /// <summary>
 /// Provides first-party selected-page import helpers for PDFs that can be parsed by OfficeIMO.Pdf.
 /// </summary>
-public static partial class PdfPageImporter {
+internal static partial class PdfPageImporter {
     /// <summary>
     /// Appends selected one-based pages from <paramref name="sourcePdf"/> to the end of <paramref name="targetPdf"/>.
     /// When no page numbers are supplied, all source pages are appended.

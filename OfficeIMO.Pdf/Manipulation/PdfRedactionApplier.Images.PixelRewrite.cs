@@ -5,7 +5,7 @@ using System.IO.Compression;
 
 namespace OfficeIMO.Pdf;
 
-public static partial class PdfRedactionApplier {
+internal static partial class PdfRedactionApplier {
     private const double ImagePixelRewriteTransformTolerance = 0.0000001D;
 
     private static bool RewriteMatchedImagePixels(

@@ -24,11 +24,11 @@ public static partial class RtfPdfConverterExtensions {
         document.ToPdfDocumentResult(options).ToBytes();
 
     /// <summary>Saves an RTF document as PDF at the specified path.</summary>
-    public static PdfCore.PdfDocumentConversionResult SaveAsPdf(this RtfDocument document, string path, RtfPdfSaveOptions? options = null) =>
+    public static PdfCore.PdfSaveResult SaveAsPdf(this RtfDocument document, string path, RtfPdfSaveOptions? options = null) =>
         document.ToPdfDocumentResult(options).Save(path);
 
     /// <summary>Saves an RTF document as PDF to a caller-owned stream.</summary>
-    public static PdfCore.PdfDocumentConversionResult SaveAsPdf(this RtfDocument document, Stream stream, RtfPdfSaveOptions? options = null) =>
+    public static PdfCore.PdfSaveResult SaveAsPdf(this RtfDocument document, Stream stream, RtfPdfSaveOptions? options = null) =>
         document.ToPdfDocumentResult(options).Save(stream);
 
     /// <summary>Attempts to save an RTF document as PDF at the specified path.</summary>
@@ -56,7 +56,7 @@ public static partial class RtfPdfConverterExtensions {
     }
 
     /// <summary>Converts synchronously, then asynchronously saves an RTF PDF at the specified path.</summary>
-    public static Task<PdfCore.PdfDocumentConversionResult> SaveAsPdfAsync(
+    public static Task<PdfCore.PdfSaveResult> SaveAsPdfAsync(
         this RtfDocument document,
         string path,
         RtfPdfSaveOptions? options = null,
@@ -66,7 +66,7 @@ public static partial class RtfPdfConverterExtensions {
     }
 
     /// <summary>Converts synchronously, then asynchronously saves an RTF PDF to a caller-owned stream.</summary>
-    public static Task<PdfCore.PdfDocumentConversionResult> SaveAsPdfAsync(
+    public static Task<PdfCore.PdfSaveResult> SaveAsPdfAsync(
         this RtfDocument document,
         Stream stream,
         RtfPdfSaveOptions? options = null,

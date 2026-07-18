@@ -1,7 +1,7 @@
 namespace OfficeIMO.Pdf;
 
 /// <summary>Builds redaction impact previews without modifying the PDF.</summary>
-public static partial class PdfRedactionPlanner {
+internal static partial class PdfRedactionPlanner {
     private const double DefaultTextHeight = 12D;
 
     /// <summary>Plans rectangle-based redaction impact for a PDF byte array.</summary>
@@ -24,7 +24,7 @@ public static partial class PdfRedactionPlanner {
             return new PdfRedactionPlan(preflight, areaArray, Array.Empty<PdfRedactionMatch>(), findings.AsReadOnly());
         }
 
-        PdfLogicalDocument logical = PdfLogicalDocument.From(PdfReadDocument.Load(pdf, options), layoutOptions);
+        PdfLogicalDocument logical = PdfLogicalDocument.From(PdfReadDocument.Open(pdf, options), layoutOptions);
         PdfDocumentInfo info = preflight.DocumentInfo ?? PdfInspector.Inspect(pdf, options);
         var matches = new List<PdfRedactionMatch>();
 

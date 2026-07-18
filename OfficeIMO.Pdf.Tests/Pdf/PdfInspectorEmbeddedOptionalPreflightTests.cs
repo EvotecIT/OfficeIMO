@@ -343,7 +343,7 @@ public partial class PdfInspectorTests {
 
     [Fact]
     public void Reader_ExposesCatalogActionDiagnostics() {
-        PdfDocument document = PdfDocument.Load(BuildCatalogActiveActionSlotsPdf());
+        PdfDocument document = PdfDocument.Open(BuildCatalogActiveActionSlotsPdf());
 
         IReadOnlyList<PdfCatalogAction> actions = document.Read.CatalogActions();
         Assert.Equal(4, actions.Count);
@@ -449,7 +449,7 @@ public partial class PdfInspectorTests {
 
     [Fact]
     public void Reader_ExposesPageActionDiagnostics() {
-        PdfDocument document = PdfDocument.Load(BuildPageAdditionalActionsPdf());
+        PdfDocument document = PdfDocument.Open(BuildPageAdditionalActionsPdf());
 
         IReadOnlyList<PdfPageAction> actions = document.Read.PageActions();
         Assert.Equal(2, actions.Count);

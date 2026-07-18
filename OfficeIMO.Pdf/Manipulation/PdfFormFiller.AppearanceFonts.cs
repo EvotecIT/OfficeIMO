@@ -2,7 +2,7 @@ using OfficeIMO.Pdf.Filters;
 
 namespace OfficeIMO.Pdf;
 
-public static partial class PdfFormFiller {
+internal static partial class PdfFormFiller {
     private const string DefaultAppearanceFontName = "Helv";
     private const int MaxInheritedCidWidthEntries = 65536;
     private const int MaxInheritedCidWidthRangeEntries = 4096;

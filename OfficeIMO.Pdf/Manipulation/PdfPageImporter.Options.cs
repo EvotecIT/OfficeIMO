@@ -1,6 +1,6 @@
 namespace OfficeIMO.Pdf;
 
-public static partial class PdfPageImporter {
+internal static partial class PdfPageImporter {
     /// <summary>
     /// Appends selected one-based pages from <paramref name="sourcePdf"/> to the end of <paramref name="targetPdf"/>, applying optional source preparation first.
     /// When no page numbers are supplied, all source pages are appended.

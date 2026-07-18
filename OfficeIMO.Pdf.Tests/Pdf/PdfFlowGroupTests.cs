@@ -40,7 +40,7 @@ public class PdfFlowGroupTests {
             .ToBytes();
 
         Assert.Equal(2, invocations);
-        Assert.Contains("Deferred page 2", PdfReadDocument.Load(bytes).ExtractText(), StringComparison.Ordinal);
+        Assert.Contains("Deferred page 2", PdfReadDocument.Open(bytes).ExtractText(), StringComparison.Ordinal);
         Assert.Equal(2, capture.Last!.PageNumber);
     }
 
@@ -81,10 +81,10 @@ public class PdfFlowGroupTests {
 
         Assert.False(materialized);
         Assert.True(conditionalCapture.WasSkipped);
-        Assert.Contains("Visible", PdfReadDocument.Load(conditional).ExtractText(), StringComparison.Ordinal);
+        Assert.Contains("Visible", PdfReadDocument.Open(conditional).ExtractText(), StringComparison.Ordinal);
         Assert.True(skipCapture.WasSkipped);
-        Assert.Contains("After skip", PdfReadDocument.Load(skipped).ExtractText(), StringComparison.Ordinal);
-        Assert.DoesNotContain("After stop", PdfReadDocument.Load(stopped).ExtractText(), StringComparison.Ordinal);
+        Assert.Contains("After skip", PdfReadDocument.Open(skipped).ExtractText(), StringComparison.Ordinal);
+        Assert.DoesNotContain("After stop", PdfReadDocument.Open(stopped).ExtractText(), StringComparison.Ordinal);
     }
 
     private static PdfDocument CreateShortPageDocument() {

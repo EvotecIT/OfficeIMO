@@ -39,6 +39,54 @@ public sealed class PdfComplianceProofReport {
     /// <summary>Caller-supplied external validation results.</summary>
     public IReadOnlyList<PdfExternalValidationResult> ExternalValidations => _externalValidations;
 
+    /// <summary>
+    /// De-duplicated requirements after external validator evidence has been reconciled.
+    /// Passing external proof rows are represented as satisfied requirements.
+    /// </summary>
+    public IReadOnlyList<PdfComplianceRequirement> EffectiveRequirements {
+        get {
+            var requirements = new List<PdfComplianceRequirement>(Readiness.Requirements.Count);
+            var ids = new HashSet<string>(StringComparer.Ordinal);
+            for (int i = 0; i < Readiness.Requirements.Count; i++) {
+                PdfComplianceRequirement requirement = Readiness.Requirements[i];
+                if (!ids.Add(requirement.Id)) {
+                    continue;
+                }
+
+                if (TryGetExternalValidator(requirement.Id, out PdfExternalValidatorKind validatorKind) &&
+                    FindExternalValidatorProof(validatorKind)?.IsSatisfied == true) {
+                    requirements.Add(new PdfComplianceRequirement(
+                        requirement.Id,
+                        requirement.DisplayName,
+                        PdfComplianceRequirementStatus.Satisfied,
+                        "Required external validation passed for the exact artifact."));
+                } else {
+                    requirements.Add(requirement);
+                }
+            }
+
+            return requirements.AsReadOnly();
+        }
+    }
+
+    /// <summary>Effective requirements still missing after external evidence reconciliation.</summary>
+    public IReadOnlyList<PdfComplianceRequirement> MissingRequirements =>
+        EffectiveRequirements
+            .Where(static requirement => requirement.Status == PdfComplianceRequirementStatus.Missing)
+            .ToArray();
+
+    /// <summary>Effective requirements still unsupported after external evidence reconciliation.</summary>
+    public IReadOnlyList<PdfComplianceRequirement> UnsupportedRequirements =>
+        EffectiveRequirements
+            .Where(static requirement => requirement.Status == PdfComplianceRequirementStatus.Unsupported)
+            .ToArray();
+
+    /// <summary>All effective requirements that currently block a conformance claim.</summary>
+    public IReadOnlyList<PdfComplianceRequirement> BlockingRequirements =>
+        EffectiveRequirements
+            .Where(static requirement => requirement.Status != PdfComplianceRequirementStatus.Satisfied)
+            .ToArray();
+
     /// <summary>SHA-256 of the exact PDF artifact represented by this proof report.</summary>
     public string? ArtifactSha256 { get; }
 
@@ -98,7 +146,8 @@ public sealed class PdfComplianceProofReport {
         HasArtifactEvidence &&
         IsInternallyReady &&
         HasRequiredExternalValidation &&
-        FailedExternalValidations.Count == 0;
+        FailedExternalValidations.Count == 0 &&
+        BlockingRequirements.Count == 0;
 
     /// <summary>True when OfficeIMO.Pdf readiness is complete and the remaining proof work is external validation.</summary>
     public bool ReadyForExternalValidation =>
@@ -236,6 +285,26 @@ public sealed class PdfComplianceProofReport {
         string.Equals(id, "verapdf-validation", StringComparison.Ordinal) ||
         string.Equals(id, "pdfua-validation", StringComparison.Ordinal) ||
         string.Equals(id, "mustang-validation", StringComparison.Ordinal);
+
+    private static bool TryGetExternalValidator(string id, out PdfExternalValidatorKind validatorKind) {
+        if (string.Equals(id, "verapdf-validation", StringComparison.Ordinal)) {
+            validatorKind = PdfExternalValidatorKind.VeraPdf;
+            return true;
+        }
+
+        if (string.Equals(id, "pdfua-validation", StringComparison.Ordinal)) {
+            validatorKind = PdfExternalValidatorKind.PdfUaValidator;
+            return true;
+        }
+
+        if (string.Equals(id, "mustang-validation", StringComparison.Ordinal)) {
+            validatorKind = PdfExternalValidatorKind.Mustang;
+            return true;
+        }
+
+        validatorKind = default;
+        return false;
+    }
 
     private bool HasPassingExternalValidation(PdfExternalValidatorKind validatorKind) {
         for (int i = 0; i < _externalValidations.Count; i++) {

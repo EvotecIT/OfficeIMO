@@ -53,7 +53,7 @@ public class PdfSignatureProfileTests {
                 VisibleAppearance = appearance,
                 ReservedSignatureContentsBytes = 512
             });
-        PdfReadDocument document = PdfReadDocument.Load(preparation.PreparedPdf);
+        PdfReadDocument document = PdfReadDocument.Open(preparation.PreparedPdf);
         PdfFormField field = Assert.Single(document.FormFields, formField => formField.Name == "VisibleApproval");
         PdfFormWidget widget = Assert.Single(field.Widgets);
         string raw = PdfEncoding.Latin1GetString(preparation.PreparedPdf);

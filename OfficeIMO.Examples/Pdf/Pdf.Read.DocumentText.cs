@@ -6,7 +6,7 @@ namespace OfficeIMO.Examples.Pdf {
         public static void Example_Pdf_ReadDocumentText(string folderPath, bool open = false) {
             string path = Path.Combine(folderPath, "Pdf.WithPageNumbers.pdf");
             if (!File.Exists(path)) WriterHeadersFooters.Example_Pdf_PageNumbers(folderPath, false);
-            var doc = PdfReadDocument.Load(path, new PdfReadOptions { PreferToUnicode = true, UseWinAnsiFallback = true, AdjustKerningFromTJ = true });
+            var doc = PdfReadDocument.Open(path, new PdfReadOptions { PreferToUnicode = true, UseWinAnsiFallback = true, AdjustKerningFromTJ = true });
             string text = doc.ExtractText();
             string outPath = Path.Combine(folderPath, "Pdf.WithPageNumbers.extracted.txt");
             File.WriteAllText(outPath, text);

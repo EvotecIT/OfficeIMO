@@ -15,5 +15,5 @@ public sealed class PdfDestructiveCropResult {
     /// <summary>Returns a defensive copy of the destructively cropped PDF.</summary>
     public byte[] ToBytes() => (byte[])_pdf.Clone();
     /// <summary>Opens the destructively cropped artifact.</summary>
-    public PdfDocument ToDocument() => PdfDocument.Load(_pdf);
+    public PdfDocument ToDocument() => PdfDocument.Open(_pdf);
 }

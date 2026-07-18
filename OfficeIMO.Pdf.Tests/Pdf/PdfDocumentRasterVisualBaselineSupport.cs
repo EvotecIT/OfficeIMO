@@ -143,6 +143,76 @@ public partial class PdfDocumentRasterVisualBaselineTests {
     private static bool IsRequired() =>
         string.Equals(Environment.GetEnvironmentVariable("OFFICEIMO_REQUIRE_PDF_RASTERIZER"), "1", StringComparison.Ordinal);
 
+    private static bool IsStrictRasterBaselineRequired() =>
+        IsRequired() ||
+        string.Equals(Environment.GetEnvironmentVariable("OFFICEIMO_REQUIRE_PDF_RASTER_BASELINE_MATCH"), "1", StringComparison.Ordinal);
+
+    private static bool IsRasterSmokeOnly() =>
+        string.Equals(Environment.GetEnvironmentVariable("OFFICEIMO_PDF_RASTER_SMOKE_ONLY"), "1", StringComparison.Ordinal) &&
+        !string.Equals(Environment.GetEnvironmentVariable("OFFICEIMO_REQUIRE_PDF_RASTER_BASELINE_MATCH"), "1", StringComparison.Ordinal) &&
+        !string.Equals(Environment.GetEnvironmentVariable("OFFICEIMO_UPDATE_PDF_RASTER_BASELINE"), "1", StringComparison.Ordinal);
+
+    private static bool CanAssertRasterBaseline(string rasterizerPath) {
+        string currentVersion = ReadPdftoppmVersion(rasterizerPath);
+        string versionPath = Path.Combine(GetPdfTestsProjectRoot(), "Pdf", "VisualBaselines", "poppler-version.txt");
+        if (string.Equals(Environment.GetEnvironmentVariable("OFFICEIMO_UPDATE_PDF_RASTER_BASELINE"), "1", StringComparison.Ordinal)) {
+            Directory.CreateDirectory(Path.GetDirectoryName(versionPath)!);
+            File.WriteAllText(versionPath, currentVersion + Environment.NewLine);
+            return true;
+        }
+
+        string? baselineVersion = File.Exists(versionPath)
+            ? File.ReadAllText(versionPath).Trim()
+            : null;
+        if (string.Equals(currentVersion, baselineVersion, StringComparison.Ordinal)) {
+            return true;
+        }
+
+        if (string.Equals(Environment.GetEnvironmentVariable("OFFICEIMO_PDF_RASTER_ALLOW_VERSION_MISMATCH"), "1", StringComparison.Ordinal)) {
+            return true;
+        }
+
+        if (IsStrictRasterBaselineRequired()) {
+            throw new InvalidOperationException(
+                "Strict PDF raster baselines were generated with Poppler " +
+                (string.IsNullOrEmpty(baselineVersion) ? "(unrecorded)" : baselineVersion) +
+                ", but the available pdftoppm is " + currentVersion + ". " +
+                "Use the recorded Poppler version, deliberately update the baselines, or set " +
+                "OFFICEIMO_PDF_RASTER_ALLOW_VERSION_MISMATCH=1 for an investigative comparison.");
+        }
+
+        return false;
+    }
+
+    private static string ReadPdftoppmVersion(string rasterizerPath) {
+        var psi = new ProcessStartInfo {
+            FileName = rasterizerPath,
+            Arguments = "-v",
+            UseShellExecute = false,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            CreateNoWindow = true
+        };
+
+        using Process process = Process.Start(psi)
+            ?? throw new InvalidOperationException("Could not query PDF rasterizer version: " + rasterizerPath);
+        string output = process.StandardOutput.ReadToEnd() + Environment.NewLine + process.StandardError.ReadToEnd();
+        if (!process.WaitForExit(10000) || process.ExitCode != 0) {
+            throw new InvalidOperationException("Could not query PDF rasterizer version: " + rasterizerPath);
+        }
+
+        System.Text.RegularExpressions.Match match = System.Text.RegularExpressions.Regex.Match(
+            output,
+            @"pdftoppm version (?<version>\d+\.\d+)",
+            System.Text.RegularExpressions.RegexOptions.CultureInvariant |
+            System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        if (!match.Success) {
+            throw new InvalidOperationException("Could not parse pdftoppm version output: " + output.Trim());
+        }
+
+        return match.Groups["version"].Value;
+    }
+
     private static bool SkipRasterAssertions() =>
         string.Equals(Environment.GetEnvironmentVariable("OFFICEIMO_PDF_VISUAL_REVIEW_SKIP_RASTER_ASSERTIONS"), "1", StringComparison.Ordinal);
 

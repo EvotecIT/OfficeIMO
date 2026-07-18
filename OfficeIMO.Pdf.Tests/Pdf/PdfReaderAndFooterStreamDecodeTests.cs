@@ -89,7 +89,7 @@ public partial class PdfReaderAndFooterRegressionTests {
     public void PdfReadPage_GetTextSpans_ReadsLzwEncodedContentStreams() {
         byte[] bytes = BuildPdfWithLzwEncodedStream("BT\n/F1 12 Tf\n72 720 Td\n(Hello LZW spans) Tj\nET\n");
 
-        var doc = PdfReadDocument.Load(bytes);
+        var doc = PdfReadDocument.Open(bytes);
 
         Assert.Single(doc.Pages);
         var span = Assert.Single(doc.Pages[0].GetTextSpans());
@@ -130,7 +130,7 @@ public partial class PdfReaderAndFooterRegressionTests {
     public void PdfReadPage_GetTextSpans_ReadsFlateStreamsWithPredictorDecodeParms() {
         byte[] bytes = BuildPdfWithPredictorEncodedStream("BT\n/F1 12 Tf\n72 720 Td\n(Hello predictor) Tj\nET\n");
 
-        var doc = PdfReadDocument.Load(bytes);
+        var doc = PdfReadDocument.Open(bytes);
 
         Assert.Single(doc.Pages);
         var span = Assert.Single(doc.Pages[0].GetTextSpans());
@@ -150,7 +150,7 @@ public partial class PdfReaderAndFooterRegressionTests {
     public void PdfReadPage_GetTextSpans_ReadsChainedFiltersWithDecodeParmsArrays() {
         byte[] bytes = BuildPdfWithAscii85AndPredictorEncodedStream("BT\n/F1 12 Tf\n72 720 Td\n(Hello predictor chain) Tj\nET\n");
 
-        var doc = PdfReadDocument.Load(bytes);
+        var doc = PdfReadDocument.Open(bytes);
 
         Assert.Single(doc.Pages);
         var span = Assert.Single(doc.Pages[0].GetTextSpans());
@@ -170,7 +170,7 @@ public partial class PdfReaderAndFooterRegressionTests {
     public void PdfReadPage_GetTextSpans_ReadsIndirectDecodeParmsDictionaries() {
         byte[] bytes = BuildPdfWithIndirectPredictorEncodedStream("BT\n/F1 12 Tf\n72 720 Td\n(Hello predictor indirect) Tj\nET\n");
 
-        var doc = PdfReadDocument.Load(bytes);
+        var doc = PdfReadDocument.Open(bytes);
 
         Assert.Single(doc.Pages);
         var span = Assert.Single(doc.Pages[0].GetTextSpans());
@@ -190,7 +190,7 @@ public partial class PdfReaderAndFooterRegressionTests {
     public void PdfReadPage_GetTextSpans_ReadsIndirectDecodeParmsArrayEntries() {
         byte[] bytes = BuildPdfWithAscii85AndIndirectPredictorEncodedStream("BT\n/F1 12 Tf\n72 720 Td\n(Hello predictor indirect chain) Tj\nET\n");
 
-        var doc = PdfReadDocument.Load(bytes);
+        var doc = PdfReadDocument.Open(bytes);
 
         Assert.Single(doc.Pages);
         var span = Assert.Single(doc.Pages[0].GetTextSpans());
@@ -210,7 +210,7 @@ public partial class PdfReaderAndFooterRegressionTests {
     public void PdfReadPage_GetTextSpans_ReadsFlateStreamsWithTiffPredictorDecodeParms() {
         byte[] bytes = BuildPdfWithTiffPredictorEncodedStream("BT\n/F1 12 Tf\n72 720 Td\n(Hello TIFF predictor) Tj\nET\n");
 
-        var doc = PdfReadDocument.Load(bytes);
+        var doc = PdfReadDocument.Open(bytes);
 
         Assert.Single(doc.Pages);
         var span = Assert.Single(doc.Pages[0].GetTextSpans());
@@ -230,7 +230,7 @@ public partial class PdfReaderAndFooterRegressionTests {
     public void PdfReadPage_GetTextSpans_ReadsIndirectFilterNameObjects() {
         byte[] bytes = BuildPdfWithIndirectFilterNameEncodedStream("BT\n/F1 12 Tf\n72 720 Td\n(Hello indirect filter) Tj\nET\n");
 
-        var doc = PdfReadDocument.Load(bytes);
+        var doc = PdfReadDocument.Open(bytes);
 
         Assert.Single(doc.Pages);
         var span = Assert.Single(doc.Pages[0].GetTextSpans());
@@ -250,7 +250,7 @@ public partial class PdfReaderAndFooterRegressionTests {
     public void PdfReadPage_GetTextSpans_ReadsIndirectFilterAndDecodeParmsArrayObjects() {
         byte[] bytes = BuildPdfWithIndirectFilterAndDecodeParmsArrayObjects("BT\n/F1 12 Tf\n72 720 Td\n(Hello indirect arrays) Tj\nET\n");
 
-        var doc = PdfReadDocument.Load(bytes);
+        var doc = PdfReadDocument.Open(bytes);
 
         Assert.Single(doc.Pages);
         var span = Assert.Single(doc.Pages[0].GetTextSpans());
@@ -270,7 +270,7 @@ public partial class PdfReaderAndFooterRegressionTests {
     public void PdfReadPage_GetTextSpans_ReadsStreamsWithIndirectLengthObjects() {
         byte[] bytes = BuildPdfWithIndirectLengthStreamContainingEndstreamLiteral();
 
-        var doc = PdfReadDocument.Load(bytes);
+        var doc = PdfReadDocument.Open(bytes);
 
         Assert.Single(doc.Pages);
         var span = Assert.Single(doc.Pages[0].GetTextSpans());
@@ -290,7 +290,7 @@ public partial class PdfReaderAndFooterRegressionTests {
     public void PdfReadPage_GetTextSpans_ReadsStreamsContainingEndobjLiterals() {
         byte[] bytes = BuildSingleStreamPdf("BT\n/F1 12 Tf\n72 720 Td\n(Hello endobj marker) Tj\nET\n");
 
-        var doc = PdfReadDocument.Load(bytes);
+        var doc = PdfReadDocument.Open(bytes);
 
         Assert.Single(doc.Pages);
         var span = Assert.Single(doc.Pages[0].GetTextSpans());

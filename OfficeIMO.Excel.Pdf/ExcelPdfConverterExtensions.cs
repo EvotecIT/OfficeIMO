@@ -114,7 +114,7 @@ namespace OfficeIMO.Excel.Pdf {
         /// <summary>
         /// Saves an Excel workbook as a PDF file.
         /// </summary>
-        public static PdfCore.PdfDocumentConversionResult SaveAsPdf(this ExcelDocument document, string path, ExcelPdfSaveOptions? options = null) =>
+        public static PdfCore.PdfSaveResult SaveAsPdf(this ExcelDocument document, string path, ExcelPdfSaveOptions? options = null) =>
             document.ToPdfDocumentResult(options).Save(path);
 
         /// <summary>
@@ -131,7 +131,7 @@ namespace OfficeIMO.Excel.Pdf {
         /// <summary>
         /// Writes an Excel workbook as PDF to a stream.
         /// </summary>
-        public static PdfCore.PdfDocumentConversionResult SaveAsPdf(this ExcelDocument document, Stream stream, ExcelPdfSaveOptions? options = null) =>
+        public static PdfCore.PdfSaveResult SaveAsPdf(this ExcelDocument document, Stream stream, ExcelPdfSaveOptions? options = null) =>
             document.ToPdfDocumentResult(options).Save(stream);
 
         /// <summary>
@@ -146,7 +146,7 @@ namespace OfficeIMO.Excel.Pdf {
         }
 
         /// <summary>Converts synchronously, then asynchronously saves an Excel workbook PDF at the specified path.</summary>
-        public static Task<PdfCore.PdfDocumentConversionResult> SaveAsPdfAsync(
+        public static Task<PdfCore.PdfSaveResult> SaveAsPdfAsync(
             this ExcelDocument document,
             string path,
             ExcelPdfSaveOptions? options = null,
@@ -156,7 +156,7 @@ namespace OfficeIMO.Excel.Pdf {
         }
 
         /// <summary>Converts synchronously, then asynchronously saves an Excel workbook PDF to a caller-owned stream.</summary>
-        public static Task<PdfCore.PdfDocumentConversionResult> SaveAsPdfAsync(
+        public static Task<PdfCore.PdfSaveResult> SaveAsPdfAsync(
             this ExcelDocument document,
             Stream stream,
             ExcelPdfSaveOptions? options = null,

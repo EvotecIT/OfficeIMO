@@ -1,3 +1,4 @@
+using DrawingCore = OfficeIMO.Drawing;
 using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Html.Pdf;
@@ -51,7 +52,7 @@ public sealed class HtmlPdfSaveOptions : HtmlRenderOptions {
     public PdfCore.PdfEmbeddedFontFamily? FontFamily { get; set; }
 
     /// <summary>Optional host-provided shaping seam used with caller-supplied or resolved embedded fonts.</summary>
-    public PdfCore.IPdfTextShapingProvider? TextShapingProvider { get; set; }
+    public DrawingCore.IOfficeTextShapingProvider? TextShapingProvider { get; set; }
 
     /// <summary>Host-resource policy. Defaults to balanced conversion: system fonts and bounded in-source resources are allowed, while local and remote reads are denied.</summary>
     public PdfCore.PdfResourcePolicy ResourcePolicy {

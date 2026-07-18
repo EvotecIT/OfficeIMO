@@ -102,7 +102,7 @@ public partial class PdfReadStreamTests {
     public void ReadApis_ResolveDirectGoToLinkAnnotationDestinations() {
         byte[] linkedPdf = BuildGoToActionLinkAnnotationPdf();
 
-        PdfReadDocument document = PdfReadDocument.Load(new MemoryStream(linkedPdf));
+        PdfReadDocument document = PdfReadDocument.Open(new MemoryStream(linkedPdf));
         PdfLinkAnnotation pageLink = Assert.Single(document.Pages[0].GetLinkAnnotations());
         Assert.Null(pageLink.PageNumber);
         Assert.Null(pageLink.DestinationPageNumber);

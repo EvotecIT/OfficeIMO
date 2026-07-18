@@ -1,3 +1,5 @@
+using OfficeIMO.Drawing;
+
 namespace OfficeIMO.Pdf;
 
 internal sealed class PdfGlyphRun {
@@ -80,7 +82,7 @@ internal readonly struct PdfGlyphInfo {
 }
 
 internal readonly struct PdfTextShapingOptions {
-    public PdfTextShapingOptions(bool recordGlyphUsage, bool throwOnMissingGlyph, bool skipLayoutControls, bool reportControlCharacters, string source, string fontName, PdfTextShapingMode shapingMode = PdfTextShapingMode.UnicodeScalar, IPdfTextShapingProvider? shapingProvider = null, Action<string, string, bool>? providerShapedTextRecorder = null, string? language = null) {
+    public PdfTextShapingOptions(bool recordGlyphUsage, bool throwOnMissingGlyph, bool skipLayoutControls, bool reportControlCharacters, string source, string fontName, PdfTextShapingMode shapingMode = PdfTextShapingMode.UnicodeScalar, IOfficeTextShapingProvider? shapingProvider = null, Action<string, string, bool>? providerShapedTextRecorder = null, string? language = null) {
         RecordGlyphUsage = recordGlyphUsage;
         ThrowOnMissingGlyph = throwOnMissingGlyph;
         SkipLayoutControls = skipLayoutControls;
@@ -100,14 +102,14 @@ internal readonly struct PdfTextShapingOptions {
     public string Source { get; }
     public string FontName { get; }
     public PdfTextShapingMode ShapingMode { get; }
-    public IPdfTextShapingProvider? ShapingProvider { get; }
+    public IOfficeTextShapingProvider? ShapingProvider { get; }
     public Action<string, string, bool>? ProviderShapedTextRecorder { get; }
     public string? Language { get; }
 
-    public static PdfTextShapingOptions ForRendering(string fontName, PdfTextShapingMode shapingMode = PdfTextShapingMode.UnicodeScalar, IPdfTextShapingProvider? shapingProvider = null, Action<string, string, bool>? providerShapedTextRecorder = null, string? language = null) =>
+    public static PdfTextShapingOptions ForRendering(string fontName, PdfTextShapingMode shapingMode = PdfTextShapingMode.UnicodeScalar, IOfficeTextShapingProvider? shapingProvider = null, Action<string, string, bool>? providerShapedTextRecorder = null, string? language = null) =>
         new PdfTextShapingOptions(recordGlyphUsage: true, throwOnMissingGlyph: true, skipLayoutControls: false, reportControlCharacters: false, source: string.Empty, fontName: fontName, shapingMode: shapingMode, shapingProvider: shapingProvider, providerShapedTextRecorder: providerShapedTextRecorder, language: language);
 
-    public static PdfTextShapingOptions ForDiagnostics(string source, string fontName, PdfTextShapingMode shapingMode = PdfTextShapingMode.UnicodeScalar, IPdfTextShapingProvider? shapingProvider = null) =>
+    public static PdfTextShapingOptions ForDiagnostics(string source, string fontName, PdfTextShapingMode shapingMode = PdfTextShapingMode.UnicodeScalar, IOfficeTextShapingProvider? shapingProvider = null) =>
         new PdfTextShapingOptions(recordGlyphUsage: false, throwOnMissingGlyph: false, skipLayoutControls: true, reportControlCharacters: true, source: source, fontName: fontName, shapingMode: shapingMode, shapingProvider: shapingProvider);
 }
 
@@ -130,7 +132,7 @@ internal sealed class PdfUnicodeScalarTextShaper : IPdfTextShaper {
         for (int index = 0; index < text.Length;) {
             int scalarStart = index;
             if (options.ShapingMode == PdfTextShapingMode.LatinLigatures &&
-                PdfLatinLigatureSubstitution.TryGetPresentationLigature(text, scalarStart, out int ligatureScalar, out int ligatureLength) &&
+                OfficeTextLigatures.TryGetLatinPresentationForm(text, scalarStart, out int ligatureScalar, out int ligatureLength) &&
                 font.TryGetGlyphId(ligatureScalar, out int ligatureGlyphId) &&
                 ligatureGlyphId > 0) {
                 if (options.RecordGlyphUsage) {
@@ -190,52 +192,4 @@ internal sealed class PdfUnicodeScalarTextShaper : IPdfTextShaper {
 
         return ch;
     }
-}
-
-internal static class PdfLatinLigatureSubstitution {
-    internal static bool TryGetPresentationLigature(string text, int index, out int ligatureScalar, out int utf16Length) {
-        if (index < 0 || index >= text.Length) {
-            ligatureScalar = 0;
-            utf16Length = 0;
-            return false;
-        }
-
-        if (StartsWithOrdinal(text, index, "ffi")) {
-            ligatureScalar = 0xFB03;
-            utf16Length = 3;
-            return true;
-        }
-
-        if (StartsWithOrdinal(text, index, "ffl")) {
-            ligatureScalar = 0xFB04;
-            utf16Length = 3;
-            return true;
-        }
-
-        if (StartsWithOrdinal(text, index, "ff")) {
-            ligatureScalar = 0xFB00;
-            utf16Length = 2;
-            return true;
-        }
-
-        if (StartsWithOrdinal(text, index, "fi")) {
-            ligatureScalar = 0xFB01;
-            utf16Length = 2;
-            return true;
-        }
-
-        if (StartsWithOrdinal(text, index, "fl")) {
-            ligatureScalar = 0xFB02;
-            utf16Length = 2;
-            return true;
-        }
-
-        ligatureScalar = 0;
-        utf16Length = 0;
-        return false;
-    }
-
-    private static bool StartsWithOrdinal(string text, int index, string value) =>
-        index <= text.Length - value.Length &&
-        string.Compare(text, index, value, 0, value.Length, StringComparison.Ordinal) == 0;
 }

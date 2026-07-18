@@ -1,6 +1,6 @@
 namespace OfficeIMO.Pdf;
 
-public static partial class PdfComplianceAnalyzer {
+internal static partial class PdfComplianceAnalyzer {
     private static readonly string[] ElectronicInvoiceElectronicAddressSchemeIds = {
         "0002",
         "0007",

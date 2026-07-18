@@ -947,11 +947,118 @@ public class PdfPageImageRendererTests {
             extraResourceEntries: " /ColorSpace << /CsIndexed [/Indexed /DeviceRGB 2 <FF000000FF000000FF>] >>");
 
         OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(
+            pdf,
+            options: new PdfPageRenderOptions { Format = PdfPageRenderFormat.Svg }));
 
         var image = Assert.Single(drawing.Images);
         Assert.Equal("image/png", image.ContentType);
         Assert.Equal(2, PdfPngTestImages.ReadPngColorType(image.Bytes));
         Assert.Equal(new byte[] { 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 255, 0 }, PdfPngTestImages.DecodeStoredPngIdat(image.Bytes));
+        Assert.DoesNotContain(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == "render.resource.colorspace-unsupported");
+    }
+
+    [Fact]
+    public void RenderPage_ReportsUnsupportedNamedImageXObjectColorSpace() {
+        byte[] pdf = BuildSingleStreamPdfWithBinaryImageXObject(
+            CompressWithDeflate(new byte[] { 0x7F }),
+            colorSpace: "/CsSpot",
+            imageWidth: 1,
+            extraResourceEntries: " /ColorSpace << /CsSpot [/Separation /Spot /DeviceRGB 7 0 R] >>",
+            extraObjects: new[] {
+                "7 0 obj\n<< /FunctionType 2 /Domain [0 1] /C0 [0 0 0] /C1 [1 0 0] /N 1 >>\nendobj"
+            });
+
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(
+            pdf,
+            options: new PdfPageRenderOptions { Format = PdfPageRenderFormat.Svg, ContinueOnError = true }));
+
+        Assert.Contains(
+            result.CapabilityDiagnostics,
+            diagnostic => diagnostic.Code == PdfRenderCapabilities.ColorSpaceId &&
+                diagnostic.Subject == "CsSpot");
+    }
+
+    [Fact]
+    public void RenderPage_DoesNotReportUnusedImageXObjectColorSpace() {
+        byte[] pdf = BuildSingleStreamPdfWithBinaryImageXObject(
+            CompressWithDeflate(new byte[] { 0x7F }),
+            colorSpace: "/CsSpot",
+            imageWidth: 1,
+            contentStream: "q\nQ",
+            extraResourceEntries: " /ColorSpace << /CsSpot [/Separation /Spot /DeviceRGB 7 0 R] >>",
+            extraObjects: new[] {
+                "7 0 obj\n<< /FunctionType 2 /Domain [0 1] /C0 [0 0 0] /C1 [1 0 0] /N 1 >>\nendobj"
+            });
+
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(
+            pdf,
+            options: new PdfPageRenderOptions { Format = PdfPageRenderFormat.Svg, ContinueOnError = true }));
+
+        Assert.DoesNotContain(
+            result.CapabilityDiagnostics,
+            diagnostic => diagnostic.Code == PdfRenderCapabilities.ColorSpaceId &&
+                diagnostic.Subject == "CsSpot");
+    }
+
+    [Fact]
+    public void RenderPage_RejectsIndexedPaletteStreamWithUnsupportedFilter() {
+        byte[] pdf = BuildSingleStreamPdfWithBinaryImageXObject(
+            CompressWithDeflate(new byte[] { 0x00 }),
+            colorSpace: "/CsIndexed",
+            imageWidth: 1,
+            extraResourceEntries: " /ColorSpace << /CsIndexed [/Indexed /DeviceRGB 1 7 0 R] >>",
+            extraObjects: new[] {
+                "7 0 obj\n<< /Filter /UnsupportedPaletteFilter /Length 6 >>\nstream\nABCDEF\nendstream\nendobj"
+            });
+
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(
+            pdf,
+            options: new PdfPageRenderOptions { Format = PdfPageRenderFormat.Svg, ContinueOnError = true }));
+
+        Assert.Contains(
+            result.CapabilityDiagnostics,
+            diagnostic => diagnostic.Code == PdfRenderCapabilities.ColorSpaceId &&
+                diagnostic.Subject == "CsIndexed");
+    }
+
+    [Fact]
+    public void RenderPage_ReportsUnsupportedNamedInlineImageColorSpace() {
+        byte[] pdf = BuildSingleStreamPdf(
+            "BI\n/W 1\n/H 1\n/CS /CsSpot\n/BPC 8\nID\nA\nEI",
+            "<< /ColorSpace << /CsSpot [/Separation /Spot /DeviceRGB 5 0 R] >> >>",
+            "5 0 obj\n<< /FunctionType 2 /Domain [0 1] /C0 [0 0 0] /C1 [1 0 0] /N 1 >>\nendobj");
+
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(
+            pdf,
+            options: new PdfPageRenderOptions { Format = PdfPageRenderFormat.Svg, ContinueOnError = true }));
+
+        Assert.Contains(
+            result.CapabilityDiagnostics,
+            diagnostic => diagnostic.Code == PdfRenderCapabilities.ColorSpaceId &&
+                diagnostic.Subject == "CsSpot");
+    }
+
+    [Fact]
+    public void RenderPage_ReportsOnlySelectedUnsupportedContentColorSpaces() {
+        byte[] pdf = BuildSingleStreamPdf(
+            """
+            /CsSpot cs
+            0.5 scn
+            40 80 70 40 re
+            f
+            """,
+            "<< /ColorSpace << /CsUnused [/DeviceN [/Cyan] /DeviceCMYK 5 0 R] /CsSpot [/Separation /Spot /DeviceRGB 5 0 R] >> >>",
+            "5 0 obj\n<< /FunctionType 2 /Domain [0 1] /C0 [0 0 0] /C1 [1 0 0] /N 1 >>\nendobj");
+
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(
+            pdf,
+            options: new PdfPageRenderOptions { Format = PdfPageRenderFormat.Svg }));
+
+        PdfRenderCapabilityDiagnostic diagnostic = Assert.Single(
+            result.CapabilityDiagnostics,
+            item => item.Code == "render.resource.colorspace-unsupported");
+        Assert.Equal("CsSpot", diagnostic.Subject);
     }
 
     [Fact]

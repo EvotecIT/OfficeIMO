@@ -7,7 +7,7 @@ public sealed partial class PdfDocument {
         PdfPageSelection? selection = null,
         PdfVisualComparisonOptions? options = null,
         PdfReadOptions? actualReadOptions = null) {
-        return PdfVisualComparer.Compare(Snapshot(), actualPdf, selection, options, ReadOptions, actualReadOptions);
+        return PdfVisualComparer.Compare(GetBytesForOperation(), actualPdf, selection, options, ReadOptions, actualReadOptions);
     }
 
     /// <summary>Compares this document with another fluent PDF through the managed renderer.</summary>
@@ -16,21 +16,21 @@ public sealed partial class PdfDocument {
         PdfPageSelection? selection = null,
         PdfVisualComparisonOptions? options = null) {
         Guard.NotNull(actualDocument, nameof(actualDocument));
-        return PdfVisualComparer.Compare(Snapshot(), actualDocument.Snapshot(), selection, options, ReadOptions, actualDocument.ReadOptions);
+        return PdfVisualComparer.Compare(GetBytesForOperation(), actualDocument.GetBytesForOperation(), selection, options, ReadOptions, actualDocument.ReadOptions);
     }
     /// <summary>
     /// Compares this PDF with a rewritten PDF and reports whether important document signals were preserved.
     /// </summary>
     public PdfRewritePreservationReport AssessRewritePreservation(PdfDocument rewrittenDocument, PdfRewritePreservationOptions? options = null) {
         Guard.NotNull(rewrittenDocument, nameof(rewrittenDocument));
-        return AssessRewritePreservation(rewrittenDocument.Snapshot(), options);
+        return AssessRewritePreservation(rewrittenDocument.GetBytesForOperation(), options);
     }
 
     /// <summary>
     /// Compares this PDF with rewritten PDF bytes and reports whether important document signals were preserved.
     /// </summary>
     public PdfRewritePreservationReport AssessRewritePreservation(byte[] rewrittenPdf, PdfRewritePreservationOptions? options = null) {
-        return PdfRewritePreservation.Assess(Snapshot(), rewrittenPdf, options);
+        return PdfRewritePreservation.Assess(GetBytesForOperation(), rewrittenPdf, options);
     }
 
     /// <summary>
@@ -53,14 +53,14 @@ public sealed partial class PdfDocument {
     /// </summary>
     public PdfRewritePreservationReport AssertRewritePreserved(PdfDocument rewrittenDocument, PdfRewritePreservationOptions? options = null) {
         Guard.NotNull(rewrittenDocument, nameof(rewrittenDocument));
-        return AssertRewritePreserved(rewrittenDocument.Snapshot(), options);
+        return AssertRewritePreserved(rewrittenDocument.GetBytesForOperation(), options);
     }
 
     /// <summary>
     /// Compares this PDF with rewritten PDF bytes and throws when important document signals were not preserved.
     /// </summary>
     public PdfRewritePreservationReport AssertRewritePreserved(byte[] rewrittenPdf, PdfRewritePreservationOptions? options = null) {
-        return PdfRewritePreservation.AssertPreserved(Snapshot(), rewrittenPdf, options);
+        return PdfRewritePreservation.AssertPreserved(GetBytesForOperation(), rewrittenPdf, options);
     }
 
     /// <summary>
@@ -180,14 +180,14 @@ public sealed partial class PdfDocument {
     /// Verifies that configured redaction markers were removed and retained markers remain readable in this PDF.
     /// </summary>
     public PdfRedactionVerificationReport VerifyRedactions(PdfRedactionVerificationOptions options) {
-        return PdfRedactionVerification.Verify(Snapshot(), options);
+        return PdfRedactionVerification.Verify(GetBytesForOperation(), options);
     }
 
     /// <summary>
     /// Verifies configured redaction markers and throws when removed content remains or retained content disappeared.
     /// </summary>
     public PdfRedactionVerificationReport AssertRedactionsVerified(PdfRedactionVerificationOptions options) {
-        return PdfRedactionVerification.AssertVerified(Snapshot(), options);
+        return PdfRedactionVerification.AssertVerified(GetBytesForOperation(), options);
     }
 
     private PdfRewritePreservationMatrixScenario CreateRewritePreservationMatrixScenario(
@@ -199,12 +199,12 @@ public sealed partial class PdfDocument {
         IEnumerable<string>? sourceFeatures) {
         Guard.NotNull(rewrite, nameof(rewrite));
 
-        byte[] sourcePdf = Snapshot();
+        byte[] sourcePdf = GetBytesForOperation();
         var scenario = new PdfRewritePreservationMatrixScenario(
             id,
             operation,
             sourcePdf,
-            pdf => rewrite(Load(pdf)).Snapshot()) {
+            pdf => rewrite(Open(pdf)).GetBytesForOperation()) {
                 ExpectedClassification = expectedClassification,
                 PreservationOptions = options
             };

@@ -120,7 +120,7 @@ public partial class PdfReaderAndFooterRegressionTests {
             "BT\n/F1 12 Tf\n72 720 Td\n(X) Tj\nET\n" +
             "EMC\n");
 
-        var span = Assert.Single(PdfReadDocument.Load(bytes).Pages[0].GetTextSpans());
+        var span = Assert.Single(PdfReadDocument.Open(bytes).Pages[0].GetTextSpans());
 
         Assert.Equal("Zed", span.Text);
         Assert.Equal(72, span.X, 3);
@@ -135,7 +135,7 @@ public partial class PdfReaderAndFooterRegressionTests {
             "BT\n/F1 12 Tf\n72 720 Td\n(X) Tj\nET\n" +
             "EMC\n");
 
-        var span = Assert.Single(PdfReadDocument.Load(bytes).Pages[0].GetTextSpans());
+        var span = Assert.Single(PdfReadDocument.Open(bytes).Pages[0].GetTextSpans());
 
         Assert.Equal("Zed", span.Text);
         Assert.Equal(72, span.X, 3);
@@ -150,7 +150,7 @@ public partial class PdfReaderAndFooterRegressionTests {
             "BT\n/F1 12 Tf\n72 720 Td\n(X) Tj\nET\n" +
             "EMC\n");
 
-        var span = Assert.Single(PdfReadDocument.Load(bytes).Pages[0].GetTextSpans());
+        var span = Assert.Single(PdfReadDocument.Open(bytes).Pages[0].GetTextSpans());
 
         Assert.Equal("Zed", span.Text);
         Assert.Equal(72, span.X, 3);
@@ -165,7 +165,7 @@ public partial class PdfReaderAndFooterRegressionTests {
             "BT\n/F1 12 Tf\n72 720 Td\n(X) Tj\nET\n" +
             "EMC\n");
 
-        var span = Assert.Single(PdfReadDocument.Load(bytes).Pages[0].GetTextSpans());
+        var span = Assert.Single(PdfReadDocument.Open(bytes).Pages[0].GetTextSpans());
 
         Assert.Equal("Resource Zed", span.Text);
         Assert.Equal(72, span.X, 3);
@@ -181,7 +181,7 @@ public partial class PdfReaderAndFooterRegressionTests {
             "EMC\n" +
             "BT\n/F1 12 Tf\n72 720 Td\n(Body text) Tj\nET\n");
 
-        var page = PdfReadDocument.Load(bytes).Pages[0];
+        var page = PdfReadDocument.Open(bytes).Pages[0];
         var span = Assert.Single(page.GetTextSpans());
 
         Assert.Equal("Body text", span.Text);
@@ -199,7 +199,7 @@ public partial class PdfReaderAndFooterRegressionTests {
             "BT\n/F1 12 Tf\n72 720 Td\n(Body text) Tj\nET\n",
             "<>");
 
-        var page = PdfReadDocument.Load(bytes).Pages[0];
+        var page = PdfReadDocument.Open(bytes).Pages[0];
         var span = Assert.Single(page.GetTextSpans());
 
         Assert.Equal("Body text", span.Text);
@@ -216,7 +216,7 @@ public partial class PdfReaderAndFooterRegressionTests {
             "EMC\n" +
             "BT\n/F1 12 Tf\n72 720 Td\n(Body text) Tj\nET\n");
 
-        var page = PdfReadDocument.Load(bytes).Pages[0];
+        var page = PdfReadDocument.Open(bytes).Pages[0];
         var span = Assert.Single(page.GetTextSpans());
 
         Assert.Equal("Body text", span.Text);
@@ -229,7 +229,7 @@ public partial class PdfReaderAndFooterRegressionTests {
     public void PdfReadPage_GetTextSpans_ReadsSimpleFontEncodingDifferences() {
         byte[] bytes = BuildPdfWithFontEncodingDifferences();
 
-        var spans = PdfReadDocument.Load(bytes).Pages[0].GetTextSpans();
+        var spans = PdfReadDocument.Open(bytes).Pages[0].GetTextSpans();
 
         var span = Assert.Single(spans, item => item.Text == "Z \u20AC\u0104A");
         Assert.Equal(72, span.X, 3);

@@ -50,10 +50,10 @@ public class PdfPageSelectorTests {
         byte[] source = CreateSixPageDocument();
         PdfPageSelector reverseWithoutFourth = PdfPageSelector.Parse("last..2,!4");
 
-        IReadOnlyList<string> selectedText = PdfDocument.Load(source).Read.TextByPage(reverseWithoutFourth);
-        PdfDocument extracted = PdfDocument.Load(source).Pages.Extract(reverseWithoutFourth);
-        PdfDocument deleted = PdfDocument.Load(source).Pages.Delete(PdfPageSelector.Parse("odd"));
-        PdfOperationResult<PdfDocument> reordered = PdfDocument.Load(source).Pages.TryReorder(PdfPageSelector.Parse("last..1"));
+        IReadOnlyList<string> selectedText = PdfDocument.Open(source).Read.TextByPage(reverseWithoutFourth);
+        PdfDocument extracted = PdfDocument.Open(source).Pages.Extract(reverseWithoutFourth);
+        PdfDocument deleted = PdfDocument.Open(source).Pages.Delete(PdfPageSelector.Parse("odd"));
+        PdfOperationResult<PdfDocument> reordered = PdfDocument.Open(source).Pages.TryReorder(PdfPageSelector.Parse("last..1"));
 
         Assert.Equal(new[] { "Page 6", "Page 5", "Page 3", "Page 2" }, selectedText.Select(static text => text.Trim()));
         Assert.Equal(4, extracted.Inspect().PageCount);

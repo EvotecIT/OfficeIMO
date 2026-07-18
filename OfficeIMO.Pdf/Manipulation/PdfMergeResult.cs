@@ -64,5 +64,5 @@ public sealed class PdfMergeResult {
     /// <summary>Returns a defensive copy of the merged artifact.</summary>
     public byte[] ToBytes() => (byte[])_pdf.Clone();
     /// <summary>Opens the merged artifact through the OfficeIMO.Pdf document surface.</summary>
-    public PdfDocument ToDocument() => PdfDocument.Load(_pdf);
+    public PdfDocument ToDocument() => PdfDocument.Open(_pdf);
 }

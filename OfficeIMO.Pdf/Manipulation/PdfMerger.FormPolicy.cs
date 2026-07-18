@@ -1,6 +1,6 @@
 namespace OfficeIMO.Pdf;
 
-public static partial class PdfMerger {
+internal static partial class PdfMerger {
     private static byte[] ApplyFormPolicy(
         byte[] merged,
         IReadOnlyList<ImportedSource> sources,
@@ -78,7 +78,7 @@ public static partial class PdfMerger {
         List<string> renamed,
         ref int dropped,
         out IReadOnlyList<string> expectedNames) {
-        PdfReadDocument document = PdfReadDocument.Load(merged);
+        PdfReadDocument document = PdfReadDocument.Open(merged);
         var names = new List<string>();
         int localDropped = dropped;
         byte[] output = PdfDocumentObjectGraphRewriter.Rewrite(merged, null, null, (objects, security) => {
@@ -329,7 +329,7 @@ public static partial class PdfMerger {
     }
 
     private static void ValidateFormReadback(byte[] output, IReadOnlyList<string> expectedNames) {
-        string[] actual = PdfReadDocument.Load(output).FormFields.Select(static field => field.Name ?? string.Empty).OrderBy(static name => name, StringComparer.Ordinal).ToArray();
+        string[] actual = PdfReadDocument.Open(output).FormFields.Select(static field => field.Name ?? string.Empty).OrderBy(static name => name, StringComparer.Ordinal).ToArray();
         if (!actual.SequenceEqual(expectedNames, StringComparer.Ordinal)) throw new InvalidOperationException("PDF AcroForm merge validation failed; the artifact was not returned.");
     }
 

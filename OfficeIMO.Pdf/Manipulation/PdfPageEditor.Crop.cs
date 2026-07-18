@@ -2,7 +2,7 @@ using System.Globalization;
 
 namespace OfficeIMO.Pdf;
 
-public static partial class PdfPageEditor {
+internal static partial class PdfPageEditor {
     /// <summary>
     /// Non-destructively crops selected pages to a source rectangle and translates that rectangle to a zero-based page origin.
     /// Content outside the crop remains in the content streams but is clipped from display.
@@ -20,7 +20,7 @@ public static partial class PdfPageEditor {
         _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.ModifyPageTree);
 
         var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf);
-        PdfReadDocument document = PdfReadDocument.Load(pdf);
+        PdfReadDocument document = PdfReadDocument.Open(pdf);
         int[] selectedPages = pageNumbers.Length == 0
             ? Enumerable.Range(1, document.Pages.Count).ToArray()
             : pageNumbers;

@@ -18,7 +18,7 @@ public class PdfPageImporterTests {
         Assert.Equal(3, info.PageCount);
         Assert.Equal("Target", info.Metadata.Title);
 
-        string text = NormalizeExtractedText(PdfReadDocument.Load(imported).ExtractText());
+        string text = NormalizeExtractedText(PdfReadDocument.Open(imported).ExtractText());
         AssertContainsInOrder(text, "Targetpage", "Sourcethird", "Sourcefirst");
         Assert.DoesNotContain("Sourcesecond", text);
     }
@@ -33,7 +33,7 @@ public class PdfPageImporterTests {
         PdfDocumentInfo info = PdfInspector.Inspect(imported);
         Assert.Equal(4, info.PageCount);
 
-        string text = NormalizeExtractedText(PdfReadDocument.Load(imported).ExtractText());
+        string text = NormalizeExtractedText(PdfReadDocument.Open(imported).ExtractText());
         AssertContainsInOrder(text, "Targetpage", "Sourcesecond", "Sourcesecond", "Sourcefirst");
         Assert.Equal(2, CountOccurrences(text, "Sourcesecond"));
     }
@@ -67,7 +67,7 @@ public class PdfPageImporterTests {
         Assert.Contains("/OfficeIMOAnnot1 Do", pdf, StringComparison.Ordinal);
         Assert.Contains("/OfficeIMOAnnot2 Do", pdf, StringComparison.Ordinal);
 
-        string text = NormalizeExtractedText(PdfReadDocument.Load(imported).ExtractText());
+        string text = NormalizeExtractedText(PdfReadDocument.Open(imported).ExtractText());
         AssertContainsInOrder(text, "Targetpage", "Annotatedsourcepage");
     }
 
@@ -82,7 +82,7 @@ public class PdfPageImporterTests {
         Assert.Equal(4, info.PageCount);
         Assert.Equal("Target", info.Metadata.Title);
 
-        string text = NormalizeExtractedText(PdfReadDocument.Load(imported).ExtractText());
+        string text = NormalizeExtractedText(PdfReadDocument.Open(imported).ExtractText());
         AssertContainsInOrder(text, "Sourcefirst", "Sourcesecond", "Targetfirst", "Targetsecond");
     }
 
@@ -131,7 +131,7 @@ public class PdfPageImporterTests {
         Assert.Equal(5, info.PageCount);
         Assert.Equal("Target", info.Metadata.Title);
 
-        string text = NormalizeExtractedText(PdfReadDocument.Load(imported).ExtractText());
+        string text = NormalizeExtractedText(PdfReadDocument.Open(imported).ExtractText());
         AssertContainsInOrder(text, "Targetfirst", "Sourcethird", "Sourcefirst", "Targetsecond", "Targetthird");
         Assert.DoesNotContain("Sourcesecond", text);
     }
@@ -147,7 +147,7 @@ public class PdfPageImporterTests {
         Assert.Equal(3, info.PageCount);
         Assert.Equal("Target", info.Metadata.Title);
 
-        string text = NormalizeExtractedText(PdfReadDocument.Load(imported).ExtractText());
+        string text = NormalizeExtractedText(PdfReadDocument.Open(imported).ExtractText());
         AssertContainsInOrder(text, "Targetfirst", "Targetsecond", "Sourcesecond");
         Assert.DoesNotContain("Sourcefirst", text);
     }
@@ -163,7 +163,7 @@ public class PdfPageImporterTests {
         Assert.Equal(3, info.PageCount);
         Assert.Equal("Target", info.Metadata.Title);
 
-        string text = NormalizeExtractedText(PdfReadDocument.Load(imported).ExtractText());
+        string text = NormalizeExtractedText(PdfReadDocument.Open(imported).ExtractText());
         AssertContainsInOrder(text, "Sourcesecond", "Targetfirst", "Targetsecond");
         Assert.DoesNotContain("Sourcefirst", text);
     }
@@ -178,7 +178,7 @@ public class PdfPageImporterTests {
         PdfDocumentInfo info = PdfInspector.Inspect(imported);
         Assert.Equal(5, info.PageCount);
 
-        string text = NormalizeExtractedText(PdfReadDocument.Load(imported).ExtractText());
+        string text = NormalizeExtractedText(PdfReadDocument.Open(imported).ExtractText());
         AssertContainsInOrder(text, "Targetfirst", "Targetsecond", "Sourcesecond", "Sourcethird", "Targetthird");
         Assert.DoesNotContain("Sourcefirst", text);
         Assert.DoesNotContain("Sourcefourth", text);
@@ -194,7 +194,7 @@ public class PdfPageImporterTests {
         PdfDocumentInfo info = PdfInspector.Inspect(imported);
         Assert.Equal(5, info.PageCount);
 
-        string text = NormalizeExtractedText(PdfReadDocument.Load(imported).ExtractText());
+        string text = NormalizeExtractedText(PdfReadDocument.Open(imported).ExtractText());
         AssertContainsInOrder(text, "Targetfirst", "Targetsecond", "Sourcesecond", "Sourcethird", "Targetthird");
         Assert.DoesNotContain("Sourcefirst", text);
         Assert.DoesNotContain("Sourcefourth", text);
@@ -211,7 +211,7 @@ public class PdfPageImporterTests {
         Assert.Equal(5, info.PageCount);
         Assert.Equal("Target", info.Metadata.Title);
 
-        string text = NormalizeExtractedText(PdfReadDocument.Load(imported).ExtractText());
+        string text = NormalizeExtractedText(PdfReadDocument.Open(imported).ExtractText());
         AssertContainsInOrder(text, "Targetpage", "Sourcesecond", "Sourcethird", "Sourcethird", "Sourcefirst");
         Assert.Equal(2, CountOccurrences(text, "Sourcethird"));
         Assert.DoesNotContain("Sourcefourth", text);
@@ -228,7 +228,7 @@ public class PdfPageImporterTests {
         Assert.Equal(5, info.PageCount);
         Assert.Equal("Target", info.Metadata.Title);
 
-        string text = NormalizeExtractedText(PdfReadDocument.Load(imported).ExtractText());
+        string text = NormalizeExtractedText(PdfReadDocument.Open(imported).ExtractText());
         AssertContainsInOrder(text, "Sourcethird", "Sourcefirst", "Sourcesecond", "Targetfirst", "Targetsecond");
     }
 
@@ -243,7 +243,7 @@ public class PdfPageImporterTests {
         Assert.Equal(6, info.PageCount);
         Assert.Equal("Target", info.Metadata.Title);
 
-        string text = NormalizeExtractedText(PdfReadDocument.Load(imported).ExtractText());
+        string text = NormalizeExtractedText(PdfReadDocument.Open(imported).ExtractText());
         AssertContainsInOrder(text, "Targetfirst", "Targetsecond", "Sourcefourth", "Sourcefirst", "Sourcesecond", "Targetthird");
         Assert.DoesNotContain("Sourcethird", text);
     }
@@ -261,7 +261,7 @@ public class PdfPageImporterTests {
         Assert.Equal(2, info.PageCount);
         Assert.Equal("Target stream", info.Metadata.Title);
 
-        string text = NormalizeExtractedText(PdfReadDocument.Load(imported).ExtractText());
+        string text = NormalizeExtractedText(PdfReadDocument.Open(imported).ExtractText());
         AssertContainsInOrder(text, "Targetstreampage", "Sourcestreamsecond");
         Assert.DoesNotContain("Sourcestreamfirst", text);
     }
@@ -279,7 +279,7 @@ public class PdfPageImporterTests {
         Assert.Equal(4, info.PageCount);
         Assert.Equal("Target stream", info.Metadata.Title);
 
-        string text = NormalizeExtractedText(PdfReadDocument.Load(imported).ExtractText());
+        string text = NormalizeExtractedText(PdfReadDocument.Open(imported).ExtractText());
         AssertContainsInOrder(text, "Targetstreamfirst", "Sourcestreamsecond", "Sourcestreamthird", "Targetstreamsecond");
         Assert.DoesNotContain("Sourcestreamfirst", text);
     }
@@ -297,20 +297,20 @@ public class PdfPageImporterTests {
             File.WriteAllBytes(sourcePath, BuildPdf("Source path", "Source path first", "Source path second", "Source path third"));
 
             byte[] prepended = PdfPageImporter.PrependPages(targetPath, sourcePath, 2);
-            string prependedText = NormalizeExtractedText(PdfReadDocument.Load(prepended).ExtractText());
+            string prependedText = NormalizeExtractedText(PdfReadDocument.Open(prepended).ExtractText());
             AssertContainsInOrder(prependedText, "Sourcepathsecond", "Targetpathpage");
             Assert.DoesNotContain("Sourcepathfirst", prependedText);
 
             PdfPageImporter.AppendPages(targetPath, sourcePath, outputPath, 1, 3);
 
             Assert.True(File.Exists(outputPath));
-            string outputText = NormalizeExtractedText(PdfReadDocument.Load(outputPath).ExtractText());
+            string outputText = NormalizeExtractedText(PdfReadDocument.Open(outputPath).ExtractText());
             AssertContainsInOrder(outputText, "Targetpathpage", "Sourcepathfirst", "Sourcepaththird");
             Assert.DoesNotContain("Sourcepathsecond", outputText);
 
             byte[] inserted = PdfPageImporter.InsertPages(targetPath, sourcePath, 1, 3);
             Assert.Equal("Target path", PdfInspector.Inspect(inserted).Metadata.Title);
-            string insertedText = NormalizeExtractedText(PdfReadDocument.Load(inserted).ExtractText());
+            string insertedText = NormalizeExtractedText(PdfReadDocument.Open(inserted).ExtractText());
             AssertContainsInOrder(insertedText, "Sourcepaththird", "Targetpathpage");
             Assert.DoesNotContain("Sourcepathfirst", insertedText);
 
@@ -318,12 +318,12 @@ public class PdfPageImporterTests {
             PdfPageImporter.InsertPageRange(targetPath, sourcePath, rangeOutputPath, 2, 2, 3);
 
             Assert.True(File.Exists(rangeOutputPath));
-            string rangeOutputText = NormalizeExtractedText(PdfReadDocument.Load(rangeOutputPath).ExtractText());
+            string rangeOutputText = NormalizeExtractedText(PdfReadDocument.Open(rangeOutputPath).ExtractText());
             AssertContainsInOrder(rangeOutputText, "Targetpathpage", "Sourcepathsecond", "Sourcepaththird");
             Assert.DoesNotContain("Sourcepathfirst", rangeOutputText);
 
             byte[] rangeListPrepended = PdfPageImporter.PrependPageRanges(targetPath, sourcePath, PdfPageRange.ParseMany("3,1"));
-            string rangeListPrependedText = NormalizeExtractedText(PdfReadDocument.Load(rangeListPrepended).ExtractText());
+            string rangeListPrependedText = NormalizeExtractedText(PdfReadDocument.Open(rangeListPrepended).ExtractText());
             AssertContainsInOrder(rangeListPrependedText, "Sourcepaththird", "Sourcepathfirst", "Targetpathpage");
             Assert.DoesNotContain("Sourcepathsecond", rangeListPrependedText);
 
@@ -331,7 +331,7 @@ public class PdfPageImporterTests {
             PdfPageImporter.InsertPageRanges(targetPath, sourcePath, rangeListOutputPath, 1, PdfPageRange.ParseMany("2-3,3"));
 
             Assert.True(File.Exists(rangeListOutputPath));
-            string rangeListOutputText = NormalizeExtractedText(PdfReadDocument.Load(rangeListOutputPath).ExtractText());
+            string rangeListOutputText = NormalizeExtractedText(PdfReadDocument.Open(rangeListOutputPath).ExtractText());
             AssertContainsInOrder(rangeListOutputText, "Sourcepathsecond", "Sourcepaththird", "Sourcepaththird", "Targetpathpage");
             Assert.Equal(2, CountOccurrences(rangeListOutputText, "Sourcepaththird"));
         } finally {
@@ -354,13 +354,13 @@ public class PdfPageImporterTests {
 
             using var appended = CreateOutputStream(out int appendedPrefixLength);
             PdfPageImporter.AppendPages(targetPath, sourcePath, appended, 4, 1);
-            string appendedText = NormalizeExtractedText(PdfReadDocument.Load(GetOutputPayload(appended, appendedPrefixLength)).ExtractText());
+            string appendedText = NormalizeExtractedText(PdfReadDocument.Open(GetOutputPayload(appended, appendedPrefixLength)).ExtractText());
             AssertContainsInOrder(appendedText, "Targetstreampage", "Sourcefourth", "Sourcefirst");
             Assert.DoesNotContain("Sourcesecond", appendedText);
 
             using var prepended = CreateOutputStream(out int prependedPrefixLength);
             PdfPageImporter.PrependPages(targetPath, sourcePath, prepended, 2);
-            string prependedText = NormalizeExtractedText(PdfReadDocument.Load(GetOutputPayload(prepended, prependedPrefixLength)).ExtractText());
+            string prependedText = NormalizeExtractedText(PdfReadDocument.Open(GetOutputPayload(prepended, prependedPrefixLength)).ExtractText());
             AssertContainsInOrder(prependedText, "Sourcesecond", "Targetstreampage");
             Assert.DoesNotContain("Sourcefirst", prependedText);
 
@@ -368,37 +368,37 @@ public class PdfPageImporterTests {
             PdfPageImporter.InsertPages(targetPath, sourcePath, inserted, 1, 3);
             byte[] insertedBytes = GetOutputPayload(inserted, insertedPrefixLength);
             Assert.Equal("Target path stream", PdfInspector.Inspect(insertedBytes).Metadata.Title);
-            string insertedText = NormalizeExtractedText(PdfReadDocument.Load(insertedBytes).ExtractText());
+            string insertedText = NormalizeExtractedText(PdfReadDocument.Open(insertedBytes).ExtractText());
             AssertContainsInOrder(insertedText, "Sourcethird", "Targetstreampage");
             Assert.DoesNotContain("Sourcefirst", insertedText);
 
             using var integerRange = CreateOutputStream(out int integerRangePrefixLength);
             PdfPageImporter.InsertPageRange(targetPath, sourcePath, integerRange, 2, 2, 3);
-            string integerRangeText = NormalizeExtractedText(PdfReadDocument.Load(GetOutputPayload(integerRange, integerRangePrefixLength)).ExtractText());
+            string integerRangeText = NormalizeExtractedText(PdfReadDocument.Open(GetOutputPayload(integerRange, integerRangePrefixLength)).ExtractText());
             AssertContainsInOrder(integerRangeText, "Targetstreampage", "Sourcesecond", "Sourcethird");
             Assert.DoesNotContain("Sourcefourth", integerRangeText);
 
             using var pdfPageRange = CreateOutputStream(out int pdfPageRangePrefixLength);
             PdfPageImporter.InsertPageRange(targetPath, sourcePath, pdfPageRange, 2, PdfPageRange.From(1, 2));
-            string pdfPageRangeText = NormalizeExtractedText(PdfReadDocument.Load(GetOutputPayload(pdfPageRange, pdfPageRangePrefixLength)).ExtractText());
+            string pdfPageRangeText = NormalizeExtractedText(PdfReadDocument.Open(GetOutputPayload(pdfPageRange, pdfPageRangePrefixLength)).ExtractText());
             AssertContainsInOrder(pdfPageRangeText, "Targetstreampage", "Sourcefirst", "Sourcesecond");
             Assert.DoesNotContain("Sourcethird", pdfPageRangeText);
 
             using var appendedRanges = CreateOutputStream(out int appendedRangesPrefixLength);
             PdfPageImporter.AppendPageRanges(targetPath, sourcePath, appendedRanges, PdfPageRange.ParseMany("2-3,3"));
-            string appendedRangesText = NormalizeExtractedText(PdfReadDocument.Load(GetOutputPayload(appendedRanges, appendedRangesPrefixLength)).ExtractText());
+            string appendedRangesText = NormalizeExtractedText(PdfReadDocument.Open(GetOutputPayload(appendedRanges, appendedRangesPrefixLength)).ExtractText());
             AssertContainsInOrder(appendedRangesText, "Targetstreampage", "Sourcesecond", "Sourcethird", "Sourcethird");
             Assert.Equal(2, CountOccurrences(appendedRangesText, "Sourcethird"));
 
             using var prependedRanges = CreateOutputStream(out int prependedRangesPrefixLength);
             PdfPageImporter.PrependPageRanges(targetPath, sourcePath, prependedRanges, PdfPageRange.ParseMany("4,1"));
-            string prependedRangesText = NormalizeExtractedText(PdfReadDocument.Load(GetOutputPayload(prependedRanges, prependedRangesPrefixLength)).ExtractText());
+            string prependedRangesText = NormalizeExtractedText(PdfReadDocument.Open(GetOutputPayload(prependedRanges, prependedRangesPrefixLength)).ExtractText());
             AssertContainsInOrder(prependedRangesText, "Sourcefourth", "Sourcefirst", "Targetstreampage");
             Assert.DoesNotContain("Sourcesecond", prependedRangesText);
 
             using var insertedRanges = CreateOutputStream(out int insertedRangesPrefixLength);
             PdfPageImporter.InsertPageRanges(targetPath, sourcePath, insertedRanges, 1, PdfPageRange.ParseMany("3-4"));
-            string insertedRangesText = NormalizeExtractedText(PdfReadDocument.Load(GetOutputPayload(insertedRanges, insertedRangesPrefixLength)).ExtractText());
+            string insertedRangesText = NormalizeExtractedText(PdfReadDocument.Open(GetOutputPayload(insertedRanges, insertedRangesPrefixLength)).ExtractText());
             AssertContainsInOrder(insertedRangesText, "Sourcethird", "Sourcefourth", "Targetstreampage");
             Assert.DoesNotContain("Sourcefirst", insertedRangesText);
         } finally {

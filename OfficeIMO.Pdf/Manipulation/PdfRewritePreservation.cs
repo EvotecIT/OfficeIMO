@@ -466,7 +466,7 @@ public static partial class PdfRewritePreservation {
             }
 
             if (!loaded) {
-                text = PdfReadDocument.Load(rewrittenPdf, readOptions).ExtractText();
+                text = PdfReadDocument.Open(rewrittenPdf, readOptions).ExtractText();
                 loaded = true;
             }
 

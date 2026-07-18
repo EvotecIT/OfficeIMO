@@ -1,6 +1,6 @@
 namespace OfficeIMO.Pdf;
 
-public static partial class PdfStamper {
+internal static partial class PdfStamper {
     /// <summary>
     /// Adds a simple text stamp to selected pages, or every page when no page selection is supplied.
     /// </summary>
@@ -16,7 +16,7 @@ public static partial class PdfStamper {
         ValidateOptions(effectiveOptions);
 
         var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf);
-        var document = PdfReadDocument.Load(pdf);
+        var document = PdfReadDocument.Open(pdf);
         if (document.Pages.Count == 0) {
             throw new ArgumentException("PDF does not contain any pages.", nameof(pdf));
         }
@@ -128,7 +128,7 @@ public static partial class PdfStamper {
 
         var effectiveOptions = BuildWatermarkOptions(options);
         var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf);
-        var document = PdfReadDocument.Load(pdf);
+        var document = PdfReadDocument.Open(pdf);
         if (document.Pages.Count == 0) {
             throw new ArgumentException("PDF does not contain any pages.", nameof(pdf));
         }

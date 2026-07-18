@@ -13,13 +13,14 @@ using OfficeIMO.Pdf;
 using OfficeIMO.Pdf.Cryptography;
 
 using var signer = new PdfPkcsExternalSigner(certificate);
-PdfExternalSignatureCompletion completion = PdfIncrementalUpdater.SignExternal(
-    sourcePdf,
-    signer,
-    new PdfExternalSignatureOptions {
-        Profile = PdfSignatureProfile.Approval,
-        FieldName = "Approval"
-    });
+PdfExternalSignatureCompletion completion = PdfDocument
+    .Open(sourcePdf)
+    .SignExternal(
+        signer,
+        new PdfExternalSignatureOptions {
+            Profile = PdfSignatureProfile.Approval,
+            FieldName = "Approval"
+        });
 
 completion.ToDocument().Save("signed.pdf");
 ```
@@ -29,7 +30,7 @@ using OfficeIMO.Pdf;
 using OfficeIMO.Pdf.Cryptography;
 
 var provider = new PdfPkcsSignatureCryptographyProvider();
-var report = PdfDocument.Load("signed.pdf").ValidateSignatures(provider);
+var report = PdfDocument.Open("signed.pdf").ValidateSignatures(provider);
 
 foreach (var signature in report.Signatures) {
     var crypto = signature.CryptographicResult;

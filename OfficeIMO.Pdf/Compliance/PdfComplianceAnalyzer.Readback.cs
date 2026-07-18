@@ -1,12 +1,12 @@
 namespace OfficeIMO.Pdf;
 
-public static partial class PdfComplianceAnalyzer {
+internal static partial class PdfComplianceAnalyzer {
     /// <summary>Analyzes an existing PDF byte array for profile-specific readback evidence.</summary>
     public static PdfComplianceReadinessReport AssessReadback(PdfComplianceProfile profile, byte[] pdf, PdfReadOptions? options = null) {
         Guard.ComplianceProfile(profile, nameof(profile));
         Guard.NotNull(pdf, nameof(pdf));
         PdfDocumentProbe probe = PdfInspector.Probe(pdf);
-        PdfReadDocument document = PdfReadDocument.Load(pdf, options);
+        PdfReadDocument document = PdfReadDocument.Open(pdf, options);
         PdfDocumentInfo info = PdfInspector.FromReadDocument(document, probe);
         return AssessReadback(profile, info, document.ExtractAttachments());
     }
@@ -32,6 +32,14 @@ public static partial class PdfComplianceAnalyzer {
     /// <summary>Analyzes already-inspected PDF metadata for profile-specific readback evidence.</summary>
     public static PdfComplianceReadinessReport AssessReadback(PdfComplianceProfile profile, PdfDocumentInfo info) {
         return AssessReadback(profile, info, extractedAttachments: null);
+    }
+
+    internal static PdfComplianceReadinessReport AssessReadback(
+        PdfComplianceProfile profile,
+        PdfReadDocument document,
+        PdfDocumentInfo info) {
+        Guard.NotNull(document, nameof(document));
+        return AssessReadback(profile, info, document.ExtractAttachments());
     }
 
     private static PdfComplianceReadinessReport AssessReadback(PdfComplianceProfile profile, PdfDocumentInfo info, IReadOnlyList<PdfExtractedAttachment>? extractedAttachments) {

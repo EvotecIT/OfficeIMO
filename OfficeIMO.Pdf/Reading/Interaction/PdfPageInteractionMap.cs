@@ -51,7 +51,7 @@ public sealed class PdfPageInteractionMap {
             throw new ArgumentOutOfRangeException(nameof(options), "Maximum text regions must be positive.");
         }
 
-        PdfReadDocument document = PdfReadDocument.Load(pdf, readOptions);
+        PdfReadDocument document = PdfReadDocument.Open(pdf, readOptions);
         if (pageNumber > document.Pages.Count) {
             throw new ArgumentOutOfRangeException(nameof(pageNumber), "Page number exceeds the PDF page count.");
         }

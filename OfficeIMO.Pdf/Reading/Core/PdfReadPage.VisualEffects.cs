@@ -100,7 +100,9 @@ public sealed partial class PdfReadPage {
             paintOrderBase,
             paintOrderScale,
             paintOrderOffset,
-            _limits.MaxContentOperations);
+            _limits.MaxContentOperations,
+            _limits.MaxContentNestingDepth,
+            _limits.MaxContentOperands);
         transitions.AddRange(local);
 
         foreach (PdfPageXObjectInvocation invocation in PdfPageXObjectInvocationParser.Parse(
@@ -124,7 +126,9 @@ public sealed partial class PdfReadPage {
                      initialStrokeDashStyle,
                      initialStrokeLineCap,
                      initialStrokeLineJoin,
-                     _limits.MaxContentOperations)) {
+                     _limits.MaxContentOperations,
+                     _limits.MaxContentNestingDepth,
+                     _limits.MaxContentOperands)) {
             if (!TryGetFormStream(resources, invocation.Name, out PdfStream formStream) || !activeForms.Add(formStream)) continue;
             PdfPageDrawingEffect inherited = ResolveDrawingEffect(local, invocation.PaintOrder, initialEffect);
             try {

@@ -16,13 +16,13 @@ public class PdfContainerAndColumnTests {
             }, new PdfMultiColumnOptions { ColumnCount = 2, Gap = 24, BalanceLastPage = false })
             .ToBytes();
 
-        IReadOnlyList<PdfLogicalTextBlock> blocks = PdfDocument.Load(bytes).Read.TextBlocks();
+        IReadOnlyList<PdfLogicalTextBlock> blocks = PdfDocument.Open(bytes).Read.TextBlocks();
         Assert.Single(blocks, block => block.Text.Contains("Left one", StringComparison.Ordinal));
         Assert.Single(blocks, block => block.Text.Contains("Right one", StringComparison.Ordinal));
         string raw = PdfEncoding.Latin1GetString(bytes);
         Assert.Contains("1 0 0 1 72 ", raw, StringComparison.Ordinal);
         Assert.Contains("1 0 0 1 318 ", raw, StringComparison.Ordinal);
-        Assert.Single(PdfReadDocument.Load(bytes).Pages);
+        Assert.Single(PdfReadDocument.Open(bytes).Pages);
     }
 
     [Fact]
@@ -43,7 +43,7 @@ public class PdfContainerAndColumnTests {
             .ToBytes();
 
         string raw = PdfEncoding.Latin1GetString(bytes);
-        string text = PdfReadDocument.Load(bytes).ExtractText();
+        string text = PdfReadDocument.Open(bytes).ExtractText();
         Assert.Contains("Container title", text, StringComparison.Ordinal);
         Assert.Contains("Container body", text, StringComparison.Ordinal);
         Assert.Contains("0.9 0.95 1 rg", raw, StringComparison.Ordinal);
@@ -78,7 +78,7 @@ public class PdfContainerAndColumnTests {
         });
 
         byte[] bytes = document.ToBytes();
-        PdfReadDocument read = PdfReadDocument.Load(bytes);
+        PdfReadDocument read = PdfReadDocument.Open(bytes);
         string raw = PdfEncoding.Latin1GetString(bytes);
 
         Assert.True(read.Pages.Count >= 2);
@@ -123,7 +123,7 @@ public class PdfContainerAndColumnTests {
             .ToBytes();
 
         string raw = PdfEncoding.Latin1GetString(bytes);
-        PdfReadDocument read = PdfReadDocument.Load(bytes);
+        PdfReadDocument read = PdfReadDocument.Open(bytes);
         Assert.Single(read.Pages);
         Assert.Contains("ColumnLine01", read.ExtractText(), StringComparison.Ordinal);
         Assert.Contains("ColumnLine08", read.ExtractText(), StringComparison.Ordinal);
@@ -163,7 +163,7 @@ public class PdfContainerAndColumnTests {
             .ToBytes();
 
         string raw = PdfEncoding.Latin1GetString(bytes);
-        PdfReadDocument read = PdfReadDocument.Load(bytes);
+        PdfReadDocument read = PdfReadDocument.Open(bytes);
 
         Assert.Single(read.Pages);
         Assert.Contains("KeepLine01", read.ExtractText(), StringComparison.Ordinal);
@@ -200,7 +200,7 @@ public class PdfContainerAndColumnTests {
                 })
             .ToBytes();
 
-        string text = PdfReadDocument.Load(bytes).ExtractText();
+        string text = PdfReadDocument.Open(bytes).ExtractText();
 
         for (int index = 1; index <= 8; index++) {
             string marker = "ColumnLine" + index.ToString("D2") + " after";

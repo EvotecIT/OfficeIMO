@@ -397,7 +397,11 @@ public sealed partial class PdfReadPage {
         HashSet<PdfStream> activeForms,
         int contentNestingDepth = 0) {
         EnsureContentNestingBudget(contentNestingDepth);
-        foreach (var invocation in TextContentParser.ExtractFormInvocations(content, maxOperations: _limits.MaxContentOperations)) {
+        foreach (var invocation in TextContentParser.ExtractFormInvocations(
+                     content,
+                     maxOperations: _limits.MaxContentOperations,
+                     maxNestingDepth: _limits.MaxContentNestingDepth,
+                     maxOperands: _limits.MaxContentOperands)) {
             if (!TryGetFormStream(resources, invocation.Name, out var formStream)) {
                 continue;
             }
@@ -485,7 +489,9 @@ public sealed partial class PdfReadPage {
             initialTextRenderingMode: initialTextRenderingMode,
             initialClipPath: initialClipPath,
             useLogicalTextFilters: useLogicalTextFilters,
-            maxOperations: _limits.MaxContentOperations));
+            maxOperations: _limits.MaxContentOperations,
+            maxNestingDepth: _limits.MaxContentNestingDepth,
+            maxOperands: _limits.MaxContentOperands));
 
         foreach (var invocation in TextContentParser.ExtractFormInvocations(
                      content,
@@ -504,7 +510,9 @@ public sealed partial class PdfReadPage {
                      initialStrokeOpacity,
                      initialTextRenderingMode,
                      initialClipPath,
-                     maxOperations: _limits.MaxContentOperations)) {
+                     maxOperations: _limits.MaxContentOperations,
+                     maxNestingDepth: _limits.MaxContentNestingDepth,
+                     maxOperands: _limits.MaxContentOperands)) {
             if (!TryGetFormStream(resources, invocation.Name, out var formStream)) {
                 continue;
             }
@@ -581,7 +589,9 @@ public sealed partial class PdfReadPage {
                       paintOrderScale,
                       paintOrderOffset,
                       initialClipPath,
-                      maxOperations: _limits.MaxContentOperations)) {
+                      maxOperations: _limits.MaxContentOperations,
+                      maxNestingDepth: _limits.MaxContentNestingDepth,
+                      maxOperands: _limits.MaxContentOperands)) {
             Matrix2D invocationTransform = invocation.Transform;
             if (invocation.InlineImage != null) {
                 placements.Add(BuildImagePlacement(

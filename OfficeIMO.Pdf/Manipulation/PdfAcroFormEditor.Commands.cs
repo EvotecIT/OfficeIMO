@@ -1,6 +1,6 @@
 namespace OfficeIMO.Pdf;
 
-public static partial class PdfAcroFormEditor {
+internal static partial class PdfAcroFormEditor {
     private static void ApplyCommands(
         Dictionary<int, PdfIndirectObject> objects,
         PdfDocumentSecurityInfo security,

@@ -4,57 +4,65 @@ namespace OfficeIMO.Pdf;
 public sealed class PdfReadLimits {
     internal const int DefaultMaxDecodedStreamBytes = 256 * 1024 * 1024;
     internal const int DefaultMaxContentOperations = 1_000_000;
+    internal const int DefaultMaxContentOperands = 1_000_000;
+    internal const int DefaultMaxContentNestingDepth = 128;
+
+    /// <summary>Default immutable parser budgets.</summary>
+    public static PdfReadLimits Default { get; } = new PdfReadLimits();
 
     /// <summary>Maximum input byte count accepted before text/object scanning. Default: 512 MiB.</summary>
-    public long MaxInputBytes { get; set; } = 512L * 1024L * 1024L;
+    public long MaxInputBytes { get; init; } = 512L * 1024L * 1024L;
 
     /// <summary>Maximum number of indirect object declarations accepted. Default: 500,000.</summary>
-    public int MaxIndirectObjects { get; set; } = 500_000;
+    public int MaxIndirectObjects { get; init; } = 500_000;
 
     /// <summary>Maximum raw byte count allocated for one stream. Default: 256 MiB.</summary>
-    public int MaxRawStreamBytes { get; set; } = 256 * 1024 * 1024;
+    public int MaxRawStreamBytes { get; init; } = 256 * 1024 * 1024;
 
     /// <summary>Maximum decoded byte count produced from one filtered stream. Default: 256 MiB.</summary>
-    public int MaxDecodedStreamBytes { get; set; } = DefaultMaxDecodedStreamBytes;
+    public int MaxDecodedStreamBytes { get; init; } = DefaultMaxDecodedStreamBytes;
 
     /// <summary>Maximum characters tokenized from one object or dictionary. Default: 1,000,000.</summary>
-    public int MaxObjectCharacters { get; set; } = 1_000_000;
+    public int MaxObjectCharacters { get; init; } = 1_000_000;
 
     /// <summary>Maximum syntax tokens accepted in one object or dictionary. Default: 100,000.</summary>
-    public int MaxTokensPerObject { get; set; } = 100_000;
+    public int MaxTokensPerObject { get; init; } = 100_000;
 
     /// <summary>Maximum nested array/dictionary depth accepted by the object parser. Default: 128.</summary>
-    public int MaxObjectNestingDepth { get; set; } = 128;
+    public int MaxObjectNestingDepth { get; init; } = 128;
 
     /// <summary>Maximum wall-clock time spent in the core object parsing pass. Default: 30 seconds.</summary>
-    public TimeSpan MaxObjectParsingTime { get; set; } = TimeSpan.FromSeconds(30);
+    public TimeSpan MaxObjectParsingTime { get; init; } = TimeSpan.FromSeconds(30);
 
     /// <summary>Maximum cross-reference revisions discovered in one input. Default: 10,000.</summary>
-    public int MaxRevisions { get; set; } = 10_000;
+    public int MaxRevisions { get; init; } = 10_000;
 
     /// <summary>Maximum page-tree dictionaries traversed. Default: 100,000.</summary>
-    public int MaxPageTreeNodes { get; set; } = 100_000;
+    public int MaxPageTreeNodes { get; init; } = 100_000;
 
     /// <summary>Maximum nested page-tree depth. Default: 1,024.</summary>
-    public int MaxPageTreeDepth { get; set; } = 1_024;
+    public int MaxPageTreeDepth { get; init; } = 1_024;
 
     /// <summary>Maximum pages discovered in one document. Default: 100,000.</summary>
-    public int MaxPages { get; set; } = 100_000;
+    public int MaxPages { get; init; } = 100_000;
 
     /// <summary>Maximum AcroForm field-tree nodes or terminal fields. Default: 100,000.</summary>
-    public int MaxFormFields { get; set; } = 100_000;
+    public int MaxFormFields { get; init; } = 100_000;
 
     /// <summary>Maximum nested AcroForm field-tree depth. Default: 256.</summary>
-    public int MaxFormFieldDepth { get; set; } = 256;
+    public int MaxFormFieldDepth { get; init; } = 256;
 
     /// <summary>Maximum annotations declared on one page. Default: 100,000.</summary>
-    public int MaxAnnotationsPerPage { get; set; } = 100_000;
+    public int MaxAnnotationsPerPage { get; init; } = 100_000;
 
     /// <summary>Maximum operators parsed from one page or form content stream. Default: 1,000,000.</summary>
-    public int MaxContentOperations { get; set; } = DefaultMaxContentOperations;
+    public int MaxContentOperations { get; init; } = DefaultMaxContentOperations;
 
-    /// <summary>Maximum nested form XObject depth while parsing page content. Default: 128.</summary>
-    public int MaxContentNestingDepth { get; set; } = 128;
+    /// <summary>Maximum operand values and dictionary keys parsed from one page or form content stream. Default: 1,000,000.</summary>
+    public int MaxContentOperands { get; init; } = DefaultMaxContentOperands;
+
+    /// <summary>Maximum nested lexical arrays/dictionaries or form XObjects while parsing page content. Default: 128.</summary>
+    public int MaxContentNestingDepth { get; init; } = DefaultMaxContentNestingDepth;
 
     internal void Validate() {
         if (MaxInputBytes <= 0) {
@@ -97,6 +105,7 @@ public sealed class PdfReadLimits {
         ValidatePositive(MaxFormFieldDepth, nameof(MaxFormFieldDepth), "Maximum form-field depth must be positive.");
         ValidatePositive(MaxAnnotationsPerPage, nameof(MaxAnnotationsPerPage), "Maximum annotations per page must be positive.");
         ValidatePositive(MaxContentOperations, nameof(MaxContentOperations), "Maximum content operations must be positive.");
+        ValidatePositive(MaxContentOperands, nameof(MaxContentOperands), "Maximum content operands must be positive.");
         ValidatePositive(MaxContentNestingDepth, nameof(MaxContentNestingDepth), "Maximum content nesting depth must be positive.");
     }
 

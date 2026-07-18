@@ -506,26 +506,26 @@ public class PdfComplianceGateTests {
         }
 
         Directory.CreateDirectory(outputDirectory);
-        PdfDocument pdfA2BDocument = CreatePdfA2BDocument();
-        byte[] pdfA2BArtifact = pdfA2BDocument.ToBytes();
-        PdfDocument pdfA3BDocument = CreatePdfA3BDocument();
-        byte[] pdfA3BArtifact = pdfA3BDocument.ToBytes();
-        PdfDocument facturXDocument = CreateElectronicInvoiceDocument(PdfComplianceProfile.FacturX);
-        byte[] facturXArtifact = facturXDocument.ToBytes();
-        PdfDocument zugferdDocument = CreateElectronicInvoiceDocument(PdfComplianceProfile.Zugferd);
-        byte[] zugferdArtifact = zugferdDocument.ToBytes();
-        PdfDocument pdfUa1Document = CreatePdfUa1Document();
-        byte[] pdfUa1Artifact = pdfUa1Document.ToBytes();
+        PdfComplianceArtifact pdfA2BArtifact = CreatePdfA2BDocument()
+            .CreateComplianceArtifact(PdfComplianceProfile.PdfA2B);
+        PdfComplianceArtifact pdfA3BArtifact = CreatePdfA3BDocument()
+            .CreateComplianceArtifact(PdfComplianceProfile.PdfA3B);
+        PdfComplianceArtifact facturXArtifact = CreateElectronicInvoiceDocument(PdfComplianceProfile.FacturX)
+            .CreateComplianceArtifact(PdfComplianceProfile.FacturX);
+        PdfComplianceArtifact zugferdArtifact = CreateElectronicInvoiceDocument(PdfComplianceProfile.Zugferd)
+            .CreateComplianceArtifact(PdfComplianceProfile.Zugferd);
+        PdfComplianceArtifact pdfUa1Artifact = CreatePdfUa1Document()
+            .CreateComplianceArtifact(PdfComplianceProfile.PdfUa1);
         var contract = new ProfileProofContract {
             SchemaVersion = 4,
-            GeneratedBy = nameof(PdfComplianceAnalyzer) + "." + nameof(PdfComplianceAnalyzer.AssessProof),
+            GeneratedBy = nameof(PdfComplianceArtifact) + "." + nameof(PdfComplianceArtifact.AssessProof),
             ExternalEvidenceMode = "ExactArtifactValidationInjectedByProofExporter",
             Profiles = new[] {
-                CreateProofContractRow(PdfComplianceProfile.PdfA2B, pdfA2BDocument, pdfA2BArtifact),
-                CreateProofContractRow(PdfComplianceProfile.PdfA3B, pdfA3BDocument, pdfA3BArtifact),
-                CreateProofContractRow(PdfComplianceProfile.PdfUa1, pdfUa1Document, pdfUa1Artifact),
-                CreateProofContractRow(PdfComplianceProfile.FacturX, facturXDocument, facturXArtifact),
-                CreateProofContractRow(PdfComplianceProfile.Zugferd, zugferdDocument, zugferdArtifact)
+                CreateProofContractRow(pdfA2BArtifact),
+                CreateProofContractRow(pdfA3BArtifact),
+                CreateProofContractRow(pdfUa1Artifact),
+                CreateProofContractRow(facturXArtifact),
+                CreateProofContractRow(zugferdArtifact)
             }
         };
         string json = JsonSerializer.Serialize(contract, new JsonSerializerOptions {
@@ -535,14 +535,8 @@ public class PdfComplianceGateTests {
         File.WriteAllText(Path.Combine(outputDirectory, "officeimo-profile-proof-contract.json"), json, Encoding.UTF8);
     }
 
-    private static ProfileProofContractRow CreateProofContractRow(PdfComplianceProfile profile, PdfDocument document, byte[] artifact) {
-        PdfComplianceProofReport proof = document.AssessComplianceProof(
-            profile,
-            artifact,
-            externalValidations: Array.Empty<PdfExternalValidationResult>());
-
-        return CreateProofContractRow(proof);
-    }
+    private static ProfileProofContractRow CreateProofContractRow(PdfComplianceArtifact artifact) =>
+        CreateProofContractRow(artifact.AssessProof(Array.Empty<PdfExternalValidationResult>()));
 
     private static ProfileProofContractRow CreateProofContractRow(PdfComplianceProofReport proof) {
         return new ProfileProofContractRow {
@@ -573,8 +567,8 @@ public class PdfComplianceGateTests {
                 ValidatedAtUtc = row.ValidatedAtUtc,
                 Warnings = row.Warnings.ToArray()
             }).ToArray(),
-            MissingRequirementIds = proof.Readiness.MissingRequirements.Select(requirement => requirement.Id).ToArray(),
-            UnsupportedRequirementIds = proof.Readiness.UnsupportedRequirements.Select(requirement => requirement.Id).ToArray()
+            MissingRequirementIds = proof.MissingRequirements.Select(requirement => requirement.Id).ToArray(),
+            UnsupportedRequirementIds = proof.UnsupportedRequirements.Select(requirement => requirement.Id).ToArray()
         };
     }
 

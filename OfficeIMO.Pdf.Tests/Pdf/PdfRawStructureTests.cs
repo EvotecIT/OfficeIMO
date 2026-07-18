@@ -10,7 +10,7 @@ public class PdfRawStructureTests {
             .Paragraph(paragraph => paragraph.Text("Raw structure"))
             .ToBytes();
 
-        PdfRawDocumentView raw = PdfReadDocument.Load(bytes).RawStructure();
+        PdfRawDocumentView raw = PdfReadDocument.Open(bytes).RawStructure();
         PdfRawObjectView catalog = Assert.IsType<PdfRawObjectView>(raw.GetObject(raw.CatalogObjectNumber!.Value));
 
         Assert.Equal(raw.TotalObjectCount, raw.Objects.Count);
@@ -28,7 +28,7 @@ public class PdfRawStructureTests {
         byte[] bytes = PdfDocument.Create()
             .Paragraph(paragraph => paragraph.Text(new string('x', 200)))
             .ToBytes();
-        PdfDocument document = PdfDocument.Load(bytes);
+        PdfDocument document = PdfDocument.Open(bytes);
 
         PdfRawDocumentView raw = document.Read.RawStructure(new PdfRawStructureOptions {
             MaxObjects = 2,

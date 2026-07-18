@@ -41,7 +41,7 @@ PdfDocument.Create(new PdfOptions {
 - Creates PDFs with page setup, headings, paragraphs, rich text, links, lists, mixed inline images and boxes, dictionary-driven hyphenation, styled multipage containers, balanced block-flow columns, conditional/replayable flow, position capture, sections, generated TOCs, optional-content layers, tables, images, vector drawing, headers, footers, watermarks, metadata, portfolios, and form primitives.
 - Reads and inspects PDFs through text extraction, logical document objects, page metadata, links, images, attachments, portfolios, outlines, forms, bounded immutable raw-structure views, active-content diagnostics, and security/revision markers.
 - Manipulates existing PDFs with page extraction, split, merge, delete, duplicate, move, rotate, metadata editing, stamps, watermarks, and complete-page overlay/underlay while preserving source PDF header versions on shared rewrite paths.
-- Renders supported embedded TrueType and OpenType/CFF fonts with stable-glyph subsetting. Built-in shaping remains dependency-free, while `IPdfTextShapingProvider` can supply positioned glyph advances and offsets for scripts that need a host-owned shaping engine.
+- Renders supported embedded TrueType and OpenType/CFF fonts with stable-glyph subsetting. Built-in shaping remains dependency-free, while the shared `OfficeIMO.Drawing.IOfficeTextShapingProvider` contract can supply positioned glyph advances and offsets for scripts that need a host-owned shaping engine.
 - Shares managed CMYK, Lab, XYZ, calibrated-color conversion, vector tiling fills, standard blend modes, and alpha/luminosity soft masks with `OfficeIMO.Drawing`.
 - Bounds completed page/effect content and serialized-object retention with separate memory limits, temporary-file spillover, direct large-stream spooling, and chunked final assembly during stream saves. Per-page metadata and the authored block model remain proportional to document size, and `ToBytes()` buffers the final artifact.
 - Provides conversion reports, grouped warning summaries, and diagnostics so adapters can expose unsupported or simplified source content honestly.
@@ -55,15 +55,70 @@ PdfDocument.Create(new PdfOptions {
 ```csharp
 using OfficeIMO.Pdf;
 
-PdfDocument.Load("input.pdf")
+PdfDocument.Open("input.pdf")
     .Pages.Extract("1-2,4")
     .MergeWith("appendix.pdf")
     .UpdateMetadata(title: "Merged report")
     .Stamp.Text("Reviewed")
     .Save("output.pdf");
 
-string text = PdfDocument.Load("output.pdf").Read.Text();
+string text = PdfDocument.Open("output.pdf").Read.Text();
 ```
+
+`Open(...)` is the one entry point for byte arrays, files, and streams. It
+enforces the same `PdfReadOptions` limits before buffering, snapshots caller
+input once, and reuses one parsed document across read, inspection, preflight,
+diagnostic, optimization, signature, and compliance operations.
+
+For a single health and capability view:
+
+```csharp
+PdfAnalysisReport analysis = PdfDocument
+    .Open("incoming.pdf")
+    .Analyze(PdfComplianceProfile.PdfA2B);
+
+Console.WriteLine($"Pages: {analysis.Info.PageCount}");
+Console.WriteLine($"Readable: {analysis.CanRead}");
+Console.WriteLine($"Rewrite safe: {analysis.CanRewrite}");
+Console.WriteLine($"Healthy: {analysis.IsHealthy}");
+
+foreach (PdfDiagnosticFinding finding in analysis.Diagnostics.Findings) {
+    Console.WriteLine($"{finding.Severity}: {finding.Code} — {finding.Message}");
+}
+```
+
+## Migrating to the unified API
+
+The unified API intentionally narrows the public surface around the fluent
+`PdfDocument` facade:
+
+- Replace `PdfDocument.Load(...)` and `PdfReadDocument.Load(...)` with
+  `PdfDocument.Open(...)` or `PdfReadDocument.Open(...)`.
+- Seekable PDF input streams are now consistently read from the beginning and
+  restored to their original position. Non-seekable streams are read forward
+  from their current position.
+- Keep one opened `PdfDocument` and reuse it for `Read`, `Inspect`, `Preflight`,
+  `Analyze`, compliance, and manipulation work. The source snapshot and canonical
+  parse are cached for that document.
+- Use `PdfDocument.Analyze(...)` when a workflow needs the combined health,
+  rewrite-safety, diagnostics, optimization, signature, repair, and compliance
+  view.
+- Use `CreateComplianceArtifact(...)` instead of separately rendering bytes and
+  passing them back to `AssessComplianceProof(...)`. The returned immutable
+  snapshot keeps exact output bytes and matching readiness evidence together,
+  including for randomized encrypted output.
+- Use the fluent `Pages`, `Forms`, `Attachments`, `Bookmarks`, `Annotations`,
+  `Stamp`, `Security`, and metadata operations instead of the former public
+  static engine classes. Those implementation engines are now internal so there
+  is one supported route for each operation.
+- `Save(...)`, `SaveAsync(...)`, and every typed adapter `SaveAsPdf(...)` now
+  return `PdfSaveResult`. It carries output path/length, conversion warnings,
+  and an immutable `Pipeline` with create/open, mutation, hash, page-count,
+  execution-mode, timing, and final-output evidence. `TrySave(...)` keeps the
+  same result shape while capturing exceptions instead of throwing.
+
+The target-framework support remains `netstandard2.0`, `net8.0`, and
+`net10.0`; the API cleanup itself is a deliberate source-breaking change.
 
 ## Examples
 
@@ -169,7 +224,7 @@ PdfDocument.Create(options)
 ```csharp
 using OfficeIMO.Pdf;
 
-PdfDocument pdf = PdfDocument.Load("statement.pdf");
+PdfDocument pdf = PdfDocument.Open("statement.pdf");
 
 string text = pdf.Read.Text();
 string firstPages = pdf.Read.Text("1-2");
@@ -218,7 +273,7 @@ PdfOperationResult<IReadOnlyList<PdfExtractedAttachment>> safeAttachments = pdf.
 ```csharp
 using OfficeIMO.Pdf;
 
-PdfDocument source = PdfDocument.Load("packet.pdf");
+PdfDocument source = PdfDocument.Open("packet.pdf");
 
 source.Pages.Extract("1-3")
     .Save("cover-and-summary.pdf");
@@ -238,7 +293,7 @@ selectedRanges[1].Save("packet-evidence.pdf");
 ```csharp
 using OfficeIMO.Pdf;
 
-PdfDocument.Load("packet.pdf")
+PdfDocument.Open("packet.pdf")
     .MergeWith("appendix.pdf")
     .Pages.Delete("2,5-6")
     .Pages.Duplicate("1")
@@ -253,7 +308,7 @@ PdfDocument.Load("packet.pdf")
 ```csharp
 using OfficeIMO.Pdf;
 
-PdfDocument.Load("contract.pdf")
+PdfDocument.Open("contract.pdf")
     .Stamp.Text("Reviewed", new PdfTextStampOptions {
         X = 72,
         Y = 720,
@@ -272,7 +327,7 @@ Import a complete source page above or below selected target pages without
 rasterizing it:
 
 ```csharp
-PdfDocument.Load("contract.pdf")
+PdfDocument.Open("contract.pdf")
     .Stamp.OverlayPage("letterhead.pdf", new PdfPageOverlayOptions {
         SourcePageNumber = 1,
         TargetPages = PdfPageSelector.Parse("all,!last"),
@@ -287,7 +342,7 @@ PdfDocument.Load("contract.pdf")
 ```csharp
 using OfficeIMO.Pdf;
 
-PdfDocument.Load("application-form.pdf")
+PdfDocument.Open("application-form.pdf")
     .Forms.FillAndFlatten(new Dictionary<string, string> {
         ["Applicant.Name"] = "Adele Vance",
         ["Applicant.Email"] = "adele@example.com",
@@ -307,11 +362,12 @@ var options = new PdfOptions()
     .EmbedStandardFont(PdfStandardFont.Helvetica, fontBytes, "Source Serif 4")
     .RequireCompliance(PdfComplianceProfile.PdfA2B);
 
-PdfDocument document = PdfDocument.Create(options)
+PdfComplianceArtifact artifact = PdfDocument.Create(options)
     .Meta(title: "Archive copy")
-    .Paragraph(paragraph => paragraph.Text("This artifact is ready for external validation."));
+    .Paragraph(paragraph => paragraph.Text("This artifact is ready for external validation."))
+    .CreateComplianceArtifact(PdfComplianceProfile.PdfA2B);
 
-byte[] pdf = document.ToBytes();
+byte[] pdf = artifact.ToBytes();
 File.WriteAllBytes("archive.pdf", pdf);
 
 // Create this result from the validator invocation in your build or release lane.
@@ -323,10 +379,7 @@ PdfExternalValidationResult validation = PdfExternalValidationResult.PassedForAr
     pdf,
     "PDF/A-2b");
 
-PdfComplianceProofReport proof = document.AssessComplianceProof(
-    PdfComplianceProfile.PdfA2B,
-    pdf,
-    new[] { validation });
+PdfComplianceProofReport proof = artifact.AssessProof(new[] { validation });
 
 if (!proof.CanClaimConformance) {
     throw new InvalidOperationException(proof.ExternalProofSummary);
@@ -402,7 +455,8 @@ PdfDocument.Create(new PdfOptions {
 using OfficeIMO.Pdf;
 
 byte[] bytes = File.ReadAllBytes("incoming.pdf");
-PdfDocumentPreflight preflight = PdfInspector.Preflight(bytes);
+PdfDocument pdf = PdfDocument.Open(bytes);
+PdfDocumentPreflight preflight = pdf.Preflight();
 
 if (!preflight.Can(PdfPreflightCapability.ManipulatePages)) {
     foreach (string diagnostic in preflight.GetCapabilityDiagnostics(PdfPreflightCapability.ManipulatePages)) {
@@ -410,7 +464,7 @@ if (!preflight.Can(PdfPreflightCapability.ManipulatePages)) {
     }
 }
 
-var result = PdfDocument.Load(bytes).Pages.TryExtract("1-2");
+var result = pdf.Pages.TryExtract("1-2");
 if (result.Succeeded) {
     result.RequireValue().Save("incoming-first-pages.pdf");
 }
@@ -419,7 +473,7 @@ if (result.Succeeded) {
 ### Inspect before automating
 
 ```csharp
-PdfDocument pdf = PdfDocument.Load("incoming.pdf");
+PdfDocument pdf = PdfDocument.Open("incoming.pdf");
 
 var inspection = pdf.Inspect();
 Console.WriteLine($"Pages: {inspection.PageCount}");
@@ -480,9 +534,35 @@ The canonical catalog records OpenDocument as manual loss-aware composition and 
 - Adapter-specific mapping belongs in the source adapter packages. Shared PDF layout, reading, and manipulation behavior belongs here.
 - Current-state inventories belong in [Docs/officeimo.pdf.current-state.md](../Docs/officeimo.pdf.current-state.md), not in this NuGet README.
 
+## Repository validation
+
+The repository keeps the public contract, target frameworks, package dependency
+shape, performance budgets, compliance proof, and rendered output under
+separate gates:
+
+```powershell
+dotnet test OfficeIMO.Pdf.Tests/OfficeIMO.Pdf.Tests.csproj -c Release -f net8.0
+dotnet test OfficeIMO.Pdf.Tests/OfficeIMO.Pdf.Tests.csproj -c Release -f net10.0
+dotnet run --project OfficeIMO.Pdf.Benchmarks/OfficeIMO.Pdf.Benchmarks.csproj -c Release -f net8.0 -- --verify-budgets
+dotnet run --project OfficeIMO.Pdf.Benchmarks/OfficeIMO.Pdf.Benchmarks.csproj -c Release -f net10.0 -- --verify-budgets
+Build/Export-PdfComplianceProof.ps1 -Configuration Release -Framework net8.0
+Build/Export-PdfVisualReviewGallery.ps1 -Configuration Release -Framework net8.0
+```
+
+The checked-in interoperability gate uses hash-pinned Open Preservation
+Foundation and veraPDF fixtures with explicit provenance. The performance gate
+uses a deterministic 60-page mixed corpus and checks cold and cached analysis,
+SVG rendering, PNG rendering, output integrity, and allocation/time budgets.
+
+Pixel baselines are strict when the installed Poppler major/minor version
+matches the recorded renderer. A different renderer version still runs semantic
+and page-count checks in ordinary local runs. Required-rasterizer and CI visual
+gates fail on a version mismatch; release investigations can deliberately opt
+into a cross-version comparison.
+
 ## Current state
 
-The PDF engine is useful and broad, but it is still evolving. It has strong first-party coverage for common generated business documents, conservative read/manipulation workflows, password security, optional first-party certificate signing/validation, standards-compliant Fast Web View output, and bounded-payload stream saves. Advanced typography, difficult producer-specific preservation, broader transparency/pattern edge cases, and fully forward-only layout remain deeper roadmap areas.
+The PDF engine is useful and broad, but it is still evolving. It has strong first-party coverage for common generated business documents, reusable Unicode line breaking and Latin ligatures, host-provided complex-script shaping, conservative read/manipulation workflows, password security, optional first-party certificate signing/validation, standards-compliant Fast Web View output, and bounded-payload stream saves. Built-in full complex-script shaping, difficult producer-specific preservation, broader transparency/pattern edge cases, and fully forward-only layout remain deeper roadmap areas.
 
 For the full capability inventory and roadmap, read [Docs/officeimo.pdf.current-state.md](../Docs/officeimo.pdf.current-state.md).
 

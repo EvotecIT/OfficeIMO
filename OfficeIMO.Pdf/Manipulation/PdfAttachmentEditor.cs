@@ -3,12 +3,12 @@ using System.Security.Cryptography;
 namespace OfficeIMO.Pdf;
 
 /// <summary>Adds, replaces, renames, and removes embedded and associated files in existing PDFs.</summary>
-public static class PdfAttachmentEditor {
+internal static class PdfAttachmentEditor {
     /// <summary>Applies a collection edit through the shared full-rewrite planner and validates attachment readback.</summary>
     public static PdfAttachmentEditResult Edit(byte[] pdf, Action<PdfAttachmentEditSession> edit, PdfReadOptions? readOptions = null) {
         Guard.NotNull(pdf, nameof(pdf)); Guard.NotNull(edit, nameof(edit));
         PdfMutationPlan plan = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.ModifyAttachments, readOptions);
-        IReadOnlyList<PdfExtractedAttachment> existing = PdfAttachmentExtractor.ExtractAttachments(PdfReadDocument.Load(pdf, readOptions));
+        IReadOnlyList<PdfExtractedAttachment> existing = PdfAttachmentExtractor.ExtractAttachments(PdfReadDocument.Open(pdf, readOptions));
         var session = new PdfAttachmentEditSession(existing.Select(static attachment => new PdfEmbeddedFile(attachment.FileName, attachment.Bytes, attachment.MimeType, attachment.Relationship, attachment.Description, attachment.CreationDate, attachment.ModificationDate)));
         edit(session);
         IReadOnlyList<PdfEmbeddedFile> target = session.Snapshot();

@@ -579,7 +579,7 @@ public class PdfITextInspiredCoverageTests {
     public void PageEditor_NamedAndFluentBoundaryBoxApisUseSharedEngine() {
         byte[] pdf = PdfPageGeometrySupport.BuildPageGeometryPdf();
 
-        PdfDocument updated = PdfDocument.Load(pdf)
+        PdfDocument updated = PdfDocument.Open(pdf)
             .Pages.SetMediaBox(0, 0, 260, 280)
             .Pages.SetCropBox(5, 6, 250, 270)
             .Pages.SetBleedBox(7, 8, 248, 268)

@@ -2,7 +2,7 @@ using System.Globalization;
 
 namespace OfficeIMO.Pdf;
 
-public static partial class PdfStamper {
+internal static partial class PdfStamper {
     private static int[] NormalizePageNumbers(int[]? pageNumbers, int pageCount) {
         if (pageNumbers is null || pageNumbers.Length == 0) {
             return Enumerable.Range(1, pageCount).ToArray();

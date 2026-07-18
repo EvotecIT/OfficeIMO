@@ -6,7 +6,7 @@ public sealed partial class PdfDocumentPages {
     /// </summary>
     public PdfDocument Append(PdfDocument sourceDocument, PdfPageImportOptions? importOptions = null) {
         Guard.NotNull(sourceDocument, nameof(sourceDocument));
-        return Append(sourceDocument.Snapshot(), importOptions);
+        return Append(sourceDocument.GetBytesForOperation(), importOptions);
     }
 
     /// <summary>
@@ -14,7 +14,7 @@ public sealed partial class PdfDocumentPages {
     /// </summary>
     public PdfDocument Append(PdfDocument sourceDocument, PdfPageSelection sourceSelection, PdfPageImportOptions? importOptions = null) {
         Guard.NotNull(sourceDocument, nameof(sourceDocument));
-        return Append(sourceDocument.Snapshot(), sourceSelection, importOptions);
+        return Append(sourceDocument.GetBytesForOperation(), sourceSelection, importOptions);
     }
 
     /// <summary>
@@ -135,7 +135,7 @@ public sealed partial class PdfDocumentPages {
     /// </summary>
     public PdfDocument Prepend(PdfDocument sourceDocument, PdfPageImportOptions? importOptions = null) {
         Guard.NotNull(sourceDocument, nameof(sourceDocument));
-        return Prepend(sourceDocument.Snapshot(), importOptions);
+        return Prepend(sourceDocument.GetBytesForOperation(), importOptions);
     }
 
     /// <summary>
@@ -143,7 +143,7 @@ public sealed partial class PdfDocumentPages {
     /// </summary>
     public PdfDocument Prepend(PdfDocument sourceDocument, PdfPageSelection sourceSelection, PdfPageImportOptions? importOptions = null) {
         Guard.NotNull(sourceDocument, nameof(sourceDocument));
-        return Prepend(sourceDocument.Snapshot(), sourceSelection, importOptions);
+        return Prepend(sourceDocument.GetBytesForOperation(), sourceSelection, importOptions);
     }
 
     /// <summary>
@@ -265,7 +265,7 @@ public sealed partial class PdfDocumentPages {
     /// </summary>
     public PdfDocument Insert(int insertBeforePageNumber, PdfDocument sourceDocument, PdfPageImportOptions? importOptions = null) {
         Guard.NotNull(sourceDocument, nameof(sourceDocument));
-        return Insert(insertBeforePageNumber, sourceDocument.Snapshot(), importOptions);
+        return Insert(insertBeforePageNumber, sourceDocument.GetBytesForOperation(), importOptions);
     }
 
     /// <summary>
@@ -274,7 +274,7 @@ public sealed partial class PdfDocumentPages {
     /// </summary>
     public PdfDocument Insert(int insertBeforePageNumber, PdfDocument sourceDocument, PdfPageSelection sourceSelection, PdfPageImportOptions? importOptions = null) {
         Guard.NotNull(sourceDocument, nameof(sourceDocument));
-        return Insert(insertBeforePageNumber, sourceDocument.Snapshot(), sourceSelection, importOptions);
+        return Insert(insertBeforePageNumber, sourceDocument.GetBytesForOperation(), sourceSelection, importOptions);
     }
 
     /// <summary>
@@ -401,7 +401,7 @@ public sealed partial class PdfDocumentPages {
         Guard.NotNull(sourcePageNumbers, nameof(sourcePageNumbers));
 
         PdfPageImportOptions effectiveOptions = importOptions ?? new PdfPageImportOptions();
-        byte[] targetPdf = _document.Snapshot();
+        byte[] targetPdf = _document.GetBytesForOperation();
         byte[] imported = placement switch {
             ImportPlacement.Append => PdfPageImporter.AppendPages(effectiveOptions, targetPdf, sourcePdf, sourcePageNumbers),
             ImportPlacement.Prepend => PdfPageImporter.PrependPages(effectiveOptions, targetPdf, sourcePdf, sourcePageNumbers),
@@ -409,7 +409,10 @@ public sealed partial class PdfDocumentPages {
             _ => throw new ArgumentOutOfRangeException(nameof(placement), placement, "Unsupported page import placement.")
         };
 
-        return PdfDocument.FromBytes(imported);
+        return _document.WithBytes(
+            targetPdf,
+            imported,
+            operationName: placement.ToString());
     }
 
     private static int[] GetSelectedSourcePages(byte[] sourcePdf, PdfPageSelection sourceSelection) {

@@ -82,6 +82,37 @@ public static class OfficeTextElements {
         return false;
     }
 
+    /// <summary>Resolves base direction from the first strong Unicode character.</summary>
+    public static OfficeTextDirection ResolveBaseDirection(string? value) {
+        if (string.IsNullOrEmpty(value)) {
+            return OfficeTextDirection.Auto;
+        }
+
+        for (int index = 0; index < value!.Length;) {
+            int scalarIndex = index;
+            int scalar = ReadScalar(value, ref index);
+            if (scalar == 0x061C || scalar == 0x200F) {
+                return OfficeTextDirection.RightToLeft;
+            }
+
+            UnicodeCategory category = CharUnicodeInfo.GetUnicodeCategory(value, scalarIndex);
+            if (IsRightToLeftScalar(scalar) &&
+                (IsLetterCategory(category) || category == UnicodeCategory.OtherNotAssigned)) {
+                return OfficeTextDirection.RightToLeft;
+            }
+
+            if (scalar == 0x200E) {
+                return OfficeTextDirection.LeftToRight;
+            }
+
+            if (IsStrongLeftToRightCategory(category)) {
+                return OfficeTextDirection.LeftToRight;
+            }
+        }
+
+        return OfficeTextDirection.Auto;
+    }
+
     /// <summary>Determines whether a Unicode scalar belongs to a right-to-left script range.</summary>
     public static bool IsRightToLeftScalar(int scalar) =>
         IsInRange(scalar, 0x0590, 0x05FF) ||
@@ -90,10 +121,14 @@ public static class OfficeTextElements {
         IsInRange(scalar, 0x0750, 0x077F) ||
         IsInRange(scalar, 0x0780, 0x07BF) ||
         IsInRange(scalar, 0x07C0, 0x07FF) ||
+        IsInRange(scalar, 0x0800, 0x083F) ||
         IsInRange(scalar, 0x0840, 0x085F) ||
+        IsInRange(scalar, 0x0860, 0x089F) ||
         IsInRange(scalar, 0x08A0, 0x08FF) ||
         IsInRange(scalar, 0xFB1D, 0xFDFF) ||
         IsInRange(scalar, 0xFE70, 0xFEFF) ||
+        IsInRange(scalar, 0x10800, 0x10FFF) ||
+        IsInRange(scalar, 0x1E800, 0x1E8DF) ||
         IsInRange(scalar, 0x1E900, 0x1E95F) ||
         IsInRange(scalar, 0x1EE00, 0x1EEFF);
 
@@ -102,6 +137,25 @@ public static class OfficeTextElements {
         || IsInRange(scalar, 0xFB50, 0xFDFF)
         || IsInRange(scalar, 0xFE70, 0xFEFF)
         || IsInRange(scalar, 0x1EE00, 0x1EEFF);
+
+    private static bool IsStrongLeftToRightCategory(UnicodeCategory category) =>
+        IsLetterCategory(category);
+
+    private static bool IsLetterCategory(UnicodeCategory category) =>
+        category == UnicodeCategory.UppercaseLetter ||
+        category == UnicodeCategory.LowercaseLetter ||
+        category == UnicodeCategory.TitlecaseLetter ||
+        category == UnicodeCategory.ModifierLetter ||
+        category == UnicodeCategory.OtherLetter;
+
+    private static int ReadScalar(string text, ref int index) {
+        char first = text[index++];
+        return char.IsHighSurrogate(first) &&
+            index < text.Length &&
+            char.IsLowSurrogate(text[index])
+            ? char.ConvertToUtf32(first, text[index++])
+            : first;
+    }
 
     private static bool IsInRange(int value, int minimum, int maximum) => value >= minimum && value <= maximum;
 }

@@ -52,12 +52,12 @@ public partial class PdfPageExtractorTests {
         IReadOnlyList<byte[]> ranges = PdfPageExtractor.SplitPageRanges(source, PdfPageRange.ParseMany("1-2,3"));
 
         Assert.Equal(2, ranges.Count);
-        string firstText = NormalizeExtractedText(PdfReadDocument.Load(ranges[0]).ExtractText());
+        string firstText = NormalizeExtractedText(PdfReadDocument.Open(ranges[0]).ExtractText());
         Assert.Contains("Firstpagemarker", firstText);
         Assert.Contains("Secondpagemarker", firstText);
         Assert.DoesNotContain("Thirdpagemarker", firstText);
 
-        string secondText = NormalizeExtractedText(PdfReadDocument.Load(ranges[1]).ExtractText());
+        string secondText = NormalizeExtractedText(PdfReadDocument.Open(ranges[1]).ExtractText());
         Assert.DoesNotContain("Firstpagemarker", secondText);
         Assert.DoesNotContain("Secondpagemarker", secondText);
         Assert.Contains("Thirdpagemarker", secondText);

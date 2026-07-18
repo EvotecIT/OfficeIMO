@@ -475,7 +475,7 @@ jobs:
 
   test-ubuntu-matrix:
     name: 'Ubuntu ${{ matrix.framework }} / ${{ matrix.partition }}'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     strategy:
       fail-fast: false
@@ -545,6 +545,78 @@ jobs:
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
+      - name: Cache pinned PDF rasterizer
+        id: poppler-cache
+        if: matrix.partition == 'pdf-visual-inspector'
+        uses: actions/cache@v5
+        with:
+          path: ${{ runner.temp }}/officeimo-poppler-26.05.0
+          key: poppler-26.05.0-ubuntu-24.04-${{ runner.arch }}
+
+      - name: Build pinned PDF rasterizer
+        if: matrix.partition == 'pdf-visual-inspector' && steps.poppler-cache.outputs.cache-hit != 'true'
+        env:
+          POPPLER_VERSION: 26.05.0
+          POPPLER_SHA256: 6fef27ff04f37db43054c86bcdff6128c9fb1f6af4ef3c8b369a7e9abd68d0bb
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends \
+            build-essential \
+            cmake \
+            libfontconfig1-dev \
+            libfreetype-dev \
+            libjpeg-dev \
+            liblcms2-dev \
+            libpng-dev \
+            ninja-build \
+            pkg-config \
+            zlib1g-dev
+
+          install_root="${RUNNER_TEMP}/officeimo-poppler-${POPPLER_VERSION}"
+          source_archive="${RUNNER_TEMP}/poppler-${POPPLER_VERSION}.tar.xz"
+          source_root="${RUNNER_TEMP}/poppler-${POPPLER_VERSION}-source"
+          build_root="${RUNNER_TEMP}/poppler-${POPPLER_VERSION}-build"
+          curl --fail --location --retry 3 --silent --show-error \
+            "https://poppler.freedesktop.org/poppler-${POPPLER_VERSION}.tar.xz" \
+            --output "${source_archive}"
+          echo "${POPPLER_SHA256}  ${source_archive}" | sha256sum --check -
+          mkdir -p "${source_root}" "${build_root}" "${install_root}"
+          tar --extract --file "${source_archive}" --directory "${source_root}" --strip-components=1
+          cmake \
+            -S "${source_root}" \
+            -B "${build_root}" \
+            -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_DISABLE_FIND_PACKAGE_Cairo=TRUE \
+            -DCMAKE_INSTALL_PREFIX="${install_root}" \
+            -DBUILD_CPP_TESTS=OFF \
+            -DBUILD_GTK_TESTS=OFF \
+            -DBUILD_MANUAL_TESTS=OFF \
+            -DBUILD_QT5_TESTS=OFF \
+            -DBUILD_QT6_TESTS=OFF \
+            -DBUILD_SHARED_LIBS=OFF \
+            -DENABLE_BOOST=OFF \
+            -DENABLE_CPP=OFF \
+            -DENABLE_GLIB=OFF \
+            -DENABLE_GPGME=OFF \
+            -DENABLE_LIBCURL=OFF \
+            -DENABLE_LIBOPENJPEG=none \
+            -DENABLE_LIBTIFF=OFF \
+            -DENABLE_NSS3=OFF \
+            -DENABLE_QT5=OFF \
+            -DENABLE_QT6=OFF
+          cmake --build "${build_root}" --target pdftoppm --parallel 2
+          cp "${build_root}/utils/pdftoppm" "${install_root}/pdftoppm"
+
+      - name: Configure pinned PDF rasterizer
+        if: matrix.partition == 'pdf-visual-inspector'
+        run: |
+          rasterizer="${RUNNER_TEMP}/officeimo-poppler-26.05.0/pdftoppm"
+          test -x "${rasterizer}"
+          version="$("${rasterizer}" -v 2>&1 | head -n 1)"
+          test "${version}" = "pdftoppm version 26.05.0"
+          echo "OFFICEIMO_PDF_RASTERIZER=${rasterizer}" >> "${GITHUB_ENV}"
+
       - name: Cache NuGet packages
         uses: actions/cache@v5
         with:
@@ -573,6 +645,9 @@ jobs:
           fi
           if [[ "${{ matrix.partition }}" == pdf-* ]]; then
             dotnet restore OfficeIMO.Pdf.Tests/OfficeIMO.Pdf.Tests.csproj
+            if [ "${{ matrix.partition }}" = "pdf-core" ] && [ "${{ matrix.framework }}" = "net8.0" ]; then
+              dotnet restore OfficeIMO.Pdf.Benchmarks/OfficeIMO.Pdf.Benchmarks.csproj
+            fi
           fi
           if [ "${{ matrix.partition }}" = "other-projects" ]; then
             dotnet restore OfficeIMO.Drawing.Tests/OfficeIMO.Drawing.Tests.csproj
@@ -614,6 +689,9 @@ jobs:
           fi
           if [[ "${{ matrix.partition }}" == pdf-* ]]; then
             dotnet build OfficeIMO.Pdf.Tests/OfficeIMO.Pdf.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore
+            if [ "${{ matrix.partition }}" = "pdf-core" ] && [ "${{ matrix.framework }}" = "net8.0" ]; then
+              dotnet build OfficeIMO.Pdf.Benchmarks/OfficeIMO.Pdf.Benchmarks.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework net8.0 --no-restore
+            fi
           fi
           if [ "${{ matrix.partition }}" = "other-projects" ]; then
             dotnet build OfficeIMO.Drawing.Tests/OfficeIMO.Drawing.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore
@@ -810,10 +888,18 @@ jobs:
               run_markdown_tests "markdown-named" 'FullyQualifiedName~OfficeIMO.Tests.MarkdownHtmlToMarkdownCompatibilityTests|FullyQualifiedName~OfficeIMO.Tests.MarkdownHtmlToMarkdownTests|FullyQualifiedName~OfficeIMO.Tests.MarkdownHtmlApiContracts|FullyQualifiedName~OfficeIMO.Tests.Markdown_|FullyQualifiedName~OfficeIMO.Tests.MarkdownTranscript|FullyQualifiedName~OfficeIMO.Tests.MarkdownReaderBomTests|FullyQualifiedName~OfficeIMO.Tests.MarkdownBlankLinesTests|FullyQualifiedName~OfficeIMO.Tests.MarkdownDefinitionLinesTests|FullyQualifiedName~OfficeIMO.Tests.MarkdownOrderedListsTests|FullyQualifiedName~OfficeIMO.Tests.MarkdownStreamingPreviewTests|FullyQualifiedName~OfficeIMO.Tests.Markdown_Renderer|FullyQualifiedName~OfficeIMO.Tests.Markdown_IntelligenceX'
               ;;
             pdf-visual-inspector)
+              export OFFICEIMO_REQUIRE_PDF_RASTERIZER=1
+              # The committed pixel baselines are authoring-platform evidence.
+              # Ubuntu still renders every scenario with the pinned Poppler build,
+              # but host font substitution makes cross-platform pixel identity invalid.
+              export OFFICEIMO_PDF_RASTER_SMOKE_ONLY=1
               run_pdf_tests "pdf-visual-inspector" 'FullyQualifiedName~OfficeIMO.Tests.Pdf.PdfDocumentVisualQualityTests|FullyQualifiedName~OfficeIMO.Tests.Pdf.PdfInspectorTests|FullyQualifiedName~OfficeIMO.Tests.Pdf.PdfReaderAndFooterRegressionTests|FullyQualifiedName~OfficeIMO.Tests.Pdf.MarkdownSaveAsPdfVisualTests|FullyQualifiedName~OfficeIMO.Tests.Pdf.PdfDocumentRasterVisualBaselineTests'
               ;;
             pdf-core)
               run_pdf_tests "pdf-core" '(FullyQualifiedName~OfficeIMO.Tests.Pdf.&FullyQualifiedName!~OfficeIMO.Tests.Pdf.PdfDocumentVisualQualityTests&FullyQualifiedName!~OfficeIMO.Tests.Pdf.PdfInspectorTests&FullyQualifiedName!~OfficeIMO.Tests.Pdf.PdfReaderAndFooterRegressionTests&FullyQualifiedName!~OfficeIMO.Tests.Pdf.MarkdownSaveAsPdfVisualTests&FullyQualifiedName!~OfficeIMO.Tests.Pdf.PdfDocumentRasterVisualBaselineTests)|FullyQualifiedName~OfficeIMO.Tests.MarkdownPdfTests|FullyQualifiedName~OfficeIMO.Tests.PdfReadLayoutSmokeTests'
+              if [ "${{ matrix.framework }}" = "net8.0" ]; then
+                dotnet run --project OfficeIMO.Pdf.Benchmarks/OfficeIMO.Pdf.Benchmarks.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework net8.0 --no-build --no-restore -- --verify-budgets
+              fi
               ;;
             excel-image-charts)
               run_excel_tests "excel-image" 'FullyQualifiedName~OfficeIMO.Tests.ExcelImageExport'

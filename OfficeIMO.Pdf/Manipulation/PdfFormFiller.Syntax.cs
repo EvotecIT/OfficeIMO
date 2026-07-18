@@ -1,6 +1,6 @@
 namespace OfficeIMO.Pdf;
 
-public static partial class PdfFormFiller {
+internal static partial class PdfFormFiller {
     private static string FormatNumber(double value) {
         if (Math.Abs(value % 1D) < 0.0000001D) {
             return ((long)Math.Round(value)).ToString(System.Globalization.CultureInfo.InvariantCulture);

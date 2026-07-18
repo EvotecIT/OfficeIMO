@@ -14,7 +14,7 @@ namespace OfficeIMO.Shared.Tests;
 
 public sealed class PublicApiPersistenceContracts {
     [Fact]
-    public void PdfSaveAsMethodsReturnStructuredConversionResults() {
+    public void PdfSaveAsMethodsReturnUnifiedSaveResults() {
         Type[] extensionTypes = {
             typeof(OfficeIMO.Word.Pdf.WordPdfConverterExtensions),
             typeof(OfficeIMO.Excel.Pdf.ExcelPdfConverterExtensions),
@@ -30,8 +30,8 @@ public sealed class PublicApiPersistenceContracts {
 
             Assert.NotEmpty(saveMethods);
             Assert.NotEmpty(asyncMethods);
-            Assert.All(saveMethods, method => Assert.Equal(typeof(PdfDocumentConversionResult), method.ReturnType));
-            Assert.All(asyncMethods, method => Assert.Equal(typeof(Task<PdfDocumentConversionResult>), method.ReturnType));
+            Assert.All(saveMethods, method => Assert.Equal(typeof(PdfSaveResult), method.ReturnType));
+            Assert.All(asyncMethods, method => Assert.Equal(typeof(Task<PdfSaveResult>), method.ReturnType));
         }
     }
 

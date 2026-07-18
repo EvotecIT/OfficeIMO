@@ -88,6 +88,7 @@ $indexPath = Join-Path $resolvedOutputPath 'index.md'
 
 $previousReviewOutput = $env:OFFICEIMO_PDF_VISUAL_REVIEW_OUTPUT
 $previousRequireRasterizer = $env:OFFICEIMO_REQUIRE_PDF_RASTERIZER
+$previousRequireRasterBaselineMatch = $env:OFFICEIMO_REQUIRE_PDF_RASTER_BASELINE_MATCH
 $previousSkipRasterAssertions = $env:OFFICEIMO_PDF_VISUAL_REVIEW_SKIP_RASTER_ASSERTIONS
 
 try {
@@ -100,8 +101,10 @@ try {
 
     if ($SkipRasterBaselines) {
         $env:OFFICEIMO_PDF_VISUAL_REVIEW_SKIP_RASTER_ASSERTIONS = '1'
+        $env:OFFICEIMO_REQUIRE_PDF_RASTER_BASELINE_MATCH = $null
     } else {
         $env:OFFICEIMO_PDF_VISUAL_REVIEW_SKIP_RASTER_ASSERTIONS = $null
+        $env:OFFICEIMO_REQUIRE_PDF_RASTER_BASELINE_MATCH = '1'
     }
 
     $testArgs = @(
@@ -147,6 +150,7 @@ try {
 } finally {
     $env:OFFICEIMO_PDF_VISUAL_REVIEW_OUTPUT = $previousReviewOutput
     $env:OFFICEIMO_REQUIRE_PDF_RASTERIZER = $previousRequireRasterizer
+    $env:OFFICEIMO_REQUIRE_PDF_RASTER_BASELINE_MATCH = $previousRequireRasterBaselineMatch
     $env:OFFICEIMO_PDF_VISUAL_REVIEW_SKIP_RASTER_ASSERTIONS = $previousSkipRasterAssertions
 }
 

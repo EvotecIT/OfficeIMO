@@ -36,5 +36,5 @@ public sealed class PdfSanitizationResult {
     public byte[] ToBytes() => (byte[])_pdfBytes.Clone();
 
     /// <summary>Opens the sanitized artifact as a fluent PDF document.</summary>
-    public PdfDocument ToDocument() => PdfDocument.Load(_pdfBytes);
+    public PdfDocument ToDocument() => PdfDocument.Open(_pdfBytes);
 }

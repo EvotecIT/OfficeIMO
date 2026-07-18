@@ -2,7 +2,7 @@ using OfficeIMO.Pdf.Filters;
 
 namespace OfficeIMO.Pdf;
 
-public static partial class PdfRedactionApplier {
+internal static partial class PdfRedactionApplier {
     private static bool RemoveIntersectingPathObjects(Dictionary<int, PdfIndirectObject> objects, PdfDictionary page, PdfRedactionArea[] areas, int maximumDecodedStreamBytes, ref int nextObjectNumber) {
         if (areas.Length == 0 || !page.Items.TryGetValue("Contents", out PdfObject? contentsObject)) return false;
         Dictionary<int, int> referenceCounts = CountIndirectReferenceUsage(objects); PdfObject currentContents = contentsObject; bool changed = false;

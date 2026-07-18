@@ -2,7 +2,7 @@ using System.Globalization;
 
 namespace OfficeIMO.Pdf;
 
-public static partial class PdfPageExtractor {
+internal static partial class PdfPageExtractor {
     internal static byte[] ExtractPages(
         Dictionary<int, PdfIndirectObject> sourceObjects,
         PdfMetadata metadata,
