@@ -1,6 +1,7 @@
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.PowerPoint;
+using System.Threading.Tasks;
 using Xunit;
 
 namespace OfficeIMO.Tests {
@@ -55,6 +56,69 @@ namespace OfficeIMO.Tests {
             }
         }
 
+        [Theory]
+        [InlineData(PresentationDocumentType.MacroEnabledPresentation)]
+        [InlineData(PresentationDocumentType.MacroEnabledTemplate)]
+        [InlineData(PresentationDocumentType.MacroEnabledSlideshow)]
+        public async Task StreamSavesPreserveLoadedPackageTypeAndVba(
+            PresentationDocumentType expectedType) {
+            byte[] vbaBytes = { 2, 4, 6, 8 };
+            using MemoryStream source = CreatePackageStream(expectedType,
+                vbaBytes);
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Load(source);
+            presentation.Slides[0].TextBoxes.Single().Text =
+                "Saved to associated stream";
+
+            presentation.Save();
+            AssertPackage(source, expectedType, hasVba: true, vbaBytes);
+
+            presentation.Slides[0].AddTextBox("Saved asynchronously");
+            await presentation.SaveAsync();
+            AssertPackage(source, expectedType, hasVba: true, vbaBytes);
+
+            using var encrypted = new MemoryStream();
+            presentation.SaveEncrypted(encrypted, "OfficeIMO-stream-pass");
+            using PowerPointPresentation decrypted =
+                PowerPointPresentation.LoadEncrypted(encrypted,
+                    "OfficeIMO-stream-pass");
+            Assert.Equal(expectedType,
+                decrypted.OpenXmlDocument.DocumentType);
+            Assert.Equal(vbaBytes, ReadVbaBytes(
+                decrypted.OpenXmlDocument.PresentationPart!
+                    .VbaProjectPart));
+        }
+
+        private static MemoryStream CreatePackageStream(
+            PresentationDocumentType documentType,
+            byte[] vbaBytes) {
+            string path = GetTempPath(".pptx");
+            try {
+                using (PowerPointPresentation seed =
+                       PowerPointPresentation.Create(path)) {
+                    seed.AddSlide().AddTitle("Package type");
+                    seed.Save();
+                }
+                using (PresentationDocument package =
+                       PresentationDocument.Open(path, true)) {
+                    package.ChangeDocumentType(documentType);
+                    VbaProjectPart part = package.PresentationPart!
+                        .AddNewPart<VbaProjectPart>();
+                    using var input = new MemoryStream(vbaBytes,
+                        writable: false);
+                    part.FeedData(input);
+                    package.Save();
+                }
+                byte[] packageBytes = File.ReadAllBytes(path);
+                var stream = new MemoryStream(packageBytes.Length + 4096);
+                stream.Write(packageBytes, 0, packageBytes.Length);
+                stream.Position = 0;
+                return stream;
+            } finally {
+                Delete(path);
+            }
+        }
+
         private static void AssertPackage(string path,
             PresentationDocumentType expectedType,
             bool hasVba,
@@ -69,11 +133,32 @@ namespace OfficeIMO.Tests {
                 return;
             }
             Assert.NotNull(vbaPart);
+            Assert.Equal(expectedVbaBytes, ReadVbaBytes(vbaPart));
+        }
+
+        private static void AssertPackage(Stream stream,
+            PresentationDocumentType expectedType,
+            bool hasVba,
+            byte[] expectedVbaBytes) {
+            stream.Position = 0;
+            using PresentationDocument package =
+                PresentationDocument.Open(stream, false);
+            Assert.Equal(expectedType, package.DocumentType);
+            VbaProjectPart? vbaPart = package.PresentationPart!
+                .VbaProjectPart;
+            Assert.Equal(hasVba, vbaPart != null);
+            if (hasVba) {
+                Assert.Equal(expectedVbaBytes, ReadVbaBytes(vbaPart));
+            }
+        }
+
+        private static byte[] ReadVbaBytes(VbaProjectPart? vbaPart) {
+            Assert.NotNull(vbaPart);
             using Stream input = vbaPart!.GetStream(
                 FileMode.Open, FileAccess.Read);
             using var output = new MemoryStream();
             input.CopyTo(output);
-            Assert.Equal(expectedVbaBytes, output.ToArray());
+            return output.ToArray();
         }
 
         private static string GetTempPath(string extension) =>

@@ -43,7 +43,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void RemovingTableRowsAndColumnsReleasesDiscardedRunSounds() {
+        public void RemovingTableRowWrappersAndColumnsReleasesDiscardedRunSounds() {
             using PowerPointPresentation presentation =
                 PowerPointPresentation.Create();
             PowerPointSlide slide = presentation.AddSlide();
@@ -62,7 +62,7 @@ namespace OfficeIMO.Tests {
             }
             Assert.Equal(2, presentation.OpenXmlDocument.DataParts.Count());
 
-            table.RemoveRow(0);
+            table.GetRow(0).Remove();
 
             Assert.Single(presentation.OpenXmlDocument.DataParts);
             Assert.Single(slide.SlidePart.DataPartReferenceRelationships);

@@ -88,7 +88,7 @@ namespace OfficeIMO.PowerPoint {
         ///     Removes this row from the table.
         /// </summary>
         public void Remove() {
-            Row.Remove();
+            _table.RemoveRow(Row);
         }
     }
 }

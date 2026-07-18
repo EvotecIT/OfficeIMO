@@ -7,6 +7,7 @@ using OfficeIMO.PowerPoint.LegacyPpt.Capabilities;
 using OfficeIMO.PowerPoint.LegacyPpt.Internal;
 using OfficeIMO.PowerPoint.LegacyPpt.Model;
 using OpenMcdf;
+using System.Threading.Tasks;
 using Xunit;
 using CfbVersion = OpenMcdf.Version;
 
@@ -81,6 +82,32 @@ namespace OfficeIMO.Tests {
             Assert.Equal(projectBytes, Assert.IsType<LegacyPptVbaProject>(
                 LegacyPptPresentation.Load(binaryAfterPptxExport)
                     .VbaProject).GetBytes());
+        }
+
+        [Fact]
+        public async Task LegacyVbaNoFormatStreamSavesRemainMacroFreePptx() {
+            byte[] projectBytes = CreateVbaTestProject("StreamModule",
+                "Sub StreamExport()\nEnd Sub");
+            byte[] binary;
+            using (PowerPointPresentation created =
+                   PowerPointPresentation.Create()) {
+                created.AddSlide().AddTitle("Macro source");
+                SetVbaProject(created, projectBytes);
+                binary = created.ToBytes(PowerPointFileFormat.Ppt);
+            }
+
+            using var input = new MemoryStream(binary);
+            using PowerPointPresentation imported =
+                PowerPointPresentation.Load(input);
+            using var syncDestination = new MemoryStream();
+            imported.Save(syncDestination);
+            AssertMacroFreePackage(syncDestination);
+
+            using var asyncDestination = new MemoryStream();
+            await imported.SaveAsync(asyncDestination);
+            AssertMacroFreePackage(asyncDestination);
+
+            Assert.Equal(projectBytes, ReadVbaProject(imported));
         }
 
         [Fact]
@@ -374,6 +401,15 @@ namespace OfficeIMO.Tests {
             using var output = new MemoryStream();
             input.CopyTo(output);
             Assert.Equal(expectedProject, output.ToArray());
+        }
+
+        private static void AssertMacroFreePackage(Stream stream) {
+            stream.Position = 0;
+            using PresentationDocument document =
+                PresentationDocument.Open(stream, false);
+            Assert.Equal(PresentationDocumentType.Presentation,
+                document.DocumentType);
+            Assert.Null(document.PresentationPart!.VbaProjectPart);
         }
 
         private static byte[] CreateVbaTestProject(string moduleName,

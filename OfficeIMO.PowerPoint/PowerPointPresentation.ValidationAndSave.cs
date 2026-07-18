@@ -114,7 +114,8 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public void Save(Stream destination) {
             if (destination == null) throw new ArgumentNullException(nameof(destination));
-            OfficeStreamWriter.WriteAllBytes(destination, CreatePackageBytesForSave());
+            OfficeStreamWriter.WriteAllBytes(destination,
+                CreatePackageBytesForStreamSave());
             _discardChangesOnDispose = false;
         }
 
@@ -207,7 +208,7 @@ namespace OfficeIMO.PowerPoint {
         public async Task SaveAsync(Stream destination, CancellationToken cancellationToken = default) {
             if (destination == null) throw new ArgumentNullException(nameof(destination));
             cancellationToken.ThrowIfCancellationRequested();
-            byte[] packageBytes = CreatePackageBytesForSave();
+            byte[] packageBytes = CreatePackageBytesForStreamSave();
             await OfficeStreamWriter.WriteAllBytesAsync(destination, packageBytes, cancellationToken)
                 .ConfigureAwait(false);
             _discardChangesOnDispose = false;
@@ -265,6 +266,19 @@ namespace OfficeIMO.PowerPoint {
             return packageStream.ToArray();
         }
 
+        private byte[] CreatePackageBytesForStreamSave() {
+            ThrowIfDisposed();
+            if (IsLegacyBinaryFormat(SourceFormat)) {
+                return CreatePackageBytesForSave();
+            }
+            PresentationDocumentType destinationType =
+                _document!.DocumentType;
+            return CreatePackageBytesForSave(
+                preserveVbaProject:
+                    IsMacroEnabledDocumentType(destinationType),
+                destinationType: destinationType);
+        }
+
         private byte[] CreateBytesForPath(string filePath, PowerPointSaveOptions? options) {
             PowerPointFileFormat format = PowerPointPresentationLoadRouting.GetFormat(filePath);
             if (IsLegacyBinaryFormat(format)) {
@@ -312,7 +326,8 @@ namespace OfficeIMO.PowerPoint {
             || documentType == PresentationDocumentType
                 .MacroEnabledTemplate
             || documentType == PresentationDocumentType
-                .MacroEnabledSlideshow;
+                .MacroEnabledSlideshow
+            || documentType == PresentationDocumentType.AddIn;
 
         private byte[] CreateLegacyPptBytesForSave(
             PowerPointSaveOptions? options) {
@@ -443,8 +458,8 @@ namespace OfficeIMO.PowerPoint {
 
             byte[] encryptedBytes = IsLegacyBinaryFormat(SourceFormat)
                 ? CreateEncryptedLegacyPptBytes(password, options: null)
-                : OfficeEncryption.EncryptPackage(CreatePackageBytesForSave(),
-                    password);
+                : OfficeEncryption.EncryptPackage(
+                    CreatePackageBytesForStreamSave(), password);
             OfficeStreamWriter.WriteAllBytes(destination, encryptedBytes);
         }
 

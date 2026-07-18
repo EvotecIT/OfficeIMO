@@ -94,6 +94,11 @@ namespace OfficeIMO.PowerPoint {
         public void RemoveRow(int index) {
             A.Table table = Frame.Graphic!.GraphicData!.GetFirstChild<A.Table>()!;
             A.TableRow row = table.Elements<A.TableRow>().ElementAt(index);
+            RemoveRow(row);
+        }
+
+        internal void RemoveRow(A.TableRow row) {
+            if (row.Parent == null) return;
             string[] discardedSoundIds = PowerPointEmbeddedSound
                 .GetRelationshipIds(row);
             row.Remove();
