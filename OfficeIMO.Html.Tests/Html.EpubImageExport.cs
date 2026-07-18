@@ -97,7 +97,33 @@ public sealed class HtmlEpubImageExportTests {
                 diagnostic.LossKind == OfficeImageExportLossKind.Omission);
     }
 
-    private static byte[] CreateEpub(bool includeImage = true) {
+    [Fact]
+    public void EpubRetainedPackageWarningsDoNotMasqueradeAsOmissions() {
+        using var package = new MemoryStream(
+            CreateEpub(includePackageVersion: false));
+        EpubDocument book = EpubDocument.Load(
+            package,
+            new EpubReadOptions {
+                IncludeRawHtml = true,
+                IncludeResourceData = true
+            });
+        var options = new EpubImageExportOptions {
+            Policy = new OfficeImageExportPolicy { RequireNoOmissions = true }
+        };
+
+        OfficeImageExportResult result = Assert.Single(
+            book.ExportImages(OfficeImageExportFormat.Png, options));
+
+        Assert.Contains(
+            result.Diagnostics,
+            diagnostic =>
+                diagnostic.Code == "EPUB_IMAGE_EPUB_PACKAGE_VERSION_MISSING" &&
+                diagnostic.LossKind == OfficeImageExportLossKind.Approximation);
+    }
+
+    private static byte[] CreateEpub(
+        bool includeImage = true,
+        bool includePackageVersion = true) {
         using var output = new MemoryStream();
         using (var archive = new ZipArchive(
                    output,
@@ -115,7 +141,9 @@ public sealed class HtmlEpubImageExportTests {
             Write(
                 archive,
                 "OEBPS/content.opf",
-                "<?xml version=\"1.0\"?><package xmlns=\"http://www.idpf.org/2007/opf\" version=\"3.0\" unique-identifier=\"id\"><metadata xmlns:dc=\"http://purl.org/dc/elements/1.1/\"><dc:identifier id=\"id\">book</dc:identifier><dc:title>Image Book</dc:title></metadata><manifest><item id=\"chapter\" href=\"chapter.xhtml\" media-type=\"application/xhtml+xml\"/><item id=\"pixel\" href=\"images/pixel.png\" media-type=\"image/png\"/></manifest><spine><itemref idref=\"chapter\"/></spine></package>");
+                "<?xml version=\"1.0\"?><package xmlns=\"http://www.idpf.org/2007/opf\"" +
+                (includePackageVersion ? " version=\"3.0\"" : string.Empty) +
+                " unique-identifier=\"id\"><metadata xmlns:dc=\"http://purl.org/dc/elements/1.1/\"><dc:identifier id=\"id\">book</dc:identifier><dc:title>Image Book</dc:title></metadata><manifest><item id=\"chapter\" href=\"chapter.xhtml\" media-type=\"application/xhtml+xml\"/><item id=\"pixel\" href=\"images/pixel.png\" media-type=\"image/png\"/></manifest><spine><itemref idref=\"chapter\"/></spine></package>");
             Write(
                 archive,
                 "OEBPS/chapter.xhtml",

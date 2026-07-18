@@ -5,6 +5,27 @@ namespace OfficeIMO.Epub.Html;
 
 /// <summary>EPUB image-export entry points backed by OfficeIMO.Html.</summary>
 public static class EpubImageExportExtensions {
+    private static readonly HashSet<string> PackageOmissionDiagnosticCodes =
+        new HashSet<string>(StringComparer.Ordinal) {
+            "epub.archive.duplicate-path",
+            "epub.archive.unsafe-path",
+            "epub.chapter.encrypted",
+            "epub.chapter.invalid-xhtml",
+            "epub.chapter.size-limit",
+            "epub.encryption.resource-missing",
+            "epub.encryption.unsupported",
+            "epub.manifest.duplicate-id",
+            "epub.manifest.invalid-path",
+            "epub.resource.count-limit",
+            "epub.resource.encrypted",
+            "epub.resource.missing",
+            "epub.resource.size-limit",
+            "epub.resource.total-size-limit",
+            "epub.spine.manifest-id-missing",
+            "epub.spine.remote-resource",
+            "epub.spine.resource-missing"
+        };
+
     /// <summary>Exports selected EPUB chapters through the shared image result contract.</summary>
     public static IReadOnlyList<OfficeImageExportResult> ExportImages(
         this EpubDocument source,
@@ -292,19 +313,8 @@ public static class EpubImageExportExtensions {
     }
 
     private static bool IsPackageOmissionDiagnostic(string code) {
-        if (string.IsNullOrWhiteSpace(code)) return false;
-        return code.StartsWith("epub.chapter.", StringComparison.Ordinal) ||
-               code.StartsWith("epub.spine.", StringComparison.Ordinal) ||
-               code.StartsWith("epub.resource.", StringComparison.Ordinal) ||
-               code.StartsWith("epub.archive.", StringComparison.Ordinal) ||
-               code.StartsWith("epub.encryption.", StringComparison.Ordinal) ||
-               code.StartsWith("epub.navigation.", StringComparison.Ordinal) ||
-               code.StartsWith("epub.ncx.", StringComparison.Ordinal) ||
-               code.StartsWith("epub.guide.", StringComparison.Ordinal) ||
-               code.StartsWith("epub.metadata.", StringComparison.Ordinal) ||
-               code.StartsWith("epub.manifest.", StringComparison.Ordinal) ||
-               code.StartsWith("epub.container.", StringComparison.Ordinal) ||
-               code.StartsWith("epub.package.", StringComparison.Ordinal);
+        return !string.IsNullOrWhiteSpace(code) &&
+               PackageOmissionDiagnosticCodes.Contains(code);
     }
 
     private static string CreatePlainTextChapter(
