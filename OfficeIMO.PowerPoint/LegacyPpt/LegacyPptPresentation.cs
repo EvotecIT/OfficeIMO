@@ -165,8 +165,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 Package = package,
                 _recordBudget = recordBudget,
                 _decodedStorageBudget = decodedStorageBudget,
-                _securityRecordBudget = new LegacyPptRecordTraversalBudget(
-                    options.MaxRecordCount)
+                _securityRecordBudget = recordBudget
             };
             if (package.WasEncryptedSource) {
                 presentation.AddDiagnostic("PPT-ENCRYPTION-DECRYPTED",
