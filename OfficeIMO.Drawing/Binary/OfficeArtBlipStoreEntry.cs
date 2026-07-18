@@ -7,13 +7,15 @@ namespace OfficeIMO.Drawing.Binary;
 /// </summary>
 public sealed class OfficeArtBlipStoreEntry {
     private readonly byte[] _imageBytes;
+    private readonly bool _isImagePayloadTruncated;
 
     internal OfficeArtBlipStoreEntry(ushort recordInstance, byte win32BlipType, byte macOsBlipType,
         string uidHex, ushort tag, uint sizeBytes, uint referenceCount, uint delayedStreamOffset,
         byte nameByteCount, string? name, OfficeArtBlipStorage storage, byte? blipRecordVersion,
         ushort? blipRecordInstance, ushort? blipRecordType, uint? blipPayloadLength,
         int? blipPayloadAvailableLength, string? blipPayloadSha256,
-        byte[]? imageBytes, bool wasImageRejectedBySizeLimit) {
+        byte[]? imageBytes, bool wasImageRejectedBySizeLimit,
+        bool isImagePayloadTruncated) {
         RecordInstance = recordInstance;
         RecordInstanceBlipType = TryGetBlipType(recordInstance);
         RecordInstanceBlipTypeName = GetBlipTypeName(recordInstance);
@@ -42,6 +44,7 @@ public sealed class OfficeArtBlipStoreEntry {
             Win32BlipTypeKind, MacOsBlipTypeKind);
         _imageBytes = imageBytes == null ? Array.Empty<byte>() : (byte[])imageBytes.Clone();
         WasImageRejectedBySizeLimit = wasImageRejectedBySizeLimit;
+        _isImagePayloadTruncated = isImagePayloadTruncated;
     }
 
     /// <summary>Gets the BLIP type value stored in the FBSE OfficeArt record instance field.</summary>
@@ -120,8 +123,11 @@ public sealed class OfficeArtBlipStoreEntry {
     public string? ContentType { get; }
 
     /// <summary>Gets whether the resolved BLIP payload is shorter than its declared length.</summary>
-    public bool IsPayloadTruncated => BlipPayloadLength.HasValue && BlipPayloadAvailableLength.HasValue
-        && BlipPayloadLength.Value > unchecked((uint)BlipPayloadAvailableLength.Value);
+    public bool IsPayloadTruncated => _isImagePayloadTruncated
+        || BlipPayloadLength.HasValue
+        && BlipPayloadAvailableLength.HasValue
+        && BlipPayloadLength.Value
+        > unchecked((uint)BlipPayloadAvailableLength.Value);
 
     /// <summary>Gets a defensive copy of image bytes suitable for an Open XML image part.</summary>
     public byte[] ImageBytes => (byte[])_imageBytes.Clone();

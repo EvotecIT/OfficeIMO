@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Security.Cryptography;
@@ -18,7 +19,15 @@ public static class OfficeArtBlipStoreEntryReader {
     /// </summary>
     public static bool TryRead(byte[] payload, int offset, int length, ushort recordInstance,
         byte[]? delayStream, out OfficeArtBlipStoreEntry? entry,
-        int maximumDecodedImageBytes = DefaultMaximumDecodedImageBytes) {
+        int maximumDecodedImageBytes = DefaultMaximumDecodedImageBytes) =>
+        TryRead(payload, offset, length, recordInstance, delayStream,
+            out entry, maximumDecodedImageBytes,
+            delayedPayloadHashCache: null);
+
+    internal static bool TryRead(byte[] payload, int offset, int length,
+        ushort recordInstance, byte[]? delayStream,
+        out OfficeArtBlipStoreEntry? entry, int maximumDecodedImageBytes,
+        DelayedBlipPayloadHashCache? delayedPayloadHashCache) {
         if (payload == null) throw new ArgumentNullException(nameof(payload));
         if (offset < 0 || offset > payload.Length) throw new ArgumentOutOfRangeException(nameof(offset));
         if (length < 0 || length > payload.Length - offset) throw new ArgumentOutOfRangeException(nameof(length));
@@ -45,7 +54,7 @@ public static class OfficeArtBlipStoreEntryReader {
             if (embeddedOffset <= embeddedBoundary - 8) {
                 blip = ReadBlip(payload, embeddedOffset,
                     embeddedBoundary, OfficeArtBlipStorage.Embedded,
-                    maximumDecodedImageBytes);
+                    maximumDecodedImageBytes, payloadHashCache: null);
             }
         }
         if (!blip.HasRecord && delayStream != null && delayedStreamOffset != uint.MaxValue
@@ -57,7 +66,8 @@ public static class OfficeArtBlipStoreEntryReader {
                 if (delayedOffset <= delayedBoundary - 8) {
                     blip = ReadBlip(delayStream, delayedOffset,
                         delayedBoundary, OfficeArtBlipStorage.Delayed,
-                        maximumDecodedImageBytes);
+                        maximumDecodedImageBytes,
+                        delayedPayloadHashCache);
                 }
             }
         }
@@ -67,7 +77,8 @@ public static class OfficeArtBlipStoreEntryReader {
             blip.Storage, blip.RecordVersion, blip.RecordInstance, blip.RecordType,
             blip.PayloadLength, blip.PayloadAvailableLength,
             blip.PayloadSha256, blip.ImageBytes,
-            blip.WasImageRejectedBySizeLimit);
+            blip.WasImageRejectedBySizeLimit,
+            blip.IsImagePayloadTruncated);
         return true;
     }
 
@@ -97,7 +108,7 @@ public static class OfficeArtBlipStoreEntryReader {
         if (length < 8) return false;
         BlipReadResult result = ReadBlip(source, offset,
             checked(offset + length), OfficeArtBlipStorage.Embedded,
-            maximumDecodedImageBytes);
+            maximumDecodedImageBytes, payloadHashCache: null);
         if (!result.HasRecord || !result.RecordType.HasValue
             || !result.PayloadLength.HasValue
             || !result.PayloadAvailableLength.HasValue) return false;
@@ -108,7 +119,8 @@ public static class OfficeArtBlipStoreEntryReader {
             OfficeArtBlipStoreEntry.GetContentType(result.RecordType,
                 recordInstanceType: null, win32Type: null, macOsType: null),
             result.ImageBytes ?? Array.Empty<byte>(),
-            result.WasImageRejectedBySizeLimit);
+            result.WasImageRejectedBySizeLimit,
+            result.IsImagePayloadTruncated);
         return true;
     }
 
@@ -149,7 +161,8 @@ public static class OfficeArtBlipStoreEntryReader {
             entry.BlipPayloadLength.Value,
             entry.BlipPayloadAvailableLength.Value,
             entry.BlipPayloadSha256, entry.ContentType,
-            entry.ImageBytes, entry.WasImageRejectedBySizeLimit);
+            entry.ImageBytes, entry.WasImageRejectedBySizeLimit,
+            entry.IsPayloadTruncated);
         return true;
     }
 
@@ -161,8 +174,10 @@ public static class OfficeArtBlipStoreEntryReader {
             : sourceBoundary;
     }
 
-    private static BlipReadResult ReadBlip(byte[] source, int recordOffset, int boundary,
-        OfficeArtBlipStorage storage, int maximumDecodedImageBytes) {
+    private static BlipReadResult ReadBlip(byte[] source, int recordOffset,
+        int boundary, OfficeArtBlipStorage storage,
+        int maximumDecodedImageBytes,
+        DelayedBlipPayloadHashCache? payloadHashCache) {
         ushort versionAndInstance = ReadUInt16(source, recordOffset);
         byte recordVersion = unchecked((byte)(versionAndInstance & 0x000F));
         ushort recordInstance = unchecked((ushort)(versionAndInstance >> 4));
@@ -178,25 +193,32 @@ public static class OfficeArtBlipStoreEntryReader {
             payloadLength > unchecked((uint)availableLength);
         string? payloadSha256 = availableLength == 0
             ? null
-            : ComputeSha256(source, payloadOffset, availableLength);
+            : payloadHashCache?.GetOrAdd(source, payloadOffset,
+                availableLength)
+              ?? ComputeSha256(source, payloadOffset, availableLength);
         bool wasImageRejectedBySizeLimit = false;
+        bool isImagePayloadTruncated = false;
         byte[] imageBytes = availableLength == 0 || isPayloadTruncated
             ? Array.Empty<byte>()
             : ExtractImageBytes(source, payloadOffset, availableLength,
                 recordType, recordInstance, maximumDecodedImageBytes,
-                out wasImageRejectedBySizeLimit);
+                out wasImageRejectedBySizeLimit,
+                out isImagePayloadTruncated);
         return new BlipReadResult(storage, recordVersion, recordInstance, recordType, payloadLength,
             availableLength, payloadSha256, imageBytes,
-            wasImageRejectedBySizeLimit);
+            wasImageRejectedBySizeLimit, isImagePayloadTruncated);
     }
 
     private static byte[] ExtractImageBytes(byte[] source, int offset, int count, ushort recordType,
         ushort recordInstance, int maximumDecodedImageBytes,
-        out bool wasRejectedBySizeLimit) {
+        out bool wasRejectedBySizeLimit,
+        out bool isImagePayloadTruncated) {
         wasRejectedBySizeLimit = false;
+        isImagePayloadTruncated = false;
         if (recordType == 0xF01A || recordType == 0xF01B || recordType == 0xF01C) {
             return ExtractMetafile(source, offset, count, recordType, recordInstance,
-                maximumDecodedImageBytes, out wasRejectedBySizeLimit);
+                maximumDecodedImageBytes, out wasRejectedBySizeLimit,
+                out isImagePayloadTruncated);
         }
 
         int imagePrefixLength = GetRasterPrefixLength(recordType, recordInstance);
@@ -224,8 +246,10 @@ public static class OfficeArtBlipStoreEntryReader {
 
     private static byte[] ExtractMetafile(byte[] source, int offset, int count, ushort recordType,
         ushort recordInstance, int maximumDecodedImageBytes,
-        out bool wasRejectedBySizeLimit) {
+        out bool wasRejectedBySizeLimit,
+        out bool isImagePayloadTruncated) {
         wasRejectedBySizeLimit = false;
+        isImagePayloadTruncated = false;
         if (recordType == 0xF01C) return Array.Empty<byte>();
         int uidLength = GetMetafileUidLength(recordType, recordInstance);
         if (uidLength < 0 || count < uidLength + 34) return Array.Empty<byte>();
@@ -235,9 +259,11 @@ public static class OfficeArtBlipStoreEntryReader {
         byte compression = source[headerOffset + 32];
         int dataOffset = checked(headerOffset + 34);
         int available = Math.Max(0, offset + count - dataOffset);
-        int storedLength = storedSize > int.MaxValue
-            ? available
-            : Math.Min(available, unchecked((int)storedSize));
+        if (storedSize > unchecked((uint)available)) {
+            isImagePayloadTruncated = true;
+            return Array.Empty<byte>();
+        }
+        int storedLength = unchecked((int)storedSize);
         if (uncompressedSize > unchecked((uint)maximumDecodedImageBytes)) {
             wasRejectedBySizeLimit = true;
             return Array.Empty<byte>();
@@ -405,11 +431,44 @@ public static class OfficeArtBlipStoreEntryReader {
         target[offset + 3] = unchecked((byte)(value >> 24));
     }
 
+    internal sealed class DelayedBlipPayloadHashCache {
+        private readonly byte[] _source;
+        private readonly Dictionary<long, string> _hashes = new();
+
+        internal DelayedBlipPayloadHashCache(byte[] source) {
+            _source = source ?? throw new ArgumentNullException(
+                nameof(source));
+        }
+
+        internal int UniqueRangeCount => _hashes.Count;
+
+        internal string GetOrAdd(byte[] source, int offset, int count) {
+            if (!ReferenceEquals(source, _source)) {
+                throw new ArgumentException(
+                    "The delayed BLIP hash cache belongs to a different source.",
+                    nameof(source));
+            }
+            if (offset < 0 || count < 0
+                || offset > source.Length - count) {
+                throw new ArgumentOutOfRangeException(nameof(offset));
+            }
+            long key = ((long)(uint)offset << 32)
+                | unchecked((uint)count);
+            if (_hashes.TryGetValue(key, out string? hash)) {
+                return hash;
+            }
+            hash = ComputeSha256(source, offset, count);
+            _hashes.Add(key, hash);
+            return hash;
+        }
+    }
+
     private readonly struct BlipReadResult {
         internal BlipReadResult(OfficeArtBlipStorage storage, byte recordVersion,
             ushort recordInstance, ushort recordType, uint payloadLength, int payloadAvailableLength,
             string? payloadSha256, byte[] imageBytes,
-            bool wasImageRejectedBySizeLimit) {
+            bool wasImageRejectedBySizeLimit,
+            bool isImagePayloadTruncated) {
             HasRecord = true;
             Storage = storage;
             RecordVersion = recordVersion;
@@ -420,6 +479,7 @@ public static class OfficeArtBlipStoreEntryReader {
             PayloadSha256 = payloadSha256;
             ImageBytes = imageBytes;
             WasImageRejectedBySizeLimit = wasImageRejectedBySizeLimit;
+            IsImagePayloadTruncated = isImagePayloadTruncated;
         }
 
         internal bool HasRecord { get; }
@@ -432,6 +492,7 @@ public static class OfficeArtBlipStoreEntryReader {
         internal string? PayloadSha256 { get; }
         internal byte[]? ImageBytes { get; }
         internal bool WasImageRejectedBySizeLimit { get; }
+        internal bool IsImagePayloadTruncated { get; }
     }
 
     internal readonly struct OfficeArtBlipRecordData {
@@ -441,7 +502,8 @@ public static class OfficeArtBlipStoreEntryReader {
             ushort recordInstance, ushort recordType, uint payloadLength,
             int payloadAvailableLength, string? payloadSha256,
             string? contentType, byte[] imageBytes,
-            bool wasImageRejectedBySizeLimit) {
+            bool wasImageRejectedBySizeLimit,
+            bool isImagePayloadTruncated) {
             RecordVersion = recordVersion;
             RecordInstance = recordInstance;
             RecordType = recordType;
@@ -453,6 +515,7 @@ public static class OfficeArtBlipStoreEntryReader {
                 ? Array.Empty<byte>()
                 : (byte[])imageBytes.Clone();
             WasImageRejectedBySizeLimit = wasImageRejectedBySizeLimit;
+            IsImagePayloadTruncated = isImagePayloadTruncated;
         }
 
         internal byte RecordVersion { get; }
@@ -463,10 +526,12 @@ public static class OfficeArtBlipStoreEntryReader {
         internal string? PayloadSha256 { get; }
         internal string? ContentType { get; }
         internal bool WasImageRejectedBySizeLimit { get; }
+        internal bool IsImagePayloadTruncated { get; }
         internal byte[] ImageBytes => _imageBytes == null
             ? Array.Empty<byte>()
             : (byte[])_imageBytes.Clone();
-        internal bool IsPayloadTruncated => PayloadLength
+        internal bool IsPayloadTruncated => IsImagePayloadTruncated
+            || PayloadLength
             > unchecked((uint)PayloadAvailableLength);
     }
 }

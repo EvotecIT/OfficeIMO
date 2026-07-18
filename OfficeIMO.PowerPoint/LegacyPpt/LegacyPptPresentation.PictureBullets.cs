@@ -132,12 +132,21 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 preferredType, bytes[9], blip.RecordVersion,
                 blip.RecordInstance, blip.RecordType, blip.PayloadLength,
                 blip.PayloadAvailableLength, blip.PayloadSha256,
-                blip.ContentType, imageBytes);
+                blip.ContentType, imageBytes,
+                blip.IsPayloadTruncated);
             if (!pictureBullet.HasImportableImage) {
-                AddDiagnostic("PPT-PICTURE-BULLET-IMAGE",
-                    LegacyPptDiagnosticSeverity.Warning,
-                    $"Picture-bullet index {entity.Instance} has no bounded importable image payload and remains preserve-only.",
-                    entity.Offset);
+                if (pictureBullet.IsPayloadTruncated) {
+                    AddDiagnostic(
+                        "PPT-PICTURE-BULLET-BLIP-TRUNCATED",
+                        LegacyPptDiagnosticSeverity.Warning,
+                        $"Picture-bullet index {entity.Instance} has a truncated image payload and remains preserve-only.",
+                        entity.Offset);
+                } else {
+                    AddDiagnostic("PPT-PICTURE-BULLET-IMAGE",
+                        LegacyPptDiagnosticSeverity.Warning,
+                        $"Picture-bullet index {entity.Instance} has no bounded importable image payload and remains preserve-only.",
+                        entity.Offset);
+                }
             }
             return true;
         }

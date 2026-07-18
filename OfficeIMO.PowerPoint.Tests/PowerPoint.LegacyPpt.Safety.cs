@@ -599,6 +599,61 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PackageReader_HashesAliasedDelayedPictureRangeOnce() {
+            byte[] firstImage = OfficePngWriter.Encode(
+                new OfficeRasterImage(4, 4,
+                    OfficeColor.FromRgb(10, 20, 30)));
+            byte[] secondImage = OfficePngWriter.Encode(
+                new OfficeRasterImage(4, 4,
+                    OfficeColor.FromRgb(40, 50, 60)));
+            byte[] bytes;
+            using (PowerPointPresentation created =
+                   PowerPointPresentation.Create()) {
+                PowerPointSlide slide = created.AddSlide();
+                using (var first = new MemoryStream(firstImage,
+                           writable: false)) {
+                    slide.AddPicture(first,
+                        OfficeIMO.PowerPoint.ImagePartType.Png);
+                }
+                using (var second = new MemoryStream(secondImage,
+                           writable: false)) {
+                    slide.AddPicture(second,
+                        OfficeIMO.PowerPoint.ImagePartType.Png,
+                        left: 1000000);
+                }
+                bytes = created.ToBytes(PowerPointFileFormat.Ppt);
+            }
+
+            LegacyPptPresentation source =
+                LegacyPptPresentation.Load(bytes);
+            byte[] document = (byte[])source.Package.DocumentStream.Clone();
+            LegacyPptRecord root = LegacyPptRecordReader.ReadSingle(
+                document, checked((int)source.Package.PersistObjectOffsets[
+                    source.Package.DocumentPersistId]),
+                new LegacyPptImportOptions());
+            LegacyPptRecord[] entries = root.DescendantsAndSelf()
+                .Where(record => record.Type == 0xF007).ToArray();
+            Assert.Equal(2, entries.Length);
+            WriteUInt32(document, entries[1].PayloadOffset + 20,
+                entries[0].ReadUInt32(20));
+            WriteUInt32(document, entries[1].PayloadOffset + 28,
+                entries[0].ReadUInt32(28));
+            byte[] aliasedBytes = source.Package.RewriteCompoundStreams(
+                new Dictionary<string, byte[]> {
+                    ["PowerPoint Document"] = document
+                });
+
+            LegacyPptPresentation aliased =
+                LegacyPptPresentation.Load(aliasedBytes);
+
+            Assert.Equal(2, aliased.BlipStoreEntries.Count);
+            Assert.Equal(aliased.BlipStoreEntries[0].BlipPayloadSha256,
+                aliased.BlipStoreEntries[1].BlipPayloadSha256);
+            Assert.Equal(1,
+                aliased.DelayedBlipPayloadHashRangeCount);
+        }
+
+        [Fact]
         public void OleStorageDecoder_ReservesCompressedExpansionBeforeDecode() {
             byte[] decoded = CreateOleTestStorage("Compressed expansion");
             byte[] compressed = CompressVbaZlib(decoded);

@@ -95,6 +95,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
         /// <summary>Gets the document-level sounds referenced by transitions and interactive actions.</summary>
         public IReadOnlyList<LegacyPptSound> Sounds => _sounds;
 
+        /// <summary>
+        /// Gets the number of unique bounded delayed-BLIP payload ranges
+        /// hashed while importing the picture store.
+        /// </summary>
+        internal int DelayedBlipPayloadHashRangeCount { get; private set; }
+
         /// <summary>Gets the sound identifier seed stored by the document, when valid.</summary>
         public uint? SoundIdSeed { get; private set; }
 
@@ -714,6 +720,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             LegacyPptRecord? store = document.DescendantsAndSelf()
                 .FirstOrDefault(record => record.Type == OfficeArtBStoreContainer);
             if (store == null) return;
+            byte[]? picturesStream = package.PicturesStream;
+            OfficeArtBlipStoreEntryReader.DelayedBlipPayloadHashCache?
+                delayedPayloadHashCache = picturesStream == null
+                    ? null
+                    : new OfficeArtBlipStoreEntryReader
+                        .DelayedBlipPayloadHashCache(picturesStream);
             foreach (LegacyPptRecord fbse in store.Children.Where(record => record.Type == OfficeArtFbse)) {
                 byte[] bytes = fbse.CopyRecordBytes();
                 int remainingDecodedBytes = _decodedStorageBudget
@@ -721,8 +733,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 int perImageLimit = Math.Min(options.MaxInputBytes,
                     remainingDecodedBytes);
                 if (OfficeArtBlipStoreEntryReader.TryRead(bytes, 8, fbse.PayloadLength, fbse.Instance,
-                        package.PicturesStream, out OfficeArtBlipStoreEntry? entry,
-                        perImageLimit) && entry != null) {
+                        picturesStream, out OfficeArtBlipStoreEntry? entry,
+                        perImageLimit, delayedPayloadHashCache)
+                    && entry != null) {
                     if (entry.WasImageRejectedBySizeLimit
                         && remainingDecodedBytes <= options.MaxInputBytes) {
                         _decodedStorageBudget.RejectAllocation();
@@ -734,6 +747,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                         "An OfficeArt picture-store entry is truncated and could not be decoded.", fbse.Offset);
                 }
             }
+            DelayedBlipPayloadHashRangeCount =
+                delayedPayloadHashCache?.UniqueRangeCount ?? 0;
         }
 
         private static int? ReadPictureStoreIndex(OfficeArtShapeStyle style) {

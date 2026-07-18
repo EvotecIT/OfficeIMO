@@ -2,12 +2,14 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
     /// <summary>Represents one picture bullet stored in a PPT9 document extension.</summary>
     public sealed class LegacyPptPictureBullet {
         private readonly byte[] _imageBytes;
+        private readonly bool _isImagePayloadTruncated;
 
         internal LegacyPptPictureBullet(ushort index, byte preferredBlipType,
             byte unused, byte blipRecordVersion, ushort blipRecordInstance,
             ushort blipRecordType, uint blipPayloadLength,
             int blipPayloadAvailableLength, string? blipPayloadSha256,
-            string? contentType, byte[] imageBytes) {
+            string? contentType, byte[] imageBytes,
+            bool isImagePayloadTruncated) {
             Index = index;
             PreferredBlipType = preferredBlipType;
             Unused = unused;
@@ -19,6 +21,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
             BlipPayloadSha256 = blipPayloadSha256;
             ContentType = contentType;
             _imageBytes = imageBytes?.ToArray() ?? Array.Empty<byte>();
+            _isImagePayloadTruncated = isImagePayloadTruncated;
         }
 
         /// <summary>Gets the zero-based index referenced by PPT9 paragraph properties.</summary>
@@ -54,8 +57,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
         /// <summary>Gets a defensive copy of image bytes suitable for an Open XML image part.</summary>
         public byte[] ImageBytes => _imageBytes.ToArray();
 
-        /// <summary>Gets whether the embedded BLIP is shorter than its declared payload.</summary>
-        public bool IsPayloadTruncated => BlipPayloadLength
+        /// <summary>
+        /// Gets whether the embedded BLIP or its declared metafile body is
+        /// shorter than the bounded source.
+        /// </summary>
+        public bool IsPayloadTruncated => _isImagePayloadTruncated
+            || BlipPayloadLength
             > unchecked((uint)BlipPayloadAvailableLength);
 
         /// <summary>Gets whether this picture bullet can be projected into DrawingML.</summary>

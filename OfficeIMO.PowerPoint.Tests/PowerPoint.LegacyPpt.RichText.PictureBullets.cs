@@ -126,6 +126,81 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void TruncatedMetafilePictureBullet_IsClassifiedAndNotProjected() {
+            byte[] emf = CreatePictureBulletEmf();
+            byte[] binary;
+            using (PowerPointPresentation source =
+                   PowerPointPresentation.Create()) {
+                PowerPointSlide slide = source.AddSlide(
+                    P.SlideLayoutValues.Blank);
+                PowerPointTextBox textBox = slide.AddTextBox(
+                    "Metafile picture bullet");
+                ImagePart imagePart = slide.SlidePart.AddImagePart(
+                    DocumentFormat.OpenXml.Packaging.ImagePartType.Emf);
+                using (var stream = new MemoryStream(emf,
+                           writable: false)) {
+                    imagePart.FeedData(stream);
+                }
+                A.Paragraph paragraph = Assert.Single(
+                    Assert.IsType<P.Shape>(textBox.Element).TextBody!
+                        .Elements<A.Paragraph>());
+                paragraph.ParagraphProperties = new A.ParagraphProperties(
+                    new A.PictureBullet(new A.Blip {
+                        Embed = slide.SlidePart.GetIdOfPart(imagePart)
+                    }));
+                binary = source.ToBytes(PowerPointFileFormat.Ppt);
+            }
+
+            LegacyPptPresentation generated =
+                LegacyPptPresentation.Load(binary);
+            byte[] document = (byte[])generated.Package.DocumentStream
+                .Clone();
+            LegacyPptRecord root = LegacyPptRecordReader.ReadSingle(
+                document, checked((int)generated.Package
+                    .PersistObjectOffsets[
+                        generated.Package.DocumentPersistId]),
+                new LegacyPptImportOptions());
+            LegacyPptRecord entity = Assert.Single(root
+                .DescendantsAndSelf()
+                .Where(record => record.Type == 0x138B)
+                .SelectMany(blob => LegacyPptRecordReader.ReadSequence(
+                    document, blob.PayloadOffset, blob.PayloadLength,
+                    new LegacyPptImportOptions()))
+                .SelectMany(record => record.DescendantsAndSelf()),
+                record => record.Type == 0x07F9);
+            const int BlipRecordHeaderLength = 8;
+            const int MetafileUidLength = 16;
+            const int MetafileStoredSizeOffset = 28;
+            int storedSizeOffset = entity.PayloadOffset + 2
+                + BlipRecordHeaderLength + MetafileUidLength
+                + MetafileStoredSizeOffset;
+            WriteUInt32(document, storedSizeOffset, uint.MaxValue);
+            byte[] truncatedBytes = generated.Package
+                .RewriteCompoundStreams(
+                    new Dictionary<string, byte[]> {
+                        ["PowerPoint Document"] = document
+                    });
+
+            LegacyPptPresentation truncated =
+                LegacyPptPresentation.Load(truncatedBytes);
+            LegacyPptPictureBullet bullet = Assert.Single(
+                truncated.PictureBullets);
+
+            Assert.True(bullet.IsPayloadTruncated);
+            Assert.Empty(bullet.ImageBytes);
+            Assert.False(bullet.HasImportableImage);
+            Assert.Contains(truncated.Diagnostics, diagnostic =>
+                diagnostic.Code
+                == "PPT-PICTURE-BULLET-BLIP-TRUNCATED");
+            using var input = new MemoryStream(truncatedBytes,
+                writable: false);
+            using PowerPointPresentation projected =
+                PowerPointPresentation.Load(input);
+            Assert.Empty(projected.Slides[0].SlidePart.Slide!
+                .Descendants<A.PictureBullet>());
+        }
+
+        [Fact]
         public void ImportedPictureBullet_AddChangeAndRemove_AppendPreservingRecords() {
             byte[] sourceBytes;
             using (PowerPointPresentation source =
@@ -232,6 +307,29 @@ namespace OfficeIMO.Tests {
             Assert.True(removed.Package.DocumentStream.AsSpan(0,
                     changed.Package.DocumentStream.Length)
                 .SequenceEqual(changed.Package.DocumentStream));
+        }
+
+        private static byte[] CreatePictureBulletEmf() {
+            var result = new byte[108];
+            WriteUInt32(result, 0, 1U);
+            WriteUInt32(result, 4, 88U);
+            WriteUInt32(result, 16, 100U);
+            WriteUInt32(result, 20, 100U);
+            WriteUInt32(result, 32, 2540U);
+            WriteUInt32(result, 36, 2540U);
+            WriteUInt32(result, 40, 0x464D4520U);
+            WriteUInt32(result, 44, 0x00010000U);
+            WriteUInt32(result, 48, checked((uint)result.Length));
+            WriteUInt32(result, 52, 2U);
+            result[56] = 1;
+            WriteUInt32(result, 72, 100U);
+            WriteUInt32(result, 76, 100U);
+            WriteUInt32(result, 80, 25U);
+            WriteUInt32(result, 84, 25U);
+            WriteUInt32(result, 88, 14U);
+            WriteUInt32(result, 92, 20U);
+            WriteUInt32(result, 104, 20U);
+            return result;
         }
 
     }

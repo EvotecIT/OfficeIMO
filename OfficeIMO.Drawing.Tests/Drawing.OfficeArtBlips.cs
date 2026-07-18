@@ -170,6 +170,35 @@ public sealed class DrawingOfficeArtBlipTests {
     }
 
     [Fact]
+    public void ReaderHashesSharedDelayedPayloadRangeOnlyOnce() {
+        byte[] png = {
+            0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A
+        };
+        byte[] blip = BuildBlipRecord(0x06E0, 0xF01E, png);
+        byte[] fbse = BuildFbse(Array.Empty<byte>(), 0,
+            unchecked((uint)blip.Length));
+        var hashCache = new OfficeArtBlipStoreEntryReader
+            .DelayedBlipPayloadHashCache(blip);
+
+        Assert.True(OfficeArtBlipStoreEntryReader.TryRead(fbse, 0,
+            fbse.Length, 0x0006, blip,
+            out OfficeArtBlipStoreEntry? first,
+            maximumDecodedImageBytes: png.Length,
+            delayedPayloadHashCache: hashCache));
+        Assert.True(OfficeArtBlipStoreEntryReader.TryRead(fbse, 0,
+            fbse.Length, 0x0006, blip,
+            out OfficeArtBlipStoreEntry? second,
+            maximumDecodedImageBytes: png.Length,
+            delayedPayloadHashCache: hashCache));
+
+        Assert.NotNull(first);
+        Assert.NotNull(second);
+        Assert.Equal(first!.BlipPayloadSha256,
+            second!.BlipPayloadSha256);
+        Assert.Equal(1, hashCache.UniqueRangeCount);
+    }
+
+    [Fact]
     public void ReaderUsesTwoUidRasterPrefixAndBuildsBmpFileHeader() {
         byte[] dib = new byte[44];
         WriteUInt32(dib, 0, 40);
@@ -210,6 +239,33 @@ public sealed class DrawingOfficeArtBlipTests {
         Assert.NotNull(entry);
         Assert.Equal("image/x-emf", entry!.ContentType);
         Assert.Equal(metafile, entry.ImageBytes);
+    }
+
+    [Theory]
+    [InlineData(0xF01A, 0x03D4, 0x0002)]
+    [InlineData(0xF01B, 0x0216, 0x0003)]
+    public void ReaderRejectsTruncatedMetafileStoredBody(
+        ushort recordType, ushort recordInstance,
+        ushort fbseInstance) {
+        byte[] metafile = { 0x01, 0x02, 0x03, 0x04 };
+        byte[] header = new byte[34];
+        WriteUInt32(header, 0, unchecked((uint)metafile.Length));
+        WriteUInt32(header, 28,
+            unchecked((uint)(metafile.Length + 1)));
+        header[32] = 0xFE;
+        header[33] = 0xFE;
+        byte[] blip = BuildBlipRecord(recordInstance, recordType,
+            header.Concat(metafile).ToArray(), includeTag: false);
+
+        Assert.True(OfficeArtBlipStoreEntryReader.TryRead(
+            BuildFbse(blip, uint.MaxValue), fbseInstance,
+            out OfficeArtBlipStoreEntry? entry));
+
+        Assert.NotNull(entry);
+        Assert.True(entry!.IsPayloadTruncated);
+        Assert.NotNull(entry.BlipPayloadSha256);
+        Assert.Empty(entry.ImageBytes);
+        Assert.False(entry.HasImportableImage);
     }
 
     [Theory]
