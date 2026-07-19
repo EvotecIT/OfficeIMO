@@ -5,13 +5,24 @@ namespace OfficeIMO.Pdf;
 public sealed partial class PdfReadPage {
     internal int GetVisibleVisualPrimitiveCount() {
         (double Width, double Height) size = GetVisualPageSize();
-        IReadOnlyList<PdfPageVisualPrimitive> primitives =
-            GetVisualPrimitives(size.Width, size.Height, GetVisualPageTransform());
         int count = 0;
-        for (int i = 0; i < primitives.Count; i++) {
-            if (IsVisibleVisualPrimitive(primitives[i], size.Width, size.Height)) {
-                count++;
-            }
+        PdfDictionary? pageResources = ResolveDictionary(GetInheritedValue("Resources"));
+        var activeForms = new HashSet<PdfStream>();
+        string content = GetContentStreamContent();
+        if (content.Length > 0) {
+            CollectVisualPrimitivesAndForms(
+                content,
+                pageResources,
+                GetVisualPageTransform(),
+                size.Width,
+                size.Height,
+                primitive => {
+                    if (IsVisibleVisualPrimitive(primitive, size.Width, size.Height)) {
+                        count++;
+                    }
+                },
+                activeForms,
+                retainPrimitiveData: false);
         }
 
         return count;
@@ -345,7 +356,7 @@ public sealed partial class PdfReadPage {
         var activeForms = new HashSet<PdfStream>();
         string content = GetContentStreamContent();
         if (content.Length > 0) {
-            CollectVisualPrimitivesAndForms(content, pageResources, pageTransform, pageWidth, pageHeight, primitives, activeForms);
+            CollectVisualPrimitivesAndForms(content, pageResources, pageTransform, pageWidth, pageHeight, primitives.Add, activeForms);
         }
 
         return primitives.Count == 0 ? Array.Empty<PdfPageVisualPrimitive>() : primitives.AsReadOnly();
@@ -357,7 +368,7 @@ public sealed partial class PdfReadPage {
         Matrix2D baseTransform,
         double pageWidth,
         double pageHeight,
-        List<PdfPageVisualPrimitive> primitives,
+        Action<PdfPageVisualPrimitive> primitiveVisitor,
         HashSet<PdfStream> activeForms,
         double paintOrderBase = 0D,
         double paintOrderScale = 1D,
@@ -374,10 +385,11 @@ public sealed partial class PdfReadPage {
         OfficeStrokeLineCap? initialStrokeLineCap = null,
         OfficeStrokeLineJoin? initialStrokeLineJoin = null,
         int contentNestingDepth = 0,
-        bool includeTilingPatterns = true) {
+        bool includeTilingPatterns = true,
+        bool retainPrimitiveData = true) {
         EnsureContentNestingBudget(contentNestingDepth);
         string transformedContent = WrapContentWithTransform(content, baseTransform, out int transformedContentOffset);
-        primitives.AddRange(PdfPageContentVisualParser.Parse(
+        _ = PdfPageContentVisualParser.Parse(
             transformedContent,
             pageWidth,
             pageHeight,
@@ -404,7 +416,9 @@ public sealed partial class PdfReadPage {
             maxOperations: _limits.MaxContentOperations,
             patternBaseColorSpaces: GetPatternBaseColorSpaceResources(resources),
             maxNestingDepth: _limits.MaxContentNestingDepth,
-            maxOperands: _limits.MaxContentOperands));
+            maxOperands: _limits.MaxContentOperands,
+            primitiveVisitor: primitiveVisitor,
+            retainPrimitiveData: retainPrimitiveData);
 
         foreach (PdfPageXObjectInvocation invocation in PdfPageXObjectInvocationParser.Parse(
                      content,
@@ -449,7 +463,7 @@ public sealed partial class PdfReadPage {
                     formTransform,
                     pageWidth,
                     pageHeight,
-                    primitives,
+                    primitiveVisitor,
                     activeForms,
                     invocation.PaintOrder,
                     paintOrderScale * 0.000000001D,
@@ -465,7 +479,8 @@ public sealed partial class PdfReadPage {
                     initialStrokeLineCap: invocation.StrokeLineCap,
                     initialStrokeLineJoin: invocation.StrokeLineJoin,
                     contentNestingDepth: contentNestingDepth + 1,
-                    includeTilingPatterns: includeTilingPatterns);
+                    includeTilingPatterns: includeTilingPatterns,
+                    retainPrimitiveData: retainPrimitiveData);
             } finally {
                 activeForms.Remove(formStream);
             }
@@ -1002,7 +1017,7 @@ public sealed partial class PdfReadPage {
             Matrix2D appearanceTransform = Matrix2D.Multiply(pageTransform, CreateAnnotationAppearanceTransform(rectangle, appearanceStream.Dictionary));
             var elements = new List<PdfPageDrawingElement>();
             var primitives = new List<PdfPageVisualPrimitive>();
-            CollectVisualPrimitivesAndForms(appearanceContent, appearanceResources, appearanceTransform, drawing.Width, pageHeight, primitives, activeForms);
+            CollectVisualPrimitivesAndForms(appearanceContent, appearanceResources, appearanceTransform, drawing.Width, pageHeight, primitives.Add, activeForms);
             for (int primitiveIndex = 0; primitiveIndex < primitives.Count; primitiveIndex++) {
                 elements.Add(PdfPageDrawingElement.FromPrimitive(primitives[primitiveIndex], elements.Count));
             }
@@ -1713,12 +1728,24 @@ public sealed partial class PdfReadPage {
         PdfPageVisualPrimitive primitive,
         double pageWidth,
         double pageHeight) {
+        if (!IsFinite(pageWidth) ||
+            !IsFinite(pageHeight) ||
+            pageWidth <= 0D ||
+            pageHeight <= 0D ||
+            !IsFinite(primitive.X) ||
+            !IsFinite(primitive.Y) ||
+            !IsFinite(primitive.Width) ||
+            !IsFinite(primitive.Height) ||
+            !IsFinite(primitive.StrokeWidth)) {
+            return false;
+        }
+
         bool hasVisibleFill = primitive.Kind != PdfPageVisualPrimitiveKind.Line &&
             ((HasOrdinaryFill(primitive) && HasVisibleOpacity(primitive.FillOpacity)) ||
-             (primitive.FillTilingPattern != null && primitive.FillTilingPattern.Opacity > 0D));
+             HasVisibleTilingPattern(primitive.FillTilingPattern));
         bool hasVisibleStroke = primitive.StrokeWidth > 0D &&
             ((HasOrdinaryStroke(primitive) && HasVisibleOpacity(primitive.StrokeOpacity)) ||
-             (primitive.StrokeTilingPattern != null && primitive.StrokeTilingPattern.Opacity > 0D));
+             HasVisibleTilingPattern(primitive.StrokeTilingPattern));
         if (!hasVisibleFill && !hasVisibleStroke) {
             return false;
         }
@@ -1727,7 +1754,7 @@ public sealed partial class PdfReadPage {
         double top = primitive.Y;
         double width = primitive.Width;
         double height = primitive.Height;
-        if (primitive.Kind == PdfPageVisualPrimitiveKind.Line) {
+        if (hasVisibleStroke) {
             double strokeHalf = Math.Max(primitive.StrokeWidth, 1D) / 2D;
             left -= strokeHalf;
             top -= strokeHalf;
@@ -1735,7 +1762,11 @@ public sealed partial class PdfReadPage {
             height += strokeHalf * 2D;
         }
 
-        if (!HasVisibleOverlap(left, top, width, height, pageWidth, pageHeight)) {
+        if (!IsFinite(left) ||
+            !IsFinite(top) ||
+            !IsFinite(width) ||
+            !IsFinite(height) ||
+            !HasVisibleOverlap(left, top, width, height, pageWidth, pageHeight)) {
             return false;
         }
 
@@ -1744,14 +1775,18 @@ public sealed partial class PdfReadPage {
         }
 
         PdfPageClipPath clip = primitive.ClipPath.Value;
-        if (clip.Width <= 0D ||
+        if (!HasFiniteClipGeometry(clip) ||
+            clip.Width <= 0D ||
             clip.Height <= 0D ||
             !TryFitClipToDrawing(clip, pageWidth, pageHeight, out PdfPageClipPath visibleClip)) {
             return false;
         }
 
         PdfPageClipPath primitiveBounds = PdfPageClipPath.Rectangle(left, top, width, height);
-        return IntersectClipBounds(primitiveBounds, visibleClip, out _);
+        PdfPageClipPath intersection = PdfPageClipPath.ResolveActiveClip(primitiveBounds, visibleClip);
+        return HasFiniteClipGeometry(intersection) &&
+            intersection.Width > 0D &&
+            intersection.Height > 0D;
     }
 
     private static bool HasOrdinaryFill(PdfPageVisualPrimitive primitive) =>
@@ -1764,10 +1799,45 @@ public sealed partial class PdfReadPage {
         primitive.StrokeGradient != null ||
         primitive.StrokeRadialGradient != null;
 
+    private static bool HasVisibleTilingPattern(PdfPageTilingPatternPaint? pattern) =>
+        pattern != null &&
+        IsFinite(pattern.Opacity) &&
+        pattern.Opacity > 0D &&
+        pattern.Resource.Tile.Elements.Count > 0;
+
     private static bool HasVisibleOpacity(double? opacity) =>
-        !opacity.HasValue || opacity.Value > 0D;
+        !opacity.HasValue || (IsFinite(opacity.Value) && opacity.Value > 0D);
+
+    private static bool HasFiniteClipGeometry(PdfPageClipPath clip) {
+        if (!IsFinite(clip.X) ||
+            !IsFinite(clip.Y) ||
+            !IsFinite(clip.Width) ||
+            !IsFinite(clip.Height)) {
+            return false;
+        }
+
+        for (int i = 0; i < clip.Commands.Count; i++) {
+            OfficePathCommand command = clip.Commands[i];
+            if (!IsFinite(command.Point.X) ||
+                !IsFinite(command.Point.Y) ||
+                !IsFinite(command.ControlPoint1.X) ||
+                !IsFinite(command.ControlPoint1.Y) ||
+                !IsFinite(command.ControlPoint2.X) ||
+                !IsFinite(command.ControlPoint2.Y)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
 
     private static bool HasVisibleOverlap(double x, double y, double width, double height, double maxWidth, double maxHeight) =>
+        IsFinite(x) &&
+        IsFinite(y) &&
+        IsFinite(width) &&
+        IsFinite(height) &&
+        IsFinite(maxWidth) &&
+        IsFinite(maxHeight) &&
         width > 0D &&
         height > 0D &&
         x < maxWidth &&

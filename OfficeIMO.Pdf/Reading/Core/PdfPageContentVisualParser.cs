@@ -49,12 +49,14 @@ internal static class PdfPageContentVisualParser {
         int maxOperations = PdfReadLimits.DefaultMaxContentOperations,
         IReadOnlyDictionary<string, PdfPageColorSpace>? patternBaseColorSpaces = null,
         int maxNestingDepth = PdfReadLimits.DefaultMaxContentNestingDepth,
-        int maxOperands = PdfReadLimits.DefaultMaxContentOperands) {
+        int maxOperands = PdfReadLimits.DefaultMaxContentOperands,
+        Action<PdfPageVisualPrimitive>? primitiveVisitor = null,
+        bool retainPrimitiveData = true) {
         if (string.IsNullOrEmpty(content)) {
             return Array.Empty<PdfPageVisualPrimitive>();
         }
 
-        var parser = new Parser(content, pageWidth, pageHeight, graphicsStates, colorSpaces, shadings, shadingPatterns, tilingPatterns, optionalContentVisibility, paintOrderBase, paintOrderScale, paintOrderOffset, initialClipPath, initialFillColor, initialFillColorSpace, initialFillOpacity, initialStrokeColor, initialStrokeColorSpace, initialStrokeOpacity, initialStrokeWidth, initialStrokeDashStyle, initialStrokeLineCap, initialStrokeLineJoin, maxOperations, patternBaseColorSpaces, maxNestingDepth, maxOperands);
+        var parser = new Parser(content, pageWidth, pageHeight, graphicsStates, colorSpaces, shadings, shadingPatterns, tilingPatterns, optionalContentVisibility, paintOrderBase, paintOrderScale, paintOrderOffset, initialClipPath, initialFillColor, initialFillColorSpace, initialFillOpacity, initialStrokeColor, initialStrokeColorSpace, initialStrokeOpacity, initialStrokeWidth, initialStrokeDashStyle, initialStrokeLineCap, initialStrokeLineJoin, maxOperations, patternBaseColorSpaces, maxNestingDepth, maxOperands, primitiveVisitor, retainPrimitiveData);
         return parser.Parse();
     }
 
@@ -80,7 +82,9 @@ internal static class PdfPageContentVisualParser {
         private readonly double _paintOrderBase;
         private readonly double _paintOrderScale;
         private readonly double _paintOrderOffset;
-        private readonly List<PdfPageVisualPrimitive> _primitives = new List<PdfPageVisualPrimitive>();
+        private readonly List<PdfPageVisualPrimitive>? _primitives;
+        private readonly Action<PdfPageVisualPrimitive>? _primitiveVisitor;
+        private readonly bool _retainPrimitiveData;
         private readonly List<object> _args = new List<object>(8);
         private readonly Stack<GraphicsState> _stack = new Stack<GraphicsState>();
         private readonly Stack<(PdfPageTilingPatternResource? Fill, OfficeColor? FillTint, PdfPageColorSpace? FillBase, PdfPageTilingPatternResource? Stroke, OfficeColor? StrokeTint, PdfPageColorSpace? StrokeBase)> _tilingStack = new Stack<(PdfPageTilingPatternResource? Fill, OfficeColor? FillTint, PdfPageColorSpace? FillBase, PdfPageTilingPatternResource? Stroke, OfficeColor? StrokeTint, PdfPageColorSpace? StrokeBase)>();
@@ -128,7 +132,9 @@ internal static class PdfPageContentVisualParser {
             int maxOperations,
             IReadOnlyDictionary<string, PdfPageColorSpace>? patternBaseColorSpaces,
             int maxNestingDepth,
-            int maxOperands) {
+            int maxOperands,
+            Action<PdfPageVisualPrimitive>? primitiveVisitor,
+            bool retainPrimitiveData) {
             _content = content;
             _pageWidth = pageWidth;
             _pageHeight = pageHeight;
@@ -145,6 +151,9 @@ internal static class PdfPageContentVisualParser {
             _maxOperations = maxOperations;
             _maxNestingDepth = maxNestingDepth;
             _maxOperands = maxOperands;
+            _primitiveVisitor = primitiveVisitor;
+            _retainPrimitiveData = primitiveVisitor == null || retainPrimitiveData;
+            _primitives = primitiveVisitor == null ? new List<PdfPageVisualPrimitive>() : null;
             GraphicsState initialState = initialFillColor.HasValue
                 ? GraphicsState.Default.WithFillColor(initialFillColor.Value, initialFillColorSpace)
                 : GraphicsState.Default;
@@ -193,7 +202,17 @@ internal static class PdfPageContentVisualParser {
                 maxNestingDepth: _maxNestingDepth,
                 maxOperands: _maxOperands);
 
-            return _primitives.Count == 0 ? Array.Empty<PdfPageVisualPrimitive>() : _primitives.AsReadOnly();
+            return _primitives == null || _primitives.Count == 0
+                ? Array.Empty<PdfPageVisualPrimitive>()
+                : _primitives.AsReadOnly();
+        }
+
+        private void AddPrimitive(PdfPageVisualPrimitive primitive) {
+            if (_primitiveVisitor != null) {
+                _primitiveVisitor(primitive);
+            } else {
+                _primitives!.Add(primitive);
+            }
         }
 
         private double GetPaintOrder(int operatorIndex) => _paintOrderBase + ((operatorIndex + _paintOrderOffset) * _paintOrderScale);
@@ -556,7 +575,7 @@ internal static class PdfPageContentVisualParser {
                     CreateShadingGradients(_state.StrokePattern.Value.Shading, x, y, width, height, _state.StrokePattern.Value.Matrix, out strokeGradient, out strokeRadialGradient);
                 }
 
-                _primitives.Add(PdfPageVisualPrimitive.Rectangle(
+                AddPrimitive(PdfPageVisualPrimitive.Rectangle(
                     x,
                     y,
                     width,
@@ -618,8 +637,9 @@ internal static class PdfPageContentVisualParser {
                     paintOrder,
                     fill ? CreateTilingPatternPaint(_fillTilingPattern, _fillTilingTint, _state.FillOpacity) : null,
                     stroke && _state.StrokeWidth > 0D ? CreateTilingPatternPaint(_strokeTilingPattern, _strokeTilingTint, _state.StrokeOpacity) : null,
+                    _retainPrimitiveData,
                     out PdfPageVisualPrimitive pathPrimitive)) {
-                    _primitives.Add(pathPrimitive);
+                    AddPrimitive(pathPrimitive);
                 } else if (stroke && _state.StrokeWidth > 0D) {
                     AddStrokedPathSegments(pathCommands, paintOrder);
                 }
@@ -674,9 +694,9 @@ internal static class PdfPageContentVisualParser {
 
             CreateShadingGradients(shading, x, y, width, height, Matrix2D.Identity, out OfficeLinearGradient? linearGradient, out OfficeRadialGradient? radialGradient);
             if (radialGradient != null) {
-                _primitives.Add(PdfPageVisualPrimitive.ShadedRectangle(x, y, width, height, radialGradient, _state.FillOpacity, _state.ClipPath, paintOrder));
+                AddPrimitive(PdfPageVisualPrimitive.ShadedRectangle(x, y, width, height, radialGradient, _state.FillOpacity, _state.ClipPath, paintOrder));
             } else if (linearGradient != null) {
-                _primitives.Add(PdfPageVisualPrimitive.ShadedRectangle(x, y, width, height, linearGradient, _state.FillOpacity, _state.ClipPath, paintOrder));
+                AddPrimitive(PdfPageVisualPrimitive.ShadedRectangle(x, y, width, height, linearGradient, _state.FillOpacity, _state.ClipPath, paintOrder));
             }
         }
 
@@ -1022,7 +1042,7 @@ internal static class PdfPageContentVisualParser {
                 CreateShadingGradients(_state.StrokePattern.Value.Shading, lineX, lineY, lineWidth, lineHeight, _state.StrokePattern.Value.Matrix, out strokeGradient, out strokeRadialGradient);
             }
 
-            _primitives.Add(PdfPageVisualPrimitive.Line(
+            AddPrimitive(PdfPageVisualPrimitive.Line(
                 x1,
                 y1,
                 x2,

@@ -170,7 +170,7 @@ public sealed partial class PdfReadPage {
         var activeForms = new HashSet<PdfStream>();
         var elements = new List<PdfPageDrawingElement>();
         var primitives = new List<PdfPageVisualPrimitive>();
-        CollectVisualPrimitivesAndForms(content, resources, transform, width, height, primitives, activeForms, includeTilingPatterns: false);
+        CollectVisualPrimitivesAndForms(content, resources, transform, width, height, primitives.Add, activeForms, includeTilingPatterns: false);
         for (int i = 0; i < primitives.Count; i++) elements.Add(PdfPageDrawingElement.FromPrimitive(primitives[i], elements.Count));
 
         var spans = new List<PdfTextSpan>();

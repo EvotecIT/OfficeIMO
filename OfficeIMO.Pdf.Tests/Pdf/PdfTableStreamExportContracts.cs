@@ -117,7 +117,13 @@ public class PdfTableStreamExportContracts {
                 "/GS1 gs\n1 0 0 rg\n40 40 40 40 re\nf",
                 "<< /ExtGState << /GS1 5 0 R >> >>",
                 "5 0 obj\n<< /Type /ExtGState /ca 0 /CA 0 >>\nendobj"),
-            BuildSingleStreamPdf("0 0 5 5 re W n\n1 0 0 rg\n40 40 40 40 re\nf")
+            BuildSingleStreamPdf("0 0 5 5 re W n\n1 0 0 rg\n40 40 40 40 re\nf"),
+            BuildSingleStreamPdf("0 0 m\n100 0 l\n0 100 l\nh\nW n\n1 0 0 rg\n80 80 10 10 re\nf"),
+            BuildSingleStreamPdf(
+                "/Pattern cs\n/P1 scn\n40 40 40 40 re\nf",
+                "<< /Pattern << /P1 5 0 R >> >>",
+                "5 0 obj\n<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 10 10] /XStep 10 /YStep 10 /Resources << >> /Length 0 >>\nstream\n\nendstream\nendobj"),
+            BuildSingleStreamPdf("1 0 0 rg\n1e309 40 20 20 re\nf")
         };
 
         Assert.All(sources, source => {
@@ -128,6 +134,26 @@ public class PdfTableStreamExportContracts {
             Assert.Equal(0, scope.VectorPrimitiveCount);
             Assert.False(scope.HasOmittedPageContent);
         });
+    }
+
+    [Fact]
+    public void TableConversions_CountStrokesCrossingThePageBoundary() {
+        byte[] source = BuildSingleStreamPdf("""
+            1 0 0 RG
+            4 w
+            -2 40 2 20 re
+            S
+            -2 80 m
+            0 90 l
+            -2 100 l
+            S
+            """);
+        PdfLogicalDocument logical = PdfLogicalDocument.Load(source);
+        PdfTableExtractionScopeReport scope = PdfLogicalTableAnalysis.AnalyzeExtractionScope(logical);
+
+        Assert.Equal(2, logical.Pages[0].VectorPrimitiveCount);
+        Assert.Equal(2, scope.VectorPrimitiveCount);
+        Assert.True(scope.HasOmittedPageContent);
     }
 
     private static PdfLogicalDocument CreateLogicalDocument() {

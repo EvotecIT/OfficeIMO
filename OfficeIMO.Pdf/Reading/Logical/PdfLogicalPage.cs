@@ -5,7 +5,6 @@ namespace OfficeIMO.Pdf;
 /// </summary>
 public sealed class PdfLogicalPage {
     private IReadOnlyDictionary<PdfLogicalElementKind, IReadOnlyList<IPdfLogicalElement>>? _elementsByKind;
-    private readonly Lazy<int> _vectorPrimitiveCount;
 
     private PdfLogicalPage(
         int pageNumber,
@@ -19,7 +18,7 @@ public sealed class PdfLogicalPage {
         IReadOnlyList<PdfLogicalParagraph> paragraphs,
         IReadOnlyList<PdfLogicalListItem> listItems,
         IReadOnlyList<PdfLogicalTable> tables,
-        Func<int> vectorPrimitiveCountFactory,
+        int vectorPrimitiveCount,
         IReadOnlyList<PdfLogicalImage> images,
         IReadOnlyList<PdfLogicalLinkAnnotation> links,
         IReadOnlyList<PdfAnnotation> annotations,
@@ -37,8 +36,7 @@ public sealed class PdfLogicalPage {
         Paragraphs = paragraphs;
         ListItems = listItems;
         Tables = tables;
-        _vectorPrimitiveCount = new Lazy<int>(
-            vectorPrimitiveCountFactory ?? throw new ArgumentNullException(nameof(vectorPrimitiveCountFactory)));
+        VectorPrimitiveCount = vectorPrimitiveCount;
         Images = images;
         Links = links;
         Annotations = annotations;
@@ -153,11 +151,8 @@ public sealed class PdfLogicalPage {
     /// <summary>Detected table-like regions.</summary>
     public IReadOnlyList<PdfLogicalTable> Tables { get; }
 
-    /// <summary>
-    /// Number of visible vector drawing primitives recovered from the source page.
-    /// The source graphics are analyzed on first access and the result is cached.
-    /// </summary>
-    public int VectorPrimitiveCount => _vectorPrimitiveCount.Value;
+    /// <summary>Number of visible vector drawing primitives recovered from the source page.</summary>
+    public int VectorPrimitiveCount { get; }
 
     /// <summary>Image XObjects referenced by the page.</summary>
     public IReadOnlyList<PdfLogicalImage> Images { get; }
@@ -287,7 +282,7 @@ public sealed class PdfLogicalPage {
             BuildParagraphs(pageNumber, structured.Paragraphs, textBlocks),
             BuildListItems(pageNumber, structured.ListNodes, textBlocks),
             tables.AsReadOnly(),
-            page.GetVisibleVisualPrimitiveCount,
+            page.GetVisibleVisualPrimitiveCount(),
             images.AsReadOnly(),
             links.AsReadOnly(),
             annotations.AsReadOnly(),
