@@ -50,7 +50,10 @@ internal static partial class PdfSyntax {
                 var sliceBytes = new byte[len];
                 Buffer.BlockCopy(data, start, sliceBytes, 0, len);
                 var slice = PdfEncoding.Latin1GetString(sliceBytes);
-                var parsed = ParseTopLevelObject(slice);
+                var parsed = ParseTopLevelObject(
+                    slice,
+                    limits,
+                    trackEncodedStringSourceSpans: false);
                 if (parsed is not null) {
                     map[objNum] = new PdfIndirectObject(objNum, 0, parsed);
                     effectiveOffsets[objNum] = objectStreamOffset;

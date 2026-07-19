@@ -1,5 +1,3 @@
-using System.Text.RegularExpressions;
-
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfSyntax {
@@ -578,15 +576,14 @@ internal static partial class PdfSyntax {
             return false;
         }
 
-        Match match = ObjRegex.Match(text, offset);
-        if (!match.Success || match.Index != offset) {
+        if (!TryReadIndirectObjectHeaderAt(text, offset, text.Length, out IndirectObjectHeader header)) {
             return false;
         }
 
-        int id = int.Parse(match.Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture);
-        int gen = int.Parse(match.Groups[2].Value, System.Globalization.CultureInfo.InvariantCulture);
-        int start = match.Index;
-        int bodyStart = match.Index + match.Length;
+        int id = header.ObjectNumber;
+        int gen = header.Generation;
+        int start = header.Index;
+        int bodyStart = header.Index + header.Length;
         int valueStart = bodyStart;
         while (valueStart < text.Length && char.IsWhiteSpace(text[valueStart])) {
             valueStart++;
@@ -702,7 +699,10 @@ internal static partial class PdfSyntax {
         var sliceBytes = new byte[len];
         Buffer.BlockCopy(data, start, sliceBytes, 0, len);
         var slice = PdfEncoding.Latin1GetString(sliceBytes);
-        var parsedObject = ParseTopLevelObject(slice);
+        var parsedObject = ParseTopLevelObject(
+            slice,
+            limits,
+            trackEncodedStringSourceSpans: false);
         if (parsedObject is null) {
             return false;
         }

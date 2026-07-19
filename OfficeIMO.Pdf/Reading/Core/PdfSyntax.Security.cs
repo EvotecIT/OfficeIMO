@@ -186,8 +186,7 @@ internal static partial class PdfSyntax {
                         entry.Key,
                         dictionary,
                         field,
-                        currentByteRangeValues,
-                        text));
+                        currentByteRangeValues));
                 }
             }
         } catch (Exception ex) when (ex is not OutOfMemoryException && ex is not StackOverflowException) {
@@ -287,12 +286,11 @@ internal static partial class PdfSyntax {
         int objectNumber,
         PdfDictionary dictionary,
         SignatureFieldState? field,
-        IReadOnlyList<long> byteRangeValues,
-        string sourceText) {
+        IReadOnlyList<long> byteRangeValues) {
         bool hasByteRange = byteRangeValues.Count > 0;
         bool hasContents = dictionary.Items.ContainsKey("Contents");
         int? contentsSizeBytes = TryReadContentsSizeBytes(objects, dictionary);
-        int? contentsEncodedSizeBytes = TryReadContentsEncodedSizeBytes(sourceText, objectNumber);
+        int? contentsEncodedSizeBytes = TryReadContentsEncodedSizeBytes(dictionary);
         int referenceCount = TryReadReferenceCount(objects, dictionary);
 
         return new PdfSignatureInfo(
@@ -710,15 +708,11 @@ internal static partial class PdfSyntax {
             : null;
     }
 
-    private static int? TryReadContentsEncodedSizeBytes(string text, int objectNumber) {
-#if NET8_0_OR_GREATER
-        var regex = new Regex(@"\b" + objectNumber.ToString(System.Globalization.CultureInfo.InvariantCulture) + @"\s+\d+\s+obj\b[\s\S]*?/Contents\s+(?<token><[0-9A-Fa-f\s]*>|\((?:\\.|[^\\()])*\))", RegexOptions.Compiled | RegexOptions.NonBacktracking, RegexTimeout);
-#else
-        var regex = new Regex(@"\b" + objectNumber.ToString(System.Globalization.CultureInfo.InvariantCulture) + @"\s+\d+\s+obj\b[\s\S]*?/Contents\s+(?<token><[0-9A-Fa-f\s]*>|\((?:\\.|[^\\()])*\))", RegexOptions.Compiled, RegexTimeout);
-#endif
-        Match match = regex.Match(text);
-        return match.Success ? match.Groups["token"].Length : null;
-    }
+    private static int? TryReadContentsEncodedSizeBytes(PdfDictionary dictionary) =>
+        dictionary.Items.TryGetValue("Contents", out PdfObject? contentsObject) &&
+        contentsObject is PdfStringObj contents
+            ? contents.EncodedTokenLength
+            : null;
 
     private static int TryReadReferenceCount(Dictionary<int, PdfIndirectObject> objects, PdfDictionary dictionary) {
         if (!dictionary.Items.TryGetValue("Reference", out PdfObject? referenceObject) ||
