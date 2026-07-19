@@ -3,12 +3,13 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfReadPage {
-    private const double VisualGeometryEpsilon = 0.000001D;
+    private const int MaximumDrawingVisibilityDepth = 64;
 
     private static bool IsVisibleVisualPrimitive(
         PdfPageVisualPrimitive primitive,
         double pageWidth,
-        double pageHeight) {
+        double pageHeight,
+        VisualGeometryBudget budget) {
         if (!HasFinitePrimitiveGeometry(primitive) ||
             !IsFinite(pageWidth) ||
             !IsFinite(pageHeight) ||
@@ -19,10 +20,10 @@ public sealed partial class PdfReadPage {
 
         bool hasVisibleFill = primitive.Kind != PdfPageVisualPrimitiveKind.Line &&
             ((HasOrdinaryFill(primitive) && HasVisibleOpacity(primitive.FillOpacity)) ||
-             HasVisibleTilingPattern(primitive.FillTilingPattern));
+             HasVisibleTilingPattern(primitive.FillTilingPattern, budget));
         bool hasVisibleStroke = primitive.StrokeWidth > 0D &&
             ((HasOrdinaryStroke(primitive) && HasVisibleOpacity(primitive.StrokeOpacity)) ||
-             HasVisibleTilingPattern(primitive.StrokeTilingPattern));
+             HasVisibleTilingPattern(primitive.StrokeTilingPattern, budget));
         if (!hasVisibleFill && !hasVisibleStroke) {
             return false;
         }
@@ -44,9 +45,27 @@ public sealed partial class PdfReadPage {
             return false;
         }
 
-        VisualPath clipPath = VisualPath.FromClip(visibleClip);
-        return (hasVisibleFill && VisualPath.FromFill(primitive).IntersectsFill(clipPath)) ||
-            (hasVisibleStroke && VisualPath.FromStroke(primitive).StrokeIntersectsFill(clipPath, primitive.StrokeWidth / 2D));
+        VisualPath? clipPath = VisualPath.FromClip(visibleClip, budget);
+        if (clipPath == null) {
+            return true;
+        }
+
+        if (hasVisibleFill) {
+            VisualPath? fillPath = VisualPath.FromFill(primitive, budget);
+            if (fillPath == null || fillPath.IntersectsFill(clipPath, budget)) {
+                return true;
+            }
+        }
+
+        if (hasVisibleStroke) {
+            VisualPath? strokePath = VisualPath.FromStroke(primitive, budget);
+            if (strokePath == null ||
+                strokePath.StrokeIntersectsFill(clipPath, primitive.StrokeWidth / 2D, budget)) {
+                return true;
+            }
+        }
+
+        return budget.Exceeded;
     }
 
     private static bool HasFinitePrimitiveGeometry(PdfPageVisualPrimitive primitive) {
@@ -106,58 +125,131 @@ public sealed partial class PdfReadPage {
         HasVisibleGradient(primitive.StrokeGradient) ||
         HasVisibleGradient(primitive.StrokeRadialGradient);
 
-    private static bool HasVisibleTilingPattern(PdfPageTilingPatternPaint? pattern) =>
+    private static bool HasVisibleTilingPattern(
+        PdfPageTilingPatternPaint? pattern,
+        VisualGeometryBudget budget) =>
         pattern != null &&
         IsFinite(pattern.Opacity) &&
         pattern.Opacity > 0D &&
-        HasVisibleDrawingContent(pattern.Resource.Tile);
+        (!pattern.Tint.HasValue || pattern.Tint.Value.A > 0) &&
+        HasVisibleDrawingContent(pattern.Resource.Tile, budget);
 
-    private static bool HasVisibleDrawingContent(OfficeDrawing drawing) {
+    private static bool HasVisibleDrawingContent(
+        OfficeDrawing drawing,
+        VisualGeometryBudget budget) {
+        VisualPath? canvas = VisualPath.Rectangle(
+            0D,
+            0D,
+            drawing.Width,
+            drawing.Height,
+            OfficeTransform.Identity,
+            budget);
+        if (canvas == null) {
+            return drawing.Elements.Count > 0;
+        }
+
+        return HasVisibleDrawingContent(
+            drawing,
+            OfficeTransform.Identity,
+            new[] { canvas },
+            budget,
+            depth: 0);
+    }
+
+    private static bool HasVisibleDrawingContent(
+        OfficeDrawing drawing,
+        OfficeTransform transform,
+        IReadOnlyList<VisualPath> clips,
+        VisualGeometryBudget budget,
+        int depth) {
+        if (depth > MaximumDrawingVisibilityDepth) {
+            budget.Exhaust();
+            return drawing.Elements.Count > 0;
+        }
+
         for (int i = 0; i < drawing.Elements.Count; i++) {
             OfficeDrawingElement element = drawing.Elements[i];
             switch (element) {
-                case OfficeDrawingShape shape:
-                    if (HasVisibleShapePaint(shape.Shape)) {
+                case OfficeDrawingShape drawingShape:
+                    if (HasVisibleDrawingShape(drawingShape, transform, clips, budget)) {
                         return true;
                     }
                     break;
                 case OfficeDrawingImage image:
-                    if (IsFinite(image.Opacity) && image.Opacity > 0D) {
+                    if (IsFinite(image.Opacity) &&
+                        image.Opacity > 0D &&
+                        IsVisibleRectangle(
+                            0D,
+                            0D,
+                            1D,
+                            1D,
+                            image.Projection.CreateUnitSquareTransform().Then(transform),
+                            clips,
+                            budget)) {
                         return true;
                     }
                     break;
                 case OfficeDrawingImagePattern imagePattern:
-                    if (IsFinite(imagePattern.Opacity) && imagePattern.Opacity > 0D) {
+                    if (IsFinite(imagePattern.Opacity) &&
+                        imagePattern.Opacity > 0D &&
+                        IsVisiblePlacement(imagePattern.Layout.Area, transform, clips, budget)) {
                         return true;
                     }
                     break;
                 case OfficeDrawingText text:
-                    if (!string.IsNullOrEmpty(text.Text) && (!text.Color.HasValue || text.Color.Value.A > 0)) {
+                    if (!string.IsNullOrEmpty(text.Text) &&
+                        (!text.Color.HasValue || text.Color.Value.A > 0) &&
+                        IsVisibleTextFrame(
+                            text.X,
+                            text.Y,
+                            text.Width,
+                            text.Height,
+                            text.CreateFrameTransform(),
+                            transform,
+                            clips,
+                            budget)) {
                         return true;
                     }
                     break;
                 case OfficeDrawingRichText richText:
-                    if (!string.IsNullOrEmpty(richText.PlainText)) {
+                    if (HasVisibleRichTextPaint(richText) &&
+                        IsVisibleTextFrame(
+                            richText.X,
+                            richText.Y,
+                            richText.Width,
+                            richText.Height,
+                            richText.CreateFrameTransform(),
+                            transform,
+                            clips,
+                            budget)) {
                         return true;
                     }
                     break;
                 case OfficeDrawingGroup group:
-                    if (HasVisibleDrawingContent(group.Drawing)) {
+                    if (HasVisibleDrawingGroup(group, transform, clips, budget, depth)) {
                         return true;
                     }
                     break;
                 case OfficeDrawingEffectGroup effectGroup:
                     if (IsFinite(effectGroup.Opacity) &&
                         effectGroup.Opacity > 0D &&
-                        HasVisibleSoftMask(effectGroup.SoftMask) &&
-                        HasVisibleDrawingContent(effectGroup.Drawing)) {
+                        HasVisibleSoftMask(effectGroup.SoftMask, budget) &&
+                        HasVisibleDrawingContent(
+                            effectGroup.InnerDrawing,
+                            effectGroup.Transform.Then(transform),
+                            clips,
+                            budget,
+                            depth + 1)) {
                         return true;
                     }
                     break;
                 case OfficeDrawingTilingPattern tilingPattern:
-                    if (IsFinite(tilingPattern.Opacity) &&
-                        tilingPattern.Opacity > 0D &&
-                        HasVisibleDrawingContent(tilingPattern.Tile)) {
+                    if (HasVisibleNestedTilingPattern(
+                            tilingPattern,
+                            transform,
+                            clips,
+                            budget,
+                            depth)) {
                         return true;
                     }
                     break;
@@ -167,378 +259,286 @@ public sealed partial class PdfReadPage {
         return false;
     }
 
-    private static bool HasVisibleSoftMask(OfficeDrawingSoftMask? softMask) =>
-        softMask == null ||
-        softMask.BackdropColor.A > 0 ||
-        HasVisibleDrawingContent(softMask.Drawing);
+    private static bool HasVisibleDrawingShape(
+        OfficeDrawingShape drawingShape,
+        OfficeTransform parentTransform,
+        IReadOnlyList<VisualPath> clips,
+        VisualGeometryBudget budget) {
+        OfficeShape shape = drawingShape.Shape;
+        bool fill = shape.Kind != OfficeShapeKind.Line && HasVisibleShapeFill(shape);
+        bool stroke = shape.StrokeWidth > 0D && HasVisibleShapeStroke(shape);
+        bool shadow = shape.Shadow != null &&
+            shape.Shadow.Color.A > 0 &&
+            shape.Shadow.Opacity > 0D;
+        bool glow = shape.Glow != null &&
+            shape.Glow.Color.A > 0 &&
+            shape.Glow.Opacity > 0D &&
+            shape.Glow.Radius > 0D;
+        if (!fill && !stroke && !shadow && !glow) {
+            return false;
+        }
 
-    private static bool HasVisibleShapePaint(OfficeShape shape) {
-        bool fill = (HasVisibleColor(shape.FillColor) ||
-                     HasVisibleGradient(shape.FillGradient) ||
-                     HasVisibleGradient(shape.FillRadialGradient)) &&
-            HasVisibleOpacity(shape.FillOpacity);
-        bool stroke = shape.StrokeWidth > 0D &&
-            (HasVisibleColor(shape.StrokeColor) ||
-             HasVisibleGradient(shape.StrokeGradient) ||
-             HasVisibleGradient(shape.StrokeRadialGradient)) &&
-            HasVisibleOpacity(shape.StrokeOpacity);
-        return fill || stroke;
+        OfficeTransform shapeTransform = (shape.Transform ?? OfficeTransform.Identity)
+            .Then(OfficeTransform.Translate(drawingShape.X, drawingShape.Y))
+            .Then(parentTransform);
+        IReadOnlyList<VisualPath> effectiveClips = clips;
+        if (shape.ClipPath != null) {
+            VisualPath? shapeClip = VisualPath.FromOfficeClip(shape.ClipPath, shapeTransform, budget);
+            if (shapeClip == null) {
+                return true;
+            }
+
+            effectiveClips = AppendClip(clips, shapeClip);
+            if (!VisualPath.HasPositiveAreaIntersection(effectiveClips, budget)) {
+                return budget.Exceeded;
+            }
+        }
+
+        VisualPath? geometry = VisualPath.FromShape(shape, shapeTransform, budget);
+        if (geometry == null) {
+            return true;
+        }
+
+        if ((fill || shadow) && geometry.IntersectsFills(effectiveClips, budget)) {
+            return true;
+        }
+
+        if (stroke || glow) {
+            double strokeWidth = stroke ? shape.StrokeWidth : 0D;
+            if (glow) {
+                strokeWidth = Math.Max(strokeWidth, shape.StrokeWidth + (shape.Glow!.Radius * 2D));
+            }
+
+            double transformedHalfWidth = strokeWidth *
+                VisualPath.GetMaximumScale(shapeTransform) /
+                2D;
+            if (geometry.StrokeIntersectsFills(effectiveClips, transformedHalfWidth, budget)) {
+                return true;
+            }
+        }
+
+        return budget.Exceeded;
+    }
+
+    private static bool HasVisibleDrawingGroup(
+        OfficeDrawingGroup group,
+        OfficeTransform parentTransform,
+        IReadOnlyList<VisualPath> clips,
+        VisualGeometryBudget budget,
+        int depth) {
+        OfficeTransform groupTransform = OfficeTransform.Translate(group.X, group.Y);
+        if (group.FrameTransform.HasValue && group.FrameTransform.Value.HasTransform) {
+            groupTransform = groupTransform.Then(group.FrameTransform.Value.CreateDestinationTransform());
+        }
+        groupTransform = groupTransform.Then(parentTransform);
+
+        VisualPath? groupClip = VisualPath.FromOfficeClip(group.ClipPath, groupTransform, budget);
+        if (groupClip == null) {
+            return true;
+        }
+
+        IReadOnlyList<VisualPath> effectiveClips = AppendClip(clips, groupClip);
+        if (!VisualPath.HasPositiveAreaIntersection(effectiveClips, budget)) {
+            return budget.Exceeded;
+        }
+
+        OfficeTransform contentTransform = OfficeTransform.Translate(
+                group.ContentOffsetX,
+                group.ContentOffsetY)
+            .Then(groupTransform);
+        return HasVisibleDrawingContent(
+            group.InnerDrawing,
+            contentTransform,
+            effectiveClips,
+            budget,
+            depth + 1);
+    }
+
+    private static bool HasVisibleNestedTilingPattern(
+        OfficeDrawingTilingPattern pattern,
+        OfficeTransform parentTransform,
+        IReadOnlyList<VisualPath> clips,
+        VisualGeometryBudget budget,
+        int depth) {
+        if (!IsFinite(pattern.Opacity) || pattern.Opacity <= 0D) {
+            return false;
+        }
+
+        VisualPath? area = VisualPath.Rectangle(
+            pattern.Area.X,
+            pattern.Area.Y,
+            pattern.Area.Width,
+            pattern.Area.Height,
+            parentTransform,
+            budget);
+        if (area == null) {
+            return true;
+        }
+
+        IReadOnlyList<VisualPath> effectiveClips = AppendClip(clips, area);
+        if (!VisualPath.HasPositiveAreaIntersection(effectiveClips, budget)) {
+            return budget.Exceeded;
+        }
+
+        IReadOnlyList<OfficeTransform> tileTransforms = pattern.GetTileTransforms(pattern.MaximumTileCount);
+        for (int i = 0; i < tileTransforms.Count; i++) {
+            if (HasVisibleDrawingContent(
+                    pattern.InnerTile,
+                    tileTransforms[i].Then(parentTransform),
+                    effectiveClips,
+                    budget,
+                    depth + 1)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool HasVisibleSoftMask(
+        OfficeDrawingSoftMask? softMask,
+        VisualGeometryBudget budget) {
+        if (softMask == null) {
+            return true;
+        }
+
+        bool visibleBackdrop = softMask.Mode == OfficeSoftMaskMode.Alpha
+            ? softMask.BackdropColor.A > 0
+            : softMask.BackdropColor.A > 0 &&
+              (softMask.BackdropColor.R > 0 ||
+               softMask.BackdropColor.G > 0 ||
+               softMask.BackdropColor.B > 0);
+        if (visibleBackdrop) {
+            return true;
+        }
+
+        VisualPath? canvas = VisualPath.Rectangle(
+            0D,
+            0D,
+            softMask.InnerDrawing.Width,
+            softMask.InnerDrawing.Height,
+            OfficeTransform.Identity,
+            budget);
+        if (canvas == null) {
+            return softMask.InnerDrawing.Elements.Count > 0;
+        }
+
+        return HasVisibleDrawingContent(
+            softMask.InnerDrawing,
+            softMask.Transform,
+            new[] { canvas },
+            budget,
+            depth: 0);
+    }
+
+    private static bool IsVisiblePlacement(
+        OfficeImagePlacement placement,
+        OfficeTransform transform,
+        IReadOnlyList<VisualPath> clips,
+        VisualGeometryBudget budget) =>
+        IsVisibleRectangle(
+            placement.X,
+            placement.Y,
+            placement.Width,
+            placement.Height,
+            transform,
+            clips,
+            budget);
+
+    private static bool IsVisibleTextFrame(
+        double x,
+        double y,
+        double width,
+        double height,
+        OfficeImageFrameTransform frameTransform,
+        OfficeTransform parentTransform,
+        IReadOnlyList<VisualPath> clips,
+        VisualGeometryBudget budget) {
+        OfficeTransform transform = frameTransform.HasTransform
+            ? frameTransform.CreateDestinationTransform().Then(parentTransform)
+            : parentTransform;
+        return IsVisibleRectangle(x, y, width, height, transform, clips, budget);
+    }
+
+    private static bool IsVisibleRectangle(
+        double x,
+        double y,
+        double width,
+        double height,
+        OfficeTransform transform,
+        IReadOnlyList<VisualPath> clips,
+        VisualGeometryBudget budget) {
+        VisualPath? rectangle = VisualPath.Rectangle(x, y, width, height, transform, budget);
+        return rectangle == null || rectangle.IntersectsFills(clips, budget);
+    }
+
+    private static List<VisualPath> AppendClip(
+        IReadOnlyList<VisualPath> clips,
+        VisualPath clip) {
+        var result = new List<VisualPath>(clips.Count + 1);
+        for (int i = 0; i < clips.Count; i++) {
+            result.Add(clips[i]);
+        }
+        result.Add(clip);
+        return result;
+    }
+
+    private static bool HasVisibleShapeFill(OfficeShape shape) =>
+        (HasVisibleColor(shape.FillColor) ||
+         HasVisibleGradient(shape.FillGradient) ||
+         HasVisibleGradient(shape.FillRadialGradient)) &&
+        HasVisibleOpacity(shape.FillOpacity);
+
+    private static bool HasVisibleShapeStroke(OfficeShape shape) =>
+        (HasVisibleColor(shape.StrokeColor) ||
+         HasVisibleGradient(shape.StrokeGradient) ||
+         HasVisibleGradient(shape.StrokeRadialGradient)) &&
+        HasVisibleOpacity(shape.StrokeOpacity);
+
+    private static bool HasVisibleRichTextPaint(OfficeDrawingRichText richText) {
+        for (int i = 0; i < richText.Runs.Count; i++) {
+            OfficeRichTextRun run = richText.Runs[i];
+            if (!string.IsNullOrEmpty(run.Text) &&
+                (run.Color.A > 0 ||
+                 (run.BackgroundColor.HasValue && run.BackgroundColor.Value.A > 0))) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static bool HasVisibleColor(OfficeColor? color) =>
         color.HasValue && color.Value.A > 0;
 
-    private static bool HasVisibleGradient(OfficeLinearGradient? gradient) =>
-        gradient != null && gradient.Stops.Any(static stop => stop.Color.A > 0);
+    private static bool HasVisibleGradient(OfficeLinearGradient? gradient) {
+        if (gradient == null) {
+            return false;
+        }
 
-    private static bool HasVisibleGradient(OfficeRadialGradient? gradient) =>
-        gradient != null && gradient.Stops.Any(static stop => stop.Color.A > 0);
+        for (int i = 0; i < gradient.Stops.Count; i++) {
+            if (gradient.Stops[i].Color.A > 0) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool HasVisibleGradient(OfficeRadialGradient? gradient) {
+        if (gradient == null) {
+            return false;
+        }
+
+        for (int i = 0; i < gradient.Stops.Count; i++) {
+            if (gradient.Stops[i].Color.A > 0) {
+                return true;
+            }
+        }
+
+        return false;
+    }
 
     private static bool HasVisibleOpacity(double? opacity) =>
         !opacity.HasValue || (IsFinite(opacity.Value) && opacity.Value > 0D);
-
-    private sealed class VisualPath {
-        private readonly List<VisualContour> _contours;
-
-        private VisualPath(List<VisualContour> contours, OfficeFillRule fillRule) {
-            _contours = contours;
-            FillRule = fillRule;
-        }
-
-        private OfficeFillRule FillRule { get; }
-
-        public static VisualPath FromClip(PdfPageClipPath clip) {
-            if (clip.IsRectangle) {
-                return Rectangle(clip.X, clip.Y, clip.Width, clip.Height);
-            }
-
-            return FromCommands(clip.Commands, clip.FillRule);
-        }
-
-        public static VisualPath FromFill(PdfPageVisualPrimitive primitive) {
-            return primitive.Kind == PdfPageVisualPrimitiveKind.Path
-                ? FromCommands(primitive.PathCommands, primitive.FillRule)
-                : Rectangle(primitive.X, primitive.Y, primitive.Width, primitive.Height);
-        }
-
-        public static VisualPath FromStroke(PdfPageVisualPrimitive primitive) {
-            if (primitive.Kind == PdfPageVisualPrimitiveKind.Line) {
-                return new VisualPath(
-                    new List<VisualContour> {
-                        new VisualContour(
-                            new List<OfficePoint> {
-                                new OfficePoint(primitive.X1, primitive.Y1),
-                                new OfficePoint(primitive.X2, primitive.Y2)
-                            },
-                            closed: false)
-                    },
-                    OfficeFillRule.NonZero);
-            }
-
-            return primitive.Kind == PdfPageVisualPrimitiveKind.Path
-                ? FromCommands(primitive.PathCommands, primitive.FillRule)
-                : Rectangle(primitive.X, primitive.Y, primitive.Width, primitive.Height);
-        }
-
-        public bool IntersectsFill(VisualPath other) {
-            if (_contours.Count == 0 || other._contours.Count == 0) {
-                return false;
-            }
-
-            if (BoundariesIntersect(other)) {
-                return true;
-            }
-
-            for (int contourIndex = 0; contourIndex < _contours.Count; contourIndex++) {
-                List<OfficePoint> points = _contours[contourIndex].Points;
-                for (int pointIndex = 0; pointIndex < points.Count; pointIndex++) {
-                    if (other.Contains(points[pointIndex])) {
-                        return true;
-                    }
-                }
-            }
-
-            for (int contourIndex = 0; contourIndex < other._contours.Count; contourIndex++) {
-                List<OfficePoint> points = other._contours[contourIndex].Points;
-                for (int pointIndex = 0; pointIndex < points.Count; pointIndex++) {
-                    if (Contains(points[pointIndex])) {
-                        return true;
-                    }
-                }
-            }
-
-            return false;
-        }
-
-        public bool StrokeIntersectsFill(VisualPath fill, double strokeHalfWidth) {
-            if (_contours.Count == 0 ||
-                fill._contours.Count == 0 ||
-                !IsFinite(strokeHalfWidth) ||
-                strokeHalfWidth <= 0D) {
-                return false;
-            }
-
-            double maximumDistanceSquared = strokeHalfWidth * strokeHalfWidth;
-            if (!IsFinite(maximumDistanceSquared)) {
-                return false;
-            }
-
-            for (int contourIndex = 0; contourIndex < _contours.Count; contourIndex++) {
-                VisualContour contour = _contours[contourIndex];
-                int segmentCount = contour.SegmentCount(closeForFill: false);
-                for (int segmentIndex = 0; segmentIndex < segmentCount; segmentIndex++) {
-                    contour.GetSegment(segmentIndex, closeForFill: false, out OfficePoint start, out OfficePoint end);
-                    OfficePoint midpoint = new OfficePoint((start.X + end.X) / 2D, (start.Y + end.Y) / 2D);
-                    if (fill.Contains(start) || fill.Contains(end) || fill.Contains(midpoint)) {
-                        return true;
-                    }
-
-                    for (int fillContourIndex = 0; fillContourIndex < fill._contours.Count; fillContourIndex++) {
-                        VisualContour fillContour = fill._contours[fillContourIndex];
-                        int fillSegmentCount = fillContour.SegmentCount(closeForFill: true);
-                        for (int fillSegmentIndex = 0; fillSegmentIndex < fillSegmentCount; fillSegmentIndex++) {
-                            fillContour.GetSegment(fillSegmentIndex, closeForFill: true, out OfficePoint fillStart, out OfficePoint fillEnd);
-                            if (SegmentDistanceSquared(start, end, fillStart, fillEnd) <= maximumDistanceSquared + VisualGeometryEpsilon) {
-                                return true;
-                            }
-                        }
-                    }
-                }
-            }
-
-            return false;
-        }
-
-        private bool BoundariesIntersect(VisualPath other) {
-            for (int contourIndex = 0; contourIndex < _contours.Count; contourIndex++) {
-                VisualContour contour = _contours[contourIndex];
-                int segmentCount = contour.SegmentCount(closeForFill: true);
-                for (int segmentIndex = 0; segmentIndex < segmentCount; segmentIndex++) {
-                    contour.GetSegment(segmentIndex, closeForFill: true, out OfficePoint start, out OfficePoint end);
-                    for (int otherContourIndex = 0; otherContourIndex < other._contours.Count; otherContourIndex++) {
-                        VisualContour otherContour = other._contours[otherContourIndex];
-                        int otherSegmentCount = otherContour.SegmentCount(closeForFill: true);
-                        for (int otherSegmentIndex = 0; otherSegmentIndex < otherSegmentCount; otherSegmentIndex++) {
-                            otherContour.GetSegment(otherSegmentIndex, closeForFill: true, out OfficePoint otherStart, out OfficePoint otherEnd);
-                            if (SegmentsIntersect(start, end, otherStart, otherEnd)) {
-                                return true;
-                            }
-                        }
-                    }
-                }
-            }
-
-            return false;
-        }
-
-        private bool Contains(OfficePoint point) {
-            for (int contourIndex = 0; contourIndex < _contours.Count; contourIndex++) {
-                VisualContour contour = _contours[contourIndex];
-                int segmentCount = contour.SegmentCount(closeForFill: true);
-                for (int segmentIndex = 0; segmentIndex < segmentCount; segmentIndex++) {
-                    contour.GetSegment(segmentIndex, closeForFill: true, out OfficePoint start, out OfficePoint end);
-                    if (PointOnSegment(point, start, end)) {
-                        return true;
-                    }
-                }
-            }
-
-            if (FillRule == OfficeFillRule.EvenOdd) {
-                bool inside = false;
-                for (int contourIndex = 0; contourIndex < _contours.Count; contourIndex++) {
-                    VisualContour contour = _contours[contourIndex];
-                    int segmentCount = contour.SegmentCount(closeForFill: true);
-                    for (int segmentIndex = 0; segmentIndex < segmentCount; segmentIndex++) {
-                        contour.GetSegment(segmentIndex, closeForFill: true, out OfficePoint start, out OfficePoint end);
-                        if ((start.Y > point.Y) != (end.Y > point.Y) &&
-                            point.X < ((end.X - start.X) * (point.Y - start.Y) / (end.Y - start.Y)) + start.X) {
-                            inside = !inside;
-                        }
-                    }
-                }
-
-                return inside;
-            }
-
-            int winding = 0;
-            for (int contourIndex = 0; contourIndex < _contours.Count; contourIndex++) {
-                VisualContour contour = _contours[contourIndex];
-                int segmentCount = contour.SegmentCount(closeForFill: true);
-                for (int segmentIndex = 0; segmentIndex < segmentCount; segmentIndex++) {
-                    contour.GetSegment(segmentIndex, closeForFill: true, out OfficePoint start, out OfficePoint end);
-                    double cross = Cross(start, end, point);
-                    if (start.Y <= point.Y) {
-                        if (end.Y > point.Y && cross > VisualGeometryEpsilon) {
-                            winding++;
-                        }
-                    } else if (end.Y <= point.Y && cross < -VisualGeometryEpsilon) {
-                        winding--;
-                    }
-                }
-            }
-
-            return winding != 0;
-        }
-
-        private static VisualPath Rectangle(double x, double y, double width, double height) {
-            var points = new List<OfficePoint> {
-                new OfficePoint(x, y),
-                new OfficePoint(x + width, y),
-                new OfficePoint(x + width, y + height),
-                new OfficePoint(x, y + height)
-            };
-            return new VisualPath(
-                new List<VisualContour> { new VisualContour(points, closed: true) },
-                OfficeFillRule.NonZero);
-        }
-
-        private static VisualPath FromCommands(IReadOnlyList<OfficePathCommand> commands, OfficeFillRule fillRule) {
-            var contours = new List<VisualContour>();
-            List<OfficePoint>? current = null;
-            OfficePoint currentPoint = default;
-            for (int i = 0; i < commands.Count; i++) {
-                OfficePathCommand command = commands[i];
-                switch (command.Kind) {
-                    case OfficePathCommandKind.MoveTo:
-                        AddContour(contours, current, closed: false);
-                        currentPoint = command.Point;
-                        current = new List<OfficePoint> { currentPoint };
-                        break;
-                    case OfficePathCommandKind.LineTo:
-                        if (current == null) {
-                            current = new List<OfficePoint> { currentPoint };
-                        }
-                        currentPoint = command.Point;
-                        current.Add(currentPoint);
-                        break;
-                    case OfficePathCommandKind.QuadraticBezierTo:
-                        if (current == null) {
-                            current = new List<OfficePoint> { currentPoint };
-                        }
-                        current.AddRange(OfficeGeometry.CreateQuadraticBezierPoints(currentPoint, command.ControlPoint1, command.Point, 24));
-                        currentPoint = command.Point;
-                        break;
-                    case OfficePathCommandKind.CubicBezierTo:
-                        if (current == null) {
-                            current = new List<OfficePoint> { currentPoint };
-                        }
-                        current.AddRange(OfficeGeometry.CreateCubicBezierPoints(currentPoint, command.ControlPoint1, command.ControlPoint2, command.Point, 24));
-                        currentPoint = command.Point;
-                        break;
-                    case OfficePathCommandKind.Close:
-                        AddContour(contours, current, closed: true);
-                        current = null;
-                        break;
-                }
-            }
-
-            AddContour(contours, current, closed: false);
-            return new VisualPath(contours, fillRule);
-        }
-
-        private static void AddContour(List<VisualContour> contours, List<OfficePoint>? points, bool closed) {
-            if (points == null || points.Count < 2) {
-                return;
-            }
-
-            if (points.Count > 1 && PointsEqual(points[0], points[points.Count - 1])) {
-                points.RemoveAt(points.Count - 1);
-                closed = true;
-            }
-
-            if (points.Count >= 2) {
-                contours.Add(new VisualContour(points, closed));
-            }
-        }
-    }
-
-    private sealed class VisualContour {
-        public VisualContour(List<OfficePoint> points, bool closed) {
-            Points = points;
-            Closed = closed;
-        }
-
-        public List<OfficePoint> Points { get; }
-        private bool Closed { get; }
-
-        public int SegmentCount(bool closeForFill) =>
-            Points.Count < 2 ? 0 : Points.Count - 1 + ((Closed || closeForFill) ? 1 : 0);
-
-        public void GetSegment(int index, bool closeForFill, out OfficePoint start, out OfficePoint end) {
-            start = Points[index];
-            end = index + 1 < Points.Count
-                ? Points[index + 1]
-                : Points[0];
-        }
-    }
-
-    private static bool SegmentsIntersect(OfficePoint firstStart, OfficePoint firstEnd, OfficePoint secondStart, OfficePoint secondEnd) {
-        double firstCrossStart = Cross(firstStart, firstEnd, secondStart);
-        double firstCrossEnd = Cross(firstStart, firstEnd, secondEnd);
-        double secondCrossStart = Cross(secondStart, secondEnd, firstStart);
-        double secondCrossEnd = Cross(secondStart, secondEnd, firstEnd);
-        if (((firstCrossStart > VisualGeometryEpsilon && firstCrossEnd < -VisualGeometryEpsilon) ||
-             (firstCrossStart < -VisualGeometryEpsilon && firstCrossEnd > VisualGeometryEpsilon)) &&
-            ((secondCrossStart > VisualGeometryEpsilon && secondCrossEnd < -VisualGeometryEpsilon) ||
-             (secondCrossStart < -VisualGeometryEpsilon && secondCrossEnd > VisualGeometryEpsilon))) {
-            return true;
-        }
-
-        return (Math.Abs(firstCrossStart) <= VisualGeometryEpsilon && PointOnSegment(secondStart, firstStart, firstEnd)) ||
-            (Math.Abs(firstCrossEnd) <= VisualGeometryEpsilon && PointOnSegment(secondEnd, firstStart, firstEnd)) ||
-            (Math.Abs(secondCrossStart) <= VisualGeometryEpsilon && PointOnSegment(firstStart, secondStart, secondEnd)) ||
-            (Math.Abs(secondCrossEnd) <= VisualGeometryEpsilon && PointOnSegment(firstEnd, secondStart, secondEnd));
-    }
-
-    private static bool PointOnSegment(OfficePoint point, OfficePoint start, OfficePoint end) {
-        if (Math.Abs(Cross(start, end, point)) > VisualGeometryEpsilon) {
-            return false;
-        }
-
-        return point.X >= Math.Min(start.X, end.X) - VisualGeometryEpsilon &&
-            point.X <= Math.Max(start.X, end.X) + VisualGeometryEpsilon &&
-            point.Y >= Math.Min(start.Y, end.Y) - VisualGeometryEpsilon &&
-            point.Y <= Math.Max(start.Y, end.Y) + VisualGeometryEpsilon;
-    }
-
-    private static double SegmentDistanceSquared(
-        OfficePoint firstStart,
-        OfficePoint firstEnd,
-        OfficePoint secondStart,
-        OfficePoint secondEnd) {
-        if (SegmentsIntersect(firstStart, firstEnd, secondStart, secondEnd)) {
-            return 0D;
-        }
-
-        return Math.Min(
-            Math.Min(PointSegmentDistanceSquared(firstStart, secondStart, secondEnd), PointSegmentDistanceSquared(firstEnd, secondStart, secondEnd)),
-            Math.Min(PointSegmentDistanceSquared(secondStart, firstStart, firstEnd), PointSegmentDistanceSquared(secondEnd, firstStart, firstEnd)));
-    }
-
-    private static double PointSegmentDistanceSquared(OfficePoint point, OfficePoint start, OfficePoint end) {
-        double deltaX = end.X - start.X;
-        double deltaY = end.Y - start.Y;
-        double lengthSquared = (deltaX * deltaX) + (deltaY * deltaY);
-        if (lengthSquared <= VisualGeometryEpsilon) {
-            double pointDeltaX = point.X - start.X;
-            double pointDeltaY = point.Y - start.Y;
-            return (pointDeltaX * pointDeltaX) + (pointDeltaY * pointDeltaY);
-        }
-
-        double projection = (((point.X - start.X) * deltaX) + ((point.Y - start.Y) * deltaY)) / lengthSquared;
-        projection = Math.Max(0D, Math.Min(1D, projection));
-        double closestX = start.X + (projection * deltaX);
-        double closestY = start.Y + (projection * deltaY);
-        double distanceX = point.X - closestX;
-        double distanceY = point.Y - closestY;
-        return (distanceX * distanceX) + (distanceY * distanceY);
-    }
-
-    private static double Cross(OfficePoint start, OfficePoint end, OfficePoint point) =>
-        ((end.X - start.X) * (point.Y - start.Y)) -
-        ((end.Y - start.Y) * (point.X - start.X));
-
-    private static bool PointsEqual(OfficePoint left, OfficePoint right) =>
-        Math.Abs(left.X - right.X) <= VisualGeometryEpsilon &&
-        Math.Abs(left.Y - right.Y) <= VisualGeometryEpsilon;
 }

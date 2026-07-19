@@ -121,6 +121,9 @@ public class PdfTableStreamExportContracts {
             BuildSingleStreamPdf("0 0 m\n100 0 l\n0 100 l\nh\nW n\n1 0 0 rg\n80 80 10 10 re\nf"),
             BuildSingleStreamPdf("0 0 m\n100 0 l\n0 100 l\nh\nW n\n1 0 0 RG\n1 w\n20 90 m\n90 20 l\nS"),
             BuildSingleStreamPdf("0 0 100 100 re\n30 30 40 40 re\nW* n\n1 0 0 rg\n40 40 10 10 re\nf"),
+            BuildSingleStreamPdf("1 0 0 rg\n240 40 20 20 re\nf"),
+            BuildSingleStreamPdf("40 40 20 20 re\n40 40 20 20 re\nf*"),
+            BuildSingleStreamPdf("45 45 10 10 re W n\n1 0 0 RG\n1 w\n20 20 m\n20 80 l\nh\n80 20 l\nS"),
             BuildSingleStreamPdf(
                 "/Pattern cs\n/P1 scn\n40 40 40 40 re\nf",
                 "<< /Pattern << /P1 5 0 R >> >>",
@@ -130,6 +133,7 @@ public class PdfTableStreamExportContracts {
                 "<< /Pattern << /P1 5 0 R >> >>",
                 "5 0 obj\n<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 10 10] /XStep 10 /YStep 10 /Resources << /ExtGState << /GS1 6 0 R >> >> /Length 31 >>\nstream\n/GS1 gs\n1 0 0 rg\n0 0 10 10 re\nf\nendstream\nendobj",
                 "6 0 obj\n<< /Type /ExtGState /ca 0 /CA 0 >>\nendobj"),
+            BuildPatternWithClippedForm(hiddenByClip: true),
             BuildSingleStreamPdf("1 0 0 rg\n1e309 40 20 20 re\nf")
         };
 
@@ -163,11 +167,59 @@ public class PdfTableStreamExportContracts {
         Assert.True(scope.HasOmittedPageContent);
     }
 
+    [Fact]
+    public void TableConversions_CountTilingPatternFormsVisibleWithinNestedClips() {
+        PdfLogicalDocument logical = PdfLogicalDocument.Load(
+            BuildPatternWithClippedForm(hiddenByClip: false));
+        PdfTableExtractionScopeReport scope = PdfLogicalTableAnalysis.AnalyzeExtractionScope(logical);
+
+        Assert.Equal(1, logical.Pages[0].VectorPrimitiveCount);
+        Assert.Equal(1, scope.VectorPrimitiveCount);
+        Assert.True(scope.HasOmittedPageContent);
+    }
+
+    [Fact]
+    public void VectorVisibility_ComplexDisjointPathsStayBoundedAndConservative() {
+        const int contourCount = 511;
+        var content = new System.Text.StringBuilder(contourCount * 80);
+        for (int i = 0; i < contourCount; i++) {
+            content.Append("0 0 m\n80 0 l\n0 80 l\nh\n");
+        }
+        content.Append("W* n\n1 0 0 rg\n");
+        for (int i = 0; i < contourCount; i++) {
+            content.Append("100 100 m\n20 100 l\n100 20 l\nh\n");
+        }
+        content.Append('f');
+
+        byte[] source = BuildSingleStreamPdf(content.ToString());
+        var timer = System.Diagnostics.Stopwatch.StartNew();
+        PdfLogicalDocument logical = PdfLogicalDocument.Load(source);
+        int vectorPrimitiveCount = logical.Pages[0].VectorPrimitiveCount;
+        timer.Stop();
+
+        Assert.Equal(1, vectorPrimitiveCount);
+        Assert.True(
+            timer.Elapsed < TimeSpan.FromSeconds(5),
+            "Complex visibility analysis exceeded the bounded contract: " + timer.Elapsed + ".");
+    }
+
     private static PdfLogicalDocument CreateLogicalDocument() {
         byte[] source = PdfDocument.Create()
             .Paragraph(paragraph => paragraph.Text("Non-seekable table export proof"))
             .ToBytes();
         return PdfLogicalDocument.Load(source);
+    }
+
+    private static byte[] BuildPatternWithClippedForm(bool hiddenByClip) {
+        const string patternContent = "/F1 Do";
+        string formContent = hiddenByClip
+            ? "0 0 2 2 re W n\n1 0 0 rg\n5 5 2 2 re\nf"
+            : "0 0 2 2 re W n\n1 0 0 rg\n0.5 0.5 1 1 re\nf";
+        return BuildSingleStreamPdf(
+            "/Pattern cs\n/P1 scn\n40 40 40 40 re\nf",
+            "<< /Pattern << /P1 5 0 R >> >>",
+            $"5 0 obj\n<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 10 10] /XStep 10 /YStep 10 /Resources << /XObject << /F1 6 0 R >> >> /Length {System.Text.Encoding.ASCII.GetByteCount(patternContent)} >>\nstream\n{patternContent}\nendstream\nendobj",
+            $"6 0 obj\n<< /Type /XObject /Subtype /Form /BBox [0 0 10 10] /Resources << >> /Length {System.Text.Encoding.ASCII.GetByteCount(formContent)} >>\nstream\n{formContent}\nendstream\nendobj");
     }
 
     private static byte[] BuildSingleStreamPdf(
