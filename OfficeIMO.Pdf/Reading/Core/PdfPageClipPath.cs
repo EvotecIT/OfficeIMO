@@ -184,9 +184,14 @@ internal readonly struct PdfPageClipPath {
                     hasCurrentPoint = true;
                     break;
                 case OfficePathCommandKind.Close:
+                    if (current != null && current.Count > 0) {
+                        currentPoint = current[0];
+                        hasCurrentPoint = true;
+                    }
                     AddFlattenedContour(contours, current);
-                    current = null;
-                    hasCurrentPoint = false;
+                    current = hasCurrentPoint
+                        ? new List<OfficePoint> { currentPoint }
+                        : null;
                     break;
             }
         }
@@ -336,9 +341,14 @@ internal readonly struct PdfPageClipPath {
                     hasCurrentPoint = true;
                     break;
                 case OfficePathCommandKind.Close:
+                    if (current != null && current.Count > 0) {
+                        currentPoint = current[0];
+                        hasCurrentPoint = true;
+                    }
                     AddClippedContour(clippedCommands, current, rectangle);
-                    current = null;
-                    hasCurrentPoint = false;
+                    current = hasCurrentPoint
+                        ? new List<OfficePoint> { currentPoint }
+                        : null;
                     break;
             }
         }

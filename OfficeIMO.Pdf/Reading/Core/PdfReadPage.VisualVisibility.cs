@@ -9,58 +9,115 @@ public sealed partial class PdfReadPage {
         PdfPageVisualPrimitive primitive,
         double pageWidth,
         double pageHeight,
-        VisualGeometryBudget budget) {
-        if (!HasFinitePrimitiveGeometry(primitive) ||
+        VisualGeometryBudget budget,
+        Dictionary<PdfPageTilingPatternResource, bool> patternPaintCache) {
+        if (!HasFinitePrimitiveGeometry(primitive, budget) ||
             !IsFinite(pageWidth) ||
             !IsFinite(pageHeight) ||
             pageWidth <= 0D ||
             pageHeight <= 0D) {
             return false;
         }
-
-        bool hasVisibleFill = primitive.Kind != PdfPageVisualPrimitiveKind.Line &&
-            ((HasOrdinaryFill(primitive) && HasVisibleOpacity(primitive.FillOpacity)) ||
-             HasVisibleTilingPattern(primitive.FillTilingPattern, budget));
-        bool hasVisibleStroke = primitive.StrokeWidth > 0D &&
-            ((HasOrdinaryStroke(primitive) && HasVisibleOpacity(primitive.StrokeOpacity)) ||
-             HasVisibleTilingPattern(primitive.StrokeTilingPattern, budget));
-        if (!hasVisibleFill && !hasVisibleStroke) {
-            return false;
-        }
-
-        PdfPageClipPath pageClip = PdfPageClipPath.Rectangle(0D, 0D, pageWidth, pageHeight);
-        PdfPageClipPath visibleClip = pageClip;
-        if (primitive.ClipPath.HasValue) {
-            PdfPageClipPath authoredClip = primitive.ClipPath.Value;
-            if (!HasFiniteClipGeometry(authoredClip)) {
-                return false;
-            }
-
-            visibleClip = PdfPageClipPath.ResolveActiveClip(pageClip, authoredClip);
-        }
-
-        if (!HasFiniteClipGeometry(visibleClip) ||
-            visibleClip.Width <= 0D ||
-            visibleClip.Height <= 0D) {
-            return false;
-        }
-
-        VisualPath? clipPath = VisualPath.FromClip(visibleClip, budget);
-        if (clipPath == null) {
+        if (budget.Exceeded) {
             return true;
         }
 
-        if (hasVisibleFill) {
+        bool hasOrdinaryFill = primitive.Kind != PdfPageVisualPrimitiveKind.Line &&
+            HasOrdinaryFill(primitive) &&
+            HasVisibleOpacity(primitive.FillOpacity);
+        bool hasPatternFill = primitive.Kind != PdfPageVisualPrimitiveKind.Line &&
+            HasPotentialTilingPatternPaint(primitive.FillTilingPattern);
+        bool hasOrdinaryStroke = primitive.StrokeWidth > 0D &&
+            HasOrdinaryStroke(primitive) &&
+            HasVisibleOpacity(primitive.StrokeOpacity);
+        bool hasPatternStroke = primitive.StrokeWidth > 0D &&
+            HasPotentialTilingPatternPaint(primitive.StrokeTilingPattern);
+        if (!hasOrdinaryFill &&
+            !hasPatternFill &&
+            !hasOrdinaryStroke &&
+            !hasPatternStroke) {
+            return false;
+        }
+
+        VisualPath? pageClip = VisualPath.Rectangle(
+            0D,
+            0D,
+            pageWidth,
+            pageHeight,
+            OfficeTransform.Identity,
+            budget);
+        if (pageClip == null) {
+            return true;
+        }
+
+        IReadOnlyList<VisualPath> visibleClips = new[] { pageClip };
+        if (primitive.ClipPath.HasValue) {
+            PdfPageClipPath authoredClip = primitive.ClipPath.Value;
+            if (!HasFiniteClipGeometry(authoredClip, budget) ||
+                authoredClip.Width <= 0D ||
+                authoredClip.Height <= 0D) {
+                return false;
+            }
+            if (budget.Exceeded) {
+                return true;
+            }
+
+            VisualPath? authoredClipPath = VisualPath.FromClip(authoredClip, budget);
+            if (authoredClipPath == null) {
+                return budget.Exceeded;
+            }
+            visibleClips = AppendClip(visibleClips, authoredClipPath);
+            if (!VisualPath.HasPositiveAreaIntersection(visibleClips, budget)) {
+                return budget.Exceeded;
+            }
+        }
+
+        if (hasOrdinaryFill || hasPatternFill) {
             VisualPath? fillPath = VisualPath.FromFill(primitive, budget);
-            if (fillPath == null || fillPath.IntersectsFill(clipPath, budget)) {
+            if (fillPath == null) {
+                return budget.Exceeded;
+            }
+
+            bool fillReachesPage = fillPath.IntersectsFills(visibleClips, budget);
+            if (hasOrdinaryFill && fillReachesPage) {
+                return true;
+            }
+            if (hasPatternFill &&
+                fillReachesPage &&
+                HasVisibleTilingPattern(
+                    primitive.FillTilingPattern!,
+                    fillPath,
+                    strokeHalfWidth: 0D,
+                    visibleClips,
+                    patternPaintCache,
+                    budget)) {
                 return true;
             }
         }
 
-        if (hasVisibleStroke) {
+        if (hasOrdinaryStroke || hasPatternStroke) {
             VisualPath? strokePath = VisualPath.FromStroke(primitive, budget);
-            if (strokePath == null ||
-                strokePath.StrokeIntersectsFill(clipPath, primitive.StrokeWidth / 2D, budget)) {
+            if (strokePath == null) {
+                return budget.Exceeded;
+            }
+
+            double strokeHalfWidth = primitive.StrokeWidth / 2D;
+            bool strokeReachesPage = strokePath.StrokeIntersectsFills(
+                visibleClips,
+                strokeHalfWidth,
+                budget);
+            if (hasOrdinaryStroke && strokeReachesPage) {
+                return true;
+            }
+            if (hasPatternStroke &&
+                strokeReachesPage &&
+                HasVisibleTilingPattern(
+                    primitive.StrokeTilingPattern!,
+                    strokePath,
+                    strokeHalfWidth,
+                    visibleClips,
+                    patternPaintCache,
+                    budget)) {
                 return true;
             }
         }
@@ -68,7 +125,9 @@ public sealed partial class PdfReadPage {
         return budget.Exceeded;
     }
 
-    private static bool HasFinitePrimitiveGeometry(PdfPageVisualPrimitive primitive) {
+    private static bool HasFinitePrimitiveGeometry(
+        PdfPageVisualPrimitive primitive,
+        VisualGeometryBudget budget) {
         if (!IsFinite(primitive.X) ||
             !IsFinite(primitive.Y) ||
             !IsFinite(primitive.Width) ||
@@ -82,6 +141,9 @@ public sealed partial class PdfReadPage {
         }
 
         for (int i = 0; i < primitive.PathCommands.Count; i++) {
+            if (!budget.TryUseOperation()) {
+                return true;
+            }
             if (!HasFiniteCommand(primitive.PathCommands[i])) {
                 return false;
             }
@@ -90,7 +152,9 @@ public sealed partial class PdfReadPage {
         return true;
     }
 
-    private static bool HasFiniteClipGeometry(PdfPageClipPath clip) {
+    private static bool HasFiniteClipGeometry(
+        PdfPageClipPath clip,
+        VisualGeometryBudget budget) {
         if (!IsFinite(clip.X) ||
             !IsFinite(clip.Y) ||
             !IsFinite(clip.Width) ||
@@ -99,6 +163,9 @@ public sealed partial class PdfReadPage {
         }
 
         for (int i = 0; i < clip.Commands.Count; i++) {
+            if (!budget.TryUseOperation()) {
+                return true;
+            }
             if (!HasFiniteCommand(clip.Commands[i])) {
                 return false;
             }
@@ -125,36 +192,12 @@ public sealed partial class PdfReadPage {
         HasVisibleGradient(primitive.StrokeGradient) ||
         HasVisibleGradient(primitive.StrokeRadialGradient);
 
-    private static bool HasVisibleTilingPattern(
-        PdfPageTilingPatternPaint? pattern,
-        VisualGeometryBudget budget) =>
+    private static bool HasPotentialTilingPatternPaint(
+        PdfPageTilingPatternPaint? pattern) =>
         pattern != null &&
         IsFinite(pattern.Opacity) &&
         pattern.Opacity > 0D &&
-        (!pattern.Tint.HasValue || pattern.Tint.Value.A > 0) &&
-        HasVisibleDrawingContent(pattern.Resource.Tile, budget);
-
-    private static bool HasVisibleDrawingContent(
-        OfficeDrawing drawing,
-        VisualGeometryBudget budget) {
-        VisualPath? canvas = VisualPath.Rectangle(
-            0D,
-            0D,
-            drawing.Width,
-            drawing.Height,
-            OfficeTransform.Identity,
-            budget);
-        if (canvas == null) {
-            return drawing.Elements.Count > 0;
-        }
-
-        return HasVisibleDrawingContent(
-            drawing,
-            OfficeTransform.Identity,
-            new[] { canvas },
-            budget,
-            depth: 0);
-    }
+        (!pattern.Tint.HasValue || pattern.Tint.Value.A > 0);
 
     private static bool HasVisibleDrawingContent(
         OfficeDrawing drawing,
@@ -168,6 +211,9 @@ public sealed partial class PdfReadPage {
         }
 
         for (int i = 0; i < drawing.Elements.Count; i++) {
+            if (!budget.TryUseOperation()) {
+                return true;
+            }
             OfficeDrawingElement element = drawing.Elements[i];
             switch (element) {
                 case OfficeDrawingShape drawingShape:
@@ -380,19 +426,17 @@ public sealed partial class PdfReadPage {
             return budget.Exceeded;
         }
 
-        IReadOnlyList<OfficeTransform> tileTransforms = pattern.GetTileTransforms(pattern.MaximumTileCount);
-        for (int i = 0; i < tileTransforms.Count; i++) {
-            if (HasVisibleDrawingContent(
-                    pattern.InnerTile,
-                    tileTransforms[i].Then(parentTransform),
-                    effectiveClips,
-                    budget,
-                    depth + 1)) {
-                return true;
-            }
-        }
-
-        return false;
+        return HasVisibleRepeatedDrawing(
+            pattern.InnerTile,
+            pattern.HorizontalStep,
+            pattern.VerticalStep,
+            pattern.Transform.Then(parentTransform),
+            pattern.OriginX,
+            pattern.OriginY,
+            effectiveClips,
+            pattern.MaximumTileCount,
+            budget,
+            depth + 1);
     }
 
     private static bool HasVisibleSoftMask(

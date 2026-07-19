@@ -50,6 +50,31 @@ public sealed partial class PdfReadPage {
         private OfficeFillRule FillRule { get; }
         private VisualBounds Bounds { get; }
 
+        public VisualBounds GetBounds(double expansion = 0D) =>
+            expansion > 0D ? Bounds.Expand(expansion) : Bounds;
+
+        public static bool TryGetCommonBounds(
+            IReadOnlyList<VisualPath> paths,
+            out VisualBounds common) {
+            common = default;
+            if (paths.Count == 0) {
+                return false;
+            }
+
+            common = paths[0].Bounds;
+            if (!common.HasPositiveArea) {
+                return false;
+            }
+
+            for (int i = 1; i < paths.Count; i++) {
+                if (!common.TryIntersectPositive(paths[i].Bounds, out common)) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
         public static VisualPath? FromClip(
             PdfPageClipPath clip,
             VisualGeometryBudget budget) {

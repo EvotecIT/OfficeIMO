@@ -1,6 +1,7 @@
 using DocumentFormat.OpenXml.Packaging;
 using System.Threading;
 using System.Threading.Tasks;
+using OfficeIMO.Drawing;
 using OfficeIMO.Excel.Pdf;
 using OfficeIMO.Pdf;
 using OfficeIMO.PowerPoint.Pdf;
@@ -179,6 +180,132 @@ public class PdfTableStreamExportContracts {
     }
 
     [Fact]
+    public void VectorVisibility_RestoresClipCurrentPointAfterClosePath() {
+        byte[] source = BuildSingleStreamPdf("""
+            0 0 m
+            10 0 l
+            0 10 l
+            h
+            60 40 l
+            60 60 l
+            h
+            W n
+            1 0 0 rg
+            49 42 2 2 re
+            f
+            """);
+
+        PdfLogicalDocument logical = PdfLogicalDocument.Load(source);
+
+        Assert.Equal(1, logical.Pages[0].VectorPrimitiveCount);
+    }
+
+    [Fact]
+    public void PdfClipIntersection_RestoresCurrentPointAfterClosePath() {
+        OfficePathCommand[] commands = {
+            OfficePathCommand.MoveTo(0D, 0D),
+            OfficePathCommand.LineTo(10D, 0D),
+            OfficePathCommand.LineTo(0D, 10D),
+            OfficePathCommand.Close(),
+            OfficePathCommand.LineTo(60D, 40D),
+            OfficePathCommand.LineTo(60D, 60D),
+            OfficePathCommand.Close()
+        };
+
+        Assert.True(PdfPageClipPath.TryCreatePath(
+            commands,
+            OfficeFillRule.NonZero,
+            out PdfPageClipPath authored));
+        PdfPageClipPath resolved = PdfPageClipPath.ResolveActiveClip(
+            PdfPageClipPath.Rectangle(0D, 0D, 240D, 200D),
+            authored);
+
+        Assert.True(resolved.Width > 50D);
+        Assert.True(resolved.Height > 50D);
+    }
+
+    [Fact]
+    public void VectorVisibility_CorrelatesSparseTilingPatternWithPaintedCells() {
+        const string patternContent = "1 0 0 rg\n0 0 1 10 re\nf";
+        byte[] transparentCell = BuildTilingPatternPdf(
+            "5 0 1 200 re\nf",
+            patternContent);
+        byte[] paintedCell = BuildTilingPatternPdf(
+            "0 0 1 200 re\nf",
+            patternContent);
+
+        Assert.Equal(
+            0,
+            PdfLogicalDocument.Load(transparentCell).Pages[0].VectorPrimitiveCount);
+        Assert.Equal(
+            1,
+            PdfLogicalDocument.Load(paintedCell).Pages[0].VectorPrimitiveCount);
+    }
+
+    [Fact]
+    public void VectorVisibility_ReusedTransparentPatternTileStaysBounded() {
+        const int elementCount = 512;
+        var patternContent = new System.Text.StringBuilder(elementCount * 24);
+        patternContent.Append("/GS1 gs\n1 0 0 rg\n");
+        for (int i = 0; i < elementCount; i++) {
+            patternContent.Append("0 0 10 10 re\nf\n");
+        }
+
+        var pageContent = new System.Text.StringBuilder(elementCount * 24);
+        for (int i = 0; i < elementCount; i++) {
+            pageContent.Append(i % 24)
+                .Append(' ')
+                .Append((i / 24) % 20)
+                .Append(" 1 1 re\nf\n");
+        }
+
+        byte[] source = BuildTilingPatternPdf(
+            pageContent.ToString(),
+            patternContent.ToString(),
+            "<< /ExtGState << /GS1 6 0 R >> >>",
+            "6 0 obj\n<< /Type /ExtGState /ca 0 /CA 0 >>\nendobj");
+        var timer = System.Diagnostics.Stopwatch.StartNew();
+        int vectorPrimitiveCount = PdfLogicalDocument.Load(source).Pages[0].VectorPrimitiveCount;
+        timer.Stop();
+
+        Assert.Equal(0, vectorPrimitiveCount);
+        Assert.True(
+            timer.Elapsed < TimeSpan.FromSeconds(5),
+            "Repeated transparent-pattern visibility exceeded the bounded contract: " +
+            timer.Elapsed +
+            ".");
+    }
+
+    [Fact]
+    public void VectorVisibility_ReusedAuthoredClipStaysBoundedAndConservative() {
+        const int contourCount = 2048;
+        const int primitiveCount = 256;
+        var content = new System.Text.StringBuilder((contourCount + primitiveCount) * 32);
+        for (int i = 0; i < contourCount; i++) {
+            content.Append("0 0 240 200 re\n");
+        }
+        content.Append("W n\n1 0 0 rg\n");
+        for (int i = 0; i < primitiveCount; i++) {
+            content.Append(i % 200)
+                .Append(' ')
+                .Append((i / 200) * 10)
+                .Append(" 1 1 re\nf\n");
+        }
+
+        byte[] source = BuildSingleStreamPdf(content.ToString());
+        var timer = System.Diagnostics.Stopwatch.StartNew();
+        int vectorPrimitiveCount = PdfLogicalDocument.Load(source).Pages[0].VectorPrimitiveCount;
+        timer.Stop();
+
+        Assert.Equal(primitiveCount, vectorPrimitiveCount);
+        Assert.True(
+            timer.Elapsed < TimeSpan.FromSeconds(5),
+            "Repeated authored-clip visibility exceeded the bounded contract: " +
+            timer.Elapsed +
+            ".");
+    }
+
+    [Fact]
     public void VectorVisibility_ComplexDisjointPathsStayBoundedAndConservative() {
         const int contourCount = 511;
         var content = new System.Text.StringBuilder(contourCount * 80);
@@ -220,6 +347,29 @@ public class PdfTableStreamExportContracts {
             "<< /Pattern << /P1 5 0 R >> >>",
             $"5 0 obj\n<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 10 10] /XStep 10 /YStep 10 /Resources << /XObject << /F1 6 0 R >> >> /Length {System.Text.Encoding.ASCII.GetByteCount(patternContent)} >>\nstream\n{patternContent}\nendstream\nendobj",
             $"6 0 obj\n<< /Type /XObject /Subtype /Form /BBox [0 0 10 10] /Resources << >> /Length {System.Text.Encoding.ASCII.GetByteCount(formContent)} >>\nstream\n{formContent}\nendstream\nendobj");
+    }
+
+    private static byte[] BuildTilingPatternPdf(
+        string pagePaintContent,
+        string patternContent,
+        string patternResources = "<< >>",
+        params string[] additionalObjects) {
+        pagePaintContent = pagePaintContent.TrimEnd('\r', '\n');
+        patternContent = patternContent.TrimEnd('\r', '\n');
+        string pageContent = "/Pattern cs\n/P1 scn\n" + pagePaintContent;
+        string patternObject =
+            "5 0 obj\n" +
+            "<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 " +
+            "/BBox [0 0 10 10] /XStep 10 /YStep 10 " +
+            $"/Resources {patternResources} " +
+            $"/Length {System.Text.Encoding.ASCII.GetByteCount(patternContent)} >>\n" +
+            "stream\n" +
+            patternContent +
+            "\nendstream\nendobj";
+        return BuildSingleStreamPdf(
+            pageContent,
+            "<< /Pattern << /P1 5 0 R >> >>",
+            new[] { patternObject }.Concat(additionalObjects).ToArray());
     }
 
     private static byte[] BuildSingleStreamPdf(

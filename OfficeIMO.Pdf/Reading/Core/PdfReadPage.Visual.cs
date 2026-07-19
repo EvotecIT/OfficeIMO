@@ -7,6 +7,7 @@ public sealed partial class PdfReadPage {
         (double Width, double Height) size = GetVisualPageSize();
         int count = 0;
         var visibilityBudget = new VisualGeometryBudget();
+        var patternPaintCache = new Dictionary<PdfPageTilingPatternResource, bool>();
         PdfDictionary? pageResources = ResolveDictionary(GetInheritedValue("Resources"));
         var activeForms = new HashSet<PdfStream>();
         string content = GetContentStreamContent();
@@ -18,7 +19,12 @@ public sealed partial class PdfReadPage {
                 size.Width,
                 size.Height,
                 primitive => {
-                    if (IsVisibleVisualPrimitive(primitive, size.Width, size.Height, visibilityBudget)) {
+                    if (IsVisibleVisualPrimitive(
+                            primitive,
+                            size.Width,
+                            size.Height,
+                            visibilityBudget,
+                            patternPaintCache)) {
                         count++;
                     }
                 },
