@@ -12,10 +12,12 @@ public sealed class ReleasePackagingGuardrails {
         string readme = File.ReadAllText(Path.Combine(repositoryRoot, "README.md"));
         using JsonDocument buildDocument = JsonDocument.Parse(
             File.ReadAllText(Path.Combine(repositoryRoot, "Build", "project.build.json")));
-        int releasePackageCount = buildDocument.RootElement
+        HashSet<string> releasePackageIds = buildDocument.RootElement
             .GetProperty("ExpectedVersionMap")
             .EnumerateObject()
-            .Count();
+            .Select(static property => property.Name)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        int releasePackageCount = releasePackageIds.Count;
 
         MatchCollection projectHeadings = Regex.Matches(
             readme,
@@ -46,6 +48,13 @@ public sealed class ReleasePackagingGuardrails {
         Assert.Contains("| Conversion and cloud bridge packages | 26 |", readme, StringComparison.Ordinal);
         Assert.Contains("| Unified Reader packages and tool | 28 |", readme, StringComparison.Ordinal);
         Assert.Contains("| Markdown renderer and OfficeIMO Markup surfaces | 11 |", readme, StringComparison.Ordinal);
+        Assert.Contains("NuGet publication is a separate release step.", readme, StringComparison.Ordinal);
+        Assert.DoesNotContain("All OfficeIMO .NET packages are published", readme, StringComparison.Ordinal);
+        AssertDotNetInstallCommands(
+            readme,
+            releasePackageIds,
+            expectedCount: 15,
+            toolPackageId: "OfficeIMO.Reader.Tool");
     }
 
     [Fact]
@@ -206,6 +215,22 @@ public sealed class ReleasePackagingGuardrails {
                 "Installation guide references an unknown package: " + packageId);
             Assert.Equal(project!.Version, match.Groups["version"].Value);
         });
+        Assert.Contains("NuGet publication is a separate release step", installation, StringComparison.Ordinal);
+        Assert.DoesNotContain("All OfficeIMO .NET packages are published", installation, StringComparison.Ordinal);
+        HashSet<string> releasePackageIds = packageProjects.Keys.ToHashSet(StringComparer.OrdinalIgnoreCase);
+        string[] installationCommandIds = AssertDotNetInstallCommands(
+            installation,
+            releasePackageIds,
+            expectedCount: 9);
+        string[] packageReferenceIds = documentedPackages
+            .Cast<Match>()
+            .Select(static match => match.Groups["id"].Value)
+            .OrderBy(static packageId => packageId, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+        Assert.Equal(
+            packageReferenceIds,
+            installationCommandIds.OrderBy(static packageId => packageId, StringComparer.OrdinalIgnoreCase).ToArray());
+        AssertPackageManagerInstallCommands(installation, releasePackageIds, expectedCount: 4);
 
         string openXmlVersion = ReadPackageReferenceVersion(
             repositoryRoot,
@@ -274,6 +299,88 @@ public sealed class ReleasePackagingGuardrails {
         Assert.Contains("`new WordHelpers()`", migration, StringComparison.Ordinal);
         Assert.Contains("using OfficeIMO.Word;", migration, StringComparison.Ordinal);
         Assert.Contains("vector graphics", migration, StringComparison.Ordinal);
+        Assert.Contains("System.Runtime.CompilerServices.IsExternalInit", migration, StringComparison.Ordinal);
+
+        string apiReview = File.ReadAllText(Path.Combine(
+            repositoryRoot,
+            "Docs",
+            "officeimo-3.0-public-api-review.md"));
+        Assert.Contains("323 assembly/target pairs", apiReview, StringComparison.Ordinal);
+        Assert.Contains("Seventy-four of the 81", apiReview, StringComparison.Ordinal);
+        Assert.Contains("Seven packages changed", apiReview, StringComparison.Ordinal);
+        Assert.Contains("955ce7b589512499aa42ba1da654b4a7742817f4", apiReview, StringComparison.Ordinal);
+        Assert.Contains("584bff01202c7a1da2f8fc51b1d2b9636cc66821", apiReview, StringComparison.Ordinal);
+        Assert.Contains("OfficeIMO.Drawing", apiReview, StringComparison.Ordinal);
+        Assert.Contains("System.Runtime.CompilerServices.IsExternalInit", apiReview, StringComparison.Ordinal);
+        Assert.Contains("`netstandard2.0`", apiReview, StringComparison.Ordinal);
+        Assert.Contains("`net472`", apiReview, StringComparison.Ordinal);
+        Assert.Contains("OfficeIMO.Epub.Html", apiReview, StringComparison.Ordinal);
+        Assert.Contains("OfficeIMO.Epub.Image", apiReview, StringComparison.Ordinal);
+        Assert.Contains("OfficeIMO.Excel.Pdf", apiReview, StringComparison.Ordinal);
+        Assert.Contains("OfficeIMO.PowerPoint.Pdf", apiReview, StringComparison.Ordinal);
+        Assert.Contains("OfficeIMO.Word", apiReview, StringComparison.Ordinal);
+    }
+
+    private static string[] AssertDotNetInstallCommands(
+        string content,
+        ISet<string> releasePackageIds,
+        int expectedCount,
+        string? toolPackageId = null) {
+        MatchCollection commands = Regex.Matches(
+            content,
+            @"^dotnet (?<verb>add package|tool install --global) (?<id>OfficeIMO\.[^\s]+)(?<arguments>[^\r\n]*)\r?$",
+            RegexOptions.Multiline | RegexOptions.CultureInvariant);
+
+        Assert.Equal(expectedCount, commands.Count);
+        string[] packageIds = commands
+            .Cast<Match>()
+            .Select(match => {
+                string packageId = match.Groups["id"].Value;
+                Assert.True(
+                    releasePackageIds.Contains(packageId),
+                    "Install command references an unknown package: " + match.Value);
+                Assert.Equal(" --version 3.0.0", match.Groups["arguments"].Value);
+
+                bool isTool = !string.IsNullOrWhiteSpace(toolPackageId) &&
+                    string.Equals(packageId, toolPackageId, StringComparison.OrdinalIgnoreCase);
+                Assert.Equal(
+                    isTool ? "tool install --global" : "add package",
+                    match.Groups["verb"].Value);
+                return packageId;
+            })
+            .ToArray();
+
+        Assert.Equal(
+            expectedCount,
+            packageIds.Distinct(StringComparer.OrdinalIgnoreCase).Count());
+        return packageIds;
+    }
+
+    private static void AssertPackageManagerInstallCommands(
+        string content,
+        ISet<string> releasePackageIds,
+        int expectedCount) {
+        MatchCollection commands = Regex.Matches(
+            content,
+            @"^Install-Package (?<id>OfficeIMO\.[^\s]+)(?<arguments>[^\r\n]*)\r?$",
+            RegexOptions.Multiline | RegexOptions.CultureInvariant);
+
+        Assert.Equal(expectedCount, commands.Count);
+        string[] packageIds = commands
+            .Cast<Match>()
+            .Select(match => {
+                string packageId = match.Groups["id"].Value;
+                Assert.True(
+                    releasePackageIds.Contains(packageId),
+                    "Package Manager command references an unknown package: " + match.Value);
+                Assert.Equal(" -Version 3.0.0", match.Groups["arguments"].Value);
+                return packageId;
+            })
+            .ToArray();
+
+        Assert.Equal(
+            expectedCount,
+            packageIds.Distinct(StringComparer.OrdinalIgnoreCase).Count());
     }
 
     private static PackageProject? ReadPackageProject(string projectPath) {

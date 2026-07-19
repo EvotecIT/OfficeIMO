@@ -6,9 +6,9 @@ order: 1
 
 # Installation
 
-All OfficeIMO .NET packages are published to [NuGet.org](https://www.nuget.org/profiles/EvotecIT). The PowerShell module is published to the [PowerShell Gallery](https://www.powershellgallery.com/packages/PSWriteOffice).
+Released OfficeIMO .NET packages are distributed through [NuGet.org](https://www.nuget.org/profiles/EvotecIT). The PowerShell module is distributed through the [PowerShell Gallery](https://www.powershellgallery.com/packages/PSWriteOffice).
 
-The explicit references below target the coordinated `3.0.0` release. Upgrade OfficeIMO packages together rather than mixing release lines. Until NuGet lists `3.0.0`, versionless install commands resolve the current public stable version instead.
+This source tree and its locally packed artifacts target the coordinated `3.0.0` release. NuGet publication is a separate release step: the examples below will restore from NuGet.org only after each exact `3.0.0` package ID is live. Before publication, point NuGet at the clean local feed produced by `Build/Build-Project.ps1`; otherwise remain on the current public stable version. Upgrade OfficeIMO packages together rather than mixing release lines.
 
 ## .NET Packages
 
@@ -19,13 +19,13 @@ The core Word document library. Create, read, and modify `.docx` files.
 **.NET CLI**
 
 ```bash
-dotnet add package OfficeIMO.Word
+dotnet add package OfficeIMO.Word --version 3.0.0
 ```
 
 **Package Manager Console**
 
 ```powershell
-Install-Package OfficeIMO.Word
+Install-Package OfficeIMO.Word -Version 3.0.0
 ```
 
 **PackageReference (csproj)**
@@ -41,13 +41,13 @@ Create and manipulate Excel `.xlsx` workbooks.
 **.NET CLI**
 
 ```bash
-dotnet add package OfficeIMO.Excel
+dotnet add package OfficeIMO.Excel --version 3.0.0
 ```
 
 **Package Manager Console**
 
 ```powershell
-Install-Package OfficeIMO.Excel
+Install-Package OfficeIMO.Excel -Version 3.0.0
 ```
 
 **PackageReference**
@@ -63,13 +63,13 @@ Fluent Markdown builder, typed reader/AST, and HTML renderer. Zero external depe
 **.NET CLI**
 
 ```bash
-dotnet add package OfficeIMO.Markdown
+dotnet add package OfficeIMO.Markdown --version 3.0.0
 ```
 
 **Package Manager Console**
 
 ```powershell
-Install-Package OfficeIMO.Markdown
+Install-Package OfficeIMO.Markdown -Version 3.0.0
 ```
 
 **PackageReference**
@@ -85,13 +85,13 @@ Strongly-typed CSV document model with validation and streaming.
 **.NET CLI**
 
 ```bash
-dotnet add package OfficeIMO.CSV
+dotnet add package OfficeIMO.CSV --version 3.0.0
 ```
 
 **Package Manager Console**
 
 ```powershell
-Install-Package OfficeIMO.CSV
+Install-Package OfficeIMO.CSV -Version 3.0.0
 ```
 
 **PackageReference**
@@ -107,7 +107,7 @@ Bidirectional Word-to-HTML conversion powered by AngleSharp.
 **.NET CLI**
 
 ```bash
-dotnet add package OfficeIMO.Word.Html
+dotnet add package OfficeIMO.Word.Html --version 3.0.0
 ```
 
 **PackageReference**
@@ -123,7 +123,7 @@ Bidirectional Word-to-Markdown conversion built on OfficeIMO.Markdown.
 **.NET CLI**
 
 ```bash
-dotnet add package OfficeIMO.Word.Markdown
+dotnet add package OfficeIMO.Word.Markdown --version 3.0.0
 ```
 
 **PackageReference**
@@ -139,7 +139,7 @@ Word-to-PDF conversion built on the first-party OfficeIMO.Pdf engine.
 **.NET CLI**
 
 ```bash
-dotnet add package OfficeIMO.Word.Pdf
+dotnet add package OfficeIMO.Word.Pdf --version 3.0.0
 ```
 
 **PackageReference**
@@ -155,7 +155,7 @@ Excel workbook-to-PDF conversion built on the first-party OfficeIMO.Pdf engine.
 **.NET CLI**
 
 ```bash
-dotnet add package OfficeIMO.Excel.Pdf
+dotnet add package OfficeIMO.Excel.Pdf --version 3.0.0
 ```
 
 **PackageReference**
@@ -171,7 +171,7 @@ Direct PDF generation, reading, editing, rendering, and signature workflows.
 **.NET CLI**
 
 ```bash
-dotnet add package OfficeIMO.Pdf
+dotnet add package OfficeIMO.Pdf --version 3.0.0
 ```
 
 **PackageReference**

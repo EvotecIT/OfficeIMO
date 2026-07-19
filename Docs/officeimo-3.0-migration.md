@@ -92,10 +92,16 @@ OfficeIMO.Epub.Html  ->  OfficeIMO.Epub.Image
 
 Update both the package reference and namespace imports. The adapter still retains EPUB chapter HTML and package resources internally and renders through the shared HTML image pipeline; the rename does not introduce another HTML renderer.
 
+## Compatibility shim visibility
+
+`OfficeIMO.Drawing` no longer exports `System.Runtime.CompilerServices.IsExternalInit` from its `netstandard2.0` and `net472` assets. That type was a compiler compatibility shim, not an OfficeIMO API. OfficeIMO still supplies an internal shim where the target framework needs one, so record and `init` usage in applications is unaffected. Remove any direct reference to the OfficeIMO-provided shim.
+
 ## Package and dependency ownership
 
 OfficeIMO 3.0 keeps format ownership in the existing document, renderer, and adapter projects. There is no new catch-all core package. Small adapter packages such as PDF or image exporters remain thin surfaces over the owning parser and renderer, which avoids duplicating conversion logic or forcing unrelated dependencies into document packages.
 
 After upgrading, perform a clean restore so lock files and cached transitive packages no longer retain 2.x OfficeIMO versions.
+
+The [3.0 public API review](officeimo-3.0-public-api-review.md) records the complete assembly-level comparison used to confirm that these are the only changed coordinated public surfaces.
 
 For the older 1.x to 2.0 API removals, see the [2.0 breaking API migration guide](officeimo.breaking-api-migration.md).
