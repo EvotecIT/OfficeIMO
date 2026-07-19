@@ -156,6 +156,34 @@ public static class OutlookRecurrenceExpander {
             truncated, reason);
     }
 
+    internal static HashSet<DateTime> FindBaseOccurrenceDates(OutlookRecurrence recurrence,
+        IEnumerable<DateTime> requestedDates) {
+        if (recurrence == null) throw new ArgumentNullException(nameof(recurrence));
+        if (requestedDates == null) throw new ArgumentNullException(nameof(requestedDates));
+        Validate(recurrence, new OutlookRecurrenceExpansionOptions());
+        var requested = new HashSet<DateTime>(requestedDates.Select(value => AsLocal(value).Date));
+        var matches = new HashSet<DateTime>();
+        if (requested.Count == 0) return matches;
+
+        DateTime lastRequested = requested.Max();
+        int sequence = 0;
+        foreach (RecurrenceDateCandidate candidate in EnumerateDates(recurrence)) {
+            DateTime date = candidate.Date.Date;
+            if (date > lastRequested) break;
+            if (recurrence.RangeKind == OutlookRecurrenceRangeKind.EndDate &&
+                recurrence.EndDate.HasValue && date > recurrence.EndDate.Value.Date) break;
+            if (!candidate.IsOccurrence || date < recurrence.Start.Date) continue;
+            sequence++;
+            if (recurrence.RangeKind == OutlookRecurrenceRangeKind.OccurrenceCount &&
+                recurrence.OccurrenceCount.HasValue && sequence > recurrence.OccurrenceCount.Value) break;
+            if (requested.Contains(date)) matches.Add(date);
+            if (matches.Count == requested.Count) break;
+            if (recurrence.RangeKind == OutlookRecurrenceRangeKind.OccurrenceCount &&
+                recurrence.OccurrenceCount.HasValue && sequence >= recurrence.OccurrenceCount.Value) break;
+        }
+        return matches;
+    }
+
     private static IEnumerable<RecurrenceDateCandidate> EnumerateDates(OutlookRecurrence recurrence) {
         DateTime startDate = recurrence.Start.Date;
         if (recurrence.PatternKind == OutlookRecurrencePatternKind.Day) {

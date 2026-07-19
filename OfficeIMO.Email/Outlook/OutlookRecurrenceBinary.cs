@@ -312,16 +312,39 @@ public static class OutlookRecurrenceBinary {
             throw new InvalidOperationException("An end-date recurrence requires EndDate.");
         if (!appointment && recurrence.Exceptions.Count != 0)
             throw new NotSupportedException("Task RecurrencePattern values do not contain appointment exceptions.");
-        if (appointment && recurrence.Exceptions.GroupBy(exception => exception.OriginalStart.Date)
+        if (appointment) ValidateAppointmentExceptions(recurrence);
+        if (recurrence.Duration < TimeSpan.Zero || recurrence.Start.TimeOfDay.TotalMinutes + recurrence.Duration.TotalMinutes > uint.MaxValue)
+            throw new ArgumentOutOfRangeException(nameof(recurrence), "The appointment duration cannot be encoded.");
+    }
+
+    private static void ValidateAppointmentExceptions(OutlookRecurrence recurrence) {
+        if (recurrence.Exceptions.GroupBy(exception => exception.OriginalStart.Date)
                 .Any(group => group.Skip(1).Any()))
             throw new InvalidOperationException(
                 "Only one Outlook recurrence exception can target each original occurrence date.");
-        if (appointment && recurrence.Exceptions.GroupBy(exception => exception.Start.Date)
+        if (recurrence.Exceptions.GroupBy(exception => exception.Start.Date)
                 .Any(group => group.Skip(1).Any()))
             throw new InvalidOperationException(
                 "Outlook recurrence exceptions cannot start on the same calendar date.");
-        if (recurrence.Duration < TimeSpan.Zero || recurrence.Start.TimeOfDay.TotalMinutes + recurrence.Duration.TotalMinutes > uint.MaxValue)
-            throw new ArgumentOutOfRangeException(nameof(recurrence), "The appointment duration cannot be encoded.");
+        if (recurrence.Exceptions.Any(exception =>
+                exception.OriginalStart.TimeOfDay != recurrence.Start.TimeOfDay))
+            throw new InvalidOperationException(
+                "An Outlook recurrence exception OriginalStart must use the base occurrence time.");
+
+        var originalDates = new HashSet<DateTime>(recurrence.Exceptions.Select(exception =>
+            exception.OriginalStart.Date));
+        var movedDates = new HashSet<DateTime>(recurrence.Exceptions.Select(exception => exception.Start.Date));
+        HashSet<DateTime> baseDates = OutlookRecurrenceExpander.FindBaseOccurrenceDates(recurrence,
+            originalDates.Concat(movedDates));
+        if (originalDates.Any(date => !baseDates.Contains(date)))
+            throw new InvalidOperationException(
+                "An Outlook recurrence exception must identify an occurrence in the base series.");
+
+        var deletedDates = new HashSet<DateTime>(recurrence.DeletedOccurrenceDates.Select(value => value.Date));
+        if (movedDates.Any(date => baseDates.Contains(date) &&
+                !originalDates.Contains(date) && !deletedDates.Contains(date)))
+            throw new InvalidOperationException(
+                "An Outlook recurrence exception cannot move onto an unmodified base occurrence.");
     }
 
     internal static bool IsValidFrequencyPattern(

@@ -75,22 +75,23 @@ public sealed class OutlookRecurrenceTests {
     [Fact]
     public void EncodesMovedExceptionDatesUsingMicrosoftWireSemantics() {
         var recurrence = new OutlookRecurrence {
-            Frequency = OutlookRecurrenceFrequency.Daily,
-            PatternKind = OutlookRecurrencePatternKind.Day,
+            Frequency = OutlookRecurrenceFrequency.Weekly,
+            PatternKind = OutlookRecurrencePatternKind.Week,
+            DaysOfWeek = OutlookRecurrenceDays.Wednesday,
             Start = new DateTime(2026, 7, 1, 9, 0, 0),
             Duration = TimeSpan.FromHours(1),
             RangeKind = OutlookRecurrenceRangeKind.OccurrenceCount,
             OccurrenceCount = 10
         };
         recurrence.Exceptions.Add(new OutlookRecurrenceException {
-            OriginalStart = new DateTime(2026, 7, 2, 9, 0, 0),
-            Start = new DateTime(2026, 7, 3, 11, 0, 0),
-            End = new DateTime(2026, 7, 3, 12, 0, 0)
+            OriginalStart = new DateTime(2026, 7, 8, 9, 0, 0),
+            Start = new DateTime(2026, 7, 9, 11, 0, 0),
+            End = new DateTime(2026, 7, 9, 12, 0, 0)
         });
 
         byte[] encoded = OutlookRecurrenceBinary.EncodeAppointment(recurrence);
         using var reader = new BinaryReader(new MemoryStream(encoded));
-        reader.BaseStream.Position = 34;
+        reader.BaseStream.Position = 38;
         uint deletedCount = reader.ReadUInt32();
         uint deletedDate = reader.ReadUInt32();
         uint modifiedCount = reader.ReadUInt32();
@@ -104,6 +105,56 @@ public sealed class OutlookRecurrenceTests {
         Assert.Equal(1U, modifiedCount);
         Assert.Equal(movedDate, modifiedDate);
         Assert.NotEqual(deletedDate, modifiedDate);
+    }
+
+    [Fact]
+    public void RejectsExceptionMovedOntoAnUnmodifiedBaseOccurrence() {
+        var recurrence = new OutlookRecurrence {
+            Frequency = OutlookRecurrenceFrequency.Daily,
+            PatternKind = OutlookRecurrencePatternKind.Day,
+            Start = new DateTime(2026, 7, 1, 9, 0, 0),
+            Duration = TimeSpan.FromHours(1),
+            RangeKind = OutlookRecurrenceRangeKind.OccurrenceCount,
+            OccurrenceCount = 10
+        };
+        recurrence.Exceptions.Add(new OutlookRecurrenceException {
+            OriginalStart = new DateTime(2026, 7, 2, 9, 0, 0),
+            Start = new DateTime(2026, 7, 3, 11, 0, 0),
+            End = new DateTime(2026, 7, 3, 12, 0, 0)
+        });
+
+        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
+            OutlookRecurrenceBinary.EncodeAppointment(recurrence));
+
+        Assert.Contains("unmodified base occurrence", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void RejectsExceptionsThatDoNotIdentifyAnExactBaseOccurrence(bool wrongTime) {
+        var recurrence = new OutlookRecurrence {
+            Frequency = OutlookRecurrenceFrequency.Weekly,
+            PatternKind = OutlookRecurrencePatternKind.Week,
+            DaysOfWeek = OutlookRecurrenceDays.Wednesday,
+            Start = new DateTime(2026, 7, 1, 9, 0, 0),
+            Duration = TimeSpan.FromHours(1),
+            RangeKind = OutlookRecurrenceRangeKind.OccurrenceCount,
+            OccurrenceCount = 10
+        };
+        recurrence.Exceptions.Add(new OutlookRecurrenceException {
+            OriginalStart = wrongTime
+                ? new DateTime(2026, 7, 8, 10, 0, 0)
+                : new DateTime(2026, 7, 9, 9, 0, 0),
+            Start = new DateTime(2026, 7, 10, 11, 0, 0),
+            End = new DateTime(2026, 7, 10, 12, 0, 0)
+        });
+
+        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
+            OutlookRecurrenceBinary.EncodeAppointment(recurrence));
+
+        Assert.Contains(wrongTime ? "base occurrence time" : "base series",
+            exception.Message, StringComparison.Ordinal);
     }
 
     [Theory]
