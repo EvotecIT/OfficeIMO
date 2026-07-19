@@ -126,14 +126,14 @@ namespace OfficeIMO.Word {
             CancellationToken cancellationToken) {
             cancellationToken.ThrowIfCancellationRequested();
             IReadOnlyList<int> sectionPageNumberStarts = ResolveSectionPageNumberStarts(document, sectionPageCounts);
-            IReadOnlyDictionary<OpenXmlElement, WordImageSourceBlock> sourceBlocks =
-                BuildImageSourceBlocks(document, cancellationToken);
             WordImagePageContext pageContext = ResolvePageContext(document, options.PageIndex, sectionPageCounts);
             (double width, double height) = GetPageSizePoints(pageContext.Section);
             OfficeDrawing drawing = new OfficeDrawing(width, height).ApplyImageExportOptions(options);
             AddBackgroundRectangle(drawing, options.BackgroundColor);
 
             if (options.IncludeDocumentContent) {
+                IReadOnlyDictionary<OpenXmlElement, WordImageSourceBlock> sourceBlocks =
+                    BuildImageSourceBlocks(document, cancellationToken);
                 int totalPageCount = Math.Max(1, sectionPageCounts.Sum());
                 int sectionPageCount = pageContext.SectionIndex < sectionPageCounts.Count
                     ? sectionPageCounts[pageContext.SectionIndex]

@@ -96,37 +96,59 @@ public static partial class OfficeDocumentReadResultExtensions {
 
         foreach (OfficeDocumentBlock block in document.Blocks ?? Array.Empty<OfficeDocumentBlock>()) {
             string text = block.Text ?? string.Empty;
-            int searchFrom = 0;
-            while (searchFrom <= text.Length - query.Length) {
-                int index = text.IndexOf(query, searchFrom, comparison);
-                if (index < 0) {
-                    break;
-                }
+            int remainingResultCount = effective.MaximumResults - hits.Count;
+            int occurrenceScanLimit = remainingResultCount == int.MaxValue
+                ? int.MaxValue
+                : remainingResultCount + 1;
+            IReadOnlyList<int> occurrenceIndexes = FindOccurrences(
+                text,
+                query,
+                comparison,
+                effective.WholeWord,
+                occurrenceScanLimit);
+            if (occurrenceIndexes.Count == 0) {
+                continue;
+            }
 
-                searchFrom = index + Math.Max(1, query.Length);
-                if (effective.WholeWord && !IsWholeWord(text, index, query.Length)) {
-                    continue;
-                }
-
-                IReadOnlyList<OfficeDocumentPageLocation> locations = document.Locate(block);
-                OfficeDocumentPageLocation[] pageSpecific = locations
+            bool hasUnreturnedOccurrences = occurrenceIndexes.Count > remainingResultCount;
+            int returnedOccurrenceCount = Math.Min(
+                occurrenceIndexes.Count,
+                remainingResultCount);
+            IReadOnlyList<OfficeDocumentPageLocation> locations = document.Locate(block);
+            IReadOnlyList<OfficeDocumentPageLocation>? occurrencePages =
+                hasUnreturnedOccurrences
+                    ? null
+                    : CorrelateOccurrencesToPages(
+                        locations,
+                        block.Id,
+                        query,
+                        comparison,
+                        effective.WholeWord,
+                        occurrenceIndexes.Count);
+            OfficeDocumentPageLocation[] pageSpecific = occurrencePages == null
+                ? locations
                     .Where(location => PageContainsQuery(
                         location.Page,
                         block.Id,
                         query,
                         comparison,
                         effective.WholeWord))
-                    .ToArray();
-                bool hasPageBlockEvidence = locations.Any(location =>
-                    (location.Page.Blocks ?? Array.Empty<OfficeDocumentBlock>())
-                    .Any(pageBlock => string.Equals(pageBlock.Id, block.Id, StringComparison.Ordinal)));
+                    .ToArray()
+                : Array.Empty<OfficeDocumentPageLocation>();
+            bool hasPageBlockEvidence = locations.Any(location =>
+                (location.Page.Blocks ?? Array.Empty<OfficeDocumentBlock>())
+                .Any(pageBlock => string.Equals(pageBlock.Id, block.Id, StringComparison.Ordinal)));
+
+            for (int occurrenceIndex = 0; occurrenceIndex < returnedOccurrenceCount; occurrenceIndex++) {
                 hits.Add(new OfficeDocumentSearchHit(
                     block,
-                    index,
+                    occurrenceIndexes[occurrenceIndex],
                     query.Length,
-                    pageSpecific.Length > 0 || hasPageBlockEvidence
-                        ? pageSpecific
-                        : locations));
+                    occurrencePages != null
+                        ? new[] { occurrencePages[occurrenceIndex] }
+                        : pageSpecific.Length > 0 || hasPageBlockEvidence
+                            ? pageSpecific
+                            : locations));
                 if (hits.Count >= effective.MaximumResults) {
                     return new OfficeDocumentSearchResult(query, document.GetTotalPageCount(), hits.AsReadOnly());
                 }
@@ -134,6 +156,47 @@ public static partial class OfficeDocumentReadResultExtensions {
         }
 
         return new OfficeDocumentSearchResult(query, document.GetTotalPageCount(), hits.AsReadOnly());
+    }
+
+    private static IReadOnlyList<OfficeDocumentPageLocation>? CorrelateOccurrencesToPages(
+        IReadOnlyList<OfficeDocumentPageLocation> locations,
+        string blockId,
+        string query,
+        StringComparison comparison,
+        bool wholeWord,
+        int sourceOccurrenceCount) {
+        if (sourceOccurrenceCount == 0) {
+            return Array.Empty<OfficeDocumentPageLocation>();
+        }
+
+        var pageOccurrences = new List<OfficeDocumentPageLocation>(sourceOccurrenceCount);
+        int pageOccurrenceLimit = sourceOccurrenceCount == int.MaxValue
+            ? int.MaxValue
+            : sourceOccurrenceCount + 1;
+        foreach (OfficeDocumentPageLocation location in locations) {
+            foreach (OfficeDocumentBlock pageBlock in location.Page.Blocks ?? Array.Empty<OfficeDocumentBlock>()) {
+                if (!string.Equals(pageBlock.Id, blockId, StringComparison.Ordinal)) {
+                    continue;
+                }
+
+                int count = CountOccurrences(
+                    pageBlock.Text ?? string.Empty,
+                    query,
+                    comparison,
+                    wholeWord,
+                    pageOccurrenceLimit - pageOccurrences.Count);
+                for (int index = 0; index < count; index++) {
+                    pageOccurrences.Add(location);
+                }
+                if (pageOccurrences.Count > sourceOccurrenceCount) {
+                    return null;
+                }
+            }
+        }
+
+        return pageOccurrences.Count == sourceOccurrenceCount
+            ? pageOccurrences.AsReadOnly()
+            : null;
     }
 
     private static bool PageContainsQuery(
@@ -147,20 +210,74 @@ public static partial class OfficeDocumentReadResultExtensions {
                 continue;
             }
 
-            string text = pageBlock.Text ?? string.Empty;
-            int searchFrom = 0;
-            while (searchFrom <= text.Length - query.Length) {
-                int index = text.IndexOf(query, searchFrom, comparison);
-                if (index < 0) {
-                    break;
-                }
-                if (!wholeWord || IsWholeWord(text, index, query.Length)) {
-                    return true;
-                }
-                searchFrom = index + Math.Max(1, query.Length);
+            if (CountOccurrences(
+                    pageBlock.Text ?? string.Empty,
+                    query,
+                    comparison,
+                    wholeWord,
+                    maximumOccurrences: 1) > 0) {
+                return true;
             }
         }
         return false;
+    }
+
+    private static IReadOnlyList<int> FindOccurrences(
+        string text,
+        string query,
+        StringComparison comparison,
+        bool wholeWord,
+        int maximumOccurrences) {
+        var occurrences = new List<int>();
+        if (maximumOccurrences < 1) {
+            return occurrences.AsReadOnly();
+        }
+
+        int searchFrom = 0;
+        while (searchFrom <= text.Length - query.Length) {
+            int index = text.IndexOf(query, searchFrom, comparison);
+            if (index < 0) {
+                break;
+            }
+
+            searchFrom = index + Math.Max(1, query.Length);
+            if (!wholeWord || IsWholeWord(text, index, query.Length)) {
+                occurrences.Add(index);
+                if (occurrences.Count >= maximumOccurrences) {
+                    break;
+                }
+            }
+        }
+        return occurrences.AsReadOnly();
+    }
+
+    private static int CountOccurrences(
+        string text,
+        string query,
+        StringComparison comparison,
+        bool wholeWord,
+        int maximumOccurrences) {
+        if (maximumOccurrences < 1) {
+            return 0;
+        }
+
+        int count = 0;
+        int searchFrom = 0;
+        while (searchFrom <= text.Length - query.Length) {
+            int index = text.IndexOf(query, searchFrom, comparison);
+            if (index < 0) {
+                break;
+            }
+
+            searchFrom = index + Math.Max(1, query.Length);
+            if (!wholeWord || IsWholeWord(text, index, query.Length)) {
+                count++;
+                if (count >= maximumOccurrences) {
+                    break;
+                }
+            }
+        }
+        return count;
     }
 
     private static bool IsWholeWord(string text, int start, int length) {

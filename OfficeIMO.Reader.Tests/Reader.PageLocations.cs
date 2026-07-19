@@ -79,6 +79,63 @@ public sealed class ReaderPageLocationTests {
     }
 
     [Fact]
+    public void Search_AssociatesRepeatedOccurrencesWithTheirActualPageFragments() {
+        var sourceBlock = new OfficeDocumentBlock {
+            Id = "paragraph-0002",
+            Kind = "paragraph",
+            Text = "First needle before the page boundary. Second needle after it.",
+            Location = new ReaderLocation { BlockAnchor = "paragraph-0002" }
+        };
+        OfficeDocumentReadResult document = new OfficeDocumentReadResult {
+            Kind = ReaderInputKind.Word,
+            Blocks = new[] { sourceBlock },
+            Pages = new[] {
+                Page(1, PageBlock(sourceBlock, 1, "First needle before the page boundary.")),
+                Page(2, PageBlock(sourceBlock, 2, "Second needle after it."))
+            }
+        };
+
+        OfficeDocumentSearchResult result = document.Search("needle");
+        OfficeDocumentSearchResult limited = document.Search(
+            "needle",
+            new OfficeDocumentSearchOptions { MaximumResults = 1 });
+
+        Assert.Equal(2, result.Hits.Count);
+        Assert.Equal(new[] { 1 }, result.Hits[0].Pages.Select(page => page.Number!.Value).ToArray());
+        Assert.Equal(new[] { 2 }, result.Hits[1].Pages.Select(page => page.Number!.Value).ToArray());
+        Assert.Equal(new[] { 1, 2 }, result.PageNumbers);
+        OfficeDocumentSearchHit limitedHit = Assert.Single(limited.Hits);
+        Assert.Equal(
+            new[] { 1, 2 },
+            limitedHit.Pages.Select(page => page.Number!.Value).ToArray());
+    }
+
+    [Fact]
+    public void Search_MaximumResultsBoundsOccurrenceCollectionForLargeBlocks() {
+        var sourceBlock = new OfficeDocumentBlock {
+            Id = "paragraph-large",
+            Kind = "paragraph",
+            Text = new string('a', 250_000)
+        };
+        var document = new OfficeDocumentReadResult {
+            Blocks = new[] { sourceBlock }
+        };
+
+#if NET8_0_OR_GREATER
+        long allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
+#endif
+        OfficeDocumentSearchHit hit = Assert.Single(document.Search(
+            "a",
+            new OfficeDocumentSearchOptions { MaximumResults = 1 }).Hits);
+#if NET8_0_OR_GREATER
+        long allocated = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
+        Assert.InRange(allocated, 0L, 512L * 1024L);
+#endif
+
+        Assert.Equal(0, hit.StartIndex);
+    }
+
+    [Fact]
     public void PdfReader_ExposesNativePageSearchAndPageMarkedMarkdown() {
         byte[] pdf = PdfDocument.Create(new PdfOptions {
                 PageWidth = 420,
