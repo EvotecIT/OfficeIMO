@@ -110,7 +110,10 @@ internal sealed partial class PdfStandardSecurityHandler {
 
     private PdfStringObj DecryptString(int objectNumber, int generation, PdfStringObj text) {
         byte[] decrypted = DecryptData(objectNumber, generation, text.RawBytes, _stringMethod);
-        return new PdfStringObj(decrypted, text.UseTextStringEncoding);
+        return new PdfStringObj(
+            decrypted,
+            text.UseTextStringEncoding,
+            text.EncodedTokenLength);
     }
 
     private PdfDictionary DecryptDictionary(int objectNumber, int generation, PdfDictionary dictionary) {

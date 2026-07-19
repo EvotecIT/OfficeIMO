@@ -9,6 +9,149 @@ namespace OfficeIMO.Tests.Pdf;
 
 public class PdfReadLimitTests {
     [Fact]
+    public void DefaultReadLimitsAreIndependentAcrossOptionInstances() {
+        var first = new PdfReadOptions();
+        var second = new PdfReadOptions();
+        var setter = typeof(PdfReadLimits).GetProperty(nameof(PdfReadLimits.MaxInputBytes))!;
+
+        setter.SetValue(first.Limits, 1L);
+
+        Assert.Equal(1L, first.Limits.MaxInputBytes);
+        Assert.Equal(512L * 1024L * 1024L, second.Limits.MaxInputBytes);
+        Assert.Equal(512L * 1024L * 1024L, PdfReadOptions.Default.Limits.MaxInputBytes);
+        Assert.NotSame(PdfReadOptions.Default, PdfReadOptions.Default);
+        Assert.NotSame(PdfReadLimits.Default, PdfReadLimits.Default);
+    }
+
+    [Fact]
+    public void ExternalSignatureCompletionAllowsItsOwnPreparedRevisionBeyondTheSourceBudget() {
+        byte[] pdf = BuildPdf();
+        var readOptions = new PdfReadOptions {
+            Limits = new PdfReadLimits { MaxInputBytes = pdf.Length }
+        };
+
+        PdfDocument source = PdfDocument.Open(pdf, readOptions);
+        PdfExternalSignaturePreparation preparation = source.PrepareExternalSignature(
+            new PdfExternalSignatureOptions {
+                FieldName = "BudgetedSignature",
+                ReservedSignatureContentsBytes = 512
+            });
+
+        Assert.True(preparation.PreparedPdf.LongLength > readOptions.Limits.MaxInputBytes);
+        PdfDocument completed = preparation.Complete(new byte[] { 0x30, 0x01, 0x00 });
+
+        Assert.True(completed.ToBytes().LongLength > readOptions.Limits.MaxInputBytes);
+        Assert.Single(completed.Inspect().FormFields);
+    }
+
+    [Fact]
+    public void OneShotExternalSignatureEnforcesStoredPageLimitBeforeCallingSigner() {
+        byte[] twoPages = PdfDocument.Create()
+            .Paragraph(paragraph => paragraph.Text("First page"))
+            .PageBreak()
+            .Paragraph(paragraph => paragraph.Text("Second page"))
+            .ToBytes();
+        var readOptions = new PdfReadOptions {
+            Limits = new PdfReadLimits { MaxPages = 1 }
+        };
+        var signer = new RecordingExternalSigner();
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(
+            () => PdfDocument.Open(twoPages, readOptions).SignExternal(signer));
+
+        Assert.Equal(PdfReadLimitKind.Pages, exception.Kind);
+        Assert.False(signer.WasCalled);
+    }
+
+    [Fact]
+    public void OneShotExternalSignatureCompletionRetainsPolicyForItsOwnedOutput() {
+        byte[] pdf = BuildPdf();
+        var readOptions = new PdfReadOptions {
+            Limits = new PdfReadLimits { MaxInputBytes = pdf.Length }
+        };
+
+        PdfExternalSignatureCompletion completion = PdfDocument.Open(pdf, readOptions)
+            .SignExternal(new RecordingExternalSigner());
+
+        Assert.True(completion.Pdf.LongLength > readOptions.Limits.MaxInputBytes);
+        Assert.Single(completion.ToDocument().Inspect().FormFields);
+    }
+
+    [Fact]
+    public void AnnotationResultAllowsItsOwnRevisionBeyondTheSourceBudget() {
+        byte[] pdf = BuildPdf();
+        var readOptions = new PdfReadOptions {
+            Limits = new PdfReadLimits { MaxInputBytes = pdf.Length }
+        };
+
+        PdfAnnotationEditResult result = PdfAnnotationEditor.AddAnnotation(
+            pdf,
+            new PdfAnnotationCreateOptions {
+                Subtype = "Text",
+                Contents = "Budgeted annotation"
+            },
+            readOptions);
+
+        Assert.True(result.Bytes.LongLength > readOptions.Limits.MaxInputBytes);
+        Assert.Single(result.ToDocument().Inspect().GetAnnotationsBySubtype("Text"));
+    }
+
+    [Fact]
+    public void MergeAllowsItsOwnedOutputBeyondThePrimarySourceBudget() {
+        byte[] first = BuildPdf();
+        byte[] second = PdfDocument.Create()
+            .Paragraph(paragraph => paragraph.Text("Second merge source"))
+            .ToBytes();
+        var readOptions = new PdfReadOptions {
+            Limits = new PdfReadLimits { MaxInputBytes = first.Length }
+        };
+
+        PdfDocument merged = PdfDocument.Merge(
+            PdfDocument.Open(first, readOptions),
+            PdfDocument.Open(second));
+
+        Assert.True(merged.ToBytes().LongLength > readOptions.Limits.MaxInputBytes);
+        Assert.Equal(2, merged.Inspect().PageCount);
+    }
+
+    [Fact]
+    public void WebOptimizationAllowsItsOwnedCandidateBeyondTheSourceBudget() {
+        byte[] pdf = BuildPdf();
+        var readOptions = new PdfReadOptions {
+            Limits = new PdfReadLimits { MaxInputBytes = pdf.Length }
+        };
+
+        PdfOptimizationActionResult result = PdfDocument.Open(pdf, readOptions)
+            .Optimize(PdfOptimizationProfile.Web);
+
+        Assert.True(result.Bytes.LongLength > readOptions.Limits.MaxInputBytes);
+        Assert.Single(result.ToDocument().Inspect().Pages);
+    }
+
+    [Fact]
+    public void PersistedExternalSignatureCompletionEnforcesStoredPageLimitsBeforeMutation() {
+        byte[] twoPages = PdfDocument.Create()
+            .Paragraph(paragraph => paragraph.Text("First page"))
+            .PageBreak()
+            .Paragraph(paragraph => paragraph.Text("Second page"))
+            .ToBytes();
+        PdfExternalSignaturePreparation preparation = PdfDocument.Open(twoPages)
+            .PrepareExternalSignature(new PdfExternalSignatureOptions {
+                FieldName = "PersistedSignature",
+                ReservedSignatureContentsBytes = 512
+            });
+        var readOptions = new PdfReadOptions {
+            Limits = new PdfReadLimits { MaxPages = 1 }
+        };
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(
+            () => PdfDocument.Open(preparation.PreparedPdf, readOptions)
+                .CompleteExternalSignature(new byte[] { 0x30, 0x01, 0x00 }));
+
+        Assert.Equal(PdfReadLimitKind.Pages, exception.Kind);
+    }
+
+    [Fact]
     public void InputByteBudgetStopsBeforeObjectScanning() {
         byte[] pdf = BuildPdf();
         var options = new PdfReadOptions {
@@ -98,6 +241,56 @@ public class PdfReadLimitTests {
 
         Assert.Equal(PdfReadLimitKind.InputBytes, exception.Kind);
         Assert.InRange(stream.BytesRead, 17, 19);
+    }
+
+    [Fact]
+    public void PdfDocumentPreflightBoundsPathsAndStreamsBeforeUnboundedBuffering() {
+        byte[] pdf = BuildPdf();
+        string path = Path.Combine(Path.GetTempPath(), "officeimo-pdf-preflight-limit-" + Guid.NewGuid().ToString("N") + ".pdf");
+        var restrictive = new PdfReadOptions {
+            Limits = new PdfReadLimits { MaxInputBytes = 16 }
+        };
+
+        try {
+            File.WriteAllBytes(path, pdf);
+            PdfReadLimitException pathException = Assert.Throws<PdfReadLimitException>(
+                () => PdfDocument.Preflight(path, restrictive));
+
+            using var seekable = new MemoryStream(pdf);
+            PdfReadLimitException streamException = Assert.Throws<PdfReadLimitException>(
+                () => PdfDocument.Preflight(seekable, restrictive));
+
+            using var nonSeekable = new ChunkedNonSeekableStream(pdf, maximumChunkSize: 3);
+            PdfReadLimitException nonSeekableException = Assert.Throws<PdfReadLimitException>(
+                () => PdfDocument.Preflight(nonSeekable, restrictive));
+
+            Assert.Equal(PdfReadLimitKind.InputBytes, pathException.Kind);
+            Assert.Equal(PdfReadLimitKind.InputBytes, streamException.Kind);
+            Assert.Equal(0, seekable.Position);
+            Assert.Equal(PdfReadLimitKind.InputBytes, nonSeekableException.Kind);
+            Assert.InRange(nonSeekable.BytesRead, 17, 19);
+        } finally {
+            if (File.Exists(path)) {
+                File.Delete(path);
+            }
+        }
+    }
+
+    [Fact]
+    public void PdfDocumentPreflightConsumesSeekableStreamsFromTheirCurrentPosition() {
+        byte[] pdf = BuildPdf();
+        byte[] prefixed = new byte[pdf.Length + 7];
+        Buffer.BlockCopy(pdf, 0, prefixed, 7, pdf.Length);
+        using var stream = new MemoryStream(prefixed);
+        stream.Position = 7;
+        var options = new PdfReadOptions {
+            Limits = new PdfReadLimits { MaxInputBytes = pdf.Length }
+        };
+
+        PdfDocumentPreflight preflight = PdfDocument.Preflight(stream, options);
+
+        Assert.True(preflight.CanRead);
+        Assert.Equal(stream.Length, stream.Position);
     }
 
     [Fact]
@@ -643,5 +836,16 @@ public class PdfReadLimitTests {
         public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
         public override void SetLength(long value) => throw new NotSupportedException();
         public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+    }
+
+    private sealed class RecordingExternalSigner : IPdfExternalSigner {
+        public string Name => "Recording test signer";
+
+        internal bool WasCalled { get; private set; }
+
+        public byte[] Sign(PdfExternalSignatureRequest request) {
+            WasCalled = true;
+            return new byte[] { 0x30, 0x01, 0x00 };
+        }
     }
 }

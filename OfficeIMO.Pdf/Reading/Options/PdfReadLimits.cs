@@ -7,8 +7,8 @@ public sealed class PdfReadLimits {
     internal const int DefaultMaxContentOperands = 1_000_000;
     internal const int DefaultMaxContentNestingDepth = 128;
 
-    /// <summary>Default immutable parser budgets.</summary>
-    public static PdfReadLimits Default { get; } = new PdfReadLimits();
+    /// <summary>Creates default parser budgets that callers can customize without changing another options instance.</summary>
+    public static PdfReadLimits Default => new PdfReadLimits();
 
     /// <summary>Maximum input byte count accepted before text/object scanning. Default: 512 MiB.</summary>
     public long MaxInputBytes { get; init; } = 512L * 1024L * 1024L;
@@ -63,6 +63,29 @@ public sealed class PdfReadLimits {
 
     /// <summary>Maximum nested lexical arrays/dictionaries or form XObjects while parsing page content. Default: 128.</summary>
     public int MaxContentNestingDepth { get; init; } = DefaultMaxContentNestingDepth;
+
+    internal PdfReadLimits WithMinimumInputBytes(long minimumInputBytes) {
+        return new PdfReadLimits {
+            MaxInputBytes = Math.Max(MaxInputBytes, minimumInputBytes),
+            MaxIndirectObjects = MaxIndirectObjects,
+            MaxRawStreamBytes = MaxRawStreamBytes,
+            MaxDecodedStreamBytes = MaxDecodedStreamBytes,
+            MaxObjectCharacters = MaxObjectCharacters,
+            MaxTokensPerObject = MaxTokensPerObject,
+            MaxObjectNestingDepth = MaxObjectNestingDepth,
+            MaxObjectParsingTime = MaxObjectParsingTime,
+            MaxRevisions = MaxRevisions,
+            MaxPageTreeNodes = MaxPageTreeNodes,
+            MaxPageTreeDepth = MaxPageTreeDepth,
+            MaxPages = MaxPages,
+            MaxFormFields = MaxFormFields,
+            MaxFormFieldDepth = MaxFormFieldDepth,
+            MaxAnnotationsPerPage = MaxAnnotationsPerPage,
+            MaxContentOperations = MaxContentOperations,
+            MaxContentOperands = MaxContentOperands,
+            MaxContentNestingDepth = MaxContentNestingDepth
+        };
+    }
 
     internal void Validate() {
         if (MaxInputBytes <= 0) {

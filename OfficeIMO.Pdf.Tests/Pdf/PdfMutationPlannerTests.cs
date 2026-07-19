@@ -326,6 +326,30 @@ public class PdfMutationPlannerTests {
     }
 
     [Fact]
+    public void ExternalSignatureFinalizationRejectsEmptyAndAmbiguousRawCompletion() {
+        byte[] source = PdfDocument.Create()
+            .Paragraph(paragraph => paragraph.Text("Signature finalization ambiguity source"))
+            .ToBytes();
+        PdfExternalSignaturePreparation first = PdfIncrementalUpdater.PrepareExternalSignature(
+            source,
+            new PdfExternalSignatureOptions {
+                FieldName = "FirstApproval",
+                ReservedSignatureContentsBytes = 256
+            });
+        byte[] secondPlaceholder = System.Text.Encoding.ASCII.GetBytes(
+            "\n999999 0 obj\n<< /Type /Sig /ByteRange [0 0 0 0] /Contents <00000000> >>\nendobj\n");
+        byte[] ambiguousPdf = first.PreparedPdf.Concat(secondPlaceholder).ToArray();
+
+        Assert.Throws<ArgumentException>(() => first.Complete(Array.Empty<byte>()));
+        Assert.Throws<ArgumentException>(() => PdfDocument.Open(first.PreparedPdf).CompleteExternalSignature(Array.Empty<byte>()));
+        ArgumentException ambiguous = Assert.Throws<ArgumentException>(
+            () => PdfDocument.Open(ambiguousPdf).CompleteExternalSignature(new byte[] { 0x30, 0x01, 0x00 }));
+
+        Assert.Contains("multiple", ambiguous.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.NotEmpty(first.Complete(new byte[] { 0x30, 0x01, 0x00 }).ToBytes());
+    }
+
+    [Fact]
     public void Plan_ExposesSharedCapabilityRecordsForAffectedStructures() {
         byte[] source = PdfDocument.Create()
             .Paragraph(paragraph => paragraph.Text("Capability record source"))

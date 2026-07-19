@@ -11,23 +11,29 @@ internal static partial class PdfIncrementalUpdater {
     /// Appends an AcroForm signature field and a detached-signature placeholder as a new incremental revision.
     /// The returned byte ranges can be signed by an external CMS/CAdES/TSA provider without adding cryptographic dependencies.
     /// </summary>
-    public static PdfExternalSignaturePreparation PrepareExternalSignature(byte[] pdf, PdfExternalSignatureOptions? options = null) {
+    public static PdfExternalSignaturePreparation PrepareExternalSignature(byte[] pdf, PdfExternalSignatureOptions? options = null) =>
+        PrepareExternalSignature(pdf, options, readOptions: null);
+
+    internal static PdfExternalSignaturePreparation PrepareExternalSignature(
+        byte[] pdf,
+        PdfExternalSignatureOptions? options,
+        PdfReadOptions? readOptions) {
         Guard.NotNull(pdf, nameof(pdf));
         PdfExternalSignatureOptions effectiveOptions = options ?? new PdfExternalSignatureOptions();
         ValidateExternalSignatureOptions(effectiveOptions);
         PdfSignatureProfile signatureProfile = ResolveSignatureProfile(effectiveOptions);
-        _ = PdfMutationPlanner.RequireAppendOnly(pdf, PdfMutationOperation.PrepareExternalSignature);
+        _ = PdfMutationPlanner.RequireAppendOnly(pdf, PdfMutationOperation.PrepareExternalSignature, readOptions);
 
-        PdfDocumentSecurityInfo security = PdfSyntax.ReadDocumentSecurityInfo(pdf);
+        PdfDocumentSecurityInfo security = PdfSyntax.ReadDocumentSecurityInfo(pdf, readOptions);
 
-        var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf);
+        var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf, readOptions);
         if (!security.RootObjectNumber.HasValue ||
             !objects.TryGetValue(security.RootObjectNumber.Value, out PdfIndirectObject? rootObject) ||
             rootObject.Value is not PdfDictionary catalog) {
             throw new InvalidOperationException("PDF root catalog dictionary is required for external signature preparation.");
         }
 
-        EnsureSignatureFieldNameAvailable(pdf, effectiveOptions.FieldName);
+        EnsureSignatureFieldNameAvailable(pdf, effectiveOptions.FieldName, readOptions);
 
         int nextObjectNumber = objects.Keys.Count == 0 ? 1 : objects.Keys.Max() + 1;
         int signatureObjectNumber = nextObjectNumber++;
@@ -85,7 +91,7 @@ internal static partial class PdfIncrementalUpdater {
             changedObjects,
             new[] { (ObjectNumber: signatureObjectNumber, Bytes: signatureBytes) });
 
-        return PatchSignatureByteRange(prepared, effectiveOptions, signatureObjectNumber);
+        return PatchSignatureByteRange(prepared, effectiveOptions, signatureObjectNumber, readOptions);
     }
 
     /// <summary>Appends an external signature placeholder to a readable PDF stream.</summary>
@@ -115,7 +121,8 @@ internal static partial class PdfIncrementalUpdater {
         Guard.NotNull(signatureContents, nameof(signatureContents));
         _ = PdfMutationPlanner.RequireAppendOnly(
             preparation.PreparedPdf,
-            PdfMutationOperation.FinalizeExternalSignature);
+            PdfMutationOperation.FinalizeExternalSignature,
+            preparation.GetCompletionReadOptions(preparation.PreparedPdf.LongLength));
         return ApplyExternalSignature(
             preparation.PreparedPdf,
             signatureContents,
@@ -123,15 +130,28 @@ internal static partial class PdfIncrementalUpdater {
             preparation.ContentsHexLength);
     }
 
-    /// <summary>Injects externally produced CMS/CAdES/TSA bytes into the first zero-filled prepared signature placeholder found in a PDF.</summary>
-    public static byte[] ApplyExternalSignature(byte[] preparedPdf, byte[] signatureContents) {
+    /// <summary>Injects externally produced CMS/CAdES/TSA bytes into the only zero-filled prepared signature placeholder found in a PDF.</summary>
+    public static byte[] ApplyExternalSignature(byte[] preparedPdf, byte[] signatureContents) =>
+        ApplyExternalSignature(preparedPdf, signatureContents, readOptions: null);
+
+    internal static byte[] ApplyExternalSignature(
+        byte[] preparedPdf,
+        byte[] signatureContents,
+        PdfReadOptions? readOptions) {
         Guard.NotNull(preparedPdf, nameof(preparedPdf));
         Guard.NotNull(signatureContents, nameof(signatureContents));
+        _ = PdfReadDocument.Open(preparedPdf, readOptions);
         _ = PdfMutationPlanner.RequireAppendOnly(
             preparedPdf,
-            PdfMutationOperation.FinalizeExternalSignature);
-        if (!TryFindZeroFilledSignatureContents(preparedPdf, out int contentsHexOffset, out int contentsHexLength)) {
+            PdfMutationOperation.FinalizeExternalSignature,
+            readOptions);
+        int placeholderCount = FindZeroFilledSignatureContents(preparedPdf, out int contentsHexOffset, out int contentsHexLength);
+        if (placeholderCount == 0) {
             throw new ArgumentException("PDF does not contain a zero-filled external signature /Contents placeholder.", nameof(preparedPdf));
+        }
+
+        if (placeholderCount > 1) {
+            throw new ArgumentException("PDF contains multiple zero-filled external signature placeholders. Complete the intended PdfExternalSignaturePreparation instead.", nameof(preparedPdf));
         }
 
         return ApplyExternalSignature(preparedPdf, signatureContents, contentsHexOffset, contentsHexLength);
@@ -157,8 +177,8 @@ internal static partial class PdfIncrementalUpdater {
         ResolveSignatureSubFilter(options);
     }
 
-    private static void EnsureSignatureFieldNameAvailable(byte[] pdf, string fieldName) {
-        PdfDocumentInfo info = PdfInspector.Inspect(pdf);
+    private static void EnsureSignatureFieldNameAvailable(byte[] pdf, string fieldName, PdfReadOptions? readOptions) {
+        PdfDocumentInfo info = PdfInspector.Inspect(pdf, readOptions);
         if (info.FormFields.Any(field => string.Equals(field.Name, fieldName, StringComparison.Ordinal))) {
             throw new ArgumentException("PDF already contains a form field named " + fieldName + ".", nameof(fieldName));
         }
@@ -287,7 +307,11 @@ internal static partial class PdfIncrementalUpdater {
             "'");
     }
 
-    private static PdfExternalSignaturePreparation PatchSignatureByteRange(byte[] prepared, PdfExternalSignatureOptions options, int signatureObjectNumber) {
+    private static PdfExternalSignaturePreparation PatchSignatureByteRange(
+        byte[] prepared,
+        PdfExternalSignatureOptions options,
+        int signatureObjectNumber,
+        PdfReadOptions? readOptions) {
         byte[] output = (byte[])prepared.Clone();
         byte[] objectHeader = PdfEncoding.Latin1GetBytes(signatureObjectNumber.ToString(CultureInfo.InvariantCulture) + " 0 obj");
         int objectStart = IndexOf(output, objectHeader, 0);
@@ -333,10 +357,15 @@ internal static partial class PdfIncrementalUpdater {
             ranges,
             contentsLiteralStart + 1,
             options.ReservedSignatureContentsBytes * 2,
-            options.ReservedSignatureContentsBytes);
+            options.ReservedSignatureContentsBytes,
+            readOptions);
     }
 
     private static byte[] ApplyExternalSignature(byte[] preparedPdf, byte[] signatureContents, int contentsHexOffset, int contentsHexLength) {
+        if (signatureContents.Length == 0) {
+            throw new ArgumentException("Signature contents cannot be empty.", nameof(signatureContents));
+        }
+
         if (signatureContents.Length * 2 > contentsHexLength) {
             throw new ArgumentException("Signature contents require " + signatureContents.Length.ToString(CultureInfo.InvariantCulture) + " bytes, but the prepared PDF reserved " + (contentsHexLength / 2).ToString(CultureInfo.InvariantCulture) + " bytes.", nameof(signatureContents));
         }
@@ -357,15 +386,16 @@ internal static partial class PdfIncrementalUpdater {
         return builder.ToString();
     }
 
-    private static bool TryFindZeroFilledSignatureContents(byte[] pdf, out int contentsHexOffset, out int contentsHexLength) {
+    private static int FindZeroFilledSignatureContents(byte[] pdf, out int contentsHexOffset, out int contentsHexLength) {
         contentsHexOffset = 0;
         contentsHexLength = 0;
+        int placeholderCount = 0;
         byte[] marker = PdfEncoding.Latin1GetBytes("/Contents <");
         int searchOffset = 0;
         while (true) {
             int markerOffset = IndexOf(pdf, marker, searchOffset);
             if (markerOffset < 0) {
-                return false;
+                return placeholderCount;
             }
 
             int start = markerOffset + marker.Length;
@@ -384,9 +414,12 @@ internal static partial class PdfIncrementalUpdater {
                 end > start &&
                 IsZeroFilled(pdf, start, end - start) &&
                 IsSignatureContentsPlaceholder(pdf, markerOffset, end + 1)) {
-                contentsHexOffset = start;
-                contentsHexLength = end - start;
-                return true;
+                if (placeholderCount == 0) {
+                    contentsHexOffset = start;
+                    contentsHexLength = end - start;
+                }
+
+                placeholderCount++;
             }
 
             searchOffset = markerOffset + marker.Length;

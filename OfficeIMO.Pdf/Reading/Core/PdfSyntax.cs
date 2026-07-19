@@ -5,10 +5,8 @@ namespace OfficeIMO.Pdf;
 internal static partial class PdfSyntax {
     private static readonly TimeSpan RegexTimeout = TimeSpan.FromSeconds(2);
 #if NET8_0_OR_GREATER
-    private static readonly Regex ObjRegex = new Regex(@"(\d+)\s+(\d+)\s+obj", RegexOptions.Compiled | RegexOptions.NonBacktracking, RegexTimeout);
     private static readonly Regex StreamRegex = new Regex(@"<<(.*?)>>\s*stream\r?\n([\s\S]*?)\r?\nendstream", RegexOptions.Compiled | RegexOptions.Singleline | RegexOptions.NonBacktracking, RegexTimeout);
 #else
-    private static readonly Regex ObjRegex = new Regex(@"(\d+)\s+(\d+)\s+obj", RegexOptions.Compiled, RegexTimeout);
     private static readonly Regex StreamRegex = new Regex(@"<<(.*?)>>\s*stream\r?\n([\s\S]*?)\r?\nendstream", RegexOptions.Compiled | RegexOptions.Singleline, RegexTimeout);
 #endif
     private static readonly Regex TrailerRootRegex = new Regex(@"/Root\s+(\d+)\s+(\d+)\s+R", RegexOptions.Compiled, RegexTimeout);
@@ -44,10 +42,7 @@ internal static partial class PdfSyntax {
         var definitionCounts = new Dictionary<(int Id, int Generation), int>();
         var streamLocations = new List<(int Id, int Generation, int DataStart)>();
         var streamDataRanges = new List<(int Start, int End)>();
-        var matches = ObjRegex.Matches(text);
-        if (matches.Count > limits.MaxIndirectObjects) {
-            throw PdfReadLimitException.Create(PdfReadLimitKind.IndirectObjects, limits.MaxIndirectObjects, matches.Count);
-        }
+        List<IndirectObjectHeader> matches = FindIndirectObjectHeaders(text, parseTimer, limits);
 
         ThrowIfParsingTimeExceeded(parseTimer, limits);
         Dictionary<(int ObjectNumber, int Generation), int> declaredLengthValues =
@@ -58,8 +53,8 @@ internal static partial class PdfSyntax {
                 ThrowIfParsingTimeExceeded(parseTimer, limits);
             }
 
-            int id = int.Parse(matches[i].Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture);
-            int gen = int.Parse(matches[i].Groups[2].Value, System.Globalization.CultureInfo.InvariantCulture);
+            int id = matches[i].ObjectNumber;
+            int gen = matches[i].Generation;
             if (IsInsideKnownStream(matches[i].Index, streamDataRanges)) continue;
             var definitionKey = (Id: id, Generation: gen);
             definitionCounts.TryGetValue(definitionKey, out int definitionCount);

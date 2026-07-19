@@ -1,3 +1,4 @@
+using System.IO.Compression;
 using System.Text;
 using OfficeIMO.Pdf;
 using Xunit;
@@ -80,6 +81,83 @@ public class PdfSignatureValidatorTests {
         Assert.Equal(10, result.Signature.ContentsEncodedSizeBytes);
         Assert.True(result.ByteRangeGapMatchesContents);
         Assert.DoesNotContain(report.Findings, finding => finding.Code == "SignatureByteRangeContentsGapMismatch");
+    }
+
+    [Fact]
+    public void Validate_DetectsContentsGapMismatchInCompactPdfSyntax() {
+        PdfSignatureValidationReport report = PdfSignatureValidator.Validate(BuildCompactMismatchedSignatureGapPdf());
+
+        PdfSignatureValidationResult result = Assert.Single(report.Signatures);
+        Assert.Equal(10, result.ByteRangeGapLength);
+        Assert.Equal(8, result.Signature.ContentsEncodedSizeBytes);
+        Assert.False(result.ByteRangeGapMatchesContents);
+        Assert.Contains(report.Findings, finding => finding.Code == "SignatureByteRangeContentsGapMismatch");
+    }
+
+    [Fact]
+    public void SecurityScan_HandlesManyDefaultSizedSignatureContentsWithinParserBudget() {
+        const int signatureCount = 24;
+        const int reservedSignatureContentsBytes = 32768;
+        var options = new PdfReadOptions {
+            Limits = new PdfReadLimits {
+                MaxObjectParsingTime = TimeSpan.FromSeconds(15)
+            }
+        };
+
+        PdfDocumentSecurityInfo security = PdfSyntax.ReadDocumentSecurityInfo(
+            BuildManySignaturePdf(signatureCount, reservedSignatureContentsBytes),
+            options);
+
+        Assert.Equal(signatureCount, security.Signatures.Count);
+        Assert.All(
+            security.Signatures,
+            signature => Assert.Equal(
+                (reservedSignatureContentsBytes * 2) + 2,
+                signature.ContentsEncodedSizeBytes));
+    }
+
+    [Fact]
+    public void Validate_DoesNotFabricateEncodedLengthForUnterminatedLiteralContents() {
+        PdfSignatureValidationReport report = PdfSignatureValidator.Validate(
+            BuildUnterminatedSignatureContentsPdf("(001122"));
+
+        PdfSignatureValidationResult result = Assert.Single(report.Signatures);
+        Assert.Null(result.Signature.ContentsEncodedSizeBytes);
+        Assert.Null(result.ByteRangeGapMatchesContents);
+    }
+
+    [Fact]
+    public void Validate_DoesNotTreatNestedClosingDelimiterAsLiteralTermination() {
+        PdfSignatureValidationReport report = PdfSignatureValidator.Validate(
+            BuildUnterminatedSignatureContentsPdf("(001(122"));
+
+        PdfSignatureValidationResult result = Assert.Single(report.Signatures);
+        Assert.Null(result.Signature.ContentsEncodedSizeBytes);
+        Assert.Null(result.ByteRangeGapMatchesContents);
+    }
+
+    [Fact]
+    public void Parser_DoesNotFabricateEncodedLengthForUnterminatedHexContents() {
+        byte[] pdf = BuildIndirectUnterminatedHexSignatureContentsPdf();
+
+        var (objects, _) = PdfSyntax.ParseObjects(pdf);
+        PdfStringObj contents = Assert.IsType<PdfStringObj>(objects[4].Value);
+        PdfSignatureValidationResult result = Assert.Single(PdfSignatureValidator.Validate(pdf).Signatures);
+
+        Assert.Null(contents.EncodedTokenLength);
+        Assert.Null(result.Signature.ContentsEncodedSizeBytes);
+        Assert.Null(result.ByteRangeGapMatchesContents);
+    }
+
+    [Fact]
+    public void Validate_DoesNotTreatDecodedObjectStreamLengthAsRawContentsSpan() {
+        PdfSignatureValidationReport report = PdfSignatureValidator.Validate(
+            BuildCompressedObjectStreamSignaturePdf());
+
+        PdfSignatureValidationResult result = Assert.Single(report.Signatures);
+        Assert.Equal(10, result.ByteRangeGapLength);
+        Assert.Null(result.Signature.ContentsEncodedSizeBytes);
+        Assert.Null(result.ByteRangeGapMatchesContents);
     }
 
     [Fact]
@@ -356,6 +434,159 @@ public class PdfSignatureValidatorTests {
             "<< /Root 1 0 R /Size 7 >>",
             "startxref",
             "123",
+            "%%EOF"
+        });
+
+        return Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] BuildCompactMismatchedSignatureGapPdf() {
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R /AcroForm 5 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] >>",
+            "endobj",
+            "4 0 obj",
+            "<< /FT /Sig /T (Compact) /V 6 0 R >>",
+            "endobj",
+            "5 0 obj",
+            "<< /Fields [4 0 R] /SigFlags 1 >>",
+            "endobj",
+            "6 0 obj <</Type/Sig/Filter/Adobe.PPKLite/SubFilter/adbe.pkcs7.detached/ByteRange[0 10 20 30]/Contents<001122> >> endobj",
+            "trailer",
+            "<< /Root 1 0 R /Size 7 >>",
+            "startxref",
+            "123",
+            "%%EOF"
+        });
+
+        return Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] BuildManySignaturePdf(int signatureCount, int reservedSignatureContentsBytes) {
+        var pdf = new StringBuilder()
+            .AppendLine("%PDF-1.7")
+            .AppendLine("1 0 obj")
+            .AppendLine("<< /Type /Catalog /Pages 2 0 R >>")
+            .AppendLine("endobj")
+            .AppendLine("2 0 obj")
+            .AppendLine("<< /Type /Pages /Count 0 /Kids [] >>")
+            .AppendLine("endobj");
+        string contents = new string('0', reservedSignatureContentsBytes * 2);
+        for (int i = 0; i < signatureCount; i++) {
+            int objectNumber = i + 3;
+            pdf.Append(objectNumber)
+                .AppendLine(" 0 obj")
+                .Append("<< /Type /Sig /ByteRange [0 1 3 1] /Contents <")
+                .Append(contents)
+                .AppendLine("> >>")
+                .AppendLine("endobj");
+        }
+
+        pdf.AppendLine("trailer")
+            .Append("<< /Root 1 0 R /Size ")
+            .Append(signatureCount + 3)
+            .AppendLine(" >>")
+            .AppendLine("startxref")
+            .AppendLine("0")
+            .AppendLine("%%EOF");
+        return Encoding.ASCII.GetBytes(pdf.ToString());
+    }
+
+    private static byte[] BuildUnterminatedSignatureContentsPdf(string contentsToken) {
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 0 /Kids [] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Sig /ByteRange [0 10 20 30] /Contents " + contentsToken + " >>",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R /Size 4 >>",
+            "startxref",
+            "0",
+            "%%EOF"
+        });
+
+        return Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] BuildIndirectUnterminatedHexSignatureContentsPdf() {
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 0 /Kids [] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Sig /ByteRange [0 10 20 30] /Contents 4 0 R >>",
+            "endobj",
+            "4 0 obj",
+            "<001122",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R /Size 5 >>",
+            "startxref",
+            "0",
+            "%%EOF"
+        });
+
+        return Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] BuildCompressedObjectStreamSignaturePdf() {
+        const string header = "4 0\n";
+        const string signature = "<< /Type /Sig /ByteRange [0 1 11 1] /Contents <00112233> >>";
+        byte[] decoded = Encoding.ASCII.GetBytes(header + signature);
+        byte[] compressed;
+        using (var output = new MemoryStream()) {
+            using (var deflate = new DeflateStream(output, CompressionLevel.Optimal, leaveOpen: true)) {
+                deflate.Write(decoded, 0, decoded.Length);
+            }
+
+            compressed = output.ToArray();
+        }
+
+        var encoded = new StringBuilder(compressed.Length * 2 + 1);
+        foreach (byte value in compressed) {
+            encoded.Append(value.ToString("X2", System.Globalization.CultureInfo.InvariantCulture));
+        }
+        encoded.Append('>');
+
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 0 /Kids [] >>",
+            "endobj",
+            "5 0 obj",
+            "<< /Type /ObjStm /N 1 /First " +
+                Encoding.ASCII.GetByteCount(header).ToString(System.Globalization.CultureInfo.InvariantCulture) +
+                " /Filter [/ASCIIHexDecode /FlateDecode] /Length " +
+                encoded.Length.ToString(System.Globalization.CultureInfo.InvariantCulture) +
+                " >>",
+            "stream",
+            encoded.ToString(),
+            "endstream",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R /Size 6 >>",
+            "startxref",
+            "0",
             "%%EOF"
         });
 

@@ -601,6 +601,24 @@ public sealed partial class PdfDocumentReader {
         return Images(PdfPageSelection.Parse(pageRanges), readOptions);
     }
 
+    /// <summary>Extracts all readable image XObjects to deterministic files.</summary>
+    public IReadOnlyList<string> SaveImages(
+        string outputDirectory,
+        string baseName = "image",
+        PdfReadOptions? readOptions = null) {
+        return PdfImageExtractor.WriteImages(Images(readOptions), outputDirectory, baseName);
+    }
+
+    /// <summary>Extracts image XObjects from selected pages to deterministic files.</summary>
+    public IReadOnlyList<string> SaveImages(
+        string outputDirectory,
+        PdfPageSelection selection,
+        string baseName = "image",
+        PdfReadOptions? readOptions = null) {
+        Guard.NotNull(selection, nameof(selection));
+        return PdfImageExtractor.WriteImages(Images(selection, readOptions), outputDirectory, baseName);
+    }
+
     /// <summary>
     /// Attempts to extract image XObjects from pages described by page ranges, returning diagnostics when blocked or failed.
     /// </summary>

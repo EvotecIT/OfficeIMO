@@ -150,7 +150,7 @@ internal static partial class PdfSyntax {
 
     private static Dictionary<(int ObjectNumber, int Generation), int> BuildDeclaredLengthValueIndex(
         string text,
-        System.Text.RegularExpressions.MatchCollection objectMatches,
+        IReadOnlyList<IndirectObjectHeader> objectMatches,
         System.Diagnostics.Stopwatch parseTimer,
         PdfReadLimits limits) {
         var streamRanges = new List<(int Start, int End)>();
@@ -195,7 +195,7 @@ internal static partial class PdfSyntax {
 
     private static bool DiscoverDeclaredStreamRanges(
         string text,
-        System.Text.RegularExpressions.MatchCollection objectMatches,
+        IReadOnlyList<IndirectObjectHeader> objectMatches,
         List<(int Start, int End)> streamRanges,
         HashSet<(int Start, int End)> knownStreamRanges,
         IReadOnlyDictionary<(int ObjectNumber, int Generation), int>? declaredLengthValues,
@@ -282,7 +282,7 @@ internal static partial class PdfSyntax {
 
     private static Dictionary<(int ObjectNumber, int Generation), int> BuildScalarObjectIndex(
         string text,
-        System.Text.RegularExpressions.MatchCollection objectMatches,
+        IReadOnlyList<IndirectObjectHeader> objectMatches,
         List<(int Start, int End)> streamRanges,
         System.Diagnostics.Stopwatch parseTimer,
         PdfReadLimits limits) {
@@ -292,18 +292,10 @@ internal static partial class PdfSyntax {
                 ThrowIfParsingTimeExceeded(parseTimer, limits);
             }
 
-            var match = objectMatches[i];
+            IndirectObjectHeader match = objectMatches[i];
             if (IsInsideStreamRange(match.Index, streamRanges) ||
-                !int.TryParse(
-                    match.Groups[1].Value,
-                    System.Globalization.NumberStyles.None,
-                    System.Globalization.CultureInfo.InvariantCulture,
-                    out int objectNumber) ||
-                !int.TryParse(
-                    match.Groups[2].Value,
-                    System.Globalization.NumberStyles.None,
-                    System.Globalization.CultureInfo.InvariantCulture,
-                    out int generation)) {
+                match.ObjectNumber < 0 ||
+                match.Generation < 0) {
                 continue;
             }
 
@@ -317,7 +309,7 @@ internal static partial class PdfSyntax {
                 continue;
             }
 
-            List<string> tokens;
+            List<PdfToken> tokens;
             try {
                 tokens = Tokenize(text.Substring(bodyStart, bodyLength));
             } catch (Exception exception) when (exception is not OutOfMemoryException) {
@@ -326,12 +318,12 @@ internal static partial class PdfSyntax {
 
             if (tokens.Count == 1 &&
                 double.TryParse(
-                    tokens[0],
+                    tokens[0].Text,
                     System.Globalization.NumberStyles.Float,
                     System.Globalization.CultureInfo.InvariantCulture,
                     out double value) &&
                 TryNormalizeStreamLength(value, out int byteLength)) {
-                values[(objectNumber, generation)] = byteLength;
+                values[(match.ObjectNumber, match.Generation)] = byteLength;
             }
         }
 
@@ -443,14 +435,228 @@ internal static partial class PdfSyntax {
         return true;
     }
 
+    private static List<IndirectObjectHeader> FindIndirectObjectHeaders(
+        string text,
+        System.Diagnostics.Stopwatch parseTimer,
+        PdfReadLimits limits) {
+        var headers = new List<IndirectObjectHeader>();
+        int cursor = 0;
+        while (TryFindIndirectObjectHeader(
+            text,
+            cursor,
+            text.Length,
+            out IndirectObjectHeader header,
+            parseTimer,
+            limits)) {
+            headers.Add(header);
+            if (headers.Count > limits.MaxIndirectObjects) {
+                throw PdfReadLimitException.Create(
+                    PdfReadLimitKind.IndirectObjects,
+                    limits.MaxIndirectObjects,
+                    headers.Count);
+            }
+
+            cursor = header.Index + header.Length;
+        }
+
+        ThrowIfParsingTimeExceeded(parseTimer, limits);
+        return headers;
+    }
+
+    private static bool TryFindIndirectObjectHeader(
+        string text,
+        int start,
+        int limit,
+        out IndirectObjectHeader header,
+        System.Diagnostics.Stopwatch? parseTimer = null,
+        PdfReadLimits? limits = null) {
+        header = default;
+        if (start < 0) start = 0;
+        if (limit > text.Length) limit = text.Length;
+        if (start >= limit) return false;
+
+        int index = start;
+        while (index < limit) {
+            if ((index & 0x3FFF) == 0 && parseTimer is not null && limits is not null) {
+                ThrowIfParsingTimeExceeded(parseTimer, limits);
+            }
+
+            if (!char.IsDigit(text[index])) {
+                index++;
+                continue;
+            }
+
+            if (TryReadIndirectObjectHeaderAt(
+                text,
+                index,
+                limit,
+                out header,
+                parseTimer,
+                limits)) {
+                return true;
+            }
+
+            // A failed header can still begin with a very large digit run. Skip the
+            // whole run so malformed or signature-reservation data stays linear.
+            do {
+                index++;
+            } while (index < limit && char.IsDigit(text[index]));
+        }
+
+        return false;
+    }
+
+    private static bool TryReadIndirectObjectHeaderAt(
+        string text,
+        int index,
+        int limit,
+        out IndirectObjectHeader header,
+        System.Diagnostics.Stopwatch? parseTimer = null,
+        PdfReadLimits? limits = null) {
+        header = default;
+        if (index < 0 ||
+            index >= limit ||
+            limit > text.Length ||
+            !char.IsDigit(text[index]) ||
+            (index > 0 && char.IsDigit(text[index - 1]))) {
+            return false;
+        }
+
+        if (!TryReadNonNegativeInteger(
+                text,
+                index,
+                limit,
+                out int objectNumber,
+                out int cursor,
+                parseTimer,
+                limits) ||
+            cursor >= limit ||
+            !char.IsWhiteSpace(text[cursor])) {
+            return false;
+        }
+
+        SkipIndirectObjectHeaderWhitespace(
+            text,
+            ref cursor,
+            limit,
+            parseTimer,
+            limits);
+
+        if (!TryReadNonNegativeInteger(
+                text,
+                cursor,
+                limit,
+                out int generation,
+                out cursor,
+                parseTimer,
+                limits) ||
+            cursor >= limit ||
+            !char.IsWhiteSpace(text[cursor])) {
+            return false;
+        }
+
+        SkipIndirectObjectHeaderWhitespace(
+            text,
+            ref cursor,
+            limit,
+            parseTimer,
+            limits);
+
+        if (cursor > limit - 3 ||
+            text[cursor] != 'o' ||
+            text[cursor + 1] != 'b' ||
+            text[cursor + 2] != 'j') {
+            return false;
+        }
+
+        int end = cursor + 3;
+        header = new IndirectObjectHeader(
+            index,
+            end - index,
+            objectNumber,
+            generation);
+        return true;
+    }
+
+    private static bool TryReadNonNegativeInteger(
+        string text,
+        int index,
+        int limit,
+        out int value,
+        out int end,
+        System.Diagnostics.Stopwatch? parseTimer = null,
+        PdfReadLimits? limits = null) {
+        value = 0;
+        end = index;
+        if (index < 0 || index >= limit || !char.IsDigit(text[index])) {
+            return false;
+        }
+
+        int parsed = 0;
+        bool overflow = false;
+        while (end < limit && char.IsDigit(text[end])) {
+            if ((end & 0x3FFF) == 0 && parseTimer is not null && limits is not null) {
+                ThrowIfParsingTimeExceeded(parseTimer, limits);
+            }
+
+            if (!overflow) {
+                int digit = text[end] - '0';
+                if (parsed > (int.MaxValue - digit) / 10) {
+                    overflow = true;
+                } else {
+                    parsed = parsed * 10 + digit;
+                }
+            }
+            end++;
+        }
+
+        if (overflow) {
+            return false;
+        }
+
+        value = parsed;
+        return true;
+    }
+
+    private static void SkipIndirectObjectHeaderWhitespace(
+        string text,
+        ref int index,
+        int limit,
+        System.Diagnostics.Stopwatch? parseTimer,
+        PdfReadLimits? limits) {
+        while (index < limit && char.IsWhiteSpace(text[index])) {
+            if ((index & 0x3FFF) == 0 && parseTimer is not null && limits is not null) {
+                ThrowIfParsingTimeExceeded(parseTimer, limits);
+            }
+
+            index++;
+        }
+    }
+
+    private readonly struct IndirectObjectHeader {
+        internal IndirectObjectHeader(
+            int index,
+            int length,
+            int objectNumber,
+            int generation) {
+            Index = index;
+            Length = length;
+            ObjectNumber = objectNumber;
+            Generation = generation;
+        }
+
+        internal int Index { get; }
+        internal int Length { get; }
+        internal int ObjectNumber { get; }
+        internal int Generation { get; }
+    }
+
     private static bool ContainsIndirectObjectHeader(string text, int start, int limit) {
-        var match = ObjRegex.Match(text, start);
-        return match.Success && match.Index < limit;
+        return TryFindIndirectObjectHeader(text, start, limit, out _);
     }
 
     private static bool IsIndirectObjectHeaderAt(string text, int index) {
-        var match = ObjRegex.Match(text, index);
-        return match.Success && match.Index == index;
+        return TryReadIndirectObjectHeaderAt(text, index, text.Length, out _);
     }
 
     private static int IndexOfKeywordOutsideLiteralString(string text, string keyword, int start, int limit) {

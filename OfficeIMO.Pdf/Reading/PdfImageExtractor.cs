@@ -194,6 +194,14 @@ internal static class PdfImageExtractor {
         return paths;
     }
 
+    internal static IReadOnlyList<string> WriteImages(
+        IReadOnlyList<PdfExtractedImage> images,
+        string outputDirectory,
+        string baseName) {
+        Guard.NotNull(images, nameof(images));
+        return WriteImageFiles(images, ValidateOutputDirectory(outputDirectory), baseName);
+    }
+
     private static string GetSafeBaseName(string? baseName, string fallback) {
         string safeBaseName = Path.GetFileNameWithoutExtension(baseName ?? string.Empty) ?? string.Empty;
         return string.IsNullOrWhiteSpace(safeBaseName) ? fallback : safeBaseName;

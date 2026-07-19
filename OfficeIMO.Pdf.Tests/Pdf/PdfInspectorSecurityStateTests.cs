@@ -58,6 +58,22 @@ public partial class PdfInspectorTests {
     }
 
     [Fact]
+    public void PdfDocumentPreflight_ReportsEncryptedInputWithoutOpeningIt() {
+        string path = System.IO.Path.GetTempFileName();
+        try {
+            System.IO.File.WriteAllBytes(path, BuildEncryptedPdf());
+
+            PdfDocumentPreflight report = PdfDocument.Preflight(path);
+
+            Assert.False(report.CanRead);
+            Assert.True(report.Probe.HasEncryption);
+            Assert.Contains(report.ReadBlockers, blocker => blocker.Kind == PdfReadBlockerKind.Encryption);
+        } finally {
+            System.IO.File.Delete(path);
+        }
+    }
+
+    [Fact]
     public void Preflight_DoesNotTreatResourceEncryptNameAsDocumentEncryption() {
         PdfDocumentPreflight report = PdfInspector.Preflight(BuildPdfWithEncryptNamedXObject());
 

@@ -119,8 +119,7 @@ internal static partial class PdfSyntax {
                     entry.Key,
                     dictionary,
                     field,
-                    currentByteRangeValues,
-                    text));
+                    currentByteRangeValues));
             }
         }
 
