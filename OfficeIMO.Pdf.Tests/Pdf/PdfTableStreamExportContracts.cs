@@ -225,6 +225,32 @@ public class PdfTableStreamExportContracts {
     }
 
     [Fact]
+    public void VectorVisibility_PreservesCloseContinuationAcrossNestedPathClips() {
+        byte[] source = BuildSingleStreamPdf("""
+            0 0 m
+            100 0 l
+            0 100 l
+            h
+            W n
+            0 0 m
+            10 0 l
+            0 10 l
+            h
+            60 40 l
+            60 60 l
+            h
+            W n
+            1 0 0 rg
+            49 42 2 2 re
+            f
+            """);
+
+        PdfLogicalDocument logical = PdfLogicalDocument.Load(source);
+
+        Assert.Equal(1, logical.Pages[0].VectorPrimitiveCount);
+    }
+
+    [Fact]
     public void VectorVisibility_CorrelatesSparseTilingPatternWithPaintedCells() {
         const string patternContent = "1 0 0 rg\n0 0 1 10 re\nf";
         byte[] transparentCell = BuildTilingPatternPdf(
@@ -272,6 +298,50 @@ public class PdfTableStreamExportContracts {
         Assert.True(
             timer.Elapsed < TimeSpan.FromSeconds(5),
             "Repeated transparent-pattern visibility exceeded the bounded contract: " +
+            timer.Elapsed +
+            ".");
+    }
+
+    [Fact]
+    public void VectorVisibility_RepeatedFormsReuseInheritedPatternResource() {
+        const int elementCount = 2048;
+        const int invocationCount = 2048;
+        var patternContent = new System.Text.StringBuilder(elementCount * 24);
+        patternContent.Append("/GS1 gs\n1 0 0 rg\n");
+        for (int i = 0; i < elementCount; i++) {
+            patternContent.Append("0 0 10 10 re\nf\n");
+        }
+
+        var pageContent = new System.Text.StringBuilder(invocationCount * 8);
+        for (int i = 0; i < invocationCount; i++) {
+            pageContent.Append("/F1 Do\n");
+        }
+
+        const string formContent = "/Pattern cs\n/P1 scn\n0 0 1 1 re\nf";
+        string patternObject = BuildTilingPatternObject(
+            patternContent.ToString(),
+            "<< /ExtGState << /GS1 6 0 R >> >>");
+        string formObject =
+            "7 0 obj\n" +
+            "<< /Type /XObject /Subtype /Form /BBox [0 0 1 1] " +
+            $"/Length {System.Text.Encoding.ASCII.GetByteCount(formContent)} >>\n" +
+            "stream\n" +
+            formContent +
+            "\nendstream\nendobj";
+        byte[] source = BuildSingleStreamPdf(
+            pageContent.ToString(),
+            "<< /Pattern << /P1 5 0 R >> /XObject << /F1 7 0 R >> >>",
+            patternObject,
+            "6 0 obj\n<< /Type /ExtGState /ca 0 /CA 0 >>\nendobj",
+            formObject);
+        var timer = System.Diagnostics.Stopwatch.StartNew();
+        int vectorPrimitiveCount = PdfLogicalDocument.Load(source).Pages[0].VectorPrimitiveCount;
+        timer.Stop();
+
+        Assert.Equal(0, vectorPrimitiveCount);
+        Assert.True(
+            timer.Elapsed < TimeSpan.FromSeconds(5),
+            "Repeated inherited-pattern form parsing exceeded the bounded contract: " +
             timer.Elapsed +
             ".");
     }
@@ -357,7 +427,18 @@ public class PdfTableStreamExportContracts {
         pagePaintContent = pagePaintContent.TrimEnd('\r', '\n');
         patternContent = patternContent.TrimEnd('\r', '\n');
         string pageContent = "/Pattern cs\n/P1 scn\n" + pagePaintContent;
-        string patternObject =
+        string patternObject = BuildTilingPatternObject(patternContent, patternResources);
+        return BuildSingleStreamPdf(
+            pageContent,
+            "<< /Pattern << /P1 5 0 R >> >>",
+            new[] { patternObject }.Concat(additionalObjects).ToArray());
+    }
+
+    private static string BuildTilingPatternObject(
+        string patternContent,
+        string patternResources) {
+        patternContent = patternContent.TrimEnd('\r', '\n');
+        return
             "5 0 obj\n" +
             "<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 " +
             "/BBox [0 0 10 10] /XStep 10 /YStep 10 " +
@@ -366,10 +447,6 @@ public class PdfTableStreamExportContracts {
             "stream\n" +
             patternContent +
             "\nendstream\nendobj";
-        return BuildSingleStreamPdf(
-            pageContent,
-            "<< /Pattern << /P1 5 0 R >> >>",
-            new[] { patternObject }.Concat(additionalObjects).ToArray());
     }
 
     private static byte[] BuildSingleStreamPdf(

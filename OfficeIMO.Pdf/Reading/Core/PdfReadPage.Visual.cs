@@ -8,6 +8,8 @@ public sealed partial class PdfReadPage {
         int count = 0;
         var visibilityBudget = new VisualGeometryBudget();
         var patternPaintCache = new Dictionary<PdfPageTilingPatternResource, bool>();
+        var tilingPatternResourceCache =
+            new Dictionary<(PdfStream Stream, PdfDictionary Resources), PdfPageTilingPatternResource?>();
         PdfDictionary? pageResources = ResolveDictionary(GetInheritedValue("Resources"));
         var activeForms = new HashSet<PdfStream>();
         string content = GetContentStreamContent();
@@ -29,7 +31,8 @@ public sealed partial class PdfReadPage {
                     }
                 },
                 activeForms,
-                retainPrimitiveData: false);
+                retainPrimitiveData: false,
+                tilingPatternResourceCache: tilingPatternResourceCache);
         }
 
         return count;
@@ -361,9 +364,19 @@ public sealed partial class PdfReadPage {
         var primitives = new List<PdfPageVisualPrimitive>();
         PdfDictionary? pageResources = ResolveDictionary(GetInheritedValue("Resources"));
         var activeForms = new HashSet<PdfStream>();
+        var tilingPatternResourceCache =
+            new Dictionary<(PdfStream Stream, PdfDictionary Resources), PdfPageTilingPatternResource?>();
         string content = GetContentStreamContent();
         if (content.Length > 0) {
-            CollectVisualPrimitivesAndForms(content, pageResources, pageTransform, pageWidth, pageHeight, primitives.Add, activeForms);
+            CollectVisualPrimitivesAndForms(
+                content,
+                pageResources,
+                pageTransform,
+                pageWidth,
+                pageHeight,
+                primitives.Add,
+                activeForms,
+                tilingPatternResourceCache: tilingPatternResourceCache);
         }
 
         return primitives.Count == 0 ? Array.Empty<PdfPageVisualPrimitive>() : primitives.AsReadOnly();
@@ -393,7 +406,8 @@ public sealed partial class PdfReadPage {
         OfficeStrokeLineJoin? initialStrokeLineJoin = null,
         int contentNestingDepth = 0,
         bool includeTilingPatterns = true,
-        bool retainPrimitiveData = true) {
+        bool retainPrimitiveData = true,
+        Dictionary<(PdfStream Stream, PdfDictionary Resources), PdfPageTilingPatternResource?>? tilingPatternResourceCache = null) {
         EnsureContentNestingBudget(contentNestingDepth);
         string transformedContent = WrapContentWithTransform(content, baseTransform, out int transformedContentOffset);
         _ = PdfPageContentVisualParser.Parse(
@@ -404,7 +418,9 @@ public sealed partial class PdfReadPage {
             GetColorSpaceResources(resources),
             GetShadingResources(resources),
             GetShadingPatternResources(resources),
-            includeTilingPatterns ? GetTilingPatternResources(resources) : null,
+            includeTilingPatterns
+                ? GetTilingPatternResources(resources, tilingPatternResourceCache)
+                : null,
             GetOptionalContentVisibility(resources),
             paintOrderBase,
             paintOrderScale,
@@ -487,7 +503,8 @@ public sealed partial class PdfReadPage {
                     initialStrokeLineJoin: invocation.StrokeLineJoin,
                     contentNestingDepth: contentNestingDepth + 1,
                     includeTilingPatterns: includeTilingPatterns,
-                    retainPrimitiveData: retainPrimitiveData);
+                    retainPrimitiveData: retainPrimitiveData,
+                    tilingPatternResourceCache: tilingPatternResourceCache);
             } finally {
                 activeForms.Remove(formStream);
             }
