@@ -199,7 +199,8 @@ public sealed class ReaderRtfModularTests {
             IncludeHeadersAndFooters = false,
             IncludeNotes = false,
             IncludeImagePlaceholders = false,
-            IncludeDiagnostics = false
+            IncludeDiagnostics = false,
+            IncludePageLocations = true
         };
 
         ReaderRtfOptions clone = options.Clone();
@@ -212,6 +213,7 @@ public sealed class ReaderRtfModularTests {
         Assert.False(clone.IncludeNotes);
         Assert.False(clone.IncludeImagePlaceholders);
         Assert.False(clone.IncludeDiagnostics);
+        Assert.True(clone.IncludePageLocations);
 
         clone.RtfReadOptions!.MaxDepth = 64;
 

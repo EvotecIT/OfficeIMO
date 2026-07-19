@@ -23,6 +23,15 @@ namespace OfficeIMO.Tests {
             Assert.Contains("First page", Encoding.UTF8.GetString(images[0].Bytes), StringComparison.Ordinal);
             Assert.Contains("Second page", Encoding.UTF8.GetString(images[1].Bytes), StringComparison.Ordinal);
             Assert.Contains("Third page", Encoding.UTF8.GetString(images[2].Bytes), StringComparison.Ordinal);
+            Assert.Contains(snapshots[0].Fragments, fragment =>
+                fragment.Text.Contains("First page", StringComparison.Ordinal) &&
+                fragment.Region != null);
+            Assert.Contains(snapshots[1].Fragments, fragment =>
+                fragment.Text.Contains("Second page", StringComparison.Ordinal) &&
+                fragment.Region != null);
+            Assert.Contains(snapshots[2].Fragments, fragment =>
+                fragment.Text.Contains("Third page", StringComparison.Ordinal) &&
+                fragment.Region != null);
         }
 
         [Fact]
@@ -80,6 +89,73 @@ namespace OfficeIMO.Tests {
             Assert.Throws<ArgumentOutOfRangeException>(() => document.ExportImages(
                 OfficeImageExportFormat.Png,
                 new WordImageExportOptions { PageCount = 0 }));
+        }
+
+        [Fact]
+        public void WordDocument_VisualSnapshotBatchHonorsCancellation() {
+            using WordDocument document = CreateThreePageDocument();
+            using var cancellation = new System.Threading.CancellationTokenSource();
+            cancellation.Cancel();
+
+            Assert.Throws<OperationCanceledException>(() =>
+                document.CreateVisualSnapshots(
+                    new WordImageExportOptions(),
+                    cancellation.Token));
+        }
+
+        [Fact]
+        public async Task WordDocument_VisualSnapshotBatchCancelsDuringASingleLargeRun() {
+            using WordDocument document = WordDocument.Create();
+            document.AddParagraph(new string('x', 2000000));
+
+            await AssertVisualSnapshotCancelsDuringWork(
+                document,
+                WordImageCancellationCheckpoint.PlainTextWrapping);
+        }
+
+        [Fact]
+        public async Task WordDocument_VisualSnapshotBatchCancelsDuringNestedTableMeasurement() {
+            using WordDocument document = WordDocument.Create();
+            WordTable outer = document.AddTable(1, 1);
+            WordTable nested = outer.Rows[0].Cells[0].AddTable(1, 1);
+            nested.Rows[0].Cells[0].Paragraphs[0].Text = new string('y', 2000000);
+
+            await AssertVisualSnapshotCancelsDuringWork(
+                document,
+                WordImageCancellationCheckpoint.NestedTableMeasurement);
+        }
+
+        private static async Task AssertVisualSnapshotCancelsDuringWork(
+            WordDocument document,
+            WordImageCancellationCheckpoint targetCheckpoint) {
+            using var cancellation = new System.Threading.CancellationTokenSource();
+            using var checkpointReached = new System.Threading.ManualResetEventSlim();
+            using var releaseCheckpoint = new System.Threading.ManualResetEventSlim();
+            var options = new WordImageExportOptions {
+                CancellationCheckpoint = checkpoint => {
+                    if (checkpoint != targetCheckpoint) {
+                        return;
+                    }
+                    checkpointReached.Set();
+                    if (!releaseCheckpoint.Wait(TimeSpan.FromSeconds(5))) {
+                        throw new TimeoutException("Cancellation checkpoint was not released.");
+                    }
+                }
+            };
+            Task render = Task.Run(() => {
+                document.CreateVisualSnapshots(
+                    options,
+                    cancellation.Token);
+            });
+
+            bool reached = checkpointReached.Wait(TimeSpan.FromSeconds(5));
+            cancellation.Cancel();
+            releaseCheckpoint.Set();
+
+            Task completed = await Task.WhenAny(render, Task.Delay(TimeSpan.FromSeconds(5)));
+            Assert.True(reached);
+            Assert.Same(render, completed);
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => await render);
         }
 
         private static WordDocument CreateThreePageDocument() {

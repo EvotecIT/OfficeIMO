@@ -47,6 +47,12 @@ public sealed class ReaderRtfOptions {
     /// </summary>
     public bool IncludeDiagnostics { get; set; } = true;
 
+    /// <summary>
+    /// When true, reconstructs page membership from explicit page and section breaks.
+    /// Automatic text overflow is not calculated. Default: false.
+    /// </summary>
+    public bool IncludePageLocations { get; set; }
+
     internal RtfConversionReport Report { get; } = new RtfConversionReport();
 
     /// <summary>
@@ -58,7 +64,8 @@ public sealed class ReaderRtfOptions {
         IncludeHeadersAndFooters = IncludeHeadersAndFooters,
         IncludeNotes = IncludeNotes,
         IncludeImagePlaceholders = IncludeImagePlaceholders,
-        IncludeDiagnostics = IncludeDiagnostics
+        IncludeDiagnostics = IncludeDiagnostics,
+        IncludePageLocations = IncludePageLocations
     };
 
     internal static RtfReadOptions? CloneReadOptions(RtfReadOptions? options) {

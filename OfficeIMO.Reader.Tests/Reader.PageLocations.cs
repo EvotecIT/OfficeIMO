@@ -1,0 +1,272 @@
+using OfficeIMO.Pdf;
+using OfficeIMO.Reader;
+using OfficeIMO.Reader.Pdf;
+using OfficeIMO.Reader.Rtf;
+using OfficeIMO.Rtf;
+using OfficeIMO.Word;
+using Xunit;
+
+namespace OfficeIMO.Tests;
+
+[Collection("ReaderRegistryNonParallel")]
+public sealed class ReaderPageLocationTests {
+    [Fact]
+    public void Search_AggregatesEveryPageForARepeatedSourceBlock() {
+        var sourceBlock = new OfficeDocumentBlock {
+            Id = "paragraph-0042",
+            Kind = "paragraph",
+            Text = "A paragraph containing the search needle.",
+            Location = new ReaderLocation { BlockAnchor = "paragraph-0042" }
+        };
+        OfficeDocumentReadResult document = new OfficeDocumentReadResult {
+            Kind = ReaderInputKind.Word,
+            CapabilitiesUsed = new[] { "officeimo.reader.word.pages.computed" },
+            Blocks = new[] { sourceBlock },
+            Metadata = new[] {
+                new OfficeDocumentMetadataEntry {
+                    Id = "page-count",
+                    Name = "PageCount",
+                    Value = "100",
+                    ValueType = "count"
+                }
+            },
+            Pages = new[] {
+                Page(5, PageBlock(sourceBlock, 5)),
+                Page(18, PageBlock(sourceBlock, 18)),
+                Page(23, PageBlock(
+                    sourceBlock,
+                    23,
+                    "A needless page fragment with only a substring match."))
+            }
+        };
+
+        OfficeDocumentSearchResult search = document.Search("needle");
+        OfficeDocumentSearchResult wholeWordSearch = document.Search(
+            "needle",
+            new OfficeDocumentSearchOptions { WholeWord = true });
+        OfficeDocumentSearchHit hit = Assert.Single(search.Hits);
+
+        Assert.Equal(new[] { 5, 18, 23 }, search.PageNumbers);
+        Assert.Equal(new[] { 5, 18 }, wholeWordSearch.PageNumbers);
+        Assert.Equal(100, search.TotalPageCount);
+        Assert.Equal(
+            new[] { "Page 5 of 100", "Page 18 of 100", "Page 23 of 100" },
+            hit.Pages.Select(location => location.Display));
+        Assert.Equal(OfficeDocumentPageProvenance.Computed, hit.Pages[0].Provenance);
+    }
+
+    [Fact]
+    public void Search_WholeWordDoesNotFallBackToSubstringOnlyPageFragments() {
+        var sourceBlock = new OfficeDocumentBlock {
+            Id = "paragraph-0001",
+            Kind = "paragraph",
+            Text = "The source contains the whole word needle.",
+            Location = new ReaderLocation { BlockAnchor = "paragraph-0001" }
+        };
+        OfficeDocumentReadResult document = new OfficeDocumentReadResult {
+            Kind = ReaderInputKind.Word,
+            Blocks = new[] { sourceBlock },
+            Pages = new[] {
+                Page(1, PageBlock(sourceBlock, 1, "The visible fragment says needless."))
+            }
+        };
+
+        OfficeDocumentSearchHit hit = Assert.Single(document.Search(
+            "needle",
+            new OfficeDocumentSearchOptions { WholeWord = true }).Hits);
+
+        Assert.Empty(hit.Pages);
+    }
+
+    [Fact]
+    public void PdfReader_ExposesNativePageSearchAndPageMarkedMarkdown() {
+        byte[] pdf = PdfDocument.Create(new PdfOptions {
+                PageWidth = 420,
+                PageHeight = 360,
+                MarginLeft = 36,
+                MarginRight = 36,
+                MarginTop = 36,
+                MarginBottom = 36
+            })
+            .Paragraph(paragraph => paragraph.Text("First page body."))
+            .PageBreak()
+            .Paragraph(paragraph => paragraph.Text("Needle on native page two."))
+            .ToBytes();
+
+        OfficeDocumentReadResult document = PdfReaderAdapter.ReadDocument(
+            pdf,
+            sourceName: "native-pages.pdf");
+        OfficeDocumentSearchResult search = document.Search("needle");
+        OfficeDocumentPageMarkdown pageTwo = Assert.Single(
+            document.GetPageMarkdown(),
+            page => page.Page.Number == 2);
+
+        Assert.Contains("officeimo.reader.pdf.pages.native", document.CapabilitiesUsed);
+        Assert.Equal(OfficeDocumentPageProvenance.Native, document.GetPageProvenance());
+        Assert.Equal(new[] { 2 }, search.PageNumbers);
+        Assert.Equal(2, search.TotalPageCount);
+        Assert.Contains("page: 2/2; provenance: Native", pageTwo.Markdown, StringComparison.Ordinal);
+        Assert.Contains("Needle on native page two.", pageTwo.Markdown, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void RtfReader_UsesExplicitBreaksAndSavedPageCountWithoutClaimingOverflowLayout() {
+        RtfDocument rtf = RtfDocument.Create();
+        rtf.Info.NumberOfPages = 20;
+        rtf.PageSetup.SetPaperSize(12240, 15840);
+        rtf.AddParagraph("First page body.");
+        RtfParagraph paragraph = rtf.AddParagraph("Needle on explicit page two.");
+        paragraph.PageBreakBefore = true;
+        RtfField field = paragraph.AddField("FORMTEXT");
+        field.AddText("Ada");
+        field.SetFormFieldData(data => {
+            data.Kind = RtfFormFieldKind.Text;
+            data.Name = "Patient";
+        });
+        paragraph.AddPageBreak();
+        paragraph.AddText("Needle on explicit page three.");
+
+        OfficeDocumentReadResult document = RtfReaderAdapter.ReadDocument(
+            rtf,
+            "explicit-pages.rtf",
+            rtfOptions: new ReaderRtfOptions { IncludePageLocations = true });
+        OfficeDocumentSearchResult search = document.Search("needle");
+
+        Assert.Contains("officeimo.reader.rtf.pages.explicit", document.CapabilitiesUsed);
+        Assert.Equal(OfficeDocumentPageProvenance.ExplicitBreak, document.GetPageProvenance());
+        Assert.Equal(3, document.Pages.Count);
+        Assert.Equal(612D, document.Pages[0].Width);
+        Assert.Equal(792D, document.Pages[0].Height);
+        Assert.Equal(20, search.TotalPageCount);
+        Assert.Equal(new[] { 2, 3 }, search.PageNumbers);
+        Assert.Equal("Patient", Assert.Single(document.Pages[1].Forms).Name);
+        Assert.Empty(document.Pages[2].Forms);
+        Assert.Contains(document.Diagnostics, diagnostic =>
+            diagnostic.Code == "ReaderRtfExplicitPageLocations" &&
+            diagnostic.Severity == OfficeDocumentDiagnosticSeverity.Information);
+        Assert.Contains("page: 3/20; provenance: ExplicitBreak", document.ToPageMarkedMarkdown(), StringComparison.Ordinal);
+
+        OfficeDocumentReadResult defaultDocument = RtfReaderAdapter.ReadDocument(rtf, "default.rtf");
+        Assert.Empty(defaultDocument.Pages);
+        Assert.DoesNotContain("officeimo.reader.rtf.pages.explicit", defaultDocument.CapabilitiesUsed);
+    }
+
+    [Fact]
+    public void RtfReader_PageBreakBeforeEnsuresPageStartWithoutAddingBlankPages() {
+        RtfDocument firstBlockBreak = RtfDocument.Create();
+        firstBlockBreak.AddParagraph("First body.").PageBreakBefore = true;
+        OfficeDocumentReadResult firstResult = RtfReaderAdapter.ReadDocument(
+            firstBlockBreak,
+            "first-break.rtf",
+            rtfOptions: new ReaderRtfOptions { IncludePageLocations = true });
+
+        RtfDocument postBreak = RtfDocument.Create();
+        RtfParagraph before = postBreak.AddParagraph("Before explicit break.");
+        before.AddPageBreak();
+        postBreak.AddParagraph("After explicit break.").PageBreakBefore = true;
+        OfficeDocumentReadResult postBreakResult = RtfReaderAdapter.ReadDocument(
+            postBreak,
+            "post-break.rtf",
+            rtfOptions: new ReaderRtfOptions { IncludePageLocations = true });
+
+        Assert.Single(firstResult.Pages);
+        Assert.Equal("First body.", Assert.Single(firstResult.Pages[0].Blocks).Text);
+        Assert.Equal(2, postBreakResult.Pages.Count);
+        Assert.Contains("After explicit break.", postBreakResult.Pages[1].Blocks.Select(block => block.Text));
+    }
+
+    [Fact]
+    public void RtfReader_PageBreakBeforeUsesSourceOccupancyWhenProjectionOmitsABlock() {
+        RtfDocument rtf = RtfDocument.Create();
+        rtf.AddImage(RtfImageFormat.Png, new byte[] { 137, 80, 78, 71 });
+        rtf.AddParagraph("Paragraph after omitted image.").PageBreakBefore = true;
+
+        OfficeDocumentReadResult document = RtfReaderAdapter.ReadDocument(
+            rtf,
+            "omitted-image.rtf",
+            rtfOptions: new ReaderRtfOptions {
+                IncludeImagePlaceholders = false,
+                IncludePageLocations = true
+            });
+
+        Assert.Equal(2, document.Pages.Count);
+        Assert.Empty(document.Pages[0].Blocks);
+        Assert.Equal(
+            "Paragraph after omitted image.",
+            Assert.Single(document.Pages[1].Blocks).Text);
+    }
+
+    [Fact]
+    public void RtfReader_UsesFirstSectionPageDimensions() {
+        RtfDocument rtf = RtfDocument.Create();
+        RtfSection section = rtf.AddSection();
+        section.PageSetup.SetPaperSize(10000, 12000);
+        section.AddParagraph("Section body.");
+
+        OfficeDocumentReadResult document = RtfReaderAdapter.ReadDocument(
+            rtf,
+            "section-layout.rtf",
+            rtfOptions: new ReaderRtfOptions { IncludePageLocations = true });
+
+        OfficeDocumentPage page = Assert.Single(document.Pages);
+        Assert.Equal(500D, page.Width);
+        Assert.Equal(600D, page.Height);
+    }
+
+    [Fact]
+    public void WordReader_ComputesPageFragmentsForSearchAndMarkdown() {
+        using var stream = new MemoryStream();
+        using (WordDocument word = WordDocument.Create(stream)) {
+            word.AddParagraph("First page body.");
+            word.AddPageBreak();
+            word.AddParagraph("Needle on computed page two.");
+            word.Save();
+        }
+        stream.Position = 0;
+
+        OfficeDocumentReadResult document = OfficeIMO.Reader.Tests.ReaderTestReaders
+            .Word(includePageLocations: true)
+            .ReadDocument(stream, "computed-pages.docx");
+        OfficeDocumentSearchResult search = document.Search("needle");
+
+        Assert.Contains("officeimo.reader.word.pages.computed", document.CapabilitiesUsed);
+        Assert.Equal(OfficeDocumentPageProvenance.Computed, document.GetPageProvenance());
+        Assert.True(document.Pages.Count >= 2);
+        Assert.Equal(new[] { 2 }, search.PageNumbers);
+        Assert.Contains("page: 2/", document.ToPageMarkedMarkdown(), StringComparison.Ordinal);
+        Assert.Contains("Needle on computed page two.", document.Pages[1].Blocks.Select(block => block.Text));
+        Assert.NotNull(Assert.Single(search.Hits).Pages[0].Regions.Single());
+    }
+
+    [Fact]
+    public void WordMapping_DoesNotFallBackToSourceTextForBlankVisualFragments() {
+        string text = OfficeIMO.Reader.Word.WordRichMapping.CombineWordFragmentText(
+            new[] { string.Empty, "   " });
+
+        Assert.Equal(string.Empty, text);
+    }
+
+    private static OfficeDocumentPage Page(int number, OfficeDocumentBlock block) {
+        return new OfficeDocumentPage {
+            Number = number,
+            Name = "Page " + number,
+            Location = new ReaderLocation { Page = number },
+            Blocks = new[] { block }
+        };
+    }
+
+    private static OfficeDocumentBlock PageBlock(
+        OfficeDocumentBlock source,
+        int page,
+        string? text = null) {
+        return new OfficeDocumentBlock {
+            Id = source.Id,
+            Kind = source.Kind,
+            Text = text ?? source.Text,
+            Location = new ReaderLocation {
+                Page = page,
+                BlockAnchor = source.Id
+            }
+        };
+    }
+}

@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Drawing;
@@ -12,6 +13,24 @@ namespace OfficeIMO.Word {
             WordImageFlowContext context,
             List<OfficeImageExportDiagnostic> diagnostics,
             IReadOnlyDictionary<WordParagraph, (int Level, string Marker)> listMarkers) {
+            context.ThrowIfCancellationRequested();
+            if (context.TryGetSourceBlock(element, out WordImageSourceBlock sourceBlock)) {
+                IReadOnlyList<OfficeDrawingElement> before = CaptureDrawingElements(context.Drawing);
+                bool captured = AddBodyElementContentCore(document, element, context, diagnostics, listMarkers);
+                CaptureBodyFragment(context, sourceBlock, before);
+                return captured;
+            }
+
+            return AddBodyElementContentCore(document, element, context, diagnostics, listMarkers);
+        }
+
+        private static bool AddBodyElementContentCore(
+            WordDocument document,
+            OpenXmlElement element,
+            WordImageFlowContext context,
+            List<OfficeImageExportDiagnostic> diagnostics,
+            IReadOnlyDictionary<WordParagraph, (int Level, string Marker)> listMarkers) {
+            context.ThrowIfCancellationRequested();
             if (element is Paragraph paragraph) {
                 return AddBodyParagraphContent(document, paragraph, context, diagnostics, listMarkers);
             }
@@ -50,6 +69,7 @@ namespace OfficeIMO.Word {
             List<OfficeImageExportDiagnostic> diagnostics,
             IReadOnlyDictionary<WordParagraph, (int Level, string Marker)> listMarkers,
             string kind) {
+            context.ThrowIfCancellationRequested();
             if (element is Paragraph paragraph) {
                 if (ShouldSkipParagraphForFinalRevisionView(paragraph)) {
                     return false;
@@ -81,6 +101,7 @@ namespace OfficeIMO.Word {
             List<OfficeImageExportDiagnostic> diagnostics,
             IReadOnlyDictionary<WordParagraph, (int Level, string Marker)> listMarkers,
             string scope) {
+            context.ThrowIfCancellationRequested();
             if (container == null) {
                 return false;
             }
@@ -88,6 +109,7 @@ namespace OfficeIMO.Word {
             bool addedAny = false;
             List<OpenXmlElement> children = container.ChildElements.ToList();
             for (int index = 0; index < children.Count; index++) {
+                context.ThrowIfCancellationRequested();
                 OpenXmlElement child = children[index];
                 if (scope == "body") {
                     TryAdvanceForKeepWithNext(document, children, index, context, listMarkers);
@@ -120,6 +142,7 @@ namespace OfficeIMO.Word {
             int currentIndex,
             WordImageFlowContext context,
             IReadOnlyDictionary<WordParagraph, (int Level, string Marker)> listMarkers) {
+            context.ThrowIfCancellationRequested();
             if (currentIndex < 0 ||
                 currentIndex >= elements.Count - 1 ||
                 elements[currentIndex] is not Paragraph paragraph ||
@@ -129,7 +152,13 @@ namespace OfficeIMO.Word {
                 return;
             }
 
-            double keepHeight = EstimateKeepWithNextGroupHeight(document, elements, currentIndex, context.ContentWidth, listMarkers);
+            double keepHeight = EstimateKeepWithNextGroupHeight(
+                document,
+                elements,
+                currentIndex,
+                context.ContentWidth,
+                listMarkers,
+                context.CancellationToken);
             if (keepHeight <= 0D || keepHeight > context.ContentHeight) {
                 return;
             }
@@ -144,12 +173,19 @@ namespace OfficeIMO.Word {
             IReadOnlyList<OpenXmlElement> elements,
             int currentIndex,
             double contentWidth,
-            IReadOnlyDictionary<WordParagraph, (int Level, string Marker)> listMarkers) {
+            IReadOnlyDictionary<WordParagraph, (int Level, string Marker)> listMarkers,
+            CancellationToken cancellationToken) {
             double height = 0D;
             bool hasFollower = false;
             for (int index = currentIndex; index < elements.Count; index++) {
+                cancellationToken.ThrowIfCancellationRequested();
                 OpenXmlElement element = elements[index];
-                height += EstimateBodyElementHeight(document, element, contentWidth, listMarkers);
+                height += EstimateBodyElementHeight(
+                    document,
+                    element,
+                    contentWidth,
+                    listMarkers,
+                    cancellationToken);
                 if (index > currentIndex) {
                     hasFollower = true;
                 }
@@ -166,7 +202,8 @@ namespace OfficeIMO.Word {
             WordDocument document,
             OpenXmlElement element,
             double contentWidth,
-            IReadOnlyDictionary<WordParagraph, (int Level, string Marker)> listMarkers) {
+            IReadOnlyDictionary<WordParagraph, (int Level, string Marker)> listMarkers,
+            CancellationToken cancellationToken) {
             var measurementDrawing = new OfficeDrawing(Math.Max(1D, contentWidth), double.MaxValue);
             WordImageFlowContext measurementContext = CreateFlowContext(
                 measurementDrawing,
@@ -175,7 +212,8 @@ namespace OfficeIMO.Word {
                 Math.Max(1D, contentWidth),
                 double.MaxValue,
                 "unsupported-word-keep-measurement-overflow",
-                "Skipped Word keep-with-next measurement because content does not fit within the measurement frame.");
+                "Skipped Word keep-with-next measurement because content does not fit within the measurement frame.",
+                cancellationToken: cancellationToken);
             var diagnostics = new List<OfficeImageExportDiagnostic>();
             AddBodyElementContent(document, element, measurementContext, diagnostics, listMarkers);
             return Math.Max(0D, measurementContext.Y);
@@ -276,6 +314,7 @@ namespace OfficeIMO.Word {
             WordImageFlowContext context,
             List<OfficeImageExportDiagnostic> diagnostics,
             IReadOnlyDictionary<WordParagraph, (int Level, string Marker)> listMarkers) {
+            context.ThrowIfCancellationRequested();
             if (ShouldSkipParagraphForFinalRevisionView(paragraph)) {
                 context.ClearParagraphSpacingState();
                 return false;

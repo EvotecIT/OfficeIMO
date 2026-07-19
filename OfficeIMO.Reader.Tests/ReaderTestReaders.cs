@@ -21,9 +21,14 @@ internal static class ReaderTestReaders {
             })
             .Build();
 
-    internal static OfficeDocumentReader Word(bool includeFootnotes = true) =>
+    internal static OfficeDocumentReader Word(
+        bool includeFootnotes = true,
+        bool includePageLocations = false) =>
         new OfficeDocumentReaderBuilder()
-            .AddWordHandler(new ReaderWordOptions { IncludeFootnotes = includeFootnotes })
+            .AddWordHandler(new ReaderWordOptions {
+                IncludeFootnotes = includeFootnotes,
+                IncludePageLocations = includePageLocations
+            })
             .Build();
 
     internal static OfficeDocumentReader PowerPoint(

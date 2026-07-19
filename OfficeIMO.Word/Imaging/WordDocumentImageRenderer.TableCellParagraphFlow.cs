@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Drawing;
 using A = DocumentFormat.OpenXml.Drawing;
@@ -20,7 +21,14 @@ namespace OfficeIMO.Word {
             A.ColorScheme? colorScheme,
             List<OfficeImageExportDiagnostic> diagnostics,
             WordImageFlowContext? parentContext = null) {
-            double flowHeight = EstimateTableCellParagraphFlowHeight(paragraphRuns, contentWidth, listMarkers, colorScheme);
+            CancellationToken cancellationToken = parentContext?.CancellationToken ?? default;
+            cancellationToken.ThrowIfCancellationRequested();
+            double flowHeight = EstimateTableCellParagraphFlowHeight(
+                paragraphRuns,
+                contentWidth,
+                listMarkers,
+                colorScheme,
+                cancellationToken);
             double flowTop = contentTop + ResolveTableCellVerticalOffset(cell.VerticalAlignment, contentHeight, flowHeight);
             WordImageFlowContext context = CreateFlowContext(
                 drawing,
@@ -35,7 +43,8 @@ namespace OfficeIMO.Word {
                 sectionNumber: parentContext?.SectionNumber ?? 1,
                 sectionPageCount: parentContext?.SectionPageCount ?? 1,
                 pageNumberValue: parentContext?.PageNumberValue ?? 0,
-                pageNumberText: parentContext?.PageNumberText);
+                pageNumberText: parentContext?.PageNumberText,
+                cancellationToken: cancellationToken);
 
             AddTableCellParagraphRuns(paragraphRuns, context, diagnostics, listMarkers, colorScheme);
         }
@@ -46,22 +55,37 @@ namespace OfficeIMO.Word {
             double fontSize,
             double width,
             double lineHeight,
-            IReadOnlyDictionary<WordParagraph, (int Level, string Marker)>? listMarkers) {
+            IReadOnlyDictionary<WordParagraph, (int Level, string Marker)>? listMarkers,
+            CancellationToken cancellationToken = default) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (paragraphRuns.Count > 1) {
-                return EstimateTableCellParagraphFlowHeight(paragraphRuns, width, listMarkers, GetDocumentColorScheme(cell.Document));
+                return EstimateTableCellParagraphFlowHeight(
+                    paragraphRuns,
+                    width,
+                    listMarkers,
+                    GetDocumentColorScheme(cell.Document),
+                    cancellationToken);
             }
 
-            string text = GetCellText(cell);
+            string text = GetCellText(
+                cell,
+                cancellationToken: cancellationToken);
             return string.IsNullOrWhiteSpace(text)
                 ? lineHeight
-                : EstimateTextHeight(text, fontSize, width, lineHeight);
+                : EstimateTextHeight(
+                    text,
+                    fontSize,
+                    width,
+                    lineHeight,
+                    cancellationToken);
         }
 
         private static double EstimateTableCellParagraphFlowHeight(
             IReadOnlyList<IReadOnlyList<WordParagraph>> paragraphRuns,
             double contentWidth,
             IReadOnlyDictionary<WordParagraph, (int Level, string Marker)>? listMarkers,
-            A.ColorScheme? colorScheme) {
+            A.ColorScheme? colorScheme,
+            CancellationToken cancellationToken = default) {
             var measurementDrawing = new OfficeDrawing(Math.Max(1D, contentWidth), double.MaxValue);
             WordImageFlowContext measurementContext = CreateFlowContext(
                 measurementDrawing,
@@ -70,7 +94,8 @@ namespace OfficeIMO.Word {
                 contentWidth,
                 double.MaxValue,
                 "unsupported-word-table-cell-measurement-overflow",
-                "Skipped Word table cell text while measuring table cell content height.");
+                "Skipped Word table cell text while measuring table cell content height.",
+                cancellationToken: cancellationToken);
             var diagnostics = new List<OfficeImageExportDiagnostic>();
             AddTableCellParagraphRuns(paragraphRuns, measurementContext, diagnostics, listMarkers, colorScheme);
             return Math.Max(0D, measurementContext.Y);
@@ -83,6 +108,7 @@ namespace OfficeIMO.Word {
             IReadOnlyDictionary<WordParagraph, (int Level, string Marker)>? listMarkers,
             A.ColorScheme? colorScheme) {
             for (int i = 0; i < paragraphRuns.Count; i++) {
+                context.ThrowIfCancellationRequested();
                 IReadOnlyList<WordParagraph> runs = paragraphRuns[i];
                 WordImageListMarker? listMarker = CreateTableCellListMarker(runs, listMarkers);
                 bool added = runs.Count == 1 && !HasRunHighlight(runs[0])
@@ -105,10 +131,17 @@ namespace OfficeIMO.Word {
             return CreateListMarker(firstRun._document, firstRun._paragraph, listMarkers);
         }
 
-        private static List<List<WordParagraph>> CreateTableCellParagraphRuns(WordTableCell cell) {
+        private static List<List<WordParagraph>> CreateTableCellParagraphRuns(
+            WordTableCell cell,
+            CancellationToken cancellationToken = default) {
             var paragraphs = new List<List<WordParagraph>>();
             foreach (Paragraph paragraph in cell._tableCell.ChildElements.OfType<Paragraph>()) {
-                List<WordParagraph> paragraphRuns = WordSection.ConvertParagraphToWordParagraphs(cell.Document, paragraph, splitPaginationMarkers: true)
+                cancellationToken.ThrowIfCancellationRequested();
+                List<WordParagraph> paragraphRuns = WordSection.ConvertParagraphToWordParagraphs(
+                        cell.Document,
+                        paragraph,
+                        splitPaginationMarkers: true,
+                        cancellationToken)
                     .Where(run => !run.IsPageBreak && !run.IsColumnBreak)
                     .Where(run => !string.IsNullOrEmpty(run.Text))
                     .ToList();

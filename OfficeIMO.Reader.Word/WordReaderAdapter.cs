@@ -9,7 +9,9 @@ namespace OfficeIMO.Reader.Word;
 
 internal static class WordReaderAdapter {
     internal static ReaderWordOptions Clone(ReaderWordOptions? source) => new ReaderWordOptions {
-        IncludeFootnotes = source?.IncludeFootnotes ?? true
+        IncludeFootnotes = source?.IncludeFootnotes ?? true,
+        IncludePageLocations = source?.IncludePageLocations ?? false,
+        PageLocationOptions = source?.PageLocationOptions?.Clone()
     };
 
     internal static OfficeDocumentReadResult ReadDocument(string path, ReaderOptions readerOptions, ReaderWordOptions options, CancellationToken cancellationToken) {
@@ -60,6 +62,15 @@ internal static class WordReaderAdapter {
 
     private static OfficeDocumentReadResult Project(WordDocument document, string sourceName, ReaderOptions readerOptions, ReaderWordOptions options, CancellationToken cancellationToken) {
         WordDocumentSnapshot snapshot = document.CreateInspectionSnapshot();
+        IReadOnlyList<WordDocumentVisualSnapshot> pageSnapshots = Array.Empty<WordDocumentVisualSnapshot>();
+        if (options.IncludePageLocations) {
+            cancellationToken.ThrowIfCancellationRequested();
+            WordImageExportOptions layoutOptions = options.PageLocationOptions?.Clone() ?? new WordImageExportOptions();
+            layoutOptions.IncludeDocumentContent = true;
+            layoutOptions.PageIndex = 0;
+            layoutOptions.PageCount = null;
+            pageSnapshots = document.CreateVisualSnapshots(layoutOptions, cancellationToken);
+        }
         IReadOnlyList<string>? legacyWarnings = BuildLegacyWarnings(document);
         var chunks = new List<ReaderChunk>();
         IReadOnlyList<OfficeDocumentAsset> assets = OpenXmlImageAssetCollector.CollectWord(
@@ -126,7 +137,7 @@ internal static class WordReaderAdapter {
             source: null,
             capabilities: new[] { OfficeDocumentReaderBuilderWordExtensions.HandlerId },
             assets: assets);
-        return WordRichMapping.Apply(snapshot, readerOptions, options, result);
+        return WordRichMapping.Apply(snapshot, pageSnapshots, readerOptions, options, result);
     }
 
     private static IReadOnlyList<ParagraphRepresentation> BuildParagraphRepresentations(

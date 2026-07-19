@@ -189,7 +189,8 @@ internal static partial class PdfReaderAdapter {
             CapabilitiesUsed = new[] {
                 "officeimo.reader.pdf",
                 "officeimo.pdf.logical-document",
-                "officeimo.pdf.logical-markdown"
+                "officeimo.pdf.logical-markdown",
+                "officeimo.reader.pdf.pages.native"
             },
             Markdown = markdown,
             Chunks = chunks,

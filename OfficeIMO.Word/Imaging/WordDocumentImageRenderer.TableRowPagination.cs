@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Drawing;
 using A = DocumentFormat.OpenXml.Drawing;
@@ -18,6 +19,7 @@ namespace OfficeIMO.Word {
             WordImageFlowContext context,
             List<OfficeImageExportDiagnostic> diagnostics,
             IReadOnlyDictionary<WordParagraph, (int Level, string Marker)>? listMarkers) {
+            context.ThrowIfCancellationRequested();
             if (rowIndex < repeatingHeaderRowCount) {
                 return false;
             }
@@ -39,6 +41,7 @@ namespace OfficeIMO.Word {
             }
 
             while (cells.Any(cell => cell.HasRemainingContent)) {
+                context.ThrowIfCancellationRequested();
                 double availableHeight = context.ContentBottom - context.Y;
                 if (availableHeight < MinimumTableRowHeightPoints && context.Y > context.Top) {
                     context.AdvanceColumnOrPage();
@@ -101,6 +104,7 @@ namespace OfficeIMO.Word {
             double cellLeftOffset = 0D;
             int columnIndex = 0;
             foreach (WordTableCell cell in row.GetCells(readOnly: true)) {
+                context.ThrowIfCancellationRequested();
                 int columnSpan = Math.Max(1, cell.ColumnSpan);
                 if (cell.HorizontalMerge == MergedCellValues.Continue) {
                     columnIndex += columnSpan;
@@ -115,7 +119,9 @@ namespace OfficeIMO.Word {
                 }
 
                 int rowSpan = Math.Max(1, cell.RowSpan);
-                List<List<WordParagraph>> paragraphRuns = CreateTableCellParagraphRuns(cell);
+                List<List<WordParagraph>> paragraphRuns = CreateTableCellParagraphRuns(
+                    cell,
+                    context.CancellationToken);
                 bool hasListMarkers = paragraphRuns.Any(runs => CreateTableCellListMarker(runs, listMarkers).HasValue);
 
                 WordParagraph? paragraph = paragraphRuns.Count == 0 ? null : paragraphRuns[0][0];
@@ -134,7 +140,10 @@ namespace OfficeIMO.Word {
                 OfficeTextPadding padding = new OfficeTextPadding(marginLeft, marginTop, marginRight, marginBottom);
                 OfficeColor fillColor = ResolveCellFillColor(table, cell, rowIndex, columnIndex, rows.Count, columnWidths.Count, colorScheme);
                 OfficeBorderBox borders = ResolveCellBorders(table, cell, rowIndex, columnIndex, rowSpan, columnSpan, rows.Count, columnWidths.Count, colorScheme);
-                List<SplitTableCellNestedTable> nestedTables = CreateSplitTableCellNestedTables(cell, contentWidth);
+                List<SplitTableCellNestedTable> nestedTables = CreateSplitTableCellNestedTables(
+                    cell,
+                    contentWidth,
+                    context.CancellationToken);
                 if (ShouldSplitTableCellAsRichText(paragraphRuns, hasListMarkers)) {
                     List<OfficeRichTextRun> richRuns = CreateSplitTableCellRichRuns(paragraphRuns, colorScheme, listMarkers, context);
                     if (richRuns.Count == 0) {
@@ -161,11 +170,13 @@ namespace OfficeIMO.Word {
                             contentWidth,
                             double.MaxValue,
                             Math.Max(1D, lineHeight / Math.Max(1D, maxFontSize)),
-                            CreateRichTextMeasure(),
+                            CreateRichTextMeasure(context.CancellationToken),
                             wrap: true,
                             shrinkToFit: false,
                             minimumFontSize: Math.Min(6D, maxFontSize),
-                            overflowBehavior: OfficeTextOverflowBehavior.Clip);
+                            overflowBehavior: OfficeTextOverflowBehavior.Clip,
+                            paragraphIndent: null,
+                            cancellationToken: context.CancellationToken);
                         IReadOnlyList<SplitTableCellContentEntry> contentOrder = CreateSplitTableCellContentOrder(cell, context, contentWidth, richLayout.Lines.Count);
                         cells.Add(SplitTableCellLayout.CreateRich(
                             cellLeftOffset,
@@ -183,10 +194,18 @@ namespace OfficeIMO.Word {
                 } else {
                     OfficeFontInfo font = paragraph == null ? OfficeFontInfo.Default : CreateFont(paragraph);
                     double lineHeight = Math.Max(font.Size * 1.25D, 12D);
-                    string text = GetCellText(cell, context);
+                    string text = GetCellText(
+                        cell,
+                        context,
+                        context.CancellationToken);
                     List<string> lines = string.IsNullOrWhiteSpace(text)
                         ? new List<string>()
-                        : WrapTextIntoMeasuredLines(text, font, contentWidth);
+                        : WrapTextIntoMeasuredLines(
+                            text,
+                            font,
+                            contentWidth,
+                            context.CancellationToken,
+                            context.CancellationCheckpoint);
                     IReadOnlyList<SplitTableCellContentEntry> contentOrder = CreateSplitTableCellContentOrder(cell, context, contentWidth, lines.Count);
                     cells.Add(SplitTableCellLayout.CreatePlain(
                         cellLeftOffset,
@@ -233,11 +252,19 @@ namespace OfficeIMO.Word {
             return images;
         }
 
-        private static List<SplitTableCellNestedTable> CreateSplitTableCellNestedTables(WordTableCell cell, double contentWidth) {
+        private static List<SplitTableCellNestedTable> CreateSplitTableCellNestedTables(
+            WordTableCell cell,
+            double contentWidth,
+            CancellationToken cancellationToken = default) {
             List<WordTable> nestedTables = GetDirectNestedTables(cell);
             var blocks = new List<SplitTableCellNestedTable>(nestedTables.Count);
             for (int i = 0; i < nestedTables.Count; i++) {
-                double height = EstimateTableHeight(nestedTables[i], contentWidth);
+                cancellationToken.ThrowIfCancellationRequested();
+                double height = EstimateTableHeight(
+                    nestedTables[i],
+                    contentWidth,
+                    cancellationToken,
+                    cancellationCheckpoint: null);
                 if (height > 0D) {
                     blocks.Add(new SplitTableCellNestedTable(nestedTables[i], height));
                 }
@@ -320,7 +347,14 @@ namespace OfficeIMO.Word {
             }
 
             OfficeFontInfo font = CreateFont(run);
-            return Math.Max(1, WrapTextIntoMeasuredLines(text, font, contentWidth).Count);
+            return Math.Max(
+                1,
+                WrapTextIntoMeasuredLines(
+                    text,
+                    font,
+                    contentWidth,
+                    context.CancellationToken,
+                    context.CancellationCheckpoint).Count);
         }
 
         private static bool ShouldSplitTableCellAsRichText(IReadOnlyList<IReadOnlyList<WordParagraph>> paragraphRuns, bool hasListMarkers) {
