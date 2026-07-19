@@ -53,6 +53,8 @@ Several helper types were implementation details rather than stable application 
 | `WordListLevel._level` | `WordListLevel.OpenXmlElement` |
 | `WordHelpers.GetNextSdtId(...)` | Removed; content-control APIs allocate valid IDs internally |
 | `InlineRunHelper.AddInlineRuns(...)` | Use the owning converter or explicit paragraph APIs |
+| `ImageShapeStyleHelper` | Use the owning image shape APIs |
+| `HorizontalAlignmentHelper` | Use the public alignment properties on the owning paragraph, table, cell, or image API |
 
 For Markdown, parse the document through `OfficeIMO.Word.Markdown` instead of using the old inline-run helper:
 
@@ -67,9 +69,16 @@ using WordDocument document = MarkdownReader.Parse(markdown).ToWordDocument();
 
 ## Legacy XLS import reports
 
-`LegacyXlsLoadResult.AdvancedWorkbook` is the public imported workbook. The low-level `Workbook` projection and exhaustive parser telemetry are internal in 3.0.
+The supported replacements are:
 
-Use `CreateImportReport()` for the cached public report. It exposes stable summary counts and the derived `HasImportErrors` and `HasUnsupportedFeatures` indicators. Detailed record-family counters remain available to OfficeIMO's import implementation and tests without becoming permanent public API.
+| OfficeIMO 2.x | OfficeIMO 3.0 |
+|---|---|
+| `LegacyXlsLoadResult.Workbook` | `LegacyXlsLoadResult.AdvancedWorkbook` |
+| `LegacyXlsLoadResult.ImportReport` | `LegacyXlsLoadResult.CreateImportReport()` |
+| `LegacyXlsLoadResult.CreateAdvancedImportReport()` | `LegacyXlsLoadResult.CreateImportReport()` |
+| Detailed `LegacyXlsImportReport` record-family counters | Stable summary counts and issue collections |
+
+`AdvancedWorkbook` is the public imported workbook. The low-level `Workbook` projection and exhaustive parser telemetry are internal in 3.0. `CreateImportReport()` returns the cached public report with the stable summary counts and the derived `HasImportErrors` and `HasUnsupportedFeatures` indicators. Detailed record-family counters remain available to OfficeIMO's import implementation and tests without becoming permanent public API.
 
 ## EPUB image export package
 
