@@ -30,7 +30,7 @@ internal static partial class RtfReaderAdapter {
             RtfPageSetup setup = section?.PageSetup ?? document.PageSetup;
 
             if (startsSection && section != null) {
-                if (IsFirstRtfSection(document, section)) {
+                if (blockIndex == 0 && IsFirstRtfSection(document, section)) {
                     ApplyRtfPageSetup(pages[currentPage - 1], setup, document.PageSetup);
                 } else {
                     AdvanceForRtfSectionBreak(

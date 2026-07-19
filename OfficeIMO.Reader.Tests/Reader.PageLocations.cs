@@ -90,7 +90,7 @@ public sealed class ReaderPageLocationTests {
             Kind = ReaderInputKind.Word,
             Blocks = new[] { sourceBlock },
             Pages = new[] {
-                Page(1, PageBlock(sourceBlock, 1, "First needle before the page boundary.")),
+                Page(1, PageBlock(sourceBlock, 1, "First needle before the page boundary. ")),
                 Page(2, PageBlock(sourceBlock, 2, "Second needle after it."))
             }
         };
@@ -106,8 +106,170 @@ public sealed class ReaderPageLocationTests {
         Assert.Equal(new[] { 1, 2 }, result.PageNumbers);
         OfficeDocumentSearchHit limitedHit = Assert.Single(limited.Hits);
         Assert.Equal(
-            new[] { 1, 2 },
+            new[] { 1 },
             limitedHit.Pages.Select(page => page.Number!.Value).ToArray());
+    }
+
+    [Fact]
+    public void Search_RetainsEveryContainingPageWhenAMatchCrossesPageFragments() {
+        var sourceBlock = new OfficeDocumentBlock {
+            Id = "paragraph-cross-page",
+            Kind = "paragraph",
+            Text = "A needle spans two page fragments.",
+            Location = new ReaderLocation { BlockAnchor = "paragraph-cross-page" }
+        };
+        OfficeDocumentReadResult document = new OfficeDocumentReadResult {
+            Kind = ReaderInputKind.Word,
+            Blocks = new[] { sourceBlock },
+            Pages = new[] {
+                Page(1, PageBlock(sourceBlock, 1, "A nee")),
+                Page(2, PageBlock(sourceBlock, 2, "dle spans two page fragments."))
+            }
+        };
+
+        OfficeDocumentSearchHit hit = Assert.Single(document.Search(
+            "needle",
+            new OfficeDocumentSearchOptions { WholeWord = true }).Hits);
+
+        Assert.Equal(new[] { 1, 2 }, hit.Pages.Select(page => page.Number!.Value).ToArray());
+    }
+
+    [Fact]
+    public void Search_MapsWholeAndCrossPageOccurrencesIndependently() {
+        var sourceBlock = new OfficeDocumentBlock {
+            Id = "paragraph-mixed-pages",
+            Kind = "paragraph",
+            Text = "First needle then second needle.",
+            Location = new ReaderLocation { BlockAnchor = "paragraph-mixed-pages" }
+        };
+        OfficeDocumentReadResult document = new OfficeDocumentReadResult {
+            Kind = ReaderInputKind.Word,
+            Blocks = new[] { sourceBlock },
+            Pages = new[] {
+                Page(1, PageBlock(sourceBlock, 1, "First needle then ")),
+                Page(2, PageBlock(sourceBlock, 2, "second nee")),
+                Page(3, PageBlock(sourceBlock, 3, "dle."))
+            }
+        };
+
+        OfficeDocumentSearchResult result = document.Search("needle");
+
+        Assert.Equal(2, result.Hits.Count);
+        Assert.Equal(new[] { 1 }, result.Hits[0].Pages.Select(page => page.Number!.Value).ToArray());
+        Assert.Equal(
+            new[] { 2, 3 },
+            result.Hits[1].Pages.Select(page => page.Number!.Value).ToArray());
+    }
+
+    [Fact]
+    public void Search_MapsMismatchedFragmentsByOccurrenceOrderAndOptions() {
+        var sourceBlock = new OfficeDocumentBlock {
+            Id = "paragraph-mismatched-pages",
+            Kind = "paragraph",
+            Text = "First Needle then second needle.",
+            Location = new ReaderLocation { BlockAnchor = "paragraph-mismatched-pages" }
+        };
+        OfficeDocumentReadResult document = new OfficeDocumentReadResult {
+            Kind = ReaderInputKind.Word,
+            Blocks = new[] { sourceBlock },
+            Pages = new[] {
+                Page(1, PageBlock(sourceBlock, 1, "First NEEDLE then ")),
+                Page(2, PageBlock(sourceBlock, 2, "second nee")),
+                Page(3, PageBlock(sourceBlock, 3, "dle!"))
+            }
+        };
+
+        OfficeDocumentSearchResult wholeWord = document.Search(
+            "needle",
+            new OfficeDocumentSearchOptions { WholeWord = true });
+        OfficeDocumentSearchResult matchCase = document.Search(
+            "needle",
+            new OfficeDocumentSearchOptions {
+                MatchCase = true,
+                WholeWord = true
+            });
+
+        Assert.Equal(2, wholeWord.Hits.Count);
+        Assert.Equal(
+            new[] { 1 },
+            wholeWord.Hits[0].Pages.Select(page => page.Number!.Value).ToArray());
+        Assert.Equal(
+            new[] { 2, 3 },
+            wholeWord.Hits[1].Pages.Select(page => page.Number!.Value).ToArray());
+        OfficeDocumentSearchHit caseSensitiveHit = Assert.Single(matchCase.Hits);
+        Assert.Equal(
+            new[] { 2, 3 },
+            caseSensitiveHit.Pages.Select(page => page.Number!.Value).ToArray());
+    }
+
+    [Fact]
+    public void Search_DeclinesCitationsWhenFragmentOptionsSwapOccurrenceIdentity() {
+        var caseSourceBlock = new OfficeDocumentBlock {
+            Id = "paragraph-swapped-case",
+            Kind = "paragraph",
+            Text = "Needle first, needle second"
+        };
+        OfficeDocumentReadResult caseDocument = new OfficeDocumentReadResult {
+            Blocks = new[] { caseSourceBlock },
+            Pages = new[] {
+                Page(1, PageBlock(caseSourceBlock, 1, "needle first, ")),
+                Page(2, PageBlock(caseSourceBlock, 2, "Needle second"))
+            }
+        };
+        var boundarySourceBlock = new OfficeDocumentBlock {
+            Id = "paragraph-swapped-boundary",
+            Kind = "paragraph",
+            Text = "needleless then needle"
+        };
+        OfficeDocumentReadResult boundaryDocument = new OfficeDocumentReadResult {
+            Blocks = new[] { boundarySourceBlock },
+            Pages = new[] {
+                Page(1, PageBlock(boundarySourceBlock, 1, "needle then ")),
+                Page(2, PageBlock(boundarySourceBlock, 2, "needleless"))
+            }
+        };
+
+        OfficeDocumentSearchHit caseSensitiveHit = Assert.Single(caseDocument.Search(
+            "needle",
+            new OfficeDocumentSearchOptions { MatchCase = true }).Hits);
+        OfficeDocumentSearchHit wholeWordHit = Assert.Single(boundaryDocument.Search(
+            "needle",
+            new OfficeDocumentSearchOptions { WholeWord = true }).Hits);
+
+        Assert.Empty(caseSensitiveHit.Pages);
+        Assert.Empty(wholeWordHit.Pages);
+    }
+
+    [Fact]
+    public void Search_DeclinesCitationsWhenFragmentOccurrenceCountsDiffer() {
+        var sourceBlock = new OfficeDocumentBlock {
+            Id = "paragraph-occurrence-count",
+            Kind = "paragraph",
+            Text = "needle one; needle two"
+        };
+        OfficeDocumentReadResult missingDocument = new OfficeDocumentReadResult {
+            Blocks = new[] { sourceBlock },
+            Pages = new[] {
+                Page(1, PageBlock(sourceBlock, 1, "needle one"))
+            }
+        };
+        OfficeDocumentReadResult extraDocument = new OfficeDocumentReadResult {
+            Blocks = new[] { sourceBlock },
+            Pages = new[] {
+                Page(1, PageBlock(
+                    sourceBlock,
+                    1,
+                    "needle one; needle two; needle extra"))
+            }
+        };
+
+        OfficeDocumentSearchResult missing = missingDocument.Search("needle");
+        OfficeDocumentSearchResult extra = extraDocument.Search("needle");
+
+        Assert.Equal(2, missing.Hits.Count);
+        Assert.All(missing.Hits, hit => Assert.Empty(hit.Pages));
+        Assert.Equal(2, extra.Hits.Count);
+        Assert.All(extra.Hits, hit => Assert.Empty(hit.Pages));
     }
 
     [Fact]
@@ -268,6 +430,23 @@ public sealed class ReaderPageLocationTests {
         OfficeDocumentPage page = Assert.Single(document.Pages);
         Assert.Equal(500D, page.Width);
         Assert.Equal(600D, page.Height);
+    }
+
+    [Fact]
+    public void RtfReader_FirstSectionBreakAdvancesWhenRootContentPrecedesIt() {
+        RtfDocument rtf = RtfDocument.Create();
+        rtf.AddParagraph("Root body.");
+        RtfSection section = rtf.AddSection();
+        section.AddParagraph("Section body.");
+
+        OfficeDocumentReadResult document = RtfReaderAdapter.ReadDocument(
+            rtf,
+            "root-before-section.rtf",
+            rtfOptions: new ReaderRtfOptions { IncludePageLocations = true });
+
+        Assert.Equal(2, document.Pages.Count);
+        Assert.Equal("Root body.", Assert.Single(document.Pages[0].Blocks).Text);
+        Assert.Equal("Section body.", Assert.Single(document.Pages[1].Blocks).Text);
     }
 
     [Fact]

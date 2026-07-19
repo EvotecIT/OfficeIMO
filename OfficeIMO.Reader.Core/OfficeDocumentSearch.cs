@@ -115,29 +115,39 @@ public static partial class OfficeDocumentReadResultExtensions {
                 occurrenceIndexes.Count,
                 remainingResultCount);
             IReadOnlyList<OfficeDocumentPageLocation> locations = document.Locate(block);
-            IReadOnlyList<OfficeDocumentPageLocation>? occurrencePages =
-                hasUnreturnedOccurrences
-                    ? null
-                    : CorrelateOccurrencesToPages(
-                        locations,
-                        block.Id,
-                        query,
-                        comparison,
-                        effective.WholeWord,
-                        occurrenceIndexes.Count);
-            OfficeDocumentPageLocation[] pageSpecific = occurrencePages == null
-                ? locations
-                    .Where(location => PageContainsQuery(
-                        location.Page,
-                        block.Id,
-                        query,
-                        comparison,
-                        effective.WholeWord))
-                    .ToArray()
-                : Array.Empty<OfficeDocumentPageLocation>();
-            bool hasPageBlockEvidence = locations.Any(location =>
-                (location.Page.Blocks ?? Array.Empty<OfficeDocumentBlock>())
-                .Any(pageBlock => string.Equals(pageBlock.Id, block.Id, StringComparison.Ordinal)));
+            IReadOnlyList<IReadOnlyList<OfficeDocumentPageLocation>>? occurrencePages =
+                CorrelateOccurrencesToPages(
+                    locations,
+                    block.Id,
+                    text,
+                    query,
+                    comparison,
+                    effective.WholeWord,
+                    occurrenceIndexes,
+                    returnedOccurrenceCount,
+                    hasUnreturnedOccurrences,
+                    out bool hasConflictingPageEvidence);
+            OfficeDocumentPageLocation[] pageSpecific =
+                occurrencePages == null && !hasConflictingPageEvidence
+                    ? locations
+                        .Where(location => PageContainsQuery(
+                            location.Page,
+                            block.Id,
+                            query,
+                            comparison,
+                            effective.WholeWord))
+                        .ToArray()
+                    : Array.Empty<OfficeDocumentPageLocation>();
+            IReadOnlyList<OfficeDocumentPageLocation> pageFallback =
+                Array.Empty<OfficeDocumentPageLocation>();
+            if (occurrencePages == null && !hasConflictingPageEvidence) {
+                bool hasPageBlockEvidence = locations.Any(location =>
+                    (location.Page.Blocks ?? Array.Empty<OfficeDocumentBlock>())
+                    .Any(pageBlock => string.Equals(pageBlock.Id, block.Id, StringComparison.Ordinal)));
+                pageFallback = pageSpecific.Length > 0 || hasPageBlockEvidence
+                    ? pageSpecific
+                    : locations;
+            }
 
             for (int occurrenceIndex = 0; occurrenceIndex < returnedOccurrenceCount; occurrenceIndex++) {
                 hits.Add(new OfficeDocumentSearchHit(
@@ -145,10 +155,8 @@ public static partial class OfficeDocumentReadResultExtensions {
                     occurrenceIndexes[occurrenceIndex],
                     query.Length,
                     occurrencePages != null
-                        ? new[] { occurrencePages[occurrenceIndex] }
-                        : pageSpecific.Length > 0 || hasPageBlockEvidence
-                            ? pageSpecific
-                            : locations));
+                        ? occurrencePages[occurrenceIndex]
+                        : pageFallback));
                 if (hits.Count >= effective.MaximumResults) {
                     return new OfficeDocumentSearchResult(query, document.GetTotalPageCount(), hits.AsReadOnly());
                 }
@@ -158,45 +166,278 @@ public static partial class OfficeDocumentReadResultExtensions {
         return new OfficeDocumentSearchResult(query, document.GetTotalPageCount(), hits.AsReadOnly());
     }
 
-    private static IReadOnlyList<OfficeDocumentPageLocation>? CorrelateOccurrencesToPages(
+    private static IReadOnlyList<IReadOnlyList<OfficeDocumentPageLocation>>? CorrelateOccurrencesToPages(
         IReadOnlyList<OfficeDocumentPageLocation> locations,
         string blockId,
+        string sourceText,
         string query,
         StringComparison comparison,
         bool wholeWord,
-        int sourceOccurrenceCount) {
-        if (sourceOccurrenceCount == 0) {
-            return Array.Empty<OfficeDocumentPageLocation>();
+        IReadOnlyList<int> sourceOccurrenceIndexes,
+        int returnedOccurrenceCount,
+        bool hasUnreturnedOccurrences,
+        out bool hasConflictingPageEvidence) {
+        hasConflictingPageEvidence = false;
+        if (returnedOccurrenceCount == 0) {
+            return Array.Empty<IReadOnlyList<OfficeDocumentPageLocation>>();
         }
 
-        var pageOccurrences = new List<OfficeDocumentPageLocation>(sourceOccurrenceCount);
-        int pageOccurrenceLimit = sourceOccurrenceCount == int.MaxValue
-            ? int.MaxValue
-            : sourceOccurrenceCount + 1;
+        IReadOnlyList<IReadOnlyList<OfficeDocumentPageLocation>>? exactLocations =
+            MapOccurrencesByFragmentOffsets(
+                locations,
+                blockId,
+                sourceText,
+                query.Length,
+                sourceOccurrenceIndexes,
+                returnedOccurrenceCount);
+        if (exactLocations != null) {
+            return exactLocations;
+        }
+        if (hasUnreturnedOccurrences) {
+            return null;
+        }
+
+        return MapOccurrencesByStableOrder(
+            locations,
+            blockId,
+            sourceText,
+            query,
+            comparison,
+            wholeWord,
+            sourceOccurrenceIndexes,
+            out hasConflictingPageEvidence);
+    }
+
+    private static IReadOnlyList<IReadOnlyList<OfficeDocumentPageLocation>>?
+        MapOccurrencesByStableOrder(
+            IReadOnlyList<OfficeDocumentPageLocation> locations,
+            string blockId,
+            string sourceText,
+            string query,
+            StringComparison comparison,
+            bool wholeWord,
+            IReadOnlyList<int> sourceOccurrenceIndexes,
+            out bool hasConflictingPageEvidence) {
+        hasConflictingPageEvidence = false;
+        IReadOnlyList<int>? stableOrdinals = FindStableOccurrenceOrdinals(
+            sourceText,
+            query,
+            sourceOccurrenceIndexes,
+            out int sourceStableOccurrenceCount);
+        if (stableOrdinals == null) {
+            hasConflictingPageEvidence = true;
+            return null;
+        }
+
+        var combined = new StringBuilder();
+        var fragmentStarts = new List<int>();
+        var fragmentEnds = new List<int>();
+        var fragmentLocations = new List<OfficeDocumentPageLocation>();
         foreach (OfficeDocumentPageLocation location in locations) {
             foreach (OfficeDocumentBlock pageBlock in location.Page.Blocks ?? Array.Empty<OfficeDocumentBlock>()) {
                 if (!string.Equals(pageBlock.Id, blockId, StringComparison.Ordinal)) {
                     continue;
                 }
 
-                int count = CountOccurrences(
-                    pageBlock.Text ?? string.Empty,
-                    query,
-                    comparison,
-                    wholeWord,
-                    pageOccurrenceLimit - pageOccurrences.Count);
-                for (int index = 0; index < count; index++) {
-                    pageOccurrences.Add(location);
-                }
-                if (pageOccurrences.Count > sourceOccurrenceCount) {
-                    return null;
-                }
+                fragmentStarts.Add(combined.Length);
+                combined.Append(pageBlock.Text ?? string.Empty);
+                fragmentEnds.Add(combined.Length);
+                fragmentLocations.Add(location);
             }
         }
 
-        return pageOccurrences.Count == sourceOccurrenceCount
-            ? pageOccurrences.AsReadOnly()
+        string combinedText = combined.ToString();
+        var fragmentOccurrenceIndexes = new List<int>(stableOrdinals.Count);
+        int fragmentStableOccurrenceCount = CollectOccurrenceIndexesAtOrdinals(
+            combinedText,
+            query,
+            stableOrdinals,
+            fragmentOccurrenceIndexes);
+        if (fragmentStableOccurrenceCount != sourceStableOccurrenceCount ||
+            fragmentOccurrenceIndexes.Count != stableOrdinals.Count) {
+            hasConflictingPageEvidence = !HasRepeatedCompleteBlockCopies(
+                locations,
+                blockId,
+                sourceText);
+            return null;
+        }
+
+        foreach (int occurrenceIndex in fragmentOccurrenceIndexes) {
+            if (string.Compare(
+                    combinedText,
+                    occurrenceIndex,
+                    query,
+                    0,
+                    query.Length,
+                    comparison) != 0 ||
+                (wholeWord && !IsWholeWord(combinedText, occurrenceIndex, query.Length))) {
+                hasConflictingPageEvidence = true;
+                return null;
+            }
+        }
+
+        return MapOccurrenceRangesToPages(
+            fragmentStarts,
+            fragmentEnds,
+            fragmentLocations,
+            fragmentOccurrenceIndexes,
+            query.Length,
+            fragmentOccurrenceIndexes.Count);
+    }
+
+    private static bool HasRepeatedCompleteBlockCopies(
+        IReadOnlyList<OfficeDocumentPageLocation> locations,
+        string blockId,
+        string sourceText) {
+        int completeCopyCount = 0;
+        foreach (OfficeDocumentPageLocation location in locations) {
+            foreach (OfficeDocumentBlock pageBlock in location.Page.Blocks ?? Array.Empty<OfficeDocumentBlock>()) {
+                if (string.Equals(pageBlock.Id, blockId, StringComparison.Ordinal) &&
+                    string.Equals(pageBlock.Text, sourceText, StringComparison.Ordinal) &&
+                    ++completeCopyCount > 1) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private static IReadOnlyList<int>? FindStableOccurrenceOrdinals(
+        string text,
+        string query,
+        IReadOnlyList<int> selectedOccurrenceIndexes,
+        out int totalOccurrenceCount) {
+        var selectedOrdinals = new List<int>(selectedOccurrenceIndexes.Count);
+        int selectedIndex = 0;
+        int searchFrom = 0;
+        totalOccurrenceCount = 0;
+        while (searchFrom <= text.Length - query.Length) {
+            int index = text.IndexOf(query, searchFrom, StringComparison.OrdinalIgnoreCase);
+            if (index < 0) {
+                break;
+            }
+
+            searchFrom = index + Math.Max(1, query.Length);
+            if (selectedIndex < selectedOccurrenceIndexes.Count &&
+                index == selectedOccurrenceIndexes[selectedIndex]) {
+                selectedOrdinals.Add(totalOccurrenceCount);
+                selectedIndex++;
+            }
+            totalOccurrenceCount++;
+        }
+
+        return selectedIndex == selectedOccurrenceIndexes.Count
+            ? selectedOrdinals.AsReadOnly()
             : null;
+    }
+
+    private static int CollectOccurrenceIndexesAtOrdinals(
+        string text,
+        string query,
+        IReadOnlyList<int> selectedOrdinals,
+        List<int> selectedOccurrenceIndexes) {
+        int selectedOrdinalIndex = 0;
+        int searchFrom = 0;
+        int totalOccurrenceCount = 0;
+        while (searchFrom <= text.Length - query.Length) {
+            int index = text.IndexOf(query, searchFrom, StringComparison.OrdinalIgnoreCase);
+            if (index < 0) {
+                break;
+            }
+
+            searchFrom = index + Math.Max(1, query.Length);
+            if (selectedOrdinalIndex < selectedOrdinals.Count &&
+                totalOccurrenceCount == selectedOrdinals[selectedOrdinalIndex]) {
+                selectedOccurrenceIndexes.Add(index);
+                selectedOrdinalIndex++;
+            }
+            totalOccurrenceCount++;
+        }
+        return totalOccurrenceCount;
+    }
+
+    private static IReadOnlyList<IReadOnlyList<OfficeDocumentPageLocation>>?
+        MapOccurrencesByFragmentOffsets(
+            IReadOnlyList<OfficeDocumentPageLocation> locations,
+            string blockId,
+            string sourceText,
+            int queryLength,
+            IReadOnlyList<int> sourceOccurrenceIndexes,
+            int occurrenceCount) {
+        var fragmentStarts = new List<int>();
+        var fragmentEnds = new List<int>();
+        var fragmentLocations = new List<OfficeDocumentPageLocation>();
+        int combinedLength = 0;
+        bool fragmentsMatchSource = true;
+        foreach (OfficeDocumentPageLocation location in locations) {
+            foreach (OfficeDocumentBlock pageBlock in location.Page.Blocks ?? Array.Empty<OfficeDocumentBlock>()) {
+                if (!string.Equals(pageBlock.Id, blockId, StringComparison.Ordinal)) {
+                    continue;
+                }
+
+                string fragmentText = pageBlock.Text ?? string.Empty;
+                fragmentStarts.Add(combinedLength);
+                if (fragmentsMatchSource &&
+                    (fragmentText.Length > sourceText.Length - combinedLength ||
+                     string.CompareOrdinal(
+                         sourceText,
+                         combinedLength,
+                         fragmentText,
+                         0,
+                         fragmentText.Length) != 0)) {
+                    fragmentsMatchSource = false;
+                }
+                combinedLength += fragmentText.Length;
+                fragmentEnds.Add(combinedLength);
+                fragmentLocations.Add(location);
+            }
+        }
+
+        if (!fragmentsMatchSource || combinedLength != sourceText.Length) {
+            return null;
+        }
+
+        return MapOccurrenceRangesToPages(
+            fragmentStarts,
+            fragmentEnds,
+            fragmentLocations,
+            sourceOccurrenceIndexes,
+            queryLength,
+            occurrenceCount);
+    }
+
+    private static IReadOnlyList<IReadOnlyList<OfficeDocumentPageLocation>>?
+        MapOccurrenceRangesToPages(
+            IReadOnlyList<int> fragmentStarts,
+            IReadOnlyList<int> fragmentEnds,
+            IReadOnlyList<OfficeDocumentPageLocation> fragmentLocations,
+            IReadOnlyList<int> occurrenceIndexes,
+            int queryLength,
+            int occurrenceCount) {
+        var mapped =
+            new List<IReadOnlyList<OfficeDocumentPageLocation>>(occurrenceCount);
+        for (int occurrenceIndex = 0; occurrenceIndex < occurrenceCount; occurrenceIndex++) {
+            int occurrenceStart = occurrenceIndexes[occurrenceIndex];
+            int occurrenceEnd = occurrenceStart + queryLength;
+            var occurrenceLocations = new List<OfficeDocumentPageLocation>();
+            for (int fragmentIndex = 0; fragmentIndex < fragmentLocations.Count; fragmentIndex++) {
+                if (fragmentStarts[fragmentIndex] >= occurrenceEnd ||
+                    fragmentEnds[fragmentIndex] <= occurrenceStart) {
+                    continue;
+                }
+
+                OfficeDocumentPageLocation location = fragmentLocations[fragmentIndex];
+                if (!occurrenceLocations.Contains(location)) {
+                    occurrenceLocations.Add(location);
+                }
+            }
+
+            if (occurrenceLocations.Count == 0) {
+                return null;
+            }
+            mapped.Add(occurrenceLocations.AsReadOnly());
+        }
+        return mapped.AsReadOnly();
     }
 
     private static bool PageContainsQuery(
