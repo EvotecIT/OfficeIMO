@@ -12,7 +12,9 @@ OfficeIMO is a family of COM-free .NET libraries for creating, reading, editing,
 
 This is not one facade over a collection of unrelated document libraries. OfficeIMO owns its OneNote, PDF, Markdown, RTF, OpenDocument, AsciiDoc, LaTeX, CSV, EPUB, ZIP, drawing, legacy Word `.doc`, legacy Excel `.xls`, and legacy PowerPoint `.ppt`/`.pot`/`.pps` implementations. Word, Excel, and PowerPoint use the Open XML SDK for package mechanics; HTML uses AngleSharp for DOM and CSS parsing. Converters compose the same first-party object models used by the native packages and return diagnostics when a target format cannot carry everything from the source.
 
-The current coordinated package line is `3.0.x`. Applications should upgrade OfficeIMO packages together: 3.0 tightens public boundaries, makes table-only PDF recovery explicit, and aligns the complete release set on one version. See the [2.x to 3.0 migration guide](Docs/officeimo-3.0-migration.md).
+The current source and packaging line is `3.0.x`. Applications should upgrade OfficeIMO packages together: 3.0 tightens public boundaries, makes table-only PDF recovery explicit, and aligns the complete release set on one version. See the [2.x to 3.0 migration guide](Docs/officeimo-3.0-migration.md).
+
+NuGet publication is a separate release step. The repository, project files, and locally packed artifacts target `3.0.0`; a package ID is installable from NuGet.org only after that exact artifact has been published there. Until then, use the clean local feed produced by the release build or remain on the current public stable version.
 
 If OfficeIMO saves you time, please consider supporting the work through [GitHub Sponsors](https://github.com/sponsors/PrzemyslawKlys) or [PayPal](https://paypal.me/PrzemyslawKlys). PowerShell users should start with [PSWriteOffice](https://github.com/EvotecIT/PSWriteOffice).
 
@@ -940,35 +942,35 @@ Fixed-layout PDF import is necessarily semantic rather than visually lossless. R
 
 ## Install
 
-Install only the native packages and adapters an application needs:
+Install only the native packages and adapters an application needs. The commands below deliberately request `3.0.0`; they work against NuGet.org after each package ID is published, or against the clean local feed produced by `Build/Build-Project.ps1` before publication.
 
 ```powershell
-dotnet add package OfficeIMO.Word
-dotnet add package OfficeIMO.Word.Pdf
+dotnet add package OfficeIMO.Word --version 3.0.0
+dotnet add package OfficeIMO.Word.Pdf --version 3.0.0
 
-dotnet add package OfficeIMO.Excel
-dotnet add package OfficeIMO.Excel.Html
-dotnet add package OfficeIMO.Excel.Pdf
+dotnet add package OfficeIMO.Excel --version 3.0.0
+dotnet add package OfficeIMO.Excel.Html --version 3.0.0
+dotnet add package OfficeIMO.Excel.Pdf --version 3.0.0
 
-dotnet add package OfficeIMO.Epub
-dotnet add package OfficeIMO.Epub.Image
+dotnet add package OfficeIMO.Epub --version 3.0.0
+dotnet add package OfficeIMO.Epub.Image --version 3.0.0
 
-dotnet add package OfficeIMO.Reader.Pdf
+dotnet add package OfficeIMO.Reader.Pdf --version 3.0.0
 
 # Add every Reader adapter only when a broad ingestion host genuinely needs all formats.
-dotnet add package OfficeIMO.Reader.All
+dotnet add package OfficeIMO.Reader.All --version 3.0.0
 
-dotnet add package OfficeIMO.OneNote
-dotnet add package OfficeIMO.OneNote.Markdown
-dotnet add package OfficeIMO.OneNote.Html
-dotnet add package OfficeIMO.OneNote.Pdf
-dotnet add package OfficeIMO.Reader.OneNote
+dotnet add package OfficeIMO.OneNote --version 3.0.0
+dotnet add package OfficeIMO.OneNote.Markdown --version 3.0.0
+dotnet add package OfficeIMO.OneNote.Html --version 3.0.0
+dotnet add package OfficeIMO.OneNote.Pdf --version 3.0.0
+dotnet add package OfficeIMO.Reader.OneNote --version 3.0.0
 
 # Install the broad local-reader command only when a CLI is the desired surface.
-dotnet tool install --global OfficeIMO.Reader.Tool
+dotnet tool install --global OfficeIMO.Reader.Tool --version 3.0.0
 ```
 
-All coordinated packages use the same `3.0.x` compatibility line. Avoid mixing OfficeIMO `2.x` and `3.x` packages in one application.
+All coordinated source packages use the same `3.0.x` compatibility line. Avoid mixing OfficeIMO `2.x` and `3.x` packages in one application.
 
 ## Common workflows
 
@@ -1125,6 +1127,7 @@ Most shipping libraries target `netstandard2.0`, `net8.0`, and `net10.0`. Many a
 
 - [Examples](OfficeIMO.Examples/README.md)
 - [2.x to 3.0 migration](Docs/officeimo-3.0-migration.md)
+- [2.x to 3.0 public API review](Docs/officeimo-3.0-public-api-review.md)
 - [2.0 breaking API migration](Docs/officeimo.breaking-api-migration.md)
 - [Image export capability matrix](Docs/officeimo.image-export-capability-matrix.md)
 - [PDF current state](Docs/officeimo.pdf.current-state.md)
