@@ -19,7 +19,7 @@ public sealed class ReleasePackagingGuardrails {
 
         MatchCollection projectHeadings = Regex.Matches(
             readme,
-            @"^#### \[(?<name>OfficeIMO\.[^\]]+)\]\((?<path>[^)]+)\)$",
+            @"^#### \[(?<name>OfficeIMO\.[^\]]+)\]\((?<path>[^)]+)\)\r?$",
             RegexOptions.Multiline | RegexOptions.CultureInvariant);
         string[] duplicateNames = projectHeadings
             .Cast<Match>()
