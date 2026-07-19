@@ -3,7 +3,7 @@
 [![nuget version](https://img.shields.io/nuget/v/OfficeIMO.Reader.Csv)](https://www.nuget.org/packages/OfficeIMO.Reader.Csv)
 [![nuget downloads](https://img.shields.io/nuget/dt/OfficeIMO.Reader.Csv?label=nuget%20downloads)](https://www.nuget.org/packages/OfficeIMO.Reader.Csv)
 
-`OfficeIMO.Reader.Csv` provides CSV/TSV ingestion for `OfficeIMO.Reader` and CSV exchange helpers for `OfficeIMO.Excel`.
+`OfficeIMO.Reader.Csv` provides CSV/TSV ingestion for `OfficeIMO.Reader.Core` and CSV exchange helpers for `OfficeIMO.Excel`.
 
 ## Install
 
@@ -99,6 +99,6 @@ Worksheet ranges can also be exchanged directly with `sheet.FromCsv(csv)`, `shee
 ## Dependency footprint
 
 - **External:** None beyond the dependencies of its OfficeIMO format packages.
-- **OfficeIMO:** `OfficeIMO.Reader` and `OfficeIMO.CSV`; parsing stays in the native CSV package.
+- **OfficeIMO:** `OfficeIMO.Reader.Core` and `OfficeIMO.CSV`; parsing stays in the native CSV package.
 
 See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

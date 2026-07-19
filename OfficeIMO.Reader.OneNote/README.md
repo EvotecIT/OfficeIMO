@@ -1,6 +1,6 @@
 # OfficeIMO.Reader.OneNote
 
-`OfficeIMO.Reader.OneNote` projects native, offline `OfficeIMO.OneNote` content into the shared `OfficeIMO.Reader` contracts. It does not use Microsoft Graph, GraphEssentialsX, COM automation, or require OneNote to be installed.
+`OfficeIMO.Reader.OneNote` projects native, offline `OfficeIMO.OneNote` content into the shared `OfficeIMO.Reader.Core` contracts. It does not use Microsoft Graph, GraphEssentialsX, COM automation, or require OneNote to be installed.
 
 ```csharp
 using OfficeIMO.Reader;

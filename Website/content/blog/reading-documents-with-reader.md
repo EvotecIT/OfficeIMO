@@ -24,13 +24,12 @@ using OfficeIMO.Reader;
 using OfficeIMO.Reader.Word;
 
 OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
-    .AddWordHandler()
+    .AddWordHandler(new ReaderWordOptions { IncludeFootnotes = true })
     .Build();
 
 var chunks = reader.Read("proposal.docx", new ReaderOptions
 {
     MaxChars = 4_000,
-    IncludeWordFootnotes = true,
     ComputeHashes = true
 }).ToList();
 
@@ -108,9 +107,7 @@ using OfficeIMO.Reader;
 
 var chunks = reader.Read("contract.docx", new ReaderOptions
 {
-    MaxChars = 3_000,
-    IncludeWordFootnotes = false,
-    MarkdownChunkByHeadings = true
+    MaxChars = 3_000
 }).ToList();
 
 foreach (var chunk in chunks)

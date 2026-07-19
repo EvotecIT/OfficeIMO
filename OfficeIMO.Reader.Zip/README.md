@@ -3,7 +3,7 @@
 [![nuget version](https://img.shields.io/nuget/v/OfficeIMO.Reader.Zip)](https://www.nuget.org/packages/OfficeIMO.Reader.Zip)
 [![nuget downloads](https://img.shields.io/nuget/dt/OfficeIMO.Reader.Zip?label=nuget%20downloads)](https://www.nuget.org/packages/OfficeIMO.Reader.Zip)
 
-`OfficeIMO.Reader.Zip` provides a ZIP traversal adapter for `OfficeIMO.Reader`.
+`OfficeIMO.Reader.Zip` provides a ZIP traversal adapter for `OfficeIMO.Reader.Core`.
 
 ## Install
 
@@ -97,7 +97,7 @@ foreach (string warning in chunks.SelectMany(chunk => chunk.Warnings ?? Array.Em
 
 - Reader adapter configuration belongs here.
 - ZIP traversal policy belongs in `OfficeIMO.Zip`.
-- Shared extraction contracts belong in `OfficeIMO.Reader`.
+- Shared extraction contracts belong in `OfficeIMO.Reader.Core`.
 
 ## Targets and license
 
@@ -107,6 +107,6 @@ foreach (string warning in chunks.SelectMany(chunk => chunk.Warnings ?? Array.Em
 ## Dependency footprint
 
 - **External:** None beyond platform compression APIs.
-- **OfficeIMO:** `OfficeIMO.Reader` and `OfficeIMO.Zip` own safe traversal, nested-archive limits, extraction projection, and warnings.
+- **OfficeIMO:** `OfficeIMO.Reader.Core` and `OfficeIMO.Zip` own safe traversal, nested-archive limits, extraction projection, and warnings.
 
 See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

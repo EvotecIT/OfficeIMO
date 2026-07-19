@@ -3,7 +3,7 @@
 [![nuget version](https://img.shields.io/nuget/v/OfficeIMO.Reader.Yaml)](https://www.nuget.org/packages/OfficeIMO.Reader.Yaml)
 [![nuget downloads](https://img.shields.io/nuget/dt/OfficeIMO.Reader.Yaml?label=nuget%20downloads)](https://www.nuget.org/packages/OfficeIMO.Reader.Yaml)
 
-`OfficeIMO.Reader.Yaml` provides a modular YAML ingestion adapter for `OfficeIMO.Reader`.
+`OfficeIMO.Reader.Yaml` provides a modular YAML ingestion adapter for `OfficeIMO.Reader.Core`.
 
 ## Install
 
@@ -75,7 +75,7 @@ var chunks = reader.Read(stream, "values.yaml", new ReaderOptions {
 
 - Reader adapter configuration belongs here.
 - YAML object serialization/deserialization is intentionally out of scope.
-- Shared extraction contracts belong in `OfficeIMO.Reader`.
+- Shared extraction contracts belong in `OfficeIMO.Reader.Core`.
 
 ## Targets and license
 
@@ -85,6 +85,6 @@ var chunks = reader.Read(stream, "values.yaml", new ReaderOptions {
 ## Dependency footprint
 
 - **External:** YamlDotNet for YAML representation parsing.
-- **OfficeIMO:** `OfficeIMO.Reader` owns traversal projection, chunking, limits, locations, and warnings.
+- **OfficeIMO:** `OfficeIMO.Reader.Core` owns traversal projection, chunking, limits, locations, and warnings.
 
 See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

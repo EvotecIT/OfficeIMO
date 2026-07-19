@@ -2,12 +2,13 @@
 
 [![nuget version](https://img.shields.io/nuget/v/OfficeIMO.Reader.Ocr.Process)](https://www.nuget.org/packages/OfficeIMO.Reader.Ocr.Process)
 
-`OfficeIMO.Reader.Ocr.Process` connects `OfficeIMO.Reader` to a caller-configured executable through a versioned JSON file protocol. The executable runs directly—no command shell is inserted by the provider.
+`OfficeIMO.Reader.Ocr.Process` connects `OfficeIMO.Reader.Core` to a caller-configured executable through a versioned JSON file protocol. The executable runs directly—no command shell is inserted by the provider.
 
 ## Install
 
 ```powershell
 dotnet add package OfficeIMO.Reader.Ocr.Process
+dotnet add package OfficeIMO.Reader.Word
 ```
 
 ## Configure an engine
@@ -15,6 +16,7 @@ dotnet add package OfficeIMO.Reader.Ocr.Process
 ```csharp
 using OfficeIMO.Reader;
 using OfficeIMO.Reader.Ocr.Process;
+using OfficeIMO.Reader.Word;
 
 var engine = new ProcessOfficeOcrEngine(new ProcessOfficeOcrEngineOptions {
     FileName = "/opt/my-ocr/recognize",
@@ -24,7 +26,10 @@ var engine = new ProcessOfficeOcrEngine(new ProcessOfficeOcrEngineOptions {
     MaxOutputBytes = 8L * 1024L * 1024L
 });
 
-OfficeDocumentReadResult source = DocumentReader.ReadDocument("scan.docx");
+OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+    .AddWordHandler()
+    .Build();
+OfficeDocumentReadResult source = reader.ReadDocument("scan.docx");
 OfficeDocumentOcrExecutionResult execution = await source.ApplyOcrAsync(engine);
 
 Console.WriteLine(execution.Document.Markdown);
@@ -50,6 +55,6 @@ Available argument placeholders are `{request}`, `{input}`, `{output}`, `{langua
 ## Dependency footprint
 
 - **External:** A caller-configured executable plus `System.Text.Json` for the versioned protocol.
-- **OfficeIMO:** `OfficeIMO.Reader` owns candidate selection, bounded execution, containment, results, and diagnostics.
+- **OfficeIMO:** `OfficeIMO.Reader.Core` owns candidate selection, bounded execution, containment, results, and diagnostics.
 
 See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

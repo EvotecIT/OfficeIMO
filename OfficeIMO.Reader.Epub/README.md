@@ -3,7 +3,7 @@
 [![nuget version](https://img.shields.io/nuget/v/OfficeIMO.Reader.Epub)](https://www.nuget.org/packages/OfficeIMO.Reader.Epub)
 [![nuget downloads](https://img.shields.io/nuget/dt/OfficeIMO.Reader.Epub?label=nuget%20downloads)](https://www.nuget.org/packages/OfficeIMO.Reader.Epub)
 
-`OfficeIMO.Reader.Epub` bridges `OfficeIMO.Epub` output into `OfficeIMO.Reader` chunk contracts.
+`OfficeIMO.Reader.Epub` bridges `OfficeIMO.Epub` output into `OfficeIMO.Reader.Core` chunk contracts.
 
 ## Install
 
@@ -113,7 +113,7 @@ Manifest assets keep their package identity and payload while inheriting useful 
 
 - Reader adapter configuration belongs here.
 - EPUB parsing belongs in `OfficeIMO.Epub`.
-- Shared extraction contracts belong in `OfficeIMO.Reader`.
+- Shared extraction contracts belong in `OfficeIMO.Reader.Core`.
 - Local footnotes become typed Markdown footnotes. Cross-document note targets remain resolved EPUB links.
 - Fixed-layout publications are identified and diagnosed; this reader extracts their content and resources but does not emulate a reading-system viewport.
 - Unsupported encryption is reported as a security diagnostic and is not decrypted.
@@ -126,7 +126,7 @@ Manifest assets keep their package identity and payload while inheriting useful 
 ## Dependency footprint
 
 - **External:** None beyond the dependencies of its OfficeIMO format packages.
-- **OfficeIMO:** `OfficeIMO.Reader`, `OfficeIMO.Reader.Html`, and `OfficeIMO.Epub`; EPUB parsing stays in the native package.
+- **OfficeIMO:** `OfficeIMO.Reader.Core`, `OfficeIMO.Reader.Html`, and `OfficeIMO.Epub`; EPUB parsing stays in the native package.
 - The EPUB semantics and resource projection layer adds no new package or process dependency.
 
 See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

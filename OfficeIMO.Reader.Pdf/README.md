@@ -100,7 +100,7 @@ var chunks = reader.ReadFolder("KnowledgeBase", new ReaderFolderOptions {
 
 - Reader adapter configuration belongs here.
 - PDF parsing, logical readback, and safety behavior belongs in `OfficeIMO.Pdf`.
-- Shared extraction contracts belong in `OfficeIMO.Reader`.
+- Shared extraction contracts belong in `OfficeIMO.Reader.Core`.
 
 ## Targets and license
 
@@ -110,6 +110,6 @@ var chunks = reader.ReadFolder("KnowledgeBase", new ReaderFolderOptions {
 ## Dependency footprint
 
 - **External:** None beyond the dependencies of its OfficeIMO format packages.
-- **OfficeIMO:** `OfficeIMO.Reader` and the first-party `OfficeIMO.Pdf` engine own parsing, logical recovery, chunks, assets, and diagnostics.
+- **OfficeIMO:** `OfficeIMO.Reader.Core` and the first-party `OfficeIMO.Pdf` engine own parsing, logical recovery, chunks, assets, and diagnostics.
 
 See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

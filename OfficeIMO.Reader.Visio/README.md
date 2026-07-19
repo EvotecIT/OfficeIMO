@@ -3,7 +3,7 @@
 [![nuget version](https://img.shields.io/nuget/v/OfficeIMO.Reader.Visio)](https://www.nuget.org/packages/OfficeIMO.Reader.Visio)
 [![nuget downloads](https://img.shields.io/nuget/dt/OfficeIMO.Reader.Visio?label=nuget%20downloads)](https://www.nuget.org/packages/OfficeIMO.Reader.Visio)
 
-`OfficeIMO.Reader.Visio` provides a Visio adapter for `OfficeIMO.Reader` using `OfficeIMO.Visio` inspection snapshots.
+`OfficeIMO.Reader.Visio` provides a Visio adapter for `OfficeIMO.Reader.Core` using `OfficeIMO.Visio` inspection snapshots.
 
 ## Install
 
@@ -99,7 +99,7 @@ The topology visual is deterministic JSON describing page shapes and connector e
 
 - Reader adapter configuration belongs here.
 - Visio package parsing and inspection belongs in `OfficeIMO.Visio`.
-- Shared extraction contracts belong in `OfficeIMO.Reader`.
+- Shared extraction contracts belong in `OfficeIMO.Reader.Core`.
 
 ## Targets and license
 
@@ -109,6 +109,6 @@ The topology visual is deterministic JSON describing page shapes and connector e
 ## Dependency footprint
 
 - **External:** `System.IO.Packaging` only through `OfficeIMO.Visio`.
-- **OfficeIMO:** `OfficeIMO.Reader` and `OfficeIMO.Visio` own diagram inspection, topology, chunks, tables, and visuals.
+- **OfficeIMO:** `OfficeIMO.Reader.Core` and `OfficeIMO.Visio` own diagram inspection, topology, chunks, tables, and visuals.
 
 See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.
