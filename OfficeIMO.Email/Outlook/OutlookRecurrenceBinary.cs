@@ -345,6 +345,19 @@ public static class OutlookRecurrenceBinary {
                 !originalDates.Contains(date) && !deletedDates.Contains(date)))
             throw new InvalidOperationException(
                 "An Outlook recurrence exception cannot move onto an unmodified base occurrence.");
+
+        Dictionary<DateTime, OutlookRecurrenceNeighborBounds> neighbors =
+            OutlookRecurrenceExpander.FindExceptionNeighborBounds(recurrence, originalDates);
+        foreach (OutlookRecurrenceException exception in recurrence.Exceptions) {
+            if (exception.End < exception.Start)
+                throw new InvalidOperationException(
+                    "An Outlook recurrence exception cannot end before it starts.");
+            OutlookRecurrenceNeighborBounds bounds = neighbors[exception.OriginalStart.Date];
+            if ((bounds.PreviousEnd.HasValue && exception.Start < bounds.PreviousEnd.Value) ||
+                (bounds.NextStart.HasValue && exception.End > bounds.NextStart.Value))
+                throw new InvalidOperationException(
+                    "An Outlook recurrence exception must remain between its adjacent effective occurrences without overlap.");
+        }
     }
 
     internal static bool IsValidFrequencyPattern(

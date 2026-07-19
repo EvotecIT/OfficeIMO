@@ -132,6 +132,89 @@ public sealed class OutlookRecurrenceTests {
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
+    public void RejectsExceptionOutsideAdjacentEffectiveOccurrences(bool overlapsNext) {
+        var recurrence = new OutlookRecurrence {
+            Frequency = OutlookRecurrenceFrequency.Weekly,
+            PatternKind = OutlookRecurrencePatternKind.Week,
+            DaysOfWeek = OutlookRecurrenceDays.Wednesday,
+            Start = new DateTime(2026, 7, 1, 9, 0, 0),
+            Duration = TimeSpan.FromHours(1),
+            RangeKind = OutlookRecurrenceRangeKind.OccurrenceCount,
+            OccurrenceCount = 10
+        };
+        recurrence.Exceptions.Add(new OutlookRecurrenceException {
+            OriginalStart = new DateTime(2026, 7, 8, 9, 0, 0),
+            Start = overlapsNext
+                ? new DateTime(2026, 7, 14, 23, 0, 0)
+                : new DateTime(2026, 7, 16, 11, 0, 0),
+            End = overlapsNext
+                ? new DateTime(2026, 7, 15, 10, 0, 0)
+                : new DateTime(2026, 7, 16, 12, 0, 0)
+        });
+
+        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
+            OutlookRecurrenceBinary.EncodeAppointment(recurrence));
+
+        Assert.Contains("adjacent effective occurrences", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void EncodesAdjacentMovedExceptionsWhenEffectiveOrderRemainsValid() {
+        var recurrence = new OutlookRecurrence {
+            Frequency = OutlookRecurrenceFrequency.Weekly,
+            PatternKind = OutlookRecurrencePatternKind.Week,
+            DaysOfWeek = OutlookRecurrenceDays.Wednesday,
+            Start = new DateTime(2026, 7, 1, 9, 0, 0),
+            Duration = TimeSpan.FromHours(1),
+            RangeKind = OutlookRecurrenceRangeKind.OccurrenceCount,
+            OccurrenceCount = 10
+        };
+        recurrence.Exceptions.Add(new OutlookRecurrenceException {
+            OriginalStart = new DateTime(2026, 7, 8, 9, 0, 0),
+            Start = new DateTime(2026, 7, 10, 9, 0, 0),
+            End = new DateTime(2026, 7, 10, 10, 0, 0)
+        });
+        recurrence.Exceptions.Add(new OutlookRecurrenceException {
+            OriginalStart = new DateTime(2026, 7, 15, 9, 0, 0),
+            Start = new DateTime(2026, 7, 14, 9, 0, 0),
+            End = new DateTime(2026, 7, 14, 10, 0, 0)
+        });
+
+        OutlookRecurrence decoded = OutlookRecurrenceBinary.DecodeAppointment(
+            OutlookRecurrenceBinary.EncodeAppointment(recurrence));
+
+        Assert.True(decoded.StateDecoded, decoded.DecodeError);
+        Assert.Equal(2, decoded.Exceptions.Count);
+        Assert.Equal(new[] { new DateTime(2026, 7, 10, 9, 0, 0), new DateTime(2026, 7, 14, 9, 0, 0) },
+            decoded.Exceptions.Select(value => value.Start).OrderBy(value => value));
+    }
+
+    [Fact]
+    public void RejectsExceptionEndingBeforeItStarts() {
+        var recurrence = new OutlookRecurrence {
+            Frequency = OutlookRecurrenceFrequency.Weekly,
+            PatternKind = OutlookRecurrencePatternKind.Week,
+            DaysOfWeek = OutlookRecurrenceDays.Wednesday,
+            Start = new DateTime(2026, 7, 1, 9, 0, 0),
+            Duration = TimeSpan.FromHours(1),
+            RangeKind = OutlookRecurrenceRangeKind.OccurrenceCount,
+            OccurrenceCount = 10
+        };
+        recurrence.Exceptions.Add(new OutlookRecurrenceException {
+            OriginalStart = new DateTime(2026, 7, 8, 9, 0, 0),
+            Start = new DateTime(2026, 7, 10, 11, 0, 0),
+            End = new DateTime(2026, 7, 10, 10, 0, 0)
+        });
+
+        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
+            OutlookRecurrenceBinary.EncodeAppointment(recurrence));
+
+        Assert.Contains("end before it starts", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
     public void RejectsExceptionsThatDoNotIdentifyAnExactBaseOccurrence(bool wrongTime) {
         var recurrence = new OutlookRecurrence {
             Frequency = OutlookRecurrenceFrequency.Weekly,

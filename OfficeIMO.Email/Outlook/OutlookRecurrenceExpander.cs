@@ -86,6 +86,16 @@ public sealed class OutlookRecurrenceExpansionResult {
     public string? TruncationReason { get; }
 }
 
+internal readonly struct OutlookRecurrenceNeighborBounds {
+    internal OutlookRecurrenceNeighborBounds(DateTime? previousEnd, DateTime? nextStart) {
+        PreviousEnd = previousEnd;
+        NextStart = nextStart;
+    }
+
+    internal DateTime? PreviousEnd { get; }
+    internal DateTime? NextStart { get; }
+}
+
 /// <summary>Deterministic, bounded expansion for supported Gregorian Outlook recurrences.</summary>
 public static class OutlookRecurrenceExpander {
     /// <summary>Expands a recurrence in local-clock space without silently choosing a host time zone.</summary>
@@ -182,6 +192,56 @@ public static class OutlookRecurrenceExpander {
                 recurrence.OccurrenceCount.HasValue && sequence >= recurrence.OccurrenceCount.Value) break;
         }
         return matches;
+    }
+
+    internal static Dictionary<DateTime, OutlookRecurrenceNeighborBounds> FindExceptionNeighborBounds(
+        OutlookRecurrence recurrence, IEnumerable<DateTime> requestedDates) {
+        if (recurrence == null) throw new ArgumentNullException(nameof(recurrence));
+        if (requestedDates == null) throw new ArgumentNullException(nameof(requestedDates));
+        Validate(recurrence, new OutlookRecurrenceExpansionOptions());
+        var requested = new HashSet<DateTime>(requestedDates.Select(value => AsLocal(value).Date));
+        var bounds = new Dictionary<DateTime, OutlookRecurrenceNeighborBounds>();
+        if (requested.Count == 0) return bounds;
+
+        var deletedDates = new HashSet<DateTime>(recurrence.DeletedOccurrenceDates.Select(value =>
+            AsLocal(value).Date));
+        var exceptions = recurrence.Exceptions.ToDictionary(exception =>
+            AsLocal(exception.OriginalStart).Date);
+        DateTime? previousEnd = null;
+        DateTime? pending = null;
+        int sequence = 0;
+        foreach (RecurrenceDateCandidate candidate in EnumerateDates(recurrence)) {
+            DateTime date = candidate.Date.Date;
+            if (recurrence.RangeKind == OutlookRecurrenceRangeKind.EndDate &&
+                recurrence.EndDate.HasValue && date > recurrence.EndDate.Value.Date) break;
+            if (!candidate.IsOccurrence || date < recurrence.Start.Date) continue;
+            sequence++;
+            if (recurrence.RangeKind == OutlookRecurrenceRangeKind.OccurrenceCount &&
+                recurrence.OccurrenceCount.HasValue && sequence > recurrence.OccurrenceCount.Value) break;
+
+            exceptions.TryGetValue(date, out OutlookRecurrenceException? exception);
+            if (deletedDates.Contains(date) && exception == null) {
+                if (recurrence.RangeKind == OutlookRecurrenceRangeKind.OccurrenceCount &&
+                    recurrence.OccurrenceCount.HasValue && sequence >= recurrence.OccurrenceCount.Value) break;
+                continue;
+            }
+            DateTime currentStart = exception?.Start ?? date.Add(recurrence.Start.TimeOfDay);
+            DateTime currentEnd = exception?.End ?? AddClamped(currentStart, recurrence.Duration);
+            if (pending.HasValue) {
+                OutlookRecurrenceNeighborBounds value = bounds[pending.Value];
+                bounds[pending.Value] = new OutlookRecurrenceNeighborBounds(value.PreviousEnd, currentStart);
+                pending = null;
+            }
+            if (requested.Contains(date)) {
+                bounds[date] = new OutlookRecurrenceNeighborBounds(previousEnd, null);
+                pending = date;
+            }
+            previousEnd = currentEnd;
+            if (bounds.Count == requested.Count && !pending.HasValue) break;
+            if (recurrence.RangeKind == OutlookRecurrenceRangeKind.OccurrenceCount &&
+                recurrence.OccurrenceCount.HasValue && sequence >= recurrence.OccurrenceCount.Value) break;
+        }
+        return bounds;
     }
 
     private static IEnumerable<RecurrenceDateCandidate> EnumerateDates(OutlookRecurrence recurrence) {
