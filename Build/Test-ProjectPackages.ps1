@@ -130,7 +130,7 @@ try {
         [System.Security.SecurityElement]::Escape($_) +
         '" Version="[' + $Version + ']" />'
     }
-    $projectXml = @(
+    $projectXmlLines = @(
         '<Project Sdk="Microsoft.NET.Sdk">',
         '  <PropertyGroup>',
         '    <OutputType>Exe</OutputType>',
@@ -138,11 +138,12 @@ try {
         '    <ImplicitUsings>enable</ImplicitUsings>',
         '    <Nullable>enable</Nullable>',
         '  </PropertyGroup>',
-        '  <ItemGroup>',
-        $packageReferences,
+        '  <ItemGroup>'
+    ) + $packageReferences + @(
         '  </ItemGroup>',
         '</Project>'
-    ) -join [Environment]::NewLine
+    )
+    $projectXml = $projectXmlLines -join [Environment]::NewLine
     Set-Content -LiteralPath $projectPath -Value $projectXml -Encoding utf8
     Set-Content -LiteralPath $programPath -Value (
         'Console.WriteLine("OfficeIMO 3.0 aggregate package consumer loaded.");') -Encoding utf8
@@ -153,7 +154,7 @@ try {
         '" />'
     }
     $feedXml = [System.Security.SecurityElement]::Escape($resolvedFeed)
-    $nugetConfig = @(
+    $nugetConfigLines = @(
         '<?xml version="1.0" encoding="utf-8"?>',
         '<configuration>',
         '  <packageSources>',
@@ -162,15 +163,16 @@ try {
         '    <add key="nuget.org" value="https://api.nuget.org/v3/index.json" protocolVersion="3" />',
         '  </packageSources>',
         '  <packageSourceMapping>',
-        '    <packageSource key="OfficeIMOLocal">',
-        $sourceMappings,
+        '    <packageSource key="OfficeIMOLocal">'
+    ) + $sourceMappings + @(
         '    </packageSource>',
         '    <packageSource key="nuget.org">',
         '      <package pattern="*" />',
         '    </packageSource>',
         '  </packageSourceMapping>',
         '</configuration>'
-    ) -join [Environment]::NewLine
+    )
+    $nugetConfig = $nugetConfigLines -join [Environment]::NewLine
     Set-Content -LiteralPath $nugetConfigPath -Value $nugetConfig -Encoding utf8
 
     Invoke-DotNet restore $projectPath --configfile $nugetConfigPath --packages $packagesPath --no-cache --force-evaluate
@@ -178,8 +180,12 @@ try {
     Invoke-DotNet run --project $projectPath --configuration Release --no-build
     Invoke-DotNet tool install $toolPackageId --version $Version --tool-path $toolPath --configfile $nugetConfigPath --no-cache
 
-    $toolExecutable = Join-Path $toolPath (
-        if ($IsWindows) { 'officeimo-reader.exe' } else { 'officeimo-reader' })
+    $toolExecutableName = if ($IsWindows) {
+        'officeimo-reader.exe'
+    } else {
+        'officeimo-reader'
+    }
+    $toolExecutable = Join-Path $toolPath $toolExecutableName
     & $toolExecutable capabilities --format json
     if ($LASTEXITCODE -ne 0) {
         throw "The packed $toolPackageId command failed with exit code $LASTEXITCODE."
