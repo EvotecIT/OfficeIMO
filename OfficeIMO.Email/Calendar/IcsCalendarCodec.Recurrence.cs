@@ -7,10 +7,9 @@ internal static partial class IcsCalendarCodec {
             IcsDocument calendar = IcsDocument.Parse(text.TrimStart('\uFEFF'));
             string componentName = isEvent ? "VEVENT" : "VTODO";
             ContentLineComponent[] components = calendar.GetComponents(componentName).ToArray();
-            ContentLineComponent? master = components.FirstOrDefault(component =>
-                component.GetFirstProperty("RECURRENCE-ID") == null &&
-                component.GetFirstProperty("RRULE") != null);
-            if (master == null) return;
+            ContentLineComponent? master = components.FirstOrDefault();
+            if (master == null || master.GetFirstProperty("RECURRENCE-ID") != null ||
+                master.GetFirstProperty("RRULE") == null) return;
             ContentLineProperty[] rules = master.GetProperties("RRULE").ToArray();
             if (rules.Length != 1) {
                 diagnostics.Add(new EmailDiagnostic("EMAIL_ICALENDAR_RRULE_CARDINALITY_INVALID",
@@ -135,7 +134,24 @@ internal static partial class IcsCalendarCodec {
             component.GetFirstProperty("RECURRENCE-ID") != null)) {
             string? uid = component.GetFirstProperty("UID")?.Value;
             if (masterUid != null && !string.Equals(uid, masterUid, StringComparison.Ordinal)) continue;
+            ContentLineProperty recurrenceId = component.GetFirstProperty("RECURRENCE-ID")!;
+            if (recurrenceId.Parameters.Any(parameter =>
+                    string.Equals(parameter.Name, "RANGE", StringComparison.OrdinalIgnoreCase) &&
+                    parameter.Values.Any(value => string.Equals(value, "THISANDFUTURE",
+                        StringComparison.OrdinalIgnoreCase)))) {
+                diagnostics.Add(new EmailDiagnostic("EMAIL_ICALENDAR_RECURRENCE_RANGE_UNSUPPORTED",
+                    "RECURRENCE-ID;RANGE=THISANDFUTURE cannot be represented by one Outlook recurrence exception.",
+                    EmailDiagnosticSeverity.Warning, location));
+                document.MimeSemanticProjectionIsIncomplete = true;
+                continue;
+            }
             IcsTemporalValue? original = component.GetTemporalValue("RECURRENCE-ID");
+            bool isCancelled = string.Equals(component.GetFirstProperty("STATUS")?.Value, "CANCELLED",
+                StringComparison.OrdinalIgnoreCase);
+            if (isCancelled && original.HasValue) {
+                options.ExcludedDates.Add(original.Value);
+                continue;
+            }
             IcsTemporalValue? start = component.GetTemporalValue("DTSTART");
             IcsTemporalValue? end = component.GetTemporalValue("DTEND");
             if (!original.HasValue || !start.HasValue) {

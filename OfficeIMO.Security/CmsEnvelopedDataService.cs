@@ -1,3 +1,4 @@
+using System.IO;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using Org.BouncyCastle.Cms;
@@ -94,8 +95,24 @@ public static class CmsEnvelopedDataService {
                     findings);
             }
 
-            byte[] decrypted = recipient.GetContent(privateKey);
-            SecurityLimits.EnsureBufferWithinLimit(decrypted, options.MaxContentBytes, nameof(options.MaxContentBytes));
+            CmsTypedStream decryptedContent = recipient.GetContentStream(privateKey);
+            byte[] decrypted;
+            try {
+                using Stream contentStream = decryptedContent.ContentStream;
+                using var buffer = new BoundedMemoryStream(options.MaxContentBytes);
+                contentStream.CopyTo(buffer);
+                decrypted = buffer.ToArray();
+            } catch (SecurityContentLimitExceededException exception) {
+                findings.Add(new SecurityFinding(
+                    SecurityFindingSeverity.Error,
+                    "EnvelopeContentLimitExceeded",
+                    exception.Message));
+                return Failure(
+                    parsed: true,
+                    envelope.EncryptionAlgorithmID.Algorithm.Id,
+                    recipient.KeyEncryptionAlgorithmID.Algorithm.Id,
+                    findings);
+            }
             return new CmsDecryptionResult(
                 parsed: true,
                 decrypted: true,

@@ -63,7 +63,21 @@ public static class CmsSignedDataVerifier {
                         "The CMS object is detached, but no content was supplied for verification."));
                 }
             } else {
-                content = ReadEncapsulatedContent(decoded, options.MaxContentBytes);
+                try {
+                    content = ReadEncapsulatedContent(decoded, options.MaxContentBytes);
+                } catch (SecurityContentLimitExceededException exception) {
+                    containerFindings.Add(new SecurityFinding(
+                        SecurityFindingSeverity.Error,
+                        "CmsContentLimitExceeded",
+                        exception.Message));
+                    return new CmsVerificationResult(
+                        parsed: true,
+                        isDetached: false,
+                        decoded.SignedContentType?.Id,
+                        encapsulatedContent: null,
+                        Array.Empty<CmsSignerVerificationResult>(),
+                        containerFindings);
+                }
                 verifiable = decoded;
                 if (detachedContentSupplied) {
                     containerFindings.Add(new SecurityFinding(
@@ -346,11 +360,9 @@ public static class CmsSignedDataVerifier {
     }
 
     private static byte[] ReadEncapsulatedContent(CmsSignedData signedData, long maximumBytes) {
-        using var stream = new MemoryStream();
+        using var stream = new BoundedMemoryStream(maximumBytes);
         signedData.SignedContent.Write(stream);
-        byte[] content = stream.ToArray();
-        SecurityLimits.EnsureBufferWithinLimit(content, maximumBytes, nameof(maximumBytes));
-        return content;
+        return stream.ToArray();
     }
 
     private static CmsSignerVerificationResult CreateMissingCertificateResult(

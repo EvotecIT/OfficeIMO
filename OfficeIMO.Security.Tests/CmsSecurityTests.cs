@@ -44,6 +44,22 @@ public sealed class CmsSecurityTests {
     }
 
     [Fact]
+    public void EncapsulatedSignature_StopsAtTheConfiguredContentLimit() {
+        byte[] content = Enumerable.Repeat((byte)0x5a, 4096).ToArray();
+        using X509Certificate2 certificate = CreateRsaCertificate("OfficeIMO CMS Bounded Encapsulated");
+        byte[] encoded = CmsSignedDataSigner.SignEncapsulated(content, certificate);
+        CmsVerificationOptions options = TrustSelfSigned();
+        options.MaxContentBytes = 32;
+
+        CmsVerificationResult result = CmsSignedDataVerifier.Verify(encoded, options);
+
+        Assert.True(result.Parsed);
+        Assert.Null(result.EncapsulatedContent);
+        Assert.Contains(result.Findings, finding => finding.Code == "CmsContentLimitExceeded" &&
+            finding.Message.Contains("configured limit of 32 bytes", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void DetachedSignature_WithoutContent_IsIndeterminateAndActionable() {
         byte[] content = Encoding.ASCII.GetBytes("detached");
         using X509Certificate2 certificate = CreateRsaCertificate("OfficeIMO Detached Missing");
@@ -71,6 +87,22 @@ public sealed class CmsSecurityTests {
         Assert.Equal(content, result.Content);
         Assert.NotNull(result.ContentEncryptionAlgorithmOid);
         Assert.NotNull(result.KeyEncryptionAlgorithmOid);
+    }
+
+    [Fact]
+    public void Envelope_StopsDecryptionAtTheConfiguredContentLimit() {
+        byte[] content = Enumerable.Repeat((byte)0xa5, 4096).ToArray();
+        using X509Certificate2 recipient = CreateRsaCertificate("OfficeIMO CMS Bounded Recipient");
+        byte[] encoded = CmsEnvelopedDataService.Encrypt(content, new[] { recipient });
+        var options = new CmsEnvelopeOptions { MaxContentBytes = 32 };
+
+        CmsDecryptionResult result = CmsEnvelopedDataService.Decrypt(encoded, recipient, options);
+
+        Assert.True(result.Parsed);
+        Assert.False(result.Decrypted);
+        Assert.Null(result.Content);
+        Assert.Contains(result.Findings, finding => finding.Code == "EnvelopeContentLimitExceeded" &&
+            finding.Message.Contains("configured limit of 32 bytes", StringComparison.Ordinal));
     }
 
     [Fact]
