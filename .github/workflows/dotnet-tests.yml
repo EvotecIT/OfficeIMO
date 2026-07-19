@@ -562,6 +562,12 @@ jobs:
             partition: word-rtf-html
             collectCoverage: false
           - framework: net8.0
+            partition: email
+            collectCoverage: false
+          - framework: net10.0
+            partition: email
+            collectCoverage: false
+          - framework: net8.0
             partition: other-projects
             collectCoverage: false
           - framework: net10.0
@@ -674,6 +680,9 @@ jobs:
             dotnet restore OfficeIMO.Rtf.Tests/OfficeIMO.Rtf.Tests.csproj
             dotnet restore OfficeIMO.Html.Tests/OfficeIMO.Html.Tests.csproj
           fi
+          if [ "${{ matrix.partition }}" = "email" ]; then
+            dotnet restore OfficeIMO.Email.Tests/OfficeIMO.Email.Tests.csproj
+          fi
           if [[ "${{ matrix.partition }}" == pdf-* ]]; then
             dotnet restore OfficeIMO.Pdf.Tests/OfficeIMO.Pdf.Tests.csproj
             if [ "${{ matrix.partition }}" = "pdf-core" ] && [ "${{ matrix.framework }}" = "net8.0" ]; then
@@ -717,6 +726,9 @@ jobs:
           if [ "${{ matrix.partition }}" = "word-rtf-html" ]; then
             dotnet build OfficeIMO.Rtf.Tests/OfficeIMO.Rtf.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore
             dotnet build OfficeIMO.Html.Tests/OfficeIMO.Html.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore
+          fi
+          if [ "${{ matrix.partition }}" = "email" ]; then
+            dotnet build OfficeIMO.Email.Tests/OfficeIMO.Email.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore
           fi
           if [[ "${{ matrix.partition }}" == pdf-* ]]; then
             dotnet build OfficeIMO.Pdf.Tests/OfficeIMO.Pdf.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore
@@ -817,6 +829,12 @@ jobs:
             echo ""
             echo "== OfficeIMO.Reader.Tests =="
             dotnet test OfficeIMO.Reader.Tests/OfficeIMO.Reader.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --filter "${test_filter}" -m:1 --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
+          }
+
+          run_email_tests() {
+            echo ""
+            echo "== OfficeIMO.Email.Tests =="
+            dotnet test OfficeIMO.Email.Tests/OfficeIMO.Email.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} -m:1 --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
           }
 
           run_pdf_tests() {
@@ -951,6 +969,9 @@ jobs:
               run_word_tests "word" 'FullyQualifiedName~OfficeIMO.Tests.Word|FullyQualifiedName~OfficeIMO.Tests.ImageEmbedderTests|FullyQualifiedName~OfficeIMO.Tests.ParagraphParentMutationTests'
               run_rtf_tests
               run_html_tests
+              ;;
+            email)
+              run_email_tests
               ;;
             other-projects)
               audit_retired_aggregate_tests

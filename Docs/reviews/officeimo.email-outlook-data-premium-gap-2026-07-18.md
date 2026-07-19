@@ -401,14 +401,12 @@ Security owner, so a Store consumer never needs PDF or multiple cryptography pac
 
 ## Current branch evidence
 
-- `OfficeIMO.Email.Tests` passes 913 tests on `net8.0` and `net10.0`, and 900 on `net472`, including the enabled real-Outlook S/MIME corpus, Outlook-shaped MSG/TNEF clear-signed attachment verification, and bounded raw-EML CMS extraction regressions.
-- `OfficeIMO.Email.Store.Tests` passes 246 tests on `net8.0` and `net10.0`, and 235 on `net472`; four explicitly opt-in Outlook/libpff/private-corpus checks remain skipped on each target.
-- `OfficeIMO.Email.AddressBook.Tests` passes 28 tests per runnable target; `OfficeIMO.Email.Data.Tests` passes three per runnable target.
-- `OfficeIMO.Reader.Tests` passes 810 tests on `net8.0` and `net10.0`, and 765 on `net472`.
-- `OfficeIMO.Security.Tests` passes eight CMS/X.509 tests on `net8.0` and `net10.0`; `OfficeIMO.Pdf.Tests` passes 2,987 tests on each modern target and 2,972 on `net472`.
+- the unified `OfficeIMO.Email.Tests` project passes 1,207 tests with four explicitly opt-in Outlook/libpff/private-corpus skips on `net8.0` and `net10.0`, and 1,183 tests with the same four skips on `net472`; it covers MIME, MSG/TNEF, Outlook semantics, stores, address books, the all-artifact facade, and the enabled real-Outlook S/MIME corpus in one CI gate.
+- `OfficeIMO.Reader.Tests` passes 812 tests on `net8.0` and `net10.0`, and 767 on `net472`.
+- `OfficeIMO.Security.Tests` passes ten CMS/X.509 tests on `net8.0` and `net10.0`; `OfficeIMO.Pdf.Tests` passes 2,987 tests on each modern target and 2,972 on `net472`.
 - SDK packing succeeds for Security, PDF, unified Email, Reader.Core, every selective Reader package, and Reader.All with matching `netstandard2.0`, `net472`, `net8.0`, and `net10.0` assemblies.
 - Clean isolated-cache consumers restore and execute the locally packed Security/PDF, Email/Reader.Email, and Reader.All graphs on `net472`, `net8.0`, and `net10.0`.
-- The complete 127-project solution builds in Release with zero warnings and zero errors after a clean solution restore.
+- The complete 124-project solution builds in Release with zero warnings and zero errors after a clean solution restore.
 - `OfficeIMO.Security` owns the single Bouncy Castle dependency. PDF and Email reference Security directly; Reader.Email references only Reader.Core and Email; Reader.All references only selective Reader packages. No format-specific cryptography package, native store parser, third-party MIME parser, or third-party image library enters the graph.
 
 ## Acceptance evidence for premium claims
