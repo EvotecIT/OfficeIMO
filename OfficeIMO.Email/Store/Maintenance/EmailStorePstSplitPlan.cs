@@ -55,7 +55,7 @@ public sealed class EmailStorePstSplitPlan {
     public EmailStoreQueryPlan QueryPlan { get; }
     /// <summary>Lightweight references scanned by the query.</summary>
     public int ItemsScanned { get; }
-    /// <summary>Total query matches before applying the configured part-count bound.</summary>
+    /// <summary>Total query matches after applying the search-folder policy and before the part-count bound.</summary>
     public int MatchedItems { get; }
     /// <summary>Whether the query scope exceeded its scan bound.</summary>
     public bool ScanLimitReached { get; }

@@ -187,6 +187,7 @@ public sealed partial class EmailStorePstMutationTransaction {
         EnsureItemsIndexed(cancellationToken);
         var sourceFolders = new List<FolderState> { sourceRoot };
         if (includeDescendants) {
+            var visited = new HashSet<string>(StringComparer.Ordinal) { sourceRoot.Id };
             var pending = new Queue<FolderState>();
             pending.Enqueue(sourceRoot);
             while (pending.Count > 0) {
@@ -195,6 +196,10 @@ public sealed partial class EmailStorePstMutationTransaction {
                 foreach (FolderState child in _folders.Values.Where(folder => !folder.Deleted &&
                     string.Equals(folder.ParentId, parent.Id, StringComparison.Ordinal))
                     .OrderBy(folder => folder.Id, StringComparer.Ordinal)) {
+                    if (!visited.Add(child.Id)) {
+                        throw new InvalidOperationException(
+                            "The source folder hierarchy already contains a cycle.");
+                    }
                     sourceFolders.Add(child);
                     pending.Enqueue(child);
                 }

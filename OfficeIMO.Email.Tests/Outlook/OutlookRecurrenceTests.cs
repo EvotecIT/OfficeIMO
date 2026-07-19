@@ -73,6 +73,40 @@ public sealed class OutlookRecurrenceTests {
     }
 
     [Fact]
+    public void EncodesMovedExceptionDatesUsingMicrosoftWireSemantics() {
+        var recurrence = new OutlookRecurrence {
+            Frequency = OutlookRecurrenceFrequency.Daily,
+            PatternKind = OutlookRecurrencePatternKind.Day,
+            Start = new DateTime(2026, 7, 1, 9, 0, 0),
+            Duration = TimeSpan.FromHours(1),
+            RangeKind = OutlookRecurrenceRangeKind.OccurrenceCount,
+            OccurrenceCount = 10
+        };
+        recurrence.Exceptions.Add(new OutlookRecurrenceException {
+            OriginalStart = new DateTime(2026, 7, 2, 9, 0, 0),
+            Start = new DateTime(2026, 7, 3, 11, 0, 0),
+            End = new DateTime(2026, 7, 3, 12, 0, 0)
+        });
+
+        byte[] encoded = OutlookRecurrenceBinary.EncodeAppointment(recurrence);
+        using var reader = new BinaryReader(new MemoryStream(encoded));
+        reader.BaseStream.Position = 34;
+        uint deletedCount = reader.ReadUInt32();
+        uint deletedDate = reader.ReadUInt32();
+        uint modifiedCount = reader.ReadUInt32();
+        uint modifiedDate = reader.ReadUInt32();
+        var reference = new DateTime(1601, 1, 1);
+        uint originalDate = checked((uint)(recurrence.Exceptions[0].OriginalStart.Date - reference).TotalMinutes);
+        uint movedDate = checked((uint)(recurrence.Exceptions[0].Start.Date - reference).TotalMinutes);
+
+        Assert.Equal(1U, deletedCount);
+        Assert.Equal(originalDate, deletedDate);
+        Assert.Equal(1U, modifiedCount);
+        Assert.Equal(movedDate, modifiedDate);
+        Assert.NotEqual(deletedDate, modifiedDate);
+    }
+
+    [Fact]
     public void ExpandsCountedSeriesWithMovedAndDeletedOccurrences() {
         OutlookRecurrence recurrence = OutlookRecurrenceBinary.DecodeAppointment(
             FromHex(MicrosoftWeeklyWithException));

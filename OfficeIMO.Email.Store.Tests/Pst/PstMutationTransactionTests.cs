@@ -669,6 +669,46 @@ public sealed class PstMutationTransactionTests {
     }
 
     [Fact]
+    public void CopyFolderRejectsAnExistingDescendantCycleBeforeStagingChanges() {
+        string path = TemporaryPstPath();
+        try {
+            using (EmailStorePstWriter writer = EmailStorePstWriter.Create(path)) {
+                writer.AddFolder("First");
+                writer.AddFolder("Second");
+                writer.AddFolder("Destination");
+                writer.Complete();
+            }
+            using EmailStorePstMutationTransaction transaction =
+                EmailStorePstMutationTransaction.Open(path);
+            EmailStorePstMutationFolder first = Assert.Single(transaction.Folders,
+                folder => folder.Name == "First");
+            EmailStorePstMutationFolder second = Assert.Single(transaction.Folders,
+                folder => folder.Name == "Second");
+            EmailStorePstMutationFolder destination = Assert.Single(transaction.Folders,
+                folder => folder.Name == "Destination");
+            int before = transaction.Folders.Count;
+            FieldInfo foldersField = typeof(EmailStorePstMutationTransaction).GetField(
+                "_folders", BindingFlags.Instance | BindingFlags.NonPublic)!;
+            var folders = (IDictionary)foldersField.GetValue(transaction)!;
+            object firstState = folders[first.Id]!;
+            object secondState = folders[second.Id]!;
+            PropertyInfo parentId = firstState.GetType().GetProperty(
+                "ParentId", BindingFlags.Instance | BindingFlags.NonPublic)!;
+            parentId.SetValue(firstState, second.Id);
+            parentId.SetValue(secondState, first.Id);
+
+            InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
+                transaction.CopyFolder(first.Id, destination.Id, includeDescendants: true));
+
+            Assert.Contains("already contains a cycle", exception.Message,
+                StringComparison.OrdinalIgnoreCase);
+            Assert.Equal(before, transaction.Folders.Count);
+        } finally {
+            TryDelete(path);
+        }
+    }
+
+    [Fact]
     public void InvalidMandatoryFolderParentTriggersTheDefaultFidelityGuard() {
         string path = TemporaryPstPath();
         try {

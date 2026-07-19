@@ -38,7 +38,7 @@ public sealed class EmailStoreReminderQueryOptions {
     public bool IncludeExcludedFolders { get; }
     /// <summary>UTC instant used to classify pending and overdue reminders.</summary>
     public DateTimeOffset AsOf { get; }
-    /// <summary>Maximum normal item references examined.</summary>
+    /// <summary>Maximum eligible normal item references examined after reminder-domain folder filtering.</summary>
     public int MaxItemsScanned { get; }
     /// <summary>Maximum reminder rows returned.</summary>
     public int MaxResults { get; }

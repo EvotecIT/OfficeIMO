@@ -81,6 +81,44 @@ public sealed class EmailStoreRecoveryAndSplitTests {
     }
 
     [Fact]
+    public void Split_plan_excludes_search_folder_rows_before_counting_and_partitioning() {
+        string root = TemporaryDirectory();
+        try {
+            using EmailStoreSession session = CreateSession(new SplitSearchFolderBackend());
+            EmailStoreFolderInfo searchFolder = Assert.Single(session.Folders,
+                folder => folder.IsSearchFolder);
+
+            EmailStorePstSplitPlan plan = session.PlanPstSplit(
+                Path.Combine(root, "without-search.pst"),
+                new EmailStorePstSplitOptions(
+                    maxEstimatedBytesPerPart: 1,
+                    maxParts: 1,
+                    includeSearchFolders: false));
+
+            Assert.True(plan.IsExecutable);
+            Assert.Equal(1, plan.MatchedItems);
+            Assert.Equal(1, plan.SelectedItems);
+            Assert.DoesNotContain(plan.Parts.SelectMany(part => part.Items),
+                reference => reference.FolderId == searchFolder.Id);
+            Assert.Contains(plan.Diagnostics, diagnostic =>
+                diagnostic.Code == "EMAIL_STORE_PST_SPLIT_SEARCH_ITEMS_EXCLUDED" &&
+                diagnostic.Severity == EmailStoreDiagnosticSeverity.Information);
+
+            EmailStorePstSplitPlan inclusivePlan = session.PlanPstSplit(
+                Path.Combine(root, "with-search.pst"),
+                new EmailStorePstSplitOptions(includeSearchFolders: true));
+            Assert.True(inclusivePlan.IsExecutable);
+            Assert.Equal(2, inclusivePlan.MatchedItems);
+            Assert.Equal(2, inclusivePlan.SelectedItems);
+            Assert.Contains(inclusivePlan.Parts.SelectMany(part => part.Items),
+                reference => reference.FolderId == searchFolder.Id);
+            Assert.DoesNotContain(plan.Parts, part => File.Exists(part.DestinationPath));
+        } finally {
+            DeleteDirectory(root);
+        }
+    }
+
+    [Fact]
     public void Split_blocks_execution_when_query_scan_or_part_bound_omits_matches() {
         string root = TemporaryDirectory();
         string source = Path.Combine(root, "source.pst");
@@ -179,6 +217,65 @@ public sealed class EmailStoreRecoveryAndSplitTests {
 
     private static void DeleteDirectory(string path) {
         if (Directory.Exists(path)) Directory.Delete(path, recursive: true);
+    }
+
+    private sealed class SplitSearchFolderBackend : IEmailStoreSessionBackend {
+        private readonly IReadOnlyDictionary<string, EmailDocument> _documents;
+        private readonly EmailStoreItemReference[] _references;
+
+        internal SplitSearchFolderBackend() {
+            var normal = Document("Normal", "normal@example.test", 1);
+            var search = Document("Search projection", "search@example.test", 2);
+            _documents = new Dictionary<string, EmailDocument>(StringComparer.Ordinal) {
+                ["normal"] = normal,
+                ["search"] = search
+            };
+            _references = new[] {
+                new EmailStoreItemReference("normal", "inbox", false, false,
+                    new EmailStoreItemSummary(normal, false, false)),
+                new EmailStoreItemReference("search", "search-folder", false, false,
+                    new EmailStoreItemSummary(search, false, false))
+            };
+        }
+
+        public EmailStoreFormat Format => EmailStoreFormat.Pst;
+        public string? DisplayName => "Search folder split";
+        public long SourceLength => 0;
+        public IReadOnlyList<EmailStoreFolderInfo> Folders { get; } = new[] {
+            new EmailStoreFolderInfo("inbox", null, "Inbox",
+                specialFolderKind: EmailStoreSpecialFolderKind.Inbox),
+            new EmailStoreFolderInfo("search-folder", null, "Search Folder",
+                isSearchFolder: true)
+        };
+        public IReadOnlyList<EmailStoreDiagnostic> Diagnostics => Array.Empty<EmailStoreDiagnostic>();
+
+        public IEnumerable<EmailStoreItemReference> EnumerateItems(
+            EmailStoreEnumerationOptions options, CancellationToken cancellationToken) {
+            IEnumerable<EmailStoreItemReference> selected = options.FolderId == null
+                ? _references
+                : _references.Where(reference => string.Equals(
+                    reference.FolderId, options.FolderId, StringComparison.Ordinal));
+            foreach (EmailStoreItemReference reference in selected.Take(options.MaxItems)) {
+                cancellationToken.ThrowIfCancellationRequested();
+                yield return reference;
+            }
+        }
+
+        public EmailStoreItemSummary ReadSummary(EmailStoreItemReference reference,
+            CancellationToken cancellationToken) {
+            cancellationToken.ThrowIfCancellationRequested();
+            return reference.Summary!;
+        }
+
+        public EmailStoreItem ReadItem(EmailStoreItemReference reference,
+            EmailStoreItemReadOptions options, CancellationToken cancellationToken) {
+            cancellationToken.ThrowIfCancellationRequested();
+            return new EmailStoreItem(reference.Id, reference.FolderId,
+                _documents[reference.Id], loadedParts: options.Parts,
+                format: Format, summary: reference.Summary);
+        }
+
+        public void Dispose() { }
     }
 
     private sealed class RecoveryBackend : IEmailStoreSessionBackend {

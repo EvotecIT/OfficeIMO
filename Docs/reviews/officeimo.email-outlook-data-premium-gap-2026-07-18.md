@@ -401,8 +401,8 @@ Security owner, so a Store consumer never needs PDF or multiple cryptography pac
 
 ## Current branch evidence
 
-- `OfficeIMO.Email.Tests` passes 909 tests on `net8.0` and `net10.0`, and 896 on `net472`, including the enabled real-Outlook S/MIME corpus and Outlook-shaped MSG/TNEF clear-signed attachment verification.
-- `OfficeIMO.Email.Store.Tests` passes 242 tests on `net8.0` and `net10.0`, and 231 on `net472`; four explicitly opt-in Outlook/libpff/private-corpus checks remain skipped on each target.
+- `OfficeIMO.Email.Tests` passes 913 tests on `net8.0` and `net10.0`, and 900 on `net472`, including the enabled real-Outlook S/MIME corpus, Outlook-shaped MSG/TNEF clear-signed attachment verification, and bounded raw-EML CMS extraction regressions.
+- `OfficeIMO.Email.Store.Tests` passes 246 tests on `net8.0` and `net10.0`, and 235 on `net472`; four explicitly opt-in Outlook/libpff/private-corpus checks remain skipped on each target.
 - `OfficeIMO.Email.AddressBook.Tests` passes 28 tests per runnable target; `OfficeIMO.Email.Data.Tests` passes three per runnable target.
 - `OfficeIMO.Reader.Tests` passes 810 tests on `net8.0` and `net10.0`, and 765 on `net472`.
 - `OfficeIMO.Security.Tests` passes eight CMS/X.509 tests on `net8.0` and `net10.0`; `OfficeIMO.Pdf.Tests` passes 2,987 tests on each modern target and 2,972 on `net472`.

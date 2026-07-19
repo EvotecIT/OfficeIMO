@@ -7,9 +7,19 @@ internal static class MimeSmimeExtractor {
         List<EmailDiagnostic> diagnostics,
         out ExtractedSmimePayload? payload) {
         payload = null;
-        if (document.RawSource != null && document.Format == EmailFileFormat.Eml &&
-            TryExtractFromMime(document.RawSource, diagnostics, out payload)) {
-            return true;
+        if (document.RawSource != null && document.Format == EmailFileFormat.Eml) {
+            try {
+                if (TryExtractFromMime(document.RawSource, maximumCmsBytes, diagnostics, out payload)) {
+                    return true;
+                }
+            } catch (Exception exception) when (exception is IOException or InvalidDataException or UnauthorizedAccessException) {
+                diagnostics.Add(new EmailDiagnostic(
+                    "EMAIL_SMIME_PAYLOAD_UNAVAILABLE",
+                    "The retained S/MIME payload could not be read: " + exception.Message,
+                    EmailDiagnosticSeverity.Error,
+                    "message/protection"));
+                return false;
+            }
         }
 
         EmailAttachment? attachment = document.Protection.PayloadAttachment;
@@ -19,7 +29,7 @@ internal static class MimeSmimeExtractor {
             if (document.Protection.Kind == EmailProtectionKind.SmimeClearSigned ||
                 (attachment.ContentType ?? string.Empty)
                     .IndexOf("multipart/signed", StringComparison.OrdinalIgnoreCase) >= 0) {
-                if (TryExtractFromMime(encoded, diagnostics, out payload)) return true;
+                if (TryExtractFromMime(encoded, maximumCmsBytes, diagnostics, out payload)) return true;
                 diagnostics.Add(new EmailDiagnostic(
                     "EMAIL_SMIME_SIGNED_ENTITY_INVALID",
                     "The retained Outlook S/MIME attachment is not a complete multipart/signed MIME entity.",
@@ -41,6 +51,7 @@ internal static class MimeSmimeExtractor {
 
     private static bool TryExtractFromMime(
         byte[] source,
+        long maximumCmsBytes,
         List<EmailDiagnostic> diagnostics,
         out ExtractedSmimePayload? payload) {
         payload = null;
@@ -85,15 +96,16 @@ internal static class MimeSmimeExtractor {
             }
 
             byte[] signedEntity = Copy(parts[0]);
-            byte[] signature = DecodePart(parts[1], source, options, diagnostics, "message/signature");
+            byte[] signature = DecodePart(parts[1], source, options, diagnostics,
+                "message/signature", maximumCmsBytes);
             payload = new ExtractedSmimePayload(signature, signedEntity);
             return true;
         }
 
         if (string.Equals(contentType.Value, "application/pkcs7-mime", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(contentType.Value, "application/x-pkcs7-mime", StringComparison.OrdinalIgnoreCase)) {
-            byte[] body = Copy(source, bodyOffset, bodyCount);
-            byte[] encoded = MimeTextCodec.DecodeTransfer(body, transferEncoding, diagnostics, "message");
+            byte[] encoded = DecodeTransferPart(source, bodyOffset, bodyCount,
+                transferEncoding, diagnostics, "message", maximumCmsBytes);
             payload = new ExtractedSmimePayload(encoded, null);
             return true;
         }
@@ -105,7 +117,8 @@ internal static class MimeSmimeExtractor {
         byte[] source,
         EmailReaderOptions options,
         IList<EmailDiagnostic> diagnostics,
-        string location) {
+        string location,
+        long maximumBytes) {
         var headers = new List<EmailHeader>();
         int bodyOffset = MimeHeaderParser.Parse(
             source,
@@ -116,12 +129,37 @@ internal static class MimeSmimeExtractor {
             diagnostics,
             location);
         int end = part.Offset + part.Count;
-        byte[] body = Copy(source, bodyOffset, Math.Max(0, end - bodyOffset));
-        return MimeTextCodec.DecodeTransfer(
-            body,
+        return DecodeTransferPart(
+            source,
+            bodyOffset,
+            Math.Max(0, end - bodyOffset),
             MimeHeaderParser.GetValue(headers, "Content-Transfer-Encoding"),
             diagnostics,
-            location);
+            location,
+            maximumBytes);
+    }
+
+    private static byte[] DecodeTransferPart(
+        byte[] source,
+        int offset,
+        int count,
+        string? transferEncoding,
+        IList<EmailDiagnostic> diagnostics,
+        string location,
+        long maximumBytes) {
+        var preflightDiagnostics = new List<EmailDiagnostic>();
+        long decodedLength = MimeTextCodec.GetDecodedLength(
+            source, offset, count, transferEncoding, preflightDiagnostics, location);
+        if (decodedLength > maximumBytes) {
+            foreach (EmailDiagnostic diagnostic in preflightDiagnostics) diagnostics.Add(diagnostic);
+            throw new InvalidDataException("The S/MIME payload exceeds the configured CMS limit.");
+        }
+        byte[] body = Copy(source, offset, count);
+        byte[] decoded = MimeTextCodec.DecodeTransfer(body, transferEncoding, diagnostics, location);
+        if (decoded.LongLength > maximumBytes) {
+            throw new InvalidDataException("The S/MIME payload exceeds the configured CMS limit.");
+        }
+        return decoded;
     }
 
     private static byte[] ReadAttachment(EmailAttachment attachment, long maximumBytes) {

@@ -46,12 +46,28 @@ public sealed partial class EmailStoreSession {
                 outputBase));
         }
 
+        HashSet<string> excludedSearchFolderIds = effective.IncludeSearchFolders
+            ? new HashSet<string>(StringComparer.Ordinal)
+            : new HashSet<string>(Folders.Where(folder => folder.IsSearchFolder)
+                .Select(folder => folder.Id), StringComparer.Ordinal);
+        EmailStoreTableRow[] eligibleRows = page.Rows.Where(row =>
+            !excludedSearchFolderIds.Contains(row.Reference.FolderId)).ToArray();
+        int excludedSearchItems = page.Rows.Count - eligibleRows.Length;
+        if (excludedSearchItems > 0) {
+            diagnostics.Add(new EmailStoreDiagnostic(
+                "EMAIL_STORE_PST_SPLIT_SEARCH_ITEMS_EXCLUDED",
+                string.Concat(excludedSearchItems.ToString(CultureInfo.InvariantCulture),
+                    " search-folder item(s) are intentionally excluded by the split policy."),
+                EmailStoreDiagnosticSeverity.Information,
+                outputBase));
+        }
+
         var parts = new List<EmailStorePstSplitPlanPart>();
         var current = new List<EmailStoreItemReference>();
         long currentBytes = 0;
         bool currentOversized = false;
         int unknownSizeItems = 0;
-        foreach (EmailStoreTableRow row in page.Rows) {
+        foreach (EmailStoreTableRow row in eligibleRows) {
             cancellationToken.ThrowIfCancellationRequested();
             long itemBytes = EstimateSplitItemBytes(row.Summary, effective, out bool unknown);
             if (unknown) unknownSizeItems++;
@@ -73,10 +89,10 @@ public sealed partial class EmailStoreSession {
                 outputBase, effective, diagnostics);
         }
         int selected = parts.Sum(part => part.Items.Count);
-        if (selected < page.Rows.Count) {
+        if (selected < eligibleRows.Length) {
             diagnostics.Add(new EmailStoreDiagnostic(
                 "EMAIL_STORE_PST_SPLIT_PART_LIMIT",
-                string.Concat(page.Rows.Count - selected,
+                string.Concat(eligibleRows.Length - selected,
                     " selected item(s) were omitted after MaxParts=",
                     effective.MaxParts.ToString(CultureInfo.InvariantCulture), "."),
                 EmailStoreDiagnosticSeverity.Error,
@@ -93,7 +109,7 @@ public sealed partial class EmailStoreSession {
             }
         }
         return new EmailStorePstSplitPlan(this, outputBase, effective, query.Explain(),
-            page.ItemsScanned, page.Rows.Count, page.ScanLimitReached, unknownSizeItems,
+            page.ItemsScanned, eligibleRows.Length, page.ScanLimitReached, unknownSizeItems,
             parts.AsReadOnly(), diagnostics.AsReadOnly());
     }
 
