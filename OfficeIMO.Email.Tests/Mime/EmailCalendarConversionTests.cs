@@ -170,6 +170,47 @@ public sealed class EmailCalendarConversionTests {
     }
 
     [Fact]
+    public void DoesNotAttachExceptionsToAUidLessRecurringMaster() {
+        byte[] eml = Encoding.ASCII.GetBytes(
+            "Content-Type: text/calendar; charset=utf-8\r\n\r\nBEGIN:VCALENDAR\r\nVERSION:2.0\r\n" +
+            "BEGIN:VEVENT\r\nDTSTART:20260701T090000Z\r\nDTEND:20260701T100000Z\r\n" +
+            "RRULE:FREQ=DAILY;COUNT=5\r\nSUMMARY:UID-less series\r\nEND:VEVENT\r\n" +
+            "BEGIN:VEVENT\r\nUID:other-series@example.com\r\n" +
+            "RECURRENCE-ID:20260703T090000Z\r\nDTSTART:20260703T110000Z\r\n" +
+            "DTEND:20260703T120000Z\r\nSUMMARY:Unrelated exception\r\nEND:VEVENT\r\n" +
+            "END:VCALENDAR\r\n");
+
+        EmailReadResult read = new EmailDocumentReader().Read(eml);
+
+        Assert.NotNull(read.Document.Appointment!.Recurrence);
+        Assert.Empty(read.Document.Appointment.Recurrence!.Exceptions);
+        Assert.True(read.Document.MimeSemanticProjectionIsIncomplete);
+        Assert.Contains(read.Diagnostics,
+            diagnostic => diagnostic.Code == "EMAIL_ICALENDAR_EXCEPTION_UID_REQUIRED");
+    }
+
+    [Fact]
+    public void IgnoresUnrelatedUtcExceptionsWhenAssessingTimeZoneRequirements() {
+        byte[] eml = Encoding.ASCII.GetBytes(
+            "Content-Type: text/calendar; charset=utf-8\r\n\r\nBEGIN:VCALENDAR\r\nVERSION:2.0\r\n" +
+            "BEGIN:VEVENT\r\nUID:local-series@example.com\r\n" +
+            "DTSTART;TZID=Missing/Zone:20260701T090000\r\n" +
+            "DTEND;TZID=Missing/Zone:20260701T100000\r\n" +
+            "RRULE:FREQ=DAILY;COUNT=5\r\nSUMMARY:Local series\r\nEND:VEVENT\r\n" +
+            "BEGIN:VEVENT\r\nUID:other-series@example.com\r\n" +
+            "RECURRENCE-ID:20260703T090000Z\r\nDTSTART:20260703T110000Z\r\n" +
+            "DTEND:20260703T120000Z\r\nSUMMARY:Unrelated exception\r\nEND:VEVENT\r\n" +
+            "END:VCALENDAR\r\n");
+
+        EmailReadResult read = new EmailDocumentReader().Read(eml);
+
+        Assert.NotNull(read.Document.Appointment!.Recurrence);
+        Assert.Empty(read.Document.Appointment.Recurrence!.Exceptions);
+        Assert.DoesNotContain(read.Diagnostics,
+            diagnostic => diagnostic.Code == "EMAIL_ICALENDAR_RECURRENCE_TIMEZONE_REQUIRED");
+    }
+
+    [Fact]
     public void ParsesQuotedAttendeeParametersContainingDelimiters() {
         byte[] eml = Encoding.ASCII.GetBytes(
             "Content-Type: text/calendar; charset=utf-8\r\n\r\nBEGIN:VCALENDAR\r\nVERSION:2.0\r\n" +

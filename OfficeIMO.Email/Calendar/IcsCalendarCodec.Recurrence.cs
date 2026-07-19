@@ -83,8 +83,12 @@ internal static partial class IcsCalendarCodec {
                 if (IsUtcTemporal(CloneTemporalProperty(property, raw))) return true;
             }
         }
+        string? masterUid = master.GetFirstProperty("UID")?.Value;
+        if (string.IsNullOrWhiteSpace(masterUid)) return false;
         foreach (ContentLineComponent component in components.Where(component =>
-                     component.GetFirstProperty("RECURRENCE-ID") != null)) {
+                     component.GetFirstProperty("RECURRENCE-ID") != null &&
+                     string.Equals(component.GetFirstProperty("UID")?.Value, masterUid,
+                         StringComparison.Ordinal))) {
             foreach (string name in new[] { "RECURRENCE-ID", "DTSTART", "DTEND" }) {
                 ContentLineProperty? property = component.GetFirstProperty(name);
                 if (property != null && IsUtcTemporal(property)) return true;
@@ -129,11 +133,20 @@ internal static partial class IcsCalendarCodec {
     private static void AddExceptionComponents(IEnumerable<ContentLineComponent> components,
         ContentLineComponent master, OutlookRecurrenceIcsImportOptions options,
         IList<EmailDiagnostic> diagnostics, string location, EmailDocument document) {
+        ContentLineComponent[] exceptions = components.Where(component =>
+            component.GetFirstProperty("RECURRENCE-ID") != null).ToArray();
+        if (exceptions.Length == 0) return;
         string? masterUid = master.GetFirstProperty("UID")?.Value;
-        foreach (ContentLineComponent component in components.Where(component =>
-            component.GetFirstProperty("RECURRENCE-ID") != null)) {
+        if (string.IsNullOrWhiteSpace(masterUid)) {
+            diagnostics.Add(new EmailDiagnostic("EMAIL_ICALENDAR_EXCEPTION_UID_REQUIRED",
+                "A recurring component without UID cannot safely associate recurrence exceptions; they were retained but not projected.",
+                EmailDiagnosticSeverity.Warning, location));
+            document.MimeSemanticProjectionIsIncomplete = true;
+            return;
+        }
+        foreach (ContentLineComponent component in exceptions) {
             string? uid = component.GetFirstProperty("UID")?.Value;
-            if (masterUid != null && !string.Equals(uid, masterUid, StringComparison.Ordinal)) continue;
+            if (!string.Equals(uid, masterUid, StringComparison.Ordinal)) continue;
             ContentLineProperty recurrenceId = component.GetFirstProperty("RECURRENCE-ID")!;
             if (recurrenceId.Parameters.Any(parameter =>
                     string.Equals(parameter.Name, "RANGE", StringComparison.OrdinalIgnoreCase) &&

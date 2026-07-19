@@ -106,6 +106,36 @@ public sealed class OutlookRecurrenceTests {
         Assert.NotEqual(deletedDate, modifiedDate);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void RejectsExceptionSetsThatCannotRoundTrip(bool duplicateOriginalDate) {
+        var recurrence = new OutlookRecurrence {
+            Frequency = OutlookRecurrenceFrequency.Daily,
+            PatternKind = OutlookRecurrencePatternKind.Day,
+            Start = new DateTime(2026, 7, 1, 9, 0, 0),
+            Duration = TimeSpan.FromHours(1),
+            RangeKind = OutlookRecurrenceRangeKind.OccurrenceCount,
+            OccurrenceCount = 10
+        };
+        recurrence.Exceptions.Add(new OutlookRecurrenceException {
+            OriginalStart = new DateTime(2026, 7, 2, 9, 0, 0),
+            Start = new DateTime(2026, 7, 4, 9, 0, 0),
+            End = new DateTime(2026, 7, 4, 10, 0, 0)
+        });
+        recurrence.Exceptions.Add(new OutlookRecurrenceException {
+            OriginalStart = new DateTime(2026, 7, duplicateOriginalDate ? 2 : 3, 9, 0, 0),
+            Start = new DateTime(2026, 7, duplicateOriginalDate ? 5 : 4, 13, 0, 0),
+            End = new DateTime(2026, 7, duplicateOriginalDate ? 5 : 4, 14, 0, 0)
+        });
+
+        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
+            OutlookRecurrenceBinary.EncodeAppointment(recurrence));
+
+        Assert.Contains(duplicateOriginalDate ? "original occurrence date" : "same calendar date",
+            exception.Message, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void ExpandsCountedSeriesWithMovedAndDeletedOccurrences() {
         OutlookRecurrence recurrence = OutlookRecurrenceBinary.DecodeAppointment(

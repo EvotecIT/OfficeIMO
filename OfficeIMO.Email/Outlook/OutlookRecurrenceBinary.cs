@@ -210,7 +210,7 @@ public static class OutlookRecurrenceBinary {
         writer.Write((uint)recurrence.FirstDayOfWeek);
 
         DateTime[] modified = recurrence.Exceptions.Select(exception => exception.Start.Date)
-            .Distinct().OrderBy(value => value).ToArray();
+            .OrderBy(value => value).ToArray();
         DateTime[] deleted = recurrence.DeletedOccurrenceDates.Select(value => value.Date)
             .Concat(recurrence.Exceptions.Select(exception => exception.OriginalStart.Date))
             .Distinct().OrderBy(value => value).ToArray();
@@ -312,6 +312,14 @@ public static class OutlookRecurrenceBinary {
             throw new InvalidOperationException("An end-date recurrence requires EndDate.");
         if (!appointment && recurrence.Exceptions.Count != 0)
             throw new NotSupportedException("Task RecurrencePattern values do not contain appointment exceptions.");
+        if (appointment && recurrence.Exceptions.GroupBy(exception => exception.OriginalStart.Date)
+                .Any(group => group.Skip(1).Any()))
+            throw new InvalidOperationException(
+                "Only one Outlook recurrence exception can target each original occurrence date.");
+        if (appointment && recurrence.Exceptions.GroupBy(exception => exception.Start.Date)
+                .Any(group => group.Skip(1).Any()))
+            throw new InvalidOperationException(
+                "Outlook recurrence exceptions cannot start on the same calendar date.");
         if (recurrence.Duration < TimeSpan.Zero || recurrence.Start.TimeOfDay.TotalMinutes + recurrence.Duration.TotalMinutes > uint.MaxValue)
             throw new ArgumentOutOfRangeException(nameof(recurrence), "The appointment duration cannot be encoded.");
     }
