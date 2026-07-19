@@ -2,7 +2,7 @@
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using OfficeIMO.Pdf;
-using OfficeIMO.Pdf.Cryptography;
+using OfficeIMO.Security;
 using Xunit;
 
 namespace OfficeIMO.Tests.Pdf;
@@ -30,9 +30,9 @@ public class PdfExternalEngineProofTests {
 
         using X509Certificate2 certificate = CreateSigningCertificate();
         byte[] signed = Sign(rewritten, certificate);
-        var provider = new PdfPkcsSignatureCryptographyProvider(new PdfPkcsSignatureValidationOptions {
-            ChainEvaluator = (_, _) => true
-        });
+        var options = new CmsVerificationOptions();
+        options.CertificateValidation.ChainEvaluator = static (_, _) => true;
+        var provider = new PdfCmsSignatureCryptographyProvider(options);
         PdfSignatureValidationReport signatureReport = PdfSignatureValidator.Validate(signed, provider);
         Assert.True(signatureReport.IsStructurallyValid);
         Assert.True(signatureReport.MathematicalSignaturesVerified);
@@ -62,7 +62,7 @@ public class PdfExternalEngineProofTests {
                 },
                 ReservedSignatureContentsBytes = 8192
             });
-        using var signer = new PdfPkcsExternalSigner(certificate);
+        using var signer = new PdfCmsExternalSigner(certificate);
         return PdfIncrementalUpdater.ApplyExternalSignature(
             preparation,
             signer.Sign(new PdfExternalSignatureRequest(preparation)));

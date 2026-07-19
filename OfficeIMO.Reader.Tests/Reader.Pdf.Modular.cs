@@ -1561,7 +1561,7 @@ public sealed class ReaderPdfModularTests {
         Assert.False(string.IsNullOrWhiteSpace(visual.PayloadHash));
         Assert.Contains("Reader PDF visual marker", chunk.Markdown ?? chunk.Text, StringComparison.Ordinal);
 
-        ReaderVisual extracted = Assert.Single(OfficeDocumentReader.Default.ExtractVisuals(new[] { chunk }));
+        ReaderVisual extracted = Assert.Single(OfficeIMO.Reader.Tests.ReaderTestReaders.All.ExtractVisuals(new[] { chunk }));
         Assert.Equal("image-visual.pdf", extracted.Location?.Path);
         Assert.Equal("image/png", extracted.MimeType);
         Assert.Equal(48D, extracted.PlacedWidth!.Value, 3);
@@ -2176,8 +2176,9 @@ public sealed class ReaderPdfModularTests {
                 handler.Extensions.Contains(".pdf"));
         Assert.Equal(1, manifest.Handlers.Count(handler =>
             string.Equals(handler.Id, OfficeDocumentReaderBuilderPdfExtensions.HandlerId, StringComparison.Ordinal)));
-        Assert.DoesNotContain(manifest.Handlers, handler =>
-            handler.IsBuiltIn && handler.Extensions.Contains(".pdf", StringComparer.OrdinalIgnoreCase));
+        Assert.Contains(manifest.Handlers, handler =>
+            handler.Origin == ReaderHandlerOrigin.OfficeIMO &&
+            handler.Extensions.Contains(".pdf", StringComparer.OrdinalIgnoreCase));
         Assert.Contains(
             OfficeDocumentReaderBuilderPdfExtensions.HandlerId,
             reader.GetCapabilityManifestJson(),

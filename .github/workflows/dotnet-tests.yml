@@ -91,17 +91,19 @@ jobs:
           $configDirectory = Join-Path $env:RUNNER_TEMP 'officeimo-email-nuget'
           $configPath = Join-Path $configDirectory 'nuget.config'
           New-Item -ItemType Directory -Force -Path $feed | Out-Null
-          dotnet restore OfficeIMO.Email.Store/OfficeIMO.Email.Store.csproj --no-http-cache
-          dotnet restore OfficeIMO.Reader.EmailStore/OfficeIMO.Reader.EmailStore.csproj --no-http-cache
-          dotnet restore OfficeIMO.Reader.EmailAddressBook/OfficeIMO.Reader.EmailAddressBook.csproj --no-http-cache
-          dotnet pack OfficeIMO.Drawing/OfficeIMO.Drawing.csproj --configuration $env:BUILD_CONFIGURATION --no-restore --output $feed
-          dotnet pack OfficeIMO.Rtf/OfficeIMO.Rtf.csproj --configuration $env:BUILD_CONFIGURATION --no-restore --output $feed
-          dotnet pack OfficeIMO.Email/OfficeIMO.Email.csproj --configuration $env:BUILD_CONFIGURATION --no-restore --output $feed
-          dotnet pack OfficeIMO.Email.AddressBook/OfficeIMO.Email.AddressBook.csproj --configuration $env:BUILD_CONFIGURATION --no-restore --output $feed
-          dotnet pack OfficeIMO.Email.Store/OfficeIMO.Email.Store.csproj --configuration $env:BUILD_CONFIGURATION --no-restore --output $feed
-          dotnet pack OfficeIMO.Reader/OfficeIMO.Reader.csproj --configuration $env:BUILD_CONFIGURATION --no-restore --output $feed
-          dotnet pack OfficeIMO.Reader.EmailAddressBook/OfficeIMO.Reader.EmailAddressBook.csproj --configuration $env:BUILD_CONFIGURATION --no-restore --output $feed
-          dotnet pack OfficeIMO.Reader.EmailStore/OfficeIMO.Reader.EmailStore.csproj --configuration $env:BUILD_CONFIGURATION --no-restore --output $feed
+          $projects = @(
+            'OfficeIMO.Drawing/OfficeIMO.Drawing.csproj',
+            'OfficeIMO.Rtf/OfficeIMO.Rtf.csproj',
+            'OfficeIMO.Security/OfficeIMO.Security.csproj',
+            'OfficeIMO.Email/OfficeIMO.Email.csproj',
+            'OfficeIMO.Reader.Core/OfficeIMO.Reader.Core.csproj',
+            'OfficeIMO.Reader.Email/OfficeIMO.Reader.Email.csproj',
+            'OfficeIMO.Reader.Image/OfficeIMO.Reader.Image.csproj'
+          )
+          foreach ($project in $projects) {
+            dotnet restore $project --no-http-cache
+            dotnet pack $project --configuration $env:BUILD_CONFIGURATION --no-restore --output $feed
+          }
           function Get-PackedPackageVersion([string] $id) {
             $escapedId = [regex]::Escape($id)
             $packages = @(Get-ChildItem -LiteralPath $feed -Filter "$id.*.nupkg" |
@@ -112,35 +114,62 @@ jobs:
             return $packages[0].BaseName.Substring($id.Length + 1)
           }
           $emailVersion = Get-PackedPackageVersion 'OfficeIMO.Email'
-          $emailAddressBookVersion = Get-PackedPackageVersion 'OfficeIMO.Email.AddressBook'
-          $emailStoreVersion = Get-PackedPackageVersion 'OfficeIMO.Email.Store'
-          $readerVersion = Get-PackedPackageVersion 'OfficeIMO.Reader'
-          $readerEmailAddressBookVersion = Get-PackedPackageVersion 'OfficeIMO.Reader.EmailAddressBook'
-          $readerEmailStoreVersion = Get-PackedPackageVersion 'OfficeIMO.Reader.EmailStore'
+          $readerCoreVersion = Get-PackedPackageVersion 'OfficeIMO.Reader.Core'
+          $readerEmailVersion = Get-PackedPackageVersion 'OfficeIMO.Reader.Email'
+          $readerImageVersion = Get-PackedPackageVersion 'OfficeIMO.Reader.Image'
           $drawingVersion = Get-PackedPackageVersion 'OfficeIMO.Drawing'
           $rtfVersion = Get-PackedPackageVersion 'OfficeIMO.Rtf'
+          $securityVersion = Get-PackedPackageVersion 'OfficeIMO.Security'
           $smokeProperties = @(
             '--property:EnableOfficeIMOEmailPackageSmoke=true',
             "--property:OfficeIMOEmailPackageVersion=$emailVersion",
-            "--property:OfficeIMOEmailAddressBookPackageVersion=$emailAddressBookVersion",
-            "--property:OfficeIMOEmailStorePackageVersion=$emailStoreVersion",
-            "--property:OfficeIMOReaderPackageVersion=$readerVersion",
-            "--property:OfficeIMOReaderEmailAddressBookPackageVersion=$readerEmailAddressBookVersion",
-            "--property:OfficeIMOReaderEmailStorePackageVersion=$readerEmailStoreVersion"
+            "--property:OfficeIMOReaderCorePackageVersion=$readerCoreVersion",
+            "--property:OfficeIMOReaderEmailPackageVersion=$readerEmailVersion",
+            "--property:OfficeIMOReaderImagePackageVersion=$readerImageVersion"
           )
           dotnet new nugetconfig --output $configDirectory --force
           dotnet nuget add source "$feed" --name OfficeIMOLocal --configfile "$configPath"
+          [xml] $nugetConfig = Get-Content -LiteralPath $configPath
+          $sourceMapping = $nugetConfig.CreateElement('packageSourceMapping')
+          $nugetOrgSource = @($nugetConfig.configuration.packageSources.add |
+            Where-Object { $_.value -eq 'https://api.nuget.org/v3/index.json' })
+          if ($nugetOrgSource.Count -ne 1) {
+            throw "Expected exactly one nuget.org source in $configPath."
+          }
+          $nugetOrgMapping = $nugetConfig.CreateElement('packageSource')
+          $nugetOrgMapping.SetAttribute('key', $nugetOrgSource[0].key)
+          $publicPattern = $nugetConfig.CreateElement('package')
+          $publicPattern.SetAttribute('pattern', '*')
+          [void] $nugetOrgMapping.AppendChild($publicPattern)
+          [void] $sourceMapping.AppendChild($nugetOrgMapping)
+          $localMapping = $nugetConfig.CreateElement('packageSource')
+          $localMapping.SetAttribute('key', 'OfficeIMOLocal')
+          foreach ($packageId in @(
+            'OfficeIMO.Drawing',
+            'OfficeIMO.Rtf',
+            'OfficeIMO.Security',
+            'OfficeIMO.Email',
+            'OfficeIMO.Reader.Core',
+            'OfficeIMO.Reader.Email',
+            'OfficeIMO.Reader.Image'
+          )) {
+            $localPattern = $nugetConfig.CreateElement('package')
+            $localPattern.SetAttribute('pattern', $packageId)
+            [void] $localMapping.AppendChild($localPattern)
+          }
+          [void] $sourceMapping.AppendChild($localMapping)
+          [void] $nugetConfig.configuration.AppendChild($sourceMapping)
+          $nugetConfig.Save($configPath)
           dotnet restore Build/PackageSmoke/OfficeIMO.Email/OfficeIMO.Email.PackageSmoke.csproj @smokeProperties --configfile "$configPath" --no-http-cache
           $expectedFeed = (Resolve-Path $feed).Path.TrimEnd('\', '/')
           foreach ($package in @(
             @{ Id = 'officeimo.email'; Version = $emailVersion },
-            @{ Id = 'officeimo.email.addressbook'; Version = $emailAddressBookVersion },
-            @{ Id = 'officeimo.email.store'; Version = $emailStoreVersion },
-            @{ Id = 'officeimo.reader'; Version = $readerVersion },
-            @{ Id = 'officeimo.reader.emailaddressbook'; Version = $readerEmailAddressBookVersion },
-            @{ Id = 'officeimo.reader.emailstore'; Version = $readerEmailStoreVersion },
+            @{ Id = 'officeimo.reader.core'; Version = $readerCoreVersion },
+            @{ Id = 'officeimo.reader.email'; Version = $readerEmailVersion },
+            @{ Id = 'officeimo.reader.image'; Version = $readerImageVersion },
             @{ Id = 'officeimo.drawing'; Version = $drawingVersion },
-            @{ Id = 'officeimo.rtf'; Version = $rtfVersion }
+            @{ Id = 'officeimo.rtf'; Version = $rtfVersion },
+            @{ Id = 'officeimo.security'; Version = $securityVersion }
           )) {
             $metadataPath = Join-Path $env:NUGET_PACKAGES "$($package.Id)/$($package.Version)/.nupkg.metadata"
             $metadata = Get-Content $metadataPath -Raw | ConvertFrom-Json
@@ -179,8 +208,9 @@ jobs:
           New-Item -ItemType Directory -Force -Path $feed | Out-Null
           $projects = @(
             'OfficeIMO.Drawing/OfficeIMO.Drawing.csproj',
-            'OfficeIMO.Email/OfficeIMO.Email.csproj',
-            'OfficeIMO.Reader/OfficeIMO.Reader.csproj',
+            'OfficeIMO.Security/OfficeIMO.Security.csproj',
+            'OfficeIMO.Markdown/OfficeIMO.Markdown.csproj',
+            'OfficeIMO.Reader.Core/OfficeIMO.Reader.Core.csproj',
             'OfficeIMO.OneNote/OfficeIMO.OneNote.csproj',
             'OfficeIMO.OneNote.Markdown/OfficeIMO.OneNote.Markdown.csproj',
             'OfficeIMO.OneNote.Html/OfficeIMO.OneNote.Html.csproj',
@@ -204,8 +234,9 @@ jobs:
           }
           $packageIds = @(
             'OfficeIMO.Drawing',
-            'OfficeIMO.Email',
-            'OfficeIMO.Reader',
+            'OfficeIMO.Security',
+            'OfficeIMO.Markdown',
+            'OfficeIMO.Reader.Core',
             'OfficeIMO.OneNote',
             'OfficeIMO.OneNote.Markdown',
             'OfficeIMO.OneNote.Html',
@@ -531,6 +562,12 @@ jobs:
             partition: word-rtf-html
             collectCoverage: false
           - framework: net8.0
+            partition: email
+            collectCoverage: false
+          - framework: net10.0
+            partition: email
+            collectCoverage: false
+          - framework: net8.0
             partition: other-projects
             collectCoverage: false
           - framework: net10.0
@@ -643,6 +680,9 @@ jobs:
             dotnet restore OfficeIMO.Rtf.Tests/OfficeIMO.Rtf.Tests.csproj
             dotnet restore OfficeIMO.Html.Tests/OfficeIMO.Html.Tests.csproj
           fi
+          if [ "${{ matrix.partition }}" = "email" ]; then
+            dotnet restore OfficeIMO.Email.Tests/OfficeIMO.Email.Tests.csproj
+          fi
           if [[ "${{ matrix.partition }}" == pdf-* ]]; then
             dotnet restore OfficeIMO.Pdf.Tests/OfficeIMO.Pdf.Tests.csproj
             if [ "${{ matrix.partition }}" = "pdf-core" ] && [ "${{ matrix.framework }}" = "net8.0" ]; then
@@ -686,6 +726,9 @@ jobs:
           if [ "${{ matrix.partition }}" = "word-rtf-html" ]; then
             dotnet build OfficeIMO.Rtf.Tests/OfficeIMO.Rtf.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore
             dotnet build OfficeIMO.Html.Tests/OfficeIMO.Html.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore
+          fi
+          if [ "${{ matrix.partition }}" = "email" ]; then
+            dotnet build OfficeIMO.Email.Tests/OfficeIMO.Email.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore
           fi
           if [[ "${{ matrix.partition }}" == pdf-* ]]; then
             dotnet build OfficeIMO.Pdf.Tests/OfficeIMO.Pdf.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore
@@ -786,6 +829,12 @@ jobs:
             echo ""
             echo "== OfficeIMO.Reader.Tests =="
             dotnet test OfficeIMO.Reader.Tests/OfficeIMO.Reader.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --filter "${test_filter}" -m:1 --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
+          }
+
+          run_email_tests() {
+            echo ""
+            echo "== OfficeIMO.Email.Tests =="
+            dotnet test OfficeIMO.Email.Tests/OfficeIMO.Email.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} -m:1 --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
           }
 
           run_pdf_tests() {
@@ -920,6 +969,9 @@ jobs:
               run_word_tests "word" 'FullyQualifiedName~OfficeIMO.Tests.Word|FullyQualifiedName~OfficeIMO.Tests.ImageEmbedderTests|FullyQualifiedName~OfficeIMO.Tests.ParagraphParentMutationTests'
               run_rtf_tests
               run_html_tests
+              ;;
+            email)
+              run_email_tests
               ;;
             other-projects)
               audit_retired_aggregate_tests

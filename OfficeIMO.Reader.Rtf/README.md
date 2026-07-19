@@ -3,7 +3,7 @@
 [![nuget version](https://img.shields.io/nuget/v/OfficeIMO.Reader.Rtf)](https://www.nuget.org/packages/OfficeIMO.Reader.Rtf)
 [![nuget downloads](https://img.shields.io/nuget/dt/OfficeIMO.Reader.Rtf?label=nuget%20downloads)](https://www.nuget.org/packages/OfficeIMO.Reader.Rtf)
 
-`OfficeIMO.Reader.Rtf` provides a bounded RTF adapter for `OfficeIMO.Reader` using the shared `OfficeIMO.Rtf` semantic model.
+`OfficeIMO.Reader.Rtf` provides a bounded RTF adapter for `OfficeIMO.Reader.Core` using the shared `OfficeIMO.Rtf` semantic model.
 
 ## Install
 
@@ -98,7 +98,7 @@ foreach (OfficeDocumentAsset asset in document.Assets) {
 
 - Reader adapter configuration belongs here.
 - RTF parsing, syntax preservation, semantic binding, and writing belong in `OfficeIMO.Rtf`.
-- Shared extraction contracts belong in `OfficeIMO.Reader`.
+- Shared extraction contracts belong in `OfficeIMO.Reader.Core`.
 
 ## Targets and license
 
@@ -108,6 +108,6 @@ foreach (OfficeDocumentAsset asset in document.Assets) {
 ## Dependency footprint
 
 - **External:** None beyond the dependencies of its OfficeIMO format packages.
-- **OfficeIMO:** `OfficeIMO.Reader` and the first-party `OfficeIMO.Rtf` engine own parsing, semantic binding, chunks, assets, and diagnostics.
+- **OfficeIMO:** `OfficeIMO.Reader.Core` and the first-party `OfficeIMO.Rtf` engine own parsing, semantic binding, chunks, assets, and diagnostics.
 
 See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

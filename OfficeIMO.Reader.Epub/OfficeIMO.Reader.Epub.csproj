@@ -25,7 +25,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\OfficeIMO.Reader\OfficeIMO.Reader.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Reader.Core\OfficeIMO.Reader.Core.csproj" />
     <ProjectReference Include="..\OfficeIMO.Reader.Html\OfficeIMO.Reader.Html.csproj" />
     <ProjectReference Include="..\OfficeIMO.Epub\OfficeIMO.Epub.csproj" />
   </ItemGroup>

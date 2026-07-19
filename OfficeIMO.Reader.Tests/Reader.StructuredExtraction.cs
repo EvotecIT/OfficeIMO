@@ -1,4 +1,5 @@
 using OfficeIMO.Reader;
+using OfficeIMO.Reader.Markdown;
 using System.Text;
 using System.Text.Json;
 using System.Threading;
@@ -319,8 +320,8 @@ public sealed class ReaderStructuredExtractionTests {
     public async Task StaticStructuredReadSupportsSyncAndAsyncByteSurfaces() {
         byte[] markdown = Encoding.UTF8.GetBytes("# Overview\n\nUseful body");
 
-        OfficeDocumentStructuredExtractionResult sync = OfficeDocumentReader.Default.ReadStructured(markdown, "note.md");
-        OfficeDocumentStructuredExtractionResult asyncResult = await OfficeDocumentReader.Default.ReadStructuredAsync(markdown, "note.md");
+        OfficeDocumentStructuredExtractionResult sync = OfficeIMO.Reader.Tests.ReaderTestReaders.All.ReadStructured(markdown, "note.md");
+        OfficeDocumentStructuredExtractionResult asyncResult = await OfficeIMO.Reader.Tests.ReaderTestReaders.All.ReadStructuredAsync(markdown, "note.md");
 
         Assert.NotEmpty(sync.Sections);
         Assert.Contains("Overview", sync.Sections[0].Heading ?? sync.Sections[0].Text, StringComparison.Ordinal);
@@ -331,6 +332,7 @@ public sealed class ReaderStructuredExtractionTests {
     public async Task InstanceStructuredReadAppliesConfiguredProcessorsFirst() {
         byte[] markdown = Encoding.UTF8.GetBytes("# Overview\n\nUseful body");
         OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+            .AddMarkdownHandler()
             .AddProcessor(new DelegateOfficeDocumentProcessor("metadata", (document, _) => {
                 document.Metadata = new[] {
                     new OfficeDocumentMetadataEntry { Id = "processed", Name = "Processed", Value = "yes" }

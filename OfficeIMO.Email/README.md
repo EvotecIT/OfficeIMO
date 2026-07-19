@@ -11,6 +11,9 @@ The package supports:
 - standalone iCalendar (`.ics`) and vCard (`.vcf`/`.vcard`) documents with ordered, lossless content-line mutation, validation, bounded I/O, and standards-based EML projection
 - TNEF payloads such as `winmail.dat`
 - mboxo and mboxrd mailbox archives
+- PST, OST, Outlook for Mac OLM, EMLX, Apple Mail, Maildir, and mailbox-directory stores
+- Outlook Offline Address Book discovery, v4 entry decoding, search, validation, and offline identity resolution
+- one mixed-artifact discovery API for individual messages, calendars, contacts, stores, and OAB files
 - reopenable attachment content, file-backed streaming reads, and per-message mbox streaming for large or store-backed workflows
 - bounded synchronous and genuinely asynchronous source/destination I/O, immutable reader configuration, cancellation, and structured diagnostics
 - deterministic EML, MSG, OFT, TNEF, and mbox writing with explicit conversion-loss policy
@@ -180,6 +183,31 @@ if (item.OutlookItemKind == OutlookItemKind.Appointment && item.Appointment is n
 
 Equivalent projections are available through `Contact`, `Task`, `Journal`, and `Note`.
 
+Personal distribution lists use `OutlookItemKind.DistributionList` and `OutlookDistributionList`. Member and One-Off
+EntryIDs remain synchronized, validation enforces Outlook's per-property byte limit, and malformed identities keep
+their raw bytes and diagnostics. Meeting request/response/cancellation and task request/accept/reject/update items also
+have typed lifecycle projections instead of requiring message-class string switches.
+
+Decoded appointment and task recurrence uses one `OutlookRecurrence` model across MSG, TNEF, and PST. Expansion is
+always bounded and stays in local-clock space until the caller supplies either a system time zone or the decoded
+Outlook time-zone definition:
+
+```csharp
+OutlookRecurrenceExpansionResult occurrences = OutlookRecurrenceExpander.Expand(
+    item.Appointment!.Recurrence!,
+    new OutlookRecurrenceExpansionOptions {
+        WindowStart = new DateTime(2026, 7, 1),
+        WindowEnd = new DateTime(2026, 8, 1),
+        MaxOccurrences = 500
+    });
+
+OutlookRecurrenceIcsExportResult exported =
+    OutlookRecurrenceIcsConverter.Export(item.Appointment.Recurrence!);
+```
+
+Modified and deleted occurrences remain explicit. ICS import/export returns a conversion report and does not silently
+drop a recurrence pattern, exception, or time-zone constraint it cannot represent.
+
 An Outlook template uses the same model and compound-file engine as MSG while retaining its template identity:
 
 ```csharp
@@ -229,13 +257,22 @@ unmodeled source properties. Meetings whose only attendee data is display text a
 iCalendar `ATTENDEE` requires an address. Journal and sticky-note models remain lossless across MSG/TNEF, but have no
 standard EML representation and therefore require an explicit non-blocking loss policy for EML output.
 
-Properties that do not have a convenience field remain available through `MapiProperties`. Standard, numeric named, and string named properties have public lookup helpers:
+Properties that do not have a convenience field remain available through the typed `Mapi` property bag. The shared
+`MapiKnownProperties` vocabulary covers the standard and Outlook named properties understood by OfficeIMO, while
+custom named properties use the same strongly typed key contract:
 
 ```csharp
-string? displayName = item.MapiProperties.GetMapiValue<string>(0x3001);
-MapiProperty? custom = item.MapiProperties.GetMapiProperty(
-    new Guid("00062008-0000-0000-C000-000000000046"),
-    "CustomName");
+string? displayName = item.Mapi.GetValueOrDefault(MapiKnownProperties.PidTag.DisplayName);
+
+var customName = new MapiPropertyKey<string>(
+    "CustomName",
+    MapiPropertySets.PublicStrings,
+    "CustomName",
+    MapiPropertyType.Unicode,
+    MapiPropertyType.String8);
+
+string? customValue = item.Mapi.GetValueOrDefault(customName);
+item.Mapi.Set(customName, "Retained with the artifact");
 ```
 
 ## RTF bodies
@@ -247,22 +284,38 @@ RTF syntax editing and semantic conversion belong to `OfficeIMO.Rtf`. Generate R
 ## Protected messages
 
 `EmailDocument.Protection` detects opaque and clear-signed S/MIME plus signed or encrypted OpenPGP/MIME wrappers. It
-does not validate signatures or decrypt payloads. Protected input retains its original artifact bytes automatically.
+retains the original artifact bytes automatically, including Outlook's complete outer `multipart/signed` attachment
+for `IPM.Note.SMIME.MultipartSigned`. `EmailSmime` verifies clear/opaque S/MIME and decrypts
+EnvelopedData through the shared `OfficeIMO.Security` owner; OpenPGP remains outside this package.
 Writing an unchanged protected document in its source format emits those bytes verbatim; an edited or cross-format
 write is blocked by default because regenerating the wrapper would invalidate its cryptographic meaning.
 
 ```csharp
-EmailDocument protectedMessage = EmailDocument.Load("signed.msg");
+using X509Certificate2 recipient = LoadRecipientCertificate();
+EmailDocument protectedMessage = EmailDocument.Load("message.eml");
 
-if (protectedMessage.Protection.IsProtected) {
-    byte[]? cms = protectedMessage.Protection.PayloadAttachment?.Content;
-    // A cryptographic owner can validate or decrypt the retained payload.
+EmailSmimeVerificationResult verified = EmailSmime.Verify(protectedMessage);
+if (verified.IsCryptographicallyValid) {
+    Console.WriteLine(verified.SignedContent?.Subject);
+}
+
+EmailSmimeDecryptionResult decrypted = EmailSmime.Decrypt(protectedMessage, recipient);
+if (decrypted.Decrypted) {
+    Console.WriteLine(decrypted.DecryptedContent?.Body.Text);
 }
 ```
 
+Certificate/key discovery is intentionally not implicit. Verification accepts caller trust/revocation policy through
+`CmsVerificationOptions`; decryption requires an explicitly supplied recipient certificate. The original protected
+document is never mutated, and the decrypted/signed projection is returned separately. Detached verification first
+uses the exact retained MIME bytes and, only when necessary, retries the standard CRLF canonical form used by S/MIME
+mail clients; `SignedMimeEntity` still exposes the original bytes and a structured diagnostic records the fallback.
+The current Bouncy Castle envelope adapter requires an RSA recipient key that the platform certificate handle permits
+to be exported. Non-exportable keys fail with `EnvelopePrivateKeyNotExportable` instead of weakening key policy.
+
 ## Mailbox stores and store-backed content
 
-PST, OST, Outlook for Mac OLM, and Apple Mail EMLX containers belong to the optional `OfficeIMO.Email.Store` package. It yields ordinary `EmailDocument` instances while preserving folder paths, store metadata, diagnostics, and bounded attachment behavior:
+PST, OST, Outlook for Mac OLM, and Apple Mail EMLX containers are included in `OfficeIMO.Email`. The Store APIs yield ordinary `EmailDocument` instances while preserving folder paths, store metadata, diagnostics, and bounded attachment behavior:
 
 ```csharp
 using OfficeIMO.Email.Store;
@@ -273,7 +326,7 @@ EmailStoreItemReference firstReference = session.EnumerateItems(
 EmailDocument firstMessage = session.ReadItem(firstReference).Document;
 ```
 
-`OfficeIMO.Email` remains sufficient for individual EML, MSG, OFT, TNEF, mbox, iCalendar, and vCard artifacts.
+Use `EmailDataArtifact.Open` from the included `OfficeIMO.Email.Data` namespace when an application wants one discovery entry point across individual artifacts, stores, and OAB files. No additional package is required.
 
 ### Store-backed attachment content
 
@@ -289,7 +342,7 @@ await content.CopyToAsync(destination, 81920, cancellationToken);
 
 EML, MSG, and TNEF writers consume either representation through the same bounded path. The interface deliberately
 contains no PST, OST, MAPI, or Outlook types, so mailbox and store owners can yield ordinary `EmailDocument`
-instances while keeping source lifetime and property-stream access in the owning package.
+instances while keeping source lifetime and property-stream access in the owning Store API area.
 
 ## Resource limits
 
@@ -301,16 +354,21 @@ that define the typed item are retained because they are semantic message conten
 
 ## Reader integration
 
-`OfficeIMO.Reader` recognizes `.eml`, `.msg`, `.oft`, `.mbox`, `.mbx`, `.tnef`, `winmail.dat`, `.ics`, `.vcs`,
-`.vcf`, and `.vcard`. Calendar and contact files are routed through the public `IcsDocument` and `VCardDocument`
-engines. Add `OfficeIMO.Reader.EmailStore` for PST, OST, OLM, and EMLX. Its rich result includes envelope and Outlook
-metadata, structured diagnostics, materializable attachment assets, embedded messages, and chunks extracted from
-supported attachment formats.
+`OfficeIMO.Reader.Email` recognizes `.eml`, `.msg`, `.oft`, `.mbox`, `.mbx`, `.tnef`, `winmail.dat`, `.ics`, `.vcs`,
+`.vcf`, `.vcard`, PST, OST, OLM, EMLX, mailbox directories, and OAB data. Calendar and contact files route through the
+public `IcsDocument` and `VCardDocument` engines. Store and address-book projections live in that same adapter package;
+they add no separate NuGet layer and reuse this package's parsers and models. Rich results include envelope and Outlook
+metadata, structured diagnostics, materializable attachment assets, embedded messages, and chunks extracted through
+the Reader handlers configured by the host.
 
 ```csharp
 using OfficeIMO.Reader;
+using OfficeIMO.Reader.Email;
 
-OfficeDocumentReadResult result = OfficeDocumentReader.Default.ReadDocument("message.msg");
+OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+    .AddEmailHandlers()
+    .Build();
+OfficeDocumentReadResult result = reader.ReadDocument("message.msg");
 
 Console.WriteLine(result.Source.Title);
 foreach (OfficeDocumentAsset attachment in result.Assets) {
@@ -320,20 +378,20 @@ foreach (OfficeDocumentAsset attachment in result.Assets) {
 
 ## Scope boundary
 
-`OfficeIMO.Email` owns offline artifact parsing, serialization, and format-neutral Outlook data. It does not connect to mail servers, authenticate users, resolve certificates or keys, verify DKIM/ARC/PGP/S/MIME signatures, or decrypt protected messages. MailKit, MimeKit, and applications such as Mailozaurr remain the owners for those operations.
+`OfficeIMO.Email` owns offline artifact parsing, serialization, and format-neutral Outlook data. It does not connect to mail servers, authenticate users, send messages, discover certificates or private keys, or implement DKIM, ARC, or OpenPGP. `EmailSmime.Verify` and `EmailSmime.Decrypt` are thin data-oriented adapters over `OfficeIMO.Security`: they verify exact clear-signed MIME bytes, verify opaque signed-data, decrypt caller-selected EnvelopedData recipients, retain the original protected artifact, and return a separate parsed protected-content document when possible. Certificate/key selection remains explicit and caller-owned.
 
-The package does not expose general-purpose CFB transactions or mailbox-store traversal. Its compound implementation
-serves MSG/OFT and structured attachments only. `OfficeIMO.Email.Store` is the separate owner for PST, OST, OLM,
-EMLX, Mbox, Apple Mail, and Maildir traversal, selection, validation, native export, verified conversion, multi-store
-merge, and verified atomic rewrite mutation of an existing Unicode PST. ANSI PST mutation, OST mutation/writing,
-in-place NDB editing, append, repair, compaction, and password/encryption authoring remain outside the contract.
+The package does not expose general-purpose CFB transactions. Its Store API area owns PST, OST, OLM, EMLX, Mbox,
+Apple Mail, and Maildir traversal, selection, validation, native export, verified conversion, multi-store merge, and
+verified atomic rewrite mutation of an existing Unicode PST. ANSI PST mutation, OST mutation/writing,
+in-place NDB editing, append, in-place repair, and password/encryption authoring remain outside the contract. Store
+also owns distinct-destination verified compaction and query/size-based split; neither operation edits the open source.
 
 For exact pass-through of an ordinary unprotected artifact, read with `preserveRawSource: true` and write with
 `usePreservedRawSource: true`. Protected artifacts use safe unchanged pass-through automatically.
 
 ## Dependency footprint
 
-- **External:** No third-party email engine or Outlook interop. `System.Text.Encoding.CodePages` supplies legacy encodings.
-- **OfficeIMO:** `OfficeIMO.Drawing` and `OfficeIMO.Rtf`. MIME, MSG/MAPI, TNEF, mbox, iCalendar, vCard, and compressed-RTF handling are first-party.
+- **External:** No third-party email engine or Outlook interop. `System.Text.Encoding.CodePages` supplies legacy encodings; the shared Security owner uses `BouncyCastle.Cryptography` for CMS/S/MIME/X.509 processing.
+- **OfficeIMO:** `OfficeIMO.Drawing`, `OfficeIMO.Rtf`, and `OfficeIMO.Security`. MIME, MSG/MAPI, TNEF, mbox, iCalendar, vCard, Store, OAB, and compressed-RTF handling remain first-party and ship in this package.
 
 See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

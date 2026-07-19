@@ -26,6 +26,7 @@ public static class OfficeDocumentReaderBuilderEpubExtensions {
     private static ReaderHandlerRegistration CreateRegistration(EpubReadOptions? epubOptions) {
         EpubReadOptions? registeredOptions = Clone(epubOptions);
         return new ReaderHandlerRegistration {
+            Origin = ReaderHandlerOrigin.OfficeIMO,
             Id = HandlerId,
             DisplayName = "EPUB Reader Adapter",
             Description = "Modular EPUB adapter that emits chapter-oriented Reader chunks.",

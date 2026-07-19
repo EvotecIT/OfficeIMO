@@ -660,7 +660,7 @@ public sealed class ReaderOneNoteModularTests {
         }
         Assert.True(replaced);
 
-        ReaderDetectionResult detection = OfficeDocumentReader.Default.Detect(cabinet, "archive.bin");
+        ReaderDetectionResult detection = OfficeIMO.Reader.Tests.ReaderTestReaders.All.Detect(cabinet, "archive.bin");
 
         Assert.Equal(ReaderInputKind.Unknown, detection.Kind);
         Assert.Equal(ReaderInputKind.Unknown, detection.ContentKind);

@@ -1,9 +1,9 @@
-# OfficeIMO.Pdf - Dependency-free PDF engine
+# OfficeIMO.Pdf - First-party PDF engine
 
 [![nuget version](https://img.shields.io/nuget/v/OfficeIMO.Pdf)](https://www.nuget.org/packages/OfficeIMO.Pdf)
 [![nuget downloads](https://img.shields.io/nuget/dt/OfficeIMO.Pdf?label=nuget%20downloads)](https://www.nuget.org/packages/OfficeIMO.Pdf)
 
-`OfficeIMO.Pdf` is the first-party PDF package for OfficeIMO. It creates, reads, inspects, edits, merges, splits, stamps, and exports PDFs without runtime package dependencies.
+`OfficeIMO.Pdf` is the first-party PDF package for OfficeIMO. It creates, reads, inspects, edits, merges, splits, stamps, exports, signs, and validates PDFs. PDF mechanics and rendering remain first-party; CMS, RFC 3161, and X.509 operations route through the neutral `OfficeIMO.Security` package.
 
 If OfficeIMO saves you time, please consider supporting the work through [GitHub Sponsors](https://github.com/sponsors/PrzemyslawKlys) or [PayPal](https://paypal.me/PrzemyslawKlys). PowerShell users should use [PSWriteOffice](https://github.com/EvotecIT/PSWriteOffice) for the PowerShell-facing experience.
 
@@ -25,12 +25,12 @@ PdfDocument.Create(new PdfOptions {
     .Meta(title: "Hello PDF", author: "OfficeIMO")
     .H1("OfficeIMO.Pdf")
     .Paragraph(p => p
-        .Text("A dependency-free PDF builder with ")
+        .Text("A first-party PDF builder with ")
         .Bold("rich text")
         .Text(", links, tables, images, and document operations."))
     .Table(new[] {
         new[] { "Area", "Status" },
-        new[] { "Runtime dependencies", "None in OfficeIMO.Pdf" },
+        new[] { "Security engine", "OfficeIMO.Security" },
         new[] { "License", "MIT" }
     })
     .Save("hello.pdf");
@@ -565,7 +565,7 @@ The canonical catalog records OpenDocument as manual loss-aware composition and 
 
 ## Boundaries
 
-- `OfficeIMO.Pdf` should stay dependency-free at runtime. Rasterizers, visual comparison tools, and external renderers belong in tests or development tooling.
+- PDF parsing, layout, writing, and rendering stay first-party. CMS/DER/X.509 belongs in `OfficeIMO.Security`; rasterizers, visual comparison tools, and external renderers remain test or development tooling.
 - Polished invoice, report, and statement examples belong in samples and visual fixtures, not as special engine concepts.
 - Adapter-specific mapping belongs in the source adapter packages. Shared PDF layout, reading, and manipulation behavior belongs here.
 - Current-state inventories belong in [Docs/officeimo.pdf.current-state.md](../Docs/officeimo.pdf.current-state.md), not in this NuGet README.
@@ -598,7 +598,7 @@ into a cross-version comparison.
 
 ## Current state
 
-The PDF engine is useful and broad, but it is still evolving. It has strong first-party coverage for common generated business documents, reusable Unicode line breaking and Latin ligatures, host-provided complex-script shaping, conservative read/manipulation workflows, password security, optional first-party certificate signing/validation, standards-compliant Fast Web View output, and bounded-payload stream saves. Built-in full complex-script shaping, difficult producer-specific preservation, broader transparency/pattern edge cases, and fully forward-only layout remain deeper roadmap areas.
+The PDF engine is useful and broad, but it is still evolving. It has strong first-party coverage for common generated business documents, reusable Unicode line breaking and Latin ligatures, host-provided complex-script shaping, conservative read/manipulation workflows, password security, shared Security-backed certificate signing/validation, standards-compliant Fast Web View output, and bounded-payload stream saves. Built-in full complex-script shaping, difficult producer-specific preservation, broader transparency/pattern edge cases, and fully forward-only layout remain deeper roadmap areas.
 
 For the full capability inventory and roadmap, read [Docs/officeimo.pdf.current-state.md](../Docs/officeimo.pdf.current-state.md).
 
@@ -610,7 +610,7 @@ For the full capability inventory and roadmap, read [Docs/officeimo.pdf.current-
 
 ## Dependency footprint
 
-- **External:** None.
-- **OfficeIMO:** `OfficeIMO.Drawing`. PDF parsing, writing, logical recovery, manipulation, forms, diagnostics, and preservation analysis are first-party.
+- **External:** `BouncyCastle.Cryptography`, owned and hidden behind `OfficeIMO.Security`; no third-party PDF parser, writer, or renderer.
+- **OfficeIMO:** `OfficeIMO.Drawing` and `OfficeIMO.Security`. PDF parsing, writing, logical recovery, manipulation, forms, diagnostics, and preservation analysis are first-party.
 
 See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

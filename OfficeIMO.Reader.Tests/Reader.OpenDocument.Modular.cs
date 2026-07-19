@@ -35,10 +35,8 @@ public class ReaderOpenDocumentModularTests {
         sheet.Cell(1, 2).SetString("Three");
         sheet.Cell(2, 1).SetString("Outside row");
 
-        OfficeDocumentReader reader = CreateReader();
-            ReaderChunk chunk = Assert.Single(reader.Read(document.ToBytes(), "range.ods", new ReaderOptions {
-                ExcelA1Range = "B1:C2"
-            }));
+        OfficeDocumentReader reader = OfficeIMO.Reader.Tests.ReaderTestReaders.OpenDocument(a1Range: "B1:C2");
+            ReaderChunk chunk = Assert.Single(reader.Read(document.ToBytes(), "range.ods"));
 
             Assert.Equal("B1:C2", chunk.Location.A1Range);
             ReaderTable table = Assert.Single(chunk.Tables!);

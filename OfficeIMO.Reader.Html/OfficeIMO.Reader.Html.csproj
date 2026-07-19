@@ -26,7 +26,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\OfficeIMO.Email\OfficeIMO.Email.csproj" />
-    <ProjectReference Include="..\OfficeIMO.Reader\OfficeIMO.Reader.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Reader.Core\OfficeIMO.Reader.Core.csproj" />
     <ProjectReference Include="..\OfficeIMO.Markdown.Html\OfficeIMO.Markdown.Html.csproj" />
     <ProjectReference Include="..\OfficeIMO.Html\OfficeIMO.Html.csproj" />
   </ItemGroup>

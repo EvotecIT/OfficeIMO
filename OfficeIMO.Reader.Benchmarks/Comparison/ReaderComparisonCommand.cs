@@ -1,7 +1,12 @@
 using OfficeIMO.Reader.Csv;
+using OfficeIMO.Reader.Email;
 using OfficeIMO.Reader.Epub;
+using OfficeIMO.Reader.Excel;
 using OfficeIMO.Reader.Html;
+using OfficeIMO.Reader.Markdown;
 using OfficeIMO.Reader.Pdf;
+using OfficeIMO.Reader.PowerPoint;
+using OfficeIMO.Reader.Word;
 using OfficeIMO.Reader.Zip;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
@@ -255,18 +260,21 @@ internal static class ReaderComparisonCommand {
 
     private static OfficeDocumentReader CreateReader() => new OfficeDocumentReaderBuilder()
         .AddCsvHandler()
+        .AddEmailHandlers()
         .AddEpubHandler()
+        .AddExcelHandler()
         .AddHtmlHandler()
+        .AddMarkdownHandler()
         .AddPdfHandler()
+        .AddPowerPointHandler()
+        .AddWordHandler()
         .AddZipHandler()
         .Build();
 
     private static ReaderOptions ComparisonReaderOptions() => new ReaderOptions {
         ComputeHashes = false,
         MaxChars = 8_000,
-        MaxTableRows = 500,
-        IncludePowerPointNotes = true,
-        IncludeWordFootnotes = true
+        MaxTableRows = 500
     };
 
     private static string ToMarkdown(OfficeDocumentReadResult document) {

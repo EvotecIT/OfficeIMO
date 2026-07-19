@@ -3,7 +3,7 @@
 [![nuget version](https://img.shields.io/nuget/v/OfficeIMO.Reader.Xml)](https://www.nuget.org/packages/OfficeIMO.Reader.Xml)
 [![nuget downloads](https://img.shields.io/nuget/dt/OfficeIMO.Reader.Xml?label=nuget%20downloads)](https://www.nuget.org/packages/OfficeIMO.Reader.Xml)
 
-`OfficeIMO.Reader.Xml` provides a modular XML ingestion adapter for `OfficeIMO.Reader`.
+`OfficeIMO.Reader.Xml` provides a modular XML ingestion adapter for `OfficeIMO.Reader.Core`.
 
 ## Install
 
@@ -70,7 +70,7 @@ var chunks = reader.Read(stream, "upload.xml", new ReaderOptions {
 ## Boundaries
 
 - Reader adapter configuration belongs here.
-- Shared extraction contracts belong in `OfficeIMO.Reader`.
+- Shared extraction contracts belong in `OfficeIMO.Reader.Core`.
 
 ## Targets and license
 
@@ -80,6 +80,6 @@ var chunks = reader.Read(stream, "upload.xml", new ReaderOptions {
 ## Dependency footprint
 
 - **External:** None beyond platform XML APIs.
-- **OfficeIMO:** `OfficeIMO.Reader` owns traversal projection, chunking, limits, locations, and warnings.
+- **OfficeIMO:** `OfficeIMO.Reader.Core` owns traversal projection, chunking, limits, locations, and warnings.
 
 See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

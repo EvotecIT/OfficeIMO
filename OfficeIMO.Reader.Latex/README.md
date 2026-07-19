@@ -19,6 +19,6 @@ The handler enforces Reader input limits for both seekable and non-seekable stre
 ## Dependency footprint
 
 - **External:** None; no TeX runtime or compiler.
-- **OfficeIMO:** `OfficeIMO.Reader`, `OfficeIMO.Latex`, and `OfficeIMO.Latex.Markdown`; parsing stays in the native LaTeX package.
+- **OfficeIMO:** `OfficeIMO.Reader.Core`, `OfficeIMO.Latex`, and `OfficeIMO.Latex.Markdown`; parsing stays in the native LaTeX package.
 
 See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

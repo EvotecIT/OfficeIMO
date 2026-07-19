@@ -68,6 +68,149 @@ public sealed class EmailCalendarConversionTests {
     }
 
     [Fact]
+    public void ProjectsUtcRecurrenceLimitsThroughMatchingEmbeddedTimeZoneRules() {
+        byte[] eml = Encoding.ASCII.GetBytes(
+            "Content-Type: text/calendar; charset=utf-8\r\n\r\nBEGIN:VCALENDAR\r\nVERSION:2.0\r\n" +
+            "BEGIN:VTIMEZONE\r\nTZID:Example/Eastern\r\n" +
+            "BEGIN:DAYLIGHT\r\nDTSTART:20260308T020000\r\nTZOFFSETFROM:-0500\r\nTZOFFSETTO:-0400\r\n" +
+            "RRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=2SU\r\nEND:DAYLIGHT\r\n" +
+            "BEGIN:STANDARD\r\nDTSTART:20261101T020000\r\nTZOFFSETFROM:-0400\r\nTZOFFSETTO:-0500\r\n" +
+            "RRULE:FREQ=YEARLY;BYMONTH=11;BYDAY=1SU\r\nEND:STANDARD\r\nEND:VTIMEZONE\r\n" +
+            "BEGIN:VEVENT\r\nUID:zoned-series@example.com\r\n" +
+            "DTSTART;TZID=Example/Eastern:20260701T230000\r\n" +
+            "DTEND;TZID=Example/Eastern:20260702T000000\r\n" +
+            "RRULE:FREQ=DAILY;UNTIL=20260703T030000Z\r\n" +
+            "EXDATE:20260703T030000Z\r\nSUMMARY:Zoned series\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n");
+
+        EmailReadResult read = new EmailDocumentReader().Read(eml);
+        OutlookAppointment appointment = read.Document.Appointment!;
+        OutlookRecurrence recurrence = appointment.Recurrence!;
+
+        Assert.NotNull(appointment.RecurrenceTimeZone);
+        Assert.Equal("Example/Eastern", appointment.RecurrenceTimeZone!.KeyName);
+        Assert.Equal(new DateTime(2026, 7, 2), recurrence.EndDate);
+        Assert.Equal(new DateTime(2026, 7, 2), Assert.Single(recurrence.DeletedOccurrenceDates));
+        Assert.Equal(new DateTime(2026, 7, 2, 23, 0, 0),
+            appointment.RecurrenceTimeZone.ConvertUtc(
+                new DateTimeOffset(2026, 7, 3, 3, 0, 0, TimeSpan.Zero)).DateTime);
+        Assert.DoesNotContain(read.Diagnostics,
+            diagnostic => diagnostic.Code == "EMAIL_ICALENDAR_RECURRENCE_TIMEZONE_REQUIRED");
+    }
+
+    [Fact]
+    public void WithholdsTypedRecurrenceWhenUtcLimitsHaveNoMatchingTimeZoneRules() {
+        byte[] eml = Encoding.ASCII.GetBytes(
+            "Content-Type: text/calendar; charset=utf-8\r\n\r\nBEGIN:VCALENDAR\r\nVERSION:2.0\r\n" +
+            "BEGIN:VEVENT\r\nUID:unresolved-series@example.com\r\n" +
+            "DTSTART;TZID=Missing/Zone:20260701T230000\r\n" +
+            "DTEND;TZID=Missing/Zone:20260702T000000\r\n" +
+            "RRULE:FREQ=DAILY;UNTIL=20260703T030000Z\r\n" +
+            "SUMMARY:Unresolved series\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n");
+
+        EmailReadResult read = new EmailDocumentReader().Read(eml);
+
+        Assert.Null(read.Document.Appointment!.Recurrence);
+        Assert.Contains(read.Diagnostics,
+            diagnostic => diagnostic.Code == "EMAIL_ICALENDAR_RECURRENCE_TIMEZONE_REQUIRED");
+    }
+
+    [Fact]
+    public void RecurrenceProjectionStaysWithTheFirstActiveCalendarComponent() {
+        byte[] eml = Encoding.ASCII.GetBytes(
+            "Content-Type: text/calendar; charset=utf-8\r\n\r\nBEGIN:VCALENDAR\r\nVERSION:2.0\r\n" +
+            "BEGIN:VEVENT\r\nUID:first@example.com\r\nDTSTART:20260701T090000Z\r\n" +
+            "SUMMARY:First event\r\nEND:VEVENT\r\n" +
+            "BEGIN:VEVENT\r\nUID:second@example.com\r\nDTSTART:20260702T090000Z\r\n" +
+            "RRULE:FREQ=DAILY;COUNT=3\r\nSUMMARY:Second series\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n");
+
+        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+
+        Assert.Equal("First event", document.Subject);
+        Assert.False(document.Appointment!.IsRecurring);
+        Assert.Null(document.Appointment.Recurrence);
+        Assert.Null(document.Appointment.RecurrencePattern);
+    }
+
+    [Fact]
+    public void ReportsThisAndFutureExceptionsAsUnprojectable() {
+        byte[] eml = Encoding.ASCII.GetBytes(
+            "Content-Type: text/calendar; charset=utf-8\r\n\r\nBEGIN:VCALENDAR\r\nVERSION:2.0\r\n" +
+            "BEGIN:VEVENT\r\nUID:range@example.com\r\nDTSTART:20260701T090000Z\r\n" +
+            "DTEND:20260701T100000Z\r\nRRULE:FREQ=DAILY;COUNT=5\r\nSUMMARY:Series\r\nEND:VEVENT\r\n" +
+            "BEGIN:VEVENT\r\nUID:range@example.com\r\n" +
+            "RECURRENCE-ID;RANGE=THISANDFUTURE:20260703T090000Z\r\n" +
+            "DTSTART:20260703T110000Z\r\nDTEND:20260703T120000Z\r\n" +
+            "SUMMARY:Moved future series\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n");
+
+        EmailReadResult read = new EmailDocumentReader().Read(eml);
+
+        Assert.NotNull(read.Document.Appointment!.Recurrence);
+        Assert.Empty(read.Document.Appointment.Recurrence!.Exceptions);
+        Assert.True(read.Document.MimeSemanticProjectionIsIncomplete);
+        Assert.Contains(read.Diagnostics,
+            diagnostic => diagnostic.Code == "EMAIL_ICALENDAR_RECURRENCE_RANGE_UNSUPPORTED");
+    }
+
+    [Fact]
+    public void ProjectsCancelledRecurrenceInstancesAsDeletedDates() {
+        byte[] eml = Encoding.ASCII.GetBytes(
+            "Content-Type: text/calendar; charset=utf-8\r\n\r\nBEGIN:VCALENDAR\r\nVERSION:2.0\r\n" +
+            "BEGIN:VEVENT\r\nUID:cancelled@example.com\r\nDTSTART:20260701T090000Z\r\n" +
+            "DTEND:20260701T100000Z\r\nRRULE:FREQ=DAILY;COUNT=5\r\nSUMMARY:Series\r\nEND:VEVENT\r\n" +
+            "BEGIN:VEVENT\r\nUID:cancelled@example.com\r\n" +
+            "RECURRENCE-ID:20260703T090000Z\r\nSTATUS:CANCELLED\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n");
+
+        EmailReadResult read = new EmailDocumentReader().Read(eml);
+        OutlookRecurrence recurrence = read.Document.Appointment!.Recurrence!;
+
+        Assert.Equal(new DateTime(2026, 7, 3), Assert.Single(recurrence.DeletedOccurrenceDates));
+        Assert.Empty(recurrence.Exceptions);
+        Assert.DoesNotContain(read.Diagnostics,
+            diagnostic => diagnostic.Code == "EMAIL_ICALENDAR_EXCEPTION_TIME_INVALID");
+    }
+
+    [Fact]
+    public void DoesNotAttachExceptionsToAUidLessRecurringMaster() {
+        byte[] eml = Encoding.ASCII.GetBytes(
+            "Content-Type: text/calendar; charset=utf-8\r\n\r\nBEGIN:VCALENDAR\r\nVERSION:2.0\r\n" +
+            "BEGIN:VEVENT\r\nDTSTART:20260701T090000Z\r\nDTEND:20260701T100000Z\r\n" +
+            "RRULE:FREQ=DAILY;COUNT=5\r\nSUMMARY:UID-less series\r\nEND:VEVENT\r\n" +
+            "BEGIN:VEVENT\r\nUID:other-series@example.com\r\n" +
+            "RECURRENCE-ID:20260703T090000Z\r\nDTSTART:20260703T110000Z\r\n" +
+            "DTEND:20260703T120000Z\r\nSUMMARY:Unrelated exception\r\nEND:VEVENT\r\n" +
+            "END:VCALENDAR\r\n");
+
+        EmailReadResult read = new EmailDocumentReader().Read(eml);
+
+        Assert.NotNull(read.Document.Appointment!.Recurrence);
+        Assert.Empty(read.Document.Appointment.Recurrence!.Exceptions);
+        Assert.True(read.Document.MimeSemanticProjectionIsIncomplete);
+        Assert.Contains(read.Diagnostics,
+            diagnostic => diagnostic.Code == "EMAIL_ICALENDAR_EXCEPTION_UID_REQUIRED");
+    }
+
+    [Fact]
+    public void IgnoresUnrelatedUtcExceptionsWhenAssessingTimeZoneRequirements() {
+        byte[] eml = Encoding.ASCII.GetBytes(
+            "Content-Type: text/calendar; charset=utf-8\r\n\r\nBEGIN:VCALENDAR\r\nVERSION:2.0\r\n" +
+            "BEGIN:VEVENT\r\nUID:local-series@example.com\r\n" +
+            "DTSTART;TZID=Missing/Zone:20260701T090000\r\n" +
+            "DTEND;TZID=Missing/Zone:20260701T100000\r\n" +
+            "RRULE:FREQ=DAILY;COUNT=5\r\nSUMMARY:Local series\r\nEND:VEVENT\r\n" +
+            "BEGIN:VEVENT\r\nUID:other-series@example.com\r\n" +
+            "RECURRENCE-ID:20260703T090000Z\r\nDTSTART:20260703T110000Z\r\n" +
+            "DTEND:20260703T120000Z\r\nSUMMARY:Unrelated exception\r\nEND:VEVENT\r\n" +
+            "END:VCALENDAR\r\n");
+
+        EmailReadResult read = new EmailDocumentReader().Read(eml);
+
+        Assert.NotNull(read.Document.Appointment!.Recurrence);
+        Assert.Empty(read.Document.Appointment.Recurrence!.Exceptions);
+        Assert.DoesNotContain(read.Diagnostics,
+            diagnostic => diagnostic.Code == "EMAIL_ICALENDAR_RECURRENCE_TIMEZONE_REQUIRED");
+    }
+
+    [Fact]
     public void ParsesQuotedAttendeeParametersContainingDelimiters() {
         byte[] eml = Encoding.ASCII.GetBytes(
             "Content-Type: text/calendar; charset=utf-8\r\n\r\nBEGIN:VCALENDAR\r\nVERSION:2.0\r\n" +

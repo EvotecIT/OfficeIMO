@@ -949,9 +949,8 @@ public sealed partial class ReaderMediaAdapterTests {
     public void NotebookOnlyRegistration_DoesNotCaptureGenericJsonByDetectedKind() {
         OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddNotebookHandler().Build();
 
-        OfficeDocumentReadResult result = reader.ReadDocument(Encoding.UTF8.GetBytes("{\"value\":42}"), "payload.bin");
-
-        Assert.DoesNotContain(OfficeDocumentReaderBuilderNotebookExtensions.HandlerId, result.CapabilitiesUsed);
+        Assert.Throws<NotSupportedException>(() =>
+            reader.ReadDocument(Encoding.UTF8.GetBytes("{\"value\":42}"), "payload.bin"));
     }
 
     private static byte[] CreatePng(int width, int height) {

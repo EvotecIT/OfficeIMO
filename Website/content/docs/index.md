@@ -18,7 +18,7 @@ Use the guided sections above when you are choosing a workflow or package family
   [OfficeIMO.CSV on NuGet](https://www.nuget.org/packages/OfficeIMO.CSV),
   [OfficeIMO.Visio on NuGet](https://www.nuget.org/packages/OfficeIMO.Visio)
 - Workflow and conversion packages:
-  [OfficeIMO.Reader on NuGet](https://www.nuget.org/packages/OfficeIMO.Reader),
+  [OfficeIMO.Reader.All on NuGet](https://www.nuget.org/packages/OfficeIMO.Reader.All),
   [OfficeIMO.Word.Html on NuGet](https://www.nuget.org/packages/OfficeIMO.Word.Html),
   [OfficeIMO.Word.Markdown on NuGet](https://www.nuget.org/packages/OfficeIMO.Word.Markdown),
   [OfficeIMO.Word.Pdf on NuGet](https://www.nuget.org/packages/OfficeIMO.Word.Pdf),

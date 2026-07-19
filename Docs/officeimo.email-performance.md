@@ -44,8 +44,9 @@ larger than 128 KiB.
 Run it with:
 
 ```powershell
-dotnet test OfficeIMO.Email.Store.Tests/OfficeIMO.Email.Store.Tests.csproj `
+dotnet test OfficeIMO.Email.Tests/OfficeIMO.Email.Tests.csproj `
     -c Release `
+    -f net8.0 `
     --filter FullyQualifiedName~EmailStoreSessionTests
 ```
 

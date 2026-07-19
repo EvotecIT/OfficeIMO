@@ -10,7 +10,7 @@ public sealed class ReaderDocumentReadResultVisualExportTests {
         byte[] bytes = Encoding.UTF8.GetBytes("# Diagram\n\n```mermaid\ngraph TD\nA-->B\n```\n");
         using var stream = new MemoryStream(bytes, writable: false);
 
-        IReadOnlyList<ReaderVisualExportBundle> exports = OfficeDocumentReader.Default.ReadVisualExports(
+        IReadOnlyList<ReaderVisualExportBundle> exports = OfficeIMO.Reader.Tests.ReaderTestReaders.All.ReadVisualExports(
             stream,
             "diagram.md",
             indentedJson: true);
@@ -34,7 +34,7 @@ public sealed class ReaderDocumentReadResultVisualExportTests {
     public void ReaderVisualExportMaterializer_WriteVisualExportsToDirectory_WritesPayloadAndJsonSidecars() {
         byte[] bytes = Encoding.UTF8.GetBytes("# Diagram\n\n```mermaid\ngraph TD\nA-->B\n```\n");
         using var stream = new MemoryStream(bytes, writable: false);
-        IReadOnlyList<ReaderVisualExportBundle> exports = OfficeDocumentReader.Default.ReadVisualExports(stream, "diagram.md");
+        IReadOnlyList<ReaderVisualExportBundle> exports = OfficeIMO.Reader.Tests.ReaderTestReaders.All.ReadVisualExports(stream, "diagram.md");
         var directory = Path.Combine(Path.GetTempPath(), "officeimo-reader-visuals-" + Guid.NewGuid().ToString("N"));
 
         try {

@@ -25,7 +25,7 @@
     <ProduceReferenceAssembly>false</ProduceReferenceAssembly>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="..\OfficeIMO.Reader\OfficeIMO.Reader.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Reader.Core\OfficeIMO.Reader.Core.csproj" />
     <ProjectReference Include="..\OfficeIMO.OneNote\OfficeIMO.OneNote.csproj" />
     <ProjectReference Include="..\OfficeIMO.OneNote.Markdown\OfficeIMO.OneNote.Markdown.csproj" />
   </ItemGroup>

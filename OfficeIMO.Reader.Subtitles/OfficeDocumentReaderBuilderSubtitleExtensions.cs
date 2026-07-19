@@ -16,6 +16,7 @@ public static class OfficeDocumentReaderBuilderSubtitleExtensions {
         if (builder == null) throw new ArgumentNullException(nameof(builder));
         ReaderSubtitleOptions registered = (subtitleOptions ?? new ReaderSubtitleOptions()).CloneValidated();
         return builder.AddHandler(new ReaderHandlerRegistration {
+            Origin = ReaderHandlerOrigin.OfficeIMO,
             Id = HandlerId,
             DisplayName = "Subtitle Reader Adapter",
             Description = "Bounded SRT and WebVTT transcript and cue-timing projection.",

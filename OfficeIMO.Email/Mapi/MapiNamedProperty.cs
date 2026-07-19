@@ -1,7 +1,7 @@
 namespace OfficeIMO.Email;
 
 /// <summary>Canonical name associated with a mapped MAPI property ID.</summary>
-public sealed class MapiNamedProperty {
+public sealed class MapiNamedProperty : IEquatable<MapiNamedProperty> {
     /// <summary>Creates a numeric named property.</summary>
     public MapiNamedProperty(Guid propertySet, uint localId) {
         PropertySet = propertySet;
@@ -25,6 +25,26 @@ public sealed class MapiNamedProperty {
 
     /// <summary>True for a string-named property.</summary>
     public bool IsStringNamed => Name != null;
+
+    /// <inheritdoc />
+    public bool Equals(MapiNamedProperty? other) {
+        if (other == null || PropertySet != other.PropertySet || IsStringNamed != other.IsStringNamed) return false;
+        return IsStringNamed
+            ? string.Equals(Name, other.Name, StringComparison.OrdinalIgnoreCase)
+            : LocalId == other.LocalId;
+    }
+
+    /// <inheritdoc />
+    public override bool Equals(object? obj) => Equals(obj as MapiNamedProperty);
+
+    /// <inheritdoc />
+    public override int GetHashCode() {
+        int hash = PropertySet.GetHashCode();
+        if (IsStringNamed) {
+            return unchecked((hash * 397) ^ StringComparer.OrdinalIgnoreCase.GetHashCode(Name!));
+        }
+        return unchecked((hash * 397) ^ LocalId.GetValueOrDefault().GetHashCode());
+    }
 
     /// <inheritdoc />
     public override string ToString() {

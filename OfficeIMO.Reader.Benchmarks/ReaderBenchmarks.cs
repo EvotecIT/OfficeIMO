@@ -2,12 +2,17 @@ using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Jobs;
 using OfficeIMO.Markdown;
 using OfficeIMO.Reader.Csv;
+using OfficeIMO.Reader.Email;
 using OfficeIMO.Reader.Epub;
+using OfficeIMO.Reader.Excel;
 using OfficeIMO.Reader.Html;
 using OfficeIMO.Reader.Json;
+using OfficeIMO.Reader.Markdown;
 using OfficeIMO.Reader.Pdf;
+using OfficeIMO.Reader.PowerPoint;
 using OfficeIMO.Reader.Rtf;
 using OfficeIMO.Reader.Visio;
+using OfficeIMO.Reader.Word;
 using OfficeIMO.Reader.Xml;
 using OfficeIMO.Reader.Yaml;
 using OfficeIMO.Reader.Zip;
@@ -43,12 +48,17 @@ public class ReaderDocumentBenchmarks {
 
     internal static OfficeDocumentReader CreateReader() => new OfficeDocumentReaderBuilder()
         .AddCsvHandler()
+        .AddEmailHandlers()
         .AddEpubHandler()
+        .AddExcelHandler()
         .AddHtmlHandler()
         .AddJsonHandler()
+        .AddMarkdownHandler()
         .AddPdfHandler()
+        .AddPowerPointHandler()
         .AddRtfHandler()
         .AddVisioHandler()
+        .AddWordHandler()
         .AddXmlHandler()
         .AddYamlHandler()
         .AddZipHandler()
@@ -136,8 +146,9 @@ public class ReaderMarkdownPipelineBenchmarks {
     private byte[] _bytes = Array.Empty<byte>();
     private string _markdown = string.Empty;
     private string _markdownWithoutTables = string.Empty;
-    private ReaderOptions _headingOptions = null!;
-    private ReaderOptions _paragraphOptions = null!;
+    private OfficeDocumentReader _headingReader = null!;
+    private OfficeDocumentReader _paragraphReader = null!;
+    private ReaderOptions _readerOptions = null!;
 
     [GlobalSetup]
     public void Setup() {
@@ -147,17 +158,15 @@ public class ReaderMarkdownPipelineBenchmarks {
         _markdownWithoutTables = string.Join(
             "\n",
             _markdown.Split('\n').Where(static line => !line.StartsWith("|", StringComparison.Ordinal)));
-        _headingOptions = new ReaderOptions {
+        _readerOptions = new ReaderOptions {
             ComputeHashes = false,
             MaxChars = 4_000,
             MaxTableRows = 5_000
         };
-        _paragraphOptions = new ReaderOptions {
-            ComputeHashes = false,
-            MaxChars = 4_000,
-            MaxTableRows = 5_000,
-            MarkdownChunkByHeadings = false
-        };
+        _headingReader = new OfficeDocumentReaderBuilder().AddMarkdownHandler().Build();
+        _paragraphReader = new OfficeDocumentReaderBuilder()
+            .AddMarkdownHandler(new ReaderMarkdownOptions { ChunkByHeadings = false })
+            .Build();
     }
 
     [Benchmark]
@@ -168,9 +177,9 @@ public class ReaderMarkdownPipelineBenchmarks {
 
     [Benchmark]
     public ReaderChunk[] ReadHeadingAndTableChunks() =>
-        OfficeDocumentReader.Default.Read(_bytes, "handbook.md", _headingOptions).ToArray();
+        _headingReader.Read(_bytes, "handbook.md", _readerOptions).ToArray();
 
     [Benchmark]
     public ReaderChunk[] ReadParagraphChunks() =>
-        OfficeDocumentReader.Default.Read(_bytes, "handbook.md", _paragraphOptions).ToArray();
+        _paragraphReader.Read(_bytes, "handbook.md", _readerOptions).ToArray();
 }

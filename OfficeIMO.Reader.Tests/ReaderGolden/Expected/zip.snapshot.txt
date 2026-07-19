@@ -1,21 +1,21 @@
 count=2
 [chunk:0]
-id=text:sample.csv:c0:l1
-kind=Text
+id=csv-0000
+kind=Csv
 path=golden.zip::data/sample.csv
 block=0
-sourceBlock=
+sourceBlock=0
 heading=
-text=Name,Role,Enabled\nAlice,Admin,true\nBob,Ops,false
-markdown=
+text=Name | Role | Enabled\nAlice | Admin | true\nBob | Ops | false
+markdown=| Name | Role | Enabled |\n| --- | --- | --- |\n| Alice | Admin | true |\n| Bob | Ops | false |
 warnings=
-tables=
+tables=t0:Name,Role,Enabled#2#2#truncated=false
 [chunk:1]
-id=md:readme.md:c0:l1
+id=markdown:readme.md:0000
 kind=Markdown
 path=golden.zip::docs/readme.md
 block=0
-sourceBlock=
+sourceBlock=0
 heading=ZIP Fixture
 text=# ZIP Fixture\n\nThis archive carries markdown content.
 markdown=# ZIP Fixture\n\nThis archive carries markdown content.

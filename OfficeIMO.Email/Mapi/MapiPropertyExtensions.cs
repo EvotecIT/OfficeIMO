@@ -2,6 +2,42 @@ namespace OfficeIMO.Email;
 
 /// <summary>Convenience lookup APIs for retained standard and named MAPI properties.</summary>
 public static class MapiPropertyExtensions {
+    /// <summary>Finds the last property matching a typed key's identity and accepted wire types.</summary>
+    public static MapiProperty? GetMapiProperty(this IEnumerable<MapiProperty> properties, MapiPropertyKey key) {
+        if (properties == null) throw new ArgumentNullException(nameof(properties));
+        if (key == null) throw new ArgumentNullException(nameof(key));
+        return properties.LastOrDefault(key.Matches);
+    }
+
+    /// <summary>Finds the last property matching a typed key's identity without checking its wire type.</summary>
+    public static MapiProperty? GetRawMapiProperty(this IEnumerable<MapiProperty> properties, MapiPropertyKey key) {
+        if (properties == null) throw new ArgumentNullException(nameof(properties));
+        if (key == null) throw new ArgumentNullException(nameof(key));
+        return properties.LastOrDefault(key.MatchesIdentity);
+    }
+
+    /// <summary>Attempts to read a property using a typed key.</summary>
+    public static bool TryGetMapiValue<T>(this IEnumerable<MapiProperty> properties, MapiPropertyKey<T> key,
+        out T? value) {
+        MapiProperty? property = GetMapiProperty(properties, key);
+        if (property == null) {
+            value = default;
+            return false;
+        }
+        return MapiValueConverter.TryConvert(property.Value, out value);
+    }
+
+    /// <summary>Reads a typed property, or the managed default when it is absent or incompatible.</summary>
+    public static T? GetMapiValueOrDefault<T>(this IEnumerable<MapiProperty> properties, MapiPropertyKey<T> key) {
+        return TryGetMapiValue(properties, key, out T? value) ? value : default;
+    }
+
+    /// <summary>Reads a value-type property, or null when it is absent or incompatible.</summary>
+    public static T? GetNullableMapiValue<T>(this IEnumerable<MapiProperty> properties, MapiPropertyKey<T> key)
+        where T : struct {
+        return TryGetMapiValue(properties, key, out T value) ? value : (T?)null;
+    }
+
     /// <summary>Finds the last standard property with the specified property identifier.</summary>
     public static MapiProperty? GetMapiProperty(this IEnumerable<MapiProperty> properties, ushort propertyId) {
         if (properties == null) throw new ArgumentNullException(nameof(properties));

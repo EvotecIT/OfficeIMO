@@ -1,6 +1,6 @@
 # OfficeIMO.Reader.OpenDocument
 
-Native ODT, ODS, and ODP ingestion for `OfficeIMO.Reader`. The adapter uses `OfficeIMO.OpenDocument` and does not invoke LibreOffice or Microsoft Office at runtime.
+Native ODT, ODS, and ODP ingestion for `OfficeIMO.Reader.Core`. The adapter uses `OfficeIMO.OpenDocument` and does not invoke LibreOffice or Microsoft Office at runtime.
 
 Configure a reader once, then reuse it:
 
@@ -25,6 +25,6 @@ The handler emits:
 ## Dependency footprint
 
 - **External:** None; no LibreOffice runtime.
-- **OfficeIMO:** `OfficeIMO.Reader` and `OfficeIMO.OpenDocument`; ODT/ODS/ODP parsing stays in the native package.
+- **OfficeIMO:** `OfficeIMO.Reader.Core` and `OfficeIMO.OpenDocument`; ODT/ODS/ODP parsing stays in the native package.
 
 See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

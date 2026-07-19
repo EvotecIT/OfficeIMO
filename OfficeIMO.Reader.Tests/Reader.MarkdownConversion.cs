@@ -14,8 +14,8 @@ public sealed class ReaderMarkdownConversionTests {
         try {
             File.WriteAllText(path, "# Policy\n\nPortable content.\n");
 
-            OfficeDocumentReadResult document = OfficeDocumentReader.Default.ReadDocument(path);
-            string markdown = OfficeDocumentReader.Default.ConvertToMarkdown(path);
+            OfficeDocumentReadResult document = OfficeIMO.Reader.Tests.ReaderTestReaders.All.ReadDocument(path);
+            string markdown = OfficeIMO.Reader.Tests.ReaderTestReaders.All.ConvertToMarkdown(path);
 
             Assert.Equal(document.Markdown ?? string.Empty, markdown);
         } finally {
@@ -28,10 +28,10 @@ public sealed class ReaderMarkdownConversionTests {
         byte[] bytes = Encoding.UTF8.GetBytes("# Stream\n\nContent.\n");
         using var expectedStream = new MemoryStream(bytes, writable: false);
         using var conversionStream = new MemoryStream(bytes, writable: false);
-        OfficeDocumentReadResult document = OfficeDocumentReader.Default.ReadDocument(expectedStream, "sample.md");
+        OfficeDocumentReadResult document = OfficeIMO.Reader.Tests.ReaderTestReaders.All.ReadDocument(expectedStream, "sample.md");
 
-        string streamMarkdown = OfficeDocumentReader.Default.ConvertToMarkdown(conversionStream, "sample.md");
-        string bytesMarkdown = OfficeDocumentReader.Default.ConvertToMarkdown(bytes, "sample.md");
+        string streamMarkdown = OfficeIMO.Reader.Tests.ReaderTestReaders.All.ConvertToMarkdown(conversionStream, "sample.md");
+        string bytesMarkdown = OfficeIMO.Reader.Tests.ReaderTestReaders.All.ConvertToMarkdown(bytes, "sample.md");
 
         Assert.Equal(document.Markdown ?? string.Empty, streamMarkdown);
         Assert.Equal(document.Markdown ?? string.Empty, bytesMarkdown);
@@ -44,12 +44,12 @@ public sealed class ReaderMarkdownConversionTests {
         byte[] bytes = Encoding.UTF8.GetBytes("# Async\n\nContent.\n");
         try {
             File.WriteAllBytes(path, bytes);
-            OfficeDocumentReadResult document = await OfficeDocumentReader.Default.ReadDocumentAsync(path);
+            OfficeDocumentReadResult document = await OfficeIMO.Reader.Tests.ReaderTestReaders.All.ReadDocumentAsync(path);
             using var stream = new MemoryStream(bytes, writable: false);
 
-            string pathMarkdown = await OfficeDocumentReader.Default.ConvertToMarkdownAsync(path);
-            string streamMarkdown = await OfficeDocumentReader.Default.ConvertToMarkdownAsync(stream, "sample.md");
-            string bytesMarkdown = await OfficeDocumentReader.Default.ConvertToMarkdownAsync(bytes, "sample.md");
+            string pathMarkdown = await OfficeIMO.Reader.Tests.ReaderTestReaders.All.ConvertToMarkdownAsync(path);
+            string streamMarkdown = await OfficeIMO.Reader.Tests.ReaderTestReaders.All.ConvertToMarkdownAsync(stream, "sample.md");
+            string bytesMarkdown = await OfficeIMO.Reader.Tests.ReaderTestReaders.All.ConvertToMarkdownAsync(bytes, "sample.md");
 
             string expected = document.Markdown ?? string.Empty;
             Assert.Equal(expected, pathMarkdown);

@@ -17,6 +17,6 @@ The handler emits deterministic block-aware chunks with source lines, heading pa
 ## Dependency footprint
 
 - **External:** None.
-- **OfficeIMO:** `OfficeIMO.Reader`, `OfficeIMO.AsciiDoc`, and `OfficeIMO.AsciiDoc.Markdown`; parsing stays in the native AsciiDoc package.
+- **OfficeIMO:** `OfficeIMO.Reader.Core`, `OfficeIMO.AsciiDoc`, and `OfficeIMO.AsciiDoc.Markdown`; parsing stays in the native AsciiDoc package.
 
 See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

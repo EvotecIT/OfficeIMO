@@ -7,7 +7,7 @@ namespace OfficeIMO.Email.Tests;
 
 public sealed class EmailPackagingContractTests {
     [Fact]
-    public void ProductProjectAndAssembly_DeclareOnlyTheRequiredCompatibilityDependency() {
+    public void ProductProjectAndAssembly_DeclareOnlyTheRequiredDependencies() {
         string projectPath = Path.Combine(GetRepositoryRoot(), "OfficeIMO.Email", "OfficeIMO.Email.csproj");
         XDocument project = XDocument.Load(projectPath);
         XNamespace ns = project.Root?.Name.Namespace ?? XNamespace.None;
@@ -21,7 +21,8 @@ public sealed class EmailPackagingContractTests {
         Assert.Equal(
             new[] {
                 "../OfficeIMO.Drawing/OfficeIMO.Drawing.csproj",
-                "../OfficeIMO.Rtf/OfficeIMO.Rtf.csproj"
+                "../OfficeIMO.Rtf/OfficeIMO.Rtf.csproj",
+                "../OfficeIMO.Security/OfficeIMO.Security.csproj"
             },
             projectReferences);
         string[] linkedSources = project.Descendants(ns + "Compile")
@@ -43,6 +44,7 @@ public sealed class EmailPackagingContractTests {
         Assert.DoesNotContain(references, name => string.Equals(name, "Microsoft.Maui.Graphics", StringComparison.OrdinalIgnoreCase));
         Assert.Contains(references, name => string.Equals(name, "OfficeIMO.Rtf", StringComparison.OrdinalIgnoreCase));
         Assert.Contains(references, name => string.Equals(name, "OfficeIMO.Drawing", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(references, name => string.Equals(name, "OfficeIMO.Security", StringComparison.OrdinalIgnoreCase));
         Assert.Contains(references, name => string.Equals(name, "System.Text.Encoding.CodePages", StringComparison.OrdinalIgnoreCase));
     }
 

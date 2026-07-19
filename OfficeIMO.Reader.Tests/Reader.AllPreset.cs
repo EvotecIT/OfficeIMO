@@ -9,21 +9,32 @@ namespace OfficeIMO.Reader.Tests;
 public sealed class ReaderAllPresetTests {
     private static readonly string[] ExpectedModularHandlerIds = {
         "officeimo.reader.asciidoc",
+        "officeimo.reader.calendar",
         "officeimo.reader.csv",
-        "officeimo.reader.email-address-book",
-        "officeimo.reader.emailstore",
+        "officeimo.reader.email",
+        "officeimo.reader.email.address-book",
+        "officeimo.reader.email.mailbox",
+        "officeimo.reader.email.store",
         "officeimo.reader.epub",
+        "officeimo.reader.excel",
         "officeimo.reader.html",
         "officeimo.reader.image",
         "officeimo.reader.json",
         "officeimo.reader.latex",
+        "officeimo.reader.markdown",
         "officeimo.reader.notebook",
         "officeimo.reader.onenote",
         "officeimo.reader.opendocument",
         "officeimo.reader.pdf",
+        "officeimo.reader.powerpoint",
+        "officeimo.reader.powerpoint.binary",
         "officeimo.reader.rtf",
         "officeimo.reader.subtitles",
+        "officeimo.reader.text",
+        "officeimo.reader.unknown",
+        "officeimo.reader.vcard",
         "officeimo.reader.visio",
+        "officeimo.reader.word",
         "officeimo.reader.xml",
         "officeimo.reader.yaml",
         "officeimo.reader.zip"
@@ -36,7 +47,7 @@ public sealed class ReaderAllPresetTests {
             .Build();
 
         ReaderHandlerCapability[] modular = reader.GetCapabilities()
-            .Where(capability => !capability.IsBuiltIn)
+            .Where(capability => capability.Origin == ReaderHandlerOrigin.OfficeIMO)
             .ToArray();
 
         Assert.Equal(ExpectedModularHandlerIds, modular.Select(capability => capability.Id).ToArray());
@@ -86,8 +97,8 @@ public sealed class ReaderAllPresetTests {
             .Build();
         OfficeDocumentReader unconfigured = new OfficeDocumentReaderBuilder().Build();
 
-        Assert.Contains(configured.GetCapabilities(), capability => capability.Id == "officeimo.reader.csv" && !capability.IsBuiltIn);
-        Assert.DoesNotContain(unconfigured.GetCapabilities(), capability => capability.Id == "officeimo.reader.csv" && !capability.IsBuiltIn);
+        Assert.Contains(configured.GetCapabilities(), capability => capability.Id == "officeimo.reader.csv" && capability.Origin == ReaderHandlerOrigin.OfficeIMO);
+        Assert.DoesNotContain(unconfigured.GetCapabilities(), capability => capability.Id == "officeimo.reader.csv");
 
         OfficeDocumentReadResult document = configured.ReadDocument(
             Encoding.UTF8.GetBytes("name,value\nalpha,1\nbeta,2"),

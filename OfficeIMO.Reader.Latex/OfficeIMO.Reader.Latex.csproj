@@ -29,7 +29,7 @@
   <ItemGroup>
     <ProjectReference Include="..\OfficeIMO.Latex\OfficeIMO.Latex.csproj" />
     <ProjectReference Include="..\OfficeIMO.Latex.Markdown\OfficeIMO.Latex.Markdown.csproj" />
-    <ProjectReference Include="..\OfficeIMO.Reader\OfficeIMO.Reader.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Reader.Core\OfficeIMO.Reader.Core.csproj" />
   </ItemGroup>
 
   <ItemGroup>

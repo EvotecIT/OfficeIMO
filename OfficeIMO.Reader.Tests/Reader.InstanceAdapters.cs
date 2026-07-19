@@ -101,7 +101,7 @@ public sealed class ReaderInstanceAdapterTests {
     }
 
     private static void AssertHandler(OfficeDocumentReader reader, string expectedHandlerId) {
-        ReaderHandlerCapability capability = Assert.Single(reader.GetCapabilities(), item => !item.IsBuiltIn);
+        ReaderHandlerCapability capability = Assert.Single(reader.GetCapabilities(), item => item.Origin == ReaderHandlerOrigin.OfficeIMO);
         Assert.Equal(expectedHandlerId, capability.Id);
     }
 }

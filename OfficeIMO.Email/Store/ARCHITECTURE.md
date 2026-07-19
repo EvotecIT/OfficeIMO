@@ -1,0 +1,138 @@
+# OfficeIMO email-store architecture
+
+## Package and API ownership
+
+The production boundary is one `OfficeIMO.Email` NuGet and assembly with distinct API areas. Optional Reader
+projections remain thin packages because they depend on the Reader contract:
+
+| Surface | Owns |
+| --- | --- |
+| `OfficeIMO.Email` package | `EmailDocument`, MIME/EML, MSG, OFT, TNEF, aggregate mbox, standalone iCalendar/vCard, shared content lines, MAPI projection, and item writers. |
+| `OfficeIMO.Email.Store` API | PST/OST/OLM/EMLX/Mbox and mailbox-directory traversal, sessions, selection, validation, recovery discovery, native export, and verified Unicode PST rewrite mutation. |
+| `OfficeIMO.Email.AddressBook` API | OAB component discovery, v4 directory entries and distribution lists, bounded search, raw properties, and integrity validation. |
+| `OfficeIMO.Email.Data` API | Mixed-artifact detection and dispatch to the existing individual, store, and OAB owners. |
+| `OfficeIMO.Reader.Email` | Optional Reader registration and bounded projection for individual artifacts, stores, and typed OAB entries. |
+
+OFT is an individual Outlook template, not a mailbox store. It stays in the root API. The Store API may
+export a selected store item as OFT, but it does not own the OFT format. MIME primitives also remain inside
+`OfficeIMO.Email`; a separate public MIME package is not needed by this design.
+
+## Outlook data beyond message stores
+
+OAB data is an offline directory snapshot, not a mailbox container. `OfficeIMO.Email.AddressBook` therefore owns
+OAB file-set discovery, bounded entry and distribution-list enumeration, search, raw property retention, integrity
+validation, and projection into shared OfficeIMO address/contact models. `OfficeIMO.Reader.Email` supplies the thin
+Reader projection for both store and address-book API areas without collapsing their semantic models; an address-book
+entry is not disguised as an `EmailDocument`.
+
+The same ownership test applies to other Outlook-local data:
+
+- OFT is already an individual Outlook item and stays in `OfficeIMO.Email`.
+- Signatures and stationery are HTML/RTF/text resource sets and belong with an Outlook-profile resource owner if a
+  reusable workflow requires them.
+- Autocomplete caches, account/profile settings, synchronization state, and search indexes are profile or cache
+  artifacts. They need their own evidence, safety limits, and public models before a package claims support.
+- Exchange or Microsoft 365 directory synchronization remains a network/provider concern; an offline OAB reader
+  must not grow authentication or tenant administration behavior.
+
+This leaves a clean extension seam without making completion of PST/OST/OLM/EMLX support depend on unrelated
+profile formats.
+
+## Large-store contract
+
+`EmailStoreSession` is the primary PST/OST API. Opening builds a lightweight folder catalog while NBT entries are
+streamed. B-tree pages use a bounded LRU cache. Item enumeration streams contents-table rows and resolves NIDs/BIDs
+on demand. `ReadSummary` decodes only browsing properties. `ReadItem` is the explicit boundary that projects one
+complete item.
+
+This design keeps memory related to the active parser structures and selected item rather than the store's total
+size. It does not promise that one unbounded message or attachment can fit in memory; those operations remain
+guarded by the configured per-item limits.
+
+Mailbox-directory sessions index bounded file metadata and open only selected EML/EMLX files. Mbox sessions stream
+the owning `OfficeIMO.Email` aggregate model through the common store surface. Reparse points are skipped. OLM is
+bounded but currently materialized during open because one XML archive entry can contain multiple logical items;
+making OLM item payloads lazy would require a durable XML item-location index.
+
+## Managed PST writer and conversion
+
+OST-to-PST conversion never copies a store and changes its client signature. `EmailStorePstWriter` creates a new
+Unicode PST through three internal layers:
+
+1. NDB: Unicode header state and checksums, allocation maps, BBT/NBT construction, block/page allocation, BID/NID
+   counters, data trees, subnode trees, and an atomic commit strategy.
+2. LTP: Heap-on-Node allocation, BTree-on-Heap, property contexts, table contexts, row indexes, row matrices, and
+   variable values.
+3. Messaging: mandatory store/folder/message properties, hierarchy and contents tables, recipients, attachments,
+   embedded messages, named-property maps, search/deleted folders, and entry identifiers.
+
+Microsoft's PST specification describes the format as a read/write contract and defines the minimum objects
+required for a mountable file. It also requires allocation metadata and header state to be maintained. See
+the official [MS-PST overview](https://learn.microsoft.com/en-us/openspecs/office_file_formats/ms-pst/141923d5-15ab-4ef1-a524-6dce75aae546),
+[NDB layer requirements](https://learn.microsoft.com/en-us/openspecs/office_file_formats/ms-pst/9d2083cf-fd37-4a0d-b61a-d2ef10a89a04),
+[LTP layer](https://learn.microsoft.com/en-us/openspecs/office_file_formats/ms-pst/77007716-7993-44fe-9b40-9526157cfc6d),
+and [minimum object requirements](https://learn.microsoft.com/en-us/openspecs/office_file_formats/ms-pst/7af54176-5108-4ac7-973f-8252ad223acb).
+
+The public writer is incremental at the item boundary and new-file-only. Allocation maps, block/node records,
+page levels, table rows, data-tree indexes, and conversion mappings are disk-backed journals with bounded sort
+runs rather than store-cardinality managed collections. Integrity-checked checkpoints record exact journal lengths,
+folder state, counters, named properties, and diagnostics; resume truncates every writer-owned artifact back to
+that committed boundary before continuing. The final PST still commits through a same-directory temporary file.
+
+`EmailStoreSession.ExportToPst` remains a thin orchestration surface:
+it enumerates the source, maps its folder tree, streams selected attachments, and reports source items that cannot
+be represented. All message and typed-item property projection stays in `OfficeIMO.Email` and is shared with MSG.
+A same-directory staging destination is reopened for versioned semantic comparison before the final atomic commit.
+With fail-on-data-loss enabled, verification failures preserve any existing destination and manifest. Optional
+manifests contain only keyed digests, aggregate status, ordinals, and keyed HMAC difference-path tokens.
+
+`EmailStoreConverter.MergeToPst` reuses the same session and writer boundaries for multiple PST, OST, OLM, EMLX,
+and mailbox-directory sources. It owns folder mapping policy, a bounded on-disk semantic hash set, source-read
+retries, aggregate progress, and conflict diagnostics. It never retries or skips after an uncertain destination
+mutation: writer/index failures abort the atomic output.
+
+## Existing Unicode PST mutation
+
+`EmailStorePstMutationTransaction` deliberately does not add a second in-place NDB editor. It opens and locks an
+existing Unicode PST, stages an explicit set of folder and item operations, and feeds the resulting hierarchy and
+semantic `EmailDocument` items through `EmailStorePstWriter`. The staging PST is reopened and its complete folder set,
+every intended metadata field, and every item projection are verified before the source can be atomically replaced;
+writer-seeded folders absent from the source are treated as a verification failure. A caller may request a byte-for-byte
+backup, and source length/timestamp drift aborts replacement.
+
+The rewrite design reuses the mature writer, item projection, fidelity diagnostics, and atomic commit boundary. Its
+visible tradeoff is that NIDs and BIDs change, so commit returns folder and item ID mappings. Mandatory folders remain
+protected. Search folders cannot accept normal descendants and dynamic query definitions cannot be regenerated; the
+safe default blocks those and all other known-loss diagnostics. Password-protected PSTs are rejected for mutation
+because the writer cannot preserve their protection. ANSI PST and OST files remain read-only inputs.
+Disposing an uncommitted transaction or committing a no-op never rewrites the source.
+
+Current validation covers:
+
+- reopen and structural CRC/signature validation through the OfficeIMO reader;
+- multi-block heaps, multi-leaf table indexes, large attachment data trees, embedded messages, associated items,
+  recipients, named properties, and fixed and variable multi-valued properties;
+- synthetic OST-to-new-PST conversion with a byte-for-byte unchanged source;
+- deterministic semantic read/write round trips and malformed/hostile-input contracts;
+- 2,000-message PST creation and 100,000-entry conversion/dedup indexes under retained-memory ceilings;
+- independent libpff open and synthetic message export;
+- an opt-in classic Outlook mount/read/remove test for Windows interoperability hosts;
+- an opt-in private-corpus lane that reports only aggregate structure and diagnostic counts.
+
+This is a projection conversion, not an Exchange recovery service. Search results are materialized as static
+folders; a source Name-to-ID entry that is unavailable receives a diagnostic placeholder mapping; and attachment
+or OST content absent from the local source is reported rather than fabricated. The writer does not append in place,
+repair, compact, password-protect, or encrypt an existing PST. Existing OST files and ANSI PST files are never
+mutated, and ANSI PST and OST output are outside the current contract.
+
+## Source and output safety
+
+- Store sessions are read-only and not thread-safe.
+- Existing-PST mutation requires a separate one-shot transaction and replaces only after a complete staged rewrite
+  and optional semantic verification; disposal before commit preserves the source bytes.
+- Caller-owned streams stay open and return to their original position when a session is disposed.
+- Recovery APIs discover indexed orphans; they do not rewrite source indexes.
+- Directory, EMLX, and Maildir exports use sanitized, stable-ID-suffixed paths and do not overwrite by default.
+- Mbox export is streamed to a same-directory temporary file before commit.
+- All parsing and writing uses BCL and first-party OfficeIMO code; no native Outlook or third-party email-store parser
+  is introduced.

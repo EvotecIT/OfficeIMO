@@ -1,4 +1,5 @@
 using OfficeIMO.Reader;
+using OfficeIMO.Reader.Markdown;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -164,6 +165,7 @@ public sealed class ReaderProcessorPipelineTests {
     public async Task InstanceReader_AppliesFrozenPipelineToEveryDocumentSurface() {
         byte[] markdown = Encoding.UTF8.GetBytes("# Title\n\nBody");
         var builder = new OfficeDocumentReaderBuilder()
+            .AddMarkdownHandler()
             .AddProcessor(new DelegateOfficeDocumentProcessor("mark", (document, _) => {
                 foreach (ReaderChunk chunk in document.Chunks) chunk.Text = "processed:" + chunk.Text;
                 document.Metadata = new[] {
@@ -190,6 +192,7 @@ public sealed class ReaderProcessorPipelineTests {
     public async Task InstanceReader_RefreshesProcessorReplacementChunkMetadata() {
         const string processedText = "processor replacement body";
         OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+            .AddMarkdownHandler()
             .AddProcessor(new DelegateOfficeDocumentProcessor("replace-chunk", (document, _) => {
                 return new OfficeDocumentReadResult {
                     Chunks = new[] {
@@ -219,6 +222,7 @@ public sealed class ReaderProcessorPipelineTests {
     public void InstanceReader_ProjectsNullProcessorChunksAsAnEmptyCollection() {
         byte[] markdown = Encoding.UTF8.GetBytes("Body");
         OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+            .AddMarkdownHandler()
             .AddProcessor(new DelegateOfficeDocumentProcessor("clear-chunks", (document, _) => {
                 document.Chunks = null!;
                 return document;
@@ -232,6 +236,7 @@ public sealed class ReaderProcessorPipelineTests {
     public void InstanceReader_PreservesProcessorChunkHashWhenHashComputationIsDisabled() {
         const string suppliedHash = "processor-owned-hash";
         OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+            .AddMarkdownHandler()
             .AddProcessor(new DelegateOfficeDocumentProcessor("supply-hash", (document, _) => {
                 document.Chunks = new[] {
                     new ReaderChunk { Id = "replacement", Text = "processed", ChunkHash = suppliedHash }
@@ -251,6 +256,7 @@ public sealed class ReaderProcessorPipelineTests {
     [Fact]
     public void InstanceReader_RebuildsChunkDerivedAggregatesAfterTextProcessing() {
         OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+            .AddMarkdownHandler()
             .AddProcessor(new DelegateOfficeDocumentProcessor("redact", (document, _) => {
                 foreach (ReaderChunk chunk in document.Chunks) chunk.Text = "[redacted]";
                 return document;

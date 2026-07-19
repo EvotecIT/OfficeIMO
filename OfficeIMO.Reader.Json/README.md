@@ -3,7 +3,7 @@
 [![nuget version](https://img.shields.io/nuget/v/OfficeIMO.Reader.Json)](https://www.nuget.org/packages/OfficeIMO.Reader.Json)
 [![nuget downloads](https://img.shields.io/nuget/dt/OfficeIMO.Reader.Json?label=nuget%20downloads)](https://www.nuget.org/packages/OfficeIMO.Reader.Json)
 
-`OfficeIMO.Reader.Json` provides a modular JSON ingestion adapter for `OfficeIMO.Reader`.
+`OfficeIMO.Reader.Json` provides a modular JSON ingestion adapter for `OfficeIMO.Reader.Core`.
 
 ## Install
 
@@ -72,7 +72,7 @@ var chunks = reader.Read(stream, "payload.json", new ReaderOptions {
 ## Boundaries
 
 - Reader adapter configuration belongs here.
-- Shared extraction contracts belong in `OfficeIMO.Reader`.
+- Shared extraction contracts belong in `OfficeIMO.Reader.Core`.
 
 ## Targets and license
 
@@ -82,6 +82,6 @@ var chunks = reader.Read(stream, "payload.json", new ReaderOptions {
 ## Dependency footprint
 
 - **External:** `System.Text.Json`.
-- **OfficeIMO:** `OfficeIMO.Reader` owns chunking, limits, locations, warnings, and result projection.
+- **OfficeIMO:** `OfficeIMO.Reader.Core` owns chunking, limits, locations, warnings, and result projection.
 
 See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

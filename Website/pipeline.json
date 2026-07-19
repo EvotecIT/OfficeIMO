@@ -72,7 +72,7 @@
     {
       "task": "dotnet-build",
       "id": "build-reader",
-      "project": "../OfficeIMO.Reader/OfficeIMO.Reader.csproj",
+      "project": "../OfficeIMO.Reader.Core/OfficeIMO.Reader.Core.csproj",
       "configuration": "Release",
       "framework": "net8.0",
       "skipIfProjectMissing": true
@@ -126,7 +126,7 @@
         },
         { "id": "officeimo.csv", "name": "OfficeIMO.CSV", "order": 50 },
         { "id": "officeimo.visio", "name": "OfficeIMO.Visio", "order": 60 },
-        { "id": "officeimo.reader", "name": "OfficeIMO.Reader", "order": 70 },
+        { "id": "officeimo.reader", "name": "OfficeIMO.Reader packages", "order": 70 },
         { "id": "pswriteoffice", "name": "PSWriteOffice", "order": 80 },
         { "id": "officeimo.googleworkspace", "name": "OfficeIMO.GoogleWorkspace", "order": 81 },
         { "id": "officeimo.googleworkspace.drive", "name": "OfficeIMO.GoogleWorkspace.Drive", "order": 82 },
@@ -290,7 +290,7 @@
         },
         {
           "product": "officeimo.reader",
-          "label": "OfficeIMO.Reader",
+          "label": "OfficeIMO.Reader packages",
           "match": ["*OfficeIMO.Reader*.zip", "*OfficeIMO.Reader*.nupkg"]
         },
         {
@@ -520,10 +520,10 @@
       "id": "build-apidocs-reader",
       "dependsOn": ["build-reader", "build-site"],
       "config": "./site.json",
-      "xml": "../OfficeIMO.Reader/bin/Release/net8.0/OfficeIMO.Reader.xml",
-      "assembly": "../OfficeIMO.Reader/bin/Release/net8.0/OfficeIMO.Reader.dll",
+      "xml": "../OfficeIMO.Reader.Core/bin/Release/net8.0/OfficeIMO.Reader.Core.xml",
+      "assembly": "../OfficeIMO.Reader.Core/bin/Release/net8.0/OfficeIMO.Reader.Core.dll",
       "out": "./_site/api/reader",
-      "title": "OfficeIMO.Reader API Reference",
+      "title": "OfficeIMO.Reader.Core API Reference",
       "baseUrl": "/api/reader",
       "format": "both",
       "legacyAliasMode": "omit",

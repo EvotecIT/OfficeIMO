@@ -62,7 +62,7 @@ meta.head_html: '<link rel="alternate" hreflang="en" href="https://officeimo.com
 <article class="ocx-capability-card"><span class="ocx-chip ocx-chip--warn">Next browser route</span><h3>Markdown to PDF</h3><p>Use the Markdown PDF converter directly and keep the raw source explicit.</p><code>markdown.ToPdfFromMarkdown(options)</code></article>
 <article class="ocx-capability-card"><span class="ocx-chip ocx-chip--cold">Engine route</span><h3>Excel to CSV / JSON / HTML</h3><p>Preview sheets, extract tables, export records, and produce HTML table output.</p><code>ExcelDocument.Load(stream).Worksheets</code></article>
 <article class="ocx-capability-card"><span class="ocx-chip ocx-chip--cold">Engine route</span><h3>CSV / JSON to Excel</h3><p>Build workbooks from structured data with schema validation and cleanup options.</p><code>CsvDocument / ExcelDocument</code></article>
-<article class="ocx-capability-card"><span class="ocx-chip ocx-chip--cold">Engine route</span><h3>Reader extraction</h3><p>Extract Markdown, JSON, chunks, tables, and assets from document families.</p><code>DocumentReader.Read(...)</code></article>
+<article class="ocx-capability-card"><span class="ocx-chip ocx-chip--cold">Engine route</span><h3>Reader extraction</h3><p>Extract Markdown, JSON, chunks, tables, and assets from document families.</p><code>reader.Read(...)</code></article>
 <article class="ocx-capability-card"><span class="ocx-chip ocx-chip--cold">MCP / skill route</span><h3>Agent conversion tools</h3><p>Expose repeatable conversions and diagnostics through MCP tools, Codex skills, and plugins.</p><code>OfficeIMO conversion tools</code></article>
 </div>
 </section>

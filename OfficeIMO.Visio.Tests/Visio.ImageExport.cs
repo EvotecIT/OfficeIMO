@@ -104,7 +104,7 @@ public class VisioImageExport {
         OfficeImageExportResult result = document.ExportImage(OfficeImageExportFormat.Jpeg, options);
 
         Assert.Equal("image/jpeg", OfficeImageReader.Identify(result.Bytes).MimeType);
-        Assert.True(result.Bytes.Contains((byte)0xC2));
+        Assert.Contains((byte)0xC2, result.Bytes);
     }
 
     [Fact]

@@ -504,14 +504,13 @@ public sealed class PackageDependencyGuardrailTests {
     }
 
     [Fact]
-    public void FoundationKernels_AreCompiledOnceByDrawing() {
+    public void DrawingOwnedFoundationKernels_RemainInDrawing() {
         Assert.False(Directory.Exists(GetRepositoryPath("OfficeIMO.Shared")));
 
         string[] expectedDrawingOwnedFiles = [
             "ObjectDataHelpers.cs",
             "OfficeEncryption.cs",
             "OfficeFileConversion.cs",
-            "Compound/OfficeCompoundFileReader.cs",
             "Ole/OfficeOlePropertySetReader.cs",
             "Packaging/OfficeArchiveSafety.cs",
             "Streams/NonDisposingMemoryStream.cs"
@@ -548,6 +547,14 @@ public sealed class PackageDependencyGuardrailTests {
         Assert.Equal(
             new[] {
                 "OfficeIMO.SharedSource/Compatibility/TrimmingAttributes.cs",
+                "OfficeIMO.SharedSource/Compound/OfficeCompoundDocumentDetector.cs",
+                "OfficeIMO.SharedSource/Compound/OfficeCompoundFile.cs",
+                "OfficeIMO.SharedSource/Compound/OfficeCompoundFileEntry.cs",
+                "OfficeIMO.SharedSource/Compound/OfficeCompoundFileReader.cs",
+                "OfficeIMO.SharedSource/Compound/OfficeCompoundFileReader.Inspection.cs",
+                "OfficeIMO.SharedSource/Compound/OfficeCompoundFileReader.Selective.cs",
+                "OfficeIMO.SharedSource/Compound/OfficeCompoundFileWriter.cs",
+                "OfficeIMO.SharedSource/Compound/OfficeCompoundWriterLayout.cs",
                 "OfficeIMO.SharedSource/OpenXml/OfficeOpenXmlPackagePayload.cs",
                 "OfficeIMO.SharedSource/OpenXml/OfficeOpenXmlThemeColorResolver.cs"
             },
@@ -752,7 +759,7 @@ public sealed class PackageDependencyGuardrailTests {
     }
 
     [Theory]
-    [InlineData("OfficeIMO.Reader/OfficeIMO.Reader.csproj")]
+    [InlineData("OfficeIMO.Reader.Core/OfficeIMO.Reader.Core.csproj")]
     [InlineData("OfficeIMO.Reader.Json/OfficeIMO.Reader.Json.csproj")]
     [InlineData("OfficeIMO.MarkdownRenderer/OfficeIMO.MarkdownRenderer.csproj")]
     [InlineData("OfficeIMO.MarkdownRenderer.SamplePlugin/OfficeIMO.MarkdownRenderer.SamplePlugin.csproj")]
@@ -782,6 +789,119 @@ public sealed class PackageDependencyGuardrailTests {
         Assert.Contains("net472", condition!, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("net8.0", condition!, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("net10.0", condition!, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void ReaderCore_HasNoFormatEngineProjectDependencies() {
+        string projectPath = GetRepositoryPath("OfficeIMO.Reader.Core/OfficeIMO.Reader.Core.csproj");
+
+        Assert.Empty(GetProjectReferences(projectPath));
+        Assert.Equal(
+            ["System.Text.Json"],
+            GetPackageReferences(projectPath).Distinct(StringComparer.OrdinalIgnoreCase).ToArray());
+    }
+
+    [Fact]
+    public void ReaderEmail_IsTheSingleEmailAdapterPackage() {
+        string projectPath = GetRepositoryPath("OfficeIMO.Reader.Email/OfficeIMO.Reader.Email.csproj");
+        string[] references = GetProjectReferences(projectPath);
+
+        Assert.Equal(
+            [
+                "../OfficeIMO.Reader.Core/OfficeIMO.Reader.Core.csproj",
+                "../OfficeIMO.Email/OfficeIMO.Email.csproj"
+            ],
+            references);
+        Assert.False(File.Exists(GetRepositoryPath("OfficeIMO.Reader.EmailStore/OfficeIMO.Reader.EmailStore.csproj")));
+        Assert.False(File.Exists(GetRepositoryPath("OfficeIMO.Reader.EmailAddressBook/OfficeIMO.Reader.EmailAddressBook.csproj")));
+    }
+
+    [Fact]
+    public void ReaderImage_ExposesDrawingAsARuntimeDependency() {
+        string projectPath = GetRepositoryPath("OfficeIMO.Reader.Image/OfficeIMO.Reader.Image.csproj");
+        Assert.Equal(
+            [
+                "../OfficeIMO.Reader.Core/OfficeIMO.Reader.Core.csproj",
+                "../OfficeIMO.Drawing/OfficeIMO.Drawing.csproj"
+            ],
+            GetProjectReferences(projectPath));
+
+        XDocument document = XDocument.Load(projectPath);
+        XNamespace ns = document.Root?.Name.Namespace ?? XNamespace.None;
+        XElement drawingReference = Assert.Single(
+            document.Descendants(ns + "ProjectReference"),
+            static reference => string.Equals(
+                ((string?)reference.Attribute("Include"))?.Replace('\\', '/'),
+                "../OfficeIMO.Drawing/OfficeIMO.Drawing.csproj",
+                StringComparison.Ordinal));
+        string? privateAssets = (string?)drawingReference.Attribute("PrivateAssets") ??
+            (string?)drawingReference.Element(ns + "PrivateAssets");
+        Assert.True(string.IsNullOrWhiteSpace(privateAssets),
+            "OfficeIMO.Drawing supplies runtime code used by Reader.Image and must remain visible in its NuGet dependency graph.");
+    }
+
+    [Fact]
+    public void OfficeFormatReaderPackages_ExposeDrawingAsARuntimeDependency() {
+        string[] projectNames = [
+            "OfficeIMO.Reader.Word",
+            "OfficeIMO.Reader.Excel",
+            "OfficeIMO.Reader.PowerPoint"
+        ];
+
+        foreach (string projectName in projectNames) {
+            string projectPath = GetRepositoryPath($"{projectName}/{projectName}.csproj");
+            XDocument document = XDocument.Load(projectPath);
+            XNamespace ns = document.Root?.Name.Namespace ?? XNamespace.None;
+            XElement drawingReference = Assert.Single(
+                document.Descendants(ns + "ProjectReference"),
+                static reference => string.Equals(
+                    ((string?)reference.Attribute("Include"))?.Replace('\\', '/'),
+                    "../OfficeIMO.Drawing/OfficeIMO.Drawing.csproj",
+                    StringComparison.Ordinal));
+            string? privateAssets = (string?)drawingReference.Attribute("PrivateAssets") ??
+                (string?)drawingReference.Element(ns + "PrivateAssets");
+            Assert.True(string.IsNullOrWhiteSpace(privateAssets),
+                $"OfficeIMO.Drawing supplies runtime code used by {projectName} and must remain visible in its NuGet dependency graph.");
+        }
+    }
+
+    [Fact]
+    public void ReaderAll_ComposesOnlyReaderPackages() {
+        string projectPath = GetRepositoryPath("OfficeIMO.Reader.All/OfficeIMO.Reader.All.csproj");
+        string[] references = GetProjectReferences(projectPath);
+
+        Assert.NotEmpty(references);
+        Assert.All(references, reference =>
+            Assert.StartsWith("../OfficeIMO.Reader.", reference, StringComparison.Ordinal));
+        Assert.Contains("../OfficeIMO.Reader.Core/OfficeIMO.Reader.Core.csproj", references, StringComparer.Ordinal);
+        Assert.Contains("../OfficeIMO.Reader.Email/OfficeIMO.Reader.Email.csproj", references, StringComparer.Ordinal);
+        Assert.Contains("../OfficeIMO.Reader.Word/OfficeIMO.Reader.Word.csproj", references, StringComparer.Ordinal);
+        Assert.Contains("../OfficeIMO.Reader.Excel/OfficeIMO.Reader.Excel.csproj", references, StringComparer.Ordinal);
+        Assert.Contains("../OfficeIMO.Reader.PowerPoint/OfficeIMO.Reader.PowerPoint.csproj", references, StringComparer.Ordinal);
+        Assert.Contains("../OfficeIMO.Reader.Markdown/OfficeIMO.Reader.Markdown.csproj", references, StringComparer.Ordinal);
+        Assert.Empty(GetPackageReferences(projectPath));
+    }
+
+    [Fact]
+    public void Security_IsTheNeutralSingleCmsOwner() {
+        string projectPath = GetRepositoryPath("OfficeIMO.Security/OfficeIMO.Security.csproj");
+
+        Assert.Empty(GetProjectReferences(projectPath));
+        Assert.Equal(["BouncyCastle.Cryptography"], GetPackageReferences(projectPath));
+        Assert.False(File.Exists(GetRepositoryPath(
+            "OfficeIMO.Pdf.Cryptography.Pkcs/OfficeIMO.Pdf.Cryptography.Pkcs.csproj")));
+    }
+
+    [Fact]
+    public void PdfAndEmail_ConsumeSecurityDirectlyWithoutACompatibilityLayer() {
+        Assert.Contains(
+            "../OfficeIMO.Security/OfficeIMO.Security.csproj",
+            GetProjectReferences(GetRepositoryPath("OfficeIMO.Pdf/OfficeIMO.Pdf.csproj")),
+            StringComparer.Ordinal);
+        Assert.Contains(
+            "../OfficeIMO.Security/OfficeIMO.Security.csproj",
+            GetProjectReferences(GetRepositoryPath("OfficeIMO.Email/OfficeIMO.Email.csproj")),
+            StringComparer.Ordinal);
     }
 
     [Theory]
@@ -947,6 +1067,17 @@ public sealed class PackageDependencyGuardrailTests {
         return document
             .Descendants(ns + "ProjectReference")
             .Select(static e => NormalizeProjectPath((string?)e.Attribute("Include")))
+            .Where(static include => !string.IsNullOrWhiteSpace(include))
+            .ToArray();
+    }
+
+    private static string[] GetPackageReferences(string projectPath) {
+        var document = XDocument.Load(projectPath);
+        var ns = document.Root?.Name.Namespace ?? XNamespace.None;
+
+        return document
+            .Descendants(ns + "PackageReference")
+            .Select(static e => (string?)e.Attribute("Include") ?? string.Empty)
             .Where(static include => !string.IsNullOrWhiteSpace(include))
             .ToArray();
     }

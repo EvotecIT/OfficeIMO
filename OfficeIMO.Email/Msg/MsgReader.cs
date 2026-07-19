@@ -68,6 +68,7 @@ internal static class MsgReader {
             ReadAttachment(compound, attachmentPath, names, state, document, nestedDepth, encoding,
                 externalContent);
         }
+        MsgProjection.ApplyAttachmentSemantics(document);
         EmailProtectionProjection.Apply(document, state.Diagnostics,
             string.IsNullOrEmpty(prefix) ? "msg" : prefix);
         return document;
@@ -79,18 +80,19 @@ internal static class MsgReader {
             compound, path, MsgPropertyStreamKind.ChildObject, names, state, inheritedEncoding, out _);
         EmailAddress? address = MsgAddressProjection.ReadAddress(
             properties,
-            displayNameId: 0x3001,
-            smtpAddressId: 0x39FE,
-            emailAddressId: 0x3003,
-            addressTypeId: 0x3002,
-            originalAddressId: 0x403E);
+            displayNameKey: MapiKnownProperties.PidTag.DisplayName,
+            smtpAddressKey: MapiKnownProperties.PidTag.SmtpAddress,
+            emailAddressKey: MapiKnownProperties.PidTag.EmailAddress,
+            addressTypeKey: MapiKnownProperties.PidTag.AddressType,
+            originalAddressKey: MapiKnownProperties.PidTag.OriginatorEmailAddress);
+        var mapi = new MapiPropertyBag(properties);
         var recipient = new EmailRecipient(
             MsgAddressProjection.ReadRecipientKind(properties),
             address ?? new EmailAddress(null)) {
-            MapiRowId = MsgProjection.GetInt(properties, 0x3000),
-            MapiObjectType = MsgProjection.GetInt(properties, 0x0FFE),
-            MapiDisplayType = MsgProjection.GetInt(properties, 0x3900),
-            MapiDisplayTypeEx = MsgProjection.GetInt(properties, 0x3905)
+            MapiRowId = mapi.GetNullableValue(MapiKnownProperties.PidTag.RowId),
+            MapiObjectType = mapi.GetNullableValue(MapiKnownProperties.PidTag.ObjectType),
+            MapiDisplayType = mapi.GetNullableValue(MapiKnownProperties.PidTag.DisplayType),
+            MapiDisplayTypeEx = mapi.GetNullableValue(MapiKnownProperties.PidTag.DisplayTypeEx)
         };
         foreach (MapiProperty property in properties) recipient.MapiProperties.Add(property);
         document.Recipients.Add(recipient);
@@ -101,32 +103,35 @@ internal static class MsgReader {
         IReadOnlyDictionary<string, IEmailContentSource>? externalContent) {
         List<MapiProperty> properties = MsgPropertyReader.Read(
             compound, path, MsgPropertyStreamKind.ChildObject, names, state, inheritedEncoding, out _);
-        int method = MsgProjection.GetInt(properties, 0x3705) ?? 1;
-        byte[]? content = properties.FirstOrDefault(property => property.PropertyId == 0x3701)?.Value as byte[];
+        var mapi = new MapiPropertyBag(properties);
+        int method = mapi.GetNullableValue(MapiKnownProperties.PidTag.AttachMethod) ?? 1;
+        byte[]? content = mapi.Find(MapiKnownProperties.PidTag.AttachData)?.Value as byte[];
         string contentPath = MsgBinary.CombinePath(path, "__substg1.0_37010102");
         IEmailContentSource? externalSource = null;
         if (externalContent?.TryGetValue(contentPath, out externalSource) == true) content = null;
         var attachment = new EmailAttachment {
-            FileName = MsgProjection.GetString(properties, 0x3707) ?? MsgProjection.GetString(properties, 0x3704) ??
-                MsgProjection.GetString(properties, 0x3001),
-            ContentType = MsgProjection.GetString(properties, 0x370E),
-            ContentId = TrimAngle(MsgProjection.GetString(properties, 0x3712)),
-            ContentLocation = MsgProjection.GetString(properties, 0x3713),
-            IsInline = !string.IsNullOrWhiteSpace(MsgProjection.GetString(properties, 0x3712)) ||
-                ((MsgProjection.GetInt(properties, 0x3714) ?? 0) & 0x00000004) != 0,
-            IsHidden = MsgProjection.GetBool(properties, 0x7FFE) ?? false,
-            IsContactPhoto = MsgProjection.GetBool(properties, 0x7FFF) ?? false,
-            RenderingPosition = MsgProjection.GetInt(properties, 0x370B) ?? -1,
-            CreatedDate = MsgProjection.GetDate(properties, 0x3007),
-            ModifiedDate = MsgProjection.GetDate(properties, 0x3008),
-            LinkedPath = MsgProjection.GetString(properties, 0x370D),
+            FileName = mapi.GetValueOrDefault(MapiKnownProperties.PidTag.AttachLongFilename) ??
+                mapi.GetValueOrDefault(MapiKnownProperties.PidTag.AttachFilename) ??
+                mapi.GetValueOrDefault(MapiKnownProperties.PidTag.DisplayName),
+            ContentType = mapi.GetValueOrDefault(MapiKnownProperties.PidTag.AttachMimeTag),
+            ContentId = TrimAngle(mapi.GetValueOrDefault(MapiKnownProperties.PidTag.AttachContentId)),
+            ContentLocation = mapi.GetValueOrDefault(MapiKnownProperties.PidTag.AttachContentLocation),
+            IsInline = !string.IsNullOrWhiteSpace(mapi.GetValueOrDefault(MapiKnownProperties.PidTag.AttachContentId)) ||
+                ((mapi.GetNullableValue(MapiKnownProperties.PidTag.AttachFlags) ?? 0) & 0x00000004) != 0,
+            IsHidden = mapi.GetValueOrDefault(MapiKnownProperties.PidTag.AttachmentHidden),
+            IsContactPhoto = mapi.GetValueOrDefault(MapiKnownProperties.PidTag.AttachmentContactPhoto),
+            RenderingPosition = mapi.GetNullableValue(MapiKnownProperties.PidTag.RenderingPosition) ?? -1,
+            CreatedDate = mapi.GetNullableValue(MapiKnownProperties.PidTag.CreationTime),
+            ModifiedDate = mapi.GetNullableValue(MapiKnownProperties.PidTag.LastModificationTime),
+            LinkedPath = mapi.GetValueOrDefault(MapiKnownProperties.PidTag.AttachLongPathname),
             MapiAttachMethod = method,
             Length = externalSource?.Length ?? content?.LongLength ??
-                Math.Max(0, MsgProjection.GetInt(properties, 0x0E20) ?? 0)
+                Math.Max(0, mapi.GetNullableValue(MapiKnownProperties.PidTag.AttachSize) ?? 0)
         };
         foreach (MapiProperty property in properties) attachment.MapiProperties.Add(property);
         if (externalSource != null) {
-            foreach (MapiProperty property in attachment.MapiProperties.Where(property => property.PropertyId == 0x3701)) {
+            foreach (MapiProperty property in attachment.MapiProperties.Where(
+                MapiKnownProperties.PidTag.AttachData.MatchesIdentity)) {
                 property.Value = null;
                 property.RawData = null;
             }
@@ -187,7 +192,8 @@ internal static class MsgReader {
         }
 
         if (!state.Options.IncludeAttachmentContent) {
-            foreach (MapiProperty property in attachment.MapiProperties.Where(property => property.PropertyId == 0x3701)) {
+            foreach (MapiProperty property in attachment.MapiProperties.Where(
+                MapiKnownProperties.PidTag.AttachData.MatchesIdentity)) {
                 property.Value = null;
                 property.RawData = null;
             }

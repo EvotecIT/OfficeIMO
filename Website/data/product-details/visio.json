@@ -17,6 +17,6 @@
     { "name": "OfficeIMO.Word", "description": "Pair diagrams with generated reports", "install": "dotnet add package OfficeIMO.Word" },
     { "name": "OfficeIMO.PowerPoint", "description": "Turn diagram data into slide decks", "install": "dotnet add package OfficeIMO.PowerPoint" },
     { "name": "OfficeIMO.CSV", "description": "Feed diagrams from schema-aware flat files", "install": "dotnet add package OfficeIMO.CSV" },
-    { "name": "OfficeIMO.Reader", "description": "Index related documents and diagram metadata", "install": "dotnet add package OfficeIMO.Reader" }
+    { "name": "OfficeIMO.Reader.Visio", "description": "Index Visio diagrams through Reader contracts", "install": "dotnet add package OfficeIMO.Reader.Visio" }
   ]
 }

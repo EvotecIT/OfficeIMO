@@ -14,7 +14,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\OfficeIMO.Reader\OfficeIMO.Reader.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Reader.Core\OfficeIMO.Reader.Core.csproj" />
     <ProjectReference Include="..\OfficeIMO.Reader.Ocr.Process\OfficeIMO.Reader.Ocr.Process.csproj" />
     <ProjectReference Include="..\OfficeIMO.Email\OfficeIMO.Email.csproj" />
     <ProjectReference Include="..\OfficeIMO.Excel\OfficeIMO.Excel.csproj" />
@@ -22,11 +22,16 @@
     <ProjectReference Include="..\OfficeIMO.Word\OfficeIMO.Word.csproj" />
     <ProjectReference Include="..\OfficeIMO.Reader.Csv\OfficeIMO.Reader.Csv.csproj" />
     <ProjectReference Include="..\OfficeIMO.Reader.Epub\OfficeIMO.Reader.Epub.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Reader.Email\OfficeIMO.Reader.Email.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Reader.Excel\OfficeIMO.Reader.Excel.csproj" />
     <ProjectReference Include="..\OfficeIMO.Reader.Html\OfficeIMO.Reader.Html.csproj" />
     <ProjectReference Include="..\OfficeIMO.Reader.Json\OfficeIMO.Reader.Json.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Reader.Markdown\OfficeIMO.Reader.Markdown.csproj" />
     <ProjectReference Include="..\OfficeIMO.Reader.Pdf\OfficeIMO.Reader.Pdf.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Reader.PowerPoint\OfficeIMO.Reader.PowerPoint.csproj" />
     <ProjectReference Include="..\OfficeIMO.Reader.Rtf\OfficeIMO.Reader.Rtf.csproj" />
     <ProjectReference Include="..\OfficeIMO.Reader.Visio\OfficeIMO.Reader.Visio.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Reader.Word\OfficeIMO.Reader.Word.csproj" />
     <ProjectReference Include="..\OfficeIMO.Reader.Xml\OfficeIMO.Reader.Xml.csproj" />
     <ProjectReference Include="..\OfficeIMO.Reader.Yaml\OfficeIMO.Reader.Yaml.csproj" />
     <ProjectReference Include="..\OfficeIMO.Reader.Zip\OfficeIMO.Reader.Zip.csproj" />

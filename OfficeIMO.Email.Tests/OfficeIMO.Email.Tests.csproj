@@ -6,6 +6,7 @@
     <IsPackable>false</IsPackable>
     <Nullable>enable</Nullable>
     <LangVersion>Latest</LangVersion>
+    <TestTfmsInParallel>false</TestTfmsInParallel>
   </PropertyGroup>
 
   <ItemGroup>
@@ -27,6 +28,11 @@
   <ItemGroup>
     <ProjectReference Include="..\OfficeIMO.Drawing\OfficeIMO.Drawing.csproj" />
     <ProjectReference Include="..\OfficeIMO.Email\OfficeIMO.Email.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Reader.Email\OfficeIMO.Reader.Email.csproj" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
+    <Reference Include="System.IO.Compression" />
   </ItemGroup>
 
   <ItemGroup>
@@ -35,7 +41,9 @@
     <Using Include="System.IO" />
     <Using Include="System.Linq" />
     <Using Include="System.Text" />
+    <Using Include="System.Threading" />
     <Using Include="System.Threading.Tasks" />
+    <Using Include="Xunit" />
   </ItemGroup>
 
 </Project>

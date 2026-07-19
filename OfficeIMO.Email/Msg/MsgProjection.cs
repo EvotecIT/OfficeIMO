@@ -1,31 +1,36 @@
 namespace OfficeIMO.Email;
 
 internal static class MsgProjection {
-    internal static readonly Guid PsetidAppointment = new Guid("00062002-0000-0000-C000-000000000046");
-    internal static readonly Guid PsetidTask = new Guid("00062003-0000-0000-C000-000000000046");
-    internal static readonly Guid PsetidAddress = new Guid("00062004-0000-0000-C000-000000000046");
-    internal static readonly Guid PsetidCommon = new Guid("00062008-0000-0000-C000-000000000046");
-    internal static readonly Guid PsetidLog = new Guid("0006200A-0000-0000-C000-000000000046");
-    internal static readonly Guid PsetidNote = new Guid("0006200E-0000-0000-C000-000000000046");
-    internal static readonly Guid PsPublicStrings = new Guid("00020329-0000-0000-C000-000000000046");
-    internal static readonly Guid PsInternetHeaders = new Guid("00020386-0000-0000-C000-000000000046");
-    internal static readonly Guid PsetidCalendarAssistant = new Guid("11000E07-B51B-40D6-AF21-CAA85EDAB1D0");
-    internal static readonly Guid PsetidSharing = new Guid("00062041-0000-0000-C000-000000000046");
-    internal static readonly Guid PsetidReactions = new Guid("41F28F13-83F4-4114-A584-EEDB5A6B0BFF");
+    internal static readonly Guid PsetidAppointment = MapiPropertySets.Appointment;
+    internal static readonly Guid PsetidTask = MapiPropertySets.Task;
+    internal static readonly Guid PsetidAddress = MapiPropertySets.Address;
+    internal static readonly Guid PsetidCommon = MapiPropertySets.Common;
+    internal static readonly Guid PsetidLog = MapiPropertySets.Log;
+    internal static readonly Guid PsetidNote = MapiPropertySets.Note;
+    internal static readonly Guid PsPublicStrings = MapiPropertySets.PublicStrings;
+    internal static readonly Guid PsInternetHeaders = MapiPropertySets.InternetHeaders;
+    internal static readonly Guid PsetidCalendarAssistant = MapiPropertySets.CalendarAssistant;
+    internal static readonly Guid PsetidSharing = MapiPropertySets.Sharing;
+    internal static readonly Guid PsetidReactions = MapiPropertySets.Reactions;
 
     internal static void Apply(EmailDocument document, MsgParserState state, string location,
         MapiStringEncodingContext encoding) {
-        IList<MapiProperty> properties = document.MapiProperties;
-        document.MessageClass = GetString(properties, 0x001A) ?? "IPM.Note";
+        MapiPropertyBag mapi = document.Mapi;
+        IList<MapiProperty> properties = mapi.Properties;
+        document.MessageClass = mapi.GetValueOrDefault(MapiKnownProperties.PidTag.MessageClass) ?? "IPM.Note";
         document.OutlookItemKind = Classify(document.MessageClass);
-        document.Subject = GetString(properties, 0x0037) ?? GetString(properties, 0x0E1D);
-        document.MessageId = TrimAngle(GetString(properties, 0x1035));
-        document.Date = GetDate(properties, 0x0039) ?? GetDate(properties, 0x3007);
-        document.ReceivedDate = GetDate(properties, 0x0E06);
-        ApplyMessageMetadata(document, properties);
-        document.Body.Text = GetString(properties, 0x1000);
-        document.Body.Html = GetHtml(properties, encoding, state.Diagnostics, location);
-        document.Body.Rtf = GetRtf(properties, state, location);
+        document.Subject = mapi.GetValueOrDefault(MapiKnownProperties.PidTag.Subject) ??
+            mapi.GetValueOrDefault(MapiKnownProperties.PidTag.NormalizedSubject);
+        document.MessageId = TrimAngle(mapi.GetValueOrDefault(MapiKnownProperties.PidTag.InternetMessageId));
+        document.Date = mapi.GetNullableValue(MapiKnownProperties.PidTag.ClientSubmitTime) ??
+            mapi.GetNullableValue(MapiKnownProperties.PidTag.CreationTime);
+        document.ReceivedDate = mapi.GetNullableValue(MapiKnownProperties.PidTag.MessageDeliveryTime);
+        ApplyMessageMetadata(document, mapi);
+        OutlookMessageSemanticsProjection.Apply(document, mapi, encoding.PrimaryCodePage,
+            state.Diagnostics, location);
+        document.Body.Text = mapi.GetValueOrDefault(MapiKnownProperties.PidTag.Body);
+        document.Body.Html = GetHtml(mapi, encoding, state.Diagnostics, location);
+        document.Body.Rtf = GetRtf(mapi, state, location);
         if (document.Body.Html == null && document.Body.Rtf != null) {
             document.Body.Html = MsgRtfBodyProjection.TryGetEncapsulatedHtml(
                 document.Body.Rtf,
@@ -34,15 +39,23 @@ internal static class MsgProjection {
         }
 
         document.From = MsgAddressProjection.ReadAddress(
-            properties, 0x0042, 0x5D02, 0x0065, 0x0064);
+            properties, MapiKnownProperties.PidTag.SentRepresentingName,
+            MapiKnownProperties.PidTag.SentRepresentingSmtpAddress,
+            MapiKnownProperties.PidTag.SentRepresentingEmailAddress,
+            MapiKnownProperties.PidTag.SentRepresentingAddressType);
         document.Sender = MsgAddressProjection.ReadAddress(
-            properties, 0x0C1A, 0x5D01, 0x0C1F, 0x0C1E);
+            properties, MapiKnownProperties.PidTag.SenderName, MapiKnownProperties.PidTag.SenderSmtpAddress,
+            MapiKnownProperties.PidTag.SenderEmailAddress, MapiKnownProperties.PidTag.SenderAddressType);
         document.ReceivedBy = MsgAddressProjection.ReadAddress(
-            properties, 0x0040, 0x0076, 0x0076, 0x0075);
+            properties, MapiKnownProperties.PidTag.ReceivedByName, MapiKnownProperties.PidTag.ReceivedByEmailAddress,
+            MapiKnownProperties.PidTag.ReceivedByEmailAddress, MapiKnownProperties.PidTag.ReceivedByAddressType);
         document.ReceivedRepresenting = MsgAddressProjection.ReadAddress(
-            properties, 0x0044, 0x0078, 0x0078, 0x0077);
+            properties, MapiKnownProperties.PidTag.ReceivedRepresentingName,
+            MapiKnownProperties.PidTag.ReceivedRepresentingEmailAddress,
+            MapiKnownProperties.PidTag.ReceivedRepresentingEmailAddress,
+            MapiKnownProperties.PidTag.ReceivedRepresentingAddressType);
 
-        string? transportHeaders = GetString(properties, 0x007D);
+        string? transportHeaders = mapi.GetValueOrDefault(MapiKnownProperties.PidTag.TransportMessageHeaders);
         if (!string.IsNullOrWhiteSpace(transportHeaders)) {
             byte[] bytes = Encoding.UTF8.GetBytes(string.Concat(transportHeaders, "\r\n\r\n"));
             var parsedHeaders = new List<EmailHeader>();
@@ -67,12 +80,12 @@ internal static class MsgProjection {
             document.Properties[key] = property.Value;
         }
 
-        ApplyReplyTo(document, properties);
+        ApplyReplyTo(document, mapi);
         ApplyTyped(document);
     }
 
-    private static void ApplyReplyTo(EmailDocument document, IEnumerable<MapiProperty> properties) {
-        string? replyTo = GetString(properties, 0x0050);
+    private static void ApplyReplyTo(EmailDocument document, MapiPropertyBag properties) {
+        string? replyTo = properties.GetValueOrDefault(MapiKnownProperties.PidTag.ReplyRecipientNames);
         if (string.IsNullOrWhiteSpace(replyTo)) return;
 
         foreach (EmailAddress address in MimeAddressParser.ParseMany(replyTo, allowSemicolonSeparator: true)) {
@@ -102,289 +115,374 @@ internal static class MsgProjection {
         }
     }
 
-    private static void ApplyMessageMetadata(EmailDocument document, IEnumerable<MapiProperty> properties) {
+    private static void ApplyMessageMetadata(EmailDocument document, MapiPropertyBag properties) {
         EmailMessageMetadata metadata = document.MessageMetadata;
-        metadata.SubjectPrefix = GetString(properties, 0x003D);
-        metadata.NormalizedSubject = GetString(properties, 0x0E1D);
-        metadata.ConversationTopic = GetString(properties, 0x0070);
-        metadata.ConversationIndex = properties.FirstOrDefault(property => property.PropertyId == 0x0071)?.Value as byte[];
-        metadata.InternetReferences = GetString(properties, 0x1039);
-        metadata.InReplyToId = GetString(properties, 0x1042);
-        int? importance = GetInt(properties, 0x0017);
+        metadata.SubjectPrefix = properties.GetValueOrDefault(MapiKnownProperties.PidTag.SubjectPrefix);
+        metadata.NormalizedSubject = properties.GetValueOrDefault(MapiKnownProperties.PidTag.NormalizedSubject);
+        metadata.ConversationTopic = properties.GetValueOrDefault(MapiKnownProperties.PidTag.ConversationTopic);
+        metadata.ConversationIndex = properties.GetValueOrDefault(MapiKnownProperties.PidTag.ConversationIndex);
+        metadata.InternetReferences = properties.GetValueOrDefault(MapiKnownProperties.PidTag.InternetReferences);
+        metadata.InReplyToId = properties.GetValueOrDefault(MapiKnownProperties.PidTag.InReplyToId);
+        int? importance = properties.GetNullableValue(MapiKnownProperties.PidTag.Importance);
         if (importance.HasValue && Enum.IsDefined(typeof(EmailMessageImportance), importance.Value)) {
             metadata.Importance = (EmailMessageImportance)importance.Value;
         }
-        int? priority = GetInt(properties, 0x0026);
+        int? priority = properties.GetNullableValue(MapiKnownProperties.PidTag.Priority);
         if (priority.HasValue && Enum.IsDefined(typeof(EmailMessagePriority), priority.Value)) {
             metadata.Priority = (EmailMessagePriority)priority.Value;
         }
-        metadata.IconIndex = GetInt(properties, 0x1080);
-        int flags = GetInt(properties, 0x0E07) ?? 0;
+        metadata.IconIndex = properties.GetNullableValue(MapiKnownProperties.PidTag.IconIndex);
+        int flags = properties.GetValueOrDefault(MapiKnownProperties.PidTag.MessageFlags);
         metadata.IsDraft = (flags & 0x0008) != 0;
         metadata.IsRead = (flags & 0x0001) != 0;
-        metadata.ReadReceiptRequested = GetBool(properties, 0x0029) ?? false;
-        metadata.DeliveryReceiptRequested = GetBool(properties, 0x0023) ?? false;
-        metadata.Sensitivity = GetInt(properties, 0x0036);
-        metadata.OriginalSensitivity = GetInt(properties, 0x002E);
-        metadata.CreatedDate = GetDate(properties, 0x3007);
-        metadata.ModifiedDate = GetDate(properties, 0x3008);
-        metadata.LastModifierName = GetString(properties, 0x3FFA);
-        metadata.LocaleId = GetInt(properties, 0x3FF1);
-        metadata.DeclaredSize = GetInt(properties, 0x0E08);
-        metadata.ConversationId = properties.FirstOrDefault(property => property.PropertyId == 0x3013)?.Value as byte[];
-        metadata.EditorFormat = GetInt(properties, 0x5909);
-        metadata.ReactionsSummary = GetNamedByName(properties, "ReactionsSummary")?.Value as byte[];
-        metadata.OwnerReactionHistory = GetNamedByName(properties, "OwnerReactionHistory")?.Value as byte[];
-        metadata.OwnerReactionType = GetNamedByName(properties, "OwnerReactionType")?.Value as string;
-        metadata.OwnerReactionTime = ConvertDate(GetNamedByName(properties, "OwnerReactionTime")?.Value);
-        metadata.ReactionsCount = ConvertInt(GetNamedByName(properties, "ReactionsCount")?.Value);
-        foreach (string category in GetNamedStrings(properties, PsPublicStrings, "Keywords", 0x9000)) {
-            metadata.Categories.Add(category);
-        }
+        metadata.ReadReceiptRequested = properties.GetValueOrDefault(MapiKnownProperties.PidTag.ReadReceiptRequested);
+        metadata.DeliveryReceiptRequested = properties.GetValueOrDefault(
+            MapiKnownProperties.PidTag.OriginatorDeliveryReportRequested);
+        metadata.Sensitivity = properties.GetNullableValue(MapiKnownProperties.PidTag.Sensitivity);
+        metadata.OriginalSensitivity = properties.GetNullableValue(MapiKnownProperties.PidTag.OriginalSensitivity);
+        metadata.CreatedDate = properties.GetNullableValue(MapiKnownProperties.PidTag.CreationTime);
+        metadata.ModifiedDate = properties.GetNullableValue(MapiKnownProperties.PidTag.LastModificationTime);
+        metadata.LastModifierName = properties.GetValueOrDefault(MapiKnownProperties.PidTag.LastModifierName);
+        metadata.LocaleId = properties.GetNullableValue(MapiKnownProperties.PidTag.MessageLocaleId);
+        metadata.DeclaredSize = properties.GetNullableValue(MapiKnownProperties.PidTag.MessageSize);
+        metadata.ConversationId = properties.GetValueOrDefault(MapiKnownProperties.PidTag.ConversationId);
+        metadata.EditorFormat = properties.GetNullableValue(MapiKnownProperties.PidTag.MessageEditorFormat);
+        metadata.ReactionsSummary = properties.GetValueOrDefault(MapiKnownProperties.PidName.ReactionsSummary);
+        metadata.OwnerReactionHistory = properties.GetValueOrDefault(MapiKnownProperties.PidName.OwnerReactionHistory);
+        metadata.OwnerReactionType = properties.GetValueOrDefault(MapiKnownProperties.PidName.OwnerReactionType);
+        metadata.OwnerReactionTime = properties.GetNullableValue(MapiKnownProperties.PidName.OwnerReactionTime);
+        metadata.ReactionsCount = properties.GetNullableValue(MapiKnownProperties.PidName.ReactionsCount);
+        MapiProperty? categories = properties.Find(MapiKnownProperties.PidName.Keywords) ??
+            properties.Find(MapiKnownProperties.PidLid.LegacyKeywords);
+        AddStrings(metadata.Categories, categories?.Value);
     }
 
     internal static void ApplyTyped(EmailDocument document) {
-        IList<MapiProperty> properties = document.MapiProperties;
+        MapiPropertyBag properties = document.Mapi;
         switch (document.OutlookItemKind) {
-            case OutlookItemKind.Appointment: document.Appointment = CreateAppointment(properties); break;
+            case OutlookItemKind.Appointment:
+                document.Appointment = CreateAppointment(properties, document.OutlookCodePage ?? 1252);
+                document.MeetingCommunication = CreateMeetingCommunication(document.MessageClass, properties);
+                break;
             case OutlookItemKind.Contact: document.Contact = CreateContact(properties); break;
-            case OutlookItemKind.Task: document.Task = CreateTask(properties); break;
+            case OutlookItemKind.DistributionList:
+                document.DistributionList = OutlookDistributionList.Project(properties);
+                break;
+            case OutlookItemKind.Task:
+                document.Task = CreateTask(properties);
+                document.TaskCommunication = CreateTaskCommunication(document.MessageClass);
+                break;
             case OutlookItemKind.Journal: document.Journal = CreateJournal(properties); break;
             case OutlookItemKind.Note: document.Note = CreateNote(properties); break;
         }
+    }
+
+    internal static void ApplyAttachmentSemantics(EmailDocument document) {
+        OutlookTaskCommunication? communication = document.TaskCommunication;
+        if (communication == null || communication.Kind == OutlookTaskCommunicationKind.None) return;
+        EmailAttachment? payload = document.Attachments.FirstOrDefault();
+        communication.PayloadAttachment = payload;
+        communication.EmbeddedTask = payload?.EmbeddedDocument;
     }
 
     internal static OutlookItemKind Classify(string? messageClass) {
         if (messageClass == null) return OutlookItemKind.Unknown;
         if (messageClass.StartsWith("IPM.Appointment", StringComparison.OrdinalIgnoreCase) ||
             messageClass.StartsWith("IPM.Schedule.Meeting", StringComparison.OrdinalIgnoreCase)) return OutlookItemKind.Appointment;
-        if (messageClass.StartsWith("IPM.Contact", StringComparison.OrdinalIgnoreCase) ||
-            messageClass.StartsWith("IPM.DistList", StringComparison.OrdinalIgnoreCase)) return OutlookItemKind.Contact;
+        if (messageClass.StartsWith("IPM.DistList", StringComparison.OrdinalIgnoreCase)) return OutlookItemKind.DistributionList;
+        if (messageClass.StartsWith("IPM.Contact", StringComparison.OrdinalIgnoreCase)) return OutlookItemKind.Contact;
         if (messageClass.StartsWith("IPM.Task", StringComparison.OrdinalIgnoreCase)) return OutlookItemKind.Task;
         if (messageClass.StartsWith("IPM.Activity", StringComparison.OrdinalIgnoreCase)) return OutlookItemKind.Journal;
         if (messageClass.StartsWith("IPM.StickyNote", StringComparison.OrdinalIgnoreCase)) return OutlookItemKind.Note;
         return OutlookItemKind.Message;
     }
 
-    internal static string? GetString(IEnumerable<MapiProperty> properties, ushort id) {
-        return properties.FirstOrDefault(property => property.PropertyId == id && property.Value is string)?.Value as string;
+    private static OutlookAppointment CreateAppointment(MapiPropertyBag properties, int string8CodePage) {
+        byte[]? recurrenceState = properties.GetValueOrDefault(MapiKnownProperties.PidLid.AppointmentRecur);
+        byte[]? legacyTimeZone = properties.GetValueOrDefault(MapiKnownProperties.PidLid.TimeZoneStruct);
+        byte[]? startTimeZone = properties.GetValueOrDefault(
+            MapiKnownProperties.PidLid.AppointmentTimeZoneDefinitionStartDisplay);
+        byte[]? endTimeZone = properties.GetValueOrDefault(
+            MapiKnownProperties.PidLid.AppointmentTimeZoneDefinitionEndDisplay);
+        byte[]? recurrenceTimeZone = properties.GetValueOrDefault(
+            MapiKnownProperties.PidLid.AppointmentTimeZoneDefinitionRecur);
+        var appointment = new OutlookAppointment {
+            GlobalObjectId = properties.GetValueOrDefault(MapiKnownProperties.PidLid.GlobalObjectId),
+            CleanGlobalObjectId = properties.GetValueOrDefault(MapiKnownProperties.PidLid.CleanGlobalObjectId),
+            Start = properties.GetNullableValue(MapiKnownProperties.PidLid.AppointmentStartWhole) ??
+                properties.GetNullableValue(MapiKnownProperties.PidLid.CommonStart),
+            End = properties.GetNullableValue(MapiKnownProperties.PidLid.AppointmentEndWhole) ??
+                properties.GetNullableValue(MapiKnownProperties.PidLid.CommonEnd),
+            Location = properties.GetValueOrDefault(MapiKnownProperties.PidLid.Location),
+            IsAllDay = properties.GetNullableValue(MapiKnownProperties.PidLid.AppointmentSubType),
+            BusyStatus = properties.GetNullableValue(MapiKnownProperties.PidLid.BusyStatus),
+            MeetingStatus = properties.GetNullableValue(MapiKnownProperties.PidLid.AppointmentStateFlags),
+            ResponseStatus = properties.GetNullableValue(MapiKnownProperties.PidLid.ResponseStatus),
+            Sequence = properties.GetNullableValue(MapiKnownProperties.PidLid.AppointmentSequence),
+            DurationMinutes = properties.GetNullableValue(MapiKnownProperties.PidLid.AppointmentDuration),
+            AllAttendees = properties.GetValueOrDefault(MapiKnownProperties.PidLid.AllAttendeesString),
+            RequiredAttendees = properties.GetValueOrDefault(MapiKnownProperties.PidLid.ToAttendeesString),
+            OptionalAttendees = properties.GetValueOrDefault(MapiKnownProperties.PidLid.CcAttendeesString),
+            NotAllowPropose = properties.GetNullableValue(MapiKnownProperties.PidLid.AppointmentNotAllowPropose),
+            RecurrenceType = properties.GetNullableValue(MapiKnownProperties.PidLid.RecurrenceType),
+            RecurrencePattern = properties.GetValueOrDefault(MapiKnownProperties.PidLid.RecurrencePattern),
+            RecurrenceState = recurrenceState,
+            Recurrence = recurrenceState == null ? null :
+                OutlookRecurrenceBinary.DecodeAppointment(recurrenceState, string8CodePage),
+            IsRecurring = properties.GetNullableValue(MapiKnownProperties.PidLid.Recurring),
+            ClientIntentFlags = properties.GetNullableValue(MapiKnownProperties.PidLid.ClientIntent),
+            TimeZoneStructure = legacyTimeZone,
+            LegacyTimeZone = legacyTimeZone == null ? null : OutlookTimeZoneBinary.DecodeStructure(legacyTimeZone),
+            TimeZoneDescription = properties.GetValueOrDefault(MapiKnownProperties.PidLid.TimeZoneDescription),
+            StartTimeZoneDefinition = startTimeZone,
+            StartTimeZone = startTimeZone == null ? null : OutlookTimeZoneBinary.DecodeDefinition(startTimeZone),
+            EndTimeZoneDefinition = endTimeZone,
+            EndTimeZone = endTimeZone == null ? null : OutlookTimeZoneBinary.DecodeDefinition(endTimeZone),
+            RecurrenceTimeZoneDefinition = recurrenceTimeZone,
+            RecurrenceTimeZone = recurrenceTimeZone == null ? null :
+                OutlookTimeZoneBinary.DecodeDefinition(recurrenceTimeZone)
+        };
+        if (appointment.Recurrence != null)
+            appointment.Recurrence.TimeZoneId = appointment.RecurrenceTimeZone?.KeyName ??
+                appointment.StartTimeZone?.KeyName ?? appointment.TimeZoneDescription;
+        OutlookMessageSemanticsProjection.ApplyReminder(appointment.Reminder, properties);
+        return appointment;
     }
 
-    internal static int? GetInt(IEnumerable<MapiProperty> properties, ushort id) {
-        return ConvertInt(properties.FirstOrDefault(property => property.PropertyId == id)?.Value);
-    }
-
-    internal static DateTimeOffset? GetDate(IEnumerable<MapiProperty> properties, ushort id) {
-        return ConvertDate(properties.FirstOrDefault(property => property.PropertyId == id)?.Value);
-    }
-
-    internal static bool? GetBool(IEnumerable<MapiProperty> properties, ushort id) {
-        return ConvertBool(properties.FirstOrDefault(property => property.PropertyId == id)?.Value);
-    }
-
-    internal static MapiProperty? GetNamed(IEnumerable<MapiProperty> properties, Guid set, uint localId) {
-        return properties.FirstOrDefault(property => property.Name?.PropertySet == set && property.Name.LocalId == localId);
-    }
-
-    private static MapiProperty? GetNamedByName(IEnumerable<MapiProperty> properties, string name) {
-        return properties.FirstOrDefault(property =>
-            string.Equals(property.Name?.Name, name, StringComparison.OrdinalIgnoreCase));
-    }
-
-    private static IEnumerable<string> GetNamedStrings(IEnumerable<MapiProperty> properties, Guid set,
-        string name, uint legacyLocalId) {
-        MapiProperty? property = properties.FirstOrDefault(item => item.Name?.PropertySet == set &&
-            (string.Equals(item.Name.Name, name, StringComparison.OrdinalIgnoreCase) || item.Name.LocalId == legacyLocalId));
-        if (property?.Value is string scalar) return new[] { scalar };
-        if (property?.Value is object[] values) return values.OfType<string>();
-        return Array.Empty<string>();
-    }
-
-    private static OutlookAppointment CreateAppointment(IEnumerable<MapiProperty> properties) {
-        return new OutlookAppointment {
-            Start = GetNamedDate(properties, PsetidAppointment, 0x820D) ?? GetNamedDate(properties, PsetidCommon, 0x8516),
-            End = GetNamedDate(properties, PsetidAppointment, 0x820E) ?? GetNamedDate(properties, PsetidCommon, 0x8517),
-            Location = GetNamedString(properties, PsetidAppointment, 0x8208),
-            IsAllDay = GetNamedBool(properties, PsetidAppointment, 0x8215),
-            BusyStatus = GetNamedInt(properties, PsetidAppointment, 0x8205),
-            MeetingStatus = GetNamedInt(properties, PsetidAppointment, 0x8217),
-            ResponseStatus = GetNamedInt(properties, PsetidAppointment, 0x8218),
-            Sequence = GetNamedInt(properties, PsetidAppointment, 0x8201),
-            DurationMinutes = GetNamedInt(properties, PsetidAppointment, 0x8213),
-            AllAttendees = GetNamedString(properties, PsetidAppointment, 0x8238),
-            RequiredAttendees = GetNamedString(properties, PsetidAppointment, 0x823B),
-            OptionalAttendees = GetNamedString(properties, PsetidAppointment, 0x823C),
-            NotAllowPropose = GetNamedBool(properties, PsetidAppointment, 0x825A),
-            RecurrenceType = GetNamedInt(properties, PsetidAppointment, 0x8231),
-            RecurrencePattern = GetNamedString(properties, PsetidAppointment, 0x8232),
-            RecurrenceState = GetNamedBinary(properties, PsetidAppointment, 0x8216),
-            IsRecurring = GetNamedBool(properties, PsetidAppointment, 0x8223),
-            ClientIntentFlags = GetNamedInt(properties, PsetidCalendarAssistant, 0x0015),
-            ReminderDeltaMinutes = GetNamedInt(properties, PsetidCommon, 0x8501),
-            ReminderTime = GetNamedDate(properties, PsetidCommon, 0x8502),
-            ReminderIsSet = GetNamedBool(properties, PsetidCommon, 0x8503),
-            ReminderSignalTime = GetNamedDate(properties, PsetidCommon, 0x8560),
-            TimeZoneStructure = GetNamedBinary(properties, PsetidAppointment, 0x8233),
-            TimeZoneDescription = GetNamedString(properties, PsetidAppointment, 0x8234),
-            StartTimeZoneDefinition = GetNamedBinary(properties, PsetidAppointment, 0x825E),
-            EndTimeZoneDefinition = GetNamedBinary(properties, PsetidAppointment, 0x825F),
-            RecurrenceTimeZoneDefinition = GetNamedBinary(properties, PsetidAppointment, 0x8260)
+    private static OutlookMeetingCommunication? CreateMeetingCommunication(string? messageClass,
+        MapiPropertyBag properties) {
+        OutlookMeetingCommunicationKind kind = ClassifyMeetingCommunication(messageClass);
+        if (kind == OutlookMeetingCommunicationKind.None) return null;
+        return new OutlookMeetingCommunication {
+            Kind = kind,
+            RequestTypeValue = properties.GetNullableValue(MapiKnownProperties.PidLid.MeetingType),
+            IntendedBusyStatus = properties.GetNullableValue(MapiKnownProperties.PidLid.IntendedBusyStatus),
+            OwnerCriticalChange = properties.GetNullableValue(MapiKnownProperties.PidLid.OwnerCriticalChange),
+            AttendeeCriticalChange = properties.GetNullableValue(MapiKnownProperties.PidLid.AttendeeCriticalChange),
+            IsSilent = properties.GetNullableValue(MapiKnownProperties.PidLid.IsSilent),
+            IsCounterProposal = properties.GetNullableValue(MapiKnownProperties.PidLid.AppointmentCounterProposal),
+            ProposedStart = properties.GetNullableValue(MapiKnownProperties.PidLid.AppointmentProposedStartWhole),
+            ProposedEnd = properties.GetNullableValue(MapiKnownProperties.PidLid.AppointmentProposedEndWhole),
+            ProposedDurationMinutes = properties.GetNullableValue(MapiKnownProperties.PidLid.AppointmentProposedDuration),
+            ReplyAt = properties.GetNullableValue(MapiKnownProperties.PidLid.AppointmentReplyTime),
+            ReplyName = properties.GetValueOrDefault(MapiKnownProperties.PidLid.AppointmentReplyName)
         };
     }
 
-    private static OutlookContact CreateContact(IEnumerable<MapiProperty> properties) {
+    private static OutlookMeetingCommunicationKind ClassifyMeetingCommunication(string? messageClass) {
+        if (messageClass == null) return OutlookMeetingCommunicationKind.None;
+        if (messageClass.StartsWith("IPM.Schedule.Meeting.Request", StringComparison.OrdinalIgnoreCase))
+            return OutlookMeetingCommunicationKind.RequestOrUpdate;
+        if (messageClass.StartsWith("IPM.Schedule.Meeting.Canceled", StringComparison.OrdinalIgnoreCase))
+            return OutlookMeetingCommunicationKind.Cancellation;
+        if (messageClass.StartsWith("IPM.Schedule.Meeting.Resp.Pos", StringComparison.OrdinalIgnoreCase))
+            return OutlookMeetingCommunicationKind.ResponseAccepted;
+        if (messageClass.StartsWith("IPM.Schedule.Meeting.Resp.Tent", StringComparison.OrdinalIgnoreCase))
+            return OutlookMeetingCommunicationKind.ResponseTentative;
+        if (messageClass.StartsWith("IPM.Schedule.Meeting.Resp.Neg", StringComparison.OrdinalIgnoreCase))
+            return OutlookMeetingCommunicationKind.ResponseDeclined;
+        if (messageClass.StartsWith("IPM.Schedule.Meeting.Forward.Notification", StringComparison.OrdinalIgnoreCase))
+            return OutlookMeetingCommunicationKind.ForwardNotification;
+        return OutlookMeetingCommunicationKind.None;
+    }
+
+    private static OutlookTaskCommunication? CreateTaskCommunication(string? messageClass) {
+        OutlookTaskCommunicationKind kind;
+        if (messageClass?.StartsWith("IPM.TaskRequest.Accept", StringComparison.OrdinalIgnoreCase) == true)
+            kind = OutlookTaskCommunicationKind.Accept;
+        else if (messageClass?.StartsWith("IPM.TaskRequest.Decline", StringComparison.OrdinalIgnoreCase) == true)
+            kind = OutlookTaskCommunicationKind.Decline;
+        else if (messageClass?.StartsWith("IPM.TaskRequest.Update", StringComparison.OrdinalIgnoreCase) == true)
+            kind = OutlookTaskCommunicationKind.Update;
+        else if (messageClass?.StartsWith("IPM.TaskRequest", StringComparison.OrdinalIgnoreCase) == true)
+            kind = OutlookTaskCommunicationKind.Request;
+        else return null;
+        return new OutlookTaskCommunication { Kind = kind };
+    }
+
+    private static OutlookContact CreateContact(MapiPropertyBag properties) {
         var contact = new OutlookContact {
-            DisplayName = GetString(properties, 0x3001),
-            Prefix = GetString(properties, 0x3A45),
-            Initials = GetString(properties, 0x3A0A),
-            GivenName = GetString(properties, 0x3A06),
-            MiddleName = GetString(properties, 0x3A44),
-            Surname = GetString(properties, 0x3A11),
-            Generation = GetString(properties, 0x3A05),
-            CompanyName = GetString(properties, 0x3A16),
-            JobTitle = GetString(properties, 0x3A17),
-            Department = GetString(properties, 0x3A18),
-            FileAs = GetNamedString(properties, PsetidAddress, 0x8005),
-            NickName = GetString(properties, 0x3A4F),
-            ManagerName = GetString(properties, 0x3A4E),
-            AssistantName = GetString(properties, 0x3A30),
-            SpouseName = GetString(properties, 0x3A48),
-            Profession = GetString(properties, 0x3A46),
-            Language = GetString(properties, 0x3A0C),
-            Location = GetString(properties, 0x3A0D),
-            OfficeLocation = GetString(properties, 0x3A19),
-            Birthday = GetDate(properties, 0x3A42) ?? GetNamedDate(properties, PsetidAddress, 0x80DE),
-            WeddingAnniversary = GetDate(properties, 0x3A41) ?? GetNamedDate(properties, PsetidAddress, 0x80DF),
-            IsPrivate = GetNamedBool(properties, PsetidCommon, 0x8506) ?? GetNamedBool(properties, PsetidSharing, 0x8506),
-            HasPicture = GetNamedBool(properties, PsetidAddress, 0x8015),
-            InstantMessagingAddress = GetNamedString(properties, PsetidAddress, 0x8062),
-            BusinessHomePage = GetString(properties, 0x3A51),
-            PersonalHomePage = GetString(properties, 0x3A50),
-            Html = GetNamedString(properties, PsetidAddress, 0x802B)
+            DisplayName = properties.GetValueOrDefault(MapiKnownProperties.PidTag.DisplayName),
+            Prefix = properties.GetValueOrDefault(MapiKnownProperties.PidTag.DisplayNamePrefix),
+            Initials = properties.GetValueOrDefault(MapiKnownProperties.PidTag.Initials),
+            GivenName = properties.GetValueOrDefault(MapiKnownProperties.PidTag.GivenName),
+            MiddleName = properties.GetValueOrDefault(MapiKnownProperties.PidTag.MiddleName),
+            Surname = properties.GetValueOrDefault(MapiKnownProperties.PidTag.Surname),
+            Generation = properties.GetValueOrDefault(MapiKnownProperties.PidTag.Generation),
+            CompanyName = properties.GetValueOrDefault(MapiKnownProperties.PidTag.CompanyName),
+            JobTitle = properties.GetValueOrDefault(MapiKnownProperties.PidTag.Title),
+            Department = properties.GetValueOrDefault(MapiKnownProperties.PidTag.DepartmentName),
+            FileAs = properties.GetValueOrDefault(MapiKnownProperties.PidLid.FileUnder),
+            NickName = properties.GetValueOrDefault(MapiKnownProperties.PidTag.Nickname),
+            ManagerName = properties.GetValueOrDefault(MapiKnownProperties.PidTag.ManagerName),
+            AssistantName = properties.GetValueOrDefault(MapiKnownProperties.PidTag.Assistant),
+            SpouseName = properties.GetValueOrDefault(MapiKnownProperties.PidTag.SpouseName),
+            Profession = properties.GetValueOrDefault(MapiKnownProperties.PidTag.Profession),
+            Language = properties.GetValueOrDefault(MapiKnownProperties.PidTag.Language),
+            Location = properties.GetValueOrDefault(MapiKnownProperties.PidTag.MailUserLocation),
+            OfficeLocation = properties.GetValueOrDefault(MapiKnownProperties.PidTag.OfficeLocation),
+            Birthday = properties.GetNullableValue(MapiKnownProperties.PidTag.Birthday) ??
+                properties.GetNullableValue(MapiKnownProperties.PidLid.BirthdayLocal),
+            WeddingAnniversary = properties.GetNullableValue(MapiKnownProperties.PidTag.WeddingAnniversary) ??
+                properties.GetNullableValue(MapiKnownProperties.PidLid.WeddingAnniversaryLocal),
+            IsPrivate = properties.GetNullableValue(MapiKnownProperties.PidLid.Private),
+            HasPicture = properties.GetNullableValue(MapiKnownProperties.PidLid.HasPicture),
+            InstantMessagingAddress = properties.GetValueOrDefault(MapiKnownProperties.PidLid.InstantMessagingAddress),
+            BusinessHomePage = properties.GetValueOrDefault(MapiKnownProperties.PidTag.BusinessHomePage),
+            PersonalHomePage = properties.GetValueOrDefault(MapiKnownProperties.PidTag.PersonalHomePage),
+            Html = properties.GetValueOrDefault(MapiKnownProperties.PidLid.ContactHtml)
         };
-        AddDelimited(contact.Children, GetString(properties, 0x3A58));
+        AddStrings(contact.Children, properties.Find(MapiKnownProperties.PidTag.ChildrensNames)?.Value);
 
-        PopulateAddress(contact.BusinessAddress, properties, null, 0x3A29, 0x3A27, 0x3A28, 0x3A2A, 0x3A26, 0x3A2B);
-        PopulateAddress(contact.HomeAddress, properties, 0x801A, 0x3A5D, 0x3A59, 0x3A5C, 0x3A5B, 0x3A5A, 0x3A5E);
-        PopulateAddress(contact.OtherAddress, properties, 0x801C, 0x3A63, 0x3A5F, 0x3A62, 0x3A61, 0x3A60, 0x3A64);
-        contact.WorkAddress.Formatted = GetNamedString(properties, PsetidAddress, 0x801B);
-        contact.WorkAddress.Street = GetNamedString(properties, PsetidAddress, 0x8045);
-        contact.WorkAddress.City = GetNamedString(properties, PsetidAddress, 0x8046);
-        contact.WorkAddress.StateOrProvince = GetNamedString(properties, PsetidAddress, 0x8047);
-        contact.WorkAddress.PostalCode = GetNamedString(properties, PsetidAddress, 0x8048);
-        contact.WorkAddress.Country = GetNamedString(properties, PsetidAddress, 0x8049);
-        contact.WorkAddress.PostOfficeBox = GetNamedString(properties, PsetidAddress, 0x804A);
-        contact.WorkAddress.CountryCode = GetNamedString(properties, PsetidAddress, 0x80DB);
-        contact.BusinessAddress.Formatted = contact.WorkAddress.Formatted ?? GetString(properties, 0x3A15);
+        PopulateAddress(contact.BusinessAddress, properties, null,
+            MapiKnownProperties.PidTag.StreetAddress, MapiKnownProperties.PidTag.Locality,
+            MapiKnownProperties.PidTag.StateOrProvince, MapiKnownProperties.PidTag.PostalCode,
+            MapiKnownProperties.PidTag.Country, MapiKnownProperties.PidTag.PostOfficeBox);
+        PopulateAddress(contact.HomeAddress, properties, MapiKnownProperties.PidLid.HomeAddress,
+            MapiKnownProperties.PidTag.HomeAddressStreet, MapiKnownProperties.PidTag.HomeAddressCity,
+            MapiKnownProperties.PidTag.HomeAddressStateOrProvince, MapiKnownProperties.PidTag.HomeAddressPostalCode,
+            MapiKnownProperties.PidTag.HomeAddressCountry, MapiKnownProperties.PidTag.HomeAddressPostOfficeBox);
+        PopulateAddress(contact.OtherAddress, properties, MapiKnownProperties.PidLid.OtherAddress,
+            MapiKnownProperties.PidTag.OtherAddressStreet, MapiKnownProperties.PidTag.OtherAddressCity,
+            MapiKnownProperties.PidTag.OtherAddressStateOrProvince, MapiKnownProperties.PidTag.OtherAddressPostalCode,
+            MapiKnownProperties.PidTag.OtherAddressCountry, MapiKnownProperties.PidTag.OtherAddressPostOfficeBox);
+        contact.WorkAddress.Formatted = properties.GetValueOrDefault(MapiKnownProperties.PidLid.WorkAddress);
+        contact.WorkAddress.Street = properties.GetValueOrDefault(MapiKnownProperties.PidLid.WorkAddressStreet);
+        contact.WorkAddress.City = properties.GetValueOrDefault(MapiKnownProperties.PidLid.WorkAddressCity);
+        contact.WorkAddress.StateOrProvince = properties.GetValueOrDefault(MapiKnownProperties.PidLid.WorkAddressState);
+        contact.WorkAddress.PostalCode = properties.GetValueOrDefault(MapiKnownProperties.PidLid.WorkAddressPostalCode);
+        contact.WorkAddress.Country = properties.GetValueOrDefault(MapiKnownProperties.PidLid.WorkAddressCountry);
+        contact.WorkAddress.PostOfficeBox = properties.GetValueOrDefault(MapiKnownProperties.PidLid.WorkAddressPostOfficeBox);
+        contact.WorkAddress.CountryCode = properties.GetValueOrDefault(MapiKnownProperties.PidLid.WorkAddressCountryCode);
+        contact.BusinessAddress.Formatted = contact.WorkAddress.Formatted ??
+            properties.GetValueOrDefault(MapiKnownProperties.PidTag.PostalAddress);
 
-        contact.Phones.Business = GetString(properties, 0x3A08);
-        contact.Phones.Business2 = GetString(properties, 0x3A1B);
-        contact.Phones.Home = GetString(properties, 0x3A09);
-        contact.Phones.Home2 = GetString(properties, 0x3A2F);
-        contact.Phones.Mobile = GetString(properties, 0x3A1C);
-        contact.Phones.Other = GetString(properties, 0x3A1F);
-        contact.Phones.Primary = GetString(properties, 0x3A1A);
-        contact.Phones.BusinessFax = GetString(properties, 0x3A24);
-        contact.Phones.HomeFax = GetString(properties, 0x3A25);
-        contact.Phones.PrimaryFax = GetString(properties, 0x3A23);
-        contact.Phones.Assistant = GetString(properties, 0x3A2E);
-        contact.Phones.CompanyMain = GetString(properties, 0x3A57);
-        contact.Phones.Car = GetString(properties, 0x3A1E);
-        contact.Phones.Radio = GetString(properties, 0x3A1D);
-        contact.Phones.Pager = GetString(properties, 0x3A21);
-        contact.Phones.Callback = GetString(properties, 0x3A02);
-        contact.Phones.Telex = GetString(properties, 0x3A2C);
-        contact.Phones.TextTelephone = GetString(properties, 0x3A4B);
-        contact.Phones.Isdn = GetString(properties, 0x3A2D);
+        contact.Phones.Business = properties.GetValueOrDefault(MapiKnownProperties.PidTag.BusinessTelephoneNumber);
+        contact.Phones.Business2 = properties.GetValueOrDefault(MapiKnownProperties.PidTag.Business2TelephoneNumber);
+        contact.Phones.Home = properties.GetValueOrDefault(MapiKnownProperties.PidTag.HomeTelephoneNumber);
+        contact.Phones.Home2 = properties.GetValueOrDefault(MapiKnownProperties.PidTag.Home2TelephoneNumber);
+        contact.Phones.Mobile = properties.GetValueOrDefault(MapiKnownProperties.PidTag.MobileTelephoneNumber);
+        contact.Phones.Other = properties.GetValueOrDefault(MapiKnownProperties.PidTag.OtherTelephoneNumber);
+        contact.Phones.Primary = properties.GetValueOrDefault(MapiKnownProperties.PidTag.PrimaryTelephoneNumber);
+        contact.Phones.BusinessFax = properties.GetValueOrDefault(MapiKnownProperties.PidTag.BusinessFaxNumber);
+        contact.Phones.HomeFax = properties.GetValueOrDefault(MapiKnownProperties.PidTag.HomeFaxNumber);
+        contact.Phones.PrimaryFax = properties.GetValueOrDefault(MapiKnownProperties.PidTag.PrimaryFaxNumber);
+        contact.Phones.Assistant = properties.GetValueOrDefault(MapiKnownProperties.PidTag.AssistantTelephoneNumber);
+        contact.Phones.CompanyMain = properties.GetValueOrDefault(MapiKnownProperties.PidTag.CompanyMainPhoneNumber);
+        contact.Phones.Car = properties.GetValueOrDefault(MapiKnownProperties.PidTag.CarTelephoneNumber);
+        contact.Phones.Radio = properties.GetValueOrDefault(MapiKnownProperties.PidTag.RadioTelephoneNumber);
+        contact.Phones.Pager = properties.GetValueOrDefault(MapiKnownProperties.PidTag.PagerTelephoneNumber);
+        contact.Phones.Callback = properties.GetValueOrDefault(MapiKnownProperties.PidTag.CallbackTelephoneNumber);
+        contact.Phones.Telex = properties.GetValueOrDefault(MapiKnownProperties.PidTag.TelexNumber);
+        contact.Phones.TextTelephone = properties.GetValueOrDefault(MapiKnownProperties.PidTag.TtyTddPhoneNumber);
+        contact.Phones.Isdn = properties.GetValueOrDefault(MapiKnownProperties.PidTag.IsdnNumber);
 
-        PopulateEmail(contact.Email1, properties, 0x8080, 0x8082, 0x8083, 0x8084, 0x8085);
-        PopulateEmail(contact.Email2, properties, 0x8090, 0x8092, 0x8093, 0x8094, 0x8095);
-        PopulateEmail(contact.Email3, properties, 0x80A0, 0x80A2, 0x80A3, 0x80A4, 0x80A5);
+        PopulateEmail(contact.Email1, properties, MapiKnownProperties.PidLid.Email1DisplayName,
+            MapiKnownProperties.PidLid.Email1AddressType, MapiKnownProperties.PidLid.Email1EmailAddress,
+            MapiKnownProperties.PidLid.Email1OriginalDisplayName, MapiKnownProperties.PidLid.Email1OriginalEntryId);
+        PopulateEmail(contact.Email2, properties, MapiKnownProperties.PidLid.Email2DisplayName,
+            MapiKnownProperties.PidLid.Email2AddressType, MapiKnownProperties.PidLid.Email2EmailAddress,
+            MapiKnownProperties.PidLid.Email2OriginalDisplayName, MapiKnownProperties.PidLid.Email2OriginalEntryId);
+        PopulateEmail(contact.Email3, properties, MapiKnownProperties.PidLid.Email3DisplayName,
+            MapiKnownProperties.PidLid.Email3AddressType, MapiKnownProperties.PidLid.Email3EmailAddress,
+            MapiKnownProperties.PidLid.Email3OriginalDisplayName, MapiKnownProperties.PidLid.Email3OriginalEntryId);
         return contact;
     }
 
-    private static OutlookTask CreateTask(IEnumerable<MapiProperty> properties) {
+    private static OutlookTask CreateTask(MapiPropertyBag properties) {
+        byte[]? recurrenceState = properties.GetValueOrDefault(MapiKnownProperties.PidLid.TaskRecurrence);
         var task = new OutlookTask {
-            Start = GetNamedDate(properties, PsetidTask, 0x8104),
-            Due = GetNamedDate(properties, PsetidTask, 0x8105),
-            Status = GetNamedInt(properties, PsetidTask, 0x8101),
-            PercentComplete = ConvertDouble(GetNamed(properties, PsetidTask, 0x8102)?.Value),
-            IsComplete = ConvertBool(GetNamed(properties, PsetidTask, 0x811C)?.Value),
-            Owner = GetNamedString(properties, PsetidTask, 0x811F),
-            ActualEffort = ToMinutes(GetNamedInt(properties, PsetidTask, 0x8110)),
-            EstimatedEffort = ToMinutes(GetNamedInt(properties, PsetidTask, 0x8111)),
-            SendUpdates = GetNamedBool(properties, PsetidTask, 0x811B),
-            SendStatusOnComplete = GetNamedBool(properties, PsetidTask, 0x8119),
-            Ownership = GetNamedInt(properties, PsetidTask, 0x8129),
-            AcceptanceState = GetNamedInt(properties, PsetidTask, 0x812A),
-            Version = GetNamedInt(properties, PsetidTask, 0x8112),
-            State = GetNamedInt(properties, PsetidTask, 0x8113),
-            Assigner = GetNamedString(properties, PsetidTask, 0x8121),
-            IsTeamTask = GetNamedBool(properties, PsetidTask, 0x8103),
-            Ordinal = GetNamedInt(properties, PsetidTask, 0x8123),
-            IsRecurring = GetNamedBool(properties, PsetidAppointment, 0x8223),
-            ReminderDeltaMinutes = GetNamedInt(properties, PsetidCommon, 0x8501),
-            ReminderTime = GetNamedDate(properties, PsetidCommon, 0x8502),
-            ReminderIsSet = GetNamedBool(properties, PsetidCommon, 0x8503),
-            ReminderSignalTime = GetNamedDate(properties, PsetidCommon, 0x8560),
-            CommonStart = GetNamedDate(properties, PsetidCommon, 0x8516),
-            CommonEnd = GetNamedDate(properties, PsetidCommon, 0x8517),
-            Mode = GetNamedInt(properties, PsetidCommon, 0x8518),
-            ToDoOrdinalDate = GetNamedDate(properties, PsetidCommon, 0x85A0),
-            ToDoSubOrdinal = GetNamedString(properties, PsetidCommon, 0x85A1),
-            BillingInformation = GetNamedString(properties, PsetidCommon, 0x8535),
-            Mileage = GetNamedString(properties, PsetidCommon, 0x8534),
-            CompletedAt = GetDate(properties, 0x1091)
+            Start = properties.GetNullableValue(MapiKnownProperties.PidLid.TaskStartDate),
+            Due = properties.GetNullableValue(MapiKnownProperties.PidLid.TaskDueDate),
+            Status = properties.GetNullableValue(MapiKnownProperties.PidLid.TaskStatus),
+            PercentComplete = properties.GetNullableValue(MapiKnownProperties.PidLid.PercentComplete),
+            IsComplete = properties.GetNullableValue(MapiKnownProperties.PidLid.TaskComplete),
+            Owner = properties.GetValueOrDefault(MapiKnownProperties.PidLid.TaskOwner),
+            ActualEffort = ToMinutes(properties.GetNullableValue(MapiKnownProperties.PidLid.TaskActualEffort)),
+            EstimatedEffort = ToMinutes(properties.GetNullableValue(MapiKnownProperties.PidLid.TaskEstimatedEffort)),
+            SendUpdates = properties.GetNullableValue(MapiKnownProperties.PidLid.TaskUpdates),
+            SendStatusOnComplete = properties.GetNullableValue(MapiKnownProperties.PidLid.TaskStatusOnComplete),
+            Ownership = properties.GetNullableValue(MapiKnownProperties.PidLid.TaskOwnership),
+            AcceptanceState = properties.GetNullableValue(MapiKnownProperties.PidLid.TaskAcceptanceState),
+            Version = properties.GetNullableValue(MapiKnownProperties.PidLid.TaskVersion),
+            State = properties.GetNullableValue(MapiKnownProperties.PidLid.TaskState),
+            Assigner = properties.GetValueOrDefault(MapiKnownProperties.PidLid.TaskAssigner),
+            IsTeamTask = properties.GetNullableValue(MapiKnownProperties.PidLid.TeamTask),
+            Ordinal = properties.GetNullableValue(MapiKnownProperties.PidLid.TaskOrdinal),
+            IsRecurring = properties.GetNullableValue(MapiKnownProperties.PidLid.TaskFRecurring),
+            RecurrenceState = recurrenceState,
+            Recurrence = recurrenceState == null ? null : OutlookRecurrenceBinary.DecodeTask(recurrenceState),
+            CommonStart = properties.GetNullableValue(MapiKnownProperties.PidLid.CommonStart),
+            CommonEnd = properties.GetNullableValue(MapiKnownProperties.PidLid.CommonEnd),
+            Mode = properties.GetNullableValue(MapiKnownProperties.PidLid.TaskMode),
+            IsAccepted = properties.GetNullableValue(MapiKnownProperties.PidLid.TaskAccepted),
+            History = properties.GetNullableValue(MapiKnownProperties.PidLid.TaskHistory),
+            LastUpdate = properties.GetNullableValue(MapiKnownProperties.PidLid.TaskLastUpdate),
+            LastUser = properties.GetValueOrDefault(MapiKnownProperties.PidLid.TaskLastUser),
+            LastDelegate = properties.GetValueOrDefault(MapiKnownProperties.PidLid.TaskLastDelegate),
+            GlobalId = ToGuid(properties.GetValueOrDefault(MapiKnownProperties.PidLid.TaskGlobalId)),
+            ToDoOrdinalDate = properties.GetNullableValue(MapiKnownProperties.PidLid.ToDoOrdinalDate),
+            ToDoSubOrdinal = properties.GetValueOrDefault(MapiKnownProperties.PidLid.ToDoSubOrdinal),
+            BillingInformation = properties.GetValueOrDefault(MapiKnownProperties.PidLid.Billing),
+            Mileage = properties.GetValueOrDefault(MapiKnownProperties.PidLid.Mileage),
+            CompletedAt = properties.GetNullableValue(MapiKnownProperties.PidLid.TaskDateCompleted)
         };
-        AddStrings(task.Contacts, GetNamed(properties, PsetidCommon, 0x853A)?.Value);
-        AddStrings(task.Companies, GetNamed(properties, PsetidCommon, 0x8539)?.Value);
+        OutlookMessageSemanticsProjection.ApplyReminder(task.Reminder, properties);
+        AddStrings(task.Contacts, properties.Find(MapiKnownProperties.PidLid.Contacts)?.Value);
+        AddStrings(task.Companies, properties.Find(MapiKnownProperties.PidLid.Companies)?.Value);
         return task;
     }
 
-    private static OutlookJournal CreateJournal(IEnumerable<MapiProperty> properties) {
+    private static Guid? ToGuid(byte[]? value) => value?.Length == 16 ? new Guid(value) : (Guid?)null;
+
+    private static OutlookJournal CreateJournal(MapiPropertyBag properties) {
         return new OutlookJournal {
-            Start = GetNamedDate(properties, PsetidCommon, 0x8516),
-            End = GetNamedDate(properties, PsetidCommon, 0x8517) ?? GetNamedDate(properties, PsetidLog, 0x8708),
-            DurationMinutes = GetNamedInt(properties, PsetidLog, 0x8707),
-            Type = GetNamedString(properties, PsetidLog, 0x8700),
-            TypeDescription = GetNamedString(properties, PsetidLog, 0x8712),
-            Flags = GetNamedInt(properties, PsetidLog, 0x870C),
-            DocumentPrinted = GetNamedBool(properties, PsetidLog, 0x870E),
-            DocumentSaved = GetNamedBool(properties, PsetidLog, 0x870F),
-            DocumentRouted = GetNamedBool(properties, PsetidLog, 0x8710),
-            DocumentPosted = GetNamedBool(properties, PsetidLog, 0x8711)
+            Start = properties.GetNullableValue(MapiKnownProperties.PidLid.CommonStart),
+            End = properties.GetNullableValue(MapiKnownProperties.PidLid.CommonEnd) ??
+                properties.GetNullableValue(MapiKnownProperties.PidLid.LogEnd),
+            DurationMinutes = properties.GetNullableValue(MapiKnownProperties.PidLid.LogDuration),
+            Type = properties.GetValueOrDefault(MapiKnownProperties.PidLid.LogType),
+            TypeDescription = properties.GetValueOrDefault(MapiKnownProperties.PidLid.LogTypeDesc),
+            Flags = properties.GetNullableValue(MapiKnownProperties.PidLid.LogFlags),
+            DocumentPrinted = properties.GetNullableValue(MapiKnownProperties.PidLid.LogDocumentPrinted),
+            DocumentSaved = properties.GetNullableValue(MapiKnownProperties.PidLid.LogDocumentSaved),
+            DocumentRouted = properties.GetNullableValue(MapiKnownProperties.PidLid.LogDocumentRouted),
+            DocumentPosted = properties.GetNullableValue(MapiKnownProperties.PidLid.LogDocumentPosted)
         };
     }
 
-    private static OutlookNote CreateNote(IEnumerable<MapiProperty> properties) {
+    private static OutlookNote CreateNote(MapiPropertyBag properties) {
         return new OutlookNote {
-            Color = GetNamedInt(properties, PsetidNote, 0x8B00),
-            Width = GetNamedInt(properties, PsetidNote, 0x8B02),
-            Height = GetNamedInt(properties, PsetidNote, 0x8B03),
-            X = GetNamedInt(properties, PsetidNote, 0x8B04),
-            Y = GetNamedInt(properties, PsetidNote, 0x8B05)
+            Color = properties.GetNullableValue(MapiKnownProperties.PidLid.NoteColor),
+            Width = properties.GetNullableValue(MapiKnownProperties.PidLid.NoteWidth),
+            Height = properties.GetNullableValue(MapiKnownProperties.PidLid.NoteHeight),
+            X = properties.GetNullableValue(MapiKnownProperties.PidLid.NoteX),
+            Y = properties.GetNullableValue(MapiKnownProperties.PidLid.NoteY)
         };
     }
 
-    private static void PopulateAddress(OutlookPostalAddress address, IEnumerable<MapiProperty> properties,
-        uint? formattedNamedId, ushort streetId, ushort cityId, ushort stateId, ushort postalId, ushort countryId,
-        ushort postOfficeBoxId) {
-        if (formattedNamedId.HasValue) address.Formatted = GetNamedString(properties, PsetidAddress, formattedNamedId.Value);
-        address.Street = GetString(properties, streetId);
-        address.City = GetString(properties, cityId);
-        address.StateOrProvince = GetString(properties, stateId);
-        address.PostalCode = GetString(properties, postalId);
-        address.Country = GetString(properties, countryId);
-        address.PostOfficeBox = GetString(properties, postOfficeBoxId);
+    private static void PopulateAddress(OutlookPostalAddress address, MapiPropertyBag properties,
+        MapiPropertyKey<string>? formattedKey, MapiPropertyKey<string> streetKey, MapiPropertyKey<string> cityKey,
+        MapiPropertyKey<string> stateKey, MapiPropertyKey<string> postalKey, MapiPropertyKey<string> countryKey,
+        MapiPropertyKey<string> postOfficeBoxKey) {
+        if (formattedKey != null) address.Formatted = properties.GetValueOrDefault(formattedKey);
+        address.Street = properties.GetValueOrDefault(streetKey);
+        address.City = properties.GetValueOrDefault(cityKey);
+        address.StateOrProvince = properties.GetValueOrDefault(stateKey);
+        address.PostalCode = properties.GetValueOrDefault(postalKey);
+        address.Country = properties.GetValueOrDefault(countryKey);
+        address.PostOfficeBox = properties.GetValueOrDefault(postOfficeBoxKey);
     }
 
-    private static void PopulateEmail(OutlookContactEmailAddress email, IEnumerable<MapiProperty> properties,
-        uint displayId, uint addressTypeId, uint addressId, uint originalDisplayId, uint entryId) {
-        email.DisplayName = GetNamedString(properties, PsetidAddress, displayId);
-        email.AddressType = GetNamedString(properties, PsetidAddress, addressTypeId);
-        email.Address = GetNamedString(properties, PsetidAddress, addressId);
-        email.OriginalDisplayName = GetNamedString(properties, PsetidAddress, originalDisplayId);
-        email.OriginalEntryId = GetNamedBinary(properties, PsetidAddress, entryId);
+    private static void PopulateEmail(OutlookContactEmailAddress email, MapiPropertyBag properties,
+        MapiPropertyKey<string> displayKey, MapiPropertyKey<string> addressTypeKey,
+        MapiPropertyKey<string> addressKey, MapiPropertyKey<string> originalDisplayKey,
+        MapiPropertyKey<byte[]> entryKey) {
+        email.DisplayName = properties.GetValueOrDefault(displayKey);
+        email.AddressType = properties.GetValueOrDefault(addressTypeKey);
+        email.Address = properties.GetValueOrDefault(addressKey);
+        email.OriginalDisplayName = properties.GetValueOrDefault(originalDisplayKey);
+        email.OriginalEntryId = properties.GetValueOrDefault(entryKey);
     }
 
     private static void AddDelimited(IList<string> target, string? value) {
@@ -405,9 +503,9 @@ internal static class MsgProjection {
 
     private static TimeSpan? ToMinutes(int? minutes) => minutes.HasValue ? TimeSpan.FromMinutes(minutes.Value) : null;
 
-    private static string? GetHtml(IEnumerable<MapiProperty> properties, MapiStringEncodingContext encoding,
+    private static string? GetHtml(MapiPropertyBag properties, MapiStringEncodingContext encoding,
         IList<EmailDiagnostic> diagnostics, string location) {
-        MapiProperty? property = properties.FirstOrDefault(item => item.PropertyId == 0x1013);
+        MapiProperty? property = properties.Find(MapiKnownProperties.PidTag.Html);
         if (property?.Value is string text) return text;
         if (property?.Value is byte[] bytes) {
             return encoding.Decode(bytes, diagnostics, location).TrimEnd('\0');
@@ -415,8 +513,8 @@ internal static class MsgProjection {
         return null;
     }
 
-    private static string? GetRtf(IEnumerable<MapiProperty> properties, MsgParserState state, string location) {
-        MapiProperty? property = properties.FirstOrDefault(item => item.PropertyId == 0x1009);
+    private static string? GetRtf(MapiPropertyBag properties, MsgParserState state, string location) {
+        MapiProperty? property = properties.Find(MapiKnownProperties.PidTag.RtfCompressed);
         if (!(property?.Value is byte[] compressed)) return null;
         if (!MapiCompressedRtfCodec.TryDecompress(compressed, state.Options.MaxDecodedPropertyBytes,
             state.Diagnostics, string.Concat(location, "/rtf"), state.CancellationToken, out byte[] rtfBytes)) return null;
@@ -424,47 +522,6 @@ internal static class MsgProjection {
         char[] characters = new char[rtfBytes.Length];
         for (int index = 0; index < rtfBytes.Length; index++) characters[index] = (char)rtfBytes[index];
         return new string(characters);
-    }
-
-    private static string? GetNamedString(IEnumerable<MapiProperty> properties, Guid set, uint localId) {
-        return GetNamed(properties, set, localId)?.Value as string;
-    }
-
-    private static byte[]? GetNamedBinary(IEnumerable<MapiProperty> properties, Guid set, uint localId) {
-        return GetNamed(properties, set, localId)?.Value as byte[];
-    }
-
-    private static int? GetNamedInt(IEnumerable<MapiProperty> properties, Guid set, uint localId) {
-        return ConvertInt(GetNamed(properties, set, localId)?.Value);
-    }
-
-    private static bool? GetNamedBool(IEnumerable<MapiProperty> properties, Guid set, uint localId) {
-        return ConvertBool(GetNamed(properties, set, localId)?.Value);
-    }
-
-    private static DateTimeOffset? GetNamedDate(IEnumerable<MapiProperty> properties, Guid set, uint localId) {
-        return ConvertDate(GetNamed(properties, set, localId)?.Value);
-    }
-
-    private static int? ConvertInt(object? value) {
-        if (value is int intValue) return intValue;
-        if (value is short shortValue) return shortValue;
-        if (value is long longValue && longValue >= int.MinValue && longValue <= int.MaxValue) return (int)longValue;
-        return null;
-    }
-
-    private static double? ConvertDouble(object? value) {
-        if (value is double doubleValue) return doubleValue;
-        if (value is float floatValue) return floatValue;
-        return null;
-    }
-
-    private static bool? ConvertBool(object? value) => value is bool boolean ? boolean : (bool?)null;
-
-    private static DateTimeOffset? ConvertDate(object? value) {
-        if (value is DateTimeOffset offset) return offset;
-        if (value is DateTime date) return new DateTimeOffset(date);
-        return null;
     }
 
     private static string? TrimAngle(string? value) {

@@ -13,6 +13,7 @@ public static class OfficeDocumentReaderBuilderAsciiDocExtensions {
         if (builder == null) throw new ArgumentNullException(nameof(builder));
         ReaderAsciiDocOptions registered = ReaderAsciiDocOptionsCloner.Clone(asciiDocOptions);
         return builder.AddHandler(new ReaderHandlerRegistration {
+            Origin = ReaderHandlerOrigin.OfficeIMO,
             Id = HandlerId,
             DisplayName = "AsciiDoc Reader Adapter",
             Description = "Modular AsciiDoc adapter backed by the lossless OfficeIMO.AsciiDoc engine.",

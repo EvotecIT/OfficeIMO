@@ -8,6 +8,9 @@ public sealed partial class EmailDocument {
     private readonly List<MapiProperty> _mapiProperties = new List<MapiProperty>();
     private readonly List<TnefAttribute> _tnefAttributes = new List<TnefAttribute>();
     private readonly Dictionary<string, object?> _properties = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
+    private MapiPropertyBag? _mapi;
+    private OutlookUserPropertyCollection? _userProperties;
+    private MapiPropertyPatch? _mapiWritePatch;
 
     /// <summary>Source format used to create the document.</summary>
     public EmailFileFormat Format { get; set; }
@@ -66,17 +69,39 @@ public sealed partial class EmailDocument {
     /// <summary>Root MAPI properties, including properties not projected onto common fields.</summary>
     public IList<MapiProperty> MapiProperties => _mapiProperties;
 
+    /// <summary>Typed MAPI access backed by the exact <see cref="MapiProperties"/> collection.</summary>
+    public MapiPropertyBag Mapi => _mapi ?? (_mapi = new MapiPropertyBag(_mapiProperties));
+
+    /// <summary>
+    /// Exact property overrides applied after normal typed projection by MSG, TNEF, PST, and semantic writers.
+    /// Empty by default; use this only when an advanced property-level patch must win over a typed projection.
+    /// </summary>
+    public MapiPropertyPatch MapiWritePatch => _mapiWritePatch ?? (_mapiWritePatch = new MapiPropertyPatch());
+
+    /// <summary>Outlook-compatible item user fields backed by the root MAPI property bag.</summary>
+    public OutlookUserPropertyCollection UserProperties =>
+        _userProperties ?? (_userProperties = new OutlookUserPropertyCollection(this));
+
     /// <summary>Ordered raw TNEF attributes when the source format is TNEF.</summary>
     public IList<TnefAttribute> TnefAttributes => _tnefAttributes;
 
     /// <summary>Typed appointment projection when <see cref="OutlookItemKind"/> is Appointment.</summary>
     public OutlookAppointment? Appointment { get; set; }
 
+    /// <summary>Typed meeting request, update, cancellation, response, or forward-notification envelope.</summary>
+    public OutlookMeetingCommunication? MeetingCommunication { get; set; }
+
     /// <summary>Typed contact projection when <see cref="OutlookItemKind"/> is Contact.</summary>
     public OutlookContact? Contact { get; set; }
 
+    /// <summary>Typed personal distribution-list projection.</summary>
+    public OutlookDistributionList? DistributionList { get; set; }
+
     /// <summary>Typed task projection when <see cref="OutlookItemKind"/> is Task.</summary>
     public OutlookTask? Task { get; set; }
+
+    /// <summary>Typed task request, acceptance, rejection, or update envelope.</summary>
+    public OutlookTaskCommunication? TaskCommunication { get; set; }
 
     /// <summary>Typed journal projection when <see cref="OutlookItemKind"/> is Journal.</summary>
     public OutlookJournal? Journal { get; set; }

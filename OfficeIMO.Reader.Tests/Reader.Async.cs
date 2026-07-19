@@ -196,7 +196,7 @@ public sealed class ReaderAsyncTests {
 
     [Fact]
     public async Task OfficeDocumentReader_ReadDocumentsAsync_EnforcesMaxDocumentsBeforeReading() {
-        OfficeDocumentReader reader = OfficeDocumentReader.Default;
+        OfficeDocumentReader reader = OfficeIMO.Reader.Tests.ReaderTestReaders.All;
 
         InvalidOperationException exception = await Assert.ThrowsAsync<InvalidOperationException>(() => reader.ReadDocumentsAsync(
             new[] { "first.docx", "second.docx" },
@@ -211,7 +211,7 @@ public sealed class ReaderAsyncTests {
         File.WriteAllText(file, "built-in async fallback");
 
         try {
-            IReadOnlyList<ReaderChunk> chunks = await OfficeDocumentReader.Default.ReadAsync(file);
+            IReadOnlyList<ReaderChunk> chunks = await OfficeIMO.Reader.Tests.ReaderTestReaders.All.ReadAsync(file);
 
             Assert.Contains(chunks, chunk => chunk.Text.Contains("built-in async fallback", StringComparison.Ordinal));
         } finally {
@@ -237,7 +237,7 @@ public sealed class ReaderAsyncTests {
         };
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
-            OfficeDocumentReader.Default.ReadDocumentAsync(stream,
+            OfficeIMO.Reader.Tests.ReaderTestReaders.All.ReadDocumentAsync(stream,
                 sourceName: null, options, cancellation.Token));
     }
 
@@ -259,7 +259,7 @@ public sealed class ReaderAsyncTests {
         };
 
         Assert.ThrowsAny<OperationCanceledException>(() =>
-            OfficeDocumentReader.Default.ReadDocument(stream,
+            OfficeIMO.Reader.Tests.ReaderTestReaders.All.ReadDocument(stream,
                 sourceName: null, options, cancellation.Token));
     }
 
@@ -271,7 +271,7 @@ public sealed class ReaderAsyncTests {
             cancellation.Cancel);
 
         Assert.ThrowsAny<OperationCanceledException>(() =>
-            OfficeDocumentReader.Default.Read(stream, "large.txt",
+            OfficeIMO.Reader.Tests.ReaderTestReaders.All.Read(stream, "large.txt",
                 new ReaderOptions { ComputeHashes = true },
                 cancellation.Token).ToArray());
 

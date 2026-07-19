@@ -1,18 +1,18 @@
 ---
 title: "Reading Documents with OfficeIMO.Reader"
-description: "Learn how to use OfficeIMO.Reader to extract normalized chunks from the built-in formats in the repo for AI ingestion, search indexing, and batch processing."
+description: "Learn how to use selective OfficeIMO.Reader adapters to extract normalized chunks for AI ingestion, search indexing, and batch processing."
 date: 2026-03-01
 tags: [reader, ingestion, ai]
 categories: [Tutorial]
 author: "Przemyslaw Klys"
 ---
 
-Large language models and search engines are hungry for text, but the text they need is locked inside modern and legacy Office files, Markdown, PDF, and text-like files scattered across file shares and SharePoint libraries. **OfficeIMO.Reader** provides a unified API to crack open the built-in formats currently wired into the repo and emit normalized chunks, ready for embedding, indexing, or summarisation.
+Large language models and search engines are hungry for text, but the text they need is locked inside modern and legacy Office files, Markdown, PDF, and text-like files scattered across file shares and SharePoint libraries. **OfficeIMO.Reader** provides one extraction API over selective format adapters and emits normalized chunks ready for embedding, indexing, or summarisation.
 
 ## Installation
 
 ```bash
-dotnet add package OfficeIMO.Reader
+dotnet add package OfficeIMO.Reader.Word
 ```
 
 OfficeIMO.Reader is designed for the same cross-platform .NET environments as the packages it builds on. It fits well in local tools, hosted services, and containerized ingestion jobs, but you should still validate the exact runtime and document mix you plan to ship.
@@ -21,11 +21,15 @@ OfficeIMO.Reader is designed for the same cross-platform .NET environments as th
 
 ```csharp
 using OfficeIMO.Reader;
+using OfficeIMO.Reader.Word;
 
-var chunks = DocumentReader.Read("proposal.docx", new ReaderOptions
+OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+    .AddWordHandler(new ReaderWordOptions { IncludeFootnotes = true })
+    .Build();
+
+var chunks = reader.Read("proposal.docx", new ReaderOptions
 {
     MaxChars = 4_000,
-    IncludeWordFootnotes = true,
     ComputeHashes = true
 }).ToList();
 
@@ -41,7 +45,7 @@ foreach (var chunk in chunks)
 }
 ```
 
-For file paths, `DocumentReader.Read(...)` routes by extension and returns `ReaderChunk` items rather than one giant monolithic string. That makes it easier to preserve headings, pages, sheets, slides, and other citation-friendly location data.
+For file paths, `reader.Read(...)` routes through the handlers configured on that reader and returns `ReaderChunk` items rather than one giant monolithic string. That makes it easier to preserve headings, pages, sheets, slides, and other citation-friendly location data.
 
 ## Inspecting Location And Structured Output
 
@@ -70,7 +74,7 @@ Processing a folder of mixed documents is a common ingest scenario:
 ```csharp
 using OfficeIMO.Reader;
 
-var documents = DocumentReader.ReadFolderDocuments(
+var documents = reader.ReadFolderDocuments(
     folderPath: "/data/documents",
     folderOptions: new ReaderFolderOptions
     {
@@ -101,11 +105,9 @@ LLMs have token limits. You cannot feed a 200-page contract into a single prompt
 ```csharp
 using OfficeIMO.Reader;
 
-var chunks = DocumentReader.Read("contract.docx", new ReaderOptions
+var chunks = reader.Read("contract.docx", new ReaderOptions
 {
-    MaxChars = 3_000,
-    IncludeWordFootnotes = false,
-    MarkdownChunkByHeadings = true
+    MaxChars = 3_000
 }).ToList();
 
 foreach (var chunk in chunks)
@@ -124,7 +126,7 @@ If you want folder-level counts, skip reasons, and optional chunk materializatio
 ```csharp
 using OfficeIMO.Reader;
 
-var result = DocumentReader.ReadFolderDetailed(
+var result = reader.ReadFolderDetailed(
     folderPath: "/data/documents",
     folderOptions: new ReaderFolderOptions { Recurse = true, MaxFiles = 2_000 },
     options: new ReaderOptions { ComputeHashes = true, MaxChars = 4_000 },
@@ -165,12 +167,13 @@ Every document in your file share becomes searchable in chunk-sized slices, whic
 
 | Format | Extension | Status |
 |---|---|---|
-| Word | `.docx`, `.docm`, `.doc` | Built-in |
-| Excel | `.xlsx`, `.xlsm`, `.xls` | Built-in |
-| PowerPoint | `.pptx`, `.pptm`, `.ppt`, `.pot`, `.pps` | Built-in |
-| Markdown | `.md`, `.markdown` | Built-in |
-| PDF | `.pdf` | Built-in |
-| Text-like inputs | `.txt`, `.log`, `.csv`, `.tsv`, `.json`, `.xml`, `.yml`, `.yaml` | Built-in text reader |
+| Word | `.docx`, `.docm`, `.doc` | `OfficeIMO.Reader.Word` |
+| Excel | `.xlsx`, `.xlsm`, `.xls` | `OfficeIMO.Reader.Excel` |
+| PowerPoint | `.pptx`, `.pptm`, `.ppt`, `.pot`, `.pps` | `OfficeIMO.Reader.PowerPoint` |
+| Markdown | `.md`, `.markdown` | `OfficeIMO.Reader.Markdown` |
+| PDF | `.pdf` | `OfficeIMO.Reader.Pdf` |
+| Plain text | `.txt`, `.log` | Core `AddPlainTextHandlers()` |
+| Structured and adjacent inputs | `.csv`, `.tsv`, `.json`, `.xml`, `.yml`, `.yaml`, and more | Matching selective adapter |
 
 Legacy binary Office files route through the owning Word, Excel, and PowerPoint engines. Import diagnostics are exposed as Reader warnings, PowerPoint images use the normal asset contract, and `ReaderOptions.OpenPassword` supplies a password for protected input. Structured adapters for formats like EPUB, HTML, ZIP, JSON, CSV, and XML can also be registered from optional `OfficeIMO.Reader.*` packages.
 

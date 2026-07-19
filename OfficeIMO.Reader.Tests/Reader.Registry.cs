@@ -8,14 +8,14 @@ namespace OfficeIMO.Tests;
 
 public sealed partial class ReaderRegistryTests {
     [Fact]
-    public void DocumentReader_ExposesOnlyBuiltInCapabilities() {
-        IReadOnlyList<ReaderHandlerCapability> capabilities = OfficeDocumentReader.Default.GetCapabilities();
+    public void DocumentReader_ExposesOnlyOfficeIMOCapabilities() {
+        IReadOnlyList<ReaderHandlerCapability> capabilities = OfficeIMO.Reader.Tests.ReaderTestReaders.All.GetCapabilities();
 
         Assert.NotEmpty(capabilities);
         Assert.All(capabilities, capability => {
-            Assert.True(capability.IsBuiltIn);
             Assert.Equal(ReaderCapabilitySchema.Id, capability.SchemaId);
             Assert.Equal(ReaderCapabilitySchema.Version, capability.SchemaVersion);
+            Assert.Equal(ReaderHandlerOrigin.OfficeIMO, capability.Origin);
         });
         Assert.Contains(capabilities, capability => capability.Id == "officeimo.reader.word");
         Assert.Contains(capabilities, capability => capability.Id == "officeimo.reader.excel");
@@ -28,49 +28,49 @@ public sealed partial class ReaderRegistryTests {
     [Fact]
     public void DocumentReader_PowerPointCapabilityIncludesBinaryVariants() {
         ReaderHandlerCapability openXml = Assert.Single(
-            OfficeDocumentReader.Default.GetCapabilities(), item =>
+            OfficeIMO.Reader.Tests.ReaderTestReaders.All.GetCapabilities(), item =>
                 item.Id == "officeimo.reader.powerpoint");
         ReaderHandlerCapability binary = Assert.Single(
-            OfficeDocumentReader.Default.GetCapabilities(), item =>
+            OfficeIMO.Reader.Tests.ReaderTestReaders.All.GetCapabilities(), item =>
                 item.Id == "officeimo.reader.powerpoint.binary");
 
         Assert.Equal(ReaderInputKind.PowerPoint, openXml.Kind);
-        Assert.Equal(new[] { ".pptx", ".pptm" }, openXml.Extensions);
+        Assert.Equal(new[] { ".pptm", ".pptx" }, openXml.Extensions);
         Assert.True(openXml.SupportsPath);
         Assert.True(openXml.SupportsStream);
         Assert.Null(openXml.DefaultMaxInputBytes);
         Assert.Equal(ReaderInputKind.PowerPoint, binary.Kind);
-        Assert.Equal(new[] { ".ppt", ".pot", ".pps" },
+        Assert.Equal(new[] { ".pot", ".pps", ".ppt" },
             binary.Extensions);
         Assert.True(binary.SupportsPath);
         Assert.True(binary.SupportsStream);
         Assert.Equal(LegacyPptImportOptions.DefaultMaxInputBytes,
             binary.DefaultMaxInputBytes);
-        Assert.Null(OfficeDocumentReader.Default
+        Assert.Null(OfficeIMO.Reader.Tests.ReaderTestReaders.All
             .GetHandlerDefaultMaxInputBytes("deck.pptx"));
         Assert.Equal(LegacyPptImportOptions.DefaultMaxInputBytes,
-            OfficeDocumentReader.Default.GetHandlerDefaultMaxInputBytes(
+            OfficeIMO.Reader.Tests.ReaderTestReaders.All.GetHandlerDefaultMaxInputBytes(
                 "deck.ppt"));
     }
 
     [Fact]
     public void DocumentReader_BoundsUnidentifiedStreamsBeforeDetection() {
-        Assert.Equal(LegacyPptImportOptions.DefaultMaxInputBytes,
+        Assert.Equal(64L * 1024L * 1024L,
             DocumentReaderEngine.ResolveStreamMaxInputBytes(null,
                 new ReaderOptions(), streamCanSeek: false));
-        Assert.Equal(LegacyPptImportOptions.DefaultMaxInputBytes,
+        Assert.Equal(64L * 1024L * 1024L,
             DocumentReaderEngine.ResolveStreamMaxInputBytes("content.bin",
                 new ReaderOptions(), streamCanSeek: false));
         Assert.Null(DocumentReaderEngine.ResolveStreamMaxInputBytes(
             "content.bin", new ReaderOptions(), streamCanSeek: true));
-        Assert.Null(DocumentReaderEngine.ResolveStreamMaxInputBytes(
+        Assert.Equal(64L * 1024L * 1024L, DocumentReaderEngine.ResolveStreamMaxInputBytes(
             "document.docx", new ReaderOptions(), streamCanSeek: false));
     }
 
     [Fact]
     public void DocumentReader_CapabilityManifestJson_IsDeterministicAndValid() {
-        string first = OfficeDocumentReader.Default.GetCapabilityManifestJson();
-        string second = OfficeDocumentReader.Default.GetCapabilityManifestJson();
+        string first = OfficeIMO.Reader.Tests.ReaderTestReaders.All.GetCapabilityManifestJson();
+        string second = OfficeIMO.Reader.Tests.ReaderTestReaders.All.GetCapabilityManifestJson();
 
         Assert.Equal(first, second);
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes(first));
@@ -84,6 +84,8 @@ public sealed partial class ReaderRegistryTests {
         Assert.DoesNotContain(chunks, chunk =>
             chunk.Warnings?.Any(warning => warning.Contains("JSON parse error", StringComparison.OrdinalIgnoreCase)) == true);
         Assert.Contains("\"schemaId\":\"officeimo.reader.capability\"", first, StringComparison.Ordinal);
+        Assert.Contains("\"origin\":\"OfficeIMO\"", first, StringComparison.Ordinal);
+        Assert.DoesNotContain("isBuiltIn", first, StringComparison.Ordinal);
         Assert.Contains("\"supportsDocumentPath\":", first, StringComparison.Ordinal);
         Assert.Contains("\"supportsAsyncStream\":", first, StringComparison.Ordinal);
     }
@@ -108,9 +110,9 @@ public sealed partial class ReaderRegistryTests {
                 .Build();
 
             Assert.Equal("builder-output", Assert.Single(reader.Read(path)).Text);
-            Assert.Equal(ReaderInputKind.Unknown, OfficeDocumentReader.Default.DetectKind(path));
-            Assert.Contains(reader.GetCapabilities(), capability => capability.Id == handlerId && !capability.IsBuiltIn);
-            Assert.DoesNotContain(OfficeDocumentReader.Default.GetCapabilities(), capability => capability.Id == handlerId);
+            Assert.Equal(ReaderInputKind.Unknown, OfficeIMO.Reader.Tests.ReaderTestReaders.All.DetectKind(path));
+            Assert.Contains(reader.GetCapabilities(), capability => capability.Id == handlerId && capability.Origin == ReaderHandlerOrigin.Custom);
+            Assert.DoesNotContain(OfficeIMO.Reader.Tests.ReaderTestReaders.All.GetCapabilities(), capability => capability.Id == handlerId);
         } finally {
             if (File.Exists(path)) File.Delete(path);
         }
@@ -130,7 +132,7 @@ public sealed partial class ReaderRegistryTests {
 
         ReaderCapabilityManifest manifest = reader.GetCapabilityManifest();
 
-        Assert.Contains(manifest.Handlers, capability => capability.Id == handlerId && capability.SupportsStream);
+        Assert.Contains(manifest.Handlers, capability => capability.Id == handlerId && capability.SupportsStream && capability.Origin == ReaderHandlerOrigin.Custom);
         Assert.Contains(handlerId, reader.GetCapabilityManifestJson(), StringComparison.Ordinal);
     }
 }

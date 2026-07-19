@@ -8,6 +8,7 @@
 
 ```powershell
 dotnet add package OfficeIMO.Reader.Ocr.Tesseract
+dotnet add package OfficeIMO.Reader.Pdf
 ```
 
 Install Tesseract separately for the host operating system, then verify the executable and required languages:
@@ -24,8 +25,12 @@ Tesseract 5 is the current stable major line. Its command contract supports imag
 ```csharp
 using OfficeIMO.Reader;
 using OfficeIMO.Reader.Ocr.Tesseract;
+using OfficeIMO.Reader.Pdf;
 
-OfficeDocumentReadResult source = DocumentReader.ReadDocument("scanned.pdf");
+OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+    .AddPdfHandler()
+    .Build();
+OfficeDocumentReadResult source = reader.ReadDocument("scanned.pdf");
 var engine = new TesseractOcrEngine(new TesseractOcrEngineOptions {
     ExecutablePath = "tesseract",
     Language = "eng+pol",
@@ -63,6 +68,6 @@ Per-request payload and output files use owner-only Unix directories and permiss
 ## Dependency footprint
 
 - **External:** An installed Tesseract CLI and its language data; neither is bundled.
-- **OfficeIMO:** `OfficeIMO.Reader` and `OfficeIMO.Reader.Ocr.Process` own the OCR contract, bounded process execution, TSV projection, and diagnostics.
+- **OfficeIMO:** `OfficeIMO.Reader.Core` and `OfficeIMO.Reader.Ocr.Process` own the OCR contract, bounded process execution, TSV projection, and diagnostics.
 
 See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

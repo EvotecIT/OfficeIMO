@@ -2,7 +2,16 @@ namespace OfficeIMO.Email;
 
 /// <summary>Common Outlook/MAPI message metadata not represented by MIME headers alone.</summary>
 public sealed class EmailMessageMetadata {
-    private readonly List<string> _categories = new List<string>();
+    private readonly OutlookCategoryCollection _categories = new OutlookCategoryCollection();
+
+    /// <summary>Outlook follow-up flag semantics.</summary>
+    public OutlookFollowUp FollowUp { get; } = new OutlookFollowUp();
+
+    /// <summary>Outlook reminder semantics for message and contact items.</summary>
+    public OutlookReminder Reminder { get; } = new OutlookReminder();
+
+    /// <summary>Outlook voting options and response semantics.</summary>
+    public OutlookVoting Voting { get; } = new OutlookVoting();
 
     /// <summary>Subject prefix such as <c>RE: </c> or <c>FW: </c>.</summary>
     public string? SubjectPrefix { get; set; }
@@ -92,5 +101,5 @@ public sealed class EmailMessageMetadata {
     public DateTimeOffset? ModifiedDate { get; set; }
 
     /// <summary>Outlook categories.</summary>
-    public IList<string> Categories => _categories;
+    public OutlookCategoryCollection Categories => _categories;
 }

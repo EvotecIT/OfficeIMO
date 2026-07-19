@@ -1,19 +1,22 @@
 using OfficeIMO.Reader.AsciiDoc;
 using OfficeIMO.Reader.Csv;
-using OfficeIMO.Reader.EmailAddressBook;
-using OfficeIMO.Reader.EmailStore;
+using OfficeIMO.Reader.Email;
 using OfficeIMO.Reader.Epub;
+using OfficeIMO.Reader.Excel;
 using OfficeIMO.Reader.Html;
 using OfficeIMO.Reader.Image;
 using OfficeIMO.Reader.Json;
 using OfficeIMO.Reader.Latex;
+using OfficeIMO.Reader.Markdown;
 using OfficeIMO.Reader.Notebook;
 using OfficeIMO.Reader.OneNote;
 using OfficeIMO.Reader.OpenDocument;
 using OfficeIMO.Reader.Pdf;
+using OfficeIMO.Reader.PowerPoint;
 using OfficeIMO.Reader.Rtf;
 using OfficeIMO.Reader.Subtitles;
 using OfficeIMO.Reader.Visio;
+using OfficeIMO.Reader.Word;
 using OfficeIMO.Reader.Xml;
 using OfficeIMO.Reader.Yaml;
 using OfficeIMO.Reader.Zip;
@@ -39,22 +42,26 @@ public static class OfficeDocumentReaderBuilderAllExtensions {
 
         ReaderAllOptions configured = options ?? new ReaderAllOptions();
         return builder
+            .AddPlainTextHandlers()
             .AddAsciiDocHandler(configured.AsciiDoc)
             .AddCsvHandler(configured.Csv)
-            .AddEmailAddressBookHandler(configured.EmailAddressBook)
-            .AddEmailStoreHandler(configured.EmailStore)
+            .AddEmailHandlers(configured.Email)
             .AddEpubHandler(configured.Epub)
+            .AddExcelHandler(configured.Excel)
             .AddHtmlHandler(configured.Html)
             .AddImageHandler(configured.Image)
             .AddJsonHandler(configured.Json)
             .AddLatexHandler(configured.Latex)
+            .AddMarkdownHandler(configured.Markdown)
             .AddNotebookHandler(configured.Notebook)
             .AddOneNoteHandler(configured.OneNote)
-            .AddOpenDocumentHandler()
+            .AddOpenDocumentHandler(configured.OpenDocument)
             .AddPdfHandler(configured.Pdf)
+            .AddPowerPointHandler(configured.PowerPoint)
             .AddRtfHandler(configured.Rtf)
             .AddSubtitleHandler(configured.Subtitles)
             .AddVisioHandler(configured.Visio)
+            .AddWordHandler(configured.Word)
             .AddXmlHandler(configured.Xml)
             .AddYamlHandler(configured.Yaml)
             .AddZipHandler(configured.ZipTraversal, configured.Zip);

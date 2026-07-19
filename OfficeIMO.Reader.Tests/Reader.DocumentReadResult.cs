@@ -18,7 +18,7 @@ public sealed class ReaderDocumentReadResultTests {
         try {
             File.WriteAllText(path, "# Top\n\nPara 1.\n\n## Child\n\nPara 2.\n");
 
-            OfficeDocumentReadResult result = OfficeDocumentReader.Default.ReadDocument(path);
+            OfficeDocumentReadResult result = OfficeIMO.Reader.Tests.ReaderTestReaders.All.ReadDocument(path);
 
             Assert.Equal(OfficeDocumentReadResultSchema.Id, result.SchemaId);
             Assert.Equal(OfficeDocumentReadResultSchema.CurrentVersion, result.SchemaVersion);
@@ -55,7 +55,7 @@ public sealed class ReaderDocumentReadResultTests {
         byte[] bytes = Encoding.UTF8.GetBytes("# Inventory\n\n| Name | Qty |\n| --- | ---: |\n| Alpha | 2 |\n");
         using var stream = new MemoryStream(bytes, writable: false);
 
-        OfficeDocumentReadResult result = OfficeDocumentReader.Default.ReadDocument(stream, "inventory.md");
+        OfficeDocumentReadResult result = OfficeIMO.Reader.Tests.ReaderTestReaders.All.ReadDocument(stream, "inventory.md");
 
         ReaderTable table = Assert.Single(result.Tables);
         Assert.Equal("inventory.md", table.Location?.Path);
@@ -88,7 +88,7 @@ public sealed class ReaderDocumentReadResultTests {
         byte[] bytes = Encoding.UTF8.GetBytes("# Diagram\n\n```mermaid\ngraph TD\nA-->B\n```\n");
         using var stream = new MemoryStream(bytes, writable: false);
 
-        OfficeDocumentReadResult result = OfficeDocumentReader.Default.ReadDocument(stream, "diagram.md");
+        OfficeDocumentReadResult result = OfficeIMO.Reader.Tests.ReaderTestReaders.All.ReadDocument(stream, "diagram.md");
 
         ReaderVisual visual = Assert.Single(result.Visuals);
         Assert.Equal("mermaid", visual.Kind);
@@ -122,7 +122,7 @@ public sealed class ReaderDocumentReadResultTests {
         byte[] bytes = Encoding.UTF8.GetBytes("# Diagram\n\n```mermaid\ngraph TD\nA-->B\n```\n");
         using var stream = new MemoryStream(bytes, writable: false);
 
-        IReadOnlyList<ReaderVisual> visuals = OfficeDocumentReader.Default.ReadVisuals(stream, "diagram.md");
+        IReadOnlyList<ReaderVisual> visuals = OfficeIMO.Reader.Tests.ReaderTestReaders.All.ReadVisuals(stream, "diagram.md");
 
         ReaderVisual visual = Assert.Single(visuals);
         Assert.Equal("mermaid", visual.Kind);
@@ -163,7 +163,7 @@ public sealed class ReaderDocumentReadResultTests {
             }
         };
 
-        ReaderVisual visual = Assert.Single(OfficeDocumentReader.Default.ExtractVisuals(chunks));
+        ReaderVisual visual = Assert.Single(OfficeIMO.Reader.Tests.ReaderTestReaders.All.ExtractVisuals(chunks));
 
         Assert.Equal("chart", visual.Kind);
         Assert.Equal("ix-chart", visual.Language);
@@ -193,12 +193,7 @@ public sealed class ReaderDocumentReadResultTests {
                 workbook.Save();
             }
 
-            OfficeDocumentReadResult result = OfficeDocumentReader.Default.ReadDocument(
-                path,
-                new ReaderOptions {
-                    ExcelSheetName = "Data",
-                    ExcelA1Range = "A1:B3"
-                });
+            OfficeDocumentReadResult result = OfficeIMO.Reader.Tests.ReaderTestReaders.Excel("Data", "A1:B3").ReadDocument(path);
 
             Assert.Equal(ReaderInputKind.Excel, result.Kind);
             Assert.Contains("officeimo.reader.excel", result.CapabilitiesUsed);
@@ -268,13 +263,7 @@ public sealed class ReaderDocumentReadResultTests {
                 workbook.Save();
             }
 
-            IReadOnlyList<ReaderTableExportBundle> exports = OfficeDocumentReader.Default.ReadTableExports(
-                path,
-                new ReaderOptions {
-                    ExcelSheetName = "Data",
-                    ExcelA1Range = "A1:B4",
-                    ExcelChunkRows = 1
-                });
+            IReadOnlyList<ReaderTableExportBundle> exports = OfficeIMO.Reader.Tests.ReaderTestReaders.Excel("Data", "A1:B4", chunkRows: 1).ReadTableExports(path);
 
             Assert.True(exports.Count > 1);
             int[] indexes = Enumerable.Range(0, exports.Count).ToArray();
@@ -300,7 +289,7 @@ public sealed class ReaderDocumentReadResultTests {
                 workbook.Save();
             }
 
-            OfficeDocumentReadResult result = OfficeDocumentReader.Default.ReadDocument(path);
+            OfficeDocumentReadResult result = OfficeIMO.Reader.Tests.ReaderTestReaders.All.ReadDocument(path);
 
             Assert.Equal(new[] { "Z", "A" }, result.Pages.Select(page => page.Name).ToArray());
         } finally {
@@ -318,7 +307,7 @@ public sealed class ReaderDocumentReadResultTests {
 
         using var stream = new NonSeekableReadStream(package.ToArray());
 
-        IOException ex = Assert.Throws<IOException>(() => OfficeDocumentReader.Default.ReadDocument(
+        IOException ex = Assert.Throws<IOException>(() => OfficeIMO.Reader.Tests.ReaderTestReaders.All.ReadDocument(
             stream,
             "large.docx",
             new ReaderOptions { MaxInputBytes = 16 }));
@@ -336,7 +325,7 @@ public sealed class ReaderDocumentReadResultTests {
         using var stream = new NonSeekableReadStream(package.ToArray());
 
         IOException ex = Assert.Throws<IOException>(() => {
-            foreach (ReaderChunk _ in OfficeDocumentReader.Default.Read(
+            foreach (ReaderChunk _ in OfficeIMO.Reader.Tests.ReaderTestReaders.All.Read(
                 stream,
                 "large.docx",
                 new ReaderOptions { MaxInputBytes = 16 })) {
@@ -357,7 +346,7 @@ public sealed class ReaderDocumentReadResultTests {
                 document.Save();
             }
 
-            OfficeDocumentReadResult result = OfficeDocumentReader.Default.ReadDocument(path);
+            OfficeDocumentReadResult result = OfficeIMO.Reader.Tests.ReaderTestReaders.All.ReadDocument(path);
 
             Assert.Equal(ReaderInputKind.Word, result.Kind);
             Assert.Contains("officeimo.reader.word", result.CapabilitiesUsed);
@@ -393,7 +382,7 @@ public sealed class ReaderDocumentReadResultTests {
                 presentation.Save();
             }
 
-            OfficeDocumentReadResult result = OfficeDocumentReader.Default.ReadDocument(path);
+            OfficeDocumentReadResult result = OfficeIMO.Reader.Tests.ReaderTestReaders.All.ReadDocument(path);
 
             Assert.Equal(ReaderInputKind.PowerPoint, result.Kind);
             Assert.Contains("officeimo.reader.powerpoint", result.CapabilitiesUsed);
@@ -422,7 +411,7 @@ public sealed class ReaderDocumentReadResultTests {
         byte[] bytes = Encoding.UTF8.GetBytes("# Top\n\nPara 1.\n\n## Child\n\nPara 2.\n");
         using var stream = new MemoryStream(bytes, writable: false);
 
-        string json = OfficeDocumentReader.Default.ReadDocumentJson(stream, " notes.md ");
+        string json = OfficeIMO.Reader.Tests.ReaderTestReaders.All.ReadDocumentJson(stream, " notes.md ");
 
         using JsonDocument document = JsonDocument.Parse(json);
         JsonElement root = document.RootElement;
@@ -485,7 +474,7 @@ public sealed class ReaderDocumentReadResultTests {
         byte[] bytes = Encoding.UTF8.GetBytes("| Name | Qty |\n| --- | ---: |\n| Alpha | 2 |\n| Beta | 14 |\n");
         using var stream = new MemoryStream(bytes, writable: false);
 
-        IReadOnlyList<ReaderTable> tables = OfficeDocumentReader.Default.ReadTables(
+        IReadOnlyList<ReaderTable> tables = OfficeIMO.Reader.Tests.ReaderTestReaders.All.ReadTables(
             stream,
             "inventory.md",
             new ReaderOptions { MaxTableRows = 1 });
@@ -509,7 +498,7 @@ public sealed class ReaderDocumentReadResultTests {
         byte[] bytes = Encoding.UTF8.GetBytes("| Name | Qty |\n| --- | ---: |\n| Alpha | 2 |\n");
         using var stream = new MemoryStream(bytes, writable: false);
 
-        IReadOnlyList<ReaderTableExportBundle> exports = OfficeDocumentReader.Default.ReadTableExports(
+        IReadOnlyList<ReaderTableExportBundle> exports = OfficeIMO.Reader.Tests.ReaderTestReaders.All.ReadTableExports(
             stream,
             "inventory.md",
             indentedJson: true);
@@ -530,7 +519,7 @@ public sealed class ReaderDocumentReadResultTests {
     public void ReaderTableExportMaterializer_WriteTableExportsToDirectory_WritesCsvMarkdownAndJsonSidecars() {
         byte[] bytes = Encoding.UTF8.GetBytes("| Name | Qty |\n| --- | ---: |\n| Alpha | 2 |\n");
         using var stream = new MemoryStream(bytes, writable: false);
-        IReadOnlyList<ReaderTableExportBundle> exports = OfficeDocumentReader.Default.ReadTableExports(stream, "inventory.md");
+        IReadOnlyList<ReaderTableExportBundle> exports = OfficeIMO.Reader.Tests.ReaderTestReaders.All.ReadTableExports(stream, "inventory.md");
         var directory = Path.Combine(Path.GetTempPath(), "officeimo-reader-tables-" + Guid.NewGuid().ToString("N"));
 
         try {

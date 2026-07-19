@@ -1,4 +1,5 @@
 using OfficeIMO.Reader;
+using OfficeIMO.Reader.Markdown;
 using System.Text;
 using System.Text.Json;
 using System.Threading;
@@ -175,11 +176,11 @@ public sealed class ReaderHierarchicalChunkingTests {
     [Fact]
     public void MarkdownRead_PreservesRawHeadingPathWhileHierarchyKeepsLiteralDelimiter() {
         byte[] markdown = Encoding.UTF8.GetBytes("# Q1 > Q2\\Back\n\nBody");
-        ReaderChunk normal = Assert.Single(OfficeDocumentReader.Default.Read(markdown, "note.md"));
+        ReaderChunk normal = Assert.Single(OfficeIMO.Reader.Tests.ReaderTestReaders.All.Read(markdown, "note.md"));
 
         Assert.Equal("Q1 > Q2\\Back", normal.Location.HeadingPath);
 
-        ReaderChunkHierarchyResult hierarchy = OfficeDocumentReader.Default.ReadHierarchical(
+        ReaderChunkHierarchyResult hierarchy = OfficeIMO.Reader.Tests.ReaderTestReaders.All.ReadHierarchical(
             markdown,
             "note.md",
             chunkingOptions: new ReaderHierarchicalChunkingOptions {
@@ -196,7 +197,7 @@ public sealed class ReaderHierarchicalChunkingTests {
 
     [Fact]
     public void Chunk_UsesProcessorUpdatedPublicHeadingPathInsteadOfStaleHint() {
-        ReaderChunk chunk = Assert.Single(OfficeDocumentReader.Default.Read(
+        ReaderChunk chunk = Assert.Single(OfficeIMO.Reader.Tests.ReaderTestReaders.All.Read(
             Encoding.UTF8.GetBytes("# Original > Literal\n\nBody"),
             "note.md"));
         chunk.Location.HeadingPath = "Processed";
@@ -924,11 +925,12 @@ public sealed class ReaderHierarchicalChunkingTests {
             IncludeContextInText = false
         };
 
-        ReaderChunkHierarchyResult staticSync = OfficeDocumentReader.Default.ReadHierarchical(markdown, "note.md", chunkingOptions: options);
-        ReaderChunkHierarchyResult staticAsync = await OfficeDocumentReader.Default.ReadHierarchicalAsync(markdown, "note.md", chunkingOptions: options);
+        ReaderChunkHierarchyResult staticSync = OfficeIMO.Reader.Tests.ReaderTestReaders.All.ReadHierarchical(markdown, "note.md", chunkingOptions: options);
+        ReaderChunkHierarchyResult staticAsync = await OfficeIMO.Reader.Tests.ReaderTestReaders.All.ReadHierarchicalAsync(markdown, "note.md", chunkingOptions: options);
         Assert.Equal(staticSync.ToJson(), staticAsync.ToJson());
 
         OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+            .AddMarkdownHandler()
             .AddProcessor(new DelegateOfficeDocumentProcessor("prefix", (document, _) => {
                 foreach (ReaderChunk chunk in document.Chunks) {
                     chunk.Text = "processed " + chunk.Text;

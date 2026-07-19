@@ -1,6 +1,6 @@
 # OfficeIMO.Reader.All
 
-`OfficeIMO.Reader.All` is a thin composition package for applications that want OfficeIMO's local format handlers without registering every adapter separately.
+`OfficeIMO.Reader.All` is the explicit composition package for applications that want every local OfficeIMO format handler without registering individual adapters.
 
 ## Install
 
@@ -22,7 +22,7 @@ OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
 OfficeDocumentReadResult document = reader.ReadDocument("input.epub");
 ```
 
-The preset adds AsciiDoc, CSV/TSV, Outlook OAB address books, PST/OST/OLM/EMLX email stores, EPUB, HTML/MHTML, standalone image, JSON, LaTeX, Jupyter Notebook, offline OneNote (`.one`, `.onetoc2`, and `.onepkg`), OpenDocument, PDF, RTF, SRT/WebVTT subtitle, Visio, XML, YAML, and ZIP handlers. Word, Excel, PowerPoint, Markdown, individual email artifacts, and plain text remain built into `OfficeIMO.Reader`.
+The preset adds Word, Excel, PowerPoint, Markdown, direct email artifacts, Outlook stores and OAB address books, plus AsciiDoc, CSV/TSV, EPUB, HTML/MHTML, standalone images, JSON, LaTeX, Jupyter Notebook, offline OneNote, OpenDocument, PDF, RTF, subtitles, Visio, XML, YAML, and ZIP handlers. `OfficeIMO.Reader.Core` itself contains no format parser.
 
 Configure a format through one options object:
 
@@ -32,12 +32,14 @@ OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
         Csv = new OfficeIMO.Reader.Csv.CsvReadOptions {
             ChunkRows = 100
         },
-        EmailStore = new OfficeIMO.Reader.EmailStore.ReaderEmailStoreOptions {
-            StoreOptions = new OfficeIMO.Email.Store.EmailStoreReaderOptions(
-                retainAttachmentContent: false)
-        },
-        EmailAddressBook = new OfficeIMO.Reader.EmailAddressBook.ReaderEmailAddressBookOptions {
-            MaxEntries = 10_000
+        Email = new OfficeIMO.Reader.Email.ReaderEmailHandlersOptions {
+            Stores = new OfficeIMO.Reader.Email.ReaderEmailStoreOptions {
+                StoreOptions = new OfficeIMO.Email.Store.EmailStoreReaderOptions(
+                    retainAttachmentContent: false)
+            },
+            AddressBooks = new OfficeIMO.Reader.Email.ReaderEmailAddressBookOptions {
+                MaxEntries = 10_000
+            }
         },
         OneNote = new OfficeIMO.Reader.OneNote.ReaderOneNoteOptions {
             IncludeConflictPages = true,

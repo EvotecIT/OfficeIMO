@@ -16,7 +16,7 @@
     <PackageReference Include="OfficeIMO.OneNote.Markdown" Version="[$(OfficeIMOOneNotePackageVersion)]" />
     <PackageReference Include="OfficeIMO.OneNote.Html" Version="[$(OfficeIMOOneNotePackageVersion)]" />
     <PackageReference Include="OfficeIMO.OneNote.Pdf" Version="[$(OfficeIMOOneNotePackageVersion)]" />
-    <PackageReference Include="OfficeIMO.Reader" Version="[$(OfficeIMOOneNotePackageVersion)]" />
+    <PackageReference Include="OfficeIMO.Reader.Core" Version="[$(OfficeIMOOneNotePackageVersion)]" />
     <PackageReference Include="OfficeIMO.Reader.OneNote" Version="[$(OfficeIMOOneNotePackageVersion)]" />
   </ItemGroup>
 

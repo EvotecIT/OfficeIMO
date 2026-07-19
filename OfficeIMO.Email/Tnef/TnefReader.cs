@@ -92,6 +92,7 @@ internal static class TnefReader {
             state.ThrowIfCancellationRequested();
             ProjectAttachment(attachment, data, state, nestedDepth, location);
         }
+        MsgProjection.ApplyAttachmentSemantics(document);
         EmailProtectionProjection.Apply(document, state.Diagnostics, location);
         return document;
     }
@@ -208,22 +209,28 @@ internal static class TnefReader {
 
     private static void ProjectAttachment(EmailAttachment attachment, byte[] source, MsgParserState state,
         int nestedDepth, string location) {
-        attachment.FileName = MsgProjection.GetString(attachment.MapiProperties, 0x3707) ??
-            MsgProjection.GetString(attachment.MapiProperties, 0x3704) ?? attachment.FileName;
-        attachment.ContentType = MsgProjection.GetString(attachment.MapiProperties, 0x370E) ?? attachment.ContentType;
-        attachment.ContentId = MsgProjection.GetString(attachment.MapiProperties, 0x3712)?.Trim().Trim('<', '>') ?? attachment.ContentId;
-        attachment.ContentLocation = MsgProjection.GetString(attachment.MapiProperties, 0x3713) ?? attachment.ContentLocation;
-        attachment.IsHidden = MsgProjection.GetBool(attachment.MapiProperties, 0x7FFE) ?? attachment.IsHidden;
-        attachment.IsContactPhoto = MsgProjection.GetBool(attachment.MapiProperties, 0x7FFF) ?? attachment.IsContactPhoto;
-        attachment.RenderingPosition = MsgProjection.GetInt(attachment.MapiProperties, 0x370B) ?? attachment.RenderingPosition;
-        attachment.CreatedDate = MsgProjection.GetDate(attachment.MapiProperties, 0x3007) ?? attachment.CreatedDate;
-        attachment.ModifiedDate = MsgProjection.GetDate(attachment.MapiProperties, 0x3008) ?? attachment.ModifiedDate;
-        attachment.LinkedPath = MsgProjection.GetString(attachment.MapiProperties, 0x370D) ?? attachment.LinkedPath;
+        MapiPropertyBag mapi = attachment.Mapi;
+        attachment.FileName = mapi.GetValueOrDefault(MapiKnownProperties.PidTag.AttachLongFilename) ??
+            mapi.GetValueOrDefault(MapiKnownProperties.PidTag.AttachFilename) ?? attachment.FileName;
+        attachment.ContentType = mapi.GetValueOrDefault(MapiKnownProperties.PidTag.AttachMimeTag) ?? attachment.ContentType;
+        attachment.ContentId = mapi.GetValueOrDefault(MapiKnownProperties.PidTag.AttachContentId)?.Trim().Trim('<', '>') ??
+            attachment.ContentId;
+        attachment.ContentLocation = mapi.GetValueOrDefault(MapiKnownProperties.PidTag.AttachContentLocation) ??
+            attachment.ContentLocation;
+        attachment.IsHidden = mapi.GetNullableValue(MapiKnownProperties.PidTag.AttachmentHidden) ?? attachment.IsHidden;
+        attachment.IsContactPhoto = mapi.GetNullableValue(MapiKnownProperties.PidTag.AttachmentContactPhoto) ??
+            attachment.IsContactPhoto;
+        attachment.RenderingPosition = mapi.GetNullableValue(MapiKnownProperties.PidTag.RenderingPosition) ??
+            attachment.RenderingPosition;
+        attachment.CreatedDate = mapi.GetNullableValue(MapiKnownProperties.PidTag.CreationTime) ?? attachment.CreatedDate;
+        attachment.ModifiedDate = mapi.GetNullableValue(MapiKnownProperties.PidTag.LastModificationTime) ??
+            attachment.ModifiedDate;
+        attachment.LinkedPath = mapi.GetValueOrDefault(MapiKnownProperties.PidTag.AttachLongPathname) ?? attachment.LinkedPath;
         attachment.IsInline = attachment.IsInline || !string.IsNullOrWhiteSpace(attachment.ContentId) ||
-            ((MsgProjection.GetInt(attachment.MapiProperties, 0x3714) ?? 0) & 0x00000004) != 0;
-        int method = MsgProjection.GetInt(attachment.MapiProperties, 0x3705) ?? attachment.MapiAttachMethod ?? 1;
+            ((mapi.GetNullableValue(MapiKnownProperties.PidTag.AttachFlags) ?? 0) & 0x00000004) != 0;
+        int method = mapi.GetNullableValue(MapiKnownProperties.PidTag.AttachMethod) ?? attachment.MapiAttachMethod ?? 1;
         attachment.MapiAttachMethod = method;
-        MapiProperty? dataProperty = attachment.MapiProperties.FirstOrDefault(property => property.PropertyId == 0x3701);
+        MapiProperty? dataProperty = mapi.Find(MapiKnownProperties.PidTag.AttachData);
         byte[]? objectBytes = dataProperty?.Value as byte[];
         if (method == 5 && objectBytes != null && objectBytes.Length >= 20 && new Guid(MsgBinary.Slice(objectBytes, 0, 16)) == IidMessage) {
             int nestedLength = objectBytes.Length - 16;
@@ -298,14 +305,17 @@ internal static class TnefReader {
     private static void AddRecipients(EmailDocument document, IEnumerable<List<MapiProperty>> rows) {
         foreach (List<MapiProperty> properties in rows) {
             EmailAddress? address = MsgAddressProjection.ReadAddress(
-                properties, 0x3001, 0x39FE, 0x3003, 0x3002, 0x403E);
+                properties, MapiKnownProperties.PidTag.DisplayName, MapiKnownProperties.PidTag.SmtpAddress,
+                MapiKnownProperties.PidTag.EmailAddress, MapiKnownProperties.PidTag.AddressType,
+                MapiKnownProperties.PidTag.OriginatorEmailAddress);
+            var mapi = new MapiPropertyBag(properties);
             var recipient = new EmailRecipient(
                 MsgAddressProjection.ReadRecipientKind(properties),
                 address ?? new EmailAddress(null)) {
-                MapiRowId = MsgProjection.GetInt(properties, 0x3000),
-                MapiObjectType = MsgProjection.GetInt(properties, 0x0FFE),
-                MapiDisplayType = MsgProjection.GetInt(properties, 0x3900),
-                MapiDisplayTypeEx = MsgProjection.GetInt(properties, 0x3905)
+                MapiRowId = mapi.GetNullableValue(MapiKnownProperties.PidTag.RowId),
+                MapiObjectType = mapi.GetNullableValue(MapiKnownProperties.PidTag.ObjectType),
+                MapiDisplayType = mapi.GetNullableValue(MapiKnownProperties.PidTag.DisplayType),
+                MapiDisplayTypeEx = mapi.GetNullableValue(MapiKnownProperties.PidTag.DisplayTypeEx)
             };
             foreach (MapiProperty property in properties) recipient.MapiProperties.Add(property);
             document.Recipients.Add(recipient);
