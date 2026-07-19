@@ -1,4 +1,4 @@
-using OfficeIMO.Drawing.Internal;
+using OfficeIMO.Reader.Internal.Compound;
 using System;
 using System.IO;
 using System.Linq;

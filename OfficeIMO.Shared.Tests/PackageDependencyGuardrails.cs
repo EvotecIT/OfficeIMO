@@ -841,6 +841,31 @@ public sealed class PackageDependencyGuardrailTests {
     }
 
     [Fact]
+    public void OfficeFormatReaderPackages_ExposeDrawingAsARuntimeDependency() {
+        string[] projectNames = [
+            "OfficeIMO.Reader.Word",
+            "OfficeIMO.Reader.Excel",
+            "OfficeIMO.Reader.PowerPoint"
+        ];
+
+        foreach (string projectName in projectNames) {
+            string projectPath = GetRepositoryPath($"{projectName}/{projectName}.csproj");
+            XDocument document = XDocument.Load(projectPath);
+            XNamespace ns = document.Root?.Name.Namespace ?? XNamespace.None;
+            XElement drawingReference = Assert.Single(
+                document.Descendants(ns + "ProjectReference"),
+                static reference => string.Equals(
+                    ((string?)reference.Attribute("Include"))?.Replace('\\', '/'),
+                    "../OfficeIMO.Drawing/OfficeIMO.Drawing.csproj",
+                    StringComparison.Ordinal));
+            string? privateAssets = (string?)drawingReference.Attribute("PrivateAssets") ??
+                (string?)drawingReference.Element(ns + "PrivateAssets");
+            Assert.True(string.IsNullOrWhiteSpace(privateAssets),
+                $"OfficeIMO.Drawing supplies runtime code used by {projectName} and must remain visible in its NuGet dependency graph.");
+        }
+    }
+
+    [Fact]
     public void ReaderAll_ComposesOnlyReaderPackages() {
         string projectPath = GetRepositoryPath("OfficeIMO.Reader.All/OfficeIMO.Reader.All.csproj");
         string[] references = GetProjectReferences(projectPath);

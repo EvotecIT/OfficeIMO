@@ -1,6 +1,10 @@
 using System;
 
+#if OFFICEIMO_READER_CORE
+namespace OfficeIMO.Reader.Internal.Compound {
+#else
 namespace OfficeIMO.Drawing.Internal {
+#endif
     /// <summary>
     /// Directory entry decoded from an OLE compound document.
     /// </summary>

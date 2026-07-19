@@ -3,7 +3,11 @@ using System.Collections.Generic;
 using System.IO;
 using System.Threading;
 
+#if OFFICEIMO_READER_CORE
+namespace OfficeIMO.Reader.Internal.Compound {
+#else
 namespace OfficeIMO.Drawing.Internal {
+#endif
     internal static partial class OfficeCompoundFileReader {
         /// <summary>
         /// Inspects only the allocation tables and directory stream of a seekable compound file.

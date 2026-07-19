@@ -25,6 +25,7 @@
   <ItemGroup>
     <ProjectReference Include="..\OfficeIMO.Reader.Core\OfficeIMO.Reader.Core.csproj" />
     <ProjectReference Include="..\OfficeIMO.PowerPoint\OfficeIMO.PowerPoint.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Drawing\OfficeIMO.Drawing.csproj" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="..\OfficeIMO.Reader.FormatInternals\OpenXmlImageAssetCollector.cs" Link="FormatInternals\OpenXmlImageAssetCollector.cs" />

@@ -3,7 +3,11 @@ using System.Collections.Generic;
 using System.IO;
 using System.Threading;
 
+#if OFFICEIMO_READER_CORE
+namespace OfficeIMO.Reader.Internal.Compound {
+#else
 namespace OfficeIMO.Drawing.Internal {
+#endif
     /// <summary>
     /// Identifies the root document payload in an OLE compound file.
     /// </summary>

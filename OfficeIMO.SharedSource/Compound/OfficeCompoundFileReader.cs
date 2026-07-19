@@ -5,7 +5,11 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 
+#if OFFICEIMO_READER_CORE
+namespace OfficeIMO.Reader.Internal.Compound {
+#else
 namespace OfficeIMO.Drawing.Internal {
+#endif
     /// <summary>
     /// Reads OLE compound document containers used by legacy Office binary formats.
     /// </summary>

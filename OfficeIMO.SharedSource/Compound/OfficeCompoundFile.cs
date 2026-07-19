@@ -1,6 +1,10 @@
 using System.Collections.Generic;
 
+#if OFFICEIMO_READER_CORE
+namespace OfficeIMO.Reader.Internal.Compound {
+#else
 namespace OfficeIMO.Drawing.Internal {
+#endif
     /// <summary>
     /// Represents an OLE compound document container with decoded stream bytes and directory entries.
     /// </summary>
