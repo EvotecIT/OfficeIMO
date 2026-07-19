@@ -4,12 +4,14 @@ internal static class MimeSmimeExtractor {
     internal static bool TryExtract(
         EmailDocument document,
         long maximumCmsBytes,
+        long maximumContentBytes,
         List<EmailDiagnostic> diagnostics,
         out ExtractedSmimePayload? payload) {
         payload = null;
         if (document.RawSource != null && document.Format == EmailFileFormat.Eml) {
             try {
-                if (TryExtractFromMime(document.RawSource, maximumCmsBytes, diagnostics, out payload)) {
+                if (TryExtractFromMime(document.RawSource, maximumCmsBytes, maximumContentBytes,
+                        diagnostics, out payload)) {
                     return true;
                 }
             } catch (Exception exception) when (exception is IOException or InvalidDataException or UnauthorizedAccessException) {
@@ -29,7 +31,8 @@ internal static class MimeSmimeExtractor {
             if (document.Protection.Kind == EmailProtectionKind.SmimeClearSigned ||
                 (attachment.ContentType ?? string.Empty)
                     .IndexOf("multipart/signed", StringComparison.OrdinalIgnoreCase) >= 0) {
-                if (TryExtractFromMime(encoded, maximumCmsBytes, diagnostics, out payload)) return true;
+                if (TryExtractFromMime(encoded, maximumCmsBytes, maximumContentBytes,
+                        diagnostics, out payload)) return true;
                 diagnostics.Add(new EmailDiagnostic(
                     "EMAIL_SMIME_SIGNED_ENTITY_INVALID",
                     "The retained Outlook S/MIME attachment is not a complete multipart/signed MIME entity.",
@@ -52,6 +55,7 @@ internal static class MimeSmimeExtractor {
     private static bool TryExtractFromMime(
         byte[] source,
         long maximumCmsBytes,
+        long maximumContentBytes,
         List<EmailDiagnostic> diagnostics,
         out ExtractedSmimePayload? payload) {
         payload = null;
@@ -95,6 +99,10 @@ internal static class MimeSmimeExtractor {
                 return false;
             }
 
+            if (parts[0].Count > maximumContentBytes) {
+                throw new InvalidDataException(
+                    "The S/MIME signed content exceeds the configured CMS content limit.");
+            }
             byte[] signedEntity = Copy(parts[0]);
             byte[] signature = DecodePart(parts[1], source, options, diagnostics,
                 "message/signature", maximumCmsBytes);

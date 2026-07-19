@@ -42,6 +42,23 @@ public sealed class EmailSmimeLimitTests {
             diagnostic.Message.Contains("configured CMS limit", StringComparison.Ordinal));
     }
 
+    [Fact]
+    public void RawEmlClearSignedContentHonorsConfiguredContentLimit() {
+        byte[] message = CreateClearSignedMessage(new byte[] { 1, 2, 3 }, new string('x', 64));
+        using EmailReadResult read = new EmailDocumentReader().Read(message);
+        var options = new CmsVerificationOptions {
+            MaxEncodedBytes = 1024,
+            MaxContentBytes = 8
+        };
+
+        EmailSmimeVerificationResult result = EmailSmime.Verify(read.Document, options);
+
+        Assert.Null(result.Cryptography);
+        Assert.Contains(result.Diagnostics, diagnostic =>
+            diagnostic.Code == "EMAIL_SMIME_PAYLOAD_UNAVAILABLE" &&
+            diagnostic.Message.Contains("configured CMS content limit", StringComparison.Ordinal));
+    }
+
     private static byte[] CreateOpaqueMessage(byte[] cms) =>
         CreateOpaqueMessage(Convert.ToBase64String(cms));
 
@@ -51,13 +68,16 @@ public sealed class EmailSmimeLimitTests {
         "Content-Transfer-Encoding: base64\r\n\r\n" +
         transferPayload + "\r\n");
 
-    private static byte[] CreateClearSignedMessage(byte[] signature) => Encoding.ASCII.GetBytes(
+    private static byte[] CreateClearSignedMessage(byte[] signature) =>
+        CreateClearSignedMessage(signature, "Signed body");
+
+    private static byte[] CreateClearSignedMessage(byte[] signature, string body) => Encoding.ASCII.GetBytes(
         "MIME-Version: 1.0\r\n" +
         "Content-Type: multipart/signed; protocol=\"application/pkcs7-signature\"; " +
         "boundary=\"officeimo-limit\"\r\n\r\n" +
         "--officeimo-limit\r\n" +
         "Content-Type: text/plain\r\n\r\n" +
-        "Signed body\r\n" +
+        body + "\r\n" +
         "--officeimo-limit\r\n" +
         "Content-Type: application/pkcs7-signature\r\n" +
         "Content-Transfer-Encoding: base64\r\n\r\n" +

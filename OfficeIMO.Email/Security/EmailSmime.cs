@@ -35,6 +35,7 @@ public static class EmailSmime {
         if (!MimeSmimeExtractor.TryExtract(
                 document,
                 options.MaxEncodedBytes,
+                options.MaxContentBytes,
                 diagnostics,
                 out MimeSmimeExtractor.ExtractedSmimePayload? payload)) {
             diagnostics.Add(new EmailDiagnostic(
@@ -116,6 +117,7 @@ public static class EmailSmime {
         if (!MimeSmimeExtractor.TryExtract(
                 document,
                 options.MaxEncodedBytes,
+                options.MaxContentBytes,
                 diagnostics,
                 out MimeSmimeExtractor.ExtractedSmimePayload? payload)) {
             diagnostics.Add(new EmailDiagnostic(

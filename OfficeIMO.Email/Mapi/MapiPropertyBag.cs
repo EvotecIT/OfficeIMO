@@ -41,7 +41,7 @@ public sealed class MapiPropertyBag {
     }
 
     /// <summary>Returns whether at least one raw property has the specified canonical identity.</summary>
-    public bool Contains(MapiPropertyKey key) => Find(key) != null;
+    public bool Contains(MapiPropertyKey key) => FindRaw(key) != null;
 
     /// <summary>Attempts to read the winning property using the key's wire and managed type contract.</summary>
     public bool TryGetValue<T>(MapiPropertyKey<T> key, out T? value) {

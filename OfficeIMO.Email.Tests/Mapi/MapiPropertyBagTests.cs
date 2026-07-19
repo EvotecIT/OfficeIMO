@@ -35,6 +35,16 @@ public sealed class MapiPropertyBagTests {
     }
 
     [Fact]
+    public void ContainsUsesRawCanonicalIdentityWhenWireTypeIsIncompatible() {
+        var raw = new MapiProperty(0x0037, MapiPropertyType.Integer32, 42);
+        var bag = new MapiPropertyBag(new List<MapiProperty> { raw });
+
+        Assert.True(bag.Contains(Subject));
+        Assert.Null(bag.Find(Subject));
+        Assert.Same(raw, bag.FindRaw(Subject));
+    }
+
+    [Fact]
     public void SetCollapsesOnlyMatchingIdentityAndClearsRawSerializationState() {
         var unknown = new MapiProperty(0x66AA, MapiPropertyType.Binary, new byte[] { 7 }) {
             RawData = new byte[] { 7 }

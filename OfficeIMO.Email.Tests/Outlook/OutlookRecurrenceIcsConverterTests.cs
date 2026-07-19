@@ -92,6 +92,27 @@ public sealed class OutlookRecurrenceIcsConverterTests {
     }
 
     [Fact]
+    public void ImportPreservesDateTimeUntilOccurrenceBoundary() {
+        IcsRecurrenceRule rule = IcsRecurrenceRule.Parse("FREQ=DAILY;UNTIL=20260703T080000");
+        var options = new OutlookRecurrenceIcsImportOptions {
+            Start = IcsTemporalValue.Floating(new DateTime(2026, 7, 1, 9, 0, 0)),
+            Duration = TimeSpan.FromHours(1)
+        };
+
+        OutlookRecurrenceIcsImportResult result = OutlookRecurrenceIcsConverter.Import(rule, options);
+        OutlookRecurrence recurrence = Assert.IsType<OutlookRecurrence>(result.Recurrence);
+        OutlookRecurrenceExpansionResult expanded = OutlookRecurrenceExpander.Expand(recurrence,
+            new OutlookRecurrenceExpansionOptions { MaxOccurrences = 10 });
+
+        Assert.True(result.Report.Succeeded);
+        Assert.False(result.Report.IsLossless);
+        Assert.Equal(new DateTime(2026, 7, 2), recurrence.EndDate);
+        Assert.Equal(new[] { new DateTime(2026, 7, 1, 9, 0, 0), new DateTime(2026, 7, 2, 9, 0, 0) },
+            expanded.Occurrences.Select(value => value.Start));
+        Assert.Contains(result.Report.Issues, issue => issue.Code == "ICAL_UNTIL_TIME_NORMALIZED");
+    }
+
+    [Fact]
     public void ReportsUnsupportedRulePartsAndRejectsUnrepresentablePattern() {
         IcsRecurrenceRule withExtension = IcsRecurrenceRule.Parse("FREQ=DAILY;X-TEST=1");
         var options = new OutlookRecurrenceIcsImportOptions {

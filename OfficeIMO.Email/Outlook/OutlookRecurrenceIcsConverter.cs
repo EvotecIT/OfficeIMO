@@ -179,7 +179,27 @@ public static class OutlookRecurrenceIcsConverter {
                 Error(report, "ICAL_UNTIL_INVALID", "RRULE UNTIL is not a supported DATE or DATE-TIME.");
             } else {
                 recurrence.RangeKind = OutlookRecurrenceRangeKind.EndDate;
-                recurrence.EndDate = ToLocal(parsed, options.TimeZone, report, "UNTIL").Date;
+                DateTime localUntil = ToLocal(parsed, options.TimeZone, report, "UNTIL");
+                DateTime endDate = localUntil.Date;
+                bool excludesUntilDate = parsed.Kind != IcsTemporalValueKind.Date &&
+                    localUntil.TimeOfDay < recurrence.Start.TimeOfDay;
+                if (excludesUntilDate && endDate == DateTime.MinValue.Date) {
+                    Error(report, "ICAL_UNTIL_EXCLUDES_START",
+                        "RRULE UNTIL is earlier than the first Outlook occurrence and cannot be represented safely.");
+                } else if (excludesUntilDate) {
+                    endDate = endDate.AddDays(-1);
+                }
+                if (report.Succeeded && endDate < recurrence.Start.Date) {
+                    Error(report, "ICAL_UNTIL_EXCLUDES_START",
+                        "RRULE UNTIL is earlier than the first Outlook occurrence and cannot be represented safely.");
+                } else if (report.Succeeded) {
+                    recurrence.EndDate = endDate;
+                    if (parsed.Kind != IcsTemporalValueKind.Date &&
+                        localUntil.TimeOfDay != recurrence.Start.TimeOfDay) {
+                        Warning(report, "ICAL_UNTIL_TIME_NORMALIZED",
+                            "RRULE UNTIL includes a time that Outlook cannot retain; the inclusive Outlook end date was adjusted to preserve the generated occurrence set.");
+                    }
+                }
             }
         } else recurrence.RangeKind = OutlookRecurrenceRangeKind.NoEnd;
         string? weekStart = rule.GetValue("WKST");
