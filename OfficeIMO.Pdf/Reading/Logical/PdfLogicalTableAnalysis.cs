@@ -107,6 +107,58 @@ public static class PdfLogicalTableAnalysis {
     }
 
     /// <summary>
+    /// Describes the source-page content considered by table-only adapters.
+    /// </summary>
+    /// <param name="document">Logical PDF document to inspect.</param>
+    /// <returns>
+    /// Table counts plus visible and interactive page content that a table-only adapter will not import.
+    /// </returns>
+    public static PdfTableExtractionScopeReport AnalyzeExtractionScope(PdfLogicalDocument document) {
+        Guard.NotNull(document, nameof(document));
+
+        int pagesWithTables = 0;
+        int detectedTableCount = 0;
+        int nonTableTextBlockCount = 0;
+        int imageCount = 0;
+        int linkCount = 0;
+        int formWidgetCount = 0;
+        int annotationCount = 0;
+        int pageActionCount = 0;
+
+        for (int pageIndex = 0; pageIndex < document.Pages.Count; pageIndex++) {
+            PdfLogicalPage page = document.Pages[pageIndex];
+            if (page.Tables.Count > 0) {
+                pagesWithTables++;
+                detectedTableCount += page.Tables.Count;
+            }
+
+            for (int blockIndex = 0; blockIndex < page.TextBlocks.Count; blockIndex++) {
+                PdfLogicalTextBlock block = page.TextBlocks[blockIndex];
+                if (!IsTextBlockRepresentedByAnyTable(block, page.Tables)) {
+                    nonTableTextBlockCount++;
+                }
+            }
+
+            imageCount += page.Images.Count;
+            linkCount += page.Links.Count;
+            formWidgetCount += page.FormWidgets.Count;
+            annotationCount += page.Annotations.Count;
+            pageActionCount += page.PageActions.Count;
+        }
+
+        return new PdfTableExtractionScopeReport(
+            document.Pages.Count,
+            pagesWithTables,
+            detectedTableCount,
+            nonTableTextBlockCount,
+            imageCount,
+            linkCount,
+            formWidgetCount,
+            annotationCount,
+            pageActionCount);
+    }
+
+    /// <summary>
     /// Detects a simple header row from the first logical table row.
     /// </summary>
     /// <param name="table">Logical table to inspect.</param>
@@ -149,6 +201,51 @@ public static class PdfLogicalTableAnalysis {
         }
 
         return nonNumericCount == columnCount ? headers : null;
+    }
+
+    private static bool IsTextBlockRepresentedByAnyTable(
+        PdfLogicalTextBlock block,
+        IReadOnlyList<PdfLogicalTable> tables) {
+        for (int tableIndex = 0; tableIndex < tables.Count; tableIndex++) {
+            PdfLogicalTable table = tables[tableIndex];
+            double top = Math.Max(table.YTop, table.YBottom);
+            double bottom = Math.Min(table.YTop, table.YBottom);
+            if (block.BaselineY > top + 1D || block.BaselineY < bottom - 1D) {
+                continue;
+            }
+
+            string blockText = NormalizeForScopeComparison(block.Text);
+            if (blockText.Length == 0) {
+                return true;
+            }
+
+            for (int rowIndex = 0; rowIndex < table.Rows.Count; rowIndex++) {
+                string rowText = NormalizeForScopeComparison(string.Join(" ", table.Rows[rowIndex]));
+                if (rowText.Length > 0 &&
+                    (rowText.Contains(blockText, StringComparison.Ordinal) ||
+                     blockText.Contains(rowText, StringComparison.Ordinal))) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private static string NormalizeForScopeComparison(string? value) {
+        if (string.IsNullOrWhiteSpace(value)) {
+            return string.Empty;
+        }
+
+        var builder = new System.Text.StringBuilder(value.Length);
+        for (int index = 0; index < value.Length; index++) {
+            char character = value[index];
+            if (!char.IsWhiteSpace(character)) {
+                builder.Append(char.ToUpperInvariant(character));
+            }
+        }
+
+        return builder.ToString();
     }
 
     /// <summary>

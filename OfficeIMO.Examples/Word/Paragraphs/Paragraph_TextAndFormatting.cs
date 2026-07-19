@@ -1,4 +1,3 @@
-using OfficeIMO.Drawing.Internal;
 using System;
 using System.IO;
 using OfficeIMO.Word;
@@ -21,6 +20,6 @@ internal static partial class Paragraphs {
                 .End()
                 .Save();
         }
-        if (openWord) OfficeFileLauncher.Open(filePath);
+        if (openWord) ExampleFileLauncher.Open(filePath);
     }
 }

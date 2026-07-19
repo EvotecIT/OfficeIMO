@@ -123,25 +123,29 @@ result.Report.RequireNoErrorWarnings();
 
 ## PDF table import
 
-`SaveAsPowerPoint(...)` extracts logical tables from a PDF and writes editable PowerPoint table slides. This is useful for review decks and migration workflows where the source PDF has table-like content that should become editable again.
+`SaveTablesAsPowerPoint(...)` extracts logical tables from a PDF and writes editable PowerPoint table slides. It does not claim to convert unrelated page text, images, links, forms, annotations, or actions.
 
 ```csharp
 using OfficeIMO.PowerPoint.Pdf;
 using OfficeIMO.Pdf;
 
-var imported = PowerPointPdfConverterExtensions.SaveAsPowerPoint(
+PdfLogicalDocument source = PdfLogicalDocument.LoadPageRanges(
     "financial-statement.pdf",
+    PdfPageRange.From(2, 5));
+
+PdfPowerPointTableImportReport report = source.SaveTablesAsPowerPoint(
     "financial-statement-tables.pptx",
     new PdfPowerPointTableImportOptions {
-        PageRanges = new[] { PdfPageRange.From(2, 5) },
         MaxRows = 400,
         MaxRowsPerSlide = 18,
         MaxColumnsPerSlide = 6
     });
 
-foreach (var table in imported) {
+foreach (var table in report.Entries) {
     Console.WriteLine($"Page {table.PageNumber}, slide {table.SlideIndex + 1}");
 }
+
+Console.WriteLine($"Non-table page content detected: {report.HasOmittedPageContent}");
 ```
 
 ## Boundaries
@@ -149,6 +153,7 @@ foreach (var table in imported) {
 - Presentation modeling stays in `OfficeIMO.PowerPoint`.
 - PDF layout and writing stay in `OfficeIMO.Pdf`.
 - This package should remain a thin adapter over shared PDF primitives.
+- PDF import is intentionally table-only. `SourceScope` and `HasOmittedPageContent` make the omitted page surface explicit.
 - Complex slide fidelity gaps should be reported through warnings and deeper docs rather than broad README claims.
 
 ## Related packages

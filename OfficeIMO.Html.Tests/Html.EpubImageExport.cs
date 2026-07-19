@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using OfficeIMO.Drawing;
 using OfficeIMO.Epub;
-using OfficeIMO.Epub.Html;
+using OfficeIMO.Epub.Image;
 using OfficeIMO.Html;
 using Xunit;
 

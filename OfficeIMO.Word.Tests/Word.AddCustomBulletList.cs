@@ -25,12 +25,12 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("■", list.Numbering.Levels[3].LevelText);
                 Assert.Equal("●", list.Numbering.Levels[4].LevelText);
 
-                var level1Props = list.Numbering.Levels[0]._level.NumberingSymbolRunProperties!;
+                var level1Props = list.Numbering.Levels[0].OpenXmlElement.NumberingSymbolRunProperties!;
                 Assert.Equal("Courier New", level1Props.GetFirstChild<RunFonts>()?.Ascii);
                 Assert.Equal("FF0000", level1Props.GetFirstChild<Color>()?.Val);
                 Assert.Equal("28", level1Props.GetFirstChild<FontSize>()?.Val);
 
-                var level5Props = list.Numbering.Levels[4]._level.NumberingSymbolRunProperties!;
+                var level5Props = list.Numbering.Levels[4].OpenXmlElement.NumberingSymbolRunProperties!;
                 Assert.Equal("Arial", level5Props.GetFirstChild<RunFonts>()?.Ascii);
                 Assert.Equal("00FF00", level5Props.GetFirstChild<Color>()?.Val);
                 Assert.Equal("20", level5Props.GetFirstChild<FontSize>()?.Val);
@@ -51,7 +51,7 @@ namespace OfficeIMO.Tests {
                 Assert.Single(list.Numbering.Levels);
                 Assert.Equal("◆", list.Numbering.Levels[0].LevelText);
 
-                var props = list.Numbering.Levels[0]._level.NumberingSymbolRunProperties!;
+                var props = list.Numbering.Levels[0].OpenXmlElement.NumberingSymbolRunProperties!;
                 Assert.Equal("Wingdings", props.GetFirstChild<RunFonts>()?.Ascii);
                 Assert.Equal("0000FF", props.GetFirstChild<Color>()?.Val);
                 Assert.Equal("24", props.GetFirstChild<FontSize>()?.Val);

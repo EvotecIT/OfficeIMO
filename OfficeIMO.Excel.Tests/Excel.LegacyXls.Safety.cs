@@ -29,7 +29,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void LegacyXls_LoadResult_CachesCompactAndAdvancedReports() {
+        public void LegacyXls_LoadResult_CachesCompactReports() {
             byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateMinimalWorkbookStream();
             byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
             using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(new MemoryStream(compound));
@@ -37,7 +37,45 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, result.Summary.WorksheetCount);
             Assert.False(result.Summary.HasImportErrors);
             Assert.Same(result.Summary, result.Summary);
-            Assert.Same(result.ImportReport, result.CreateAdvancedImportReport());
+            Assert.Same(result.ImportReport, result.CreateImportReport());
+        }
+
+        [Fact]
+        public void LegacyXls_ImportReport_ExposesOnlyCompactPublicTotals() {
+            string[] expectedProperties = {
+                nameof(LegacyXlsImportReport.AutoFilterCriteriaCount),
+                nameof(LegacyXlsImportReport.CellCount),
+                nameof(LegacyXlsImportReport.ChartRecordCount),
+                nameof(LegacyXlsImportReport.ChartSheetCount),
+                nameof(LegacyXlsImportReport.CommentCount),
+                nameof(LegacyXlsImportReport.ConditionalFormattingCount),
+                nameof(LegacyXlsImportReport.DataValidationCount),
+                nameof(LegacyXlsImportReport.DefinedNameCount),
+                nameof(LegacyXlsImportReport.DrawingRecordCount),
+                nameof(LegacyXlsImportReport.ErrorCount),
+                nameof(LegacyXlsImportReport.ExternalReferenceCount),
+                nameof(LegacyXlsImportReport.FormulaCellCount),
+                nameof(LegacyXlsImportReport.HasImportErrors),
+                nameof(LegacyXlsImportReport.HasUnsupportedFeatures),
+                nameof(LegacyXlsImportReport.HyperlinkCount),
+                nameof(LegacyXlsImportReport.PivotTableRecordCount),
+                nameof(LegacyXlsImportReport.PreservedFeatureRecordCount),
+                nameof(LegacyXlsImportReport.UnsupportedFeatureCount),
+                nameof(LegacyXlsImportReport.UnsupportedProjectionGapCount),
+                nameof(LegacyXlsImportReport.UnsupportedSheetCount),
+                nameof(LegacyXlsImportReport.WarningCount),
+                nameof(LegacyXlsImportReport.WorksheetCount)
+            };
+
+            string[] actualProperties = typeof(LegacyXlsImportReport)
+                .GetProperties(System.Reflection.BindingFlags.Instance
+                    | System.Reflection.BindingFlags.Public
+                    | System.Reflection.BindingFlags.DeclaredOnly)
+                .Select(property => property.Name)
+                .OrderBy(name => name, StringComparer.Ordinal)
+                .ToArray();
+
+            Assert.Equal(expectedProperties.OrderBy(name => name, StringComparer.Ordinal), actualProperties);
         }
 
         [Fact]

@@ -4,7 +4,7 @@
     <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
     <TargetFrameworks Condition="$([MSBuild]::IsOsPlatform('Windows'))">$(TargetFrameworks);net472</TargetFrameworks>
     <EnableOfficeIMOOneNotePackageSmoke Condition="'$(EnableOfficeIMOOneNotePackageSmoke)' == ''">false</EnableOfficeIMOOneNotePackageSmoke>
-    <OfficeIMOOneNotePackageVersion Condition="'$(OfficeIMOOneNotePackageVersion)' == ''">2.0.1</OfficeIMOOneNotePackageVersion>
+    <OfficeIMOOneNotePackageVersion Condition="'$(OfficeIMOOneNotePackageVersion)' == ''">3.0.0</OfficeIMOOneNotePackageVersion>
     <IsPackable>false</IsPackable>
     <LangVersion>Latest</LangVersion>
     <Nullable>enable</Nullable>

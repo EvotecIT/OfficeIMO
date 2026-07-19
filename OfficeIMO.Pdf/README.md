@@ -527,15 +527,18 @@ foreach (var page in inspection.Pages) {
 ```csharp
 using OfficeIMO.Excel.Pdf;
 using OfficeIMO.Html.Pdf;
+using OfficeIMO.Pdf;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Pdf;
 
 using var word = WordDocument.Load("proposal.docx");
 word.SaveAsPdf("proposal.pdf");
 
-PdfExcelTableConverterExtensions.SaveAsExcel(
-    "bank-statement.pdf",
+PdfLogicalDocument statement = PdfLogicalDocument.Load("bank-statement.pdf");
+PdfExcelTableImportReport tableReport = statement.SaveTablesAsExcel(
     "bank-statement-tables.xlsx");
+
+Console.WriteLine($"Non-table page content detected: {tableReport.HasOmittedPageContent}");
 
 PdfHtmlConverterExtensions.SaveAsHtml(
     "proposal.pdf",

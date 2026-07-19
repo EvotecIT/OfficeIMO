@@ -6,7 +6,8 @@ using System.Text;
 
 namespace OfficeIMO.Excel.LegacyXls {
     /// <summary>
-    /// Compact import summary intended for corpus baselines and preflight checks.
+    /// Compact public import report for preflight checks and diagnostics.
+    /// Detailed corpus aggregations are kept internal to avoid turning parser telemetry into a public compatibility surface.
     /// </summary>
     public sealed class LegacyXlsImportReport {
         internal LegacyXlsImportReport(LegacyXlsWorkbook workbook) {
@@ -1865,25 +1866,25 @@ namespace OfficeIMO.Excel.LegacyXls {
         public int CommentCount { get; }
 
         /// <summary>Gets parsed comments grouped by decoded OBJ common-object type id.</summary>
-        public IReadOnlyDictionary<string, int> CommentsByObjectType { get; }
+        internal IReadOnlyDictionary<string, int> CommentsByObjectType { get; }
 
         /// <summary>Gets parsed comments grouped by decoded OBJ common-object type name.</summary>
-        public IReadOnlyDictionary<string, int> CommentsByObjectTypeName { get; }
+        internal IReadOnlyDictionary<string, int> CommentsByObjectTypeName { get; }
 
         /// <summary>Gets parsed comments grouped by decoded OBJ common-object flag bitfield.</summary>
-        public IReadOnlyDictionary<string, int> CommentsByObjectFlags { get; }
+        internal IReadOnlyDictionary<string, int> CommentsByObjectFlags { get; }
 
         /// <summary>Gets parsed comments grouped by decoded OBJ common-object flag name.</summary>
-        public IReadOnlyDictionary<string, int> CommentsByObjectFlagName { get; }
+        internal IReadOnlyDictionary<string, int> CommentsByObjectFlagName { get; }
 
         /// <summary>Gets parsed comments grouped by preserved OfficeArt client-anchor start and end cell.</summary>
-        public IReadOnlyDictionary<string, int> CommentsByAnchorRange { get; }
+        internal IReadOnlyDictionary<string, int> CommentsByAnchorRange { get; }
 
         /// <summary>Gets parsed comments grouped by preserved OfficeArt client-anchor offsets.</summary>
-        public IReadOnlyDictionary<string, int> CommentsByAnchorOffset { get; }
+        internal IReadOnlyDictionary<string, int> CommentsByAnchorOffset { get; }
 
         /// <summary>Gets parsed comments grouped by preserved OfficeArt client-anchor flag bitfield.</summary>
-        public IReadOnlyDictionary<string, int> CommentsByAnchorFlags { get; }
+        internal IReadOnlyDictionary<string, int> CommentsByAnchorFlags { get; }
 
         /// <summary>Gets the number of imported hyperlinks.</summary>
         public int HyperlinkCount { get; }
@@ -1892,7 +1893,7 @@ namespace OfficeIMO.Excel.LegacyXls {
         public int DataValidationCount { get; }
 
         /// <summary>Gets the number of parsed DVal data-validation collection headers.</summary>
-        public int DataValidationCollectionRecordCount { get; }
+        internal int DataValidationCollectionRecordCount { get; }
 
         /// <summary>Gets the number of imported conditional formatting rules.</summary>
         public int ConditionalFormattingCount { get; }
@@ -1901,271 +1902,271 @@ namespace OfficeIMO.Excel.LegacyXls {
         public int AutoFilterCriteriaCount { get; }
 
         /// <summary>Gets non-empty worksheet feature bundles grouped by data-validation, conditional-formatting, and AutoFilter state.</summary>
-        public IReadOnlyDictionary<string, int> WorksheetFeatureStates { get; }
+        internal IReadOnlyDictionary<string, int> WorksheetFeatureStates { get; }
 
         /// <summary>Gets worksheet object protection states declared by ObjProtect records.</summary>
-        public IReadOnlyDictionary<string, int> WorksheetProtectionObjectStates { get; }
+        internal IReadOnlyDictionary<string, int> WorksheetProtectionObjectStates { get; }
 
         /// <summary>Gets worksheet scenario protection states declared by ScenarioProtect records.</summary>
-        public IReadOnlyDictionary<string, int> WorksheetProtectionScenarioStates { get; }
+        internal IReadOnlyDictionary<string, int> WorksheetProtectionScenarioStates { get; }
 
         /// <summary>Gets worksheet phonetic settings grouped by worksheet name.</summary>
-        public IReadOnlyDictionary<string, int> WorksheetPhoneticSettingsBySheet { get; }
+        internal IReadOnlyDictionary<string, int> WorksheetPhoneticSettingsBySheet { get; }
 
         /// <summary>Gets worksheet phonetic settings grouped by conversion type.</summary>
-        public IReadOnlyDictionary<string, int> WorksheetPhoneticSettingsByType { get; }
+        internal IReadOnlyDictionary<string, int> WorksheetPhoneticSettingsByType { get; }
 
         /// <summary>Gets worksheet phonetic settings grouped by alignment.</summary>
-        public IReadOnlyDictionary<string, int> WorksheetPhoneticSettingsByAlignment { get; }
+        internal IReadOnlyDictionary<string, int> WorksheetPhoneticSettingsByAlignment { get; }
 
         /// <summary>Gets worksheet phonetic settings grouped by BIFF font id.</summary>
-        public IReadOnlyDictionary<string, int> WorksheetPhoneticSettingsByFontId { get; }
+        internal IReadOnlyDictionary<string, int> WorksheetPhoneticSettingsByFontId { get; }
 
         /// <summary>Gets worksheet phonetic settings grouped by attached range count.</summary>
-        public IReadOnlyDictionary<string, int> WorksheetPhoneticSettingsByRangeCount { get; }
+        internal IReadOnlyDictionary<string, int> WorksheetPhoneticSettingsByRangeCount { get; }
 
         /// <summary>Gets worksheet phonetic ranges grouped by worksheet name.</summary>
-        public IReadOnlyDictionary<string, int> WorksheetPhoneticRangesBySheet { get; }
+        internal IReadOnlyDictionary<string, int> WorksheetPhoneticRangesBySheet { get; }
 
         /// <summary>Gets worksheet phonetic ranges grouped by worksheet-qualified A1 range.</summary>
-        public IReadOnlyDictionary<string, int> WorksheetPhoneticRangesBySheetAndRange { get; }
+        internal IReadOnlyDictionary<string, int> WorksheetPhoneticRangesBySheetAndRange { get; }
 
         /// <summary>Gets parsed DVal collection headers grouped by worksheet name.</summary>
-        public IReadOnlyDictionary<string, int> DataValidationCollectionsBySheet { get; }
+        internal IReadOnlyDictionary<string, int> DataValidationCollectionsBySheet { get; }
 
         /// <summary>Gets parsed DVal collection headers grouped by declared validation count.</summary>
-        public IReadOnlyDictionary<string, int> DataValidationCollectionsByDeclaredCount { get; }
+        internal IReadOnlyDictionary<string, int> DataValidationCollectionsByDeclaredCount { get; }
 
         /// <summary>Gets parsed DVal collection headers grouped by declared-vs-parsed validation state.</summary>
-        public IReadOnlyDictionary<string, int> DataValidationCollectionStates { get; }
+        internal IReadOnlyDictionary<string, int> DataValidationCollectionStates { get; }
 
         /// <summary>Gets imported data validations grouped by validation type.</summary>
-        public IReadOnlyDictionary<string, int> DataValidationsByType { get; }
+        internal IReadOnlyDictionary<string, int> DataValidationsByType { get; }
 
         /// <summary>Gets imported data validations grouped by comparison operator.</summary>
-        public IReadOnlyDictionary<string, int> DataValidationsByOperator { get; }
+        internal IReadOnlyDictionary<string, int> DataValidationsByOperator { get; }
 
         /// <summary>Gets imported data validations grouped by error alert style.</summary>
-        public IReadOnlyDictionary<string, int> DataValidationsByErrorStyle { get; }
+        internal IReadOnlyDictionary<string, int> DataValidationsByErrorStyle { get; }
 
         /// <summary>Gets imported data validations grouped by blank-value handling.</summary>
-        public IReadOnlyDictionary<string, int> DataValidationsByAllowBlankState { get; }
+        internal IReadOnlyDictionary<string, int> DataValidationsByAllowBlankState { get; }
 
         /// <summary>Gets imported data validations grouped by input-prompt display state.</summary>
-        public IReadOnlyDictionary<string, int> DataValidationsByInputMessageState { get; }
+        internal IReadOnlyDictionary<string, int> DataValidationsByInputMessageState { get; }
 
         /// <summary>Gets imported data validations grouped by error-alert display state.</summary>
-        public IReadOnlyDictionary<string, int> DataValidationsByErrorMessageState { get; }
+        internal IReadOnlyDictionary<string, int> DataValidationsByErrorMessageState { get; }
 
         /// <summary>Gets imported data validations grouped by input prompt text presence.</summary>
-        public IReadOnlyDictionary<string, int> DataValidationsByPromptTextState { get; }
+        internal IReadOnlyDictionary<string, int> DataValidationsByPromptTextState { get; }
 
         /// <summary>Gets imported data validations grouped by error alert text presence.</summary>
-        public IReadOnlyDictionary<string, int> DataValidationsByErrorTextState { get; }
+        internal IReadOnlyDictionary<string, int> DataValidationsByErrorTextState { get; }
 
         /// <summary>Gets imported list data validations grouped by in-cell dropdown behavior.</summary>
-        public IReadOnlyDictionary<string, int> DataValidationsByDropDownState { get; }
+        internal IReadOnlyDictionary<string, int> DataValidationsByDropDownState { get; }
 
         /// <summary>Gets imported data validations grouped by worksheet name.</summary>
-        public IReadOnlyDictionary<string, int> DataValidationsBySheet { get; }
+        internal IReadOnlyDictionary<string, int> DataValidationsBySheet { get; }
 
         /// <summary>Gets imported data validations grouped by number of covered ranges.</summary>
-        public IReadOnlyDictionary<string, int> DataValidationsByRangeCount { get; }
+        internal IReadOnlyDictionary<string, int> DataValidationsByRangeCount { get; }
 
         /// <summary>Gets imported data validations grouped by covered A1 range.</summary>
-        public IReadOnlyDictionary<string, int> DataValidationsByRange { get; }
+        internal IReadOnlyDictionary<string, int> DataValidationsByRange { get; }
 
         /// <summary>Gets imported data validations grouped by worksheet-qualified covered A1 range.</summary>
-        public IReadOnlyDictionary<string, int> DataValidationsBySheetAndRange { get; }
+        internal IReadOnlyDictionary<string, int> DataValidationsBySheetAndRange { get; }
 
         /// <summary>Gets imported data validations grouped by first-formula presence.</summary>
-        public IReadOnlyDictionary<string, int> DataValidationsByFormula1State { get; }
+        internal IReadOnlyDictionary<string, int> DataValidationsByFormula1State { get; }
 
         /// <summary>Gets imported data validations grouped by second-formula presence.</summary>
-        public IReadOnlyDictionary<string, int> DataValidationsByFormula2State { get; }
+        internal IReadOnlyDictionary<string, int> DataValidationsByFormula2State { get; }
 
         /// <summary>Gets imported data validations grouped by combined first/second formula presence.</summary>
-        public IReadOnlyDictionary<string, int> DataValidationsByFormulaPairState { get; }
+        internal IReadOnlyDictionary<string, int> DataValidationsByFormulaPairState { get; }
 
         /// <summary>Gets imported list data validations grouped by source shape.</summary>
-        public IReadOnlyDictionary<string, int> DataValidationListSourcesByKind { get; }
+        internal IReadOnlyDictionary<string, int> DataValidationListSourcesByKind { get; }
 
         /// <summary>Gets imported list data validations grouped by inline item count.</summary>
-        public IReadOnlyDictionary<string, int> DataValidationListSourcesByItemCount { get; }
+        internal IReadOnlyDictionary<string, int> DataValidationListSourcesByItemCount { get; }
 
         /// <summary>Gets imported list data validations grouped by source range.</summary>
-        public IReadOnlyDictionary<string, int> DataValidationListSourcesByRange { get; }
+        internal IReadOnlyDictionary<string, int> DataValidationListSourcesByRange { get; }
 
         /// <summary>Gets imported list data validations grouped by source defined name.</summary>
-        public IReadOnlyDictionary<string, int> DataValidationListSourcesByName { get; }
+        internal IReadOnlyDictionary<string, int> DataValidationListSourcesByName { get; }
 
         /// <summary>Gets imported list data validations grouped by source sheet name.</summary>
-        public IReadOnlyDictionary<string, int> DataValidationListSourcesBySheetName { get; }
+        internal IReadOnlyDictionary<string, int> DataValidationListSourcesBySheetName { get; }
 
         /// <summary>Gets the number of Array formula records decoded during import.</summary>
-        public int ArrayFormulaRecordCount { get; }
+        internal int ArrayFormulaRecordCount { get; }
 
         /// <summary>Gets Array formula records grouped by worksheet name.</summary>
-        public IReadOnlyDictionary<string, int> ArrayFormulasBySheet { get; }
+        internal IReadOnlyDictionary<string, int> ArrayFormulasBySheet { get; }
 
         /// <summary>Gets Array formula records grouped by covered A1 range.</summary>
-        public IReadOnlyDictionary<string, int> ArrayFormulasByRange { get; }
+        internal IReadOnlyDictionary<string, int> ArrayFormulasByRange { get; }
 
         /// <summary>Gets Array formula records grouped by worksheet-qualified A1 range.</summary>
-        public IReadOnlyDictionary<string, int> ArrayFormulasBySheetAndRange { get; }
+        internal IReadOnlyDictionary<string, int> ArrayFormulasBySheetAndRange { get; }
 
         /// <summary>Gets Array formula records grouped by declared cell count.</summary>
-        public IReadOnlyDictionary<string, int> ArrayFormulasByDeclaredCellCount { get; }
+        internal IReadOnlyDictionary<string, int> ArrayFormulasByDeclaredCellCount { get; }
 
         /// <summary>Gets Array formula records grouped by the number of matched cached formula cells.</summary>
-        public IReadOnlyDictionary<string, int> ArrayFormulasByMatchedFormulaCellCount { get; }
+        internal IReadOnlyDictionary<string, int> ArrayFormulasByMatchedFormulaCellCount { get; }
 
         /// <summary>Gets Array formula records grouped by recalculation flag state.</summary>
-        public IReadOnlyDictionary<string, int> ArrayFormulasByAlwaysCalculateState { get; }
+        internal IReadOnlyDictionary<string, int> ArrayFormulasByAlwaysCalculateState { get; }
 
         /// <summary>Gets Array formula records grouped by whether formula text was projected onto matched cells.</summary>
-        public IReadOnlyDictionary<string, int> ArrayFormulasByProjectionState { get; }
+        internal IReadOnlyDictionary<string, int> ArrayFormulasByProjectionState { get; }
 
         /// <summary>Gets Array formula records grouped by parsed token byte count.</summary>
-        public IReadOnlyDictionary<string, int> ArrayFormulasByTokenByteCount { get; }
+        internal IReadOnlyDictionary<string, int> ArrayFormulasByTokenByteCount { get; }
 
         /// <summary>Gets Array formula records grouped by parsed-formula ancillary byte count.</summary>
-        public IReadOnlyDictionary<string, int> ArrayFormulasByExtraByteCount { get; }
+        internal IReadOnlyDictionary<string, int> ArrayFormulasByExtraByteCount { get; }
 
         /// <summary>Gets imported conditional formatting rules grouped by rule type.</summary>
-        public IReadOnlyDictionary<string, int> ConditionalFormattingsByType { get; }
+        internal IReadOnlyDictionary<string, int> ConditionalFormattingsByType { get; }
 
         /// <summary>Gets imported conditional formatting cell-is rules grouped by comparison operator.</summary>
-        public IReadOnlyDictionary<string, int> ConditionalFormattingsByOperator { get; }
+        internal IReadOnlyDictionary<string, int> ConditionalFormattingsByOperator { get; }
 
         /// <summary>Gets imported conditional formatting rules grouped by worksheet name.</summary>
-        public IReadOnlyDictionary<string, int> ConditionalFormattingsBySheet { get; }
+        internal IReadOnlyDictionary<string, int> ConditionalFormattingsBySheet { get; }
 
         /// <summary>Gets imported conditional formatting rules grouped by number of covered ranges.</summary>
-        public IReadOnlyDictionary<string, int> ConditionalFormattingsByRangeCount { get; }
+        internal IReadOnlyDictionary<string, int> ConditionalFormattingsByRangeCount { get; }
 
         /// <summary>Gets imported conditional formatting rules grouped by covered A1 range.</summary>
-        public IReadOnlyDictionary<string, int> ConditionalFormattingsByRange { get; }
+        internal IReadOnlyDictionary<string, int> ConditionalFormattingsByRange { get; }
 
         /// <summary>Gets imported conditional formatting rules grouped by worksheet-qualified covered A1 range.</summary>
-        public IReadOnlyDictionary<string, int> ConditionalFormattingsBySheetAndRange { get; }
+        internal IReadOnlyDictionary<string, int> ConditionalFormattingsBySheetAndRange { get; }
 
         /// <summary>Gets imported conditional formatting rules grouped by first-formula presence.</summary>
-        public IReadOnlyDictionary<string, int> ConditionalFormattingsByFormula1State { get; }
+        internal IReadOnlyDictionary<string, int> ConditionalFormattingsByFormula1State { get; }
 
         /// <summary>Gets imported conditional formatting rules grouped by second-formula presence.</summary>
-        public IReadOnlyDictionary<string, int> ConditionalFormattingsByFormula2State { get; }
+        internal IReadOnlyDictionary<string, int> ConditionalFormattingsByFormula2State { get; }
 
         /// <summary>Gets imported conditional formatting rules grouped by combined first/second formula presence.</summary>
-        public IReadOnlyDictionary<string, int> ConditionalFormattingsByFormulaPairState { get; }
+        internal IReadOnlyDictionary<string, int> ConditionalFormattingsByFormulaPairState { get; }
 
         /// <summary>Gets imported conditional formatting rules grouped by whether an extension priority was decoded.</summary>
-        public IReadOnlyDictionary<string, int> ConditionalFormattingsByPriorityState { get; }
+        internal IReadOnlyDictionary<string, int> ConditionalFormattingsByPriorityState { get; }
 
         /// <summary>Gets imported conditional formatting extension priorities grouped by priority value.</summary>
-        public IReadOnlyDictionary<string, int> ConditionalFormattingsByPriority { get; }
+        internal IReadOnlyDictionary<string, int> ConditionalFormattingsByPriority { get; }
 
         /// <summary>Gets imported conditional formatting rules grouped by stop-if-true behavior.</summary>
-        public IReadOnlyDictionary<string, int> ConditionalFormattingsByStopIfTrueState { get; }
+        internal IReadOnlyDictionary<string, int> ConditionalFormattingsByStopIfTrueState { get; }
 
         /// <summary>Gets imported conditional formatting rules grouped by whether a differential format was attached.</summary>
-        public IReadOnlyDictionary<string, int> ConditionalFormattingsByDifferentialFormatState { get; }
+        internal IReadOnlyDictionary<string, int> ConditionalFormattingsByDifferentialFormatState { get; }
 
         /// <summary>Gets imported conditional formatting differential formats grouped by decoded fill shape.</summary>
-        public IReadOnlyDictionary<string, int> ConditionalFormattingsByDifferentialFill { get; }
+        internal IReadOnlyDictionary<string, int> ConditionalFormattingsByDifferentialFill { get; }
 
         /// <summary>Gets imported conditional formatting differential formats grouped by decoded font shape.</summary>
-        public IReadOnlyDictionary<string, int> ConditionalFormattingsByDifferentialFont { get; }
+        internal IReadOnlyDictionary<string, int> ConditionalFormattingsByDifferentialFont { get; }
 
         /// <summary>Gets imported conditional formatting differential formats grouped by decoded border shape.</summary>
-        public IReadOnlyDictionary<string, int> ConditionalFormattingsByDifferentialBorder { get; }
+        internal IReadOnlyDictionary<string, int> ConditionalFormattingsByDifferentialBorder { get; }
 
         /// <summary>Gets imported conditional formatting differential formats grouped by decoded number format shape.</summary>
-        public IReadOnlyDictionary<string, int> ConditionalFormattingsByDifferentialNumberFormat { get; }
+        internal IReadOnlyDictionary<string, int> ConditionalFormattingsByDifferentialNumberFormat { get; }
 
         /// <summary>Gets the number of preserve-only conditional-formatting extension records discovered during import.</summary>
-        public int ConditionalFormattingExtensionRecordCount { get; }
+        internal int ConditionalFormattingExtensionRecordCount { get; }
 
         /// <summary>Gets preserve-only conditional-formatting extension records grouped by worksheet name.</summary>
-        public IReadOnlyDictionary<string, int> ConditionalFormattingExtensionsBySheet { get; }
+        internal IReadOnlyDictionary<string, int> ConditionalFormattingExtensionsBySheet { get; }
 
         /// <summary>Gets preserve-only conditional-formatting extension records grouped by BIFF record type.</summary>
-        public IReadOnlyDictionary<string, int> ConditionalFormattingExtensionsByRecordType { get; }
+        internal IReadOnlyDictionary<string, int> ConditionalFormattingExtensionsByRecordType { get; }
 
         /// <summary>Gets preserve-only conditional-formatting extension records grouped by decoded state.</summary>
-        public IReadOnlyDictionary<string, int> ConditionalFormattingExtensionStates { get; }
+        internal IReadOnlyDictionary<string, int> ConditionalFormattingExtensionStates { get; }
 
         /// <summary>Gets preserve-only conditional-formatting extension records grouped by decoded priority.</summary>
-        public IReadOnlyDictionary<string, int> ConditionalFormattingExtensionPriorities { get; }
+        internal IReadOnlyDictionary<string, int> ConditionalFormattingExtensionPriorities { get; }
 
         /// <summary>Gets preserve-only conditional-formatting extension records grouped by decoded stop-if-true state.</summary>
-        public IReadOnlyDictionary<string, int> ConditionalFormattingExtensionStopIfTrueStates { get; }
+        internal IReadOnlyDictionary<string, int> ConditionalFormattingExtensionStopIfTrueStates { get; }
 
         /// <summary>Gets preserve-only conditional-formatting extension records grouped by declared inline formatting byte count.</summary>
-        public IReadOnlyDictionary<string, int> ConditionalFormattingExtensionInlineFormattingByteCounts { get; }
+        internal IReadOnlyDictionary<string, int> ConditionalFormattingExtensionInlineFormattingByteCounts { get; }
 
         /// <summary>Gets preserve-only conditional-formatting extension records grouped by Dxf projection state.</summary>
-        public IReadOnlyDictionary<string, int> ConditionalFormattingExtensionDxfProjectionStates { get; }
+        internal IReadOnlyDictionary<string, int> ConditionalFormattingExtensionDxfProjectionStates { get; }
 
         /// <summary>Gets imported AutoFilter criteria grouped by worksheet name.</summary>
-        public IReadOnlyDictionary<string, int> AutoFilterCriteriaBySheet { get; }
+        internal IReadOnlyDictionary<string, int> AutoFilterCriteriaBySheet { get; }
 
         /// <summary>Gets imported AutoFilter conditions grouped by comparison operator.</summary>
-        public IReadOnlyDictionary<string, int> AutoFilterCriteriaByOperator { get; }
+        internal IReadOnlyDictionary<string, int> AutoFilterCriteriaByOperator { get; }
 
         /// <summary>Gets imported AutoFilter conditions grouped by BIFF operand kind.</summary>
-        public IReadOnlyDictionary<string, int> AutoFilterCriteriaByValueKind { get; }
+        internal IReadOnlyDictionary<string, int> AutoFilterCriteriaByValueKind { get; }
 
         /// <summary>Gets imported AutoFilter text conditions grouped by wildcard-pattern shape.</summary>
-        public IReadOnlyDictionary<string, int> AutoFilterCriteriaByTextPattern { get; }
+        internal IReadOnlyDictionary<string, int> AutoFilterCriteriaByTextPattern { get; }
 
         /// <summary>Gets imported AutoFilter criteria grouped by condition join operator.</summary>
-        public IReadOnlyDictionary<string, int> AutoFilterCriteriaByJoinOperator { get; }
+        internal IReadOnlyDictionary<string, int> AutoFilterCriteriaByJoinOperator { get; }
 
         /// <summary>Gets imported AutoFilter criteria grouped by criteria kind.</summary>
-        public IReadOnlyDictionary<string, int> AutoFilterCriteriaByKind { get; }
+        internal IReadOnlyDictionary<string, int> AutoFilterCriteriaByKind { get; }
 
         /// <summary>Gets imported AutoFilter criteria grouped by zero-based column id.</summary>
-        public IReadOnlyDictionary<string, int> AutoFilterCriteriaByColumn { get; }
+        internal IReadOnlyDictionary<string, int> AutoFilterCriteriaByColumn { get; }
 
         /// <summary>Gets imported AutoFilter criteria grouped by worksheet-qualified zero-based column id.</summary>
-        public IReadOnlyDictionary<string, int> AutoFilterCriteriaBySheetAndColumn { get; }
+        internal IReadOnlyDictionary<string, int> AutoFilterCriteriaBySheetAndColumn { get; }
 
         /// <summary>Gets imported AutoFilter criteria grouped by condition count.</summary>
-        public IReadOnlyDictionary<string, int> AutoFilterCriteriaByConditionCount { get; }
+        internal IReadOnlyDictionary<string, int> AutoFilterCriteriaByConditionCount { get; }
 
         /// <summary>Gets imported Top/Bottom AutoFilter criteria grouped by top/bottom and items/percent shape.</summary>
-        public IReadOnlyDictionary<string, int> AutoFilterTop10Kinds { get; }
+        internal IReadOnlyDictionary<string, int> AutoFilterTop10Kinds { get; }
 
         /// <summary>Gets imported Top/Bottom AutoFilter criteria grouped by shape and value.</summary>
-        public IReadOnlyDictionary<string, int> AutoFilterTop10Values { get; }
+        internal IReadOnlyDictionary<string, int> AutoFilterTop10Values { get; }
 
         /// <summary>Gets imported Top/Bottom AutoFilter criteria grouped by top or bottom direction.</summary>
-        public IReadOnlyDictionary<string, int> AutoFilterTop10Directions { get; }
+        internal IReadOnlyDictionary<string, int> AutoFilterTop10Directions { get; }
 
         /// <summary>Gets imported Top/Bottom AutoFilter criteria grouped by item-count or percentage unit.</summary>
-        public IReadOnlyDictionary<string, int> AutoFilterTop10Units { get; }
+        internal IReadOnlyDictionary<string, int> AutoFilterTop10Units { get; }
 
         /// <summary>Gets imported worksheets grouped by decoded BoundSheet visibility state.</summary>
-        public IReadOnlyDictionary<string, int> WorksheetsByVisibility { get; }
+        internal IReadOnlyDictionary<string, int> WorksheetsByVisibility { get; }
 
         /// <summary>Gets whether the workbook CodeName record was present.</summary>
-        public IReadOnlyDictionary<string, int> WorkbookCodeNameStates { get; }
+        internal IReadOnlyDictionary<string, int> WorkbookCodeNameStates { get; }
 
         /// <summary>Gets workbook CodeName values grouped by name.</summary>
-        public IReadOnlyDictionary<string, int> WorkbookCodeNames { get; }
+        internal IReadOnlyDictionary<string, int> WorkbookCodeNames { get; }
 
         /// <summary>Gets decoded workbook option states from Backup and BookBool records.</summary>
-        public IReadOnlyDictionary<string, int> WorkbookOptionStates { get; }
+        internal IReadOnlyDictionary<string, int> WorkbookOptionStates { get; }
 
         /// <summary>Gets decoded BuiltInFnGroupCount values grouped by observed function category count.</summary>
-        public IReadOnlyDictionary<string, int> WorkbookBuiltInFunctionGroupCounts { get; }
+        internal IReadOnlyDictionary<string, int> WorkbookBuiltInFunctionGroupCounts { get; }
 
         /// <summary>Gets imported worksheets grouped by CodeName record presence.</summary>
-        public IReadOnlyDictionary<string, int> WorksheetCodeNameStates { get; }
+        internal IReadOnlyDictionary<string, int> WorksheetCodeNameStates { get; }
 
         /// <summary>Gets worksheet CodeName values grouped by name.</summary>
-        public IReadOnlyDictionary<string, int> WorksheetCodeNames { get; }
+        internal IReadOnlyDictionary<string, int> WorksheetCodeNames { get; }
 
         /// <summary>Gets the number of imported defined names.</summary>
         public int DefinedNameCount { get; }
@@ -2174,25 +2175,25 @@ namespace OfficeIMO.Excel.LegacyXls {
         public int ExternalReferenceCount { get; }
 
         /// <summary>Gets the number of external workbook sheet names declared by supporting links.</summary>
-        public int ExternalSheetNameCount { get; }
+        internal int ExternalSheetNameCount { get; }
 
         /// <summary>Gets the number of external names declared by supporting links.</summary>
-        public int ExternalNameCount { get; }
+        internal int ExternalNameCount { get; }
 
         /// <summary>Gets the number of preserved external cell cache sections.</summary>
-        public int ExternalCellCacheCount { get; }
+        internal int ExternalCellCacheCount { get; }
 
         /// <summary>Gets the number of preserved cached external cell values.</summary>
-        public int ExternalCachedCellCount { get; }
+        internal int ExternalCachedCellCount { get; }
 
         /// <summary>Gets the number of preserve-only DBQueryExt external query connection records decoded during import.</summary>
-        public int ExternalQueryConnectionCount { get; }
+        internal int ExternalQueryConnectionCount { get; }
 
         /// <summary>Gets the number of preserve-only DConRef source range records decoded during import.</summary>
-        public int DataConsolidationReferenceCount { get; }
+        internal int DataConsolidationReferenceCount { get; }
 
         /// <summary>Gets the number of DConName named consolidation source records decoded during import.</summary>
-        public int DataConsolidationNameCount { get; }
+        internal int DataConsolidationNameCount { get; }
 
         /// <summary>Gets the number of preserve-only PivotTable BIFF records discovered during import.</summary>
         public int PivotTableRecordCount { get; }
@@ -2201,139 +2202,139 @@ namespace OfficeIMO.Excel.LegacyXls {
         public int ChartRecordCount { get; }
 
         /// <summary>Gets the number of metadata records parsed from chart-sheet substreams.</summary>
-        public int ChartSheetMetadataRecordCount { get; }
+        internal int ChartSheetMetadataRecordCount { get; }
 
         /// <summary>Gets the number of future metadata records parsed from chart-sheet substreams.</summary>
-        public int ChartSheetFutureMetadataRecordCount { get; }
+        internal int ChartSheetFutureMetadataRecordCount { get; }
 
         /// <summary>Gets the number of preserve-only drawing and object BIFF records discovered during import.</summary>
         public int DrawingRecordCount { get; }
 
         /// <summary>Gets the number of workbook Theme records discovered during import.</summary>
-        public int ThemeRecordCount { get; }
+        internal int ThemeRecordCount { get; }
 
         /// <summary>Gets the number of OfficeArt record headers discovered under preserve-only drawing records.</summary>
-        public int DrawingOfficeArtRecordCount { get; }
+        internal int DrawingOfficeArtRecordCount { get; }
 
         /// <summary>Gets the number of OfficeArtFDGGBlock records decoded under preserve-only drawing records.</summary>
-        public int DrawingGroupBlockCount { get; }
+        internal int DrawingGroupBlockCount { get; }
 
         /// <summary>Gets the number of OfficeArtFDG records decoded under preserve-only drawing records.</summary>
-        public int DrawingGroupInfoCount { get; }
+        internal int DrawingGroupInfoCount { get; }
 
         /// <summary>Gets the number of OfficeArtIDCL clusters decoded under OfficeArtFDGGBlock records.</summary>
-        public int DrawingIdentifierClusterCount { get; }
+        internal int DrawingIdentifierClusterCount { get; }
 
         /// <summary>Gets the number of OfficeArtFOPT shape property entries discovered under preserve-only drawing records.</summary>
-        public int DrawingShapePropertyCount { get; }
+        internal int DrawingShapePropertyCount { get; }
 
         /// <summary>Gets the number of parsed differential formats discovered during import.</summary>
-        public int DifferentialFormatCount { get; }
+        internal int DifferentialFormatCount { get; }
 
         /// <summary>Gets parsed differential formats grouped by source BIFF record type.</summary>
-        public IReadOnlyDictionary<string, int> DifferentialFormatsByRecordType { get; }
+        internal IReadOnlyDictionary<string, int> DifferentialFormatsByRecordType { get; }
 
         /// <summary>Gets parsed differential formats grouped by decoded content state.</summary>
-        public IReadOnlyDictionary<string, int> DifferentialFormatsByContentState { get; }
+        internal IReadOnlyDictionary<string, int> DifferentialFormatsByContentState { get; }
 
         /// <summary>Gets parsed differential formats grouped by decoded fill shape.</summary>
-        public IReadOnlyDictionary<string, int> DifferentialFormatsByFill { get; }
+        internal IReadOnlyDictionary<string, int> DifferentialFormatsByFill { get; }
 
         /// <summary>Gets parsed differential formats grouped by decoded font shape.</summary>
-        public IReadOnlyDictionary<string, int> DifferentialFormatsByFont { get; }
+        internal IReadOnlyDictionary<string, int> DifferentialFormatsByFont { get; }
 
         /// <summary>Gets parsed differential formats grouped by decoded border shape.</summary>
-        public IReadOnlyDictionary<string, int> DifferentialFormatsByBorder { get; }
+        internal IReadOnlyDictionary<string, int> DifferentialFormatsByBorder { get; }
 
         /// <summary>Gets parsed differential formats grouped by decoded number format shape.</summary>
-        public IReadOnlyDictionary<string, int> DifferentialFormatsByNumberFormat { get; }
+        internal IReadOnlyDictionary<string, int> DifferentialFormatsByNumberFormat { get; }
 
         /// <summary>Gets the number of parsed TableStyles collection records.</summary>
-        public int TableStyleCollectionRecordCount { get; }
+        internal int TableStyleCollectionRecordCount { get; }
 
         /// <summary>Gets the number of parsed user-defined TableStyle records.</summary>
-        public int TableStyleDefinitionCount { get; }
+        internal int TableStyleDefinitionCount { get; }
 
         /// <summary>Gets the number of parsed TableStyleElement records.</summary>
-        public int TableStyleElementRecordCount { get; }
+        internal int TableStyleElementRecordCount { get; }
 
         /// <summary>Gets table style collection records grouped by default table style name.</summary>
-        public IReadOnlyDictionary<string, int> TableStyleCollectionsByDefaultTableStyle { get; }
+        internal IReadOnlyDictionary<string, int> TableStyleCollectionsByDefaultTableStyle { get; }
 
         /// <summary>Gets table style collection records grouped by default PivotTable style name.</summary>
-        public IReadOnlyDictionary<string, int> TableStyleCollectionsByDefaultPivotStyle { get; }
+        internal IReadOnlyDictionary<string, int> TableStyleCollectionsByDefaultPivotStyle { get; }
 
         /// <summary>Gets table style collection records grouped by declared total style count.</summary>
-        public IReadOnlyDictionary<string, int> TableStyleCollectionsByTotalStyleCount { get; }
+        internal IReadOnlyDictionary<string, int> TableStyleCollectionsByTotalStyleCount { get; }
 
         /// <summary>Gets user-defined table styles grouped by style name.</summary>
-        public IReadOnlyDictionary<string, int> TableStylesByName { get; }
+        internal IReadOnlyDictionary<string, int> TableStylesByName { get; }
 
         /// <summary>Gets user-defined table styles grouped by table and PivotTable applicability.</summary>
-        public IReadOnlyDictionary<string, int> TableStylesByApplicability { get; }
+        internal IReadOnlyDictionary<string, int> TableStylesByApplicability { get; }
 
         /// <summary>Gets user-defined table styles grouped by declared element count.</summary>
-        public IReadOnlyDictionary<string, int> TableStylesByDeclaredElementCount { get; }
+        internal IReadOnlyDictionary<string, int> TableStylesByDeclaredElementCount { get; }
 
         /// <summary>Gets user-defined table styles grouped by parsed element count.</summary>
-        public IReadOnlyDictionary<string, int> TableStylesByParsedElementCount { get; }
+        internal IReadOnlyDictionary<string, int> TableStylesByParsedElementCount { get; }
 
         /// <summary>Gets table style elements grouped by element type.</summary>
-        public IReadOnlyDictionary<string, int> TableStyleElementsByType { get; }
+        internal IReadOnlyDictionary<string, int> TableStyleElementsByType { get; }
 
         /// <summary>Gets table style elements grouped by referenced differential format index.</summary>
-        public IReadOnlyDictionary<string, int> TableStyleElementsByDifferentialFormatIndex { get; }
+        internal IReadOnlyDictionary<string, int> TableStyleElementsByDifferentialFormatIndex { get; }
 
         /// <summary>Gets stripe table style elements grouped by stripe size.</summary>
-        public IReadOnlyDictionary<string, int> TableStyleElementsByStripeSize { get; }
+        internal IReadOnlyDictionary<string, int> TableStyleElementsByStripeSize { get; }
 
         /// <summary>Gets the number of preserve-only compound container features discovered during import.</summary>
-        public int CompoundFeatureRecordCount { get; }
+        internal int CompoundFeatureRecordCount { get; }
 
         /// <summary>Gets the number of matching compound directory entries behind preserve-only compound features.</summary>
-        public int CompoundFeatureEntryCount { get; }
+        internal int CompoundFeatureEntryCount { get; }
 
         /// <summary>Gets the number of VBA module streams discovered in preserve-only compound features.</summary>
-        public int CompoundVbaModuleCount { get; }
+        internal int CompoundVbaModuleCount { get; }
 
         /// <summary>Gets the total declared byte size of matching preserve-only compound entries with known sizes.</summary>
-        public long CompoundFeatureEntryByteCount { get; }
+        internal long CompoundFeatureEntryByteCount { get; }
 
         /// <summary>Gets the total declared byte size of discovered VBA module streams with known sizes.</summary>
-        public long CompoundVbaModuleByteCount { get; }
+        internal long CompoundVbaModuleByteCount { get; }
 
         /// <summary>Gets the number of calculation setting records parsed from BIFF records.</summary>
-        public int CalculationSettingRecordCount { get; }
+        internal int CalculationSettingRecordCount { get; }
 
         /// <summary>Gets the number of workbook cell style records parsed from Style records.</summary>
-        public int CellStyleRecordCount { get; }
+        internal int CellStyleRecordCount { get; }
 
         /// <summary>Gets the number of preserve-only style extension records parsed from XFExt records.</summary>
-        public int CellStyleExtensionRecordCount { get; }
+        internal int CellStyleExtensionRecordCount { get; }
 
         /// <summary>Gets the number of parsed-formula token observations captured during import.</summary>
-        public int FormulaTokenRecordCount { get; }
+        internal int FormulaTokenRecordCount { get; }
 
         /// <summary>Gets the number of Excel future-function aliases discovered from defined-name records.</summary>
-        public int FutureFunctionAliasCount { get; }
+        internal int FutureFunctionAliasCount { get; }
 
         /// <summary>Gets the number of workbook metadata records parsed from BIFF records.</summary>
-        public int WorkbookMetadataRecordCount { get; }
+        internal int WorkbookMetadataRecordCount { get; }
 
         /// <summary>Gets the number of preserve-only workbook future metadata records parsed from BIFF records.</summary>
-        public int WorkbookFutureMetadataRecordCount { get; }
+        internal int WorkbookFutureMetadataRecordCount { get; }
 
         /// <summary>Gets the number of worksheet metadata records parsed from BIFF records.</summary>
-        public int WorksheetMetadataRecordCount { get; }
+        internal int WorksheetMetadataRecordCount { get; }
 
         /// <summary>Gets the number of preserve-only worksheet future metadata records parsed from BIFF records.</summary>
-        public int WorksheetFutureMetadataRecordCount { get; }
+        internal int WorksheetFutureMetadataRecordCount { get; }
 
         /// <summary>Gets the number of metadata records parsed from unsupported sheet substreams.</summary>
-        public int UnsupportedSheetMetadataRecordCount { get; }
+        internal int UnsupportedSheetMetadataRecordCount { get; }
 
         /// <summary>Gets the number of preserve-only future metadata records parsed from unsupported sheet substreams.</summary>
-        public int UnsupportedSheetFutureMetadataRecordCount { get; }
+        internal int UnsupportedSheetFutureMetadataRecordCount { get; }
 
         /// <summary>Gets the number of unsupported or preserve-only feature findings.</summary>
         public int UnsupportedFeatureCount { get; }
@@ -2351,1756 +2352,1756 @@ namespace OfficeIMO.Excel.LegacyXls {
         public int WarningCount { get; }
 
         /// <summary>Gets diagnostic counts grouped by stable diagnostic code.</summary>
-        public IReadOnlyDictionary<string, int> DiagnosticsByCode { get; }
+        internal IReadOnlyDictionary<string, int> DiagnosticsByCode { get; }
 
         /// <summary>Gets unsupported formula token blockers grouped by stable detail key.</summary>
-        public IReadOnlyDictionary<string, int> FormulaTokenBlockers { get; }
+        internal IReadOnlyDictionary<string, int> FormulaTokenBlockers { get; }
 
         /// <summary>Gets unsupported formula token blockers grouped by raw formula token byte.</summary>
-        public IReadOnlyDictionary<string, int> FormulaTokenBlockersByToken { get; }
+        internal IReadOnlyDictionary<string, int> FormulaTokenBlockersByToken { get; }
 
         /// <summary>Gets unsupported formula token blockers grouped by BIFF parsed-formula token name.</summary>
-        public IReadOnlyDictionary<string, int> FormulaTokenBlockersByTokenName { get; }
+        internal IReadOnlyDictionary<string, int> FormulaTokenBlockersByTokenName { get; }
 
         /// <summary>Gets unsupported formula token blockers grouped by zero-based parsed-expression token offset.</summary>
-        public IReadOnlyDictionary<string, int> FormulaTokenBlockersByOffset { get; }
+        internal IReadOnlyDictionary<string, int> FormulaTokenBlockersByOffset { get; }
 
         /// <summary>Gets unsupported formula token blockers grouped by worksheet name.</summary>
-        public IReadOnlyDictionary<string, int> FormulaTokenBlockersBySheet { get; }
+        internal IReadOnlyDictionary<string, int> FormulaTokenBlockersBySheet { get; }
 
         /// <summary>Gets unsupported formula token blockers grouped by formula source context.</summary>
-        public IReadOnlyDictionary<string, int> FormulaTokenBlockersByContext { get; }
+        internal IReadOnlyDictionary<string, int> FormulaTokenBlockersByContext { get; }
 
         /// <summary>Gets unsupported formula token blockers grouped by formula source context and raw formula token byte.</summary>
-        public IReadOnlyDictionary<string, int> FormulaTokenBlockersByContextAndToken { get; }
+        internal IReadOnlyDictionary<string, int> FormulaTokenBlockersByContextAndToken { get; }
 
         /// <summary>Gets unsupported formula token blockers grouped by formula source context and BIFF parsed-formula token name.</summary>
-        public IReadOnlyDictionary<string, int> FormulaTokenBlockersByContextAndTokenName { get; }
+        internal IReadOnlyDictionary<string, int> FormulaTokenBlockersByContextAndTokenName { get; }
 
         /// <summary>Gets unsupported formula token blockers grouped by formula source context and stable detail key.</summary>
-        public IReadOnlyDictionary<string, int> FormulaTokenBlockersByContextAndDetail { get; }
+        internal IReadOnlyDictionary<string, int> FormulaTokenBlockersByContextAndDetail { get; }
 
         /// <summary>Gets observed parsed-formula tokens grouped by BIFF token name.</summary>
-        public IReadOnlyDictionary<string, int> FormulaTokensByName { get; }
+        internal IReadOnlyDictionary<string, int> FormulaTokensByName { get; }
 
         /// <summary>Gets observed parsed-formula tokens grouped by formula source context.</summary>
-        public IReadOnlyDictionary<string, int> FormulaTokensByContext { get; }
+        internal IReadOnlyDictionary<string, int> FormulaTokensByContext { get; }
 
         /// <summary>Gets observed parsed-formula tokens grouped by worksheet name.</summary>
-        public IReadOnlyDictionary<string, int> FormulaTokensBySheet { get; }
+        internal IReadOnlyDictionary<string, int> FormulaTokensBySheet { get; }
 
         /// <summary>Gets observed parsed-formula tokens grouped by formula source context and worksheet name.</summary>
-        public IReadOnlyDictionary<string, int> FormulaTokensByContextAndSheet { get; }
+        internal IReadOnlyDictionary<string, int> FormulaTokensByContextAndSheet { get; }
 
         /// <summary>Gets observed parsed-formula tokens grouped by formula source context and decoded operand category.</summary>
-        public IReadOnlyDictionary<string, int> FormulaTokensByContextAndOperandKind { get; }
+        internal IReadOnlyDictionary<string, int> FormulaTokensByContextAndOperandKind { get; }
 
         /// <summary>Gets observed parsed-formula tokens grouped by BIFF record type and token name.</summary>
-        public IReadOnlyDictionary<string, int> FormulaTokensByRecordType { get; }
+        internal IReadOnlyDictionary<string, int> FormulaTokensByRecordType { get; }
 
         /// <summary>Gets observed parsed-formula tokens grouped by BIFF token class.</summary>
-        public IReadOnlyDictionary<string, int> FormulaTokensByClass { get; }
+        internal IReadOnlyDictionary<string, int> FormulaTokensByClass { get; }
 
         /// <summary>Gets observed parsed-formula tokens grouped by token name and BIFF token class.</summary>
-        public IReadOnlyDictionary<string, int> FormulaTokensByNameAndClass { get; }
+        internal IReadOnlyDictionary<string, int> FormulaTokensByNameAndClass { get; }
 
         /// <summary>Gets observed parsed-formula tokens grouped by token name and operand byte count.</summary>
-        public IReadOnlyDictionary<string, int> FormulaTokensByOperandByteCount { get; }
+        internal IReadOnlyDictionary<string, int> FormulaTokensByOperandByteCount { get; }
 
         /// <summary>Gets observed parsed-formula tokens grouped by decoded operand category.</summary>
-        public IReadOnlyDictionary<string, int> FormulaTokensByOperandKind { get; }
+        internal IReadOnlyDictionary<string, int> FormulaTokensByOperandKind { get; }
 
         /// <summary>Gets observed parsed-formula tokens grouped by token name and decoded operand category.</summary>
-        public IReadOnlyDictionary<string, int> FormulaTokensByNameAndOperandKind { get; }
+        internal IReadOnlyDictionary<string, int> FormulaTokensByNameAndOperandKind { get; }
 
         /// <summary>Gets observed parsed-formula tokens grouped by decoded operand category and operand text.</summary>
-        public IReadOnlyDictionary<string, int> FormulaTokensByOperandKindAndText { get; }
+        internal IReadOnlyDictionary<string, int> FormulaTokensByOperandKindAndText { get; }
 
         /// <summary>Gets observed parsed-formula tokens grouped by token name and decoded operand text.</summary>
-        public IReadOnlyDictionary<string, int> FormulaTokensByNameAndOperandText { get; }
+        internal IReadOnlyDictionary<string, int> FormulaTokensByNameAndOperandText { get; }
 
         /// <summary>Gets observed parsed-formula tokens grouped by sequence index within each expression.</summary>
-        public IReadOnlyDictionary<string, int> FormulaTokensBySequenceIndex { get; }
+        internal IReadOnlyDictionary<string, int> FormulaTokensBySequenceIndex { get; }
 
         /// <summary>Gets observed built-in formula function tokens grouped by raw function id.</summary>
-        public IReadOnlyDictionary<string, int> FormulaFunctionsById { get; }
+        internal IReadOnlyDictionary<string, int> FormulaFunctionsById { get; }
 
         /// <summary>Gets observed built-in formula function tokens grouped by function name when known.</summary>
-        public IReadOnlyDictionary<string, int> FormulaFunctionsByName { get; }
+        internal IReadOnlyDictionary<string, int> FormulaFunctionsByName { get; }
 
         /// <summary>Gets observed formula function tokens grouped by function name and argument count.</summary>
-        public IReadOnlyDictionary<string, int> FormulaFunctionsByParameterCount { get; }
+        internal IReadOnlyDictionary<string, int> FormulaFunctionsByParameterCount { get; }
 
         /// <summary>Gets observed variable formula function tokens grouped by built-in versus CETAB state.</summary>
-        public IReadOnlyDictionary<string, int> FormulaFunctionsByCetabState { get; }
+        internal IReadOnlyDictionary<string, int> FormulaFunctionsByCetabState { get; }
 
         /// <summary>Gets observed PtgAttr formula tokens grouped by attribute name.</summary>
-        public IReadOnlyDictionary<string, int> FormulaAttributesByName { get; }
+        internal IReadOnlyDictionary<string, int> FormulaAttributesByName { get; }
 
         /// <summary>Gets Excel future-function aliases grouped by defined-name text.</summary>
-        public IReadOnlyDictionary<string, int> FutureFunctionAliasesByName { get; }
+        internal IReadOnlyDictionary<string, int> FutureFunctionAliasesByName { get; }
 
         /// <summary>Gets Excel future-function aliases grouped by function name without the _xlfn. prefix.</summary>
-        public IReadOnlyDictionary<string, int> FutureFunctionAliasesByFunction { get; }
+        internal IReadOnlyDictionary<string, int> FutureFunctionAliasesByFunction { get; }
 
         /// <summary>Gets Excel future-function aliases grouped by BIFF parsed-formula token name.</summary>
-        public IReadOnlyDictionary<string, int> FutureFunctionAliasesByTokenName { get; }
+        internal IReadOnlyDictionary<string, int> FutureFunctionAliasesByTokenName { get; }
 
         /// <summary>Gets unsupported/preserve-only feature counts grouped by stable feature code.</summary>
-        public IReadOnlyDictionary<string, int> UnsupportedFeaturesByCode { get; }
+        internal IReadOnlyDictionary<string, int> UnsupportedFeaturesByCode { get; }
 
         /// <summary>Gets unsupported/preserve-only feature counts grouped by feature kind.</summary>
-        public IReadOnlyDictionary<LegacyXlsUnsupportedFeatureKind, int> UnsupportedFeaturesByKind { get; }
+        internal IReadOnlyDictionary<LegacyXlsUnsupportedFeatureKind, int> UnsupportedFeaturesByKind { get; }
 
         /// <summary>Gets unsupported/preserve-only feature counts grouped by kind, code, and BIFF record type.</summary>
-        public IReadOnlyDictionary<string, int> UnsupportedFeaturesByRecordType { get; }
+        internal IReadOnlyDictionary<string, int> UnsupportedFeaturesByRecordType { get; }
 
         /// <summary>Gets unsupported/preserve-only feature counts grouped by kind, code, and stable feature subtype.</summary>
-        public IReadOnlyDictionary<string, int> UnsupportedFeaturesByDetail { get; }
+        internal IReadOnlyDictionary<string, int> UnsupportedFeaturesByDetail { get; }
 
         /// <summary>Gets unsupported/preserve-only feature counts grouped by code and workbook or sheet location.</summary>
-        public IReadOnlyDictionary<string, int> UnsupportedFeaturesByLocation { get; }
+        internal IReadOnlyDictionary<string, int> UnsupportedFeaturesByLocation { get; }
 
         /// <summary>Gets unsupported feature counts after subtracting records that are already preserve-modeled.</summary>
-        public IReadOnlyDictionary<LegacyXlsUnsupportedFeatureKind, int> UnsupportedProjectionGapsByKind { get; }
+        internal IReadOnlyDictionary<LegacyXlsUnsupportedFeatureKind, int> UnsupportedProjectionGapsByKind { get; }
 
         /// <summary>Gets unsupported feature counts after subtracting preserve-modeled records, grouped by kind, code, and BIFF record type.</summary>
-        public IReadOnlyDictionary<string, int> UnsupportedProjectionGapsByRecordType { get; }
+        internal IReadOnlyDictionary<string, int> UnsupportedProjectionGapsByRecordType { get; }
 
         /// <summary>Gets unsupported feature counts after subtracting preserve-modeled records, grouped by kind, code, and stable feature subtype.</summary>
-        public IReadOnlyDictionary<string, int> UnsupportedProjectionGapsByDetail { get; }
+        internal IReadOnlyDictionary<string, int> UnsupportedProjectionGapsByDetail { get; }
 
         /// <summary>Gets high-level workbook file-format states suitable for preflight and corpus comparison.</summary>
-        public IReadOnlyDictionary<string, int> FileFormatStates { get; }
+        internal IReadOnlyDictionary<string, int> FileFormatStates { get; }
 
         /// <summary>Gets hard file-format blockers grouped by kind and detail.</summary>
-        public IReadOnlyDictionary<string, int> FileFormatBlockers { get; }
+        internal IReadOnlyDictionary<string, int> FileFormatBlockers { get; }
 
         /// <summary>Gets hard file-format blockers grouped by kind and BIFF record type.</summary>
-        public IReadOnlyDictionary<string, int> FileFormatBlockersByRecordType { get; }
+        internal IReadOnlyDictionary<string, int> FileFormatBlockersByRecordType { get; }
 
         /// <summary>Gets hard file-format blockers grouped by kind and BIFF record name.</summary>
-        public IReadOnlyDictionary<string, int> FileFormatBlockersByRecordName { get; }
+        internal IReadOnlyDictionary<string, int> FileFormatBlockersByRecordName { get; }
 
         /// <summary>Gets hard file-format blockers grouped by code and workbook or sheet location.</summary>
-        public IReadOnlyDictionary<string, int> FileFormatBlockersByLocation { get; }
+        internal IReadOnlyDictionary<string, int> FileFormatBlockersByLocation { get; }
 
         /// <summary>Gets encrypted workbook blockers grouped by FilePass encryption method.</summary>
-        public IReadOnlyDictionary<string, int> EncryptedWorkbooksByMethod { get; }
+        internal IReadOnlyDictionary<string, int> EncryptedWorkbooksByMethod { get; }
 
         /// <summary>Gets unsupported BIFF blockers grouped by BIFF version.</summary>
-        public IReadOnlyDictionary<string, int> UnsupportedBiffVersionsByVersion { get; }
+        internal IReadOnlyDictionary<string, int> UnsupportedBiffVersionsByVersion { get; }
 
         /// <summary>Gets unsupported BIFF blockers grouped by BOF substream.</summary>
-        public IReadOnlyDictionary<string, int> UnsupportedBiffVersionsBySubstream { get; }
+        internal IReadOnlyDictionary<string, int> UnsupportedBiffVersionsBySubstream { get; }
 
         /// <summary>Gets unsupported BIFF blockers grouped by BIFF version and BOF substream.</summary>
-        public IReadOnlyDictionary<string, int> UnsupportedBiffVersionsByVersionAndSubstream { get; }
+        internal IReadOnlyDictionary<string, int> UnsupportedBiffVersionsByVersionAndSubstream { get; }
 
         /// <summary>Gets unsupported sheet entries grouped by decoded sheet kind.</summary>
-        public IReadOnlyDictionary<LegacyXlsUnsupportedSheetKind, int> UnsupportedSheetsByKind { get; }
+        internal IReadOnlyDictionary<LegacyXlsUnsupportedSheetKind, int> UnsupportedSheetsByKind { get; }
 
         /// <summary>Gets unsupported sheet entries grouped by raw BoundSheet type and decoded kind.</summary>
-        public IReadOnlyDictionary<string, int> UnsupportedSheetsByType { get; }
+        internal IReadOnlyDictionary<string, int> UnsupportedSheetsByType { get; }
 
         /// <summary>Gets unsupported sheet entries grouped by sheet name.</summary>
-        public IReadOnlyDictionary<string, int> UnsupportedSheetsByName { get; }
+        internal IReadOnlyDictionary<string, int> UnsupportedSheetsByName { get; }
 
         /// <summary>Gets unsupported sheet entries grouped by decoded BoundSheet visibility state.</summary>
-        public IReadOnlyDictionary<string, int> UnsupportedSheetsByVisibility { get; }
+        internal IReadOnlyDictionary<string, int> UnsupportedSheetsByVisibility { get; }
 
         /// <summary>Gets unsupported sheet entries grouped by sheet kind and decoded visibility state.</summary>
-        public IReadOnlyDictionary<string, int> UnsupportedSheetsByKindAndVisibility { get; }
+        internal IReadOnlyDictionary<string, int> UnsupportedSheetsByKindAndVisibility { get; }
 
         /// <summary>Gets decoded chart sheets grouped by raw BoundSheet type.</summary>
-        public IReadOnlyDictionary<string, int> ChartSheetsByType { get; }
+        internal IReadOnlyDictionary<string, int> ChartSheetsByType { get; }
 
         /// <summary>Gets decoded chart sheets grouped by sheet name.</summary>
-        public IReadOnlyDictionary<string, int> ChartSheetsByName { get; }
+        internal IReadOnlyDictionary<string, int> ChartSheetsByName { get; }
 
         /// <summary>Gets decoded chart sheets grouped by visibility state.</summary>
-        public IReadOnlyDictionary<string, int> ChartSheetsByVisibility { get; }
+        internal IReadOnlyDictionary<string, int> ChartSheetsByVisibility { get; }
 
         /// <summary>Gets chart-sheet metadata records grouped by decoded kind.</summary>
-        public IReadOnlyDictionary<string, int> ChartSheetMetadataRecordsByKind { get; }
+        internal IReadOnlyDictionary<string, int> ChartSheetMetadataRecordsByKind { get; }
 
         /// <summary>Gets chart-sheet future metadata records grouped by BIFF record type.</summary>
-        public IReadOnlyDictionary<string, int> ChartSheetFutureMetadataRecordsByRecordType { get; }
+        internal IReadOnlyDictionary<string, int> ChartSheetFutureMetadataRecordsByRecordType { get; }
 
         /// <summary>Gets decoded chart sheets grouped by raw PrintSize value.</summary>
-        public IReadOnlyDictionary<string, int> ChartSheetPrintSizes { get; }
+        internal IReadOnlyDictionary<string, int> ChartSheetPrintSizes { get; }
 
         /// <summary>Gets decoded chart sheets grouped by PrintSize mode name.</summary>
-        public IReadOnlyDictionary<string, int> ChartSheetPrintSizeKinds { get; }
+        internal IReadOnlyDictionary<string, int> ChartSheetPrintSizeKinds { get; }
 
         /// <summary>Gets decoded chart sheets grouped by chart text object count.</summary>
-        public IReadOnlyDictionary<string, int> ChartSheetTextObjectCounts { get; }
+        internal IReadOnlyDictionary<string, int> ChartSheetTextObjectCounts { get; }
 
         /// <summary>Gets decoded chart sheets grouped by chart record count.</summary>
-        public IReadOnlyDictionary<string, int> ChartSheetChartRecordCounts { get; }
+        internal IReadOnlyDictionary<string, int> ChartSheetChartRecordCounts { get; }
 
         /// <summary>Gets decoded chart sheets grouped by sheet name and chart record count.</summary>
-        public IReadOnlyDictionary<string, int> ChartSheetChartRecordCountsBySheet { get; }
+        internal IReadOnlyDictionary<string, int> ChartSheetChartRecordCountsBySheet { get; }
 
         /// <summary>Gets chart-sheet chart records grouped by shallow category.</summary>
-        public IReadOnlyDictionary<string, int> ChartSheetChartRecordKinds { get; }
+        internal IReadOnlyDictionary<string, int> ChartSheetChartRecordKinds { get; }
 
         /// <summary>Gets chart-sheet chart records grouped by sheet name and shallow category.</summary>
-        public IReadOnlyDictionary<string, int> ChartSheetChartRecordKindsBySheet { get; }
+        internal IReadOnlyDictionary<string, int> ChartSheetChartRecordKindsBySheet { get; }
 
         /// <summary>Gets chart-sheet chart type records grouped by decoded chart family.</summary>
-        public IReadOnlyDictionary<string, int> ChartSheetChartTypes { get; }
+        internal IReadOnlyDictionary<string, int> ChartSheetChartTypes { get; }
 
         /// <summary>Gets chart-sheet chart type records grouped by sheet name and decoded chart family.</summary>
-        public IReadOnlyDictionary<string, int> ChartSheetChartTypesBySheet { get; }
+        internal IReadOnlyDictionary<string, int> ChartSheetChartTypesBySheet { get; }
 
         /// <summary>Gets decoded chart sheets grouped by metadata shape.</summary>
-        public IReadOnlyDictionary<string, int> ChartSheetStates { get; }
+        internal IReadOnlyDictionary<string, int> ChartSheetStates { get; }
 
         /// <summary>Gets unsupported chart sheets grouped by raw PrintSize value.</summary>
-        public IReadOnlyDictionary<string, int> UnsupportedChartSheetPrintSizes { get; }
+        internal IReadOnlyDictionary<string, int> UnsupportedChartSheetPrintSizes { get; }
 
         /// <summary>Gets unsupported chart sheets grouped by decoded PrintSize mode name.</summary>
-        public IReadOnlyDictionary<string, int> UnsupportedChartSheetPrintSizeKinds { get; }
+        internal IReadOnlyDictionary<string, int> UnsupportedChartSheetPrintSizeKinds { get; }
 
         /// <summary>Gets unsupported chart sheets grouped by chart text object count.</summary>
-        public IReadOnlyDictionary<string, int> UnsupportedChartSheetTextObjectCounts { get; }
+        internal IReadOnlyDictionary<string, int> UnsupportedChartSheetTextObjectCounts { get; }
 
         /// <summary>Gets unsupported chart sheets grouped by preserve-only chart record count.</summary>
-        public IReadOnlyDictionary<string, int> UnsupportedChartSheetChartRecordCounts { get; }
+        internal IReadOnlyDictionary<string, int> UnsupportedChartSheetChartRecordCounts { get; }
 
         /// <summary>Gets unsupported chart sheets grouped by sheet name and preserve-only chart record count.</summary>
-        public IReadOnlyDictionary<string, int> UnsupportedChartSheetChartRecordCountsBySheet { get; }
+        internal IReadOnlyDictionary<string, int> UnsupportedChartSheetChartRecordCountsBySheet { get; }
 
         /// <summary>Gets unsupported chart sheet preserve-only chart records grouped by shallow category.</summary>
-        public IReadOnlyDictionary<string, int> UnsupportedChartSheetChartRecordKinds { get; }
+        internal IReadOnlyDictionary<string, int> UnsupportedChartSheetChartRecordKinds { get; }
 
         /// <summary>Gets unsupported chart sheet preserve-only chart records grouped by sheet name and shallow category.</summary>
-        public IReadOnlyDictionary<string, int> UnsupportedChartSheetChartRecordKindsBySheet { get; }
+        internal IReadOnlyDictionary<string, int> UnsupportedChartSheetChartRecordKindsBySheet { get; }
 
         /// <summary>Gets unsupported chart sheet preserve-only chart type records grouped by decoded chart family.</summary>
-        public IReadOnlyDictionary<string, int> UnsupportedChartSheetChartTypes { get; }
+        internal IReadOnlyDictionary<string, int> UnsupportedChartSheetChartTypes { get; }
 
         /// <summary>Gets unsupported chart sheet preserve-only chart type records grouped by sheet name and decoded chart family.</summary>
-        public IReadOnlyDictionary<string, int> UnsupportedChartSheetChartTypesBySheet { get; }
+        internal IReadOnlyDictionary<string, int> UnsupportedChartSheetChartTypesBySheet { get; }
 
         /// <summary>Gets unsupported chart sheets grouped by preserve-only chart metadata shape.</summary>
-        public IReadOnlyDictionary<string, int> UnsupportedChartSheetStates { get; }
+        internal IReadOnlyDictionary<string, int> UnsupportedChartSheetStates { get; }
 
         /// <summary>Gets preserved external references grouped by supporting-link kind.</summary>
-        public IReadOnlyDictionary<LegacyXlsExternalReferenceKind, int> ExternalReferencesByKind { get; }
+        internal IReadOnlyDictionary<LegacyXlsExternalReferenceKind, int> ExternalReferencesByKind { get; }
 
         /// <summary>Gets preserved external references grouped by target path or source.</summary>
-        public IReadOnlyDictionary<string, int> ExternalReferencesByTarget { get; }
+        internal IReadOnlyDictionary<string, int> ExternalReferencesByTarget { get; }
 
         /// <summary>Gets preserved external references grouped by their sheet/name/cache/cached-cell shape.</summary>
-        public IReadOnlyDictionary<string, int> ExternalReferencesByShape { get; }
+        internal IReadOnlyDictionary<string, int> ExternalReferencesByShape { get; }
 
         /// <summary>Gets workbook-level external-reference model-shape states derived from supporting-link metadata.</summary>
-        public IReadOnlyDictionary<string, int> ExternalReferenceWorkbookStates { get; }
+        internal IReadOnlyDictionary<string, int> ExternalReferenceWorkbookStates { get; }
 
         /// <summary>Gets preserved external references grouped by declared SupBook sheet count.</summary>
-        public IReadOnlyDictionary<string, int> ExternalReferencesByDeclaredSheetCount { get; }
+        internal IReadOnlyDictionary<string, int> ExternalReferencesByDeclaredSheetCount { get; }
 
         /// <summary>Gets preserved external references grouped by sheet-name count.</summary>
-        public IReadOnlyDictionary<string, int> ExternalReferencesBySheetNameCount { get; }
+        internal IReadOnlyDictionary<string, int> ExternalReferencesBySheetNameCount { get; }
 
         /// <summary>Gets preserved external references grouped by parsed sheet-name table completeness.</summary>
-        public IReadOnlyDictionary<string, int> ExternalReferencesBySheetTableState { get; }
+        internal IReadOnlyDictionary<string, int> ExternalReferencesBySheetTableState { get; }
 
         /// <summary>Gets preserved external references grouped by external-name count.</summary>
-        public IReadOnlyDictionary<string, int> ExternalReferencesByExternalNameCount { get; }
+        internal IReadOnlyDictionary<string, int> ExternalReferencesByExternalNameCount { get; }
 
         /// <summary>Gets preserved external references grouped by cached cell section count.</summary>
-        public IReadOnlyDictionary<string, int> ExternalReferencesByCacheCount { get; }
+        internal IReadOnlyDictionary<string, int> ExternalReferencesByCacheCount { get; }
 
         /// <summary>Gets preserved external references grouped by cached cell value count.</summary>
-        public IReadOnlyDictionary<string, int> ExternalReferencesByCachedCellCount { get; }
+        internal IReadOnlyDictionary<string, int> ExternalReferencesByCachedCellCount { get; }
 
         /// <summary>Gets external workbook sheet-name counts grouped by supporting-link kind.</summary>
-        public IReadOnlyDictionary<LegacyXlsExternalReferenceKind, int> ExternalSheetNamesByReferenceKind { get; }
+        internal IReadOnlyDictionary<LegacyXlsExternalReferenceKind, int> ExternalSheetNamesByReferenceKind { get; }
 
         /// <summary>Gets external workbook sheet names grouped by normalized target and sheet name.</summary>
-        public IReadOnlyDictionary<string, int> ExternalSheetNamesByTarget { get; }
+        internal IReadOnlyDictionary<string, int> ExternalSheetNamesByTarget { get; }
 
         /// <summary>Gets external defined-name counts grouped by supporting-link kind.</summary>
-        public IReadOnlyDictionary<LegacyXlsExternalReferenceKind, int> ExternalNamesByReferenceKind { get; }
+        internal IReadOnlyDictionary<LegacyXlsExternalReferenceKind, int> ExternalNamesByReferenceKind { get; }
 
         /// <summary>Gets external defined names grouped by name text.</summary>
-        public IReadOnlyDictionary<string, int> ExternalNamesByName { get; }
+        internal IReadOnlyDictionary<string, int> ExternalNamesByName { get; }
 
         /// <summary>Gets external defined names grouped by workbook or sheet-local scope.</summary>
-        public IReadOnlyDictionary<string, int> ExternalNamesByScope { get; }
+        internal IReadOnlyDictionary<string, int> ExternalNamesByScope { get; }
 
         /// <summary>Gets external defined names grouped by built-in or custom state.</summary>
-        public IReadOnlyDictionary<string, int> ExternalNamesByBuiltInState { get; }
+        internal IReadOnlyDictionary<string, int> ExternalNamesByBuiltInState { get; }
 
         /// <summary>Gets external defined names grouped by decoded ExternName body kind.</summary>
-        public IReadOnlyDictionary<string, int> ExternalNamesByBodyKind { get; }
+        internal IReadOnlyDictionary<string, int> ExternalNamesByBodyKind { get; }
 
         /// <summary>Gets external defined names grouped by decoded cached clipboard format.</summary>
-        public IReadOnlyDictionary<string, int> ExternalNamesByCachedClipboardFormat { get; }
+        internal IReadOnlyDictionary<string, int> ExternalNamesByCachedClipboardFormat { get; }
 
         /// <summary>Gets external defined names grouped by ExternName advise-update flag state.</summary>
-        public IReadOnlyDictionary<string, int> ExternalNamesByAdviseState { get; }
+        internal IReadOnlyDictionary<string, int> ExternalNamesByAdviseState { get; }
 
         /// <summary>Gets external defined names grouped by ExternName picture-format flag state.</summary>
-        public IReadOnlyDictionary<string, int> ExternalNamesByPictureState { get; }
+        internal IReadOnlyDictionary<string, int> ExternalNamesByPictureState { get; }
 
         /// <summary>Gets external defined names grouped by ExternName OLE flag state.</summary>
-        public IReadOnlyDictionary<string, int> ExternalNamesByOleState { get; }
+        internal IReadOnlyDictionary<string, int> ExternalNamesByOleState { get; }
 
         /// <summary>Gets external defined names grouped by ExternName OLE-link flag state.</summary>
-        public IReadOnlyDictionary<string, int> ExternalNamesByOleLinkState { get; }
+        internal IReadOnlyDictionary<string, int> ExternalNamesByOleLinkState { get; }
 
         /// <summary>Gets external defined names grouped by ExternName icon-display flag state.</summary>
-        public IReadOnlyDictionary<string, int> ExternalNamesByIconState { get; }
+        internal IReadOnlyDictionary<string, int> ExternalNamesByIconState { get; }
 
         /// <summary>Gets external defined names grouped by decoded ExternName flag shape.</summary>
-        public IReadOnlyDictionary<string, int> ExternalNamesByFlagShape { get; }
+        internal IReadOnlyDictionary<string, int> ExternalNamesByFlagShape { get; }
 
         /// <summary>Gets external cell cache sections grouped by normalized target path or source.</summary>
-        public IReadOnlyDictionary<string, int> ExternalCellCachesByTarget { get; }
+        internal IReadOnlyDictionary<string, int> ExternalCellCachesByTarget { get; }
 
         /// <summary>Gets external cell cache sections grouped by resolved external sheet name.</summary>
-        public IReadOnlyDictionary<string, int> ExternalCellCachesBySheetName { get; }
+        internal IReadOnlyDictionary<string, int> ExternalCellCachesBySheetName { get; }
 
         /// <summary>Gets external cell cache sections grouped by normalized target and resolved external sheet name.</summary>
-        public IReadOnlyDictionary<string, int> ExternalCellCachesByTargetAndSheetName { get; }
+        internal IReadOnlyDictionary<string, int> ExternalCellCachesByTargetAndSheetName { get; }
 
         /// <summary>Gets external cell cache sections grouped by occupied zero-based row/column range.</summary>
-        public IReadOnlyDictionary<string, int> ExternalCellCachesByCellRange { get; }
+        internal IReadOnlyDictionary<string, int> ExternalCellCachesByCellRange { get; }
 
         /// <summary>Gets external cell cache sections grouped by normalized target and occupied zero-based row/column range.</summary>
-        public IReadOnlyDictionary<string, int> ExternalCellCachesByTargetAndCellRange { get; }
+        internal IReadOnlyDictionary<string, int> ExternalCellCachesByTargetAndCellRange { get; }
 
         /// <summary>Gets external cell cache sections grouped by cached value count.</summary>
-        public IReadOnlyDictionary<string, int> ExternalCellCachesByCellCount { get; }
+        internal IReadOnlyDictionary<string, int> ExternalCellCachesByCellCount { get; }
 
         /// <summary>Gets external cell cache sections grouped by occupied row span.</summary>
-        public IReadOnlyDictionary<string, int> ExternalCellCachesByRowSpan { get; }
+        internal IReadOnlyDictionary<string, int> ExternalCellCachesByRowSpan { get; }
 
         /// <summary>Gets external cell cache sections grouped by occupied column span.</summary>
-        public IReadOnlyDictionary<string, int> ExternalCellCachesByColumnSpan { get; }
+        internal IReadOnlyDictionary<string, int> ExternalCellCachesByColumnSpan { get; }
 
         /// <summary>Gets external cell cache sections grouped by XCT link-valid state.</summary>
-        public IReadOnlyDictionary<string, int> ExternalCellCachesByLinkState { get; }
+        internal IReadOnlyDictionary<string, int> ExternalCellCachesByLinkState { get; }
 
         /// <summary>Gets cached external cell values grouped by value kind.</summary>
-        public IReadOnlyDictionary<LegacyXlsCellValueKind, int> ExternalCachedCellsByValueKind { get; }
+        internal IReadOnlyDictionary<LegacyXlsCellValueKind, int> ExternalCachedCellsByValueKind { get; }
 
         /// <summary>Gets cached external cell values grouped by normalized target, resolved external sheet name, and value kind.</summary>
-        public IReadOnlyDictionary<string, int> ExternalCachedCellsByTargetSheetAndValueKind { get; }
+        internal IReadOnlyDictionary<string, int> ExternalCachedCellsByTargetSheetAndValueKind { get; }
 
         /// <summary>Gets DBQueryExt records grouped by decoded data source type.</summary>
-        public IReadOnlyDictionary<string, int> ExternalQueryConnectionsBySourceType { get; }
+        internal IReadOnlyDictionary<string, int> ExternalQueryConnectionsBySourceType { get; }
 
         /// <summary>Gets DBQueryExt records grouped by shallow connection state.</summary>
-        public IReadOnlyDictionary<string, int> ExternalQueryConnectionsByState { get; }
+        internal IReadOnlyDictionary<string, int> ExternalQueryConnectionsByState { get; }
 
         /// <summary>Gets DBQueryExt records grouped by enabled connection flag.</summary>
-        public IReadOnlyDictionary<string, int> ExternalQueryConnectionsByConnectionFlag { get; }
+        internal IReadOnlyDictionary<string, int> ExternalQueryConnectionsByConnectionFlag { get; }
 
         /// <summary>Gets DBQueryExt records grouped by enabled query option flag.</summary>
-        public IReadOnlyDictionary<string, int> ExternalQueryConnectionsByQueryOption { get; }
+        internal IReadOnlyDictionary<string, int> ExternalQueryConnectionsByQueryOption { get; }
 
         /// <summary>Gets DBQueryExt records grouped by declared PBT parameter flag count.</summary>
-        public IReadOnlyDictionary<string, int> ExternalQueryConnectionsByParameterFlagCount { get; }
+        internal IReadOnlyDictionary<string, int> ExternalQueryConnectionsByParameterFlagCount { get; }
 
         /// <summary>Gets DBQueryExt records grouped by decoded PBT parameter flag byte count.</summary>
-        public IReadOnlyDictionary<string, int> ExternalQueryConnectionsByParameterFlagByteCount { get; }
+        internal IReadOnlyDictionary<string, int> ExternalQueryConnectionsByParameterFlagByteCount { get; }
 
         /// <summary>Gets DBQueryExt records grouped by whether decoded PBT bytes match the declared count.</summary>
-        public IReadOnlyDictionary<string, int> ExternalQueryConnectionsByParameterFlagState { get; }
+        internal IReadOnlyDictionary<string, int> ExternalQueryConnectionsByParameterFlagState { get; }
 
         /// <summary>Gets DBQueryExt records grouped by declared future-byte count.</summary>
-        public IReadOnlyDictionary<string, int> ExternalQueryConnectionsByFutureByteCount { get; }
+        internal IReadOnlyDictionary<string, int> ExternalQueryConnectionsByFutureByteCount { get; }
 
         /// <summary>Gets DBQueryExt records grouped by automatic refresh interval.</summary>
-        public IReadOnlyDictionary<string, int> ExternalQueryConnectionsByRefreshInterval { get; }
+        internal IReadOnlyDictionary<string, int> ExternalQueryConnectionsByRefreshInterval { get; }
 
         /// <summary>Gets DBQueryExt records grouped by declared OleDbConn follow-up record count.</summary>
-        public IReadOnlyDictionary<string, int> ExternalQueryConnectionsByOleDbConnectionCount { get; }
+        internal IReadOnlyDictionary<string, int> ExternalQueryConnectionsByOleDbConnectionCount { get; }
 
         /// <summary>Gets DBQueryExt records grouped by Web query HTML formatting mode.</summary>
-        public IReadOnlyDictionary<string, int> ExternalQueryConnectionsByHtmlFormat { get; }
+        internal IReadOnlyDictionary<string, int> ExternalQueryConnectionsByHtmlFormat { get; }
 
         /// <summary>Gets DBQueryExt records grouped by data functionality version triplet.</summary>
-        public IReadOnlyDictionary<string, int> ExternalQueryConnectionsByVersionTriplet { get; }
+        internal IReadOnlyDictionary<string, int> ExternalQueryConnectionsByVersionTriplet { get; }
 
         /// <summary>Gets DBQueryExt records grouped by raw source-specific ConnGrbitDbt flags.</summary>
-        public IReadOnlyDictionary<string, int> ExternalQueryConnectionsBySourceSpecificFlags { get; }
+        internal IReadOnlyDictionary<string, int> ExternalQueryConnectionsBySourceSpecificFlags { get; }
 
         /// <summary>Gets DConRef records grouped by decoded DConFile source kind.</summary>
-        public IReadOnlyDictionary<string, int> DataConsolidationReferencesBySourceKind { get; }
+        internal IReadOnlyDictionary<string, int> DataConsolidationReferencesBySourceKind { get; }
 
         /// <summary>Gets DConRef records grouped by raw DConFile source prefix.</summary>
-        public IReadOnlyDictionary<string, int> DataConsolidationReferencesBySourcePrefix { get; }
+        internal IReadOnlyDictionary<string, int> DataConsolidationReferencesBySourcePrefix { get; }
 
         /// <summary>Gets DConRef records grouped by decoded source path or sheet name.</summary>
-        public IReadOnlyDictionary<string, int> DataConsolidationReferencesBySource { get; }
+        internal IReadOnlyDictionary<string, int> DataConsolidationReferencesBySource { get; }
 
         /// <summary>Gets DConRef records grouped by decoded source range.</summary>
-        public IReadOnlyDictionary<string, int> DataConsolidationReferencesByRange { get; }
+        internal IReadOnlyDictionary<string, int> DataConsolidationReferencesByRange { get; }
 
         /// <summary>Gets DConRef records grouped by decoded source range shape.</summary>
-        public IReadOnlyDictionary<string, int> DataConsolidationReferencesByShape { get; }
+        internal IReadOnlyDictionary<string, int> DataConsolidationReferencesByShape { get; }
 
         /// <summary>Gets DConRef records grouped by decoded source and range.</summary>
-        public IReadOnlyDictionary<string, int> DataConsolidationReferencesBySourceAndRange { get; }
+        internal IReadOnlyDictionary<string, int> DataConsolidationReferencesBySourceAndRange { get; }
 
         /// <summary>Gets DConRef records grouped by trailing unused byte count.</summary>
-        public IReadOnlyDictionary<string, int> DataConsolidationReferencesByUnusedByteCount { get; }
+        internal IReadOnlyDictionary<string, int> DataConsolidationReferencesByUnusedByteCount { get; }
 
         /// <summary>Gets DConName records grouped by decoded source kind.</summary>
-        public IReadOnlyDictionary<string, int> DataConsolidationNamesBySourceKind { get; }
+        internal IReadOnlyDictionary<string, int> DataConsolidationNamesBySourceKind { get; }
 
         /// <summary>Gets DConName records grouped by defined-name reference.</summary>
-        public IReadOnlyDictionary<string, int> DataConsolidationNamesByName { get; }
+        internal IReadOnlyDictionary<string, int> DataConsolidationNamesByName { get; }
 
         /// <summary>Gets DConName records grouped by external source, or self-reference marker.</summary>
-        public IReadOnlyDictionary<string, int> DataConsolidationNamesBySource { get; }
+        internal IReadOnlyDictionary<string, int> DataConsolidationNamesBySource { get; }
 
         /// <summary>Gets DConName records grouped by defined name and source.</summary>
-        public IReadOnlyDictionary<string, int> DataConsolidationNamesByNameAndSource { get; }
+        internal IReadOnlyDictionary<string, int> DataConsolidationNamesByNameAndSource { get; }
 
         /// <summary>Gets DConName records grouped by trailing unused byte count.</summary>
-        public IReadOnlyDictionary<string, int> DataConsolidationNamesByUnusedByteCount { get; }
+        internal IReadOnlyDictionary<string, int> DataConsolidationNamesByUnusedByteCount { get; }
 
         /// <summary>Gets Theme records grouped by decoded theme version.</summary>
-        public IReadOnlyDictionary<string, int> ThemeRecordsByVersion { get; }
+        internal IReadOnlyDictionary<string, int> ThemeRecordsByVersion { get; }
 
         /// <summary>Gets Theme records grouped by raw theme version value.</summary>
-        public IReadOnlyDictionary<string, int> ThemeRecordsByRawVersion { get; }
+        internal IReadOnlyDictionary<string, int> ThemeRecordsByRawVersion { get; }
 
         /// <summary>Gets Theme records grouped by whether embedded theme content bytes were present.</summary>
-        public IReadOnlyDictionary<string, int> ThemeRecordsByContentState { get; }
+        internal IReadOnlyDictionary<string, int> ThemeRecordsByContentState { get; }
 
         /// <summary>Gets Theme records grouped by embedded theme content byte length.</summary>
-        public IReadOnlyDictionary<string, int> ThemeRecordsByContentLength { get; }
+        internal IReadOnlyDictionary<string, int> ThemeRecordsByContentLength { get; }
 
         /// <summary>Gets preserve-only PivotTable BIFF records grouped by decoded metadata kind.</summary>
-        public IReadOnlyDictionary<LegacyXlsPivotTableRecordKind, int> PivotTableRecordsByKind { get; }
+        internal IReadOnlyDictionary<LegacyXlsPivotTableRecordKind, int> PivotTableRecordsByKind { get; }
 
         /// <summary>Gets preserve-only PivotTable BIFF records grouped by record name.</summary>
-        public IReadOnlyDictionary<string, int> PivotTableRecordsByName { get; }
+        internal IReadOnlyDictionary<string, int> PivotTableRecordsByName { get; }
 
         /// <summary>Gets preserve-only PivotTable BIFF records grouped by workbook or worksheet location.</summary>
-        public IReadOnlyDictionary<string, int> PivotTableRecordsByLocation { get; }
+        internal IReadOnlyDictionary<string, int> PivotTableRecordsByLocation { get; }
 
         /// <summary>Gets preserve-only PivotTable BIFF records grouped by decoded metadata kind and workbook or worksheet location.</summary>
-        public IReadOnlyDictionary<string, int> PivotTableRecordsByKindAndLocation { get; }
+        internal IReadOnlyDictionary<string, int> PivotTableRecordsByKindAndLocation { get; }
 
         /// <summary>Gets preserve-only PivotTable BIFF records grouped by BIFF record name and workbook or worksheet location.</summary>
-        public IReadOnlyDictionary<string, int> PivotTableRecordsByNameAndLocation { get; }
+        internal IReadOnlyDictionary<string, int> PivotTableRecordsByNameAndLocation { get; }
 
         /// <summary>Gets workbook-level PivotTable model-shape states derived from preserve-only PivotTable BIFF records.</summary>
-        public IReadOnlyDictionary<string, int> PivotTableWorkbookStates { get; }
+        internal IReadOnlyDictionary<string, int> PivotTableWorkbookStates { get; }
 
         /// <summary>Gets decoded SxView PivotTable views grouped by covered A1 range.</summary>
-        public IReadOnlyDictionary<string, int> PivotTableViewRanges { get; }
+        internal IReadOnlyDictionary<string, int> PivotTableViewRanges { get; }
 
         /// <summary>Gets decoded SxView PivotTable views grouped by PivotTable name.</summary>
-        public IReadOnlyDictionary<string, int> PivotTableViewNames { get; }
+        internal IReadOnlyDictionary<string, int> PivotTableViewNames { get; }
 
         /// <summary>Gets decoded SxView PivotTable views grouped by data field caption.</summary>
-        public IReadOnlyDictionary<string, int> PivotTableViewDataNames { get; }
+        internal IReadOnlyDictionary<string, int> PivotTableViewDataNames { get; }
 
         /// <summary>Gets decoded SxView PivotTable views grouped by field counts.</summary>
-        public IReadOnlyDictionary<string, int> PivotTableViewFieldCounts { get; }
+        internal IReadOnlyDictionary<string, int> PivotTableViewFieldCounts { get; }
 
         /// <summary>Gets decoded SxView PivotTable views grouped by row and column line counts.</summary>
-        public IReadOnlyDictionary<string, int> PivotTableViewLineCounts { get; }
+        internal IReadOnlyDictionary<string, int> PivotTableViewLineCounts { get; }
 
         /// <summary>Gets decoded SxView PivotTable views grouped by default data axis.</summary>
-        public IReadOnlyDictionary<string, int> PivotTableViewDataAxes { get; }
+        internal IReadOnlyDictionary<string, int> PivotTableViewDataAxes { get; }
 
         /// <summary>Gets decoded SxView PivotTable views grouped by data field position.</summary>
-        public IReadOnlyDictionary<string, int> PivotTableViewDataPositions { get; }
+        internal IReadOnlyDictionary<string, int> PivotTableViewDataPositions { get; }
 
         /// <summary>Gets decoded SxView PivotTable views grouped by PivotCache index.</summary>
-        public IReadOnlyDictionary<string, int> PivotTableViewCacheIndexes { get; }
+        internal IReadOnlyDictionary<string, int> PivotTableViewCacheIndexes { get; }
 
         /// <summary>Gets decoded SxView PivotTable views grouped by row and column grand total state.</summary>
-        public IReadOnlyDictionary<string, int> PivotTableViewGrandTotalStates { get; }
+        internal IReadOnlyDictionary<string, int> PivotTableViewGrandTotalStates { get; }
 
         /// <summary>Gets decoded SxView PivotTable views grouped by AutoFormat state and identifier.</summary>
-        public IReadOnlyDictionary<string, int> PivotTableViewAutoFormatStates { get; }
+        internal IReadOnlyDictionary<string, int> PivotTableViewAutoFormatStates { get; }
 
         /// <summary>Gets decoded Sxvd PivotTable fields grouped by axis.</summary>
-        public IReadOnlyDictionary<string, int> PivotTableFieldAxes { get; }
+        internal IReadOnlyDictionary<string, int> PivotTableFieldAxes { get; }
 
         /// <summary>Gets decoded Sxvd PivotTable fields grouped by declared item count.</summary>
-        public IReadOnlyDictionary<string, int> PivotTableFieldItemCounts { get; }
+        internal IReadOnlyDictionary<string, int> PivotTableFieldItemCounts { get; }
 
         /// <summary>Gets decoded Sxvd PivotTable fields grouped by declared subtotal count and raw subtotal flags.</summary>
-        public IReadOnlyDictionary<string, int> PivotTableFieldSubtotalCounts { get; }
+        internal IReadOnlyDictionary<string, int> PivotTableFieldSubtotalCounts { get; }
 
         /// <summary>Gets decoded Sxvd PivotTable fields grouped by subtotal function name.</summary>
-        public IReadOnlyDictionary<string, int> PivotTableFieldSubtotalFunctions { get; }
+        internal IReadOnlyDictionary<string, int> PivotTableFieldSubtotalFunctions { get; }
 
         /// <summary>Gets decoded Sxvd PivotTable fields grouped by explicit caption.</summary>
-        public IReadOnlyDictionary<string, int> PivotTableFieldNames { get; }
+        internal IReadOnlyDictionary<string, int> PivotTableFieldNames { get; }
 
         /// <summary>Gets decoded SxIvd PivotTable field-index lists grouped by list length.</summary>
-        public IReadOnlyDictionary<string, int> PivotTableFieldIndexListLengths { get; }
+        internal IReadOnlyDictionary<string, int> PivotTableFieldIndexListLengths { get; }
 
         /// <summary>Gets decoded SxIvd PivotTable field-index lists grouped by referenced pivot field index.</summary>
-        public IReadOnlyDictionary<string, int> PivotTableFieldIndexReferences { get; }
+        internal IReadOnlyDictionary<string, int> PivotTableFieldIndexReferences { get; }
 
         /// <summary>Gets decoded SxIvd PivotTable field-index lists grouped by full index sequence.</summary>
-        public IReadOnlyDictionary<string, int> PivotTableFieldIndexSequences { get; }
+        internal IReadOnlyDictionary<string, int> PivotTableFieldIndexSequences { get; }
 
         /// <summary>Gets decoded SXLI PivotTable line item records grouped by line item count.</summary>
-        public IReadOnlyDictionary<string, int> PivotTableLineItemCounts { get; }
+        internal IReadOnlyDictionary<string, int> PivotTableLineItemCounts { get; }
 
         /// <summary>Gets decoded SXLI PivotTable line items grouped by raw item type.</summary>
-        public IReadOnlyDictionary<string, int> PivotTableLineItemTypes { get; }
+        internal IReadOnlyDictionary<string, int> PivotTableLineItemTypes { get; }
 
         /// <summary>Gets decoded SXLI PivotTable line items grouped by item type name.</summary>
-        public IReadOnlyDictionary<string, int> PivotTableLineItemTypeKinds { get; }
+        internal IReadOnlyDictionary<string, int> PivotTableLineItemTypeKinds { get; }
 
         /// <summary>Gets decoded SXLI PivotTable line items grouped by declared entry count.</summary>
-        public IReadOnlyDictionary<string, int> PivotTableLineItemEntryCounts { get; }
+        internal IReadOnlyDictionary<string, int> PivotTableLineItemEntryCounts { get; }
 
         /// <summary>Gets decoded SXLI PivotTable line items grouped by physical entry slots and declared entry count.</summary>
-        public IReadOnlyDictionary<string, int> PivotTableLineItemEntrySlotCounts { get; }
+        internal IReadOnlyDictionary<string, int> PivotTableLineItemEntrySlotCounts { get; }
 
         /// <summary>Gets decoded SXLI PivotTable line items grouped by entry index name.</summary>
-        public IReadOnlyDictionary<string, int> PivotTableLineItemEntryIndexes { get; }
+        internal IReadOnlyDictionary<string, int> PivotTableLineItemEntryIndexes { get; }
 
         /// <summary>Gets decoded SXLI PivotTable line items grouped by data item index.</summary>
-        public IReadOnlyDictionary<string, int> PivotTableLineItemDataIndexes { get; }
+        internal IReadOnlyDictionary<string, int> PivotTableLineItemDataIndexes { get; }
 
         /// <summary>Gets decoded SXLI PivotTable line items grouped by subtotal, block total, grand total, and data-axis flags.</summary>
-        public IReadOnlyDictionary<string, int> PivotTableLineItemFlagStates { get; }
+        internal IReadOnlyDictionary<string, int> PivotTableLineItemFlagStates { get; }
 
         /// <summary>Gets decoded SXLI PivotTable line item records grouped by full line entry sequence.</summary>
-        public IReadOnlyDictionary<string, int> PivotTableLineItemSequences { get; }
+        internal IReadOnlyDictionary<string, int> PivotTableLineItemSequences { get; }
 
         /// <summary>Gets decoded SXPI PivotTable page item selectors grouped by selector count.</summary>
-        public IReadOnlyDictionary<string, int> PivotTablePageItemCounts { get; }
+        internal IReadOnlyDictionary<string, int> PivotTablePageItemCounts { get; }
 
         /// <summary>Gets decoded SXPI PivotTable page item selectors grouped by page-axis field index.</summary>
-        public IReadOnlyDictionary<string, int> PivotTablePageItemFieldIndexes { get; }
+        internal IReadOnlyDictionary<string, int> PivotTablePageItemFieldIndexes { get; }
 
         /// <summary>Gets decoded SXPI PivotTable page item selectors grouped by selected item index.</summary>
-        public IReadOnlyDictionary<string, int> PivotTablePageItemIndexes { get; }
+        internal IReadOnlyDictionary<string, int> PivotTablePageItemIndexes { get; }
 
         /// <summary>Gets decoded SXPI PivotTable page item selectors grouped by drop-down object identifier.</summary>
-        public IReadOnlyDictionary<string, int> PivotTablePageItemObjectIds { get; }
+        internal IReadOnlyDictionary<string, int> PivotTablePageItemObjectIds { get; }
 
         /// <summary>Gets decoded SXPI PivotTable page item selectors grouped by full selector sequence.</summary>
-        public IReadOnlyDictionary<string, int> PivotTablePageItemSequences { get; }
+        internal IReadOnlyDictionary<string, int> PivotTablePageItemSequences { get; }
 
         /// <summary>Gets decoded SXVI PivotTable items grouped by raw item type.</summary>
-        public IReadOnlyDictionary<string, int> PivotTableItemTypes { get; }
+        internal IReadOnlyDictionary<string, int> PivotTableItemTypes { get; }
 
         /// <summary>Gets decoded SXVI PivotTable items grouped by item type name.</summary>
-        public IReadOnlyDictionary<string, int> PivotTableItemTypeKinds { get; }
+        internal IReadOnlyDictionary<string, int> PivotTableItemTypeKinds { get; }
 
         /// <summary>Gets decoded SXVI PivotTable items grouped by referenced PivotCache item index.</summary>
-        public IReadOnlyDictionary<string, int> PivotTableItemCacheIndexes { get; }
+        internal IReadOnlyDictionary<string, int> PivotTableItemCacheIndexes { get; }
 
         /// <summary>Gets decoded SXVI PivotTable items grouped by visibility and formula flags.</summary>
-        public IReadOnlyDictionary<string, int> PivotTableItemFlagStates { get; }
+        internal IReadOnlyDictionary<string, int> PivotTableItemFlagStates { get; }
 
         /// <summary>Gets decoded SXVI PivotTable items grouped by explicit caption.</summary>
-        public IReadOnlyDictionary<string, int> PivotTableItemNames { get; }
+        internal IReadOnlyDictionary<string, int> PivotTableItemNames { get; }
 
         /// <summary>Gets PivotTable formula records grouped by BIFF record name and payload length.</summary>
-        public IReadOnlyDictionary<string, int> PivotTableFormulaPayloadLengths { get; }
+        internal IReadOnlyDictionary<string, int> PivotTableFormulaPayloadLengths { get; }
 
         /// <summary>Gets PivotTable formula records grouped by decoded payload shape.</summary>
-        public IReadOnlyDictionary<string, int> PivotTableFormulaPayloadKinds { get; }
+        internal IReadOnlyDictionary<string, int> PivotTableFormulaPayloadKinds { get; }
 
         /// <summary>Gets SXFormula token streams grouped by parsed-expression byte count.</summary>
-        public IReadOnlyDictionary<string, int> PivotTableFormulaTokenByteCounts { get; }
+        internal IReadOnlyDictionary<string, int> PivotTableFormulaTokenByteCounts { get; }
 
         /// <summary>Gets calculated-field SXFormula token streams grouped by parsed-expression byte count.</summary>
-        public IReadOnlyDictionary<string, int> PivotTableCalculatedFieldFormulaTokenByteCounts { get; }
+        internal IReadOnlyDictionary<string, int> PivotTableCalculatedFieldFormulaTokenByteCounts { get; }
 
         /// <summary>Gets SXFormula token streams grouped by trailing byte count after the parsed expression.</summary>
-        public IReadOnlyDictionary<string, int> PivotTableFormulaTrailingByteCounts { get; }
+        internal IReadOnlyDictionary<string, int> PivotTableFormulaTrailingByteCounts { get; }
 
         /// <summary>Gets decoded SxRule records grouped by axis.</summary>
-        public IReadOnlyDictionary<string, int> PivotTableRuleAxes { get; }
+        internal IReadOnlyDictionary<string, int> PivotTableRuleAxes { get; }
 
         /// <summary>Gets decoded SxRule records grouped by rule area type.</summary>
-        public IReadOnlyDictionary<string, int> PivotTableRuleTypes { get; }
+        internal IReadOnlyDictionary<string, int> PivotTableRuleTypes { get; }
 
         /// <summary>Gets decoded SxRule records grouped by field reference.</summary>
-        public IReadOnlyDictionary<string, int> PivotTableRuleFieldReferences { get; }
+        internal IReadOnlyDictionary<string, int> PivotTableRuleFieldReferences { get; }
 
         /// <summary>Gets decoded SxRule records grouped by following SxFilt count.</summary>
-        public IReadOnlyDictionary<string, int> PivotTableRuleFilterCounts { get; }
+        internal IReadOnlyDictionary<string, int> PivotTableRuleFilterCounts { get; }
 
         /// <summary>Gets decoded SxRule records grouped by option flags.</summary>
-        public IReadOnlyDictionary<string, int> PivotTableRuleOptionStates { get; }
+        internal IReadOnlyDictionary<string, int> PivotTableRuleOptionStates { get; }
 
         /// <summary>Gets decoded partial-area SxRule records grouped by relative area bounds.</summary>
-        public IReadOnlyDictionary<string, int> PivotTableRulePartialAreas { get; }
+        internal IReadOnlyDictionary<string, int> PivotTableRulePartialAreas { get; }
 
         /// <summary>Gets decoded SxFilt records grouped by contained rule-filter entry count.</summary>
-        public IReadOnlyDictionary<string, int> PivotTableRuleFilterEntryCounts { get; }
+        internal IReadOnlyDictionary<string, int> PivotTableRuleFilterEntryCounts { get; }
 
         /// <summary>Gets decoded SxFilt rule-filter entries grouped by axis.</summary>
-        public IReadOnlyDictionary<string, int> PivotTableRuleFilterAxes { get; }
+        internal IReadOnlyDictionary<string, int> PivotTableRuleFilterAxes { get; }
 
         /// <summary>Gets decoded SxFilt rule-filter entries grouped by field position.</summary>
-        public IReadOnlyDictionary<string, int> PivotTableRuleFilterFieldPositions { get; }
+        internal IReadOnlyDictionary<string, int> PivotTableRuleFilterFieldPositions { get; }
 
         /// <summary>Gets decoded SxFilt rule-filter entries grouped by referenced field.</summary>
-        public IReadOnlyDictionary<string, int> PivotTableRuleFilterFieldReferences { get; }
+        internal IReadOnlyDictionary<string, int> PivotTableRuleFilterFieldReferences { get; }
 
         /// <summary>Gets decoded SxFilt rule-filter entries grouped by selected-header state.</summary>
-        public IReadOnlyDictionary<string, int> PivotTableRuleFilterSelectedStates { get; }
+        internal IReadOnlyDictionary<string, int> PivotTableRuleFilterSelectedStates { get; }
 
         /// <summary>Gets decoded SxFilt rule-filter entries grouped by raw subtotal flags.</summary>
-        public IReadOnlyDictionary<string, int> PivotTableRuleFilterSubtotalFlags { get; }
+        internal IReadOnlyDictionary<string, int> PivotTableRuleFilterSubtotalFlags { get; }
 
         /// <summary>Gets decoded SxFilt rule-filter entries grouped by subtotal function.</summary>
-        public IReadOnlyDictionary<string, int> PivotTableRuleFilterSubtotalFunctions { get; }
+        internal IReadOnlyDictionary<string, int> PivotTableRuleFilterSubtotalFunctions { get; }
 
         /// <summary>Gets decoded SxFilt rule-filter entries grouped by following SxItm index count.</summary>
-        public IReadOnlyDictionary<string, int> PivotTableRuleFilterItemIndexCounts { get; }
+        internal IReadOnlyDictionary<string, int> PivotTableRuleFilterItemIndexCounts { get; }
 
         /// <summary>Gets decoded SxFilt rule-filter entries grouped by compact filter state.</summary>
-        public IReadOnlyDictionary<string, int> PivotTableRuleFilterStates { get; }
+        internal IReadOnlyDictionary<string, int> PivotTableRuleFilterStates { get; }
 
         /// <summary>Gets decoded PivotCache item records grouped by value kind.</summary>
-        public IReadOnlyDictionary<string, int> PivotTableCacheItemKinds { get; }
+        internal IReadOnlyDictionary<string, int> PivotTableCacheItemKinds { get; }
 
         /// <summary>Gets decoded PivotCache item records grouped by empty or value-bearing state.</summary>
-        public IReadOnlyDictionary<string, int> PivotTableCacheItemValueStates { get; }
+        internal IReadOnlyDictionary<string, int> PivotTableCacheItemValueStates { get; }
 
         /// <summary>Gets decoded PivotCache string item records grouped by character count.</summary>
-        public IReadOnlyDictionary<string, int> PivotTableCacheItemStringLengths { get; }
+        internal IReadOnlyDictionary<string, int> PivotTableCacheItemStringLengths { get; }
 
         /// <summary>Gets decoded PivotCache error item records grouped by error code.</summary>
-        public IReadOnlyDictionary<string, int> PivotTableCacheItemErrorCodes { get; }
+        internal IReadOnlyDictionary<string, int> PivotTableCacheItemErrorCodes { get; }
 
         /// <summary>Gets decoded PivotCache Boolean item records grouped by value.</summary>
-        public IReadOnlyDictionary<string, int> PivotTableCacheItemBooleanValues { get; }
+        internal IReadOnlyDictionary<string, int> PivotTableCacheItemBooleanValues { get; }
 
         /// <summary>Gets decoded PivotCache stream identifiers grouped by BIFF record name and stream name.</summary>
-        public IReadOnlyDictionary<string, int> PivotTableCacheStreamNames { get; }
+        internal IReadOnlyDictionary<string, int> PivotTableCacheStreamNames { get; }
 
         /// <summary>Gets decoded PivotCache source-data types grouped by BIFF record name and source type.</summary>
-        public IReadOnlyDictionary<string, int> PivotTableCacheSourceTypes { get; }
+        internal IReadOnlyDictionary<string, int> PivotTableCacheSourceTypes { get; }
 
         /// <summary>Gets decoded SXDB PivotCache records grouped by declared cache record count.</summary>
-        public IReadOnlyDictionary<string, int> PivotTableCacheRecordCounts { get; }
+        internal IReadOnlyDictionary<string, int> PivotTableCacheRecordCounts { get; }
 
         /// <summary>Gets decoded SXDB PivotCache records grouped by source and total field counts.</summary>
-        public IReadOnlyDictionary<string, int> PivotTableCacheFieldCounts { get; }
+        internal IReadOnlyDictionary<string, int> PivotTableCacheFieldCounts { get; }
 
         /// <summary>Gets decoded SXDB PivotCache records grouped by used cache record count.</summary>
-        public IReadOnlyDictionary<string, int> PivotTableCacheUsedRecordCounts { get; }
+        internal IReadOnlyDictionary<string, int> PivotTableCacheUsedRecordCounts { get; }
 
         /// <summary>Gets decoded SXDB PivotCache records grouped by cache property flag state.</summary>
-        public IReadOnlyDictionary<string, int> PivotTableCachePropertyFlags { get; }
+        internal IReadOnlyDictionary<string, int> PivotTableCachePropertyFlags { get; }
 
         /// <summary>Gets decoded SXDB PivotCache records grouped by whether the last-refresh user was present.</summary>
-        public IReadOnlyDictionary<string, int> PivotTableCacheRefreshUserStates { get; }
+        internal IReadOnlyDictionary<string, int> PivotTableCacheRefreshUserStates { get; }
 
         /// <summary>Gets decoded QsiSXTag records grouped by target type.</summary>
-        public IReadOnlyDictionary<string, int> PivotTableQueryTagTargets { get; }
+        internal IReadOnlyDictionary<string, int> PivotTableQueryTagTargets { get; }
 
         /// <summary>Gets decoded QsiSXTag records grouped by query table or PivotTable view name.</summary>
-        public IReadOnlyDictionary<string, int> PivotTableQueryTagNames { get; }
+        internal IReadOnlyDictionary<string, int> PivotTableQueryTagNames { get; }
 
         /// <summary>Gets decoded QsiSXTag records grouped by refresh/cache validity flags.</summary>
-        public IReadOnlyDictionary<string, int> PivotTableQueryTagRefreshStates { get; }
+        internal IReadOnlyDictionary<string, int> PivotTableQueryTagRefreshStates { get; }
 
         /// <summary>Gets decoded QsiSXTag records grouped by functionality version pair.</summary>
-        public IReadOnlyDictionary<string, int> PivotTableQueryTagVersions { get; }
+        internal IReadOnlyDictionary<string, int> PivotTableQueryTagVersions { get; }
 
         /// <summary>Gets decoded QsiSXTag records grouped by raw future option flags.</summary>
-        public IReadOnlyDictionary<string, int> PivotTableQueryTagFutureOptions { get; }
+        internal IReadOnlyDictionary<string, int> PivotTableQueryTagFutureOptions { get; }
 
         /// <summary>Gets decoded QsiSXTag records grouped by trailing unused field value.</summary>
-        public IReadOnlyDictionary<string, int> PivotTableQueryTagUnusedValues { get; }
+        internal IReadOnlyDictionary<string, int> PivotTableQueryTagUnusedValues { get; }
 
         /// <summary>Gets decoded SXDI PivotTable data item records grouped by raw aggregation function identifier.</summary>
-        public IReadOnlyDictionary<string, int> PivotTableDataItemAggregations { get; }
+        internal IReadOnlyDictionary<string, int> PivotTableDataItemAggregations { get; }
 
         /// <summary>Gets decoded SXDI PivotTable data item records grouped by aggregation function name.</summary>
-        public IReadOnlyDictionary<string, int> PivotTableDataItemAggregationKinds { get; }
+        internal IReadOnlyDictionary<string, int> PivotTableDataItemAggregationKinds { get; }
 
         /// <summary>Gets decoded SXDI PivotTable data item records grouped by pivot field index.</summary>
-        public IReadOnlyDictionary<string, int> PivotTableDataItemFieldIndexes { get; }
+        internal IReadOnlyDictionary<string, int> PivotTableDataItemFieldIndexes { get; }
 
         /// <summary>Gets decoded SXDI PivotTable data item records grouped by raw display calculation identifier.</summary>
-        public IReadOnlyDictionary<string, int> PivotTableDataItemDisplayCalculationIds { get; }
+        internal IReadOnlyDictionary<string, int> PivotTableDataItemDisplayCalculationIds { get; }
 
         /// <summary>Gets decoded SXDI PivotTable data item records grouped by display calculation name.</summary>
-        public IReadOnlyDictionary<string, int> PivotTableDataItemDisplayCalculations { get; }
+        internal IReadOnlyDictionary<string, int> PivotTableDataItemDisplayCalculations { get; }
 
         /// <summary>Gets decoded SXDI PivotTable data item records grouped by display calculation and reference state.</summary>
-        public IReadOnlyDictionary<string, int> PivotTableDataItemDisplayCalculationReferenceStates { get; }
+        internal IReadOnlyDictionary<string, int> PivotTableDataItemDisplayCalculationReferenceStates { get; }
 
         /// <summary>Gets decoded SXDI PivotTable data item records grouped by display-calculation field index.</summary>
-        public IReadOnlyDictionary<string, int> PivotTableDataItemDisplayCalculationFieldIndexes { get; }
+        internal IReadOnlyDictionary<string, int> PivotTableDataItemDisplayCalculationFieldIndexes { get; }
 
         /// <summary>Gets decoded SXDI PivotTable data item records grouped by display-calculation item index.</summary>
-        public IReadOnlyDictionary<string, int> PivotTableDataItemDisplayCalculationItemIndexes { get; }
+        internal IReadOnlyDictionary<string, int> PivotTableDataItemDisplayCalculationItemIndexes { get; }
 
         /// <summary>Gets decoded SXDI PivotTable data item records grouped by number format identifier.</summary>
-        public IReadOnlyDictionary<string, int> PivotTableDataItemNumberFormats { get; }
+        internal IReadOnlyDictionary<string, int> PivotTableDataItemNumberFormats { get; }
 
         /// <summary>Gets decoded SXDI PivotTable data item records grouped by custom data item name.</summary>
-        public IReadOnlyDictionary<string, int> PivotTableDataItemNames { get; }
+        internal IReadOnlyDictionary<string, int> PivotTableDataItemNames { get; }
 
         /// <summary>Gets decoded SXRng PivotTable grouping records grouped by grouping kind.</summary>
-        public IReadOnlyDictionary<string, int> PivotTableGroupingKinds { get; }
+        internal IReadOnlyDictionary<string, int> PivotTableGroupingKinds { get; }
 
         /// <summary>Gets decoded SXRng PivotTable grouping records grouped by automatic boundary state.</summary>
-        public IReadOnlyDictionary<string, int> PivotTableGroupingBoundaryStates { get; }
+        internal IReadOnlyDictionary<string, int> PivotTableGroupingBoundaryStates { get; }
 
         /// <summary>Gets decoded SXRng PivotTable grouping records grouped by whether the expected companion values were present.</summary>
-        public IReadOnlyDictionary<string, int> PivotTableGroupingCompletionStates { get; }
+        internal IReadOnlyDictionary<string, int> PivotTableGroupingCompletionStates { get; }
 
         /// <summary>Gets decoded SXRng PivotTable grouping records grouped by grouping kind, boundary mode, and completion state.</summary>
-        public IReadOnlyDictionary<string, int> PivotTableGroupingStates { get; }
+        internal IReadOnlyDictionary<string, int> PivotTableGroupingStates { get; }
 
         /// <summary>Gets decoded SXRng numeric grouping records grouped by start, end, and interval values.</summary>
-        public IReadOnlyDictionary<string, int> PivotTableGroupingNumericRanges { get; }
+        internal IReadOnlyDictionary<string, int> PivotTableGroupingNumericRanges { get; }
 
         /// <summary>Gets decoded SXRng date grouping records grouped by start, end, and interval values.</summary>
-        public IReadOnlyDictionary<string, int> PivotTableGroupingDateRanges { get; }
+        internal IReadOnlyDictionary<string, int> PivotTableGroupingDateRanges { get; }
 
         /// <summary>Gets decoded SXFormula calculated-item formula records grouped by cache-field scope.</summary>
-        public IReadOnlyDictionary<string, int> PivotTableFormulaScopes { get; }
+        internal IReadOnlyDictionary<string, int> PivotTableFormulaScopes { get; }
 
         /// <summary>Gets decoded SXFormula calculated-item formula records grouped by raw cache field index.</summary>
-        public IReadOnlyDictionary<string, int> PivotTableFormulaCacheFieldIndexes { get; }
+        internal IReadOnlyDictionary<string, int> PivotTableFormulaCacheFieldIndexes { get; }
 
         /// <summary>Gets decoded SXFormula calculated-item formula records grouped by reserved value.</summary>
-        public IReadOnlyDictionary<string, int> PivotTableFormulaReservedValues { get; }
+        internal IReadOnlyDictionary<string, int> PivotTableFormulaReservedValues { get; }
 
         /// <summary>Gets decoded SXVDEx PivotTable field flags grouped by flag state.</summary>
-        public IReadOnlyDictionary<string, int> PivotTableExtendedFieldStates { get; }
+        internal IReadOnlyDictionary<string, int> PivotTableExtendedFieldStates { get; }
 
         /// <summary>Gets decoded SXVDEx PivotTable field flags grouped by complete interaction-permission shape.</summary>
-        public IReadOnlyDictionary<string, int> PivotTableExtendedFieldPermissionStates { get; }
+        internal IReadOnlyDictionary<string, int> PivotTableExtendedFieldPermissionStates { get; }
 
         /// <summary>Gets decoded SXAddl records grouped by PivotTable extension class.</summary>
-        public IReadOnlyDictionary<string, int> PivotTableAdditionalClasses { get; }
+        internal IReadOnlyDictionary<string, int> PivotTableAdditionalClasses { get; }
 
         /// <summary>Gets decoded SXAddl records grouped by PivotTable extension detail type.</summary>
-        public IReadOnlyDictionary<string, int> PivotTableAdditionalTypes { get; }
+        internal IReadOnlyDictionary<string, int> PivotTableAdditionalTypes { get; }
 
         /// <summary>Gets decoded SXAddl records grouped by class and detail type.</summary>
-        public IReadOnlyDictionary<string, int> PivotTableAdditionalClassTypes { get; }
+        internal IReadOnlyDictionary<string, int> PivotTableAdditionalClassTypes { get; }
 
         /// <summary>Gets decoded SXAddl records grouped by future-record type.</summary>
-        public IReadOnlyDictionary<string, int> PivotTableAdditionalFutureRecordTypes { get; }
+        internal IReadOnlyDictionary<string, int> PivotTableAdditionalFutureRecordTypes { get; }
 
         /// <summary>Gets decoded SXAddl records grouped by future-record flags.</summary>
-        public IReadOnlyDictionary<string, int> PivotTableAdditionalFutureFlags { get; }
+        internal IReadOnlyDictionary<string, int> PivotTableAdditionalFutureFlags { get; }
 
         /// <summary>Gets decoded SXAddl records grouped by sequence index in the scanned PivotTable scope.</summary>
-        public IReadOnlyDictionary<string, int> PivotTableAdditionalSequenceIndexes { get; }
+        internal IReadOnlyDictionary<string, int> PivotTableAdditionalSequenceIndexes { get; }
 
         /// <summary>Gets decoded SXAddl records grouped by class, detail type, and payload length.</summary>
-        public IReadOnlyDictionary<string, int> PivotTableAdditionalPayloadLengthsByClassType { get; }
+        internal IReadOnlyDictionary<string, int> PivotTableAdditionalPayloadLengthsByClassType { get; }
 
         /// <summary>Gets decoded SXAddl SxcCache/SXDId records grouped by PivotCache identifier.</summary>
-        public IReadOnlyDictionary<string, int> PivotTableAdditionalCacheIds { get; }
+        internal IReadOnlyDictionary<string, int> PivotTableAdditionalCacheIds { get; }
 
         /// <summary>Gets decoded SXAddl records grouped by class nesting depth before each record is applied.</summary>
-        public IReadOnlyDictionary<string, int> PivotTableAdditionalClassDepthsBefore { get; }
+        internal IReadOnlyDictionary<string, int> PivotTableAdditionalClassDepthsBefore { get; }
 
         /// <summary>Gets decoded SXAddl records grouped by class nesting depth after each record is applied.</summary>
-        public IReadOnlyDictionary<string, int> PivotTableAdditionalClassDepthsAfter { get; }
+        internal IReadOnlyDictionary<string, int> PivotTableAdditionalClassDepthsAfter { get; }
 
         /// <summary>Gets decoded SXAddl records grouped by shallow class-stack transition.</summary>
-        public IReadOnlyDictionary<string, int> PivotTableAdditionalClassTransitions { get; }
+        internal IReadOnlyDictionary<string, int> PivotTableAdditionalClassTransitions { get; }
 
         /// <summary>Gets decoded SXAddl records grouped by class, detail type, and shallow class-stack transition.</summary>
-        public IReadOnlyDictionary<string, int> PivotTableAdditionalClassTransitionsByClassType { get; }
+        internal IReadOnlyDictionary<string, int> PivotTableAdditionalClassTransitionsByClassType { get; }
 
         /// <summary>Gets preserve-only chart BIFF records grouped by shallow category.</summary>
-        public IReadOnlyDictionary<LegacyXlsChartRecordKind, int> ChartRecordsByKind { get; }
+        internal IReadOnlyDictionary<LegacyXlsChartRecordKind, int> ChartRecordsByKind { get; }
 
         /// <summary>Gets preserve-only chart BIFF records grouped by record name.</summary>
-        public IReadOnlyDictionary<string, int> ChartRecordsByName { get; }
+        internal IReadOnlyDictionary<string, int> ChartRecordsByName { get; }
 
         /// <summary>Gets preserve-only chart BIFF records grouped by record name and payload length.</summary>
-        public IReadOnlyDictionary<string, int> ChartRecordsByNameAndPayloadLength { get; }
+        internal IReadOnlyDictionary<string, int> ChartRecordsByNameAndPayloadLength { get; }
 
         /// <summary>Gets workbook-level chart model-shape states derived from preserve-only chart BIFF records.</summary>
-        public IReadOnlyDictionary<string, int> ChartWorkbookStates { get; }
+        internal IReadOnlyDictionary<string, int> ChartWorkbookStates { get; }
 
         /// <summary>Gets chart BIFF records grouped by container nesting depth before each record is applied.</summary>
-        public IReadOnlyDictionary<string, int> ChartRecordsByContainerDepthBefore { get; }
+        internal IReadOnlyDictionary<string, int> ChartRecordsByContainerDepthBefore { get; }
 
         /// <summary>Gets chart BIFF records grouped by container nesting depth after each record is applied.</summary>
-        public IReadOnlyDictionary<string, int> ChartRecordsByContainerDepthAfter { get; }
+        internal IReadOnlyDictionary<string, int> ChartRecordsByContainerDepthAfter { get; }
 
         /// <summary>Gets chart BIFF records grouped by shallow container transition state.</summary>
-        public IReadOnlyDictionary<string, int> ChartRecordsByContainerTransition { get; }
+        internal IReadOnlyDictionary<string, int> ChartRecordsByContainerTransition { get; }
 
         /// <summary>Gets chart BIFF records grouped by record name and container depth before each record.</summary>
-        public IReadOnlyDictionary<string, int> ChartRecordsByNameAndContainerDepth { get; }
+        internal IReadOnlyDictionary<string, int> ChartRecordsByNameAndContainerDepth { get; }
 
         /// <summary>Gets chart BIFF records grouped by record name and shallow container transition state.</summary>
-        public IReadOnlyDictionary<string, int> ChartRecordsByNameAndContainerTransition { get; }
+        internal IReadOnlyDictionary<string, int> ChartRecordsByNameAndContainerTransition { get; }
 
         /// <summary>Gets preserve-only chart BIFF chart-type records grouped by decoded chart family.</summary>
-        public IReadOnlyDictionary<string, int> ChartRecordsByChartType { get; }
+        internal IReadOnlyDictionary<string, int> ChartRecordsByChartType { get; }
 
         /// <summary>Gets Chart records grouped by decoded chart rectangle.</summary>
-        public IReadOnlyDictionary<string, int> ChartRecordsByRectangle { get; }
+        internal IReadOnlyDictionary<string, int> ChartRecordsByRectangle { get; }
 
         /// <summary>Gets Axis records grouped by decoded axis type.</summary>
-        public IReadOnlyDictionary<string, int> ChartRecordsByAxisType { get; }
+        internal IReadOnlyDictionary<string, int> ChartRecordsByAxisType { get; }
 
         /// <summary>Gets ChartFormat records grouped by varied data-point color state.</summary>
-        public IReadOnlyDictionary<string, int> ChartGroupVariedColorStates { get; }
+        internal IReadOnlyDictionary<string, int> ChartGroupVariedColorStates { get; }
 
         /// <summary>Gets ChartFormat records grouped by chart-group drawing order.</summary>
-        public IReadOnlyDictionary<string, int> ChartGroupDrawingOrders { get; }
+        internal IReadOnlyDictionary<string, int> ChartGroupDrawingOrders { get; }
 
         /// <summary>Gets AxesUsed records grouped by decoded axis group count.</summary>
-        public IReadOnlyDictionary<string, int> ChartRecordsByAxesUsedCount { get; }
+        internal IReadOnlyDictionary<string, int> ChartRecordsByAxesUsedCount { get; }
 
         /// <summary>Gets CatSerRange records grouped by decoded crossing and interval values.</summary>
-        public IReadOnlyDictionary<string, int> ChartCategorySeriesRangeIntervals { get; }
+        internal IReadOnlyDictionary<string, int> ChartCategorySeriesRangeIntervals { get; }
 
         /// <summary>Gets CatSerRange records grouped by decoded axis state flags.</summary>
-        public IReadOnlyDictionary<string, int> ChartCategorySeriesRangeStates { get; }
+        internal IReadOnlyDictionary<string, int> ChartCategorySeriesRangeStates { get; }
 
         /// <summary>Gets AxcExt records grouped by decoded minimum, maximum, and crossing dates.</summary>
-        public IReadOnlyDictionary<string, int> ChartAxisExtensionDateRanges { get; }
+        internal IReadOnlyDictionary<string, int> ChartAxisExtensionDateRanges { get; }
 
         /// <summary>Gets AxcExt records grouped by decoded major, minor, and base date units.</summary>
-        public IReadOnlyDictionary<string, int> ChartAxisExtensionDateUnits { get; }
+        internal IReadOnlyDictionary<string, int> ChartAxisExtensionDateUnits { get; }
 
         /// <summary>Gets AxcExt records grouped by automatic date-axis flags.</summary>
-        public IReadOnlyDictionary<string, int> ChartAxisExtensionStates { get; }
+        internal IReadOnlyDictionary<string, int> ChartAxisExtensionStates { get; }
 
         /// <summary>Gets AxcExt records grouped by reserved byte state.</summary>
-        public IReadOnlyDictionary<string, int> ChartAxisExtensionReservedStates { get; }
+        internal IReadOnlyDictionary<string, int> ChartAxisExtensionReservedStates { get; }
 
         /// <summary>Gets CatLab records grouped by decoded axis-label alignment.</summary>
-        public IReadOnlyDictionary<string, int> ChartCategoryLabelAlignments { get; }
+        internal IReadOnlyDictionary<string, int> ChartCategoryLabelAlignments { get; }
 
         /// <summary>Gets CatLab records grouped by axis-label offset percentage.</summary>
-        public IReadOnlyDictionary<string, int> ChartCategoryLabelOffsets { get; }
+        internal IReadOnlyDictionary<string, int> ChartCategoryLabelOffsets { get; }
 
         /// <summary>Gets CatLab records grouped by automatic category-label count state.</summary>
-        public IReadOnlyDictionary<string, int> ChartCategoryLabelCountStates { get; }
+        internal IReadOnlyDictionary<string, int> ChartCategoryLabelCountStates { get; }
 
         /// <summary>Gets AxisLineFormat records grouped by decoded formatted axis component.</summary>
-        public IReadOnlyDictionary<string, int> ChartAxisLineFormatTargets { get; }
+        internal IReadOnlyDictionary<string, int> ChartAxisLineFormatTargets { get; }
 
         /// <summary>Gets Series records grouped by decoded category data type.</summary>
-        public IReadOnlyDictionary<string, int> ChartSeriesCategoryDataTypes { get; }
+        internal IReadOnlyDictionary<string, int> ChartSeriesCategoryDataTypes { get; }
 
         /// <summary>Gets Series records grouped by decoded value data type.</summary>
-        public IReadOnlyDictionary<string, int> ChartSeriesValueDataTypes { get; }
+        internal IReadOnlyDictionary<string, int> ChartSeriesValueDataTypes { get; }
 
         /// <summary>Gets Series records grouped by decoded bubble-size data type.</summary>
-        public IReadOnlyDictionary<string, int> ChartSeriesBubbleSizeDataTypes { get; }
+        internal IReadOnlyDictionary<string, int> ChartSeriesBubbleSizeDataTypes { get; }
 
         /// <summary>Gets Series records grouped by category, value, and bubble-size counts.</summary>
-        public IReadOnlyDictionary<string, int> ChartSeriesValueCounts { get; }
+        internal IReadOnlyDictionary<string, int> ChartSeriesValueCounts { get; }
 
         /// <summary>Gets SerToCrt records grouped by referenced ChartFormat index.</summary>
-        public IReadOnlyDictionary<string, int> ChartSeriesChartGroupIndexes { get; }
+        internal IReadOnlyDictionary<string, int> ChartSeriesChartGroupIndexes { get; }
 
         /// <summary>Gets SeriesList records grouped by declared series index count.</summary>
-        public IReadOnlyDictionary<string, int> ChartSeriesListDeclaredCounts { get; }
+        internal IReadOnlyDictionary<string, int> ChartSeriesListDeclaredCounts { get; }
 
         /// <summary>Gets SeriesList records grouped by decoded series index count.</summary>
-        public IReadOnlyDictionary<string, int> ChartSeriesListDecodedCounts { get; }
+        internal IReadOnlyDictionary<string, int> ChartSeriesListDecodedCounts { get; }
 
         /// <summary>Gets SeriesList records grouped by whether all declared indexes were present.</summary>
-        public IReadOnlyDictionary<string, int> ChartSeriesListCompletenessStates { get; }
+        internal IReadOnlyDictionary<string, int> ChartSeriesListCompletenessStates { get; }
 
         /// <summary>Gets SeriesList records grouped by decoded one-based index validity.</summary>
-        public IReadOnlyDictionary<string, int> ChartSeriesListIndexValidityStates { get; }
+        internal IReadOnlyDictionary<string, int> ChartSeriesListIndexValidityStates { get; }
 
         /// <summary>Gets SBaseRef records grouped by decoded referenced PivotTable-view range.</summary>
-        public IReadOnlyDictionary<string, int> ChartPivotViewReferences { get; }
+        internal IReadOnlyDictionary<string, int> ChartPivotViewReferences { get; }
 
         /// <summary>Gets SIIndex records grouped by raw chart data-cache sequence index.</summary>
-        public IReadOnlyDictionary<string, int> ChartSeriesDataCacheIndexes { get; }
+        internal IReadOnlyDictionary<string, int> ChartSeriesDataCacheIndexes { get; }
 
         /// <summary>Gets SIIndex records grouped by decoded chart data-cache sequence type.</summary>
-        public IReadOnlyDictionary<string, int> ChartSeriesDataCacheTypes { get; }
+        internal IReadOnlyDictionary<string, int> ChartSeriesDataCacheTypes { get; }
 
         /// <summary>Gets BRAI records grouped by decoded chart source part.</summary>
-        public IReadOnlyDictionary<string, int> ChartDataSourceIds { get; }
+        internal IReadOnlyDictionary<string, int> ChartDataSourceIds { get; }
 
         /// <summary>Gets BRAI records grouped by decoded referenced data type.</summary>
-        public IReadOnlyDictionary<string, int> ChartDataSourceReferenceTypes { get; }
+        internal IReadOnlyDictionary<string, int> ChartDataSourceReferenceTypes { get; }
 
         /// <summary>Gets BRAI records grouped by raw number format identifier.</summary>
-        public IReadOnlyDictionary<string, int> ChartDataSourceNumberFormatIds { get; }
+        internal IReadOnlyDictionary<string, int> ChartDataSourceNumberFormatIds { get; }
 
         /// <summary>Gets BRAI records grouped by declared ChartParsedFormula byte count.</summary>
-        public IReadOnlyDictionary<string, int> ChartDataSourceFormulaByteCounts { get; }
+        internal IReadOnlyDictionary<string, int> ChartDataSourceFormulaByteCounts { get; }
 
         /// <summary>Gets BRAI records grouped by ChartParsedFormula text projection state.</summary>
-        public IReadOnlyDictionary<string, int> ChartDataSourceFormulaProjectionStates { get; }
+        internal IReadOnlyDictionary<string, int> ChartDataSourceFormulaProjectionStates { get; }
 
         /// <summary>Gets BRAI records grouped by projected ChartParsedFormula text.</summary>
-        public IReadOnlyDictionary<string, int> ChartDataSourceFormulaTexts { get; }
+        internal IReadOnlyDictionary<string, int> ChartDataSourceFormulaTexts { get; }
 
         /// <summary>Gets BRAI formula projection failures grouped by stable failure code.</summary>
-        public IReadOnlyDictionary<string, int> ChartDataSourceFormulaProjectionFailures { get; }
+        internal IReadOnlyDictionary<string, int> ChartDataSourceFormulaProjectionFailures { get; }
 
         /// <summary>Gets BRAI formula projection failures grouped by unsupported token byte.</summary>
-        public IReadOnlyDictionary<string, int> ChartDataSourceFormulaProjectionFailuresByToken { get; }
+        internal IReadOnlyDictionary<string, int> ChartDataSourceFormulaProjectionFailuresByToken { get; }
 
         /// <summary>Gets BRAI formula projection failures grouped by unsupported token name.</summary>
-        public IReadOnlyDictionary<string, int> ChartDataSourceFormulaProjectionFailuresByTokenName { get; }
+        internal IReadOnlyDictionary<string, int> ChartDataSourceFormulaProjectionFailuresByTokenName { get; }
 
         /// <summary>Gets BRAI formula projection failures grouped by token offset.</summary>
-        public IReadOnlyDictionary<string, int> ChartDataSourceFormulaProjectionFailuresByOffset { get; }
+        internal IReadOnlyDictionary<string, int> ChartDataSourceFormulaProjectionFailuresByOffset { get; }
 
         /// <summary>Gets BRAI records grouped by decoded source, reference, number format, and formula-byte state.</summary>
-        public IReadOnlyDictionary<string, int> ChartDataSourceStates { get; }
+        internal IReadOnlyDictionary<string, int> ChartDataSourceStates { get; }
 
         /// <summary>Gets DataFormat records grouped by whether formatting targets a series or point.</summary>
-        public IReadOnlyDictionary<string, int> ChartDataFormatTargets { get; }
+        internal IReadOnlyDictionary<string, int> ChartDataFormatTargets { get; }
 
         /// <summary>Gets DataFormat records grouped by raw series index.</summary>
-        public IReadOnlyDictionary<string, int> ChartDataFormatSeriesIndexes { get; }
+        internal IReadOnlyDictionary<string, int> ChartDataFormatSeriesIndexes { get; }
 
         /// <summary>Gets DataFormat records grouped by raw point index.</summary>
-        public IReadOnlyDictionary<string, int> ChartDataFormatPointIndexes { get; }
+        internal IReadOnlyDictionary<string, int> ChartDataFormatPointIndexes { get; }
 
         /// <summary>Gets DataFormat records grouped by raw chart-format order.</summary>
-        public IReadOnlyDictionary<string, int> ChartDataFormatOrders { get; }
+        internal IReadOnlyDictionary<string, int> ChartDataFormatOrders { get; }
 
         /// <summary>Gets DataFormat records grouped by target, point, series, and order.</summary>
-        public IReadOnlyDictionary<string, int> ChartDataFormatStates { get; }
+        internal IReadOnlyDictionary<string, int> ChartDataFormatStates { get; }
 
         /// <summary>Gets IFmtRecord records grouped by raw number format identifier.</summary>
-        public IReadOnlyDictionary<string, int> ChartNumberFormatIds { get; }
+        internal IReadOnlyDictionary<string, int> ChartNumberFormatIds { get; }
 
         /// <summary>Gets FontX records grouped by raw font index.</summary>
-        public IReadOnlyDictionary<string, int> ChartFontIndexes { get; }
+        internal IReadOnlyDictionary<string, int> ChartFontIndexes { get; }
 
         /// <summary>Gets Dat records grouped by decoded data-table display options.</summary>
-        public IReadOnlyDictionary<string, int> ChartDataTableOptions { get; }
+        internal IReadOnlyDictionary<string, int> ChartDataTableOptions { get; }
 
         /// <summary>Gets Dat records grouped by reserved-bit state.</summary>
-        public IReadOnlyDictionary<string, int> ChartDataTableReservedStates { get; }
+        internal IReadOnlyDictionary<string, int> ChartDataTableReservedStates { get; }
 
         /// <summary>Gets SerAuxErrBar records grouped by decoded error-bar direction.</summary>
-        public IReadOnlyDictionary<string, int> ChartErrorBarDirections { get; }
+        internal IReadOnlyDictionary<string, int> ChartErrorBarDirections { get; }
 
         /// <summary>Gets SerAuxErrBar records grouped by decoded error-bar value source.</summary>
-        public IReadOnlyDictionary<string, int> ChartErrorBarValueSources { get; }
+        internal IReadOnlyDictionary<string, int> ChartErrorBarValueSources { get; }
 
         /// <summary>Gets SerAuxErrBar records grouped by fixed value and custom value count.</summary>
-        public IReadOnlyDictionary<string, int> ChartErrorBarValues { get; }
+        internal IReadOnlyDictionary<string, int> ChartErrorBarValues { get; }
 
         /// <summary>Gets SerAuxErrBar records grouped by direction, value source, tee-top, and meaningful-field states.</summary>
-        public IReadOnlyDictionary<string, int> ChartErrorBarStates { get; }
+        internal IReadOnlyDictionary<string, int> ChartErrorBarStates { get; }
 
         /// <summary>Gets SerAuxErrBar records grouped by reserved-byte state.</summary>
-        public IReadOnlyDictionary<string, int> ChartErrorBarReservedStates { get; }
+        internal IReadOnlyDictionary<string, int> ChartErrorBarReservedStates { get; }
 
         /// <summary>Gets Bar records grouped by decoded overlap percentage.</summary>
-        public IReadOnlyDictionary<string, int> ChartBarOverlapPercentages { get; }
+        internal IReadOnlyDictionary<string, int> ChartBarOverlapPercentages { get; }
 
         /// <summary>Gets Bar records grouped by decoded category gap width percentage.</summary>
-        public IReadOnlyDictionary<string, int> ChartBarGapWidths { get; }
+        internal IReadOnlyDictionary<string, int> ChartBarGapWidths { get; }
 
         /// <summary>Gets Bar records grouped by decoded orientation, stacking, percentage, and shadow flags.</summary>
-        public IReadOnlyDictionary<string, int> ChartBarStates { get; }
+        internal IReadOnlyDictionary<string, int> ChartBarStates { get; }
 
         /// <summary>Gets Line records grouped by decoded stacking, percentage, and shadow flags.</summary>
-        public IReadOnlyDictionary<string, int> ChartLineStates { get; }
+        internal IReadOnlyDictionary<string, int> ChartLineStates { get; }
 
         /// <summary>Gets Line records grouped by reserved-bit state.</summary>
-        public IReadOnlyDictionary<string, int> ChartLineReservedStates { get; }
+        internal IReadOnlyDictionary<string, int> ChartLineReservedStates { get; }
 
         /// <summary>Gets Line records grouped by percentage-stacking validity.</summary>
-        public IReadOnlyDictionary<string, int> ChartLinePercentStackedStates { get; }
+        internal IReadOnlyDictionary<string, int> ChartLinePercentStackedStates { get; }
 
         /// <summary>Gets Area records grouped by decoded stacking, percentage, and shadow flags.</summary>
-        public IReadOnlyDictionary<string, int> ChartAreaStates { get; }
+        internal IReadOnlyDictionary<string, int> ChartAreaStates { get; }
 
         /// <summary>Gets Area records grouped by reserved-bit state.</summary>
-        public IReadOnlyDictionary<string, int> ChartAreaReservedStates { get; }
+        internal IReadOnlyDictionary<string, int> ChartAreaReservedStates { get; }
 
         /// <summary>Gets Area records grouped by percentage-stacking validity.</summary>
-        public IReadOnlyDictionary<string, int> ChartAreaPercentStackedStates { get; }
+        internal IReadOnlyDictionary<string, int> ChartAreaPercentStackedStates { get; }
 
         /// <summary>Gets BopPop records grouped by decoded chart group subtype.</summary>
-        public IReadOnlyDictionary<string, int> ChartBopPopSubtypes { get; }
+        internal IReadOnlyDictionary<string, int> ChartBopPopSubtypes { get; }
 
         /// <summary>Gets BopPop records grouped by decoded split mode.</summary>
-        public IReadOnlyDictionary<string, int> ChartBopPopSplitTypes { get; }
+        internal IReadOnlyDictionary<string, int> ChartBopPopSplitTypes { get; }
 
         /// <summary>Gets BopPop records grouped by decoded split position, percentage, size, gap, and value.</summary>
-        public IReadOnlyDictionary<string, int> ChartBopPopSplitValues { get; }
+        internal IReadOnlyDictionary<string, int> ChartBopPopSplitValues { get; }
 
         /// <summary>Gets BopPop records grouped by decoded subtype, split, automatic split, and shadow state.</summary>
-        public IReadOnlyDictionary<string, int> ChartBopPopStates { get; }
+        internal IReadOnlyDictionary<string, int> ChartBopPopStates { get; }
 
         /// <summary>Gets BopPop records grouped by reserved-bit state.</summary>
-        public IReadOnlyDictionary<string, int> ChartBopPopReservedStates { get; }
+        internal IReadOnlyDictionary<string, int> ChartBopPopReservedStates { get; }
 
         /// <summary>Gets BopPopCustom records grouped by declared data point count.</summary>
-        public IReadOnlyDictionary<string, int> ChartBopPopCustomDataPointCounts { get; }
+        internal IReadOnlyDictionary<string, int> ChartBopPopCustomDataPointCounts { get; }
 
         /// <summary>Gets BopPopCustom records grouped by secondary bar/pie data point count.</summary>
-        public IReadOnlyDictionary<string, int> ChartBopPopCustomSecondaryCounts { get; }
+        internal IReadOnlyDictionary<string, int> ChartBopPopCustomSecondaryCounts { get; }
 
         /// <summary>Gets BopPopCustom records grouped by secondary bar/pie data point indexes.</summary>
-        public IReadOnlyDictionary<string, int> ChartBopPopCustomSecondaryIndexes { get; }
+        internal IReadOnlyDictionary<string, int> ChartBopPopCustomSecondaryIndexes { get; }
 
         /// <summary>Gets BopPopCustom records grouped by bitmap completion state.</summary>
-        public IReadOnlyDictionary<string, int> ChartBopPopCustomCompletionStates { get; }
+        internal IReadOnlyDictionary<string, int> ChartBopPopCustomCompletionStates { get; }
 
         /// <summary>Gets BopPopCustom records grouped by decoded count, marker, and consistency state.</summary>
-        public IReadOnlyDictionary<string, int> ChartBopPopCustomStates { get; }
+        internal IReadOnlyDictionary<string, int> ChartBopPopCustomStates { get; }
 
         /// <summary>Gets Chart3d records grouped by rotation and elevation angles.</summary>
-        public IReadOnlyDictionary<string, int> ChartThreeDimensionalViewAngles { get; }
+        internal IReadOnlyDictionary<string, int> ChartThreeDimensionalViewAngles { get; }
 
         /// <summary>Gets Chart3d records grouped by field-of-view, height, depth, and gap values.</summary>
-        public IReadOnlyDictionary<string, int> ChartThreeDimensionalScaleValues { get; }
+        internal IReadOnlyDictionary<string, int> ChartThreeDimensionalScaleValues { get; }
 
         /// <summary>Gets Chart3d records grouped by decoded perspective, clustering, scaling, pie, and wall flags.</summary>
-        public IReadOnlyDictionary<string, int> ChartThreeDimensionalStates { get; }
+        internal IReadOnlyDictionary<string, int> ChartThreeDimensionalStates { get; }
 
         /// <summary>Gets Chart3d records grouped by reserved-bit state.</summary>
-        public IReadOnlyDictionary<string, int> ChartThreeDimensionalReservedStates { get; }
+        internal IReadOnlyDictionary<string, int> ChartThreeDimensionalReservedStates { get; }
 
         /// <summary>Gets Chart3DBarShape records grouped by decoded data-point base shape.</summary>
-        public IReadOnlyDictionary<string, int> ChartThreeDimensionalBarShapeRisers { get; }
+        internal IReadOnlyDictionary<string, int> ChartThreeDimensionalBarShapeRisers { get; }
 
         /// <summary>Gets Chart3DBarShape records grouped by decoded tapering mode.</summary>
-        public IReadOnlyDictionary<string, int> ChartThreeDimensionalBarShapeTapers { get; }
+        internal IReadOnlyDictionary<string, int> ChartThreeDimensionalBarShapeTapers { get; }
 
         /// <summary>Gets Chart3DBarShape records grouped by decoded base-shape and tapering mode.</summary>
-        public IReadOnlyDictionary<string, int> ChartThreeDimensionalBarShapeStates { get; }
+        internal IReadOnlyDictionary<string, int> ChartThreeDimensionalBarShapeStates { get; }
 
         /// <summary>Gets Scatter records grouped by decoded bubble-size ratio.</summary>
-        public IReadOnlyDictionary<string, int> ChartScatterBubbleSizeRatios { get; }
+        internal IReadOnlyDictionary<string, int> ChartScatterBubbleSizeRatios { get; }
 
         /// <summary>Gets Scatter records grouped by decoded bubble-size representation.</summary>
-        public IReadOnlyDictionary<string, int> ChartScatterBubbleSizeRepresentations { get; }
+        internal IReadOnlyDictionary<string, int> ChartScatterBubbleSizeRepresentations { get; }
 
         /// <summary>Gets Scatter records grouped by bubble-size ratio validity.</summary>
-        public IReadOnlyDictionary<string, int> ChartScatterBubbleSizeRatioStates { get; }
+        internal IReadOnlyDictionary<string, int> ChartScatterBubbleSizeRatioStates { get; }
 
         /// <summary>Gets Scatter records grouped by decoded bubble, negative-bubble, shadow, and size-representation state.</summary>
-        public IReadOnlyDictionary<string, int> ChartScatterStates { get; }
+        internal IReadOnlyDictionary<string, int> ChartScatterStates { get; }
 
         /// <summary>Gets Fbi or Fbi2 records grouped by decoded chart font scale basis.</summary>
-        public IReadOnlyDictionary<string, int> ChartFontBasisScaleBasis { get; }
+        internal IReadOnlyDictionary<string, int> ChartFontBasisScaleBasis { get; }
 
         /// <summary>Gets Fbi or Fbi2 records grouped by referenced chart font index.</summary>
-        public IReadOnlyDictionary<string, int> ChartFontBasisFontIndexes { get; }
+        internal IReadOnlyDictionary<string, int> ChartFontBasisFontIndexes { get; }
 
         /// <summary>Gets Fbi or Fbi2 records grouped by decoded basis, default font height, scale basis, and font index.</summary>
-        public IReadOnlyDictionary<string, int> ChartFontBasisStates { get; }
+        internal IReadOnlyDictionary<string, int> ChartFontBasisStates { get; }
 
         /// <summary>Gets CrtLayout12 records grouped by decoded layout modes.</summary>
-        public IReadOnlyDictionary<string, int> ChartLayout12ModePairs { get; }
+        internal IReadOnlyDictionary<string, int> ChartLayout12ModePairs { get; }
 
         /// <summary>Gets CrtLayout12 records grouped by decoded automatic legend layout type.</summary>
-        public IReadOnlyDictionary<string, int> ChartLayout12AutoLayoutTypes { get; }
+        internal IReadOnlyDictionary<string, int> ChartLayout12AutoLayoutTypes { get; }
 
         /// <summary>Gets CrtLayout12 records grouped by checksum value.</summary>
-        public IReadOnlyDictionary<string, int> ChartLayout12Checksums { get; }
+        internal IReadOnlyDictionary<string, int> ChartLayout12Checksums { get; }
 
         /// <summary>Gets CrtLayout12 records grouped by decoded layout rectangle values.</summary>
-        public IReadOnlyDictionary<string, int> ChartLayout12Rectangles { get; }
+        internal IReadOnlyDictionary<string, int> ChartLayout12Rectangles { get; }
 
         /// <summary>Gets CrtLayout12A records grouped by decoded plot-area target.</summary>
-        public IReadOnlyDictionary<string, int> ChartPlotAreaLayout12Targets { get; }
+        internal IReadOnlyDictionary<string, int> ChartPlotAreaLayout12Targets { get; }
 
         /// <summary>Gets CrtLayout12A records grouped by decoded layout modes.</summary>
-        public IReadOnlyDictionary<string, int> ChartPlotAreaLayout12ModePairs { get; }
+        internal IReadOnlyDictionary<string, int> ChartPlotAreaLayout12ModePairs { get; }
 
         /// <summary>Gets CrtLayout12A records grouped by checksum value.</summary>
-        public IReadOnlyDictionary<string, int> ChartPlotAreaLayout12Checksums { get; }
+        internal IReadOnlyDictionary<string, int> ChartPlotAreaLayout12Checksums { get; }
 
         /// <summary>Gets CrtLayout12A records grouped by SPRC plot-area bounds.</summary>
-        public IReadOnlyDictionary<string, int> ChartPlotAreaLayout12Bounds { get; }
+        internal IReadOnlyDictionary<string, int> ChartPlotAreaLayout12Bounds { get; }
 
         /// <summary>Gets CrtLayout12A records grouped by decoded layout rectangle values.</summary>
-        public IReadOnlyDictionary<string, int> ChartPlotAreaLayout12Rectangles { get; }
+        internal IReadOnlyDictionary<string, int> ChartPlotAreaLayout12Rectangles { get; }
 
         /// <summary>Gets ChartFrtInfo records grouped by originator and writer application version.</summary>
-        public IReadOnlyDictionary<string, int> ChartFutureRecordInfoVersions { get; }
+        internal IReadOnlyDictionary<string, int> ChartFutureRecordInfoVersions { get; }
 
         /// <summary>Gets ChartFrtInfo records grouped by decoded future-record range count.</summary>
-        public IReadOnlyDictionary<string, int> ChartFutureRecordInfoRangeCounts { get; }
+        internal IReadOnlyDictionary<string, int> ChartFutureRecordInfoRangeCounts { get; }
 
         /// <summary>Gets ChartFrtInfo records grouped by declared future-record id range.</summary>
-        public IReadOnlyDictionary<string, int> ChartFutureRecordInfoRanges { get; }
+        internal IReadOnlyDictionary<string, int> ChartFutureRecordInfoRanges { get; }
 
         /// <summary>Gets StartBlock and EndBlock records grouped by block direction.</summary>
-        public IReadOnlyDictionary<string, int> ChartFutureBlockDirections { get; }
+        internal IReadOnlyDictionary<string, int> ChartFutureBlockDirections { get; }
 
         /// <summary>Gets StartBlock and EndBlock records grouped by decoded object kind.</summary>
-        public IReadOnlyDictionary<string, int> ChartFutureBlockObjectKinds { get; }
+        internal IReadOnlyDictionary<string, int> ChartFutureBlockObjectKinds { get; }
 
         /// <summary>Gets StartBlock and EndBlock records grouped by compact scope key.</summary>
-        public IReadOnlyDictionary<string, int> ChartFutureBlockScopes { get; }
+        internal IReadOnlyDictionary<string, int> ChartFutureBlockScopes { get; }
 
         /// <summary>Gets Units records grouped by reserved field value.</summary>
-        public IReadOnlyDictionary<string, int> ChartUnitsReservedValues { get; }
+        internal IReadOnlyDictionary<string, int> ChartUnitsReservedValues { get; }
 
         /// <summary>Gets Units records grouped by whether the reserved field is zero.</summary>
-        public IReadOnlyDictionary<string, int> ChartUnitsReservedStates { get; }
+        internal IReadOnlyDictionary<string, int> ChartUnitsReservedStates { get; }
 
         /// <summary>Gets CrtMlFrt records grouped by declared XmlTkChain byte count.</summary>
-        public IReadOnlyDictionary<string, int> ChartXmlTokenChainDeclaredByteCounts { get; }
+        internal IReadOnlyDictionary<string, int> ChartXmlTokenChainDeclaredByteCounts { get; }
 
         /// <summary>Gets CrtMlFrt records grouped by XmlTkChain bytes present in the first record segment.</summary>
-        public IReadOnlyDictionary<string, int> ChartXmlTokenChainFirstSegmentByteCounts { get; }
+        internal IReadOnlyDictionary<string, int> ChartXmlTokenChainFirstSegmentByteCounts { get; }
 
         /// <summary>Gets CrtMlFrt records grouped by whether the declared XmlTkChain is complete in the first record segment.</summary>
-        public IReadOnlyDictionary<string, int> ChartXmlTokenChainCompletionStates { get; }
+        internal IReadOnlyDictionary<string, int> ChartXmlTokenChainCompletionStates { get; }
 
         /// <summary>Gets CrtMlFrt records grouped by ignored trailing field state.</summary>
-        public IReadOnlyDictionary<string, int> ChartXmlTokenChainTrailingStates { get; }
+        internal IReadOnlyDictionary<string, int> ChartXmlTokenChainTrailingStates { get; }
 
         /// <summary>Gets ShtProps records grouped by decoded empty-cell plotting mode.</summary>
-        public IReadOnlyDictionary<string, int> ChartSheetPropertyEmptyCellModes { get; }
+        internal IReadOnlyDictionary<string, int> ChartSheetPropertyEmptyCellModes { get; }
 
         /// <summary>Gets ShtProps records grouped by decoded chart property flags.</summary>
-        public IReadOnlyDictionary<string, int> ChartSheetPropertyStates { get; }
+        internal IReadOnlyDictionary<string, int> ChartSheetPropertyStates { get; }
 
         /// <summary>Gets LineFormat records grouped by decoded line style.</summary>
-        public IReadOnlyDictionary<string, int> ChartLineFormatStyles { get; }
+        internal IReadOnlyDictionary<string, int> ChartLineFormatStyles { get; }
 
         /// <summary>Gets LineFormat records grouped by decoded line weight.</summary>
-        public IReadOnlyDictionary<string, int> ChartLineFormatWeights { get; }
+        internal IReadOnlyDictionary<string, int> ChartLineFormatWeights { get; }
 
         /// <summary>Gets LineFormat records grouped by decoded RGB color.</summary>
-        public IReadOnlyDictionary<string, int> ChartLineFormatColors { get; }
+        internal IReadOnlyDictionary<string, int> ChartLineFormatColors { get; }
 
         /// <summary>Gets LineFormat records grouped by chart color index.</summary>
-        public IReadOnlyDictionary<string, int> ChartLineFormatColorIndexes { get; }
+        internal IReadOnlyDictionary<string, int> ChartLineFormatColorIndexes { get; }
 
         /// <summary>Gets LineFormat records grouped by decoded flag state.</summary>
-        public IReadOnlyDictionary<string, int> ChartLineFormatStates { get; }
+        internal IReadOnlyDictionary<string, int> ChartLineFormatStates { get; }
 
         /// <summary>Gets AreaFormat records grouped by decoded fill pattern.</summary>
-        public IReadOnlyDictionary<string, int> ChartAreaFormatPatterns { get; }
+        internal IReadOnlyDictionary<string, int> ChartAreaFormatPatterns { get; }
 
         /// <summary>Gets AreaFormat records grouped by decoded foreground and background RGB color.</summary>
-        public IReadOnlyDictionary<string, int> ChartAreaFormatColors { get; }
+        internal IReadOnlyDictionary<string, int> ChartAreaFormatColors { get; }
 
         /// <summary>Gets AreaFormat records grouped by chart foreground and background color index.</summary>
-        public IReadOnlyDictionary<string, int> ChartAreaFormatColorIndexes { get; }
+        internal IReadOnlyDictionary<string, int> ChartAreaFormatColorIndexes { get; }
 
         /// <summary>Gets AreaFormat records grouped by decoded flag state.</summary>
-        public IReadOnlyDictionary<string, int> ChartAreaFormatStates { get; }
+        internal IReadOnlyDictionary<string, int> ChartAreaFormatStates { get; }
 
         /// <summary>Gets MarkerFormat records grouped by decoded marker type.</summary>
-        public IReadOnlyDictionary<string, int> ChartMarkerFormatTypes { get; }
+        internal IReadOnlyDictionary<string, int> ChartMarkerFormatTypes { get; }
 
         /// <summary>Gets MarkerFormat records grouped by marker size in twips.</summary>
-        public IReadOnlyDictionary<string, int> ChartMarkerFormatSizes { get; }
+        internal IReadOnlyDictionary<string, int> ChartMarkerFormatSizes { get; }
 
         /// <summary>Gets MarkerFormat records grouped by decoded foreground and background RGB color.</summary>
-        public IReadOnlyDictionary<string, int> ChartMarkerFormatColors { get; }
+        internal IReadOnlyDictionary<string, int> ChartMarkerFormatColors { get; }
 
         /// <summary>Gets MarkerFormat records grouped by chart foreground and background color index.</summary>
-        public IReadOnlyDictionary<string, int> ChartMarkerFormatColorIndexes { get; }
+        internal IReadOnlyDictionary<string, int> ChartMarkerFormatColorIndexes { get; }
 
         /// <summary>Gets MarkerFormat records grouped by decoded flag state.</summary>
-        public IReadOnlyDictionary<string, int> ChartMarkerFormatStates { get; }
+        internal IReadOnlyDictionary<string, int> ChartMarkerFormatStates { get; }
 
         /// <summary>Gets PieFormat records grouped by decoded explosion distance percentage.</summary>
-        public IReadOnlyDictionary<string, int> ChartPieFormatExplosions { get; }
+        internal IReadOnlyDictionary<string, int> ChartPieFormatExplosions { get; }
 
         /// <summary>Gets SerFmt records grouped by enabled formatting flag.</summary>
-        public IReadOnlyDictionary<string, int> ChartSeriesFormatFlags { get; }
+        internal IReadOnlyDictionary<string, int> ChartSeriesFormatFlags { get; }
 
         /// <summary>Gets SerFmt records grouped by full decoded flag state.</summary>
-        public IReadOnlyDictionary<string, int> ChartSeriesFormatStates { get; }
+        internal IReadOnlyDictionary<string, int> ChartSeriesFormatStates { get; }
 
         /// <summary>Gets SerFmt records grouped by reserved bit value.</summary>
-        public IReadOnlyDictionary<string, int> ChartSeriesFormatReservedValues { get; }
+        internal IReadOnlyDictionary<string, int> ChartSeriesFormatReservedValues { get; }
 
         /// <summary>Gets SerFmt records grouped by whether reserved bits are zero.</summary>
-        public IReadOnlyDictionary<string, int> ChartSeriesFormatReservedStates { get; }
+        internal IReadOnlyDictionary<string, int> ChartSeriesFormatReservedStates { get; }
 
         /// <summary>Gets ClrtClient records grouped by declared color count.</summary>
-        public IReadOnlyDictionary<string, int> ChartClientColorPaletteDeclaredCounts { get; }
+        internal IReadOnlyDictionary<string, int> ChartClientColorPaletteDeclaredCounts { get; }
 
         /// <summary>Gets ClrtClient records grouped by decoded color count.</summary>
-        public IReadOnlyDictionary<string, int> ChartClientColorPaletteDecodedCounts { get; }
+        internal IReadOnlyDictionary<string, int> ChartClientColorPaletteDecodedCounts { get; }
 
         /// <summary>Gets ClrtClient records grouped by whether all declared colors were present.</summary>
-        public IReadOnlyDictionary<string, int> ChartClientColorPaletteCompletenessStates { get; }
+        internal IReadOnlyDictionary<string, int> ChartClientColorPaletteCompletenessStates { get; }
 
         /// <summary>Gets ClrtClient records grouped by whether the expected three colors are present.</summary>
-        public IReadOnlyDictionary<string, int> ChartClientColorPaletteExpectedCountStates { get; }
+        internal IReadOnlyDictionary<string, int> ChartClientColorPaletteExpectedCountStates { get; }
 
         /// <summary>Gets ClrtClient records grouped by decoded role-specific color.</summary>
-        public IReadOnlyDictionary<string, int> ChartClientColorPaletteColors { get; }
+        internal IReadOnlyDictionary<string, int> ChartClientColorPaletteColors { get; }
 
         /// <summary>Gets GelFrame OfficeArt records grouped by record type.</summary>
-        public IReadOnlyDictionary<string, int> ChartGelFrameOfficeArtRecordsByType { get; }
+        internal IReadOnlyDictionary<string, int> ChartGelFrameOfficeArtRecordsByType { get; }
 
         /// <summary>Gets GelFrame OfficeArt records grouped by container or leaf state.</summary>
-        public IReadOnlyDictionary<string, int> ChartGelFrameOfficeArtRecordsByContainerState { get; }
+        internal IReadOnlyDictionary<string, int> ChartGelFrameOfficeArtRecordsByContainerState { get; }
 
         /// <summary>Gets GelFrame records grouped by OfficeArtFOPT property count.</summary>
-        public IReadOnlyDictionary<string, int> ChartGelFrameShapePropertyCounts { get; }
+        internal IReadOnlyDictionary<string, int> ChartGelFrameShapePropertyCounts { get; }
 
         /// <summary>Gets GelFrame OfficeArtFOPT properties grouped by property name.</summary>
-        public IReadOnlyDictionary<string, int> ChartGelFrameShapePropertiesByName { get; }
+        internal IReadOnlyDictionary<string, int> ChartGelFrameShapePropertiesByName { get; }
 
         /// <summary>Gets GelFrame OfficeArtFOPT properties grouped by property family.</summary>
-        public IReadOnlyDictionary<string, int> ChartGelFrameShapePropertiesByGroup { get; }
+        internal IReadOnlyDictionary<string, int> ChartGelFrameShapePropertiesByGroup { get; }
 
         /// <summary>Gets GelFrame OfficeArtFOPT properties grouped by complex and BLIP flag state.</summary>
-        public IReadOnlyDictionary<string, int> ChartGelFrameShapePropertiesByFlagState { get; }
+        internal IReadOnlyDictionary<string, int> ChartGelFrameShapePropertiesByFlagState { get; }
 
         /// <summary>Gets GelFrame OfficeArtFOPT properties grouped by raw property value.</summary>
-        public IReadOnlyDictionary<string, int> ChartGelFrameShapePropertiesByValue { get; }
+        internal IReadOnlyDictionary<string, int> ChartGelFrameShapePropertiesByValue { get; }
 
         /// <summary>Gets AttachedLabel records grouped by decoded displayed data-label element.</summary>
-        public IReadOnlyDictionary<string, int> ChartAttachedLabelFlags { get; }
+        internal IReadOnlyDictionary<string, int> ChartAttachedLabelFlags { get; }
 
         /// <summary>Gets AttachedLabel records grouped by full decoded flag state.</summary>
-        public IReadOnlyDictionary<string, int> ChartAttachedLabelStates { get; }
+        internal IReadOnlyDictionary<string, int> ChartAttachedLabelStates { get; }
 
         /// <summary>Gets DefaultText records grouped by decoded target scope.</summary>
-        public IReadOnlyDictionary<string, int> ChartDefaultTextTargets { get; }
+        internal IReadOnlyDictionary<string, int> ChartDefaultTextTargets { get; }
 
         /// <summary>Gets Text records grouped by decoded horizontal alignment.</summary>
-        public IReadOnlyDictionary<string, int> ChartTextHorizontalAlignments { get; }
+        internal IReadOnlyDictionary<string, int> ChartTextHorizontalAlignments { get; }
 
         /// <summary>Gets Text records grouped by decoded vertical alignment.</summary>
-        public IReadOnlyDictionary<string, int> ChartTextVerticalAlignments { get; }
+        internal IReadOnlyDictionary<string, int> ChartTextVerticalAlignments { get; }
 
         /// <summary>Gets Text records grouped by decoded data-label position.</summary>
-        public IReadOnlyDictionary<string, int> ChartTextDataLabelPositions { get; }
+        internal IReadOnlyDictionary<string, int> ChartTextDataLabelPositions { get; }
 
         /// <summary>Gets Text records grouped by decoded flag name.</summary>
-        public IReadOnlyDictionary<string, int> ChartTextFlags { get; }
+        internal IReadOnlyDictionary<string, int> ChartTextFlags { get; }
 
         /// <summary>Gets ObjectLink records grouped by decoded linked chart object.</summary>
-        public IReadOnlyDictionary<string, int> ChartObjectLinkTargets { get; }
+        internal IReadOnlyDictionary<string, int> ChartObjectLinkTargets { get; }
 
         /// <summary>Gets Legend records grouped by decoded layout.</summary>
-        public IReadOnlyDictionary<string, int> ChartLegendLayouts { get; }
+        internal IReadOnlyDictionary<string, int> ChartLegendLayouts { get; }
 
         /// <summary>Gets Legend records grouped by entry-spacing validity.</summary>
-        public IReadOnlyDictionary<string, int> ChartLegendSpacingStates { get; }
+        internal IReadOnlyDictionary<string, int> ChartLegendSpacingStates { get; }
 
         /// <summary>Gets Legend records grouped by reserved-bit validity.</summary>
-        public IReadOnlyDictionary<string, int> ChartLegendReservedStates { get; }
+        internal IReadOnlyDictionary<string, int> ChartLegendReservedStates { get; }
 
         /// <summary>Gets Legend records grouped by automatic-position consistency.</summary>
-        public IReadOnlyDictionary<string, int> ChartLegendAutoPositionStates { get; }
+        internal IReadOnlyDictionary<string, int> ChartLegendAutoPositionStates { get; }
 
         /// <summary>Gets Legend records grouped by data-table layout consistency.</summary>
-        public IReadOnlyDictionary<string, int> ChartLegendDataTableStates { get; }
+        internal IReadOnlyDictionary<string, int> ChartLegendDataTableStates { get; }
 
         /// <summary>Gets Tick records grouped by decoded major tick-mark location.</summary>
-        public IReadOnlyDictionary<string, int> ChartTickMajorLocations { get; }
+        internal IReadOnlyDictionary<string, int> ChartTickMajorLocations { get; }
 
         /// <summary>Gets Tick records grouped by decoded axis-label location.</summary>
-        public IReadOnlyDictionary<string, int> ChartTickLabelLocations { get; }
+        internal IReadOnlyDictionary<string, int> ChartTickLabelLocations { get; }
 
         /// <summary>Gets ValueRange records grouped by decoded value-axis scale fields.</summary>
-        public IReadOnlyDictionary<string, int> ChartValueRangeScales { get; }
+        internal IReadOnlyDictionary<string, int> ChartValueRangeScales { get; }
 
         /// <summary>Gets ValueRange records grouped by decoded automatic scale and axis-direction flags.</summary>
-        public IReadOnlyDictionary<string, int> ChartValueRangeStates { get; }
+        internal IReadOnlyDictionary<string, int> ChartValueRangeStates { get; }
 
         /// <summary>Gets Pos records grouped by decoded upper-left and lower-right position modes.</summary>
-        public IReadOnlyDictionary<string, int> ChartPositionModePairs { get; }
+        internal IReadOnlyDictionary<string, int> ChartPositionModePairs { get; }
 
         /// <summary>Gets Pos records grouped by decoded coordinate and size fields.</summary>
-        public IReadOnlyDictionary<string, int> ChartPositionRectangles { get; }
+        internal IReadOnlyDictionary<string, int> ChartPositionRectangles { get; }
 
         /// <summary>Gets Pos records grouped by semantic object type inferred from position modes.</summary>
-        public IReadOnlyDictionary<string, int> ChartPositionSemanticTypes { get; }
+        internal IReadOnlyDictionary<string, int> ChartPositionSemanticTypes { get; }
 
         /// <summary>Gets Pos records grouped by decoded coordinate meaning.</summary>
-        public IReadOnlyDictionary<string, int> ChartPositionCoordinateMeanings { get; }
+        internal IReadOnlyDictionary<string, int> ChartPositionCoordinateMeanings { get; }
 
         /// <summary>Gets Pos records grouped by ignored coordinate state.</summary>
-        public IReadOnlyDictionary<string, int> ChartPositionIgnoredCoordinateStates { get; }
+        internal IReadOnlyDictionary<string, int> ChartPositionIgnoredCoordinateStates { get; }
 
         /// <summary>Gets Pos records grouped by whether the position mode pair is a known semantic combination.</summary>
-        public IReadOnlyDictionary<string, int> ChartPositionKnownSemanticStates { get; }
+        internal IReadOnlyDictionary<string, int> ChartPositionKnownSemanticStates { get; }
 
         /// <summary>Gets Frame records grouped by decoded frame type.</summary>
-        public IReadOnlyDictionary<string, int> ChartFrameTypes { get; }
+        internal IReadOnlyDictionary<string, int> ChartFrameTypes { get; }
 
         /// <summary>Gets Frame records grouped by automatic size and position flags.</summary>
-        public IReadOnlyDictionary<string, int> ChartFrameAutoStates { get; }
+        internal IReadOnlyDictionary<string, int> ChartFrameAutoStates { get; }
 
         /// <summary>Gets PlotGrowth records grouped by decoded horizontal and vertical growth factors.</summary>
-        public IReadOnlyDictionary<string, int> ChartPlotGrowthFactors { get; }
+        internal IReadOnlyDictionary<string, int> ChartPlotGrowthFactors { get; }
 
         /// <summary>Gets preserve-only chart BIFF records grouped by workbook or sheet location.</summary>
-        public IReadOnlyDictionary<string, int> ChartRecordsByLocation { get; }
+        internal IReadOnlyDictionary<string, int> ChartRecordsByLocation { get; }
 
         /// <summary>Gets preserve-only drawing and object BIFF records grouped by shallow category.</summary>
-        public IReadOnlyDictionary<LegacyXlsDrawingRecordKind, int> DrawingRecordsByKind { get; }
+        internal IReadOnlyDictionary<LegacyXlsDrawingRecordKind, int> DrawingRecordsByKind { get; }
 
         /// <summary>Gets preserve-only drawing and object BIFF records grouped by record name.</summary>
-        public IReadOnlyDictionary<string, int> DrawingRecordsByName { get; }
+        internal IReadOnlyDictionary<string, int> DrawingRecordsByName { get; }
 
         /// <summary>Gets OBJ records grouped by decoded common-object type identifier.</summary>
-        public IReadOnlyDictionary<string, int> DrawingRecordsByObjectType { get; }
+        internal IReadOnlyDictionary<string, int> DrawingRecordsByObjectType { get; }
 
         /// <summary>Gets OBJ records grouped by decoded common-object type name.</summary>
-        public IReadOnlyDictionary<string, int> DrawingRecordsByObjectTypeName { get; }
+        internal IReadOnlyDictionary<string, int> DrawingRecordsByObjectTypeName { get; }
 
         /// <summary>Gets OBJ records grouped by decoded common-object flag bitfield.</summary>
-        public IReadOnlyDictionary<string, int> DrawingRecordsByObjectFlags { get; }
+        internal IReadOnlyDictionary<string, int> DrawingRecordsByObjectFlags { get; }
 
         /// <summary>Gets OBJ records grouped by decoded common-object flag name.</summary>
-        public IReadOnlyDictionary<string, int> DrawingRecordsByObjectFlagName { get; }
+        internal IReadOnlyDictionary<string, int> DrawingRecordsByObjectFlagName { get; }
 
         /// <summary>Gets OBJ subrecords grouped by raw subrecord type.</summary>
-        public IReadOnlyDictionary<string, int> DrawingObjectSubRecordsByType { get; }
+        internal IReadOnlyDictionary<string, int> DrawingObjectSubRecordsByType { get; }
 
         /// <summary>Gets OBJ subrecords grouped by decoded subrecord name.</summary>
-        public IReadOnlyDictionary<string, int> DrawingObjectSubRecordsByName { get; }
+        internal IReadOnlyDictionary<string, int> DrawingObjectSubRecordsByName { get; }
 
         /// <summary>Gets OBJ subrecords grouped by declared payload length.</summary>
-        public IReadOnlyDictionary<string, int> DrawingObjectSubRecordsByDeclaredLength { get; }
+        internal IReadOnlyDictionary<string, int> DrawingObjectSubRecordsByDeclaredLength { get; }
 
         /// <summary>Gets OBJ subrecords grouped by whether the declared payload was fully available.</summary>
-        public IReadOnlyDictionary<string, int> DrawingObjectSubRecordsByCompleteness { get; }
+        internal IReadOnlyDictionary<string, int> DrawingObjectSubRecordsByCompleteness { get; }
 
         /// <summary>Gets drawing future-record streams grouped by wrapped BIFF record type.</summary>
-        public IReadOnlyDictionary<string, int> DrawingFutureRecordWrappedTypes { get; }
+        internal IReadOnlyDictionary<string, int> DrawingFutureRecordWrappedTypes { get; }
 
         /// <summary>Gets drawing future-record streams grouped by raw future-record flags.</summary>
-        public IReadOnlyDictionary<string, int> DrawingFutureRecordFlags { get; }
+        internal IReadOnlyDictionary<string, int> DrawingFutureRecordFlags { get; }
 
         /// <summary>Gets drawing future-record streams grouped by whether a cell range reference is present.</summary>
-        public IReadOnlyDictionary<string, int> DrawingFutureRecordReferenceStates { get; }
+        internal IReadOnlyDictionary<string, int> DrawingFutureRecordReferenceStates { get; }
 
         /// <summary>Gets drawing future-record streams grouped by decoded cell range reference.</summary>
-        public IReadOnlyDictionary<string, int> DrawingFutureRecordRanges { get; }
+        internal IReadOnlyDictionary<string, int> DrawingFutureRecordRanges { get; }
 
         /// <summary>Gets drawing future-record streams grouped by remaining stream byte count.</summary>
-        public IReadOnlyDictionary<string, int> DrawingFutureRecordStreamByteCounts { get; }
+        internal IReadOnlyDictionary<string, int> DrawingFutureRecordStreamByteCounts { get; }
 
         /// <summary>Gets HFPicture records grouped by decoded header state.</summary>
-        public IReadOnlyDictionary<string, int> DrawingHeaderFooterPictureHeaderStates { get; }
+        internal IReadOnlyDictionary<string, int> DrawingHeaderFooterPictureHeaderStates { get; }
 
         /// <summary>Gets HFPicture records grouped by declared OfficeArt drawing kind.</summary>
-        public IReadOnlyDictionary<string, int> DrawingHeaderFooterPictureDrawingKinds { get; }
+        internal IReadOnlyDictionary<string, int> DrawingHeaderFooterPictureDrawingKinds { get; }
 
         /// <summary>Gets HFPicture records grouped by continuation state.</summary>
-        public IReadOnlyDictionary<string, int> DrawingHeaderFooterPictureContinuationStates { get; }
+        internal IReadOnlyDictionary<string, int> DrawingHeaderFooterPictureContinuationStates { get; }
 
         /// <summary>Gets HFPicture records grouped by future-record flags.</summary>
-        public IReadOnlyDictionary<string, int> DrawingHeaderFooterPictureFutureRecordFlags { get; }
+        internal IReadOnlyDictionary<string, int> DrawingHeaderFooterPictureFutureRecordFlags { get; }
 
         /// <summary>Gets HFPicture records grouped by embedded OfficeArt byte count.</summary>
-        public IReadOnlyDictionary<string, int> DrawingHeaderFooterPictureDrawingByteCounts { get; }
+        internal IReadOnlyDictionary<string, int> DrawingHeaderFooterPictureDrawingByteCounts { get; }
 
         /// <summary>Gets TxO text-object records grouped by decoded horizontal and vertical alignment.</summary>
-        public IReadOnlyDictionary<string, int> DrawingTextObjectAlignments { get; }
+        internal IReadOnlyDictionary<string, int> DrawingTextObjectAlignments { get; }
 
         /// <summary>Gets TxO text-object records grouped by decoded rotation.</summary>
-        public IReadOnlyDictionary<string, int> DrawingTextObjectRotations { get; }
+        internal IReadOnlyDictionary<string, int> DrawingTextObjectRotations { get; }
 
         /// <summary>Gets TxO text-object records grouped by declared text character count.</summary>
-        public IReadOnlyDictionary<string, int> DrawingTextObjectTextLengths { get; }
+        internal IReadOnlyDictionary<string, int> DrawingTextObjectTextLengths { get; }
 
         /// <summary>Gets TxO text-object records grouped by declared formatting-run byte count.</summary>
-        public IReadOnlyDictionary<string, int> DrawingTextObjectFormattingRunByteCounts { get; }
+        internal IReadOnlyDictionary<string, int> DrawingTextObjectFormattingRunByteCounts { get; }
 
         /// <summary>Gets TxO text-object records grouped by optional formula byte count.</summary>
-        public IReadOnlyDictionary<string, int> DrawingTextObjectFormulaByteCounts { get; }
+        internal IReadOnlyDictionary<string, int> DrawingTextObjectFormulaByteCounts { get; }
 
         /// <summary>Gets TxO text-object records grouped by decoded flag state.</summary>
-        public IReadOnlyDictionary<string, int> DrawingTextObjectFlags { get; }
+        internal IReadOnlyDictionary<string, int> DrawingTextObjectFlags { get; }
 
         /// <summary>Gets MsoDrawing records grouped by decoded top-level Escher record type.</summary>
-        public IReadOnlyDictionary<string, int> DrawingRecordsByEscherRecordType { get; }
+        internal IReadOnlyDictionary<string, int> DrawingRecordsByEscherRecordType { get; }
 
         /// <summary>Gets MsoDrawing records grouped by decoded top-level Escher record type name.</summary>
-        public IReadOnlyDictionary<string, int> DrawingRecordsByEscherRecordTypeName { get; }
+        internal IReadOnlyDictionary<string, int> DrawingRecordsByEscherRecordTypeName { get; }
 
         /// <summary>Gets nested OfficeArt records grouped by raw record type.</summary>
-        public IReadOnlyDictionary<string, int> DrawingOfficeArtRecordsByType { get; }
+        internal IReadOnlyDictionary<string, int> DrawingOfficeArtRecordsByType { get; }
 
         /// <summary>Gets nested OfficeArt records grouped by decoded record type name.</summary>
-        public IReadOnlyDictionary<string, int> DrawingOfficeArtRecordsByTypeName { get; }
+        internal IReadOnlyDictionary<string, int> DrawingOfficeArtRecordsByTypeName { get; }
 
         /// <summary>Gets nested OfficeArt records grouped by traversal depth.</summary>
-        public IReadOnlyDictionary<string, int> DrawingOfficeArtRecordsByDepth { get; }
+        internal IReadOnlyDictionary<string, int> DrawingOfficeArtRecordsByDepth { get; }
 
         /// <summary>Gets nested OfficeArt records grouped by container or leaf state.</summary>
-        public IReadOnlyDictionary<string, int> DrawingOfficeArtRecordsByContainerState { get; }
+        internal IReadOnlyDictionary<string, int> DrawingOfficeArtRecordsByContainerState { get; }
 
         /// <summary>Gets nested OfficeArt records grouped by declared payload length.</summary>
-        public IReadOnlyDictionary<string, int> DrawingOfficeArtRecordsByPayloadLength { get; }
+        internal IReadOnlyDictionary<string, int> DrawingOfficeArtRecordsByPayloadLength { get; }
 
         /// <summary>Gets OfficeArtFDGGBlock records grouped by maximum shape identifier.</summary>
-        public IReadOnlyDictionary<string, int> DrawingGroupBlocksByMaxShapeId { get; }
+        internal IReadOnlyDictionary<string, int> DrawingGroupBlocksByMaxShapeId { get; }
 
         /// <summary>Gets OfficeArtFDGGBlock records grouped by declared identifier-cluster count.</summary>
-        public IReadOnlyDictionary<string, int> DrawingGroupBlocksByDeclaredIdentifierClusterCount { get; }
+        internal IReadOnlyDictionary<string, int> DrawingGroupBlocksByDeclaredIdentifierClusterCount { get; }
 
         /// <summary>Gets OfficeArtFDGGBlock records grouped by decoded identifier-cluster count.</summary>
-        public IReadOnlyDictionary<string, int> DrawingGroupBlocksByDecodedIdentifierClusterCount { get; }
+        internal IReadOnlyDictionary<string, int> DrawingGroupBlocksByDecodedIdentifierClusterCount { get; }
 
         /// <summary>Gets OfficeArtFDGGBlock records grouped by saved shape count.</summary>
-        public IReadOnlyDictionary<string, int> DrawingGroupBlocksBySavedShapeCount { get; }
+        internal IReadOnlyDictionary<string, int> DrawingGroupBlocksBySavedShapeCount { get; }
 
         /// <summary>Gets OfficeArtFDGGBlock records grouped by saved drawing count.</summary>
-        public IReadOnlyDictionary<string, int> DrawingGroupBlocksBySavedDrawingCount { get; }
+        internal IReadOnlyDictionary<string, int> DrawingGroupBlocksBySavedDrawingCount { get; }
 
         /// <summary>Gets OfficeArtIDCL clusters grouped by drawing identifier.</summary>
-        public IReadOnlyDictionary<string, int> DrawingIdentifierClustersByDrawingId { get; }
+        internal IReadOnlyDictionary<string, int> DrawingIdentifierClustersByDrawingId { get; }
 
         /// <summary>Gets OfficeArtIDCL clusters grouped by current shape identifier.</summary>
-        public IReadOnlyDictionary<string, int> DrawingIdentifierClustersByCurrentShapeId { get; }
+        internal IReadOnlyDictionary<string, int> DrawingIdentifierClustersByCurrentShapeId { get; }
 
         /// <summary>Gets OfficeArtFDG records grouped by drawing identifier.</summary>
-        public IReadOnlyDictionary<string, int> DrawingGroupInfosByDrawingId { get; }
+        internal IReadOnlyDictionary<string, int> DrawingGroupInfosByDrawingId { get; }
 
         /// <summary>Gets OfficeArtFDG records grouped by drawing shape count.</summary>
-        public IReadOnlyDictionary<string, int> DrawingGroupInfosByShapeCount { get; }
+        internal IReadOnlyDictionary<string, int> DrawingGroupInfosByShapeCount { get; }
 
         /// <summary>Gets OfficeArtFDG records grouped by last shape identifier.</summary>
-        public IReadOnlyDictionary<string, int> DrawingGroupInfosByLastShapeId { get; }
+        internal IReadOnlyDictionary<string, int> DrawingGroupInfosByLastShapeId { get; }
 
         /// <summary>Gets OfficeArtFOPT shape properties grouped by property identifier.</summary>
-        public IReadOnlyDictionary<string, int> DrawingShapePropertiesById { get; }
+        internal IReadOnlyDictionary<string, int> DrawingShapePropertiesById { get; }
 
         /// <summary>Gets OfficeArtFOPT shape properties grouped by decoded property name.</summary>
-        public IReadOnlyDictionary<string, int> DrawingShapePropertiesByName { get; }
+        internal IReadOnlyDictionary<string, int> DrawingShapePropertiesByName { get; }
 
         /// <summary>Gets OfficeArtFOPT shape properties grouped by decoded property family.</summary>
-        public IReadOnlyDictionary<string, int> DrawingShapePropertiesByGroup { get; }
+        internal IReadOnlyDictionary<string, int> DrawingShapePropertiesByGroup { get; }
 
         /// <summary>Gets OfficeArtFOPT shape properties grouped by complex and BLIP flag state.</summary>
-        public IReadOnlyDictionary<string, int> DrawingShapePropertiesByFlagState { get; }
+        internal IReadOnlyDictionary<string, int> DrawingShapePropertiesByFlagState { get; }
 
         /// <summary>Gets simple OfficeArtFOPT shape properties grouped by raw value.</summary>
-        public IReadOnlyDictionary<string, int> DrawingShapePropertiesByValue { get; }
+        internal IReadOnlyDictionary<string, int> DrawingShapePropertiesByValue { get; }
 
         /// <summary>Gets complex OfficeArtFOPT shape properties grouped by declared complex byte length.</summary>
-        public IReadOnlyDictionary<string, int> DrawingShapeComplexPropertiesByDeclaredLength { get; }
+        internal IReadOnlyDictionary<string, int> DrawingShapeComplexPropertiesByDeclaredLength { get; }
 
         /// <summary>Gets complex OfficeArtFOPT shape properties grouped by available complex byte length.</summary>
-        public IReadOnlyDictionary<string, int> DrawingShapeComplexPropertiesByAvailableLength { get; }
+        internal IReadOnlyDictionary<string, int> DrawingShapeComplexPropertiesByAvailableLength { get; }
 
         /// <summary>Gets complex OfficeArtFOPT shape properties grouped by decoded text payload.</summary>
-        public IReadOnlyDictionary<string, int> DrawingShapeComplexPropertiesByText { get; }
+        internal IReadOnlyDictionary<string, int> DrawingShapeComplexPropertiesByText { get; }
 
         /// <summary>Gets OfficeArt FBSE image-store entries grouped by decoded BLIP type.</summary>
-        public IReadOnlyDictionary<string, int> DrawingBlipStoreEntriesByType { get; }
+        internal IReadOnlyDictionary<string, int> DrawingBlipStoreEntriesByType { get; }
 
         /// <summary>Gets OfficeArt FBSE image-store entries grouped by workbook or sheet location.</summary>
-        public IReadOnlyDictionary<string, int> DrawingBlipStoreEntriesByLocation { get; }
+        internal IReadOnlyDictionary<string, int> DrawingBlipStoreEntriesByLocation { get; }
 
         /// <summary>Gets OfficeArt FBSE image-store entries grouped by workbook/sheet location and decoded BLIP type.</summary>
-        public IReadOnlyDictionary<string, int> DrawingBlipStoreEntriesByTypeAndLocation { get; }
+        internal IReadOnlyDictionary<string, int> DrawingBlipStoreEntriesByTypeAndLocation { get; }
 
         /// <summary>Gets OfficeArt FBSE image-store entries grouped by image UID.</summary>
-        public IReadOnlyDictionary<string, int> DrawingBlipStoreEntriesByUid { get; }
+        internal IReadOnlyDictionary<string, int> DrawingBlipStoreEntriesByUid { get; }
 
         /// <summary>Gets OfficeArt FBSE image-store entries grouped by embedded BLIP record type.</summary>
-        public IReadOnlyDictionary<string, int> DrawingBlipStoreEntriesByEmbeddedRecordType { get; }
+        internal IReadOnlyDictionary<string, int> DrawingBlipStoreEntriesByEmbeddedRecordType { get; }
 
         /// <summary>Gets OfficeArt FBSE image-store entries grouped by available embedded payload byte length.</summary>
-        public IReadOnlyDictionary<string, int> DrawingBlipStoreEntriesByEmbeddedPayloadAvailableLength { get; }
+        internal IReadOnlyDictionary<string, int> DrawingBlipStoreEntriesByEmbeddedPayloadAvailableLength { get; }
 
         /// <summary>Gets OfficeArt FBSE image-store entries grouped by embedded payload SHA-256 hash.</summary>
-        public IReadOnlyDictionary<string, int> DrawingBlipStoreEntriesByEmbeddedPayloadHash { get; }
+        internal IReadOnlyDictionary<string, int> DrawingBlipStoreEntriesByEmbeddedPayloadHash { get; }
 
         /// <summary>Gets OfficeArt FBSE image-store entries grouped by stored byte size.</summary>
-        public IReadOnlyDictionary<string, int> DrawingBlipStoreEntriesBySize { get; }
+        internal IReadOnlyDictionary<string, int> DrawingBlipStoreEntriesBySize { get; }
 
         /// <summary>Gets OfficeArt FBSE image-store entries grouped by reference count.</summary>
-        public IReadOnlyDictionary<string, int> DrawingBlipStoreEntriesByReferenceCount { get; }
+        internal IReadOnlyDictionary<string, int> DrawingBlipStoreEntriesByReferenceCount { get; }
 
         /// <summary>Gets OfficeArtFOPT BLIP-family shape properties grouped by workbook or sheet location.</summary>
-        public IReadOnlyDictionary<string, int> DrawingShapeBlipPropertiesByLocation { get; }
+        internal IReadOnlyDictionary<string, int> DrawingShapeBlipPropertiesByLocation { get; }
 
         /// <summary>Gets OfficeArtFOPT BLIP-family shape properties grouped by property name and raw value.</summary>
-        public IReadOnlyDictionary<string, int> DrawingShapeBlipPropertiesByNameAndValue { get; }
+        internal IReadOnlyDictionary<string, int> DrawingShapeBlipPropertiesByNameAndValue { get; }
 
         /// <summary>Gets OfficeArtFOPT picture BLIP reference properties grouped by workbook or sheet location.</summary>
-        public IReadOnlyDictionary<string, int> DrawingPictureBlipReferencesByLocation { get; }
+        internal IReadOnlyDictionary<string, int> DrawingPictureBlipReferencesByLocation { get; }
 
         /// <summary>Gets OfficeArtFOPT picture BLIP references grouped by referenced image-store id.</summary>
-        public IReadOnlyDictionary<string, int> DrawingPictureBlipReferencesByValue { get; }
+        internal IReadOnlyDictionary<string, int> DrawingPictureBlipReferencesByValue { get; }
 
         /// <summary>Gets picture drawing states grouped by object, image-store, BLIP reference, and reference-resolution presence.</summary>
-        public IReadOnlyDictionary<string, int> DrawingPictureStates { get; }
+        internal IReadOnlyDictionary<string, int> DrawingPictureStates { get; }
 
         /// <summary>Gets picture drawing states grouped by object, BLIP, reference, and decoded picture-frame counts.</summary>
-        public IReadOnlyDictionary<string, int> DrawingPictureCountStates { get; }
+        internal IReadOnlyDictionary<string, int> DrawingPictureCountStates { get; }
 
         /// <summary>Gets OfficeArt shape entries grouped by decoded shape type.</summary>
-        public IReadOnlyDictionary<string, int> DrawingShapeEntriesByType { get; }
+        internal IReadOnlyDictionary<string, int> DrawingShapeEntriesByType { get; }
 
         /// <summary>Gets OfficeArt shape entries grouped by shape identifier.</summary>
-        public IReadOnlyDictionary<string, int> DrawingShapeEntriesById { get; }
+        internal IReadOnlyDictionary<string, int> DrawingShapeEntriesById { get; }
 
         /// <summary>Gets OfficeArt shape entries grouped by raw flag bitfield.</summary>
-        public IReadOnlyDictionary<string, int> DrawingShapeEntriesByFlags { get; }
+        internal IReadOnlyDictionary<string, int> DrawingShapeEntriesByFlags { get; }
 
         /// <summary>Gets OfficeArt shape entries grouped by whether raw flags contain reserved bits.</summary>
-        public IReadOnlyDictionary<string, int> DrawingShapeEntriesByReservedState { get; }
+        internal IReadOnlyDictionary<string, int> DrawingShapeEntriesByReservedState { get; }
 
         /// <summary>Gets OfficeArt shape entries grouped by decoded flag name.</summary>
-        public IReadOnlyDictionary<string, int> DrawingShapeEntriesByFlagName { get; }
+        internal IReadOnlyDictionary<string, int> DrawingShapeEntriesByFlagName { get; }
 
         /// <summary>Gets OfficeArt client anchors grouped by start and end cell.</summary>
-        public IReadOnlyDictionary<string, int> DrawingAnchorEntriesByRange { get; }
+        internal IReadOnlyDictionary<string, int> DrawingAnchorEntriesByRange { get; }
 
         /// <summary>Gets OfficeArt client anchors grouped by start and end offsets.</summary>
-        public IReadOnlyDictionary<string, int> DrawingAnchorEntriesByOffset { get; }
+        internal IReadOnlyDictionary<string, int> DrawingAnchorEntriesByOffset { get; }
 
         /// <summary>Gets OfficeArt client anchors grouped by raw flag bitfield.</summary>
-        public IReadOnlyDictionary<string, int> DrawingAnchorEntriesByFlags { get; }
+        internal IReadOnlyDictionary<string, int> DrawingAnchorEntriesByFlags { get; }
 
         /// <summary>Gets OfficeArt child anchors grouped by decoded rectangle.</summary>
-        public IReadOnlyDictionary<string, int> DrawingChildAnchorEntriesByRectangle { get; }
+        internal IReadOnlyDictionary<string, int> DrawingChildAnchorEntriesByRectangle { get; }
 
         /// <summary>Gets OfficeArt child anchors grouped by decoded width and height.</summary>
-        public IReadOnlyDictionary<string, int> DrawingChildAnchorEntriesBySize { get; }
+        internal IReadOnlyDictionary<string, int> DrawingChildAnchorEntriesBySize { get; }
 
         /// <summary>Gets preserve-only drawing and object BIFF records grouped by workbook or sheet location.</summary>
-        public IReadOnlyDictionary<string, int> DrawingRecordsByLocation { get; }
+        internal IReadOnlyDictionary<string, int> DrawingRecordsByLocation { get; }
 
         /// <summary>Gets preserve-only compound feature records grouped by kind.</summary>
-        public IReadOnlyDictionary<LegacyXlsCompoundFeatureRecordKind, int> CompoundFeatureRecordsByKind { get; }
+        internal IReadOnlyDictionary<LegacyXlsCompoundFeatureRecordKind, int> CompoundFeatureRecordsByKind { get; }
 
         /// <summary>Gets matching compound feature entries grouped by feature kind.</summary>
-        public IReadOnlyDictionary<LegacyXlsCompoundFeatureRecordKind, int> CompoundFeatureEntriesByKind { get; }
+        internal IReadOnlyDictionary<LegacyXlsCompoundFeatureRecordKind, int> CompoundFeatureEntriesByKind { get; }
 
         /// <summary>Gets matching compound feature entries grouped by compound entry path or name.</summary>
-        public IReadOnlyDictionary<string, int> CompoundFeatureEntriesByName { get; }
+        internal IReadOnlyDictionary<string, int> CompoundFeatureEntriesByName { get; }
 
         /// <summary>Gets matching compound feature entries grouped by preserve-only entry role.</summary>
-        public IReadOnlyDictionary<string, int> CompoundFeatureEntriesByRole { get; }
+        internal IReadOnlyDictionary<string, int> CompoundFeatureEntriesByRole { get; }
 
         /// <summary>Gets matching compound feature entries grouped by feature kind and entry role.</summary>
-        public IReadOnlyDictionary<string, int> CompoundFeatureEntriesByKindAndRole { get; }
+        internal IReadOnlyDictionary<string, int> CompoundFeatureEntriesByKindAndRole { get; }
 
         /// <summary>Gets matching compound feature entries grouped by OLE compound object type.</summary>
-        public IReadOnlyDictionary<string, int> CompoundFeatureEntriesByObjectType { get; }
+        internal IReadOnlyDictionary<string, int> CompoundFeatureEntriesByObjectType { get; }
 
         /// <summary>Gets matching compound feature entries grouped by role and OLE compound object type.</summary>
-        public IReadOnlyDictionary<string, int> CompoundFeatureEntriesByRoleAndObjectType { get; }
+        internal IReadOnlyDictionary<string, int> CompoundFeatureEntriesByRoleAndObjectType { get; }
 
         /// <summary>Gets matching compound feature entries grouped by preserve-only content shape.</summary>
-        public IReadOnlyDictionary<string, int> CompoundFeatureEntriesByContentKind { get; }
+        internal IReadOnlyDictionary<string, int> CompoundFeatureEntriesByContentKind { get; }
 
         /// <summary>Gets matching compound feature entries grouped by role and preserve-only content shape.</summary>
-        public IReadOnlyDictionary<string, int> CompoundFeatureEntriesByRoleAndContentKind { get; }
+        internal IReadOnlyDictionary<string, int> CompoundFeatureEntriesByRoleAndContentKind { get; }
 
         /// <summary>Gets matching compound feature entries grouped by declared byte size.</summary>
-        public IReadOnlyDictionary<string, int> CompoundFeatureEntriesBySize { get; }
+        internal IReadOnlyDictionary<string, int> CompoundFeatureEntriesBySize { get; }
 
         /// <summary>Gets matching compound feature entries grouped by role and declared byte size.</summary>
-        public IReadOnlyDictionary<string, int> CompoundFeatureEntriesByRoleAndSize { get; }
+        internal IReadOnlyDictionary<string, int> CompoundFeatureEntriesByRoleAndSize { get; }
 
         /// <summary>Gets VBA module streams grouped by module name.</summary>
-        public IReadOnlyDictionary<string, int> CompoundVbaModulesByName { get; }
+        internal IReadOnlyDictionary<string, int> CompoundVbaModulesByName { get; }
 
         /// <summary>Gets VBA module streams grouped by compound entry path.</summary>
-        public IReadOnlyDictionary<string, int> CompoundVbaModulesByPath { get; }
+        internal IReadOnlyDictionary<string, int> CompoundVbaModulesByPath { get; }
 
         /// <summary>Gets VBA module streams grouped by declared byte size.</summary>
-        public IReadOnlyDictionary<string, int> CompoundVbaModulesBySize { get; }
+        internal IReadOnlyDictionary<string, int> CompoundVbaModulesBySize { get; }
 
         /// <summary>Gets VBA module streams grouped by module name and declared byte size.</summary>
-        public IReadOnlyDictionary<string, int> CompoundVbaModulesByNameAndSize { get; }
+        internal IReadOnlyDictionary<string, int> CompoundVbaModulesByNameAndSize { get; }
 
         /// <summary>Gets VBA module streams grouped by preserve-only content shape.</summary>
-        public IReadOnlyDictionary<string, int> CompoundVbaModulesByContentKind { get; }
+        internal IReadOnlyDictionary<string, int> CompoundVbaModulesByContentKind { get; }
 
         /// <summary>Gets VBA module streams grouped by module name and preserve-only content shape.</summary>
-        public IReadOnlyDictionary<string, int> CompoundVbaModulesByNameAndContentKind { get; }
+        internal IReadOnlyDictionary<string, int> CompoundVbaModulesByNameAndContentKind { get; }
 
         /// <summary>Gets VBA module streams grouped by whether they match workbook or worksheet CodeName records.</summary>
-        public IReadOnlyDictionary<string, int> CompoundVbaModulesByCodeNameMatch { get; }
+        internal IReadOnlyDictionary<string, int> CompoundVbaModulesByCodeNameMatch { get; }
 
         /// <summary>Gets VBA module streams grouped by CodeName match type and module name.</summary>
-        public IReadOnlyDictionary<string, int> CompoundVbaModulesByCodeNameMatchAndName { get; }
+        internal IReadOnlyDictionary<string, int> CompoundVbaModulesByCodeNameMatchAndName { get; }
 
         /// <summary>Gets VBA project compound features grouped by discovered module count.</summary>
-        public IReadOnlyDictionary<string, int> CompoundVbaProjectsByModuleCount { get; }
+        internal IReadOnlyDictionary<string, int> CompoundVbaProjectsByModuleCount { get; }
 
         /// <summary>Gets VBA project compound features grouped by total declared module stream bytes.</summary>
-        public IReadOnlyDictionary<string, int> CompoundVbaProjectsByModuleByteCount { get; }
+        internal IReadOnlyDictionary<string, int> CompoundVbaProjectsByModuleByteCount { get; }
 
         /// <summary>Gets VBA project compound features grouped by module, dir stream, and project stream counts.</summary>
-        public IReadOnlyDictionary<string, int> CompoundVbaProjectsByStructure { get; }
+        internal IReadOnlyDictionary<string, int> CompoundVbaProjectsByStructure { get; }
 
         /// <summary>Gets VBA project workbook states grouped by marker, compound storage, and module presence.</summary>
-        public IReadOnlyDictionary<string, int> VbaProjectWorkbookStates { get; }
+        internal IReadOnlyDictionary<string, int> VbaProjectWorkbookStates { get; }
 
         /// <summary>Gets parsed calculation setting records grouped by setting kind.</summary>
-        public IReadOnlyDictionary<LegacyXlsCalculationSettingKind, int> CalculationSettingsByKind { get; }
+        internal IReadOnlyDictionary<LegacyXlsCalculationSettingKind, int> CalculationSettingsByKind { get; }
 
         /// <summary>Gets parsed workbook cell styles grouped by built-in/custom kind.</summary>
-        public IReadOnlyDictionary<string, int> CellStylesByKind { get; }
+        internal IReadOnlyDictionary<string, int> CellStylesByKind { get; }
 
         /// <summary>Gets preserve-only style extension records grouped by BIFF record name.</summary>
-        public IReadOnlyDictionary<string, int> CellStyleExtensionsByRecordName { get; }
+        internal IReadOnlyDictionary<string, int> CellStyleExtensionsByRecordName { get; }
 
         /// <summary>Gets preserve-only style extension records grouped by extended XF index.</summary>
-        public IReadOnlyDictionary<string, int> CellStyleExtensionsByFormatIndex { get; }
+        internal IReadOnlyDictionary<string, int> CellStyleExtensionsByFormatIndex { get; }
 
         /// <summary>Gets preserve-only style extension records grouped by declared extension-property count.</summary>
-        public IReadOnlyDictionary<string, int> CellStyleExtensionsByExtensionCount { get; }
+        internal IReadOnlyDictionary<string, int> CellStyleExtensionsByExtensionCount { get; }
 
         /// <summary>Gets StyleExt records grouped by style category.</summary>
-        public IReadOnlyDictionary<string, int> CellStyleExtensionsByStyleCategory { get; }
+        internal IReadOnlyDictionary<string, int> CellStyleExtensionsByStyleCategory { get; }
 
         /// <summary>Gets StyleExt records grouped by declared flag state.</summary>
-        public IReadOnlyDictionary<string, int> CellStyleExtensionsByStyleFlags { get; }
+        internal IReadOnlyDictionary<string, int> CellStyleExtensionsByStyleFlags { get; }
 
         /// <summary>Gets StyleExt records grouped by style name.</summary>
-        public IReadOnlyDictionary<string, int> CellStyleExtensionsByStyleName { get; }
+        internal IReadOnlyDictionary<string, int> CellStyleExtensionsByStyleName { get; }
 
         /// <summary>Gets XFCRC records grouped by declared XF record count.</summary>
-        public IReadOnlyDictionary<string, int> CellStyleExtensionsByXfRecordCount { get; }
+        internal IReadOnlyDictionary<string, int> CellStyleExtensionsByXfRecordCount { get; }
 
         /// <summary>Gets XFCRC records grouped by declared checksum.</summary>
-        public IReadOnlyDictionary<string, int> CellStyleExtensionsByChecksum { get; }
+        internal IReadOnlyDictionary<string, int> CellStyleExtensionsByChecksum { get; }
 
         /// <summary>Gets XFExt properties grouped by raw ExtProp type identifier.</summary>
-        public IReadOnlyDictionary<string, int> CellStyleExtensionPropertiesByType { get; }
+        internal IReadOnlyDictionary<string, int> CellStyleExtensionPropertiesByType { get; }
 
         /// <summary>Gets XFExt properties grouped by decoded ExtProp type name.</summary>
-        public IReadOnlyDictionary<string, int> CellStyleExtensionPropertiesByName { get; }
+        internal IReadOnlyDictionary<string, int> CellStyleExtensionPropertiesByName { get; }
 
         /// <summary>Gets XFExt properties grouped by ExtProp data payload byte count.</summary>
-        public IReadOnlyDictionary<string, int> CellStyleExtensionPropertiesByDataByteCount { get; }
+        internal IReadOnlyDictionary<string, int> CellStyleExtensionPropertiesByDataByteCount { get; }
 
         /// <summary>Gets XFExt properties grouped by decoded simple numeric value.</summary>
-        public IReadOnlyDictionary<string, int> CellStyleExtensionPropertiesByNumericValue { get; }
+        internal IReadOnlyDictionary<string, int> CellStyleExtensionPropertiesByNumericValue { get; }
 
         /// <summary>Gets XFExt properties grouped by decoded simple numeric value name.</summary>
-        public IReadOnlyDictionary<string, int> CellStyleExtensionPropertiesByNumericValueName { get; }
+        internal IReadOnlyDictionary<string, int> CellStyleExtensionPropertiesByNumericValueName { get; }
 
         /// <summary>Gets XFExt color properties grouped by decoded FullColorExt color type.</summary>
-        public IReadOnlyDictionary<string, int> CellStyleExtensionPropertiesByColorType { get; }
+        internal IReadOnlyDictionary<string, int> CellStyleExtensionPropertiesByColorType { get; }
 
         /// <summary>Gets XFExt color properties grouped by FullColorExt tint/shade value.</summary>
-        public IReadOnlyDictionary<string, int> CellStyleExtensionPropertiesByColorTintShade { get; }
+        internal IReadOnlyDictionary<string, int> CellStyleExtensionPropertiesByColorTintShade { get; }
 
         /// <summary>Gets XFExt color properties grouped by raw FullColorExt color value.</summary>
-        public IReadOnlyDictionary<string, int> CellStyleExtensionPropertiesByColorValue { get; }
+        internal IReadOnlyDictionary<string, int> CellStyleExtensionPropertiesByColorValue { get; }
 
         /// <summary>Gets parsed workbook metadata records grouped by metadata kind.</summary>
-        public IReadOnlyDictionary<LegacyXlsWorkbookMetadataKind, int> WorkbookMetadataRecordsByKind { get; }
+        internal IReadOnlyDictionary<LegacyXlsWorkbookMetadataKind, int> WorkbookMetadataRecordsByKind { get; }
 
         /// <summary>Gets preserve-only workbook future metadata records grouped by metadata kind.</summary>
-        public IReadOnlyDictionary<string, int> WorkbookFutureMetadataRecordsByKind { get; }
+        internal IReadOnlyDictionary<string, int> WorkbookFutureMetadataRecordsByKind { get; }
 
         /// <summary>Gets preserve-only workbook future metadata records grouped by BIFF record type.</summary>
-        public IReadOnlyDictionary<string, int> WorkbookFutureMetadataRecordsByRecordType { get; }
+        internal IReadOnlyDictionary<string, int> WorkbookFutureMetadataRecordsByRecordType { get; }
 
         /// <summary>Gets preserve-only workbook future metadata records grouped by BIFF record name.</summary>
-        public IReadOnlyDictionary<string, int> WorkbookFutureMetadataRecordsByRecordName { get; }
+        internal IReadOnlyDictionary<string, int> WorkbookFutureMetadataRecordsByRecordName { get; }
 
         /// <summary>Gets preserve-only workbook future metadata records grouped by decoded header state.</summary>
-        public IReadOnlyDictionary<string, int> WorkbookFutureMetadataRecordsByHeaderState { get; }
+        internal IReadOnlyDictionary<string, int> WorkbookFutureMetadataRecordsByHeaderState { get; }
 
         /// <summary>Gets preserve-only workbook future metadata records grouped by future-record header type.</summary>
-        public IReadOnlyDictionary<string, int> WorkbookFutureMetadataRecordsByHeaderRecordType { get; }
+        internal IReadOnlyDictionary<string, int> WorkbookFutureMetadataRecordsByHeaderRecordType { get; }
 
         /// <summary>Gets preserve-only workbook future metadata records grouped by future-record header flags.</summary>
-        public IReadOnlyDictionary<string, int> WorkbookFutureMetadataRecordsByHeaderFlags { get; }
+        internal IReadOnlyDictionary<string, int> WorkbookFutureMetadataRecordsByHeaderFlags { get; }
 
         /// <summary>Gets preserve-only workbook future metadata records grouped by BIFF payload length.</summary>
-        public IReadOnlyDictionary<string, int> WorkbookFutureMetadataRecordsByPayloadLength { get; }
+        internal IReadOnlyDictionary<string, int> WorkbookFutureMetadataRecordsByPayloadLength { get; }
 
         /// <summary>Gets preserve-only workbook future metadata records grouped by body byte count after future-record header decoding.</summary>
-        public IReadOnlyDictionary<string, int> WorkbookFutureMetadataRecordsByBodyByteCount { get; }
+        internal IReadOnlyDictionary<string, int> WorkbookFutureMetadataRecordsByBodyByteCount { get; }
 
         /// <summary>Gets parsed worksheet metadata records grouped by metadata kind.</summary>
-        public IReadOnlyDictionary<LegacyXlsWorksheetMetadataKind, int> WorksheetMetadataRecordsByKind { get; }
+        internal IReadOnlyDictionary<LegacyXlsWorksheetMetadataKind, int> WorksheetMetadataRecordsByKind { get; }
 
         /// <summary>Gets preserve-only worksheet future metadata records grouped by metadata kind.</summary>
-        public IReadOnlyDictionary<string, int> WorksheetFutureMetadataRecordsByKind { get; }
+        internal IReadOnlyDictionary<string, int> WorksheetFutureMetadataRecordsByKind { get; }
 
         /// <summary>Gets preserve-only worksheet future metadata records grouped by sheet name.</summary>
-        public IReadOnlyDictionary<string, int> WorksheetFutureMetadataRecordsBySheet { get; }
+        internal IReadOnlyDictionary<string, int> WorksheetFutureMetadataRecordsBySheet { get; }
 
         /// <summary>Gets preserve-only worksheet future metadata records grouped by sheet and metadata kind.</summary>
-        public IReadOnlyDictionary<string, int> WorksheetFutureMetadataRecordsBySheetAndKind { get; }
+        internal IReadOnlyDictionary<string, int> WorksheetFutureMetadataRecordsBySheetAndKind { get; }
 
         /// <summary>Gets preserve-only worksheet future metadata records grouped by BIFF record type.</summary>
-        public IReadOnlyDictionary<string, int> WorksheetFutureMetadataRecordsByRecordType { get; }
+        internal IReadOnlyDictionary<string, int> WorksheetFutureMetadataRecordsByRecordType { get; }
 
         /// <summary>Gets preserve-only worksheet future metadata records grouped by BIFF record name.</summary>
-        public IReadOnlyDictionary<string, int> WorksheetFutureMetadataRecordsByRecordName { get; }
+        internal IReadOnlyDictionary<string, int> WorksheetFutureMetadataRecordsByRecordName { get; }
 
         /// <summary>Gets preserve-only worksheet future metadata records grouped by decoded header state.</summary>
-        public IReadOnlyDictionary<string, int> WorksheetFutureMetadataRecordsByHeaderState { get; }
+        internal IReadOnlyDictionary<string, int> WorksheetFutureMetadataRecordsByHeaderState { get; }
 
         /// <summary>Gets preserve-only worksheet future metadata records grouped by future-record header type.</summary>
-        public IReadOnlyDictionary<string, int> WorksheetFutureMetadataRecordsByHeaderRecordType { get; }
+        internal IReadOnlyDictionary<string, int> WorksheetFutureMetadataRecordsByHeaderRecordType { get; }
 
         /// <summary>Gets preserve-only worksheet future metadata records grouped by future-record header flags.</summary>
-        public IReadOnlyDictionary<string, int> WorksheetFutureMetadataRecordsByHeaderFlags { get; }
+        internal IReadOnlyDictionary<string, int> WorksheetFutureMetadataRecordsByHeaderFlags { get; }
 
         /// <summary>Gets preserve-only worksheet future metadata records grouped by BIFF payload length.</summary>
-        public IReadOnlyDictionary<string, int> WorksheetFutureMetadataRecordsByPayloadLength { get; }
+        internal IReadOnlyDictionary<string, int> WorksheetFutureMetadataRecordsByPayloadLength { get; }
 
         /// <summary>Gets preserve-only worksheet future metadata records grouped by body byte count after future-record header decoding.</summary>
-        public IReadOnlyDictionary<string, int> WorksheetFutureMetadataRecordsByBodyByteCount { get; }
+        internal IReadOnlyDictionary<string, int> WorksheetFutureMetadataRecordsByBodyByteCount { get; }
 
         /// <summary>Gets parsed unsupported-sheet metadata records grouped by metadata kind.</summary>
-        public IReadOnlyDictionary<LegacyXlsUnsupportedSheetMetadataKind, int> UnsupportedSheetMetadataRecordsByKind { get; }
+        internal IReadOnlyDictionary<LegacyXlsUnsupportedSheetMetadataKind, int> UnsupportedSheetMetadataRecordsByKind { get; }
 
         /// <summary>Gets preserve-only unsupported-sheet future metadata records grouped by metadata kind.</summary>
-        public IReadOnlyDictionary<string, int> UnsupportedSheetFutureMetadataRecordsByKind { get; }
+        internal IReadOnlyDictionary<string, int> UnsupportedSheetFutureMetadataRecordsByKind { get; }
 
         /// <summary>Gets preserve-only unsupported-sheet future metadata records grouped by sheet name.</summary>
-        public IReadOnlyDictionary<string, int> UnsupportedSheetFutureMetadataRecordsBySheet { get; }
+        internal IReadOnlyDictionary<string, int> UnsupportedSheetFutureMetadataRecordsBySheet { get; }
 
         /// <summary>Gets preserve-only unsupported-sheet future metadata records grouped by sheet and metadata kind.</summary>
-        public IReadOnlyDictionary<string, int> UnsupportedSheetFutureMetadataRecordsBySheetAndKind { get; }
+        internal IReadOnlyDictionary<string, int> UnsupportedSheetFutureMetadataRecordsBySheetAndKind { get; }
 
         /// <summary>Gets preserve-only unsupported-sheet future metadata records grouped by BIFF record type.</summary>
-        public IReadOnlyDictionary<string, int> UnsupportedSheetFutureMetadataRecordsByRecordType { get; }
+        internal IReadOnlyDictionary<string, int> UnsupportedSheetFutureMetadataRecordsByRecordType { get; }
 
         /// <summary>Gets preserve-only unsupported-sheet future metadata records grouped by BIFF record name.</summary>
-        public IReadOnlyDictionary<string, int> UnsupportedSheetFutureMetadataRecordsByRecordName { get; }
+        internal IReadOnlyDictionary<string, int> UnsupportedSheetFutureMetadataRecordsByRecordName { get; }
 
         /// <summary>Gets preserve-only unsupported-sheet future metadata records grouped by decoded header state.</summary>
-        public IReadOnlyDictionary<string, int> UnsupportedSheetFutureMetadataRecordsByHeaderState { get; }
+        internal IReadOnlyDictionary<string, int> UnsupportedSheetFutureMetadataRecordsByHeaderState { get; }
 
         /// <summary>Gets preserve-only unsupported-sheet future metadata records grouped by future-record header type.</summary>
-        public IReadOnlyDictionary<string, int> UnsupportedSheetFutureMetadataRecordsByHeaderRecordType { get; }
+        internal IReadOnlyDictionary<string, int> UnsupportedSheetFutureMetadataRecordsByHeaderRecordType { get; }
 
         /// <summary>Gets preserve-only unsupported-sheet future metadata records grouped by future-record header flags.</summary>
-        public IReadOnlyDictionary<string, int> UnsupportedSheetFutureMetadataRecordsByHeaderFlags { get; }
+        internal IReadOnlyDictionary<string, int> UnsupportedSheetFutureMetadataRecordsByHeaderFlags { get; }
 
         /// <summary>Gets preserve-only unsupported-sheet future metadata records grouped by BIFF payload length.</summary>
-        public IReadOnlyDictionary<string, int> UnsupportedSheetFutureMetadataRecordsByPayloadLength { get; }
+        internal IReadOnlyDictionary<string, int> UnsupportedSheetFutureMetadataRecordsByPayloadLength { get; }
 
         /// <summary>Gets preserve-only unsupported-sheet future metadata records grouped by body byte count after future-record header decoding.</summary>
-        public IReadOnlyDictionary<string, int> UnsupportedSheetFutureMetadataRecordsByBodyByteCount { get; }
+        internal IReadOnlyDictionary<string, int> UnsupportedSheetFutureMetadataRecordsByBodyByteCount { get; }
 
         /// <summary>Gets preserved feature record counts grouped by feature kind.</summary>
-        public IReadOnlyDictionary<LegacyXlsUnsupportedFeatureKind, int> PreservedFeatureRecordsByKind { get; }
+        internal IReadOnlyDictionary<LegacyXlsUnsupportedFeatureKind, int> PreservedFeatureRecordsByKind { get; }
 
         /// <summary>Gets preserved feature record counts grouped by kind, code, and stable feature subtype.</summary>
-        public IReadOnlyDictionary<string, int> PreservedFeatureRecordsByDetail { get; }
+        internal IReadOnlyDictionary<string, int> PreservedFeatureRecordsByDetail { get; }
 
         /// <summary>Gets whether the import produced error diagnostics.</summary>
         public bool HasImportErrors => ErrorCount > 0;

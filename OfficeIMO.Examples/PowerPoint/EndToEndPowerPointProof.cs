@@ -1,4 +1,3 @@
-using OfficeIMO.Drawing.Internal;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -171,7 +170,7 @@ namespace OfficeIMO.Examples.PowerPoint {
                               accessibility.WarningCount + " warnings");
             Console.WriteLine("    Rhythm: " + rhythm.Score + "/100, " + rhythm.Findings.Count + " finding(s)");
             Console.WriteLine("    Proof: PPTX, PNG, SVG, PDF, handout PDF, HTML, JSON, and Open XML validation");
-            if (openPowerPoint) OfficeFileLauncher.Open(presentationPath);
+            if (openPowerPoint) ExampleFileLauncher.Open(presentationPath);
         }
     }
 }

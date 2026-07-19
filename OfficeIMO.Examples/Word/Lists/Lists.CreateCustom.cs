@@ -27,21 +27,21 @@ namespace OfficeIMO.Examples.Word {
                 // let's display some properties of the list
                 var levels = wordList1.Numbering.Levels;
                 if (levels.Count > 0) {
-                    var levelDefinition = Guard.NotNull(levels[0]._level, "List level definition is missing.");
+                    var levelDefinition = Guard.NotNull(levels[0].OpenXmlElement, "List level definition is missing.");
                     Console.WriteLine(levelDefinition.LevelIndex?.ToString() ?? "0");
                     Console.WriteLine(levels[0].IndentationHanging);
                     Console.WriteLine(levels[0].IndentationLeft);
                     Console.WriteLine(levels[0].IndentationLeftCentimeters);
                 }
                 if (levels.Count > 1) {
-                    var levelDefinition = Guard.NotNull(levels[1]._level, "List level definition is missing.");
+                    var levelDefinition = Guard.NotNull(levels[1].OpenXmlElement, "List level definition is missing.");
                     Console.WriteLine(levelDefinition.LevelIndex?.ToString() ?? "0");
                     Console.WriteLine(levels[1].IndentationLeftCentimeters);
                     Console.WriteLine(levels[1].LevelJustification);
                     Console.WriteLine(levels[1].StartNumberingValue);
                 }
                 if (levels.Count > 2) {
-                    var levelDefinition = Guard.NotNull(levels[2]._level, "List level definition is missing.");
+                    var levelDefinition = Guard.NotNull(levels[2].OpenXmlElement, "List level definition is missing.");
                     Console.WriteLine(levelDefinition.LevelIndex?.ToString() ?? "0");
                     Console.WriteLine(levels[2].IndentationLeftCentimeters);
                 }

@@ -25,7 +25,7 @@ public enum WordHorizontalAlignmentValues {
 /// <summary>
 /// Class to help with horizontal alignment values
 /// </summary>
-public static class HorizontalAlignmentHelper {
+internal static class HorizontalAlignmentHelper {
     /// <summary>
     /// Convert alignment to string
     /// </summary>

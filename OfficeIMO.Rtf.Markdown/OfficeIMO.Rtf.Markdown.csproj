@@ -10,7 +10,7 @@
     <Company>Evotec</Company>
     <Description>Semantic Rich Text Format and Markdown conversion bridge for OfficeIMO.</Description>
     <PackageTags>RTF;Markdown;OfficeIMO;document-conversion</PackageTags>
-    <VersionPrefix>2.0.1</VersionPrefix>
+    <VersionPrefix>3.0.0</VersionPrefix>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <LangVersion>Latest</LangVersion>

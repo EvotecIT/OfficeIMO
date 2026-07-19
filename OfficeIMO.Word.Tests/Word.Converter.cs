@@ -31,6 +31,20 @@ public partial class Word {
         Assert.True(File.Exists(outFilePath));
     }
 
+    [Fact]
+    public void Test_ConvertDotxToDocx_AcceptsRelativeTemplatePath() {
+        string templatePath = Path.Combine(_directoryDocuments, "ExampleTemplate.dotx");
+        string relativeTemplatePath = GetConverterRelativePath(Environment.CurrentDirectory, templatePath);
+        string outFilePath = Path.Combine(_directoryWithFiles, "ExampleTemplate_Relative.docx");
+
+        Assert.False(Path.IsPathRooted(relativeTemplatePath));
+        WordHelpers.ConvertDotxToDocx(relativeTemplatePath, outFilePath);
+
+        Assert.True(File.Exists(outFilePath));
+        using WordprocessingDocument saved = WordprocessingDocument.Open(outFilePath, false);
+        Assert.Equal(WordprocessingDocumentType.Document, saved.DocumentType);
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
@@ -66,6 +80,22 @@ public partial class Word {
             : basePath + separator + fileName;
 #else
         return Path.Join(basePath, fileName);
+#endif
+    }
+
+    private static string GetConverterRelativePath(string baseDirectory, string path) {
+#if NET472
+        string fullBaseDirectory = Path.GetFullPath(baseDirectory);
+        if (!fullBaseDirectory.EndsWith(Path.DirectorySeparatorChar.ToString(), StringComparison.Ordinal)) {
+            fullBaseDirectory += Path.DirectorySeparatorChar;
+        }
+
+        var baseUri = new Uri(fullBaseDirectory);
+        var pathUri = new Uri(Path.GetFullPath(path));
+        return Uri.UnescapeDataString(baseUri.MakeRelativeUri(pathUri).ToString())
+            .Replace('/', Path.DirectorySeparatorChar);
+#else
+        return Path.GetRelativePath(baseDirectory, path);
 #endif
     }
 }

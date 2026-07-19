@@ -8,7 +8,6 @@ using System.Runtime.CompilerServices;
 [assembly: InternalsVisibleTo("OfficeIMO.Epub")]
 [assembly: InternalsVisibleTo("OfficeIMO.Excel")]
 [assembly: InternalsVisibleTo("OfficeIMO.Excel.Tests")]
-[assembly: InternalsVisibleTo("OfficeIMO.Examples")]
 [assembly: InternalsVisibleTo("OfficeIMO.Html")]
 [assembly: InternalsVisibleTo("OfficeIMO.Latex")]
 [assembly: InternalsVisibleTo("OfficeIMO.Markdown")]

@@ -3,7 +3,7 @@
     <Description>Bidirectional semantic RTF/PDF converter with shared fidelity diagnostics and managed image handling.</Description>
     <AssemblyName>OfficeIMO.Rtf.Pdf</AssemblyName>
     <AssemblyTitle>OfficeIMO.Rtf.Pdf</AssemblyTitle>
-    <VersionPrefix>2.0.1</VersionPrefix>
+    <VersionPrefix>3.0.0</VersionPrefix>
     <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
     <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">$(TargetFrameworks);net472</TargetFrameworks>
     <GeneratePackageOnBuild>False</GeneratePackageOnBuild>

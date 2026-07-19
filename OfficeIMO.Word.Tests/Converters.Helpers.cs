@@ -7,7 +7,21 @@ using Xunit;
 namespace OfficeIMO.Tests {
     public partial class Word {
         [Fact]
-        public void FormattingHelper_GetsRunsWithFlags() {
+        public void ImplementationHelpers_AreNotPartOfThePublicWordContract() {
+            Assert.False(typeof(FormattingHelper).IsPublic);
+            Assert.False(typeof(ImageShapeStyleHelper).IsPublic);
+            Assert.False(typeof(HorizontalAlignmentHelper).IsPublic);
+            Assert.Null(typeof(WordHelpers).GetMethod(
+                "GetNextSdtId",
+                System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static));
+            Assert.Null(typeof(WordListLevel).GetField(
+                "_level",
+                System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance));
+            Assert.Null(typeof(WordDocument).Assembly.GetType("OfficeIMO.Word.InlineRunHelper"));
+        }
+
+        [Fact]
+        public void WordParagraph_GetFormattedRuns_ReturnsFormattingFlags() {
             using MemoryStream ms = new MemoryStream();
             using (var document = WordDocument.Create(ms)) {
                 var paragraph = document.AddParagraph(string.Empty);
@@ -22,7 +36,7 @@ namespace OfficeIMO.Tests {
 
                 document.Save();
 
-                var runs = FormattingHelper.GetFormattedRuns(paragraph).ToList();
+                var runs = paragraph.GetFormattedRuns().ToList();
                 Assert.Equal(7, runs.Count);
                 Assert.Contains(runs, r => r.Text == "Hello" && !r.Bold);
                 Assert.Contains(runs, r => r.Text == "Bold" && r.Bold);
@@ -142,4 +156,3 @@ namespace OfficeIMO.Tests {
         }
     }
 }
-

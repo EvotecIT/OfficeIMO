@@ -135,7 +135,7 @@ using OfficeIMO.Word.LegacyDoc;
 
 using LegacyXlsLoadResult xls = ExcelDocument.LoadLegacyXlsWithReport("book.xls");
 xls.EnsureNoImportErrors();
-File.WriteAllText("book.import-report.md", xls.ImportReport.ToMarkdown());
+File.WriteAllText("book.import-report.md", xls.CreateImportReport().ToMarkdown());
 xls.Document.Save("book.xlsx");
 
 using LegacyDocLoadResult doc = WordDocument.LoadLegacyDocWithReport("letter.doc");

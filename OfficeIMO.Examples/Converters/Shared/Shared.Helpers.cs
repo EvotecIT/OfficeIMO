@@ -15,7 +15,7 @@ namespace OfficeIMO.Examples.Shared {
 
                 foreach (var section in DocumentTraversal.EnumerateSections(document)) {
                     foreach (var p in section.Paragraphs) {
-                        foreach (var run in FormattingHelper.GetFormattedRuns(p)) {
+                        foreach (var run in p.GetFormattedRuns()) {
                             if (!string.IsNullOrEmpty(run.Text)) {
                                 Console.WriteLine($"{run.Text} B:{run.Bold} I:{run.Italic}");
                             }
@@ -30,4 +30,3 @@ namespace OfficeIMO.Examples.Shared {
         }
     }
 }
-

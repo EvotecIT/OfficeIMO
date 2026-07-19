@@ -665,7 +665,7 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Create(docPath)) {
                 WordList numberedList = document.AddCustomList();
                 numberedList.Numbering.AddLevel(new WordListLevel(WordListLevelKind.DecimalDot));
-                numberedList.Numbering.Levels[0]._level.NumberingSymbolRunProperties = new NumberingSymbolRunProperties(
+                numberedList.Numbering.Levels[0].OpenXmlElement.NumberingSymbolRunProperties = new NumberingSymbolRunProperties(
                     new RunFonts { Ascii = "Courier New", HighAnsi = "Courier New" },
                     new Color { Val = "C00000" });
                 numberedList.AddItem("LevelMarkerRunPropertiesBody");
@@ -696,7 +696,7 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Create(docPath)) {
                 WordList numberedList = document.AddCustomList();
                 numberedList.Numbering.AddLevel(new WordListLevel(WordListLevelKind.DecimalDot));
-                numberedList.Numbering.Levels[0]._level.NumberingSymbolRunProperties = new NumberingSymbolRunProperties(
+                numberedList.Numbering.Levels[0].OpenXmlElement.NumberingSymbolRunProperties = new NumberingSymbolRunProperties(
                     new FontSize { Val = "40" });
                 numberedList.AddItem("LevelMarkerFontSizeBody");
 
@@ -772,7 +772,7 @@ namespace OfficeIMO.Tests {
                 WordListLevel level = numberedList.Numbering.Levels[0];
                 level.IndentationLeft = 1440;
                 level.IndentationHanging = 720;
-                level._level.LevelJustification = new LevelJustification { Val = justification };
+                level.OpenXmlElement.LevelJustification = new LevelJustification { Val = justification };
                 numberedList.AddItem(bodyText);
 
                 document.Save();

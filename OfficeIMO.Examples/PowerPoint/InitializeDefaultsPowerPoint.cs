@@ -1,4 +1,3 @@
-using OfficeIMO.Drawing.Internal;
 using System;
 using System.IO;
 using OfficeIMO.PowerPoint;
@@ -40,7 +39,7 @@ namespace OfficeIMO.Examples.PowerPoint {
             notes.ApplyAutoSpacing(lineSpacingMultiplier: 1.1, spaceAfterPoints: 2);
 
             presentation.Save();
-            if (openPowerPoint) OfficeFileLauncher.Open(filePath);
+            if (openPowerPoint) ExampleFileLauncher.Open(filePath);
         }
     }
 }
