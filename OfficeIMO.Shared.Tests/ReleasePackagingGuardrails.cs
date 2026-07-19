@@ -147,6 +147,33 @@ public sealed class ReleasePackagingGuardrails {
         Assert.Single(releaseVersions);
     }
 
+    [Fact]
+    public void SolutionReleaseConfiguration_IncludesEveryPublishablePackage() {
+        string repositoryRoot = GetRepositoryRoot();
+        string solution = File.ReadAllText(Path.Combine(repositoryRoot, "OfficeIMO.sln"));
+        PackageProject[] packageProjects = Directory
+            .EnumerateFiles(repositoryRoot, "*.csproj", SearchOption.AllDirectories)
+            .Where(static path => !ContainsBuildOutput(path))
+            .Select(ReadPackageProject)
+            .Where(static project => project is not null)
+            .Select(static project => project!)
+            .ToArray();
+
+        Assert.All(packageProjects, project => {
+            Match projectDeclaration = Assert.Single(Regex.Matches(
+                solution,
+                $@"^Project\(""[^""]+""\) = ""{Regex.Escape(project.ProjectName)}"", ""[^""]+"", ""\{{(?<guid>[A-F0-9-]+)\}}""\r?$",
+                RegexOptions.Multiline | RegexOptions.CultureInvariant | RegexOptions.IgnoreCase)
+                .Cast<Match>());
+            string projectGuid = projectDeclaration.Groups["guid"].Value;
+
+            Assert.Contains(
+                $"{{{projectGuid}}}.Release|Any CPU.Build.0 = Release|Any CPU",
+                solution,
+                StringComparison.OrdinalIgnoreCase);
+        });
+    }
+
     private static PackageProject? ReadPackageProject(string projectPath) {
         XDocument document = XDocument.Load(projectPath);
         XNamespace ns = document.Root?.Name.Namespace ?? XNamespace.None;
