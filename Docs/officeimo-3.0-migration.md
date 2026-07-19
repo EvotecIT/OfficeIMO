@@ -41,7 +41,7 @@ if (report.HasOmittedPageContent) {
 }
 ```
 
-`HasLoss` means a detected table was truncated by an import limit. `HasOmittedPageContent` means the source also contains non-table text, images, links, forms, annotations, or page actions that the table-only adapter does not import. Use `SourceScope` for the counts behind that decision. Use Word/RTF semantic conversion or image rendering when a full-page representation is the goal.
+`HasLoss` means a detected table was truncated by an import limit. `HasOmittedPageContent` means the source also contains non-table text, vector graphics, images, links, forms, annotations, or page actions that the table-only adapter does not import. Use `SourceScope` for the counts behind that decision. Use Word/RTF semantic conversion or image rendering when a full-page representation is the goal.
 
 ## Word public surface
 
@@ -51,6 +51,7 @@ Several helper types were implementation details rather than stable application 
 |---|---|
 | `FormattingHelper.GetFormattedRuns(paragraph)` | `paragraph.GetFormattedRuns()` returning `WordFormattedRun` values |
 | `WordListLevel._level` | `WordListLevel.OpenXmlElement` |
+| `new WordHelpers()` | Remove the instance; `WordHelpers` is static and its supported methods are called directly |
 | `WordHelpers.GetNextSdtId(...)` | Removed; content-control APIs allocate valid IDs internally |
 | `InlineRunHelper.AddInlineRuns(...)` | Use the owning converter or explicit paragraph APIs |
 | `ImageShapeStyleHelper` | Use the owning image shape APIs |
@@ -60,6 +61,7 @@ For Markdown, parse the document through `OfficeIMO.Word.Markdown` instead of us
 
 ```csharp
 using OfficeIMO.Markdown;
+using OfficeIMO.Word;
 using OfficeIMO.Word.Markdown;
 
 using WordDocument document = MarkdownReader.Parse(markdown).ToWordDocument();

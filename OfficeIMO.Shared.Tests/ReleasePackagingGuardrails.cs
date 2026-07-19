@@ -174,6 +174,89 @@ public sealed class ReleasePackagingGuardrails {
         });
     }
 
+    [Fact]
+    public void PublicReleaseDocs_UseCurrentPackageVersionsDependenciesAndMigrationNames() {
+        string repositoryRoot = GetRepositoryRoot();
+        string installation = File.ReadAllText(Path.Combine(
+            repositoryRoot,
+            "Website",
+            "content",
+            "docs",
+            "getting-started",
+            "installation",
+            "index.md"));
+        Dictionary<string, PackageProject> packageProjects = Directory
+            .EnumerateFiles(repositoryRoot, "*.csproj", SearchOption.AllDirectories)
+            .Where(static path => !ContainsBuildOutput(path))
+            .Select(ReadPackageProject)
+            .Where(static project => project is not null)
+            .Select(static project => project!)
+            .ToDictionary(static project => project.PackageId, StringComparer.OrdinalIgnoreCase);
+        MatchCollection documentedPackages = Regex.Matches(
+            installation,
+            @"<PackageReference Include=""(?<id>OfficeIMO\.[^""]+)"" Version=""(?<version>[^""]+)"" />",
+            RegexOptions.CultureInvariant);
+
+        Assert.Equal(9, documentedPackages.Count);
+        Assert.All(documentedPackages, match => {
+            string packageId = match.Groups["id"].Value;
+            Assert.True(
+                packageProjects.TryGetValue(packageId, out PackageProject? project),
+                "Installation guide references an unknown package: " + packageId);
+            Assert.Equal(project!.Version, match.Groups["version"].Value);
+        });
+
+        string openXmlVersion = ReadPackageReferenceVersion(
+            repositoryRoot,
+            "OfficeIMO.Word/OfficeIMO.Word.csproj",
+            "DocumentFormat.OpenXml");
+        string angleSharpVersion = ReadPackageReferenceVersion(
+            repositoryRoot,
+            "OfficeIMO.Html/OfficeIMO.Html.csproj",
+            "AngleSharp");
+        string angleSharpCssVersion = ReadPackageReferenceVersion(
+            repositoryRoot,
+            "OfficeIMO.Html/OfficeIMO.Html.csproj",
+            "AngleSharp.Css");
+        string bouncyCastleVersion = ReadPackageReferenceVersion(
+            repositoryRoot,
+            "OfficeIMO.Security/OfficeIMO.Security.csproj",
+            "BouncyCastle.Cryptography");
+        string systemBuffersVersion = ReadPackageReferenceVersion(
+            repositoryRoot,
+            "OfficeIMO.CSV/OfficeIMO.CSV.csproj",
+            "System.Buffers");
+
+        Assert.Contains($"DocumentFormat.OpenXml** (`{openXmlVersion}`)", installation, StringComparison.Ordinal);
+        Assert.Contains($"AngleSharp** (`{angleSharpVersion}`)", installation, StringComparison.Ordinal);
+        Assert.Contains($"AngleSharp.Css** (`{angleSharpCssVersion}`)", installation, StringComparison.Ordinal);
+        Assert.Contains($"BouncyCastle.Cryptography** (`{bouncyCastleVersion}`)", installation, StringComparison.Ordinal);
+        Assert.Contains($"System.Buffers** (`{systemBuffersVersion}`)", installation, StringComparison.Ordinal);
+
+        string aotGuide = File.ReadAllText(Path.Combine(
+            repositoryRoot,
+            "Website",
+            "content",
+            "docs",
+            "advanced",
+            "aot-trimming",
+            "index.md"));
+        Assert.Contains($"`{openXmlVersion}`", aotGuide, StringComparison.Ordinal);
+
+        string changelog = File.ReadAllText(Path.Combine(repositoryRoot, "CHANGELOG.MD"));
+        Assert.Contains("SaveTablesAsExcel", changelog, StringComparison.Ordinal);
+        Assert.Contains("SaveTablesAsPowerPoint", changelog, StringComparison.Ordinal);
+        Assert.Contains("ImportTablesToExcelDocument", changelog, StringComparison.Ordinal);
+        Assert.Contains("ImportTablesToPowerPointPresentation", changelog, StringComparison.Ordinal);
+        Assert.DoesNotContain("SaveAs{Format}FromPdfTables", changelog, StringComparison.Ordinal);
+        Assert.DoesNotContain("To{Format}BytesFromPdfTables", changelog, StringComparison.Ordinal);
+
+        string migration = File.ReadAllText(Path.Combine(repositoryRoot, "Docs", "officeimo-3.0-migration.md"));
+        Assert.Contains("`new WordHelpers()`", migration, StringComparison.Ordinal);
+        Assert.Contains("using OfficeIMO.Word;", migration, StringComparison.Ordinal);
+        Assert.Contains("vector graphics", migration, StringComparison.Ordinal);
+    }
+
     private static PackageProject? ReadPackageProject(string projectPath) {
         XDocument document = XDocument.Load(projectPath);
         XNamespace ns = document.Root?.Name.Namespace ?? XNamespace.None;
@@ -195,6 +278,21 @@ public sealed class ReleasePackagingGuardrails {
 
         string projectName = Path.GetFileNameWithoutExtension(projectPath);
         return new PackageProject(projectName, packageId, version);
+    }
+
+    private static string ReadPackageReferenceVersion(
+        string repositoryRoot,
+        string relativeProjectPath,
+        string packageId) {
+        XDocument document = XDocument.Load(Path.Combine(repositoryRoot, relativeProjectPath));
+        XElement packageReference = Assert.Single(
+            document.Descendants(),
+            element =>
+                string.Equals(element.Name.LocalName, "PackageReference", StringComparison.Ordinal) &&
+                string.Equals((string?)element.Attribute("Include"), packageId, StringComparison.OrdinalIgnoreCase));
+        return (string?)packageReference.Attribute("Version")
+            ?? throw new InvalidDataException(
+                $"Package reference '{packageId}' in '{relativeProjectPath}' does not declare a Version attribute.");
     }
 
     private static void AssertVersionMatchesReleaseBand(PackageProject project, string expectedBand) {

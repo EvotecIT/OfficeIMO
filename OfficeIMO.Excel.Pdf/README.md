@@ -143,7 +143,7 @@ report.RequireNoLoss(); // checks table-row truncation, not unrelated page conte
 - Workbook reading stays in `OfficeIMO.Excel`.
 - PDF layout and writing stay in `OfficeIMO.Pdf`.
 - This package should remain a translation adapter, not a second PDF engine.
-- PDF import is intentionally table-only. `SourceScope` and `HasOmittedPageContent` report text, images, links, forms, annotations, or actions outside detected tables.
+- PDF import is intentionally table-only. `SourceScope` and `HasOmittedPageContent` report text, source vector graphics, images, links, forms, annotations, or actions that are not imported as page content.
 - Fidelity gaps should be documented as warnings or deeper current-state notes, not hidden in marketing text.
 
 ## Related packages

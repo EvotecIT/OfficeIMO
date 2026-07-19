@@ -119,6 +119,7 @@ public static class PdfLogicalTableAnalysis {
         int pagesWithTables = 0;
         int detectedTableCount = 0;
         int nonTableTextBlockCount = 0;
+        int vectorPrimitiveCount = 0;
         int imageCount = 0;
         int linkCount = 0;
         int formWidgetCount = 0;
@@ -139,6 +140,7 @@ public static class PdfLogicalTableAnalysis {
                 }
             }
 
+            vectorPrimitiveCount += page.VectorPrimitiveCount;
             imageCount += page.Images.Count;
             linkCount += page.Links.Count;
             formWidgetCount += page.FormWidgets.Count;
@@ -151,6 +153,7 @@ public static class PdfLogicalTableAnalysis {
             pagesWithTables,
             detectedTableCount,
             nonTableTextBlockCount,
+            vectorPrimitiveCount,
             imageCount,
             linkCount,
             formWidgetCount,

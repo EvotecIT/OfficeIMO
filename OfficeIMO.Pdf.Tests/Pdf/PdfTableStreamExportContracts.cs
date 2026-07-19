@@ -83,6 +83,32 @@ public class PdfTableStreamExportContracts {
         Assert.Equal(0, destination.Length);
     }
 
+    [Fact]
+    public void TableConversions_ReportOmittedVectorGraphics() {
+        byte[] source = PdfDocument.Create()
+            .Rectangle(
+                120,
+                40,
+                strokeColor: PdfColor.FromRgb(0, 64, 128),
+                strokeWidth: 2,
+                fillColor: PdfColor.FromRgb(204, 238, 255))
+            .ToBytes();
+        PdfLogicalDocument logical = PdfLogicalDocument.Load(source);
+
+        PdfExcelTableImportResult excelResult = logical.ImportTablesToExcelDocumentResult();
+        PdfPowerPointTableImportResult powerPointResult = logical.ImportTablesToPowerPointPresentationResult();
+
+        Assert.Empty(logical.TextBlocks);
+        Assert.Empty(logical.Images);
+        Assert.True(logical.Pages[0].VectorPrimitiveCount > 0);
+        Assert.True(excelResult.HasOmittedPageContent);
+        Assert.True(powerPointResult.HasOmittedPageContent);
+        Assert.True(excelResult.Report.SourceScope.VectorPrimitiveCount > 0);
+        Assert.Equal(
+            excelResult.Report.SourceScope.VectorPrimitiveCount,
+            powerPointResult.Report.SourceScope.VectorPrimitiveCount);
+    }
+
     private static PdfLogicalDocument CreateLogicalDocument() {
         byte[] source = PdfDocument.Create()
             .Paragraph(paragraph => paragraph.Text("Non-seekable table export proof"))

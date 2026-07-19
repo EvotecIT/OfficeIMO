@@ -4107,7 +4107,9 @@ namespace OfficeIMO.Excel.LegacyXls {
         public bool HasImportErrors => ErrorCount > 0;
 
         /// <summary>Gets whether the import discovered unsupported or preserve-only features.</summary>
-        public bool HasUnsupportedFeatures => UnsupportedFeatureCount > 0;
+        public bool HasUnsupportedFeatures =>
+            UnsupportedFeatureCount > 0 ||
+            PreservedFeatureRecordCount > 0;
 
         /// <summary>
         /// Returns a compact Markdown summary suitable for corpus snapshots.

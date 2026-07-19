@@ -123,7 +123,7 @@ result.Report.RequireNoErrorWarnings();
 
 ## PDF table import
 
-`SaveTablesAsPowerPoint(...)` extracts logical tables from a PDF and writes editable PowerPoint table slides. It does not claim to convert unrelated page text, images, links, forms, annotations, or actions.
+`SaveTablesAsPowerPoint(...)` extracts logical tables from a PDF and writes editable PowerPoint table slides. It does not claim to convert unrelated page text, source vector graphics, images, links, forms, annotations, or actions.
 
 ```csharp
 using OfficeIMO.PowerPoint.Pdf;

@@ -3,6 +3,11 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfReadPage {
+    internal int GetVisualPrimitiveCount() {
+        (double Width, double Height) size = GetVisualPageSize();
+        return GetVisualPrimitives(size.Width, size.Height, GetVisualPageTransform()).Count;
+    }
+
     /// <summary>
     /// Projects supported page drawing operators, text spans, and image placements into a dependency-free drawing scene.
     /// </summary>

@@ -91,6 +91,9 @@ namespace OfficeIMO.Tests {
             Assert.True(result.HasUnsupportedFeatures);
             Assert.True(result.HasConversionLoss);
             Assert.True(result.Summary.HasConversionLoss);
+            LegacyXlsImportReport report = result.CreateImportReport();
+            Assert.True(report.PreservedFeatureRecordCount > 0);
+            Assert.True(report.HasUnsupportedFeatures);
             Assert.Throws<InvalidOperationException>(() => result.EnsureNoUnsupportedFeatures());
             Assert.Throws<InvalidOperationException>(() => result.EnsureNoConversionLoss());
         }
