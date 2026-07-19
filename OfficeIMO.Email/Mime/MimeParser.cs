@@ -308,7 +308,7 @@ internal static class MimeParser {
         return null;
     }
 
-    private static List<ArraySegment<byte>> SplitMultipart(byte[] data, int offset, int count, string boundary,
+    internal static List<ArraySegment<byte>> SplitMultipart(byte[] data, int offset, int count, string boundary,
         MimeParserState state, string location) {
         byte[] marker = Encoding.ASCII.GetBytes(string.Concat("--", boundary));
         int end = offset + count;

@@ -63,7 +63,7 @@ public sealed class ReaderWebTests {
             return Task.FromResult(response);
         });
         using var httpClient = new HttpClient(handler);
-        OfficeDocumentWebReader webReader = OfficeDocumentReader.Default.CreateWebReader(httpClient);
+        OfficeDocumentWebReader webReader = OfficeIMO.Reader.Tests.ReaderTestReaders.All.CreateWebReader(httpClient);
 
         OfficeDocumentReadResult first = await webReader.ReadDocumentAsync(new Uri("https://example.test/report"));
         OfficeDocumentReadResult second = await webReader.ReadDocumentAsync(new Uri("https://example.test/report"));
@@ -82,7 +82,7 @@ public sealed class ReaderWebTests {
         var handler = new DelegateHttpHandler((request, cancellationToken) =>
             Task.FromResult(TextResponse("# Remote note\n\nBody", "text/markdown")));
         using var httpClient = new HttpClient(handler);
-        OfficeDocumentWebReader webReader = OfficeDocumentReader.Default.CreateWebReader(httpClient);
+        OfficeDocumentWebReader webReader = OfficeIMO.Reader.Tests.ReaderTestReaders.All.CreateWebReader(httpClient);
 
         string markdown = await webReader.ConvertToMarkdownAsync(
             new Uri("https://example.test/note.md"));
@@ -95,7 +95,7 @@ public sealed class ReaderWebTests {
         var handler = new DelegateHttpHandler((request, cancellationToken) =>
             Task.FromResult(TextResponse("not reached", "text/plain")));
         using var httpClient = new HttpClient(handler);
-        OfficeDocumentWebReader webReader = OfficeDocumentReader.Default.CreateWebReader(httpClient);
+        OfficeDocumentWebReader webReader = OfficeIMO.Reader.Tests.ReaderTestReaders.All.CreateWebReader(httpClient);
 
         await Assert.ThrowsAsync<ReaderWebPolicyException>(() =>
             webReader.ReadDocumentAsync(new Uri("http://127.0.0.1/private.txt")));
@@ -112,7 +112,7 @@ public sealed class ReaderWebTests {
         var handler = new DelegateHttpHandler((request, cancellationToken) =>
             Task.FromResult(TextResponse("not reached", "text/plain")));
         using var httpClient = new HttpClient(handler);
-        OfficeDocumentWebReader webReader = OfficeDocumentReader.Default.CreateWebReader(httpClient);
+        OfficeDocumentWebReader webReader = OfficeIMO.Reader.Tests.ReaderTestReaders.All.CreateWebReader(httpClient);
 
         await Assert.ThrowsAsync<ReaderWebPolicyException>(() =>
             webReader.ReadDocumentAsync(new Uri("http://" + host + "/special.txt")));
@@ -128,7 +128,7 @@ public sealed class ReaderWebTests {
         var handler = new DelegateHttpHandler((request, cancellationToken) =>
             Task.FromResult(TextResponse("public fixture", "text/plain")));
         using var httpClient = new HttpClient(handler);
-        OfficeDocumentWebReader webReader = OfficeDocumentReader.Default.CreateWebReader(httpClient);
+        OfficeDocumentWebReader webReader = OfficeIMO.Reader.Tests.ReaderTestReaders.All.CreateWebReader(httpClient);
 
         OfficeDocumentReadResult result = await webReader.ReadDocumentAsync(
             new Uri("http://" + host + "/public.txt"));
@@ -142,7 +142,7 @@ public sealed class ReaderWebTests {
         var handler = new DelegateHttpHandler((request, cancellationToken) =>
             Task.FromResult(TextResponse("not reached", "text/plain")));
         using var httpClient = new HttpClient(handler);
-        OfficeDocumentWebReader webReader = OfficeDocumentReader.Default.CreateWebReader(httpClient);
+        OfficeDocumentWebReader webReader = OfficeIMO.Reader.Tests.ReaderTestReaders.All.CreateWebReader(httpClient);
 
         await Assert.ThrowsAsync<ReaderWebPolicyException>(() =>
             webReader.ReadDocumentAsync(new Uri("http://[64:ff9b:1::a00:1]/private.txt")));
@@ -155,7 +155,7 @@ public sealed class ReaderWebTests {
         var handler = new DelegateHttpHandler((request, cancellationToken) =>
             Task.FromResult(TextResponse("not reached", "text/plain")));
         using var httpClient = new HttpClient(handler);
-        OfficeDocumentWebReader webReader = OfficeDocumentReader.Default.CreateWebReader(httpClient);
+        OfficeDocumentWebReader webReader = OfficeIMO.Reader.Tests.ReaderTestReaders.All.CreateWebReader(httpClient);
 
         await Assert.ThrowsAsync<ReaderWebPolicyException>(() =>
             webReader.ReadDocumentAsync(new Uri("http://[64:ff9b::a00:1]/private.txt")));
@@ -168,7 +168,7 @@ public sealed class ReaderWebTests {
         var handler = new DelegateHttpHandler((request, cancellationToken) =>
             Task.FromResult(TextResponse("public fixture", "text/plain")));
         using var httpClient = new HttpClient(handler);
-        OfficeDocumentWebReader webReader = OfficeDocumentReader.Default.CreateWebReader(httpClient);
+        OfficeDocumentWebReader webReader = OfficeIMO.Reader.Tests.ReaderTestReaders.All.CreateWebReader(httpClient);
 
         OfficeDocumentReadResult result = await webReader.ReadDocumentAsync(
             new Uri("http://[64:ff9b::808:808]/public.txt"));
@@ -182,7 +182,7 @@ public sealed class ReaderWebTests {
         var handler = new DelegateHttpHandler((request, cancellationToken) =>
             Task.FromResult(TextResponse("not reached", "text/plain")));
         using var httpClient = new HttpClient(handler);
-        OfficeDocumentWebReader webReader = OfficeDocumentReader.Default.CreateWebReader(httpClient);
+        OfficeDocumentWebReader webReader = OfficeIMO.Reader.Tests.ReaderTestReaders.All.CreateWebReader(httpClient);
 
         await Assert.ThrowsAsync<ReaderWebPolicyException>(() =>
             webReader.ReadDocumentAsync(new Uri("http://[::ffff:0:10.0.0.1]/private.txt")));
@@ -195,7 +195,7 @@ public sealed class ReaderWebTests {
         var handler = new DelegateHttpHandler((request, cancellationToken) =>
             Task.FromResult(TextResponse("public fixture", "text/plain")));
         using var httpClient = new HttpClient(handler);
-        OfficeDocumentWebReader webReader = OfficeDocumentReader.Default.CreateWebReader(httpClient);
+        OfficeDocumentWebReader webReader = OfficeIMO.Reader.Tests.ReaderTestReaders.All.CreateWebReader(httpClient);
 
         OfficeDocumentReadResult result = await webReader.ReadDocumentAsync(
             new Uri("http://[::ffff:0:8.8.8.8]/public.txt"));
@@ -209,7 +209,7 @@ public sealed class ReaderWebTests {
         var handler = new DelegateHttpHandler((request, cancellationToken) =>
             Task.FromResult(TextResponse("not reached", "text/plain")));
         using var httpClient = new HttpClient(handler);
-        OfficeDocumentWebReader webReader = OfficeDocumentReader.Default.CreateWebReader(httpClient);
+        OfficeDocumentWebReader webReader = OfficeIMO.Reader.Tests.ReaderTestReaders.All.CreateWebReader(httpClient);
 
         await Assert.ThrowsAsync<ReaderWebPolicyException>(() =>
             webReader.ReadDocumentAsync(new Uri("http://[100::1]/discard.txt")));
@@ -222,7 +222,7 @@ public sealed class ReaderWebTests {
         var handler = new DelegateHttpHandler((request, cancellationToken) =>
             Task.FromResult(TextResponse("public fixture", "text/plain")));
         using var httpClient = new HttpClient(handler);
-        OfficeDocumentWebReader webReader = OfficeDocumentReader.Default.CreateWebReader(httpClient);
+        OfficeDocumentWebReader webReader = OfficeIMO.Reader.Tests.ReaderTestReaders.All.CreateWebReader(httpClient);
 
         OfficeDocumentReadResult result = await webReader.ReadDocumentAsync(
             new Uri("http://[100:0:0:1::1]/public.txt"));
@@ -236,7 +236,7 @@ public sealed class ReaderWebTests {
         var handler = new DelegateHttpHandler((request, cancellationToken) =>
             Task.FromResult(TextResponse("not reached", "text/plain")));
         using var httpClient = new HttpClient(handler);
-        OfficeDocumentWebReader webReader = OfficeDocumentReader.Default.CreateWebReader(httpClient);
+        OfficeDocumentWebReader webReader = OfficeIMO.Reader.Tests.ReaderTestReaders.All.CreateWebReader(httpClient);
 
         await Assert.ThrowsAsync<ReaderWebPolicyException>(() =>
             webReader.ReadDocumentAsync(new Uri("http://[2002:a00:1::]/private.txt")));
@@ -249,7 +249,7 @@ public sealed class ReaderWebTests {
         var handler = new DelegateHttpHandler((request, cancellationToken) =>
             Task.FromResult(TextResponse("public fixture", "text/plain")));
         using var httpClient = new HttpClient(handler);
-        OfficeDocumentWebReader webReader = OfficeDocumentReader.Default.CreateWebReader(httpClient);
+        OfficeDocumentWebReader webReader = OfficeIMO.Reader.Tests.ReaderTestReaders.All.CreateWebReader(httpClient);
 
         OfficeDocumentReadResult result = await webReader.ReadDocumentAsync(
             new Uri("http://[2002:808:808::]/public.txt"));
@@ -263,7 +263,7 @@ public sealed class ReaderWebTests {
         var handler = new DelegateHttpHandler((request, cancellationToken) =>
             Task.FromResult(TextResponse("not reached", "text/plain")));
         using var httpClient = new HttpClient(handler);
-        OfficeDocumentWebReader webReader = OfficeDocumentReader.Default.CreateWebReader(httpClient);
+        OfficeDocumentWebReader webReader = OfficeIMO.Reader.Tests.ReaderTestReaders.All.CreateWebReader(httpClient);
 
         await Assert.ThrowsAsync<ArgumentException>(() => webReader.ReadDocumentAsync(
             new Uri("https://example.test/file.txt"),
@@ -277,7 +277,7 @@ public sealed class ReaderWebTests {
         var handler = new DelegateHttpHandler((request, cancellationToken) =>
             Task.FromResult(TextResponse("local fixture", "text/plain")));
         using var httpClient = new HttpClient(handler);
-        OfficeDocumentWebReader webReader = OfficeDocumentReader.Default.CreateWebReader(
+        OfficeDocumentWebReader webReader = OfficeIMO.Reader.Tests.ReaderTestReaders.All.CreateWebReader(
             httpClient,
             new ReaderWebOptions {
                 AllowedHosts = new[] { "localhost" },
@@ -296,7 +296,7 @@ public sealed class ReaderWebTests {
         var handler = new DelegateHttpHandler((request, cancellationToken) =>
             Task.FromResult(TextResponse("not reached", "text/plain")));
         using var httpClient = new HttpClient(handler);
-        OfficeDocumentWebReader webReader = OfficeDocumentReader.Default.CreateWebReader(
+        OfficeDocumentWebReader webReader = OfficeIMO.Reader.Tests.ReaderTestReaders.All.CreateWebReader(
             httpClient,
             new ReaderWebOptions { AllowedHosts = new[] { "allowed.example" } });
 
@@ -314,7 +314,7 @@ public sealed class ReaderWebTests {
             return Task.FromResult(response);
         });
         using var httpClient = new HttpClient(handler);
-        OfficeDocumentWebReader webReader = OfficeDocumentReader.Default.CreateWebReader(httpClient);
+        OfficeDocumentWebReader webReader = OfficeIMO.Reader.Tests.ReaderTestReaders.All.CreateWebReader(httpClient);
 
         await Assert.ThrowsAsync<ReaderWebPolicyException>(() =>
             webReader.ReadDocumentAsync(new Uri("https://example.test/start.txt")));
@@ -330,7 +330,7 @@ public sealed class ReaderWebTests {
             return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = content });
         });
         using var httpClient = new HttpClient(handler);
-        OfficeDocumentWebReader webReader = OfficeDocumentReader.Default.CreateWebReader(
+        OfficeDocumentWebReader webReader = OfficeIMO.Reader.Tests.ReaderTestReaders.All.CreateWebReader(
             httpClient,
             new ReaderWebOptions { MaxResponseBytes = 16 });
 
@@ -382,7 +382,7 @@ public sealed class ReaderWebTests {
             return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = content });
         });
         using var httpClient = new HttpClient(handler);
-        OfficeDocumentWebReader webReader = OfficeDocumentReader.Default.CreateWebReader(
+        OfficeDocumentWebReader webReader = OfficeIMO.Reader.Tests.ReaderTestReaders.All.CreateWebReader(
             httpClient,
             new ReaderWebOptions { MaxResponseBytes = 16 });
 
@@ -410,7 +410,7 @@ public sealed class ReaderWebTests {
             return TextResponse("not reached", "text/plain");
         });
         using var httpClient = new HttpClient(handler);
-        OfficeDocumentWebReader webReader = OfficeDocumentReader.Default.CreateWebReader(
+        OfficeDocumentWebReader webReader = OfficeIMO.Reader.Tests.ReaderTestReaders.All.CreateWebReader(
             httpClient,
             new ReaderWebOptions { RequestTimeout = TimeSpan.FromMilliseconds(100) });
 
@@ -430,7 +430,7 @@ public sealed class ReaderWebTests {
             return Task.FromResult(TextResponse("recovered", "text/plain"));
         });
         using var httpClient = new HttpClient(handler);
-        OfficeDocumentWebReader webReader = OfficeDocumentReader.Default.CreateWebReader(
+        OfficeDocumentWebReader webReader = OfficeIMO.Reader.Tests.ReaderTestReaders.All.CreateWebReader(
             httpClient,
             new ReaderWebOptions {
                 MaxConcurrentRequests = 1,
@@ -463,7 +463,7 @@ public sealed class ReaderWebTests {
             return Task.FromResult(TextResponse("recovered", "text/plain"));
         });
         using var httpClient = new HttpClient(handler);
-        OfficeDocumentWebReader webReader = OfficeDocumentReader.Default.CreateWebReader(
+        OfficeDocumentWebReader webReader = OfficeIMO.Reader.Tests.ReaderTestReaders.All.CreateWebReader(
             httpClient,
             new ReaderWebOptions {
                 MaxConcurrentRequests = 1,
@@ -491,7 +491,7 @@ public sealed class ReaderWebTests {
             return Task.FromResult(TextResponse("recovered", "text/plain"));
         });
         using var httpClient = new HttpClient(handler);
-        OfficeDocumentWebReader webReader = OfficeDocumentReader.Default.CreateWebReader(
+        OfficeDocumentWebReader webReader = OfficeIMO.Reader.Tests.ReaderTestReaders.All.CreateWebReader(
             httpClient,
             new ReaderWebOptions {
                 MaxConcurrentRequests = 1,
@@ -541,7 +541,7 @@ public sealed class ReaderWebTests {
     public async Task WebReader_BoundsConcurrentOperationsPerInstance() {
         var handler = new BlockingFirstRequestHandler();
         using var httpClient = new HttpClient(handler);
-        OfficeDocumentWebReader webReader = OfficeDocumentReader.Default.CreateWebReader(
+        OfficeDocumentWebReader webReader = OfficeIMO.Reader.Tests.ReaderTestReaders.All.CreateWebReader(
             httpClient,
             new ReaderWebOptions { MaxConcurrentRequests = 1 });
 

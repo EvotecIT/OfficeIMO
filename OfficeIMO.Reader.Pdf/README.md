@@ -3,11 +3,7 @@
 [![nuget version](https://img.shields.io/nuget/v/OfficeIMO.Reader.Pdf)](https://www.nuget.org/packages/OfficeIMO.Reader.Pdf)
 [![nuget downloads](https://img.shields.io/nuget/dt/OfficeIMO.Reader.Pdf?label=nuget%20downloads)](https://www.nuget.org/packages/OfficeIMO.Reader.Pdf)
 
-`OfficeIMO.Reader.Pdf` provides a PDF adapter for `OfficeIMO.Reader` using the `OfficeIMO.Pdf` logical read model.
-
-The current `OfficeIMO.Reader` convenience package already includes `OfficeIMO.Pdf` and a built-in PDF handler, so
-this adapter is presently an explicit registration/replacement surface rather than a smaller dependency choice. The
-planned `OfficeIMO.Reader.Core` split will make this package the selective `Reader.Core + OfficeIMO.Pdf` path.
+`OfficeIMO.Reader.Pdf` is the selective PDF adapter over `OfficeIMO.Reader.Core` and the `OfficeIMO.Pdf` logical read model. It does not pull Word, Excel, PowerPoint, Email, or the all-adapters composition package.
 
 ## Install
 

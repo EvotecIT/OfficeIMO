@@ -1,12 +1,12 @@
 # OfficeIMO.Email support matrix
 
-This matrix describes the current public contract for persisted email and Outlook artifacts. It separates format support from transport and cryptography so applications can combine `OfficeIMO.Email` with MailKit or MimeKit without pulling their concerns into the artifact engine.
+This matrix describes the current public contract for persisted email and Outlook artifacts. It keeps transport outside the artifact engine while sharing bounded CMS/X.509 processing with PDF through `OfficeIMO.Security`.
 
 ## Formats and workflows
 
 | Capability | Status | Current contract | Boundary |
 | --- | --- | --- | --- |
-| EML and MIME read/write | Broad | Headers, encoded words, common charsets, multipart bodies, plain text, HTML, inline resources, attachments, embedded RFC messages, file-backed attachment reads, and chunked sync/async writes | Mail transport, DKIM, ARC, PGP, and S/MIME cryptography belong to the host |
+| EML and MIME read/write | Broad | Headers, encoded words, common charsets, multipart bodies, plain text, HTML, inline resources, attachments, embedded RFC messages, file-backed attachment reads, and chunked sync/async writes | Mail transport, DKIM, ARC, and OpenPGP cryptography belong to the host; S/MIME data processing is covered below |
 | Outlook MSG/OFT read/write | Broad | Standard and named MAPI properties, Unicode and String8 code pages, sender/representing/received addresses, all recipient roles, message metadata, bodies, attachments, embedded items, selective compound streams, and deterministic chunked output | PST/OST stores and Exchange directory resolution are not MSG artifact concerns |
 | MSG compound storage | Complete for MSG | FAT, MiniFAT, DIFAT, hierarchical storages, regular/mini streams, embedded messages, and OLE/custom attachment storages | Not a public general-purpose CFB transaction API |
 | Outlook messages | Broad | One typed MAPI vocabulary and property bag across MSG, TNEF, PST/OST, OAB, mutation, and semantic comparison; subject/conversation metadata; importance; priority; read/draft/receipt state; categories; follow-up; reminders; voting; reactions; and user properties | Unknown or vendor properties remain available through the same raw `MapiProperties` collection |
@@ -27,9 +27,9 @@ This matrix describes the current public contract for persisted email and Outloo
 | Store export, verified conversion, and merge | Supported | Selected items to EML, MSG, OFT, TNEF, Maildir, or EMLX; atomically committed streaming mbox; staged semantic verification before committing a new Unicode PST; and multi-source PST/OST/OLM/EMLX/Mbox/mailbox-directory merge with folder modes, disk-backed keyed deduplication, retries, and bounded diagnostics | Search folders become static folders; unavailable OST/server content and unsupported attachment payloads are reported rather than invented |
 | Semantic fingerprints | Supported | Versioned migration, strict, and deduplication profiles; streamed attachment hashing; optional HMAC-SHA-256; and value-free difference reports | A fingerprint is a comparison/audit primitive, not a cryptographic authenticity signature |
 | Outlook OAB address books | Read-only, selective | Bounded component discovery; dynamic-schema v4 Full Details entries and distribution lists; shared address/contact/MAPI projections; raw property retention; resumable search; duplicate-aware offline SMTP/proxy/EX/X.500/account identity index; seeded CRC, framing, and full-decode validation | Display templates and v2/v3 components are inspection-only; compressed Exchange downloads, patches, directory synchronization, and mutation are outside the expanded-cache reader |
-| Protected Outlook messages | Handoff | Detects opaque and clear-signed S/MIME classes and exposes the original `.p7m`/`.p7s` payload attachment | Verification, trust, certificate/key lookup, and decryption remain host-owned until the final `OfficeIMO.Security` fixture and dependency gate is accepted |
+| Protected Outlook messages | Supported for S/MIME data workflows | Detects opaque and clear-signed S/MIME wrappers; preserves the original artifact; verifies exact multipart/signed MIME bytes and opaque signed-data; decrypts EnvelopedData with an explicitly supplied recipient certificate; and returns neutral cryptographic evidence plus a separate parsed protected-content `EmailDocument` | Sending, certificate/key discovery, automatic certificate-store search, DKIM/ARC/OpenPGP, and non-exportable RSA envelope decryption remain caller/host concerns |
 | Lossless pass-through | Supported | Preserved raw source can be emitted unchanged when explicitly requested | Structured edits regenerate the artifact and cannot preserve an existing cryptographic signature |
-| OfficeIMO.Reader integration | Supported | Built-in handling includes individual email artifacts plus `.ics`, `.vcs`, `.vcf`, and `.vcard`; `OfficeIMO.Reader.EmailStore` adds selective PST/OST/OLM/EMLX projection, and `OfficeIMO.Reader.EmailAddressBook` adds selective typed OAB entry chunks | Both adapters are thin consumers of the unified `OfficeIMO.Email` package; they do not own parsers |
+| OfficeIMO.Reader integration | Supported | `OfficeIMO.Reader.Email` registers individual email artifacts, calendars/cards, PST/OST/OLM/EMLX and mailbox-directory stores, and typed OAB entry projection | One selective adapter depends only on `OfficeIMO.Reader.Core` and the unified `OfficeIMO.Email` package; it owns no parser |
 | Mixed email-data discovery | Supported | The included `OfficeIMO.Email.Data` API detects one file or directory and returns the existing `EmailDocument`, `IcsDocument`, `VCardDocument`, `EmailStoreSession`, or `OfflineAddressBookSession` owner result | The facade contains no alternate parsers, mutation logic, or document extraction. Profile/autocomplete caches remain deferred until a real consumer defines that contract |
 
 ## MsgKit, MsgReader, and OpenMcdf replacement map
@@ -41,7 +41,7 @@ This matrix describes the current public contract for persisted email and Outloo
 | MsgReader MSG projection | `EmailDocumentReader` and typed message/appointment/contact/task/journal/note models |
 | MsgReader unknown property access | Retained `MapiProperties` plus `GetMapiProperty` and `GetMapiValue` helpers |
 | MsgReader compressed RTF and RTF-to-HTML | `OfficeIMO.Email` transport compression plus `OfficeIMO.Rtf` semantic projection |
-| MsgReader signature parsing | Protected-payload handoff to the host's cryptography policy; a future neutral `OfficeIMO.Security` integration remains gated on real fixtures |
+| MsgReader signature parsing | `EmailSmime` orchestration over the neutral `OfficeIMO.Security` CMS/X.509 owner |
 | MsgReader nested MSG and `winmail.dat` expansion | `EmailAttachment.EmbeddedDocument` for embedded MSG, RFC message, and encapsulated TNEF content |
 | OpenMcdf storage used by MSG | Internal OfficeIMO shared compound reader/writer compiled into `OfficeIMO.Email` |
 | General-purpose OpenMcdf transactions | Intentionally not replaced by `OfficeIMO.Email`; consumers needing arbitrary CFB use a dedicated CFB library |
@@ -70,7 +70,7 @@ This matrix describes the current public contract for persisted email and Outloo
 ## Explicit non-goals
 
 - SMTP, IMAP, POP3, Graph, authentication, and account synchronization
-- DKIM, ARC, PGP, certificate trust, S/MIME verification, and decryption
+- DKIM, ARC, OpenPGP, certificate/key discovery, and automatic recipient or trust-policy selection
 - In-place PST NDB mutation/append, ANSI PST mutation, OST mutation/output, in-place repair, or password/encryption authoring
 - OLM authoring, proprietary DBX mailboxes, Outlook/Mac profile databases, autocomplete caches, search indexes, synchronization state, and other profile/cache formats outside the dedicated OAB owner
 - xCal/xCard, jCal/jCard, JSCalendar, and JSContact public adapters. The shared content-line model remains the canonical ICS/VCF owner so future XML/JSON adapters can reuse it without duplicating calendar/contact semantics; JSCalendar and JSContact require separate mapping contracts rather than syntax substitution

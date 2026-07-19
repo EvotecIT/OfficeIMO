@@ -168,9 +168,8 @@ The dependency-bounded tool does not configure OCR or hosted providers.
         }
 
         foreach (ReaderHandlerCapability capability in reader.GetCapabilities()) {
-            string scope = capability.IsBuiltIn ? "built-in" : "adapter";
             await standardOutput.WriteLineAsync(
-                capability.Id + "\t" + scope + "\t" + string.Join(",", capability.Extensions)).ConfigureAwait(false);
+                capability.Id + "\t" + capability.Origin + "\t" + string.Join(",", capability.Extensions)).ConfigureAwait(false);
         }
         return (int)ReaderToolExitCode.Success;
     }

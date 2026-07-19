@@ -24,6 +24,7 @@ public static class OfficeDocumentReaderBuilderHtmlExtensions {
     private static ReaderHandlerRegistration CreateRegistration(ReaderHtmlOptions? htmlOptions) {
         ReaderHtmlOptions? registeredOptions = ReaderHtmlOptionsCloner.CloneNullable(htmlOptions);
         return new ReaderHandlerRegistration {
+            Origin = ReaderHandlerOrigin.OfficeIMO,
             Id = HandlerId,
             DisplayName = "HTML Reader Adapter",
             Description = "Modular HTML and MHTML adapter using OfficeIMO.Html.",

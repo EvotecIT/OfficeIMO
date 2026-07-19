@@ -2,7 +2,7 @@
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using OfficeIMO.Pdf;
-using OfficeIMO.Pdf.Cryptography;
+using OfficeIMO.Security;
 using Xunit;
 
 namespace OfficeIMO.Tests.Pdf;
@@ -100,14 +100,17 @@ public class PdfLongTermValidationEnricherTests {
                 FieldName = "LtvSignature",
                 ReservedSignatureContentsBytes = 8192
             });
-        using var signer = new PdfPkcsExternalSigner(certificate);
+        using var signer = new PdfCmsExternalSigner(certificate);
         return PdfIncrementalUpdater.ApplyExternalSignature(
             preparation,
             signer.Sign(new PdfExternalSignatureRequest(preparation)));
     }
 
-    private static PdfPkcsSignatureCryptographyProvider CreateProvider() =>
-        new(new PdfPkcsSignatureValidationOptions { ChainEvaluator = (_, _) => true });
+    private static PdfCmsSignatureCryptographyProvider CreateProvider() {
+        var options = new CmsVerificationOptions();
+        options.CertificateValidation.ChainEvaluator = static (_, _) => true;
+        return new PdfCmsSignatureCryptographyProvider(options);
+    }
 
     private static byte[] TrimDerContainer(byte[] value) {
         int offset = 1;

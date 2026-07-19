@@ -1,6 +1,6 @@
 # OfficeIMO.Reader
 
-`OfficeIMO.Reader` is a read-only facade that normalizes extraction across:
+The OfficeIMO Reader package family is a read-only extraction surface that normalizes content across:
 - Word (`.docx`, `.docm`, `.doc`) -> Markdown chunks
 - Excel (`.xlsx`, `.xlsm`, `.xls`) -> row/table chunks (+ optional Markdown previews)
 - PowerPoint (`.pptx`, `.pptm`, `.ppt`, `.pot`, `.pps`) -> slide-aligned Markdown chunks (optionally including notes)
@@ -15,9 +15,9 @@ Remote HTTP(S) retrieval is available only through the separate `OfficeIMO.Reade
 
 ## Install / Reference
 
-Reference the `OfficeIMO.Reader` NuGet package or add a project reference. Install only the modular adapter packages required by the host.
+Install only the adapter packages required by the host. Every adapter brings `OfficeIMO.Reader.Core`; use `OfficeIMO.Reader.Core` directly for contracts, custom handlers, and plain text, or `OfficeIMO.Reader.All` only for a host that deliberately wants every in-repository adapter.
 
-The package README at `OfficeIMO.Reader/README.md` is the detailed API guide. The sections below summarize the stable host contracts and common ingestion patterns.
+The package README at `OfficeIMO.Reader.Core/README.md` is the detailed API guide. The sections below summarize the stable host contracts and common ingestion patterns.
 
 ## Current Reader Surfaces
 

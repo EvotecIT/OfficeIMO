@@ -3,8 +3,8 @@ title: "OfficeIMO.Reader"
 description: "Unified document extraction from Word, Excel, PowerPoint, Markdown, PDF, and text-like inputs. Deterministic chunks for indexing and AI workflows."
 layout: product
 product_color: "#4f46e5"
-install: "dotnet add package OfficeIMO.Reader"
-nuget: "OfficeIMO.Reader"
+install: "dotnet add package OfficeIMO.Reader.All"
+nuget: "OfficeIMO.Reader.All"
 docs_url: "/docs/reader/"
 api_url: "/api/reader/"
 preview_id: "reader"
@@ -38,7 +38,9 @@ OfficeIMO.Reader provides a single API to extract structured content from common
 
 | Package | Use it when |
 |---------|-------------|
-| `OfficeIMO.Reader` | You need the core mixed Office, Markdown, and PDF extraction facade. |
+| `OfficeIMO.Reader.Core` | You need neutral contracts, plain text, or custom handler registration without a format engine. |
+| `OfficeIMO.Reader.Word` / `.Excel` / `.PowerPoint` / `.Markdown` / `.Pdf` / `.Email` | You need only the named format and its owning engine. |
+| `OfficeIMO.Reader.All` | A broad host deliberately wants every in-repository Reader adapter. |
 | `OfficeIMO.Reader.Csv` | CSV and TSV files should flow through the same chunking and metadata model. |
 | `OfficeIMO.Reader.Json` | JSON payloads need deterministic document slices for indexing or review. |
 | `OfficeIMO.Reader.Xml` | XML documents should keep element-aware source context during extraction. |
@@ -50,11 +52,14 @@ OfficeIMO.Reader provides a single API to extract structured content from common
 
 ```csharp
 using OfficeIMO.Reader;
+using OfficeIMO.Reader.Word;
 
-var chunks = DocumentReader.Read("report.docx", new ReaderOptions
-{
+OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+    .AddWordHandler()
+    .Build();
+
+var chunks = reader.Read("report.docx", new ReaderOptions {
     MaxChars = 4_000,
-    IncludeWordFootnotes = true,
     ComputeHashes = true
 }).ToList();
 

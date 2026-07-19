@@ -24,6 +24,7 @@ public static class OfficeDocumentReaderBuilderVisioExtensions {
     private static ReaderHandlerRegistration CreateRegistration(ReaderVisioOptions? visioOptions) {
         ReaderVisioOptions? registeredOptions = ReaderVisioOptionsCloner.CloneNullable(visioOptions);
         return new ReaderHandlerRegistration {
+            Origin = ReaderHandlerOrigin.OfficeIMO,
             Id = HandlerId,
             DisplayName = "Visio Reader Adapter",
             Description = "Modular Visio adapter using OfficeIMO.Visio inspection snapshots.",

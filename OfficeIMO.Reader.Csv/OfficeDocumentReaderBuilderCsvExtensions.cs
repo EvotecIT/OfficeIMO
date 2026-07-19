@@ -24,6 +24,7 @@ public static class OfficeDocumentReaderBuilderCsvExtensions {
     private static ReaderHandlerRegistration CreateRegistration(CsvReadOptions? csvOptions) {
         CsvReadOptions? registered = Clone(csvOptions);
         return new ReaderHandlerRegistration {
+            Origin = ReaderHandlerOrigin.OfficeIMO,
             Id = HandlerId,
             DisplayName = "CSV Reader Adapter",
             Description = "Modular CSV/TSV parser with table-aware chunk output.",

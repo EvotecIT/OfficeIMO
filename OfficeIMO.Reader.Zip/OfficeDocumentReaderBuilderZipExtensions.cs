@@ -30,6 +30,7 @@ public static class OfficeDocumentReaderBuilderZipExtensions {
         ZipTraversalOptions? registeredZipOptions = Clone(zipOptions);
         ReaderZipOptions? registeredReaderZipOptions = Clone(readerZipOptions);
         return new ReaderHandlerRegistration {
+            Origin = ReaderHandlerOrigin.OfficeIMO,
             Id = HandlerId,
             DisplayName = "ZIP Reader Adapter",
             Description = "Modular ZIP adapter that traverses archives and emits Reader chunks.",

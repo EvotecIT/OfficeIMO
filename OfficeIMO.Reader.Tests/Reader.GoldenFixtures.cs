@@ -3,6 +3,7 @@ using OfficeIMO.Reader.Csv;
 using OfficeIMO.Reader.Epub;
 using OfficeIMO.Reader.Html;
 using OfficeIMO.Reader.Json;
+using OfficeIMO.Reader.Markdown;
 using OfficeIMO.Reader.Xml;
 using OfficeIMO.Reader.Zip;
 using OfficeIMO.Epub;
@@ -69,17 +70,16 @@ public sealed class ReaderGoldenFixtureTests {
     [Fact]
     public void ReaderGolden_Zip_Stream() {
         using var zipStream = BuildZipFixtureStream();
-        var chunks = ZipReaderAdapter.Read(
-            zipStream,
-            sourceName: "golden.zip",
-            readerOptions: new ReaderOptions {
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+            .AddCsvHandler(new CsvReadOptions { ChunkRows = 2, IncludeMarkdown = true })
+            .AddMarkdownHandler()
+            .AddZipHandler(
+                new ZipTraversalOptions { DeterministicOrder = true },
+                new ReaderZipOptions { ReadNestedZipEntries = false })
+            .Build();
+        var chunks = reader.Read(
+            zipStream, "golden.zip", new ReaderOptions {
                 MaxChars = 8_000
-            },
-            zipOptions: new ZipTraversalOptions {
-                DeterministicOrder = true
-            },
-            readerZipOptions: new ReaderZipOptions {
-                ReadNestedZipEntries = false
             }).ToList();
 
         AssertGolden("zip", BuildSnapshot(chunks));

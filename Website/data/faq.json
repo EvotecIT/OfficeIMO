@@ -29,7 +29,7 @@
         },
         {
           "question": "Does OfficeIMO support reading existing documents?",
-          "answer": "<p>Yes. All core libraries (Word, Excel, PowerPoint) support both creating new documents and loading/editing existing ones. The OfficeIMO.Reader package provides a unified extraction API across all formats for AI ingestion and search indexing.</p>"
+          "answer": "<p>Yes. All core libraries (Word, Excel, PowerPoint) support both creating new documents and loading/editing existing ones. The OfficeIMO.Reader package family provides one extraction API for AI ingestion and search indexing: install a selective format package, or OfficeIMO.Reader.All when you want every local handler.</p>"
         },
         {
           "question": "Is NativeAOT compilation supported?",

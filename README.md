@@ -22,14 +22,13 @@ OfficeIMO keeps document engines first-party and optional integrations isolated.
 
 | Package family | Direct external runtime dependency | What OfficeIMO owns |
 | --- | --- | --- |
-| Drawing, OneNote, PDF, Markdown, RTF, OpenDocument, AsciiDoc, LaTeX, CSV, EPUB, ZIP | No third-party document engine | Parsing, object models, writing, rendering primitives, safety limits, and diagnostics |
+| Drawing, OneNote, Markdown, RTF, OpenDocument, AsciiDoc, LaTeX, CSV, EPUB, ZIP | No third-party document engine | Parsing, object models, writing, rendering primitives, safety limits, and diagnostics |
 | Word, Excel, PowerPoint | [Open XML SDK](https://github.com/dotnet/Open-XML-SDK) | Fluent/editable object models, lifecycle, validation, conversions, managed image export, and first-party `.doc`/`.xls`/`.ppt` support |
 | HTML and MHTML | [AngleSharp](https://github.com/AngleSharp/AngleSharp) and AngleSharp.Css | Resource policy, web-archive projection, media filtering, layout scene, Office/RTF mappings, and PDF/PNG/JPEG/TIFF/SVG/WebP output |
-| Email, email stores, and address books | No third-party email engine | EML/MIME, MSG/OFT, TNEF, mbox, PST/OST, OLM, EMLX, Outlook OAB, MAPI projection, limits, and diagnostics |
+| Security, PDF, Email, email stores, and address books | [Bouncy Castle](https://www.bouncycastle.org/csharp/) through `OfficeIMO.Security`; Email also uses `System.Text.Encoding.CodePages` | CMS/S/MIME/RFC 3161/X.509 orchestration, PDF parsing/writing/signature mapping, EML/MIME, MSG/OFT, TNEF, mbox, PST/OST, OLM, EMLX, Outlook OAB, MAPI projection, limits, and diagnostics |
 | Visio | `System.IO.Packaging` | VSDX model, diagram builders, editing, validation, topology, and PNG/JPEG/TIFF/SVG/WebP export |
 | Reader.Yaml | [YamlDotNet](https://github.com/aaubry/YamlDotNet) | Reader projection, chunking, limits, locations, and diagnostics |
 | MarkdownRenderer.Wpf | Microsoft WebView2 | Rendering shell, presets, plug-in model, and WPF host contract |
-| Pdf.Cryptography.Pkcs | No external runtime package | Managed detached CMS signing and validation, X.509 chain policy, RFC 3161 parsing, and the PDF signature/revision model |
 | OCR packages | A caller-supplied executable or an installed Tesseract CLI | Candidate selection, bounded execution, protocol, result model, and diagnostics |
 | Google Workspace packages | `System.Text.Json` and platform HTTP/cryptography | Credentials abstraction, request/retry logic, Drive placement, translation plans, and reports; no Google client SDK |
 | Converter packages not listed above | Only the OfficeIMO format packages they connect | Feature mapping, limits, loss reports, and destination APIs |
@@ -179,16 +178,17 @@ _Dependency footprint:_ `System.IO.Packaging` plus `OfficeIMO.Drawing`; the VSDX
 - [x] Logical recovery used by PDF-to-Word, PDF-to-Excel, PDF-to-PowerPoint, and PDF-to-RTF adapters
 - [x] Conversion proof, visual comparison, external-validator hooks, and rewrite-preservation reports for warnings, blockers, and structure drift
 
-_Dependency footprint:_ only `OfficeIMO.Drawing`; no third-party PDF parser, writer, or renderer.
+_Dependency footprint:_ `OfficeIMO.Drawing` plus the shared `OfficeIMO.Security` CMS/X.509 engine. No third-party PDF parser, writer, or renderer.
 
-#### [OfficeIMO.Pdf.Cryptography.Pkcs](OfficeIMO.Pdf.Cryptography.Pkcs/README.md)
+#### [OfficeIMO.Security](OfficeIMO.Security/README.md)
 
-- [x] CMS/PKCS signature math and signed-attribute validation
-- [x] X.509 chain, revocation-policy, and RFC 3161 timestamp validation
-- [x] First-party RSA/SHA-256 detached CMS signer for the existing external-signature workflow
-- [x] Opt-in cryptography over the signature discovery and revision model in `OfficeIMO.Pdf`
+- [x] Detached and encapsulated CMS signing and verification with bounded parsing and structured findings
+- [x] RSA and ECDSA verification, platform X.509 chain/revocation policy, and RFC 3161 timestamp validation
+- [x] CMS EnvelopedData encryption/decryption for S/MIME recipients
+- [x] Platform-RSA signing without exporting private keys, including CNG/HSM-compatible key handles
+- [x] One vendor-neutral owner shared by the thin PDF and Email security adapters
 
-_Dependency footprint:_ only `OfficeIMO.Pdf`; no external runtime package.
+_Dependency footprint:_ one external package, `BouncyCastle.Cryptography`; no dependency on PDF, Email, Drawing, or image libraries.
 
 #### [OfficeIMO.OpenDocument](OfficeIMO.OpenDocument/README.md)
 
@@ -292,7 +292,7 @@ _Dependency footprint:_ BCL compatibility packages only; no third-party CSV pars
 - [x] Seeded CRC, record-framing, and full-schema validation with progress, cancellation, and explicit limits
 - [x] Shared `EmailAddress`, `OutlookContact`, `MapiProperty`, and diagnostics models instead of duplicate directory primitives
 
-_Dependency footprint:_ `System.Text.Encoding.CodePages` plus first-party OfficeIMO Drawing and RTF; no MailKit, MimeKit, Outlook installation, native library, or third-party message/store/OAB parser.
+_Dependency footprint:_ `System.Text.Encoding.CodePages` plus first-party OfficeIMO Drawing, RTF, and Security. Security contributes one `BouncyCastle.Cryptography` dependency; there is no MailKit, MimeKit, Outlook installation, native library, or third-party message/store/OAB parser.
 
 #### [OfficeIMO.OneNote](OfficeIMO.OneNote/README.md)
 
@@ -578,23 +578,23 @@ _Dependency footprint:_ only OfficeIMO Latex.Markdown and Markdown.Pdf; no addit
 
 ### Unified Reader family
 
-#### [OfficeIMO.Reader](OfficeIMO.Reader/README.md)
+#### [OfficeIMO.Reader.Core](OfficeIMO.Reader.Core/README.md)
 
-- [x] Immutable builder/facade for path, stream, folder, and batch document ingestion
-- [x] Built-in Word, Excel, PowerPoint, Markdown, PDF, email, and structured-text extraction
-- [x] Normalized Markdown/text chunks, tables, visuals, assets, locations, hashes, metadata, diagnostics, and schema-versioned rich results
-- [x] Input, chunk, table, folder, recursion, concurrency, and OCR-candidate limits
+- [x] Dependency-light contracts, schemas, routing, limits, processors, and immutable instance-scoped readers
+- [x] Normalized Markdown/text chunks, tables, visuals, assets, locations, hashes, metadata, diagnostics, and rich results
+- [x] Explicit handler registration with stable capability manifests and `OfficeIMO`/`Custom` origins
+- [x] Plain-text and unknown-payload fallbacks without a format-engine dependency
 
-_Dependency footprint:_ the current convenience package directly includes OfficeIMO Drawing, Word, Word.Markdown, Excel, Email, PowerPoint, Markdown, and PDF, plus `System.Text.Json` on legacy targets. A dependency-minimal `Reader.Core` split is planned.
+_Dependency footprint:_ no OfficeIMO format-engine dependency; only `System.Text.Json` on compatibility targets.
 
 #### [OfficeIMO.Reader.All](OfficeIMO.Reader.All/README.md)
 
 - [x] One composition-only `AddAllOfficeIMOHandlers()` preset for local optional Reader formats
 - [x] Per-adapter options without duplicating parsers, providers, models, or global registration state
 - [x] Explicit exclusion of OCR engines and other host-selected external processes
-- [ ] Publish deliberately as the explicit full managed graph, or remove the package-shaped project
+- [x] Explicit complete local managed graph, with OCR engines and external providers excluded
 
-_Dependency footprint:_ the existing OfficeIMO Reader adapter packages; this preset adds no parser or native runtime of its own.
+_Dependency footprint:_ the selective `OfficeIMO.Reader.*` adapter packages; this preset adds no parser or native runtime of its own.
 
 #### [OfficeIMO.Reader.AsciiDoc](OfficeIMO.Reader.AsciiDoc/README.md)
 
@@ -602,7 +602,7 @@ _Dependency footprint:_ the existing OfficeIMO Reader adapter packages; this pre
 - [x] Block-aware chunks with source lines, heading paths, tables, compound lists, and typed Markdown projection
 - [x] Parser and conversion warnings without duplicating the native AsciiDoc parser
 
-_Dependency footprint:_ only OfficeIMO Reader, AsciiDoc, and AsciiDoc.Markdown.
+_Dependency footprint:_ only OfficeIMO.Reader.Core, AsciiDoc, and AsciiDoc.Markdown.
 
 #### [OfficeIMO.Reader.Csv](OfficeIMO.Reader.Csv/README.md)
 
@@ -610,26 +610,44 @@ _Dependency footprint:_ only OfficeIMO Reader, AsciiDoc, and AsciiDoc.Markdown.
 - [x] Path/stream input, size limits, configurable chunk rows, headers, and Markdown previews
 - [x] Excel worksheet/table CSV exchange helpers
 
-_Dependency footprint:_ only OfficeIMO Reader and CSV.
+_Dependency footprint:_ only OfficeIMO.Reader.Core and CSV.
 
-#### [OfficeIMO.Reader.EmailStore](OfficeIMO.Reader.EmailStore/README.md)
+#### [OfficeIMO.Reader.Email](OfficeIMO.Reader.Email/README.md)
 
-- [x] PST, OST, OLM, and EMLX registration backed by the `OfficeIMO.Email.Store` API
-- [x] Stable store/folder/item logical paths, email chunks, metadata, attachments, hashes, and rich results
-- [x] Selective summary queries, a bounded 1,000-item default, visible truncation, and opt-in complete-store hashing
-- [x] Item-at-a-time ingestion with semantic HTML/RTF bodies, modular attachment extraction, and separate store/item diagnostics
-- [x] Reader input limits that can narrow but never widen the store parser limits
+- [x] One adapter package for EML, MSG/OFT, TNEF, Mbox/MBX, iCalendar, vCard, PST/OST/OLM/EMLX, mailbox directories, and OAB
+- [x] Stable artifact/store/folder/item logical paths, typed metadata, semantic bodies, attachments, hashes, and rich results
+- [x] Bounded selective store and address-book projection with visible truncation and opt-in complete-source hashing
+- [x] Nested attachment delegation through only the Reader handlers configured by the host
 
-_Dependency footprint:_ OfficeIMO Reader and the unified OfficeIMO Email package; no parser is duplicated in the adapter.
+_Dependency footprint:_ `OfficeIMO.Reader.Core` and the unified `OfficeIMO.Email` package; Store and AddressBook do not add NuGet layers.
 
-#### [OfficeIMO.Reader.EmailAddressBook](OfficeIMO.Reader.EmailAddressBook/README.md)
+#### [OfficeIMO.Reader.Word](OfficeIMO.Reader.Word/README.md)
 
-- [x] `.oab` v4 Full Details registration backed by the `OfficeIMO.Email.AddressBook` API
-- [x] Item-at-a-time and selective-query ingestion with one deterministic typed chunk per entry
-- [x] Safe projections that omit arbitrary raw properties and keep distribution-list membership opt-in
-- [x] Reader limits, chunk hashes, opt-in complete-source hashing, and separate session/entry diagnostics
+- [x] DOCX/DOCM and legacy DOC extraction through the owning Word engine
+- [x] Rich headings, tables, images, metadata, diagnostics, and password-aware detection
 
-_Dependency footprint:_ OfficeIMO Reader and the unified OfficeIMO Email package; no parser is duplicated in the adapter.
+_Dependency footprint:_ `OfficeIMO.Reader.Core` and `OfficeIMO.Word`.
+
+#### [OfficeIMO.Reader.Excel](OfficeIMO.Reader.Excel/README.md)
+
+- [x] XLSX/XLSM/XLSB and legacy XLS extraction through the owning Excel engine
+- [x] Rich workbook/table/image projection plus Excel CSV exchange helpers
+
+_Dependency footprint:_ `OfficeIMO.Reader.Core`, `OfficeIMO.Excel`, and `OfficeIMO.CSV`.
+
+#### [OfficeIMO.Reader.PowerPoint](OfficeIMO.Reader.PowerPoint/README.md)
+
+- [x] PPTX/PPTM and legacy PPT/POT/PPS extraction through the owning PowerPoint engine
+- [x] Slide, notes, table, image, metadata, diagnostic, and password-aware projection
+
+_Dependency footprint:_ `OfficeIMO.Reader.Core` and `OfficeIMO.PowerPoint`.
+
+#### [OfficeIMO.Reader.Markdown](OfficeIMO.Reader.Markdown/README.md)
+
+- [x] Typed Markdown parsing with source spans, heading paths, tables, and supported visual fences
+- [x] Deterministic bounded chunks without a document-format dependency
+
+_Dependency footprint:_ `OfficeIMO.Reader.Core` and `OfficeIMO.Markdown`.
 
 #### [OfficeIMO.Reader.Epub](OfficeIMO.Reader.Epub/README.md)
 
@@ -637,7 +655,7 @@ _Dependency footprint:_ OfficeIMO Reader and the unified OfficeIMO Email package
 - [x] Pages, HTML blocks, tables, links, forms, manifest image assets, metadata, and parser diagnostics
 - [x] Path/stream dispatch, non-seekable streams, limits, and propagated EPUB warnings
 
-_Dependency footprint:_ only OfficeIMO Reader, Reader.Html, and EPUB.
+_Dependency footprint:_ only `OfficeIMO.Reader.Core`, Reader.Html, and EPUB.
 
 #### [OfficeIMO.Reader.Html](OfficeIMO.Reader.Html/README.md)
 
@@ -646,7 +664,7 @@ _Dependency footprint:_ only OfficeIMO Reader, Reader.Html, and EPUB.
 - [x] Embedded MHTML resources as Reader assets with archive diagnostics and capability evidence
 - [x] HTML profile, transform, converter, and visual round-trip option pass-through
 
-_Dependency footprint:_ only OfficeIMO Reader, HTML, Markdown, and Markdown.Html; DOM parsing comes from `OfficeIMO.Html`.
+_Dependency footprint:_ `OfficeIMO.Reader.Core`, `OfficeIMO.Html`, `OfficeIMO.Markdown.Html`, and `OfficeIMO.Email` for MHTML resources.
 
 #### [OfficeIMO.Reader.Image](OfficeIMO.Reader.Image/README.md)
 
@@ -654,7 +672,7 @@ _Dependency footprint:_ only OfficeIMO Reader, HTML, Markdown, and Markdown.Html
 - [x] Header-level format, dimensions, DPI, asset, visual, and OCR-candidate projection
 - [x] Optional payload retention without pixel decoding or OCR execution
 
-_Dependency footprint:_ only OfficeIMO Reader; image identification comes from Reader's existing Drawing dependency.
+_Dependency footprint:_ `OfficeIMO.Reader.Core` and `OfficeIMO.Drawing`; no pixel-decoding or OCR package.
 
 #### [OfficeIMO.Reader.Json](OfficeIMO.Reader.Json/README.md)
 
@@ -662,7 +680,7 @@ _Dependency footprint:_ only OfficeIMO Reader; image identification comes from R
 - [x] Chunked structured output and optional Markdown tables
 - [x] Path/stream dispatch and malformed-input warnings
 
-_Dependency footprint:_ `System.Text.Json` plus OfficeIMO Reader.
+_Dependency footprint:_ `System.Text.Json` plus `OfficeIMO.Reader.Core`.
 
 #### [OfficeIMO.Reader.Latex](OfficeIMO.Reader.Latex/README.md)
 
@@ -670,7 +688,7 @@ _Dependency footprint:_ `System.Text.Json` plus OfficeIMO Reader.
 - [x] Source-located chunks for headings, paragraphs, lists, figures, tables, theorems, and math
 - [x] Visible source fallbacks and warnings for content outside the bounded document profile
 
-_Dependency footprint:_ only OfficeIMO Reader, LaTeX, and LaTeX.Markdown.
+_Dependency footprint:_ only `OfficeIMO.Reader.Core`, LaTeX, and LaTeX.Markdown.
 
 #### [OfficeIMO.Reader.Notebook](OfficeIMO.Reader.Notebook/README.md)
 
@@ -678,7 +696,7 @@ _Dependency footprint:_ only OfficeIMO Reader, LaTeX, and LaTeX.Markdown.
 - [x] Text, Markdown, stream, and error outputs with explicit count and character limits
 - [x] Deterministic ingestion without running kernels or executing cells
 
-_Dependency footprint:_ only OfficeIMO Reader; JSON comes from Reader's established runtime graph.
+_Dependency footprint:_ only `OfficeIMO.Reader.Core`; JSON comes from Reader's established runtime graph.
 
 #### [OfficeIMO.Reader.OneNote](OfficeIMO.Reader.OneNote/README.md)
 
@@ -688,7 +706,7 @@ _Dependency footprint:_ only OfficeIMO Reader; JSON comes from Reader's establis
 - [x] Complete-graph projection validation before chunks, tables, assets, links, and metadata traversal
 - [x] Thin registration over the native OneNote engine and shared OneNote.Markdown projection
 
-_Dependency footprint:_ only OfficeIMO Reader, OneNote, and OneNote.Markdown.
+_Dependency footprint:_ only `OfficeIMO.Reader.Core`, OneNote, and OneNote.Markdown.
 
 #### [OfficeIMO.Reader.OpenDocument](OfficeIMO.Reader.OpenDocument/README.md)
 
@@ -696,7 +714,7 @@ _Dependency footprint:_ only OfficeIMO Reader, OneNote, and OneNote.Markdown.
 - [x] Bounded ODS sheet/table chunks with sheet and A1-range locations
 - [x] ODP slide chunks with tables and optional speaker notes
 
-_Dependency footprint:_ only OfficeIMO Reader and OpenDocument; no LibreOffice runtime.
+_Dependency footprint:_ only `OfficeIMO.Reader.Core` and OpenDocument; no LibreOffice runtime.
 
 #### [OfficeIMO.Reader.Ocr.Process](OfficeIMO.Reader.Ocr.Process/README.md)
 
@@ -704,7 +722,7 @@ _Dependency footprint:_ only OfficeIMO Reader and OpenDocument; no LibreOffice r
 - [x] Shell-free process launch, isolated request directories, timeout/output bounds, and process-tree containment
 - [x] Structured OCR results and diagnostics with configurable candidate and concurrency limits
 
-_Dependency footprint:_ OfficeIMO Reader and `System.Text.Json`; the OCR executable is supplied by the application.
+_Dependency footprint:_ `OfficeIMO.Reader.Core` and `System.Text.Json`; the OCR executable is supplied by the application.
 
 #### [OfficeIMO.Reader.Ocr.Tesseract](OfficeIMO.Reader.Ocr.Tesseract/README.md)
 
@@ -712,7 +730,7 @@ _Dependency footprint:_ OfficeIMO Reader and `System.Text.Json`; the OCR executa
 - [x] Language discovery, version discovery, page-segmentation options, and TSV parsing
 - [x] Word/line spans with bounds, normalized confidence, timeouts, and structured failures
 
-_Dependency footprint:_ OfficeIMO Reader/Ocr.Process plus an external Tesseract installation; no bundled native binaries or language data.
+_Dependency footprint:_ `OfficeIMO.Reader.Ocr.Process` plus an external Tesseract installation; no bundled native binaries or language data.
 
 #### [OfficeIMO.Reader.Pdf](OfficeIMO.Reader.Pdf/README.md)
 
@@ -720,7 +738,7 @@ _Dependency footprint:_ OfficeIMO Reader/Ocr.Process plus an external Tesseract 
 - [x] Metadata, outlines, links, forms, annotations, layers, attachments, tags, security/signatures, and passive-action summaries
 - [x] Image placeholders, visual geometry, and typed fields where the PDF parser can recover them
 
-_Dependency footprint:_ only OfficeIMO Reader and the first-party OfficeIMO PDF engine.
+_Dependency footprint:_ only `OfficeIMO.Reader.Core` and the first-party OfficeIMO PDF engine.
 
 #### [OfficeIMO.Reader.Rtf](OfficeIMO.Reader.Rtf/README.md)
 
@@ -728,7 +746,7 @@ _Dependency footprint:_ only OfficeIMO Reader and the first-party OfficeIMO PDF 
 - [x] Semantic blocks, links, fields, image/object assets, metadata, and structured parser/binder diagnostics
 - [x] Shared reports for flattened, omitted, and blocked RTF features
 
-_Dependency footprint:_ only OfficeIMO Reader and the first-party OfficeIMO RTF engine.
+_Dependency footprint:_ only `OfficeIMO.Reader.Core` and the first-party OfficeIMO RTF engine.
 
 #### [OfficeIMO.Reader.Subtitles](OfficeIMO.Reader.Subtitles/README.md)
 
@@ -736,7 +754,7 @@ _Dependency footprint:_ only OfficeIMO Reader and the first-party OfficeIMO RTF 
 - [x] Source-ordered cue chunks with line locations and machine-readable timing metadata
 - [x] Bounded cue parsing and optional markup stripping without media or transcription tooling
 
-_Dependency footprint:_ only OfficeIMO Reader and platform APIs; no audio codec, downloader, or model.
+_Dependency footprint:_ only `OfficeIMO.Reader.Core` and platform APIs; no audio codec, downloader, or model.
 
 #### [OfficeIMO.Reader.Visio](OfficeIMO.Reader.Visio/README.md)
 
@@ -744,7 +762,7 @@ _Dependency footprint:_ only OfficeIMO Reader and platform APIs; no audio codec,
 - [x] Pages, shapes, connectors, hyperlinks, Shape Data tables, and preview metadata
 - [x] Point geometry and per-page topology visuals for graph-aware consumers
 
-_Dependency footprint:_ only OfficeIMO Reader and Visio.
+_Dependency footprint:_ only `OfficeIMO.Reader.Core` and Visio.
 
 #### [OfficeIMO.Reader.Web](OfficeIMO.Reader.Web/README.md)
 
@@ -752,7 +770,7 @@ _Dependency footprint:_ only OfficeIMO Reader and Visio.
 - [x] Response-byte, timeout, host, private-target, metadata-privacy, and concurrency bounds
 - [x] Existing handler and processor reuse without implicit network registration
 
-_Dependency footprint:_ only OfficeIMO Reader and framework `System.Net.Http`; no HTTP SDK, browser, process, model, or provider.
+_Dependency footprint:_ only `OfficeIMO.Reader.Core` and framework `System.Net.Http`; no HTTP SDK, browser, process, model, or provider.
 
 #### [OfficeIMO.Reader.Xml](OfficeIMO.Reader.Xml/README.md)
 
@@ -760,7 +778,7 @@ _Dependency footprint:_ only OfficeIMO Reader and framework `System.Net.Http`; n
 - [x] Chunked structured output and optional Markdown tables
 - [x] Path/stream dispatch and malformed-input warnings
 
-_Dependency footprint:_ OfficeIMO Reader plus platform XML APIs.
+_Dependency footprint:_ `OfficeIMO.Reader.Core` plus platform XML APIs.
 
 #### [OfficeIMO.Reader.Yaml](OfficeIMO.Reader.Yaml/README.md)
 
@@ -768,7 +786,7 @@ _Dependency footprint:_ OfficeIMO Reader plus platform XML APIs.
 - [x] Multi-document streams, chunked output, and optional Markdown tables
 - [x] Path/stream dispatch and malformed-input warnings
 
-_Dependency footprint:_ YamlDotNet plus OfficeIMO Reader.
+_Dependency footprint:_ YamlDotNet plus `OfficeIMO.Reader.Core`.
 
 #### [OfficeIMO.Reader.Zip](OfficeIMO.Reader.Zip/README.md)
 
@@ -776,7 +794,7 @@ _Dependency footprint:_ YamlDotNet plus OfficeIMO Reader.
 - [x] Bounded nested-archive traversal and non-seekable stream support
 - [x] Warning chunks for rejected, limited, or failed entries
 
-_Dependency footprint:_ only OfficeIMO Reader and Zip.
+_Dependency footprint:_ only `OfficeIMO.Reader.Core` and Zip.
 
 ### Markdown rendering and OfficeIMO Markup
 
@@ -919,8 +937,10 @@ dotnet add package OfficeIMO.Excel.Html
 dotnet add package OfficeIMO.Epub
 dotnet add package OfficeIMO.Epub.Html
 
-dotnet add package OfficeIMO.Reader
 dotnet add package OfficeIMO.Reader.Pdf
+
+# Add every Reader adapter only when a broad ingestion host genuinely needs all formats.
+dotnet add package OfficeIMO.Reader.All
 
 dotnet add package OfficeIMO.OneNote
 dotnet add package OfficeIMO.OneNote.Markdown

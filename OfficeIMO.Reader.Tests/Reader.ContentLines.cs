@@ -11,14 +11,14 @@ public sealed class ReaderContentLineTests {
     public void CalendarAndVCardKindsAndCapabilitiesAreBuiltIn() {
         Assert.Equal(21, (int)ReaderInputKind.Calendar);
         Assert.Equal(22, (int)ReaderInputKind.VCard);
-        Assert.Equal(ReaderInputKind.Calendar, OfficeDocumentReader.Default.DetectKind("meeting.ics"));
-        Assert.Equal(ReaderInputKind.Calendar, OfficeDocumentReader.Default.DetectKind("meeting.vcs"));
-        Assert.Equal(ReaderInputKind.VCard, OfficeDocumentReader.Default.DetectKind("contact.vcf"));
-        Assert.Equal(ReaderInputKind.VCard, OfficeDocumentReader.Default.DetectKind("contact.vcard"));
+        Assert.Equal(ReaderInputKind.Calendar, OfficeIMO.Reader.Tests.ReaderTestReaders.All.DetectKind("meeting.ics"));
+        Assert.Equal(ReaderInputKind.Calendar, OfficeIMO.Reader.Tests.ReaderTestReaders.All.DetectKind("meeting.vcs"));
+        Assert.Equal(ReaderInputKind.VCard, OfficeIMO.Reader.Tests.ReaderTestReaders.All.DetectKind("contact.vcf"));
+        Assert.Equal(ReaderInputKind.VCard, OfficeIMO.Reader.Tests.ReaderTestReaders.All.DetectKind("contact.vcard"));
 
-        ReaderHandlerCapability calendar = Assert.Single(OfficeDocumentReader.Default.GetCapabilities(),
+        ReaderHandlerCapability calendar = Assert.Single(OfficeIMO.Reader.Tests.ReaderTestReaders.All.GetCapabilities(),
             capability => capability.Id == "officeimo.reader.calendar");
-        ReaderHandlerCapability vcard = Assert.Single(OfficeDocumentReader.Default.GetCapabilities(),
+        ReaderHandlerCapability vcard = Assert.Single(OfficeIMO.Reader.Tests.ReaderTestReaders.All.GetCapabilities(),
             capability => capability.Id == "officeimo.reader.vcard");
         Assert.Equal(ReaderInputKind.Calendar, calendar.Kind);
         Assert.Equal(ReaderInputKind.VCard, vcard.Kind);
@@ -33,9 +33,9 @@ public sealed class ReaderContentLineTests {
         byte[] bytes = Encoding.UTF8.GetBytes("BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Reader//EN\r\n" +
             "BEGIN:VEVENT\r\nUID:reader-event\r\nSUMMARY:Reader meeting\r\nX-READER-UNKNOWN:kept\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n");
 
-        ReaderDetectionResult detection = OfficeDocumentReader.Default.Detect(bytes, "renamed.bin");
-        ReaderChunk[] chunks = OfficeDocumentReader.Default.Read(bytes, "meeting.ics").ToArray();
-        OfficeDocumentReadResult result = OfficeDocumentReader.Default.ReadDocument(bytes, "meeting.ics");
+        ReaderDetectionResult detection = OfficeIMO.Reader.Tests.ReaderTestReaders.All.Detect(bytes, "renamed.bin");
+        ReaderChunk[] chunks = OfficeIMO.Reader.Tests.ReaderTestReaders.All.Read(bytes, "meeting.ics").ToArray();
+        OfficeDocumentReadResult result = OfficeIMO.Reader.Tests.ReaderTestReaders.All.ReadDocument(bytes, "meeting.ics");
 
         Assert.Equal(ReaderInputKind.Calendar, detection.Kind);
         Assert.Equal(ReaderInputKind.Calendar, result.Kind);
@@ -50,8 +50,8 @@ public sealed class ReaderContentLineTests {
         byte[] bytes = Encoding.UTF8.GetBytes("BEGIN:VCARD\r\nVERSION:4.0\r\nFN:First contact\r\nEND:VCARD\r\n" +
             "BEGIN:VCARD\r\nVERSION:3.0\r\nFN:Second contact\r\nEND:VCARD\r\n");
 
-        ReaderDetectionResult detection = OfficeDocumentReader.Default.Detect(bytes, "renamed.bin");
-        ReaderChunk[] chunks = OfficeDocumentReader.Default.Read(bytes, "contacts.vcf").ToArray();
+        ReaderDetectionResult detection = OfficeIMO.Reader.Tests.ReaderTestReaders.All.Detect(bytes, "renamed.bin");
+        ReaderChunk[] chunks = OfficeIMO.Reader.Tests.ReaderTestReaders.All.Read(bytes, "contacts.vcf").ToArray();
 
         Assert.Equal(ReaderInputKind.VCard, detection.Kind);
         Assert.NotEmpty(chunks);
@@ -65,7 +65,7 @@ public sealed class ReaderContentLineTests {
         byte[] bytes = Encoding.UTF8.GetBytes("BEGIN:VCARD\r\nVERSION:3.0\r\n" +
             "FN;X-NAME=\"Doe\\\", John\":Legacy contact\r\nEND:VCARD\r\n");
 
-        ReaderChunk[] chunks = OfficeDocumentReader.Default.Read(bytes, "legacy.vcf").ToArray();
+        ReaderChunk[] chunks = OfficeIMO.Reader.Tests.ReaderTestReaders.All.Read(bytes, "legacy.vcf").ToArray();
 
         Assert.NotEmpty(chunks);
         Assert.Contains(chunks, chunk =>
@@ -81,11 +81,11 @@ public sealed class ReaderContentLineTests {
             "FN:Reader contact\r\nEND:VCARD\r\n");
         byte[] unknownBytes = { 0, 1, 2, 3, 4, 5, 6, 7 };
 
-        ReaderChunk calendar = Assert.Single(OfficeDocumentReader.Default.Read(
+        ReaderChunk calendar = Assert.Single(OfficeIMO.Reader.Tests.ReaderTestReaders.All.Read(
             calendarBytes, "shared.bin"));
-        ReaderChunk vcard = Assert.Single(OfficeDocumentReader.Default.Read(
+        ReaderChunk vcard = Assert.Single(OfficeIMO.Reader.Tests.ReaderTestReaders.All.Read(
             vcardBytes, "shared.bin"));
-        ReaderChunk unknown = Assert.Single(OfficeDocumentReader.Default.Read(
+        ReaderChunk unknown = Assert.Single(OfficeIMO.Reader.Tests.ReaderTestReaders.All.Read(
             unknownBytes, "shared.bin"));
 
         Assert.Equal(ReaderInputKind.Calendar, calendar.Kind);
@@ -95,9 +95,9 @@ public sealed class ReaderContentLineTests {
         Assert.StartsWith("vcard:", vcard.Id, StringComparison.Ordinal);
         Assert.StartsWith("unknown:", unknown.Id, StringComparison.Ordinal);
         Assert.Equal(3, new[] { calendar.Id, vcard.Id, unknown.Id }.Distinct().Count());
-        Assert.Equal(calendar.Id, Assert.Single(OfficeDocumentReader.Default.Read(
+        Assert.Equal(calendar.Id, Assert.Single(OfficeIMO.Reader.Tests.ReaderTestReaders.All.Read(
             calendarBytes, "shared.bin")).Id);
-        Assert.Equal(vcard.Id, Assert.Single(OfficeDocumentReader.Default.Read(
+        Assert.Equal(vcard.Id, Assert.Single(OfficeIMO.Reader.Tests.ReaderTestReaders.All.Read(
             vcardBytes, "shared.bin")).Id);
     }
 
@@ -106,7 +106,7 @@ public sealed class ReaderContentLineTests {
     [InlineData("BEGIN:VCARDINAL\r\nplain text\r\n", ReaderInputKind.VCard)]
     public void ContentDetectionRequiresAnExactContentLineRoot(
         string content, ReaderInputKind falsePositiveKind) {
-        ReaderDetectionResult detection = OfficeDocumentReader.Default.Detect(
+        ReaderDetectionResult detection = OfficeIMO.Reader.Tests.ReaderTestReaders.All.Detect(
             Encoding.UTF8.GetBytes(content), "renamed.bin");
 
         Assert.NotEqual(falsePositiveKind, detection.Kind);
@@ -119,7 +119,7 @@ public sealed class ReaderContentLineTests {
     [InlineData("\r\n\uFEFFBEGIN:VCARD\r\nVERSION:4.0\r\nEND:VCARD\r\n", ReaderInputKind.VCard)]
     public void ContentDetectionRejectsIndentedContentLineRoots(
         string content, ReaderInputKind falsePositiveKind) {
-        ReaderDetectionResult detection = OfficeDocumentReader.Default.Detect(
+        ReaderDetectionResult detection = OfficeIMO.Reader.Tests.ReaderTestReaders.All.Detect(
             Encoding.UTF8.GetBytes(content), "renamed.bin");
 
         Assert.NotEqual(falsePositiveKind, detection.Kind);
@@ -127,7 +127,7 @@ public sealed class ReaderContentLineTests {
 
     [Fact]
     public void ContentDetectionAllowsEmptyPhysicalLinesBeforeAContentLineRoot() {
-        ReaderDetectionResult detection = OfficeDocumentReader.Default.Detect(
+        ReaderDetectionResult detection = OfficeIMO.Reader.Tests.ReaderTestReaders.All.Detect(
             Encoding.ASCII.GetBytes("\r\n\nBEGIN:VCARD\r\nVERSION:4.0\r\nEND:VCARD\r\n"),
             "renamed.bin");
 

@@ -29,7 +29,7 @@
   <ItemGroup>
     <ProjectReference Include="..\OfficeIMO.AsciiDoc\OfficeIMO.AsciiDoc.csproj" />
     <ProjectReference Include="..\OfficeIMO.AsciiDoc.Markdown\OfficeIMO.AsciiDoc.Markdown.csproj" />
-    <ProjectReference Include="..\OfficeIMO.Reader\OfficeIMO.Reader.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Reader.Core\OfficeIMO.Reader.Core.csproj" />
   </ItemGroup>
 
   <ItemGroup>

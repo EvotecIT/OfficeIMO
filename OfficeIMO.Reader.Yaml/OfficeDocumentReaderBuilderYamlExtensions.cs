@@ -24,6 +24,7 @@ public static class OfficeDocumentReaderBuilderYamlExtensions {
     private static ReaderHandlerRegistration CreateRegistration(YamlReadOptions? yamlOptions) {
         YamlReadOptions? registered = Clone(yamlOptions);
         return new ReaderHandlerRegistration {
+            Origin = ReaderHandlerOrigin.OfficeIMO,
             Id = HandlerId,
             DisplayName = "YAML Reader Adapter",
             Description = "Modular YAML parser with path/type/value chunk output.",

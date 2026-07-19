@@ -2,8 +2,8 @@ using OfficeIMO.Email;
 using OfficeIMO.Email.AddressBook;
 using OfficeIMO.Email.Store;
 using OfficeIMO.Reader;
-using OfficeIMO.Reader.EmailAddressBook;
-using OfficeIMO.Reader.EmailStore;
+using OfficeIMO.Reader.Email;
+using OfficeIMO.Reader.Image;
 using System.Text;
 
 byte[] eml = Encoding.ASCII.GetBytes(
@@ -49,7 +49,7 @@ try {
     if (!readerItem.Succeeded ||
         !readerItem.Chunks.Any(chunk => chunk.Text.Contains("Store body", StringComparison.Ordinal))) {
         throw new InvalidOperationException(
-            "The packed OfficeIMO.Reader.EmailStore dependency graph could not project an EMLX item.");
+            "The packed OfficeIMO.Reader.Email dependency graph could not project an EMLX item.");
     }
 } finally {
     if (File.Exists(storePath)) File.Delete(storePath);
@@ -76,11 +76,26 @@ using (var stream = new MemoryStream(oab, writable: false)) {
         !readerDocument.CapabilitiesUsed.Contains(
             OfficeDocumentReaderBuilderEmailAddressBookExtensions.HandlerId, StringComparer.Ordinal)) {
         throw new InvalidOperationException(
-            "The packed OfficeIMO.Reader.EmailAddressBook dependency graph could not project an OAB entry.");
+            "The packed OfficeIMO.Reader.Email dependency graph could not project an OAB entry.");
     }
 }
 
-Console.WriteLine($"Unified OfficeIMO Email and both Reader adapter package smokes passed on {System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription}.");
+byte[] svg = Encoding.UTF8.GetBytes(
+    "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"2\" height=\"1\"><rect width=\"2\" height=\"1\"/></svg>");
+using (var stream = new MemoryStream(svg, writable: false)) {
+    OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+        .AddImageHandler()
+        .Build();
+    OfficeDocumentReadResult image = reader.ReadDocument(
+        stream, "package-smoke.svg", new ReaderOptions { ComputeHashes = false });
+    if (image.Assets.Count != 1 ||
+        !string.Equals(image.Assets[0].MediaType, "image/svg+xml", StringComparison.Ordinal)) {
+        throw new InvalidOperationException(
+            "The packed OfficeIMO.Reader.Image dependency graph could not execute OfficeIMO.Drawing image identification.");
+    }
+}
+
+Console.WriteLine($"Unified OfficeIMO Email and selective Reader package smokes passed on {System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription}.");
 
 static byte[] CreateAddressBook() {
     using var stream = new MemoryStream();

@@ -1,4 +1,5 @@
 using OfficeIMO.Reader;
+using OfficeIMO.Reader.Markdown;
 using OfficeIMO.Reader.Zip;
 using OfficeIMO.Zip;
 using System.IO.Compression;
@@ -73,11 +74,11 @@ public sealed class ReaderZipModularTests {
                 WriteTextEntry(archive, "big.txt", new string('x', 2048));
             }
 
-            var chunks = ZipReaderAdapter.Read(
-                zipPath,
-                readerOptions: new ReaderOptions { MaxInputBytes = 512, MaxChars = 8_000 },
-                zipOptions: new ZipTraversalOptions { DeterministicOrder = true },
-                readerZipOptions: new ReaderZipOptions { ReadNestedZipEntries = true, MaxNestedDepth = 2 }).ToList();
+            OfficeDocumentReader reader = CreateMarkdownZipReader(
+                new ZipTraversalOptions { DeterministicOrder = true },
+                new ReaderZipOptions { ReadNestedZipEntries = true, MaxNestedDepth = 2 });
+            var chunks = reader.Read(zipPath,
+                new ReaderOptions { MaxInputBytes = 512, MaxChars = 8_000 }).ToList();
 
             Assert.NotEmpty(chunks);
             Assert.Contains(chunks, c =>
@@ -101,11 +102,10 @@ public sealed class ReaderZipModularTests {
         var zipBytes = BuildSimpleZipBytes();
         using var stream = new NonSeekableReadStream(zipBytes);
 
-        var chunks = ZipReaderAdapter.Read(
-            stream,
-            sourceName: "nonseekable.zip",
-            readerOptions: new ReaderOptions { MaxChars = 8_000 },
-            zipOptions: new ZipTraversalOptions { DeterministicOrder = true }).ToList();
+        OfficeDocumentReader reader = CreateMarkdownZipReader(
+            new ZipTraversalOptions { DeterministicOrder = true });
+        var chunks = reader.Read(stream, "nonseekable.zip",
+            new ReaderOptions { MaxChars = 8_000 }).ToList();
 
         Assert.NotEmpty(chunks);
         Assert.Contains(chunks, c =>
@@ -134,19 +134,15 @@ public sealed class ReaderZipModularTests {
 
         using var first = new MemoryStream(zipBytes, writable: false);
         using var second = new MemoryStream(zipBytes, writable: false);
+        OfficeDocumentReader reader = CreateMarkdownZipReader(
+            new ZipTraversalOptions { DeterministicOrder = true });
 
-        var firstChunk = ZipReaderAdapter.Read(
-            first,
-            sourceName: "first.zip",
-            readerOptions: new ReaderOptions { MaxChars = 8_000, ComputeHashes = true },
-            zipOptions: new ZipTraversalOptions { DeterministicOrder = true })
+        var firstChunk = reader.Read(first, "first.zip",
+            new ReaderOptions { MaxChars = 8_000, ComputeHashes = true })
             .Single(c => c.Kind == ReaderInputKind.Markdown);
 
-        var secondChunk = ZipReaderAdapter.Read(
-            second,
-            sourceName: "second.zip",
-            readerOptions: new ReaderOptions { MaxChars = 8_000, ComputeHashes = true },
-            zipOptions: new ZipTraversalOptions { DeterministicOrder = true })
+        var secondChunk = reader.Read(second, "second.zip",
+            new ReaderOptions { MaxChars = 8_000, ComputeHashes = true })
             .Single(c => c.Kind == ReaderInputKind.Markdown);
 
         Assert.Contains("first.zip::docs/readme.md", firstChunk.Location.Path ?? string.Empty, StringComparison.OrdinalIgnoreCase);
@@ -202,12 +198,11 @@ public sealed class ReaderZipModularTests {
         var zipBytes = BuildZipWithCaseDistinctEntries();
 
         using var stream = new MemoryStream(zipBytes, writable: false);
+        OfficeDocumentReader reader = CreateMarkdownZipReader(
+            new ZipTraversalOptions { DeterministicOrder = true });
 
-        var chunks = ZipReaderAdapter.Read(
-            stream,
-            sourceName: "case-sensitive.zip",
-            readerOptions: new ReaderOptions { MaxChars = 8_000, ComputeHashes = true },
-            zipOptions: new ZipTraversalOptions { DeterministicOrder = true })
+        var chunks = reader.Read(stream, "case-sensitive.zip",
+            new ReaderOptions { MaxChars = 8_000, ComputeHashes = true })
             .Where(c => c.Kind == ReaderInputKind.Markdown)
             .ToList();
 
@@ -233,17 +228,15 @@ public sealed class ReaderZipModularTests {
                 Environment.CurrentDirectory = tempDirectory;
                 var relativePath = Path.GetFileName(zipPath);
                 var fullPath = Path.GetFullPath(relativePath).Replace('\\', '/');
+                OfficeDocumentReader reader = CreateMarkdownZipReader(
+                    new ZipTraversalOptions { DeterministicOrder = true });
 
-                var relativeChunk = ZipReaderAdapter.Read(
-                    relativePath,
-                    readerOptions: new ReaderOptions { MaxChars = 8_000, ComputeHashes = true },
-                    zipOptions: new ZipTraversalOptions { DeterministicOrder = true })
+                var relativeChunk = reader.Read(relativePath,
+                    new ReaderOptions { MaxChars = 8_000, ComputeHashes = true })
                     .Single(c => c.Kind == ReaderInputKind.Markdown);
 
-                var fullChunk = ZipReaderAdapter.Read(
-                    zipPath,
-                    readerOptions: new ReaderOptions { MaxChars = 8_000, ComputeHashes = true },
-                    zipOptions: new ZipTraversalOptions { DeterministicOrder = true })
+                var fullChunk = reader.Read(zipPath,
+                    new ReaderOptions { MaxChars = 8_000, ComputeHashes = true })
                     .Single(c => c.Kind == ReaderInputKind.Markdown);
 
                 Assert.Equal(fullPath + "::docs/readme.md", relativeChunk.Location.Path);
@@ -258,6 +251,14 @@ public sealed class ReaderZipModularTests {
             }
         }
     }
+
+    private static OfficeDocumentReader CreateMarkdownZipReader(
+        ZipTraversalOptions? zipOptions = null,
+        ReaderZipOptions? readerZipOptions = null) =>
+        new OfficeDocumentReaderBuilder()
+            .AddMarkdownHandler()
+            .AddZipHandler(zipOptions, readerZipOptions)
+            .Build();
 
     [Fact]
     public void DocumentReaderZip_DisabledNestedZipWarnings_IncludeEntryMetadata() {

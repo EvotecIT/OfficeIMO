@@ -16,6 +16,7 @@ public static class OfficeDocumentReaderBuilderImageExtensions {
         if (builder == null) throw new ArgumentNullException(nameof(builder));
         ReaderImageOptions registered = (imageOptions ?? new ReaderImageOptions()).CloneValidated();
         return builder.AddHandler(new ReaderHandlerRegistration {
+            Origin = ReaderHandlerOrigin.OfficeIMO,
             Id = HandlerId,
             DisplayName = "Image Reader Adapter",
             Description = "Header-only image metadata, materializable asset, and optional OCR candidate projection.",

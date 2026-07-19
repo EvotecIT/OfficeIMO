@@ -24,6 +24,7 @@ public static class OfficeDocumentReaderBuilderXmlExtensions {
     private static ReaderHandlerRegistration CreateRegistration(XmlReadOptions? xmlOptions) {
         XmlReadOptions? registered = Clone(xmlOptions);
         return new ReaderHandlerRegistration {
+            Origin = ReaderHandlerOrigin.OfficeIMO,
             Id = HandlerId,
             DisplayName = "XML Reader Adapter",
             Description = "Modular XML tree parser with path/type/value chunk output.",

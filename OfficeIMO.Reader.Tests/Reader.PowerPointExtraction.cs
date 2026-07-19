@@ -26,15 +26,15 @@ public sealed class ReaderPowerPointExtractionTests {
             File.WriteAllBytes(path, bytes);
 
             OfficeDocumentReadResult pathResult =
-                OfficeDocumentReader.Default.ReadDocument(path);
+                OfficeIMO.Reader.Tests.ReaderTestReaders.All.ReadDocument(path);
             using var stream = new MemoryStream(bytes, writable: false);
             OfficeDocumentReadResult streamResult =
-                OfficeDocumentReader.Default.ReadDocument(stream,
+                OfficeIMO.Reader.Tests.ReaderTestReaders.All.ReadDocument(stream,
                     "reader-contract." + extension);
             ReaderDetectionResult pathDetection =
-                OfficeDocumentReader.Default.Detect(path);
+                OfficeIMO.Reader.Tests.ReaderTestReaders.All.Detect(path);
             ReaderDetectionResult streamDetection =
-                OfficeDocumentReader.Default.Detect(bytes,
+                OfficeIMO.Reader.Tests.ReaderTestReaders.All.Detect(bytes,
                     "reader-contract." + extension);
 
             AssertPowerPointRichExtraction(pathResult);
@@ -59,14 +59,14 @@ public sealed class ReaderPowerPointExtractionTests {
         try {
             File.WriteAllBytes(path, bytes);
             ReaderDetectionResult byteDetection =
-                OfficeDocumentReader.Default.Detect(bytes);
+                OfficeIMO.Reader.Tests.ReaderTestReaders.All.Detect(bytes);
             ReaderDetectionResult pathDetection =
-                OfficeDocumentReader.Default.Detect(path);
+                OfficeIMO.Reader.Tests.ReaderTestReaders.All.Detect(path);
             using var stream = new MemoryStream(bytes, writable: false);
             OfficeDocumentReadResult streamResult =
-                OfficeDocumentReader.Default.ReadDocument(stream);
+                OfficeIMO.Reader.Tests.ReaderTestReaders.All.ReadDocument(stream);
             OfficeDocumentReadResult pathResult =
-                OfficeDocumentReader.Default.ReadDocument(path);
+                OfficeIMO.Reader.Tests.ReaderTestReaders.All.ReadDocument(path);
 
             foreach (ReaderDetectionResult detection in new[] {
                          byteDetection, pathDetection
@@ -94,7 +94,7 @@ public sealed class ReaderPowerPointExtractionTests {
             cancellation.Cancel);
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
-            OfficeDocumentReader.Default.DetectAsync(stream,
+            OfficeIMO.Reader.Tests.ReaderTestReaders.All.DetectAsync(stream,
                 "extensionless-upload", cancellationToken:
                 cancellation.Token));
 
@@ -123,7 +123,7 @@ public sealed class ReaderPowerPointExtractionTests {
         }
 
         OfficeDocumentReadResult result =
-            OfficeDocumentReader.Default.ReadDocument(
+            OfficeIMO.Reader.Tests.ReaderTestReaders.All.ReadDocument(
                 new MemoryStream(bytes, writable: false),
                 "grouped-content.pptx");
 
@@ -167,7 +167,7 @@ public sealed class ReaderPowerPointExtractionTests {
         }
 
         OfficeDocumentReadResult result =
-            OfficeDocumentReader.Default.ReadDocument(
+            OfficeIMO.Reader.Tests.ReaderTestReaders.All.ReadDocument(
                 new MemoryStream(bytes, writable: false),
                 binary ? "internal-link.ppt" : "internal-link.pptx");
 
@@ -203,11 +203,11 @@ public sealed class ReaderPowerPointExtractionTests {
         }
 
         OfficeDocumentReadResult pptxResult =
-            OfficeDocumentReader.Default.ReadDocument(
+            OfficeIMO.Reader.Tests.ReaderTestReaders.All.ReadDocument(
                 new MemoryStream(pptxBytes, writable: false),
                 "reader-table.pptx");
         OfficeDocumentReadResult pptResult =
-            OfficeDocumentReader.Default.ReadDocument(
+            OfficeIMO.Reader.Tests.ReaderTestReaders.All.ReadDocument(
                 new MemoryStream(pptBytes, writable: false),
                 "reader-table.ppt");
 
@@ -274,7 +274,7 @@ public sealed class ReaderPowerPointExtractionTests {
         }
 
         OfficeDocumentReadResult result =
-            OfficeDocumentReader.Default.ReadDocument(
+            OfficeIMO.Reader.Tests.ReaderTestReaders.All.ReadDocument(
                 new MemoryStream(bytes, writable: false),
                 "numbering-boundaries.pptx");
 
@@ -303,7 +303,7 @@ public sealed class ReaderPowerPointExtractionTests {
         }
 
         OfficeDocumentReadResult result =
-            OfficeDocumentReader.Default.ReadDocument(
+            OfficeIMO.Reader.Tests.ReaderTestReaders.All.ReadDocument(
                 new MemoryStream(bytes, writable: false),
                 "bulleted-title.pptx");
 

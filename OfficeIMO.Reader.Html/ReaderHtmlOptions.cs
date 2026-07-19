@@ -7,6 +7,9 @@ namespace OfficeIMO.Reader.Html;
 /// Options for HTML ingestion pipeline (HTML -> Markdown).
 /// </summary>
 public sealed class ReaderHtmlOptions {
+    /// <summary>Starts a new chunk at Markdown headings when possible.</summary>
+    public bool ChunkByHeadings { get; set; } = true;
+
     /// <summary>
     /// Creates the default OfficeIMO HTML reader profile.
     /// </summary>
@@ -51,6 +54,7 @@ public sealed class ReaderHtmlOptions {
     /// </summary>
     /// <returns>A new <see cref="ReaderHtmlOptions"/> with cloned nested HTML-to-Markdown options.</returns>
     public ReaderHtmlOptions Clone() => new ReaderHtmlOptions {
-        HtmlToMarkdownOptions = HtmlToMarkdownOptions?.Clone()
+        HtmlToMarkdownOptions = HtmlToMarkdownOptions?.Clone(),
+        ChunkByHeadings = ChunkByHeadings
     };
 }

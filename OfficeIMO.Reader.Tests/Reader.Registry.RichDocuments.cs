@@ -5,8 +5,7 @@ namespace OfficeIMO.Tests;
 
 public sealed partial class ReaderRegistryTests {
     [Fact]
-    public void OfficeDocumentReader_HandlerDefaultLimit_IgnoresPathOnlyOverridesForStreamInput() {
-        long? builtInLimit = OfficeDocumentReader.Default.GetHandlerDefaultMaxInputBytes("message.eml");
+    public void OfficeDocumentReader_HandlerDefaultLimit_ReportsTheRegisteredPathOnlyHandler() {
         OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
             .AddHandler(new ReaderHandlerRegistration {
                 Id = "officeimo.tests.path-only-email",
@@ -17,8 +16,10 @@ public sealed partial class ReaderRegistryTests {
             }, replaceExisting: true)
             .Build();
 
-        Assert.NotNull(builtInLimit);
-        Assert.Equal(builtInLimit, reader.GetHandlerDefaultMaxInputBytes("message.eml"));
+        Assert.Equal(16, reader.GetHandlerDefaultMaxInputBytes("message.eml"));
+        ReaderHandlerCapability capability = Assert.Single(reader.GetCapabilities());
+        Assert.True(capability.SupportsPath);
+        Assert.False(capability.SupportsStream);
     }
 
     [Fact]

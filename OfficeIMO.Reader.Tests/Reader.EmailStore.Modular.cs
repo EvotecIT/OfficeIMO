@@ -1,6 +1,6 @@
 using OfficeIMO.Email;
 using OfficeIMO.Email.Store;
-using OfficeIMO.Reader.EmailStore;
+using OfficeIMO.Reader.Email;
 using OfficeIMO.Reader.Html;
 using OfficeIMO.Reader.Rtf;
 using OfficeIMO.Rtf;
@@ -45,7 +45,7 @@ public sealed class ReaderEmailStoreModularTests {
         Assert.Equal(3, stream.Position);
         Assert.Equal(ReaderInputKind.Email, result.Kind);
         Assert.Equal("42", result.Source.Title);
-        Assert.Contains("officeimo.reader.emailstore", result.CapabilitiesUsed);
+        Assert.Contains(OfficeDocumentReaderBuilderEmailStoreExtensions.HandlerId, result.CapabilitiesUsed);
         Assert.Contains("officeimo.email.store", result.CapabilitiesUsed);
         Assert.Contains("officeimo.email.store.emlx", result.CapabilitiesUsed);
         Assert.Contains(result.Chunks, chunk =>

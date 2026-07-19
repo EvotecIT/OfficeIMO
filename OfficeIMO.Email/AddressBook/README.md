@@ -140,7 +140,7 @@ Memory tracks metadata and the active record, not total file size. Enumeration, 
 
 - `OfficeIMO.Email.AddressBook` owns OAB file-set discovery, v4 schema/record decoding, search, offline identity resolution, and validation.
 - `OfficeIMO.Email` owns reusable `EmailAddress`, `OutlookContact`, `MapiProperty`, and diagnostics models.
-- `OfficeIMO.Reader.EmailAddressBook` owns optional Reader chunks and registration.
+- `OfficeIMO.Reader.Email` owns optional Reader chunks and registration for OAB alongside other email data.
 - The `OfficeIMO.Email.Store` API remains the PST/OST/OLM/EMLX mailbox owner; an OAB entry is not an `EmailDocument`.
 - Exchange/Graph directory synchronization, Outlook profile settings, autocomplete caches, search indexes, and address-book mutation are separate concerns.
 

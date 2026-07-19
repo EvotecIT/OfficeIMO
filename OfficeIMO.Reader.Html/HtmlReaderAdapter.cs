@@ -109,7 +109,7 @@ internal static partial class HtmlReaderAdapter {
         var parts = SplitMarkdown(
             markdown,
             maxChars,
-            chunkByHeadings: effective.MarkdownChunkByHeadings,
+            chunkByHeadings: effectiveHtmlOptions.ChunkByHeadings,
             cancellationToken);
         var sourceTables = DocumentReaderEngine.ExtractMarkdownTables(markdown, effective, cancellationToken);
 

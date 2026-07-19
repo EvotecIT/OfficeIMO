@@ -1,3 +1,4 @@
+using OfficeIMO.Reader.Markdown;
 using OfficeIMO.Reader.Tool;
 using System.Threading;
 using System.Threading.Tasks;
@@ -310,7 +311,7 @@ public sealed class ReaderToolTests {
         for (int index = 99; index >= 0; index--) {
             File.WriteAllText(Path.Combine(temporary.Path, index.ToString("D3") + ".md"), "# Document");
         }
-        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().Build();
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddMarkdownHandler().Build();
 
         IReadOnlyList<string> paths = ReaderToolFileDiscovery.FindSupportedFiles(
             temporary.Path,

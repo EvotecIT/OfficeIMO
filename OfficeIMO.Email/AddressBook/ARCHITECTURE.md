@@ -8,7 +8,7 @@ OAB and mailbox-store behavior are separate API areas inside one production pack
 OfficeIMO.Email                         one NuGet and assembly
 ├── OfficeIMO.Email.Store               PST/OST/OLM/EMLX mailbox API
 └── OfficeIMO.Email.AddressBook         OAB directory snapshot API
-    └── OfficeIMO.Reader.EmailAddressBook  optional Reader projection
+    └── OfficeIMO.Reader.Email           optional unified Reader projection
 ```
 
 An OAB record represents a directory object, not a message. Keeping its model and namespace outside

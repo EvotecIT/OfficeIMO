@@ -318,9 +318,9 @@ public sealed class ReaderHtmlModularTests {
             html: html,
             sourceName: "headings-disabled.html",
             readerOptions: new ReaderOptions {
-                MaxChars = 8_000,
-                MarkdownChunkByHeadings = false
-            }).ToList();
+                MaxChars = 8_000
+            },
+            htmlOptions: new ReaderHtmlOptions { ChunkByHeadings = false }).ToList();
 
         Assert.NotEmpty(chunks);
         Assert.DoesNotContain(chunks, c => !string.IsNullOrWhiteSpace(c.Location.HeadingPath));

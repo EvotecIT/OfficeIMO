@@ -23,6 +23,7 @@ public static class OfficeDocumentReaderBuilderPdfExtensions {
     private static ReaderHandlerRegistration CreateRegistration(ReaderPdfOptions? pdfOptions) {
         ReaderPdfOptions? registeredOptions = ReaderPdfOptionsCloner.CloneNullable(pdfOptions);
         return new ReaderHandlerRegistration {
+            Origin = ReaderHandlerOrigin.OfficeIMO,
             Id = HandlerId,
             DisplayName = "PDF Reader Adapter",
             Description = "Modular PDF adapter using OfficeIMO.Pdf logical read model.",

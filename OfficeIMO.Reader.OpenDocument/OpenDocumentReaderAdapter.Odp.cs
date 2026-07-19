@@ -3,7 +3,7 @@ using OfficeIMO.OpenDocument;
 namespace OfficeIMO.Reader.OpenDocument;
 
 internal static partial class OpenDocumentReaderAdapter {
-    private static IEnumerable<ReaderChunk> ReadPresentation(OdpPresentation document, string sourceName, ReaderOptions options,
+    private static IEnumerable<ReaderChunk> ReadPresentation(OdpPresentation document, string sourceName, ReaderOptions options, ReaderOpenDocumentOptions formatOptions,
         CancellationToken cancellationToken) {
         for (int slideIndex = 0; slideIndex < document.Slides.Count; slideIndex++) {
             cancellationToken.ThrowIfCancellationRequested();
@@ -11,7 +11,7 @@ internal static partial class OpenDocumentReaderAdapter {
             var paragraphs = new List<string>();
             var tables = new List<ReaderTable>();
             CollectSlideContent(slide.Shapes, sourceName, slideIndex, options, paragraphs, tables);
-            var notes = options.IncludePowerPointNotes
+            var notes = formatOptions.IncludeSpeakerNotes
                 ? slide.SpeakerNotes?.Paragraphs.Select(paragraph => paragraph.Text.Trim()).Where(text => text.Length > 0).ToArray()
                 : null;
             if (notes != null && notes.Length > 0) paragraphs.AddRange(notes.Select(text => "Notes: " + text));
@@ -24,7 +24,7 @@ internal static partial class OpenDocumentReaderAdapter {
             }
             var warnings = new List<string>();
             if (slide.Hidden) warnings.Add("Slide is hidden in the source presentation.");
-            if (!options.IncludePowerPointNotes && slide.SpeakerNotes != null) warnings.Add("Speaker notes were omitted by ReaderOptions.");
+            if (!formatOptions.IncludeSpeakerNotes && slide.SpeakerNotes != null) warnings.Add("Speaker notes were omitted by ReaderOpenDocumentOptions.");
             yield return new ReaderChunk {
                 Id = BuildId(sourceName, "slide", slideIndex), Kind = ReaderInputKind.OpenDocument,
                 Location = new ReaderLocation {

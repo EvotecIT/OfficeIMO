@@ -137,6 +137,6 @@ public sealed class PdfPublicApiContractTests {
             .Cast<string>()
             .OrderBy(name => name, StringComparer.Ordinal)
             .ToArray();
-        Assert.Equal(new[] { "OfficeIMO.Drawing" }, officeReferences);
+        Assert.Equal(new[] { "OfficeIMO.Drawing", "OfficeIMO.Security" }, officeReferences);
     }
 }

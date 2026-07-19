@@ -13,6 +13,7 @@ public static class OfficeDocumentReaderBuilderOneNoteExtensions {
         if (builder == null) throw new ArgumentNullException(nameof(builder));
         ReaderOneNoteOptions? registered = ReaderOneNoteOptionsCloner.CloneNullable(oneNoteOptions);
         return builder.AddHandler(new ReaderHandlerRegistration {
+            Origin = ReaderHandlerOrigin.OfficeIMO,
             Id = HandlerId,
             DisplayName = "OneNote Reader Adapter",
             Description = "Native offline OneNote adapter backed by OfficeIMO.OneNote.",

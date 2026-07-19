@@ -250,7 +250,8 @@ internal static class ZipReaderAdapter {
             IEnumerable<ReaderChunk>? chunks = null;
             string? parseError = null;
             try {
-                chunks = DocumentReaderEngine.Read(bytes!, entryName, readerOptions, cancellationToken);
+                using var content = new MemoryStream(bytes!, writable: false);
+                chunks = ReaderNestedContent.Read(content, entryName, readerOptions, cancellationToken);
             } catch (Exception ex) when (ex is not OperationCanceledException) {
                 parseError = $"Skipped ZIP entry due parse error: {ex.GetType().Name}.";
             }

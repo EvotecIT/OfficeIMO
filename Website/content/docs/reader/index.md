@@ -12,16 +12,22 @@ Format-specific parsing stays in the owning OfficeIMO package. Optional adapters
 
 ## Install
 
-Install the core package and any modular adapters used by the application:
+Install the selective adapters used by the application. Each adapter brings the neutral Core contracts. Use `All`
+only for a host that deliberately wants every adapter:
 
 ```powershell
-dotnet add package OfficeIMO.Reader
+dotnet add package OfficeIMO.Reader.Word
 dotnet add package OfficeIMO.Reader.Pdf
 dotnet add package OfficeIMO.Reader.Html
 dotnet add package OfficeIMO.Reader.Epub
+
+# Broad mixed-format host
+dotnet add package OfficeIMO.Reader.All
 ```
 
-The core package reads Word (`.docx`, `.docm`, `.doc`), Excel (`.xlsx`, `.xlsm`, `.xls`), PowerPoint (`.pptx`, `.pptm`, `.ppt`, `.pot`, `.pps`), and Markdown. Legacy formats route through their owning OfficeIMO engines, including PowerPoint import diagnostics, rich slide mapping, image assets, and `ReaderOptions.OpenPassword`. Adapter packages add PDF, CSV/TSV, EPUB, HTML, JSON, XML, YAML, RTF, Visio, ZIP, and structured text support.
+`OfficeIMO.Reader.Core` owns contracts, routing, plain text, processing, and custom-handler registration; it has no
+format-engine dependencies. Word, Excel, PowerPoint, Markdown, Email, PDF, and the other formats are separate adapters
+over their owning OfficeIMO engines.
 
 ## Choose the result you need
 
@@ -29,8 +35,13 @@ Use `Read(...)` for indexing-friendly chunks:
 
 ```csharp
 using OfficeIMO.Reader;
+using OfficeIMO.Reader.Word;
 
-foreach (ReaderChunk chunk in DocumentReader.Read("proposal.docx")) {
+OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+    .AddWordHandler()
+    .Build();
+
+foreach (ReaderChunk chunk in reader.Read("proposal.docx")) {
     Console.WriteLine(chunk.Location.HeadingPath ?? chunk.Location.Path);
     Console.WriteLine(chunk.Markdown ?? chunk.Text);
 }
@@ -39,7 +50,7 @@ foreach (ReaderChunk chunk in DocumentReader.Read("proposal.docx")) {
 Use `ReadDocument(...)` when the host needs the complete normalized document:
 
 ```csharp
-OfficeDocumentReadResult document = DocumentReader.ReadDocument("proposal.docx");
+OfficeDocumentReadResult document = reader.ReadDocument("proposal.docx");
 
 Console.WriteLine($"{document.Pages.Count} pages or source containers");
 Console.WriteLine($"{document.Tables.Count} tables");
@@ -52,7 +63,7 @@ The rich JSON envelope currently writes schema version 6 and still reads the fir
 
 ## Isolated readers for services
 
-The static `DocumentReader` facade remains available for compatible process-wide registration. Services and concurrent hosts should freeze their adapters, options, and processors into an isolated reader instance:
+Services and concurrent hosts should freeze their adapters, options, and processors into an isolated reader instance:
 
 ```csharp
 using OfficeIMO.Reader;
@@ -145,13 +156,13 @@ The core `IOfficeOcrEngine` contract executes OCR candidates with bounded count,
 - `OfficeIMO.Reader.Ocr.Tesseract` uses a separately installed Tesseract CLI and exposes TSV line/word geometry.
 - Hosts can implement `IOfficeOcrEngine` or use `DelegateOfficeOcrEngine` for another local or cloud provider.
 
-Neither provider is a transitive dependency of `OfficeIMO.Reader`.
+Neither provider is a transitive dependency of `OfficeIMO.Reader.Core` or `OfficeIMO.Reader.All`.
 
 ## Package and ownership boundaries
 
-- `OfficeIMO.Reader` owns the shared result, routing, limits, diagnostics, processing, structured extraction, and hierarchy contracts.
+- `OfficeIMO.Reader.Core` owns the shared result, routing, limits, diagnostics, processing, structured extraction, and hierarchy contracts.
 - Word, Excel, PowerPoint, Markdown, PDF, RTF, HTML, EPUB, Visio, and other format packages own their parsing and inspection models.
 - Modular Reader packages adapt those models into the shared result.
 - Storage, vector databases, AI clients, and platform-specific services belong in the consuming application or an opt-in provider.
 
-See the [OfficeIMO.Reader package README](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Reader/README.md) for the complete API walkthrough and the [Reader API reference](/api/reader/) for generated type documentation.
+See the [OfficeIMO.Reader.Core package README](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Reader.Core/README.md) for the complete API walkthrough and the [Reader API reference](/api/reader/) for generated type documentation.

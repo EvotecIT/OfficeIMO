@@ -13,6 +13,7 @@ public static class OfficeDocumentReaderBuilderLatexExtensions {
         if (builder == null) throw new ArgumentNullException(nameof(builder));
         ReaderLatexOptions registered = ReaderLatexOptionsCloner.Clone(latexOptions);
         return builder.AddHandler(new ReaderHandlerRegistration {
+            Origin = ReaderHandlerOrigin.OfficeIMO,
             Id = HandlerId,
             DisplayName = "LaTeX Reader Adapter",
             Description = "Modular adapter backed by the non-executing OfficeIMO LaTeX profile.",

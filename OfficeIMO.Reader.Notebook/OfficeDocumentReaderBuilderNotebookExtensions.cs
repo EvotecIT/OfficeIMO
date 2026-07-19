@@ -16,6 +16,7 @@ public static class OfficeDocumentReaderBuilderNotebookExtensions {
         if (builder == null) throw new ArgumentNullException(nameof(builder));
         ReaderNotebookOptions registered = (notebookOptions ?? new ReaderNotebookOptions()).CloneValidated();
         return builder.AddHandler(new ReaderHandlerRegistration {
+            Origin = ReaderHandlerOrigin.OfficeIMO,
             Id = HandlerId,
             DisplayName = "Jupyter Notebook Reader Adapter",
             Description = "Bounded Jupyter Notebook Markdown, code, and text-output projection.",

@@ -1,5 +1,5 @@
 using OfficeIMO.Reader;
-using OfficeIMO.Reader.EmailAddressBook;
+using OfficeIMO.Reader.Email;
 
 namespace OfficeIMO.Email.AddressBook.Tests;
 

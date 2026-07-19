@@ -246,21 +246,19 @@ Gate evidence on 18 July 2026:
 - Microsoft PKCS 10.0.10 is dependency-free for `net10.0`, adds two Microsoft dependencies for `net8.0`, and expands to
   a compatibility graph for `net472` and `netstandard2.0`; Microsoft PKCS 8.0.1 is dependency-free for `net472`,
   `net8.0`, and `net10.0`, while `netstandard2.0` still requires Microsoft compatibility packages;
-- the current `OfficeIMO.Pdf.Cryptography.Pkcs` project is a PDF-dependent custom DER/CMS signing and validation adapter.
-  It does not own enveloped-data decryption and must not become an Email dependency.
+- the former PDF-specific cryptography project was a PDF-dependent custom DER/CMS adapter and was removed when the
+  neutral Security owner replaced it.
 
-The current direction is one neutral `OfficeIMO.Security` package backed by Bouncy Castle. It owns CMS/DER/X.509
-operations and vendor-neutral result/policy models; Email and PDF own only their format orchestration. The final gate
-must choose the smallest honest consumption shape after the PDF work settles: either the Email and PDF core packages
-depend directly on `OfficeIMO.Security`, accepting one common dependency for the simplest user graph, or one thin
-format adapter remains where opt-in security materially reduces ordinary installs. Do not create a chain such as
-`OfficeIMO.Pdf` -> `OfficeIMO.Pdf.Cryptography` -> `OfficeIMO.Security` plus another algorithm package.
+The accepted implementation is one neutral `OfficeIMO.Security` package backed by Bouncy Castle. It owns bounded
+CMS/DER/X.509, RFC 3161, signing, verification, and EnvelopedData operations plus vendor-neutral result/policy models.
+`OfficeIMO.Pdf` and `OfficeIMO.Email` reference it directly and own only format orchestration. The former PDF-specific
+cryptography package and custom CMS/DER implementation are gone, so there is no compatibility or dependency chain.
 
 An Email-to-PDF reference, a Security package that pulls both Email and PDF, and copying CMS implementations into each
 format are rejected. Public format APIs must not expose Bouncy Castle types. Target-framework support and any legacy
 compatibility dependencies remain acceptance evidence, not assumptions.
 
-The email adapter contract would include:
+The implemented Email contract includes:
 
 - opaque and clear-signed S/MIME verification;
 - enveloped-message decryption using caller-supplied certificates/keys;
@@ -371,8 +369,8 @@ The public promise should be:
 That is stronger and more accurate than claiming a literal single-assembly dependency. Consumers can reference only the
 OfficeIMO packages that own the artifacts they process; OfficeIMO may use framework, Microsoft, or one deliberately
 selected implementation dependency where the capability requires it. Avoid chains of OfficeIMO adapter packages and
-unrelated transitive libraries. Reader-based attachment extraction remains optional; a future S/MIME capability should
-use the one neutral Security owner so a Store consumer never needs PDF or multiple cryptography packages.
+unrelated transitive libraries. Reader-based attachment extraction remains optional. S/MIME uses the one neutral
+Security owner, so a Store consumer never needs PDF or multiple cryptography packages.
 
 ## Recommended implementation order
 
@@ -388,18 +386,19 @@ use the one neutral Security owner so a Store consumer never needs PDF or multip
 - [x] Add Store-owned category, view, search-folder, reminder, rule, and folder user-property semantics over associated data.
 - [x] Decide Profile/cache scope separately from real autocomplete consumer demand: deferred until a real autocomplete consumer exists.
 - [x] Add a thin all-artifact facade only after the underlying contracts are stable: the included `OfficeIMO.Email.Data` API delegates to the three existing owners.
-- [ ] LAST: obtain real Outlook S/MIME fixtures and reassess the merged PDF signing work before freezing the boundary. The current direction is one neutral `OfficeIMO.Security` package backed by Bouncy Castle, with thin Email verification/decryption and PDF signing/verification consumers only where the proven contracts overlap. Do not create format-specific cryptography package chains.
+- [x] LAST: reassess the merged PDF signing work and freeze one neutral `OfficeIMO.Security` package backed by Bouncy Castle, with thin Email verification/decryption and PDF signing/verification consumers only where the proven contracts overlap. The bounded CMS/S/MIME contracts, tamper cases, timestamping, envelope decryption, and packed dependency graphs are covered. Outlook-produced S/MIME samples should be added to the interoperability corpus when available without changing this ownership boundary.
 
 ## Current branch evidence
 
-- The complete 121-project Release solution builds on Windows with zero warnings and zero errors.
-- `OfficeIMO.Email.Tests` passes 893 tests on `net8.0` and `net10.0`, and 889 on `net472`.
-- `OfficeIMO.Email.Store.Tests` passes 238 tests on `net8.0` and `net10.0`, and 227 on `net472`; four explicitly opt-in Outlook/libpff/private-corpus checks remain skipped on each target.
+- `OfficeIMO.Email.Tests` passes 902 tests on `net8.0` and `net10.0`, and 891 on `net472`, including Outlook-shaped MSG and TNEF clear-signed S/MIME attachment verification.
+- `OfficeIMO.Email.Store.Tests` passes 241 tests on `net8.0` and `net10.0`, and 230 on `net472`; four explicitly opt-in Outlook/libpff/private-corpus checks remain skipped on each target.
 - `OfficeIMO.Email.AddressBook.Tests` passes 28 tests per runnable target; `OfficeIMO.Email.Data.Tests` passes three per runnable target.
-- `OfficeIMO.Reader.Tests` passes 807 tests on `net8.0` and `net10.0`, and 762 on `net472`.
-- SDK packing succeeds for the unified Email package and both current Reader adapters with matching `netstandard2.0`, `net472`, `net8.0`, and `net10.0` assemblies.
-- A clean isolated-cache consumer restores the locally packed Email, Reader, Reader.EmailStore, and Reader.EmailAddressBook artifacts from the intended feed and exercises message, Store, OAB, and Reader projections on `net472`, `net8.0`, and `net10.0`.
-- On modern .NET, `OfficeIMO.Email` depends only on first-party Drawing and RTF. Legacy targets add Microsoft's text-encoding compatibility package. The current Reader adapters add only Reader and Email; no MIME engine, cryptography package, native store parser, or third-party image library enters the Email graph.
+- `OfficeIMO.Reader.Tests` passes 809 tests on `net8.0` and `net10.0`, and 764 on `net472`.
+- `OfficeIMO.Security.Tests` passes eight CMS/X.509 tests on `net8.0` and `net10.0`; `OfficeIMO.Pdf.Tests` passes 2,987 tests on each modern target and 2,972 on `net472`.
+- SDK packing succeeds for Security, PDF, unified Email, Reader.Core, every selective Reader package, and Reader.All with matching `netstandard2.0`, `net472`, `net8.0`, and `net10.0` assemblies.
+- Clean isolated-cache consumers restore and execute the locally packed Security/PDF, Email/Reader.Email, and Reader.All graphs on `net472`, `net8.0`, and `net10.0`.
+- The complete 127-project solution builds in Release with zero warnings and zero errors after a clean solution restore.
+- `OfficeIMO.Security` owns the single Bouncy Castle dependency. PDF and Email reference Security directly; Reader.Email references only Reader.Core and Email; Reader.All references only selective Reader packages. No format-specific cryptography package, native store parser, third-party MIME parser, or third-party image library enters the graph.
 
 ## Acceptance evidence for premium claims
 

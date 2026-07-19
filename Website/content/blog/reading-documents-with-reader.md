@@ -12,7 +12,7 @@ Large language models and search engines are hungry for text, but the text they 
 ## Installation
 
 ```bash
-dotnet add package OfficeIMO.Reader
+dotnet add package OfficeIMO.Reader.Word
 ```
 
 OfficeIMO.Reader is designed for the same cross-platform .NET environments as the packages it builds on. It fits well in local tools, hosted services, and containerized ingestion jobs, but you should still validate the exact runtime and document mix you plan to ship.

@@ -5,47 +5,49 @@ namespace OfficeIMO.Reader.OpenDocument;
 /// <summary>Native OpenDocument ingestion adapter for <see cref="OfficeDocumentReader"/>.</summary>
 internal static partial class OpenDocumentReaderAdapter {
     /// <summary>Reads an ODT, ODS, or ODP file and emits format-aligned chunks.</summary>
-    public static IEnumerable<ReaderChunk> Read(string path, ReaderOptions? options = null,
+    public static IEnumerable<ReaderChunk> Read(string path, ReaderOptions? options = null, ReaderOpenDocumentOptions? openDocumentOptions = null,
         CancellationToken cancellationToken = default) {
         if (path == null) throw new ArgumentNullException(nameof(path));
         if (!File.Exists(path)) throw new FileNotFoundException($"OpenDocument file '{path}' doesn't exist.", path);
         ReaderOptions effective = options ?? new ReaderOptions();
         ReaderInputLimits.EnforceFileSize(path, effective.MaxInputBytes);
-        OdfDocument document = OdfDocument.Load(path, CreateOpenOptions(effective));
-        foreach (ReaderChunk chunk in ReadDocument(document, Path.GetFullPath(path), effective, cancellationToken)) yield return chunk;
+        ReaderOpenDocumentOptions formatOptions = (openDocumentOptions ?? new ReaderOpenDocumentOptions()).Clone();
+        OdfDocument document = OdfDocument.Load(path, CreateOpenOptions(effective, formatOptions));
+        foreach (ReaderChunk chunk in ReadDocument(document, Path.GetFullPath(path), effective, formatOptions, cancellationToken)) yield return chunk;
     }
 
     /// <summary>Reads an ODT, ODS, or ODP stream without closing the caller's stream.</summary>
-    public static IEnumerable<ReaderChunk> Read(Stream stream, string? sourceName = null, ReaderOptions? options = null,
+    public static IEnumerable<ReaderChunk> Read(Stream stream, string? sourceName = null, ReaderOptions? options = null, ReaderOpenDocumentOptions? openDocumentOptions = null,
         CancellationToken cancellationToken = default) {
         if (stream == null) throw new ArgumentNullException(nameof(stream));
         if (!stream.CanRead) throw new ArgumentException("OpenDocument stream must be readable.", nameof(stream));
         ReaderOptions effective = options ?? new ReaderOptions();
         Stream parseStream = ReaderInputLimits.EnsureSeekableReadStream(stream, effective.MaxInputBytes, cancellationToken, out bool ownsStream);
         try {
-            OdfDocument document = OdfDocument.Load(parseStream, CreateOpenOptions(effective));
+            ReaderOpenDocumentOptions formatOptions = (openDocumentOptions ?? new ReaderOpenDocumentOptions()).Clone();
+            OdfDocument document = OdfDocument.Load(parseStream, CreateOpenOptions(effective, formatOptions));
             string logicalName = string.IsNullOrWhiteSpace(sourceName) ? "document.odf" : sourceName!.Trim();
-            foreach (ReaderChunk chunk in ReadDocument(document, logicalName, effective, cancellationToken)) yield return chunk;
+            foreach (ReaderChunk chunk in ReadDocument(document, logicalName, effective, formatOptions, cancellationToken)) yield return chunk;
         } finally {
             if (ownsStream) parseStream.Dispose();
         }
     }
 
-    private static IEnumerable<ReaderChunk> ReadDocument(OdfDocument document, string sourceName, ReaderOptions options,
+    private static IEnumerable<ReaderChunk> ReadDocument(OdfDocument document, string sourceName, ReaderOptions options, ReaderOpenDocumentOptions formatOptions,
         CancellationToken cancellationToken) {
         if (document is OdtDocument text) {
             foreach (ReaderChunk chunk in ReadTextDocument(text, sourceName, options, cancellationToken)) yield return chunk;
         } else if (document is OdsDocument spreadsheet) {
-            foreach (ReaderChunk chunk in ReadSpreadsheet(spreadsheet, sourceName, options, cancellationToken)) yield return chunk;
+            foreach (ReaderChunk chunk in ReadSpreadsheet(spreadsheet, sourceName, options, formatOptions, cancellationToken)) yield return chunk;
         } else if (document is OdpPresentation presentation) {
-            foreach (ReaderChunk chunk in ReadPresentation(presentation, sourceName, options, cancellationToken)) yield return chunk;
+            foreach (ReaderChunk chunk in ReadPresentation(presentation, sourceName, options, formatOptions, cancellationToken)) yield return chunk;
         }
     }
 
-    private static OdfLoadOptions CreateOpenOptions(ReaderOptions options) {
+    private static OdfLoadOptions CreateOpenOptions(ReaderOptions options, ReaderOpenDocumentOptions formatOptions) {
         var result = new OdfLoadOptions();
         if (options.MaxInputBytes.HasValue) result.MaxPackageBytes = options.MaxInputBytes.Value;
-        if (options.OpenXmlMaxCharactersInPart.HasValue) result.MaxXmlCharacters = options.OpenXmlMaxCharactersInPart.Value;
+        if (formatOptions.MaxXmlCharacters.HasValue) result.MaxXmlCharacters = formatOptions.MaxXmlCharacters.Value;
         return result;
     }
 

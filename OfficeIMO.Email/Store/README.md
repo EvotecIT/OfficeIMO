@@ -504,7 +504,7 @@ Set `PstPassword` only when a protected PST requires checksum validation. Passwo
 
 - This API area owns store/container traversal, typed query/paging, associated Outlook data, reminders, conversation graphs, bounded recovery export, verified compaction/split, Mbox session projection, EMLX/Maildir output, new Unicode PST creation, verified conversion/merge, and verified atomic rewrite mutation of existing Unicode PST files.
 - `OfficeIMO.Email` owns EML/MIME, MSG/OFT, TNEF, aggregate mbox, iCalendar, vCard, MAPI models, and item serialization.
-- `OfficeIMO.Reader.EmailStore` owns optional Reader registration and rich-result projection.
+- `OfficeIMO.Reader.Email` owns optional Reader registration and rich-result projection for individual artifacts, stores, and OAB data.
 - ANSI PST mutation, OST mutation/writing, in-place PST append/editing or repair, password/encryption authoring, OLM authoring, Outlook profiles and autocomplete caches, Exchange synchronization, cloud download, and server-side recovery remain outside this API area.
 - The writer currently emits Unicode PST files. It does not emit ANSI PST or OST files, and one data tree is limited to 4 GiB.
 - Synthetic always-on gates cover deterministic round trips, malformed MIME/TNEF/compound input, memory budgets,

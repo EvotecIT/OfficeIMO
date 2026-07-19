@@ -23,6 +23,7 @@ public static class OfficeDocumentReaderBuilderRtfExtensions {
     private static ReaderHandlerRegistration CreateRegistration(ReaderRtfOptions? rtfOptions) {
         ReaderRtfOptions? registeredOptions = ReaderRtfOptionsCloner.CloneNullable(rtfOptions);
         return new ReaderHandlerRegistration {
+            Origin = ReaderHandlerOrigin.OfficeIMO,
             Id = HandlerId,
             DisplayName = "RTF Reader Adapter",
             Description = "Modular RTF adapter using OfficeIMO.Rtf semantic read model.",

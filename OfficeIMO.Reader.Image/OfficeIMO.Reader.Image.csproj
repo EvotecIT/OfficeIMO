@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <Description>Dependency-free image metadata and OCR-readiness adapter for OfficeIMO.Reader.</Description>
+    <Description>First-party image metadata and OCR-readiness adapter for OfficeIMO.Reader.</Description>
     <AssemblyName>OfficeIMO.Reader.Image</AssemblyName>
     <AssemblyTitle>OfficeIMO.Reader.Image</AssemblyTitle>
     <VersionPrefix>2.0.1</VersionPrefix>
@@ -24,8 +24,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\OfficeIMO.Reader\OfficeIMO.Reader.csproj" />
-    <ProjectReference Include="..\OfficeIMO.Drawing\OfficeIMO.Drawing.csproj" PrivateAssets="all" />
+    <ProjectReference Include="..\OfficeIMO.Reader.Core\OfficeIMO.Reader.Core.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Drawing\OfficeIMO.Drawing.csproj" />
   </ItemGroup>
 
   <ItemGroup>

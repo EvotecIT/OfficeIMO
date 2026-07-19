@@ -11,8 +11,7 @@ projections remain thin packages because they depend on the Reader contract:
 | `OfficeIMO.Email.Store` API | PST/OST/OLM/EMLX/Mbox and mailbox-directory traversal, sessions, selection, validation, recovery discovery, native export, and verified Unicode PST rewrite mutation. |
 | `OfficeIMO.Email.AddressBook` API | OAB component discovery, v4 directory entries and distribution lists, bounded search, raw properties, and integrity validation. |
 | `OfficeIMO.Email.Data` API | Mixed-artifact detection and dispatch to the existing individual, store, and OAB owners. |
-| `OfficeIMO.Reader.EmailStore` | Optional Reader registration and bounded projection into Reader chunks, metadata, assets, and diagnostics. |
-| `OfficeIMO.Reader.EmailAddressBook` | Optional typed OAB entry projection into Reader chunks, metadata, and diagnostics. |
+| `OfficeIMO.Reader.Email` | Optional Reader registration and bounded projection for individual artifacts, stores, and typed OAB entries. |
 
 OFT is an individual Outlook template, not a mailbox store. It stays in the root API. The Store API may
 export a selected store item as OFT, but it does not own the OFT format. MIME primitives also remain inside
@@ -22,8 +21,8 @@ export a selected store item as OFT, but it does not own the OFT format. MIME pr
 
 OAB data is an offline directory snapshot, not a mailbox container. `OfficeIMO.Email.AddressBook` therefore owns
 OAB file-set discovery, bounded entry and distribution-list enumeration, search, raw property retention, integrity
-validation, and projection into shared OfficeIMO address/contact models. `OfficeIMO.Reader.EmailAddressBook` is the
-corresponding thin Reader adapter; OAB is not an `OfficeIMO.Reader.EmailStore` format registration and an address-book
+validation, and projection into shared OfficeIMO address/contact models. `OfficeIMO.Reader.Email` supplies the thin
+Reader projection for both store and address-book API areas without collapsing their semantic models; an address-book
 entry is not disguised as an `EmailDocument`.
 
 The same ownership test applies to other Outlook-local data:
