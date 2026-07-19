@@ -22,6 +22,7 @@ public sealed class ReleasePackagingGuardrails {
             @"^#### \[(?<name>OfficeIMO\.[^\]]+)\]\((?<path>[^)]+)\)$",
             RegexOptions.Multiline | RegexOptions.CultureInvariant);
         string[] duplicateNames = projectHeadings
+            .Cast<Match>()
             .Select(static match => match.Groups["name"].Value)
             .GroupBy(static name => name, StringComparer.OrdinalIgnoreCase)
             .Where(static group => group.Count() > 1)
@@ -29,7 +30,7 @@ public sealed class ReleasePackagingGuardrails {
             .ToArray();
 
         Assert.Empty(duplicateNames);
-        Assert.All(projectHeadings, match =>
+        Assert.All(projectHeadings.Cast<Match>(), match =>
             Assert.True(
                 File.Exists(Path.Combine(repositoryRoot, match.Groups["path"].Value)),
                 "README project link is missing: " + match.Value));
@@ -65,7 +66,7 @@ public sealed class ReleasePackagingGuardrails {
                 RegexOptions.CultureInvariant | RegexOptions.IgnoreCase)) {
                 if (!string.Equals(match.Groups["version"].Value, "3.0.0", StringComparison.Ordinal)) {
                     staleDependencies.Add(
-                        Path.GetRelativePath(repositoryRoot, lockFile)
+                        GetRepositoryRelativePath(repositoryRoot, lockFile)
                         + " -> "
                         + match.Value);
                 }
@@ -198,7 +199,7 @@ public sealed class ReleasePackagingGuardrails {
             RegexOptions.CultureInvariant);
 
         Assert.Equal(9, documentedPackages.Count);
-        Assert.All(documentedPackages, match => {
+        Assert.All(documentedPackages.Cast<Match>(), match => {
             string packageId = match.Groups["id"].Value;
             Assert.True(
                 packageProjects.TryGetValue(packageId, out PackageProject? project),
@@ -328,8 +329,23 @@ public sealed class ReleasePackagingGuardrails {
     }
 
     private static bool ContainsBuildOutput(string path) =>
-        path.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase) ||
-        path.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase);
+        path.IndexOf($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase) >= 0 ||
+        path.IndexOf($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase) >= 0;
+
+    private static string GetRepositoryRelativePath(string repositoryRoot, string path) {
+        string normalizedRoot = Path.GetFullPath(repositoryRoot);
+        if (!normalizedRoot.EndsWith(Path.DirectorySeparatorChar.ToString(), StringComparison.Ordinal)) {
+            normalizedRoot += Path.DirectorySeparatorChar;
+        }
+
+        var rootUri = new Uri(normalizedRoot, UriKind.Absolute);
+        var pathUri = new Uri(Path.GetFullPath(path), UriKind.Absolute);
+        string relativePath = Uri.UnescapeDataString(rootUri.MakeRelativeUri(pathUri).ToString());
+        Assert.False(
+            relativePath == ".." || relativePath.StartsWith("../", StringComparison.Ordinal),
+            "Path must stay under repository root: " + path);
+        return relativePath.Replace('\\', '/');
+    }
 
     private static int CountProjectHeadings(string readme, string sectionName) {
         string marker = "### " + sectionName;
