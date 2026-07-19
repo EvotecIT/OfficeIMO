@@ -66,12 +66,12 @@ internal static partial class PdfAnnotationEditor {
                 changedObjectNumbers,
                 encryptionHandler: GetAppendEncryptionHandler(objects, trailerRaw, readOptions, mutationPlan.Preflight.Probe.Security));
             PdfSignatureMutationReport proof = BuildAppendOnlyProof(pdf, appended, mutationPlan, readOptions);
-            return new PdfAnnotationEditResult(appended, 1, mutationPlan, proof);
+            return new PdfAnnotationEditResult(appended, 1, mutationPlan, proof, readOptions: readOptions);
         }
 
         PdfObjectGraphPruner.PruneUnreachableObjects(objects, catalogObjectNumber);
         byte[] rewritten = RewriteAllObjects(objects, catalogObjectNumber, PdfReadDocument.Open(pdf, readOptions).Metadata, pdf);
-        return CreateFullRewriteResult(pdf, rewritten, 1, mutationPlan, annotationsChanged: true);
+        return CreateFullRewriteResult(pdf, rewritten, 1, mutationPlan, annotationsChanged: true, readOptions: readOptions);
     }
 
     private static int AddAnnotationReference(

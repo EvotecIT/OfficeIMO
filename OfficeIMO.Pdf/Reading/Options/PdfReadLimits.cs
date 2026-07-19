@@ -64,6 +64,29 @@ public sealed class PdfReadLimits {
     /// <summary>Maximum nested lexical arrays/dictionaries or form XObjects while parsing page content. Default: 128.</summary>
     public int MaxContentNestingDepth { get; init; } = DefaultMaxContentNestingDepth;
 
+    internal PdfReadLimits WithMinimumInputBytes(long minimumInputBytes) {
+        return new PdfReadLimits {
+            MaxInputBytes = Math.Max(MaxInputBytes, minimumInputBytes),
+            MaxIndirectObjects = MaxIndirectObjects,
+            MaxRawStreamBytes = MaxRawStreamBytes,
+            MaxDecodedStreamBytes = MaxDecodedStreamBytes,
+            MaxObjectCharacters = MaxObjectCharacters,
+            MaxTokensPerObject = MaxTokensPerObject,
+            MaxObjectNestingDepth = MaxObjectNestingDepth,
+            MaxObjectParsingTime = MaxObjectParsingTime,
+            MaxRevisions = MaxRevisions,
+            MaxPageTreeNodes = MaxPageTreeNodes,
+            MaxPageTreeDepth = MaxPageTreeDepth,
+            MaxPages = MaxPages,
+            MaxFormFields = MaxFormFields,
+            MaxFormFieldDepth = MaxFormFieldDepth,
+            MaxAnnotationsPerPage = MaxAnnotationsPerPage,
+            MaxContentOperations = MaxContentOperations,
+            MaxContentOperands = MaxContentOperands,
+            MaxContentNestingDepth = MaxContentNestingDepth
+        };
+    }
+
     internal void Validate() {
         if (MaxInputBytes <= 0) {
             throw new ArgumentOutOfRangeException(nameof(MaxInputBytes), MaxInputBytes, "Maximum input bytes must be positive.");

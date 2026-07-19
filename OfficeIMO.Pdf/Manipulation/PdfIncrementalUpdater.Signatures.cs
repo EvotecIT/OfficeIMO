@@ -11,23 +11,29 @@ internal static partial class PdfIncrementalUpdater {
     /// Appends an AcroForm signature field and a detached-signature placeholder as a new incremental revision.
     /// The returned byte ranges can be signed by an external CMS/CAdES/TSA provider without adding cryptographic dependencies.
     /// </summary>
-    public static PdfExternalSignaturePreparation PrepareExternalSignature(byte[] pdf, PdfExternalSignatureOptions? options = null) {
+    public static PdfExternalSignaturePreparation PrepareExternalSignature(byte[] pdf, PdfExternalSignatureOptions? options = null) =>
+        PrepareExternalSignature(pdf, options, readOptions: null);
+
+    internal static PdfExternalSignaturePreparation PrepareExternalSignature(
+        byte[] pdf,
+        PdfExternalSignatureOptions? options,
+        PdfReadOptions? readOptions) {
         Guard.NotNull(pdf, nameof(pdf));
         PdfExternalSignatureOptions effectiveOptions = options ?? new PdfExternalSignatureOptions();
         ValidateExternalSignatureOptions(effectiveOptions);
         PdfSignatureProfile signatureProfile = ResolveSignatureProfile(effectiveOptions);
-        _ = PdfMutationPlanner.RequireAppendOnly(pdf, PdfMutationOperation.PrepareExternalSignature);
+        _ = PdfMutationPlanner.RequireAppendOnly(pdf, PdfMutationOperation.PrepareExternalSignature, readOptions);
 
-        PdfDocumentSecurityInfo security = PdfSyntax.ReadDocumentSecurityInfo(pdf);
+        PdfDocumentSecurityInfo security = PdfSyntax.ReadDocumentSecurityInfo(pdf, readOptions);
 
-        var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf);
+        var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf, readOptions);
         if (!security.RootObjectNumber.HasValue ||
             !objects.TryGetValue(security.RootObjectNumber.Value, out PdfIndirectObject? rootObject) ||
             rootObject.Value is not PdfDictionary catalog) {
             throw new InvalidOperationException("PDF root catalog dictionary is required for external signature preparation.");
         }
 
-        EnsureSignatureFieldNameAvailable(pdf, effectiveOptions.FieldName);
+        EnsureSignatureFieldNameAvailable(pdf, effectiveOptions.FieldName, readOptions);
 
         int nextObjectNumber = objects.Keys.Count == 0 ? 1 : objects.Keys.Max() + 1;
         int signatureObjectNumber = nextObjectNumber++;
@@ -85,7 +91,7 @@ internal static partial class PdfIncrementalUpdater {
             changedObjects,
             new[] { (ObjectNumber: signatureObjectNumber, Bytes: signatureBytes) });
 
-        return PatchSignatureByteRange(prepared, effectiveOptions, signatureObjectNumber);
+        return PatchSignatureByteRange(prepared, effectiveOptions, signatureObjectNumber, readOptions);
     }
 
     /// <summary>Appends an external signature placeholder to a readable PDF stream.</summary>
@@ -115,7 +121,8 @@ internal static partial class PdfIncrementalUpdater {
         Guard.NotNull(signatureContents, nameof(signatureContents));
         _ = PdfMutationPlanner.RequireAppendOnly(
             preparation.PreparedPdf,
-            PdfMutationOperation.FinalizeExternalSignature);
+            PdfMutationOperation.FinalizeExternalSignature,
+            preparation.GetCompletionReadOptions(preparation.PreparedPdf.LongLength));
         return ApplyExternalSignature(
             preparation.PreparedPdf,
             signatureContents,
@@ -162,8 +169,8 @@ internal static partial class PdfIncrementalUpdater {
         ResolveSignatureSubFilter(options);
     }
 
-    private static void EnsureSignatureFieldNameAvailable(byte[] pdf, string fieldName) {
-        PdfDocumentInfo info = PdfInspector.Inspect(pdf);
+    private static void EnsureSignatureFieldNameAvailable(byte[] pdf, string fieldName, PdfReadOptions? readOptions) {
+        PdfDocumentInfo info = PdfInspector.Inspect(pdf, readOptions);
         if (info.FormFields.Any(field => string.Equals(field.Name, fieldName, StringComparison.Ordinal))) {
             throw new ArgumentException("PDF already contains a form field named " + fieldName + ".", nameof(fieldName));
         }
@@ -292,7 +299,11 @@ internal static partial class PdfIncrementalUpdater {
             "'");
     }
 
-    private static PdfExternalSignaturePreparation PatchSignatureByteRange(byte[] prepared, PdfExternalSignatureOptions options, int signatureObjectNumber) {
+    private static PdfExternalSignaturePreparation PatchSignatureByteRange(
+        byte[] prepared,
+        PdfExternalSignatureOptions options,
+        int signatureObjectNumber,
+        PdfReadOptions? readOptions) {
         byte[] output = (byte[])prepared.Clone();
         byte[] objectHeader = PdfEncoding.Latin1GetBytes(signatureObjectNumber.ToString(CultureInfo.InvariantCulture) + " 0 obj");
         int objectStart = IndexOf(output, objectHeader, 0);
@@ -338,7 +349,8 @@ internal static partial class PdfIncrementalUpdater {
             ranges,
             contentsLiteralStart + 1,
             options.ReservedSignatureContentsBytes * 2,
-            options.ReservedSignatureContentsBytes);
+            options.ReservedSignatureContentsBytes,
+            readOptions);
     }
 
     private static byte[] ApplyExternalSignature(byte[] preparedPdf, byte[] signatureContents, int contentsHexOffset, int contentsHexLength) {

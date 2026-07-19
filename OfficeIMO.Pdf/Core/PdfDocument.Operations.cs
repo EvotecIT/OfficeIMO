@@ -395,7 +395,7 @@ public sealed partial class PdfDocument {
     /// Appends an external-signature placeholder as an incremental revision for a later CMS, CAdES, or timestamp signature.
     /// </summary>
     public PdfExternalSignaturePreparation PrepareExternalSignature(PdfExternalSignatureOptions? signatureOptions = null) {
-        return PdfIncrementalUpdater.PrepareExternalSignature(GetBytesForOperation(), signatureOptions);
+        return PdfIncrementalUpdater.PrepareExternalSignature(GetBytesForOperation(), signatureOptions, ReadOptions);
     }
 
     /// <summary>Completes a persisted external-signature placeholder with detached CMS or timestamp bytes.</summary>

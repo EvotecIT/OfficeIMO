@@ -100,6 +100,28 @@ public class PdfAnnotationCreationTests {
     }
 
     [Fact]
+    public void StaticAnnotationResult_RetainsExplicitOwnerCredentialsForToDocument() {
+        byte[] source = PdfDocument.Create(new PdfOptions().SetEncryption("open", "owner"))
+            .Paragraph(paragraph => paragraph.Text("Static encrypted annotation"))
+            .ToBytes();
+        var readOptions = new PdfReadOptions { Password = "owner" };
+
+        PdfAnnotationEditResult result = PdfAnnotationEditor.AddAnnotation(
+            source,
+            new PdfAnnotationCreateOptions {
+                Subtype = "Text",
+                Contents = "Static encrypted note"
+            },
+            readOptions);
+
+        PdfDocument edited = result.ToDocument();
+        PdfAnnotation annotation = Assert.Single(edited.Inspect().GetAnnotationsBySubtype("Text"));
+
+        Assert.Equal("Static encrypted note", annotation.Contents);
+        Assert.True(edited.Inspect().Security.HasOwnerAuthorization);
+    }
+
+    [Fact]
     public void FluentAnnotationFlatten_UsesStoredOwnerCredentialsDuringPreflight() {
         byte[] source = PdfDocument.Create(new PdfOptions().SetEncryption("open", "owner"))
             .FreeTextAnnotation("Encrypted annotation", 120, 30)

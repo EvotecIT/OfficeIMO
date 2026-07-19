@@ -28,4 +28,16 @@ public sealed class PdfReadOptions {
         effective.Limits.Validate();
         return effective;
     }
+
+    internal static PdfReadOptions WithMinimumInputBytes(PdfReadOptions? options, long minimumInputBytes) {
+        PdfReadOptions effective = Resolve(options);
+        return new PdfReadOptions {
+            ParsingMode = effective.ParsingMode,
+            Limits = effective.Limits.WithMinimumInputBytes(minimumInputBytes),
+            Password = effective.Password,
+            PreferToUnicode = effective.PreferToUnicode,
+            UseWinAnsiFallback = effective.UseWinAnsiFallback,
+            AdjustKerningFromTJ = effective.AdjustKerningFromTJ
+        };
+    }
 }

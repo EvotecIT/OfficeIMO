@@ -13,7 +13,7 @@ internal static partial class PdfAnnotationEditor {
         byte[] output = PdfAnnotationFlattener.FlattenVisualAnnotations(pdf, options, readOptions);
         int after = CountSelectedAnnotations(PdfInspector.Inspect(output), options);
         int affected = Math.Max(0, before - after);
-        return CreateFullRewriteResult(pdf, output, affected, plan, annotationsChanged: affected > 0);
+        return CreateFullRewriteResult(pdf, output, affected, plan, annotationsChanged: affected > 0, readOptions: readOptions);
     }
 
     private static int CountSelectedAnnotations(PdfDocumentInfo info, PdfAnnotationFlattenOptions? options) {

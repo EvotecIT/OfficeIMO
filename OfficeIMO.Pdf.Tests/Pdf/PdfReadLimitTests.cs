@@ -24,6 +24,27 @@ public class PdfReadLimitTests {
     }
 
     [Fact]
+    public void ExternalSignatureCompletionAllowsItsOwnPreparedRevisionBeyondTheSourceBudget() {
+        byte[] pdf = BuildPdf();
+        var readOptions = new PdfReadOptions {
+            Limits = new PdfReadLimits { MaxInputBytes = pdf.Length }
+        };
+
+        PdfDocument source = PdfDocument.Open(pdf, readOptions);
+        PdfExternalSignaturePreparation preparation = source.PrepareExternalSignature(
+            new PdfExternalSignatureOptions {
+                FieldName = "BudgetedSignature",
+                ReservedSignatureContentsBytes = 512
+            });
+
+        Assert.True(preparation.PreparedPdf.LongLength > readOptions.Limits.MaxInputBytes);
+        PdfDocument completed = preparation.Complete(new byte[] { 0x30, 0x01, 0x00 });
+
+        Assert.True(completed.ToBytes().LongLength > readOptions.Limits.MaxInputBytes);
+        Assert.Single(completed.Inspect().FormFields);
+    }
+
+    [Fact]
     public void InputByteBudgetStopsBeforeObjectScanning() {
         byte[] pdf = BuildPdf();
         var options = new PdfReadOptions {
