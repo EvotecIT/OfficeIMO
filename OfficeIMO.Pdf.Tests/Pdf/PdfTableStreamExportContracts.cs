@@ -119,10 +119,17 @@ public class PdfTableStreamExportContracts {
                 "5 0 obj\n<< /Type /ExtGState /ca 0 /CA 0 >>\nendobj"),
             BuildSingleStreamPdf("0 0 5 5 re W n\n1 0 0 rg\n40 40 40 40 re\nf"),
             BuildSingleStreamPdf("0 0 m\n100 0 l\n0 100 l\nh\nW n\n1 0 0 rg\n80 80 10 10 re\nf"),
+            BuildSingleStreamPdf("0 0 m\n100 0 l\n0 100 l\nh\nW n\n1 0 0 RG\n1 w\n20 90 m\n90 20 l\nS"),
+            BuildSingleStreamPdf("0 0 100 100 re\n30 30 40 40 re\nW* n\n1 0 0 rg\n40 40 10 10 re\nf"),
             BuildSingleStreamPdf(
                 "/Pattern cs\n/P1 scn\n40 40 40 40 re\nf",
                 "<< /Pattern << /P1 5 0 R >> >>",
                 "5 0 obj\n<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 10 10] /XStep 10 /YStep 10 /Resources << >> /Length 0 >>\nstream\n\nendstream\nendobj"),
+            BuildSingleStreamPdf(
+                "/Pattern cs\n/P1 scn\n40 40 40 40 re\nf",
+                "<< /Pattern << /P1 5 0 R >> >>",
+                "5 0 obj\n<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 10 10] /XStep 10 /YStep 10 /Resources << /ExtGState << /GS1 6 0 R >> >> /Length 31 >>\nstream\n/GS1 gs\n1 0 0 rg\n0 0 10 10 re\nf\nendstream\nendobj",
+                "6 0 obj\n<< /Type /ExtGState /ca 0 /CA 0 >>\nendobj"),
             BuildSingleStreamPdf("1 0 0 rg\n1e309 40 20 20 re\nf")
         };
 

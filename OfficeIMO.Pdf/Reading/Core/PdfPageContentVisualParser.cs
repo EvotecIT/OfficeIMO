@@ -615,7 +615,7 @@ internal static class PdfPageContentVisualParser {
                     CreateShadingGradients(_state.StrokePattern.Value.Shading, strokePathX, strokePathY, strokePathWidth, strokePathHeight, _state.StrokePattern.Value.Matrix, out strokeGradient, out strokeRadialGradient);
                 }
 
-                IReadOnlyList<OfficePathCommand> pathCommands = fill
+                IReadOnlyList<OfficePathCommand> pathCommands = fill && _retainPrimitiveData
                     ? CloseFilledSubpaths(_pathCommands)
                     : _pathCommands;
                 if (PdfPageVisualPrimitive.TryCreatePath(
