@@ -226,12 +226,30 @@ public sealed class ReleasePackagingGuardrails {
             repositoryRoot,
             "OfficeIMO.CSV/OfficeIMO.CSV.csproj",
             "System.Buffers");
+        string wordAsyncInterfacesVersion = ReadPackageReferenceVersion(
+            repositoryRoot,
+            "OfficeIMO.Word/OfficeIMO.Word.csproj",
+            "Microsoft.Bcl.AsyncInterfaces");
+        string excelAsyncInterfacesVersion = ReadPackageReferenceVersion(
+            repositoryRoot,
+            "OfficeIMO.Excel/OfficeIMO.Excel.csproj",
+            "Microsoft.Bcl.AsyncInterfaces");
+        string systemTextJsonVersion = ReadPackageReferenceVersion(
+            repositoryRoot,
+            "OfficeIMO.Excel/OfficeIMO.Excel.csproj",
+            "System.Text.Json");
 
         Assert.Contains($"DocumentFormat.OpenXml** (`{openXmlVersion}`)", installation, StringComparison.Ordinal);
         Assert.Contains($"AngleSharp** (`{angleSharpVersion}`)", installation, StringComparison.Ordinal);
         Assert.Contains($"AngleSharp.Css** (`{angleSharpCssVersion}`)", installation, StringComparison.Ordinal);
         Assert.Contains($"BouncyCastle.Cryptography** (`{bouncyCastleVersion}`)", installation, StringComparison.Ordinal);
         Assert.Contains($"System.Buffers** (`{systemBuffersVersion}`)", installation, StringComparison.Ordinal);
+        Assert.Equal(wordAsyncInterfacesVersion, excelAsyncInterfacesVersion);
+        Assert.Contains(
+            $"Microsoft.Bcl.AsyncInterfaces** (`{wordAsyncInterfacesVersion}`)",
+            installation,
+            StringComparison.Ordinal);
+        Assert.Contains($"System.Text.Json** (`{systemTextJsonVersion}`)", installation, StringComparison.Ordinal);
 
         string aotGuide = File.ReadAllText(Path.Combine(
             repositoryRoot,

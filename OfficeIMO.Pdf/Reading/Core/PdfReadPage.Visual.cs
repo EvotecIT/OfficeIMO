@@ -3,9 +3,18 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfReadPage {
-    internal int GetVisualPrimitiveCount() {
+    internal int GetVisibleVisualPrimitiveCount() {
         (double Width, double Height) size = GetVisualPageSize();
-        return GetVisualPrimitives(size.Width, size.Height, GetVisualPageTransform()).Count;
+        IReadOnlyList<PdfPageVisualPrimitive> primitives =
+            GetVisualPrimitives(size.Width, size.Height, GetVisualPageTransform());
+        int count = 0;
+        for (int i = 0; i < primitives.Count; i++) {
+            if (IsVisibleVisualPrimitive(primitives[i], size.Width, size.Height)) {
+                count++;
+            }
+        }
+
+        return count;
     }
 
     /// <summary>
@@ -1699,6 +1708,64 @@ public sealed partial class PdfReadPage {
         y >= 0D &&
         x + width <= maxWidth &&
         y + height <= maxHeight;
+
+    private static bool IsVisibleVisualPrimitive(
+        PdfPageVisualPrimitive primitive,
+        double pageWidth,
+        double pageHeight) {
+        bool hasVisibleFill = primitive.Kind != PdfPageVisualPrimitiveKind.Line &&
+            ((HasOrdinaryFill(primitive) && HasVisibleOpacity(primitive.FillOpacity)) ||
+             (primitive.FillTilingPattern != null && primitive.FillTilingPattern.Opacity > 0D));
+        bool hasVisibleStroke = primitive.StrokeWidth > 0D &&
+            ((HasOrdinaryStroke(primitive) && HasVisibleOpacity(primitive.StrokeOpacity)) ||
+             (primitive.StrokeTilingPattern != null && primitive.StrokeTilingPattern.Opacity > 0D));
+        if (!hasVisibleFill && !hasVisibleStroke) {
+            return false;
+        }
+
+        double left = primitive.X;
+        double top = primitive.Y;
+        double width = primitive.Width;
+        double height = primitive.Height;
+        if (primitive.Kind == PdfPageVisualPrimitiveKind.Line) {
+            double strokeHalf = Math.Max(primitive.StrokeWidth, 1D) / 2D;
+            left -= strokeHalf;
+            top -= strokeHalf;
+            width += strokeHalf * 2D;
+            height += strokeHalf * 2D;
+        }
+
+        if (!HasVisibleOverlap(left, top, width, height, pageWidth, pageHeight)) {
+            return false;
+        }
+
+        if (!primitive.ClipPath.HasValue) {
+            return true;
+        }
+
+        PdfPageClipPath clip = primitive.ClipPath.Value;
+        if (clip.Width <= 0D ||
+            clip.Height <= 0D ||
+            !TryFitClipToDrawing(clip, pageWidth, pageHeight, out PdfPageClipPath visibleClip)) {
+            return false;
+        }
+
+        PdfPageClipPath primitiveBounds = PdfPageClipPath.Rectangle(left, top, width, height);
+        return IntersectClipBounds(primitiveBounds, visibleClip, out _);
+    }
+
+    private static bool HasOrdinaryFill(PdfPageVisualPrimitive primitive) =>
+        primitive.FillColor.HasValue ||
+        primitive.FillGradient != null ||
+        primitive.FillRadialGradient != null;
+
+    private static bool HasOrdinaryStroke(PdfPageVisualPrimitive primitive) =>
+        primitive.StrokeColor.HasValue ||
+        primitive.StrokeGradient != null ||
+        primitive.StrokeRadialGradient != null;
+
+    private static bool HasVisibleOpacity(double? opacity) =>
+        !opacity.HasValue || opacity.Value > 0D;
 
     private static bool HasVisibleOverlap(double x, double y, double width, double height, double maxWidth, double maxHeight) =>
         width > 0D &&

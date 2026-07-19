@@ -109,11 +109,66 @@ public class PdfTableStreamExportContracts {
             powerPointResult.Report.SourceScope.VectorPrimitiveCount);
     }
 
+    [Fact]
+    public void TableConversions_IgnoreInvisibleVectorGraphics() {
+        byte[][] sources = {
+            BuildSingleStreamPdf("1 0 0 rg\n300 300 40 40 re\nf"),
+            BuildSingleStreamPdf(
+                "/GS1 gs\n1 0 0 rg\n40 40 40 40 re\nf",
+                "<< /ExtGState << /GS1 5 0 R >> >>",
+                "5 0 obj\n<< /Type /ExtGState /ca 0 /CA 0 >>\nendobj"),
+            BuildSingleStreamPdf("0 0 5 5 re W n\n1 0 0 rg\n40 40 40 40 re\nf")
+        };
+
+        Assert.All(sources, source => {
+            PdfLogicalDocument logical = PdfLogicalDocument.Load(source);
+            PdfTableExtractionScopeReport scope = PdfLogicalTableAnalysis.AnalyzeExtractionScope(logical);
+
+            Assert.Equal(0, logical.Pages[0].VectorPrimitiveCount);
+            Assert.Equal(0, scope.VectorPrimitiveCount);
+            Assert.False(scope.HasOmittedPageContent);
+        });
+    }
+
     private static PdfLogicalDocument CreateLogicalDocument() {
         byte[] source = PdfDocument.Create()
             .Paragraph(paragraph => paragraph.Text("Non-seekable table export proof"))
             .ToBytes();
         return PdfLogicalDocument.Load(source);
+    }
+
+    private static byte[] BuildSingleStreamPdf(
+        string streamContent,
+        string resources = "<< >>",
+        params string[] extraObjects) {
+        streamContent = streamContent.TrimEnd('\r', '\n');
+        int streamLength = System.Text.Encoding.ASCII.GetByteCount(streamContent);
+        string[] objects = {
+            "%PDF-1.4",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 240 200] >>",
+            "endobj",
+            "3 0 obj",
+            $"<< /Type /Page /Parent 2 0 R /Resources {resources} /Contents 4 0 R >>",
+            "endobj",
+            "4 0 obj",
+            $"<< /Length {streamLength} >>",
+            "stream",
+            streamContent,
+            "endstream",
+            "endobj"
+        };
+        string pdf = string.Join(
+            "\n",
+            objects.Concat(extraObjects).Concat(new[] {
+                "trailer",
+                "<< /Root 1 0 R >>",
+                "%%EOF"
+            })) + "\n";
+        return System.Text.Encoding.ASCII.GetBytes(pdf);
     }
 
     private sealed class NonSeekableWriteStream : Stream {
