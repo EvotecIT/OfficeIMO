@@ -12,10 +12,10 @@ The ownership rules are:
 
 - native format packages own parsing, loading, editing, validation, and serialization for their format;
 - adapter packages project one native model into another and do not implement a second parser or document brain;
-- `OfficeIMO.Reader` owns normalized read orchestration, while format-specific Reader packages register typed handlers;
+- `OfficeIMO.Reader.Core` owns normalized read orchestration and contracts, while format-specific Reader packages register typed handlers;
 - `OfficeIMO.Html` owns the canonical HTML source model, resource policy, media filtering, and render scene;
 - shared colors, fonts, images, stream contracts, lifecycle options, and image export results live in `OfficeIMO.Drawing`;
-- package-specific signing remains with the package that owns the signed artifact.
+- `OfficeIMO.Security` owns neutral CMS/X.509/RFC 3161 operations, while each format package owns only its signed-artifact orchestration.
 
 The former compiled `OfficeIMO.Shared` implementation layer is gone. `OfficeIMO.SharedSource` is source-only, and reusable runtime behavior has an explicit owner.
 

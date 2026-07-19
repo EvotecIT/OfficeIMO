@@ -21,7 +21,10 @@ public sealed class EmailSmimeVerificationResult {
     public EmailProtectionKind ProtectionKind { get; }
     /// <summary>Neutral CMS verification result, or null when no verifiable S/MIME payload was available.</summary>
     public CmsVerificationResult? Cryptography { get; }
-    /// <summary>Exact MIME entity bytes covered by the signature, when available.</summary>
+    /// <summary>
+    /// Exact signed MIME entity bytes extracted from the source. Verification may apply standard CRLF canonicalization
+    /// without altering this retained value.
+    /// </summary>
     public byte[]? SignedMimeEntity { get; }
     /// <summary>Parsed signed MIME content, when it could be decoded safely.</summary>
     public EmailDocument? SignedContent { get; }

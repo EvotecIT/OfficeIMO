@@ -8,7 +8,7 @@ This roadmap describes the current OfficeIMO document-intelligence layer and its
 
 The roadmap is OfficeIMO-owned and intentionally product-general. The goal is to make the OfficeIMO family feel coherent:
 
-- `OfficeIMO.Reader` owns ingestion, chunks, folder traversal, capability discovery, and host bootstrap.
+- `OfficeIMO.Reader.Core` owns ingestion contracts, chunks, folder traversal, capability discovery, and host bootstrap.
 - `OfficeIMO.Markdown` owns typed Markdown, Markdown writing, HTML rendering, profiles, and transforms.
 - `OfficeIMO.Pdf` owns PDF creation, parsing, logical readback, extraction, manipulation, forms, compliance readiness, and first-party PDF export primitives.
 - `OfficeIMO.Drawing` owns reusable visual intent such as colors, chart snapshots, text measurement, raster/vector primitives, image metadata, gradients, shadows, transforms, clipping, and managed font support.
@@ -30,7 +30,7 @@ Keep this roadmap aligned with the current owner documents and proof manifests:
 
 ### Reader
 
-`OfficeIMO.Reader` is already a stable ingestion facade. It reads Word, Excel, PowerPoint, Markdown, PDF, HTML, ZIP, EPUB, CSV, JSON, XML, YAML, and plain text-like formats into `ReaderChunk` instances with stable IDs, location metadata, hashes, table metadata, folder traversal, warning chunks, progress callbacks, detailed source summaries, handler registration, capability manifests, and host bootstrap helpers.
+The `OfficeIMO.Reader` API is already a stable ingestion facade. `OfficeIMO.Reader.Core` supplies the contracts and routing, while selective adapters read Word, Excel, PowerPoint, Markdown, PDF, HTML, ZIP, EPUB, CSV, JSON, XML, YAML, and other formats into `ReaderChunk` instances with stable IDs, location metadata, hashes, table metadata, folder traversal, warning chunks, progress callbacks, detailed source summaries, handler registration, capability manifests, and host bootstrap helpers.
 
 `OfficeIMO.Reader.Pdf` registers PDF ingestion through the same reader facade. The shared `OfficeDocumentReadResult` model now carries chunks, assets, diagnostics, source maps, and normalized format-specific content from one extraction run. Further format fidelity belongs in the owning format packages and their narrow Reader adapters, not in another central reader switch statement.
 
@@ -155,8 +155,8 @@ Core principles:
 
 The current Reader stack provides the shared model and adapter path:
 
-- `OfficeDocumentReadResult` and deterministic JSON serialization live in `OfficeIMO.Reader`.
-- `DocumentReader` can return the shared envelope for existing chunk-based ingestion without changing `DocumentReader.Read(...)`, including generic summary metadata for chunks, blocks, tables, visuals, and known source containers.
+- `OfficeDocumentReadResult` and deterministic JSON serialization live in `OfficeIMO.Reader.Core`.
+- `OfficeDocumentReader` returns the shared envelope for chunk-based ingestion without changing its `Read(...)` contract, including generic summary metadata for chunks, blocks, tables, visuals, and known source containers.
 - Excel table readback now preserves workbook path, sheet, A1 range, source chunk, and table index metadata so sheet containers can own their tables in the shared result.
 - Markdown table readback now preserves source and normalized line spans, heading context, block anchors, block kind, and stable table indexes in the shared result.
 - Markdown visual fenced blocks now preserve source and normalized line spans, heading context, block anchors, block kind, payload hash, and JSON location metadata in the shared result.
@@ -165,7 +165,7 @@ The current Reader stack provides the shared model and adapter path:
 - Asset-only facades now exist for the core Reader pipeline, returning normalized asset manifests without requiring callers to inspect the full read-result envelope.
 - `OfficeIMO.Reader.Pdf` maps logical PDF readback into the shared envelope and JSON output.
 - `OfficeIMO.Reader.Visio` is an optional adapter over `OfficeIMO.Visio`, with page chunks, Shape Data tables, blocks, links, and optional SVG/PNG preview asset metadata.
-- Reader handlers can register native path and stream `OfficeDocumentReadResult` delegates. The generic `DocumentReader.ReadDocument(...)` entry point preserves PDF and Visio rich results, while legacy chunk reads project the same result's chunks when a handler is rich-result-only.
+- Reader handlers can register native path and stream `OfficeDocumentReadResult` delegates. The configured `OfficeDocumentReader.ReadDocument(...)` entry point preserves PDF and Visio rich results, while chunk reads project the same result's chunks when a handler is rich-result-only.
 - `OfficeDocumentReaderBuilder` and `OfficeDocumentReader` provide instance-scoped handler routing, capability manifests, file/stream/byte reads, and folder ingestion. Every modular Reader adapter exposes a matching `Add...Handler()` builder extension, while the static registry remains backward compatible.
 - Reader registrations can expose native asynchronous rich-result delegates. `ReadAsync(...)` and `ReadDocumentAsync(...)` await those delegates directly, non-seekable inputs use an asynchronous bounded snapshot, and synchronous format engines use a bounded worker fallback. `ReadDocumentsAsync(...)` adds deterministic multi-file execution with explicit concurrency and document-count limits.
 - Reader detection now reports extension kind, content kind, confidence, media type, bounded evidence, and mismatch state. Reads preserve known-extension behavior by default, can prefer content for mislabeled inputs, and can route unknown extensions to a unique registered handler by detected kind. Generic and native rich results expose detection, parsing, limit, truncation, unsupported-content, read, and OCR findings through structured diagnostics instead of warning strings alone.
@@ -196,7 +196,7 @@ Use `OfficeIMO.Markdown` as the final Markdown writer where possible. PDF logica
 
 ### JSON
 
-Schema version 5 is the first stable JSON envelope for pages, blocks, tables, links, forms, diagnostics, assets, visuals, OCR candidates, chunks, metadata, and source references. The schema is embedded in `OfficeIMO.Reader`, packed as a versioned artifact, and guarded by strict deserialization and transport round-trip tests. Future breaking transport changes require a new schema version and explicit compatibility policy.
+Schema version 5 is the first stable JSON envelope for pages, blocks, tables, links, forms, diagnostics, assets, visuals, OCR candidates, chunks, metadata, and source references. The schema is embedded in `OfficeIMO.Reader.Core`, packed as a versioned artifact, and guarded by strict deserialization and transport round-trip tests. Future breaking transport changes require a new schema version and explicit compatibility policy.
 
 ### HTML
 
@@ -230,7 +230,7 @@ Goal: one result envelope for all output forms.
 - Capability manifests describe chunk, rich-result, stream, and native async support for static and isolated readers.
 - Word, Excel, PowerPoint, Markdown, PDF, HTML, EPUB, RTF, Visio, and other modular adapters project into the shared result while their format packages retain parser ownership.
 - `ReadDocument(...)`, JSON transport, Markdown/HTML fields, table/asset/visual projections, processors, structured extraction, and hierarchical chunking provide host-facing convenience surfaces over the same result.
-- `DocumentReader.Read(...)` remains the compatible chunk surface.
+- `OfficeDocumentReader.Read(...)` remains the chunk surface.
 
 ### P2 - PDF Logical Model Integration
 
@@ -334,7 +334,7 @@ The first optional packages keep advanced execution outside the base dependency 
 - Model-assisted structured extraction through host-provided clients.
 - Audio/video/transcription adapters if needed by downstream products.
 
-No optional adapter should be pulled transitively by `OfficeIMO.Reader`.
+No optional adapter should be pulled transitively by `OfficeIMO.Reader.Core`.
 
 ### P12 - Quality Gates And Evidence
 

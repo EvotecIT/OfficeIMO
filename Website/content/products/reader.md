@@ -71,7 +71,7 @@ foreach (var chunk in chunks)
     Console.WriteLine();
 }
 
-var documents = DocumentReader.ReadFolderDocuments(
+var documents = reader.ReadFolderDocuments(
     folderPath: "./documents",
     folderOptions: new ReaderFolderOptions
     {

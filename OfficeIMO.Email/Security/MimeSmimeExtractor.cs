@@ -143,6 +143,51 @@ internal static class MimeSmimeExtractor {
         return result;
     }
 
+    internal static bool TryCanonicalizeLineEndings(
+        byte[] source,
+        long maximumBytes,
+        out byte[] canonical) {
+        canonical = source;
+        long length = source.LongLength;
+        bool changed = false;
+        for (int index = 0; index < source.Length; index++) {
+            if (source[index] == '\r') {
+                if (index + 1 < source.Length && source[index + 1] == '\n') {
+                    index++;
+                } else {
+                    length++;
+                    changed = true;
+                }
+            } else if (source[index] == '\n') {
+                length++;
+                changed = true;
+            }
+            if (length > maximumBytes || length > int.MaxValue) return false;
+        }
+        if (!changed) return false;
+
+        canonical = new byte[(int)length];
+        int output = 0;
+        for (int index = 0; index < source.Length; index++) {
+            byte value = source[index];
+            if (value == '\r') {
+                canonical[output++] = (byte)'\r';
+                if (index + 1 < source.Length && source[index + 1] == '\n') {
+                    canonical[output++] = (byte)'\n';
+                    index++;
+                } else {
+                    canonical[output++] = (byte)'\n';
+                }
+            } else if (value == '\n') {
+                canonical[output++] = (byte)'\r';
+                canonical[output++] = (byte)'\n';
+            } else {
+                canonical[output++] = value;
+            }
+        }
+        return true;
+    }
+
     internal sealed class ExtractedSmimePayload {
         internal ExtractedSmimePayload(byte[] encodedCms, byte[]? detachedContent) {
             EncodedCms = encodedCms;

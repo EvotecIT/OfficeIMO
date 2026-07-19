@@ -42,6 +42,53 @@ public sealed class EmailSmimeTests {
         Assert.Equal(SecurityValidationStatus.Invalid, result.Cryptography?.Signers[0].DigestStatus);
     }
 
+    [Fact]
+    public void ClearSignedMessage_VerifiesCanonicalMimeAfterTransportLineEndingNormalization() {
+        using X509Certificate2 certificate = CreateCertificate("OfficeIMO canonical S-MIME signer");
+        byte[] canonical = Encoding.ASCII.GetBytes(
+            "Content-Type: text/plain; charset=utf-8\r\n" +
+            "Content-Transfer-Encoding: 7bit\r\n\r\n" +
+            "Outlook canonical content\r\n");
+        byte[] signature = CmsSignedDataSigner.SignDetached(canonical, certificate);
+        byte[] normalizedByTransport = Encoding.ASCII.GetBytes(
+            Encoding.ASCII.GetString(CreateClearSignedMessage(canonical, signature))
+                .Replace("\r\n", "\n"));
+        using EmailReadResult read = new EmailDocumentReader().Read(normalizedByTransport);
+
+        EmailSmimeVerificationResult result = EmailSmime.Verify(read.Document, TrustSelfSigned());
+
+        Assert.True(result.IsCryptographicallyValid);
+        Assert.NotNull(result.SignedMimeEntity);
+        Assert.DoesNotContain((byte)'\r', result.SignedMimeEntity!);
+        Assert.Contains(result.Diagnostics, diagnostic =>
+            diagnostic.Code == "EMAIL_SMIME_CANONICAL_LINE_ENDINGS_APPLIED");
+        Assert.Equal("Outlook canonical content\n", result.SignedContent?.Body.Text);
+    }
+
+    [Fact]
+    public void ClearSignedMessage_DoesNotCanonicalizeBeyondConfiguredContentLimit() {
+        using X509Certificate2 certificate = CreateCertificate("OfficeIMO bounded canonical S-MIME signer");
+        byte[] canonical = Encoding.ASCII.GetBytes(
+            "Content-Type: text/plain; charset=utf-8\r\n" +
+            "Content-Transfer-Encoding: 7bit\r\n\r\n" +
+            "Bounded canonical content\r\n");
+        byte[] signature = CmsSignedDataSigner.SignDetached(canonical, certificate);
+        byte[] normalizedEntity = Encoding.ASCII.GetBytes(
+            Encoding.ASCII.GetString(canonical).Replace("\r\n", "\n"));
+        byte[] normalizedByTransport = Encoding.ASCII.GetBytes(
+            Encoding.ASCII.GetString(CreateClearSignedMessage(canonical, signature))
+                .Replace("\r\n", "\n"));
+        using EmailReadResult read = new EmailDocumentReader().Read(normalizedByTransport);
+        CmsVerificationOptions options = TrustSelfSigned();
+        options.MaxContentBytes = normalizedEntity.LongLength;
+
+        EmailSmimeVerificationResult result = EmailSmime.Verify(read.Document, options);
+
+        Assert.False(result.IsCryptographicallyValid);
+        Assert.DoesNotContain(result.Diagnostics, diagnostic =>
+            diagnostic.Code == "EMAIL_SMIME_CANONICAL_LINE_ENDINGS_APPLIED");
+    }
+
     [Theory]
     [InlineData(EmailFileFormat.OutlookMsg)]
     [InlineData(EmailFileFormat.Tnef)]

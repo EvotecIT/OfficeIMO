@@ -249,6 +249,17 @@ Gate evidence on 18 July 2026:
 - the former PDF-specific cryptography project was a PDF-dependent custom DER/CMS adapter and was removed when the
   neutral Security owner replaced it.
 
+Completion evidence on 19 July 2026 closes the real-fixture gate without importing unlicensed external mail into the
+repository. `ExternalOutlookSmimeCorpusTests` accepts `OFFICEIMO_EMAIL_SMIME_CORPUS`, verifies the expected artifact
+hashes, and was run against [HiraokaHyperTools/smime_mail_samples commit `9e2b7f45e00c98d15ed901b9793fb3c08c20400a`](https://github.com/HiraokaHyperTools/smime_mail_samples/tree/9e2b7f45e00c98d15ed901b9793fb3c08c20400a). Its Outlook EML and binary
+MSG artifacts cover signed, encrypted, and signed-then-encrypted messages with the supplied public test certificate
+and private key. OfficeIMO verified, decrypted, and decrypt-then-verified all six artifacts on `net472`, `net8.0`, and
+`net10.0`. A separately downloaded public Outlook 11 clear-signed mailing-list artifact was independently accepted by
+OpenSSL 3.0 and exposed source-control LF normalization that OfficeIMO initially rejected; the engine now retries the
+standard MIME CRLF canonical form while retaining the exact source entity, with a deterministic in-repository
+regression. The external artifacts remain opt-in by path because their repositories do not grant OfficeIMO a clear
+redistribution license.
+
 The accepted implementation is one neutral `OfficeIMO.Security` package backed by Bouncy Castle. It owns bounded
 CMS/DER/X.509, RFC 3161, signing, verification, and EnvelopedData operations plus vendor-neutral result/policy models.
 `OfficeIMO.Pdf` and `OfficeIMO.Email` reference it directly and own only format orchestration. The former PDF-specific
@@ -386,14 +397,14 @@ Security owner, so a Store consumer never needs PDF or multiple cryptography pac
 - [x] Add Store-owned category, view, search-folder, reminder, rule, and folder user-property semantics over associated data.
 - [x] Decide Profile/cache scope separately from real autocomplete consumer demand: deferred until a real autocomplete consumer exists.
 - [x] Add a thin all-artifact facade only after the underlying contracts are stable: the included `OfficeIMO.Email.Data` API delegates to the three existing owners.
-- [x] LAST: reassess the merged PDF signing work and freeze one neutral `OfficeIMO.Security` package backed by Bouncy Castle, with thin Email verification/decryption and PDF signing/verification consumers only where the proven contracts overlap. The bounded CMS/S/MIME contracts, tamper cases, timestamping, envelope decryption, and packed dependency graphs are covered. Outlook-produced S/MIME samples should be added to the interoperability corpus when available without changing this ownership boundary.
+- [x] LAST: reassess the merged PDF signing work and freeze one neutral `OfficeIMO.Security` package backed by Bouncy Castle, with thin Email verification/decryption and PDF signing/verification consumers only where the proven contracts overlap. The bounded CMS/S/MIME contracts, tamper cases, timestamping, envelope decryption, packed dependency graphs, and opt-in exact-commit Outlook S/MIME corpus are covered without redistributing external mail.
 
 ## Current branch evidence
 
-- `OfficeIMO.Email.Tests` passes 902 tests on `net8.0` and `net10.0`, and 891 on `net472`, including Outlook-shaped MSG and TNEF clear-signed S/MIME attachment verification.
-- `OfficeIMO.Email.Store.Tests` passes 241 tests on `net8.0` and `net10.0`, and 230 on `net472`; four explicitly opt-in Outlook/libpff/private-corpus checks remain skipped on each target.
+- `OfficeIMO.Email.Tests` passes 909 tests on `net8.0` and `net10.0`, and 896 on `net472`, including the enabled real-Outlook S/MIME corpus and Outlook-shaped MSG/TNEF clear-signed attachment verification.
+- `OfficeIMO.Email.Store.Tests` passes 242 tests on `net8.0` and `net10.0`, and 231 on `net472`; four explicitly opt-in Outlook/libpff/private-corpus checks remain skipped on each target.
 - `OfficeIMO.Email.AddressBook.Tests` passes 28 tests per runnable target; `OfficeIMO.Email.Data.Tests` passes three per runnable target.
-- `OfficeIMO.Reader.Tests` passes 809 tests on `net8.0` and `net10.0`, and 764 on `net472`.
+- `OfficeIMO.Reader.Tests` passes 810 tests on `net8.0` and `net10.0`, and 765 on `net472`.
 - `OfficeIMO.Security.Tests` passes eight CMS/X.509 tests on `net8.0` and `net10.0`; `OfficeIMO.Pdf.Tests` passes 2,987 tests on each modern target and 2,972 on `net472`.
 - SDK packing succeeds for Security, PDF, unified Email, Reader.Core, every selective Reader package, and Reader.All with matching `netstandard2.0`, `net472`, `net8.0`, and `net10.0` assemblies.
 - Clean isolated-cache consumers restore and execute the locally packed Security/PDF, Email/Reader.Email, and Reader.All graphs on `net472`, `net8.0`, and `net10.0`.

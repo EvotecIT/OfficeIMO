@@ -47,7 +47,7 @@ public static class EmailSmime {
 
         CmsVerificationResult cryptography = payload!.DetachedContent == null
             ? CmsSignedDataVerifier.Verify(payload.EncodedCms, options)
-            : CmsSignedDataVerifier.VerifyDetached(payload.EncodedCms, payload.DetachedContent, options);
+            : VerifyDetached(payload, options, diagnostics);
         byte[]? signedMimeEntity = payload.DetachedContent ?? cryptography.EncapsulatedContent;
         EmailDocument? signedContent = TryParseContent(
             signedMimeEntity,
@@ -60,6 +60,33 @@ public static class EmailSmime {
             signedMimeEntity,
             signedContent,
             diagnostics);
+    }
+
+    private static CmsVerificationResult VerifyDetached(
+        MimeSmimeExtractor.ExtractedSmimePayload payload,
+        CmsVerificationOptions options,
+        List<EmailDiagnostic> diagnostics) {
+        byte[] original = payload.DetachedContent!;
+        CmsVerificationResult exact = CmsSignedDataVerifier.VerifyDetached(payload.EncodedCms, original, options);
+        if (exact.IsCryptographicallyValid ||
+            !MimeSmimeExtractor.TryCanonicalizeLineEndings(
+                original,
+                options.MaxContentBytes,
+                out byte[] canonical)) {
+            return exact;
+        }
+
+        CmsVerificationResult normalized = CmsSignedDataVerifier.VerifyDetached(
+            payload.EncodedCms,
+            canonical,
+            options);
+        if (!normalized.IsCryptographicallyValid) return exact;
+        diagnostics.Add(new EmailDiagnostic(
+            "EMAIL_SMIME_CANONICAL_LINE_ENDINGS_APPLIED",
+            "The detached MIME entity used non-canonical line endings. Its signature validated after standard MIME CRLF canonicalization; SignedMimeEntity retains the original source bytes.",
+            EmailDiagnosticSeverity.Information,
+            "message/protection/signed-content"));
+        return normalized;
     }
 
     /// <summary>Decrypts opaque S/MIME EnvelopedData for a matching recipient certificate.</summary>

@@ -307,7 +307,11 @@ if (decrypted.Decrypted) {
 
 Certificate/key discovery is intentionally not implicit. Verification accepts caller trust/revocation policy through
 `CmsVerificationOptions`; decryption requires an explicitly supplied recipient certificate. The original protected
-document is never mutated, and the decrypted/signed projection is returned separately.
+document is never mutated, and the decrypted/signed projection is returned separately. Detached verification first
+uses the exact retained MIME bytes and, only when necessary, retries the standard CRLF canonical form used by S/MIME
+mail clients; `SignedMimeEntity` still exposes the original bytes and a structured diagnostic records the fallback.
+The current Bouncy Castle envelope adapter requires an RSA recipient key that the platform certificate handle permits
+to be exported. Non-exportable keys fail with `EnvelopePrivateKeyNotExportable` instead of weakening key policy.
 
 ## Mailbox stores and store-backed content
 
