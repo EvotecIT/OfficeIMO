@@ -76,6 +76,33 @@ public class PdfAnnotationCreationTests {
     }
 
     [Fact]
+    public void AppendOnlyAnnotationProofAllowsItsOwnedRevisionBeyondTheSourceBudget() {
+        byte[] source = PdfDocument.Create().Paragraph(p => p.Text("Certified page")).ToBytes();
+        PdfExternalSignaturePreparation preparation = PdfIncrementalUpdater.PrepareExternalSignature(source, new PdfExternalSignatureOptions {
+            Profile = PdfSignatureProfile.Certification,
+            CertificationPermission = PdfCertificationPermissionLevel.FormFillingAnnotationsAndSignatures,
+            FieldName = "Certification",
+            ReservedSignatureContentsBytes = 512
+        });
+        byte[] signed = PdfIncrementalUpdater.ApplyExternalSignature(preparation, new byte[] { 0x30, 0x01, 0x00 });
+        var readOptions = new PdfReadOptions {
+            Limits = new PdfReadLimits { MaxInputBytes = signed.Length }
+        };
+
+        PdfAnnotationEditResult result = PdfAnnotationEditor.AddAnnotation(
+            signed,
+            new PdfAnnotationCreateOptions {
+                Subtype = "Text",
+                Contents = "Append-only proof"
+            },
+            readOptions);
+
+        Assert.True(result.Bytes.LongLength > readOptions.Limits.MaxInputBytes);
+        Assert.True(result.SignatureMutationReport!.After.ObjectGraphParsed);
+        Assert.True(result.SignatureMutationReport.IsPreservedAppendOnlyMutation);
+    }
+
+    [Fact]
     public void FluentAnnotationEdits_UseStoredOwnerCredentialsForEncryptedPdf() {
         byte[] source = PdfDocument.Create(new PdfOptions().SetEncryption("open", "owner"))
             .Paragraph(paragraph => paragraph.Text("Encrypted annotations"))

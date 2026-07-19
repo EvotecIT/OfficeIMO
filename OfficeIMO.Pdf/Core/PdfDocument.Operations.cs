@@ -414,7 +414,7 @@ public sealed partial class PdfDocument {
         IPdfExternalSigner signer,
         PdfExternalSignatureOptions? signatureOptions = null) {
         Guard.NotNull(signer, nameof(signer));
-        return PdfIncrementalUpdater.SignExternal(GetBytesForOperation(), signer, signatureOptions);
+        return PdfIncrementalUpdater.SignExternal(GetBytesForOperation(), signer, signatureOptions, ReadOptions);
     }
 
     /// <summary>

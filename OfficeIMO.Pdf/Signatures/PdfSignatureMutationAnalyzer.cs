@@ -15,7 +15,8 @@ internal static class PdfSignatureMutationAnalyzer {
 
         PdfMutationPlan plan = PdfMutationPlanner.Plan(before, operation, readOptions, fieldNames, executionPreference);
         PdfSignatureValidationReport beforeValidation = PdfSignatureValidator.Validate(before, readOptions);
-        PdfSignatureValidationReport afterValidation = PdfSignatureValidator.Validate(after, readOptions);
+        PdfReadOptions afterReadOptions = PdfReadOptions.WithMinimumInputBytes(readOptions, after.LongLength);
+        PdfSignatureValidationReport afterValidation = PdfSignatureValidator.Validate(after, afterReadOptions);
         bool prefixPreserved = HasExactPrefix(after, before);
         bool revisionChainExtended = HasExtendedRevisionChain(beforeValidation.Security, afterValidation.Security);
         int[] beforeRevisionEnds = FindRevisionEnds(before);

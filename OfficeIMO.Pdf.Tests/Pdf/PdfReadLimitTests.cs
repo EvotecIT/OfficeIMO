@@ -45,6 +45,39 @@ public class PdfReadLimitTests {
     }
 
     [Fact]
+    public void OneShotExternalSignatureEnforcesStoredPageLimitBeforeCallingSigner() {
+        byte[] twoPages = PdfDocument.Create()
+            .Paragraph(paragraph => paragraph.Text("First page"))
+            .PageBreak()
+            .Paragraph(paragraph => paragraph.Text("Second page"))
+            .ToBytes();
+        var readOptions = new PdfReadOptions {
+            Limits = new PdfReadLimits { MaxPages = 1 }
+        };
+        var signer = new RecordingExternalSigner();
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(
+            () => PdfDocument.Open(twoPages, readOptions).SignExternal(signer));
+
+        Assert.Equal(PdfReadLimitKind.Pages, exception.Kind);
+        Assert.False(signer.WasCalled);
+    }
+
+    [Fact]
+    public void OneShotExternalSignatureCompletionRetainsPolicyForItsOwnedOutput() {
+        byte[] pdf = BuildPdf();
+        var readOptions = new PdfReadOptions {
+            Limits = new PdfReadLimits { MaxInputBytes = pdf.Length }
+        };
+
+        PdfExternalSignatureCompletion completion = PdfDocument.Open(pdf, readOptions)
+            .SignExternal(new RecordingExternalSigner());
+
+        Assert.True(completion.Pdf.LongLength > readOptions.Limits.MaxInputBytes);
+        Assert.Single(completion.ToDocument().Inspect().FormFields);
+    }
+
+    [Fact]
     public void AnnotationResultAllowsItsOwnRevisionBeyondTheSourceBudget() {
         byte[] pdf = BuildPdf();
         var readOptions = new PdfReadOptions {
@@ -803,5 +836,16 @@ public class PdfReadLimitTests {
         public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
         public override void SetLength(long value) => throw new NotSupportedException();
         public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+    }
+
+    private sealed class RecordingExternalSigner : IPdfExternalSigner {
+        public string Name => "Recording test signer";
+
+        internal bool WasCalled { get; private set; }
+
+        public byte[] Sign(PdfExternalSignatureRequest request) {
+            WasCalled = true;
+            return new byte[] { 0x30, 0x01, 0x00 };
+        }
     }
 }
