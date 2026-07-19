@@ -123,15 +123,20 @@ internal static partial class PdfIncrementalUpdater {
             preparation.ContentsHexLength);
     }
 
-    /// <summary>Injects externally produced CMS/CAdES/TSA bytes into the first zero-filled prepared signature placeholder found in a PDF.</summary>
+    /// <summary>Injects externally produced CMS/CAdES/TSA bytes into the only zero-filled prepared signature placeholder found in a PDF.</summary>
     public static byte[] ApplyExternalSignature(byte[] preparedPdf, byte[] signatureContents) {
         Guard.NotNull(preparedPdf, nameof(preparedPdf));
         Guard.NotNull(signatureContents, nameof(signatureContents));
         _ = PdfMutationPlanner.RequireAppendOnly(
             preparedPdf,
             PdfMutationOperation.FinalizeExternalSignature);
-        if (!TryFindZeroFilledSignatureContents(preparedPdf, out int contentsHexOffset, out int contentsHexLength)) {
+        int placeholderCount = FindZeroFilledSignatureContents(preparedPdf, out int contentsHexOffset, out int contentsHexLength);
+        if (placeholderCount == 0) {
             throw new ArgumentException("PDF does not contain a zero-filled external signature /Contents placeholder.", nameof(preparedPdf));
+        }
+
+        if (placeholderCount > 1) {
+            throw new ArgumentException("PDF contains multiple zero-filled external signature placeholders. Complete the intended PdfExternalSignaturePreparation instead.", nameof(preparedPdf));
         }
 
         return ApplyExternalSignature(preparedPdf, signatureContents, contentsHexOffset, contentsHexLength);
@@ -337,6 +342,10 @@ internal static partial class PdfIncrementalUpdater {
     }
 
     private static byte[] ApplyExternalSignature(byte[] preparedPdf, byte[] signatureContents, int contentsHexOffset, int contentsHexLength) {
+        if (signatureContents.Length == 0) {
+            throw new ArgumentException("Signature contents cannot be empty.", nameof(signatureContents));
+        }
+
         if (signatureContents.Length * 2 > contentsHexLength) {
             throw new ArgumentException("Signature contents require " + signatureContents.Length.ToString(CultureInfo.InvariantCulture) + " bytes, but the prepared PDF reserved " + (contentsHexLength / 2).ToString(CultureInfo.InvariantCulture) + " bytes.", nameof(signatureContents));
         }
@@ -357,15 +366,16 @@ internal static partial class PdfIncrementalUpdater {
         return builder.ToString();
     }
 
-    private static bool TryFindZeroFilledSignatureContents(byte[] pdf, out int contentsHexOffset, out int contentsHexLength) {
+    private static int FindZeroFilledSignatureContents(byte[] pdf, out int contentsHexOffset, out int contentsHexLength) {
         contentsHexOffset = 0;
         contentsHexLength = 0;
+        int placeholderCount = 0;
         byte[] marker = PdfEncoding.Latin1GetBytes("/Contents <");
         int searchOffset = 0;
         while (true) {
             int markerOffset = IndexOf(pdf, marker, searchOffset);
             if (markerOffset < 0) {
-                return false;
+                return placeholderCount;
             }
 
             int start = markerOffset + marker.Length;
@@ -384,9 +394,12 @@ internal static partial class PdfIncrementalUpdater {
                 end > start &&
                 IsZeroFilled(pdf, start, end - start) &&
                 IsSignatureContentsPlaceholder(pdf, markerOffset, end + 1)) {
-                contentsHexOffset = start;
-                contentsHexLength = end - start;
-                return true;
+                if (placeholderCount == 0) {
+                    contentsHexOffset = start;
+                    contentsHexLength = end - start;
+                }
+
+                placeholderCount++;
             }
 
             searchOffset = markerOffset + marker.Length;

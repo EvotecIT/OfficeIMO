@@ -71,4 +71,10 @@ public sealed class PdfExternalSignaturePreparation {
         return sha256.ComputeHash(SignedContent);
     }
 #pragma warning restore CA1850
+
+    /// <summary>Completes this in-memory preparation with detached CMS or timestamp bytes.</summary>
+    public PdfDocument Complete(byte[] signatureContents) {
+        Guard.NotNull(signatureContents, nameof(signatureContents));
+        return PdfDocument.Open(PdfIncrementalUpdater.ApplyExternalSignature(this, signatureContents));
+    }
 }

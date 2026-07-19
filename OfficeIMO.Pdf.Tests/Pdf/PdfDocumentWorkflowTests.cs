@@ -1176,6 +1176,10 @@ public class PdfDocumentWorkflowTests {
         Assert.Equal(PdfMerger.Merge(source, appendix), merged.ToBytes());
         Assert.Equal(4, merged.Inspect().PageCount);
 
+        PdfDocument bulkMerged = PdfDocument.Merge(PdfDocument.Open(source), PdfDocument.Open(appendix));
+        Assert.Equal(PdfMerger.Merge(source, appendix), bulkMerged.ToBytes());
+        Assert.Equal(4, bulkMerged.Inspect().PageCount);
+
         PdfDocument metadata = merged.UpdateMetadata(title: "Workflow updated", author: "OfficeIMO Tests");
         Assert.Equal(
             PdfMetadataEditor.UpdateMetadata(merged.ToBytes(), title: "Workflow updated", author: "OfficeIMO Tests"),
@@ -1250,6 +1254,33 @@ public class PdfDocumentWorkflowTests {
         Assert.True(signatureResult.Succeeded);
         Assert.Equal(PdfPreflightCapability.PrepareExternalSignatureRevision, signatureResult.Capability);
         Assert.Equal("Approval", signatureResult.RequireValue().FieldName);
+    }
+
+    [Fact]
+    public void ExistingDocumentFacade_PreservesPerDocumentReadContractsAcrossReparsingOperations() {
+        byte[] onePage = BuildPdf("One page", "First source");
+        byte[] twoPages = PdfDocument.Create()
+            .Paragraph(paragraph => paragraph.Text("Page one"))
+            .PageBreak()
+            .Paragraph(paragraph => paragraph.Text("Page two"))
+            .ToBytes();
+        var onePageLimit = new PdfReadOptions {
+            Limits = new PdfReadLimits { MaxPages = 1 }
+        };
+        PdfDocument constrained = PdfDocument.Open(twoPages, onePageLimit);
+
+        PdfMutationBlockedException mergeException = Assert.Throws<PdfMutationBlockedException>(
+            () => PdfDocument.Merge(PdfDocument.Open(onePage), constrained));
+        PdfMutationBlockedException resizeException = Assert.Throws<PdfMutationBlockedException>(
+            () => constrained.Pages.Resize(new PageSize(612, 792)));
+
+        PdfOptimizationActionResult optimized = constrained.Optimize();
+        PdfReadLimitException optimizedReadbackException = Assert.Throws<PdfReadLimitException>(
+            () => optimized.ToDocument().Inspect());
+
+        Assert.Contains("Read.ParserUnsupported", mergeException.Plan.BlockerCodes);
+        Assert.Contains("Read.ParserUnsupported", resizeException.Plan.BlockerCodes);
+        Assert.Equal(PdfReadLimitKind.Pages, optimizedReadbackException.Kind);
     }
 
     [Fact]

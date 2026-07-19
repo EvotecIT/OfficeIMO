@@ -9,6 +9,21 @@ namespace OfficeIMO.Tests.Pdf;
 
 public class PdfReadLimitTests {
     [Fact]
+    public void DefaultReadLimitsAreIndependentAcrossOptionInstances() {
+        var first = new PdfReadOptions();
+        var second = new PdfReadOptions();
+        var setter = typeof(PdfReadLimits).GetProperty(nameof(PdfReadLimits.MaxInputBytes))!;
+
+        setter.SetValue(first.Limits, 1L);
+
+        Assert.Equal(1L, first.Limits.MaxInputBytes);
+        Assert.Equal(512L * 1024L * 1024L, second.Limits.MaxInputBytes);
+        Assert.Equal(512L * 1024L * 1024L, PdfReadOptions.Default.Limits.MaxInputBytes);
+        Assert.NotSame(PdfReadOptions.Default, PdfReadOptions.Default);
+        Assert.NotSame(PdfReadLimits.Default, PdfReadLimits.Default);
+    }
+
+    [Fact]
     public void InputByteBudgetStopsBeforeObjectScanning() {
         byte[] pdf = BuildPdf();
         var options = new PdfReadOptions {
@@ -98,6 +113,56 @@ public class PdfReadLimitTests {
 
         Assert.Equal(PdfReadLimitKind.InputBytes, exception.Kind);
         Assert.InRange(stream.BytesRead, 17, 19);
+    }
+
+    [Fact]
+    public void PdfDocumentPreflightBoundsPathsAndStreamsBeforeUnboundedBuffering() {
+        byte[] pdf = BuildPdf();
+        string path = Path.Combine(Path.GetTempPath(), "officeimo-pdf-preflight-limit-" + Guid.NewGuid().ToString("N") + ".pdf");
+        var restrictive = new PdfReadOptions {
+            Limits = new PdfReadLimits { MaxInputBytes = 16 }
+        };
+
+        try {
+            File.WriteAllBytes(path, pdf);
+            PdfReadLimitException pathException = Assert.Throws<PdfReadLimitException>(
+                () => PdfDocument.Preflight(path, restrictive));
+
+            using var seekable = new MemoryStream(pdf);
+            PdfReadLimitException streamException = Assert.Throws<PdfReadLimitException>(
+                () => PdfDocument.Preflight(seekable, restrictive));
+
+            using var nonSeekable = new ChunkedNonSeekableStream(pdf, maximumChunkSize: 3);
+            PdfReadLimitException nonSeekableException = Assert.Throws<PdfReadLimitException>(
+                () => PdfDocument.Preflight(nonSeekable, restrictive));
+
+            Assert.Equal(PdfReadLimitKind.InputBytes, pathException.Kind);
+            Assert.Equal(PdfReadLimitKind.InputBytes, streamException.Kind);
+            Assert.Equal(0, seekable.Position);
+            Assert.Equal(PdfReadLimitKind.InputBytes, nonSeekableException.Kind);
+            Assert.InRange(nonSeekable.BytesRead, 17, 19);
+        } finally {
+            if (File.Exists(path)) {
+                File.Delete(path);
+            }
+        }
+    }
+
+    [Fact]
+    public void PdfDocumentPreflightConsumesSeekableStreamsFromTheirCurrentPosition() {
+        byte[] pdf = BuildPdf();
+        byte[] prefixed = new byte[pdf.Length + 7];
+        Buffer.BlockCopy(pdf, 0, prefixed, 7, pdf.Length);
+        using var stream = new MemoryStream(prefixed);
+        stream.Position = 7;
+        var options = new PdfReadOptions {
+            Limits = new PdfReadLimits { MaxInputBytes = pdf.Length }
+        };
+
+        PdfDocumentPreflight preflight = PdfDocument.Preflight(stream, options);
+
+        Assert.True(preflight.CanRead);
+        Assert.Equal(stream.Length, stream.Position);
     }
 
     [Fact]

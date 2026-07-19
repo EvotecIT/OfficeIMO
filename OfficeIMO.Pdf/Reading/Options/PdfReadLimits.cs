@@ -7,8 +7,8 @@ public sealed class PdfReadLimits {
     internal const int DefaultMaxContentOperands = 1_000_000;
     internal const int DefaultMaxContentNestingDepth = 128;
 
-    /// <summary>Default immutable parser budgets.</summary>
-    public static PdfReadLimits Default { get; } = new PdfReadLimits();
+    /// <summary>Creates default parser budgets that callers can customize without changing another options instance.</summary>
+    public static PdfReadLimits Default => new PdfReadLimits();
 
     /// <summary>Maximum input byte count accepted before text/object scanning. Default: 512 MiB.</summary>
     public long MaxInputBytes { get; init; } = 512L * 1024L * 1024L;

@@ -35,6 +35,11 @@ internal static partial class PdfMerger {
         return MergeCore(pdfs, primarySourceIndex: 0, options: null).ToBytes();
     }
 
+    internal static byte[] Merge(IReadOnlyList<byte[]> pdfs, IReadOnlyList<PdfReadOptions> readOptions) {
+        Guard.NotNull(readOptions, nameof(readOptions));
+        return MergeCore(pdfs, primarySourceIndex: 0, options: null, readOptions).ToBytes();
+    }
+
     /// <summary>
     /// Merges all pages from the supplied PDFs into one new PDF, applying optional source preparation first.
     /// </summary>
@@ -105,7 +110,11 @@ internal static partial class PdfMerger {
         return WriteMerged(importedSources, primarySourceIndex: 0, outputOrder);
     }
 
-    private static PdfMergeResult MergeCore(IEnumerable<byte[]> pdfs, int primarySourceIndex, PdfMergeOptions? options) {
+    private static PdfMergeResult MergeCore(
+        IEnumerable<byte[]> pdfs,
+        int primarySourceIndex,
+        PdfMergeOptions? options,
+        IReadOnlyList<PdfReadOptions>? readOptions = null) {
         Guard.NotNull(pdfs, nameof(pdfs));
 
         var sources = pdfs.ToArray();
@@ -117,6 +126,10 @@ internal static partial class PdfMerger {
             throw new ArgumentOutOfRangeException(nameof(primarySourceIndex), "Primary source index must refer to one of the supplied PDFs.");
         }
 
+        if (readOptions is not null && readOptions.Count != sources.Length) {
+            throw new ArgumentException("Read options must contain one entry for every PDF input.", nameof(readOptions));
+        }
+
         var importedSources = new List<ImportedSource>(sources.Length);
         int mergedPageOffset = 0;
         for (int i = 0; i < sources.Length; i++) {
@@ -125,8 +138,9 @@ internal static partial class PdfMerger {
                 throw new ArgumentException("PDF input " + i.ToString(CultureInfo.InvariantCulture) + " cannot be null.", nameof(pdfs));
             }
 
-            source = PrepareMergeSource(source, options);
-            importedSources.Add(ImportSource(source, i, null, mergedPageOffset, null, PdfMutationOperation.MergeDocuments));
+            PdfReadOptions? sourceReadOptions = readOptions?[i];
+            source = PrepareMergeSource(source, options, sourceReadOptions);
+            importedSources.Add(ImportSource(source, i, null, mergedPageOffset, null, PdfMutationOperation.MergeDocuments, sourceReadOptions));
             mergedPageOffset += importedSources[importedSources.Count - 1].PageObjectNumbers.Length;
         }
 
@@ -341,17 +355,17 @@ internal static partial class PdfMerger {
         return Merge(options, (IEnumerable<byte[]>)pdfs);
     }
 
-    private static byte[] PrepareMergeSource(byte[] source, PdfMergeOptions? options) {
+    private static byte[] PrepareMergeSource(byte[] source, PdfMergeOptions? options, PdfReadOptions? readOptions = null) {
         if (options is null) {
             return source;
         }
 
         if (options.FlattenVisualAnnotations) {
-            source = PdfAnnotationFlattener.FlattenVisualAnnotations(source);
+            source = PdfAnnotationFlattener.FlattenVisualAnnotations(source, options: null, readOptions);
         }
 
         if (options.ResizePages is not null) {
-            source = PdfPageEditor.ResizePages(source, options.ResizePages);
+            source = PdfPageEditor.ResizePages(source, options.ResizePages, readOptions);
         }
 
         return source;
@@ -401,11 +415,12 @@ internal static partial class PdfMerger {
         int[]? knownPageObjectNumbers,
         int mergedPageOffset,
         IReadOnlyDictionary<int, int>? outputPageIndexByPageObjectNumber,
-        PdfMutationOperation mutationOperation = PdfMutationOperation.ExtractPages) {
-        _ = PdfMutationPlanner.RequireFullRewrite(source, mutationOperation);
+        PdfMutationOperation mutationOperation = PdfMutationOperation.ExtractPages,
+        PdfReadOptions? readOptions = null) {
+        _ = PdfMutationPlanner.RequireFullRewrite(source, mutationOperation, readOptions);
 
-        var (objects, trailerRaw) = PdfSyntax.ParseObjects(source);
-        var document = PdfReadDocument.Open(source);
+        var (objects, trailerRaw) = PdfSyntax.ParseObjects(source, readOptions);
+        var document = PdfReadDocument.Open(source, readOptions);
         if (document.Pages.Count == 0) {
             throw new ArgumentException("PDF input " + sourceIndex.ToString(CultureInfo.InvariantCulture) + " does not contain any pages.", nameof(source));
         }
