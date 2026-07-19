@@ -253,7 +253,7 @@ public static class PdfLogicalTableAnalysis {
     }
 
     private static bool ContainsOrdinal(string value, string candidate) {
-#if NETSTANDARD2_0
+#if NETSTANDARD2_0 || NETFRAMEWORK
         return value.IndexOf(candidate, StringComparison.Ordinal) >= 0;
 #else
         return value.Contains(candidate, StringComparison.Ordinal);
