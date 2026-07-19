@@ -135,7 +135,11 @@ public class PdfTableStreamExportContracts {
                 "5 0 obj\n<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 10 10] /XStep 10 /YStep 10 /Resources << /ExtGState << /GS1 6 0 R >> >> /Length 31 >>\nstream\n/GS1 gs\n1 0 0 rg\n0 0 10 10 re\nf\nendstream\nendobj",
                 "6 0 obj\n<< /Type /ExtGState /ca 0 /CA 0 >>\nendobj"),
             BuildPatternWithClippedForm(hiddenByClip: true),
-            BuildSingleStreamPdf("1 0 0 rg\n1e309 40 20 20 re\nf")
+            BuildSingleStreamPdf("1 0 0 rg\n1e309 40 20 20 re\nf"),
+            BuildSingleStreamPdf("1 0 0 rg\n5 1e309 40 20 20 re\nf"),
+            BuildSingleStreamPdf("1 0 0 rg\n5 40 1e309 20 20 re\nf"),
+            BuildSingleStreamPdf("1 0 0 rg\n5 40 20 1e309 20 re\nf"),
+            BuildSingleStreamPdf("1 0 0 rg\n5 40 20 20 1e309 re\nf")
         };
 
         Assert.All(sources, source => {
@@ -146,6 +150,48 @@ public class PdfTableStreamExportContracts {
             Assert.Equal(0, scope.VectorPrimitiveCount);
             Assert.False(scope.HasOmittedPageContent);
         });
+    }
+
+    [Fact]
+    public void TableConversions_MalformedNumbersDoNotSuppressRecoveryOperators() {
+        byte[] clearPath = BuildSingleStreamPdf("""
+            1 0 0 rg
+            40 40 20 20 re
+            1e309 n
+            f
+            """);
+        byte[] restoreState = BuildSingleStreamPdf("""
+            q
+            1000 0 0 1000 0 0 cm
+            1e309 Q
+            1 0 0 rg
+            40 40 20 20 re
+            f
+            """);
+
+        PdfLogicalDocument cleared = PdfLogicalDocument.Load(clearPath);
+        PdfLogicalDocument restored = PdfLogicalDocument.Load(restoreState);
+
+        Assert.Equal(0, cleared.Pages[0].VectorPrimitiveCount);
+        Assert.Equal(1, restored.Pages[0].VectorPrimitiveCount);
+    }
+
+    [Fact]
+    public void TableConversions_MalformedNestedMarkedContentKeepsOuterHiddenScope() {
+        byte[] source = BuildHiddenOptionalContentPdf("""
+            /OC /Outer BDC
+            1e309 /Span BDC
+            EMC
+            1 0 0 rg
+            40 40 20 20 re
+            f
+            EMC
+            """);
+        PdfLogicalDocument logical = PdfLogicalDocument.Load(source);
+        PdfTableExtractionScopeReport scope = PdfLogicalTableAnalysis.AnalyzeExtractionScope(logical);
+
+        Assert.Equal(0, logical.Pages[0].VectorPrimitiveCount);
+        Assert.Equal(0, scope.VectorPrimitiveCount);
     }
 
     [Fact]
@@ -480,6 +526,36 @@ public class PdfTableStreamExportContracts {
                 "<< /Root 1 0 R >>",
                 "%%EOF"
             })) + "\n";
+        return System.Text.Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] BuildHiddenOptionalContentPdf(string streamContent) {
+        streamContent = streamContent.TrimEnd('\r', '\n');
+        int streamLength = System.Text.Encoding.ASCII.GetByteCount(streamContent);
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.4",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R /OCProperties << /OCGs [5 0 R] /D << /BaseState /ON /OFF [5 0 R] >> >> >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 240 200] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /Resources << /Properties << /Outer 5 0 R >> >> /Contents 4 0 R >>",
+            "endobj",
+            "4 0 obj",
+            $"<< /Length {streamLength} >>",
+            "stream",
+            streamContent,
+            "endstream",
+            "endobj",
+            "5 0 obj",
+            "<< /Type /OCG /Name (Outer) >>",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R >>",
+            "%%EOF"
+        }) + "\n";
         return System.Text.Encoding.ASCII.GetBytes(pdf);
     }
 

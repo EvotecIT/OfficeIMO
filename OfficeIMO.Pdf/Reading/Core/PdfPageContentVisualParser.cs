@@ -196,8 +196,12 @@ internal static class PdfPageContentVisualParser {
                 _content,
                 _maxOperations,
                 operation => {
+                    _args.Clear();
                     _args.AddRange(operation.Operands);
-                    ApplyOperator(operation.Name, GetPaintOrder(operation.OperatorOffset));
+                    ApplyOperator(
+                        operation.Name,
+                        GetPaintOrder(operation.OperatorOffset),
+                        operation.HasInvalidOperands);
                 },
                 maxNestingDepth: _maxNestingDepth,
                 maxOperands: _maxOperands);
@@ -217,7 +221,7 @@ internal static class PdfPageContentVisualParser {
 
         private double GetPaintOrder(int operatorIndex) => _paintOrderBase + ((operatorIndex + _paintOrderOffset) * _paintOrderScale);
 
-        private void ApplyOperator(string op, double paintOrder) {
+        private void ApplyOperator(string op, double paintOrder, bool hasInvalidOperands) {
             switch (op) {
                 case "q":
                     _stack.Push(_state);
@@ -511,10 +515,14 @@ internal static class PdfPageContentVisualParser {
                 case "BI":
                     break;
                 case "BDC":
-                    _hiddenContentStack.Push(IsHiddenOptionalContent(_args.Count > 1 ? _args[_args.Count - 2] : null, _args.Count > 0 ? _args[_args.Count - 1] : null));
+                    _hiddenContentStack.Push(
+                        hasInvalidOperands ||
+                        IsHiddenOptionalContent(
+                            _args.Count > 1 ? _args[_args.Count - 2] : null,
+                            _args.Count > 0 ? _args[_args.Count - 1] : null));
                     break;
                 case "BMC":
-                    _hiddenContentStack.Push(false);
+                    _hiddenContentStack.Push(hasInvalidOperands);
                     break;
                 case "EMC":
                     if (_hiddenContentStack.Count > 0) {
