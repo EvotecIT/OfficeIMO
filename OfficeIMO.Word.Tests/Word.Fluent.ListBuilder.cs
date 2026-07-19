@@ -64,7 +64,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(2, document.Lists.Count);
 
                 var roman = document.Lists[0];
-                var nf = roman.Numbering.Levels[0]._level.NumberingFormat;
+                var nf = roman.Numbering.Levels[0].OpenXmlElement.NumberingFormat;
                 Assert.NotNull(nf);
                 Assert.NotNull(nf!.Val);
                 Assert.Equal(NumberFormatValues.LowerRoman, nf!.Val!.Value);

@@ -97,6 +97,20 @@ public sealed class PdfImageExportContractTests {
     }
 
     [Fact]
+    public void FluentDocumentReaderUsesTheSharedImageExportContract() {
+        PdfDocument document = PdfDocument.Open(PdfDocument.Create()
+            .Paragraph(paragraph => paragraph.Text("Fluent image export"))
+            .ToBytes());
+
+        OfficeImageExportResult result = Assert.Single(document.Read.ExportImages(
+            OfficeImageExportFormat.Svg));
+
+        Assert.Equal(OfficeImageExportFormat.Svg, result.Format);
+        Assert.Equal(result.Width, OfficeImageReader.Identify(result.Bytes).Width);
+        Assert.Equal(result.Height, OfficeImageReader.Identify(result.Bytes).Height);
+    }
+
+    [Fact]
     public void ConversionResultIsTheSinglePagedImageAdapterAndPreservesDiagnostics() {
         var report = new PdfConversionReport();
         report.Add(new PdfConversionWarning(

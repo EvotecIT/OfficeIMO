@@ -4,14 +4,14 @@ namespace OfficeIMO.Pdf;
 /// Options for controlling PDF reading/decoding behavior.
 /// </summary>
 public sealed class PdfReadOptions {
-    /// <summary>Default immutable read settings.</summary>
-    public static PdfReadOptions Default { get; } = new PdfReadOptions();
+    /// <summary>Creates default read settings with an independent limits graph.</summary>
+    public static PdfReadOptions Default => new PdfReadOptions();
 
     /// <summary>Structural parsing policy. Lenient recovery is the compatibility default and always produces a repair report.</summary>
     public PdfParsingMode ParsingMode { get; init; } = PdfParsingMode.Lenient;
 
     /// <summary>Resource budgets for object scanning and raw stream allocation.</summary>
-    public PdfReadLimits Limits { get; init; } = PdfReadLimits.Default;
+    public PdfReadLimits Limits { get; init; } = new PdfReadLimits();
 
     /// <summary>Password used to open encrypted PDFs. The same value is tried as user and owner password for Standard security handler files.</summary>
     public string? Password { get; init; }
@@ -27,5 +27,17 @@ public sealed class PdfReadOptions {
         Guard.NotNull(effective.Limits, nameof(Limits));
         effective.Limits.Validate();
         return effective;
+    }
+
+    internal static PdfReadOptions WithMinimumInputBytes(PdfReadOptions? options, long minimumInputBytes) {
+        PdfReadOptions effective = Resolve(options);
+        return new PdfReadOptions {
+            ParsingMode = effective.ParsingMode,
+            Limits = effective.Limits.WithMinimumInputBytes(minimumInputBytes),
+            Password = effective.Password,
+            PreferToUnicode = effective.PreferToUnicode,
+            UseWinAnsiFallback = effective.UseWinAnsiFallback,
+            AdjustKerningFromTJ = effective.AdjustKerningFromTJ
+        };
     }
 }

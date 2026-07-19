@@ -269,7 +269,8 @@ internal static class PdfInspector {
     /// </summary>
     public static PdfDocumentPreflight Preflight(string path, PdfReadOptions? options = null) {
         Guard.NotNullOrWhiteSpace(path, nameof(path));
-        return Preflight(File.ReadAllBytes(path), options);
+        PdfDocumentSource source = PdfDocumentSource.FromPath(path, options);
+        return Preflight(source.Bytes, source.Options);
     }
 
     /// <summary>
@@ -279,9 +280,28 @@ internal static class PdfInspector {
         Guard.NotNull(stream, nameof(stream));
         if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
 
+        PdfReadOptions effectiveOptions = PdfReadOptions.Resolve(options);
+        long limit = effectiveOptions.Limits.MaxInputBytes;
+        if (stream.CanSeek) {
+            long remaining = stream.Length - stream.Position;
+            if (remaining > limit) {
+                throw PdfReadLimitException.Create(PdfReadLimitKind.InputBytes, limit, remaining);
+            }
+        }
+
         using var buffer = new MemoryStream();
-        stream.CopyTo(buffer);
-        return Preflight(buffer.ToArray(), options);
+        var chunk = new byte[81920];
+        int read;
+        while ((read = stream.Read(chunk, 0, chunk.Length)) > 0) {
+            long nextLength = buffer.Length + read;
+            if (nextLength > limit) {
+                throw PdfReadLimitException.Create(PdfReadLimitKind.InputBytes, limit, nextLength);
+            }
+
+            buffer.Write(chunk, 0, read);
+        }
+
+        return Preflight(buffer.ToArray(), effectiveOptions);
     }
 
     private static List<string> GetUnsupportedContentStreamFilters(PdfReadDocument document) {

@@ -113,13 +113,39 @@ public sealed partial class PdfReadPage {
         return clippedMask;
     }
 
-    private Dictionary<string, PdfPageTilingPatternResource> GetTilingPatternResources(PdfDictionary? resources) {
+    private Dictionary<string, PdfPageTilingPatternResource> GetTilingPatternResources(
+        PdfDictionary? resources,
+        Dictionary<(PdfStream Stream, PdfDictionary Resources), PdfPageTilingPatternResource?>? resourceCache = null) {
         var result = new Dictionary<string, PdfPageTilingPatternResource>(StringComparer.Ordinal);
         if (resources == null || !resources.Items.TryGetValue("Pattern", out PdfObject? patternObject)) return result;
         PdfDictionary? patterns = ResolveDictionary(patternObject);
         if (patterns == null) return result;
         foreach (KeyValuePair<string, PdfObject> entry in patterns.Items) {
-            if (TryReadTilingPattern(entry.Value, resources, out PdfPageTilingPatternResource? pattern)) result[entry.Key] = pattern;
+            if (ResolveObject(entry.Value) is not PdfStream stream) {
+                continue;
+            }
+
+            var cacheKey = (Stream: stream, Resources: resources);
+            if (resourceCache != null &&
+                resourceCache.TryGetValue(cacheKey, out PdfPageTilingPatternResource? cached)) {
+                if (cached != null) {
+                    result[entry.Key] = cached;
+                }
+                continue;
+            }
+
+            PdfPageTilingPatternResource? pattern = TryReadTilingPattern(
+                stream,
+                resources,
+                out PdfPageTilingPatternResource? parsed)
+                ? parsed
+                : null;
+            if (resourceCache != null) {
+                resourceCache[cacheKey] = pattern;
+            }
+            if (pattern != null) {
+                result[entry.Key] = pattern;
+            }
         }
         return result;
     }
@@ -170,7 +196,7 @@ public sealed partial class PdfReadPage {
         var activeForms = new HashSet<PdfStream>();
         var elements = new List<PdfPageDrawingElement>();
         var primitives = new List<PdfPageVisualPrimitive>();
-        CollectVisualPrimitivesAndForms(content, resources, transform, width, height, primitives, activeForms, includeTilingPatterns: false);
+        CollectVisualPrimitivesAndForms(content, resources, transform, width, height, primitives.Add, activeForms, includeTilingPatterns: false);
         for (int i = 0; i < primitives.Count; i++) elements.Add(PdfPageDrawingElement.FromPrimitive(primitives[i], elements.Count));
 
         var spans = new List<PdfTextSpan>();

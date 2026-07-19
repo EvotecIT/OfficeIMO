@@ -1,7 +1,7 @@
 using OfficeIMO.Drawing;
 using OfficeIMO.Html;
 
-namespace OfficeIMO.Epub.Html;
+namespace OfficeIMO.Epub.Image;
 
 /// <summary>Fluent batch image export for EPUB chapters.</summary>
 public sealed class EpubImageExportBuilder :

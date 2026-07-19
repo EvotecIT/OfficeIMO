@@ -492,6 +492,17 @@ public sealed partial class PdfDocumentPages {
         return _document.ApplyMutation(input => PdfPageEditor.SetPageBox(input, box, left, bottom, right, top, pageNumbers));
     }
 
+    /// <summary>Resizes selected pages to the supplied page size.</summary>
+    public PdfDocument Resize(PageSize pageSize, params int[] pageNumbers) {
+        return _document.ApplyMutation(input => PdfPageEditor.ResizePages(input, pageSize, _document.ReadOptions, pageNumbers));
+    }
+
+    /// <summary>Resizes selected pages with explicit fit, fill, alignment, and scaling settings.</summary>
+    public PdfDocument Resize(PdfPageResizeOptions options, params int[] pageNumbers) {
+        Guard.NotNull(options, nameof(options));
+        return _document.ApplyMutation(input => PdfPageEditor.ResizePages(input, options, _document.ReadOptions, pageNumbers));
+    }
+
     /// <summary>Sets the media box for selected pages.</summary>
     public PdfDocument SetMediaBox(double left, double bottom, double right, double top, params int[] pageNumbers) =>
         SetPageBox(PdfPageBoundaryBox.MediaBox, left, bottom, right, top, pageNumbers);

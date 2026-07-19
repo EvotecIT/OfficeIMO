@@ -149,7 +149,7 @@ internal static class TextContentParser {
         Matrix2D lineMatrix = Matrix2D.Identity;
         // Graphics state (CTM) and stack
         Matrix2D ctm = Matrix2D.Identity; var gstack = new System.Collections.Generic.Stack<TextGraphicsState>();
-        // Operand buffer (tokens collected since last operator)
+        // Operand buffer for the current operator.
         var args = new List<object>(8);
         // Kerning state between text runs in TJ arrays (points) and rolling output buffer for gap checks
         double pendingGapPt = 0;
@@ -158,6 +158,7 @@ internal static class TextContentParser {
         var sbOutGlobal = new StringBuilder();
         var markedContentStack = new Stack<MarkedContentState>();
         PdfContentStreamInterpreter.Interpret(content, maxOperations, operation => {
+            args.Clear();
             args.AddRange(operation.Operands);
             double paintOrder = GetPaintOrder(operation.OperatorOffset);
             string op = operation.Name;
@@ -410,11 +411,15 @@ internal static class TextContentParser {
                     markedContentStack.Push(new MarkedContentState(
                         GetActualText(args.Count > 0 ? args[args.Count - 1] : null),
                         IsArtifactTag(args.Count > 1 ? args[args.Count - 2] : null),
+                        operation.HasInvalidOperands ||
                         IsHiddenOptionalContent(args.Count > 1 ? args[args.Count - 2] : null, args.Count > 0 ? args[args.Count - 1] : null)));
                     args.Clear();
                     break;
                 case "BMC":
-                    markedContentStack.Push(new MarkedContentState(null, IsArtifactTag(args.Count > 0 ? args[args.Count - 1] : null), false));
+                    markedContentStack.Push(new MarkedContentState(
+                        null,
+                        IsArtifactTag(args.Count > 0 ? args[args.Count - 1] : null),
+                        operation.HasInvalidOperands));
                     args.Clear();
                     break;
                 case "EMC":
@@ -894,6 +899,7 @@ internal static class TextContentParser {
         var args = new List<object>(8);
 
         PdfContentStreamInterpreter.Interpret(content, maxOperations, operation => {
+            args.Clear();
             args.AddRange(operation.Operands);
             double paintOrder = GetPaintOrder(operation.OperatorOffset);
             string op = operation.Name;
@@ -1139,11 +1145,15 @@ internal static class TextContentParser {
                     args.Clear();
                     break;
                 case "BDC":
-                    hiddenContentStack.Push(IsHiddenOptionalContent(args.Count > 1 ? args[args.Count - 2] : null, args.Count > 0 ? args[args.Count - 1] : null));
+                    hiddenContentStack.Push(
+                        operation.HasInvalidOperands ||
+                        IsHiddenOptionalContent(
+                            args.Count > 1 ? args[args.Count - 2] : null,
+                            args.Count > 0 ? args[args.Count - 1] : null));
                     args.Clear();
                     break;
                 case "BMC":
-                    hiddenContentStack.Push(false);
+                    hiddenContentStack.Push(operation.HasInvalidOperands);
                     args.Clear();
                     break;
                 case "EMC":

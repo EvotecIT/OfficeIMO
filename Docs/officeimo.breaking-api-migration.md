@@ -154,7 +154,7 @@ IReadOnlyList<OfficeImageExportResult> pages = markdown
 
 Use `PdfReadPage.ToDrawing()` when a caller needs the intermediate `OfficeDrawing` scene. The older `PdfPageRenderResult` batch remains a low-level inspection/OCR/verification contract behind the fluent reader facade because it carries per-page elapsed time, continue-on-error state, and typed PDF capability diagnostics; it is not the general five-format export API.
 
-ODT, ODS, and ODP direct image extensions live in their existing Word/Excel/PowerPoint OpenDocument adapter packages and attach ODF conversion diagnostics to every image. `OfficeIMO.Epub.Html` projects retained EPUB chapter HTML/resources through the HTML renderer. The email bridge selects HTML, RTF, or text bodies and resolves allowed inline MIME resources through the same HTML resource pipeline.
+ODT, ODS, and ODP direct image extensions live in their existing Word/Excel/PowerPoint OpenDocument adapter packages and attach ODF conversion diagnostics to every image. `OfficeIMO.Epub.Image` projects retained EPUB chapter HTML/resources through the HTML renderer. The email bridge selects HTML, RTF, or text bodies and resolves allowed inline MIME resources through the same HTML resource pipeline.
 
 ## HTML source ownership
 

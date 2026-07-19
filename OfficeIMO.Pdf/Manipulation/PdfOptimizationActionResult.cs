@@ -3,6 +3,7 @@ namespace OfficeIMO.Pdf;
 /// <summary>Result of applying lossless PDF optimization actions.</summary>
 public sealed class PdfOptimizationActionResult {
     private readonly byte[] _bytes;
+    private readonly PdfReadOptions? _readOptions;
 
     internal PdfOptimizationActionResult(
         byte[] bytes,
@@ -18,8 +19,10 @@ public sealed class PdfOptimizationActionResult {
         PdfOptimizationXrefFormat candidateXrefFormat,
         bool candidateUsesObjectStreams,
         bool candidateLinearized,
-        bool returnedOriginal) {
+        bool returnedOriginal,
+        PdfReadOptions? readOptions = null) {
         _bytes = (byte[])bytes.Clone();
+        _readOptions = PdfReadOptions.WithMinimumInputBytes(readOptions, _bytes.LongLength);
         OriginalLengthBytes = originalLengthBytes;
         OptimizedLengthBytes = optimizedLengthBytes;
         CandidateLengthBytes = candidateLengthBytes;
@@ -91,4 +94,8 @@ public sealed class PdfOptimizationActionResult {
 
     /// <summary>Number of skipped optimization opportunities recorded while building the candidate.</summary>
     public int SkippedActionCount => SkippedActions.Count;
+
+    /// <summary>Opens the selected optimized or original bytes through the fluent document API.</summary>
+    public PdfDocument ToDocument(PdfReadOptions? readOptions = null) => PdfDocument.Open(_bytes, readOptions ?? _readOptions);
+
 }

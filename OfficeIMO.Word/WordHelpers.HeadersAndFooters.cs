@@ -5,7 +5,7 @@ namespace OfficeIMO.Word {
     /// <summary>
     /// Provides helper methods for Word document manipulation.
     /// </summary>
-    public partial class WordHelpers {
+    public static partial class WordHelpers {
         /// <summary>
         /// Removes headers and footers from the file at <paramref name="filename"/>.
         /// When no <paramref name="types"/> are provided all headers and footers are removed.

@@ -8,22 +8,29 @@ internal static partial class PdfPageEditor {
     /// If no page numbers are supplied, all pages are resized.
     /// </summary>
     public static byte[] ResizePages(byte[] pdf, PageSize pageSize, params int[] pageNumbers) {
-        return ResizePages(pdf, new PdfPageResizeOptions(pageSize), pageNumbers);
+        return ResizePages(pdf, new PdfPageResizeOptions(pageSize), readOptions: null, pageNumbers);
     }
+
+    internal static byte[] ResizePages(byte[] pdf, PageSize pageSize, PdfReadOptions? readOptions, params int[] pageNumbers) =>
+        ResizePages(pdf, new PdfPageResizeOptions(pageSize), readOptions, pageNumbers);
 
     /// <summary>
     /// Creates a new PDF with selected pages scaled into the target page size described by <paramref name="options"/>.
     /// If no page numbers are supplied, all pages are resized.
     /// </summary>
     public static byte[] ResizePages(byte[] pdf, PdfPageResizeOptions options, params int[] pageNumbers) {
+        return ResizePages(pdf, options, readOptions: null, pageNumbers);
+    }
+
+    internal static byte[] ResizePages(byte[] pdf, PdfPageResizeOptions options, PdfReadOptions? readOptions, params int[] pageNumbers) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(options, nameof(options));
         Guard.NotNull(pageNumbers, nameof(pageNumbers));
         ValidateResizeOptions(options);
-        _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.ModifyPageTree);
+        _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.ModifyPageTree, readOptions);
 
-        var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf);
-        var document = PdfReadDocument.Open(pdf);
+        var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf, readOptions);
+        var document = PdfReadDocument.Open(pdf, readOptions);
         var selectedPages = pageNumbers.Length == 0
             ? Enumerable.Range(1, document.Pages.Count).ToArray()
             : pageNumbers;

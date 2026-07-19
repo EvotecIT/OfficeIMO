@@ -24,7 +24,7 @@ internal static partial class PdfAnnotationEditor {
             new[] { objectNumber }.Concat(additionalChangedObjects).Distinct().ToArray(),
             encryptionHandler: GetAppendEncryptionHandler(objects, trailerRaw, readOptions, mutationPlan.Preflight.Probe.Security));
         PdfSignatureMutationReport proof = BuildAppendOnlyProof(pdf, updated, mutationPlan, readOptions);
-        return new PdfAnnotationEditResult(updated, 1, mutationPlan, proof);
+        return new PdfAnnotationEditResult(updated, 1, mutationPlan, proof, readOptions: readOptions);
     }
 
     private static PdfAnnotationEditResult RemoveAnnotationsIncrementally(
@@ -94,7 +94,7 @@ internal static partial class PdfAnnotationEditor {
 
         int affectedCount = removedObjectNumbers.Count + directRemovalCount;
         if (changedObjectNumbers.Count == 0) {
-            return new PdfAnnotationEditResult((byte[])pdf.Clone(), 0, mutationPlan);
+            return new PdfAnnotationEditResult((byte[])pdf.Clone(), 0, mutationPlan, readOptions: readOptions);
         }
 
         byte[] updated = PdfIncrementalObjectWriter.Append(
@@ -105,7 +105,7 @@ internal static partial class PdfAnnotationEditor {
             changedObjectNumbers,
             encryptionHandler: GetAppendEncryptionHandler(objects, trailerRaw, readOptions, mutationPlan.Preflight.Probe.Security));
         PdfSignatureMutationReport proof = BuildAppendOnlyProof(pdf, updated, mutationPlan, readOptions);
-        return new PdfAnnotationEditResult(updated, Math.Max(affectedCount, 1), mutationPlan, proof);
+        return new PdfAnnotationEditResult(updated, Math.Max(affectedCount, 1), mutationPlan, proof, readOptions: readOptions);
     }
 
     private static void RemoveIncrementalPopupReferences(
@@ -186,13 +186,17 @@ internal static partial class PdfAnnotationEditor {
         byte[] rewritten,
         int affectedAnnotationCount,
         PdfMutationPlan mutationPlan,
-        bool annotationsChanged) {
+        bool annotationsChanged,
+        PdfReadOptions? readOptions) {
+        PdfReadOptions rewrittenReadOptions = PdfReadOptions.WithMinimumInputBytes(readOptions, rewritten.LongLength);
         var preservationOptions = new PdfRewritePreservationOptions {
+            OriginalReadOptions = readOptions,
+            RewrittenReadOptions = rewrittenReadOptions,
             PreserveAnnotations = !annotationsChanged,
             PreserveLinkAnnotations = !annotationsChanged,
             PreserveRevisionStructure = false
         };
         PdfRewritePreservationReport preservation = PdfRewritePreservation.Assess(source, rewritten, preservationOptions);
-        return new PdfAnnotationEditResult(rewritten, affectedAnnotationCount, mutationPlan, rewritePreservationReport: preservation);
+        return new PdfAnnotationEditResult(rewritten, affectedAnnotationCount, mutationPlan, rewritePreservationReport: preservation, readOptions: readOptions);
     }
 }

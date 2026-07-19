@@ -286,7 +286,9 @@ public sealed partial class PdfDocument {
         Guard.NotNull(inputBytes, nameof(inputBytes));
         Guard.NotNull(input, nameof(input));
         Guard.NotNull(pdf, nameof(pdf));
-        PdfReadOptions effectiveReadOptions = readOptions ?? ReadOptions;
+        PdfReadOptions effectiveReadOptions = PdfReadOptions.WithMinimumInputBytes(
+            readOptions ?? ReadOptions,
+            pdf.LongLength);
         PdfArtifactSnapshot output = PdfArtifactSnapshot.Capture(pdf, effectiveReadOptions);
         PdfMutationOperation? mutationOperation = ResolveMutationOperation(operationName);
         PdfMutationExecutionMode executionMode = IsAppendOnly(inputBytes, pdf)

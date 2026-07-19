@@ -90,6 +90,7 @@ string markdown = document.ToMarkdown(options);
 ### Create a Word Document from Markdown String
 
 ```csharp
+using OfficeIMO.Markdown;
 using OfficeIMO.Word.Markdown;
 
 string markdown = @"
@@ -109,16 +110,15 @@ This report covers **Q4 performance**.
 Overall positive results.
 ";
 
-using var document = markdown.LoadFromMarkdown();
+using var document = MarkdownReader.Parse(markdown).ToWordDocument();
 document.Save("from-markdown.docx");
 ```
 
 ### Create from a Markdown File
 
 ```csharp
-using var document = WordMarkdownConverterExtensions.LoadFromMarkdown(
-    "README.md"
-);
+MarkdownDoc markdown = MarkdownDoc.Load("README.md");
+using var document = markdown.ToWordDocument();
 document.Save("readme.docx");
 ```
 
@@ -126,14 +126,16 @@ document.Save("readme.docx");
 
 ```csharp
 using var stream = File.OpenRead("document.md");
-using var document = stream.LoadFromMarkdown();
+MarkdownDoc markdown = MarkdownDoc.Load(stream);
+using var document = markdown.ToWordDocument();
 document.Save("output.docx");
 ```
 
 ### Async Markdown to Word
 
 ```csharp
-using var document = await "README.md".LoadFromMarkdownAsync();
+MarkdownDoc markdown = await MarkdownDoc.LoadAsync("README.md");
+using var document = markdown.ToWordDocument();
 document.Save("readme.docx");
 ```
 
@@ -164,7 +166,7 @@ var options = new MarkdownToWordOptions {
     // Configure default styles, fonts, etc.
 };
 
-using var document = markdown.LoadFromMarkdown(options);
+using var document = MarkdownReader.Parse(markdown).ToWordDocument(options);
 ```
 
 ## HTML via Markdown

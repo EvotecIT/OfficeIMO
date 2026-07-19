@@ -21,7 +21,7 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>
         /// Gets the normal OfficeIMO Excel document projected from supported legacy XLS content.
         /// </summary>
-        public ExcelDocument Document => _document ?? throw new InvalidOperationException("No OfficeIMO Excel document was projected from the legacy XLS workbook. Inspect Workbook, Diagnostics, ImportReport, and ProjectionException for import details.", ProjectionException);
+        public ExcelDocument Document => _document ?? throw new InvalidOperationException("No OfficeIMO Excel document was projected from the legacy XLS workbook. Inspect AdvancedWorkbook, Diagnostics, CreateImportReport(), and ProjectionException for import details.", ProjectionException);
 
         /// <summary>
         /// Gets whether supported legacy XLS content was projected into a normal OfficeIMO Excel document.
@@ -36,8 +36,7 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>
         /// Gets the neutral legacy XLS workbook model produced by the parser.
         /// </summary>
-        [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
-        public LegacyXlsWorkbook Workbook { get; }
+        internal LegacyXlsWorkbook Workbook { get; }
 
         /// <summary>Gets the advanced neutral parser model for forensic or corpus analysis.</summary>
         public LegacyXlsWorkbook AdvancedWorkbook => Workbook;
@@ -65,16 +64,15 @@ namespace OfficeIMO.Excel.LegacyXls {
         public IReadOnlyList<LegacyXlsCompoundFeatureRecord> CompoundFeatures => Workbook.CompoundFeatureRecords;
 
         /// <summary>
-        /// Gets a compact import report for corpus baselines and preflight checks.
+        /// Gets the corpus-grade import report used by OfficeIMO's compatibility tests.
         /// </summary>
-        [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
-        public LegacyXlsImportReport ImportReport => _importReport.Value;
+        internal LegacyXlsImportReport ImportReport => _importReport.Value;
 
         /// <summary>Gets a compact cached summary intended for normal application code.</summary>
         public LegacyXlsImportSummary Summary => _summary.Value;
 
-        /// <summary>Creates or returns the cached advanced corpus-grade import report.</summary>
-        public LegacyXlsImportReport CreateAdvancedImportReport() => _importReport.Value;
+        /// <summary>Creates or returns a compact cached import report for preflight checks and diagnostics.</summary>
+        public LegacyXlsImportReport CreateImportReport() => _importReport.Value;
 
         /// <summary>
         /// Gets whether the legacy XLS import produced error diagnostics.

@@ -3,13 +3,16 @@ namespace OfficeIMO.Pdf;
 /// <summary>Completed externally signed PDF and signer callback evidence.</summary>
 public sealed class PdfExternalSignatureCompletion {
     private readonly byte[] _pdf;
+    private readonly PdfReadOptions? _readOptions;
 
     internal PdfExternalSignatureCompletion(
         byte[] pdf,
         PdfExternalSignaturePreparation preparation,
         string signerName,
-        int signatureContentsLength) {
+        int signatureContentsLength,
+        PdfReadOptions? readOptions = null) {
         _pdf = (byte[])pdf.Clone();
+        _readOptions = readOptions;
         Preparation = preparation;
         SignerName = signerName;
         SignatureContentsLength = signatureContentsLength;
@@ -28,5 +31,5 @@ public sealed class PdfExternalSignatureCompletion {
     public int SignatureContentsLength { get; }
 
     /// <summary>Opens the completed PDF through the normal fluent document API.</summary>
-    public PdfDocument ToDocument() => PdfDocument.Open(_pdf);
+    public PdfDocument ToDocument() => PdfDocument.Open(_pdf, _readOptions);
 }

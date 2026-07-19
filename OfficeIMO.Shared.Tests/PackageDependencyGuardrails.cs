@@ -335,6 +335,27 @@ public sealed class PackageDependencyGuardrailTests {
     }
 
     [Fact]
+    public void Examples_UseOnlyPublicLibraryApis() {
+        string examplesRoot = GetRepositoryPath("OfficeIMO.Examples");
+        string[] internalNamespaceReferences = Directory
+            .EnumerateFiles(examplesRoot, "*.cs", SearchOption.AllDirectories)
+            .Where(static path => !ContainsBuildOutput(path))
+            .Where(path => File.ReadAllText(path).Contains("OfficeIMO.Drawing.Internal", StringComparison.Ordinal))
+            .Select(GetRepositoryRelativePath)
+            .ToArray();
+        Assert.Empty(internalNamespaceReferences);
+
+        string drawingRoot = GetRepositoryPath("OfficeIMO.Drawing");
+        string[] friendGrantFiles = Directory
+            .EnumerateFiles(drawingRoot, "*.cs", SearchOption.AllDirectories)
+            .Where(static path => !ContainsBuildOutput(path))
+            .Where(path => File.ReadAllText(path).Contains("InternalsVisibleTo(\"OfficeIMO.Examples\")", StringComparison.Ordinal))
+            .Select(GetRepositoryRelativePath)
+            .ToArray();
+        Assert.Empty(friendGrantFiles);
+    }
+
+    [Fact]
     public void RtfHtmlBridge_IsUnifiedIntoOfficeIMOHtml() {
         var projectPath = GetRepositoryPath("OfficeIMO.Html/OfficeIMO.Html.csproj");
         Assert.True(File.Exists(projectPath), "Project file is missing: " + projectPath);
@@ -1118,4 +1139,8 @@ public sealed class PackageDependencyGuardrailTests {
             .Select(static element => (string?)element.Attribute("Version"))
             .SingleOrDefault();
     }
+
+    private static bool ContainsBuildOutput(string path) =>
+        path.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase) ||
+        path.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase);
 }

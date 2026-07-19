@@ -12,7 +12,7 @@ This matrix tracks dependency-free image export across OfficeIMO document packag
 | `OfficeIMO.Word` | Section/page policy, estimated pagination, body/header/footer traversal, paragraph/table/image flow, Word-specific diagnostics | Duplicate drawing renderer or claims of Microsoft Word-exact pagination |
 | `OfficeIMO.Html` | CSS layout, resource policy, continuous/paged surfaces, async resource resolution, HTML diagnostics | Private image encoders or duplicate Drawing primitives |
 | `OfficeIMO.Html` email bridge | Email body selection, message chrome, and MIME/CID resource mapping into HTML | Another email layout or image engine |
-| `OfficeIMO.Epub.Html` | EPUB chapter selection and retained package-resource mapping into HTML | Another EPUB parser, CSS layout engine, or image encoder |
+| `OfficeIMO.Epub.Image` | EPUB chapter selection and retained package-resource mapping into HTML | Another EPUB parser, CSS layout engine, or image encoder |
 | `OfficeIMO.OneNote` | Page hierarchy, positioned content, ink/math/image projection, page selection | Private image encoders |
 | `OfficeIMO.Visio` | Page geometry, shapes, connectors, stencil artwork, labels, native Visio text/layout decisions, and the richer Visio embedded-SVG interpreter needed for linked images, clipping, nested opacity, and CSS | Private output encoders or duplicate shared format mechanics |
 | `OfficeIMO.Pdf` | PDF parsing/content semantics, page-to-Drawing projection, page selection, PDF render capability diagnostics, and source-to-PDF diagnostic bridging | Private raster encoders, allocation policy, or source-adapter-specific image APIs |
@@ -90,7 +90,7 @@ This matrix tracks dependency-free image export across OfficeIMO document packag
 | Async rendering | Resource-aware direct and fluent async APIs supported | `ExportImageAsync`, `ExportImagesAsync`, async save/cancellation tests, and an HTML fluent test proving the resource-aware renderer is invoked | CPU-only document projection remains synchronous; async is reserved for resource resolution and file/stream I/O |
 | Friendly API | Direct PNG/JPEG/TIFF/SVG/WebP helpers and fluent builders | Format-specific byte/save helpers plus `ToImage(options)` / `ToImages(options)` cloned configuration | Keep future adapters on `HtmlConversionDocument`, not raw string reparsing |
 | Email | Five-format single/batch bridge supported | HTML/RTF/text selection, message chrome, CID/content-location attachment resolution, direct and fluent sync/async tests | Fidelity follows retained email body and HTML support |
-| EPUB | Five-format selected chapter/page batch bridge supported | `OfficeIMO.Epub.Html`, retained raw HTML/resource mapping, fluent chapter selection, diagnosed text fallback | Encrypted/incomplete packages remain diagnostic-driven |
+| EPUB | Five-format selected chapter/page batch bridge supported | `OfficeIMO.Epub.Image`, retained raw HTML/resource mapping, fluent chapter selection, diagnosed text fallback | Encrypted/incomplete packages remain diagnostic-driven |
 
 ## OneNote
 

@@ -12,7 +12,7 @@ OfficeIMO is a family of COM-free .NET libraries for creating, reading, editing,
 
 This is not one facade over a collection of unrelated document libraries. OfficeIMO owns its OneNote, PDF, Markdown, RTF, OpenDocument, AsciiDoc, LaTeX, CSV, EPUB, ZIP, drawing, legacy Word `.doc`, legacy Excel `.xls`, and legacy PowerPoint `.ppt`/`.pot`/`.pps` implementations. Word, Excel, and PowerPoint use the Open XML SDK for package mechanics; HTML uses AngleSharp for DOM and CSS parsing. Converters compose the same first-party object models used by the native packages and return diagnostics when a target format cannot carry everything from the source.
 
-The current coordinated package line is `2.0.x`. Applications should upgrade OfficeIMO packages together because `2.0` deliberately removed contradictory aliases and standardized document lifecycle and conversion APIs. See the [2.0 breaking API migration](Docs/officeimo.breaking-api-migration.md).
+The current coordinated package line is `3.0.x`. Applications should upgrade OfficeIMO packages together: 3.0 tightens public boundaries, makes table-only PDF recovery explicit, and aligns the complete release set on one version. See the [2.x to 3.0 migration guide](Docs/officeimo-3.0-migration.md).
 
 If OfficeIMO saves you time, please consider supporting the work through [GitHub Sponsors](https://github.com/sponsors/PrzemyslawKlys) or [PayPal](https://paypal.me/PrzemyslawKlys). PowerShell users should start with [PSWriteOffice](https://github.com/EvotecIT/PSWriteOffice).
 
@@ -37,11 +37,11 @@ OfficeIMO keeps document engines first-party and optional integrations isolated.
 
 | Surface | Current repository coverage |
 | --- | ---: |
-| Coordinated `2.0.x` release packages | 67 |
-| Documented package, tool, and example projects below | 75 |
-| Native format, foundation, and shared-service packages | 21 |
-| Conversion and cloud bridge packages | 24 |
-| Unified Reader packages | 19 |
+| Coordinated `3.0.x` release packages | 81 |
+| Documented package, tool, and example projects below | 89 |
+| Native format, foundation, and shared-service packages | 24 |
+| Conversion and cloud bridge packages | 26 |
+| Unified Reader packages and tool | 28 |
 | Markdown renderer and OfficeIMO Markup surfaces | 11 |
 | Runnable example projects | 1 |
 | Modern Office authoring/editing | `.docx`, `.xlsx`, `.pptx`, `.vsdx` |
@@ -314,7 +314,7 @@ _Dependency footprint:_ only first-party `OfficeIMO.Drawing`; zero third-party r
 
 _Dependency footprint:_ only `OfficeIMO.Drawing`; no third-party EPUB engine.
 
-#### [OfficeIMO.Epub.Html](OfficeIMO.Epub.Html/README.md)
+#### [OfficeIMO.Epub.Image](OfficeIMO.Epub.Image/README.md)
 
 - [x] Direct chapter-to-image export through the shared HTML rendering scene
 - [x] Retained EPUB resources, chapter selection, continuous or paged output, cancellation, batch budgets, and fidelity policy
@@ -796,6 +796,14 @@ _Dependency footprint:_ YamlDotNet plus `OfficeIMO.Reader.Core`.
 
 _Dependency footprint:_ only `OfficeIMO.Reader.Core` and Zip.
 
+#### [OfficeIMO.Reader.Tool](OfficeIMO.Reader.Tool/README.md)
+
+- [x] Local `officeimo-reader` .NET tool for bounded file, standard-input, and folder conversion
+- [x] Markdown and stable v5 JSON output, embedded-asset materialization, deterministic folder ordering, and concurrency controls
+- [x] Capability discovery and explicit exit codes over the existing `OfficeIMO.Reader.All` adapter graph
+
+_Dependency footprint:_ only `OfficeIMO.Reader.All`; the tool adds no command framework, native binary, model, network client, or hosted provider.
+
 ### Markdown rendering and OfficeIMO Markup
 
 #### [OfficeIMO.MarkdownRenderer](OfficeIMO.MarkdownRenderer/README.md)
@@ -897,15 +905,21 @@ flowchart LR
     Word <--> Markdown["Markdown"]
     Word <--> RTF["RTF"]
     Word <--> ODT["OpenDocument: ODT"]
-    Word <--> PDF["PDF"]
+    Word -->|"layout export"| PDF["PDF"]
+    PDF -->|"semantic recovery"| Word
     Excel["Excel: XLS/XLSX"] <--> HTML
     Excel <--> ODS["OpenDocument: ODS"]
-    Excel <--> PDF
+    Excel -->|"layout export"| PDF
+    PDF -->|"logical tables only"| Excel
     PowerPoint["PowerPoint: PPT/POT/PPS/PPTX"] <--> HTML
     PowerPoint <--> ODP["OpenDocument: ODP"]
-    PowerPoint --> PDF
-    OneNote["OneNote: ONE/ONETOC2/ONEPKG"] --> Markdown
-    OneNote --> DrawingCanvas["Drawing canvas"]
+    PowerPoint -->|"layout export"| PDF
+    PDF -->|"logical tables only"| PowerPoint
+    OneNote["OneNote: ONE/ONETOC2/ONEPKG"] -->|"semantic adapter"| Markdown
+    OneNote -->|"semantic adapter"| HTML
+    OneNote -->|"semantic or visual adapter"| PDF
+    OneNote -->|"visual projection"| DrawingCanvas["Drawing canvas"]
+    EPUB["EPUB"] -->|"retained chapter HTML/resources"| HTML
     DrawingCanvas --> Images["PNG/JPEG/TIFF/SVG/WebP"]
     DrawingCanvas --> HTML
     DrawingCanvas --> PDF
@@ -914,11 +928,12 @@ flowchart LR
     Markdown <--> AsciiDoc["AsciiDoc"]
     Markdown <--> Latex["LaTeX"]
     Markdown --> PDF
+    AsciiDoc -->|"direct PDF adapter"| PDF
+    Latex -->|"direct PDF adapter"| PDF
     HTML <--> RTF
     HTML --> PDF
-    RTF <--> PDF
-    PDF --> Excel
-    PDF --> PowerPoint
+    RTF -->|"layout export"| PDF
+    PDF -->|"semantic recovery"| RTF
 ```
 
 Fixed-layout PDF import is necessarily semantic rather than visually lossless. Result-bearing APIs expose warnings and feature reports so applications can decide whether to accept, reject, or review a conversion.
@@ -933,9 +948,10 @@ dotnet add package OfficeIMO.Word.Pdf
 
 dotnet add package OfficeIMO.Excel
 dotnet add package OfficeIMO.Excel.Html
+dotnet add package OfficeIMO.Excel.Pdf
 
 dotnet add package OfficeIMO.Epub
-dotnet add package OfficeIMO.Epub.Html
+dotnet add package OfficeIMO.Epub.Image
 
 dotnet add package OfficeIMO.Reader.Pdf
 
@@ -947,9 +963,12 @@ dotnet add package OfficeIMO.OneNote.Markdown
 dotnet add package OfficeIMO.OneNote.Html
 dotnet add package OfficeIMO.OneNote.Pdf
 dotnet add package OfficeIMO.Reader.OneNote
+
+# Install the broad local-reader command only when a CLI is the desired surface.
+dotnet tool install --global OfficeIMO.Reader.Tool
 ```
 
-All coordinated packages use the same `2.0.x` compatibility line. Avoid mixing OfficeIMO `1.x` and `2.x` packages in one application.
+All coordinated packages use the same `3.0.x` compatibility line. Avoid mixing OfficeIMO `2.x` and `3.x` packages in one application.
 
 ## Common workflows
 
@@ -1077,9 +1096,9 @@ var chunks = reader.ReadFolder("KnowledgeBase",
     }).ToList();
 ```
 
-## Document lifecycle in 2.0
+## Document lifecycle in 3.0
 
-Mutable document packages use one vocabulary:
+OfficeIMO 3.0 retains one vocabulary across mutable document packages:
 
 | Intent | API |
 | --- | --- |
@@ -1105,6 +1124,7 @@ Most shipping libraries target `netstandard2.0`, `net8.0`, and `net10.0`. Many a
 ## More documentation
 
 - [Examples](OfficeIMO.Examples/README.md)
+- [2.x to 3.0 migration](Docs/officeimo-3.0-migration.md)
 - [2.0 breaking API migration](Docs/officeimo.breaking-api-migration.md)
 - [Image export capability matrix](Docs/officeimo.image-export-capability-matrix.md)
 - [PDF current state](Docs/officeimo.pdf.current-state.md)

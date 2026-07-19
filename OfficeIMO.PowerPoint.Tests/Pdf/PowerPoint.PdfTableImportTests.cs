@@ -9,7 +9,7 @@ namespace OfficeIMO.Tests;
 
 public class PowerPointPdfTableImportTests {
     [Fact]
-    public void PdfTables_SaveAsPowerPoint_ImportsDetectedTablesAsPowerPointTables() {
+    public void PdfTables_SaveTablesAsPowerPoint_ImportsDetectedTablesAsPowerPointTables() {
         byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {
                 PageWidth = 420,
                 PageHeight = 360,
@@ -32,7 +32,7 @@ public class PowerPointPdfTableImportTests {
             .ToBytes();
 
         using var presentation = new MemoryStream();
-        PdfPowerPointConversionReport report = PowerPointPdfConverterExtensions.SaveAsPowerPoint(
+        PdfPowerPointTableImportReport report = PowerPointPdfConverterExtensions.SaveTablesAsPowerPoint(
             LoadTables(pdf),
             presentation,
             new PdfPowerPointTableImportOptions());
@@ -70,7 +70,7 @@ public class PowerPointPdfTableImportTests {
     }
 
     [Fact]
-    public void PdfTables_SaveAsPowerPoint_AppliesRowCapsAndKeepsPresentationValidWhenEmpty() {
+    public void PdfTables_SaveTablesAsPowerPoint_AppliesRowCapsAndKeepsPresentationValidWhenEmpty() {
         byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {
                 PageWidth = 420,
                 PageHeight = 360,
@@ -94,7 +94,7 @@ public class PowerPointPdfTableImportTests {
             .ToBytes();
 
         using var presentation = new MemoryStream();
-        PdfPowerPointConversionReport report = PowerPointPdfConverterExtensions.SaveAsPowerPoint(
+        PdfPowerPointTableImportReport report = PowerPointPdfConverterExtensions.SaveTablesAsPowerPoint(
             LoadTables(pdf, PdfCore.PdfPageRange.From(1, 1)),
             presentation,
             new PdfPowerPointTableImportOptions {
@@ -121,7 +121,7 @@ public class PowerPointPdfTableImportTests {
         }
 
         using var emptyPresentation = new MemoryStream();
-        PdfPowerPointConversionReport emptyReport = PowerPointPdfConverterExtensions.SaveAsPowerPoint(
+        PdfPowerPointTableImportReport emptyReport = PowerPointPdfConverterExtensions.SaveTablesAsPowerPoint(
             LoadTables(pdf, PdfCore.PdfPageRange.From(2, 2)),
             emptyPresentation,
             new PdfPowerPointTableImportOptions {
@@ -136,7 +136,7 @@ public class PowerPointPdfTableImportTests {
     }
 
     [Fact]
-    public void PdfTables_SaveAsPowerPoint_SkipsHeaderOnlySegmentsWhenHeadersAreDisabled() {
+    public void PdfTables_SaveTablesAsPowerPoint_SkipsHeaderOnlySegmentsWhenHeadersAreDisabled() {
         byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {
                 PageWidth = 420,
                 PageHeight = 260,
@@ -157,7 +157,7 @@ public class PowerPointPdfTableImportTests {
             .ToBytes();
 
         using var presentation = new MemoryStream();
-        PdfPowerPointConversionReport report = PowerPointPdfConverterExtensions.SaveAsPowerPoint(
+        PdfPowerPointTableImportReport report = PowerPointPdfConverterExtensions.SaveTablesAsPowerPoint(
             LoadTables(pdf),
             presentation,
             new PdfPowerPointTableImportOptions {
@@ -173,7 +173,7 @@ public class PowerPointPdfTableImportTests {
     }
 
     [Fact]
-    public void PdfTables_SaveAsPowerPoint_SplitsLargeTablesAcrossSlides() {
+    public void PdfTables_SaveTablesAsPowerPoint_SplitsLargeTablesAcrossSlides() {
         byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {
                 PageWidth = 520,
                 PageHeight = 420,
@@ -198,7 +198,7 @@ public class PowerPointPdfTableImportTests {
             .ToBytes();
 
         using var presentation = new MemoryStream();
-        PdfPowerPointConversionReport report = PowerPointPdfConverterExtensions.SaveAsPowerPoint(
+        PdfPowerPointTableImportReport report = PowerPointPdfConverterExtensions.SaveTablesAsPowerPoint(
             LoadTables(pdf),
             presentation,
             new PdfPowerPointTableImportOptions {

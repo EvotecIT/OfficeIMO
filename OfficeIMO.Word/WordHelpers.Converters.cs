@@ -5,7 +5,7 @@ namespace OfficeIMO.Word {
     /// <summary>
     /// Provides helper methods for Word document manipulation.
     /// </summary>
-    public partial class WordHelpers {
+    public static partial class WordHelpers {
         /// <summary>
         /// Converts a DOTX template to a DOCX document.
         ///
@@ -14,7 +14,8 @@ namespace OfficeIMO.Word {
         /// <param name="templatePath">The path to the DOTX template file.</param>
         /// <param name="outputPath">The path where the converted DOCX file will be saved.</param>
         public static void ConvertDotxToDocx(string templatePath, string outputPath) {
-            byte[] templateBytes = File.ReadAllBytes(templatePath);
+            string fullTemplatePath = Path.GetFullPath(templatePath);
+            byte[] templateBytes = File.ReadAllBytes(fullTemplatePath);
             using (var documentStream = new MemoryStream()) {
                 documentStream.Write(templateBytes, 0, templateBytes.Length);
                 documentStream.Position = 0;
@@ -29,7 +30,7 @@ namespace OfficeIMO.Word {
 
                     mainPart.DocumentSettingsPart!.AddExternalRelationship(
                         "http://schemas.openxmlformats.org/officeDocument/2006/relationships/attachedTemplate",
-                        new Uri(templatePath, UriKind.Absolute));
+                        new Uri(fullTemplatePath, UriKind.Absolute));
                     mainPart.Document?.Save();
                 }
 

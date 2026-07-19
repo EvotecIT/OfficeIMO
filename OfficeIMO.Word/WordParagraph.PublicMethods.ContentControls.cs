@@ -32,7 +32,7 @@ namespace OfficeIMO.Word {
             if (!string.IsNullOrEmpty(tag)) {
                 sdtProperties.Append(new Tag() { Val = tag });
             }
-            var sdtIdValue = WordHelpers.GetNextSdtId(_document);
+            var sdtIdValue = _document.GenerateSdtId();
             sdtProperties.Append(new SdtId() { Val = new DocumentFormat.OpenXml.Int32Value(sdtIdValue) });
 
             var sdtContent = new SdtContentRun();
@@ -65,7 +65,7 @@ namespace OfficeIMO.Word {
             if (!string.IsNullOrEmpty(tag)) {
                 props.Append(new Tag() { Val = tag });
             }
-            var sdtIdValue = WordHelpers.GetNextSdtId(_document);
+            var sdtIdValue = _document.GenerateSdtId();
             props.Append(new SdtId() { Val = new DocumentFormat.OpenXml.Int32Value(sdtIdValue) });
 
             var checkBox = new W14.SdtContentCheckBox();
@@ -137,7 +137,7 @@ namespace OfficeIMO.Word {
             if (!string.IsNullOrEmpty(tag)) {
                 props.Append(new Tag() { Val = tag });
             }
-            var sdtIdValue = WordHelpers.GetNextSdtId(_document);
+            var sdtIdValue = _document.GenerateSdtId();
             props.Append(new SdtId() { Val = new DocumentFormat.OpenXml.Int32Value(sdtIdValue) });
 
             var dateProp = new SdtContentDate();
@@ -173,7 +173,7 @@ namespace OfficeIMO.Word {
             if (!string.IsNullOrEmpty(tag)) {
                 props.Append(new Tag() { Val = tag });
             }
-            var sdtIdValue = WordHelpers.GetNextSdtId(_document);
+            var sdtIdValue = _document.GenerateSdtId();
             props.Append(new SdtId() { Val = new DocumentFormat.OpenXml.Int32Value(sdtIdValue) });
 
             var ddl = new SdtContentDropDownList();
@@ -212,7 +212,7 @@ namespace OfficeIMO.Word {
             if (!string.IsNullOrEmpty(tag)) {
                 props.Append(new Tag() { Val = tag });
             }
-            var sdtIdValue = WordHelpers.GetNextSdtId(_document);
+            var sdtIdValue = _document.GenerateSdtId();
             props.Append(new SdtId() { Val = new DocumentFormat.OpenXml.Int32Value(sdtIdValue) });
 
             var combo = new SdtContentComboBox();
@@ -269,7 +269,7 @@ namespace OfficeIMO.Word {
             if (!string.IsNullOrEmpty(tag)) {
                 props.Append(new Tag() { Val = tag });
             }
-            var sdtIdValue = WordHelpers.GetNextSdtId(_document);
+            var sdtIdValue = _document.GenerateSdtId();
             props.Append(new SdtId() { Val = new DocumentFormat.OpenXml.Int32Value(sdtIdValue) });
             props.Append(new SdtContentPicture());
 
@@ -295,7 +295,7 @@ namespace OfficeIMO.Word {
         /// <param name="tag">Optional tag for the control.</param>
         /// <returns>The created <see cref="WordRepeatingSection"/> instance.</returns>
         public WordRepeatingSection AddRepeatingSection(string? sectionTitle = null, string? alias = null, string? tag = null) {
-            var sdtIdValue = WordHelpers.GetNextSdtId(_document);
+            var sdtIdValue = _document.GenerateSdtId();
 
             string xml = "<w:sdt xmlns:w='http://schemas.openxmlformats.org/wordprocessingml/2006/main' xmlns:w15='http://schemas.microsoft.com/office/word/2012/wordml'>";
             xml += "<w:sdtPr>";

@@ -1,6 +1,6 @@
-# OfficeIMO.Epub.Html
+# OfficeIMO.Epub.Image
 
-`OfficeIMO.Epub.Html` is the thin visual adapter between the bounded EPUB package model and the existing OfficeIMO HTML/Drawing renderer. It adds no image encoder or layout engine.
+`OfficeIMO.Epub.Image` is the thin visual adapter between the bounded EPUB package model and the existing OfficeIMO HTML/Drawing renderer. It adds no image encoder or layout engine.
 
 Load raw chapter HTML and resource payloads when visual fidelity matters:
 

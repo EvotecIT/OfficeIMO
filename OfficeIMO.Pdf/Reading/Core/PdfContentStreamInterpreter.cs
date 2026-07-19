@@ -47,6 +47,7 @@ internal static class PdfContentStreamInterpreter {
         private int _index;
         private int _operationCount;
         private int _operandCount;
+        private bool _hasInvalidOperand;
 
         internal Reader(
             string content,
@@ -96,15 +97,26 @@ internal static class PdfContentStreamInterpreter {
                         _operationCount);
                 }
 
+                bool hasInvalidOperand = _hasInvalidOperand;
+                _hasInvalidOperand = false;
                 PdfContentInlineImage? inlineImage = string.Equals(name, "BI", StringComparison.Ordinal)
                     ? ReadInlineImage()
                     : null;
+                bool hasInvalidInlineImageOperand = _hasInvalidOperand;
+                bool skipOperation = hasInvalidInlineImageOperand ||
+                    (hasInvalidOperand && !CanDispatchWithInvalidOperands(name));
                 var operation = new PdfContentOperation(
                     name,
-                    _operands.Count == 0 ? Array.Empty<object>() : _operands.ToArray(),
+                    hasInvalidOperand || _operands.Count == 0 ? Array.Empty<object>() : _operands.ToArray(),
                     operatorOffset,
-                    inlineImage);
+                    inlineImage,
+                    hasInvalidOperand);
                 _operands.Clear();
+                _hasInvalidOperand = false;
+                if (skipOperation) {
+                    continue;
+                }
+
                 if (!visit(operation)) {
                     return false;
                 }
@@ -150,7 +162,13 @@ internal static class PdfContentStreamInterpreter {
             }
 
             if (IsNumberStart(current)) {
-                value = ReadNumber();
+                double? number = ReadNumber();
+                if (number.HasValue) {
+                    value = number.Value;
+                } else {
+                    _hasInvalidOperand = true;
+                }
+
                 CountOperand();
                 return true;
             }
@@ -168,7 +186,7 @@ internal static class PdfContentStreamInterpreter {
             return PdfSyntax.DecodeName(_content.Substring(start, _index - start));
         }
 
-        private double ReadNumber() {
+        private double? ReadNumber() {
             int start = _index++;
             while (_index < _content.Length) {
                 char current = _content[_index];
@@ -185,14 +203,15 @@ internal static class PdfContentStreamInterpreter {
             }
 
 #pragma warning disable CA1846 // Keep netstandard2.0-safe parsing.
-            return double.TryParse(
+            bool parsed = double.TryParse(
                 _content.Substring(start, _index - start),
                 NumberStyles.Float,
                 CultureInfo.InvariantCulture,
-                out double value)
+                out double value);
 #pragma warning restore CA1846
+            return parsed && !double.IsNaN(value) && !double.IsInfinity(value)
                 ? value
-                : 0D;
+                : (double?)null;
         }
 
         private byte[] ReadLiteralStringBytes() {
@@ -301,8 +320,10 @@ internal static class PdfContentStreamInterpreter {
                 string key = ReadName();
                 CountOperand();
                 SkipWhitespaceAndComments();
-                if (TryReadValue(nestingDepth, out object? value) && value is not null) {
-                    dictionary.Items[key] = value;
+                if (TryReadValue(nestingDepth, out object? value)) {
+                    if (value is not null) {
+                        dictionary.Items[key] = value;
+                    }
                 } else {
                     string token = ReadOperator();
                     if (string.Equals(token, "true", StringComparison.Ordinal)) {
@@ -414,7 +435,13 @@ internal static class PdfContentStreamInterpreter {
             }
 
             if (IsNumberStart(current)) {
-                value = new PdfNumber(ReadNumber());
+                double? number = ReadNumber();
+                if (number.HasValue) {
+                    value = new PdfNumber(number.Value);
+                } else {
+                    _hasInvalidOperand = true;
+                }
+
                 CountOperand();
                 return true;
             }
@@ -642,6 +669,38 @@ internal static class PdfContentStreamInterpreter {
         private static bool IsNumberStart(char value) =>
             value == '-' || value == '+' || value == '.' || char.IsDigit(value);
 
+        private static bool CanDispatchWithInvalidOperands(string value) {
+            switch (value) {
+                case "q":
+                case "Q":
+                case "h":
+                case "W":
+                case "W*":
+                case "S":
+                case "s":
+                case "f":
+                case "F":
+                case "f*":
+                case "B":
+                case "B*":
+                case "b":
+                case "b*":
+                case "n":
+                case "BT":
+                case "ET":
+                case "T*":
+                case "BMC":
+                case "BDC":
+                case "EMC":
+                case "BX":
+                case "EX":
+                case "BI":
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
         private static bool IsDelimiter(char value) =>
             char.IsWhiteSpace(value) ||
             value == '/' ||
@@ -688,17 +747,20 @@ internal readonly struct PdfContentOperation {
         string name,
         IReadOnlyList<object> operands,
         int operatorOffset,
-        PdfContentInlineImage? inlineImage) {
+        PdfContentInlineImage? inlineImage,
+        bool hasInvalidOperands) {
         Name = name;
         Operands = operands;
         OperatorOffset = operatorOffset;
         InlineImage = inlineImage;
+        HasInvalidOperands = hasInvalidOperands;
     }
 
     internal string Name { get; }
     internal IReadOnlyList<object> Operands { get; }
     internal int OperatorOffset { get; }
     internal PdfContentInlineImage? InlineImage { get; }
+    internal bool HasInvalidOperands { get; }
 }
 
 internal sealed class PdfContentDictionary {

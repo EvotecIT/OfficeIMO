@@ -2,6 +2,27 @@ namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfDocument {
     /// <summary>
+    /// Reports read and rewrite capabilities for a PDF byte array without requiring the document to open successfully.
+    /// This is useful for encrypted, malformed, or otherwise unsupported input that still needs a diagnostic report.
+    /// </summary>
+    public static PdfDocumentPreflight Preflight(byte[] pdf, PdfReadOptions? options = null) =>
+        PdfInspector.Preflight(pdf, options);
+
+    /// <summary>
+    /// Reports read and rewrite capabilities for a PDF file without requiring the document to open successfully.
+    /// This is useful for encrypted, malformed, or otherwise unsupported input that still needs a diagnostic report.
+    /// </summary>
+    public static PdfDocumentPreflight Preflight(string path, PdfReadOptions? options = null) =>
+        PdfInspector.Preflight(path, options);
+
+    /// <summary>
+    /// Reports read and rewrite capabilities for a readable PDF stream without requiring the document to open successfully.
+    /// The stream is consumed from its current position.
+    /// </summary>
+    public static PdfDocumentPreflight Preflight(Stream stream, PdfReadOptions? options = null) =>
+        PdfInspector.Preflight(stream, options);
+
+    /// <summary>
     /// Produces one consolidated health and capability report.
     /// Supply a compliance profile to include artifact readback readiness.
     /// </summary>
@@ -113,10 +134,12 @@ public sealed partial class PdfDocument {
     }
 
     /// <summary>Applies dependency-free lossless optimization and returns the candidate with action and preservation reports.</summary>
-    public PdfOptimizationActionResult Optimize(PdfOptimizationOptions? options = null) => PdfOptimizer.Optimize(GetBytesForOperation(), options);
+    public PdfOptimizationActionResult Optimize(PdfOptimizationOptions? options = null) =>
+        PdfOptimizer.Optimize(GetBytesForOperation(), options, ReadOptions);
 
     /// <summary>Applies a named deterministic lossless optimization profile.</summary>
-    public PdfOptimizationActionResult Optimize(PdfOptimizationProfile profile) => PdfOptimizer.Optimize(GetBytesForOperation(), profile);
+    public PdfOptimizationActionResult Optimize(PdfOptimizationProfile profile) =>
+        PdfOptimizer.Optimize(GetBytesForOperation(), profile, ReadOptions);
 
     /// <summary>
     /// Plans rectangle-based redaction impact without modifying the PDF.
@@ -211,12 +234,38 @@ public sealed partial class PdfDocument {
             executionPreference: executionPreference);
     }
 
+    /// <summary>Creates one PDF by merging all supplied documents in order through a single merge pass.</summary>
+    public static PdfDocument Merge(params PdfDocument[] documents) =>
+        Merge((IEnumerable<PdfDocument>)documents);
+
+    /// <summary>Creates one PDF by merging all supplied documents in order through a single merge pass.</summary>
+    public static PdfDocument Merge(IEnumerable<PdfDocument> documents) {
+        Guard.NotNull(documents, nameof(documents));
+        PdfDocument[] sources = documents.ToArray();
+        if (sources.Length == 0) {
+            throw new ArgumentException("At least one PDF document must be supplied.", nameof(documents));
+        }
+
+        if (sources.Any(static document => document is null)) {
+            throw new ArgumentException("PDF documents cannot contain null entries.", nameof(documents));
+        }
+
+        byte[][] bytes = sources.Select(static document => document.GetBytesForOperation()).ToArray();
+        PdfReadOptions[] readOptions = sources.Select(static document => document.ReadOptions).ToArray();
+        byte[] merged = PdfMerger.Merge(bytes, readOptions);
+        return Open(
+            merged,
+            PdfReadOptions.WithMinimumInputBytes(sources[0].ReadOptions, merged.LongLength));
+    }
+
     /// <summary>
     /// Creates a new PDF by merging this PDF with another loaded or generated PDF.
     /// </summary>
     public PdfDocument MergeWith(PdfDocument document) {
         Guard.NotNull(document, nameof(document));
-        return ApplyMutation(input => PdfMerger.Merge(input, document.GetBytesForOperation()));
+        return ApplyMutation(input => PdfMerger.Merge(
+            new[] { input, document.GetBytesForOperation() },
+            new[] { ReadOptions, document.ReadOptions }));
     }
 
     /// <summary>
@@ -349,7 +398,15 @@ public sealed partial class PdfDocument {
     /// Appends an external-signature placeholder as an incremental revision for a later CMS, CAdES, or timestamp signature.
     /// </summary>
     public PdfExternalSignaturePreparation PrepareExternalSignature(PdfExternalSignatureOptions? signatureOptions = null) {
-        return PdfIncrementalUpdater.PrepareExternalSignature(GetBytesForOperation(), signatureOptions);
+        return PdfIncrementalUpdater.PrepareExternalSignature(GetBytesForOperation(), signatureOptions, ReadOptions);
+    }
+
+    /// <summary>Completes a persisted external-signature placeholder with detached CMS or timestamp bytes.</summary>
+    public PdfDocument CompleteExternalSignature(byte[] signatureContents) {
+        Guard.NotNull(signatureContents, nameof(signatureContents));
+        return ApplyMutation(
+            input => PdfIncrementalUpdater.ApplyExternalSignature(input, signatureContents, ReadOptions),
+            operationName: "CompleteExternalSignature");
     }
 
     /// <summary>Prepares, externally signs, and applies a PDF signature without placing key-storage logic in OfficeIMO.Pdf.</summary>
@@ -357,7 +414,7 @@ public sealed partial class PdfDocument {
         IPdfExternalSigner signer,
         PdfExternalSignatureOptions? signatureOptions = null) {
         Guard.NotNull(signer, nameof(signer));
-        return PdfIncrementalUpdater.SignExternal(GetBytesForOperation(), signer, signatureOptions);
+        return PdfIncrementalUpdater.SignExternal(GetBytesForOperation(), signer, signatureOptions, ReadOptions);
     }
 
     /// <summary>

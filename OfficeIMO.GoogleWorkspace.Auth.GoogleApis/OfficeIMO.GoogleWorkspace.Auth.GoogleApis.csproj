@@ -4,7 +4,7 @@
     <Description>Optional Google.Apis.Auth adapters, PKCE desktop authorization, and pluggable token persistence for OfficeIMO Google Workspace libraries.</Description>
     <AssemblyName>OfficeIMO.GoogleWorkspace.Auth.GoogleApis</AssemblyName>
     <AssemblyTitle>OfficeIMO.GoogleWorkspace.Auth.GoogleApis</AssemblyTitle>
-    <VersionPrefix>2.0.1</VersionPrefix>
+    <VersionPrefix>3.0.0</VersionPrefix>
     <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
     <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">$(TargetFrameworks);net472</TargetFrameworks>
     <GeneratePackageOnBuild>False</GeneratePackageOnBuild>

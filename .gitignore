@@ -386,3 +386,4 @@ Website/.powerforge/git-sync-manifest.json
 Website/Build/
 Website/projects/
 Website/static/data/
+Website/data/ecosystem/stats.json

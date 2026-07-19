@@ -3,6 +3,41 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfReadPage {
+    internal int GetVisibleVisualPrimitiveCount() {
+        (double Width, double Height) size = GetVisualPageSize();
+        int count = 0;
+        var visibilityBudget = new VisualGeometryBudget();
+        var patternPaintCache = new Dictionary<PdfPageTilingPatternResource, bool>();
+        var tilingPatternResourceCache =
+            new Dictionary<(PdfStream Stream, PdfDictionary Resources), PdfPageTilingPatternResource?>();
+        PdfDictionary? pageResources = ResolveDictionary(GetInheritedValue("Resources"));
+        var activeForms = new HashSet<PdfStream>();
+        string content = GetContentStreamContent();
+        if (content.Length > 0) {
+            CollectVisualPrimitivesAndForms(
+                content,
+                pageResources,
+                GetVisualPageTransform(),
+                size.Width,
+                size.Height,
+                primitive => {
+                    if (IsVisibleVisualPrimitive(
+                            primitive,
+                            size.Width,
+                            size.Height,
+                            visibilityBudget,
+                            patternPaintCache)) {
+                        count++;
+                    }
+                },
+                activeForms,
+                retainPrimitiveData: false,
+                tilingPatternResourceCache: tilingPatternResourceCache);
+        }
+
+        return count;
+    }
+
     /// <summary>
     /// Projects supported page drawing operators, text spans, and image placements into a dependency-free drawing scene.
     /// </summary>
@@ -329,9 +364,19 @@ public sealed partial class PdfReadPage {
         var primitives = new List<PdfPageVisualPrimitive>();
         PdfDictionary? pageResources = ResolveDictionary(GetInheritedValue("Resources"));
         var activeForms = new HashSet<PdfStream>();
+        var tilingPatternResourceCache =
+            new Dictionary<(PdfStream Stream, PdfDictionary Resources), PdfPageTilingPatternResource?>();
         string content = GetContentStreamContent();
         if (content.Length > 0) {
-            CollectVisualPrimitivesAndForms(content, pageResources, pageTransform, pageWidth, pageHeight, primitives, activeForms);
+            CollectVisualPrimitivesAndForms(
+                content,
+                pageResources,
+                pageTransform,
+                pageWidth,
+                pageHeight,
+                primitives.Add,
+                activeForms,
+                tilingPatternResourceCache: tilingPatternResourceCache);
         }
 
         return primitives.Count == 0 ? Array.Empty<PdfPageVisualPrimitive>() : primitives.AsReadOnly();
@@ -343,7 +388,7 @@ public sealed partial class PdfReadPage {
         Matrix2D baseTransform,
         double pageWidth,
         double pageHeight,
-        List<PdfPageVisualPrimitive> primitives,
+        Action<PdfPageVisualPrimitive> primitiveVisitor,
         HashSet<PdfStream> activeForms,
         double paintOrderBase = 0D,
         double paintOrderScale = 1D,
@@ -360,10 +405,12 @@ public sealed partial class PdfReadPage {
         OfficeStrokeLineCap? initialStrokeLineCap = null,
         OfficeStrokeLineJoin? initialStrokeLineJoin = null,
         int contentNestingDepth = 0,
-        bool includeTilingPatterns = true) {
+        bool includeTilingPatterns = true,
+        bool retainPrimitiveData = true,
+        Dictionary<(PdfStream Stream, PdfDictionary Resources), PdfPageTilingPatternResource?>? tilingPatternResourceCache = null) {
         EnsureContentNestingBudget(contentNestingDepth);
         string transformedContent = WrapContentWithTransform(content, baseTransform, out int transformedContentOffset);
-        primitives.AddRange(PdfPageContentVisualParser.Parse(
+        _ = PdfPageContentVisualParser.Parse(
             transformedContent,
             pageWidth,
             pageHeight,
@@ -371,7 +418,9 @@ public sealed partial class PdfReadPage {
             GetColorSpaceResources(resources),
             GetShadingResources(resources),
             GetShadingPatternResources(resources),
-            includeTilingPatterns ? GetTilingPatternResources(resources) : null,
+            includeTilingPatterns
+                ? GetTilingPatternResources(resources, tilingPatternResourceCache)
+                : null,
             GetOptionalContentVisibility(resources),
             paintOrderBase,
             paintOrderScale,
@@ -390,7 +439,9 @@ public sealed partial class PdfReadPage {
             maxOperations: _limits.MaxContentOperations,
             patternBaseColorSpaces: GetPatternBaseColorSpaceResources(resources),
             maxNestingDepth: _limits.MaxContentNestingDepth,
-            maxOperands: _limits.MaxContentOperands));
+            maxOperands: _limits.MaxContentOperands,
+            primitiveVisitor: primitiveVisitor,
+            retainPrimitiveData: retainPrimitiveData);
 
         foreach (PdfPageXObjectInvocation invocation in PdfPageXObjectInvocationParser.Parse(
                      content,
@@ -435,7 +486,7 @@ public sealed partial class PdfReadPage {
                     formTransform,
                     pageWidth,
                     pageHeight,
-                    primitives,
+                    primitiveVisitor,
                     activeForms,
                     invocation.PaintOrder,
                     paintOrderScale * 0.000000001D,
@@ -451,7 +502,9 @@ public sealed partial class PdfReadPage {
                     initialStrokeLineCap: invocation.StrokeLineCap,
                     initialStrokeLineJoin: invocation.StrokeLineJoin,
                     contentNestingDepth: contentNestingDepth + 1,
-                    includeTilingPatterns: includeTilingPatterns);
+                    includeTilingPatterns: includeTilingPatterns,
+                    retainPrimitiveData: retainPrimitiveData,
+                    tilingPatternResourceCache: tilingPatternResourceCache);
             } finally {
                 activeForms.Remove(formStream);
             }
@@ -988,7 +1041,7 @@ public sealed partial class PdfReadPage {
             Matrix2D appearanceTransform = Matrix2D.Multiply(pageTransform, CreateAnnotationAppearanceTransform(rectangle, appearanceStream.Dictionary));
             var elements = new List<PdfPageDrawingElement>();
             var primitives = new List<PdfPageVisualPrimitive>();
-            CollectVisualPrimitivesAndForms(appearanceContent, appearanceResources, appearanceTransform, drawing.Width, pageHeight, primitives, activeForms);
+            CollectVisualPrimitivesAndForms(appearanceContent, appearanceResources, appearanceTransform, drawing.Width, pageHeight, primitives.Add, activeForms);
             for (int primitiveIndex = 0; primitiveIndex < primitives.Count; primitiveIndex++) {
                 elements.Add(PdfPageDrawingElement.FromPrimitive(primitives[primitiveIndex], elements.Count));
             }
@@ -1696,6 +1749,12 @@ public sealed partial class PdfReadPage {
         y + height <= maxHeight;
 
     private static bool HasVisibleOverlap(double x, double y, double width, double height, double maxWidth, double maxHeight) =>
+        IsFinite(x) &&
+        IsFinite(y) &&
+        IsFinite(width) &&
+        IsFinite(height) &&
+        IsFinite(maxWidth) &&
+        IsFinite(maxHeight) &&
         width > 0D &&
         height > 0D &&
         x < maxWidth &&

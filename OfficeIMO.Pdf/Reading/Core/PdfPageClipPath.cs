@@ -78,7 +78,10 @@ internal readonly struct PdfPageClipPath {
         var intersectedContours = new List<List<OfficePoint>>();
         bool canClipPerContour = clipContours.All(IsConvexContour) && !HasOverlappingContourBounds(clipContours);
         if (!canClipPerContour) {
-            return EmptyIntersection(intersection);
+            // Exact arbitrary path intersection needs a general polygon boolean engine.
+            // Preserve a conservative superset so unsupported clip complexity cannot
+            // suppress visible-content reporting or discard the rendered element.
+            return intersection;
         }
 
         for (int i = 0; i < subjectContours.Count; i++) {
@@ -95,9 +98,6 @@ internal readonly struct PdfPageClipPath {
             ? path
             : Rectangle(intersection.X, intersection.Y, 0D, 0D);
     }
-
-    private static PdfPageClipPath EmptyIntersection(PdfPageClipPath intersection) =>
-        Rectangle(intersection.X, intersection.Y, 0D, 0D);
 
     private static bool IsConvexContour(List<OfficePoint> contour) {
         if (contour.Count < 3) {
@@ -184,9 +184,14 @@ internal readonly struct PdfPageClipPath {
                     hasCurrentPoint = true;
                     break;
                 case OfficePathCommandKind.Close:
+                    if (current != null && current.Count > 0) {
+                        currentPoint = current[0];
+                        hasCurrentPoint = true;
+                    }
                     AddFlattenedContour(contours, current);
-                    current = null;
-                    hasCurrentPoint = false;
+                    current = hasCurrentPoint
+                        ? new List<OfficePoint> { currentPoint }
+                        : null;
                     break;
             }
         }
@@ -336,9 +341,14 @@ internal readonly struct PdfPageClipPath {
                     hasCurrentPoint = true;
                     break;
                 case OfficePathCommandKind.Close:
+                    if (current != null && current.Count > 0) {
+                        currentPoint = current[0];
+                        hasCurrentPoint = true;
+                    }
                     AddClippedContour(clippedCommands, current, rectangle);
-                    current = null;
-                    hasCurrentPoint = false;
+                    current = hasCurrentPoint
+                        ? new List<OfficePoint> { currentPoint }
+                        : null;
                     break;
             }
         }

@@ -28,6 +28,8 @@ internal sealed class PdfStringObj : PdfObject {
     public string Value { get; }
     public bool UseTextStringEncoding { get; }
     public byte[] RawBytes { get; }
+    internal int? EncodedTokenLength { get; }
+
     public PdfStringObj(string value, bool useTextStringEncoding = false) {
         Value = value;
         UseTextStringEncoding = useTextStringEncoding;
@@ -36,10 +38,14 @@ internal sealed class PdfStringObj : PdfObject {
             : PdfEncoding.Latin1GetBytes(value);
     }
 
-    public PdfStringObj(byte[] rawBytes, bool useTextStringEncoding = false) {
+    public PdfStringObj(
+        byte[] rawBytes,
+        bool useTextStringEncoding = false,
+        int? encodedTokenLength = null) {
         RawBytes = (byte[])rawBytes.Clone();
         Value = PdfTextString.Decode(rawBytes);
         UseTextStringEncoding = useTextStringEncoding;
+        EncodedTokenLength = encodedTokenLength;
     }
 
     public override string ToString() => Value;
