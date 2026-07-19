@@ -215,13 +215,21 @@ public sealed class OutlookTimeZoneDefinition {
     /// <summary>Converts a UTC instant using the embedded historical rules.</summary>
     public DateTimeOffset ConvertUtc(DateTimeOffset utcValue) {
         DateTimeOffset utc = utcValue.ToUniversalTime();
-        OutlookTimeZoneRule[] candidates = new[] {
-            GetRule(Math.Max(1, utc.Year - 1)), GetRule(utc.Year), GetRule(Math.Min(9999, utc.Year + 1))
-        }.Distinct().ToArray();
-        foreach (OutlookTimeZoneRule rule in candidates) {
-            if (OutlookTimeZoneResolver.TryConvertUtc(rule, utc, out DateTimeOffset result)) return result;
-        }
+        OutlookTimeZoneRule rule = GetRuleForUtc(utc);
+        if (OutlookTimeZoneResolver.TryConvertUtc(rule, utc, out DateTimeOffset result)) return result;
         throw new InvalidOperationException("The UTC instant could not be mapped by the Outlook time-zone rules.");
+    }
+
+    private OutlookTimeZoneRule GetRuleForUtc(DateTimeOffset utcValue) {
+        if (_rules.Count == 0) throw new InvalidOperationException("The time-zone definition contains no rules.");
+        // Outlook TZRULE effective years form UTC intervals beginning on January 1. A bias
+        // cutover can legitimately map an instant into the preceding local calendar year.
+        OutlookTimeZoneRule[] ordered = _rules.OrderBy(rule => rule.EffectiveYear).ToArray();
+        for (int index = ordered.Length - 1; index >= 0; index--) {
+            int effectiveYear = Math.Max(1, (int)ordered[index].EffectiveYear);
+            if (utcValue.Year >= effectiveYear) return ordered[index];
+        }
+        return ordered[0];
     }
 
     internal void AcceptDecodedState(byte[] rawState) {

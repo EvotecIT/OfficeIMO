@@ -401,7 +401,7 @@ Security owner, so a Store consumer never needs PDF or multiple cryptography pac
 
 ## Current branch evidence
 
-- the unified `OfficeIMO.Email.Tests` project passes 1,207 tests with four explicitly opt-in Outlook/libpff/private-corpus skips on `net8.0` and `net10.0`, and 1,183 tests with the same four skips on `net472`; it covers MIME, MSG/TNEF, Outlook semantics, stores, address books, the all-artifact facade, and the enabled real-Outlook S/MIME corpus in one CI gate.
+- the unified `OfficeIMO.Email.Tests` project passes 1,223 tests with four explicitly opt-in Outlook/libpff/private-corpus skips on `net8.0` and `net10.0`, and 1,199 tests with the same four skips on `net472`; it covers MIME, MSG/TNEF, Outlook semantics, stores, address books, the all-artifact facade, and the enabled real-Outlook S/MIME corpus in one CI gate.
 - `OfficeIMO.Reader.Tests` passes 812 tests on `net8.0` and `net10.0`, and 767 on `net472`.
 - `OfficeIMO.Security.Tests` passes ten CMS/X.509 tests on `net8.0` and `net10.0`; `OfficeIMO.Pdf.Tests` passes 2,987 tests on each modern target and 2,972 on `net472`.
 - SDK packing succeeds for Security, PDF, unified Email, Reader.Core, every selective Reader package, and Reader.All with matching `netstandard2.0`, `net472`, `net8.0`, and `net10.0` assemblies.

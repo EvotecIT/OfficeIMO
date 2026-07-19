@@ -43,6 +43,39 @@ public sealed class EmailStoreReminderQueueTests {
         Assert.Equal(new[] { "excluded-draft" }, backend.ReadItemIds);
     }
 
+    [Fact]
+    public void ExactResultBoundRemainsCompleteWhenNoAdditionalReminderExists() {
+        var backend = new ExcludedFoldersFirstBackend(includeExtraReference: true);
+        using EmailStoreSession session = CreateSession(backend);
+        var options = new EmailStoreReminderQueryOptions(maxResults: 1);
+
+        EmailStoreReminderQueue queue = session.GetReminders(options);
+
+        Assert.Equal("included", Assert.Single(queue.Items).Reference.Id);
+        Assert.True(queue.IsComplete);
+        Assert.Equal(2, queue.ScannedItems);
+        Assert.DoesNotContain(queue.Diagnostics, diagnostic =>
+            diagnostic.Code == "EMAIL_STORE_REMINDER_RESULT_LIMIT");
+        Assert.Equal(new[] { "included", "included-extra" }, backend.ReadItemIds);
+    }
+
+    [Fact]
+    public void AdditionalReminderBeyondResultBoundMarksQueueIncomplete() {
+        var backend = new ExcludedFoldersFirstBackend(
+            includeExtraReference: true, additionalReminder: true);
+        using EmailStoreSession session = CreateSession(backend);
+        var options = new EmailStoreReminderQueryOptions(maxResults: 1);
+
+        EmailStoreReminderQueue queue = session.GetReminders(options);
+
+        Assert.Equal("included", Assert.Single(queue.Items).Reference.Id);
+        Assert.False(queue.IsComplete);
+        Assert.Equal(2, queue.ScannedItems);
+        Assert.Contains(queue.Diagnostics, diagnostic =>
+            diagnostic.Code == "EMAIL_STORE_REMINDER_RESULT_LIMIT");
+        Assert.Equal(new[] { "included", "included-extra" }, backend.ReadItemIds);
+    }
+
     private static EmailStoreSession CreateSession(IEmailStoreSessionBackend backend) {
         ConstructorInfo? constructor = typeof(EmailStoreSession).GetConstructor(
             BindingFlags.Instance | BindingFlags.NonPublic,
@@ -59,6 +92,8 @@ public sealed class EmailStoreReminderQueueTests {
     }
 
     private sealed class ExcludedFoldersFirstBackend : IEmailStoreSessionBackend {
+        private readonly bool _includeExtraReference;
+        private readonly bool _additionalReminder;
         private readonly EmailStoreFolderInfo[] _folders = {
             new EmailStoreFolderInfo("drafts", null, "Drafts",
                 specialFolderKind: EmailStoreSpecialFolderKind.Drafts),
@@ -70,9 +105,16 @@ public sealed class EmailStoreReminderQueueTests {
         private readonly EmailStoreItemReference[] _references = {
             new EmailStoreItemReference("excluded-draft", "drafts", false, false),
             new EmailStoreItemReference("excluded-junk", "junk", false, false),
-            new EmailStoreItemReference("included", "inbox", false, false)
+            new EmailStoreItemReference("included", "inbox", false, false),
+            new EmailStoreItemReference("included-extra", "inbox", false, false)
         };
         private readonly List<string> _readItemIds = new List<string>();
+
+        internal ExcludedFoldersFirstBackend(bool includeExtraReference = false,
+            bool additionalReminder = false) {
+            _includeExtraReference = includeExtraReference;
+            _additionalReminder = additionalReminder;
+        }
 
         public IReadOnlyList<string> ReadItemIds => _readItemIds;
         public EmailStoreFormat Format => EmailStoreFormat.Pst;
@@ -87,6 +129,9 @@ public sealed class EmailStoreReminderQueueTests {
                 ? _references.Where(reference => string.Equals(
                     reference.FolderId, options.FolderId, StringComparison.Ordinal))
                 : _references;
+            if (!_includeExtraReference)
+                selected = selected.Where(reference => !string.Equals(
+                    reference.Id, "included-extra", StringComparison.Ordinal));
             foreach (EmailStoreItemReference reference in selected.Take(options.MaxItems)) {
                 cancellationToken.ThrowIfCancellationRequested();
                 yield return reference;
@@ -104,10 +149,13 @@ public sealed class EmailStoreReminderQueueTests {
             _readItemIds.Add(reference.Id);
             var signal = new DateTimeOffset(2026, 7, 20, 9, 0, 0, TimeSpan.Zero);
             var document = new EmailDocument { Subject = reference.Id + " reminder" };
-            document.MessageMetadata.Reminder.IsSet = true;
-            document.MessageMetadata.Reminder.SignalTime = signal;
-            document.Mapi.Set(MapiKnownProperties.PidLid.ReminderSet, true);
-            document.Mapi.Set(MapiKnownProperties.PidLid.ReminderSignalTime, signal);
+            if (!string.Equals(reference.Id, "included-extra", StringComparison.Ordinal) ||
+                _additionalReminder) {
+                document.MessageMetadata.Reminder.IsSet = true;
+                document.MessageMetadata.Reminder.SignalTime = signal;
+                document.Mapi.Set(MapiKnownProperties.PidLid.ReminderSet, true);
+                document.Mapi.Set(MapiKnownProperties.PidLid.ReminderSignalTime, signal);
+            }
             return new EmailStoreItem(reference.Id, reference.FolderId, document,
                 loadedParts: options.Parts, format: Format);
         }

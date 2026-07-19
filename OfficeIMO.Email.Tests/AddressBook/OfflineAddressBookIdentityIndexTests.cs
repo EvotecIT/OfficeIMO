@@ -68,4 +68,23 @@ public sealed class OfflineAddressBookIdentityIndexTests {
         Assert.Contains(bounded.Diagnostics, diagnostic =>
             diagnostic.Code == "OAB_IDENTITY_INDEX_ENTRY_LIMIT");
     }
+
+    [Fact]
+    public void Identity_count_counts_distinct_keys_not_duplicate_candidates() {
+        using var baselineStream = new MemoryStream(new OabV4Fixture().Build());
+        using OfflineAddressBookSession baselineSession =
+            OfflineAddressBookSession.Open(baselineStream, "baseline.oab");
+        int baselineIdentityCount = baselineSession.BuildIdentityIndex().IdentityCount;
+
+        var duplicateFixture = new OabV4Fixture()
+            .AddPerson("Ada Duplicate", "ada@example.test", "ada", "Ada", "Duplicate", "Research");
+        using var duplicateStream = new MemoryStream(duplicateFixture.Build());
+        using OfflineAddressBookSession duplicateSession =
+            OfflineAddressBookSession.Open(duplicateStream, "duplicate-identities.oab");
+        OfflineAddressBookIdentityIndex duplicateIndex = duplicateSession.BuildIdentityIndex();
+
+        Assert.Equal(baselineIdentityCount, duplicateIndex.IdentityCount);
+        Assert.Equal(OfflineAddressBookIdentityResolutionStatus.Ambiguous,
+            duplicateIndex.Resolve("ada@example.test").Status);
+    }
 }

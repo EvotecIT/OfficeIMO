@@ -18,7 +18,7 @@ public sealed partial class OfflineAddressBookSession {
         var diagnostics = new List<EmailDiagnostic>();
         int originalDiagnosticCount = _diagnostics.Count;
         int entriesScanned = 0;
-        int retainedIdentities = 0;
+        int distinctIdentityCount = 0;
         bool identitiesTruncated = false;
         var enumeration = new OfflineAddressBookEnumerationOptions(
             effective.AddressListId, effective.MaxEntries, effective.ContinueOnEntryError);
@@ -68,12 +68,12 @@ public sealed partial class OfflineAddressBookSession {
                     return;
                 }
                 retainedForEntry++;
-                retainedIdentities++;
                 var candidate = new OfflineAddressBookIdentityCandidate(entry, value,
                     OfflineAddressBookIdentityIndex.NormalizeType(addressType), source);
                 if (!matches.TryGetValue(key, out List<OfflineAddressBookIdentityCandidate>? candidates)) {
                     candidates = new List<OfflineAddressBookIdentityCandidate>();
                     matches.Add(key, candidates);
+                    distinctIdentityCount++;
                 }
                 candidates.Add(candidate);
             }
@@ -104,7 +104,7 @@ public sealed partial class OfflineAddressBookSession {
         }
         bool isComplete = entriesComplete && !identitiesTruncated &&
             !diagnostics.Any(diagnostic => diagnostic.Severity == EmailDiagnosticSeverity.Error);
-        return new OfflineAddressBookIdentityIndex(matches, entriesScanned, retainedIdentities,
+        return new OfflineAddressBookIdentityIndex(matches, entriesScanned, distinctIdentityCount,
             isComplete, diagnostics, effective.IncludeAccountNames, effective.IncludeDisplayNames);
     }
 }

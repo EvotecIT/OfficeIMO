@@ -69,7 +69,7 @@ internal static class EmailConversionAnalyzer {
                         "The current iCalendar projection does not represent an Outlook task request, acceptance, rejection, or update envelope with its embedded task.",
                         "task/communication"));
                 }
-                if (document.Task?.IsRecurring == true && document.Task.Recurrence?.StateDecoded != true &&
+                if (document.Task != null && IcsCalendarCodec.HasOpaqueTaskState(document.Task) &&
                     !HasUnchangedMimeSemanticSource(document)) {
                     hasPotentialDataLoss = true;
                     diagnostics.Add(CreateLossDiagnostic(options.ConversionLossPolicy,

@@ -45,11 +45,13 @@ internal static partial class IcsCalendarCodec {
         AppendLine(output, "PRODID:-//Evotec//OfficeIMO.Email//EN");
         AppendLine(output, "VERSION:2.0");
         AppendLine(output, string.Concat("METHOD:", GetMethod(document)));
+        OutlookRecurrence? appointmentRecurrence = document.Appointment?.Recurrence;
+        OutlookTimeZoneDefinition? appointmentRecurrenceTimeZone =
+            document.Appointment?.RecurrenceTimeZone;
         if (document.OutlookItemKind == OutlookItemKind.Appointment &&
-            document.Appointment?.Recurrence?.StateDecoded == true &&
-            document.Appointment.RecurrenceTimeZone?.StateDecoded == true) {
-            WriteTimeZone(output, document.Appointment.RecurrenceTimeZone,
-                document.Appointment.Recurrence.Start.Year);
+            HasUsableTypedRecurrence(appointmentRecurrence) &&
+            appointmentRecurrenceTimeZone?.StateDecoded == true) {
+            WriteTimeZone(output, appointmentRecurrenceTimeZone, appointmentRecurrence!.Start.Year);
         }
         if (document.OutlookItemKind == OutlookItemKind.Task) WriteTask(output, document);
         else WriteEvent(output, document);
@@ -58,7 +60,8 @@ internal static partial class IcsCalendarCodec {
     }
 
     internal static bool HasOpaqueAppointmentState(OutlookAppointment appointment) {
-        if (appointment.RecurrenceState != null && appointment.Recurrence?.StateDecoded != true) return true;
+        if (appointment.Recurrence != null && !HasUsableTypedRecurrence(appointment.Recurrence)) return true;
+        if (appointment.RecurrenceState != null && appointment.Recurrence == null) return true;
         if (appointment.TimeZoneStructure != null && appointment.LegacyTimeZone?.StateDecoded != true) return true;
         if (appointment.StartTimeZoneDefinition != null && appointment.StartTimeZone?.StateDecoded != true) return true;
         if (appointment.EndTimeZoneDefinition != null && appointment.EndTimeZone?.StateDecoded != true) return true;
@@ -76,9 +79,22 @@ internal static partial class IcsCalendarCodec {
             !string.IsNullOrWhiteSpace(appointment.RecurrencePattern) || appointment.TimeZoneStructure != null;
     }
 
+    internal static bool HasOpaqueTaskState(OutlookTask task) {
+        if (task.Recurrence != null && !HasUsableTypedRecurrence(task.Recurrence)) return true;
+        if (task.RecurrenceState != null && task.Recurrence == null) return true;
+        if (task.Recurrence != null) {
+            OutlookRecurrenceIcsExportResult result = OutlookRecurrenceIcsConverter.Export(task.Recurrence);
+            return !result.Report.IsLossless;
+        }
+        return task.IsRecurring == true || task.RecurrenceState != null;
+    }
+
+    internal static bool HasUsableTypedRecurrence(OutlookRecurrence? recurrence) => recurrence != null &&
+        (recurrence.StateDecoded || recurrence.RawState == null);
+
     private static void WriteEvent(StringBuilder output, EmailDocument document) {
         OutlookAppointment appointment = document.Appointment ?? new OutlookAppointment();
-        OutlookRecurrence? recurrence = appointment.Recurrence?.StateDecoded == true
+        OutlookRecurrence? recurrence = HasUsableTypedRecurrence(appointment.Recurrence)
             ? appointment.Recurrence
             : null;
         OutlookTimeZoneDefinition? recurrenceTimeZone = appointment.RecurrenceTimeZone?.StateDecoded == true
@@ -140,7 +156,7 @@ internal static partial class IcsCalendarCodec {
 
     private static void WriteTask(StringBuilder output, EmailDocument document) {
         OutlookTask task = document.Task ?? new OutlookTask();
-        OutlookRecurrence? recurrence = task.Recurrence?.StateDecoded == true ? task.Recurrence : null;
+        OutlookRecurrence? recurrence = HasUsableTypedRecurrence(task.Recurrence) ? task.Recurrence : null;
         OutlookRecurrenceIcsExportResult? recurrenceExport = recurrence == null ? null :
             OutlookRecurrenceIcsConverter.Export(recurrence);
         AppendLine(output, "BEGIN:VTODO");

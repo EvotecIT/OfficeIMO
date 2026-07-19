@@ -132,6 +132,24 @@ public sealed class OutlookRecurrenceIcsConverterTests {
         Assert.Contains(error.Report.Issues, issue => issue.Code == "ICAL_DAILY_FILTER_UNSUPPORTED");
     }
 
+    [Theory]
+    [InlineData("FREQ=DAILY;BYMONTH=1", "ICAL_DAILY_FILTER_UNSUPPORTED")]
+    [InlineData("FREQ=WEEKLY;BYMONTH=1", "ICAL_WEEKLY_FILTER_UNSUPPORTED")]
+    [InlineData("FREQ=MONTHLY;BYMONTH=1", "ICAL_MONTHLY_BYMONTH_UNSUPPORTED")]
+    public void RejectsByMonthFiltersThatOutlookWouldSilentlyBroaden(string value, string issueCode) {
+        var options = new OutlookRecurrenceIcsImportOptions {
+            Start = IcsTemporalValue.Floating(new DateTime(2026, 1, 1, 9, 0, 0)),
+            Duration = TimeSpan.FromHours(1)
+        };
+
+        OutlookRecurrenceIcsImportResult result = OutlookRecurrenceIcsConverter.Import(
+            IcsRecurrenceRule.Parse(value), options);
+
+        Assert.Null(result.Recurrence);
+        Assert.False(result.Report.Succeeded);
+        Assert.Contains(result.Report.Issues, issue => issue.Code == issueCode);
+    }
+
     [Fact]
     public void SupportsMultiYearOutlookPeriodAndExpansion() {
         var recurrence = new OutlookRecurrence {
@@ -199,6 +217,144 @@ public sealed class OutlookRecurrenceIcsConverterTests {
         Assert.Equal(12, read.Document.Appointment.Recurrence!.OccurrenceCount);
         Assert.Equal(new DateTime(2007, 4, 16, 11, 0, 0),
             Assert.Single(read.Document.Appointment.Recurrence.Exceptions).Start);
+    }
+
+    [Fact]
+    public void EmlWriterExportsEditableAppointmentRecurrenceWithoutNativeState() {
+        var recurrence = new OutlookRecurrence {
+            Frequency = OutlookRecurrenceFrequency.Weekly,
+            PatternKind = OutlookRecurrencePatternKind.Week,
+            Start = new DateTime(2026, 7, 6, 9, 0, 0),
+            Duration = TimeSpan.FromHours(1),
+            DaysOfWeek = OutlookRecurrenceDays.Monday,
+            RangeKind = OutlookRecurrenceRangeKind.OccurrenceCount,
+            OccurrenceCount = 4
+        };
+        recurrence.DeletedOccurrenceDates.Add(new DateTime(2026, 7, 13, 9, 0, 0));
+        recurrence.Exceptions.Add(new OutlookRecurrenceException {
+            OriginalStart = new DateTime(2026, 7, 20, 9, 0, 0),
+            Start = new DateTime(2026, 7, 20, 11, 0, 0),
+            End = new DateTime(2026, 7, 20, 12, 0, 0),
+            Subject = "Moved occurrence"
+        });
+        var source = new EmailDocument {
+            OutlookItemKind = OutlookItemKind.Appointment,
+            MessageId = "editable-series@example.test",
+            Subject = "Editable series",
+            Appointment = new OutlookAppointment {
+                Start = new DateTimeOffset(2026, 7, 6, 9, 0, 0, TimeSpan.Zero),
+                End = new DateTimeOffset(2026, 7, 6, 10, 0, 0, TimeSpan.Zero),
+                IsRecurring = true,
+                Recurrence = recurrence
+            }
+        };
+
+        byte[] eml = new EmailDocumentWriter().ToBytes(source, EmailFileFormat.Eml);
+        EmailAttachment calendar = Assert.Single(new EmailDocumentReader().Read(eml).Document.Attachments,
+            attachment => string.Equals(attachment.ContentType, "text/calendar",
+                StringComparison.OrdinalIgnoreCase));
+        IcsDocument ics = IcsDocument.Load(Assert.IsType<byte[]>(calendar.Content));
+        ContentLineComponent[] events = ics.GetComponents("VEVENT").ToArray();
+        ContentLineComponent master = Assert.Single(events,
+            component => component.GetFirstProperty("RECURRENCE-ID") == null);
+
+        Assert.False(recurrence.StateDecoded);
+        Assert.Null(recurrence.RawState);
+        Assert.Equal("FREQ=WEEKLY;BYDAY=MO;COUNT=4;WKST=SU",
+            master.GetFirstProperty("RRULE")!.Value);
+        Assert.Equal("20260713T090000", master.GetFirstProperty("EXDATE")!.Value);
+        Assert.Equal("Moved occurrence", Assert.Single(events,
+            component => component.GetFirstProperty("RECURRENCE-ID") != null)
+            .GetFirstProperty("SUMMARY")!.Value);
+    }
+
+    [Fact]
+    public void EmlWriterExportsIcsImportedTaskRecurrenceWithoutNativeState() {
+        var importOptions = new OutlookRecurrenceIcsImportOptions {
+            Start = IcsTemporalValue.Floating(new DateTime(2026, 7, 6, 9, 0, 0)),
+            Duration = TimeSpan.FromHours(1)
+        };
+        importOptions.ExcludedDates.Add(IcsTemporalValue.Floating(
+            new DateTime(2026, 7, 13, 9, 0, 0)));
+        OutlookRecurrenceIcsImportResult imported = OutlookRecurrenceIcsConverter.Import(
+            IcsRecurrenceRule.Parse("FREQ=WEEKLY;BYDAY=MO;COUNT=4"), importOptions);
+        OutlookRecurrence recurrence = Assert.IsType<OutlookRecurrence>(imported.Recurrence);
+        var source = new EmailDocument {
+            OutlookItemKind = OutlookItemKind.Task,
+            Subject = "Imported recurring task",
+            Task = new OutlookTask {
+                IsRecurring = true,
+                Start = new DateTimeOffset(2026, 7, 6, 9, 0, 0, TimeSpan.Zero),
+                Due = new DateTimeOffset(2026, 7, 6, 10, 0, 0, TimeSpan.Zero),
+                Recurrence = recurrence
+            }
+        };
+
+        byte[] eml = new EmailDocumentWriter().ToBytes(source, EmailFileFormat.Eml);
+        EmailAttachment calendar = Assert.Single(new EmailDocumentReader().Read(eml).Document.Attachments,
+            attachment => string.Equals(attachment.ContentType, "text/calendar",
+                StringComparison.OrdinalIgnoreCase));
+        ContentLineComponent todo = Assert.Single(IcsDocument.Load(
+            Assert.IsType<byte[]>(calendar.Content)).GetComponents("VTODO"));
+
+        Assert.True(imported.Report.Succeeded);
+        Assert.False(recurrence.StateDecoded);
+        Assert.Null(recurrence.RawState);
+        Assert.Equal("FREQ=WEEKLY;BYDAY=MO;COUNT=4;WKST=MO",
+            todo.GetFirstProperty("RRULE")!.Value);
+        Assert.Equal("20260713T090000", todo.GetFirstProperty("EXDATE")!.Value);
+    }
+
+    [Fact]
+    public void EmlAnalysisRejectsUnrepresentableTypedTaskRecurrenceWithoutRecurringFlag() {
+        var recurrence = new OutlookRecurrence {
+            Frequency = OutlookRecurrenceFrequency.Daily,
+            PatternKind = OutlookRecurrencePatternKind.Week,
+            Start = new DateTime(2026, 7, 6, 9, 0, 0),
+            Duration = TimeSpan.FromHours(1),
+            DaysOfWeek = OutlookRecurrenceDays.Monday
+        };
+        var source = new EmailDocument {
+            OutlookItemKind = OutlookItemKind.Task,
+            Subject = "Invalid recurring task",
+            Task = new OutlookTask { Recurrence = recurrence }
+        };
+
+        EmailConversionReport report = new EmailDocumentWriter().AnalyzeConversion(
+            source, EmailFileFormat.Eml);
+
+        Assert.False(report.CanWrite);
+        Assert.Contains(report.Diagnostics, diagnostic =>
+            diagnostic.Code == "EMAIL_ICALENDAR_OPAQUE_TASK_RECURRENCE");
+    }
+
+    [Fact]
+    public void EmlAnalysisRejectsFailedTypedAppointmentDecodeWithoutParentRawState() {
+        byte[] valid = FromHex(MicrosoftWeeklyWithException);
+        var malformed = new byte[valid.Length + 1];
+        Buffer.BlockCopy(valid, 0, malformed, 0, valid.Length);
+        malformed[malformed.Length - 1] = 0xFF;
+        OutlookRecurrence recurrence = OutlookRecurrenceBinary.DecodeAppointment(malformed);
+        var source = new EmailDocument {
+            OutlookItemKind = OutlookItemKind.Appointment,
+            Subject = "Opaque recurring appointment",
+            Appointment = new OutlookAppointment {
+                Start = new DateTimeOffset(2007, 3, 26, 10, 0, 0, TimeSpan.Zero),
+                End = new DateTimeOffset(2007, 3, 26, 10, 30, 0, TimeSpan.Zero),
+                Recurrence = recurrence
+            }
+        };
+
+        OutlookRecurrenceIcsExportResult typedProjection = OutlookRecurrenceIcsConverter.Export(recurrence);
+        EmailConversionReport report = new EmailDocumentWriter().AnalyzeConversion(
+            source, EmailFileFormat.Eml);
+
+        Assert.False(recurrence.StateDecoded);
+        Assert.Equal(malformed, recurrence.RawState);
+        Assert.True(typedProjection.Report.IsLossless);
+        Assert.False(report.CanWrite);
+        Assert.Contains(report.Diagnostics, diagnostic =>
+            diagnostic.Code == "EMAIL_ICALENDAR_OPAQUE_RECURRENCE");
     }
 
     private static byte[] FromHex(string value) {

@@ -170,6 +170,67 @@ public sealed class OutlookTimeZoneTests {
             occurrence.ResolveStart(definition).UtcDateTime);
     }
 
+    [Theory]
+    [InlineData(2020, 12, 31, 23, 30, 300, 360, 2020, 12, 31, 18, 30, -5)]
+    [InlineData(2021, 1, 1, 5, 30, 300, 360, 2020, 12, 31, 23, 30, -6)]
+    [InlineData(2020, 12, 31, 23, 30, 360, 300, 2020, 12, 31, 17, 30, -6)]
+    [InlineData(2021, 1, 1, 5, 30, 360, 300, 2021, 1, 1, 0, 30, -5)]
+    public void ConvertUtcUsesExplicitRuleIntervalsAcrossNewYear(int inputYear, int inputMonth,
+        int inputDay, int inputHour, int inputMinute, int oldBias, int newBias,
+        int expectedYear, int expectedMonth, int expectedDay, int expectedHour, int expectedMinute,
+        int expectedOffsetHours) {
+        var definition = new OutlookTimeZoneDefinition();
+        definition.Rules.Add(new OutlookTimeZoneRule {
+            EffectiveYear = 2020,
+            BiasMinutes = oldBias
+        });
+        definition.Rules.Add(new OutlookTimeZoneRule {
+            EffectiveYear = 2021,
+            BiasMinutes = newBias
+        });
+
+        DateTimeOffset result = definition.ConvertUtc(
+            new DateTimeOffset(inputYear, inputMonth, inputDay,
+                inputHour, inputMinute, 0, TimeSpan.Zero));
+
+        Assert.Equal(new DateTime(expectedYear, expectedMonth, expectedDay,
+            expectedHour, expectedMinute, 0), result.DateTime);
+        Assert.Equal(TimeSpan.FromHours(expectedOffsetHours), result.Offset);
+    }
+
+    [Fact]
+    public void ConvertUtcUsesHistoricalDaylightTransitionsWithinEachRuleInterval() {
+        OutlookTimeZoneDefinition definition = OutlookTimeZoneBinary.DecodeDefinition(
+            FromHex(MicrosoftPacificRecurrenceDefinition));
+
+        DateTimeOffset beforeDstLawChange = definition.ConvertUtc(
+            new DateTimeOffset(2006, 3, 20, 12, 0, 0, TimeSpan.Zero));
+        DateTimeOffset afterDstLawChange = definition.ConvertUtc(
+            new DateTimeOffset(2007, 3, 20, 12, 0, 0, TimeSpan.Zero));
+
+        Assert.Equal(TimeSpan.FromHours(-8), beforeDstLawChange.Offset);
+        Assert.Equal(TimeSpan.FromHours(-7), afterDstLawChange.Offset);
+    }
+
+    [Fact]
+    public void ConvertUtcIgnoresUnrepresentableFutureEffectiveYears() {
+        var definition = new OutlookTimeZoneDefinition();
+        definition.Rules.Add(new OutlookTimeZoneRule {
+            EffectiveYear = 2020,
+            BiasMinutes = 300
+        });
+        definition.Rules.Add(new OutlookTimeZoneRule {
+            EffectiveYear = 10000,
+            BiasMinutes = 360
+        });
+
+        DateTimeOffset result = definition.ConvertUtc(
+            new DateTimeOffset(2021, 1, 1, 12, 0, 0, TimeSpan.Zero));
+
+        Assert.Equal(new DateTime(2021, 1, 1, 7, 0, 0), result.DateTime);
+        Assert.Equal(TimeSpan.FromHours(-5), result.Offset);
+    }
+
     private static byte[] FromHex(string value) {
         var bytes = new byte[value.Length / 2];
         for (int index = 0; index < bytes.Length; index++)

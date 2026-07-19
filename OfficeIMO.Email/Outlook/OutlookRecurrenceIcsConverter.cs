@@ -217,12 +217,13 @@ public static class OutlookRecurrenceIcsConverter {
         OutlookRecurrenceIcsConversionReport report) {
         string frequency = rule.Frequency?.ToUpperInvariant() ?? string.Empty;
         string? byDay = rule.GetValue("BYDAY");
+        string? byMonth = rule.GetValue("BYMONTH");
         string? byMonthDay = rule.GetValue("BYMONTHDAY");
         string? bySetPosition = rule.GetValue("BYSETPOS");
         if (frequency == "DAILY") {
             recurrence.Frequency = OutlookRecurrenceFrequency.Daily;
             recurrence.PatternKind = OutlookRecurrencePatternKind.Day;
-            if (byDay != null || byMonthDay != null || bySetPosition != null)
+            if (byDay != null || byMonth != null || byMonthDay != null || bySetPosition != null)
                 Error(report, "ICAL_DAILY_FILTER_UNSUPPORTED", "Filtered daily RRULE values are not an Outlook daily pattern.");
             return;
         }
@@ -231,7 +232,7 @@ public static class OutlookRecurrenceIcsConverter {
             recurrence.PatternKind = OutlookRecurrencePatternKind.Week;
             recurrence.DaysOfWeek = byDay == null ? (OutlookRecurrenceDays)(1 << (int)start.DayOfWeek) :
                 ParseDays(byDay, allowOrdinal: false, report);
-            if (byMonthDay != null || bySetPosition != null)
+            if (byMonth != null || byMonthDay != null || bySetPosition != null)
                 Error(report, "ICAL_WEEKLY_FILTER_UNSUPPORTED", "The weekly RRULE contains unsupported filters.");
             return;
         }
@@ -242,11 +243,14 @@ public static class OutlookRecurrenceIcsConverter {
         recurrence.Frequency = frequency == "YEARLY" ? OutlookRecurrenceFrequency.Yearly :
             OutlookRecurrenceFrequency.Monthly;
         if (frequency == "YEARLY") {
-            string? byMonth = rule.GetValue("BYMONTH");
             if (byMonth != null && (!int.TryParse(byMonth, NumberStyles.None, CultureInfo.InvariantCulture,
                 out int month) || month != start.Month))
                 Error(report, "ICAL_YEAR_MONTH_UNSUPPORTED",
                     "A yearly RRULE BYMONTH must match the DTSTART month for Outlook recurrence.");
+        } else if (byMonth != null) {
+            Error(report, "ICAL_MONTHLY_BYMONTH_UNSUPPORTED",
+                "A monthly RRULE BYMONTH filter cannot be represented by Outlook recurrence.");
+            return;
         }
         if (byMonthDay != null && byDay == null && bySetPosition == null) {
             if (!int.TryParse(byMonthDay, NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture,

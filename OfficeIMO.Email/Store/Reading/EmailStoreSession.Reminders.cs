@@ -57,9 +57,6 @@ public sealed partial class EmailStoreSession {
                             : signal.Value <= effective.AsOf
                                 ? EmailStoreReminderState.Overdue
                                 : EmailStoreReminderState.Pending;
-                    rows.Add(new EmailStoreReminderQueueItem(reference,
-                        FolderCatalog.Get(reference.FolderKey),
-                        EmailStoreItemSummary.FromItem(item), Clone(source), signal, signalSource, state));
                     if (rows.Count >= effective.MaxResults) {
                         complete = false;
                         diagnostics.Add(new EmailStoreDiagnostic("EMAIL_STORE_REMINDER_RESULT_LIMIT",
@@ -68,6 +65,9 @@ public sealed partial class EmailStoreSession {
                         stopped = true;
                         break;
                     }
+                    rows.Add(new EmailStoreReminderQueueItem(reference,
+                        FolderCatalog.Get(reference.FolderKey),
+                        EmailStoreItemSummary.FromItem(item), Clone(source), signal, signalSource, state));
                 } catch (OperationCanceledException) {
                     throw;
                 } catch (Exception exception) when (effective.ContinueOnError &&
