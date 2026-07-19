@@ -13,7 +13,7 @@ public sealed class PdfAnnotationEditResult {
         PdfRewritePreservationReport? rewritePreservationReport = null,
         PdfReadOptions? readOptions = null) {
         _bytes = (byte[])bytes.Clone();
-        _readOptions = readOptions;
+        _readOptions = PdfReadOptions.WithMinimumInputBytes(readOptions, _bytes.LongLength);
         AffectedAnnotationCount = affectedAnnotationCount;
         MutationPlan = mutationPlan;
         SignatureMutationReport = signatureMutationReport;

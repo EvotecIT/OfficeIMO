@@ -131,12 +131,20 @@ internal static partial class PdfIncrementalUpdater {
     }
 
     /// <summary>Injects externally produced CMS/CAdES/TSA bytes into the only zero-filled prepared signature placeholder found in a PDF.</summary>
-    public static byte[] ApplyExternalSignature(byte[] preparedPdf, byte[] signatureContents) {
+    public static byte[] ApplyExternalSignature(byte[] preparedPdf, byte[] signatureContents) =>
+        ApplyExternalSignature(preparedPdf, signatureContents, readOptions: null);
+
+    internal static byte[] ApplyExternalSignature(
+        byte[] preparedPdf,
+        byte[] signatureContents,
+        PdfReadOptions? readOptions) {
         Guard.NotNull(preparedPdf, nameof(preparedPdf));
         Guard.NotNull(signatureContents, nameof(signatureContents));
+        _ = PdfReadDocument.Open(preparedPdf, readOptions);
         _ = PdfMutationPlanner.RequireAppendOnly(
             preparedPdf,
-            PdfMutationOperation.FinalizeExternalSignature);
+            PdfMutationOperation.FinalizeExternalSignature,
+            readOptions);
         int placeholderCount = FindZeroFilledSignatureContents(preparedPdf, out int contentsHexOffset, out int contentsHexLength);
         if (placeholderCount == 0) {
             throw new ArgumentException("PDF does not contain a zero-filled external signature /Contents placeholder.", nameof(preparedPdf));

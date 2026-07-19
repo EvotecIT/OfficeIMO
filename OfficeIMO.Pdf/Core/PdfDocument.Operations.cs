@@ -135,11 +135,11 @@ public sealed partial class PdfDocument {
 
     /// <summary>Applies dependency-free lossless optimization and returns the candidate with action and preservation reports.</summary>
     public PdfOptimizationActionResult Optimize(PdfOptimizationOptions? options = null) =>
-        PdfOptimizer.Optimize(GetBytesForOperation(), options).WithReadOptions(ReadOptions);
+        PdfOptimizer.Optimize(GetBytesForOperation(), options, ReadOptions);
 
     /// <summary>Applies a named deterministic lossless optimization profile.</summary>
     public PdfOptimizationActionResult Optimize(PdfOptimizationProfile profile) =>
-        PdfOptimizer.Optimize(GetBytesForOperation(), profile).WithReadOptions(ReadOptions);
+        PdfOptimizer.Optimize(GetBytesForOperation(), profile, ReadOptions);
 
     /// <summary>
     /// Plans rectangle-based redaction impact without modifying the PDF.
@@ -252,7 +252,10 @@ public sealed partial class PdfDocument {
 
         byte[][] bytes = sources.Select(static document => document.GetBytesForOperation()).ToArray();
         PdfReadOptions[] readOptions = sources.Select(static document => document.ReadOptions).ToArray();
-        return Open(PdfMerger.Merge(bytes, readOptions), sources[0].ReadOptions);
+        byte[] merged = PdfMerger.Merge(bytes, readOptions);
+        return Open(
+            merged,
+            PdfReadOptions.WithMinimumInputBytes(sources[0].ReadOptions, merged.LongLength));
     }
 
     /// <summary>
@@ -402,7 +405,7 @@ public sealed partial class PdfDocument {
     public PdfDocument CompleteExternalSignature(byte[] signatureContents) {
         Guard.NotNull(signatureContents, nameof(signatureContents));
         return ApplyMutation(
-            input => PdfIncrementalUpdater.ApplyExternalSignature(input, signatureContents),
+            input => PdfIncrementalUpdater.ApplyExternalSignature(input, signatureContents, ReadOptions),
             operationName: "CompleteExternalSignature");
     }
 

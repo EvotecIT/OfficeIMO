@@ -11,7 +11,9 @@ internal static partial class PdfAnnotationEditor {
         PdfMutationPlan plan = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.ModifyAnnotations, readOptions);
         int before = CountSelectedAnnotations(PdfInspector.Inspect(pdf, readOptions), options);
         byte[] output = PdfAnnotationFlattener.FlattenVisualAnnotations(pdf, options, readOptions);
-        int after = CountSelectedAnnotations(PdfInspector.Inspect(output), options);
+        int after = CountSelectedAnnotations(
+            PdfInspector.Inspect(output, PdfReadOptions.WithMinimumInputBytes(readOptions, output.LongLength)),
+            options);
         int affected = Math.Max(0, before - after);
         return CreateFullRewriteResult(pdf, output, affected, plan, annotationsChanged: affected > 0, readOptions: readOptions);
     }

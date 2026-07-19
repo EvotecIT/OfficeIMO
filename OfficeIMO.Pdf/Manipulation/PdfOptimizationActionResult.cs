@@ -22,7 +22,7 @@ public sealed class PdfOptimizationActionResult {
         bool returnedOriginal,
         PdfReadOptions? readOptions = null) {
         _bytes = (byte[])bytes.Clone();
-        _readOptions = readOptions;
+        _readOptions = PdfReadOptions.WithMinimumInputBytes(readOptions, _bytes.LongLength);
         OriginalLengthBytes = originalLengthBytes;
         OptimizedLengthBytes = optimizedLengthBytes;
         CandidateLengthBytes = candidateLengthBytes;
@@ -98,20 +98,4 @@ public sealed class PdfOptimizationActionResult {
     /// <summary>Opens the selected optimized or original bytes through the fluent document API.</summary>
     public PdfDocument ToDocument(PdfReadOptions? readOptions = null) => PdfDocument.Open(_bytes, readOptions ?? _readOptions);
 
-    internal PdfOptimizationActionResult WithReadOptions(PdfReadOptions readOptions) => new PdfOptimizationActionResult(
-        _bytes,
-        OriginalLengthBytes,
-        OptimizedLengthBytes,
-        CandidateLengthBytes,
-        ReportBefore,
-        ReportAfter,
-        Actions,
-        SkippedActions,
-        PreservationReport,
-        RequestedProfile,
-        CandidateXrefFormat,
-        CandidateUsesObjectStreams,
-        CandidateLinearized,
-        ReturnedOriginal,
-        readOptions);
 }

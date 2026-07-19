@@ -1274,13 +1274,12 @@ public class PdfDocumentWorkflowTests {
         PdfMutationBlockedException resizeException = Assert.Throws<PdfMutationBlockedException>(
             () => constrained.Pages.Resize(new PageSize(612, 792)));
 
-        PdfOptimizationActionResult optimized = constrained.Optimize();
-        PdfReadLimitException optimizedReadbackException = Assert.Throws<PdfReadLimitException>(
-            () => optimized.ToDocument().Inspect());
+        PdfMutationBlockedException optimizeException = Assert.Throws<PdfMutationBlockedException>(
+            () => constrained.Optimize());
 
         Assert.Contains("Read.ParserUnsupported", mergeException.Plan.BlockerCodes);
         Assert.Contains("Read.ParserUnsupported", resizeException.Plan.BlockerCodes);
-        Assert.Equal(PdfReadLimitKind.Pages, optimizedReadbackException.Kind);
+        Assert.Contains("Read.ParserUnsupported", optimizeException.Plan.BlockerCodes);
     }
 
     [Fact]

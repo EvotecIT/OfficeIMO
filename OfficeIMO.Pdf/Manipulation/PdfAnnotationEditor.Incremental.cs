@@ -188,7 +188,10 @@ internal static partial class PdfAnnotationEditor {
         PdfMutationPlan mutationPlan,
         bool annotationsChanged,
         PdfReadOptions? readOptions) {
+        PdfReadOptions rewrittenReadOptions = PdfReadOptions.WithMinimumInputBytes(readOptions, rewritten.LongLength);
         var preservationOptions = new PdfRewritePreservationOptions {
+            OriginalReadOptions = readOptions,
+            RewrittenReadOptions = rewrittenReadOptions,
             PreserveAnnotations = !annotationsChanged,
             PreserveLinkAnnotations = !annotationsChanged,
             PreserveRevisionStructure = false
