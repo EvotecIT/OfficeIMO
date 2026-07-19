@@ -222,8 +222,8 @@ public static class PdfLogicalTableAnalysis {
             for (int rowIndex = 0; rowIndex < table.Rows.Count; rowIndex++) {
                 string rowText = NormalizeForScopeComparison(string.Join(" ", table.Rows[rowIndex]));
                 if (rowText.Length > 0 &&
-                    (rowText.Contains(blockText, StringComparison.Ordinal) ||
-                     blockText.Contains(rowText, StringComparison.Ordinal))) {
+                    (ContainsOrdinal(rowText, blockText) ||
+                     ContainsOrdinal(blockText, rowText))) {
                     return true;
                 }
             }
@@ -237,15 +237,24 @@ public static class PdfLogicalTableAnalysis {
             return string.Empty;
         }
 
-        var builder = new System.Text.StringBuilder(value.Length);
-        for (int index = 0; index < value.Length; index++) {
-            char character = value[index];
+        string normalizedValue = value!;
+        var builder = new System.Text.StringBuilder(normalizedValue.Length);
+        for (int index = 0; index < normalizedValue.Length; index++) {
+            char character = normalizedValue[index];
             if (!char.IsWhiteSpace(character)) {
                 builder.Append(char.ToUpperInvariant(character));
             }
         }
 
         return builder.ToString();
+    }
+
+    private static bool ContainsOrdinal(string value, string candidate) {
+#if NETSTANDARD2_0
+        return value.IndexOf(candidate, StringComparison.Ordinal) >= 0;
+#else
+        return value.Contains(candidate, StringComparison.Ordinal);
+#endif
     }
 
     /// <summary>
