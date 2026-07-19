@@ -24,13 +24,14 @@ public static class Rfc3161TimestampVerifier {
         ArgumentNullException.ThrowIfNull(timestampedData);
 #endif
         SecurityLimits.EnsureBufferWithinLimit(encodedToken, maxEncodedBytes, nameof(encodedToken));
-        certificateValidation ??= new CertificateValidationOptions();
         var findings = new List<SecurityFinding>();
         CertificateValidationResult emptyValidation = EmptyCertificateValidation();
 
         try {
             var token = new TimeStampToken(new Org.BouncyCastle.Cms.CmsSignedData(encodedToken));
             TimeStampTokenInfo info = token.TimeStampInfo;
+            CertificateValidationOptions effectiveCertificateValidation =
+                ResolveCertificateValidation(certificateValidation, info.GenTime);
             byte[] calculatedImprint = DigestUtilities.CalculateDigest(info.MessageImprintAlgOid, timestampedData);
             bool imprintValid = Arrays.FixedTimeEquals(calculatedImprint, info.GetMessageImprintDigest());
             if (!imprintValid) {
@@ -79,7 +80,7 @@ public static class Rfc3161TimestampVerifier {
                 CertificateValidationResult chain = CertificateChainValidator.Validate(
                     platformTsa,
                     platformEmbedded,
-                    certificateValidation,
+                    effectiveCertificateValidation,
                     findings,
                     "TSA");
                 SecurityValidationStatus status = signatureValid && imprintValid
@@ -129,6 +130,25 @@ public static class Rfc3161TimestampVerifier {
             SecurityValidationStatus.Indeterminate,
             SecurityValidationStatus.NotPerformed,
             Array.Empty<string>());
+
+    private static CertificateValidationOptions ResolveCertificateValidation(
+        CertificateValidationOptions? source,
+        DateTime generationTime) {
+        if (source?.VerificationTime != null) return source;
+        var result = new CertificateValidationOptions {
+            ValidateChain = source?.ValidateChain ?? true,
+            RevocationMode = source?.RevocationMode ?? X509RevocationMode.NoCheck,
+            RevocationFlag = source?.RevocationFlag ?? X509RevocationFlag.ExcludeRoot,
+            VerificationFlags = source?.VerificationFlags ?? X509VerificationFlags.NoFlag,
+            VerificationTime = generationTime.Kind == DateTimeKind.Utc
+                ? generationTime
+                : DateTime.SpecifyKind(generationTime, DateTimeKind.Utc),
+            UrlRetrievalTimeout = source?.UrlRetrievalTimeout ?? TimeSpan.FromSeconds(15),
+            ChainEvaluator = source?.ChainEvaluator
+        };
+        if (source != null) result.ExtraCertificates.AddRange(source.ExtraCertificates);
+        return result;
+    }
 
     private static bool IsValidationException(Exception exception) =>
         exception is not OutOfMemoryException &&

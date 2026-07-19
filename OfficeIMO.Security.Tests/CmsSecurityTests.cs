@@ -149,21 +149,41 @@ public sealed class CmsSecurityTests {
         Org.BouncyCastle.Tsp.TimeStampRequest request = requestGenerator.Generate(
             Org.BouncyCastle.Tsp.TspAlgorithms.Sha256,
             imprint);
+        DateTime generationTime = DateTime.UtcNow.AddMinutes(-1);
         byte[] encoded = generator.Generate(
             request,
             Org.BouncyCastle.Math.BigInteger.One,
-            DateTime.UtcNow).GetEncoded();
-        var trust = new CertificateValidationOptions { ChainEvaluator = static (_, _) => true };
+            generationTime).GetEncoded();
+        DateTime? observedDefaultVerificationTime = null;
+        var trust = new CertificateValidationOptions {
+            ChainEvaluator = (_, chain) => {
+                observedDefaultVerificationTime = chain.ChainPolicy.VerificationTime;
+                return true;
+            }
+        };
 
         Rfc3161TimestampVerificationResult valid = Rfc3161TimestampVerifier.Verify(encoded, timestampedData, trust);
         Rfc3161TimestampVerificationResult tampered = Rfc3161TimestampVerifier.Verify(
             encoded,
             Encoding.UTF8.GetBytes("different signature bytes"),
             trust);
+        DateTime explicitVerificationTime = generationTime.AddSeconds(30);
+        DateTime? observedExplicitVerificationTime = null;
+        var explicitTrust = new CertificateValidationOptions {
+            VerificationTime = explicitVerificationTime,
+            ChainEvaluator = (_, chain) => {
+                observedExplicitVerificationTime = chain.ChainPolicy.VerificationTime;
+                return true;
+            }
+        };
+        Rfc3161TimestampVerifier.Verify(encoded, timestampedData, explicitTrust);
 
         Assert.Equal(SecurityValidationStatus.Valid, valid.Status);
         Assert.Equal(SecurityValidationStatus.Valid, valid.CertificateValidation.ChainStatus);
         Assert.NotNull(valid.Timestamp);
+        Assert.Equal(valid.Timestamp.Value.UtcDateTime, observedDefaultVerificationTime);
+        Assert.Equal(explicitVerificationTime, observedExplicitVerificationTime);
+        Assert.Null(trust.VerificationTime);
         Assert.Equal("2.16.840.1.101.3.4.2.1", valid.MessageImprintAlgorithmOid);
         Assert.Equal(SecurityValidationStatus.Invalid, tampered.Status);
         Assert.Contains(tampered.Findings, finding => finding.Code == "TimestampImprintMismatch");

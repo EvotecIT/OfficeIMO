@@ -257,50 +257,9 @@ internal static class WordRichMapping {
     }
 
     private static ReaderTable MapWordTable(WordTableSnapshot table, ReaderLocation location, int tableIndex, int maxRows) {
-        int columnCount = Math.Max(table.ColumnCount, table.Rows.Count == 0 ? 0 : table.Rows.Max(static row => row.Cells.Count));
-        bool hasHeaderRow = table.RepeatHeaderRow && table.Rows.Count > 0;
-        IReadOnlyList<string> columns = hasHeaderRow
-            ? BuildWordRowValues(table.Rows[0], columnCount, useFallbacks: true)
-            : BuildFallbackColumns(columnCount);
-        int dataStart = hasHeaderRow ? 1 : 0;
-        int totalRowCount = Math.Max(0, table.Rows.Count - dataStart);
-        IEnumerable<WordTableRowSnapshot> sourceRows = table.Rows.Skip(dataStart);
-        bool truncated = maxRows > 0 && totalRowCount > maxRows;
-        if (truncated) sourceRows = sourceRows.Take(maxRows);
-        IReadOnlyList<IReadOnlyList<string>> rows = sourceRows
-            .Select(row => BuildWordRowValues(row, columnCount, useFallbacks: false))
-            .ToArray();
         ReaderLocation tableLocation = CloneWordLocation(location, "table", location.BlockAnchor);
         tableLocation.TableIndex = tableIndex;
-        return new ReaderTable {
-            Title = string.IsNullOrWhiteSpace(table.Title) ? "Word table " + (tableIndex + 1).ToString(CultureInfo.InvariantCulture) : table.Title,
-            Kind = "word-table",
-            Location = tableLocation,
-            Columns = columns,
-            ColumnProfiles = ReaderTableProfiler.CreateProfiles(columns, rows),
-            Rows = rows,
-            TotalRowCount = totalRowCount,
-            Truncated = truncated
-        };
-    }
-
-    private static IReadOnlyList<string> BuildWordRowValues(WordTableRowSnapshot row, int columnCount, bool useFallbacks) {
-        var values = new string[columnCount];
-        for (int columnIndex = 0; columnIndex < columnCount; columnIndex++) {
-            WordTableCellSnapshot? cell = row.Cells.FirstOrDefault(candidate => candidate.ColumnIndex == columnIndex)
-                ?? (columnIndex < row.Cells.Count ? row.Cells[columnIndex] : null);
-            string value = cell == null
-                ? string.Empty
-                : string.Join(" ", cell.Paragraphs.Select(static paragraph => paragraph.Text).Where(static text => !string.IsNullOrWhiteSpace(text)));
-            values[columnIndex] = string.IsNullOrWhiteSpace(value) && useFallbacks
-                ? "Column " + (columnIndex + 1).ToString(CultureInfo.InvariantCulture)
-                : value;
-        }
-        return values;
-    }
-
-    private static IReadOnlyList<string> BuildFallbackColumns(int count) {
-        return Enumerable.Range(1, count).Select(index => "Column " + index.ToString(CultureInfo.InvariantCulture)).ToArray();
+        return WordTableProjection.Map(table, tableLocation, tableIndex, maxRows);
     }
 
     private static int? ResolveWordHeadingLevel(WordParagraphSnapshot paragraph) {

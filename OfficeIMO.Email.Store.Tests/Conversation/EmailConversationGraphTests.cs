@@ -57,7 +57,6 @@ public sealed class EmailConversationGraphTests {
             edge.Source.Reference.Id == "root" && edge.Target.Reference.Id == "reply");
         Assert.Equal(new[] {
             EmailConversationLinkReason.InReplyTo,
-            EmailConversationLinkReason.References,
             EmailConversationLinkReason.ConversationIndexParent
         }, parent.Reasons);
         Assert.True(parent.IsAuthoritative);
@@ -80,6 +79,39 @@ public sealed class EmailConversationGraphTests {
             edge.Reasons.Contains(EmailConversationLinkReason.NormalizedSubject));
         Assert.True(heuristic.IsHeuristic);
         Assert.True(graph.GetConversation(new EmailStoreItemId("heuristic-root")).IsHeuristicOnly);
+    }
+
+    [Fact]
+    public void In_reply_to_is_the_single_preferred_parent_and_references_are_only_a_fallback() {
+        var backend = new ConversationBackend(new[] {
+            Item("reply-parent", "inbox", "Preferred", "preferred@example.test", 1),
+            Item("reference-parent", "inbox", "Fallback", "fallback@example.test", 2),
+            Item("reply", "inbox", "RE: Preferred", "reply@example.test", 3, document => {
+                document.MessageMetadata.InReplyToId = "<preferred@example.test>";
+                document.MessageMetadata.InternetReferences = "<fallback@example.test>";
+            }),
+            Item("fallback-reply", "inbox", "RE: Fallback", "fallback-reply@example.test", 4,
+                document => {
+                    document.MessageMetadata.InReplyToId = "<missing@example.test>";
+                    document.MessageMetadata.InternetReferences = "<fallback@example.test>";
+                })
+        });
+        using EmailStoreSession session = CreateSession(backend);
+
+        EmailConversationGraph graph = session.BuildConversationGraph();
+
+        EmailConversationEdge preferred = Assert.Single(graph.Edges, edge =>
+            edge.Kind == EmailConversationEdgeKind.ParentChild &&
+            edge.Target.Reference.Id == "reply");
+        Assert.Equal("reply-parent", preferred.Source.Reference.Id);
+        Assert.Equal(new[] { EmailConversationLinkReason.InReplyTo }, preferred.Reasons);
+        EmailConversationEdge fallback = Assert.Single(graph.Edges, edge =>
+            edge.Kind == EmailConversationEdgeKind.ParentChild &&
+            edge.Target.Reference.Id == "fallback-reply");
+        Assert.Equal("reference-parent", fallback.Source.Reference.Id);
+        Assert.Equal(new[] { EmailConversationLinkReason.References }, fallback.Reasons);
+        Assert.DoesNotContain(graph.OrphanReplies, orphan =>
+            orphan.Child.Reference.Id == "fallback-reply");
     }
 
     [Fact]

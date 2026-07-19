@@ -146,10 +146,10 @@ internal sealed class EmailConversationGraphBuilder {
         IReadOnlyDictionary<string, List<NodeState>> byMessageId) {
         foreach (NodeState child in states) {
             _cancellationToken.ThrowIfCancellationRequested();
-            bool inReplyResolved = false;
             if (child.Node.InReplyToId != null) {
-                inReplyResolved = AddDeclaredParent(child, child.Node.InReplyToId,
-                    EmailConversationLinkReason.InReplyTo, byMessageId, recordOrphan: true);
+                bool inReplyResolved = AddDeclaredParent(child, child.Node.InReplyToId,
+                    EmailConversationLinkReason.InReplyTo, byMessageId, recordOrphan: false);
+                if (inReplyResolved) continue;
             }
             bool referenceResolved = false;
             for (int index = child.Node.References.Count - 1; index >= 0; index--) {
@@ -160,15 +160,18 @@ internal sealed class EmailConversationGraphBuilder {
                     break;
                 }
             }
-            if (!inReplyResolved && !referenceResolved && child.Node.InReplyToId == null &&
-                child.Node.References.Count > 0) {
-                string parent = child.Node.References[child.Node.References.Count - 1];
+            if (!referenceResolved) {
+                string? parent = child.Node.InReplyToId ?? child.Node.References.LastOrDefault();
+                if (parent == null) continue;
                 EmailConversationOrphanReason reason = byMessageId.TryGetValue(parent,
                     out List<NodeState>? candidates) && candidates.Count > 1
                     ? EmailConversationOrphanReason.AmbiguousParent
                     : EmailConversationOrphanReason.MissingParent;
                 _orphans.Add(new EmailConversationOrphanReply(child.Node, parent,
-                    EmailConversationLinkReason.References, reason));
+                    child.Node.InReplyToId != null
+                        ? EmailConversationLinkReason.InReplyTo
+                        : EmailConversationLinkReason.References,
+                    reason));
             }
         }
     }

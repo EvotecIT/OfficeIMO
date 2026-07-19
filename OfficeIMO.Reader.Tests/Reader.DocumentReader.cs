@@ -1434,6 +1434,56 @@ public sealed class ReaderDocumentReaderTests {
     }
 
     [Fact]
+    public void DocumentReader_ReadFolderDocuments_SkipsOverBudgetFilesBeforeInvokingTheirHandler() {
+        const string extension = ".budgetix";
+        string folder = Path.Combine(Path.GetTempPath(), "officeimo-reader-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(folder);
+        string acceptedPath = Path.Combine(folder, "a" + extension);
+        string skippedPath = Path.Combine(folder, "b" + extension);
+        int handlerInvocations = 0;
+
+        try {
+            File.WriteAllText(acceptedPath, "first");
+            File.WriteAllText(skippedPath, "second file");
+            OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+                .AddHandler(new ReaderHandlerRegistration {
+                    Id = "officeimo.tests.folder-budget",
+                    Kind = ReaderInputKind.Text,
+                    Extensions = new[] { extension },
+                    ReadPath = (path, _, cancellationToken) => {
+                        handlerInvocations++;
+                        cancellationToken.ThrowIfCancellationRequested();
+                        return new[] {
+                            new ReaderChunk {
+                                Id = Path.GetFileName(path),
+                                Kind = ReaderInputKind.Text,
+                                Text = File.ReadAllText(path)
+                            }
+                        };
+                    }
+                })
+                .Build();
+
+            IReadOnlyList<ReaderSourceDocument> documents = reader.ReadFolderDocuments(
+                folder,
+                new ReaderFolderOptions {
+                    Recurse = false,
+                    DeterministicOrder = true,
+                    MaxTotalBytes = new FileInfo(acceptedPath).Length
+                }).ToArray();
+
+            Assert.Equal(2, documents.Count);
+            Assert.Equal(1, handlerInvocations);
+            Assert.True(documents[0].Parsed);
+            Assert.False(documents[1].Parsed);
+            Assert.Contains("before parsing", Assert.Single(documents[1].Warnings!),
+                StringComparison.OrdinalIgnoreCase);
+        } finally {
+            if (Directory.Exists(folder)) Directory.Delete(folder, recursive: true);
+        }
+    }
+
+    [Fact]
     public void DocumentReader_ReadFolderDocuments_ProgressCallback_UsesZeroChunkCountForSkippedFiles() {
         var folder = Path.Combine(Path.GetTempPath(), "officeimo-reader-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(folder);
@@ -1885,6 +1935,8 @@ public sealed class ReaderDocumentReaderTests {
             Assert.NotNull(result.Warnings);
             Assert.Single(result.Warnings!);
             Assert.Contains("split due to MaxChars", result.Warnings![0], StringComparison.OrdinalIgnoreCase);
+            Assert.Empty(result.Chunks);
+            Assert.Equal(file.ChunksProduced, result.ChunksProduced);
         } finally {
             if (Directory.Exists(folder)) Directory.Delete(folder, recursive: true);
         }

@@ -110,7 +110,7 @@ public static class OutlookRecurrenceExpander {
         int inspected = 0;
         bool truncated = false;
         string? reason = null;
-        foreach (DateTime occurrenceDate in EnumerateDates(recurrence)) {
+        foreach (RecurrenceDateCandidate candidate in EnumerateDates(recurrence)) {
             inspected++;
             if (inspected > effective.MaxCandidateDays) {
                 truncated = true;
@@ -118,10 +118,16 @@ public static class OutlookRecurrenceExpander {
                 break;
             }
 
-            DateTime originalStart = occurrenceDate.Date.Add(recurrence.Start.TimeOfDay);
-            if (originalStart < recurrence.Start) continue;
+            DateTime occurrenceDate = candidate.Date;
             if (recurrence.RangeKind == OutlookRecurrenceRangeKind.EndDate &&
                 recurrence.EndDate.HasValue && occurrenceDate.Date > recurrence.EndDate.Value.Date) break;
+            if (!candidate.IsOccurrence) {
+                if (occurrenceDate > windowEnd.Date && occurrenceDate >= latestRelevantOriginal.Date &&
+                    recurrence.RangeKind == OutlookRecurrenceRangeKind.NoEnd) break;
+                continue;
+            }
+            DateTime originalStart = occurrenceDate.Date.Add(recurrence.Start.TimeOfDay);
+            if (originalStart < recurrence.Start) continue;
             sequence++;
             if (recurrence.RangeKind == OutlookRecurrenceRangeKind.OccurrenceCount &&
                 recurrence.OccurrenceCount.HasValue && sequence > recurrence.OccurrenceCount.Value) break;
@@ -140,6 +146,9 @@ public static class OutlookRecurrenceExpander {
                 }
             }
 
+            if (recurrence.RangeKind == OutlookRecurrenceRangeKind.OccurrenceCount &&
+                recurrence.OccurrenceCount.HasValue && sequence >= recurrence.OccurrenceCount.Value) break;
+
             if (occurrenceDate > windowEnd.Date && occurrenceDate >= latestRelevantOriginal.Date &&
                 recurrence.RangeKind == OutlookRecurrenceRangeKind.NoEnd) break;
         }
@@ -147,20 +156,21 @@ public static class OutlookRecurrenceExpander {
             truncated, reason);
     }
 
-    private static IEnumerable<DateTime> EnumerateDates(OutlookRecurrence recurrence) {
+    private static IEnumerable<RecurrenceDateCandidate> EnumerateDates(OutlookRecurrence recurrence) {
         DateTime startDate = recurrence.Start.Date;
         if (recurrence.PatternKind == OutlookRecurrencePatternKind.Day) {
             int step = recurrence.Frequency == OutlookRecurrenceFrequency.Daily ? recurrence.Interval : 1;
             for (DateTime date = startDate; ;) {
-                yield return date;
+                yield return new RecurrenceDateCandidate(date, isOccurrence: true);
                 if (!TryAddDays(date, step, out date)) yield break;
             }
         } else if (recurrence.PatternKind == OutlookRecurrencePatternKind.Week) {
             DateTime anchor = StartOfWeek(startDate, recurrence.FirstDayOfWeek);
             for (DateTime date = startDate; ;) {
                 long weeks = (long)(StartOfWeek(date, recurrence.FirstDayOfWeek) - anchor).TotalDays / 7;
-                if (weeks % recurrence.Interval == 0 && Includes(recurrence.DaysOfWeek, date.DayOfWeek))
-                    yield return date;
+                bool isOccurrence = weeks % recurrence.Interval == 0 &&
+                    Includes(recurrence.DaysOfWeek, date.DayOfWeek);
+                yield return new RecurrenceDateCandidate(date, isOccurrence);
                 if (!TryAddDays(date, 1, out date)) yield break;
             }
         } else {
@@ -170,7 +180,8 @@ public static class OutlookRecurrenceExpander {
                 : recurrence.Interval;
             for (;;) {
                 DateTime? candidate = GetMonthlyCandidate(recurrence, month);
-                if (candidate.HasValue && candidate.Value >= startDate) yield return candidate.Value;
+                if (candidate.HasValue && candidate.Value >= startDate)
+                    yield return new RecurrenceDateCandidate(candidate.Value, isOccurrence: true);
                 try {
                     month = month.AddMonths(monthInterval);
                 } catch (ArgumentOutOfRangeException) {
@@ -210,7 +221,9 @@ public static class OutlookRecurrenceExpander {
     }
 
     private static bool InWindow(DateTime start, DateTime end, DateTime windowStart, DateTime windowEnd) =>
-        end >= windowStart && start < windowEnd;
+        end > start
+            ? end > windowStart && start < windowEnd
+            : start >= windowStart && start < windowEnd;
 
     private static DateTime StartOfWeek(DateTime date, DayOfWeek firstDay) {
         int offset = ((int)date.DayOfWeek - (int)firstDay + 7) % 7;
@@ -248,6 +261,8 @@ public static class OutlookRecurrenceExpander {
             options.WindowEnd.Value <= options.WindowStart.Value)
             throw new ArgumentException("WindowEnd must be later than WindowStart.", nameof(options));
         if (recurrence.Start == default) throw new InvalidOperationException("A recurrence requires Start.");
+        if (!OutlookRecurrenceBinary.IsValidFrequencyPattern(recurrence.Frequency, recurrence.PatternKind))
+            throw new InvalidOperationException("The recurrence frequency and pattern kind are incompatible.");
         if (recurrence.CalendarType != 0 && recurrence.CalendarType != 1 && recurrence.CalendarType != 2)
             throw new NotSupportedException("Expansion currently supports Gregorian Outlook calendar types only.");
         if (recurrence.PatternKind == OutlookRecurrencePatternKind.Week && recurrence.DaysOfWeek == OutlookRecurrenceDays.None)
@@ -264,4 +279,14 @@ public static class OutlookRecurrenceExpander {
     }
 
     private static DateTime AsLocal(DateTime value) => DateTime.SpecifyKind(value, DateTimeKind.Unspecified);
+
+    private readonly struct RecurrenceDateCandidate {
+        internal RecurrenceDateCandidate(DateTime date, bool isOccurrence) {
+            Date = date;
+            IsOccurrence = isOccurrence;
+        }
+
+        internal DateTime Date { get; }
+        internal bool IsOccurrence { get; }
+    }
 }

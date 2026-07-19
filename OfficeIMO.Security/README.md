@@ -43,7 +43,8 @@ RSA private key for envelope decryption; a non-exportable key produces the stabl
 `EnvelopePrivateKeyNotExportable` finding instead of silently falling back or exporting key material elsewhere.
 
 `Rfc3161TimestampVerifier` validates timestamp signatures, TSA certificate profiles, message imprints, caller trust
-policy, and revocation as a separate neutral operation.
+policy, and revocation as a separate neutral operation. TSA chain validation defaults to the token generation time;
+callers can override that instant through `CertificateValidationOptions.VerificationTime`.
 
 ## Dependency footprint
 

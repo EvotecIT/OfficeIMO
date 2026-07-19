@@ -80,28 +80,47 @@ internal static partial class DocumentReaderEngine {
         bool includeChunks = true,
         Action<ReaderProgress>? onProgress = null,
         CancellationToken cancellationToken = default) {
-        ReaderSourceDocument[] documents = ReadFolderDocumentsCore(
-            folderPath, folderOptions, options, includeSkippedWarningChunks: true,
-            onProgress, cancellationToken).ToArray();
-        var files = documents.Select(static document => new ReaderIngestFileResult {
-            Path = document.Path,
-            SourceId = document.SourceId,
-            SourceHash = document.SourceHash,
-            SourceLastWriteUtc = document.SourceLastWriteUtc,
-            SourceLengthBytes = document.SourceLengthBytes,
-            Parsed = document.Parsed,
-            ChunksProduced = document.ChunksProduced,
-            Warnings = document.Warnings
-        }).ToArray();
+        var files = new List<ReaderIngestFileResult>();
+        List<ReaderChunk>? chunks = includeChunks ? new List<ReaderChunk>() : null;
+        var warnings = new List<string>();
+        int filesParsed = 0;
+        int filesSkipped = 0;
+        long bytesRead = 0;
+        int chunksProduced = 0;
+        foreach (ReaderSourceDocument document in ReadFolderDocumentsCore(
+                     folderPath, folderOptions, options, includeSkippedWarningChunks: true,
+                     onProgress, cancellationToken)) {
+            files.Add(new ReaderIngestFileResult {
+                Path = document.Path,
+                SourceId = document.SourceId,
+                SourceHash = document.SourceHash,
+                SourceLastWriteUtc = document.SourceLastWriteUtc,
+                SourceLengthBytes = document.SourceLengthBytes,
+                Parsed = document.Parsed,
+                ChunksProduced = document.ChunksProduced,
+                Warnings = document.Warnings
+            });
+            if (document.Parsed) {
+                filesParsed++;
+                bytesRead = checked(bytesRead + (document.SourceLengthBytes ?? 0));
+            } else {
+                filesSkipped++;
+            }
+            chunksProduced = checked(chunksProduced + document.ChunksProduced);
+            if (chunks != null) chunks.AddRange(document.Chunks);
+            if (document.Warnings != null) {
+                foreach (string warning in document.Warnings) AddWarning(warnings, warning);
+            }
+        }
         return new ReaderIngestResult {
-            Files = files,
-            Chunks = includeChunks ? documents.SelectMany(static document => document.Chunks).ToArray() : Array.Empty<ReaderChunk>(),
-            FilesScanned = files.Length,
-            FilesParsed = files.Count(static file => file.Parsed),
-            FilesSkipped = files.Count(static file => !file.Parsed),
-            BytesRead = files.Where(static file => file.Parsed).Sum(static file => file.SourceLengthBytes ?? 0),
-            ChunksProduced = files.Sum(static file => file.ChunksProduced),
-            Warnings = MergeWarnings(documents)
+            Files = files.ToArray(),
+            Chunks = chunks == null ? Array.Empty<ReaderChunk>() : chunks.ToArray(),
+            FilesScanned = files.Count,
+            FilesParsed = filesParsed,
+            FilesSkipped = filesSkipped,
+            BytesRead = bytesRead,
+            ChunksProduced = chunksProduced,
+            Warnings = warnings.Count == 0 ? null : warnings.ToArray()
         };
     }
 
@@ -177,11 +196,20 @@ internal static partial class DocumentReaderEngine {
             state.FilesScanned++;
             SourceInfo source = BuildSourceInfoFromPath(file, computeHash: false, cancellationToken);
             NotifyProgress(onProgress, ReaderProgressEventKind.FileStarted, state, source, null, null);
-            ReaderSourceDocument document = ReadSingleDocument(file, options, cancellationToken);
-            if (document.Parsed) {
-                long nextBytes = state.BytesRead + (document.SourceLengthBytes ?? 0);
-                if (effectiveFolder.MaxTotalBytes.HasValue && nextBytes > effectiveFolder.MaxTotalBytes.Value) {
-                    document = BuildSourceDocument(source, false, null, new[] { "Skipped because MaxTotalBytes would be exceeded." });
+            ReaderSourceDocument document;
+            long remainingBytes = effectiveFolder.MaxTotalBytes.HasValue
+                ? Math.Max(0, effectiveFolder.MaxTotalBytes.Value - state.BytesRead)
+                : long.MaxValue;
+            if (effectiveFolder.MaxTotalBytes.HasValue &&
+                source.LengthBytes.HasValue && source.LengthBytes.Value > remainingBytes) {
+                document = BuildSourceDocument(source, false, null,
+                    new[] { "Skipped before parsing because MaxTotalBytes would be exceeded." });
+            } else {
+                document = ReadSingleDocument(file, options, cancellationToken);
+                if (document.Parsed && effectiveFolder.MaxTotalBytes.HasValue &&
+                    (document.SourceLengthBytes ?? 0) > remainingBytes) {
+                    document = BuildSourceDocument(source, false, null,
+                        new[] { "Skipped because MaxTotalBytes would be exceeded." });
                 }
             }
             if (!document.Parsed && includeSkippedWarningChunks) {

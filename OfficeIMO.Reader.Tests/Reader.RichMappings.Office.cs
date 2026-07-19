@@ -82,6 +82,14 @@ public sealed class ReaderOfficeRichMappingTests {
         Assert.Contains("Row 1", tableBlock.Text, StringComparison.Ordinal);
         Assert.DoesNotContain("Row 2", tableBlock.Text, StringComparison.Ordinal);
         Assert.DoesNotContain("Row 3", tableBlock.Text, StringComparison.Ordinal);
+        ReaderChunk tableChunk = Assert.Single(result.Chunks, chunk => chunk.Tables?.Count == 1);
+        ReaderTable chunkTable = Assert.Single(tableChunk.Tables!);
+        Assert.Equal(3, chunkTable.TotalRowCount);
+        Assert.Single(chunkTable.Rows);
+        Assert.True(chunkTable.Truncated);
+        Assert.Contains("Row 1", tableChunk.Text, StringComparison.Ordinal);
+        Assert.DoesNotContain("Row 2", tableChunk.Text, StringComparison.Ordinal);
+        Assert.DoesNotContain("Row 3", tableChunk.Markdown!, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -96,11 +104,20 @@ public sealed class ReaderOfficeRichMappingTests {
         }
         stream.Position = 0;
 
-        ReaderTable mapped = Assert.Single(OfficeIMO.Reader.Tests.ReaderTestReaders.Word().ReadDocument(stream, "headerless.docx").Tables);
+        OfficeDocumentReadResult result = OfficeIMO.Reader.Tests.ReaderTestReaders.Word()
+            .ReadDocument(stream, "headerless.docx");
+        ReaderTable mapped = Assert.Single(result.Tables);
 
         Assert.Equal(new[] { "Column 1" }, mapped.Columns);
         Assert.Equal(2, mapped.TotalRowCount);
         Assert.Equal(new[] { "First value", "Second value" }, mapped.Rows.Select(row => row[0]));
+        ReaderTable chunkTable = Assert.Single(Assert.Single(
+            result.Chunks,
+            chunk => chunk.Tables?.Count == 1).Tables!);
+        Assert.Equal(new[] { "Column 1" }, chunkTable.Columns);
+        Assert.Equal(2, chunkTable.TotalRowCount);
+        Assert.Equal(new[] { "First value", "Second value" },
+            chunkTable.Rows.Select(row => row[0]));
     }
 
     [Fact]

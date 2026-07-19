@@ -53,6 +53,8 @@ public static class OutlookRecurrenceBinary {
 
         recurrence.Frequency = DecodeFrequency(frequency);
         recurrence.PatternKind = DecodePatternKind(patternType);
+        if (!IsValidFrequencyPattern(recurrence.Frequency, recurrence.PatternKind))
+            throw new InvalidDataException("The recurrence frequency and pattern type are incompatible.");
         recurrence.CalendarType = calendarType;
         recurrence.Sliding = sliding != 0;
         recurrence.Interval = DecodeInterval(recurrence.Frequency, period);
@@ -288,6 +290,8 @@ public static class OutlookRecurrenceBinary {
     private static void ValidateForWrite(OutlookRecurrence recurrence, bool appointment) {
         if (recurrence.Start == default) throw new InvalidOperationException("A recurrence requires Start.");
         if (recurrence.Interval <= 0) throw new InvalidOperationException("A recurrence interval must be positive.");
+        if (!IsValidFrequencyPattern(recurrence.Frequency, recurrence.PatternKind))
+            throw new InvalidOperationException("The recurrence frequency and pattern kind are incompatible.");
         if (recurrence.CalendarType > 2)
             throw new NotSupportedException("Writing non-Gregorian Outlook recurrence calendars is not supported.");
         if (recurrence.Frequency == OutlookRecurrenceFrequency.Daily && recurrence.Interval > 999 ||
@@ -310,6 +314,22 @@ public static class OutlookRecurrenceBinary {
             throw new NotSupportedException("Task RecurrencePattern values do not contain appointment exceptions.");
         if (recurrence.Duration < TimeSpan.Zero || recurrence.Start.TimeOfDay.TotalMinutes + recurrence.Duration.TotalMinutes > uint.MaxValue)
             throw new ArgumentOutOfRangeException(nameof(recurrence), "The appointment duration cannot be encoded.");
+    }
+
+    internal static bool IsValidFrequencyPattern(
+        OutlookRecurrenceFrequency frequency,
+        OutlookRecurrencePatternKind patternKind) {
+        if (frequency == OutlookRecurrenceFrequency.Daily)
+            return patternKind == OutlookRecurrencePatternKind.Day;
+        if (frequency == OutlookRecurrenceFrequency.Weekly)
+            return patternKind == OutlookRecurrencePatternKind.Week;
+        if (frequency == OutlookRecurrenceFrequency.Monthly ||
+            frequency == OutlookRecurrenceFrequency.Yearly) {
+            return patternKind == OutlookRecurrencePatternKind.MonthDay ||
+                   patternKind == OutlookRecurrencePatternKind.MonthNth ||
+                   patternKind == OutlookRecurrencePatternKind.MonthEnd;
+        }
+        return false;
     }
 
     private static uint GetWireEndDate(OutlookRecurrence recurrence) {

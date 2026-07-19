@@ -116,6 +116,136 @@ public sealed class OutlookRecurrenceTests {
     }
 
     [Fact]
+    public void WeeklyExpansionCountsSkippedCalendarDatesAgainstCandidateBound() {
+        var recurrence = new OutlookRecurrence {
+            Frequency = OutlookRecurrenceFrequency.Weekly,
+            PatternKind = OutlookRecurrencePatternKind.Week,
+            Start = new DateTime(2026, 7, 6, 9, 0, 0),
+            Duration = TimeSpan.FromHours(1),
+            DaysOfWeek = OutlookRecurrenceDays.Monday,
+            RangeKind = OutlookRecurrenceRangeKind.NoEnd
+        };
+
+        OutlookRecurrenceExpansionResult result = OutlookRecurrenceExpander.Expand(
+            recurrence,
+            new OutlookRecurrenceExpansionOptions {
+                WindowEnd = new DateTime(2026, 8, 1),
+                MaxOccurrences = 10,
+                MaxCandidateDays = 3
+            });
+
+        Assert.True(result.Truncated);
+        Assert.Equal("MaxCandidateDays was reached.", result.TruncationReason);
+        Assert.Equal(3, result.CandidateDaysInspected);
+        Assert.Single(result.Occurrences);
+    }
+
+    [Fact]
+    public void CountedWeeklyExpansionStopsAfterItsFinalOccurrenceWithoutReportingCandidateTruncation() {
+        var recurrence = new OutlookRecurrence {
+            Frequency = OutlookRecurrenceFrequency.Weekly,
+            PatternKind = OutlookRecurrencePatternKind.Week,
+            Start = new DateTime(2026, 7, 6, 9, 0, 0),
+            Duration = TimeSpan.FromHours(1),
+            DaysOfWeek = OutlookRecurrenceDays.Monday,
+            RangeKind = OutlookRecurrenceRangeKind.OccurrenceCount,
+            OccurrenceCount = 1
+        };
+
+        OutlookRecurrenceExpansionResult result = OutlookRecurrenceExpander.Expand(
+            recurrence,
+            new OutlookRecurrenceExpansionOptions {
+                MaxOccurrences = 10,
+                MaxCandidateDays = 1
+            });
+
+        Assert.False(result.Truncated);
+        Assert.Null(result.TruncationReason);
+        Assert.Equal(1, result.CandidateDaysInspected);
+        Assert.Single(result.Occurrences);
+
+        recurrence.DeletedOccurrenceDates.Add(recurrence.Start.Date);
+        OutlookRecurrenceExpansionResult deleted = OutlookRecurrenceExpander.Expand(
+            recurrence,
+            new OutlookRecurrenceExpansionOptions { MaxOccurrences = 10, MaxCandidateDays = 1 });
+        Assert.False(deleted.Truncated);
+        Assert.Empty(deleted.Occurrences);
+
+        recurrence.DeletedOccurrenceDates.Clear();
+        OutlookRecurrenceExpansionResult outsideWindow = OutlookRecurrenceExpander.Expand(
+            recurrence,
+            new OutlookRecurrenceExpansionOptions {
+                WindowStart = recurrence.Start.Date.AddDays(1),
+                WindowEnd = recurrence.Start.Date.AddDays(2),
+                MaxOccurrences = 10,
+                MaxCandidateDays = 1
+            });
+        Assert.False(outsideWindow.Truncated);
+        Assert.Empty(outsideWindow.Occurrences);
+    }
+
+    [Fact]
+    public void ExpansionUsesHalfOpenOverlapWhileRetainingPointEventsAtWindowStart() {
+        var endingAtWindowStart = new OutlookRecurrence {
+            Frequency = OutlookRecurrenceFrequency.Daily,
+            PatternKind = OutlookRecurrencePatternKind.Day,
+            Start = new DateTime(2026, 7, 6, 9, 0, 0),
+            Duration = TimeSpan.FromHours(1),
+            RangeKind = OutlookRecurrenceRangeKind.OccurrenceCount,
+            OccurrenceCount = 1
+        };
+        var pointAtWindowStart = new OutlookRecurrence {
+            Frequency = OutlookRecurrenceFrequency.Daily,
+            PatternKind = OutlookRecurrencePatternKind.Day,
+            Start = new DateTime(2026, 7, 6, 10, 0, 0),
+            Duration = TimeSpan.Zero,
+            RangeKind = OutlookRecurrenceRangeKind.OccurrenceCount,
+            OccurrenceCount = 1
+        };
+        var options = new OutlookRecurrenceExpansionOptions {
+            WindowStart = new DateTime(2026, 7, 6, 10, 0, 0),
+            WindowEnd = new DateTime(2026, 7, 6, 11, 0, 0)
+        };
+
+        Assert.Empty(OutlookRecurrenceExpander.Expand(endingAtWindowStart, options).Occurrences);
+        Assert.Single(OutlookRecurrenceExpander.Expand(pointAtWindowStart, options).Occurrences);
+    }
+
+    [Fact]
+    public void EncodingRejectsIncompatibleFrequencyAndPatternCombinations() {
+        OutlookRecurrence[] invalid = {
+            new OutlookRecurrence {
+                Frequency = OutlookRecurrenceFrequency.Daily,
+                PatternKind = OutlookRecurrencePatternKind.Week,
+                Start = new DateTime(2026, 7, 6),
+                DaysOfWeek = OutlookRecurrenceDays.Monday
+            },
+            new OutlookRecurrence {
+                Frequency = OutlookRecurrenceFrequency.Weekly,
+                PatternKind = OutlookRecurrencePatternKind.Day,
+                Start = new DateTime(2026, 7, 6)
+            },
+            new OutlookRecurrence {
+                Frequency = OutlookRecurrenceFrequency.Monthly,
+                PatternKind = OutlookRecurrencePatternKind.Day,
+                Start = new DateTime(2026, 7, 6)
+            },
+            new OutlookRecurrence {
+                Frequency = OutlookRecurrenceFrequency.Yearly,
+                PatternKind = OutlookRecurrencePatternKind.Week,
+                Start = new DateTime(2026, 7, 6),
+                DaysOfWeek = OutlookRecurrenceDays.Monday
+            }
+        };
+
+        foreach (OutlookRecurrence recurrence in invalid) {
+            InvalidOperationException exception = Assert.Throws<InvalidOperationException>(
+                () => OutlookRecurrenceBinary.EncodeTask(recurrence));
+            Assert.Contains("incompatible", exception.Message, StringComparison.OrdinalIgnoreCase);
+        }
+    }
+
+    [Fact]
     public void RetainsMalformedOrUnsupportedStateWithoutPretendingItDecoded() {
         byte[] unsupported = FromHex(MicrosoftWeeklyWithoutExceptions);
         unsupported[6] = 0x05;

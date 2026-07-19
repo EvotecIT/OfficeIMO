@@ -91,7 +91,12 @@ internal static class WordReaderAdapter {
                         blockIndex++;
                     }
                 } else if (block is WordTableSnapshot table) {
-                    ReaderTable readerTable = MapTable(table, sourceName, blockIndex, tableIndex++);
+                    ReaderTable readerTable = MapTable(
+                        table,
+                        sourceName,
+                        blockIndex,
+                        tableIndex++,
+                        readerOptions.MaxTableRows);
                     string markdown = RenderTable(readerTable);
                     chunks.Add(new ReaderChunk {
                         Id = $"word:{Path.GetFileName(sourceName)}:table:{tableIndex.ToString("D4", CultureInfo.InvariantCulture)}",
@@ -141,33 +146,22 @@ internal static class WordReaderAdapter {
         return markdown.ToString();
     }
 
-    private static ReaderTable MapTable(WordTableSnapshot table, string sourceName, int blockIndex, int tableIndex) {
-        int columnCount = Math.Max(1, table.ColumnCount);
-        string[] columns = Enumerable.Range(1, columnCount).Select(index => "Column " + index.ToString(CultureInfo.InvariantCulture)).ToArray();
-        var rows = new List<IReadOnlyList<string>>();
-        foreach (WordTableRowSnapshot row in table.Rows) {
-            string[] cells = new string[columnCount];
-            foreach (WordTableCellSnapshot cell in row.Cells) {
-                if (cell.ColumnIndex >= 0 && cell.ColumnIndex < cells.Length) cells[cell.ColumnIndex] = string.Join(" ", cell.Paragraphs.Select(static paragraph => paragraph.Text));
-            }
-            for (int index = 0; index < cells.Length; index++) cells[index] ??= string.Empty;
-            rows.Add(cells);
-        }
-        bool headers = rows.Count > 0;
-        if (headers) {
-            columns = rows[0].Select((value, index) => string.IsNullOrWhiteSpace(value) ? "Column " + (index + 1).ToString(CultureInfo.InvariantCulture) : value).ToArray();
-            rows.RemoveAt(0);
-        }
-        return new ReaderTable {
-            Title = table.Title ?? table.Description,
-            Kind = "word-table",
-            Columns = columns,
-            Rows = rows,
-            TotalRowCount = rows.Count,
-            ColumnProfiles = ReaderTableProfiler.CreateProfiles(columns, rows),
-            Location = new ReaderLocation { Path = sourceName, BlockIndex = blockIndex, SourceBlockIndex = table.Order, SourceBlockKind = "table", TableIndex = tableIndex }
-        };
-    }
+    private static ReaderTable MapTable(
+        WordTableSnapshot table,
+        string sourceName,
+        int blockIndex,
+        int tableIndex,
+        int maxRows) => WordTableProjection.Map(
+            table,
+            new ReaderLocation {
+                Path = sourceName,
+                BlockIndex = blockIndex,
+                SourceBlockIndex = table.Order,
+                SourceBlockKind = "table",
+                TableIndex = tableIndex
+            },
+            tableIndex,
+            maxRows);
 
     private static string RenderTable(ReaderTable table) {
         var result = new StringBuilder();
