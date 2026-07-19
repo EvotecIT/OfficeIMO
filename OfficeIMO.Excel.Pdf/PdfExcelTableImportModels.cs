@@ -62,27 +62,36 @@ namespace OfficeIMO.Excel.Pdf {
         public bool Truncated { get; }
     }
 
-    /// <summary>Reports the tables imported while converting a logical PDF to an Excel workbook.</summary>
-    public sealed class PdfExcelConversionReport {
-        internal PdfExcelConversionReport(IReadOnlyList<PdfExcelTableImportEntry> entries) {
+    /// <summary>Reports the detected tables imported from a logical PDF into an Excel workbook.</summary>
+    public sealed class PdfExcelTableImportReport {
+        internal PdfExcelTableImportReport(
+            IReadOnlyList<PdfExcelTableImportEntry> entries,
+            OfficeIMO.Pdf.PdfTableExtractionScopeReport sourceScope) {
             Entries = Array.AsReadOnly((entries ?? throw new ArgumentNullException(nameof(entries))).ToArray());
+            SourceScope = sourceScope ?? throw new ArgumentNullException(nameof(sourceScope));
         }
 
         /// <summary>Gets a snapshot of imported table metadata.</summary>
         public IReadOnlyList<PdfExcelTableImportEntry> Entries { get; }
 
-        /// <summary>Gets whether any source table was truncated by the configured row limit.</summary>
+        /// <summary>Gets source-page content that was outside this table-only import.</summary>
+        public OfficeIMO.Pdf.PdfTableExtractionScopeReport SourceScope { get; }
+
+        /// <summary>Gets whether the source contained page content outside the imported tables.</summary>
+        public bool HasOmittedPageContent => SourceScope.HasOmittedPageContent;
+
+        /// <summary>Gets whether any detected source table was truncated by the configured row limit.</summary>
         public bool HasLoss => Entries.Any(static entry => entry.Truncated);
 
-        /// <summary>Throws when at least one source table was truncated.</summary>
+        /// <summary>Throws when at least one detected source table was truncated.</summary>
         public void RequireNoLoss() {
-            if (HasLoss) throw new InvalidOperationException("PDF-to-Excel conversion truncated one or more source tables.");
+            if (HasLoss) throw new InvalidOperationException("PDF table import to Excel truncated one or more detected source tables.");
         }
     }
 
-    /// <summary>Contains an editable Excel document and the corresponding PDF table conversion report.</summary>
-    public sealed class PdfExcelConversionResult {
-        internal PdfExcelConversionResult(ExcelDocument value, PdfExcelConversionReport report) {
+    /// <summary>Contains an editable Excel document and the corresponding PDF table import report.</summary>
+    public sealed class PdfExcelTableImportResult {
+        internal PdfExcelTableImportResult(ExcelDocument value, PdfExcelTableImportReport report) {
             Value = value ?? throw new ArgumentNullException(nameof(value));
             Report = report ?? throw new ArgumentNullException(nameof(report));
         }
@@ -90,16 +99,19 @@ namespace OfficeIMO.Excel.Pdf {
         /// <summary>Gets the generated editable Excel document. The caller owns and disposes it.</summary>
         public ExcelDocument Value { get; }
 
-        /// <summary>Gets the immutable conversion report.</summary>
-        public PdfExcelConversionReport Report { get; }
+        /// <summary>Gets the immutable table import report.</summary>
+        public PdfExcelTableImportReport Report { get; }
 
-        /// <summary>Gets whether the conversion truncated source content.</summary>
+        /// <summary>Gets whether the import truncated content within a detected source table.</summary>
         public bool HasLoss => Report.HasLoss;
+
+        /// <summary>Gets whether the source contained page content outside the imported tables.</summary>
+        public bool HasOmittedPageContent => Report.HasOmittedPageContent;
 
         /// <summary>Returns the generated editable Excel document.</summary>
         public ExcelDocument RequireValue() => Value;
 
-        /// <summary>Returns the generated editable workbook only when no truncation was reported.</summary>
+        /// <summary>Returns the generated editable workbook only when no detected table was truncated.</summary>
         public ExcelDocument RequireNoLoss() {
             Report.RequireNoLoss();
             return Value;

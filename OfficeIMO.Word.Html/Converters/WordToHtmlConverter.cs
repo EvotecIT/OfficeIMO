@@ -504,7 +504,7 @@ namespace OfficeIMO.Word.Html {
                     string.Equals(para.StyleId, "HTMLPreformatted", StringComparison.OrdinalIgnoreCase)) {
                     return true;
                 }
-                var runs = FormattingHelper.GetFormattedRuns(para).ToList();
+                var runs = para.GetFormattedRuns().ToList();
                 return runs.Count > 0 && runs.All(r => r.Code);
             }
 

@@ -17,16 +17,21 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
-  <!-- Validate each newly produced Reader, PDF, Email, or Security package across compatible frameworks
-       without comparing it to a previously published package. -->
+  <!-- Older target frameworks need the compiler marker for records and init-only properties.
+       Compile an internal marker into each assembly instead of exposing one package's shim as public API. -->
+  <ItemGroup>
+    <Compile Include="$(MSBuildThisFileDirectory)Build/Compatibility/IsExternalInit.cs"
+             Link="System.Runtime.CompilerServices/IsExternalInit.cs" />
+  </ItemGroup>
+
+  <!-- Validate every newly produced public package across compatible frameworks without comparing a
+       deliberate major-version API cleanup to the previously published release. The 3.0 public delta
+       is reviewed separately and documented in Docs/officeimo-3.0-migration.md. -->
   <PropertyGroup Condition="
-      (
-        $([System.String]::Copy('$(MSBuildProjectName)').StartsWith('OfficeIMO.Reader'))
-        Or '$(MSBuildProjectName)' == 'OfficeIMO.Pdf'
-        Or '$(MSBuildProjectName)' == 'OfficeIMO.Email'
-        Or '$(MSBuildProjectName)' == 'OfficeIMO.Security'
-      )
-      And '$(IsPackable)' != 'false'">
+      '$(PackageId)' != ''
+      And '$(IsPackable)' != 'false'
+      And '$(IsTestProject)' != 'true'
+      And !$([System.String]::Copy('$(MSBuildProjectName)').Contains('.Benchmarks'))">
     <EnablePackageValidation>true</EnablePackageValidation>
   </PropertyGroup>
 

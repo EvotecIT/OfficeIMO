@@ -6,7 +6,7 @@
     <Description>Dependency-bounded command-line tool for OfficeIMO.Reader document extraction.</Description>
     <AssemblyName>OfficeIMO.Reader.Tool</AssemblyName>
     <AssemblyTitle>OfficeIMO.Reader.Tool</AssemblyTitle>
-    <VersionPrefix>2.0.1</VersionPrefix>
+    <VersionPrefix>3.0.0</VersionPrefix>
     <Company>Evotec</Company>
     <Authors>Przemyslaw Klys</Authors>
     <PackageId>OfficeIMO.Reader.Tool</PackageId>

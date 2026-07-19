@@ -10,7 +10,7 @@ namespace OfficeIMO.Tests;
 
 public partial class Excel {
     [Fact]
-    public void PdfTables_SaveAsExcel_ImportsDetectedTablesAsWorkbookTables() {
+    public void PdfTables_SaveTablesAsExcel_ImportsDetectedTablesAsWorkbookTables() {
         byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {
                 PageWidth = 420,
                 PageHeight = 360,
@@ -33,7 +33,7 @@ public partial class Excel {
             .ToBytes();
 
         using var workbook = new MemoryStream();
-        PdfExcelConversionReport report = PdfExcelTableConverterExtensions.SaveAsExcel(
+        PdfExcelTableImportReport report = PdfExcelTableConverterExtensions.SaveTablesAsExcel(
             LoadTables(pdf),
             workbook,
             new PdfExcelTableImportOptions {
@@ -71,7 +71,7 @@ public partial class Excel {
     }
 
     [Fact]
-    public void PdfTables_SaveAsExcel_SupportsNonSeekableDestinationStreams() {
+    public void PdfTables_SaveTablesAsExcel_SupportsNonSeekableDestinationStreams() {
         byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {
                 PageWidth = 420,
                 PageHeight = 360,
@@ -94,7 +94,7 @@ public partial class Excel {
             .ToBytes();
         using var workbook = new NonSeekableReadWriteBuffer(Array.Empty<byte>());
 
-        PdfExcelConversionReport report = PdfExcelTableConverterExtensions.SaveAsExcel(
+        PdfExcelTableImportReport report = PdfExcelTableConverterExtensions.SaveTablesAsExcel(
             LoadTables(pdf),
             workbook,
             new PdfExcelTableImportOptions {
@@ -109,7 +109,7 @@ public partial class Excel {
     }
 
     [Fact]
-    public void PdfTables_SaveAsExcel_WritesDetectedNumericColumnsAsNumberCells() {
+    public void PdfTables_SaveTablesAsExcel_WritesDetectedNumericColumnsAsNumberCells() {
         byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {
                 PageWidth = 420,
                 PageHeight = 360,
@@ -132,7 +132,7 @@ public partial class Excel {
             .ToBytes();
 
         using var workbook = new MemoryStream();
-        PdfExcelConversionReport report = PdfExcelTableConverterExtensions.SaveAsExcel(
+        PdfExcelTableImportReport report = PdfExcelTableConverterExtensions.SaveTablesAsExcel(
             LoadTables(pdf),
             workbook,
             new PdfExcelTableImportOptions {
@@ -163,7 +163,7 @@ public partial class Excel {
         Assert.Equal(2d, Convert.ToDouble(values[1, 2], CultureInfo.InvariantCulture));
 
         using var textWorkbook = new MemoryStream();
-        PdfExcelTableConverterExtensions.SaveAsExcel(
+        PdfExcelTableConverterExtensions.SaveTablesAsExcel(
             LoadTables(pdf),
             textWorkbook,
             new PdfExcelTableImportOptions {
@@ -191,7 +191,7 @@ public partial class Excel {
     }
 
     [Fact]
-    public void PdfTables_SaveAsExcel_AppliesRowCapsAndKeepsWorkbookValidWhenEmpty() {
+    public void PdfTables_SaveTablesAsExcel_AppliesRowCapsAndKeepsWorkbookValidWhenEmpty() {
         byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {
                 PageWidth = 420,
                 PageHeight = 360,
@@ -215,7 +215,7 @@ public partial class Excel {
             .ToBytes();
 
         using var workbook = new MemoryStream();
-        PdfExcelConversionReport report = PdfExcelTableConverterExtensions.SaveAsExcel(
+        PdfExcelTableImportReport report = PdfExcelTableConverterExtensions.SaveTablesAsExcel(
             LoadTables(pdf, PdfCore.PdfPageRange.From(1, 1)),
             workbook,
             new PdfExcelTableImportOptions {
@@ -238,7 +238,7 @@ public partial class Excel {
         Assert.Equal("Customer", values[2, 0]);
 
         using var emptyWorkbook = new MemoryStream();
-        PdfExcelConversionReport emptyReport = PdfExcelTableConverterExtensions.SaveAsExcel(
+        PdfExcelTableImportReport emptyReport = PdfExcelTableConverterExtensions.SaveTablesAsExcel(
             LoadTables(pdf, PdfCore.PdfPageRange.From(2, 2)),
             emptyWorkbook,
             new PdfExcelTableImportOptions {

@@ -3,7 +3,7 @@
     <Description>Native ODT, ODS, and ODP adapter for OfficeIMO.Reader modular ingestion.</Description>
     <AssemblyName>OfficeIMO.Reader.OpenDocument</AssemblyName>
     <AssemblyTitle>OfficeIMO.Reader.OpenDocument</AssemblyTitle>
-    <VersionPrefix>2.0.1</VersionPrefix>
+    <VersionPrefix>3.0.0</VersionPrefix>
     <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
     <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">$(TargetFrameworks);net472</TargetFrameworks>
     <GeneratePackageOnBuild>False</GeneratePackageOnBuild>

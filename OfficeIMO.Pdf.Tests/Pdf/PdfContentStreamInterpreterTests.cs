@@ -1,3 +1,4 @@
+using OfficeIMO.Drawing;
 using OfficeIMO.Pdf;
 using Xunit;
 
@@ -37,6 +38,91 @@ public sealed class PdfContentStreamInterpreterTests {
         Assert.Equal(new byte[] { (byte)'A', (byte)' ', (byte)'E', (byte)'I' }, inlineImage.Data);
         Assert.Equal(4D, Assert.IsType<PdfNumber>(inlineImage.Dictionary.Items["Width"]).Value);
         Assert.Equal("DeviceGray", Assert.IsType<PdfName>(inlineImage.Dictionary.Items["ColorSpace"]).Name);
+    }
+
+    [Fact]
+    public void Interpreter_SkipsOperationsWithUnrepresentableNumbersWithoutShiftingOperands() {
+        const string content =
+            "1e309 40 20 20 re " +
+            "5 1e309 40 20 20 re " +
+            "5 40 1e309 20 20 re " +
+            "5 40 20 1e309 20 re " +
+            "5 40 20 20 1e309 re " +
+            "5 6 m";
+        var operations = new List<PdfContentOperation>();
+
+        PdfContentStreamInterpreter.Interpret(content, 10, operations.Add);
+
+        PdfContentOperation operation = Assert.Single(operations);
+        Assert.Equal("m", operation.Name);
+        Assert.Equal(new[] { 5D, 6D }, operation.Operands.Cast<double>());
+    }
+
+    [Fact]
+    public void Interpreter_SkipsInvalidCompoundOperandsWithoutLosingSynchronization() {
+        const string content =
+            "[1 1e309 2] TJ " +
+            "[1e309] Q " +
+            "<< /X 1e309 >> n " +
+            "/Span << /MCID 1e309 >> BDC EMC " +
+            "BI /W 1e309 /H 1 /BPC 8 /CS /G ID A EI " +
+            "5 6 m";
+        var operations = new List<PdfContentOperation>();
+
+        PdfContentStreamInterpreter.Interpret(content, 10, operations.Add);
+
+        Assert.Equal(new[] { "Q", "n", "BDC", "EMC", "m" }, operations.Select(operation => operation.Name));
+        Assert.All(operations.Take(4), operation => Assert.Empty(operation.Operands));
+        Assert.True(operations[2].HasInvalidOperands);
+        Assert.Equal(new[] { 5D, 6D }, operations[4].Operands.Cast<double>());
+    }
+
+    [Fact]
+    public void Interpreter_PreservesValidInlineImageAfterInvalidSurplusOperand() {
+        const string content = "1e309 BI /W 1 /H 1 /BPC 8 /CS /G ID A EI q Q";
+        var operations = new List<PdfContentOperation>();
+
+        PdfContentStreamInterpreter.Interpret(content, 10, operations.Add);
+
+        Assert.Equal(new[] { "BI", "q", "Q" }, operations.Select(operation => operation.Name));
+        PdfContentInlineImage inlineImage = Assert.IsType<PdfContentInlineImage>(operations[0].InlineImage);
+        Assert.True(operations[0].HasInvalidOperands);
+        Assert.Equal(new byte[] { (byte)'A' }, inlineImage.Data);
+        Assert.Equal(
+            1,
+            PdfPageXObjectInvocationParser.Parse(content, Matrix2D.Identity, 200D).Count);
+    }
+
+    [Fact]
+    public void InterpreterUntil_VisitsOperandlessRecoveryOperatorAfterInvalidOperand() {
+        var operations = new List<PdfContentOperation>();
+
+        bool completed = PdfContentStreamInterpreter.InterpretUntil(
+            "1e309 Q 5 6 m",
+            10,
+            operation => {
+                operations.Add(operation);
+                return !string.Equals(operation.Name, "Q", StringComparison.Ordinal);
+            });
+
+        Assert.False(completed);
+        PdfContentOperation operation = Assert.Single(operations);
+        Assert.Equal("Q", operation.Name);
+        Assert.Empty(operation.Operands);
+    }
+
+    [Fact]
+    public void TextParser_DoesNotCombineOperandsAcrossSkippedMalformedOperations() {
+        const string content = "BT /F2 Tf 1e309 cm 18 Tf 1 0 0 1 0 0 Tm (A) Tj ET";
+
+        List<PdfTextSpan> spans = TextContentParser.Parse(
+            content,
+            (_, bytes) => System.Text.Encoding.ASCII.GetString(bytes),
+            (_, bytes) => bytes.Length * 500D);
+
+        PdfTextSpan span = Assert.Single(spans);
+        Assert.Equal("F1", span.FontResource);
+        Assert.Equal(12D, span.FontSize);
     }
 
     [Fact]

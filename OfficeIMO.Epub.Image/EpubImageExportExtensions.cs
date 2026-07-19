@@ -1,7 +1,7 @@
 using OfficeIMO.Drawing;
 using OfficeIMO.Html;
 
-namespace OfficeIMO.Epub.Html;
+namespace OfficeIMO.Epub.Image;
 
 /// <summary>EPUB image-export entry points backed by OfficeIMO.Html.</summary>
 public static class EpubImageExportExtensions {

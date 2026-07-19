@@ -18,6 +18,7 @@ public sealed class PdfLogicalPage {
         IReadOnlyList<PdfLogicalParagraph> paragraphs,
         IReadOnlyList<PdfLogicalListItem> listItems,
         IReadOnlyList<PdfLogicalTable> tables,
+        int vectorPrimitiveCount,
         IReadOnlyList<PdfLogicalImage> images,
         IReadOnlyList<PdfLogicalLinkAnnotation> links,
         IReadOnlyList<PdfAnnotation> annotations,
@@ -35,6 +36,7 @@ public sealed class PdfLogicalPage {
         Paragraphs = paragraphs;
         ListItems = listItems;
         Tables = tables;
+        VectorPrimitiveCount = vectorPrimitiveCount;
         Images = images;
         Links = links;
         Annotations = annotations;
@@ -148,6 +150,9 @@ public sealed class PdfLogicalPage {
 
     /// <summary>Detected table-like regions.</summary>
     public IReadOnlyList<PdfLogicalTable> Tables { get; }
+
+    /// <summary>Number of visible vector drawing primitives recovered from the source page.</summary>
+    public int VectorPrimitiveCount { get; }
 
     /// <summary>Image XObjects referenced by the page.</summary>
     public IReadOnlyList<PdfLogicalImage> Images { get; }
@@ -277,6 +282,7 @@ public sealed class PdfLogicalPage {
             BuildParagraphs(pageNumber, structured.Paragraphs, textBlocks),
             BuildListItems(pageNumber, structured.ListNodes, textBlocks),
             tables.AsReadOnly(),
+            page.GetVisibleVisualPrimitiveCount(),
             images.AsReadOnly(),
             links.AsReadOnly(),
             annotations.AsReadOnly(),

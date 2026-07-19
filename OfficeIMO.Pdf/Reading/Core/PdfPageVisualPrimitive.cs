@@ -84,7 +84,7 @@ internal readonly struct PdfPageVisualPrimitive {
         return new PdfPageVisualPrimitive(PdfPageVisualPrimitiveKind.Line, left, top, Math.Abs(x2 - x1), Math.Abs(y2 - y1), x1, y1, x2, y2, Array.Empty<OfficePathCommand>(), null, null, null, strokeColor, strokeGradient, strokeRadialGradient, strokeWidth, strokeDashStyle, strokeLineCap, strokeLineJoin, null, strokeOpacity, OfficeFillRule.EvenOdd, clipPath, paintOrder, null, strokeTilingPattern);
     }
 
-    public static bool TryCreatePath(IReadOnlyList<OfficePathCommand> pathCommands, OfficeColor? fillColor, OfficeLinearGradient? fillGradient, OfficeRadialGradient? fillRadialGradient, OfficeColor? strokeColor, OfficeLinearGradient? strokeGradient, OfficeRadialGradient? strokeRadialGradient, double strokeWidth, OfficeStrokeDashStyle strokeDashStyle, OfficeStrokeLineCap? strokeLineCap, OfficeStrokeLineJoin? strokeLineJoin, double? fillOpacity, double? strokeOpacity, OfficeFillRule fillRule, PdfPageClipPath? clipPath, double paintOrder, PdfPageTilingPatternPaint? fillTilingPattern, PdfPageTilingPatternPaint? strokeTilingPattern, out PdfPageVisualPrimitive primitive) {
+    public static bool TryCreatePath(IReadOnlyList<OfficePathCommand> pathCommands, OfficeColor? fillColor, OfficeLinearGradient? fillGradient, OfficeRadialGradient? fillRadialGradient, OfficeColor? strokeColor, OfficeLinearGradient? strokeGradient, OfficeRadialGradient? strokeRadialGradient, double strokeWidth, OfficeStrokeDashStyle strokeDashStyle, OfficeStrokeLineCap? strokeLineCap, OfficeStrokeLineJoin? strokeLineJoin, double? fillOpacity, double? strokeOpacity, OfficeFillRule fillRule, PdfPageClipPath? clipPath, double paintOrder, PdfPageTilingPatternPaint? fillTilingPattern, PdfPageTilingPatternPaint? strokeTilingPattern, bool retainPathCommands, out PdfPageVisualPrimitive primitive) {
         primitive = default;
         if (pathCommands.Count == 0 || pathCommands[0].Kind != OfficePathCommandKind.MoveTo) {
             return false;
@@ -128,7 +128,10 @@ internal readonly struct PdfPageVisualPrimitive {
             return false;
         }
 
-        primitive = new PdfPageVisualPrimitive(PdfPageVisualPrimitiveKind.Path, left, top, width, height, left, top, right, bottom, new List<OfficePathCommand>(pathCommands), fillColor, fillGradient, fillRadialGradient, strokeColor, strokeGradient, strokeRadialGradient, strokeWidth, strokeDashStyle, strokeLineCap, strokeLineJoin, fillOpacity, strokeOpacity, fillRule, clipPath, paintOrder, fillTilingPattern, strokeTilingPattern);
+        IReadOnlyList<OfficePathCommand> retainedCommands = retainPathCommands
+            ? new List<OfficePathCommand>(pathCommands)
+            : pathCommands;
+        primitive = new PdfPageVisualPrimitive(PdfPageVisualPrimitiveKind.Path, left, top, width, height, left, top, right, bottom, retainedCommands, fillColor, fillGradient, fillRadialGradient, strokeColor, strokeGradient, strokeRadialGradient, strokeWidth, strokeDashStyle, strokeLineCap, strokeLineJoin, fillOpacity, strokeOpacity, fillRule, clipPath, paintOrder, fillTilingPattern, strokeTilingPattern);
         return true;
     }
 

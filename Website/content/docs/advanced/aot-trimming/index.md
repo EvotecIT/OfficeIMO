@@ -145,7 +145,7 @@ This approach is often easier than full AOT, but you should still validate the e
 
 1. **Prefer OfficeIMO.Markdown and OfficeIMO.CSV** for AOT scenarios -- they are the lowest-risk packages in the repo for that style of deployment.
 2. **Test early** -- If you plan to publish with AOT or trimming, test from the start of your project.
-3. **Pin Open XML SDK version** -- OfficeIMO pins to `[3.3.0, 4.0.0)`. Stay within this range for tested compatibility.
+3. **Pin Open XML SDK version** -- OfficeIMO pins to `[3.5.1, 4.0.0)`. Stay within this range for tested compatibility.
 4. **Use `TrimMode=link`** -- This is more aggressive than `copyused` but gives smaller binaries. Test thoroughly.
 5. **Check for trimming warnings** -- Build with `<TrimmerSingleWarn>false</TrimmerSingleWarn>` to see per-assembly warnings.
 6. **Consider ReadyToRun** as an alternative -- For faster startup without full AOT, use `<PublishReadyToRun>true</PublishReadyToRun>`.

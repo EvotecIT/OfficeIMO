@@ -2,7 +2,7 @@
 ### Breaking Changes
 * Replace public color/image helper usage of `SixLabors.ImageSharp` with first-party `OfficeIMO.Drawing` types. Consumers that passed `SixLabors.ImageSharp.Color` should migrate to `OfficeIMO.Drawing.OfficeColor`.
 * Standardize document persistence, conversion results, diagnostics, themes, and async I/O across the solution. Compatibility aliases and fake in-memory async methods were removed; see the [breaking API migration guide](Docs/officeimo.breaking-api-migration.md).
-* Rename PDF table export helpers to the destination-first `SaveAs{Format}FromPdfTables` and `To{Format}BytesFromPdfTables` families.
+* Rename the table-only PDF adapters to `SaveTablesAsExcel` / `SaveTablesAsPowerPoint` and `ImportTablesToExcelDocument` / `ImportTablesToPowerPointPresentation`, with table-specific report and result types.
 * Use `Worksheet` consistently across the Excel API and remove the duplicate `WorkSheet`-cased method family; align RTF-to-HTML memory output with `ToHtmlStream()`.
 * Rename `WordHelpers.ConvertDotXtoDocX(...)` to `ConvertDotxToDocx(...)`, make its package rewrite stream expandable on .NET Framework, and prioritize real symbol fonts before Arial in automatic PDF fallbacks.
 * Serialize Excel floating-point cells, dates, formula and chart caches, pivot values and filters, validations, custom properties, conditional formatting, dimensions, filters, and streaming-writer values with one invariant round-trip formatter on every target framework.

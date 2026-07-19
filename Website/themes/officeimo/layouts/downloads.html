@@ -32,6 +32,7 @@
   {{ tracked_package_count = 0 }}
   {{ tracked_nuget_count = 0 }}
   {{ tracked_downloads = 0 }}
+  {{ telemetry_available = false }}
 
   {{ if release_hub && release_hub.latest }}
     {{ latest_tag = release_hub.latest.stableTag ?? "" }}
@@ -54,6 +55,7 @@
             {{ for stat_package in stats_doc.nuget.packages }}
               {{ if stat_package.id == package.registry_package }}
                 {{ tracked_downloads = tracked_downloads + stat_package.totalDownloads }}
+                {{ telemetry_available = true }}
                 {{ break }}
               {{ end }}
             {{ end }}
@@ -87,8 +89,8 @@
                   <span class="imo-downloads__stat-label">tracked packages and modules</span>
                 </article>
                 <article class="imo-downloads__stat">
-                  <span class="imo-downloads__stat-value">{{ tracked_downloads }}</span>
-                  <span class="imo-downloads__stat-label">NuGet downloads across tracked OfficeIMO packages</span>
+                  <span class="imo-downloads__stat-value">{{ if telemetry_available }}{{ tracked_downloads }}{{ else }}&mdash;{{ end }}</span>
+                  <span class="imo-downloads__stat-label">NuGet downloads across tracked OfficeIMO packages (when telemetry is available)</span>
                 </article>
                 <article class="imo-downloads__stat">
                   <span class="imo-downloads__stat-value">{{ tracked_nuget_count }}</span>
@@ -99,7 +101,7 @@
                   <span class="imo-downloads__stat-label">latest stable release used for archive links</span>
                 </article>
               </div>
-              <p class="imo-downloads__panel-note">NuGet telemetry is generated from PowerForge ecosystem stats for the <code>Evotec</code> owner and filtered to the OfficeIMO family on this page. PSWriteOffice links directly to the PowerShell Gallery because its public feed is currently unreliable for automated totals.</p>
+              <p class="imo-downloads__panel-note">NuGet telemetry is generated from PowerForge ecosystem stats for the <code>Evotec</code> owner and filtered to the OfficeIMO family on this page. The total is omitted when the feed is not refreshed, including fast offline development builds. PSWriteOffice links directly to the PowerShell Gallery because its public feed is currently unreliable for automated totals.</p>
             </aside>
           </div>
         </section>

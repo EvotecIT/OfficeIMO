@@ -11,7 +11,7 @@ namespace OfficeIMO.Word.Html {
         }
 
         private static bool IsEmptyDefinitionListParagraph(WordParagraph paragraph) {
-            return !FormattingHelper.GetFormattedRuns(paragraph)
+            return !paragraph.GetFormattedRuns()
                 .Any(run => !string.IsNullOrEmpty(run.Text) || run.Image != null);
         }
 

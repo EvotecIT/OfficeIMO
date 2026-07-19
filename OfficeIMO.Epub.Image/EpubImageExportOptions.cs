@@ -1,6 +1,6 @@
 using OfficeIMO.Html;
 
-namespace OfficeIMO.Epub.Html;
+namespace OfficeIMO.Epub.Image;
 
 /// <summary>HTML-backed EPUB chapter image-export options.</summary>
 public sealed class EpubImageExportOptions : HtmlRenderOptions {

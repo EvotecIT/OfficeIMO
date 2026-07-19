@@ -94,14 +94,17 @@ result.Report.RequireNoErrorWarnings();
 
 ```csharp
 using OfficeIMO.Excel.Pdf;
+using OfficeIMO.Pdf;
 
-var results = PdfExcelTableConverterExtensions.SaveAsExcel(
-    "statement.pdf",
+PdfLogicalDocument source = PdfLogicalDocument.Load("statement.pdf");
+PdfExcelTableImportReport report = source.SaveTablesAsExcel(
     "statement-tables.xlsx");
 
-foreach (var table in results) {
+foreach (var table in report.Entries) {
     Console.WriteLine($"{table.SheetName}: page {table.PageNumber}");
 }
+
+Console.WriteLine($"Non-table page content detected: {report.HasOmittedPageContent}");
 ```
 
 ### Import only selected PDF pages
@@ -110,15 +113,18 @@ foreach (var table in results) {
 using OfficeIMO.Excel.Pdf;
 using OfficeIMO.Pdf;
 
-var results = PdfExcelTableConverterExtensions.SaveAsExcel(
+PdfLogicalDocument source = PdfLogicalDocument.LoadPageRanges(
     "bank-statement.pdf",
+    PdfPageRange.From(1, 3));
+
+PdfExcelTableImportReport report = source.SaveTablesAsExcel(
     "bank-statement-q1.xlsx",
     new PdfExcelTableImportOptions {
-        PageRanges = new[] { new PdfPageRange(1, 3) },
         MaxRows = 250
     });
 
-Console.WriteLine($"Imported {results.Count} table(s).");
+Console.WriteLine($"Imported {report.Entries.Count} table(s).");
+report.RequireNoLoss(); // checks table-row truncation, not unrelated page content
 ```
 
 ## What it maps
@@ -137,6 +143,7 @@ Console.WriteLine($"Imported {results.Count} table(s).");
 - Workbook reading stays in `OfficeIMO.Excel`.
 - PDF layout and writing stay in `OfficeIMO.Pdf`.
 - This package should remain a translation adapter, not a second PDF engine.
+- PDF import is intentionally table-only. `SourceScope` and `HasOmittedPageContent` report text, source vector graphics, images, links, forms, annotations, or actions that are not imported as page content.
 - Fidelity gaps should be documented as warnings or deeper current-state notes, not hidden in marketing text.
 
 ## Related packages

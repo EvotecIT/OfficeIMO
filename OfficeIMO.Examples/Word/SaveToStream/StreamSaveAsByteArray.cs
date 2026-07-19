@@ -1,4 +1,3 @@
-using OfficeIMO.Drawing.Internal;
 using System;
 using System.IO;
 using OfficeIMO.Word;
@@ -23,7 +22,7 @@ namespace OfficeIMO.Examples.Word {
 
             string filePath = Path.Combine(folderPath, "ToDocx.docx");
             File.WriteAllBytes(filePath, bytes);
-            if (openWord) OfficeFileLauncher.Open(filePath);
+            if (openWord) ExampleFileLauncher.Open(filePath);
         }
 
         /// <summary>
@@ -42,7 +41,7 @@ namespace OfficeIMO.Examples.Word {
             using (var file = new FileStream(filePath, FileMode.Create, FileAccess.Write)) {
                 stream.CopyTo(file);
             }
-            if (openWord) OfficeFileLauncher.Open(filePath);
+            if (openWord) ExampleFileLauncher.Open(filePath);
         }
 
         /// <summary>
@@ -63,7 +62,7 @@ namespace OfficeIMO.Examples.Word {
                 stream.Position = 0;
                 stream.CopyTo(file);
             }
-            if (openWord) OfficeFileLauncher.Open(filePath);
+            if (openWord) ExampleFileLauncher.Open(filePath);
         }
     }
 }

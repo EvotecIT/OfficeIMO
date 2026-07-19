@@ -137,10 +137,12 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Gets or sets the underlying Open XML list level element that backs
-        /// this instance.
+        /// Gets the underlying Open XML list level element for advanced interop scenarios.
+        /// Prefer the typed properties on <see cref="WordListLevel"/> for normal list configuration.
         /// </summary>
-        public Level _level { get; set; } = null!;
+        public Level OpenXmlElement => _level;
+
+        internal Level _level { get; set; } = null!;
 
         private StartNumberingValue GetStartNumberingValueElement() {
             var element = _level.Descendants<StartNumberingValue>().FirstOrDefault();

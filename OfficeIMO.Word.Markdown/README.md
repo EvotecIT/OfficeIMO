@@ -14,6 +14,7 @@ dotnet add package OfficeIMO.Word.Markdown
 ## Quick start
 
 ```csharp
+using OfficeIMO.Markdown;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Markdown;
 
@@ -21,7 +22,7 @@ using var document = WordDocument.Create();
 document.AddParagraph("Hello");
 
 string markdown = document.ToMarkdown();
-using var fromMarkdown = "# Title\n\nBody".LoadFromMarkdown();
+using var fromMarkdown = MarkdownReader.Parse("# Title\n\nBody").ToWordDocument();
 ```
 
 ## AST-first conversion
@@ -78,7 +79,7 @@ var options = new MarkdownToWordOptions {
     MaxImageWidthPercentOfContent = 85            // optional percent-based cap
 };
 
-using var doc = markdown.LoadFromMarkdown(options);
+using var doc = MarkdownReader.Parse(markdown).ToWordDocument(options);
 ```
 
 - Typed contract is available via `MarkdownToWordOptions.ImageLayout`.
@@ -110,7 +111,7 @@ var options = MarkdownToWordPresets.CreateIntelligenceXTranscript(
     allowedImageDirectories: new[] { @"C:\Exports\Images" },
     visualMaxWidthPx: 760);
 
-using var doc = markdown.LoadFromMarkdown(options);
+using var doc = MarkdownReader.Parse(markdown).ToWordDocument(options);
 ```
 
 - `MarkdownToWordPresets.CreateIntelligenceXTranscript(...)` is the explicit DOCX preset for IX transcript export.

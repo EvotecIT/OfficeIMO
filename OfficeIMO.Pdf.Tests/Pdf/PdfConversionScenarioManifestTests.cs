@@ -1902,7 +1902,7 @@ public sealed class PdfConversionScenarioManifestTests {
         }
 
         using var excelStream = new MemoryStream();
-        PdfExcelConversionReport excelReport = PdfExcelTableConverterExtensions.SaveAsExcel(
+        PdfExcelTableImportReport excelReport = PdfExcelTableConverterExtensions.SaveTablesAsExcel(
             logicalDocument,
             excelStream,
             new PdfExcelTableImportOptions {
@@ -1910,7 +1910,7 @@ public sealed class PdfConversionScenarioManifestTests {
             });
 
         using var powerPointStream = new MemoryStream();
-        PdfPowerPointConversionReport powerPointReport = PowerPointPdfConverterExtensions.SaveAsPowerPoint(
+        PdfPowerPointTableImportReport powerPointReport = PowerPointPdfConverterExtensions.SaveTablesAsPowerPoint(
             logicalDocument,
             powerPointStream,
             new PdfPowerPointTableImportOptions());

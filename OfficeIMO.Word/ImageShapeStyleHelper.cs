@@ -18,7 +18,7 @@ namespace OfficeIMO.Word {
     /// ShapeStyleHelper.SetStyle(shape1, style);
     /// </code>
     /// </example>
-    public static class ImageShapeStyleHelper {
+    internal static class ImageShapeStyleHelper {
         /// <summary>
         /// Retrieves the style attributes of a <see cref="Shape"/> as a dictionary.
         /// </summary>

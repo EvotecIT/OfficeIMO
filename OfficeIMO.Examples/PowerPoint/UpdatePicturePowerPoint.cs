@@ -1,4 +1,3 @@
-using OfficeIMO.Drawing.Internal;
 using System;
 using System.IO;
 using OfficeIMO.PowerPoint;
@@ -48,7 +47,7 @@ namespace OfficeIMO.Examples.PowerPoint {
             }
 
             presentation.Save();
-            if (openPowerPoint) OfficeFileLauncher.Open(filePath);
+            if (openPowerPoint) ExampleFileLauncher.Open(filePath);
         }
     }
 }
