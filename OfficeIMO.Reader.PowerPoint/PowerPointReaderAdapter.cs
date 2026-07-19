@@ -90,7 +90,8 @@ internal static class PowerPointReaderAdapter {
     private static OfficeDocumentReadResult Project(PowerPointPresentation presentation, string sourceName, ReaderOptions readerOptions, ReaderPowerPointOptions options, CancellationToken cancellationToken) {
         IReadOnlyList<string>? legacyWarnings = BuildLegacyWarnings(presentation);
         IReadOnlyList<OfficeDocumentAsset> assets = OpenXmlImageAssetCollector.CollectPowerPoint(
-            presentation.OpenXmlDocument, sourceName, readerOptions, options.IncludeNotes, cancellationToken);
+            presentation.OpenXmlDocument, sourceName, readerOptions, options.IncludeNotes,
+            options.IncludeHiddenShapes, cancellationToken);
         var chunks = presentation.ExtractMarkdownChunks(
                 new PowerPointExtractionExtensions.PowerPointExtractOptions {
                     IncludeNotes = options.IncludeNotes,

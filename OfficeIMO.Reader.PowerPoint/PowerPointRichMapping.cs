@@ -40,7 +40,7 @@ internal static class PowerPointRichMapping {
             var slideTables = new List<ReaderTable>();
             var slideLinks = new List<OfficeDocumentLink>();
             PowerPointShape[] slideShapes = slide.EnumerateShapesDeep(
-                slide.Shapes, includeHidden: true).ToArray();
+                slide.Shapes, includeHidden: options.IncludeHiddenShapes).ToArray();
             for (int shapeIndex = 0; shapeIndex < slideShapes.Length; shapeIndex++) {
                 PowerPointShape shape = slideShapes[shapeIndex];
                 shapeCount++;
@@ -122,7 +122,7 @@ internal static class PowerPointRichMapping {
             links.AddRange(slideLinks);
             pages.Add(new OfficeDocumentPage {
                 Number = slideNumber,
-                Name = ResolvePowerPointSlideName(slide, slideNumber),
+                Name = ResolvePowerPointSlideName(slideShapes, slideNumber),
                 Width = presentation.SlideSize.WidthPoints,
                 Height = presentation.SlideSize.HeightPoints,
                 Location = BuildPowerPointLocation(result.Source.Path, slideNumber, null, "slide", "powerpoint-slide-" + slideNumber.ToString("D4", CultureInfo.InvariantCulture)),
@@ -296,8 +296,8 @@ internal static class PowerPointRichMapping {
         });
     }
 
-    private static string ResolvePowerPointSlideName(PowerPointSlide slide, int slideNumber) {
-        PowerPointTextBox? title = slide.TextBoxes.FirstOrDefault(textBox =>
+    private static string ResolvePowerPointSlideName(IEnumerable<PowerPointShape> slideShapes, int slideNumber) {
+        PowerPointTextBox? title = slideShapes.OfType<PowerPointTextBox>().FirstOrDefault(textBox =>
             textBox.ShapePlaceholderType == PlaceholderValues.Title || textBox.ShapePlaceholderType == PlaceholderValues.CenteredTitle);
         string? text = title?.Text?.Trim();
         return string.IsNullOrWhiteSpace(text) ? "Slide " + slideNumber.ToString(CultureInfo.InvariantCulture) : text!;

@@ -71,8 +71,14 @@ internal static class WordReaderAdapter {
             foreach (WordBlockSnapshot block in section.Elements) {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (block is WordParagraphSnapshot paragraph) {
-                    string markdown = RenderParagraph(paragraph, options.IncludeFootnotes, ref imageIndex);
-                    foreach (string part in Split(markdown, readerOptions.MaxChars)) {
+                    IReadOnlyList<ParagraphRepresentation> representations = BuildParagraphRepresentations(
+                        paragraph,
+                        options.IncludeFootnotes,
+                        ref imageIndex,
+                        readerOptions.MaxChars,
+                        out IReadOnlyList<string>? projectionWarnings);
+                    int representationIndex = 0;
+                    foreach (ParagraphRepresentation representation in representations) {
                         chunks.Add(new ReaderChunk {
                             Id = $"word:{Path.GetFileName(sourceName)}:b{blockIndex.ToString("D4", CultureInfo.InvariantCulture)}",
                             Kind = ReaderInputKind.Word,
@@ -84,11 +90,14 @@ internal static class WordReaderAdapter {
                                 HeadingPath = IsHeading(paragraph) ? paragraph.Text : null,
                                 BlockAnchor = paragraph.BookmarkName
                             },
-                            Text = paragraph.Text,
-                            Markdown = part,
-                            Warnings = blockIndex == 0 ? legacyWarnings : null
+                            Text = representation.Text,
+                            Markdown = representation.Markdown,
+                            Warnings = representationIndex == 0
+                                ? Combine(blockIndex == 0 ? legacyWarnings : null, projectionWarnings)
+                                : null
                         });
                         blockIndex++;
+                        representationIndex++;
                     }
                 } else if (block is WordTableSnapshot table) {
                     ReaderTable readerTable = MapTable(
@@ -120,30 +129,186 @@ internal static class WordReaderAdapter {
         return WordRichMapping.Apply(snapshot, readerOptions, options, result);
     }
 
-    private static string RenderParagraph(WordParagraphSnapshot paragraph, bool includeFootnotes, ref int imageIndex) {
-        var markdown = new StringBuilder();
+    private static IReadOnlyList<ParagraphRepresentation> BuildParagraphRepresentations(
+        WordParagraphSnapshot paragraph,
+        bool includeFootnotes,
+        ref int imageIndex,
+        int maxChars,
+        out IReadOnlyList<string>? warnings) {
+        int limit = Math.Max(256, maxChars);
+        var fragments = new List<ParagraphRepresentation>();
+        var warningList = new List<string>();
+        string prefix = string.Empty;
         int headingLevel = GetHeadingLevel(paragraph);
-        if (headingLevel > 0) markdown.Append(new string('#', headingLevel)).Append(' ');
-        else if (paragraph.IsListItem) markdown.Append(paragraph.IsOrderedList == true ? "1. " : "- ");
+        if (headingLevel > 0) prefix = new string('#', headingLevel) + " ";
+        else if (paragraph.IsListItem) prefix = paragraph.IsOrderedList == true ? "1. " : "- ";
+
         foreach (WordRunSnapshot run in paragraph.Runs) {
-            string text = run.Text ?? string.Empty;
-            if (run.IsHyperlink && !string.IsNullOrWhiteSpace(run.HyperlinkUri)) text = $"[{text}]({run.HyperlinkUri})";
-            if (run.Bold && text.Length > 0) text = "**" + text + "**";
-            if (run.Italic && text.Length > 0) text = "*" + text + "*";
-            markdown.Append(text);
+            int firstRunFragmentIndex = fragments.Count;
+            string runText = run.Text ?? string.Empty;
+            if (runText.Length > 0) {
+                int offset = 0;
+                while (offset < runText.Length) {
+                    int sourceLength = FindRunSourceLength(run, runText, offset, prefix.Length, limit);
+                    if (sourceLength == 0) {
+                        sourceLength = GetUnicodeSafeLength(runText, offset, Math.Min(limit, runText.Length - offset));
+                        warningList.Add("Word paragraph contains an atomic formatted run whose Markdown exceeds MaxChars; the complete Markdown construct was preserved.");
+                    }
+
+                    string sourcePart = runText.Substring(offset, sourceLength);
+                    string markdownPart = prefix + RenderRunText(run, sourcePart);
+                    fragments.Add(new ParagraphRepresentation(sourcePart, markdownPart));
+                    prefix = string.Empty;
+                    offset += sourceLength;
+                }
+            } else {
+                string renderedEmptyRun = RenderRunText(run, string.Empty);
+                if (renderedEmptyRun.Length > 0) {
+                    AddAtomicMarkdownFragment(fragments, prefix + renderedEmptyRun, limit, warningList);
+                    prefix = string.Empty;
+                }
+            }
+
             if (includeFootnotes && run.Footnote != null) {
                 string note = string.Join(" ", run.Footnote.Paragraphs.Select(static item => item.Text).Where(static item => !string.IsNullOrWhiteSpace(item)));
-                if (note.Length > 0) markdown.Append(" [^note: ").Append(note).Append(']');
+                if (note.Length > 0) {
+                    AppendRunAnnotation(fragments, firstRunFragmentIndex,
+                        prefix + " [^note: " + note + "]", limit, warningList);
+                    prefix = string.Empty;
+                }
             }
             if (run.InlineImage?.Bytes is { Length: > 0 }) {
                 WordInlineImageSnapshot image = run.InlineImage;
                 string id = "word-image-" + imageIndex.ToString("D4", CultureInfo.InvariantCulture);
-                markdown.Append(" ![").Append(image.Description ?? image.Title ?? image.FileName ?? "image").Append("](").Append(id).Append(')');
+                string imageMarkdown = " ![" + (image.Description ?? image.Title ?? image.FileName ?? "image") + "](" + id + ")";
+                AppendRunAnnotation(fragments, firstRunFragmentIndex,
+                    prefix + imageMarkdown, limit, warningList);
+                prefix = string.Empty;
                 imageIndex++;
             }
         }
-        if (markdown.Length == 0) markdown.Append(paragraph.Text ?? string.Empty);
-        return markdown.ToString();
+
+        if (fragments.Count == 0) {
+            string fallback = paragraph.Text ?? string.Empty;
+            int offset = 0;
+            while (offset < fallback.Length) {
+                int length = GetUnicodeSafeLength(fallback, offset, Math.Min(limit - prefix.Length, fallback.Length - offset));
+                if (length == 0) {
+                    AddAtomicMarkdownFragment(fragments, prefix, limit, warningList);
+                    prefix = string.Empty;
+                    continue;
+                }
+
+                string part = fallback.Substring(offset, length);
+                fragments.Add(new ParagraphRepresentation(part, prefix + part));
+                prefix = string.Empty;
+                offset += length;
+            }
+        }
+
+        if (prefix.Length > 0) AddAtomicMarkdownFragment(fragments, prefix, limit, warningList);
+        warnings = warningList.Count == 0 ? null : warningList.Distinct(StringComparer.Ordinal).ToArray();
+        return CombineParagraphFragments(fragments, limit);
+    }
+
+    private static string RenderRunText(WordRunSnapshot run, string sourceText) {
+        string markdown = sourceText;
+        if (run.IsHyperlink && !string.IsNullOrWhiteSpace(run.HyperlinkUri)) markdown = $"[{markdown}]({run.HyperlinkUri})";
+        if (run.Bold && markdown.Length > 0) markdown = "**" + markdown + "**";
+        if (run.Italic && markdown.Length > 0) markdown = "*" + markdown + "*";
+        return markdown;
+    }
+
+    private static int FindRunSourceLength(WordRunSnapshot run, string value, int offset, int markdownPrefixLength, int limit) {
+        int maximum = Math.Min(limit, value.Length - offset);
+        int low = 1;
+        int high = maximum;
+        int best = 0;
+        while (low <= high) {
+            int midpoint = low + ((high - low) / 2);
+            int candidate = GetUnicodeSafeLength(value, offset, midpoint);
+            if (candidate == 0) {
+                low = midpoint + 1;
+                continue;
+            }
+            int renderedLength = markdownPrefixLength + RenderRunText(run, value.Substring(offset, candidate)).Length;
+            if (renderedLength <= limit) {
+                best = candidate;
+                low = midpoint + 1;
+            } else {
+                high = midpoint - 1;
+            }
+        }
+
+        return best;
+    }
+
+    private static int GetUnicodeSafeLength(string value, int offset, int requestedLength) {
+        if (requestedLength <= 0) return 0;
+        int length = Math.Min(requestedLength, value.Length - offset);
+        int end = offset + length;
+        if (end < value.Length && char.IsHighSurrogate(value[end - 1]) && char.IsLowSurrogate(value[end])) length--;
+        return length;
+    }
+
+    private static void AddAtomicMarkdownFragment(
+        List<ParagraphRepresentation> fragments,
+        string markdown,
+        int limit,
+        List<string> warnings) {
+        if (markdown.Length == 0) return;
+        if (markdown.Length > limit) {
+            warnings.Add("Word paragraph contains an atomic Markdown annotation that exceeds MaxChars; the complete Markdown construct was preserved.");
+        }
+        fragments.Add(new ParagraphRepresentation(string.Empty, markdown));
+    }
+
+    private static void AppendRunAnnotation(
+        List<ParagraphRepresentation> fragments,
+        int firstRunFragmentIndex,
+        string markdown,
+        int limit,
+        List<string> warnings) {
+        if (markdown.Length == 0) return;
+        if (fragments.Count <= firstRunFragmentIndex) {
+            AddAtomicMarkdownFragment(fragments, markdown, limit, warnings);
+            return;
+        }
+
+        int lastIndex = fragments.Count - 1;
+        ParagraphRepresentation source = fragments[lastIndex];
+        string combinedMarkdown = source.Markdown + markdown;
+        if (combinedMarkdown.Length > limit) {
+            warnings.Add("Word paragraph contains an atomic Markdown annotation that exceeds MaxChars when kept with its source run; the complete Markdown construct was preserved.");
+        }
+        fragments[lastIndex] = new ParagraphRepresentation(source.Text, combinedMarkdown);
+    }
+
+    private static IReadOnlyList<ParagraphRepresentation> CombineParagraphFragments(
+        IReadOnlyList<ParagraphRepresentation> fragments,
+        int limit) {
+        if (fragments.Count == 0) return Array.Empty<ParagraphRepresentation>();
+        var combined = new List<ParagraphRepresentation>();
+        var text = new StringBuilder();
+        var markdown = new StringBuilder();
+        foreach (ParagraphRepresentation fragment in fragments) {
+            bool exceedsLimit = text.Length > 0 || markdown.Length > 0
+                ? text.Length + fragment.Text.Length > limit || markdown.Length + fragment.Markdown.Length > limit
+                : false;
+            if (exceedsLimit) {
+                combined.Add(new ParagraphRepresentation(text.ToString(), markdown.ToString()));
+                text.Clear();
+                markdown.Clear();
+            }
+
+            text.Append(fragment.Text);
+            markdown.Append(fragment.Markdown);
+        }
+
+        if (text.Length > 0 || markdown.Length > 0) {
+            combined.Add(new ParagraphRepresentation(text.ToString(), markdown.ToString()));
+        }
+        return combined;
     }
 
     private static ReaderTable MapTable(
@@ -179,10 +344,10 @@ internal static class WordReaderAdapter {
         return 0;
     }
 
-    private static IEnumerable<string> Split(string value, int maxChars) {
-        int limit = Math.Max(256, maxChars);
-        if (value.Length == 0) yield break;
-        for (int offset = 0; offset < value.Length; offset += limit) yield return value.Substring(offset, Math.Min(limit, value.Length - offset));
+    private static IReadOnlyList<string>? Combine(IReadOnlyList<string>? first, IReadOnlyList<string>? second) {
+        if (first == null || first.Count == 0) return second;
+        if (second == null || second.Count == 0) return first;
+        return first.Concat(second).ToArray();
     }
 
     private static IReadOnlyList<string>? BuildLegacyWarnings(WordDocument document) {
@@ -191,5 +356,15 @@ internal static class WordReaderAdapter {
             .Concat(document.LegacyDocUnsupportedFeatures.Select(static feature => $"Legacy DOC unsupported feature: {feature.Code} ({feature.Kind}) - {feature.Description}"))
             .Take(16).ToArray();
         return warnings.Length == 0 ? null : warnings;
+    }
+
+    private sealed class ParagraphRepresentation {
+        internal ParagraphRepresentation(string text, string markdown) {
+            Text = text;
+            Markdown = markdown;
+        }
+
+        internal string Text { get; }
+        internal string Markdown { get; }
     }
 }

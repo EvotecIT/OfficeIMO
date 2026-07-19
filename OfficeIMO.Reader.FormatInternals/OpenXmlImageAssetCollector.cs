@@ -35,14 +35,14 @@ internal static class OpenXmlImageAssetCollector {
 
     internal static IReadOnlyList<OfficeDocumentAsset> CollectPowerPoint(
             PresentationDocument document, string sourceName,
-            ReaderOptions options, bool includeNotes,
+            ReaderOptions options, bool includeNotes, bool includeHiddenShapes,
             CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         var assets = new List<OfficeDocumentAsset>();
         var payloadCache = new Dictionary<Uri, OpenXmlImagePayload>();
         long totalPayloadBytes = 0;
         CollectPowerPointImageAssets(document,
-            sourceName, options, includeNotes, assets, payloadCache,
+            sourceName, options, includeNotes, includeHiddenShapes, assets, payloadCache,
             ref totalPayloadBytes, cancellationToken);
         return assets.Count == 0
             ? Array.Empty<OfficeDocumentAsset>()
@@ -90,7 +90,7 @@ internal static class OpenXmlImageAssetCollector {
             cancellationToken);
     }
 
-    private static void CollectPowerPointImageAssets(PresentationDocument document, string sourceName, ReaderOptions opt, bool includeNotes, List<OfficeDocumentAsset> assets, Dictionary<Uri, OpenXmlImagePayload> payloadCache, ref long totalPayloadBytes, CancellationToken cancellationToken) {
+    private static void CollectPowerPointImageAssets(PresentationDocument document, string sourceName, ReaderOptions opt, bool includeNotes, bool includeHiddenShapes, List<OfficeDocumentAsset> assets, Dictionary<Uri, OpenXmlImagePayload> payloadCache, ref long totalPayloadBytes, CancellationToken cancellationToken) {
         PresentationPart? presentationPart = document.PresentationPart;
         if (presentationPart?.Presentation?.SlideIdList == null) {
             return;
@@ -122,6 +122,8 @@ internal static class OpenXmlImageAssetCollector {
                     visitedParts,
                     opt,
                     includeNotes,
+                    resolveMetadata: null,
+                    metadata => includeHiddenShapes || metadata?.Hidden != true,
                     payloadCache,
                     ref totalPayloadBytes,
                     ref assetIndex,
@@ -393,6 +395,8 @@ internal static class OpenXmlImageAssetCollector {
         public int? AnchorRow { get; set; }
 
         public int? AnchorColumn { get; set; }
+
+        public bool Hidden { get; set; }
     }
 
     private sealed class OpenXmlImagePayload {
@@ -483,7 +487,9 @@ internal static class OpenXmlImageAssetCollector {
         DW.DocProperties? wordProperties = blip.Ancestors<DW.Inline>().FirstOrDefault()?.DocProperties
             ?? blip.Ancestors<DW.Anchor>().FirstOrDefault()?.GetFirstChild<DW.DocProperties>();
         DPic.NonVisualDrawingProperties? drawingProperties = blip.Ancestors<DPic.Picture>().FirstOrDefault()?.NonVisualPictureProperties?.NonVisualDrawingProperties;
-        NonVisualDrawingProperties? presentationProperties = blip.Ancestors<DocumentFormat.OpenXml.Presentation.Picture>().FirstOrDefault()?.NonVisualPictureProperties?.NonVisualDrawingProperties;
+        NonVisualDrawingProperties? presentationProperties = blip.Ancestors()
+            .Select(GetPowerPointNonVisualDrawingProperties)
+            .FirstOrDefault(static properties => properties != null);
 
         return new OpenXmlImageAssetMetadata {
             AltText = NormalizeOptionalAssetText(
@@ -493,7 +499,25 @@ internal static class OpenXmlImageAssetCollector {
             Title = NormalizeOptionalAssetText(
                 wordProperties?.Title?.Value ??
                 drawingProperties?.Title?.Value ??
-                presentationProperties?.Title?.Value)
+                presentationProperties?.Title?.Value),
+            Hidden = IsPowerPointImageHidden(blip)
+        };
+    }
+
+    private static bool IsPowerPointImageHidden(A.Blip blip) {
+        return blip.Ancestors()
+            .Select(GetPowerPointNonVisualDrawingProperties)
+            .Any(static properties => properties?.Hidden?.Value == true);
+    }
+
+    private static NonVisualDrawingProperties? GetPowerPointNonVisualDrawingProperties(OpenXmlElement element) {
+        return element switch {
+            Shape shape => shape.NonVisualShapeProperties?.NonVisualDrawingProperties,
+            ConnectionShape connection => connection.NonVisualConnectionShapeProperties?.NonVisualDrawingProperties,
+            DocumentFormat.OpenXml.Presentation.Picture picture => picture.NonVisualPictureProperties?.NonVisualDrawingProperties,
+            GraphicFrame frame => frame.NonVisualGraphicFrameProperties?.NonVisualDrawingProperties,
+            GroupShape group => group.NonVisualGroupShapeProperties?.NonVisualDrawingProperties,
+            _ => null
         };
     }
 

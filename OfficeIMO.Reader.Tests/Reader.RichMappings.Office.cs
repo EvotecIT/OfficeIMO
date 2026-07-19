@@ -1,9 +1,12 @@
+using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Excel;
 using OfficeIMO.Drawing;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.Reader;
 using OfficeIMO.Word;
 using Xunit;
+using A = DocumentFormat.OpenXml.Drawing;
+using P = DocumentFormat.OpenXml.Presentation;
 
 namespace OfficeIMO.Tests;
 
@@ -90,6 +93,49 @@ public sealed class ReaderOfficeRichMappingTests {
         Assert.Contains("Row 1", tableChunk.Text, StringComparison.Ordinal);
         Assert.DoesNotContain("Row 2", tableChunk.Text, StringComparison.Ordinal);
         Assert.DoesNotContain("Row 3", tableChunk.Markdown!, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void DocumentReader_WordChunksSplitTextAndMarkdownTogether() {
+        string plainBoundaryRun = new string('p', 255) + "😀" + new string('q', 80);
+        string formattedBoundaryRun = new string('a', 251) + "🧭" + new string('b', 180);
+        string hyperlinkText = new string('λ', 420) + "🚀" + new string('ω', 180);
+        string finalRun = new string('z', 360);
+        string paragraphText = plainBoundaryRun + formattedBoundaryRun + hyperlinkText + finalRun;
+        const string hyperlinkUri = "https://example.test/rich-chunk";
+        using var stream = new MemoryStream();
+        using (WordDocument document = WordDocument.Create(stream)) {
+            WordParagraph paragraph = document.AddParagraph();
+            paragraph.AddText(plainBoundaryRun);
+            paragraph.AddText(formattedBoundaryRun).Bold = true;
+            WordParagraph hyperlink = paragraph.AddHyperLink(hyperlinkText, new Uri(hyperlinkUri));
+            hyperlink.Bold = true;
+            hyperlink.Italic = true;
+            paragraph.AddText(finalRun).Italic = true;
+            document.Save();
+        }
+        stream.Position = 0;
+
+        OfficeDocumentReadResult result = OfficeIMO.Reader.Tests.ReaderTestReaders.Word().ReadDocument(
+            stream,
+            "long-paragraph.docx",
+            new ReaderOptions { MaxChars = 256 });
+        ReaderChunk[] chunks = result.Chunks.Where(chunk =>
+            chunk.Location.SourceBlockKind == "paragraph").ToArray();
+
+        Assert.True(chunks.Length > 1);
+        Assert.All(chunks, chunk => {
+            Assert.True(chunk.Text.Length <= 256);
+            Assert.True((chunk.Markdown?.Length ?? 0) <= 256);
+            Assert.NotEqual(paragraphText, chunk.Text);
+            AssertWellFormedUtf16(chunk.Text);
+            AssertWellFormedUtf16(chunk.Markdown ?? string.Empty);
+            Assert.Equal(
+                CountOccurrences(chunk.Markdown ?? string.Empty, "["),
+                CountOccurrences(chunk.Markdown ?? string.Empty, "](" + hyperlinkUri + ")"));
+        });
+        Assert.Equal(paragraphText, string.Concat(chunks.Select(chunk => chunk.Text)));
+        Assert.Contains(chunks, chunk => (chunk.Markdown ?? string.Empty).Contains(hyperlinkUri, StringComparison.Ordinal));
     }
 
     [Fact]
@@ -269,5 +315,123 @@ public sealed class ReaderOfficeRichMappingTests {
         Assert.Equal(new[] { "Column 1" }, mapped.Columns);
         Assert.Equal(2, mapped.TotalRowCount);
         Assert.Equal(new[] { "First value", "Second value" }, mapped.Rows.Select(row => row[0]));
+    }
+
+    [Fact]
+    public void DocumentReader_PowerPointRichMapping_HonorsHiddenShapeFilteringAcrossArtifacts() {
+        byte[] png = Convert.FromBase64String(
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGMAAQAABQABDQottAAAAABJRU5ErkJggg==");
+        uint hiddenImageFillId;
+        using var stream = new MemoryStream();
+        using (PowerPointPresentation presentation = PowerPointPresentation.Create(stream)) {
+            PowerPointSlide slide = presentation.AddSlide();
+            PowerPointTextBox visible = slide.AddTextBox("Visible guidance");
+            visible.Paragraphs[0].Runs[0].SetHyperlink("https://example.test/visible");
+            PowerPointTextBox hiddenTitle = slide.AddTextBox("Hidden title");
+            hiddenTitle.PlaceholderType = DocumentFormat.OpenXml.Presentation.PlaceholderValues.Title;
+            hiddenTitle.Hidden = true;
+            hiddenTitle.Paragraphs[0].Runs[0].SetHyperlink("https://example.test/hidden");
+            PowerPointTable hiddenTable = slide.AddTable(1, 1);
+            hiddenTable.GetCell(0, 0).Text = "Hidden table";
+            hiddenTable.Hidden = true;
+            PowerPointChart hiddenChart = slide.AddChart(OfficeChartKind.ColumnClustered, new OfficeChartData(
+                new[] { "Q1" },
+                new[] { new OfficeChartSeries("Hidden series", new[] { 1D }) }));
+            hiddenChart.Hidden = true;
+
+            PowerPointPicture visiblePicture = slide.AddPicture(
+                new MemoryStream(png, writable: false), OfficeIMO.PowerPoint.ImagePartType.Png);
+            visiblePicture.AltText = "Visible direct picture";
+            PowerPointPicture hiddenPicture = slide.AddPicture(
+                new MemoryStream(png, writable: false), OfficeIMO.PowerPoint.ImagePartType.Png);
+            hiddenPicture.AltText = "Hidden direct picture";
+            hiddenPicture.Hidden = true;
+
+            PowerPointAutoShape hiddenImageFill = slide.AddRectangle(0, 0, 914400, 914400);
+            hiddenImageFill.Hidden = true;
+            hiddenImageFillId = hiddenImageFill.Id ?? throw new InvalidOperationException("Hidden image-fill shape has no id.");
+
+            PowerPointTextBox hiddenGroupText = slide.AddTextBox("Hidden group guidance");
+            PowerPointPicture hiddenGroupPicture = slide.AddPicture(
+                new MemoryStream(png, writable: false), OfficeIMO.PowerPoint.ImagePartType.Png);
+            hiddenGroupPicture.AltText = "Hidden group picture";
+            PowerPointGroupShape hiddenGroup = slide.GroupShapes(
+                new PowerPointShape[] { hiddenGroupText, hiddenGroupPicture }, "Hidden group");
+            hiddenGroup.Hidden = true;
+
+            PowerPointTextBox visibleGroupText = slide.AddTextBox("Visible group guidance");
+            PowerPointPicture visibleGroupPicture = slide.AddPicture(
+                new MemoryStream(png, writable: false), OfficeIMO.PowerPoint.ImagePartType.Png);
+            visibleGroupPicture.AltText = "Visible group picture";
+            PowerPointPicture hiddenGroupChildPicture = slide.AddPicture(
+                new MemoryStream(png, writable: false), OfficeIMO.PowerPoint.ImagePartType.Png);
+            hiddenGroupChildPicture.AltText = "Hidden group child picture";
+            hiddenGroupChildPicture.Hidden = true;
+            slide.GroupShapes(
+                new PowerPointShape[] { visibleGroupText, visibleGroupPicture, hiddenGroupChildPicture },
+                "Visible group");
+            presentation.Save();
+        }
+
+        stream.Position = 0;
+        using (DocumentFormat.OpenXml.Packaging.PresentationDocument document =
+               DocumentFormat.OpenXml.Packaging.PresentationDocument.Open(stream, true)) {
+            DocumentFormat.OpenXml.Packaging.SlidePart slidePart = document.PresentationPart!.SlideParts.Single();
+            DocumentFormat.OpenXml.Packaging.ImagePart hiddenFillPart = slidePart.AddImagePart(
+                DocumentFormat.OpenXml.Packaging.ImagePartType.Png);
+            using (var hiddenFillStream = new MemoryStream(png, writable: false)) {
+                hiddenFillPart.FeedData(hiddenFillStream);
+            }
+            string hiddenFillRelationshipId = slidePart.GetIdOfPart(hiddenFillPart);
+            P.Shape hiddenFillShape = slidePart.Slide.Descendants<P.Shape>().Single(shape =>
+                shape.NonVisualShapeProperties?.NonVisualDrawingProperties?.Id?.Value == hiddenImageFillId);
+            hiddenFillShape.ShapeProperties!.Append(new A.BlipFill(
+                new A.Blip { Embed = hiddenFillRelationshipId },
+                new A.Stretch(new A.FillRectangle())));
+            slidePart.Slide.Save();
+        }
+        stream.Position = 0;
+
+        OfficeDocumentReadResult result = OfficeIMO.Reader.Tests.ReaderTestReaders.PowerPoint(
+            includeNotes: false,
+            includeHiddenShapes: false).ReadDocument(stream, "visible-only.pptx");
+        OfficeDocumentPage page = Assert.Single(result.Pages);
+
+        Assert.Contains(result.Blocks, block => block.Text == "Visible guidance");
+        Assert.Contains(result.Blocks, block => block.Text == "Visible group guidance");
+        Assert.DoesNotContain(result.Blocks, block => block.Text.Contains("Hidden", StringComparison.Ordinal));
+        Assert.DoesNotContain(page.Blocks, block => block.Text.Contains("Hidden", StringComparison.Ordinal));
+        Assert.DoesNotContain(result.Chunks, chunk => chunk.Text.Contains("Hidden", StringComparison.Ordinal));
+        Assert.Empty(result.Tables);
+        Assert.Empty(result.Visuals);
+        Assert.Equal("https://example.test/visible", Assert.Single(result.Links).Uri);
+        Assert.Equal("Slide 1", page.Name);
+        Assert.Equal(2, result.Assets.Count);
+        Assert.Equal(2, page.Assets.Count);
+        Assert.Equal(
+            new[] { "Visible direct picture", "Visible group picture" },
+            result.Assets.Select(asset => asset.AltText).OrderBy(static value => value, StringComparer.Ordinal).ToArray());
+        Assert.Equal("5", Assert.Single(result.Metadata, item => item.Name == "ShapeCount").Value);
+    }
+
+    private static int CountOccurrences(string value, string marker) {
+        int count = 0;
+        int offset = 0;
+        while ((offset = value.IndexOf(marker, offset, StringComparison.Ordinal)) >= 0) {
+            count++;
+            offset += marker.Length;
+        }
+        return count;
+    }
+
+    private static void AssertWellFormedUtf16(string value) {
+        for (int index = 0; index < value.Length; index++) {
+            if (char.IsHighSurrogate(value[index])) {
+                Assert.True(index + 1 < value.Length && char.IsLowSurrogate(value[index + 1]));
+                index++;
+            } else {
+                Assert.False(char.IsLowSurrogate(value[index]));
+            }
+        }
     }
 }

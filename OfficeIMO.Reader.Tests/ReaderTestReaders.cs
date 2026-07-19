@@ -26,9 +26,14 @@ internal static class ReaderTestReaders {
             .AddWordHandler(new ReaderWordOptions { IncludeFootnotes = includeFootnotes })
             .Build();
 
-    internal static OfficeDocumentReader PowerPoint(bool includeNotes = true) =>
+    internal static OfficeDocumentReader PowerPoint(
+        bool includeNotes = true,
+        bool includeHiddenShapes = true) =>
         new OfficeDocumentReaderBuilder()
-            .AddPowerPointHandler(new ReaderPowerPointOptions { IncludeNotes = includeNotes })
+            .AddPowerPointHandler(new ReaderPowerPointOptions {
+                IncludeNotes = includeNotes,
+                IncludeHiddenShapes = includeHiddenShapes
+            })
             .Build();
 
     internal static OfficeDocumentReader Markdown(OfficeIMO.Markdown.MarkdownReaderOptions parserOptions) =>
