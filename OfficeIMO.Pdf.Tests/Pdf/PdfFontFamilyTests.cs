@@ -12,6 +12,31 @@ namespace OfficeIMO.Tests.Pdf;
 
 public class PdfFontFamilyTests {
     [Fact]
+    public void ExplicitDefaultFontResource_IsPreservedAlongsideNamedRuns() {
+        string? fontPath = PdfComplianceTestFonts.FindLocalTrueTypeFont();
+        if (fontPath == null) {
+            return;
+        }
+
+        byte[] fontData = File.ReadAllBytes(fontPath);
+        var options = new PdfOptions {
+            CompressContentStreams = false
+        }
+            .UseFontFamily(new PdfEmbeddedFontFamily("Configured Default", fontData))
+            .RegisterNamedFontFamily(new PdfEmbeddedFontFamily("Visible Named", fontData));
+
+        byte[] bytes = PdfDocument.Create(options)
+            .Paragraph(paragraph => paragraph
+                .FontFamily("Visible Named")
+                .Text("Only the named family paints text."))
+            .ToBytes();
+
+        string raw = Encoding.ASCII.GetString(bytes);
+        Assert.Contains("/BaseFont /ConfiguredDefault-Regular", raw, StringComparison.Ordinal);
+        Assert.Contains("/BaseFont /VisibleNamed-Regular", raw, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void NamedFontOnlyPage_DoesNotEmitUnusedStandardFontResources() {
         string? fontPath = PdfComplianceTestFonts.FindBundledOpenTypeCffFont();
         if (fontPath == null) {

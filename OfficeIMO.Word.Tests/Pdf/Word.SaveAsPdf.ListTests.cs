@@ -46,6 +46,32 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void SaveAsPdf_OfficeIMOEngine_UsesBodyFontForNormalizedLegacySymbolBullet() {
+            string docPath = Path.Combine(_directoryWithFiles, "PdfNativeLegacySymbolBullet.docx");
+            string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeLegacySymbolBullet.pdf");
+
+            using (WordDocument document = WordDocument.Create(docPath)) {
+                WordList bulletList = document.AddCustomList();
+                bulletList.Numbering.AddLevel(new WordListLevel(WordListLevelKind.BulletSolidRound));
+                bulletList.AddItem("Normalized legacy bullet");
+
+                document.Save();
+                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                    IncludePageNumbers = false,
+                    FontFamily = "Helvetica",
+                    ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
+                });
+            }
+
+            using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
+            var page = pdf.GetPage(1);
+            var markerLetter = Assert.Single(page.Letters, letter => letter.Value == "•" || letter.Value == "·");
+
+            Assert.Contains("Helvetica", markerLetter.FontName, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("Normalized legacy bullet", page.Text, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void SaveAsPdf_OfficeIMOEngine_Uses_Word_List_Hanging_Indent_In_Native_List_Blocks() {
             string docPath = Path.Combine(_directoryWithFiles, "PdfNativeListHangingIndent.docx");
             string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeListHangingIndent.pdf");
