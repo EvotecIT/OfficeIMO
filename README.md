@@ -70,7 +70,7 @@ Every checked item below is implemented today. Detailed behavior, examples, and 
 - [x] Shared chart kinds, chart snapshots, series data, renderers, and visual-quality reports
 - [x] Dependency-free raster buffers, drawing canvases, compositing, patterns, data bars, and sparklines
 - [x] First-party PNG/JPEG identification, decoding, encoding, and raster export paths
-- [x] Dependency-free baseline TIFF and deterministic lossless WebP encoding with common raster export options
+- [x] Dependency-free TIFF output with uncompressed, PackBits, or Deflate strips and deterministic lossless WebP encoding with common raster export options
 - [x] Shared SVG primitive writing and scalable drawing export
 - [x] Single and batch image-export builders with dimensions, source metadata, and diagnostics
 

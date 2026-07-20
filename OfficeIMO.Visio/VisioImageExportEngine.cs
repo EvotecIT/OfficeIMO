@@ -89,6 +89,8 @@ internal static class VisioImageExportEngine {
             FontFaceName = options.FontFaceName,
             FontCollectionIndex = options.FontCollectionIndex,
             Fonts = options.Fonts.Clone(),
+            TextShapingProvider = options.TextShapingProvider,
+            TextShapingLanguage = options.TextShapingLanguage,
             CancellationToken = cancellationToken,
             RenderStencilArtwork = options.RenderStencilArtwork,
             RenderConnectorLabels = options.RenderConnectorLabels,

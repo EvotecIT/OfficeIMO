@@ -61,6 +61,10 @@ namespace OfficeIMO.Word {
                     Scale = plan.Limit.Scale,
                     Background = options.BackgroundColor,
                     ImageCodec = fallbackCodec,
+                    TextShapingProvider = options.TextShapingProvider,
+                    TextShapingLanguage = options.TextShapingLanguage,
+                    DiagnosticSink = diagnostics,
+                    DiagnosticSource = source,
                     CancellationToken = cancellationToken
                 });
                 byte[] bytes = OfficeRasterImageEncoder.Encode(
@@ -861,7 +865,7 @@ namespace OfficeIMO.Word {
             Math.Max(1, (int)Math.Ceiling(drawing.Height));
 
         private static void AddDiagnostic(List<OfficeImageExportDiagnostic> diagnostics, string code, string message, string? source = null) {
-            diagnostics.Add(new OfficeImageExportDiagnostic(
+            diagnostics.Add(WordImageExportDiagnosticClassifier.Create(
                 OfficeImageExportDiagnosticSeverity.Warning,
                 code,
                 message,

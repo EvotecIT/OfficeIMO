@@ -226,7 +226,10 @@ public sealed partial class PdfReadPage {
             PdfDictionary? annotation = ResolveDictionary(annotations.Items[i]);
             if (annotation == null || IsHiddenAnnotation(annotation) || TryGetNormalAppearanceStream(annotation, out _)) continue;
             string subtype = annotation.Get<PdfName>("Subtype")?.Name ?? "unknown";
-            AddRenderDiagnostic(diagnostics, seen, PdfRenderCapabilities.AnnotationAppearanceId, subtype + "[" + i.ToString(System.Globalization.CultureInfo.InvariantCulture) + "]");
+            string capabilityId = PdfAnnotationFlattener.TryCreateSyntheticAppearanceStream(_objects, annotation, out _)
+                ? PdfRenderCapabilities.SynthesizedAnnotationAppearanceId
+                : PdfRenderCapabilities.AnnotationAppearanceId;
+            AddRenderDiagnostic(diagnostics, seen, capabilityId, subtype + "[" + i.ToString(System.Globalization.CultureInfo.InvariantCulture) + "]");
         }
     }
 

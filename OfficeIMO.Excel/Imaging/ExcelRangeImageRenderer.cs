@@ -82,7 +82,15 @@ namespace OfficeIMO.Excel {
             int width = ScaledWidth(snapshot, options);
             int height = ScaledHeight(snapshot, options);
             OfficeRasterImage image = new OfficeRasterImage(width, height, options.BackgroundColor);
-            OfficeRasterCanvas canvas = new OfficeRasterCanvas(image, fonts: options.Fonts);
+            OfficeRasterCanvas canvas = new OfficeRasterCanvas(
+                image,
+                font: null,
+                fonts: options.Fonts,
+                textShapingProvider: options.TextShapingProvider,
+                textShapingLanguage: options.TextShapingLanguage,
+                diagnosticSink: diagnostics,
+                diagnosticSource: snapshot.SheetName + "!" + snapshot.Range,
+                cancellationToken: cancellationToken);
             double scale = options.Scale;
             Dictionary<string, ExcelVisualConditionalDataBar> dataBars = BuildDataBarMap(snapshot.ConditionalDataBars);
             Dictionary<string, ExcelVisualCell> cellsByAddress = BuildCellMap(snapshot.Cells);
@@ -121,7 +129,7 @@ namespace OfficeIMO.Excel {
             RenderRasterConditionalIcons(canvas, snapshot, options);
             RenderRasterSparklines(canvas, snapshot, options);
             RenderRasterCommentIndicators(canvas, snapshot, options);
-            RenderRasterDrawingLayers(canvas, snapshot, options, diagnostics);
+            RenderRasterDrawingLayers(canvas, snapshot, options, diagnostics, cancellationToken);
 
             return image;
         }
@@ -235,7 +243,14 @@ namespace OfficeIMO.Excel {
             return resolved;
         }
 
-        private static void RenderRasterChart(OfficeRasterCanvas canvas, ExcelRangeVisualSnapshot snapshot, ExcelVisualChart chart, ExcelImageExportOptions options, List<OfficeImageExportDiagnostic>? diagnostics) {
+        private static void RenderRasterChart(
+            OfficeRasterCanvas canvas,
+            ExcelRangeVisualSnapshot snapshot,
+            ExcelVisualChart chart,
+            ExcelImageExportOptions options,
+            List<OfficeImageExportDiagnostic>? diagnostics,
+            CancellationToken cancellationToken) {
+            cancellationToken.ThrowIfCancellationRequested();
             double scale = options.Scale;
             if (!TryCreateOfficeChartSnapshot(chart.Snapshot, chart.Width, chart.Height, diagnostics, snapshot.SheetName, out OfficeChartSnapshot? officeSnapshot) || officeSnapshot == null) {
                 return;
@@ -254,7 +269,17 @@ namespace OfficeIMO.Excel {
                 options,
                 snapshot.SheetName + "!" + chart.Snapshot.Name);
             if (plan.Diagnostic != null) diagnostics?.Add(plan.Diagnostic);
-            OfficeRasterImage chartImage = OfficeDrawingRasterRenderer.Render(drawing, plan.Limit.Scale, chartBackground);
+            OfficeRasterImage chartImage = OfficeDrawingRasterRenderer.Render(
+                drawing,
+                new OfficeDrawingRasterRenderOptions {
+                    Scale = plan.Limit.Scale,
+                    Background = chartBackground,
+                    TextShapingProvider = options.TextShapingProvider,
+                    TextShapingLanguage = options.TextShapingLanguage,
+                    DiagnosticSink = diagnostics,
+                    DiagnosticSource = snapshot.SheetName + "!" + chart.Snapshot.Name,
+                    CancellationToken = cancellationToken
+                });
             canvas.DrawImage(chartImage, chart.X * scale, chart.Y * scale, chart.Width * scale, chart.Height * scale);
         }
 
@@ -283,7 +308,7 @@ namespace OfficeIMO.Excel {
         private static bool TryCreateOfficeChartSnapshot(ExcelChartSnapshot snapshot, double width, double height, List<OfficeImageExportDiagnostic>? diagnostics, string sheetName, out OfficeChartSnapshot? officeSnapshot) {
             officeSnapshot = null;
             if (!TryMapChartKind(snapshot.ChartType, out OfficeChartKind kind, out string? approximation)) {
-                diagnostics?.Add(new OfficeImageExportDiagnostic(
+                diagnostics?.Add(ExcelImageExportDiagnosticClassifier.Create(
                     OfficeImageExportDiagnosticSeverity.Warning,
                     ExcelImageExportDiagnosticCodes.ChartKindUnsupported,
                     "Worksheet chart type is not supported by the shared image renderer yet.",
@@ -292,7 +317,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (approximation != null) {
-                diagnostics?.Add(new OfficeImageExportDiagnostic(
+                diagnostics?.Add(ExcelImageExportDiagnosticClassifier.Create(
                     OfficeImageExportDiagnosticSeverity.Warning,
                     ExcelImageExportDiagnosticCodes.ChartKindApproximated,
                     approximation,
@@ -302,7 +327,7 @@ namespace OfficeIMO.Excel {
             if (snapshot.Data.Series.Any(series => series.ChartType.HasValue &&
                 series.ChartType.Value != snapshot.ChartType &&
                 (!TryMapSeriesRenderKind(series.ChartType.Value, out _, out string? seriesApproximation) || seriesApproximation != null))) {
-                diagnostics?.Add(new OfficeImageExportDiagnostic(
+                diagnostics?.Add(ExcelImageExportDiagnosticClassifier.Create(
                     OfficeImageExportDiagnosticSeverity.Warning,
                     ExcelImageExportDiagnosticCodes.ChartKindApproximated,
                     "Excel combo chart includes a series type that is rendered through a fallback chart kind.",

@@ -1,5 +1,6 @@
 using OfficeIMO.Drawing;
 using System.Collections.Generic;
+using System.Threading;
 using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.OneNote.Pdf;
@@ -8,7 +9,9 @@ internal static class OneNoteVisualPdfRenderer {
     internal static PdfCore.PdfDocumentConversionResult Render(
         string sourceName,
         IReadOnlyList<OneNotePageReference> pages,
-        OneNoteVisualPdfOptions? options) {
+        OneNoteVisualPdfOptions? options,
+        CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         OneNoteVisualPdfOptions effective = options?.Clone() ?? new OneNoteVisualPdfOptions();
         effective.Validate();
         string title = string.IsNullOrWhiteSpace(effective.Title) ? sourceName : effective.Title!;
@@ -16,7 +19,9 @@ internal static class OneNoteVisualPdfRenderer {
         var report = new PdfCore.PdfConversionReport();
 
         foreach (OneNotePageReference reference in pages) {
+            cancellationToken.ThrowIfCancellationRequested();
             OneNotePageVisualSnapshot snapshot = OneNotePageRenderer.CreateSnapshot(reference.Page, effective.PageRendering);
+            cancellationToken.ThrowIfCancellationRequested();
             OfficeRasterScaleLimit limit = OfficeRasterScaleLimiter.Resolve(
                 snapshot.Drawing.Width, snapshot.Drawing.Height, effective.RasterScale, effective.MaximumRasterPixels);
             AddScaleDiagnostic(limit, effective.RasterScale, reference, report);
@@ -25,9 +30,16 @@ internal static class OneNoteVisualPdfRenderer {
             OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(snapshot.Drawing, new OfficeDrawingRasterRenderOptions {
                 Scale = limit.Scale,
                 Background = effective.PageRendering.BackgroundColor,
-                ImageCodec = fallbackCodec
+                ImageCodec = fallbackCodec,
+                TextShapingProvider = effective.PageRendering.TextShapingProvider,
+                TextShapingLanguage = effective.PageRendering.TextShapingLanguage,
+                DiagnosticSink = diagnostics,
+                DiagnosticSource = PageSource(reference),
+                CancellationToken = cancellationToken
             });
+            cancellationToken.ThrowIfCancellationRequested();
             byte[] png = OfficeRasterImageEncoder.Encode(raster, OfficeImageExportFormat.Png, effective.PageRendering.RasterEncoding);
+            cancellationToken.ThrowIfCancellationRequested();
             string alternativeText = string.IsNullOrWhiteSpace(reference.Page.Title) ? "Untitled OneNote page" : reference.Page.Title;
             document.Page(page => page
                 .Size(snapshot.Drawing.Width, snapshot.Drawing.Height)
@@ -36,6 +48,7 @@ internal static class OneNoteVisualPdfRenderer {
             AddDiagnostics(reference, diagnostics, report);
         }
 
+        cancellationToken.ThrowIfCancellationRequested();
         return new PdfCore.PdfDocumentConversionResult(document, report);
     }
 

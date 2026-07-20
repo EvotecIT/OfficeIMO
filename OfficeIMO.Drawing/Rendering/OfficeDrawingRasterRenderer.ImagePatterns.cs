@@ -14,6 +14,10 @@ public static partial class OfficeDrawingRasterRenderer {
                 layout.Tile.Width,
                 layout.Tile.Height,
                 imageCodec,
+                canvas.TextShapingProvider,
+                canvas.TextShapingLanguage,
+                canvas.DiagnosticSink,
+                canvas.DiagnosticSource,
                 cancellationToken,
                 out OfficeRasterImage? image) ||
             image == null) {

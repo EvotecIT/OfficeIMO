@@ -48,8 +48,13 @@ namespace OfficeIMO.Visio {
         internal static bool TryGetRasterImage(
             VisioShape shape,
             IOfficeRasterImageCodec? imageCodec,
+            OfficeTrueTypeFont? outlineFont,
+            OfficeFontFaceCollection? fonts,
+            IOfficeTextShapingProvider? textShapingProvider,
+            string? textShapingLanguage,
             ICollection<OfficeImageExportDiagnostic>? diagnostics,
             string? diagnosticSource,
+            System.Threading.CancellationToken cancellationToken,
             out OfficeRasterImage? image) {
             image = null;
             if (!TryGetPreviewRelationship(shape, out VisioAssets.MasterRelationshipContent? relationship) || relationship == null) {
@@ -62,7 +67,17 @@ namespace OfficeIMO.Visio {
             }
 
             if (IsSvgRelationship(relationship) &&
-                VisioSvgPreviewRasterizer.TryRasterize(relationship.Data, href => TryResolveRelatedImage(shape, relationship, href), out OfficeRasterImage? svgRaster) &&
+                VisioSvgPreviewRasterizer.TryRasterize(
+                    relationship.Data,
+                    href => TryResolveRelatedImage(shape, relationship, href),
+                    outlineFont,
+                    fonts,
+                    textShapingProvider,
+                    textShapingLanguage,
+                    diagnostics,
+                    ResolveDiagnosticSource(shape, diagnosticSource),
+                    cancellationToken,
+                    out OfficeRasterImage? svgRaster) &&
                 svgRaster != null) {
                 image = svgRaster;
                 return true;

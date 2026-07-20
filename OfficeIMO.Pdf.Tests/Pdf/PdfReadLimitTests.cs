@@ -549,12 +549,14 @@ public class PdfReadLimitTests {
             new PdfReadOptions { Limits = new PdfReadLimits { MaxContentOperands = 1 } });
 
         PdfReadLimitException annotationException = Assert.Throws<PdfReadLimitException>(() => annotationDocument.Pages[0].GetAnnotations());
+        PdfReadLimitException annotationDrawingException = Assert.Throws<PdfReadLimitException>(() => annotationDocument.Pages[0].ToDrawing());
         PdfReadLimitException contentException = Assert.Throws<PdfReadLimitException>(() => contentDocument.Pages[0].ExtractText());
         PdfReadLimitException drawingException = Assert.Throws<PdfReadLimitException>(() => contentDocument.Pages[0].ToDrawing());
         PdfReadLimitException operandException = Assert.Throws<PdfReadLimitException>(() => operandDocument.Pages[0].ExtractText());
         PdfReadLimitException drawingOperandException = Assert.Throws<PdfReadLimitException>(() => operandDocument.Pages[0].ToDrawing());
 
         Assert.Equal(PdfReadLimitKind.AnnotationsPerPage, annotationException.Kind);
+        Assert.Equal(PdfReadLimitKind.AnnotationsPerPage, annotationDrawingException.Kind);
         Assert.Equal(PdfReadLimitKind.ContentOperations, contentException.Kind);
         Assert.Equal(PdfReadLimitKind.ContentOperations, drawingException.Kind);
         Assert.Equal(PdfReadLimitKind.ContentOperands, operandException.Kind);

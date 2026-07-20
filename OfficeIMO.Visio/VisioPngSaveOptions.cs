@@ -45,6 +45,12 @@ namespace OfficeIMO.Visio {
         /// <summary>Caller-supplied deterministic TrueType faces used before platform fallback.</summary>
         public OfficeFontFaceCollection Fonts { get; set; } = new OfficeFontFaceCollection();
 
+        /// <summary>Optional host text shaper used for complex-script raster text.</summary>
+        public IOfficeTextShapingProvider? TextShapingProvider { get; set; }
+
+        /// <summary>Optional BCP 47 language hint passed to the text shaper.</summary>
+        public string? TextShapingLanguage { get; set; }
+
         /// <summary>Cancellation observed between shapes and connectors.</summary>
         public System.Threading.CancellationToken CancellationToken { get; set; }
 

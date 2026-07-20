@@ -52,7 +52,10 @@ public sealed class HtmlPdfSaveOptions : HtmlRenderOptions {
     public PdfCore.PdfEmbeddedFontFamily? FontFamily { get; set; }
 
     /// <summary>Optional host-provided shaping seam used with caller-supplied or resolved embedded fonts.</summary>
-    public DrawingCore.IOfficeTextShapingProvider? TextShapingProvider { get; set; }
+    public new DrawingCore.IOfficeTextShapingProvider? TextShapingProvider {
+        get => base.TextShapingProvider;
+        set => base.TextShapingProvider = value;
+    }
 
     /// <summary>Host-resource policy. Defaults to balanced conversion: system fonts and bounded in-source resources are allowed, while local and remote reads are denied.</summary>
     public PdfCore.PdfResourcePolicy ResourcePolicy {

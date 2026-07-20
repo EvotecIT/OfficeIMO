@@ -20,7 +20,8 @@
       "goal": "Own shared encoding, density metadata, paths, fonts, policies, save behavior, production batch controls, raster safety, image projection, chart primitives, diagnostics, and visual-quality helpers.",
       "nextSlices": [
         "Promote reusable geometry, text, image, and chart behavior from document adapters when more than one package needs it.",
-        "Keep baseline TIFF and OfficeIMO literal-lossless WebP decoding bounded, fail-closed, and explicit about unsupported variants.",
+        "Keep classic Deflate/PackBits TIFF and OfficeIMO literal-lossless WebP decoding bounded, fail-closed, and explicit about unsupported variants such as LZW/JPEG TIFF, tiled/planar TIFF, and general WebP.",
+        "Keep the managed core-Arabic and bidirectional fallback diagnosed as an approximation; use IOfficeTextShapingProvider for full OpenType shaping.",
         "Keep rendering diagnostics reusable without knowing document-specific source semantics.",
         "Keep streaming, cancellation, progress, conflict, and aggregate-budget behavior consistent across every existing family."
       ]
@@ -105,6 +106,7 @@
       "goal": "Extend first-party PDF page-to-Drawing coverage while keeping five-format image export, selection, safety, and diagnostics on shared contracts.",
       "nextSlices": [
         "Burn down the generated PDF render capability manifest with focused operator, font, image, transparency, form, and annotation fixtures.",
+        "Extend synthesized annotation image coverage only through the shared annotation appearance builder, while retaining approximation diagnostics for missing authored appearance streams.",
         "Keep OfficeIMO-generated PDFs as the strong contract while expanding conservative arbitrary-producer coverage.",
         "Route paged source adapters through PdfDocumentConversionResult so source conversion warnings remain attached to image results."
       ]

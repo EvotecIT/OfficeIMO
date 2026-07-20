@@ -100,13 +100,13 @@ namespace OfficeIMO.Excel {
                 string source = sheet.Name + "!" + rule.Range;
                 if (string.Equals(rule.Type, "IconSet", StringComparison.OrdinalIgnoreCase)) {
                     if (CanRenderIconSet(rule)) {
-                        diagnostics.Add(new OfficeImageExportDiagnostic(
+                        diagnostics.Add(ExcelImageExportDiagnosticClassifier.Create(
                             OfficeImageExportDiagnosticSeverity.Info,
                             ExcelImageExportDiagnosticCodes.ConditionalIconSetApproximation,
                             "Conditional formatting icon set is rendered as a deterministic dependency-free approximation; Excel-specific icon artwork and threshold semantics may differ.",
                             source));
                     } else {
-                        diagnostics.Add(new OfficeImageExportDiagnostic(
+                        diagnostics.Add(ExcelImageExportDiagnosticClassifier.Create(
                             OfficeImageExportDiagnosticSeverity.Warning,
                             ExcelImageExportDiagnosticCodes.ConditionalIconSetUnsupported,
                             "Conditional formatting icon set could not be rendered because this icon-set family is not supported yet.",
@@ -120,7 +120,7 @@ namespace OfficeIMO.Excel {
                     if (rule.ColorScaleColors.Count < 2 ||
                         !TryNormalizeArgb(rule.ColorScaleColors[0], out _) ||
                         !TryNormalizeArgb(rule.ColorScaleColors[rule.ColorScaleColors.Count - 1], out _)) {
-                        diagnostics.Add(new OfficeImageExportDiagnostic(
+                        diagnostics.Add(ExcelImageExportDiagnosticClassifier.Create(
                             OfficeImageExportDiagnosticSeverity.Warning,
                             ExcelImageExportDiagnosticCodes.ConditionalColorScaleUnsupported,
                             "Conditional formatting color scale could not be rendered because its color stops are missing or unsupported.",
@@ -128,9 +128,9 @@ namespace OfficeIMO.Excel {
                     }
 
                     if (ExcelConditionalFormatThresholds.HasUnsupportedFormulaThresholds(rule.ColorScaleThresholds)) {
-                        diagnostics.Add(new OfficeImageExportDiagnostic(
+                        diagnostics.Add(ExcelImageExportDiagnosticClassifier.Create(
                             OfficeImageExportDiagnosticSeverity.Warning,
-                            ExcelImageExportDiagnosticCodes.ConditionalFormulaUnsupported,
+                            ExcelImageExportDiagnosticCodes.ConditionalFormulaThresholdApproximation,
                             "Conditional formatting color-scale formula thresholds are not evaluated by image export; threshold fallback positions were used.",
                             source));
                     }
@@ -140,7 +140,7 @@ namespace OfficeIMO.Excel {
 
                 if (string.Equals(rule.Type, "DataBar", StringComparison.OrdinalIgnoreCase)) {
                     if (!TryNormalizeArgb(rule.DataBarColor, out _)) {
-                        diagnostics.Add(new OfficeImageExportDiagnostic(
+                        diagnostics.Add(ExcelImageExportDiagnosticClassifier.Create(
                             OfficeImageExportDiagnosticSeverity.Warning,
                             ExcelImageExportDiagnosticCodes.ConditionalDataBarUnsupported,
                             "Conditional formatting data bar could not be rendered because its fill color is missing or unsupported.",
@@ -148,9 +148,9 @@ namespace OfficeIMO.Excel {
                     }
 
                     if (ExcelConditionalFormatThresholds.HasUnsupportedFormulaThresholds(rule.DataBarThresholds)) {
-                        diagnostics.Add(new OfficeImageExportDiagnostic(
+                        diagnostics.Add(ExcelImageExportDiagnosticClassifier.Create(
                             OfficeImageExportDiagnosticSeverity.Warning,
-                            ExcelImageExportDiagnosticCodes.ConditionalFormulaUnsupported,
+                            ExcelImageExportDiagnosticCodes.ConditionalFormulaThresholdApproximation,
                             "Conditional formatting data-bar formula thresholds are not evaluated by image export; threshold fallback positions were used.",
                             source));
                     }
@@ -165,7 +165,7 @@ namespace OfficeIMO.Excel {
 
                     if (HasSupportedDifferentialFormat(rule) &&
                         !CanEvaluateAnyCellIsRule(sheet, cells, rule)) {
-                        diagnostics.Add(new OfficeImageExportDiagnostic(
+                        diagnostics.Add(ExcelImageExportDiagnosticClassifier.Create(
                             OfficeImageExportDiagnosticSeverity.Warning,
                             ExcelImageExportDiagnosticCodes.ConditionalCellIsUnsupported,
                             "Conditional formatting cell-is rule was not rendered because only bounded numeric comparisons are supported.",
@@ -182,7 +182,7 @@ namespace OfficeIMO.Excel {
 
                     if (HasSupportedDifferentialFormat(rule) &&
                         !CanEvaluateAnyExpressionRule(sheet, cells, rule)) {
-                        diagnostics.Add(new OfficeImageExportDiagnostic(
+                        diagnostics.Add(ExcelImageExportDiagnosticClassifier.Create(
                             OfficeImageExportDiagnosticSeverity.Warning,
                             ExcelImageExportDiagnosticCodes.ConditionalFormulaUnsupported,
                             "Conditional formatting formula rule was not rendered because only simple numeric comparison expressions are supported.",
@@ -199,7 +199,7 @@ namespace OfficeIMO.Excel {
 
                     if (HasSupportedDifferentialFormat(rule) &&
                         !CanEvaluateTopBottomRule(sheet, cells, rule)) {
-                        diagnostics.Add(new OfficeImageExportDiagnostic(
+                        diagnostics.Add(ExcelImageExportDiagnosticClassifier.Create(
                             OfficeImageExportDiagnosticSeverity.Warning,
                             ExcelImageExportDiagnosticCodes.ConditionalTopBottomUnsupported,
                             "Conditional formatting top/bottom rule was not rendered because it has no valid numeric candidates or rank.",
@@ -225,7 +225,7 @@ namespace OfficeIMO.Excel {
 
                     if (HasSupportedDifferentialFormat(rule) &&
                         !CanEvaluateAboveAverageRule(sheet, cells, rule)) {
-                        diagnostics.Add(new OfficeImageExportDiagnostic(
+                        diagnostics.Add(ExcelImageExportDiagnosticClassifier.Create(
                             OfficeImageExportDiagnosticSeverity.Warning,
                             ExcelImageExportDiagnosticCodes.ConditionalAboveAverageUnsupported,
                             "Conditional formatting above/below-average rule was not rendered because only numeric average rules without standard-deviation thresholds are supported.",
@@ -242,7 +242,7 @@ namespace OfficeIMO.Excel {
 
                     if (HasSupportedDifferentialFormat(rule) &&
                         !CanEvaluateTextRule(rule)) {
-                        diagnostics.Add(new OfficeImageExportDiagnostic(
+                        diagnostics.Add(ExcelImageExportDiagnosticClassifier.Create(
                             OfficeImageExportDiagnosticSeverity.Warning,
                             ExcelImageExportDiagnosticCodes.ConditionalTextRuleUnsupported,
                             "Conditional formatting text rule was not rendered because its comparison text is missing.",
@@ -259,7 +259,7 @@ namespace OfficeIMO.Excel {
 
                     if (HasSupportedDifferentialFormat(rule) &&
                         !CanEvaluateTimePeriodRule(sheet, cells, rule, conditionalFormattingDate)) {
-                        diagnostics.Add(new OfficeImageExportDiagnostic(
+                        diagnostics.Add(ExcelImageExportDiagnosticClassifier.Create(
                             OfficeImageExportDiagnosticSeverity.Warning,
                             ExcelImageExportDiagnosticCodes.ConditionalTimePeriodUnsupported,
                             "Conditional formatting time-period rule was not rendered because its time period is missing, unsupported, or no valid date cells were found.",
@@ -269,7 +269,7 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
-                diagnostics.Add(new OfficeImageExportDiagnostic(
+                diagnostics.Add(ExcelImageExportDiagnosticClassifier.Create(
                     OfficeImageExportDiagnosticSeverity.Warning,
                     ExcelImageExportDiagnosticCodes.ConditionalRuleUnsupported,
                     "Conditional formatting rule type is not rendered by Excel image export yet.",
@@ -285,7 +285,7 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            diagnostics.Add(new OfficeImageExportDiagnostic(
+            diagnostics.Add(ExcelImageExportDiagnosticClassifier.Create(
                 OfficeImageExportDiagnosticSeverity.Warning,
                 ExcelImageExportDiagnosticCodes.ConditionalDifferentialFormatUnsupported,
                 "Conditional formatting differential format does not contain a supported solid fill, font effect, or border; number-format and other differential effects are not rendered yet.",

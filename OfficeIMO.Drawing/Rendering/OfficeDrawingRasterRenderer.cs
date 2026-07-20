@@ -31,7 +31,15 @@ public static partial class OfficeDrawingRasterRenderer {
         int width = Math.Max(1, (int)Math.Ceiling(drawing.Width * scale));
         int height = Math.Max(1, (int)Math.Ceiling(drawing.Height * scale));
         OfficeRasterImage image = new OfficeRasterImage(width, height, options.Background);
-        OfficeRasterCanvas canvas = new OfficeRasterCanvas(image, fonts: drawing.Fonts);
+        OfficeRasterCanvas canvas = new OfficeRasterCanvas(
+            image,
+            font: null,
+            fonts: drawing.Fonts,
+            textShapingProvider: options.TextShapingProvider,
+            textShapingLanguage: options.TextShapingLanguage,
+            diagnosticSink: options.DiagnosticSink,
+            diagnosticSource: options.DiagnosticSource,
+            cancellationToken: options.CancellationToken);
         RenderElements(canvas, drawing.Elements, scale, options.ImageCodec, options.CancellationToken);
 
         return image;
@@ -415,6 +423,10 @@ public static partial class OfficeDrawingRasterRenderer {
                 drawingImage.Projection.Width * scale,
                 drawingImage.Projection.Height * scale,
                 imageCodec,
+                canvas.TextShapingProvider,
+                canvas.TextShapingLanguage,
+                canvas.DiagnosticSink,
+                canvas.DiagnosticSource,
                 cancellationToken,
                 out OfficeRasterImage? image) &&
             image != null) {
@@ -432,6 +444,10 @@ public static partial class OfficeDrawingRasterRenderer {
         double targetWidth,
         double targetHeight,
         IOfficeRasterImageCodec? imageCodec,
+        IOfficeTextShapingProvider? textShapingProvider,
+        string? textShapingLanguage,
+        ICollection<OfficeImageExportDiagnostic>? diagnosticSink,
+        string? diagnosticSource,
         System.Threading.CancellationToken cancellationToken,
         out OfficeRasterImage? image) {
         if (OfficeRasterImageDecoder.TryDecode(bytes, out image) && image != null) return true;
@@ -445,6 +461,10 @@ public static partial class OfficeDrawingRasterRenderer {
                 Scale = scale,
                 Background = OfficeColor.Transparent,
                 ImageCodec = imageCodec,
+                TextShapingProvider = textShapingProvider,
+                TextShapingLanguage = textShapingLanguage,
+                DiagnosticSink = diagnosticSink,
+                DiagnosticSource = diagnosticSource,
                 CancellationToken = cancellationToken
             });
             return true;

@@ -12,6 +12,10 @@ public static partial class OfficeDrawingRasterRenderer {
         OfficeRasterImage tile = Render(pattern.InnerTile, new OfficeDrawingRasterRenderOptions {
             Scale = scale,
             ImageCodec = imageCodec,
+            TextShapingProvider = canvas.TextShapingProvider,
+            TextShapingLanguage = canvas.TextShapingLanguage,
+            DiagnosticSink = canvas.DiagnosticSink,
+            DiagnosticSource = canvas.DiagnosticSource,
             CancellationToken = cancellationToken
         });
         OfficeImagePlacement area = pattern.Area;

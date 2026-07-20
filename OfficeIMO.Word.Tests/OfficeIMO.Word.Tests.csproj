@@ -47,6 +47,7 @@
     <Compile Include="..\OfficeIMO.TestAssets\TestStreams\**\*.cs" Link="TestStreams\%(RecursiveDir)%(Filename)%(Extension)" />
     <Compile Include="..\OfficeIMO.Pdf.Tests\Pdf\PdfPngTestImages.cs" Link="Pdf\PdfPngTestImages.cs" />
     <Compile Include="..\OfficeIMO.TestAssets\OfficeInteroperabilityCorpusManifest.cs" Link="OfficeInteroperabilityCorpusManifest.cs" />
+    <Compile Include="..\OfficeIMO.TestAssets\ManagedTextShapingTestAssets.cs" Link="ManagedTextShapingTestAssets.cs" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net472'">

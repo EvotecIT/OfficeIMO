@@ -14,6 +14,13 @@ public sealed partial class OfficeRasterCanvas {
     private readonly OfficeRasterRenderTarget? _target;
     private readonly OfficeTrueTypeFont? _font;
     private readonly OfficeFontFaceCollection? _fonts;
+    private readonly IOfficeTextShapingProvider? _textShapingProvider;
+    private readonly string? _textShapingLanguage;
+    private readonly ICollection<OfficeImageExportDiagnostic>? _diagnosticSink;
+    private readonly string? _diagnosticSource;
+    private readonly System.Threading.CancellationToken _cancellationToken;
+    private bool _reportedBoundedTextShapingFallback;
+    private bool _reportedIncompleteTextShapingFallback;
     private int CoverageSamples => _target != null && _target.Supersampling > 1 ? 1 : AntiAliasSamples;
 
     private static bool IsFinite(double value) => !double.IsNaN(value) && !double.IsInfinity(value);
@@ -21,26 +28,101 @@ public sealed partial class OfficeRasterCanvas {
     /// <summary>
     /// Creates a canvas over the supplied image.
     /// </summary>
-    public OfficeRasterCanvas(OfficeRasterImage image, OfficeTrueTypeFont? font = null, OfficeFontFaceCollection? fonts = null) {
+    public OfficeRasterCanvas(
+        OfficeRasterImage image,
+        OfficeTrueTypeFont? font = null,
+        OfficeFontFaceCollection? fonts = null)
+        : this(
+            image,
+            font,
+            fonts,
+            textShapingProvider: null,
+            textShapingLanguage: null,
+            diagnosticSink: null,
+            diagnosticSource: null,
+            cancellationToken: default) {
+    }
+
+    /// <summary>Creates a canvas with complex-text shaping and fidelity diagnostics.</summary>
+    public OfficeRasterCanvas(
+        OfficeRasterImage image,
+        OfficeTrueTypeFont? font,
+        OfficeFontFaceCollection? fonts,
+        IOfficeTextShapingProvider? textShapingProvider = null,
+        string? textShapingLanguage = null,
+        ICollection<OfficeImageExportDiagnostic>? diagnosticSink = null,
+        string? diagnosticSource = null,
+        System.Threading.CancellationToken cancellationToken = default) {
         _image = image ?? throw new ArgumentNullException(nameof(image));
         _font = font ?? DefaultFont;
         _fonts = fonts?.Clone();
+        _textShapingProvider = textShapingProvider;
+        _textShapingLanguage = NormalizeTextShapingLanguage(textShapingLanguage);
+        _diagnosticSink = diagnosticSink;
+        _diagnosticSource = diagnosticSource;
+        _cancellationToken = cancellationToken;
     }
 
     /// <summary>
     /// Creates a canvas over the supplied supersampled render target.
     /// </summary>
-    public OfficeRasterCanvas(OfficeRasterRenderTarget target, OfficeTrueTypeFont? font = null, OfficeFontFaceCollection? fonts = null) {
+    public OfficeRasterCanvas(
+        OfficeRasterRenderTarget target,
+        OfficeTrueTypeFont? font = null,
+        OfficeFontFaceCollection? fonts = null)
+        : this(
+            target,
+            font,
+            fonts,
+            textShapingProvider: null,
+            textShapingLanguage: null,
+            diagnosticSink: null,
+            diagnosticSource: null,
+            cancellationToken: default) {
+    }
+
+    /// <summary>Creates a supersampled canvas with complex-text shaping and fidelity diagnostics.</summary>
+    public OfficeRasterCanvas(
+        OfficeRasterRenderTarget target,
+        OfficeTrueTypeFont? font,
+        OfficeFontFaceCollection? fonts,
+        IOfficeTextShapingProvider? textShapingProvider = null,
+        string? textShapingLanguage = null,
+        ICollection<OfficeImageExportDiagnostic>? diagnosticSink = null,
+        string? diagnosticSource = null,
+        System.Threading.CancellationToken cancellationToken = default) {
         _target = target ?? throw new ArgumentNullException(nameof(target));
         _font = font ?? DefaultFont;
         _fonts = fonts?.Clone();
+        _textShapingProvider = textShapingProvider;
+        _textShapingLanguage = NormalizeTextShapingLanguage(textShapingLanguage);
+        _diagnosticSink = diagnosticSink;
+        _diagnosticSource = diagnosticSource;
+        _cancellationToken = cancellationToken;
     }
+
+    private static string? NormalizeTextShapingLanguage(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? null : value!.Trim();
 
     /// <summary>Canvas width in pixels.</summary>
     public int Width => _image?.Width ?? _target!.RenderWidth;
 
     /// <summary>Canvas height in pixels.</summary>
     public int Height => _image?.Height ?? _target!.RenderHeight;
+
+    internal IOfficeTextShapingProvider? TextShapingProvider => _textShapingProvider;
+
+    internal string? TextShapingLanguage => _textShapingLanguage;
+
+    internal OfficeTrueTypeFont? OutlineFont => _font;
+
+    internal OfficeFontFaceCollection? Fonts => _fonts;
+
+    internal System.Threading.CancellationToken CancellationToken => _cancellationToken;
+
+    internal ICollection<OfficeImageExportDiagnostic>? DiagnosticSink => _diagnosticSink;
+
+    internal string? DiagnosticSource => _diagnosticSource;
 
     /// <summary>Fills a rectangle.</summary>
     public void FillRectangle(double x, double y, double width, double height, OfficeColor color) {

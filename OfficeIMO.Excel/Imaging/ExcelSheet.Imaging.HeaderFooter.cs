@@ -28,7 +28,7 @@ namespace OfficeIMO.Excel {
             var combinedDiagnostics = new List<OfficeImageExportDiagnostic>(content.Diagnostics.Count + 2);
             combinedDiagnostics.AddRange(content.Diagnostics);
             if (chrome.HasFormatting) {
-                combinedDiagnostics.Add(new OfficeImageExportDiagnostic(
+                combinedDiagnostics.Add(ExcelImageExportDiagnosticClassifier.Create(
                     OfficeImageExportDiagnosticSeverity.Info,
                     ExcelImageExportDiagnosticCodes.HeaderFooterFormattingApproximation,
                     "Worksheet header/footer text formatting was rendered through the dependency-free image approximation path.",

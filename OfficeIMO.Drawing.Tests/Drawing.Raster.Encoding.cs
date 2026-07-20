@@ -92,6 +92,7 @@ public sealed class DrawingRasterEncodingTests {
     [Theory]
     [InlineData(OfficeTiffCompression.None)]
     [InlineData(OfficeTiffCompression.PackBits)]
+    [InlineData(OfficeTiffCompression.Deflate)]
     public void OfficeTiffCodec_EncodesIdentifiableRgbaTiff(OfficeTiffCompression compression) {
         OfficeRasterImage image = CreateSampleImage();
 
@@ -160,6 +161,7 @@ public sealed class DrawingRasterEncodingTests {
     [Theory]
     [InlineData(OfficeTiffCompression.None)]
     [InlineData(OfficeTiffCompression.PackBits)]
+    [InlineData(OfficeTiffCompression.Deflate)]
     public void SharedRasterDecoderRepaintsEncodedTiff(OfficeTiffCompression compression) {
         OfficeRasterImage expected = CreateSampleImage();
         byte[] encoded = OfficeTiffCodec.Encode(expected, new OfficeTiffEncodeOptions { Compression = compression });

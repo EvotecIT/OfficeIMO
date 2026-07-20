@@ -149,7 +149,7 @@ namespace OfficeIMO.Excel {
                 string? printArea = GetPrintArea();
                 string source = Name + "!_xlnm.Print_Area";
                 if (string.IsNullOrWhiteSpace(printArea)) {
-                    diagnostics.Add(new OfficeImageExportDiagnostic(
+                    diagnostics.Add(ExcelImageExportDiagnosticClassifier.Create(
                         OfficeImageExportDiagnosticSeverity.Info,
                         ExcelImageExportDiagnosticCodes.PrintAreaMissing,
                         "Worksheet image export requested the print area, but no worksheet print area is configured; exporting the worksheet used range instead.",
@@ -163,7 +163,7 @@ namespace OfficeIMO.Excel {
                                 .Select(range => new WorksheetImageRangeResolution(
                                     range,
                                     new[] {
-                                        new OfficeImageExportDiagnostic(
+                                        ExcelImageExportDiagnosticClassifier.Create(
                                             OfficeImageExportDiagnosticSeverity.Info,
                                             ExcelImageExportDiagnosticCodes.PrintAreaMultipleAreasSplit,
                                             "Multi-area worksheet print area was exported as separate image results.",
@@ -175,7 +175,7 @@ namespace OfficeIMO.Excel {
                                 allowMultipleResults);
                         }
 
-                        diagnostics.Add(new OfficeImageExportDiagnostic(
+                        diagnostics.Add(ExcelImageExportDiagnosticClassifier.Create(
                             OfficeImageExportDiagnosticSeverity.Warning,
                             ExcelImageExportDiagnosticCodes.PrintAreaMultipleAreasUnsupported,
                             "Multi-area worksheet print areas are not supported by single-image export; exporting the worksheet used range instead.",
@@ -183,7 +183,7 @@ namespace OfficeIMO.Excel {
                     } else if (TryNormalizeWorksheetImageRange(printArea!, out string? normalizedPrintArea)) {
                         return ApplyManualPageBreakSplits(SingleImageRange(normalizedPrintArea!, diagnostics), options, allowMultipleResults);
                     } else {
-                        diagnostics.Add(new OfficeImageExportDiagnostic(
+                        diagnostics.Add(ExcelImageExportDiagnosticClassifier.Create(
                             OfficeImageExportDiagnosticSeverity.Warning,
                             ExcelImageExportDiagnosticCodes.PrintAreaUnsupported,
                             "Worksheet print area could not be parsed as a supported A1 range; exporting the worksheet used range instead.",
@@ -213,7 +213,7 @@ namespace OfficeIMO.Excel {
                 return ranges
                     .Select(range => range
                         .WithDiagnostics(pageDiagnostics)
-                        .WithDiagnostic(new OfficeImageExportDiagnostic(
+                        .WithDiagnostic(ExcelImageExportDiagnosticClassifier.Create(
                             OfficeImageExportDiagnosticSeverity.Warning,
                             ExcelImageExportDiagnosticCodes.ManualPageBreaksSingleImageUnsupported,
                             "Manual worksheet page-break splitting was requested through a single-image export path; exporting one image for the resolved range instead.",
@@ -235,7 +235,7 @@ namespace OfficeIMO.Excel {
                         .WithDiagnostics(pageDiagnostics)
                         .WithRangeAndDiagnostic(
                             pageRange,
-                            new OfficeImageExportDiagnostic(
+                            ExcelImageExportDiagnosticClassifier.Create(
                                 OfficeImageExportDiagnosticSeverity.Info,
                                 ExcelImageExportDiagnosticCodes.ManualPageBreaksSplit,
                                 "Manual worksheet page breaks were used to split the image export into separate results.",
@@ -250,7 +250,7 @@ namespace OfficeIMO.Excel {
             var diagnostics = new List<OfficeImageExportDiagnostic>();
             ExcelPrintTitles printTitles = GetPrintTitles();
             if (includePrintTitlesUnsupported && (printTitles.HasRows || printTitles.HasColumns)) {
-                diagnostics.Add(new OfficeImageExportDiagnostic(
+                diagnostics.Add(ExcelImageExportDiagnosticClassifier.Create(
                     OfficeImageExportDiagnosticSeverity.Warning,
                     ExcelImageExportDiagnosticCodes.PrintTitlesUnsupported,
                     "Worksheet print title rows or columns are configured, but image page output does not repeat them yet.",
@@ -259,7 +259,7 @@ namespace OfficeIMO.Excel {
 
             ExcelSheetPageSetup pageSetup = GetPageSetup();
             if (ExcelPageSetupGeometry.HasUnsupportedFitToPageScale(pageSetup)) {
-                diagnostics.Add(new OfficeImageExportDiagnostic(
+                diagnostics.Add(ExcelImageExportDiagnosticClassifier.Create(
                     OfficeImageExportDiagnosticSeverity.Warning,
                     ExcelImageExportDiagnosticCodes.PageSetupUnsupported,
                     "Worksheet fit-to-width or fit-to-height page setup requests more than one page in a dimension, but image page output does not calculate automatic multi-page fit pagination yet.",
@@ -267,7 +267,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (includeHeaderFooterUnsupported && HasHeaderFooterContent()) {
-                diagnostics.Add(new OfficeImageExportDiagnostic(
+                diagnostics.Add(ExcelImageExportDiagnosticClassifier.Create(
                     OfficeImageExportDiagnosticSeverity.Warning,
                     ExcelImageExportDiagnosticCodes.HeaderFooterUnsupported,
                     "Worksheet headers or footers are configured, but image page output does not render page header/footer chrome yet.",

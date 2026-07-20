@@ -1,5 +1,6 @@
 using System;
 using System.Text;
+using OfficeIMO.Drawing;
 using OfficeIMO.Pdf;
 using Xunit;
 
@@ -238,6 +239,68 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.Contains("/BM /Multiply", pdf, StringComparison.Ordinal);
         Assert.Contains("/ca 0.35", pdf, StringComparison.Ordinal);
         Assert.Contains("1 0.9 0.1 rg 0 0 120 14 re f", pdf, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void LoadedPdfImageExport_SynthesizesSupportedMissingAnnotationAppearancesWithPolicyEvidence() {
+        byte[] annotated = BuildVisualAnnotationPdfWithoutAppearances();
+        PdfReadDocument document = PdfReadDocument.Open(annotated);
+        PdfReadPage page = document.Pages[0];
+
+        OfficeDrawing drawing = page.ToDrawing();
+        IReadOnlyList<PdfRenderCapabilityDiagnostic> capabilities =
+            page.GetRenderCapabilityDiagnostics();
+        OfficeImageExportResult result = page.ExportImage(OfficeImageExportFormat.Png);
+
+        Assert.Contains(
+            drawing.Elements.OfType<OfficeDrawingText>(),
+            item => item.Text.Contains("Synthetic free text", StringComparison.Ordinal));
+        Assert.Contains(
+            drawing.Shapes,
+            item => item.Shape.FillColor is OfficeColor fill && fill.A > 0);
+        Assert.Equal(
+            2,
+            capabilities.Count(item =>
+                item.Code == PdfRenderCapabilities.SynthesizedAnnotationAppearanceId));
+        Assert.DoesNotContain(
+            capabilities,
+            item => item.Code == PdfRenderCapabilities.AnnotationAppearanceId);
+        Assert.Contains(
+            result.Diagnostics,
+            item =>
+                item.Code == PdfRenderCapabilities.SynthesizedAnnotationAppearanceId &&
+                item.LossKind == OfficeImageExportLossKind.Approximation);
+
+        var strict = new PdfImageExportOptions {
+            Policy = new OfficeImageExportPolicy { RequireNoLoss = true }
+        };
+        OfficeImageExportPolicyException exception =
+            Assert.Throws<OfficeImageExportPolicyException>(
+                () => page.ExportImage(OfficeImageExportFormat.Png, strict));
+        Assert.Contains(
+            exception.Diagnostics,
+            item => item.Code == PdfRenderCapabilities.SynthesizedAnnotationAppearanceId);
+    }
+
+    [Fact]
+    public void LoadedPdfImageExport_StillReportsUnsupportedMissingAnnotationAppearances() {
+        byte[] annotated = PdfDocument.Create()
+            .TextAnnotation("Unsupported icon annotation")
+            .Paragraph(paragraph => paragraph.Text("Page content"))
+            .ToBytes();
+        PdfReadPage page = PdfReadDocument.Open(annotated).Pages[0];
+
+        IReadOnlyList<PdfRenderCapabilityDiagnostic> capabilities =
+            page.GetRenderCapabilityDiagnostics();
+
+        Assert.Contains(
+            capabilities,
+            item =>
+                item.Code == PdfRenderCapabilities.AnnotationAppearanceId &&
+                item.Subject?.StartsWith("Text[", StringComparison.Ordinal) == true);
+        Assert.DoesNotContain(
+            capabilities,
+            item => item.Code == PdfRenderCapabilities.SynthesizedAnnotationAppearanceId);
     }
 
     [Fact]

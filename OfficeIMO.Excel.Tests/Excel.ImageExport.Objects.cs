@@ -2,6 +2,8 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Drawing;
 using OfficeIMO.Excel;
+using OfficeIMO.TestAssets;
+using System.Threading;
 using A = DocumentFormat.OpenXml.Drawing;
 using X = DocumentFormat.OpenXml.Spreadsheet;
 using Xdr = DocumentFormat.OpenXml.Drawing.Spreadsheet;
@@ -335,6 +337,46 @@ namespace OfficeIMO.Tests {
                 Assert.NotNull(rendered);
                 Assert.True(CountPixelsNear(rendered!, OfficeColor.FromRgb(224, 242, 254)) > 100);
             }
+        }
+
+        [Fact]
+        public void ExcelRange_ImageExportCarriesShapingContextIntoDrawingObjects() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorksheet("ShapeShaping");
+                sheet.CellValue(1, 1, "Name");
+                document.Save();
+            }
+
+            AppendSupportedDrawingShape(
+                filePath,
+                "Shaped object",
+                "A",
+                textFontFamily: ManagedTextShapingTestAssets.FamilyName);
+
+            using ExcelDocument loaded = ExcelDocument.Load(filePath);
+            ExcelRange range = loaded.Sheets.Single().Range("A1:D4");
+            var provider = new ManagedTextShapingTestAssets.RecordingProvider();
+            var options = new ExcelImageExportOptions {
+                ShowGridlines = false,
+                TextShapingProvider = provider,
+                TextShapingLanguage = "ar-SA"
+            };
+            options.Fonts.Add(
+                ManagedTextShapingTestAssets.FamilyName,
+                ManagedTextShapingTestAssets.CreateFont('A'));
+            using var cancellation = new CancellationTokenSource();
+
+            OfficeImageExportResult result =
+                range.ExportImage(OfficeImageExportFormat.Png, options, cancellation.Token);
+
+            Assert.Contains(provider.Requests, request =>
+                request.Text == "A" &&
+                request.Language == "ar-SA" &&
+                request.CancellationToken == cancellation.Token);
+            Assert.DoesNotContain(
+                result.Diagnostics,
+                diagnostic => diagnostic.Code == OfficeImageExportDiagnosticCodes.TextShapingFallback);
         }
 
         [Fact]

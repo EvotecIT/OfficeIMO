@@ -26,7 +26,7 @@ namespace OfficeIMO.Excel {
                 chrome.FooterLeftImage != null ||
                 chrome.FooterCenterImage != null ||
                 chrome.FooterRightImage != null) {
-                diagnostics.Add(new OfficeImageExportDiagnostic(
+                diagnostics.Add(ExcelImageExportDiagnosticClassifier.Create(
                     OfficeImageExportDiagnosticSeverity.Info,
                     ExcelImageExportDiagnosticCodes.HeaderFooterImageApproximation,
                     "Worksheet header/footer images were rendered through the dependency-free image approximation path.",
