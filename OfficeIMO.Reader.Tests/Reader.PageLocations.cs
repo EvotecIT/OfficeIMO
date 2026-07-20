@@ -203,6 +203,34 @@ public sealed class ReaderPageLocationTests {
     }
 
     [Fact]
+    public void Search_LimitPreservesMismatchedFragmentOccurrenceCorrelation() {
+        var sourceBlock = new OfficeDocumentBlock {
+            Id = "paragraph-limited-mismatched-pages",
+            Kind = "paragraph",
+            Text = "Needle needle.",
+            Location = new ReaderLocation { BlockAnchor = "paragraph-limited-mismatched-pages" }
+        };
+        OfficeDocumentReadResult document = new OfficeDocumentReadResult {
+            Kind = ReaderInputKind.Word,
+            Blocks = new[] { sourceBlock },
+            Pages = new[] {
+                Page(1, PageBlock(sourceBlock, 1, "NEEDLE ")),
+                Page(2, PageBlock(sourceBlock, 2, "needle."))
+            }
+        };
+
+        OfficeDocumentSearchResult result = document.Search(
+            "needle",
+            new OfficeDocumentSearchOptions { MaximumResults = 1 });
+        OfficeDocumentSearchHit hit = Assert.Single(result.Hits);
+
+        Assert.Equal(new[] { 1 }, result.PageNumbers);
+        Assert.Equal(
+            new[] { 1 },
+            hit.Pages.Select(page => page.Number!.Value).ToArray());
+    }
+
+    [Fact]
     public void Search_DeclinesCitationsWhenFragmentOptionsSwapOccurrenceIdentity() {
         var caseSourceBlock = new OfficeDocumentBlock {
             Id = "paragraph-swapped-case",

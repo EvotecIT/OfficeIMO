@@ -97,23 +97,17 @@ public static partial class OfficeDocumentReadResultExtensions {
         foreach (OfficeDocumentBlock block in document.Blocks ?? Array.Empty<OfficeDocumentBlock>()) {
             string text = block.Text ?? string.Empty;
             int remainingResultCount = effective.MaximumResults - hits.Count;
-            int occurrenceScanLimit = remainingResultCount == int.MaxValue
-                ? int.MaxValue
-                : remainingResultCount + 1;
             IReadOnlyList<int> occurrenceIndexes = FindOccurrences(
                 text,
                 query,
                 comparison,
                 effective.WholeWord,
-                occurrenceScanLimit);
+                remainingResultCount);
             if (occurrenceIndexes.Count == 0) {
                 continue;
             }
 
-            bool hasUnreturnedOccurrences = occurrenceIndexes.Count > remainingResultCount;
-            int returnedOccurrenceCount = Math.Min(
-                occurrenceIndexes.Count,
-                remainingResultCount);
+            int returnedOccurrenceCount = occurrenceIndexes.Count;
             IReadOnlyList<OfficeDocumentPageLocation> locations = document.Locate(block);
             IReadOnlyList<IReadOnlyList<OfficeDocumentPageLocation>>? occurrencePages =
                 CorrelateOccurrencesToPages(
@@ -125,7 +119,6 @@ public static partial class OfficeDocumentReadResultExtensions {
                     effective.WholeWord,
                     occurrenceIndexes,
                     returnedOccurrenceCount,
-                    hasUnreturnedOccurrences,
                     out bool hasConflictingPageEvidence);
             OfficeDocumentPageLocation[] pageSpecific =
                 occurrencePages == null && !hasConflictingPageEvidence
@@ -175,7 +168,6 @@ public static partial class OfficeDocumentReadResultExtensions {
         bool wholeWord,
         IReadOnlyList<int> sourceOccurrenceIndexes,
         int returnedOccurrenceCount,
-        bool hasUnreturnedOccurrences,
         out bool hasConflictingPageEvidence) {
         hasConflictingPageEvidence = false;
         if (returnedOccurrenceCount == 0) {
@@ -192,9 +184,6 @@ public static partial class OfficeDocumentReadResultExtensions {
                 returnedOccurrenceCount);
         if (exactLocations != null) {
             return exactLocations;
-        }
-        if (hasUnreturnedOccurrences) {
-            return null;
         }
 
         return MapOccurrencesByStableOrder(
