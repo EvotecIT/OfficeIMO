@@ -45,12 +45,16 @@ public sealed class OfficeDocumentSearchHit {
 /// <summary>Search results with aggregated page citation information.</summary>
 public sealed class OfficeDocumentSearchResult {
     internal OfficeDocumentSearchResult(
+        OfficeDocumentSource source,
         string query,
         int totalPageCount,
-        IReadOnlyList<OfficeDocumentSearchHit> hits) {
+        IReadOnlyList<OfficeDocumentSearchHit> hits,
+        bool maximumResultsReached) {
+        Source = source;
         Query = query;
         TotalPageCount = totalPageCount;
         Hits = hits;
+        MaximumResultsReached = maximumResultsReached;
         PageNumbers = hits
             .SelectMany(static hit => hit.Pages)
             .Where(static location => location.Number.HasValue)
@@ -59,6 +63,9 @@ public sealed class OfficeDocumentSearchResult {
             .OrderBy(static number => number)
             .ToArray();
     }
+
+    /// <summary>Source document that was searched.</summary>
+    public OfficeDocumentSource Source { get; }
 
     /// <summary>Original query text.</summary>
     public string Query { get; }
@@ -71,6 +78,11 @@ public sealed class OfficeDocumentSearchResult {
 
     /// <summary>Distinct one-based physical pages containing matches.</summary>
     public IReadOnlyList<int> PageNumbers { get; }
+
+    /// <summary>
+    /// True when the configured maximum result count was reached and the search stopped at that ceiling.
+    /// </summary>
+    public bool MaximumResultsReached { get; }
 }
 
 public static partial class OfficeDocumentReadResultExtensions {
@@ -151,12 +163,22 @@ public static partial class OfficeDocumentReadResultExtensions {
                         ? occurrencePages[occurrenceIndex]
                         : pageFallback));
                 if (hits.Count >= effective.MaximumResults) {
-                    return new OfficeDocumentSearchResult(query, document.GetTotalPageCount(), hits.AsReadOnly());
+                    return new OfficeDocumentSearchResult(
+                        document.Source ?? new OfficeDocumentSource(),
+                        query,
+                        document.GetTotalPageCount(),
+                        hits.AsReadOnly(),
+                        maximumResultsReached: true);
                 }
             }
         }
 
-        return new OfficeDocumentSearchResult(query, document.GetTotalPageCount(), hits.AsReadOnly());
+        return new OfficeDocumentSearchResult(
+            document.Source ?? new OfficeDocumentSource(),
+            query,
+            document.GetTotalPageCount(),
+            hits.AsReadOnly(),
+            maximumResultsReached: false);
     }
 
     private static IReadOnlyList<IReadOnlyList<OfficeDocumentPageLocation>>? CorrelateOccurrencesToPages(

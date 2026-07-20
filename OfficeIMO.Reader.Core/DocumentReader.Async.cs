@@ -197,7 +197,8 @@ internal static partial class DocumentReaderEngine {
             batchOptions,
             DefaultMaxConcurrentReads,
             MaximumConcurrentReads,
-            (path, token) => ReadDocumentAsync(path, options, token),
+            (index, path, token) => ReadDocumentAsync(path, options, token),
+            onCompleted: null,
             cancellationToken);
     }
 

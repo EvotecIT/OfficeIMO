@@ -26,7 +26,48 @@ internal static class ReaderBatchExecutor {
         ReaderBatchOptions? options,
         int defaultMaxDegreeOfParallelism,
         int maxDegreeOfParallelismLimit,
-        Func<string, CancellationToken, Task<T>> readAsync,
+        Func<int, string, CancellationToken, Task<T>> readAsync,
+        Action<T>? onCompleted,
+        CancellationToken cancellationToken) {
+        return await ExecuteCoreAsync(
+            paths,
+            options,
+            defaultMaxDegreeOfParallelism,
+            maxDegreeOfParallelismLimit,
+            readAsync,
+            onCompleted,
+            retainResults: true,
+            cancellationToken).ConfigureAwait(false);
+    }
+
+    public static async Task ExecuteAsCompletedAsync<T>(
+        IEnumerable<string> paths,
+        ReaderBatchOptions? options,
+        int defaultMaxDegreeOfParallelism,
+        int maxDegreeOfParallelismLimit,
+        Func<int, string, CancellationToken, Task<T>> readAsync,
+        Action<T> onCompleted,
+        CancellationToken cancellationToken) {
+        if (onCompleted == null) throw new ArgumentNullException(nameof(onCompleted));
+        await ExecuteCoreAsync(
+            paths,
+            options,
+            defaultMaxDegreeOfParallelism,
+            maxDegreeOfParallelismLimit,
+            readAsync,
+            onCompleted,
+            retainResults: false,
+            cancellationToken).ConfigureAwait(false);
+    }
+
+    private static async Task<IReadOnlyList<T>> ExecuteCoreAsync<T>(
+        IEnumerable<string> paths,
+        ReaderBatchOptions? options,
+        int defaultMaxDegreeOfParallelism,
+        int maxDegreeOfParallelismLimit,
+        Func<int, string, CancellationToken, Task<T>> readAsync,
+        Action<T>? onCompleted,
+        bool retainResults,
         CancellationToken cancellationToken) {
         if (paths == null) throw new ArgumentNullException(nameof(paths));
         if (readAsync == null) throw new ArgumentNullException(nameof(readAsync));
@@ -61,7 +102,7 @@ internal static class ReaderBatchExecutor {
             return Array.Empty<T>();
         }
 
-        var results = new T[inputs.Count];
+        T[]? results = retainResults ? new T[inputs.Count] : null;
         int nextIndex = -1;
         int workerCount = Math.Min(degree, inputs.Count);
         using var linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
@@ -72,7 +113,7 @@ internal static class ReaderBatchExecutor {
         }
 
         await Task.WhenAll(workers).ConfigureAwait(false);
-        return results;
+        return results ?? Array.Empty<T>();
 
         async Task RunWorkerAsync() {
             try {
@@ -83,7 +124,9 @@ internal static class ReaderBatchExecutor {
                         return;
                     }
 
-                    results[index] = await readAsync(inputs[index], linkedCancellation.Token).ConfigureAwait(false);
+                    T result = await readAsync(index, inputs[index], linkedCancellation.Token).ConfigureAwait(false);
+                    if (results != null) results[index] = result;
+                    onCompleted?.Invoke(result);
                 }
             } catch {
                 linkedCancellation.Cancel();

@@ -268,7 +268,8 @@ public sealed partial class OfficeDocumentReader {
             batchOptions,
             MaxConcurrentReads,
             MaxConcurrentReads,
-            (path, token) => ReadDocumentAsync(path, options, token),
+            (index, path, token) => ReadDocumentAsync(path, options, token),
+            onCompleted: null,
             cancellationToken);
     }
 
