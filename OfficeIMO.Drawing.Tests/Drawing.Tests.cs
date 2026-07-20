@@ -3488,7 +3488,10 @@ public partial class DrawingTests {
     [InlineData("image/png", OfficeImageFormat.Png, true)]
     [InlineData("image/jpg", OfficeImageFormat.Jpeg, true)]
     [InlineData("image/jpeg; charset=binary", OfficeImageFormat.Jpeg, true)]
-    [InlineData("image/webp", OfficeImageFormat.Webp, false)]
+    [InlineData("image/gif", OfficeImageFormat.Gif, true)]
+    [InlineData("image/bmp", OfficeImageFormat.Bmp, true)]
+    [InlineData("image/tiff", OfficeImageFormat.Tiff, true)]
+    [InlineData("image/webp", OfficeImageFormat.Webp, true)]
     [InlineData("application/octet-stream", OfficeImageFormat.Unknown, false)]
     public void OfficeImagePdfCompatibilityMapsSupportedContentTypes(string contentType, OfficeImageFormat expectedFormat, bool expectedSupported) {
         bool supported = OfficeImagePdfCompatibility.TryGetSupportedContentTypeFormat(contentType, out OfficeImageFormat format);
@@ -3496,6 +3499,24 @@ public partial class DrawingTests {
         Assert.Equal(expectedSupported, supported);
         Assert.Equal(expectedFormat, format);
         Assert.Equal(expectedSupported, OfficeImagePdfCompatibility.IsSupportedContentType(contentType));
+    }
+
+    [Theory]
+    [InlineData(OfficeImageExportFormat.Tiff, OfficeImageFormat.Tiff)]
+    [InlineData(OfficeImageExportFormat.Webp, OfficeImageFormat.Webp)]
+    public void OfficeImagePdfCompatibilityAcceptsDrawingNormalizedRaster(
+        OfficeImageExportFormat format,
+        OfficeImageFormat expectedFormat) {
+        byte[] source = OfficeRasterImageEncoder.Encode(
+            new OfficeRasterImage(2, 1, OfficeColor.Red),
+            format);
+
+        Assert.True(OfficeImagePdfCompatibility.TryValidate(
+            source,
+            out OfficeImageInfo? imageInfo,
+            out string? unsupportedReason), unsupportedReason);
+        Assert.NotNull(imageInfo);
+        Assert.Equal(expectedFormat, imageInfo!.Format);
     }
 
     [Fact]

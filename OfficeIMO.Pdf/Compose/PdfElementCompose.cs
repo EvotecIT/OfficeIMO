@@ -135,7 +135,7 @@ public class PdfElementCompose {
     public PdfElementCompose Polygon(System.Collections.Generic.IEnumerable<OfficePoint> points, PdfColor? strokeColor = null, double strokeWidth = 1, PdfColor? fillColor = null, PdfAlign? align = null, double? spacingBefore = null, double? spacingAfter = null, OfficeStrokeDashStyle strokeDashStyle = OfficeStrokeDashStyle.Solid, OfficeStrokeLineCap? strokeLineCap = null, OfficeStrokeLineJoin? strokeLineJoin = null, PdfDrawingStyle? style = null, string? linkUri = null, string? linkContents = null) { _doc.Polygon(points, strokeColor, strokeWidth, fillColor, align, spacingBefore, spacingAfter, strokeDashStyle, strokeLineCap, strokeLineJoin, style, linkUri, linkContents); return this; }
     /// <summary>Adds a freeform path vector shape.</summary>
     public PdfElementCompose Path(System.Collections.Generic.IEnumerable<OfficePathCommand> commands, PdfColor? strokeColor = null, double strokeWidth = 1, PdfColor? fillColor = null, PdfAlign? align = null, double? spacingBefore = null, double? spacingAfter = null, OfficeStrokeDashStyle strokeDashStyle = OfficeStrokeDashStyle.Solid, OfficeStrokeLineCap? strokeLineCap = null, OfficeStrokeLineJoin? strokeLineJoin = null, PdfDrawingStyle? style = null, string? linkUri = null, string? linkContents = null) { _doc.Path(commands, strokeColor, strokeWidth, fillColor, align, spacingBefore, spacingAfter, strokeDashStyle, strokeLineCap, strokeLineJoin, style, linkUri, linkContents); return this; }
-    /// <summary>Adds an image from supported image bytes at the current nested element flow position. JPEG and simple PNG images, including Adam7 interlace, indexed-color palettes, and alpha soft masks, are currently supported.</summary>
+    /// <summary>Adds a raster image supported by OfficeIMO.Drawing at the current nested element flow position.</summary>
     /// <param name="jpegBytes">Supported image bytes.</param>
     /// <param name="width">Target width in points.</param>
     /// <param name="height">Target height in points.</param>
@@ -154,7 +154,7 @@ public class PdfElementCompose {
     public PdfElementCompose Image(byte[] jpegBytes, double width, double height, string? alternativeText) =>
         Image(jpegBytes, width, height, align: null, clipPath: null, fit: null, spacingBefore: null, spacingAfter: null, style: null, linkUri: null, linkContents: null, alternativeText: alternativeText);
 
-    /// <summary>Adds an image from supported image bytes. JPEG and simple PNG images, including Adam7 interlace, indexed-color palettes, and alpha soft masks, are currently supported.</summary>
+    /// <summary>Adds a raster image supported by OfficeIMO.Drawing.</summary>
     /// <param name="jpegBytes">Supported image bytes.</param>
     /// <param name="width">Target width in points.</param>
     /// <param name="height">Target height in points.</param>

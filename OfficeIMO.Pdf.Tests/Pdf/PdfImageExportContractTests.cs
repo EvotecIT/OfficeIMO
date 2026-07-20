@@ -1,6 +1,8 @@
 using OfficeIMO.Drawing;
 using OfficeIMO.Pdf;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 using Xunit;
 
 namespace OfficeIMO.Tests.Pdf;
@@ -108,6 +110,40 @@ public sealed class PdfImageExportContractTests {
         Assert.Equal(OfficeImageExportFormat.Svg, result.Format);
         Assert.Equal(result.Width, OfficeImageReader.Identify(result.Bytes).Width);
         Assert.Equal(result.Height, OfficeImageReader.Identify(result.Bytes).Height);
+    }
+
+    [Fact]
+    public void AuthoredDocumentExportsImagesWithoutAReadFacade() {
+        PdfDocument document = PdfDocument.Create()
+            .Paragraph(paragraph => paragraph.Text("Authored page"));
+
+        OfficeImageExportResult direct = Assert.Single(document.ExportImages(OfficeImageExportFormat.Webp));
+        OfficeImageExportResult fluent = Assert.Single(document.ToImages().AsPng().Export());
+
+        Assert.Equal(OfficeImageExportFormat.Webp, direct.Format);
+        Assert.Equal("image/webp", OfficeImageReader.Identify(direct.Bytes).MimeType);
+        Assert.Equal(OfficeImageExportFormat.Png, fluent.Format);
+        Assert.Equal("image/png", OfficeImageReader.Identify(fluent.Bytes).MimeType);
+    }
+
+    [Fact]
+    public async Task AuthoredDocumentExportDefersSnapshotAndHonorsPreCanceledToken() {
+        bool materialized = false;
+        PdfDocument document = PdfDocument.Create()
+            .Deferred(_ => {
+                materialized = true;
+                return item => item.Paragraph(paragraph => paragraph.Text("Deferred page"));
+            });
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+
+        PdfDocumentImageExportBuilder builder = document.ToImages();
+
+        Assert.False(materialized);
+        Assert.ThrowsAny<OperationCanceledException>(() =>
+            document.ExportImages(OfficeImageExportFormat.Png, cancellationToken: cancellation.Token));
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => builder.ExportAsync(cancellation.Token));
+        Assert.False(materialized);
     }
 
     [Fact]

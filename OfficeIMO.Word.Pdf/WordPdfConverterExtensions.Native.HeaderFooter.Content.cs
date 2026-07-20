@@ -576,13 +576,13 @@ namespace OfficeIMO.Word.Pdf {
 
         private static void AddNativeHeaderFooterImage(List<NativeHeaderFooterImage> images, WordImage image, PdfCore.PdfAlign align, PdfSaveOptions? options, string source) {
             byte[] bytes = ImageEmbedder.GetImageBytes(image);
-            if (!IsNativePdfSupportedImageBytes(bytes, out string? unsupportedReason)) {
+            if (!TryPrepareNativePdfImageBytes(bytes, out byte[] preparedBytes, out string? unsupportedReason)) {
                 if (options != null) {
                     AddNativeExportWarning(
                         options,
                         "NativeHeaderFooterImageUnsupported",
                         source,
-                        "Word header/footer image was not exported because the first-party PDF image writer supports JPEG and simple PNG images only. " + unsupportedReason);
+                        "Word header/footer image was not exported because the shared PDF raster pipeline could not prepare it. " + unsupportedReason);
                 }
 
                 return;
@@ -590,7 +590,7 @@ namespace OfficeIMO.Word.Pdf {
 
             double width = image.Width.HasValue ? image.Width.Value * 72D / 96D : 144D;
             double height = image.Height.HasValue ? image.Height.Value * 72D / 96D : 144D;
-            images.Add(new NativeHeaderFooterImage(bytes, width, height, align));
+            images.Add(new NativeHeaderFooterImage(preparedBytes, width, height, align));
         }
 
         private static void AddNativeHeaderFooterTableShapes(List<NativeHeaderFooterShape> shapes, WordTable table) {

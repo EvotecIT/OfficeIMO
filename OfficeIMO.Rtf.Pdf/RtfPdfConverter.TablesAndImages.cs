@@ -171,9 +171,13 @@ internal static partial class RtfPdfConverter {
         if (options.ImageConverter != null) {
             byte[]? converted = options.ImageConverter(image);
             string? reason = null;
-            if (converted != null && OfficeImagePdfCompatibility.TryValidate(converted, out _, out reason)) {
-                imageBytes = converted;
-                ReportImageSubstitution(options, source, image.Format, "PNG/JPEG", "The RTF image was converted by the configured image converter.");
+            if (converted != null && PdfCore.PdfDocument.TryPrepareImageBytes(
+                    converted,
+                    out imageBytes,
+                    out _,
+                    out _,
+                    out reason)) {
+                ReportImageSubstitution(options, source, image.Format, "PDF raster", "The RTF image was converted by the configured image converter and prepared through OfficeIMO.Drawing.");
                 return true;
             }
 
@@ -181,7 +185,7 @@ internal static partial class RtfPdfConverter {
                 options,
                 "ImageConversionFailed",
                 source,
-                reason ?? "The configured image converter did not return PNG or JPEG bytes.",
+                reason ?? "The configured image converter did not return a raster payload supported by OfficeIMO.Drawing.",
                 new Dictionary<string, string> {
                     ["Format"] = image.Format.ToString()
                 });

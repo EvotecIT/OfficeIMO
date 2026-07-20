@@ -198,7 +198,7 @@ namespace OfficeIMO.Word.Pdf {
                 !IsNativeVmlBoxVisibleOnPage(box, pageWidth, pageHeight) ||
                 !TryGetNativeVmlImageBytes(document, element, imageData, out byte[]? imageBytes) ||
                 imageBytes == null ||
-                !IsNativePdfSupportedImageBytes(imageBytes, out _)) {
+                !TryPrepareNativePdfImageBytes(imageBytes, out byte[] preparedBytes, out _)) {
                 return false;
             }
 
@@ -212,7 +212,7 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             RenderNativeVmlVisible(canvas, box, pageWidth, pageHeight, target => target.Image(
-                imageBytes,
+                preparedBytes,
                 box.X,
                 box.Y,
                 box.Width,

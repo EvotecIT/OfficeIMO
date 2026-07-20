@@ -22,7 +22,7 @@ explicit:
 - `OfficeIMO.Pdf` should not gain a runtime dependency on another PDF engine,
   browser, JavaScript runtime, or native renderer.
 
-Word, Excel, PowerPoint, Markdown, HTML, RTF, OneNote, AsciiDoc, and LaTeX
+Word, Excel, PowerPoint, OpenDocument, Markdown, HTML, RTF, OneNote, AsciiDoc, and LaTeX
 packages remain thin adapters. AsciiDoc and LaTeX reuse their existing
 loss-aware Markdown projections and the Markdown PDF renderer; they do not add
 format-specific layout engines. Shared PDF parsing, writing, layout, rendering,
@@ -30,7 +30,14 @@ security, signatures, forms, annotations, resource trust, and manipulation belon
 Reusable vector and raster primitives belong in `OfficeIMO.Drawing`. The
 machine-readable direct-adapter and composition-route inventory is
 [`pdf-conversion-scenarios.json`](pdf-conversion-scenarios.json); it is the
-source of truth for supported routes and visual proof ownership.
+source of truth for supported routes and visual proof ownership. The checked-in
+[`PDF conversion support matrix`](officeimo.pdf-conversion-support-matrix.md) is
+generated from that manifest and verified for drift in CI.
+
+OpenDocument text, spreadsheet, and presentation callers use one direct
+loss-aware façade over the existing semantic and PDF adapters. It combines
+projection-stage and PDF-stage diagnostics without adding another layout or
+rendering engine.
 
 Direct conversion uses one balanced resource default: installed fonts plus
 bounded data URI and embedded-package resources are available for Unicode and
@@ -96,8 +103,52 @@ PDF primitive exists somewhere in the codebase.
 | Serialize generated PDFs | Bounded payload streaming | `PdfOptions.PageContentMemoryLimitBytes` bounds completed page/effect content retained during layout, and `PdfOptions.ObjectBufferMemoryLimitBytes` bounds completed indirect-object bytes during serialization. Both stores spill excess payloads to indexed temporary files; large stream objects are spooled without a duplicate combined buffer, and final stream assembly copies spilled objects in bounded chunks for plain and encrypted saves. Spill files are removed on disposal. | Per-page metadata and the authored block model remain proportional to document size, the active page is materialized while it is processed, and `ToBytes()` necessarily buffers the final artifact. Fully forward-only layout/output needs a deeper writer contract and representative memory gates. |
 | Text and layout extraction | Broad, strategy-driven | The fast heuristic remains the default. A pluggable six-stage understanding pipeline provides confidence/evidence and stable JSON, Markdown, ALTO, hOCR, and PAGE XML. The built-in advanced profile adds rotation/arbitrary-baseline grouping, spatial and non-rectangular regions, multi-column/spanning-band order, tables, captions, headers/footers, and footnotes. | Refine advanced heuristics from real mixed-layout corpora and use provider stages for domain-specific reconstruction rather than hard-coding every document family. |
 | PDF to Office/HTML/data | Partial by design | PDF-to-HTML review output, table export, Reader chunks, and limited PowerPoint table import use the shared logical model. | Improve the logical model and confidence/proof first. Do not promise general editable reconstruction from a presentation format. |
-| Office/HTML/Markdown/RTF/OneNote/AsciiDoc/LaTeX to PDF | Broad but evolving | Thin adapters use the shared PDF and Drawing engines. Word and PowerPoint preserve source font families and richer table/list/header/footer geometry; Excel uses a worksheet scene with authored row/column geometry, print areas, titles, breaks, charts, images, and conditional formatting; static HTML uses the shared paged render scene with market-corpus raster gates, tables, forms, word breaking, and searchable text. OneNote, AsciiDoc, and LaTeX use explicit loss-aware semantic projections with combined diagnostics. | Browser-executed HTML is outside the current scope. Continue converter-specific fidelity only when the missing primitive is truly source-specific; otherwise improve the shared PDF, Drawing, HTML, or semantic-projection owner. |
+| Office/OpenDocument/HTML/Markdown/RTF/OneNote/AsciiDoc/LaTeX to PDF | Broad but evolving | Thin adapters use the shared PDF and Drawing engines. Word and PowerPoint preserve source font families and richer table/list/header/footer geometry; Excel uses a worksheet scene with authored row/column geometry, print areas, titles, breaks, charts, images, and conditional formatting; OpenDocument text, spreadsheet, and presentation formats expose one direct loss-aware façade over their existing semantic and PDF engines; static HTML uses the shared paged render scene with market-corpus raster gates, tables, forms, word breaking, and searchable text. OneNote, AsciiDoc, and LaTeX use explicit loss-aware semantic projections with combined diagnostics. | Browser-executed HTML is outside the current scope. Continue converter-specific fidelity only when the missing primitive is truly source-specific; otherwise improve the shared PDF, Drawing, HTML, or semantic-projection owner. |
 | PDF/A, PDF/UA, and e-invoices | Exact-artifact proof available for declared profiles | PDF/A-2b, PDF/A-3b, PDF/UA-1, Factur-X, and ZUGFeRD generation gates combine internal readiness with external validator evidence bound to validator name/version/profile, SHA-256, byte length, result, and validation time. A report cannot be claimable while an effective requirement remains missing or unsupported. | Keep validator versions and profile fixtures current; do not broaden claims beyond exact artifacts that pass both internal and external proof. |
+
+## Conversion Direction And Fidelity Assessment
+
+| Direction | Assessment | Quality contract |
+| --- | --- | --- |
+| Office, OpenDocument, HTML, Markdown, RTF, OneNote, AsciiDoc, and LaTeX to PDF | Broad, with source-specific approximations | Every direct adapter uses the shared PDF/Drawing owners and returns stable conversion evidence. The generated support matrix distinguishes regression-proven, candidate, externally verified, and accepted-degradation routes instead of treating every feature as exact. |
+| PDF to editable Word | Useful semantic recovery, not fixed-layout reconstruction | Metadata, page breaks, headings, paragraphs, lists, logical tables, links, supported images, and form placeholders are recovered when represented by the logical model. Unsupported image streams and interactive or unresolved navigation remain diagnostic-driven. |
+| PDF to editable Excel or PowerPoint | Intentionally narrow | Logical tables can be recovered into worksheets or table slides with page/range limits and loss reports. Unrelated page text, drawings, images, and fixed layout are not advertised as editable reconstruction. |
+| PDF to HTML | Good for semantic access and positioned visual review | Semantic and positioned-review profiles share the PDF logical/read model. Output is a review projection, not a browser-based reverse authoring guarantee. |
+| Authored/loaded PDF to PNG, JPEG, TIFF, WebP, or SVG | Broad managed rendering with explicit gaps | One page-to-Drawing projection serves authored documents, loaded pages, batches, and source-conversion results with budgets, cancellation, selection, and diagnostics. Unsupported Type 3/CFF, ICC, pattern, and layer cases remain visible in page reports. |
+| JPEG, PNG, GIF, BMP, TIFF, or supported WebP into authored/stamped PDF | Consistent shared ingestion | JPEG and writer-safe PNG embed directly. Other Drawing-decoded raster payloads normalize once to density-preserving PNG before all flow, table, inline, header/footer, background, watermark, canvas, and stamp paths. Malformed PNGs retain precise fail-closed diagnostics. |
+
+## Remaining Engine Work, Easiest To Most Complex
+
+The core is already broad enough for common business-document authoring,
+inspection, conversion, rendering, and controlled mutation. Premium claims
+remain capability-scoped and evidence-backed. The remaining engine work is
+ordered by expected implementation and proof complexity:
+
+1. Add a small set of tested report, invoice, label, and ticket recipes as
+   `IPdfComponent` implementations after their contracts are stable. They must
+   remain examples over the existing flow engine, not a template subsystem.
+2. Broaden Drawing-owned raster ingestion where real fixtures require it,
+   including explicit frame-selection and animation-loss policy. PDF surfaces
+   should continue to consume one normalized payload contract.
+3. Promote email, EPUB, and Visio routes only after body/attachment,
+   book-resource/pagination, and vector-page policies are explicit. Each route
+   should merge source and PDF evidence through the existing result contract.
+4. Deepen generated and existing-document annotations, navigation, form-field
+   kinds, and appearance editing through the current mutation and incremental
+   update engines.
+5. Add a dependency-light built-in complex-script shaping implementation, or a
+   narrowly packaged provider, while retaining Drawing as the single shaping
+   contract owner and preserving font fallback/subsetting proof.
+6. Extend stateful and page-dependent composition for workflows whose content
+   changes after pagination, without creating a second measurement or layout
+   path for components.
+7. Expand producer interoperability for Type 3/CFF rendering, ICC and pattern
+   edge cases, layers, encrypted incremental updates, and complex structure
+   preservation from corpus failures with explicit diagnostics.
+8. Redesign layout and serialization for genuinely forward-only output with
+   bounded memory, replay rules, deterministic object allocation, and artifact
+   proof. This is architectural work; asynchronous save alone is not a
+   streaming-layout guarantee.
 
 ## Current Architecture To Keep
 
@@ -359,9 +410,12 @@ any repair is explicit, reproducible, and validated before save.
   distance results, and runtime-independent comparison gates.
 - [ ] Keep HTML/CSS fidelity work in the canonical HTML/PDF/image plan. The PDF
   package should only add missing PDF-native primitives or writer support.
-- [ ] Add reusable typed report components and recipes only after repeated real
-  examples identify a stable abstraction. Do not introduce a second template
-  language or dependency-injection requirement into the PDF core speculatively.
+- [x] Add a reusable typed component contract that composes through the
+  canonical flow engine, including existing layout constraints and position
+  capture, without introducing another layout language.
+- [ ] Add built-in report recipes only after repeated real examples identify a
+  stable abstraction. Do not introduce a second template language or
+  dependency-injection requirement into the PDF core speculatively.
 - [ ] If real invoice, label, ticket, or logistics workflows require barcodes or
   QR codes, implement the encoding and drawing once in the smallest reusable
   `OfficeIMO.Drawing` owner (or a narrow optional adapter). PDF, Word, Excel,
@@ -376,11 +430,11 @@ any repair is explicit, reproducible, and validated before save.
 - [x] Promote AsciiDoc and LaTeX compositions to direct adapters whose native
   parser and semantic-projection diagnostics flow automatically into the final
   `PdfDocumentConversionResult` while reusing `OfficeIMO.Markdown.Pdf`.
-- [ ] Promote OpenDocument text, spreadsheet, and presentation compositions to
-  direct adapters only when their existing `OdfConversionResult` diagnostics
-  flow automatically into the final PDF result. Do not advertise email, EPUB,
-  or Visio as direct PDF conversion until body/asset/book/vector-page policies
-  are explicit and visually proven.
+- [x] Promote OpenDocument text, spreadsheet, and presentation compositions to
+  one direct adapter whose existing `OdfConversionResult` diagnostics flow
+  automatically into the final PDF result without duplicating the Word, Excel,
+  or PowerPoint PDF engines. Email, EPUB, and Visio remain planned until their
+  body/asset/book/vector-page policies are explicit and visually proven.
 
 Exit criterion: new fidelity work improves the shared engine or has a documented
 source-format reason to remain in a thin adapter.
@@ -417,8 +471,10 @@ external validator both pass the exact generated artifact.
 - [ ] Add fully forward-only layout and serialization before describing async
   APIs as fully streaming. Per-page metadata and the authored block model remain
   proportional to document size, while `ToBytes()` buffers the final artifact.
-- [ ] Generate the public support matrix and README examples from tested
-  capability records so documentation cannot drift from the implementation.
+- [x] Generate and CI-check the public PDF conversion support matrix from the
+  tested capability manifest so route and diagnostic claims cannot drift.
+- [ ] Generate README examples from tested capability records where doing so
+  improves user guidance without making prose less readable.
 - [x] Keep a public-surface/dependency contract plus dependency-free mixed
   60-page cold/cached analysis, SVG, and PNG performance budgets in CI; verify
   output integrity as well as time and allocation ceilings, and keep bounded

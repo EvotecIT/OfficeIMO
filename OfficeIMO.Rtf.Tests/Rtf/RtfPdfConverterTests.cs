@@ -261,6 +261,24 @@ public class RtfPdfConverterTests {
     }
 
     [Fact]
+    public void RtfDocument_ToPdfDocument_Normalizes_Configured_Gif_Through_Shared_Drawing() {
+        RtfDocument document = RtfDocument.Create();
+        document.AddImage(RtfImageFormat.Emf, new byte[] { 1, 2, 3 });
+        var options = new RtfPdfSaveOptions {
+            ImageConverter = _ => Convert.FromBase64String("R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==")
+        };
+
+        PdfCore.PdfDocumentConversionResult result = document.ToPdfDocumentResult(options);
+        byte[] pdf = result.ToBytes();
+
+        Assert.NotEmpty(pdf);
+        Assert.Contains(result.Warnings, warning =>
+            warning.Code == "ImageConverted" &&
+            warning.Details["TargetFormat"] == "PDF raster");
+        Assert.DoesNotContain(result.Warnings, warning => warning.Code == "ImageConversionFailed");
+    }
+
+    [Fact]
     public void RtfDocument_ToPdfDocument_Renders_Tables() {
         RtfDocument document = RtfDocument.Create();
         RtfTable table = document.AddTable(2, 2);

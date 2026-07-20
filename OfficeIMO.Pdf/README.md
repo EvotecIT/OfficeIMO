@@ -38,7 +38,7 @@ PdfDocument.Create(new PdfOptions {
 
 ## What it does
 
-- Creates PDFs with page setup, headings, paragraphs, rich text, links, lists, mixed inline images and boxes, dictionary-driven hyphenation, styled multipage containers, balanced block-flow columns, conditional/replayable flow, position capture, sections, generated TOCs, optional-content layers, tables, images, vector drawing, headers, footers, watermarks, metadata, portfolios, and form primitives.
+- Creates PDFs with page setup, headings, paragraphs, rich text, links, lists, reusable typed components, mixed inline images and boxes, dictionary-driven hyphenation, styled multipage containers, balanced block-flow columns, conditional/replayable flow, position capture, sections, generated TOCs, optional-content layers, tables, images, vector drawing, headers, footers, watermarks, metadata, portfolios, and form primitives. Raster inputs accepted by `OfficeIMO.Drawing` normalize once through the shared image owner before PDF embedding.
 - Reads and inspects PDFs through text extraction, logical document objects, page metadata, links, images, attachments, portfolios, outlines, forms, bounded immutable raw-structure views, active-content diagnostics, and security/revision markers.
 - Manipulates existing PDFs with page extraction, split, merge, delete, duplicate, move, rotate, metadata editing, stamps, watermarks, and complete-page overlay/underlay while preserving source PDF header versions on shared rewrite paths.
 - Renders supported embedded TrueType and OpenType/CFF fonts with stable-glyph subsetting. Built-in shaping remains dependency-free, while the shared `OfficeIMO.Drawing.IOfficeTextShapingProvider` contract can supply positioned glyph advances and offsets for scripts that need a host-owned shaping engine.
@@ -49,7 +49,7 @@ PdfDocument.Create(new PdfOptions {
 - Provides reusable conversion proof snapshots for generated PDFs, artifact hashes, required page counts, page sizes, document metadata, outline titles, URI links, form fields, named destinations, page labels, attachments, output intents, optional-content/layer metadata, catalog/viewer metadata, XMP/tagged metadata, text markers, logical readback signals, expected and accepted warning contracts, and post-processing hand-off. Compliance proof records bind external validator name, version, profile, result, warnings, SHA-256, byte length, and validation time to the exact artifact.
 - Provides reusable rewrite-preservation proof for page geometry, metadata, navigation, catalog/viewer/action state, optional content, tagged content, security signatures, document versions, and source-structure markers such as incremental updates, xref streams, and object streams.
 - Provides a reusable rewrite-preservation matrix for classifying named manipulation scenarios as rewrite-safe, preservation-failed, blocked by safety checks, or operation-failed, including optional-content/layer drift, targeted form-fill preservation, form/tagged/active-content/signature blockers, and fluent `PdfDocument` helpers for normal document rewrite operations.
-- Serves as the shared engine for Word, Excel, PowerPoint, Markdown, HTML, RTF, OneNote, AsciiDoc, and LaTeX PDF adapters.
+- Serves as the shared engine for Word, Excel, PowerPoint, OpenDocument, Markdown, HTML, RTF, OneNote, AsciiDoc, and LaTeX PDF adapters.
 
 ## Existing PDF workflows
 
@@ -143,6 +143,13 @@ pdf.ToImages()
     .WithMaximumRasterPixels(20_000_000)
     .AsWebp()
     .Save("page-images");
+
+PdfDocument.Create()
+    .H1("Authored PDF")
+    .Paragraph(paragraph => paragraph.Text("The authored model uses the same page renderer."))
+    .ToImages()
+    .AsPng()
+    .Save("authored-page-images");
 ```
 
 PNG, JPEG, TIFF, SVG, and WebP use the same `OfficeImageExportResult` contract and Drawing-owned encoders. Allocation limits are resolved before a raster buffer is created. Unsupported or simplified PDF operators and resources remain visible as typed image diagnostics.
@@ -564,8 +571,9 @@ PdfHtmlConverterExtensions.SaveAsHtml(
 | [OfficeIMO.OneNote.Pdf](../OfficeIMO.OneNote.Pdf/README.md) | Explicitly projects offline OneNote hierarchy into a semantic PDF document with loss diagnostics. |
 | [OfficeIMO.AsciiDoc.Pdf](../OfficeIMO.AsciiDoc.Pdf/README.md) | Projects native AsciiDoc through the loss-aware Markdown bridge and combines parser, projection, and PDF diagnostics. |
 | [OfficeIMO.Latex.Pdf](../OfficeIMO.Latex.Pdf/README.md) | Projects the bounded LaTeX profile through the loss-aware Markdown bridge without executing TeX. |
+| [OfficeIMO.OpenDocument.Pdf](../OfficeIMO.OpenDocument.Pdf/README.md) | Provides direct ODT, ODS, and ODP façades while retaining both OpenDocument projection and PDF conversion diagnostics. |
 
-The canonical catalog records OpenDocument as manual loss-aware composition and formats that are intentionally not advertised as direct conversion yet: email, EPUB, and Visio. See [`Docs/pdf-conversion-scenarios.json`](../Docs/pdf-conversion-scenarios.json).
+The generated [PDF conversion support matrix](../Docs/officeimo.pdf-conversion-support-matrix.md) records direct, composed, and planned routes from the canonical [`Docs/pdf-conversion-scenarios.json`](../Docs/pdf-conversion-scenarios.json) manifest. Email, EPUB, and Visio are intentionally not advertised as direct conversion yet.
 
 ## Boundaries
 

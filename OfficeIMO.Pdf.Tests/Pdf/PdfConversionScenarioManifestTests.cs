@@ -2063,6 +2063,7 @@ public sealed class PdfConversionScenarioManifestTests {
     }
 
     private static void AssertCompositionRoutes(JsonElement compositionRoutes) {
+        string repositoryRoot = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(GetManifestPath())!, ".."));
         JsonElement[] routes = compositionRoutes.EnumerateArray().ToArray();
         Assert.NotEmpty(routes);
 
@@ -2085,8 +2086,22 @@ public sealed class PdfConversionScenarioManifestTests {
             Assert.False(string.IsNullOrWhiteSpace(RequireString(route, "diagnosticContract")));
             string status = RequireString(route, "status");
             Assert.True(
-                status == "manual-loss-aware-composition" || status == "not-yet-direct",
+                status == "direct-loss-aware-adapter" || status == "manual-loss-aware-composition" || status == "not-yet-direct",
                 "Unknown composition-route status: " + status);
+
+            if (status == "direct-loss-aware-adapter") {
+                string projectPath = RequireString(route, "implementationProject");
+                Assert.True(
+                    File.Exists(Path.Combine(repositoryRoot, projectPath.Replace('/', Path.DirectorySeparatorChar))),
+                    "Direct route implementation project does not exist: " + projectPath);
+
+                string evidenceReference = RequireString(route, "evidenceTest");
+                string[] evidenceParts = evidenceReference.Split(new[] { '#' }, 2);
+                Assert.Equal(2, evidenceParts.Length);
+                string evidencePath = Path.Combine(repositoryRoot, evidenceParts[0].Replace('/', Path.DirectorySeparatorChar));
+                Assert.True(File.Exists(evidencePath), "Direct route evidence test does not exist: " + evidenceParts[0]);
+                Assert.Contains(evidenceParts[1], File.ReadAllText(evidencePath), StringComparison.Ordinal);
+            }
         }
     }
 

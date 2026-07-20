@@ -54,13 +54,13 @@ public sealed class PdfInlineImage : PdfInlineElement {
         OfficeImageFit fit = OfficeImageFit.Contain,
         double baselineOffset = 0D)
         : base(width, height, baselineOffset, alternativeText) {
-        OfficeImageInfo info = PdfDocument.ValidateImageBytes(imageBytes);
+        PdfDocument.PreparedImage prepared = PdfDocument.PrepareImageBytes(imageBytes);
         var style = new PdfImageStyle {
             Fit = fit,
             AlternativeText = alternativeText
         };
-        PdfDocument.ValidateImageFitDimensions(info, fit, nameof(fit));
-        Block = new ImageBlock(imageBytes, width, height, info, style);
+        PdfDocument.ValidateImageFitDimensions(prepared.Info, fit, nameof(fit));
+        Block = new ImageBlock(prepared.Data, width, height, prepared.Info, style, useDataSnapshot: true);
         Fit = fit;
     }
 }

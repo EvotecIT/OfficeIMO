@@ -220,13 +220,13 @@ namespace OfficeIMO.Word.Pdf {
                 return;
             }
 
-            if (!IsNativePdfSupportedImageBytes(bytes, out string? unsupportedReason)) {
+            if (!TryPrepareNativePdfImageBytes(bytes, out byte[] preparedBytes, out string? unsupportedReason)) {
                 if (options != null) {
                     AddNativeExportWarning(
                         options,
                         "NativeBodyImageUnsupported",
                         source,
-                        "Word image was not exported because the first-party PDF image writer supports JPEG and simple PNG images only. " + unsupportedReason);
+                        "Word image was not exported because the shared PDF raster pipeline could not prepare it. " + unsupportedReason);
                 }
 
                 return;
@@ -234,7 +234,7 @@ namespace OfficeIMO.Word.Pdf {
 
             double width = image.Width.HasValue ? image.Width.Value * 72D / 96D : 144D;
             double height = image.Height.HasValue ? image.Height.Value * 72D / 96D : 144D;
-            pdf.Image(bytes, width, height, align);
+            pdf.Image(preparedBytes, width, height, align);
         }
 
         private static bool TryGetNativeBodyImageBytes(WordImage image, PdfSaveOptions? options, string source, out byte[] bytes) {
@@ -255,25 +255,16 @@ namespace OfficeIMO.Word.Pdf {
             }
         }
 
-        private static bool IsNativePdfSupportedImageBytes(byte[] bytes, out string? unsupportedReason) {
-            unsupportedReason = null;
-            if (!OfficeImageReader.TryIdentify(bytes, null, out OfficeImageInfo info)) {
-                unsupportedReason = "The image format could not be identified.";
-                return false;
-            }
-
-            if (info.Format == OfficeImageFormat.Jpeg) {
-                return true;
-            }
-
-            if (info.Format == OfficeImageFormat.Png &&
-                PdfCore.PdfDocument.TryValidateImageBytes(bytes, out _, out unsupportedReason)) {
-                return true;
-            }
-
-            unsupportedReason ??= "Detected " + info.Format + " (" + info.MimeType + ").";
-            return false;
-        }
+        private static bool TryPrepareNativePdfImageBytes(
+            byte[] bytes,
+            out byte[] preparedBytes,
+            out string? unsupportedReason) =>
+            PdfCore.PdfDocument.TryPrepareImageBytes(
+                bytes,
+                out preparedBytes,
+                out _,
+                out _,
+                out unsupportedReason);
 
     }
 }

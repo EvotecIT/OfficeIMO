@@ -214,7 +214,7 @@ public class PdfRowColumnCompose {
         _col.AddBlock(PdfDocument.CreateShapeBlock(shape, align, spacingBefore, spacingAfter, style, linkUri, linkContents));
         return this;
     }
-    /// <summary>Adds a supported image in the column. JPEG and simple PNG images, including Adam7 interlace, indexed-color palettes, and alpha soft masks, are currently supported.</summary>
+    /// <summary>Adds a raster image supported by OfficeIMO.Drawing in the column.</summary>
     public PdfRowColumnCompose Image(byte[] jpegBytes, double width, double height, PdfAlign? align = null, OfficeClipPath? clipPath = null, OfficeImageFit? fit = null, double? spacingBefore = null, double? spacingAfter = null, PdfImageStyle? style = null, string? linkUri = null, string? linkContents = null) =>
         Image(jpegBytes, width, height, align, clipPath, fit, spacingBefore, spacingAfter, style, linkUri, linkContents, alternativeText: null);
 
@@ -222,7 +222,7 @@ public class PdfRowColumnCompose {
     public PdfRowColumnCompose Image(byte[] jpegBytes, double width, double height, string? alternativeText) =>
         Image(jpegBytes, width, height, align: null, clipPath: null, fit: null, spacingBefore: null, spacingAfter: null, style: null, linkUri: null, linkContents: null, alternativeText: alternativeText);
 
-    /// <summary>Adds a supported image in the column. JPEG and simple PNG images, including Adam7 interlace, indexed-color palettes, and alpha soft masks, are currently supported.</summary>
+    /// <summary>Adds a raster image supported by OfficeIMO.Drawing in the column.</summary>
     public PdfRowColumnCompose Image(byte[] jpegBytes, double width, double height, PdfAlign? align, OfficeClipPath? clipPath, OfficeImageFit? fit, double? spacingBefore, double? spacingAfter, PdfImageStyle? style, string? linkUri, string? linkContents, string? alternativeText) {
         Guard.NotNullOrEmpty(jpegBytes, nameof(jpegBytes));
         Guard.Positive(width, nameof(width));
@@ -233,12 +233,12 @@ public class PdfRowColumnCompose {
             PdfDocument.ValidateImageStyleForBox(imageStyle, width, height, nameof(clipPath));
         }
 
-        var imageInfo = PdfDocument.ValidateImageBytes(jpegBytes);
+        PdfDocument.PreparedImage prepared = PdfDocument.PrepareImageBytes(jpegBytes);
         if (imageStyle != null) {
-            PdfDocument.ValidateImageFitDimensions(imageInfo, imageStyle.Fit, nameof(fit));
+            PdfDocument.ValidateImageFitDimensions(prepared.Info, imageStyle.Fit, nameof(fit));
         }
 
-        _col.AddBlock(new ImageBlock(jpegBytes, width, height, imageInfo, imageStyle, linkUri, linkContents));
+        _col.AddBlock(new ImageBlock(prepared.Data, width, height, prepared.Info, imageStyle, linkUri, linkContents, useDataSnapshot: true));
         return this;
     }
 }

@@ -29,52 +29,66 @@ public sealed class PdfDocumentImageExportBuilder : OfficeImageExportBatchBuilde
         PdfImageExportOptions? options = null,
         IReadOnlyList<OfficeImageExportDiagnostic>? initialDiagnostics = null)
         : this(
-            document,
+            PdfImageExportDocumentSource.FromLoaded(document),
             options?.Clone() ?? new PdfImageExportOptions(),
-            CreateSelectionState(document),
+            new PageSelectionState(),
+            initialDiagnostics) {
+    }
+
+    internal PdfDocumentImageExportBuilder(
+        PdfDocument document,
+        PdfImageExportOptions? options = null,
+        IReadOnlyList<OfficeImageExportDiagnostic>? initialDiagnostics = null)
+        : this(
+            PdfImageExportDocumentSource.FromDeferred(() => document.GetReadSnapshot().Document),
+            options?.Clone() ?? new PdfImageExportOptions(),
+            new PageSelectionState(),
+            initialDiagnostics) {
+    }
+
+    internal PdfDocumentImageExportBuilder(
+        PdfDocumentConversionResult conversion,
+        PdfImageExportOptions? options = null,
+        IReadOnlyList<OfficeImageExportDiagnostic>? initialDiagnostics = null)
+        : this(
+            PdfImageExportDocumentSource.FromDeferred(() => PdfReadDocument.Open(conversion.ToBytes())),
+            options?.Clone() ?? new PdfImageExportOptions(),
+            new PageSelectionState(),
             initialDiagnostics) {
     }
 
     private PdfDocumentImageExportBuilder(
-        PdfReadDocument document,
+        PdfImageExportDocumentSource source,
         PdfImageExportOptions options,
         PageSelectionState selection,
         IReadOnlyList<OfficeImageExportDiagnostic>? initialDiagnostics)
         : base(
             options,
-            (format, effective) => PdfImageExportEngine.Export(
-                document,
-                format,
-                effective,
-                selection.Selection,
-                initialDiagnostics),
-            (format, effective, consumer, cancellationToken) => PdfImageExportEngine.ExportEach(
-                document,
-                format,
-                effective,
-                selection.Selection,
-                consumer,
-                initialDiagnostics,
-                cancellationToken)) {
+            (format, effective) => Export(source, selection, format, effective, initialDiagnostics),
+            (format, effective, consumer, cancellationToken) =>
+                ExportEach(source, selection, format, effective, consumer, initialDiagnostics, cancellationToken)) {
         _selection = selection;
     }
 
     /// <summary>Selects caller-ordered one-based PDF pages.</summary>
     public PdfDocumentImageExportBuilder Pages(PdfPageSelection selection) {
         _selection.Selection = selection ?? throw new ArgumentNullException(nameof(selection));
+        _selection.Selector = null;
         return this;
     }
 
     /// <summary>Selects document-relative pages such as <c>1-3,last</c>.</summary>
     public PdfDocumentImageExportBuilder Pages(string selector) {
         if (string.IsNullOrWhiteSpace(selector)) throw new ArgumentException("A page selector is required.", nameof(selector));
-        _selection.Selection = PdfPageSelector.Parse(selector).ResolveSelection(_selection.PageCount);
+        _selection.Selector = PdfPageSelector.Parse(selector);
+        _selection.Selection = null;
         return this;
     }
 
     /// <summary>Exports all document pages in source order.</summary>
     public PdfDocumentImageExportBuilder AllPages() {
         _selection.Selection = null;
+        _selection.Selector = null;
         return this;
     }
 
@@ -94,17 +108,102 @@ public sealed class PdfDocumentImageExportBuilder : OfficeImageExportBatchBuilde
 
     private sealed class PageSelectionState {
         internal PdfPageSelection? Selection { get; set; }
-        internal int PageCount { get; set; }
+        internal PdfPageSelector? Selector { get; set; }
+
+        internal PdfPageSelection? Resolve(PdfReadDocument document) =>
+            Selector?.ResolveSelection(document.Pages.Count) ?? Selection;
     }
 
-    private static PageSelectionState CreateSelectionState(PdfReadDocument document) {
-        Guard.NotNull(document, nameof(document));
-        return new PageSelectionState { PageCount = document.Pages.Count };
+    private static IReadOnlyList<OfficeImageExportResult> Export(
+        PdfImageExportDocumentSource source,
+        PageSelectionState selection,
+        OfficeImageExportFormat format,
+        PdfImageExportOptions options,
+        IReadOnlyList<OfficeImageExportDiagnostic>? initialDiagnostics) {
+        PdfReadDocument document = source.Get(CancellationToken.None);
+        return PdfImageExportEngine.Export(
+            document,
+            format,
+            options,
+            selection.Resolve(document),
+            initialDiagnostics);
+    }
+
+    private static void ExportEach(
+        PdfImageExportDocumentSource source,
+        PageSelectionState selection,
+        OfficeImageExportFormat format,
+        PdfImageExportOptions options,
+        OfficeImageExportConsumer consumer,
+        IReadOnlyList<OfficeImageExportDiagnostic>? initialDiagnostics,
+        CancellationToken cancellationToken) {
+        PdfReadDocument document = source.Get(cancellationToken);
+        PdfImageExportEngine.ExportEach(
+            document,
+            format,
+            options,
+            selection.Resolve(document),
+            consumer,
+            initialDiagnostics,
+            cancellationToken);
+    }
+
+    private sealed class PdfImageExportDocumentSource {
+        private readonly Func<PdfReadDocument>? _factory;
+        private readonly object _sync = new();
+        private PdfReadDocument? _document;
+
+        private PdfImageExportDocumentSource(PdfReadDocument document) {
+            _document = document;
+        }
+
+        private PdfImageExportDocumentSource(Func<PdfReadDocument> factory) {
+            _factory = factory;
+        }
+
+        internal static PdfImageExportDocumentSource FromLoaded(PdfReadDocument document) {
+            Guard.NotNull(document, nameof(document));
+            return new PdfImageExportDocumentSource(document);
+        }
+
+        internal static PdfImageExportDocumentSource FromDeferred(Func<PdfReadDocument> factory) {
+            Guard.NotNull(factory, nameof(factory));
+            return new PdfImageExportDocumentSource(factory);
+        }
+
+        internal PdfReadDocument Get(CancellationToken cancellationToken) {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (_document != null) return _document;
+
+            lock (_sync) {
+                cancellationToken.ThrowIfCancellationRequested();
+                return _document ??= _factory!();
+            }
+        }
     }
 }
 
 /// <summary>Canonical PDF page image-export entry points.</summary>
 public static class PdfImageExportExtensions {
+    /// <summary>Exports pages from an authored or opened PDF document using the shared five-format result contract.</summary>
+    public static IReadOnlyList<OfficeImageExportResult> ExportImages(
+        this PdfDocument document,
+        OfficeImageExportFormat format,
+        PdfImageExportOptions? options = null,
+        PdfPageSelection? selection = null,
+        CancellationToken cancellationToken = default) {
+        Guard.NotNull(document, nameof(document));
+        cancellationToken.ThrowIfCancellationRequested();
+        var snapshot = document.GetReadSnapshot();
+        return PdfImageExportEngine.Export(
+            snapshot.Document,
+            format,
+            options?.Clone() ?? new PdfImageExportOptions(),
+            selection,
+            initialDiagnostics: null,
+            cancellationToken);
+    }
+
     /// <summary>Exports one loaded PDF page using the shared five-format result contract.</summary>
     public static OfficeImageExportResult ExportImage(
         this PdfReadPage page,
@@ -138,6 +237,7 @@ public static class PdfImageExportExtensions {
         PdfPageSelection? selection = null,
         CancellationToken cancellationToken = default) {
         Guard.NotNull(conversion, nameof(conversion));
+        cancellationToken.ThrowIfCancellationRequested();
         return PdfImageExportEngine.Export(
             PdfReadDocument.Open(conversion.ToBytes()),
             format,
@@ -164,6 +264,20 @@ public static class PdfImageExportExtensions {
         CreateDocumentBuilder(document, options ?? throw new ArgumentNullException(nameof(options)));
 
     /// <summary>
+    /// Starts fluent image export for all pages in an authored or opened PDF document.
+    /// The read snapshot is captured on first export so a pre-canceled operation does not materialize the document.
+    /// </summary>
+    public static PdfDocumentImageExportBuilder ToImages(this PdfDocument document) =>
+        CreateDocumentBuilder(document, options: null);
+
+    /// <summary>
+    /// Starts fluent image export for an authored or opened PDF document using a cloned options snapshot.
+    /// The read snapshot is captured on first export.
+    /// </summary>
+    public static PdfDocumentImageExportBuilder ToImages(this PdfDocument document, PdfImageExportOptions options) =>
+        CreateDocumentBuilder(document, options ?? throw new ArgumentNullException(nameof(options)));
+
+    /// <summary>
     /// Starts fluent paged-image export from a source-to-PDF conversion and carries its diagnostics into every page result.
     /// </summary>
     public static PdfDocumentImageExportBuilder ToImages(this PdfDocumentConversionResult conversion) =>
@@ -183,11 +297,18 @@ public static class PdfImageExportExtensions {
     }
 
     private static PdfDocumentImageExportBuilder CreateDocumentBuilder(
+        PdfDocument document,
+        PdfImageExportOptions? options) {
+        Guard.NotNull(document, nameof(document));
+        return new PdfDocumentImageExportBuilder(document, options);
+    }
+
+    private static PdfDocumentImageExportBuilder CreateDocumentBuilder(
         PdfDocumentConversionResult conversion,
         PdfImageExportOptions? options) {
         Guard.NotNull(conversion, nameof(conversion));
         return new PdfDocumentImageExportBuilder(
-            PdfReadDocument.Open(conversion.ToBytes()),
+            conversion,
             options,
             PdfImageExportEngine.MapConversionDiagnostics(conversion));
     }

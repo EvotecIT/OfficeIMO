@@ -1,12 +1,12 @@
 namespace OfficeIMO.Drawing {
     /// <summary>
-    /// Validates image bytes against the lightweight image constraints used by first-party PDF export preflight checks.
+    /// Validates image bytes against the shared Drawing raster contract used by first-party PDF export preflight checks.
     /// </summary>
     public static class OfficeImagePdfCompatibility {
         private static readonly byte[] PngSignature = { 137, 80, 78, 71, 13, 10, 26, 10 };
 
         /// <summary>
-        /// Returns true when the image bytes are JPEG or structurally valid PNG bytes suitable for first-party PDF export.
+        /// Returns true when the image bytes can be embedded directly or normalized by the shared Drawing raster engine.
         /// </summary>
         public static bool TryValidate(byte[] bytes, out OfficeImageInfo? imageInfo, out string? unsupportedReason) {
             imageInfo = null;
@@ -28,19 +28,29 @@ namespace OfficeIMO.Drawing {
                 case OfficeImageFormat.Png:
                     return TryValidatePngContainer(bytes, out unsupportedReason);
                 default:
-                    unsupportedReason = $"Detected {detected.Format} ({detected.MimeType}); first-party PDF export supports JPEG and PNG image bytes.";
-                    return false;
+                    if (!IsSupportedFormat(detected.Format)) {
+                        unsupportedReason = $"Detected {detected.Format} ({detected.MimeType}); the format is not part of the shared PDF raster contract.";
+                        return false;
+                    }
+
+                    if (!OfficeImagePngConverter.TryConvertToPng(bytes, out byte[] normalizedPng) ||
+                        !TryValidatePngContainer(normalizedPng, out unsupportedReason)) {
+                        unsupportedReason ??= $"Detected {detected.Format} ({detected.MimeType}), but the payload could not be normalized by OfficeIMO.Drawing.";
+                        return false;
+                    }
+
+                    return true;
             }
         }
 
         /// <summary>
-        /// Returns true when the MIME content type is accepted by first-party PDF image export.
+        /// Returns true when the MIME content type belongs to the shared PDF raster source set.
         /// </summary>
         public static bool IsSupportedContentType(string? contentType) =>
             TryGetSupportedContentTypeFormat(contentType, out _);
 
         /// <summary>
-        /// Resolves a MIME content type accepted by first-party PDF image export to its shared image format.
+        /// Resolves a MIME content type accepted by the shared PDF raster source set to its image format.
         /// </summary>
         public static bool TryGetSupportedContentTypeFormat(string? contentType, out OfficeImageFormat format) {
             format = OfficeImageInfo.FromMimeType(contentType);
@@ -87,10 +97,15 @@ namespace OfficeIMO.Drawing {
         }
 
         /// <summary>
-        /// Returns true when the shared image format is accepted by first-party PDF image export.
+        /// Returns true when the shared image format can be embedded directly or normalized by OfficeIMO.Drawing.
         /// </summary>
         public static bool IsSupportedFormat(OfficeImageFormat format) =>
-            format == OfficeImageFormat.Png || format == OfficeImageFormat.Jpeg;
+            format == OfficeImageFormat.Png ||
+            format == OfficeImageFormat.Jpeg ||
+            format == OfficeImageFormat.Gif ||
+            format == OfficeImageFormat.Bmp ||
+            format == OfficeImageFormat.Tiff ||
+            format == OfficeImageFormat.Webp;
 
         private static string GetPdfImageFormatDisplayName(OfficeImageFormat format) =>
             format == OfficeImageFormat.Jpeg ? "JPEG" : format.ToString().ToUpperInvariant();

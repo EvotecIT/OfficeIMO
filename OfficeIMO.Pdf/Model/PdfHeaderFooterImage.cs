@@ -29,15 +29,15 @@ public sealed class PdfHeaderFooterImage {
             Guard.NotNullOrWhiteSpace(alternativeText, nameof(alternativeText));
         }
 
-        OfficeImageInfo imageInfo = PdfDocument.ValidateImageBytes(data);
-        PdfDocument.ValidateImageFitDimensions(imageInfo, fit, nameof(fit));
+        PdfDocument.PreparedImage prepared = PdfDocument.PrepareImageBytes(data);
+        PdfDocument.ValidateImageFitDimensions(prepared.Info, fit, nameof(fit));
 
-        _data = (byte[])data.Clone();
+        _data = prepared.Data;
         Width = width;
         Height = height;
         Align = align;
         Fit = fit;
-        Info = imageInfo;
+        Info = prepared.Info;
         AlternativeText = alternativeText;
     }
 
@@ -68,5 +68,5 @@ public sealed class PdfHeaderFooterImage {
         Align = Align,
         Fit = Fit,
         AlternativeText = AlternativeText
-    });
+    }, useDataSnapshot: true);
 }

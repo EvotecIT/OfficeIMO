@@ -212,23 +212,29 @@
     {
       "id": "opendocument-text-via-word",
       "sourceFormats": [ "odt", "ott" ],
-      "status": "manual-loss-aware-composition",
-      "stages": [ "OfficeIMO.OpenDocument", "OfficeIMO.Word.OpenDocument", "OfficeIMO.Word.Pdf" ],
-      "diagnosticContract": "Preserve OdfConversionResult diagnostics before PDF save; there is no direct OpenDocument PDF adapter yet."
+      "status": "direct-loss-aware-adapter",
+      "stages": [ "OfficeIMO.OpenDocument.Pdf", "OfficeIMO.Word.OpenDocument", "OfficeIMO.Word.Pdf" ],
+      "implementationProject": "OfficeIMO.OpenDocument.Pdf/OfficeIMO.OpenDocument.Pdf.csproj",
+      "evidenceTest": "OfficeIMO.OpenDocument.Converters.Tests/OpenDocumentPdfConversionContracts.cs#OdtFacadePreservesProjectionLossAndProducesReadablePdf",
+      "diagnosticContract": "The direct adapter merges ODT-to-Word feature mappings with Word-to-PDF diagnostics in PdfDocumentConversionResult."
     },
     {
       "id": "opendocument-spreadsheet-via-excel",
       "sourceFormats": [ "ods", "ots" ],
-      "status": "manual-loss-aware-composition",
-      "stages": [ "OfficeIMO.OpenDocument", "OfficeIMO.Excel.OpenDocument", "OfficeIMO.Excel.Pdf" ],
-      "diagnosticContract": "Preserve OdfConversionResult diagnostics before PDF save; there is no direct OpenDocument PDF adapter yet."
+      "status": "direct-loss-aware-adapter",
+      "stages": [ "OfficeIMO.OpenDocument.Pdf", "OfficeIMO.Excel.OpenDocument", "OfficeIMO.Excel.Pdf" ],
+      "implementationProject": "OfficeIMO.OpenDocument.Pdf/OfficeIMO.OpenDocument.Pdf.csproj",
+      "evidenceTest": "OfficeIMO.OpenDocument.Converters.Tests/OpenDocumentPdfConversionContracts.cs#OdsFacadeUsesExcelPdfEngineAndExposesInformationEvidence",
+      "diagnosticContract": "The direct adapter merges ODS-to-Excel feature mappings with Excel-to-PDF diagnostics in PdfDocumentConversionResult."
     },
     {
       "id": "opendocument-presentation-via-powerpoint",
       "sourceFormats": [ "odp", "otp" ],
-      "status": "manual-loss-aware-composition",
-      "stages": [ "OfficeIMO.OpenDocument", "OfficeIMO.PowerPoint.OpenDocument", "OfficeIMO.PowerPoint.Pdf" ],
-      "diagnosticContract": "Preserve OdfConversionResult diagnostics before PDF save; there is no direct OpenDocument PDF adapter yet."
+      "status": "direct-loss-aware-adapter",
+      "stages": [ "OfficeIMO.OpenDocument.Pdf", "OfficeIMO.PowerPoint.OpenDocument", "OfficeIMO.PowerPoint.Pdf" ],
+      "implementationProject": "OfficeIMO.OpenDocument.Pdf/OfficeIMO.OpenDocument.Pdf.csproj",
+      "evidenceTest": "OfficeIMO.OpenDocument.Converters.Tests/OpenDocumentPdfConversionContracts.cs#OdpFacadeUsesPowerPointPdfEngineAndKeepsAnimationLoss",
+      "diagnosticContract": "The direct adapter merges ODP-to-PowerPoint feature mappings with PowerPoint-to-PDF diagnostics in PdfDocumentConversionResult."
     },
     {
       "id": "email-document",

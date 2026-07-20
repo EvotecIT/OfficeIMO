@@ -15,7 +15,7 @@ This matrix tracks dependency-free image export across OfficeIMO document packag
 | `OfficeIMO.Epub.Image` | EPUB chapter selection and retained package-resource mapping into HTML | Another EPUB parser, CSS layout engine, or image encoder |
 | `OfficeIMO.OneNote` | Page hierarchy, positioned content, ink/math/image projection, page selection | Private image encoders |
 | `OfficeIMO.Visio` | Page geometry, shapes, connectors, stencil artwork, labels, native Visio text/layout decisions, and the richer Visio embedded-SVG interpreter needed for linked images, clipping, nested opacity, and CSS | Private output encoders or duplicate shared format mechanics |
-| `OfficeIMO.Pdf` | PDF parsing/content semantics, page-to-Drawing projection, page selection, PDF render capability diagnostics, and source-to-PDF diagnostic bridging | Private raster encoders, allocation policy, or source-adapter-specific image APIs |
+| `OfficeIMO.Pdf` | PDF parsing/content semantics, page-to-Drawing projection, page selection, Drawing-owned raster normalization for authored/stamped images, PDF render capability diagnostics, and source-to-PDF diagnostic bridging | Private raster encoders, allocation policy, or source-adapter-specific image APIs |
 | OpenDocument adapters | Attach ODT/ODS/ODP conversion evidence while delegating visuals to Word/Excel/PowerPoint | Another ODF parser or renderer |
 
 ## Shared Drawing Foundation
@@ -113,8 +113,9 @@ This matrix tracks dependency-free image export across OfficeIMO document packag
 | Surface | Status | Evidence | Key gaps |
 | --- | --- | --- | --- |
 | Loaded PDF page | Five formats supported | `PdfReadPage.ExportImage`, `ToImage()`, format identity tests, DPI and thumbnail tests; supported missing annotation appearances are synthesized through the annotation appearance owner and reported as `render.annotation.appearance-synthesized` | Coverage follows the first-party PDF page-to-Drawing capability manifest; Type 3 fonts, unsupported content-paint color spaces, and arbitrary producer edge cases remain diagnostic-driven |
-| Loaded PDF document | Selected batch supported | `PdfReadDocument.ExportImages`, `ToImages().Pages("2,1")`, shared pixel budget and cancellation | Continue extending PDF operator/font/form/transparency fidelity in the existing page projection |
-| Source-to-PDF conversion result | Shared paged-image bridge | `PdfDocumentConversionResult.ExportImages` / `ToImages()` retain source conversion diagnostics for Markdown, AsciiDoc, LaTeX, RTF, OneNote, Word, Excel, PowerPoint, and HTML adapters | A source package should add a direct image API only when PDF pagination is not the right visual contract |
+| Authored or loaded PDF document | Selected batch supported | `PdfDocument.ExportImages` / `ToImages()` and `PdfReadDocument.ExportImages` / `ToImages().Pages("2,1")` share the page renderer, pixel budget, and cancellation contract | Continue extending PDF operator/font/form/transparency fidelity in the existing page projection |
+| Authored and stamped raster input | Drawing-supported source set normalized once | JPEG and writer-safe PNG embed directly; baseline TIFF, uncompressed BMP, first-frame GIF, and OfficeIMO literal-lossless WebP normalize through `OfficeImagePngConverter` with density preservation before every flow, table, inline, header/footer, background, watermark, canvas, and stamp placement | Broader source codecs remain explicit Drawing or caller-codec work; malformed PNGs retain precise fail-closed writer diagnostics |
+| Source-to-PDF conversion result | Shared paged-image bridge | `PdfDocumentConversionResult.ExportImages` / `ToImages()` retain source conversion diagnostics for Markdown, AsciiDoc, LaTeX, RTF, OneNote, OpenDocument, Word, Excel, PowerPoint, and HTML adapters | A source package should add a direct image API only when PDF pagination is not the right visual contract |
 
 ## OpenDocument Bridges
 

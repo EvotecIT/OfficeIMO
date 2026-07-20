@@ -88,7 +88,12 @@ public static partial class MarkdownPdfConverterExtensions {
         string? linkContents,
         MarkdownPdfSaveOptions options,
         MarkdownPdfStyle visualTheme) {
-        if (!PdfCore.PdfDocument.TryValidateImageBytes(bytes, out OfficeImageInfo? info, out string? unsupportedReason)) {
+        if (!PdfCore.PdfDocument.TryPrepareImageBytes(
+                bytes,
+                out byte[] preparedBytes,
+                out OfficeImageInfo? info,
+                out _,
+                out string? unsupportedReason)) {
             AddWarning(options, "UnsupportedImage", sourceName, "The Markdown image bytes are not supported by the PDF image renderer. " + unsupportedReason);
             RenderImagePlaceholder(pdf, altText ?? sourceName, visualTheme);
             return;
@@ -100,7 +105,7 @@ public static partial class MarkdownPdfConverterExtensions {
         PdfCore.PdfImageStyle imageStyle = CreateConverterImageStyle(figureStyle, altText);
         string? normalizedLinkContents = linkUri == null || string.IsNullOrWhiteSpace(linkContents) ? null : linkContents;
 
-        pdf.Image(bytes, width, height, align: null, clipPath: null, fit: null, spacingBefore: null, spacingAfter: null, style: imageStyle, linkUri: linkUri, linkContents: normalizedLinkContents);
+        pdf.Image(preparedBytes, width, height, align: null, clipPath: null, fit: null, spacingBefore: null, spacingAfter: null, style: imageStyle, linkUri: linkUri, linkContents: normalizedLinkContents);
         RenderFigureCaption(pdf, caption, figureStyle);
     }
 

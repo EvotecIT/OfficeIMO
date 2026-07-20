@@ -67,13 +67,13 @@ internal static partial class PdfStamper {
 
         var effectiveOptions = options ?? new PdfImageStampOptions();
         ValidateImageOptions(effectiveOptions);
-        var imageInfo = PdfDocument.ValidateImageBytes(imageBytes);
+        PdfDocument.PreparedImage prepared = PdfDocument.PrepareImageBytes(imageBytes);
 
         if (!PdfWriter.TryBuildImageStream(
-                imageBytes,
-                imageInfo,
-                effectiveOptions.Width ?? Math.Max(1, imageInfo.Width),
-                effectiveOptions.Height ?? Math.Max(1, imageInfo.Height),
+                prepared.Data,
+                prepared.Info,
+                effectiveOptions.Width ?? Math.Max(1, prepared.Info.Width),
+                effectiveOptions.Height ?? Math.Max(1, prepared.Info.Height),
                 out var imageStream,
                 out string? unsupportedReason)) {
             throw new NotSupportedException(unsupportedReason ?? "Image format is not supported.");
