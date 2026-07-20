@@ -957,7 +957,7 @@ namespace OfficeIMO.PowerPoint {
                             diagnostics,
                             PowerPointImageExportDiagnosticCodes.InvalidSlideBackgroundColor,
                             "Used the configured fallback background because the PowerPoint slide background color could not be parsed.",
-                            OfficeImageExportLossKind.Approximation);
+                            OfficeImageExportLossKind.Omission);
                     }
                     return;
                 case PowerPointSlideBackgroundKind.LinearGradient:
@@ -968,7 +968,7 @@ namespace OfficeIMO.PowerPoint {
                             diagnostics,
                             PowerPointImageExportDiagnosticCodes.InvalidSlideBackgroundGradient,
                             "Used the configured fallback background because the PowerPoint slide background gradient colors could not be parsed.",
-                            OfficeImageExportLossKind.Approximation);
+                            OfficeImageExportLossKind.Omission);
                     }
                     return;
                 case PowerPointSlideBackgroundKind.Image:
@@ -979,7 +979,7 @@ namespace OfficeIMO.PowerPoint {
                         diagnostics,
                         PowerPointImageExportDiagnosticCodes.UnsupportedSlideBackground,
                         "Used the configured fallback background because " + (background.UnsupportedReason ?? "the PowerPoint slide background is not supported."),
-                        OfficeImageExportLossKind.Approximation);
+                        OfficeImageExportLossKind.Omission);
                     return;
             }
         }
@@ -991,7 +991,7 @@ namespace OfficeIMO.PowerPoint {
                     diagnostics,
                     PowerPointImageExportDiagnosticCodes.InvalidSlideBackgroundImage,
                     "Used the configured fallback background because the PowerPoint slide background image bytes could not be read.",
-                    OfficeImageExportLossKind.Approximation);
+                    OfficeImageExportLossKind.Omission);
                 return;
             }
 

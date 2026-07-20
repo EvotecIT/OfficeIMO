@@ -63,5 +63,55 @@ namespace OfficeIMO.Tests {
                     diagnostic.Message.Contains("frame geometry", StringComparison.OrdinalIgnoreCase) &&
                     diagnostic.LossKind == OfficeImageExportLossKind.Approximation);
         }
+
+        [Fact]
+        public void PowerPointSlide_StrictOmissionPolicyRejectsUnreadableBackgroundImage() {
+            using var stream = new MemoryStream();
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            presentation.SlideSize.SetSizePoints(160, 90);
+            PowerPointSlide slide = presentation.AddSlide();
+            using var emptyImage = new MemoryStream();
+            slide.SetBackgroundImage(
+                emptyImage,
+                ImagePartType.Png);
+
+            OfficeImageExportPolicyException exception = Assert.Throws<OfficeImageExportPolicyException>(() =>
+                slide.ExportImage(
+                    OfficeImageExportFormat.Svg,
+                    new PowerPointImageExportOptions {
+                        Policy = new OfficeImageExportPolicy { RequireNoOmissions = true }
+                    }));
+
+            Assert.Contains(
+                exception.Diagnostics,
+                diagnostic =>
+                    diagnostic.Code == PowerPointImageExportDiagnosticCodes.InvalidSlideBackgroundImage &&
+                    diagnostic.LossKind == OfficeImageExportLossKind.Omission);
+        }
+
+        [Fact]
+        public void PowerPointSlide_StrictOmissionPolicyRejectsUnsupportedBackgroundFill() {
+            using var stream = new MemoryStream();
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            presentation.SlideSize.SetSizePoints(160, 90);
+            PowerPointSlide slide = presentation.AddSlide();
+            slide.SlidePart.Slide.CommonSlideData!.Background = new Background(
+                new BackgroundProperties(
+                    new A.GradientFill(
+                        new A.PathGradientFill { Path = A.PathShadeValues.Shape })));
+
+            OfficeImageExportPolicyException exception = Assert.Throws<OfficeImageExportPolicyException>(() =>
+                slide.ExportImage(
+                    OfficeImageExportFormat.Svg,
+                    new PowerPointImageExportOptions {
+                        Policy = new OfficeImageExportPolicy { RequireNoOmissions = true }
+                    }));
+
+            Assert.Contains(
+                exception.Diagnostics,
+                diagnostic =>
+                    diagnostic.Code == PowerPointImageExportDiagnosticCodes.UnsupportedSlideBackground &&
+                    diagnostic.LossKind == OfficeImageExportLossKind.Omission);
+        }
     }
 }
