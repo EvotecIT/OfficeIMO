@@ -392,6 +392,12 @@ namespace OfficeIMO.Drawing.Internal {
                     if (!waitForClaim) return false;
                     if (attempt >= 9) throw;
                     Thread.Sleep(Math.Min(50 * (attempt + 1), 500));
+                } catch (UnauthorizedAccessException) when (attempt < 9) {
+                    // Windows can report a sharing violation as access denied while
+                    // another writer owns the claim, and File.Exists may transiently
+                    // return false for that locked path. Retry so the owner can release
+                    // the claim; a persistent permission failure is rethrown below.
+                    Thread.Sleep(Math.Min(50 * (attempt + 1), 500));
                 } catch (IOException) when (attempt < 9) {
                     Thread.Sleep(Math.Min(50 * (attempt + 1), 500));
                 }
