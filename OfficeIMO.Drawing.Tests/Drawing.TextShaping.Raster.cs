@@ -55,6 +55,29 @@ public partial class DrawingTests {
     }
 
     [Fact]
+    public void ShapedTextRun_PositionsNegativeAdvanceGlyphsInsideMeasuredBounds() {
+        OfficeTrueTypeFont? font = OfficeTrueTypeFont.TryLoad(
+            ManagedTextShapingTestAssets.CreateFont(0x05D0));
+        Assert.NotNull(font);
+        OfficeTrueTypeFont.ShapedTextRun run = font!.CreateShapedTextRun(
+            "\u05D0",
+            new OfficeTextShapingResult(new[] {
+                new OfficeShapedGlyph(1, "\u05D0", 0, advanceWidth: -500)
+            }));
+        const double originX = 10D;
+        double measuredWidth = run.Measure(1000D);
+        List<OfficePoint> points = run
+            .GetContours(originX, 0D, 1000D)
+            .SelectMany(contour => contour)
+            .ToList();
+
+        Assert.Equal(500D, measuredWidth);
+        Assert.NotEmpty(points);
+        Assert.True(points.Min(point => point.X) >= originX);
+        Assert.True(points.Max(point => point.X) <= originX + measuredWidth);
+    }
+
+    [Fact]
     public void RasterCanvas_PaintsProviderSelectedGlyphContours() {
         var provider = new ManagedTextShapingTestAssets.RecordingProvider();
         var fonts = new OfficeFontFaceCollection().Add(

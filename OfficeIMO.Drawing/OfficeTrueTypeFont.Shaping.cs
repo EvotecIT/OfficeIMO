@@ -81,17 +81,23 @@ public sealed partial class OfficeTrueTypeFont {
         internal List<List<OfficePoint>> GetContours(double x, double y, double fontSize) {
             var contours = new List<List<OfficePoint>>();
             double scale = _font.ScaleFor(fontSize);
-            double cursor = _advanceWidth < 0L ? x - (_advanceWidth * scale) : x;
+            bool negativeDirection = _advanceWidth < 0L;
+            double cursor = negativeDirection ? x - (_advanceWidth * scale) : x;
             double baseline = y + (_font._ascender * scale);
             for (int index = 0; index < _glyphs.Length; index++) {
                 PositionedGlyph glyph = _glyphs[index];
+                if (negativeDirection) {
+                    cursor += glyph.AdvanceWidth * scale;
+                }
                 double glyphX = cursor + (glyph.OffsetX * scale);
                 double glyphBaseline = baseline - (glyph.OffsetY * scale);
                 contours.AddRange(_font.ReadGlyphContours(
                     glyph.GlyphId,
                     new FontTransform(scale, 0D, 0D, -scale, glyphX, glyphBaseline),
                     0));
-                cursor += glyph.AdvanceWidth * scale;
+                if (!negativeDirection) {
+                    cursor += glyph.AdvanceWidth * scale;
+                }
             }
             return contours;
         }
