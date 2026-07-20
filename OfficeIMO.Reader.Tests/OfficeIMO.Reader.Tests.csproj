@@ -81,6 +81,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Include="..\OfficeIMO.Email.Tests\Store\Pst\PstTestFileBuilder.cs" Link="EmailStore\PstTestFileBuilder.cs" />
     <Compile Include="..\OfficeIMO.Pdf.Tests\Pdf\PdfPngTestImages.cs" Link="Pdf\PdfPngTestImages.cs" />
     <Compile Include="..\OfficeIMO.TestAssets\TestStreams\NonSeekableReadStream.cs" Link="TestStreams\NonSeekableReadStream.cs" />
     <Compile Include="..\TestSupport\OpenDocument\OdfTestPackageRewriter.cs" Link="TestSupport\OdfTestPackageRewriter.cs" />

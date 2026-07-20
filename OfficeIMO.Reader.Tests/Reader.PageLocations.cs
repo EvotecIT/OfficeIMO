@@ -88,6 +88,7 @@ public sealed class ReaderPageLocationTests {
         };
         OfficeDocumentReadResult document = new OfficeDocumentReadResult {
             Kind = ReaderInputKind.Word,
+            Source = new OfficeDocumentSource { Path = "repeated-pages.docx" },
             Blocks = new[] { sourceBlock },
             Pages = new[] {
                 Page(1, PageBlock(sourceBlock, 1, "First needle before the page boundary. ")),
@@ -101,6 +102,9 @@ public sealed class ReaderPageLocationTests {
             new OfficeDocumentSearchOptions { MaximumResults = 1 });
 
         Assert.Equal(2, result.Hits.Count);
+        Assert.Equal("repeated-pages.docx", result.Source.Path);
+        Assert.False(result.MaximumResultsReached);
+        Assert.True(limited.MaximumResultsReached);
         Assert.Equal(new[] { 1 }, result.Hits[0].Pages.Select(page => page.Number!.Value).ToArray());
         Assert.Equal(new[] { 2 }, result.Hits[1].Pages.Select(page => page.Number!.Value).ToArray());
         Assert.Equal(new[] { 1, 2 }, result.PageNumbers);
