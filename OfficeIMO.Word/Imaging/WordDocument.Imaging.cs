@@ -25,6 +25,17 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
+        /// Creates format-neutral visual snapshots for a page range or the complete document
+        /// with cooperative cancellation during pagination.
+        /// </summary>
+        public IReadOnlyList<WordDocumentVisualSnapshot> CreateVisualSnapshots(
+            WordImageExportOptions? options,
+            CancellationToken cancellationToken) {
+            WordImageExportOptions resolved = NormalizeImageExportOptions(options);
+            return WordDocumentImageRenderer.CreateSnapshots(this, resolved, cancellationToken);
+        }
+
+        /// <summary>
         /// Exports the requested document page as a supported raster format or SVG.
         /// </summary>
         public OfficeImageExportResult ExportImage(

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using OfficeIMO.Drawing;
 using A = DocumentFormat.OpenXml.Drawing;
 
@@ -179,12 +180,13 @@ namespace OfficeIMO.Word {
                 initialTextLayout.ContentWidth,
                 double.MaxValue,
                 Math.Max(1D, lineHeight / Math.Max(1D, maxFontSize)),
-                CreateRichTextMeasure(),
+                CreateRichTextMeasure(context.CancellationToken),
                 wrap: true,
                 shrinkToFit: false,
                 minimumFontSize: Math.Min(6D, maxFontSize),
                 overflowBehavior: OfficeTextOverflowBehavior.Clip,
-                paragraphIndent: initialTextLayout.ParagraphIndent);
+                paragraphIndent: initialTextLayout.ParagraphIndent,
+                cancellationToken: context.CancellationToken);
             IReadOnlyList<OfficeRichTextLine> lines = layout.Lines;
             if (lines.Count == 0) {
                 return false;
@@ -486,14 +488,29 @@ namespace OfficeIMO.Word {
             return null;
         }
 
-        private static List<string> WrapTextIntoMeasuredLines(string text, OfficeFontInfo font, double contentWidth) {
+        private static List<string> WrapTextIntoMeasuredLines(
+            string text,
+            OfficeFontInfo font,
+            double contentWidth,
+            CancellationToken cancellationToken = default,
+            Action<WordImageCancellationCheckpoint>? cancellationCheckpoint = null) {
+            cancellationToken.ThrowIfCancellationRequested();
             string normalized = text.Replace("\r\n", "\n").Replace('\r', '\n');
+            cancellationToken.ThrowIfCancellationRequested();
             string[] explicitLines = normalized.Split('\n');
             var lines = new List<string>();
             OfficeTextMeasurer measurer = OfficeTextMeasurer.Create(font);
             OfficeTextMeasurementStyle style = measurer.CreateStyle(font, 72D);
             foreach (string explicitLine in explicitLines) {
-                AddMeasuredWrappedLine(explicitLine, Math.Max(1D, contentWidth), measurer, style, lines);
+                cancellationToken.ThrowIfCancellationRequested();
+                AddMeasuredWrappedLine(
+                    explicitLine,
+                    Math.Max(1D, contentWidth),
+                    measurer,
+                    style,
+                    lines,
+                    cancellationToken,
+                    cancellationCheckpoint);
             }
 
             return lines;
@@ -504,17 +521,25 @@ namespace OfficeIMO.Word {
             double contentWidth,
             OfficeTextMeasurer measurer,
             OfficeTextMeasurementStyle style,
-            List<string> lines) {
+            List<string> lines,
+            CancellationToken cancellationToken,
+            Action<WordImageCancellationCheckpoint>? cancellationCheckpoint) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (text.Length == 0) {
                 lines.Add(string.Empty);
                 return;
             }
 
-            List<string> words = SplitMeasuredWords(text);
+            List<string> words = SplitMeasuredWords(
+                text,
+                cancellationToken,
+                cancellationCheckpoint);
             string current = string.Empty;
             for (int i = 0; i < words.Count; i++) {
+                cancellationToken.ThrowIfCancellationRequested();
                 string word = words[i];
-                if (current.Length == 0 && IsMeasuredWhitespaceRun(word)) {
+                if (current.Length == 0 &&
+                    IsMeasuredWhitespaceRun(word, cancellationToken)) {
                     continue;
                 }
 
@@ -525,7 +550,13 @@ namespace OfficeIMO.Word {
                         continue;
                     }
 
-                    AddMeasuredWordFragments(word, contentWidth, measurer, style, lines);
+                    AddMeasuredWordFragments(
+                        word,
+                        contentWidth,
+                        measurer,
+                        style,
+                        lines,
+                        cancellationToken);
                     continue;
                 }
 
@@ -542,14 +573,32 @@ namespace OfficeIMO.Word {
         private static string TrimMeasuredLine(string text) =>
             text.TrimEnd(' ', '\t');
 
-        private static bool IsMeasuredWhitespaceRun(string text) =>
-            text.All(char.IsWhiteSpace);
+        private static bool IsMeasuredWhitespaceRun(
+            string text,
+            CancellationToken cancellationToken) {
+            for (int index = 0; index < text.Length; index++) {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (!char.IsWhiteSpace(text[index])) {
+                    return false;
+                }
+            }
+            return true;
+        }
 
-        private static List<string> SplitMeasuredWords(string text) {
+        private static List<string> SplitMeasuredWords(
+            string text,
+            CancellationToken cancellationToken,
+            Action<WordImageCancellationCheckpoint>? cancellationCheckpoint) {
             var words = new List<string>();
             int start = -1;
             bool? currentIsWhitespace = null;
             for (int i = 0; i < text.Length; i++) {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (i == 1024) {
+                    cancellationCheckpoint?.Invoke(
+                        WordImageCancellationCheckpoint.PlainTextWrapping);
+                    cancellationToken.ThrowIfCancellationRequested();
+                }
                 bool isWhitespace = char.IsWhiteSpace(text[i]);
                 if (start >= 0 && currentIsWhitespace != isWhitespace) {
                     words.Add(text.Substring(start, i - start));
@@ -580,9 +629,11 @@ namespace OfficeIMO.Word {
             double contentWidth,
             OfficeTextMeasurer measurer,
             OfficeTextMeasurementStyle style,
-            List<string> lines) {
+            List<string> lines,
+            CancellationToken cancellationToken) {
             string current = string.Empty;
             for (int i = 0; i < word.Length; i++) {
+                cancellationToken.ThrowIfCancellationRequested();
                 string candidate = current + word[i];
                 if (current.Length > 0 && measurer.MeasureWidth(candidate, style) > contentWidth) {
                     lines.Add(current);

@@ -9,6 +9,7 @@ namespace OfficeIMO.Reader.Word;
 internal static class WordRichMapping {
     internal static OfficeDocumentReadResult Apply(
         WordDocumentSnapshot snapshot,
+        IReadOnlyList<WordDocumentVisualSnapshot> pageSnapshots,
         ReaderOptions readerOptions,
         ReaderWordOptions options,
         OfficeDocumentReadResult result) {
@@ -52,15 +53,146 @@ internal static class WordRichMapping {
         var metadata = new[] {
             BuildCountMetadataEntry("word-section-count", "word.structure", "SectionCount", snapshot.Sections.Count)
         };
+        IReadOnlyList<OfficeDocumentPage> pages = BuildWordPages(
+            pageSnapshots,
+            blocks,
+            tables,
+            links,
+            result.Source.Path);
+        IReadOnlyList<string> capabilities = options.IncludePageLocations
+            ? new[] {
+                "officeimo.word.inspection-snapshot",
+                "officeimo.reader.word.rich-v5",
+                "officeimo.reader.word.pages.computed"
+            }
+            : new[] {
+                "officeimo.word.inspection-snapshot",
+                "officeimo.reader.word.rich-v5"
+            };
         return DocumentReaderEngine.EnrichDocumentResult(
             result,
-            new[] { "officeimo.word.inspection-snapshot", "officeimo.reader.word.rich-v5" },
+            capabilities,
             blocks,
             tables,
             links,
             result.Visuals,
-            result.Pages,
+            pages,
             metadata);
+    }
+
+    private static IReadOnlyList<OfficeDocumentPage> BuildWordPages(
+        IReadOnlyList<WordDocumentVisualSnapshot> pageSnapshots,
+        IReadOnlyList<OfficeDocumentBlock> blocks,
+        IReadOnlyList<ReaderTable> tables,
+        IReadOnlyList<OfficeDocumentLink> links,
+        string? sourcePath) {
+        if (pageSnapshots.Count == 0) {
+            return Array.Empty<OfficeDocumentPage>();
+        }
+
+        var blocksById = blocks
+            .Where(static block => !string.IsNullOrEmpty(block.Id))
+            .ToDictionary(static block => block.Id, StringComparer.Ordinal);
+        var pages = new List<OfficeDocumentPage>(pageSnapshots.Count);
+        foreach (WordDocumentVisualSnapshot snapshot in pageSnapshots) {
+            int pageNumber = snapshot.PageIndex + 1;
+            var pageBlocks = new List<OfficeDocumentBlock>();
+            foreach (IGrouping<(int SectionIndex, int BlockIndex), WordDocumentVisualFragment> group in snapshot.Fragments
+                         .GroupBy(static fragment => (fragment.SectionIndex, fragment.BlockIndex))) {
+                string blockId = "word-section-" +
+                    (group.Key.SectionIndex + 1).ToString("D4", CultureInfo.InvariantCulture) +
+                    "-block-" +
+                    group.Key.BlockIndex.ToString("D4", CultureInfo.InvariantCulture);
+                if (!blocksById.TryGetValue(blockId, out OfficeDocumentBlock? sourceBlock)) {
+                    continue;
+                }
+
+                string visibleText = CombineWordFragmentText(
+                    group.Select(static fragment => fragment.Text));
+                OfficeDocumentRegion? region = CombineWordRegions(group);
+                pageBlocks.Add(CloneWordPageBlock(
+                    sourceBlock,
+                    pageNumber,
+                    visibleText,
+                    region));
+            }
+
+            string[] blockIds = pageBlocks.Select(static block => block.Id).ToArray();
+            pages.Add(new OfficeDocumentPage {
+                Number = pageNumber,
+                Name = "Page " + pageNumber.ToString(CultureInfo.InvariantCulture),
+                Width = snapshot.Width,
+                Height = snapshot.Height,
+                Location = new ReaderLocation {
+                    Path = sourcePath,
+                    Page = pageNumber,
+                    SourceBlockKind = "page",
+                    BlockAnchor = "word-page-" + pageNumber.ToString("D4", CultureInfo.InvariantCulture)
+                },
+                Blocks = pageBlocks.AsReadOnly(),
+                Tables = tables.Where(table =>
+                    table.Location?.BlockAnchor != null &&
+                    blockIds.Contains(table.Location.BlockAnchor, StringComparer.Ordinal)).ToArray(),
+                Links = links.Where(link =>
+                    link.Location.BlockAnchor != null &&
+                    blockIds.Any(blockId => link.Location.BlockAnchor.StartsWith(blockId, StringComparison.Ordinal))).ToArray()
+            });
+        }
+
+        return pages.AsReadOnly();
+    }
+
+    internal static string CombineWordFragmentText(IEnumerable<string> fragmentText) {
+        return string.Join(
+            Environment.NewLine,
+            fragmentText.Where(static text => !string.IsNullOrWhiteSpace(text)));
+    }
+
+    private static OfficeDocumentBlock CloneWordPageBlock(
+        OfficeDocumentBlock source,
+        int pageNumber,
+        string text,
+        OfficeDocumentRegion? region) {
+        ReaderLocation location = CloneWordLocation(source.Location, source.Kind, source.Id);
+        location.Page = pageNumber;
+        return new OfficeDocumentBlock {
+            Id = source.Id,
+            Kind = source.Kind,
+            Text = text,
+            Level = source.Level,
+            Marker = source.Marker,
+            Location = location,
+            Region = region
+        };
+    }
+
+    private static OfficeDocumentRegion? CombineWordRegions(
+        IEnumerable<WordDocumentVisualFragment> fragments) {
+        bool hasRegion = false;
+        double left = double.MaxValue;
+        double top = double.MaxValue;
+        double right = double.MinValue;
+        double bottom = double.MinValue;
+        foreach (WordDocumentVisualFragment fragment in fragments) {
+            WordDocumentVisualRegion? region = fragment.Region;
+            if (region == null) {
+                continue;
+            }
+            left = Math.Min(left, region.X);
+            top = Math.Min(top, region.Y);
+            right = Math.Max(right, region.X + region.Width);
+            bottom = Math.Max(bottom, region.Y + region.Height);
+            hasRegion = true;
+        }
+
+        return hasRegion
+            ? new OfficeDocumentRegion {
+                X = left,
+                Y = top,
+                Width = Math.Max(0D, right - left),
+                Height = Math.Max(0D, bottom - top)
+            }
+            : null;
     }
 
     private static void ProjectWordNotes(

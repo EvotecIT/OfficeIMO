@@ -33,6 +33,36 @@ OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
 OfficeDocumentReadResult document = reader.ReadDocument("Policy.docx");
 ```
 
+## Find content by page
+
+Page-aware reading stays on `OfficeDocumentReadResult`; it is not a separate conversion path. A format adapter
+populates `Pages`, and Reader Core provides shared location, search, and page-scoped Markdown helpers:
+
+```csharp
+OfficeDocumentSearchResult matches = document.Search("retention period");
+
+foreach (OfficeDocumentSearchHit hit in matches.Hits) {
+    Console.WriteLine(hit.Block.Text);
+    foreach (OfficeDocumentPageLocation location in hit.Pages) {
+        Console.WriteLine(location.Display); // for example: Page 5 of 20
+    }
+}
+
+string pageMarkedMarkdown = document.ToPageMarkedMarkdown();
+```
+
+Page boundaries are not equally authoritative in every source format:
+
+| Format | Page provenance | Reader behavior |
+| --- | --- | --- |
+| PDF | `Native` | Uses fixed pages and source geometry from the PDF logical model. |
+| Word | `Computed` | Opt-in best-effort pagination through the OfficeIMO.Word layout engine. |
+| RTF | `ExplicitBreak` | Opt-in reconstruction from explicit/saved page and section-break hints; automatic overflow is not calculated. |
+
+Use `document.GetPageProvenance()` when page accuracy affects citations. `GetPageMarkdown()` returns separate
+page values, while `ToPageMarkedMarkdown()` produces one portable Markdown string with HTML page markers.
+The original document-wide `Markdown`, `Blocks`, and `Chunks` remain available on the same result.
+
 For dependency-free plain text and an explicit unknown-payload fallback:
 
 ```csharp

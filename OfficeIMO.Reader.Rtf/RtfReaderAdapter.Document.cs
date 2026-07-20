@@ -88,7 +88,13 @@ internal static partial class RtfReaderAdapter {
             chunks,
             ReaderInputKind.Rtf,
             documentSource,
-            new[] { "officeimo.reader.rtf.rich-v5", "officeimo.rtf.semantic-model" },
+            rtfOptions.IncludePageLocations
+                ? new[] {
+                    "officeimo.reader.rtf.rich-v5",
+                    "officeimo.rtf.semantic-model",
+                    "officeimo.reader.rtf.pages.explicit"
+                }
+                : new[] { "officeimo.reader.rtf.rich-v5", "officeimo.rtf.semantic-model" },
             projection.Assets);
         result.Blocks = projection.Blocks;
         result.Tables = projection.Tables;
@@ -96,9 +102,15 @@ internal static partial class RtfReaderAdapter {
         result.Forms = projection.Forms;
         result.Visuals = projection.Visuals;
         result.Metadata = BuildRtfMetadata(document, projection);
+        result.Pages = rtfOptions.IncludePageLocations
+            ? BuildRtfPages(document, projection, source.Path, cancellationToken)
+            : Array.Empty<OfficeDocumentPage>();
         result.Diagnostics = result.Diagnostics
             .Concat(MapRtfDiagnostics(includedDiagnostics, source.Path))
             .Concat(MapReaderRtfConversionDiagnostics(rtfOptions.Report, source.Path))
+            .Concat(rtfOptions.IncludePageLocations
+                ? BuildRtfPageDiagnostics(document, result.Pages, source.Path)
+                : Array.Empty<OfficeDocumentDiagnostic>())
             .ToArray();
         return result;
     }
@@ -297,12 +309,21 @@ internal static partial class RtfReaderAdapter {
         }
     }
 
-    private static IReadOnlyList<OfficeDocumentMetadataEntry> BuildRtfMetadata(RtfDocument document, RtfRichProjection projection) => new[] {
-        RtfMetadata("rtf-font-count", "FontCount", document.Fonts.Count), RtfMetadata("rtf-style-count", "StyleCount", document.Styles.Count),
-        RtfMetadata("rtf-block-count", "BlockCount", projection.Blocks.Count), RtfMetadata("rtf-table-count", "TableCount", projection.Tables.Count),
-        RtfMetadata("rtf-link-count", "LinkCount", projection.Links.Count), RtfMetadata("rtf-asset-count", "AssetCount", projection.Assets.Count),
-        RtfMetadata("rtf-form-count", "FormFieldCount", projection.Forms.Count)
-    };
+    private static IReadOnlyList<OfficeDocumentMetadataEntry> BuildRtfMetadata(RtfDocument document, RtfRichProjection projection) {
+        var metadata = new List<OfficeDocumentMetadataEntry> {
+            RtfMetadata("rtf-font-count", "FontCount", document.Fonts.Count),
+            RtfMetadata("rtf-style-count", "StyleCount", document.Styles.Count),
+            RtfMetadata("rtf-block-count", "BlockCount", projection.Blocks.Count),
+            RtfMetadata("rtf-table-count", "TableCount", projection.Tables.Count),
+            RtfMetadata("rtf-link-count", "LinkCount", projection.Links.Count),
+            RtfMetadata("rtf-asset-count", "AssetCount", projection.Assets.Count),
+            RtfMetadata("rtf-form-count", "FormFieldCount", projection.Forms.Count)
+        };
+        if (document.Info.NumberOfPages.HasValue && document.Info.NumberOfPages.Value > 0) {
+            metadata.Add(RtfMetadata("rtf-page-count", "NumberOfPages", document.Info.NumberOfPages.Value));
+        }
+        return metadata.AsReadOnly();
+    }
 
     private static OfficeDocumentMetadataEntry RtfMetadata(string id, string name, int count) => new OfficeDocumentMetadataEntry {
         Id = id, Category = "rtf.summary", Name = name, Value = count.ToString(CultureInfo.InvariantCulture), ValueType = "count"

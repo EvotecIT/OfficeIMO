@@ -17,7 +17,10 @@ namespace OfficeIMO.Word {
             OfficeImageExportConsumer consumer,
             CancellationToken cancellationToken = default) {
             if (consumer == null) throw new ArgumentNullException(nameof(consumer));
-            IReadOnlyList<int> sectionPageCounts = EstimateSectionPageCounts(document);
+            IReadOnlyList<int> sectionPageCounts = EstimateSectionPageCounts(
+                document,
+                cancellationToken,
+                options.CancellationCheckpoint);
             (int firstPage, int count) = ResolveBatchPageRange(options, sectionPageCounts);
             int[] pages = Enumerable.Range(firstPage, count).ToArray();
             OfficeImageExportBatchProcessor.ForEachOrdered(
@@ -26,7 +29,11 @@ namespace OfficeIMO.Word {
                 (pageIndex, _, token) => {
                     WordImageExportOptions pageOptions = options.Clone();
                     pageOptions.PageIndex = pageIndex;
-                    WordDocumentVisualSnapshot snapshot = CreateSnapshot(document, pageOptions, sectionPageCounts);
+                    WordDocumentVisualSnapshot snapshot = CreateSnapshot(
+                        document,
+                        pageOptions,
+                        sectionPageCounts,
+                        token);
                     token.ThrowIfCancellationRequested();
                     return RenderSnapshot(snapshot, format, pageOptions, token);
                 },
@@ -36,14 +43,24 @@ namespace OfficeIMO.Word {
         }
 
         internal static IReadOnlyList<WordDocumentVisualSnapshot> CreateSnapshots(WordDocument document,
-            WordImageExportOptions options) {
-            IReadOnlyList<int> sectionPageCounts = EstimateSectionPageCounts(document);
+            WordImageExportOptions options,
+            CancellationToken cancellationToken = default) {
+            cancellationToken.ThrowIfCancellationRequested();
+            IReadOnlyList<int> sectionPageCounts = EstimateSectionPageCounts(
+                document,
+                cancellationToken,
+                options.CancellationCheckpoint);
             (int firstPage, int count) = ResolveBatchPageRange(options, sectionPageCounts);
             var snapshots = new List<WordDocumentVisualSnapshot>(count);
             for (int index = 0; index < count; index++) {
+                cancellationToken.ThrowIfCancellationRequested();
                 WordImageExportOptions pageOptions = options.Clone();
                 pageOptions.PageIndex = firstPage + index;
-                snapshots.Add(CreateSnapshot(document, pageOptions, sectionPageCounts));
+                snapshots.Add(CreateSnapshot(
+                    document,
+                    pageOptions,
+                    sectionPageCounts,
+                    cancellationToken));
             }
 
             return snapshots.AsReadOnly();

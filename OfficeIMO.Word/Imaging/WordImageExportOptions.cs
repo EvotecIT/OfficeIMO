@@ -1,6 +1,11 @@
 using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Word {
+    internal enum WordImageCancellationCheckpoint {
+        PlainTextWrapping,
+        NestedTableMeasurement
+    }
+
     /// <summary>
     /// Options controlling dependency-free Word document image export.
     /// </summary>
@@ -24,12 +29,15 @@ namespace OfficeIMO.Word {
         /// </summary>
         public int? PageCount { get; set; }
 
+        internal Action<WordImageCancellationCheckpoint>? CancellationCheckpoint { get; set; }
+
         /// <summary>Creates an independent options snapshot.</summary>
         public WordImageExportOptions Clone() {
             WordImageExportOptions clone = CopyImageExportOptionsTo(new WordImageExportOptions());
             clone.IncludeDocumentContent = IncludeDocumentContent;
             clone.PageIndex = PageIndex;
             clone.PageCount = PageCount;
+            clone.CancellationCheckpoint = CancellationCheckpoint;
             return clone;
         }
 

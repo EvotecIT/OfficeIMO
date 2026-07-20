@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Threading;
 
 namespace OfficeIMO.Drawing;
 
@@ -142,6 +143,48 @@ public static partial class OfficeTextLayoutEngine {
         double minimumFontSize,
         OfficeTextOverflowBehavior overflowBehavior,
         OfficeTextParagraphIndent? paragraphIndent = null) {
+        return LayoutRichTextBlock(
+            runs,
+            maxWidth,
+            maxHeight,
+            lineHeightFactor,
+            measure,
+            wrap,
+            shrinkToFit,
+            minimumFontSize,
+            overflowBehavior,
+            paragraphIndent,
+            CancellationToken.None);
+    }
+
+    /// <summary>
+    /// Lays out styled rich text runs into a bounded text block with cooperative cancellation.
+    /// </summary>
+    /// <param name="runs">Styled text runs.</param>
+    /// <param name="maxWidth">Maximum block width.</param>
+    /// <param name="maxHeight">Maximum block height.</param>
+    /// <param name="lineHeightFactor">Multiplier used with the largest run font size to derive line height.</param>
+    /// <param name="measure">Measurement delegate matching <see cref="OfficeRasterCanvas.MeasureText(string?, double, string?)"/>.</param>
+    /// <param name="wrap">Whether soft wrapping is enabled. Hard line breaks are always honored.</param>
+    /// <param name="shrinkToFit">Whether non-wrapped rich text should proportionally shrink run font sizes to fit the requested width.</param>
+    /// <param name="minimumFontSize">Minimum font size for any run when <paramref name="shrinkToFit"/> is enabled.</param>
+    /// <param name="overflowBehavior">How overflowing rich text should be represented in the returned layout.</param>
+    /// <param name="paragraphIndent">Optional first-line and continuation-line offsets applied while laying out wrapped rich text.</param>
+    /// <param name="cancellationToken">Token checked while normalizing, tokenizing, measuring, and wrapping rich text.</param>
+    /// <returns>Measured rich text block with visible lines and clipping state.</returns>
+    public static OfficeRichTextBlockLayout LayoutRichTextBlock(
+        IReadOnlyList<OfficeRichTextRun> runs,
+        double maxWidth,
+        double maxHeight,
+        double lineHeightFactor,
+        Func<string?, double, string?, double> measure,
+        bool wrap,
+        bool shrinkToFit,
+        double minimumFontSize,
+        OfficeTextOverflowBehavior overflowBehavior,
+        OfficeTextParagraphIndent? paragraphIndent,
+        CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (runs == null) {
             throw new ArgumentNullException(nameof(runs));
         }
@@ -150,19 +193,32 @@ public static partial class OfficeTextLayoutEngine {
             throw new ArgumentNullException(nameof(measure));
         }
 
-        IReadOnlyList<OfficeRichTextRun> normalizedRuns = NormalizeRichTextRuns(runs);
+        IReadOnlyList<OfficeRichTextRun> normalizedRuns =
+            NormalizeRichTextRuns(runs, cancellationToken);
         double width = NormalizeNonNegative(maxWidth);
         if (shrinkToFit && !wrap) {
-            double unwrappedWidth = MeasureMaxUnwrappedRichTextWidth(normalizedRuns, measure);
+            double unwrappedWidth = MeasureMaxUnwrappedRichTextWidth(
+                normalizedRuns,
+                measure,
+                cancellationToken);
             if (unwrappedWidth > width) {
                 double maxFontSize = ResolveMaxRichTextFontSize(normalizedRuns);
                 double minFontSize = Math.Min(maxFontSize, Math.Max(1D, NormalizePositive(minimumFontSize, 1D)));
                 double scale = Math.Max(minFontSize / Math.Max(maxFontSize, 1D), width / Math.Max(unwrappedWidth, 1D));
-                normalizedRuns = ScaleRichTextRuns(normalizedRuns, scale);
+                normalizedRuns = ScaleRichTextRuns(normalizedRuns, scale, cancellationToken);
             }
         }
 
-        return LayoutRichTextBlockCore(normalizedRuns, width, maxHeight, lineHeightFactor, measure, wrap, overflowBehavior, paragraphIndent ?? OfficeTextParagraphIndent.Empty);
+        return LayoutRichTextBlockCore(
+            normalizedRuns,
+            width,
+            maxHeight,
+            lineHeightFactor,
+            measure,
+            wrap,
+            overflowBehavior,
+            paragraphIndent ?? OfficeTextParagraphIndent.Empty,
+            cancellationToken);
     }
 
     private static OfficeRichTextBlockLayout LayoutRichTextBlockCore(
@@ -173,7 +229,9 @@ public static partial class OfficeTextLayoutEngine {
         Func<string?, double, string?, double> measure,
         bool wrap,
         OfficeTextOverflowBehavior overflowBehavior,
-        OfficeTextParagraphIndent paragraphIndent) {
+        OfficeTextParagraphIndent paragraphIndent,
+        CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         double width = NormalizeNonNegative(maxWidth);
         double height = NormalizeNonNegative(maxHeight);
         double maxFontSize = ResolveMaxRichTextFontSize(runs);
@@ -184,7 +242,8 @@ public static partial class OfficeTextLayoutEngine {
         builder.SetOffset(ResolveLineOffset(paragraphIndent, firstVisualLine: true));
         bool clipped = false;
 
-        foreach (RichTextToken token in CreateRichTextTokens(runs)) {
+        foreach (RichTextToken token in CreateRichTextTokens(runs, cancellationToken)) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (token.HardBreak) {
                 AddRichTextLine(lines, builder);
                 builder.SetOffset(ResolveLineOffset(paragraphIndent, firstVisualLine: true));
@@ -208,7 +267,14 @@ public static partial class OfficeTextLayoutEngine {
             }
 
             if (wrap && tokenWidth > availableWidth && builder.IsEmpty) {
-                AddBrokenRichTextToken(lines, builder, token, width, measure, paragraphIndent);
+                AddBrokenRichTextToken(
+                    lines,
+                    builder,
+                    token,
+                    width,
+                    measure,
+                    paragraphIndent,
+                    cancellationToken);
             } else {
                 builder.Add(token.Run, token.Text);
             }
@@ -238,9 +304,12 @@ public static partial class OfficeTextLayoutEngine {
         return new OfficeRichTextBlockLayout(lines, lineHeight, blockWidth, blockHeight, clipped);
     }
 
-    private static IReadOnlyList<OfficeRichTextRun> NormalizeRichTextRuns(IReadOnlyList<OfficeRichTextRun> runs) {
+    private static IReadOnlyList<OfficeRichTextRun> NormalizeRichTextRuns(
+        IReadOnlyList<OfficeRichTextRun> runs,
+        CancellationToken cancellationToken = default) {
         var normalized = new List<OfficeRichTextRun>(runs.Count);
         for (int i = 0; i < runs.Count; i++) {
+            cancellationToken.ThrowIfCancellationRequested();
             OfficeRichTextRun run = runs[i];
             normalized.Add(new OfficeRichTextRun(
                 run.Text,
@@ -257,10 +326,14 @@ public static partial class OfficeTextLayoutEngine {
         return normalized;
     }
 
-    private static IReadOnlyList<OfficeRichTextRun> ScaleRichTextRuns(IReadOnlyList<OfficeRichTextRun> runs, double scale) {
+    private static IReadOnlyList<OfficeRichTextRun> ScaleRichTextRuns(
+        IReadOnlyList<OfficeRichTextRun> runs,
+        double scale,
+        CancellationToken cancellationToken = default) {
         double factor = Math.Max(0D, scale);
         var scaled = new List<OfficeRichTextRun>(runs.Count);
         for (int i = 0; i < runs.Count; i++) {
+            cancellationToken.ThrowIfCancellationRequested();
             OfficeRichTextRun run = runs[i];
             scaled.Add(new OfficeRichTextRun(
                 run.Text,
@@ -277,10 +350,14 @@ public static partial class OfficeTextLayoutEngine {
         return scaled;
     }
 
-    private static double MeasureMaxUnwrappedRichTextWidth(IReadOnlyList<OfficeRichTextRun> runs, Func<string?, double, string?, double> measure) {
+    private static double MeasureMaxUnwrappedRichTextWidth(
+        IReadOnlyList<OfficeRichTextRun> runs,
+        Func<string?, double, string?, double> measure,
+        CancellationToken cancellationToken) {
         double current = 0D;
         double max = 0D;
-        foreach (RichTextToken token in CreateRichTextTokens(runs)) {
+        foreach (RichTextToken token in CreateRichTextTokens(runs, cancellationToken)) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (token.HardBreak) {
                 max = Math.Max(max, current);
                 current = 0D;
@@ -302,12 +379,17 @@ public static partial class OfficeTextLayoutEngine {
         return max;
     }
 
-    private static IEnumerable<RichTextToken> CreateRichTextTokens(IReadOnlyList<OfficeRichTextRun> runs) {
+    private static IEnumerable<RichTextToken> CreateRichTextTokens(
+        IReadOnlyList<OfficeRichTextRun> runs,
+        CancellationToken cancellationToken) {
         for (int i = 0; i < runs.Count; i++) {
+            cancellationToken.ThrowIfCancellationRequested();
             OfficeRichTextRun run = runs[i];
             string normalized = ExpandTabs(run.Text.Replace("\r\n", "\n").Replace('\r', '\n'));
+            cancellationToken.ThrowIfCancellationRequested();
             var word = new StringBuilder();
             for (int c = 0; c < normalized.Length; c++) {
+                cancellationToken.ThrowIfCancellationRequested();
                 char value = normalized[c];
                 if (value == '\n') {
                     foreach (RichTextToken token in FlushRichTextWord(run, word)) {
@@ -351,8 +433,10 @@ public static partial class OfficeTextLayoutEngine {
         RichTextToken token,
         double maxWidth,
         Func<string?, double, string?, double> measure,
-        OfficeTextParagraphIndent paragraphIndent) {
+        OfficeTextParagraphIndent paragraphIndent,
+        CancellationToken cancellationToken) {
         foreach (string textElement in OfficeTextElements.Enumerate(token.Text)) {
+            cancellationToken.ThrowIfCancellationRequested();
             double width = Measure(textElement, token.Run.FontSize, token.Run.FontFamily, measure);
             double availableWidth = Math.Max(0D, maxWidth - builder.OffsetX);
             if (builder.Width + width > availableWidth && !builder.IsEmpty) {

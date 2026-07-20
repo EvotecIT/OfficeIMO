@@ -3,13 +3,18 @@ using System.Linq;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Drawing;
+using System.Threading;
 
 namespace OfficeIMO.Word {
     internal static partial class WordDocumentImageRenderer {
         internal static int EstimatePageCount(WordDocument document) =>
             Math.Max(1, EstimateSectionPageCounts(document).Sum());
 
-        private static IReadOnlyList<int> EstimateSectionPageCounts(WordDocument document) {
+        private static IReadOnlyList<int> EstimateSectionPageCounts(
+            WordDocument document,
+            CancellationToken cancellationToken = default,
+            Action<WordImageCancellationCheckpoint>? cancellationCheckpoint = null) {
+            cancellationToken.ThrowIfCancellationRequested();
             int sectionCount = Math.Max(1, document.Sections.Count);
             int[] pageCounts = new int[sectionCount];
             int sectionGroupStart = 0;
@@ -18,6 +23,7 @@ namespace OfficeIMO.Word {
             var sectionElements = new List<OpenXmlElement>();
 
             foreach (OpenXmlElement element in document.BodyRoot.ChildElements) {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (element is SectionProperties) {
                     continue;
                 }
@@ -33,7 +39,12 @@ namespace OfficeIMO.Word {
                     }
 
                     WordSection groupSection = document.Sections[sectionGroupStart];
-                    int contentPages = EstimateSectionContentPageCount(document, groupSection, sectionElements);
+                    int contentPages = EstimateSectionContentPageCount(
+                        document,
+                        groupSection,
+                        sectionElements,
+                        cancellationToken,
+                        cancellationCheckpoint);
                     int breakPages = CountSectionBreakPageAdvance(firstPageInSection + contentPages - 1, boundaryProperties);
                     pageCounts[sectionGroupStart] = Math.Max(1, contentPages - 1 + breakPages);
                     firstPageInSection += pageCounts[sectionGroupStart];
@@ -44,7 +55,12 @@ namespace OfficeIMO.Word {
             }
 
             if (sectionGroupStart < sectionCount) {
-                pageCounts[sectionGroupStart] = EstimateSectionContentPageCount(document, document.Sections[sectionGroupStart], sectionElements);
+                pageCounts[sectionGroupStart] = EstimateSectionContentPageCount(
+                    document,
+                    document.Sections[sectionGroupStart],
+                    sectionElements,
+                    cancellationToken,
+                    cancellationCheckpoint);
             }
 
             return pageCounts;
@@ -56,13 +72,17 @@ namespace OfficeIMO.Word {
                 .ToList();
         }
 
-        private static IReadOnlyList<WordSectionBodyElement> GetSectionBodyElementEntries(WordDocument document, int targetSectionIndex) {
+        private static IReadOnlyList<WordSectionBodyElement> GetSectionBodyElementEntries(
+            WordDocument document,
+            int targetSectionIndex,
+            CancellationToken cancellationToken = default) {
             int sectionCount = Math.Max(1, document.Sections.Count);
             int normalizedTarget = Math.Min(Math.Max(0, targetSectionIndex), sectionCount - 1);
             int sectionIndex = 0;
             var sectionElements = new List<WordSectionBodyElement>();
 
             foreach (OpenXmlElement element in document.BodyRoot.ChildElements) {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (element is SectionProperties) {
                     continue;
                 }
@@ -100,7 +120,13 @@ namespace OfficeIMO.Word {
             internal int SectionIndex { get; }
         }
 
-        private static int EstimateSectionContentPageCount(WordDocument document, WordSection section, IReadOnlyList<OpenXmlElement> sectionElements) {
+        private static int EstimateSectionContentPageCount(
+            WordDocument document,
+            WordSection section,
+            IReadOnlyList<OpenXmlElement> sectionElements,
+            CancellationToken cancellationToken,
+            Action<WordImageCancellationCheckpoint>? cancellationCheckpoint) {
+            cancellationToken.ThrowIfCancellationRequested();
             (double width, double height) = GetPageSizePoints(section);
             var drawing = new OfficeDrawing(width, height);
             WordHeaderFooterPageFrame headerFooterFrame = CreateHeaderFooterPageFrame(section, drawing, 0, document.Sections.IndexOf(section), 1, 0, 1, 1);
@@ -110,11 +136,14 @@ namespace OfficeIMO.Word {
                 int.MaxValue,
                 contentTop: headerFooterFrame.BodyTop,
                 contentBottom: headerFooterFrame.BodyBottom,
-                bodyFrameProvider: CreateBodyFrameProvider(section, drawing, document.Sections.IndexOf(section), 1, 1, 1, 0, headerFooterFrame));
+                bodyFrameProvider: CreateBodyFrameProvider(section, drawing, document.Sections.IndexOf(section), 1, 1, 1, 0, headerFooterFrame),
+                cancellationToken: cancellationToken,
+                cancellationCheckpoint: cancellationCheckpoint);
             IReadOnlyDictionary<WordParagraph, (int Level, string Marker)> listMarkers = DocumentTraversal.BuildListMarkers(document);
             var diagnostics = new List<OfficeImageExportDiagnostic>();
 
             for (int index = 0; index < sectionElements.Count; index++) {
+                cancellationToken.ThrowIfCancellationRequested();
                 OpenXmlElement element = sectionElements[index];
                 TryAdvanceForKeepWithNext(document, sectionElements, index, context, listMarkers);
                 if (context.StoppedForPagination) {

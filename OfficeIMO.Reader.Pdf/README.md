@@ -42,6 +42,12 @@ foreach (var chunk in reader.Read("manual.pdf")) {
     Console.WriteLine($"Page {chunk.Location.Page}: {chunk.Id}");
     Console.WriteLine(chunk.Markdown ?? chunk.Text);
 }
+
+OfficeDocumentReadResult document = reader.ReadDocument("manual.pdf");
+OfficeDocumentSearchResult matches = document.Search("installation");
+Console.WriteLine(string.Join(", ", matches.Hits
+    .SelectMany(hit => hit.Pages)
+    .Select(page => page.Display)));
 ```
 
 ### Read a stream with input limits
@@ -89,6 +95,7 @@ var chunks = reader.ReadFolder("KnowledgeBase", new ReaderFolderOptions {
 ## What it emits
 
 - Page-aware chunks with `ReaderLocation.Page`.
+- Native fixed-page membership and geometry compatible with Reader Core location, search, and page-Markdown helpers.
 - Markdown text, logical tables, column profiles, table diagnostics, and confidence signals.
 - Source/security/form/catalog-metadata/open-action/active-content counters in `ReaderChunk.Diagnostics`.
 - Document metadata for XMP, output intents, tagged structure, optional content/layers, attachments, security/signatures, navigation, links, forms, annotations, and passive actions.

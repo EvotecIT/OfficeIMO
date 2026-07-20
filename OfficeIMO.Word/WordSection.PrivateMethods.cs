@@ -1,6 +1,7 @@
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
 using System.Diagnostics;
+using System.Threading;
 using Ovml = DocumentFormat.OpenXml.Vml.Office;
 
 namespace OfficeIMO.Word {
@@ -626,8 +627,14 @@ namespace OfficeIMO.Word {
         /// <param name="document"></param>
         /// <param name="paragraph"></param>
         /// <param name="splitPaginationMarkers"></param>
+        /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        internal static List<WordParagraph> ConvertParagraphToWordParagraphs(WordDocument document, Paragraph paragraph, bool splitPaginationMarkers = false) {
+        internal static List<WordParagraph> ConvertParagraphToWordParagraphs(
+            WordDocument document,
+            Paragraph paragraph,
+            bool splitPaginationMarkers = false,
+            CancellationToken cancellationToken = default) {
+            cancellationToken.ThrowIfCancellationRequested();
             var list = new List<WordParagraph>();
             var childElements = paragraph.ChildElements;
             if (childElements.Count == 1 && childElements[0] is ParagraphProperties) {
@@ -638,6 +645,7 @@ namespace OfficeIMO.Word {
                 bool foundField = false;
 
                 void AddRun(Run run, Hyperlink? hyperlink = null) {
+                    cancellationToken.ThrowIfCancellationRequested();
                     WordParagraph wordParagraph;
                     IReadOnlyList<Run> logicalRuns = splitPaginationMarkers ? SplitRunByPaginationMarkers(run) : new[] { run };
                     if (logicalRuns.Count > 1) {
@@ -676,6 +684,7 @@ namespace OfficeIMO.Word {
                 }
 
                 void ProcessElement(OpenXmlElement element, Hyperlink? hyperlinkContext = null) {
+                    cancellationToken.ThrowIfCancellationRequested();
                     WordParagraph wordParagraph;
                     if (element is Run run) {
                         AddRun(run, hyperlinkContext);
@@ -738,6 +747,7 @@ namespace OfficeIMO.Word {
                     }
 
                     foreach (OpenXmlElement child in contentRun.ChildElements) {
+                        cancellationToken.ThrowIfCancellationRequested();
                         ProcessElement(child, hyperlinkContext);
                     }
 
@@ -750,6 +760,7 @@ namespace OfficeIMO.Word {
                     }
 
                     foreach (OpenXmlElement child in simpleField.ChildElements) {
+                        cancellationToken.ThrowIfCancellationRequested();
                         ProcessElement(child, hyperlinkContext);
                     }
 
@@ -763,6 +774,7 @@ namespace OfficeIMO.Word {
                     }
 
                     foreach (Run resultRun in resultRuns) {
+                        cancellationToken.ThrowIfCancellationRequested();
                         AddRun(resultRun, hyperlinkContext);
                     }
 
@@ -770,6 +782,7 @@ namespace OfficeIMO.Word {
                 }
 
                 foreach (var element in paragraph.ChildElements) {
+                    cancellationToken.ThrowIfCancellationRequested();
                     ProcessElement(element);
                 }
             } else {

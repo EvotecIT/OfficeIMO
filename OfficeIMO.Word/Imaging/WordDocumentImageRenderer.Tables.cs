@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
+using System.Threading;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Drawing;
@@ -14,6 +16,7 @@ namespace OfficeIMO.Word {
             List<OfficeImageExportDiagnostic> diagnostics,
             IReadOnlyDictionary<WordParagraph, (int Level, string Marker)>? listMarkers = null,
             bool allowNestedTable = false) {
+            context.ThrowIfCancellationRequested();
             List<WordTableRow> rows = table.Rows;
             if (rows.Count == 0) {
                 return false;
@@ -26,7 +29,12 @@ namespace OfficeIMO.Word {
 
             int columnCount = Math.Max(1, rows.Max(row => row.Cells.Count));
             double[] columnWidths = ResolveColumnWidths(table, columnCount, context.ContentWidth);
-            double[] rowHeights = ResolveRowHeights(rows, columnWidths, listMarkers);
+            double[] rowHeights = ResolveRowHeights(
+                rows,
+                columnWidths,
+                listMarkers,
+                context.CancellationToken,
+                context.CancellationCheckpoint);
             double tableHeight = rowHeights.Sum();
             double remainingHeight = Math.Max(0D, context.ContentBottom - context.Y);
             if ((tableHeight > remainingHeight || HasTableRowStartBreak(table, rows)) && context.CanAdvancePageForOverflow) {
@@ -42,6 +50,7 @@ namespace OfficeIMO.Word {
             double rowTop = context.Y;
             if (context.IsTargetPage) {
                 for (int rowIndex = 0; rowIndex < rows.Count; rowIndex++) {
+                    context.ThrowIfCancellationRequested();
                     AddTableRow(context, table, rows, rowIndex, tableLeft, rowTop, columnWidths, rowHeights, diagnostics, listMarkers);
                     rowTop += rowHeights[rowIndex];
                 }
@@ -63,6 +72,7 @@ namespace OfficeIMO.Word {
             double tableWidth = columnWidths.Sum();
             bool consumedRows = false;
             for (int rowIndex = 0; rowIndex < rows.Count; rowIndex++) {
+                context.ThrowIfCancellationRequested();
                 if (!TryAdvanceForTableRowStartPageBreak(table, rows, rowIndex, columnWidths, rowHeights, repeatingHeaderRowCount, tableWidth, context, diagnostics, listMarkers)) {
                     return consumedRows;
                 }
@@ -220,6 +230,7 @@ namespace OfficeIMO.Word {
 
             double tableLeft = ResolveTableLeft(table, context.Left, context.ContentWidth, tableWidth);
             for (int headerIndex = 0; headerIndex < repeatingHeaderRowCount; headerIndex++) {
+                context.ThrowIfCancellationRequested();
                 if (context.IsTargetPage) {
                     AddTableRow(context, table, rows, headerIndex, tableLeft, context.Y, columnWidths, rowHeights, diagnostics, listMarkers);
                 }
@@ -259,6 +270,7 @@ namespace OfficeIMO.Word {
             int columnIndex = 0;
 
             foreach (WordTableCell cell in row.GetCells(readOnly: true)) {
+                context.ThrowIfCancellationRequested();
                 int columnSpan = Math.Max(1, cell.ColumnSpan);
                 if (cell.HorizontalMerge == MergedCellValues.Continue || cell.VerticalMerge == MergedCellValues.Continue) {
                     columnIndex += columnSpan;
@@ -291,6 +303,7 @@ namespace OfficeIMO.Word {
             double height,
             List<OfficeImageExportDiagnostic> diagnostics,
             IReadOnlyDictionary<WordParagraph, (int Level, string Marker)>? listMarkers) {
+            context.ThrowIfCancellationRequested();
             A.ColorScheme? colorScheme = GetDocumentColorScheme(cell.Document);
             OfficeDrawing drawing = context.Drawing;
             drawing.AddBorderBox(
@@ -309,10 +322,20 @@ namespace OfficeIMO.Word {
             double contentBottom = top + Math.Max(1D, height - marginBottom);
             double contentLeft = left + marginLeft;
             double contentTop = top + marginTop;
-            double textTop = AddTableCellImages(cell, drawing, contentLeft, contentTop, contentWidth, contentBottom, diagnostics);
+            double textTop = AddTableCellImages(
+                cell,
+                drawing,
+                contentLeft,
+                contentTop,
+                contentWidth,
+                contentBottom,
+                diagnostics,
+                context.CancellationToken);
             textTop = Math.Max(textTop, AddNestedTables(cell, drawing, contentLeft, textTop, contentWidth, contentBottom, diagnostics, listMarkers, context));
 
-            List<List<WordParagraph>> paragraphRuns = CreateTableCellParagraphRuns(cell);
+            List<List<WordParagraph>> paragraphRuns = CreateTableCellParagraphRuns(
+                cell,
+                context.CancellationToken);
             if (paragraphRuns.Count > 1) {
                 AddTableCellParagraphFlow(
                     cell,
@@ -330,7 +353,10 @@ namespace OfficeIMO.Word {
                 return;
             }
 
-            string text = GetCellText(cell, context);
+            string text = GetCellText(
+                cell,
+                context,
+                context.CancellationToken);
             if (string.IsNullOrWhiteSpace(text)) {
                 return;
             }
@@ -346,7 +372,11 @@ namespace OfficeIMO.Word {
             bool textFlowAdvanced = textTop > contentTop + 0.000001D;
             double textBoxTop = textFlowAdvanced ? textTop - marginTop : top;
             double textBoxHeight = textFlowAdvanced ? Math.Max(1D, contentBottom - textBoxTop) : height;
-            List<OfficeRichTextRun> richRuns = CreateTableCellRichTextRuns(cell, colorScheme, context);
+            List<OfficeRichTextRun> richRuns = CreateTableCellRichTextRuns(
+                cell,
+                colorScheme,
+                context,
+                context.CancellationToken);
             if (ShouldRenderTableCellAsRichText(richRuns)) {
                 double maxFontSize = richRuns.Max(run => run.FontSize);
                 double lineHeight = Math.Max(maxFontSize * 1.25D, 12D);
@@ -407,9 +437,11 @@ namespace OfficeIMO.Word {
                 sectionNumber: parentContext?.SectionNumber ?? 1,
                 sectionPageCount: parentContext?.SectionPageCount ?? 1,
                 pageNumberValue: parentContext?.PageNumberValue ?? 0,
-                pageNumberText: parentContext?.PageNumberText);
+                pageNumberText: parentContext?.PageNumberText,
+                cancellationToken: parentContext?.CancellationToken ?? default);
 
             for (int i = 0; i < nestedTables.Count; i++) {
+                nestedContext.ThrowIfCancellationRequested();
                 AddTable(nestedTables[i], nestedContext, diagnostics, listMarkers, allowNestedTable: true);
                 if (nestedContext.StoppedForPagination) {
                     break;
@@ -422,10 +454,19 @@ namespace OfficeIMO.Word {
         private static bool ShouldRenderTableCellAsRichText(IReadOnlyList<OfficeRichTextRun> richRuns) =>
             richRuns.Count > 1 || richRuns.Any(run => run.BackgroundColor.HasValue);
 
-        private static List<OfficeRichTextRun> CreateTableCellRichTextRuns(WordTableCell cell, A.ColorScheme? colorScheme, WordImageFlowContext? context = null) {
+        private static List<OfficeRichTextRun> CreateTableCellRichTextRuns(
+            WordTableCell cell,
+            A.ColorScheme? colorScheme,
+            WordImageFlowContext? context = null,
+            CancellationToken cancellationToken = default) {
             var richRuns = new List<OfficeRichTextRun>();
             foreach (Paragraph paragraph in cell._tableCell.ChildElements.OfType<Paragraph>()) {
-                List<WordParagraph> paragraphRuns = WordSection.ConvertParagraphToWordParagraphs(cell.Document, paragraph, splitPaginationMarkers: true)
+                cancellationToken.ThrowIfCancellationRequested();
+                List<WordParagraph> paragraphRuns = WordSection.ConvertParagraphToWordParagraphs(
+                        cell.Document,
+                        paragraph,
+                        splitPaginationMarkers: true,
+                        cancellationToken)
                     .Where(run => !run.IsPageBreak && !run.IsColumnBreak)
                     .Where(run => !string.IsNullOrEmpty(run.Text))
                     .ToList();
@@ -438,6 +479,7 @@ namespace OfficeIMO.Word {
                 }
 
                 for (int runIndex = 0; runIndex < paragraphRuns.Count; runIndex++) {
+                    cancellationToken.ThrowIfCancellationRequested();
                     WordParagraph run = paragraphRuns[runIndex];
                     string text = ResolveImageExportText(run, context);
                     if (!string.IsNullOrEmpty(text)) {
@@ -456,7 +498,8 @@ namespace OfficeIMO.Word {
             double top,
             double contentWidth,
             double contentBottom,
-            List<OfficeImageExportDiagnostic> diagnostics) {
+            List<OfficeImageExportDiagnostic> diagnostics,
+            CancellationToken cancellationToken = default) {
             WordImageFlowContext imageContext = new WordImageFlowContext(
                 drawing,
                 left,
@@ -468,6 +511,7 @@ namespace OfficeIMO.Word {
                 "Skipped a Word image inside a rendered table cell because it does not fit within the cell content area.");
 
             foreach (WordParagraph paragraph in cell.Elements.OfType<WordParagraph>()) {
+                cancellationToken.ThrowIfCancellationRequested();
                 WordImage? image = paragraph.Image;
                 if (image != null) {
                     AddImage(image, imageContext, diagnostics);
@@ -510,10 +554,24 @@ namespace OfficeIMO.Word {
         private static double[] ResolveRowHeights(
             IReadOnlyList<WordTableRow> rows,
             IReadOnlyList<double> columnWidths,
-            IReadOnlyDictionary<WordParagraph, (int Level, string Marker)>? listMarkers) {
+            IReadOnlyDictionary<WordParagraph, (int Level, string Marker)>? listMarkers,
+            CancellationToken cancellationToken = default,
+            Action<WordImageCancellationCheckpoint>? cancellationCheckpoint = null,
+            bool signalNestedMeasurementProgress = false) {
             double[] rowHeights = new double[rows.Count];
             for (int i = 0; i < rows.Count; i++) {
-                rowHeights[i] = ResolveRowHeight(rows[i], columnWidths, listMarkers);
+                cancellationToken.ThrowIfCancellationRequested();
+                rowHeights[i] = ResolveRowHeight(
+                    rows[i],
+                    columnWidths,
+                    listMarkers,
+                    cancellationToken,
+                    cancellationCheckpoint);
+                if (i == 0 && signalNestedMeasurementProgress) {
+                    cancellationCheckpoint?.Invoke(
+                        WordImageCancellationCheckpoint.NestedTableMeasurement);
+                    cancellationToken.ThrowIfCancellationRequested();
+                }
             }
 
             return rowHeights;
@@ -522,10 +580,20 @@ namespace OfficeIMO.Word {
         private static double ResolveRowHeight(
             WordTableRow row,
             IReadOnlyList<double> columnWidths,
-            IReadOnlyDictionary<WordParagraph, (int Level, string Marker)>? listMarkers) {
+            IReadOnlyDictionary<WordParagraph, (int Level, string Marker)>? listMarkers,
+            CancellationToken cancellationToken,
+            Action<WordImageCancellationCheckpoint>? cancellationCheckpoint) {
+            cancellationToken.ThrowIfCancellationRequested();
             TableRowHeight? rowHeight = row._tableRow.TableRowProperties?.OfType<TableRowHeight>().FirstOrDefault();
             double explicitHeight = ResolveTableRowHeightPoints(rowHeight);
-            double estimatedHeight = Math.Max(MinimumTableRowHeightPoints, EstimateRowHeight(row, columnWidths, listMarkers));
+            double estimatedHeight = Math.Max(
+                MinimumTableRowHeightPoints,
+                EstimateRowHeight(
+                    row,
+                    columnWidths,
+                    listMarkers,
+                    cancellationToken,
+                    cancellationCheckpoint));
             if (explicitHeight <= 0D) {
                 return estimatedHeight;
             }
@@ -548,10 +616,14 @@ namespace OfficeIMO.Word {
         private static double EstimateRowHeight(
             WordTableRow row,
             IReadOnlyList<double> columnWidths,
-            IReadOnlyDictionary<WordParagraph, (int Level, string Marker)>? listMarkers) {
+            IReadOnlyDictionary<WordParagraph, (int Level, string Marker)>? listMarkers,
+            CancellationToken cancellationToken,
+            Action<WordImageCancellationCheckpoint>? cancellationCheckpoint) {
+            cancellationToken.ThrowIfCancellationRequested();
             double height = MinimumTableRowHeightPoints;
             int columnIndex = 0;
             foreach (WordTableCell cell in row.GetCells(readOnly: true)) {
+                cancellationToken.ThrowIfCancellationRequested();
                 int columnSpan = Math.Max(1, cell.ColumnSpan);
                 if (cell.HorizontalMerge == MergedCellValues.Continue || cell.VerticalMerge == MergedCellValues.Continue) {
                     columnIndex += columnSpan;
@@ -562,10 +634,23 @@ namespace OfficeIMO.Word {
                 WordParagraph? firstParagraph = cell.Paragraphs.FirstOrDefault(paragraph => !string.IsNullOrWhiteSpace(paragraph.Text));
                 OfficeFontInfo font = firstParagraph == null ? OfficeFontInfo.Default : CreateFont(firstParagraph);
                 double lineHeight = Math.Max(font.Size * 1.25D, 12D);
-                double imageHeight = EstimateCellImageHeight(cell);
-                double nestedTableHeight = EstimateCellNestedTableHeight(cell, width);
-                List<List<WordParagraph>> paragraphRuns = CreateTableCellParagraphRuns(cell);
-                double textHeight = EstimateTableCellTextHeight(cell, paragraphRuns, font.Size, width, lineHeight, listMarkers);
+                double imageHeight = EstimateCellImageHeight(cell, cancellationToken);
+                double nestedTableHeight = EstimateCellNestedTableHeight(
+                    cell,
+                    width,
+                    cancellationToken,
+                    cancellationCheckpoint);
+                List<List<WordParagraph>> paragraphRuns = CreateTableCellParagraphRuns(
+                    cell,
+                    cancellationToken);
+                double textHeight = EstimateTableCellTextHeight(
+                    cell,
+                    paragraphRuns,
+                    font.Size,
+                    width,
+                    lineHeight,
+                    listMarkers,
+                    cancellationToken);
                 double stackedHeight = imageHeight + nestedTableHeight + textHeight;
                 height = Math.Max(height, stackedHeight + ToPoints(cell.MarginTopWidth, DefaultCellMarginPoints) + ToPoints(cell.MarginBottomWidth, DefaultCellMarginPoints));
                 columnIndex += columnSpan;
@@ -574,17 +659,33 @@ namespace OfficeIMO.Word {
             return height;
         }
 
-        private static double EstimateCellNestedTableHeight(WordTableCell cell, double availableWidth) {
+        private static double EstimateCellNestedTableHeight(
+            WordTableCell cell,
+            double availableWidth,
+            CancellationToken cancellationToken,
+            Action<WordImageCancellationCheckpoint>? cancellationCheckpoint) {
             double height = 0D;
             List<WordTable> nestedTables = GetDirectNestedTables(cell);
             for (int i = 0; i < nestedTables.Count; i++) {
-                height += EstimateTableHeight(nestedTables[i], availableWidth) + ParagraphGapPoints;
+                cancellationToken.ThrowIfCancellationRequested();
+                height += EstimateTableHeight(
+                    nestedTables[i],
+                    availableWidth,
+                    cancellationToken,
+                    cancellationCheckpoint,
+                    signalNestedMeasurementProgress: true) + ParagraphGapPoints;
             }
 
             return Math.Max(0D, height - ParagraphGapPoints);
         }
 
-        private static double EstimateTableHeight(WordTable table, double availableWidth) {
+        private static double EstimateTableHeight(
+            WordTable table,
+            double availableWidth,
+            CancellationToken cancellationToken = default,
+            Action<WordImageCancellationCheckpoint>? cancellationCheckpoint = null,
+            bool signalNestedMeasurementProgress = false) {
+            cancellationToken.ThrowIfCancellationRequested();
             List<WordTableRow> rows = table.Rows;
             if (rows.Count == 0) {
                 return 0D;
@@ -592,12 +693,21 @@ namespace OfficeIMO.Word {
 
             int columnCount = Math.Max(1, rows.Max(row => row.Cells.Count));
             double[] columnWidths = ResolveColumnWidths(table, columnCount, availableWidth);
-            return ResolveRowHeights(rows, columnWidths, listMarkers: null).Sum();
+            return ResolveRowHeights(
+                rows,
+                columnWidths,
+                listMarkers: null,
+                cancellationToken,
+                cancellationCheckpoint,
+                signalNestedMeasurementProgress).Sum();
         }
 
-        private static double EstimateCellImageHeight(WordTableCell cell) {
+        private static double EstimateCellImageHeight(
+            WordTableCell cell,
+            CancellationToken cancellationToken) {
             double height = 0D;
             foreach (WordParagraph paragraph in cell.Elements.OfType<WordParagraph>()) {
+                cancellationToken.ThrowIfCancellationRequested();
                 WordImage? image = paragraph.Image;
                 if (image == null) {
                     continue;
@@ -621,12 +731,27 @@ namespace OfficeIMO.Word {
             return contentLeft;
         }
 
-        private static string GetCellText(WordTableCell cell, WordImageFlowContext? context = null) =>
-            string.Join(
-                "\n",
-                CreateTableCellParagraphRuns(cell)
-                    .Select(runs => string.Concat(runs.Select(run => ResolveImageExportText(run, context))))
-                    .Where(text => !string.IsNullOrWhiteSpace(text)));
+        private static string GetCellText(
+            WordTableCell cell,
+            WordImageFlowContext? context = null,
+            CancellationToken cancellationToken = default) {
+            var paragraphs = new List<string>();
+            foreach (IReadOnlyList<WordParagraph> runs in CreateTableCellParagraphRuns(
+                         cell,
+                         cancellationToken)) {
+                cancellationToken.ThrowIfCancellationRequested();
+                var builder = new StringBuilder();
+                foreach (WordParagraph run in runs) {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    builder.Append(ResolveImageExportText(run, context));
+                }
+                string text = builder.ToString();
+                if (!string.IsNullOrWhiteSpace(text)) {
+                    paragraphs.Add(text);
+                }
+            }
+            return string.Join("\n", paragraphs);
+        }
 
         private static List<WordTable> GetDirectNestedTables(WordTableCell cell) =>
             cell._tableCell.ChildElements
