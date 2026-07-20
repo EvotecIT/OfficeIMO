@@ -182,9 +182,9 @@ public partial class Excel {
             ExcelSheet sheet = document.Sheets[0];
             sheet.Cell(1, 1, "Label");
             sheet.Cell(1, 2, "Visual");
-            sheet.Cell(2, 1, "BeforeImageRow");
-            sheet.Cell(3, 1, "AnchoredImageRow");
-            sheet.Cell(4, 1, "AfterImageRow");
+            sheet.Cell(2, 1, "BeforeRow");
+            sheet.Cell(3, 1, "AnchorRow");
+            sheet.Cell(4, 1, "AfterRow");
             sheet.AddImage(3, 2, imageBytes, "image/png", widthPixels: 72, heightPixels: 72, name: "Anchored Cell Image");
             document.Save();
 
@@ -198,9 +198,9 @@ public partial class Excel {
 
         using PdfPigDocument pdf = PdfPigDocument.Open(new MemoryStream(bytes));
         UglyToad.PdfPig.Content.Page page = pdf.GetPage(1);
-        double beforeRowY = FindWordStartY(page, "BeforeImageRow");
-        double anchoredRowY = FindWordStartY(page, "AnchoredImageRow");
-        double afterRowY = FindWordStartY(page, "AfterImageRow");
+        double beforeRowY = FindWordStartY(page, "BeforeRow");
+        double anchoredRowY = FindWordStartY(page, "AnchorRow");
+        double afterRowY = FindWordStartY(page, "AfterRow");
 
         double gapBeforeAnchoredRow = beforeRowY - anchoredRowY;
         double gapAfterAnchoredRow = anchoredRowY - afterRowY;

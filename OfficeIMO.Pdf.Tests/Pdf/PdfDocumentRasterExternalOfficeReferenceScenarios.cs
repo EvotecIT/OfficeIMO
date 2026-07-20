@@ -173,8 +173,13 @@ public partial class PdfDocumentRasterVisualBaselineTests {
         return corpus ?? throw new InvalidOperationException("Could not deserialize the external Office reference corpus metadata.");
     }
 
-    private static string ComputeSha256(string path) =>
-        Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(path))).ToLowerInvariant();
+    private static string ComputeSha256(string path) {
+        using SHA256 sha256 = SHA256.Create();
+        using FileStream stream = File.OpenRead(path);
+        return BitConverter.ToString(sha256.ComputeHash(stream))
+            .Replace("-", string.Empty)
+            .ToLowerInvariant();
+    }
 
     private sealed class ReferenceCorpus {
         public ReferenceProducerEnvironment ProducerEnvironment { get; set; } = new();

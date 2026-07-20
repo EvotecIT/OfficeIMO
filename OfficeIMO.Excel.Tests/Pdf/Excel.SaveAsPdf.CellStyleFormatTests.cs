@@ -102,6 +102,7 @@ public partial class Excel {
             document.Save();
 
             bytes = document.ToPdf(new ExcelPdfSaveOptions {
+                PdfOptions = CreateNamedGeorgiaPdfOptions(),
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 0,
                 PageSize = new PdfCore.PageSize(360, 220),
@@ -182,6 +183,7 @@ public partial class Excel {
             document.Save();
 
             bytes = document.ToPdf(new ExcelPdfSaveOptions {
+                PdfOptions = CreateNamedGeorgiaPdfOptions(),
                 FontFamily = "Times New Roman",
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 0,
@@ -199,6 +201,12 @@ public partial class Excel {
         AssertRawPdfContainsAnyBaseFont(rawPdf, "Times");
         AssertRawPdfContainsAnyBaseFont(rawPdf, "Georgia");
     }
+
+    private static PdfCore.PdfOptions CreateNamedGeorgiaPdfOptions() =>
+        new PdfCore.PdfOptions()
+            .RegisterNamedFontFamily(new PdfCore.PdfEmbeddedFontFamily(
+                "Georgia",
+                OfficeIMO.TestAssets.PdfTestFontAssets.LoadBundledOpenTypeCffFont()));
 
     [Fact]
     public void SaveAsPdf_ExcelWorkbook_Maps_Conditional_ColorScale_Fills() {

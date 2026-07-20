@@ -428,6 +428,10 @@ namespace OfficeIMO.Excel.Pdf {
             if (style.Font.HasValue) {
                 header.Font(style.Font.Value);
             }
+
+            if (!string.IsNullOrWhiteSpace(style.FontFamilyName)) {
+                header.FontFamily(style.FontFamilyName!);
+            }
         }
 
         private static void ApplyHeaderFooterStyle(PdfCore.PdfFooterCompose footer, HeaderFooterLineStyle? style) {
@@ -445,6 +449,10 @@ namespace OfficeIMO.Excel.Pdf {
 
             if (style.Font.HasValue) {
                 footer.Font(style.Font.Value);
+            }
+
+            if (!string.IsNullOrWhiteSpace(style.FontFamilyName)) {
+                footer.FontFamily(style.FontFamilyName!);
             }
         }
 
@@ -548,11 +556,12 @@ namespace OfficeIMO.Excel.Pdf {
             }
 
             string[] parts = token.Split(new[] { ',' }, 2);
-            if (!PdfCore.PdfStandardFontMapper.TryMapFontFamily(parts[0], out PdfCore.PdfStandardFont family)) {
-                return false;
+            string familyName = parts[0].Trim();
+            if (PdfCore.PdfStandardFontMapper.TryMapFontFamily(familyName, out PdfCore.PdfStandardFont family)) {
+                style.FontFamily = family;
             }
 
-            style.FontFamily = family;
+            style.FontFamilyName = familyName;
             if (parts.Length > 1) {
                 string fontStyle = parts[1];
                 style.Bold = fontStyle.IndexOf("bold", StringComparison.OrdinalIgnoreCase) >= 0;

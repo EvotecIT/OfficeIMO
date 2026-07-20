@@ -93,7 +93,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(scenario.ExpectedPageCount, pdfInfo.PageCount);
         string normalizedPdfText = NormalizeCorpusWhitespace(pdfText);
         foreach (string marker in scenario.TextMarkers) {
-            foreach (string searchableToken in NormalizeCorpusWhitespace(marker).Split(' ', StringSplitOptions.RemoveEmptyEntries)) {
+            foreach (string searchableToken in NormalizeCorpusWhitespace(marker).Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries)) {
                 Assert.Contains(searchableToken, normalizedPdfText, StringComparison.Ordinal);
             }
         }

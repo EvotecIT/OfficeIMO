@@ -159,6 +159,47 @@ public partial class Excel {
     }
 
     [Fact]
+    public void SaveAsPdf_ExcelWorkbook_Uses_Registered_Named_HeaderFooter_Fonts() {
+        const string familyName = "Studio Serif";
+        string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfHeaderFooterNamedFont.xlsx");
+        var options = new ExcelPdfSaveOptions {
+            PdfOptions = new PdfCore.PdfOptions {
+                    CompressContentStreams = false
+                }
+                .RegisterNamedFontFamily(new PdfCore.PdfEmbeddedFontFamily(
+                    familyName,
+                    OfficeIMO.TestAssets.PdfTestFontAssets.LoadBundledOpenTypeCffFont())),
+            IncludeSheetHeadings = false,
+            HeaderRowCount = 0,
+            PageSize = new PdfCore.PageSize(420, 320),
+            Margins = PdfCore.PageMargins.Uniform(54)
+        };
+
+        byte[] bytes;
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "NamedFont")) {
+            ExcelSheet sheet = document.Sheets[0];
+            sheet.Cell(1, 1, "NamedHeaderFooterBody");
+            sheet.SetHeaderFooter(
+                headerCenter: "&\"Studio Serif,Bold\"Named Header",
+                footerCenter: "&\"Studio Serif,Italic\"Named Footer");
+            document.Save();
+
+            bytes = document.ToPdf(options);
+        }
+
+        using PdfPigDocument pdf = PdfPigDocument.Open(new MemoryStream(bytes));
+        string text = pdf.GetPage(1).Text;
+        Assert.Contains("Named Header", text);
+        Assert.Contains("Named Footer", text);
+        Assert.Contains("NamedHeaderFooterBody", text);
+
+        string rawPdf = Encoding.ASCII.GetString(bytes);
+        Assert.Contains("/BaseFont /StudioSerif-Bold", rawPdf, StringComparison.Ordinal);
+        Assert.Contains("/BaseFont /StudioSerif-Italic", rawPdf, StringComparison.Ordinal);
+        Assert.DoesNotContain(options.Warnings, warning => warning.Feature == "WorksheetFontSubstitution");
+    }
+
+    [Fact]
     public void SaveAsPdf_ExcelWorkbook_DoesNotReserve_Escaped_HeaderFooter_Font_Tokens() {
         string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfHeaderFooterEscapedFontToken.xlsx");
 

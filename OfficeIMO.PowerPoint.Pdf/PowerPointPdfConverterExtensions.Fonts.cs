@@ -279,6 +279,10 @@ public static partial class PowerPointPdfConverterExtensions {
         int slideNumber,
         bool reportSubstitution = true) {
         if (PdfCore.PdfOptions.TryAddOfficeFontFamilyKey(familyName, registeredFamilies, normalizeKey: null, out string trimmedFamilyName)) {
+            if (pdfOptions.HasNamedFontFamily(trimmedFamilyName)) {
+                return;
+            }
+
             bool embedSystemFont = options.ResourcePolicy.AllowSystemFontEmbedding;
             if (embedSystemFont && pdfOptions.TryRegisterNamedOfficeFontFamily(trimmedFamilyName, out _)) {
                 return;

@@ -1346,6 +1346,9 @@ public class PowerPointSaveAsPdfTests {
             PdfOptions = new PdfCore.PdfOptions {
                 DefaultFont = PdfCore.PdfStandardFont.TimesRoman
             }
+                .RegisterNamedFontFamily(new PdfCore.PdfEmbeddedFontFamily(
+                    "Georgia",
+                    OfficeIMO.TestAssets.PdfTestFontAssets.LoadBundledOpenTypeCffFont()))
         });
 
         string raw = Encoding.ASCII.GetString(bytes);
