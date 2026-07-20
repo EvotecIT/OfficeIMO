@@ -268,6 +268,7 @@ internal static partial class PdfWriter {
             int headerFooterVariantPageNumber = pageNumberInfo.VariantPageNumber;
             int headerFooterPageNumber = pageNumberInfo.PageNumber;
             int headerFooterTotalPages = pageNumberInfo.TotalPages;
+            string pageLayoutContent = layout.ReadContent(page.Content);
             var pageFontResources = new Dictionary<PdfStandardFont, string>();
             var pageNamedFontResources = new Dictionary<PdfNamedFontFace, string>();
             string EnsurePageFontResource(PdfStandardFont font, string preferredAlias) {
@@ -286,20 +287,45 @@ internal static partial class PdfWriter {
                 EnsureFont(font, pageOpts);
                 return alias;
             }
+            bool LayoutUsesFontResource(string resourceName) {
+                string qualifiedName = "/" + resourceName;
+                if (UsesPdfResource(pageLayoutContent, qualifiedName)) {
+                    return true;
+                }
+
+                foreach (PageEffectGroup effect in page.EffectGroups) {
+                    if (UsesPdfResource(layout.ReadContent(effect.Content), qualifiedName)) {
+                        return true;
+                    }
+                }
+
+                return false;
+            }
 
             var normalFont = ChooseNormal(pageOpts.DefaultFont);
-            EnsurePageFontResource(normalFont, "F1");
-            if (page.UsedBold) {
-                var boldFont = ChooseBold(normalFont);
-                EnsurePageFontResource(boldFont, "F2");
+            if (page.UsedFonts.Count > 0) {
+                EnsurePageFontResource(normalFont, "F1");
+                if (page.UsedBold) {
+                    EnsurePageFontResource(ChooseBold(normalFont), "F2");
+                }
+                if (page.UsedItalic) {
+                    EnsurePageFontResource(ChooseItalic(normalFont), "F3");
+                }
+                if (page.UsedBoldItalic) {
+                    EnsurePageFontResource(ChooseBoldItalic(normalFont), "F4");
+                }
             }
-            if (page.UsedItalic) {
-                var italicFont = ChooseItalic(normalFont);
-                EnsurePageFontResource(italicFont, "F3");
+            if (LayoutUsesFontResource("F1")) {
+                EnsurePageFontResource(normalFont, "F1");
             }
-            if (page.UsedBoldItalic) {
-                var biFont = ChooseBoldItalic(normalFont);
-                EnsurePageFontResource(biFont, "F4");
+            if (LayoutUsesFontResource("F2")) {
+                EnsurePageFontResource(ChooseBold(normalFont), "F2");
+            }
+            if (LayoutUsesFontResource("F3")) {
+                EnsurePageFontResource(ChooseItalic(normalFont), "F3");
+            }
+            if (LayoutUsesFontResource("F4")) {
+                EnsurePageFontResource(ChooseBoldItalic(normalFont), "F4");
             }
             foreach (PdfStandardFont usedFont in page.UsedFonts) {
                 EnsurePageFontResource(usedFont, GetStandardFontResourceName(usedFont, normalFont));
@@ -339,12 +365,22 @@ internal static partial class PdfWriter {
 
             string? headerFontAlias = null;
             if (pageOpts.HasHeaderTextContentForPage(headerFooterVariantPageNumber)) {
-                headerFontAlias = EnsurePageFontResource(pageOpts.HeaderFont, "F5");
+                if (TryResolvePageTextNamedFont(pageOpts, pageOpts.HeaderFontFamily, pageOpts.HeaderFont, out PdfNamedFontFace headerNamedFont)) {
+                    EnsurePageNamedFontResource(headerNamedFont);
+                    headerFontAlias = headerNamedFont.ResourceName;
+                } else {
+                    headerFontAlias = EnsurePageFontResource(pageOpts.HeaderFont, "F5");
+                }
                 EnsurePageTextFontResources(pageOpts, headerFooterVariantPageNumber, headerFooterPageNumber, headerFooterTotalPages, totalPages, pageOpts.HeaderFont, pageOpts.HeaderFontSize, isHeader: true, EnsurePageFontResource, EnsurePageNamedFontResource);
             }
             string? footerFontAlias = null;
             if (pageOpts.HasFooterTextContentForPage(headerFooterVariantPageNumber)) {
-                footerFontAlias = EnsurePageFontResource(pageOpts.FooterFont, "F6");
+                if (TryResolvePageTextNamedFont(pageOpts, pageOpts.FooterFontFamily, pageOpts.FooterFont, out PdfNamedFontFace footerNamedFont)) {
+                    EnsurePageNamedFontResource(footerNamedFont);
+                    footerFontAlias = footerNamedFont.ResourceName;
+                } else {
+                    footerFontAlias = EnsurePageFontResource(pageOpts.FooterFont, "F6");
+                }
                 EnsurePageTextFontResources(pageOpts, headerFooterVariantPageNumber, headerFooterPageNumber, headerFooterTotalPages, totalPages, pageOpts.FooterFont, pageOpts.FooterFontSize, isHeader: false, EnsurePageFontResource, EnsurePageNamedFontResource);
             }
 
@@ -457,7 +493,7 @@ internal static partial class PdfWriter {
                 string headerContent = BuildHeader(pageOpts, headerFooterVariantPageNumber, headerFooterPageNumber, headerFooterTotalPages, totalPages, pageOpts.HeaderFont, headerFontAlias!, pageFontResources, pageNamedFontResources);
                 contentStr += WrapArtifactContent(headerContent, markInfo);
             }
-            string pageContent = ReplaceInlineImageDrawTokens(layout.ReadContent(page.Content), page.Images);
+            string pageContent = ReplaceInlineImageDrawTokens(pageLayoutContent, page.Images);
             contentStr += ReplaceInlineEffectGroupTokens(pageContent, page.EffectGroups, page.EffectGroups.Count);
             if (page.Images.Count > 0) {
                 var sbImgs = new StringBuilder();

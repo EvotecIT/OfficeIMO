@@ -281,6 +281,8 @@ namespace OfficeIMO.Excel.Pdf {
                 workbookSheet?.DefaultRowHeight is double defaultRowHeight && defaultRowHeight > 0D ? defaultRowHeight : 15D,
                 workbookSheet?.GetColumnDefinitions() ?? Array.Empty<ExcelColumnSnapshot>(),
                 workbookSheet?.GetRowDefinitions() ?? Array.Empty<ExcelRowSnapshot>(),
+                options.UseWorksheetColumnWidths,
+                options.UseWorksheetRowHeights,
                 options.RespectWorksheetHiddenRowsAndColumns);
         }
 

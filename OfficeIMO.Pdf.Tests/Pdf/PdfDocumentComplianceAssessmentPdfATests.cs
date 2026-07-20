@@ -56,14 +56,13 @@ public partial class PdfDocumentComplianceAssessmentTests {
 
     [Fact]
     public void AssessComplianceIncludesNamedFontResourcesInEmbeddedCoverage() {
-        string? fontPath = PdfComplianceTestFonts.FindLocalTrueTypeFont();
+        string? fontPath = PdfComplianceTestFonts.FindBundledOpenTypeCffFont();
         if (fontPath == null) {
             return;
         }
 
         byte[] fontData = File.ReadAllBytes(fontPath);
         var options = CreatePdfA3GroundworkOptions()
-            .EmbedStandardFont(PdfStandardFont.Helvetica, fontData, "HelveticaAudit")
             .RegisterNamedFontFamily(new PdfEmbeddedFontFamily("Named Compliance", fontData));
         PdfDocument document = PdfDocument.Create(options)
             .Paragraph(paragraph => paragraph

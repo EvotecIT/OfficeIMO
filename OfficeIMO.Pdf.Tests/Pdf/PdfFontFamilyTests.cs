@@ -12,6 +12,29 @@ namespace OfficeIMO.Tests.Pdf;
 
 public class PdfFontFamilyTests {
     [Fact]
+    public void NamedFontOnlyPage_DoesNotEmitUnusedStandardFontResources() {
+        string? fontPath = PdfComplianceTestFonts.FindBundledOpenTypeCffFont();
+        if (fontPath == null) {
+            return;
+        }
+
+        const string familyName = "Named Only";
+        var options = new PdfOptions {
+            CompressContentStreams = false
+        }.RegisterNamedFontFamily(new PdfEmbeddedFontFamily(familyName, File.ReadAllBytes(fontPath)));
+
+        byte[] bytes = PdfDocument.Create(options)
+            .Paragraph(paragraph => paragraph
+                .FontFamily(familyName)
+                .Text("Only the registered family is used."))
+            .ToBytes();
+
+        string raw = Encoding.ASCII.GetString(bytes);
+        Assert.Contains("/BaseFont /NamedOnly-Regular", raw, StringComparison.Ordinal);
+        Assert.DoesNotContain("/BaseFont /Helvetica", raw, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void NamedFontFamilies_RenderPageTextAndListMarkersAcrossFlowPaths() {
         string? fontPath = PdfComplianceTestFonts.FindLocalTrueTypeFont();
         if (fontPath == null) {

@@ -135,6 +135,8 @@ namespace OfficeIMO.Excel.Pdf {
                 double defaultRowHeight,
                 IReadOnlyList<ExcelColumnSnapshot> columns,
                 IReadOnlyList<ExcelRowSnapshot> rows,
+                bool useWorksheetColumnWidths,
+                bool useWorksheetRowHeights,
                 bool respectHiddenRowsAndColumns) {
                 FirstRow = firstRow;
                 FirstColumn = firstColumn;
@@ -144,6 +146,8 @@ namespace OfficeIMO.Excel.Pdf {
                 DefaultRowHeight = defaultRowHeight;
                 Columns = columns;
                 Rows = rows;
+                UseWorksheetColumnWidths = useWorksheetColumnWidths;
+                UseWorksheetRowHeights = useWorksheetRowHeights;
                 RespectHiddenRowsAndColumns = respectHiddenRowsAndColumns;
             }
 
@@ -155,6 +159,8 @@ namespace OfficeIMO.Excel.Pdf {
             public double DefaultRowHeight { get; }
             public IReadOnlyList<ExcelColumnSnapshot> Columns { get; }
             public IReadOnlyList<ExcelRowSnapshot> Rows { get; }
+            public bool UseWorksheetColumnWidths { get; }
+            public bool UseWorksheetRowHeights { get; }
             public bool RespectHiddenRowsAndColumns { get; }
         }
 

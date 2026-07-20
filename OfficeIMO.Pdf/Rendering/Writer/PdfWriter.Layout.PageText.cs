@@ -144,7 +144,11 @@ internal static partial class PdfWriter {
         foreach (var zone in zoneLayouts) {
             string? fontFamily = isHeader ? opts.HeaderFontFamily : opts.FooterFontFamily;
             System.Collections.Generic.IReadOnlyList<TextRun> runs = BuildPageTextRuns(zone.Text, font, fontSize, color, opts, fontFamily);
-            AppendPageTextRuns(sb, runs, font, ResolvePageTextFontResource(fontResources, font), fontResources, namedFontResources, fontSize, color, zone.X, y, opts, zone.TextWidth, zone.Align);
+            PdfNamedFontFace? namedFont = TryResolvePageTextNamedFont(opts, fontFamily, font, out PdfNamedFontFace resolvedNamedFont)
+                ? resolvedNamedFont
+                : null;
+            string baseFontResource = ResolvePageTextFontResource(fontResources, namedFontResources, font, namedFont);
+            AppendPageTextRuns(sb, runs, font, baseFontResource, fontResources, namedFontResources, fontSize, color, zone.X, y, opts, zone.TextWidth, zone.Align);
         }
 
         return sb.ToString();

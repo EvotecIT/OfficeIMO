@@ -323,7 +323,10 @@ namespace OfficeIMO.Excel.Pdf {
                     return 0D;
                 }
 
-                if (definition.CustomWidth && definition.Width is double customWidth && customWidth > 0D) {
+                if (geometry.UseWorksheetColumnWidths &&
+                    definition.CustomWidth &&
+                    definition.Width is double customWidth &&
+                    customWidth > 0D) {
                     width = customWidth;
                 }
                 break;
@@ -344,7 +347,10 @@ namespace OfficeIMO.Excel.Pdf {
                     return 0D;
                 }
 
-                return definition.CustomHeight && definition.Height is double customHeight && customHeight > 0D
+                return geometry.UseWorksheetRowHeights &&
+                       definition.CustomHeight &&
+                       definition.Height is double customHeight &&
+                       customHeight > 0D
                     ? customHeight
                     : geometry.DefaultRowHeight;
             }
